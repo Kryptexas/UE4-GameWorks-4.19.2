@@ -13,6 +13,48 @@ FMovieSceneColorTrackInstance::FMovieSceneColorTrackInstance( UMovieSceneColorTr
 	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( ColorTrack->GetPropertyName(), ColorTrack->GetPropertyPath() ) );
 }
 
+void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+{
+	for( UObject* Object : RuntimeObjects )
+	{
+		if( ColorTrack->IsSlateColor() )
+		{
+			FSlateColor ColorValue = PropertyBindings->GetCurrentValue<FSlateColor>(Object);
+			InitSlateColorMap.Add(Object, ColorValue);
+		}
+		else
+		{
+			FLinearColor ColorValue = PropertyBindings->GetCurrentValue<FLinearColor>(Object);
+			InitLinearColorMap.Add(Object, ColorValue);
+		}
+	}
+}
+
+void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+{
+	for( UObject* Object : RuntimeObjects )
+	{
+		if( ColorTrack->IsSlateColor() )
+		{
+			FSlateColor *ColorValue = InitSlateColorMap.Find(Object);
+			if (ColorValue != NULL)
+			{
+				PropertyBindings->CallFunction(Object, ColorValue);
+			}
+		}
+		else
+		{
+			FLinearColor *ColorValue = InitLinearColorMap.Find(Object);
+			if (ColorValue != NULL)
+			{
+				PropertyBindings->CallFunction(Object, ColorValue);
+			}
+		}
+	}
+
+	PropertyBindings->UpdateBindings( RuntimeObjects );
+}
+
 void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	for(UObject* Object : RuntimeObjects)

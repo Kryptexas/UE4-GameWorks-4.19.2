@@ -49,6 +49,11 @@ public:
 	 */
 	void InitSequencer( const FSequencerInitParams& InitParams, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates );
 
+	/** 
+	* Closes the sequencer
+	*/
+	void OnClose();
+
 	/** Constructor */
 	FSequencer();
 
@@ -340,6 +345,12 @@ protected:
 	// End of FEditorUndoClient
 
 	void OnSectionSelectionChanged();
+
+	/** Called before the world is going to be saved. The sequencer puts everything back to its initial state. */
+	void OnPreSaveWorld(uint32 SaveFlags, class UWorld* World);
+
+	/** Called after the world has been saved. The sequencer updates to the animated state. */
+	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
 
 private:
 	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;

@@ -9,6 +9,57 @@ FMovieScene3DTransformTrackInstance::FMovieScene3DTransformTrackInstance( UMovie
 	TransformTrack = &InTransformTrack;
 }
 
+namespace
+{
+
+USceneComponent* SceneComponentFromRuntimeObject(UObject* Object)
+{
+	AActor* Actor = Cast<AActor>(Object);
+
+	USceneComponent* SceneComponent = NULL;
+	if (Actor && Actor->GetRootComponent())
+	{
+		// If there is an actor, modify its root component
+		SceneComponent = Actor->GetRootComponent();
+	}
+	else
+	{
+		// No actor was found.  Attempt to get the object as a component in the case that we are editing them directly.
+		SceneComponent = Cast<USceneComponent>(Object);
+	}
+	return SceneComponent;
+}
+
+}
+
+void FMovieScene3DTransformTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+{
+	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+	{
+		USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+		if (SceneComponent != NULL)
+		{
+			InitTransformMap.Add(RuntimeObjects[ObjIndex], SceneComponent->GetRelativeTransform());
+		}
+	}
+}
+
+void FMovieScene3DTransformTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+{
+	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+	{
+		USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+		if (SceneComponent != NULL)
+		{
+			FTransform *Transform = InitTransformMap.Find(RuntimeObjects[ObjIndex]);
+			if (Transform != NULL)
+			{
+				SceneComponent->SetRelativeTransform(*Transform);
+			}
+		}
+	}
+}
+
 void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	FVector Translation;
@@ -22,30 +73,19 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 	{
 		for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
 		{
-			UObject* Object = RuntimeObjects[ObjIndex];
+			USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 
-			AActor* Actor = Cast<AActor>( Object );
-
-			USceneComponent* SceneComponent = NULL;
-			if( Actor && Actor->GetRootComponent() )
+			if (SceneComponent != NULL)
 			{
-				// If there is an actor, modify its root component
-				SceneComponent = Actor->GetRootComponent();
-			}
-			else
-			{
-				// No actor was found.  Attempt to get the object as a component in the case that we are editing them directly.
-				SceneComponent = Cast<USceneComponent>( Object );
-			}
+				// Set the relative translation and rotation.  Note they are set once instead of individually to avoid a redundant component transform update.
+				SceneComponent->SetRelativeLocationAndRotation(
+					bHasTranslationKeys ? Translation : SceneComponent->RelativeLocation,
+					bHasRotationKeys ? Rotation : SceneComponent->RelativeRotation );
 
-			// Set the relative translation and rotation.  Note they are set once instead of individually to avoid a redundant component transform update.
-			SceneComponent->SetRelativeLocationAndRotation(
-				bHasTranslationKeys ? Translation : SceneComponent->RelativeLocation,
-				bHasRotationKeys ? Rotation : SceneComponent->RelativeRotation );
-
-			if( bHasScaleKeys )
-			{
-				SceneComponent->SetRelativeScale3D( Scale );
+				if( bHasScaleKeys )
+				{
+					SceneComponent->SetRelativeScale3D( Scale );
+				}
 			}
 		}
 	}

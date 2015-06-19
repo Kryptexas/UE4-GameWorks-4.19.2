@@ -8,6 +8,34 @@ FMovieSceneInstance::FMovieSceneInstance( UMovieScene& InMovieScene )
 {
 }
 
+void FMovieSceneInstance::SaveState()
+{
+	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
+	for (; ObjectIt; ++ObjectIt)
+	{
+		FMovieSceneObjectBindingInstance& ObjectBindingInstance = ObjectIt.Value();
+
+		for (FMovieSceneInstanceMap::TIterator It = ObjectBindingInstance.TrackInstances.CreateIterator(); It; ++It)
+		{
+			It.Value()->SaveState(ObjectBindingInstance.RuntimeObjects);
+		}
+	}
+}
+
+void FMovieSceneInstance::RestoreState()
+{
+	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
+	for (; ObjectIt; ++ObjectIt)
+	{
+		FMovieSceneObjectBindingInstance& ObjectBindingInstance = ObjectIt.Value();
+
+		for (FMovieSceneInstanceMap::TIterator It = ObjectBindingInstance.TrackInstances.CreateIterator(); It; ++It)
+		{
+			It.Value()->RestoreState(ObjectBindingInstance.RuntimeObjects);
+		}
+	}
+}
+
 void FMovieSceneInstance::Update( float Position, float LastPosition, class IMovieScenePlayer& Player )
 {
 	// Update each type
@@ -92,7 +120,7 @@ void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& T
 		{
 			// The track does not have an instance, create one
 			Instance = Track->CreateInstance();
-
+			Instance->SaveState(RuntimeObjects);
 			Instance->RefreshInstance( RuntimeObjects, Player );
 
 			TrackInstances.Add( Track, Instance );

@@ -11,6 +11,29 @@ FMovieSceneBoolTrackInstance::FMovieSceneBoolTrackInstance( UMovieSceneBoolTrack
 	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( BoolTrack->GetPropertyName(), BoolTrack->GetPropertyPath() ) );
 }
 
+void FMovieSceneBoolTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+{
+	for( UObject* Object : RuntimeObjects )
+	{
+		bool BoolValue = PropertyBindings->GetCurrentValue<bool>(Object);
+		InitBoolMap.Add(Object, BoolValue);
+	}
+}
+
+void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+{
+	for( UObject* Object : RuntimeObjects )
+	{
+		bool *BoolValue = InitBoolMap.Find(Object);
+		if (BoolValue != NULL)
+		{
+			PropertyBindings->CallFunction(Object, BoolValue);
+		}
+	}
+
+	PropertyBindings->UpdateBindings( RuntimeObjects );
+}
+
 void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	bool BoolValue = false;

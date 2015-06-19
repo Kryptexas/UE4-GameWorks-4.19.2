@@ -11,6 +11,16 @@ public:
 	MOVIESCENECORE_API FMovieSceneInstance( UMovieScene& InMovieScene );
 
 	/**
+	* Save state of the objects that this movie scene controls.
+	*/
+	MOVIESCENECORE_API void SaveState ();
+
+	/**
+	* Restore state of the objects that this movie scene controls.
+	*/
+	MOVIESCENECORE_API void RestoreState ();
+
+	/**
 	 * Updates this movie scene
 	 *
 	 * @param Position The local playback position

@@ -11,6 +11,16 @@ public:
 	virtual ~IMovieSceneTrackInstance() {}
 
 	/**
+	* Save state of objects that this instance will be editing.
+	*/
+	virtual void SaveState ( const TArray<UObject*>& RuntimeObjects ) {}
+
+	/**
+	* Restore state of objects that this instance edited.
+	*/
+	virtual void RestoreState ( const TArray<UObject*>& RuntimeObjects ) {}
+
+	/**
 	 * Main update function for track instances.  Called in game and in editor when we update a moviescene.
 	 *
 	 * @param Position			The current position of the moviescene that is playing

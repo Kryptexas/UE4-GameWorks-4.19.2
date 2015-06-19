@@ -112,6 +112,7 @@ FSequencerAssetEditor::~FSequencerAssetEditor()
 {
 	DetachTransportControlsFromViewports();
 
+	Sequencer->OnClose();
 
 	// Unregister delegates
 	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )
