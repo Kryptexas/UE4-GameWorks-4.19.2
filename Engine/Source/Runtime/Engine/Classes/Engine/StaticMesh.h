@@ -502,6 +502,10 @@ public:
 	 */
 	ENGINE_API FBoxSphereBounds GetBounds() const;
 
+	/** Returns the bounding box, in local space, of the StaticMesh asset */
+	UFUNCTION(BlueprintCallable, Category="StaticMesh")
+	ENGINE_API FBox GetBoundingBox() const;
+
 	/**
 	 * Gets a Material given a Material Index and an LOD number
 	 *

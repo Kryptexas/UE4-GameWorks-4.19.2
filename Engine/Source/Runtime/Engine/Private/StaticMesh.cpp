@@ -1376,6 +1376,16 @@ FBoxSphereBounds UStaticMesh::GetBounds() const
 	return Bounds;
 }
 
+FBox UStaticMesh::GetBoundingBox() const
+{
+	FBox BoundingBox(FVector(0,0,0), FVector(0,0,0));
+	if (RenderData != nullptr)
+	{
+		BoundingBox = RenderData->Bounds.GetBox();
+	}
+	return BoundingBox;
+}
+
 float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
 {
 	check(RequestedUVIndex >= 0);
