@@ -815,6 +815,8 @@ public:
 	GLuint GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels);
 #endif
 
+	void InvalidateTextureResourceInCache();
+
 private:
 	uint32 MemorySize		: 31;
 	uint32 bIsPowerOfTwo	: 1;
@@ -929,7 +931,7 @@ public:
 					case GL_TEXTURE_2D_ARRAY:
 					case GL_TEXTURE_CUBE_MAP_ARRAY:
 					{
-						OpenGLRHI->InvalidateTextureResourceInCache(Resource);
+						InvalidateTextureResourceInCache();
 						FOpenGL::DeleteTextures(1, &Resource);
 						break;
 					}

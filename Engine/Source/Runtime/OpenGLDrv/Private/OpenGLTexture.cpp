@@ -600,6 +600,11 @@ GLuint FOpenGLTextureBase::GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 Mipm
 }
 #endif
 
+void FOpenGLTextureBase::InvalidateTextureResourceInCache()
+{
+	OpenGLRHI->InvalidateTextureResourceInCache(Resource);
+}
+
 template<typename RHIResourceType>
 void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 {
