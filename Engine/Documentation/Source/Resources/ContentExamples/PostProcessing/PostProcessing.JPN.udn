@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2590736
 Availability:Public
-Title:ポストプロセスのコンテンツ例
+Title:ポストプロセスのコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:ポストプロセスのコンテンツ例で提供されるサンプルの概要
+Related:Engine/Rendering/Overview
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Related:Resources/Showcases/Stylized
 
 [REGION:banner]
 ![](PostProcessing_Header.png)(convert:false)
@@ -20,7 +24,7 @@ Description:ポストプロセスのコンテンツ例で提供されるサン�
 		%Resources/ContentExamples/PostProcessing:description%
 	[/PARAM]
 	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/PostProcessing]
+		[RELATIVE:Resources/ContentExamples/PostProcessing]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -34,7 +38,7 @@ Description:ポストプロセスのコンテンツ例で提供されるサン�
 		%Resources/ContentExamples/PostProcessing:title%
 	[/PARAM]
 	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/PostProcessing]
+		[RELATIVE:Resources/ContentExamples/PostProcessing]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -47,9 +51,9 @@ Description:ポストプロセスのコンテンツ例で提供されるサン�
 **ポストプロセス** マップのコンテンツ事例では、 **Post Processing Volume** の内外にスクリーン エフェクトを追加する方法を説明します。**Post Processing Volume** のプロパティを調整することで、レンズフレア、スクリーン ティント他いろいろなエフェクトを実現できるだけでなく、ボリューム同士またはボリュームとプレイヤーの相互作用の仕方を定義することが可能になります。 
 
 
-[region:note]
+[REGION:note]
 それぞれのサンプル別にさらにリソースを見る場合は、サンプル名をクリックしてください。
-[/region]
+[/REGION]
  
 
 ## ポストプロセス マップ
