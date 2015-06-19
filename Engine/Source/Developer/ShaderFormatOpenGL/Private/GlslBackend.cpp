@@ -497,6 +497,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 	// Code generation flags
 	bool bIsES;
 	bool bEmitPrecision;
+	bool bIsES31;
 	_mesa_glsl_parser_targets ShaderTarget;
 
 	bool bGenerateLayoutLocations;
@@ -900,9 +901,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 			}
 			else if (var->type->is_image())
 			{
+				const bool bSingleComp = (var->type->inner_type->vector_elements == 1);
 				const char * const coherent_str[] = { "", "coherent " };
 				const char * const writeonly_str[] = { "", "writeonly " };
-				const char * const type_str[] = { "32ui", "32i", "16f", "32f" };
+				const char * const type_str[] = { "32ui", "32i", "16f", (bIsES31 && !bSingleComp) ? "16f" : "32f" };
+				const char * const comp_str = bSingleComp ? "r" : "rgba";
 				const int writeonly = var->image_write && !(var->image_read);
 
 				check( var->type->inner_type->base_type >= GLSL_TYPE_UINT &&
@@ -922,7 +925,8 @@ class ir_gen_glsl_visitor : public ir_visitor
 					//should check here on base type
 					ralloc_asprintf_append(
 						buffer,
-						"layout(r%s,binding=%d) ",
+						"layout(%s%s,binding=%d) ",
+						comp_str,
 						type_str[var->type->inner_type->base_type],
 						var->location
 						);
@@ -932,7 +936,8 @@ class ir_gen_glsl_visitor : public ir_visitor
 					//should check here on base type
 					ralloc_asprintf_append(
 						buffer,
-						"layout(r%s) ",
+						"layout(%s%s) ",
+						comp_str,
 						type_str[var->type->inner_type->base_type]
 						);
 				}
@@ -2819,10 +2824,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 public:
 
 	/** Constructor. */
-	ir_gen_glsl_visitor(bool bInIsES, bool bInEmitPrecision, _mesa_glsl_parser_targets InShaderTarget, bool bInGenerateLayoutLocations)
+	ir_gen_glsl_visitor(bool bInIsES, bool bInEmitPrecision, bool bInIsES31, _mesa_glsl_parser_targets InShaderTarget, bool bInGenerateLayoutLocations)
 		: early_depth_stencil(false)
 		, bIsES(bInIsES)
 		, bEmitPrecision(bInEmitPrecision)
+		, bIsES31(bInIsES31)
 		, ShaderTarget(InShaderTarget)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)
 		, buffer(0)
@@ -3115,7 +3121,7 @@ char* FGlslCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* stat
 	const bool bGroupFlattenedUBs = ((HlslCompileFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
 	const bool bGenerateLayoutLocations = state->bGenerateLayoutLocations;
 	const bool bEmitPrecision = (Target == HCT_FeatureLevelES2 || Target == HCT_FeatureLevelES3_1 || Target == HCT_FeatureLevelES3_1Ext);
-	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, state->target, bGenerateLayoutLocations);
+	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, (Target == HCT_FeatureLevelES3_1Ext), state->target, bGenerateLayoutLocations);
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs);
 	return _strdup(code);
 }

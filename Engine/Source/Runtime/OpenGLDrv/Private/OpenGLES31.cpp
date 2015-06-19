@@ -10,7 +10,7 @@
 
 static TAutoConsoleVariable<int32> CVarDisjointTimerQueries(
 	TEXT("r.DisjointTimerQueries"),
-	1,
+	0,
 	TEXT("If set to 1, allows GPU time to be measured (e.g. STAT UNIT). It defaults to 0 because some devices supports it but very slowly."),
 	ECVF_RenderThreadSafe);
 
@@ -207,6 +207,13 @@ void FOpenGLES31::ProcessQueryGLInt()
 			GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS_EXT, 0, MaxDomainUniformComponents);
 			GET_GL_INT(GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS_EXT, 0, MaxHullTextureImageUnits);
 			GET_GL_INT(GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS_EXT, 0, MaxDomainTextureImageUnits);
+		}
+		else
+		{
+			MaxHullUniformComponents = 0;
+			MaxDomainUniformComponents = 0;
+			MaxHullTextureImageUnits = 0;
+			MaxDomainTextureImageUnits = 0;
 		}
 	}
 	

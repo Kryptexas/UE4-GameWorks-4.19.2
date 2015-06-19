@@ -90,6 +90,19 @@ FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 			ProfileName = TEXT("Android_Tegra4");
 		}
 	}
+	else if (GPUFamily.StartsWith(TEXT("Intel(R) HD Graphics")))
+	{
+		FString GLVersion = FAndroidMisc::GetGLVersion();
+
+		if (GLVersion.StartsWith(TEXT("OpenGL ES 3.")))
+		{
+			ProfileName = TEXT("Android_IntelHD_ES3");
+		}
+		else if (GLVersion.StartsWith(TEXT("OpenGL ES 2.")))
+		{
+			ProfileName = TEXT("Android_IntelHD");
+		}
+	}
 
 
 	UE_LOG(LogAndroid, Log, TEXT("Selected Device Profile: [%s]"), *ProfileName);
