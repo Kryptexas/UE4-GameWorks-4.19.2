@@ -76,4 +76,11 @@ TSharedRef<SWidget> USafeZone::RebuildWidget()
 	return BuildDesignTimeWidget( MySafeZone.ToSharedRef() );
 }
 
+void USafeZone::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MySafeZone.Reset();
+}
+
 #undef LOCTEXT_NAMESPACE

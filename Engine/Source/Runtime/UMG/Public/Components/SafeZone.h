@@ -27,5 +27,7 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
 	TSharedPtr< class SSafeZone > MySafeZone;
 };
