@@ -30,7 +30,7 @@ private:
 	TMap<FName, IOnlineSubsystemPtr> OnlineSubsystems;
 
 	/** Have we warned already for a given online subsystem creation failure */
-	TMap<FName, bool> OnlineSubsystemFailureWarnings;
+	TMap<FName, bool> OnlineSubsystemFailureNotes;
 
 	/**
 	 * Transform an online subsystem identifier into its Subsystem and Instance constituents
