@@ -347,7 +347,8 @@ FSLESSoundSource::FSLESSoundSource( class FAudioDevice* InAudioDevice )
 		SL_PlayerObject(NULL),
 		SL_PlayerPlayInterface(NULL),
 		SL_PlayerBufferQueue(NULL),
-		SL_VolumeInterface(NULL)
+		SL_VolumeInterface(NULL),
+		RealtimeAsyncTask(NULL)
 {
 	FMemory::Memzero( AudioBuffers, sizeof( AudioBuffers ) );
 }
