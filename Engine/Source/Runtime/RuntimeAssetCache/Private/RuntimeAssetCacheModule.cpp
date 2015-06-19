@@ -4,6 +4,8 @@
 #include "RuntimeAssetCacheModule.h"
 #include "RuntimeAssetCache.h"
 #include "ModuleManager.h"
+#include "EngineMinimal.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY(RuntimeAssetCache)
 
@@ -29,6 +31,18 @@ public:
 	{
 		static FRuntimeAssetCache RuntimeAssetCache = FRuntimeAssetCache();
 		return RuntimeAssetCache;
+	}
+
+	void StartupModule() override
+	{
+		FWorldDelegates::OnWorldTickStart.AddStatic(&FRuntimeAssetCacheModule::TickRuntimeAssetCache);
+	}
+
+	static void TickRuntimeAssetCache(ELevelTick TickType, float DeltaSeconds)
+	{
+		static FRuntimeAssetCacheModuleInterface& Module = FModuleManager::LoadModuleChecked<FRuntimeAssetCacheModuleInterface>("RuntimeAssetCache");
+		static FRuntimeAssetCacheInterface& Interface = Module.GetRuntimeAssetCache();
+		Interface.Tick();
 	}
 };
 

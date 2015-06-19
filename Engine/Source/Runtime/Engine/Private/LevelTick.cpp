@@ -1017,6 +1017,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		return;
 	}
 
+	FWorldDelegates::OnWorldTickStart.Broadcast(TickType, DeltaSeconds);
+
 #if LOG_DETAILED_PATHFINDING_STATS
 	GDetailedPathFindingStats.Reset();
 #endif

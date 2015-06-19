@@ -11,7 +11,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("RAC Num Gets"), STAT_RAC_NumGets, ST
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("RAC Num Puts"), STAT_RAC_NumPuts, STATGROUP_RAC, );
 
 /** Forward declarations. */
-class FRuntimeAssetCacheBuilderInterface;
+class IRuntimeAssetCacheBuilder;
 class FRuntimeAssetCacheBucket;
 
 /**
@@ -21,7 +21,7 @@ class FRuntimeAssetCacheAsyncWorker : public FNonAbandonableTask
 {
 public:
 	/** Constructor */
-	FRuntimeAssetCacheAsyncWorker(FRuntimeAssetCacheBuilderInterface* InCacheBuilder, TMap<FName, FRuntimeAssetCacheBucket*>* InBuckets);
+	FRuntimeAssetCacheAsyncWorker(IRuntimeAssetCacheBuilder* InCacheBuilder, TMap<FName, FRuntimeAssetCacheBucket*>* InBuckets, int32 InHandle, const FOnRuntimeAssetCacheAsyncComplete& InCompletionCallback);
 
 	/** Async task interface implementation. */
 	void DoWork();
@@ -29,20 +29,26 @@ public:
 	/** End of async task interface implementation. */
 
 	/** Gets serialized cache data. */
-	TArray<uint8>& GetData()
+	void* GetData()
 	{
 		return Data;
 	}
 
 	/**
-	 * Checks if entry was successfully retrieved from cache.
-	 * @return True on success, false otherwise. Success means either cache hit or miss, as long as we got valid data.
+	 * Fires completion delegate only if it wasn't fired earlier.
 	 */
-	bool RetrievedEntry() const
-	{
-		return bEntryRetrieved;
-	}
+	void FireCompletionDelegate();
+
 private:
+	/**
+	* Checks if task already fired completion delegate.
+	* @return true if already fired completion delegate, false otherwise.
+	*/
+	bool FiredCompletionDelegate() const
+	{
+		return bFiredCompletionDelegate;
+	}
+
 	/**
 	* Static function to make sure a cache key contains only legal characters by using an escape.
 	* @param CacheKey Cache key to sanitize
@@ -64,7 +70,7 @@ private:
 	* @param CacheBuilder Builder to create key from.
 	* @return Assembled cache key
 	**/
-	static FString BuildCacheKey(FRuntimeAssetCacheBuilderInterface* CacheBuilder);
+	static FString BuildCacheKey(IRuntimeAssetCacheBuilder* CacheBuilder);
 
 	/**
 	* Removes entries from cache until given number of bytes are freed (or more).
@@ -74,10 +80,10 @@ private:
 	void FreeCacheSpace(FName Bucket, int32 SizeOfSpaceToFreeInBytes);
 
 	/** Cache builder to create cache entry in case of cache miss. */
-	FRuntimeAssetCacheBuilderInterface* CacheBuilder;
+	IRuntimeAssetCacheBuilder* CacheBuilder;
 	
 	/** Data to return to caller. */
-	TArray<uint8> Data;
+	void* Data;
 
 	/** Reference to map of bucket names to their descriptions. */
 	TMap<FName, FRuntimeAssetCacheBucket*>* Buckets;
@@ -87,4 +93,15 @@ private:
 	 * returns false or no CacheBuilder was provided.
 	 */
 	bool bEntryRetrieved;
+
+	/** Completion delegate called when cache entry is retrieved. */
+	FOnRuntimeAssetCacheAsyncComplete CompletionCallback;
+
+	/** Handle uniquely identifying this worker thread. */
+	int32 Handle;
+
+	/** True if completion delegate was already fired, false otherwise. */
+	bool bFiredCompletionDelegate;
+
+	UClass* Class;
 };

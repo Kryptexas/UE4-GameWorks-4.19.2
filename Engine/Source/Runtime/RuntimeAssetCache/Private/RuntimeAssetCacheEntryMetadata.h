@@ -42,7 +42,7 @@ public:
 		return CachedAssetSize;
 	}
 
-	void SetCachedAssetSize(int32 Value)
+	void SetCachedAssetSize(int64 Value)
 	{
 		CachedAssetSize = Value;
 	}
@@ -76,7 +76,7 @@ public:
 
 private:
 	FDateTime LastAccessTime;
-	int32 CachedAssetSize;
+	int64 CachedAssetSize;
 	int32 CachedAssetVersion;
 	FName Name;
 	FThreadSafeBool bIsBuilding;

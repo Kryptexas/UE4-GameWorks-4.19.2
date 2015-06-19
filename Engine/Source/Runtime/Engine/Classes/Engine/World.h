@@ -3252,6 +3252,9 @@ public:
 	// delegate for generating world asset registry tags so project/game scope can add additional tags for filtering levels in their UI, etc
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldGetAssetTags, const UWorld*, TArray<UObject::FAssetRegistryTag>&);
 
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWorldTickStart, ELevelTick, float);
+	static FOnWorldTickStart OnWorldTickStart;
+
 	// Callback for world creation
 	static FWorldEvent OnPostWorldCreation;
 	

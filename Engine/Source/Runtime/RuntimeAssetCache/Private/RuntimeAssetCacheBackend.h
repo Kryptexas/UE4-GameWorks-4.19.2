@@ -29,7 +29,7 @@ public:
 	 * @param OutData Serialized cache entry. Emptied if entry not found.
 	 * @return Metadata descriptor of cache entry on cache hit, nullptr otherwise.
 	 */
-	FCacheEntryMetadata* GetCachedData(FName Bucket, const TCHAR* CacheKey, TArray<uint8>& OutData);
+	FCacheEntryMetadata* GetCachedData(FName Bucket, const TCHAR* CacheKey, void*& OutData, int64& OutDataSize);
 
 	/**
 	* Puts entry to cache.
@@ -39,7 +39,7 @@ public:
 	* @param Metadata descriptor of cache entry.
 	* @return True if successfully put entry into cache.
 	*/
-	bool PutCachedData(FName Bucket, const TCHAR* CacheKey, TArray<uint8>& InData, FCacheEntryMetadata* Metadata);
+	bool PutCachedData(FName Bucket, const TCHAR* CacheKey, void* InData, int64 InDataSize, FCacheEntryMetadata* Metadata);
 
 	/**
 	* Removes entry from cache.

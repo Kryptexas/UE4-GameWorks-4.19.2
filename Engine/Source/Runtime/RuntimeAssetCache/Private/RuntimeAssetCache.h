@@ -3,10 +3,11 @@
 #pragma once
 #include "RuntimeAssetCacheInterface.h"
 
+/** Stats. */
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("RAC ASync Wait Time"), STAT_RAC_ASyncWaitTime, STATGROUP_RAC, );
 
 /** Forward declarations. */
-class FRuntimeAssetCacheBuilderInterface;
+class IRuntimeAssetCacheBuilder;
 class IRuntimeAssetCacheBackend;
 class FRuntimeAssetCacheAsyncWorker;
 class FCacheEntryMetadata;
@@ -19,15 +20,17 @@ class FRuntimeAssetCache : public FRuntimeAssetCacheInterface
 {
 	/** FRuntimeAssetCacheInterface implementation */
 public:
-	virtual bool GetSynchronous(FRuntimeAssetCacheBuilderInterface* CacheBuilder, TArray<uint8>& OutData) override;
-	virtual uint32 GetAsynchronous(FRuntimeAssetCacheBuilderInterface* CacheBuilder) override;
+	virtual void* GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) override;
+	virtual int32 GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& OnCompletionDelegate) override;
+	virtual int32 GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) override;
 	virtual int32 GetCacheSize(FName Bucket) const override;
 	virtual bool ClearCache() override;
 	virtual bool ClearCache(FName Bucket) override;
-	virtual void WaitAsynchronousCompletion(uint32 Handle) override;
-	virtual bool GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData) override;
-	virtual bool PollAsynchronousCompletion(uint32 Handle) override;
+	virtual void WaitAsynchronousCompletion(int32 Handle) override;
+	virtual void* GetAsynchronousResults(int32 Handle) override;
+	virtual bool PollAsynchronousCompletion(int32 Handle) override;
 	virtual void AddToAsyncCompletionCounter(int32 Addend) override;
+	virtual void Tick() override;
 	/** End of FRuntimeAssetCacheInterface implementation */
 
 public:
@@ -52,7 +55,7 @@ private:
 	TMap<FName, FRuntimeAssetCacheBucket*> Buckets;
 
 	/** Map of handle to pending task */
-	TMap<uint32, FAsyncTask<FRuntimeAssetCacheAsyncWorker>*> PendingTasks;
+	TMap<int32, FAsyncTask<FRuntimeAssetCacheAsyncWorker>*> PendingTasks;
 
 	/** Pending tasks synchronization object. */
 	FCriticalSection SynchronizationObject;

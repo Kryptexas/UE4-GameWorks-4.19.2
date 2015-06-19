@@ -3,7 +3,8 @@
 #pragma once
 
 /** Forward declarations */
-class FRuntimeAssetCacheBuilderInterface;
+class IRuntimeAssetCacheBuilder;
+class FOnRuntimeAssetCacheAsyncComplete;
 
 /**
 * Interface for the Runtime Asset Cache. Cache is split into buckets to cache various assets separately.
@@ -18,17 +19,26 @@ public:
 	/**
 	* Synchronously gets value from cache. If value is not found, builds entry using CacheBuilder and updates cache.
 	* @param CacheBuilder Builder to produce cache key and in the event of a miss.
-	* @param OutData Reference to serialized data.
-	* @return true if the data was retrieved from the cache or the deriver built the data successfully. false can only occur if the plugin returns false.
+	* @return Pointer to retrieved cache entry, nullptr on fail. Fail occurs only when
+	* - there's no entry in cache and CacheBuilder is nullptr or
+	* - CacheBuilder returned nullptr
 	**/
-	virtual bool GetSynchronous(FRuntimeAssetCacheBuilderInterface* CacheBuilder, TArray<uint8>& OutData) = 0;
+	virtual void* GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) = 0;
+
+	/**
+	* Asynchronously checks the cache. If value is not found, builds entry using CacheBuilder and updates cache.
+	* @param CacheBuilder Builder to produce cache key and in the event of a miss, return the data.
+	* @param OnCompletionDelegate Delegate to call when cache is ready. Delegate is called on main thread.
+	* @return Handle to worker.
+	**/
+	virtual int32 GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& OnCompletionDelegate) = 0;
 
 	/**
 	* Asynchronously checks the cache. If value is not found, builds entry using CacheBuilder and updates cache.
 	* @param CacheBuilder Builder to produce cache key and in the event of a miss, return the data.
 	* @return Handle to worker.
 	**/
-	virtual uint32 GetAsynchronous(FRuntimeAssetCacheBuilderInterface* CacheBuilder) = 0;
+	virtual int32 GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) = 0;
 
 	/**
 	* Gets cache size.
@@ -54,26 +64,32 @@ public:
 	* Waits until worker finishes execution.
 	* @param Handle Worker handle to wait for.
 	*/
-	virtual void WaitAsynchronousCompletion(uint32 Handle) = 0;
+	virtual void WaitAsynchronousCompletion(int32 Handle) = 0;
 
 	/**
 	* Gets asynchronous query results.
 	* @param Handle Worker handle to check.
-	* @param OutData Reference to serialized cache entry.
-	* @return True if successfully retrieved data, false otherwise.
+	* @return Pointer to retrieved cache entry, nullptr on fail. Fail occurs only when
+	* - there's no entry in cache and CacheBuilder is nullptr or
+	* - CacheBuilder returned nullptr
 	*/
-	virtual bool GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData) = 0;
+	virtual void* GetAsynchronousResults(int32 Handle) = 0;
 
 	/**
 	* Checks if worker finished execution.
 	* @param Handle Worker handle to check.
 	* @return True if execution finished, false otherwise.
 	*/
-	virtual bool PollAsynchronousCompletion(uint32 Handle) = 0;
+	virtual bool PollAsynchronousCompletion(int32 Handle) = 0;
 
 	/**
 	 * Adds a number from the thread safe counter which tracks outstanding async requests. This is used to ensure everything is complete prior to shutdown.
 	 * @param Value to add to counter. Can be negative.
 	 */
 	virtual void AddToAsyncCompletionCounter(int32 Addend) = 0;
+
+	/**
+	 * Ticks async thread.
+	 */
+	virtual void Tick() = 0;
 };

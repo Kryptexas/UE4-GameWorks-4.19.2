@@ -7,6 +7,13 @@ public class RuntimeAssetCache : ModuleRules
 {
 	public RuntimeAssetCache(TargetInfo Target)
 	{
-		PrivateDependencyModuleNames.Add("Core");
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"Engine",
+			});
+
+		SharedPCHHeaderFile = "Runtime/RuntimeAssetCache/Public/RuntimeAssetCachePublicPCH.h";
 	}
 }

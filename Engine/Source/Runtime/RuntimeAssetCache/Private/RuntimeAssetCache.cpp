@@ -7,6 +7,8 @@
 #include "RuntimeAssetCacheBucket.h"
 #include "RuntimeAssetCacheAsyncWorker.h"
 #include "RuntimeAssetCacheEntryMetadata.h"
+#include "RuntimeAssetCacheInterface.h"
+#include "RuntimeAssetCacheBPHooks.h"
 
 DEFINE_STAT(STAT_RAC_ASyncWaitTime);
 
@@ -45,7 +47,7 @@ int32 FRuntimeAssetCache::GetCacheSize(FName Bucket) const
 	return Buckets[Bucket]->GetSize();
 }
 
-uint32 FRuntimeAssetCache::GetAsynchronous(FRuntimeAssetCacheBuilderInterface* CacheBuilder)
+int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& OnComplete)
 {
 	int32 Handle = GetNextHandle();
 
@@ -55,7 +57,7 @@ uint32 FRuntimeAssetCache::GetAsynchronous(FRuntimeAssetCacheBuilderInterface* C
 	/** Make sure task isn't processed twice. */
 	check(!PendingTasks.Contains(Handle));
 
-	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets);
+	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets, Handle, OnComplete);
 
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
@@ -65,14 +67,17 @@ uint32 FRuntimeAssetCache::GetAsynchronous(FRuntimeAssetCacheBuilderInterface* C
 	AsyncTask->StartBackgroundTask();
 	return Handle;
 }
-
-bool FRuntimeAssetCache::GetSynchronous(FRuntimeAssetCacheBuilderInterface* CacheBuilder, TArray<uint8>& OutData)
+int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder)
 {
-	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets);
+	return GetAsynchronous(CacheBuilder, FOnRuntimeAssetCacheAsyncComplete());
+}
+
+void* FRuntimeAssetCache::GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder)
+{
+	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets, -1, FOnRuntimeAssetCacheAsyncComplete());
 	AddToAsyncCompletionCounter(1);
 	AsyncTask->StartSynchronousTask();
-	OutData = AsyncTask->GetTask().GetData();
-	return AsyncTask->GetTask().RetrievedEntry();
+	return AsyncTask->GetTask().GetData();
 }
 
 bool FRuntimeAssetCache::ClearCache()
@@ -119,7 +124,7 @@ void FRuntimeAssetCache::AddToAsyncCompletionCounter(int32 Value)
 	check(PendingTasksCounter.GetValue() >= 0);
 }
 
-void FRuntimeAssetCache::WaitAsynchronousCompletion(uint32 Handle)
+void FRuntimeAssetCache::WaitAsynchronousCompletion(int32 Handle)
 {
 	STAT(double ThisTime = 0);
 	{
@@ -135,32 +140,40 @@ void FRuntimeAssetCache::WaitAsynchronousCompletion(uint32 Handle)
 	INC_FLOAT_STAT_BY(STAT_RAC_ASyncWaitTime, (float)ThisTime);
 }
 
-bool FRuntimeAssetCache::GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData)
+void* FRuntimeAssetCache::GetAsynchronousResults(int32 Handle)
 {
-	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = NULL;
+	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = nullptr;
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		PendingTasks.RemoveAndCopyValue(Handle, AsyncTask);
+		AsyncTask->GetTask().FireCompletionDelegate();
 	}
 	check(AsyncTask);
-	if (!AsyncTask->GetTask().RetrievedEntry())
-	{
-		delete AsyncTask;
-		return false;
-	}
-	OutData = AsyncTask->GetTask().GetData();
+
+	void* Data = AsyncTask->GetTask().GetData();
 	delete AsyncTask;
-	check(OutData.Num());
-	return true;
+	return Data;
 }
 
-bool FRuntimeAssetCache::PollAsynchronousCompletion(uint32 Handle)
+bool FRuntimeAssetCache::PollAsynchronousCompletion(int32 Handle)
 {
-	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = NULL;
+	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = nullptr;
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		AsyncTask = PendingTasks.FindRef(Handle);
 	}
 	check(AsyncTask);
 	return AsyncTask->IsDone();
+}
+
+void FRuntimeAssetCache::Tick()
+{
+	FScopeLock ScopeLock(&SynchronizationObject);
+	for (auto Kvp : PendingTasks)
+	{
+		if (Kvp.Value->IsDone())
+		{
+			Kvp.Value->GetTask().FireCompletionDelegate();
+		}
+	}
 }

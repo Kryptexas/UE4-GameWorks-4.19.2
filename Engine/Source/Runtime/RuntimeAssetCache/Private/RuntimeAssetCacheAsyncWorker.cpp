@@ -6,10 +6,10 @@
 #include "RuntimeAssetCacheBucket.h"
 #include "RuntimeAssetCacheBackend.h"
 #include "RuntimeAssetCacheEntryMetadata.h"
-#include "RuntimeAssetCacheInterface.h"
 #include "RuntimeAssetCacheBucketScopeLock.h"
 #include "ScopeExit.h"
 #include "RuntimeAssetCacheModule.h"
+#include "RuntimeAssetCacheBPHooks.h"
 
 /** Stats */
 DEFINE_STAT(STAT_RAC_NumBuilds);
@@ -18,10 +18,15 @@ DEFINE_STAT(STAT_RAC_NumFails);
 DEFINE_STAT(STAT_RAC_NumGets);
 DEFINE_STAT(STAT_RAC_NumPuts);
 
-FRuntimeAssetCacheAsyncWorker::FRuntimeAssetCacheAsyncWorker(FRuntimeAssetCacheBuilderInterface* InCacheBuilder
-	, TMap<FName, FRuntimeAssetCacheBucket*>* InBuckets)
+FRuntimeAssetCacheAsyncWorker::FRuntimeAssetCacheAsyncWorker(IRuntimeAssetCacheBuilder* InCacheBuilder
+	, TMap<FName, FRuntimeAssetCacheBucket*>* InBuckets
+	, int32 InHandle
+	, const FOnRuntimeAssetCacheAsyncComplete& InCompletionCallback)
 	: CacheBuilder(InCacheBuilder)
 	, Buckets(InBuckets)
+	, Handle(InHandle)
+	, CompletionCallback(InCompletionCallback)
+	, bFiredCompletionDelegate(false)
 { }
 
 void FRuntimeAssetCacheAsyncWorker::DoWork()
@@ -31,6 +36,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	FString CacheKey = BuildCacheKey(CacheBuilder);
 	FName CacheKeyName = FName(*CacheKey);
 	FRuntimeAssetCacheBucket* CurrentBucket = (*Buckets)[BucketName];
+	int64 CachedDataSize = -1;
 	INC_DWORD_STAT(STAT_RAC_NumGets);
 
 	FCacheEntryMetadata* Metadata = nullptr;
@@ -51,7 +57,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 			FPlatformProcess::SleepNoStats(0.0f);
 		}
 
-		Metadata = FRuntimeAssetCacheBackend::Get().GetCachedData(BucketName, *CacheKey, Data);
+		Metadata = FRuntimeAssetCacheBackend::Get().GetCachedData(BucketName, *CacheKey, Data, CachedDataSize);
 	}
 
 	ON_SCOPE_EXIT
@@ -76,10 +82,10 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 
 	if (Metadata)
 	{
-		check(Data.Num());
+		check(CacheBuilder->GetSerializedDataSize());
 		INC_DWORD_STAT(STAT_RAC_NumCacheHits);
 		FRuntimeAssetCacheBucketScopeLock Guard(*CurrentBucket);
-		Metadata->SetCachedAssetSize(Data.Num());
+		Metadata->SetCachedAssetSize(CacheBuilder->GetSerializedDataSize());
 		Metadata->SetLastAccessTime(FDateTime::Now());
 		bEntryRetrieved = true;
 		return;
@@ -89,35 +95,33 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	{
 		// Failed, cleanup data and return false.
 		INC_DWORD_STAT(STAT_RAC_NumFails);
-		Data.Empty();
+		Data = nullptr;
 		bEntryRetrieved = false;
 		CurrentBucket->RemoveMetadataEntry(CacheKey);
 		return;
 	}
 
-	bool bSuccess;
 	{
 		INC_DWORD_STAT(STAT_RAC_NumBuilds);
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RAC async build time"), STAT_RAC_AsyncBuildTime, STATGROUP_RAC)
-		bSuccess = CacheBuilder->Build(Data);
+		Data = CacheBuilder->Build();
 	}
 
-	if (!bSuccess)
+	if (!Data)
 	{
 		// Failed, cleanup data and return false.
 		INC_DWORD_STAT(STAT_RAC_NumFails);
-		Data.Empty();
 		CurrentBucket->RemoveMetadataEntry(CacheKey);
 		return;
 	}
 
-	checkf(Data.Num(), TEXT("Size of asset to cache cannot be null. Asset cache key: %s"), *CacheKey);
-	checkf(Data.Num() < CurrentBucket->GetSize(), TEXT("Cached asset is bigger than cache size. Increase cache size or reduce asset size. Asset cache key: %s"), *CacheKey);
+	checkf(CacheBuilder->GetSerializedDataSize(), TEXT("Size of asset to cache cannot be null. Asset cache key: %s"), *CacheKey);
+	checkf(CacheBuilder->GetSerializedDataSize() < CurrentBucket->GetSize(), TEXT("Cached asset is bigger than cache size. Increase cache size (%d) or reduce asset size(%d). Asset cache key: %s"), CurrentBucket->GetSize(), CacheBuilder->GetSerializedDataSize(), *CacheKey);
 
 	FRuntimeAssetCacheBucketScopeLock Lock(*CurrentBucket);
 
 	// Do we need to make some space in cache?
-	int32 SizeOfSpaceToFree = CurrentBucket->GetCurrentSize() + Data.Num() - CurrentBucket->GetSize();
+	int32 SizeOfSpaceToFree = CurrentBucket->GetCurrentSize() + CacheBuilder->GetSerializedDataSize() - CurrentBucket->GetSize();
 	if (SizeOfSpaceToFree > 0)
 	{
 		// Remove oldest entries from cache until we can fit upcoming entry.
@@ -133,18 +137,18 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 			Metadata->SetLastAccessTime(Now);
 			if (Metadata->GetCachedAssetSize() == 0)
 			{
-				CurrentBucket->AddToCurrentSize(Data.Num());
+				CurrentBucket->AddToCurrentSize(CacheBuilder->GetSerializedDataSize());
 			}
-			Metadata->SetCachedAssetSize(Data.Num());
+			Metadata->SetCachedAssetSize(CacheBuilder->GetSerializedDataSize());
 			Metadata->SetCachedAssetVersion(CacheBuilder->GetAssetVersion());
 			CurrentBucket->AddMetadataEntry(CacheKey, Metadata, false);
 		}
 		else
 		{
-			Metadata = new FCacheEntryMetadata(Now, Data.Num(), CacheBuilder->GetAssetVersion(), CacheKeyName);
+			Metadata = new FCacheEntryMetadata(Now, CacheBuilder->GetSerializedDataSize(), CacheBuilder->GetAssetVersion(), CacheKeyName);
 			CurrentBucket->AddMetadataEntry(CacheKey, Metadata, true);
 		}
-		FRuntimeAssetCacheBackend::Get().PutCachedData(BucketName, *CacheKey, Data, Metadata);
+		FRuntimeAssetCacheBackend::Get().PutCachedData(BucketName, *CacheKey, Data, CacheBuilder->GetSerializedDataSize(), Metadata);
 
 		// Mark that building is finished AFTER putting data into
 		// cache to avoid duplicate builds of the same entry.
@@ -157,6 +161,16 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 TStatId FRuntimeAssetCacheAsyncWorker::GetStatId()
 {
 	return TStatId();
+}
+
+void FRuntimeAssetCacheAsyncWorker::FireCompletionDelegate()
+{
+	check(IsInGameThread());
+	if (!FiredCompletionDelegate())
+	{
+		bFiredCompletionDelegate = true;
+		CompletionCallback.ExecuteIfBound(Handle, FVoidPtrParam(Data));
+	}
 }
 
 FString FRuntimeAssetCacheAsyncWorker::SanitizeCacheKey(const TCHAR* CacheKey)
@@ -207,7 +221,7 @@ FString FRuntimeAssetCacheAsyncWorker::BuildCacheKey(const TCHAR* VersionString,
 	return SanitizeCacheKey(*UnsanitizedCacheKey);
 }
 
-FString FRuntimeAssetCacheAsyncWorker::BuildCacheKey(FRuntimeAssetCacheBuilderInterface* CacheBuilder)
+FString FRuntimeAssetCacheAsyncWorker::BuildCacheKey(IRuntimeAssetCacheBuilder* CacheBuilder)
 {
 	return BuildCacheKey(CacheBuilder->GetBuilderName(), *CacheBuilder->GetAssetUniqueName());
 }

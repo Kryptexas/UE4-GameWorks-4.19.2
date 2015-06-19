@@ -6,7 +6,7 @@
 #include "RuntimeAssetCacheEntryMetadata.h"
 
 
-FCacheEntryMetadata* FRuntimeAssetCacheBackend::GetCachedData(const FName Bucket, const TCHAR* CacheKey, TArray<uint8>& OutData)
+FCacheEntryMetadata* FRuntimeAssetCacheBackend::GetCachedData(const FName Bucket, const TCHAR* CacheKey, void*& OutData, int64& OutDataSize)
 {
 	FCacheEntryMetadata* Result = nullptr;
 	FArchive* Ar = CreateReadArchive(Bucket, CacheKey);
@@ -19,17 +19,15 @@ FCacheEntryMetadata* FRuntimeAssetCacheBackend::GetCachedData(const FName Bucket
 
 	int64 TotalSize = Ar->TotalSize();
 	int64 CurrentPosition = Ar->Tell();
-	int64 NumberOfBytesToSerialize = TotalSize - CurrentPosition;
-	OutData.Reset();
-	OutData.AddUninitialized(NumberOfBytesToSerialize);
-
-	Ar->Serialize(OutData.GetData(), NumberOfBytesToSerialize);
+	OutDataSize = TotalSize - CurrentPosition;
+	OutData = new uint8[OutDataSize];
+	Ar->Serialize(OutData, OutDataSize);
 	Ar->Close();
 	delete Ar;
 	return Result;
 }
 
-bool FRuntimeAssetCacheBackend::PutCachedData(const FName Bucket, const TCHAR* CacheKey, TArray<uint8>& InData, FCacheEntryMetadata* Metadata)
+bool FRuntimeAssetCacheBackend::PutCachedData(const FName Bucket, const TCHAR* CacheKey, void* InData, int64 InDataSize, FCacheEntryMetadata* Metadata)
 {
 	bool bResult = false;
 	FArchive* Ar = CreateWriteArchive(Bucket, CacheKey);
@@ -39,7 +37,7 @@ bool FRuntimeAssetCacheBackend::PutCachedData(const FName Bucket, const TCHAR* C
 	}
 
 	*Ar << *Metadata;
-	Ar->Serialize(InData.GetData(), InData.Num());
+	Ar->Serialize(InData, InDataSize);
 	bResult = Ar->Close();
 	delete Ar;
 	return bResult;

@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreUObject.h"
+#include "RuntimeAssetCacheBPHooks.h"
+#include "RuntimeAssetCachePublicPCH.h"
 
 /** Stats */
 DECLARE_STATS_GROUP(TEXT("RAC"), STATGROUP_RAC, STATCAT_Advanced);
