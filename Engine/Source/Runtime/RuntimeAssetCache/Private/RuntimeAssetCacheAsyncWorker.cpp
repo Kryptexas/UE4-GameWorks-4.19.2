@@ -24,8 +24,8 @@ FRuntimeAssetCacheAsyncWorker::FRuntimeAssetCacheAsyncWorker(IRuntimeAssetCacheB
 	, const FOnRuntimeAssetCacheAsyncComplete& InCompletionCallback)
 	: CacheBuilder(InCacheBuilder)
 	, Buckets(InBuckets)
-	, Handle(InHandle)
 	, CompletionCallback(InCompletionCallback)
+	, Handle(InHandle)
 	, bFiredCompletionDelegate(false)
 { }
 
