@@ -16,10 +16,12 @@
 	
 #include "OVRVersion.h"
 
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "../Src/Kernel/OVR_Math.h"
 #include "../Src/Kernel/OVR_Threads.h"
 #include "../Src/Kernel/OVR_Color.h"
 #include "../Src/Kernel/OVR_Timer.h"
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 #include "OVR.h"
 #include "VrApi.h"

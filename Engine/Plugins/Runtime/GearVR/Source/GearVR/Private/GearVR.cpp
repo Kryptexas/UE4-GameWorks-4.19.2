@@ -1084,10 +1084,10 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 }
 
 //////////////////////////////////////////////////////////////////////////
-FGearVRCustomPresent::FGearVRCustomPresent(int MinimumVsyncs) :
+FGearVRCustomPresent::FGearVRCustomPresent(int InMinimumVsyncs) :
 	FRHICustomPresent(nullptr),
 	bInitialized(false),
-	MinimumVsyncs(MinimumVsyncs)
+	MinimumVsyncs(InMinimumVsyncs)
 {
 	Init();
 }
