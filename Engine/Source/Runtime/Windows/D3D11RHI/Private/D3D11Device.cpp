@@ -205,7 +205,6 @@ FD3D11DynamicRHI::~FD3D11DynamicRHI()
 
 	check(Direct3DDeviceIMContext == nullptr);
 	check(Direct3DDevice == nullptr);
-	check(DXGIFactory1 == nullptr || DXGIFactory1.GetRefCount() == 1);
 }
 
 void FD3D11DynamicRHI::Shutdown()
