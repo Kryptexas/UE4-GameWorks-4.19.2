@@ -1492,6 +1492,19 @@ void FBuildPatchAppManifest::EnumerateChunkPartInventory(const TArray<FGuid>& Ch
 	}
 }
 
+bool FBuildPatchAppManifest::HasFileAttributes() const
+{
+	for (const auto& FileManifestPair : FileManifestLookup)
+	{
+		const FFileManifestData* FileManifest = FileManifestPair.Value;
+		if (FileManifest->bIsReadOnly || FileManifest->bIsUnixExecutable || FileManifest->bIsCompressed)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool FBuildPatchAppManifest::IsSameAs(FBuildPatchAppManifestRef Other) const
 {
 	return this == &Other.Get() || (GetAppID() == Other->GetAppID() && GetAppName() == Other->GetAppName() && GetVersionString() == Other->GetVersionString());

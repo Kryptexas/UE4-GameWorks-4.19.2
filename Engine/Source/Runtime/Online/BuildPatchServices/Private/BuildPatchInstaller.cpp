@@ -127,12 +127,14 @@ uint32 FBuildPatchInstaller::Run()
 		// Backup local changes then move generated files
 		bInstallSuccess = bInstallSuccess && RunBackupAndMove();
 
+		// There is no more potential for initialising
+		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
+
 		// Setup file attributes
 		bInstallSuccess = bInstallSuccess && RunFileAttributes(bIsRepairing);
 
 		// Run Verification
 		CorruptFiles.Empty();
-		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
 		bProcessSuccess = bInstallSuccess && RunVerification(CorruptFiles);
 
 		// Clean staging if INSTALL success
@@ -293,6 +295,7 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		BuildProgress.SetStateWeight(EBuildPatchProgress::Downloading, 0.0f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::Installing, 0.0f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::MovingToInstall, 0.0f);
+		BuildProgress.SetStateWeight(EBuildPatchProgress::SettingAttributes, 0.2f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::BuildVerification, 1.0f);
 		// Mark all installation steps complete
 		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
@@ -359,10 +362,12 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 
 	// Setup some weightings for the progress tracking
 	const float NumRequiredChunksFloat = NumRequiredChunks;
+	const bool bHasFileAttributes = NewBuildManifest->HasFileAttributes();
+	const float AttributesWeight = bHasFileAttributes ? bIsRepairing ? 1.0f / 50.0f : 1.0f / 20.0f : 0.0f;
 	BuildProgress.SetStateWeight(EBuildPatchProgress::Downloading, NumRequiredChunksFloat > 0.0f ? InitialNumChunkDownloads / NumRequiredChunksFloat : 0.0f);
 	BuildProgress.SetStateWeight(EBuildPatchProgress::Installing, NumRequiredChunksFloat > 0.0f ? 0.1f + (InitialNumChunkConstructions / NumRequiredChunksFloat) : 0.0f);
 	BuildProgress.SetStateWeight(EBuildPatchProgress::MovingToInstall, NumFilesToConstruct > 0 ? 0.05f : 0.0f);
-	// A verify weight of 1 / 9 will make it 10% of the total progress
+	BuildProgress.SetStateWeight(EBuildPatchProgress::SettingAttributes, AttributesWeight);
 	BuildProgress.SetStateWeight(EBuildPatchProgress::BuildVerification, 1.1f / 9.0f);
 
 	// If this is a repair operation, start off with install and download complete
@@ -634,7 +639,7 @@ bool FBuildPatchInstaller::RunFileAttributes(bool bForce)
 	FString& OptionalStageDirectory = bShouldStageOnly ? InstallStagingDir : EmptyString;
 
 	// Construct the attributes class
-	auto Attributes = FBuildPatchFileAttributesFactory::Create(NewBuildManifest, CurrentBuildManifest, InstallDirectory, OptionalStageDirectory);
+	auto Attributes = FBuildPatchFileAttributesFactory::Create(NewBuildManifest, CurrentBuildManifest, InstallDirectory, OptionalStageDirectory, &BuildProgress);
 	Attributes->ApplyAttributes(bForce);
 
 	// We don't fail on this step currently

@@ -29,6 +29,9 @@ namespace EBuildPatchProgress
 		// The patch process is moving staged files to the install
 		MovingToInstall,
 
+		// The patch process is setting up attributes on the build
+		SettingAttributes,
+
 		// The patch process is verifying the build
 		BuildVerification,
 
