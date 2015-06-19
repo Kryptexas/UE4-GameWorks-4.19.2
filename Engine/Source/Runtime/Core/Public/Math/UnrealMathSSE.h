@@ -1003,7 +1003,7 @@ FORCEINLINE VectorRegister VectorFloor(const VectorRegister& X)
 
 FORCEINLINE VectorRegister VectorMod(const VectorRegister& X, const VectorRegister& Y)
 {
-	VectorRegister Temp = VectorFloor(VectorDivide(X, Y));
+	VectorRegister Temp = VectorTruncate(VectorDivide(X, Y));
 	return VectorSubtract(X, VectorMultiply(Y, Temp));
 }
 
@@ -1089,8 +1089,14 @@ FORCEINLINE VectorRegister VectorCos(const VectorRegister& X)
 FORCEINLINE void VectorSinCos(VectorRegister* RESTRICT VSinAngles, VectorRegister* RESTRICT VCosAngles, const VectorRegister* RESTRICT VAngles)
 {
 	// Map to [-pi, pi]
-	VectorRegister X = VectorFloor(VectorMultiplyAdd(*VAngles, GlobalVectorConstants::OneOverTwoPi, GlobalVectorConstants::FloatOneHalf));
-	X = VectorSubtract(*VAngles, VectorMultiply(GlobalVectorConstants::TwoPi, X));
+	// X = A - 2pi * round(A/2pi)
+	// Note the round(), not truncate(). In this case round() can round halfway cases using round-to-nearest-even OR round-to-nearest.
+
+	// Quotient = round(A/2pi)
+	VectorRegister Quotient = VectorMultiply(*VAngles, GlobalVectorConstants::OneOverTwoPi);
+	Quotient = _mm_cvtepi32_ps(_mm_cvtps_epi32(Quotient)); // round to nearest even is the default rounding mode but that's fine here.
+	// X = A - 2pi * Quotient
+	VectorRegister X = VectorSubtract(*VAngles, VectorMultiply(GlobalVectorConstants::TwoPi, Quotient));
 
 	// Map in [-pi/2,pi/2]
 	VectorRegister sign = VectorBitwiseAnd(X, GlobalVectorConstants::SignBit);
