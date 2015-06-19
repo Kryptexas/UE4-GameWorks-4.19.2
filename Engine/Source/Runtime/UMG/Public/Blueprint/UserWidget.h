@@ -62,6 +62,7 @@ public:
 		FPaintContext* Ptr = this;
 		Ptr->~FPaintContext();
 		new(Ptr) FPaintContext(Other.AllottedGeometry, Other.MyClippingRect, Other.OutDrawElements, Other.LayerId, Other.WidgetStyle, Other.bParentEnabled);
+		Ptr->MaxLayer = Other.MaxLayer;
 	}
 
 public:
