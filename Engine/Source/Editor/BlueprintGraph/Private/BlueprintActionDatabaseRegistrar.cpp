@@ -278,7 +278,7 @@ int32 FBlueprintActionDatabaseRegistrar::RegisterClassFactoryActions(const UClas
 {
 	struct RegisterClassFactoryActions_Utils
 	{
-		static bool IsFactoryMethod(const UFunction* Function, const UClass* TargetType)
+		static bool IsFactoryMethod(const UFunction* Function, const UClass* InTargetType)
 		{
 			if (!Function->HasAnyFunctionFlags(FUNC_Static))
 			{
@@ -287,7 +287,7 @@ int32 FBlueprintActionDatabaseRegistrar::RegisterClassFactoryActions(const UClas
 
 			UObjectProperty* ReturnProperty = Cast<UObjectProperty>(Function->GetReturnProperty());
 			// see if the function is a static factory method
-			bool const bIsFactoryMethod = (ReturnProperty != nullptr) && ReturnProperty->PropertyClass->IsChildOf(TargetType);
+			bool const bIsFactoryMethod = (ReturnProperty != nullptr) && ReturnProperty->PropertyClass->IsChildOf(InTargetType);
 
 			return bIsFactoryMethod;
 		}
