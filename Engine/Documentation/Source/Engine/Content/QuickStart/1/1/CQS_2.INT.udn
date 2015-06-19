@@ -28,11 +28,11 @@ At this point, you should have created a new UE4 **Project** (pictured below).
 
 There are a few ways to add content to your UE4 project:
 
->1. [Using the Content Browser's **Import** function.](#Bookmark1)
->2. [**Dragging** files from your hard drive into the Content Browser.](#Bookmark2)
->3. [**Saving** files into the Project directory from external programs (e.g. Photoshop).](#Bookmark3)
+>* [Using the Content Browser's **Import** function.](#Bookmark1)
+>* [**Dragging** files from your hard drive into the Content Browser.](#Bookmark2)
+>* [**Saving** files into the Project directory from external programs (e.g. Photoshop).](#Bookmark3)
 
-## 1. Importing with the Content Browser
+## Importing with the Content Browser
 
 (#Bookmark1)
 
@@ -42,7 +42,7 @@ The **Content Browser** is located in the lower-left corner of the Editor interf
 
 **Clicking** on the **Content Browser's** ![](ImportButton.jpg) button opens a file dialog, enabling you to add assets to your project.
 
-## 2. Importing using Click and Drag
+## Importing using Click and Drag
 
 (#Bookmark2)
 
@@ -72,7 +72,7 @@ Also, if you see the following pop-up message:
 
 UE4 is telling you that odd-sized images aren't streamed or mipmapped.
 
-## 3. Importing from an External Program
+## Importing from an External Program
 
 (#Bookmark3)
 
