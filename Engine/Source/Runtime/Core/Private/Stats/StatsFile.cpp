@@ -320,9 +320,8 @@ void IStatsWriteFile::WriteHeader()
 	Ar << Magic;
 
 	// Serialize dummy header, overwritten in Finalize.
-	Header.Version = EStatMagicWithHeader::VERSION_5;
+	Header.Version = EStatMagicWithHeader::VERSION_LATEST;
 	Header.PlatformName = FPlatformProperties::PlatformName();
-	//Header.bRawStatsFile = bIsRawStatsFile;
 	Ar << Header;
 
 	// Serialize metadata.
@@ -440,7 +439,7 @@ void FStatsWriteFile::SetDataDelegate( bool bSet )
 
 void FStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata )
 {
-	// @TODO yrx 2014-11-25 Add stat startfile -num=number of frames to capture
+	// #YRX_STATS: 2015-06-17 Add stat startfile -num=number of frames to capture
 
 	SCOPE_CYCLE_COUNTER( STAT_StreamFile );
 

@@ -702,13 +702,14 @@ void FStatsThreadState::ScanForAdvance(FStatPacketArray& NewData)
 	for (int32 Index = 0; Index < NewData.Packets.Num(); Index++)
 	{
 		const EThreadType::Type ThreadType = NewData.Packets[Index]->ThreadType;
+		FStatPacket* Packet = NewData.Packets[Index];
 		if ( ThreadType == EThreadType::Renderer)
 		{
-			NewData.Packets[Index]->AssignFrame( CurrentRenderFrame );
+			Packet->AssignFrame( CurrentRenderFrame );
 		}
 		else if (ThreadType == EThreadType::Game)
 		{
-			NewData.Packets[Index]->AssignFrame( CurrentGameFrame );
+			Packet->AssignFrame( CurrentGameFrame );
 		}
 		else if (ThreadType == EThreadType::Other)
 		{
@@ -1024,14 +1025,8 @@ void FStatsThreadState::ResetRegularStats()
 
 void FStatsThreadState::UpdateStatMessagesMemoryUsage()
 {
-	// .UpdateStatMessagesMemoryUsage
 	const int32 CurrentNumStatMessages = NumStatMessages.GetValue();
-	//MaxNumStatMessages = FMath::Max(MaxNumStatMessages,CurrentNumStatMessages);
-
-	if( CurrentNumStatMessages > MaxNumStatMessages )
-	{
-		MaxNumStatMessages = CurrentNumStatMessages;
-	}
+	MaxNumStatMessages = FMath::Max(MaxNumStatMessages,CurrentNumStatMessages);
 
 	TotalNumStatMessages += CurrentNumStatMessages;
 	SET_MEMORY_STAT( STAT_StatMessagesMemory, CurrentNumStatMessages*sizeof(FStatMessage) );
@@ -1055,10 +1050,10 @@ void FStatsThreadState::UpdateStatMessagesMemoryUsage()
 		ToGame->GroupDescriptions.Add( Total );
 
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-			(
+		(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame),
 			TStatId(), nullptr, ENamedThreads::GameThread
-			);
+		);
 	}
 }
 

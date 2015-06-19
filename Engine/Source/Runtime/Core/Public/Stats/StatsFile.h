@@ -44,7 +44,17 @@ namespace EStatMagicWithHeader
 		 *	New low-level raw stats with memory profiler functionality.
 		 *  !!CAUTION!! Not backward compatible with version 4.
 		 */
-		VERSION_5 = 5
+		VERSION_5 = 5,
+
+		/**
+		 *	Added realloc message to avoid sending alloc and free
+		 *	Should also reduce the amount of all messages
+		 *  !!CAUTION!! Not backward compatible with version 5.
+		 */
+		VERSION_6 = 6,
+
+		/** Latest version. */
+		VERSION_LATEST = VERSION_6,
 	};
 }
 

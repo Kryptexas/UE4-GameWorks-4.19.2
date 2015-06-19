@@ -297,7 +297,7 @@ struct EMemoryRegion
 };
 
 /** Memory operation for STAT_Memory_AllocPtr. */
-enum class EMemoryOperation
+enum class EMemoryOperation : uint8
 {
 	/** Invalid. */
 	Invalid,	
@@ -305,6 +305,8 @@ enum class EMemoryOperation
 	Alloc,
 	/** Free. */
 	Free,
+	/** Realloc. */
+	Realloc,
 
 	Num,
 	Mask = 0x7,
