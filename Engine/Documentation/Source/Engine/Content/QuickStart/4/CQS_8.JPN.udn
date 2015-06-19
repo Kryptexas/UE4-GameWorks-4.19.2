@@ -1,0 +1,113 @@
+﻿INTSourceChangelist:2592872
+Availability:Public
+Title:4.マテリアルの Static Mesh アクタへの適用
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:スタティック メッシュ アクタへマテリアルを適用する方法を学習しましょう。
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/Content/QuickStart/9 "%Engine/Content/QuickStart/9:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+いよいよ仕上げのステップになりました！
+
+このステップの目的は、インポートしたスタティック メッシュに **マテリアル** を適用することです。具体的には、以下について学習します。
+
+* [アクタのデフォルト マテリアルを設定する](#Bookmark1)
+* [アクタが使用するマテリアルを変更する](#Bookmark2)
+
+##アクタのデフォルト マテリアルを設定する
+
+(#Bookmark1)
+
+このセクションではリグを設定し、使用のために割り当てる方法を説明します。アクタがレベル内に配置される時には必ずデフォルト マテリアルが使われます。
+
+1.	**コンテンツ ブラウザ** の中にある、前のステップでインポートしたアセットを **ダブルクリック** します。
+
+	![](ContentBrowserAsset.jpg)
+
+	[＿スタティックメッシュ エディタ＿](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:description%") に編集用のアセットが取り込まれます (下の画像)。
+
+	![](StaticMeshEditor.jpg)
+
+1.	**[Details (詳細)]** パネルの **LOD0** で [Material] ドロップダウン メニューをクリックします (下の画像)。
+
+	![](Element0.jpg)
+
+1.	前のステップで作成した **Rock マテリアル** を選択します。選択ウィンドウでマテリアルを利用できます。
+
+	![](SelectMaterial.jpg)
+
+	新しく適用したマテリアルを有効にするために **[Preview (プレビュー)] ペイン** が更新されます。
+
+	![](NewDefaultMaterial.jpg)
+
+1.	まず **[Save (保存)]** ボタンをクリックしてから、 **Material Editor** を閉じます。
+
+1.	**コンテンツ ブラウザ** から新しくテクスチャ化した Static Mesh アクタをレベル内にドラッグ＆ドロップします。
+
+	![](NewMaterialInLevel.jpg)
+
+	_このアセットをレベル内に配置する場合は、指定した **マテリアル** が使用されます。_
+
+##アクタが使用するマテリアルを変更する
+
+(#Bookmark2)
+
+レベル内に **Static Mesh** オブジェクトを置く時に、オブジェクト ([＿アクタ＿](Engine/Actors "%Engine/Actors:description%")) のインスタンスを作成しました。そのアクタのインスタンスのそれぞれに、マテリアルを指定することができます。
+
+**Static Mesh アクタの** マテリアルは以下の手順で変更します。
+
+1.	**Static Mesh アクタ** を選択します。
+
+	![](StaticMeshSelected.jpg)
+
+1.	**[Details (詳細)]** パネルの **[Material]** セクションで、**[Materials]** ドロップダウン メニューをクリックします。
+
+	![](ActorMaterial.jpg)
+
+1.	ポップアップ メニューで、別のマテリアルを選択します。
+
+	![](TutorialMaterial.jpg)
+
+	_[__Starter Content__](Engine/Content/Packs "%Engine/Content/Packs:description%") にはさらに他の マテリアル オプションがあります。_
+
+1.	または、新しいマテリアルを **Static Mesh アクタ** 上にドラッグ＆ドロップします (下の画像)。
+
+	![](draganddropMaterial.jpg)
+
+以下の方法で、Static Mesh アクタにマテリアルを適用しました。
+
+* アクタの **デフォルト マテリアル** を設定する。
+* アクタが使用する **マテリアルを変更する**。
+
+アーティスト向けクイック スタート ガイドも終盤に近づいてまいりました。ここまでに修得したスキルは以下の通り：
+
+* **プロジェクトの設定**
+* **マテリアルの作成**
+* **マテリアルの Static Mesh アクタへの適用**
+
+よく頑張りました！
+
+&#x2713; _次は応用編で力試しです。準備はいいですか？_
+
+[REGION:tip]
+*「三分割法」を使うと、シーン構成が良くなることがほとんどです。*
+[/REGION]
+
+%Steps%
+
+
