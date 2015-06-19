@@ -1577,7 +1577,7 @@ void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdLi
 		FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
 		if(ViewState)
 		{
-			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 
 			if(LightPropagationVolume)
 			{
@@ -1604,7 +1604,7 @@ void FDeferredShadingSceneRenderer::UpdateLPVs(FRHICommandListImmediate& RHICmdL
 
 		if(ViewState)
 		{
-			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 
 			if(LightPropagationVolume)
 			{

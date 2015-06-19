@@ -55,13 +55,16 @@ static bool IsLpvIndirectPassRequired(FPostprocessContext& Context)
 
 	if(ViewState)
 	{
-		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(Context.View.GetFeatureLevel());
 
-		const FLightPropagationVolumeSettings& LPVSettings = Context.View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
-
-		if(LightPropagationVolume && LPVSettings.LPVIntensity > 0.0f)
+		if(LightPropagationVolume)
 		{
-			return true; 
+			const FLightPropagationVolumeSettings& LPVSettings = Context.View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+			if(LPVSettings.LPVIntensity > 0.0f)
+			{
+				return true;
+			}
 		}
 	}
 

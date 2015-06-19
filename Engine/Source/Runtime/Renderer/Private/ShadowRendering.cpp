@@ -462,7 +462,7 @@ public:
 			const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
 			if(ViewState)
 			{
-				const FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+				const FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 
 				if(Lpv)
 				{
@@ -3207,7 +3207,7 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 				FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
 				FSceneViewState* ViewState = (FSceneViewState*)ProjectedShadowInfo->DependentView->State;
 
-				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(FeatureLevel);
 
 				check(LightPropagationVolume);
 				auto SetShadowRenderTargets = [this, LightPropagationVolume, ProjectedShadowInfo, &SceneContext](FRHICommandList& InRHICmdList)
@@ -3243,7 +3243,7 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 			{
 				FSceneViewState* ViewState = (FSceneViewState*)ProjectedShadowInfo->DependentView->State;
 
-				FLightPropagationVolume* LightPropagationVolume = ViewState ? ViewState->GetLightPropagationVolume() : NULL;
+				FLightPropagationVolume* LightPropagationVolume = ViewState ? ViewState->GetLightPropagationVolume(FeatureLevel) : NULL;
 
 				if ( LightPropagationVolume )
 				{

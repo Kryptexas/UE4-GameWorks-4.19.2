@@ -1460,6 +1460,17 @@ void FSceneViewState::CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Typ
 	}
 }
 
+FLightPropagationVolume* FSceneViewState::GetLightPropagationVolume(ERHIFeatureLevel::Type InFeatureLevel) const
+{
+	if (InFeatureLevel < ERHIFeatureLevel::SM5)
+	{
+		// to prevent crash when starting in SM5 and the using the editor preview SM4
+		return 0;
+	}
+
+	return LightPropagationVolume;
+}
+
 void FSceneViewState::DestroyLightPropagationVolume()
 {
 	if ( LightPropagationVolume ) 

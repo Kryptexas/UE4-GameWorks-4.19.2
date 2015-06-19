@@ -584,7 +584,7 @@ public:
 	void CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Type InFeatureLevel);
 
 	// @return can return 0 (if globally disabled)
-	FLightPropagationVolume* GetLightPropagationVolume() const { return LightPropagationVolume; }
+	FLightPropagationVolume* GetLightPropagationVolume(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	/** Default constructor. */
 	FSceneViewState();

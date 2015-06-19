@@ -2265,7 +2265,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			if (ViewState)
 			{
-				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 				
 				FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalData<FLightPropagationVolumeSettings>();
 

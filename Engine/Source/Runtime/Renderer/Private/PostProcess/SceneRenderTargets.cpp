@@ -2184,14 +2184,11 @@ void FSceneTextureShaderParameters::Set(
 		bool bDirectionalOcclusion = false;
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
-		const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
-
-		if ( ViewState != nullptr && ViewState->GetLightPropagationVolume() != nullptr && LPVSettings.LPVIntensity > 0.0f )
+		if(ViewState && ViewState->GetLightPropagationVolume(View.GetFeatureLevel()))
 		{
-			if ( LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
-			{
-				bDirectionalOcclusion = true;
-			}
+			const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+			bDirectionalOcclusion = LPVSettings.LPVIntensity > 0.0f && LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f;
 		}
 
 		FTextureRHIParamRef DirectionalOcclusion = nullptr;

@@ -1087,7 +1087,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 			if(ViewState && View.Family->EngineShowFlags.VisualizeLPV)
 			{
-				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
 
 				if (LightPropagationVolume)
 				{

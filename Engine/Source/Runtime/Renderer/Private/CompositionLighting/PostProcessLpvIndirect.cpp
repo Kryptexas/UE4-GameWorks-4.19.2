@@ -219,15 +219,22 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 
 	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
 	const FSceneView& View = Context.View;
-	const FLightPropagationVolumeSettings& LPVSettings = PostprocessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || LPVSettings.LPVIntensity == 0.0f )
+
+	if(!ViewState)
 	{
 		return;
 	}
 
-	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(Context.GetFeatureLevel());
+
+	const FLightPropagationVolumeSettings& LPVSettings = PostprocessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+	if(!Lpv || LPVSettings.LPVIntensity == 0.0f)
+	{
+		return;
+	}
 
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
@@ -345,14 +352,21 @@ void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingComposi
 	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = SceneContext.DirectionalOcclusion->GetRenderTargetItem();
 	FViewInfo& View = Context.View;
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
-	const FLightPropagationVolumeSettings& LPVSettings = PostprocessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
 
-	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || LPVSettings.LPVIntensity == 0.0f )
+	if(!ViewState)
 	{
 		return;
 	}
-	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+
+	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
+	const FLightPropagationVolumeSettings& LPVSettings = PostprocessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+	
+	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(Context.GetFeatureLevel());
+
+	if(!Lpv || LPVSettings.LPVIntensity == 0.0f)
+	{
+		return;
+	}
 
 	FTextureRHIParamRef RenderTarget = DestDirectionalOcclusionRenderTarget.TargetableTexture;
 
