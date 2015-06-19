@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2573104
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:サードパーソンシューター
 Crumbs:%ROOT%
@@ -61,7 +61,7 @@ Navigation:topic
 * [](Engine/Blueprints/HowTo) チュートリアルで学んだことを活用して、背景に危険要素をいくつか追加してみましょう。爆発する樽はゲームの代表的な存在ですが、その他にもたくさんの危険要素をゲームのワールドに再現することができます。
 	* 大勢のファン！彼らもプレイヤーや AI を押したり引っ張ったりできます。
 	* 有毒ガス！拡散させたりあちこちへ移動させたりします。
-	* 溶岩！溶岩という理由で！環境を破壊する溶融物質だからです。
+	* 溶岩！溶岩はかかせません！環境破壊に有害な溶融物質だからです。
 	* 氷上など滑りやすい表面。プレイヤーが氷の上を滑れるようにサーフェスの摩擦を変更できます！
 * [**Character Movement Component**](Engine/Components/Movement) の **ThridPersonCharacter** のジャンプの高さ、走行速度、質量、またはその他たくさんのプロパティを変更して、ユニークな感覚のゲームプレイを作成します。
 * [Launch Pads](Engine/Blueprints/QuickStart) はファーストパーソンゲームを含めて、多数のゲームタイプに共通する機能です。
