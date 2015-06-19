@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Misc/TextFilter.h"
+#include "FoliageEdMode.h"
 
 class SFoliagePaletteTile;
 class FEdModeFoliage;
