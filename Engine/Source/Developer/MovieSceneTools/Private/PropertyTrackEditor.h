@@ -45,6 +45,15 @@ private:
 	void OnAnimatedPropertyChanged( const FPropertyChangedParams& KeyPropertyParams );
 
 	/**
+	 * Called by the details panel when an animatable bool property changes
+	 *
+	 * @param InObjectsThatChanged	List of objects that changed
+	 * @param KeyPropertyParams		Parameters for the property change.
+	 */
+	template <typename Type, typename TrackType>
+	void OnAnimatedBoolPropertyChanged( const FPropertyChangedParams& KeyPropertyParams );
+
+	/**
 	 * Called by the details panel when an animatable vector property changes
 	 *
 	 * @param InObjectsThatChanged	List of objects that changed
