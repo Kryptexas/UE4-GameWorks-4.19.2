@@ -33,6 +33,47 @@
 #define LOCTEXT_NAMESPACE "Sequencer"
 
 
+class SSequencerScrollBox : public SScrollBox
+{
+public:
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer);
+
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+	/** The sequencer which owns this widget. */
+	TWeakPtr<FSequencer> Sequencer;
+};
+
+void SSequencerScrollBox::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSequencer)
+{
+	Sequencer = InSequencer;
+	SScrollBox::Construct(InArgs);
+}
+
+FReply SSequencerScrollBox::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// Clear the selection if no sequencer display nodes were clicked on
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if (Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes()->Num() != 0)
+		{
+			Sequencer.Pin()->GetSelection()->EmptySelectedOutlinerNodes();
+
+			if (Sequencer.Pin()->IsLevelEditorSequencer())
+			{
+				const bool bNotifySelectionChanged = false;
+				const bool bDeselectBSP = true;
+				const bool bWarnAboutTooManyActors = false;
+
+				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
+				GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
+				return FReply::Handled();
+			}
+		}
+	}
+	return FReply::Unhandled();
+}
+
 /**
  * The shot filter overlay displays the overlay needed to filter out widgets based on
  * which shots are actively in use.
@@ -147,6 +188,9 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 {
 	Sequencer = InSequencer;
 	bIsActiveTimerRegistered = false;
+	bUserIsSelecting = false;
+
+	USelection::SelectionChangedEvent.AddSP(this, &SSequencer::OnActorSelectionChanged);
 
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
@@ -251,7 +295,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 							+ SOverlay::Slot()
 							[
-								SNew( SScrollBox )
+								SNew( SSequencerScrollBox, Sequencer.Pin().ToSharedRef() )
 								.ExternalScrollbar(ScrollBar)
 
 								+ SScrollBox::Slot()
@@ -965,6 +1009,42 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 void SSequencer::OnActorsDropped( FActorDragDropGraphEdOp& DragDropOp )
 {
 	Sequencer.Pin()->OnActorsDropped( DragDropOp.Actors );
+}
+
+void SSequencer::OnActorSelectionChanged(UObject* obj)
+{
+	if (!Sequencer.Pin()->IsLevelEditorSequencer())
+	{
+		return;
+	}
+
+	// If the user is selecting within the sequencer, ignore
+	if (bUserIsSelecting)
+	{
+		return;
+	}
+
+	TSet<TSharedRef<FSequencerDisplayNode>> RootNodes(SequencerNodeTree->GetRootNodes());
+
+	// Clear selection
+	Sequencer.Pin()->GetSelection()->EmptySelectedOutlinerNodes();
+
+	// Select the nodes that have runtime objects that are selected in the level
+	for (auto Node : RootNodes)
+	{
+		TSharedRef<FObjectBindingNode> ObjectBindingNode = StaticCastSharedRef<FObjectBindingNode>(Node);
+		TArray<UObject*> RuntimeObjects;
+		Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetFocusedMovieSceneInstance(), ObjectBindingNode->GetObjectBinding(), RuntimeObjects );
+		
+		for (int32 RuntimeIndex = 0; RuntimeIndex < RuntimeObjects.Num(); ++RuntimeIndex )
+		{
+			if (GEditor->GetSelectedActors()->IsSelected(RuntimeObjects[RuntimeIndex]))
+			{
+				Sequencer.Pin()->GetSelection()->AddToSelection(Node);
+				break;
+			}
+		}
+	}
 }
 
 void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)

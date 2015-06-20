@@ -460,12 +460,19 @@ void SAnimationOutlinerView::OnSelectionChanged( TSharedPtr<FSequencerDisplayNod
 			const bool bDeselectBSP = true;
 			const bool bWarnAboutTooManyActors = false;
 
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
+
 			// Clear selection
 			GEditor->SelectNone(bNotifySelectionChanged,bDeselectBSP,bWarnAboutTooManyActors);
 			GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 
 			// Select each actor
 			bool bActorSelected = false;
+
+			// Mark that the user is selecting so that the UI doesn't respond to the selection changes in the following block
+			TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget());
+			SequencerWidget->SetUserIsSelecting(true);
+			
 			for( int32 ObjectIndex = 0; ObjectIndex < RuntimeObjects.Num(); ++ObjectIndex )
 			{
 				AActor* Actor = Cast<AActor>( RuntimeObjects[ObjectIndex] );
@@ -485,6 +492,9 @@ void SAnimationOutlinerView::OnSelectionChanged( TSharedPtr<FSequencerDisplayNod
 			{
 				GEditor->NoteSelectionChange();
 			}
+
+			// Unlock the selection so that the sequencer widget can now respond to selection changes in the level
+			SequencerWidget->SetUserIsSelecting(false);
 		}
 	}
 }
