@@ -1461,6 +1461,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		StartRenderingThread();
 	}
 	
+#if WITH_EDITOR
+	// We need to mount the shared resources for templates (if there are any) before we try and load and game classes
+	FUnrealEdMisc::Get().MountTemplateSharedPaths();
+#endif
+
 	if ( !LoadStartupModules() )
 	{
 		// At least one startup module failed to load, return 1 to indicate an error

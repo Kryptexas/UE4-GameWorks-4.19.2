@@ -256,9 +256,6 @@ void FUnrealEdMisc::OnInit()
 	// Check for automated build/submit option
 	const bool bDoAutomatedMapBuild = FParse::Param( ParsedCmdLine, TEXT("AutomatedMapBuild") );
 
-	// This adds mount points for the template shared resources if we are editing a template project.
-	MountTemplateSharedPaths();
-
 	// Load startup map (conditionally)
 	SlowTask.EnterProgressFrame(60);
 	{
