@@ -168,12 +168,6 @@ void FSlateOpenGLContext::Destroy()
 {
 	if (View)
 	{
-		NSWindow* Window = [View window];
-		if (Window)
-		{
-			[Window setContentView:NULL];
-		}
-		
 		NSOpenGLContext* Current = [NSOpenGLContext currentContext];
 		[Context makeCurrentContext];
 		FSlateCocoaView* SlateView = ((FSlateCocoaView*)View);
