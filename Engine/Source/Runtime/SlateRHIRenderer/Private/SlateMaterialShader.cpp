@@ -6,7 +6,7 @@
 
 bool FSlateMaterialShaderPS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 {
-	return Material->IsUsedWithUI();
+	return Material->GetMaterialDomain() == MD_UI;
 }
 
 

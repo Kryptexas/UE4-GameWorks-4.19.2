@@ -347,6 +347,8 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	Material->bIsPreviewMaterial = true;
 	FMaterialEditorUtilities::InitExpressions(Material);
 
+	UpdatePreviewViewportsVisibility();
+
 	BindCommands();
 
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v5")
@@ -603,11 +605,27 @@ void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
 	}
 }
 
+void FMaterialEditor::UpdatePreviewViewportsVisibility()
+{
+	if( Material->IsUIMaterial() )
+	{
+		PreviewViewport->SetVisibility(EVisibility::Collapsed);
+		PreviewUIViewport->SetVisibility(EVisibility::Visible);
+	}
+	else
+	{
+		PreviewViewport->SetVisibility(EVisibility::Visible);
+		PreviewUIViewport->SetVisibility(EVisibility::Collapsed);
+	}
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FMaterialEditor::CreateInternalWidgets()
 {
-	Viewport = SNew(SMaterialEditorViewport)
+	PreviewViewport = SNew(SMaterialEditor3DPreviewViewport)
 		.MaterialEditor(SharedThis(this));
+
+	PreviewUIViewport = SNew(SMaterialEditorUIPreviewViewport, Material);
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
@@ -642,6 +660,8 @@ void FMaterialEditor::CreateInternalWidgets()
 		UMaterialExpressionCollectionParameter::StaticClass(), 
 		LayoutCollectionParameterDetails
 		);
+
+	PropertyEditorModule.RegisterCustomClassLayout( UMaterial::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialDetailCustomization::MakeInstance ) );
 
 	Palette = SNew(SMaterialPalette, SharedThis(this));
 
@@ -870,10 +890,6 @@ bool FMaterialEditor::OnRequestClose()
 {
 	DestroyColorPicker();
 
-	// @todo DB: Store off the viewport camera position/orientation to the material.
-	//AnimTree->PreviewCamPos = PreviewVC->ViewLocation;
-	//AnimTree->PreviewCamRot = PreviewVC->ViewRotation;
-
 	if (bMaterialDirty)
 	{
 		// find out the user wants to do with this dirty material
@@ -1048,35 +1064,35 @@ void FMaterialEditor::RecenterEditor()
 
 bool FMaterialEditor::SetPreviewAsset(UObject* InAsset)
 {
-	if (Viewport.IsValid())
+	if (PreviewViewport.IsValid())
 	{
-		return Viewport->SetPreviewAsset(InAsset);
+		return PreviewViewport->SetPreviewAsset(InAsset);
 	}
 	return false;
 }
 
 bool FMaterialEditor::SetPreviewAssetByName(const TCHAR* InAssetName)
 {
-	if (Viewport.IsValid())
+	if (PreviewViewport.IsValid())
 	{
-		return Viewport->SetPreviewAssetByName(InAssetName);
+		return PreviewViewport->SetPreviewAssetByName(InAssetName);
 	}
 	return false;
 }
 
 void FMaterialEditor::SetPreviewMaterial(UMaterialInterface* InMaterialInterface)
 {
-	if (Viewport.IsValid())
+	if (PreviewViewport.IsValid())
 	{
-		Viewport->SetPreviewMaterial(InMaterialInterface);
+		PreviewViewport->SetPreviewMaterial(InMaterialInterface);
 	}
 }
 
 void FMaterialEditor::RefreshPreviewViewport()
 {
-	if (Viewport.IsValid())
+	if (PreviewViewport.IsValid())
 	{
-		Viewport->RefreshViewport();
+		PreviewViewport->RefreshViewport();
 	}
 }
 
@@ -1092,14 +1108,25 @@ void FMaterialEditor::LoadEditorSettings()
 	if (EditorOptions->bAlwaysRefreshAllPreviews) {OnAlwaysRefreshAllPreviews();}
 	if (EditorOptions->bRealtimeExpressionViewport) {ToggleRealTimeExpressions();}
 
-	if ( Viewport.IsValid() )
+	if ( PreviewViewport.IsValid() )
 	{
-		if (EditorOptions->bShowGrid) {Viewport->TogglePreviewGrid();}
-		if (EditorOptions->bShowBackground) {Viewport->TogglePreviewBackground();}
-		if (EditorOptions->bRealtimeMaterialViewport) {Viewport->OnToggleRealtime();}
+		if (EditorOptions->bShowGrid)
+		{
+			PreviewViewport->TogglePreviewGrid();
+		}
+
+		if (EditorOptions->bShowBackground)
+		{
+			PreviewViewport->TogglePreviewBackground();
+		}
+
+		if (EditorOptions->bRealtimeMaterialViewport)
+		{
+			PreviewViewport->OnToggleRealtime();
+		}
 
 		// Load the preview scene
-		Viewport->PreviewScene.LoadSettings(TEXT("MaterialEditor"));
+		PreviewViewport->PreviewScene.LoadSettings(TEXT("MaterialEditor"));
 	}
 
 	if (EditorOptions->bShowMobileStats)
@@ -1112,21 +1139,21 @@ void FMaterialEditor::LoadEditorSettings()
 	int32 PrimType;
 	if(GConfig->GetInt(TEXT("MaterialEditor"), TEXT("PrimType"), PrimType, GEditorPerProjectIni))
 	{
-		Viewport->OnSetPreviewPrimitive((EThumbnailPrimType)PrimType);
+		PreviewViewport->OnSetPreviewPrimitive((EThumbnailPrimType)PrimType);
 	}
 }
 
 void FMaterialEditor::SaveEditorSettings()
 {
 	// Save the preview scene
-	check( Viewport.IsValid() );
-	Viewport->PreviewScene.SaveSettings(TEXT("MaterialEditor"));
+	check( PreviewViewport.IsValid() );
+	PreviewViewport->PreviewScene.SaveSettings(TEXT("MaterialEditor"));
 
 	if ( EditorOptions )
 	{
-		EditorOptions->bShowGrid					= Viewport->IsTogglePreviewGridChecked();
-		EditorOptions->bShowBackground				= Viewport->IsTogglePreviewBackgroundChecked();
-		EditorOptions->bRealtimeMaterialViewport	= Viewport->IsRealtime();
+		EditorOptions->bShowGrid					= PreviewViewport->IsTogglePreviewGridChecked();
+		EditorOptions->bShowBackground				= PreviewViewport->IsTogglePreviewBackgroundChecked();
+		EditorOptions->bRealtimeMaterialViewport	= PreviewViewport->IsRealtime();
 		EditorOptions->bShowMobileStats				= bShowMobileStats;
 		EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
 		EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
@@ -1135,7 +1162,7 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->SaveConfig();
 	}
 
-	GConfig->SetInt(TEXT("MaterialEditor"), TEXT("PrimType"), Viewport->PreviewPrimType, GEditorPerProjectIni);
+	GConfig->SetInt(TEXT("MaterialEditor"), TEXT("PrimType"), PreviewViewport->PreviewPrimType, GEditorPerProjectIni);
 }
 
 FText FMaterialEditor::GetCodeViewText() const
@@ -1753,9 +1780,9 @@ void FMaterialEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		FEditorViewportCommands::Get().ToggleRealTime,
-		FExecuteAction::CreateSP( Viewport.ToSharedRef(), &SMaterialEditorViewport::OnToggleRealtime ),
+		FExecuteAction::CreateSP( PreviewViewport.ToSharedRef(), &SMaterialEditor3DPreviewViewport::OnToggleRealtime ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( Viewport.ToSharedRef(), &SMaterialEditorViewport::IsRealtime ) );
+		FIsActionChecked::CreateSP( PreviewViewport.ToSharedRef(), &SMaterialEditor3DPreviewViewport::IsRealtime ) );
 
 	ToolkitCommands->MapAction(
 		FGenericCommands::Get().Undo,
@@ -2641,10 +2668,18 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Preview(const FSpawnTabArgs& Args
 		SNew(SDockTab)
 		.Label(LOCTEXT("ViewportTabTitle", "Viewport"))
 		[
-			Viewport.ToSharedRef()
+			SNew( SOverlay )
+			+ SOverlay::Slot()
+			[
+				PreviewViewport.ToSharedRef()
+			]
+			+ SOverlay::Slot()
+			[
+				PreviewUIViewport.ToSharedRef()
+			]
 		];
 
-	Viewport->OnAddedToTab( SpawnedTab );
+	PreviewViewport->OnAddedToTab( SpawnedTab );
 
 	return SpawnedTab;
 }
@@ -3493,6 +3528,14 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			{
 				SetPreviewAsset(GUnrealEd->GetThumbnailManager()->EditorSphere);
 			}
+		}
+		else if ( NameOfPropertyThatChanged == GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) )
+		{
+			Material->MaterialGraph->RebuildGraph();
+			TArray<TWeakObjectPtr<UObject>> SelectedObjects = MaterialDetailsView->GetSelectedObjects();
+			MaterialDetailsView->SetObjects( SelectedObjects, true );
+
+			UpdatePreviewViewportsVisibility();
 		}
 
 		FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();

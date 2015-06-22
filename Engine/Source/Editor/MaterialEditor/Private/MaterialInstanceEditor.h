@@ -124,6 +124,9 @@ private:
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();
 
+	/** Updates the 3D and UI preview viewport visibility based on material domain */
+	void UpdatePreviewViewportsVisibility();
+
 	/** Builds the toolbar widget for the material editor */
 	void ExtendToolbar();
 
@@ -156,7 +159,10 @@ private:
 	TMap< FName, TWeakPtr<class SDockTab> > SpawnedToolPanels;
 
 	/** Preview Viewport widget */
-	TSharedPtr<class SMaterialEditorViewport> PreviewVC;
+	TSharedPtr<class SMaterialEditor3DPreviewViewport> PreviewVC;
+
+	/** Preview viewport widget used for UI materials */
+	TSharedPtr<class SMaterialEditorUIPreviewViewport> PreviewUIViewport;
 
 	/** Property View */
 	TSharedPtr<class IDetailsView> MaterialInstanceDetails;

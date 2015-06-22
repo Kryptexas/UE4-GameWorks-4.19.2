@@ -3,7 +3,8 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateBrushCustomization.h"
 #include "AssetData.h"
-
+#include "SHyperlink.h"
+#include "ScopedTransaction.h"
 /**
  * Slate Brush Preview widget
  */
@@ -1043,6 +1044,28 @@ private:
 
 float SSlateBrushStaticPreview::TargetHeight = 18.0f;
 
+class SBrushResourceError : public SBorder
+{
+public:
+	SLATE_BEGIN_ARGS( SBrushResourceError ) {}
+		SLATE_DEFAULT_SLOT( FArguments, Content )
+	SLATE_END_ARGS()
+
+	void Construct( const FArguments& InArgs )
+	{
+		SBorder::Construct( SBorder::FArguments()
+			.BorderBackgroundColor( FCoreStyle::Get().GetColor("ErrorReporting.BackgroundColor") )
+			.BorderImage( FCoreStyle::Get().GetBrush("ErrorReporting.Box") )
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding( FMargin(3,0) )
+			[
+				InArgs._Content.Widget
+			]
+		);
+	}
+};
+
 // SBrushResourceObjectBox
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1069,13 +1092,28 @@ class SBrushResourceObjectBox : public SCompoundWidget
 				SNew(SObjectPropertyEntryBox)
 				.PropertyHandle(InResourceObjectProperty)
 				.ThumbnailPool(StructCustomizationUtils->GetThumbnailPool())
-				.OnObjectChanged(this, &SBrushResourceObjectBox::OnAssetPicked)
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding( 0.0f, 3.0f )
 			[
-				SAssignNew(ResourceErrorText, SErrorText)
+				SAssignNew(ResourceError, SBrushResourceError )
+				[
+					SNew( SVerticalBox )
+					+ SVerticalBox::Slot()
+					.HAlign( HAlign_Left )
+					[
+						SNew( STextBlock )
+						.Text( NSLOCTEXT("FSlateBrushStructCustomization", "ResourceErrorText", "This material does not use the UI material domain" ) )
+					]
+					+ SVerticalBox::Slot()
+					.HAlign( HAlign_Left )
+					[
+						SNew( SHyperlink )
+						.Text( NSLOCTEXT("FSlateBrushStructCustomization", "ChangeMaterialDomain_ErrorMessage", "Change the Material Domain?" ) )
+						.OnNavigate( this, &SBrushResourceObjectBox::OnErrorLinkClicked )
+					]
+				]
 			]
 		];
 	}
@@ -1088,23 +1126,22 @@ class SBrushResourceObjectBox : public SCompoundWidget
 		{
 			UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>( Resource );
 			UMaterial* BaseMaterial = MaterialInterface->GetBaseMaterial();
-			if( BaseMaterial && !BaseMaterial->bUsedWithUI )
+			if( BaseMaterial && !BaseMaterial->IsUIMaterial() )
 			{
-				ResourceErrorText->SetError( NSLOCTEXT("FSlateBrushStructCustomization", "ResourceErrorText", "This material is not supported in UI.  Please check \"Used with UI\" in the material editor" ) );
+				ResourceError->SetVisibility( EVisibility::Visible );
 			}
 			else
 			{
-				ResourceErrorText->SetError( FText::GetEmpty() );
+				ResourceError->SetVisibility( EVisibility::Collapsed );
 			}
 		}
-		else if( ResourceErrorText->HasError() )
+		else if( ResourceError->GetVisibility() != EVisibility::Collapsed )
 		{
-			ResourceErrorText->SetError( FText::GetEmpty() );
+			ResourceError->SetVisibility( EVisibility::Collapsed );
 		}
 	}
 
 private:
-
 	void OnBrushResourceChanged()
 	{
 		UObject* ResourceObject;
@@ -1130,22 +1167,26 @@ private:
 		}
 	}
 
-	/**
-	 * When the asset is picked if it's a material being used in the UI we 
-	 * automatically set the bUsedWithUI flag if it isn't already set.
-	 */
-	void OnAssetPicked(const FAssetData& InAssetData) const
+	void OnErrorLinkClicked()
 	{
 		UObject* Resource = nullptr;
 
-		if ( ResourceObjectProperty->GetValue(Resource) == FPropertyAccess::Success && Resource && Resource->IsA<UMaterialInterface>() )
+		if( ResourceObjectProperty->GetValue(Resource) == FPropertyAccess::Success && Resource && Resource->IsA<UMaterialInterface>() )
 		{
-			UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(Resource);
+			UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>( Resource );
 			UMaterial* BaseMaterial = MaterialInterface->GetBaseMaterial();
-			if ( BaseMaterial && !BaseMaterial->bUsedWithUI )
+			if ( BaseMaterial && !BaseMaterial->IsUIMaterial() )
 			{
-				bool bNeedsRecompile = true;
-				BaseMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_UI);
+				UProperty* MaterialDomainProp = FindField<UProperty>(UMaterial::StaticClass(), GET_MEMBER_NAME_CHECKED(UMaterial,MaterialDomain) );
+
+				FScopedTransaction Transaction( FText::Format( NSLOCTEXT("FSlateBrushStructCustomization", "ChangeMaterialDomainTransaction", "Changed {0} to use the UI material domain"), FText::FromString( BaseMaterial->GetName() ) ) );
+
+				BaseMaterial->PreEditChange( MaterialDomainProp );
+
+				BaseMaterial->MaterialDomain = MD_UI;
+
+				FPropertyChangedEvent ChangeEvent( MaterialDomainProp );
+				BaseMaterial->PostEditChangeProperty( ChangeEvent );
 			}
 		}
 	}
@@ -1153,7 +1194,7 @@ private:
 private:
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty;
 	TSharedPtr<IPropertyHandle> ImageSizeProperty;
-	TSharedPtr<SErrorText> ResourceErrorText;
+	TSharedPtr<SBrushResourceError> ResourceError;
 };
 
 // FSlateBrushStructCustomization

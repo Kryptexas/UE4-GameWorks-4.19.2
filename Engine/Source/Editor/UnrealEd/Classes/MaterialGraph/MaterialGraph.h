@@ -14,11 +14,6 @@ DECLARE_DELEGATE_OneParam( FToggleExpressionCollapsed, UMaterialExpression* );
  */
 struct FMaterialInputInfo
 {
-	/** Name of the input shown to user */
-	FText Name;
-	/** Type of the input */
-	EMaterialProperty Property;
-
 	/** Constructor */
 	FMaterialInputInfo()
 	{
@@ -49,6 +44,10 @@ struct FMaterialInputInfo
 		{
 			return Property == MP_MaterialAttributes;
 		}
+		else if( Material->IsUIMaterial() )
+		{
+			return Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask;
+		}
 		else
 		{
 			if(Property == MP_MaterialAttributes)
@@ -64,6 +63,17 @@ struct FMaterialInputInfo
 			return true;
 		}
 	}
+
+	const FText& GetName() const { return Name; }
+
+	EMaterialProperty GetProperty() const { return Property; }
+
+private:
+	/** Name of the input shown to user */
+	FText Name;
+	/** Type of the input */
+	EMaterialProperty Property;
+
 };
 
 UCLASS()
@@ -155,4 +165,7 @@ private:
 	 * @param	Input	Input we are finding an output index for
 	 */
 	int32 GetValidOutputIndex(FExpressionInput* Input) const;
+
+	FText GetEmissivePinName() const;
+	FText GetBaseColorPinName() const;
 };

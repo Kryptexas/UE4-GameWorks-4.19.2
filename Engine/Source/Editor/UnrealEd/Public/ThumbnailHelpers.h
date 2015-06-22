@@ -70,6 +70,8 @@ protected:
 protected:
 	/** The static mesh actor used to display all material thumbnails */
 	AStaticMeshActor* PreviewActor;
+	/** Material being rendered is for UI */
+	bool bIsUIMaterial;
 };
 
 class UNREALED_API FSkeletalMeshThumbnailScene : public FThumbnailPreviewScene

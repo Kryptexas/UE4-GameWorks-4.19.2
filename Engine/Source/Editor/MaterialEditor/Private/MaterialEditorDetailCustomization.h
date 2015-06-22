@@ -88,3 +88,14 @@ private:
 	/** A list of all parameter names to choose from */
 	TArray<TSharedPtr<FString>> ParametersSource;
 };
+
+class FMaterialDetailCustomization : public IDetailCustomization
+{
+public:
+
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<class IDetailCustomization> MakeInstance();
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
+};

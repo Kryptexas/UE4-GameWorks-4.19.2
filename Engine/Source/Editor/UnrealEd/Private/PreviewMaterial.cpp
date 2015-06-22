@@ -37,83 +37,96 @@ public:
 		// only generate the needed shaders (which should be very restrictive for fast recompiling during editing)
 		// @todo: Add a FindShaderType by fname or something
 
-		bool bEditorStatsMaterial = Material->bIsMaterialEditorStatsMaterial;
-
-		// Always allow HitProxy shaders.
-		if (FCString::Stristr(ShaderType->GetName(), TEXT("HitProxy")))
+		if( Material->IsUIMaterial() )
 		{
-			return true;
-		}
-
-		// we only need local vertex factory for the preview static mesh
-		if (VertexFactoryType != FindVertexFactoryType(FName(TEXT("FLocalVertexFactory"), FNAME_Find)))
-		{
-			//cache for gpu skinned vertex factory if the material allows it
-			//this way we can have a preview skeletal mesh
-			if (bEditorStatsMaterial ||
-				!IsUsedWithSkeletalMesh() ||
-				(VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactoryfalse"), FNAME_Find)) &&
-				VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactorytrue"), FNAME_Find))))
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderPS")))
 			{
-				return false;
+				return true;
 			}
+	
 		}
 
-		if (bEditorStatsMaterial)
-		{
-			TArray<FString> ShaderTypeNames;
-			TArray<FString> ShaderTypeDescriptions;
-			GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
 
-			//Only allow shaders that are used in the stats.
-			return ShaderTypeNames.Find(ShaderType->GetName()) != INDEX_NONE;
-		}
+		{
+			bool bEditorStatsMaterial = Material->bIsMaterialEditorStatsMaterial;
 
-		// look for any of the needed type
-		bool bShaderTypeMatches = false;
+			// Always allow HitProxy shaders.
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("HitProxy")))
+			{
+				return true;
+			}
 
-		// For FMaterialResource::GetRepresentativeInstructionCounts
-		if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFNoLightMapPolicy")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("CachedPointIndirectLightingPolicy")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFSelfShadowedTranslucencyPolicy")))
-		{
-			bShaderTypeMatches = true;
-		}
-		// Pick tessellation shader based on material settings
-		else if(FCString::Stristr(ShaderType->GetName(), TEXT("BasePassVSFNoLightMapPolicy")) ||
-			FCString::Stristr(ShaderType->GetName(), TEXT("BasePassHSFNoLightMapPolicy")) ||
-			FCString::Stristr(ShaderType->GetName(), TEXT("BasePassDSFNoLightMapPolicy")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("DepthOnly")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("ShadowDepth")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("TDistortion")))
-		{
-			bShaderTypeMatches = true;
-		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("TBasePassForForwardShading")))
-		{
-			bShaderTypeMatches = true;
-		}
+			// we only need local vertex factory for the preview static mesh
+			if (VertexFactoryType != FindVertexFactoryType(FName(TEXT("FLocalVertexFactory"), FNAME_Find)))
+			{
+				//cache for gpu skinned vertex factory if the material allows it
+				//this way we can have a preview skeletal mesh
+				if (bEditorStatsMaterial ||
+					!IsUsedWithSkeletalMesh() ||
+					(VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactoryfalse"), FNAME_Find)) &&
+					VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactorytrue"), FNAME_Find))))
+				{
+					return false;
+				}
+			}
 
-		return bShaderTypeMatches;
+			if (bEditorStatsMaterial)
+			{
+				TArray<FString> ShaderTypeNames;
+				TArray<FString> ShaderTypeDescriptions;
+				GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
+
+				//Only allow shaders that are used in the stats.
+				return ShaderTypeNames.Find(ShaderType->GetName()) != INDEX_NONE;
+			}
+
+			// look for any of the needed type
+			bool bShaderTypeMatches = false;
+
+			// For FMaterialResource::GetRepresentativeInstructionCounts
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFNoLightMapPolicy")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("CachedPointIndirectLightingPolicy")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFSelfShadowedTranslucencyPolicy")))
+			{
+				bShaderTypeMatches = true;
+			}
+			// Pick tessellation shader based on material settings
+			else if(FCString::Stristr(ShaderType->GetName(), TEXT("BasePassVSFNoLightMapPolicy")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassHSFNoLightMapPolicy")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassDSFNoLightMapPolicy")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("DepthOnly")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("ShadowDepth")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("TDistortion")))
+			{
+				bShaderTypeMatches = true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("TBasePassForForwardShading")))
+			{
+				bShaderTypeMatches = true;
+			}
+
+			return bShaderTypeMatches;
+		}
+	
 	}
 
 	/**

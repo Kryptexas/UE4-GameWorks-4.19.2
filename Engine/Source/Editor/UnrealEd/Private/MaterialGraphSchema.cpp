@@ -397,7 +397,7 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 						if(MaterialGraph->MaterialInputs[Index].IsVisiblePin(MaterialGraph->Material))
 						{
 							FFormatNamedArguments Arguments;
-							Arguments.Add(TEXT("Name"), MaterialGraph->MaterialInputs[Index].Name);
+							Arguments.Add(TEXT("Name"), MaterialGraph->MaterialInputs[Index].GetName());
 							const FText Label = FText::Format( LOCTEXT( "ConnectToInput", "Connect To {Name}" ), Arguments );
 							const FText ToolTip = FText::Format( LOCTEXT( "ConnectToInputTooltip", "Connects to the material input {Name}" ), Arguments );
 							MenuBuilder->AddMenuEntry(Label,

@@ -707,6 +707,7 @@ bool FMaterialResource::ShouldDisableDepthTest() const { return Material->bDisab
 bool FMaterialResource::ShouldEnableResponsiveAA() const { return Material->bEnableResponsiveAA; }
 bool FMaterialResource::ShouldDoSSR() const { return Material->bScreenSpaceReflections; }
 bool FMaterialResource::IsWireframe() const { return Material->Wireframe; }
+bool FMaterialResource::IsUIMaterial() const { return Material->MaterialDomain == MD_UI; }
 bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomain == MD_LightFunction; }
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsUsedWithDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
@@ -773,7 +774,7 @@ bool FMaterialResource::IsUsedWithAPEXCloth() const
 
 bool FMaterialResource::IsUsedWithUI() const
 {
-	return Material->bUsedWithUI;
+	return IsUIMaterial();
 }
 
 EMaterialTessellationMode FMaterialResource::GetTessellationMode() const 
@@ -922,23 +923,40 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 	{
 		GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
 
-		const FMeshMaterialShaderMap* MeshShaderMap = MaterialShaderMap->GetMeshShaderMap(&FLocalVertexFactory::StaticType);
-		if (MeshShaderMap)
+		if( IsUIMaterial() )
 		{
-			Descriptions.Empty();
-			InstructionCounts.Empty();
-
 			for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
 			{
 				FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
-				if (ShaderType)
+				const FShader* Shader = MaterialShaderMap->GetShader(ShaderType);
+				if (Shader && Shader->GetNumInstructions() > 0)
 				{
-					const FShader* Shader = MeshShaderMap->GetShader(ShaderType);
-					if (Shader && Shader->GetNumInstructions() > 0)
+					//if the shader was found, add it to the output arrays
+					InstructionCounts.Push(Shader->GetNumInstructions());
+					Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+				}
+			}
+		}
+		else
+		{
+			const FMeshMaterialShaderMap* MeshShaderMap = MaterialShaderMap->GetMeshShaderMap(&FLocalVertexFactory::StaticType);
+			if (MeshShaderMap)
+			{
+				Descriptions.Empty();
+				InstructionCounts.Empty();
+
+				for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
+				{
+					FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
+					if (ShaderType)
 					{
-						//if the shader was found, add it to the output arrays
-						InstructionCounts.Push(Shader->GetNumInstructions());
-						Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+						const FShader* Shader = MeshShaderMap->GetShader(ShaderType);
+						if (Shader && Shader->GetNumInstructions() > 0)
+						{
+							//if the shader was found, add it to the output arrays
+							InstructionCounts.Push(Shader->GetNumInstructions());
+							Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+						}
 					}
 				}
 			}
@@ -953,7 +971,12 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 	static auto* MobileHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	bool bMobileHDR = MobileHDR && MobileHDR->GetValueOnAnyThread() == 1;
 
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	if( IsUIMaterial() )
+	{
+		new(ShaderTypeNames) FString(TEXT("TSlateMaterialShaderPSDefaultfalse"));
+		new(ShaderTypeDescriptions) FString(TEXT("Default UI Shader"));
+	}
+	else if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		if (GetShadingModel() == MSM_Unlit)
 		{

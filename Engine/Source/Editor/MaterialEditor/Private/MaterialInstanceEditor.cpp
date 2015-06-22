@@ -174,6 +174,8 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 
 	BindCommands();
 
+	UpdatePreviewViewportsVisibility();
+
 	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_MaterialInstanceEditor_Layout_v2" )
 	->AddArea
 	(
@@ -285,9 +287,9 @@ void FMaterialInstanceEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		FEditorViewportCommands::Get().ToggleRealTime,
-		FExecuteAction::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditorViewport::OnToggleRealtime ),
+		FExecuteAction::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditor3DPreviewViewport::OnToggleRealtime ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditorViewport::IsRealtime ) );
+		FIsActionChecked::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditor3DPreviewViewport::IsRealtime ) );
 
 	ToolkitCommands->MapAction(
 		Commands.ToggleMobileStats,
@@ -458,8 +460,10 @@ UMaterialInterface* FMaterialInstanceEditor::GetSelectedParent() const
 
 void FMaterialInstanceEditor::CreateInternalWidgets()
 {
-	PreviewVC = SNew(SMaterialEditorViewport)
+	PreviewVC = SNew(SMaterialEditor3DPreviewViewport)
 		.MaterialEditor(SharedThis(this));
+
+	PreviewUIViewport = SNew(SMaterialEditorUIPreviewViewport, GetMaterialInterface());
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 	const FDetailsViewArgs DetailsViewArgs( false, false, true, FDetailsViewArgs::HideNameArea, true, this );
@@ -482,6 +486,23 @@ void FMaterialInstanceEditor::CreateInternalWidgets()
 			+SHeaderRow::Column(FName(TEXT("Name")))
 			.DefaultLabel(NSLOCTEXT("MaterialInstanceEditor", "Name", "Name"))
 		);
+
+}
+
+
+void FMaterialInstanceEditor::UpdatePreviewViewportsVisibility()
+{
+	UMaterial* PreviewMaterial = GetMaterialInterface()->GetBaseMaterial();
+	if( PreviewMaterial->IsUIMaterial() )
+	{
+		PreviewVC->SetVisibility(EVisibility::Collapsed);
+		PreviewUIViewport->SetVisibility(EVisibility::Visible);
+	}
+	else
+	{
+		PreviewVC->SetVisibility(EVisibility::Visible);
+		PreviewUIViewport->SetVisibility(EVisibility::Collapsed);
+	}
 }
 
 void FMaterialInstanceEditor::ExtendToolbar()
@@ -524,7 +545,15 @@ TSharedRef<SDockTab> FMaterialInstanceEditor::SpawnTab_Preview( const FSpawnTabA
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 		.Label(LOCTEXT("ViewportTabTitle", "Viewport"))
 		[
-			PreviewVC.ToSharedRef()
+			SNew( SOverlay )
+			+ SOverlay::Slot()
+			[
+				PreviewVC.ToSharedRef()
+			]
+			+ SOverlay::Slot()
+			[
+				PreviewUIViewport.ToSharedRef()
+			]
 		];
 
 	PreviewVC->OnAddedToTab( SpawnedTab );
@@ -715,7 +744,7 @@ void FMaterialInstanceEditor::DrawMessages( FViewport* Viewport, FCanvas* Canvas
 	{
 		const FMaterialResource* MaterialResource = MaterialEditorInstance->SourceInstance->GetMaterialResource(GMaxRHIFeatureLevel);
 		UMaterial* BaseMaterial = MaterialEditorInstance->SourceInstance->GetMaterial();
-		int32 DrawPositionY = 5;
+		int32 DrawPositionY = 50;
 		if ( BaseMaterial && MaterialResource )
 		{
 			FMaterialEditor::DrawMaterialInfoStrings( Canvas, BaseMaterial, MaterialResource, MaterialResource->GetCompileErrors(), DrawPositionY, true );

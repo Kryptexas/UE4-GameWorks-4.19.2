@@ -461,6 +461,9 @@ private:
 	/** Collects all groups for all material expressions */
 	void GetAllMaterialExpressionGroups(TArray<FString>* OutGroups);
 
+	/** Updates the 3D and UI preview viewport visibility based on material domain */
+	void UpdatePreviewViewportsVisibility();
+
 public:
 
 private:
@@ -649,10 +652,13 @@ private:
 	TSharedPtr<class SGraphEditor> GraphEditor;
 
 	/** Preview Viewport widget */
-	TSharedPtr<class SMaterialEditorViewport> Viewport;
+	TSharedPtr<class SMaterialEditor3DPreviewViewport> PreviewViewport;
+
+	/** Preview viewport widget used for UI materials */
+	TSharedPtr<class SMaterialEditorUIPreviewViewport> PreviewUIViewport;
 
 	/** Widget to hold utility components for the HLSL Code View */
-	 TSharedPtr<SWidget> CodeViewUtility;
+	TSharedPtr<SWidget> CodeViewUtility;
 
 	/** Widget for the HLSL Code View */
 	TSharedPtr<class SScrollBox> CodeView;

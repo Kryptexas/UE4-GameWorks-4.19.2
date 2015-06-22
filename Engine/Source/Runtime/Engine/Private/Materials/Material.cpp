@@ -325,10 +325,16 @@ static UMaterial* GDefaultMaterials[MD_MAX] = {0};
 
 static const TCHAR* GDefaultMaterialNames[MD_MAX] =
 {
+	// Surface
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultMaterialName"),
+	// Deferred Decal
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultDeferredDecalMaterialName"),
+	// Light Function
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultLightFunctionMaterialName"),
-	TEXT("engine-ini:/Script/Engine.Engine.DefaultPostProcessMaterialName")
+	// Post Process
+	TEXT("engine-ini:/Script/Engine.Engine.DefaultPostProcessMaterialName"),
+	// User Interface 
+	TEXT("engine-ini:/Script/Engine.Engine.DefaultMaterialName"),
 };
 
 void UMaterialInterface::InitDefaultMaterials()
@@ -784,7 +790,6 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
 		case MATUSAGE_InstancedStaticMeshes: UsageValue = bUsedWithInstancedStaticMeshes; break;
 		case MATUSAGE_Clothing: UsageValue = bUsedWithClothing; break;
-		case MATUSAGE_UI: UsageValue = bUsedWithUI; break;
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 	return UsageValue;
@@ -867,10 +872,6 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithClothing = NewValue; break;
 		}
-		case MATUSAGE_UI:
-		{
-			bUsedWithUI = NewValue; break;
-		}
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 #if WITH_EDITOR
@@ -894,7 +895,6 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageName = TEXT("bUsedWithSplineMeshes"); break;
 		case MATUSAGE_InstancedStaticMeshes: UsageName = TEXT("bUsedWithInstancedStaticMeshes"); break;
 		case MATUSAGE_Clothing: UsageName = TEXT("bUsedWithClothing"); break;
-		case MATUSAGE_UI: UsageName = TEXT("bUsedWithUI"); break;
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 	return UsageName;
@@ -2174,6 +2174,12 @@ void UMaterial::PostLoad()
 		bIsMaterialEditorStatsMaterial = true;
 	}
 
+
+	if( GetLinkerUE4Version() < VER_UE4_REMOVED_MATERIAL_USED_WITH_UI_FLAG && bUsedWithUI_DEPRECATED == true )
+	{
+		MaterialDomain = MD_UI;
+	}
+
 	// Ensure expressions have been postloaded before we use them for compiling
 	// Any UObjects used by material compilation must be postloaded here
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
@@ -2489,7 +2495,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendMode))
 		{
-			return MaterialDomain == MD_Surface;
+			return MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
 		}
 	
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
@@ -3773,6 +3779,7 @@ EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
 		// Post process and light function materials must be rendered with the unlit model.
 		case MD_PostProcess:
 		case MD_LightFunction:
+		case MD_UI:
 			return MSM_Unlit;
 
 		default:
@@ -3902,6 +3909,12 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 				return false;
 		}
 	}
+	else if ( MaterialDomain == MD_UI )
+	{
+		return InProperty == MP_EmissiveColor
+			|| ( InProperty == MP_OpacityMask && BlendMode == BLEND_Masked ) 
+			|| ( InProperty == MP_Opacity && IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate );
+	}
 
 	bool Active = true;
 
@@ -3953,7 +3966,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = true;
 		break;
 	case MP_WorldPositionOffset:
-		Active = !bUsedWithUI;
+		Active = true;
 		break;
 	case MP_PixelDepthOffset:
 		Active = !IsTranslucentBlendMode((EBlendMode)BlendMode);

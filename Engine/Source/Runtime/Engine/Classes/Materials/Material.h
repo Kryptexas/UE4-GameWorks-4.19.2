@@ -90,6 +90,9 @@ enum EMaterialDomain
 	MD_LightFunction UMETA(DisplayName="Light Function"),
 	/** The material will be used in a custom post process pass. */
 	MD_PostProcess UMETA(DisplayName="Post Process"),
+	/** The material wwill be used for UMG or Slate UI */
+	MD_UI UMETA(DisplayName="User Interface"),
+
 	MD_MAX
 };
 
@@ -596,8 +599,8 @@ public:
 	 * Indicates that the material and its instances can be use with Slate UI and UMG
 	 * This will result in the shaders required to support UI materials being compiled which will increase shader compile time and memory usage.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
-	uint32 bUsedWithUI:1;
+	UPROPERTY()
+	uint32 bUsedWithUI_DEPRECATED:1;
 
 	/** 
 	 * Whether to automatically set usage flags based on what the material is applied to in the editor.
@@ -799,6 +802,7 @@ public:
 	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual bool IsDitheredLODTransition(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsUIMaterial() const { return MaterialDomain == MD_UI; }
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}

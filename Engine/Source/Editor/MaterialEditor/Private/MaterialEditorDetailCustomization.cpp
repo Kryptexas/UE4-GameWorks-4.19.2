@@ -299,5 +299,62 @@ void FMaterialExpressionCollectionParameterDetails::OnSelectionChanged( TSharedP
 	}
 }
 
+TSharedRef<class IDetailCustomization> FMaterialDetailCustomization::MakeInstance()
+{
+	return MakeShareable( new FMaterialDetailCustomization );
+}
+
+void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
+{
+	TArray<TWeakObjectPtr<UObject> > Objects;
+	DetailLayout.GetObjectsBeingCustomized( Objects );
+
+	bool bUIMaterial = true;
+	for( TWeakObjectPtr<UObject>& Object : Objects )
+	{
+		UMaterial* Material = Cast<UMaterial>( Object.Get() );
+		if( Material )
+		{
+			bUIMaterial &= Material->IsUIMaterial();
+		}
+		else
+		{
+			// this shouldn't happen but just in case, let all properties through
+			bUIMaterial = false;
+		}
+	}
+
+	if( bUIMaterial )
+	{
+		DetailLayout.HideCategory( TEXT("TranslucencySelfShadowing") );
+		DetailLayout.HideCategory( TEXT("Translucency") );
+		DetailLayout.HideCategory( TEXT("Tessellation") );
+		DetailLayout.HideCategory( TEXT("Mobile") );
+		DetailLayout.HideCategory( TEXT("PostProcessMaterial") );
+		DetailLayout.HideCategory( TEXT("Lightmass") );
+		DetailLayout.HideCategory( TEXT("Thumbnail") );
+		DetailLayout.HideCategory( TEXT("MaterialInterface") );
+		DetailLayout.HideCategory( TEXT("PhysicalMaterial") );
+		DetailLayout.HideCategory( TEXT("Usage") );
+
+		IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory( TEXT("Material") );
+
+		TArray<TSharedRef<IPropertyHandle>> AllProperties;
+		MaterialCategory.GetDefaultProperties( AllProperties );
+
+		for( TSharedRef<IPropertyHandle>& PropertyHandle : AllProperties )
+		{
+			UProperty* Property = PropertyHandle->GetProperty();
+			FName PropertyName = Property->GetFName();
+
+			if(		PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) 
+				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, BlendMode) 
+				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) )
+			{
+				DetailLayout.HideProperty( PropertyHandle );
+			}
+		}
+	}
+}
 
 #undef LOCTEXT_NAMESPACE
