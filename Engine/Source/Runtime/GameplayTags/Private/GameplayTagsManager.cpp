@@ -137,6 +137,19 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: ImportINI"));
 			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
+
+			// Update path: Check for old tags in DefaultEngine.ini (we'll push them to the UGameplayTagSettings class).
+			TArray<FString> EngineConfigTags;
+			GConfig->GetArray(TEXT("/Script/GameplayTags.GameplayTagsSettings"), TEXT("GameplayTags"), EngineConfigTags, GEngineIni);
+			if (EngineConfigTags.Num() > 0)
+			{
+				UGameplayTagsSettings* MutableDefault = GetMutableDefault<UGameplayTagsSettings>();
+				if (MutableDefault->GameplayTags.Num() == 0)
+				{
+					MutableDefault->GameplayTags.Append(EngineConfigTags);
+				}
+			}
+
 			// Load any GameplayTagSettings from config (their default object)
 			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 			{
@@ -145,15 +158,13 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				{
 					continue;
 				}
-
+				
 				for (FString TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
 				{
 					FGameplayTagTableRow TableRow;
 					TableRow.Tag = TagStr;
 					AddTagTableRow(TableRow);
 				}
-
-		
 			}
 			GameplayRootTag->GetChildTagNodes().Sort(FCompareFGameplayTagNodeByTag());
 		}
