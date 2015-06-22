@@ -628,10 +628,6 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			NewDumpFlags |= BPDUMP_ActionDatabaseInfo;
 		}
-		else if (!Switch.StartsWith("run=")) // account for the first switch, which invoked this commandlet
-		{
-			UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Unrecognized command switch '%s', use -help for a listing of all accepted params"), *Switch);
-		}
 	}
 
 	if (NewDumpFlags != 0)
