@@ -254,7 +254,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 	::CollectGarbage(RF_Native);
 
 	double ProcessParticleSystemsTime = FPlatformTime::Seconds() - StartProcessParticleSystemsTime;
-	UE_LOG(LogParticleSystemAuditCommandlet, Warning, TEXT("Took %5.3f seconds to process referenced particle systems..."), ProcessParticleSystemsTime);
+	UE_LOG(LogParticleSystemAuditCommandlet, Log, TEXT("Took %5.3f seconds to process referenced particle systems..."), ProcessParticleSystemsTime);
 
 	return true;
 }
