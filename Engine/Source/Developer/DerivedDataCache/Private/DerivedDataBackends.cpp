@@ -669,7 +669,7 @@ public:
 			FPlatformProcess::Sleep(1.0f);
 			if (FPlatformTime::Seconds() - LastPrint > 5.0)
 			{
-				UE_LOG(LogDerivedDataCache, Warning, TEXT("Waited %ds for derived data cache to finish..."), int32(FPlatformTime::Seconds() - StartTime));
+				UE_LOG(LogDerivedDataCache, Log, TEXT("Waited %ds for derived data cache to finish..."), int32(FPlatformTime::Seconds() - StartTime));
 				LastPrint = FPlatformTime::Seconds();
 			}
 		}
