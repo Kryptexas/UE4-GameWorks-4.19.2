@@ -286,6 +286,7 @@ static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
+static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 static FName NAME_PC_VULKAN_ES2(TEXT("PC_VULKAN_ES2"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
@@ -327,6 +328,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL;
 	case SP_METAL_MRT:
 		return NAME_SF_METAL_MRT;
+	case SP_METAL_SM5:
+		return NAME_SF_METAL_SM5;
 	case SP_OPENGL_ES31_EXT:
 		return NAME_GLSL_310_ES_EXT;
 	case SP_VULKAN_ES2:
@@ -358,6 +361,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
 	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
+	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
 	if (ShaderFormat == NAME_PC_VULKAN_ES2)		return SP_VULKAN_ES2;
 	return SP_NumPlatforms;
 }
