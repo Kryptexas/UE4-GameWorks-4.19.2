@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346413
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title:1.2 - ノンメタリック マテリアルの反射
+Title:1.2 - メタル以外のマテリアルの反射
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射の事例概要、例 1.2：ノンメタリック マテリアルの反射
+Description:反射の事例概要、例 1.2：メタル以外のマテリアルの反射
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
@@ -54,8 +54,8 @@ Related:Engine/Rendering/PostProcessEffects
 ![](Reflections_1_2_Header.png)
 ## 概要
 
-**Reflection Capture** アクタはボックスまたは球状で、エフェクト ボリュームもしくは半径内に反射を映します。ノンメタリックなマテリアル (**Metallic** プロパティが値 0.0 のマテリアルなど) は、 **Roughness** や **Specular** 値に基づいて反射します。ラフネス値が高ければ高いほどマテリアルの Reflective プロパティ値が減少し、スペキュラリティが低ければ低いほどマテリアルの同プロパティ値が減少します。**Roughness** と **Specular** 値は、サーフェスの反射プロパティに異なる影響を及ぼします。これらの値は期待通りの効果が実現されるまで調整します。
+**Reflection Capture** アクタはボックス状または球状で、エフェクト ボリュームもしくは半径内に反射を投影します。マテリアルがメタル以外の場合 (**Metallic** プロパティが値 0.0 のマテリアルなど) は、反射は **Roughness (ラフネス値)** や **Specular (スペキュラ)** 値に基づいて投影します。ラフネス値が高いほどマテリアルの Reflective プロパティ値は低くなり、スペキュラリティ （鏡面反射性） が低いほどマテリアルの反射プロパティ値が減少します。**Roughness** と **Specular** 値がサーフェスの反射プロパティにを及ぼす影響は異なるので、期待通りの効果が実現されるまでこれらの値を調整します。
 
-ノンメタリック マテリアルが色の大部分を **Base Color** プロパティから受け取っていることは特に注目に値しません。
+マテリアルがメタル以外の場合、ほとんどの色を **Base Color** プロパティから受け取っていることに注目すべきです。
 
 [/REGION]
