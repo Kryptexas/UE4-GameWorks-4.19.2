@@ -270,7 +270,7 @@ void FMaterialThumbnailScene::SetMaterialInterface(UMaterialInterface* InMateria
 		// UI material thumbnails always get a 2D plane centered at the camera which is a better representation of the
 		// what the material will look like on UI
 		bIsUIMaterial = BaseMaterial && BaseMaterial->IsUIMaterial();
-		EThumbnailPrimType PrimitiveType = bIsUIMaterial ? TPT_Plane : ThumbnailInfo->PrimitiveType;
+		EThumbnailPrimType PrimitiveType = bIsUIMaterial ? TPT_Plane : ThumbnailInfo->PrimitiveType.GetValue();
 
 		switch( PrimitiveType )
 		{

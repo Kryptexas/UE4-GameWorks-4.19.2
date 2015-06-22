@@ -812,4 +812,4 @@ void SMaterialEditorUIPreviewViewport::OnPreviewYCommitted( int32 NewValue, ETex
 	OnPreviewYChanged( NewValue );
 }
 
-#undef LOC_NAMESPACE
+#undef LOCTEXT_NAMESPACE
