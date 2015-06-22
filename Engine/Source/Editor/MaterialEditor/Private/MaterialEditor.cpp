@@ -3499,6 +3499,8 @@ void FMaterialEditor::PostUndo(bool bSuccess)
 		// Update the current preview material.
 		UpdatePreviewMaterial();
 
+		UpdatePreviewViewportsVisibility();
+
 		RefreshExpressionPreviews();
 		GraphEditor->NotifyGraphChanged();
 		SetMaterialDirty();
