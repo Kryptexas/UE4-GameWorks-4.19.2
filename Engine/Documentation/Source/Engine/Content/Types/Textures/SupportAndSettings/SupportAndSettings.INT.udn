@@ -5,26 +5,24 @@ Description:Information over texture support both within the engine and hardware
 
 [TOC (start:2 end:3)]
 
-
-## Overview
-
-This page details texture support both within the engine and hardware.
-
+One of the biggest contributors to any digital projects memory footprint comes from the size and amount of Textures used. 
+Luckily Unreal Engine 4 has a very robust system for non-destructively reducing Texture size across all your projects Textures. 
+In the following page we will take a look at these systems and how you can use them to reduce your projects Texture memory requirements.   
 
 
 ## Texture Resolution
 
-Unreal Engine 4 supports texture resolutions from 1x1 up to 8192x8192 with some slight modifications.
-
-Current DirectX video adapters and game consoles support various texture resolutions from 1x1 to 2048x2048 and up to 8192x8192.  The highest texture resolution supported by a specific hardware device varies by manufacturer and model.  The amount of available texture memory pool also varies by the hardware.
-
+Unreal Engine 4 supports texture resolutions from 1x1 up to 8192x8192 with some slight modifications to .INI files.
+Current DirectX video adapters and game consoles support various texture resolutions from 1x1 to 2048x2048 and up to 8192x8192.
+The highest texture resolution supported by a specific hardware device varies by manufacturer, model and available texture memory.
 There are a number of features and settings in Unreal Engine 4 for managing the texture resolutions that are rendered for various areas such as world geometry or the user interface.
-
-
 
 ## Engine Texture Resolution Limit
 
-Unreal Engine 4 defaults to limiting the maximum number of texture mips to 14, which effectively limits the largest rendered texture to 8192 (1x1 to 8192x8192 is 14 mips).  This has the side-effect that imported 8192 textures will only render up to mip1 of 4096.  The constant MAX_TEXTURE_MIP_COUNT which defaults to 13 in the engine source files can be modified to a value of 14 to support 8192 texture rendering.  This constant is defined in the following source files (as of QAMar09, be sure to verify on other QA versions).
+Unreal Engine 4 defaults to limiting the maximum number of texture mips to 14, which effectively limits the largest rendered texture to 8192 (1x1 to 8192x8192 is 14 mips).  
+This has the side-effect that imported 8192 textures will only render up to mip1 of 4096.
+The constant MAX_TEXTURE_MIP_COUNT which defaults to 13 in the engine source files can be modified to a value of 14 to support 8192 texture rendering. 
+This constant is defined in the following source files (as of QAMar09, be sure to verify on other QA versions).
 
 	Src\D3D10Drv\Src\D3D10Device.cpp   
 	Src\Engine\Inc\RHI.h   
@@ -32,6 +30,17 @@ Unreal Engine 4 defaults to limiting the maximum number of texture mips to 14, w
 	Src\Engine\Src\RHI.cpp   
 	Src\Engine\Src\TextureCube.cpp
 
+With the release of UE 4.8 you can now modify your projects to use Textures up to 8192 in size with out having to modify the C++ code by adding the following text to your projects **DefaultEngine.INI** file and setting the **MaxLODsize** to **8192**
+
+	[SystemSettings]
+	TEXTUREGROUP_World=(MinLODSize=1,MaxLODSize=8192,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+
+Once you have added the section you want to increase the size for, save the file and restart the Editor. 
+When the Editor restarts any Textures that were imported at a size of 8192 should now show 8192 as the size of LOD 1, instead of being clamped to a maximum of 4096. 
+In the following example image we have moded the **DefaultEngine.INI** file in a UE 4.8 project to allow for the use of Textures that are up to 8192 in size. 
+When the texture, **T_8K_Test** is loaded in UE4 we can see that both the imported and displayed texture size are at 8192.
+
+![](T_Getting_8K_Textures.png)
 
 ## Compressed Texture Memory Requirements
 
