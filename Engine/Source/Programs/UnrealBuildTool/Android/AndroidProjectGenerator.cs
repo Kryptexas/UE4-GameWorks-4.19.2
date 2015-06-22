@@ -15,6 +15,7 @@ namespace UnrealBuildTool
 	{
 		static bool CheckedForNsight = false;		// whether we have checked for a recent enough version of Nsight yet
 		static bool NsightInstalled = false;		// true if a recent enough version of Nsight is installed
+		static int NsightVersionCode = 0;			// version code matching detected Nsight
 
 		/**
 		 *	Check to see if a recent enough version of Nsight is installed.
@@ -53,14 +54,22 @@ namespace UnrealBuildTool
 			// grab the version info from the DLL
 			FileVersionInfo NsightVersion = FileVersionInfo.GetVersionInfo(NsightDllPath);
 
-			if (NsightVersion.ProductMajorPart >= 2)
+			if (NsightVersion.ProductMajorPart >= 3)
+			{
+				// Nsight 3.0+ should be valid
+				NsightVersionCode = 9;
+				NsightInstalled = true;
+			}
+			else if (NsightVersion.ProductMajorPart == 2)
 			{
 				// Nsight 2.0+ should be valid
+				NsightVersionCode = 6;
 				NsightInstalled = true;
 			}
 			else if ((NsightVersion.ProductMajorPart == 1) && (NsightVersion.ProductMinorPart >= 5))
 			{
 				// Nsight 1.5+ should be valid
+				NsightVersionCode = 6;
 				NsightInstalled = true;
 			}
 
@@ -128,7 +137,7 @@ namespace UnrealBuildTool
 			}
 
 			return 	"	<PropertyGroup Label=\"NsightTegraProject\">" + ProjectFileGenerator.NewLine +
-					"		<NsightTegraProjectRevisionNumber>6</NsightTegraProjectRevisionNumber>" + ProjectFileGenerator.NewLine +
+					"		<NsightTegraProjectRevisionNumber>" + NsightVersionCode.ToString() + "</NsightTegraProjectRevisionNumber>" + ProjectFileGenerator.NewLine +
 					"	</PropertyGroup>" + ProjectFileGenerator.NewLine;
 		}
 
@@ -147,6 +156,25 @@ namespace UnrealBuildTool
 			}
 
 			return "ExternalBuildSystem";
+		}
+
+		/**
+		 *	Return the platform toolset string to write into the project configuration
+		 *	
+		 *	@param	InPlatform			The UnrealTargetPlatform being built
+		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
+		 *	
+		 *	@return	string				The custom configuration section for the project file; Empty string if it doesn't require one
+		 */
+		public override string GetVisualStudioPlatformToolsetString(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFile InProjectFile)
+		{
+			if (!IsNsightInstalled())
+			{
+				return "\t\t<PlatformToolset>" + VCProjectFileGenerator.ProjectFilePlatformToolsetVersionString + "</PlatformToolset>" + ProjectFileGenerator.NewLine;
+			}
+
+			return "\t\t<PlatformToolset>" + VCProjectFileGenerator.ProjectFilePlatformToolsetVersionString + "</PlatformToolset>" + ProjectFileGenerator.NewLine
+				+ "\t\t<AndroidNativeAPI>UseTarget</AndroidNativeAPI>" + ProjectFileGenerator.NewLine;
 		}
 
 		/**
@@ -196,12 +224,12 @@ namespace UnrealBuildTool
 			AdditionalLibDirs += @";$(AdditionalLibraryDirectories)";
 
 			string PathsLines = 
-				"		<IncludePath/>" + ProjectFileGenerator.NewLine +
-				"		<ReferencePath/>" + ProjectFileGenerator.NewLine +
-				"		<LibraryPath/>" + ProjectFileGenerator.NewLine +
-				"		<LibraryWPath/>" + ProjectFileGenerator.NewLine +
-				"		<SourcePath/>" + ProjectFileGenerator.NewLine +
-				"		<ExcludePath/>" + ProjectFileGenerator.NewLine +
+				"		<IncludePath />" + ProjectFileGenerator.NewLine +
+				"		<ReferencePath />" + ProjectFileGenerator.NewLine +
+				"		<LibraryPath />" + ProjectFileGenerator.NewLine +
+				"		<LibraryWPath />" + ProjectFileGenerator.NewLine +
+				"		<SourcePath />" + ProjectFileGenerator.NewLine +
+				"		<ExcludePath />" + ProjectFileGenerator.NewLine +
 				"		<AndroidAttach>False</AndroidAttach>" + ProjectFileGenerator.NewLine +
 				"		<DebuggerFlavor>AndroidDebugger</DebuggerFlavor>" + ProjectFileGenerator.NewLine +
 				"		<OverrideAPKPath>" + APKPath + "</OverrideAPKPath>" + ProjectFileGenerator.NewLine +

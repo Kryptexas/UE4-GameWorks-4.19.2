@@ -493,25 +493,66 @@ namespace UnrealBuildTool
 				VCProjectFileContent.Append( AdditionalPropertyGroups );
 			}
 
+			// Project globals (project GUID, project type, SCC bindings, etc)
+			{
+				VCProjectFileContent.Append(
+					"	<PropertyGroup Label=\"Globals\">" + ProjectFileGenerator.NewLine +
+					"		<ProjectGuid>" + ProjectGUID.ToString("B").ToUpperInvariant() + "</ProjectGuid>" + ProjectFileGenerator.NewLine +
+					"		<Keyword>MakeFileProj</Keyword>" + ProjectFileGenerator.NewLine +
+					"		<RootNamespace>" + ProjectName + "</RootNamespace>" + ProjectFileGenerator.NewLine);
+
+				VCProjectFileContent.Append(
+					"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+			}
+
+			VCProjectFileContent.Append(
+				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" + ProjectFileGenerator.NewLine);
+
+			// Write each project configuration PreDefaultProps section
+			foreach (var ConfigurationTuple in ProjectConfigurationNameAndConfigurations)
+			{
+				var ProjectConfigurationName = ConfigurationTuple.Item1;
+				var TargetConfiguration = ConfigurationTuple.Item2;
+				foreach (var PlatformTuple in ProjectPlatformNameAndPlatforms)
+				{
+					var ProjectPlatformName = PlatformTuple.Item1;
+					var TargetPlatform = PlatformTuple.Item2;
+					WritePreDefaultPropsConfiguration(TargetPlatform, TargetConfiguration, ProjectPlatformName, ProjectConfigurationName, VCProjectFileContent);
+				}
+			}
+
+
+			VCProjectFileContent.Append(
+				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />" + ProjectFileGenerator.NewLine +
+				"	<ImportGroup Label=\"ExtensionSettings\" />" + ProjectFileGenerator.NewLine +
+				"	<PropertyGroup Label=\"UserMacros\" />" + ProjectFileGenerator.NewLine
+				);
+
+			// Write each project configuration
+			foreach( var Combination in ProjectConfigAndTargetCombinations )
+			{
+				WriteConfiguration( ProjectName, Combination, VCProjectFileContent, bGenerateUserFileContent? VCUserFileContent : null );
+			}
+
 			// Source folders and files
 			{
 				var LocalAliasedFiles = new List<AliasedFile>(AliasedFiles);
 
-				foreach( var CurFile in SourceFiles )
+				foreach (var CurFile in SourceFiles)
 				{
 					// We want all source file and directory paths in the project files to be relative to the project file's
 					// location on the disk.  Convert the path to be relative to the project file directory
-					var ProjectRelativeSourceFile = Utils.MakePathRelativeTo( CurFile.FilePath, Path.GetDirectoryName( ProjectFilePath ) );
+					var ProjectRelativeSourceFile = Utils.MakePathRelativeTo(CurFile.FilePath, Path.GetDirectoryName(ProjectFilePath));
 
 					// By default, files will appear relative to the project file in the solution.  This is kind of the normal Visual
 					// Studio way to do things, but because our generated project files are emitted to intermediate folders, if we always
 					// did this it would yield really ugly paths int he solution explorer
-					string FilterRelativeSourceDirectory = Path.GetDirectoryName( ProjectRelativeSourceFile );
+					string FilterRelativeSourceDirectory = Path.GetDirectoryName(ProjectRelativeSourceFile);
 
 					// Use the specified relative base folder
-					if( CurFile.RelativeBaseFolder != null )	// NOTE: We are looking for null strings, not empty strings!
+					if (CurFile.RelativeBaseFolder != null)	// NOTE: We are looking for null strings, not empty strings!
 					{
-						FilterRelativeSourceDirectory = Path.GetDirectoryName( Utils.MakePathRelativeTo( CurFile.FilePath, CurFile.RelativeBaseFolder ) );
+						FilterRelativeSourceDirectory = Path.GetDirectoryName(Utils.MakePathRelativeTo(CurFile.FilePath, CurFile.RelativeBaseFolder));
 					}
 
 					LocalAliasedFiles.Add(new AliasedFile(ProjectRelativeSourceFile, FilterRelativeSourceDirectory));
@@ -556,49 +597,10 @@ namespace UnrealBuildTool
 				}
 
 				VCProjectFileContent.Append(
-					"	</ItemGroup>" + ProjectFileGenerator.NewLine );
+					"	</ItemGroup>" + ProjectFileGenerator.NewLine);
 
 				VCFiltersFileContent.Append(
-					"	</ItemGroup>" + ProjectFileGenerator.NewLine );
-			}
-
-
-			// Project globals (project GUID, project type, SCC bindings, etc)
-			{
-				VCProjectFileContent.Append(
-					"	<PropertyGroup Label=\"Globals\">" + ProjectFileGenerator.NewLine +
-					"		<ProjectGuid>" + ProjectGUID.ToString( "B" ).ToUpperInvariant() + "</ProjectGuid>" + ProjectFileGenerator.NewLine +
-					"		<Keyword>MakeFileProj</Keyword>" + ProjectFileGenerator.NewLine +
-					"		<RootNamespace>" + ProjectName + "</RootNamespace>" + ProjectFileGenerator.NewLine);
-
-				VCProjectFileContent.Append(
-					"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
-			}
-
-			// Write each project configuration PreDefaultProps section
-			foreach (var ConfigurationTuple in ProjectConfigurationNameAndConfigurations)
-			{
-				var ProjectConfigurationName = ConfigurationTuple.Item1;
-				var TargetConfiguration = ConfigurationTuple.Item2;
-				foreach (var PlatformTuple in ProjectPlatformNameAndPlatforms)
-				{
-					var ProjectPlatformName = PlatformTuple.Item1;
-					var TargetPlatform = PlatformTuple.Item2;
-					WritePreDefaultPropsConfiguration( TargetPlatform, TargetConfiguration, ProjectPlatformName, ProjectConfigurationName, VCProjectFileContent );
-				}
-			}
-
-			VCProjectFileContent.Append(
-				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" + ProjectFileGenerator.NewLine +
-				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />" + ProjectFileGenerator.NewLine +
-				"	<ImportGroup Label=\"ExtensionSettings\" />" + ProjectFileGenerator.NewLine +
-				"	<PropertyGroup Label=\"UserMacros\" />" + ProjectFileGenerator.NewLine
-				);
-
-			// Write each project configuration
-			foreach( var Combination in ProjectConfigAndTargetCombinations )
-			{
-				WriteConfiguration( ProjectName, Combination, VCProjectFileContent, bGenerateUserFileContent? VCUserFileContent : null );
+					"	</ItemGroup>" + ProjectFileGenerator.NewLine);
 			}
 
 			// For Rocket, include engine source in the source search paths. We never build it locally, so the debugger can't find it.
