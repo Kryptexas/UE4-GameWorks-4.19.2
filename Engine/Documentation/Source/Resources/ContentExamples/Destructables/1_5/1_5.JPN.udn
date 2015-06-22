@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2591123
+Availability:Docs
 Title:1.5 - ワールド サポート
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
 Description: 破壊性能事例レベルの概要、例 1.5:ワールド サポート
@@ -29,7 +30,7 @@ Description: 破壊性能事例レベルの概要、例 1.5:ワールド サポ�
 ![](Resources/ContentExamples/Destructables/physics_banner.png)
 [/REGION]
 
-デストラクタブル メッシュを静的なワールド ジオメトリのピースに結び付けます。**スタティックメッシュ** に触れているデストラクタブル メッシュの各パートは、環境に固定されているかのように機能します。
+被破壊メッシュを静的なワールド ジオメトリの構成要素に結び付けます。**スタティックメッシュ** に触れている被破壊メッシュの各構成要素は、背景に固定されているかのように機能します。
 
 <!--[REGION:lightbox]
 [![](1_3_solid.png)(w:300)](1_3_solid.png) [![](1_3_fractured.png)(w:300)](1_3_fractured.png) [![](1_3_blown.png)(w:300)](1_3_blown.png)
