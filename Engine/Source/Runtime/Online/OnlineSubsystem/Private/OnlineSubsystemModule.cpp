@@ -88,7 +88,7 @@ void FOnlineSubsystemModule::StartupModule()
 	}
 	else
 	{
-		UE_LOG(LogOnline, Warning, TEXT("No default platform service specified for OnlineSubsystem"));
+		UE_LOG(LogOnline, Log, TEXT("No default platform service specified for OnlineSubsystem"));
 	}
 }
 
