@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:2.8 - Noise モジュールを使用したビームエミッタ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
 Description:エフェクト ギャラリーの事例概要
-Related: Engine/Rendering/ParticleSystems/Reference/Modules/Beam
-Related: Engine/Rendering/ParticleSystems/Overview
-Related: Engine/Rendering/ParticleSystems/Reference
-Related: Engine/Rendering/ParticleSystems/Optimization
-Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
-Related: Engine/Rendering/ParticleSystems/ParticleLights
-Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Related:Engine/Rendering/ParticleSystems/Reference/Modules/Beam
+Related:Engine/Rendering/ParticleSystems/Overview
+Related:Engine/Rendering/ParticleSystems/Reference
+Related:Engine/Rendering/ParticleSystems/Optimization
+Related:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
+Related:Engine/Rendering/ParticleSystems/ParticleLights
+Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -54,7 +54,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image078.png)
 [/REGION]
 
-Beam TypeData モジュールは 2 点の接続効果を作成します。ソースとターゲットポイントを指定、これらをアクタとして配置、もしくは他のエミッタに配置します。シューターゲームなどで、しばしば銃弾の跡の効果に使用されます。この例はビームグループ内の Noise モジュールを活用して、電気アークとして使用しています。 
+Beam TypeData モジュールは 2 点を接続するエフェクトを作成します。ソースとターゲットのポイントを指定、またはこれらをアクタとして配置、もしくは他のエミッタに配置します。シューターゲームなどで、しばしば銃弾の跡のエフェクトに使用されます。この例ではビームグループ内の Noise モジュールを活用して、電気アークとして使用しています。 
  
  
  ![](image080.png)
