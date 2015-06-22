@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2402269
-Title:Unreal Engine 4.6 リリースノート
+﻿INTSourceChangelist:2592784
+Title:Unreal Engine 4.6 リリース ノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -435,6 +435,7 @@ Slate と UMG でフォント ファミリーとコンポジット フォント�
 
 * New:誤差許容範囲の入力が、vector/rotator 型の Equal 関数ノードに追加されました。
 	![](ErrorTolerance.png)
+
 
 	* このピンのデフォルトは、小さなイプシロン値に設定されているので、処理中に生じる可能性のある浮動小数点精度の誤差によって値が正確に一致しない場合に、その同等性を確保するのに便利です。
 * New:bool 型の Select ノードでピンのために true/false が表示されるようになりました。
