@@ -51,7 +51,7 @@ float4 PostprocessInput6MinMax;
 // viewport width, height, 1/width, 1/height (scaled to the current rendertarget resolution), depends on SetViewportAndCallRHI() call
 float4 ViewportSize;
 // in pixels (scaled to the current rendertarget resolution), float4(minx,miny,maxx,maxy), depends on SetViewportAndCallRHI() call
-float4 ViewportRect;
+uint4 ViewportRect;
 
 SamplerState BilinearTextureSampler0;
 SamplerState BilinearTextureSampler1;

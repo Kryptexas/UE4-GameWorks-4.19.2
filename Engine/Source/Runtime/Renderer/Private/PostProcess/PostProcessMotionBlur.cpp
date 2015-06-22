@@ -678,12 +678,13 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlurRecombine::ComputeOutputDesc
 	return Ret;
 }
 
-/** The uniform shader parameters used in FPostProcessVelocityFlattenCS. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FVelocityFlattenParameters,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntRect,ViewDimensions)	// View rect min in xy, max in zw.
-END_UNIFORM_BUFFER_STRUCT(FVelocityFlattenParameters)
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FVelocityFlattenParameters,TEXT("VelocityFlatten"));
+FIntPoint GetNumTiles16x16( FIntPoint PixelExtent )
+{
+	uint32 TilesX = (PixelExtent.X + 15) / 16;
+	uint32 TilesY = (PixelExtent.Y + 15) / 16;
+	return FIntPoint( TilesX, TilesY );
+}
 
 class FPostProcessVelocityFlattenCS : public FGlobalShader
 {
@@ -697,16 +698,12 @@ class FPostProcessVelocityFlattenCS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), FRCPassPostProcessVelocityFlatten::ThreadGroupSizeX);
-		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), FRCPassPostProcessVelocityFlatten::ThreadGroupSizeY);
-		OutEnvironment.CompilerFlags.Add( CFLAG_StandardOptimization );
 	}
 
 	FPostProcessVelocityFlattenCS() {}
 
 public:
 	FShaderParameter		OutVelocityFlat;		// UAV
-	FShaderParameter		OutPackedVelocityDepth;	// unused
 	FShaderParameter		OutMaxTileVelocity;		// UAV
 
 	FPostProcessVelocityFlattenCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -714,7 +711,6 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		OutVelocityFlat.Bind(Initializer.ParameterMap, TEXT("OutVelocityFlat"));
-		OutPackedVelocityDepth.Bind(Initializer.ParameterMap, TEXT("OutPackedVelocityDepth"));
 		OutMaxTileVelocity.Bind(Initializer.ParameterMap, TEXT("OutMaxTileVelocity"));
 	}
 
@@ -726,15 +722,6 @@ public:
 		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
-		
-		{
-			FVelocityFlattenParameters Data;
-
-			Data.ViewDimensions = View.ViewRect;
-
-			TUniformBufferRef<FVelocityFlattenParameters> UniformBuffer = TUniformBufferRef<FVelocityFlattenParameters>::CreateUniformBufferImmediate(Data, UniformBuffer_SingleFrame);
-			SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FVelocityFlattenParameters>(), UniformBuffer);
-		}
 	}
 	
 	virtual bool Serialize(FArchive& Ar) override
@@ -742,7 +729,6 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter;
 		Ar << OutVelocityFlat;
-		Ar << OutPackedVelocityDepth;
 		Ar << OutMaxTileVelocity;
 		return bShaderHasOutdatedParameters;
 	}
@@ -754,9 +740,13 @@ private:
 IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityFlattenMain"),SF_Compute);
 
 
+FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
+	: AsyncJobFenceID(-1)
+{}
+
 void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessVelocityFlatten);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, VelocityFlatten);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if (AsyncJobFenceID != -1)
@@ -779,7 +769,6 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 	
 	const FSceneRenderTargetItem& DestRenderTarget0 = PassOutputs[0].RequestSurface(Context);
 	const FSceneRenderTargetItem& DestRenderTarget1 = PassOutputs[1].RequestSurface(Context);
-	//const FSceneRenderTargetItem& DestRenderTarget2 = PassOutputs[2].RequestSurface(Context);
 
 	TShaderMapRef< FPostProcessVelocityFlattenCS > ComputeShader( Context.GetShaderMap() );
 
@@ -793,16 +782,16 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 		Context.RHICmdList.BeginAsyncComputeJob_DrawThread(AsyncComputePriority_Default);
 	}
 
+	Context.SetViewportAndCallRHI( View.ViewRect );
 	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
 	// set destination
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutVelocityFlat.GetBaseIndex(), DestRenderTarget0.UAV);
-	//Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutPackedVelocityDepth.GetBaseIndex(), DestRenderTarget1.UAV);
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutMaxTileVelocity.GetBaseIndex(), DestRenderTarget1.UAV);
 
 	ComputeShader->SetCS(Context.RHICmdList, Context, View);
 
-	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount(View.ViewRect.Size());
+	FIntPoint ThreadGroupCountValue = GetNumTiles16x16(View.ViewRect.Size());
 	DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 
 #if USE_ASYNC_COMPUTE_CONTEXT
@@ -818,12 +807,10 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 
 	// un-set destination
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutVelocityFlat.GetBaseIndex(), NULL);
-	//Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutPackedVelocityDepth.GetBaseIndex(), NULL);
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutMaxTileVelocity.GetBaseIndex(), NULL);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget0.TargetableTexture, DestRenderTarget0.ShaderResourceTexture, false, FResolveParams());
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget1.TargetableTexture, DestRenderTarget1.ShaderResourceTexture, false, FResolveParams());
-	//Context.RHICmdList.CopyToResolveTarget(DestRenderTarget1.TargetableTexture, DestRenderTarget2.ShaderResourceTexture, false, FResolveParams());
 
 	// we want this pass to be executed another time
 	// so we do this: CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
@@ -842,14 +829,6 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 	}
 }
 
-FIntPoint FRCPassPostProcessVelocityFlatten::ComputeThreadGroupCount(FIntPoint PixelExtent)
-{
-	uint32 ThreadGroupCountX = (PixelExtent.X + TileSizeX - 1) / TileSizeX;
-	uint32 ThreadGroupCountY = (PixelExtent.Y + TileSizeY - 1) / TileSizeY;
-
-	return FIntPoint(ThreadGroupCountX, ThreadGroupCountY);
-}
-
 FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	if( InPassOutputId == ePId_Output0 )
@@ -858,25 +837,13 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
 		Ret.Reset();
 
+		Ret.Format = PF_FloatR11G11B10;
 		Ret.TargetableFlags |= TexCreate_UAV;
 		Ret.TargetableFlags |= TexCreate_RenderTargetable;
 		Ret.DebugName = TEXT("VelocityFlat");
 
 		return Ret;
 	}
-	/*else if( InPassOutputId == ePId_Output1 )
-	{
-		// Packed VelocityLength, Depth
-		FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
-		Ret.Reset();
-
-		Ret.Format = PF_R8G8;
-		Ret.TargetableFlags |= TexCreate_UAV;
-		Ret.TargetableFlags |= TexCreate_RenderTargetable;
-		Ret.DebugName = TEXT("PackedVelocityDepth");
-
-		return Ret;
-	}*/
 	else
 	{
 		// Max tile velocity
@@ -884,12 +851,9 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		UnmodifiedRet.Reset();
 
 		FIntPoint PixelExtent = UnmodifiedRet.Extent;
+		FIntPoint TileCount = GetNumTiles16x16(PixelExtent);
 
-		FIntPoint ThreadGroupCount = ComputeThreadGroupCount(PixelExtent);
-		FIntPoint NewSize = ThreadGroupCount;
-
-		// format can be optimized later
-		FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+		FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(TileCount, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 
 		Ret.DebugName = TEXT("MaxVelocity");
 
@@ -952,7 +916,7 @@ class FPostProcessVelocityScatterVS : public FGlobalShader
 	
 public:
 	FPostProcessPassParameters PostprocessParameter;
-	FShaderParameter TileCount;
+	FShaderParameter DrawMax;
 	FShaderParameter VelocityScale;
 
 	/** Initialization constructor. */
@@ -960,7 +924,7 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
-		TileCount.Bind(Initializer.ParameterMap, TEXT("TileCount"));
+		DrawMax.Bind(Initializer.ParameterMap, TEXT("bDrawMax"));
 		VelocityScale.Bind( Initializer.ParameterMap, TEXT("VelocityScale") );
 	}
 
@@ -968,19 +932,19 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << TileCount << VelocityScale;
+		Ar << PostprocessParameter << DrawMax << VelocityScale;
 		return bShaderHasOutdatedParameters;
 	}
 
 	/** to have a similar interface as all other shaders */
-	void SetParameters(const FRenderingCompositePassContext& Context, FIntPoint TileCountValue)
+	void SetParameters(const FRenderingCompositePassContext& Context, int32 bDrawMax)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, TileCount, TileCountValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, DrawMax, bDrawMax);
 
 		{
 			const FSceneViewState* ViewState = (FSceneViewState*) Context.View.State;
@@ -1031,14 +995,10 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterVS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterVS"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterPS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterPS"),SF_Pixel);
 
-FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
-	: AsyncJobFenceID(-1)
-{
-}
 
 void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PassPostProcessVelocityScatter);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, VelocityScatter);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 	
@@ -1053,49 +1013,59 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
 
-	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / SrcSize.X;
-
-	FIntRect SrcRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleFactor);
-	FIntRect DestRect = SrcRect;
+	FIntPoint TileCount = GetNumTiles16x16( View.ViewRect.Size() );
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	TRefCountPtr<IPooledRenderTarget> DepthTarget;
-	
-	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( DestSize, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false ) );
+	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( DestSize, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable | TexCreate_NoFastClear, false ) );
 	GRenderTargetPool.FindFreeElement( Desc, DepthTarget, TEXT("VelocityScatterDepth") );
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget( Context.RHICmdList, DestRenderTarget.TargetableTexture, DepthTarget->GetRenderTargetItem().TargetableTexture );
+	
+	Context.SetViewportAndCallRHI( 0, 0, 0.0f, TileCount.X, TileCount.Y, 1.0f );
+	
+	// Min,Max
+	for( int i = 0; i < 2; i++ )
+	{
+		if( i == 0 )
+		{
+			// clear depth
+			// Max >= Min so no need to clear on second pass
+			Context.RHICmdList.Clear( false, FLinearColor::Black, true, 1.0f, false, 0, FIntRect() );
+		}
 
-	Context.RHICmdList.Clear( true, FLinearColor::Black, true, 0.0f, false, 0, FIntRect() );
+		if( i == 0 )
+		{
+			// min
+			Context.RHICmdList.SetBlendState( TStaticBlendStateWriteMask< CW_RGBA >::GetRHI() );
+			Context.RHICmdList.SetRasterizerState( TStaticRasterizerState<>::GetRHI() );
+			Context.RHICmdList.SetDepthStencilState( TStaticDepthStencilState< true, CF_Less >::GetRHI() );
+		}
+		else
+		{
+			// max
+			Context.RHICmdList.SetBlendState( TStaticBlendStateWriteMask< CW_BA >::GetRHI() );
+			Context.RHICmdList.SetRasterizerState( TStaticRasterizerState<>::GetRHI() );
+			Context.RHICmdList.SetDepthStencilState( TStaticDepthStencilState< true, CF_Greater >::GetRHI() );
+		}
 
-	Context.SetViewportAndCallRHI(SrcRect);
+		TShaderMapRef< FPostProcessVelocityScatterVS > VertexShader(Context.GetShaderMap());
+		TShaderMapRef< FPostProcessVelocityScatterPS > PixelShader(Context.GetShaderMap());
 
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	//@todo-briank: Should this be CF_DepthNear?
-	static_assert((int32)ERHIZBuffer::IsInverted != 0, "Should this be CF_DepthNear?");
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Greater>::GetRHI());
+		static FGlobalBoundShaderState BoundShaderState;
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	TShaderMapRef< FPostProcessVelocityScatterVS > VertexShader(Context.GetShaderMap());
-	TShaderMapRef< FPostProcessVelocityScatterPS > PixelShader(Context.GetShaderMap());
+		VertexShader->SetParameters( Context, i );
+		PixelShader->SetParameters( Context );
 
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		// needs to be the same on shader side (faster on NVIDIA and AMD)
+		int32 QuadsPerInstance = 8;
 
-	FIntPoint TileCount = SrcRect.Size();
-
-	VertexShader->SetParameters( Context, TileCount );
-	PixelShader->SetParameters( Context );
-
-	// needs to be the same on shader side (faster on NVIDIA and AMD)
-	int32 QuadsPerInstance = 8;
-
-	Context.RHICmdList.SetStreamSource(0, NULL, 0, 0);
-	Context.RHICmdList.DrawIndexedPrimitive(GScatterQuadIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, QuadsPerInstance));
+		Context.RHICmdList.SetStreamSource(0, NULL, 0, 0);
+		Context.RHICmdList.DrawIndexedPrimitive(GScatterQuadIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 32, 0, 2 * QuadsPerInstance, FMath::DivideAndRoundUp(TileCount.X * TileCount.Y, QuadsPerInstance));
+	}
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
@@ -1111,15 +1081,9 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityScatter::ComputeOutputDesc(EPa
 }
 
 
-
-
-
-
-
-
-class FPostProcessVelocityDilatePS : public FGlobalShader
+class FPostProcessVelocityGatherCS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FPostProcessVelocityDilatePS, Global);
+	DECLARE_SHADER_TYPE(FPostProcessVelocityGatherCS, Global);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
@@ -1132,16 +1096,17 @@ class FPostProcessVelocityDilatePS : public FGlobalShader
 	}
 
 	/** Default constructor. */
-	FPostProcessVelocityDilatePS() {}
+	FPostProcessVelocityGatherCS() {}
 
 public:
-	FPostProcessPassParameters PostprocessParameter;
+	FShaderParameter		OutScatteredMaxVelocity;
 
 	/** Initialization constructor. */
-	FPostProcessVelocityDilatePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FPostProcessVelocityGatherCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
+		OutScatteredMaxVelocity.Bind(Initializer.ParameterMap, TEXT("OutScatteredMaxVelocity"));
 	}
 
 	// FShader interface.
@@ -1149,22 +1114,26 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter;
+		Ar << OutScatteredMaxVelocity;
 		return bShaderHasOutdatedParameters;
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 	}
+	
+private:
+	FPostProcessPassParameters PostprocessParameter;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityDilatePS,TEXT("PostProcessMotionBlur"),TEXT("VelocityDilatePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityGatherCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityGatherCS"),SF_Compute);
 
-void FRCPassPostProcessVelocityDilate::Process(FRenderingCompositePassContext& Context)
+void FRCPassPostProcessVelocityGather::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, VelocityDilate);
 
@@ -1178,60 +1147,37 @@ void FRCPassPostProcessVelocityDilate::Process(FRenderingCompositePassContext& C
 
 	const FSceneView& View = Context.View;
 
-	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
-
-	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / SrcSize.X;
-
-	FIntRect SrcRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleFactor);
-	FIntRect DestRect = SrcRect;
-
+	FIntPoint TileCount = GetNumTiles16x16( View.ViewRect.Size() );
+	
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
+	Context.SetViewportAndCallRHI( 0, 0, 0.0f, TileCount.X, TileCount.Y, 1.0f );
+	
+	TShaderMapRef< FPostProcessVelocityGatherCS > ComputeShader( Context.GetShaderMap() );
+	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
-	// is optimized away if possible (RT size=view size, )
-	//Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	// set destination
+	Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutScatteredMaxVelocity.GetBaseIndex(), DestRenderTarget.UAV );
 
-	Context.SetViewportAndCallRHI(SrcRect);
+	ComputeShader->SetParameters( Context );
 
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	DispatchComputeShader(Context.RHICmdList, *ComputeShader, TileCount.X, TileCount.Y, 1);
 
-	TShaderMapRef< FPostProcessVS>					VertexShader( Context.GetShaderMap() );
-	TShaderMapRef< FPostProcessVelocityDilatePS >	PixelShader( Context.GetShaderMap() );
-
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context);
-
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle(
-		Context.RHICmdList,
-		0, 0,
-		SrcRect.Width(), SrcRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y, 
-		SrcRect.Width(), SrcRect.Height(),
-		SrcRect.Size(),
-		SrcSize,
-		*VertexShader,
-		EDRF_UseTriangleOptimization);
+	// un-set destination
+	Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutScatteredMaxVelocity.GetBaseIndex(), NULL );
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
-FPooledRenderTargetDesc FRCPassPostProcessVelocityDilate::ComputeOutputDesc(EPassOutputId InPassOutputId) const
+FPooledRenderTargetDesc FRCPassPostProcessVelocityGather::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
 	Ret.Reset();
 
-	Ret.DebugName = TEXT("DilatedMaxVelocity");
+	Ret.TargetableFlags |= TexCreate_UAV;
+	Ret.TargetableFlags |= TexCreate_RenderTargetable;
+	Ret.DebugName = TEXT("ScatteredMaxVelocity");
 
 	return Ret;
 }
@@ -1427,11 +1373,10 @@ void FRCPassPostProcessMotionBlurNew::Process(FRenderingCompositePassContext& Co
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-
+	Context.SetViewportAndCallRHI(SrcRect);
+	
 	// is optimized away if possible (RT size=view size, )
 	//Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
-
-	Context.SetViewportAndCallRHI(SrcRect);
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());

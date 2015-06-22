@@ -90,12 +90,6 @@ public:
 	// -1 if not set yet (AsyncCompute wasn't started, we need another Process to finish it)
 	uint32 AsyncJobFenceID;
 
-	static const uint32 TileSizeX = 16;
-	static const uint32 TileSizeY = 16;
-	
-	static const uint32 ThreadGroupSizeX = TileSizeX / 2;
-	static const uint32 ThreadGroupSizeY = TileSizeY / 2;
-
 	static FIntPoint ComputeThreadGroupCount(FIntPoint PixelExtent);
 };
 
@@ -111,7 +105,7 @@ public:
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
-class FRCPassPostProcessVelocityDilate : public TRenderingCompositePassBase<1, 1>
+class FRCPassPostProcessVelocityGather : public TRenderingCompositePassBase<1, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------

@@ -963,6 +963,13 @@ static TAutoConsoleVariable<int32> CVarMotionBlurDilate(
 	ECVF_RenderThreadSafe
 );
 
+static TAutoConsoleVariable<int32> CVarMotionBlurSeparable(
+	TEXT("r.MotionBlurSeparable"),
+	0,
+	TEXT(""),
+	ECVF_RenderThreadSafe
+);
+
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_PostProcessing_Process );
@@ -1170,14 +1177,25 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 						MaxTileVelocity	= FRenderingCompositeOutputRef( VelocityScatterPass );
 					}
 
-					if( CVarMotionBlurDilate.GetValueOnRenderThread() )
+					if( !CVarMotionBlurScatter.GetValueOnRenderThread() )
 					{
-						FRenderingCompositePass* VelocityDilatePass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessVelocityDilate() );
+						FRenderingCompositePass* VelocityDilatePass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessVelocityGather() );
 						VelocityDilatePass->SetInput( ePId_Input0, MaxTileVelocity );
 
 						MaxTileVelocity	= FRenderingCompositeOutputRef( VelocityDilatePass );
 					}
 
+					{
+						FRenderingCompositePass* MotionBlurPass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessMotionBlurNew( GetMotionBlurQualityFromCVar() ) );
+						MotionBlurPass->SetInput( ePId_Input0, Context.FinalOutput );
+						MotionBlurPass->SetInput( ePId_Input1, SceneDepth );
+						MotionBlurPass->SetInput( ePId_Input2, VelocityInput );
+						MotionBlurPass->SetInput( ePId_Input3, MaxTileVelocity );
+					
+						Context.FinalOutput = FRenderingCompositeOutputRef( MotionBlurPass );
+					}
+
+					if( CVarMotionBlurSeparable.GetValueOnRenderThread() )
 					{
 						FRenderingCompositePass* MotionBlurPass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessMotionBlurNew( GetMotionBlurQualityFromCVar() ) );
 						MotionBlurPass->SetInput( ePId_Input0, Context.FinalOutput );
@@ -1644,7 +1662,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			OverrideRenderTarget(Context.FinalOutput, Temp, Desc);
 
 			// We want this executed early as it uses AsyncCompute (where available e.g. XboxOne).
-			CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
+			//CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
 			// Now we process the remaining part of the graph.
 			CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("PostProcessing"));
 		}

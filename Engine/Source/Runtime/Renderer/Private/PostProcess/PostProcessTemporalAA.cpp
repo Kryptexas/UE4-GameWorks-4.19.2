@@ -39,6 +39,12 @@ static TAutoConsoleVariable<float> CVarTemporalAASharpness(
 	TEXT("Sharpness of temporal AA (0.0 = smoother, 1.0 = sharper)."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarTemporalAAPauseCorrect(
+	TEXT("r.TemporalAAPauseCorrect"),
+	0,
+	TEXT("Correct temporal AA in pause."),
+	ECVF_RenderThreadSafe);
+
 /** Encapsulates a TemporalAA pixel shader. */
 template< uint32 Type, uint32 Responsive >
 class FPostProcessTemporalAAPS : public FGlobalShader
@@ -697,12 +703,15 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	}
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-
-	if( !View.Family->bWorldIsPaused )
+	
+	if( !CVarTemporalAAPauseCorrect.GetValueOnRenderThread() )
 	{
-		ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
-		check( ViewState->TemporalAAHistoryRT );
+		// Release to potentially reuse memory.
+		// Otherwise keep around so that pause looks correct.
+		ViewState->TemporalAAHistoryRT.SafeRelease();
 	}
+	ViewState->PendingTemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
+	check( ViewState->PendingTemporalAAHistoryRT );
 
 	// TODO draw separate translucency after jitter has been removed
 

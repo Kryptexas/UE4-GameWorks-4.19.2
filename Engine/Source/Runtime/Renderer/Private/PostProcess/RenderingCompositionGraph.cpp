@@ -717,9 +717,7 @@ void FPostProcessPassParameters::Set(
 		}
 
 		{
-			FVector4 Value(LocalViewport.Min.X, LocalViewport.Min.Y, LocalViewport.Max.X, LocalViewport.Max.Y);
-
-			SetShaderValue(RHICmdList, ShaderRHI, ViewportRect, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, ViewportRect, Context.GetViewport());
 		}
 
 		{

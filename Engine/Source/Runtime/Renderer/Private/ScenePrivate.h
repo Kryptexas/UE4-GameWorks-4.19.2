@@ -486,6 +486,7 @@ public:
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
 	// Temporal AA result of last frame
 	TRefCountPtr<IPooledRenderTarget> TemporalAAHistoryRT;
+	TRefCountPtr<IPooledRenderTarget> PendingTemporalAAHistoryRT;
 	// Temporal AA result for DOF of last frame
 	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT2;
