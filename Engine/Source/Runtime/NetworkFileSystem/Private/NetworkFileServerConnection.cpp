@@ -73,7 +73,7 @@ static TMap<FString, FDateTime> FixupSandboxPathsForClient(FSandboxPlatformFile*
 {
 	TMap<FString, FDateTime> FixedFiletimes;
 	FString SandboxEngine = Sandbox->ConvertToSandboxPath(*LocalEngineDir);
-	if (SandboxEngine.EndsWith(TEXT("/")) == false)
+	if (SandboxEngine.EndsWith(TEXT("/"), ESearchCase::CaseSensitive) == false)
 	{
 		SandboxEngine += TEXT("/");
 	}
