@@ -138,6 +138,9 @@ void UModelComponent::BuildRenderData()
 		}
 
 		IndexBuffer->Indices.Shrink();
+#if !DISALLOW_32BIT_INDICES
+		IndexBuffer->ComputeIndexWidth();
+#endif
 	}
 }
 

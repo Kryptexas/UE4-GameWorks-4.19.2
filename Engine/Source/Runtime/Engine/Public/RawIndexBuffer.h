@@ -36,6 +36,10 @@ typedef FRawIndexBuffer FRawIndexBuffer16or32;
 class FRawIndexBuffer16or32 : public FIndexBuffer
 {
 public:
+	FRawIndexBuffer16or32()
+		: b32Bit(true)
+	{
+	}
 
 	TArray<uint32> Indices;
 
@@ -44,11 +48,19 @@ public:
 	 */
 	void CacheOptimize();
 
+	/**
+	 * Computes whether index buffer should be 32 bit
+	 */
+	void ComputeIndexWidth();
+
 	// FRenderResource interface.
 	virtual void InitRHI() override;
 
 	// Serialization.
 	friend FArchive& operator<<(FArchive& Ar,FRawIndexBuffer16or32& I);
+
+private:
+	bool b32Bit;
 };
 #endif
 
