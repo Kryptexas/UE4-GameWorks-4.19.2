@@ -4,7 +4,6 @@
 
 #include "CoreUObject.h"
 #include "Engine/BlendableInterface.h"
-#include "Engine/DataAsset.h"
 #include "LightPropagationVolumeBlendable.generated.h"
 
 USTRUCT(BlueprintType)
@@ -102,8 +101,7 @@ struct FLightPropagationVolumeSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVSpecularOcclusionIntensity", UIMin = "0", UIMax = "4", DisplayName = "Specular occlusion intensity") )
 	float LPVSpecularOcclusionIntensity;
 
-	// good start values for a new volume, by default no value is overriding
-
+	// good start values for a new volume
 	FLightPropagationVolumeSettings()
 	{
 		// to set all bOverride_.. by default to false
@@ -144,9 +142,9 @@ struct FLightPropagationVolumeSettings
 	}
 };
 
-UCLASS(MinimalAPI, Blueprintable)
-//class ULightPropagationVolumeBlendable : public UDataAsset, public IBlendableInterface
-class ULightPropagationVolumeBlendable : public UDataAsset, public IBlendableInterface
+// BlueprintType to make the object spawnable in blueprint
+UCLASS(MinimalAPI, Blueprintable, BlueprintType)
+class ULightPropagationVolumeBlendable : public UObject, public IBlendableInterface
 {
 	GENERATED_UCLASS_BODY()
 

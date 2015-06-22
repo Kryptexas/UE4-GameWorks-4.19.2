@@ -37,7 +37,11 @@ class FLightPropagationVolumeModule : public IModuleInterface
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 
- 		EAssetTypeCategories::Type AssetCategoryBit = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("Blendables")), LOCTEXT("BlendablesAssetCategory", "Blendables"));
+ 		EAssetTypeCategories::Type AssetCategoryBit = AssetTools.FindAdvancedAssetCategory(FName(TEXT("Blendables")));
+		
+		// this category should have been registered already
+		check(AssetCategoryBit != EAssetTypeCategories::Misc);
+
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_LightPropagationVolumeBlendable(AssetCategoryBit)));
 	}
 

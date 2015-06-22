@@ -73,6 +73,7 @@ class UCameraComponent : public USceneComponent
 	// UObject interface
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+	virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
 
 	/**
@@ -81,6 +82,10 @@ class UCameraComponent : public USceneComponent
 	 */
 	UFUNCTION(BlueprintCallable, Category=Camera)
 	ENGINE_API virtual void GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView);
+
+	/** Adds an Blendable (implements IBlendableInterface) to the array of Blendables (if it doesn't exist) and update the weight */
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	ENGINE_API void AddOrUpdateBlendable(TScriptInterface<IBlendableInterface> InBlendableObject, float InWeight = 1.0f) { PostProcessSettings.AddBlendable(InBlendableObject, InWeight); }
 
 protected:
 #if WITH_EDITORONLY_DATA

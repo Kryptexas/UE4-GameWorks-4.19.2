@@ -5,6 +5,7 @@
 //=============================================================================
 
 #pragma once
+#include "BlendableInterface.h"
 #include "Scene.generated.h"
 
 /** Used by FPostProcessSettings Depth of Fields */
@@ -26,6 +27,46 @@ enum EAntiAliasingMethod
 	AAM_TemporalAA UMETA(DisplayName="TemporalAA"),
 	AAM_MAX,
 };
+
+USTRUCT()
+struct FWeightedBlendable
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** 0:no effect .. 1:full effect */
+	UPROPERTY(interp, BlueprintReadWrite, Category=FWeightedBlendable, meta=(UIMin = "0.0", UIMax = "1.0", Delta = "0.01"))
+	float Weight;
+
+	/** should be of the IBlendableInterface* type but UProperties cannot express that */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FWeightedBlendable, meta=( AllowedClasses="BlendableInterface", Keywords="PostProcess" ))
+	UObject* Object;
+
+	// default constructor
+	FWeightedBlendable()
+		: Weight(-1)
+		, Object(0)
+	{
+	}
+
+	// constructor
+	// @param InWeight -1 is used to hide the weight and show the "Choose" UI, 0:no effect .. 1:full effect
+	FWeightedBlendable(float InWeight, UObject* InObject)
+		: Weight(InWeight)
+		, Object(InObject)
+	{
+	}
+};
+
+// for easier detail customization, needed?
+USTRUCT()
+struct FWeightedBlendables
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="PostProcessSettings", meta=( Keywords="PostProcess" ))
+	TArray<FWeightedBlendable> Array;
+};
+
 
 /** To be able to use struct PostProcessSettings. */
 // Each property consists of a bool to enable it (by default off),
@@ -894,10 +935,69 @@ struct FPostProcessSettings
 	
 	/**
 	 * Allows custom post process materials to be defined, using a MaterialInstance with the same Material as its parent to allow blending.
-	 * Make sure you use the "PostProcess" domain type. This can be used for any UObject object implementing the IBlendableInterface (e.g. could be used to fade weather settings).
+	 * For materials this needs to be the "PostProcess" domain type. This can be used for any UObject object implementing the IBlendableInterface (e.g. could be used to fade weather settings).
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Misc", meta=( AllowedClasses="BlendableInterface", Keywords="PostProcess" ))
-	TArray<UObject*> Blendables;
+	UPROPERTY(EditAnywhere, Category="PostProcessSettings", meta=( Keywords="PostProcess", DisplayName = "Blendables" ))
+	FWeightedBlendables WeightedBlendables;
+
+	// for backwards compatibility
+	UPROPERTY()
+	TArray<UObject*> Blendables_DEPRECATED;
+
+	// for backwards compatibility
+	void OnAfterLoad()
+	{
+		for(int32 i = 0, count = Blendables_DEPRECATED.Num(); i < count; ++i)
+		{
+			if(Blendables_DEPRECATED[i])
+			{
+				FWeightedBlendable Element(1.0f, Blendables_DEPRECATED[i]);
+				WeightedBlendables.Array.Add(Element);
+			}
+		}
+		Blendables_DEPRECATED.Empty();
+	}
+
+	// Adds an Blendable (implements IBlendableInterface) to the array of Blendables (if it doesn't exist) and update the weight
+	// @param InBlendableObject silently ignores if no object is referenced
+	// @param 0..1 InWeight, values outside of the range get clampled later in the pipeline
+	void AddBlendable(TScriptInterface<IBlendableInterface> InBlendableObject, float InWeight)
+	{
+		// update weight, if the Blendable is already in the array
+		if(UObject* Object = InBlendableObject.GetObject())
+		{
+			for (int32 i = 0, count = WeightedBlendables.Array.Num(); i < count; ++i)
+			{
+				if (WeightedBlendables.Array[i].Object == Object)
+				{
+					WeightedBlendables.Array[i].Weight = InWeight;
+					// We assumes we only have one
+					return;
+				}
+			}
+
+			// add in the end
+			WeightedBlendables.Array.Add(FWeightedBlendable(InWeight, Object));
+		}
+	}
+
+	// removes one or multiple blendables from the array
+	void RemoveBlendable(TScriptInterface<IBlendableInterface> InBlendableObject)
+	{
+		if(UObject* Object = InBlendableObject.GetObject())
+		{
+			for (int32 i = 0, count = WeightedBlendables.Array.Num(); i < count; ++i)
+			{
+				if (WeightedBlendables.Array[i].Object == Object)
+				{
+					// this might remove multiple
+					WeightedBlendables.Array.RemoveAt(i);
+					--i;
+					--count;
+				}
+			}
+		}
+	}
 
 	// good start values for a new volume, by default no value is overriding
 	FPostProcessSettings()

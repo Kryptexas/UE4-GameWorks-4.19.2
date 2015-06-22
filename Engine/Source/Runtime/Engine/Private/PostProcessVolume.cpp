@@ -22,6 +22,16 @@ bool APostProcessVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.
 	return Super::EncompassesPoint(Point, SphereRadius, OutDistanceToPoint);
 }
 
+void APostProcessVolume::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		Settings.OnAfterLoad();
+	}
+}
+
 #if WITH_EDITOR
 void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -32,16 +42,14 @@ void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == NAME_Blendables)
 	{
 		// remove unsupported types
+		uint32 Count = Settings.WeightedBlendables.Array.Num();
+		for(uint32 i = 0; i < Count; ++i)
 		{
-			uint32 Count = Settings.Blendables.Num();
-			for(uint32 i = 0; i < Count; ++i)
-			{
-				UObject* Obj = Settings.Blendables[i];
+			UObject* Obj = Settings.WeightedBlendables.Array[i].Object;
 
-				if(!Cast<IBlendableInterface>(Obj))
-				{
-					Settings.Blendables[i] = 0;
-				}
+			if(!Cast<IBlendableInterface>(Obj))
+			{
+				Settings.WeightedBlendables.Array[i] = FWeightedBlendable();
 			}
 		}
 	}

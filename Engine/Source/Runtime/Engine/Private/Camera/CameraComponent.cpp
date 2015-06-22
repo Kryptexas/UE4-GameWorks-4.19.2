@@ -191,6 +191,16 @@ void UCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 }
 #endif
 
+void UCameraComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		PostProcessSettings.OnAfterLoad();
+	}
+}
+
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
 	if (bUsePawnControlRotation)

@@ -948,12 +948,12 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 
 	// Blendable objects
 	{
-		uint32 Count = Src.Blendables.Num();
+		uint32 Count = Src.WeightedBlendables.Array.Num();
 
 		for(uint32 i = 0; i < Count; ++i)
 		{
-			// todo: optimize
-			UObject* Object = Src.Blendables[i];
+			float LocalWeight = Src.WeightedBlendables.Array[i].Weight;
+			UObject* Object = Src.WeightedBlendables.Array[i].Object;
 
 			if(!Object)
 			{
@@ -967,7 +967,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 				continue;
 			}
 
-			BlendableInterface->OverrideBlendableSettings(*this, Weight);
+			BlendableInterface->OverrideBlendableSettings(*this, LocalWeight * Weight);
 		}
 	}
 }

@@ -55,6 +55,10 @@ class UPostProcessComponent : public USceneComponent, public IInterface_PostProc
 	}
 	// End IInterface_PostProcessVolume Interface
 
+	/** Adds an Blendable (implements IBlendableInterface) to the array of Blendables (if it doesn't exist) and update the weight */
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	ENGINE_API void AddOrUpdateBlendable(TScriptInterface<IBlendableInterface> InBlendableObject, float InWeight = 1.0f) { Settings.AddBlendable(InBlendableObject, InWeight); }
+
 protected:
 
 	virtual void OnRegister() override;
