@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:2592474
+Availability:Public
+Title:5.応用編
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:ここまでで学習したプロジェクトの設定、マテリアルの作成、Static Mesh アクタへのマテリアルの適用を実践してみましょう。
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+知っていることを活用して、このグラフと同様の **マテリアル** を新規作成します。
+
+![](Engine/Content/QuickStart/1/4/PlasticMaterialNetwork.png)
+
+Main Material ノード設定で、プラスチック マテリアルのシミュレーションを行います。
+
+__Basic_Asset1__ をレベルへ追加し、それにマテリアルを適用し、マテリアルを更新して "Brick" のノーマル マップ テクスチャを追加します。 
+
+![](NormalMapAdded.jpg)
+
+このクイックスタートガイドで扱ったトピックの詳細情報については、[__アンリアル エディタのマニュアル__](Engine "%Engine:description%") をご覧ください。
+
+以下は、コンテンツの各種タイプのインポートに関する情報です。 
+
+* FBX パイプライン全般の情報：[__%Engine/Content/FBX:title%__](Engine/Content/FBX "%Engine/Content/FBX:description%").
+* FBX スケルタル メッシュ パイプラインの情報：[__%Engine/Content/FBX/SkeletalMeshes:title%__](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%").
+* FBX アニメーション パイプラインの情報：[__%Engine/Content/FBX/Animations:title%__](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%").
+* FBX モーフ ターゲット パイプラインの情報：[__%Engine/Content/FBX/MorphTargets:title%__](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%").
+* FBX マテリアル パイプラインの情報：[__%Engine/Content/FBX/Materials:title%__](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%").
+* オーディオのインポートに関する情報：[__%Engine/Audio/WAV:title%__](Engine/Audio/WAV "%Engine/Audio/WAV:description%").
+
+このクイックスタートガイドで取り上げている詳細は以下の通りです。
+
+サポート対象の画像ファイル：[__%Engine/Content/Types/Textures/Importing:title%__](Engine/Content/Types/Textures/Importing "%Engine/Content/Types/Textures/Importing%")
+* オーディオのインポートに関する情報：[__%Engine/Rendering/Materials:title%__](Engine/Rendering/Materials "%Engine/Rendering/Materials%").
+コンテンツ ブラウザ に関する情報：[__%Engine\Content\Browser:title%__](Engine\Content\Browser "%Engine\Content\Browser%").
+* スタティック メッシュ エディタに関する情報：[__%Engine/Content/Types/StaticMeshes/Editor:title%__](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor%").
+
+%Steps%
+
+
