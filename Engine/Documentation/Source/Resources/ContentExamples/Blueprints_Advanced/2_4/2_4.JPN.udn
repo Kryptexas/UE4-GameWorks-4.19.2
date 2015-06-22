@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:2.4 - トリガーのあるドア
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -37,7 +37,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## 概要
 
-**BP_Door** _ブループリント_ はトリガー _ボックス コンポーネント_ で開くドアを作成します。これはゲーム制作で共通して使用されることがある、スクリプトとアニメーションがビルトインされている追加設定の必要のない _ブループリント_ のもうひとつの例です。 
+**BP_Door** _ブループリント_ はトリガー _ボックス コンポーネント_ で開くドアを作成します。これはゲーム制作で共通して使用されうる、スクリプトとアニメーションがビルトインされている追加設定の必要のない _ブループリント_ のもうひとつの例です。 
 
 プレイヤーが _ボックス コンポーネント_ に触ると、 _ブループリント_ がプレイヤーのドアとの相対位置を抽出し、プレイヤーがドアのどちら側にいるのか判断するためにアクタの回転と連動した情報を使います。それから、[タイムライン](Engine/Blueprints\UserGuide\Timelines) がドアを正しい方向に開けるように再生され、ドアがプレイヤーから離れて開きます。
 
