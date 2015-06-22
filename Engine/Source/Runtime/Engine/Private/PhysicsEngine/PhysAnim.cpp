@@ -215,7 +215,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 
 		if (bUpdatePhysics && BodyInstance)
 		{
-			BodyInstance->SetBodyTransform(EditableSpaceBases[BoneIndex] * ComponentToWorld, true);
+			BodyInstance->SetBodyTransform(EditableSpaceBases[BoneIndex] * ComponentToWorld, ETeleportType::TeleportPhysics);
 		}
 	}
 
@@ -285,7 +285,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 }
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning)
+void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -295,7 +295,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 	// If desired, pass the animation data to the physics joints so they can be used by motors.
 	// See if we are going to need to update kinematics
 	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
-
+	const bool bTeleport = Teleport == ETeleportType::TeleportPhysics;
 	// If desired, update physics bodies associated with skeletal mesh component to match.
 	if(!bUpdateKinematics && !(bTeleport && IsAnySimulatingPhysics()))
 	{
@@ -492,7 +492,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 				BodyInstance.UpdateTriMeshVertices(NewPositions);
 			}
 			
-			BodyInstance.SetBodyTransform(CurrentLocalToWorld, bTeleport);
+			BodyInstance.SetBodyTransform(CurrentLocalToWorld, Teleport);
 		}
 	}
 

@@ -507,20 +507,20 @@ void UPrimitiveComponent::EnsurePhysicsStateCreated()
 	}
 }
 
-void UPrimitiveComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
+void UPrimitiveComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
-	Super::OnUpdateTransform(bSkipPhysicsMove);
+	Super::OnUpdateTransform(bSkipPhysicsMove, Teleport);
 
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove)
 	{
-		SendPhysicsTransform(bTeleport);
+		SendPhysicsTransform(Teleport);
 	}
 }
 
-void UPrimitiveComponent::SendPhysicsTransform(bool bTeleport)
+void UPrimitiveComponent::SendPhysicsTransform(ETeleportType Teleport)
 {
-	BodyInstance.SetBodyTransform(ComponentToWorld, bTeleport);
+	BodyInstance.SetBodyTransform(ComponentToWorld, Teleport);
 	BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D());
 }
 
@@ -1347,7 +1347,7 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 }
 
 
-bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotationQuat, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
+bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotationQuat, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags, ETeleportType Teleport)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentTime);
 
@@ -1411,7 +1411,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	if ( !bSweep )
 	{
 		// not sweeping, just go directly to the new transform
-		bMoved = InternalSetWorldLocationAndRotation(TraceEnd, NewRotationQuat, bSkipPhysicsMove, !bSweep);
+		bMoved = InternalSetWorldLocationAndRotation(TraceEnd, NewRotationQuat, bSkipPhysicsMove, Teleport);
 		bRotationOnly = (DeltaSizeSq == 0);
 		bIncludesOverlapsAtEnd = bRotationOnly && (AreSymmetricRotations(InitialRotationQuat, NewRotationQuat, GetComponentScale())) && IsCollisionEnabled();
 	}
@@ -1583,7 +1583,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 		}
 
 		// Update the location.  This will teleport any child components as well (not sweep).
-		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotationQuat, bSkipPhysicsMove);
+		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotationQuat, bSkipPhysicsMove, Teleport);
 	}
 
 	// Handle overlap notifications.

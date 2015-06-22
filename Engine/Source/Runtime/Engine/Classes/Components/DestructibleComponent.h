@@ -107,7 +107,7 @@ public:
 
 	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport = false) override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
 	// End USceneComponent interface.

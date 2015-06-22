@@ -1185,7 +1185,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	InvalidateCachedBounds();
 
 	// update physics data from animated data
-	UpdateKinematicBonesToAnim(GetEditableSpaceBases(), false, true);
+	UpdateKinematicBonesToAnim(GetEditableSpaceBases(), ETeleportType::None, true);
 	UpdateRBJointMotors();
 
 	// @todo anim : hack TTP 224385	ANIM: Skeletalmesh double buffer

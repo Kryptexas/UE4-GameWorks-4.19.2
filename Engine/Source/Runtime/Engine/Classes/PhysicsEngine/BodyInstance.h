@@ -11,6 +11,7 @@
 struct FCollisionShape;
 struct FConstraintInstance;
 class UPhysicsConstraintComponent;
+enum class ETeleportType;
 
 /** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
   * custom forces and torques can be calculated induvidually for every physics substep.
@@ -734,6 +735,9 @@ public:
 	 *	Move the physics body to a new pose.
 	 *	@param	bTeleport	If true, no velocity is inferred on the kinematic body from this movement, but it moves right away.
 	 */
+	void SetBodyTransform(const FTransform& NewTransform, ETeleportType Teleport);
+
+	DEPRECATED(4.9, "Please pass the teleport flag using the new ETeleportType enum ")
 	void SetBodyTransform(const FTransform& NewTransform, bool bTeleport);
 
 	/** Get current velocity in world space from physics body. */

@@ -589,7 +589,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
 			FVector DeltaLoc = NewPos - RootBodyTM.GetLocation();
 			RootBodyTM.SetTranslation(NewPos);
-			RootBI->SetBodyTransform(RootBodyTM, true);
+			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 #if DO_CHECK
 			FVector RelativeVector = (RootBI->GetUnrealWorldTransform().GetLocation() - NewPos);
@@ -606,7 +606,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetTranslation(BodyTM.GetTranslation() + DeltaLoc);
-					BI->SetBodyTransform(BodyTM, true);
+					BI->SetBodyTransform(BodyTM, ETeleportType::TeleportPhysics);
 				}
 			}
 
@@ -630,7 +630,7 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
 			FQuat DeltaQuat = RootBodyTM.GetRotation().Inverse() * NewRotQuat;
 			RootBodyTM.SetRotation(NewRotQuat);
-			RootBI->SetBodyTransform(RootBodyTM, true);
+			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
@@ -642,7 +642,7 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaQuat);
-					BI->SetBodyTransform( BodyTM, true );
+					BI->SetBodyTransform( BodyTM, ETeleportType::TeleportPhysics );
 				}
 			}
 
@@ -665,7 +665,7 @@ void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& Del
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
 			RootBodyTM.SetRotation(RootBodyTM.GetRotation() * DeltaRotation);
 			RootBodyTM.SetTranslation(RootBodyTM.GetTranslation() + DeltaLocation);
-			RootBI->SetBodyTransform(RootBodyTM, true);
+			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
@@ -678,7 +678,7 @@ void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& Del
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaRotation);
 					BodyTM.SetTranslation(BodyTM.GetTranslation() + DeltaLocation);
-					BI->SetBodyTransform( BodyTM, true );
+					BI->SetBodyTransform( BodyTM, ETeleportType::TeleportPhysics );
 				}
 			}
 
@@ -1331,18 +1331,18 @@ FConstraintInstance* USkeletalMeshComponent::FindConstraintInstance(FName ConNam
 #define OLD_FORCE_UPDATE_BEHAVIOR 0
 #endif
 
-void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
+void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true, bTeleport);
+	Super::OnUpdateTransform(true, Teleport);
 
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove)
 	{
 #if !OLD_FORCE_UPDATE_BEHAVIOR
-		UpdateKinematicBonesToAnim(GetSpaceBases(), bTeleport, false);
+		UpdateKinematicBonesToAnim(GetSpaceBases(), Teleport, false);
 #else
-		UpdateKinematicBonesToAnim(GetSpaceBases(), true, false);
+		UpdateKinematicBonesToAnim(GetSpaceBases(), ETeleportType::TeleportPhysics, false);
 #endif
 	}
 

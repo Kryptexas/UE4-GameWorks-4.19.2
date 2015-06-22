@@ -320,7 +320,7 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 			else
 			{
 				FVector const Delta = NewLocation - PrevLocation;
-				bTeleportSucceeded = ActorPrimComp->MoveComponent(Delta, DestRotation, false);
+				bTeleportSucceeded = ActorPrimComp->MoveComponent(Delta, DestRotation, false, nullptr, MOVECOMP_NoFlags, ETeleportType::TeleportPhysics);
 			}
 			if( bTeleportSucceeded )
 			{
@@ -331,7 +331,7 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 	else if (RootComponent)
 	{
 		// not a primitivecomponent, just set directly
-		GetRootComponent()->SetWorldLocationAndRotation(NewLocation, DestRotation);
+		GetRootComponent()->SetWorldLocationAndRotation(NewLocation, DestRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 
 	return bTeleportSucceeded; 
@@ -2686,12 +2686,12 @@ FVector AActor::GetInputVectorAxisValue(const FKey InputAxisKey) const
 	return Value;
 }
 
-bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
+bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent(Delta, GetActorQuat(), bSweep, OutSweepHitResult);
+		return RootComponent->MoveComponent(Delta, GetActorQuat(), bSweep, OutSweepHitResult, MOVECOMP_NoFlags, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2721,12 +2721,12 @@ bool AActor::SetActorRotation(const FQuat& NewRotation)
 	return false;
 }
 
-bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent(Delta, NewRotation, bSweep, OutSweepHitResult);
+		return RootComponent->MoveComponent(Delta, NewRotation, bSweep, OutSweepHitResult, MOVECOMP_NoFlags, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2736,12 +2736,12 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotati
 	return false;
 }
 
-bool AActor::SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+bool AActor::SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent(Delta, NewRotation, bSweep, OutSweepHitResult);
+		return RootComponent->MoveComponent(Delta, NewRotation, bSweep, OutSweepHitResult, MOVECOMP_NoFlags, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2769,11 +2769,11 @@ FVector AActor::GetActorScale3D() const
 	return FVector(1,1,1);
 }
 
-void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldOffset(DeltaLocation, bSweep, OutSweepHitResult);
+		RootComponent->AddWorldOffset(DeltaLocation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2781,11 +2781,11 @@ void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult*
 	}
 }
 
-void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldRotation(DeltaRotation, bSweep, OutSweepHitResult);
+		RootComponent->AddWorldRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2793,11 +2793,11 @@ void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResu
 	}
 }
 
-void AActor::AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldRotation(DeltaRotation, bSweep, OutSweepHitResult);
+		RootComponent->AddWorldRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2805,11 +2805,11 @@ void AActor::AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHit
 	}
 }
 
-void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldTransform(DeltaTransform, bSweep, OutSweepHitResult);
+		RootComponent->AddWorldTransform(DeltaTransform, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2818,7 +2818,7 @@ void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSwee
 }
 
 
-bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
+bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
 	// happens, and if so, something else is giving NAN as output
@@ -2826,7 +2826,7 @@ bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep, FHit
 	{
 		if (ensure(!NewTransform.ContainsNaN()))
 		{
-			RootComponent->SetWorldTransform(NewTransform, bSweep, OutSweepHitResult);
+			RootComponent->SetWorldTransform(NewTransform, bSweep, OutSweepHitResult, Teleport);
 		}
 		else
 		{
@@ -2846,11 +2846,11 @@ bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep, FHit
 	return false;
 }
 
-void AActor::AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if(RootComponent)
 	{
-		RootComponent->AddLocalOffset(DeltaLocation, bSweep, OutSweepHitResult);
+		RootComponent->AddLocalOffset(DeltaLocation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2858,11 +2858,11 @@ void AActor::AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult*
 	}
 }
 
-void AActor::AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if(RootComponent)
 	{
-		RootComponent->AddLocalRotation(DeltaRotation, bSweep, OutSweepHitResult);
+		RootComponent->AddLocalRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2870,11 +2870,11 @@ void AActor::AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResu
 	}
 }
 
-void AActor::AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddLocalRotation(DeltaRotation, bSweep, OutSweepHitResult);
+		RootComponent->AddLocalRotation(DeltaRotation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2882,11 +2882,11 @@ void AActor::AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHit
 	}
 }
 
-void AActor::AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if(RootComponent)
 	{
-		RootComponent->AddLocalTransform(NewTransform, bSweep, OutSweepHitResult);
+		RootComponent->AddLocalTransform(NewTransform, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2894,11 +2894,11 @@ void AActor::AddActorLocalTransform(const FTransform& NewTransform, bool bSweep,
 	}
 }
 
-void AActor::SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeLocation(NewRelativeLocation, bSweep, OutSweepHitResult);
+		RootComponent->SetRelativeLocation(NewRelativeLocation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2906,11 +2906,11 @@ void AActor::SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, 
 	}
 }
 
-void AActor::SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult);
+		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2918,11 +2918,11 @@ void AActor::SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep,
 	}
 }
 
-void AActor::SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult);
+		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2930,11 +2930,11 @@ void AActor::SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSw
 	}
 }
 
-void AActor::SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void AActor::SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeTransform(NewRelativeTransform, bSweep, OutSweepHitResult);
+		RootComponent->SetRelativeTransform(NewRelativeTransform, bSweep, OutSweepHitResult, Teleport);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -3859,64 +3859,64 @@ const int32 AActor::GetNumUncachedStaticLightingInteractions() const
 // Note: we pass null for the hit result if not sweeping, for better perf.
 // This assumes this K2 function is only used by blueprints, which initializes the param for each function call.
 
-bool AActor::K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+bool AActor::K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	return SetActorLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	return SetActorLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-bool AActor::K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+bool AActor::K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	return SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	return SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddActorWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddActorWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddActorWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddActorWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddActorWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddActorWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-bool AActor::K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+bool AActor::K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	return SetActorTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	return SetActorTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddActorLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddActorLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddActorLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddActorLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddActorLocalTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddActorLocalTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetActorRelativeLocation(NewRelativeLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetActorRelativeLocation(NewRelativeLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetActorRelativeRotation(NewRelativeRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetActorRelativeRotation(NewRelativeRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void AActor::K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult)
+void AActor::K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetActorRelativeTransform(NewRelativeTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetActorRelativeTransform(NewRelativeTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
 

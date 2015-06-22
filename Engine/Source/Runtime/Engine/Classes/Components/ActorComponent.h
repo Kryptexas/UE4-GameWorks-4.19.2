@@ -22,6 +22,18 @@ enum class EComponentCreationMethod : uint8
 	Instance,
 };
 
+
+/** Whether to teleport physics body or not */
+enum class ETeleportType
+{
+	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
+	None,
+	/** Teleport physics body so that velocity remains the same and no collision occurs */
+	TeleportPhysics
+};
+
+FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -489,7 +501,7 @@ public:
 	void DoDeferredRenderUpdates_Concurrent();
 
 	/** Recalculate the value of our component to world transform */
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, bool bTeleport = false) {}
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None){}
 
 	/** Mark the render state as dirty - will be sent to the render thread at the end of the frame. */
 	void MarkRenderStateDirty();

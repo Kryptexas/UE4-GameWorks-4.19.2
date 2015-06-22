@@ -1503,7 +1503,7 @@ struct FInitBodiesHelper
 					else
 					{
 						// Position the body
-						Instance->SetBodyTransform(Transform, /*bTeleport=*/ true);
+						Instance->SetBodyTransform(Transform, ETeleportType::TeleportPhysics);
 					}
 
 					// Apply correct physical materials to shape we created.
@@ -2511,6 +2511,11 @@ FTransform FBodyInstance::GetUnrealWorldTransform_AssumesLocked(bool bWithProjec
 
 void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTeleport)
 {
+	SetBodyTransform(NewTransform, TeleportFlagToEnum(bTeleport));
+}
+
+void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportType Teleport)
+{
 	SCOPE_CYCLE_COUNTER(STAT_SetBodyTransform);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2545,7 +2550,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 			if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic_AssumesLocked())
 			{
 				// If kinematic and not teleporting, set kinematic target
-				if (!IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic) && !bTeleport)
+				if (!IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic) && Teleport == ETeleportType::None)
 				{
 					if(FPhysScene* PhysScene = GetPhysicsScene(this))
 					{

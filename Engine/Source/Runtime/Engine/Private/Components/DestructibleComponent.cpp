@@ -128,10 +128,10 @@ bool IsImpactDamageEnabled(const UDestructibleMesh* TheDestructibleMesh, int32 L
 	}
 }
 
-void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
+void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true, bTeleport);
+	Super::OnUpdateTransform(true, Teleport);
 
 	if (SkeletalMesh == NULL)
 	{

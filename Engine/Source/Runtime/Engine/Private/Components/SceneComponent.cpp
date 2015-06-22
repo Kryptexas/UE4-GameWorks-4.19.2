@@ -319,11 +319,11 @@ FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativ
 	}
 }
 
-void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
+void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 }
 
-void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, bool bTeleport)
+void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, ETeleportType Teleport)
 {
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
 	if (Parent && !Parent->bWorldToComponentUpdated)
@@ -359,7 +359,7 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	{
 		// Update transform
 		ComponentToWorld = NewTransform;
-		PropagateTransformUpdate(true, bSkipPhysicsMove, bTeleport);
+		PropagateTransformUpdate(true, bSkipPhysicsMove, Teleport);
 	}
 	else
 	{
@@ -399,13 +399,13 @@ void USceneComponent::OnRegister()
 #endif
 }
 
-void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove, bool bTeleport)
+void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
-	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), bTeleport);
+	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
 }
 
 
-void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove, bool bTeleport)
+void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	if (IsDeferringMovementUpdates())
 	{
@@ -419,13 +419,13 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		UpdateBounds();
 
 		// Always send new transform to physics
-		OnUpdateTransform(bSkipPhysicsMove, bTeleport);
+		OnUpdateTransform(bSkipPhysicsMove, Teleport);
 
 		// Flag render transform as dirty
 		MarkRenderTransformDirty();
 		
 		// Now go and update children
-		UpdateChildTransforms(bSkipPhysicsMove, bTeleport);
+		UpdateChildTransforms(bSkipPhysicsMove, Teleport);
 
 		// Refresh navigation
 		UpdateNavigationData();
@@ -728,7 +728,7 @@ void USceneComponent::UpdateBounds()
 }
 
 
-void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	ConditionalUpdateComponentToWorld();
 
@@ -736,68 +736,68 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
 	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 
-	MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation(), bSweep, OutSweepHitResult);
+	MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation(), bSweep, OutSweepHitResult, MOVECOMP_NoFlags, Teleport);
 }
 
 
-void USceneComponent::AddRelativeRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddRelativeRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = DeltaRotation * CurRelRotQuat;
-	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FVector LocalOffset = CurRelRotQuat.RotateVector(DeltaLocation);
-	SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, CurRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, CurRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = CurRelRotQuat * DeltaRotation.Quaternion();
-	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = CurRelRotQuat * DeltaRotation;
-	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FTransform RelativeTransform( RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, FVector(1,1,1) ); // don't use scaling, so it matches how AddLocalRotation/Offset work
 	const FTransform NewRelTransform = DeltaTransform * RelativeTransform;
-	SetRelativeTransform(NewRelTransform, bSweep, OutSweepHitResult);
+	SetRelativeTransform(NewRelTransform, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FVector NewWorldLocation = DeltaLocation + ComponentToWorld.GetTranslation();
-	SetWorldLocation(NewWorldLocation, bSweep, OutSweepHitResult);
+	SetWorldLocation(NewWorldLocation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat NewWorldRotation = DeltaRotation.Quaternion() * ComponentToWorld.GetRotation();
-	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult);
+	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat NewWorldRotation = DeltaRotation * ComponentToWorld.GetRotation();
-	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult);
+	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
 	const FVector NewWorldLocation = FTransform::AddTranslations(DeltaTransform, ComponentToWorld);
-	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)));
+	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)),false, nullptr, Teleport);
 }
 
 void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
@@ -834,9 +834,9 @@ void USceneComponent::ResetRelativeTransform()
 	SetRelativeScale3D(FVector(1.f));
 }
 
-void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	SetRelativeLocationAndRotation(NewTransform.GetTranslation(), NewTransform.GetRotation(), bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(NewTransform.GetTranslation(), NewTransform.GetRotation(), bSweep, OutSweepHitResult, Teleport);
 	SetRelativeScale3D(NewTransform.GetScale3D());
 }
 
@@ -846,7 +846,7 @@ FTransform USceneComponent::GetRelativeTransform() const
 	return RelativeTransform;
 }
 
-void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	FVector NewRelLocation = NewLocation;
 
@@ -857,10 +857,10 @@ void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitRes
 		NewRelLocation = ParentToWorld.InverseTransformPosition(NewLocation);
 	}
 
-	SetRelativeLocation(NewRelLocation, bSweep, OutSweepHitResult);
+	SetRelativeLocation(NewRelLocation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	FQuat NewRelRotation = NewRotation;
 
@@ -873,7 +873,7 @@ void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FH
 		NewRelRotation = NewRelQuat;
 	}
 
-	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult);
+	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
 
@@ -891,7 +891,7 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 	SetRelativeScale3D(NewRelScale);
 }
 
-void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	// If attached to something, transform into local space
 	FQuat NewRotation = NewTransform.GetRotation();
@@ -919,15 +919,15 @@ void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSw
 		}
 	}
 
-	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep, OutSweepHitResult);
+	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	SetWorldLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult);
+	SetWorldLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	// If attached to something, transform into local space
 	FQuat NewFinalRotation = NewRotation;
@@ -948,7 +948,7 @@ void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQu
 		}
 	}
 
-	SetRelativeLocationAndRotation(NewLocation, NewFinalRotation, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(NewLocation, NewFinalRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
 void USceneComponent::SetWorldLocationAndRotationNoPhysics(const FVector& NewLocation, const FRotator& NewRotation)
@@ -1489,14 +1489,14 @@ FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 	return InstanceData;
 }
 
-void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, bool bTeleport)
+void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	for(int32 i=0; i<AttachChildren.Num(); i++)
 	{
 		USceneComponent* ChildComp = AttachChildren[i];
 		if(ChildComp != NULL)
 		{
-			ChildComp->UpdateComponentToWorld(bSkipPhysicsMove, bTeleport);
+			ChildComp->UpdateComponentToWorld(bSkipPhysicsMove, Teleport);
 		}
 	}
 }
@@ -1827,7 +1827,7 @@ void USceneComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics, bool bTeleport)
+bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics, ETeleportType Teleport)
 {
 	checkSlow(bWorldToComponentUpdated);
 	FQuat NewRotationQuat(RotationQuat);
@@ -1852,7 +1852,7 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), 1e-6f))
 	{
 		RelativeLocation = NewLocation;
-		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat, bTeleport);
+		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat, Teleport);
 		return true;
 	}
 
@@ -1910,7 +1910,7 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 	return false;
 }
 
-bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags )
+bool USceneComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags, ETeleportType Teleport)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentSceneComponentTime);
 
@@ -1943,7 +1943,7 @@ bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewR
 	}
 
 	// just teleport, sweep is supported for PrimitiveComponents. This will update child components as well.
-	const bool bMoved = InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation, false, !bSweep);
+	const bool bMoved = InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation, false, Teleport);
 
 	// Only update overlaps if not deferring updates within a scope
 	if (bMoved && !IsDeferringMovementUpdates())
@@ -2497,89 +2497,88 @@ void USceneComponent::UpdateNavigationData()
 	}
 }
 
-
 // K2 versions of various transform changing operations.
 // Note: we pass null for the hit result if not sweeping, for better perf.
 // This assumes this K2 function is only used by blueprints, which initializes the param for each function call.
 
-void USceneComponent::K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddRelativeLocation(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddRelativeLocation(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddRelativeRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddRelativeRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddLocalTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddLocalTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -86,7 +86,7 @@ bool UPrimitiveComponent::ApplyRigidBodyState(const FRigidBodyState& NewState, c
 		}
 
 		/////// BODY UPDATE ///////
-		BI->SetBodyTransform(FTransform(UpdatedQuat, UpdatedPos), true);
+		BI->SetBodyTransform(FTransform(UpdatedQuat, UpdatedPos), ETeleportType::TeleportPhysics);
 		BI->SetLinearVelocity(NewState.LinVel + FixLinVel, false);
 		BI->SetAngularVelocity(NewState.AngVel + FixAngVel, false);
 

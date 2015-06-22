@@ -832,7 +832,7 @@ public:
 	virtual void UpdateBounds() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport = false) override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 	// End USceneComponent interface.
 
@@ -1061,12 +1061,12 @@ public:
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
 	 */
-	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning);
+	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning);
 
-	DEPRECATED(4.9, "bForceUpdate is no longer used. Please use bTeleport")
+	DEPRECATED(4.9, "bForceUpdate is no longer used. Please use Teleport")
 	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
 	{
-		UpdateKinematicBonesToAnim(InSpaceBases, bTeleport || bForceUpdate, bNeedsSkinning);
+		UpdateKinematicBonesToAnim(InSpaceBases, TeleportFlagToEnum(bTeleport || bForceUpdate), bNeedsSkinning);
 	}
 	
 	/**

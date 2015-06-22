@@ -92,7 +92,7 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 		if (FBodyInstance* InstanceBodyInstance = InstanceBodies[InstanceIndex])
 		{
 			// Update transform.
-			InstanceBodyInstance->SetBodyTransform(WorldTransform, false);
+			InstanceBodyInstance->SetBodyTransform(WorldTransform, ETeleportType::None);
 			InstanceBodyInstance->UpdateBodyScale(WorldTransform.GetScale3D());
 		}
 	}
