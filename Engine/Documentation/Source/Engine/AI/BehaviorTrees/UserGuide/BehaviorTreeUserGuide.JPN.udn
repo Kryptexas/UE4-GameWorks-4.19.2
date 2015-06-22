@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:ビヘイビアツリー ユーザーガイド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -8,7 +8,7 @@ Description:ビヘイビアツリー ユーザーガイド
 
 このページでは、ビヘイビアツリーを使った作業の最も一般的なワークフローについて説明していきます。
 
-## ビヘイビアツリー アセットを作成する
+## Behavior Tree アセットを作成する
 
 ### ビヘイビアツリーの作成
 
@@ -29,7 +29,7 @@ Description:ビヘイビアツリー ユーザーガイド
 ![](Engine/AI/BehaviorTrees/QuickStart/3/newBB.png)
 [/REGION]
 
-1. **コンテンツ ブラウザ** で、[New] ボタンを **左クリック** します。
+1. **コンテンツ ブラウザ** で、[New (新規)] ボタンを **左クリック** します。
 1. **Miscellaneous** カテゴリで **ブラックボード** を選択します。
 
 
@@ -41,19 +41,19 @@ Description:ビヘイビアツリー ユーザーガイド
 
 1. (Behavior Tree Edit モードの間に) ビヘイビアツリー エディタの New Task ![](Engine/AI/BehaviorTrees/QuickStart/12/newTask_button.png) ボタンをクリックすることができます。
 1. 継承する Behavior Tree Task クラスを選択します。 `BTTask_BlueprintBase` がデフォルトの「ブランク」クラスです。
-1. 新規の Task ブループリントがビヘイビアツリー アセットと同じフォルダの中に作成されます。
+1. 新規の Task ブループリントが Behavior Tree アセットと同じフォルダの中に作成されます。
 
 ### Decorator (ブループリント) の作成
 
 1. (Behavior Tree Edit モードの間に) ビヘイビアツリー エディタの New Decorator ![](Engine/AI/BehaviorTrees/QuickStart/13/newDecorator_button.png) ボタンをクリックすることができます。
 1. 継承する Behavior Tree Decorator クラスを選択します。 `BTDecorator_BlueprintBase` がデフォルトの「ブランク」クラスです。
-1. 新規の Decorator ブループリントがビヘイビアツリー アセットと同じフォルダの中に作成されます。
+1. 新規の Decorator ブループリントが Behavior Tree アセットと同じフォルダの中に作成されます。
 
 ### Service (ブループリント) の作成
 
 1. (Behavior Tree Edit モードの間に) ビヘイビアツリー エディタの New Service ![](Engine/AI/BehaviorTrees/QuickStart/11/newService_button.png) ボタンをクリックすることができます。
 1. 継承する Behavior Tree Service クラスを選択します。 `BTService_BlueprintBase` がデフォルトの「ブランク」クラスです。
-1. 新規の Service ブループリントがビヘイビアツリー アセットと同じフォルダの中に作成されます。
+1. 新規の Service ブループリントが Behavior Tree セットと同じフォルダの中に作成されます。
 
 ##ブラックボードの編集
 
@@ -79,7 +79,7 @@ Description:ビヘイビアツリー ユーザーガイド
 ### キーの名前変更
 
 1. 名前を変更したいキーを選択します。
-1. **右クリック** して、[Rename] を選択します (または F2 を押下)。
+1. **右クリック** して、[Rename (名前変更)] を選択します (または F2 を押下)。
 1. キーの名前を新規に入力します。
 
 ### オブジェクト キーの詳述
@@ -89,7 +89,7 @@ Description:ビヘイビアツリー ユーザーガイド
 デコレーター関数およびサービス関数の中にはアクタ キーを要求するものもあります。オブジェクト キーは以下の方法でアクタ キーへ変更します。
 
 1. オブジェクト キーを選択します。
-1. 次に、 **[Details]** パネルで Key Type プロパティを展開します。
+1. 次に、 **[Details (詳細)]** パネルで Key Type プロパティを展開します。
 1. Base Class プロパティを好きなオブジェクト タイプに変更します。
 
 ## ビヘイビアツリーの編集
@@ -105,7 +105,7 @@ Description:ビヘイビアツリー ユーザーガイド
 ### 使用するブラックボード アセットの設定
 
 1. ビヘイビアツリーの Root ノードを選択します (または、全てのノードの選択を解除します)。
-1. **[Details]** パネルで、ブラックボード アセットを希望するブラックボードに設定します。
+1. **[Details (詳細)]** パネルで、ブラックボード アセットを希望するブラックボードに設定します。
 
 [REGION:raw]
 ![](settingBB.png)
@@ -138,7 +138,7 @@ Description:ビヘイビアツリー ユーザーガイド
 ### 接続の解除
 
 1. 接続バーを **右クリック** をして、コンテキスト メニューを表示させます。
-1. [Break Link(s)] を選択します。
+1. [Break Link(s) (リンクを解除)] を選択します。
 
 ![](context1.png)
 
@@ -149,7 +149,7 @@ Description:ビヘイビアツリー ユーザーガイド
 ### ノードのプロパティの編集
 
 1. **左クリック** してノードを選択します。
-1. **[Details]** パネルでノードのプロパティを調整します。
+1. **[Details (詳細)]** パネルでノードのプロパティを調整します。
 
 ### デコレーターとサービスのノードへの追加
 
@@ -177,7 +177,7 @@ Description:ビヘイビアツリー ユーザーガイド
 
 	![](selectDec.png)
 
-1. **[Details]** パネルで Decorator プロパティまたは Service プロパティを調整します。
+1. **[Details (詳細)]** パネルで Decorator プロパティまたは Service プロパティを調整します。
 
 	![](details.png)
 
@@ -209,5 +209,10 @@ Composite Decorator のグラフは単純なブループリントのように機
 ビヘイビアツリー エディタ 内に置かれた Decorator ノードを **ダブルクリック** してブループリント エディタで開くことができます。
 
 または、 **コンテンツ ブラウザ** で Decorator を **ダブルクリック** することができます。
+
+
+
+
+
 
 
