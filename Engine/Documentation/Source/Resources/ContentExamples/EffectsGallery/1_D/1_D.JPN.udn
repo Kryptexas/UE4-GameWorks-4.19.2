@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2392371
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:1.4 - Point Gravity モジュールを使用した GPU パーティクル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -55,16 +55,16 @@ Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-このエフェクトでは Point Gravity モジュールを紹介します。Point Gravity は GPU パーティクルと互換性がある唯一のモジュールです。このモジュールを使用して、エミッタの全パーティクルが描画される空間の近くにポイントを指定することができます。Point Gravity モジュールは、CPU パーティクルと唯一互換性のある Point Attractor、Line Attractor、そして Particle Attractor モジュールの代理を務めます。Point Gravityモ ジュールに対して、ユーザーが位置、半径、強さを設定する必要があります。
+このエフェクトでは Point Gravity モジュールを紹介します。Point Gravity は GPU パーティクルと互換性がある唯一のモジュールです。このモジュールを使用して、エミッタの全パーティクルが描画される空間の近くにポイントを指定することができます。Point Gravity モジュールは、CPU パーティクルのみと互換性のある Point Attractor、Line Attractor、そして Particle Attractor モジュールの代わりになります。Point Gravity モジュールでは位置、半径、強さを設定する必要があります。
 
 [REGION:fullwidth]
 ![](PointGrav.png)
 [/REGION]
 
-エフェクトには 2 つのエミッタが含まれます：
+このエフェクトには以下の 2 つのエミッタがあります。
 
-* 片方の GPU スプライトエミッタはエフェクトで可視化できるほとんどのパーティクルを作成し、Point Gravity と Collision (Scene Depth) モジュールが含まれています。
-* いくつかのパーティクルを放射するだけの標準の CPU エミッタですが、Light モジュールを使用します。パーティクルはシーンを照らす動的ライトのスポーンが可能になります。
+* ひとつは GPU スプライト エミッタでエフェクトで可視化できるほとんどのパーティクルを作成し、Point Gravity と Collision (Scene Depth) モジュールが含まれています。
+* もうひとつは、標準の CPU エミッタです。いくつかのパーティクルだけを放射しますが、Light モジュールも使用します。パーティクルはシーンを照らす動的ライトをスポーンできるようになります。
 
 
-Attraction モジュールに関する詳細は [Attraction モジュールのドキュメント](Engine/Rendering/ParticleSystems\Reference\Modules\Attractor) をご覧ください。
+Attractor モジュールに関する詳細は [Attractor モジュールのドキュメント](Engine/Rendering/ParticleSystems\Reference\Modules\Attractor) をご覧ください。
