@@ -19,7 +19,7 @@ public class Sequencer : ModuleRules
                 "EditorStyle",
 				"UnrealEd", 
 				"MovieSceneCore", 
-				"MovieSceneCoreTypes", 
+				"MovieSceneTracks", 
 				"MovieSceneTools", 
 				"EditorWidgets", 
 				"SequencerWidgets",

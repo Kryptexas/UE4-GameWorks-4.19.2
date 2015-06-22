@@ -22,7 +22,7 @@
 #include "Runtime/Engine/Public/Slate/SlateTextures.h"
 #include "ObjectTools.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "Runtime/MovieSceneCoreTypes/Classes/MovieSceneShotSection.h"
+#include "Runtime/MovieSceneTracks/Public/Sections/MovieSceneShotSection.h"
 #include "Runtime/Engine/Public/AudioDecompress.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundWave.h"

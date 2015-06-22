@@ -86,7 +86,7 @@ public class Engine : ModuleRules
 			new string[]
 			{
 				"MovieSceneCore",
-				"MovieSceneCoreTypes",
+				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
 			}
