@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IDetailCustomization.h"
+
 class FPluginDescriptorDetails : public IDetailCustomization
 {
 public:

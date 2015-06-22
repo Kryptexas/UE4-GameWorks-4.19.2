@@ -1,6 +1,8 @@
 #include "PluginCreatorPrivatePCH.h"
 #include "PluginDescriptorDetails.h"
 #include "PluginDescriptorObject.h"
+#include "DetailLayoutBuilder.h"
+#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "PluginDescriptorDetails"
 

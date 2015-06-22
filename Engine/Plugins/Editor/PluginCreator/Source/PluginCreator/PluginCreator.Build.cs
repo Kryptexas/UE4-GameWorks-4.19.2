@@ -13,6 +13,7 @@ public class PluginCreator : ModuleRules
 			{ 
 				"DesktopPlatform", 
  				"HardwareTargeting",
+				"PropertyEditor",
 			});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
