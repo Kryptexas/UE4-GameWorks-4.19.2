@@ -130,13 +130,6 @@ void FSlateLoadingSynchronizationMechanism::SlateThreadRunMainLoop()
 			//FSlateApplication::Get().PumpMessages();
 			FSlateApplication::Get().Tick();
 			SetSlateDrawPassEnqueued();
-
-			ENQUEUE_UNIQUE_RENDER_COMMAND(
-				FlushPendingDeleteRHIResources,
-				{
-					GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-				}
-			);
 		}
 
 		LastTime = CurrentTime;

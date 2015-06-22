@@ -333,6 +333,7 @@ void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 				TickStreamer(DeltaTime);
 				RendererPtr.Pin()->DrawWindows();
 				SyncMechanism->ResetSlateDrawPassEnqueued();
+				GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
 			}
 		}
 	}
