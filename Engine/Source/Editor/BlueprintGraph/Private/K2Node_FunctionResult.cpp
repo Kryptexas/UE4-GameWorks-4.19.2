@@ -4,6 +4,8 @@
 
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintNodeSpawner.h"
 
 struct FFillDefaultPinValueHelper
 {
