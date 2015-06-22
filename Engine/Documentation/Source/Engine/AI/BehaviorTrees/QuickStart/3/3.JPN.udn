@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2590930
+Availability:Public
 Title:3. 基本アセットの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 3基本アセットの作成
@@ -53,8 +54,8 @@ Description:ステップ 3基本アセットの作成
 	この **ビヘイビアツリー** に「FollowerBT」という名前を付けます。
 
 1. **[New (新規)]** -> **[Miscellaneous (その他)]** ->  **[Blackboard (ブラックボード)]**
-	[REGION:raw]
 
+	[REGION:raw]
 	![](newBB.png)
 	[/REGION]	
 
@@ -62,3 +63,8 @@ Description:ステップ 3基本アセットの作成
 
 
 %Steps%
+
+
+
+
+
