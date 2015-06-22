@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2591123
+Availability:Docs
 Title:1.7 - 破壊サウンド
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
 Description:破壊性能事例レベルの概要、例 1.7:破壊サウンド
@@ -29,7 +30,7 @@ Description:破壊性能事例レベルの概要、例 1.7:破壊サウンド
 ![](Resources/ContentExamples/Destructables/physics_banner.png)
 [/REGION]
 
-破壊イベント時にサウンドを再生します。
+Destruction event 時にサウンドを再生します。
 
 [REGION:todo]
 ブループリントを使用、またはサウンド再生の仕組みのいずれかを指摘すると便利です。 
