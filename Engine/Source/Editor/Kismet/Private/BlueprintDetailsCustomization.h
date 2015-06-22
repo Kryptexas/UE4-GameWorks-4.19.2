@@ -252,9 +252,6 @@ public:
 
 	/** Refreshes the graph and ensures the target node is up to date */
 	bool OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FString& OldName, const FString& NewName);
-
-	/** Called to potentially remove the result node (if there are no output args), returns true if it was cleaned up */
-	bool ConditionallyCleanUpResultNode();
 	
 	/** Gets the blueprint we're editing */
 	TWeakPtr<SMyBlueprint> GetMyBlueprint() const {return MyBlueprint.Pin();}

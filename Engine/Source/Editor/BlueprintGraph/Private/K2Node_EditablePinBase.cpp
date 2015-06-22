@@ -19,10 +19,10 @@ void UK2Node_EditablePinBase::AllocateDefaultPins()
 	}
 }
 
-UEdGraphPin* UK2Node_EditablePinBase::CreateUserDefinedPin(const FString& InPinName, const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection)
+UEdGraphPin* UK2Node_EditablePinBase::CreateUserDefinedPin(const FString& InPinName, const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, bool bUseUniqueName)
 {
 	// Sanitize the name, if needed
-	const FString NewPinName = CreateUniquePinName(InPinName);
+	const FString NewPinName = bUseUniqueName ? CreateUniquePinName(InPinName) : InPinName;
 
 	// First, add this pin to the user-defined pins
 	TSharedPtr<FUserPinInfo> NewPinInfo = MakeShareable( new FUserPinInfo() );
@@ -59,6 +59,31 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPin(TSharedPtr<FUserPinInfo> PinT
 
 	// Remove the description from the user-defined pins array
 	UserDefinedPins.Remove(PinToRemove);
+}
+
+void UK2Node_EditablePinBase::RemoveUserDefinedPinByName(const FString& PinName)
+{
+	for (int32 i = 0; i < Pins.Num(); i++)
+	{
+		UEdGraphPin* Pin = Pins[i];
+		if (Pin->PinName == PinName)
+		{
+			Pin->BreakAllPinLinks();
+			Pins.Remove(Pin);
+			Pin->MarkPendingKill();
+
+			if (UBlueprint* Blueprint = GetBlueprint())
+			{
+				FKismetDebugUtilities::RemovePinWatch(Blueprint, Pin);
+			}
+		}
+	}
+
+	// Remove the description from the user-defined pins array
+	UserDefinedPins.RemoveAll([&](const TSharedPtr<FUserPinInfo>& UDPin)
+	{
+		return UDPin.IsValid() && (UDPin->PinName == PinName);
+	});
 }
 
 void UK2Node_EditablePinBase::ExportCustomProperties(FOutputDevice& Out, uint32 Indent)

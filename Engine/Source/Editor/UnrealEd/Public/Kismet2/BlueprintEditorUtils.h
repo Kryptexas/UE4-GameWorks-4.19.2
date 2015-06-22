@@ -1182,6 +1182,15 @@ public:
 	 */
 	static void GetEntryAndResultNodes(const UEdGraph* InGraph, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutEntryNode, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutResultNode);
 
+
+	/**
+	 * Finds the entry node for a function or macro graph
+	 *
+	 * @param InGraph			The graph to search through
+	 * @return		The found entry node for the graph
+	 */
+	static class UK2Node_EditablePinBase* GetEntryNode(const UEdGraph* InGraph);
+
 	/**
 	 * Returns the function meta data block for the graph entry node.
 	 *

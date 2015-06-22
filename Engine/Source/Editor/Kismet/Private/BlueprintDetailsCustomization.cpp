@@ -1192,10 +1192,8 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 			}
 		}
 
-		TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-		TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-		FBlueprintEditorUtils::GetEntryAndResultNodes(FunctionGraph, EntryNode, ResultNode);
-		if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode.Get()))
+		auto EntryNode = FBlueprintEditorUtils::GetEntryNode(FunctionGraph);
+		if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode))
 		{
 			for (FBPVariableDescription& Variable : FunctionEntryNode->LocalVariables)
 			{
@@ -1214,10 +1212,8 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 
 	for (UEdGraph* MacroGraph : Blueprint->MacroGraphs)
 	{
-		TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-		TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-		FBlueprintEditorUtils::GetEntryAndResultNodes(MacroGraph, EntryNode, ResultNode);
-		if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+		auto EntryNode = FBlueprintEditorUtils::GetEntryNode(MacroGraph);
+		if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode))
 		{
 			bool bNewCategory = true;
 			for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
@@ -2171,22 +2167,42 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 	}
 }
 
+namespace {
+
+	static TArray<UK2Node_EditablePinBase*> GatherAllResultNodes(UK2Node_EditablePinBase* TargetNode)
+	{
+		if (auto ResultNode = Cast<UK2Node_FunctionResult>(TargetNode))
+		{
+			return (TArray<UK2Node_EditablePinBase*>)ResultNode->GetAllResultNodes();
+		}
+		TArray<UK2Node_EditablePinBase*> Result;
+		if (TargetNode)
+		{
+			Result.Add(TargetNode);
+		}
+		return Result;
+	}
+
+} // namespace
+
 void FBlueprintGraphArgumentLayout::OnRemoveClicked()
 {
-	if (ParamItemPtr.IsValid())
+	auto ParamItem = ParamItemPtr.Pin();
+	if (ParamItem.IsValid())
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "RemoveParam", "Remove Parameter" ) );
-		TargetNode->Modify();
 
-		TargetNode->RemoveUserDefinedPin(ParamItemPtr.Pin());
-
-		auto MyBlueprint = GraphActionDetailsPtr.Pin()->GetMyBlueprint();
-		auto Graph = GraphActionDetailsPtr.Pin()->GetGraph();
-		bool bNodeWasCleanedUp = GraphActionDetailsPtr.Pin()->ConditionallyCleanUpResultNode();
-		GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode, true);
-		if (bNodeWasCleanedUp && MyBlueprint.IsValid() && Graph)
+		auto GraphActionDetails = GraphActionDetailsPtr.Pin();
+		auto TargetNodes = GatherAllResultNodes(TargetNode);
+		for (auto Node : TargetNodes)
 		{
-			MyBlueprint.Pin()->SelectItemByName(Graph->GetFName());
+			Node->Modify();
+			Node->RemoveUserDefinedPinByName(ParamItem->PinName);
+
+			if (GraphActionDetails.IsValid())
+			{
+				GraphActionDetails->OnParamsChanged(Node, true);
+			}
 		}
 	}
 }
@@ -2198,10 +2214,18 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveUp()
 	if (ThisParamIndex != INDEX_NONE && NewParamIndex >= 0)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("K2_MovePinUp", "Move Pin Up") );
-		TargetNode->Modify();
+		auto TargetNodes = GatherAllResultNodes(TargetNode);
+		for (auto Node : TargetNodes)
+		{
+			Node->Modify();
+			Node->UserDefinedPins.Swap(ThisParamIndex, NewParamIndex);
 
-		TargetNode->UserDefinedPins.Swap( ThisParamIndex, NewParamIndex );
-		GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode, true);
+			auto GraphActionDetails = GraphActionDetailsPtr.Pin();
+			if (GraphActionDetails.IsValid())
+			{
+				GraphActionDetails->OnParamsChanged(Node, true);
+			}
+		}
 	}
 	return FReply::Handled();
 }
@@ -2212,11 +2236,19 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveDown()
 	const int32 NewParamIndex = ThisParamIndex+1;
 	if (ThisParamIndex != INDEX_NONE && NewParamIndex < TargetNode->UserDefinedPins.Num())
 	{
-		const FScopedTransaction Transaction( LOCTEXT("K2_MovePinUp", "Move Pin Up") );
-		TargetNode->Modify();
-
-		TargetNode->UserDefinedPins.Swap( ThisParamIndex, NewParamIndex );
-		GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode, true);
+		const FScopedTransaction Transaction( LOCTEXT("K2_MovePinDown", "Move Pin Down") );
+		auto TargetNodes = GatherAllResultNodes(TargetNode);
+		for (auto Node : TargetNodes)
+		{
+			Node->Modify();
+			Node->UserDefinedPins.Swap(ThisParamIndex, NewParamIndex);
+			
+			auto GraphActionDetails = GraphActionDetailsPtr.Pin();
+			if (GraphActionDetails.IsValid())
+			{
+				GraphActionDetails->OnParamsChanged(Node, true);
+			}
+		}
 	}
 	return FReply::Handled();
 }
@@ -2295,14 +2327,11 @@ void FBlueprintGraphArgumentLayout::OnArgNameTextCommitted(const FText& NewText,
 {
 	if (!NewText.IsEmpty() && TargetNode && ParamItemPtr.IsValid() && GraphActionDetailsPtr.IsValid() && !ShouldPinBeReadOnly())
 	{
-		const FString& OldName = ParamItemPtr.Pin()->PinName;
+		const FString OldName = ParamItemPtr.Pin()->PinName;
 		const FString& NewName = NewText.ToString();
 		if(OldName != NewName)
 		{
-			if(GraphActionDetailsPtr.Pin()->OnPinRenamed(TargetNode, OldName, NewName))
-			{
-				ParamItemPtr.Pin()->PinName = NewName;
-			}
+			GraphActionDetailsPtr.Pin()->OnPinRenamed(TargetNode, OldName, NewName);
 		}
 	}
 }
@@ -2333,13 +2362,30 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 {
 	if (ParamItemPtr.IsValid() && FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
-		ParamItemPtr.Pin()->PinType = PinType;
-		if (GraphActionDetailsPtr.IsValid())
+		const FString PinName = ParamItemPtr.Pin()->PinName;
+		auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
+		if (GraphActionDetailsPinned.IsValid())
 		{
-			GraphActionDetailsPtr.Pin()->GetMyBlueprint().Pin()->GetLastFunctionPinTypeUsed() = PinType;
+			auto MyBPPinned = GraphActionDetailsPinned->GetMyBlueprint().Pin();
+			if (MyBPPinned.IsValid())
+			{
+				MyBPPinned->GetLastFunctionPinTypeUsed() = PinType;
+			}
 			if( !ShouldPinBeReadOnly(true) )
 			{
-				GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode);
+				auto TargetNodes = GatherAllResultNodes(TargetNode);
+				for (auto Node : TargetNodes)
+				{
+					auto UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
+					{
+						return UDPin.IsValid() && (UDPin->PinName == PinName);
+					});
+					if (UDPinPtr)
+					{
+						(*UDPinPtr)->PinType = PinType;
+					}
+					GraphActionDetailsPinned->OnParamsChanged(Node);
+				}
 			}
 		}
 	}
@@ -2347,9 +2393,16 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 
 void FBlueprintGraphArgumentLayout::OnPrePinInfoChange(const FEdGraphPinType& PinType)
 {
-	if( !ShouldPinBeReadOnly(true) && TargetNode )
+	if( !ShouldPinBeReadOnly(true))
 	{
-		TargetNode->Modify();
+		auto TargetNodes = GatherAllResultNodes(TargetNode);
+		for (auto Node : TargetNodes)
+		{
+			if (Node)
+			{
+				Node->Modify();
+			}
+		}
 	}
 }
 
@@ -2879,22 +2932,6 @@ FText FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 	return ReplicationText;
 }
 
-bool FBaseBlueprintGraphActionDetails::ConditionallyCleanUpResultNode()
-{
-	UEdGraph* Graph = GetGraph();
-	UK2Node_EditablePinBase * FunctionResultNode = FunctionResultNodePtr.Get();
-
-	if( Graph && FunctionResultNode && FunctionResultNode->UserDefinedPins.Num() == 0 &&
-		!Cast<UK2Node_Tunnel>(FunctionResultNode))
-	{
-		Graph->RemoveNode(FunctionResultNode);
-		FunctionResultNodePtr = NULL;
-
-		return true;
-	}
-	return false;
-}
-
 bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 {
 	if (!FunctionResultNodePtr.IsValid())
@@ -3354,9 +3391,13 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 			PinRenamedHelper.NodesToRename.Add(FunctionEntryNodePtr.Get());
 		}
 
-		if (FunctionResultNodePtr.IsValid())
+		const FScopedTransaction Transaction(LOCTEXT("RenameParam", "Rename Parameter"));
+
+		auto ResultNodes = GatherAllResultNodes(FunctionResultNodePtr.Get());
+		for (auto ResultNode : ResultNodes)
 		{
-			PinRenamedHelper.NodesToRename.Add(FunctionResultNodePtr.Get());
+			ResultNode->Modify();
+			PinRenamedHelper.NodesToRename.Add(ResultNode);
 		}
 
 		PinRenamedHelper.ModifiedBlueprints.Add(GetBlueprintObj());
@@ -3378,6 +3419,18 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 		for(auto NodeIter = PinRenamedHelper.NodesToRename.CreateIterator(); NodeIter; ++NodeIter)
 		{
 			(*NodeIter)->RenameUserDefinedPin(OldName, NewName, false);
+		}
+
+		for (auto ResultNode : ResultNodes)
+		{
+			auto UDPinPtr = ResultNode->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& Pin)
+			{
+				return Pin.IsValid() && (Pin->PinName == OldName);
+			});
+			if (UDPinPtr)
+			{
+				(*UDPinPtr)->PinName = NewName;
+			}
 		}
 	}
 	return true;
@@ -4059,10 +4112,8 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 	UK2Node_EditablePinBase* FunctionResultNode = FunctionResultNodePtr.Get();
 	if( FunctionResultNode )
 	{
-		FunctionResultNode->Modify();
 		FEdGraphPinType PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		PinType.bIsReference = false;
-
 		// Make sure that if this is an exec node we are allowed one.
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		if ((PinType.PinCategory == Schema->PC_Exec) && (!FunctionResultNode->CanModifyExecutionWires()))
@@ -4070,19 +4121,33 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 			MyBlueprint.Pin()->ResetLastPinType();
 			PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		}
-		FString NewPinName = TEXT("NewParam");
-		if (FunctionResultNode->CreateUserDefinedPin(NewPinName, PinType, EGPD_Input))
-		{
-			OnParamsChanged(FunctionResultNode, true);
 
-			if ( !PreviousResultNode )
+		const FString NewPinName = FunctionResultNode->CreateUniquePinName(TEXT("NewParam"));
+		auto TargetNodes = GatherAllResultNodes(FunctionResultNode);
+		bool bAllChanged = TargetNodes.Num() > 0;
+		for (auto Node : TargetNodes)
+		{
+			Node->Modify();
+			auto NewPin = Node->CreateUserDefinedPin(NewPinName, PinType, EGPD_Input, false);
+			bAllChanged &= nullptr != NewPin;
+
+			if (bAllChanged)
 			{
-				DetailsLayoutPtr->ForceRefreshDetails();
+				OnParamsChanged(Node, true);
+			}
+			else
+			{
+				break;
 			}
 		}
-		else
+		if (!bAllChanged)
 		{
 			Transaction.Cancel();
+		}
+
+		if (!PreviousResultNode)
+		{
+			DetailsLayoutPtr->ForceRefreshDetails();
 		}
 	}
 	else

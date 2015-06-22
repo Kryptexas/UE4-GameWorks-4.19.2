@@ -2115,11 +2115,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 		Blueprint->GetAllGraphs(AllGraphs);
 		for (int32 i = 0; i < AllGraphs.Num(); i++)
 		{
-			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-			GetEntryAndResultNodes(AllGraphs[i], EntryNode, ResultNode);
-
-			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+			auto EntryNode = GetEntryNode(AllGraphs[i]);
+			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode))
 			{
 				// Remove data marking graphs as latent, this will be re-cache'd as needed
 				TunnelNode->MetaData.HasLatentFunctions = INDEX_NONE;
@@ -2169,11 +2166,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 		Blueprint->GetAllGraphs(AllGraphs);
 		for (int32 i = 0; i < AllGraphs.Num(); i++)
 		{
-			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-			GetEntryAndResultNodes(AllGraphs[i], EntryNode, ResultNode);
-
-			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+			auto EntryNode = GetEntryNode(AllGraphs[i]);
+			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode))
 			{
 				// Remove data marking graphs as latent, this will be re-cache'd as needed
 				TunnelNode->MetaData.HasLatentFunctions = INDEX_NONE;
@@ -7754,6 +7748,47 @@ bool FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(const UClass* In
 	return false;
 }
 
+UK2Node_EditablePinBase* FBlueprintEditorUtils::GetEntryNode(const UEdGraph* InGraph)
+{
+	UK2Node_EditablePinBase* Result = nullptr;
+	if (InGraph)
+	{
+		TArray<UK2Node_FunctionEntry*> EntryNodes;
+		InGraph->GetNodesOfClass(EntryNodes);
+		if (EntryNodes.Num() > 0)
+		{
+			if (EntryNodes[0]->IsEditable())
+			{
+				Result = EntryNodes[0];
+			}
+		}
+		else
+		{
+			TArray<UK2Node_Tunnel*> TunnelNodes;
+			InGraph->GetNodesOfClass(TunnelNodes);
+
+			if (TunnelNodes.Num() > 0)
+			{
+				// Iterate over the tunnel nodes, and try to find an entry and exit
+				for (int32 i = 0; i < TunnelNodes.Num(); i++)
+				{
+					UK2Node_Tunnel* Node = TunnelNodes[i];
+					// Composite nodes should never be considered for function entry / exit, since we're searching for a graph's terminals
+					if (Node->IsEditable() && !Node->IsA(UK2Node_Composite::StaticClass()))
+					{
+						if (Node->bCanHaveOutputs)
+						{
+							Result = Node;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	return Result;
+}
+
 void FBlueprintEditorUtils::GetEntryAndResultNodes(const UEdGraph* InGraph, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutEntryNode, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutResultNode)
 {
 	if (InGraph)
@@ -7776,7 +7811,6 @@ void FBlueprintEditorUtils::GetEntryAndResultNodes(const UEdGraph* InGraph, TWea
 				TArray<UK2Node_FunctionResult*> ResultNodes;
 				InGraph->GetNodesOfClass(ResultNodes);
 
-				check(ResultNodes.Num() <= 1);
 				UK2Node_FunctionResult* ResultNode = ResultNodes.Num() ? ResultNodes[0] : NULL;
 				// Note:  we assume that if the entry is editable, the result is too (since the entry node is guaranteed to be there on graph creation, but the result isn't)
 				if( ResultNode )
@@ -7836,11 +7870,7 @@ FKismetUserDeclaredFunctionMetadata* FBlueprintEditorUtils::GetGraphFunctionMeta
 
 FText FBlueprintEditorUtils::GetGraphDescription(const UEdGraph* InGraph)
 {
-	TWeakObjectPtr<class UK2Node_EditablePinBase> EntryNode;
-	TWeakObjectPtr<class UK2Node_EditablePinBase> ResultNode;
-	GetEntryAndResultNodes(InGraph, EntryNode, ResultNode);
-
-	UK2Node_EditablePinBase * FunctionEntryNode = EntryNode.Get();
+	auto FunctionEntryNode = GetEntryNode(InGraph);
 	if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 	{
 		return FText::FromString(TypedEntryNode->MetaData.ToolTip);
@@ -7860,11 +7890,9 @@ bool FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(UEdGraph* InGraph)
 	{
 		static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraphToCheck, TArray<UEdGraph*>& InspectedGraphList)
 		{
-			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-			GetEntryAndResultNodes(InGraphToCheck, EntryNode, ResultNode);
+			auto EntryNode = GetEntryNode(InGraphToCheck);
 
-			UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get());
+			UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode);
 			if(!TunnelNode)
 			{
 				// No tunnel, no metadata.

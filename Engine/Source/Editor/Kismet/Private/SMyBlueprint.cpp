@@ -465,15 +465,13 @@ void SMyBlueprint::OnCategoryNameCommitted(const FText& InNewText, ETextCommit::
 					// Don't allow changing the category of a graph who's parent is not the current Blueprint
 					if(GraphAction && !FBlueprintEditorUtils::IsPaletteActionReadOnly(Actions[i], BlueprintEditorPtr.Pin()) && FBlueprintEditorUtils::FindBlueprintForGraph(GraphAction->EdGraph) == GetBlueprintObj())
 					{
-						TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-						TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-						FBlueprintEditorUtils::GetEntryAndResultNodes(GraphAction->EdGraph, EntryNode, ResultNode);
+						auto EntryNode = FBlueprintEditorUtils::GetEntryNode(GraphAction->EdGraph);
 						EntryNode->Modify();
-						if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode.Get()))
+						if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode))
 						{
 							FunctionEntryNode->MetaData.Category = CategoryName;
 						}
-						else if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+						else if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode))
 						{
 							TypedEntryNode->MetaData.Category = CategoryName;
 						}
@@ -1781,14 +1779,12 @@ FText SMyBlueprint::GetGraphCategory(UEdGraph* InGraph) const
 	FText ReturnCategory;
 
 	// Pull the category from the required metadata based on the types of nodes we can discover in the graph
-	TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
-	TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-	FBlueprintEditorUtils::GetEntryAndResultNodes(InGraph, EntryNode, ResultNode);
-	if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode.Get()))
+	auto EntryNode = FBlueprintEditorUtils::GetEntryNode(InGraph);
+	if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode))
 	{
 		ReturnCategory = FunctionEntryNode->MetaData.Category;
 	}
-	else if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get()))
+	else if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode))
 	{
 		ReturnCategory = TypedEntryNode->MetaData.Category;
 	}

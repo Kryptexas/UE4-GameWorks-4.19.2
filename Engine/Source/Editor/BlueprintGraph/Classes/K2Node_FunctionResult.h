@@ -13,18 +13,25 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual bool CanUserDeleteNode() const override { return false; }
+	virtual FText GetTooltipText() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
 	virtual bool DrawNodeAsExit() const override { return true; }
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const;
+	virtual void PostPlacedNewNode();
+	virtual bool CanDuplicateNode() const { return false; }
 	// End UK2Node interface
 
 	// Begin K2Node_FunctionTerminator interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
 	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) override;
 	// End K2Node_FunctionTerminator interface
+
+	BLUEPRINTGRAPH_API TArray<UK2Node_FunctionResult*> GetAllResultNodes() const;
 };
 
