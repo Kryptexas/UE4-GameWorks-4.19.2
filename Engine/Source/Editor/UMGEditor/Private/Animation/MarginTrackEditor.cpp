@@ -2,8 +2,8 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "MarginTrackEditor.h"
-#include "Developer/MovieSceneTools/Public/PropertySection.h"
-#include "Developer/MovieSceneTools/Public/MovieSceneToolHelpers.h"
+#include "Editor/MovieSceneTools/Public/PropertySection.h"
+#include "Editor/MovieSceneTools/Public/MovieSceneToolHelpers.h"
 #include "Runtime/UMG/Public/Animation/MovieSceneMarginSection.h"
 #include "Runtime/UMG/Public/Animation/MovieSceneMarginTrack.h"
 #include "Editor/Sequencer/Public/ISectionLayoutBuilder.h"

@@ -2,8 +2,8 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "Sequencer2DTransformTrackEditor.h"
-#include "Developer/MovieSceneTools/Public/PropertySection.h"
-#include "Developer/MovieSceneTools/Public/MovieSceneToolHelpers.h"
+#include "Editor/MovieSceneTools/Public/PropertySection.h"
+#include "Editor/MovieSceneTools/Public/MovieSceneToolHelpers.h"
 #include "Runtime/UMG/Public/Animation/MovieScene2DTransformSection.h"
 #include "Runtime/UMG/Public/Animation/MovieScene2DTransformTrack.h"
 #include "Editor/Sequencer/Public/ISectionLayoutBuilder.h"

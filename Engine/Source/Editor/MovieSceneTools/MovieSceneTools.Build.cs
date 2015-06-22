@@ -6,7 +6,13 @@ public class MovieSceneTools : ModuleRules
 {
 	public MovieSceneTools(TargetInfo Target)
 	{
-		PrivateIncludePaths.Add("Developer/MovieSceneTools/Private");
+		PrivateIncludePaths.AddRange(
+            new string[] {
+                "Editor/MovieSceneTools/Private",
+                "Editor/MovieSceneTools/Private/CurveKeyEditors",
+                "Editor/MovieSceneTools/Private/TrackEditors",
+            }
+        );
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
