@@ -79,3 +79,8 @@ void UShapeComponent::GetNavigationData(FNavigationRelevantData& Data) const
 		Data.Modifiers.CreateAreaModifiers(this, AreaClass);
 	}
 }
+
+bool UShapeComponent::IsNavigationRelevant() const
+{
+	return bDynamicObstacle || Super::IsNavigationRelevant();
+}

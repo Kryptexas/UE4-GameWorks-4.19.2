@@ -47,6 +47,10 @@ class ENGINE_API UShapeComponent : public UPrimitiveComponent
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	// End UPrimitiveComponent interface.
 
+	// Begin INavRelevantInterface Interface
+	virtual bool IsNavigationRelevant() const override;
+	// End INavRelevantInterface Interface
+
 	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool ShouldCollideWhenPlacing() const override
