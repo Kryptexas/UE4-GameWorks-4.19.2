@@ -247,3 +247,23 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 		}
 	}
 }
+
+void UK2Node_FunctionResult::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	auto AllResultNodes = GetAllResultNodes();
+	UK2Node_FunctionResult* OtherResult = AllResultNodes.Num() ? AllResultNodes[0] : nullptr;
+	if (OtherResult && (OtherResult != this))
+	{
+		for (auto Pin : Pins)
+		{
+			auto OtherPin = OtherResult->FindPin(Pin->PinName);
+			if (!OtherPin || (OtherPin->PinType != Pin->PinType))
+			{
+				MessageLog.Error(*NSLOCTEXT("K2Node", "FunctionResult_DifferentReturnError", "Return nodes don't match each other: @@, @@").ToString(), this, OtherResult);
+				break;
+			}
+		}
+	}
+}
