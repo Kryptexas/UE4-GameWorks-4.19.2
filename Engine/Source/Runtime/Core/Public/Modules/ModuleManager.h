@@ -310,6 +310,14 @@ public:
 	void FindModules( const TCHAR* WildcardWithoutExtension, TArray<FName>& OutModules );
 
 	/**
+	 * Determines if a module with the given name exists, regardless of whether it is currently loaded.
+	 *
+	 * @param ModuleName Name of the module to look for.
+	 * @return Whether the module exists.
+	 */
+	bool ModuleExists(const TCHAR* ModuleName);
+
+	/**
 	 * Gets the number of loaded modules.
 	 *
 	 * @return The number of modules.
