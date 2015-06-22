@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2592872
-Availability:Public
+﻿Availability:Public
 Title:4.マテリアルの Static Mesh アクタへの適用
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:スタティック メッシュ アクタへマテリアルを適用する方法を学習しましょう。
@@ -7,7 +6,7 @@ Description:スタティック メッシュ アクタへマテリアルを適用
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前のステップ](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:title%")
+		[前のステップ](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,7 +14,7 @@ Description:スタティック メッシュ アクタへマテリアルを適用
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/Content/QuickStart/9 "%Engine/Content/QuickStart/9:title%")
+		[次のステップ](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -33,7 +32,7 @@ Description:スタティック メッシュ アクタへマテリアルを適用
 
 (#Bookmark1)
 
-このセクションではリグを設定し、使用のために割り当てる方法を説明します。アクタがレベル内に配置される時には必ずデフォルト マテリアルが使われます。
+このセクションでは Static Mesh アクタのデフォルト マテリアルの設定方法を説明します。アクタがレベル内に配置される時には必ずデフォルト マテリアルが使われます。
 
 1.	**コンテンツ ブラウザ** の中にある、前のステップでインポートしたアセットを **ダブルクリック** します。
 
@@ -96,13 +95,14 @@ Description:スタティック メッシュ アクタへマテリアルを適用
 
 アーティスト向けクイック スタート ガイドも終盤に近づいてまいりました。ここまでに修得したスキルは以下の通り：
 
-* **プロジェクトの設定**
-* **マテリアルの作成**
-* **マテリアルの Static Mesh アクタへの適用**
+&#x2713; [**プロジェクトの設定**](Engine/Content/QuickStart/1)  
+&#x2713; [**マテリアルの作成**](Engine/Content/QuickStart/2)  
+&#x2713; [**マテリアルの編集**](Engine/Content/QuickStart/3)  
+&#x2713; [Static Mesh アクタへのマテリアルの適用**](Engine/Content/QuickStart/4)
 
 よく頑張りました！
 
-&#x2713; _次は応用編で力試しです。準備はいいですか？_
+* _応用編で力試しをする準備はいいですか？_
 
 [REGION:tip]
 *「三分割法」を使うと、シーン構成が良くなることがほとんどです。*
