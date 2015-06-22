@@ -1,0 +1,56 @@
+#include "%PLUGIN_NAME%PrivatePCH.h"
+#include "%MODE_NAME%.h"
+
+%BEGIN_BLOCK_COMMENT%
+#include "%MODE_NAME%Toolkit.h"
+#include "Toolkits/ToolkitManager.h"
+%END_BLOCK_COMMENT%
+
+const FEditorModeID F%MODE_NAME%::EM_%MODE_NAME%Id = TEXT("EM_%MODE_NAME%");
+
+
+F%MODE_NAME%::F%MODE_NAME%()
+{
+
+}
+
+F%MODE_NAME%::~F%MODE_NAME%()
+{
+
+}
+
+void F%MODE_NAME%::Enter()
+{
+	FEdMode::Enter();
+
+	%BEGIN_BLOCK_COMMENT%
+	if (!Toolkit.IsValid() && UsesToolkits())
+	{
+		Toolkit = MakeShareable(new F%MODE_NAME%Toolkit);
+		Toolkit->Init(Owner->GetToolkitHost());
+	}
+	%END_BLOCK_COMMENT%
+}
+
+void F%MODE_NAME%::Exit()
+{
+	%BEGIN_BLOCK_COMMENT%
+	if (Toolkit.IsValid())
+	{
+		FToolkitManager::Get().CloseToolkit(Toolkit.ToSharedRef());
+		Toolkit.Reset();
+	}
+	%END_BLOCK_COMMENT%
+
+	// Call base Exit method to ensure proper cleanup
+	FEdMode::Exit();
+}
+
+bool F%MODE_NAME%::UsesToolkits() const
+{
+	return %USES_TOOLKIT%;
+}
+
+
+
+

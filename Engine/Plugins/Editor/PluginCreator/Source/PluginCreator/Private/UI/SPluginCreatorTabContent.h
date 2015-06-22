@@ -92,8 +92,6 @@ public:
 
 	void OnUsePrivatePublicSplitChanged(ECheckBoxState InState);
 
-	void OnIsEnginePluginChanged(ECheckBoxState InState);
-
 	TSharedRef<SWidget> GetPathTextWidget();
 
 	FText GetPluginDestinationPath() const;
@@ -134,12 +132,6 @@ private:
 	 *	True by default
 	 */
 	bool bUsePublicPrivateSplit;
-
-	/** Should new plugin be considered as 'Engine' plugin?
-	 *	If so, it will be put under Engine/Plugins directory.
-	 *	False by default
-	 */
-	bool bIsEnginePlugin;
 
 	/** Textbox widget that user will put plugin name in*/
 	TSharedPtr<SEditableTextBox> PluginNameTextBox;

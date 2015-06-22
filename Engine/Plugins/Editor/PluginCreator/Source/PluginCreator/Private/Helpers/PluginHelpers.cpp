@@ -20,7 +20,7 @@ bool FPluginHelpers::ReadTemplateFile(const FString& TemplateFileName, FString& 
 	return false;
 }
 
-bool FPluginHelpers::CreatePluginBuildFile(const FString& NewBuildFileName, const FString& PluginName, FText& OutFailReason, FString TemplateType)
+bool FPluginHelpers::CreatePluginBuildFile(const FString& NewBuildFileName, const FString& PluginName, FText& OutFailReason, FString TemplateType, TArray<FString> InPrivateDependencyModuleNames)
 {
 	FString Template;
 
@@ -37,9 +37,18 @@ bool FPluginHelpers::CreatePluginBuildFile(const FString& NewBuildFileName, cons
 	TArray<FString> PrivateDependencyModuleNames;
 	TArray<FString> DynamicallyLoadedModuleNames;
 
-	PrivateDependencyModuleNames.Add("Slate");
-	PrivateDependencyModuleNames.Add("SlateCore");
-
+	if (InPrivateDependencyModuleNames.Num() == 0)
+	{
+		PrivateDependencyModuleNames.Add("CoreUObject");
+		PrivateDependencyModuleNames.Add("Engine");
+		PrivateDependencyModuleNames.Add("Slate");
+		PrivateDependencyModuleNames.Add("SlateCore");
+	}
+	else
+	{
+		PrivateDependencyModuleNames = InPrivateDependencyModuleNames;
+	}
+	
 	FString FinalOutput = Template.Replace(TEXT("%PUBLIC_INCLUDE_PATHS_NAMES%"), *GameProjectUtils::MakeCommaDelimitedList(PublicIncludePathsNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PRIVATE_INCLUDE_PATHS_NAMES%"), *GameProjectUtils::MakeCommaDelimitedList(PrivateIncludePathsNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PUBLIC_DEPENDENCY_MODULE_NAMES%"), *GameProjectUtils::MakeCommaDelimitedList(PublicDependencyModuleNames), ESearchCase::CaseSensitive);
@@ -69,7 +78,7 @@ bool FPluginHelpers::CreatePluginHeaderFile(const FString& FolderPath, const FSt
 	return GameProjectUtils::WriteOutputFile(FolderPath / PluginName + TEXT(".h"), FinalOutput, OutFailReason);
 }
 
-bool FPluginHelpers::CreatePluginCPPFile(const FString& FolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType)
+bool FPluginHelpers::CreatePluginCPPFile(const FString& FolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType, bool bMakeEditorMode, FEdModeSettings EdModeSettings)
 {
 	FString Template;
 
@@ -81,9 +90,21 @@ bool FPluginHelpers::CreatePluginCPPFile(const FString& FolderPath, const FStrin
 	}
 
 	TArray<FString> PublicHeaderIncludes;
+	FString RegisterModeString;
+	FString UnRegisterModeString;
+
+	if (bMakeEditorMode && !EdModeSettings.Name.IsEmpty())
+	{
+		PublicHeaderIncludes.Add(FString::Printf(TEXT("%s.h"), *(EdModeSettings.Name)));
+		RegisterModeString = EdModeSettings.MakeRegisterModeString();
+		UnRegisterModeString = EdModeSettings.MakeUnRegisterModeString();
+	}
 
 	FString	FinalOutput = Template.Replace(TEXT("%PUBLIC_HEADER_INCLUDES%"), *GameProjectUtils::MakeIncludeList(PublicHeaderIncludes), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+
+	FinalOutput = FinalOutput.Replace(TEXT("%REGISTER_EDMODE%"), *RegisterModeString, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%UNREGISTER_EDMODE%"), *UnRegisterModeString, ESearchCase::CaseSensitive);
 
 	return GameProjectUtils::WriteOutputFile(FolderPath / PluginName + TEXT(".cpp"), FinalOutput, OutFailReason);
 }
@@ -103,6 +124,46 @@ bool FPluginHelpers::CreatePrivatePCHFile(const FString& FolderPath, const FStri
 	FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
 
 	return GameProjectUtils::WriteOutputFile(FolderPath / PluginName + TEXT("PrivatePCH.h"), FinalOutput, OutFailReason);
+}
+
+bool FPluginHelpers::CreateBlueprintFunctionLibraryFiles(const FString& PrivateFolderPath, const FString& PublicFolderPath, const FString& PluginName, FText& OutFailReason)
+{
+	{
+		FString Template;
+		FString TemplateFileName = TEXT("BlueprintFunctionLibrary.h.template");
+
+		if (!ReadTemplateFile(TemplateFileName, Template, OutFailReason))
+		{
+			return false;
+		}
+
+		FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+
+		if (!GameProjectUtils::WriteOutputFile(PublicFolderPath / PluginName + TEXT("BPLibrary.h"), FinalOutput, OutFailReason))
+		{
+			return false;
+		}
+	}
+
+	{
+		FString Template;
+		FString TemplateFileName = TEXT("BlueprintFunctionLibrary.cpp.template");
+
+		if (!ReadTemplateFile(TemplateFileName, Template, OutFailReason))
+		{
+			return false;
+		}
+
+		FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+
+		if (!GameProjectUtils::WriteOutputFile(PrivateFolderPath / PluginName + TEXT("BPLibrary.cpp"), FinalOutput, OutFailReason))
+		{
+			return false;
+		}
+	}
+	
+
+	return true;
 }
 
 bool FPluginHelpers::CreatePluginStyleFiles(const FString& PrivateFolderPath, const FString& PublicFolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType)
@@ -152,6 +213,115 @@ bool FPluginHelpers::CreatePluginStyleFiles(const FString& PrivateFolderPath, co
 
 	return true;
 	
+}
+
+bool FPluginHelpers::CreatePluginEdModeFiles(const FString& PrivateFolderPath, const FString& PublicFolderPath, const FString& PluginName, FEdModeSettings EdModeSettings, FText& OutFailReason, FString TemplateType /*= FString("")*/)
+{
+	FString EdModeName = EdModeSettings.Name;
+
+	{
+		// Make EdMode.h file first
+
+		FString Template;
+		FString TemplateFileName = TEXT("EdMode.h.template");
+
+		if (!ReadTemplateFile(TemplateType.IsEmpty() ? TemplateFileName : TemplateType / TemplateFileName, Template, OutFailReason))
+		{
+			return false;
+		}
+
+		FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+		FinalOutput = FinalOutput.Replace(TEXT("%MODE_NAME%"), *EdModeName, ESearchCase::CaseSensitive);
+
+		if (!GameProjectUtils::WriteOutputFile(PublicFolderPath / EdModeName + TEXT(".h"), FinalOutput, OutFailReason))
+		{
+			return false;
+		}
+	}
+
+	{
+		// Now .cpp file
+
+		FString Template;
+
+		FString TemplateFileName = TEXT("EdMode.cpp.template");
+
+		if (!ReadTemplateFile(TemplateType.IsEmpty() ? TemplateFileName : TemplateType / TemplateFileName, Template, OutFailReason))
+		{
+			return false;
+		}
+
+		FString UsesToolkit = EdModeSettings.bUsesToolkits ? TEXT("true") : TEXT("false");
+		FString BeginComment = EdModeSettings.bUsesToolkits ? TEXT("") : TEXT("/*");
+		FString EndComment = EdModeSettings.bUsesToolkits ? TEXT("") : TEXT("*/");
+
+		FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+		FinalOutput = FinalOutput.Replace(TEXT("%MODE_NAME%"), *EdModeName, ESearchCase::CaseSensitive);
+		FinalOutput = FinalOutput.Replace(TEXT("%BEGIN_BLOCK_COMMENT%"), *BeginComment, ESearchCase::CaseSensitive);
+		FinalOutput = FinalOutput.Replace(TEXT("%END_BLOCK_COMMENT%"), *EndComment, ESearchCase::CaseSensitive);
+		FinalOutput = FinalOutput.Replace(TEXT("%USES_TOOLKIT%"), *UsesToolkit, ESearchCase::CaseSensitive);
+
+
+		if (!GameProjectUtils::WriteOutputFile(PrivateFolderPath / EdModeName + TEXT(".cpp"), FinalOutput, OutFailReason))
+		{
+			return false;
+		}
+	}
+
+	// Make toolkit files if necessary
+	if (EdModeSettings.bUsesToolkits)
+	{
+		{
+			FString Template;
+			FString TemplateFileName = TEXT("Toolkit.h.template");
+
+			if (!ReadTemplateFile(TemplateType.IsEmpty() ? TemplateFileName : TemplateType / TemplateFileName, Template, OutFailReason))
+			{
+				return false;
+			}
+
+			FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+			FinalOutput = FinalOutput.Replace(TEXT("%MODE_NAME%"), *EdModeName, ESearchCase::CaseSensitive);
+
+			if (!GameProjectUtils::WriteOutputFile(PublicFolderPath / EdModeName + TEXT("Toolkit.h"), FinalOutput, OutFailReason))
+			{
+				return false;
+			}
+		}
+
+		{
+			FString Template;
+			FString TemplateFileName = TEXT("Toolkit.cpp.template");
+
+			if (!ReadTemplateFile(TemplateType.IsEmpty() ? TemplateFileName : TemplateType / TemplateFileName, Template, OutFailReason))
+			{
+				return false;
+			}
+
+			FString SampleUITemplate = TEXT("");
+
+			if (EdModeSettings.bIncludeSampleUI)
+			{
+				TemplateFileName = TEXT("ToolkitUI.template");
+
+				if (!ReadTemplateFile(TemplateFileName, SampleUITemplate, OutFailReason))
+				{
+					return false;
+				}
+			}
+
+			FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
+			FinalOutput = FinalOutput.Replace(TEXT("%MODE_NAME%"), *EdModeName, ESearchCase::CaseSensitive);
+			FinalOutput = FinalOutput.Replace(TEXT("%TOOLKIT_SAMPLE_UI%"), *SampleUITemplate, ESearchCase::CaseSensitive);
+
+			if (!GameProjectUtils::WriteOutputFile(PrivateFolderPath / EdModeName + TEXT("Toolkit.cpp"), FinalOutput, OutFailReason))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 bool FPluginHelpers::CreateCommandsFiles(const FString& FolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType)

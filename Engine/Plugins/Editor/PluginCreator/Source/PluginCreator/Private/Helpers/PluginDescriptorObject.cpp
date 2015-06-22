@@ -12,6 +12,12 @@ UPluginDescriptorObject::UPluginDescriptorObject(const FObjectInitializer& Objec
 	Version = 1;
 	VersionName = TEXT("1.0");
 	Category = TEXT("Other");
+
+	
+	PrivateDependencyModuleNames.Add("CoreUObject");
+	PrivateDependencyModuleNames.Add("Engine");
+	PrivateDependencyModuleNames.Add("Slate");
+	PrivateDependencyModuleNames.Add("SlateCore");
 }
 
 void UPluginDescriptorObject::FillDescriptor(FPluginDescriptor& OutDescriptor)

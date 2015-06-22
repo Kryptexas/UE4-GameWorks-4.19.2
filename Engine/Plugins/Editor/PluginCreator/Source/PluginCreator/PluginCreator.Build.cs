@@ -20,6 +20,7 @@ public class PluginCreator : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Slate",
+                "Engine",
 				"SlateCore",
  				"InputCore",
 				"UnrealEd",

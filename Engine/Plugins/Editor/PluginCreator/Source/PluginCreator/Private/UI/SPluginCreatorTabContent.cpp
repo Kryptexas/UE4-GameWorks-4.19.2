@@ -11,7 +11,6 @@
 #include "SlateExtras.h"
 #include "Runtime/Slate/Private/Framework/Docking/DockingPrivate.h"
 
-#include "SLayoutCreator.h"
 #include "EditorStyle.h"
 
 #include "GameProjectUtils.h"
@@ -28,9 +27,11 @@ SPluginCreatorTabContent::SPluginCreatorTabContent()
 	const FText BlankTemplateName = LOCTEXT("BlankLabel", "Blank");
 	const FText BasicTemplateName = LOCTEXT("BasicTemplateTabLabel", "Toolbar Button");
 	const FText AdvancedTemplateName = LOCTEXT("AdvancedTemplateTabLabel", "Standalone Window");
+	const FText	BlueprintLibTemplateName = LOCTEXT("BlueprintLibTemplateLabel", "Blueprint Library");
 	const FText BlankDescription = LOCTEXT("BlankTemplateDesc", "Create a blank plugin with a minimal amount of code.\n\nChoose this if you want to set everything up from scratch or are making a non-visual plugin.\nA plugin created with this template will appear in the Editor's plugin list but will not register any buttons or menu entries.\n\nThis template will generate the following structure at:");
 	const FText BasicDescription = LOCTEXT("BasicTemplateDesc", "Create a plugin that will add a button to the toolbar in the Level Editor.\n\nStart by implementing something in the created \"OnButtonClick\" event.\n\nThis template will generate the following structure at:");
 	const FText AdvancedDescription = LOCTEXT("AdvancedTemplateDesc", "Create a plugin that will add a button to the toolbar in the Level Editor that summons an empty standalone tab window when clicked.\n\nThis template will generate the following structure at:");
+	const FText BlueprintLibDescription = LOCTEXT("BPLibTemplateDesc", "Create a plugin that will contain Blueprint Function Library. Choose this if you want to create static blueprint nodes.\n\nThis template will generate the following structure at:");
 
 	new (Templates) FPluginTemplateDescription(BlankTemplateName, BlankDescription, TEXT("BlankPluginSource"), TEXT("Blank"), false);
 	new (Templates) FPluginTemplateDescription(BasicTemplateName, BasicDescription, TEXT("BasicPluginSource"), TEXT("Basic"), true);
@@ -60,7 +61,6 @@ void SPluginCreatorTabContent::Construct(const FArguments& InArgs, TSharedPtr<SD
 
 	bUsePublicPrivateSplit = true;
 	bPluginNameIsValid = false;
-	bIsEnginePlugin = false;
 
 	OnPluginCreated = InArgs._OnPluginCreated;
 
@@ -142,25 +142,6 @@ void SPluginCreatorTabContent::Construct(const FArguments& InArgs, TSharedPtr<SD
 								]
 							]
 #endif
-
-							// Disabled because the code in PluginStyle.cpp.template doesn't handle setting the path correctly for engine versus game
-#if UE_PLUGIN_CREATOR_WIP
-							+ SVerticalBox::Slot()
-							.HAlign(HAlign_Center)
-							.VAlign(VAlign_Center)
-							.Padding(3)
-							[
-								SNew(SCheckBox)
-								.OnCheckStateChanged(this, &SPluginCreatorTabContent::OnIsEnginePluginChanged)
-								.IsChecked(ECheckBoxState::Unchecked)
-								.Content()
-								[
-									SNew(STextBlock)
-									.Text(LOCTEXT("EngineCheckboxLabel", "Should this plugin be an engine plugin?"))
-								]
-							]
-#endif
-
 							// Disable due to styling and behavior
 #if UE_PLUGIN_CREATOR_WIP
 							+ SVerticalBox::Slot()
@@ -240,19 +221,19 @@ void SPluginCreatorTabContent::Construct(const FArguments& InArgs, TSharedPtr<SD
 			]
 
 			+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5)
-				.HAlign(HAlign_Right)
-				[
-					SNew(SButton)
-					.ContentPadding(5)
-					.TextStyle(FEditorStyle::Get(), "LargeText")
-					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-					.IsEnabled(this, &SPluginCreatorTabContent::IsPluginNameValid)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("GoButtonLabel", "Create plugin"))
-					.OnClicked(this, &SPluginCreatorTabContent::OnCreatePluginClicked)
-				]
+			.AutoHeight()
+			.Padding(5)
+			.HAlign(HAlign_Right)
+			[
+				SNew(SButton)
+				.ContentPadding(5)
+				.TextStyle(FEditorStyle::Get(), "LargeText")
+				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+				.IsEnabled(this, &SPluginCreatorTabContent::IsPluginNameValid)
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("GoButtonLabel", "Create plugin"))
+				.OnClicked(this, &SPluginCreatorTabContent::OnCreatePluginClicked)
+			]
 		];
 
 		
@@ -412,12 +393,6 @@ void SPluginCreatorTabContent::OnUsePrivatePublicSplitChanged(ECheckBoxState InS
 	bUsePublicPrivateSplit = InState == ECheckBoxState::Checked;
 }
 
-
-void SPluginCreatorTabContent::OnIsEnginePluginChanged(ECheckBoxState InState)
-{
-	bIsEnginePlugin = InState == ECheckBoxState::Checked;
-}
-
 void SPluginCreatorTabContent::OnPluginNameTextChanged(const FText& InText)
 {
 	// Early exit if text is empty
@@ -483,6 +458,7 @@ void SPluginCreatorTabContent::OnPluginNameTextChanged(const FText& InText)
 	if (DescriptorObject)
 	{
 		DescriptorObject->FriendlyName = InText.ToString();
+		DescriptorObject->EditorModeSettings.Name = InText.ToString() + TEXT("EdMode");
 	}
 }
 
@@ -574,8 +550,14 @@ FReply SPluginCreatorTabContent::OnCreatePluginClicked()
 
 	FReply ReturnReply = FReply::Unhandled();
 
+	if (DescriptorObject == nullptr)
+	{
+		PopErrorNotification(LOCTEXT("FailedDescriptorObject", "Failed to create plugin. Invalid Descriptor Object."));
+		return FReply::Unhandled();
+	}
+
 	// If we're creating a game plugin, GameDir\Plugins folder may not exist so we have to create it
-	if (!bIsEnginePlugin && !IFileManager::Get().DirectoryExists(*GetPluginDestinationPath().ToString()))
+	if (!DescriptorObject->bIsEnginePlugin && !IFileManager::Get().DirectoryExists(*GetPluginDestinationPath().ToString()))
 	{
 		if (!MakeDirectory(*GetPluginDestinationPath().ToString()))
 		{
@@ -629,8 +611,18 @@ FReply SPluginCreatorTabContent::OnCreatePluginClicked()
 		bSucceeded = bSucceeded && MakeDirectory(PublicSourceFolder);
 	}
 
+	// If we're going to create editor mode, make sure that all build files will have necessary modules dependencies
+	// Only Blank plugin needs additional modules dependencies
+	// @TODO: find better way check if selected template is Blank template
+	if (DescriptorObject->bMakeEditorMode && !SelectedTemplate.bIncludeUI)
+	{
+		DescriptorObject->PrivateDependencyModuleNames.AddUnique(TEXT("InputCore"));
+		DescriptorObject->PrivateDependencyModuleNames.AddUnique(TEXT("UnrealEd"));
+		DescriptorObject->PrivateDependencyModuleNames.AddUnique(TEXT("LevelEditor"));
+	}
+
 	// Based on chosen template create build, and other source files
-	if (bSucceeded && !FPluginHelpers::CreatePluginBuildFile(PluginSourceFolder / AutoPluginName + TEXT(".Build.cs"), AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath))
+	if (bSucceeded && !FPluginHelpers::CreatePluginBuildFile(PluginSourceFolder / AutoPluginName + TEXT(".Build.cs"), AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath, DescriptorObject->PrivateDependencyModuleNames))
 	{
 		PopErrorNotification(FText::Format(LOCTEXT("FailedBuild", "Failed to create plugin build file. {0}"), LocalFailReason));
 		bSucceeded = false;
@@ -648,7 +640,7 @@ FReply SPluginCreatorTabContent::OnCreatePluginClicked()
 		bSucceeded = false;
 	}
 
-	if (bSucceeded && !FPluginHelpers::CreatePluginCPPFile(PrivateSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath))
+	if (bSucceeded && !FPluginHelpers::CreatePluginCPPFile(PrivateSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath, DescriptorObject->bMakeEditorMode, DescriptorObject->EditorModeSettings))
 	{
 		PopErrorNotification(FText::Format(LOCTEXT("FailedCppFile", "Failed to create plugin cpp file. {0}"), LocalFailReason));
 		bSucceeded = false;
@@ -666,6 +658,27 @@ FReply SPluginCreatorTabContent::OnCreatePluginClicked()
 		{
 			PopErrorNotification(FText::Format(LOCTEXT("FailedStylesFile", "Failed to create plugin commands files. {0}"), LocalFailReason));
 			bSucceeded = false;
+		}
+	}
+
+	if (DescriptorObject)
+	{
+		if (DescriptorObject->bAddBPLibrary)
+		{
+			if (bSucceeded && !FPluginHelpers::CreateBlueprintFunctionLibraryFiles(PrivateSourceFolder, PublicSourceFolder, AutoPluginName, LocalFailReason))
+			{
+				PopErrorNotification(FText::Format(LOCTEXT("FailedBPLibraryFile", "Failed to create blueprint library files. {0}"), LocalFailReason));
+				bSucceeded = false;
+			}
+		}
+
+		if (DescriptorObject->bMakeEditorMode)
+		{
+			if (bSucceeded && !FPluginHelpers::CreatePluginEdModeFiles(PrivateSourceFolder, PublicSourceFolder, AutoPluginName, DescriptorObject->EditorModeSettings, LocalFailReason))
+			{
+				PopErrorNotification(FText::Format(LOCTEXT("FailedBPLibraryFile", "Failed to create EdMode files. {0}"), LocalFailReason));
+				bSucceeded = false;
+			}
 		}
 	}
 
@@ -708,7 +721,7 @@ FText SPluginCreatorTabContent::GetPluginDestinationPath() const
 	const FString EnginePath = FPaths::EnginePluginsDir();
 	const FString GamePath = FPaths::GamePluginsDir();
 
-	return bIsEnginePlugin ? FText::FromString(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*EnginePath)) 
+	return (DescriptorObject != nullptr && DescriptorObject->bIsEnginePlugin) ? FText::FromString(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*EnginePath)) 
 		: FText::FromString(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*GamePath));
 }
 

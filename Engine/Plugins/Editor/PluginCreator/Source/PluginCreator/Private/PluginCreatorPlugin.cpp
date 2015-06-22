@@ -6,9 +6,7 @@
 #include "SPluginCreatorTabContent.h"
 #include "SlateExtras.h"
 #include "PluginCreatorStyle.h"
-
-#include "SLayoutCreator.h"
-
+#include "PluginDescriptorDetails.h"
 #include "MultiBoxExtender.h"
 
 static const FName PCPluginTabName("PluginCreatorPlugin");
@@ -45,6 +43,9 @@ void FPluginCreatorModule::StartupModule()
 		FOnSpawnTab::CreateRaw(this, &FPluginCreatorModule::HandleSpawnPluginCreatorTab))
 		.SetDisplayName(LOCTEXT("PluginCreatorTabTitle", "Plugin Creator"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
+
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.RegisterCustomClassLayout("PluginDescriptorObject", FOnGetDetailCustomizationInstance::CreateStatic(&FPluginDescriptorDetails::MakeInstance));
 }
 
 void FPluginCreatorModule::AddMenuExtension(FMenuBuilder& Builder)

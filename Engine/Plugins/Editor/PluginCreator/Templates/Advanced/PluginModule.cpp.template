@@ -51,12 +51,16 @@ void F%PLUGIN_NAME%Module::StartupModule()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(%PLUGIN_NAME%TabName, FOnSpawnTab::CreateRaw(this, &F%PLUGIN_NAME%Module::OnSpawnPluginTab))
 		.SetDisplayName(LOCTEXT("F%PLUGIN_NAME%TabTitle", "%PLUGIN_NAME%"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
+		
+	%REGISTER_EDMODE%
 }
 
 void F%PLUGIN_NAME%Module::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	
+	%UNREGISTER_EDMODE%
 	
 	F%PLUGIN_NAME%Style::Shutdown();
 
