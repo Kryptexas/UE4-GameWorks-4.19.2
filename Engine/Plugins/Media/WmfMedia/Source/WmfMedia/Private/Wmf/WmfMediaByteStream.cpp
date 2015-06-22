@@ -7,7 +7,7 @@
 /* FWmfByteStream structors
  *****************************************************************************/
 
-FWmfMediaByteStream::FWmfMediaByteStream( const TSharedRef<TArray<uint8>>& InBuffer )
+FWmfMediaByteStream::FWmfMediaByteStream( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& InBuffer )
 	: AsyncReadInProgress(false)
 	, Buffer(InBuffer)
 	, Position(0)

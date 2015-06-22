@@ -318,7 +318,7 @@ bool FAvfMediaPlayer::Open( const FString& Url )
 }
 
 
-bool FAvfMediaPlayer::Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl )
+bool FAvfMediaPlayer::Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer, const FString& OriginalUrl )
 {
     return false;
 }

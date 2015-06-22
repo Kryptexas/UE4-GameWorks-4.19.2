@@ -19,7 +19,7 @@ public:
 	 *
 	 * @param Buffer The buffer to stream from.
 	 */
-	FWmfMediaByteStream( const TSharedRef<TArray<uint8>>& InBuffer );
+	FWmfMediaByteStream( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& InBuffer );
 
 	/** Virtual destructor. */
 	virtual ~FWmfMediaByteStream() { }
@@ -60,7 +60,7 @@ private:
 	bool AsyncReadInProgress;
 
 	/** Holds the buffer to stream from. */
-	TSharedRef<TArray<uint8>> Buffer;
+	TSharedRef<TArray<uint8>, ESPMode::ThreadSafe> Buffer;
 
 	/** Critical section for locking access to this class. */
 	mutable FCriticalSection CriticalSection;

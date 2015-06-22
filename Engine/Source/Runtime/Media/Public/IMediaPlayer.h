@@ -137,7 +137,7 @@ public:
 	 * @return true if the media was opened, false otherwise.
 	 * @see Close, IsReady
 	 */
-	virtual bool Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl ) = 0;
+	virtual bool Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer, const FString& OriginalUrl ) = 0;
 
 	/**
 	 * Changes the media's playback time.

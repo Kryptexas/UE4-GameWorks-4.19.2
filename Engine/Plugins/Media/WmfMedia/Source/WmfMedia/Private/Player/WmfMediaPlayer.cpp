@@ -188,7 +188,7 @@ bool FWmfMediaPlayer::Open( const FString& Url )
 }
 
 
-bool FWmfMediaPlayer::Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl )
+bool FWmfMediaPlayer::Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer, const FString& OriginalUrl )
 {
 	if ((Buffer->Num() == 0) || OriginalUrl.IsEmpty())
 	{
