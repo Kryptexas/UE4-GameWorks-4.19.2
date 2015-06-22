@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:6.AI Controller ブループリントの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -26,7 +26,7 @@ Description:ステップ 6AI Controller ブループリントの設定
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
 [/REGION]
 
-Top Down テンプレートを使用すると、マウス制御を使ってキャラクターを動かすことができますが、ここで作成するもう 1 つのキャラクターは自身のコントローラーが必要になります。この AI コントローラーがブラックボードに関する幾つかの設定を行い、ビヘイビアツリーの実行を開始します。ブループリントに慣れている方であれば、 **Event Graph** は最終的にこのように見えます。
+Top Down テンプレートを使用すると、マウス制御を使ってキャラクターを動かすことができますが、ここで作成するもう 1 つのキャラクターには独自のコントローラーが必要になります。この AI コントローラーがブラックボードに関する幾つかの設定を行い、ビヘイビアツリーの実行を開始します。ブループリントに慣れている方であれば、 **Event Graph** は最終的にこのように見えます。
 
 **イベント グラフ** の作成手順の最初の部分は以下のようになります。ステップ「 _7.AI Controller ブループリント:ブラックボードの初期値_ 」およびステップ「 _8.AI Controller ブループリント:ビヘイビアツリーを実行する_ 」にも、このグラフの編集が含まれます。
 
@@ -59,3 +59,8 @@ Top Down テンプレートを使用すると、マウス制御を使ってキ�
 次のステップで引き続きこのグラフを編集して、AI Controller のブラックボードの初期値を設定します。
 
 %Steps%
+
+
+
+
+
