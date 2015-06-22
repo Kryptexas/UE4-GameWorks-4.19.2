@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2410153
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:1.5 - デカールのオフ設定
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -62,7 +62,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 ![](ReceivesDecals.png)
 
-[Buffer Visualization] の配下にある **[Decal Mask]** のビューモードでデカールを受け取らないメッシュを表示させることができます。
+[Buffer Visualization]（バッファ表示） の配下にある **[Decal Mask]** のビューモードでデカールを受け取らないメッシュを表示させることができます。
 
 ![](DecalMaskViewMode.png)
 
