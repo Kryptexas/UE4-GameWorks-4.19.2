@@ -14,7 +14,7 @@ This page details texture support both within the engine and hardware.
 
 ## Texture Resolution
 
-Unreal Engine 4 supports texture resolutions from 1x1 to 4096x4096.
+Unreal Engine 4 supports texture resolutions from 1x1 up to 8192x8192 with some slight modifications.
 
 Current DirectX video adapters and game consoles support various texture resolutions from 1x1 to 2048x2048 and up to 8192x8192.  The highest texture resolution supported by a specific hardware device varies by manufacturer and model.  The amount of available texture memory pool also varies by the hardware.
 
@@ -24,14 +24,13 @@ There are a number of features and settings in Unreal Engine 4 for managing the 
 
 ## Engine Texture Resolution Limit
 
-Unreal Engine 4 defaults to limiting the maximum number of texture mips to 13, which effectively limits the largest rendered texture to 4096 (1x1 to 4096x4096 is 13 mips).  This has the side-effect that imported 8192 textures will only render up to mip1 of 4096.  The constant MAX_TEXTURE_MIP_COUNT which defaults to 13 in the engine source files can be modified to a value of 14 to support 8192 texture rendering.  This constant is defined in the following source files (as of QAMar09, be sure to verify on other QA versions).
+Unreal Engine 4 defaults to limiting the maximum number of texture mips to 14, which effectively limits the largest rendered texture to 8192 (1x1 to 8192x8192 is 14 mips).  This has the side-effect that imported 8192 textures will only render up to mip1 of 4096.  The constant MAX_TEXTURE_MIP_COUNT which defaults to 13 in the engine source files can be modified to a value of 14 to support 8192 texture rendering.  This constant is defined in the following source files (as of QAMar09, be sure to verify on other QA versions).
 
 	Src\D3D10Drv\Src\D3D10Device.cpp   
 	Src\Engine\Inc\RHI.h   
 	Src\Engine\Inc\UnTex.h   
 	Src\Engine\Src\RHI.cpp   
 	Src\Engine\Src\TextureCube.cpp
-
 
 
 ## Compressed Texture Memory Requirements
@@ -54,7 +53,6 @@ The table data was compiled from textures created by ATI's Compressonator using 
 | 2048x2048  | 12 mips  | 2.66MB  (2,796,344 bytes)  | 5.33MB  (5,592,560 bytes)  |
 | 4096x4096  | 13 mips  | 10.6MB  (11,184,952 bytes)  | 21.3MB  (22,369,776 bytes)  |
 | 8192x8192  | 14 mips  | 42.6MB  (44,739,384 bytes)  | 85.3MB  (89,478,640 bytes)  |
-
 
 
 
@@ -185,9 +183,11 @@ For example:
 * A TextureGroup LODBias of 1 and a Texture Properties LODBias of 1 would result in a final LODBias of 2.   
 * A TextureGroup LODBias of 1 and a Texture Properties LODBias of -1 would result in a final LODBias of 0.
 
-After the final LODBias is calculated, then the texture mip is checked to see that it fits into the TextureGroup's Min/Max LODSize range, and it is adjusted if necessary.  This allows a simple config ini file change to effectively clamp a specific TextureGroup to within a set min/max LOD range.  For example, a 1024x1024 texture with LODBias of 1 uses the 512x512 mip, if it is in the TEXTUREGROUP_World LODGroup as shown above, it is then checked to see if it fits within the TextureGroup's Minimum and Maximum LODSize range, which in this case is 256 and 1024.
+After the final LODBias is calculated, then the texture mip is checked to see that it fits into the TextureGroup's Min/Max LODSize range, and it is adjusted if necessary. 
+This allows a simple config ini file change to effectively clamp a specific TextureGroup to within a set min/max LOD range.
 
-Since each game title will have its own unique TextureGroup settings, artists and level designers should be aware of the MinLODSize and MaxLODSize for each group.   
+For example, a 1024x1024 texture with LODBias of 1 uses the 512x512 mip, if it is in the TEXTUREGROUP_World LODGroup as shown above, it is then checked to see if it fits within the TextureGroup's Minimum and Maximum LODSize range, which in this case is 256 and 1024.
+Since each game title will have its own unique TextureGroup settings, artists and level designers should be aware of the MinLODSize and MaxLODSize for each group.
 It would increase distributable package size with no rendering quality benefit if a game shipped with 2048 textures assigned to a TextureGroup with a MaxLODSize of 1024.
 
 
