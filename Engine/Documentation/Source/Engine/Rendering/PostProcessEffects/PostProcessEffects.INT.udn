@@ -167,6 +167,18 @@ For descriptions of each of the available settings, see the page for the corresp
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
+		![%Engine/Rendering/PostProcessEffects/Blendables:title%](Blendables.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/PostProcessEffects/Blendables:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/PostProcessEffects/Blendables]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
 		![%Engine/Rendering/PostProcessEffects/SceneFringe:title%](fringe.png)
 	[/PARAM]
 	[PARAM:title]
