@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2590930
+Availability:Public
 Title:4. Character ブループリントの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 4Character ブループリントの設定
@@ -21,9 +22,9 @@ Description:ステップ 4Character ブループリントの設定
 
 %Steps%
 
-**キャラクター** のあるプロジェクトを作成したので、人間の形をした **スケルタルメッシュ** とその **Animation ブループリント** を利用できるようになりました。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+**キャラクター** が既に入っているプロジェクトを作成したので、人間の形をした **スケルタルメッシュ** とその **Animation ブループリント** を利用できます。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
 
-このキャラクターが新規の AI キャラクターとなります。キャラクター、例えばポーンなどを使う理由は、 Character Movement Component の機能を利用できるようにするためです。
+このキャラクターが新規の AI キャラクターとなります。キャラクター、例えばポーンなどを使う理由は、 Character Movement コンポーネントの機能を利用できるようにするためです。
 
 ## 手順
 
@@ -41,7 +42,7 @@ Description:ステップ 4Character ブループリントの設定
 
 1. **Mesh** コンポーネントを回転させて、青い Arrow コンポーネントの指す方向に向かせます。
 
-1. **[Details (詳細)]** パネルの **Animation (アニメーション)** カテゴリで HeroTPP _AnimBlueprint を **Animation Blueprint Generated Class** に割り当てます。
+1. **[Details (詳細)]** パネルの **Animation (アニメーション)** カテゴリで HeroTPP_AnimBlueprint を **Animation Blueprint Generated Class** プロパティに割り当てます。
 
 	![](assignAnimBP.png)
 
@@ -60,8 +61,8 @@ Description:ステップ 4Character ブループリントの設定
 	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの半分の高さの 2 倍になるように設定します。_
 
 1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed** プロパティを 400 に変更します。
-	![](maxWalk.png)
 
+	![](maxWalk.png)
 
 1. **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **Pawn** カテゴリの **AIController Class** プロパティに割り当てます。
 
@@ -71,3 +72,8 @@ Description:ステップ 4Character ブループリントの設定
 
 
 %Steps%
+
+
+
+
+
