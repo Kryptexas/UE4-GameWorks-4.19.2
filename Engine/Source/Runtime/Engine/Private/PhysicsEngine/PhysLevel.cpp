@@ -305,6 +305,9 @@ FString FEndClothSimulationFunction::DiagnosticMessage()
 	return TEXT("FStartClothSimulationFunction");
 }
 
+
+void PvdConnect(FString Host);
+
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
 void InitGamePhys()
 {
@@ -363,6 +366,11 @@ void InitGamePhys()
 	//This approach shares the collision detection code between meshes and height fields such that height fields behave identically to the equivalent terrain created as a mesh. 
 	//This approach facilitates mixing the use of height fields and meshes in the application with no tangible difference in collision behavior between the two approaches
 	PxRegisterUnifiedHeightFields(*GPhysXSDK);
+
+	if( FParse::Param( FCommandLine::Get(), TEXT( "PVD" ) ) )
+	{
+		PvdConnect(TEXT("localhost"));
+	}
 
 
 #if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
