@@ -3515,7 +3515,7 @@ bool GameProjectUtils::AddSharedContentToProject(const FProjectInformation &InPr
 				{
 					// Build the Packname from the mount and detail
 					FString DetailString;
-					UEnum::GetValueAsString(TEXT("/Script/GameProjectGeneration.ETemplateDetailLevel"), EachRequiredDetail, DetailString);
+					UEnum::GetValueAsString(TEXT("/Script/AddContentDialog.EFeaturePackDetailLevel"), EachRequiredDetail, DetailString);
 					
 					FString FullPackFilename = FPaths::FeaturePackDir() + EachPack.MountName +  DetailString + DefaultFeaturePackExtension;
 					if (FPaths::FileExists(FullPackFilename) == false)

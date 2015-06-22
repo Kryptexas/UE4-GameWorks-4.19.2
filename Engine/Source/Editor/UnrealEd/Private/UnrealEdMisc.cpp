@@ -1650,7 +1650,7 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 			}
 			else if (EachPack.DetailLevels.Num() == 0)
 			{
-				// If no levels are supplied, assume standard
+				// If no levels are supplied we cant really use this pack !
 				UE_LOG(LogUnrealEdMisc, Warning, TEXT("No detail levels defined for %s in %s."), *EachPack.MountName, *TemplateFilename );
 				continue;
 			}
