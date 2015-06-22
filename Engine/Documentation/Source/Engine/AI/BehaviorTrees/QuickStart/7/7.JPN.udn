@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2590930
+Availability:Public
 Title:7.AI Controller ブループリント:ブラックボードの初期値
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 7AI Controller ブループリント:ブラックボードの初期値
@@ -54,8 +55,7 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 1. **Set Value as Vector** ノードにある **Key Name** を引き出してコンテキスト メニューから **Promote to Variable** を使用します。
 
 	![](promoteText.png)
-
-1. **[My Blueprint (マイブループリント)]** パネルで変数に名前をつけます。「 **HomeLocation** ]という名前を付けます。
+	1. **[My Blueprint (マイブループリント)]** パネルで変数に名前をつけます。「 **HomeLocation** ] という名前を付けます。
 
 	* 変数に名前をつける前にどこかをクリックしてしまった場合は、コンテキスト メニューを **右クリック** して **[My Blueprint (マイブループリント)]** パネルで名前を変更することができます。
 
@@ -74,3 +74,8 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 次のステップでは、引き続きグラフを編集し、そのグラフを追加して AI Controller に希望するビヘイビア ツリーを実行させます。
 
 %Steps%
+
+
+
+
+
