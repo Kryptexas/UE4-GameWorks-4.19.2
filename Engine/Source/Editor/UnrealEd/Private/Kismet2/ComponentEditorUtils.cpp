@@ -689,9 +689,9 @@ bool FComponentEditorUtils::AttemptApplyMaterialToComponent(USceneComponent* Sce
 
 	UMaterial* BaseMaterial = MaterialToApply->GetBaseMaterial();
 
-	bool bIsPlacable = DecalComponent || ( MeshComponent && BaseMaterial &&  BaseMaterial->MaterialDomain != MD_DeferredDecal && BaseMaterial->MaterialDomain != MD_UI );
+	bool bCanApplyToComponent = DecalComponent || ( MeshComponent && BaseMaterial &&  BaseMaterial->MaterialDomain != MD_DeferredDecal && BaseMaterial->MaterialDomain != MD_UI );
 	// We can only apply a material to a mesh or a decal
-	if (bIsPlacable && (MeshComponent || DecalComponent) )
+	if (bCanApplyToComponent && (MeshComponent || DecalComponent) )
 	{
 		bResult = true;
 		const FScopedTransaction Transaction(LOCTEXT("DropTarget_UndoSetComponentMaterial", "Assign Material to Component (Drag and Drop)"));
