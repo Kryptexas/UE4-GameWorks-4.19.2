@@ -81,9 +81,9 @@ class FChunkManifestGenerator
 	/**
 	 * Walks the dependency graph of assets and assigns packages to correct chunks.
 	 * 
-	 * @param the SandboxPlatformFile used during cook
+	 * @param the InSandboxFile used during cook
 	 */
-	void FixupPackageDependenciesForChunks(FSandboxPlatformFile* SandboxFile);
+	void FixupPackageDependenciesForChunks(FSandboxPlatformFile* InSandboxFile);
 
 	void AddPackageAndDependenciesToChunk(FChunkPackageSet* ThisPackageSet, FName InPkgName, const FString& InSandboxFile, int32 ChunkID, FSandboxPlatformFile* SandboxPlatformFile);
 
@@ -224,7 +224,7 @@ public:
 	 * @param CookedPackages list of packages which were cooked
 	 * @param bGenerateStreamingInstallManifest should we build a streaming install manifest 
 	 */
-	void BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* SandboxFile, bool bGenerateStreamingInstallManifest);
+	void BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* InSandboxFile, bool bGenerateStreamingInstallManifest);
 
 	/**
 	 * ContainsMap
@@ -264,9 +264,9 @@ public:
 	/**
 	 * Saves all generated manifests for each target platform.
 	 * 
-	 * @param the SandboxPlatformFile used during cook
+	 * @param the InSandboxFile used during cook
 	 */
-	bool SaveManifests(FSandboxPlatformFile* SandboxFile);
+	bool SaveManifests(FSandboxPlatformFile* InSandboxFile);
 
 	/**
 	* Saves generated asset registry data for each platform.

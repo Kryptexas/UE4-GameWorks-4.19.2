@@ -325,7 +325,7 @@ void FChunkManifestGenerator::Initialize(const TArray<FName> &InStartupPackages)
 }
 
 
-void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* SandboxFile, bool bGenerateStreamingInstallManifest)
+void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* InSandboxFile, bool bGenerateStreamingInstallManifest)
 {
 	bGenerateChunks = bGenerateStreamingInstallManifest;
 
@@ -373,7 +373,7 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 	// add all the packages to the unassigned package list
 	for (const auto& CookedPackage : CookedPackages)
 	{
-		const FString SandboxPath = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
+		const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
 
 		AllCookedPackages.Add(CookedPackage, SandboxPath);
 		UnassignedPackageSet.Add(CookedPackage, SandboxPath);
@@ -381,7 +381,7 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 	
 	for (const auto& CookedPackage : StartupPackages)
 	{
-		const FString SandboxPath = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
+		const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
 
 		AllCookedPackages.Add(CookedPackage, SandboxPath);
 		AddPackageToManifest(SandboxPath, CookedPackage, 0);
@@ -435,7 +435,7 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 			const FString& SandboxFilename = AllCookedPackages.FindChecked(PackageFName);
 
 
-			GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, MapName, SandboxFile);
+			GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, MapName, InSandboxFile);
 
 
 		}
@@ -450,7 +450,7 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 		const FString& SandboxFilename = AllCookedPackages.FindChecked(PackageFName);
 		const FString PackagePathName = PackageFName.ToString();
 
-		GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, FString(), SandboxFile);
+		GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, FString(), InSandboxFile);
 	}
 
 
