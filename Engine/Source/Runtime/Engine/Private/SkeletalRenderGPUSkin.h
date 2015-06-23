@@ -194,11 +194,11 @@ public:
 
 	/**
 	 * use between LockData() and UnlockData()
-	 * @param	DataStart, must not be 0
+	 * @param	OutChunkMatrices, filled in with a pointer to bones that should be filled in
 	 * @param	BoneCount number of FBoneSkinning elements, must not be 0
 	 * @return	StartIndex where the data can be referenced in the texture, 0xffffffff if this failed (not enough space in the buffer, will be fixed next frame)
 	 */
-	uint32 AppendData(FBoneSkinning *DataStart, uint32 BoneCount);
+	uint32 AppendData(FBoneSkinning*& OutChunkMatrices, uint32 BoneCount);
 
 	/** only call if StartAppend(), if the append wasn't started it silently ignores the call */
 	ENGINE_API void EndAppendFence(FRHICommandListImmediate& RHICmdList);
@@ -280,6 +280,7 @@ public:
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
 	virtual void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData) override;
+	virtual void PreGDMECallback() override;
 	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
 	virtual bool IsCPUSkinned() const override { return false; }
@@ -365,10 +366,6 @@ private:
 		/** Vertex factory defining both the base mesh as well as the APEX cloth vertex data */
 		TArray<FGPUBaseSkinAPEXClothVertexFactory*> ClothVertexFactories;
 
-		/** shared ref pose to local space matrices */
-		TArray< TArray<FBoneSkinning>, TInlineAllocator<1> > PerChunkBoneMatricesArray;
-
-
 		/** 
 		 * Init default vertex factory resources for this LOD 
 		 *
@@ -404,12 +401,6 @@ private:
 		void ReleaseAPEXClothVertexFactories();
 
 		/**
-		 * Init one array of matrices for each chunk (shared across vertex factory types)
-		 *
-		 * @param Chunks - relevant chunk information (either original or from swapped influence)
-		 */
-		void InitPerChunkBoneMatrices(const TArray<FSkelMeshChunk>& Chunks);
-		/**
 		 * Clear factory arrays
 		 */
 		void ClearFactories()
@@ -430,8 +421,6 @@ private:
 			Size += MorphVertexFactories.GetAllocatedSize();
 
 			Size += ClothVertexFactories.GetAllocatedSize();
-
-			Size += PerChunkBoneMatricesArray.GetAllocatedSize();
 
 			return Size;
 		}	
@@ -525,11 +514,24 @@ private:
 	*/
 	void ReleaseMorphResources();
 
+	void ProcessUpdatedDynamicData(FRHICommandListImmediate& RHICmdList, bool bMorphNeedsUpdate);
+
+	void WaitForRHIThreadFenceForDynamicData();
+
 	/** Render data for each LOD */
 	TArray<struct FSkeletalMeshObjectLOD> LODs;
 
 	/** Data that is updated dynamically and is needed for rendering */
 	FDynamicSkelMeshObjectDataGPUSkin* DynamicData;
+
+	/** Fence for dynamic Data */
+	FGraphEventRef RHIThreadFenceForDynamicData;
+
+	/** True if we are doing a deferred update later in GDME. */
+	bool bNeedsUpdateDeferred;
+
+	/** If true and we are doing a deferred update, then also update the morphs */
+	bool bMorphNeedsUpdateDeferred;
 
 	/** true if the morph resources have been initialized */
 	bool bMorphResourcesInitialized;

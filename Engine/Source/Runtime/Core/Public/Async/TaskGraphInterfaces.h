@@ -29,9 +29,7 @@ namespace ENamedThreads
 {
 	enum Type
 	{
-		/** not actually a thread index. Means "Unknown Thread" or "Any Unnamed Thread" **/
-		AnyThread = -1, 
-
+		UnusedAnchor = -1,
 		/** The always-present, named threads are listed next **/
 #if STATS
 		StatsThread, 
@@ -42,8 +40,10 @@ namespace ENamedThreads
 		ActualRenderingThread = GameThread + 1,
 		// CAUTION ThreadedRenderingThread must be the last named thread, insert new named threads before it
 
+		/** not actually a thread index. Means "Unknown Thread" or "Any Unnamed Thread" **/
+		AnyThread = 0xff, 
 
-		/** High bits are used for a queue index **/
+		/** High bits are used for a queue index and priority**/
 
 		MainQueue =			0x000,
 		LocalQueue =		0x100,
@@ -52,6 +52,16 @@ namespace ENamedThreads
 		ThreadIndexMask =	0xff,
 		QueueIndexMask =	0x100,
 		QueueIndexShift =	8,
+
+		/** High bits are used for a queue index and priority**/
+
+		NormalPriority =	0x000,
+		HighPriority =		0x200,
+
+		NumPriorities =		2,
+		PriorityMask =		0x200,
+		PriorityShift =		9,
+
 
 		/** Combinations **/
 #if STATS
@@ -65,14 +75,25 @@ namespace ENamedThreads
 
 	FORCEINLINE Type GetThreadIndex(Type ThreadAndIndex)
 	{
-		return (ThreadAndIndex == AnyThread) ? AnyThread : Type(ThreadAndIndex & ThreadIndexMask);
+		return ((ThreadAndIndex & ThreadIndexMask) == AnyThread) ? AnyThread : Type(ThreadAndIndex & ThreadIndexMask);
 	}
 
 	FORCEINLINE int32 GetQueueIndex(Type ThreadAndIndex)
 	{
-		return (ThreadAndIndex & ~ThreadIndexMask) >> QueueIndexShift;
+		return (ThreadAndIndex & QueueIndexMask) >> QueueIndexShift;
+	}
+
+	FORCEINLINE int32 GetPriority(Type ThreadAndIndex)
+	{
+		return (ThreadAndIndex & PriorityMask) >> PriorityShift;
+	}
+
+	FORCEINLINE Type HiPri(Type ThreadAndIndex)
+	{
+		return Type(ThreadAndIndex | HighPriority);
 	}
 }
+
 
 namespace ESubsequentsMode
 {
@@ -952,7 +973,7 @@ public:
 	 **/
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		checkThreadGraph(ThreadToReturnFrom == CurrentThread); // we somehow are executing on the wrong thread.
+		checkThreadGraph(ENamedThreads::GetThreadIndex(ThreadToReturnFrom) == ENamedThreads::GetThreadIndex(CurrentThread)); // we somehow are executing on the wrong thread.
 		FTaskGraphInterface::Get().RequestReturn(ThreadToReturnFrom);
 	}
 

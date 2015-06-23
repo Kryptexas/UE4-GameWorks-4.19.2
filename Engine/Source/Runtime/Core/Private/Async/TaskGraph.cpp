@@ -393,7 +393,36 @@ public:
 		while (1)
 		{
 			FBaseGraphTask* Task = NULL;
-			Task = Queue(QueueIndex).PrivateQueue.Dequeue();
+			Task = Queue(QueueIndex).PrivateQueueHiPri.Dequeue();
+			if (!Task)
+			{
+				if (!bAllowsStealsFromMe && Queue(QueueIndex).OutstandingHiPriTasks.GetValue())
+				{
+					Queue(QueueIndex).IncomingQueue.PopAll(NewTasks);
+					if (NewTasks.Num())
+					{
+						for (int32 Index = NewTasks.Num() - 1; Index >= 0 ; Index--) // reverse the order since PopAll is implicitly backwards
+						{
+							FBaseGraphTask* NewTask = NewTasks[Index];
+							if (ENamedThreads::GetPriority(NewTask->ThreadToExecuteOn))
+							{
+								Queue(QueueIndex).PrivateQueueHiPri.Enqueue(NewTask);
+								Queue(QueueIndex).OutstandingHiPriTasks.Decrement();
+							}
+							else
+							{
+								Queue(QueueIndex).PrivateQueue.Enqueue(NewTask);
+							}
+						}
+						NewTasks.Reset();
+						Task = Queue(QueueIndex).PrivateQueueHiPri.Dequeue();
+					}
+				}
+				if (!Task)
+				{
+					Task = Queue(QueueIndex).PrivateQueue.Dequeue();
+				}
+			}
 			if (!Task)
 			{
 				if (!bAllowsStealsFromMe)
@@ -432,10 +461,23 @@ public:
 					{
 						for (int32 Index = NewTasks.Num() - 1; Index >= 0 ; Index--) // reverse the order since PopAll is implicitly backwards
 						{
-							Queue(QueueIndex).PrivateQueue.Enqueue(NewTasks[Index]);
+							FBaseGraphTask* NewTask = NewTasks[Index];
+							if (ENamedThreads::GetPriority(NewTask->ThreadToExecuteOn))
+							{
+								Queue(QueueIndex).PrivateQueueHiPri.Enqueue(NewTask);
+								Queue(QueueIndex).OutstandingHiPriTasks.Decrement();
+							}
+							else
+							{
+								Queue(QueueIndex).PrivateQueue.Enqueue(NewTask);
+							}
 						}
-						Task = Queue(QueueIndex).PrivateQueue.Dequeue();
 						NewTasks.Reset();
+						Task = Queue(QueueIndex).PrivateQueueHiPri.Dequeue();
+						if (!Task)
+						{
+							Task = Queue(QueueIndex).PrivateQueue.Dequeue();
+						}
 					}
 				}
 				else
@@ -529,7 +571,14 @@ public:
 		else
 		{
 			checkThreadGraph((FTaskThread*)FPlatformTLS::GetTlsValue(PerThreadIDTLSSlot) == this); // verify that we are the thread they say we are
-			Queue(QueueIndex).PrivateQueue.Enqueue(Task);
+			if (Task != WakeUpBaseGraphTask && ENamedThreads::GetPriority(Task->ThreadToExecuteOn))
+			{
+				Queue(QueueIndex).PrivateQueueHiPri.Enqueue(Task);
+			}
+			else
+			{
+				Queue(QueueIndex).PrivateQueue.Enqueue(Task);
+			}
 		}
 	}
 
@@ -578,9 +627,14 @@ public:
 		TestRandomizedThreads();
 		checkThreadGraph(Queue(QueueIndex).StallRestartEvent); // make sure we are started up
 		bool bWasReopenedByMe;
+		bool bHiPri = Task != WakeUpBaseGraphTask && ENamedThreads::GetPriority(Task->ThreadToExecuteOn);
 		{
 			TASKGRAPH_SCOPE_CYCLE_COUNTER(0, STAT_TaskGraph_EnqueueFromOtherThread_ReopenIfClosedAndPush);
 			bWasReopenedByMe = Queue(QueueIndex).IncomingQueue.ReopenIfClosedAndPush(Task);
+		}
+		if (bHiPri)
+		{
+			Queue(QueueIndex).OutstandingHiPriTasks.Increment();
 		}
 		if (bWasReopenedByMe)
 		{
@@ -674,6 +728,10 @@ private:
 	{
 		/** A non-threas safe queue for the thread locked tasks of a named thread **/
 		FTaskQueue											PrivateQueue;
+		/** A non-threas safe queue for the thread locked tasks of a named thread. These are high priority.**/
+		FTaskQueue											PrivateQueueHiPri;
+		/** Used to signal pending hi pri tasks. **/
+		FThreadSafeCounter									OutstandingHiPriTasks;
 		/** 
 		 *	For named threads, this is a queue of thread locked tasks coming from other threads. They are not stealable.
 		 *	For unnamed thread this is the public queue, subject to stealing.
@@ -917,7 +975,7 @@ public:
 
 		TestRandomizedThreads();
 		checkThreadGraph(NextUnnamedThreadMod);
-		if (CurrentThreadIfKnown == ENamedThreads::AnyThread)
+		if (ENamedThreads::GetThreadIndex(CurrentThreadIfKnown) == ENamedThreads::AnyThread)
 		{
 			 CurrentThreadIfKnown = GetCurrentThread();
 		}
@@ -926,14 +984,21 @@ public:
 			CurrentThreadIfKnown = ENamedThreads::GetThreadIndex(CurrentThreadIfKnown);
 			checkThreadGraph(CurrentThreadIfKnown == GetCurrentThread());
 		}
-		if (ThreadToExecuteOn == ENamedThreads::AnyThread)
+		if (ENamedThreads::GetThreadIndex(ThreadToExecuteOn) == ENamedThreads::AnyThread)
 		{
 			TASKGRAPH_SCOPE_CYCLE_COUNTER(3, STAT_TaskGraph_QueueTask_AnyThread);
 			if (FPlatformProcess::SupportsMultithreading())
 			{
 				{
 					TASKGRAPH_SCOPE_CYCLE_COUNTER(4, STAT_TaskGraph_QueueTask_IncomingAnyThreadTasks_Push);
-					IncomingAnyThreadTasks.Push(Task);
+					if (ENamedThreads::GetPriority(Task->ThreadToExecuteOn))
+					{
+						IncomingAnyThreadTasksHiPri.Push(Task);
+					}
+					else
+					{
+						IncomingAnyThreadTasks.Push(Task);
+					}
 				}
 				FTaskThread* TempTarget;
 				{
@@ -1039,10 +1104,12 @@ public:
 	virtual void WaitUntilTasksComplete(const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) override
 	{
 		ENamedThreads::Type CurrentThread = CurrentThreadIfKnown;
-		if (CurrentThreadIfKnown == ENamedThreads::AnyThread)
+		if (ENamedThreads::GetThreadIndex(CurrentThreadIfKnown) == ENamedThreads::AnyThread)
 		{
+			bool bIsHiPri = !!ENamedThreads::GetPriority(CurrentThreadIfKnown);
+			check(!ENamedThreads::GetQueueIndex(CurrentThreadIfKnown));
 			CurrentThreadIfKnown = GetCurrentThread();
-			CurrentThread = CurrentThreadIfKnown;
+			CurrentThread = bIsHiPri ? ENamedThreads::HiPri(CurrentThreadIfKnown) : CurrentThreadIfKnown;
 		}
 		else
 		{
@@ -1110,6 +1177,45 @@ public:
 	{
 		TestRandomizedThreads();
 		{
+			FBaseGraphTask* Task = SortedAnyThreadTasksHiPri.Pop();
+			if (Task)
+			{
+				return Task;
+			}
+		}
+		if (!IncomingAnyThreadTasksHiPri.IsEmpty())
+		{
+			do
+			{
+				FScopeLock ScopeLock(&CriticalSectionForSortingIncomingAnyThreadTasksHiPri);
+				if (!IncomingAnyThreadTasksHiPri.IsEmpty() && SortedAnyThreadTasksHiPri.IsEmpty())
+				{
+					static TArray<FBaseGraphTask*> NewTasks;
+					NewTasks.Reset();
+					IncomingAnyThreadTasksHiPri.PopAll(NewTasks);
+					check(NewTasks.Num());
+
+					if (NewTasks.Num() > 1)
+					{
+						TLockFreePointerList<FBaseGraphTask> TempSortedAnyThreadTasks;
+						for (int32 Index = 0 ; Index < NewTasks.Num() - 1; Index++) // we are going to take the last one for ourselves
+						{
+							TempSortedAnyThreadTasks.Push(NewTasks[Index]);
+						}
+						verify(SortedAnyThreadTasksHiPri.ReplaceListIfEmpty(TempSortedAnyThreadTasks));
+					}
+					return NewTasks[NewTasks.Num() - 1];
+				}
+				{
+					FBaseGraphTask* Task = SortedAnyThreadTasksHiPri.Pop();
+					if (Task)
+					{
+						return Task;
+					}
+				}
+			} while (!IncomingAnyThreadTasksHiPri.IsEmpty() || !SortedAnyThreadTasksHiPri.IsEmpty());
+		}
+		{
 			FBaseGraphTask* Task = SortedAnyThreadTasks.Pop();
 			if (Task)
 			{
@@ -1145,6 +1251,7 @@ public:
 				}
 			}
 		} while (!IncomingAnyThreadTasks.IsEmpty() || !SortedAnyThreadTasks.IsEmpty());
+
 		// this can be called before my constructor is finished
 		for (int32 Pass = 0; Pass < 2; Pass++)
 		{
@@ -1251,8 +1358,11 @@ private:
 	TLockFreePointerList<FTaskThread>		StalledUnnamedThreads; 
 
 	TLockFreePointerList<FBaseGraphTask>		IncomingAnyThreadTasks;
+	TLockFreePointerList<FBaseGraphTask>		IncomingAnyThreadTasksHiPri;
 	TLockFreePointerList<FBaseGraphTask>		SortedAnyThreadTasks;
+	TLockFreePointerList<FBaseGraphTask>		SortedAnyThreadTasksHiPri;
 	FCriticalSection CriticalSectionForSortingIncomingAnyThreadTasks;
+	FCriticalSection CriticalSectionForSortingIncomingAnyThreadTasksHiPri;
 };
 
 

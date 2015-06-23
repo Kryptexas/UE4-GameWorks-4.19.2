@@ -121,7 +121,6 @@ struct FTickPrerequisite
 			}
 			return nullptr;
 		}
-	
 };
 
 /** 
@@ -165,6 +164,9 @@ public:
 	/** If we allow this tick to run on a dedicated server */
 	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
 	uint32 bAllowTickOnDedicatedServer:1;
+
+	/** Run this tick first within the tick group, presumably to start async tasks that must be completed with this tick group, hiding the latency. */
+	uint32 bHighPriority:1;
 
 	/** If false, this tick will run on the game thread, otherwise it will run on any thread in parallel with the game thread and in parallel with other "async ticks" **/
 	uint32 bRunOnAnyThread:1;
@@ -246,6 +248,11 @@ public:
 	 * @param TargetTickFunction - Actual tick function to use as a prerequisite
 	 **/
 	void RemovePrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction);
+	/** 
+	 * Sets this function to hipri and all prerequisites recursively
+	 * @param bInHighPriority - priority to set
+	 **/
+	void SetPriorityIncludingPrerequisites(bool bInHighPriority);
 
 	/**
 	 * @return a reference to prerequisites for this tick function.
@@ -269,6 +276,11 @@ private:
 	 * @param TickContext - context to tick in
 	 */
 	void QueueTickFunction(class FTickTaskSequencer& TTS, const struct FTickContext& TickContext);
+
+	/** 
+	 * Logs the prerequisites
+	 */
+	void ShowPrerequistes(int32 Indent = 1);
 
 	/** 
 	 * Abstract function actually execute the tick. 

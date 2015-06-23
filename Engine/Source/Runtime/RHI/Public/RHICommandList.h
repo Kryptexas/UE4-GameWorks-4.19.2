@@ -1922,7 +1922,7 @@ public:
 	static FGraphEventRef RenderThreadTaskFence();
 	static void WaitOnRenderThreadTaskFence(FGraphEventRef& Fence);
 	static bool AnyRenderThreadTasksOutstanding();
-	FGraphEventRef RHIThreadFence();
+	FGraphEventRef RHIThreadFence(bool bSetLockFence = false);
 
 	FORCEINLINE void GpuTimeBegin(uint32 Hash,bool bCompute)
 	{

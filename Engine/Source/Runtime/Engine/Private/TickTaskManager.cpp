@@ -14,10 +14,15 @@ DECLARE_CYCLE_STAT(TEXT("Queue Ticks Wait"),STAT_QueueTicksWait,STATGROUP_Game);
 DECLARE_CYCLE_STAT(TEXT("Queue Tick Task"),STAT_QueueTickTask,STATGROUP_Game);
 DECLARE_CYCLE_STAT(TEXT("Post Queue Tick Task"),STAT_PostTickTask,STATGROUP_Game);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Ticks Queued"),STAT_TicksQueued,STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("TG_NewlySpawned"), STAT_TG_NewlySpawned, STATGROUP_TickGroups);
 
 static TAutoConsoleVariable<int32> CVarLogTicks(
 	TEXT("tick.LogTicks"),0,
-	TEXT("Used to logging of ticks."));
+	TEXT("Spew ticks for debugging."));
+
+static TAutoConsoleVariable<int32> CVarLogTicksShowPrerequistes(
+	TEXT("tick.ShowPrerequistes"),1,
+	TEXT("When logging ticks, show the prerequistes; debugging."));
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncComponentTicks(
 	TEXT("tick.AllowAsyncComponentTicks"),
@@ -59,6 +64,8 @@ struct FTickContext
 	}
 };
 
+#include"scopedtimers.h"
+#include"ParallelFor.h"
 /**
  * Class that handles the actual tick tasks and starting and completing tick groups
  */
@@ -73,15 +80,18 @@ class FTickTaskSequencer
 		FTickContext			Context;
 		/** If true, log each tick **/
 		bool					bLogTick; 
+		/** If true, log prereqs **/
+		bool					bLogTicksShowPrerequistes; 
 	public:
 		/** Constructor
 		 * @param InTarget - Function to tick
 		 * @param InContext - context to tick in, here thread is desired execution thread
 		**/
-		FTickFunctionTask(FTickFunction* InTarget, const FTickContext* InContext, bool InbLogTick)
+		FORCEINLINE FTickFunctionTask(FTickFunction* InTarget, const FTickContext* InContext, bool InbLogTick, bool bInLogTicksShowPrerequistes)
 			: Target(InTarget)
 			, Context(*InContext)
 			, bLogTick(InbLogTick)
+			, bLogTicksShowPrerequistes(bInLogTicksShowPrerequistes)
 		{
 		}
 		FORCEINLINE TStatId GetStatId() const
@@ -89,11 +99,15 @@ class FTickTaskSequencer
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FTickFunctionTask, STATGROUP_TaskGraphTasks);
 		}
 		/** return the thread for this task **/
-		ENamedThreads::Type GetDesiredThread()
+		FORCEINLINE ENamedThreads::Type GetDesiredThread()
 		{
+			if (Target->bHighPriority)
+			{
+				return ENamedThreads::HiPri(Context.Thread);
+			}
 			return Context.Thread;
 		}
-		static ESubsequentsMode::Type GetSubsequentsMode() 
+		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
 		{ 
 			return ESubsequentsMode::TrackSubsequents; 
 		}
@@ -107,7 +121,11 @@ class FTickTaskSequencer
 		{
 			if (bLogTick)
 			{
-				UE_LOG(LogTick, Log, TEXT("tick %6d %2d %s"),GFrameCounter, (int32)CurrentThread, *Target->DiagnosticMessage());
+				UE_LOG(LogTick, Log, TEXT("tick %s %6d %2d %s"), Target->bHighPriority ? TEXT("*") : TEXT(" "),GFrameCounter, (int32)CurrentThread, *Target->DiagnosticMessage());
+				if (bLogTicksShowPrerequistes)
+				{
+					Target->ShowPrerequistes();
+				}
 			}
 			Target->ExecuteTick(Context.DeltaSeconds, Context.TickType, CurrentThread, MyCompletionGraphEvent);
 			Target->CompletionHandle = NULL; // Allow the old completion handle to be recycled
@@ -118,7 +136,10 @@ class FTickTaskSequencer
 	/** Completion handles for each phase of ticks */
 	FGraphEventArray	TickCompletionEvents[TG_MAX];
 
-	/** Held tasks for each tick group. */
+	/** HiPri Held tasks for each tick group. */
+	TArray<TGraphTask<FTickFunctionTask>*> HiPriTickTasks[TG_MAX];
+
+	/** LowPri Held tasks for each tick group. */
 	TArray<TGraphTask<FTickFunctionTask>*> TickTasks[TG_MAX];
 
 	/** These are waited for at the end of the frame; they are not on the critical path, but they have to be done before we leave the frame. */
@@ -132,6 +153,8 @@ class FTickTaskSequencer
 
 	/** If true, log each tick **/
 	bool				bLogTicks; 
+	/** If true, log each tick **/
+	bool				bLogTicksShowPrerequistes; 
 
 public:
 
@@ -177,8 +200,15 @@ public:
 		}
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_StartTickTask_ConstructAndDispatchWhenReady);
 
-		TGraphTask<FTickFunctionTask>* Task = TGraphTask<FTickFunctionTask>::CreateTask(Prerequisites, TickContext.Thread).ConstructAndHold(TickFunction, &UseContext, bLogTicks);
-		TickTasks[TickFunction->ActualTickGroup].Add(Task);
+		TGraphTask<FTickFunctionTask>* Task = TGraphTask<FTickFunctionTask>::CreateTask(Prerequisites, TickContext.Thread).ConstructAndHold(TickFunction, &UseContext, bLogTicks, bLogTicksShowPrerequistes);
+		if (TickFunction->bHighPriority)
+		{
+			HiPriTickTasks[TickFunction->ActualTickGroup].Add(Task);
+		}
+		else
+		{
+			TickTasks[TickFunction->ActualTickGroup].Add(Task);
+		}
 		TickFunction->CompletionHandle = Task->GetCompletionEvent();
 	}
 
@@ -228,8 +258,11 @@ public:
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(
 				FDelegateGraphTask::CreateAndDispatchWhenReady(
 					FDelegateGraphTask::FDelegate::CreateRaw(this, &FTickTaskSequencer::DispatchTickGroup, WorldTickGroup),
-					GET_STATID(STAT_FDelegateGraphTask_DispatchTickGroup)),
-				ENamedThreads::GameThread);
+					GET_STATID(STAT_FDelegateGraphTask_DispatchTickGroup), 
+					nullptr,
+					ENamedThreads::GameThread, 
+					ENamedThreads::HiPri(ENamedThreads::AnyThread)),
+				ENamedThreads::HiPri(ENamedThreads::GameThread));
 		}
 
 		if (bBlockTillComplete || SingleThreadedMode())
@@ -269,7 +302,129 @@ public:
 	 */
 	void StartFrame()
 	{
+#if 0
+		class FNoop
+		{
+		public:
+			FORCEINLINE TStatId GetStatId() const
+			{
+				RETURN_QUICK_DECLARE_CYCLE_STAT(FNoop, STATGROUP_TaskGraphTasks);
+			}
+			FORCEINLINE ENamedThreads::Type GetDesiredThread()
+			{
+				return ENamedThreads::AnyThread;
+			}
+			FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+			{ 
+				return ESubsequentsMode::TrackSubsequents; 
+			}
+			void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+			{
+			}
+		};
+		class FNoopFireAndForget
+		{
+			FThreadSafeCounter& Work;
+		public:
+
+			FNoopFireAndForget(FThreadSafeCounter& InWork)
+				: Work(InWork)
+			{
+			}
+			FORCEINLINE TStatId GetStatId() const
+			{
+				RETURN_QUICK_DECLARE_CYCLE_STAT(FNoop, STATGROUP_TaskGraphTasks);
+			}
+			FORCEINLINE ENamedThreads::Type GetDesiredThread()
+			{
+				return ENamedThreads::AnyThread;
+			}
+			FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+			{ 
+				return ESubsequentsMode::FireAndForget; 
+			}
+			void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+			{
+				Work.Increment();
+			}
+		};
+
+		{
+			double QueueNoop = 0.0;
+			double WaitNoop = 0.0;
+			double QueueFireAndForget = 0.0;
+			double WaitFireAndForget = 0.0;
+			FGraphEventArray Tasks;
+			Tasks.Reserve(1000);
+			{
+				FScopedDurationTimer Scope(QueueNoop);
+				for (int32 Index = 0; Index < 1000; Index++)
+				{
+					Tasks.Add(TGraphTask<FNoop>::CreateTask(nullptr,  ENamedThreads::GameThread).ConstructAndDispatchWhenReady());
+				}
+			}
+			{
+				FScopedDurationTimer Scope(WaitNoop);
+				FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+			}
+			FThreadSafeCounter Work;		
+			{
+				FScopedDurationTimer Scope(QueueFireAndForget);
+				for (int32 Index = 0; Index < 1000; Index++)
+				{
+					TGraphTask<FNoopFireAndForget>::CreateTask(nullptr,  ENamedThreads::GameThread).ConstructAndDispatchWhenReady(Work);
+				}
+			}
+			{
+				FScopedDurationTimer Scope(WaitFireAndForget);
+				while (Work.GetValue() != 1000)
+					;
+			}
+
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("GT Dispatch    Normal: %7.5fms / queue    %7.5fms / execute    FireAndForget: %7.5fms / queue    %7.5fms / execute\n"), float(QueueNoop), float(WaitNoop), float(QueueFireAndForget), float(WaitFireAndForget));
+		}
+
+		{
+			double QueueNoop = 0.0;
+			double WaitNoop = 0.0;
+			double QueueFireAndForget = 0.0;
+			double WaitFireAndForget = 0.0;
+			FGraphEventArray Tasks;
+			Tasks.AddZeroed(1000);
+			{
+				FScopedDurationTimer Scope(QueueNoop);
+				ParallelFor(1000,
+					[&Tasks](int32 Index)
+					{
+						Tasks[Index] = TGraphTask<FNoop>::CreateTask(nullptr).ConstructAndDispatchWhenReady();
+					}
+				);
+			}
+			{
+				FScopedDurationTimer Scope(WaitNoop);
+				FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+			}
+			FThreadSafeCounter Work;		
+			{
+				FScopedDurationTimer Scope(QueueFireAndForget);
+				ParallelFor(1000,
+					[&Work](int32 Index)
+					{
+						TGraphTask<FNoopFireAndForget>::CreateTask(nullptr).ConstructAndDispatchWhenReady(Work);
+					}
+				);
+			}
+			{
+				FScopedDurationTimer Scope(WaitFireAndForget);
+				while (Work.GetValue() != 1000)
+					;
+			}
+
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Parallel For   Normal: %7.5fms / queue    %7.5fms / execute    FireAndForget: %7.5fms / queue    %7.5fms / execute\n"), float(QueueNoop), float(WaitNoop), float(QueueFireAndForget), float(WaitFireAndForget));
+		}
+#endif
 		bLogTicks = !!CVarLogTicks.GetValueOnGameThread();
+		bLogTicksShowPrerequistes = !!CVarLogTicksShowPrerequistes.GetValueOnGameThread();
 
 		if (bLogTicks)
 		{
@@ -288,8 +443,9 @@ public:
 		{
 			check(!TickCompletionEvents[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
 			TickCompletionEvents[Index].Reset();
-			check(!TickTasks[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
+			check(!TickTasks[Index].Num() && !HiPriTickTasks[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
 			TickTasks[Index].Reset();
+			HiPriTickTasks[Index].Reset();
 		}
 		WaitForTickGroup = (ETickingGroup)0;
 	}
@@ -307,7 +463,7 @@ public:
 		for (int32 Index = 0; Index < TG_MAX; Index++)
 		{
 			check(!TickCompletionEvents[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
-			check(!TickTasks[Index].Num()); 
+			check(!TickTasks[Index].Num() && !HiPriTickTasks[Index].Num());  // we should not be adding to these outside of a ticking proper and they were already cleared after they were ticked
 		}
 	}
 private:
@@ -315,6 +471,7 @@ private:
 	FTickTaskSequencer()
 		: bAllowConcurrentTicks(false)
 		, bLogTicks(false)
+		, bLogTicksShowPrerequistes(false)
 	{
 	}
 
@@ -329,12 +486,22 @@ private:
 
 	void DispatchTickGroupInner(ENamedThreads::Type CurrentThread, ETickingGroup WorldTickGroup)
 	{
-		TArray<TGraphTask<FTickFunctionTask>*>& TickArray = TickTasks[WorldTickGroup];
-		for (int32 Index = 0; Index < TickArray.Num(); Index++)
 		{
-			TickArray[Index]->Unlock(CurrentThread);
+			TArray<TGraphTask<FTickFunctionTask>*>& TickArray = HiPriTickTasks[WorldTickGroup];
+			for (int32 Index = 0; Index < TickArray.Num(); Index++)
+			{
+				TickArray[Index]->Unlock(CurrentThread);
+			}
+			TickArray.Reset();
 		}
-		TickArray.Reset();
+		{
+			TArray<TGraphTask<FTickFunctionTask>*>& TickArray = TickTasks[WorldTickGroup];
+			for (int32 Index = 0; Index < TickArray.Num(); Index++)
+			{
+				TickArray[Index]->Unlock(CurrentThread);
+			}
+			TickArray.Reset();
+		}
 	}
 
 	void DispatchTickGroup(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, ETickingGroup WorldTickGroup)
@@ -655,6 +822,7 @@ public:
 				}
 				if (Num && Context.TickGroup == TG_NewlySpawned)
 				{
+					SCOPE_CYCLE_COUNTER(STAT_TG_NewlySpawned);
 					TickTaskSequencer.ReleaseTickGroup(TG_NewlySpawned, true);
 				}
 				else
@@ -784,6 +952,7 @@ FTickFunction::FTickFunction()
 	, bTickEvenWhenPaused(false)
 	, bCanEverTick(false)
 	, bAllowTickOnDedicatedServer(true)
+	, bHighPriority(false)
 	, bRunOnAnyThread(false)
 	, bRegistered(false)
 	, bTickEnabled(true)
@@ -847,11 +1016,6 @@ void FTickFunction::SetTickFunctionEnable(bool bInEnabled)
 	}
 }
 
-/** 
- * Adds a tick function to the list of prerequisites...in other words, adds the requirement that TargetTickFunction is called before this tick function is 
- * @param TargetObject - UObject containing this tick function. Only used to verify that the other pointer is still usable
- * @param TargetTickFunction - Actual tick function to use as a prerequisite
-**/
 void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
 {
 	const bool bThisCanTick = (bCanEverTick || IsTickFunctionRegistered());
@@ -863,20 +1027,38 @@ void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction&
 	}
 }
 
-/** 
- * Removes a prerequisite that was previously added.
- * @param TargetObject - UObject containing this tick function. Only used to verify that the other pointer is still usable
- * @param TargetTickFunction - Actual tick function to use as a prerequisite
-**/
 void FTickFunction::RemovePrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
 {
 	Prerequisites.RemoveSwap(FTickPrerequisite(TargetObject, TargetTickFunction));
 }
 
-/**
-	* Queues a tick function for execution from the game thread
-	* @param TickContext - context to tick in
-*/
+void FTickFunction::SetPriorityIncludingPrerequisites(bool bInHighPriority)
+{
+	if (bHighPriority != bInHighPriority)
+	{
+		bHighPriority = bInHighPriority;
+		for (auto& Prereq : Prerequisites)
+		{
+			if (Prereq.PrerequisiteObject.Get() && Prereq.PrerequisiteTickFunction && Prereq.PrerequisiteTickFunction->bHighPriority != bInHighPriority)
+			{
+				Prereq.PrerequisiteTickFunction->SetPriorityIncludingPrerequisites(bInHighPriority);
+			}
+		}
+	}
+}
+
+void FTickFunction::ShowPrerequistes(int32 Indent)
+{
+	for (auto& Prereq : Prerequisites)
+	{
+		if (Prereq.PrerequisiteTickFunction)
+		{
+			UE_LOG(LogTick, Log, TEXT("%s prereq %s"), FCString::Spc(Indent * 2), *Prereq.PrerequisiteTickFunction->DiagnosticMessage());
+			Prereq.PrerequisiteTickFunction->ShowPrerequistes(Indent + 1);
+		}
+	}
+}
+
 void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTickContext& TickContext)
 {
 	checkSlow(TickContext.Thread == ENamedThreads::GameThread); // we assume same thread here

@@ -23,33 +23,17 @@ struct FParallelForData
 		, DoneEvent(InDoneEvent)
 	{
 	}
-	void Process()
-	{
-		while (true)
-		{
-			int32 MyIndex = IndexToDo.Increment() - 1;
-			if (MyIndex < Num)
-			{
-				Body(MyIndex);
-				if (NumCompleted.Increment() == Num)
-				{
-					DoneEvent.Trigger(); // I was the last one; let parallelfor exit
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
+	void Process(int32 TasksToSpawn, TSharedRef<FParallelForData, ESPMode::ThreadSafe>& Data);
 };
 
 class FParallelForTask
 {
 	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data;
+	int32 TasksToSpawn;
 public:
-	FParallelForTask(TSharedRef<FParallelForData, ESPMode::ThreadSafe>& InData)
+	FParallelForTask(TSharedRef<FParallelForData, ESPMode::ThreadSafe>& InData, int32 InTasksToSpawn = 0)
 		: Data(InData) 
+		, TasksToSpawn(InTasksToSpawn)
 	{
 	}
 	static FORCEINLINE TStatId GetStatId()
@@ -58,7 +42,7 @@ public:
 	}
 	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return ENamedThreads::HiPri(ENamedThreads::AnyThread);
 	}
 	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() 
 	{ 
@@ -66,9 +50,35 @@ public:
 	}
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		Data->Process();
+		Data->Process(TasksToSpawn, Data);
 	}
 };
+
+inline void FParallelForData::Process(int32 TasksToSpawn, TSharedRef<FParallelForData, ESPMode::ThreadSafe>& Data)
+{
+	int32 MaybeTasksLeft = Num - IndexToDo.GetValue();
+	if (TasksToSpawn && MaybeTasksLeft > 0)
+	{
+		TasksToSpawn = FMath::Min<int32>(TasksToSpawn, MaybeTasksLeft);
+		TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data, TasksToSpawn - 1);		
+	}
+	while (true)
+	{
+		int32 MyIndex = IndexToDo.Increment() - 1;
+		if (MyIndex < Num)
+		{
+			Body(MyIndex);
+			if (NumCompleted.Increment() == Num)
+			{
+				DoneEvent.Trigger(); // I was the last one; let parallelfor exit
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+}
 
 
 /** 
@@ -100,12 +110,9 @@ inline void ParallelFor(int32 Num, TFunctionRef<void(int32)> Body, bool bForceSi
 
 	FScopedEvent DoneEvent;
 	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data = MakeShareable(new FParallelForData(Num, Body, DoneEvent));
-	for (int32 Task = 0; Task < AnyThreadTasks; Task++)
-	{
-		TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data);		
-	}
+	TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data, AnyThreadTasks - 1);		
 	// this thread can help too and this is important to prevent deadlock on recursion 
-	Data->Process();
+	Data->Process(0, Data);
 	// DoneEvent waits here if some other thread finishes the last item
 	// Data must live on until all of the tasks are cleared which might be long after this function exits
 }
@@ -142,14 +149,11 @@ inline void ParallelForWithPreWork(int32 Num, TFunctionRef<void(int32)> Body, TF
 
 	FScopedEvent DoneEvent;
 	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data = MakeShareable(new FParallelForData(Num, Body, DoneEvent));
-	for (int32 Task = 0; Task < AnyThreadTasks; Task++)
-	{
-		TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data);		
-	}
+	TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data, AnyThreadTasks - 1);		
 	// do the prework
 	CurrentThreadWorkToDoBeforeHelping();
 	// this thread can help too and this is important to prevent deadlock on recursion 
-	Data->Process();
+	Data->Process(0, Data);
 	// DoneEvent waits here if some other thread finishes the last item
 	// Data must live on until all of the tasks are cleared which might be long after this function exits
 }

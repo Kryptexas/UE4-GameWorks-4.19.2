@@ -255,6 +255,18 @@ public:
 		return bNeedsStaticMeshUpdate;
 	}
 
+	/** return true if we need to call LazyUpdateForRendering */
+	FORCEINLINE bool NeedsUniformBufferUpdate()
+	{
+		return bNeedsUniformBufferUpdate;
+	}
+
+	/** return true if we need to call ConditionalLazyUpdateForRendering */
+	FORCEINLINE bool NeedsLazyUpdateForRendering()
+	{
+		return NeedsUniformBufferUpdate() || NeedsUpdateStaticMeshes();
+	}
+
 	/** Updates the primitive's static meshes in the scene. */
 	void UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
 
@@ -265,6 +277,25 @@ public:
 		{
 			UpdateStaticMeshes(RHICmdList);
 		}
+	}
+
+	/** Updates the primitive's uniform buffer. */
+	void UpdateUniformBuffer(FRHICommandListImmediate& RHICmdList);
+
+	/** Updates the primitive's uniform buffer. */
+	FORCEINLINE void ConditionalUpdateUniformBuffer(FRHICommandListImmediate& RHICmdList)
+	{
+		if (NeedsUniformBufferUpdate())
+		{
+			UpdateUniformBuffer(RHICmdList);
+		}
+	}
+
+	/** Updates all lazy data for the rendering. */
+	FORCEINLINE void ConditionalLazyUpdateForRendering(FRHICommandListImmediate& RHICmdList)
+	{
+		ConditionalUpdateUniformBuffer(RHICmdList);
+		ConditionalUpdateStaticMeshes(RHICmdList);
 	}
 
 	/** Sets a flag to update the primitive's static meshes before it is next rendered. */
@@ -323,6 +354,11 @@ public:
 	 */
 	void ApplyWorldOffset(FVector InOffset);
 
+	FORCEINLINE void SetNeedsUniformBufferUpdate(bool bInNeedsUniformBufferUpdate)
+	{
+		bNeedsUniformBufferUpdate = bInNeedsUniformBufferUpdate;
+	}
+
 private:
 
 	/** Let FScene have direct access to the Id. */
@@ -341,8 +377,11 @@ private:
 	 */
 	const UPrimitiveComponent* ComponentForDebuggingOnly;
 
-	/** If this is TRUE, this primitive's static meshes need to be updated before it can be rendered. */
+	/** If this is TRUE, this primitive's static meshes needs to be updated before it can be rendered. */
 	bool bNeedsStaticMeshUpdate;
+
+	/** If this is TRUE, this primitive's uniform buffer needs to be updated before it can be rendered. */
+	bool bNeedsUniformBufferUpdate;
 };
 
 /** Defines how the primitive is stored in the scene's primitive octree. */

@@ -47,6 +47,13 @@ public:
 	virtual void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, class FDynamicSkelMeshObjectData* InDynamicData) = 0;
 
 	/**
+	 * Called by FSkeletalMeshObject prior to GDME. This allows the GPU skin version to update bones etc now that we know we are going to render
+	 */
+	virtual void PreGDMECallback()
+	{
+	}
+
+	/**
 	 * @param	LODIndex - each LOD has its own vertex data
 	 * @param	ChunkIdx - not used
 	 * @return	vertex factory for rendering the LOD

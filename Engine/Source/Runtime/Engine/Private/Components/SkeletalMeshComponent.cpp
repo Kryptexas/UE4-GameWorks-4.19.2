@@ -168,20 +168,20 @@ void USkeletalMeshComponent::RegisterPreClothTick(bool bRegister)
 {
 	if (bRegister != PreClothTickFunction.IsTickFunctionRegistered())
 	{
-		if (bRegister)
+	if (bRegister)
+	{
+		if (SetupActorComponentTickFunction(&PreClothTickFunction))
 		{
-			if (SetupActorComponentTickFunction(&PreClothTickFunction))
+			PreClothTickFunction.Target = this;
+			// Set a prereq for the pre cloth tick to happen after physics is finished
+			if (World != NULL)
 			{
-				PreClothTickFunction.Target = this;
-				// Set a prereq for the pre cloth tick to happen after physics is finished
-				if (World != NULL)
-				{
-					PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
-				}
+				PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
 			}
 		}
-		else
-		{
+	}
+	else
+	{
 			PreClothTickFunction.UnRegisterTickFunction();
 		}
 	}
@@ -1031,6 +1031,10 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
 }
 
+static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
+	TEXT("tick.HiPriSkinnedMeshes"),1,
+	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
+
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
@@ -1059,7 +1063,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	//Dont mark cache as invalid if we aren't performing optimization anyway
 	const bool bInvalidCachedBones = bDoEvaluationRateOptimization &&
 									 ((LocalAtoms.Num() != SkeletalMesh->RefSkeleton.GetNum())
-									 || (LocalAtoms.Num() != CachedLocalAtoms.Num())
+									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
 									 || (GetNumSpaceBases() != CachedSpaceBases.Num()));
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams->ShouldSkipEvaluation();
@@ -1097,6 +1101,14 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	if (bDoParallelEvaluation)
 	{
+		// this makes no sense to do on the fly. If we want to use hipri ticks, this needs to be done at register time
+		// this does allow us to toggle it easily for performance testing
+		bool bDoHiPri = CVarHiPriSkinnedMeshesTicks.GetValueOnGameThread() > 0;
+		if (TickFunction->bHighPriority != bDoHiPri)
+		{
+			TickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
+		}
+
 		if (SkeletalMesh->RefSkeleton.GetNum() != AnimEvaluationContext.LocalAtoms.Num())
 		{
 			// Initialize Parallel Task arrays
@@ -1116,8 +1128,8 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 		if ( TickFunction )
 		{
-			TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
-		}
+		TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
+	}
 	}
 	else
 	{
@@ -1270,8 +1282,8 @@ FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWor
 			MasterPoseComponentInst->IsA((USkeletalMeshComponent::StaticClass())))
 		{
 			const USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponentInst);
-			RootBoneOffset = BaseComponent->RootBoneTranslation; // Adjust bounds by root bone translation
-		}
+		RootBoneOffset = BaseComponent->RootBoneTranslation; // Adjust bounds by root bone translation
+	}
 	}
 
 	FBoxSphereBounds NewBounds = CalcMeshBound( RootBoneOffset, bHasValidBodies, LocalToWorld );
@@ -2082,7 +2094,7 @@ void USkeletalMeshComponent::ValidateAnimation()
 		{
 			if (SkeletalMesh->Skeleton)
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("Animation %s is incompatible with skeleton %s, removing animation from actor."), *AnimationData.AnimToPlay->GetName(), *SkeletalMesh->Skeleton->GetName());
+			UE_LOG(LogAnimation, Warning, TEXT("Animation %s is incompatible with skeleton %s, removing animation from actor."), *AnimationData.AnimToPlay->GetName(), *SkeletalMesh->Skeleton->GetName());
 			}
 			else
 			{
@@ -2098,7 +2110,7 @@ void USkeletalMeshComponent::ValidateAnimation()
 		{
 			if(SkeletalMesh->Skeleton)
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible with skeleton %s, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->Skeleton->GetName());
+			UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible with skeleton %s, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->Skeleton->GetName());
 			}
 			else
 			{

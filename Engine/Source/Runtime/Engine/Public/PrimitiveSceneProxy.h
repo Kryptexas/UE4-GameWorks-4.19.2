@@ -484,6 +484,10 @@ public:
 	 */
 	ENGINE_API virtual void ApplyWorldOffset(FVector InOffset);
 
+	/**
+	 * Updates the primitive proxy's uniform buffer.
+	 */
+	ENGINE_API void UpdateUniformBuffer();
 
 protected:
 
@@ -751,6 +755,11 @@ private:
 	 * @param InLocalBounds - The local space bounds of the primitive.
 	 */
 	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector ActorPosition);
+
+	/**
+	 * Either updates the uniform buffer or defers it until it becomes visible depending on a cvar
+	 */
+	ENGINE_API void UpdateUniformBufferMaybeLazy();
 
 	/** Updates the hidden editor view visibility map on the render thread */
 	void SetHiddenEdViews_RenderThread( uint64 InHiddenEditorViews );

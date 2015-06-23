@@ -983,8 +983,6 @@ public:
 } FileProfileWrapperExec;
 #endif // !UE_BUILD_SHIPPING
 
-
-
 #if ENABLE_COLLISION_ANALYZER
 #include "CollisionAnalyzerModule.h"
 extern bool GCollisionAnalyzerIsRecording;
@@ -996,6 +994,16 @@ static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
 	0,
 	TEXT("If set to 1, the engine will attempt to trigger GC each frame while async loading."));
 #endif
+
+DECLARE_CYCLE_STAT(TEXT("TG_PrePhysics"), STAT_TG_PrePhysics, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_StartPhysics"), STAT_TG_StartPhysics, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("Start TG_DuringPhysics"), STAT_TG_DuringPhysics, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_EndPhysics"), STAT_TG_EndPhysics, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_PreCloth"), STAT_TG_PreCloth, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_StartCloth"), STAT_TG_StartCloth, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_EndCloth"), STAT_TG_EndCloth, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_PostPhysics"), STAT_TG_PostPhysics, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("TG_PostUpdateWork"), STAT_TG_PostUpdateWork, STATGROUP_TickGroups);
 
 static float GTimeBetweenPurgingPendingKillObjects = 60.0f;
 static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
@@ -1136,27 +1144,48 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		TickGroup = TG_PrePhysics; // reset this to the start tick group
 		FTickTaskManagerInterface::Get().StartFrame(this, DeltaSeconds, TickType);
 
-		///////////////////
-		// There is an opportunity for the game thread to do a ms or two of work here "for free" while the tick scheduling proceeds on other cores.
-		// We can run any code that doesn't affect the registration, enabled state lifetime or basically anything else relating to any FTickFunction
-
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_PrePhysics);
 		RunTickGroup(TG_PrePhysics);
+		}
         bInTick = false;
         EnsureCollisionTreeIsBuilt();
         bInTick = true;
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_StartPhysics);
 		RunTickGroup(TG_StartPhysics); 
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_DuringPhysics);
+			QUICK_SCOPE_CYCLE_COUNTER(FStat_Tick_PostPhysics);
 		RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
+		}
 		TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
 		RunTickGroup(TG_EndPhysics);
+		}
 		if ( PhysicsScene != NULL )
 		{
 			PhysicsScene->DeferredCommandHandler.Flush();
 		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_PreCloth);
 		RunTickGroup(TG_PreCloth);
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_StartCloth);
 		RunTickGroup(TG_StartCloth);
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_EndCloth);
 		RunTickGroup(TG_EndCloth);
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);
 		RunTickGroup(TG_PostPhysics);
+	}
 	}
 	else if( bIsPaused )
 	{
@@ -1249,7 +1278,10 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if (bDoingActorTicks)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_PostUpdateWork);
 		RunTickGroup(TG_PostUpdateWork);
+		}
 		FTickTaskManagerInterface::Get().EndFrame(); 
 
 		// All tick is done, execute async trace

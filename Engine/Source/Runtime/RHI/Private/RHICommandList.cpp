@@ -553,18 +553,26 @@ struct FRHICommandRHIThreadFence : public FRHICommand<FRHICommandRHIThreadFence>
 };
 
 
-FGraphEventRef FRHICommandListImmediate::RHIThreadFence()
-	{
+FGraphEventRef FRHICommandListImmediate::RHIThreadFence(bool bSetLockFence)
+{
 	check(IsInRenderingThread() && GRHIThread);
 	FRHICommandRHIThreadFence* Cmd = new (AllocCommand<FRHICommandRHIThreadFence>()) FRHICommandRHIThreadFence();
+	if (bSetLockFence)
+	{
+		RHIThreadBufferLockFence = Cmd->Fence;
+	}
 	return Cmd->Fence;
-	}		
+}		
 	
 void FRHICommandListExecutor::WaitOnRHIThreadFence(FGraphEventRef& Fence)
 {
 	check(IsInRenderingThread());
 	if (Fence.GetReference() && !Fence->IsComplete())
 	{
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_WaitOnRHIThreadFence_Dispatch);
+			GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // necessary to prevent deadlock
+		}
 		check(GRHIThread);
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_WaitOnRHIThreadFence_Wait);
 		if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
@@ -1490,20 +1498,22 @@ static struct FLockTracker
 {
 	struct FLockParams
 	{
+		void* RHIBuffer;
 		void* Buffer;
 		uint32 BufferSize;
 		uint32 Offset;
 		EResourceLockMode LockMode;
 
-		FORCEINLINE_DEBUGGABLE FLockParams(void* InBuffer, uint32 InOffset, uint32 InBufferSize, EResourceLockMode InLockMode)
-			: Buffer(InBuffer)
+		FORCEINLINE_DEBUGGABLE FLockParams(void* InRHIBuffer, void* InBuffer, uint32 InOffset, uint32 InBufferSize, EResourceLockMode InLockMode)
+			: RHIBuffer(InRHIBuffer)
+			, Buffer(InBuffer)
 			, BufferSize(InBufferSize)
 			, Offset(InOffset)
 			, LockMode(InLockMode)
 		{
 		}
 	};
-	TMap<void *, FLockParams> OutstandingLocks;
+	TArray<FLockParams, TInlineAllocator<16> > OutstandingLocks;
 	uint32 TotalMemoryOutstanding;
 
 	FLockTracker()
@@ -1511,15 +1521,30 @@ static struct FLockTracker
 		TotalMemoryOutstanding = 0;
 	}
 
-	void Lock(void* RHIBuffer, void* Buffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
+	FORCEINLINE_DEBUGGABLE void Lock(void* RHIBuffer, void* Buffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
 	{
-		check(!OutstandingLocks.Contains(RHIBuffer));
-		OutstandingLocks.Add(RHIBuffer, FLockParams(Buffer, Offset, SizeRHI, LockMode));
+#if DO_CHECK
+		for (auto& Parms : OutstandingLocks)
+		{
+			check(Parms.RHIBuffer != RHIBuffer);
+		}
+#endif
+		OutstandingLocks.Add(FLockParams(RHIBuffer, Buffer, Offset, SizeRHI, LockMode));
 		TotalMemoryOutstanding += SizeRHI;
 	}
-	FLockParams Unlock(void* RHIBuffer)
+	FORCEINLINE_DEBUGGABLE FLockParams Unlock(void* RHIBuffer)
 	{
-		return OutstandingLocks.FindAndRemoveChecked(RHIBuffer);
+		for (int32 Index = 0; Index < OutstandingLocks.Num(); Index++)
+		{
+			if (OutstandingLocks[Index].RHIBuffer == RHIBuffer)
+			{
+				FLockParams Result = OutstandingLocks[Index];
+				OutstandingLocks.RemoveAtSwap(Index, 1, false);
+				return Result;
+			}
+		}
+		check(!"Mismatched RHI buffer locks.");
+		return FLockParams(nullptr, nullptr, 0, 0, RLM_WriteOnly);
 	}
 } GLockTracker;
 
@@ -1532,11 +1557,13 @@ void* FDynamicRHI::LockVertexBuffer_RenderThread(class FRHICommandListImmediate&
 	void* Result;
 	if (!bBuffer || LockMode != RLM_WriteOnly || RHICmdList.Bypass() || !GRHIThread)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockVertexBuffer_Flush);
 		RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
 		Result = GDynamicRHI->RHILockVertexBuffer(VertexBuffer, Offset, SizeRHI, LockMode);
 	}
 	else
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockVertexBuffer_Malloc);
 		Result = FMemory::Malloc(SizeRHI, 16);
 	}
 	check(Result);
@@ -1560,9 +1587,10 @@ void FDynamicRHI::UnlockVertexBuffer_RenderThread(class FRHICommandListImmediate
 	else
 	{
 		new (RHICmdList.AllocCommand<FRHICommandUpdateVertexBuffer>()) FRHICommandUpdateVertexBuffer(VertexBuffer, Params.Buffer, Params.Offset, Params.BufferSize);
-		RHIThreadBufferLockFence = RHICmdList.RHIThreadFence();
+		RHICmdList.RHIThreadFence(true);
 		if (GLockTracker.TotalMemoryOutstanding > 256 * 1024)
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockVertexBuffer_FlushForMem);
 			// we could be loading a level or something, lets get this stuff going
 			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); 
 			GLockTracker.TotalMemoryOutstanding = 0;
@@ -1578,11 +1606,13 @@ void* FDynamicRHI::LockIndexBuffer_RenderThread(class FRHICommandListImmediate& 
 	void* Result;
 	if (!bBuffer || LockMode != RLM_WriteOnly || RHICmdList.Bypass() || !GRHIThread)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockIndexBuffer_Flush);
 		RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
 		Result = GDynamicRHI->RHILockIndexBuffer(IndexBuffer, Offset, SizeRHI, LockMode);
 	}
 	else
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockIndexBuffer_Malloc);
 		Result = FMemory::Malloc(SizeRHI, 16);
 	}
 	check(Result);
@@ -1606,9 +1636,10 @@ void FDynamicRHI::UnlockIndexBuffer_RenderThread(class FRHICommandListImmediate&
 	else
 	{
 		new (RHICmdList.AllocCommand<FRHICommandUpdateIndexBuffer>()) FRHICommandUpdateIndexBuffer(IndexBuffer, Params.Buffer, Params.Offset, Params.BufferSize);
-		RHIThreadBufferLockFence = RHICmdList.RHIThreadFence();
+		RHICmdList.RHIThreadFence(true);
 		if (GLockTracker.TotalMemoryOutstanding > 256 * 1024)
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockIndexBuffer_FlushForMem);
 			// we could be loading a level or something, lets get this stuff going
 			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); 
 			GLockTracker.TotalMemoryOutstanding = 0;
@@ -1666,7 +1697,7 @@ void FRHICommandListImmediate::UpdateTextureReference(FTextureReferenceRHIParamR
 		return;
 	}
 	new (AllocCommand<FRHICommandUpdateTextureReference>()) FRHICommandUpdateTextureReference(TextureRef, NewTexture);
-	RHIThreadBufferLockFence = RHIThreadFence();
+	RHIThreadFence(true);
 	if (GetUsedMemory() > 256 * 1024)
 	{
 		// we could be loading a level or something, lets get this stuff going
