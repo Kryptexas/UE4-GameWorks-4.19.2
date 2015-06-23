@@ -5599,49 +5599,55 @@ public class GUBP : BuildCommand
 				}
 				foreach (var ProgramTarget in Branch.BaseEngineProject.Properties.Programs)
 				{
-					bool bInternalOnly;
-					bool SeparateNode;
-					bool CrossCompile;
+                    if (!BranchOptions.ExcludeNodes.Contains(ProgramTarget.TargetName))
+                    {
+                        bool bInternalOnly;
+                        bool SeparateNode;
+                        bool CrossCompile;
 
-					if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode && !BranchOptions.ExcludeNodes.Contains(ProgramTarget.TargetName))
-					{
-						if (bInternalOnly)
-						{
-							AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));						
-						}
-						else
-						{
-							AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
-						}				
-					}
-					if (ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
-					{
-						AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
-					}
+                        if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+                        {
+                            if (bInternalOnly)
+                            {
+                                AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
+                            }
+                            else
+                            {
+                                AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
+                            }
+                        }
+                        if (ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
+                        {
+                            AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
+                        }
+                    }
 				}
 				foreach(var CodeProj in Branch.CodeProjects)
 				{
 					foreach(var ProgramTarget in CodeProj.Properties.Programs)
 					{
-						bool bInternalNodeOnly;
-						bool SeparateNode;
-						bool CrossCompile;
+                        if (!BranchOptions.ExcludeNodes.Contains(ProgramTarget.TargetName))
+                        {
+                            bool bInternalNodeOnly;
+                            bool SeparateNode;
+                            bool CrossCompile;
 
-						if(ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalNodeOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode && !BranchOptions.ExcludeNodes.Contains(ProgramTarget.TargetName))
-						{
-							if(bInternalNodeOnly)
-							{
-								AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
-							}
-							else
-							{
-								AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
-							}
-						}
-						if(ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
-						{
-							AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
-						}
+                            if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalNodeOnly, out SeparateNode, out CrossCompile) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+                            {
+                                if (bInternalNodeOnly)
+                                {
+                                    AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
+                                }
+                                else
+                                {
+                                    AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
+                                }
+                            }
+                            if (ProgramTarget.Rules.GUBP_IncludeNonUnityToolTest())
+                            {
+                                AddNode(new NonUnityToolNode(HostPlatform, ProgramTarget));
+                            }
+                        }
 					}
 				}
 
