@@ -7,8 +7,6 @@ Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 
 [TOC(start:2)]
 
-## Overview
-
 If you are not familiar with programming terms, the best way to think of an **Array** is that it is a collection of variables of the same type, contained within a single entity. For example, if you were to create a **Float** Array, that Array would only be able to hold Float variables in it. Once you have an Array created, you can access individual variables within the Array and modify them or modify all the items in the Array at once (which greatly improves repetitive tasks by doing it all at once versus individually). 
 
 On this page, you will learn how to create Array variables inside a Blueprint as well as using the **Make Array** node to build an Array. Once you understand how to create an Array, you can check out the **Example Array Usage** section for some sample use cases for working with Arrays. 

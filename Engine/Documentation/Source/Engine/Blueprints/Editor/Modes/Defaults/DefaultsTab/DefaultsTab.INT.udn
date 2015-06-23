@@ -5,8 +5,6 @@ Description:An overview of the Blueprints Defaults tab
 
 [TOC (start:2)]
 
-## Overview
-
 The **Class Defaults** tab contains information about the Blueprint's default settings and properties, and about any variables the Blueprint contains. You can modify these settings to suit your needs.
 
 [REGION:raw]
