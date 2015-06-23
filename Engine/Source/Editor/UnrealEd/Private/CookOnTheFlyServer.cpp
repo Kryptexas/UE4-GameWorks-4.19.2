@@ -2257,11 +2257,6 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 					Package->PackageFlags &= ~PKG_FilterEditorOnly;
 				}
 
-				if (World)
-				{
-					World->PersistentLevel->OwningWorld = World;
-				}
-
 				// need to subtract 32 because the SavePackage code creates temporary files with longer file names then the one we provide
 				// projects may ignore this restriction if desired
 				static bool bConsiderCompressedPackageFileLengthRequirements = ShouldConsiderCompressedPackageFileLengthRequirements();
@@ -2279,7 +2274,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false );
 					INC_INT_STAT(SavedPackage, 1);
 				}
-				
+
 				bOutWasUpToDate = false;
 			}
 			else

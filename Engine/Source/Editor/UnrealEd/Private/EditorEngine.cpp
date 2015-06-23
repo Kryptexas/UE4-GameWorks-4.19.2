@@ -3683,6 +3683,8 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 
 	UWorld* World = Cast<UWorld>(Base);
 	bool bInitializedPhysicsSceneForSave = false;
+	
+	UWorld *OriginalOwningWorld = nullptr;
 	if ( World )
 	{
 		// We need a physics scene at save time in case code does traces during onsave events.
@@ -3699,6 +3701,9 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 		{
 			bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
 		}
+
+		OriginalOwningWorld = World->PersistentLevel->OwningWorld;
+		World->PersistentLevel->OwningWorld = World;
 
 		// If we didn't find any physics scene we will synthesize one and remove it after save
 		if (!bHasPhysicsScene)
@@ -3766,6 +3771,11 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 	if ( World )
 	{
 		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, bSuccess);
+
+		if (OriginalOwningWorld)
+		{
+			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
+		}
 
 		if (bInitializedPhysicsSceneForSave)
 		{
