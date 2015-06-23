@@ -679,6 +679,7 @@ public:
 		EyeAdaptationRT.SafeRelease();
 		SeparateTranslucencyRT.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
+		PendingTemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();
 		DOFHistoryRT2.SafeRelease();
 		SSRHistoryRT.SafeRelease();
