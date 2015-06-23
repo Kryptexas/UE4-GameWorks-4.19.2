@@ -1716,23 +1716,26 @@ void AActor::FellOutOfWorld(const UDamageType& dmgType)
 	Destroy();
 }
 
-void AActor::MakeNoise(float Loudness, APawn* NoiseInstigator, FVector NoiseLocation)
+void AActor::MakeNoise(float Loudness, APawn* NoiseInstigator, FVector NoiseLocation, float MaxRange, FName Tag)
 {
 	NoiseInstigator = NoiseInstigator ? NoiseInstigator : Instigator;
 	if ((GetNetMode() != NM_Client) && NoiseInstigator)
 	{
 		AActor::MakeNoiseDelegate.Execute(this, Loudness, NoiseInstigator
-			, NoiseLocation.IsZero() ? GetActorLocation() : NoiseLocation);
+			, NoiseLocation.IsZero() ? GetActorLocation() : NoiseLocation
+			, MaxRange
+			, Tag);
 	}
 }
 
-void AActor::MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation)
+void AActor::MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation, float MaxRange, FName Tag)
 {
 	check(NoiseMaker);
 
 	UPawnNoiseEmitterComponent* NoiseEmitterComponent = NoiseInstigator->GetPawnNoiseEmitterComponent();
 	if (NoiseEmitterComponent)
 	{
+		// Note: MaxRange and Tag are not supported for this legacy component. Use AISense_Hearing instead.
 		NoiseEmitterComponent->MakeNoise( NoiseMaker, Loudness, NoiseLocation );
 	}
 }
