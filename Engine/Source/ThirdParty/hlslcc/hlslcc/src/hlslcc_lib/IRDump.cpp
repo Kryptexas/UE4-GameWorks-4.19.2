@@ -180,7 +180,7 @@ void DebugPrintVisitor::visit(ir_expression* ir)
 
 	if (ir->get_num_operands() == 1)
 	{
-		irdump_printf("%s", ir->operator_string());
+		irdump_printf("%s ", ir->operator_string());
 		ir->operands[0]->accept(this);
 	}
 	else
@@ -242,6 +242,10 @@ void DebugPrintVisitor::visit(ir_texture* ir)
 				irdump_printf(",");
 				ir->offset->accept(this);
 			}
+			break;
+
+		case ir_txm:
+			irdump_printf(".get_num_mip_levels()");
 			break;
 
 		case ir_txb:
@@ -565,7 +569,7 @@ void DebugPrintVisitor::visit(ir_loop* ir)
 	{
 		ir->to->accept(this);
 	}
-	irdump_printf("; ");
+	irdump_printf(";");
 	if (ir->increment != NULL)
 	{
 		ir->increment->accept(this);
@@ -583,20 +587,8 @@ void DebugPrintVisitor::visit(ir_loop_jump* ir)
 
 void DebugPrintVisitor::visit(ir_atomic* ir)
 {
-	static const char *AtomicFunctions[] =
-	{
-		"imageAtomicAdd",
-		"imageAtomicAnd",
-		"imageAtomicMin",
-		"imageAtomicMax",
-		"imageAtomicOr",
-		"imageAtomicXor",
-		"imageAtomicExchange",
-		"imageAtomicCompSwap"
-	};
-
 	ir->lhs->accept(this);
-	irdump_printf(" = %s(&", AtomicFunctions[ir->operation]);
+	irdump_printf(" = %s(&", ir->operator_string());
 	ir->memory_ref->accept(this);
 	irdump_printf(", ");
 	ir->operands[0]->accept(this);
@@ -605,7 +597,7 @@ void DebugPrintVisitor::visit(ir_atomic* ir)
 		irdump_printf(", ");
 		ir->operands[1]->accept(this);
 	}
-	irdump_printf(")");
+	irdump_printf(")\n;");
 }
 
 void DebugPrintVisitor::PrintID(ir_instruction * ir)
@@ -624,6 +616,12 @@ void DebugPrintVisitor::Indent()
 void DebugPrintVisitor::PrintType(const glsl_type* Type)
 {
 	irdump_printf("%s", Type->name);
+	if (Type->inner_type)
+	{
+		irdump_printf("<");
+		PrintType(Type->inner_type);
+		irdump_printf(">");
+	}
 }
 
 std::string DebugPrintVisitor::GetVarName(ir_variable* var)

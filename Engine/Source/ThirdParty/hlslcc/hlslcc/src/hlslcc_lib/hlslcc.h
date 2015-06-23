@@ -54,6 +54,8 @@ enum EHlslCompileFlag
 	HLSLCC_ExpandSubexpressions = 0x200,
 	// Generate shaders compatible with the separate_shader_objects extension
 	HLSLCC_SeparateShaderObjects = 0x400,
+	// Finds variables being used as atomics and changes all references to use atomic reads/writes
+	HLSLCC_FixAtomicReferences = 0x800,
 };
 
 /**

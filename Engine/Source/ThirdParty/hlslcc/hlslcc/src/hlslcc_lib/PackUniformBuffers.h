@@ -83,6 +83,12 @@ bool ExtractSamplerStatesNameInformation(exec_list* Instructions, _mesa_glsl_par
 // Expands matrices to arrays to help on some cases (e.g., non-square matrices on ES 2)
 bool ExpandMatricesIntoArrays(exec_list* Instructions, _mesa_glsl_parse_state* ParseState);
 
+// Find all variables that are at any point used by an atomic instruction
+void FindAtomicVariables(exec_list* ir, TIRVarSet& OutAtomicVariables);
+
+// Find all variables that are at any point used by an atomic instruction
+void FixAtomicReferences(exec_list* ir, _mesa_glsl_parse_state* State, TIRVarSet& AtomicVariables);
+
 #endif
 
 

@@ -269,6 +269,14 @@ bool FHlslCrossCompilerContext::RunBackend(
 		return false;
 	}
 
+	// Fix the case where a variable is used with an atomic and also w/o an atomic access
+	if (Flags & HLSLCC_FixAtomicReferences)
+	{
+		TIRVarSet AtomicVariables;
+		FindAtomicVariables(ir, AtomicVariables);
+		FixAtomicReferences(ir, ParseState, AtomicVariables);
+	}
+
 	{
 		// Extract sampler states
 		if (!ExtractSamplerStatesNameInformation(ir, ParseState))

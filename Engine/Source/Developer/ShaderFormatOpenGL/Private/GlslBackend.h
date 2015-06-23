@@ -30,6 +30,9 @@ public:
 
 	virtual bool SupportsMatrixConversions() const override { return true; }
 
+	//#todo-rco: Enable
+	virtual bool AllowsSharingSamplers() const override { return false; }
+
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir) override;
 };
 

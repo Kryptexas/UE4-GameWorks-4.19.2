@@ -32,6 +32,10 @@
 #include "glsl_types.h"
 #include "macros.h"
 
+int ir_instruction::ID = 0;
+#if DEBUG
+int ir_instruction::BREAK_ON_ID = -1;
+#endif
 
 ir_rvalue::ir_rvalue()
 {

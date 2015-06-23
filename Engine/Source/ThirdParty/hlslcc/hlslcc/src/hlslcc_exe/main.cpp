@@ -95,6 +95,7 @@ struct FGlslLanguageSpec : public ILanguageSpec
 	virtual bool SupportsDeterminantIntrinsic() const {return false;}
 	virtual bool SupportsTransposeIntrinsic() const {return false;}
 	virtual bool SupportsIntegerModulo() const {return true;}
+	virtual bool AllowsSharingSamplers() const { return false; }
 
 	// half3x3 <-> float3x3
 	virtual bool SupportsMatrixConversions() const {return false;}

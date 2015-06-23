@@ -26,6 +26,8 @@ public:
 
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir) override;
 
+	virtual bool AllowsSharingSamplers() const override { return true; }
+
 	virtual bool UseSamplerInnerType() const { return true; }
 };
 
