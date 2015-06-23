@@ -478,17 +478,24 @@ public:
 	virtual FString ToString() const override
 	{
 		FString AsString("(");
-		for (TSharedRef<IFExpressionNode> Child : Children)
+		if (Children.Num() > 0)
 		{
-			AsString += Child->ToString();
-			if (Child == Children.Last())
+			for (TSharedRef<IFExpressionNode> Child : Children)
 			{
-				AsString += ")";
+				AsString += Child->ToString();
+				if (Child == Children.Last())
+				{
+					AsString += ")";
+				}
+				else 
+				{
+					AsString += ", ";
+				}
 			}
-			else 
-			{
-				AsString += ", ";
-			}
+		}
+		else
+		{
+			AsString += ")";
 		}
 		return AsString;
 	}
@@ -496,17 +503,24 @@ public:
 	virtual FString ToDisplayString(UBlueprint* InBlueprint) const
 	{
 		FString AsString("(");
-		for (TSharedRef<IFExpressionNode> Child : Children)
+		if (Children.Num() > 0)
 		{
-			AsString += Child->ToDisplayString(InBlueprint);
-			if (Child == Children.Last())
+			for (TSharedRef<IFExpressionNode> Child : Children)
 			{
-				AsString += ")";
+				AsString += Child->ToDisplayString(InBlueprint);
+				if (Child == Children.Last())
+				{
+					AsString += ")";
+				}
+				else 
+				{
+					AsString += ", ";
+				}
 			}
-			else 
-			{
-				AsString += ", ";
-			}
+		}
+		else
+		{
+			AsString += ")";
 		}
 		return AsString;
 	}
