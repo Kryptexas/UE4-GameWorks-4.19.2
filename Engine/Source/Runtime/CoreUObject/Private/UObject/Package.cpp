@@ -194,6 +194,7 @@ void UPackage::BeginDestroy()
 	// Detach linker if still attached
 	if (LinkerLoad)
 	{
+		LinkerLoad->Detach();
 		FLinkerManager::Get().RemoveLinker(LinkerLoad);
 		LinkerLoad = nullptr;
 	}
