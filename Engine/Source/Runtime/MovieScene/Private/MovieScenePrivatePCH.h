@@ -6,7 +6,7 @@
 #include "Core.h"
 #include "Engine.h"
 
-#include "IMovieSceneCore.h"
+#include "IMovieSceneModule.h"
 #include "IMovieScenePlayer.h"
 #include "MovieScene.h"
 #include "MovieSceneSection.h"

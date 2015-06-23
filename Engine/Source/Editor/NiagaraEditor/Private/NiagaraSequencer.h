@@ -5,10 +5,10 @@
 #include "Editor/Sequencer/Public/ISequencerObjectBindingManager.h"
 #include "Editor/Sequencer/Public/MovieSceneTrackEditor.h"
 #include "Editor/Sequencer/Public/ISequencerSection.h"
-#include "Runtime/MovieSceneCore/Classes/MovieScene.h"
-#include "Runtime/MovieSceneCore/Classes/MovieSceneTrack.h"
-#include "Runtime/MovieSceneCore/Public/IMovieSceneTrackInstance.h"
-#include "Runtime/MovieSceneCore/Classes/MovieSceneSection.h"
+#include "Runtime/MovieScene/Public/MovieScene.h"
+#include "Runtime/MovieScene/Public/MovieSceneTrack.h"
+#include "Runtime/MovieScene/Public/IMovieSceneTrackInstance.h"
+#include "Runtime/MovieScene/Public/MovieSceneSection.h"
 
 #include "NiagaraSequencer.generated.h"
 

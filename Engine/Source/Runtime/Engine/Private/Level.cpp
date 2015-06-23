@@ -1714,7 +1714,7 @@ void ULevel::AddMovieSceneBindings( class UMovieSceneBindings* MovieSceneBinding
 	{
 		Modify();
 
-		// @todo sequencer UObjects: Dangerous cast here to work around MovieSceneCore not being a dependency module of engine
+		// @todo sequencer UObjects: Dangerous cast here to work around MovieScene not being a dependency module of engine
 		UObject* ObjectToAdd = (UObject*)MovieSceneBindings;
 		MovieSceneBindingsArray.AddUnique( ObjectToAdd );
 	}

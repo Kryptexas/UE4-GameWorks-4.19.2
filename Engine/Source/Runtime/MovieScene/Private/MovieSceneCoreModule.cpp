@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCorePrivatePCH.h"
+#include "MovieScenePrivatePCH.h"
 #include "ModuleManager.h"
 
 #include "MovieScene.h"
@@ -11,9 +11,9 @@ DEFINE_LOG_CATEGORY(LogSequencerRuntime);
 
 
 /**
- * MovieSceneCore module implementation (private)
+ * MovieScene module implementation (private)
  */
-class FMovieSceneCoreModule : public IMovieSceneCore
+class FMovieSceneModule : public IMovieSceneModule
 {
 
 public:
@@ -25,15 +25,15 @@ public:
 };
 
 
-IMPLEMENT_MODULE( FMovieSceneCoreModule, MovieSceneCore );
+IMPLEMENT_MODULE( FMovieSceneModule, MovieScene );
 
 
 
-void FMovieSceneCoreModule::StartupModule()
+void FMovieSceneModule::StartupModule()
 {
 }
 
 
-void FMovieSceneCoreModule::ShutdownModule()
+void FMovieSceneModule::ShutdownModule()
 {
 }

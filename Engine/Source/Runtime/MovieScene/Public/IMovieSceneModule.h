@@ -6,21 +6,21 @@
 #include "ModuleManager.h"		// For inline LoadModuleChecked()
 
 /**
- * The public interface of the MovieSceneCore module
+ * The public interface of the MovieScene module
  */
-class IMovieSceneCore : public IModuleInterface
+class IMovieSceneModule
+	: public IModuleInterface
 {
-
 public:
 
 	/**
-	 * Singleton-like access to IMovieSceneCore
+	 * Singleton-like access to IMovieScene
 	 *
-	 * @return Returns MovieSceneCore singleton instance, loading the module on demand if needed
+	 * @return Returns MovieScene singleton instance, loading the module on demand if needed
 	 */
-	static inline IMovieSceneCore& Get()
+	static inline IMovieSceneModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IMovieSceneCore >( "MovieSceneCore" );
+		return FModuleManager::LoadModuleChecked< IMovieSceneModule >( "MovieScene" );
 	}
 
 	/**
@@ -30,9 +30,6 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "MovieSceneCore" );
+		return FModuleManager::Get().IsModuleLoaded( "MovieScene" );
 	}
-
-
 };
-

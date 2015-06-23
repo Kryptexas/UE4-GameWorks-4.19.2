@@ -8,17 +8,17 @@ typedef TMap< TWeakObjectPtr<UMovieSceneTrack>, TSharedPtr<class IMovieSceneTrac
 class FMovieSceneInstance : public TSharedFromThis<FMovieSceneInstance>
 {
 public:
-	MOVIESCENECORE_API FMovieSceneInstance( UMovieScene& InMovieScene );
+	MOVIESCENE_API FMovieSceneInstance( UMovieScene& InMovieScene );
 
 	/**
 	* Save state of the objects that this movie scene controls.
 	*/
-	MOVIESCENECORE_API void SaveState ();
+	MOVIESCENE_API void SaveState ();
 
 	/**
 	* Restore state of the objects that this movie scene controls.
 	*/
-	MOVIESCENECORE_API void RestoreState ();
+	MOVIESCENE_API void RestoreState ();
 
 	/**
 	 * Updates this movie scene
@@ -26,13 +26,13 @@ public:
 	 * @param Position The local playback position
 	 * @param Player Movie scene player interface for interaction with runtime data
 	 */
-	MOVIESCENECORE_API void Update( float Position, float LastPosition, class IMovieScenePlayer& Player );
+	MOVIESCENE_API void Update( float Position, float LastPosition, class IMovieScenePlayer& Player );
 
 	/**
 	 * Refreshes the existing instance.  Called when something significant about moviescene data changes (like adding or removing a track)
 	 * Instances all new tracks found and removes instances for tracks that no longer exist
 	 */
-	MOVIESCENECORE_API void RefreshInstance( class IMovieScenePlayer& Player );
+	MOVIESCENE_API void RefreshInstance( class IMovieScenePlayer& Player );
 
 	/** @return The movie scene being instanced */
 	UMovieScene* GetMovieScene() { return MovieScene.Get(); }

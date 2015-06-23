@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCorePrivatePCH.h"
+#include "MovieScenePrivatePCH.h"
 #include "MovieScene.h"
 
 
@@ -48,7 +48,7 @@ UMovieScene::UMovieScene( const FObjectInitializer& ObjectInitializer )
 }
 
 #if WITH_EDITOR
-// @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieSceneCore!
+// @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieScene!
 FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject )
 {
 	check( (Blueprint != NULL) && (Blueprint->GeneratedClass) );

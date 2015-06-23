@@ -3,7 +3,7 @@
 #pragma once
 
 
-#include "Runtime/MovieSceneCore/Public/IMovieScenePlayer.h"
+#include "Runtime/MovieScene/Public/IMovieScenePlayer.h"
 #include "KeyPropertyParams.h"
 
 class UMovieScene;

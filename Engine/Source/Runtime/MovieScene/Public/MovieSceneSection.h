@@ -143,7 +143,7 @@ public:
 	 * @param Time		The time where the key should be added
 	 * @param Value		The value at the given time
 	 */
-	void MOVIESCENECORE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value );
+	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value );
 
 	/**
 	 * Checks to see if this section overlaps with an array of other sections
@@ -154,7 +154,7 @@ public:
 	 * @param TimeDelta		Optional offset to this section's time delta
 	 * @return				The first section that overlaps, or null if there is no overlap
 	 */
-	virtual MOVIESCENECORE_API const UMovieSceneSection* OverlapsWithSections(const TArray<UMovieSceneSection*>& Sections, int32 TrackDelta = 0, float TimeDelta = 0.f) const;
+	virtual MOVIESCENE_API const UMovieSceneSection* OverlapsWithSections(const TArray<UMovieSceneSection*>& Sections, int32 TrackDelta = 0, float TimeDelta = 0.f) const;
 	
 	/**
 	 * Places this section at the first valid row at the specified time. Good for placement upon creation.
@@ -164,7 +164,7 @@ public:
 	 * @param InEndTime		The new end time
 	 * @param bAllowMultipleRows	If false, it will move the section in the time direction to make it fit, rather than the row direction
 	 */
-	virtual MOVIESCENECORE_API void InitialPlacement(const TArray<UMovieSceneSection*>& Sections, float InStartTime, float InEndTime, bool bAllowMultipleRows);
+	virtual MOVIESCENE_API void InitialPlacement(const TArray<UMovieSceneSection*>& Sections, float InStartTime, float InEndTime, bool bAllowMultipleRows);
 
 private:
 	/** The start time of the section */

@@ -21,7 +21,7 @@ public class NiagaraEditor : ModuleRules
 				"GraphEditor", 
 				"VectorVM",
                 "Niagara",
-                "MovieSceneCore",
+                "MovieScene",
 				"Sequencer",
 				"PropertyEditor",
 			}

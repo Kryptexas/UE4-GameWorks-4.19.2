@@ -27,7 +27,7 @@ public class MovieSceneTools : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"MovieSceneCore",
+				"MovieScene",
 				"MovieSceneTracks",
 				"BlueprintGraph",
 				"Slate",

@@ -22,7 +22,7 @@ public class UMG : ModuleRules
 				"SlateCore",
                 "ShaderCore",
 				"RenderCore",
-				"MovieSceneCore",
+				"MovieScene",
 				"RHI",
 			}
 		);

@@ -3,7 +3,7 @@
 #pragma once
 
 
-class MOVIESCENECORE_API MovieSceneHelpers
+class MOVIESCENE_API MovieSceneHelpers
 {
 public:
 	/**
@@ -32,7 +32,7 @@ public:
  * Manages bindings to keyed properties for a track instance. 
  * Calls UFunctions to set the value on runtime objects
  */
-class MOVIESCENECORE_API FTrackInstancePropertyBindings
+class MOVIESCENE_API FTrackInstancePropertyBindings
 {
 public:
 	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName = FName());

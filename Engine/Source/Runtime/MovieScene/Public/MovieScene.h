@@ -4,7 +4,7 @@
 
 #include "MovieScene.generated.h"
 
-MOVIESCENECORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
+MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
 
 /**
  * MovieSceneSpawnable describes an object that can be spawned for this MovieScene

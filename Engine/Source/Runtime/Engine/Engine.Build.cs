@@ -85,7 +85,7 @@ public class Engine : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
-				"MovieSceneCore",
+				"MovieScene",
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",

@@ -2,7 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-#include "Runtime/MovieSceneCore/Classes/MovieScene.h"
+#include "Runtime/MovieScene/Public/MovieScene.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 
 #include "Blueprint/WidgetTree.h"

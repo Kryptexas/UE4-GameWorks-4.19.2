@@ -24,7 +24,7 @@ public class MovieSceneTracks : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"MovieSceneCore",
+				"MovieScene",
 				"SlateCore"
 			}
 		);
