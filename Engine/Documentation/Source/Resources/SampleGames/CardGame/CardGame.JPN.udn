@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465567
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:記憶ゲームのサンプル 
 Crumbs:%ROOT%, Resources
@@ -102,10 +102,10 @@ Related:Engine/Content/Types/StaticMeshes
 ** BP_PlayerControllerMem** _ブループリント_ は Mouse Interface を有効化します。クリック イベントは有効化され、マウスオーバー イベントは有効化されません。クリック イベントを含む _ブループリント_ は **BP_MenuMem** 、**BP_CardMem** 、 **BP_Scoreboard** です。
 これらの **Assign OnClicked** _ノード_ はすべて **ReceivedBeginPlay** からアクティベートされ、プレイヤーがゲームを開始すると発行されます。 
 
-**Assign OnClicked** _ノード_ はデリゲート OnClicked と結びついたイベントを作成します。デリゲートは _ブループリント_ のコンポーネントにステータスを報告しステート変更に応じてイベントをトリガする方法です。   例えば、ゲームの **[Hint Button]** がクリックされると、 
-クリックされたことをボタンが報告し、 **[Hint Button]** の OnClicked デリゲートがトリガされ、並べられた全てのカードをめくるノードのシーケンスをアクティベートします。
+**Assign OnClicked** _ノード_ はデリゲート OnClicked と結びついたイベントを作成します。デリゲートは _ブループリント_ のコンポーネントにステータスを報告しステート変更に応じてイベントをトリガする方法です。   例えば、ゲームの **[Hint]** ボタンがクリックされると、 
+クリックされたことをボタンが報告し、 **[Hint]** ボタンの OnClicked デリゲートがトリガされ、並べられた全てのカードをめくるノードのシーケンスをアクティベートします。
 
-変数 **BlockClick** はプレイヤーがめくったカードまたはめくる過程にあるカードをクリックしないようにします。
+変数 **BlockClick** は、プレイヤーがめくったカードまたはめくる過程にあるカードをクリックしないようにします。
 
 ## フローズン カメラ
 **BP_LogicMem** _ブループリント_ は **SpectatorPawn** をデフォルトの Pawn クラスとして定義します。記憶ゲーム用の _Level ブループリント_ は PlayerStart に **SpectatorPawn** を配置し、 
@@ -262,7 +262,7 @@ Related:Engine/Content/Types/StaticMeshes
 
 各メニューは `Construct()` 関数によって _構成_ されています。この関数は、サブアイテムを含む必要不可欠のメニュー アイテムを全て追加し、必要な箇所へデリゲートをアタッチします。 
 これは、 `AddMenuItem()` や `AddMenuItemSP()` など、ヘルパーメソッドを使用して処理され、 
-「SShooterMenuWidget.h`」ファイルの `MenuHelper` ネームスペースで定義されます。
+`SShooterMenuWidget.h` ファイルの `MenuHelper` ネームスペースで定義されます。
 
 前回のメニューへのナビゲーションはメニューへの共有ポインタの配列を使用し、メニュー ウィジェットの `MenuHistory` 変数に格納されます。 
 `MenuHistory` 変数はこれまでに入力されたメニューを保持するスタックのような振る舞いをし、復元を簡単にします。このメソッドを使用することによって、 
@@ -286,7 +286,7 @@ Related:Engine/Content/Types/StaticMeshes
 
 
 インゲームメニューは `AShooterPlayerController` クラスの `PostInitializeComponents()` 関数で作成され、 
- `OnToggleInGameMenu()` 関数を経由して開いたり閉じたりします。
+`OnToggleInGameMenu()` 関数を経由して開いたり閉じたりします。
 
 ### オプション メニュー
 
