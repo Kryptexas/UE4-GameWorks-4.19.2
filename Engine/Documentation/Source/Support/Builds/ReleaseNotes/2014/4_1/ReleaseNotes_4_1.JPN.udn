@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2074151
-Title:Unreal Unreal Engine 4.1 リリースノート
+﻿INTSourceChangelist:2591123
+Title:Unreal Engine 4.1 リリース ノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -38,8 +38,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 ##### PlayStation 4 と Xbox One をサポート
 
 * PlayStation 4 と Xbox One に完全に対応しました。
-	![](xboxone_ps4.png)
 
+	![](xboxone_ps4.png)
 
 * Microsoft または SCE で開発者登録しているデベロッパーは、Xbox One または PlayStation 4 のためのエンジン ソースをそれぞれ利用できるようになりました。
 * 現在のところ、PlayStation 4 または Xbox One にプロジェクトをデプロイするには、Windows コンピュータを使って GitHub から得たソースをコンパイルする必要があります。 
@@ -58,7 +58,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 [PUBLISH:Rocket]
 ##### Elemental デモ
 
-PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデモを覚えていますか？Elemental は、アンリアル・エンジン 4 のレンダリング機能を紹介する驚異のデモです。最高性能を誇るそのレンダリング機能には、動的な光源処理とシャドウイング、リアルタイム リフレクション、GPU によるパーティクル エフェクトが含まれています。
+* PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデモを覚えていますか？Elemental は、アンリアル・エンジン 4 のレンダリング機能を紹介する驚異のデモです。最高性能を誇るそのレンダリング機能には、動的な光源処理とシャドウイング、リアルタイム リフレクション、GPU によるパーティクル エフェクトが含まれています。
 
 	![](Elemental.png)
 
@@ -119,7 +119,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 
 #####Asset Deletion Assistant (アセット削除アシスタント)
 
-この機能を使用すると、インタラクティブに参照を調べ、修正できるようになるため、簡単にアセットを削除できます。 
+* この機能を使用すると、インタラクティブに参照を調べ、修正できるようになるため、簡単にアセットを削除できます。 
 
 	![](DeleteAssetTool001.png)
 
@@ -145,9 +145,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 
 	![](UndoHistory02.png)
 
-
 * Window メニューから Undo History (元に戻す履歴) ウィンドウを開くことができます。(Window > Undo History)。     
-
 ##### New:ビューポート操作のリマップ 
 
 * ビューポートのための WASD 操作をユーザーがリマップできるようになりました。 
@@ -185,7 +183,6 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 
 	![](JumpToConnections.png)
 
-
 #####クラスの動的キャスティング 
 
 * ブループリント内で互換性のある型のオブジェクト同士を安全に変換できるようになりました。
@@ -219,7 +216,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
     * C++ プロジェクトを新たなバージョンのアンリアル・エンジンのために再コンパイルする必要があります。
     * ゲームのフォルダから .uproject ファイルを見つけ、右クリックします (Mac の場合は、Command + クリックでも可能です)。
     * **Switch Unreal Engine Version (アンリアル・エンジンのバージョンを切り替える) を選択 ->   4.1**	(Mac では、Services メニュー内にあります)。
-    *右クリックして新たな C++ プロジェクト ファイルを作成し、通常通りゲームを再コンパイルします。
+    * 右クリックして新たな C++ プロジェクト ファイルを作成し、通常通りゲームを再コンパイルします。
     * 注記：注記: C++ の API の中にはバージョン間で変更されたものもあるため、コンパイル エラーが生じる場合があります。詳しくは **API Changes (API の変更 ) ** のセクションをご覧ください。
 
 ご不便をおかけして申し訳ございません。将来のバージョンのために、現在アップグレード プロセスを簡略化する作業を行っております。
@@ -238,10 +235,11 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 
 #### 謝辞
 
-今回のリリースのコードに貢献していただいた素晴らしいデベロッパーの方々全員に感謝を申し上げます！
+今回のリリースのコードに貢献していただいた素晴らしいデベロッパーの方々全員に感謝を申し上げます！　
 
 * **Allar (Michael Allar)**
     * D3D11RHI をサポートするための共有テクスチャ リソースを追加。 [Added Shared Texture resource support for D3D11RHI](https://github.com/EpicGames/UnrealEngine/pull/6)
+
 * **AndrewScheidecker (Andrew Scheidecker)**
     * Actor->Acor K2 のリダイレクトのタイポを修正。 [Fix Actor->Acor K2 redirect typo](https://github.com/EpicGames/UnrealEngine/pull/28)
 
@@ -310,14 +308,14 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 	* New:Particle System Tutorials: (パーティクル システム チュートリアル)VFX [Lesson 1](https://wiki.unrealengine.com/Visual_Effects:_Lesson_01:_Material_Particle_Color), [Lesson 2](https://wiki.unrealengine.com/Visual_Effects:_Lesson_02:_Using_Depth_Fade) Tim Elek 著
 	* New: [Matinee Tutorial](https://wiki.unrealengine.com/Matinee_Basics:_Creating_Your_First_Matinee_Sequence) (マチネ チュートリアル)  Greg Mitchell 著
 * **ドキュメンテーション**
-	* **アンリアル エディタのマニュアル**
-		* New: [ブループリントの虎の巻](Engine/Blueprints/UserGuide/CheatSheet)  
-		* New: [ライトプロパゲーション ボリューム](Engine/Rendering/LightingAndShadows/LightPropagationVolumes) 
-		* New: [シャドウのプレビュー](Engine/Rendering/LightingAndShadows/Shadows#シャドウのプレビュー) 
-		* New: [ピボット ペインター](Engine/Content/Tools/PivotPainter) 
-		* New: [Mac 用ビューポート操作のクイック レファレンス](Engine/UI/LevelEditor/Viewports/ViewportControls) 
-	* **Programming Guide**
-		* New:コードブロックのハイライト 
+	**アンリアル エディタのマニュアル**
+		* New:[Blueprint Cheat Sheet](Engine/Blueprints/UserGuide/CheatSheet)
+		* New:[Light Propagation Volumes](Engine/Rendering/LightingAndShadows/LightPropagationVolumes)
+		* New:[Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows#previewshadows)
+		* New:[Pivot Painter](Engine/Content/Tools/PivotPainter)
+		* New:[Mac Viewport Controls クイック リファレンス](Engine/UI/LevelEditor/Viewports/ViewportControls) 
+	* **プログラミングのガイド** 
+		* New:コードブロックのハイライト
 		* ランディングページの再編成を更新。
 		* データ駆動型ゲームプレイを更新。
 		* アクタのスポーン情報を修正。
@@ -512,7 +510,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 	* シーン アウトライナーにあるフォルダでの元に戻す / やり直すの機能を修正しました。 
 * **ワールド ブラウザ** 
 	* New:World Browser -map=PersistentMapName?worldcomposition によって作成されたワールドに対するクッキングを処理するためのオプションを追加しました。 
-	* New:タイルの距離のストリーミングのロード/アンロードの要求間の時間閾値を追加しました。以下のコンフィギュレーション ファイルで変更できます。 **TilesStreamingTimeThreshold.**  
+	* New:タイルの距離のストリーミングのロード/アンロードの要求間の時間閾値を追加しました。以下のコンフィギュレーション ファイルで変更できます。**TilesStreamingTimeThreshold.**  
 	* New:レベルのタイルに対する位置スナッピングを追加しました。 **Ctrl + 左クリック** してドラッグします。
 	* レベルのタイルのワールド ブラウザの非同期読み込みを、ブロッキング ロードと置き換え、"long operation" メッセージを追加しました。 
 	* **Always Loaded** レベル タイプを削除しました。
@@ -537,7 +535,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 * New:**Float * (LinearColor)** ブループリント ノードを使用して、浮動小数値によって LinearColors を乗算処理できるようになりました。
 * New:文字列を簡単に分割するために新しい **ParseIntoArray** 関数を追加しました。
 * New:変数 Get/Set ノードは、充実したツールチップを表示できるようになりました。ツールチップを表示するには、ノード上にマウスを合わせ、Ctrl+Alt を押したままにします。
-* New: **Alt + 右クリック** は、ブループリント グラフをズームする代替方法として使用できるようになりました。
+* New:**Alt + 右クリック** は、ブループリント グラフをズームする代替方法として使用できるようになりました。
 * New:Debug Object ドロップダウンに、メニュー拡張性のあるフックを追加しました。
 * New:ノードが選択されている場合、[詳細] パネルからグラフ ノードの名前変更ができるようになりました。
 * New:ブループリント インターフェイスを検索するためのサポートを追加しました。
@@ -599,7 +597,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 
 * **一般**
 	* New:Character Movement Componen モードがレプリケートされるようになりました。  
-	* New: **Launch Character** は、ローカル外で制御されるキャラクターに対してクライアント側でシミュレートできるようになりました。
+	* New:**Launch Character** は、ローカル外で制御されるキャラクターに対してクライアント側でシミュレートできるようになりました。
 	* New:**Only Relevant to Owner** の設定が、ブループリントで利用できるようになりました。
 	* リモートのネットワークのクライアントとシミュレートされたプロキシに対する移動するプラットフォーム上のキャラクタの動きを改善しました。
 * **PlayStation 4**
@@ -649,7 +647,7 @@ PlayStation 4 上でご覧にいれたあの素晴らしいアンリアルのデ
 * New:すべてのプラットフォームのメモリとアロケータ メモリの統計を、統計システムで利用できるようになりました。 
 * New:統計システムにスレッドとスレッド グループのメタデータを追加しました。
 * New:統計ファイルの保存形式を改善しました (まだ完全には利用されていません) 。
-* New: [Windows]シェルの統合では、エンジンの複数バージョンを並べることをサポートしています。 
+* New:[Windows] シェルの統合では、エンジンの複数バージョンを並べることをサポートしています。 
 * エンジンのインストールを追加する、またはシェル拡張やファイルの関連付けのセットアップを初めて行うには、各 Engine\Binaries\Win64 ディレクトリから UnrealVersionSelector を実行します。 
 * 各 .uproject ファイルは、別のエンジンのインストールで開くように設定することができます。 
 * New:-UTF8Output コマンドライン引数は、エンジンを使用する任意のプログラムに渡して stdout を UTF-8 モードに強制することができます。
@@ -724,7 +722,7 @@ Xbox One
 * ワールドではなくプレイヤーにバインドするため、FGameWorldContext から FLocalPlayerContex に名前変更しました。
 * World Context 参照を戻す GetWorldContextFrom 関数を、GetWorldContextFrom*Checked に名前変更しました。  
 * GetWorldContextFrom は、ポインタを戻し、供給された入力に対してWorldContext が存在しなければ NULL を戻します。
-AHUD から FSimpleReticle を削除しました。必要に応じてこれをサブクラスに追加することができます。
+AHUD から FSimpleReticle を取り除きました。必要に応じてこれをサブクラスに追加することができます。
 * AGameMode から、使用されていないライフサイクル イベント、OnEngineHasLoaded を削除しました。
 * 不要になったため、SGameWidget クラスを削除しました。
 * GameEngine から PendingLevelPlayerControllerClassName を削除し、LocalPlayer にある PendingLevelPlayerControllerClass と置き換えました。 
