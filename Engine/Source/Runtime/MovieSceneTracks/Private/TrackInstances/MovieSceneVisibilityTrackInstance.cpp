@@ -57,8 +57,8 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 					}
 				}
 			}
-		}
 #endif // WITH_EDITOR
+		}
  	}
 }
 
