@@ -1133,7 +1133,7 @@ void FStatsMemoryDumpCommand::CompareSnapshots_FName( const FName BeginSnaphotNa
 			const FSizeAndCount EndScopedAlloc = It.Value;
 
 			const FSizeAndCount* BeginScopedAllocPtr = BeginSnaphot.Find( Callstack );
-			if (BeginSnaphotPtr)
+			if (BeginScopedAllocPtr)
 			{
 				FSizeAndCount SizeAndCount;
 				SizeAndCount += EndScopedAlloc;
@@ -1141,8 +1141,12 @@ void FStatsMemoryDumpCommand::CompareSnapshots_FName( const FName BeginSnaphotNa
 
 				if (SizeAndCount.IsAlive())
 				{
-					Result.Add( Callstack, SizeAndCount );
+					out_Result.Add( Callstack, SizeAndCount );
 				}
+			}
+			else
+			{
+				out_Result.Add( Callstack, EndScopedAlloc );
 			}
 		}
 
