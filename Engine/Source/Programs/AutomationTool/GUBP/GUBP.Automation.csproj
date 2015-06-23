@@ -58,7 +58,7 @@
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
-    <Compile Include="GUBP.Automation.cs" />
+    <Compile Include="GUBP.cs" />
     <Compile Include="TempStorage.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -73,6 +73,9 @@
       <Project>{a35b0261-d868-475e-a098-eb14ce6dc89f}</Project>
       <Name>AutomationTool</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Nodes\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
