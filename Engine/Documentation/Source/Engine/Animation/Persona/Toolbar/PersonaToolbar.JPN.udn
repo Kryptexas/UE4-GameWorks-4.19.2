@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2087544
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title:ペルソナ (Persona) のツールバー
+Title:ペルソナ（Persona）のツールバー
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナ (Persona) アニメーション エディタ ツールバーのユーザーガイド
+Description:ペルソナ（Persona）アニメーションエディタツールバーのユーザーガイド
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -32,32 +32,32 @@ Description:ペルソナ (Persona) アニメーション エディタ ツール�
 ## 概要
 
 [EXCERPT:Overview]
-ペルソナ (Persona) インターフェース ウィンドウの上面に沿って、**[ツールバー]** がデフォルトで表示されます。アニメーションアセットの編集時に、必要に応じて一般的に使用するさまざまな機能があります。
+ペルソナ(Persona)インターフェースウィンドウの上面に沿って、 **ツールバー** がデフォルトで表示されます。アニメーションアセットの編集時に、必要に応じて一般的に使用するさまざまな機能があります。
 [/EXCERPT:Overview]
 
 [REGION:tip]
-ツールバーが表示されない場合、ペルソナの **[ウィンドウ]** メニューからツールバーを表示させることができます。
+ツールバーが表示されない場合は、ペルソナ(Persona)内の **Window** メニューを使用して表示することができます。
 [/REGION]
 
 ## [ツールバー] モード
 
-既にご存知かもしれませんが、ペルソナ (Persona) には 4 つの異なる _モード_ があります。このモードを使用して、ユーザーが現在行っている作業に基づいて、インターフェースが持つ側面を選択的に表示します。これは、ペルソナ (Persona) 内部でユーザーが使用する一般的なコマンドが、モードによって変更することも意味します。ツールバーは、現在のモードに役に立たないコマンドを全て非表示にするために直観的な更新を行います。例：
+既にご存知かもしれませんが、ペルソナ(Persona)には4つの異なる _モード_ があります。このモードを使用して、ユーザーが現在行っている作業に基づいて、インターフェースが持つ側面を選択的に表示します。これは、ペルソナ(Persona)内部でユーザーが使用する一般的なコマンドが、モードによって変更することも意味します。ツールバーは、現在のモードに役に立たないコマンドを全て非表示にするために直観的な更新を行います。例：
 
- **スケルトン** 、 **メッシュ** 、または **アニメーション** のモード時は、ツールバーは以下のような表示となります。
+**Sleleton**、 **Mesh**、 **Animation**  モード時は、ツールバーは以下のような表示となります。
 
 
 ![](Toolbar_01.png)
 
-  **グラフ** モード時は、ツールバーはより多くの機能を展開し、以下のような表示となります。
+  **Graph** モード時は、ツールバーはより多くの機能を展開し、以下のような表示となります。
 
 ![](Toolbar_2.png)
 
-お気づきかもしれませんが、追加ボタンのほとんどは、ブループリントエディタ ウィンドウで使用しているボタンと同じです。 
+お気づきかもしれませんが、追加ボタンのほとんどは、ブループリントエディタウィンドウで使用しているボタンと同じです。 
 
 
 ## ツールバーボタン
 
-ペルソナ (Persona) のツールバーボタンで、スケルトン、メッシュ、アニメーションなどのアセットモード間を簡単に切り替えることができます。アニメーションブループリントの編集時に必要に応じて使用する共通のコマンドも含まれています。
+ペルソナ(Persona)のツールバーボタンで、スケルトン、メッシュ、アニメーションなどのアセットモード間を簡単に切り替えることができます。アニメーションブループリントの編集時に必要に応じて使用する共通のコマンドも含まれています。
 
 
 | ボタン																						| 説明														|
@@ -87,7 +87,7 @@ Description:ペルソナ (Persona) アニメーション エディタ ツール�
 
 ![](Engine/Animation/Persona\ModeSelector.gif)(convert:false)
 
-ペルソナ (Persona) のツールバーには、4 つのモード間を切り替えるボタンもあります。ボタンにはいくつかの機能が備わっており、特定のアニメーションアセットの追跡管理に実用的です。単にお好きなモードのボタンをクリックしてペルソナモードを変更します。
+ペルソナ(Persona)のツールバーには、4つのモード間を切り替えるボタンもあります。ボタンにはいくつかの機能が備わっており、特定のアニメーションアセットの追跡管理に実用的です。単にお好きなモードのボタンをクリックしてペルソナモードを変更します。
 
 | ボタン | 説明 |
 |-------|------|
@@ -102,7 +102,7 @@ Description:ペルソナ (Persona) アニメーション エディタ ツール�
 
 <!--
 [EXCERPT:SkeletonButton]
-このボタンはペルソナ(Persona)を [スケルトン モード](Engine/Animation/Persona#ペルソナモードとユーザーインターフェース_ui_) へ切り替えます。
+このボタンはペルソナを [Skeleton mode](Engine/Animation/Persona#PersonaModesandUserInterface) に切り替えます。
 
 [REGION:simpletable]
 | エレメント | 説明 |
@@ -114,19 +114,19 @@ Description:ペルソナ (Persona) アニメーション エディタ ツール�
 
 
 [EXCERPT:MeshButton]
-このボタンはペルソナ(Persona)を [メッシュモード](Engine/Animation/Persona#ペルソナモードとユーザーインターフェース_ui_) へ切り替えます。
+このボタンはペルソナを [Mesh mode](Engine/Animation/Persona#PersonaModesandUserInterface) に切り替えます。
 
 [REGION:simpletable]
 | エレメント | 説明 |
 |---|---|
-|![](button_MeshField.png)| ペルソナで現在編集しているスケルタルメッシュ アセットの名前を表示します。 |
+|![](button_MeshField.png)| ペルソナで現在編集しているスケルタルメッシュアセットの名前を表示します。 |
 %pickasset%
 %search%
 [/REGION]
 [/EXCERPT:MeshButton]
 
 [EXCERPT:AnimationButton]
-このボタンはペルソナ (Persona) を [アニメーション モード](Engine/Animation/Persona#ペルソナモードとユーザーインターフェース_ui_) へ切り替えます。
+このボタンはペルソナを [Animation mode](Engine/Animation/Persona#PersonaModesandUserInterface) に切り替えます。
 
 [REGION:simpletable]
 | エレメント | 説明 |
@@ -138,18 +138,18 @@ Description:ペルソナ (Persona) アニメーション エディタ ツール�
 [/EXCERPT:AnimationButton]
 
 [EXCERPT:GraphButton]
-このボタンはペルソナ (Persona)を [グラフモード](Engine/Animation/Persona#ペルソナモードとユーザーインターフェース_ui_)へ切り替えます。
+このボタンはペルソナを [Graph mode](Engine/Animation/Persona#PersonaModesandUserInterface) に切り替えます。
 
 [REGION:simpletable]
 | エレメント | 説明 |
 |---|---|
-|![](button_GraphField.png)| ペルソナで現在編集中のアニメーション ブループリントアセットの名前を表示します。 |
+|![](button_GraphField.png)| ペルソナで現在編集中のアニメーションブループリントアセットの名前を表示します。 |
 %search%
 [/REGION]
 [/EXCERPT:GraphButton]
 
 [VAR:PickAsset]|![](button_AssetSelection.png)|現行プロジェクトと互換性のあるアセットをすぐに選択することができます。 |[/VAR]
-[VAR:Search]|![](button_Search.png)| このボタンをクリックすると **コンテンツ ブラウザ** が呼び出されて、それぞれの欄に現在表示されているアセットをハイライトして表示します。|[/VAR]
+[VAR:Search]|![](button_Search.png)| このボタンをクリックすると **コンテンツブラウザ** を呼び出して、それぞれの欄に現在表示しているアセットをハイライトして表示します。|[/VAR]
 
 -->
 
