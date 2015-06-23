@@ -2692,6 +2692,19 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		}
 	}
 
+	// We need to stop the old EventGraphs from having the Blueprint as an outer, it impacts renaming.
+	if(!Blueprint->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
+	{
+		for(UEdGraph* OldEventGraph : Blueprint->EventGraphs)
+		{
+			if (OldEventGraph)
+			{
+				OldEventGraph->Rename(NULL, GetTransientPackage());
+			}
+		}
+	}
+	Blueprint->EventGraphs.Empty();
+
 	if (ConsolidatedEventGraph->Nodes.Num())
 	{
 		// Add a dummy entry point to the uber graph, to get the function signature correct
@@ -2716,19 +2729,6 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			UbergraphContext->MarkAsEventGraph();
 			UbergraphContext->MarkAsInternalOrCppUseOnly();
 			UbergraphContext->SetExternalNetNameMap(&ClassScopeNetNameMap);
-
-			// We need to stop the old EventGraphs from having the Blueprint as an outer, it impacts renaming.
-			if(!Blueprint->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
-			{
-				for(UEdGraph* OldEventGraph : Blueprint->EventGraphs)
-				{
-					if (OldEventGraph)
-					{
-						OldEventGraph->Rename(NULL, GetTransientPackage());
-					}
-				}
-			}
-			Blueprint->EventGraphs.Empty();
 
 			// Validate all the nodes in the graph
 			for (int32 ChildIndex = 0; ChildIndex < ConsolidatedEventGraph->Nodes.Num(); ++ChildIndex)
