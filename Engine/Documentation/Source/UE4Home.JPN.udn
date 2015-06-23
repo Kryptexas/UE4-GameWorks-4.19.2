@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2414058
+﻿INTSourceChangelist:2593693
 Availability:Public
-Title:Unreal Engine 4 のドキュメント
+Title:アンリアル エンジン 4 のドキュメント
 Crumbs:
 Description:UE4 トップレベル リンク ドキュメント
 Navigation:home
@@ -19,10 +19,10 @@ Navigation:home
 		[PARAM:message]
 		[/PARAM]
 		[PARAMLITERAL:label]
-			おすすめ検索:
+			おすすめ検索：
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
-			クイックスタート
+			クイック スタート
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			方法
@@ -67,9 +67,11 @@ Navigation:home
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
+	%Engine/UI:role%
 	%Engine:role%
-	%Programming:topicrole%
+	%Gameplay:role%
 	%Engine/Blueprints:role%
+	%Programming:topicrole%
 	%Platforms:role%
 	%Resources:role%
 	[/REGION]
