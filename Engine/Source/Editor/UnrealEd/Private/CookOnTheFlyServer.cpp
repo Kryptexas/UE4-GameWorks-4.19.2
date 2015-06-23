@@ -863,7 +863,19 @@ void UCookOnTheFlyServer::GetDependentPackages( const TSet<FName>& RootPackages,
 	while ( FoundPackagesCounter < FoundPackagesArray.Num() )
 	{
 		TArray<FName> PackageDependencies;
-		verify( AssetRegistry.GetDependencies(FoundPackagesArray[FoundPackagesCounter], PackageDependencies) );
+		if (AssetRegistry.GetDependencies(FoundPackagesArray[FoundPackagesCounter], PackageDependencies) == false)
+		{
+			// this could happen if we are in the editor and the dependency list is not up to date
+
+			if (IsCookingInEditor() == false)
+			{
+				UE_LOG(LogCook, Fatal, TEXT("Unable to find package %s in asset registry.  Can't generate cooked asset registry"), *FoundPackagesArray[FoundPackagesCounter].ToString());
+			}
+			else
+			{
+				UE_LOG(LogCook, Warning, TEXT("Unable to find package %s in asset registry, cooked asset registry information may be invalid "), *FoundPackagesArray[FoundPackagesCounter].ToString());
+			}
+		}
 		++FoundPackagesCounter;
 		for ( const auto& OriginalPackageDependency : PackageDependencies )
 		{
@@ -985,34 +997,6 @@ bool UCookOnTheFlyServer::ContainsMap(const FName& PackageName) const
 	return false;
 }
 
-
-// don't need the package loaded to generate the manifest infomation
-void UCookOnTheFlyServer::GenerateManifestInfo(const FName& Package, const TArray<FName>& TargetPlatformNames)
-{
-	if (IsCookByTheBookMode())
-		return;
-	
-	check(IsChildCooker() == false);
-
-	TSet<FName> RootPackages;
-	RootPackages.Add(Package);
-
-	// see if teh package contains a world
-	bool bIsWorldPackage = ContainsMap(Package);
-
-	TSet<FName> FoundPackages;
-	GetDependentPackages(RootPackages, FoundPackages);
-
-
-	FName StandardFilename = GetCachedStandardPackageFileFName(Package);
-	FName MapName = NAME_None;
-	if (bIsWorldPackage)
-	{
-		MapName = Package;
-	}
-	AddDependenciesToManifest(StandardFilename, MapName, FoundPackages, TargetPlatformNames);
-}
-
 void UCookOnTheFlyServer::GenerateManifestInfo(UPackage* Package, const TArray<FName>& TargetPlatformNames)
 {
 	if (!CookByTheBookOptions)
@@ -1030,7 +1014,7 @@ void UCookOnTheFlyServer::GenerateManifestInfo(UPackage* Package, const TArray<F
 	// load sublevels
 	UWorld* World = UWorld::FindWorldInPackage(Package);
 
-#define VERIFY_LEVELS_IN_DEPENDENCIES_LIST 0
+#define VERIFY_LEVELS_IN_DEPENDENCIES_LIST 1
 #if VERIFY_LEVELS_IN_DEPENDENCIES_LIST
 	TArray<FString> LevelPackageNames;
 #endif
@@ -1117,70 +1101,7 @@ void UCookOnTheFlyServer::GenerateManifestInfo(UPackage* Package, const TArray<F
 #endif
 
 
-	
-	FName StandardFilename = GetCachedStandardPackageFileFName(Package);
-	FName MapName = NAME_None;
-	if (Package->ContainsMap())
-	{
-		MapName = Package->GetFName();
-	}
-	AddDependenciesToManifest(StandardFilename, MapName, Packages, TargetPlatformNames);
-	
 }
-
-void UCookOnTheFlyServer::AddDependenciesToManifest(const FName& StandardFilename, const FName& MapName, const TSet<FName>& Dependencies, const TArray<FName>& TargetPlatformNames)
-{
-	FString LastLoadedMapName;
-	if (MapName != NAME_None)
-	{
-		LastLoadedMapName = MapName.ToString();
-	}
-	// Add package dependencies to the cooked package manifest
-	if (CookByTheBookOptions &&
-		CookByTheBookOptions->bGenerateDependenciesForMaps &&
-		(MapName != NAME_None))
-	{
-		CookByTheBookOptions->MapDependencyGraph.Add(MapName, Dependencies);
-	}
-
-	// update the manifests with generated dependencies
-	for (const auto& PlatformName : TargetPlatformNames)
-	{
-		FChunkManifestGenerator* ManifestGenerator = CookByTheBookOptions->ManifestGenerators.FindChecked(PlatformName);
-
-		if (CookByTheBookOptions && CookByTheBookOptions->bGenerateStreamingInstallManifests)
-		{
-			ManifestGenerator->PrepareToLoadNewPackage(StandardFilename.ToString());
-		}
-
-		for (const auto& DependentPackage : Dependencies)
-		{
-			ManifestGenerator->OnLastPackageLoaded(DependentPackage);
-		}
-
-		for (const auto& DependentPackage : Dependencies)
-		{
-			FString Filename = GetCachedPackageFilename(DependentPackage);
-			if (!Filename.IsEmpty())
-			{
-				// Populate streaming install manifests
-				FString SandboxFilename = ConvertToFullSandboxPath(*Filename, true);
-				//UE_LOG(LogCook, Display, TEXT("Adding package to manifest %s, %s, %s"), *DependentPackage->GetName(), *SandboxFilename, *LastLoadedMapName);
-#if USEASSETREGISTRYFORDEPENDENTPACKAGES
-				// Determine the package name and path
-				// FString PackageName = FPackageName::FilenameToLongPackageName(PackageFilename);
-				// FString PackagePath = FPackageName::GetLongPackagePath(DependentPackage.ToString());
-				FString PackagePath = DependentPackage.ToString();
-
-				ManifestGenerator->AddPackageToChunkManifest(DependentPackage, PackagePath, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
-#else
-				ManifestGenerator->AddPackageToChunkManifest(DependentPackage, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
-#endif
-			}
-		}
-	}
-}
-
 bool UCookOnTheFlyServer::IsCookingInEditor() const
 {
 	return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookOnTheFlyFromTheEditor;;
@@ -1715,24 +1636,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							continue;
 						ACCUMULATE_TIMER_STOP(UnsolicitedPackageAlreadyCooked);
 
-						if ( CookByTheBookOptions )
-						{
-							ACCUMULATE_TIMER_START(AddUnassignedPackageToManifest);
-							for ( const auto &TargetPlatform : AllTargetPlatformNames )
-							{
-								FChunkManifestGenerator*& Manifest = CookByTheBookOptions->ManifestGenerators.FindChecked(TargetPlatform);
-
-								FString Filename = GetCachedPackageFilename(Package);
-								if (!Filename.IsEmpty())
-								{
-									// Populate streaming install manifests
-									const FString& SandboxFilename = GetCachedSandboxFilename( Package, SandboxFile );
-									Manifest->AddUnassignedPackageToManifest(Package, SandboxFilename);
-								}
-							}
-							ACCUMULATE_TIMER_STOP(AddUnassignedPackageToManifest);
-						}
-
 						if ( StandardPackageFName != NAME_None ) // if we have name none that means we are in core packages or something...
 						{
 							// check if the package has already been saved
@@ -1830,13 +1733,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					continue;
 				}
 
-				if (IsChildCooker()==false)
-				{
-					SCOPE_TIMER(GenerateManifestInfo);
-					// update manifest with cooked package info
-					GenerateManifestInfo(PackagesToSave[I], AllTargetPlatformNames);
-				}
-
 				// precache platform data for next package 
 				UPackage *NextPackage = PackagesToSave[FMath::Min( PackagesToSave.Num()-1, I + 1 )];
 				UPackage *NextNextPackage = PackagesToSave[FMath::Min( PackagesToSave.Num()-1, I + 2 )];
@@ -1898,6 +1794,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					Timer.SavedPackage();
 				}
 
+				if ( IsCookingInEditor() == false )
 				{
 					SCOPE_TIMER(ClearAllCachedCookedPlatformData);
 					TArray<UObject*> ObjectsInPackage;
@@ -3369,7 +3266,10 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 
 		if (CookByTheBookOptions && CookByTheBookOptions->bGenerateDependenciesForMaps) 
 		{
-			CookByTheBookOptions->MapDependencyGraph.Add(FName(TEXT("ContentDirectoryAssets")), ContentDirectoryAssets);
+			for (auto& MapDependencyGraph : CookByTheBookOptions->MapDependencyGraphs)
+			{
+				MapDependencyGraph.Value.Add(FName(TEXT("ContentDirectoryAssets")), ContentDirectoryAssets);
+			}
 		}
 	}
 }
@@ -3505,6 +3405,21 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 		for ( auto& Manifest : CookByTheBookOptions->ManifestGenerators )
 		{
+			TArray<FName> CookedPackagesForPlatform;
+			CookedPackages.GetCookedFilesForPlatform(Manifest.Key, CookedPackagesForPlatform);
+
+			TArray<FName> LongCookedPackageNames;
+			for (const auto& CookedPackageFileName : CookedPackagesForPlatform)
+			{
+				FString LongPackageName;
+				verify(FPackageName::TryConvertFilenameToLongPackageName(CookedPackageFileName.ToString(), LongPackageName));
+				LongCookedPackageNames.Add(FName(*LongPackageName));
+			}
+
+
+			Manifest.Value->BuildChunkManifest(LongCookedPackageNames, SandboxFile, CookByTheBookOptions->bGenerateStreamingInstallManifests);
+
+
 			// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
 			Manifest.Value->SaveManifests(SandboxFile.GetOwnedPointer());
 
@@ -3541,34 +3456,10 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	if (CookByTheBookOptions->bGenerateDependenciesForMaps && IsChildCooker() == false)
 	{
-		auto& MapDependencyGraph = CookByTheBookOptions->MapDependencyGraph;
-
-		FString MapDependencyGraphFile = FPaths::GameDir()/ TEXT("MapDependencyGraph.json");
-		// dump dependency graph. 
-		FString DependencyString; 
-		DependencyString += "{";
-		for (auto& Ele : MapDependencyGraph)
+		for (auto& MapDependencyGraphIt : CookByTheBookOptions->MapDependencyGraphs)
 		{
-			TSet <FName>& Deps = Ele.Value;
-			FName MapName = Ele.Key;
-			DependencyString += TEXT("\t\"") + MapName.ToString() + TEXT("\" : \n\t[\n ") ;
-			for (auto& Val : Deps)
-			{
-				DependencyString += TEXT("\t\t\"") + Val.ToString() + TEXT("\",\n");
-			}
-			DependencyString.RemoveFromEnd(TEXT(",\n"));
-			DependencyString += TEXT("\n\t],\n") ;
-		}
-		DependencyString.RemoveFromEnd(TEXT(",\n"));
-		DependencyString += "\n}";
-
-		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-		const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
-
-		for (ITargetPlatform* Platform : Platforms)
-		{
-			FString CookedMapDependencyGraphFilePlatform =  ConvertToFullSandboxPath(MapDependencyGraphFile, true).Replace(TEXT("[Platform]"), *Platform->PlatformName());
-			FFileHelper::SaveStringToFile(DependencyString, *CookedMapDependencyGraphFilePlatform, FFileHelper::EEncodingOptions::ForceUnicode);
+			BuildMapDependencyGraph(MapDependencyGraphIt.Key);
+			WriteMapDependencyGraph(MapDependencyGraphIt.Key);
 		}
 	}
 
@@ -3581,6 +3472,81 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 	CookByTheBookOptions->bRunning = false;
 
 	OUTPUT_HIERARCHYTIMERS();
+}
+
+void UCookOnTheFlyServer::BuildMapDependencyGraph(const FName& PlatformName)
+{
+	auto& MapDependencyGraph = CookByTheBookOptions->MapDependencyGraphs.FindChecked(PlatformName);
+
+
+
+	TArray<FName> PlatformCookedPackages;
+	CookedPackages.GetCookedFilesForPlatform(PlatformName, PlatformCookedPackages);
+
+	static const FName AssetRegistryName("AssetRegistry");
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+
+	// assign chunks for all the map packages
+	for (const auto& CookedPackage : PlatformCookedPackages)
+	{
+		
+		TArray<FAssetData> PackageAssets;
+		ensure(AssetRegistry.GetAssetsByPackageName(CookedPackage, PackageAssets));
+
+		bool bIsMap = false;
+		for (const auto& Asset : PackageAssets)
+		{
+			if (Asset.GetClass()->IsChildOf(UWorld::StaticClass()) ||
+				Asset.GetClass()->IsChildOf(ULevel::StaticClass()))
+			{
+				bIsMap = true;
+			}
+		}
+
+
+		// if we are not a map we don't care about this pacakge
+		if (!bIsMap)
+		{
+			continue;
+		}
+
+		TSet<FName> DependentPackages;
+		for (const auto& Asset : PackageAssets)
+		{
+			DependentPackages.Add(Asset.PackageName);
+		}
+
+		MapDependencyGraph.Add(CookedPackage, DependentPackages);
+	}
+}
+
+void UCookOnTheFlyServer::WriteMapDependencyGraph(const FName& PlatformName)
+{
+	auto& MapDependencyGraph = CookByTheBookOptions->MapDependencyGraphs.FindChecked(PlatformName);
+
+	FString MapDependencyGraphFile = FPaths::GameDir() / TEXT("MapDependencyGraph.json");
+	// dump dependency graph. 
+	FString DependencyString;
+	DependencyString += "{";
+	for (auto& Ele : MapDependencyGraph)
+	{
+		TSet <FName>& Deps = Ele.Value;
+		FName MapName = Ele.Key;
+		DependencyString += TEXT("\t\"") + MapName.ToString() + TEXT("\" : \n\t[\n ");
+		for (auto& Val : Deps)
+		{
+			DependencyString += TEXT("\t\t\"") + Val.ToString() + TEXT("\",\n");
+		}
+		DependencyString.RemoveFromEnd(TEXT(",\n"));
+		DependencyString += TEXT("\n\t],\n");
+	}
+	DependencyString.RemoveFromEnd(TEXT(",\n"));
+	DependencyString += "\n}";
+
+	FString CookedMapDependencyGraphFilePlatform = ConvertToFullSandboxPath(MapDependencyGraphFile, true).Replace(TEXT("[Platform]"), *PlatformName.ToString());
+	FFileHelper::SaveStringToFile(DependencyString, *CookedMapDependencyGraphFilePlatform, FFileHelper::EEncodingOptions::ForceUnicode);
 }
 
 void UCookOnTheFlyServer::QueueCancelCookByTheBook()
@@ -3690,6 +3656,16 @@ void UCookOnTheFlyServer::TermSandbox()
 	SandboxFile = NULL;
 }
 
+void UCookOnTheFlyServer::ValidateCookByTheBookSettings() const
+{
+	if (IsChildCooker())
+	{
+		// should never be generating dependency maps / streaming install manifests for child cookers
+		check(CookByTheBookOptions->bGenerateDependenciesForMaps == false);
+		check(CookByTheBookOptions->bGenerateStreamingInstallManifests == false);
+	}
+}
+
 void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions& CookByTheBookStartupOptions )
 {
 
@@ -3722,6 +3698,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	bool bMapsOnly = (CookOptions & ECookByTheBookOptions::MapsOnly) != ECookByTheBookOptions::None;
 	bool bNoDev = (CookOptions & ECookByTheBookOptions::NoDevContent) != ECookByTheBookOptions::None;
 
+	ValidateCookByTheBookSettings();
 
 	if ( CookByTheBookOptions->DlcName != DLCName )
 	{
@@ -3776,18 +3753,21 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				Platforms.Add(Platform);
 				ManifestGenerator = new FChunkManifestGenerator(Platforms);
 				ManifestGenerator->CleanManifestDirectories();
-				ManifestGenerator->Initialize(CookByTheBookOptions->bGenerateStreamingInstallManifests);
 
+				TArray<FName> StartupPackages;
 
-				if (IsCookFlagSet(ECookInitializationFlags::Iterative) && (PackagesKeptFromPreviousCook.Num() > 0))
+				for (TObjectIterator<UPackage> It; It; ++It)
 				{
-					const FString& SandboxRegistryFilename = GetSandboxAssetRegistryFilename();
-
-					ManifestGenerator->LoadAssetRegistry(GetCookedAssetRegistryFilename(PlatformName.ToString()), &PackagesKeptFromPreviousCook);
+					StartupPackages.Add( It->GetFName());
 				}
 
-
+				ManifestGenerator->Initialize(StartupPackages);
 				CookByTheBookOptions->ManifestGenerators.Add(PlatformName, ManifestGenerator);
+			}
+
+			if (CookByTheBookOptions->bGenerateDependenciesForMaps)
+			{
+				CookByTheBookOptions->MapDependencyGraphs.Add(PlatformName);
 			}
 		}
 	}
@@ -4061,25 +4041,6 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 			FName StandardPackageName = FName(*PackageName);*/
 			
 			CookedPackages.Add(FFilePlatformRequest(StandardPackageName, TargetPlatformNames));
-
-
-			
-			/*TArray<FName> Dependencies;
-			AssetRegistry.GetDependencies(PackageFName, Dependencies);
-			TSet<FName> DependenciesSet;
-			for (const auto& Dependency : Dependencies)
-			{
-				DependenciesSet.Add(Dependency);
-			}*/
-
-			TSet<FName> RootPackages;
-			RootPackages.Add(PackageFName);
-			TSet<FName> FoundPackages;
-			GetDependentPackages(RootPackages, FoundPackages);
-
-
-			FName MapName = NAME_None; // to do figure out which map depends on this package for now this package will get put into chunk 0
-			AddDependenciesToManifest(StandardPackageName, MapName, FoundPackages, TargetPlatformNames);
 		}
 		DistributeStandardFilenames.RemoveAt(0, NumFilesForCooker);
 

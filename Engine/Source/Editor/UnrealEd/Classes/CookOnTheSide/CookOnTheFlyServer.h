@@ -405,7 +405,17 @@ private:
 			return false;
 		}
 
-
+		void GetCookedFilesForPlatform(const FName& PlatformName, TArray<FName>& CookedFiles)
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+			for (const auto& CookedFile : FilesProcessed)
+			{
+				if (CookedFile.Value.HasPlatform(PlatformName))
+				{
+					CookedFiles.Add(CookedFile.Value.GetFilename());
+				}
+			}
+		}
 		void Empty(int32 ExpectedNumElements = 0)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -634,7 +644,7 @@ private:
 		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
 		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
 		/** Dependency graph of maps as root objects. */
-		TMap< FName, TSet <FName> > MapDependencyGraph; 
+		TMap<FName, TMap< FName, TSet <FName> > > MapDependencyGraphs; 
 		/** If a cook is cancelled next cook will need to resume cooking */ 
 		TArray<FFilePlatformRequest> PreviousCookRequests; 
 		/** If we are based on a release version of the game this is the set of packages which were cooked in that release */
@@ -801,6 +811,12 @@ public:
 	 * Cook on the fly can't run at the same time as cook by the book
 	 */
 	void StartCookByTheBook( const FCookByTheBookStartupOptions& CookByTheBookStartupOptions );
+
+	/**
+	 * ValidateCookByTheBookSettings
+	 * look at the cookByTheBookOptions and ensure there isn't any conflicting settings
+	 */
+	void ValidateCookByTheBookSettings() const;
 
 	/**
 	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
@@ -971,6 +987,22 @@ private:
 	bool GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const;
 
 	/**
+	 * BuildMapDependencyGraph
+	 * builds a map of dependencies from maps
+	 * 
+	 * @param PlatformName name of the platform we want to build a map for
+	 */
+	void BuildMapDependencyGraph(const FName& PlatformName);
+
+	/**
+	* WriteMapDependencyGraph
+	* write a previously built map dependency graph out to the sandbox directory for a platform
+	*
+	* @param PlatformName name of the platform we want to save out the dependency graph for
+	*/
+	void WriteMapDependencyGraph(const FName& PlatformName);
+
+	/**
 	 * IsChildCooker, 
 	 * returns if this cooker is a sue chef for some other master chef.
 	 */
@@ -1080,15 +1112,6 @@ private:
 	 * @return true if the Package contains a UWorld or ULevel false otherwise
 	 */
 	bool ContainsMap(const FName& PackageName) const;
-
-	/**
-	 * AddDependenciesToManifest
-	 * Add the dependencies of this package to the cooked package manifest
-	 * use information from the asset registry to generate this information
-	 *
-	 * @params StandardFilename of the package which we want dependencies to be copied over
-	 */
-	void AddDependenciesToManifest(const FName& StandardFilename, const FName& LastLoadedMapName, const TSet<FName>& Dependencies, const TArray<FName>& TargetPlatformNames);
 
 	/**
 	 * GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook
