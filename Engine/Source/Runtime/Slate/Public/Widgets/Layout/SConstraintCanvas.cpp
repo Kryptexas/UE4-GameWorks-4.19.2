@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "SlatePrivatePCH.h"
+
+#include "SConstraintCanvas.h"
 #include "LayoutUtils.h"
 
 
@@ -10,7 +12,6 @@
 SConstraintCanvas::SConstraintCanvas()
 : Children()
 {
-
 }
 
 void SConstraintCanvas::Construct( const SConstraintCanvas::FArguments& InArgs )
@@ -44,7 +45,7 @@ int32 SConstraintCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 struct FChildZOrder
 {
 	int32 ChildIndex;
-	int32 ZOrder;
+	float ZOrder;
 };
 
 struct FSortSlotsByZOrder

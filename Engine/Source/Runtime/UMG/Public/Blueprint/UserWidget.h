@@ -1,13 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Components/SlateWrapperTypes.h"
 #include "Components/Widget.h"
 #include "Geometry.h"
 #include "Engine/GameInstance.h"
-
+#include "Layout/Anchors.h"
 #include "NamedSlotInterface.h"
-#include "Slate/Anchors.h"
 #include "Engine/LocalPlayer.h"
 #include "Logging/MessageLog.h"
 
@@ -20,7 +20,6 @@ static FWidgetStyle NullStyle;
 
 class UWidget;
 class UWidgetAnimation;
-struct FAnchors;
 struct FLocalPlayerContext;
 
 /**

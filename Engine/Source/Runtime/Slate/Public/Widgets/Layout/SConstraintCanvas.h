@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "Anchors.h"
 
 /**
- * ConstraintCanvas is a layout widget that allows you to arbitrary position and size child widgets in a relative coordinate space
+ * ConstraintCanvas is a layout widget that allows you to arbitrary position and size child widgets in a 
+ * relative coordinate space.  Additionally it permits anchoring widgets.
  */
-class UMG_API SConstraintCanvas
-	: public SPanel
+class SLATE_API SConstraintCanvas : public SPanel
 {
 public:
 
@@ -41,7 +42,7 @@ public:
 			return *this;
 		}
 
-		FSlot& ZOrder(const TAttribute<int32>& InZOrder)
+		FSlot& ZOrder(const TAttribute<float>& InZOrder)
 		{
 			ZOrderAttr = InZOrder;
 			return *this;
@@ -66,7 +67,7 @@ public:
 		TAttribute<bool> AutoSizeAttr;
 
 		/** Z-Order */
-		TAttribute<int32> ZOrderAttr;
+		TAttribute<float> ZOrderAttr;
 
 		/** Default values for a slot. */
 		FSlot()
