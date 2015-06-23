@@ -7,7 +7,7 @@
 
 APartyBeaconClient::APartyBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	RequestType(EClientRequestType::ExistingSessionReservation),
+	RequestType(EClientRequestType::NonePending),
 	bPendingReservationSent(false),
 	bCancelReservation(false)
 {
@@ -24,11 +24,13 @@ bool APartyBeaconClient::RequestReservation(const FString& ConnectInfoStr, const
 		PendingReservation.PartyLeader = RequestingPartyLeader;
 		PendingReservation.PartyMembers = PartyMembers;
 		bPendingReservationSent = false;
+		RequestType = EClientRequestType::ExistingSessionReservation;
 		bSuccess = true;
 	}
 	else
 	{
 		UE_LOG_ONLINE(Warning, TEXT("RequestReservation: Failure to init client beacon with %s."), *ConnectURL.ToString());
+		RequestType = EClientRequestType::NonePending;
 	}
 
 	if (!bSuccess)
@@ -100,7 +102,7 @@ bool APartyBeaconClient::RequestReservationUpdate(const FString& ConnectInfoStr,
 		bWasStarted = RequestReservation(ConnectInfoStr, InSessionId, RequestingPartyLeader, PlayersToAdd);
 		if (bWasStarted)
 		{
-			// Treat the new reservation as an update to an existing reservation on the host
+			// Treat this reservation as an update to an existing reservation on the host
 			RequestType = EClientRequestType::ReservationUpdate;
 		}
 	}
@@ -123,7 +125,7 @@ bool APartyBeaconClient::RequestReservationUpdate(const FOnlineSessionSearchResu
 		bWasStarted = RequestReservation(DesiredHost, RequestingPartyLeader, PlayersToAdd);
 		if (bWasStarted)
 		{
-			// Treat the new reservation as an update to an existing reservation on the host
+			// Treat this reservation as an update to an existing reservation on the host
 			RequestType = EClientRequestType::ReservationUpdate;
 		}
 	}
@@ -155,6 +157,8 @@ void APartyBeaconClient::CancelReservation()
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("Unable to cancel reservation request with invalid party leader."));
 	}
+
+	RequestType = EClientRequestType::NonePending;
 }
 
 void APartyBeaconClient::OnConnected()
@@ -176,13 +180,21 @@ void APartyBeaconClient::OnConnected()
 		else
 		{
 			UE_LOG(LogBeacon, Warning, TEXT("Failed to handle reservation request type %s"), ToString(RequestType));
+			OnFailure();
 		}
 	}
 	else
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("Reservation request previously canceled, aborting reservation request."));
 		ReservationRequestComplete.ExecuteIfBound(EPartyReservationResult::ReservationRequestCanceled);
+		RequestType = EClientRequestType::NonePending;
 	}
+}
+
+void APartyBeaconClient::OnFailure()
+{
+	RequestType = EClientRequestType::NonePending;
+	Super::OnFailure();
 }
 
 bool APartyBeaconClient::ServerReservationRequest_Validate(const FString& SessionId, const FPartyReservation& Reservation)
@@ -196,6 +208,7 @@ void APartyBeaconClient::ServerReservationRequest_Implementation(const FString& 
 	if (BeaconHost)
 	{
 		PendingReservation = Reservation;
+		RequestType = EClientRequestType::ExistingSessionReservation;
 		BeaconHost->ProcessReservationRequest(this, SessionId, Reservation);
 	}
 }
@@ -211,6 +224,7 @@ void APartyBeaconClient::ServerUpdateReservationRequest_Implementation(const FSt
 	if (BeaconHost)
 	{
 		PendingReservation = ReservationUpdate;
+		RequestType = EClientRequestType::ReservationUpdate;
 		BeaconHost->ProcessReservationUpdateRequest(this, SessionId, ReservationUpdate);
 	}
 }
@@ -234,6 +248,7 @@ void APartyBeaconClient::ClientReservationResponse_Implementation(EPartyReservat
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon response received %s"), EPartyReservationResult::ToString(ReservationResponse));
 	ReservationRequestComplete.ExecuteIfBound(ReservationResponse);
+	RequestType = EClientRequestType::NonePending;
 }
 
 void APartyBeaconClient::ClientSendReservationUpdates_Implementation(int32 NumRemainingReservations)

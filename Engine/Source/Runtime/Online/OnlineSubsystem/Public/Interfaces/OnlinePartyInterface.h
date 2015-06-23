@@ -103,14 +103,29 @@ public:
 	virtual const TSharedRef<const FOnlinePartyId>& GetPartyId() const = 0;
 
 	/**
-	 * @return id of the client app associated with the sender of the party invite
+	 * @return id of the client app associated with the sender of the party invite 
 	 */
 	virtual const FString& GetClientId() const = 0;
 
 	/**
-	 * @return the ReservationKey for this invite
+	 * @return whether or not the party is accepting members
 	 */
-	virtual const FString& GetReservationKey() const = 0;
+	virtual bool GetIsAcceptingMembers() const = 0;
+
+	/**
+	 * @return this request as Json
+	 */
+	//virtual FString ToToken() const = 0;
+
+	/**
+	 * @return true if the join info cannot be used to join a party
+	 */
+	virtual bool IsInvalidForJoin() const = 0;
+
+	/**
+	 * @return true if the join info cannot be used to request an invite
+	 */
+	virtual bool IsInvalidForInviteRequest() const = 0;
 };
 
 /**
@@ -150,6 +165,22 @@ namespace EPartyPermissions
 		/** invite required to join the party */
 		Private
 	};
+
+	inline const TCHAR* ToString(EPartyPermissions::Type PartyPermissions)
+	{
+		switch (PartyPermissions)
+		{
+		case Public:
+		{
+			return TEXT("Public");
+		}
+		case Private:
+		{
+			return TEXT("Private");
+		}
+		}
+		return TEXT("");
+	}
 }
 
 /**
@@ -159,10 +190,12 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 {
 	FPartyConfiguration()
 		: Permissions(EPartyPermissions::Public)
-		, bShouldPublishToPresence(true)
+		, bShouldPublishToPresence(false)
 		, bCanNonLeaderPublishToPresence(false)
+		, bCanNonLeaderInviteToParty(false)
 		, bShouldRemoveOnDisconnection(false)
-		, MaxMembers(5)
+		, bIsAcceptingMembers(false)
+		, MaxMembers(0)
 	{}
 
 	/** Permission for configuring party */
@@ -171,8 +204,12 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 	bool bShouldPublishToPresence;
 	/** should publish info to presence */
 	bool bCanNonLeaderPublishToPresence;
+	/** can non-leaders send an invite to people */
+	bool bCanNonLeaderInviteToParty;
 	/** should remove on disconnection */
 	bool bShouldRemoveOnDisconnection;
+	/** is accepting members */
+	bool bIsAcceptingMembers;
 	/** clients can add whatever data they want for configuration options */
 	FOnlinePartyData ClientConfigData;
 	/** Maximum active members allowed. 0 means no maximum. */
@@ -183,6 +220,20 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 	FString Description;
 	/** Human readable password for party. */
 	FString Password;
+
+	FString DumpState() const
+	{
+		return FString::Printf(TEXT("Permissions: %s Publish: L(%d) NL(%d) RemoveOnDisconnect: %d Accepting: %d MaxMembers: %d Nickname: %s Description: %s Password: %s"),
+			ToString(Permissions),
+			bShouldPublishToPresence,
+			bCanNonLeaderPublishToPresence,
+			bShouldRemoveOnDisconnection,
+			bIsAcceptingMembers,
+			MaxMembers,
+			*Nickname,
+			*Description,
+			Password.IsEmpty() ? TEXT("not set") : TEXT("set"));
+	}
 };
 
 struct EPartyState
@@ -276,6 +327,26 @@ enum class EMemberChangedReason
 	Promoted
 };
 
+inline const TCHAR* ToString(EMemberChangedReason Reason)
+{
+	switch (Reason)
+	{
+	case EMemberChangedReason::Disconnected:
+	{
+		return TEXT("Disconnected");
+	}
+	case EMemberChangedReason::Rejoined:
+	{
+		return TEXT("Rejoined");
+	}
+	case EMemberChangedReason::Promoted:
+	{
+		return TEXT("Promoted");
+	}
+	}
+	return TEXT("");
+}
+
 enum class EMemberExitedReason
 {
 	Unknown,
@@ -283,6 +354,41 @@ enum class EMemberExitedReason
 	Removed,
 	Disbanded,
 	Kicked
+};
+
+inline const TCHAR* ToString(EMemberExitedReason Reason)
+{
+	switch (Reason)
+	{
+	case EMemberExitedReason::Unknown:
+	{
+		return TEXT("Unknown");
+	}
+	case EMemberExitedReason::Left:
+	{
+		return TEXT("Left");
+	}
+	case EMemberExitedReason::Removed:
+	{
+		return TEXT("Removed");
+	}
+	case EMemberExitedReason::Disbanded:
+	{
+		return TEXT("Disbanded");
+	}
+	case EMemberExitedReason::Kicked:
+	{
+		return TEXT("Kicked");
+	}
+	}
+	return TEXT("");
+}
+
+enum class ECompletionResult
+{
+	FailedToStart,
+	Failed,
+	Succeeded
 };
 
 // Completion delegates
@@ -537,7 +643,7 @@ public:
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool UpdateParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyConfiguration& PartyConfig, bool bShouldRegenerateAccessToken = false, const FOnUpdatePartyComplete& Delegate = FOnUpdatePartyComplete()) = 0;
+	virtual bool UpdateParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyConfiguration& PartyConfig, bool bShouldRegenerateReservationKey = false, const FOnUpdatePartyComplete& Delegate = FOnUpdatePartyComplete()) = 0;
 
 	/**
 	 * Destroy an existing party. Party members will be disbanded
@@ -562,7 +668,7 @@ public:
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool JoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, const FString& ReservationKey, const FOnJoinPartyComplete& Delegate = FOnJoinPartyComplete()) = 0;
+	virtual bool JoinParty(const FUniqueNetId& LocalUserId, const IOnlinePartyJoinInfo& OnlinePartyJoinInfo, const FOnJoinPartyComplete& Delegate = FOnJoinPartyComplete()) = 0;
 
 	/**
 	 * Leave an existing party
@@ -700,6 +806,15 @@ public:
 	virtual bool IsMemberLeader(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const = 0;
 
 	/**
+	 * returns the number of players in a given party
+	 *
+	 * @param LocalUserId - user making the request
+	 * @param PartyId     - id of an existing party
+	 *
+	 */
+	virtual uint32 GetPartyMemberCount(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const = 0;
+
+	/**
 	 * Get info associated with a party
 	 *
 	 * @param LocalUserId - user making the request
@@ -809,13 +924,31 @@ public:
 	virtual bool GetPendingInvitedUsers(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, TArray<TSharedRef<const FUniqueNetId>>& OutPendingInvitedUserArray) const = 0;
 
 	/**
-	 * List of all subscribeable notifications
+	 * Creates a command line token from a IOnlinePartyJoinInfo object
+	 *
+	 * @param JoinInfo - the IOnlinePartyJoinInfo object to convert
+	 *
+	 * return the new IOnlinePartyJoinInfo object
+	 */
+	virtual FString MakeTokenFromJoinInfo(const IOnlinePartyJoinInfo& JoinInfo) const = 0;
+
+	/**
+	* Creates a IOnlinePartyJoinInfo object from a command line token
+	*
+	* @param Token - the token string
+	*
+	* return the new IOnlinePartyJoinInfo object
+	*/
+	virtual TSharedRef<IOnlinePartyJoinInfo> MakeJoinInfoFromToken(const FString& Token) const = 0;
+
+	/**
+	 * List of all subscribe-able notifications
 	 *
 	 * OnPartyJoined
 	 * OnPartyPromotionLockoutStateChanged
 	 * OnPartyDataChanged
 	 * OnPartyMemberChanged
-	 * OnPartyMemberRemoved
+	 * OnPartyMemberExited
 	 * OnPartyMemberJoined
 	 * OnPartyMemberDataChanged
 	 * OnPartyInviteRequestReceived

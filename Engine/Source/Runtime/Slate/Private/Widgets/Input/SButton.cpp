@@ -40,6 +40,7 @@ void SButton::Construct( const FArguments& InArgs )
 		.HAlign( InArgs._HAlign )
 		.VAlign( InArgs._VAlign )
 		.Padding( TAttribute<FMargin>(this, &SButton::GetCombinedPadding) )
+		.ShowEffectWhenDisabled( TAttribute<bool>(this, &SButton::GetShowDisabledEffect) )
 		[
 			DetermineContent(InArgs)
 		]
@@ -70,11 +71,19 @@ FMargin SButton::GetCombinedPadding() const
 		: ContentPadding.Get() + BorderPadding;	
 }
 
+bool SButton::GetShowDisabledEffect() const
+{
+	return DisabledImage->DrawAs == ESlateBrushDrawType::NoDrawType;
+}
 
 /** @return An image that represents this button's border*/
 const FSlateBrush* SButton::GetBorder() const
 {
-	if (IsPressed())
+	if (!GetShowDisabledEffect() && !IsEnabled())
+	{
+		return DisabledImage;
+	}
+	else if (IsPressed())
 	{
 		return PressedImage;
 	}
@@ -362,6 +371,7 @@ void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
 	NormalImage = &Style->Normal;
 	HoverImage = &Style->Hovered;
 	PressedImage = &Style->Pressed;
+	DisabledImage = &Style->Disabled;
 
 	BorderPadding = Style->NormalPadding;
 	PressedBorderPadding = Style->PressedPadding;

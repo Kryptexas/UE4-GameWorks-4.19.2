@@ -188,10 +188,9 @@ namespace AutomationTool
 			XGEItem Result = new XGEItem();
 
 			ClearExportedXGEXML();
-            var StartXGEManifestExport = DateTime.Now.ToString();
+
 			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs, EnvVars: EnvVars);
-            var FinishXGEManifestExport = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,GenerateXGEManifest.{0}.{1}.{2},{3},{4}", TargetName, Platform.ToString(), Config, StartXGEManifestExport, FinishXGEManifestExport));
+
 			PrepareManifest(UBTManifest, true);
 
 			Result.Platform = Platform;
@@ -283,10 +282,8 @@ namespace AutomationTool
 			}
 
 			PrepareUBT();
-            var StartCleanUBT = DateTime.Now.ToString();
+
 			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs, EnvVars: EnvVars);
-            var FinishCleanUBT = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,CleanWithUBT.{0}.{1}.{2},{3},{4}", TargetName, Platform.ToString(), Config, StartCleanUBT, FinishCleanUBT));
 		}
 
 		void BuildWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform TargetPlatform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, bool ForceFlushMac = false, bool DisableXGE = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
@@ -332,16 +329,14 @@ namespace AutomationTool
                 string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
 				DeleteFile(UBTManifest);
-                var StartGenerateManifest = DateTime.Now.ToString();
-				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs +  " -generatemanifest" , EnvVars: EnvVars);
-                var FinishGenerateManifest = DateTime.Now.ToString();
-                PrintCSVFile(String.Format("UAT,PrepareUBTManifest.{0}.{1}.{2},{3},{4}", TargetName, TargetPlatform.ToString(), Config, StartGenerateManifest, FinishGenerateManifest));
+
+				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs + " -generatemanifest" , EnvVars: EnvVars);
+
 				PrepareManifest(UBTManifest, false);
 			}
-            var StartCompile = DateTime.Now.ToString();
+
 			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
-            var FinishCompile = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,Compile.{0}.{1}.{2},{3},{4}", TargetName, TargetPlatform.ToString(), Config, StartCompile, FinishCompile));
+
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
 			Platform.Platforms[TargetPlatform].PostBuildTarget(this, string.IsNullOrEmpty(ProjectName) ? TargetName : ProjectName, UprojectPath, Config);
 
@@ -1394,9 +1389,6 @@ namespace AutomationTool
 				}
 				if (XGEItems.Count > 0)
 				{
-                    LogSetProgress(InShowProgress, "Building...");
-                    var StartRun = DateTime.Now.ToString();
-					var FinishRun = "";
 					string XGETool = "";
 					string Args = "";
 					if (bCanUseXGE) 
@@ -1414,19 +1406,15 @@ namespace AutomationTool
 						throw new AutomationException("BUILD FAILED: no tool present to process XGE files");
 					}
 
+					LogSetProgress(InShowProgress, "Building...");
 					if (!ProcessXGEItems(XGEItems, XGETool, Args, TaskFilePath, Agenda.DoRetries, Agenda.SpecialTestFlag, InShowProgress))
 					{
-						FinishRun = DateTime.Now.ToString();
-						PrintCSVFile(String.Format("UAT,CompileWithXGE,{0},{1}", StartRun, FinishRun));
 						throw new AutomationException("BUILD FAILED: {0} failed, retries not enabled:", XGETool);
 					}
 					else
 					{
 						bUsedXGE = true;
 					}
-					
-					FinishRun = DateTime.Now.ToString();
-					PrintCSVFile(String.Format("UAT,CompileWithXGE,{0},{1}", StartRun, FinishRun));
 				}
 				else
 				{
@@ -1463,7 +1451,6 @@ namespace AutomationTool
 		{
 			// Check build products
 			{
-                var StartCheckBuildProducts = DateTime.Now.ToString();
 				Log("Build products *******");
 				if (BuildProductFiles.Count < 1)
 				{
@@ -1481,8 +1468,6 @@ namespace AutomationTool
 					}
 				}
 				Log("End Build products *******");
-                var FinishCheckBuildProducts = DateTime.Now.ToString();
-                PrintCSVFile(String.Format("UAT,CheckBuildProducts,{0},{1}", StartCheckBuildProducts, FinishCheckBuildProducts));
 			}
 		}
 

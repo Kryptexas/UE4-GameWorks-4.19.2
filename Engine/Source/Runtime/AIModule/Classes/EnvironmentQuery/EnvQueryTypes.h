@@ -275,6 +275,10 @@ struct AIMODULE_API FEnvTraceData
 	{
 	}
 
+	/** version number for updates */
+	UPROPERTY()
+	int32 VersionNum;
+
 	/** navigation filter for tracing */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
 	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
@@ -309,6 +313,10 @@ struct AIMODULE_API FEnvTraceData
 	/** geometry trace channel */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
 	TEnumAsByte<enum ETraceTypeQuery> TraceChannel;
+
+	/** geometry trace channel for serialization purposes */
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	TEnumAsByte<enum ECollisionChannel> SerializedChannel;
 
 	/** shape used for geometry tracing */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
@@ -346,6 +354,8 @@ struct AIMODULE_API FEnvTraceData
 
 	void SetGeometryOnly();
 	void SetNavmeshOnly();
+	
+	void OnPostLoad();
 };
 
 //////////////////////////////////////////////////////////////////////////

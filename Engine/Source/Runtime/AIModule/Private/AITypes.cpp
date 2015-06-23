@@ -9,11 +9,56 @@
 FAIResourceLock::FAIResourceLock()
 {
 	Locks = 0;
+	bUseResourceLockCount = false;
+}
+
+void FAIResourceLock::SetLock(EAIRequestPriority::Type LockPriority)
+{
+	if (bUseResourceLockCount)
+	{
+		const uint8 ResourceLockCountIndex = static_cast<uint8>(LockPriority);
+		ResourceLockCount[ResourceLockCountIndex] += 1;
+	}
+
+	Locks |= (1 << LockPriority);
+}
+
+void FAIResourceLock::ClearLock(EAIRequestPriority::Type LockPriority)
+{
+	if (bUseResourceLockCount)
+	{
+		const uint8 ResourceLockCountIndex = static_cast<uint8>(LockPriority);
+
+		ensure(ResourceLockCount[ResourceLockCountIndex] > 0);
+		ResourceLockCount[ResourceLockCountIndex] -= 1;
+
+		if (ResourceLockCount[ResourceLockCountIndex] == 0)
+		{
+			Locks &= ~(1 << LockPriority);
+		}
+	}
+	else
+	{
+		Locks &= ~(1 << LockPriority);
+	}
+}
+
+void FAIResourceLock::SetUseResourceLockCount(bool inUseResourceLockCount)
+{
+	bUseResourceLockCount = inUseResourceLockCount;
+	ForceClearAllLocks();
+
 }
 
 void FAIResourceLock::ForceClearAllLocks()
 {
 	FMemory::Memzero(Locks);
+
+	ResourceLockCount.Reset();
+	if (bUseResourceLockCount)
+	{
+		ResourceLockCount.AddZeroed(sizeof(FAIResourceLock::FLockFlags) * 8);
+	}
 }
 
 FString FAIResourceLock::GetLockPriorityName() const

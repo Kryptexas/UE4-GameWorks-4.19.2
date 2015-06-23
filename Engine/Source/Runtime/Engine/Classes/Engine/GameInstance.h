@@ -132,7 +132,7 @@ public:
 	 * @param SpawnActor - True if an actor should be spawned for the new player.
 	 * @return The player which was created.
 	 */
-	class ULocalPlayer*		CreateLocalPlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
+	ULocalPlayer*			CreateLocalPlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
 
 	/**
 	 * Adds a LocalPlayer to the local and global list of Players.
@@ -160,8 +160,8 @@ public:
 
 	void					CleanupGameViewport();
 
-	TArray<class ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator();
-	const TArray<class ULocalPlayer*> &			GetLocalPlayers();
+	TArray<ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator() const;
+	const TArray<ULocalPlayer*> &			GetLocalPlayers() const;
 
 	/** Called when demo playback fails for any reason */
 	virtual void			HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }

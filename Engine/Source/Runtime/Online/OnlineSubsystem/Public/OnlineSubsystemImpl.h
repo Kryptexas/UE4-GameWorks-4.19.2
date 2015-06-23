@@ -67,7 +67,7 @@ public:
 	/**
 	 * @return the name of the online subsystem instance
 	 */
-	FName GetInstanceName() const { return InstanceName; }
+	virtual FName GetInstanceName() const override { return InstanceName; }
 
 	/**
 	 * Queue a delegate to be executed on the next tick

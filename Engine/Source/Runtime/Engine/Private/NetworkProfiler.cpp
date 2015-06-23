@@ -542,7 +542,7 @@ void FNetworkProfiler::TrackSessionChange( bool bShouldContinueTracking, const F
 		{
 			// Delete any stale .tmp files.
 			TArray<FString> FoundTempFiles;
-			IFileManager::Get().FindFiles(FoundTempFiles, *FPaths::ProfilingDir(), TEXT(".tmp"));
+			IFileManager::Get().FindFiles(FoundTempFiles, *(FPaths::ProfilingDir() / TEXT("*.tmp")), true, false);
 			
 			for ( const FString& FoundFile : FoundTempFiles)
 			{

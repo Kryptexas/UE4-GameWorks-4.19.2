@@ -486,6 +486,9 @@ protected:
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;
 	
+	/** used to keep track of which subsystem requested this AI resource be locked */
+	FAIResourceLock ResourceLock;
+
 private:
 
 	/** used for debugging purposes to be able to identify which logged information
@@ -497,9 +500,6 @@ private:
 	 *	Since it makes conceptual sense for GetCurrentNavLocation() to be const but we may 
 	 *	need to update the cached value, CurrentNavLocation is mutable. */
 	mutable FNavLocation CurrentNavLocation;
-
-	/** used to keep track of which subsystem requested this AI resource be locked */
-	FAIResourceLock ResourceLock;
 
 	/** empty delegate for RequestMove */
 	static FRequestCompletedSignature UnboundRequestDelegate;

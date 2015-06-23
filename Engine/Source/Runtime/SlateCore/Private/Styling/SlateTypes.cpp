@@ -90,6 +90,7 @@ FButtonStyle::FButtonStyle()
 , NormalPadding()
 , PressedPadding()
 {
+	Disabled = FSlateNoResource();
 }
 
 const FName FButtonStyle::TypeName( TEXT("FButtonStyle") );

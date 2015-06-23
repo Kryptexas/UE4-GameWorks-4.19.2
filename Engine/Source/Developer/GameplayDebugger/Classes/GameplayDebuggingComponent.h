@@ -152,7 +152,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	uint32 bDrawEQSFailedItems : 1;
 
 	UFUNCTION()
-	void OnChangeEQSQuery();
+	virtual void OnCycleDetailsView();
 
 	UFUNCTION()
 	virtual void OnRep_UpdateEQS();

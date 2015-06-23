@@ -383,19 +383,22 @@ void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
 
 	for (auto Instance : Instances)
 	{
-		if (Instance->IsActive())
+		if (Instance)
 		{
-			// End the ability but don't replicate it, OnRemoveAbility gets replicated
-			Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
-		}
-		else
-		{
-			// Ability isn't active, but still needs to be destroyed
-			if (GetOwnerRole() == ROLE_Authority || Instance->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNo)
+			if (Instance->IsActive())
 			{
-				// Only destroy if we're the server or this isn't replicated. Can't destroy on the client or replication will fail when it replicates the end state
-				AllReplicatedInstancedAbilities.Remove(Instance);
-				Instance->MarkPendingKill();
+				// End the ability but don't replicate it, OnRemoveAbility gets replicated
+				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+			}
+			else
+			{
+				// Ability isn't active, but still needs to be destroyed
+				if (GetOwnerRole() == ROLE_Authority || Instance->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNo)
+				{
+					// Only destroy if we're the server or this isn't replicated. Can't destroy on the client or replication will fail when it replicates the end state
+					AllReplicatedInstancedAbilities.Remove(Instance);
+					Instance->MarkPendingKill();
+				}
 			}
 		}
 	}

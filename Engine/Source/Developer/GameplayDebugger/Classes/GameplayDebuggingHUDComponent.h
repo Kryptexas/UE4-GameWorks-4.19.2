@@ -18,7 +18,7 @@ struct GAMEPLAYDEBUGGER_API FDebugCategoryView
 #define ADD_GAMEVIEW_CATEGORY(__Category__) \
 {\
 	UGameplayDebuggerSettings* GDS = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>();\
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::GameView1, GDS->GetCustomViewNames().GameView1.Len() ? GDS->GetCustomViewNames().GameView1 : TEXT("GameView1")));\
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::__Category__, GDS->GetCustomViewNames().__Category__.Len() ? GDS->GetCustomViewNames().__Category__ : TEXT(#__Category__)));\
 }
 
 UCLASS(config = Engine, notplaceable)

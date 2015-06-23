@@ -64,19 +64,19 @@ namespace EUserPrivileges
  * Delegate called when a player logs in/out
  *
  * @param LocalUserNum the controller number of the associated user
- * @param LocalUserNum the player that logged in/out
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginChanged, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginChanged, int32 /*LocalUserNum*/);
 typedef FOnLoginChanged::FDelegate FOnLoginChangedDelegate;
 
 /**
  * Delegate called when a player's status changes but doesn't change profiles
  *
  * @param LocalUserNum the controller number of the associated user
+ * @param OldStatus the old login status for the user
  * @param NewStatus the new login status for the user
  * @param NewId the new id to associate with the user
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginStatusChanged, int32, ELoginStatus::Type, ELoginStatus::Type, const FUniqueNetId&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginStatusChanged, int32 /*LocalUserNum*/, ELoginStatus::Type /*OldStatus*/, ELoginStatus::Type /*NewStatus*/, const FUniqueNetId& /*NewId*/);
 typedef FOnLoginStatusChanged::FDelegate FOnLoginStatusChangedDelegate;
 
 /**
@@ -86,7 +86,7 @@ typedef FOnLoginStatusChanged::FDelegate FOnLoginStatusChangedDelegate;
  * @param PreviousUser the user that used to be paired with this controller
  * @param NewUser the user that is currently paired with this controller
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnControllerPairingChanged, int, const FUniqueNetId&, const FUniqueNetId&);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnControllerPairingChanged, int /*LocalUserNum*/, const FUniqueNetId& /*PreviousUser*/, const FUniqueNetId& /*NewUser*/);
 typedef FOnControllerPairingChanged::FDelegate FOnControllerPairingChangedDelegate;
 
 /**
@@ -97,7 +97,7 @@ typedef FOnControllerPairingChanged::FDelegate FOnControllerPairingChangedDelega
  * @param UserId the user id received from the server on successful login
  * @param Error string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginComplete, int32, bool, const FUniqueNetId&, const FString&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 typedef FOnLoginComplete::FDelegate FOnLoginCompleteDelegate;
 
 
@@ -107,7 +107,7 @@ typedef FOnLoginComplete::FDelegate FOnLoginCompleteDelegate;
  * @param LocalUserNum the controller number of the associated user
  * @param bWasSuccessful whether the async call completed properly or not
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLogoutComplete, int32, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLogoutComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/);
 typedef FOnLogoutComplete::FDelegate FOnLogoutCompleteDelegate;
 
 /**

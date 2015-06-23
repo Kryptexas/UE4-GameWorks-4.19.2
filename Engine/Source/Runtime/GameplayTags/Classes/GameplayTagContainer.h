@@ -223,9 +223,15 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 * Tag to remove from the container
 	 * 
 	 * @param TagToRemove	Tag to remove from the container
-	 * @param RemoveChildlessParents Also Remove any parents that would be left with no children
 	 */
 	virtual void RemoveTag(FGameplayTag TagToRemove);
+
+	/**
+	* Removes all tags in TagsToRemove from this container
+	*
+	* @param TagsToRemove	Tags to remove from the container
+	*/
+	virtual void RemoveTags(FGameplayTagContainer TagsToRemove);
 
 	/** Remove all tags from the container */
 	virtual void RemoveAllTags(int32 Slack=0);

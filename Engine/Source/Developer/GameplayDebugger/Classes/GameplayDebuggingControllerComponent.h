@@ -53,9 +53,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingControllerComponent : public UActor
 
 	TWeakObjectPtr<ADebugCameraController> GetDebugCameraController() { return DebugCameraController; }
 
-	FOnChangeEQSQuery OnNextEQSQuery;
-	FOnChangeEQSQuery OnPreviousEQSQuery;
-
 protected:
 
 	UPROPERTY(Transient)
@@ -86,7 +83,7 @@ protected:
 	virtual void ToggleAIDebugView_SetView7();
 	virtual void ToggleAIDebugView_SetView8();
 	virtual void ToggleAIDebugView_SetView9();
-	virtual void NextEQSQuery();
+	virtual void CycleDetailsView();
 
 	virtual void BindAIDebugViewKeys(class UInputComponent*& InputComponent);
 	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;

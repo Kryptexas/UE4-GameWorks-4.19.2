@@ -644,12 +644,12 @@ void UGameInstance::CleanupGameViewport()
 	}
 }
 
-TArray<class ULocalPlayer*>::TConstIterator	UGameInstance::GetLocalPlayerIterator()
+TArray<class ULocalPlayer*>::TConstIterator	UGameInstance::GetLocalPlayerIterator() const
 {
 	return LocalPlayers.CreateConstIterator();
 }
 
-const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers()
+const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers() const
 {
 	return LocalPlayers;
 }

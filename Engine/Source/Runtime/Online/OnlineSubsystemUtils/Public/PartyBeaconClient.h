@@ -19,6 +19,8 @@ class FOnlineSessionSearchResult;
 UENUM()
 enum class EClientRequestType : uint8
 {
+	/** None pending */
+	NonePending,
 	/** Make a reservation with an existing session */
 	ExistingSessionReservation,
 	/** Make an update to an existing reservation */
@@ -35,6 +37,10 @@ inline const TCHAR* ToString(EClientRequestType RequestType)
 {
 	switch (RequestType)
 	{
+	case EClientRequestType::NonePending:
+	{
+		return TEXT("No Request Pending");
+	}
 	case EClientRequestType::ExistingSessionReservation:
 	{
 		return TEXT("Existing Session Reservation");
@@ -87,6 +93,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 
 	// Begin AOnlineBeaconClient Interface
 	virtual void OnConnected() override;
+	virtual void OnFailure() override;
 	// End AOnlineBeaconClient Interface
 
 	/**

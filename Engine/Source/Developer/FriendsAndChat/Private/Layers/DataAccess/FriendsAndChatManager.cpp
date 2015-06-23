@@ -114,6 +114,7 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 			OnDestroySessionCompleteDelegate     = FOnDestroySessionCompleteDelegate               ::CreateSP (this, &FFriendsAndChatManager::OnGameDestroyed);
 			OnPartyMemberJoinedDelegate          = FOnPartyMemberJoinedDelegate                    ::CreateSP (this, &FFriendsAndChatManager::OnPartyMemberJoined);
 			OnPartyMemberExitedDelegate          = FOnPartyMemberExitedDelegate                    ::CreateSP (this, &FFriendsAndChatManager::OnPartyMemberExited);
+			OnPartyJoinedDelegate = FOnPartyJoinedDelegate::CreateSP(this, &FFriendsAndChatManager::OnPartyJoined);
 
 			OnQueryRecentPlayersCompleteDelegateHandle	= FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegate);
 			OnFriendsListChangedDelegateHandle			= FriendsInterface->AddOnFriendsChangeDelegate_Handle(LocalControllerIndex, OnFriendsListChangedDelegate);
@@ -127,11 +128,12 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 
 			OnPresenceReceivedCompleteDelegateHandle = OnlineSub->GetPresenceInterface()->AddOnPresenceReceivedDelegate_Handle      (OnPresenceReceivedCompleteDelegate);
 			OnGameInviteReceivedDelegateHandle       = OnlineSub->GetSessionInterface ()->AddOnSessionInviteReceivedDelegate_Handle (OnGameInviteReceivedDelegate);
-			OnPartyInviteReceivedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyInviteReceivedDelegate_Handle(OnPartyInviteReceivedDelegate);
+			OnPartyInviteReceivedDelegateHandle      = OnlineSub->GetPartyInterface()->AddOnPartyInviteReceivedDelegate_Handle      (OnPartyInviteReceivedDelegate);
 			OnDestroySessionCompleteDelegateHandle   = OnlineSub->GetSessionInterface ()->AddOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegate);
 
 			OnPartyMemberJoinedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyMemberJoinedDelegate_Handle(OnPartyMemberJoinedDelegate);
 			OnPartyMemberExitedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyMemberExitedDelegate_Handle(OnPartyMemberExitedDelegate);
+			OnPartyJoinedDelegateHandle       = OnlineSub->GetPartyInterface()->AddOnPartyJoinedDelegate_Handle      (OnPartyJoinedDelegate);
 
 			ManagerState = EFriendsAndManagerState::Idle;
 
@@ -203,6 +205,7 @@ void FFriendsAndChatManager::Logout()
 		{
 			OnlineSub->GetPartyInterface()->ClearOnPartyMemberJoinedDelegate_Handle(OnPartyMemberJoinedDelegateHandle);
 			OnlineSub->GetPartyInterface()->ClearOnPartyMemberExitedDelegate_Handle(OnPartyMemberExitedDelegateHandle);
+			OnlineSub->GetPartyInterface()->ClearOnPartyJoinedDelegate_Handle(OnPartyJoinedDelegateHandle);
 		}
 	}
 
@@ -776,7 +779,7 @@ bool FFriendsAndChatManager::IsInJoinableParty() const
 			if (UserId.IsValid())
 			{
 				TSharedPtr<IOnlinePartyJoinInfo> PartyJoinInfo = OnlineSub->GetPartyInterface()->GetAdvertisedParty(*UserId, *UserId);
-				bIsJoinable = PartyJoinInfo.IsValid();
+				bIsJoinable = PartyJoinInfo.IsValid() && !PartyJoinInfo->IsInvalidForJoin();
 			}
 		}
 	}
@@ -1927,6 +1930,13 @@ void FFriendsAndChatManager::OnPartyMemberExited(const FUniqueNetId& LocalUserId
 	//GetChatViewModel()->UpdateInPartyUI();
 }
 
+void FFriendsAndChatManager::OnPartyJoined(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId)
+{
+	//ToDo - NickDavies - re-add party 
+	// You joined a party, update the UI to make party chat available & the default output channel
+	//GetChatViewModel()->UpdateInPartyUI();
+}
+
 void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
 {
 	TSharedPtr<IFriendItem>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());
@@ -1974,12 +1984,10 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	if (PartyInfo.IsValid())
 	{
 		// notify for further processing of join party request 
-		OnFriendsJoinParty().Broadcast(*FriendItem->GetUniqueID(), PartyInfo.ToSharedRef());
+		const bool bIsFromInvite = FriendItem->GetListType() == EFriendsDisplayLists::GameInviteDisplay;
+		OnFriendsJoinParty().Broadcast(*FriendItem->GetUniqueID(), PartyInfo.ToSharedRef(), bIsFromInvite);
 
-		AdditionalCommandline =
-			TEXT("-partyleaderid=") + PartyInfo->GetLeaderId()->ToString() +
-			TEXT(" -partyid=") + PartyInfo->GetPartyId()->ToString() +
-			TEXT(" -partykey=") + PartyInfo->GetReservationKey();
+		AdditionalCommandline = OnlineSub->GetPartyInterface()->MakeTokenFromJoinInfo(*PartyInfo);
 	}
 	else
 	{

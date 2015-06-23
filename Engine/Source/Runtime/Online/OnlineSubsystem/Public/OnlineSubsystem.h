@@ -134,6 +134,15 @@ public:
 		return false;
 	}
 
+	/**
+	 * Get the instance name, which is typically "default" or "none" but distinguishes
+	 * one instance from another in "Play In Editor" mode.  Most platforms can't do this
+	 * because of third party requirements that only allow one login per machine instance
+	 *
+	 * @return the instance name of this subsystem
+	 */
+	virtual FName GetInstanceName() const = 0;
+
 	/** 
 	 * Get the interface for accessing the session management services
 	 * @return Interface pointer for the appropriate session service
@@ -268,24 +277,24 @@ public:
 	virtual IOnlineChatPtr GetChatInterface() const = 0;
 
 	/**
-	* Get the notification handler instance for this subsystem
-	* @return Pointer for the appropriate notification handler
-	*/
+	 * Get the notification handler instance for this subsystem
+	 * @return Pointer for the appropriate notification handler
+	 */
 	FOnlineNotificationHandlerPtr GetOnlineNotificationHandler() const
 	{
 		return OnlineNotificationHandler;
 	}
 
 	/**
-	* Get the interface for managing turn based multiplayer games
-	* @return Interface pointer for the appropriate online user service
-	*/
+	 * Get the interface for managing turn based multiplayer games
+	 * @return Interface pointer for the appropriate online user service
+	 */
 	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const = 0;
 
 	/**
-	* Get the transport manager instance for this subsystem
-	* @return Pointer for the appropriate transport manager
-	*/
+	 * Get the transport manager instance for this subsystem
+	 * @return Pointer for the appropriate transport manager
+	 */
 	FOnlineNotificationTransportManagerPtr GetOnlineNotificationTransportManager() const
 	{
 		return OnlineNotificationTransportManager;

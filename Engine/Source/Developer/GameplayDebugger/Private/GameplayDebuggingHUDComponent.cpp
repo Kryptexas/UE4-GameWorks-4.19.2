@@ -117,7 +117,7 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 		DebugComponent = GetDebuggingReplicator()->GetDebugComponent();
 	}
 				
-	if (DebugComponent && DebugComponent->GetSelectedActor())
+	if (DebugComponent)
 	{
 		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
 		DrawDebugComponentData(MyPC, DebugComponent);
@@ -245,7 +245,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
-	if (DebugComponent->GetSelectedActor() && bDrawFullData)
+	if (SelectedActor && bDrawFullData)
 	{
 		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) /*|| EngineShowFlags.DebugAI*/)
 		{
@@ -274,9 +274,9 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}
-
-		DrawGameSpecificView(MyPC, DebugComponent);
 	}
+
+	DrawGameSpecificView(MyPC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 

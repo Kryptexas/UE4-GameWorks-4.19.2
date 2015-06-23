@@ -288,7 +288,7 @@ void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys(class UInputComp
 			InputComponent->BindKey(FInputChord(EKeys::Seven, false, false, true, false), IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView7);
 			InputComponent->BindKey(FInputChord(EKeys::Eight, false, false, true, false), IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView8);
 			InputComponent->BindKey(FInputChord(EKeys::Nine, false, false, true, false), IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView9);
-			InputComponent->BindKey(FInputChord(EKeys::Equals, false, false, true, false), IE_Released, this, &UGameplayDebuggingControllerComponent::NextEQSQuery);
+			InputComponent->BindKey(FInputChord(EKeys::Equals, false, false, true, false), IE_Released, this, &UGameplayDebuggingControllerComponent::CycleDetailsView);
 		}
 		else
 		{
@@ -302,7 +302,7 @@ void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys(class UInputComp
 			InputComponent->BindKey(EKeys::NumPadSeven, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView7);
 			InputComponent->BindKey(EKeys::NumPadEight, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView8);
 			InputComponent->BindKey(EKeys::NumPadNine, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView9);
-			InputComponent->BindKey(EKeys::Add, IE_Released, this, &UGameplayDebuggingControllerComponent::NextEQSQuery);
+			InputComponent->BindKey(EKeys::Add, IE_Released, this, &UGameplayDebuggingControllerComponent::CycleDetailsView);
 		}
 		InputComponent->BindKey(FInputChord(EKeys::Tab, false, false, false, false), IE_Released, this, &UGameplayDebuggingControllerComponent::ToggleDebugCamera);
 	}
@@ -375,12 +375,9 @@ DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView7, EAIDebugDrawDataView::GameVie
 DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView8, EAIDebugDrawDataView::GameView4);
 DEFAULT_TOGGLE_HANDLER(ToggleAIDebugView_SetView9, EAIDebugDrawDataView::GameView5);
 
-void UGameplayDebuggingControllerComponent::NextEQSQuery()
+void UGameplayDebuggingControllerComponent::CycleDetailsView()
 {
-	if (IsViewActive(EAIDebugDrawDataView::EQS))
-	{
-		GetDebuggingReplicator()->OnChangeEQSQuery.Broadcast();
-	}
+	GetDebuggingReplicator()->OnCycleDetailsView.Broadcast();
 }
 
 #ifdef DEFAULT_TOGGLE_HANDLER
@@ -447,10 +444,6 @@ void UGameplayDebuggingControllerComponent::ToggleDebugCamera()
 
 	if (DebugCameraController.IsValid() == false)
 	{
-		// spawn if necessary
-		// and ungly @HACK to be able to spawn camera in game world rather then
-		// in editor world (if running PIE). Hate it, but it works, and 
-		// this is a debugging tool		
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.bNoCollisionFail = true;

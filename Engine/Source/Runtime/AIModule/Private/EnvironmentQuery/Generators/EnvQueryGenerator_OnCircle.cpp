@@ -40,6 +40,7 @@ void UEnvQueryGenerator_OnCircle::PostLoad()
 		ArcAngle.DefaultValue = 360.f;
 	}
 
+	TraceData.OnPostLoad();
 	AngleRadians = FMath::DegreesToRadians(ArcAngle.DefaultValue);
 }
 

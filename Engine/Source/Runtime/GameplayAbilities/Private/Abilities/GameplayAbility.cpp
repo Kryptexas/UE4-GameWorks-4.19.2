@@ -418,8 +418,8 @@ bool UGameplayAbility::CanBeCanceled() const
 		return bIsCancelable;
 	}
 
-	// Non instanced are always cancelable
-	return true;
+	// Non instanced are always cancelable if they are active
+	return bIsActive;
 }
 
 void UGameplayAbility::SetCanBeCanceled(bool bCanBeCanceled)

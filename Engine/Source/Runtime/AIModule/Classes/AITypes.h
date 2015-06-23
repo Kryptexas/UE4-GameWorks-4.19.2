@@ -316,21 +316,15 @@ struct AIMODULE_API FAIResourceLock
 {
 	/** @note feel free to change the type if you need to support more then 16 lock sources */
 	typedef uint16 FLockFlags;
-
-	FLockFlags Locks;
 	
 	FAIResourceLock();
-
-	FORCEINLINE void SetLock(EAIRequestPriority::Type LockPriority)
-	{
-		Locks |= (1 << LockPriority);
-	}
-
-	FORCEINLINE void ClearLock(EAIRequestPriority::Type LockPriority)
-	{
-		Locks &= ~(1 << LockPriority);
-	}
 	
+	void SetLock(EAIRequestPriority::Type LockPriority);
+	void ClearLock(EAIRequestPriority::Type LockPriority);
+
+	/** set whether we should use resource lock count.  clears all existing locks. */
+	void SetUseResourceLockCount(bool inUseResourceLockCount);
+
 	/** force-clears all locks */
 	void ForceClearAllLocks();
 
@@ -370,6 +364,11 @@ struct AIMODULE_API FAIResourceLock
 	{
 		return Locks == Other.Locks;
 	}
+
+private:
+	FLockFlags Locks;
+	TArray<uint8> ResourceLockCount;
+	bool bUseResourceLockCount;
 };
 
 namespace FAIResources

@@ -176,7 +176,7 @@ public:
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FUniqueNetId& /*SessionId*/)
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
 
-	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinPartyEvent, const FUniqueNetId& /*SenderId*/, const TSharedRef<class IOnlinePartyJoinInfo>& /*PartyJoinInfo*/)
+	DECLARE_EVENT_ThreeParams(IFriendsAndChatManager, FOnFriendsJoinPartyEvent, const FUniqueNetId& /*SenderId*/, const TSharedRef<class IOnlinePartyJoinInfo>& /*PartyJoinInfo*/, bool /*bIsFromInvite*/)
 	virtual FOnFriendsJoinPartyEvent& OnFriendsJoinParty() = 0;
 
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FChatMessageReceivedEvent, EChatMessageType::Type /*Type of message received*/, TSharedPtr<IFriendItem> /*Friend if chat type is whisper*/);

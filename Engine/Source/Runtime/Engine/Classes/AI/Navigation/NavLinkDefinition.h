@@ -21,8 +21,12 @@ struct ENGINE_API FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** if greater than 0 nav system will attempt to project navlink's end point geometry below */
+	/** if greater than 0 nav system will attempt to project navlink's start point on geometry below */
 	UPROPERTY(EditAnywhere, Category=Default, meta=(ClampMin = "0.0"))
+	float LeftProjectHeight;
+
+	/** if greater than 0 nav system will attempt to project navlink's end point on geometry below */
+	UPROPERTY(EditAnywhere, Category=Default, meta=(ClampMin = "0.0", DisplayName="Right Project Height"))
 	float MaxFallDownLength;
 
 	UPROPERTY(EditAnywhere, Category=Default)

@@ -273,8 +273,8 @@ struct SLATECORE_API FButtonStyle : public FSlateWidgetStyle
 	FSlateBrush Pressed;
 	FButtonStyle& SetPressed( const FSlateBrush& InPressed ){ Pressed = InPressed; return *this; }
 
-	/** Button appearance when disabled, not exposed as a UProperty, because they don't have an effect in the general case. */
-	UPROPERTY()
+	/** Button appearance when disabled, by default this is set to an invalid resource when that is the case default disabled drawing is used. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush Disabled;
 	FButtonStyle& SetDisabled( const FSlateBrush& InDisabled ){ Disabled = InDisabled; return *this; }
 

@@ -154,7 +154,7 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	if (Replicator)
 	{
-		Replicator->OnChangeEQSQuery.AddUObject(this, &UGameplayDebuggingComponent::OnChangeEQSQuery);
+		Replicator->OnCycleDetailsView.AddUObject(this, &UGameplayDebuggingComponent::OnCycleDetailsView);
 		FGameplayDebuggerSettings Settings = GameplayDebuggerSettings(Replicator);
 		for (int32 Index = EAIDebugDrawDataView::Empty + 1; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
@@ -796,7 +796,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 //////////////////////////////////////////////////////////////////////////
 // EQS Data
 //////////////////////////////////////////////////////////////////////////
-void UGameplayDebuggingComponent::OnChangeEQSQuery()
+void UGameplayDebuggingComponent::OnCycleDetailsView()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (++CurrentEQSIndex >= EQSLocalData.Num())
@@ -1399,7 +1399,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	if (!Replicator || !Replicator->IsDrawEnabled() || Replicator->IsPendingKill() || IsPendingKill() || GetSelectedActor() == NULL || GetSelectedActor()->IsPendingKill())
+	if (!Replicator || !Replicator->IsDrawEnabled() || Replicator->IsPendingKill() || IsPendingKill())
 	{
 		return NULL;
 	}
@@ -1420,7 +1420,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #endif
 
 #if USE_EQS_DEBUGGER
-	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled())
+	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() && GetSelectedActor() != NULL)
 	{
 		const int32 EQSIndex = EQSLocalData.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, EQSLocalData.Num() - 1) : INDEX_NONE;
 		if (EQSLocalData.IsValidIndex(EQSIndex))
@@ -1440,8 +1440,8 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		}
 	}
 #endif // USE_EQS_DEBUGGER
-
-	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor();
+	
+	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor() && GetSelectedActor() != NULL;
 	if (bDrawFullData && ShouldReplicateData(EAIDebugDrawDataView::Basic))
 	{
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));

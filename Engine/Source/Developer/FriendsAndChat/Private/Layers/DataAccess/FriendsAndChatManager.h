@@ -687,6 +687,13 @@ private:
 	 * @param MemberId member that left
 	 */
 	void OnPartyMemberExited(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId, const EMemberExitedReason Reason);
+	
+	/**
+	* Handle adding party chat channel when joining another player's party
+	*
+	* @param PartyId party that you joined
+	*/
+	void OnPartyJoined(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId);
 
 	/**
 	 * Delegate used when a friend is removed.
@@ -864,10 +871,12 @@ private:
 	FOnPartyInviteReceivedDelegate OnPartyInviteReceivedDelegate;
 	// Delegate for a game session being destroyed
 	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
-	// Delegate for a player joining your party
+	// Delegate for a player joining your party (doesn't fire for self joining)
 	FOnPartyMemberJoinedDelegate OnPartyMemberJoinedDelegate;
-	// Delegate for a player leaving your party
+	// Delegate for a player leaving your party (includes yourself)
 	FOnPartyMemberExitedDelegate OnPartyMemberExitedDelegate;
+	// Delegate for joining another player's party
+	FOnPartyJoinedDelegate OnPartyJoinedDelegate;
 
 	// Delegate for friend removed
 	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
@@ -995,5 +1004,6 @@ private:
 	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
 	FDelegateHandle OnPartyMemberJoinedDelegateHandle;
 	FDelegateHandle OnPartyMemberExitedDelegateHandle;
+	FDelegateHandle OnPartyJoinedDelegateHandle;
 	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };

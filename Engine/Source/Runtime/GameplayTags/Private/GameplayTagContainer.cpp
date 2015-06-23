@@ -607,6 +607,14 @@ void FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
 	GameplayTags.Remove(TagToRemove);
 }
 
+void FGameplayTagContainer::RemoveTags(FGameplayTagContainer TagsToRemove)
+{
+	for (auto Tag : TagsToRemove)
+	{
+		RemoveTag(Tag);
+	}
+}
+
 void FGameplayTagContainer::RemoveAllTags(int32 Slack)
 {
 	GameplayTags.Empty(Slack);
