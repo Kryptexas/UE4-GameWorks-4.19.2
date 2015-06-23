@@ -524,11 +524,11 @@ void UGameplayTagsManager::OnObjectReimported(UFactory* ImportFactory, UObject* 
 
 FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorIfNotFound) const
 {
+	FScopeLock Lock(&GameplayTagMapCritical);
+
 	const FGameplayTag* Tag = nullptr;
-	{
-		FScopeLock Lock(&GameplayTagMapCritical);
-		Tag = GameplayTagMap.Find(TagName);
-	}
+	Tag = GameplayTagMap.Find(TagName);
+
 	if (!Tag)
 	{ 
 		if (ErrorIfNotFound)
