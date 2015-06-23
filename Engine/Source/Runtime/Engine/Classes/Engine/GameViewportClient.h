@@ -279,12 +279,20 @@ public:
 		GameLayerManagerPtr = LayerManager;
 	}
 
+	/**
+	 * Gets the layer manager for the UI.
+	 */
+	TSharedPtr< IGameLayerManager > GetGameLayerManager() const
+	{
+		return GameLayerManagerPtr.Pin();
+	}
+
 	/** Returns access to this viewport's Slate window */
 	TSharedPtr< SWindow > GetWindow()
 	{
 		 return Window.Pin();
 	}
-	 
+	
 	/** 
 	 * Sets bDropDetail and other per-frame detail level flags on the current WorldSettings
 	 *
