@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2550597
+﻿INTSourceChangelist:2596080
 Availability:Public
 Title:イベントディスパッチャー
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -7,14 +7,14 @@ Related:Engine/Blueprints/UserGuide/EventDispatcher
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
 
-[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) が呼び出されると、イベントを実装したブループリントや、イベントディスパッチャーに結びついているイベントが設定されたブループリントも呼び出し時に実行されます。つまり、Event Dispatcher が呼び出されると、結びついているイベントも呼び出されて、1 つのソースから複数のイベントを一度に実行することができます。 
+[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) が呼び出されると、イベントを実装したブループリントや、イベントディスパッチャーに結びついているイベントが設定されたブループリントも呼び出し時に実行されます。つまり、 Event Dispatcher が呼び出されると、結びついているイベントも呼び出されて、 1 つのソースから複数のイベントを一度に実行することができます。 
 
 このページは、イベントディスパッチャーの設定方法およびイベントとイベントディスパッチャーをバインドする方法を紹介します。 
 
 このサンプルでは、プレイヤーはキーを押して、炎のパーティクル エフェクトを茂みの中でスポーンさせることができます。 
 
 [REGION:note]
-このユーザーガイドでは **スターターコンテンツ** を有効にして、 **Blueprint Third Person** テンプレートをを使用しています。 
+このユーザーガイドでは **スターターコンテンツ** を有効にして、 **Blueprint Third Person** テンプレートを使用しています。 
 [/REGION]
 
 1. **コンテンツ ブラウザ** の **Content/ThirdPersonBP/Blueprints** フォルダから **ThirdPersonCharacter** ブループリントを開きます。 
