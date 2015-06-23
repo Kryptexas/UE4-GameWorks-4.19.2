@@ -29,7 +29,7 @@ struct AIMODULE_API FAIMessage
 	FName MessageName;
 
 	/** message source */
-	UObject* Sender;
+	FWeakObjectPtr Sender;
 
 	/** message param: ID */
 	FAIRequestID RequestID;
