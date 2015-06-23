@@ -537,6 +537,11 @@ bool FTextFilterExpressionEvaluator::TestTextFilter(const ITextFilterExpressionC
 	using namespace TextFilterExpressionParser;
 	using TextFilterExpressionParser::FTextToken;
 
+	if (FilterType == ETextFilterExpressionType::Empty)
+	{
+		return true;
+	}
+
 	if (CompiledFilter.IsSet())
 	{
 		auto& CompiledResult = CompiledFilter.GetValue();
