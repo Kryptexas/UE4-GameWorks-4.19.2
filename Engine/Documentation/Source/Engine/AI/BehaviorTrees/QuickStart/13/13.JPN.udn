@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:13.デコレーターの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -15,7 +15,7 @@ Description:13.デコレーターの作成
 		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		* [次のステップ](Engine/AI/BehaviorTrees/QuickStart/14 "%Engine/AI/BehaviorTrees/QuickStart/14:title%")
+		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/14 "%Engine/AI/BehaviorTrees/QuickStart/14:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -34,11 +34,11 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 	ビヘイビアツリーと同じフォルダの中に作成されます。
 1. **コンテンツ ブラウザ** の中で名前を「CloseEnough」に変更します。
 1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合はコンテンツ ブラウザで **ダブルクリック** してください。
-1. [My Blueprint] タブの [Functions] セクションで、 **PerformConditionCheck** を "オーバーライド" します。
+1. [My Blueprint] タブの [Functions (関数)] セクションで、 **PerformConditionCheck** を "オーバーライド" します。
 
 	![](override_button.png)
 
-1. 新規関数で、次のグラフを作成します。
+1. 新しくできた関数で、次のグラフを作成します。
 
 	[OBJECT:Snippet]
 		[PARAM:image]
@@ -68,7 +68,6 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 
 
 
-[VAR:varTable1]
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
@@ -602,3 +601,8 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 	   NodeGuid=7E75B438413B960D40E5A68DECD346A2
 	End Object
 [/VAR]
+
+
+
+
+
