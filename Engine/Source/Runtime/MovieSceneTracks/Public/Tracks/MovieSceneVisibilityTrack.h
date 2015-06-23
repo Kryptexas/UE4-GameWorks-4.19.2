@@ -5,6 +5,7 @@
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.h"
+#include "MovieSceneBoolTrack.h"
 #include "MovieSceneVisibilityTrack.generated.h"
 
 /**
