@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2419781
+﻿INTSourceChangelist:2592560
 Availability:Public
-Title:ペルソナ アニメーション エディタ リファレンス
+Title:ペルソナアニメーションエディタのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:アニメーション ブループリント、アニメーション シーケンスやその他のアニメーション アセットのプレビューおよび編集に使用するエディタ
 Related:Engine/Animation/Persona/MenuBar
@@ -48,42 +48,42 @@ Related:Engine/Animation/Persona/MenuBar
 [/REGION]
 
 
-ペルソナは 以下のようなアニメーション アセットを **ダブルクリック** して **コンテンツ ブラウザ** から開くことができます。
+ペルソナは 以下のようなアニメーションアセット上で **ダブルクリック** して **コンテンツ ブラウザ** から開くことができます。
 
-* _Animation ブループリント_
+* _アニメーションブループリント_
 * _スケルトン_
 * _スケルタルメッシュ_
-* _アニメーション シーケンス_
+* _アニメーションシーケンス_
 * _ブレンドスペース_
-* _アニメーション モンタージュ_
+* _アニメーションモンタージュ_
 
 [REGION:tip]
-また、 **コンテンツ ブラウザ** で上記のアセットのいずれかを **右クリック** して、そのコンテキスト メニューから **[Edit]** を選択してもペルソナを開くことができます。
+また、 **コンテンツ ブラウザ** で上記のアセットのいずれかを **右クリック** して、そのコンテキストメニューから [**Edit**] を選択してもペルソナを開くことができます。
 [/REGION]
 
-##ペルソナモードとユーザー インターフェース (UI)
+##ペルソナモードとユーザーインターフェース (UI)
 
 ![](ModeSelector.gif)(convert:false)
 [REGION:caption]
-[**Persona Editing Modes**](Engine\Animation\Persona\Modes) は、インタフェースの右上の **Modes** ツールバーに表示されています。 
+[**Persona Editing Modes**](Engine\Animation\Persona\Modes) は、インタフェースの右上隅の **Modes** ツールバーにボタンとして表示されます。 
 [/REGION]
 
-個々のツールが数多く集まっているため、すべてのコンポーネントが常時表示されているとペルソナのインターフェイスに圧倒されてしまいます。これを解決するために、ペルソナは以下の 4 つの主要 _モード_ に分かれています。
+膨大な単一ツールが収容されているため、すべてのコンポーネントが常時表示されている状態では、ペルソナのインターフェイスに圧倒されてしまいます。これを解決するために、ペルソナは以下の 4 つの主要 _モード_ に分かれています。
 
-1. **スケルトン**
-1. **メッシュ**
-1. **アニメーション**
-1. **グラフ**
+1. **Skeleton**
+1. **Mesh**
+1. **Animation**
+1. **Graph**
 
-各モードは、ツールを使用して行いたい特定タイプのタスクに対応します。各モード内では、一部のツールとエレメントだけが表示され、利用できます。しかし、モードを切り替えずに様々なタスクを重複して行うなど、まだまだフレキシビリティがあります。 
+各モードはツールを使用して実行する特定タイプのタスクに対応します。それぞれのモードは、選択された一部のツールとインターフェースエレメントだけが表示されてこれらを利用できます。モードを切り替えずに様々なタスクを行う一部の重複部分に加えて、さらに高い柔軟性をもたせる余地がかなり残されています。 
 
 [REGION:note]
-以下の場所は、各ウィンドウのデフォルト位置です。パネルを移動すると、各インターフェイス エレメントが異なる場所に表示される場合があります。どのパネルがどれであるかを理解するために、各パネルに対してタブを使用するようにしてください。
+以下の場所は各ウィンドウのデフォルト位置です。パネルを移動すると、各インターフェイス エレメントが異なる場所に表示される場合があります。各パネルの役割を理解するために、各パネルに対してタブを使用してください。
 [/REGION]
 
 
 [REGION:tip]
-表示、非表示に関係なく、各モードに対してアクセス可能なインターフェイスのすべては、ペルソナの _[Window]_ メニューからアクセスできます。
+表示、非表示に関係なく、各モードにアクセス可能なすべてのインターフェイスは、ペルソナの _[Window]_ メニューからアクセスできます。
 [/REGION]
 
 [OBJECT:IconSection]
@@ -91,7 +91,7 @@ Related:Engine/Animation/Persona/MenuBar
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Skeleton.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Skeleton.png)
 	[/PARAM]
 	[PARAM:title]
-		Skeleton モード
+		Skeletonモード
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#skeletonoverview]
@@ -106,7 +106,7 @@ Related:Engine/Animation/Persona/MenuBar
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Mesh.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Mesh.png)
 	[/PARAM]
 	[PARAM:title]
-		Mesh モード
+		Meshモード
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#meshoverview]
@@ -122,7 +122,7 @@ Related:Engine/Animation/Persona/MenuBar
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Anmation.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Anmation.png)
 	[/PARAM]
 	[PARAM:title]
-		Animation モード
+		Animationモード
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#animationoverview]
@@ -131,7 +131,7 @@ Related:Engine/Animation/Persona/MenuBar
 		インターフェース オプションには、以下が含まれます。
 		[INCLUDE:Engine\Animation\Persona\Modes#animationmodeui]
 
-		Animation モードには、 **アセット エディタ** というユニークな UI 機能があります。これは、 **アセット ブラウザ** で [アニメーション アセット] を **ダブルクリック** した場合にのみ表示される特殊なパネルです。				デフォルトで [アセット エディタ] は、ペルソナの中央下部、ビューポートの真下にあります。
+		アニメーション モードには、 **アセットエディタ** というユニークな特徴を持つ UI が1つあります。これは、 **アセット ブラウザ** で [アニメーション アセット] を **ダブルクリック** した場合にのみ表示される特殊なパネルです。				デフォルトで [アセット エディタ]は、ペルソナの中央下部、ビューポートの真下にあります。
 	[/PARAM]
 [/OBJECT]
 
@@ -140,7 +140,7 @@ Related:Engine/Animation/Persona/MenuBar
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Vim.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Vim.png)
 	[/PARAM]
 	[PARAM:title]
-		Graph モード
+		Graphモード
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#graphoverview]
@@ -151,7 +151,7 @@ Related:Engine/Animation/Persona/MenuBar
 [/OBJECT]
 
 [REGION:note]
-**Graph** モードは、 **コンテンツ ブラウザ** 内からアニメーション ブループリントを開いた場合のみ利用できます。他のすべてのアニメーション アセット タイプ (スケルトン、アニメーション シーケンスなど) では、スケルトン、メッシュ、アニメーションだけが表示されます。 これは、単一のスケルトンやアニメーション設定に関連付られた複数のアニメーション ブループリントをユーザーが持っている可能性があるためです。
+**Graph** モードは、 **コンテンツ ブラウザ** 内からアニメーション ブループリントを開いた場合のみ利用できます。他のすべてのアニメーション アセット タイプ (スケルトン、アニメーション シーケンスなど) では、スケルトン、メッシュ、アニメーションだけが表示されます。 これは、単一のスケルトンやアニメーション設定に関連付られている複数のアニメーション ブループリントをユーザーが保持している可能性があるためです。
 [/REGION]
 
 
@@ -161,27 +161,26 @@ Related:Engine/Animation/Persona/MenuBar
 
 <!--
 [EXCERPT:SkeletonOverview]
-**Skeleton モード** では、ボーンやジョイントの階層に関与するキャラクタやスケルタルメッシュの様々なビジュアル化や制御を行うことができます。以下はその使用例です。
+**Skeletonモード** では、ボーンやジョイントの階層に関与するキャラクタやスケルタルメッシュの様々なビジュアル化や制御を行うことができます。以下はその使用例です。
 
-* アイテムをスケルタルメッシュにアタッチするための [スケルタルメッシュ ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) を作成する
+* アイテムをスケルタルメッシュに親子付けするための [スケルタルメッシュ ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) を作成する
 * 各 [ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) に対して相対位置と回転を編集する
 * アニメーションのリターゲット関係を確立する
 
 [/EXCERPT:SkeletonOverview]
 
 [EXCERPT:MeshOverview]
-**Mesh モード** では、スケルタルメッシュの多角形メッシュ モデルに影響を与える変更を加えることができます。以下はその使用例です。
+**Meshモード** では、スケルタルメッシュの多角形メッシュ モデルに影響を与える修正を加えることができます。以下はその使用例です。
 
-* スケルタルメッシュでマテリアルを設定する
+* スケルタルメッシュにマテリアルを設定する
 * Clothing (布地) エレメントを追加する
 * スケルタルメッシュに対して LOD を設定する
 * モーフ ターゲットをテストする
 [/EXCERPT:MeshOverview]
 
 [EXCERPT:AnimationOverview]
-**Animation モード** は、スケルタルメッシュで利用できる様々なアニメーション中心のアセットに簡単にアクセスできるようにします。こうしたアセットには、Animation Sequence (アニムシーケンス)、Blend Space (ブレンドスペース)、Animation Montage (アニムモンタージュ) などがあります。以下はその使用例です。
-
-* アニメーションをプレビューする (アニメーションのシーケンス、ブレンドスペース、モンタージュ等) 
+**Animationモード** は、スケルタルメッシュで利用できる様々なアニメーション中心のアセットに簡単にアクセスできるようにします。こうしたアセットには、Animation Sequence（アニムシーケンス）、Blend Space（ブレンドスペース）、Animation Montage（アニムモンタージュ）などがあります。以下はその使用例です。
+		* アニメーションをプレビューする (アニメーションのシーケンス、ブレンドスペース、モンタージュ等) 
 
 * アセットに編集を加える (ブレンドスペース、アニメーションのモンタージュ) 
 * マテリアルまたはモーフ ターゲットの変更に対してカーブを追加、編集する
@@ -189,9 +188,9 @@ Related:Engine/Animation/Persona/MenuBar
 [/EXCERPT:AnimationOverview]
 
 [EXCERPT:GraphOverview]
-**Graph モード** は、アニメーションのブループリント、アニメーションのステートマシーンを作成し、編集する主な手段です。以下はその使用例です。
+**Graphモード** は、アニメーションのブループリント、アニメーションのステートマシーンを作成し、編集する主な手段です。以下はその使用例です。
 
-* アニメーションのブループリントを設定し、編集する
+* Annimation ブループリントを設定し、編集する
 * ステートマシーンを作成、編集する
 * アニメーション ブループリントのイベントグラフ内からアニメーションのモンタージュを再生する
 * AnimGraph を使用して様々なポーズとアニメーション結果をブレンドする
@@ -223,12 +222,12 @@ Related:Engine/Animation/Persona/MenuBar
 |利用可能なインターフェイス コンポーネント						|																					|
 |------------------------------------------------------|-----------------------------------------------------------------------------------|
 | **デフォルトで表示**									| **ウィンドウ メニューで** 																|
-| 1.[メニュー バー](Engine/Animation/Persona\MenuBar)			| [モーフターゲットのプレビューア](Engine/Animation/Persona\MorphTargetPreviewer)|
-| 2.[ツール バー](Engine/Animation/Persona\Toolbar)			| [アニメーション通知](Engine/Animation/Persona\AnimationNotifies)		|
-| 3.[スケルトン ツリー](Engine/Animation/Persona\SkeletonTree)	| [リターゲット ソース マネージャ](Engine/Animation/Persona\BasePoseManager)			|
-| 4.[ビューポート](Engine/Animation/Persona\Viewport)			|																					|
-| 5.[詳細](Engine/UI/LevelEditor/Details)				|																					|
-| 6.[アセット ブラウザ](Engine/Animation/Persona\AssetBrowser)	|																					|
+| 1. [Menu Bar](Engine/Animation/Persona\MenuBar)			| [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer)|
+| 2. [Toolbar](Engine/Animation/Persona\Toolbar)			| [Animation Notifies](Engine/Animation/Persona\AnimationNotifies)		|
+| 3. [Skeleton Tree](Engine/Animation/Persona\SkeletonTree)	| [Retarget Source Manager](Engine/Animation/Persona\BasePoseManager)			|
+| 4. [Viewport](Engine/Animation/Persona\Viewport)			|																					|
+| 5. [Details](Engine/UI/LevelEditor/Details)				|																					|
+| 6. [Asset Browser](Engine/Animation/Persona\AssetBrowser)	|																					|
 
 
 [/REGION]
@@ -242,13 +241,13 @@ Related:Engine/Animation/Persona/MenuBar
 |利用可能なインターフェイス コンポーネント											|																					|
 |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | **デフォルトで表示**												| **ウィンドウ メニューで** 																|
-| 1.[メニュー バー](Engine/Animation/Persona\MenuBar)			| [リターゲット ソース マネージャ](Engine/Animation/Persona\BasePoseManager)			|
-| 2.[ツール バー](Engine/Animation/Persona\Toolbar)				| [アニメーション通知](Engine/Animation/Persona\AnimationNotifies)		|
-| 3.[スケルトン ツリー](Engine/Animation/Persona\SkeletonTree)	|																					|
-| 4.[Mesh Details](Engine/Animation/Persona\MeshDetails)	|																					|
-| 5.[ビューポート](Engine/Animation/Persona\Viewport)			|																					|
-| 6.[アセット ブラウザ](Engine/Animation/Persona\AssetBrowser) & [詳細パネル](Engine/UI/LevelEditor/Details)|									|
-| 7.[モーフ ターゲット プレビューア](Engine/Animation/Persona\MorphTargetPreviewer)	|																	|
+| 1. [Menu Bar](Engine/Animation/Persona\MenuBar)			| [Retarget Source Manager](Engine/Animation/Persona\BasePoseManager)			|
+| 2. [Toolbar](Engine/Animation/Persona\Toolbar)				| [Animation Notifies](Engine/Animation/Persona\AnimationNotifies)		|
+| 3. [Skeleton Tree](Engine/Animation/Persona\SkeletonTree)	|																					|
+| 4. [Mesh Details](Engine/Animation/Persona\MeshDetails)	|																					|
+| 5. [Viewport](Engine/Animation/Persona\Viewport)			|																					|
+| 6. [Asset Browser](Engine/Animation/Persona\AssetBrowser) & [Details](Engine/UI/LevelEditor/Details)|									|
+| 7. [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer)	|																	|
 
 
 [/REGION]
@@ -261,14 +260,14 @@ Related:Engine/Animation/Persona/MenuBar
 |利用可能なインターフェイス コンポーネント													|																					|
 |-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | **デフォルトで表示**														| **ウィンドウ メニューで** 																|
-| 1.[メニュー バー](Engine/Animation/Persona\MenuBar)					| [リターゲット ソース マネージャ](Engine/Animation/Persona\BasePoseManager)			|
-| 2.[ツール バー](Engine/Animation/Persona\Toolbar)						| [アニメーション通知](Engine/Animation/Persona\AnimationNotifies)		|
-| 3.[スケルトン ツリー](Engine/Animation/Persona\SkeletonTree)			| [モーフ ターゲット プレビューア](Engine/Animation/Persona\MorphTargetPreviewer)|
-| 4.[Anim Asset Details](Engine/Animation/Persona\AnimAssetDetails)	|																					|
-| 5.[ビューポート](Engine/Animation/Persona\Viewport)					|																					|
-| 6.[アセット エディタ](Engine/Animation/Persona\AssetEditor)			|																					|
-| 7.[詳細](Engine/UI/LevelEditor/Details)							|																					|
-| 8.[アセット ブラウザ](Engine/Animation/Persona\AssetBrowser)			|																					|
+| 1. [Menu Bar](Engine/Animation/Persona\MenuBar)					| [Retarget Source Manager](Engine/Animation/Persona\BasePoseManager)			|
+| 2. [Toolbar](Engine/Animation/Persona\Toolbar)						| [Animation Notifies](Engine/Animation/Persona\AnimationNotifies)		|
+| 3. [Skeleton Tree](Engine/Animation/Persona\SkeletonTree)			| [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer)|
+| 4. [Anim Asset Details](Engine/Animation/Persona\AnimAssetDetails)	|																					|
+| 5. [Viewport](Engine/Animation/Persona\Viewport)					|																					|
+| 6. [Asset Editor](Engine/Animation/Persona\AssetEditor)			|																					|
+| 7. [Details](Engine/UI/LevelEditor/Details)							|																					|
+| 8. [Asset Browser](Engine/Animation/Persona\AssetBrowser)			|																					|
 
 
 [/REGION]
@@ -282,13 +281,13 @@ Related:Engine/Animation/Persona/MenuBar
 |利用可能なインターフェイス コンポーネント													|																					|
 |-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | **デフォルトで表示**														| **ウィンドウ メニューで** 																|
-| 1.[メニュー バー](Engine/Animation/Persona\MenuBar)					| [デバッグ](Engine/Blueprints\UserGuide\Debugging)										|
-| 2.[ツール バー](Engine/Animation/Persona\Toolbar)						| [Palette パネル](Engine/Blueprints\Editor/UIComponents\Palette)										|
-| 3.[ビューポート](Engine/Animation/Persona\Viewport)					| [コンパイラの結果](Engine/Blueprints\Editor/UIComponents\CompilerResults)					|
-| 4.[グラフ エディタ](Engine/Blueprints\Editor/UIComponents\GraphEditor)						| [Find Results パネル](Engine/Blueprints\Editor/UIComponents\FindResults)							|
-| 5.[Class Defaults](Engine/Animation/Persona\BlueprintDefaults)| [アニメーション通知](Engine/Animation/Persona\AnimationNotifies)		|
-| 6.[My Blueprint](Engine/Blueprints\Editor/UIComponents\MyBlueprint) & [アセットブラウザ](Engine/Animation/Persona\AssetBrowser)|									|
-| 7.[詳細](Engine/UI/LevelEditor/Details)							|																					|
+| 1. [Menu Bar](Engine/Animation/Persona\MenuBar)					| [Debug](Engine/Blueprints\UserGuide\Debugging)										|
+| 2. [Toolbar](Engine/Animation/Persona\Toolbar)						| [Palette](Engine/Blueprints\Editor/UIComponents\Palette)										|
+| 3. [Viewport](Engine/Animation/Persona\Viewport)					| [Compiler Results](Engine/Blueprints\Editor/UIComponents\CompilerResults)					|
+| 4. [Graph Editor](Engine/Blueprints\Editor/UIComponents\GraphEditor)						| [Find Results](Engine/Blueprints\Editor/UIComponents\FindResults)							|
+| 5. [Class Defaults](Engine/Animation/Persona\BlueprintDefaults)| [Animation Notifies](Engine/Animation/Persona\AnimationNotifies)		|
+| 6. [My Blueprint](Engine/Blueprints\Editor/UIComponents\MyBlueprint) & [Asset Browser](Engine/Animation/Persona\AssetBrowser)|									|
+| 7. [Details](Engine/UI/LevelEditor/Details)							|																					|
 [/REGION]
 
 
@@ -307,8 +306,8 @@ Related:Engine/Animation/Persona/MenuBar
 
 ## インターフェース エレメント
 
-ペルソナはノードベースのグラフ エディタを、スケルタルメッシュのアニメーション設定に使用する 
-他の特別なツールやパネルと組み合わせます。利用可能なツールは、プレビューしているアセットのタイプに応じて変わります。たとえば、 BlendSpace を見ていなければ、 BlendSpace エディタは表示されません。
+ペルソナはノードベースのグラフエディタを、スケルタルメッシュのアニメーション設定に使用すできる  
+別の特別なツールやパネルと組み合わせます。利用可能なツールはプレビューしているアセットのタイプに応じて変化します。たとえばBlendSpaceに目を向けていない時は、BlenSpace エディタは表示されません。
 
 ###ツールバー
 
@@ -318,13 +317,13 @@ Related:Engine/Animation/Persona/MenuBar
 
 [INCLUDE:Engine/Animation/Persona/Toolbar#Overview]
 
-詳細は、 [](Engine/Animation/Persona/Toolbar) ページを参照してください 
+詳細は、[](Engine/Animation/Persona/Toolbar)  ページを参照してください 
 
 ###エクスプローラー
 
 [INCLUDE:Engine/Animation/Persona/Explorer#Overview]
 
-詳細は、 [](Engine/Animation/Persona/Explorer) ページを参照してください 
+詳細は、[](Engine/Animation/Persona/Explorer)  ページを参照してください 
 
 
 ### マイブループリント
@@ -333,112 +332,117 @@ Related:Engine/Animation/Persona/MenuBar
 
 [INCLUDE:Engine/Blueprints\Editor\MyBlueprint#Intro]
 
-詳細は、 [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) ページを参照してください 
+詳細は、 [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) ページを参照してください。
 
 ### 変数
 
 ![](Variables.png)
 
-**Variables** パネルでは、 _Animation ブループリント_ にカスタム変数を追加、および 
+ [**Variables**] パネルは、_Animation Blueprint_ にカスタム変数を追加、および 
 すべての既存リストを表示します。変数は、通常はアニメーションのブループリントの EventGraph 内、または 
-コードを通じて外部的に値を更新します。これらの値は、その他の計算や [ブレンドスペース](Engine/Animation/Blendspaces) の入力値として使用され、 
+コードを通じて外部から値を更新します。これらの値は、その他の計算や[Blendspaces](Engine/Animation/Blendspaces) の入力値として使用され、 
 アニメーションブレンディングを制御します。
 
-詳細は、 [](Engine/Blueprints/UserGuide/Variables) ページを参照してください 
+詳細は、 [](Engine/Blueprints/UserGuide/Variables)  ページを参照してください。
 
-###詳細パネル
+###詳細
 
 ![Persona: Details Panel](CE_details_panel.png)
 
-**[詳細]** パネルは、プロパティまたは文脈依存のコマンドのコレクションや、 
+ [**Details**] パネルは、プロパティまたは文脈依存のコマンドのコレクションや、 
 アクティブなグラフで現在の選択を実行するアクション、例えば Blendspace ノードや SkelControls を表示します。
 
-詳細は、 [](Engine/UI/LevelEditor/Details) ページを参照してください。
+一般用法に関する詳細は、[](Engine/UI/LevelEditor/Details) ページを参照してください。
 
 ###デバッグ
 
 ![Persona: Debug Panel](CE_debug_panel.png)
 
-**[Debug]** パネルには、デザイナーがブレークポイントやウォッチ値形式で指定した重要な情報や、 
-すでに実行された _Animation ブループリント_ に属する全てのノードの追跡スタックが表示されます。 
+ [**Debug**] パネルには、デザイナーがブレークポイントやウォッチ値形式で指定した重要な情報や、 
+すでに実行された_アニメーションブループリント_ に属する全てのノードの追跡スタックが表示されます。 
 このウィンドウには、ブレークポイント使用時のゲームの実行をコントロールするための制御が表示されます。
 
-アニメーションのブループリントをデバッグするための **[Debug]** パネルを使用した作業に関する詳細は、 [デバッグ](Engine/Blueprints/UserGuide/Debugging) を参照してください。
+Animationブループリントのデバッグ処理を [**デバッグ**] パネルで作業するための詳細は、 [Debugging](Engine/Blueprints/UserGuide/Debugging) を参照してください。
 
-### Asset Browser パネル
+### [アセットブラウザ]  パネル
 
 [INCLUDE:Engine/Animation/Persona/AssetBrowser#Overview]
 
-詳細は、 [](Engine/Subsystems/Animation/Persona/Viewport) ページを参照してください 
+詳細は、[](Engine/Subsystems/Animation/Persona/Viewport) ページを参照してください 
 
-### [スケルトンツリー] パネル
+###  [スケルトンツリー]  パネル
 
 ![](SkeletonTree.png)
 
-**[スケルトンツリー]** パネルは、編集中の _Animation ブループリント_ が作成された _スケルトン_ のボーン階層を表示します。
+[**スケルトンツリー**] パネルは、編集中の_アニメーションブループリント_が作成された_スケルトン_のボーン階層を表示します。
 
-詳細は、 [スケルトンツリー](Engine/Animation/Persona\SkeletonTree) ページを参照してください。
+詳細は、[Skeleton Tree](Engine/Animation/Persona\SkeletonTree) ページを参照してください 
 
-### ビューポート パネル
+###  [ビューポート] パネル
 
 [INCLUDE:Engine/Animation/Persona/Viewport#Overview]
 
-詳細は、 [](Engine/Animation/Persona/Explorer) ページを参照してください。
+詳細は、[](Engine/Animation/Persona/Explorer)  ページを参照してください 
 
 
-### Mesh Details パネル
+###  [Mesh Details ] パネル
 
 [INCLUDE:Engine/Animation/Persona\MeshDetails#Overview]
 
-詳細は、 [Mesh Details パネル](Engine/Animation/Persona\MeshDetails)  ページを参照してください。
+詳細は、[Mesh Details Panel](Engine/Animation/Persona\MeshDetails)  ページを参照してください 
 
-###Anim アセットの詳細
+###Animアセットの詳細
 
 [INCLUDE:Engine/Animation/Persona\AnimAssetDetails#Overview]
 
-詳細は、 [](Engine/Animation/Persona\AnimAssetDetails) ページを参照してください。
+詳細は、[](Engine/Animation/Persona\AnimAssetDetails)  ページを参照してください 
 
 
 ###モーフ ターゲット プレビューア
 
 [INCLUDE:Engine/Animation/Persona\MorphTargetPreviewer#Overview]
 
-詳細は、 [](Engine/Animation/Persona\MorphTargetPreviewer) ページを参照してください。
+詳細は、[](Engine/Animation/Persona\MorphTargetPreviewer) )  ページを参照してください 
 
 ### Class Defaults (プレビュー設定)
 
 ![](BlueprintDefaults.png)
 
-Animation ブループリントを試す場合、アニメーション間のブレンドを操作するために一部の変数値を調整する必要がしばしば生じます。これは、 [Class Defaults] パネルで行うことができます。ペルソナ内では、このパネルのタブはデフォルトで非表示になっています。そのため、ウィンドウは単に「Preview Settings」となっています。
+アニメーションブループリントを試す場合、アニメーション間のブレンドを操作するために一部の変数値を調整する必要がしばしば生じます。変更は Class Default パネルで行えます。ペルソナ内では、このパネルのタブはデフォルトで非表示になっています。そのため、ウィンドウは単に「Preview Settings」となっています。
 
 
-詳細は、 [](Engine/Blueprints\Editor\Modes\Defaults) ページを参照してください 
+詳細は、[](Engine/Blueprints\Editor\Modes\Defaults) ページを参照してください。
 
-### [グラフ] パネル
+###  [グラフ] パネル
 
 ![Persona: Graph Panels](CE_graph_panels.png)
 
 [INCLUDE:Engine/Blueprints/Editor/Modes/GraphPanel#Intro]
 
-詳細は、 [ブループリント グラフ パネル](Engine/Blueprints/Editor/Modes/GraphPanel) を参照してください。
+詳細は、[Blueprint Graph Panel](Engine/Blueprints/Editor/Modes/GraphPanel) セクションを参照してください。
 
 ## エディタ
 
-アニメーション シーケンス エディタ
+### Animation Sequence エディタ
 
 [INCLUDE:Engine/Animation/Sequences/Editor#Overview]
 
 ![Animation Sequence Editor](Engine/Animation/Sequences/Editor/persona_sequence.png)(w:720)
 
-_アニメーション シーケンス_ の設定に関する詳細は、 [](Engine/Animation/Sequences/Editor) を参照してください。
+ _AnimationSequences_ の設定に関する詳細は、[](Engine/Animation/Sequences/Editor) を参照してください。
 
-### ブレンドスペース エディタ
+### BlendSpace エディタ
 
 [INCLUDE:Engine/Animation/Blendspaces/Editor#Overview]
 
 ![Animation Sequence Editor](Engine/Animation/Blendspaces/Editor/bs_editor.png)(w:720)
 
-_ブレンドスペース_ の設定に関する詳細は、 [](Engine/Animation/Blendspaces/Editor) を参照してください。
+ _Blendspaces_ の設定に関する詳細は、[](Engine/Animation/Blendspaces/Editor) を参照してください。
 
 
 --->
+
+
+
+
+
