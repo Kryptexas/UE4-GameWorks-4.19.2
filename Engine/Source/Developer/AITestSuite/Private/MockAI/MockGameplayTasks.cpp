@@ -19,6 +19,7 @@ UMockTask_Log* UMockTask_Log::CreateTask(IGameplayTaskOwnerInterface& TaskOwner,
 	{
 		Task->Logger = &InLogger;
 		Task->RequiredResources = Resources;
+		Task->ClaimedResources = Resources;
 		Task->Priority = Priority;
 	}
 	return Task;
