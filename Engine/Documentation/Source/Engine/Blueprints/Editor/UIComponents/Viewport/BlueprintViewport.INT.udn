@@ -5,8 +5,6 @@ Description:Overview of the viewport in the Components mode of Blueprint Classes
 
 [TOC (start:2)]
 
-## Overview
-
 In the **Viewport**, in the Blueprint Editor, you can view and manipulate your Blueprint's components. 
 
 ![](BP_Viewport.png)
