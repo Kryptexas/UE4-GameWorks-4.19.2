@@ -17,6 +17,11 @@ INavigationQueryFilterInterface* FAbstractQueryFilter::CreateCopy() const
 
 AAbstractNavData::AAbstractNavData(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
+	bEditable = false;
+	bListedInSceneOutliner = false;
+#endif
+
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		FindPathImplementation = FindPathAbstract;
