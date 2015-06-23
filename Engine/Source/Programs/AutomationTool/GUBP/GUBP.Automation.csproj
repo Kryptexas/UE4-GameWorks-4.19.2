@@ -59,6 +59,9 @@
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="GUBP.Automation.cs" />
+    <Compile Include="TempStorage.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\UnrealBuildTool\UnrealBuildTool.csproj">

@@ -125,7 +125,6 @@
     <Compile Include="ScriptCompiler.cs" />
     <Compile Include="CommandUtils.cs" />
     <Compile Include="SharedUtils.cs" />
-    <Compile Include="TempStorage.cs" />
     <Compile Include="UBTUtils.cs" />
     <Compile Include="UE4Build.cs" />
     <Compile Include="Utils.cs" />
