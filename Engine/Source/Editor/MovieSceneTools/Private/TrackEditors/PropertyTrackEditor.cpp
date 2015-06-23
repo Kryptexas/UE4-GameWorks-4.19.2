@@ -9,6 +9,7 @@
 #include "MovieSceneBoolTrack.h"
 #include "MovieSceneByteTrack.h"
 #include "MovieSceneColorTrack.h"
+#include "MovieSceneVisibilityTrack.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneSection.h"
 #include "ISequencerObjectBindingManager.h"
@@ -21,6 +22,7 @@
 #include "MovieSceneBoolSection.h"
 #include "MovieSceneByteSection.h"
 #include "MovieSceneColorSection.h"
+#include "MovieSceneVisibilitySection.h"
 #include "MovieSceneToolHelpers.h"
 #include "PropertyTrackEditor.h"
 #include "CommonMovieSceneTools.h"
@@ -348,7 +350,8 @@ bool FPropertyTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) co
 		Type == UMovieSceneBoolTrack::StaticClass() ||
 		Type == UMovieSceneByteTrack::StaticClass() ||
 		Type == UMovieSceneVectorTrack::StaticClass() ||
-		Type == UMovieSceneColorTrack::StaticClass();
+		Type == UMovieSceneColorTrack::StaticClass() ||
+		Type == UMovieSceneVisibilityTrack::StaticClass();
 }
 
 TSharedRef<ISequencerSection> FPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
@@ -363,6 +366,7 @@ TSharedRef<ISequencerSection> FPropertyTrackEditor::MakeSectionInterface( UMovie
 		SectionClass == UMovieSceneByteTrack::StaticClass() ? new FBytePropertySection(SectionObject, Track->GetTrackName(), Cast<UMovieSceneByteTrack>(SectionObject.GetOuter())->GetEnum()) :
 		SectionClass == UMovieSceneVectorTrack::StaticClass() ? new FVectorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneFloatTrack::StaticClass() ? new FFloatPropertySection( SectionObject, Track->GetTrackName() ) :
+		SectionClass == UMovieSceneVisibilityTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName() ) :
 		new FPropertySection( SectionObject, Track->GetTrackName() )
 		);
 
@@ -557,7 +561,21 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FPropertyChangedParams 
 		{
 			FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
 
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, TrackType::StaticClass(), PropertyName );
+			// Look for a customized track class for this property on the meta data
+			const FString& MetaSequencerTrackClass = PropertyChangedParams.PropertyPath.Last()->GetMetaData(TEXT("SequencerTrackClass"));			
+			TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
+			if (!MetaSequencerTrackClass.IsEmpty())
+			{
+				UClass* MetaClass = FindObject<UClass>(ANY_PACKAGE, *MetaSequencerTrackClass);
+				if (!MetaClass)
+				{
+					MetaClass = LoadObject<UClass>(nullptr, *MetaSequencerTrackClass);
+				}
+				if (MetaClass != NULL)
+					SequencerTrackClass = MetaClass;
+			}
+
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, SequencerTrackClass, PropertyName );
 			if( ensure( Track ) )
 			{
 				TrackType* TypedTrack = CastChecked<TrackType>(Track);
