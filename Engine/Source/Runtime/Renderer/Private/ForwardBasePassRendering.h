@@ -152,8 +152,8 @@ public:
 
 		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType) &&
 			(NumDynamicPointLights == 0 ||
-			(!bIsUnlit && NumDynamicPointLights == INT32_MAX && bMobileDynamicPointLightsUseStaticBranch) ||					// single shader for variable number of point lights
-			(!bIsUnlit && NumDynamicPointLights <= MobileNumDynamicPointLights && !bMobileDynamicPointLightsUseStaticBranch));	// unique 1...N point light shaders
+			(!bIsUnlit && NumDynamicPointLights == INT32_MAX && bMobileDynamicPointLightsUseStaticBranch && MobileNumDynamicPointLights > 0) ||	// single shader for variable number of point lights
+			(!bIsUnlit && NumDynamicPointLights <= MobileNumDynamicPointLights && !bMobileDynamicPointLightsUseStaticBranch));					// unique 1...N point light shaders
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -626,11 +626,11 @@ void ProcessBasePassMeshForForwardShading(
 				// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
 				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 				{
-					Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+					Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
 				}
 				else
 				{
-					Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+					Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy, NumDynamicPointLights==0 ? 0 : INT32_MAX>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
 				}
 			}
 			else
@@ -665,11 +665,11 @@ void ProcessBasePassMeshForForwardShading(
 			{
 				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 				{
-					Action.template Process<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy, 0>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
 				}
 				else
 				{
-					Action.template Process<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy, 0>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
 				}
 			}
 			else
@@ -685,11 +685,11 @@ void ProcessBasePassMeshForForwardShading(
 			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
 			if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 			{
-				Action.template Process<FMovableDirectionalLightCSMLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightCSMLightingPolicy(), FMovableDirectionalLightCSMLightingPolicy::ElementDataType());
+				Action.template Process<FMovableDirectionalLightCSMLightingPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FMovableDirectionalLightCSMLightingPolicy(), FMovableDirectionalLightCSMLightingPolicy::ElementDataType());
 			}
 			else
 			{
-				Action.template Process<FMovableDirectionalLightLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
+				Action.template Process<FMovableDirectionalLightLightingPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
 			}
 
 			// Exit to avoid NoLightmapPolicy
