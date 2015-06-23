@@ -22,6 +22,7 @@ bool APostProcessVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.
 	return Super::EncompassesPoint(Point, SphereRadius, OutDistanceToPoint);
 }
 
+#if WITH_EDITOR
 void APostProcessVolume::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -32,7 +33,6 @@ void APostProcessVolume::Serialize(FArchive& Ar)
 	}
 }
 
-#if WITH_EDITOR
 void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
