@@ -1586,8 +1586,11 @@ void FBlueprintEditor::InitBlueprintEditor(
 	FKismet2Menu::SetupBlueprintEditorMenu( MenuExtender, *this );
 	AddMenuExtender(MenuExtender);
 
-	FBlueprintEditorModule* BlueprintEditorModule = &FModuleManager::LoadModuleChecked<FBlueprintEditorModule>( "Kismet" );
-	AddMenuExtender(BlueprintEditorModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	FBlueprintEditorModule* BlueprintEditorModule = &FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+	TSharedPtr<FExtender> CustomExtenders = BlueprintEditorModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects());
+
+	AddMenuExtender(CustomExtenders);
+	AddToolbarExtender(CustomExtenders);
 	
 	RegenerateMenusAndToolbars();
 
