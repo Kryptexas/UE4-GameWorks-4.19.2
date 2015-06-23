@@ -29,6 +29,17 @@ class UK2Node_Message : public UK2Node_CallFunction
 	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) override;
 
 protected:
+	/**
+	 * Helper function for expand node to expand the message to handle the case that a ULevelStreaming may be passed which needs to have its LevelScriptActor pulled out
+	 *
+	 * @param InCompilerContext			CompilerContext from ExpandNode
+	 * @param InSourceGraph				Graph that the node are expanding from
+	 * @param InStartingExecPin			Exec pin that connects to the message node, to correctly be mapped into the exec pins of the expanded nodes
+	 * @param InMessageSelfPin			The message node's self pin, to correctly be mapped into the object pins of the expanded nodes
+	 * @param InCastToInterfaceNode		Previously generated node to cast to the message's interface, to be wired into the expanded nodes
+	 */
+	void ExpandLevelStreamingHandlers(class FKismetCompilerContext& InCompilerContext, UEdGraph* InSourceGraph, class UEdGraphPin* InStartingExecPin, class UEdGraphPin* InMessageSelfPin, class UK2Node_DynamicCast* InCastToInterfaceNode);
+
 	virtual void EnsureFunctionIsInBlueprint() override;
 	// End K2Node_CallFunction Interface.
 

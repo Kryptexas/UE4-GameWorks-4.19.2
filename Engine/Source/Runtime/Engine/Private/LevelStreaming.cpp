@@ -969,6 +969,15 @@ bool ULevelStreamingKismet::ShouldBeLoaded() const
 	return bShouldBeLoaded;
 }
 
+ALevelScriptActor* ULevelStreaming::GetLevelScriptActor()
+{
+	if (LoadedLevel)
+	{
+		return LoadedLevel->GetLevelScriptActor();
+	}
+	return nullptr;
+}
+
 /*-----------------------------------------------------------------------------
 	ULevelStreamingAlwaysLoaded implementation.
 -----------------------------------------------------------------------------*/
