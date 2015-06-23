@@ -21,7 +21,5 @@
 			"Name" : "LightPropagationVolumeEditor",
 			"Type" : "Editor"
 		},
-    ],
-
-	"CanContainContent" : true
+    ]
 }

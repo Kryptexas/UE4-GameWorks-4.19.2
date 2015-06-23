@@ -19,7 +19,5 @@
 			"Type" : "Runtime",
 			"LoadingPhase" : "PostEngineInit"
 		},
-	],
-
-	"CanContainContent" : true
+	]
 }
