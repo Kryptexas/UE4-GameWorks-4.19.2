@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:8.Controller ブループリント:ビヘイビアツリーを実行する
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -44,7 +44,12 @@ Description:ステップ 8.Controller ブループリント:ビヘイビアツ�
 	[![](fullEG.png)(w:920 convert:false)](fullEG.png)
 	[/REGION]
 
-1. AI Controller ブループリントを保存します。
+	1. AI Controller ブループリントを保存します。
 
 
 %Steps%
+
+
+
+
+
