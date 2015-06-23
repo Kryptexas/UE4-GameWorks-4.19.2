@@ -25,6 +25,8 @@ public class FreeType2 : ModuleRules
 
 		FreeType2LibPath = FreeType2Path + "Lib/";
 
+		PublicSystemIncludePaths.Add(FreeType2Path + "include");
+
         if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 ||
 			(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
