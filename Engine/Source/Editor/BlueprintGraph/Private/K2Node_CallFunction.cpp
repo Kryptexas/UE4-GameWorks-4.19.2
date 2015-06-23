@@ -238,8 +238,8 @@ UClass* FDynamicOutputHelper::GetPinClass(UEdGraphPin* Pin)
 {
 	UClass* PinClass = UObject::StaticClass();
 
-	bool const bIsClassOrObjectPin = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object);
-	if (bIsClassOrObjectPin)
+	bool const bIsClassPin = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
+	if (bIsClassPin)
 	{
 		if (UClass* DefaultClass = Cast<UClass>(Pin->DefaultObject))
 		{
@@ -319,8 +319,7 @@ bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
 	}
 
 	bool const bPinIsClassPicker = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
-	bool const bPinIsObjectPicker = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object);
-	return bIsTypeDeterminingPin && (bPinIsClassPicker || bPinIsObjectPicker) && (Pin->Direction == EGPD_Input);
+	return bIsTypeDeterminingPin && bPinIsClassPicker && (Pin->Direction == EGPD_Input);
 }
 
 UEdGraphPin* FDynamicOutputHelper::GetDynamicOutPin(const UK2Node_CallFunction* FuncNode)
