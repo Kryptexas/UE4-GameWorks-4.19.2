@@ -26,7 +26,8 @@ UCLASS(hidecategories=(Service))
 class AIMODULE_API UBTService_DefaultFocus : public UBTService_BlackboardBase
 {
 	GENERATED_BODY()
-	
+
+protected:
 	// not exposed to users on purpose. Here to make reusing focus-setting mechanics by derived classes possible
 	UPROPERTY()
 	uint8 FocusPriority;
