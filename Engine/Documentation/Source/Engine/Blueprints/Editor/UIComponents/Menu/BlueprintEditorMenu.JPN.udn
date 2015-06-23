@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2446078
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title:メニュー
+Title:Menu
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:メニュー
 
@@ -8,7 +8,7 @@ Description:メニュー
 
 
 [EXCERPT:Intro]
-デフォルト設定でブループリントエディタの上部に **メニュー** が表示されます。
+デフォルト設定でブループリントエディタの上部に [ **Menu** ] が表示されます。
 [/EXCERPT:Intro]
 
 [EXCERPT:Main]
@@ -16,13 +16,13 @@ Description:メニュー
 
 
 
-### ファイル
+###ファイル
 
 [EXCERPT:FileMenu]
 | コマンド | 説明 |
 | --- | --- |
 | [REGION:tablesection]**ロードと保存**[/REGION] ||
-| **Save** | ブループリントを保存する。 |
+| **Save** | ブループリントを保存します。 |
 | **Open Asset...** | アセットピッカー ウィンドウを呼び出します。 |
 | **Save All** | 全ての未保存レベルとアセットを保存します。 |
 | **Choose Files to Save...** | 保存オプションでコンテンツとレベル用にダイアログを開きます。 |
@@ -31,23 +31,23 @@ Description:メニュー
 | **Compile** | ブループリントをコンパイルします。 |
 | **Refresh All Nodes** | 外部変更を反映させるためにグラフ内の全ノードをリフレッシュします。|
 | **Reparent Blueprint** | 開いているブループリントの親を変更します。 |
-|**Diff** | 以前のリビジョンに対して差分を取ります。この時ソース制御がアクティブでなくてはいけません。 |
-|**Developer** | [Developer] メニューを開きます。このメニューは [Graph Editor] のようにコンパイラの設定とモジュールの再コンパイルができます。 |
+| **Diff** | 前回のリビジョンとの Diff を取ります。この時ソース制御がアクティブでなくてはいけません。 |
+|**Developer** | [Developer] メニューを開きます。このメニューからコンパイラ設定と [Graph Editor] などのモジュールを再コンパイルすることができます。 |
 [/EXCERPT:FileMenu]
 
-### 編集
+###編集
 
 [VAR:BlueprintSearch]
 | **Search** | 現在のブループリントで関数、イベント、変数、そしてピンへの参照を検索します。|
 | **Find in Blueprints** | 全てのブループリントで関数、イベント、変数、そしてピンへの参照を検索します。 |
-| **Delete Unused Variables** | 一度も使用されていない変数を削除します。 |
+| **Delete Unused Variables** | 一度も使用していない変数を削除します。 |
 [/VAR]
 
 [EXCERPT:EditMenu]
 | コマンド | 説明 |
 | --- | --- |
 | [REGION:tablesection]**履歴**[/REGION] ||
-| **Undo** | 最後の動作を元に戻します。 |
+| **Undo** | 直前の動作を取り消して元に戻します。|
 | **Redo** | 最後に元に戻した動作をやり直します。 |
 | [REGION:tablesection]**検索**[/REGION] ||
 %BlueprintSearch%
@@ -62,7 +62,7 @@ Description:メニュー
 [VAR:AssetMenu]
 | コマンド | 説明 |
 | --- | --- |
-|**Find in Content Browser...** | **コンテンツ ブラウザ** を呼び出してアセットへナビゲートします。 |
+|**Find in Content Browser...** | コンテンツ ブラウザ を呼び出してこのアセットへナビゲートします。 |
 | **View References** | 参照ビューアーを起動し、選択したアセットが参照するもの、何が選択したアセットを参照しているかを表示します。 |
 [/VAR]
 
@@ -75,12 +75,12 @@ Description:メニュー
 | コマンド | 説明 |
 | --- | --- |
 | [REGION:tablesection]**ピンの可視性**[/REGION] ||
-| **Show All Pins** | 全ノードにあるピンを全て表示します。 |
-| **Hide Unused Pins** | 非接続およびデフォルト値を持たないピンを全て隠します。 |
+| **Show All Pins** | 全ノードのピンを全て表示します。 |
+| **Hide Unused Pins** | 非接続およびデフォルト値がないピンを全て隠します。 |
 | **Hide Unconnected Pins** | 非接続のピンを全て隠します。このオプションは、ノードに直接設定された入力用の入力ピンを隠します。 |
-| [REGION:tablesection]**Zoom**[/REGION] ||
-|**Zoom to Window** | 現在の表示をグラフ全域に合わせます。 |
-|**Zoom to Selection** | 現在の表示を選択した大きさに合わせます。 |
+| [REGION:tablesection]**ズーム**[/REGION] ||
+| **Zoom to Window ** | 現在の表示をグラフ全体と併せます。 |
+| **Zoom to Selection** | 現在の表示を選択対象に合わせます。 |
 [/EXCERPT:ViewMenu]
 
 ###デバッグ
@@ -91,32 +91,32 @@ Description:メニュー
 | [REGION:tablesection]**ブレークポイント**[/REGION] ||
 | **Disable All Breakpoints** | 現行ブループリントまたはレベルブループリントの全てのグラフ上の全ブレークポイントを無効にします。|
 | **Enable All Breakpoints** | 現行ブループリントまたはレベルブループリントの全グラフ上の全ブレークポイントを有効にします。|
-| **Delete All Breakpoints** | 現行ブループリントまたはレベルブループリントの全グラフ上の全ブレークポイントを削除します。 |
-| [REGION:tablesection]**Watches**[/REGION] ||
+| **Delete All Breakpoints** | 現行ブループリントまたは Level ブループリントの全グラフ上の全ブレークポイントを削除します。 |
+| [REGION:tablesection]**ウォッチ値**[/REGION] ||
 | **Delete All Watches** | 現行ブループリントまたはレベル ブループリントの全グラフ上のウォッチ値を全て削除します。 |
 [/EXCERPT:DebugMenu]
 
 ### ウィンドウ 
 
- **ブループリントエディタ** の **[Windows]** メニューには _ブループリントエディタ_ 固有のタブを表示する特殊なサブセクションがあります。 _ブループリントエディタ_ が **デフォルト** 時または **コンポーネント** モード中は全てのタブは表示されません。
+ **ブループリントエディタ**の [**Windows**] メニューには _ブループリントエディタ_ 固有のタブを表示する特殊なサブセクションがあります。 [_ブループリントエディタ_] が **Defaults** 時または **Components** モード中は全てのタブは表示されません。
 
 
 | コマンド | 説明 |
 | --- | --- |
 | **Toolbar** | 現在表示されていない場合、ツールバーを表示します。 |
 | **Details** | 現在表示されていない場合、[詳細](Engine/Blueprints\Editor/UIComponents\Details) ペインを表示します。 |
-| **Debug** | 現在表示されていない場合、**[デバッグ]** ペインを表示します。|
+| **Debug** | 現在可視化されていない場合、[ **Debug** ]ペインを表示します。|
 | **Palette** | 現在表示されていない場合、 [](Engine/Blueprints\Editor/UIComponents\Palette) ペインを表示します。 |
 | **My Blueprint** | 現在表示されていない場合、 [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) ペインを表示します。 |
-| **Compiler Results** | 現在表示されていない場合、** [Compiler Results]** ペインを表示します。 |
-| **Find Results** | 現在表示されていない場合、**[Find Results ]** ペインを表示します。  | 
-| **Viewport** | 現在表示されていない場合、**[Preview Viewport]** ペインを表示します。 |
-| **Content Browser** | 4 つ全ての **コンテンツ ブラウザ** にアクセスができるサブメニューを開きます。|
+| **Compiler Results** | 現在表示されていない場合、 [**Compiler Results**] ペインを表示します。 |
+| **Find Results** | 現在表示されていない場合、 [**Find Results**] ペインを表示します。  | 
+| **Viewport** | 現在表示されていない場合、 [**Preview Viewport**] ペインを表示します。 |
+| **Content Browser** | 4つ全ての[ **コンテンツブラウザ** ]にアクセスができるサブメニューを開きます。|
 | **Developer Tools** | [INCLUDE:#devtools] |
 | **Project Launcher** | 適切なセットアップと接続されたデバイス上でプロジェクトを実行できるようにするプロジェクトのランチャーを表示します。 |
 | **Plugins** | プラグインをロード/ アンロードできるプラグイン タブを表示します。 |
 | **Reset Layout...** | アンリアル エンジン 4 エディタ全体のデフォルト レイアウトを復元します。これはエディタの再起動を必要としますが、現在のプロジェクトを再度開きます。 |
-| **Save Layout** | 現在のインターフェース のレイアウトを保存します。 |
+| **Save Layout** | 現在のユーザーインターフェース (UI) のレイアウトを保存します。 |
 | **Enable Fullscreen** | メイン エディタ ウィンドウのフルスクリーン モードを有効にします。 |
 
 
@@ -130,10 +130,10 @@ Description:メニュー
 | **Blueprint Debugger** | ブループリントのデバッガを開きます。これは、すべてのウォッチ値およびブループリントで実行中の現在のコマンドの「スタック」を表示します。 |
 | **Collision Analyzer** | コリジョン アナライザーを表示します。 |
 | **Debug Tools**| [デバッグ ツール] パネルを表示します。このパネルには、一般的なデバッグ タスク (テクスチャのリロード、テクスチャ アトラスの表示、ガンマ補正など) の関数一式があります。 |
-| **Message Log** | メッセージ ログを開きます。この場所に、エディタのエラーや警告があります。 |
-| **Output Log** | 出力ログを開きます。Print を使用して何かをデバッグする場合、ここに表示されます。 |
+| **Message Log** | メッセージログを開きます。ここにエディタのエラーや警告が表示されます。 |
+| **Output Log** | 出力ログを開きます。Print を使用して何かをデバッグする場合はここに表示されます。 |
 | **Visual Logger** | Visual Logger を開きます。 |
-| **Class Viewer** | [クラスビューア] を開きます。|
+| **Class Viewer** | [**Class Viewer**] を開きます。|
 | **Device Manager** | [デバイス マネージャ] を開きます。|
 | **Device Profiles** | [デバイス プロファイル] タブを開きます。 |
 | **Modules** | [モジュール] パネルを開きます。 |
