@@ -15,16 +15,36 @@ class UAIHotSpotManager;
 class UBlackboardData;
 class UBlackboardComponent;
 
+#define GET_AI_CONFIG_VAR(a) (GetDefault<UAISystem>()->a)
+
 UCLASS(config=Engine, defaultconfig)
 class AIMODULE_API UAISystem : public UAISystemBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
+protected:
 	UPROPERTY(globalconfig, EditAnywhere, Category = "AISystem", meta = (MetaClass = "AIPerceptionSystem", DisplayName = "Perception System Class"))
 	FStringClassReference PerceptionSystemClassName;
 
 	UPROPERTY(globalconfig, EditAnywhere, Category = "AISystem", meta = (MetaClass = "AIHotSpotManager", DisplayName = "AIHotSpotManager Class"))
 	FStringClassReference HotSpotManagerClassName;
+
+public:
+	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | Movement")
+	float AcceptanceRadius; 
+	
+	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | Movement")
+	bool bFinishMoveOnGoalOverlap;
+
+	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | Movement")
+	bool bAcceptPartialPaths;
+
+	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | Movement")
+	bool bAllowStrafing;
+
+	/** this property is just a transition-time flag - in the end we're going to switch over to Gameplay Tasks anyway, that's the goal. */
+	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | Gameplay Tasks")
+	bool bEnableBTAITasks;
 
 protected:
 	/** Behavior tree manager used by game */
@@ -52,6 +72,8 @@ protected:
 	FDelegateHandle ActorSpawnedDelegateHandle;
 	
 public:
+	UAISystem(const FObjectInitializer& ObjectInitializer);
+
 	virtual void BeginDestroy() override;
 	
 	virtual void PostInitProperties() override;

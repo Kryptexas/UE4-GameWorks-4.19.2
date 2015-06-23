@@ -1037,7 +1037,7 @@ public:
 	// -
 	// UGameplayTasksComponent
 	// -
-	virtual AActor* GetAvatarActor() const override;
+	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override;
 
 protected:
 

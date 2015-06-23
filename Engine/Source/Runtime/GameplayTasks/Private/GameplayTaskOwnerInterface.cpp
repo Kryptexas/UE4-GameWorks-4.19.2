@@ -8,7 +8,7 @@ void IGameplayTaskOwnerInterface::OnTaskInitialized(UGameplayTask& Task)
 
 }
 
-AActor* IGameplayTaskOwnerInterface::GetAvatarActor() const 
+AActor* IGameplayTaskOwnerInterface::GetAvatarActor(const UGameplayTask* Task) const
 { 
-	return GetOwnerActor(); 
+	return GetOwnerActor(Task);
 }

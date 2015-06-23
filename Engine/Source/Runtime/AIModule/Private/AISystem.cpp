@@ -13,8 +13,17 @@
 #include "AISystem.h"
 
 
-UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
+	// default values of AI config params
+	AcceptanceRadius = 5.f;
+	bFinishMoveOnGoalOverlap = true;
+	bAcceptPartialPaths = true;
+	bAllowStrafing = false;
+
+	bEnableBTAITasks = false;
+
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		UWorld* WorldOuter = Cast<UWorld>(GetOuter());

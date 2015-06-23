@@ -12,8 +12,11 @@ UGameplayTask::UGameplayTask(const FObjectInitializer& ObjectInitializer)
 	bSimulatedTask = false;
 	bIsSimulating = false;
 	bOwnedByTasksComponent = false;
+	bClaimRequiredResources = true;
 	TaskState = EGameplayTaskState::Uninitialized;
 	ResourceOverlapPolicy = ETaskResourceOverlapPolicy::StartOnTop;
+	Priority = FGameplayTasks::DefaultPriority;
+
 	SetFlags(RF_StrongRefOnFrame);
 }
 
@@ -62,15 +65,21 @@ void UGameplayTask::ReadyForActivation()
 	}
 }
 
-void UGameplayTask::InitTask(IGameplayTaskOwnerInterface& InTaskOwner)
+void UGameplayTask::InitTask(IGameplayTaskOwnerInterface& InTaskOwner, uint8 InPriority)
 {
+	Priority = InPriority;
 	TaskOwner = InTaskOwner;
-	UGameplayTasksComponent* GTComponent = InTaskOwner.GetGameplayTasksComponent();
+	UGameplayTasksComponent* GTComponent = InTaskOwner.GetGameplayTasksComponent(*this);
 	TasksComponent = GTComponent;
 
 	bOwnedByTasksComponent = (TaskOwner == GTComponent);
-
+	
 	TaskState = EGameplayTaskState::AwaitingActivation;
+
+	if (bClaimRequiredResources)
+	{
+		ClaimedResources.AddSet(RequiredResources);
+	}
 
 	InTaskOwner.OnTaskInitialized(*this);
 	if (bOwnedByTasksComponent == false && GTComponent != nullptr)
@@ -99,11 +108,11 @@ AActor* UGameplayTask::GetOwnerActor() const
 {
 	if (TaskOwner.IsValid())
 	{
-		return TaskOwner->GetOwnerActor();		
+		return TaskOwner->GetOwnerActor(this);		
 	}
 	else if (TasksComponent.IsValid())
 	{
-		return TasksComponent->GetOwner();
+		return TasksComponent->GetOwnerActor(this);
 	}
 
 	return nullptr;
@@ -113,11 +122,11 @@ AActor* UGameplayTask::GetAvatarActor() const
 {
 	if (TaskOwner.IsValid())
 	{
-		return TaskOwner->GetAvatarActor();
+		return TaskOwner->GetAvatarActor(this);
 	}
 	else if (TasksComponent.IsValid())
 	{
-		return TasksComponent->GetAvatarActor();
+		return TasksComponent->GetAvatarActor(this);
 	}
 
 	return nullptr;
@@ -194,11 +203,45 @@ FString UGameplayTask::GetDebugString() const
 	return FString::Printf(TEXT("Generic %s"), *GetName());
 }
 
-void UGameplayTask::RequireResource(TSubclassOf<UGameplayTaskResource> RequiredResource)
+void UGameplayTask::AddRequiredResource(TSubclassOf<UGameplayTaskResource> RequiredResource)
 {
 	check(RequiredResource);
 	const uint8 ResourceID = UGameplayTaskResource::GetResourceID(RequiredResource);
 	RequiredResources.AddID(ResourceID);	
+}
+
+void UGameplayTask::AddRequiredResourceSet(const TArray<TSubclassOf<UGameplayTaskResource> >& RequiredResourceSet)
+{
+	for (auto Resource : RequiredResourceSet)
+	{
+		const uint8 ResourceID = UGameplayTaskResource::GetResourceID(Resource);
+		RequiredResources.AddID(ResourceID);
+	}
+}
+
+void UGameplayTask::AddRequiredResourceSet(FGameplayResourceSet RequiredResourceSet)
+{
+	RequiredResources.AddSet(RequiredResourceSet);
+}
+
+void UGameplayTask::AddClaimedResource(TSubclassOf<UGameplayTaskResource> ClaimedResource)
+{
+	check(ClaimedResource);
+	const uint8 ResourceID = UGameplayTaskResource::GetResourceID(ClaimedResource);
+	ClaimedResources.AddID(ResourceID);
+}
+
+void UGameplayTask::AddClaimedResourceSet(const TArray<TSubclassOf<UGameplayTaskResource> >& AdditionalResourcesToClaim)
+{
+	for (auto ResourceClass : AdditionalResourcesToClaim)
+	{
+		ClaimedResources.AddID(UGameplayTaskResource::GetResourceID(ResourceClass));
+	}
+}
+
+void UGameplayTask::AddClaimedResourceSet(FGameplayResourceSet AdditionalResourcesToClaim)
+{
+	ClaimedResources.AddSet(AdditionalResourcesToClaim);
 }
 
 void UGameplayTask::PerformActivation()

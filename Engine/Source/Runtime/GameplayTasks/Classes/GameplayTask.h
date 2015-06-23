@@ -30,6 +30,105 @@ enum class ETaskResourceOverlapPolicy : uint8
 	StartAtEnd,
 };
 	
+USTRUCT(BlueprintType)
+struct GAMEPLAYTASKS_API FGameplayResourceSet
+{
+	GENERATED_USTRUCT_BODY()
+
+	typedef uint16 FFlagContainer;
+	typedef uint8 FResourceID;
+
+	enum
+	{
+		MaxResources = sizeof(FFlagContainer)* 8
+	};
+
+private:
+	FFlagContainer Flags;
+
+public:
+	/** Mind that this constructor takes _flags_ not individual IDs */
+	explicit FGameplayResourceSet(FFlagContainer InFlags = 0) : Flags(InFlags)
+	{}
+
+	FFlagContainer GetFlags() const
+	{
+		return Flags;
+	}
+	bool IsEmpty() const
+	{
+		return Flags == 0;
+	}
+	FGameplayResourceSet& AddID(uint8 ResourceID)
+	{
+		ensure(ResourceID < MaxResources);
+		Flags |= (1 << ResourceID);
+		return *this;
+	}
+	FGameplayResourceSet& RemoveID(uint8 ResourceID)
+	{
+		ensure(ResourceID < MaxResources);
+		Flags &= ~(1 << ResourceID);
+		return *this;
+	}
+	bool HasID(uint8 ResourceID) const
+	{
+		ensure(ResourceID < MaxResources);
+		return (Flags & (1 << ResourceID)) != 0;
+	}
+	FGameplayResourceSet& AddSet(FGameplayResourceSet Other)
+	{
+		Flags |= Other.Flags;
+		return *this;
+	}
+	FGameplayResourceSet& RemoveSet(FGameplayResourceSet Other)
+	{
+		Flags &= ~Other.Flags;
+		return *this;
+	}
+	void Clear()
+	{
+		Flags = FFlagContainer(0);
+	}
+	bool HasAllIDs(FGameplayResourceSet Other) const
+	{
+		return (Flags & Other.Flags) == Flags;
+	}
+	bool HasAnyID(FGameplayResourceSet Other) const
+	{
+		return (Flags & Other.Flags) != 0;
+	}
+	FGameplayResourceSet GetOverlap(FGameplayResourceSet Other) const
+	{
+		return FGameplayResourceSet(Flags & Other.Flags);
+	}
+	FGameplayResourceSet GetDifference(FGameplayResourceSet Other) const
+	{
+		return FGameplayResourceSet(Flags & ~(Flags & Other.Flags));
+	}
+
+	bool operator==(const FGameplayResourceSet& Other) const
+	{
+		return Flags == Other.Flags;
+	}
+
+	bool operator!=(const FGameplayResourceSet& Other) const
+	{
+		return Flags != Other.Flags;
+	}
+
+	static FGameplayResourceSet AllResources()
+	{
+		return FGameplayResourceSet(FFlagContainer(-1));
+	}
+
+	static FGameplayResourceSet NoResources()
+	{
+		return FGameplayResourceSet(FFlagContainer(0));
+	}
+
+	FString GetDebugDescription() const;
+};
 
 UCLASS(Abstract)
 class GAMEPLAYTASKS_API UGameplayTask : public UObject
@@ -52,7 +151,7 @@ protected:
 	virtual void Activate();
 
 	/** Initailizes the task with the task owner interface instance but does not actviate until Activate() is called */
-	virtual void InitTask(IGameplayTaskOwnerInterface& InTaskOwner);
+	void InitTask(IGameplayTaskOwnerInterface& InTaskOwner, uint8 InPriority);
 
 public:
 	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent);
@@ -117,26 +216,43 @@ public:
 	FORCEINLINE uint8 GetPriority() const { return Priority; }
 	FORCEINLINE bool RequiresPriorityOrResourceManagement() const { return bCaresAboutPriority == true || RequiredResources.IsEmpty() == false; }
 	FORCEINLINE FGameplayResourceSet GetRequiredResources() { return RequiredResources; }
+	FORCEINLINE FGameplayResourceSet GetClaimedResources() { return ClaimedResources; }
 	
 	FORCEINLINE EGameplayTaskState GetState() const { return TaskState; }
 	FORCEINLINE bool IsActive() const { return (TaskState == EGameplayTaskState::Active); }
 	
 	IGameplayTaskOwnerInterface* GetTaskOwner() const { return TaskOwner.IsValid() ? &(*TaskOwner) : nullptr; }
 	UGameplayTasksComponent* GetGameplayTasksComponent() { return TasksComponent.Get(); }
+	UGameplayTasksComponent* GetGameplayTasksComponent() const { return TasksComponent.Get(); }
 	bool IsOwnedByTasksComponent() const { return bOwnedByTasksComponent; }
 
 	template <class T>
-	inline void RequireResource()
+	inline void AddRequiredResource()
 	{
-		RequireResource(T::StaticClass());
+		AddRequiredResource(T::StaticClass());
+	}
+
+	template <class T>
+	inline void AddClaimedResource()
+	{
+		AddClaimedResource(T::StaticClass());
 	}
 
 	/** Marks this task as requiring specified resource which has a number of consequences,
-	*	like task not being able to run if the resource is already taken.
-	*
-	*	@node: Calling this function makes sense only until the task is being passed over to the GameplayTasksComponent.
-	*	Once that's that resources data is consumed and further changes won't get applied */
-	void RequireResource(TSubclassOf<UGameplayTaskResource> RequiredResource);
+	 *	like task not being able to run if the resource is already taken.
+	 *
+	 *	@note: Calling this function makes sense only until the task is being passed over to the GameplayTasksComponent.
+	 *	Once that's that resources data is consumed and further changes won't get applied 
+	 */
+	void AddRequiredResource(TSubclassOf<UGameplayTaskResource> RequiredResource);
+	void AddRequiredResourceSet(const TArray<TSubclassOf<UGameplayTaskResource> >& RequiredResourceSet);
+	void AddRequiredResourceSet(FGameplayResourceSet RequiredResourceSet);
+
+	/** 
+	 */
+	void AddClaimedResource(TSubclassOf<UGameplayTaskResource> ClaimedResource);
+	void AddClaimedResourceSet(const TArray<TSubclassOf<UGameplayTaskResource> >& AdditionalResourcesToClaim);
+	void AddClaimedResourceSet(FGameplayResourceSet AdditionalResourcesToClaim);
 
 	ETaskResourceOverlapPolicy GetResourceOverlapPolicy() const { return ResourceOverlapPolicy; }
 
@@ -192,12 +308,16 @@ protected:
 
 	/** this is set to avoid duplicate calls to task's owner and TasksComponent when both are the same object */
 	uint32 bOwnedByTasksComponent : 1;
+
+	uint32 bClaimRequiredResources : 1;
 	
-	/** Abstract "resource" IDs this task claims it needs. Note that we do not support dynamic changes to this
-	 *	variable. Once a task gets submitted to GameplayTasksComponent it's settled 
-	 *	@NOTE: if dynamic changes were needed though look for GetRequiredResources occurrences in GameplayTasksComponent
-	 *	and replace all uses of cached values with actual GetRequiredResources calls */
+	/** Abstract "resource" IDs this task needs available to be able to get activated. */
 	FGameplayResourceSet RequiredResources;
+
+	/**
+	 *	Resources that are going to be locked when this task gets activated, but are not required to get this task started
+	 */
+	FGameplayResourceSet ClaimedResources;
 
 	/** Task Owner that created us */
 	TWeakInterfacePtr<IGameplayTaskOwnerInterface> TaskOwner;
@@ -231,9 +351,8 @@ template <class T>
 T* UGameplayTask::NewTask(IGameplayTaskOwnerInterface& TaskOwner, FName InstanceName)
 {
 	T* MyObj = NewObject<T>();
-	MyObj->InitTask(TaskOwner);
 	MyObj->InstanceName = InstanceName;
-	MyObj->Priority = TaskOwner.GetDefaultPriority();
+	MyObj->InitTask(TaskOwner, TaskOwner.GetDefaultPriority());
 	return MyObj;
 }
 

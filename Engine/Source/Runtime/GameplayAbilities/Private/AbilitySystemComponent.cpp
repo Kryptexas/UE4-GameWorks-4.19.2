@@ -1275,7 +1275,7 @@ TArray<TWeakObjectPtr<UGameplayTask> >&	UAbilitySystemComponent::GetAbilityActiv
 	return Ability->ActiveTasks;
 }
 
-AActor* UAbilitySystemComponent::GetAvatarActor() const
+AActor* UAbilitySystemComponent::GetAvatarActor(const UGameplayTask* Task) const
 {
 	check(AbilityActorInfo.IsValid());
 	return AbilityActorInfo->OwnerActor.Get();

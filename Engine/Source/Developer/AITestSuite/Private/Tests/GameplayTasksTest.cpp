@@ -27,7 +27,7 @@ static const uint8 HighPriority = 255;
 
 struct FAITest_GameplayTask_ComponentState : public FAITest_GameplayTasksTest
 {
-	void SetUp()
+	void InstantTest()
 	{
 		FAITest_GameplayTasksTest::SetUp();
 
@@ -47,7 +47,7 @@ struct FAITest_GameplayTask_ComponentState : public FAITest_GameplayTasksTest
 		Test(TEXT("Task should be \'uninitialized\' before Activate is called on it"), Task->GetState() == EGameplayTaskState::Active);*/
 	}
 };
-IMPLEMENT_AI_LATENT_TEST(FAITest_GameplayTask_ComponentState, "System.Engine.AI.Gameplay Tasks.Component\'s basic behavior")
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_ComponentState, "System.Engine.AI.Gameplay Tasks.Component\'s basic behavior")
 
 //----------------------------------------------------------------------//
 // 
@@ -204,7 +204,7 @@ struct FAITest_GameplayTask_NonOverlappingResources : public FAITest_GameplayTas
 {
 	UMockTask_Log* Tasks[2];
 
-	void SetUp()
+	void InstantTest()
 	{
 		UWorld& World = GetWorld();
 		
@@ -212,20 +212,20 @@ struct FAITest_GameplayTask_NonOverlappingResources : public FAITest_GameplayTas
 		Tasks[1] = UMockTask_Log::CreateTask(*Component, Logger, LogicResourceSet);
 
 		Tasks[0]->ReadyForActivation();
-		Test(TEXT("TasksComponent should claim it's using 0th task's resources"), Component->GetCurrentlyUsedResources() == Tasks[0]->GetRequiredResources());
+		Test(TEXT("TasksComponent should claim it's using 0th task's resources"), Component->GetCurrentlyUsedResources() == Tasks[0]->GetClaimedResources());
 		
 		Tasks[1]->ReadyForActivation();		
 		Test(TEXT("Both tasks should be \'Active\' since their resources do not overlap"), Tasks[0]->GetState() == EGameplayTaskState::Active && Tasks[1]->GetState() == EGameplayTaskState::Active);
 		Test(TEXT("TasksComponent should claim it's using only latter task's resources"), Component->GetCurrentlyUsedResources() == MoveAnimLogicResourceSet);
 
 		Tasks[0]->ExternalCancel();
-		Test(TEXT("Only index 1 task's resources should be relevant now"), Component->GetCurrentlyUsedResources() == Tasks[1]->GetRequiredResources());
+		Test(TEXT("Only index 1 task's resources should be relevant now"), Component->GetCurrentlyUsedResources() == Tasks[1]->GetClaimedResources());
 
 		Tasks[1]->ExternalCancel();
 		Test(TEXT("No resources should be occupied now"), Component->GetCurrentlyUsedResources().IsEmpty());
 	}
 };
-IMPLEMENT_AI_LATENT_TEST(FAITest_GameplayTask_NonOverlappingResources, "System.Engine.AI.Gameplay Tasks.Non-overlapping resources")
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_NonOverlappingResources, "System.Engine.AI.Gameplay Tasks.Non-overlapping resources")
 
 //----------------------------------------------------------------------//
 // Running tasks requiring overlapping resources
@@ -234,7 +234,7 @@ struct FAITest_GameplayTask_OverlappingResources : public FAITest_GameplayTasksT
 {
 	UMockTask_Log* Tasks[2];
 
-	void SetUp()
+	void InstantTest()
 	{
 		UWorld& World = GetWorld();
 
@@ -246,15 +246,47 @@ struct FAITest_GameplayTask_OverlappingResources : public FAITest_GameplayTasksT
 
 		Test(TEXT("Only the latter task should be active since it shadows the other one in terms of required resources"), Tasks[1]->GetState() == EGameplayTaskState::Active);
 		Test(TEXT("The first task should be paused at this moment"), Tasks[0]->GetState() == EGameplayTaskState::Paused);
-		Test(TEXT("TasksComponent should claim it's using only latter task's resources"), Component->GetCurrentlyUsedResources() == Tasks[1]->GetRequiredResources());
+		Test(TEXT("TasksComponent should claim it's using only latter task's resources"), Component->GetCurrentlyUsedResources() == Tasks[1]->GetClaimedResources());
 
 		Tasks[1]->ExternalCancel();
 		Test(TEXT("Now the latter task should be marked as Finished"), Tasks[1]->GetState() == EGameplayTaskState::Finished);
 		Test(TEXT("And the first task should be resumed"), Tasks[0]->GetState() == EGameplayTaskState::Active);
-		Test(TEXT("TasksComponent should claim it's using only first task's resources"), Component->GetCurrentlyUsedResources() == Tasks[0]->GetRequiredResources());
+		Test(TEXT("TasksComponent should claim it's using only first task's resources"), Component->GetCurrentlyUsedResources() == Tasks[0]->GetClaimedResources());
 	}
 };
-IMPLEMENT_AI_LATENT_TEST(FAITest_GameplayTask_OverlappingResources, "System.Engine.AI.Gameplay Tasks.Overlapping resources")
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_OverlappingResources, "System.Engine.AI.Gameplay Tasks.Overlapping resources")
+
+//----------------------------------------------------------------------//
+// Pausing a task overlapping a lower priority task should not resume the low priority task
+//----------------------------------------------------------------------//
+struct FAITest_GameplayTask_PausingTasksBlockingOtherTasks : public FAITest_GameplayTasksTest
+{
+	UMockTask_Log* Tasks[3];
+
+	void InstantTest()
+	{
+		UWorld& World = GetWorld();
+
+		Tasks[0] = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet);
+		Tasks[1] = UMockTask_Log::CreateTask(*Component, Logger, MoveAndLogicResourceSet);
+		Tasks[2] = UMockTask_Log::CreateTask(*Component, Logger, LogicResourceSet);
+		 
+		Tasks[0]->ReadyForActivation();
+		Tasks[1]->ReadyForActivation();
+
+		Test(TEXT("First task should be paused since it's resources get overlapped"), Tasks[0]->IsActive() == false);
+		Test(TEXT("Second task should on top and active"), Tasks[1]->IsActive() == true);
+
+		Tasks[2]->ReadyForActivation();
+		Test(TEXT("Second task should get paused since its resources got overlapped"), Tasks[1]->IsActive() == false);
+		Test(TEXT("First task should remain paused since it's resources get overlapped by the paused task"), Tasks[0]->IsActive() == false);
+
+		Tasks[2]->ExternalCancel();
+		Test(TEXT("Nothing shoud change for the first task"), Tasks[0]->IsActive() == false);
+		Test(TEXT("Second task should be active again"), Tasks[1]->IsActive() == true);
+	}
+};
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_PausingTasksBlockingOtherTasks, "System.Engine.AI.Gameplay Tasks.Pausing tasks blocking other tasks")
 
 //----------------------------------------------------------------------//
 // Priority handling
@@ -263,7 +295,7 @@ struct FAITest_GameplayTask_Priorities : public FAITest_GameplayTasksTest
 {
 	UMockTask_Log* Tasks[3];
 
-	void SetUp()
+	void InstantTest()
 	{
 		UWorld& World = GetWorld();
 
@@ -279,7 +311,7 @@ struct FAITest_GameplayTask_Priorities : public FAITest_GameplayTasksTest
 		Tasks[0]->ReadyForActivation();
 
 		Test(TEXT("Task at index 1 should be active at this point since it's higher priority"), Tasks[1]->IsActive() && !Tasks[0]->IsActive());
-		Test(TEXT("TasksComponent should claim it's using only resources of task 1"), Component->GetCurrentlyUsedResources() == Tasks[1]->GetRequiredResources());
+		Test(TEXT("TasksComponent should claim it's using only resources of task 1"), Component->GetCurrentlyUsedResources() == Tasks[1]->GetClaimedResources());
 		Test(TEXT("Current top action wants to tick so Component should want that as well"), Component->GetShouldTick() == true); 
 
 		Tasks[2]->ReadyForActivation();
@@ -298,7 +330,7 @@ struct FAITest_GameplayTask_Priorities : public FAITest_GameplayTasksTest
 		Test(TEXT("Task-less component should not want to tick"), Component->GetShouldTick() == false);
 	}
 };
-IMPLEMENT_AI_LATENT_TEST(FAITest_GameplayTask_Priorities, "System.Engine.AI.Gameplay Tasks.Priorities")
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_Priorities, "System.Engine.AI.Gameplay Tasks.Priorities")
 
 //----------------------------------------------------------------------//
 // Internal ending, by task ending itself or owner finishing 
@@ -312,7 +344,7 @@ struct FAITest_GameplayTask_InternalEnding : public FAITest_GameplayTasksTest
 	UMockTask_Log* Task_OwnerEndWithResources;
 	UMockTask_Log* Tasks[TasksCount];
 
-	void SetUp()
+	void InstantTest()
 	{
 		UWorld& World = GetWorld();
 
@@ -347,8 +379,96 @@ struct FAITest_GameplayTask_InternalEnding : public FAITest_GameplayTasksTest
 		Test(TEXT("Priority Task Queue should be empty"), Component->GetTaskPriorityQueueSize() == 0);
 	}
 };
-IMPLEMENT_AI_LATENT_TEST(FAITest_GameplayTask_InternalEnding, "System.Engine.AI.Gameplay Tasks.Self and Owner ending")
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_InternalEnding, "System.Engine.AI.Gameplay Tasks.Self and Owner ending")
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+struct FAITest_GameplayTask_MultipleOwners : public FAITest_GameplayTasksTest
+{
+	static const int32 TasksCount = 3;
+	UMockTask_Log* Tasks[TasksCount];
+	UMockTask_Log* LowPriorityTask;
+	UMockGameplayTaskOwner* OtherOwner;
+
+	void InstantTest()
+	{
+		OtherOwner = NewObject<UMockGameplayTaskOwner>();
+		OtherOwner->GTComponent = Component;
+		Tasks[0] = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet);
+		Tasks[1] = UMockTask_Log::CreateTask(*OtherOwner, Logger, MovementResourceSet);
+		Tasks[2] = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet);
+
+		for (int32 Index = 0; Index < TasksCount; ++Index)
+		{
+			Tasks[Index]->ReadyForActivation();
+		}
+		// This part tests what happens if "other owner" task is in the middle of the queue and
+		// not active
+		Test(TEXT("Last pushed task should be active now"), Tasks[2]->IsActive() == true);
+		Component->EndAllResourceConsumingTasksOwnedBy(*Component);
+		Test(TEXT("There should be only one task in the queue now"), Component->GetTaskPriorityQueueSize() == 1);
+		Test(TEXT("The last remaining task should be active now"), Tasks[1]->IsActive() == true);
+
+		// this part tests what happens during pruning if the "other owner" task is active at the
+		// moment of performing the action
+		LowPriorityTask = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet, LowPriority);
+		LowPriorityTask->ReadyForActivation();
+		Test(TEXT("There should be 2 tasks in the queue now"), Component->GetTaskPriorityQueueSize() == 2);
+		Component->EndAllResourceConsumingTasksOwnedBy(*Component);
+		Test(TEXT("There should be only one task in the queue after second pruning"), Component->GetTaskPriorityQueueSize() == 1);
+		Test(TEXT("The last remaining task should be still active"), Tasks[1]->IsActive() == true);
+	}
+};
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_MultipleOwners, "System.Engine.AI.Gameplay Tasks.Handling multiple task owners")
+
+//----------------------------------------------------------------------//
+// Claimed vs Required resources test
+//----------------------------------------------------------------------//
+struct FAITest_GameplayTask_ClaimedResources : public FAITest_GameplayTasksTest
+{
+	static const int32 TasksCount = 4;
+	UMockTask_Log* Tasks[TasksCount];
+
+	void InstantTest()
+	{
+		UWorld& World = GetWorld();
+
+		// create three tasks
+		// first one has a resource we're going to overlap with the extra-claimed resource of the next task
+		Tasks[0] = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet);
+		Tasks[0]->ReadyForActivation();
+
+		// second task requires non-overlapping resources to first task
+		Tasks[1] = UMockTask_Log::CreateTask(*Component, Logger, AnimationResourceSet);
+		// but declared an overlapping resource as "claimed"
+		Tasks[1]->AddClaimedResourceSet(MovementResourceSet);
+		
+		Tasks[1]->ReadyForActivation();
+		// at this point first task should get paused since it's required resource is claimed, or shadowed, by the newer task
+		Test(TEXT("The first task should get paused since its required resource is claimed, or shadowed, by the newer task"), Tasks[0]->IsActive() == false);
+		Test(TEXT("The second task should be running, nothing obstructing it"), Tasks[1]->IsActive() == true);
+		
+		// a new low-priority task should not be allowed to run neither
+		Tasks[2] = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet, LowPriority);
+		Tasks[2]->ReadyForActivation();
+		Test(TEXT("The new low-priority task should not be allowed to run neither"), Tasks[2]->IsActive() == false);
+		Test(TEXT("The second task should be still running"), Tasks[1]->IsActive() == true);
+
+		// however, a new task, that's using the overlapped claimed resource 
+		// should run without any issues
+		// note, this doesn't have to be "high priority" task - new tasks with same priority as "current"
+		// are treated like higher priority anyway
+		Tasks[3] = UMockTask_Log::CreateTask(*Component, Logger, MovementResourceSet, HighPriority);
+		Tasks[3]->ReadyForActivation();
+		Test(TEXT("The new high-priority task should be allowed to run"), Tasks[3]->IsActive() == true);
+		// but active task, that declared the active resources should not get paused neither
+		Test(TEXT("The second task should be still running, it's required resources are not being overlapped"), Tasks[1]->IsActive() == true);
+	}
+};
+IMPLEMENT_AI_INSTANT_TEST(FAITest_GameplayTask_ClaimedResources, "System.Engine.AI.Gameplay Tasks.Claimed resources")
 
 // add tests if component wants ticking at while aborting/reactivating tasks
+// add test for re-adding/re-activating a finished task
 
 #undef LOCTEXT_NAMESPACE

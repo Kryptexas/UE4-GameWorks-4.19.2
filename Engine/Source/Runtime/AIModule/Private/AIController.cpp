@@ -478,6 +478,8 @@ void AAIController::Possess(APawn* InPawn)
 
 	if (GTComp)
 	{
+		GTComp->OnClaimedResourcesChange.AddDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
+
 		REDIRECT_OBJECT_TO_VLOG(GTComp, this);
 	}
 
@@ -499,6 +501,24 @@ void AAIController::UnPossess()
 	}
 
 	CachedGameplayTasksComponent = nullptr;
+}
+
+void AAIController::SetPawn(APawn* InPawn)
+{
+	Super::SetPawn(InPawn);
+
+	if (Blackboard)
+	{
+		const UBlackboardData* BBAsset = Blackboard->GetBlackboardAsset();
+		if (BBAsset)
+		{
+			const FBlackboard::FKey SelfKey = BBAsset->GetKeyID(FBlackboard::KeySelf);
+			if (SelfKey != FBlackboard::InvalidKey)
+			{
+				Blackboard->SetValue<UBlackboardKeyType_Object>(SelfKey, GetPawn());
+			}
+		}
+	}
 }
 
 void AAIController::InitNavigationControl(UPathFollowingComponent*& PathFollowingComp)
@@ -850,8 +870,16 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, UBlackboardData& BlackboardAsset)
 {
 	check(BlackboardComp.GetOwner() == this);
+
 	if (BlackboardComp.InitializeBlackboard(BlackboardAsset))
 	{
+		// find the "self" key and set it to our pawn
+		const FBlackboard::FKey SelfKey = BlackboardAsset.GetKeyID(FBlackboard::KeySelf);
+		if (SelfKey != FBlackboard::InvalidKey)
+		{
+			BlackboardComp.SetValue<UBlackboardKeyType_Object>(SelfKey, GetPawn());
+		}
+
 		OnUsingBlackBoard(&BlackboardComp, &BlackboardAsset);
 		return true;
 	}
@@ -860,37 +888,38 @@ bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, U
 
 bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset, UBlackboardComponent*& BlackboardComponent)
 {
-	if (BlackboardAsset == NULL)
+	if (BlackboardAsset == nullptr)
 	{
 		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: trying to use NULL Blackboard asset. Ignoring"));
 		return false;
 	}
 
 	bool bSuccess = true;
-	UBlackboardComponent* BlackboardComp = FindComponentByClass<UBlackboardComponent>();
+	Blackboard = FindComponentByClass<UBlackboardComponent>();
 
-	if (BlackboardComp == NULL)
+	if (Blackboard == nullptr)
 	{
-		BlackboardComp = NewObject<UBlackboardComponent>(this, TEXT("BlackboardComponent"));
-		if (BlackboardComp != NULL)
+		Blackboard = NewObject<UBlackboardComponent>(this, TEXT("BlackboardComponent"));
+		if (Blackboard != nullptr)
 		{
-			InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
-			BlackboardComp->RegisterComponent();
+			InitializeBlackboard(*Blackboard, *BlackboardAsset);
+			Blackboard->RegisterComponent();
 		}
 
 	}
-	else if (BlackboardComp->GetBlackboardAsset() == NULL)
+	else if (Blackboard->GetBlackboardAsset() == nullptr)
 	{
-		InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
+		InitializeBlackboard(*Blackboard, *BlackboardAsset);
 	}
-	else if (BlackboardComp->GetBlackboardAsset() != BlackboardAsset)
+	else if (Blackboard->GetBlackboardAsset() != BlackboardAsset)
 	{
+		// @todo this behavior should be opt-out-able.
 		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: requested blackboard %s while already has %s instantiated. Forcing new BB.")
-			, *GetNameSafe(BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
-		InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
+			, *GetNameSafe(BlackboardAsset), *GetNameSafe(Blackboard->GetBlackboardAsset()));
+		InitializeBlackboard(*Blackboard, *BlackboardAsset);
 	}
 
-	BlackboardComponent = BlackboardComp;
+	BlackboardComponent = Blackboard;
 
 	return bSuccess;
 }
@@ -933,6 +962,22 @@ UAIPerceptionComponent* AAIController::GetAIPerceptionComponent()
 const UAIPerceptionComponent* AAIController::GetAIPerceptionComponent() const 
 {
 	return PerceptionComponent;
+}
+
+void AAIController::OnGameplayTaskResourcesClaimed(FGameplayResourceSet NewlyClaimed, FGameplayResourceSet FreshlyReleased)
+{
+	if (BrainComponent)
+	{
+		const uint8 LogicID = UGameplayTaskResource::GetResourceID<UAIResource_Logic>();
+		if (NewlyClaimed.HasID(LogicID))
+		{
+			BrainComponent->LockResource(EAIRequestPriority::Logic);
+		}
+		else if (FreshlyReleased.HasID(LogicID))
+		{
+			BrainComponent->ClearResourceLock(EAIRequestPriority::Logic);
+		}
+	}
 }
 
 //----------------------------------------------------------------------//

@@ -260,9 +260,9 @@ public:
 	/** Called by an ability task, originating from this ability, when it ends */
 	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
 
-	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override;
-	virtual AActor* GetOwnerActor() const override;
-	virtual AActor* GetAvatarActor() const override;
+	virtual UGameplayTasksComponent* GetGameplayTasksComponent(const UGameplayTask& Task) const override;
+	virtual AActor* GetOwnerActor(const UGameplayTask* Task) const override;
+	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override;
 
 	// --------------------------------------
 	//	Input

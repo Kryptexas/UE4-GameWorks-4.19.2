@@ -55,3 +55,19 @@ class UMockGameplayTasksComponent : public UGameplayTasksComponent
 public:	
 	int32 GetTaskPriorityQueueSize() const { return TaskPriorityQueue.Num(); }
 };
+
+UCLASS()
+class UMockGameplayTaskOwner : public UObject, public IGameplayTaskOwnerInterface
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	UGameplayTasksComponent* GTComponent;
+
+	virtual UGameplayTasksComponent* GetGameplayTasksComponent(const UGameplayTask& Task) const override { return GTComponent; }	
+	virtual void OnTaskActivated(UGameplayTask& Task) override {}
+	virtual void OnTaskDeactivated(UGameplayTask& Task) override {}
+	virtual AActor* GetOwnerActor(const UGameplayTask* Task) const { return nullptr; }
+
+};

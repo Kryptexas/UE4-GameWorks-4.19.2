@@ -53,6 +53,19 @@ namespace EAIOptionFlag
 	};
 }
 
+namespace FAISystem
+{
+	FORCEINLINE bool PickAIOption(EAIOptionFlag::Type Option, bool DefaultOption)
+	{
+		return Option == EAIOptionFlag::Default ? DefaultOption : (Option == EAIOptionFlag::Enable);
+	}
+
+	FORCEINLINE EAIOptionFlag::Type BoolToAIOption(bool Value)
+	{
+		return Value ? EAIOptionFlag::Enable : EAIOptionFlag::Disable;
+	}
+}
+
 namespace EAIForceParam
 {
 	enum Type

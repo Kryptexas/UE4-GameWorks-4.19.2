@@ -8,14 +8,18 @@ UAITask_MoveTo::UAITask_MoveTo(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bIsPausable = true;
+
+	RealGoalLocation = FAISystem::InvalidLocation;
+	MoveGoalActor = nullptr;
+	MoveAcceptanceRadius = GET_AI_CONFIG_VAR(AcceptanceRadius);
+	bShouldStopOnOverlap = GET_AI_CONFIG_VAR(bFinishMoveOnGoalOverlap);
+	bShouldAcceptPartialPath = GET_AI_CONFIG_VAR(bAcceptPartialPaths);
+	bShouldUsePathfinding = true;
+
+	AddRequiredResource(UAIResource_Movement::StaticClass());
 }
 
-UAITask_MoveTo* UAITask_MoveTo::PawnMoveTo(APawn* Pawn, FVector Destination, AActor* TargetActor, float AcceptanceRadius, bool bStopOnOverlap, bool bAcceptPartialPath)
-{
-	return nullptr;
-}
-
-UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector TargetLocation, AActor* TargetActor, float AcceptanceRadius, bool bStopOnOverlap, bool bAcceptPartialPath)
+UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector InGoalLocation, AActor* InGoalActor, float AcceptanceRadius, EAIOptionFlag::Type StopOnOverlap, EAIOptionFlag::Type AcceptPartialPath, bool bUsePathfinding, bool bLockAILogic)
 {
 	if (Controller == nullptr)
 	{
@@ -25,28 +29,52 @@ UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector Targ
 	UAITask_MoveTo* MyTask = NewTask<UAITask_MoveTo>(*static_cast<IGameplayTaskOwnerInterface*>(Controller));
 	if (MyTask)
 	{
-		MyTask->OwnerController = Controller;
-
-		if (TargetActor != nullptr)
+		MyTask->SetUp(Controller, InGoalLocation, InGoalActor, AcceptanceRadius, bUsePathfinding, StopOnOverlap, AcceptPartialPath);
+		MyTask->Priority = uint8(EAITaskPriority::High);
+		if (bLockAILogic)
 		{
-			MyTask->MoveRequest = FAIMoveRequest(TargetActor);
+			MyTask->RequestAILogicLocking();
 		}
-		else
-		{
-			MyTask->MoveRequest = FAIMoveRequest(TargetLocation);
-		}
-
-		MyTask->MoveRequest.SetAllowPartialPath(bAcceptPartialPath)
-			.SetAcceptanceRadius(AcceptanceRadius)
-			.SetStopOnOverlap(bStopOnOverlap);
-		//MyTask->MoveReq.SetUsePathfinding(bUsePathfinding);
-		//MyTask->MoveRequest.SetNavigationFilter(FilterClass);
-		//MyTask->MoveRequest.SetCanStrafe(bCanStrafe);
-
-		MyTask->RequireResource(UAIResource_Movement::StaticClass());
 	}
 
 	return MyTask;
+}
+
+void UAITask_MoveTo::SetUp(AAIController* Controller, FVector InGoalLocation, AActor* InGoalActor, float AcceptanceRadius, bool bUsePathfinding, EAIOptionFlag::Type StopOnOverlap, EAIOptionFlag::Type AcceptPartialPath)
+{
+	OwnerController = Controller;
+
+	if (InGoalActor != nullptr)
+	{
+		MoveGoalActor = InGoalActor;
+	}
+	else
+	{
+		RealGoalLocation = InGoalLocation;
+	}
+
+	if (AcceptanceRadius >= 0)
+	{
+		MoveAcceptanceRadius = AcceptanceRadius;
+	}
+	
+	bShouldStopOnOverlap = FAISystem::PickAIOption(StopOnOverlap, bShouldStopOnOverlap);
+	bShouldUsePathfinding = bUsePathfinding;
+
+	if (AcceptPartialPath != EAIOptionFlag::Default)
+	{
+		bShouldAcceptPartialPath = (AcceptPartialPath == EAIOptionFlag::Enable);
+	}
+}
+
+void UAITask_MoveTo::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if (MoveGoalActor == nullptr)
+	{
+		RealGoalLocation = MoveGoalLocation;
+	}
 }
 
 void UAITask_MoveTo::HandleMoveFinished(FAIRequestID RequestID, EPathFollowingResult::Type Result)
@@ -72,6 +100,15 @@ void UAITask_MoveTo::HandleMoveFinished(FAIRequestID RequestID, EPathFollowingRe
 
 void UAITask_MoveTo::Activate()
 {
+	Super::Activate();
+
+	FAIMoveRequest MoveRequest = (MoveGoalActor != nullptr) ? FAIMoveRequest(MoveGoalActor) : FAIMoveRequest(RealGoalLocation);
+
+	MoveRequest.SetAllowPartialPath(bShouldAcceptPartialPath)
+		.SetAcceptanceRadius(MoveAcceptanceRadius)
+		.SetStopOnOverlap(bShouldStopOnOverlap)
+		.SetUsePathfinding(bShouldUsePathfinding);
+
 	const EPathFollowingRequestResult::Type RequestResult = OwnerController->MoveTo(MoveRequest);
 
 	switch (RequestResult)
@@ -106,6 +143,7 @@ void UAITask_MoveTo::Pause()
 	if (OwnerController)
 	{
 		OwnerController->GetPathFollowingComponent()->OnMoveFinished.RemoveAll(this);
+		OwnerController->PauseMove(MoveRequestID);
 	}
 	Super::Pause();
 }
@@ -114,4 +152,14 @@ void UAITask_MoveTo::Resume()
 {
 	Activate();
 	Super::Resume();
+}
+
+void UAITask_MoveTo::OnDestroy(bool bOwnerFinished)
+{
+	Super::OnDestroy(bOwnerFinished);
+	if (OwnerController && OwnerController->GetPathFollowingComponent())
+	{
+		OwnerController->GetPathFollowingComponent()->OnMoveFinished.RemoveAll(this);
+		OwnerController->GetPathFollowingComponent()->AbortMove(TEXT("UAITask_MoveTo finishing"), MoveRequestID);
+	}
 }

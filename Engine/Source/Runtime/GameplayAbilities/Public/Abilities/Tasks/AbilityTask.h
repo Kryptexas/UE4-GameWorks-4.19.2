@@ -94,7 +94,7 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 
 		T* MyObj = NewObject<T>();
 		UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-		MyObj->InitTask(*ThisAbility);
+		MyObj->InitTask(*ThisAbility, ThisAbility->GetDefaultPriority());
 		MyObj->InstanceName = InstanceName;
 		return MyObj;
 	}

@@ -3,7 +3,7 @@
 
 #include "GameplayTaskResource.generated.h"
 
-UCLASS(Abstract, config="Game")
+UCLASS(Abstract, config = "Game", hidedropdown)
 class GAMEPLAYTASKS_API UGameplayTaskResource : public UObject
 {
 	GENERATED_BODY()
@@ -27,6 +27,12 @@ public:
 	uint8 GetResourceID() const
 	{
 		return bManuallySetID || (ManualResourceID != INDEX_NONE) ? ManualResourceID : AutoResourceID;
+	}
+
+	template <class T>
+	static uint8 GetResourceID()
+	{
+		return GetDefault<T>()->GetResourceID();
 	}
 
 	static uint8 GetResourceID(TSubclassOf<UGameplayTaskResource>& RequiredResource)

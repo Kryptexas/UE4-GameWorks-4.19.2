@@ -3,6 +3,7 @@
 #include "GameplayTasksPrivatePCH.h"
 #include "GameplayTasksComponent.h"
 #include "GameplayTask.h"
+#include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTasksComponent"
 
@@ -177,7 +178,7 @@ void UGameplayTasksComponent::UpdateShouldTick()
 	}
 }
 
-AActor* UGameplayTasksComponent::GetAvatarActor() const
+AActor* UGameplayTasksComponent::GetAvatarActor(const UGameplayTask* Task) const
 {
 	return GetOwner();
 }
@@ -209,6 +210,25 @@ void UGameplayTasksComponent::RemoveResourceConsumingTask(UGameplayTask& Task)
 	{
 		ProcessTaskEvents();
 	}
+}
+
+void UGameplayTasksComponent::EndAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner)// , bool bNotifyOwner)
+{
+	for (int32 TaskIndex = TaskPriorityQueue.Num() - 1; TaskIndex >= 0; --TaskIndex)
+	{
+		if (TaskPriorityQueue[TaskIndex] == nullptr)
+		{
+			TaskPriorityQueue.RemoveAt(TaskIndex, 1, /*bAllowShrinking=*/false);
+		}
+		else if (TaskPriorityQueue[TaskIndex]->GetTaskOwner() == &TaskOwner)
+		{
+			UGameplayTask* Task = TaskPriorityQueue[TaskIndex];
+			TaskPriorityQueue.RemoveAt(TaskIndex, 1, /*bAllowShrinking=*/false);
+			Task->TaskOwnerEnded();
+		}
+	}
+
+	UpdateTaskActivationFromIndex(0, FGameplayResourceSet(), FGameplayResourceSet());
 }
 
 void UGameplayTasksComponent::ProcessTaskEvents()
@@ -267,8 +287,8 @@ void UGameplayTasksComponent::AddTaskToPriorityQueue(UGameplayTask& NewTask)
 	
 	const bool bStartOnTopOfSamePriority = NewTask.GetResourceOverlapPolicy() == ETaskResourceOverlapPolicy::StartOnTop;
 
-	FGameplayResourceSet ResourcesUsedByActiveUpToX;
-	FGameplayResourceSet ResourcesRequiredUpToX;
+	FGameplayResourceSet ResourcesClaimedUpToX;
+	FGameplayResourceSet ResourcesBlockedUpToIndex;
 	int32 InsertionPoint = INDEX_NONE;
 	
 	if (TaskPriorityQueue.Num() > 0)
@@ -289,12 +309,12 @@ void UGameplayTasksComponent::AddTaskToPriorityQueue(UGameplayTask& NewTask)
 				break;
 			}
 
-			const FGameplayResourceSet TasksResources = TaskPriorityQueue[TaskIndex]->GetRequiredResources();
+			const FGameplayResourceSet ClaimedResources = TaskPriorityQueue[TaskIndex]->GetClaimedResources();
 			if (TaskPriorityQueue[TaskIndex]->IsActive())
 			{
-				ResourcesUsedByActiveUpToX.AddSet(TasksResources);
+				ResourcesClaimedUpToX.AddSet(ClaimedResources);
 			}
-			ResourcesRequiredUpToX.AddSet(TasksResources);
+			ResourcesBlockedUpToIndex.AddSet(ClaimedResources);
 		}
 	}
 	
@@ -304,84 +324,105 @@ void UGameplayTasksComponent::AddTaskToPriorityQueue(UGameplayTask& NewTask)
 		InsertionPoint = TaskPriorityQueue.Num() - 1;
 	}
 
-	UpdateTaskActivationFromIndex(InsertionPoint, ResourcesUsedByActiveUpToX, ResourcesRequiredUpToX);
+	UpdateTaskActivationFromIndex(InsertionPoint, ResourcesClaimedUpToX, ResourcesBlockedUpToIndex);
 }
 
 void UGameplayTasksComponent::RemoveTaskFromPriorityQueue(UGameplayTask& Task)
 {	
-	if (TaskPriorityQueue.Num() > 1)
+	const int32 RemovedTaskIndex = TaskPriorityQueue.Find(&Task);
+	if (RemovedTaskIndex != INDEX_NONE)
 	{
-		const int32 RemovedTaskIndex = TaskPriorityQueue.Find(&Task);
-		ensure(RemovedTaskIndex != INDEX_NONE);
-
-		// sum up resources up to TaskIndex
-		FGameplayResourceSet ResourcesUsedByActiveUpToX;
-		FGameplayResourceSet ResourcesRequiredUpToX;
-		for (int32 Index = 0; Index < RemovedTaskIndex; ++Index)
+		if (TaskPriorityQueue.Num() > 1)
 		{
-			ensure(TaskPriorityQueue[Index]);
-			if (TaskPriorityQueue[Index] == nullptr)
+			// sum up resources up to TaskIndex
+			FGameplayResourceSet ResourcesClaimedUpToX;
+			FGameplayResourceSet ResourcesBlockedUpToIndex;
+			for (int32 TaskIndex = 0; TaskIndex < RemovedTaskIndex; ++TaskIndex)
 			{
-				continue;
+				ensure(TaskPriorityQueue[TaskIndex]);
+				if (TaskPriorityQueue[TaskIndex] == nullptr)
+				{
+					continue;
+				}
+
+				const FGameplayResourceSet ClaimedResources = TaskPriorityQueue[TaskIndex]->GetClaimedResources();
+				if (TaskPriorityQueue[TaskIndex]->IsActive())
+				{
+					ResourcesClaimedUpToX.AddSet(ClaimedResources);
+				}				
+				ResourcesBlockedUpToIndex.AddSet(ClaimedResources);
 			}
-			
-			const FGameplayResourceSet TasksResources = TaskPriorityQueue[Index]->GetRequiredResources();
-			if (TaskPriorityQueue[Index]->IsActive())
+
+			// don't forget to actually remove the task from the queue
+			TaskPriorityQueue.RemoveAt(RemovedTaskIndex, 1, /*bAllowShrinking=*/false);
+
+			// if it wasn't the last item then proceed as usual
+			if (RemovedTaskIndex < TaskPriorityQueue.Num())
 			{
-				ResourcesUsedByActiveUpToX.AddSet(TasksResources);
+				UpdateTaskActivationFromIndex(RemovedTaskIndex, ResourcesClaimedUpToX, ResourcesBlockedUpToIndex);
 			}
-			ResourcesRequiredUpToX.AddSet(TasksResources);
-		}
-
-		// don't forget to actually remove the task from the queue
-		TaskPriorityQueue.RemoveAt(RemovedTaskIndex, 1, /*bAllowShrinking=*/false);
-
-		// if it wasn't the last item then proceed as usual
-		if (RemovedTaskIndex < TaskPriorityQueue.Num())
-		{
-			UpdateTaskActivationFromIndex(RemovedTaskIndex, ResourcesUsedByActiveUpToX, ResourcesRequiredUpToX);
+			else
+			{
+				// no need to do extra processing. This was the last task, so 
+				// ResourcesUsedByActiveUpToX is the CurrentlyUsedResources
+				SetCurrentlyClaimedResources(ResourcesClaimedUpToX);
+			}
 		}
 		else
 		{
-			// no need to do extra processing. This was the last task, so 
-			// ResourcesUsedByActiveUpToX is the CurrentlyUsedResources
-			CurrentlyUsedResources = ResourcesUsedByActiveUpToX;
+			TaskPriorityQueue.Pop(/*bAllowShrinking=*/false);
+			SetCurrentlyClaimedResources(FGameplayResourceSet());
 		}
 	}
 	else
 	{
-		TaskPriorityQueue.Pop(/*bAllowShrinking=*/false);
-		CurrentlyUsedResources.Clear();
+		// take a note and ignore
+		UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("RemoveTaskFromPriorityQueue for %s called, but it's not in the queue. Might have been already removed"), *Task.GetName());
 	}
 }
 
-void UGameplayTasksComponent::UpdateTaskActivationFromIndex(int32 StartingIndex, FGameplayResourceSet ResourcesUsedByActiveUpToIndex, FGameplayResourceSet ResourcesRequiredUpToIndex)
+void UGameplayTasksComponent::UpdateTaskActivationFromIndex(int32 StartingIndex, FGameplayResourceSet ResourcesClaimedUpToIndex, FGameplayResourceSet ResourcesBlockedUpToIndex)
 {
-	check(TaskPriorityQueue.IsValidIndex(StartingIndex));
-
-	TArray<UGameplayTask*> TaskPriorityQueueCopy = TaskPriorityQueue;
-	for (int32 TaskIndex = StartingIndex; TaskIndex < TaskPriorityQueueCopy.Num(); ++TaskIndex)
+	if (TaskPriorityQueue.Num() > 0)
 	{
-		ensure(TaskPriorityQueueCopy[TaskIndex]);
-		if (TaskPriorityQueueCopy[TaskIndex] == nullptr)
-		{
-			continue;
-		}
+		check(TaskPriorityQueue.IsValidIndex(StartingIndex));
 
-		const FGameplayResourceSet TasksResources = TaskPriorityQueueCopy[TaskIndex]->GetRequiredResources();
-		if (TasksResources.GetOverlap(ResourcesUsedByActiveUpToIndex).IsEmpty())
+		TArray<UGameplayTask*> TaskPriorityQueueCopy = TaskPriorityQueue;
+		for (int32 TaskIndex = StartingIndex; TaskIndex < TaskPriorityQueueCopy.Num(); ++TaskIndex)
 		{
-			TaskPriorityQueueCopy[TaskIndex]->ActivateInTaskQueue();
-			ResourcesUsedByActiveUpToIndex.AddSet(TasksResources);
+			ensure(TaskPriorityQueueCopy[TaskIndex]);
+			if (TaskPriorityQueueCopy[TaskIndex] == nullptr)
+			{
+				continue;
+			}
+
+			const FGameplayResourceSet RequiredResources = TaskPriorityQueueCopy[TaskIndex]->GetRequiredResources();
+			const FGameplayResourceSet ClaimedResources = TaskPriorityQueueCopy[TaskIndex]->GetClaimedResources();
+			if (RequiredResources.GetOverlap(ResourcesBlockedUpToIndex).IsEmpty())
+			{
+				TaskPriorityQueueCopy[TaskIndex]->ActivateInTaskQueue();
+				ResourcesClaimedUpToIndex.AddSet(ClaimedResources);
+			}
+			else
+			{
+				TaskPriorityQueueCopy[TaskIndex]->PauseInTaskQueue();
+			}
+			ResourcesBlockedUpToIndex.AddSet(ClaimedResources);
 		}
-		else
-		{
-			TaskPriorityQueueCopy[TaskIndex]->PauseInTaskQueue();
-		}
-		ResourcesRequiredUpToIndex.AddSet(TasksResources);
 	}
+	
+	SetCurrentlyClaimedResources(ResourcesClaimedUpToIndex);
+}
 
-	CurrentlyUsedResources = ResourcesUsedByActiveUpToIndex;
+void UGameplayTasksComponent::SetCurrentlyClaimedResources(FGameplayResourceSet NewClaimedSet)
+{
+	if (CurrentlyClaimedResources != NewClaimedSet)
+	{
+		FGameplayResourceSet ReleasedResources = FGameplayResourceSet(CurrentlyClaimedResources).RemoveSet(NewClaimedSet);
+		FGameplayResourceSet ClaimedResources = FGameplayResourceSet(NewClaimedSet).RemoveSet(CurrentlyClaimedResources);
+		CurrentlyClaimedResources = NewClaimedSet;
+		OnClaimedResourcesChange.Broadcast(ClaimedResources, ReleasedResources);
+	}
 }
 
 //----------------------------------------------------------------------//
@@ -439,6 +480,110 @@ FString UGameplayTasksComponent::GetTaskStateName(EGameplayTaskState Value)
 	return Enum->GetEnumName(int32(Value));
 }
 #endif // ENABLE_VISUAL_LOG
+
+EGameplayTaskRunResult UGameplayTasksComponent::RunGameplayTask(IGameplayTaskOwnerInterface& TaskOwner, UGameplayTask& Task, uint8 Priority, FGameplayResourceSet AdditionalRequiredResources, FGameplayResourceSet AdditionalClaimedResources)
+{
+	const FText NoneText = FText::FromString(TEXT("None"));
+
+	if (Task.GetState() == EGameplayTaskState::Paused || Task.GetState() == EGameplayTaskState::Active)
+	{
+		// return as success if already running for the same owner, failure otherwise 
+		return Task.GetTaskOwner() == &TaskOwner
+			? (Task.GetState() == EGameplayTaskState::Paused ? EGameplayTaskRunResult::Success_Paused : EGameplayTaskRunResult::Success_Active)
+			: EGameplayTaskRunResult::Error;
+	}
+
+	// this is a valid situation if the task has been created via "Construct Object" mechanics
+	if (Task.GetState() == EGameplayTaskState::Uninitialized)
+	{
+		Task.InitTask(TaskOwner, Priority);
+	}
+
+	Task.AddRequiredResourceSet(AdditionalRequiredResources);
+	Task.AddClaimedResourceSet(AdditionalClaimedResources);
+	Task.ReadyForActivation();
+
+	switch (Task.GetState())
+	{
+	case EGameplayTaskState::AwaitingActivation:
+	case EGameplayTaskState::Paused:
+		return EGameplayTaskRunResult::Success_Paused;
+		break;
+	case EGameplayTaskState::Active:
+		return EGameplayTaskRunResult::Success_Active;
+		break;
+	case EGameplayTaskState::Finished:
+		return EGameplayTaskRunResult::Success_Active;
+		break;
+	}
+
+	return EGameplayTaskRunResult::Error;
+}
+
+//----------------------------------------------------------------------//
+// BP API
+//----------------------------------------------------------------------//
+EGameplayTaskRunResult UGameplayTasksComponent::K2_RunGameplayTask(TScriptInterface<IGameplayTaskOwnerInterface> TaskOwner, UGameplayTask* Task, uint8 Priority, TArray<TSubclassOf<UGameplayTaskResource> > AdditionalRequiredResources, TArray<TSubclassOf<UGameplayTaskResource> > AdditionalClaimedResources)
+{
+	const FText NoneText = FText::FromString(TEXT("None"));
+
+	if (TaskOwner.GetInterface() == nullptr)
+	{
+		FMessageLog("PIE").Error(FText::Format(
+			LOCTEXT("RunGameplayTaskNullOwner", "Tried running a gameplay task {0} while owner is None!"),
+			Task ? FText::FromName(Task->GetFName()) : NoneText));
+		return EGameplayTaskRunResult::Error;
+	}
+
+	IGameplayTaskOwnerInterface& OwnerInstance = *TaskOwner;
+
+	if (Task == nullptr)
+	{
+		FMessageLog("PIE").Error(FText::Format(
+			LOCTEXT("RunNullGameplayTask", "Tried running a None task for {0}"),
+			FText::FromString(Cast<UObject>(&OwnerInstance)->GetName())
+			));
+		return EGameplayTaskRunResult::Error;
+	}
+
+	if (Task->GetState() == EGameplayTaskState::Paused || Task->GetState() == EGameplayTaskState::Active)
+	{
+		FMessageLog("PIE").Warning(FText::Format(
+			LOCTEXT("RunNullGameplayTask", "Tried running a None task for {0}"),
+			FText::FromString(Cast<UObject>(&OwnerInstance)->GetName())
+			));
+		// return as success if already running for the same owner, failure otherwise 
+		return Task->GetTaskOwner() == &OwnerInstance 
+			? (Task->GetState() == EGameplayTaskState::Paused ? EGameplayTaskRunResult::Success_Paused : EGameplayTaskRunResult::Success_Active)
+			: EGameplayTaskRunResult::Error;
+	}
+
+	// this is a valid situation if the task has been created via "Construct Object" mechanics
+	if (Task->GetState() == EGameplayTaskState::Uninitialized)
+	{
+		Task->InitTask(OwnerInstance, Priority);
+	}
+
+	Task->AddRequiredResourceSet(AdditionalRequiredResources);
+	Task->AddClaimedResourceSet(AdditionalClaimedResources);
+	Task->ReadyForActivation();
+
+	switch (Task->GetState())
+	{
+	case EGameplayTaskState::AwaitingActivation:
+	case EGameplayTaskState::Paused:
+		return EGameplayTaskRunResult::Success_Paused;
+		break;
+	case EGameplayTaskState::Active:
+		return EGameplayTaskRunResult::Success_Active;
+		break;
+	case EGameplayTaskState::Finished:
+		return EGameplayTaskRunResult::Success_Active;
+		break;
+	}
+
+	return EGameplayTaskRunResult::Error;
+}
 
 //----------------------------------------------------------------------//
 // FGameplayResourceSet

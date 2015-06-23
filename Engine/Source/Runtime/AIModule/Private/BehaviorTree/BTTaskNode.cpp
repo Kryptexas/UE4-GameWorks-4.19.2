@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "GameplayTasksComponent.h"
 #include "BehaviorTree/BTTaskNode.h"
 
 UBTTaskNode::UBTTaskNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -28,8 +29,20 @@ EBTNodeResult::Type UBTTaskNode::WrappedExecuteTask(UBehaviorTreeComponent& Owne
 
 EBTNodeResult::Type UBTTaskNode::WrappedAbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
-	return NodeOb ? ((UBTTaskNode*)NodeOb)->AbortTask(OwnerComp, NodeMemory) : EBTNodeResult::Aborted;
+	UBTNode* NodeOb = const_cast<UBTNode*>(bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this);
+	UBTTaskNode* TaskNodeOb = static_cast<UBTTaskNode*>(NodeOb);
+	EBTNodeResult::Type Result = TaskNodeOb ? TaskNodeOb->AbortTask(OwnerComp, NodeMemory) : EBTNodeResult::Aborted;
+
+	if (TaskNodeOb && TaskNodeOb->bOwnsGameplayTasks && OwnerComp.GetAIOwner())
+	{
+		UGameplayTasksComponent* GTComp = OwnerComp.GetAIOwner()->GetGameplayTasksComponent();
+		if (GTComp)
+		{
+			GTComp->EndAllResourceConsumingTasksOwnedBy(*TaskNodeOb);
+		}
+	}
+
+	return Result;
 }
 
 void UBTTaskNode::WrappedTickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
@@ -46,12 +59,23 @@ void UBTTaskNode::WrappedTickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 void UBTTaskNode::WrappedOnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) const
 {
-	if (bNotifyTaskFinished)
+	UBTNode* NodeOb = const_cast<UBTNode*>(bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this);
+
+	if (NodeOb)
 	{
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
-		if (NodeOb)
+		UBTTaskNode* TaskNodeOb = static_cast<UBTTaskNode*>(NodeOb);
+		if (TaskNodeOb->bNotifyTaskFinished)
 		{
-			((UBTTaskNode*)NodeOb)->OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
+			TaskNodeOb->OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
+		}
+
+		if (TaskNodeOb->bOwnsGameplayTasks && OwnerComp.GetAIOwner())
+		{
+			UGameplayTasksComponent* GTComp = OwnerComp.GetAIOwner()->GetGameplayTasksComponent();
+			if (GTComp)
+			{
+				GTComp->EndAllResourceConsumingTasksOwnedBy(*TaskNodeOb);
+			}
 		}
 	}
 }
@@ -137,6 +161,119 @@ FName UBTTaskNode::GetNodeIconName() const
 }
 
 #endif	// WITH_EDITOR
+
+//----------------------------------------------------------------------//
+// UBTTaskNode IGameplayTaskOwnerInterface
+//----------------------------------------------------------------------//
+UGameplayTasksComponent* UBTTaskNode::GetGameplayTasksComponent(const UGameplayTask& Task) const 
+{
+	const UAITask* AsAITask = Cast<const UAITask>(&Task);
+	if (AsAITask)
+	{
+		return AsAITask->GetAIController() ? AsAITask->GetAIController()->GetGameplayTasksComponent(Task) : nullptr;
+	}
+
+	return Task.GetGameplayTasksComponent();
+}
+
+void UBTTaskNode::OnTaskInitialized(UGameplayTask& Task)
+{
+	// validate the task
+	UAITask* AsAITask = Cast<UAITask>(&Task);
+	if (AsAITask != nullptr && AsAITask->GetAIController() == nullptr)
+	{
+		// this means that the task has either been created without specifying 
+		// UAITAsk::OwnerController's value (like via BP's Construct Object node)
+		// or it has been created in C++ with inappropriate function
+		UE_LOG(LogBehaviorTree, Error, TEXT("Missing AIController in AITask %s"), *AsAITask->GetName());
+	}
+}
+
+UBehaviorTreeComponent* UBTTaskNode::GetBTComponentForTask(UGameplayTask& Task) const
+{
+	UAITask* AsAITask = Cast<UAITask>(&Task);
+	return AsAITask && AsAITask->GetAIController() ? Cast<UBehaviorTreeComponent>(AsAITask->GetAIController()->BrainComponent) : nullptr;
+}
+
+void UBTTaskNode::OnTaskActivated(UGameplayTask& Task) 
+{
+	ensure(Task.GetTaskOwner() == this);
+}
+
+void UBTTaskNode::OnTaskDeactivated(UGameplayTask& Task)
+{
+	ensure(Task.GetTaskOwner() == this);
+	UBehaviorTreeComponent* BTComp = GetBTComponentForTask(Task);
+	if (BTComp)
+	{
+		// this is a super-default behavior. Specific task will surely like to 
+		// handle this themselves, finishing with specific result
+		FinishLatentTask(*BTComp, EBTNodeResult::Succeeded);
+	}
+}
+
+AActor* UBTTaskNode::GetOwnerActor(const UGameplayTask* Task) const
+{
+	if (Task == nullptr)
+	{
+		if (IsInstanced())
+		{
+			const UBehaviorTreeComponent* BTComponent = Cast<const UBehaviorTreeComponent>(GetOuter());
+			//not having BT component for an instanced BT node is invalid!
+			check(BTComponent);
+			return BTComponent->GetAIOwner();
+		}
+		else
+		{
+			UE_LOG(LogBehaviorTree, Warning, TEXT("%s: Unable to determine Owner Actor for a null GameplayTask"), *GetName());
+			return nullptr;
+		}
+	}
+
+	const UAITask* AsAITask = Cast<const UAITask>(Task);
+	if (AsAITask)
+	{
+		return AsAITask->GetAIController();
+	}
+
+	const UGameplayTasksComponent* GTComponent = Task->GetGameplayTasksComponent();
+
+	return GTComponent ? GTComponent->GetOwnerActor(Task) : nullptr; 
+}
+
+AActor* UBTTaskNode::GetAvatarActor(const UGameplayTask* Task) const
+{
+	if (Task == nullptr)
+	{
+		if (IsInstanced())
+		{
+			const UBehaviorTreeComponent* BTComponent = Cast<const UBehaviorTreeComponent>(GetOuter());
+			//not having BT component for an instanced BT node is invalid!
+			check(BTComponent); 
+			return BTComponent->GetAIOwner() ? BTComponent->GetAIOwner()->GetPawn() : nullptr;
+		}
+		else
+		{
+			UE_LOG(LogBehaviorTree, Warning, TEXT("%s: Unable to determine Avatar Actor for a null GameplayTask"), *GetName());
+			return nullptr;
+		}
+	}
+
+	const UAITask* AsAITask = Cast<const UAITask>(Task);
+	if (AsAITask)
+	{
+		return AsAITask->GetAIController() ? AsAITask->GetAIController()->GetPawn() : nullptr;
+	}
+
+	const UGameplayTasksComponent* GTComponent = Task->GetGameplayTasksComponent();
+
+	return GTComponent ? GTComponent->GetOwnerActor(Task) : nullptr;
+}
+
+uint8 UBTTaskNode::GetDefaultPriority() const 
+{ 
+	return uint8(EAITaskPriority::AutonomousAI); 
+}
 
 //----------------------------------------------------------------------//
 // DEPRECATED

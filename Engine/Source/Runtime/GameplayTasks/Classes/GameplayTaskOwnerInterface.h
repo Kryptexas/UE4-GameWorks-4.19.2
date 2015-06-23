@@ -23,12 +23,12 @@ class GAMEPLAYTASKS_API IGameplayTaskOwnerInterface
 	GENERATED_BODY()
 public:
 	virtual void OnTaskInitialized(UGameplayTask& Task);
-	virtual UGameplayTasksComponent* GetGameplayTasksComponent() = 0;
+	virtual UGameplayTasksComponent* GetGameplayTasksComponent(const UGameplayTask& Task) const = 0;
 	/** this gets called both when task starts and when task gets resumed. Check Task.GetStatus() if you want to differenciate */
 	virtual void OnTaskActivated(UGameplayTask& Task) = 0;
 	/** this gets called both when task finished and when task gets paused. Check Task.GetStatus() if you want to differenciate */
 	virtual void OnTaskDeactivated(UGameplayTask& Task) = 0;
-	virtual AActor* GetOwnerActor() const = 0;
-	virtual AActor* GetAvatarActor() const;
+	virtual AActor* GetOwnerActor(const UGameplayTask* Task) const = 0;
+	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const;
 	virtual uint8 GetDefaultPriority() const { return FGameplayTasks::DefaultPriority; }
 };

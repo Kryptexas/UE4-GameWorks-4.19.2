@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AITypes.h"
+#include "GameplayTask.h"
 #include "GameFramework/Pawn.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/NavigationSystem.h"
@@ -18,6 +19,7 @@
 class APawn;
 class UPathFollowingComponent;
 class UBrainComponent;
+class UBlackboardComponent;
 class UAIPerceptionComponent;
 class UPawnAction;
 class UPawnActionsComponent;
@@ -122,6 +124,10 @@ private_subobject:
 	UPawnActionsComponent* ActionsComp;
 
 protected:
+	/** blackboard */
+	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
+	UBlackboardComponent* Blackboard;
+
 	UPROPERTY()
 	UGameplayTasksComponent* CachedGameplayTasksComponent;
 
@@ -132,6 +138,8 @@ public:
 	/** Event called when PossessedPawn is possessed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnPossess(APawn* PossessedPawn);
+
+	virtual void SetPawn(APawn* InPawn) override;
 
 	/** Makes AI go toward specified Goal actor (destination will be continuously updated)
 	 *  @param AcceptanceRadius - finish move if pawn gets close enough
@@ -358,13 +366,18 @@ public:
 	//----------------------------------------------------------------------//
 	// IGameplayTaskOwnerInterface
 	//----------------------------------------------------------------------//
-	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override { return CachedGameplayTasksComponent; }
+	UGameplayTasksComponent* GetGameplayTasksComponent() const { return CachedGameplayTasksComponent; }
+	virtual UGameplayTasksComponent* GetGameplayTasksComponent(const UGameplayTask& Task) const override { return CachedGameplayTasksComponent; }
 	virtual void OnTaskActivated(UGameplayTask& Task) override {}
 	virtual void OnTaskDeactivated(UGameplayTask& Task) override {}
 	virtual void OnTaskInitialized(UGameplayTask& Task) override {}
-	virtual AActor* GetOwnerActor() const { return const_cast<AAIController*>(this); }
-	virtual AActor* GetAvatarActor() const { return GetPawn(); }
-	virtual uint8 GetDefaultPriority() const { return FGameplayTasks::DefaultPriority - 1; }
+	virtual AActor* GetOwnerActor(const UGameplayTask* Task) const override { return const_cast<AAIController*>(this); }
+	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override { return GetPawn(); }
+	virtual uint8 GetDefaultPriority() const override { return FGameplayTasks::DefaultPriority - 1; }
+
+	// other GT tasks related
+	UFUNCTION()
+	virtual void OnGameplayTaskResourcesClaimed(FGameplayResourceSet NewlyClaimed, FGameplayResourceSet FreshlyReleased);
 
 	//----------------------------------------------------------------------//
 	// Actions
