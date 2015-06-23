@@ -342,13 +342,6 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	// Calculate the new ComponentToWorld transform
 	const FTransform RelativeTransform(RelativeRotationQuat, RelativeLocation, RelativeScale3D);
 	FTransform NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent);
-	
-	// Minimize accumulation of errors after many composed transforms.
-	NewTransform.NormalizeRotation();
-
-	// Update RelativeRotation and cache (not done earlier because normalization can change the rotation)
-	const FQuat RelativeQuatNormalized = (Parent ? RelativeRotationQuat.GetNormalized() : NewTransform.GetRotation());
-	RelativeRotation = RelativeRotationCache.NormalizedQuatToRotator(RelativeQuatNormalized);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ensureOnce(NewTransform.IsValid());
@@ -1852,7 +1845,8 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), 1e-6f))
 	{
 		RelativeLocation = NewLocation;
-		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat, Teleport);
+		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes rotator, if this is a new rotation. Then we'll use it below.
+		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
 		return true;
 	}
 
