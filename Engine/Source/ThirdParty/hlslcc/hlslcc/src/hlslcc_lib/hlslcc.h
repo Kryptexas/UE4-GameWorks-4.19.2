@@ -8,7 +8,7 @@
 enum
 {
 	HLSLCC_VersionMajor = 0,
-	HLSLCC_VersionMinor = 62,
+	HLSLCC_VersionMinor = 63,
 };
 
 /**
