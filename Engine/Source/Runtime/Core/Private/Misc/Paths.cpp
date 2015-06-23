@@ -18,6 +18,11 @@ bool FPaths::ShouldSaveToUserDir()
 	return bShouldSaveToUserDir;
 }
 
+FString FPaths::LaunchDir()
+{
+	return FString(FPlatformMisc::LaunchDir());
+}
+
 FString FPaths::EngineDir()
 {
 	return FString(FPlatformMisc::EngineDir());

@@ -921,7 +921,15 @@ uint32 FLinuxPlatformProcess::GetCurrentProcessId()
 	return getpid();
 }
 
-bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle& ProcHandle, int32* ReturnCode )
+FString FLinuxPlatformProcess::GetCurrentWorkingDirectory()
+{
+	// get the current directory
+	ANSICHAR CurrentDir[MAX_PATH] = { 0 };
+	getcwd(CurrentDir, sizeof(CurrentDir));
+	return UTF8_TO_TCHAR(CurrentDir);
+}
+
+bool FLinuxPlatformProcess::GetProcReturnCode(FProcHandle& ProcHandle, int32* ReturnCode)
 {
 	if (IsProcRunning(ProcHandle))
 	{

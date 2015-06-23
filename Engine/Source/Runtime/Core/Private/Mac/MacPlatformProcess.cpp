@@ -813,7 +813,16 @@ const TCHAR* FMacPlatformProcess::UserName(bool bOnlyAlphaNumeric)
 
 void FMacPlatformProcess::SetCurrentWorkingDirectoryToBaseDir()
 {
+	FPlatformMisc::CacheLaunchDir();
 	chdir([FString(BaseDir()).GetNSString() fileSystemRepresentation]);
+}
+
+FString FMacPlatformProcess::GetCurrentWorkingDirectory()
+{
+	// get the current directory
+	ANSICHAR CurrentDir[MAX_PATH] = { 0 };
+	getcwd(CurrentDir, sizeof(CurrentDir));
+	return UTF8_TO_TCHAR(CurrentDir);
 }
 
 const TCHAR* FMacPlatformProcess::ExecutableName(bool bRemoveExtension)

@@ -231,7 +231,10 @@ struct CORE_API FGenericPlatformProcess
 	static const TCHAR* UserName(bool bOnlyAlphaNumeric = true);
 	static const TCHAR* ShaderDir();
 	static void SetShaderDir(const TCHAR*Where);
-	static void SetCurrentWorkingDirectoryToBaseDir() { }
+	static void SetCurrentWorkingDirectoryToBaseDir();
+	
+	/** Get the current working directory (only really makes sense on desktop platforms) */
+	static FString GetCurrentWorkingDirectory();
 
 	/**
 	 * Sets the process limits.

@@ -505,6 +505,32 @@ const TCHAR* FGenericPlatformMisc::EngineDir()
 	return *EngineDirectory;
 }
 
+// wrap the LaunchDir variable in a function to work around static/global initialization order
+static FString& GetWrappedLaunchDir()
+{
+	static FString LaunchDir;
+	return LaunchDir;
+}
+
+void FGenericPlatformMisc::CacheLaunchDir()
+{
+	// we can only cache this ONCE
+	static bool bOneTime = false;
+	if (bOneTime)
+	{
+		return;
+	}
+	bOneTime = true;
+	
+	GetWrappedLaunchDir() = FPlatformProcess::GetCurrentWorkingDirectory() + TEXT("/");
+}
+
+const TCHAR* FGenericPlatformMisc::LaunchDir()
+{
+	return *GetWrappedLaunchDir();
+}
+
+
 const TCHAR* FGenericPlatformMisc::GetNullRHIShaderFormat()
 {
 	return TEXT("PCD3D_SM5");

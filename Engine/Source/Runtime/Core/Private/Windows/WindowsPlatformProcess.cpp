@@ -847,7 +847,17 @@ const TCHAR* FWindowsPlatformProcess::UserName(bool bOnlyAlphaNumeric/* = true*/
 
 void FWindowsPlatformProcess::SetCurrentWorkingDirectoryToBaseDir()
 {
+	FPlatformMisc::CacheLaunchDir();
 	verify(SetCurrentDirectoryW(BaseDir()));
+}
+
+/** Get the current working directory (only really makes sense on desktop platforms) */
+FString FWindowsPlatformProcess::GetCurrentWorkingDirectory()
+{
+	// get the current working directory (uncached)
+	TCHAR CurrentDirectory[MAX_PATH];
+	GetCurrentDirectoryW(MAX_PATH, CurrentDirectory);
+	return CurrentDirectory;
 }
 
 const TCHAR* FWindowsPlatformProcess::ExecutableName(bool bRemoveExtension)

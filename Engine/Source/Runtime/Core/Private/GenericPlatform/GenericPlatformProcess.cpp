@@ -83,6 +83,18 @@ const TCHAR* FGenericPlatformProcess::UserName(bool bOnlyAlphaNumeric/* = true*/
 	return TEXT("GenericUser");
 }
 
+void FGenericPlatformProcess::SetCurrentWorkingDirectoryToBaseDir()
+{
+	// even if we don't set a directory, we should remember the current one so LaunchDir works
+	FPlatformMisc::CacheLaunchDir();
+}
+
+FString FGenericPlatformProcess::GetCurrentWorkingDirectory()
+{
+	return TEXT("");
+}
+
+
 static FString Generic_ShaderDir;
 
 const TCHAR* FGenericPlatformProcess::ShaderDir()

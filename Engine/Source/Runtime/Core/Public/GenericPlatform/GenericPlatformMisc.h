@@ -603,6 +603,12 @@ public:
 	/** Get the engine directory */
 	static const TCHAR* EngineDir();
 
+	/** Get the directory the application was launched from (useful for commandline utilities) */
+	static const TCHAR* LaunchDir();
+
+	/** Function to store the current working directory for use with LaunchDir() */
+	static void CacheLaunchDir();
+
 	/**
 	 *	Return the GameDir
 	 */

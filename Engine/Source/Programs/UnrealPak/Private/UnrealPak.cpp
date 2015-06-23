@@ -1107,10 +1107,22 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	// start up the main loop
 	GEngineLoop.PreInit(ArgC, ArgV);
-	
+
 	if (ArgC < 2)
 	{
-		UE_LOG(LogPakFile, Error, TEXT("No pak file name specified."));
+		UE_LOG(LogPakFile, Error, TEXT("No pak file name specified. Usage:"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Test"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -List"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Extract <ExtractDir>"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Create=<ResponseFile> [Options]"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Dest=<MountPoint>"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GenerateKeys=<KeyFilename>"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GeneratePrimeTable=<KeyFilename> [-TableMax=<N>]"));
+		UE_LOG(LogPakFile, Error, TEXT("  Options:"));
+		UE_LOG(LogPakFile, Error, TEXT("    -blocksize=<BlockSize>"));
+		UE_LOG(LogPakFile, Error, TEXT("    -compress"));
+		UE_LOG(LogPakFile, Error, TEXT("    -encrypt"));
+		UE_LOG(LogPakFile, Error, TEXT("    -order=<OrderingFile>"));
 		return 1;
 	}
 
@@ -1131,6 +1143,18 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	{
 		FString PakFilename(ArgV[1]);
 		FPaths::MakeStandardFilename(PakFilename);
+		
+		// make sure it exists relative to engine, or relative to launch dir
+		if (!FPaths::FileExists(PakFilename))
+		{
+			PakFilename = FPaths::LaunchDir() + ArgV[1];
+		}
+			
+		if (!FPaths::FileExists(PakFilename))
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Pak file %s could not be found (checked against binary and launch directories)"), ArgV[1]);
+			return 1;
+		}
 
 		if (FParse::Param(FCommandLine::Get(), TEXT("Test")))
 		{
