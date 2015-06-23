@@ -1885,6 +1885,14 @@ bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 
 bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
 {
+	FVector FullScreenLocation;
+	const bool bSuccess = ProjectWorldLocationToScreenWithDistance(WorldLocation, FullScreenLocation);
+	ScreenLocation = FVector2D(FullScreenLocation.X, FullScreenLocation.Y);
+	return bSuccess;
+}
+
+bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation) const
+{
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
 	{
@@ -1902,7 +1910,10 @@ bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVec
 
 		if (SceneView) 
 		{
-			return SceneView->WorldToPixel(WorldLocation, ScreenLocation);
+			FVector2D ScreenLocation2D;
+			const bool bSuccess = SceneView->WorldToPixel(WorldLocation, ScreenLocation2D);
+			ScreenLocation = FVector(ScreenLocation2D.X, ScreenLocation2D.Y, FVector::Dist(ViewLocation, WorldLocation));
+			return bSuccess;
 		}
 	}
 

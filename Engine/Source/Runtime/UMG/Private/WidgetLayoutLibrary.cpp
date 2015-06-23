@@ -18,10 +18,18 @@ UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FObjectInitializer& ObjectIniti
 
 bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerController* PlayerController, FVector WorldLocation, FVector2D& ScreenPosition)
 {
+	FVector ScreenPosition3D;
+	const bool bSuccess = ProjectWorldLocationToWidgetPositionWithDistance(PlayerController, WorldLocation, ScreenPosition3D);
+	ScreenPosition = FVector2D(ScreenPosition3D.X, ScreenPosition3D.Y);
+	return bSuccess;
+}
+
+bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APlayerController* PlayerController, FVector WorldLocation, FVector& ScreenPosition)
+{
 	if ( PlayerController )
 	{
-		FVector2D PixelLocation;
-		const bool bProjected = PlayerController->ProjectWorldLocationToScreen(WorldLocation, PixelLocation);
+		FVector PixelLocation;
+		const bool bProjected = PlayerController->ProjectWorldLocationToScreenWithDistance(WorldLocation, PixelLocation);
 
 		if ( bProjected )
 		{
@@ -41,6 +49,7 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerControlle
 			// result in more or less the same value, especially after slate does layout rounding.
 			ScreenPosition.X = FMath::RoundToInt(ScreenPosition.X);
 			ScreenPosition.Y = FMath::RoundToInt(ScreenPosition.Y);
+			ScreenPosition.Z = PixelLocation.Z;
 
 			// Get the application / DPI scale
 			const float Scale = UWidgetLayoutLibrary::GetViewportScale(PlayerController);

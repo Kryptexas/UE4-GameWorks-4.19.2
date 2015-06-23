@@ -11,10 +11,161 @@
 #include "Scalability.h"
 #include "WidgetLayoutLibrary.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "SGameLayerManager.h"
 
 extern SLATECORE_API int32 bFoldTick;
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
+
+static const FName SharedLayerName(TEXT("WidgetComponentScreenLayer"));
+
+class SWorldWidgetScreenLayer : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SWorldWidgetScreenLayer)
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+	}
+	SLATE_END_ARGS()
+
+public:
+	void Construct(const FArguments& InArgs, const TArray<TWeakObjectPtr<UWidgetComponent>>& InComponents)
+	{
+		Components = InComponents;
+
+		ChildSlot
+		[
+			SAssignNew(Canvas, SConstraintCanvas)
+		];
+	}
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	{
+		TArray<UWidgetComponent*, TInlineAllocator<1>> DeadComponents;
+
+		for ( TWeakObjectPtr<UWidgetComponent> Component : Components )
+		{
+			if ( UWidgetComponent* WidgetComponent = Component.Get() )
+			{
+				if ( ULocalPlayer* LocalPlayer = WidgetComponent->GetOwnerPlayer() )
+				{
+					if ( APlayerController* PlayerController = LocalPlayer->PlayerController )
+					{
+						FVector WorldLocation = WidgetComponent->GetComponentLocation();
+
+						FVector ScreenPosition;
+						const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(PlayerController, WorldLocation, ScreenPosition);
+
+						if ( bProjected )
+						{
+							WidgetComponent->GetUserWidgetObject()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+							if ( SConstraintCanvas::FSlot* CanvasSlot = ComponentToSlot.FindRef(WidgetComponent) )
+							{
+								FVector2D DrawSize = WidgetComponent->GetDrawSize();
+								FVector2D Pivot = WidgetComponent->GetPivot();
+
+								CanvasSlot->AutoSize(DrawSize.IsZero());
+								CanvasSlot->Offset(FMargin(ScreenPosition.X, ScreenPosition.Y, DrawSize.X, DrawSize.Y));
+								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
+								CanvasSlot->Alignment(Pivot);
+								CanvasSlot->ZOrder(-ScreenPosition.Z);
+							}
+						}
+						else
+						{
+							WidgetComponent->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Hidden);
+						}
+					}
+				}
+			}
+			else
+			{
+				DeadComponents.Add(WidgetComponent);
+			}
+		}
+
+		// Normally components should be removed by someone calling remove component, but just in case it was 
+		// deleted in a way where they didn't happen, this is our backup solution to enure we remove stale widgets.
+		for ( int32 Index = 0; Index < DeadComponents.Num(); Index++ )
+		{
+			RemoveComponent(DeadComponents[Index]);
+		}
+	}
+
+	void AddComponent(UWidgetComponent* Component)
+	{
+		Components.AddUnique(Component);
+
+		SConstraintCanvas::FSlot* CanvasSlot;
+
+		Canvas->AddSlot()
+		.Expose(CanvasSlot)
+		[
+			Component->GetUserWidgetObject()->TakeWidget()
+		];
+
+		ComponentToSlot.Add(Component, CanvasSlot);
+	}
+
+	void RemoveComponent(UWidgetComponent* Component)
+	{
+		Components.RemoveSwap(Component);
+
+		TSharedPtr<SWidget> CachedWidget = Component->GetUserWidgetObject()->GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			Canvas->RemoveSlot(CachedWidget.ToSharedRef());
+		}
+
+		ComponentToSlot.Remove(Component);
+	}
+
+private:
+	TArray<TWeakObjectPtr<UWidgetComponent>> Components;
+	TMap<UWidgetComponent*, SConstraintCanvas::FSlot*> ComponentToSlot;
+	TSharedPtr<SConstraintCanvas> Canvas;
+};
+
+class FWorldWidgetScreenLayer : public IGameLayer
+{
+public:
+	void AddComponent(UWidgetComponent* Component)
+	{
+		Components.AddUnique(Component);
+		if ( ScreenLayer.IsValid() )
+		{
+			ScreenLayer.Pin()->AddComponent(Component);
+		}
+	}
+
+	void RemoveComponent(UWidgetComponent* Component)
+	{
+		Components.RemoveSwap(Component);
+
+		if ( ScreenLayer.IsValid() )
+		{
+			ScreenLayer.Pin()->RemoveComponent(Component);
+		}
+	}
+
+	virtual TSharedRef<SWidget> AsWidget() override
+	{
+		if ( ScreenLayer.IsValid() )
+		{
+			return ScreenLayer.Pin().ToSharedRef();
+		}
+
+		TSharedRef<SWorldWidgetScreenLayer> NewScreenLayer = SNew(SWorldWidgetScreenLayer, Components);
+		ScreenLayer = NewScreenLayer;
+
+		return NewScreenLayer;
+	}
+
+private:
+	TWeakPtr<SWorldWidgetScreenLayer> ScreenLayer;
+	TArray<TWeakObjectPtr<UWidgetComponent>> Components;
+};
+
 
 class SVirtualWindow : public SWindow
 {
@@ -336,7 +487,6 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, TickWhenOffscreen( false )
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 	bTickInEditor = true;
 
 	RelativeRotation = FRotator::ZeroRotator;
@@ -369,7 +519,8 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 
 	Space = EWidgetSpace::World;
 	Pivot = FVector2D(0.5, 0.5);
-	ZOrder = -100;
+
+	bAddedToScreen = false;
 }
 
 FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
@@ -535,7 +686,7 @@ void UWidgetComponent::ReleaseResources()
 {
 	if ( Widget )
 	{
-		Widget->RemoveFromParent();
+		RemoveWidgetFromScreen();
 		Widget->MarkPendingKill();
 		Widget = nullptr;
 	}
@@ -548,6 +699,8 @@ void UWidgetComponent::ReleaseResources()
 void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 #if !UE_SERVER
+
+	static const int32 LayerZOrder = -100;
 
 	UpdateWidget();
 
@@ -566,7 +719,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 		const float RenderTimeThreshold = .5f;
 		if ( IsVisible() )
 		{
-			// if we don't tick when offscreen, don't bother ticking if it hasn't been rendered recently
+			// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
 			if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 			{
 				SlateWidget->SlatePrepass();
@@ -619,44 +772,75 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	{
 		if ( Widget && !Widget->IsDesignTime() )
 		{
-			ULocalPlayer* TargetPlayer = OwnerPlayer ? OwnerPlayer : GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
+			UWorld* ThisWorld = GetWorld();
+
+			ULocalPlayer* TargetPlayer = GetOwnerPlayer();
 			APlayerController* PlayerController = TargetPlayer ? TargetPlayer->PlayerController : nullptr;
 
 			if ( TargetPlayer && PlayerController && IsVisible() )
 			{
-				FVector WorldLocation = GetComponentLocation();
-
-				FVector2D ScreenPosition;
-				const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(
-					PlayerController, WorldLocation, ScreenPosition);
-
-				if ( bProjected )
+				if ( !bAddedToScreen )
 				{
-					Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-					
-					Widget->SetDesiredSizeInViewport(DrawSize);
-					Widget->SetPositionInViewport(ScreenPosition, false);
-					Widget->SetAlignmentInViewport(Pivot);
-				}
-				else
-				{
-					Widget->SetVisibility(ESlateVisibility::Hidden);
-				}
+					if ( ThisWorld->IsGameWorld() )
+					{
+						if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+						{
+							TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+							if ( LayerManager.IsValid() )
+							{
+								TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer;
 
-				if ( !Widget->IsInViewport() )
-				{
-					Widget->SetPlayerContext(TargetPlayer);
-					Widget->AddToPlayerScreen(ZOrder);
+								TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
+								if ( !Layer.IsValid() )
+								{
+									TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer());
+									LayerManager->AddLayerForPlayer(TargetPlayer, SharedLayerName, NewScreenLayer, LayerZOrder);
+									ScreenLayer = NewScreenLayer;
+								}
+								else
+								{
+									ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
+								}
+								
+								bAddedToScreen = true;
+								
+								Widget->SetPlayerContext(TargetPlayer);
+								ScreenLayer->AddComponent(this);
+							}
+						}
+					}
 				}
 			}
-			else if ( Widget->IsInViewport() )
+			else if ( bAddedToScreen )
 			{
-				// If the component isn't visible, and the widget is on the viewport, remove it.
-				Widget->RemoveFromParent();
+				RemoveWidgetFromScreen();
 			}
 		}
 	}
 
+#endif // !UE_SERVER
+}
+
+void UWidgetComponent::RemoveWidgetFromScreen()
+{
+#if !UE_SERVER
+	bAddedToScreen = false;
+
+	if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+	{
+		TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+		if ( LayerManager.IsValid() )
+		{
+			ULocalPlayer* TargetPlayer = GetOwnerPlayer();
+
+			TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
+			if ( Layer.IsValid() )
+			{
+				TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
+				ScreenLayer->RemoveComponent(this);
+			}
+		}
+	}
 #endif // !UE_SERVER
 }
 
@@ -788,14 +972,14 @@ void UWidgetComponent::SetOwnerPlayer(ULocalPlayer* LocalPlayer)
 
 ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
 {
-	return OwnerPlayer;
+	return OwnerPlayer ? OwnerPlayer : GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
 }
 
 void UWidgetComponent::SetWidget(UUserWidget* InWidget)
 {
 	if ( Widget )
 	{
-		Widget->RemoveFromParent();
+		RemoveWidgetFromScreen();
 		Widget->MarkPendingKill();
 		Widget = nullptr;
 	}

@@ -479,6 +479,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = ( DisplayName = "ConvertWorldLocationToScreenLocation" ))
 	bool ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const;
+
+	/**
+	 * Convert a World Space 3D position into a 3D Screen Space position.
+	 * @return true if the world coordinate was successfully projected to the screen.
+	 */
+	bool ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation) const;
 	
 	/**
 	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.

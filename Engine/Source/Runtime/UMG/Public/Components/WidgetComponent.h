@@ -144,6 +144,10 @@ public:
 	
 	/** Sets the widget class used to generate the widget for this component */
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
+
+protected:
+	void RemoveWidgetFromScreen();
+
 protected:
 	/** The coordinate space in which to render the widget */
 	UPROPERTY(EditAnywhere, Category=UI)
@@ -160,10 +164,6 @@ protected:
 	/** The Alignment/Pivot point that the widget is placed at relative to the position. */
 	UPROPERTY(EditAnywhere, Category=UI)
 	FVector2D Pivot;
-
-	/** The Screen Space ZOrder that is used if the widget is displayed in screen space. */
-	UPROPERTY(EditAnywhere, Category=UI)
-	int32 ZOrder;
 	
 	/** The maximum distance from which a player can interact with this widget */
 	UPROPERTY(EditAnywhere, Category=UI, meta=(ClampMin="0.0", UIMax="5000.0", ClampMax="100000.0"))
@@ -245,6 +245,9 @@ protected:
 
 	UPROPERTY()
 	bool bUseLegacyRotation;
+
+	UPROPERTY(Transient, DuplicateTransient)
+	bool bAddedToScreen;
 protected:
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
