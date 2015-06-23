@@ -150,9 +150,9 @@ void FEnvTraceDataCustomization::OnTraceChannelChanged()
 	if (Result == FPropertyAccess::Success)
 	{
 		ETraceTypeQuery TraceTypeValue = (ETraceTypeQuery)TraceChannelValue;
-		ECollisionChannel TraceChannelValue = UEngineTypes::ConvertToCollisionChannel(TraceTypeValue);
+		ECollisionChannel CollisionChannelValue = UEngineTypes::ConvertToCollisionChannel(TraceTypeValue);
 
-		uint8 SerializedChannelValue = TraceChannelValue;
+		uint8 SerializedChannelValue = CollisionChannelValue;
 		PropTraceChannelSerialized->SetValue(SerializedChannelValue);
 	}
 }
