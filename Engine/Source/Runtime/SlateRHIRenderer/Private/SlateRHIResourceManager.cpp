@@ -669,7 +669,7 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 	const UMaterialInterface* Material = CastChecked<UMaterialInterface>(InMaterial);
 
 	TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Material);
-	if (!MaterialResource.IsValid() || MaterialResource->GetTextureMaskResource() != TextureMask )
+	if (!MaterialResource.IsValid())
 	{
 		// Get a resource from the free list if possible
 		if(MaterialResourceFreeList.Num() > 0)
@@ -684,6 +684,10 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 		}
 		
 		DynamicResourceMap.AddMaterialResource(Material, MaterialResource.ToSharedRef());
+	}
+	else if( MaterialResource->GetTextureMaskResource() != TextureMask )
+	{
+		MaterialResource->UpdateMaterial( *Material, ImageSize, TextureMask );
 	}
 	else
 	{
