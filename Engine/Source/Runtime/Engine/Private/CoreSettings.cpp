@@ -3,6 +3,57 @@
 #include "EnginePrivate.h"
 #include "Engine/CoreSettings.h"
 
+
+int32 GUseBackgroundLevelStreaming = 1;
+float GAsyncLoadingTimeLimit = 5.0f;
+int32 GAsyncLoadingUseFullTimeLimit = 1;
+float GPriorityAsyncLoadingExtraTime = 20.0f;
+float GLevelStreamingActorsUpdateTimeLimit = 5.0f;
+int32 GLevelStreamingComponentsRegistrationGranularity = 10;
+
+
+static FAutoConsoleVariableRef CVarUseBackgroundLevelStreaming(
+	TEXT("s.UseBackgroundLevelStreaming"),
+	GUseBackgroundLevelStreaming,
+	TEXT("Whether to allow background level streaming."),
+	ECVF_Default
+	);
+
+static FAutoConsoleVariableRef CVarAsyncLoadingTimeLimit(
+	TEXT("s.AsyncLoadingTimeLimit"),
+	GAsyncLoadingTimeLimit,
+	TEXT("Maximum amount of time to spend doing asynchronous loading (ms per frame)."),
+	ECVF_Default
+	);
+
+static FAutoConsoleVariableRef CVarAsyncLoadingUseFullTimeLimit(
+	TEXT("s.AsyncLoadingUseFullTimeLimit"),
+	GAsyncLoadingUseFullTimeLimit,
+	TEXT("Whether to use the entire time limit even if blocked on I/O."),
+	ECVF_Default
+	);
+
+static FAutoConsoleVariableRef CVarPriorityAsyncLoadingExtraTime(
+	TEXT("s.PriorityAsyncLoadingExtraTime"),
+	GPriorityAsyncLoadingExtraTime,
+	TEXT("Additional time to spend asynchronous loading during a high priority load."),
+	ECVF_Default
+	);
+
+static FAutoConsoleVariableRef CVarLevelStreamingActorsUpdateTimeLimit(
+	TEXT("s.LevelStreamingActorsUpdateTimeLimit"),
+	GLevelStreamingActorsUpdateTimeLimit,
+	TEXT("Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)."),
+	ECVF_Default
+	);
+
+static FAutoConsoleVariableRef CVarLevelStreamingComponentsRegistrationGranularity(
+	TEXT("s.LevelStreamingComponentsRegistrationGranularity"),
+	GLevelStreamingComponentsRegistrationGranularity,
+	TEXT("Batching granularity used to register actor components during level streaming."),
+	ECVF_Default
+	);
+
 UStreamingSettings::UStreamingSettings()
 	: Super()
 {
@@ -14,9 +65,9 @@ UStreamingSettings::UStreamingSettings()
 	TimeLimitExceededMinTime = 0.005f;
 	MinBulkDataSizeForAsyncLoading = 131072;
 	AsyncIOBandwidthLimit = 0;
-	bUseBackgroundLevelStreaming = true;
+	UseBackgroundLevelStreaming = true;
 	AsyncLoadingTimeLimit = 5.0f;
-	bAsyncLoadingUseFullTimeLimit = true;
+	AsyncLoadingUseFullTimeLimit = true;
 	PriorityAsyncLoadingExtraTime = 20.0f;
 	LevelStreamingActorsUpdateTimeLimit = 5.0f;
 	LevelStreamingComponentsRegistrationGranularity = 10;

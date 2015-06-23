@@ -823,6 +823,21 @@ void ProcessNewlyLoadedUObjects()
 #endif
 }
 
+static int32 GVarWarnIfTimeLimitExceeded;
+static FAutoConsoleVariableRef CVarWarnIfTimeLimitExceeded(
+	TEXT("gc.MaxObjectsNotConsideredByGC"),
+	GVarWarnIfTimeLimitExceeded,
+	TEXT("Placeholder console variable, currently not used in runtime."),
+	ECVF_Default
+	);
+
+static int32 GSizeOfPermanentObjectPool;
+static FAutoConsoleVariableRef CSizeOfPermanentObjectPool(
+	TEXT("gc.SizeOfPermanentObjectPool"),
+	GSizeOfPermanentObjectPool,
+	TEXT("Placeholder console variable, currently not used in runtime."),
+	ECVF_Default
+	);
 
 /**
  * Final phase of UObject initialization. all auto register objects are added to the main data structures.
@@ -840,10 +855,10 @@ void UObjectBaseInit()
 	// FPlatformProperties::RequiresCookedData() will be false. Please note that GIsEditor and FApp::IsGame() are not valid at this point.
 	if( FPlatformProperties::RequiresCookedData() )
 	{
-		GConfig->GetInt( TEXT("Core.System"), TEXT("MaxObjectsNotConsideredByGC"), MaxObjectsNotConsideredByGC, GEngineIni );
+		GConfig->GetInt( TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsNotConsideredByGC"), MaxObjectsNotConsideredByGC, GEngineIni );
 
 		// Not used on PC as in-place creation inside bigger pool interacts with the exit purge and deleting UObject directly.
-		GConfig->GetInt( TEXT("Core.System"), TEXT("SizeOfPermanentObjectPool"), SizeOfPermanentObjectPool, GEngineIni );
+		GConfig->GetInt( TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.SizeOfPermanentObjectPool"), SizeOfPermanentObjectPool, GEngineIni );
 	}
 
 	// Log what we're doing to track down what really happens as log in LaunchEngineLoop doesn't report those settings in pristine form.

@@ -1197,7 +1197,7 @@ COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilit
 // Allow parralel GC to be overriden to single threaded via console command.
 static int32 GAllowParallelGC = (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0;
 static FAutoConsoleVariableRef CVarAllowParallelGC(
-	TEXT("AllowParallelGC"),
+	TEXT("gc.AllowParallelGC"),
 	GAllowParallelGC,
 	TEXT("sed to control parallel GC."),
 	ECVF_Default
@@ -1209,7 +1209,7 @@ static int32 GNumAttemptsSinceLastGC = 0;
 // Number of times GC can be skipped.
 static int32 GNumRetriesBeforeForcingGC = 0;
 static FAutoConsoleVariableRef CVarNumRetriesBeforeForcingGC(
-	TEXT("NumRetriesBeforeForcingGC"),
+	TEXT("gc.NumRetriesBeforeForcingGC"),
 	GNumRetriesBeforeForcingGC,
 	TEXT("Maximum number of times GC can be skipped if worker threads are currently modifying UObject state."),
 	ECVF_Default
@@ -1218,7 +1218,7 @@ static FAutoConsoleVariableRef CVarNumRetriesBeforeForcingGC(
 // Force flush streaming on GC console variable
 static int32 GFlushStreamingOnGC = 0;
 static FAutoConsoleVariableRef CVarFlushStreamingOnGC(
-	TEXT("FlushStreamingOnGC"),
+	TEXT("gc.FlushStreamingOnGC"),
 	GFlushStreamingOnGC,
 	TEXT("If enabled, streaming will be flushed each time garbage collection is triggered."),
 	ECVF_Default

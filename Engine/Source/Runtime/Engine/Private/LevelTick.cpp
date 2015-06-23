@@ -712,7 +712,7 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesEditor(
 	TEXT("Used to control async renderthread updates in the editor."));
 
 static TAutoConsoleVariable<int32> CVarCollectGarbageEveryFrame(
-	TEXT("CollectGarbageEveryFrame"),
+	TEXT("gc.CollectGarbageEveryFrame"),
 	0,
 	TEXT("Used to debug garbage collection...Collects garbage every frame if the value is > 0."));
 
@@ -992,14 +992,14 @@ extern bool GCollisionAnalyzerIsRecording;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
-	TEXT("t.StressTestGC"),
+	TEXT("gc.StressTestGC"),
 	0,
 	TEXT("If set to 1, the engine will attempt to trigger GC each frame while async loading."));
 #endif
 
 static float GTimeBetweenPurgingPendingKillObjects = 60.0f;
 static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
-	TEXT("TimeBetweenPurgingPendingKillObjects"),
+	TEXT("gc.TimeBetweenPurgingPendingKillObjects"),
 	GTimeBetweenPurgingPendingKillObjects,
 	TEXT("Time in seconds (game time) we should wait between purging object references to objects that are pending kill."),
 	ECVF_Default
@@ -1093,7 +1093,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal || IsInSeamlessTravel())
 	{
 		// Force it to use the entire time slice, even if blocked on I/O
-		ProcessAsyncLoading(true, true, GetDefault<UStreamingSettings>()->PriorityAsyncLoadingExtraTime / 1000.0f);
+		ProcessAsyncLoading(true, true, GPriorityAsyncLoadingExtraTime / 1000.0f);
 	}
 
 	// Translate world origin if requested

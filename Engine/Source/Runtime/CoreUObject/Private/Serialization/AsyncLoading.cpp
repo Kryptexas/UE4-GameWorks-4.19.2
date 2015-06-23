@@ -210,9 +210,18 @@ public:
 static TAutoPtr<FAsyncLoadingExec> GAsyncLoadingExec;
 #endif
 
+static int32 GAsyncLoadingThreadEnabled;
+static FAutoConsoleVariableRef CVarAsyncLoadingThreadEnabledg(
+	TEXT("s.AsyncLoadingThreadEnabled"),
+	GAsyncLoadingThreadEnabled,
+	TEXT("Placeholder console variable, currently not used in runtime."),
+	ECVF_Default
+	);
+
+
 static int32 GWarnIfTimeLimitExceeded = 0;
 static FAutoConsoleVariableRef CVarWarnIfTimeLimitExceeded(
-	TEXT("WarnIfTimeLimitExceeded"),
+	TEXT("s.WarnIfTimeLimitExceeded"),
 	GWarnIfTimeLimitExceeded,
 	TEXT("Enables log warning if time limit for time-sliced package streaming has been exceeded."),
 	ECVF_Default
@@ -220,7 +229,7 @@ static FAutoConsoleVariableRef CVarWarnIfTimeLimitExceeded(
 
 static float GTimeLimitExceededMultiplier = 1.5f;
 static FAutoConsoleVariableRef CVarTimeLimitExceededMultiplier(
-	TEXT("TimeLimitExceededMultiplier"),
+	TEXT("s.TimeLimitExceededMultiplier"),
 	GTimeLimitExceededMultiplier,
 	TEXT("Multiplier for time limit exceeded warning time threshold."),
 	ECVF_Default
@@ -228,7 +237,7 @@ static FAutoConsoleVariableRef CVarTimeLimitExceededMultiplier(
 
 static float GTimeLimitExceededMinTime = 0.005f;
 static FAutoConsoleVariableRef CVarTimeLimitExceededMinTime(
-	TEXT("TimeLimitExceededMinTime"),
+	TEXT("s.TimeLimitExceededMinTime"),
 	GTimeLimitExceededMinTime,
 	TEXT("Minimum time the time limit exceeded warning will be triggered by."),
 	ECVF_Default

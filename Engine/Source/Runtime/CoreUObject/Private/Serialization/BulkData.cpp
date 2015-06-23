@@ -692,7 +692,7 @@ void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, in
 
 int32 GMinimumBulkDataSizeForAsyncLoading = 131072;
 static FAutoConsoleVariableRef CVarMinimumBulkDataSizeForAsyncLoading(
-	TEXT("MinBulkDataSizeForAsyncLoading"),
+	TEXT("s.MinBulkDataSizeForAsyncLoading"),
 	GMinimumBulkDataSizeForAsyncLoading,
 	TEXT("Minimum time the time limit exceeded warning will be triggered by."),
 	ECVF_Default
