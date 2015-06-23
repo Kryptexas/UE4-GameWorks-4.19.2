@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2581274
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:12.タスクの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:ステップ 12.タスクの作成
+Description:ステップ 12タスクの作成
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -61,7 +61,6 @@ Tasks ノードは、AI を移動するなどのように何かを "実行する
 
 
 
-[VAR:varTable1]
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
@@ -600,3 +599,8 @@ Tasks ノードは、AI を移動するなどのように何かを "実行する
 	   NodeGuid=F90931054D514458FE3DDA997BE5C7C2
 	End Object
 [/VAR]
+
+
+
+
+
