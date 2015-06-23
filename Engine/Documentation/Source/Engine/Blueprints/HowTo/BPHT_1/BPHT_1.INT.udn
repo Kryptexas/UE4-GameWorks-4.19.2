@@ -138,7 +138,7 @@ The final piece of setup requires us to create a basic HUD to communicate inform
 
 	![](MovedWidget.png)
 
-1.	Click on the left-most text displayed in the box, then in the **Details** panel under **Text** enter **Pulls :**. 
+1.	Click on the left-most text displayed in the box, then in the **Details** panel under **Text** enter **Pulls:**. 
 
 	![](EnterText1.png)
 
