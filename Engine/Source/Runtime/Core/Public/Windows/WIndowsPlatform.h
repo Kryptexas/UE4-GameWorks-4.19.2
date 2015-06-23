@@ -70,6 +70,10 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #endif
 #define PLATFORM_COMPILER_HAS_TCHAR_WMAIN					1
 
+#define PLATFORM_RHITHREAD_DEFAULT_BYPASS					1
+#define PLATFORM_CAN_TOGGLE_RHITHREAD_IN_SHIPPING			1
+
+
 // Intrinsics for 128-bit atomics on Windows platform requires Windows 8 or higher (WINVER>0x0602)
 // http://msdn.microsoft.com/en-us/library/windows/desktop/hh972640.aspx
 #define PLATFORM_HAS_128BIT_ATOMICS							(!HACK_HEADER_GENERATOR && PLATFORM_64BITS && (WINVER >= 0x602))
