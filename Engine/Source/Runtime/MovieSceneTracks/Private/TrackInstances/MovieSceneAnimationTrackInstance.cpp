@@ -3,6 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneAnimationTrack.h"
 #include "MovieSceneAnimationTrackInstance.h"
+#include "MovieSceneAnimationSection.h"
 #include "IMovieScenePlayer.h"
 #include "Matinee/MatineeAnimInterface.h"
 

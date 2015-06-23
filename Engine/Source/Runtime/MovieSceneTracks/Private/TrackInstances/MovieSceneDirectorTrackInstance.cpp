@@ -3,6 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneDirectorTrack.h"
 #include "MovieSceneDirectorTrackInstance.h"
+#include "MovieSceneShotSection.h"
 #include "IMovieScenePlayer.h"
 
 

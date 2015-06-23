@@ -2,6 +2,7 @@
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DTransformTrackInstance.h"
+#include "MovieScene3DTransformTrack.h"
 
 
 FMovieScene3DTransformTrackInstance::FMovieScene3DTransformTrackInstance( UMovieScene3DTransformTrack& InTransformTrack )

@@ -2,6 +2,7 @@
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneVectorTrackInstance.h"
+#include "MovieSceneVectorTrack.h"
 
 FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVectorTrack& InVectorTrack )
 {

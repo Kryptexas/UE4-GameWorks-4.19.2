@@ -3,6 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneColorTrackInstance.h"
 #include "MovieSceneCommonHelpers.h"
+#include "MovieSceneColorTrack.h"
 #include "SlateCore.h"
 
 
