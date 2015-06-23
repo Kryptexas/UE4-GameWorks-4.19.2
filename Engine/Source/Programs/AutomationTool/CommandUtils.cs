@@ -2009,38 +2009,6 @@ namespace AutomationTool
 			return false;
 		}
 
-        static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
-        public static string ResolveSharedBuildDirectory(string GameFolder)
-        {
-            if (ResolveCache.ContainsKey(GameFolder))
-            {
-                return ResolveCache[GameFolder];
-            }
-            string Root = RootSharedTempStorageDirectory();
-            string Result = CombinePaths(Root, GameFolder);
-            if (String.IsNullOrEmpty(GameFolder) || !Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
-            {
-                string GameStr = "Game";
-                bool HadGame = false;
-                if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
-                    Result = CombinePaths(Root, ShortFolder);
-                    HadGame = true;
-                }
-                if (!HadGame || !Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
-                {
-                    Result = CombinePaths(Root, "UE4");
-                    if (!Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
-                    {
-                        throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
-                    }
-                }
-            }
-            ResolveCache.Add(GameFolder, Result);
-            return Result;
-        }
-
         public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "", int MaximumDaysToKeepTempStorage = 4)
         {
             if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootSharedTempStorageDirectory()) || !P4Enabled))

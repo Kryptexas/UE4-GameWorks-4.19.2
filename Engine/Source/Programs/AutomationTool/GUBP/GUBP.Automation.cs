@@ -3142,7 +3142,7 @@ public class GUBP : BuildCommand
 		}
         public static string GetArchiveDirectory(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
-            string BaseDir = ResolveSharedBuildDirectory(InGameProj.GameName);
+            string BaseDir = TempStorage.ResolveSharedBuildDirectory(InGameProj.GameName);
             string NodeName = StaticGetFullName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
             string Inner = P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString;
             if (GUBP.bPreflightBuild)
@@ -3829,7 +3829,7 @@ public class GUBP : BuildCommand
                 var StartTime = DateTime.UtcNow;
                 foreach (var NodeToDo in bp.GUBPNodes)
                 {
-                    CleanSharedTempStorageDirectory(NodeToDo.Value.GameNameIfAnyForTempStorage());
+                    TempStorage.CleanSharedTempStorageDirectory(NodeToDo.Value.GameNameIfAnyForTempStorage());
                 }
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
                 Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
@@ -4136,14 +4136,14 @@ public class GUBP : BuildCommand
         bool Result;
         if (LocalOnly)
         {
-            Result = LocalTempStorageExists(CmdEnv, NodeStoreName, bQuiet : true);
+            Result = TempStorage.LocalTempStorageExists(CmdEnv, NodeStoreName, bQuiet : true);
         }
         else
         {
-            Result = TempStorageExists(CmdEnv, NodeStoreName, GameNameIfAny, bQuiet: true);
+            Result = TempStorage.TempStorageExists(CmdEnv, NodeStoreName, GameNameIfAny, bQuiet: true);
 			if(GameNameIfAny != "" && Result == false)
 			{
-				Result = TempStorageExists(CmdEnv, NodeStoreName, "", bQuiet: true);
+				Result = TempStorage.TempStorageExists(CmdEnv, NodeStoreName, "", bQuiet: true);
 			}
         }
         if (Result)
@@ -4582,7 +4582,7 @@ public class GUBP : BuildCommand
         string RecordOfSuccess = CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", NodeToDo + Suffix +".log");
         CreateDirectory(Path.GetDirectoryName(RecordOfSuccess));
         WriteAllText(RecordOfSuccess, Contents);		
-		StoreToTempStorage(CmdEnv, NodeStoreName + Suffix, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, GameNameIfAny);		
+		TempStorage.StoreToTempStorage(CmdEnv, NodeStoreName + Suffix, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, GameNameIfAny);		
     }
 	string GetPropertyFromStep(string PropertyPath)
 	{
@@ -4886,9 +4886,9 @@ public class GUBP : BuildCommand
             string NodeStoreWildCard = StoreName.Replace(CLString, "*") + "-" + GUBPNodes[Node].GetFullName();
             var History = new NodeHistory();
 
-            History.AllStarted = ConvertCLToIntList(FindTempStorageManifests(CmdEnv, NodeStoreWildCard + StartedTempStorageSuffix, false, true, GameNameIfAny));
-            History.AllSucceeded = ConvertCLToIntList(FindTempStorageManifests(CmdEnv, NodeStoreWildCard + SucceededTempStorageSuffix, false, true, GameNameIfAny));
-            History.AllFailed = ConvertCLToIntList(FindTempStorageManifests(CmdEnv, NodeStoreWildCard + FailedTempStorageSuffix, false, true, GameNameIfAny));
+            History.AllStarted = ConvertCLToIntList(TempStorage.FindTempStorageManifests(CmdEnv, NodeStoreWildCard + StartedTempStorageSuffix, false, true, GameNameIfAny));
+            History.AllSucceeded = ConvertCLToIntList(TempStorage.FindTempStorageManifests(CmdEnv, NodeStoreWildCard + SucceededTempStorageSuffix, false, true, GameNameIfAny));
+            History.AllFailed = ConvertCLToIntList(TempStorage.FindTempStorageManifests(CmdEnv, NodeStoreWildCard + FailedTempStorageSuffix, false, true, GameNameIfAny));
 
             if (History.AllFailed.Count > 0)
             {
@@ -5073,13 +5073,13 @@ public class GUBP : BuildCommand
                 break;
             }
             var ThisNodeStore = NodeStore.Replace(CLString, String.Format("{0}", CL));
-            DeleteLocalTempStorage(CmdEnv, ThisNodeStore, true); // these all clash locally, which is fine we just retrieve them from shared
+            TempStorage.DeleteLocalTempStorage(CmdEnv, ThisNodeStore, true); // these all clash locally, which is fine we just retrieve them from shared
 
             List<string> Files = null;
             try
             {
                 bool WasLocal;
-                Files = RetrieveFromTempStorage(CmdEnv, ThisNodeStore, out WasLocal, GameNameIfAny); // this will fail on our CL if we didn't fail or we are just setting up the branch
+                Files = TempStorage.RetrieveFromTempStorage(CmdEnv, ThisNodeStore, out WasLocal, GameNameIfAny); // this will fail on our CL if we didn't fail or we are just setting up the branch
             }
             catch (Exception)
             {
@@ -5335,13 +5335,13 @@ public class GUBP : BuildCommand
         } 
         if (bSaveSharedTempStorage)
         {
-            if (!HaveSharedTempStorage(true))
+            if (!TempStorage.HaveSharedTempStorage(true))
             {
-                throw new AutomationException("Request to save to temp storage, but {0} is unavailable.", UE4TempStorageDirectory());
+                throw new AutomationException("Request to save to temp storage, but {0} is unavailable.", TempStorage.UE4TempStorageDirectory());
             }
             bSignBuildProducts = true;
         }
-        else if (!LocalOnly && !HaveSharedTempStorage(false))
+        else if (!LocalOnly && !TempStorage.HaveSharedTempStorage(false))
         {
             LogWarning("Looks like we want to use shared temp storage, but since we don't have it, we won't use it.");
             LocalOnly = true;
@@ -6357,7 +6357,7 @@ public class GUBP : BuildCommand
 
         if (bCleanLocalTempStorage)  // shared temp storage can never be wiped
         {
-            DeleteLocalTempStorageManifests(CmdEnv);
+            TempStorage.DeleteLocalTempStorageManifests(CmdEnv);
         }
 
         GUBPNodesControllingTrigger = new Dictionary<string, string>();
@@ -7540,13 +7540,13 @@ public class GUBP : BuildCommand
                     bool WasLocal;
 					try
 					{
-						GUBPNodes[NodeToDo].BuildProducts = RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
+						GUBPNodes[NodeToDo].BuildProducts = TempStorage.RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
 					}
 					catch
 					{
 						if(GameNameIfAny != "")
 						{
-							GUBPNodes[NodeToDo].BuildProducts = RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, "", StorageRootIfAny);
+							GUBPNodes[NodeToDo].BuildProducts = TempStorage.RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, "", StorageRootIfAny);
 						}
 						else
 						{
@@ -7596,7 +7596,7 @@ public class GUBP : BuildCommand
 						var StoreDuration = 0.0;
 						var StartTime = DateTime.UtcNow;
                         var StartStore = DateTime.Now.ToString();
-                        StoreToTempStorage(CmdEnv, NodeStoreName, GUBPNodes[NodeToDo].BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
+                        TempStorage.StoreToTempStorage(CmdEnv, NodeStoreName, GUBPNodes[NodeToDo].BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
 						StoreDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
                         var FinishStore = DateTime.Now.ToString();                        
 						Log("Took {0} seconds to store build products", StoreDuration);
@@ -7613,7 +7613,7 @@ public class GUBP : BuildCommand
                                 {
                                     bool WasLocal;
                                     var StartRetrieve = DateTime.Now.ToString();
-									RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
+									TempStorage.RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
                                     var FinishRetrieve = DateTime.Now.ToString();
                                     if (IsBuildMachine)
                                     {

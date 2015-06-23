@@ -853,8 +853,8 @@ namespace Rocket
 
 			// Copy the files to their final location
 			CommandUtils.Log("Copying files to {0}", PublishDir);
-			CommandUtils.Robust_CopyFile(FullZipFileName, Path.Combine(PublishDir, Path.GetFileName(FullZipFileName)));
-			CommandUtils.Robust_CopyFile(EditorZipFileName, Path.Combine(PublishDir, Path.GetFileName(EditorZipFileName)));
+			TempStorage.Robust_CopyFile(FullZipFileName, Path.Combine(PublishDir, Path.GetFileName(FullZipFileName)));
+			TempStorage.Robust_CopyFile(EditorZipFileName, Path.Combine(PublishDir, Path.GetFileName(EditorZipFileName)));
 			CommandUtils.DeleteFile(FullZipFileName);
 			CommandUtils.DeleteFile(EditorZipFileName);
 
@@ -911,7 +911,7 @@ namespace Rocket
 					if(DebugExtensions.Contains(Extension) || Extension == ".exe" || Extension == ".dll") // Need all windows build products for crash reporter
 					{
 						string OutputFileName = CommandUtils.MakeRerootedFilePath(InputFileName, CommandUtils.CmdEnv.LocalRoot, SymbolsOutputDir);
-						CommandUtils.Robust_CopyFile(InputFileName, OutputFileName);
+						TempStorage.Robust_CopyFile(InputFileName, OutputFileName);
 					}
 				}
 			}
