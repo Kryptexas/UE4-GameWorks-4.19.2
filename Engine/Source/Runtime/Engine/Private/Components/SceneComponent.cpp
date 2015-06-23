@@ -797,7 +797,7 @@ void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool b
 {
 	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
 	const FVector NewWorldLocation = FTransform::AddTranslations(DeltaTransform, ComponentToWorld);
-	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)),false, nullptr, Teleport);
+	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)),bSweep, OutSweepHitResult, Teleport);
 }
 
 void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
