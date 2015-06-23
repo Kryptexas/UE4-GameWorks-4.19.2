@@ -136,6 +136,15 @@ namespace EEnvTestScoreOperator
 	};
 }
 
+namespace EEnvItemStatus
+{
+	enum Type
+	{
+		Passed,
+		Failed,
+	};
+}
+
 UENUM()
 namespace EEnvQueryStatus
 {
@@ -557,6 +566,92 @@ struct FEQSQueryDebugData
 	}
 };
 
+// BEGIN DEPRECATED SUPPORT
+
+USTRUCT()
+struct AIMODULE_API FEnvFloatParam_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY();
+
+	/** default value */
+	UPROPERTY(EditDefaultsOnly, Category = Param)
+	float Value;
+
+	/** name of parameter */
+	UPROPERTY(EditDefaultsOnly, Category = Param)
+	FName ParamName;
+
+	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider);
+};
+
+USTRUCT()
+struct AIMODULE_API FEnvIntParam_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY();
+
+	/** default value */
+	UPROPERTY(EditDefaultsOnly, Category = Param)
+	int32 Value;
+
+	/** name of parameter */
+	UPROPERTY(EditDefaultsOnly, Category = Param)
+	FName ParamName;
+
+	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider);
+};
+
+USTRUCT()
+struct AIMODULE_API FEnvBoolParam_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY();
+
+	/** default value */
+	UPROPERTY(EditDefaultsOnly, Category = Param)
+	bool Value;
+
+	/** name of parameter */
+	UPROPERTY(EditDefaultsOnly, Category = Param)
+	FName ParamName;
+
+	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider);
+};
+
+USTRUCT()
+struct DEPRECATED(4.8, "FEnvFloatParam is deprecated in 4.8 and was replaced with FAIDataProviderFloatValue. Please use that type instead.") AIMODULE_API FEnvFloatParam : public FEnvFloatParam_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY();
+};
+
+USTRUCT()
+struct DEPRECATED(4.8, "FEnvIntParam is deprecated in 4.8 and was replaced with FAIDataProviderIntValue. Please use that type instead.") AIMODULE_API FEnvIntParam : public FEnvIntParam_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY();
+};
+
+USTRUCT()
+struct DEPRECATED(4.8, "FEnvBoolParam is deprecated in 4.8 and was replaced with FAIDataProviderBoolValue. Please use that type instead.") AIMODULE_API FEnvBoolParam : public FEnvBoolParam_DEPRECATED
+{
+	GENERATED_USTRUCT_BODY();
+};
+
+// END DEPRECATED SUPPORT
+
+UCLASS(Abstract)
+class AIMODULE_API UEnvQueryTypes : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	/** special test value assigned to items skipped by condition check */
+	static float SkippedItemValue;
+
+	static FText GetShortTypeName(const UObject* Ob);
+	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
+};
+
 struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 {
 	typedef float FNamedParamValueType;
@@ -754,8 +849,16 @@ public:
 			Instance->CurrentTestStartingItem = CurrentItem;
 		}
 
+		/** Filter and score an item - used by tests working on float values
+		 *  (can be called multiple times for single item when processing contexts with multiple entries)
+		 */
 		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, float Score, float Min, float Max)
 		{
+			if (bForced)
+			{
+				return;
+			}
+
 			bool bPassedTest = true;
 
 			if (TestPurpose != EEnvTestPurpose::Score)	// May need to filter results!
@@ -798,8 +901,16 @@ public:
 			NumTestsForItem++;
 		}
 
+		/** Filter and score an item - used by tests working on bool values
+		 *  (can be called multiple times for single item when processing contexts with multiple entries)
+		 */
 		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, bool bScore, bool bExpected)
 		{
+			if (bForced)
+			{
+				return;
+			}
+
 			bool bPassedTest = true;
 			switch (FilterType)
 			{
@@ -843,16 +954,29 @@ public:
 			return Instance->RawData.GetData() + Instance->Items[CurrentItem].DataOffset;
 		}
 
+		/** Force state and score of item
+		 *  Any following SetScore calls for current item will be ignored
+		 */
+		void ForceItemState(EEnvItemStatus::Type Status, float Score = UEnvQueryTypes::SkippedItemValue)
+		{
+			bForced = true;
+			bPassed = (Status == EEnvItemStatus::Passed);
+			ItemScore = Score;
+		}
+
+		DEPRECATED(4.9, "This function is now deprecated, please use ForceItemState instead")
 		void DiscardItem()
 		{
-			bPassed = false;
+			ForceItemState(EEnvItemStatus::Failed);
 		}
 
+		DEPRECATED(4.9, "This function is now deprecated, please use ForceItemState instead")
 		void SkipItem()
 		{
-			bSkipped = true;
+			ForceItemState(EEnvItemStatus::Passed);
 		}
 
+		/** Disables time slicing for this iterator, use with caution! */
 		void IgnoreTimeLimit()
 		{
 			Deadline = -1.0f;
@@ -895,7 +1019,7 @@ public:
 		uint8 CachedFilterOp;
 		uint8 CachedScoreOp;
 		uint8 bPassed : 1;
-		uint8 bSkipped : 1;
+		uint8 bForced : 1;
 		uint8 bIsFiltering : 1;
 
 		void InitItemScore()
@@ -904,7 +1028,7 @@ public:
 			NumTestsForItem = 0;
 			ItemScore = 0.0f;
 			bPassed = true;
-			bSkipped = false;
+			bForced = false;
 		}
 
 		void HandleFailedTestResult();
@@ -942,17 +1066,20 @@ public:
 
 		FORCEINLINE void CheckItemPassed()
 		{
-			if (!bIsFiltering)
+			if (!bForced)
 			{
-				bPassed = true;
-			}
-			else if (CachedFilterOp == EEnvTestFilterOperator::AllPass)
-			{
-				bPassed = bPassed && (NumPassedForItem == NumTestsForItem);
-			}
-			else
-			{
-				bPassed = bPassed && (NumPassedForItem > 0);
+				if (!bIsFiltering)
+				{
+					bPassed = true;
+				}
+				else if (CachedFilterOp == EEnvTestFilterOperator::AllPass)
+				{
+					bPassed = bPassed && (NumPassedForItem == NumTestsForItem);
+				}
+				else
+				{
+					bPassed = bPassed && (NumPassedForItem > 0);
+				}
 			}
 		}
 	};
@@ -979,89 +1106,3 @@ namespace FEQSHelpers
 	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }
-
-// BEGIN DEPRECATED SUPPORT
-
-USTRUCT()
-struct AIMODULE_API FEnvFloatParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-
-	/** default value */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	float Value;
-
-	/** name of parameter */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	FName ParamName;
-
-	bool IsNamedParam() const { return ParamName != NAME_None; }
-	void Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider);
-};
-
-USTRUCT()
-struct AIMODULE_API FEnvIntParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-
-	/** default value */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	int32 Value;
-
-	/** name of parameter */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	FName ParamName;
-
-	bool IsNamedParam() const { return ParamName != NAME_None; }
-	void Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider);
-};
-
-USTRUCT()
-struct AIMODULE_API FEnvBoolParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-
-	/** default value */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	bool Value;
-
-	/** name of parameter */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	FName ParamName;
-
-	bool IsNamedParam() const { return ParamName != NAME_None; }
-	void Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider);
-};
-
-USTRUCT()
-struct DEPRECATED(4.8, "FEnvFloatParam is deprecated in 4.8 and was replaced with FAIDataProviderFloatValue. Please use that type instead.") AIMODULE_API FEnvFloatParam : public FEnvFloatParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-};
-
-USTRUCT()
-struct DEPRECATED(4.8, "FEnvIntParam is deprecated in 4.8 and was replaced with FAIDataProviderIntValue. Please use that type instead.") AIMODULE_API FEnvIntParam : public FEnvIntParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-};
-
-USTRUCT()
-struct DEPRECATED(4.8, "FEnvBoolParam is deprecated in 4.8 and was replaced with FAIDataProviderBoolValue. Please use that type instead.") AIMODULE_API FEnvBoolParam : public FEnvBoolParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-};
-
-// END DEPRECATED SUPPORT
-
-UCLASS(Abstract)
-class AIMODULE_API UEnvQueryTypes : public UObject
-{
-	GENERATED_BODY()
-
-public:
-	/** special test value assigned to items skipped by condition check */
-	static float SkippedItemValue;
-
-	static FText GetShortTypeName(const UObject* Ob);
-	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
-};

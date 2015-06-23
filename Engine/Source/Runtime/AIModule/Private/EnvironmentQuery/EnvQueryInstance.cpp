@@ -418,12 +418,11 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 	if (Instance->IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
-		if (bPassed || bSkipped) // It's perfectly fine to pick the result item from things that skip the final test!
-		{						 // It's also consistent with any previous test-filters, where 'skip' was equivalent to
-								 // bPassed (i.e. !Failed)
-			if (bSkipped)
-			{	// Store "Skipped Item Value" so the debug data will correctly read "SKIP"
-				ItemScore = UEnvQueryTypes::SkippedItemValue;
+		if (bPassed)
+		{
+			if (bForced)
+			{
+				// store item value in case it's using special "skipped" constant
 				Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;
 			}
 
@@ -437,15 +436,11 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 	}
 	else
 	{
-		if (bSkipped)
-		{
-			ItemScore = UEnvQueryTypes::SkippedItemValue;
-		}
-		else if (!bPassed)
+		if (!bPassed)
 		{
 			HandleFailedTestResult();
 		}
-		else if (CachedScoreOp == EEnvTestScoreOperator::AverageScore)
+		else if (CachedScoreOp == EEnvTestScoreOperator::AverageScore && !bForced)
 		{
 			ItemScore /= NumPassedForItem;
 		}
