@@ -2979,15 +2979,11 @@ UGeomModifier_Optimize::UGeomModifier_Optimize(const FObjectInitializer& ObjectI
 	bPushButton = true;
 }
 
-bool UGeomModifier_Optimize::Supports()
-{
-	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-	return !mode->HaveVerticesSelected() && !mode->HaveEdgesSelected();
-}
-
-
 bool UGeomModifier_Optimize::OnApply()
 {
+	// First triangulate before performing optimize
+	Super::OnApply();
+
 	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	TArray<FPoly> Polygons;
