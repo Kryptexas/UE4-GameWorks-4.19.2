@@ -1,8 +1,7 @@
 Availability: Public
-Title:1. How to Add Content to UE4 Projects
+Title:1. Creating Folders
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Learn how to import content using multiple methods.
-
+Description:Learn how to create folders in the Content Browser.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,6 +25,36 @@ At this point, you should have created a new UE4 **Project** (pictured below).
 
 ![](NewUE4Project.png)
 
+It's always good practice to keep your project's content organized. The first thing you're going to learn is how to create a folder that will store your imported content.
+
+[REGION:note]
+**Before you get started:** Download Quick Start Assets from the following link.
+* [__Sample Assets__](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+[/REGION]
+
+1.	Extract the downloaded assets to a location on your computer (pictured below).
+
+	![](Engine\Content\QuickStart\2\ExtractedContent.png)
+
+1.	From the **Content Browser** in the Editor, click the **Add New** button (pictured below).
+
+	![](Engine\Content\QuickStart\2\AddNewButton.png)
+
+1.	Select **New Folder** to create a new folder in **'/Game'** (pictured below).
+
+	![](Engine\Content\QuickStart\2\NewFolderSelection.png)
+
+1.	Name the folder **'QuickStartContent'** (pictured below).
+
+	![](Engine\Content\QuickStart\2\QuickStartContentFolder.png)
+
+1.	Double-click the **'QuickStartContent'** folder.
+
+[REGION:tip]
+*Naming conventions matter! Be consistent when naming files.*
+[/REGION]
+<!-- The commented out Markdown Text (below) is from the second iteration -->
+<!--
 There are a few ways to add content to your UE4 project:
 
 >* [Using the Content Browser's **Import** function.](#Bookmark1)
@@ -117,7 +146,8 @@ At this point, you've learned how to add content using three methods.
 [REGION:tip]
 *Naming conventions matter! Be consistent when naming files.*
 [/REGION]
-
+-->
+<!-- The commented out Markdown Text (below) is from the first iteration -->
 <!--
 If you have assets to import, you can jump to the [Mesh Preparation](#meshpreparation) section below. 
 

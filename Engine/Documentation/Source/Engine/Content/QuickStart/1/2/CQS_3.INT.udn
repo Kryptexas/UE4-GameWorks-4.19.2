@@ -1,7 +1,7 @@
 Availability: Public
-Title:2. Preparing Meshes for Import
+Title:2. Importing Meshes
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Learn how to prepare your meshes for import in Maya and/or 3DS Max.
+Description:Learn how to import meshes into your Unreal Engine 4 project.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,6 +21,39 @@ Description:Learn how to prepare your meshes for import in Maya and/or 3DS Max.
 
 %Steps%
 
+There are a few ways to add content to your UE4 project; however, we'll focus on the Content Browser's **Import** functionality.
+
+1.	Now that you're inside the **'QuickStartContent'** folder, click the Content Browser's **Import** button to open a file dialog box (pictured below).
+
+	![](ContentBrowserImportButton.png)
+
+1.	Locate and Select the **Basic_Asset1** and **Basic_Asset2** FBX mesh files (pictured below).
+
+	![](ImportMeshDialogBox.png)
+
+1.	Click **Open** to begin importing the FBX mesh files to your project (pictured above).
+
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. Clicking **Import** or **Import All** will add your mesh to the Project.
+
+	![](FBXImportOptionsDialogBox.png)
+
+1.	Click the **Save All** button to save your imported meshes.
+
+	![](SaveAllMeshesButton.png)
+
+1.	A **Save Content** dialog box appears (pictured below). Click **Save Selected** to save your imported assets.
+
+	![](SaveSelectedDialogBox.png)
+
+1.	Navigating to the **'QuickStartContent'** folder, verify that UE4 created the corresponding ** *.uasset files ** (pictured below).
+
+	![](QuickStartContentFolder.png)
+
+[REGION:tip]
+*The Marketplace (accessible from the 'Epic Launcher') is a great place to find and share content.*
+[/REGION]
+
+<!--
 [REGION:note]
 **If you have your own meshes to import, this section is for you.**
 [/REGION]
@@ -66,7 +99,7 @@ Well done! You've learned how to prepare meshes for import into UE4.
 [REGION:tip]
 *Clean modeling improves a game's performance.*
 [/REGION]
-
+-->
 <!--
 
 Image files imported into Unreal Engine 4 (UE4) are primarily used in [Materials](Engine/Rendering/Materials), but can also be used in the Landscape Editor and various paint tools as height maps or paint brush masks. In some cases, they can be applied directly to the HUD. Some formats have very specific uses, for example, the file types of .hdr and some formats of .dds are used for **Cubemaps** while .raw files can be imported as a height map into the Landscape Editor.

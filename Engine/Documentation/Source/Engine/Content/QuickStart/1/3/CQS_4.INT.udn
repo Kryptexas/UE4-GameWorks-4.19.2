@@ -1,7 +1,7 @@
 Availability: Public
-Title:3. Importing Meshes
+Title:3. Importing Textures
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Learn how to import meshes into your Unreal Engine 4 project.
+Description:Learn how to import images into your Unreal Engine 4 project.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,6 +20,40 @@ Description:Learn how to import meshes into your Unreal Engine 4 project.
 [/VAR]
 
 %Steps%
+
+1.	Navigating to the **'QuickStartContent'** folder in the Editor, click on the Content Browser's **Import** button to open a file dialog box (pictured below).
+
+	![](ContentBrowserImportButton.png)
+
+1.	Locate and Select the **T_Rock_04_D** and **T_Rock_04_n** Targa (TGA) image files (pictured below).
+
+	![](ImportTextureDialogBox.png)
+
+1.	Click **Open** to begin importing the TGA image files to your project (pictured above).
+
+1.	A confirmation box appears in the lower right corner of the Editor (pictured below).
+
+	![](TextureNormalConfirmation.png)
+
+1.	Click **OK** to accept the **T_Rock_04_n.TGA** normal map's settings (pictured above).
+
+1.	Click the **Save All** button to save your imported images.
+
+	![](SaveAllTextures.png)
+
+1.	A **Save Content** dialog box appears (pictured below). Click **Save Selected** to save your imported assets.
+
+	![](SaveSelectedDialogBox.png)
+
+1.	Navigating to the **'QuickStartContent'** folder, verify that UE4 created the corresponding ** *.uasset files ** (pictured below).
+
+	![](QuickStartContentFolder.png)
+
+[REGION:tip]
+*The Marketplace (accessible from the 'Epic Launcher') is a great place to find and share content.*
+[/REGION]
+
+<!--
 
 [REGION:note]
 **If you don't have meshes to import, we've got you covered.**
@@ -49,7 +83,7 @@ Now that you've added meshes to your level, you're ready to add another importan
 [REGION:tip]
 *The Marketplace (accessible from the 'Epic Launcher') is a great place to find and share content.*
 [/REGION]
-
+-->
 <!--
 
 On this page, we will take the **Material** created in the previous step and apply it to the Static Mesh we imported. 

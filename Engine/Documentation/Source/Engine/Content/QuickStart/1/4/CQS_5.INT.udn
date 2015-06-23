@@ -1,7 +1,7 @@
 Availability: Public
-Title:4. Importing Textures
+Title:4. Preparing Meshes for Import
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Learn how to import textures into your Unreal Engine 4 project.
+Description:Learn how to prepare meshes for your Unreal Engine 4 project.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,10 +22,58 @@ Description:Learn how to import textures into your Unreal Engine 4 project.
 %Steps%
 
 [REGION:note]
+**If you have your own meshes to import, this section is for you.**
+[/REGION]
+
+## Mesh Preparation
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+Well done! You've learned how to prepare meshes for import into UE4.
+
+&#x2713; [_Click here if you want to learn more about the FBX content pipeline._](Engine/Content/FBX "FBX Content Pipeline Documentation").
+
+[REGION:tip]
+*Clean modeling improves a game's performance.*
+[/REGION]
+
+<!--
+[REGION:note]
 **If you don't have images to import, we've got you covered.**
 [/REGION]
 
 1. Download sample assets from the following link:
+
 * [__Sample Assets__](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
 
 1. Extract the downloaded assets to a location on your computer.
@@ -55,7 +103,7 @@ You've learned how to:
 [REGION:tip]
 *Organize your assets so that you can easily find them.*
 [/REGION]
-
+-->
 <!--
 
 There are two methods for manually importing content into Unreal Engine 4:

@@ -25,30 +25,47 @@ Description:Now that you've set-up your project, learn how to create materials.
 
 Materials are assets applied to meshes, contributing to a scene's visual aesthetic.
 
-Materials are created with two common methods:
+There are a few ways to create and edit materials for your UE4 project; however, we'll focus on using the **Material Editor**.
 
-* Relying on **existing textures** to create materials.
-* Using the **Material Editor**.
+## Creating a New 'Rock' Material
 
-## Creating Materials with Textures
+1.	Navigating to your **Content Browser**, click **Add New**, and select **Material** (pictured below).
 
-1.	Navigate to your **Content Browser** where your sample assets are located. **Right-click** on **T_Rock_04_D** and choose **Create Material** from the **Texture Actions** menu (pictured below).
-
-	![](createMaterial.jpg)
+	![](newCreateMaterial.png)
 	
-1.	Enter a name for your newly created **Material**.
+1.	Name your material **'Rock'**.
 
 	![](materialNaming.jpg)
 
-1.	Your **Material** is now ready to be used.
+1.	Your **'Rock' Material** is now ready to be used.
 
-	![](MaterialCreated.jpg)
+	![](NewRockMaterial.png)
 
 1.	**Double-clicking** the Material will open the [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") (pictured below).
 
-	![](MaterialEditor.jpg)
+	[REGION:lightbox]
+		[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
+	[/REGION]
+ 
+	Read our [__Material - How To__](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with Material Nodes.
 
-	Our example uses a single Texture Sample node pointing to our **T_Rock_04_D** texture. Read our [__Material - How To__](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with Material Nodes.
+&#x2713; [_Click here if you want to learn more about the Material Editor._](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%")
+
+[REGION:tip]
+*Size your textures using powers of two.*
+[/REGION]
+
+<!--
+
+Now using what you know, create a new **Material** similar to this graph:
+
+![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+
+There is nothing fancy set on the Main Material node, this is just a simple plastic Material. 
+
+Add the _Basic_Asset1_ to the level and apply the Material to it and update the Material to add a "Brick" Normal Map Texture. 
+
+![](NormalMapAdded.png)
 
 ## Creating New Material with the Material Editor
 
@@ -74,26 +91,6 @@ You've just created new materials for your project using two methods:
 
 * Using **existing textures** to create new materials.
 * Working in the **Material Editor** to create new materials.
-
-&#x2713; [_Click here if you want to learn more about the Material Editor._](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%")
-
-[REGION:tip]
-*Size your textures using powers of two.*
-[/REGION]
-
-<!--
-
-Now using what you know, create a new **Material** similar to this graph:
-
-![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
-
-There is nothing fancy set on the Main Material node, this is just a simple plastic Material. 
-
-Add the _Basic_Asset1_ to the level and apply the Material to it and update the Material to add a "Brick" Normal Map Texture. 
-
-![](NormalMapAdded.png)
-
-
 
 
 For more information on the topics covered in this quick start guide, and across the entire editor, see the [Unreal Editor Manual](Engine).

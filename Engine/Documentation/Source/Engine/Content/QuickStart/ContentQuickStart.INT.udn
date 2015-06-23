@@ -44,11 +44,11 @@ Version: 4.8
 ![](MaterialsHeader_1.png)
 
 
-## Goal
+## Goals
 
-Content creators can easily add assets to their games with Unreal Engine 4 (UE4). By the end of this quick start guide, content creators will know how to use the **Project Browser** to create new projects; navigate the **Content Browser** to find and add content; know where to find information on the **FBX Content Pipeline**; and use the **Material Editor** to modify **Materials** before applying them to a **Static Mesh Actor**.
+The purpose of this tutorial is to demonstrate how content creators can easily add assets to games with Unreal Engine 4 (UE4). By the end of this quick start guide, content creators will know how to use the **Project Browser** to create new projects; navigate the **Content Browser** to find and add content; know where to find information on the **FBX Content Pipeline**; and use the **Material Editor** to modify **Materials** before applying them to a **Static Mesh Actor**.
 
-## Objective
+## Objectives
 
 By the end of this quick start guide, you'll be able to:
 

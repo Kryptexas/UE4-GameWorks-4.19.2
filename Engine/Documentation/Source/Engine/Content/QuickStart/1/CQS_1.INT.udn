@@ -27,13 +27,17 @@ This is what you'll see when you launch UE4 (pictured below).
 
 Setting up your project is easy!
 
->1. Click the **New Project** tab from the Unreal Project Browser. 
->2. Click the **Blueprint** tab and select **Blank**.
->3. Select a location for your project to be stored: ![](ProjectLocation.png).
->4. Name your project: ![](ProjectName.png).
->5. Click on the **Create Project** button: ![](CreateProjectButton.png).
+1.	Click the **New Project** tab from the Unreal Project Browser. 
+1.	Click the **Blueprint** tab and select **Blank**.
+1.	Select the following **settings**:
+	* **Desktop / Console**
+	* **Maximum Quality**
+	* **With Starter Content**
+1.	Select a location for your project to be stored: ![](ProjectLocation.png).
+1.	Name your project: ![](ProjectName.png).
+1.	Click on the **Create Project** button: ![](CreateProjectButton.png).
 
-From now on, UE4 will save all of your content as a **Project** on the disk. As you complete this tutorial, UE4 will organize all of your meshes and textures for you.
+From now on, UE4 will save all of your content as a **Project** on the disk. As you complete this tutorial, UE4 organizes your meshes and textures.
 
 ![](ContentBrowserWSC.png)
 
@@ -41,11 +45,9 @@ The **Content Browser** (pictured above) is a great way to navigate through your
 
 You can also find content by navigating through the **Project** folder located on the hard drive (pictured below).
 
-![](ProjectHierarchy.jpg)
+![](newProjectHierarchy.png)
 
 By now, you should be comfortable creating projects and browsing through content in UE4.
-
-&#x2713; [_Click here if you want a refresher on the Project Browser._](Engine/Basics/Projects/Browser "%Engine/Basics/Projects/Browser:description%")
 
 [REGION:tip]
 *UE4 automatically imports content added to a Project's directory.*

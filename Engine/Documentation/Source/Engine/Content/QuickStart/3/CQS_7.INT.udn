@@ -21,13 +21,19 @@ Description:Learn how to edit materials in this section.
 
 %Steps%
 
-You can define a Material's color, shininess, transparency, and much more in the [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%").
+At this point, you should have **created a new material** and opened the **Material Editor** (pictured below).
 
-Using the two textures you imported in the [__Creating Materials Section__](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%"), it's time to edit the **Rock Material** you created.
+[REGION:lightbox]
+	[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
+[/REGION]
 
-1.	**Select** the Main Material Node in the center of the Material Graph. The Material Editor will highlight the node for you when you select it (pictured below).
+You can define a **Material's** color, shininess, transparency, and much more in the [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%"). You're now ready to edit the **'Rock' Material** you created.
 
-	![](mainNode.jpg)
+## Editing your 'Rock' Material
+
+1.	**Select** the **Main Material Node** in the center of the **Material Graph**. The **Material Editor** will highlight the node for you when you select it (pictured below).
+
+	![](newMainNode.png)
 
 	_It is the only node in the Graph area, named according to your Material._
 
@@ -35,47 +41,49 @@ Using the two textures you imported in the [__Creating Materials Section__](Engi
 	
 	![](subsurfaceEnable.jpg)
 
-1.	Selecting the **Subsurface Shading Model** enables two more pins in the Main Material Node: **Opacity** and **Subsurface Color** (pictured below).
+1.	The **Subsurface Shading Model** enables two more pins in the **Main Material Node**: **Opacity** and **Subsurface Color** (pictured below).
 	
-	![](morePins.jpg)
+	![](newMorePins.png)
 
-1.	Now's the time to get your textures into the Graph. Hold the **'T'** key and **Left-click** inside the Editor's Graph area. A **Texture Sample** node should appear inside the graph.
+1.	Now is the time to get your textures into the Graph. Hold the **'T'** key and **Left-click** inside the Editor's Graph area. A **Texture Sample** node should appear inside the graph.
 	
 	![](TextureSample.png)
 
 1.	You'll want at least 2 textures. Repeat Step 4 until your graph looks like the image below.
 	
-	![](textureSampleNodes.jpg)
+	![](newTextureSampleNodes.png)
 
 1.	Select one of the **Texture Sample Nodes** and locate the **Details Panel** under the **Material Expression Texture Base** category (pictured below). 
 	
 	![](textureNone.jpg)
 
-	Under the texture property, **Left-click** the pull down menu labeled "None" and select the color texture named **T_Rock_04_D**.
+	Under the texture property, **Left-click** the pull down menu labeled **'None'** and select the color texture named **T_Rock_04_D**.
 
-	_You can use the search field to locate the texture asset by entering **T_Rock_04_D** in the search field._
+	[REGION:note]
+		_You can use the search field to locate the texture asset by entering **'T_Rock_04_D'** in the search field._
+	[/REGION]
 
 1.	Repeat Step 6 for the other **Texture Sample Node**, making sure to select the normal map texture named **T_Rock_04_n**.
 	
-	![](bothTexturesSelected.jpg)
+	![](newBothTexturesSelected.png)
 
 	_The Material Graph should resemble the image pictured above._
 
 1.	Connect the **T_Rock_04_D** Texture Sample's **Color pin (white)** to the Rock Material's **Base Color pin**.
 	
-	![](connectColorPin.jpg)
+	![](newConnectColorPin.png)
 
 	_The newly connected white pin (pictured above) contains the Texture's color channels._
 
 1.	Connect the **T_Rock_04_n** Texture Sample's **Normal pin (white)** to the Rock Material's **Normal pin**.
 	
-	![](connectNormalPin.jpg)
+	![](newConnectNormalPin.png)
 
 	_The newly connected **white pin** (pictured above) contains information for the texture's **Normal Map**_.
 
 1.	The **Preview** should look similar to the image pictured below.
 	
-	![](preview_DN.jpg)
+	![](newPreview_DN.png)
 
 1.	Hold the **'1'** key and **Left-click** in the Graph Panel to create three (**3**) **Constant** nodes.
 	
@@ -88,35 +96,36 @@ Using the two textures you imported in the [__Creating Materials Section__](Engi
 	![](Constant3.jpg)
 
 	_The **Constant3Vector** node (pictured above) is a modifiable vector corresponding to color without an alpha channel._
-
-	Read our [__Constant Expression__](Engine/Rendering/Materials/ExpressionReference/Constant "%Engine/Rendering/Materials/ExpressionReference/Constant:description%") documentation if you want to learn more about working with **Constant Expressions**.
+	[REGION:note]
+		Read our [__Constant Expression__](Engine/Rendering/Materials/ExpressionReference/Constant "%Engine/Rendering/Materials/ExpressionReference/Constant:description%") documentation if you want to learn more about working with **Constant Expressions**.
+	[/REGION]
 
 1.	Your nodes should be arranged so that connections can be easily made without wires crossing or sliding beneath each other (pictured below).
 	
-	![](MatConstantsAdded.jpg)
+	![](newMatConstantsAdded.png)
 
-1.	Connect all of the **Constant** nodes and the **Constant3Vector** to corresponding pins in the **Rock Material** node (pictured below).
+1.	Connect all of the **Constant** and **Constant3Vector** nodes to corresponding pins in the **'Rock' Material Main Node** (pictured below).
 	
-	![](allNodesConnectedNoVal.jpg)
+	![](newAllNodesConnectedNoVal.png)
 
 1.	Change the values of each **Constant** and **Constant3Vector** by updating their **Value** parameter in the **Details** panel.
 	
-	* Metallic/Specular Value = 0.0
+	* Specular Value = 0.0
 	* Roughness Value = 0.8
 	* Opacity Value = 0.95
 	* Subsurface Color = Red(1,0,0)
 	
-	![](allConnectedAllAdjusted.jpg)
+	![](newAllConnectedAllAdjusted.png)
 
 1.	The Preview should look similar to the image pictured below.
 	
-	![](preview_All.jpg)
+	![](newPreviewAll.png)
 
-1.	Make sure to **Save** your material **before exiting** the Material Editor.
+	[REGION:warning]
+		Make sure to **Save** your material **before exiting** the Material Editor.
+	[/REGION]
 
-You're almost done! You've just used the **Material Editor** to create a custom Rock Material.
-
-&#x2713; [_Click here if you want to learn more about Constants in UE4._](Engine/Rendering/Materials/ExpressionReference/Constant "%Engine/Rendering/Materials/ExpressionReference/Constant:description%")
+You're almost done! You've just used the **Material Editor** to edit your **'Rock' Material**.
 
 [REGION:tip]
 *A list of all Material Editor Keyboard Shortcuts can be found by going to __Edit Menu->Editor Preferences->Keyboard Shortcuts->"Material Editor" and "Material Editor-Spawn Nodes"__ categories.*
