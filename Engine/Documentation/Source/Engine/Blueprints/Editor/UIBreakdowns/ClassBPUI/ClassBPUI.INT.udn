@@ -23,9 +23,6 @@ Description:A breakdown of the UI elements of the Blueprint Editor when working 
 [/OBJECT]
 [/VAR]
 
-
-## Overview
-
 ![](ClassBlueprint.png)
 
 The **Blueprint Class** editor contains several tabs by default:
