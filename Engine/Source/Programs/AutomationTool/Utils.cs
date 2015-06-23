@@ -704,9 +704,7 @@ namespace AutomationTool
 			{
 				if (!bCreatedMutex)
 				{
-					Log.WriteLine(TraceEventType.Warning, "Another instance of {0} is already running. Waiting until it exists.", ExecutingAssemblyLocation);
-					// If this instance didn't create the mutex, wait for the existing mutex to be released by the mutex's creator.
-					SingleInstanceMutex.WaitOne();
+                    throw new AutomationException("Another instance of {0} is already running.", ExecutingAssemblyLocation);
 				}
 				else
 				{
