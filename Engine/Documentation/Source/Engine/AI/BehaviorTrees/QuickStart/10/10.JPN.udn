@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2590930
+Availability:Public
 Title:10.ビヘイビアツリーの基本
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 10ビヘイビアツリーの基本
@@ -53,3 +54,8 @@ Selector ノードと Sequence ノードはその下に多数の子供が付い�
 
 
 %Steps%
+
+
+
+
+
