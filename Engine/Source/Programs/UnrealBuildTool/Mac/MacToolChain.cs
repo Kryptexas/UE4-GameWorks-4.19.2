@@ -107,7 +107,6 @@ namespace UnrealBuildTool
 
 			if (MacOSSDKVersionFloat < 10.9f && MacOSSDKVersionFloat >= 10.11f)
 			{
-				Log.TraceInformationOnce("Got into 10.11 land");
 				Result += " -Wno-inconsistent-missing-override"; // too many missing overrides...
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
