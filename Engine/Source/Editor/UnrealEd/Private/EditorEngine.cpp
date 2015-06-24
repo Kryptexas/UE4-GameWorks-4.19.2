@@ -3702,9 +3702,7 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
 		}
 
-		OriginalOwningWorld = World->PersistentLevel->OwningWorld;
-		World->PersistentLevel->OwningWorld = World;
-
+		
 		// If we didn't find any physics scene we will synthesize one and remove it after save
 		if (!bHasPhysicsScene)
 		{
@@ -3730,6 +3728,9 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 		}
 
 		OnPreSaveWorld(SaveFlags, World);
+
+		OriginalOwningWorld = World->PersistentLevel->OwningWorld;
+		World->PersistentLevel->OwningWorld = World;
 	}
 
 	// See if the package is a valid candidate for being auto-added to the default changelist.
@@ -3770,12 +3771,12 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 
 	if ( World )
 	{
-		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, bSuccess);
-
 		if (OriginalOwningWorld)
 		{
 			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
 		}
+
+		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, bSuccess);
 
 		if (bInitializedPhysicsSceneForSave)
 		{
