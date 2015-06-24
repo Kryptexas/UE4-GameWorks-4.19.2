@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -21,7 +21,7 @@ Description:Top Down Template を使用して新規プロジェクトを作成�
 
 %Steps%
 
-このクイックスタートでは、プロジェクト内にあるものについて考えます。そのため、すぐに実証や問題解決がやりずらい場合は、プロジェクトを以下のように設定します。
+このクイックスタートでは、プロジェクト内にあるものについて考えます。そのため、即座に実証や問題解決がやりずらい場合は、プロジェクトを以下のように設定します。
 
 [REGION:note]
 既に [ビヘイビアツリーのクイックスタート](Engine/AI/BehaviorTrees/QuickStart) を完了している場合は、新しいプロジェクトを開始する代わりに、そのプロジェクトをご利用いただけます。
