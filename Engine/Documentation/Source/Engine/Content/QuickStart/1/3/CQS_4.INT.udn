@@ -21,7 +21,7 @@ Description:Learn how to import images into your Unreal Engine 4 project.
 
 %Steps%
 
-1.	Navigating to the **'QuickStartContent'** folder in the Editor, click on the Content Browser's **Import** button to open a file dialog box (pictured below).
+1.	Navigating to the **'QuickStartContent'** folder in the Editor, click the Content Browser's **Import** button to open a file dialog box (pictured below).
 
 	![](ContentBrowserImportButton.png)
 

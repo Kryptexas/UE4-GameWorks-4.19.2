@@ -56,7 +56,7 @@ This section will show you how to set a **Static Mesh Actor's** default material
 
 1.	Clicking the **Save** button first, close the **Material Editor**.
 
-1.	From the **Content Browser**, **drag-and-drop** the newly textured Static Mesh Actor into your level.
+1.	From the **Content Browser**, **drag-and-drop** the newly textured **Static Mesh Actor** into your level.
 
 	![](newMaterialInLevel.png)
 
@@ -98,13 +98,7 @@ We've now reached the end of the Artist Quick Start Guide. By now, you should ha
 &#x2713; [**Edit Materials**](Engine/Content/QuickStart/3)  
 &#x2713; [**Apply Materials to a Static Mesh Actor**](Engine/Content/QuickStart/4)
 
-Awesome work!
-
-* _Are you ready to do some exercises on your own?_
-
-[REGION:tip]
-*The 'Rule of Thirds' typically improves scene composition.*
-[/REGION]
+Are you ready to do some exercises on your own?
 
 %Steps%
 

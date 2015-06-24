@@ -85,13 +85,13 @@ You can define a **Material's** color, shininess, transparency, and much more in
 	
 	![](newPreview_DN.png)
 
-1.	Hold the **'1'** key and **Left-click** in the Graph Panel to create three (**3**) **Constant** nodes.
+1.	Hold the **'1'** key and **left-click** in the Graph Panel to create three (**3**) **Constant** nodes.
 	
 	![](Constants.jpg)
 
 	_The **Constant** node (pictured above) is a modifiable scalar float variable._
 
-1.	Hold the **'3'** key and **Left-click** in the Graph Panel to create one (**1**) **Constant3Vector**.
+1.	Hold the **'3'** key and **left-click** in the Graph Panel to create one (**1**) **Constant3Vector**.
 	
 	![](Constant3.jpg)
 

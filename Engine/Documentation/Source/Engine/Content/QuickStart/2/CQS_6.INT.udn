@@ -29,7 +29,7 @@ There are a few ways to create and edit materials for your UE4 project; however,
 
 ## Creating a New 'Rock' Material
 
-1.	Navigating to your **Content Browser**, click **Add New**, and select **Material** (pictured below).
+1.	Navigating to your **Content Browser**, click **Add New** and select **Material** (pictured below).
 
 	![](newCreateMaterial.png)
 	
@@ -48,8 +48,6 @@ There are a few ways to create and edit materials for your UE4 project; however,
 	[/REGION]
  
 	Read our [__Material - How To__](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with Material Nodes.
-
-&#x2713; [_Click here if you want to learn more about the Material Editor._](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%")
 
 [REGION:tip]
 *Size your textures using powers of two.*
