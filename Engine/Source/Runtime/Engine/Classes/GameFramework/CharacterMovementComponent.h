@@ -197,10 +197,11 @@ public:
 	FQuat OldBaseQuat;
 
 	/**
-	 * Coefficient of friction.
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero).
 	 * This property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
 	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
-	 * @see BrakingDecelerationWalking
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float GroundFriction;
@@ -228,6 +229,14 @@ public:
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxAcceleration;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed).
+	 * Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFriction;
 
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
@@ -278,7 +287,11 @@ public:
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float AirControlBoostVelocityThreshold;
 
-	/** Friction to apply to lateral air movement when falling. */
+	/**
+	 * Friction to apply to lateral air movement when falling.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero).
+	 * @see BrakingFriction, bUseSeparateBrakingFriction
+	 */
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float FallingLateralFriction;
 
@@ -319,6 +332,14 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
 	uint32 bOrientRotationToMovement:1;
+
+	/**
+	 * If true, BrakingFriction will be used to slow the character to a stop (when there is no Acceleration).
+	 * If false, braking uses the same friction passed to CalcVelocity() (ie GroundFriction when walking), multiplied by 2.
+	 * @see BrakingFriction
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, BlueprintReadWrite)
+	uint32 bUseSeparateBrakingFriction : 1;
 
 protected:
 

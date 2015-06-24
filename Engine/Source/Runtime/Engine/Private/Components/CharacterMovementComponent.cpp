@@ -241,6 +241,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 
 	bUseControllerDesiredRotation = false;
 
+	bUseSeparateBrakingFriction = false; // Old default behavior.
+
 	bMaintainHorizontalGroundVelocity = true;
 	bImpartBaseVelocityX = true;
 	bImpartBaseVelocityY = true;
@@ -2335,7 +2337,9 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	if ((bZeroAcceleration && bZeroRequestedAcceleration) || bVelocityOverMax)
 	{
 		const FVector OldVelocity = Velocity;
-		ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
+
+		const float ActualBrakingFriction = (bUseSeparateBrakingFriction ? BrakingFriction : Friction);
+		ApplyVelocityBraking(DeltaTime, ActualBrakingFriction, BrakingDeceleration);
 	
 		// Don't allow braking to lower us below max speed if we started above it.
 		if (bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed) && FVector::DotProduct(Acceleration, OldVelocity) > 0.0f)
@@ -2734,6 +2738,9 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 	float RemainingTime = DeltaTime;
 	const float MaxTimeStep = (1.0f / 33.0f);
 
+	// Old (legacy) friction doubled the affect of "Friction" here.
+	const float FrictionFactor = (bUseSeparateBrakingFriction ? 1.0f : 2.0f);
+
 	// Decelerate to brake to a stop
 	const FVector RevAccel = (bZeroBraking ? FVector::ZeroVector : (-BrakingDeceleration * Velocity.GetSafeNormal()));
 	while( RemainingTime >= MIN_TICK_TIME )
@@ -2743,7 +2750,7 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 		RemainingTime -= dt;
 
 		// apply friction and braking
-		Velocity = Velocity + ((-2.f * Friction) * Velocity + RevAccel) * dt ; 
+		Velocity = Velocity + ((-FrictionFactor * Friction) * Velocity + RevAccel) * dt ; 
 		
 		// Don't reverse direction
 		if ((Velocity | OldVel) <= 0.f)
