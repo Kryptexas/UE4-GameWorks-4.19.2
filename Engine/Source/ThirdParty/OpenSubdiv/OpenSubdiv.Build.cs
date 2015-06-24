@@ -9,7 +9,7 @@ public class OpenSubdiv : ModuleRules
 		Type = ModuleType.External;
 
 		// Compile and link with kissFFT
-		string OpenSubdivPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenSubdiv/3.0.0-Alpha";
+		string OpenSubdivPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenSubdiv/3.0.0";
 
 		PublicIncludePaths.Add( OpenSubdivPath + "/opensubdiv" );
 
