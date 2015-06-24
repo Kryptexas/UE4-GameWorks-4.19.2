@@ -85,7 +85,8 @@ bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Compon
 		{
 			bMatches = true;
 		}
-		else if (SourceComponentTypeSerializedIndex >= 0)
+		else if (SourceComponentTypeSerializedIndex >= 0
+			&& SourceComponentCreationMethod != EComponentCreationMethod::SimpleConstructionScript)
 		{
 			int32 FoundSerializedComponentsOfType = -1;
 			AActor* ComponentOwner = Component->GetOwner();
