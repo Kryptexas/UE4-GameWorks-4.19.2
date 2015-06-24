@@ -47,8 +47,6 @@ Related: Engine/Blueprints/HowTo
 
 [TOC (start:2 end:2)]
 
-## Overview
-
 When using a **Cast To** node in **Blueprints**, put simply, you are attempting to check if the object you are casting from is the specific object you **Cast To**. In other words, say you have created a special Character Blueprint (called MyCharacter for example) that has variables in it or other custom functionality contained within it and assigned it as the Default Pawn Class (or the Character Blueprint all Player Characters use by default). 
 
 If you want to access properties of the Player Character from another Blueprint, you can use the **Get Player Character** node and affect the Player Character in very general ways (setting/getting its location, rotation, etc.) but you cannot access any of the custom functionality you have added to the MyCharacter Blueprint you have set up as you are getting the Player Character but not a specific type of Character. 
