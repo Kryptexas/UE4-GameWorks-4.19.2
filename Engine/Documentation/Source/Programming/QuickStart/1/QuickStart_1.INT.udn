@@ -21,6 +21,11 @@ Version: 4.8
 [/VAR]
 
 %Steps%
+
+[REGION:note]
+You should have a copy of **Visual Studio** installed before starting this tutorial.
+[/REGION]
+
 1. Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
 
 1. Click on the **New Project** tab and then select the **C++** tab. From there, select **Basic Code** so we have a clean starting point, and make sure "With Starter Content" is set. We'll need to enter a project name, so we'll use "QuickStart". We can now click **Create Project** and get started.
