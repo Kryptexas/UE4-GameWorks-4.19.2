@@ -108,33 +108,38 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 
 void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 {
-	TMap<TWeakObjectPtr<UClass>, TWeakObjectPtr<AGameplayCueNotify_Actor>> FoundMapActor;
-	if (NotifyMapActor.RemoveAndCopyValue(TargetActor, FoundMapActor))
+	for (auto It = NotifyMapActor.CreateIterator(); It; ++It)
 	{
-		for (auto It = FoundMapActor.CreateConstIterator(); It; ++It)
+		FGCNotifyActorKey& Key = It.Key();
+		if (Key.TargetActor == TargetActor)
 		{
 			AGameplayCueNotify_Actor* InstancedCue = It.Value().Get();
 			if (InstancedCue)
 			{
 				InstancedCue->OnOwnerDestroyed();
 			}
+			It.RemoveCurrent();
 		}
 	}
 }
 
-AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* TargetActor, UClass* CueClass)
+AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* TargetActor, UClass* CueClass, const FGameplayCueParameters& Parameters)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_GameplayCueManager_GetInstancedCueActor);
+
+	AGameplayCueNotify_Actor* CDO = Cast<AGameplayCueNotify_Actor>(CueClass->ClassDefaultObject);
+	FGCNotifyActorKey	NotifyKey(TargetActor, CueClass, 
+							CDO->bUniqueInstancePerInstigator ? Parameters.EffectContext.GetInstigator() : nullptr, 
+							CDO->bUniqueInstancePerSourceObject ? Parameters.EffectContext.GetSourceObject() : nullptr);
+
 	AGameplayCueNotify_Actor* SpawnedCue = nullptr;
-	if (auto InnerMap = NotifyMapActor.Find(TargetActor))
-	{
-		if (auto WeakPtrPtr = InnerMap->Find(CueClass))
+	if (TWeakObjectPtr<AGameplayCueNotify_Actor>* WeakPtrPtr = NotifyMapActor.Find(NotifyKey))
+	{		
+		SpawnedCue = WeakPtrPtr->Get();
+		// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
+		if (SpawnedCue && SpawnedCue->GetLifeSpan() <= 0.0f)
 		{
-			SpawnedCue = WeakPtrPtr->Get();
-			// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
-			if (SpawnedCue && SpawnedCue->GetLifeSpan() <= 0.0f)
-			{
-				return SpawnedCue;
-			}
+			return SpawnedCue;
 		}
 	}
 
@@ -146,8 +151,7 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		SpawnedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
 		if (ensure(SpawnedCue))
 		{
-			auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
-			InnerMap.Add(CueClass) = SpawnedCue;
+			NotifyMapActor.Add(NotifyKey, SpawnedCue);
 		}
 	}
 

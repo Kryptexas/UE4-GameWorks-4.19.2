@@ -146,7 +146,7 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	virtual void EndGameplayCuesFor(AActor* TargetActor);
 
 	/** Returns the cached instance cue. Creates it if it doesn't exist */
-	virtual AGameplayCueNotify_Actor* GetInstancedCueActor(AActor* TargetActor, UClass* CueClass);
+	virtual AGameplayCueNotify_Actor* GetInstancedCueActor(AActor* TargetActor, UClass* CueClass, const FGameplayCueParameters& Parameters);
 
 	// -------------------------------------------------------------
 	//  Loading GameplayCueNotifies from ObjectLibraries
@@ -175,8 +175,37 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	UPROPERTY(transient)
 	FStreamableManager	StreamableManager;
 
-	// Fixme: we can combine the AActor* and the FGameplayTag into a single struct with a decent hash and avoid double map lookups
-	TMap<TWeakObjectPtr<AActor>, TMap<TWeakObjectPtr<UClass>, TWeakObjectPtr<AGameplayCueNotify_Actor>>>		NotifyMapActor;
+	struct FGCNotifyActorKey
+	{
+		FGCNotifyActorKey(AActor* InTargetActor, UClass* InCueClass, AActor* InInstigatorActor=nullptr, const UObject* InSourceObj=nullptr)
+		{
+			TargetActor = InTargetActor;
+			OptionalInstigatorActor = InInstigatorActor;
+			OptionalSourceObject = InSourceObj;
+			CueClass = InCueClass;
+		}
+
+		TWeakObjectPtr<AActor>	TargetActor;
+		TWeakObjectPtr<AActor>	OptionalInstigatorActor;
+		TWeakObjectPtr<UObject>	OptionalSourceObject;
+		TWeakObjectPtr<UClass>	CueClass;
+
+		FORCEINLINE bool operator==(const FGCNotifyActorKey& Other) const
+		{
+			return TargetActor == Other.TargetActor && CueClass == Other.CueClass &&
+					OptionalInstigatorActor == Other.OptionalInstigatorActor && OptionalSourceObject == Other.OptionalSourceObject;
+		}
+	};
+
+	FORCEINLINE friend uint32 GetTypeHash(const FGCNotifyActorKey& Key)
+	{
+		return GetTypeHash(Key.TargetActor)	^
+				GetTypeHash(Key.OptionalInstigatorActor) ^
+				GetTypeHash(Key.OptionalSourceObject) ^
+				GetTypeHash(Key.CueClass);
+	}
+	
+	TMap<FGCNotifyActorKey, TWeakObjectPtr<AGameplayCueNotify_Actor> >		NotifyMapActor;
 
 	void PrintGameplayCueNotifyMap();
 
