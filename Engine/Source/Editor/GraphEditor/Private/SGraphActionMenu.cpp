@@ -164,7 +164,7 @@ class SGraphActionCategoryWidget : public SCompoundWidget
 	SLATE_END_ARGS()
 
 	TWeakPtr<FGraphActionNode> ActionNode;
-
+	TAttribute<bool> IsReadOnly;
 public:
 	TWeakPtr<SInlineEditableTextBlock> InlineWidget;
 
@@ -177,6 +177,7 @@ public:
 		FEditorCategoryUtils::GetCategoryTooltipInfo(*InActionNode->GetDisplayName().ToString(), CategoryTooltip, CategoryLink, CategoryExcerpt);
 
 		TSharedRef<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(CategoryTooltip, NULL, CategoryLink, CategoryExcerpt);
+		IsReadOnly = InArgs._IsReadOnly;
 
 		this->ChildSlot
 		[
@@ -211,6 +212,11 @@ public:
 
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
+		if (IsReadOnly.Get())
+		{
+			return;
+		}
+
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
