@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2467511
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:加算アニメーションを使用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -16,13 +16,13 @@ Related:Engine/Animation/AnimationBlending
 
 [EXCERPT:Intro]
 [REGION:note]
-このガイドでは、**Starter Content** を有効にした状態で（スターターコンテンツを含める） **Blueprint Third Person** テンプレートを使用して新規プロジェクトを作成しました。 
+このガイドでは、**Starter Content** を有効にした状態で（スターターコンテンツを含める） **Blueprint Third Person** （ブループリント サードパーソン）テンプレートを使用して新規プロジェクトを作成しました。 
 
-ここでも、 **Animation Starter Pack** を使用します。**マーケットプレイス** から無料でダウンロードしてご利用いただけます。 
+ここでも、 **Animation Starter Pack** （アニメーション スターターパック）を使用します。**マーケット** から無料でダウンロードできます。 
 
 ![](AnimationAssetPack.png)
 
-Animation Starter Pack をダウンロードしたら、ランチャーの **[プロジェクトに追加する]** ボタンで自分のプロジェクトに追加することができます。
+Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project]** （プロジェクトに追加する）ボタンで自分のプロジェクトに追加することができます。
 [/REGION]
 [/EXCERPT:Intro]
 
@@ -52,7 +52,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 	**Anim Slot Manager** が開きます。これはスロットを名前で呼び出す場合にブレンド対象として使用可能な **スロット** を作成するために使用します。 
 
-1.	**[Add Slot]** ボタンをクリックし、スロットに **UpperBody** と名前を付け、**Save** してウィンドウを閉じます。 
+1.	**[Add Slot]**（スロット追加） ボタンをクリックし、スロットに **UpperBody** と名前を付け、**Save** してウィンドウを閉じます。 
 
 	![](Animations4.png)
 
@@ -197,6 +197,11 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 左マウスボタンを押したままにすると、キャラクターが射撃する AnimMontage を再生します。射撃中に歩き回ったり、しゃがんで射撃することもできます ( **C** を押した状態で)。 
 
 同じ方法を使用してメレー (近接) 攻撃を再生したり、アニメーションを再読み込みできます。これは、動きのアニメーション セットとブレンドするアニメーションの **AnimMontage** を作成し、それを上記の手順 8 で行ったように **UpperBody** スロットに割り当てて行います。スロットはキャラクターの Animation ブループリントの AnimGraph でセットアップされているため、その特定スロットを使用するように設定されているアニメーションはアニメーション グラフに渡され、呼び出されたときにブレンドされます。 
+
+
+
+
+
 
 
 
