@@ -1027,6 +1027,11 @@ void SSlateFileOpenDlg::SetOutputFiles()
 					FString Path = CurrentPath.Get() + SelectedItems[0]->Label;
 					OutNames.Get()->Add(Path);
 				}
+				else
+				{
+					// select the current directory
+					OutNames.Get()->Add(CurrentPath.Get());
+				}
 			}
 			else
 			{
