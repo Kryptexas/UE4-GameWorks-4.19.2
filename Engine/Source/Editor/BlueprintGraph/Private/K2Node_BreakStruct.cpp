@@ -134,12 +134,12 @@ static bool CanCreatePinForProperty(const UProperty* Property, bool bIncludeEdit
 	return bVisible && bConvertable;
 }
 
-bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct, bool bIncludeEditAnywhere )
+bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct, bool bIncludeEditAnywhere, bool bMustHaveValidProperties )
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if(Struct && Schema && !Struct->HasMetaData(TEXT("HasNativeBreak")))
 	{
-		if (UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
+		if (!bMustHaveValidProperties && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
 		{
 			return true;
 		}

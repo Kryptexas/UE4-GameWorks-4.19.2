@@ -25,7 +25,7 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	* a creation of a break node, although we could do so in the future. There are legacy break nodes that
 	* rely on expansion of structs that neither have BlueprintVisible properties nor are tagged as BlueprintType
 	*/
-	BLUEPRINTGRAPH_API static bool CanBeMade(const UScriptStruct* Struct, bool bIncludeEditAnywhere = true);
+	BLUEPRINTGRAPH_API static bool CanBeMade(const UScriptStruct* Struct, bool bIncludeEditAnywhere = true, bool bMustHaveValidProperties = false);
 	
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

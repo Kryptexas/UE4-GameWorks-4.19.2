@@ -227,11 +227,11 @@ FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const
 	return UK2Node::GetNodeTitleColor();
 }
 
-bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct, bool bIncludeEditOnly )
+bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct, bool bIncludeEditOnly, bool bMustHaveValidProperties )
 {
 	if (Struct && !Struct->HasMetaData(TEXT("HasNativeMake")))
 	{
-		if (UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
+		if (!bMustHaveValidProperties && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
 		{
 			return true;
 		}

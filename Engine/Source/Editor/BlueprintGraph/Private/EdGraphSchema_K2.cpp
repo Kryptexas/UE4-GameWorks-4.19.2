@@ -1390,7 +1390,7 @@ bool UEdGraphSchema_K2::PinHasSplittableStructType(const UEdGraphPin* InGraphPin
 		UScriptStruct* StructType = CastChecked<UScriptStruct>(InGraphPin->PinType.PinSubCategoryObject.Get());
 		if (InGraphPin->Direction == EGPD_Input)
 		{
-			bCanSplit = UK2Node_MakeStruct::CanBeMade(StructType);
+			bCanSplit = UK2Node_MakeStruct::CanBeMade(StructType, true, true);
 			if (!bCanSplit)
 			{
 				const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeMake"));
@@ -1400,7 +1400,7 @@ bool UEdGraphSchema_K2::PinHasSplittableStructType(const UEdGraphPin* InGraphPin
 		}
 		else
 		{
-			bCanSplit = UK2Node_BreakStruct::CanBeBroken(StructType);
+			bCanSplit = UK2Node_BreakStruct::CanBeBroken(StructType, true, true);
 			if (!bCanSplit)
 			{
 				const FString& MetaData = StructType->GetMetaData(TEXT("HasNativeBreak"));
@@ -1494,9 +1494,19 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					}
 				}
 	
-				if (PinHasSplittableStructType(InGraphPin) && InGraphNode->AllowSplitPins())
+				if (InGraphPin->PinType.PinCategory == PC_Struct && InGraphNode->AllowSplitPins())
 				{
-					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().SplitStructPin );
+					// If the pin cannot be split, create an error tooltip to use
+					FText Tooltip;
+					if (PinHasSplittableStructType(InGraphPin))
+					{
+						Tooltip = FGraphEditorCommands::Get().SplitStructPin->GetDescription();
+					}
+					else
+					{
+						Tooltip = LOCTEXT("SplitStructPin_Error", "Cannot split the struct pin, it may be missing Blueprint exposed properties!");
+					}
+					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().SplitStructPin, NAME_None, FGraphEditorCommands::Get().SplitStructPin->GetLabel(), Tooltip );
 				}
 
 				if (InGraphPin->ParentPin != NULL)
