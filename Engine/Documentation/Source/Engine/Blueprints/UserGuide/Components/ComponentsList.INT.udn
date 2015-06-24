@@ -47,12 +47,10 @@ Related: Engine/Blueprints/UserGuide/Functions
 
 [TOC (start:2 end:2)]
 
-## Overview
-
 [INCLUDE:Shared\Glossary\C#glossary_component]
 
 [REGION:note]
-For more information on **Components**, please see the [Components Overivew](Engine\Components) documentation. 
+For more information on **Components**, please see the [Components Overview](Engine\Components) documentation. 
 [/REGION]
 
 
