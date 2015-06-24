@@ -3293,8 +3293,8 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 			}
 			else
 			{
-				UE_LOG(LogConsoleResponse, Warning, TEXT("Skipping Unknown console variable: '%s = %s'"), *CVarName, *CVarValue);
-				UE_LOG(LogConsoleResponse, Warning, TEXT("  Found in ini file '%s', in section '[%s]'"), InIniFilename, InSectionName);
+				UE_LOG(LogConsoleResponse, Verbose, TEXT("Skipping Unknown console variable: '%s = %s'"), *CVarName, *CVarValue);
+				UE_LOG(LogConsoleResponse, Verbose, TEXT("  Found in ini file '%s', in section '[%s]'"), InIniFilename, InSectionName);
 			}
 		}
 	}
