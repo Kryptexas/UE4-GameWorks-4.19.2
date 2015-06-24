@@ -1005,47 +1005,52 @@ FReply SSlateFileOpenDlg::OnQuickLinkClick(FSlateFileDlgWindow::EResult ButtonID
 	return FReply::Handled();
 }
 
+void SSlateFileOpenDlg::SetOutputFiles()
+{
+	if (OutNames.Get() != nullptr)
+	{
+		OutNames.Get()->Empty();
+
+		if (bSaveFile.Get())
+		{
+			FString Path = CurrentPath.Get() + SaveFilename;
+			OutNames.Get()->Add(Path);
+		}
+		else
+		{
+			TArray<TSharedPtr<FFileEntry>> SelectedItems = ListView->GetSelectedItems();
+
+			if (bDirectoriesOnly.Get())
+			{
+				if (SelectedItems.Num() > 0)
+				{
+					FString Path = CurrentPath.Get() + SelectedItems[0]->Label;
+					OutNames.Get()->Add(Path);
+				}
+			}
+			else
+			{
+				for (int32 i = 0; i < SelectedItems.Num(); i++)
+				{
+						FString Path = CurrentPath.Get() + SelectedItems[i]->Label;
+						OutNames.Get()->Add(Path);
+				}
+
+				if (OutFilterIndex.Get() != nullptr)
+				{
+					*(OutFilterIndex.Get()) = FilterIndex;
+				}
+			}
+		}
+	}
+}
+
 
 FReply SSlateFileOpenDlg::OnAcceptCancelClick(FSlateFileDlgWindow::EResult ButtonID)
 {
 	if (ButtonID == FSlateFileDlgWindow::Accept)
 	{
-		if (OutNames.Get() != nullptr)
-		{
-			OutNames.Get()->Empty();
-
-			if (bSaveFile.Get())
-			{
-				FString Path = CurrentPath.Get() + SaveFilename;
-				OutNames.Get()->Add(Path);
-			}
-			else
-			{
-				TArray<TSharedPtr<FFileEntry>> SelectedItems = ListView->GetSelectedItems();
-
-				if (bDirectoriesOnly.Get())
-				{
-					if (SelectedItems.Num() > 0)
-					{
-						FString Path = CurrentPath.Get() + SelectedItems[0]->Label;
-						OutNames.Get()->Add(Path);
-					}
-				}
-				else
-				{
-					for (int32 i = 0; i < SelectedItems.Num(); i++)
-					{
-							FString Path = CurrentPath.Get() + SelectedItems[i]->Label;
-							OutNames.Get()->Add(Path);
-					}
-
-					if (OutFilterIndex.Get() != nullptr)
-					{
-						*(OutFilterIndex.Get()) = FilterIndex;
-					}
-				}
-			}
-		}
+		SetOutputFiles();
 	}
 	else
 	{
@@ -1054,7 +1059,6 @@ FReply SSlateFileOpenDlg::OnAcceptCancelClick(FSlateFileDlgWindow::EResult Butto
 	}
 
 	UserResponse = ButtonID;
-
 	ParentWindow.Get().Pin()->RequestDestroyWindow();
 
 	return FReply::Handled();
@@ -1202,6 +1206,12 @@ void SSlateFileOpenDlg::OnItemDoubleClicked(TSharedPtr<FFileEntry> Item)
 		CurrentPath = CurrentPath.Get() + Item->Label + TEXT("/");
 		bNeedsBuilding = true;
 		bRebuildDirPath = true;
+	}
+	else
+	{
+		SetOutputFiles();
+		UserResponse = FSlateFileDlgWindow::Accept;
+		ParentWindow.Get().Pin()->RequestDestroyWindow();
 	}
 }
 

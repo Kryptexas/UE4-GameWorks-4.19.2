@@ -134,7 +134,7 @@ private:
 	void RebuildFileTable();
 	void BuildDirectoryPath();
 	void ReadDir(bool bIsRefresh = false);
-	void RefreshCrumbs ( );
+	void RefreshCrumbs();
 	void OnPathMenuItemClicked( FString ClickedPath );
 	void OnItemSelected(TSharedPtr<FFileEntry> Item, ESelectInfo::Type SelectInfo);
 
@@ -154,6 +154,9 @@ private:
 	FReply OnNewDirectoryClick();
 	bool OnNewDirectoryTextChanged(const FText &InText, FText &ErrorMsg);
 	FReply OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::EResult ButtonID);
+
+	/** Collects the output files. */
+	void SetOutputFiles();
 
 	bool GetFilterExtension(FString &OutString);
 	void ParseFilters();
