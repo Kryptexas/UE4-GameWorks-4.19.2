@@ -61,5 +61,5 @@ public:
 	 * @param DisplayName	the display name for the object binding.
 	 * @returns true if DisplayName has been set to a valid display name, otherwise false.
 	 */
-	virtual bool TryGetObjectBindingDisplayName( const FGuid& ObjectGuid, FText& DisplayName ) const = 0;
+	virtual bool TryGetObjectBindingDisplayName( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName ) const = 0;
 };

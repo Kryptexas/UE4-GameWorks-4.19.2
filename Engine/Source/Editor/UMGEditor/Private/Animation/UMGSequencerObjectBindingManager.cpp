@@ -132,7 +132,7 @@ void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMov
 	}
 }
 
-bool FUMGSequencerObjectBindingManager::TryGetObjectBindingDisplayName(const FGuid& ObjectGuid, FText& DisplayName) const
+bool FUMGSequencerObjectBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const
 {
 	// TODO: This gets called every frame for every bound object and could be a potential performance issue for a really complicated animation.
 	TArray<TWeakObjectPtr<UObject>> BindingObjects;

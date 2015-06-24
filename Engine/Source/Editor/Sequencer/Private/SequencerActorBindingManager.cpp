@@ -306,6 +306,22 @@ void FSequencerActorBindingManager::GetRuntimeObjects( const TSharedRef<FMovieSc
 	}
 }
 
+bool FSequencerActorBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const
+{
+	TArray< UObject*> RuntimeObjects;
+	GetRuntimeObjects(MovieSceneInstance, ObjectGuid, RuntimeObjects);
+	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+	{
+		AActor* Actor = Cast<AActor>(RuntimeObjects[ObjIndex]);
+		if (Actor)
+		{
+			DisplayName = FText::FromString(Actor->GetActorLabel());
+			return true;
+		}
+	}
+	return false;
+}
+
 UK2Node_PlayMovieScene* FSequencerActorBindingManager::FindPlayMovieSceneNodeInLevelScript( const UMovieScene* MovieScene ) const
 {
 	// Grab the world object for this editor
