@@ -2,6 +2,8 @@ Availability: Public
 Title:1. Essential Project Setup
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a new project with the specifications we need
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

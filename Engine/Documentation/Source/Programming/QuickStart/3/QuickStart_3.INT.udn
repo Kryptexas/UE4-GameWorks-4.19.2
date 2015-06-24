@@ -2,6 +2,8 @@ Availability: Public
 Title:3. Write and Compile C++ Code
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Writing a C++ class and compiling it with Unreal Engine
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
