@@ -226,6 +226,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = PlayOnDevice)
 	TEnumAsByte<EPlayOnBuildMode> BuildGameBeforeLaunch;
 
+	/** Whether to automatically recompile dirty Blueprints before launching */
+	UPROPERTY(config, EditAnywhere, Category=PlayOnDevice)
+	bool bAutoCompileBlueprintsOnLaunch;
+
 private:
 
 	/** NetMode to use for Play In Editor. */
