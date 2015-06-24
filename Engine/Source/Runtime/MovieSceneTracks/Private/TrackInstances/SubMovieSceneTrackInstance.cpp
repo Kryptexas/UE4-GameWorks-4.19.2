@@ -81,3 +81,32 @@ void FSubMovieSceneTrackInstance::Update( float Position, float LastPosition, co
 	}
 
 }
+
+
+void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+{
+	TArray<UMovieSceneSection*> AllSections = SubMovieSceneTrack->GetAllSections();
+
+	for( int32 SectionIndex = 0; SectionIndex < AllSections.Num(); ++SectionIndex )
+	{
+		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( AllSections[SectionIndex] );
+
+		TSharedPtr<FMovieSceneInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
+
+		Instance->SaveState();
+	}
+}
+
+void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+{
+	TArray<UMovieSceneSection*> AllSections = SubMovieSceneTrack->GetAllSections();
+
+	for( int32 SectionIndex = 0; SectionIndex < AllSections.Num(); ++SectionIndex )
+	{
+		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( AllSections[SectionIndex] );
+
+		TSharedPtr<FMovieSceneInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
+
+		Instance->RestoreState();
+	}
+}
