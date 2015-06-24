@@ -1795,7 +1795,7 @@ bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProper
 	check(Cast<const ARecastNavMesh>(Self));
 
 	const ARecastNavMesh* RecastNavMesh = (const ARecastNavMesh*)Self;
-	if (Self == NULL || RecastNavMesh->RecastNavMeshImpl == NULL)
+	if (Self == nullptr || RecastNavMesh->RecastNavMeshImpl == nullptr || RecastNavMesh->RecastNavMeshImpl->DetourNavMesh == nullptr)
 	{
 		return false;
 	}
