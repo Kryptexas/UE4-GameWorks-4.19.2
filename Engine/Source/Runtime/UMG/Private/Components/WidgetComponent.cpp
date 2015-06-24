@@ -129,6 +129,11 @@ private:
 class FWorldWidgetScreenLayer : public IGameLayer
 {
 public:
+	virtual ~FWorldWidgetScreenLayer()
+	{
+		// empty virtual destructor to help clang warning
+	}
+	
 	void AddComponent(UWidgetComponent* Component)
 	{
 		Components.AddUnique(Component);
