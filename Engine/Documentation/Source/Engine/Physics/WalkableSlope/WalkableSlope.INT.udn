@@ -42,7 +42,7 @@ Description:
 [/OBJECT]
 [/VAR]
 
-## Overview
+
 
 The **Walkable Slope Override** on **Physics Bodies** enable you to tweak what surfaces **Characters** can walk up. Perhaps a stair case is too steep or maybe you want to enforce the "no walking on the grass" signs, these settings will enable you to do so.
 
