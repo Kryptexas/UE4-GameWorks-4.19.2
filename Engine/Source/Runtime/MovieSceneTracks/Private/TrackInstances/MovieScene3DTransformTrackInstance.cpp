@@ -49,6 +49,11 @@ void FMovieScene3DTransformTrackInstance::RestoreState(const TArray<UObject*>& R
 {
 	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
 	{
+		if (!IsValid(RuntimeObjects[ObjIndex]))
+		{
+			continue;
+		}
+
 		USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 		if (SceneComponent != NULL)
 		{

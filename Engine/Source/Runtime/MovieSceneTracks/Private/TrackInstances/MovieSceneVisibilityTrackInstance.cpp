@@ -35,6 +35,11 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 {
  	for( UObject* Object : RuntimeObjects )
  	{
+		if (!IsValid(Object))
+		{
+			continue;
+		}
+
 		AActor* Actor = Cast<AActor>(Object);
 
 		if (Actor != NULL)

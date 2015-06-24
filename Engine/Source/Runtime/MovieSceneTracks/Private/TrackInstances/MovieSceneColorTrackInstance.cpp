@@ -35,6 +35,11 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 {
 	for( UObject* Object : RuntimeObjects )
 	{
+		if (!IsValid(Object))
+		{
+			continue;
+		}
+
 		if( ColorTrack->IsSlateColor() )
 		{
 			FSlateColor *ColorValue = InitSlateColorMap.Find(Object);

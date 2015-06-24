@@ -27,6 +27,11 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 {
 	for( UObject* Object : RuntimeObjects )
 	{
+		if (!IsValid(Object))
+		{
+			continue;
+		}
+
 		bool *BoolValue = InitBoolMap.Find(Object);
 		if (BoolValue != NULL)
 		{

@@ -27,6 +27,11 @@ void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 {
 	for( UObject* Object : RuntimeObjects )
 	{
+		if (!IsValid(Object))
+		{
+			continue;
+		}
+
 		uint8 *ByteValue = InitByteMap.Find(Object);
 		if (ByteValue != NULL)
 		{

@@ -27,6 +27,11 @@ void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 {
 	for( UObject* Object : RuntimeObjects )
 	{
+		if (!IsValid(Object))
+		{
+			continue;
+		}
+
 		float *FloatValue = InitFloatMap.Find(Object);
 		if (FloatValue != NULL)
 		{

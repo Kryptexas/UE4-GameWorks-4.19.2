@@ -45,6 +45,11 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
 	{
+		if (!IsValid(Object))
+		{
+			continue;
+		}
+
 		switch( NumChannelsUsed )
 		{
 			case 2:
