@@ -538,16 +538,20 @@ FTexelAllocation FParticleCurveTexture::AddCurve( const TArray<FColor>& CurveSam
 	if ( CurveSamples.Num() )
 	{
 		FTexelAllocation TexelAllocation = TexelAllocator.Allocate( CurveSamples.Num() );
-		if ( TexelAllocation.Size > 0 )
+		if (FApp::CanEverRender())
 		{
-			check( TexelAllocation.Size == CurveSamples.Num() );
-			FCurveSamples* PendingCurve = new(PendingCurves) FCurveSamples;
-			PendingCurve->TexelAllocation = TexelAllocation;
-			PendingCurve->Samples = (FColor*)FMemory::Malloc( TexelAllocation.Size * sizeof(FColor) );
-			FMemory::Memcpy( PendingCurve->Samples, CurveSamples.GetData(), TexelAllocation.Size * sizeof(FColor) );
-			return TexelAllocation;
+			if ( TexelAllocation.Size > 0 )
+			{
+				check( TexelAllocation.Size == CurveSamples.Num() );
+				FCurveSamples* PendingCurve = new(PendingCurves) FCurveSamples;
+				PendingCurve->TexelAllocation = TexelAllocation;
+				PendingCurve->Samples = (FColor*)FMemory::Malloc( TexelAllocation.Size * sizeof(FColor) );
+				FMemory::Memcpy( PendingCurve->Samples, CurveSamples.GetData(), TexelAllocation.Size * sizeof(FColor) );
+				return TexelAllocation;
+			}
+			UE_LOG(LogParticles, Warning, TEXT("FParticleCurveTexture: Failed to allocate %d texels for a curve."), CurveSamples.Num() );
 		}
-		UE_LOG(LogParticles, Warning, TEXT("FParticleCurveTexture: Failed to allocate %d texels for a curve."), CurveSamples.Num() );
+
 		return TexelAllocation;
 	}
 	return FTexelAllocation();
