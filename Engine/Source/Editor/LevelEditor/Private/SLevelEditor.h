@@ -121,9 +121,8 @@ public:
 	// Tab Management
 	TSharedRef<FTabManager> GetTabManager() const;
 	
-	// @todo remove when world-centric mode is added
-	TSharedPtr<SDockTab> SequencerTab;
-
+	/** Attaches a sequencer asset editor used to animate objects in the level to this level editor */
+	void AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> NewSequencerAssetEditor );
 private:
 	
 	TSharedRef<SDockTab> SpawnLevelEditorTab(const FSpawnTabArgs& Args, FName TabIdentifier, FString InitializationPayload);
@@ -229,6 +228,10 @@ private:
 
 	/** List of all actor details panels to update when selection changes */
 	TArray< TWeakPtr<class SActorDetails> > AllActorDetailPanels;
+
+	/** Attached sequencer info */
+	TSharedPtr<SDockTab> SequencerTab;
+	TWeakPtr<IAssetEditorInstance> SequencerAssetEditor;
 };
 
 

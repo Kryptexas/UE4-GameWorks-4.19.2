@@ -313,32 +313,13 @@ void FLevelEditorModule::SummonWorldBrowserComposition()
 }
 
 // @todo remove when world-centric mode is added
-void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> SequencerAssetEditor )
+void FLevelEditorModule::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> SequencerAssetEditor )
 {
 	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
 	{
-		struct Local
-		{
-			static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> InSequencerAssetEditor )
-			{
-				InSequencerAssetEditor.Pin()->CloseWindow();
-			}
-		};
-		
 		TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
 
-		if( SequencerWidget.IsValid() && SequencerAssetEditor.IsValid() )
-		{
-			LevelEditorInstance->InvokeTab("Sequencer");
-			LevelEditorInstance->SequencerTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateStatic( &Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>( SequencerAssetEditor ) ) );
-			LevelEditorInstance->SequencerTab->SetContent(SequencerWidget.ToSharedRef());
-		}
-		else
-		{
-			LevelEditorInstance->SequencerTab.Reset();
-		}
-
-	
+		LevelEditorInstance->AttachSequencer( SequencerWidget, SequencerAssetEditor );
 	}
 }
 

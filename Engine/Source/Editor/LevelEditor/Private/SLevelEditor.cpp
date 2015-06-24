@@ -509,7 +509,43 @@ TSharedRef<FTabManager> SLevelEditor::GetTabManager() const
 	return LevelEditorTabManager.ToSharedRef();
 }
 
+void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> NewSequencerAssetEditor )
+{
+	struct Local
+	{
+		static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> InSequencerAssetEditor )
+		{
+			InSequencerAssetEditor.Pin()->CloseWindow();
+		}
+	};
 
+	static bool bIsReentrant = false;
+
+	if( !bIsReentrant )
+	{
+		if(SequencerAssetEditor.IsValid())
+		{
+			// Closing the window will invoke this method again but we are handling reopening with a new movie scene ourselves
+			TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
+			// Shutdown cleanly
+			SequencerAssetEditor.Pin()->CloseWindow();
+		}
+
+		if(SequencerWidget.IsValid() && NewSequencerAssetEditor.IsValid())
+		{
+			InvokeTab("Sequencer");
+			SequencerTab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
+			SequencerTab->SetContent(SequencerWidget.ToSharedRef());
+
+			SequencerAssetEditor = NewSequencerAssetEditor;
+		}
+		else
+		{
+			SequencerTab.Reset();
+			SequencerAssetEditor.Reset();
+		}
+	}
+}
 
 TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier )
 {
