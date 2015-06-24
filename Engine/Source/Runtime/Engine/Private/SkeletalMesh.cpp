@@ -4560,10 +4560,17 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
  * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
  * @param OutWorldToLocal - Will contain the world-to-local transform when the function returns.
  */
-void FSkeletalMeshSceneProxy::GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const
+bool FSkeletalMeshSceneProxy::GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const
 {
 	OutLocalToWorld = GetLocalToWorld();
+	if (OutLocalToWorld.GetScaledAxis(EAxis::X).IsNearlyZero(SMALL_NUMBER) &&
+		OutLocalToWorld.GetScaledAxis(EAxis::Y).IsNearlyZero(SMALL_NUMBER) &&
+		OutLocalToWorld.GetScaledAxis(EAxis::Z).IsNearlyZero(SMALL_NUMBER))
+	{
+		return false;
+	}
 	OutWorldToLocal = GetLocalToWorld().InverseFast();
+	return true;
 }
 
 /**
@@ -4606,7 +4613,10 @@ int32 FSkeletalMeshSceneProxy::GetCurrentLODIndex()
 void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const
 {
 	FMatrix LocalToWorld, WorldToLocal;
-	GetWorldMatrices( LocalToWorld, WorldToLocal );
+	if (!GetWorldMatrices(LocalToWorld, WorldToLocal))
+	{
+		return; // Cannot draw this, world matrix not valid
+	}
 
 	FMatrix ScalingMatrix = LocalToWorld;
 	FVector TotalScale = ScalingMatrix.ExtractScaling();

@@ -1741,11 +1741,12 @@ public:
 	
 	/**
 	 * Returns the world transform to use for drawing.
-	 * @param View - Current view
 	 * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
 	 * @param OutWorldToLocal - Will contain the world-to-local transform when the function returns.
+	 * 
+	 * @return true if out matrices are valid 
 	 */
-	void GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const;
+	bool GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const;
 
 	/** Util for getting LOD index currently used by this SceneProxy. */
 	int32 GetCurrentLODIndex();
