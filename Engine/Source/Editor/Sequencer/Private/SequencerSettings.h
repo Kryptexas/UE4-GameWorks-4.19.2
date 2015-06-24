@@ -79,6 +79,11 @@ public:
 	/** Sets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
 	void SetIsUsingCleanView(bool InbIsUsingCleanView);
 
+	/** Gets whether or not auto-scroll is enabled. */
+	bool GetAutoScrollEnabled() const;
+	/** Sets whether or not auto-scroll is enabled. */
+	void SetAutoScrollEnabled(bool bInAutoScrollEnabled);
+
 	/** Gets whether or not the curve editor should be shown. */
 	bool GetShowCurveEditor() const;
 	/** Sets whether or not the curve editor should be shown. */
@@ -133,6 +138,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bIsUsingCleanView;
+
+	UPROPERTY( config )
+	bool bAutoScrollEnabled;
 
 	UPROPERTY( config )
 	bool bShowCurveEditor;

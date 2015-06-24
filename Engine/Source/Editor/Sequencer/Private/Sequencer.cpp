@@ -151,6 +151,7 @@ FSequencer::FSequencer()
 	: SequencerCommandBindings( new FUICommandList )
 	, TargetViewRange(0.f, 5.f)
 	, LastViewRange(0.f, 5.f)
+	, bAutoScrollEnabled(true)
 	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, ScrubPosition( 0.0f )
 	, bLoopingEnabled( false )
@@ -159,7 +160,7 @@ FSequencer::FSequencer()
 	, bIsEditingWithinLevelEditor( false )
 	, bNeedTreeRefresh( false )
 {
-
+	
 }
 
 FSequencer::~FSequencer()
@@ -571,7 +572,7 @@ void FSequencer::SetGlobalTime( float NewTime )
 {
 	float LastTime = ScrubPosition;
 
-	if (true/*bAutoScroll*/ && PlaybackState != EMovieScenePlayerStatus::Scrubbing)
+	if (bAutoScrollEnabled && PlaybackState != EMovieScenePlayerStatus::Scrubbing)
 	{
 		float RangeOffset = CalculateAutoscrollEncroachment(NewTime).Get(0.f);
 			
@@ -990,7 +991,7 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 		{
 			OnEndScrubbing();
 		}
-		else if (true/*bAutoScroll*/)
+		else if (bAutoScrollEnabled)
 		{
 			// When scrubbing, we animate auto-scrolled scrub position in Tick()
 			AutoscrollOffset = CalculateAutoscrollEncroachment(NewScrubPosition);
@@ -1018,6 +1019,12 @@ void FSequencer::OnEndScrubbing()
 void FSequencer::OnToggleAutoKey()
 {
 	bAllowAutoKey = !bAllowAutoKey;
+}
+
+void FSequencer::OnToggleAutoScroll()
+{
+	bAutoScrollEnabled = !bAutoScrollEnabled;
+	GetMutableDefault<USequencerSettings>()->SetAutoScrollEnabled(bAutoScrollEnabled);
 }
 
 FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject )
@@ -1572,6 +1579,13 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateSP( this, &FSequencer::OnToggleAutoKey ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateSP( this, &FSequencer::OnGetAllowAutoKey ) );
+
+	bAutoScrollEnabled = Settings->GetAutoScrollEnabled();
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleAutoScroll,
+		FExecuteAction::CreateSP( this, &FSequencer::OnToggleAutoScroll ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateSP( this, &FSequencer::GetAutoScrollEnabled ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleCleanView,

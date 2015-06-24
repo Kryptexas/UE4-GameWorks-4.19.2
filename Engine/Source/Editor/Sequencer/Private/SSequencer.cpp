@@ -493,6 +493,10 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 		{
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleCleanView );
 		}
+
+		ToolBarBuilder.SetLabelVisibility(EVisibility::Collapsed);
+		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoScroll, NAME_None, TAttribute<FText>( FText::GetEmpty() ) );
+		ToolBarBuilder.SetLabelVisibility(EVisibility::Visible);
 	}
 	ToolBarBuilder.EndSection();
 

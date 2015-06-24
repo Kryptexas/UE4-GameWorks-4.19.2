@@ -65,6 +65,9 @@ public:
 
 	/** Toggles whether the "clean view" is enabled in the level editor. */
 	TSharedPtr< FUICommandInfo > ToggleCleanView;
+	
+	/** Turns auto scroll on and off. */
+	TSharedPtr< FUICommandInfo > ToggleAutoScroll;
 
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
