@@ -65,7 +65,7 @@ public:
 	{
 		// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
 		ExclusionFlags = EObjectFlags(ExclusionFlags | RF_Unreachable);
-		if (!IsAsyncLoading())
+		if (!IsInAsyncLoadingThread())
 		{
 			ExclusionFlags = EObjectFlags(ExclusionFlags | RF_AsyncLoading);
 		}
@@ -100,7 +100,7 @@ public:
 	{
 		//@warning: behavior is partially mirrored in UnObjGC.cpp. Make sure to adapt code there as well if you make changes below.
 		// verify that the async loading exclusion flag still matches (i.e. we didn't start/stop async loading within the scope of the iterator)
-		checkSlow(IsAsyncLoading() || (ExclusionFlags & RF_AsyncLoading));
+		checkSlow(IsInAsyncLoadingThread() || (ExclusionFlags & RF_AsyncLoading));
 
 		while(Advance())
 		{
@@ -277,7 +277,7 @@ public:
 	void operator++()
 	{
 		// verify that the async loading exclusion flag still matches (i.e. we didn't start/stop async loading within the scope of the iterator)
-		checkSlow(IsAsyncLoading() || (ExclusionFlags & RF_AsyncLoading));
+		checkSlow(IsInAsyncLoadingThread() || (ExclusionFlags & RF_AsyncLoading));
 		while(Advance())
 		{
 			if (!(*this)->HasAnyFlags(ExclusionFlags))

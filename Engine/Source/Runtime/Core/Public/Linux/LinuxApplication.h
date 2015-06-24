@@ -78,6 +78,13 @@ public:
 
 	virtual bool IsCursorDirectlyOverSlateWindow() const override;
 
+	/** Returns true if this application is foreground */
+	FORCEINLINE bool IsForeground()
+	{
+		// if there are no windows, consider ourselves foreground so servers and commandlets aren't impacted
+		return (Windows.Num() > 0) ? bActivateApp : true;
+	}
+
 private:
 
 	FLinuxApplication();

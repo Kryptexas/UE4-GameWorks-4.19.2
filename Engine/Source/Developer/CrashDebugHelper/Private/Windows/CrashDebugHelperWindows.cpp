@@ -44,13 +44,13 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 	{
 		if( CrashInfo.BuiltFromCL != FCrashInfo::INVALID_CHANGELIST )
 		{
+			// Get the build version and modules paths.
+			FCrashModuleInfo ExeFileVersion;
+			WindowsStackWalkExt.GetExeFileVersionAndModuleList( ExeFileVersion );
+
 			// CrashInfo now contains a changelist to lookup a label for
 			if( bSyncSymbols )
 			{
-				// Get the build version from the crash info.
-				FCrashModuleInfo ExeFileVersion;
-				WindowsStackWalkExt.GetExeFileVersionAndModuleList( ExeFileVersion );
-
 				FindSymbolsAndBinariesStorage();
 
 				const bool bSynced = SyncModules();

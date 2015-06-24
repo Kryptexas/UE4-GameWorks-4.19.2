@@ -164,9 +164,9 @@ void UEditorEngine::EndPlayMap()
 	{
 		UObject* Object = *It;
 
-		if((Object->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+		if ((Object->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
 		{
-			if(Object->HasAnyFlags(RF_Standalone))
+			if (Object->HasAnyFlags(RF_Standalone))
 			{
 				// Clear RF_Standalone flag from objects in the levels used for PIE so they get cleaned up.
 				Object->ClearFlags(RF_Standalone);
@@ -178,11 +178,23 @@ void UEditorEngine::EndPlayMap()
 
 	// Clean up each world individually
 	TArray<FName> OnlineIdentifiers;
+	TSet<UWorld*> CurrentPlayWorlds;
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
 		FWorldContext &ThisContext = WorldList[WorldIdx];
 		if (ThisContext.WorldType == EWorldType::PIE)
 		{
+			if (ThisContext.World())
+			{
+				for (auto LevelIt(ThisContext.World()->GetLevelIterator()); LevelIt; ++LevelIt)
+				{
+					if (const ULevel* Level = *LevelIt)
+					{
+						CurrentPlayWorlds.Add(CastChecked<UWorld>(Level->GetOuter()));
+					}
+				}
+			}
+
 			TeardownPlaySession(ThisContext);
 			
 			// Cleanup online subsystems instantiated during PIE
@@ -237,6 +249,16 @@ void UEditorEngine::EndPlayMap()
 
 	EditorWorld->bAllowAudioPlayback = true;
 	EditorWorld = NULL;
+
+	// mark everything contained in the PIE worlds to be deleted
+	for (TObjectIterator<UObject> It(RF_PendingKill); It; ++It)
+	{
+		UWorld* InWorld = It->GetTypedOuter<UWorld>();
+		if (InWorld && CurrentPlayWorlds.Contains(InWorld))
+		{
+			It->MarkPendingKill();
+		}
+	}
 
 	// Garbage Collect
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );

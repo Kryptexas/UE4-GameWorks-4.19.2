@@ -252,8 +252,11 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 		uint8* TempKeyStorage = nullptr;
 		ON_SCOPE_EXIT
 		{
-			KeyProp->DestroyValue(TempKeyStorage);
-			FMemory::Free(TempKeyStorage);
+			if (TempKeyStorage)
+			{
+				KeyProp->DestroyValue(TempKeyStorage);
+				FMemory::Free(TempKeyStorage);
+			}
 		};
 
 		// Delete any explicitly-removed keys
@@ -741,7 +744,7 @@ void UMapProperty::InstanceSubobjects(void* Data, void const* DefaultData, UObje
 
 				if (bInstancedValue)
 				{
-					ValueProp->InstanceSubobjects(PairPtr + MapLayout.ValueOffset, DefaultPairPtr + MapLayout.ValueOffset, Owner, InstanceGraph);
+					ValueProp->InstanceSubobjects(PairPtr + MapLayout.ValueOffset, DefaultPairPtr ? DefaultPairPtr + MapLayout.ValueOffset : nullptr, Owner, InstanceGraph);
 				}
 
 				--Num;

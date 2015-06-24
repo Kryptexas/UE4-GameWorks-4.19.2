@@ -451,6 +451,8 @@ void FFeedbackContextEditor::FinalizeSlowTask()
 	FFeedbackContext::FinalizeSlowTask( );
 }
 
+COREUOBJECT_API void DeleteLoaders();
+
 void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, FText DisplayMessage )
 {
 	// Clean up deferred cleanup objects from rendering thread every once in a while.
@@ -463,8 +465,10 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 		FlushRenderingCommands();
 		// It is now safe to delete the pending clean objects.
 		delete PendingCleanupObjects;
+		// This is also a good time to destroy any linkers pending delete		
+		DeleteLoaders();
 		// Keep track of time this operation was performed so we don't do it too often.
-		LastTimePendingCleanupObjectsWhereDeleted = FPlatformTime::Seconds();
+		LastTimePendingCleanupObjectsWhereDeleted = FPlatformTime::Seconds();		
 	}
 
 	if (FSlateApplication::Get().CanDisplayWindows())

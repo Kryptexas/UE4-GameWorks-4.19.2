@@ -3655,6 +3655,8 @@ void StaticUObjectInit()
 	UE_LOG(LogInit, Log, TEXT("Object subsystem initialized") );
 }
 
+COREUOBJECT_API void DeleteLoaders();
+
 //
 // Shut down the object manager.
 //
@@ -3665,6 +3667,9 @@ void StaticExit()
 	{
 		return;
 	}
+
+	// Delete all linkers are pending destroy
+	DeleteLoaders();
 
 	// Cleanup root.
 	if (GObjTransientPkg != NULL)
@@ -3742,6 +3747,7 @@ void StaticExit()
 	UObjectBaseShutdown();
 	// Empty arrays to prevent falsely-reported memory leaks.
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
+
 	UE_LOG(LogExit, Log, TEXT("Object subsystem successfully closed.") );
 }
 

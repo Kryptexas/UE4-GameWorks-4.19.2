@@ -24,7 +24,10 @@ namespace LocalizationConfigurationScript
 	{
 		FString Result = Path;
 		const FString ProjectDir = !IsUsingProjectFile ? FPaths::EngineDir() : FPaths::GameDir();
-		FPaths::MakePathRelativeTo(Result, *ProjectDir);
+		if (!FPaths::MakePathRelativeTo(Result, *ProjectDir))
+		{
+			Result = FPaths::ConvertRelativePathToFull(Path);
+		}
 		return Result;
 	}
 

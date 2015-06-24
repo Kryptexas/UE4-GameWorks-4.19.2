@@ -482,7 +482,17 @@ void AMatineeActor::Reverse()
 
 void AMatineeActor::Stop()
 {
-	bPendingStop = true;
+	// Re-enable the radio filter
+	EnableRadioFilter();
+
+	bIsPlaying = false;
+	bPaused = false;
+
+	if (GetWorld()->IsGameWorld())
+	{
+		// We should only terminate the interp in the game.  The editor handles this from inside the matinee editor
+		TermInterp();
+	}
 }
 
 void AMatineeActor::Pause()
@@ -596,22 +606,6 @@ void AMatineeActor::Tick(float DeltaTime)
 	if ( bIsPlaying && MatineeData != NULL )
 	{
 		StepInterp(DeltaTime, false);
-	}
-
-	if (bPendingStop)
-	{
-		// Re-enable the radio filter
-		EnableRadioFilter();
-
-		bIsPlaying = false;
-		bPaused = false;
-		bPendingStop = false;
-
-		if (GetWorld()->IsGameWorld())
-		{
-			// We should only terminate the interp in the game.  The editor handles this from inside the matinee editor
-			TermInterp();
-		}
 	}
 }
 
@@ -737,8 +731,21 @@ void AMatineeActor::UpdateInterp( float NewPosition, bool bPreview, bool bJump )
 			for( int32 GroupIndex = 0; GroupIndex < Groups.Num(); ++GroupIndex )
 			{
 				Groups[GroupIndex]->Group->UpdateGroup( NewPosition, Groups[GroupIndex], bPreview, bJump );
+
+				const bool bhasBeenTerminated = (GroupInst.Num() == 0);
+#if WITH_EDITORONLY_DATA
+				if (bhasBeenTerminated && !bIsBeingEdited)
+#else
+				if (bhasBeenTerminated)
+#endif
+				{
+					UE_LOG(LogMatinee, Log, TEXT("WARNING: A matinee was stopped while updating group '%s'; the next groups will not be updated."), *Groups[GroupIndex]->Group->GetFullGroupName(true));
+					InterpPosition = NewPosition;
+					return;
+				}
 			}
 		}
+
 
 		InterpPosition = NewPosition;
 	}
@@ -2025,8 +2032,17 @@ void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool
 		UpdateAnimWeights(NewPosition, GrInst, bPreview, bJump);
 	}
 #endif
+
 	for(int32 i=0; i<InterpTracks.Num(); i++)
 	{
+		// If the track instances have been removed from the group instance, this means that a previous track update has terminated the sequence.
+		// The group instance itself will still be valid, but unreferenced.
+		const bool bHasBeenTerminated = (GrInst->TrackInst.Num() == 0);
+
+		if (bHasBeenTerminated)
+		{
+			break;
+		}
 		UInterpTrack* Track = InterpTracks[i];
 		UInterpTrackInst* TrInst = GrInst->TrackInst[i];
 
