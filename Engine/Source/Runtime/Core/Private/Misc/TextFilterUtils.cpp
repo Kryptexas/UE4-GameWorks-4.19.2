@@ -104,7 +104,7 @@ namespace FastToUpper
 		0,		// Y
 		0,		// Z
 		0,		// [
-		0,		// \ 
+		0,		// Backslash
 		0,		// ]
 		0,		// ^
 		0,		// _
