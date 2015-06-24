@@ -291,10 +291,18 @@ void FSequencerActorBindingManager::GetRuntimeObjects( const TSharedRef<FMovieSc
 		OutRuntimeObjects.Reset();
 		OutRuntimeObjects.Add( FoundSpawnedObject );
 	}
-	else if( PlayMovieSceneNode.IsValid() )
+	else
 	{
 		// Possessable
-		OutRuntimeObjects = PlayMovieSceneNode->FindBoundObjects( ObjectGuid );
+		if (!PlayMovieSceneNode.IsValid())
+		{
+			BindToPlayMovieSceneNode(false);
+		}
+	
+		if (PlayMovieSceneNode.IsValid())
+		{
+			OutRuntimeObjects = PlayMovieSceneNode->FindBoundObjects( ObjectGuid );
+		}
 	}
 }
 
