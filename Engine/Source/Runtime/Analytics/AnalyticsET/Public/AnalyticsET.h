@@ -44,10 +44,6 @@ public:
 		 * If you supply your own Version string, occurrences of "%VERSION%" are replaced with GEngineVersion. ie, -AnalyticsAppVersion=MyCustomID-%VERSION%.
 		 */
 		FString AppVersionET;
-		/** UseDataRouter - flag indicating that we should use the new datarouter system. */
-		FString UseDataRouterET;
-		/** DataRouterUploadURLET - data router upload URL - Defaults if empty to GetDefaultDataRouterUploadURL. */
-		FString DataRouterUploadURLET;
 
 		/** KeyName required for APIKey configuration. */
 		static FString GetKeyNameForAPIKey() { return TEXT("APIKeyET"); }
@@ -57,12 +53,6 @@ public:
 		static FString GetKeyNameForAppVersion() { return TEXT("AppVersionET"); }
 		/** Default value if no APIServer configuration is provided. */
 		static FString GetDefaultAPIServer() { return TEXT("http://devonline-02:/ETAP/"); }
-		/** Default value if no DataRouterServer configuration is provided. */
-		static FString GetDefaultDataRouterUploadURL() { return TEXT("https://datarouter-public-service-gamedev.ol.epicgames.net/datarouter/api/v1/public/data"); }
-		/** KeyName indicating if we should use the data router. */
-		static FString GetKeyNameForUseDataRouter() { return TEXT("UseDataRouterET"); }
-		/** KeyName for the data router upload URL. */
-		static FString GetKeyNameForDataRouterUploadURL() { return TEXT("DataRouterUploadURLET"); }
 	};
 
 	//--------------------------------------------------------------------------
