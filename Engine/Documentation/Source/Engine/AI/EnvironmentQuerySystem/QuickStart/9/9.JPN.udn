@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:9.ビヘイビアツリーの設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -43,7 +43,7 @@ Description:EQS クイックスタートのビヘイビアツリーの設定
 
 	![](connectSeq.png)
 
-1. [REGION:raw] **Run EQS Query Node** を作成します (グラフエリアで右クリック %arrow% **Tasks** %arrow% **Run EQSQuery**)。[/REGION]
+1. [REGION:raw] **Run EQS Query Node** （EQS クエリ ノードを実行）を作成します (グラフエリアで右クリック %arrow% **Tasks** %arrow% **Run EQSQuery**)。[/REGION]
 
 	![](addEqs1.png)
 
@@ -51,12 +51,12 @@ Description:EQS クイックスタートのビヘイビアツリーの設定
 
 	![](connectEqs1.png)
 
-1. この **Run EQS Query Node** を選択し、その [Details] パネルで **Query Template** を `FindPlayer` に設定します。
+1. この **Run EQS Query Node** を選択し、その [Details]（詳細）パネルで **Query Template** を `FindPlayer` に設定します。
 1. [Details] パネルで、**Blackboard Key** を `ActorToFleeFrom` に設定します。
 
 	![](setEqs1props.png)
 
-1. [REGION:raw] **Cooldown Decorator** を **Run EQS Query Node**  に追加します (**Run EQS Query Node** を右クリック %arrow% **Decorators** %arrow% **Cooldown**)[/REGION]
+1. [REGION:raw] **Cooldown Decorator** を **Run EQS Query Node** に追加します (**Run EQS Query Node** を右クリック %arrow% **Decorators** %arrow% **Cooldown**)[/REGION]
 
 	![](addCooldown.png)
 
