@@ -1,7 +1,9 @@
 Availability: Public
-Title:1. Creating Folders
+Title:1.1 - Creating Folders
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:Learn how to create folders in the Content Browser.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

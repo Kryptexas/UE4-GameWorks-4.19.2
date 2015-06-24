@@ -2,7 +2,8 @@ Availability: Public
 Title:1. Setting up your Project
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:Learn how to set up your project in Unreal Engine 4.
-
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

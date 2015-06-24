@@ -1,7 +1,9 @@
 Availability: Public
-Title:4. Preparing Meshes for Import
+Title:1.4 - Preparing Meshes for Import
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:Learn how to prepare meshes for your Unreal Engine 4 project.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,7 +1,9 @@
 Availability: Public
-Title:3. Importing Textures
+Title:1.3 - Importing Textures
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:Learn how to import images into your Unreal Engine 4 project.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

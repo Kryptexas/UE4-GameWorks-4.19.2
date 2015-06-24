@@ -2,8 +2,8 @@ Availability: Public
 Title:2. Creating Materials
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:Now that you've set-up your project, learn how to create materials.
-
-
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

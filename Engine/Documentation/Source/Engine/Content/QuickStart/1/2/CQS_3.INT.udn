@@ -1,7 +1,9 @@
 Availability: Public
-Title:2. Importing Meshes
+Title:1.2 - Importing Meshes
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:Learn how to import meshes into your Unreal Engine 4 project.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
