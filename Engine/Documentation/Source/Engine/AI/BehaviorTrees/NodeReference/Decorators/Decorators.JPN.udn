@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Behavior Tree ノードのリファレンス:Decorators
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -7,7 +7,7 @@ Description:Behavior Tree Decorator ノードの説明です。
 [TOC(start:2 end:2)]
 
 
-Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **デコレーター ノード** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) または [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
+Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **Decorator ノード** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) または [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
 
 ## Blackboard
 
@@ -41,7 +41,7 @@ Blackboard ノードは、任意の Blackboard Key に値が設定されてい�
 [EXCERPT:subprop4]
 | --- | --- |
 | **Is Set** | 値は設定されているかどうか。 |
-| **Is Set** | 値が設定されていないかどうか。 |
+| **Is Not Set** | 値が設定されていないかどうか。 |
 [/EXCERPT:subprop4]
 -->
 
@@ -249,3 +249,8 @@ Force Success デコレーターはノード結果を成功に変更します。
 | **Time Limit** | ノードが失敗する前の秒時間リミットです。 |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+
+
+
