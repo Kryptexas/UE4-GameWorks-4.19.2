@@ -535,11 +535,11 @@ FTexelAllocation FParticleCurveTexture::AddCurve( const TArray<FColor>& CurveSam
 	check( IsInGameThread() );
 	check( CurveSamples.Num() <= GParticleCurveTextureSizeX );
 
-	if ( CurveSamples.Num() )
+	if (FApp::CanEverRender())
 	{
-		FTexelAllocation TexelAllocation = TexelAllocator.Allocate( CurveSamples.Num() );
-		if (FApp::CanEverRender())
+		if ( CurveSamples.Num() )
 		{
+			FTexelAllocation TexelAllocation = TexelAllocator.Allocate( CurveSamples.Num() );
 			if ( TexelAllocation.Size > 0 )
 			{
 				check( TexelAllocation.Size == CurveSamples.Num() );
@@ -550,10 +550,11 @@ FTexelAllocation FParticleCurveTexture::AddCurve( const TArray<FColor>& CurveSam
 				return TexelAllocation;
 			}
 			UE_LOG(LogParticles, Warning, TEXT("FParticleCurveTexture: Failed to allocate %d texels for a curve."), CurveSamples.Num() );
-		}
 
-		return TexelAllocation;
+			return TexelAllocation;
+		}
 	}
+
 	return FTexelAllocation();
 }
 
