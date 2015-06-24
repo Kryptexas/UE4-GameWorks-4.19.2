@@ -7,7 +7,7 @@
     <ProjectGuid>{9A1A118B-37FC-4F33-BBF4-B431B6E3B3AC}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>GUBP.Automation</RootNamespace>
+    <RootNamespace>AutomationTool</RootNamespace>
     <AssemblyName>GUBP.Automation</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -58,7 +58,10 @@
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
+    <Compile Include="ElectricCommander.cs" />
     <Compile Include="GUBP.cs" />
+    <Compile Include="LegacyBranchSetup.cs" />
+    <Compile Include="LegacyNodes.cs" />
     <Compile Include="TempStorage.cs">
       <SubType>Code</SubType>
     </Compile>
