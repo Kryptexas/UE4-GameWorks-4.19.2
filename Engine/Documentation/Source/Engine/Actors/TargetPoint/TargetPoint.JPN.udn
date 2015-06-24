@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2370983
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Target Point アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -26,8 +26,13 @@ Target Point アクタを使用すると、アンリアル エンジン 4.0 内�
 
 
 
- 以下は、ブループリントでスポーンポイントとして Target Point アクタがどのように使用されたかを示した例です。 
+ 以下は、ブループリントでスポーン ポイントとして Target Point アクタがどのように使用されたかを示した例です。 
 
 ![](Target_Point_As_Spawn.png)
 
 ブループリントで Target ポイントノードを使用する方法の詳細な例については、[ブループリントでアクタをスポーン/破壊する方法](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) チュートリアルをご覧ください。
+
+
+
+
+
