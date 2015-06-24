@@ -38,14 +38,17 @@ struct extern_var : public exec_node
 
 struct FBuffers
 {
+	TIRVarSet AtomicVariables;
+
 	TArray<class ir_instruction*> Buffers;
 
 	// Information about textures & samplers; we need to have unique samplerstate indices, as one they can be used independent of each other
 	TArray<std::string> UniqueSamplerStates;
 
-	int32 GetUniqueSamplerStateIndex(const std::string& Name, bool bAddIfNotFound)
+	int32 GetUniqueSamplerStateIndex(const std::string& Name, bool bAddIfNotFound, bool& bOutAdded)
 	{
 		int32 Found = INDEX_NONE;
+		bOutAdded = false;
 		if (UniqueSamplerStates.Find(Name, Found))
 		{
 			return Found;
@@ -54,18 +57,24 @@ struct FBuffers
 		if (bAddIfNotFound)
 		{
 			UniqueSamplerStates.Add(Name);
+			bOutAdded = true;
 			return UniqueSamplerStates.Num() - 1;
 		}
 
 		return Found;
 	}
 
-	int GetIndex(ir_variable* Var)
+	int GetIndex(ir_variable* Var, bool bIsDesktop)
 	{
 		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
 			if (Buffers[i] == Var)
 			{
+				if (Var->type->is_image())
+				{
+					//return (bIsDesktop ? 126 : 30) - i;
+					return 30 - i;
+				}
 				return i;
 			}
 		}
@@ -73,13 +82,18 @@ struct FBuffers
 		return -1;
 	}
 
-	int GetIndex(const std::string& Name)
+	int GetIndex(const std::string& Name, bool bIsDesktop)
 	{
 		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
 			auto* Var = Buffers[i] ? Buffers[i]->as_variable() : nullptr;
 			if (Var && Var->name && Var->name == Name)
 			{
+				if (Var->type->is_image())
+				{
+					//return (bIsDesktop ? 126 : 30) - i;
+					return 30 - i;
+				}
 				return i;
 			}
 		}
@@ -133,11 +147,13 @@ const glsl_type* PromoteHalfToFloatType(_mesa_glsl_parse_state* state, const gls
 
 namespace MetalUtils
 {
-	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState, const char* InputSemantic,
+	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* InputSemantic,
 		const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions);
 
-	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState, const char* OutputSemantic,
+	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* OutputSemantic,
 		const glsl_type* OutputType, exec_list* DeclInstructions, exec_list* PreCallInstructions, exec_list* PostCallInstructions);
 }
 
 const int MAX_SIMULTANEOUS_RENDER_TARGETS = 8;
+
+#define NV_EPIC_LAYER							"__epic_layer_index"

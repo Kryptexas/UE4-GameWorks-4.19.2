@@ -10,12 +10,13 @@
 
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
+static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 
 class FMetalShaderFormat : public IShaderFormat
 {
 	enum
 	{
-		HEADER_VERSION = 14,
+		HEADER_VERSION = 17,
 	};
 	struct FVersion
 	{
@@ -51,10 +52,11 @@ public:
 	{
 		OutFormats.Add(NAME_SF_METAL);
 		OutFormats.Add(NAME_SF_METAL_MRT);
+		OutFormats.Add(NAME_SF_METAL_SM5);
 	}
 	virtual void CompileShader(FName Format, const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output,const FString& WorkingDirectory) const
 	{
-		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT);
+		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT || Format == NAME_SF_METAL_SM5);
 		CompileShader_Metal(Input, Output, WorkingDirectory);
 	}
 };

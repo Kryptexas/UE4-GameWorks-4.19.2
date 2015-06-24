@@ -1,5 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-// .
+// ..
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
@@ -334,6 +334,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
  */
 class FGenerateMetalVisitor : public ir_visitor
 {
+	FMetalCodeBackend* Backend;
 	_mesa_glsl_parse_state* ParseState;
 
 	/** Track which multi-dimensional arrays are used. */
@@ -373,7 +374,6 @@ protected:
 	/** Uniform block variables required by the code. */
 	hash_table *used_uniform_blocks;
 	/** Multi-dimensional arrays required by the code. */
-	exec_list used_md_arrays;
 
 	// Code generation flags
 	_mesa_glsl_parser_targets Frequency;
@@ -388,6 +388,8 @@ protected:
 	int indentation;
 	/** Scope depth. */
 	int scope_depth;
+	// Expression Depth
+	int ExpressionDepth;
 	/** The number of temporary variables declared in the current scope. */
 	int temp_id;
 	/** The number of global variables declared. */
@@ -415,31 +417,6 @@ protected:
 
 	// Do we need to add #include <compute_shaders>
 	bool bNeedsComputeInclude;
-
-	/**
-	 * Return true if the type is a multi-dimensional array. Also, track the
-	 * array.
-	 */
-	bool is_md_array(const glsl_type* type)
-	{
-		if (type->base_type == GLSL_TYPE_ARRAY &&
-			type->fields.array->base_type == GLSL_TYPE_ARRAY)
-		{
-			foreach_iter(exec_list_iterator, iter, used_md_arrays) 
-			{
-				md_array_entry* entry = (md_array_entry*)iter.get();
-				if (entry->type == type)
-				{
-					return true;
-				}
-			}
-			md_array_entry* entry = new(mem_ctx) md_array_entry();
-			entry->type = type;
-			used_md_arrays.push_tail(entry);
-			return true;
-		}
-		return false;
-	}
 
 	/**
 	 * Fetch/generate a unique name for ir_variable.
@@ -503,23 +480,6 @@ protected:
 	}
 
 	/**
-	 * Print out the internal name for a multi-dimensional array.
-	 */
-	void print_md_array_type(const glsl_type *t)
-	{
-		if (t->base_type == GLSL_TYPE_ARRAY)
-		{
-			ralloc_asprintf_append(buffer, "_mdarr_");
-			do 
-			{
-				ralloc_asprintf_append(buffer, "%d_", t->length);
-				t = t->fields.array;
-			} while (t->base_type == GLSL_TYPE_ARRAY);
-			print_base_type(t);
-		}
-	}
-
-	/**
 	 * Print the base type, e.g. vec3.
 	 */
 	void print_base_type(const glsl_type *t)
@@ -573,6 +533,16 @@ protected:
 					ralloc_asprintf_append(buffer, t->sampler_shadow ? "depth2d_array" : "texture2d_array");
 					bDone = true;
 				}
+				else if (t->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE && t->sampler_array)
+				{
+					ralloc_asprintf_append(buffer, "texturecube_array");
+					bDone = true;
+				}
+				else if (t->sampler_dimensionality == GLSL_SAMPLER_DIM_2D && t->sampler_ms)
+				{
+					ralloc_asprintf_append(buffer, t->sampler_shadow ? "depth2d_ms" : "texture2d_ms");
+					bDone = true;
+				}
 				else if (t->HlslName)
 				{
 					if (!strcmp(t->HlslName, "texture2d") && t->sampler_shadow)
@@ -612,14 +582,7 @@ protected:
 	 */
 	void print_type_pre(const glsl_type *t)
 	{
-		if (is_md_array(t))
-		{
-			print_md_array_type(t);
-		}
-		else
-		{
-			print_base_type(t);
-		}
+		print_base_type(t);
 	}
 
 	/**
@@ -627,9 +590,14 @@ protected:
 	 */
 	void print_type_post(const glsl_type *t)
 	{
-		if (t->base_type == GLSL_TYPE_ARRAY && !is_md_array(t))
+		if (t->base_type == GLSL_TYPE_ARRAY)
 		{
-			ralloc_asprintf_append(buffer, "[%u]", t->length);
+			do 
+			{
+				ralloc_asprintf_append(buffer, "[%u]", t->length);
+				t = t->element_type();
+			}
+			while (t && t->base_type == GLSL_TYPE_ARRAY);
 		}
 		else if (t->base_type == GLSL_TYPE_INPUTPATCH || t->base_type == GLSL_TYPE_OUTPUTPATCH)
 		{
@@ -706,7 +674,7 @@ protected:
 				check(!PtrType->is_array() && PtrType->inner_type);
 
 				// Buffer
-				int BufferIndex = Buffers.GetIndex(var);
+				int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
 				check(BufferIndex >= 0);
 				if (var->type->sampler_buffer)
 				{
@@ -714,6 +682,10 @@ protected:
 						buffer,
 						"device "
 						);
+					if (Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+					{
+						ralloc_asprintf_append(buffer, "atomic_");
+					}
 					print_type_pre(PtrType->inner_type);
 					ralloc_asprintf_append(buffer, " *%s", unique_name(var));
 					print_type_post(PtrType->inner_type);
@@ -738,11 +710,12 @@ protected:
 					while (*Found);
 					*TempPtr = 0;
 					ralloc_asprintf_append(buffer, "texture%s<", Temp);
-					print_type_pre(PtrType->inner_type);
+					// UAVs require type per channel, not including # of channels
+					print_type_pre(PtrType->inner_type->get_scalar_type());
 					ralloc_asprintf_append(buffer, ", access::write> %s", unique_name(var));
 					ralloc_asprintf_append(
 						buffer,
-						" [[ buffer(%d) ]]", BufferIndex
+						" [[ texture(%d) ]]", BufferIndex
 						);
 				}
 			}
@@ -765,11 +738,11 @@ protected:
 						if (var->type->sampler_buffer)
 						{
 							// Buffer
-							int BufferIndex = Buffers.GetIndex(var);
+							int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
 							check(BufferIndex >= 0);
 							ralloc_asprintf_append(
 								buffer,
-								"constant "
+								"const device "
 								);
 							print_type_pre(PtrType);
 							ralloc_asprintf_append(buffer, " *%s", unique_name(var));
@@ -791,10 +764,14 @@ protected:
 								auto& SamplerStates = SamplerStateFound->second;
 								for (auto& SamplerState : SamplerStates)
 								{
-									int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(SamplerState, true);
-									ralloc_asprintf_append(
-										buffer,
-										"sampler s%d [[ sampler(%d) ]], ",  SamplerStateIndex, SamplerStateIndex);
+									bool bAdded = false;
+									int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(SamplerState, true, bAdded);
+									if (bAdded)
+									{
+										ralloc_asprintf_append(
+											buffer,
+											"sampler s%d [[ sampler(%d) ]], ", SamplerStateIndex, SamplerStateIndex);
+									}
 								}
 							}
 
@@ -811,7 +788,7 @@ protected:
 					}
 					else
 					{
-						int BufferIndex = Buffers.GetIndex(var);
+						int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
 						bool bNeedsPointer = (var->semantic && (strlen(var->semantic) == 1));
 						check(BufferIndex >= 0);
 						ralloc_asprintf_append(
@@ -892,6 +869,12 @@ protected:
 					{
 						ralloc_asprintf_append(buffer, "threadgroup ");
 					}
+
+					if (Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+					{
+						ralloc_asprintf_append(buffer, "atomic_");
+					}
+
 					print_type_pre(var->type);
 					ralloc_asprintf_append(buffer, " %s", unique_name(var));
 					print_type_post(var->type);
@@ -1015,6 +998,7 @@ protected:
 	virtual void visit(ir_expression *expr) override
 	{
 		check(scope_depth > 0);
+		++ExpressionDepth;
 
 		int numOps = expr->get_num_operands();
 		ir_expression_operation op = expr->operation;
@@ -1027,6 +1011,14 @@ protected:
 			Type = FixVecPrefix(Type);
 
 			ralloc_asprintf_append(buffer, "(%s(1.0) / ", Type.c_str());
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, ")");
+		}
+		else if (op >= ir_unop_fasu && op <= ir_unop_uasf)
+		{
+			ralloc_asprintf_append(buffer, "as_type<");
+			print_type_full(expr->type);
+			ralloc_asprintf_append(buffer, ">(");
 			expr->operands[0]->accept(this);
 			ralloc_asprintf_append(buffer, ")");
 		}
@@ -1045,14 +1037,16 @@ protected:
 			 (numOps == 2 && op >= ir_binop_first_logic && op <= ir_binop_last_logic)))
 		{
 			const char* op_str = MetalExpressionTable[op][3];
-			ralloc_asprintf_append(buffer, "%s(", (numOps == 1) ? op_str : "");
+			ralloc_asprintf_append(buffer, "%s%s",
+				(numOps == 1) ? op_str : "",
+				(ExpressionDepth > 1) ? "(" : "");
 			expr->operands[0]->accept(this);
 			if (numOps == 2)
 			{
 				ralloc_asprintf_append(buffer, "%s", op_str);
 				expr->operands[1]->accept(this);
 			}
-			ralloc_asprintf_append(buffer, ")");
+			ralloc_asprintf_append(buffer, (ExpressionDepth > 1) ? ")" : "");
 		}
 		else if (expr->type->is_vector() && numOps == 2 &&
 			op >= ir_binop_first_logic && op <= ir_binop_last_logic)
@@ -1107,6 +1101,8 @@ protected:
 				ralloc_asprintf_append(buffer, MetalExpressionTable[op][i+1]);
 			}
 		}
+
+		--ExpressionDepth;
 	}
 
 	virtual void visit(ir_texture *tex) override
@@ -1115,7 +1111,7 @@ protected:
 		bool bNeedsClosingParenthesis = true;
 		if (tex->op == ir_txs)
 		{
-			ralloc_asprintf_append(buffer, "uint2(");
+			ralloc_asprintf_append(buffer, "int2((int)");
 		}
 
 		tex->sampler->accept(this);
@@ -1129,7 +1125,8 @@ protected:
 			auto* Texture = tex->sampler->variable_referenced();
 			check(Texture);
 			auto* Entry = ParseState->FindPackedSamplerEntry(Texture->name);
-			int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(tex->SamplerStateName, false);
+			bool bDummy;
+			int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(tex->SamplerStateName, false, bDummy);
 			check(SamplerStateIndex != INDEX_NONE);
 			ralloc_asprintf_append(buffer, "s%d, ", SamplerStateIndex);
 			if (tex->sampler->type->sampler_array)
@@ -1186,6 +1183,12 @@ protected:
 			{
 				ralloc_asprintf_append(buffer, ".read(");
 				tex->coordinate->accept(this);
+				
+				if (tex->sampler->type->sampler_ms)
+				{
+					ralloc_asprintf_append(buffer, ",");
+					tex->lod_info.sample_index->accept(this);
+				}
 			}
 		}
 			break;
@@ -1205,8 +1208,9 @@ protected:
 			// Sampler
 			auto* Texture = tex->sampler->variable_referenced();
 			check(Texture);
+			bool bDummy;
 			auto* Entry = ParseState->FindPackedSamplerEntry(Texture->name);
-			int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(tex->SamplerStateName, false);
+			int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(tex->SamplerStateName, false, bDummy);
 			check(SamplerStateIndex != INDEX_NONE);
 			ralloc_asprintf_append(buffer, "s%d, ", SamplerStateIndex);
 			// Coord
@@ -1230,19 +1234,19 @@ protected:
 		{
 			// Convert from:
 			//	HLSL
-			//		uint w, h;
+			//		int w, h;
 			//		T.GetDimensions({lod, }w, h);
 			// GLSL
 			//		ivec2 Temp;
 			//		Temp = textureSize(T{, lod});
 			// Metal
-			//		uint2 Temp = uint2(T.get_width({lod}), T.get_height({lod}));
+			//		int2 Temp = int2((int)T.get_width({lod}), (int)T.get_height({lod}));
 			ralloc_asprintf_append(buffer, ".get_width(");
 			if (tex->lod_info.lod)
 			{
 				tex->lod_info.lod->accept(this);
 			}
-			ralloc_asprintf_append(buffer, "), ");
+			ralloc_asprintf_append(buffer, "), (int)");
 			tex->sampler->accept(this);
 			ralloc_asprintf_append(buffer, ".get_height(");
 			if (tex->lod_info.lod)
@@ -1359,11 +1363,6 @@ protected:
 				hash_table_insert(used_uniform_blocks, (void*)var->semantic, var->semantic);
 			}
 		}
-
-		if (is_md_array(deref->type))
-		{
-			ralloc_asprintf_append(buffer, ".Inner");
-		}
 	}
 
 	virtual void visit(ir_dereference_array *deref) override
@@ -1407,11 +1406,6 @@ protected:
 		{
 			ralloc_asprintf_append(buffer, "]");
 		}
-
-		if (is_md_array(deref->array->type))
-		{
-			ralloc_asprintf_append(buffer, ".Inner");
-		}
 	}
 
 	void print_image_op( ir_dereference_image *deref, ir_rvalue *src)
@@ -1447,10 +1441,77 @@ protected:
 				if (bIsRWTexture)
 				{
 					ralloc_asprintf_append(buffer, ".write(");
-					src->accept(this);
-					ralloc_asprintf_append(buffer, ",");
+					// @todo Zebra: Below is a terrible hack - the input to write is always vec<T, 4>,
+					// 				but the type T comes from the texture type.  
+					if(src_elements == 1)
+					{
+						switch(deref->type->base_type)
+						{
+							case GLSL_TYPE_UINT:
+								ralloc_asprintf_append(buffer, "uint4(");
+								break;
+							case GLSL_TYPE_INT:
+								ralloc_asprintf_append(buffer, "int4(");
+								break;
+							case GLSL_TYPE_HALF:
+								ralloc_asprintf_append(buffer, "half4(");
+								break;
+							case GLSL_TYPE_FLOAT:
+							default:
+								ralloc_asprintf_append(buffer, "float4(");
+								break;
+						}
+						src->accept(this);
+						ralloc_asprintf_append(buffer, ")");
+					}
+					else
+					{
+						switch(deref->type->base_type)
+						{
+							case GLSL_TYPE_UINT:
+								ralloc_asprintf_append(buffer, "(uint4)(");
+								break;
+							case GLSL_TYPE_INT:
+								ralloc_asprintf_append(buffer, "(int4)(");
+								break;
+							case GLSL_TYPE_HALF:
+								ralloc_asprintf_append(buffer, "(half4)(");
+								break;
+							case GLSL_TYPE_FLOAT:
+							default:
+								ralloc_asprintf_append(buffer, "(float4)(");
+								break;
+						}
+						src->accept(this);
+						switch (src_elements)
+						{
+							case 3:
+								ralloc_asprintf_append(buffer, ").xyzx");
+								break;
+							case 2:
+								ralloc_asprintf_append(buffer, ").xyxy");
+								break;
+							default:
+								ralloc_asprintf_append(buffer, ")");
+								break;
+						}
+					}
+					
+					//#todo-rco: Add language spec to know if indices need to be uint
+					ralloc_asprintf_append(buffer, ",(uint");
+					switch (deref->image_index->type->vector_elements)
+					{
+					case 4:
+					case 3:
+					case 2:
+						ralloc_asprintf_append(buffer, "%d", deref->image_index->type->vector_elements);
+						//fallthrough
+					case 1:
+						ralloc_asprintf_append(buffer, ")(");
+						break;
+					}
 					deref->image_index->accept(this);
-					ralloc_asprintf_append(buffer, ")");
+					ralloc_asprintf_append(buffer, "))");
 				}
 				else
 				{
@@ -1488,11 +1549,6 @@ protected:
 
 		deref->record->accept(this);
 		ralloc_asprintf_append(buffer, ".%s", deref->field);
-
-		if (is_md_array(deref->type))
-		{
-			ralloc_asprintf_append(buffer, ".Inner");
-		}
 	}
 
 	virtual void visit(ir_assignment *assign) override
@@ -1800,7 +1856,9 @@ protected:
 		}
 
 		if (dest_deref == NULL || true_value == NULL)
+		{
 			return false;
+		}
 
 		num_inst = 0;
 		foreach_iter(exec_list_iterator, iter, expr->else_instructions)
@@ -1864,35 +1922,16 @@ protected:
 
 		if (try_conditional_move(expr) == false)
 		{
-		ralloc_asprintf_append(buffer, "if (");
-		expr->condition->accept(this);
-		ralloc_asprintf_append(buffer, ")\n");
-		indent();
-		ralloc_asprintf_append(buffer, "{\n");
-		
-		indentation++;
-		foreach_iter(exec_list_iterator, iter, expr->then_instructions)
-		{
-			ir_instruction *const inst = (ir_instruction *) iter.get();
-			indent();
-			do_visit(inst);
-		}
-		indentation--;
-
-		indent();
-		ralloc_asprintf_append(buffer, "}\n");
-
-		if (!expr->else_instructions.is_empty())
-		{
-			indent();
-			ralloc_asprintf_append(buffer, "else\n");
+			ralloc_asprintf_append(buffer, "if (");
+			expr->condition->accept(this);
+			ralloc_asprintf_append(buffer, ")\n");
 			indent();
 			ralloc_asprintf_append(buffer, "{\n");
 
 			indentation++;
-			foreach_iter(exec_list_iterator, iter, expr->else_instructions)
+			foreach_iter(exec_list_iterator, iter, expr->then_instructions)
 			{
-				ir_instruction *const inst = (ir_instruction *) iter.get();
+				ir_instruction *const inst = (ir_instruction *)iter.get();
 				indent();
 				do_visit(inst);
 			}
@@ -1900,10 +1939,29 @@ protected:
 
 			indent();
 			ralloc_asprintf_append(buffer, "}\n");
-		}
 
-		needs_semicolon = false;
-	}
+			if (!expr->else_instructions.is_empty())
+			{
+				indent();
+				ralloc_asprintf_append(buffer, "else\n");
+				indent();
+				ralloc_asprintf_append(buffer, "{\n");
+
+				indentation++;
+				foreach_iter(exec_list_iterator, iter, expr->else_instructions)
+				{
+					ir_instruction *const inst = (ir_instruction *)iter.get();
+					indent();
+					do_visit(inst);
+				}
+				indentation--;
+
+				indent();
+				ralloc_asprintf_append(buffer, "}\n");
+			}
+
+			needs_semicolon = false;
+		}
 	}
 
 	virtual void visit(ir_loop *loop) override
@@ -1968,16 +2026,17 @@ protected:
 	{
 		const char *sharedAtomicFunctions[] = 
 		{
-			"atomicAdd",
-			"atomicAnd",
-			"atomicMin",
-			"atomicMax",
-			"atomicOr",
-			"atomicXor",
-			"atomicExchange",
-			"atomicCompSwap"
+			"atomic_fetch_add_explicit",
+			"atomic_fetch_and_explicit",
+			"atomic_fetch_min_explicit",
+			"atomic_fetch_max_explicit",
+			"atomic_fetch_or_explicit",
+			"atomic_fetch_xor_explicit",
+			"atomic_exchange_explicit",
+			"atomic_compare_exchange_weak_explicit"
 		};
-		const char *imageAtomicFunctions[] = 
+/*
+		const char *imageAtomicFunctions[] =
 		{
 			"imageAtomicAdd",
 			"imageAtomicAnd",
@@ -1988,13 +2047,14 @@ protected:
 			"imageAtomicExchange",
 			"imageAtomicCompSwap"
 		};
+*/
 		check(scope_depth > 0);
 		const bool is_image = ir->memory_ref->as_dereference_image() != NULL;
 
 		ir->lhs->accept(this);
-		if (!is_image)
+		//if (!is_image)
 		{
-			ralloc_asprintf_append(buffer, " = %s(",
+			ralloc_asprintf_append(buffer, " = %s(&",
 				sharedAtomicFunctions[ir->operation]);
 			ir->memory_ref->accept(this);
 			ralloc_asprintf_append(buffer, ", ");
@@ -2004,8 +2064,9 @@ protected:
 				ralloc_asprintf_append(buffer, ", ");
 				ir->operands[1]->accept(this);
 			}
-			ralloc_asprintf_append(buffer, ")");
+			ralloc_asprintf_append(buffer, ", memory_order_relaxed)");
 		}
+/*
 		else
 		{
 			ir_dereference_image *image = ir->memory_ref->as_dereference_image();
@@ -2021,42 +2082,8 @@ protected:
 				ralloc_asprintf_append(buffer, ", ");
 				ir->operands[1]->accept(this);
 			}
-			ralloc_asprintf_append(buffer, ")");
-		}
-	}
-
-	/**
-	 * Declare structs used to simulate multi-dimensional arrays.
-	 */
-	void declare_md_array_struct(const glsl_type* type, hash_table* ht)
-	{
-		check(type->is_array());
-
-		if (hash_table_find(ht, (void*)type) == NULL)
-		{
-			const glsl_type* subtype = type->fields.array;
-			if (subtype->base_type == GLSL_TYPE_ARRAY)
-			{
-				declare_md_array_struct(subtype, ht);
-
-				ralloc_asprintf_append(buffer, "struct ");
-				print_md_array_type(type);
-				ralloc_asprintf_append(buffer, "\n{\n\t");
-				print_md_array_type(subtype);
-				ralloc_asprintf_append(buffer, " Inner[%u];\n};\n\n", type->length);
-			}
-			else
-			{
-				ralloc_asprintf_append(buffer, "struct ");
-				print_md_array_type(type);
-				ralloc_asprintf_append(buffer, "\n{\n\t");
-				print_type_pre(type);
-				ralloc_asprintf_append(buffer, " Inner");
-				print_type_post(type);
-				ralloc_asprintf_append(buffer, ";\n};\n\n");
-			}
-			hash_table_insert(ht, (void*)type, (void*)type);
-		}
+			ralloc_asprintf_append(buffer, ", memory_order_relaxed)");
+		}*/
 	}
 
 	/**
@@ -2130,17 +2157,6 @@ protected:
 			while( added_structure_types > 0 );
 		}
 
-		// Generate structures that allow support for multi-dimensional arrays.
-		{
-			hash_table* ht = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
-			foreach_iter(exec_list_iterator, iter, used_md_arrays) 
-			{
-				md_array_entry* entry = (md_array_entry*)iter.get();
-				declare_md_array_struct(entry->type, ht);
-			}
-			hash_table_dtor(ht);
-		}
-
 		for (unsigned i = 0; i < state->num_user_structures; i++)
 		{
 			const glsl_type *const s = state->user_structures[i];
@@ -2183,6 +2199,10 @@ protected:
 						else if (!strncmp(s->fields.structure[j].semantic, "[[", 2))
 						{
 							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
+						}
+						else if (!strcmp(s->fields.structure[j].semantic, "SV_RenderTargetArrayIndex"))
+						{
+							ralloc_asprintf_append(buffer, " [[ user(%s) ]]", NV_EPIC_LAYER);
 						}
 						else
 						{
@@ -2299,7 +2319,7 @@ protected:
 			glsl_packed_uniform& Uniform = *Iter;
 			ANSICHAR Name[32];
 			FCStringAnsi::Sprintf(Name, "%si%d", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
-			int32 Offset = Buffers.GetIndex(Name);
+			int32 Offset = Buffers.GetIndex(Name, Backend->bIsDesktop);
 			check(Offset != -1);
 			ralloc_asprintf_append(
 				buffer,
@@ -2649,13 +2669,15 @@ protected:
 public:
 
 	/** Constructor. */
-	FGenerateMetalVisitor(_mesa_glsl_parse_state* InParseState, _mesa_glsl_parser_targets InFrequency, FBuffers& InBuffers)
-		: ParseState(InParseState)
+	FGenerateMetalVisitor(FMetalCodeBackend* InBackend, _mesa_glsl_parse_state* InParseState, _mesa_glsl_parser_targets InFrequency, FBuffers& InBuffers)
+		: Backend(InBackend)
+		, ParseState(InParseState)
 		, Frequency(InFrequency)
 		, Buffers(InBuffers)
 		, buffer(0)
 		, indentation(0)
 		, scope_depth(0)
+		, ExpressionDepth(0)
 		, temp_id(0)
 		, global_id(0)
 		, needs_semicolon(false)
@@ -2725,7 +2747,7 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 {
 	// We'll need this Buffers info for the [[buffer()]] index
 	FBuffers Buffers;
-	FGenerateMetalVisitor visitor(state, state->target, Buffers);
+	FGenerateMetalVisitor visitor(this, state, state->target, Buffers);
 
 	// At this point, all inputs and outputs are global uniforms, no structures.
 
@@ -2761,6 +2783,8 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 		//@todo-rco: Might not work if accessing packed_half* m[N]!
 		RemovePackedVarReferences(ir, state);
 
+		FindAtomicVariables(ir, Buffers.AtomicVariables);
+
 		bool bConvertUniformsToFloats = (HlslCompileFlags & HLSLCC_FlattenUniformBuffers) != HLSLCC_FlattenUniformBuffers;
 		ConvertHalfToFloatUniformsAndSamples(ir, state, bConvertUniformsToFloats, true);
 
@@ -2772,18 +2796,36 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	return _strdup(code);
 }
 
-struct FMetalUnsupportedSamplerVisitor : public ir_hierarchical_visitor
+struct FMetalCheckRestrictionsVisitor : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
-	const bool bIsVertexShader;
-	FMetalUnsupportedSamplerVisitor(_mesa_glsl_parse_state* InParseState, bool bInIsVertexShader) :
+	EHlslShaderFrequency Frequency;
+	bool bErrors;
+	FMetalCheckRestrictionsVisitor(_mesa_glsl_parse_state* InParseState, EHlslShaderFrequency InFrequency) :
 		ParseState(InParseState),
-		bIsVertexShader(bInIsVertexShader)
+		bErrors(false),
+		Frequency(InFrequency)
 	{
 	}
 
-	virtual ir_visitor_status visit_leave(ir_texture* IR) override
+	virtual ir_visitor_status visit(ir_variable* IR) override
 	{
+		if (Frequency != HSF_ComputeShader)
+		{
+			if (IR->type && IR->type->is_image())
+			{
+				if (IR->name)
+				{
+					_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stages.", IR->name);
+				}
+				else
+				{
+					_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stages.");
+				}
+				bErrors = true;
+				return visit_stop;
+			}
+		}
 
 		return visit_continue;
 	}
@@ -2792,16 +2834,10 @@ struct FMetalUnsupportedSamplerVisitor : public ir_hierarchical_visitor
 
 bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency)
 {
-	bool bIsVertexShader = (Frequency == HSF_VertexShader);
+	FMetalCheckRestrictionsVisitor Visitor(ParseState, Frequency);
+	Visitor.run(Instructions);
 
-	const bool bAllowVertexTextureFetch = true;
-	if (!bAllowVertexTextureFetch)
-	{
-		FMetalUnsupportedSamplerVisitor Visitor(ParseState, bIsVertexShader);
-		Visitor.run(Instructions);
-	}
-
-	return true;
+	return !Visitor.bErrors;
 }
 
 bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
@@ -2831,7 +2867,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 			{
 			case ir_var_in:
 				ArgVarDeref = MetalUtils::GenerateInput(
-					Frequency,
+					Frequency, bIsDesktop,
 					ParseState,
 					Variable->semantic,
 					Variable->type,
@@ -2841,7 +2877,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 				break;
 			case ir_var_out:
 				ArgVarDeref = MetalUtils::GenerateOutput(
-					Frequency,
+					Frequency, bIsDesktop,
 					ParseState,
 					Variable->semantic,
 					Variable->type,
@@ -2867,7 +2903,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	ir_dereference_variable* EntryPointReturn = nullptr;
 	if (!EntryPointSig->return_type->is_void())
 	{
-		EntryPointReturn = MetalUtils::GenerateOutput(Frequency, ParseState, EntryPointSig->return_semantic, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
+		EntryPointReturn = MetalUtils::GenerateOutput(Frequency, bIsDesktop, ParseState, EntryPointSig->return_semantic, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
 	}
 
 	ParseState->symbols->pop_scope();
@@ -2900,6 +2936,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) :
 	FCodeBackend(InHlslCompileFlags, InTarget)
 {
+	bIsDesktop = (InTarget == HCT_FeatureLevelSM4 || InTarget == HCT_FeatureLevelSM5);
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

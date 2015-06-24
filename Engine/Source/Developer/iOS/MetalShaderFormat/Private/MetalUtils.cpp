@@ -183,17 +183,18 @@ namespace MetalUtils
 		{"SV_VertexID", glsl_type::uint_type, "IN_VertexID", ir_var_in, "[[ vertex_id ]]"},
 		{"SV_InstanceID", glsl_type::uint_type, "IN_InstanceID", ir_var_in, "[[ instance_id ]]"},
 		{"SV_Position", glsl_type::vec4_type, "Position", ir_var_out, "[[ position ]]"},
+		{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, "SV_RenderTargetArrayIndex"},
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 
 	/** Pixel shader system values. */
-	static FSystemValue PixelSystemValueTable[] =
+	static FSystemValue MobilePixelSystemValueTable[] =
 	{
 		{"SV_Depth", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(any) ]]"},
 		{"SV_Position", glsl_type::vec4_type, "IN_FragCoord", ir_var_in, "[[ position ]]"},
 		{"SV_IsFrontFace", glsl_type::bool_type, "IN_FrontFacing", ir_var_in, "[[ front_facing ]]"},
 		//{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveID", ir_var_in, "[[  ]]"},
-		//{"SV_RenderTargetArrayIndex", glsl_type::int_type, "IN_Layer", ir_var_in, nullptr},
+		//{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, "SV_RenderTargetArrayIndex"},
 		{"SV_Target0", glsl_type::half4_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
 		{"SV_Target1", glsl_type::half4_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
 		{"SV_Target2", glsl_type::half4_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
@@ -218,14 +219,57 @@ namespace MetalUtils
 		{"SV_Target5", glsl_type::half2_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
 		{"SV_Target6", glsl_type::half2_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
 		{"SV_Target7", glsl_type::half2_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
-		{"SV_Target0", glsl_type::half_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
-		{"SV_Target1", glsl_type::half_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
-		{"SV_Target2", glsl_type::half_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
-		{"SV_Target3", glsl_type::half_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
-		{"SV_Target4", glsl_type::half_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
-		{"SV_Target5", glsl_type::half_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
-		{"SV_Target6", glsl_type::half_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
-		{"SV_Target7", glsl_type::half_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
+		{"SV_Target0", glsl_type::float_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
+		{"SV_Target1", glsl_type::float_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
+		{"SV_Target2", glsl_type::float_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
+		{"SV_Target3", glsl_type::float_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
+		{"SV_Target4", glsl_type::float_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
+		{"SV_Target5", glsl_type::float_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
+		{"SV_Target6", glsl_type::float_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
+		{"SV_Target7", glsl_type::float_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+	/** Pixel shader system values. */
+	static FSystemValue DesktopPixelSystemValueTable[] =
+	{
+		{"SV_Depth", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(any) ]]"},
+		{"SV_Position", glsl_type::vec4_type, "IN_FragCoord", ir_var_in, "[[ position ]]"},
+		{"SV_IsFrontFace", glsl_type::bool_type, "IN_FrontFacing", ir_var_in, "[[ front_facing ]]"},
+		//{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveID", ir_var_in, "[[  ]]"},
+		//{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, "SV_RenderTargetArrayIndex"},
+		{"SV_Target0", glsl_type::vec4_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
+		{"SV_Target1", glsl_type::vec4_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
+		{"SV_Target2", glsl_type::vec4_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
+		{"SV_Target3", glsl_type::vec4_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
+		{"SV_Target4", glsl_type::vec4_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
+		{"SV_Target5", glsl_type::vec4_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
+		{"SV_Target6", glsl_type::vec4_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
+		{"SV_Target7", glsl_type::vec4_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
+		{"SV_Target0", glsl_type::vec3_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
+		{"SV_Target1", glsl_type::vec3_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
+		{"SV_Target2", glsl_type::vec3_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
+		{"SV_Target3", glsl_type::vec3_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
+		{"SV_Target4", glsl_type::vec3_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
+		{"SV_Target5", glsl_type::vec3_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
+		{"SV_Target6", glsl_type::vec3_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
+		{"SV_Target7", glsl_type::vec3_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
+		{"SV_Target0", glsl_type::vec2_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
+		{"SV_Target1", glsl_type::vec2_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
+		{"SV_Target2", glsl_type::vec2_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
+		{"SV_Target3", glsl_type::vec2_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
+		{"SV_Target4", glsl_type::vec2_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
+		{"SV_Target5", glsl_type::vec2_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
+		{"SV_Target6", glsl_type::vec2_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
+		{"SV_Target7", glsl_type::vec2_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
+		{"SV_Target0", glsl_type::float_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
+		{"SV_Target1", glsl_type::float_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
+		{"SV_Target2", glsl_type::float_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
+		{"SV_Target3", glsl_type::float_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
+		{"SV_Target4", glsl_type::float_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
+		{"SV_Target5", glsl_type::float_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
+		{"SV_Target6", glsl_type::float_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
+		{"SV_Target7", glsl_type::float_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 
@@ -237,7 +281,7 @@ namespace MetalUtils
 		{"SV_InstanceID", glsl_type::int_type, "IN_InstanceID", ir_var_in, false, false, false, false},
 		{"SV_Position", glsl_type::vec4_type, "IN_Position", ir_var_in, false, true, true, false},
 		{"SV_Position", glsl_type::vec4_type, "OUT_Position", ir_var_out, false, false, true, false},
-		{"SV_RenderTargetArrayIndex", glsl_type::int_type, "OUT_Layer", ir_var_out, false, false, false, false},
+		{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, false, false, false, false},
 		{"SV_PrimitiveID", glsl_type::int_type, "OUT_PrimitiveID", ir_var_out, false, false, false, false},
 		{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveIDIn", ir_var_in, false, false, false, false},
 */
@@ -277,18 +321,27 @@ namespace MetalUtils
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 
-	FSystemValue* SystemValueTable[HSF_FrequencyCount] =
+	FSystemValue* MobileSystemValueTable[HSF_FrequencyCount] =
 	{
 		VertexSystemValueTable,
-		PixelSystemValueTable,
+		MobilePixelSystemValueTable,
 		GeometrySystemValueTable,
 		HullSystemValueTable,
 		DomainSystemValueTable,
 		ComputeSystemValueTable
 	};
 
+	FSystemValue* DesktopSystemValueTable[HSF_FrequencyCount] =
+	{
+		VertexSystemValueTable,
+		DesktopPixelSystemValueTable,
+		GeometrySystemValueTable,
+		HullSystemValueTable,
+		DomainSystemValueTable,
+		ComputeSystemValueTable
+	};
 
-	static ir_rvalue* GenerateInputFromSemantic(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+	static ir_rvalue* GenerateInputFromSemantic(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* Semantic, const glsl_type* Type, exec_list* DeclInstructions)
 	{
 		if (!Semantic)
@@ -300,7 +353,7 @@ namespace MetalUtils
 
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
-			FSystemValue* SystemValues = SystemValueTable[Frequency];
+			FSystemValue* SystemValues = bIsDesktop ? DesktopSystemValueTable[Frequency] : MobileSystemValueTable[Frequency];
 			for (int i = 0; SystemValues[i].HlslSemantic != NULL; ++i)
 			{
 				if (SystemValues[i].Mode == ir_var_in && FCStringAnsi::Stricmp(SystemValues[i].HlslSemantic, Semantic) == 0)
@@ -344,9 +397,17 @@ namespace MetalUtils
 		}
 
 		// If we're here, no built-in variables matched.
+		bool bUseSlice = false;
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
-			_mesa_glsl_warning(ParseState, "unrecognized system value input '%s'", Semantic);
+			if (FCStringAnsi::Strnicmp(Semantic, "SV_RenderTargetArrayIndex", 25) == 0)
+			{
+				bUseSlice = true;
+			}
+			else
+			{
+				_mesa_glsl_warning(ParseState, "unrecognized system value input '%s'", Semantic);
+			}
 		}
 
 		ir_variable* Variable = new(ParseState)ir_variable(
@@ -364,6 +425,11 @@ namespace MetalUtils
 				_mesa_glsl_warning(ParseState, "Unrecognized input attribute '%s'", Semantic);
 			}
 		}
+		else if (bUseSlice)
+		{
+			check(Frequency == HSF_PixelShader);
+			Semantic = NV_EPIC_LAYER;
+		}
 
 		if (!Variable->semantic)
 		{
@@ -376,7 +442,7 @@ namespace MetalUtils
 		return VariableDeref;
 	}
 
-	static void GenerateInputForVariable(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+	static void GenerateInputForVariable(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* InputSemantic, ir_dereference* InputVariableDeref, exec_list* DeclInstructions, exec_list* PreCallInstructions)
 	{
 		const glsl_type* InputType = InputVariableDeref->type;
@@ -413,7 +479,7 @@ namespace MetalUtils
 					ir_dereference_record* FieldDeref = new(ParseState)ir_dereference_record(
 						InputVariableDeref->clone(ParseState, NULL),
 						InputType->fields.structure[i].name);
-					GenerateInputForVariable(Frequency, ParseState, Semantic, FieldDeref, DeclInstructions, PreCallInstructions);
+					GenerateInputForVariable(Frequency, bIsDesktop, ParseState, Semantic, FieldDeref, DeclInstructions, PreCallInstructions);
 				}
 				else
 				{
@@ -443,6 +509,7 @@ namespace MetalUtils
 						);
 					GenerateInputForVariable(
 						Frequency,
+						bIsDesktop,
 						ParseState,
 						ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
 						ArrayDeref,
@@ -452,7 +519,7 @@ namespace MetalUtils
 			}
 			else
 			{
-				ir_rvalue* SrcValue = GenerateInputFromSemantic(Frequency, ParseState, InputSemantic, InputType, DeclInstructions);
+				ir_rvalue* SrcValue = GenerateInputFromSemantic(Frequency, bIsDesktop, ParseState, InputSemantic, InputType, DeclInstructions);
 				if (SrcValue)
 				{
 					YYLTYPE loc;
@@ -464,23 +531,23 @@ namespace MetalUtils
 		}
 	}
 
-	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState, const char* InputSemantic, const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions)
+	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* InputSemantic, const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions)
 	{
 		ir_variable* TempVariable = new(ParseState)ir_variable(InputType, nullptr, ir_var_temporary);
 		ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
 		PreCallInstructions->push_tail(TempVariable);
-		GenerateInputForVariable(Frequency, ParseState, InputSemantic, TempVariableDeref, DeclInstructions, PreCallInstructions);
+		GenerateInputForVariable(Frequency, bIsDesktop, ParseState, InputSemantic, TempVariableDeref, DeclInstructions, PreCallInstructions);
 		return TempVariableDeref;
 	}
 
-	static ir_rvalue* GenerateOutputFromSemantic(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+	static ir_rvalue* GenerateOutputFromSemantic(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* Semantic, const glsl_type* Type, exec_list* DeclInstructions, const glsl_type** DestVariableType)
 	{
 		ir_variable* Variable = NULL;
 
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
-			FSystemValue* SystemValues = SystemValueTable[Frequency];
+			FSystemValue* SystemValues = bIsDesktop ? DesktopSystemValueTable[Frequency] : MobileSystemValueTable[Frequency];
 			for (int i = 0; SystemValues[i].HlslSemantic != nullptr; ++i)
 			{
 				if (SystemValues[i].Mode == ir_var_out && FCStringAnsi::Stricmp(SystemValues[i].HlslSemantic, Semantic) == 0 && SystemValues[i].Type->vector_elements == Type->vector_elements)
@@ -510,7 +577,7 @@ namespace MetalUtils
 		return VariableDeref;
 	}
 
-	static void GenerateOutputForVariable(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+	static void GenerateOutputForVariable(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* OutputSemantic, ir_dereference* OutputVariableDeref, exec_list* DeclInstructions, exec_list* PostCallInstructions
 		/*int SemanticArraySize,int SemanticArrayIndex*/)
 	{
@@ -549,7 +616,7 @@ namespace MetalUtils
 					ir_dereference* FieldDeref = new(ParseState)ir_dereference_record(
 						OutputVariableDeref->clone(ParseState, NULL),
 						OutputType->fields.structure[i].name);
-					GenerateOutputForVariable(Frequency, ParseState, Semantic, FieldDeref, DeclInstructions, PostCallInstructions);
+					GenerateOutputForVariable(Frequency, bIsDesktop, ParseState, Semantic, FieldDeref, DeclInstructions, PostCallInstructions);
 				}
 				else
 				{
@@ -583,7 +650,7 @@ namespace MetalUtils
 							OutputVariableDeref->clone(ParseState, NULL),
 							new(ParseState) ir_constant((unsigned)i)
 							);
-						GenerateOutputForVariable(Frequency, ParseState,
+						GenerateOutputForVariable(Frequency, bIsDesktop, ParseState,
 							ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
 							ArrayDeref, DeclInstructions, PostCallInstructions);
 					}
@@ -593,7 +660,7 @@ namespace MetalUtils
 					YYLTYPE loc;
 					ir_rvalue* Src = OutputVariableDeref->clone(ParseState, NULL);
 					const glsl_type* DestVariableType = NULL;
-					ir_rvalue* DestVariableDeref = GenerateOutputFromSemantic(Frequency, ParseState, OutputSemantic,
+					ir_rvalue* DestVariableDeref = GenerateOutputFromSemantic(Frequency, bIsDesktop, ParseState, OutputSemantic,
 						OutputType, DeclInstructions, &DestVariableType);
 
 					apply_type_conversion(DestVariableType, Src, PostCallInstructions, ParseState, true, &loc);
@@ -603,7 +670,7 @@ namespace MetalUtils
 		}
 	}
 
-	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* OutputSemantic, const glsl_type* OutputType, exec_list* DeclInstructions, exec_list* PreCallInstructions, exec_list* PostCallInstructions)
 	{
 		// Generate a local variable to hold the output.
@@ -611,7 +678,7 @@ namespace MetalUtils
 		ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
 		PreCallInstructions->push_tail(TempVariable);
 
-		GenerateOutputForVariable(Frequency, ParseState, OutputSemantic, TempVariableDeref, DeclInstructions, PostCallInstructions);
+		GenerateOutputForVariable(Frequency, bIsDesktop, ParseState, OutputSemantic, TempVariableDeref, DeclInstructions, PostCallInstructions);
 
 		return TempVariableDeref;
 	}
@@ -644,6 +711,27 @@ struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 		{
 			return;
 		}
+
+
+		// Fix .x swizzle of scalars...
+		auto* Swizzle = (*RValue)->as_swizzle();
+		if (Swizzle)
+		{
+			auto* Texture = Swizzle->val->as_texture();
+			if (Texture && Texture->op == ir_txf && 
+				Texture->sampler && Texture->sampler->type->sampler_buffer && 
+				Texture->sampler->type->inner_type && Texture->sampler->type->inner_type->is_scalar() && 
+				Swizzle->mask.x == 0 &&
+				Swizzle->mask.y == 0 &&
+				Swizzle->mask.z == 0 &&
+				Swizzle->mask.w == 0 &&
+				Swizzle->mask.num_components == 1 &&
+				Swizzle->mask.has_duplicates == 0)
+			{
+				*RValue = Texture;
+			}
+		}
+
 		auto* expr = (*RValue)->as_expression();
 		if (!expr)
 		{
@@ -873,7 +961,7 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 		auto* Var = Instruction->as_variable();
 		if (Var)
 		{
-			check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in);
+			check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in || Var->mode == ir_var_shared);
 			OutBuffers.Buffers.Add(Var);
 		}
 	}
@@ -952,10 +1040,10 @@ void FMetalCodeBackend::PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* Inst
 	//IRDump(Instructions);
 }
 
-static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask, TIRVarList& OutFunctionArguments)
+static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, bool bIsDesktop, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask, TIRVarList& OutFunctionArguments)
 {
 	// Don't move variables that are system values into the input structures
-	const auto* SystemValues = MetalUtils::SystemValueTable[Frequency];
+	const auto* SystemValues = bIsDesktop ? MetalUtils::DesktopSystemValueTable[Frequency] : MetalUtils::MobileSystemValueTable[Frequency];
 	for(int i = 0; SystemValues[i].MetalSemantic != nullptr; ++i)
 	{
 		if (SystemValues[i].Mode == ir_var_in && FCStringAnsi::Stricmp(SystemValues[i].MetalSemantic, Variable->semantic) == 0)
@@ -1149,7 +1237,8 @@ static FSystemValue VertexSystemValueTable[] =
 {
 	{"SV_VertexID", glsl_type::uint_type, "gl_VertexID", ir_var_in, false, false},
 	{"SV_InstanceID", glsl_type::uint_type, "gl_InstanceID", ir_var_in, false, false},
-	//{ "SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, true },
+    {"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, "SV_RenderTargetArrayIndex"},
+    //{ "SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, true },
 	{NULL, NULL, NULL, ir_var_auto, false, false}
 };
 
@@ -1159,8 +1248,9 @@ static FSystemValue PixelSystemValueTable[] =
 	{"SV_Depth", glsl_type::float_type, "gl_FragDepth", ir_var_out, false, false},
 	{"SV_Position", glsl_type::vec4_type, "gl_FragCoord", ir_var_in, true, false},
 	//	{ "SV_IsFrontFace", glsl_type::bool_type, "gl_FrontFacing", ir_var_in, false, true },
-	{"SV_PrimitiveID", glsl_type::int_type, "gl_PrimitiveID", ir_var_in, false, false},
-	//	{ "SV_RenderTargetArrayIndex", glsl_type::int_type, "gl_Layer", ir_var_in, false, false },
+    {"SV_PrimitiveID", glsl_type::int_type, "gl_PrimitiveID", ir_var_in, false, false},
+    {"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, "SV_RenderTargetArrayIndex"},
+	//	{ "SV_RenderTargetArrayIndex", glsl_type::uint_type, "gl_Layer", ir_var_in, false, false },
 	//	{ "SV_Target0", glsl_type::vec4_type, "gl_FragColor", ir_var_out, false, true },
 	{NULL, NULL, NULL, ir_var_auto, false, false}
 };
@@ -1188,7 +1278,7 @@ static FSystemValue* SystemValueTable[] =
 * @returns the IR variable deref for the semantic.
 */
 static ir_dereference_variable* GenerateShaderInput(
-	EHlslShaderFrequency Frequency,
+	EHlslShaderFrequency Frequency, bool bIsDesktop,
 	_mesa_glsl_parse_state* ParseState,
 	const char* InputSemantic,
 	const glsl_type* InputType,
@@ -1203,7 +1293,7 @@ static ir_dereference_variable* GenerateShaderInput(
 	PreCallInstructions->push_tail(TempVariable);
 
 	check(!InputType->is_inputpatch() && !InputType->is_outputpatch());
-	ir_rvalue* SrcValue = MetalUtils::GenerateInputFromSemantic(Frequency, ParseState, InputSemantic, InputType, DeclInstructions);
+	ir_rvalue* SrcValue = MetalUtils::GenerateInputFromSemantic(Frequency, bIsDesktop, ParseState, InputSemantic, InputType, DeclInstructions);
 	if(SrcValue)
 	{
 		YYLTYPE loc ={0};
@@ -1489,7 +1579,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					break;
 
 				case ir_var_in:
-					if (!ProcessStageInVariables(ParseState, Frequency, Variable, VSStageInMembers, VSStageInVariables, nullptr, VSInputArguments))
+					if (!ProcessStageInVariables(ParseState, bIsDesktop, Frequency, Variable, VSStageInMembers, VSStageInVariables, nullptr, VSInputArguments))
 					{
 						return;
 					}
@@ -1603,7 +1693,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					break;
 
 				case ir_var_in:
-					if (!ProcessStageInVariables(ParseState, Frequency, Variable, PSStageInMembers, PSStageInVariables, nullptr, PSInputArguments))
+					if (!ProcessStageInVariables(ParseState, bIsDesktop, Frequency, Variable, PSStageInMembers, PSStageInVariables, nullptr, PSInputArguments))
 					{
 						return;
 					}
@@ -1667,7 +1757,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					{
 						TArray<glsl_struct_field> CSStageInMembers;
 						TIRVarSet CSStageInVariables;
-						if (!ProcessStageInVariables(ParseState, Frequency, Variable, CSStageInMembers, CSStageInVariables, nullptr, CSInputArguments))
+						if (!ProcessStageInVariables(ParseState, bIsDesktop, Frequency, Variable, CSStageInMembers, CSStageInVariables, nullptr, CSInputArguments))
 						{
 							return;
 						}
@@ -1749,7 +1839,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					// At this point this should be a built-in system value
 					check(Variable->semantic);
 					ArgVarDeref = GenerateShaderInput(
-						Frequency,
+						Frequency, bIsDesktop,
 						ParseState,
 						Variable->semantic,
 						Variable->type,

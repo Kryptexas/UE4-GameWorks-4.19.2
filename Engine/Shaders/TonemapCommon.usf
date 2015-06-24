@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // #todo-rco: Fix in the cross-compiler
-#if COMPILER_GLSL || COMPILER_GLSL_ES2 || METAL_PROFILE || VULKAN_PROFILE
+#if COMPILER_GLSL || COMPILER_GLSL_ES2 || METAL_PROFILE || VULKAN_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
 #define log10(x)  log(x) / log(10.0)
 #endif
 

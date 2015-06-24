@@ -86,6 +86,7 @@ static void BuildMetalShaderOutput(
 	const FShaderCompilerInput& ShaderInput, 
 	const ANSICHAR* InShaderSource,
 	int32 SourceLen,
+	bool bIsMobile,
 	TArray<FShaderCompilerError>& OutErrors
 	)
 {
@@ -117,6 +118,14 @@ static void BuildMetalShaderOutput(
 	DEF_PREFIX_STR(NumThreads);
 	#undef DEF_PREFIX_STR
 
+	ANSICHAR const* ShaderName = nullptr;
+	uint32 ShaderNameLen = 0;
+	while (	FCStringAnsi::Strncmp(ShaderSource, "// !", 4) == 0 )
+	{
+		ShaderName = ShaderSource;
+		while (*ShaderSource && *ShaderSource++ != '\n') { ShaderNameLen++; }
+	}
+	
 	// Skip any comments that come before the signature.
 	while (	FCStringAnsi::Strncmp(ShaderSource, "//", 2) == 0 &&
 			FCStringAnsi::Strncmp(ShaderSource, "// @", 4) != 0 )
@@ -505,6 +514,7 @@ static void BuildMetalShaderOutput(
 	}
 
 	// Then samplers.
+	TMap<FString, uint32> SamplerMap;
 	if (FCStringAnsi::Strncmp(ShaderSource, SamplersPrefix, SamplersPrefixLen) == 0)
 	{
 		ShaderSource += SamplersPrefixLen;
@@ -539,12 +549,7 @@ static void BuildMetalShaderOutput(
 				{
 					FString SamplerState = ParseIdentifier(ShaderSource);
 					checkSlow(SamplerState.Len() != 0);
-					ParameterMap.AddParameterAllocation(
-						*SamplerState,
-						0,
-						Offset,
-						NumSamplers
-						);
+					SamplerMap.Add(SamplerState, NumSamplers);
 				}
 				while (Match(ShaderSource, ','));
 				verify(Match(ShaderSource, ']'));
@@ -612,6 +617,14 @@ static void BuildMetalShaderOutput(
 			verify(Match(ShaderSource, ':'));
 			FString SamplerState = ParseIdentifier(ShaderSource);
 
+			checkSlow(SamplerState.Len() != 0);
+			ParameterMap.AddParameterAllocation(
+				*SamplerState,
+				0,
+				Index,
+				SamplerMap[SamplerState]
+				);
+			
 			if (Match(ShaderSource, '\n'))
 			{
 				break;
@@ -665,9 +678,25 @@ static void BuildMetalShaderOutput(
 			FString::Printf(TEXT("shader uses %d samplers exceeding the limit of %d"),
 				Header.Bindings.NumSamplers, MaxSamplers);
 	}
+	else if(ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Debug))
+	{
+		// Write out the header and shader source code.
+		FMemoryWriter Ar(ShaderOutput.Code, true);
+		uint8 PrecompiledFlag = 0;
+		Ar << PrecompiledFlag;
+		Ar << Header;
+		if(ShaderName && ShaderNameLen)
+		{
+			Ar.Serialize((void*)ShaderName, ShaderNameLen);
+		}
+		Ar.Serialize((void*)ShaderSource, SourceLen + 1 - (ShaderSource - InShaderSource));
+		
+		ShaderOutput.NumInstructions = 0;
+		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
+		ShaderOutput.bSucceeded = true;
+	}
 	else
 	{
-#if METAL_OFFLINE_COMPILE
 		// at this point, the shader source is ready to be compiled
 		FString InputFilename = FPaths::CreateTempFilename(*FPaths::EngineIntermediateDir(), TEXT("ShaderIn"), TEXT(""));
 		FString ObjFilename = InputFilename + TEXT(".o");
@@ -681,49 +710,56 @@ static void BuildMetalShaderOutput(
 		int32 ReturnCode = 0;
 		FString Results;
 		FString Errors;
-		bool bHadError = true;
+		bool bCompileAtRuntime = true;
+		bool bSucceeded = false;
 
+#if PLATFORM_MAC
 		// metal commandlines
-		FString Params = FString::Printf(TEXT("-std=ios-metal1.0 %s -o %s"), *InputFilename, *ObjFilename);
-		FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin/metal"), *Params, &ReturnCode, &Results, &Errors );
+		FString Standard = (bIsMobile ? TEXT("-std=ios-metal1.0") : TEXT("-std=osx-metal1.1 -Wno-null-character -ffmast-math"));
+		
+		FString Params = FString::Printf(TEXT("%s %s -o %s"), *Standard, *InputFilename, *ObjFilename);
+		FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metal"), *Params, &ReturnCode, &Results, &Errors );
 
 		// handle compile error
 		if (ReturnCode != 0 || IFileManager::Get().FileSize(*ObjFilename) <= 0)
 		{
-//			FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-//			Error->ErrorFile = InputFilename;
-//			Error->ErrorLineString = TEXT("0");
-//			Error->StrippedErrorMessage = Results + Errors;
+			FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+			Error->ErrorFile = InputFilename;
+			Error->ErrorLineString = TEXT("0");
+			Error->StrippedErrorMessage = Results + Errors;
+			bSucceeded = false;
 		}
 		else
 		{
 			Params = FString::Printf(TEXT("r %s %s"), *ArFilename, *ObjFilename);
-			FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin/metal-ar"), *Params, &ReturnCode, &Results, &Errors );
+			FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metal-ar"), *Params, &ReturnCode, &Results, &Errors );
 
 			// handle compile error
 			if (ReturnCode != 0 || IFileManager::Get().FileSize(*ArFilename) <= 0)
 			{
-//				FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-//				Error->ErrorFile = InputFilename;
-//				Error->ErrorLineString = TEXT("0");
-//				Error->StrippedErrorMessage = Results + Errors;
+				FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+				Error->ErrorFile = InputFilename;
+				Error->ErrorLineString = TEXT("0");
+				Error->StrippedErrorMessage = Results + Errors;
+				bSucceeded = false;
 			}
 			else
 			{
 				Params = FString::Printf(TEXT("-o %s %s"), *OutputFilename, *ArFilename);
-				FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin/metallib"), *Params, &ReturnCode, &Results, &Errors );
+				FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metallib"), *Params, &ReturnCode, &Results, &Errors );
 		
 				// handle compile error
 				if (ReturnCode != 0 || IFileManager::Get().FileSize(*OutputFilename) <= 0)
 				{
-//					FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-//					Error->ErrorFile = InputFilename;
-//					Error->ErrorLineString = TEXT("0");
-//					Error->StrippedErrorMessage = Results + Errors;
+					FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+					Error->ErrorFile = InputFilename;
+					Error->ErrorLineString = TEXT("0");
+					Error->StrippedErrorMessage = Results + Errors;
+					bSucceeded = false;
 				}
 				else
 				{
-					bHadError = false;
+					bCompileAtRuntime = false;
 					
 					// Write out the header and compiled shader code
 					FMemoryWriter Ar(ShaderOutput.Code, true);
@@ -741,11 +777,16 @@ static void BuildMetalShaderOutput(
 					ShaderOutput.NumInstructions = 0;
 					ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 					ShaderOutput.bSucceeded = true;
+					bSucceeded = true;
 				}
 			}
 		}
-		
-		if (bHadError)
+#else
+		// Assume success for non-Mac
+		bSucceeded = true;
+#endif	// PLATFORM_MAC
+
+		if (bCompileAtRuntime)
 		{
 			// Write out the header and shader source code.
 			FMemoryWriter Ar(ShaderOutput.Code, true);
@@ -756,25 +797,15 @@ static void BuildMetalShaderOutput(
 			
 			ShaderOutput.NumInstructions = 0;
 			ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
-			ShaderOutput.bSucceeded = true;
+			ShaderOutput.bSucceeded = bSucceeded || ShaderOutput.bSucceeded;
 		}
-		
-		IFileManager::Get().Delete(*InputFilename);
-		IFileManager::Get().Delete(*ObjFilename);
-		IFileManager::Get().Delete(*ArFilename);
-		IFileManager::Get().Delete(*OutputFilename);
-#else
-		// Write out the header and shader source code.
-		FMemoryWriter Ar(ShaderOutput.Code, true);
-		uint8 PrecompiledFlag = 0;
-		Ar << PrecompiledFlag;
-		Ar << Header;
-		Ar.Serialize((void*)ShaderSource, SourceLen + 1 - (ShaderSource - InShaderSource));
-		
-		ShaderOutput.NumInstructions = 0;
-		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
-		ShaderOutput.bSucceeded = true;
-#endif
+		else
+		{
+			IFileManager::Get().Delete(*InputFilename);
+			IFileManager::Get().Delete(*ObjFilename);
+			IFileManager::Get().Delete(*ArFilename);
+			IFileManager::Get().Delete(*OutputFilename);
+		}
 	}
 }
 
@@ -853,11 +884,24 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1;
-	AdditionalDefines.SetDefine(TEXT("IOS"), 1);
+
+	// @todo - Zebra - Work out which standard we need, this is dependent on the shader platform.
+	// For now only SP_METAL will compile for iOS, with MRT & SM5 only for Mac.
+	const bool bIsMobile = (Output.Target.Platform == SP_METAL);
+	if (bIsMobile)
+	{
+		AdditionalDefines.SetDefine(TEXT("IOS"), 1);
+	}
+	else
+	{
+		AdditionalDefines.SetDefine(TEXT("MAC"), 1);
+	}
+
 	AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
+	static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 
 	if (Input.ShaderFormat == NAME_SF_METAL)
 	{
@@ -866,6 +910,10 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+	}
+	else if (Input.ShaderFormat == NAME_SF_METAL_SM5)
+	{
+		AdditionalDefines.SetDefine(TEXT("METAL_SM5_PROFILE"), 1);
 	}
 	else
 	{
@@ -876,7 +924,15 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
-	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
+	if(Input.Environment.CompilerFlags.Contains(CFLAG_AvoidFlowControl))
+	{
+		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
+	}
+	else
+	{
+		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)0);
+	}
+
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
 		char* MetalShaderSource = NULL;
@@ -925,6 +981,10 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		}
 
 		uint32 CCFlags = HLSLCC_NoPreprocess | HLSLCC_PackUniforms;
+		if (!bIsMobile)
+		{
+			CCFlags |= HLSLCC_FixAtomicReferences;
+		}
 		//CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
 
 		if (bDumpDebugInfo)
@@ -958,6 +1018,15 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		}
 
 		int32 SourceLen = MetalShaderSource ? FCStringAnsi::Strlen(MetalShaderSource) : 0;
+		if(MetalShaderSource)
+		{
+			uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(MetalShaderSource) + 20;
+			char* Dest = (char*)malloc(Len);
+			sprintf(Dest, "// ! %s.usf:%s\n%s", TCHAR_TO_ANSI(*Input.SourceFilename), TCHAR_TO_ANSI(*Input.EntryPointName), MetalShaderSource);
+			free(MetalShaderSource);
+			MetalShaderSource = Dest;
+			SourceLen = FCStringAnsi::Strlen(MetalShaderSource);
+		}
 		if (bDumpDebugInfo)
 		{
 			if (SourceLen > 0)
@@ -975,7 +1044,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		if (Result != 0)
 		{
 			Output.Target = Input.Target;
-			BuildMetalShaderOutput(Output, Input, MetalShaderSource, SourceLen, Output.Errors);
+			BuildMetalShaderOutput(Output, Input, MetalShaderSource, SourceLen, bIsMobile, Output.Errors);
 		}
 		else
 		{
