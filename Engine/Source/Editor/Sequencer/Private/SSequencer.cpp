@@ -203,6 +203,8 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	TimeSliderArgs.ViewRange = InArgs._ViewRange;
 	TimeSliderArgs.OnViewRangeChanged = InArgs._OnViewRangeChanged;
 	TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
+	TimeSliderArgs.OnBeginScrubberMovement = InArgs._OnBeginScrubbing;
+	TimeSliderArgs.OnEndScrubberMovement = InArgs._OnEndScrubbing;
 	TimeSliderArgs.OnScrubPositionChanged = InArgs._OnScrubPositionChanged;
 
 	TSharedRef<FSequencerTimeSliderController> TimeSliderController( new FSequencerTimeSliderController( TimeSliderArgs ) );

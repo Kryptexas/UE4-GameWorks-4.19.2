@@ -9,7 +9,6 @@ namespace EMovieScenePlayerStatus
 		Stopped,
 		Playing,
 		Recording,
-		BeginningScrubbing,
 		Scrubbing,
 		MAX
 	};

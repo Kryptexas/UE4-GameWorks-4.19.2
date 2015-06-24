@@ -94,6 +94,8 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 		SequencerWidget = SNew( SSequencer, SharedThis( this ) )
 			.ViewRange( this, &FSequencer::GetViewRange )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
+			.OnBeginScrubbing( this, &FSequencer::OnBeginScrubbing )
+			.OnEndScrubbing( this, &FSequencer::OnEndScrubbing )
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
 			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged )
 			.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent);
@@ -197,6 +199,15 @@ void FSequencer::Tick(float InDeltaTime)
 
 		SequencerWidget->UpdateLayoutTree();
 		bNeedTreeRefresh = false;
+	}
+	
+	// Animate the autoscroll offset if it's set
+	if (AutoscrollOffset.IsSet())
+	{
+		static const float AutoScrollFactor = 0.1f;
+		float Offset = AutoscrollOffset.GetValue() * AutoScrollFactor;
+		OnViewRangeChanged(TRange<float>(TargetViewRange.GetLowerBoundValue() + Offset, TargetViewRange.GetUpperBoundValue() + Offset), EViewRangeInterpolation::Immediate);
+		SetGlobalTime(GetGlobalTime() + Offset);
 	}
 
 	float NewTime = GetGlobalTime() + InDeltaTime;
@@ -560,17 +571,55 @@ void FSequencer::SetGlobalTime( float NewTime )
 {
 	float LastTime = ScrubPosition;
 
+	if (true/*bAutoScroll*/ && PlaybackState != EMovieScenePlayerStatus::Scrubbing)
+	{
+		float RangeOffset = CalculateAutoscrollEncroachment(NewTime).Get(0.f);
+			
+		// When not scrubbing, we auto scroll the view range immediately
+		if (RangeOffset != 0.f)
+		{
+			OnViewRangeChanged(
+				TRange<float>(TargetViewRange.GetLowerBoundValue() + RangeOffset, TargetViewRange.GetUpperBoundValue() + RangeOffset),
+				EViewRangeInterpolation::Immediate
+				);
+		}
+	}
+
 	// Update the position
 	ScrubPosition = NewTime;
 
 	RootMovieSceneInstance->Update( ScrubPosition, LastTime, *this );
 }
 
+TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime) const
+{
+	enum class EDirection { Positive, Negative };
+	const EDirection Movement = NewTime - ScrubPosition >= 0 ? EDirection::Positive : EDirection::Negative;
+
+	const TRange<float> CurrentRange = GetViewRange();
+	const float RangeMin = CurrentRange.GetLowerBoundValue(), RangeMax = CurrentRange.GetUpperBoundValue();
+	const float AutoScrollThreshold = (RangeMax - RangeMin) * 0.1f;
+
+	if (Movement == EDirection::Negative && NewTime < RangeMin + AutoScrollThreshold)
+	{
+		// Scrolling backwards in time, and have hit the threshold
+		return NewTime - (RangeMin + AutoScrollThreshold);
+	}
+	else if (Movement == EDirection::Positive && ScrubPosition > RangeMax - AutoScrollThreshold)
+	{
+		// Scrolling forwards in time, and have hit the threshold
+		return NewTime - (RangeMax - AutoScrollThreshold);
+	}
+	else
+	{
+		return TOptional<float>();
+	}
+}
+
 void FSequencer::SetPerspectiveViewportPossessionEnabled(bool bEnabled)
 {
 	bPerspectiveViewportPossessionEnabled = bEnabled;
 }
-
 
 FGuid FSequencer::GetHandleToObject( UObject* Object )
 {
@@ -935,18 +984,35 @@ void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInter
 
 void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing )
 {
-	if (bScrubbing)
+	if (PlaybackState == EMovieScenePlayerStatus::Scrubbing)
 	{
-		PlaybackState =
-			PlaybackState == EMovieScenePlayerStatus::BeginningScrubbing || PlaybackState == EMovieScenePlayerStatus::Scrubbing ?
-			EMovieScenePlayerStatus::Scrubbing : EMovieScenePlayerStatus::BeginningScrubbing;
-	}
-	else
-	{
-		PlaybackState = EMovieScenePlayerStatus::Stopped;
+		if (!bScrubbing)
+		{
+			OnEndScrubbing();
+		}
+		else if (true/*bAutoScroll*/)
+		{
+			// When scrubbing, we animate auto-scrolled scrub position in Tick()
+			AutoscrollOffset = CalculateAutoscrollEncroachment(NewScrubPosition);
+			if (AutoscrollOffset.IsSet())
+			{
+				return;
+			}
+		}
 	}
 
 	SetGlobalTime( NewScrubPosition );
+}
+
+void FSequencer::OnBeginScrubbing()
+{
+	PlaybackState = EMovieScenePlayerStatus::Scrubbing;
+}
+
+void FSequencer::OnEndScrubbing()
+{
+	PlaybackState = EMovieScenePlayerStatus::Stopped;
+	AutoscrollOffset.Reset();
 }
 
 void FSequencer::OnToggleAutoKey()

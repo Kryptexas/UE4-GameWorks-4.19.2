@@ -58,6 +58,10 @@ public:
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 		/** Called when the user changes the view range */
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
+		/** Called when the user has begun scrubbing */
+		SLATE_EVENT( FSimpleDelegate, OnBeginScrubbing )
+		/** Called when the user has finished scrubbing */
+		SLATE_EVENT( FSimpleDelegate, OnEndScrubbing )
 		/** Called when the user changes the scrub position */
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
 		/** Called to populate the add combo button in the toolbar. */
