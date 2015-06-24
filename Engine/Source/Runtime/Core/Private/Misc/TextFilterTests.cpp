@@ -23,7 +23,7 @@ namespace TextFilterTests
 		}
 
 		// ITextFilterExpressionContext API - used for testing FTextFilterExpressionEvaluator
-		virtual bool TestBasicStringExpression(const FString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+		virtual bool TestBasicStringExpression(const FTextFilterString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
 		{
 			for (const FString& BasicString : BasicStrings)
 			{
@@ -34,7 +34,7 @@ namespace TextFilterTests
 			}
 			return false;
 		}
-		virtual bool TestComplexExpression(const FName& InKey, const FString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+		virtual bool TestComplexExpression(const FName& InKey, const FTextFilterString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
 		{
 			const FString* ItemValue = KeyValuePairs.Find(InKey);
 			if (ItemValue)
@@ -49,7 +49,7 @@ namespace TextFilterTests
 		{
 			OutStrings = InItem->BasicStrings;
 		}
-		static bool TestItemComplexExpression(const FTestFilterItem* InItem, const FName& InKey, const FString& InValue, ETextFilterComparisonOperation InComparisonOperation, ETextFilterTextComparisonMode InTextComparisonMode)
+		static bool TestItemComplexExpression(const FTestFilterItem* InItem, const FName& InKey, const FTextFilterString& InValue, ETextFilterComparisonOperation InComparisonOperation, ETextFilterTextComparisonMode InTextComparisonMode)
 		{
 			return InItem->TestComplexExpression(InKey, InValue, InComparisonOperation, InTextComparisonMode);
 		}

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "FrontendFilterBase.h"
+#include "TextFilterExpressionEvaluator.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -32,14 +33,14 @@ public:
 	FText GetFilterErrorText() const;
 
 	/** If bIncludeClassName is true, the text filter will include an asset's class name in the search */
-	void SetIncludeClassName(bool bIncludeClassName);
+	void SetIncludeClassName(const bool InIncludeClassName);
 
 private:
+	/** Transient context data, used when calling PassesFilter. Kept around to minimize re-allocations between multiple calls to PassesFilter */
+	TSharedRef<class FFrontendFilter_TextFilterExpressionContext> TextFilterExpressionContext;
 
-	/** Handler for the internal text filter */
-	void HandleOnChangedEvent();
-
-	TTextFilter<FAssetFilterType> TextFilter;
+	/** Expression evaluator that can be used to perform complex text filter queries */
+	FTextFilterExpressionEvaluator TextFilterExpressionEvaluator;
 };
 
 /** A filter that displays only checked out assets */

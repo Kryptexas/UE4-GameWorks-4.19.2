@@ -9,7 +9,7 @@ namespace TextFilterExpressionParser
 	class FTextToken
 	{
 	public:
-		FTextToken(FString InString, ETextFilterTextComparisonMode InTextComparisonMode)
+		FTextToken(FTextFilterString InString, ETextFilterTextComparisonMode InTextComparisonMode)
 			: String(MoveTemp(InString))
 			, TextComparisonMode(MoveTemp(InTextComparisonMode))
 		{
@@ -41,9 +41,14 @@ namespace TextFilterExpressionParser
 			return *this;
 		}
 
-		const FString& GetString() const
+		const FTextFilterString& GetString() const
 		{
 			return String;
+		}
+
+		FName GetStringAsName() const
+		{
+			return String.AsName();
 		}
 
 		ETextFilterTextComparisonMode GetTextComparisonMode() const
@@ -57,7 +62,7 @@ namespace TextFilterExpressionParser
 		}
 
 	private:
-		FString String;
+		FTextFilterString String;
 		ETextFilterTextComparisonMode TextComparisonMode;
 	};
 }
@@ -603,12 +608,12 @@ void FTextFilterExpressionEvaluator::ConstructExpressionParser()
 	Grammar.DefineBinaryOperator<FAnd>(2);
 	Grammar.DefinePreUnaryOperator<FNot>();
 
-	JumpTable.MapBinary<FLessOrEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)		{ return InContext->TestComplexExpression(FName(*A.GetString()), B.GetString(), ETextFilterComparisonOperation::LessOrEqual, B.GetTextComparisonMode()); });
-	JumpTable.MapBinary<FLess>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)				{ return InContext->TestComplexExpression(FName(*A.GetString()), B.GetString(), ETextFilterComparisonOperation::Less, B.GetTextComparisonMode()); });
-	JumpTable.MapBinary<FGreaterOrEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)	{ return InContext->TestComplexExpression(FName(*A.GetString()), B.GetString(), ETextFilterComparisonOperation::GreaterOrEqual, B.GetTextComparisonMode()); });
-	JumpTable.MapBinary<FGreater>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)			{ return InContext->TestComplexExpression(FName(*A.GetString()), B.GetString(), ETextFilterComparisonOperation::Greater, B.GetTextComparisonMode()); });
-	JumpTable.MapBinary<FNotEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)			{ return InContext->TestComplexExpression(FName(*A.GetString()), B.GetString(), ETextFilterComparisonOperation::NotEqual, B.GetTextComparisonMode()); });
-	JumpTable.MapBinary<FEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)				{ return InContext->TestComplexExpression(FName(*A.GetString()), B.GetString(), ETextFilterComparisonOperation::Equal, B.GetTextComparisonMode()); });
+	JumpTable.MapBinary<FLessOrEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)		{ return InContext->TestComplexExpression(A.GetStringAsName(), B.GetString(), ETextFilterComparisonOperation::LessOrEqual, B.GetTextComparisonMode()); });
+	JumpTable.MapBinary<FLess>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)				{ return InContext->TestComplexExpression(A.GetStringAsName(), B.GetString(), ETextFilterComparisonOperation::Less, B.GetTextComparisonMode()); });
+	JumpTable.MapBinary<FGreaterOrEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)	{ return InContext->TestComplexExpression(A.GetStringAsName(), B.GetString(), ETextFilterComparisonOperation::GreaterOrEqual, B.GetTextComparisonMode()); });
+	JumpTable.MapBinary<FGreater>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)			{ return InContext->TestComplexExpression(A.GetStringAsName(), B.GetString(), ETextFilterComparisonOperation::Greater, B.GetTextComparisonMode()); });
+	JumpTable.MapBinary<FNotEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)			{ return InContext->TestComplexExpression(A.GetStringAsName(), B.GetString(), ETextFilterComparisonOperation::NotEqual, B.GetTextComparisonMode()); });
+	JumpTable.MapBinary<FEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)				{ return InContext->TestComplexExpression(A.GetStringAsName(), B.GetString(), ETextFilterComparisonOperation::Equal, B.GetTextComparisonMode()); });
 
 	JumpTable.MapBinary<FOr>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)				{ return InContext->TestBasicStringExpression(A.GetString(), A.GetTextComparisonMode()) || InContext->TestBasicStringExpression(B.GetString(), B.GetTextComparisonMode()); });
 	JumpTable.MapBinary<FOr>([](const FTextToken& A, bool B, const ITextFilterExpressionContext* InContext)								{ return InContext->TestBasicStringExpression(A.GetString(), A.GetTextComparisonMode()) || B; });

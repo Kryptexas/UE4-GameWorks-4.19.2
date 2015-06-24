@@ -23,7 +23,7 @@ void GetBasicStrings(const FCollectionItem& InCollection, TArray<FString>& OutBa
 	OutBasicStrings.Add(InCollection.CollectionName.ToString());
 }
 
-bool TestComplexExpression(const FCollectionItem& InCollection, const FName& InKey, const FString& InValue, ETextFilterComparisonOperation InComparisonOperation, ETextFilterTextComparisonMode InTextComparisonMode)
+bool TestComplexExpression(const FCollectionItem& InCollection, const FName& InKey, const FTextFilterString& InValue, ETextFilterComparisonOperation InComparisonOperation, ETextFilterTextComparisonMode InTextComparisonMode)
 {
 	static const FName NameKeyName = "Name";
 	static const FName TypeKeyName = "Type";

@@ -16,7 +16,7 @@ public:
 	DECLARE_DELEGATE_TwoParams( FItemToStringArray, ItemType, OUT TArray< FString >& );
 
 	/** Defines a function signature used to test a complex expression for an Item */
-	DECLARE_DELEGATE_RetVal_FiveParams( bool, FItemTestComplexExpression, ItemType, const FName& /*InKey*/, const FString& /*InValue*/, ETextFilterComparisonOperation /*InComparisonOperation*/, ETextFilterTextComparisonMode /*InTextComparisonMode*/ );
+	DECLARE_DELEGATE_RetVal_FiveParams( bool, FItemTestComplexExpression, ItemType, const FName& /*InKey*/, const FTextFilterString& /*InValue*/, ETextFilterComparisonOperation /*InComparisonOperation*/, ETextFilterTextComparisonMode /*InTextComparisonMode*/ );
 
 	/** 
 	 *	TTextFilter Constructor
@@ -107,7 +107,7 @@ private:
 			ItemBasicStrings.Reset();
 		}
 
-		virtual bool TestBasicStringExpression(const FString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+		virtual bool TestBasicStringExpression(const FTextFilterString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
 		{
 			for (const FString& BasicString : ItemBasicStrings)
 			{
@@ -119,7 +119,7 @@ private:
 			return false;
 		}
 
-		virtual bool TestComplexExpression(const FName& InKey, const FString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+		virtual bool TestComplexExpression(const FName& InKey, const FTextFilterString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
 		{
 			if (ItemPtr && TestComplexExpressionDelegate.IsBound())
 			{

@@ -12,209 +12,277 @@
 // FFrontendFilter_Text
 /////////////////////////////////////////
 
-void AssetDataToNameString(FAssetFilterType Asset, OUT TArray< FString >& Array)
+class FFrontendFilter_TextFilterExpressionContext : public ITextFilterExpressionContext
 {
-	const FString FullPath = Asset.PackageName.ToString();
-	const TCHAR* Ptr = FullPath.GetCharArray().GetData();
-	if (Ptr == nullptr)
+public:
+	typedef TRemoveReference<FAssetFilterType>::Type* FAssetFilterTypePtr;
+
+	FFrontendFilter_TextFilterExpressionContext()
+		: AssetPtr(nullptr)
+		, bIncludeClassName(true)
+		, NameKeyName("Name")
+		, PathKeyName("Path")
+		, ClassKeyName("Class")
+		, TypeKeyName("Type")
+		, CollectionKeyName("Collection")
+		, TagKeyName("Tag")
 	{
-		return;
 	}
 
-	// Enter each piece of the path name, apart from the first, as a potential match
-	bool bIsFirst = true;
-	while (const TCHAR* Delimiter = FCString::Strchr(Ptr, '/'))
+	void SetAsset(FAssetFilterTypePtr InAsset)
 	{
-		const int32 Length = Delimiter - Ptr;
+		AssetPtr = InAsset;
+		
+		AssetPtr->PackageName.AppendString(AssetFullPath);
+		AssetPtr->GetExportTextName(AssetExportTextName);
 
-		if (Length > 0)
+		if (FCollectionManagerModule::IsModuleAvailable())
 		{
-			if (bIsFirst)
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+			CollectionManagerModule.Get().GetCollectionsContainingObject(AssetPtr->ObjectPath, ECollectionShareType::CST_All, AssetCollectionNames, ECollectionRecursionFlags::SelfAndChildren);
+		}
+	}
+
+	void ClearAsset()
+	{
+		AssetPtr = nullptr;
+		AssetFullPath.Reset();
+		AssetExportTextName.Reset();
+		AssetCollectionNames.Reset();
+	}
+
+	void SetIncludeClassName(const bool InIncludeClassName)
+	{
+		bIncludeClassName = InIncludeClassName;
+	}
+
+	bool GetIncludeClassName() const
+	{
+		return bIncludeClassName;
+	}
+
+	virtual bool TestBasicStringExpression(const FTextFilterString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+	{
+		const TCHAR* Ptr = AssetFullPath.GetCharArray().GetData();
+		if (Ptr)
+		{
+			// Test each piece of the path name, apart from the first
+			bool bIsFirst = true;
+			while (const TCHAR* Delimiter = FCString::Strchr(Ptr, '/'))
 			{
-				bIsFirst = false;
+				const int32 Length = Delimiter - Ptr;
+
+				if (Length > 0)
+				{
+					if (bIsFirst)
+					{
+						bIsFirst = false;
+					}
+					else
+					{
+						if (TextFilterUtils::TestBasicStringExpression(FString(Length, Ptr), InValue, InTextComparisonMode))
+						{
+							return true;
+						}
+					}
+				}
+
+				Ptr += (Length + 1);
+			}
+
+			if (*Ptr != 0)
+			{
+				if (TextFilterUtils::TestBasicStringExpression(Ptr, InValue, InTextComparisonMode))
+				{
+					return true;
+				}
+			}
+		}
+
+		if (bIncludeClassName)
+		{
+			if (TextFilterUtils::TestBasicStringExpression(AssetPtr->AssetClass, InValue, InTextComparisonMode))
+			{
+				return true;
+			}
+
+			// Only test this if we're searching the class name too, as the exported text contains the type in the string
+			if (TextFilterUtils::TestBasicStringExpression(AssetExportTextName, InValue, InTextComparisonMode))
+			{
+				return true;
+			}
+		}
+
+		for (const FName& AssetCollectionName : AssetCollectionNames)
+		{
+			if (TextFilterUtils::TestBasicStringExpression(AssetCollectionName, InValue, InTextComparisonMode))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	virtual bool TestComplexExpression(const FName& InKey, const FTextFilterString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+	{
+		// Special case for the asset name, as this isn't contained within the asset registry meta-data
+		if (InKey == NameKeyName)
+		{
+			// Names can only work with Equal or NotEqual type tests
+			if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+			{
+				return false;
+			}
+
+			const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(AssetPtr->AssetName, InValue, InTextComparisonMode);
+			return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
+		}
+
+		// Special case for the asset path, as this isn't contained within the asset registry meta-data
+		if (InKey == PathKeyName)
+		{
+			// Paths can only work with Equal or NotEqual type tests
+			if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+			{
+				return false;
+			}
+
+			// If the comparison mode is partial, then we only need to test the ObjectPath as that contains the other two as sub-strings
+			bool bIsMatch = false;
+			if (InTextComparisonMode == ETextFilterTextComparisonMode::Partial)
+			{
+				bIsMatch = TextFilterUtils::TestBasicStringExpression(AssetPtr->ObjectPath, InValue, InTextComparisonMode);
 			}
 			else
 			{
-				Array.Emplace(Length, Ptr);
+				bIsMatch = TextFilterUtils::TestBasicStringExpression(AssetPtr->ObjectPath, InValue, InTextComparisonMode)
+					|| TextFilterUtils::TestBasicStringExpression(AssetPtr->PackageName, InValue, InTextComparisonMode)
+					|| TextFilterUtils::TestBasicStringExpression(AssetPtr->PackagePath, InValue, InTextComparisonMode);
 			}
+			return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
 		}
 
-		Ptr += (Length + 1);
-	}
-
-	if (*Ptr != 0)
-	{
-		Array.Emplace(Ptr);
-	}
-}
-
-void AssetDataToClassAndNameStrings(FAssetFilterType Asset, OUT TArray< FString >& Array)
-{
-	Array.Add(Asset.AssetClass.ToString());
-	Array.Add(Asset.GetExportTextName()); // only include this if we're searching the class name too, as the exported text contains the type in the string
-	AssetDataToNameString(Asset, Array);
-}
-
-bool AssetDataTestComplexExpression(FAssetFilterType Asset, const FName& InKey, const FString& InValue, ETextFilterComparisonOperation InComparisonOperation, ETextFilterTextComparisonMode InTextComparisonMode)
-{
-	static const FName NameKeyName = "Name";
-	static const FName PathKeyName = "Path";
-	static const FName ClassKeyName = "Class";
-	static const FName TypeKeyName = "Type";
-	static const FName CollectionKeyName = "Collection";
-	static const FName TagKeyName = "Tag";
-
-	// Special case for the asset name, as this isn't contained within the asset registry meta-data
-	if (InKey == NameKeyName)
-	{
-		// Names can only work with Equal or NotEqual type tests
-		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+		// Special case for the asset type, as this isn't contained within the asset registry meta-data
+		if (InKey == ClassKeyName || InKey == TypeKeyName)
 		{
-			return false;
-		}
-
-		const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.AssetName.ToString(), InValue, InTextComparisonMode);
-		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
-	}
-
-	// Special case for the asset path, as this isn't contained within the asset registry meta-data
-	if (InKey == PathKeyName)
-	{
-		// Paths can only work with Equal or NotEqual type tests
-		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
-		{
-			return false;
-		}
-
-		// If the comparison mode is partial, then we only need to test the ObjectPath as that contains the other two as sub-strings
-		bool bIsMatch = false;
-		if (InTextComparisonMode == ETextFilterTextComparisonMode::Partial)
-		{
-			bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.ObjectPath.ToString(), InValue, InTextComparisonMode);
-		}
-		else
-		{
-			bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.ObjectPath.ToString(), InValue, InTextComparisonMode)
-				|| TextFilterUtils::TestBasicStringExpression(Asset.PackageName.ToString(), InValue, InTextComparisonMode)
-				|| TextFilterUtils::TestBasicStringExpression(Asset.PackagePath.ToString(), InValue, InTextComparisonMode);
-		}
-		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
-	}
-
-	// Special case for the asset type, as this isn't contained within the asset registry meta-data
-	if (InKey == ClassKeyName || InKey == TypeKeyName)
-	{
-		// Class names can only work with Equal or NotEqual type tests
-		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
-		{
-			return false;
-		}
-
-		const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.AssetClass.ToString(), InValue, InTextComparisonMode);
-		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
-	}
-
-	// Special case for collections, as these aren't contained within the asset registry meta-data
-	if ((InKey == CollectionKeyName || InKey == TagKeyName) && FCollectionManagerModule::IsModuleAvailable())
-	{
-		// Collections can only work with Equal or NotEqual type tests
-		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
-		{
-			return false;
-		}
-
-		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-
-		TArray<FName> AssetCollectionNames;
-		CollectionManagerModule.Get().GetCollectionsContainingObject(Asset.ObjectPath, ECollectionShareType::CST_All, AssetCollectionNames, ECollectionRecursionFlags::SelfAndChildren);
-
-		bool bFoundMatch = false;
-		for (const FName& AssetCollectionName : AssetCollectionNames)
-		{
-			if (TextFilterUtils::TestBasicStringExpression(AssetCollectionName.ToString(), InValue, InTextComparisonMode))
+			// Class names can only work with Equal or NotEqual type tests
+			if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
 			{
-				bFoundMatch = true;
-				break;
+				return false;
 			}
+
+			const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(AssetPtr->AssetClass, InValue, InTextComparisonMode);
+			return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
 		}
 
-		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bFoundMatch : !bFoundMatch;
+		// Special case for collections, as these aren't contained within the asset registry meta-data
+		if (InKey == CollectionKeyName || InKey == TagKeyName)
+		{
+			// Collections can only work with Equal or NotEqual type tests
+			if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+			{
+				return false;
+			}
+
+			bool bFoundMatch = false;
+			for (const FName& AssetCollectionName : AssetCollectionNames)
+			{
+				if (TextFilterUtils::TestBasicStringExpression(AssetCollectionName, InValue, InTextComparisonMode))
+				{
+					bFoundMatch = true;
+					break;
+				}
+			}
+
+			return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bFoundMatch : !bFoundMatch;
+		}
+
+		// Generic handling for anything in the asset meta-data
+		const FString* const MetaDataValue = AssetPtr->TagsAndValues.Find(InKey);
+		if (MetaDataValue)
+		{
+			return TextFilterUtils::TestComplexExpression(*MetaDataValue, InValue, InComparisonOperation, InTextComparisonMode);
+		}
+
+		return false;
 	}
 
-	// Generic handling for anything in the asset meta-data
-	const FString* const MetaDataValue = Asset.TagsAndValues.Find(InKey);
-	if (MetaDataValue)
-	{
-		return TextFilterUtils::TestComplexExpression(*MetaDataValue, InValue, InComparisonOperation, InTextComparisonMode);
-	}
+private:
+	/** Pointer to the asset we're currently filtering */
+	FAssetFilterTypePtr AssetPtr;
 
-	return false;
-}
+	/** Full path of the current asset */
+	FString AssetFullPath;
+
+	/** The export text name of the current asset */
+	FString AssetExportTextName;
+
+	/** Names of the collections that the current asset is in */
+	TArray<FName> AssetCollectionNames;
+
+	/** Are we supposed to include the class name in our basic string tests? */
+	bool bIncludeClassName;
+
+	/** Scratch string that can be used for temporary string conversions while avoiding re-allocations */
+	mutable FString TempString;
+
+	/** Keys used by TestComplexExpression */
+	const FName NameKeyName;
+	const FName PathKeyName;
+	const FName ClassKeyName;
+	const FName TypeKeyName;
+	const FName CollectionKeyName;
+	const FName TagKeyName;
+};
 
 FFrontendFilter_Text::FFrontendFilter_Text()
 	: FFrontendFilter(nullptr)
-	, TextFilter(
-		TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings), 
-		TTextFilter<FAssetFilterType>::FItemTestComplexExpression::CreateStatic(&AssetDataTestComplexExpression)
-		)
+	, TextFilterExpressionContext(MakeShareable(new FFrontendFilter_TextFilterExpressionContext()))
+	, TextFilterExpressionEvaluator(ETextFilterExpressionEvaluatorMode::Complex)
 {
-	SetIncludeClassName(true);
 }
 
 FFrontendFilter_Text::~FFrontendFilter_Text()
 {
-	TextFilter.OnChanged().RemoveAll(this);
 }
 
 bool FFrontendFilter_Text::PassesFilter(FAssetFilterType InItem) const
 {
-	return TextFilter.PassesFilter(InItem);
+	TextFilterExpressionContext->SetAsset(&InItem);
+	const bool bMatched = TextFilterExpressionEvaluator.TestTextFilter(*TextFilterExpressionContext);
+	TextFilterExpressionContext->ClearAsset();
+	return bMatched;
 }
 
 FText FFrontendFilter_Text::GetRawFilterText() const
 {
-	return TextFilter.GetRawFilterText();
+	return TextFilterExpressionEvaluator.GetFilterText();
 }
 
 void FFrontendFilter_Text::SetRawFilterText(const FText& InFilterText)
 {
-	return TextFilter.SetRawFilterText(InFilterText);
+	if (TextFilterExpressionEvaluator.SetFilterText(InFilterText))
+	{
+		// Will trigger a re-filter with the new text
+		BroadcastChangedEvent();
+	}
 }
 
 FText FFrontendFilter_Text::GetFilterErrorText() const
 {
-	return TextFilter.GetFilterErrorText();
+	return TextFilterExpressionEvaluator.GetFilterErrorText();
 }
 
-void FFrontendFilter_Text::SetIncludeClassName(bool bIncludeClassName)
+void FFrontendFilter_Text::SetIncludeClassName(const bool InIncludeClassName)
 {
-	// Preserve the existing text. The filter is going to get recreated here.
-	const FText ExistingText = TextFilter.GetRawFilterText();
-
-	if ( bIncludeClassName )
+	if (TextFilterExpressionContext->GetIncludeClassName() != InIncludeClassName)
 	{
-		TextFilter = TTextFilter<FAssetFilterType>(
-			TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings),
-			TTextFilter<FAssetFilterType>::FItemTestComplexExpression::CreateStatic(&AssetDataTestComplexExpression)
-			);
+		TextFilterExpressionContext->SetIncludeClassName(InIncludeClassName);
+
+		// Will trigger a re-filter with the new setting
+		BroadcastChangedEvent();
 	}
-	else
-	{
-		TextFilter = TTextFilter<FAssetFilterType>(
-			TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToNameString),
-			TTextFilter<FAssetFilterType>::FItemTestComplexExpression::CreateStatic(&AssetDataTestComplexExpression)
-			);
-	}
-
-	// Apply the existing text before we re-assign the delegate since we want the text preservation to be opaque.
-	TextFilter.SetRawFilterText(ExistingText);
-
-	TextFilter.OnChanged().AddRaw(this, &FFrontendFilter_Text::HandleOnChangedEvent);
-}
-
-void FFrontendFilter_Text::HandleOnChangedEvent()
-{
-	BroadcastChangedEvent();
 }
 
 
