@@ -52,13 +52,14 @@ bool FOnlineVoiceImpl::Init()
 		bSuccess = SessionInt && IdentityInt;
 	}
 
-	if (bSuccess && !OnlineSubsystem->IsDedicated())
+	const bool bIntentionallyDisabled = OnlineSubsystem->IsDedicated() || GIsBuildMachine;
+	if (bSuccess && !bIntentionallyDisabled)
 	{
 		VoiceEngine = MakeShareable(new FVoiceEngineImpl(OnlineSubsystem));
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
-		LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	}
 
+	LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	RemoteTalkers.Empty(MaxRemoteTalkers);
 
 	if (!bSuccess)

@@ -53,13 +53,14 @@ bool FOnlineVoiceSteam::Init()
 		bSuccess = SessionInt && IdentityInt;
 	}
 
-	if (bSuccess && !SteamSubsystem->IsDedicated())
+	const bool bIntentionallyDisabled = SteamSubsystem->IsDedicated() || GIsBuildMachine;
+	if (bSuccess && !bIntentionallyDisabled)
 	{
 		VoiceEngine = MakeShareable(new FVoiceEngineSteam(SteamSubsystem));
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
-		LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	}
 
+	LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	RemoteTalkers.Empty(MaxRemoteTalkers);
 
 	if (!bSuccess)
