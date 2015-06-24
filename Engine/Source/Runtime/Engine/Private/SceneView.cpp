@@ -1525,11 +1525,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 #endif
 
 #if !WITH_EDITOR
-	// Console shader compilers don't set instruction count, 
-	// Also various console-specific rendering paths haven't been tested with shader complexity
-	check(!EngineShowFlags.ShaderComplexity);
 	check(!EngineShowFlags.StationaryLightOverlap);
-
 #else
 
 	// instead of checking IsGameWorld on rendering thread to see if we allow this flag to be disabled 

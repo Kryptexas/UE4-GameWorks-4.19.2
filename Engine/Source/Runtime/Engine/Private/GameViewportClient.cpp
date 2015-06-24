@@ -2545,8 +2545,7 @@ bool UGameViewportClient::HandleViewModeCommand( const TCHAR* Cmd, FOutputDevice
 
 	if (FPlatformProperties::SupportsWindowedMode() == false)
 	{
-		if(ViewModeIndex == VMI_Unlit
-			|| ViewModeIndex == VMI_ShaderComplexity
+		if(ViewModeIndex == VMI_Unlit			
 			|| ViewModeIndex == VMI_StationaryLightOverlap
 			|| ViewModeIndex == VMI_Lit_DetailLighting
 			|| ViewModeIndex == VMI_ReflectionOverride)
@@ -2555,7 +2554,7 @@ bool UGameViewportClient::HandleViewModeCommand( const TCHAR* Cmd, FOutputDevice
 			ViewModeIndex = VMI_Lit;
 		}
 	}
-	if (ViewModeIndex != VMI_Lit && !AllowDebugViewmodes())
+	if ((ViewModeIndex != VMI_Lit && ViewModeIndex != VMI_ShaderComplexity) && !AllowDebugViewmodes())
 	{
 		Ar.Logf(TEXT("Debug viewmodes not allowed on consoles by default.  See AllowDebugViewmodes()."));
 		ViewModeIndex = VMI_Lit;
