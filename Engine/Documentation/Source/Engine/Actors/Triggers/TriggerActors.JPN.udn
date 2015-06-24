@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2305753
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:トリガー アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -50,7 +50,7 @@ Description:アクティベートされ、レベル内でイベントを発生�
 
 ## イベントをトリガーする
 
-トリガーは、[Level Blueprint](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 内に配置されたイベントをアクティベートするために使用されます。 
+トリガーは、[Level ブループリント](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 内に配置されたイベントをアクティベートするために使用されます。 
 トリガーがアクティベートできるイベントにはいくつかのタイプがあります。主なものとしては、他のオブジェクトとのある種のコリジョンに反応して起こります。 
 例えば、何かがトリガーにぶつかる、オーバーラップするなどです。またはプレーヤーからの入力に反応して起こります。
 
@@ -60,11 +60,11 @@ Description:アクティベートされ、レベル内でイベントを発生�
 
 	![](trigger_event_details.png)
 
-* レベル ブループリントのイベント グラフで **右クリック** をして、**Add Event for [Trigger Actor Name]** にあるイベントのうちの 1 つを選択します。
+* レベル ブループリントのイベント グラフで **右クリック** して、**Add Event for [Trigger Actor Name]** にあるイベントのうちの 1 つを選択します。
 
 	![](trigger_event_context.png)
 
-	上記のいずれかの方法でイベントを選択すると、[Event node](Engine/Blueprints/UserGuide/Events) が 
+	上記のいずれかの方法でイベントを選択すると、 [イベントノード](Engine/Blueprints/UserGuide/Events) が 
 
 現在のレベルに対するレベル ブループリントに追加されます。
 
