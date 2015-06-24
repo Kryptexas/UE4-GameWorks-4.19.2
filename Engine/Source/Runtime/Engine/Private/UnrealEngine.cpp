@@ -8794,7 +8794,7 @@ void LoadGametypeContent(FWorldContext &Context, const FURL& URL)
 
 bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetGame* Pending, FString& Error )
 {
-	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(URL.Map + TEXT( " - LoadMapStart" )) );
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "LoadMap - " ) + URL.Map )) );
 
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap"), STAT_LoadMap, STATGROUP_LoadTime);
 
@@ -8993,7 +8993,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	
 #endif
 
-	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(URL.Map + TEXT( " - LoadMapMid" )) );
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapMid( URL.Map ); )
 
 	if( GUseSeekFreeLoading )
@@ -9320,7 +9319,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		}
 	}
 
-	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(URL.Map + TEXT( " - LoadMapEnd" )) );
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "LoadMapComplete - " ) + URL.Map )) );
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapEnd( URL.Map ); )
 
 	// Successfully started local level.
@@ -9943,6 +9942,8 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, 
 		Context.LoadedLevelsForPendingMapChange.Add( NULL );
 		UE_LOG(LogEngine, Warning, TEXT("NULL LevelPackage as argument to AsyncMapChangeLevelCompletionCallback") );
 	}
+
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "PrepareMapChangeComplete - " ) + PackageName.ToString() )) );
 }
 
 
@@ -10002,6 +10003,7 @@ bool UEngine::PrepareMapChange(FWorldContext &Context, const TArray<FName>& Leve
 				}
 			}
 			
+			STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "PrepareMapChange - " ) + LevelName.ToString() )) );
 			LoadPackageAsync(LevelName.ToString(),
 				FLoadPackageAsyncDelegate::CreateStatic(&AsyncMapChangeLevelLoadCompletionCallback, Context.ContextHandle)
 				);

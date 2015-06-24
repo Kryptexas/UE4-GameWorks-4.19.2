@@ -3026,8 +3026,6 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	{
 		UE_LOG(LogWorld, Log, TEXT("Bringing up level for play took: %f"), FPlatformTime::Seconds() - StartTime );
 	}
-
-	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(InURL.Map + TEXT( " - Bringing Up" )) );
 }
 
 void UWorld::BeginPlay()
@@ -4302,6 +4300,8 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 
 		SetHandlerLoadedData(LevelPackage, World);
 	}
+
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "StartTravelComplete - " ) + PackageName.ToString() )) );
 }
 
 bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InURL, const FGuid& InGuid)
@@ -4403,6 +4403,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 				UWorld::WorldTypePreLoadMap.FindOrAdd(*TransitionMap) = CurrentWorld->WorldType;
 
 				// first, load the entry level package
+				STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "StartTravel - " ) + TransitionMap )) );
 				LoadPackageAsync(TransitionMap, 
 					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback),
 					0, 
