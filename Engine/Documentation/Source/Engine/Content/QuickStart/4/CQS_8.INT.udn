@@ -46,11 +46,11 @@ This section will show you how to set a **Static Mesh Actor's** default material
 
 1.	In the **Details** panel under **LOD0**, **left-click** the Material drop-down menu (pictured below).
 
-	![](Element0.jpg)
+	![](LOD0.png)
 
 1.	Select the **'Rock' Material** you created earlier. The material should be available in the selection window (pictured below).
 
-	![](SelectMaterial.jpg)
+	![](selectRockMaterial.png)
 	
 	Your **Preview Pane** will update to reflect the newly applied material (pictured below).
 
@@ -78,15 +78,15 @@ Here's how you change a **Static Mesh Actor's** Material.
 
 1.	From the **Details** panel, locate the **Materials** section, and click the **Materials** dropdown menu.
 
-	![](ActorMaterial.jpg)
+	![](materialDropDown.png)
 
 1.	From the pop-up menu, select a different Material.
 
-	![](TutorialMaterial.jpg)
+	![](selectTutorialAssetMat.png)
 
 1.	Alternatively, drag-and-drop a new Material onto the **Static Mesh Actor** (pictured below).
 
-	![](draganddropMaterial.png)
+	![](newMaterialDrop.png)
 
 You've just applied materials to your Static Mesh Actors by:
 

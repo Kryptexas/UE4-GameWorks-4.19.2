@@ -41,7 +41,7 @@ You can define a **Material's** color, shininess, transparency, and much more in
 
 1.	In the **Details Panel**, change the **Shading Model** from **Default Lit** to **Subsurface**.
 	
-	![](subsurfaceEnable.jpg)
+	![](selectSubsurface.png)
 
 1.	The **Subsurface Shading Model** enables two more pins in the **Main Material Node**: **Opacity** and **Subsurface Color** (pictured below).
 	
@@ -57,7 +57,7 @@ You can define a **Material's** color, shininess, transparency, and much more in
 
 1.	Select one of the **Texture Sample Nodes** and locate the **Details Panel** under the **Material Expression Texture Base** category (pictured below). 
 	
-	![](textureNone.jpg)
+	![](matExpressionTextureBase.png)
 
 	Under the texture property, **Left-click** the pull down menu labeled **'None'** and select the color texture named **T_Rock_04_D**.
 
