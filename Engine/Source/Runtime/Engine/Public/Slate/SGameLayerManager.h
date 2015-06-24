@@ -20,7 +20,7 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IToolTip() { }
+	virtual ~IGameLayer() { }
 };
 
 /**
