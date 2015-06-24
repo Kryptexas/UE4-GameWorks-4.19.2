@@ -434,6 +434,7 @@ public:
 	int32 GetCubeShadowDepthZResolution(int32 ShadowIndex) const;
 	/** Returns the size of the shadow depth buffer, taking into account platform limitations and game specific resolution limits. */
 	FIntPoint GetShadowDepthTextureResolution() const;
+	// @return >= 1x1 <= GMaxShadowDepthBufferSizeX x GMaxShadowDepthBufferSizeY
 	FIntPoint GetPreShadowCacheTextureResolution() const;
 	FIntPoint GetTranslucentShadowDepthTextureResolution() const;
 	int32 GetTranslucentShadowDownsampleFactor() const { return 2; }
