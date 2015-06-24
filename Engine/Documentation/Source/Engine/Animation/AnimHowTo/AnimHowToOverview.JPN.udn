@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:2407848
+﻿INTSourceChangelist:2591934
 Availability:Public
-Title:アニメーションの操作ガイド
+Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アンリアル エンジン 4 のアニメーション システムの様々な側面の例を段階的操作ガイドで説明します。
 
-**アニメーションの操作ガイド** のページでは、アンリアル エンジン 4 (UE4) のアニメーション システムの様々な機能で作業し、使用する方法の例を段階的に示します。UE4 でのアニメーションの操作が初めての場合や、アニメーション システムの一部の機能で作業する方法を学習したい場合、以下の操作ガイドは幅広いトピックを取扱っており、現在の知識から開始する、または知識を拡げる場所になります。 
+**アニメーションの操作ガイド** のページでは、アンリアル エンジン 4 (UE4) のアニメーション システムの機能での作業および機能を使用する方法例を段階的に示します。UE4 でのアニメーションの操作が初めての場合、またはアニメーション システムの一部の機能で作業する方法を学習したい場合のいずれであっても、以下の操作ガイドは幅広いトピックを取扱っており、学習の開始点、または知識を拡げる場所を提供します。 
 
 詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
 
-| 操作手順 | 説明 |
+|操作ガイド | 説明 |
 | ------- | ------------ |
 | **[](Engine\Animation\AnimHowTo\PreviewingAnimations)** | %Engine\Animation\AnimHowTo\PreviewingAnimations:description% |
 | **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |
