@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419781
+﻿INTSourceChangelist:2592475
 Availability:Public
 Title:Animation ブループリントのユーザー インターフェース
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
@@ -67,21 +67,21 @@ Description:アニメーション ブループリントの UI の概要
 | Skeleton Tree | **[スケルトン ツリー]** パネルを表示します。このパネルには、そのアニメーション ブループリントに関連するスケルタルメッシュにある全てのボーンが表示されます。|
 | Asset Browser | 現在表示されていない場合、 **[アセット ブラウザ]** パネルを表示し、開くとフォーカスを移動します。 |
 | Viewport | 現在表示されていない場合、 **[プレビュー ビューポート]** パネルを表示します。 |
-| Animation Notifies | **[Animation Notifies]** ウィンドウを開きます。現在、スケルタルメッシュのアニメーション アセットに関連付けられているすべてのアニメーション通知がリスト表示されます。 |
-| Animation Blueprint Editor | 現在表示されていなければ、**Animation Blueprint Editor** ウィンドウを開きます。 |
-| Asset Override Editor | 現在表示されていなければ、**Asset Override Editor** ウィンドウを開きます。 |
-| Animation SlotName | 現在表示されていなければ、**Animation SlotName** ウィンドウを開きます。 |
-| Animation Slot Group Name |現在表示されていなければ、**Animation Slot Group Name** ウィンドウを開きます。 |
+| Animation Notifies | **アニメーション通知** ウィンドウを開きます。現在、スケルタルメッシュのアニメーション アセットに関連付けられているすべてのアニメーション通知がリスト表示されます。 |
+| Animation Blueprint Editor | 現在表示されていなければ、**Animation ブループリント エディタ** ウィンドウを開きます。 |
+| Asset Override Editor | 現在表示されていなければ、**アセット オーバーライド エディタ** ウィンドウを開きます。 |
+| Animation SlotName | 現在表示されていなければ、**アニメーション スロット名** ウィンドウを開きます。 |
+| Animation Slot Group Name |現在表示されていなければ、**アニメーション スロット グループ名** ウィンドウを開きます。 |
 | Content Browser | 4 つ全ての **コンテンツ ブラウザ** にアクセスができるサブメニューを開きます。|
-| Developer Tools | **Camera Debugger**、 **Collision Analyzer** 、 **Debug Tools** 、 **Modules** 、 **Widget Reflector** にアクセスができるサブメニューを開きます。 |
-| Blueprint Debugger | **[Blueprint Debugger]** を開きます。 |
+| Developer Tools | **Camera Debugger** （カメラ デバッガー）、 **Collision Analyzer** （コリジョン アナライザ）、 **Debug Tools** （デバッグ ツール）、 **Modules** （モジュール）、 **Widget Reflector** （ウィジェット リフレクタ）にアクセスができるサブメニューを開きます。 |
+| Blueprint Debugger | **ブループリント デバッガ** を開きます。 |
 | Class Viewer | **[クラスビューア]** を開きます。|
-| Device Profile Editor | **Device Profile Editor** を開きます。.|
-| Output Log | **[Output Log]** を開きます。 |
-| Undo History | **[Undo History]** ウィンドウを開きます。 |
+| Device Profile Editor | **デバイス プロファイル エディタ** を開きます。.|
+| Output Log | **出力ログ** を開きます。 |
+| Undo History | **元に戻す操作の履歴** ウィンドウを開きます。 |
 | [REGION:tablesection]**[Unreal Frontend]**[/REGION] ||
-| Device Manager | **[Device Manager]** を開きます。|
-| Session Frontend | **[Session Frontend]** を開きます。 |
+| Device Manager | **デバイス マネージャ** を開きます。|
+| Session Frontend | **セッション Frontend** を開きます。 |
 | [REGION:tablesection]**レイアウト**[/REGION] ||
 | Reset Layout | レイアウトをデフォルトの設定にリセットします (エディタの自動再起動が必要です)。 |
 | Save Layout | 現在のパネルのレイアウトを保存します。 |
@@ -128,7 +128,7 @@ Description:アニメーション ブループリントの UI の概要
 
 ## クラスのデフォルト
 
-**[クラスのデフォルト]** パネルには、すべてのアニメーション ブループリントのすべての変数がカテゴリ別に表示されます。ここで手動で変数値を変更し、ビューポートで様々なアニメーションをプレビューし表示できます。
+**[Class Defaults]** （クラスのデフォルト）パネルには、すべてのアニメーション ブループリントのすべての変数がカテゴリ別に表示されます。ここで手動で変数値を変更し、ビューポートで様々なアニメーションをプレビューし表示できます。
 
 ![](AnimGraphUI_BPDefaults.png)
 
@@ -176,7 +176,7 @@ Description:アニメーション ブループリントの UI の概要
 
 ## [詳細] パネル
 
-**[詳細]** パネルには、選択したエレメントのプロパティが表示されます。
+**[詳細]** パネルには、選択した要素のプロパティが表示されます。
 
 ![](AnimGraphUI_Details.png)
 
