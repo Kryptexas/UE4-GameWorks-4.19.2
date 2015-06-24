@@ -128,12 +128,12 @@ bool FModuleManager::IsModuleLoaded( const FName InModuleName )
 }
 
 
-bool FModuleManager::IsModuleUpToDate( const FName InModuleName ) const
+bool FModuleManager::IsModuleUpToDate(const FName InModuleName)
 {
 	TMap<FName, FString> ModulePathMap;
 	FindModulePaths(*InModuleName.ToString(), ModulePathMap);
 
-	if(ModulePathMap.Num() != 1)
+	if (ModulePathMap.Num() != 1)
 	{
 		return false;
 	}
@@ -886,9 +886,31 @@ void FModuleManager::GetModuleFilenameFormat(bool bGameModule, FString& OutPrefi
 	OutSuffix += FPlatformProcess::GetModuleExtension();
 }
 
-
-void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
+void FModuleManager::ResetModulePathsCache()
 {
+	ModulePathsCache.Empty();
+	bModulePathsCacheInitialized = false;
+}
+
+void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths, bool bCanUseCache /*= true*/)
+{
+	if (!bModulePathsCacheInitialized)
+	{
+		bModulePathsCacheInitialized = true;
+		const bool bCanUseCacheWhileGeneratingIt = false;
+		FindModulePaths(TEXT("*"), ModulePathsCache, bCanUseCacheWhileGeneratingIt);
+	}
+
+	if (bCanUseCache)
+	{
+		// Try to use cache first
+		if (const FString* ModulePathPtr = ModulePathsCache.Find(NamePattern))
+		{
+			OutModulePaths.Add(FName(NamePattern), *ModulePathPtr);
+			return;
+		}
+	}
+
 	// Search through the engine directory
 	FindModulePathsInDirectory(FPlatformProcess::GetModulesDirectory(), false, NamePattern, OutModulePaths);
 

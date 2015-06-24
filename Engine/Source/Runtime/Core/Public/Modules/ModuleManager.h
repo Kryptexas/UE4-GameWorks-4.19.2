@@ -373,7 +373,7 @@ public:
 	 * @param InModuleName The base name of the module file.
 	 * @return true if module exists and is up to date, false otherwise.
 	 */
-	bool IsModuleUpToDate( const FName InModuleName ) const;
+	bool IsModuleUpToDate( const FName InModuleName );
 
 	/**
 	 * Determines whether the specified module contains UObjects.  The module must already be loaded into
@@ -454,6 +454,7 @@ protected:
 	 */
 	FModuleManager( )
 		: bCanProcessNewlyLoadedObjects(false)
+		, bModulePathsCacheInitialized(false)
 	{ }
 
 protected:
@@ -507,6 +508,9 @@ public:
 
 	void AddModuleToModulesList(const FName InModuleName, TSharedRef<FModuleInfo>& ModuleInfo);
 
+	/** Clears module path cache */
+	void ResetModulePathsCache();
+
 private:
 	/** Thread safe module finding routine. */
 	TSharedRef<FModuleInfo>* FindModule(FName InModuleName);
@@ -519,7 +523,7 @@ private:
 	static void GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix);
 
 	/** Finds modules matching a given name wildcard. */
-	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
+	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths, bool bCanUseCache = true);
 
 	/** Finds modules matching a given name wildcard within a given directory. */
 	void FindModulePathsInDirectory(const FString &DirectoryName, bool bIsGameDirectory, const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
@@ -537,6 +541,12 @@ private:
 
 	/** True if module manager should automatically register new UObjects discovered while loading C++ modules */
 	bool bCanProcessNewlyLoadedObjects;
+
+	/** True if module paths cache has already been initialized */
+	bool bModulePathsCacheInitialized;
+
+	/** Cache of known module paths. Used for performance. Can increase editor startup times by up to 30% */
+	TMap<FName, FString> ModulePathsCache;
 
 	/** Multicast delegate that will broadcast a notification when modules are loaded, unloaded, or
 	    our set of known modules changes */

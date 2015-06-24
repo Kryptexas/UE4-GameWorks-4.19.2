@@ -651,6 +651,8 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 
 	if (CompilationResult == ECompilationResult::Succeeded)
 	{
+		FModuleManager::Get().ResetModulePathsCache();
+
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
 		ErrorsFC.Errors.Empty();
 		ErrorsFC.Warnings.Empty();
@@ -820,6 +822,8 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 
 	if (bCanRebind)
 	{
+		FModuleManager::Get().ResetModulePathsCache();
+
 		bIsHotReloadingFromEditor = true;
 
 		const double StartTime = FPlatformTime::Seconds();
