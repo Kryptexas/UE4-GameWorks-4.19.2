@@ -6,7 +6,6 @@ Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints
 
 [TOC (start:2 end:2)]
 
-## Overview
 There are two driving considerations when deciding to use C++ or Blueprints:
 -	Speed
 -	Complexity of expression
