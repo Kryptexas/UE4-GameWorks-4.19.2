@@ -364,6 +364,10 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 	{
 		InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
 	}
+	else
+	{
+		UE_LOG(LogNet, Warning, TEXT("UIpNetDriver::ProcesRemoteFunction: No owning connection for actor %s. Function %s will not be processed."), *Actor->GetName(), *Function->GetName());
+	}
 }
 
 FString UIpNetDriver::LowLevelGetNetworkNumber()
