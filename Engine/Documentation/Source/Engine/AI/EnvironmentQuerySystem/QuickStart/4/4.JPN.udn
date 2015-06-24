@@ -52,18 +52,17 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 	[/REGION]
 
 	この **ビヘイビアツリー** に `RunnerBT` という名前を付けます。
-	1. [REGION:raw]**New** %arrow% **Miscellaneous** %arrow%  **Blackboard**.[/REGION]
+1. [REGION:raw]**New** %arrow% **Miscellaneous** %arrow%  **Blackboard**.[/REGION]
 
 	[REGION:raw]
-
 	![](Engine/AI/BehaviorTrees/QuickStart/3/newBB.png)
 	[/REGION]	
 
 	この **Blackboard** に `RunnerBlackboard` という名前を付けます。
 
 1. 以下のように **Environment Query**: を作成します。[REGION:raw]**New** %arrow% **Miscellaneous** %arrow%  **Environment Query**.[/REGION]
-	[REGION:raw]
 
+	[REGION:raw]
 	![](newEQ.PNG)
 	[/REGION]	
 
@@ -72,8 +71,8 @@ Description:EQS のクイック スタートに必要な 7 つのアセットを
 1. もうひとつの **Environment Query** に `FindPlayer` と名前を付けます。
 
 1. [REGION:raw]**New** %arrow% **Blueprint** %arrow%  **EnvQueryContext_BlueprintBase**.[/REGION]
-	![](newContext.png)
 
+	![](newContext.png)
 
 	**Environment Query** に `PlayerContext` と名前を付けます。
 
