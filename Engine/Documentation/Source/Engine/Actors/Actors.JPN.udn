@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2489703
+﻿NTSourceChangelist:2590930
 Availability:Public
 Title:アクタ＆ジオメトリ
 Crumbs:%ROOT%, Engine
@@ -88,7 +88,7 @@ Navigation:topic
 
 このプロセスには、アクタの配置、アクタの選択、アクタの位置決め、そしてアクタの修正など必要不可欠な作業がいくつかあります。つまり、 
 レベルを作成するには、アクタをマップへ配置および移動して環境を構築します。 
-そして適切な外観や動きをするようにアクタのプロパティを修正します。
+そして適切な外観や動きになるようにアクタのプロパティを修正します。
 
 ## アクタの作業
 
@@ -124,3 +124,8 @@ Navigation:topic
 
 
 %playlistnav%
+
+
+
+
+
