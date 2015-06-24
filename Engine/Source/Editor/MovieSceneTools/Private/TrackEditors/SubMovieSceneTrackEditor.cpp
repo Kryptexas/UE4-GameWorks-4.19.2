@@ -24,7 +24,7 @@ public:
 
 	virtual FText GetDisplayName() const override
 	{
-		return DisplayName;
+		return GetSectionTitle();
 	}
 
 	virtual FText GetSectionTitle() const override

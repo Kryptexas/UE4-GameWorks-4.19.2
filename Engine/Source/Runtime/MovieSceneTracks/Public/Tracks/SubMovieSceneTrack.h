@@ -33,5 +33,5 @@ public:
 private:
 	/** All movie scene sections.  */
 	UPROPERTY()
-	TArray<class UMovieSceneSection*> SubMovieSceneSections;
+	TArray<class USubMovieSceneSection*> SubMovieSceneSections;
 };

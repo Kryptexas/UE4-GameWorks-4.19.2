@@ -18,9 +18,15 @@ UMovieSceneSection* USubMovieSceneTrack::CreateNewSection()
 
 FName USubMovieSceneTrack::GetTrackName() const
 {
-	static const FName UniqueName( "Scenes" );
+	static const FName DefaultName( "MovieScene" );
 
-	return UniqueName;
+	FName Name = DefaultName;
+	if( SubMovieSceneSections.Num() > 0 )
+	{
+		Name = SubMovieSceneSections[0]->GetMovieScene()->GetFName();
+	}
+
+	return Name;
 }
 
 TSharedPtr<IMovieSceneTrackInstance> USubMovieSceneTrack::CreateInstance()
@@ -41,7 +47,11 @@ TArray<UMovieSceneSection*> USubMovieSceneTrack::GetAllSections() const
 
 void USubMovieSceneTrack::RemoveSection( UMovieSceneSection* Section )
 {
-	SubMovieSceneSections.Remove( Section );
+	USubMovieSceneSection* SubMovieSceneSection = Cast<USubMovieSceneSection>( Section );
+	if(SubMovieSceneSection)
+	{
+		SubMovieSceneSections.Remove( SubMovieSceneSection );
+	}
 }
 
 bool USubMovieSceneTrack::IsEmpty() const

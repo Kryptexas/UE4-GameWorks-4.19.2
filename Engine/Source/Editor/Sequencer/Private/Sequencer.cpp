@@ -1127,13 +1127,9 @@ void FSequencer::AddSubMovieScene( UMovieScene* SubMovieScene )
 
 	OwnerMovieScene->Modify();
 
-	UMovieSceneTrack* Type = OwnerMovieScene->FindMasterTrack( USubMovieSceneTrack::StaticClass() ) ;
-	if( !Type )
-	{
-		Type = OwnerMovieScene->AddMasterTrack( USubMovieSceneTrack::StaticClass() );
-	}
+	UMovieSceneTrack* NewTrack = OwnerMovieScene->AddMasterTrack( USubMovieSceneTrack::StaticClass() );
 
-	USubMovieSceneTrack* SubMovieSceneType = CastChecked<USubMovieSceneTrack>( Type );
+	USubMovieSceneTrack* SubMovieSceneType = CastChecked<USubMovieSceneTrack>( NewTrack );
 
 	SubMovieSceneType->AddMovieSceneSection( SubMovieScene, ScrubPosition );
 }
