@@ -75,7 +75,7 @@ public:
 
 	/** Toolbar/menu command methods */
 	void OnDeleteKeys();
-	void OnFitToAll();
+	void OnFit();
 	void OnFitToSelected();
 	void OnFitHorizontally();
 	void OnFitVertically();
@@ -146,6 +146,9 @@ private:
 
 	/** Helper method to set selected tab */
 	TSharedPtr<FString> GetSelectedTab() const;
+
+	/** Helper function to iterate all selected curve keys if any are selected, otherwise all the keys in all the curves */
+	void IterateKeys(const TFunctionRef<void(int32, int32, FCurveEdEntry&, FCurveEdInterface&)>& IteratorCallback);
 
 private:
 	/** A list commands to execute if a user presses the corresponding keybinding in the text box */

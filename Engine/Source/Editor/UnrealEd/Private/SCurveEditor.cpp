@@ -90,16 +90,13 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FExecuteAction::CreateSP(this, &SCurveEditor::RedoAction));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitHorizontal,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal, false));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitVertical,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical, false));
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical));
 
-	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitAll,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitAll, false));
-
-	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitSelected,
-		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitAll, true));
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFit,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFit));
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleSnapping,
 		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleSnapping),
@@ -1037,12 +1034,12 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 
 	if( bZoomToFitVertical )
 	{
-		ZoomToFitVertical(false);
+		ZoomToFitVertical();
 	}
 
 	if ( bZoomToFitHorizontal )
 	{
-		ZoomToFitHorizontal(false);
+		ZoomToFitHorizontal();
 	}
 
 	CurveSelectionWidget.Pin()->SetContent(CreateCurveSelectionWidget());
@@ -1879,7 +1876,7 @@ TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 }
 
 
-void SCurveEditor::ZoomToFitHorizontal(bool OnlySelected)
+void SCurveEditor::ZoomToFitHorizontal()
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
@@ -1889,7 +1886,7 @@ void SCurveEditor::ZoomToFitHorizontal(bool OnlySelected)
 		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
 
-		if (OnlySelected)
+		if (SelectedKeys.Num())
 		{
 			for (auto SelectedKey : SelectedKeys)
 			{
@@ -1901,9 +1898,8 @@ void SCurveEditor::ZoomToFitHorizontal(bool OnlySelected)
 		}
 		else
 		{
-			for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+			for (FRichCurve* Curve : CurvesToFit)
 			{
-				FRichCurve* Curve = *It;
 				float MinTime, MaxTime;
 				Curve->GetTimeRange(MinTime, MaxTime);
 				InMin = FMath::Min(MinTime, InMin);
@@ -1939,7 +1935,7 @@ void SCurveEditor::ZoomToFitHorizontal(bool OnlySelected)
 
 FReply SCurveEditor::ZoomToFitHorizontalClicked()
 {
-	ZoomToFitHorizontal(false);
+	ZoomToFitHorizontal();
 	return FReply::Handled();
 }
 
@@ -1952,7 +1948,7 @@ void SCurveEditor::SetDefaultOutput(const float MinZoomRange)
 	SetOutputMinMax(NewMinOutput, NewMaxOutput);
 }
 
-void SCurveEditor::ZoomToFitVertical(bool OnlySelected)
+void SCurveEditor::ZoomToFitVertical()
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
@@ -1962,7 +1958,7 @@ void SCurveEditor::ZoomToFitVertical(bool OnlySelected)
 		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
 
-		if (OnlySelected)
+		if (SelectedKeys.Num() != 0)
 		{
 			for (auto SelectedKey : SelectedKeys)
 			{
@@ -1974,9 +1970,8 @@ void SCurveEditor::ZoomToFitVertical(bool OnlySelected)
 		}
 		else
 		{
-			for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+			for (FRichCurve* Curve : CurvesToFit)
 			{
-				FRichCurve* Curve = *It;
 				float MinVal, MaxVal;
 				Curve->GetValueRange(MinVal, MaxVal);
 				InMin = FMath::Min(MinVal, InMin);
@@ -2007,19 +2002,14 @@ void SCurveEditor::ZoomToFitVertical(bool OnlySelected)
 
 FReply SCurveEditor::ZoomToFitVerticalClicked()
 {
-	ZoomToFitVertical(false);
+	ZoomToFitVertical();
 	return FReply::Handled();
 }
 
-void SCurveEditor::ZoomToFitAll(bool OnlySelected)
+void SCurveEditor::ZoomToFit()
 {
-	if (OnlySelected && SelectedKeys.Num() == 0)
-	{
-		// Don't zoom to selected if there is no selection.
-		return;
-	}
-	ZoomToFitHorizontal(OnlySelected);
-	ZoomToFitVertical(OnlySelected);
+	ZoomToFitHorizontal();
+	ZoomToFitVertical();
 }
 
 void SCurveEditor::ToggleSnapping()

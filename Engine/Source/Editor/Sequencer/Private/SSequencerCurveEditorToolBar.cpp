@@ -10,8 +10,7 @@ void SSequencerCurveEditorToolBar::Construct( const FArguments& InArgs, TSharedP
 	{
 		ToolBarBuilder.AddToolBarButton( FRichCurveEditorCommands::Get().ZoomToFitHorizontal );
 		ToolBarBuilder.AddToolBarButton( FRichCurveEditorCommands::Get().ZoomToFitVertical );
-		ToolBarBuilder.AddToolBarButton( FRichCurveEditorCommands::Get().ZoomToFitAll );
-		ToolBarBuilder.AddToolBarButton( FRichCurveEditorCommands::Get().ZoomToFitSelected );
+		ToolBarBuilder.AddToolBarButton( FRichCurveEditorCommands::Get().ZoomToFit );
 	}
 	ToolBarBuilder.EndSection();
 

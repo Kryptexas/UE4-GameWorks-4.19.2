@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SCurveEditor.h"
+#include "ITimeSlider.h"
 
 /** A widget for displaying and managing an SCurveEditor in sequencer. */
 class SSequencerCurveEditor : public SCurveEditor
@@ -12,7 +13,10 @@ public:
 	{}
 
 		/** The range of time being viewed */
-		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
+		SLATE_ATTRIBUTE( FAnimatedRange, ViewRange )
+
+		/** Event that is dispatched when the view range needs to be changed */
+		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
 
 	SLATE_END_ARGS()
 
@@ -58,8 +62,6 @@ private:
 	TWeakPtr<FSequencer> Sequencer;
 	/** The class responsible for time sliding on the curve editor */
 	TSharedPtr<class ITimeSliderController> TimeSliderController;
-	/** The visible time range displayed by the curve editor. */
-	TAttribute<TRange<float>> ViewRange;
 	/** The sequencer node tree which contains the key area nodes which supply the curves to edit. */
 	TSharedPtr<FSequencerNodeTree> SequencerNodeTree;
 	/** The sequencer curve owner implementation which is visualized by the SCurveEditor. */

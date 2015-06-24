@@ -322,9 +322,9 @@ private:
 	/* Get the curves to will be used during a fit operation */
 	TArray<FRichCurve*> GetCurvesToFit()const;
 
-	void ZoomToFitHorizontal(bool OnlySelected);
-	void ZoomToFitVertical(bool OnlySelected);
-	void ZoomToFitAll(bool OnlySelected);
+	void ZoomToFitHorizontal();
+	void ZoomToFitVertical();
+	void ZoomToFit();
 
 	FReply ZoomToFitHorizontalClicked();
 	FReply ZoomToFitVerticalClicked();

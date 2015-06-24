@@ -27,6 +27,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	DECLARE_MULTICAST_DELEGATE( FOnCurveVisibilityChanged );
+	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
@@ -99,6 +100,9 @@ public:
 	/** Gets the multicast delegate which is run whenever the CurveVisibility value changes. */
 	FOnCurveVisibilityChanged* GetOnCurveVisibilityChanged();
 
+	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
+	FOnShowCurveEditorChanged* GetOnShowCurveEditorChanged();
+
 protected:
 	UPROPERTY( config )
 	bool bIsSnapEnabled;
@@ -140,4 +144,5 @@ protected:
 	TEnumAsByte<ESequencerCurveVisibility::Type> CurveVisibility;
 
 	FOnCurveVisibilityChanged OnCurveVisibilityChanged;
+	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

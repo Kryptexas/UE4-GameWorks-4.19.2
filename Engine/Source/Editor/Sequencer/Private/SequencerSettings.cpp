@@ -170,6 +170,7 @@ void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
 	if (bShowCurveEditor != InbShowCurveEditor)
 	{
 		bShowCurveEditor = InbShowCurveEditor;
+		OnShowCurveEditorChanged.Broadcast();
 		SaveConfig();
 	}
 }
@@ -213,4 +214,9 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 USequencerSettings::FOnCurveVisibilityChanged* USequencerSettings::GetOnCurveVisibilityChanged()
 {
 	return &OnCurveVisibilityChanged;
+}
+
+USequencerSettings::FOnShowCurveEditorChanged* USequencerSettings::GetOnShowCurveEditorChanged()
+{
+	return &OnShowCurveEditorChanged;
 }

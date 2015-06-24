@@ -624,15 +624,7 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 		{
 			if(!bBoxSelecting && !bBegunMoving && !bDraggingHandle)
 			{
-				CurveEditorPtr.Pin()->OnFitToAll();
-			}
-			bHandled = true;
-		}
-		else if ((Key == EKeys::D) && bCtrlDown)
-		{
-			if(!bBoxSelecting && !bBegunMoving && !bDraggingHandle)
-			{
-				CurveEditorPtr.Pin()->OnFitToSelected();
+				CurveEditorPtr.Pin()->OnFit();
 			}
 			bHandled = true;
 		}
@@ -817,13 +809,12 @@ void FCurveEditorViewportClient::Exec(const TCHAR* Cmd)
 		{
 			CurveEditorPtr.Pin()->OnFitVertically();
 		}
-		else if(FParse::Command(&Str, TEXT("FitViewToAll")))
+		// Multiple commands to support backwards compat. with old selected/all code paths
+		else if(FParse::Command(&Str, TEXT("FitViewToAll")) ||
+				FParse::Command(&Str, TEXT("FitViewToSelected")) ||
+				FParse::Command(&Str, TEXT("FitView")))
 		{
-			CurveEditorPtr.Pin()->OnFitToAll();
-		}
-		else if(FParse::Command(&Str, TEXT("FitViewToSelected")))
-		{
-			CurveEditorPtr.Pin()->OnFitToSelected();
+			CurveEditorPtr.Pin()->OnFit();
 		}
 	}
 }

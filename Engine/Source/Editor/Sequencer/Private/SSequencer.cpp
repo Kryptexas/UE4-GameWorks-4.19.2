@@ -192,6 +192,8 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	USelection::SelectionChangedEvent.AddSP(this, &SSequencer::OnActorSelectionChanged);
 
+	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged()->AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
+
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
 
@@ -234,7 +236,8 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	SAssignNew( CurveEditor, SSequencerCurveEditor, PinnedSequencer, TimeSliderController )
 		.Visibility( this, &SSequencer::GetCurveEditorVisibility )
-		.ViewRange( FAnimatedRange::WrapAttribute(InArgs._ViewRange) );
+		.OnViewRangeChanged( InArgs._OnViewRangeChanged )
+		.ViewRange( InArgs._ViewRange );
 
 	const int32 				Column0	= 0,	Column1	= 1;
 	const int32 Row0	= 0,
@@ -632,6 +635,7 @@ TSharedRef<SWidget> SSequencer::MakeTransportControls()
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
+	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged()->RemoveAll(this);
 }
 
 void SSequencer::RegisterActiveTimerForPlayback()
@@ -1176,6 +1180,15 @@ EVisibility SSequencer::GetTrackAreaVisibility() const
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
 	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+void SSequencer::OnCurveEditorVisibilityChanged()
+{
+	if (CurveEditor.IsValid())
+	{
+		// Only zoom horizontally if the editor is visible
+		CurveEditor->SetZoomToFit(true, GetDefault<USequencerSettings>()->GetShowCurveEditor());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

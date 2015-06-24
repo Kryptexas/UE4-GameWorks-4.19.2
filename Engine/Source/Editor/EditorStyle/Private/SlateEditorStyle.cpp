@@ -6003,8 +6003,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 		Set( "CurveEditor.FitHorizontally", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Horizontal_40x", Icon40x40 ) );
 		Set( "CurveEditor.FitVertically", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Vertical_40x", Icon40x40 ) );
-		Set( "CurveEditor.FitToAll", new IMAGE_BRUSH( "Icons/icon_CurveEditor_All_40x", Icon40x40 ) );
-		Set( "CurveEditor.FitToSelected", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Selected_40x", Icon40x40 ) );
+		Set( "CurveEditor.Fit", new IMAGE_BRUSH( "Icons/icon_CurveEditor_ZoomToFit_40x", Icon40x40 ) );
 		Set( "CurveEditor.PanMode", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Pan_40x", Icon40x40 ) );
 		Set( "CurveEditor.ZoomMode", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Zoom_40x", Icon40x40 ) );
 		Set( "CurveEditor.CurveAuto", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Auto_40x", Icon40x40 ) );
@@ -6021,8 +6020,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		
 		Set( "CurveEditor.FitHorizontally.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Horizontal_40x", Icon20x20 ) );
 		Set( "CurveEditor.FitVertically.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Vertical_40x", Icon20x20 ) );
-		Set( "CurveEditor.FitToAll.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_All_40x", Icon20x20 ) );
-		Set( "CurveEditor.FitToSelected.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Selected_40x", Icon20x20 ) );
+		Set( "CurveEditor.Fit.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_ZoomToFit_40x", Icon20x20 ) );
 		Set( "CurveEditor.PanMode.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Pan_40x", Icon20x20 ) );
 		Set( "CurveEditor.ZoomMode.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Zoom_40x", Icon20x20 ) );
 		Set( "CurveEditor.CurveAuto.Small", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Auto_40x", Icon20x20 ) );
@@ -6044,10 +6042,8 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set("RichCurveEditor.ZoomToFitHorizontal.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_Horizontal_40x", Icon20x20));
 		Set("RichCurveEditor.ZoomToFitVertical", new IMAGE_BRUSH("Icons/icon_CurveEditor_Vertical_40x", Icon40x40));
 		Set("RichCurveEditor.ZoomToFitVertical.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_Vertical_40x", Icon20x20));
-		Set("RichCurveEditor.ZoomToFitAll", new IMAGE_BRUSH("Icons/icon_CurveEditor_All_40x", Icon40x40));
-		Set("RichCurveEditor.ZoomToFitAll.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_All_40x", Icon20x20));
-		Set("RichCurveEditor.ZoomToFitSelected", new IMAGE_BRUSH("Icons/icon_CurveEditor_Selected_40x", Icon40x40));
-		Set("RichCurveEditor.ZoomToFitSelected.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_Selected_40x", Icon20x20));
+		Set("RichCurveEditor.ZoomToFit", new IMAGE_BRUSH("Icons/icon_CurveEditor_ZoomToFit_40x", Icon40x40));
+		Set("RichCurveEditor.ZoomToFit.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_ZoomToFit_40x", Icon20x20));
 
 		Set("RichCurveEditor.ToggleSnapping", new IMAGE_BRUSH("Icons/icon_CurveEditor_ToggleSnap_40x", Icon40x40));
 		Set("RichCurveEditor.ToggleSnapping.Small", new IMAGE_BRUSH("Icons/icon_CurveEditor_ToggleSnap_40x", Icon20x20));
