@@ -168,11 +168,10 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) // Do not Print in Shipping or Test
 
-	WorldContextObject = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
 	FString Prefix;
-	if (WorldContextObject)
+	if (World)
 	{
-		UWorld *World = WorldContextObject->GetWorld();
 		if (World->WorldType == EWorldType::PIE)
 		{
 			switch(World->GetNetMode())
@@ -190,22 +189,30 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 		}
 	}
 	
-	const FString FinalString = Prefix + InString;
+	const FString FinalDisplayString = Prefix + InString;
+	FString FinalLogString = FinalDisplayString;
+
+	static const FBoolConfigValueHelper DisplayPrintStringSource(TEXT("Kismet"), TEXT("bLogPrintStringSource"), GEngineIni);
+	if (DisplayPrintStringSource)
+	{
+		const FString SourceObjectPrefix = FString::Printf(TEXT("[%s] "), *GetNameSafe(WorldContextObject));
+		FinalLogString = SourceObjectPrefix + FinalLogString;
+	}
 
 	if (bPrintToLog)
 	{
-		UE_LOG(LogBlueprintUserMessages, Log, TEXT("%s"), *FinalString);
+		UE_LOG(LogBlueprintUserMessages, Log, TEXT("%s"), *FinalLogString);
 		
 		APlayerController* PC = (WorldContextObject ? UGameplayStatics::GetPlayerController(WorldContextObject, 0) : NULL);
 		ULocalPlayer* LocalPlayer = (PC ? Cast<ULocalPlayer>(PC->Player) : NULL);
 		if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
 		{
-			LocalPlayer->ViewportClient->ViewportConsole->OutputText(FinalString);
+			LocalPlayer->ViewportClient->ViewportConsole->OutputText(FinalDisplayString);
 		}
 	}
 	else
 	{
-		UE_LOG(LogBlueprintUserMessages, Verbose, TEXT("%s"), *FinalString);
+		UE_LOG(LogBlueprintUserMessages, Verbose, TEXT("%s"), *FinalLogString);
 	}
 
 	// Also output to the screen, if possible
@@ -218,7 +225,7 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 			{
 				GConfig->GetFloat( TEXT("Kismet"), TEXT("PrintStringDuration"), Duration, GEngineIni );
 			}
-			GEngine->AddOnScreenDebugMessage((uint64)-1, Duration, TextColor.ToFColor(true), FinalString);
+			GEngine->AddOnScreenDebugMessage((uint64)-1, Duration, TextColor.ToFColor(true), FinalDisplayString);
 		}
 		else
 		{
