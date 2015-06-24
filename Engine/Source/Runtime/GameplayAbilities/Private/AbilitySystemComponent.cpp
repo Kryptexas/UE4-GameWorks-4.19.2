@@ -1137,8 +1137,7 @@ void UAbilitySystemComponent::ModifyActiveEffectStartTime(FActiveGameplayEffectH
 
 void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
 {
-	AActor *OwningActor = GetOwner();
-	if (OwningActor && OwningActor->Role == ROLE_Authority)
+	if (IsOwnerActorAuthoritative())
 	{
 		RemoveActiveEffects(FActiveGameplayEffectQuery(&Tags));
 	}
@@ -1146,7 +1145,10 @@ void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagCont
 
 void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
-	ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
+	if (IsOwnerActorAuthoritative())
+	{
+		ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
+	}
 }
 
 // ---------------------------------------------------------------------------------------
