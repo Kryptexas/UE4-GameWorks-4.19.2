@@ -46,8 +46,6 @@ Description: Nodes that are called from gameplay code to begin execution of an i
 
 [TOC (start:2)]
 
-## Overview
-
 [EXCERPT:Intro]
 **Events** are nodes that are called from gameplay code to begin execution of an individual network 
 within the **EventGraph**. They allow _Blueprints_ to perform a series of actions in response to 
@@ -92,7 +90,7 @@ This Blueprint Event node executes only on the server. For single player games, 
 
 ![LevelReset.png](LevelReset.png)
 
-The LevelReset events sends out an execution signal when the level restarts. This is useful when you 
+The LevelReset event sends out an execution signal when the level restarts. This is useful when you 
 need something to be triggered once a level has reloaded, such as in a gaming situation when the player 
 has died but the level does not need to reload.
 
