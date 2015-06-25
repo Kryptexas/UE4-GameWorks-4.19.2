@@ -14,6 +14,18 @@ UAnimGraphNode_SkeletalControlBase::UAnimGraphNode_SkeletalControlBase(const FOb
 {
 }
 
+int32 UAnimGraphNode_SkeletalControlBase::GetWidgetCoordinateSystem(const USkeletalMeshComponent* SkelComp)
+{
+	if (GetWidgetMode(SkelComp) == FWidget::WM_Scale)
+	{
+		return COORD_Local;
+	}
+	else
+	{
+		return COORD_World;
+	}
+}
+
 // returns int32 instead of EWidgetMode because of compiling issue on Mac
 int32 UAnimGraphNode_SkeletalControlBase::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
 {
@@ -24,7 +36,7 @@ int32 UAnimGraphNode_SkeletalControlBase::ChangeToNextWidgetMode(const USkeletal
 {
 	return GetWidgetMode(SkelComp);
 }
-// 
+
 FName UAnimGraphNode_SkeletalControlBase::FindSelectedBone()
 {
 	return NAME_None;

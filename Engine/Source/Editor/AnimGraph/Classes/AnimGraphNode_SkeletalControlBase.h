@@ -46,6 +46,9 @@ public:
 	/** Are we currently showing this pin */
 	bool IsPinShown(const FString& PinName) const;
 
+	// Returns the coordinate system that should be used for this bone
+	virtual int32 GetWidgetCoordinateSystem(const USkeletalMeshComponent* SkelComp);
+
 	// return current widget mode this anim graph node supports
 	virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp);
 	// called when the user changed widget mode by pressing "Space" key

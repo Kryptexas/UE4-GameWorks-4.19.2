@@ -28,6 +28,7 @@ protected:
 
 	// UAnimGraphNode_SkeletalControlBase interface
 	virtual FText GetControllerDescription() const override;
+	virtual int32 GetWidgetCoordinateSystem(const USkeletalMeshComponent* SkelComp) override;
 	virtual FVector GetWidgetLocation(const USkeletalMeshComponent* SkelComp, struct FAnimNode_SkeletalControlBase* AnimNode) override;
 	virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
 	virtual int32 ChangeToNextWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode) override;

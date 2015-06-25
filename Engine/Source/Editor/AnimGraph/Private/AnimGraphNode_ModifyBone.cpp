@@ -67,6 +67,36 @@ FText UAnimGraphNode_ModifyBone::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	return CachedNodeTitles[TitleType];
 }
 
+int32 UAnimGraphNode_ModifyBone::GetWidgetCoordinateSystem(const USkeletalMeshComponent* SkelComp)
+{
+	EBoneControlSpace Space = BCS_BoneSpace;
+	switch (CurWidgetMode)
+	{
+	case FWidget::WM_Rotate:
+		Space = Node.RotationSpace;
+		break;
+	case FWidget::WM_Translate:
+		Space = Node.TranslationSpace;
+		break;
+	case FWidget::WM_Scale:
+		Space = Node.ScaleSpace;
+		break;
+	}
+
+	switch (Space)
+	{
+	default:
+	case BCS_ParentBoneSpace:
+		//@TODO: No good way of handling this one
+		return COORD_World;
+	case BCS_BoneSpace:
+		return COORD_Local;
+	case BCS_ComponentSpace:
+	case BCS_WorldSpace:
+		return COORD_World;
+	}
+}
+
 FVector UAnimGraphNode_ModifyBone::GetWidgetLocation(const USkeletalMeshComponent* SkelComp, FAnimNode_SkeletalControlBase* AnimNode)
 {
 	USkeleton* Skeleton = SkelComp->SkeletalMesh->Skeleton;
