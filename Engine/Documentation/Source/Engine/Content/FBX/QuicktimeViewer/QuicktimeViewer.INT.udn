@@ -26,9 +26,6 @@ Description:Guide to using the Quicktime FBX viewer to preview skeletal meshes a
 [TOC(start:2)]
 
 
-## Overview
-
-
 Viewing FBX files often involved importing it into your favorite 3D content creation package and then viewing it from there. However, this can be tricky if you normally do not work with 3D models (that is, if you are mostly a programmer). Fortunately, Autodesk has made a plug-in for QuickTime which allows you to view FBX files without having those 3D content creation packages installed. 
 
 
