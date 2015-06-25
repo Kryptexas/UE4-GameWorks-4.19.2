@@ -404,7 +404,7 @@ public class HTML5Platform : Platform
 		}
 		else
 		{
-			url = String.Format("http://localhost:{0}/{1}", ServerPort, url);
+			url = String.Format("http://{2}:{0}/{1}", ServerPort, url, Environment.MachineName);
 		}
 
 		// Check HTML5LaunchHelper source for command line args

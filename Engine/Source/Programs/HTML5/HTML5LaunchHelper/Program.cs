@@ -78,12 +78,12 @@ namespace HTML5LaunchHelper
 #endregion
 
 		private HttpListener WebServer = new HttpListener();
-		private string Root; 
+		private string Root;
 
 		public HttpServer(int Port, string ServerRoot)
 		{
 			Root = ServerRoot;
-			WebServer.Prefixes.Add("http://localhost:" + Port.ToString() + "/");
+			WebServer.Prefixes.Add(string.Format("http://{0}:{1}/", Environment.MachineName, Port.ToString()));
 		}
 
 		public void Run() 
