@@ -3,8 +3,6 @@ Title: Creating Timelines
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: This document contains an overview of how to create Timeline nodes in Blueprints.
 
-## Overview
-
 %Description%
 
 ## Creating Timelines
