@@ -17,7 +17,7 @@ UUMGBindingManager::UUMGBindingManager(const FObjectInitializer& ObjectInitializ
 /* IMovieSceneBindingManager interface
  *****************************************************************************/
 
-void UUMGBindingManager::BindPossessableObject(const FGuid& PossessableGuid, UObject& PossessedObject)
+void UUMGBindingManager::BindPossessableObject(const FMovieSceneObjectId& PossessableGuid, UObject& PossessedObject)
 {
 
 }
@@ -29,9 +29,9 @@ bool UUMGBindingManager::CanPossessObject(UObject& Object) const
 }
 
 
-FGuid UUMGBindingManager::FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const
+FMovieSceneObjectId UUMGBindingManager::FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const
 {
-	return FGuid();
+	return FMovieSceneObjectId();
 }
 
 
@@ -47,7 +47,7 @@ bool UUMGBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieS
 }
 
 
-void UUMGBindingManager::UnbindPossessableObjects(const FGuid& PossessableGuid)
+void UUMGBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& PossessableGuid)
 {
 
 }

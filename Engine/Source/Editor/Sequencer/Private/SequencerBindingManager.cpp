@@ -17,7 +17,7 @@ USequencerBindingManager::USequencerBindingManager(const FObjectInitializer& Obj
 /* IMovieSceneBindingManager interface
  *****************************************************************************/
 
-void USequencerBindingManager::BindPossessableObject(const FGuid& PossessableGuid, UObject& PossessedObject)
+void USequencerBindingManager::BindPossessableObject(const FMovieSceneObjectId& PossessableGuid, UObject& PossessedObject)
 {
 
 }
@@ -29,9 +29,9 @@ bool USequencerBindingManager::CanPossessObject(UObject& Object) const
 }
 
 
-FGuid USequencerBindingManager::FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const
+FMovieSceneObjectId USequencerBindingManager::FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const
 {
-	return FGuid();
+	return FMovieSceneObjectId();
 }
 
 
@@ -47,7 +47,7 @@ bool USequencerBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<F
 }
 
 
-void USequencerBindingManager::UnbindPossessableObjects(const FGuid& PossessableGuid)
+void USequencerBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& PossessableGuid)
 {
 
 }

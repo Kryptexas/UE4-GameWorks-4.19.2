@@ -20,10 +20,10 @@ public:
 
 	// IMovieSceneBindingManager interface
 
-	virtual void BindPossessableObject(const FGuid& PossessableGuid, UObject& PossessedObject) override;
+	virtual void BindPossessableObject(const FMovieSceneObjectId& PossessableGuid, UObject& PossessedObject) override;
 	virtual bool CanPossessObject( UObject& Object ) const override;
-	virtual FGuid FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const override;
+	virtual FMovieSceneObjectId FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const override;
 	virtual void GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects) const override;
 	virtual bool TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const override;
-	virtual void UnbindPossessableObjects(const FGuid& PossessableGuid) override;
+	virtual void UnbindPossessableObjects(const FMovieSceneObjectId& PossessableGuid) override;
 };
