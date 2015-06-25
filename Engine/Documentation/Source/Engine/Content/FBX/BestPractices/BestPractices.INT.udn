@@ -26,9 +26,6 @@ Description:Tips, tricks, and best practices for working with the FBX content pi
 [TOC(start:2)]
 
 
-## Overview
-
-
 This page contains tips, tricks, and best practices for working with the FBX content pipeline in Unreal Engine 4 used by artists at Epic Games.
 
 
@@ -126,17 +123,17 @@ Epic's artists typically follow the following naming schemes for exported files:
 
 Using a project-wide naming scheme makes it easy to organize and identify asset files.
 
-However, the concept of a "Package", that many long time Unreal users will be intimately familiar with, has changed dramatically in Unreal 4 versus previous incarnations. Package files now only contain one file, and the directory structure of the game defines the various levels of what you would find in a old .upk file. See [Assets and Packages](Engine/Basics/AssetsAndPackages) for more information.
+However, the concept of a "Package", that many long time Unreal users will be intimately familiar with, has changed dramatically in Unreal 4 versus previous incarnations. Package files now only contain one file, and the directory structure of the game defines the various levels of what you would find in an old .upk file. See [Assets and Packages](Engine/Basics/AssetsAndPackages) for more information.
 
 ![](FBXBestPractices_packages.png)
 
-_In this image, the **StoneBox** is in a folder called **Meshes**, much in the same way UE3 would have a package (**Game**) with a grouping (**Meshes**) that contains the asset (**StoneBox**)._
+_In this image, the StoneBox is in a folder called Meshes, much in the same way UE3 would have a package (Game) with a grouping (Meshes) that contains the asset (StoneBox)._
 
 
 ## Scene Management
 
 
-Epic's artists usually store similar assets in a single file. For example, for a **Static Mesh** that has three different states: normal, damaged, and broken; all three are in the same file. However, each mesh is exported as a single FBX file.
+Epic's artists usually store similar assets in a single file. For example, for a Static Mesh that has three different states: normal, damaged, and broken; all three are in the same file. However, each mesh is exported as a single FBX file.
 
 ![FBXBestPractices_MultipleColumn.jpg](FBXBestPractices_MultipleColumn.jpg)(w:410 h:810)
 
