@@ -38,8 +38,6 @@ Description:This document covers how to work with assets within the Content Brow
 
 [TOC(start:2 end:2)]
 
-## Overview
-
 Creation of assets within the **Content Browser** is designed to be fast, easy, and as streamlined as possible. Only if Unreal needs further information will asset creation produce a dialog. Apart from that, you simply specify the name and you are ready to go.
 
 
