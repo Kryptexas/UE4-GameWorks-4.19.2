@@ -160,6 +160,8 @@ void SFoliagePalette::Construct(const FArguments& InArgs)
 	UICommandList = MakeShareable(new FUICommandList);
 	BindCommands();
 
+	ThumbnailPool = MakeShareable(new FAssetThumbnailPool(25, TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SFoliagePalette::IsHovered))));
+
 	TypeFilter = MakeShareable(new FoliageTypeTextFilter(
 		FoliageTypeTextFilter::FItemToStringArray::CreateSP(this, &SFoliagePalette::GetPaletteItemFilterString)));
 
@@ -435,7 +437,7 @@ void SFoliagePalette::UpdateThumbnailForType(UFoliageType* FoliageType)
 		{
 			const bool bItemIsSelected = GetActiveViewWidget()->IsItemSelected(Item);
 
-			Item = MakeShareable(new FFoliagePaletteItemModel(Item->GetTypeUIInfo(), SharedThis(this), FoliageEditMode));
+			Item = MakeShareable(new FFoliagePaletteItemModel(Item->GetTypeUIInfo(), SharedThis(this), ThumbnailPool, FoliageEditMode));
 			if (bItemIsSelected)
 			{
 				GetActiveViewWidget()->SetItemSelection(Item, true);
@@ -1346,7 +1348,7 @@ EActiveTimerReturnType SFoliagePalette::UpdatePaletteItems(double InCurrentTime,
 		PaletteItems.Empty(AllTypesList.Num());
 		for (const FFoliageMeshUIInfoPtr& TypeInfo : AllTypesList)
 		{
-			PaletteItems.Add(MakeShareable(new FFoliagePaletteItemModel(TypeInfo, SharedThis(this), FoliageEditMode)));
+			PaletteItems.Add(MakeShareable(new FFoliagePaletteItemModel(TypeInfo, SharedThis(this), ThumbnailPool, FoliageEditMode)));
 		}
 
 		// Restore the selection

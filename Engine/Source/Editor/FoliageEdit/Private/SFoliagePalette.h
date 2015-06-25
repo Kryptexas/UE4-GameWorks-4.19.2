@@ -260,6 +260,9 @@ private:
 	/** Command list for binding functions for the context menu. */
 	TSharedPtr<FUICommandList> UICommandList;
 
+	/** Thumbnail pool for rendering mesh thumbnails */
+	TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+
 	FEdModeFoliage* FoliageEditMode;
 
 	bool bItemsNeedRebuild : 1;
