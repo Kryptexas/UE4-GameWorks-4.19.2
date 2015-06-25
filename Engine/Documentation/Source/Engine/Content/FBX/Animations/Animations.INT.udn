@@ -25,8 +25,6 @@ Description:Setting up, exporting, and importing animations for Skeletal Meshes 
 
 [TOC(start:2)]
 
-## Overview
-
 [EXCERPT:FBX_Animation001]
 Animation support in the FBX import pipeline provides a simple workflow for getting animations for _Skeletal Meshes_ from 3D applications into Unreal for use in games. Currently, only a single animation for each _Skeletal Mesh_ can be exported/imported in a single file.
 [/EXCERPT:FBX_Animation001]
@@ -47,7 +45,7 @@ This page includes information on both Autodesk Maya and Autodesk 3ds Max, pleas
 ## Naming
 
 
-When importing animations into Unreal using the FBX format, the **AnimationSequence** will be named the same as the name of the file. When importing animations along with a Skeletal Mesh, the AnimationSequence that is created will be taken from the name of the root bone in the animation sequence. This can easily be renamed after the import process is complete through the **Content Browser**.
+When importing animations into Unreal using the FBX format, the AnimationSequence will be named the same as the name of the file. When importing animations along with a Skeletal Mesh, the AnimationSequence that is created will be taken from the name of the root bone in the animation sequence. This can easily be renamed after the import process is complete through the **Content Browser**.
 
 
 ## Creating Animations
