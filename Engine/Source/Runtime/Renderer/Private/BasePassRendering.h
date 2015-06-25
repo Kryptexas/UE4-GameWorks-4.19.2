@@ -211,27 +211,35 @@ public:
 	{
 		SkyLightCubemap.Bind(ParameterMap, TEXT("SkyLightCubemap"));
 		SkyLightCubemapSampler.Bind(ParameterMap, TEXT("SkyLightCubemapSampler"));
+		SkyLightBlendDestinationCubemap.Bind(ParameterMap, TEXT("SkyLightBlendDestinationCubemap"));
+		SkyLightBlendDestinationCubemapSampler.Bind(ParameterMap, TEXT("SkyLightBlendDestinationCubemapSampler"));
 		SkyLightParameters.Bind(ParameterMap, TEXT("SkyLightParameters"));
 	}
 
 	template<typename TParamRef>
 	void SetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
 	{
-		FTexture* SkyLightTextureResource = GBlackTextureCube;
-		float ApplySkyLightMask = 0;
-		float SkyMipCount = 1;
-		bool bSkyLightIsDynamic = false;
+		if (SkyLightCubemap.IsBound() || SkyLightBlendDestinationCubemap.IsBound() || SkyLightParameters.IsBound())
+		{
+			FTexture* SkyLightTextureResource = GBlackTextureCube;
+			FTexture* SkyLightBlendDestinationTextureResource = GBlackTextureCube;
+			float ApplySkyLightMask = 0;
+			float SkyMipCount = 1;
+			float BlendFraction = 0;
+			bool bSkyLightIsDynamic = false;
 
-		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic);
+			GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, SkyLightBlendDestinationTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic, BlendFraction);
 
-		SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
-		const FVector SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f);
-		SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
+			SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
+			SetTextureParameter(RHICmdList, ShaderRHI, SkyLightBlendDestinationCubemap, SkyLightBlendDestinationCubemapSampler, SkyLightBlendDestinationTextureResource);
+			const FVector4 SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f, BlendFraction);
+			SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
+		}
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FSkyLightReflectionParameters& P)
 	{
-		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters;
+		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters << P.SkyLightBlendDestinationCubemap << P.SkyLightBlendDestinationCubemapSampler;
 		return Ar;
 	}
 
@@ -239,9 +247,19 @@ private:
 
 	FShaderResourceParameter SkyLightCubemap;
 	FShaderResourceParameter SkyLightCubemapSampler;
+	FShaderResourceParameter SkyLightBlendDestinationCubemap;
+	FShaderResourceParameter SkyLightBlendDestinationCubemapSampler;
 	FShaderParameter SkyLightParameters;
 
-	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bSkyLightIsDynamic);
+	void GetSkyParametersFromScene(
+		const FScene* Scene, 
+		bool bApplySkyLight, 
+		FTexture*& OutSkyLightTextureResource, 
+		FTexture*& OutSkyLightBlendDestinationTextureResource, 
+		float& OutApplySkyLightMask, 
+		float& OutSkyMipCount, 
+		bool& bSkyLightIsDynamic, 
+		float& OutBlendFraction);
 };
 
 /** Parameters needed for lighting translucency, shared by multiple shaders. */

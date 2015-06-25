@@ -618,8 +618,12 @@ public:
 	/** Initialization constructor. */
 	FSkyLightSceneProxy(const class USkyLightComponent* InLightComponent);
 
+	void Initialize(float InBlendFraction, const FSHVectorRGB3* InIrradianceEnvironmentMap, const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap);
+
 	const USkyLightComponent* LightComponent;
 	FTexture* ProcessedTexture;
+	float BlendFraction;
+	FTexture* BlendDestinationProcessedTexture;
 	float SkyDistanceThreshold;
 	bool bCastShadows;
 	bool bWantsStaticShadowing;

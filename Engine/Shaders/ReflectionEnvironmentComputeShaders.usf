@@ -554,7 +554,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 	{
 		// Normalize for static skylight types which mix with lightmaps
 		bool bNormalize = SkyLightParameters.z < 1 && USE_LIGHTMAPS;
-		float3 SkyLighting = GetSkyLightReflection( RayDirection, Roughness, bNormalize );
+		float3 SkyLighting = GetSkyLightReflectionSupportingBlend( RayDirection, Roughness, bNormalize );
 
 		FLATTEN
 		if (bNormalize)

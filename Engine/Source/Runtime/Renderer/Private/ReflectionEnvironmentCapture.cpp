@@ -1371,15 +1371,16 @@ void CopyToSkyTexture(FRHICommandList& RHICmdList, FScene* Scene, FTexture* Proc
 	}
 }
 
-void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap)
+// Warning: returns before writes to OutIrradianceEnvironmentMap have completed, as they are queued on the rendering thread
+void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap)
 {	
-	//todo maybe use ShouldRenderSkylight here, but currently the Skylight hasn't been loaded in time.
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA || GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateSkyCaptureContents);
+
 		ENQUEUE_UNIQUE_RENDER_COMMAND( 
 			ClearCommand,
 		{
-			//@todo realtime skylight updates - skip this
 			ClearScratchCubemaps(RHICmdList);
 		});
 
@@ -1392,7 +1393,7 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 		{
 			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER( 
 				CopyCubemapCommand,
-				UTextureCube*, SourceTexture, CaptureComponent->Cubemap,
+				UTextureCube*, SourceTexture, SourceCubemap,
 				bool, bLowerHemisphereIsBlack, CaptureComponent->bLowerHemisphereIsBlack,
 				ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
 			{
@@ -1415,20 +1416,16 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 			FilterReflectionEnvironment(RHICmdList, FeatureLevel, IrradianceEnvironmentMap, bNormalize);
 		});
 
-		// Wait until the SH coefficients have been written out by the RT before returning
-		//@todo realtime skylight updates - remove the need for this
-		FlushRenderingCommands();
-
 		// Optionally copy the filtered mip chain to the output texture
 		if (OutProcessedTexture)
 		{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-			CopyCommand,
-			FScene*, Scene, this,
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
+				CopyCommand,
+				FScene*, Scene, this,
 				FTexture*, ProcessedTexture, OutProcessedTexture,
-		{
-			CopyToSkyTexture(RHICmdList, Scene, ProcessedTexture);
-		});
+			{
+				CopyToSkyTexture(RHICmdList, Scene, ProcessedTexture);
+			});
 		}
 	}
 }

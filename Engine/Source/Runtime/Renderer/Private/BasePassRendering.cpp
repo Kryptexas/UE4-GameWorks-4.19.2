@@ -47,20 +47,46 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedVolumeIndirectLightingPolicy,
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedPointIndirectLightingPolicy, FCachedPointIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSimpleDynamicLightingPolicy, FSimpleDynamicLightingPolicy );
 
-void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bOutSkyLightIsDynamic)
+void FSkyLightReflectionParameters::GetSkyParametersFromScene(
+	const FScene* Scene, 
+	bool bApplySkyLight, 
+	FTexture*& OutSkyLightTextureResource, 
+	FTexture*& OutSkyLightBlendDestinationTextureResource, 
+	float& OutApplySkyLightMask, 
+	float& OutSkyMipCount, 
+	bool& bOutSkyLightIsDynamic, 
+	float& OutBlendFraction)
 {
 	OutSkyLightTextureResource = GBlackTextureCube;
+	OutSkyLightBlendDestinationTextureResource = GBlackTextureCube;
 	OutApplySkyLightMask = 0;
 	bOutSkyLightIsDynamic = false;
+	OutBlendFraction = 0;
 
 	if (Scene
 		&& Scene->SkyLight 
 		&& Scene->SkyLight->ProcessedTexture
 		&& bApplySkyLight)
 	{
-		OutSkyLightTextureResource = Scene->SkyLight->ProcessedTexture;
+		const FSkyLightSceneProxy& SkyLight = *Scene->SkyLight;
+		OutSkyLightTextureResource = SkyLight.ProcessedTexture;
+		OutBlendFraction = SkyLight.BlendFraction;
+
+		if (SkyLight.BlendFraction > 0.0f && SkyLight.BlendDestinationProcessedTexture)
+		{
+			if (SkyLight.BlendFraction < 1.0f)
+			{
+				OutSkyLightBlendDestinationTextureResource = SkyLight.BlendDestinationProcessedTexture;
+			}
+			else
+			{
+				OutSkyLightTextureResource = SkyLight.BlendDestinationProcessedTexture;
+				OutBlendFraction = 0;
+			}
+		}
+		
 		OutApplySkyLightMask = 1;
-		bOutSkyLightIsDynamic = !Scene->SkyLight->bHasStaticLighting && !Scene->SkyLight->bWantsStaticShadowing;
+		bOutSkyLightIsDynamic = !SkyLight.bHasStaticLighting && !SkyLight.bWantsStaticShadowing;
 	}
 
 	OutSkyMipCount = 1;
