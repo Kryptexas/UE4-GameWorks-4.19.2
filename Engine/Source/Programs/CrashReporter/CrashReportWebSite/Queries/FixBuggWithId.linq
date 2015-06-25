@@ -10,7 +10,7 @@
 
 void Main()
 {
-	const int BuggId = 56230;
+	const int BuggId = 43365;
 	var BuggCrashes = Buggs_Crashes.Where (bc => bc.BuggId==BuggId);
 	Buggs.Where (b => b.Id==BuggId).First ().CrashType=3; // Ensure
 	Buggs.Context.SubmitChanges();
@@ -26,6 +26,13 @@ void Main()
 			if (Index % 16 == 0)
 			{
 				Buggs_Crashes.Context.SubmitChanges();
+			}
+		}
+		else
+		{
+			if (Index % 16 == 0)
+			{
+				Debug.WriteLine( "{0,3}/{1,3}", Index, NumToChange );
 			}
 		}
 	}

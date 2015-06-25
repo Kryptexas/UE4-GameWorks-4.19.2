@@ -10,22 +10,11 @@
 </Query>
 
 void Main()
-{
-	var BranchStartsWith = Crashes
-		.Where( n => n.TimeOfCrash > DateTime.Now.AddMonths( -3 ) )
-		.Where( n => n.Branch.StartsWith( "UE4" ) )
-		.Select( n => n.Branch )
-		.Distinct()
-		.ToList();
-					
-	var BranchContains = Crashes
-		.Where( n => n.TimeOfCrash > DateTime.Now.AddMonths( -3 ) )
-		.Where( n => n.Branch.Contains( "UE4" ) )
-		.Select( n => n.Branch )
-		.Distinct()
-		.ToList();
-					
-	var BuildVersions = Crashes.Where( c=> c.TimeOfCrash > DateTime.Now.AddMonths(-3))
+{			
+	var BuildVersions = Crashes
+	.Where( c=> c.TimeOfCrash > DateTime.Now.AddMonths(-3))
+	.Where( n => n.BuildVersion.StartsWith( "4." ) )
+	.Where( n => n.Branch.Contains( "UE4-Release" ) )
 	.Select( c => c.BuildVersion )
 	.Distinct()
 	.ToList();
