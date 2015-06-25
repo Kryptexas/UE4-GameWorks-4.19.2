@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2327713
+﻿INTSourceChangelist:2593465
 Availability:Public
 Title:メッシュ モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
@@ -26,7 +26,7 @@ Description:ペルソナ アニメーション エディタのメッシュ モ�
 
 ## 概要 
 [EXCERPT:Overview]
-**ペルソナ** アニメーション エディタの **メッシュ モード** は (**[メッシュ]** タブをクリックしてアクセス)、他の編集モードで利用可能ないくつかのウィンドウと同じウィンドウを共有しています。しかし、**メッシュ モード** に固有のウィンドウが 2 つあります (以下でハイライト)。[Mesh Details](Engine/Animation/Persona\MeshDetails) と [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer). 
+**ペルソナ** アニメーション エディタの **メッシュ モード** は (**[メッシュ]** タブをクリックしてアクセス)、他の編集モードで利用可能ないくつかのウィンドウと同じウィンドウを共有しています。しかし、**メッシュ モード** に固有のウィンドウが 2 つあります (以下でハイライト)。[メッシュの詳細](Engine/Animation/Persona\MeshDetails) および [モーフターゲットのプレビューア](Engine/Animation/Persona\MorphTargetPreviewer) 
 [/EXCERPT:Overview]
 
 [REGION:fullwidth]
@@ -34,7 +34,7 @@ Description:ペルソナ アニメーション エディタのメッシュ モ�
 [/REGION]
 
 ##メッシュの詳細
-**[Mesh Details]** (メッシュの詳細) ウィンドウでは、スケルタルメッシュのメッシュに関連するプロパティ、例えば、**マテリアル** や **LOD** の設定を編集できます。また、**Apex Clothing** の割り当て、メッシュを既存メッシュに追加、**ミラリング** 設定の調整、**Physics Asset** をメッシュに割り当てたりすることもできます。さらに、アセットデータの **再インポート**、**Thumbnail Orbit** や **Texture Streaming** の設定を調整することもできます。 
+**[Mesh Details]** (メッシュの詳細) ウィンドウでは、スケルタルメッシュのメッシュに関連するプロパティ、例えば、**マテリアル** や **LOD** の設定を編集できます。また、**Apex Clothing** の割り当て、メッシュを既存メッシュに追加、**ミラリング** 設定の調整、**Physics Asset** （物理アセット）をメッシュに割り当てたりすることもできます。さらに、アセットデータの **再インポート**、**Thumbnail Orbit** や **Texture Streaming** の設定を調整することもできます。 
 
 ### LOD 設定
 
@@ -48,7 +48,7 @@ Description:ペルソナ アニメーション エディタのメッシュ モ�
 
 | プロパティ | 説明 |
 |--- | --- |
-| **Display Factor** | LOD の使用時期を示します。値が小さくなるほど、遠く離れた時に LOD を使用します。|
+| **Display Factor** | LOD をいつ使用するかを示します。値が小さくなるほど、遠く離れた時に LOD を使用します。
 | **LODHysteresis** | LOD 境界上にある場合に、「点滅」を避けるために使用します。複雑から単純に移行する場合にのみ考慮します。 |
 | **LODMaterial Map** | LOD のマテリアルから USkeletalMesh マテリアル アレイへのマッピング テーブルを指定します。 |
 | **Triangle Sorting** | 現在のトライアングルソート方法を設定します。 |
@@ -115,9 +115,9 @@ Description:ペルソナ アニメーション エディタのメッシュ モ�
 | **Use T0As Ref Pose** | このオプションを有効にすると、フレーム 0 を参照ポーズとして使用します。 |
 | **Preserve Smoothing Groups** | チェックを入れると、スムージンググループが一致しないトライアングルは物理的に分裂します。 |
 | **Import Meshes in Bone Hierarchy** | チェックを入れると、ボーン階層にネスティングされたメッシュは、ボーンに変換される代わりにインポートされます。 |
-| **Import Morph Targets** | 有効になると、インポートしたメッシュに対し、アンリアルモーフオブジェクトを作成します。|
+| **Import Morph Targets** | 有効になると、インポートしたメッシュに対し、Unreal モーフオブジェクトを作成します。|
 | **Import Mesh LODs** | 有効になると、インポートファイルの LOD からアンリアルメッシュの LOD モデルを作成します。無効になると、LOD グループから基本メッシュのみをインポートします。 |
-| **Normal Import Method** | このオプションを有効にすると、自動的にタンジェントを生成する代わりに FBX ファイルからタンジェント(tangent,binormal,normal) を読み込みます。  |
+| **Normal Import Method** | このオプションを有効にすると、自動的にタンジェントを生成する代わりに FBX ファイルからタンジェント(tangent, binormal, normal) を読み込みます。  |
 | **Source File Path** | スタティックメッシュを作成するために使用したリソースへのパスです。 |
 | **Source File Timestamp** | 最後のインポートからのファイルの日付/タイムスタンプです。 |
 
