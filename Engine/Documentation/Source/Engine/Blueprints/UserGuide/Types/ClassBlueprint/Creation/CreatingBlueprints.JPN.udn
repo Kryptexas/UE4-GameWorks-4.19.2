@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454950
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:ブループリントのクラスを作成する
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
@@ -11,7 +11,7 @@ Related:Engine/Blueprints/Editor
 
 [TOC(start:2 end:2)]
 
-## コンテンツ ブラウザ経由での作成
+## コンテンツブラウザ経由での作成
 
 **ブループリント** はパッケージに保存され、他のアセット同様 **コンテンツ ブラウザ** で作成できます。
 
@@ -21,12 +21,12 @@ Related:Engine/Blueprints/Editor
 ![](CreateBP_mainFlow.png)
 [/REGION]
 
-1. **コンテンツ ブラウザ** で ![Create Asset Button](button_new_asset_blueprint.png) ボタンをクリックします。
+1. **コンテンツブラウザ** で ![Create Asset Button](button_new_asset_blueprint.png) ボタンをクリックします。
 
-1. 表示されるメニューから _Create Basic Asset_ セクションで **ブループリント** を選択します。
+1. 表示されるメニューから _Create Basic Asset_ (基本アセットの作成) セクションで **[ブループリント]** を選択します。
 
 	[REGION:note]
-	さらに _Create Advanced Asset_ の **ブループリント** オプションで、[](Engine/Blueprints/UserGuide/Types) を作成することができます。 
+	さらに _Create Advanced Asset_ (詳細なアセットの作成) の **[ブループリント]** オプションで、[](Engine/Blueprints/UserGuide/Types) を作成することができます。 
 	[/REGION]
 
 1. ブループリントに対する **親クラス** を選択します。
@@ -34,21 +34,21 @@ Related:Engine/Blueprints/Editor
 	![Choose a Parent Class](new_asset_parent_class.png)
 
 	[REGION:note]
-	親クラスの選択に関する情報は、 [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
+	親クラスの選択に関する情報は [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
 	[/REGION]
 
 [/EXCERPT:CreateBP1]
 
-## 右クリックによる作成
 
+## 右クリックによる作成
 
 **コンテンツ ブラウザ** から **ブループリント** を作成するには、あと 2 つ別の方法があります。
 
 [EXCERPT:CreateBP2]
 
-1. **コンテンツ ブラウザ** の **アセットビュー** (右側のパネル)で **右クリック** します。 
+1. **コンテンツ ブラウザ** の **[Asset View (アセット ビュー)]** (右側のパネル)で **右クリック** します。 
 
-1. 表示されるメニューから _Create Basic Asset_ セクションで **ブループリント** を選択します。
+1. 表示されるメニューから _Create Basic Asset_ (基本アセットの作成) セクションで **[ブループリント]** を選択します。
 
 	[REGION:raw]
 	![New Asset menu](new_asset_blueprint_menu.png)
@@ -59,18 +59,18 @@ Related:Engine/Blueprints/Editor
 	![Choose a Parent Class](new_asset_parent_class.png)
 
 	[REGION:note]
-	親クラスの選択に関する情報は、 [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
+	親クラスの選択に関する情報は [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
 	[/REGION]
 
 [/EXCERPT:CreateBP2]
 
-または以下を行います。
+あるいは、以下の方法もあります：
 
 [EXCERPT:CreateBP3]
 
 1. **コンテンツ ブラウザ** の **アセット ツリー** (左側のパネル) のフォルダ上を **右クリック** します。
 
-1. 表示されるメニューから **Create Asset** にカーソルを当てます。次に **ブループリント** を選択します。
+1. 表示されるメニューから **[Create Asset]** (アセットを作成) にカーソルを当てます。次に **ブループリント** を選択します。
 
 	[REGION:raw]
 	![](rtclick_content_browser_asset_tree.png)
@@ -81,19 +81,19 @@ Related:Engine/Blueprints/Editor
 	![Choose a Parent Class](new_asset_parent_class.png)
 
 	[REGION:note]
-	親クラスの選択に関する情報は、 [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
+	親クラスの選択に関する情報は [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
 	[/REGION]
 
 [/EXCERPT:CreateBP3]
 
 <!--
 1.	**コンテンツ ブラウザ** で右クリックし、 
-作成したい _ブループリント_ のタイプに対するオプションを選択します。この例では、**New Blueprint** を選択することで、通常の _ブループリント_ が作成されます。
+作成したい _ブループリント_ のタイプをオプションで選択します。この例では、 **[New Blueprint]** (新規ブループリント) を選択すれば、通常の _ブループリント_ が作成されます。
 
 ![Create Blueprint Menu Option](k2_create_menu.png)
 
-または、[Content Browser New Button](k2_create_new.png) をクリックし、 
-作成したい _ブループリント_  のタイプに **Factory** を設定します。この例では、**Blueprint** を選択することで、通常の _ブループリント_ が作成されます。
+または、 [Content Browser New Button](k2_create_new.png) をクリックし、 
+作成したい _ブループリント_のタイプに **Factory** を設定します。この例では、 **[Blueprint]** を選択すれば、通常の _ブループリント_ が作成されます。
 
 ![New Dialog Blueprint Factory Option](k2_create_factory.png)
 
@@ -101,12 +101,12 @@ _ブループリント_ 作成に特有のオプションが表示されます�
 
 ![New Dialog Blueprint Optionts](k2_create_options.png)
 
-1.	 **New** ダイアログで、その新規 _ブループリント_の **パス** を入力します。
+1.	**[New]** (新規) ダイアログで、その新規 _ブループリント_の **パス** を入力します。
 
 ![New Dialog Info](k2_create_info.png)
 
-1.	_ブループリント_を作成するには、[New Dialog OK Button](k2_create_ok.png) をクリックします。新規 _ブループリント_ が、 
-**コンテンツ ブラウザ** に表示されます。
+1.	_ブループリント_を作成するには、 [New Dialog OK Button](k2_create_ok.png) をクリックします。新規 _ブループリント_ アセットが、 
+ **コンテンツ ブラウザ** に表示されます。
 
 ![Blueprint Asset Thumbnail](k2_create_asset.png)
 
@@ -115,37 +115,37 @@ _ブループリント_ 作成に特有のオプションが表示されます�
 
 [クラス ビューア](Engine/UI/ClassViewer) 経由でブループリントを作成する場合、表示されるクラスを _ブループリント_ ベースのみに最初にフィルタリングすると役立つ場合があります。 
 
-1. **クラス ビューア** のツールバーで、**フィルタ** をクリックします。
+1. **クラス ビューア** のツールバーで、 **[Filters]** (フィルタ) をクリックします。
 
 	![](class_viewer_filters.png)
 
-1. **フィルタ** メニューで **Blueprint Bases Only** を選択します。
+1. **[Filters]** メニューで **[Blueprint Bases Only]** (ブループリントのベースのみ) を選択します。
 
 	![](filter_blueprint_class_viewer.png)
 
 
-クラスのリストをフィルタリングしたら、_ブループリント_ に対してベースとして使用したいクラスにナビゲートします。この例では、**CameraActor** をベースとして _ブループリント_ を作成します。
+クラスのリストをフィルタリングしたら、 _ブループリント_ に対してベースとして使用したいクラスにナビゲートします。この例では、 **CameraActor** をベースとして _ブループリント_ を作成します。
 
 1. 選択したクラスの右にある下向き矢印アイコンをクリックします。 
 
 	![](class_viewer_arrow.png)
 
-1. **Create Blueprint** のオプションが表示されます。このオプション上でクリックすると、_ブループリント_ を作成するためのダイアログが表示されます。
+1. **[Create Blueprint]** (ブループリントを作成) のオプションが表示されます。このオプション上でクリックすると、 _ブループリント_ を作成するためのダイアログが表示されます。
 
 	![](class_viewer_down_arrow.png)
 
-1.  _ブループリント_ の名前を入力し、保存先のフォルダを選択します。
+1. _ブループリント_ の名前を入力し、保存先のフォルダを選択します。
 
-1. _ブループリント_ 作成ダイアログの一番上にある「Create [Path]/[Name]」をクリックすると、_ブループリント_ が作成され、**ブループリント エディタ**  で開きます。
+1. _ブループリント_ 作成ダイアログの一番上にある [Create [Path]/[Name]] をクリックすると、_ブループリント_ が作成され、 **ブループリント エディタ** で開きます。
 
 	![](class_viewer_create_complete.png)
 
-1. このエディタで _ブループリント_ を保存し、作成プロセスを完了するには、_ブループリント エディタ_ のツールバーで[Save](blueprint_editor_save.png) をクリックします。
+1. このエディタで _ブループリント_ を保存し、作成プロセスを完了するには、_ブループリント エディタ_ のツールバーで [Save](blueprint_editor_save.png) をクリックします。
 
 
 
-また、_ブループリント_ に対してベースとして使用したいクラス上で直接 **右クリック** することでも、**クラスビューア** の _ブループリント_ 作成にアクセスできます。 
-この_ブループリント_ の作成プロセスは、クラスの右側の [下向き矢印アイコン](button_down_arrow.png) を使用した場合と同じになります。
+また、 _ブループリント_ に対してベースとして使用したいクラス上で直接 **右クリック** することでも、 **クラスビューア** の _ブループリント_ 作成にアクセスできます。 
+この _ブループリント_ の作成プロセスは、クラスの右側の [下向き矢印アイコン](button_down_arrow.png) を使用した場合と同じになります。
 
 ![](rtclick_class_viewer_bp.png)
 
@@ -153,29 +153,34 @@ _ブループリント_ 作成に特有のオプションが表示されます�
 
 ##選択したアクタからの作成
 
-1. アンリアル エディタで _ブループリント_ を作成したい **アクタ** (スタティックメッシュ、カメラなど) を選択します。
+1. アンリアル エディタで _ブループリント_ を作成したい **Actor** (アクタ )(スタティックメッシュ、カメラなど) を選択します。
 
-1. **Details** ペインの _ブループリント_ の下で、 **Create (Type) Blueprint** をクリックします。 
+1. **[Details]** (詳細) ペインの _ブループリント_ の下で、 **[Create (Type) Blueprint]** ((タイプ) ブループリントを作成) をクリックします。 
 
 	![](actor_details_create_blueprint.png)
 
 	[REGION:note]
-	また、**Replace With Composited Blueprint** ボタンをクリックして、アクタ (単数または複数) を新規 _ブループリント_ に追加し、それらを新規 _ブループリント_ と置き換えることもできます。 
+	また、 **[Replace With Composited Blueprint]** (コンポジット  BP に置き換え) ボタンをクリックして、アクタ (単数または複数) を新規 _ブループリント_ に追加し、それらを新規 _ブループリント_ と置き換えることもできます。 
 	[/REGION]
 
 1. _ブループリント_ を保存するパスを選択します。
 
 	![](actor_select_path_menu.png)
 
-1. **コンテンツ ブラウザ** に _ブループリント_ が表示されます。**コンテンツ ブラウザ** のナビゲーションバーで **Save All** をクリックしてそのブループリントを保存します。
+1. **コンテンツ ブラウザ** に _ブループリント_ が表示されます。**コンテンツ ブラウザ** のナビゲーションバーで **[Save All]** (すべて保存) をクリックしてそのブループリントを保存します。
 
 	[REGION:raw]
 	![Save in Content Browser](Content_browser_new_bp_save.png)
 	[/REGION]
 
-1. アクタから直接作成された _ブループリント_ は、自動生成された名前を持ちます。名前を変更するには、**コンテンツ ブラウザ** でブループリントのアイコンを **右クリック** し (または **F2** を押し)、表示されるメニューで **Rename (名前の変更)** を選択します。
+1. アクタから直接作成された _ブループリント_ は、自動生成された名前を持ちます。名前を変更するには、 **コンテンツ ブラウザ** でブループリントのアイコンを **右クリック** し (または **F2** を押し)、表示されるメニューで **Rename** (名前の変更) を選択します。
 
 	![](rename_blueprint.png)
 
 -->
+
+
+
+
+
 
