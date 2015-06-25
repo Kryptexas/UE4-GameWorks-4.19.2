@@ -9,15 +9,15 @@ Description:Starter Materials, particles, and Static Meshes provided to jumpstar
 When you create a new project from a template, you will have the option to include the starter content in your project.  This will copy all of that content into your project so you have your 
 own personal copy to use and begin prototyping your game idea quickly.
 
-To include starter content in your project, just make sure that you have **With Starter Content** enabled in the New Project wizard. If it is currently set to **No Starter Content**, click on the Starter Content box and select
- **With Starter Content**. 
+To include starter content in your project, just make sure that you have With Starter Content enabled in the New Project wizard. If it is currently set to No Starter Content, click on the Starter Content box and select
+ With Starter Content. 
 
 ![](StarterContentOption.png)(w:800)
 
 The starter content pack includes a wide range of assets to get you going.  Everything from materials to particle effects to primitive shapes and even a few props you can use to make sure your project 
 is set to the right scale. Also, a number of [video tutorials](Videos) and [quick start guides](GettingStarted/QuickStartDirectory) use the starter content as assets to work with. 
 
-Once you have added starter content to your project, you can find it in the **StarterContent** folder in the **Content Browser**.
+Once you have added starter content to your project, you can find it in the StarterContent folder in the **Content Browser**.
 
 ![](StarterContentCB.png)
 
@@ -31,11 +31,11 @@ Also included in the starter content is the **Advanced_Lighting** map, which is 
 
 ![](Screenshot.png)
 
-Once you have opened the **Advanced_Lighting** map, you can begin placing assets onto the **SM_AssetPlatform** stage. The bulk of the setup, however, is done by the **BP_LightStage** Blueprint.
+Once you have opened the Advanced_Lighting map, you can begin placing assets onto the SM_AssetPlatform stage. The bulk of the setup, however, is done by the BP_LightStage Blueprint.
 This Blueprint behaves like a Directional Light, skybox sphere, HDRI background, atmosphere, height fog, Sky Light, and lightshafts all together.  It allows artists to have one location for most 
-of their lighting settings.  Rotating the **BP_LightStage** Actor in the level defines the sun direction and HDRI rotation.  The atmosphere will also respond to the Actor's rotation.
+of their lighting settings.  Rotating the BP_LightStage Actor in the level defines the sun direction and HDRI rotation.  The atmosphere will also respond to the Actor's rotation.
  
-There are a number of properties you can set on the **BP_LightStage**, either as defaults for the Blueprint or on the placed instance in the level. 
+There are a number of properties you can set on the BP_LightStage, either as defaults for the Blueprint or on the placed instance in the level. 
 
 | Property | Effect |
 | -------- | ------ |
@@ -43,15 +43,15 @@ There are a number of properties you can set on the **BP_LightStage**, either as
 | **Use HDRI** | Whether or not to use HDRI as background. If using HDRI, there are additional settings for setting brightness, contrast, tint, cubemap, and rotation. [REGION:tip] If you want to use an HDRI with a directional light, you may want to paint out the sun in your HDRI before importing and then line up the sun rotation with the one in the HDRI.  Shooting reference objects will help you match the direct vs. indirect light ratio. [/REGION]| 
 | **Use Sun Light** | Enables the Directional Light, which is movable by default.  |
 | **Stationary Light for Sun** | Makes the Directional Light stationary. |
-| **Override Sun Color** | By default, the sun gets its color from the angle to match atmospheric scattering. When this option is set to _true_, this behavior is disabled and **Tint** is used instead.| 
+| **Override Sun Color** | By default, the sun gets its color from the angle to match atmospheric scattering. When this option is set to _true_, this behavior is disabled and Tint is used instead.| 
 | **Disable Sun Disk** | Causes the Directional Light to not put a sun disk in the atmosphere. |
 | **Shadow Distance** | Sets how far out the dynamic shadow will draw. |
-| **Use Atmosphere** | Enables atmospheric scattering. Most settings on the **BP_LightStage** for the atmosphere correspond to the same ones on an Atmospheric Fog Actor. |
+| **Use Atmosphere** | Enables atmospheric scattering. Most settings on the BP_LightStage for the atmosphere correspond to the same ones on an Atmospheric Fog Actor. |
 | **Use Fog** | Enables exponential height fog. |
 | **Altitude** | Sets the height of the fog, so you do not have to move the Actor. |
 | **Light Shaft Bloom** and  **Light Shaft Occlusion** | Toggling these enables or disables postprocess light shafts from the sun direction. |
  
 
-To use the Advanced Lighting assets in an existing project, simply [migrate](Engine/Content/Browser/UserGuide/Migrate) the **Advanced_Lighting** map, and all associated assets will also be migrated. 
+To use the Advanced Lighting assets in an existing project, [migrate](Engine/Content/Browser/UserGuide/Migrate) the Advanced_Lighting map, and all associated assets will also be migrated. 
 
 ![](AdvancedLightingContentBrowser.png)
