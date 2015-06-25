@@ -612,7 +612,9 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 			UClass* BPClass = (*DependentBP)->GeneratedClass;
 
 			// Skip cases where the class is junk, or haven't finished serializing in yet
-			if( (BPClass == ClassToReinstance)
+			// Note that BPClass can be null for blueprints that can no longer be compiled:
+			if (!BPClass
+				|| (BPClass == ClassToReinstance)
 				|| (BPClass->GetOutermost() == GetTransientPackage()) 
 				|| BPClass->HasAnyClassFlags(CLASS_NewerVersionExists)
 				|| (BPClass->ClassGeneratedBy && BPClass->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad|RF_BeingRegenerated)) )
