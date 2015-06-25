@@ -35,7 +35,6 @@ static const FName HeightmapLayerName = FName("__Heightmap__");
 FWorldTileCollectionModel::FWorldTileCollectionModel(UEditorEngine* InEditor)
 	: FLevelCollectionModel(InEditor)
 	, PreviewLocation(0.0f,0.0f,0.0f)
-	, TileThumbnailUpdateCooldown(0.0f)
 	, bIsSavingLevel(false)
 	, bMeshProxyAvailable(false)
 {
@@ -84,8 +83,6 @@ void FWorldTileCollectionModel::Tick( float DeltaTime )
 	{
 		return;
 	}
-
-	TileThumbnailUpdateCooldown = FMath::Max(0.0f, TileThumbnailUpdateCooldown - DeltaTime);
 
 	FLevelCollectionModel::Tick(DeltaTime);
 }
@@ -623,16 +620,6 @@ bool FWorldTileCollectionModel::GetObserverView(FVector& Location, FRotator& Rot
 	}
 
 	return false;
-}
-
-bool FWorldTileCollectionModel::ShouldUpdateTileThumbnail(const TSharedPtr<FWorldTileModel>& TileModel)
-{
-	return (TileThumbnailUpdateCooldown <= 0.f);
-}
-	
-void FWorldTileCollectionModel::OnTileThumbnailUpdated(const TSharedPtr<FWorldTileModel>& TileModel)
-{
-	TileThumbnailUpdateCooldown = 0.1f;
 }
 
 static double Area(FVector2D InRect)

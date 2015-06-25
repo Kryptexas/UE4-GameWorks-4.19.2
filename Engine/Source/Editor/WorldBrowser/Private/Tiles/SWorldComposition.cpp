@@ -10,6 +10,7 @@
 #include "SWorldLayers.h"
 #include "WorldTileCollectionModel.h"
 #include "IMenu.h"
+#include "WorldTileThumbnails.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -79,22 +80,10 @@ public:
 		, bHasNodeInteraction(true)
 		, BoundsSnappingDistance(20.f)
 	{
-
-		SharedThumbnailRT = new FSlateTextureRenderTarget2DResource(
-						FLinearColor::Black, 
-						512, 
-						512, 
-						PF_B8G8R8A8, SF_Point, TA_Wrap, TA_Wrap, 0.0f
-					);
-		BeginInitResource(SharedThumbnailRT);
 	}
 
 	~SWorldCompositionGrid()
 	{
-		BeginReleaseResource(SharedThumbnailRT);
-		FlushRenderingCommands();
-		delete SharedThumbnailRT;
-		
 		WorldModel->SelectionChanged.RemoveAll(this);
 		WorldModel->CollectionChanged.RemoveAll(this);
 
@@ -140,6 +129,8 @@ public:
 		SelectionManager.OnSelectionChanged.BindSP(this, &SWorldCompositionGrid::OnSelectionChanged);
 
 		FCoreDelegates::PreWorldOriginOffset.AddSP(this, &SWorldCompositionGrid::PreWorldOriginOffset);
+
+		ThumbnailCollection = MakeShareable(new FTileThumbnailCollection());
 	
 		RefreshView();
 	}
@@ -150,7 +141,7 @@ public:
 		auto NewNode = SNew(SWorldTileItem)
 							.InWorldModel(WorldModel)
 							.InItemModel(LevelModel)
-							.ThumbnailRenderTarget(SharedThumbnailRT);
+							.InThumbnailCollection(ThumbnailCollection);
 	
 		AddGraphNode(NewNode);
 	}
@@ -949,8 +940,8 @@ private:
 	FVector2D								WorldMouseLocation;
 	// Current marquee rectangle size in world units
 	FVector2D								WorldMarqueeSize;
-
-	FSlateTextureRenderTarget2DResource*	SharedThumbnailRT;
+	// Thumbnail managment for tile items
+	TSharedPtr<FTileThumbnailCollection>	ThumbnailCollection;
 };
 
 //----------------------------------------------------------------

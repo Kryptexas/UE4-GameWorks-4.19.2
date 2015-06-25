@@ -44,6 +44,7 @@ public class WorldBrowser : ModuleRules
                 "ImageWrapper",
                 "Foliage",
                 "MaterialUtilities",
+                "RHI"
             }
 		);
 
