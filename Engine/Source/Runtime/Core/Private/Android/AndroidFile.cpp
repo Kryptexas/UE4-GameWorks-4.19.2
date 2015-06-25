@@ -883,10 +883,6 @@ public:
 				MountOBB(*(OBBDir2 / PatchOBBName));
 			}
 		}
-
-		// make sure the base path directory exists (UE4Game)
-		mkdir(TCHAR_TO_UTF8(*GetFileBasePath()), 0766);
-
 		return true;
 	}
 
