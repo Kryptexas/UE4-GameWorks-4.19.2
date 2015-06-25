@@ -25,8 +25,6 @@ Description:Setting up, exporting, and importing Skeletal Meshes using the FBX c
 
 [TOC(start:2)]
 
-## Overview
-
 [EXCERPT:FBX_SkeletalMeshes]
 _Skeletal Mesh_ support in the FBX import pipeline provides a streamlined workflow for getting animated meshes 
 from 3D applications into Unreal for use in games. In addition to the meshes being imported, animations and 
