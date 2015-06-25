@@ -25,8 +25,6 @@ Description:Explanations of the options available in the FBX Import Options dial
 
 [TOC (start:2 end:3)]
 
-## Overview
-
 While importing FBX files into Unreal Engine 4 is a relatively simple procedure, there are quite a few options available for tweaking the imported asset. This document will cover those options.
 
 When you import content through the **Content Browser** using the FBX pipeline, the **FBX Import Options** dialog appears. The importer will automatically detect what kind of file you are attempting to import and adjust its interface accordingly.
@@ -54,7 +52,7 @@ The options available when importing a _StaticMesh_ using FBX are explained belo
 | **Combine Meshes** | If enabled, all Static Meshes contained in the FBX scene are combined into a single Static Mesh. | 
 | [REGION:tablesection]Material[/REGION] ||
 | **Import Materials** | [INCLUDE:#FBX_ImportMaterials] |
-| **Import Textures** | If enabled, Textures referenced in the FBX file are imported into Unreal. If **Import Materials** is _true_, textures are always imported regardless of this setting. |
+| **Import Textures** | If enabled, Textures referenced in the FBX file are imported into Unreal. If Import Materials is _true_, textures are always imported regardless of this setting. |
 | **Invert Normal Maps** | If enabled and textures are being imported, normal maps values will be inverted. |
 | [REGION:tablesection]Miscellaneous[/REGION] ||
 | **Override FullName** | If enabled and the FBX file only contains one mesh, the name specified in the import path field will be used as the full name for the imported mesh. Otherwise, the [Naming Rules](#NamingConventions) will be used. |
@@ -113,8 +111,8 @@ The options available when importing an Animation using FBX are explained below.
 | **Skeleton** | The [Skeleton](Engine/Animation/Overview#Skeleton) the SkeletalMesh should target. If no existing Skeleton is selected, a new one will be created from the SkeletalMesh being imported. The new Skeleton's name will be that of the SkeletalMesh with _Skeleton_ appended. |
 | [REGION:tablesection]Animation[/REGION] ||
 | **Animation Length** | [INCLUDE:#animlength] |
-| **Start Frame** | When _Set Range_ is used in **Animation Length**, this will enable you to set the start frame of the animation you wish to import. |
-| **End Frame** | When _Set Range_ is used in **Animation Length**, this will enable you to set the end frame of the animation you wish to import. |
+| **Start Frame** | When _Set Range_ is used in Animation Length, this will enable you to set the start frame of the animation you wish to import. |
+| **End Frame** | When _Set Range_ is used in Animation Length, this will enable you to set the end frame of the animation you wish to import. |
 | **Import Custom Attribute** | This will import Custom Attributes as animation curves. |
 | **Animation Name** | The name to assign the animation. If nothing is entered here, the [Naming Rules](#NamingConventions) will be used. |
 | **Use Default Sample Rate** | If _true_, the default sample rate of 30 frames-per-second is used for the animation. If unchecked, the system determines the sample rate from the FBX file. |
@@ -130,7 +128,7 @@ The table below shows how the various content types will be named when **Overrid
 
 [REGION:note]
 The table assumes the following:
-* **%1** is the name of the asset being imported, i.e. the last part of the **Import Path**.
+* **%1** is the name of the asset being imported, i.e. the last part of the Import Path.
 * **%2** is the mesh node name in the FBX file. For SkeletalMesh, if it is composed of multiple FBX meshes, the first FBX mesh name is used as the part of FBX node name.
 [/REGION]
 
