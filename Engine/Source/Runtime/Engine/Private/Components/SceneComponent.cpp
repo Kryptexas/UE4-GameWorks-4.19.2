@@ -1848,6 +1848,8 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		RelativeLocation = NewLocation;
 		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes rotator, if this is a new rotation. Then we'll use it below.
 		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
+
+		PostUpdateNavigationData();
 		return true;
 	}
 
@@ -2491,6 +2493,17 @@ void USceneComponent::UpdateNavigationData()
 		UNavigationSystem::UpdateNavOctree(this);
 	}
 }
+
+void USceneComponent::PostUpdateNavigationData()
+{
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
+		IsRegistered() && World && World->IsGameWorld() &&
+		World->GetNetMode() < ENetMode::NM_Client)
+	{
+		UNavigationSystem::UpdateNavOctreeAfterMove(this);
+	}
+}
+
 
 // K2 versions of various transform changing operations.
 // Note: we pass null for the hit result if not sweeping, for better perf.

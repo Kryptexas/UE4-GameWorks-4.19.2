@@ -19,6 +19,7 @@ class UCrowdManager;
 struct FNavDataConfig;
 struct FPathFindingResult;
 class UActorComponent;
+class USceneComponent;
 class AActor;
 class UEnum;
 class AController;
@@ -595,6 +596,9 @@ public:
 	static void UpdateNavOctree(UActorComponent* Comp);
 	/** update all navoctree entries for actor and its components */
 	static void UpdateNavOctreeAll(AActor* Actor);
+	/** update all navoctree entries for actor and its non scene components after root movement */
+	static void UpdateNavOctreeAfterMove(USceneComponent* Comp);
+
 	/** removes all navoctree entries for actor and its components */
 	static void ClearNavOctreeAll(AActor* Actor);
 	/** updates bounds of all components implementing INavRelevantInterface */

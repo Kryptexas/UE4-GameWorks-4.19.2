@@ -60,11 +60,6 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(ANavLinkProxy, bSmartLinkIsRelevant))
 	{
 		SmartLinkComp->SetNavigationRelevancy(bSmartLinkIsRelevant);
-		if (bSmartLinkIsRelevant)
-		{
-			SmartLinkComp->ForceNavigationRelevancy(true);
-		}
-
 		bUpdateInNavOctree = true;
 	}
 

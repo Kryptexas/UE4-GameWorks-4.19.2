@@ -82,5 +82,8 @@ void UShapeComponent::GetNavigationData(FNavigationRelevantData& Data) const
 
 bool UShapeComponent::IsNavigationRelevant() const
 {
-	return bDynamicObstacle || Super::IsNavigationRelevant();
+	// failed CanEverAffectNavigation() always takes priority
+	// dynamic obstacle overrides collision check
+
+	return (bDynamicObstacle && CanEverAffectNavigation()) || Super::IsNavigationRelevant();
 }

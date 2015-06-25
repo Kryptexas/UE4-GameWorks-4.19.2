@@ -47,4 +47,7 @@ protected:
 	/** attach navigation data to entry for owner's root component (depends on its relevancy) */
 	UPROPERTY()
 	uint32 bAttachToOwnersRoot : 1;
+
+	UPROPERTY(transient)
+	UObject* CachedNavParent;
 };

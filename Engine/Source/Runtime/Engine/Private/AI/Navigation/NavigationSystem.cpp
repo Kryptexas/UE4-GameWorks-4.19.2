@@ -2562,6 +2562,34 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 	}
 }
 
+void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
+{
+	AActor* OwnerActor = Comp->GetOwner();
+	if (OwnerActor && OwnerActor->GetRootComponent() == Comp)
+	{
+		UpdateNavOctree(OwnerActor);
+
+		TInlineComponentArray<UActorComponent*> Components;
+		OwnerActor->GetComponents(Components);
+
+		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
+		{
+			if (Components[ComponentIndex] && !Components[ComponentIndex]->IsA(USceneComponent::StaticClass()))
+			{
+				UpdateNavOctree(Components[ComponentIndex]);
+			}
+		}
+
+		for (int32 RootChildIndex = 0; RootChildIndex < Comp->AttachChildren.Num(); RootChildIndex++)
+		{
+			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
+			{
+				UpdateNavOctreeAll(Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter()));
+			}
+		}
+	}
+}
+
 void UNavigationSystem::UpdateNavOctreeBounds(AActor* Actor)
 {
 	TInlineComponentArray<UActorComponent*> Components;
