@@ -3,7 +3,9 @@
 #include "StandaloneRendererPrivate.h"
 #include "SlateOpenGLRenderer.h"
 #include "OpenGL/SlateOpenGLTextures.h"
-
+#if PLATFORM_MAC
+#include "Mac/OpenGL/SlateOpenGLMac.h"
+#endif
 #define USE_DEPRECATED_OPENGL_FUNCTIONALITY			(!PLATFORM_USES_ES2 && !PLATFORM_LINUX)
 
 GLuint FSlateOpenGLTexture::NullTexture = 0;
@@ -63,6 +65,9 @@ void FSlateOpenGLTexture::UpdateTextureThreadSafeRaw(uint32 Width, uint32 Height
 
 void FSlateOpenGLTexture::UpdateTextureRaw(const void* Buffer, const FIntRect& Dirty)
 {
+#if PLATFORM_MAC
+	LockGLContext([NSOpenGLContext currentContext]);
+#endif
 	// Ensure texturing is enabled before setting texture properties
 #if USE_DEPRECATED_OPENGL_FUNCTIONALITY
 	glEnable(GL_TEXTURE_2D);
@@ -93,6 +98,9 @@ void FSlateOpenGLTexture::UpdateTextureRaw(const void* Buffer, const FIntRect& D
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8_EXT, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, Buffer);
 #endif
 	CHECK_GL_ERRORS;
+#if PLATFORM_MAC
+	UnlockGLContext([NSOpenGLContext currentContext]);
+#endif
 }
 
 
