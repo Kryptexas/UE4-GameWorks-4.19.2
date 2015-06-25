@@ -50,8 +50,6 @@ Description:Tool that allows for managing package files as well as organizing, c
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 [EXCERPT:Intro]
 [INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
 
@@ -61,19 +59,19 @@ In the **Content Browser**, you can:
 
 * Browse to and interact with all assets found in the game.
 * Find assets, whether saved or unsaved:
-    * Text Filter: In the **Search Assets** box, type text to find assets by Name, Path, Tags, or Type. You can exclude assets from your search by prefixing a search token with a '-'.
-    * Extended Filter: Click the **Filters** button to filter by asset type(s) and other criteria.
+    * Text Filter: In the Search Assets box, type text to find assets by Name, Path, Tags, or Type. You can exclude assets from your search by prefixing a search token with a '-'.
+    * Extended Filter: Click the Filters button to filter by asset type(s) and other criteria.
 * Organize assets without ever needing to check out packages from source control:
     * Create Local or Private Collections and store assets in them for future use.
     * Create Shared Collections to share interesting assets with your coworkers.
 * Get development assistance:
     * Show assets that may contain problems.
-* Use the **Migrate** tool to move assets and all their dependent assets to other content folders automatically.
+* Use the Migrate tool to move assets and all their dependent assets to other content folders automatically.
 
 
 ## Accessing the Content Browser
 
-The **Content Browser** is accessible from the **Window** menu. You can open up to four concurrent instances of the **Content Browser** at a time. This is useful in a variety of ways, such as:
+The **Content Browser** is accessible from the Window menu. You can open up to four concurrent instances of the **Content Browser** at a time. This is useful in a variety of ways, such as:
 
 * Having different asset types filtered in different **Content Browsers**, such as one that just shows Static Meshes and another that just shows Materials.
 * Moving assets between different folders where you would like to see the other assets available in the folders.
