@@ -34,6 +34,7 @@ public:
 		, _OnTextChanged()
 		, _OnTextCommitted()
 		, _SelectAllTextWhenFocused(false)
+		, _ClearTextSelectionOnFocusLoss(true)
 		, _RevertTextOnEscape(false)
 		, _ClearKeyboardFocusOnCommit(true)
 		, _OnCursorMoved()
@@ -89,6 +90,9 @@ public:
 
 		/** Whether to select all text when the user clicks to give focus on the widget */
 		SLATE_ATTRIBUTE(bool, SelectAllTextWhenFocused)
+
+		/** Whether to clear text selection when focus is lost */
+		SLATE_ATTRIBUTE( bool, ClearTextSelectionOnFocusLoss )
 
 		/** Whether to allow the user to back out of changes when they press the escape key */
 		SLATE_ATTRIBUTE(bool, RevertTextOnEscape)
@@ -675,6 +679,9 @@ private:
 
 	/** Whether to select all text when the user clicks to give focus on the widget */
 	TAttribute< bool > bSelectAllTextWhenFocused;
+
+	/** Whether to clear text selection when focus is lost */
+	TAttribute< bool > bClearTextSelectionOnFocusLoss;
 
 	/** True if any changes should be reverted if we recieve an escape key */
 	TAttribute< bool > bRevertTextOnEscape;

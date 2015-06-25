@@ -2744,6 +2744,7 @@ public:
 									.OnTextCommitted(this, &SRichTextEditTest::HandleRichEditableTextCommitted)
 									.OnCursorMoved(this, &SRichTextEditTest::HandleRichEditableTextCursorMoved)
 									.Marshaller(RichTextMarshaller)
+									.ClearTextSelectionOnFocusLoss(false)
 									.AutoWrapText(true)
 									.Margin(4)
 									.LineHeightPercentage(1.1f)
