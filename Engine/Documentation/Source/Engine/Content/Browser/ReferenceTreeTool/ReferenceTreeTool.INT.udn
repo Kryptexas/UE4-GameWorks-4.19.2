@@ -48,10 +48,6 @@ Description:Tool that displays a list of all objects that reference a particular
 
 [TOC(start:2 end:2)]
 
-
-
-## Overview
-
 The Reference Tree is a tool that allows you to list the reference chains for a specific asset. A reference chain is a list of references in which each object in the list references the objects below it in the list.  The Reference Tree Tool allows you to easily find how objects are being referenced.
 
 In the following image, you can see that the root of the tree is a Material named M_RTS_Env_Lava_01.  The root of the tree is always the object being examined.  You can see that the Material is referenced by six Static Mesh Actors.
