@@ -2331,7 +2331,10 @@ void FBlueprintGraphArgumentLayout::OnArgNameTextCommitted(const FText& NewText,
 		const FString& NewName = NewText.ToString();
 		if(OldName != NewName)
 		{
-			GraphActionDetailsPtr.Pin()->OnPinRenamed(TargetNode, OldName, NewName);
+			if(GraphActionDetailsPtr.Pin()->OnPinRenamed(TargetNode, OldName, NewName))
+			{
+				ParamItemPtr.Pin()->PinName = NewName;
+			}
 		}
 	}
 }
