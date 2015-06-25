@@ -39,9 +39,9 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-![](Engine\QuickStart\6\built.png)(w:940)
+![](Finished.png)
 
-The Unreal Editor Quick Start Guide walks you through the basics of working with Unreal Engine 4 including: navigating the viewports, creating a new level, placing and editing Actors in your level, as well as the process of building and running your levels. At the end of this guide, you will have a room similar to the one pictured above. The final step of this guide will give you some ideas to take it and make it your own as well as provide links to related documentation. 
+The Unreal Editor Quick Start Guide walks you through the basics of working with Unreal Engine 4 including: navigating the viewports, creating a new level, placing and editing Actors in your level, as well as the process of building and running your levels. At the end of this guide, you will have a room similar to the one pictured above. The final step of this guide will give you some ideas to take it and make it your own using what you have learned as well as provide links to additional documentation. 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -59,6 +59,7 @@ The Unreal Editor Quick Start Guide walks you through the basics of working with
 	* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
 	* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
 	* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
+	* [](Engine/QuickStart/7 "%Engine/QuickStart/7:description%")
 	[/PARAM]
 [/OBJECT]
 

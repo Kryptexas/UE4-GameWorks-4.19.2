@@ -1,9 +1,13 @@
-Availability: Public
-Title:1. Navigating the Viewport
+Availability:Public
+Title:1. Required Setup
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:An overview on the most commonly used viewport navigation controls.
-
-
+Description:In this step we will use the Project Browser to create a New Project. 
+SkillLevel:Beginner
+Version:4.8
+Related:Engine/Basics/Projects
+Related:Engine/Basics/Projects/Browser
+Related:GettingStarted/Installation
+ 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -21,28 +25,27 @@ Description:An overview on the most commonly used viewport navigation controls.
 
 %Steps%
 
-[REGION:note]
-For this tutorial series, we are using a new **Blank** project with **Starter Content** enabled. Please see the [](Engine/Basics/Projects/Browser) page for information on creating new projects, using templates and defining project settings (including **Starter Content**). 
-[/REGION]
+Before we get started, the first thing that we will need to do is create a [**Project**](Engine/Basics/Projects) to work from for the duration of this guide. In the steps below we will use Unreal Engine 4's [**Project Browser**](Engine/Basics/Projects/Browser) to create our project. 
+After completing this step, our project will be ready and you will gone through the process of creating a Project and using a Template which you can then use for your very own future projects. 
 
-Once you have created your **Blank** project (with **Starter Content**), the initial level upon load will look something like this:
+## Steps
 
-![](Engine/QuickStart/2/TableAndChairs.png)
+1. After [**Installing Unreal Engine**](GettingStarted/Installation) and launching the Unreal Editor, you will first be presented with the **Project Browser**. 
 
-Using this little area as a point of reference, get used to the **Viewport Camera Controls**. Below are the 3 most commonly used methods of navigating the Viewport in Unreal Engine 4. Once you are comfortable with navigating around the level, head to the next page of the guide: **Place Actors**.
+1. Click the **New Project** tab and select the **Blank** Blueprint Template, enter a Save Location and Name, then click **Create Project**. 
 
-## Standard Controls
+	![](ProjectBrowser1.png)(w:720)
 
-[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
+	The **New Project** tab is where you can create new projects based off several different template types while the **Projects** tab contains any previously created projects or samples that you have downloaded. 
 
-## WASD Fly Controls
 
-[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+## End Result
 
-## Orbit, Dolly, and Track
+After creating your project, once the Unreal Editor has finished loading, you will be presented with the Main Editor Interface as shown below. 
 
-[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+![](ExampleLevel.png)
 
-For more information on Viewport Navigation, see: [**Viewport Controls**](Engine\UI\LevelEditor\Viewports\ViewportControls)
+In the next step, we will cover the basic controls for navigating the **Viewports** inside the Unreal Editor. 
 
 %Steps%
+

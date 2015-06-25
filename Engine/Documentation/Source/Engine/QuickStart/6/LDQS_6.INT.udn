@@ -1,9 +1,9 @@
-Availability: Public
-Title:6. On Your Own!
+﻿Availability: Public
+Title:6. Running the Build Process
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:Take what you have learned and polish up your level, then continue on to read related topics. 
-
-
+Description:With a number of Actors placed and customized, one of the final steps for creating any level is the Build Process.
+SkillLevel:Beginner
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -16,50 +16,54 @@ Description:Take what you have learned and polish up your level, then continue o
 		[Quick Start Home](Engine/QuickStart)
 	[/PARAM]
 	[PARAM:next]
+		[Next Step](Engine/QuickStart/7 "%Engine/QuickStart/7:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Using what you have learned over the course of this Quick Start guide, try to do the following: 
+By now you may have noticed the "Preview" labels in the shadows and the light leaking under walls. 
 
-![](update1.png)(w:830)
+![](beforeBake2.png)
 
-* Change the lighting of the level to a moonlight, night scene. 
-* Add another room, attached to the first room. 
+This is because all the lights in the scene are static and use precomputed, or baked lighting, which has not been calculated yet. The "Preview" text is there to remind you that what you are seeing in the viewport currently is not what you will see in the game. 
 
-![](update2.png)(h:380) ![](update4.png)(h:380)
+In this step we will go through the **Build** process which will build all levels (precompute lighting data and visibility data, generate any navigation networks and update all brush models). We will also take a look at **Light Quality** settings inside of the **Build Options** which we can use to adjust the quality of our lighting when it is built. 
 
-* On the attached room, try to make it elevated and join them with stairs. 
-* Add some bushes, a couch, shelves and a front door. 
+## Steps
 
-![](update6.png)(w:830)
+1. From the Main Tool Bar, click the down-arrow next to the **Build** option. 
 
-* Add different kinds of lights with different colors. 
-* Use different Materials on some of your Actors. 
+	![](buildOptionsButton.png)
 
-For more information on the topics covered in this quick start guide, and across the entire editor, see the [**Unreal Editor Manual**](Engine).
+1.	Under **Lighting Quality**, choose the **Production** setting. 
 
-As for specifics covered in this quick start:
+	![](productionLighting.png)
 
-* For more information on the Level Editor, see: [**Level Editor**](Engine\UI\LevelEditor)
+	This will give us the highest quality lighting but is the slowest in terms of computation time and will increase the time it takes to **Build** the game. Our level is small, so it should not impact us too much, but keep this in mind when you are working on larger levels as you may want to leave it on a mid-low level setting while creating your level and switching it to **Production** on a "final pass" at your level. 
 
-* For more information on Viewports, see: [**Viewports**](Engine\UI\LevelEditor\Viewports)
+1. Wait for the **Build** to complete.
 
-* For more information on the Editing Modes available in Unreal Editor, 4 see: [**Level Editor Modes**](Engine\UI\LevelEditor\Modes)
+	![](wait.png)
 
-* For more information on the **Content Browser**, see: [**Content Browser**](Engine\Content\Browser)
+	You will see the progress in the lower-right corner of the Unreal Editor as seen in the image above. 
+	
+	Once the **Build** process has completed, the level lighting will update giving you a better indication of the final result. 
 
-* For more information on the **Details** Panel, see: [**Details Panel**](Engine\UI\LevelEditor\Details)
+	![](built.png)
 
-* For more information on Building, see: [**Lightmass**](Engine\Rendering\LightingAndShadows\Lightmass)
+1. From the Main Toolbar, click the **Play** Button to play in the editor. 
 
-* For more information on Lighting, see: [**Lighting Quick Start Guide**](Engine/Rendering/LightingAndShadows/QuickStart)
+	![](PlayInEditor.png)
+
+	Using **WASD** to move and the **Mouse** to turn the camera, you can fly around your level. 
+
+
+## End Result
+
+At this point you should have **Built** the level lighting and previewed your game with the **Play** in Editor feature. Each of the steps leading up to this point have been aimed at getting you quickly up to speed on how to perform the most common actions when constructing levels inside the Unreal Editor. 
+
+In the next step, you will be given some examples of how you can take this sample level and build upon it using the methods that were provided throughout the course of this guide. Also, additional links to more detailed documentation related to the topics covered in this guide are provided which will serve as reference when constructing levels on your own. 
 
 %Steps%
-
-
-
-
-

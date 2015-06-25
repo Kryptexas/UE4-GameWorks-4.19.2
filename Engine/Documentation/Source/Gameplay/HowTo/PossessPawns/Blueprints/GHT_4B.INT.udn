@@ -1,272 +1,101 @@
 Availability: Public
-Title:How to Possess Pawns in Blueprint
+Title:Possessing Pawns in Blueprint
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
-Description:A How To Guide for switching between characters or possessing different types of pawns in Blueprints.
+Description:Illustrates using the Possess node in Blueprints to switch between and control multiple characters. 
+Version: 4.8
+SkillLevel: Beginner
+Related: Engine/Blueprints
+Related: Gameplay/Framework/Pawn
+Related: Gameplay/Framework/Pawn/Character
+Related: Engine/Basics/Projects/Browser
+Related: Gameplay/Framework/Controller/PlayerController
 
-[TOC (start:2)]
+Learn how to use the **Possess** and **UnPossess** [Blueprint](Engine/Blueprints) nodes to take control of and provide input to a [Pawn](Gameplay/Framework/Pawn) or [Character](Gameplay/Framework/Pawn/Character) in your project.  
 
-## Overview
-
-On this page, you will learn about **Pawn Possessing** and how to switch between multiple characters in a level. You will also learn how to switch from a 3rd person character and enter/exit a drivable vehicle through **Blueprints**. 
+[REGION:note]
+For the purposes of this guide we are using the **Blueprint Side Scroller** template, however you can use your own project if you would like. If you do not know how to create projects or use templates, refer to the [Project Browser](Engine/Basics/Projects/Browser) page for more information. 
+[/REGION]
  
-## Switching Between Multiple Characters
+## Steps
 
-Below you will find steps you can take to switch between multiple characters using the **Level Blueprint**. 
+1. From the **Content Browser**, drag-and-drop into your level the additional characters you would like to control. 
 
-_The steps below are based off using the **Blueprint Side Scroller Template** project, however you can use any project you wish._
+	![](Pawns1b.png)(w:860)
 
-1.	Inside your project, drag into your level the additional characters you would like to control. 
-
-	![](GHT4B_1.png)
-
-	Here we added two **SideScrollerCharacter** Blueprints to the level. 
-
-1.	Select each of your characters in the level (the two we added to the level). 
-
-	![](GHT4B_3.png)
-
-1.	From the Main Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
-
-	![](GHT4B_2.png)
-
-1.	**Right-click** in the graph area and select the **Add references to selected Actors** option. 
-
-	![](GHT4B_4.png)
-
-	This will allow us to reference our characters and possess them when we press a button. 
-
-1.	**Right-click** in the graph and add an **Event Begin Play** node, **Right-click** again and add a **Get Player Character** node.  
-
-1.	Drag off the **Return Value** of the **Get Player Character** and add the **Cast To SideScrollerCharacter** node. 
-
-	![](GHT4B_5.png)
-
-	We are going to store a reference to the default character so that we may switch back to them when we press a button. 
-
-1.	Drag off the **As SideScrollerCharacter** pin and select **Promote to variable** and call the variable **DefaultCharacter**. 
-
-	![](GHT4B_6.png)
-
-1.	**Right-click** in the graph and search for and add the **1** Key Event, **2** Key Event and **3** Key Event nodes. 
-
-1.	While holding down **Control**, drag in the **DefaultCharacter** variable we created above. 
-
-	![](GHT4B_7.png)
-
-	When we press 1, we will switch to the default character, pressing 2 will switch to the second and 3 to the third characters. 
-
-1.	**Right-click** in the graph and search for and add the **Possess** node. 
-
-	![](GHT4B_8.png)
-
-	You may need to un-check the **Context Sensitive** option in order for the node to appear in the list. 
-
-1.	Connect each of the characters to the **In Pawn** pin and the **Key Events** to each of the **Possess** nodes. 
-
-	![](GHT4B_9.png)
-
-1.	**Right-click** in the graph and add a **Get Player Controller** node and connect it to each of the **Target** pins. 
-
-	![](GHT4B_10.png)(w:760)
-
-	The **Possess** nodes targets a **Player Controller** and here we are assigning the default Player Controller to target (if you had a Player Controller Blueprint, you could **Cast To** it and hook it up to the target. For this example, we are using the default controller). 
-
-1.	Click the **Compile** button to compile the Blueprint, then from the Main Toolbar, click the **Play** button to play in the editor. 
-
-	![](GHT4B_11.png)
-
-When you play in the editor, you should be able to press the 1, 2, or 3 keys to cycle between the three characters in the level. 
-
-
-
-
-## Entering/Exiting a Vehicle
-
-Below you will find steps that can be used to have a third person character enter/exit a drivable vehicle. 
-
-_This example is based off using the **Blueprint 3rd Person and Vehicle Template** projects, however you can use any projects you wish._
-
-1.	Create a **Blueprint Vehicle Template** and **Blueprint 3rd Person Template** project. 
-
-1.	Inside the **Blueprint 3rd Person** project, under **Game/Blueprints**, **Right-click** on the **ThirdPersonCharacter** Blueprint and choose **Migrate**(located within **Asset Actions**). 
-
-	![](GHT4B_12.png)
-
-	You want to migrate this Blueprint to the **MyDocuments/Unreal Projects/ProjectName/Content** folder of your **Vehicle** project. 
-
-1.	Inside the **Vehicle Project**, open the **World Settings** option from the Main Toolbar. 
-
-1.	Under **Game Mode**, set the **Default Pawn Class** to use the **ThirdPersonCharacter** Blueprint.
-
-	![](GHT4B_13.png)
-
-	This is indicating that the default player character will use the 3rd Person character instead of the vehicle. 
-
-1.	Under the **Project Settings**, find the **Input** section and add the Bindings highlighted below.
-
-	![](Bindings.png)
-
-	These are the Bindings that were used and are needed to control the 3rd Person Character. Also make sure that the **Scale** values are set as shown as well (you can change these later if you would like to fit your preferred control method). 
+	Here we added two additional **SideScrollerCharacter** Blueprints from the **Content > SideScrollerBP > Blueprints** folder to the level giving us a total of three characters in our level. With this particluar template project, a character is already placed inside the level by default. 
 	
-1.	In the **Content Browser** under **Game/Sedan**, open the **Sedan** Blueprint. 
+1.	In the **World Outliner**, select each of the characters you want to control. 
 
-1.	Click the **Components** tab, then in the **Components** window, click **Add Component** and add an **Arrow** and **Box**
+	![](Pawns2b.png)
 
-1.	Name the Arrow **SpawnLocation** and the Box **Trigger** and move them near the driver's side door. 
+1. In the **World Outliner**, select each of the characters you want to control. 
 
-	![](GHT4B_15.png)
-
-	The Arrow will define the location of the character when they exit the vehicle while the Box acts as a trigger, determining if the character is close enough to the vehicle to enter it. When inside the trigger, the player can press a button and enter the vehicle, while outside the trigger they will not be able to enter the vehicle. 
-
-	![](GHT4B_16.png)
-
-	Here we moved the box trigger near the driver side door and the arrow just outside of the box. 
-
-1.	For the **SpawnLocation** (Arrow), in the **Details** panel under **Location**, set the **Z** to **131.0**. 
-
-1.	In the **Content Browser**, under the **Game/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
-
-1.	Add a variable called **Car** of the **WheeledVehicle** type and a **Bool** variable called **NearCar**. 
-
-	![](GHT4B_17.png)
-
-	Here we are going to get reference to the car and assign it to the **Car** variable. We are also going to set **NearCar** to _true_ when the player enters the **Trigger** in the **Sedan** Blueprint which will determine if we allow the player to press a button to enter the car. 
-
-1.	Return to the **Sedan** Blueprint and add a **Character** variable called **Player**. 
-
-	![](GHT4B_18.png)
-
-1.	**Right-click** on the **Trigger** box and add both the **OnComponentBeginOverlap** and **OnComponentEndOverlap** events. 
-
-	![](GHT4B_19.png)
-
-1.	In the graph, drag off the **Other Actor** pin of the **OnComponentBeginOverlap** node and add the **Cast To ThirdPersonCharacter** node. 
-
-1.	Off the **As My Character C** pin, add the **Set Near Car** variable and click the check box to set it to **True**. 
-
-	![](GHT4B_20.png)(w:780)
-
-	By using the **Cast To** node, we are able to access and update the variables in our **ThirdPersonCharacter** Blueprint. 
-
-1.	Drag off **As My Character C** again and add the **Set Car** node, then drag off the **Car** pin and add a **Get Reference To Self** node. 
-
-	[REGION:lightbox]
-	[![](GHT4B_21.png)(w:780)](GHT4B_21.png)
-	[/REGION]
-
-	_Click image for full view._
-
-	Here we created the reference to the **Sedan** Blueprint and assigned it to the variable in our **ThirdPersonCharacter** Blueprint. You can also add a **Print String** node to the end with some text to indicate that you are in the **Trigger** box (we set this to **Enter Car**). 
-
-1.	Drag off the **Other Actor** pin of the **OnComponentEndOverlap** node and **Cast To ThirdPersonCharacter**. 
-
-1.	Off the **As My Character C** pin, add the **Set Near Car** node and leave the checkbox unchecked which sets it to **False**. 
-
-	![](GHT4B_22.png)
-
-1.	In the **MyBlueprint** window, while holding down **Control**, drag in the **SpawnLocation** variable and the **Player** variable. 
-
-	![](GHT4B_29.png)
-
-1.	**Right-click** in the graph and add the **E** Key Event and connect it to a **Set Actor Transform** node. 
-
-1.	Drag off the **SpawnLocation** variable, un-check **Context Sensitive**, and add the **Get World Transform** node. 
-
-1.	Connect the **Get World Transform** to the **Set Actor Transform** node. 
-
-1.	Connect the **Player** variable to the **Target** on the **Set Actor Transform** node. 
-
-	![](GHT4B_23.png)
-
-	The last few steps should result in something similar to above (do not worry about the additional wires on the Player node yet). 
-
-1.	Drag off the **Player** variable and add a **Set Actor Hidden in Game** node (leave the checkbox unchecked). 
-
-1.	Drag off the **Player** variable again and add a **Set Actor Enable Collision** node (check the checkbox to enable collision). 
-
-1.	**Right-click** in the graph and add a **Possess** node.
-
-	![](GHT4B_30.png)
-
-	To access the **Possess** node, you may need to uncheck **Context Sensitive** for it to appear in the list. 
-
-1.	Connect the **Player** variable to the **In Pawn** of the **Possess** node, then drag off **Target** and add a **Get Player Controller** node.
-
-1.	Connect all the remaining wires as shown below. 
-
-	[REGION:lightbox]
-	[![](GHT4B_24.png)(w:780)](GHT4B_24.png)
-	[/REGION]
-
-	_Click image for full view._
-		
-1.	Open the **ThirdPersonCharacter** Blueprint, in the graph add a **E** Key Event and connect the **Pressed** pin to a **Branch** node. 
-
-1.	Hold **Control** and drag in the **NearCar** variable and connect it to the **Branch** condition. 
-
-1.	**Right-click** in the graph and add a **Possess** node (uncheck **Context Sensitive** if it does not appear in the list). 
-
-1.	Hold **Control** and drag in the **Car** variable and connect it to the **In Pawn** pin on the **Possess** node. 
-
-1.	Drag off the **Target** of the **Possess** node and add a **Get Player Controller** node, you graph should look similar to below. 
-
-	![](GHT4B_25.png)
-
-1.	Following the **Possess** node, add a **Set Actor Hidden in Game** node (set to _True_) then a **Set Actor Enable Collision** (set to _False_). 
-
-1.	Drag off the **Car** variable, re-check the **Context Sensitive** option. 
-
-1.	Search for and add a **Cast To Sedan** node following the **Set Actor Enable Collision** node. 
-
-1.	Drag off the **As Sedan C** pin and add the **Set Player** node, then drag off **Player** and add a **Get Reference To Self** node.
-
-1.	Your full sequence in **ThirdPersonCharacter** should look like below. 
-
-	[REGION:lightbox]
-	[![](GHT4B_26.png)(w:780)](GHT4B_26.png)
-	[/REGION]
-
-	_Click image for full view._
-
-	Here we are saying when **E** is pressed (if **NearCar** is _True_ which is set by entering the trigger box in the **Sedan** Blueprint), take possession of the car and set the **ThirdPersonCharacter** Actor to hidden in game and remove its collision.  We are then telling the **Sedan** Blueprint that its **Player** variable in the Blueprint should reference the **ThirdPersonCharacter** Blueprint so that we can return to **ThirdPersonCharacter** when exiting the vehicle. 
-
-1.  If there is a Sedan already placed in the level, delete it. Then, from the **Content Browser**, drag the **Sedan** Blueprint into the level. 
-
-1.	If you click **Compile** and then **Play** from the Main Toolbar to play in the editor, you should end up with something similar to below. 
-
-	![](GIF1.gif)(convert:false)
-
-	[REGION:note]
-	This example is intended to serve as a starting point to demonstrate how you could approach entering/exiting a vehicle. With this implementation, issues may arise when exiting the vehicle on angled surfaces or exiting a vehicle when going off jumps.
-	[/REGION]
-
-	Inside the **Sedan** Blueprint, you can add the additional section of script to **Break Transform** and zero out the **Pitch** and **Roll** of the **Spawn Location** marker, this should help orientate the character when exiting the vehicle while it is angled or airborne. 
+	![](Pawns2b.png)
 	
-	[REGION:lightbox]
-	[![](GHT4B_Add.png)(w:780)](GHT4B_Add.png)
-	[/REGION]
+1. From the Main Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
 
-	_Click image for full view._
+	![](Pawns3b.png)
 
+1. **Right-click** in the graph area, then select **Create References to selected Actors** option from the context menu. 
+
+	![](Pawns4b.png)(w:640)
+
+	This will allow us to reference each of the characters that we've selected in the level. 
+
+1. **Right-click** in the graph area, then search for the **1** Keyboard Event and select it. 
+
+	![](Pawns5b.png)(w:640)
+
+	This will allow us to fire off an event whenever the 1 key is pressed or released. 
+
+1. Add the **2** and **3** Keyboard Events to the graph. 
+
+1. **Right-click** in the graph and search for and add the **Get Player Controller** node. 
+
+	![](Pawns6b.png)(w:640)
+
+	The [**Player Controller**](Gameplay/Framework/Controller/PlayerController) is used to take the input from a human player and translate that into actions for a Pawn. 
+
+1. **Left-click** and drag off the **Return Value** of the Get Player Controller node and search for and add the **Possess** node. 
+
+	![](Pawns7b.png)(w:640)
+
+	This will tell the Player Controller which target Pawn to possess and take control of. When the **Possess** function is called, it will automatically check if a Pawn is currently controlled and **UnPossess** it first before attempting to Possess a new Pawn. 
 	
+	You can use the UnPossess function if you want to have the player release control of their Pawn and enter, say for example, a spectator type of state where they are not directly controlling a playable character. 
 
+1. Create two more **Possess** nodes and connect the **1**, **2** and **3** Keyboard Events as shown below. 
 
-
-
-
-
-
-
-
-
-
+	![](Pawns8.png)(w:640)
 	
+	We are now set up to possess a Pawn when 1, 2 or 3 is pressed. Next we need to define which Pawn to possess from our references. 
 
+1. Connect each of the **SideScrollerCharacter** references to each of the **In Pawn** pins as shown below. 
 
+	![](Pawns9.png)(w:640)
 
+	Our scripted functionality is complete and we are ready to test it. 
 
+1. Click **Compile** from the toolbar to update your script. 
 
+	![](Pawns10b.png)
 
+1. Click **Play** from the toolbar to play the game in the editor. 
 
+	![](Pawns11b.png)
+	
+## End Result
 
+When you press 1, 2 or 3 on your keyboard you will switch between each of the characters in your level. 
 
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+RFgeogZOnvQ
+[/PARAMLITERAL]
+[/OBJECT]

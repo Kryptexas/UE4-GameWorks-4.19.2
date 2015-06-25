@@ -1,8 +1,12 @@
 Availability: Public
-Title:2. Start a New Level
+Title:2. Navigating the Viewport
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:Creating an empty level via the New Level dialog window.
-
+Description:Learn the different methods you can use to navigate the different viewports inside Unreal Engine 4. 
+SkillLevel:Beginner
+Version:4.8
+Related:Engine/UI/LevelEditor/Viewports
+Related:Engine/Levels
+Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,20 +26,37 @@ Description:Creating an empty level via the New Level dialog window.
 
 %Steps%
 
-Next, create a new level to build your game environment in. When creating a new level, just as when you created a new project, 
-Unreal Engine enables you to select from _templates_. By default, there is a _Default_ template - which has a very simple environment - 
-and an _Empty Level_ template - which is completely blank - to choose from.
+With the project open and ready to go, the first thing you may notice is the [**Viewport**](Engine/UI/LevelEditor/Viewports) in the center of the Unreal Editor. 
 
-Let's get started creating a new level:
+![](TableAndChairs.png)(w:720)
 
-1. From the File menu of the **Level Editor** window, choose ![](Engine/QuickStart/3/new_button.png) **New Level...**. This will display the **New Level** dialog:
+Inside the Viewport is where you will do most of your level construction. The template project that we selected in the previous step includes a small sample [**Level**](Engine/Levels) and some assets for us to get us started with. 
+Using this little area as a point of reference, take a moment to get used to the [**Viewport Camera Controls**](Engine/UI/LevelEditor/Viewports/ViewportControls) by using the most common methods of navigating the Viewport in Unreal Engine 4. 
 
-	![](Engine/QuickStart/3/level_new.png)
 
-1. For the purposes of this guide, you need a completely blank slate to work with. Click on the **Empty Level** template to select it.
+## Standard Controls
 
-1. The new blank level will be ready for you to populate with all the visual and gameplay related items you desire.
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
 
-	![](Engine/QuickStart/3/level_empty.png)
+[REGION:tip]
+To switch to an [**Orthographic View**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q), click the **Perspective** drop-down then select an Orthographic View Mode. 
+
+![](OrthographicViews.png)
+[/REGION]
+
+## WASD Fly Controls
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+
+## Orbit, Dolly, and Track
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+
+## End Result
+
+You should now have an understanding of the different methods you can use to navigate the Viewport and have found one that you are comfortable with using to move the camera around in the level. 
+You will be moving the camera around quite a bit as you are building your levels, so feel free to switch between the different methods at any point to get the precision that you need. 
+
+In the Next Step, we will create a **New Level** so that we can build or own sample area and start populating it with assets. 
 
 %Steps%

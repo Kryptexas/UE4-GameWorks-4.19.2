@@ -1,7 +1,15 @@
-Availability: Public
-Title:4. Edit Placed Actors
+﻿Availability: Public
+Title:4. Placing Actors in the Level
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:With some Actors in the Level, it's now time to add some variation.
+Description:Here we will begin placing and manipulating Actors in our level to build out our environment. 
+SkillLevel:Beginnner
+Version:4.8 
+Related:Engine/UI/LevelEditor/Modes/PlaceMode
+Related:GettingStarted/HowTo/ManipulatingActors
+Related:Engine/UI/LevelEditor/Details
+Related:Engine/Actors
+Related:Engine/Rendering/LightingAndShadows
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,39 +29,92 @@ Description:With some Actors in the Level, it's now time to add some variation.
 
 %Steps%
 
-![](Engine\QuickStart\4\placeThings.png)
+In this step we will begin placing [**Actors**](Engine/Actors) (which are things like lights or geometry for example) into our empty level. 
+We will cover the two most common ways of adding Actors to the level, one of which is through [**Place Mode**](Engine/UI/LevelEditor/Modes/PlaceMode) and the other is through the [**Content Browser**](Engine/Content/Browser). 
+After completing this step, you will know how to place Actors inside your own levels and can begin manipulating those Actors to create your environment. 
 
-With a number of Actors placed, it is time to edit a few of them. With the first being the **Directional Light Actor**.
+## Steps
 
-1. Select the **Directional Light Actor** by **Left-clicking** on it in the Viewport.
+1. In the **Modes Panel**, with **Place Mode** enabled, click the [**BSP**](Engine/Actors/Brushes) category and select the **Box**. 
 
-	![](Engine\QuickStart\5\selectDL.png)
+	![](ModesPanel.png)
 
-1. In the **Details Panel** under the **Light** category, enable **Used as Atmosphere Sun Light**:
+1. **Left-click** and drag the **Box** into the **Level Viewport**. 
 
-	![](Engine\QuickStart\5\enableSun.png)
+	![](placeBox.png)
 
-	Depending on the rotation of your **Directional Light Actor** the sky color will change, and if you rotate the Viewport around you will see that the sun now aligns with the **Directional Light Actor**. This is a real time process so you can rotate the **Directional Light Actor** (press **E** to switch to **Rotation Mode**) and the sky will change color from night, sunrise, day time, and sunset.
+	Upon releasing the **Left Mouse Button**, the **Box** will be added to the level.
 
-Now change the **Material** on one of your placed **Static Mesh Actors** by first selecting it. 
+	![](place2.png)
 
-1. With your Actor selected, in the **Details** panel under **Materials**, click the drop-down box under **Element 0**. 
+1. With the **Box** still selected, in the [**Details**](Engine/UI/LevelEditor/Details) panel (lower-right window of the editor), set **Location** and **Rotation** all to **0**. 
 
-	![](material_1.png)(w:900)
+1. Set the **Scale** to **4 x 4 x 0.1**. 
 
-	In the pop-up window, select the new **Material** for the Static Mesh to use (below we selected **M_Brick_Clay_New**. 
+	![](resize_floor.png)
 
-	![](material_2.png)(w:900)
+	We will use this as the floor in which the player can walk around on. 
+
+1. In the **Modes Panel** select the **Lights** tab, then drag-and-drop a **Directional Light** into the level on top of the floor. 
+
+	![](placeLight.png)
 	
-1.	All **Actors** in your level have many properties for you to adjust. Explore, and when you are ready to continue, click **Next Step**. 
+1. On the on the [**Translation Tool**](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewportControls/index.html#transformcontrols), click and drag the Z Axis (Blue) gizmo up away from the surface of the floor.
 
-	![](Engine\QuickStart\5\beforeBake.png)(w:900)
+	![](moveLight.png)
 
-	_Try changing the color of your lights and adding more Materials to your Actors._
+	If the **Directional Light** becomes unselected, you can re-select it by **Left-clicking** on it in the **Level Viewport**. 
+
+1. In the **Modes Panel**, select the **Visual Effects** tab and drag-and-drop an [**Atmospheric Fog**](Engine/Actors/FogEffects/AtmosphericFog) to the level. 
+
+	![](placeFog.png)
+	
+	The **Atmospheric Fog** Actor will add a basic sky to the level and the level will become illuminated instead of dark. 
+
+1. From the **Modes Panel** on the **Basic** tab, drag-and-drop a [**Player Start**](Engine/Actors/PlayerStart) into the level. 
+
+	![](placeStart.png)
+
+1. From the **Modes Panel** on the **Volumes** tab, drag-and-drop a [**Lightmass Importance Volume**](Engine/Rendering/LightingAndShadows/Lightmass/Basics) into the level. 
+
+	![](placeVolume.png)
+
+	The **Lightmass Importance Volume** is used to control and concentrate lighting and shadowing affects within the volume. When placing the Lightmass Importance Volume in the level, the default size of the volume does not cover our playable area so we will need to scale it up. 
+	
+1. Inside the **Level Viewport**, press **R** to switch to the [**Scale Tool**](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewportControls/index.html#transformcontrols). 
+
+1. Click and drag the white box in the center of the **Scale Tool** so that the **Lightmass Importance Volume** encapsulates the floor. 
+
+	![](scaleVolume.png)
+
+1. Inside the **Content Browser** under **Content > StarterContent > Props**, drag-and-drop the **SM_TableRound** into the level. 
+
+	![](placeTable.png)
+
+	Try to place the table in the center of the floor using the **Move Tool** (Keyboard Shortcut **W** if it is not selected). 
+
+1. Also under **Content > StarterContent > Props**, drag-and-drop the **SM_Chair** into the level. 
+
+	![](addChair.png)
+
+1. With the **SM_Chair** selected inside the **Level Viewport**, press **E** to access the [**Rotation Tool**](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewportControls/index.html#transformcontrols). 
+	
+	![](Rotate1.png)(w:440)
+
+1. **Left-click** and drag the **Blue** axis arc (the gizmo will update to show degrees) and rotate the chair to face the table. 
+
+	![](Rotate2.png)(w:440)
+
+1. Using the placement methods above, create a small scene by adding more Actors from the **Modes Panel** and **Content Browser**.  
+
+	![](Engine/QuickStart/5/placeThings.png)
+
+	Try adding some lights, props, walls and a roof (found under the **Content > StarterContent > Architecture** folder). 
+
+## End Result
+
+You should now have a Level that is populated with several different Actors types from both the **Modes** panel and **Content Browser**. You also have manipulated those Actors with the **Move**, **Rotate** and **Scale** tools. Depending on the Actors you placed in the final step, you should have something similar to above. 
+
+In the next section, you will learn how to edit the Actors you have placed in the level and customize their properties. 
 
 %Steps%
-
-
-
-
-
