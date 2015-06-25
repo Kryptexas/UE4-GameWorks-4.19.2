@@ -15,6 +15,8 @@
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
 #endif
+
+class CefListValue;
 #endif
 
 
@@ -73,6 +75,8 @@ public:
 
 private:
 #if WITH_CEF3
+	/** When new render processes are created, send all permanent variable bindings to them. */
+	void HandleRenderProcessCreated(CefRefPtr<CefListValue> ExtraInfo);
 	/** Pointer to the CEF App implementation */
 	CefRefPtr<FWebBrowserApp>			WebBrowserApp;
 	/** List of currently existing browser windows */

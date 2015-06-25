@@ -449,5 +449,21 @@ bool SWebBrowser::HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrows
 	return false;
 }
 
+void SWebBrowser::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->BindUObject(Name, Object, bIsPermanent);
+	}
+}
+
+void SWebBrowser::UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->UnbindUObject(Name, Object, bIsPermanent);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
 

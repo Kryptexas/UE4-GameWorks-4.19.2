@@ -3,6 +3,7 @@
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserWindow.h"
 #include "WebBrowserByteResource.h"
+#include "WebJSScripting.h"
 #include "RHI.h"
 
 #if WITH_CEF3
@@ -33,6 +34,7 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TO
 	, bIgnoreKeyDownEvent(false)
 	, bIgnoreKeyUpEvent(false)
 	, bIgnoreCharacterEvent(false)
+	, Scripting(new FWebJSScripting)
 {
 }
 
@@ -672,6 +674,7 @@ void FWebBrowserWindow::CloseBrowser()
 	bIsClosing = true;
 	if (IsValid())
 	{
+		Scripting->UnbindCefBrowser();
 		InternalCefBrowser->GetHost()->CloseBrowser(false);
 		InternalCefBrowser = nullptr;
 		Handler = nullptr;
@@ -681,6 +684,7 @@ void FWebBrowserWindow::CloseBrowser()
 void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
 {
 	check(Browser.get() == nullptr || InternalCefBrowser.get() == nullptr || InternalCefBrowser->IsSame(Browser));
+	Scripting->BindCefBrowser(Browser); // The scripting interface needs the browser too
 	InternalCefBrowser = Browser;
 }
 
@@ -688,7 +692,6 @@ CefRefPtr<CefBrowser> FWebBrowserWindow::GetCefBrowser()
 {
 	return InternalCefBrowser;
 }
-
 
 void FWebBrowserWindow::SetTitle(const CefString& InTitle)
 {
@@ -1018,9 +1021,36 @@ void FWebBrowserWindow::SetIsHidden(bool bValue)
 	}
 }
 
+CefRefPtr<CefDictionaryValue> FWebBrowserWindow::GetProcessInfo()
+{
+	CefRefPtr<CefDictionaryValue> Retval = nullptr;
+	if (IsValid())
+	{
+		Retval = CefDictionaryValue::Create();
+		Retval->SetInt("browser", InternalCefBrowser->GetIdentifier());
+		Retval->SetDictionary("bindings", Scripting->GetPermanentBindings());
+	}
+	return Retval;
+}
+
+bool FWebBrowserWindow::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser, CefProcessId SourceProcess, CefRefPtr<CefProcessMessage> Message)
+{
+	return Scripting->OnProcessMessageReceived(Browser, SourceProcess, Message);
+}
+
+void FWebBrowserWindow::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
+{
+	Scripting->BindUObject(Name, Object, bIsPermanent);
+}
+
+void FWebBrowserWindow::UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
+{
+	Scripting->UnbindUObject(Name, Object, bIsPermanent);
+}
+
 bool FWebBrowserWindow::OnQuery(int64 QueryId, const CefString& Request, bool Persistent, CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback)
 {
-	if ( OnJSQueryReceived().IsBound() )
+	if (OnJSQueryReceived().IsBound())
 	{
 		FString QueryString = Request.ToWString().c_str();
 		FJSQueryResultDelegate Delegate = FJSQueryResultDelegate::CreateLambda(

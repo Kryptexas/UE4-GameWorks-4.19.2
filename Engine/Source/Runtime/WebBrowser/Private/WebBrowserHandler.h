@@ -142,6 +142,9 @@ public:
 		bool canGoBack,
 		bool canGoForward) override;
 
+	virtual void OnLoadStart(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame) override;
+
+
 public:
 
 	// CefRenderHandler Interface

@@ -37,6 +37,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 
 	// WebBrowserApp implements application-level callbacks.
 	WebBrowserApp = new FWebBrowserApp;
+	WebBrowserApp->OnRenderProcessThreadCreated().BindRaw(this, &FWebBrowserSingleton::HandleRenderProcessCreated);
 
 	// Specify CEF global settings here.
 	CefSettings Settings;
@@ -102,6 +103,24 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 #endif
 }
 
+#if WITH_CEF3
+void FWebBrowserSingleton::HandleRenderProcessCreated(CefRefPtr<CefListValue> ExtraInfo)
+{
+	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
+	{
+		TSharedPtr<FWebBrowserWindow> BrowserWindow = WindowInterfaces[Index].Pin();
+		if (BrowserWindow.IsValid())
+		{
+			CefRefPtr<CefDictionaryValue> Bindings = BrowserWindow->GetProcessInfo();
+			if (Bindings.get())
+			{
+				ExtraInfo->SetDictionary(ExtraInfo->GetSize(), Bindings);
+			}
+		}
+	}
+}
+#endif
+
 FWebBrowserSingleton::~FWebBrowserSingleton()
 {
 #if WITH_CEF3
@@ -113,7 +132,8 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 			WindowInterfaces[Index].Pin()->CloseBrowser();
 		}
 	}
-
+	// Just in case, although we deallocate WebBrowserApp right after this.
+	WebBrowserApp->OnRenderProcessThreadCreated().Unbind();
 	// CefRefPtr takes care of delete
 	WebBrowserApp = nullptr;
 	// Shut down CEF.

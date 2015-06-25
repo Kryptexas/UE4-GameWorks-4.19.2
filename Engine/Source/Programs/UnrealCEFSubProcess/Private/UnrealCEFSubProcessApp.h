@@ -17,6 +17,8 @@
 #include "HideWindowsPlatformTypes.h"
 #endif
 
+#include "UnrealCEFSubProcessRemoteScripting.h"
+
 /**
  * Implements CEF App and other Process level interfaces
  */
@@ -31,7 +33,7 @@ public:
      */
     FUnrealCEFSubProcessApp();
 private:
-    // CefApp methods.
+    // CefApp methods:
     virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override { return this; }
 
     // CefRenderProcessHandler methods:
@@ -46,6 +48,11 @@ private:
     virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
         CefProcessId SourceProcess,
         CefRefPtr<CefProcessMessage> Message) override;
+
+	virtual void OnRenderThreadCreated(CefRefPtr<CefListValue> ExtraInfo) override;
+
+	// Handles remote scripting messages from the frontend process
+	FUnrealCEFSubProcessRemoteScripting RemoteScripting;
 
     // Routes messages from Javascript to the browser process and back
     CefRefPtr<CefMessageRouterRendererSide> MessageRouter;

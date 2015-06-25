@@ -193,13 +193,17 @@ void FWebBrowserHandler::OnLoadError(CefRefPtr<CefBrowser> Browser,
 	}
 }
 
-void FWebBrowserHandler::OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack, bool canGoForward)
+void FWebBrowserHandler::OnLoadStart(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame)
+{
+}
+
+void FWebBrowserHandler::OnLoadingStateChange(CefRefPtr<CefBrowser> Browser, bool bIsLoading, bool bCanGoBack, bool bCanGoForward)
 {
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
 
 	if (BrowserWindow.IsValid())
 	{
-		BrowserWindow->NotifyDocumentLoadingStateChange(isLoading);
+		BrowserWindow->NotifyDocumentLoadingStateChange(bIsLoading);
 	}
 }
 
@@ -307,7 +311,17 @@ bool FWebBrowserHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
 	CefProcessId SourceProcess,
 	CefRefPtr<CefProcessMessage> Message)
 {
-	return MessageRouter->OnProcessMessageReceived(Browser, SourceProcess, Message);
+	bool Retval = false;
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		Retval = BrowserWindow->OnProcessMessageReceived(Browser, SourceProcess, Message);
+	}
+	if (! Retval)
+	{
+		Retval = MessageRouter->OnProcessMessageReceived(Browser, SourceProcess, Message);
+	}
+	return Retval;
 }
 
 bool FWebBrowserHandler::OnQuery(CefRefPtr<CefBrowser> Browser,

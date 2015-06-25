@@ -6,8 +6,10 @@
 
 #include "IWebBrowserWindow.h"
 #include "WebBrowserHandler.h"
+#include "WebJSScripting.h"
 #include "SlateCore.h"
 #include "SlateBasics.h"
+#include "CoreUObject.h"
 
 #if PLATFORM_WINDOWS
 	#include "AllowWindowsPlatformTypes.h"
@@ -114,6 +116,8 @@ public:
 	virtual void StopLoad() override;
 	virtual void ExecuteJavascript(const FString& Script) override;
 	virtual void CloseBrowser() override;
+	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) override;
+	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;
 
 	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnDocumentStateChanged, FOnDocumentStateChanged);
 	virtual FOnDocumentStateChanged& OnDocumentStateChanged() override
@@ -247,18 +251,25 @@ private:
 	void OnCursorChange(CefCursorHandle Cursor, CefRenderHandler::CursorType Type, const CefCursorInfo& CustomCursorInfo);
 
 	/**
+	 * Called when a message was received from the renderer process.
+	 *
+	 * @param Browser The CefBrowser for this window.
+	 * @param SourceProcess The process id of the sender of the message. Currently always PID_RENDERER.
+	 * @param Message The actual message.
+	 * @return true if the message was handled, else false.
+	 */
+	bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser, CefProcessId SourceProcess, CefRefPtr<CefProcessMessage> Message);
+
+	/**
 	 * Called when JavaScript code sends a message to the UE process.
 	 * Needs to return true or false to tell CEF wether the query is being handled by user code or not.
 	 *
 	 * @param QueryId A unique id for the query. Used to refer to it in OnQueryCanceled.
 	 * @param Request The query string itself as passed in from the JS code.
-	 * @param Persistent Os this a persistent query or not. If not, client code expects the callback to be invoked only once, wheras persistent queries are terminated by invoking Failure, Success can be invoked multiple times until then.
+	 * @param Persistent Is this a persistent query or not. If not, client code expects the callback to be invoked only once, wheras persistent queries are terminated by invoking Failure, Success can be invoked multiple times until then.
 	 * @param Callback A handle to pass data back to the JS code. 
 	 */
-	bool OnQuery(int64 QueryId,
-		const CefString& Request,
-		bool Persistent,
-		CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback);
+	bool OnQuery(int64 QueryId, const CefString& Request, bool Persistent, CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback);
 
 	/**
 	 * Called when an outstanding query has been canceled eother explicitly from JS code or implicitly by navigating away from the page containing the code.
@@ -339,12 +350,19 @@ public:
 	 */
 	void CheckTickActivity();
 
+	/**
+	 * Called on every browser window when CEF launches a new render process.
+	 * Used to ensure global JS objects are registered as soon as possible.
+	 */
+	CefRefPtr<CefDictionaryValue> GetProcessInfo();
+
 private:
 	/** Helper that calls WasHidden on the CEF host object when the value changes */
 	void SetIsHidden(bool bValue);
 
 	/** Used by the key down and up handlers to convert Slate key events to the CEF equivalent. */
 	void PopulateCefKeyEvent(const FKeyEvent& InKeyEvent, CefKeyEvent& OutKeyEvent);
+
 private:
 
 	/** Current state of the document being loaded. */
@@ -435,6 +453,9 @@ private:
 	bool bIgnoreKeyDownEvent;
 	bool bIgnoreKeyUpEvent;
 	bool bIgnoreCharacterEvent;
+
+	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
+	TSharedPtr<FWebJSScripting> Scripting;
 };
 
 #endif
