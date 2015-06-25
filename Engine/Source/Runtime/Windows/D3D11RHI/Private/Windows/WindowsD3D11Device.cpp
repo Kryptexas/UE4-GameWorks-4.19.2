@@ -368,7 +368,6 @@ void FD3D11DynamicRHI::Init()
 
 void FD3D11DynamicRHI::InitD3DDevice()
 {
-	UE_LOG(LogD3D11RHI, Log, TEXT("InitD3DDevice"));
 	check( IsInGameThread() );
 
 	// Wait for the rendering thread to go idle.
