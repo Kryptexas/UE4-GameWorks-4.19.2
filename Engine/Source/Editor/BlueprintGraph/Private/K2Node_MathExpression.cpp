@@ -1799,7 +1799,7 @@ private:
 									MessageLog.Error(*ErrorText.ToString(), FunctionCall);
 								}
 							}
-							else
+							else if (InputPin->DefaultValue.IsEmpty()) // there is an ErrorTolerance parameter with a default value in EqualEqual_VectorVector
 							{
 								// too many pins - shouldn't be possible due to the checking in FindMatchingFunction() above
 								FText ErrorText = LOCTEXT("ConnectPinError", "The '@@' function requires more parameters than were provided");

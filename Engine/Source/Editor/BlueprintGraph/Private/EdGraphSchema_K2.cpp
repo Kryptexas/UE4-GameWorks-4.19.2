@@ -2630,13 +2630,21 @@ bool UEdGraphSchema_K2::CreateAutomaticConversionNodeAndConnections(UEdGraphPin*
 
 FString UEdGraphSchema_K2::IsPinDefaultValid(const UEdGraphPin* Pin, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InNewDefaultText) const
 {
-	const UBlueprint* OwningBP = FBlueprintEditorUtils::FindBlueprintForNodeChecked(Pin->GetOwningNode());
-	const bool bIsArray = Pin->PinType.bIsArray;
-	const bool bIsReference = Pin->PinType.bIsReference;
-	const bool bIsAutoCreateRefTerm = IsAutoCreateRefTerm(Pin);
+	check(Pin);
 
 	FFormatNamedArguments MessageArgs;
 	MessageArgs.Add(TEXT("PinName"), Pin->GetDisplayName());
+
+	const UBlueprint* OwningBP = FBlueprintEditorUtils::FindBlueprintForNode(Pin->GetOwningNodeUnchecked());
+	if (!OwningBP)
+	{
+		FText MsgFormat = LOCTEXT("NoBlueprintFoundForPin", "No Blueprint was found for the pin '{PinName}'.");
+		return FText::Format(MsgFormat, MessageArgs).ToString();
+	}
+
+	const bool bIsArray = Pin->PinType.bIsArray;
+	const bool bIsReference = Pin->PinType.bIsReference;
+	const bool bIsAutoCreateRefTerm = IsAutoCreateRefTerm(Pin);
 
 	if (OwningBP->BlueprintType != BPTYPE_Interface)
 	{
