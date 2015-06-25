@@ -39,7 +39,9 @@ struct FSequencerInitParams
 class FSequencer : public ISequencer, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 { 
 
-public:
+public:	
+	static bool IsSequencerEnabled();
+
 	/**
 	 * Initializes sequencer
 	 *
@@ -92,7 +94,7 @@ public:
 	virtual void NotifyMovieSceneDataChanged() override;
 	virtual void UpdateRuntimeInstances() override;
 	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) override;
-	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) override;
+	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = false) override;
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
@@ -252,8 +254,9 @@ public:
 
 	/** @return Whether or not this sequencer is used in the level editor */
 	bool IsLevelEditorSequencer() const { return bIsEditingWithinLevelEditor; }
-	
-	static bool IsSequencerEnabled();
+
+	/** Called to save the current movie scene */
+	void SaveCurrentMovieScene();
 protected:
 	/**
 	 * Reset data about a movie scene when pushing or popping a movie scene
@@ -366,7 +369,6 @@ protected:
 
 	/** Called after the world has been saved. The sequencer updates to the animated state. */
 	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
-
 private:
 	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;
 

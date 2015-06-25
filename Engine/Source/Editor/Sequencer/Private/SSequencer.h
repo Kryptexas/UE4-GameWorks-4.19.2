@@ -100,6 +100,8 @@ public:
 	void SetUserIsSelecting(bool bUserIsSelectingIn) { bUserIsSelecting = bUserIsSelectingIn; }
 	bool UserIsSelecting() { return bUserIsSelecting; }
 
+	/** Called when the save button is clicked */
+	FReply OnSaveMovieSceneClicked();
 private:
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	

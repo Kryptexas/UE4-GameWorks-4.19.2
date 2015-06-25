@@ -91,9 +91,11 @@ void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjec
 	{
 		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( AllSections[SectionIndex] );
 
-		TSharedPtr<FMovieSceneInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
-
-		Instance->SaveState();
+		TSharedPtr<FMovieSceneInstance> Instance = SubMovieSceneInstances.FindRef( Section );
+		if( Instance.IsValid() )
+		{
+			Instance->SaveState();
+		}
 	}
 }
 
@@ -105,8 +107,10 @@ void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeOb
 	{
 		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( AllSections[SectionIndex] );
 
-		TSharedPtr<FMovieSceneInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
-
-		Instance->RestoreState();
+		TSharedPtr<FMovieSceneInstance> Instance = SubMovieSceneInstances.FindRef( Section );
+		if( Instance.IsValid() )
+		{
+			Instance->RestoreState();
+		}
 	}
 }

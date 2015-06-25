@@ -591,16 +591,7 @@ void FSequencer::SetGlobalTime( float NewTime )
 
 	RootMovieSceneInstance->Update( ScrubPosition, LastTime, *this );
 
-	for(FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
-	{
-		if (LevelVC && LevelVC->IsPerspective())
-		{
-			if (!LevelVC->IsRealtime())
-			{
-				LevelVC->Invalidate();
-			}
-		}
-	}
+	GEditor->RedrawLevelEditingViewports();
 }
 
 TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime) const
@@ -1298,6 +1289,17 @@ void FSequencer::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSu
 {
 	// Reset the time after saving so that an update will be triggered to put objects back to their animated state.
 	SetGlobalTime(GetGlobalTime());
+}
+
+void FSequencer::SaveCurrentMovieScene()
+{
+	UPackage* MovieScenePackage = GetFocusedMovieScene()->GetOutermost();
+
+	TArray<UPackage*> PackagesToSave;
+
+	PackagesToSave.Add( MovieScenePackage );
+
+	FEditorFileUtils::PromptForCheckoutAndSave( PackagesToSave, false, false );
 }
 
 void FSequencer::OnSectionSelectionChanged()

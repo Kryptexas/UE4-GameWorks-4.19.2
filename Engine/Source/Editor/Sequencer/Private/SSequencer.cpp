@@ -487,6 +487,42 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				]);
 		}
 
+		if( Sequencer.Pin()->IsLevelEditorSequencer() )
+		{
+			ToolBarBuilder.AddWidget
+			(
+				SNew( SButton )
+				.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+				.ToolTipText( LOCTEXT( "SaveDirtyPackagesTooltip", "Saves the current Movie Scene" ) )
+				.ContentPadding(FMargin(6, 2))
+				.ForegroundColor( FSlateColor::UseForeground() )
+				.OnClicked( this, &SSequencer::OnSaveMovieSceneClicked )
+				[
+					SNew( SHorizontalBox )
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
+						.Text(FText::FromString(FString(TEXT("\xf0c7"))) /*fa-floppy-o*/)
+						.ShadowOffset( FVector2D( 1,1) )
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(4, 1, 0, 0)
+					[
+						SNew( STextBlock )
+						.Text( LOCTEXT( "SaveMovieScene", "Save" ) )
+						.ShadowOffset( FVector2D( 1,1) )
+					]
+				]
+			);
+
+			ToolBarBuilder.AddSeparator();
+		}
+
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
 
 		if ( Sequencer.Pin()->IsLevelEditorSequencer() )
@@ -1131,6 +1167,13 @@ void SSequencer::ExpandCollapseNode(TSharedRef<FSequencerDisplayNode> Node, bool
 			ExpandCollapseNode(ChildNode, bDescendants, bExpand);
 		}
 	}
+}
+
+FReply SSequencer::OnSaveMovieSceneClicked()
+{
+	Sequencer.Pin()->SaveCurrentMovieScene();
+
+	return FReply::Unhandled();
 }
 
 void SSequencer::ToggleExpandCollapseSelectedNodes(bool bDescendants)
