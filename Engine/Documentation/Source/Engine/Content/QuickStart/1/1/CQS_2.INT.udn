@@ -30,8 +30,8 @@ At this point, you should have created a new UE4 **Project** (pictured below).
 It's always good practice to keep your project's content organized. The first thing you're going to learn is how to create a folder that will store your imported content.
 
 [REGION:note]
-**Before you get started:** Download Quick Start Assets from the following link.
-* [__Sample Assets__](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+Before you get started: Download Quick Start Assets from the following link.
+* [Sample Assets](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
 [/REGION]
 
 1.	Extract the downloaded assets to a location on your computer (pictured below).

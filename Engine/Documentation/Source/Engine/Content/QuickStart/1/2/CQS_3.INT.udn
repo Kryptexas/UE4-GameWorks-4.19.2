@@ -29,7 +29,7 @@ There are a few ways to add content to your UE4 project; however, we'll focus on
 
 	![](ContentBrowserImportButton.png)
 
-1.	Locate and Select the **Basic_Asset1** and **Basic_Asset2** FBX mesh files (pictured below).
+1.	Locate and select the **Basic_Asset1** and **Basic_Asset2** FBX mesh files (pictured below).
 
 	![](ImportMeshDialogBox.png)
 
@@ -52,7 +52,7 @@ There are a few ways to add content to your UE4 project; however, we'll focus on
 	![](QuickStartContentFolder.png)
 
 [REGION:tip]
-*The Marketplace (accessible from the 'Epic Launcher') is a great place to find and share content.*
+*Organize your assets so that you can easily find them.*
 [/REGION]
 
 <!--

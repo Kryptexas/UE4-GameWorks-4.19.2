@@ -41,13 +41,13 @@ There are a few ways to create and edit materials for your UE4 project; however,
 
 	![](NewRockMaterial.png)
 
-1.	**Double-clicking** the Material will open the [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") (pictured below).
+1.	Double-clicking the **'Rock' Material** will open the [Material Editor](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") (pictured below).
 
 	[REGION:lightbox]
 		[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
 	[/REGION]
  
-	Read our [__Material - How To__](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with Material Nodes.
+	Read our [Material - How To](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with material nodes.
 
 [REGION:tip]
 *Size your textures using powers of two.*

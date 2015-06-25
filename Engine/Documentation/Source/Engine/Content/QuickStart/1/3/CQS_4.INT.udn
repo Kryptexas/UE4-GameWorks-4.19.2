@@ -27,13 +27,13 @@ Version: 4.8
 
 	![](ContentBrowserImportButton.png)
 
-1.	Locate and Select the **T_Rock_04_D** and **T_Rock_04_n** Targa (TGA) image files (pictured below).
+1.	Locate and select the **T_Rock_04_D** and **T_Rock_04_n** Targa (TGA) image files (pictured below).
 
 	![](ImportTextureDialogBox.png)
 
 1.	Click **Open** to begin importing the TGA image files to your project (pictured above).
 
-1.	A confirmation box appears in the lower right corner of the Editor (pictured below).
+1.	A confirmation box appears in the lower right corner of the Unreal Editor (pictured below).
 
 	![](TextureNormalConfirmation.png)
 
