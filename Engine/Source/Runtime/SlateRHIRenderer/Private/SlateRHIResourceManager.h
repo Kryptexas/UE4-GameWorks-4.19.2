@@ -15,12 +15,12 @@ public:
 
 	TSharedPtr<FSlateDynamicTextureResource> GetDynamicTextureResource( FName ResourceName ) const;
 
-	TSharedPtr<FSlateUTextureResource> GetUTextureResource( UTexture2D* TextureObject ) const;
+	TSharedPtr<FSlateUTextureResource> GetUTextureResource( UTexture* TextureObject ) const;
 
 	TSharedPtr<FSlateMaterialResource> GetMaterialResource( const UMaterialInterface* Material ) const;
 
-	void AddUTextureResource( UTexture2D* TextureObject, TSharedRef<FSlateUTextureResource> InResource );
-	void RemoveUTextureResource( UTexture2D* TextureObject );
+	void AddUTextureResource( UTexture* TextureObject, TSharedRef<FSlateUTextureResource> InResource );
+	void RemoveUTextureResource( UTexture* TextureObject );
 
 	void AddDynamicTextureResource( FName ResourceName, TSharedRef<FSlateDynamicTextureResource> InResource);
 	void RemoveDynamicTextureResource( FName ResourceName );
@@ -45,7 +45,7 @@ private:
 private:
 	TMap<FName, TSharedPtr<FSlateDynamicTextureResource> > NativeTextureMap;
 	
-	typedef TMap<TWeakObjectPtr<UTexture2D>, TSharedPtr<FSlateUTextureResource> > TextureResourceMap;
+	typedef TMap<TWeakObjectPtr<UTexture>, TSharedPtr<FSlateUTextureResource> > TextureResourceMap;
 
 	/** Map of all texture resources */
 	TextureResourceMap TextureMap;
@@ -106,7 +106,7 @@ public:
 	 *
 	 * @param InTextureObject	The texture object to create the resource from
 	 */
-	TSharedPtr<FSlateUTextureResource> MakeDynamicUTextureResource( UTexture2D* InTextureObject);
+	TSharedPtr<FSlateUTextureResource> MakeDynamicUTextureResource( UTexture* InTextureObject);
 	
 	/**
 	 * Makes a dynamic texture resource and begins use of it
@@ -203,7 +203,7 @@ private:
 	/** Map of all active dynamic resources being used by brushes */
 	FDynamicResourceMap DynamicResourceMap;
 	/** Set of dynamic textures that are currently being accessed */
-	TSet< TWeakObjectPtr<UTexture2D> > AccessedUTextures;
+	TSet< TWeakObjectPtr<UTexture> > AccessedUTextures;
 	/** List of old utexture resources that are free to use as new resources */
 	TArray< TSharedPtr<FSlateUTextureResource> > UTextureFreeList;
 	/** List of old dynamic resources that are free to use as new resources */

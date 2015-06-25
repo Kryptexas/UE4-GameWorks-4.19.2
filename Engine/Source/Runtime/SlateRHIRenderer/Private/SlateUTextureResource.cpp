@@ -5,13 +5,13 @@
 
 TSharedPtr<FSlateUTextureResource> FSlateUTextureResource::NullResource = MakeShareable( new FSlateUTextureResource(nullptr) );
 
-FSlateUTextureResource::FSlateUTextureResource(UTexture2D* InTexture)
+FSlateUTextureResource::FSlateUTextureResource(UTexture* InTexture)
 	: Proxy(new FSlateShaderResourceProxy)
 	, TextureObject(InTexture)
 {
 	if(TextureObject)
 	{
-		Proxy->ActualSize = FIntPoint(TextureObject->GetSizeX(), TextureObject->GetSizeY());
+		Proxy->ActualSize = FIntPoint(InTexture->GetSurfaceWidth(), InTexture->GetSurfaceHeight());
 		Proxy->Resource = this;
 	}
 }
@@ -43,12 +43,12 @@ void FSlateUTextureResource::UpdateRenderResource(FTexture* InFTexture)
 
 uint32 FSlateUTextureResource::GetWidth() const
 { 
-	return TextureObject->GetSizeX();
+	return TextureObject->GetSurfaceWidth();
 }
 
 uint32 FSlateUTextureResource::GetHeight() const 
 { 
-	return TextureObject->GetSizeY(); 
+	return TextureObject->GetSurfaceHeight(); 
 }
 
 ESlateShaderResource::Type FSlateUTextureResource::GetType() const

@@ -156,6 +156,7 @@ public:
 		, ResourceName(NAME_None)
 		, bIsDynamicallyLoaded(false)
 		, bHasUObject_DEPRECATED(false)
+		, UVRegion(ForceInit)
 	{ }
 
 public:
@@ -224,6 +225,26 @@ public:
 	}
 
 	/**
+	 * Get brush UV region, should check if region is valid before using it
+	 *
+	 * @return UV region
+	 */
+	FBox2D GetUVRegion() const
+	{
+		return UVRegion;
+	}
+
+	/**
+	 * Set brush UV region
+	 *
+	 * @param InUVRegion When valid - overrides UV region specified in resource proxy
+	 */
+	void SetUVRegion(const FBox2D& InUVRegion)
+	{
+		UVRegion = InUVRegion;
+	}
+
+	/**
 	 * Compares this brush with another for equality.
 	 *
 	 * @param Other The other brush.
@@ -240,7 +261,8 @@ public:
 			&& Mirroring == Other.Mirroring
 			&& ResourceObject == Other.ResourceObject
 			&& ResourceName == Other.ResourceName
-			&& bIsDynamicallyLoaded == Other.bIsDynamicallyLoaded;
+			&& bIsDynamicallyLoaded == Other.bIsDynamicallyLoaded
+			&& UVRegion == Other.UVRegion;
 	}
 
 	/**
@@ -285,6 +307,13 @@ protected:
 	/** Whether or not the brush has a UTexture resource */
 	UPROPERTY()
 	bool bHasUObject_DEPRECATED;
+
+	/** 
+	 *  Optional UV region for an image
+	 *  When valid - overrides UV region specified in resource proxy
+	 */
+	UPROPERTY()
+	FBox2D UVRegion;
 
 protected:
 

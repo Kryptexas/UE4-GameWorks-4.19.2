@@ -23,7 +23,7 @@ TSharedPtr<FSlateDynamicTextureResource> FDynamicResourceMap::GetDynamicTextureR
 	return NativeTextureMap.FindRef( ResourceName );
 }
 
-TSharedPtr<FSlateUTextureResource> FDynamicResourceMap::GetUTextureResource( UTexture2D* TextureObject ) const
+TSharedPtr<FSlateUTextureResource> FDynamicResourceMap::GetUTextureResource( UTexture* TextureObject ) const
 {
 	if(TextureObject)
 	{
@@ -44,7 +44,7 @@ void FDynamicResourceMap::AddDynamicTextureResource( FName ResourceName, TShared
 	NativeTextureMap.Add( ResourceName, InResource );
 }
 
-void FDynamicResourceMap::AddUTextureResource( UTexture2D* TextureObject, TSharedRef<FSlateUTextureResource> InResource)
+void FDynamicResourceMap::AddUTextureResource( UTexture* TextureObject, TSharedRef<FSlateUTextureResource> InResource)
 {
 	if ( TextureObject )
 	{
@@ -69,7 +69,7 @@ void FDynamicResourceMap::RemoveDynamicTextureResource(FName ResourceName)
 	NativeTextureMap.Remove(ResourceName);
 }
 
-void FDynamicResourceMap::RemoveUTextureResource( UTexture2D* TextureObject )
+void FDynamicResourceMap::RemoveUTextureResource( UTexture* TextureObject )
 {
 	if(TextureObject)
 	{
@@ -515,7 +515,7 @@ TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::GetDynamicTex
 	return DynamicResourceMap.GetDynamicTextureResource( ResourceName );
 }
 
-TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTextureResource(UTexture2D* InTextureObject)
+TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTextureResource(UTexture* InTextureObject)
 {
 	// Generated texture resource
 	TSharedPtr<FSlateUTextureResource> TextureResource;
@@ -554,7 +554,7 @@ TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTexture
 		
 		}
 
-		TextureResource->Proxy->ActualSize = FIntPoint(InTextureObject->GetSizeX(), InTextureObject->GetSizeY());
+		TextureResource->Proxy->ActualSize = FIntPoint(InTextureObject->GetSurfaceWidth(), InTextureObject->GetSurfaceHeight());
 
 		checkSlow(!AccessedUTextures.Contains(InTextureObject));
 	}
@@ -579,7 +579,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	{
 		if ( UObject* ResourceObject = InBrush.GetResourceObject() )
 		{
-			if ( !ResourceObject->IsA<UTexture2D>() )
+			if ( !(ResourceObject->IsA<UTexture2D>() || ResourceObject->IsA<UTexture2DDynamic>()) )
 			{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				static TSet<UObject*> FailedTextures;
@@ -594,7 +594,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 #endif
 			}
 
-			UTexture2D* TextureObject = Cast<UTexture2D>(ResourceObject);
+			UTexture* TextureObject = Cast<UTexture>(ResourceObject);
 
 			TSharedPtr<FSlateUTextureResource> TextureResource = DynamicResourceMap.GetUTextureResource(TextureObject);
 
@@ -609,7 +609,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 
 			if ( TextureResource.IsValid() )
 			{
-				UTexture2D* Texture2DObject = TextureResource->TextureObject;
+				UTexture* Texture2DObject = TextureResource->TextureObject;
 				if ( Texture2DObject && !AccessedUTextures.Contains(Texture2DObject) && Texture2DObject->Resource )
 				{
 					// Set the texture rendering resource that should be used.  The UTexture resource could change at any time so we must do this each frame
@@ -726,7 +726,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 
 		if( ResourceObject && DynamicResourceMap.GetNumObjectResources() > 0 )
 		{
-			TSharedPtr<FSlateUTextureResource> TextureResource = DynamicResourceMap.GetUTextureResource(Cast<UTexture2D>(ResourceObject));
+			TSharedPtr<FSlateUTextureResource> TextureResource = DynamicResourceMap.GetUTextureResource(Cast<UTexture>(ResourceObject));
 
 			if(TextureResource.IsValid())
 			{

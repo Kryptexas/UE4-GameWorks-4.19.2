@@ -8,7 +8,7 @@ class FSlateUTextureResource : public TSlateTexture<FTexture2DRHIRef>
 public:
 	static TSharedPtr<FSlateUTextureResource> NullResource;
 
-	FSlateUTextureResource(UTexture2D* InTexture);
+	FSlateUTextureResource(UTexture* InTexture);
 	~FSlateUTextureResource();
 
 	/**
@@ -28,5 +28,5 @@ public:
 	FSlateShaderResourceProxy* Proxy;
 
 	/** Texture UObject.  Note: lifetime is managed externally */
-	UTexture2D* TextureObject;
+	UTexture* TextureObject;
 };

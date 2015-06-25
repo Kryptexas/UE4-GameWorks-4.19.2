@@ -531,6 +531,24 @@ struct FBox
 
 };
 
+/**
+ * A rectangular 2D Box.
+ * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Box2D.h
+ */
+USTRUCT(immutable, noexport, BlueprintType)
+struct FBox2D
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Box2D, SaveGame)
+	FVector2D Min;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Box2D, SaveGame)
+	FVector2D Max;
+
+	UPROPERTY()
+	uint8 IsValid;
+
+};
+
 
 /**
  * A bounding box and bounding sphere with the same origin.
