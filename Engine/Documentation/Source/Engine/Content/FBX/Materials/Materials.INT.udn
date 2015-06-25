@@ -25,8 +25,6 @@ Description:Guide to transferring basic materials and textures with meshes using
 
 [TOC(start:2)]
 
-## Overview
-
 The FBX pipeline has the ability to transfer materials and textures applied to meshes (both Static Meshes and Skeletal Meshes) in 3D applications into Unreal. Simple materials can be converted by importing the textures used in those materials, creating materials in Unreal with those textures hooked up to the appropriate channels, and then applying the materials to the imported meshes. This simplifies and streamlines the mesh import process by automating what used to be a tedious manual process.
 
 [INCLUDE:Engine/Content/FBX#VersionWarning]
@@ -79,7 +77,7 @@ Only basic materials are supported for importing through the FBX pipeline. The t
 In addition to these types of materials being able to be transferred, only specific features of those materials are transferred. The FBX material pipeline does not transfer individual settings, but it does support the transfer of certain maps or textures used within the materials. 
 
 [REGION:warning]
-	Currently, the supported maps (textures) which are imported with the mesh will be added to the material and even a few will be connected to their default inputs on the material, but some will require manual connections. Further, the more uncommon map types will not be imported such as using the **Diffuse** channel in Maya for **Ambient Occlusion**.
+	Currently, the supported maps (textures) which are imported with the mesh will be added to the material and even a few will be connected to their default inputs on the material, but some will require manual connections. Further, the more uncommon map types will not be imported such as using the Diffuse channel in Maya for Ambient Occlusion.
 [/REGION]
 
 ## Multiple Materials
@@ -192,7 +190,7 @@ So, if you have two materials that need to be ordered consistently, you might ha
 
 ## Texture Import
 
-If the material has a texture assigned as either the diffuse or normal map in the 3D application, those textures will be imported into Unreal as long as the **Import Textures** setting is enabled in the [FBX Import Properties](Engine/Content/FBX/ImportOptions). 
+If the material has a texture assigned as either the diffuse or normal map in the 3D application, those textures will be imported into Unreal as long as the Import Textures setting is enabled in the [FBX Import Properties](Engine/Content/FBX/ImportOptions). 
 
 ![](Engine/Content/FBX/StaticMeshes/ImportedMeshAndTex.png)
 
@@ -200,7 +198,7 @@ A Texture Sample expression will be created in the newly created material in Unr
 
 ![](FBXMaterial.png)
 
-If the textures applied to the material in the 3D application are in a format that is not compatible with Unreal or are connected to an unknown material attribute (**Diffuse** in Maya for example), they will not be imported. In this case, and also if no textures we present in the material to begin with, the material in Unreal Editor will be populated with a randomly colored Vector Parameter.
+If the textures applied to the material in the 3D application are in a format that is not compatible with Unreal or are connected to an unknown material attribute (Diffuse in Maya for example), they will not be imported. In this case, and also if no textures we present in the material to begin with, the material in Unreal Editor will be populated with a randomly colored Vector Parameter.
 
 ![](NoTexture.png)
 
