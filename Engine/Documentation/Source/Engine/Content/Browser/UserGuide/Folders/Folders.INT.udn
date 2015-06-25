@@ -27,12 +27,10 @@ Description:This document covers the concepts and use of folders in the Content 
 ![](FoldersBanner.png)
 [/REGION]
 
-## Overview
-
 The folder structure in the **Content Browser** reflects the folder structure you set up for your project. You can set up your folders any way you would like.
 
 [REGION:note]
-By default, the Sources View's **Asset Tree** contains a **Developers** folder. This folder is intended for testing and experimentation. For more information, see [](Engine/Content/Browser\UserGuide\WorkingWithSources) and [](Engine/Content/Browser\UserGuide\DevelopersFolder).
+By default, the Sources View's Asset Tree contains a Developers folder. This folder is intended for testing and experimentation. For more information, see [](Engine/Content/Browser\UserGuide\WorkingWithSources) and [](Engine/Content/Browser\UserGuide\DevelopersFolder).
 [/REGION]
 
 The **Content Browser's** Asset View can be customized to show folders, instead of individual assets. This expands on the default Asset View behavior and can make folder management much easier.
@@ -41,12 +39,12 @@ To show folders in the Asset View, click the ![](icon_CB_ViewOptions.png) button
 
 ![Show Folders](CB_ShowFolders.png)
 
-With the **Show Folders** option selected, the **Content Browser** will show folders in the Asset View, along with any assets that exist in the current folder.
+With the Show Folders option selected, the **Content Browser** will show folders in the Asset View, along with any assets that exist in the current folder.
 
 ![](ContentBrowserFolders.png)
 
-Just as in the Asset Tree, you can drag folders into new locations in your project from the Asset View. This can make **Show Folders** a useful option for project folder management.
+Just as in the Asset Tree, you can drag folders into new locations in your project from the Asset View. This can make Show Folders a useful option for project folder management.
 
-For information about the **Developers** folder, see [](Engine/Content/Browser\UserGuide\DevelopersFolder).
+For information about the Developers folder, see [](Engine/Content/Browser\UserGuide\DevelopersFolder).
 
-For information about working with the **Sources** Panel, see [](Engine/Content/Browser\UserGuide\WorkingWithSources).
+For information about working with the Sources Panel, see [](Engine/Content/Browser\UserGuide\WorkingWithSources).
