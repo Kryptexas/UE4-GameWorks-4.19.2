@@ -2450,6 +2450,11 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			return BlendMode == BLEND_Masked;
 		}
 
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DecalBlendMode))
+		{
+			return MaterialDomain == MD_DeferredDecal;
+		}
+
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, MaterialDecalResponse))
 		{
 			static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DBuffer"));
