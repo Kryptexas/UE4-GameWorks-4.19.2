@@ -25,9 +25,6 @@ Description:Creating and importing Morph Targets for Skeletal Meshes using the F
 
 [TOC(start:2)]
 
-
-## Overview
-
 [EXCERPT:Intro]
 [EXCERPT:FBX_morph]
 A Morph Target is a snapshot of vertex locations for a specific mesh that have been deformed in some way. For instance, you can take a character model, reshape their face to create a facial expression, and then save that edited version as a Morph Target. In Unreal, you can blend the Morph Target to cause the character's face to make that expression. Morph Targets can be imported into Unreal via FBX, and will be encapsulated within an Animation Sequence. 
