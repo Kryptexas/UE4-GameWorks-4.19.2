@@ -1071,6 +1071,7 @@ public:
 	template <typename Predicate>
 	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred, int32 StartIndex) const
 	{
+		check(StartIndex >= 0 && StartIndex <= this->Len());
 		return Data.FindLastByPredicate(Pred, StartIndex);
 	}
 
@@ -1085,7 +1086,7 @@ public:
 	template <typename Predicate>
 	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred) const
 	{
-		return Data.FindLastByPredicate(Pred, Data.Num() - 1);
+		return Data.FindLastByPredicate(Pred, this->Len());
 	}
 
 	/**

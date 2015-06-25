@@ -896,13 +896,12 @@ public:
 	 */
 	int32 FindLast(const ElementType& Item) const
 	{
-		const ElementType* RESTRICT End = GetData() + ArrayNum;
-		for (const ElementType* RESTRICT Data = End, *RESTRICT DataStart = Data - ArrayNum; Data != DataStart;)
+		for (const ElementType* RESTRICT Start = GetData(), *RESTRICT Data = Start + ArrayNum; Data != Start; )
 		{
 			--Data;
 			if (*Data == Item)
 			{
-				return static_cast<int32>(Data - DataStart);
+				return static_cast<int32>(Data - Start);
 			}
 		}
 		return INDEX_NONE;
@@ -919,13 +918,13 @@ public:
 	template <typename Predicate>
 	int32 FindLastByPredicate(Predicate Pred, int32 StartIndex) const
 	{
-		const ElementType* RESTRICT End = GetData() + StartIndex;
-		for (const ElementType* RESTRICT Data = End, *RESTRICT DataStart = Data - StartIndex; Data != DataStart;)
+		check(StartIndex >= 0 && StartIndex <= this->Num());
+		for (const ElementType* RESTRICT Start = GetData(), *RESTRICT Data = Start + StartIndex; Data != Start; )
 		{
 			--Data;
 			if (Pred(*Data))
 			{
-				return static_cast<int32>(Data - DataStart);
+				return static_cast<int32>(Data - Start);
 			}
 		}
 		return INDEX_NONE;
@@ -939,7 +938,7 @@ public:
 	* @returns Index of the found element. INDEX_NONE otherwise.
 	*/
 	template <typename Predicate>
-	int32 FindLastByPredicate(Predicate Pred) const
+	FORCEINLINE int32 FindLastByPredicate(Predicate Pred) const
 	{
 		return FindLastByPredicate(Pred, ArrayNum);
 	}
