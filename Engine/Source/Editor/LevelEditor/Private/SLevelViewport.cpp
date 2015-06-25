@@ -372,6 +372,7 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->bDrawBaseInfo = true;
 	LevelViewportClient->bDrawVertices = true;
 	LevelViewportClient->ViewFOV = LevelViewportClient->FOVAngle = ViewportInstanceSettings.FOVAngle;
+	LevelViewportClient->OverrideFarClipPlane( ViewportInstanceSettings.FarViewPlane );
 	
 	// Set the selection outline flag based on preferences
 	LevelViewportClient->EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
@@ -1921,6 +1922,8 @@ void SLevelViewport::SaveConfig(const FString& ConfigName)
 	ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
 	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
 	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
+	ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
+
 	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
 	{
 		const TArray<FString>* EnabledStats = NULL;
