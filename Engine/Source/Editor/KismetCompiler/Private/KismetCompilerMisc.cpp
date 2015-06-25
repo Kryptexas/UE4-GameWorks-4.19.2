@@ -1198,7 +1198,7 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 		// Check if the property is a local variable and mark it so
 		if( SearchScope == Context.Function && BoundProperty->GetOuter() == Context.Function)
 		{
-			Term->bIsLocal = true;
+			Term->SetVarTypeLocal(true);
 		}
 		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || (Context.IsConstFunction() && Context.NewClass->IsChildOf(SearchScope)))
 		{
@@ -1799,7 +1799,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminal(ETerminalSpecification 
 	default:
 		const bool bIsLocal = !IsEventGraph();
 		Result = new (bIsLocal ? Locals : EventGraphLocals) FBPTerminal();
-		Result->bIsLocal = bIsLocal;
+		Result->SetVarTypeLocal(bIsLocal);
 		break;
 	}
 	return Result;
@@ -1842,5 +1842,5 @@ void FBPTerminal::CopyFromPin(UEdGraphPin* Net, const FString& NewName)
 	const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(Net->GetSchema());
 	const bool bStructCategory = Schema && (Schema->PC_Struct == Net->PinType.PinCategory);
 	const bool bStructSubCategoryObj = (NULL != Cast<UScriptStruct>(Net->PinType.PinSubCategoryObject.Get()));
-	bIsStructContext = bStructCategory && bStructSubCategoryObj;
+	SetContextTypeStruct(bStructCategory && bStructSubCategoryObj);
 }

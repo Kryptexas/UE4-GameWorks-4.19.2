@@ -380,6 +380,12 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: Local variable named %s"), *Indents, (int32)Opcode, PropertyPtr ? *PropertyPtr->GetName() : TEXT("(null)"));
 			break;
 		}
+	case EX_DefaultVariable:
+		{
+			UProperty* PropertyPtr = ReadPointer<UProperty>(ScriptIndex);
+			Ar.Logf(TEXT("%s $%X: Default variable named %s"), *Indents, (int32)Opcode, PropertyPtr ? *PropertyPtr->GetName() : TEXT("(null)"));
+			break;
+		}
 	case EX_InstanceVariable:
 		{
 			UProperty* PropertyPtr = ReadPointer<UProperty>(ScriptIndex);
@@ -524,10 +530,11 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			}
 			break;
 		}
+	case EX_ClassContext:
 	case EX_Context:
 	case EX_Context_FailSilent:
 		{
-			Ar.Logf(TEXT("%s $%X: %s"), *Indents, (int32)Opcode, TEXT("Context"));
+			Ar.Logf(TEXT("%s $%X: %s"), *Indents, (int32)Opcode, Opcode == EX_ClassContext ? TEXT("Class Context") : TEXT("Context"));
 			AddIndent();
 
 			// Object expression.

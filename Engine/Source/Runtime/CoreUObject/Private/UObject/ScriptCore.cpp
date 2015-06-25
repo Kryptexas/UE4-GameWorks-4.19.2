@@ -1121,6 +1121,46 @@ void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceVariable, execInstanceVariable );
 
+void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
+	Stack.MostRecentProperty = VarProperty;
+	Stack.MostRecentPropertyAddress = nullptr;
+
+	if(VarProperty == nullptr)
+	{
+		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access a missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
+	else
+	{
+		UObject* DefaultObject = nullptr;
+		if(HasAnyFlags(RF_ClassDefaultObject))
+		{
+			DefaultObject = this;
+		}
+		else
+		{
+			// @todo - allow access to archetype properties through object references?
+		}
+
+		if(DefaultObject != nullptr)
+		{
+			Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(DefaultObject);
+			if(RESULT_PARAM)
+			{
+				VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+			}
+		}
+		else
+		{
+			static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access a default property through an invalid or otherwise unsupported context."));
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+	}
+}
+IMPLEMENT_VM_FUNCTION( EX_DefaultVariable, execDefaultVariable );
+
 void UObject::execLocalOutVariable(FFrame& Stack, RESULT_DECL)
 {
 	checkSlow(Stack.Object == this);
@@ -1159,6 +1199,51 @@ void UObject::execInterfaceContext(FFrame& Stack, RESULT_DECL)
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_InterfaceContext, execInterfaceContext );
+
+void UObject::execClassContext(FFrame& Stack, RESULT_DECL)
+{
+	// Get class expression.
+	UClass* ClassContext = NULL;
+	Stack.Step(this, &ClassContext);
+
+	// Execute expression in class context.
+	if(IsValid(ClassContext))
+	{
+		UObject* DefaultObject = ClassContext->GetDefaultObject();
+		check(DefaultObject != NULL);
+
+		Stack.Code += sizeof(CodeSkipSizeType)	// Code offset for NULL expressions.
+			+ sizeof(ScriptPointerType);		// Property corresponding to the r-value data, in case the l-value needs to be cleared
+		Stack.Step(DefaultObject, RESULT_PARAM);
+	}
+	else
+	{
+		if (Stack.MostRecentProperty != NULL)
+		{
+			const FString Desc = FString::Printf(TEXT("Accessed null class context '%s'"), *Stack.MostRecentProperty->GetName());
+			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+		else
+		{
+			static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Accessed null class context"));
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+
+		const CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount(); // Code offset for NULL expressions. Code += sizeof(CodeSkipSizeType)
+		UProperty* RValueProperty = nullptr;
+		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueProperty); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
+		Stack.Code += wSkip;
+		Stack.MostRecentPropertyAddress = NULL;
+		Stack.MostRecentProperty = NULL;
+
+		if (RESULT_PARAM && RValueProperty)
+		{
+			RValueProperty->ClearValue(RESULT_PARAM);
+		}
+	}
+}
+IMPLEMENT_VM_FUNCTION( EX_ClassContext, execClassContext );
 
 void UObject::execEndOfScript( FFrame& Stack, RESULT_DECL )
 {

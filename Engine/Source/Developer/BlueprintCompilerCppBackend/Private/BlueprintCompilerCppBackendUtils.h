@@ -24,7 +24,7 @@ public:
 		TArray<FString> SafetyConditions;
 		for (; Term; Term = Term->Context)
 		{
-			if (!Term->bIsStructContext && (Term->Type.PinSubCategory != TEXT("self")))
+			if (!Term->IsStructContextType() && (Term->Type.PinSubCategory != TEXT("self")))
 			{
 				ensure(!Term->bIsLiteral);
 				SafetyConditions.Add(CppBackend.TermToText(Term));

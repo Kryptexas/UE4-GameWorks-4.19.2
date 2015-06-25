@@ -165,6 +165,7 @@
 		}
 		case EX_LocalVariable:
 		case EX_InstanceVariable:
+		case EX_DefaultVariable:
 		case EX_LocalOutVariable:
 		{
 			XFER_PROP_POINTER;
@@ -239,6 +240,7 @@
 			while( SerializeExpr( iCode, Ar ) != EX_EndFunctionParms ); // Parms.
 			break;
 		}
+		case EX_ClassContext:
 		case EX_Context:
 		case EX_Context_FailSilent:
 		{

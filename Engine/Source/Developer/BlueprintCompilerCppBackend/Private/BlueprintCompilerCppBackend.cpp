@@ -166,7 +166,7 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 		{
 			Prefix = TermToText(Term->Context);
 
-			if (Term->Context->bIsStructContext)
+			if (Term->Context->IsStructContextType())
 			{
 				Prefix += TEXT(".");
 			}

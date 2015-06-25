@@ -640,9 +640,8 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 		FBPTerminal& Term = Terms[i];
 
 		if(NULL != Term.AssociatedVarProperty)
-		{	
-			const bool bIsStructMember = (Term.Context && Term.Context->bIsStructContext);
-			if(bIsStructMember)
+		{
+			if(Term.Context && !Term.Context->IsObjectContextType())
 			{
 				continue;
 			}
@@ -717,7 +716,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			PropertyStorageLocation = &(NewProperty->Next);
 
 			Term.AssociatedVarProperty = NewProperty;
-			Term.bIsLocal = bPropertiesAreLocal;
+			Term.SetVarTypeLocal(bPropertiesAreLocal);
 
 			// Record in the debugging information
 			//@TODO: Rename RegisterClassPropertyAssociation, etc..., to better match that indicate it works with locals

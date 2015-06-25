@@ -137,7 +137,7 @@ enum EExprToken
 	// Variable references.
 	EX_LocalVariable		= 0x00,	// A local variable.
 	EX_InstanceVariable		= 0x01,	// An object variable.
-	//						= 0x02,
+	EX_DefaultVariable		= 0x02, // Default variable for a class context.
 	//						= 0x03,
 	EX_Return				= 0x04,	// Return from function.
 	//						= 0x05,
@@ -153,7 +153,7 @@ enum EExprToken
 	EX_Let					= 0x0F,	// Assign an arbitrary size value to a variable.
 	//						= 0x10,
 	//						= 0x11,
-	//						= 0x12,
+	EX_ClassContext			= 0x12,	// Class default object context.
 	EX_MetaCast             = 0x13, // Metaclass cast.
 	EX_LetBool				= 0x14, // Let boolean variable.
 	EX_EndParmValue			= 0x15,	// end of default value for optional function parameter

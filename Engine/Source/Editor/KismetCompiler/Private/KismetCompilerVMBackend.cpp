@@ -253,19 +253,26 @@ protected:
 		{
 			bInContext = true;
 
-			static const FBoolConfigValueHelper CanSuppressAccessViolation(TEXT("Kismet"), TEXT("bCanSuppressAccessViolation"), GEngineIni);
-			if (bUnsafeToSkip || !CanSuppressAccessViolation)
+			if(Term->IsClassContextType())
 			{
-				Writer << EX_Context;
+				Writer << EX_ClassContext;
 			}
 			else
 			{
-				Writer << EX_Context_FailSilent;
-			}
+				static const FBoolConfigValueHelper CanSuppressAccessViolation(TEXT("Kismet"), TEXT("bCanSuppressAccessViolation"), GEngineIni);
+				if (bUnsafeToSkip || !CanSuppressAccessViolation)
+				{
+					Writer << EX_Context;
+				}
+				else
+				{
+					Writer << EX_Context_FailSilent;
+				}
 
-			if (bIsInterfaceContext)
-			{
-				Writer << EX_InterfaceContext;
+				if (bIsInterfaceContext)
+				{
+					Writer << EX_InterfaceContext;
+				}
 			}
 
 			// Function contexts must always be objects, so if we have a literal, give it the default object property so the compiler knows how to handle it
@@ -608,7 +615,11 @@ public:
 		else
 		{
 			check(Term->AssociatedVarProperty);
-			if (Term->bIsLocal)
+			if (Term->IsDefaultVarTerm())
+			{
+				Writer << EX_DefaultVariable;
+			}
+			else if (Term->IsLocalVarTerm())
 			{
 				Writer << (Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_OutParm) ? EX_LocalOutVariable : EX_LocalVariable);
 			}
@@ -879,7 +890,7 @@ public:
 		}
 		else
 		{
-			if (Term->Context->bIsStructContext)
+			if (Term->Context->IsStructContextType())
 			{
 				check(Term->AssociatedVarProperty);
 
