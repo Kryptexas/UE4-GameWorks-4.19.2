@@ -323,9 +323,9 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 		}
 		// Scalar Parameters.
 		ParentMaterial->GetAllScalarParameterNames(ParameterNames, Guids);
-		for(int32 ParameterIdx=0; ParameterIdx<ParameterNames.Num(); ParameterIdx++)
+		for (int32 ParameterIdx=0; ParameterIdx<ParameterNames.Num(); ParameterIdx++)
 		{			
-			UDEditorScalarParameterValue & ParameterValue = *(NewObject<UDEditorScalarParameterValue>());
+			UDEditorScalarParameterValue& ParameterValue = *(NewObject<UDEditorScalarParameterValue>());
 			FName ParameterName = ParameterNames[ParameterIdx];
 			float Value;
 
@@ -333,11 +333,11 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 			ParameterValue.ParameterName = ParameterName;
 			ParameterValue.ExpressionId = Guids[ParameterIdx];
 
-			if(SourceInstance->GetScalarParameterValue(ParameterName, Value))
+			if (SourceInstance->GetScalarParameterValue(ParameterName, Value))
 			{
+				ParentMaterial->GetScalarParameterSliderMinMax(ParameterName, ParameterValue.SliderMin, ParameterValue.SliderMax);
 				ParameterValue.ParameterValue = Value;
 			}
-
 
 			// @todo: This is kind of slow, maybe store these in a map for lookup?
 			// See if this keyname exists in the source instance.

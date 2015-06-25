@@ -1433,6 +1433,55 @@ bool UMaterial::GetScalarParameterValue(FName ParameterName, float& OutValue) co
 	return false;
 }
 
+bool UMaterial::GetScalarParameterSliderMinMax(FName ParameterName, float& OutSliderMin, float& OutSliderMax) const
+{
+	float Value = 0;
+
+	for (const UMaterialExpression* Expression : Expressions)
+	{
+		if (Expression->IsA<UMaterialExpressionScalarParameter>())
+		{
+			const UMaterialExpressionScalarParameter* Parameter = CastChecked<const UMaterialExpressionScalarParameter>(Expression);
+			if (Parameter->IsNamedParameter(ParameterName, Value))
+			{
+				OutSliderMin = Parameter->SliderMin;
+				OutSliderMax = Parameter->SliderMax;
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
+				return true;
+			}
+		}
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
+		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
+			if (FunctionCall->MaterialFunction)
+			{
+				TArray<UMaterialFunction*> Functions;
+				Functions.Add(FunctionCall->MaterialFunction);
+				FunctionCall->MaterialFunction->GetDependentFunctions(Functions);
+
+				for (UMaterialFunction* Function : Functions)
+				{
+					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
+					{
+						if (FunctionExpression->IsA<UMaterialExpressionScalarParameter>())
+						{
+							const UMaterialExpressionScalarParameter* Parameter = CastChecked<const UMaterialExpressionScalarParameter>(FunctionExpression);
+							if (Parameter->IsNamedParameter(ParameterName, Value))
+							{
+								OutSliderMin = Parameter->SliderMin;
+								OutSliderMax = Parameter->SliderMax;
+								return true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 bool UMaterial::GetTextureParameterValue(FName ParameterName, UTexture*& OutValue) const
 {
 	for (const UMaterialExpression* Expression : Expressions)

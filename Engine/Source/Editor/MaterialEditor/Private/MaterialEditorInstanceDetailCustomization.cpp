@@ -148,8 +148,15 @@ void FMaterialInstanceParameterDetails::CreateSingleGroupWidget(FEditorParameter
 		UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
 		UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
 
-		if (ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
+		if( ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
 		{
+			if (ScalarParam && ScalarParam->SliderMax > ScalarParam->SliderMin)
+			{
+				TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+				ParameterValueProperty->SetInstanceMetaData("UIMin",FString::Printf(TEXT("%f"), ScalarParam->SliderMin));
+				ParameterValueProperty->SetInstanceMetaData("UIMax",FString::Printf(TEXT("%f"), ScalarParam->SliderMax));
+			}
+
 			CreateParameterValueWidget(Parameter, ParameterProperty, DetailGroup );
 		}
 		else if (CompMaskParam)
