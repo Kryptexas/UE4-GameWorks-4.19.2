@@ -1644,10 +1644,8 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		}
 	}
 
-	{
-		FComponentReregisterContext ReregisterStaticMesh(this);
-		StaticMeshInstanceData->ApplyVertexColorData(this);
-	}
+	StaticMeshInstanceData->ApplyVertexColorData(this);
+	MarkRenderStateDirty();
 }
 
 #include "AI/Navigation/RecastHelpers.h"

@@ -1301,8 +1301,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		SCOPE_CYCLE_COUNTER(STAT_NetBroadcastTickTime);
 		BroadcastTickFlush(RealDeltaSeconds); // note: undilated time is being used here
 	}
-
-	SendAllEndOfFrameUpdates();
+	
      // PostTick all net drivers
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NetBroadcastPostTickTime);

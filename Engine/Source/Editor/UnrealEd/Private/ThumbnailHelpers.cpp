@@ -982,9 +982,7 @@ void FClassActorThumbnailScene::SetObject(UObject* Obj)
 		}
 
 		VisualizableComponents.Empty();
-	}
-
-	GetWorld()->SendAllEndOfFrameUpdates();
+	}	
 }
 
 bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component) const

@@ -772,7 +772,6 @@ void FSCSEditorViewportClient::ToggleShowFloor()
 	
 	EditorFloorComp->SetVisibility(bShowFloor);
 	EditorFloorComp->SetCollisionEnabled(bShowFloor? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
-	GetWorld()->SendAllEndOfFrameUpdates();
 
 	Settings->bSCSEditorShowFloor = bShowFloor;
 	Settings->PostEditChange();

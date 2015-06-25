@@ -387,14 +387,7 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 	if (GUseThreadedRendering)
 	{
 		StartRenderingThread();
-	}
-
-	if ( bDoBuild && InWorld->Scene )
-	{
-		// Invalidating lighting marked various components as needing a re-register
-		// Propagate the re-registers before rendering the scene to get the latest state
-		InWorld->SendAllEndOfFrameUpdates();
-	}
+	}	
 
 	if ( bDoBuild )
 	{

@@ -1550,6 +1550,20 @@ void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdLi
 
 void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily* ViewFamily)
 {
+	UWorld* World = nullptr; 
+	check(ViewFamily->Scene);
+
+	FScene* const Scene = ViewFamily->Scene->GetRenderScene();
+	if (Scene)
+	{
+		World = Scene->GetWorld();
+		if (World)
+		{
+			//guarantee that all render proxies are up to date before kicking off a BeginRenderViewFamily.
+			World->SendAllEndOfFrameUpdates();
+		}
+	}
+
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();
 
@@ -1564,12 +1578,9 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 	{
 		ViewFamily->ViewExtensions[ViewExt]->BeginRenderViewFamily(*ViewFamily);
 	}
-
-	check(ViewFamily->Scene);
-	FScene* const Scene = ViewFamily->Scene->GetRenderScene();
+	
 	if (Scene)
-	{
-		UWorld* const World = Scene->GetWorld();
+	{		
 		// Set the world's "needs full lighting rebuild" flag if the scene has any uncached static lighting interactions.
 		if(World)
 		{

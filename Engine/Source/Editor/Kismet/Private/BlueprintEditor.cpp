@@ -7366,8 +7366,7 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 			if ( PreviewActor->bHidden )
 			{
 				PreviewActor->bHidden = false;
-				PreviewActor->MarkComponentsRenderStateDirty();
-				PreviewScene.GetWorld()->SendAllEndOfFrameUpdates();
+				PreviewActor->MarkComponentsRenderStateDirty();				
 			}
 
 			// Prevent any audio from playing as a result of spawning

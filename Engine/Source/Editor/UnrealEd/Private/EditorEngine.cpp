@@ -1436,8 +1436,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 
 	// Commit changes to the BSP model.
-	EditorContext.World()->CommitModelSurfaces();
-	EditorContext.World()->SendAllEndOfFrameUpdates();
+	EditorContext.World()->CommitModelSurfaces();	
 
 	bool bUpdateLinkedOrthoViewports = false;
 	/////////////////////////////
