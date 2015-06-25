@@ -1,4 +1,4 @@
-Availability: Public
+Availability: docs
 Title:Blueprint Basic User Guide
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:A quick guide on the elements needed to begin working with Blueprints. 
