@@ -45,8 +45,6 @@ Description:Image assets used in Materials to apply to surfaces or drawn on-scre
 
 [TOC(start:2 end:2)]
 
-## Overview
-
 The following list should be considered construction standards for Unreal Engine content. Although your _personal_ projects may use any standard that you like, any content that you wish to distribute should follow these standards.
 
 ## Static Mesh (3D Models) Standards
@@ -55,7 +53,7 @@ The following list should be considered construction standards for Unreal Engine
 * **Scale:** 1 Unreal Unit = 1 centimeter (cm).
 * **Origin (pivot):** Should be located at a spot convenient for placement, generally at the center bottom of the object.
 * **Orientation:** All models should have their _forward_ dimension facing in the direction of the **positive X-Axis**.
-* **UV Layout (Texture coordinates):** Meshes may use overlapping UV patches to maximize texture usage. However, they should also have a separate UV channel, specifically for light maps, in which all UV patches are uniformly layed out without any overlapping. Note lightmap UVs can be generated within the [Static Mesh Editor](Engine\Content\Types\StaticMeshes\Editor), though creating them in your 3D package will provide extra editability.
+* **UV Layout (Texture coordinates):** Meshes may use overlapping UV patches to maximize texture usage. However, they should also have a separate UV channel, specifically for light maps, in which all UV patches are uniformly laid out without any overlapping. Note lightmap UVs can be generated within the [Static Mesh Editor](Engine\Content\Types\StaticMeshes\Editor), though creating them in your 3D package will provide extra editability.
 * **Materials:** All meshes should have a corresponding Material applied to them.
 * **Vertex Normals:** If the visual quality of your model requires custom vertex normals (a.k.a. Smoothing Groups), make sure those are exported from your 3D package and that you import them into UE4 when importing your content.
 * **Max Vertex Count:** For mobile devices, each mesh should have a maximum of **65,535** vertices. On other platforms, such as PC, you are limited by console and should test accordingly.
@@ -69,7 +67,7 @@ The following list should be considered construction standards for Unreal Engine
 * **Scale:** 1 Unreal Unit = 1 centimeter (cm).
 * **Origin (pivot):** Should be located at a spot convenient for placement. For Skeletal Meshes, this is typically right between the feet.
 * **Orientation:** All models should have their _forward_ dimension facing in the direction of the **positive X-Axis**.
-* **UV Layout (Texture coordinates):** Meshes may use overlapping UV patches to maximize texture usage. However, they should also have a separate UV channel, specifically for light maps, in which all UV patches are uniformly layed out without any overlapping. Note lightmap UVs can be generated within the [Static Mesh Editor](Engine\Content\Types\StaticMeshes\Editor), though creating them in your 3D package will provide extra editability.
+* **UV Layout (Texture coordinates):** Meshes may use overlapping UV patches to maximize texture usage. However, they should also have a separate UV channel, specifically for light maps, in which all UV patches are uniformly laid out without any overlapping. Note lightmap UVs can be generated within the [Static Mesh Editor](Engine\Content\Types\StaticMeshes\Editor), though creating them in your 3D package will provide extra editability.
 * **Materials:** All meshes should have a corresponding Material applied to them.
 * **Vertex Normals:** If the visual quality of your model requires custom vertex normals (a.k.a. Smoothing Groups), make sure those are exported from your 3D package and that you import them into UE4 when importing your content.
 * **Max Vertex Count:** For mobile devices, each mesh should have a maximum of **65,535** vertices. On other platforms, such as PC, you are limited by console and should test accordingly.
@@ -82,7 +80,7 @@ The following list should be considered construction standards for Unreal Engine
 * **Dimensions:** 
 	* All textures should have dimensions that are powers of two (32, 62, 1024, 2048). 
 	* If you want to make use of mipmaps, your texture should not exceed 4096px (4K).
-	* Keep in mind that some GPUs have hardward limits of 8192px (8K).
+	* Keep in mind that some GPUs have hardware limits of 8192px (8K).
 	* **Epic authors most of its texture content at 2048px.**
 * **Tips:**
 	* It is often useful and efficient to store masking information in the alpha channel of your textures.
