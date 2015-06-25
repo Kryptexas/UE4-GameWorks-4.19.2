@@ -723,6 +723,39 @@ protected:
 
 	// Shared functionality between all scene renderers
 
+	/** Renders the projections of the given Shadows to the appropriate color render target. */
+	void RenderProjections(
+		FRHICommandListImmediate& RHICmdList,
+		const FLightSceneInfo* LightSceneInfo,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& Shadows,
+		bool bForwardShading
+		);
+
+	/** Finds a matching cached preshadow, if one exists. */
+	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(
+		const FLightPrimitiveInteraction* InParentInteraction,
+		const FProjectedShadowInitializer& Initializer,
+		const FBoxSphereBounds& Bounds,
+		uint32 InResolutionX);
+
+	/** Creates a per object projected shadow for the given interaction. */
+	void CreatePerObjectProjectedShadow(
+		FRHICommandListImmediate& RHICmdList,
+		FLightPrimitiveInteraction* Interaction,
+		bool bCreateTranslucentObjectShadow,
+		bool bCreateInsetObjectShadow,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& OutPreShadows);
+
+	/** Creates shadows for the given interaction. */
+	void SetupInteractionShadows(
+		FRHICommandListImmediate& RHICmdList,
+		FLightPrimitiveInteraction* Interaction,
+		FVisibleLightInfo& VisibleLightInfo,
+		bool bStaticSceneOnly,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows);
+
 	/** Generates FProjectedShadowInfos for all wholesceneshadows on the given light.*/
 	void AddViewDependentWholeSceneShadowsForView(
 		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, 
@@ -837,6 +870,9 @@ protected:
 	/** Renders the opaque base pass for forward shading. */
 	void RenderForwardShadingBasePass(FRHICommandListImmediate& RHICmdList);
 
+	/** Projects any shadow depth images into the scene. (modulated shadows) */
+	void RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList);
+
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
@@ -859,4 +895,7 @@ protected:
 	  * @return true if anything got rendered
 	  */
 	bool RenderShadowDepthMap(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
+
+	/** Helper function to determine if a shadow should be cast **/
+	bool IsProjectedShadowPotentiallyVisible(const FProjectedShadowInfo* ProjectedShadowInfo) const;
 };

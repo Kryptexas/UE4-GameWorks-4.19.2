@@ -140,22 +140,6 @@ private:
 	/** Updates the preshadow cache, allocating new preshadows that can fit and evicting old ones. */
 	void UpdatePreshadowCache(FSceneRenderTargets& SceneContext);
 
-	/** Finds a matching cached preshadow, if one exists. */
-	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(
-		const FLightPrimitiveInteraction* InParentInteraction,
-		const FProjectedShadowInitializer& Initializer,
-		const FBoxSphereBounds& Bounds,
-		uint32 InResolutionX);
-
-	/** Creates shadows for the given interaction. */
-	void SetupInteractionShadows(
-		FRHICommandListImmediate& RHICmdList,
-		FLightPrimitiveInteraction* Interaction,
-		FVisibleLightInfo& VisibleLightInfo,
-		bool bStaticSceneOnly,
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows);
-
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
 
@@ -271,13 +255,6 @@ private:
 
 	/** Renders one pass point light shadows. */
 	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
-
-	/** Renders the projections of the given Shadows to the appropriate color render target. */
-	void RenderProjections(
-		FRHICommandListImmediate& RHICmdList,
-		const FLightSceneInfo* LightSceneInfo, 
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& Shadows
-		);
 
 	/** Renders the shadowmaps of translucent shadows and their projections onto opaque surfaces. */
 	bool RenderTranslucentProjectedShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);

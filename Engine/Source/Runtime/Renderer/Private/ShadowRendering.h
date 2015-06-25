@@ -658,7 +658,7 @@ public:
 	/**
 	 * Projects the shadow onto the scene for a particular view.
 	 */
-	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View) const;
+	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, bool bForwardShading) const;
 
 	/** Renders ray traced distance field shadows. */
 	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View) const;
@@ -1233,6 +1233,58 @@ protected:
 	FShadowProjectionShaderParameters ProjectionParameters;
 	FShaderParameter ShadowFadeFraction;
 	FShaderParameter ShadowSharpen;
+};
+
+/** Pixel shader to project modulated shadows onto the scene. */
+template<uint32 Quality>
+class TModulatedShadowProjection : public TShadowProjectionPS<Quality>
+{
+	DECLARE_SHADER_TYPE(TModulatedShadowProjection, Global);
+public:
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		TShadowProjectionPS<Quality>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("MODULATED_SHADOWS"), 1);
+	}
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsMobilePlatform(Platform);
+	}
+
+	TModulatedShadowProjection() {}
+
+	TModulatedShadowProjection(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		TShadowProjectionPS<Quality>(Initializer)
+	{
+		ModulatedShadowColorParameter.Bind(Initializer.ParameterMap, TEXT("ModulatedShadowColor"));
+	}
+
+	virtual void SetParameters(
+		FRHICommandList& RHICmdList,
+		int32 ViewIndex,
+		const FSceneView& View,
+		const FProjectedShadowInfo* ShadowInfo) override
+	{
+		TShadowProjectionPS<Quality>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+		const FPixelShaderRHIParamRef ShaderRHI = this->GetPixelShader();
+		SetShaderValue(RHICmdList, ShaderRHI, ModulatedShadowColorParameter, ShadowInfo->GetLightSceneInfo().Proxy->GetModulatedShadowColor());
+	}
+
+	/**
+	* Serialize the parameters for this shader
+	* @param Ar - archive to serialize to
+	*/
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = TShadowProjectionPS<Quality>::Serialize(Ar);
+		Ar << ModulatedShadowColorParameter;
+		return bShaderHasOutdatedParameters;
+	}
+
+protected:
+	FShaderParameter ModulatedShadowColorParameter;
 };
 
 /** Translucency shadow projection parameters used by multiple shaders. */

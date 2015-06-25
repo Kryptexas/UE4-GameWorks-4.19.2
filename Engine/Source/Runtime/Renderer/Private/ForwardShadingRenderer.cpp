@@ -96,8 +96,6 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Find the visible primitives.
 	InitViews(RHICmdList);
 	
-	RenderShadowDepthMaps(RHICmdList);
-
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{
@@ -105,6 +103,8 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
+
+	RenderShadowDepthMaps(RHICmdList);
 
 	// Dynamic vertex and index buffers need to be committed before rendering.
 	FGlobalDynamicVertexBuffer::Get().Commit();
@@ -165,6 +165,8 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 		RenderTranslucency(RHICmdList);
 	}
+
+	RenderModulatedShadowProjections(RHICmdList);
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 	bool bOnChipSunMask =

@@ -800,6 +800,8 @@ public:
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
 	inline bool CastsShadowsFromCinematicObjectsOnly() const { return bCastShadowsFromCinematicObjectsOnly; }
+	inline bool CastsModulatedShadows() const { return bCastModulatedShadows; }
+	inline const FLinearColor& GetModulatedShadowColor() const { return ModulatedShadowColor; }
 	inline bool AffectsTranslucentLighting() const { return bAffectTranslucentLighting; }
 	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
 	inline float GetRayStartOffsetDepthScale() const { return RayStartOffsetDepthScale; }
@@ -912,6 +914,9 @@ protected:
 
 	const uint32 bCastShadowsFromCinematicObjectsOnly : 1;
 
+	/** Whether the light will cast modulated shadows when using the forward renderer (mobile). */
+	const uint32 bCastModulatedShadows : 1;
+
 	/** Whether the light affects translucency or not.  Disabling this can save GPU time when there are many small lights. */
 	const uint32 bAffectTranslucentLighting : 1;
 
@@ -945,6 +950,8 @@ protected:
 	/** Only for whole scene directional lights, 0: no FarShadowCascades, otherwise the count of cascades between WholeSceneDynamicShadowRadius and FarShadowDistance that are covered by distant shadow cascades. */
 	uint32 FarShadowCascadeCount;
 
+	/** Modulated shadow color. */
+	FLinearColor ModulatedShadowColor;
 	/**
 	 * Updates the light proxy's cached transforms.
 	 * @param InLightToWorld - The new light-to-world transform.

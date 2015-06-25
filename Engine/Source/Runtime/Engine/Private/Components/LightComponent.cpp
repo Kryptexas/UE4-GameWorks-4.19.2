@@ -220,6 +220,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastStaticShadow(InLightComponent->CastShadows && InLightComponent->CastStaticShadows)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
 	, bCastShadowsFromCinematicObjectsOnly(InLightComponent->bCastShadowsFromCinematicObjectsOnly)
+	, bCastModulatedShadows(InLightComponent->bCastModulatedShadows)
 	, bAffectTranslucentLighting(InLightComponent->bAffectTranslucentLighting)
 	, bUsedAsAtmosphereSunLight(InLightComponent->IsUsedAsAtmosphereSunLight())
 	, bAffectDynamicIndirectLighting(InLightComponent->bAffectDynamicIndirectLighting)
@@ -267,6 +268,8 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	LightFunctionDisabledBrightness = LightComponent->DisabledBrightness;
 
 	StaticShadowDepthMap = &LightComponent->StaticShadowDepthMap;
+
+	ModulatedShadowColor = FLinearColor(LightComponent->ModulatedShadowColor);
 }
 
 bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
@@ -514,6 +517,11 @@ bool ULightComponent::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, Temperature))
 		{
 			return bUseTemperature;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ModulatedShadowColor))
+		{
+			return bCastModulatedShadows;
 		}
 	}
 

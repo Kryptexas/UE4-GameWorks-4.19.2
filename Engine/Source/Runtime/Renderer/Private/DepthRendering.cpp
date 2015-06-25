@@ -28,13 +28,11 @@ public:
 		// Only the local vertex factory supports the position-only stream
 		if (bUsePositionOnlyStream)
 		{
-			return VertexFactoryType->SupportsPositionOnly() && Material->IsSpecialEngineMaterial() 
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+			return VertexFactoryType->SupportsPositionOnly() && Material->IsSpecialEngineMaterial();
 		}
 
 		// Only compile for the default material and masked materials
-		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition())
-			 && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition());
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView& View)
@@ -106,7 +104,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Compile for materials that are masked.
-		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected()) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected());
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

@@ -37,6 +37,8 @@ float2 ProjectionDepthBiasParameters;
 	float InvFadePlaneLength;
 #endif
 
+float4 ModulatedShadowColor;
+
 /**
 * Entry point for uniform manual PCF that supports lights using normal shadows.
 */
@@ -154,6 +156,11 @@ void Main(
 		// When the fade plane is in use for CSMs, we output the fade value in the alpha channel for blending.
 		OutColor.a = BlendFactor;
 	#endif
+
+#if MODULATED_SHADOWS
+	OutColor.rgb = lerp(ModulatedShadowColor.rgb, float3(1, 1, 1), Shadow);
+	OutColor.a = 0;
+#endif
 }
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
