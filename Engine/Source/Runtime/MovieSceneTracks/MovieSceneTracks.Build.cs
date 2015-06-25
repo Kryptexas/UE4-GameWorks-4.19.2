@@ -18,14 +18,14 @@ public class MovieSceneTracks : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"Engine"
+				"Engine",
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"MovieScene",
-				"SlateCore"
+				"SlateCore",
 			}
 		);
 	}
