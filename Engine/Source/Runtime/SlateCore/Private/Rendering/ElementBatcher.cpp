@@ -55,7 +55,7 @@ FSlateRotatedClipRectType ToSnappedRotatedRect(const FSlateRect& ClipRectInLayou
 static FColor GetElementColor( const FLinearColor& InColor, const FSlateBrush* InBrush )
 {
 	// Pass the color through
-	return InColor.ToFColor(false);
+	return InColor.ToFColor(true);
 }
 
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )

@@ -2,6 +2,7 @@
 
 
 #include "Common.usf"
+#include "GammaCorrectionCommon.usf"
 
 float4x4 ViewProjection;
 
@@ -41,6 +42,7 @@ VertexOut Main(
 	VOut.ClipOriginAndPos = float4(InClipOrigin, InPosition.xy);
 	VOut.ClipExtents = InClipExtents;
 
+	InColor.rgb = sRGBToLinear(InColor.rgb);
 	VOut.Color = InColor FCOLOR_COMPONENT_SWIZZLE;
 
 	return VOut;
