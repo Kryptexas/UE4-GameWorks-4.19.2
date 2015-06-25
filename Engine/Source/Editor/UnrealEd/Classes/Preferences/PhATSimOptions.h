@@ -13,6 +13,10 @@ class UNREALED_API UPhATSimOptions : public UObject
 	UPROPERTY(EditAnywhere, transient, Category=Anim)
 	float PhysicsBlend;
 
+	/** Lets you manually control the physics/animation */
+	UPROPERTY(EditAnywhere, transient, Category = Anim)
+	bool bUpdateJointsFromAnimation;
+
 	/** Time between poking ragdoll and starting to blend back. */
 	UPROPERTY(EditAnywhere, config, Category=Anim)
 	float PokePauseTime;
