@@ -842,6 +842,12 @@ namespace EditorLevelUtils
 	void GetWorlds(UWorld* InWorld, TArray<UWorld*>& OutWorlds, bool bIncludeInWorld, bool bOnlyEditorVisible)
 	{
 		OutWorlds.Empty();
+
+		if (!InWorld)
+		{
+			return;
+		}
+
 		if ( bIncludeInWorld )
 		{
 			OutWorlds.AddUnique( InWorld );
