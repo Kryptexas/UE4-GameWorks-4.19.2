@@ -30,7 +30,7 @@ namespace DoxygenLib
 			OutputPath = InOutputPath;
 		}
 
-		public void Write(string ConfigPath)
+		public void Write(string ConfigPath, string ExecutePath)
 		{
 			using (StreamWriter Output = new StreamWriter(ConfigPath))
 			{
@@ -67,6 +67,19 @@ namespace DoxygenLib
 				// List of input paths
 				Output.WriteLine();
 				FormatSetting(Output, "INPUT", new List<string>(InputPaths.Select(x => QuoteValue(x))));
+
+				// Input filter program
+				Output.WriteLine();
+				//FormatSetting(Output, "INPUT_FILTER", Path.GetDirectoryName(ExecutePath) + "/../../../../../DoxygenInputFilter/CommentFixup.py");
+				string FilterPath = Path.GetDirectoryName(ExecutePath).Replace("\\", "/");
+				// Back up by five levels, then tack on the relative path to the filter script.
+				for (int PathRemovalCoiunt = 0; PathRemovalCoiunt < 5; ++PathRemovalCoiunt)
+				{
+					FilterPath = FilterPath.Remove(FilterPath.LastIndexOf('/'));
+				}
+				FilterPath += "/Source/Programs/UnrealDocTool/DoxygenInputFilter/CommentFixup.py";
+				FormatSetting(Output, "INPUT_FILTER", FilterPath);
+				//FormatSetting(Output, "INPUT_FILTER", "D:/Builds_ArtistSync/UE4/Engine/Source/Programs/UnrealDocTool/DoxygenInputFilter/CommentFixup.py");
 
 				// List of predefined macros
 				Output.WriteLine();
@@ -153,7 +166,7 @@ namespace DoxygenLib
 
 			// Write the doxygen config file
 			string ConfigFilePath = Path.Combine(Config.OutputPath, "Doxyfile");
-			Config.Write(ConfigFilePath);
+			Config.Write(ConfigFilePath, DoxygenPath);
 
 			// Spawn doxygen
 			using (Process DoxygenProcess = new Process())
