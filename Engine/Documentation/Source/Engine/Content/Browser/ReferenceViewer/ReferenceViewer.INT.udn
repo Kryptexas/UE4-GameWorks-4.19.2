@@ -23,8 +23,6 @@ Description:Describes the folder Reference Viewer in the Content Browser.
 [/OBJECT]
 [/VAR]
 
-## Overview
-
 The _Reference Viewer_ displays a graph of assets that reference or are referenced by any assets that are currently selected in the **Content Browser**.
 
 To display the Reference Viewer, **right-click** a selected asset (or assets) in the **Content Browser**, and, on the context menu that appears, click **Reference Viewer**.
@@ -39,7 +37,7 @@ To display the Reference Viewer, **right-click** a selected asset (or assets) in
 You can also access the Reference Viewer by **right-clicking** a folder in the **Asset Tree**. The Reference Viewer will display a graph of references for all assets in that folder.
 [/REGION]
 
-For more information about the **Content Browser**, see [](Engine/Content/Browser).
+For more information about the **Content Browser**, see **[](Engine/Content/Browser)**.
 
 
 ## Search Options
@@ -52,7 +50,7 @@ In the upper-left corner of the Reference Viewer, you can see two options relate
 | Item | Description |
 | ---- | ----------- |
 | **Search Depth Limit** | The depth to which the engine will search for references. For example, a value of 2 means that the graph will display not only the assets related to the selected asset, but also the assets that are related to those related assets. |
-| **Search Breadth Limit** | The number of references listed in a given column (reference or referenced by). For example, if an asset references 20 assets, but the value of the **Search Breadth Limit** is set to 10, only 10 assets will be displayed in that column. |
+| **Search Breadth Limit** | The number of references listed in a given column (reference or referenced by). For example, if an asset references 20 assets, but the value of the Search Breadth Limit is set to 10, only 10 assets will be displayed in that column. |
 
 
 ## Context Menu Options
@@ -66,6 +64,6 @@ To view options for an asset in the graph, **right-click** the asset.  A context
 | **List Referenced Objects** | Displays a list of assets referenced by the selected asset. |
 | **List Objects That Reference** | Displays a list of assets that reference the selected asset. |
 | **Make Collection With Referenced Assets** | Creates a Collection with the assets that reference and are referenced by the selected asset. |
-| **Show Reference Tree** | Displays a Reference Tree for the selected asset. Note that depending on the complexity of your game, this may take some time. For more information about the Reference Tree, see [](Engine/Content/Browser\ReferenceTreeTool).|
+| **Show Reference Tree** | Displays a Reference Tree for the selected asset. Note that depending on the complexity of your game, this may take some time. For more information about the Reference Tree, see **[](Engine/Content/Browser\ReferenceTreeTool)**.|
 
 
