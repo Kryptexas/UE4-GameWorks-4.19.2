@@ -68,6 +68,12 @@ public:
 		return FName(*InternalString);
 	}
 
+	/** Is the internal string empty? */
+	FORCEINLINE bool IsEmpty() const
+	{
+		return InternalString.IsEmpty();
+	}
+
 private:
 	/** Inline convert our internal string to uppercase */
 	void UppercaseInternalString();

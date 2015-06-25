@@ -156,6 +156,9 @@ namespace TextFilterTests
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 OR Flibble"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 AND Flibble"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble && !Flibble"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("Flibble -Wooble2"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("Flibble OR -Wooble2"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("Flibble AND -Wooble2"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Type'/Path/To/Asset.Asset'"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Other'/Path/To/Asset.Asset'FollowingText"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("\"Funky<String>\""), true);
