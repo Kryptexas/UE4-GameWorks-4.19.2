@@ -122,7 +122,7 @@ private:
 			UPTRINT IntPtr = reinterpret_cast<UPTRINT>(Ptr);
 			if (sizeof(UPTRINT) > 4)
 			{
-				Guid[0] ^= IntPtr >> 32;
+				Guid[0] ^= (static_cast<uint64>(IntPtr) >> 32);
 			}
 			Guid[1] ^= IntPtr & 0xFFFFFFFF;
 		}
@@ -135,7 +135,7 @@ private:
 		UPTRINT IntPtr = 0;
 		if (sizeof(UPTRINT) > 4)
 		{
-			IntPtr = (UPTRINT)(Guid[0] ^ BaseGuid[0]) << 32;
+			IntPtr = static_cast<UPTRINT>(static_cast<uint64>(Guid[0] ^ BaseGuid[0]) << 32);
 		}
 		IntPtr |= (Guid[1] ^ BaseGuid[1]) & 0xFFFFFFFF;
 

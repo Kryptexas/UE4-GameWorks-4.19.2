@@ -52,7 +52,7 @@ public:
 	virtual bool ReadProperty(TSharedPtr<FWebJSScripting> Scripting, UProperty* Property, UProperty* Outer, void* Data, int32 ArrayIndex ) override;
 
 	CefRefPtr<CefListValue> List;
-	int32 Index;
+	size_t Index;
 };
 
 class FCefDictionaryValueWalker
@@ -72,7 +72,7 @@ public:
 
 private:
 	CefRefPtr<CefDictionaryValue> Dictionary;
-	int32 Index;
+	size_t Index;
 	CefDictionaryValue::KeyList Keys;
 };
 
