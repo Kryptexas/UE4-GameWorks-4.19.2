@@ -20,21 +20,19 @@ Description:This document covers the nuances of working with source folders in t
 [TOC(start:2 end:3)]
 
 
-## Overview
-
 Since the **Sources** panel gives you a hierarchical representation of all the folders in your project, it is important to know all the ways in which the **Content Browser** allows you to access the assets within those folders. 
 
 
 ![SourcesPanel.png](Engine/Content/Browser/UserGuide/WorkingWithSources/SourcesPanel.png)(h:400)
 
-For more information about the **Developers** folder, see [](Engine/Content/Browser\UserGuide\DevelopersFolder).
+For more information about the Developers folder, see [](Engine/Content/Browser\UserGuide\DevelopersFolder).
 
 ## Toggling the Sources Panel
 
-If you like, you can close the **Sources** panel when you are working with the **Content Browser**. By clicking the ![Collapse Button](Engine/Content/Browser/UserGuide/WorkingWithSources/icon_CollapseButton.png) button at the top of the window, you can display or hide the **Sources** panel at will. This is highly useful when you need more screen real estate space, or when you are working with multiple **Content Browsers**.
+If you like, you can close the Sources panel when you are working with the **Content Browser**. By clicking the ![Collapse Button](Engine/Content/Browser/UserGuide/WorkingWithSources/icon_CollapseButton.png) button at the top of the window, you can display or hide the Sources panel at will. This is highly useful when you need more screen real estate space, or when you are working with multiple **Content Browsers**.
 
 [REGION:note]
-	Hiding the **Sources** panel also hides the **Collections** panel.
+	Hiding the Sources panel also hides the Collections panel.
 [/REGION]
 
 
@@ -55,7 +53,7 @@ Like with folder and file listings in many programs and operating systems, the f
 
 ## Right-Click Context Menu
 
-If you **right-click** on any of the folders within the **Sources** panel, the following context menu will appear:
+If you **right-click** on any of the folders within the Sources panel, the following context menu will appear:
 
 
 | Name | Description |
