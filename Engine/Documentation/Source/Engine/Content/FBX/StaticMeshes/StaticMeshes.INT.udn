@@ -25,9 +25,6 @@ Description:Setting up, exporting, and importing Static Meshes using the FBX con
 
 [TOC(start:2)]
 
-
-## Overview
-
 [EXCERPT:FBX_StaticMesh]
 The _StaticMesh_ support in the FBX import pipeline makes getting meshes from 3D applications into Unreal Engine 4 a simple, painless task. When meshes are imported, the textures used in the materials applied to those meshes in their respective 3D application (diffuse and normal map only) are also imported and, in turn, used to generate the materials applied to the mesh in UE4.
 [/EXCERPT:FBX_StaticMesh]
@@ -140,7 +137,7 @@ Collision meshes are identified by the importer based on their name. The collisi
 
 #### Caveats and Considerations
 
-* `RenderMeshName`** must be identical to the name of the render mesh the collision mesh is associated with in the 3D application. So if you have a render mesh named **`Tree_01`** in your 3D application, your collision mesh should be in the scene with that mesh and named **`UCX_Tree_01`**, and then exported along with the render mesh to the same FBX file. If you need more than one collision object for a mesh, you can extend their names with further identifiers, such as:** `UCX_Tree_01_00`, `UCX_Tree_01_01`, `UCX_Tree_01_02`, **etc... and they all will be associated as collision for that mesh.**
+* `RenderMeshName` must be identical to the name of the render mesh the collision mesh is associated with in the 3D application. So if you have a render mesh named **`Tree_01`** in your 3D application, your collision mesh should be in the scene with that mesh and named `UCX_Tree_01`, and then exported along with the render mesh to the same FBX file. If you need more than one collision object for a mesh, you can extend their names with further identifiers, such as: `UCX_Tree_01_00`, `UCX_Tree_01_01`, `UCX_Tree_01_02`, etc... and they all will be associated as collision for that mesh.
 
 
 * Currently, spheres are only used for rigid-body collision and Unreal's zero-extent traces (e.g. weapons), not non-zero extent traces (e.g. Player movement). Also, spheres and boxes do not work if the _StaticMesh_ is non-uniformly scaled. In general you probably want to create _UCX_ primitives.  
