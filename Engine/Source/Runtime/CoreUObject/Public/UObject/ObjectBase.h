@@ -463,10 +463,11 @@ enum EObjectFlags
 	RF_InheritableComponentTemplate = 0x00400000, ///< Archetype of the object can be in its super class
 	RF_Async = 0x00800000, ///< Object exists only on a different thread than the game thread.
 	RF_StrongRefOnFrame			= 0x01000000,	///< References to this object from persistent function frame are handled as strong ones.
+	RF_NoStrongReference		= 0x02000000,  ///< The object is not referenced by any strong reference. The flag is used by GC.
 };
 
 	// Special all and none masks
-#define RF_AllFlags				(EObjectFlags)0x00ffffff	///< All flags, used mainly for error checking
+#define RF_AllFlags				(EObjectFlags)0x03ffffff	///< All flags, used mainly for error checking
 
 	// Predefined groups of the above
 #define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Native | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate)) // Flags to load from Unrealfiles.

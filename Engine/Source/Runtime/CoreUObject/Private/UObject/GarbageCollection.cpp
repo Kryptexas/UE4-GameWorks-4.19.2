@@ -295,7 +295,7 @@ void SerializeRootSet( FArchive& Ar, EObjectFlags KeepFlags )
  * @param ReferencingObject UObject which owns the reference (can be NULL)
  * @param bAllowReferenceElimination	Whether to allow NULL'ing the reference if RF_PendingKill is set
  */
-static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination, bool bDoHandle = true)
+static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination, bool bStrongReference = true)
 {
 	// Disregard NULL objects and perform very fast check to see whether object is part of permanent
 	// object pool and should therefore be disregarded. The check doesn't touch the object and is
@@ -312,8 +312,8 @@ static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSeriali
 				Object = NULL;
 			}
 			// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
-			else if (Object->HasAnyFlags(RF_Unreachable) && bDoHandle)
-			{				
+			else if (Object->HasAnyFlags(RF_Unreachable))
+			{	
 				if( GIsRunningParallelReachability )
 				{
 					// Mark it as reachable.
@@ -340,6 +340,11 @@ static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSeriali
 					// Add it to the list of objects to serialize.
 					ObjectsToSerialize.Add( Object );
 				}
+			}
+
+			if (Object && bStrongReference)
+			{
+				Object->ClearFlags(RF_NoStrongReference);
 			}
 #if PERF_DETAILED_PER_CLASS_GC_STATS
 			GCurrentObjectRegularObjectRefs++;
@@ -613,7 +618,7 @@ public:
 				}
 				else
 				{
-					Object->SetFlags( RF_Unreachable );
+					Object->SetFlags(RF_Unreachable | RF_NoStrongReference);
 				}
 			}
 
@@ -1347,6 +1352,11 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			{
 				// Begin the object's asynchronous destruction.
 				Object->ConditionalBeginDestroy();
+			}
+			else if (Object->HasAnyFlags(RF_NoStrongReference))
+			{
+				Object->ClearFlags(RF_NoStrongReference);
+				Object->SetFlags(RF_PendingKill);
 			}
 		}
 		UE_LOG( LogGarbage, Log, TEXT( "%f ms for unhashing unreachable objects" ), (FPlatformTime::Seconds() - StartTime) * 1000 );
