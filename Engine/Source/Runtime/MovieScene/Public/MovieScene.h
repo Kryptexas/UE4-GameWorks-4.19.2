@@ -4,7 +4,12 @@
 
 #include "MovieScene.generated.h"
 
+
+class UMovieSceneBindingManager;
+
+
 MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
+
 
 /**
  * MovieSceneSpawnable describes an object that can be spawned for this MovieScene
@@ -409,6 +414,11 @@ private:
 	void RemoveObjectBinding( const FGuid& Guid );
 
 private:
+
+	/** The object binding manager. */
+	UPROPERTY()
+	TScriptInterface<UMovieSceneBindingManager> BindingManager;
+
 	/** Data-only blueprints for all of the objects that we we're able to spawn.  These describe objects and actors
 		that we may instantiate at runtime, or create proxy objects for previewing in the editor */
 	UPROPERTY()
