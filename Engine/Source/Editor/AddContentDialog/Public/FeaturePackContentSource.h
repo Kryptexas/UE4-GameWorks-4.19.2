@@ -114,6 +114,7 @@ class FFeaturePackContentSource : public IContentSource
 {
 public:
 	ADDCONTENTDIALOG_API FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegister = false);
+	virtual ~FFeaturePackContentSource();
 
 	virtual TArray<FLocalizedText> GetLocalizedNames() const override;
 	virtual TArray<FLocalizedText> GetLocalizedDescriptions() const override;
@@ -132,7 +133,6 @@ public:
 
 	virtual bool IsDataValid() const override;
 	
-	virtual ~FFeaturePackContentSource();
 	
 	void HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry);
 	void HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
@@ -193,4 +193,6 @@ private:
 	FString SortKey;
 	TArray<FLocalizedTextArray> LocalizedSearchTags;
 	TArray<FFeaturePackLevelSet> AdditionalFeaturePacks;
+	FDelegateHandle SearchClickedHandle;
+	FDelegateHandle SearchChangedHandle;
 };

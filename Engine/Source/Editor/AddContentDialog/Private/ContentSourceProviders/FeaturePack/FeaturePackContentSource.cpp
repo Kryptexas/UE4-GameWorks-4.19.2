@@ -281,8 +281,11 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 	if( bDontRegisterForSearch == false )
 	{
 		FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
-		SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
-		SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
+		// Remove any existing delegates for this pack
+		FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(SearchClickedHandle);
+		FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(SearchChangedHandle);
+		SearchClickedHandle = SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
+		SearchChangedHandle = SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
 	}
 	bPackValid = true;
 }
@@ -387,6 +390,9 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 
 FFeaturePackContentSource::~FFeaturePackContentSource()
 {
+	// Remove any search handler delegates for this pack
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(SearchClickedHandle);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(SearchChangedHandle);
 }
 
 bool FFeaturePackContentSource::IsDataValid() const
