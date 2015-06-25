@@ -40,10 +40,12 @@ namespace ESteamVRTrackingSpace
 /**
  * SteamVR Extensions Function Library
  */
-UCLASS(MinimalAPI)
-class USteamVRFunctionLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class STEAMVR_API USteamVRFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
 	/**
 	 * Returns an array of the currently tracked device IDs
