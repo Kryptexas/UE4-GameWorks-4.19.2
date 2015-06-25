@@ -32,13 +32,9 @@ struct FAllocationInfo
 	{
 		return SequenceTag < Other.SequenceTag;
 	}
-
-	bool operator==(const FAllocationInfo& Other) const
-	{
-		return SequenceTag == Other.SequenceTag;
-	}
 };
 
+// #YRX_Profiler: Add TArray<FName> etc 2015-06-25 
 struct FSizeAndCount
 {
 	int64 Size;
@@ -89,6 +85,70 @@ struct FSizeAndCount
 	}
 };
 
+struct FNodeAllocationInfo
+{
+	/** Size as MBs for this node and children. */
+	double SizeMB;
+
+	/** Allocations count for this node and children. */
+	int64 Count;
+
+	/** Human readable callstack like 'GameThread -> Preinit -> LoadModule */
+	FString HumanReadableCallstack;
+
+	/** Encoded callstack like '45+656+6565'. */
+	FName EncodedCallstack;
+
+	/** Callstack indices, encoded callstack parsed into an array [45,656,6565] */
+	TArray<FName> DecodedCallstack;
+
+	/** Parent node. */
+	FNodeAllocationInfo* Parent;
+
+	/** Child nodes. */
+	TMap<FName, FNodeAllocationInfo*> ChildNodes;
+
+	/** Size for this node and children. */
+	int64 Size;
+
+	/** Node's depth. */
+	int32 Depth;
+
+	FNodeAllocationInfo()
+		: SizeMB( 0.0 )
+		, Count( 0 )
+		, Parent( nullptr )
+		, Size( 0 )
+		, Depth( 0 )
+	{}
+
+
+	~FNodeAllocationInfo()
+	{
+		DeleteAllChildrenNodes();
+	}
+
+	void Accumulate( const FSizeAndCount& Other )
+	{
+		Size += Other.Size;
+		Count += Other.Count;
+
+		const double InvMB = 1.0 / 1024.0 / 1024.0;
+		SizeMB = Size * InvMB;
+	}
+
+	void DeleteAllChildrenNodes()
+	{
+		for (auto& It : ChildNodes)
+		{
+			delete It.Value;
+		}
+		ChildNodes.Empty();
+	}
+
+	void SortBySize();
+};
+
 /** An example command loading a raw stats file and dumping memory usage. */
 class FStatsMemoryDumpCommand
 {
@@ -121,6 +181,8 @@ protected:
 
 	/** Generates callstack based allocation map. */
 	void GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, TMap<FName, FSizeAndCount>& out_ScopedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations );
+
+	void GenerateScopedTreeAllocations( const TMap<FName, FSizeAndCount>& ScopedAllocations, FNodeAllocationInfo& out_Root );
 
 	/** Prepares data for a snapshot. */
 	void PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& AllocationMap );

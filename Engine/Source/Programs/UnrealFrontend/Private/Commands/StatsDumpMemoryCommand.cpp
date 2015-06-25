@@ -8,61 +8,87 @@
 	Callstack decoding/encoding
 -----------------------------------------------------------------------------*/
 
-static const TCHAR* CallstackSeparator = TEXT( "+" );
-
-static FString EncodeCallstack( const TArray<FName>& Callstack )
+/** Helper struct used to manipulate stats based callstacks. */
+struct FStatsCallstack
 {
-	FString Result;
-	for (const auto& Name : Callstack)
+	/** Separator. */
+	static const TCHAR* CallstackSeparator;
+
+	static FString Encode( const TArray<FName>& Callstack )
 	{
-		Result += TTypeToString<int32>::ToString( (int32)Name.GetComparisonIndex() );
-		Result += CallstackSeparator;
+		FString Result;
+		for (const auto& Name : Callstack)
+		{
+			Result += TTypeToString<int32>::ToString( (int32)Name.GetComparisonIndex() );
+			Result += CallstackSeparator;
+		}
+		return Result;
 	}
-	return Result;
-}
 
-static void DecodeCallstack( const FName& EncodedCallstack, TArray<FString>& out_DecodedCallstack )
-{
-	EncodedCallstack.ToString().ParseIntoArray( out_DecodedCallstack, CallstackSeparator, true );
-}
-
-static FString GetCallstack( const FName& EncodedCallstack )
-{
-	FString Result;
-
-	TArray<FString> DecodedCallstack;
-	DecodeCallstack( EncodedCallstack, DecodedCallstack );
-
-	for (int32 Index = DecodedCallstack.Num() - 1; Index >= 0; --Index)
+	static void DecodeToStrings( const FName& EncodedCallstack, TArray<FString>& out_DecodedCallstack )
 	{
-		NAME_INDEX NameIndex = 0;
-		TTypeFromString<NAME_INDEX>::FromString( NameIndex, *DecodedCallstack[Index] );
+		EncodedCallstack.ToString().ParseIntoArray( out_DecodedCallstack, CallstackSeparator, true );
+	}
 
-		const FName LongName = FName( NameIndex, NameIndex, 0 );
+	static void DecodeToNames( const FName& EncodedCallstack, TArray<FName>& out_DecodedCallstack )
+	{
+		TArray<FString> DecodedCallstack;
+		DecodeToStrings( EncodedCallstack, DecodedCallstack );
 
-		const FString ShortName = FStatNameAndInfo::GetShortNameFrom( LongName ).ToString();
-		//const FString Group = FStatNameAndInfo::GetGroupNameFrom( LongName ).ToString();
-		FString Desc = FStatNameAndInfo::GetDescriptionFrom( LongName );
-		Desc.Trim();
-
-		if (Desc.Len() == 0)
+		// Convert back to FNames
+		for (const auto& It : DecodedCallstack)
 		{
-			Result += ShortName;
-		}
-		else
-		{
-			Result += Desc;
-		}
+			NAME_INDEX NameIndex = 0;
+			TTypeFromString<NAME_INDEX>::FromString( NameIndex, *It );
+			const FName LongName = FName( NameIndex, NameIndex, 0 );
 
-		if (Index > 0)
-		{
-			Result += TEXT( " <- " );
+			out_DecodedCallstack.Add( LongName );
 		}
 	}
 
-	Result.ReplaceInline( TEXT( "STAT_" ), TEXT( "" ), ESearchCase::CaseSensitive );
-	return Result;
-}
+	static FString GetHumanReadable( const FName& EncodedCallstack )
+	{
+		TArray<FName> DecodedCallstack;
+		DecodeToNames( EncodedCallstack, DecodedCallstack );
+		const FString Result = GetHumanReadable( DecodedCallstack );
+		return Result;
+	}
+
+	static FString GetHumanReadable( const TArray<FName>& DecodedCallstack )
+	{
+		FString Result;
+
+		const int32 NumEntries = DecodedCallstack.Num();
+		//for (int32 Index = DecodedCallstack.Num() - 1; Index >= 0; --Index)
+		for (int32 Index = 0; Index < NumEntries; ++Index)
+		{
+			const FName LongName = DecodedCallstack[Index];
+			const FString ShortName = FStatNameAndInfo::GetShortNameFrom( LongName ).ToString();
+			//const FString Group = FStatNameAndInfo::GetGroupNameFrom( LongName ).ToString();
+			FString Desc = FStatNameAndInfo::GetDescriptionFrom( LongName );
+			Desc.Trim();
+
+			if (Desc.Len() == 0)
+			{
+				Result += ShortName;
+			}
+			else
+			{
+				Result += Desc;
+			}
+
+			if (Index != NumEntries - 1)
+			{
+				Result += TEXT( " -> " );
+			}
+		}
+
+		Result.ReplaceInline( TEXT( "STAT_" ), TEXT( "" ), ESearchCase::CaseSensitive );
+		return Result;
+	}
+};
+
+const TCHAR* FStatsCallstack::CallstackSeparator = TEXT( "+" );
 
 /*-----------------------------------------------------------------------------
 	Allocation info
@@ -72,7 +98,7 @@ FAllocationInfo::FAllocationInfo( uint64 InOldPtr, uint64 InPtr, int64 InSize, c
 	: OldPtr( InOldPtr )
 	, Ptr( InPtr )
 	, Size( InSize )
-	, EncodedCallstack( *EncodeCallstack( InCallstack ) )
+	, EncodedCallstack( *FStatsCallstack::Encode( InCallstack ) )
 	, SequenceTag( InSequenceTag )
 	, Op( InOp )
 	, bHasBrokenCallstack( bInHasBrokenCallstack )
@@ -102,6 +128,14 @@ struct FAllocationInfoGreater
 struct FSizeAndCountGreater
 {
 	FORCEINLINE bool operator()( const FSizeAndCount& A, const FSizeAndCount& B ) const
+	{
+		return B.Size < A.Size;
+	}
+};
+
+struct FNodeAllocationInfoGreater
+{
+	FORCEINLINE bool operator()( const FNodeAllocationInfo& A, const FNodeAllocationInfo& B ) const
 	{
 		return B.Size < A.Size;
 	}
@@ -303,6 +337,14 @@ void FStatsMemoryDumpCommand::InternalRun()
 }
 
 
+void GetCallstackFromState( FStackState* StackState, TArray<FName>& out_StatsBasedCallstack )
+{
+	for (const auto& StackName : StackState->Stack)
+	{
+		out_StatsBasedCallstack.Add( StackName );
+	}
+}
+
 void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPacketArray>& CombinedHistory )
 {
 	// This is only example code, no fully implemented, may sometimes crash.
@@ -430,10 +472,8 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 
 							// Create a callstack.
 							TArray<FName> StatsBasedCallstack;
-							for (const auto& StackName : StackState->Stack)
-							{
-								StatsBasedCallstack.Add( StackName );
-							}
+							GetCallstackFromState( StackState, StatsBasedCallstack );
+
 
 							// Add a new allocation.
 							SequenceAllocationArray.Add(
@@ -475,10 +515,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 
 							// Create a callstack.
 							TArray<FName> StatsBasedCallstack;
-							for (const auto& StackName : StackState->Stack)
-							{
-								StatsBasedCallstack.Add( StackName );
-							}
+							GetCallstackFromState( StackState, StatsBasedCallstack );
 
 							// Add a new realloc.
 							SequenceAllocationArray.Add(
@@ -506,10 +543,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 
 							// Create a callstack.
 							TArray<FName> StatsBasedCallstack;
-							for (const auto& StackName : StackState->Stack)
-							{
-								StatsBasedCallstack.Add( StackName );
-							}
+							GetCallstackFromState( StackState, StatsBasedCallstack );
 
 							// Add a new free.
 							SequenceAllocationArray.Add(
@@ -522,7 +556,6 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 								EMemoryOperation::Free,
 								StackState->bIsBrokenCallstack
 								) );
-							//LastSequenceTagForNamedMarker = SequenceTag;????
 						}
 						else
 						{
@@ -681,19 +714,19 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 #if	UE_BUILD_DEBUG
 				if( FoundAndFreed )
 				{
-					const FString FoundAndFreedCallstack = GetCallstack( FoundAndFreed->EncodedCallstack );
+					const FString FoundAndFreedCallstack = FStatsCallstack::GetHumanReadable( FoundAndFreed->EncodedCallstack );
 				}
 
 				if( FoundAndAllocated )
 				{
-					const FString FoundAndAllocatedCallstack = GetCallstack( FoundAndAllocated->EncodedCallstack );
+					const FString FoundAndAllocatedCallstack = FStatsCallstack::GetHumanReadable( FoundAndAllocated->EncodedCallstack );
 				}
 
 				NumDuplicatedMemoryOperations++;
 
 
-				const FString FoundCallstack = GetCallstack( Found->EncodedCallstack );
-				const FString AllocCallstack = GetCallstack( Alloc.EncodedCallstack );
+				const FString FoundCallstack = FStatsCallstack::GetHumanReadable( Found->EncodedCallstack );
+				const FString AllocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
 				UE_LOG( LogStats, Warning, TEXT( "DuplicateAlloc: %s Size: %i/%i Ptr: %i/%i Tag: %i/%i" ), *AllocCallstack, Found->Size, Alloc.Size, Found->Ptr, Alloc.Ptr, Found->SequenceTag, Alloc.SequenceTag );
 #endif // UE_BUILD_DEBUG
 
@@ -733,7 +766,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 				// Or Realloc after Malloc(0)
 
 #if	UE_BUILD_DEBUG
-				const FString ReallocCallstack = GetCallstack( Alloc.EncodedCallstack );
+				const FString ReallocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
 				UE_LOG( LogStats, Warning, TEXT( "ReallocWithoutAlloc: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
 #endif // UE_BUILD_DEBUG
 
@@ -759,7 +792,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 				NumFWAMemoryOperations++;
 
 #if	UE_BUILD_DEBUG
-				const FString FWACallstack = GetCallstack( Alloc.EncodedCallstack );
+				const FString FWACallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
 				UE_LOG( LogStats, Warning, TEXT( "FreeWithoutAllocCallstack: %s %i" ), *FWACallstack, Alloc.Ptr );
 #endif // UE_BUILD_DEBUG
 			}
@@ -791,7 +824,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 	for( const auto& It : DuplicatedAllocMap )
 	{
 		const FAllocationInfo& Alloc = It.Value;
-		const FString AllocCallstack = GetCallstack( Alloc.EncodedCallstack );
+		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
 		UE_LOG( LogStats, Log, TEXT( "%lli (%.2f MB) %s" ), Alloc.Size, Alloc.Size / 1024.0f / 1024.0f, *AllocCallstack );
 
 		DisplayedSoFar += Alloc.Size;
@@ -806,7 +839,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 	// Frame-240 Frame-120 Frame-060
 	TMap<FString, FSizeAndCount> FrameBegin_Exit;
 	CompareSnapshots_FString( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit );
-	DumpScopedAllocations( TEXT( "FrameBegin_Exit" ), FrameBegin_Exit );
+	DumpScopedAllocations( TEXT( "Begin_Exit" ), FrameBegin_Exit );
 
 	TMap<FString, FSizeAndCount> Frame060_120;
 	CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-120" ), Frame060_120 );
@@ -816,9 +849,103 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 	CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240 );
 	DumpScopedAllocations( TEXT( "Frame060_240" ), Frame060_240 );
 
+	// Generate scoped tree view.
+	{
+		TMap<FName, FSizeAndCount> FrameBegin_Exit_FName;
+		CompareSnapshots_FName( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit_FName );
+
+		FNodeAllocationInfo Root;
+		Root.EncodedCallstack = TEXT( "ThreadRoot" );
+		Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+		GenerateScopedTreeAllocations( FrameBegin_Exit_FName, Root );
+	}
+
+
+	{
+		TMap<FName, FSizeAndCount> Frame060_240_FName;
+		CompareSnapshots_FName( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240_FName );
+
+		FNodeAllocationInfo Root;
+		Root.EncodedCallstack = TEXT( "ThreadRoot" );
+		Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+		GenerateScopedTreeAllocations( Frame060_240_FName, Root );
+	}
+
+
 	// For snapshot?
 	//GenerateMemoryUsageReport( AllocationMap );
 }
+
+
+void FNodeAllocationInfo::SortBySize()
+{
+	ChildNodes.ValueSort( FNodeAllocationInfoGreater() );
+	for (auto& It : ChildNodes)
+	{
+		It.Value->SortBySize();
+	}
+}
+
+
+void FStatsMemoryDumpCommand::GenerateScopedTreeAllocations( const TMap<FName, FSizeAndCount>& ScopedAllocations, FNodeAllocationInfo& out_Root )
+{
+	// Experimental code, partially optimized.
+	// Decode all scoped allocations.
+	// Generate tree for allocations and combine them.
+	
+	for (const auto& It : ScopedAllocations)
+	{
+		const FName& EncodedCallstack = It.Key;
+		const FSizeAndCount& SizeAndCount = It.Value;
+
+		// Decode callstack.
+		TArray<FName> DecodedCallstack;
+		FStatsCallstack::DecodeToNames( EncodedCallstack, DecodedCallstack );
+		
+		const int32 AllocationLenght = DecodedCallstack.Num();
+		check( DecodedCallstack.Num() > 0 );
+
+		FNodeAllocationInfo* CurrentNode = &out_Root;
+		// Accumulate with thread root node.
+		CurrentNode->Accumulate( SizeAndCount );
+
+		// Iterate through the callstack and prepare all nodes if needed, and accumulate memory.
+		TArray<FName> CurrentCallstack;
+		const int32 NumEntries = DecodedCallstack.Num();
+		for (int32 Idx1 = 0; Idx1 < NumEntries; ++Idx1)
+		{
+			const FName NodeName = DecodedCallstack[Idx1];
+			CurrentCallstack.Add( NodeName );
+
+			FNodeAllocationInfo* Node = nullptr;
+			const bool bContainsNode = CurrentNode->ChildNodes.Contains( NodeName );
+			if (!bContainsNode)
+			{
+				Node = new FNodeAllocationInfo;
+				Node->Depth = Idx1;
+				Node->DecodedCallstack = CurrentCallstack;
+				Node->EncodedCallstack = *FStatsCallstack::Encode( CurrentCallstack );
+				Node->HumanReadableCallstack = FStatsCallstack::GetHumanReadable( CurrentCallstack );
+
+				CurrentNode->ChildNodes.Add( NodeName, Node );
+			}
+			else
+			{
+				Node = CurrentNode->ChildNodes.FindChecked( NodeName );
+			}
+
+			// Accumulate memory usage and num allocations for all nodes in the callstack.
+			Node->Accumulate( SizeAndCount );
+			
+			// Move to the next node.
+			Node->Parent = CurrentNode;
+			CurrentNode = Node;
+		}
+	}
+
+	out_Root.SortBySize();
+}
+
 
 void FStatsMemoryDumpCommand::GenerateMemoryUsageReport( const TMap<uint64, FAllocationInfo>& AllocationMap )
 {
@@ -866,7 +993,7 @@ void FStatsMemoryDumpCommand::ProcessAndDumpScopedAllocations( const TMap<uint64
 		const FSizeAndCount& SizeAndCount = It.Value;
 		const FName& EncodedCallstack = It.Key;
 
-		const FString AllocCallstack = GetCallstack( EncodedCallstack );
+		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( EncodedCallstack );
 
 		UE_LOG( LogStats, Log, TEXT( "%2i, %llu (%.2f MB), %llu, %s" ),
 				CurrentIndex,
@@ -936,7 +1063,7 @@ void FStatsMemoryDumpCommand::ProcessAndDumpUObjectAllocations( const TMap<uint6
 		if( UObjectClass == NAME_None )
 		{
 			TArray<FString> DecodedCallstack;
-			DecodeCallstack( Alloc.EncodedCallstack, DecodedCallstack );
+			FStatsCallstack::DecodeToStrings( Alloc.EncodedCallstack, DecodedCallstack );
 
 			for( int32 Index = DecodedCallstack.Num() - 1; Index >= 0; --Index )
 			{
@@ -1016,9 +1143,15 @@ void FStatsMemoryDumpCommand::ProcessAndDumpUObjectAllocations( const TMap<uint6
 
 void FStatsMemoryDumpCommand::DumpScopedAllocations( const TCHAR* Name, const TMap<FString, FSizeAndCount>& ScopedAllocations )
 {
+	if (ScopedAllocations.Num() == 0)
+	{
+		UE_LOG( LogStats, Warning, TEXT( "No scoped allocations: %s" ), Name );
+		return;
+	}
+
 	// This code is not optimized. 
 	FScopeLogTime SLT( TEXT( "ProcessingScopedAllocations" ), nullptr, FScopeLogTime::ScopeLog_Seconds );
-	UE_LOG( LogStats, Warning, TEXT( "Processing scoped allocations" ) );
+	UE_LOG( LogStats, Warning, TEXT( "Dumping scoped allocations: %s" ), Name );
 
 	const FString ReportName = FString::Printf( TEXT( "%s-Memory-Scoped-%s" ), *Stream.Header.PlatformName, Name );
 	FDiagnosticTableViewer MemoryReport( *FDiagnosticTableViewer::GetUniqueTemporaryFilePath( *ReportName ), true );
@@ -1108,12 +1241,12 @@ void FStatsMemoryDumpCommand::PrepareSnapshot( const FName SnapshotName, const T
 	TMap<FString, FSizeAndCount> SnapshotDecodedScopedAllocations;
 	for (auto& It : SnapshotScopedAllocations)
 	{
-		const FString DecodedCallstack = GetCallstack( It.Key );
-		SnapshotDecodedScopedAllocations.Add( DecodedCallstack, It.Value );
+		const FString HumanReadableCallstack = FStatsCallstack::GetHumanReadable( It.Key );
+		SnapshotDecodedScopedAllocations.Add( HumanReadableCallstack, It.Value );
 	}
 	SnapshotsWithDecodedScopedAllocations.Add( SnapshotName, SnapshotDecodedScopedAllocations );
 
-	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Num: %i/%i Total: %.2f MB / %llu" ), *SnapshotName.GetPlainNameString(), AllocationMap.Num(), SnapshotScopedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f, NumAllocations );
+	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Alloc: %i Scoped: %i Total: %.2f MB" ), *SnapshotName.GetPlainNameString(), AllocationMap.Num(), SnapshotScopedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f );
 }
 
 void FStatsMemoryDumpCommand::CompareSnapshots_FName( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FSizeAndCount>& out_Result )
