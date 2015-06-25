@@ -714,7 +714,7 @@ RETRY_SETUPANDVALIDATE:
 		}
 		else
 		{	
-			UE_LOG(LogTargetPlatformManager, Warning, TEXT("install manifest file for Platform %s not found.  Platform not set up."), *AutoSDKPath);			
+			UE_LOG(LogTargetPlatformManager, Log, TEXT("Install manifest file for Platform %s not found.  Platform not set up."), *AutoSDKPath);			
 			return false;			
 		}		
 
