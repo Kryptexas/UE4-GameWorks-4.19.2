@@ -932,9 +932,9 @@ public:
 	 *
 	 * @param	RequiredBones	List of bones to be blend
 	 */
-	void BlendPhysicsBones( TArray<FBoneIndexType>& RequiredBones )
+	void BlendPhysicsBones( TArray<FBoneIndexType>& Bones )
 	{
-		PerformBlendPhysicsBones(RequiredBones, AnimEvaluationContext.LocalAtoms);
+		PerformBlendPhysicsBones(Bones, AnimEvaluationContext.LocalAtoms);
 	}
 
 
