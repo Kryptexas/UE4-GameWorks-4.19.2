@@ -324,6 +324,17 @@ public:
 	/** Enables the angular drive towards a target orientation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
 	uint32 bAngularOrientationDrive:1;
+
+private:
+	/** Enables the swing drive. Only relevant when in twist and swing mode */
+	UPROPERTY()
+	uint32 bEnableSwingDrive: 1;
+
+	/** Enables the swing drive. Only relevant when in twist and swing mode */
+	UPROPERTY()
+	uint32 bEnableTwistDrive : 1;
+
+public:
 	
 	/** Enables the angular drive towards a target velocity. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
