@@ -444,11 +444,12 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar, int32 NavMeshVersion )
 
 			// Serialize compressed tile cache layer only if navmesh requires it
 			{
+				FNavMeshTileData TileCacheLayer;
 				uint8* CompressedData = nullptr;
 				int32 CompressedDataSize = 0;
 				if (bSupportsRuntimeGeneration)
 				{
-					FNavMeshTileData TileCacheLayer = GetTileCacheLayer(Tile->header->x, Tile->header->y, Tile->header->layer);
+					TileCacheLayer = GetTileCacheLayer(Tile->header->x, Tile->header->y, Tile->header->layer);
 					CompressedData = TileCacheLayer.GetDataSafe();
 					CompressedDataSize = TileCacheLayer.DataSize;
 				}

@@ -479,7 +479,6 @@ private:
 	friend ARecastNavMesh;
 
 	/** Parameters defining navmesh tiles */
-	struct dtNavMeshParams TiledMeshParams;
 	FRecastBuildConfig Config;
 	
 	int32 NumActiveTiles;
