@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2597241
 Availability:Public
 Title:Menu
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:メニュー
 
-## 概要
 
 
 [EXCERPT:Intro]
@@ -98,7 +97,7 @@ Description:メニュー
 
 ### ウィンドウ 
 
- **ブループリントエディタ**の [**Windows**] メニューには _ブループリントエディタ_ 固有のタブを表示する特殊なサブセクションがあります。 [_ブループリントエディタ_] が **Defaults** 時または **Components** モード中は全てのタブは表示されません。
+ **ブループリントエディタ** の **Windows** メニューには _ブループリントエディタ_ 固有のタブを表示する特殊なサブセクションがあります。 _ブループリントエディタ_ が **Defaults** 時または **Components** モード中は全てのタブは表示されません。
 
 
 | コマンド | 説明 |
