@@ -22,8 +22,6 @@ Description:This document covers how to migrate assets into other projects withi
 ![](MigrateBanner.png)
 [/REGION]
 
-## Overview
-
 [INCLUDE:Shared/Glossary/M/#Glossary_Migrate_Tool]
 
 ## Usage
@@ -38,7 +36,7 @@ To use the Migrate Tool:
 
 	![](MigrateContextMenu.png)![](MigrateContextMenu2.png)
 
-1. The **Asset Report** dialog appears, showing all the assets and dependencies that will be migrated. Confirm and click **Ok**.
+1. The Asset Report dialog appears, showing all the assets and dependencies that will be migrated. Confirm and click **Ok**.
 
 	![](AssetReport.png)
 
@@ -55,4 +53,4 @@ If you attempt to migrate into anything other than a game content folder, you ma
 
 ![](assetMigrationWarning.png)
 
-In this case, simply confirm the location and either click **Yes** or **No**.
+In this case, confirm the location and either click **Yes** or **No**.
