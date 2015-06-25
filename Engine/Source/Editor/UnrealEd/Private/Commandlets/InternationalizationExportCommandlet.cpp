@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Culture.h"
@@ -136,6 +136,14 @@ UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(con
 
 bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath, const FString& DestinationPath, const FString& Filename )
 {
+	// Get native culture.
+	FString NativeCultureName;
+	if( !GetStringFromConfig( *SectionName, TEXT("NativeCulture"), NativeCultureName, ConfigPath ) )
+	{
+		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No native culture specified.") );
+		return false;
+	}
+
 	// Get manifest name.
 	FString ManifestName;
 	if( !GetStringFromConfig( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
@@ -182,6 +190,25 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
 	}
 
+	TArray< TSharedPtr<FInternationalizationArchive> > NativeArchives;
+	{
+		const FString NativeCulturePath = DestinationPath / *(NativeCultureName);
+		TArray<FString> NativeArchiveFileNames;
+		IFileManager::Get().FindFiles(NativeArchiveFileNames, *(NativeCulturePath / TEXT("*.archive")), true, false);
+
+		for (const FString& NativeArchiveFileName : NativeArchiveFileNames)
+		{
+			// Read each archive file from the culture-named directory in the source path.
+			FString ArchiveFilePath = NativeCulturePath / NativeArchiveFileName;
+			ArchiveFilePath = FPaths::ConvertRelativePathToFull(ArchiveFilePath);
+			TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive);
+			TSharedPtr< FJsonObject > ArchiveJsonObject = ReadJSONTextFile( ArchiveFilePath );
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
+
+			NativeArchives.Add(InternationalizationArchive);
+		}
+	}
 
 	// Process the desired cultures
 	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
@@ -199,7 +226,6 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
-
 
 			{
 				FPortableObjectFormatDOM PortableObj;
@@ -224,7 +250,8 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 
 						for( auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
 						{
-							TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
+							{
+								const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
 							if( ArchiveEntry.IsValid() )
 							{
 								const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
@@ -244,6 +271,45 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 								PortableObj.AddEntry( PoEntry );
 							}
 						}
+
+							if (CultureName != NativeCultureName)
+							{
+								TSharedPtr<FArchiveEntry> NativeArchiveEntry;
+								for (const auto& NativeArchive : NativeArchives)
+								{
+									const TSharedPtr<FArchiveEntry> PotentialNativeArchiveEntry = NativeArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
+									if (PotentialNativeArchiveEntry.IsValid())
+									{
+										NativeArchiveEntry = PotentialNativeArchiveEntry;
+										break;
+									}
+								}
+
+								if (NativeArchiveEntry.IsValid())
+								{
+									if (!NativeArchiveEntry->Source.IsExactMatch(NativeArchiveEntry->Translation))
+									{
+										const TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, NativeArchiveEntry->Translation, NativeArchiveEntry->KeyMetadataObj );
+
+										const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
+										const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
+
+										TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
+										//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
+										PoEntry->MsgId = ConditionedArchiveSource;
+										//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
+										PoEntry->MsgCtxt = Namespace;
+										PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
+
+										FString PORefString = ConvertSrcLocationToPORef( ContextIter->SourceLocation );
+										PoEntry->AddReference( PORefString ); // Source location.
+										PoEntry->AddExtractedComment( ContextIter->Key ); // "Notes from Programmer" in the form of the Key.
+										PoEntry->AddExtractedComment( PORefString ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
+										PortableObj.AddEntry( PoEntry );
+									}
+								}
+					}
+				}
 					}
 				}
 
