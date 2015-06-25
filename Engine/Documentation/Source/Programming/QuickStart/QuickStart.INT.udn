@@ -55,18 +55,18 @@ Version: 4.8
 
 ## Goals
 
-The primary goal of this tutorial is to introduce programmers to Unreal Engine 4's development environment. By the end of this quick start guide, developers should be comfortable setting up and developing **C++ Projects** in Unreal Engine 4 (UE4).
+The primary goal of this tutorial is to introduce programmers to Unreal Engine 4's development environment. By the end of this quick start guide, developers should be comfortable setting up and developing C++ Projects in Unreal Engine 4 (UE4).
 
 ## Objectives
 
 Upon completion, developers will have the skill to:
 
-* **Create a New Unreal Engine Project**
-* **Add a New C++ Class**
-* **Compile a Project** 
-* **Add an Instance of a New Class to a Level**
+* Create a New Unreal Engine Project
+* Add a New C++ Class
+* Compile a Project 
+* Add an Instance of a New Class to a Level
 
-_When we're finished, we'll be able to see an **Actor** we programmed in C++ moving around on screen._
+_When we're finished, we'll be able to see an Actor we programmed in C++ moving around on screen._
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
