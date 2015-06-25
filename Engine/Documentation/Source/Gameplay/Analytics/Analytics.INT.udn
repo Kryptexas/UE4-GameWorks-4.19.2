@@ -3,46 +3,39 @@ Title:In-Game Analytics
 Crumbs: %ROOT%, Gameplay
 Description:Using in-game analytics to track player engagement and find balance issues.
 
-[TOC (start:2 end:2)]
 
-## Overview
 In order to get data on how your game is performing, you must use an analytics provider to capture and process the data. For those without a homegrown solution, there are plenty of 
 options available, from free services to paid ones. Unreal Engine provides an abstract interface for communicating with one or more analytics providers. Your game uses the interface, 
 and analytics providers offer a backing implementation. In some cases, Epic has built the backing provider already. Before version 4.5, Epic provided an implementation to multicast analytics
 events, relaying them to multiple providers. For providers, there is support of providers that support [Swrve](http://www.swrve.com), a paid service. Unreal Engine 4.5 and later provides
-support for [Apsalar](http://www.apsalar.com), a free service on iOS, and a file based system primarily used for debugging. More provider plugins will become 
-available over time, and it is also feasible to add your own provider if needed. 
+support for Apsalar and a file based system primarily used for debugging. Support for Flurry was also added recently in version 4.8.
 
-## Instrumenting Your Game
-The first step in capturing player retention data is to register an analytics provider for your game. This is done via your project's `DefaultEngine.ini` file. You must register a 
-default provider. Optionally, you can register different providers and account details for different build types of your game (development, testing, and production). The sections below 
-are an example of configuring the Apsalar plugin:
+More provider plugins will become available over time, and it is also feasible to add your own provider if needed. 
 
-	[Analytics]
-	ProviderModuleName=IOSApsalar
-	ApiKey=YourAnalyticsKey1
-	ApiSecret=YourAnalyticsSecret1
-	SendInterval=60
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Implementing Game Analytics
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/Analytics/Instrumenting "%Gameplay/Analytics/Instrumenting:description%")
+		* [](Gameplay/Analytics/Blueprints "%Gameplay/Analytics/Blueprints:description%")
+	[/PARAM]
+[/OBJECT]
 
-	[AnalyticsDevelopment]
-	ApiKey=YourAnalyticsKey2
-	ApiSecret=YourAnalyticsSecret2
-	SendInterval=60
-
-	[AnalyticsTest]
-	ApiKey=YourAnalyticsKey3
-	ApiSecret=YourAnalyticsSecret4
-	SendInterval=60
-
-The `[Analytics]` section is the default one used and is where you should set the name of the default provider module. In the case above, it is set to the IOSApsalar plugin that is part 
-of the 4.5 release. The `ApiKey` and `ApiSecret` fields come from the Apsalar website. Once you create an account, they will give you a key and secret to use.
-
-Once you have it configured for your project, you are ready to start recording analytics events. To get just the basic player retention data, you need to create a session when the 
-game starts up and end it when it is no longer in the foreground. This can be done using the lines of code shown below, or the [Blueprint analytics plugin](Gameplay/Analytics/Blueprints)
-provided in versions 4.5 and later:
-
-	FAnalytics::Get().GetDefaultConfiguredProvider()->StartSession();
-	FAnalytics::Get().GetDefaultConfiguredProvider()->EndSession();
-
-With those calls as part of your game, you will automatically start gathering player retention data. After getting basic player retention data, you can start adding more events to 
-tell you even more about player behavior in your game. 
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Providers
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/Analytics/Apsalar "%Gameplay/Analytics/Apsalar:description%")
+		* [](Gameplay/Analytics/FileLogging "%Gameplay/Analytics/FileLogging:description%")
+		* [](Gameplay/Analytics/Flurry "%Gameplay/Analytics/Flurry:description%")
+		* [](Gameplay/Analytics/Multicast "%Gameplay/Analytics/Multicast:description%")
+	[/PARAM]
+[/OBJECT]
