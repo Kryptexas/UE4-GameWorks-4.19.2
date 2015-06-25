@@ -196,8 +196,23 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 
 	// Update vsync cvar
 	{
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")); 
-		CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
+		FString ConfigSection = TEXT("SystemSettings");
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+			ConfigSection = TEXT("SystemSettingsEditor");
+		}
+#endif
+		int32 VSyncValue = 0;
+		if (GConfig->GetInt(*ConfigSection, TEXT("r.Vsync"), VSyncValue, GEngineIni))
+		{
+			// VSync was already set by system settings. We are capable of setting it here.
+		}
+		else
+		{
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
+			CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
+		}
 	}
 
 	// in init those are loaded earlier, after that we apply consolevariables.ini
