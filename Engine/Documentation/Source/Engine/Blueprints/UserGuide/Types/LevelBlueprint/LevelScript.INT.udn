@@ -45,8 +45,6 @@ Related: Engine/Blueprints
 
 [TOC (start:2 end:3)]
 
-## Overview
-
 [EXCERPT:Intro]
 A **Level Blueprint** is a specialized type of **Blueprint** that acts as a level-wide global event graph. 
 Each level in your project has its own _Level Blueprint_ created by default that can be edited within the Unreal Editor, however new _Level Blueprints_ 
