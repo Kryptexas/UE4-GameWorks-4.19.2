@@ -932,7 +932,11 @@ public:
 	 *
 	 * @param	RequiredBones	List of bones to be blend
 	 */
-	void BlendPhysicsBones( TArray<FBoneIndexType>& RequiredBones );
+	void BlendPhysicsBones( TArray<FBoneIndexType>& RequiredBones )
+	{
+		PerformBlendPhysicsBones(RequiredBones, AnimEvaluationContext.LocalAtoms);
+	}
+
 
 	/** Take the results of the physics and blend them with the animation state (based on the PhysicsWeight parameter), and update the SpaceBases array. */
 	void BlendInPhysics();	
@@ -1217,6 +1221,9 @@ private:
 	// Reference to our current parallel animation evaluation task (if there is one)
 	FGraphEventRef				ParallelAnimationEvaluationTask;
 
+	// Reference to our current blend physics task (if there is one)
+	FGraphEventRef				ParallelBlendPhysicsCompletionTask;
+
 public:
 	// Parallel evaluation wrappers
 	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation); }
@@ -1246,6 +1253,18 @@ private:
 
 	// Handles registering/unregistering the pre cloth tick as it is needed
 	void UpdatePreClothTickRegisteredState();
+	friend class FParallelBlendPhysicsTask;
+	
+	//wrapper for parallel blend physics
+	void ParallelBlendPhysics() { PerformBlendPhysicsBones(RequiredBones, AnimEvaluationContext.LocalAtoms); }
+
+	void PerformBlendPhysicsBones(const TArray<FBoneIndexType>& InRequiredBones, TArray<FTransform>& InLocalAtoms);
+
+	friend class FParallelBlendPhysicsCompletionTask;
+	void CompleteParallelBlendPhysics();
+
+	friend class FTickClothingTask;
+	void PerformTickClothing(float DeltaTime);
 
 	// these are deprecated variables from removing SingleAnimSkeletalComponent
 	// remove if this version goes away : VER_UE4_REMOVE_SINGLENODEINSTANCE

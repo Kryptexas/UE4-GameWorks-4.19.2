@@ -3145,11 +3145,9 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 		{
 			BlendInPhysics();
 		}
-		// If we aren't blending we will have already flipped this
-		FlipEditableSpaceBases();
 	}
 
-	//TODO: move this into pre physics tick
+
 
 #if WITH_APEX_CLOTHING
 	// if skeletal mesh has clothing assets, call TickClothing
@@ -3662,7 +3660,42 @@ bool USkeletalMeshComponent::GetClothSimulatedPosition(int32 AssetIndex, int32 V
 
 #endif// #if WITH_APEX_CLOTHING
 
-void USkeletalMeshComponent::TickClothing(float DeltaTime)
+class FTickClothingTask
+{
+	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
+	float DeltaTime;
+
+public:
+	FTickClothingTask(TWeakObjectPtr<USkeletalMeshComponent> InSkeletalMeshComponent, float InDeltaTime)
+		: SkeletalMeshComponent(InSkeletalMeshComponent)
+		, DeltaTime(InDeltaTime)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FTickClothingTask, STATGROUP_TaskGraphTasks);
+	}
+	static ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::GameThread;
+	}
+	static ESubsequentsMode::Type GetSubsequentsMode()
+	{
+		return ESubsequentsMode::TrackSubsequents;
+	}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		//SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
+		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
+		{
+			Comp->PerformTickClothing(DeltaTime);
+		}
+	}
+};
+
+void USkeletalMeshComponent::PerformTickClothing(float DeltaTime)
 {
 #if WITH_APEX_CLOTHING
 	// animated but bone transforms were not updated because it was not rendered
@@ -3679,6 +3712,19 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 	DrawDebugClothCollisions();
 #endif 
 #endif// #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::TickClothing(float DeltaTime)
+{
+	if(IsValidRef(ParallelBlendPhysicsCompletionTask))
+	{
+		FGraphEventArray Prerequistes;
+		Prerequistes.Add(ParallelBlendPhysicsCompletionTask);
+		TGraphTask<FTickClothingTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this, DeltaTime);
+	}else
+	{
+		PerformTickClothing(DeltaTime);
+	}
 }
 
 void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent)
