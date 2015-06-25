@@ -2904,7 +2904,7 @@ void FSceneRenderer::RenderProjections(
 	
 	if (bForwardShading)
 	{
-		SceneContext.BeginRenderingSceneColor(RHICmdList);
+		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	}
 	else
 	{
