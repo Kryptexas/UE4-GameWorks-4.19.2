@@ -765,7 +765,9 @@ UMaterialInterface* UTextRenderComponent::GetMaterial(int32 ElementIndex) const
 
 bool UTextRenderComponent::ShouldRecreateProxyOnUpdateTransform() const
 {
-	return true;
+	// We used to rebuild the text every time we moved it, but
+	// now we rely on transforms, so it is no longer necessary.
+	return false;
 }
 
 FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
