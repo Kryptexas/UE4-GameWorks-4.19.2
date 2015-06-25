@@ -783,3 +783,77 @@ RENDERCORE_API bool IsSimpleDynamicLightingEnabled()
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SimpleDynamicLighting"));
 	return (CVar->GetValueOnAnyThread() != 0);
 }
+
+class FUnitCubeVertexBuffer : public FVertexBuffer
+{
+public:
+	/**
+	* Initialize the RHI for this rendering resource
+	*/
+	void InitRHI() override
+	{
+		const int32 NumVerts = 8;
+		TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
+		Verts.SetNumUninitialized(NumVerts);
+
+		for (uint32 Z = 0; Z < 2; Z++)
+		{
+			for (uint32 Y = 0; Y < 2; Y++)
+			{
+				for (uint32 X = 0; X < 2; X++)
+				{
+					const FVector4 Vertex = FVector4(
+					  (X ? -1 : 1),
+					  (Y ? -1 : 1),
+					  (Z ? -1 : 1),
+					  1.0f
+					);
+
+					Verts[GetCubeVertexIndex(X, Y, Z)] = Vertex;
+				}
+			}
+		}
+
+		uint32 Size = Verts.GetResourceDataSize();
+
+		// Create vertex buffer. Fill buffer with initial data upon creation
+		FRHIResourceCreateInfo CreateInfo(&Verts);
+		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
+	}
+};
+
+class FUnitCubeIndexBuffer : public FIndexBuffer
+{
+public:
+	/**
+	* Initialize the RHI for this rendering resource
+	*/
+	void InitRHI() override
+	{
+		TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
+		
+		int32 NumIndices = ARRAY_COUNT(GCubeIndices);
+		Indices.AddUninitialized(NumIndices);
+		FMemory::Memcpy(Indices.GetData(), GCubeIndices, NumIndices * sizeof(uint16));
+
+		const uint32 Size = Indices.GetResourceDataSize();
+		const uint32 Stride = sizeof(uint16);
+
+		// Create index buffer. Fill buffer with initial data upon creation
+		FRHIResourceCreateInfo CreateInfo(&Indices);
+		IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, BUF_Static, CreateInfo);
+	}
+};
+
+static TGlobalResource<FUnitCubeVertexBuffer> GUnitCubeVertexBuffer;
+static TGlobalResource<FUnitCubeIndexBuffer> GUnitCubeIndexBuffer;
+
+RENDERCORE_API FVertexBufferRHIRef& GetUnitCubeVertexBuffer()
+{
+	return GUnitCubeVertexBuffer.VertexBufferRHI;
+}
+
+RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer()
+{
+	return GUnitCubeIndexBuffer.IndexBufferRHI;
+}

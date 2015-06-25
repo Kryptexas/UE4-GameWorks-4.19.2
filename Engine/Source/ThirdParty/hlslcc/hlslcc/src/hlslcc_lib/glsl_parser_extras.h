@@ -462,6 +462,7 @@ extern const char * _mesa_glsl_shader_target_name(enum _mesa_glsl_parser_targets
 extern int preprocess(void *ctx, const char **shader, char **info_log);
 
 #define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
+#define DEPTHBUFFER_FETCH_ES2	"DepthbufferFetchES2"
 #define FRAMEBUFFER_FETCH_MRT	"FramebufferFetchMRT"
 
 #endif /* GLSL_PARSER_EXTRAS_H */

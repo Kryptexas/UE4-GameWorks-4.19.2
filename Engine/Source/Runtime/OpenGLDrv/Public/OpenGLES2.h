@@ -329,7 +329,7 @@ struct FOpenGLES2 : public FOpenGLBase
 
 	static FORCEINLINE void FramebufferTexture2D(GLenum Target, GLenum Attachment, GLenum TexTarget, GLuint Texture, GLint Level)
 	{
-		check(Attachment == GL_COLOR_ATTACHMENT0 || Attachment == GL_DEPTH_ATTACHMENT);
+		check(Attachment == GL_COLOR_ATTACHMENT0 || Attachment == GL_DEPTH_ATTACHMENT || Attachment == GL_STENCIL_ATTACHMENT);
 		glFramebufferTexture2D(Target, Attachment, TexTarget, Texture, Level);
 		VERIFY_GL(FramebufferTexture_2D)
 	}

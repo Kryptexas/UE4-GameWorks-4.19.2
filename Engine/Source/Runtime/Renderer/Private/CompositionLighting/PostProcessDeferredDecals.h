@@ -7,20 +7,7 @@
 #pragma once
 
 #include "RenderingCompositionGraph.h"
-
-
-// Actual values are used in the shader so do not change
-enum EDecalRenderStage
-{
-	// for DBuffer decals (get proper baked lighting)
-	DRS_BeforeBasePass = 0,
-	// for volumetrics to update the depth buffer
-	DRS_AfterBasePass = 1,
-	// for normal decals not modifying the depth buffer
-	DRS_BeforeLighting = 2,
-
-	// later we could add "after lighting" and multiply
-};
+#include "DecalRenderingShared.h"
 
 // ePId_Input0: SceneColor (not needed for DBuffer decals)
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 

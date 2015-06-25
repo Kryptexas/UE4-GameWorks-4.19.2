@@ -738,7 +738,8 @@ float CalcSceneDepth( float2 ScreenUV )
 		#elif WEBGL
 			return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
 		#else 
-			return 65000.0f; 
+			float SceneW = Texture2DSampleLevel(SceneColorTexture, SceneColorTextureSampler, ScreenUV, 0).a;		
+			return DepthbufferFetchES2(SceneW, View.InvDeviceZToWorldZTransform[2], View.InvDeviceZToWorldZTransform[3]);
 		#endif 
 	#elif METAL_PROFILE
 			return FramebufferFetchES2().w;

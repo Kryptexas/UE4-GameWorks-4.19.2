@@ -840,6 +840,9 @@ protected:
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
+	/** Renders decals. */
+	void RenderDecals(FRHICommandListImmediate& RHICmdList);
+
 	/** Renders the base pass for translucency. */
 	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
 

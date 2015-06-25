@@ -529,11 +529,11 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bo
 	}
 	else if(Flags & TexCreate_DepthStencilTargetable)
 	{
-		Attachment = (Format == PF_DepthStencil && FOpenGL::SupportsCombinedDepthStencilAttachment()) ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
+		Attachment = (Format == PF_DepthStencil && FOpenGL::SupportsPackedDepthStencil()) ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
 	}
 	else if(Flags & TexCreate_ResolveTargetable)
 	{
-		Attachment = (Format == PF_DepthStencil && FOpenGL::SupportsCombinedDepthStencilAttachment())
+		Attachment = (Format == PF_DepthStencil && FOpenGL::SupportsPackedDepthStencil())
 						? GL_DEPTH_STENCIL_ATTACHMENT
 						: ((Format == PF_ShadowDepth || Format == PF_D24)
 							? GL_DEPTH_ATTACHMENT
@@ -1514,11 +1514,11 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 	}
 	else if(Flags & TexCreate_DepthStencilTargetable)
 	{
-		Attachment = (FOpenGL::SupportsCombinedDepthStencilAttachment() && Format == PF_DepthStencil) ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
+		Attachment = (FOpenGL::SupportsPackedDepthStencil() && Format == PF_DepthStencil) ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
 	}
 	else if(Flags & TexCreate_ResolveTargetable)
 	{
-		Attachment = (Format == PF_DepthStencil && FOpenGL::SupportsCombinedDepthStencilAttachment())
+		Attachment = (Format == PF_DepthStencil && FOpenGL::SupportsPackedDepthStencil())
 			? GL_DEPTH_STENCIL_ATTACHMENT
 			: ((Format == PF_ShadowDepth || Format == PF_D24)
 			? GL_DEPTH_ATTACHMENT

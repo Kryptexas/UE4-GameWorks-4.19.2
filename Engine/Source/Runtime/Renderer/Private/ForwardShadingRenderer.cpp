@@ -138,6 +138,11 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
 	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
+	if (ViewFamily.EngineShowFlags.Decals)
+	{
+		RenderDecals(RHICmdList);
+	}
+
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
 	{

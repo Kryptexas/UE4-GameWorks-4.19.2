@@ -188,7 +188,15 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		{
 		case GL_TEXTURE_2D:
 		case GL_TEXTURE_2D_MULTISAMPLE:
-			FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+			if (!FOpenGL::SupportsCombinedDepthStencilAttachment() && DepthStencilTarget->Attachment == GL_DEPTH_STENCIL_ATTACHMENT)
+			{
+				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+			}
+			else
+			{
+				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+			}
 			break;
 		case GL_TEXTURE_3D:
 		case GL_TEXTURE_2D_ARRAY:
@@ -197,7 +205,15 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			FOpenGL::FramebufferTexture(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, DepthStencilTarget->Resource, 0);
 			break;
 		default:
-			FOpenGL::FramebufferRenderbuffer(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, GL_RENDERBUFFER, DepthStencilTarget->Resource);
+			if (!FOpenGL::SupportsCombinedDepthStencilAttachment() && DepthStencilTarget->Attachment == GL_DEPTH_STENCIL_ATTACHMENT)
+			{
+				FOpenGL::FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthStencilTarget->Resource);
+				FOpenGL::FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, DepthStencilTarget->Resource);
+			}
+			else
+			{
+				FOpenGL::FramebufferRenderbuffer(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, GL_RENDERBUFFER, DepthStencilTarget->Resource);
+			}
 			break;
 		}
 	}
@@ -508,7 +524,7 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 
 	check( !bDepthFormat || FOpenGL::SupportsDepthStencilReadSurface() );
 	check( !bFloatFormat || FOpenGL::SupportsFloatReadSurface() );
-	const GLenum Attachment = bDepthFormat ? (FOpenGL::SupportsCombinedDepthStencilAttachment() && bDepthStencilFormat ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT) : GL_COLOR_ATTACHMENT0;
+	const GLenum Attachment = bDepthFormat ? (FOpenGL::SupportsPackedDepthStencil() && bDepthStencilFormat ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT) : GL_COLOR_ATTACHMENT0;
 	const bool bIsColorBuffer = Texture->Attachment == GL_COLOR_ATTACHMENT0;
 
 	uint32 MipmapLevel = 0;

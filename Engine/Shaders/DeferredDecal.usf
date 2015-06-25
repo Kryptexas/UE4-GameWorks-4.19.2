@@ -285,6 +285,10 @@ void MainPS(
 		Color = MaterialParameters.WorldNormal * 0.5f + 0.5f;
 	#else
 		Color = GetMaterialEmissive(MaterialParameters);
+	
+		#if (ES2_PROFILE || ES3_1_PROFILE) // only for mobile
+			Color+= BaseColor;
+		#endif
 	#endif
 
 	float Opacity = GetMaterialOpacity(MaterialParameters);

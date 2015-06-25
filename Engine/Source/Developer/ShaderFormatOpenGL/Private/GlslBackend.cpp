@@ -442,6 +442,30 @@ static bool UsesFramebufferFetchES2(exec_list* Instructions)
 	return Visitor.bFound;
 }
 
+static bool UsesDepthbufferFetchES2(exec_list* Instructions)
+{
+	struct SFindepthbufferFetchES2Intrinsic : public ir_hierarchical_visitor
+	{
+		bool bFound;
+		SFindepthbufferFetchES2Intrinsic() : bFound(false) {}
+
+		virtual ir_visitor_status visit_enter(ir_call* IR) override
+		{
+			if (IR->use_builtin && !strcmp(IR->callee_name(), DEPTHBUFFER_FETCH_ES2))
+			{
+				bFound = true;
+				return visit_stop;
+			}
+
+			return visit_continue;
+		}
+	};
+
+	SFindepthbufferFetchES2Intrinsic Visitor;
+	Visitor.run(Instructions);
+	return Visitor.bFound;
+}
+
 /**
  * IR visitor used to generate GLSL. Based on ir_print_visitor.
  */
@@ -2774,7 +2798,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 #endif		
 	}
 
-	void print_extensions(_mesa_glsl_parse_state* state, bool bUsesFramebufferFetchES2, bool bUsesES31Extensions)
+	void print_extensions(_mesa_glsl_parse_state* state, bool bUsesFramebufferFetchES2, bool bUsesDepthbufferFetchES2, bool bUsesES31Extensions)
 	{
 		if (bUsesES2TextureLODExtension)
 		{
@@ -2799,6 +2823,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_framebuffer_fetch : enable\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
+		}
+
+		if (bUsesDepthbufferFetchES2)
+		{
+			ralloc_asprintf_append(buffer, "#extension GL_ARM_shader_framebuffer_fetch_depth_stencil : enable\n");
 		}
 
 		if (bUsesES31Extensions)
@@ -2908,6 +2937,16 @@ public:
 			ralloc_asprintf_append(buffer, "#endif\n\n");
 		}
 
+		bool bUsesDepthbufferFetchES2 = UsesDepthbufferFetchES2(ir);
+		if (bUsesDepthbufferFetchES2)
+		{
+			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
+			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { float w = 1.0f/(gl_LastFragDepthARM*C1-C2); gl_FragDepth = w; return clamp(w, 0.0f, 65000.0f); }\n");
+			ralloc_asprintf_append(buffer, "#else\n");
+			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
+			ralloc_asprintf_append(buffer, "#endif\n\n");
+		}
+
 		foreach_iter(exec_list_iterator, iter, *ir)
 		{
 			ir_instruction *inst = (ir_instruction *)iter.get();
@@ -2944,7 +2983,7 @@ public:
 
 		char* Extensions = ralloc_asprintf(mem_ctx, "");
 		buffer = &Extensions;
-		print_extensions(state, bUsesFramebufferFetchES2, state->language_version == 310);
+		print_extensions(state, bUsesFramebufferFetchES2, bUsesDepthbufferFetchES2, state->language_version == 310);
 		if (state->bSeparateShaderObjects && !state->bGenerateES)
 		{
 			switch (state->target)
@@ -5154,6 +5193,7 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 	if (bIsES2)
 	{
 		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+		make_intrinsic_genType(ir, State, DEPTHBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 3, 1, 1);
 	}
 
 	if (State->language_version >= 310)

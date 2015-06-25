@@ -54,6 +54,7 @@ DEFINE_STAT(STAT_StaticDrawListMeshDrawCalls);
 
 DEFINE_STAT(STAT_SceneDecals);
 DEFINE_STAT(STAT_Decals);
+DEFINE_STAT(STAT_DecalsDrawTime);
 
 // Memory stats for tracking virtual allocations used by the renderer to represent the scene
 // The purpose of these memory stats is to capture where most of the renderer allocated memory is going, 
