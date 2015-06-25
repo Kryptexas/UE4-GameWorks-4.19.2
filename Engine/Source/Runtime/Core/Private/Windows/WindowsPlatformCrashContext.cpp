@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
-#include "MallocCrash.h"
+#include "PlatformMallocCrash.h"
 #include "ExceptionHandling.h"
 #include "WindowsPlatformCrashContext.h"
 #include "EngineVersion.h"

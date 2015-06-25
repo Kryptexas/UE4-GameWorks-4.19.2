@@ -13,7 +13,7 @@
 #include "MallocDebug.h"
 #include "MallocProfiler.h"
 #include "MallocThreadSafeProxy.h"
-#include "MallocCrash.h"
+#include "PlatformMallocCrash.h"
 
 
 /** Helper function called on first allocation to create and initialize GMalloc */
@@ -21,7 +21,7 @@ void GCreateMalloc()
 {
 	GMalloc = FPlatformMemory::BaseAllocator();
 	// Setup malloc crash as soon as possible.
-	FMallocCrash::Get( GMalloc );
+	FPlatformMallocCrash::Get( GMalloc );
 
 // so now check to see if we are using a Mem Profiler which wraps the GMalloc
 #if USE_MALLOC_PROFILER

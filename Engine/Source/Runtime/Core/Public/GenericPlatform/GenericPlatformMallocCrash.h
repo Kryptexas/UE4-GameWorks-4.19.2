@@ -33,7 +33,7 @@ struct FMallocCrashPool;
  * Simple pooled memory allocator that uses preallocated memory.
  * Instance of this class replaces GMalloc after a crash, so we can use dynamic memory allocation even if the app crashes due to OOM.
  */
-struct FMallocCrash final : public FMalloc
+struct FGenericPlatformMallocCrash final : public FMalloc
 {
 	friend struct FPoolDesc;
 	friend struct FMallocCrashPool;
@@ -53,11 +53,11 @@ private:
 	};
 
 public:
-	FMallocCrash( FMalloc* MainMalloc );
-	virtual ~FMallocCrash();
+	FGenericPlatformMallocCrash( FMalloc* MainMalloc );
+	virtual ~FGenericPlatformMallocCrash();
 
 	/** Creates a new instance. */
-	static CORE_API FMallocCrash& Get( FMalloc* MainMalloc = nullptr );
+	static CORE_API FGenericPlatformMallocCrash& Get( FMalloc* MainMalloc = nullptr );
 
 	/**
 	 * Sets as GMalloc.

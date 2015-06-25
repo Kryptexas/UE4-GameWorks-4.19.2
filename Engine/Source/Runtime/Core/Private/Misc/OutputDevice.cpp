@@ -3,7 +3,6 @@
 #include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
-#include "MallocCrash.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);

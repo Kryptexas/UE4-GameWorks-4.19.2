@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "AndroidPlatformCrashContext.h"
-#include "MallocCrash.h"
+#include "PlatformMallocCrash.h"
 #include "AndroidJavaMessageBox.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
@@ -380,7 +380,7 @@ void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 {
 	// Switch to malloc crash.
-	//FMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
+	//FGenericPlatformMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
 
 	fprintf(stderr, "Signal %d caught.\n", Signal);
 
