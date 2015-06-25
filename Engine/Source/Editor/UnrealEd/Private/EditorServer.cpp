@@ -179,7 +179,6 @@ static int32 CleanBSPMaterials(UWorld* InWorld, bool bPreviewOnly, bool bLogBrus
 					}
 					if ( !bPreviewOnly )
 					{
-						Actor->Brush->Polys->Element.ModifyItem(PolyIndex);
 						ReferencedMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 					}
 				}
@@ -697,8 +696,9 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 					LoadAndSelectAssets( SelectedAssets, UMaterial::StaticClass() );
 				}
 
+				InWorld->GetModel()->Modify();
+				NewBrush->Modify();
 				bspBrushCSG( NewBrush, InWorld->GetModel(), DWord1, Brush_Add, CSG_None, true, true, true );
-				NewBrush->MarkPackageDirty();
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -780,8 +780,9 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			NewBrush = FBSPOps::csgAddOperation(WorldBrush,0,Brush_Subtract); // Layer
 			if( NewBrush )
 			{
+				NewBrush->Modify();
+				InWorld->GetModel()->Modify();
 				bspBrushCSG( NewBrush, InWorld->GetModel(), 0, Brush_Subtract, CSG_None, true, true, true );
-				NewBrush->MarkPackageDirty();
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -1575,8 +1576,27 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
 {
+	TUniquePtr<FBspPointsGrid> BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
+	TUniquePtr<FBspPointsGrid> BspVectors = MakeUnique<FBspPointsGrid>(1/16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
+	FBspPointsGrid::GBspPoints = BspPoints.Get();
+	FBspPointsGrid::GBspVectors = BspVectors.Get();
+
 	// Empty the model out.
+	const int32 NumPoints = Model->Points.Num();
+	const int32 NumNodes = Model->Nodes.Num();
+	const int32 NumVerts = Model->Verts.Num();
+	const int32 NumVectors = Model->Vectors.Num();
+	const int32 NumSurfs = Model->Surfs.Num();
+
+	Model->Modify();
 	Model->EmptyModel(1, 1);
+
+	// Reserve arrays an eighth bigger than the previous allocation
+	Model->Points.Empty(NumPoints + NumPoints / 8);
+	Model->Nodes.Empty(NumNodes + NumNodes / 8);
+	Model->Verts.Empty(NumVerts + NumVerts / 8);
+	Model->Vectors.Empty(NumVectors + NumVectors / 8);
+	Model->Surfs.Empty(NumSurfs + NumSurfs / 8);
 		
 	// Limit the brushes used to the level the model is for
 	ULevel* Level = Model->GetTypedOuter<ULevel>();
@@ -1602,6 +1622,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 			{
 				Brush->PolyFlags = (Brush->PolyFlags & ~PF_Semisolid) | PF_NotSolid;
 			}
+			Brush->Modify();
 			bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
 		}
 	}
@@ -1614,6 +1635,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 			(!bSelectedBrushesOnly || Brush->IsSelected()) &&
 			(Brush->PolyFlags & PF_Semisolid) && !(Brush->PolyFlags & PF_Portal) && (Brush->BrushType == Brush_Add))
 		{
+			Brush->Modify();
 			bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
 		}
 	}
@@ -1625,9 +1647,17 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 		if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
 			(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
 		{
+			BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
+			BspVectors = MakeUnique<FBspPointsGrid>(1 / 16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
+			FBspPointsGrid::GBspPoints = BspPoints.Get();
+			FBspPointsGrid::GBspVectors = BspVectors.Get();
+
 			FBSPOps::csgPrepMovingBrush(DynamicBrush);
 		}
 	}
+
+	FBspPointsGrid::GBspPoints = nullptr;
+	FBspPointsGrid::GBspVectors = nullptr;
 }
 
 
@@ -1718,7 +1748,8 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 	ABrush* DefaultBrush = InWorld->GetDefaultBrush();
 	if (DefaultBrush != NULL)
 	{
-		DefaultBrush->Brush->Modify();
+		DefaultBrush->Modify();
+		InWorld->GetModel()->Modify();
 		FinishAllSnaps();
 		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
 	}
@@ -3758,7 +3789,6 @@ bool UEditorEngine::Map_Scale( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			ABrush* Brush = Cast< ABrush >( Actor );
 			if( Brush )
 			{
-				Brush->Brush->Polys->Element.ModifyAllItems();
 				for( int32 poly = 0 ; poly < Brush->Brush->Polys->Element.Num() ; poly++ )
 				{
 					FPoly* Poly = &(Brush->Brush->Polys->Element[poly]);
@@ -3851,6 +3881,7 @@ namespace {
 		{
 			FBspSurf* Surf = *It;
 			UModel* Model = It.GetModel();
+			Model->Modify();
 			const FVector TextureU( Model->Vectors[Surf->vTextureU] );
 			const FVector TextureV( Model->Vectors[Surf->vTextureV] );
 			Surf->vTextureU = Model->Vectors.Add(TextureU);
@@ -3865,7 +3896,8 @@ namespace {
 
 		for( FConstLevelIterator Iterator = InWorld->GetLevelIterator(); Iterator; ++Iterator )
 		{
-			UModel* Model = (*Iterator)->Model;;
+			UModel* Model = (*Iterator)->Model;
+			Model->Modify();
 			GEditor->polyTexScale( Model, UU, UV, VU, VV, !!Word2 );
 		}
 	}
@@ -4157,6 +4189,7 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			{
 				FBspSurf* Surf = *It;
 				UModel* Model = It.GetModel();
+				Model->Modify();
 				const FVector Base( Model->Points[Surf->pBase] );
 				Surf->pBase = Model->Points.Add(Base);
 			}
@@ -4166,6 +4199,7 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 				for( FConstLevelIterator Iterator = InWorld->GetLevelIterator(); Iterator; ++Iterator )
 				{
 					UModel* Model = (*Iterator)->Model;
+					Model->Modify();
 					polyTexPan( Model, 0, 0, 1 );
 				}
 			}
@@ -4175,6 +4209,7 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			for( FConstLevelIterator Iterator = InWorld->GetLevelIterator(); Iterator; ++Iterator )
 			{
 				UModel* Model = (*Iterator)->Model;
+				Model->Modify();
 				polyTexPan( Model, PanU, PanV, 0 );
 			}
 		}

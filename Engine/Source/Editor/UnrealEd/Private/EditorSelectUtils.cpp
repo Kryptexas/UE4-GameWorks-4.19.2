@@ -88,15 +88,6 @@ void UUnrealEdEngine::NoteActorMovement()
 					GroupActors.Add(ActorLockedRootGroup);
 				}
 			}
-
-			ABrush* Brush = Cast< ABrush >( Actor );
-			if ( Brush )
-			{
-				if( Brush->Brush )
-				{
-					Brush->Brush->Polys->Element.ModifyAllItems();
-				}
-			}
 		}
 
 		// Modify unique group actors

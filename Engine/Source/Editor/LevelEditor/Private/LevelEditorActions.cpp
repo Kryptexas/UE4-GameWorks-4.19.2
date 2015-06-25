@@ -2792,7 +2792,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 		// We keep no reference to this, so it will be GC'd at some point.
 		UModel* TempModel = NewObject<UModel>();
 		TempModel->Initialize(nullptr, 1);
-		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
+		TempModel->Polys->Element = BuilderModel->Polys->Element;
 
 		// Now transform each poly into local space for the selected static mesh.
 		for (int32 i = 0; i < TempModel->Polys->Element.Num(); i++)

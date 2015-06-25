@@ -785,46 +785,43 @@ void ULevel::CreateModelComponents()
 
 		if(Node.NumVertices > 0)
 		{
-			for(int32 BackFace = 0;BackFace < ((Surf.PolyFlags & PF_TwoSided) ? 2 : 1);BackFace++)
+			// Calculate the bounding box of this node.
+			FBox NodeBounds(0);
+			for(int32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
 			{
-				// Calculate the bounding box of this node.
-				FBox NodeBounds(0);
-				for(int32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
-				{
-					NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];
-				}
+				NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];
+			}
 
-				// Create a sort key for this node using the grid cell containing the center of the node's bounding box.
+			// Create a sort key for this node using the grid cell containing the center of the node's bounding box.
 #define MODEL_GRID_SIZE_XY	2048.0f
 #define MODEL_GRID_SIZE_Z	4096.0f
-				FModelComponentKey Key;
-				check( OwningWorld );
-				if (OwningWorld->GetWorldSettings()->bMinimizeBSPSections)
-				{
-					Key.X				= 0;
-					Key.Y				= 0;
-					Key.Z				= 0;
-				}
-				else
-				{
-					Key.X				= FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
-					Key.Y				= FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
-					Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
-				}
-
-				Key.MaskedPolyFlags = 0;
-
-				// Find an existing node list for the grid cell.
-				TArray<uint16>* ComponentNodes = ModelComponentMap.Find(Key);
-				if(!ComponentNodes)
-				{
-					// This is the first node we found in this grid cell, create a new node list for the grid cell.
-					ComponentNodes = &ModelComponentMap.Add(Key,TArray<uint16>());
-				}
-
-				// Add the node to the grid cell's node list.
-				ComponentNodes->AddUnique(NodeIndex);
+			FModelComponentKey Key;
+			check( OwningWorld );
+			if (OwningWorld->GetWorldSettings()->bMinimizeBSPSections)
+			{
+				Key.X				= 0;
+				Key.Y				= 0;
+				Key.Z				= 0;
 			}
+			else
+			{
+				Key.X				= FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
+				Key.Y				= FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
+				Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
+			}
+
+			Key.MaskedPolyFlags = 0;
+
+			// Find an existing node list for the grid cell.
+			TArray<uint16>* ComponentNodes = ModelComponentMap.Find(Key);
+			if(!ComponentNodes)
+			{
+				// This is the first node we found in this grid cell, create a new node list for the grid cell.
+				ComponentNodes = &ModelComponentMap.Add(Key,TArray<uint16>());
+			}
+
+			// Add the node to the grid cell's node list.
+			ComponentNodes->AddUnique(NodeIndex);
 		}
 		else
 		{
@@ -836,7 +833,7 @@ void ULevel::CreateModelComponents()
 	// Create a UModelComponent for each grid cell's node list.
 	for(TMap< FModelComponentKey, TArray<uint16> >::TConstIterator It(ModelComponentMap);It;++It)
 	{
-		const FModelComponentKey&	Key		= It.Key();
+		const FModelComponentKey&		Key		= It.Key();
 		const TArray<uint16>&			Nodes	= It.Value();	
 
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)

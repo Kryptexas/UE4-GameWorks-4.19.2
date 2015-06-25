@@ -357,11 +357,11 @@ class UModel : public UObject
 	UPolys*						Polys;
 #endif // WITH_EDITOR
 
-	TTransArray<FBspNode>		Nodes;
-	TTransArray<FVert>			Verts;
-	TTransArray<FVector>		Vectors;
-	TTransArray<FVector>		Points;
-	TTransArray<FBspSurf>		Surfs;
+	TArray<FBspNode>		Nodes;
+	TArray<FVert>			Verts;
+	TArray<FVector>			Vectors;
+	TArray<FVector>			Points;
+	TArray<FBspSurf>		Surfs;
 
 #if WITH_EDITOR
 	TArray<int32>				LeafHulls;

@@ -2137,15 +2137,6 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		InActor->Modify();
 	}
 	
-	ABrush* Brush = Cast< ABrush >( InActor );
-	if( Brush )
-	{
-		if( Brush->GetBrushComponent() && Brush->GetBrushComponent()->Brush )
-		{
-			Brush->GetBrushComponent()->Brush->Polys->Element.ModifyAllItems();
-		}
-	}
-
 	FNavigationLockContext LockNavigationUpdates(InActor->GetWorld(), ENavigationLockReason::ContinuousEditorMove);
 
 	bool bTranslationOnly = true;

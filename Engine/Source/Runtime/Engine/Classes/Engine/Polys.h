@@ -583,19 +583,19 @@ class UPolys : public UObject
 {
 	GENERATED_UCLASS_BODY()
 	// Elements.
-	TTransArray<FPoly> Element;
+	TArray<FPoly> Element;
 
 	// Constructors.
 	UPolys(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 	:  UObject(ObjectInitializer)
-	, Element( this )
+	, Element( )
 	{}
 
 #if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UPolys(FVTableHelper& Helper)
 		: Super(Helper)
-		, Element(this)
+		, Element()
 	{}
 #endif // WITH_HOT_RELOAD_CTORS
 

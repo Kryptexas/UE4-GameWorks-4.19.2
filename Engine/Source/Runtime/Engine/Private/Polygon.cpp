@@ -57,8 +57,18 @@ FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings)
  * Constructor, initializing all member variables.
  */
 FPoly::FPoly()
+	: Base(ForceInitToZero)
+	, Normal(ForceInitToZero)
+	, TextureU(ForceInitToZero)
+	, TextureV(ForceInitToZero)
+	, PolyFlags(PF_DefaultFlags)
+	, Actor(nullptr)
+	, Material(nullptr)
+	, iLink(INDEX_NONE)
+	, iBrushPoly(INDEX_NONE)
+	, SmoothingMask(0)
+	, LightMapScale(32.0f)
 {
-	Init();
 }
 
 
@@ -975,8 +985,6 @@ bool UPolys::Modify(bool bAlwaysMarkDirty)
 {
 	Super::Modify(bAlwaysMarkDirty);
 
-	Element.ModifyAllItems();
-
 	return !!GUndo; // we will make a broad assumption that if we have an undo buffer, we were saved in it
 }
 
@@ -984,14 +992,12 @@ void UPolys::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 {
 	UPolys* This = CastChecked<UPolys>(InThis);
 	// Let GC know that we're referencing some Actor and Property objects
-	for( TTransArray<FPoly>::TConstIterator ElementIt(This->Element); ElementIt; ++ElementIt )
+	for( TArray<FPoly>::TConstIterator ElementIt(This->Element); ElementIt; ++ElementIt )
 	{
 		FPoly PolyElement = *ElementIt;
 		Collector.AddReferencedObject( PolyElement.Actor, This );
 		Collector.AddReferencedObject( PolyElement.Material, This );
 	}
-	UObject* ElementOwner = This->Element.GetOwner();
-	Collector.AddReferencedObject( ElementOwner, This );
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -1004,23 +1010,29 @@ void UPolys::Serialize( FArchive& Ar )
 	}
 	else
 	{
-		Element.CountBytes( Ar );
-		int32 DbNum=Element.Num(), DbMax=DbNum;
-		Ar << DbNum << DbMax;
-
-		UObject* ElementOwner = Element.GetOwner();
-		Ar << ElementOwner;
-
-		Element.SetOwner(ElementOwner);
-
-		if( Ar.IsLoading() )
+		if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_BSP_UNDO_FIX )
 		{
-			Element.Empty( DbNum );
-			Element.AddZeroed( DbNum );
+			Element.CountBytes(Ar);
+			int32 DbNum = Element.Num(), DbMax = DbNum;
+			Ar << DbNum << DbMax;
+
+		
+			UObject* ElementOwner = NULL;
+			Ar << ElementOwner;
+
+			if (Ar.IsLoading())
+			{
+				Element.Empty(DbNum);
+				Element.AddZeroed(DbNum);
+			}
+			for (int32 i = 0; i < Element.Num(); i++)
+			{
+				Ar << Element[i];
+			}
 		}
-		for( int32 i=0; i<Element.Num(); i++ )
-		{		
-			Ar << Element[i];
+		else
+		{
+			Ar << Element;
 		}
 	}
 }

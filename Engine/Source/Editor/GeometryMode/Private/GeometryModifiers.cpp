@@ -1851,6 +1851,8 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	// Intersect the giant brush with the source brush's BSP.  This will give us the finished, clipping brush
 	// contained inside of the giant brush.
 
+	ClippedBrush->Modify();
+	InBrush->Brush->Modify();
 	GEditor->bspBrushCSG( ClippedBrush, InBrush->Brush, 0, Brush_MAX, CSG_Intersect, false, false, true );
 	FBSPOps::bspUnlinkPolys( ClippedBrush->Brush );
 
@@ -2689,7 +2691,7 @@ bool UGeomModifier_Split::OnApply()
 			}
 
 			// Replace the old polygon list with the new one
-			Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+			Brush->Brush->Polys->Element = NewPolygons;
 		}
 	}
 	else if( NumPolygonsSelected == 0 && NumEdgesSelected > 0 && NumVerticesSelected == 0 )
@@ -2746,7 +2748,7 @@ bool UGeomModifier_Split::OnApply()
 		}
 
 		// Replace the old polygon list with the new one
-		Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+		Brush->Brush->Polys->Element = NewPolygons;
 	}
 	else if( NumPolygonsSelected == 1 && NumEdgesSelected == 0 && NumVerticesSelected == 2 )
 	{
@@ -2831,7 +2833,7 @@ bool UGeomModifier_Split::OnApply()
 		}
 
 		// Replace the old polygon list with the new one
-		Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+		Brush->Brush->Polys->Element = NewPolygons;
 	}
 	else if( NumPolygonsSelected == 0 && NumEdgesSelected == 0 && NumVerticesSelected == 2 )
 	{
@@ -2888,7 +2890,7 @@ bool UGeomModifier_Split::OnApply()
 		}
 
 		// Replace the old polygon list with the new one
-		Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+		Brush->Brush->Polys->Element = NewPolygons;
 	}
 
 	mode->FinalizeSourceData();

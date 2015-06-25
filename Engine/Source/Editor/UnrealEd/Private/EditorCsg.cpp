@@ -137,7 +137,8 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 	FinishAllSnaps();
 
 	// Empty the model out.
-	InWorld->GetModel()->EmptyModel( 1, 1 );
+	InWorld->GetModel()->Modify();
+	InWorld->GetModel()->EmptyModel(1, 1);
 
 	// Count brushes.
 	int32 BrushTotal=0, BrushCount=0;
@@ -193,6 +194,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 				Args.Add( TEXT("BrushTotal"), BrushTotal );
 				GWarn->StatusUpdate( BrushCount, BrushTotal, FText::Format( NSLOCTEXT("UnrealEd", "ApplyingStructuralBrushF", "Applying structural brush {BrushCount} of {BrushTotal}"), Args ) );
 
+				Brush->Modify();
 				bspBrushCSG( Brush, InWorld->GetModel(), Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false );
 			}
 		}
@@ -236,6 +238,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 			Args.Add( TEXT("BrushTotal"), BrushTotal );
 			GWarn->StatusUpdate( BrushCount, BrushTotal, FText::Format( NSLOCTEXT("UnrealEd", "ApplyingDetailBrushF", "Applying detail brush {BrushCount} of {BrushTotal}"), Args ) );
 
+			Brush->Modify();
 			bspBrushCSG( Brush, InWorld->GetModel(), Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false );
 		}
 	}
@@ -388,8 +391,6 @@ void UEditorEngine::polyUpdateMaster
 		FPoly& MasterEdPoly = Brush->Polys->Element[iEdPoly];
 		if( iEdPoly==Surf.iBrushPoly || MasterEdPoly.iLink==Surf.iBrushPoly )
 		{
-			Brush->Polys->Element.ModifyItem( iEdPoly );
-
 			MasterEdPoly.Material  = Surf.Material;
 			MasterEdPoly.PolyFlags = Surf.PolyFlags & ~(PF_NoEdit);
 
@@ -1286,7 +1287,7 @@ void UEditorEngine::MapBrushGet(UWorld* InWorld)
 			ABrush* WorldBrush = BrushActor->GetWorld()->GetDefaultBrush();
 			check( WorldBrush );
 			WorldBrush->Modify();
-			WorldBrush->Brush->Polys->Element.AssignButKeepOwner(BrushActor->Brush->Polys->Element);
+			WorldBrush->Brush->Polys->Element = BrushActor->Brush->Polys->Element;
 			WorldBrush->CopyPosRotScaleFrom( BrushActor );
 
 			WorldBrush->ReregisterAllComponents();
@@ -1317,7 +1318,7 @@ void UEditorEngine::mapBrushPut()
 			check( WorldBrush );
 
 			BrushActor->Modify();
-			BrushActor->Brush->Polys->Element.AssignButKeepOwner(WorldBrush->Brush->Polys->Element);
+			BrushActor->Brush->Polys->Element = WorldBrush->Brush->Polys->Element;
 			BrushActor->CopyPosRotScaleFrom( WorldBrush );
 			BrushActor->SetNeedRebuild(BrushActor->GetLevel());
 
