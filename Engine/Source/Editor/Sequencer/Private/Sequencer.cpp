@@ -590,6 +590,17 @@ void FSequencer::SetGlobalTime( float NewTime )
 	ScrubPosition = NewTime;
 
 	RootMovieSceneInstance->Update( ScrubPosition, LastTime, *this );
+
+	for(FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
+	{
+		if (LevelVC && LevelVC->IsPerspective())
+		{
+			if (!LevelVC->IsRealtime())
+			{
+				LevelVC->Invalidate();
+			}
+		}
+	}
 }
 
 TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime) const
