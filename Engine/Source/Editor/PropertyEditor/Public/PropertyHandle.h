@@ -101,6 +101,16 @@ public:
 	 */
 	virtual UClass* GetClassMetaData(const FName& Key) const = 0;
 
+	/** Set metadata value for 'Key' to 'Value' on this property instance (as opposed to the class) */
+	virtual void SetInstanceMetaData(const FName& Key, const FString& Value) = 0;
+
+	/**
+	 * Get metadata value for 'Key' for this property instance (as opposed to the class)
+	 * 
+	 * @return Pointer to metadata value; nullptr if Key not found
+	 */
+	virtual const FString* GetInstanceMetaData(const FName& Key) const = 0;
+
 	/**
 	 * Gets the property tool tip text.
 	 */

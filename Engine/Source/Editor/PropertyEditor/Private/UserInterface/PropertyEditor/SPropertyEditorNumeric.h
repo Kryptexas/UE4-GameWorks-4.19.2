@@ -29,12 +29,19 @@ public:
 		const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
 		const UProperty* Property = InPropertyEditor->GetProperty();
 
-		const FString& MetaUIMinString = Property->GetMetaData(TEXT("UIMin"));
-		const FString& MetaUIMaxString = Property->GetMetaData(TEXT("UIMax"));
-		const FString& SliderExponentString = Property->GetMetaData(TEXT("SliderExponent"));
-		const FString& DeltaString = Property->GetMetaData(TEXT("Delta"));
-		const FString& ClampMinString = Property->GetMetaData(TEXT("ClampMin"));
-		const FString& ClampMaxString = Property->GetMetaData(TEXT("ClampMax"));
+		// Instance metadata overrides per-class metadata.
+		auto GetMetaDataFromKey = [&PropertyNode, &Property](const FName& Key) -> const FString&
+		{
+			const FString* InstanceValue = PropertyNode->GetInstanceMetaData(Key);
+			return (InstanceValue != nullptr) ? *InstanceValue : Property->GetMetaData(Key);
+		};
+
+		const FString& MetaUIMinString = GetMetaDataFromKey("UIMin");
+		const FString& MetaUIMaxString = GetMetaDataFromKey("UIMax");
+		const FString& SliderExponentString = GetMetaDataFromKey("SliderExponent");
+		const FString& DeltaString = GetMetaDataFromKey("Delta");
+		const FString& ClampMinString = GetMetaDataFromKey("ClampMin");
+		const FString& ClampMaxString = GetMetaDataFromKey("ClampMax");
 
 		// If no UIMin/Max was specified then use the clamp string
 		const FString& UIMinString = MetaUIMinString.Len() ? MetaUIMinString : ClampMinString;

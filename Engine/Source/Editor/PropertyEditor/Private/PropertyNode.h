@@ -662,6 +662,16 @@ public:
 
 	FPropertyChangedEvent& FixPropertiesInEvent(FPropertyChangedEvent& Event);
 
+	/** Set metadata value for 'Key' to 'Value' on this property instance (as opposed to the class) */
+	void SetInstanceMetaData(const FName& Key, const FString& Value);
+
+	/**
+	 * Get metadata value for 'Key' for this property instance (as opposed to the class)
+	 * 
+	 * @return Pointer to metadata value; nullptr if Key not found
+	 */
+	const FString* GetInstanceMetaData(const FName& Key) const;
+
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -781,6 +791,12 @@ protected:
 
 	/** Optional reference to a tree node that is displaying this property */
 	TWeakPtr< class IDetailTreeNode > TreeNode;
+
+	/**
+	 * Stores metadata for this instasnce of the property (in contrast
+	 * to regular metadata, which is stored per-class)
+	 */
+	TMap<FName, FString> InstanceMetaData;
 };
 
 class FComplexPropertyNode : public FPropertyNode

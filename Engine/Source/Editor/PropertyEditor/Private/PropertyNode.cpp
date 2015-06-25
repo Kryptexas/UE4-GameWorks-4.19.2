@@ -2161,6 +2161,16 @@ FPropertyChangedEvent& FPropertyNode::FixPropertiesInEvent(FPropertyChangedEvent
 	return Event;
 }
 
+void FPropertyNode::SetInstanceMetaData(const FName& Key, const FString& Value)
+{
+	InstanceMetaData.Add(Key, Value);
+}
+
+const FString* FPropertyNode::GetInstanceMetaData(const FName& Key) const
+{
+	return InstanceMetaData.Find(Key);
+}
+
 /**
  * Does the string compares to ensure this Name is acceptable to the filter that is passed in
  * @return		Return True if this property should be displayed.  False if it should be culled

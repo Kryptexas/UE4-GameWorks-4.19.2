@@ -1678,7 +1678,7 @@ void FPropertyHandleBase::SetOnPropertyValueChanged( const FSimpleDelegate& InOn
 	return Implementation->SetOnPropertyValueChanged(InOnPropertyValueChanged);
 }
 
-TSharedPtr<FPropertyNode> FPropertyHandleBase::GetPropertyNode()
+TSharedPtr<FPropertyNode> FPropertyHandleBase::GetPropertyNode() const
 {
 	return Implementation->GetPropertyNode();
 }
@@ -1773,6 +1773,17 @@ UClass* FPropertyHandleBase::GetClassMetaData(const FName& Key) const
 {
 	UProperty* const MetaDataProperty = GetMetaDataProperty();
 	return (MetaDataProperty) ? MetaDataProperty->GetClassMetaData(Key) : nullptr;
+}
+
+
+void FPropertyHandleBase::SetInstanceMetaData(const FName& Key, const FString& Value)
+{
+	GetPropertyNode()->SetInstanceMetaData(Key, Value);
+}
+
+const FString* FPropertyHandleBase::GetInstanceMetaData(const FName& Key) const
+{
+	return GetPropertyNode()->GetInstanceMetaData(Key);
 }
 
 FText FPropertyHandleBase::GetToolTipText() const

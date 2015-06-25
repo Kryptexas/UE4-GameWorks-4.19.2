@@ -396,6 +396,8 @@ public:
 	virtual int32 GetINTMetaData(const FName& Key) const override;
 	virtual float GetFLOATMetaData(const FName& Key) const override;
 	virtual UClass* GetClassMetaData(const FName& Key) const override;
+	virtual void SetInstanceMetaData(const FName& Key, const FString& Value) override;
+	virtual const FString* GetInstanceMetaData(const FName& Key) const override;
 	virtual FText GetToolTipText() const override;
 	virtual void SetToolTipText(const FText& ToolTip) override;
 	virtual FPropertyAccess::Result SetPerObjectValues( const TArray<FString>& InPerObjectValues,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
@@ -410,7 +412,7 @@ public:
 	virtual bool GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip) const override;
 	virtual void SetIgnoreValidation(bool bInIgnore) override;
 
-	TSharedPtr<FPropertyNode> GetPropertyNode();
+	TSharedPtr<FPropertyNode> GetPropertyNode() const;
 protected:
 	TSharedPtr<FPropertyValueImpl> Implementation;
 };
