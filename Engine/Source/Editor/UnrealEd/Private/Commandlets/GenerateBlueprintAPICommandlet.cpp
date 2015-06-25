@@ -300,10 +300,6 @@ GenerateBlueprintAPIUtils::CommandletOptions::CommandletOptions(TArray<FString> 
 			FString PathSwitch;
 			Switch.Split(TEXT("="), &PathSwitch, &SaveDir);
 		}
-		else
-		{
-			UE_LOG(LogBlueprintAPIGenerate, Warning, TEXT("Unrecognized command switch '%s', use -help for a listing of all accepted params"), *Switch);
-		}
 	}
 
 	if (NewDumpFlags != 0)
