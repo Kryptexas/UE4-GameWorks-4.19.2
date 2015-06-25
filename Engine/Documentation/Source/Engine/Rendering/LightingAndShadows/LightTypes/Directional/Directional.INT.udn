@@ -48,10 +48,10 @@ Description:The basics of Directional Lights.
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 [EXCERPT:Intro]
-The **Directional Light** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. The **Directional Light** when placed can be set to one of three **Mobility** settings:
+The **Directional Light** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. The Directional Light when placed can be set to one of three **Mobility** settings:
 [/EXCERPT:Intro]
 
 [REGION:raw]
@@ -98,7 +98,7 @@ Below you will see a representation of sunlight being cast through an opening in
 [![](directional_001.png)(w:450)](directional_001.png) [![](directional_002.png)(w:450)](directional_002.png)
 [/REGION]
 
-The left image shows just the light, the right image has its **Shadow Frustum** enabled in order to see that the **Directional Light** is casting parallel light rays. 
+The left image shows just the light, the right image has its **Shadow Frustum** enabled in order to see that the Directional Light is casting parallel light rays. 
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -112,7 +112,7 @@ The left image shows just the light, the right image has its **Shadow Frustum** 
 
 ## Directional Light Properties
 
-The properties of a **Directional Light** are broken up into 5 categories: **Light**, **Light Shafts**, **Lightmass**, **Light Function** and **Cascaded Shadow Maps**. 
+The properties of a Directional Light are broken up into 5 categories: Light, Light Shafts, Lightmass, Light Function and Cascaded Shadow Maps:
 
 
 ### Light

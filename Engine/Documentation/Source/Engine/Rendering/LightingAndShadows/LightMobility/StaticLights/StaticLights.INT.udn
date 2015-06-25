@@ -48,7 +48,7 @@ Description:A completely static light that has no overhead during a running game
 
 [TOC(start:2)]
 
-## Overview
+
 
 [INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting01]
 
@@ -56,7 +56,7 @@ The primary use case for static lights is for low power devices on mobile platfo
 
 ## Light Source Radius
 
-As mentioned above, **Light Source Radius** for **Static Lights** have the additional effect of softening the shadows they cast, much in the same way area lights work in many 3D rendering packages. Below, the light on the _left_ has a small **Light Source Radius** and casts sharper shadows. The light on the _right_ has a larger **Light Source Radius** and so casts softer shadows.
+As mentioned above, **Light Source Radius** for Static Lights have the additional effect of softening the shadows they cast, much in the same way area lights work in many 3D rendering packages. Below, the light on the _left_ has a small Light Source Radius and casts sharper shadows. The light on the _right_ has a larger Light Source Radius and so casts softer shadows.
 
 ![](Engine\Rendering\LightingAndShadows\Basics\LI_lightRadiusShadows.png)
 

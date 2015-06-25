@@ -43,7 +43,7 @@ DescriptionLong:The types of lights available in Unreal Engine 4: Point, Spot, D
 [/OBJECT]
 [/VAR]
 
-## Overview
+
 
 Unreal Engine 4 has four light types: **Directional**, **Point**, **Spot**, and **Sky**. Directional lights are primarily used as your primary outdoor light or any light that needs to appear as if it is casting light from extreme or near infinite distances. Point lights are your classic "light bulb" like light, emitting light in all directions from a single point. Spot lights emit light from a single point, but have their light limited by a set of cones.  Sky lights capture the background of your scene and apply it as lighting to your level's meshes.
 
