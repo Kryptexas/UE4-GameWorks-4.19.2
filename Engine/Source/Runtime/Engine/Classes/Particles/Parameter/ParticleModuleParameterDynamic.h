@@ -144,7 +144,7 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	 *	@param	bIsMeshEmitter		true if the emitter is a mesh emitter...
 	 *
 	 */
-	virtual void UpdateParameterNames(UMaterialInterface* InMaterialInterface, bool bIsMeshEmitter);
+	virtual void UpdateParameterNames(UMaterialInterface* InMaterialInterface);
 
 	
 	/**

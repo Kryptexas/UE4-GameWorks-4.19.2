@@ -393,15 +393,12 @@ UMaterial* UParticleModuleParameterDynamic_RetrieveMaterial(UMaterialInterface* 
 /**
  *	Helper function to find the DynamicParameter expression in a material
  */
-UMaterialExpressionDynamicParameter* UParticleModuleParameterDynamic_GetDynamicParameterExpression(UMaterial* InMaterial, bool bIsMeshEmitter)
+UMaterialExpressionDynamicParameter* UParticleModuleParameterDynamic_GetDynamicParameterExpression(UMaterial* InMaterial)
 {
 	UMaterialExpressionDynamicParameter* DynParamExp = NULL;
 	for (int32 ExpIndex = 0; ExpIndex < InMaterial->Expressions.Num(); ExpIndex++)
 	{
-		if (bIsMeshEmitter == false)
-		{
-			DynParamExp = Cast<UMaterialExpressionDynamicParameter>(InMaterial->Expressions[ExpIndex]);
-		}
+		DynParamExp = Cast<UMaterialExpressionDynamicParameter>(InMaterial->Expressions[ExpIndex]);
 
 		if (DynParamExp != NULL)
 		{
@@ -413,7 +410,7 @@ UMaterialExpressionDynamicParameter* UParticleModuleParameterDynamic_GetDynamicP
 }
 
 
-void UParticleModuleParameterDynamic::UpdateParameterNames(UMaterialInterface* InMaterialInterface, bool bIsMeshEmitter)
+void UParticleModuleParameterDynamic::UpdateParameterNames(UMaterialInterface* InMaterialInterface)
 {
 	UMaterial* Material = UParticleModuleParameterDynamic_RetrieveMaterial(InMaterialInterface);
 	if (Material == NULL)
@@ -422,7 +419,7 @@ void UParticleModuleParameterDynamic::UpdateParameterNames(UMaterialInterface* I
 	}
 
 	// Check the expressions...
-	UMaterialExpressionDynamicParameter* DynParamExp = UParticleModuleParameterDynamic_GetDynamicParameterExpression(Material, bIsMeshEmitter);
+	UMaterialExpressionDynamicParameter* DynParamExp = UParticleModuleParameterDynamic_GetDynamicParameterExpression(Material);
 	if (DynParamExp == NULL)
 	{
 		return;
@@ -450,10 +447,20 @@ void UParticleModuleParameterDynamic::RefreshModule(UInterpCurveEdSetup* EdSetup
 			}
 		}
 
-		UMaterialInterface* MaterialInterface = LODLevel->RequiredModule ? LODLevel->RequiredModule->Material : NULL;
+		UMaterialInterface* MaterialInterface = LODLevel->RequiredModule ? LODLevel->RequiredModule->Material : nullptr;
+		if( bIsMeshEmitter )
+		{
+			UParticleModuleMeshMaterial* MeshMaterialModule = nullptr;
+			LODLevel->Modules.FindItemByClass( &MeshMaterialModule );
+			if( MeshMaterialModule && MeshMaterialModule->MeshMaterials.Num() > 0 )
+			{
+				MaterialInterface = MeshMaterialModule->MeshMaterials[0];
+			}
+		}
+
 		if (MaterialInterface)
 		{
-			UpdateParameterNames(MaterialInterface, bIsMeshEmitter);
+			UpdateParameterNames(MaterialInterface);
 			for (int32 ParamIndex = 0; ParamIndex < 4; ParamIndex++)
 			{
 				FString TempName = FString::Printf(TEXT("%s (DP%d)"), 
