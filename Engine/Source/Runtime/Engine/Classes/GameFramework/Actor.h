@@ -2043,6 +2043,7 @@ public:
 	 * Sets the ticking group for this actor.
 	 * @param NewTickGroup the new value to assign
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	void SetTickGroup(ETickingGroup NewTickGroup);
 
 	/** Called once this actor has been deleted */

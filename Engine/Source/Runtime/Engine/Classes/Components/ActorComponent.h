@@ -640,6 +640,7 @@ public:
 	void ReregisterComponent();
 
 	/** Changes the ticking group for this component */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	void SetTickGroup(ETickingGroup NewTickGroup);
 
 	/** Make this component tick after PrerequisiteActor */

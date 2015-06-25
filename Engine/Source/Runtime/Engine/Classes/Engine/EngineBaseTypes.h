@@ -38,7 +38,7 @@ enum ELevelTick
 };
 
 /** Determines which ticking group a tick function belongs to. */
-UENUM()
+UENUM(BlueprintType)
 enum ETickingGroup
 {
 	/** Any item that needs to be executed before physics simulation starts. */
@@ -141,7 +141,7 @@ public:
 	 * @see ETickingGroup 
 	 * @see FTickFunction::AddPrerequisite()
 	 */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
 	TEnumAsByte<enum ETickingGroup> TickGroup;
 
 protected:
