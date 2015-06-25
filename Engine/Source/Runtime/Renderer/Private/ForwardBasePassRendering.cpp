@@ -520,8 +520,8 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 			
 			int32 MeshBatchIndex = 0;
 			int32 MeshBatchNum = View.DynamicMeshElements.Num();
-			// In case scene has decals, subdivide mesh elements list to two groups, 
-			// first group that receives decals and second don't
+			// If the scene has decals we need to partition the draw list into two groups: 
+			// those that receive decals and those that don't, and render the latter with stencil writes enabled
 			if (Scene->Decals.Num() > 0)
 			{
 				MeshBatchNum = Algo::Partition(View.DynamicMeshElements.GetData(), MeshBatchNum, [](const FMeshBatchAndRelevance& El) { 
@@ -540,9 +540,9 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 				}
 			}
 
-			// Render second group with enabled stencil
 			if (MeshBatchNum < View.DynamicMeshElements.Num())
 			{
+				// Primitives without decals are rendered with stencil enabled
 				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 0x80);
 				MeshBatchNum = View.DynamicMeshElements.Num();
 

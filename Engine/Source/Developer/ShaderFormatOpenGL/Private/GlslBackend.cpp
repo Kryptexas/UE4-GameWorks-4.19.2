@@ -442,6 +442,7 @@ static bool UsesFramebufferFetchES2(exec_list* Instructions)
 	return Visitor.bFound;
 }
 
+// Returns true if the DepthbufferFetchES2() 'intrinsic' is used
 static bool UsesDepthbufferFetchES2(exec_list* Instructions)
 {
 	struct SFindepthbufferFetchES2Intrinsic : public ir_hierarchical_visitor

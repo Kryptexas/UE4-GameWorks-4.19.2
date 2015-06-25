@@ -295,5 +295,6 @@ RENDERCORE_API bool IsSimpleDynamicLightingEnabled();
 
 /** Unit cube vertex buffer (VertexDeclarationFVector4) */
 RENDERCORE_API FVertexBufferRHIRef& GetUnitCubeVertexBuffer();
+
 /** Unit cube index buffer */
 RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer();
