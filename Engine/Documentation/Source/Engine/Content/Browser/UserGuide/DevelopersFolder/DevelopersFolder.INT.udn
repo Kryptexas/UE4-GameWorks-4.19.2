@@ -17,8 +17,6 @@ Description:This document covers the use of the Developers Folder within the Con
 [/OBJECT]
 [/VAR]
 
-## Overview
-
 ![DevelopersFolder.png](DevelopersFolder.png)(w:220)
 
 Underneath the Assets area, within the Game folder, you will see a Developers folder. This contains all assets that are currently in the works by fellow developers. This makes for a useful collaborative environment when trying out new techniques and assets. However, there are some guidelines you should keep in mind:
