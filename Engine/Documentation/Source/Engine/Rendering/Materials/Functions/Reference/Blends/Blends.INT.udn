@@ -5,7 +5,7 @@ Description:Functions designed to blend one color with another, similar to blend
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 A Blend is a type of function that performs mathematical calculations in the color information of a texture so that one texture can blend into another in a particular manner.
 
