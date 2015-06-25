@@ -714,28 +714,25 @@ static void BuildMetalShaderOutput(
 		bool bSucceeded = false;
 
 #if PLATFORM_MAC
-		// metal commandlines
-		FString Standard = (bIsMobile ? TEXT("-std=ios-metal1.0") : TEXT("-std=osx-metal1.1 -Wno-null-character -ffmast-math"));
-		
-		FString Params = FString::Printf(TEXT("%s %s -o %s"), *Standard, *InputFilename, *ObjFilename);
-		FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metal"), *Params, &ReturnCode, &Results, &Errors );
+		FString XcodePath = FPlatformMisc::GetXcodePath();
+		if (XcodePath.Len() > 0 && (bIsMobile || FPlatformMisc::MacOSXVersionCompare(10, 11, 0) >= 0))
+		{
+			FString MetalToolsPath = FString::Printf(TEXT("%s/Toolchains/XcodeDefault.xctoolchain/usr/bin"), *XcodePath);
+			FString MetalPath = MetalToolsPath + TEXT("/metal");
+			if (IFileManager::Get().FileSize(*MetalPath) <= 0)
+			{
+				MetalToolsPath = FString::Printf(TEXT("%s/Platforms/iPhoneOS.platform/usr/bin"), *XcodePath);
+				MetalPath = MetalToolsPath + TEXT("/metal");
+			}
 
-		// handle compile error
-		if (ReturnCode != 0 || IFileManager::Get().FileSize(*ObjFilename) <= 0)
-		{
-			FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-			Error->ErrorFile = InputFilename;
-			Error->ErrorLineString = TEXT("0");
-			Error->StrippedErrorMessage = Results + Errors;
-			bSucceeded = false;
-		}
-		else
-		{
-			Params = FString::Printf(TEXT("r %s %s"), *ArFilename, *ObjFilename);
-			FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metal-ar"), *Params, &ReturnCode, &Results, &Errors );
+			// metal commandlines
+			FString Standard = (bIsMobile ? TEXT("-std=ios-metal1.0") : TEXT("-std=osx-metal1.1 -Wno-null-character -ffmast-math"));
+
+			FString Params = FString::Printf(TEXT("%s %s -o %s"), *Standard, *InputFilename, *ObjFilename);
+			FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 
 			// handle compile error
-			if (ReturnCode != 0 || IFileManager::Get().FileSize(*ArFilename) <= 0)
+			if (ReturnCode != 0 || IFileManager::Get().FileSize(*ObjFilename) <= 0)
 			{
 				FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
 				Error->ErrorFile = InputFilename;
@@ -745,11 +742,12 @@ static void BuildMetalShaderOutput(
 			}
 			else
 			{
-				Params = FString::Printf(TEXT("-o %s %s"), *OutputFilename, *ArFilename);
-				FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/metallib"), *Params, &ReturnCode, &Results, &Errors );
-		
+				Params = FString::Printf(TEXT("r %s %s"), *ArFilename, *ObjFilename);
+				FString MetalArPath = MetalToolsPath + TEXT("/metal-ar");
+				FPlatformProcess::ExecProcess( *MetalArPath, *Params, &ReturnCode, &Results, &Errors );
+
 				// handle compile error
-				if (ReturnCode != 0 || IFileManager::Get().FileSize(*OutputFilename) <= 0)
+				if (ReturnCode != 0 || IFileManager::Get().FileSize(*ArFilename) <= 0)
 				{
 					FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
 					Error->ErrorFile = InputFilename;
@@ -759,25 +757,41 @@ static void BuildMetalShaderOutput(
 				}
 				else
 				{
-					bCompileAtRuntime = false;
-					
-					// Write out the header and compiled shader code
-					FMemoryWriter Ar(ShaderOutput.Code, true);
-					uint8 PrecompiledFlag = 1;
-					Ar << PrecompiledFlag;
-					Ar << Header;
+					Params = FString::Printf(TEXT("-o %s %s"), *OutputFilename, *ArFilename);
+					FString MetalLibPath = MetalToolsPath + TEXT("/metallib");
+					FPlatformProcess::ExecProcess( *MetalLibPath, *Params, &ReturnCode, &Results, &Errors );
+			
+					// handle compile error
+					if (ReturnCode != 0 || IFileManager::Get().FileSize(*OutputFilename) <= 0)
+					{
+						FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+						Error->ErrorFile = InputFilename;
+						Error->ErrorLineString = TEXT("0");
+						Error->StrippedErrorMessage = Results + Errors;
+						bSucceeded = false;
+					}
+					else
+					{
+						bCompileAtRuntime = false;
+						
+						// Write out the header and compiled shader code
+						FMemoryWriter Ar(ShaderOutput.Code, true);
+						uint8 PrecompiledFlag = 1;
+						Ar << PrecompiledFlag;
+						Ar << Header;
 
-					// load output
-					TArray<uint8> CompiledShader;
-					FFileHelper::LoadFileToArray(CompiledShader, *OutputFilename);
-					
-					// jam it into the output bytes
-					Ar.Serialize(CompiledShader.GetData(), CompiledShader.Num());
-					
-					ShaderOutput.NumInstructions = 0;
-					ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
-					ShaderOutput.bSucceeded = true;
-					bSucceeded = true;
+						// load output
+						TArray<uint8> CompiledShader;
+						FFileHelper::LoadFileToArray(CompiledShader, *OutputFilename);
+						
+						// jam it into the output bytes
+						Ar.Serialize(CompiledShader.GetData(), CompiledShader.Num());
+						
+						ShaderOutput.NumInstructions = 0;
+						ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
+						ShaderOutput.bSucceeded = true;
+						bSucceeded = true;
+					}
 				}
 			}
 		}
@@ -887,7 +901,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 
 	// @todo - Zebra - Work out which standard we need, this is dependent on the shader platform.
 	// For now only SP_METAL will compile for iOS, with MRT & SM5 only for Mac.
-	const bool bIsMobile = (Output.Target.Platform == SP_METAL);
+	const bool bIsMobile = (Input.Target.Platform == SP_METAL);
 	if (bIsMobile)
 	{
 		AdditionalDefines.SetDefine(TEXT("IOS"), 1);

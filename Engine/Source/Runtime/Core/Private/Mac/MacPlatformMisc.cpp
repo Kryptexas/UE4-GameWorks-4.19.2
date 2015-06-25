@@ -72,9 +72,15 @@ struct FMacApplicationInfo
 			NSDictionary* SystemVersion = [NSDictionary dictionaryWithContentsOfFile: @"/System/Library/CoreServices/SystemVersion.plist"];
 			OSBuild = FString((NSString*)[SystemVersion objectForKey: @"ProductBuildVersion"]);
 		}
-		
+
 		RunningOnMavericks = OSXVersion.majorVersion == 10 && OSXVersion.minorVersion == 9;
-		
+
+		FPlatformProcess::ExecProcess(TEXT("/usr/bin/xcode-select"), TEXT("--print-path"), nullptr, &XcodePath, nullptr);
+		if (XcodePath.Len() > 0)
+		{
+			XcodePath.RemoveAt(XcodePath.Len() - 1); // Remove \n at the end of the string
+		}
+
 		char TempSysCtlBuffer[PATH_MAX] = {};
 		size_t TempSysCtlBufferSize = PATH_MAX;
 		
@@ -272,6 +278,7 @@ struct FMacApplicationInfo
 	FString ExecutableName;
 	NSOperatingSystemVersion OSXVersion;
 	FGuid RunUUID;
+	FString XcodePath;
 	static PLCrashReporter* CrashReporter;
 	static FMacMallocCrashHandler* CrashMalloc;
 };
@@ -1232,6 +1239,11 @@ FString FMacPlatformMisc::GetOperatingSystemId()
 		UE_LOG(LogMac, Warning, TEXT("GetOperatingSystemId() failed"));
 	}
 	return Result;
+}
+
+FString FMacPlatformMisc::GetXcodePath()
+{
+	return GMacAppInfo.XcodePath;
 }
 
 /** Global pointer to crash handler */
