@@ -72,6 +72,12 @@ public:
 	int32 SerialCompare(const DataType* SerialBuffer, uint32 CompareLen) const;
 
 	/**
+	 * Get the SHA1 hash for the data currently in the FIFO
+	 * @param OutHash	Receives the SHA hash
+	 */
+	void GetShaHash(FSHAHash& OutHash) const;
+
+	/**
 	 * Serializes the internal buffer into the given buffer
 	 * @param SerialBuffer	A preallocated buffer to copy data into
 	 */
@@ -260,6 +266,20 @@ int32 TRingBuffer< DataType, BufferDataSize >::SerialCompare(const DataType* Ser
 		return FirstCmp;
 	}
 	return FMemory::Memcmp(Data, &SerialBuffer[FirstPartLen], sizeof(DataType)* (CompareLen - FirstPartLen));
+}
+
+template< typename DataType, uint32 BufferDataSize >
+void TRingBuffer< DataType, BufferDataSize >::GetShaHash(FSHAHash& OutHash) const
+{
+	const uint32 FirstPartLen = FMath::Min(BufferDataSize - DataIndex, NumDataAvailable);
+	FSHA1 Sha;
+	Sha.Update(Data + BottomIndex(), sizeof(DataType) * FirstPartLen);
+	if (FirstPartLen < NumDataAvailable)
+	{
+		Sha.Update(Data, sizeof(DataType) * (NumDataAvailable - FirstPartLen));
+	}
+	Sha.Final();
+	Sha.GetHash(OutHash.Hash);
 }
 
 template< typename DataType, uint32 BufferDataSize >

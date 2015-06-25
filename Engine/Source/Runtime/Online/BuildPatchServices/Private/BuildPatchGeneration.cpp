@@ -331,7 +331,18 @@ const uint32 FBuildGenerationChunkCache::FChunkReader::BytesLeft()
 *****************************************************************************/
 FBuildGenerationChunkCache::FBuildGenerationChunkCache(const FDateTime& InDataAgeThreshold)
 	: DataAgeThreshold(InDataAgeThreshold)
+	, StatChunksInDataCache(nullptr)
+	, StatNumCacheLoads(nullptr)
+	, StatNumCacheBoots(nullptr)
 {
+}
+
+void FBuildGenerationChunkCache::SetStatsCollector(FStatsCollectorRef InStatsCollector)
+{
+	StatsCollector = InStatsCollector;
+	StatChunksInDataCache = StatsCollector->CreateStat(TEXT("Chunk Cache: Num Chunks"), EStatFormat::Value);
+	StatNumCacheLoads = StatsCollector->CreateStat(TEXT("Chunk Cache: Num Chunks Loaded"), EStatFormat::Value);
+	StatNumCacheBoots = StatsCollector->CreateStat(TEXT("Chunk Cache: Num Chunks Booted"), EStatFormat::Value);
 }
 
 TSharedRef< FBuildGenerationChunkCache::FChunkReader > FBuildGenerationChunkCache::GetChunkReader( const FString& ChunkFilePath )
@@ -356,10 +367,26 @@ TSharedRef< FBuildGenerationChunkCache::FChunkReader > FBuildGenerationChunkCach
 			ChunkCache.Remove( OldestAccessChunk );
 			delete BytesReadPerChunk[ OldestAccessChunk ];
 			BytesReadPerChunk.Remove( OldestAccessChunk );
+			if(StatChunksInDataCache != nullptr)
+			{
+				FStatsCollector::Accumulate(StatChunksInDataCache, -1);
+			}
+			if(StatNumCacheBoots != nullptr)
+			{
+				FStatsCollector::Accumulate(StatNumCacheBoots, 1);
+			}
 		}
 		// Add the chunk to cache
 		ChunkCache.Add( ChunkFilePath, MakeShareable( new FChunkFile( 1, true ) ) );
 		BytesReadPerChunk.Add( ChunkFilePath, new uint32( 0 ) );
+		if(StatChunksInDataCache != nullptr)
+		{
+			FStatsCollector::Accumulate(StatChunksInDataCache, 1);
+		}
+		if(StatNumCacheLoads != nullptr)
+		{
+			FStatsCollector::Accumulate(StatNumCacheLoads, 1);
+		}
 	}
 	return MakeShareable( new FChunkReader( ChunkFilePath, ChunkCache[ ChunkFilePath ], BytesReadPerChunk[ ChunkFilePath ], DataAgeThreshold ) );
 }
@@ -372,6 +399,10 @@ void FBuildGenerationChunkCache::Cleanup()
 		delete BytesReadPerChunkIt.Value();
 	}
 	BytesReadPerChunk.Empty( 0 );
+	if(StatChunksInDataCache != nullptr)
+	{
+		FStatsCollector::Set(StatChunksInDataCache, 0);
+	}
 }
 
 /* FBuildGenerationChunkCache system singleton setup
@@ -486,11 +517,16 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	// Create stat collector
 	FStatsCollectorRef StatsCollector = FStatsCollectorFactory::Create();
 
-	// Create a build streamer
-	FBuildStreamerRef BuildStream = FBuildStreamerFactory::Create(Settings.RootDirectory, Settings.IgnoreListFile, StatsCollector);
-
 	// Enumerate Chunks
 	FCloudEnumerationRef CloudEnumeration = FCloudEnumerationFactory::Create(FBuildPatchServicesModule::GetCloudDirectory());
+	// Force waiting on cloud enumeration for more accurate stats, this line can be removed when stats are not required.
+	CloudEnumeration->GetChunkInventory();
+
+	// Chunks matching
+	FDataMatcherRef DataMatcher = FDataMatcherFactory::Create(FBuildPatchServicesModule::GetCloudDirectory());
+
+	// Create a build streamer
+	FBuildStreamerRef BuildStream = FBuildStreamerFactory::Create(Settings.RootDirectory, Settings.IgnoreListFile, StatsCollector);
 
 	// Output to log for builder info
 	GLog->Logf(TEXT("Running Chunks Patch Generation for: %u:%s %s"), Settings.AppID, *Settings.AppName, *Settings.BuildVersion);
@@ -498,6 +534,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	// Create our chunk cache
 	const FDateTime Cutoff = Settings.bShouldHonorReuseThreshold ? FDateTime::UtcNow() - FTimespan::FromDays(Settings.DataAgeThreshold) : FDateTime::MinValue();
 	FBuildGenerationChunkCache::Init(Cutoff);
+	FBuildGenerationChunkCache::Get().SetStatsCollector(StatsCollector);
 
 	// Create a manifest builder
 	FManifestDetails ManifestDetails;
@@ -526,9 +563,6 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 		}
 	}
 	FManifestBuilderRef ManifestBuilder = FManifestBuilderFactory::Create(ManifestDetails, BuildStream);
-
-	// Chunks matching
-	FDataMatcherRef DataMatcher = FDataMatcherFactory::Create(FBuildPatchServicesModule::GetCloudDirectory());
 
 	// Refers to how much data has been dequeued
 	//uint64 ProcessPos = 0;
@@ -732,7 +766,7 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 
 	// Save manifest into the cloud directory
 	FString JsonFilename = FBuildPatchServicesModule::GetCloudDirectory() / FDefaultValueHelper::RemoveWhitespaces(BuildManifest->Data->AppName + BuildManifest->Data->BuildVersion) + TEXT(".manifest");
-	BuildManifest->Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestJsonVersion();
+	BuildManifest->Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestFileDataVersion();
 	BuildManifest->SaveToFile(JsonFilename, false);
 
 	// Output to log for builder info
@@ -954,7 +988,7 @@ bool FBuildDataGenerator::SaveOutFileData(const FString& SourceFile, const FSHAH
 	bool bSuccess = false;
 	IFileManager& FileManager = IFileManager::Get();
 
-	const FString NewFilename = FBuildPatchUtils::GetFileNewFilename( EBuildPatchAppManifestVersion::GetLatestVersion(), FBuildPatchServicesModule::GetCloudDirectory(), FileGuid, FileHash );
+	const FString NewFilename = FBuildPatchUtils::GetFileNewFilename( EBuildPatchAppManifestVersion::GetLatestFileDataVersion(), FBuildPatchServicesModule::GetCloudDirectory(), FileGuid, FileHash );
 	bAlreadySaved = FPlatformFileManager::Get().GetPlatformFile().FileExists(*NewFilename);
 
 #if SAVE_OLD_FILEDATA_FILENAMES

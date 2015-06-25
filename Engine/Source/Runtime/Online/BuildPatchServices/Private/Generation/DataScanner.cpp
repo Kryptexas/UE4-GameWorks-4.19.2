@@ -61,6 +61,8 @@ namespace BuildPatchServices
 	private:
 		FDataScanResult ScanData();
 		bool ProcessCurrentWindow();
+		bool FindExistingChunk(const TMap<uint64, TSet<FGuid>>& ChunkLookup, TMap<FGuid, FSHAHash>& ChunkShaHashes, uint64 ChunkHash, const FRollingHash<WindowSize>& ChunkBuffer, FGuid& OutMatchedChunk);
+		bool FindExistingChunk(const TMap<uint64, TSet<FGuid>>& ChunkLookup, TMap<FGuid, FSHAHash>& ChunkShaHashes, uint64 ChunkHash, const TArray<uint8>& ChunkBuffer, FGuid& OutMatchedChunk);
 
 	private:
 		const uint64 DataStartOffset;
@@ -71,6 +73,19 @@ namespace BuildPatchServices
 		FThreadSafeBool bIsComplete;
 		FThreadSafeBool bShouldAbort;
 		TFuture<FDataScanResult> FutureResult;
+		volatile int64* StatCreatedScanners;
+		volatile int64* StatRunningScanners;
+		volatile int64* StatCpuTime;
+		volatile int64* StatConsumeBytesTime;
+		volatile int64* StatFindMatchTime;
+		volatile int64* StatDataMatchTime;
+		volatile int64* StatChunkWriterTime;
+		volatile int64* StatHashCollisions;
+		volatile int64* StatChunkDataChecks;
+		volatile int64* StatChunkDataMatches;
+		volatile int64* StatMissingChunks;
+		volatile int64* StatMatchedData;
+		volatile int64* StatExtraData;
 
 	public:
 		static FThreadSafeCounter NumIncompleteScanners;
@@ -193,6 +208,21 @@ namespace BuildPatchServices
 		, bIsComplete(false)
 		, bShouldAbort(false)
 	{
+		// Create statistics
+		StatCreatedScanners = StatsCollector->CreateStat(TEXT("Scanner: Created Scanners"), EStatFormat::Value);
+		StatRunningScanners = StatsCollector->CreateStat(TEXT("Scanner: Running Scanners"), EStatFormat::Value);
+		StatCpuTime = StatsCollector->CreateStat(TEXT("Scanner: CPU Time"), EStatFormat::Timer);
+		StatConsumeBytesTime = StatsCollector->CreateStat(TEXT("Scanner: Consume Bytes Time"), EStatFormat::Timer);
+		StatFindMatchTime = StatsCollector->CreateStat(TEXT("Scanner: Find Match Time"), EStatFormat::Timer);
+		StatDataMatchTime = StatsCollector->CreateStat(TEXT("Scanner: Data Match Time"), EStatFormat::Timer);
+		StatChunkWriterTime = StatsCollector->CreateStat(TEXT("Scanner: Chunk Writer Time"), EStatFormat::Timer);
+		StatHashCollisions = StatsCollector->CreateStat(TEXT("Scanner: Hash Collisions"), EStatFormat::Value);
+		StatChunkDataChecks = StatsCollector->CreateStat(TEXT("Scanner: Chunk Data Checks"), EStatFormat::Value);
+		StatChunkDataMatches = StatsCollector->CreateStat(TEXT("Scanner: Chunk Data Matches"), EStatFormat::Value);
+		StatMissingChunks = StatsCollector->CreateStat(TEXT("Scanner: Missing Chunks"), EStatFormat::Value);
+		StatMatchedData = StatsCollector->CreateStat(TEXT("Scanner: Matched Data"), EStatFormat::DataSize);
+		StatExtraData = StatsCollector->CreateStat(TEXT("Scanner: Extra Data"), EStatFormat::DataSize);
+		// Queue thread
 		NumIncompleteScanners.Increment();
 		TFunction<FDataScanResult()> Task = [this]()
 		{
@@ -220,22 +250,103 @@ namespace BuildPatchServices
 		return MoveTemp(FutureResult.Get());
 	}
 
+	bool FDataScannerImpl::FindExistingChunk(const TMap<uint64, TSet<FGuid>>& ChunkLookup, TMap<FGuid, FSHAHash>& ChunkShaHashes, uint64 ChunkHash, const FRollingHash<WindowSize>& RollingHash, FGuid& OutMatchedChunk)
+	{
+		FStatsScopedTimer FindTimer(StatFindMatchTime);
+		bool bFoundChunkMatch = false;
+		if (ChunkLookup.Contains(ChunkHash))
+		{
+			FSHAHash ChunkSha;
+			RollingHash.GetWindowData().GetShaHash(ChunkSha);
+			for (FGuid& PotentialMatch : ChunkLookup.FindRef(ChunkHash))
+			{
+				// Use sha if we have it
+				if (ChunkShaHashes.Contains(PotentialMatch))
+				{
+					if(ChunkSha == ChunkShaHashes[PotentialMatch])
+					{
+						bFoundChunkMatch = true;
+						OutMatchedChunk = PotentialMatch;
+						break;
+					}
+				}
+				else
+				{
+					// Otherwise compare data
+					TArray<uint8> SerialBuffer;
+					FStatsScopedTimer DataMatchTimer(StatDataMatchTime);
+					FStatsCollector::Accumulate(StatChunkDataChecks, 1);
+					SerialBuffer.AddUninitialized(WindowSize);
+					RollingHash.GetWindowData().Serialize(SerialBuffer.GetData());
+					bool ChunkFound = false;
+					if (DataMatcher->CompareData(PotentialMatch, ChunkHash, SerialBuffer, ChunkFound))
+					{
+						FStatsCollector::Accumulate(StatChunkDataMatches, 1);
+						ChunkShaHashes.Add(PotentialMatch, ChunkSha);
+						bFoundChunkMatch = true;
+						OutMatchedChunk = PotentialMatch;
+						break;
+					}
+					else if(!ChunkFound)
+					{
+						FStatsCollector::Accumulate(StatMissingChunks, 1);
+					}
+				}
+				FStatsCollector::Accumulate(StatHashCollisions, 1);
+			}
+		}
+		return bFoundChunkMatch;
+	}
+
+	bool FDataScannerImpl::FindExistingChunk(const TMap<uint64, TSet<FGuid>>& ChunkLookup, TMap<FGuid, FSHAHash>& ChunkShaHashes, uint64 ChunkHash, const TArray<uint8>& ChunkBuffer, FGuid& OutMatchedChunk)
+	{
+		FStatsScopedTimer FindTimer(StatFindMatchTime);
+		bool bFoundChunkMatch = false;
+		if (ChunkLookup.Contains(ChunkHash))
+		{
+			FSHAHash ChunkSha;
+			FSHA1::HashBuffer(ChunkBuffer.GetData(), ChunkBuffer.Num(), ChunkSha.Hash);
+			for (FGuid& PotentialMatch : ChunkLookup.FindRef(ChunkHash))
+			{
+				// Use sha if we have it
+				if (ChunkShaHashes.Contains(PotentialMatch))
+				{
+					if(ChunkSha == ChunkShaHashes[PotentialMatch])
+					{
+						bFoundChunkMatch = true;
+						OutMatchedChunk = PotentialMatch;
+						break;
+					}
+				}
+				else
+				{
+					// Otherwise compare data
+					FStatsScopedTimer DataMatchTimer(StatDataMatchTime);
+					FStatsCollector::Accumulate(StatChunkDataChecks, 1);
+					bool ChunkFound = false;
+					if (DataMatcher->CompareData(PotentialMatch, ChunkHash, ChunkBuffer, ChunkFound))
+					{
+						FStatsCollector::Accumulate(StatChunkDataMatches, 1);
+						ChunkShaHashes.Add(PotentialMatch, ChunkSha);
+						bFoundChunkMatch = true;
+						OutMatchedChunk = PotentialMatch;
+						break;
+					}
+					else if (!ChunkFound)
+					{
+						FStatsCollector::Accumulate(StatMissingChunks, 1);
+					}
+				}
+				FStatsCollector::Accumulate(StatHashCollisions, 1);
+			}
+		}
+		return bFoundChunkMatch;
+	}
+
 	FDataScanResult FDataScannerImpl::ScanData()
 	{
 		// Count running scanners
 		FScopeCounter ScopeCounter(&NumRunningScanners);
-
-		// Create statistics
-		auto* StatCreatedScanners = StatsCollector->CreateStat(TEXT("Scanner: Created Scanners"), EStatFormat::Value);
-		auto* StatRunningScanners = StatsCollector->CreateStat(TEXT("Scanner: Running Scanners"), EStatFormat::Value);
-		auto* StatCpuTime = StatsCollector->CreateStat(TEXT("Scanner: CPU Time"), EStatFormat::Timer);
-		auto* StatConsumeBytesTime = StatsCollector->CreateStat(TEXT("Scanner: Consume Bytes Time"), EStatFormat::Timer);
-		auto* StatFindMatchTime = StatsCollector->CreateStat(TEXT("Scanner: Find Match Time"), EStatFormat::Timer);
-		auto* StatChunkWriterTime = StatsCollector->CreateStat(TEXT("Scanner: Chunk Writer Time"), EStatFormat::Timer);
-		auto* StatHashCollisions = StatsCollector->CreateStat(TEXT("Scanner: Hash Collisions"), EStatFormat::Value);
-		auto* StatMissingChunks = StatsCollector->CreateStat(TEXT("Scanner: Missing Chunks"), EStatFormat::Value);
-		auto* StatMatchedData = StatsCollector->CreateStat(TEXT("Scanner: Matched Data"), EStatFormat::DataSize);
-		auto* StatExtraData = StatsCollector->CreateStat(TEXT("Scanner: Extra Data"), EStatFormat::DataSize);
 		FStatsCollector::Accumulate(StatCreatedScanners, 1);
 		FStatsCollector::Accumulate(StatRunningScanners, 1);
 
@@ -254,8 +365,10 @@ namespace BuildPatchServices
 		// Get a copy of the chunk inventory
 		TMap<uint64, TSet<FGuid>> ChunkInventory = CloudEnumeration->GetChunkInventory();
 		TMap<FGuid, int64> ChunkFileSizes = CloudEnumeration->GetChunkFileSizes();
+		TMap<FGuid, FSHAHash> ChunkShaHashes = CloudEnumeration->GetChunkShaHashes();
 
 		// Loop over and process all data
+		FGuid MatchedChunk;
 		uint64 TempTimer;
 		uint64 CpuTimer;
 		FStatsCollector::AccumulateTimeBegin(CpuTimer);
@@ -265,7 +378,7 @@ namespace BuildPatchServices
 			const uint32 NumDataNeeded = RollingHash.GetNumDataNeeded();
 			if (NumDataNeeded > 0)
 			{
-				FStatsCollector::AccumulateTimeBegin(TempTimer);
+				FStatsScopedTimer ConsumeTimer(StatConsumeBytesTime);
 				uint32 NumConsumedBytes = 0;
 				if (idx < Data.Num())
 				{
@@ -282,44 +395,20 @@ namespace BuildPatchServices
 					PaddedZeros = Zeros.Num();
 				}
 				check(RollingHash.GetNumDataNeeded() == 0);
-				FStatsCollector::AccumulateTimeEnd(StatConsumeBytesTime, TempTimer);
 				continue;
 			}
 
 			const uint64 NumDataInWindow = WindowSize - PaddedZeros;
 			const uint64 WindowHash = RollingHash.GetWindowHash();
 			// Try find match
-			bool bFoundChunkMatch = false;
-			if (ChunkInventory.Contains(WindowHash))
+			if (FindExistingChunk(ChunkInventory, ChunkShaHashes, WindowHash, RollingHash, MatchedChunk))
 			{
-				bool ChunkFound = false;
-				FStatsCollector::AccumulateTimeBegin(TempTimer);
-				RollingHash.GetWindowData().Serialize(ChunkBuffer.GetData());
-				for (FGuid& PotentialMatch : ChunkInventory.FindRef(WindowHash))
-				{
-					if (DataMatcher->CompareData(PotentialMatch, WindowHash, ChunkBuffer, ChunkFound))
-					{
-						bFoundChunkMatch = true;
-						DataStructure.PushKnownChunk(PotentialMatch, NumDataInWindow);
-						FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(PotentialMatch);
-						ChunkInfo.Hash = WindowHash;
-						ChunkInfo.IsNew = false;
-						break;
-					}
-					else if(ChunkFound)
-					{
-						FStatsCollector::Accumulate(StatHashCollisions, 1);
-					}
-					else
-					{
-						FStatsCollector::Accumulate(StatMissingChunks, 1);
-					}
-				}
-				FStatsCollector::AccumulateTimeEnd(StatFindMatchTime, TempTimer);
-			}
-
-			if (bFoundChunkMatch)
-			{
+				// Push the chunk to the structure
+				DataStructure.PushKnownChunk(MatchedChunk, NumDataInWindow);
+				FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(MatchedChunk);
+				ChunkInfo.Hash = WindowHash;
+				ChunkInfo.ShaHash = ChunkShaHashes[MatchedChunk];
+				ChunkInfo.IsNew = false;
 				FStatsCollector::Accumulate(StatMatchedData, NumDataInWindow);
 				// Clear matched window
 				RollingHash.Clear();
@@ -338,45 +427,28 @@ namespace BuildPatchServices
 				if (NewChunkBuffer.Num() == WindowSize)
 				{
 					const uint64 NewChunkHash = FRollingHash<WindowSize>::GetHashForDataSet(NewChunkBuffer.GetData());
-					for (FGuid& PotentialMatch : ChunkInventory.FindRef(NewChunkHash))
+					if (FindExistingChunk(ChunkInventory, ChunkShaHashes, NewChunkHash, NewChunkBuffer, MatchedChunk))
 					{
-						bool ChunkFound = false;
-						FStatsCollector::AccumulateTimeBegin(TempTimer);
-						if (DataMatcher->CompareData(PotentialMatch, NewChunkHash, NewChunkBuffer, ChunkFound))
-						{
-							bFoundChunkMatch = true;
-							DataStructure.RemapCurrentChunk(PotentialMatch);
-							FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(PotentialMatch);
-							ChunkInfo.Hash = NewChunkHash;
-							ChunkInfo.IsNew = false;
-							break;
-						}
-						else if(ChunkFound)
-						{
-							FStatsCollector::Accumulate(StatHashCollisions, 1);
-						}
-						else
-						{
-							FStatsCollector::Accumulate(StatMissingChunks, 1);
-						}
-						FStatsCollector::AccumulateTimeEnd(StatFindMatchTime, TempTimer);
+						DataStructure.RemapCurrentChunk(MatchedChunk);
+						FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(MatchedChunk);
+						ChunkInfo.Hash = NewChunkHash;
+						ChunkInfo.ShaHash = ChunkShaHashes[MatchedChunk];
+						ChunkInfo.IsNew = false;
+						FStatsCollector::Accumulate(StatMatchedData, WindowSize);
 					}
-					if (!bFoundChunkMatch)
+					else
 					{
+						FStatsScopedTimer ChunkWriterTimer(StatChunkWriterTime);
 						const FGuid& NewChunkGuid = DataStructure.GetCurrentChunkId();
 						FStatsCollector::AccumulateTimeEnd(StatCpuTime, CpuTimer);
-						FStatsCollector::AccumulateTimeBegin(TempTimer);
 						ChunkWriter.QueueChunk(NewChunkBuffer.GetData(), NewChunkGuid, NewChunkHash);
-						FStatsCollector::AccumulateTimeEnd(StatChunkWriterTime, TempTimer);
-						FStatsCollector::Accumulate(StatExtraData, NewChunkBuffer.Num());
 						FStatsCollector::AccumulateTimeBegin(CpuTimer);
 						FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(NewChunkGuid);
 						ChunkInfo.Hash = NewChunkHash;
 						ChunkInfo.IsNew = true;
-					}
-					else
-					{
-						FStatsCollector::Accumulate(StatMatchedData, WindowSize);
+						FSHA1::HashBuffer(NewChunkBuffer.GetData(), NewChunkBuffer.Num(), ChunkInfo.ShaHash.Hash);
+						ChunkShaHashes.Add(NewChunkGuid, ChunkInfo.ShaHash);
+						FStatsCollector::Accumulate(StatExtraData, NewChunkBuffer.Num());
 					}
 					DataStructure.CompleteCurrentChunk();
 					NewChunkBuffer.Empty(WindowSize);
@@ -399,43 +471,30 @@ namespace BuildPatchServices
 		if (NewChunkBuffer.Num() > 0)
 		{
 			NewChunkBuffer.AddZeroed(WindowSize - NewChunkBuffer.Num());
-			bool bFoundChunkMatch = false;
 			const uint64 NewChunkHash = FRollingHash<WindowSize>::GetHashForDataSet(NewChunkBuffer.GetData());
-			for (FGuid& PotentialMatch : ChunkInventory.FindRef(NewChunkHash))
+			if (FindExistingChunk(ChunkInventory, ChunkShaHashes, NewChunkHash, NewChunkBuffer, MatchedChunk))
 			{
-				bool ChunkFound = false;
-				FStatsCollector::AccumulateTimeBegin(TempTimer);
-				if (DataMatcher->CompareData(PotentialMatch, NewChunkHash, NewChunkBuffer, ChunkFound))
-				{
-					bFoundChunkMatch = true;
-					DataStructure.RemapCurrentChunk(PotentialMatch);
-					FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(PotentialMatch);
-					ChunkInfo.Hash = NewChunkHash;
-					ChunkInfo.IsNew = false;
-					break;
-				}
-				else if(ChunkFound)
-				{
-					FStatsCollector::Accumulate(StatHashCollisions, 1);
-				}
-				else
-				{
-					FStatsCollector::Accumulate(StatMissingChunks, 1);
-				}
-				FStatsCollector::AccumulateTimeEnd(StatFindMatchTime, TempTimer);
+				// Setup chunk info for a match
+				DataStructure.RemapCurrentChunk(MatchedChunk);
+				FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(MatchedChunk);
+				ChunkInfo.Hash = NewChunkHash;
+				ChunkInfo.ShaHash = ChunkShaHashes[MatchedChunk];
+				ChunkInfo.IsNew = false;
 			}
-			if (!bFoundChunkMatch)
+			else
 			{
+				// Save the final chunk if no match
+				FStatsScopedTimer ChunkWriterTimer(StatChunkWriterTime);
 				const FGuid& NewChunkGuid = DataStructure.GetCurrentChunkId();
 				FStatsCollector::AccumulateTimeEnd(StatCpuTime, CpuTimer);
-				FStatsCollector::AccumulateTimeBegin(TempTimer);
 				ChunkWriter.QueueChunk(NewChunkBuffer.GetData(), NewChunkGuid, NewChunkHash);
-				FStatsCollector::AccumulateTimeEnd(StatChunkWriterTime, TempTimer);
-				FStatsCollector::Accumulate(StatExtraData, NewChunkBuffer.Num());
 				FStatsCollector::AccumulateTimeBegin(CpuTimer);
 				FChunkInfo& ChunkInfo = ChunkInfoLookup.FindOrAdd(NewChunkGuid);
 				ChunkInfo.Hash = NewChunkHash;
 				ChunkInfo.IsNew = true;
+				FSHA1::HashBuffer(NewChunkBuffer.GetData(), NewChunkBuffer.Num(), ChunkInfo.ShaHash.Hash);
+				ChunkShaHashes.Add(NewChunkGuid, ChunkInfo.ShaHash);
+				FStatsCollector::Accumulate(StatExtraData, NewChunkBuffer.Num());
 			}
 		}
 		FStatsCollector::AccumulateTimeEnd(StatCpuTime, CpuTimer);

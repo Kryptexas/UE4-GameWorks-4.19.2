@@ -304,6 +304,7 @@ namespace BuildPatchServices
 					auto& ChunkInfoData = Manifest->Data->ChunkList.Last();
 					ChunkInfoData.Guid = ChunkPart.Guid;
 					ChunkInfoData.Hash = ChunkInfo.Hash;
+					FMemory::Memcpy(ChunkInfoData.ShaHash.Hash, ChunkInfo.ShaHash.Hash, FSHA1::DigestSize);
 					ChunkInfoData.FileSize = ChunkInfo.ChunkFileSize;
 					ChunkInfoData.GroupNumber = FCrc::MemCrc32(&ChunkPart.Guid, sizeof(FGuid)) % 100;
 				}

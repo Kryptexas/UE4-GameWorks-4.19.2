@@ -11,6 +11,7 @@ namespace BuildPatchServices
 		virtual TSet<FGuid> GetChunkSet(uint64 ChunkHash) const = 0;
 		virtual TMap<uint64, TSet<FGuid>> GetChunkInventory() const = 0;
 		virtual TMap<FGuid, int64> GetChunkFileSizes() const = 0;
+		virtual TMap<FGuid, FSHAHash> GetChunkShaHashes() const = 0;
 	};
 
 	typedef TSharedRef<FCloudEnumeration, ESPMode::ThreadSafe> FCloudEnumerationRef;

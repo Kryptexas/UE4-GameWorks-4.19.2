@@ -18,6 +18,7 @@ namespace BuildPatchServices
 		virtual TSet<FGuid> GetChunkSet(uint64 ChunkHash) const override;
 		virtual TMap<uint64, TSet<FGuid>> GetChunkInventory() const override;
 		virtual TMap<FGuid, int64> GetChunkFileSizes() const override;
+		virtual TMap<FGuid, FSHAHash> GetChunkShaHashes() const override;
 	private:
 		void EnumerateCloud();
 		void EnumerateManifestData(const FBuildPatchAppManifestRef& Manifest);
@@ -27,6 +28,7 @@ namespace BuildPatchServices
 		mutable FCriticalSection InventoryCS;
 		TMap<uint64, TSet<FGuid>> ChunkInventory;
 		TMap<FGuid, int64> ChunkFileSizes;
+		TMap<FGuid, FSHAHash> ChunkShaHashes;
 		TMap<FSHAHash, TSet<FGuid>> FileInventory;
 		uint64 NumChunksFound;
 		uint64 NumFilesFound;
@@ -65,6 +67,13 @@ namespace BuildPatchServices
 		FScopeLock ScopeLock(&InventoryCS);
 		Future.Wait();
 		return ChunkFileSizes;
+	}
+
+	TMap<FGuid, FSHAHash> FCloudEnumerationImpl::GetChunkShaHashes() const
+	{
+		FScopeLock ScopeLock(&InventoryCS);
+		Future.Wait();
+		return ChunkShaHashes;
 	}
 
 	void FCloudEnumerationImpl::EnumerateCloud()
@@ -120,9 +129,10 @@ namespace BuildPatchServices
 		Manifest->GetDataList(DataList);
 		if (!Manifest->IsFileDataManifest())
 		{
+			FSHAHashData DataShaHash;
+			uint64 DataChunkHash;
 			for (const auto& DataGuid : DataList)
 			{
-				uint64 DataChunkHash;
 				if (Manifest->GetChunkHash(DataGuid, DataChunkHash))
 				{
 					if (DataChunkHash != 0)
@@ -143,6 +153,11 @@ namespace BuildPatchServices
 				else
 				{
 					GLog->Logf(TEXT("FCloudEnumeration: WARNING: Missing chunk hash for %s in manifest %s %s"), *DataGuid.ToString(), *Manifest->GetAppName(), *Manifest->GetVersionString());
+				}
+				if (Manifest->GetChunkShaHash(DataGuid, DataShaHash))
+				{
+					FSHAHash& ShaHash = ChunkShaHashes.FindOrAdd(DataGuid);
+					FMemory::Memcpy(ShaHash.Hash, DataShaHash.Hash, FSHA1::DigestSize);
 				}
 			}
 		}

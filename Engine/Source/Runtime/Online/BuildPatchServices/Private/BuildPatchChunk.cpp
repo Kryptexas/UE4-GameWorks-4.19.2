@@ -34,6 +34,18 @@ FString FSHAHashData::ToString() const
 	return BytesToHex(Hash, FSHA1::DigestSize);
 }
 
+bool FSHAHashData::isZero() const
+{
+	for (const auto& digit : Hash)
+	{
+		if (digit != 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 /* FChunkHeader implementation
 *****************************************************************************/
 FChunkHeader::FChunkHeader()

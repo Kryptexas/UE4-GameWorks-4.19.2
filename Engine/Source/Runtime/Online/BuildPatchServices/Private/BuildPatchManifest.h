@@ -40,12 +40,13 @@ namespace EBuildPatchAppManifestVersion
 		StoresPrerequisitesInfo,
 		// Manifest stores chunk download sizes
 		StoresChunkFileSizes,
-		// Manifest is now stored using UObject serialization and compressed
+		// Manifest can optionally be stored using UObject serialization and compressed
 		StoredAsCompressedUClass,
-		// Added support for file data to be split into max individual part size, files now go to FilesV3
-		FileSplittingSupport,
-		// Added support for file data compression, (files still FilesV3)
-		FileCompressionSupport,
+		// These two features were removed and never used
+		UNUSED_0,
+		UNUSED_1,
+		// Manifest stores chunk data SHA1 hash to use in place of data compare, for faster generation
+		StoresChunkDataShaHashes,
 
 
 		// Always after the latest version, signifies the latest version plus 1 to allow initialization simplicity
@@ -60,8 +61,14 @@ namespace EBuildPatchAppManifestVersion
 	/** @return The last known manifest feature of this code base. Handy for manifest constructor */
 	Type GetLatestVersion();
 
-	/** @return The latest version of a manifest support by JSON serialization */
+	/** @return The latest version of a manifest supported by JSON serialization method */
 	Type GetLatestJsonVersion();
+
+	/** @return The latest version of a manifest supported by file data (nochunks) */
+	Type GetLatestFileDataVersion();
+
+	/** @return The latest version of a manifest supported by chunk data */
+	Type GetLatestChunkDataVersion();
 
 	/**
 	 * Get the chunk subdirectory for used for a specific manifest version, e.g. Chunks, ChunksV2 etc
@@ -127,6 +134,9 @@ struct FChunkInfoData
 
 	UPROPERTY()
 	uint64 Hash;
+
+	UPROPERTY()
+	FSHAHashData ShaHash;
 
 	UPROPERTY()
 	int64 FileSize;
@@ -506,6 +516,14 @@ public:
 	 * @return	true if we had the hash for this chunk
 	 */
 	bool GetChunkHash(const FGuid& ChunkGuid, uint64& OutHash) const;
+
+	/**
+	 * Gets the SHA1 hash for a given chunk
+	 * @param ChunkGuid		IN		The guid of the chunk to get hash for
+	 * @param OutHash		OUT		Receives the hash value if found
+	 * @return	true if we had the hash for this chunk
+	 */
+	bool GetChunkShaHash(const FGuid& ChunkGuid, FSHAHashData& OutHash) const;
 
 	/**
 	 * Gets the file hash for given file data

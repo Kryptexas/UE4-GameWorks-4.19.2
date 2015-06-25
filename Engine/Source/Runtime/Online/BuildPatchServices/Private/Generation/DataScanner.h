@@ -25,10 +25,10 @@ namespace BuildPatchServices
 	{
 		// The hash for this chunk
 		uint64 Hash;
+		// The SHA hash for this chunk
+		FSHAHash ShaHash;
 		// The size of this chunk file
 		int64 ChunkFileSize;
-		// The group number this chunk is stored in
-		uint8 GroupNumber;
 		// Whether this chunk is new
 		bool IsNew;
 	};

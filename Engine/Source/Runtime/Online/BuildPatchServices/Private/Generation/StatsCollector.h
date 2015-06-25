@@ -42,4 +42,22 @@ namespace BuildPatchServices
 	public:
 		static FStatsCollectorRef Create();
 	};
+
+	class FStatsScopedTimer
+	{
+	public:
+		FStatsScopedTimer(volatile int64* InStat)
+			: Stat(InStat)
+		{
+			FStatsCollector::AccumulateTimeBegin(TempTime);
+		}
+		~FStatsScopedTimer()
+		{
+			FStatsCollector::AccumulateTimeEnd(Stat, TempTime);
+		}
+
+	private:
+		uint64 TempTime;
+		volatile int64* Stat;
+	};
 }

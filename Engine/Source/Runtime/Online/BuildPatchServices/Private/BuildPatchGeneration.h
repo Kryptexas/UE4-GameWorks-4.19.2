@@ -181,7 +181,7 @@ private:
 
 private:
 	// The number of chunks to cache in memory
-	const static int32 NumChunksToCache = 256;
+	const static int32 NumChunksToCache = 1024;
 
 	FDateTime DataAgeThreshold;
 
@@ -191,10 +191,23 @@ private:
 	// The store for how much file data has been read for each chunk
 	TMap< FString, uint32* > BytesReadPerChunk;
 
+	// The stats collector class, and some stats variables
+	FStatsCollectorPtr StatsCollector;
+	volatile int64* StatChunksInDataCache;
+	volatile int64* StatNumCacheLoads;
+	volatile int64* StatNumCacheBoots;
+
 	// The singleton instance for this class
 	static TSharedPtr< FBuildGenerationChunkCache > SingletonInstance;
 
 public:
+
+	/**
+	 * Sets the stats collector, which will be used to record statistics from the point of settings
+	 * @param StatsCollector		Ref to the stats collector
+	 */
+	void SetStatsCollector(FStatsCollectorRef StatsCollector);
+
 	/**
 	 * Get a reader class for a chunk file. The reader class is the interface to chunk data which will either come from RAM or file.
 	 * @return		Shared ref to a reader class, in order to allow memory freeing, you should not keep hold of references when finished with chunk

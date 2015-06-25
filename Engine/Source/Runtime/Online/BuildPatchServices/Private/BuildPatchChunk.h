@@ -27,6 +27,7 @@ struct FSHAHashData
 	bool operator==(const FSHAHashData& Other) const;
 	bool operator!=(const FSHAHashData& Other) const;
 	FString ToString() const;
+	bool isZero() const;
 };
 
 static_assert(FSHA1::DigestSize == 20, "If this changes a lot of stuff here will break!");
