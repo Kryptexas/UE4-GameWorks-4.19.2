@@ -55,6 +55,13 @@ class FAsyncLoadingThread : public FRunnable
 	FCriticalSection AsyncPackagesCritical;
 #endif
 
+	/** List of all pending package requests */
+	TSet<int32> PendingRequests;
+#if THREADSAFE_UOBJECTS
+	/** Synchronization object for PendingRequests list */
+	FCriticalSection PendingRequestsCritical;
+#endif
+
 	/** [ASYNC/GAME THREAD] Number of package load requests in the async loading queue */
 	FThreadSafeCounter QueuedPackagesCounter;
 	/** [ASYNC/GAME THREAD] Number of packages being loaded on the async thread and post loaded on the game thread */
@@ -264,7 +271,7 @@ public:
 	* @param TimeLimit Maximum amount of time that can be spent in this call [time-slicing].
 	* @return The current state of async loading
 	*/
-	EAsyncPackageState::Type TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit);
+	EAsyncPackageState::Type TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, int32 WaitForRequestID = INDEX_NONE);
 
 	/**
 	* [ASYNC THREAD] Main thread loop
@@ -285,6 +292,45 @@ public:
 	 */
 	float GetAsyncLoadPercentage(const FName& PackageName);
 
+	/** 
+	 * [ASYNC/GAME THREAD] Checks if a request ID already is added to the loading queue
+	 */
+	bool ContainsRequestID(int32 RequestID)
+	{
+#if THREADSAFE_UOBJECTS
+		FScopeLock Lock(&PendingRequestsCritical);
+#endif
+		return PendingRequests.Contains(RequestID);
+	}
+
+	/** 
+	 * [ASYNC/GAME THREAD] Adds a request ID to the list of pending requests
+	 */
+	void AddPendingRequest(int32 RequestID)
+	{
+#if THREADSAFE_UOBJECTS
+		FScopeLock Lock(&PendingRequestsCritical);
+#endif
+		if (!PendingRequests.Contains(RequestID))
+		{
+			PendingRequests.Add(RequestID);
+		}
+	}
+
+	/** 
+	 * [ASYNC/GAME THREAD] Removes a request ID from the list of pending requests
+	 */
+	void RemovePendingRequests(TArray<int32>& RequestIDs)
+	{
+#if THREADSAFE_UOBJECTS
+		FScopeLock Lock(&PendingRequestsCritical);
+#endif
+		for (int32 ID : RequestIDs)
+		{
+			PendingRequests.Remove(ID);
+		}		
+	}
+
 private:
 
 	/**
@@ -293,9 +339,10 @@ private:
 	* @param bUseTimeLimit True if time limit should be used [time-slicing].
 	* @param bUseFullTimeLimit True if full time limit should be used [time-slicing].
 	* @param TimeLimit Maximum amount of time that can be spent in this call [time-slicing].
+	* @param WaitForRequestID If the package request ID is valid, exits as soon as the request is no longer in the qeueue.
 	* @return The current state of async loading
 	*/
-	EAsyncPackageState::Type ProcessLoadedPackages(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit);
+	EAsyncPackageState::Type ProcessLoadedPackages(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, int32 WaitForRequestID = INDEX_NONE);
 
 	/**
 	* [ASYNC THREAD] Creates async packages from the queued requests

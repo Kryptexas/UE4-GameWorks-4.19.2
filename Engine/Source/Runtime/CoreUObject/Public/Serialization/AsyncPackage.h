@@ -8,6 +8,8 @@
 
 struct FAsyncPackageDesc
 {
+	/** Handle for the caller */
+	int32 RequestID;
 	/** Name of the UPackage to create. */
 	FName Name;
 	/** Name of the package to load. */
@@ -26,8 +28,9 @@ struct FAsyncPackageDesc
 #endif
 
 
-	FAsyncPackageDesc(const FName& InName, FName InPackageToLoadFrom = NAME_None, const FGuid& InGuid = FGuid(), FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPriority = 0)
-		: Name(InName)
+	FAsyncPackageDesc(int32 InRequestID, const FName& InName, FName InPackageToLoadFrom = NAME_None, const FGuid& InGuid = FGuid(), FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPriority = 0)
+		: RequestID(InRequestID)
+		, Name(InName)
 		, NameToLoad(InPackageToLoadFrom)
 		, Guid(InGuid)
 		, PackageLoadedDelegate(InCompletionDelegate)

@@ -386,6 +386,7 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 		{
 			const bool bInternalCallback = false;
 			Result->AddCompletionCallback(PackageRequest->PackageLoadedDelegate, bInternalCallback);
+			Result->AddRequestID(PackageRequest->RequestID);
 		}
 		const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
 		check(QueuedPackagesCount >= 0);
@@ -411,7 +412,7 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 		QueuedPackages.Empty();
 	}
 
-	for (auto PackageRequest : QueueCopy)
+	for (FAsyncPackageDesc* PackageRequest : QueueCopy)
 	{
 		FAsyncPackage* Package = FindExistingPackageAndAddCompletionCallback(PackageRequest, AsyncPackages);
 
@@ -546,7 +547,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 }
 
 
-EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit)
+EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, int32 WaitForRequestID /*= INDEX_NONE*/)
 {
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;
 
@@ -567,7 +568,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 			break;
 		}
 
-		auto Package = LoadedPackagesToProcess[PackageIndex];
+		FAsyncPackage* Package = LoadedPackagesToProcess[PackageIndex];
 		if (Package->GetDependencyRefCount() == 0)
 		{
 			Result = Package->PostLoadDeferredObjects(TickStartTime, bUseTimeLimit, TimeLimit);
@@ -600,6 +601,12 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 				// We don't need the package anymore
 				delete Package;
+
+				if (WaitForRequestID != INDEX_NONE && !ContainsRequestID(WaitForRequestID))
+				{
+					// The only package we care about has finished loading, so we're good to exit
+					break;
+				}
 			}
 			else
 			{
@@ -619,7 +626,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 
 
-EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit)
+EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, int32 WaitForRequestID /*= INDEX_NONE*/)
 {
 	const bool bLoadingSuspended = IsAsyncLoadingSuspended();
 	const bool bIsMultithreaded = FAsyncLoadingThread::IsMultithreaded();
@@ -639,7 +646,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 		if (Result != EAsyncPackageState::TimeOut && !IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("Pre-ProcessLoadedPackages")))
 		{
 			double RemainingTimeLimit = FMath::Max(0.0, TimeLimit - TimeLimitUsedForPreloading);
-			Result = ProcessLoadedPackages(bUseTimeLimit, bUseFullTimeLimit, RemainingTimeLimit);
+			Result = ProcessLoadedPackages(bUseTimeLimit, bUseFullTimeLimit, RemainingTimeLimit, WaitForRequestID);
 		}
 
 		if (Result != EAsyncPackageState::TimeOut && !IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("Pre-EmptyReferencedObjects")))
@@ -903,11 +910,22 @@ FAsyncPackage::FAsyncPackage(const FAsyncPackageDesc& InDesc)
 , FinishObjectsTime(0.0)
 #endif // PERF_TRACK_DETAILED_ASYNC_STATS
 {
+	AddRequestID(InDesc.RequestID);
 }
 
 FAsyncPackage::~FAsyncPackage()
 {
+	AsyncLoadingThread.RemovePendingRequests(RequestIDs);
 	DetachLinker();
+}
+
+void FAsyncPackage::AddRequestID(int32 Id)
+{
+	if (Id > 0)
+	{
+		RequestIDs.Add(Id);
+		AsyncLoadingThread.AddPendingRequest(Id);
+	}
 }
 
 /**
@@ -1269,7 +1287,7 @@ void FAsyncPackage::AddImportDependency(int32 CurrentPackageIndex, const FName& 
 	int32 ExistingAsyncPackageIndex = FAsyncLoadingThread::Get().FindAsyncPackage(PendingImport);
 	if (ExistingAsyncPackageIndex == INDEX_NONE)
 	{
-		const FAsyncPackageDesc Info(PendingImport);
+		const FAsyncPackageDesc Info(INDEX_NONE, PendingImport);
 		PackageToStream = new FAsyncPackage(Info);
 
 		// If priority of the dependency is not set, inherit from parent.
@@ -1853,10 +1871,10 @@ void FAsyncPackage::UpdateLoadPercentage()
 	LoadPercentage = FMath::Max(NewLoadPercentage, LoadPercentage);
 }
 
-/*-----------------------------------------------------------------------------
-	UObject async (pre)loading.
------------------------------------------------------------------------------*/
-void LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
+/** Global request ID counter */
+static FThreadSafeCounter GPackageRequestID;
+
+int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
 {
 	// The comments clearly state that it should be a package name but we also handle it being a filename as this function is not perf critical
 	// and LoadPackage handles having a filename being passed in as well.
@@ -1888,20 +1906,27 @@ void LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, 
 		UE_LOG(LogStreaming, Fatal, TEXT("Async loading code requires long package names (%s)."), *PackageNameToLoad);
 	}
 
-	FAsyncPackageDesc PackageDesc(*PackageName, *PackageNameToLoad, InGuid ? *InGuid : FGuid(), InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
+	// Generate new request ID and add it immediately to the global request list (it needs to be there before we exit
+	// this function, otherwise it would be added when the packages are being processed on the async thread).
+	const int32 RequestID = GPackageRequestID.Increment();
+	FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
+	// Add new package request
+	FAsyncPackageDesc PackageDesc(RequestID, *PackageName, *PackageNameToLoad, InGuid ? *InGuid : FGuid(), InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
 	FAsyncLoadingThread::Get().QueuePackage(PackageDesc);
+
+	return RequestID;
 }
 
-void LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, uint32 InPackagePriority /*= 0*/, EPackageFlags InPackageFlags /*= PKG_None*/)
+int32 LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, uint32 InPackagePriority /*= 0*/, EPackageFlags InPackageFlags /*= PKG_None*/)
 {
 	const FGuid* Guid = nullptr;
 	const TCHAR* PackageToLoadFrom = nullptr;
-	LoadPackageAsync(PackageName, Guid, PackageToLoadFrom, CompletionDelegate, InPackageFlags, -1, InPackagePriority );
+	return LoadPackageAsync(PackageName, Guid, PackageToLoadFrom, CompletionDelegate, InPackageFlags, -1, InPackagePriority );
 }
 
-void LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType /* Unused, deprecated */, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
+int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType /* Unused, deprecated */, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
 {
-	LoadPackageAsync(InName, InGuid, InPackageToLoadFrom, InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
+	return LoadPackageAsync(InName, InGuid, InPackageToLoadFrom, InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
 }
 
 void CancelAsyncLoading()
@@ -1928,14 +1953,20 @@ bool IsInAsyncLoadingThreadCoreUObjectInternal()
 	return FAsyncLoadingThread::Get().IsInAsyncLoadThread();
 }
 
-void FlushAsyncLoading()
+void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 {
 	if (IsAsyncLoading())
 	{
+		FAsyncLoadingThread& AsyncThread = FAsyncLoadingThread::Get();
 		// Flushing async loading while loading is suspend will result in infinite stall
-		UE_CLOG(FAsyncLoadingThread::Get().IsAsyncLoadingSuspended(), LogStreaming, Fatal, TEXT("Cannot Flush Async Loading while async loading is suspended."));
+		UE_CLOG(AsyncThread.IsAsyncLoadingSuspended(), LogStreaming, Fatal, TEXT("Cannot Flush Async Loading while async loading is suspended."));
 
 		SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_FlushAsyncLoadingGameThread);
+
+		if (PackageID != INDEX_NONE && !AsyncThread.ContainsRequestID(PackageID))
+		{
+			return;
+		}
 
 		// Disallow low priority requests like texture streaming while we are flushing streaming
 		// in order to avoid excessive seeking.
@@ -1947,15 +1978,20 @@ void FlushAsyncLoading()
 			SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_TickAsyncLoadingGameThread);
 			while (IsAsyncLoading())
 			{
-				FAsyncLoadingThread::Get().TickAsyncLoading(false, false, 0);
-				if (FAsyncLoadingThread::Get().IsMultithreaded())
+				EAsyncPackageState::Type Result = AsyncThread.TickAsyncLoading(false, false, 0, PackageID);
+				if (PackageID != INDEX_NONE && Result == EAsyncPackageState::Complete)
+				{
+					break;
+				}
+
+				if (AsyncThread.IsMultithreaded())
 				{
 					FPlatformProcess::SleepNoStats(0.0001f);
 				}
 			}
 		}
 
-		check( !IsAsyncLoading() );
+		check(PackageID != INDEX_NONE || !IsAsyncLoading());
 
 		// Reset min priority again.
 		FIOSystem::Get().SetMinPriority( AIOP_MIN );

@@ -89,6 +89,9 @@ struct FAsyncPackage
 		return bLoadHasFailed;
 	}
 
+	/** Adds new request ID to the existing package */
+	void AddRequestID(int32 Id);
+
 	/**
 	* Cancel loading this package.
 	*/
@@ -163,6 +166,8 @@ private:
 	TArray<UObject*> DeferredPostLoadObjects;
 	/** Objects to be finalized on the game thread */
 	TArray<UObject*> DeferredFinalizeObjects;
+	/** List of all request handles */
+	TArray<int32> RequestIDs;
 	/** Cached async loading thread object this package was created by */
 	class FAsyncLoadingThread& AsyncLoadingThread;
 public:
