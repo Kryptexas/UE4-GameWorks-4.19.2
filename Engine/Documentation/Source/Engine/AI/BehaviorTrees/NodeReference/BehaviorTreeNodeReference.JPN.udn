@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Behavior Tree ノードのリファレンス
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -22,7 +22,7 @@ Description:Behavior Tree ノードのリファレンス
 		![](%ROOT%/tech_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Behavior Tree ノードのタイプ
+		Behavior Tree ノードの種類
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -41,3 +41,8 @@ Root ノードはビヘイビアツリーにおいて一意であり、ビヘイ
 ![](Root.png)
 [/EXCERPT]
 -->
+
+
+
+
+
