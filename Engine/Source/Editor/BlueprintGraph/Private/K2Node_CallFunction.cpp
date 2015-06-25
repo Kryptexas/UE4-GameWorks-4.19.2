@@ -1185,6 +1185,11 @@ FText UK2Node_CallFunction::GetTooltipText() const
 
 void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function)
 {
+	if (Pin.HasAnyFlags(RF_Transient))
+	{
+		return;
+	}
+
 	// figure what tag we should be parsing for (is this a return-val pin, or a parameter?)
 	FString ParamName;
 	FString TagStr = TEXT("@param");

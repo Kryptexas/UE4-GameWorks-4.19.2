@@ -3030,6 +3030,11 @@ FText UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 
 void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const
 {
+	if (Pin.HasAnyFlags(RF_Transient))
+	{
+		return;
+	}
+
 	if (bGeneratingDocumentation)
 	{
 		TooltipOut = PinDescription.ToString();
