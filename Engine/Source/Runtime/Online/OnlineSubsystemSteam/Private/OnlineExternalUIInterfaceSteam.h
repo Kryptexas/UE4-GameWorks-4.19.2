@@ -68,6 +68,9 @@ PACKAGE_SCOPE:
 	{
 	}
 
+	/** Triggered when the steam overlay is closed if it was opened via ShowProfileUI. Delegate will be unbound after it is executed. */
+	FOnProfileUIClosedDelegate ProfileUIClosedDelegate;
+
 public:
 
 	virtual ~FOnlineExternalUISteam()
