@@ -128,7 +128,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 
 	/** Assignment/Equality operators */
 	FGameplayTagContainer& operator=(FGameplayTagContainer const& Other);
-	FGameplayTagContainer & operator=(FGameplayTagContainer&& Other);
+	FGameplayTagContainer& operator=(FGameplayTagContainer&& Other);
 	bool operator==(FGameplayTagContainer const& Other) const;
 	bool operator!=(FGameplayTagContainer const& Other) const;
 
@@ -394,6 +394,7 @@ namespace EGameplayTagQueryStreamVersion
  *		);
  * 
  * Queries are internally represented as a byte stream that is memory-efficient and can be evaluated quickly at runtime.
+ * Note: these have an extensive details and graph pin customization for editing, so there is no need to expose the internals to Blueprints.
  */
 USTRUCT(BlueprintType)
 struct GAMEPLAYTAGS_API FGameplayTagQuery
@@ -402,6 +403,13 @@ struct GAMEPLAYTAGS_API FGameplayTagQuery
 
 public:
 	FGameplayTagQuery();
+
+	FGameplayTagQuery(FGameplayTagQuery const& Other);
+	FGameplayTagQuery(FGameplayTagQuery&& Other);
+
+	/** Assignment/Equality operators */
+	FGameplayTagQuery& operator=(FGameplayTagQuery const& Other);
+	FGameplayTagQuery& operator=(FGameplayTagQuery&& Other);
 
 private:
 	/** Versioning for future token stream protocol changes. See EGameplayTagQueryStreamVersion. */
@@ -416,9 +424,13 @@ private:
 	UPROPERTY()
 	TArray<uint8> QueryTokenStream;
 
-	/** Human-readable string describing the query */
+	/** User-provided string describing the query */
 	UPROPERTY()
-	FString Description;
+	FString UserDescription;
+
+	/** Auto-generated string describing the query */
+	UPROPERTY()
+	FString AutoDescription;
 
 	/** Returns a gameplay tag from the tag dictionary */
 	FGameplayTag GetTagFromIndex(int32 TagIdx) const
@@ -426,7 +438,6 @@ private:
 		ensure(TagDictionary.IsValidIndex(TagIdx));
 		return TagDictionary[TagIdx];
 	}
-
 
 public:
 	/** Returns true if the given tags match this query, or false otherwise. */
@@ -439,14 +450,17 @@ public:
 	void Clear();
 
 	/** Creates this query with the given root expression. */
-	void BuildQuery(struct FGameplayTagQueryExpression& RootQueryExpr);
+	void Build(struct FGameplayTagQueryExpression& RootQueryExpr, FString InUserDescription = FString());
+
+	/** Static function to assemble and return a query. */
+	static FGameplayTagQuery BuildQuery(struct FGameplayTagQueryExpression& RootQueryExpr, FString InDescription = FString());
 
 	/** Builds a FGameplayTagQueryExpression from this query. */
 	void GetQueryExpr(struct FGameplayTagQueryExpression& OutExpr) const;
 
 	/** Returns description string. */
-	FString GetDescription() const { return Description; };
-	
+	FString GetDescription() const { return UserDescription.IsEmpty() ? AutoDescription : UserDescription; };
+
 #if WITH_EDITOR
 	/** Creates this query based on the given EditableQuery object */
 	void BuildFromEditableQuery(class UEditableGameplayTagQuery& EditableQuery); 
@@ -457,11 +471,23 @@ public:
 
 	static const FGameplayTagQuery EmptyQuery;
 
+	/**
+	* Shortcuts for easily creating common query types
+	* @todo: add more as dictated by use cases
+	*/
+
+	/** Creates a tag query that will match if there are any common tags between the given tags and the tags being queries against. */
+	static FGameplayTagQuery MakeQuery_MatchAnyTag(FGameplayTagContainer const& InTags);
+
 	friend class FQueryEvaluator;
 };
 
 struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
 {
+	/** 
+	 * Fluid syntax approach for setting the type of this expression. 
+	 */
+
 	FGameplayTagQueryExpression& AnyTagsMatch()
 	{
 		ExprType = EGameplayTagQueryExprType::AnyTagsMatch;
@@ -498,13 +524,18 @@ struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
 		return *this;
 	}
 
+	FGameplayTagQueryExpression& AddTag(TCHAR const* TagString)
+	{
+		return AddTag(FName(TagString));
+	}
+	FGameplayTagQueryExpression& AddTag(FName TagName);
 	FGameplayTagQueryExpression& AddTag(FGameplayTag Tag)
 	{
 		ensure(UsesTagSet());
 		TagSet.Add(Tag);
 		return *this;
 	}
-
+	
 	FGameplayTagQueryExpression& AddTags(FGameplayTagContainer const& Tags)
 	{
 		ensure(UsesTagSet());
@@ -544,6 +575,17 @@ struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
 	}
 };
 
+template<>
+struct TStructOpsTypeTraits<FGameplayTagQuery> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true
+	};
+};
+
+
+
 /** 
  * This is an editor-only representation of a query, designed to be editable with a typical property window. 
  * To edit a query in the editor, an FGameplayTagQuery is converted to a set of UObjects and edited,  When finished,
@@ -556,10 +598,12 @@ class GAMEPLAYTAGS_API UEditableGameplayTagQuery : public UObject
 	GENERATED_BODY()
 
 public:
-
 	/** User-supplied description, shown in property details. Auto-generated description is shown if not supplied. */
 	UPROPERTY(EditDefaultsOnly, Category = Query)
-	FString Description;
+	FString UserDescription;
+
+	/** Automatically-generated description */
+	FString AutoDescription;
 
 	/** The base expression of this query. */
 	UPROPERTY(EditDefaultsOnly, Instanced, Category = Query)
@@ -568,7 +612,15 @@ public:
 #if WITH_EDITOR
 	/** Converts this editor query construct into the runtime-usable token stream. */
 	void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString=nullptr) const;
+
+	/** Generates and returns the export text for this query. */
+	FString GetTagQueryExportText(FGameplayTagQuery const& TagQuery);
 #endif  // WITH_EDITOR
+
+private:
+	/** Property to hold a gameplay tag query so we can use the exporttext path to get a string representation. */
+	UPROPERTY()
+	FGameplayTagQuery TagQueryExportText_Helper;
 };
 
 UCLASS(abstract, editinlinenew, collapseCategories, Transient)

@@ -5,7 +5,6 @@
 const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;
 const FGameplayTagQuery FGameplayTagQuery::EmptyQuery;
 
-
 /** Helper class to parse/eval query token streams. */
 class FQueryEvaluator
 {
@@ -74,8 +73,16 @@ bool FQueryEvaluator::Eval(FGameplayTagContainer const& Tags)
 	{
 		return false;
 	}
+	
+	bool bRet = false;
 
-	bool const bRet = EvalExpr(Tags);
+	uint8 const bHasRootExpression = GetToken();
+	if (!bReadError && bHasRootExpression)
+	{
+		bRet = EvalExpr(Tags);
+
+	}
+
 	ensure(CurStreamIdx == Query.QueryTokenStream.Num());
 	return bRet;
 }
@@ -825,6 +832,40 @@ FGameplayTagQuery::FGameplayTagQuery()
 {
 }
 
+FGameplayTagQuery::FGameplayTagQuery(FGameplayTagQuery const& Other)
+{
+	*this = Other;
+}
+
+FGameplayTagQuery::FGameplayTagQuery(FGameplayTagQuery&& Other)
+{
+	*this = Other;
+}
+
+/** Assignment/Equality operators */
+FGameplayTagQuery& FGameplayTagQuery::operator=(FGameplayTagQuery const& Other)
+{
+	if (this != &Other)
+	{
+		TokenStreamVersion = Other.TokenStreamVersion;
+		TagDictionary = Other.TagDictionary;
+		QueryTokenStream = Other.QueryTokenStream;
+		UserDescription = Other.UserDescription;
+		AutoDescription = Other.AutoDescription;
+	}
+	return *this;
+}
+
+FGameplayTagQuery& FGameplayTagQuery::operator=(FGameplayTagQuery&& Other)
+{
+	TokenStreamVersion = Other.TokenStreamVersion;
+	TagDictionary = MoveTemp(Other.TagDictionary);
+	QueryTokenStream = MoveTemp(Other.QueryTokenStream);
+	UserDescription = MoveTemp(Other.UserDescription);
+	AutoDescription = MoveTemp(Other.AutoDescription);
+	return *this;
+}
+
 bool FGameplayTagQuery::Matches(FGameplayTagContainer const& Tags) const
 {
 	FQueryEvaluator QE(*this);
@@ -848,8 +889,11 @@ void FGameplayTagQuery::GetQueryExpr(FGameplayTagQueryExpression& OutExpr) const
 	QE.Read(OutExpr);
 }
 
-void FGameplayTagQuery::BuildQuery(FGameplayTagQueryExpression& QueryExpr)
+void FGameplayTagQuery::Build(FGameplayTagQueryExpression& RootQueryExpr, FString InUserDescription)
 {
+	TokenStreamVersion = EGameplayTagQueryStreamVersion::LatestVersion;
+	UserDescription = InUserDescription;
+
 	// Reserve size here is arbitrary, goal is to minimizing reallocs while being respectful of mem usage
 	QueryTokenStream.Reset(128);
 	TagDictionary.Reset();
@@ -859,7 +903,26 @@ void FGameplayTagQuery::BuildQuery(FGameplayTagQueryExpression& QueryExpr)
 
 	// emit the query
 	QueryTokenStream.Add(1);		// true to indicate is has a root expression
-	QueryExpr.EmitTokens(QueryTokenStream, TagDictionary);
+	RootQueryExpr.EmitTokens(QueryTokenStream, TagDictionary);
+}
+
+// static 
+FGameplayTagQuery FGameplayTagQuery::BuildQuery(FGameplayTagQueryExpression& RootQueryExpr, FString InDescription)
+{
+	FGameplayTagQuery Q;
+	Q.Build(RootQueryExpr, InDescription);
+	return Q;
+}
+
+//static 
+FGameplayTagQuery FGameplayTagQuery::MakeQuery_MatchAnyTag(FGameplayTagContainer const& InTags)
+{
+	return FGameplayTagQuery::BuildQuery
+	(
+		FGameplayTagQueryExpression()
+		.AnyTagsMatch()
+		.AddTags(InTags)
+	);
 }
 
 
@@ -882,6 +945,8 @@ UEditableGameplayTagQuery* FQueryEvaluator::CreateEditableQuery()
 		}
 	}
 	ensure(CurStreamIdx == Query.QueryTokenStream.Num());
+
+	EditableQuery->UserDescription = Query.UserDescription;
 
 	return EditableQuery;
 }
@@ -1029,12 +1094,21 @@ void FGameplayTagQuery::BuildFromEditableQuery(UEditableGameplayTagQuery& Editab
 	QueryTokenStream.Reset();
 	TagDictionary.Reset();
 
-	Description = EditableQuery.Description;
-	FString* const StringRepresentation = Description.IsEmpty() ? &Description : nullptr;
+	UserDescription = EditableQuery.UserDescription;
 
 	// add stream version first
 	QueryTokenStream.Add(EGameplayTagQueryStreamVersion::LatestVersion);
-	EditableQuery.EmitTokens(QueryTokenStream, TagDictionary, StringRepresentation);
+	EditableQuery.EmitTokens(QueryTokenStream, TagDictionary, &AutoDescription);
+}
+
+FString UEditableGameplayTagQuery::GetTagQueryExportText(FGameplayTagQuery const& TagQuery)
+{
+	TagQueryExportText_Helper = TagQuery;
+	UProperty* const TQProperty = FindField<UProperty>(GetClass(), TEXT("TagQueryExportText_Helper"));
+
+	FString OutString;
+	TQProperty->ExportTextItem(OutString, (void*)&TagQueryExportText_Helper, (void*)&TagQueryExportText_Helper, this, 0);
+	return OutString;
 }
 
 void UEditableGameplayTagQuery::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
@@ -1053,7 +1127,10 @@ void UEditableGameplayTagQuery::EmitTokens(TArray<uint8>& TokenStream, TArray<FG
 	else
 	{
 		TokenStream.Add(0);		// false if no root expression
-		DebugString->Append(TEXT("undefined"));
+		if (DebugString)
+		{
+			DebugString->Append(TEXT("undefined"));
+		}
 	}
 }
 
@@ -1112,7 +1189,10 @@ void UEditableGameplayTagQueryExpression::EmitExprListTokens(TArray<UEditableGam
 		{
 			// null expression
 			TokenStream.Add(EGameplayTagQueryExprType::Undefined);
-			DebugString->Append(TEXT("undefined"));
+			if (DebugString)
+			{
+				DebugString->Append(TEXT("undefined"));
+			}
 		}
 
 		bFirstExpr = false;
@@ -1217,6 +1297,11 @@ void UEditableGameplayTagQueryExpression_NoExprMatch::EmitTokens(TArray<uint8>& 
 #endif	// WITH_EDITOR
 
 
+FGameplayTagQueryExpression& FGameplayTagQueryExpression::AddTag(FName TagName)
+{
+	FGameplayTag const Tag = IGameplayTagsModule::RequestGameplayTag(TagName);
+	return AddTag(Tag);
+}
 
 void FGameplayTagQueryExpression::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
 {
@@ -1237,7 +1322,7 @@ void FGameplayTagQueryExpression::EmitTokens(TArray<uint8>& TokenStream, TArray<
 		for (auto Tag : TagSet)
 		{
 			int32 TagIdx = TagDictionary.AddUnique(Tag);
-			check(TagIdx <= 255);
+			check(TagIdx <= 254);		// we reserve token 255 for internal use, so 254 is max unique tags
 			TokenStream.Add((uint8)TagIdx);
 		}
 	}

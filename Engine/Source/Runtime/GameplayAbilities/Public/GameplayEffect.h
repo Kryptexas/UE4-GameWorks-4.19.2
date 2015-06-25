@@ -1187,7 +1187,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
  *  -Replication callbacks
  *
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializerItem
 {
 	GENERATED_USTRUCT_BODY()
@@ -1277,6 +1277,63 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	FTimerHandle DurationHandle;
 
 	FActiveGameplayEffect* PendingNext;
+};
+
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FActiveGameplayEffectQueryCustomMatch_Dynamic, FActiveGameplayEffect, Effect, bool&, bMatches);
+
+/** Every set condition within this query must match in order for the query to match. i.e. individual query elements are ANDed together. */
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayEffectQuery
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	// ctors and operators
+	FGameplayEffectQuery();
+	FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch InCustomMatchDelegate);
+	FGameplayEffectQuery(FGameplayEffectQuery&& Other);
+	FGameplayEffectQuery& operator=(FGameplayEffectQuery&& Other);
+
+	/** Native delegate for providing custom matching conditions. */
+	FActiveGameplayEffectQueryCustomMatch CustomMatchDelegate;
+
+	/** BP-exposed delegate for providing custom matching conditions. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	FActiveGameplayEffectQueryCustomMatch_Dynamic CustomMatchDelegate_BP;
+
+	/** Query that is matched against InheritableOwnedTagsContainer */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	FGameplayTagQuery OwningTagQuery;
+
+	/** Query that is matched against InheritableGameplayEffectTags */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	FGameplayTagQuery EffectTagQuery;
+
+	/** Matches on GameplayEffects which modify given attribute. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	FGameplayAttribute ModifyingAttribute;
+
+	/** Matches on GameplayEffects which come from this source */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	const UObject* EffectSource;
+
+	/** Matches on GameplayEffects with this definition */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	const UGameplayEffect* EffectDefinition;
+
+	/** Handles to ignore as matches, even if other criteria is met */
+	TArray<FActiveGameplayEffectHandle> IgnoreHandles;
+
+	/** Returns true if Effect matches all specified criteria of this query, including CustomMatch delegates if bound. Returns false otherwise. */
+	bool Matches(const FActiveGameplayEffect& Effect) const;
+
+	/** 
+	 * Shortcuts for easily creating common query types 
+	 * @todo: add more as dictated by use cases
+	 */
+
+	/** Creates an effect query that will match if there are any common tags between the given tags and an ActiveGameplayEffect's owning tags */
+	static FGameplayEffectQuery MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InOwningTagContainer);
 };
 
 /**
@@ -1483,14 +1540,18 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 	
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
+	TArray<float> GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const;
 
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
+	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery Query) const;
 
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
+	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery Query) const;
 
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove);
+	void RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove);
 
 	/**
 	 * Get the count of the effects matching the specified query (including stack count)
@@ -1498,6 +1559,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 * @return Count of the effects matching the specified query
 	 */
 	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const;
+	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query) const;
 
 	float GetServerWorldTime() const;
 

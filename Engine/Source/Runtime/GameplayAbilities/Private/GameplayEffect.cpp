@@ -2787,6 +2787,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 	return true;
 }
 
+// #deprecated
 TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
@@ -2811,7 +2812,33 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 	// Note: keep one return location to avoid copy operation.
 	return ReturnList;
 }
+TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
 
+	float CurrentTime = GetWorldTime();
+
+	TArray<float>	ReturnList;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (!Query.Matches(Effect))
+		{
+			continue;
+		}
+
+		float Elapsed = CurrentTime - Effect.StartWorldTime;
+		float Duration = Effect.GetDuration();
+
+		ReturnList.Add(Duration - Elapsed);
+	}
+
+	// Note: keep one return location to avoid copy operation.
+	return ReturnList;
+}
+
+
+// #deprecated
 TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsDuration);
@@ -2832,7 +2859,47 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 	return ReturnList;
 }
 
+TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FGameplayEffectQuery Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsDuration);
+
+	TArray<float>	ReturnList;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (!Query.Matches(Effect))
+		{
+			continue;
+		}
+
+		ReturnList.Add(Effect.GetDuration());
+	}
+
+	// Note: keep one return location to avoid copy operation.
+	return ReturnList;
+}
+
+// #deprecated
 TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEffects(const FActiveGameplayEffectQuery Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffects);
+
+	TArray<FActiveGameplayEffectHandle> ReturnList;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (!Query.Matches(Effect))
+		{
+			continue;
+		}
+
+		ReturnList.Add(Effect.Handle);
+	}
+
+	return ReturnList;
+}
+
+TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEffects(const FGameplayEffectQuery Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffects);
 
@@ -2885,6 +2952,21 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 }
 
 int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const
+{
+	int32 Count = 0;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (Query.Matches(Effect))
+		{
+			Count += Effect.Spec.StackCount;
+		}
+	}
+
+	return Count;
+}
+
+int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FGameplayEffectQuery& Query) const
 {
 	int32 Count = 0;
 
@@ -3058,6 +3140,149 @@ void FActiveGameplayEffectHandle::RemoveFromGlobalMap()
 
 // -----------------------------------------------------------------
 
+FGameplayEffectQuery::FGameplayEffectQuery()
+	: EffectSource(nullptr),
+	EffectDefinition(nullptr)
+{
+}
+
+FGameplayEffectQuery::FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch InCustomMatchDelegate)
+	: CustomMatchDelegate(InCustomMatchDelegate),
+	EffectSource(nullptr),
+	EffectDefinition(nullptr)
+{
+}
+
+
+FGameplayEffectQuery::FGameplayEffectQuery(FGameplayEffectQuery&& Other)
+{
+	*this = Other;
+}
+
+FGameplayEffectQuery& FGameplayEffectQuery::operator=(FGameplayEffectQuery&& Other)
+{
+	CustomMatchDelegate = MoveTemp(Other.CustomMatchDelegate);
+	CustomMatchDelegate_BP = MoveTemp(Other.CustomMatchDelegate_BP);
+	OwningTagQuery = MoveTemp(Other.OwningTagQuery);
+	EffectTagQuery = MoveTemp(Other.EffectTagQuery);
+	ModifyingAttribute = MoveTemp(Other.ModifyingAttribute);
+	EffectSource = Other.EffectSource;
+	EffectDefinition = Other.EffectDefinition;
+	IgnoreHandles = MoveTemp(Other.IgnoreHandles);
+	return *this;
+}
+
+bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
+{
+	// since all of these query conditions must be met to be considered a match, failing
+	// any one of them means we can return false
+
+	// Anything in the ignore handle list is an immediate non-match
+	if (IgnoreHandles.Contains(Effect.Handle))
+	{
+		return false;
+	}
+
+	if (CustomMatchDelegate.IsBound())
+	{
+		if (CustomMatchDelegate.Execute(Effect) == false)
+		{
+			return false;
+		}
+	}
+
+	if (CustomMatchDelegate_BP.IsBound())
+	{
+		bool bDelegateMatches = false;
+		CustomMatchDelegate_BP.Execute(Effect, bDelegateMatches);
+		if (bDelegateMatches == false)
+		{
+			return false;
+		}
+	}
+
+	// if it fails to match any of these, fail to match overall (assuming AND relationship)
+	if (OwningTagQuery.IsEmpty() == false)
+	{
+		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
+		if ((CombinedTags.Num() > 0) && (OwningTagQuery.Matches(CombinedTags) == false))		// note: matches on empty
+		{
+			if (OwningTagQuery.Matches(Effect.Spec.DynamicGrantedTags) == false)
+			{
+				if (OwningTagQuery.Matches(Effect.Spec.CapturedSourceTags.GetSpecTags()) == false)
+				{
+					// none of these match, so EffectTagQuery fails to match, so entire query fails to match, we can be done
+					return false;
+				}
+			}
+		}
+	}
+
+	if (EffectTagQuery.IsEmpty() == false)
+	{
+		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
+		if ((CombinedTags.Num() > 0) && (OwningTagQuery.Matches(CombinedTags) == false))		// note: matches on empty
+		{
+			if (OwningTagQuery.Matches(Effect.Spec.DynamicAssetTags) == false)
+			{
+				// none of these match, so EffectTagQuery fails to match, so entire query fails to match, we can be done
+				return false;
+			}
+		}
+	}
+
+	// if we are looking for ModifyingAttribute go over each of the Spec Modifiers and check the Attributes
+	if (ModifyingAttribute.IsValid())
+	{
+		bool bEffectModifiesThisAttribute = false;
+
+		for (int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
+		{
+			const FGameplayModifierInfo& ModDef = Effect.Spec.Def->Modifiers[ModIdx];
+			const FModifierSpec& ModSpec = Effect.Spec.Modifiers[ModIdx];
+
+			if (ModDef.Attribute == ModifyingAttribute)
+			{
+				bEffectModifiesThisAttribute = true;
+				break;
+			}
+		}
+		if (bEffectModifiesThisAttribute == false)
+		{
+			// effect doesn't modify the attribute we are looking for, no match
+			return false;
+		}
+	}
+
+	// check source object
+	if (EffectSource != nullptr)
+	{
+		if (Effect.Spec.GetEffectContext().GetSourceObject() != EffectSource)
+		{
+			return false;
+		}
+	}
+
+	// check definition
+	if (EffectDefinition != nullptr)
+	{
+		if (Effect.Spec.Def != EffectDefinition)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InOwningTagContainer)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTag(InOwningTagContainer);
+	return OutQuery;
+}
+
 bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 {
 	// Anything in the ignore handle list is an immediate non-match
@@ -3071,30 +3296,30 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 		return CustomMatch.Execute(Effect);
 	}
 
-	// if we are looking for owning tags check them on the Granted Tags and Owned Tags Container
-	if (OwningTagContainer)
-	{
-		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*OwningTagContainer, true) &&
-			!Effect.Spec.DynamicGrantedTags.MatchesAny(*OwningTagContainer, false))
-		{
-			// if the GameplayEffect didn't match check the spec for tags that were added when this effect was created
-			if (!Effect.Spec.CapturedSourceTags.GetSpecTags().MatchesAny(*OwningTagContainer, false))
-			{
-				return false;
-			}
-		}
-	}	
-	
-	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
-	if (EffectTagContainer)
-	{
-		if (!Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, true) &&
-			!Effect.Spec.DynamicAssetTags.MatchesAny(*EffectTagContainer, false))
-		{
-			// this doesn't match our Tags so bail
-			return false;
-		}
-	}
+ 	// if we are looking for owning tags check them on the Granted Tags and Owned Tags Container
+ 	if (OwningTagContainer)
+ 	{
+ 		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*OwningTagContainer, true) &&
+ 			!Effect.Spec.DynamicGrantedTags.MatchesAny(*OwningTagContainer, false))
+ 		{
+ 			// if the GameplayEffect didn't match check the spec for tags that were added when this effect was created
+ 			if (!Effect.Spec.CapturedSourceTags.GetSpecTags().MatchesAny(*OwningTagContainer, false))
+ 			{
+ 				return false;
+ 			}
+ 		}
+ 	}	
+ 	
+ 	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
+ 	if (EffectTagContainer)
+ 	{
+ 		if (!Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, true) &&
+ 			!Effect.Spec.DynamicAssetTags.MatchesAny(*EffectTagContainer, false))
+ 		{
+ 			// this doesn't match our Tags so bail
+ 			return false;
+ 		}
+ 	}
 
 	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
 	if (EffectTagContainer_Rejection)

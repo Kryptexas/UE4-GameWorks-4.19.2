@@ -18,8 +18,10 @@ void SGameplayTagQueryWidget::Construct(const FArguments& InArgs, const TArray<F
 	TagQueries = EditableTagQueries;
 
 	bReadOnly = InArgs._ReadOnly;
+	bAutoSave = InArgs._AutoSave;
 	OnSaveAndClose = InArgs._OnSaveAndClose;
 	OnCancel = InArgs._OnCancel;
+	OnQueryChanged = InArgs._OnQueryChanged;
 
 	// Tag the assets as transactional so they can support undo/redo
 	for (int32 AssetIdx = 0; AssetIdx < TagQueries.Num(); ++AssetIdx)
@@ -44,6 +46,7 @@ void SGameplayTagQueryWidget::Construct(const FArguments& InArgs, const TArray<F
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	Details = PropertyModule.CreateDetailView(ViewArgs);
 	Details->SetObject(EQ);
+	Details->OnFinishedChangingProperties().AddSP(this, &SGameplayTagQueryWidget::OnFinishedChangingProperties);
 
 	ChildSlot
 	[
@@ -68,6 +71,7 @@ void SGameplayTagQueryWidget::Construct(const FArguments& InArgs, const TArray<F
 					[
 						SNew(SButton)
 						.IsEnabled(!bReadOnly)
+						.Visibility(this, &SGameplayTagQueryWidget::GetSaveAndCloseButtonVisibility)
 						.OnClicked(this, &SGameplayTagQueryWidget::OnSaveAndCloseClicked)
 						.Text(LOCTEXT("GameplayTagQueryWidget_SaveAndClose", "Save and Close"))
 					]
@@ -75,6 +79,7 @@ void SGameplayTagQueryWidget::Construct(const FArguments& InArgs, const TArray<F
 					.AutoWidth()
 					[
 						SNew(SButton)
+						.Visibility(this, &SGameplayTagQueryWidget::GetCancelButtonVisibility)
 						.OnClicked(this, &SGameplayTagQueryWidget::OnCancelClicked)
 						.Text(LOCTEXT("GameplayTagQueryWidget_Cancel", "Close Without Saving"))
 					]
@@ -87,6 +92,26 @@ void SGameplayTagQueryWidget::Construct(const FArguments& InArgs, const TArray<F
 			]
 		]
 	];
+}
+
+void SGameplayTagQueryWidget::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (bAutoSave)
+	{
+		SaveToTagQuery();
+	}
+
+	OnQueryChanged.ExecuteIfBound();
+}
+
+EVisibility SGameplayTagQueryWidget::GetSaveAndCloseButtonVisibility() const
+{
+	return bAutoSave ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+EVisibility SGameplayTagQueryWidget::GetCancelButtonVisibility() const
+{
+	return bAutoSave ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 UEditableGameplayTagQuery* SGameplayTagQueryWidget::CreateEditableQuery(FGameplayTagQuery& Q)
@@ -111,7 +136,8 @@ SGameplayTagQueryWidget::~SGameplayTagQueryWidget()
 	}
 }
 
-FReply SGameplayTagQueryWidget::OnSaveAndCloseClicked()
+
+void SGameplayTagQueryWidget::SaveToTagQuery()
 {
 	// translate obj tree to token stream
 	if (EditableQuery.IsValid() && !bReadOnly)
@@ -120,9 +146,18 @@ FReply SGameplayTagQueryWidget::OnSaveAndCloseClicked()
 		for (auto& TQ : TagQueries)
 		{
 			TQ.TagQuery->BuildFromEditableQuery(*EditableQuery.Get());
+			if (TQ.TagQueryExportText != nullptr)
+			{
+				*TQ.TagQueryExportText = EditableQuery.Get()->GetTagQueryExportText(*TQ.TagQuery);
+			}
 			TQ.TagQueryOwner->MarkPackageDirty();
 		}
 	}
+}
+
+FReply SGameplayTagQueryWidget::OnSaveAndCloseClicked()
+{
+	SaveToTagQuery();
 
 	OnSaveAndClose.ExecuteIfBound();
 	return FReply::Handled();
