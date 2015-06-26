@@ -27,16 +27,13 @@ Description:Overview of the Maya Animation Rigging Toolset.
 ![](CharacterSetupImage.jpg)
 [/REGION]
 
-
-## Overview
-
 [EXCERPT:Intro]
 The Animation and Riggings Toolset (A.R.T) is a comprehensive toolset that takes a character through skeleton creation, skeleton placement, and rig creation, as well as many animation tools to speed up your animators' workflow, currently tested and confirmed in Maya 2013 and up. Features include:
 
 * Intuitive user interfaces guide the user through every process.
 * Complete skeletal creation.
 * Custom skeleton placement via an intuitive positioning rig.
-* An entire rig can be published and sent to the animation team **in under a minute!**
+* An entire rig can be published and sent to the animation team in under a minute!
 * Ability to provide simple skinning to your final character.
 * A full suite of animation tools complete with user interface, including importing mocap or animation data, exporting to FBX, pose tools, mirroring, space switching, and more!
 [/EXCERPT:Intro]
