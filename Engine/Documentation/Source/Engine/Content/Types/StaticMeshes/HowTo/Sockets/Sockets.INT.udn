@@ -1,5 +1,5 @@
 Availability: Public
-Title:Static Meshes - How To Set Up and Use Sockets
+Title:Setting Up and Using Sockets With Static Meshes
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: How To Set Up and Use Sockets
 
@@ -43,8 +43,6 @@ Description: How To Set Up and Use Sockets
 [/OBJECT]
 [/VAR]
 
-## Overview
-
 While making your level in UE4, there may come a time where you want to attach something to your Static Mesh.  You could parent an object to the Static Mesh in the **World Outliner**, but you still have to position it in the exact place you want it in relation to your mesh, and that can get tedious.  However, just like you can attach objects to your Skeletal Mesh through the use of sockets, you can also attach objects to your Static Mesh using sockets.  It is as easy as creating your socket in the Static Mesh Editor, placing it where you want it to be in relation to your mesh, and then attaching an object, whether it is a light, particle effect, or even another Static Mesh, to your mesh.  This How To will show you how to create a socket for your Static Mesh, and how you may be able to use it in your level.
 
 
@@ -69,7 +67,7 @@ Once you have found **SM_DoorFrame**, open the asset up in the Static Mesh Edito
 
 ![](DoorFrameInEditor.png)
 
-Now that we have the mesh opened in the Static Mesh Editor, we are going to create a socket so that we can place a fire particle in the middle of the doorway to make some type of archway of death.  To start off, we will need to create the socket.  To do this, click on the **Window** drop down menu from the top of the editor and select **Socket Manager**.  When you do, the **Socket Manager** window will appear.  It should look similar to what is shown below on the right:
+Now that we have the mesh opened in the Static Mesh Editor, we are going to create a socket so that we can place a fire particle in the middle of the doorway to make some type of archway of death.  To start off, we will need to create the socket.  To do this, click on the **Window** drop down menu from the top of the editor and select **Socket Manager**.  When you do, the Socket Manager window will appear.  It should look similar to what is shown below on the right:
 
 ![](WindowMenu.png)(h:450)
 ![](CreateSocketButton.png)(w:650 a:right)
@@ -80,7 +78,7 @@ Once you have the **Socket Manager** window opened, click the **Create Socket** 
 
 If you look at your mesh in the Viewport, you should see a 3D widget with a Translation widget.  If not, make sure that you have sockets visible by clicking the **Sockets** button in the Toolbar.   (![](SocketsButton.png))
 
-Once you can see the socket, it is not quite where we want it to be located.  By default, when you create a new socket, it will be located where the origin of the Static Mesh is, which is directly in the middle at the bottom of the mesh in this case.  We want our socket to be in the middle of the doorway so that they player will have to walk through fire when they walk through the doorway.  You can use the translate widget in the Viewport to move the socket manually, or you can change its relative location, rotation, and scale from within the **Socket Manager** panel.  To achieve the effect we want to change the value of **Z** in it's relative location from 0 to 115.  After you do that, you should have something that looks like this.
+Once you can see the socket, it is not quite where we want it to be located.  By default, when you create a new socket, it will be located where the origin of the Static Mesh is, which is directly in the middle at the bottom of the mesh in this case.  We want our socket to be in the middle of the doorway so that they player will have to walk through fire when they walk through the doorway.  You can use the translate widget in the Viewport to move the socket manually, or you can change its relative location, rotation, and scale from within the **Socket Manager** panel.  To achieve the effect we want to change the value of **Z** in its relative location from 0 to 115.  After you do that, you should have something that looks like this.
 
 ![](FireSocket.png)
 
@@ -107,7 +105,7 @@ Note that now that the particle effect is attached to the Static Mesh via its so
 
 ## Detaching
 
-At any point that you need to detach an object that is attached to another, it is as easy as attaching an object to another.  Simply **right-click** on the object that you want to detach and from the context menu that appears, select **Detach**.  The object is no longer attached to the other object.
+At any point that you need to detach an object that is attached to another, it is as easy as attaching an object to another. **right-click** on the object that you want to detach and from the context menu that appears, select **Detach**.  The object is no longer attached to the other object.
 
 ![](Detach.png)
 
@@ -134,6 +132,6 @@ Now that we have a socket to attach the door to the frame, go ahead and save you
 
 ![](DoorSocketComplete.png)
 
-By default, **SM_Door** will not have collision set.  If you play the level now, the player can simply walk through the solid door, which is not very useful.  Go ahead and set a simple box collision for the door inside of the Static Mesh Editor so that the player will not be able to just walk through the door when it is closed.  If you do not know how to do that, you can read how [here](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%").
+By default, **SM_Door** will not have collision set.  If you play the level now, the player can walk through the solid door, which is not very useful.  Go ahead and set a simple box collision for the door inside of the Static Mesh Editor so that the player will not be able to just walk through the door when it is closed.  If you do not know how to do that, you can read how [here](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%").
 
 Now that the door is solid and the player cannot walk through it, you can use Blueprints to script behavior for the door so that it can open and close.  That is out of the scope of this How To, but now that you have to door to use that blocks the player out and is attached to your door frame, you can find out how to get script behavior to get the door to open and close [here](Engine/Blueprints/UserGuide/Timelines/Examples/OpeningDoors).
