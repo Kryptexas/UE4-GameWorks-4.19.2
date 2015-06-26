@@ -28,6 +28,17 @@ struct FFileChangeData
 class IDirectoryWatcher
 {
 public:
+
+	/** Options for a single watch (can be combined) */
+	enum WatchOptions : uint32
+	{
+		/** Whether to include notifications for changes to actual directories (such as directories being created or removed). */
+		IncludeDirectoryChanges			=		(1<<0),
+
+		/** Whether changes in subdirectories need to be reported. */
+		IgnoreChangesInSubtree			=		(1<<1),
+	};
+
 	/** A delegate to report directory changes */
 	DECLARE_DELEGATE_OneParam(FDirectoryChanged, const TArray<struct FFileChangeData>& /*FileChanges*/);
 
@@ -60,7 +71,18 @@ public:
 	 * @param	The handle to the registered delegate, if the registration was successful.
 	 * @param   Whether to include notifications for changes to actual directories (such as directories being created or removed)
 	 */
-	virtual bool RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, bool bIncludeDirectoryChanges = false) = 0;
+	DEPRECATED(4.9, "Please use RegisterDirectoryChangedCallback_Handle that takes Flags argument") \
+	virtual bool RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, bool bIncludeDirectoryChanges) = 0;
+
+	/**
+	 * Register a callback to fire when directories are changed
+	 *
+	 * @param	Directory to watch
+	 * @param	Delegate to add to our callback list
+	 * @param	The handle to the registered delegate, if the registration was successful.
+	 * @param	Set of options to use when registering the delegates.
+	 */
+	virtual bool RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, uint32 Flags = 0) = 0;
 
 	/**
 	 * Unregisters a callback to fire when directories are changed

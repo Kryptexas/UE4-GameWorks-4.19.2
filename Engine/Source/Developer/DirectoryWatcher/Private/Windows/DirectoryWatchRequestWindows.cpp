@@ -2,13 +2,14 @@
 
 #include "DirectoryWatcherPrivatePCH.h"
 
-FDirectoryWatchRequestWindows::FDirectoryWatchRequestWindows(bool bIncludeDirectoryEvents)
+FDirectoryWatchRequestWindows::FDirectoryWatchRequestWindows(uint32 Flags)
 {
 	bPendingDelete = false;
 	bEndWatchRequestInvoked = false;
 
 	MaxChanges = 16384;
-	bWatchSubtree = true;
+	bWatchSubtree = (Flags & IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree) == 0;
+	bool bIncludeDirectoryEvents = (Flags & IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges) != 0;
 
 	NotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | (bIncludeDirectoryEvents? FILE_NOTIFY_CHANGE_DIR_NAME : 0) | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
 

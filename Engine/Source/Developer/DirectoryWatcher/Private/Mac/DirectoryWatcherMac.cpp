@@ -102,7 +102,12 @@ bool FDirectoryWatcherMac::UnregisterDirectoryChangedCallback( const FString& Di
 	return false;
 }
 
-bool FDirectoryWatcherMac::RegisterDirectoryChangedCallback_Handle( const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, bool bIncludeDirectoryChanges )
+bool FDirectoryWatcherMac::RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, bool bIncludeDirectoryChanges)
+{
+	return RegisterDirectoryChangedCallback_Handle(Directory, InDelegate, OutHandle, bIncludeDirectoryChanges ? IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges : 0);
+}
+
+bool FDirectoryWatcherMac::RegisterDirectoryChangedCallback_Handle( const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, uint32 Flags )
 {
 	FDirectoryWatchRequestMac** RequestPtr = RequestMap.Find(Directory);
 	FDirectoryWatchRequestMac* Request = NULL;
@@ -116,7 +121,7 @@ bool FDirectoryWatcherMac::RegisterDirectoryChangedCallback_Handle( const FStrin
 	}
 	else
 	{
-		Request = new FDirectoryWatchRequestMac(bIncludeDirectoryChanges);
+		Request = new FDirectoryWatchRequestMac(Flags);
 		NumRequests++;
 
 		// Begin reading directory changes

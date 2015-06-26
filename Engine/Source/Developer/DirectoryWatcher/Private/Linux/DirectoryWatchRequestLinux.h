@@ -39,7 +39,7 @@ public:
 	virtual ~FDirectoryWatchRequestLinux();
 
 	/** Sets up the directory handle and request information */
-	bool Init(const FString& InDirectory, bool bInIncludeDirectoryChanges);
+	bool Init(const FString& InDirectory, uint32 Flags);
 
 	/** Adds a delegate to get fired when the directory changes */
 	FDelegateHandle AddDelegate( const IDirectoryWatcher::FDirectoryChanged& InDelegate );
@@ -72,6 +72,9 @@ private:
 
 	/** Whether to report directory creation/deletion changes. */
 	bool bIncludeDirectoryChanges;
+
+	/** Whether or not watch subtree. */
+	bool bWatchSubtree;
 
 	int FileDescriptor;
 

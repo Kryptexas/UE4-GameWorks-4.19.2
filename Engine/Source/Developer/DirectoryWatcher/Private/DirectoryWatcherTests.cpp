@@ -12,7 +12,7 @@ struct FDirectoryWatcherTestPayload
 	FString WorkingDir;
 	TMap<FString, FFileChangeData::EFileChangeAction> ReportedChanges;
 
-	FDirectoryWatcherTestPayload(const FString& InWorkingDir, bool bIncludeDirectoryEvents = false)
+	FDirectoryWatcherTestPayload(const FString& InWorkingDir, uint32 Flags = 0)
 		: WorkingDir(InWorkingDir)
 	{
 		IFileManager::Get().MakeDirectory(*WorkingDir, true);
@@ -21,7 +21,7 @@ struct FDirectoryWatcherTestPayload
 		if (IDirectoryWatcher* DirectoryWatcher = Module.Get())
 		{
 			auto Callback = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FDirectoryWatcherTestPayload::OnDirectoryChanged);
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(WorkingDir, Callback, WatcherDelegate, bIncludeDirectoryEvents);
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(WorkingDir, Callback, WatcherDelegate, Flags);
 		}
 	}
 	~FDirectoryWatcherTestPayload()
@@ -275,7 +275,7 @@ bool FDirectoryWatcherNewFolderTest::RunTest(const FString& Parameters)
 		IFileManager::Get().MakeDirectory(*(WorkingDir / RemovedDirectory), true);
 
 		// Start watching the directory
-		TSharedPtr<FDirectoryWatcherTestPayload> Test = MakeShareable(new FDirectoryWatcherTestPayload(WorkingDir, true));
+		TSharedPtr<FDirectoryWatcherTestPayload> Test = MakeShareable(new FDirectoryWatcherTestPayload(WorkingDir, IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges));
 
 		// Give the stream time to start up before doing the test
 		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
@@ -306,12 +306,47 @@ bool FDirectoryWatcherNewFolderTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherIgnoreSubtreeTest, "System.Plugins.Directory Watcher.Ignore Subtree", EAutomationTestFlags::ATF_Editor)
+bool FDirectoryWatcherIgnoreSubtreeTest::RunTest(const FString& Parameters)
+{
+	const FString WorkingDir = GetWorkingDir();
 
+	static const TCHAR* ChildDirectory = TEXT("child");
+	static const TCHAR* GrandchildDirectory = TEXT("grandchild");
 
+	// Give the stream time to start up before doing the test
+	ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
 
+		// Start watching the directory
+		TSharedPtr<FDirectoryWatcherTestPayload> Test = MakeShareable(new FDirectoryWatcherTestPayload(WorkingDir, IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree | IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges));
 
+		// Give the stream time to start up before doing the test
+		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
 
+			IFileManager::Get().MakeDirectory(*(WorkingDir / ChildDirectory), true);
+			IFileManager::Get().MakeDirectory(*(WorkingDir / ChildDirectory / GrandchildDirectory), true);
 
+			ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
 
+				FFileChangeData::EFileChangeAction* Action = Test->ReportedChanges.Find(ChildDirectory);
+				if (!Action || *Action != FFileChangeData::FCA_Added)
+				{
+					UE_LOG(LogDirectoryWatcherTests, Error, TEXT("Folder '%s' was not correctly reported as being added."), ChildDirectory);
+				}
 
+				Action = Test->ReportedChanges.Find(GrandchildDirectory);
+				if (Action)
+				{
+					UE_LOG(LogDirectoryWatcherTests, Error, TEXT("Changes to folder '%s' (creation of subfolder '%s') was reported in spite of us setting the mode 'ignore changes in subtree'."),
+						ChildDirectory, GrandchildDirectory);
+				}
+
+			}));
+
+		}));
+
+	}));
+
+	return true;
+}
 

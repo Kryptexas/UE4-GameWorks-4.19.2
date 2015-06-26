@@ -5,6 +5,8 @@
 FDirectoryWatchRequestLinux::FDirectoryWatchRequestLinux()
 :	bRunning(false)
 ,	bEndWatchRequestInvoked(false)
+,	bIncludeDirectoryChanges(false)
+,	bWatchSubtree(false)
 {
 	NotifyFilter = IN_CREATE | IN_MOVE | IN_MODIFY | IN_DELETE;
 }
@@ -22,7 +24,7 @@ void FDirectoryWatchRequestLinux::Shutdown()
 	PathsToWatchDescriptors.Empty();
 }
 
-bool FDirectoryWatchRequestLinux::Init(const FString& InDirectory, bool bInIncludeDirectoryChanges)
+bool FDirectoryWatchRequestLinux::Init(const FString& InDirectory, uint32 Flags)
 {
 	if (InDirectory.Len() == 0)
 	{
@@ -31,7 +33,8 @@ bool FDirectoryWatchRequestLinux::Init(const FString& InDirectory, bool bInInclu
 	}
 
 	Directory = InDirectory;
-	bIncludeDirectoryChanges = bInIncludeDirectoryChanges;
+	bIncludeDirectoryChanges = (Flags & IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges) != 0;
+	bWatchSubtree = (Flags & IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree) == 0;
 
 	if (bRunning)
 	{
@@ -117,7 +120,10 @@ void FDirectoryWatchRequestLinux::WatchDirectoryTree(const FString & RootAbsolut
 {
 	UE_LOG(LogDirectoryWatcher, VeryVerbose, TEXT("Watching tree '%s'"), *RootAbsolutePath);
 	TArray<FString> AllFiles;
-	IFileManager::Get().FindFilesRecursive(AllFiles, *RootAbsolutePath, TEXT("*"), false, true);
+	if (bWatchSubtree)
+	{
+		IFileManager::Get().FindFilesRecursive(AllFiles, *RootAbsolutePath, TEXT("*"), false, true);
+	}
 	// add the path as well
 	AllFiles.Add(RootAbsolutePath);
 

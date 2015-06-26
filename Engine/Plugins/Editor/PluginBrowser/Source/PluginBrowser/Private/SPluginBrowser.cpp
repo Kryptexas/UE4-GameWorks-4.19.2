@@ -35,7 +35,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 	for(const FString& WatchDirectoryName: WatchDirectoryNames)
 	{
 		FDelegateHandle Handle;
-		if(DirectoryWatcherModule.Get()->RegisterDirectoryChangedCallback_Handle(WatchDirectoryName, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &SPluginBrowser::OnPluginDirectoryChanged), Handle, true))
+		if(DirectoryWatcherModule.Get()->RegisterDirectoryChangedCallback_Handle(WatchDirectoryName, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &SPluginBrowser::OnPluginDirectoryChanged), Handle, IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges))
 		{
 			WatchDirectories.Add(WatchDirectoryName, Handle);
 		}

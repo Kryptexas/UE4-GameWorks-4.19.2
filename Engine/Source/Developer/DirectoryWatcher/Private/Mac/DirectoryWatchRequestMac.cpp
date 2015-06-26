@@ -13,10 +13,11 @@ void DirectoryWatchMacCallback( ConstFSEventStreamRef StreamRef, void* WatchRequ
 
 // ============================================================================================================================
 
-FDirectoryWatchRequestMac::FDirectoryWatchRequestMac(bool bInIncludeDirectoryEvents)
+FDirectoryWatchRequestMac::FDirectoryWatchRequestMac(uint32 Flags)
 :	bRunning(false)
 ,	bEndWatchRequestInvoked(false)
-,	bIncludeDirectoryEvents(bInIncludeDirectoryEvents)
+,	bIncludeDirectoryEvents((Flags & IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges) != 0)
+,	bIgnoreChangesInSubtree((Flags & IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree) != 0)
 {
 }
 
