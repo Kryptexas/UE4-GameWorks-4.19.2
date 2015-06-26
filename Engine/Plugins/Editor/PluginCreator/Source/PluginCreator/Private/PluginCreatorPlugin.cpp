@@ -8,6 +8,8 @@
 #include "PluginCreatorStyle.h"
 #include "PluginDescriptorDetails.h"
 #include "MultiBoxExtender.h"
+#include "IProjectManager.h"
+#include "GameProjectUtils.h"
 
 static const FName PCPluginTabName("PluginCreatorPlugin");
 
@@ -19,6 +21,14 @@ DEFINE_LOG_CATEGORY(PluginCreatorPluginLog);
 
 void FPluginCreatorModule::StartupModule()
 {
+	// Disallow this plugin in content only projects as they won't compile
+	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+	if (CurrentProject == nullptr || CurrentProject->Modules.Num() == 0 || !GameProjectUtils::ProjectHasCodeFiles())
+	{
+		UE_LOG(PluginCreatorPluginLog, Warning, TEXT("Plugin Creator module disabled for content only projects"));
+		return;
+	}
+
 	FPluginCreatorStyle::Initialize();
 	FPluginCreatorStyle::ReloadTextures();
 

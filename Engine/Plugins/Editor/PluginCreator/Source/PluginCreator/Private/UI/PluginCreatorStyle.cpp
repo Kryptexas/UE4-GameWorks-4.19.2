@@ -18,9 +18,12 @@ void FPluginCreatorStyle::Initialize()
 
 void FPluginCreatorStyle::Shutdown()
 {
-	FSlateStyleRegistry::UnRegisterSlateStyle(*PCStyleInstance);
-	ensure(PCStyleInstance.IsUnique());
-	PCStyleInstance.Reset();
+	if (PCStyleInstance.IsValid())
+	{
+		FSlateStyleRegistry::UnRegisterSlateStyle(*PCStyleInstance);
+		ensure(PCStyleInstance.IsUnique());
+		PCStyleInstance.Reset();
+	}
 }
 
 FName FPluginCreatorStyle::GetStyleSetName()
