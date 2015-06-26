@@ -310,6 +310,7 @@ private:
 	struct FPrePushResults
 	{
 		TSharedPtr<SWidget> WrappedContent;
+		TSharedPtr<SWidget> WidgetToFocus;
 		FVector2D AnimStartLocation;
 		FVector2D AnimFinalLocation;
 		bool bAnchorSetsMinWidth;
