@@ -2935,6 +2935,7 @@ void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGamepla
 	}
 }
 
+// #deprecated, use FGameplayEffectQuery version
 void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
@@ -2950,6 +2951,22 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 		}
 	}
 }
+void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove)
+{
+	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
+	GAMEPLAYEFFECT_SCOPE_LOCK();
+
+	// Manually iterating through in reverse because this is a removal operation
+	for (int32 idx = GetNumGameplayEffects() - 1; idx >= 0; --idx)
+	{
+		const FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(idx);
+		if (Effect.IsPendingRemove == false && Query.Matches(Effect))
+		{
+			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);
+		}
+	}
+}
+
 
 int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const
 {
@@ -3159,7 +3176,6 @@ FGameplayEffectQuery::FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch
 {
 }
 
-
 FGameplayEffectQuery::FGameplayEffectQuery(FGameplayEffectQuery&& Other)
 {
 	*this = Other;
@@ -3296,10 +3312,18 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 }
 
 // static
-FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InOwningTagContainer)
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InTags)
 {
 	FGameplayEffectQuery OutQuery;
-	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTag(InOwningTagContainer);
+	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTag(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTag(InTags);
 	return OutQuery;
 }
 

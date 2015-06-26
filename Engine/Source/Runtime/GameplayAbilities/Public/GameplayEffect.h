@@ -21,8 +21,6 @@ class UAbilitySystemComponent;
 class UGameplayModMagnitudeCalculation;
 class UGameplayEffectExecutionCalculation;
 
-DECLARE_DELEGATE_RetVal_OneParam(bool, FActiveGameplayEffectQueryCustomMatch, const FActiveGameplayEffect&);
-
 /** Enumeration outlining the possible gameplay effect magnitude calculation policies. */
 UENUM()
 enum class EGameplayEffectMagnitudeCalculation : uint8
@@ -1279,6 +1277,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	FActiveGameplayEffect* PendingNext;
 };
 
+DECLARE_DELEGATE_RetVal_OneParam(bool, FActiveGameplayEffectQueryCustomMatch, const FActiveGameplayEffect&);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FActiveGameplayEffectQueryCustomMatch_Dynamic, FActiveGameplayEffect, Effect, bool&, bMatches);
 
 /** Every set condition within this query must match in order for the query to match. i.e. individual query elements are ANDed together. */
@@ -1335,7 +1334,8 @@ public:
 	 */
 
 	/** Creates an effect query that will match if there are any common tags between the given tags and an ActiveGameplayEffect's owning tags */
-	static FGameplayEffectQuery MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InOwningTagContainer);
+	static FGameplayEffectQuery MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InTags);
+	static FGameplayEffectQuery MakeQuery_MatchAnyEffectTags(const FGameplayTagContainer& InTags);
 };
 
 /**
@@ -1541,17 +1541,21 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 	
+	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const;
 
+	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery Query) const;
 
+	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery Query) const;
 
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
+	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove);
 	void RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove);
 
@@ -1560,6 +1564,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 * 
 	 * @return Count of the effects matching the specified query
 	 */
+	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const;
 	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query) const;
 

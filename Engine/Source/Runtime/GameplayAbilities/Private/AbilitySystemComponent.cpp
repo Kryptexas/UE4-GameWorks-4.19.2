@@ -249,8 +249,8 @@ int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffec
 
 	if (SourceGameplayEffect)
 	{
-		FActiveGameplayEffectQuery Query;
-		Query.CustomMatch.BindLambda([&](const FActiveGameplayEffect& CurEffect)
+		FGameplayEffectQuery Query;
+		Query.CustomMatchDelegate.BindLambda([&](const FActiveGameplayEffect& CurEffect)
 		{
 			bool bMatches = false;
 
@@ -727,7 +727,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	if (bIsNetAuthority && Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags.Num() > 0)
 	{
 		// Clear tags is always removing all stacks.
-		FActiveGameplayEffectQuery ClearQuery(&Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags);
+		FGameplayEffectQuery ClearQuery = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags);
 		if (MyHandle.IsValid())
 		{
 			ClearQuery.IgnoreHandles.Add(MyHandle);
@@ -857,8 +857,8 @@ void UAbilitySystemComponent::RemoveActiveGameplayEffectBySourceEffect(TSubclass
 {
 	if (GameplayEffect)
 	{
-		FActiveGameplayEffectQuery Query;
-		Query.CustomMatch.BindLambda([&](const FActiveGameplayEffect& CurEffect)
+		FGameplayEffectQuery Query;
+		Query.CustomMatchDelegate.BindLambda([&](const FActiveGameplayEffect& CurEffect)
 		{
 			bool bMatches = false;
 
@@ -1118,28 +1118,34 @@ bool UAbilitySystemComponent::CanApplyAttributeModifiers(const UGameplayEffect *
 // #deprecated, use FGameplayEffectQuery version
 TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
 }
 
-// #deprecated
+// #deprecated, use FGameplayEffectQuery version
 TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FGameplayEffectQuery Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
 }
 
+// #deprecated, use FGameplayEffectQuery version
 TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FActiveGameplayEffectQuery Query) const
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ActiveGameplayEffects.GetActiveEffects(Query);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
-
 TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FGameplayEffectQuery Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffects(Query);
@@ -1154,11 +1160,21 @@ void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagCont
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		RemoveActiveEffects(FActiveGameplayEffectQuery(&Tags));
+		RemoveActiveEffects(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(Tags));
 	}
 }
 
+// #deprecated, use FGameplayEffectQuery version
 void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+}
+void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove)
 {
 	if (IsOwnerActorAuthoritative())
 	{

@@ -671,7 +671,13 @@ protected:
 	//	Ability exclusion / canceling
 	//
 	// ----------------------------------------------------------------------------------------------------------------
-	
+
+	UPROPERTY(EditDefaultsOnly, Category = TagQueries)
+	FGameplayTagQuery CancelAbilitiesMatchingTagQuery;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = TagQueries)
+	FGameplayTagQuery ConstTagQuery;
+
 	/** Abilities with these tags are cancelled when this ability is executed */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer CancelAbilitiesWithTag;
