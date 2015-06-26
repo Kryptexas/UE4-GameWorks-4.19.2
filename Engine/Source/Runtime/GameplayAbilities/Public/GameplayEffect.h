@@ -1294,6 +1294,7 @@ public:
 	FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch InCustomMatchDelegate);
 	FGameplayEffectQuery(FGameplayEffectQuery&& Other);
 	FGameplayEffectQuery& operator=(FGameplayEffectQuery&& Other);
+	FGameplayEffectQuery& operator=(const FGameplayEffectQuery& Other);
 
 	/** Native delegate for providing custom matching conditions. */
 	FActiveGameplayEffectQueryCustomMatch CustomMatchDelegate;

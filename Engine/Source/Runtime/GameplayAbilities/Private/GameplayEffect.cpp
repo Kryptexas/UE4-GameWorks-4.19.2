@@ -3178,6 +3178,20 @@ FGameplayEffectQuery& FGameplayEffectQuery::operator=(FGameplayEffectQuery&& Oth
 	return *this;
 }
 
+FGameplayEffectQuery& FGameplayEffectQuery::operator=(const FGameplayEffectQuery& Other)
+{
+	CustomMatchDelegate = Other.CustomMatchDelegate;
+	CustomMatchDelegate_BP = Other.CustomMatchDelegate_BP;
+	OwningTagQuery = Other.OwningTagQuery;
+	EffectTagQuery = Other.EffectTagQuery;
+	ModifyingAttribute = Other.ModifyingAttribute;
+	EffectSource = Other.EffectSource;
+	EffectDefinition = Other.EffectDefinition;
+	IgnoreHandles = Other.IgnoreHandles;
+	return *this;
+}
+
+
 bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 {
 	// since all of these query conditions must be met to be considered a match, failing
