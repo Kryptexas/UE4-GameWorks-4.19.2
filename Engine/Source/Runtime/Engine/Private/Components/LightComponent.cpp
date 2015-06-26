@@ -303,6 +303,7 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 	Brightness_DEPRECATED = 3.1415926535897932f;
 	Intensity = 3.1415926535897932f;
 	LightColor = FColor::White;
+	ModulatedShadowColor = FColor(128, 128, 128);
 	bAffectsWorld = true;
 	CastShadows = true;
 	CastStaticShadows = true;
