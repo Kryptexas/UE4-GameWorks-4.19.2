@@ -444,6 +444,7 @@ private:
 			}
 
 			Settings->GameplayTags.Add(str);
+			Settings->SortTags();
 			IGameplayTagsModule::Get().GetGameplayTagsManager().DestroyGameplayTagTree();
 
 			{

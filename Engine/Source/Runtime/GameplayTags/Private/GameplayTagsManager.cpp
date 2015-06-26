@@ -158,6 +158,10 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				{
 					continue;
 				}
+
+#if WITH_EDITOR
+				Class->GetDefaultObject<UGameplayTagsSettings>()->SortTags();
+#endif
 				
 				for (FString TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
 				{

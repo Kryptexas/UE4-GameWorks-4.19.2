@@ -27,6 +27,9 @@ class GAMEPLAYTAGS_API UGameplayTagsSettings : public UObject
 	UPROPERTY(config, EditAnywhere, Category=GameplayTags)
 	TArray<FString>		GameplayTags;
 
+	/** Sorts tags alphabetically */
+	void SortTags();
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
