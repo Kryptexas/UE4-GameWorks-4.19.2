@@ -81,6 +81,7 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 		{
 			FTransform BoneTM = GetBoneTransform(BoneIndex);
 			float Scale = BoneTM.GetScale3D().GetAbsMax();
+			FVector VectorScale(Scale);
 			BoneTM.RemoveScaling();
 
 			FKAggregateGeom* AggGeom = &PhysicsAsset->BodySetup[i]->AggGeom;
@@ -98,7 +99,7 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 				if( (CollisionViewMode == FPhATSharedData::PRM_Solid && !bHitTest) || bHitTestAndBodyMode)
 				{
 					UMaterialInterface*	PrimMaterial = GetPrimitiveMaterial(i, KPT_Sphere, j, bHitTestAndBodyMode);
-					AggGeom->SphereElems[j].DrawElemSolid(PDI, ElemTM, Scale, PrimMaterial->GetRenderProxy(0));
+					AggGeom->SphereElems[j].DrawElemSolid(PDI, ElemTM, VectorScale, PrimMaterial->GetRenderProxy(0));
 				}
 
 				//wires are never used during hit
@@ -106,7 +107,7 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 				{
 					if (CollisionViewMode == FPhATSharedData::PRM_Solid || CollisionViewMode == FPhATSharedData::PRM_Wireframe)
 					{
-						AggGeom->SphereElems[j].DrawElemWire(PDI, ElemTM, Scale, GetPrimitiveColor(i, KPT_Sphere, j));
+						AggGeom->SphereElems[j].DrawElemWire(PDI, ElemTM, VectorScale, GetPrimitiveColor(i, KPT_Sphere, j));
 					}
 				}
 
@@ -129,14 +130,14 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 				if ( (CollisionViewMode == FPhATSharedData::PRM_Solid && !bHitTest) || bHitTestAndBodyMode)
 				{
 					UMaterialInterface*	PrimMaterial = GetPrimitiveMaterial(i, KPT_Box, j, bHitTestAndBodyMode);
-					AggGeom->BoxElems[j].DrawElemSolid(PDI, ElemTM, Scale, PrimMaterial->GetRenderProxy(0));
+					AggGeom->BoxElems[j].DrawElemSolid(PDI, ElemTM, VectorScale, PrimMaterial->GetRenderProxy(0));
 				}
 
 				if(!bHitTest)
 				{
 					if (CollisionViewMode == FPhATSharedData::PRM_Solid || CollisionViewMode == FPhATSharedData::PRM_Wireframe)
 					{
-						AggGeom->BoxElems[j].DrawElemWire(PDI, ElemTM, Scale, GetPrimitiveColor(i, KPT_Box, j));
+						AggGeom->BoxElems[j].DrawElemWire(PDI, ElemTM, VectorScale, GetPrimitiveColor(i, KPT_Box, j));
 					}
 				}
 				
@@ -159,14 +160,14 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 				if ( (CollisionViewMode == FPhATSharedData::PRM_Solid && !bHitTest) || bHitTestAndBodyMode)
 				{
 					UMaterialInterface*	PrimMaterial = GetPrimitiveMaterial(i, KPT_Sphyl, j, bHitTestAndBodyMode);
-					AggGeom->SphylElems[j].DrawElemSolid(PDI, ElemTM, Scale, PrimMaterial->GetRenderProxy(0));
+					AggGeom->SphylElems[j].DrawElemSolid(PDI, ElemTM, VectorScale, PrimMaterial->GetRenderProxy(0));
 				}
 
 				if(!bHitTest)
 				{
 					if (CollisionViewMode == FPhATSharedData::PRM_Solid || CollisionViewMode == FPhATSharedData::PRM_Wireframe)
 					{
-						AggGeom->SphylElems[j].DrawElemWire(PDI, ElemTM, Scale, GetPrimitiveColor(i, KPT_Sphyl, j));
+						AggGeom->SphylElems[j].DrawElemWire(PDI, ElemTM, VectorScale, GetPrimitiveColor(i, KPT_Sphyl, j));
 					}
 				}
 

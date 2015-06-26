@@ -4621,8 +4621,8 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 	FMatrix ScalingMatrix = LocalToWorld;
 	FVector TotalScale = ScalingMatrix.ExtractScaling();
 
-	// Only valid if scaling if uniform.
-	if( TotalScale.IsUniform() && !TotalScale.IsNearlyZero() )
+	// Only if valid
+	if( !TotalScale.IsNearlyZero() )
 	{
 		FTransform LocalToWorldTransform(LocalToWorld);
 
@@ -4632,7 +4632,7 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 			check(PhysicsAssetForDebug);
 			if( EngineShowFlags.Collision && IsCollisionEnabled() )
 			{
-				PhysicsAssetForDebug->GetCollisionMesh(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+				PhysicsAssetForDebug->GetCollisionMesh(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale);
 			}
 			if( EngineShowFlags.Constraints )
 			{
