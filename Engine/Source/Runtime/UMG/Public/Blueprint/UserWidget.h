@@ -137,7 +137,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
  */
-UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls" ))
+UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls", DontUseGenericSpawnObject="True" ) )
 class UMG_API UUserWidget : public UWidget, public INamedSlotInterface
 {
 	GENERATED_BODY()
