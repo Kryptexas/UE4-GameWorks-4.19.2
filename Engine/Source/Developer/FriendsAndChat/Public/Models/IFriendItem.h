@@ -218,7 +218,6 @@ public:
 
 private:
 	EFriendActionType::Type PendingActionType;
-
 public:
 
 	/** Virtual destructor. */

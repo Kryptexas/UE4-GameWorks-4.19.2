@@ -85,6 +85,7 @@ public:
 	virtual bool AllowMarkup() = 0;
 	virtual bool MultiChat() = 0;
 	virtual void SetFocus() = 0;
+	virtual float GetWindowOpacity() = 0;
 
 	// Settings
 	virtual void SetChatSettingsService(TSharedPtr<IChatSettingsService> ChatSettingsService) = 0;
@@ -97,6 +98,9 @@ public:
 
 	DECLARE_EVENT(FChatViewModel, FChatListUpdated)
 	virtual FChatListUpdated& OnChatListUpdated() = 0;
+
+	DECLARE_EVENT(FChatViewModel, FChatSettingsUpdated)
+	virtual FChatSettingsUpdated& OnSettingsUpdated() = 0;
 };
 
 /**

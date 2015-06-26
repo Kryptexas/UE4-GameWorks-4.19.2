@@ -43,6 +43,12 @@ public:
 	virtual bool GetRadioOption(EChatSettingsType::Type Option, uint8 Index) const = 0;
 
 	/*
+	* Get an option that is stored as an enumeration value
+	* @param Option The Option to get the value for
+	*/
+	virtual uint8 GetRadioOptionIndex(EChatSettingsType::Type Option) const = 0;
+
+	/*
 	 * Set an option that is stored as an enumeration value
 	 * @param Option The Option to set the value for
 	 * @param Index The Index of the enumeration type

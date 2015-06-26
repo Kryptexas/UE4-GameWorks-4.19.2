@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
+#include "FriendsFontStyleService.h"
 #include "ChatItemViewModel.h"
 #include "ChatViewModel.h"
 #include "FriendViewModel.h"
@@ -519,6 +520,11 @@ public:
 		ChatDisplayService->SetFocus();
 	}
 
+	virtual float GetWindowOpacity() override
+	{
+		return WindowOpacity;
+	}
+
 	virtual bool IsActive() const override
 	{
 		return bIsActive;
@@ -541,7 +547,12 @@ public:
 	{
 		ChatSettingsService = InChatSettingsService;
 		bAllowFade = ChatSettingsService->GetFlagOption(EChatSettingsType::NeverFadeMessages);
+		WindowOpacity = ChatSettingsService->GetSliderValue(EChatSettingsType::WindowOpacity);
+		uint8 FontSize = ChatSettingsService->GetRadioOptionIndex(EChatSettingsType::FontSize);
+		FFriendsAndChatModuleStyle::GetStyleService()->SetUserFontSize(EChatFontType::Type(FontSize));
 		ChatSettingsService->OnChatSettingStateUpdated().AddSP(this, &FChatViewModelImpl::HandleSettingsChanged);
+		ChatSettingsService->OnChatSettingRadioStateUpdated().AddSP(this, &FChatViewModelImpl::HandleRadioSettingsChanged);
+		ChatSettingsService->OnChatSettingValueUpdated().AddSP(this, &FChatViewModelImpl::HandleValueSettingsChanged);
 	}
 
 	virtual void HandleSettingsChanged(EChatSettingsType::Type OptionType, bool NewState)
@@ -549,6 +560,23 @@ public:
 		if (OptionType == EChatSettingsType::NeverFadeMessages)
 		{
 			bAllowFade = !NewState;
+		}
+	}
+
+	virtual void HandleRadioSettingsChanged(EChatSettingsType::Type OptionType, uint8 Index)
+	{
+		if (OptionType == EChatSettingsType::FontSize)
+		{
+			FFriendsAndChatModuleStyle::GetStyleService()->SetUserFontSize(EChatFontType::Type(Index));
+			OnSettingsUpdated().Broadcast();
+		}
+	}
+
+	virtual void HandleValueSettingsChanged(EChatSettingsType::Type OptionType, float Value)
+	{
+		if (OptionType == EChatSettingsType::WindowOpacity)
+		{
+			WindowOpacity = Value;
 		}
 	}
 
@@ -573,6 +601,12 @@ public:
 	virtual FChatListUpdated& OnChatListUpdated() override
 	{
 		return ChatListUpdatedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FChatViewModelImpl, FChatViewModel::FChatSettingsUpdated, FChatSettingsUpdated)
+	virtual FChatSettingsUpdated& OnSettingsUpdated() override
+	{
+		return ChatSettingsUpdatedEvent;
 	}
 
 	// End ChatDisplayOptionsViewModel Interface
@@ -611,6 +645,7 @@ protected:
 		, bUseOverrideColor(false)
 		, bAllowGlobalChat(true)
 		, bCaptureFocus(false)
+		, WindowOpacity(1.0f)
 	{
 	}
 
@@ -659,6 +694,7 @@ private:
 	bool bAllowGlobalChat;
 	bool bCaptureFocus;
 	bool bDisplayChatTip;
+	float WindowOpacity;
 
 	FText OutGoingChannelText;
 	// Holds the fade in curve
@@ -666,6 +702,7 @@ private:
 	FChatListSetFocus ChatListSetFocusEvent;
 	FChatTextValidatedEvent ChatTextValidatedEvent;
 	FChatListUpdated ChatListUpdatedEvent;
+	FChatSettingsUpdated ChatSettingsUpdatedEvent;
 
 	EVisibility ChatEntryVisibility;
 	FSlateColor OverrideColor;

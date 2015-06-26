@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
+#include "FriendsFontStyleService.h"
 #include "SChatEntryWidget.h"
 #include "RichTextLayoutMarshaller.h"
 #include "ChatViewModel.h"
@@ -25,6 +26,8 @@ public:
 		FriendStyle = *InArgs._FriendStyle;
 		float HightOverride = FriendStyle.FriendsChatStyle.ChatEntryHeight;
 		MaxChatLength = InArgs._MaxChatLength;
+		HintText = InArgs._HintText;
+		Marshaller = InArgs._Marshaller;
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
@@ -50,19 +53,43 @@ public:
 			]
 			+SHorizontalBox::Slot()
 			[
-				SAssignNew(ChatTextBox, SMultiLineEditableTextBox)
+				SAssignNew(ChatBox, SBox)
+			]
+		]);
+
+		RebuildTextEntry();
+	}
+
+	void RebuildTextEntry() override
+	{
+		FText EnteredText;
+		if (ChatTextBox.IsValid())
+		{
+			EnteredText = ChatTextBox->GetText();
+			ChatTextBox.Reset();
+		}
+		if (!ChatTextBox.IsValid())
+		{
+			SAssignNew(ChatTextBox, SMultiLineEditableTextBox)
 				.Style(&FriendStyle.FriendsChatStyle.ChatEntryTextStyle)
+				.Font(FFriendsAndChatModuleStyle::GetStyleService()->GetNormalFont())
 				.ClearKeyboardFocusOnCommit(false)
 				.OnTextCommitted(this, &SChatEntryWidgetImpl::HandleChatEntered)
 				.OnKeyDownHandler(this, &SChatEntryWidgetImpl::HandleChatKeydown)
-				.HintText(InArgs._HintText)
+				.HintText(HintText)
 				.OnTextChanged(this, &SChatEntryWidgetImpl::HandleChatTextChanged)
 				.IsEnabled(this, &SChatEntryWidgetImpl::IsChatEntryEnabled)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
-				.Marshaller(InArgs._Marshaller)
-				.WrapTextAt(this, &SChatEntryWidgetImpl::GetMessageBoxWrapWidth)
-			]
-		]);
+				.Marshaller(Marshaller)
+				.WrapTextAt(this, &SChatEntryWidgetImpl::GetMessageBoxWrapWidth);
+
+			if (!EnteredText.IsEmpty())
+			{
+				ChatTextBox->SetText(EnteredText);
+			}
+		}
+
+		ChatBox->SetContent(ChatTextBox.ToSharedRef());
 	}
 
 	// Begin SUserWidget
@@ -231,12 +258,18 @@ private:
 	int32 MaxChatLength;
 	/* Holds the current window width (Hack until Rich Text can figure this out) */
 	mutable float WindowWidth;
+	/* Holds the Chat Text */
+	TSharedPtr<SBox> ChatBox;
 	/* Holds the Chat entry box */
 	TSharedPtr<SMultiLineEditableTextBox> ChatTextBox;
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 	/* Holds the Chat view model */
 	TSharedPtr<FChatViewModel> ViewModel;
+	/* Holds the hint text for the chat box*/
+	TAttribute< FText > HintText;
+	/* Holds the marshaller for the chat box*/
+	TSharedPtr<ITextLayoutMarshaller> Marshaller;
 };
 
 TSharedRef<SChatEntryWidget> SChatEntryWidget::New()

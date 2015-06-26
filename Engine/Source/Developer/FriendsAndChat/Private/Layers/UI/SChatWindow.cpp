@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
+#include "FriendsFontStyleService.h"
 #include "SChatWindow.h"
 #include "ChatViewModel.h"
 #include "ChatItemViewModel.h"
@@ -25,6 +26,7 @@ public:
 		ViewModel = InViewModel;
 		FChatViewModel* ViewModelPtr = ViewModel.Get();
 		ViewModel->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
+		ViewModel->OnSettingsUpdated().AddSP(this, &SChatWindowImpl::SettingsChanged);
 
 		FFriendsAndChatModuleStyle::Initialize(FriendStyle);
 
@@ -129,8 +131,6 @@ public:
 								+ SVerticalBox::Slot()
 								[
 									SAssignNew(ChatTextBox, SChatEntryWidget, ViewModel.ToSharedRef())
-									.Style(&FriendStyle.FriendsChatStyle.ChatEntryTextStyle)
-									.TextStyle(&FriendStyle.FriendsChatStyle.TextStyle)
 								 	.FriendStyle(&FriendStyle)
 									.Marshaller(RichTextMarshaller)
 									.HintText(InArgs._ActivationHintText)
@@ -230,12 +230,24 @@ private:
 		return true;
 	}
 
-	void RefreshChatList()
+	void SettingsChanged()
 	{
+		CreateChatWidgets();
+		RefreshChatList();
+	}
+
+	void CreateChatWidgets()
+	{
+		if(RichText.IsValid())
+		{
+			RichText.Reset();
+			ChatScrollBox->ClearChildren();
+		}
 		if (!RichText.IsValid())
-	{
+		{
 			SAssignNew(RichText, SMultiLineEditableTextBox)
 			.Style(&FriendStyle.FriendsChatStyle.ChatDisplayTextStyle)
+			.Font(FFriendsAndChatModuleStyle::GetStyleService()->GetNormalFont())
 			.WrapTextAt(this, &SChatWindowImpl::GetChatWrapWidth)
 			.Marshaller(RichTextMarshaller.ToSharedRef())
 			.Text(this, &SChatWindowImpl::GetChatText)
@@ -245,8 +257,18 @@ private:
 			[
 				RichText.ToSharedRef()
 			];
+
+			ChatTextBox->RebuildTextEntry();
 		}
-	
+	}
+
+	void RefreshChatList()
+	{
+		if (!RichText.IsValid())
+		{
+			CreateChatWidgets();
+		}
+
 		TArray<TSharedRef<FChatItemViewModel>> Messages = ViewModel->GetMessages();
 		for (;LastMessageIndex < Messages.Num(); ++LastMessageIndex)
 		{
@@ -430,7 +452,7 @@ private:
 
 	FLinearColor GetTimedFadeColor() const
 	{
-		return FLinearColor(1, 1, 1, FadeCurve.GetLerp());
+		return FLinearColor(1, 1, 1, ViewModel->GetWindowOpacity() * FadeCurve.GetLerp());
 	}
 
 	EVisibility GetChatListVisibility() const

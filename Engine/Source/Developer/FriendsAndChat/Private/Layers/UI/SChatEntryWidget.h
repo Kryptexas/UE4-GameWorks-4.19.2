@@ -13,11 +13,6 @@ public:
 	SLATE_USER_ARGS( SChatEntryWidget )
 		: _MaxChatLength(128)
 		{}
-			/** The styling of the textbox */
-		SLATE_STYLE_ARGUMENT( FEditableTextBoxStyle, Style )
-
-		/** Pointer to a style of the text block, which dictates the font, color, and shadow options. */
-		SLATE_STYLE_ARGUMENT( FTextBlockStyle, TextStyle )
 
 		SLATE_ARGUMENT(const FFriendsAndChatStyle*, FriendStyle)	
 
@@ -39,4 +34,10 @@ public:
 	 * @param InViewModel	The chat view model - used for accessing chat markup etc.
 	 */
 	virtual void Construct(const FArguments& InArgs, const TSharedRef<class FChatViewModel>& InViewModel) = 0;
+
+	/**
+	 * Rebuild the Text Entry Widget
+	 * @param bLargeFont - True if using large font, else standard font
+	 */
+	virtual void RebuildTextEntry() = 0;
 };

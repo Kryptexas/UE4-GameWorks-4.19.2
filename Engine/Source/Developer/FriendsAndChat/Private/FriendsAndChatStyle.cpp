@@ -2,6 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 
+#include "FriendsFontStyleService.h"
 const FName FFriendsAndChatStyle::TypeName( TEXT("FFriendsAndChatStyle") );
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle)
@@ -74,6 +75,7 @@ const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 	Module style set
 */
 TSharedPtr< FSlateStyleSet > FFriendsAndChatModuleStyle::FriendsAndChatModuleStyleInstance = NULL;
+TSharedPtr< FFriendsFontStyleService > FFriendsAndChatModuleStyle::FriendsFontStyleService = NULL;
 
 void FFriendsAndChatModuleStyle::Initialize(FFriendsAndChatStyle FriendStyle)
 {
@@ -81,6 +83,9 @@ void FFriendsAndChatModuleStyle::Initialize(FFriendsAndChatStyle FriendStyle)
 	{
 		FriendsAndChatModuleStyleInstance = Create(FriendStyle);
 		FSlateStyleRegistry::RegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
+
+		FriendsFontStyleService = FFriendsFontStyleServiceFactory::Create();
+		FriendsFontStyleService->SetFontStyles(FriendStyle.FriendsNormalFontStyle);
 	}
 }
 
@@ -95,6 +100,15 @@ FName FFriendsAndChatModuleStyle::GetStyleSetName()
 {
 	static FName StyleSetName(TEXT("FriendsAndChat"));
 	return StyleSetName;
+}
+
+TSharedPtr<FFriendsFontStyleService> FFriendsAndChatModuleStyle::GetStyleService()
+{
+	if (!FriendsFontStyleService.IsValid())
+	{
+		FriendsFontStyleService = FFriendsFontStyleServiceFactory::Create();
+	}
+	return FriendsFontStyleService;
 }
 
 TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatStyle FriendStyle)

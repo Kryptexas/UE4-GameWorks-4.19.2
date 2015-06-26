@@ -177,6 +177,26 @@ private:
 		}
 	}
 
+	virtual uint8 GetRadioOptionIndex(EChatSettingsType::Type Option) const override
+	{
+		check(EChatSettingsOptionType::GetOptionType(Option) == EChatSettingsOptionType::RadioBox);
+		switch (Option)
+		{
+		case EChatSettingsType::FontSize:
+		{
+			return ChatSettings.FontSize;
+			break;
+		}
+		case EChatSettingsType::WindowHeight:
+		{
+			return ChatSettings.WindowHeight;
+			break;
+		}
+		default:
+			return 0;
+		}
+	}
+
 	virtual void SetRadioOption(EChatSettingsType::Type Option, uint8 Index) override
 	{
 		check(EChatSettingsOptionType::GetOptionType(Option) == EChatSettingsOptionType::RadioBox);
