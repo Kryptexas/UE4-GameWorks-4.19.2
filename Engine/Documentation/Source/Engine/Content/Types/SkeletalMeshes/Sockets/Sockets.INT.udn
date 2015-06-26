@@ -7,9 +7,6 @@ Description:Locators that can be added to SkeletalMeshes to use as attachment po
 
 [TOC(start:2)]
 
-
-
-## Overview
 [INCLUDE:Shared/Glossary/S/#Glossary_socket]
 
 
@@ -34,7 +31,7 @@ Once a socket is named, it will immediately be created and its properties will a
 
 Sockets can be edited directly within Persona by way of the **Skeleton Tree**, the **Details** panel, and the **Viewport** window.
 
-By clicking on a socket within the **Skeleton Tree**, a translation or rotation widget becomes available in the viewport. You may use these to reposition the socket relative to the bone.
+By clicking on a socket within the Skeleton Tree, a translation or rotation widget becomes available in the viewport. You may use these to reposition the socket relative to the bone.
 
 ![](EditingSockets.png)(w:500)
 
@@ -47,7 +44,7 @@ You can also edit the location of sockets numerically using the **Details** pane
 
 
 ## Viewing sockets
-Along with the pink socket icon in the **Skeleton Tree** hierarchy, you can also view sockets directly on a mesh within the **Viewport** by using the **Show** menu and choosing **Sockets**.
+Along with the pink socket icon in the Skeleton Tree hierarchy, you can also view sockets directly on a mesh within the **Viewport** by using the **Show** menu and choosing **Sockets**.
 
 ![](ShowSockets.png)
 
@@ -68,7 +65,7 @@ Actors can be attached to Skeletal Mesh Sockets in a few ways, depending on your
 
 ### Permanent Attachment
 
-If you would like to permanently attach an Actor to a Socket so that it is always part of the Skeletal Mesh, you can do so via Persona. Meshes and other assets can be dragged and dropped directly onto sockets in the **Skeleton Tree**. The following types of assets are supported:
+If you would like to permanently attach an Actor to a Socket so that it is always part of the Skeletal Mesh, you can do so via Persona. Meshes and other assets can be dragged and dropped directly onto sockets in the Skeleton Tree. The following types of assets are supported:
 
 * Static Meshes
 * Skeletal Meshes
