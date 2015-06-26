@@ -53,7 +53,7 @@ Description:The basics of Spot Lights.
 A **Spot Light** emits light from a single point in a cone shape. Users are given two cones to shape the light - the **Inner Cone Angle** and **Outer Cone Angle**. Within the _Inner Cone Angle_, the light achieves full brightness. As you go from the extent of the inner radius to the extents of the _Outer Cone Angle_, a falloff takes place, creating a penumbra, or softening around the Spot Light's disc of illumination. The Radius of the light defines the length of the cones. More simply, this will work like a flash light or stage can light. 
 
 Like other lights, a Spot Light can be set to one of three Mobility settings: 
-[/EXCERPT:Intro]
+
 
 
 [OBJECT:topiclistnotitle]
@@ -66,6 +66,7 @@ Like other lights, a Spot Light can be set to one of three Mobility settings:
 	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)

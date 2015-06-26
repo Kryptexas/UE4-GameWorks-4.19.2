@@ -52,7 +52,7 @@ Description:The basics of Directional Lights.
 
 [EXCERPT:Intro]
 The **Directional Light** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. The Directional Light when placed can be set to one of three **Mobility** settings:
-[/EXCERPT:Intro]
+
 
 [REGION:raw]
 ![](spacer.png)
@@ -68,6 +68,7 @@ The **Directional Light** simulates light that is being emitted from a source th
 	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)
