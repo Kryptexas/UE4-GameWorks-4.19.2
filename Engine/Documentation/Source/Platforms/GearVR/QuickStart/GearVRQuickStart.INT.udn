@@ -4,6 +4,8 @@ Crumbs:%ROOT%, Platforms/GearVR
 Description:Instructions on how to quickly setup and deploy projects for use with the Samsung Gear VR Headset.
 Navigation:platform
 Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
 
 The Gear VR Quick Start will walk you through how to setup your development PC and Samsung Galaxy Note 4 Smartphone to work with the Samsung Gear VR headset.
 

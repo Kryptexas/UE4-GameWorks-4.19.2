@@ -11,10 +11,11 @@ Related: Platforms/Mobile/Textures
 Related: Platforms/Mobile/Materials
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/CustomizedUVs
+Skilllevel: Intermediate
+Version: 4.8
 
 [TOC(start:2 end:3)]
 
-## Overview
 When developing content for Virtual Reality (VR) projects, certain steps must be taken to ensure that the user will have the best VR experience possible.
 In the following Best Practices guide we will cover all you need to know to help guarantee that the user has the best possible experience when viewing your project 
 using the Samsung Gear Virtual Reality(VR) Headset and Samsung Galaxy Note 4 Smartphone.

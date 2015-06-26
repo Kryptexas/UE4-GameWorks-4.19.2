@@ -4,6 +4,8 @@ Crumbs:%ROOT%, Platforms/GearVR
 Description: How to assign the new HUD to your project
 Navigation:platform
 Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

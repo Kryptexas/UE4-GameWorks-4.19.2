@@ -7,8 +7,8 @@ Platform:Gear VR
 Related: Platforms\GearVR\Prerequisites
 Related: Platforms\GearVR\BestPractices
 Related: Platforms\GearVR\Debugging
-
-
+Skilllevel: Intermediate
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -3,6 +3,10 @@ Description:Instructions on how to get the Samsung Gear VR Headset to work with 
 Availability:Public
 Navigation:platform
 Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
+prereq: Engine\Blueprints\GettingStarted
+
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

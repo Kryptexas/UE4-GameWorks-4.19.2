@@ -4,14 +4,15 @@ Availability:Public
 Crumbs:
 Navigation:platform
 Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
+prereq: Engine\Blueprints\GettingStarted
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 
 [REGION:warning]
 Developing for the Gear VR Headset requires **Unreal Engine 4.7.4** or later.
 [/REGION]
-
-## Overview 
 
 With the 4.7 release of Unreal Engine 4 (UE4) you can now build Virtual Reality(VR) projects for the Samsung Gear VR Headset that can transform your Samsung Galaxy Note 4, Galaxy S6, and Galaxy S6 Edge Smartphone into an immersive VR device. 
 In the following sections we will go over everything you need to know to get your Samsung Galaxy Note 4 Smartphone properly setup so that it can work with the Samsung Gear VR headset.

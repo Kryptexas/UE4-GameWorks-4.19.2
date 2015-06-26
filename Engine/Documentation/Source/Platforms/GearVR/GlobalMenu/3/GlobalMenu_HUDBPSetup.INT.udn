@@ -4,6 +4,8 @@ Crumbs:%ROOT%, Platforms/GearVR
 Description: How to setup a Blueprint to display the Gear VR Global Menu
 Navigation:platform
 Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
