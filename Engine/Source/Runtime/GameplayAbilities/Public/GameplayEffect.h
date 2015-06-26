@@ -1290,6 +1290,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectQuery
 public:
 	// ctors and operators
 	FGameplayEffectQuery();
+	FGameplayEffectQuery(const FGameplayEffectQuery& Other);
 	FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch InCustomMatchDelegate);
 	FGameplayEffectQuery(FGameplayEffectQuery&& Other);
 	FGameplayEffectQuery& operator=(FGameplayEffectQuery&& Other);

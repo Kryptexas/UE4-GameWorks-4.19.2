@@ -3146,6 +3146,12 @@ FGameplayEffectQuery::FGameplayEffectQuery()
 {
 }
 
+FGameplayEffectQuery::FGameplayEffectQuery(const FGameplayEffectQuery& Other)
+{
+	*this = Other;
+}
+
+
 FGameplayEffectQuery::FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch InCustomMatchDelegate)
 	: CustomMatchDelegate(InCustomMatchDelegate),
 	EffectSource(nullptr),
