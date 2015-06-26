@@ -5,8 +5,6 @@ Description:Modules that are included along with an emitter and required for its
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 The following classes and modules always exist when a new emitter is created. They will always be present and cannot be deleted.
 
 
