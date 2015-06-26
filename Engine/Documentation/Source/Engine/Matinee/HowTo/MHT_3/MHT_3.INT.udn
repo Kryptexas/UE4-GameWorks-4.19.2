@@ -34,7 +34,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	_Click for Full View._
 
-1.  Minimize the **Matinee** window, then from the **Modes** menu under the **Basic** tab, **Drag-and-drop** a **Camera** into the viewport.
+1.  Minimize the Matinee window, then from the **Modes** menu under the **Basic** tab, **Drag-and-drop** a **Camera** into the viewport.
 
 	![](MHT3_DragCamera.png)(w:580)
 
@@ -64,7 +64,7 @@ In the following steps, we are going to create a short sequence that uses multip
 	[/PARAM]
 [/OBJECT]
 
-1. Open the **Matinee** window (if you have closed it you can re-open it by selecting the **Matinee**, then from the **Details** panel, selecting **Open Matinee**.). 
+1. Open the Matinee window (if you have closed it you can re-open it by selecting the **Matinee**, then from the **Details** panel, selecting **Open Matinee**.). 
 
 	![](MHT3_OpenMatinee.png)
 
@@ -76,26 +76,26 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_Camera1Added.png)
 
-1. Repeat the process above and add the remaining two cameras to the **Matinee**. 
+1. Repeat the process above and add the remaining two cameras to the Matinee. 
 
 	![](MHT3_AllCamerasInMatinee.png)
 
-1. Next, we will increase the length of the **Matinee** by holding **Control** and dragging the red marker (in the yellow box below) to the **15.00** mark (yellow X). 
+1. Next, we will increase the length of the Matinee by holding **Control** and dragging the red marker (in the yellow box below) to the **15.00** mark (yellow X). 
 	[REGION:fullwidth]
 	![](MHT3_IncreaseMatineeTime.png)
 	[/REGION]
 
-1. Click on the first keyframe at **0.00** on the **Movement** track of **Camera1**, the camera should be selected in the viewport. 
+1. Click on the first keyframe at **0.00** on the **Movement** track of Camera1 the camera should be selected in the viewport. 
 	
 	![](MHT3_Camera1KeySelected.png)
 	
-1. In the **Viewport**, using the widget, move the camera up and angle it downward slightly (press **E** to enter **Rotation** mode). 
+1. In the Viewport, using the widget, move the camera up and angle it downward slightly (press **E** to enter **Rotation** mode). 
 
 	![](MHT3_Camera1Moved.png)
 
 	_We are going to pan the camera to the right across the template text, so try to angle the camera so that it will view the text._
 
-1. Return to the **Matinee** window and move the **Time Bar** to the **5.00** mark for the **Movement** track of **Camera1** and press **Enter** to add a new keyframe. 
+1. Return to the Matinee window and move the **Time Bar** to the **5.00** mark for the Movement track of Camera1 and press **Enter** to add a new keyframe. 
 
 	![](MHT3_Camera1Key2.png)
 	
@@ -114,7 +114,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_Camera2StartPosition.png)(h:420)
 
-1. Return to the **Matinee** window and move the **Time Bar** to the **7.50** mark for the **Movement** track of **Camera2** and press **Enter** to add a new keyframe. 
+1. Return to the Matinee window and move the **Time Bar** to the **7.50** mark for the Movement track of Camera2 and press **Enter** to add a new keyframe. 
 
 	![](MHT3_Camera2Key2.png)
 
@@ -122,15 +122,15 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_Camera2Finished.png)(h:420)
 
-1. Return to the **Matinee** window and move the keyframe at **0.00** for the **Movement** track of **Camera3** to the **7.50** mark. 
+1. Return to the Matinee window and move the keyframe at **0.00** for the Movement track of **Camera3** to the **7.50** mark. 
 
 	![](MHT3_Camera3Key1.png)
 
-1. With **Camera3's** keyframe still selected, return to the editor viewport and move the camera up and slightly hovering over the chair. 
+1. With Camera3's keyframe still selected, return to the editor viewport and move the camera up and slightly hovering over the chair. 
 
 	![](MHT3_Camera3Starting.png)(h:420)
 
-1. Return to the **Matinee** window and move the **Time Bar** to the **11.00** mark and press **Enter** to add a new keyframe. 
+1. Return to the Matinee window and move the **Time Bar** to the **11.00** mark and press **Enter** to add a new keyframe. 
 
 	![](MHT3_Camera3FinalKey.png)
 
@@ -138,7 +138,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_Camera3FinalShot.png)(h:420)
 
-1. Return to the **Matinee** window and select the **Movement** track of **Camera1**, then move the **Time Bar** to **11.00** and press **Enter** to add a new keyframe. 
+1. Return to the Matinee window and select the **Movement** track of Camera1 then move the **Time Bar** to **11.00** and press **Enter** to add a new keyframe. 
 	[REGION:fullwidth]
 	![](MHT3_Camera1LastKey1.png)
 	[/REGION]
@@ -157,11 +157,11 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_Camera3InPosition.png)
 
-1. Then return to the **Viewport Options** window and **Unlock** the camera in the same manner it was locked above. 
+1. Then return to the Viewport Options window and **Unlock** the camera in the same manner it was locked above. 
 
 	![](MHT3_UnlockCamera.png)
 
-1. Return to the **Matinee** window and move the **Time Bar** to **15.00** and add a keyframe on the **Movement** track of **Camera1**. 
+1. Return to the Matinee window and move the **Time Bar** to **15.00** and add a keyframe on the **Movement** track of **Camera1**. 
 	[REGION:fullwidth]
 	![](MHT3_LastCameraKey.png)
 	[/REGION]
@@ -180,11 +180,11 @@ In the following steps, we are going to create a short sequence that uses multip
 	[/PARAM]
 [/OBJECT]
 
-1. Open the **Matinee** window (if you have closed it you can re-open it by selecting the **Matinee**, then from the **Details** panel, selecting **Open Matinee**.). 
+1. Open the Matinee window (if you have closed it you can re-open it by selecting the **Matinee**, then from the **Details** panel, selecting **Open Matinee**.). 
 
 	![](MHT3_OpenMatinee.png)
 
-1. Under **Camera3**, **Right-Click** in an empty space in the **Tracks** window and from the context menu select **Add New Director Group**. 
+1. Under Camera3, **Right-Click** in an empty space in the **Tracks** window and from the context menu select **Add New Director Group**. 
 
 	![](MHT3_AddDirectorGroup.png)
 
@@ -203,7 +203,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	_Click image for full view._
 
-1. Close the **Matinee** window, then select the **Matinee** in the **World Outliner** and in the **Details** panel, check the following options: **Play on Level Load**, **Looping**, **Disable Movement Input**, **Disable Look at Input**, and **Hide Player**. 
+1. **Close** the Matinee window, then select the **Matinee** in the **World Outliner** and in the Details panel, check the following options: **Play on Level Load**, **Looping**, **Disable Movement Input**, **Disable Look at Input**, and **Hide Player**. 
 
 	![](MHT3_MatineeActorSettings.png)
 
@@ -211,7 +211,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 	![](MHT3_BuildAndPlay.png)
 
-1. You should now have a **Matinee** sequence that starts when the level loads and cycles through three different cameras. 
+1. You should now have a Matinee sequence that starts when the level loads and cycles through three different cameras. 
 
 	![](MHT3_FinalResultGif.gif)(convert:false)
 

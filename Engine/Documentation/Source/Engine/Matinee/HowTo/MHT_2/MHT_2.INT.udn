@@ -38,7 +38,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_ThirdCubeAdded.png)
 
-1.  With the third cube selected, press **Control+W** to duplicate it and move the new cube across from, and leaving a space between, the third cube.
+1.  With the third cube selected, press **Control+W** to duplicate it and move the new cube across from and leaving a space between the third cube.
 
 	![](MHT2_FourthCubeAdded.png)
 
@@ -46,7 +46,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_FifthCubeAdded.png)
 
-1.  With the fifth cube selected, in the **Details** panel under **Transform**, set the **Scale** for the **Z** value to **5.0**.
+1.  With the fifth cube selected, in the Details panel under Transform set the **Scale** for the **Z** value to **5.0**.
 
 	![](MHT2_FifthCubeScaled.png)(w:720)
 
@@ -68,7 +68,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_AddMatinee.png)(w:720)
 
-1. The **Matinee** undo warning message will appear, click the **Continue** button. 
+1. The Matinee undo warning message will appear, click the **Continue** button. 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeWarning.png)
 	
@@ -86,11 +86,11 @@ In the following steps, we are going to create two lifts that move from one poin
 
 1. In the ![](MHT2_Lift1GroupName.png) **New Group Name** box, enter a name for the group (In this example, we named the group **Lift1**). 
 
-1. Minimize the **Matinee** window, then in the **Level Viewport** select the first cube created (the cube that is on the floor) so that it is highlighted. 
+1. Minimize the Matinee window, then in the **Level Viewport** select the first cube created (the cube that is on the floor) so that it is highlighted. 
 
 	![](MHT2_ReselectFirstCube.png)
 
-1. Return to the **Matinee** window and **Right-Click** on the Group (Lift1) to bring up the context menu, then select **Actors** then **Add Selected Actors**. 
+1. Return to the Matinee window and **Right-Click** on the Group (Lift1) to bring up the context menu, then select **Actors** then **Add Selected Actors**. 
 
 	![](MHT2_AddLift1.png)(w:640)
 	
@@ -110,13 +110,13 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_Lift1SecondKey.png)(w:640)
 
-1. Minimize the **Matinee Editor** and return to the **Level Viewport**. With the first cube still selected, move it up next to the second cube. 
+1. Minimize the Matinee Editor and return to the Level Viewport. With the first cube still selected, move it up next to the second cube. 
 
 	![](MHT2_Lift1MovedUp.png)
 
 	_Note: You should also see the yellow dotted line which indicates the movement the lift will take._
 
-1. In the **Matinee Editor**, **Left-Click** on the **Keyframe** at **2.00** and press **Control+C** to copy it, then move the **Time Bar** to **3.00** and press **Control+V** to paste it. 
+1. In the Matinee Editor, **Left-Click** on the **Keyframe** at **2.00** and press **Control+C** to copy it, then move the **Time Bar** to **3.00** and press **Control+V** to paste it. 
 
 	![](MHT2_Lift1ThirdKeyAdded.png)(w:640)
 
@@ -128,11 +128,11 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	_Note: This will allow the lift to stay in the "lowered" position for a second before we loop the sequence and raise the lift again._
 
-1. Return to the **Main Editor** window and in the **World Outliner** select the **MatineeActor**. 
+1. Return to the **Main Editor** window and in the **World Outliner** select the **Matinee Actor**. 
 
 	![](MHT2_Matinee1Selected.png)(w:320)
 
-1. In the **Details** panel for the **Matinee** Actor, find the **Play** section and check both **Play on Level Load** and **Looping**. 
+1. In the Details panel for the Matinee Actor, find the **Play** section and check both **Play on Level Load** and **Looping**. 
 
 	![](MHT2_Lift1Details.png)(w:320)
 
@@ -150,15 +150,15 @@ In the following steps, we are going to create two lifts that move from one poin
 	[/PARAM]
 [/OBJECT]
 
-1. From the **World Outliner**, select the **MatineeActor** and in the **Details** panel, select the **Open Matinee** option. 
+1. From the **World Outliner**, select the **Matinee Actor** and in the Details panel, select the **Open Matinee** option. 
 
 	![](MHT2_ReopenMatinee.png)
 	
-1. Minimize the **Matinee** window, then in the **Level Viewport** select the third cube created so that it is highlighted. 
+1. Minimize the Matinee window, then in the Level Viewport select the third cube created so that it is highlighted. 
 
 	![](MHT2_SelectThirdPlatform.png)
 		
-1. Return to the **Matinee Editor** and **Right-Click** under the **Lift1** group, and in the context menu, select **Add New Empty Group**. 
+1. Return to the Matinee Editor and **Right-Click** under the **Lift1** group, and in the context menu, select **Add New Empty Group**. 
 
 	![](MHT2_AddSecondGroup.png)(w:640)
 
@@ -172,7 +172,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_Lift2SecondKey.png)(w:640)
 
-1. Minimize the **Matinee** window, then in the **Level Viewport** move the lift to the other side of the wall, next to the last platform as seen below. 
+1. Minimize the Matinee window, then in the Level Viewport move the lift to the other side of the wall, next to the last platform as seen below. 
 
 	![](MHT2_Lift2Moved.png)
 
@@ -196,7 +196,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_CurveKey1Break.png)(w:780)
 		
-1. In the **Curve Editor** window, **Left-Click** on the top **Keyframe** at the **2.00** mark. 
+1. In the Curve Editor window, **Left-Click** on the top **Keyframe** at the **2.00** mark. 
 
 	![](MHT2_CE_ClickTopKey.png)(w:780)
 
@@ -204,7 +204,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_CE_DragCurveDown1.png)(w:780)
 
-1. You should also see in the **Level Viewport** that the **Movement Path** has bent with the adjustment made in the last step. 
+1. You should also see in the Level Viewport that the **Movement Path** has bent with the adjustment made in the last step. 
 
 	![](MHT2_MovementBending.png)
 	
@@ -216,17 +216,17 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_EvenCurve.png)
 
-1. In the **Movement Track**, scrub the **Time Bar** to the **3.00** and **4.00** marks and press **Enter** at each to create **Keyframes**. 
+1. In the Movement Track scrub the **Time Bar** to the **3.00** and **4.00** marks and press **Enter** at each to create **Keyframes**. 
 
 	![](MHT2_Lift2FourthKeyAdded.png)
 	
-1. With the fourth **Keyframe** selected, in the **Level Viewport**, move the lift back to its original position. 
+1. With the fourth **Keyframe** selected, in the Level Viewport move the lift back to its original position. 
 
 	![](MHT2_Lift2FourthKeyView.png)
 
 	_Note: The movement track goes back through the wall, so we will need to adjust the curve for the remaining **Keyframes** as we did above._
 
-1. In the **Movement Track**, scrub the **Time Bar** to the **5.00** mark and press **Enter** to create the final **Keyframe**. 
+1. In the Movement Track scrub the **Time Bar** to the **5.00** mark and press **Enter** to create the final **Keyframe**. 
 
 	![](MHT2_FinalKeyFrameAdded.png)(w:780)
 
@@ -242,7 +242,7 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](MHT2_ReverseCurveComplete.png)
 
-1. When you click the **Play** button from the **Main Editor's Toolbar**, you should have two lifts that move differently and one that uses a curved path. 
+1. When you click the **Play** button from the Main Editor's Toolbar, you should have two lifts that move differently and one that uses a curved path. 
 
 	![](MHT2_BothLiftsGif.gif)(w:420 convert:false)
 	
