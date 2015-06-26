@@ -213,7 +213,6 @@ private:
 	/**
 	 * Exports a spline mesh
 	 * @param SplineMeshComp	The spline mesh component to export
-	 * @param RenderMesh		The mesh render data to export
 	 * @param MeshName		The name of the mesh for the FBX file
 	 * @param FbxActor		The fbx node representing the mesh
 	 */
@@ -222,7 +221,6 @@ private:
 	/**
 	 * Exports an instanced mesh
 	 * @param InstancedMeshComp	The instanced mesh component to export
-	 * @param RenderMesh		The mesh render data to export
 	 * @param MeshName		The name of the mesh for the FBX file
 	 * @param FbxActor		The fbx node representing the mesh
 	 */

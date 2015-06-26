@@ -1819,7 +1819,6 @@ void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, 
 /**
  * Exports a static mesh
  * @param StaticMesh	The static mesh to export
- * @param RenderMesh	The static mesh render data to export
  * @param MeshName		The name of the mesh for the FBX file
  * @param FbxActor		The fbx node representing the mesh
  * @param ExportLOD		The LOD of the mesh to export
