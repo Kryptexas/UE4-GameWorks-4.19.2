@@ -685,6 +685,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		if (!IsRunningCommandlet())
 		{
 			FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
+			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		}
 
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )

@@ -1931,9 +1931,11 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// We need this for blueprint projects that have online functionality.
 	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
-	FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
-	FModuleManager::Get().LoadModule(TEXT("Blutility"));
-
+	if (IsRunningCommandlet())
+	{
+		FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
+		FModuleManager::Get().LoadModule(TEXT("Blutility"));
+	}
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 	return bSuccess;
