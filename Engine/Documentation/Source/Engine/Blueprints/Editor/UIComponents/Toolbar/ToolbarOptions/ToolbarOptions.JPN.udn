@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2597265
 Availability:Public
 Title:ツールバー オプション
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes, Engine/Blueprints/Editor/UIComponents/Toolbar
@@ -6,7 +6,6 @@ Description:
 
 [TOC (start:2)]
 
-## 概要
 
 [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Intro]
 
@@ -118,7 +117,7 @@ Description:
 
 [Info] パネルは、ブループリントエディタタブのメニューの横に位置します。このパネルには編集中のブループリントに関する以下の情報が表示されます。
 
-$ Name :現在編集中のブループリントの名前を表示します。レベルブループリントには表示しません。
-$ Parent :ブループリントの親クラスを表示します。レベルブループリントには表示しません。
+$ Name :現在編集中のブループリントの名前を表示します。Level ブループリントには表示しません。
+$ Parent :ブループリントの親クラスを表示します。Level ブループリントには表示しません。
 -->
 [/EXCERPT:Main]
