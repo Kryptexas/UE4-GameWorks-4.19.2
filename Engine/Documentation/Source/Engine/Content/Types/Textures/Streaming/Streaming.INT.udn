@@ -6,9 +6,6 @@ Description:System for loading and unloading textures into and out of memory dur
 
 [TOC (start:2 end:3)]
 
-
-## Overview
-
 The texture streaming system is multi-threaded and priority-based. When using a texture pool (i.e. on consoles), it will not stream out a texture until that memory is needed by another texture with higher priority, which makes texture quality more stable and prevents unnecessary disk access.
 
 The priority of a texture is primarily based on distance but it also takes other factors into account, such as time, wanted resolution, and whether it is forced (flagged to be fully streamed in).
@@ -41,7 +38,7 @@ Textures on dynamic objects like Skeletal Meshes or spawned objects uses a dynam
 
 ### StreamType Forced
 
-Textures on objects that has the bForceMipStreaming flag set, or are forced by a Blueprint action or game code, will set its WantedMips to the maximum value. They will have a higher-than-normal priority and will be stream in all their mip-levels as soon as possible. Forced textures normally use a timer and will automatically go back to normal streaming behavior when the timer expires. This timer is provided for convenience and as a safe-guard against forgetting to turn off the forced flag. Set the timer to a comfortably large number so you are sure to cover the intended period of time, but it is still a good idea to manually disable it as soon as you know you will not need it anymore. It is very important to turn off Forced as soon as its not needed anymore since a lot of these Forced textures will use up a lot of texture memory and can cause other textures to be streamed out. You can monitor the Forced texture usage with STAT STREAMINGDETAILS or LISTSTREAMINGTEXTURES.
+Textures on objects that has the bForceMipStreaming flag set, or are forced by a Blueprint action or game code, will set its WantedMips to the maximum value. They will have a higher-than-normal priority and will be stream in all their mip-levels as soon as possible. Forced textures normally use a timer and will automatically go back to normal streaming behavior when the timer expires. This timer is provided for convenience and as a safe-guard against forgetting to turn off the forced flag. Set the timer to a comfortably large number so you are sure to cover the intended period of time, but it is still a good idea to manually disable it as soon as you know you will not need it anymore. It is very important to turn off Forced as soon as it is not needed anymore since a lot of these Forced textures will use up a lot of texture memory and can cause other textures to be streamed out. You can monitor the Forced texture usage with STAT STREAMINGDETAILS or LISTSTREAMINGTEXTURES.
 
 
 
@@ -61,7 +58,7 @@ If streaming system recently lost track of a texture (e.g. because we are in a l
 
 ## Decals
 
-Static decals that are placed in the level uses the Static stream type. Dynamic decals that are spawned at run-time use LastRenderTime. Special care is taken to cases where a decal texture is used on both a static and dynamic object, such that LastRenderTime will take precedence in this case to avoid the problem particle effects have with texture sharing.
+Static decals that are placed in the level use the Static stream type. Dynamic decals that are spawned at run-time use LastRenderTime. Special care is taken to cases where a decal texture is used on both a static and dynamic object, such that LastRenderTime will take precedence in this case to avoid the problem particle effects have with texture sharing.
 
 
 
@@ -91,7 +88,7 @@ This can be used to boost specific important characters, or to pre-stream textur
 
 ## TexelFactor
 
-The TexelFactor directly affects the number of wanted mip-levels. The higher value, the more mip-levels will be streamed in. It is automatically pre-calculated during cooking where it looks at all triangles in the mesh and compares the ratio between the UV map and the size of the triangle. However, it can be adjusted manually by setting the **StreamingDistanceMultiplier** property on the component. Again, the higher value, the more mip-levels will be streamed in. A StreamingDistanceMultiplier of 2.0 will double the TexelFactor. A StreamingDistanceMultiplier of 0.5 will reduce the TexelFactor by half. The effect can be seen in the TexelFactor at run-time, using the InvestigateTexture or ListStreamingTextures console commands.
+The TexelFactor directly affects the number of wanted mip-levels. The higher value, the more mip-levels will be streamed in. It is automatically pre-calculated during cooking where it looks at all triangles in the mesh and compares the ratio between the UV map and the size of the triangle. However, it can be adjusted manually by setting the StreamingDistanceMultiplier property on the component. Again, the higher value, the more mip-levels will be streamed in. A StreamingDistanceMultiplier of 2.0 will double the TexelFactor. A StreamingDistanceMultiplier of 0.5 will reduce the TexelFactor by half. The effect can be seen in the TexelFactor at run-time, using the InvestigateTexture or ListStreamingTextures console commands.
 
 
 
@@ -199,10 +196,10 @@ The .ini settings are all contained under the TextureStreaming section.
 | **STAT Streaming** | Displays information about the texture streaming system. |
 | **STAT StreamingDetails** | Displays additional detailed information about the texture streaming system. |
 | **ListStreamingTextures <partial-name>** | Prints a list of all streaming textures that matches <partial-name>. The list contains information such as current size, how many seconds ago it was rendered, which streaming heuristic it is using, etc. The format is CSV so it can be copy/pasted into Excel for further investigation. |
-| **InvestigateTexture <partial-name>** | Prints all information the streaming system has about all textures that contains the specified <partialname> string. |
-| **TrackTexture <partial-name>** | The streaming system will start to track textures that contains the specified <partial-name> string and log out any status changes. |
+| **InvestigateTexture <partial-name>** | Prints all information the streaming system has about all textures that contain the specified <partialname> string. |
+| **TrackTexture <partial-name>** | The streaming system will start to track textures that contain the specified <partial-name> string and log out any status changes. |
 | **UntrackTexture <partial-name>** | Removes the specified textures from the list of tracked textures. |
-| **ListTrackedTextures** | Prints the list of a currently tracked textures. |
+| **ListTrackedTextures** | Prints the list of currently tracked textures. |
 | **TextureGroups** | Prints memory information for all texture groups. |
 | **DumpTextureStreamingStats** | Prints memory information for the texture streaming system. |
 
