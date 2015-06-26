@@ -5,8 +5,6 @@ Description:Guide to importing an image file into Unreal Engine as a texture ass
 
 [TOC(start:2)]
 
-## Overview
-
 This document covers the process of importing textures into Unreal Engine 4.
 
 For more information on the **Content Browser**, see the [Content Browser Reference](Engine/Content/Browser).
