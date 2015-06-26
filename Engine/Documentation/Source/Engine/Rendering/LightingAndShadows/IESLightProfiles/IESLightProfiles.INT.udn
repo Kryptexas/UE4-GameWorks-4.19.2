@@ -49,7 +49,7 @@ Description:Using IES Light Profiles in Unreal Engine 4.
 
 [TOC(start:2)]
 
-## Overview
+
 
 [EXCERPT:IES001]
 **IES Light Profiles** are a curve that defines light intensity in an arc that Unreal Engine 4 will "sweep" around an axis to make **Point Lights** and **Spot Lights** appear to be casting light more realistically, as if accounting for the reflective surfaces in the light fixture, the shape of the light bulb, and any lensing effects. The curve itself can be seen as a multiplier for the overall brightness of the light, as if you were projecting a texture from the light, but with out the texture overhead to do so or the errors that can occur when projecting at some angles.

@@ -48,7 +48,7 @@ Description:Dynamic area shadows
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 Ray Traced Distance Field shadows leverage the properties of a distance field representation of the scene to compute efficient area shadowing from dynamic meshes.  This uses the same data as [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion), and therefore has many of the same limitations.
 

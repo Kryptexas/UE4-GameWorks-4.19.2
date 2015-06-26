@@ -48,7 +48,7 @@ Description:Dynamic Ambient Occlusion for Movable SkyLights.
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 Shadowing for Movable Sky Lights is provided by a new feature which generates medium scale Ambient Occlusion from Signed Distance Field Volumes precomputed around each rigid object.  It supports dynamic scene changes - the rigid meshes can be moved or hidden and it will affect the occlusion.  Unlike Screen Space Ambient Occlusion, occlusion is computed from world space occluders so there are no artifacts from missing data off-screen.
 

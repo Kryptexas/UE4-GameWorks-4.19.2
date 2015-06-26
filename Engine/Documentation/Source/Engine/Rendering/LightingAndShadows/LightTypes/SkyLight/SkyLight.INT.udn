@@ -48,7 +48,7 @@ Description:The basics of Sky Lights.
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 [EXCERPT:SL001]
 The **Sky Light** captures the distant parts of your level (everything further than `SkyDistanceThreshold`) and applies that to the scene as a light.  That means the sky's appearance and its lighting / reflections will match, even if your sky is coming from atmosphere, or layered clouds on top of a skybox, or distant mountains.  You can also manually specify a cubemap to use.
 
