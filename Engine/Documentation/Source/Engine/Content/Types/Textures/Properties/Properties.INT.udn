@@ -30,8 +30,6 @@ Description:Reference for the properties and settings for texture assets.
 
 [TOC(end:2)]
 
-## Overview
-
 [EXCERPT:Intro]
 The **Texture Editor** allows you to preview Texture assets and modify their properties.  You can also apply color adjustments and modify compression and LOD settings here.
 [/EXCERPT:Intro]
@@ -55,7 +53,7 @@ The **Level Of Detail** section displays mip and LOD settings.
 
 Mip-map generation happens during importing of the Texture and creates a mip-map chain for the Texture. The mip-map chain consists of multiple levels of the sample image, each half the resolution of the level before. That data allows the graphic card to render faster when using the lower mips (less memory bandwidth) and also reduces the Texture aliasing (shimmering) that becomes visible when having detailed Texture in certain distances. The setting has no performance impact at runtime as it only affects the mip-map generation (during importing or when changing the setting). 
 
-In the **Mip Gen Settings** drop-down box, the **SimpleAverage** setting uses a 2x2 kernel size, and all **Sharpen** settings use a 8x8 kernel and some negative weights to sharpen. **Sharpen0** is not sharpening, but it still uses the quality down-sampling filter all **Sharpen** settings use (4x4 Gaussian kernel). Compared to **SimpleAverage**, it appears blurrier but higher quality. 
+In the Mip Gen Settings drop-down box, the SimpleAverage setting uses a 2x2 kernel size, and all Sharpen settings use a 8x8 kernel and some negative weights to sharpen. Sharpen0 is not sharpening, but it still uses the quality down-sampling filter all Sharpen settings use (4x4 Gaussian kernel). Compared to SimpleAverage, it appears blurrier but higher quality. 
 
 When you are using color content, the sharpening is not processing the color channels independently. Then luminance is done as defined and the chrominance (color) information is down-sampled without sharpening (currently 2x2 but 4x4 Gaussian would be possible as well). This avoids a color shift in some extreme cases. Sharpening also helps to improve the DXT compressor as the compression of subtle color shades is limited.
 
@@ -69,7 +67,7 @@ When you are using color content, the sharpening is not processing the color cha
 | **Num Cinematic Mip Levels** | Specifies how many of the highest-resolution mip levels should be reserved for cinematic usage - when the Texture is forcibly streamed in with cinematic quality. While the game is running normally, this property behaves just like a regular LOD bias: A value of 1 reduces the Texture's in-game resolution by one mip-level. However, when the corresponding Texture group is set to cinematic quality, the cinematic high-resolution mip levels are streamed in. |
 
 [REGION:note]
-It is a good idea to have have some mip sharpening (for example, **Sharpen4**) defined for all color Textures. Normal maps or other Textures not storing colors might also get more detail on the first sight, but it actually might get worse (e.g. distorted surface normals, aliasing speculars).
+It is a good idea to have have some mip sharpening (for example, Sharpen4) defined for all color Textures. Normal maps or other Textures not storing colors might also get more detail on the first sight, but it actually might get worse (e.g. distorted surface normals, aliasing speculars).
 [/REGION]
 
 
@@ -123,8 +121,8 @@ The options in the **Adjustments** section allow you to adjust the Texture's col
 | Item | Description |
 | ---- | ----------- |
 | **Composite Texture** | The Texture asset used to modify the roughness based on the normal map variation (mostly from mip maps). Make sure the normal map has at least as many mips as this Texture asset. | 
-| **Composite Texture Mode** | Defines how the **Composite Texture** is applied. | 
-| **Composite Power** | Sets the strength of the effect of the **Composite Texture**. Higher values result in a stronger effect. The default is 1. | 
+| **Composite Texture Mode** | Defines how the Composite Texture is applied. | 
+| **Composite Power** | Sets the strength of the effect of the Composite Texture. Higher values result in a stronger effect. The default is 1. | 
 
 
 
