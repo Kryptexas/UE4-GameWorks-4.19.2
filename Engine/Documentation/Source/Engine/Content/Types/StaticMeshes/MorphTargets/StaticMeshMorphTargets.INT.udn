@@ -11,10 +11,10 @@ using the `StaticMeshMorpher.ms` maxscript and the **StaticMeshMorphtarget**
 [Material Function](Engine/Rendering/Materials/Functions), 
 StaticMeshes also have the ability to be setup for deformation using morph targets.
 
-This method performs the deformation by using multiple UV channels, vertex colors, and the **WorldPositionOffset**.
+This method performs the deformation by using multiple UV channels, vertex colors, and the WorldPositionOffset.
 The offsets of the vertices for each morph target are stored as vertex colors in a UV channel. 
-The **StaticMeshMorphTarget** Material Function then extracts these and makes them available 
-within the Material. By passing them to the **WorldPositionoffset** input of the material, 
+The StaticMeshMorphTarget Material Function then extracts these and makes them available 
+within the Material. By passing them to the WorldPositionoffset input of the material, 
 the vertices of the mesh can be transformed to the positions of the vertices in the morph target.
 
 ## Script Setup and Installation
@@ -75,11 +75,11 @@ and the normals for morph target 1 can also be stored in the mesh's vertex color
 
 The _StaticMeshMorphTargets_ function provides access to the morph targets and normals inside the _Material_ applied to the _StaticMesh_. 
 This function has two outputs corresponding to the two morph targets and one output for the normals. The morph target outputs provide 
-values that can be plugged into the **WorldPositionOffset** input channel of the _Material_ node, while the normal output, as you might expect, 
+values that can be plugged into the WorldPositionOffset input channel of the _Material_ node, while the normal output, as you might expect, 
 can be connected to the _Normal_ input channel of the _Material_ node.
 
 In order to allow for _morphing_ between the base mesh and the morph targets, one or more _LinearInterpolate_ expressions are used 
-with a single _ScalarParameter_ driving the **Alpha** input. This allows the morph targets to be driven at runtime by gameplay code or 
+with a single _ScalarParameter_ driving the Alpha input. This allows the morph targets to be driven at runtime by gameplay code or 
 Matinee.
 
 An example setup (only the morph network) is shown here:
