@@ -413,4 +413,8 @@ public class MacPlatform : Platform
 		}
 		return false;
 	}
+	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+	{
+		return false; // !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
+	}
 }
