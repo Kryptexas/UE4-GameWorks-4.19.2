@@ -1,5 +1,5 @@
 Availability: Public
-Title:Static Meshes - How to Set Materials
+Title:Setting Up Materials With Static Meshes
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: How to set a material on a mesh in the Static Mesh Editor.
 
@@ -42,9 +42,6 @@ Description: How to set a material on a mesh in the Static Mesh Editor.
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-
-## Overview
 
 No matter what type of Static Mesh you put into your level, chances are that when the player looks at that object, you want it to have some type of material.  This How To will cover a couple of different ways that you can apply a material to your Static Mesh.
 
