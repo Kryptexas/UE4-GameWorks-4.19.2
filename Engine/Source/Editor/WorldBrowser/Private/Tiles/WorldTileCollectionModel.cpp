@@ -1639,6 +1639,10 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 						float WidthY = NewLandscapeRect.Height()*TileScale.Y;
 						FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex] + ImportSettings.TilesCoordinatesOffset;
 						FIntPoint TileOffset = FIntPoint(TileCoordinates.X*WidthX, TileCoordinates.Y*WidthY);
+						if (ImportSettings.bFlipYAxis)
+						{
+							TileOffset.Y = -(TileOffset.Y + WidthY);
+						}
 						
 						// Place level tile at correct position in the world
 						NewTileModel->SetLevelPosition(TileOffset);
