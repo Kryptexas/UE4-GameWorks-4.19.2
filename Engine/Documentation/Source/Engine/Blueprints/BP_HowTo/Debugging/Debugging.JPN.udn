@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2491062
+﻿INTSourceChangelist:2596007
 Availability:Public
 Title:ブループリントのデバッグ
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,8 +8,6 @@ Related:Engine/Blueprints
 
 
 [TOC(start:2)]
-
-## 概要
 
 ブループリントで作業する場合、意図したとおりに機能しないことがあるかもしれません。こうした問題を診断するために、ブループリント ビジュアル スクリプティング ツールには、独自のデバッガがあり、その中で最も強力な機能はグラフのノードに **ブレークポイント** を追加するというものです。グラフのノードにブレークポイントを追加することで、エディタでゲームを通常通りに再生 (またはシミュレーション) し、追加したブレークポイントに到達するとゲームが停止し、グラフ内のノードにジャンプし、どこで問題が発生しているかを確認するためにスクリプトをステップスルーすることができます。 
 
@@ -65,7 +63,7 @@ Related:Engine/Blueprints
 
 ブレークポイントを無効に設定されたノードは、ノードに到達時にブレークのコマンドを無視します。 
 
-**Debug** メニューには **Disable/Enable** または **Delete All Breakpoints** のオプションもあります。 
+**Debug** メニューには **Disable/Enable** または **Delete All Breakpoints** （全てのブレークポイントを削除）のオプションもあります。 
 
 ![](DebugHowTo18.png)
 
@@ -146,6 +144,11 @@ Related:Engine/Blueprints
 ![](DebugHowTo21.png)
 
 エラーがあると [Compiler Results] ウィンドウが自動的にポップアップします。虫眼鏡をクリックしてエラーが発生している場所と問題となっているノードにジャンプすることができます。問題解決を支援するためにエラーのテキスト説明も表示されます。 
+
+
+
+
+
 
 
 
