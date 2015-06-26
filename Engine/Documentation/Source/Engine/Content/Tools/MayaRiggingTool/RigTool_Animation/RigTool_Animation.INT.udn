@@ -25,15 +25,13 @@ Description:Animation assistance tools included within the Animation & Rigging T
 
 [TOC(start:2 end:2)]
 
-## Overview
-
 ![](ART_AnimationInterface_Plain.png)
 
-Welcome to the **Animation & Rigging Tool Animation Interface**. From here, you will be able to access your characters controls to rapidly animate the character created by the [**ART Rigging Toolset**](Engine/Content\Tools\MayaRiggingTool\RigTool_Rigging). Everything in this interface is to enable the user to quickly change every aspect of how they are animating the character.
+Welcome to the **Animation & Rigging Tool Animation Interface**. From here, you will be able to access your characters controls to rapidly animate the character created by the [ART Rigging Toolset](Engine/Content\Tools\MayaRiggingTool\RigTool_Rigging). Everything in this interface is to enable the user to quickly change every aspect of how they are animating the character.
 
 ## Adding a Character
 
-If you want to poke around with the tool while reading, you will need a character to work with, if you do not have a character ready to animate, then run through the [Rigging Tools](Engine/Content\Tools\MayaRiggingTool\RigTool_Rigging) documentation to see how you can create a quick proxy character.
+If you want to poke around with the tool while reading, you will need a character to work with, if you do not have a character ready to animate, run through the [Rigging Tools](Engine/Content\Tools\MayaRiggingTool\RigTool_Rigging) documentation to see how you can create a quick proxy character.
 
 But if you have a character available, either by creating it yourself or receiving it from your rigger, you will need to bring it into a scene before you can start using it.
 
@@ -76,7 +74,7 @@ The **chest_ik_anim** has a few unique attributes.
 
 | **Attribute** | **Description** |
 |---------|-------------|
-| **Twist Amount** | Twist Amount is the multiplier for how twist of the chest_ik_anim control travels down the rest of the spine joints. This attribute works in conjunction with the Spine XX Twist Amount attributes, by multiply that value by this value. For example, I twist my chest_ik_anim control 30 degrees. Spine_02_Twist_Amount is set to .5, and twist_amount is set to 1.0. This means spine 2 will receive a value of 15 for its' twist (30 * 0.5 * 1) |
+| **Twist Amount** | Twist Amount is the multiplier for how twist of the chest_ik_anim control travels down the rest of the spine joints. This attribute works in conjunction with the Spine XX Twist Amount attributes, by multiply that value by this value. For example, I twist my chest_ik_anim control 30 degrees. Spine_02_Twist_Amount is set to .5, and twist_amount is set to 1.0. This means spine 2 will receive a value of 15 for it's twist (30 * 0.5 * 1) |
 | **Spine XX Twist Amount** | This attribute is the percentage of twist this joint will recieve from the chest_ik_anim control. This value gets multiplied by the Twist Amount value to give the total twist result for that joint.|
 | **Stretch Factor** | This attribute is not keyable or useable in any way, it is simply a readout that will tell you how much your spine is stretching or compressing. |
 | **Auto Spine** | Auto Spine automates the **mid_ik_anim** control's translation, so that the mid_ik_anim control stays averaged between the hips and the chest_ik_anim. |
@@ -182,13 +180,13 @@ You can also access these in the picker by **right-clicking** on the head, neck,
 |----------|---------------|
 |[![](ART_SelectionTool.png)](#SelectandResetTools) | Brings up the selection menu, enabling you to select all controllers, select everything, select the rig settings, create a selection set, or select a selection set. |
 |[![](ART_ResetRig.png)](#SelectandResetTools) | Opens the reset menu, allowing you to **Zero** everything out or just what is selected. **Non-Destructive**: no key-frames are deleted. |
-|[![](ART_ImportMotion.png)](#ImportMotion) | Accesses the [**Import Motion**](#ImportMotion) functions. |
-|[![](ART_ExportMotion.png)](#ExportMotion) | Reveals the [**Export Motion**](#ExportMotion) interface. |
-|[![](ART_SpaceSwitching.png)](#SpaceSwitching) | Shows the [**Space Switcher**](#SpaceSwitching) window. |
-|[![](ART_PoseTools.png)](#PoseEditor) | Engages the [**Pose Editor**](#PoseEditor). |
-|[![](ART_MatchOverFrameRange_button.png)](#MatchingOverAFrameRange) | Enables the [**Match Over Frame Range**](#MatchingOverAFrameRange) interface. |
+|[![](ART_ImportMotion.png)](#ImportMotion) | Accesses the [Import Motion](#ImportMotion) functions. |
+|[![](ART_ExportMotion.png)](#ExportMotion) | Reveals the [Export Motion](#ExportMotion) interface. |
+|[![](ART_SpaceSwitching.png)](#SpaceSwitching) | Shows the [Space Switcher](#SpaceSwitching) window. |
+|[![](ART_PoseTools.png)](#PoseEditor) | Engages the [Pose Editor](#PoseEditor). |
+|[![](ART_MatchOverFrameRange_button.png)](#MatchingOverAFrameRange) | Enables the [Match Over Frame Range](#MatchingOverAFrameRange) interface. |
 |![](ART_ScaleControls.png) | Creates a small window with a **grow** button and **shrink** button to increase or decrease the size of the selected controller.  |
-|![](ART_RigVis.png) | **Hides** or **Shows** the rig. **Right-Clicking** will show the [**ISO (Isolation) Select Tool**](#ISOSelectTool) menu. |
+|![](ART_RigVis.png) | **Hides** or **Shows** the rig. **Right-Clicking** will show the [ISO (Isolation) Select Tool](#ISOSelectTool) menu. |
 |![](ART_SelectionSets.png) | **Left-Click** to bring up any selection sets you have created and their options. If you have not created a selection set yet, it will probably open the **Scale Controls** interface. |
 |![](ART_Help.png) | Brings up the Help for the ART. |
 
@@ -220,7 +218,7 @@ Though only the currently selected character can use the **Animation Interface**
 
 The character picker is the default tab upon opening the UI. This is where you can select the majority of the controls in a clean, visual fashion. The controls not included on the character picker are any toes you may have, as well as custom controls (ponytails, accessories, etc.). The upper section is devoted to the **Body** of the character while the lower is for the **Fingers** of the character.
 
-While most of the **Picker** interface gives solid feed back on what you are selecting and doing, let us step through the interface and touch on everything.
+While most of the **Picker** interface gives solid feedback on what you are selecting and doing, let us step through the interface and touch on everything.
 
 #### Basic Selection Functions
 
@@ -329,7 +327,7 @@ By **Left-Clicking** in the background of the hand interface (highlighted in gre
 
 ![](ART_ListView_Interface.png)
 
-This is another way to look at the rig and select the controllers. While the **Picker** is a visual selection tool, others prefer the **Outliner** and this replicates that but with out all the intermediate nodes and messy hierarchy that comes with complicated rigs. Further, all controllers appear in this list, not just the core "human" controllers. You can select all controls in a group by **Left-Clicking** the boxes on the right side of the interface.
+This is another way to look at the rig and select the controllers. While the **Picker** is a visual selection tool, others prefer the **Outliner** and this replicates that but without all the intermediate nodes and messy hierarchy that comes with complicated rigs. Further, all controllers appear in this list, not just the core "human" controllers. You can select all controls in a group by **Left-Clicking** the boxes on the right side of the interface.
 
 However, you cannot **Right-Click** anything in here to **switch spaces** or **toggle IK/FK**, for that you will need to go into **Rig Settings** or back into the **Picker**.
 
@@ -352,7 +350,7 @@ Need to engage **Stretchy IK**? Maybe you prefer to punch in numbers for the var
 |**Legs** | **IK/FK Mode** toggle, **Stretchy IK**, **Bias** is essentially the "squash" of the squash and stretch portion of the rig, **Upper Leg Twist**  and **Lower Leg Twist** controls. |
 |**Spine** | **IK/FK Mode** toggle, **Stretchy IK**, and **Twist** which controls the automatic twist of the spine as you rotate the spine around the **X** axis. |
 |**Head** | **Head Orientation Space** will lock the head's orientation to a body part or the world (owl mode engage). |
-|**Neck** | **Nech Orientation Space** will lock the neck's orientation to the chest, body, or world. |
+|**Neck** | **Neck Orientation Space** will lock the neck's orientation to the chest, body, or world. |
 |**Auto Controls** | **Auto Hips** as you animate the legs the hips will automatically react, **Auto Spine**, **Auto Clavicles**.  |
 |**Fingers** | **FK Sticky**, **IK/FK Mode** toggle. |
 |**Custom Joint Chains** | **IK/FK Mode** toggle, **Stretchy IK**, **Lag Mode** sends animation down an joint chain in **FK** mode with a frame delay to automatically animate overlap, [**Dynamics**: see below](#Dynamics). |
@@ -521,7 +519,7 @@ Spaces will switch on whatever frame you are on when you change the space for a 
 |--------|-------------|
 | ![](ART_CreateSpace.png) | With a **Space Object** and **Controller** selected (**Space Object** first then **Controller**), this will create a new space for that controller. |
 | ![](ART_SpaceSwitching_Match.png) | This button is the match button. It is selected by default. If it is on, anytime a user changes space, keys will be set on a space switch node so there is no pop. If for some reason, you would not like this behavior, turn match off. |
-| ![](ART_SpaceSwitching_Node.png) | This button is used to determine where the tool will put keyframes when using match. By default, it is set to put these keyframes on the control. However, you can set it to put they match keyframes on the space switch node. |
+| ![](ART_SpaceSwitching_Node.png) | This button is used to determine where the tool will put keyframes when using match. By default, it is set to put these keyframes on the control. However, you can set it to put the match keyframes on the space switch node. |
 | ![](ART_SpaceSwitching_selectSpaceNode.png) | This button appears beside each control and is used to select the space switch node for that control. This button also exists at the top of the interface, and selecting it will grab all of the space switch nodes. |
 | ![](ART_SpaceSwitching_Bake.png) | This button appears beside each control and is a toggle for marking that control for bake. Any controls that are marked for bake, when selecting the very top bake button, will bake all of the space switching on those controls down onto the default space. This is a good way to clean up your scene if things start getting confusing. |
 
@@ -673,7 +671,7 @@ Switching a mode or a setting in the channel box will not trigger any of the mat
 (#Animation)
 ### Animation
 
-The **Animation Menu** has two options pertaining the the **Euler Filter** and a third option for **Baking Dynamics to FK Controls**.
+The **Animation Menu** has two options pertaining the **Euler Filter** and a third option for **Baking Dynamics to FK Controls**.
 
 | Option | Description |
 |--------|-------------|
