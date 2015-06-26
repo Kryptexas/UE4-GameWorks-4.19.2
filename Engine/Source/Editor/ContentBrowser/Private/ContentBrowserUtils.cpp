@@ -308,21 +308,9 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 			}
 		}
 	}
-
-	// if we are allowed to prompt the user to load and we have enough assets that requires prompting then we should 
-	// prompt and load assets if the user said it was ok
-	bool bShouldLoadAssets = true;
-	if( bAllowedToPromptToLoadAssets && ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjectPaths) )
-	{
-		bShouldLoadAssets = PromptToLoadAssets(ObjectPaths);
-	}
-
-
-	// Ask for confirmation if the user is attempting to load a large number of assets
-	if (bShouldLoadAssets == false)
-	{
-		return false;
-	}
+ 
+	// prompt and load assets
+	GetUnloadedAssets(ObjectPaths, UnloadedObjectPaths);
 
 	// Make sure all selected objects are loaded, where possible
 	if ( UnloadedObjectPaths.Num() > 0 )
@@ -385,12 +373,11 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 	return true;
 }
 
-bool ContentBrowserUtils::ShouldPromptToLoadAssets(const TArray<FString>& ObjectPaths, TArray<FString>& OutUnloadedObjects)
+void ContentBrowserUtils::GetUnloadedAssets(const TArray<FString>& ObjectPaths, TArray<FString>& OutUnloadedObjects)
 {
 	OutUnloadedObjects.Empty();
 
-	bool bShouldPrompt = false;
-	// Build a list of unloaded assets
+	// Build a list of unloaded assets and check if there are any parent folders
 	for (int32 PathIdx = 0; PathIdx < ObjectPaths.Num(); ++PathIdx)
 	{
 		const FString& ObjectPath = ObjectPaths[PathIdx];
@@ -402,15 +389,6 @@ bool ContentBrowserUtils::ShouldPromptToLoadAssets(const TArray<FString>& Object
 			OutUnloadedObjects.Add(ObjectPath);
 		}
 	}
-
-	// Get the maximum objects to load before displaying a warning
-	// Ask for confirmation if the user is attempting to load a large number of assets
-	if (OutUnloadedObjects.Num() > GetDefault<UContentBrowserSettings>()->NumObjectsToLoadBeforeWarning)
-	{
-		bShouldPrompt = true;
-	}
-
-	return bShouldPrompt;
 }
 
 bool ContentBrowserUtils::PromptToLoadAssets(const TArray<FString>& UnloadedObjects)
@@ -817,14 +795,7 @@ bool ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 	}
 
 	TArray<FString> UnloadedObjects;
-	if(ShouldPromptToLoadAssets(ObjectPathsToWarnAbout, UnloadedObjects))
-	{
-		const bool bShouldLoadAssets = PromptToLoadAssets(UnloadedObjects);
-		if (!bShouldLoadAssets)
-		{
-			return false;
-		}
-	}
+	GetUnloadedAssets(ObjectPathsToWarnAbout, UnloadedObjects);
 
 	GWarn->BeginSlowTask(LOCTEXT("FolderDragDrop_Loading", "Loading folders"), true);
 

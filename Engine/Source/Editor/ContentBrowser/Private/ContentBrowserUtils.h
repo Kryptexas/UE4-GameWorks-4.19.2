@@ -26,7 +26,7 @@ namespace ContentBrowserUtils
 	bool OpenEditorForAsset(const TArray<UObject*>& Assets);
 
 	/**
-	  * Makes sure the specified assets are loaded into memory.
+	  * Makes sure the specified assets are loaded into memory.6666
 	  * 
 	  * @param ObjectPaths The paths to the objects to load.
 	  * @param LoadedObjects The returned list of objects that were already loaded or loaded by this method.
@@ -35,13 +35,13 @@ namespace ContentBrowserUtils
 	bool LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths, TArray<UObject*>& LoadedObjects, bool bAllowedToPromptToLoadAssets = true, bool bLoadRedirects = false);
 
 	/**
-	 * Determines if enough assets are unloaded that we should prompt the user to load them instead of loading them automatically
+	 * Determines the unloaded assets that need loading
 	 *
 	 * @param ObjectPaths		Paths to assets that may need to be loaded
 	 * @param OutUnloadedObjects	List of the unloaded object paths
 	 * @return true if the user should be prompted to load assets
 	 */
-	bool ShouldPromptToLoadAssets(const TArray<FString>& ObjectPaths, TArray<FString>& OutUnloadedObjects);
+	void GetUnloadedAssets(const TArray<FString>& ObjectPaths, TArray<FString>& OutUnloadedObjects);
 
 	/**
 	 * Prompts the user to load the list of unloaded objects

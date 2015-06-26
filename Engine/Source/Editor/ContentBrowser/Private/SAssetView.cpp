@@ -3194,37 +3194,20 @@ bool SAssetView::CanOpenContextMenu() const
 	}
 
 	bool bLoadSuccessful = true;
-	bool bShouldPromptToLoadAssets = false;
 
 	if ( bPreloadAssetsForContextMenu )
 	{
-		// Should the user be asked to load unloaded assets
+		// Get and load assets that are unloaded
 		TArray<FString> UnloadedObjects;
-		bShouldPromptToLoadAssets = ContentBrowserUtils::ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjects);
+		ContentBrowserUtils::GetUnloadedAssets(ObjectPaths, UnloadedObjects);
 
-		bool bShouldLoadAssets = false;
-		if ( bShouldPromptToLoadAssets )
-		{
-			// The user should be prompted to loaded assets
-			bShouldLoadAssets = ContentBrowserUtils::PromptToLoadAssets(UnloadedObjects);
-		}
-		else
-		{
-			// The user should not be prompted to load assets but assets should still be loaded
-			bShouldLoadAssets = true;
-		}
-
-		if ( bShouldLoadAssets )
-		{
-			// Load assets that are unloaded
-			TArray<UObject*> LoadedObjects;
-			const bool bAllowedToPrompt = false;
-			bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
-		}
+		TArray<UObject*> LoadedObjects;
+		const bool bAllowedToPrompt = false;
+		bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
 	}
 
-	// Do not show the context menu if we prompted the user to load assets or if the load failed
-	return !bShouldPromptToLoadAssets && bLoadSuccessful;
+	// Do not show the context menu if the load failed
+	return bLoadSuccessful;
 }
 
 void SAssetView::OnListMouseButtonDoubleClick(TSharedPtr<FAssetViewItem> AssetItem)
