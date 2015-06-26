@@ -1748,17 +1748,6 @@ void UEditorEngine::InvalidateAllViewportsAndHitProxies()
 	}
 }
 
-void UEditorEngine::InvalidateAllLevelEditorViewportClientHitProxies()
-{
-	for (const auto* LevelViewportClient : LevelViewportClients)
-	{
-		if (LevelViewportClient->Viewport != nullptr)
-		{
-			LevelViewportClient->Viewport->InvalidateHitProxy();
-		}
-	}
-}
-
 void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Propagate the callback up to the superclass.

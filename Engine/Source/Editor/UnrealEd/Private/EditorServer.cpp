@@ -2071,7 +2071,7 @@ UWorld* UEditorEngine::NewMap()
 	GUnrealEd->ResetTransaction( CleanseText );
 
 	// Invalidate all the level viewport hit proxies
-	InvalidateAllLevelEditorViewportClientHitProxies();
+	RedrawLevelEditingViewports();
 
 	return NewWorld;
 }
@@ -2521,7 +2521,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					}
 
 					// Invalidate all the level viewport hit proxies
-					InvalidateAllLevelEditorViewportClientHitProxies();
+					RedrawLevelEditingViewports();
 				}
 			}
 			else
