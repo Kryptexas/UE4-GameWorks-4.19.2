@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2601378
 Availability:Public
 Title:
 Crumbs: %ROOT%, Engine, Engine/Actors
-Description:Player Starts 使用のガイド
+Description:Player Start 使用のガイド
 
 ![](Player_Start_Actor.png)
 
-## 概要
 
 プレイヤーをワールドの任意の場所にスポーンする機能は、あらゆるゲームで非常に役立つ機能です。アンリアル エンジン 4 には、これを行う **Player Start** という特殊なアクタがあります。Player Start は、ゲーム ワールド内のプレイヤーの開始位置です。  
 
@@ -21,7 +20,7 @@ Player Start アクタは、[Mode] パネルの [Basic] カテゴリにありま
 Player Start は、**[Mode]** パネルから選択して、ワールドにドラッグして簡単に使用できます。ワールドに Player Start を配置したら、ブループリントと組み合わせて使用してワールド内の任意の場所でプレイヤーをスポーンすることができます。 
 
 [region:tip]
-Player Start を使用してプレイヤーをスポーンする場合、使用時に Player Start 位置とローテーションは考慮されます。スポーン時にプレイヤーに特定のものを見せたい場合、スポーンするために使用した Player Start が、プレイヤーに向いてほしい方向をポイントするようにします。 
+Player Start を使用してプレイヤーをスポーンする場合、使用時に Player Start 位置と回転は考慮されます。スポーン時にプレイヤーに特定のものを見せたい場合、スポーンするために使用した Player Start が、プレイヤーに向いてほしい方向をポイントするようにします。 
 [/REGION]
 
 ## Player Start のヒントとコツ
