@@ -21,7 +21,7 @@ void FActorComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	// Defaults only show tick properties
 	if (DetailBuilder.GetDetailsView().HasClassDefaultObject())
 	{
-		IDetailCategoryBuilder& TickCategory = DetailBuilder.EditCategory("Tick");
+		IDetailCategoryBuilder& TickCategory = DetailBuilder.EditCategory("ComponentTick");
 
 		TickCategory.AddProperty(PrimaryTickProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTickFunction, bStartWithTickEnabled)));
 		TickCategory.AddProperty(PrimaryTickProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTickFunction, bTickEvenWhenPaused)), EPropertyLocation::Advanced);
