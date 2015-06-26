@@ -860,6 +860,10 @@ public:
 			check(bFound); // otherwise you changed TickState while the tick function was registered. Call SetTickFunctionEnable instead.
 			break;
 		}
+		if (bTickNewlySpawned)
+		{
+			NewlySpawnedTickFunctions.Remove(TickFunction);
+		}
 	}
 
 private:
