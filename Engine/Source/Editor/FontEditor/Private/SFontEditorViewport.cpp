@@ -74,7 +74,7 @@ FFontEditorViewportClient::FFontEditorViewportClient(TWeakPtr<SFontEditorViewpor
 	, CurrentSelectedPage(INDEX_NONE)
 	, PageGap(4)
 {
-	PreviewText = LOCTEXT("DefaultPreviewText", "The quick brown fox jumped over the lazy dog");
+	PreviewText = LOCTEXT("DefaultPreviewText", "The quick brown fox jumps over the lazy dog");
 	BackgroundColor = FColor::Black;
 	ForegroundColor = FColor::White;
 }
