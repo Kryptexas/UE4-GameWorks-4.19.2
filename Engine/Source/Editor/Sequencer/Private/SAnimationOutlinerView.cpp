@@ -342,8 +342,6 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 		}
 		else if( MouseEvent.IsControlDown() )
 		{
-			bool bSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
-
 			// Toggle selection when control is down
 			if (bSelected)
 			{
