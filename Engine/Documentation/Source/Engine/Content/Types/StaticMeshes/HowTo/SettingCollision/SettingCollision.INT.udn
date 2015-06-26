@@ -1,5 +1,5 @@
 Availability: Public
-Title:Static Meshes - How To Set Up Collision
+Title:Setting Up Collisions With Static Meshes
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: How To Set Up Collision
 
@@ -42,8 +42,6 @@ Description: How To Set Up Collision
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-## Overview
 
 In UE4, you can have Static Meshes do many things, such as change its texture or material during gameplay, or move throughout your level using a Matinee.  Chances are, whatever you have your Static Mesh do in your level, you do not want to have the player able to walk or shoot through the mesh.  That is where setting up collision on your Static Mesh is useful.
 
@@ -115,7 +113,7 @@ Remove the collision on the mesh by selecting **Remove Collision** from the **Co
 ![](ChairBox.png)(w:300)
 
 It seems none of the primitive shapes quite achieve what we are looking for.  However, we can get closer with the other options within the **Collision** drop down menu.  These options are called the **K-DOP** simple collision generators.
-**K-DOP** is a type of bounding volume, which stands for _K discrete oriented polytope_ (where K is the number of axis aligned planes). Basically, it takes K axis-aligned planes and pushes them as close to the mesh as it can. The resulting shape is used as a collision hull. In the **Static Mesh Editor** K can be:
+K-DOP is a type of bounding volume, which stands for _K discrete oriented polytope_ (where K is the number of axis aligned planes). Basically, it takes K axis-aligned planes and pushes them as close to the mesh as it can. The resulting shape is used as a collision hull. In the **Static Mesh Editor** K can be:
 
 
 * **10** - Box with 4 edges beveled - you can choose X- Y- or Z-aligned edges.
@@ -132,7 +130,7 @@ These collision meshes are coming closer to what we are trying to achieve, but t
 
 ![](ConvexDecomposition.png)
 
-The top option in this window is **Max Hulls** which will change the number of primitives that your collision mesh has.  The bottom option will increase or decrease the number of vertices your collision mesh has.  The higher these values, the more precise your collision will be, but also the more complex your collision mesh will be.  Clicking **Apply** will apply these settings to your mesh.
+The top option in this window is Max Hulls which will change the number of primitives that your collision mesh has.  The bottom option will increase or decrease the number of vertices your collision mesh has.  The higher these values, the more precise your collision will be, but also the more complex your collision mesh will be.  Clicking **Apply** will apply these settings to your mesh.
 
 ![](AutoConvexCollision1.png)(w:460)
 ![](AutoConvexCollision2.png)(w:460 a:right)
@@ -147,7 +145,7 @@ You could go back and follow the shape of the chair more closely, but for the pu
 
 ## Simulating Physics and Collision Presets
 
-Now that your Static Mesh has collision, it can now simulate physics.  Save your chair mesh by clicking the **Save** button on the very left of the Toolbar within the Static Mesh Editor and then find **SM_Chair** inside your **Content Browser**.  Drag a copy of the mesh into the level and with it selected, take a look at the **Details** panel.  In the **Physics** section of the **Details** panel, the first option is **Simulate Physics** and should be _false_ by default.  If you play the level now with **Simulate Physics** set to _false_, your character will not be able to walk  through the mesh and shooting projectiles will not affect the mesh at all.
+Now that your Static Mesh has collision, it can now simulate physics.  Save your chair mesh by clicking the **Save** button on the very left of the Toolbar within the Static Mesh Editor and then find **SM_Chair** inside your **Content Browser**.  Drag a copy of the mesh into the level and with it selected, take a look at the **Details** panel.  In the **Physics** section of the **Details** panel, the first option is **Simulate Physics** and should be _false_ by default.  If you play the level now with Simulate Physics set to _false_, your character will not be able to walk  through the mesh and shooting projectiles will not affect the mesh at all.
 
 ![](PhysicsDetailsPanel.png)
 
