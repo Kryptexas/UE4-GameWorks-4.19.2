@@ -2203,8 +2203,10 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				{
 					FDeferredMessageLog LoadErrors(NAME_LoadErrors);
 					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
-					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText::Format(LOCTEXT("ImportFailure", "Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex))));
-					TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));
+					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
+					TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
+					TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
+					TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));					
 
 					if (!WarningAppend.IsEmpty())
 					{
