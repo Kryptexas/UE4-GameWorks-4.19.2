@@ -16,6 +16,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "Engine/InterpCurveEdSetup.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
 
 UParticleModuleParameterBase::UParticleModuleParameterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

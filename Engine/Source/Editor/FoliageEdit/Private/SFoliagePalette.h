@@ -261,7 +261,7 @@ private:
 	TSharedPtr<FUICommandList> UICommandList;
 
 	/** Thumbnail pool for rendering mesh thumbnails */
-	TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+	TSharedPtr<class FAssetThumbnailPool> ThumbnailPool;
 
 	FEdModeFoliage* FoliageEditMode;
 
