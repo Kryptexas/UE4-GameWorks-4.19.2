@@ -85,42 +85,40 @@ struct FTickPrerequisite
 	/** Tick functions live inside of UObjects, so we need a separate weak pointer to the UObject solely for the purpose of determining if PrerequisiteTickFunction is still valid. */
 	TWeakObjectPtr<class UObject> PrerequisiteObject;
 
+	/** Pointer to the actual tick function and must be completed prior to our tick running. */
+	struct FTickFunction*		PrerequisiteTickFunction;
 
-
-		/** Pointer to the actual tick function and must be completed prior to our tick running. */
-		struct FTickFunction*		PrerequisiteTickFunction;
-
-		/** Noop constructor. */
-		FTickPrerequisite()
-		: PrerequisiteTickFunction(nullptr)
+	/** Noop constructor. */
+	FTickPrerequisite()
+	: PrerequisiteTickFunction(nullptr)
+	{
+	}
+	/** 
+		* Constructor
+		* @param TargetObject - UObject containing this tick function. Only used to verify that the other pointer is still usable
+		* @param TargetTickFunction - Actual tick function to use as a prerequisite
+	**/
+	FTickPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
+	: PrerequisiteObject(TargetObject)
+	, PrerequisiteTickFunction(&TargetTickFunction)
+	{
+		check(PrerequisiteTickFunction);
+	}
+	/** Equality operator, used to prevent duplicates and allow removal by value. */
+	bool operator==(const FTickPrerequisite& Other) const
+	{
+		return PrerequisiteObject == Other.PrerequisiteObject &&
+			PrerequisiteTickFunction == Other.PrerequisiteTickFunction;
+	}
+	/** Return the tick function, if it is still valid. Can be null if the tick function was null or the containing UObject has been garbage collected. */
+	struct FTickFunction* Get()
+	{
+		if (PrerequisiteObject.IsValid(true))
 		{
+			return PrerequisiteTickFunction;
 		}
-		/** 
-		 * Constructor
-		 * @param TargetObject - UObject containing this tick function. Only used to verify that the other pointer is still usable
-		 * @param TargetTickFunction - Actual tick function to use as a prerequisite
-		**/
-		FTickPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
-		: PrerequisiteObject(TargetObject)
-		, PrerequisiteTickFunction(&TargetTickFunction)
-		{
-			check(PrerequisiteTickFunction);
-		}
-		/** Equality operator, used to prevent duplicates and allow removal by value. */
-		bool operator==(const FTickPrerequisite& Other) const
-		{
-			return PrerequisiteObject == Other.PrerequisiteObject &&
-				PrerequisiteTickFunction == Other.PrerequisiteTickFunction;
-		}
-		/** Return the tick function, if it is still valid. Can be null if the tick function was null or the containing UObject has been garbage collected. */
-		struct FTickFunction* Get()
-		{
-			if (PrerequisiteObject.IsValid(true))
-			{
-				return PrerequisiteTickFunction;
-			}
-			return nullptr;
-		}
+		return nullptr;
+	}
 };
 
 /** 
@@ -175,11 +173,19 @@ private:
 	/** If true, means that this tick function is in the master array of tick functions **/
 	uint32 bRegistered:1;
 
+	enum class ETickState : uint8
+	{
+		Disabled,
+		Enabled,
+		CoolingDown
+	};
+
 	/** 
-	 * If false, this tick will not fire
+	 * If Disabled, this tick will not fire
+	 * If CoolingDown, this tick has an interval frequency that is being adhered to currently
 	 * CAUTION: Do not set this directly
 	 **/
-	uint32 bTickEnabled:1;
+	ETickState TickState;
 
 	/** Internal data to track if we have started visiting this tick function yet this frame **/
 	int32 TickVisitedGFrameCounter;
@@ -187,14 +193,26 @@ private:
 	/** Internal data to track if we have finshed visiting this tick function yet this frame **/
 	int32 TickQueuedGFrameCounter;
 
-private:
 	/** Completion handle for the task that will run this tick. Caution, this is no reset to nullptr until an unspecified future time **/
 	FGraphEventRef CompletionHandle;
 
 	/** Prerequisites for this tick function **/
 	TArray<struct FTickPrerequisite> Prerequisites;
 
+	/** The next function in the cooling down list for ticks with an interval*/
+	FTickFunction* Next;
+
+	/** 
+	  * If TickFrequency is greater than 0 and tick state is CoolingDown, this is the time, 
+	  * relative to the element ahead of it in the cooling down list, remaining until the next time this function will tick 
+	  */
+	float RelativeTickCooldown;
 public:
+
+	/** The frequency at which this tick function will be executed.  If less than or equal to 0 then it will tick every frame */
+	UPROPERTY(EditDefaultsOnly, Category="Tick")
+	float TickInterval;
+
 	/** Back pointer to the FTickTaskLevel containing this tick function if it is registered **/
 	class FTickTaskLevel*						TickTaskLevel;
 
@@ -216,7 +234,7 @@ public:
 	/** Enables or disables this tick function. **/
 	void SetTickFunctionEnable(bool bInEnabled);
 	/** Returns whether the tick function is currently enabled */
-	bool IsTickFunctionEnabled() const { return bTickEnabled; }
+	bool IsTickFunctionEnabled() const { return TickState != ETickState::Disabled; }
 
 	/**
 	* Gets the current completion handle of this tick function, so it can be delayed until a later point when some additional
