@@ -5,10 +5,8 @@ Description:Pipeline and tools for management and automatic generation of level 
 
 [TOC(start:2)]
 
-## Overview
-
 [REGION:note]
- This section covers the usage of the Simplygon features to create LODs for **StaticMeshes** in Unreal Engine 4. If you do not have a Simplygon license, the standard FBX pipeline has a method for importing LODs for **StaticMeshes**. See the [**FBX Static Mesh Pipeline**](Engine/Content/FBX/StaticMeshes#StaticMeshLODs) documentation for more details.
+ This section covers the usage of the Simplygon features to create LODs for StaticMeshes in Unreal Engine 4. If you do not have a Simplygon license, the standard FBX pipeline has a method for importing LODs for StaticMeshes. See the [FBX Static Mesh Pipeline](Engine/Content/FBX/StaticMeshes#StaticMeshLODs) documentation for more details.
 [/REGION]
 
 The _StaticMesh_ pipeline provides the ability to create presets and automatically generate complete 
@@ -24,7 +22,7 @@ time in the Static Mesh editor.
 * Define and override LOD group settings on a per-platform or device basis.
 * Normals and tangents are always imported from the FBX. At any time you may choose whether to use the imported 
 normals/tangents or have Unreal recompute them.
-* Streamlined workflow of setting up and tweaking LODs in the [**StaticMesh Editor**](Engine/Content/Types/StaticMeshes/Editor).
+* Streamlined workflow of setting up and tweaking LODs in the [StaticMesh Editor](Engine/Content/Types/StaticMeshes/Editor).
 * Automatic generation of LODs using Simplygon.
 
 [INCLUDE:Engine/UI/Tools/Simplygon#License]
@@ -81,7 +79,7 @@ The LOD meshes can be previewed using the controls in the toolbar:
 | ------- | ----------- |
 | **LOD Group** | Specifies the [LOD Group](#LODGroups) to use for the mesh. |
 | **Number of LODs** | Sets the number of LODs for the mesh. The list of LODs updates as this value is modified, but no actual changes are made until the ![Apply](button_apply.png) button is pressed. |
-| **Auto compute LOD Distance** | If enabled, a simple error metric is used to determine the distances at which transitions between LODs occur. Otherwise, the **Distance** property for each LOD is used to determine when transitions to that LOD occur. |
+| **Auto compute LOD Distance** | If enabled, a simple error metric is used to determine the distances at which transitions between LODs occur. Otherwise, the Distance property for each LOD is used to determine when transitions to that LOD occur. |
 | **LOD Distance Error** | Scales the distances at which transitions between LODs occur when using automatic computation. |
 
 ### Build Settings
@@ -103,7 +101,7 @@ The LOD meshes can be previewed using the controls in the toolbar:
 | **Texture** | Specifies how important texture density is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to avoid texture stretching artifacts but will result in a higher triangle count. |
 | **Shading** | Specifies how important shading quality is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to better preserve shading quality but will result in a higher triangle count. |
 | **Welding Threshold** | Vertices within this distance from one another will automatically be welded. This can help to eliminate small faces. Using large values can produce undesirable results. |
-| **Hard Edge Angle Threshold** | Angles larger than this value between faces will result in hard edges between faces. Smaller angles will create soft egdes. |
+| **Hard Edge Angle Threshold** | Angles larger than this value between faces will result in hard edges between faces. Smaller angles will create soft edges. |
 
 <!--
 [EXCERPT:Type]
