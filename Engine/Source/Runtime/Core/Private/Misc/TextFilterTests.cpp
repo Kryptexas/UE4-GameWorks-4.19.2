@@ -16,10 +16,14 @@ namespace TextFilterTests
 			BasicStrings.Add(TEXT("Type'/Path/To/Asset.Asset'"));
 			BasicStrings.Add(TEXT("Other'/Path/To/Asset.Asset'FollowingText"));
 			BasicStrings.Add(TEXT("Funky<String>"));
+			BasicStrings.Add(TEXT("My-Item"));
+			BasicStrings.Add(TEXT("My+Item"));
+			BasicStrings.Add(TEXT("My.Item"));
 
 			KeyValuePairs.Add("StringKey", TEXT("Test"));
 			KeyValuePairs.Add("IntKey", TEXT("123"));
 			KeyValuePairs.Add("FloatKey", TEXT("456.789"));
+			KeyValuePairs.Add("NegFloatKey", TEXT("-456.789"));
 		}
 
 		// ITextFilterExpressionContext API - used for testing FTextFilterExpressionEvaluator
@@ -87,7 +91,11 @@ namespace TextFilterTests
 
 			if (bActual != bExpected)
 			{
-				Test->AddError(FString::Printf(TEXT("Filter expression '%s' evaluated incorrectly: %d != %d"), InFilterExpression, bActual, bExpected));
+				Test->AddError(FString::Printf(TEXT("Filter expression '%s' evaluated incorrectly: Expected: %s, Actual: %s"), 
+					InFilterExpression, 
+					(bExpected) ? TEXT("true") : TEXT("false"), 
+					(bActual) ? TEXT("true") : TEXT("false"))
+					);
 				bResult = false;
 			}
 
@@ -162,6 +170,12 @@ namespace TextFilterTests
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Type'/Path/To/Asset.Asset'"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Other'/Path/To/Asset.Asset'FollowingText"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("\"Funky<String>\""), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("My-Item"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+My-Item"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("My+Item"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+My+Item"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("My.Item"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+My.Item"), true);
 
 		return bResult;
 	}
@@ -181,7 +195,7 @@ namespace TextFilterTests
 		bool bResult = true;
 
 		bResult &= TestAllCommonFilterExpressions(InTestPayload);
-		bResult &= InTestPayload.TestFilterExpression(TEXT("Funky<String>"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("'Funky<String>'"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("StringKey=Test"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("StringKey!=Test"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("IntKey=123"), true);
@@ -190,6 +204,9 @@ namespace TextFilterTests
 		bResult &= InTestPayload.TestFilterExpression(TEXT("FloatKey=456.789"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("FloatKey>456.789"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("FloatKey<456.789"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("NegFloatKey=-456.789"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("NegFloatKey>-456.789"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("NegFloatKey<-456.789"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("IntKey==300 || FloatKey==456.789"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("IntKey==300 && FloatKey==456.789"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("(IntKey==300 && FloatKey==456.789) OR StringKey==Test"), true);

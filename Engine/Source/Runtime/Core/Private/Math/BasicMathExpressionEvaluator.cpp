@@ -19,7 +19,7 @@ namespace ExpressionParser
 
 	TOptional<FStringToken> ParseNumber(const FTokenStream& InStream, FStringToken* Accumulate)
 	{
-		enum class EState { LeadIn, Integer, Dot, Fractional };
+		enum class EState { LeadIn, Sign, Integer, Dot, Fractional };
 
 		EState State = EState::LeadIn;
 		return InStream.ParseToken([&](TCHAR InC){
@@ -29,6 +29,34 @@ namespace ExpressionParser
 				if (FChar::IsDigit(InC))
 				{
 					State = EState::Integer;
+					return EParseState::Continue;
+				}
+				else if (InC == '+' || InC == '-')
+				{
+					State = EState::Sign;
+					return EParseState::Continue;
+				}
+				else if (InC == '.')
+				{
+					State = EState::Dot;
+					return EParseState::Continue;
+				}
+				else
+				{
+					// Not a number
+					return EParseState::Cancel;
+				}
+			}
+			else if (State == EState::Sign)
+			{
+				if (FChar::IsDigit(InC))
+				{
+					State = EState::Integer;
+					return EParseState::Continue;
+				}
+				else if (InC == '.')
+				{
+					State = EState::Dot;
 					return EParseState::Continue;
 				}
 				else

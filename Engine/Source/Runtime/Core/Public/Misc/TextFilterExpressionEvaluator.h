@@ -62,6 +62,9 @@ private:
 	/** Common function to construct the expression parser */
 	void ConstructExpressionParser();
 
+	/** Evaluate the given compiled result, and optionally populate OutErrorText with any error information */
+	bool EvaluateCompiledExpression(const ExpressionParser::CompileResultType& InCompiledResult, const ITextFilterExpressionContext& InContext, FText* OutErrorText) const;
+
 	/** Defines whether or not the expression parser can evaluate complex expressions */
 	ETextFilterExpressionEvaluatorMode ExpressionEvaluatorMode;
 
