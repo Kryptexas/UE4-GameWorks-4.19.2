@@ -3,12 +3,12 @@ Title:Render to Texture Toolset Setup
 Crumbs:%ROOT%, Engine, Engine/Content
 Description:
 
-The RenderToTexture Blueprint works by using a bare-bones **GameMode** setup. There is a companion asset called the **RenderToTexture_Game** which references the **RenderToTexture_Pawn**.  The Pawn is a very basic blueprint that simply has a **Camera Component** set to orthographic and a few event graph nodes to setup the rendering console commands. 
+The RenderToTexture Blueprint works by using a bare-bones GameMode setup. There is a companion asset called the RenderToTexture_Game which references the RenderToTexture_Pawn.  The Pawn is a very basic blueprint that has a **Camera Component** set to orthographic and a few event graph nodes to setup the rendering console commands. 
 
 The basic setup for using the Render to Texture tools is as follows:
 
 1. Create a new blank level.
-1. Place a **Player Start** from the **Modes** panel, **Basic** category, at location 0,0,0. Make sure the rotation on the **Player Start** is set to 0,0,0.
+1. Place a Player Start from the **Modes** panel, **Basic** category, at location 0,0,0. Make sure the rotation on the Player Start is set to 0,0,0.
 
 	![](ZeroedTrans.png)
 
@@ -19,7 +19,7 @@ The basic setup for using the Render to Texture tools is as follows:
 	[/REGION]
 
 1. Browse to **Engine** -> **ArtTools** -> **RenderToTexture** -> **Blueprints** in the **Content Browser**. 
-1. Place a **RenderToTexture_LevelBP** Blueprint at location 0,0,0 in the world
+1. Place a RenderToTexture_LevelBP Blueprint at location 0,0,0 in the world
 
 	[REGION:raw]
 	![](placeRTT_LBP.png)(w:880 convert:false)
@@ -29,7 +29,7 @@ The basic setup for using the Render to Texture tools is as follows:
 
 	![](worldSettingsBar.png)
 
-1. Assign the **RenderToTexture_GameMode** Blueprint (found in RenderToTexture/Blueprints/) as the **GameMode** in the **World Settings**
+1. Assign the *enderToTexture_GameMode Blueprint (found in RenderToTexture/Blueprints/) as the **GameMode** in the **World Settings**
 
 	[REGION:raw]
 	![](worldSettings.png)
@@ -37,7 +37,7 @@ The basic setup for using the Render to Texture tools is as follows:
 
 1. [INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#hrss1]
 
-1. Leave the **High Resolution Screenshot** dialog open.
+1. Leave the High Resolution Screenshot dialog open.
 1. Adjust the **New Window Size** property in **Editor** -> **Preferences** -> **Play** to a size that is a power of 2. A size of 512x512 is suggested and will not affect the quality of the output images.
 
 	[REGION:lightbox]
