@@ -266,40 +266,40 @@ struct FMaterialVertexParameters
 	FMaterialParticleParameters Particle;
 };
 
-float3 GetWorldPosition(FMaterialVertexParameters Parameters)
+float3 GetTranslatedWorldPosition(FMaterialVertexParameters Parameters)
 {
 	return Parameters.WorldPosition;
 }
 
-float3 GetPrevWorldPosition(FMaterialVertexParameters Parameters)
+float3 GetPrevTranslatedWorldPosition(FMaterialVertexParameters Parameters)
 {
 	// Previous world position and current world position are sharing the
 	// same attribute in Parameters, because in BasePassVertexShader.usf
 	// and in VelocityShader.usf, we are regenerating a Parameters from
 	// VertexFactoryGetPreviousWorldPosition() instead of
 	// VertexFactoryGetWorldPosition().
-	return GetWorldPosition(Parameters);
+	return GetTranslatedWorldPosition(Parameters);
 }
 
-float3 GetWorldPosition_NoOffsets(FMaterialVertexParameters Parameters)
+float3 GetWorldPosition(FMaterialVertexParameters Parameters)
 {
-	return GetWorldPosition(Parameters) - View.PreViewTranslation;
+	return GetTranslatedWorldPosition(Parameters) - View.PreViewTranslation;
 }
 
-float3 GetPrevWorldPosition_NoOffsets(FMaterialVertexParameters Parameters)
+float3 GetPrevWorldPosition(FMaterialVertexParameters Parameters)
 {
-	return GetPrevWorldPosition(Parameters) - View.PrevPreViewTranslation;
+	return GetPrevTranslatedWorldPosition(Parameters) - View.PrevPreViewTranslation;
 }
 
 //TODO(bug UE-17131): We should compute world displacement for the previous frame
 float3 GetWorldPosition(FMaterialTessellationParameters Parameters)
 {
-	return Parameters.WorldPosition + View.PreViewTranslation;
+	return Parameters.WorldPosition;
 }
 
-float3 GetWorldPosition_NoOffsets(FMaterialTessellationParameters Parameters)
+float3 GetTranslatedWorldPosition(FMaterialTessellationParameters Parameters)
 {
-	return Parameters.WorldPosition;
+	return Parameters.WorldPosition + View.PreViewTranslation;
 }
 
 float3 GetWorldPosition(FMaterialPixelParameters Parameters)
@@ -307,17 +307,17 @@ float3 GetWorldPosition(FMaterialPixelParameters Parameters)
 	return Parameters.WorldPosition;
 }
 
-float3 GetWorldPosition_NoOffsets(FMaterialPixelParameters Parameters)
+float3 GetWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Parameters)
 {
 	return Parameters.WorldPosition_NoOffsets;
 }
 
-float3 GetWorldPosition_CamRelative(FMaterialPixelParameters Parameters)
+float3 GetTranslatedWorldPosition(FMaterialPixelParameters Parameters)
 {
 	return Parameters.WorldPosition_CamRelative;
 }
 
-float3 GetWorldPosition_NoOffsets_CamRelative(FMaterialPixelParameters Parameters)
+float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Parameters)
 {
 	return Parameters.WorldPosition_NoOffsets_CamRelative;
 }
@@ -807,7 +807,7 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		}
 	#else
 		float3x3 LocalToWorld = (float3x3)Primitive.LocalToWorld;
-		float3 LocalPosition = mul(float4(GetWorldPosition_NoOffsets(Parameters), 1), Primitive.WorldToLocal).xyz;
+		float3 LocalPosition = mul(float4(GetWorldPosition(Parameters), 1), Primitive.WorldToLocal).xyz;
 	#endif
 
 	float3 TreePos = GetObjectWorldPosition(Parameters);

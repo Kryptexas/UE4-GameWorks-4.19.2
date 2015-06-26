@@ -2092,7 +2092,7 @@ protected:
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
-		const TCHAR * WorldPositionSuffix = nullptr; 
+		FString FunctionNamePattern;
 
 		// If this material has no expressions for world position offset or world displacement, the non-offset world position will
 		// be exactly the same as the offset one, so there is no point bringing in the extra code.
@@ -2102,48 +2102,27 @@ protected:
 		{
 		case WPT_Default:
 			{
-				// TODO: in tessellation, no offset should actually return the world position without including the
-				// world position offset
-				WorldPositionSuffix = TEXT("");
-
-				if (ShaderFrequency != SF_Pixel)
-				{
-					// TODO: there is a miss understanding between no offset, translated world position and camera relative:
-					//		what the artist call camera relative, is the translated world position
-					//		what they call no offsets, is without apply material's world position offset
-					WorldPositionSuffix = TEXT("_NoOffsets");
-				}
-
+				FunctionNamePattern = TEXT("Get<PREV>WorldPosition");
 				break;
 			}
 
 		case WPT_ExcludeAllShaderOffsets:
 			{
 				bNeedsWorldPositionExcludingShaderOffsets = true;
-				WorldPositionSuffix = TEXT("_NoOffsets");
+				FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
 				break;
 			}
 
 		case WPT_CameraRelative:
 			{
-				if (ShaderFrequency != SF_Pixel)
-				{
-					return Errorf(TEXT("Cannot access camera relative world position outside of the pixel shader"));
-				}
-
-				WorldPositionSuffix = TEXT("_CamRelative");
+				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition");
 				break;
 			}
 
 		case WPT_CameraRelativeNoOffsets:
 			{
-				if (ShaderFrequency != SF_Pixel)
-				{
-					return Errorf(TEXT("Cannot access camera relative world position outside of the pixel shader"));
-				}
-
 				bNeedsWorldPositionExcludingShaderOffsets = true;
-				WorldPositionSuffix = TEXT("_NoOffsets_CamRelative");
+				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
 				break;
 			}
 
@@ -2154,17 +2133,21 @@ protected:
 			}
 		}
 
-		check(WorldPositionSuffix);
+		// If compiling for the previous frame in the vertex shader
+		FunctionNamePattern.ReplaceInline(TEXT("<PREV>"), bCompilingPreviousFrame && ShaderFrequency == SF_Vertex ? TEXT("Prev") : TEXT(""));
 		
-		if (bCompilingPreviousFrame && ShaderFrequency == SF_Vertex)
+		if (ShaderFrequency == SF_Pixel)
 		{
-			//TODO(bug UE-17131): We should compute world displacement for the previous frame
-			return AddInlinedCodeChunk(MCT_Float3, TEXT("GetPrevWorldPosition%s(Parameters)"), WorldPositionSuffix);
+			// No material offset only available in the vertex shader.
+			// TODO: should also be available in the tesselation shader
+			FunctionNamePattern.ReplaceInline(TEXT("<NO_MATERIAL_OFFSETS>"), TEXT("_NoMaterialOffsets"));
 		}
 		else
 		{
-			return AddInlinedCodeChunk(MCT_Float3, TEXT("GetWorldPosition%s(Parameters)"), WorldPositionSuffix);
+			FunctionNamePattern.ReplaceInline(TEXT("<NO_MATERIAL_OFFSETS>"), TEXT(""));
 		}
+
+		return AddInlinedCodeChunk(MCT_Float3, TEXT("%s(Parameters)"), *FunctionNamePattern);
 	}
 
 	virtual int32 ObjectWorldPosition() override

@@ -5806,6 +5806,7 @@ UMaterialExpressionWorldPosition::UMaterialExpressionWorldPosition(const FObject
 
 int32 UMaterialExpressionWorldPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
+	// TODO: should use a separate check box for Including/Excluding Material Shader Offsets
 	return Compiler->WorldPosition(WorldPositionShaderOffset);
 }
 
@@ -5815,25 +5816,25 @@ void UMaterialExpressionWorldPosition::GetCaption(TArray<FString>& OutCaptions) 
 	{
 	case WPT_Default:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonText", "Absolute World Position").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonText", "Absolute World Position (Including Material Offsets)").ToString());
 			break;
 		}
 
 	case WPT_ExcludeAllShaderOffsets:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonExcludingOffsetsText", "Absolute World Position (Excluding Offsets)").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonExcludingOffsetsText", "Absolute World Position (Excluding Material Offsets)").ToString());
 			break;
 		}
 
 	case WPT_CameraRelative:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonText", "Camera Relative World Position").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonText", "Camera Relative World Position (Including Material Offsets)").ToString());
 			break;
 		}
 
 	case WPT_CameraRelativeNoOffsets:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonExcludingOffsetsText", "Camera Relative World Position (Excluding Offsets)").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonExcludingOffsetsText", "Camera Relative World Position (Excluding Material Offsets)").ToString());
 			break;
 		}
 
