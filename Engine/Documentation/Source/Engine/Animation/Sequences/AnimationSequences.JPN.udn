@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2600977
 Availability:Public
 Title:アニメーション シーケンス
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -36,7 +36,17 @@ Related: Engine/Content/Tools/MayaRiggingTool
 **アニメーション シーケンス** は _スケルタルメッシュ_ 上で再生可能な単一のアニメーション アセットです。特定時点でボーンの位置、回転、スケーリングを指定するキーフレームを含みます。こうしたキーフレーム間でブレンディングしながら順番にキーフレームを再生することで、_スケルタルメッシュ_ のボーンをスムーズにアニメートできます。 
 [/EXCERPT:Intro]
 
-![](HuskRun2.gif)(w:720 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Qo4hH0h9ZZA
+[/PARAMLITERAL]
+[/OBJECT]
 
 各 **アニメーション シーケンス** アセットは、特定の _スケルトン_ をターゲットとし、その _スケルトン_ 上でのみ再生可能です。つまり、複数のスケルタルメッシュでアニメーションを共有するには、各 _スケルタルメッシュ_ は同じ _スケルトン_ アセットを使用しなければなりません。
 
