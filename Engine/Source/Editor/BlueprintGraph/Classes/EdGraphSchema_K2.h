@@ -91,7 +91,7 @@ public:
 	static const FName MD_CompactNodeTitle;
 
 	// [FunctionMetadata] Indicates that the function should be drawn with this title over the function name
-	static const FName MD_FriendlyName;
+	static const FName MD_DisplayName;
 
 	//    property metadata
 

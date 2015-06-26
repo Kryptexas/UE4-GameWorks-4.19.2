@@ -805,9 +805,9 @@ public:
 						{
 							FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
 						}
-						else if (TestFunction->HasMetaData(FBlueprintMetadata::MD_FriendlyName))
+						else if (TestFunction->HasMetaData(FBlueprintMetadata::MD_DisplayName))
 						{
-							FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_FriendlyName);
+							FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_DisplayName);
 						}
 						Add(FunctionName, TestFunction);
 					}
