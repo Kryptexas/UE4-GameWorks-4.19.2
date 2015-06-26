@@ -17,7 +17,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintEditorModule.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneDirectorTrack.h"
+#include "MovieSceneShotTrack.h"
 #include "MovieSceneAudioTrack.h"
 #include "MovieSceneAnimationTrack.h"
 #include "MovieSceneTrackEditor.h"
@@ -118,9 +118,9 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 			TSharedRef<FMovieSceneTrackEditor> TrackEditor = TrackEditorDelegates[DelegateIndex].Execute( SharedThis( this ) );
 
 			// Keep track of certain editors
-			if ( TrackEditor->SupportsType( UMovieSceneDirectorTrack::StaticClass() ) )
+			if ( TrackEditor->SupportsType( UMovieSceneShotTrack::StaticClass() ) )
 			{
-				DirectorTrackEditor = TrackEditor;
+				ShotTrackEditor = TrackEditor;
 			}
 			else if ( TrackEditor->SupportsType( UMovieSceneAnimationTrack::StaticClass() ) )
 			{
@@ -357,9 +357,9 @@ void FSequencer::PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneI
 
 void FSequencer::AddNewShot(FGuid CameraGuid)
 {
-	if (DirectorTrackEditor.IsValid())
+	if (ShotTrackEditor.IsValid())
 	{
-		DirectorTrackEditor.Pin()->AddKey(CameraGuid);
+		ShotTrackEditor.Pin()->AddKey(CameraGuid);
 	}
 }
 
@@ -925,7 +925,7 @@ TRange<float> FSequencer::GetTimeBounds() const
 	}
 
 	const UMovieScene* MovieScene = GetFocusedMovieScene();
-	const UMovieSceneTrack* AnimatableShot = MovieScene->FindMasterTrack( UMovieSceneDirectorTrack::StaticClass() );
+	const UMovieSceneTrack* AnimatableShot = MovieScene->FindMasterTrack( UMovieSceneShotTrack::StaticClass() );
 	if (AnimatableShot)
 	{
 		// try getting filtered shot boundaries
@@ -1532,8 +1532,8 @@ void FSequencer::SetKey()
 		FGuid ObjectGuid = GetHandleToObject(*It);
 		for ( auto& TrackEditor : TrackEditors )
 		{
-			// @todo Handle this director track business better
-			if (TrackEditor != DirectorTrackEditor.Pin())
+			// @todo Handle this shot track business better
+			if (TrackEditor != ShotTrackEditor.Pin())
 			{
 				TrackEditor->AddKey(ObjectGuid);
 			}

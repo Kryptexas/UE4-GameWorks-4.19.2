@@ -3,13 +3,14 @@
 #pragma once
 
 #include "MovieSceneSection.h"
+#include "SubMovieSceneSection.h"
 #include "MovieSceneShotSection.generated.h"
 
 /**
- * Movie shots are sections on the director's track, that show what the viewer "sees"
+ * Movie shots are sections on the shots track, that show what the viewer "sees"
  */
 UCLASS( MinimalAPI )
-class UMovieSceneShotSection : public UMovieSceneSection
+class UMovieSceneShotSection : public USubMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
 public:

@@ -25,12 +25,4 @@ private:
 	/** Movie scene being played by this section */
 	UPROPERTY()
 	UMovieScene* MovieScene;
-
-	/** The start time where the movie scene should begin playing */
-	UPROPERTY()
-	float MovieSceneStartTime;
-
-	/** The end time where the movie scene should begin playing */
-	UPROPERTY()
-	float MovieSceneTimeEndTime;
 };

@@ -1,25 +1,25 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneDirectorTrack.h"
-#include "MovieSceneDirectorTrackInstance.h"
+#include "MovieSceneShotTrack.h"
+#include "MovieSceneShotTrackInstance.h"
 #include "MovieSceneShotSection.h"
 #include "IMovieScenePlayer.h"
 
 
-FMovieSceneDirectorTrackInstance::FMovieSceneDirectorTrackInstance( UMovieSceneDirectorTrack& InDirectorTrack )
+FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InDirectorTrack )
 {
 	DirectorTrack = &InDirectorTrack;
 }
 
 
-void FMovieSceneDirectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	// possess the 'first' shot section in order of track index
 	ACameraActor* PossessedCamera = NULL;
 	UMovieSceneShotSection* FirstShotSection = NULL;
 
-	const TArray<UMovieSceneSection*>& ShotSections = DirectorTrack->GetShotSections();
+	const TArray<UMovieSceneSection*>& ShotSections = DirectorTrack->GetAllSections();
 
 	for (int32 ShotIndex = 0; ShotIndex < ShotSections.Num(); ++ShotIndex)
 	{

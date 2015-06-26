@@ -7,7 +7,7 @@
 #include "PropertyEditorModule.h"
 #include "PropertyHandle.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneDirectorTrack.h"
+#include "MovieSceneShotTrack.h"
 #include "ScopedTransaction.h"
 #include "ISequencerObjectChangeListener.h"
 #include "ISectionLayoutBuilder.h"
@@ -18,7 +18,7 @@
 #include "IKeyArea.h"
 #include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
-#include "DirectorTrackEditor.h"
+#include "ShotTrackEditor.h"
 #include "CommonMovieSceneTools.h"
 #include "Camera/CameraActor.h"
 
@@ -405,7 +405,7 @@ TSharedRef<FMovieSceneTrackEditor> FDirectorTrackEditor::CreateTrackEditor( TSha
 
 bool FDirectorTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
-	return Type == UMovieSceneDirectorTrack::StaticClass();
+	return Type == UMovieSceneShotTrack::StaticClass();
 }
 
 TSharedRef<ISequencerSection> FDirectorTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
@@ -429,7 +429,7 @@ void FDirectorTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAs
 	bool bValidKey = OutObjects.Num() == 1 && OutObjects[0]->IsA<ACameraActor>();
 	if (bValidKey)
 	{
-		AnimatablePropertyChanged( UMovieSceneDirectorTrack::StaticClass(), false, FOnKeyProperty::CreateRaw( this, &FDirectorTrackEditor::AddKeyInternal, ObjectGuid ) );
+		AnimatablePropertyChanged( UMovieSceneShotTrack::StaticClass(), false, FOnKeyProperty::CreateRaw( this, &FDirectorTrackEditor::AddKeyInternal, ObjectGuid ) );
 	}
 }
 
@@ -458,7 +458,7 @@ void FDirectorTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuild
 
 void FDirectorTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
-	UMovieSceneTrack* Track = GetMasterTrack( UMovieSceneDirectorTrack::StaticClass() );
+	UMovieSceneTrack* Track = GetMasterTrack( UMovieSceneShotTrack::StaticClass() );
 
-	Cast<UMovieSceneDirectorTrack>(Track)->AddNewShot(ObjectGuid, KeyTime);
+	Cast<UMovieSceneShotTrack>(Track)->AddNewShot(ObjectGuid, KeyTime);
 }

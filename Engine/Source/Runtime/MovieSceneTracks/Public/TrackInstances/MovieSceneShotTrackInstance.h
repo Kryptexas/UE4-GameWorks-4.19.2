@@ -5,18 +5,18 @@
 #include "IMovieSceneTrackInstance.h"
 
 
-class UMovieSceneDirectorTrack;
+class UMovieSceneShotTrack;
 
 
 /**
- * Instance of a UMovieSceneDirectorTrack
+ * Instance of a UMovieSceneShotTrack
  */
-class FMovieSceneDirectorTrackInstance
+class FMovieSceneShotTrackInstance
 	: public IMovieSceneTrackInstance
 {
 public:
 
-	FMovieSceneDirectorTrackInstance( UMovieSceneDirectorTrack& InDirectorTrack );
+	FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InDirectorTrack );
 
 	/** IMovieSceneTrackInstance interface */
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
@@ -25,5 +25,5 @@ public:
 private:
 
 	/** Track that is being instanced */
-	UMovieSceneDirectorTrack* DirectorTrack;
+	UMovieSceneShotTrack* DirectorTrack;
 };

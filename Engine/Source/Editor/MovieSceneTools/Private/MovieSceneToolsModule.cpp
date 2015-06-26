@@ -18,7 +18,7 @@
 #include "MovieSceneTrackEditor.h"
 #include "PropertyTrackEditor.h"
 #include "TransformTrackEditor.h"
-#include "DirectorTrackEditor.h"
+#include "ShotTrackEditor.h"
 #include "SubMovieSceneTrackEditor.h"
 #include "AudioTrackEditor.h"
 #include "AnimationTrackEditor.h"

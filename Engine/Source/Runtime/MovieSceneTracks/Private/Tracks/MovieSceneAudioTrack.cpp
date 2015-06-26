@@ -9,7 +9,7 @@
 #include "Runtime/Engine/Public/AudioDecompress.h"
 #include "MovieSceneAudioTrackInstance.h"
 
-#define LOCTEXT_NAMESPACE "MovieSceneDirectorTrack"
+#define LOCTEXT_NAMESPACE "MovieSceneAudioTrack"
 
 UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )

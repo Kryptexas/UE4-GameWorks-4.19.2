@@ -23,7 +23,7 @@ FName USubMovieSceneTrack::GetTrackName() const
 	FName Name = DefaultName;
 	if( SubMovieSceneSections.Num() > 0 )
 	{
-		Name = SubMovieSceneSections[0]->GetMovieScene()->GetFName();
+		Name = CastChecked<USubMovieSceneSection>(SubMovieSceneSections[0])->GetMovieScene()->GetFName();
 	}
 
 	return Name;
@@ -52,6 +52,11 @@ void USubMovieSceneTrack::RemoveSection( UMovieSceneSection* Section )
 	{
 		SubMovieSceneSections.Remove( SubMovieSceneSection );
 	}
+}
+
+void USubMovieSceneTrack::RemoveAllAnimationData()
+{
+	SubMovieSceneSections.Empty();
 }
 
 bool USubMovieSceneTrack::IsEmpty() const

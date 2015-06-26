@@ -379,7 +379,7 @@ private:
 	TArray< TSharedPtr<FMovieSceneTrackEditor> > TrackEditors;
 
 	/** The editors we keep track of for special behaviors */
-	TWeakPtr<FMovieSceneTrackEditor> DirectorTrackEditor;
+	TWeakPtr<FMovieSceneTrackEditor> ShotTrackEditor;
 	TWeakPtr<FMovieSceneTrackEditor> AnimationTrackEditor;
 
 	/** Manager for handling runtime object bindings */

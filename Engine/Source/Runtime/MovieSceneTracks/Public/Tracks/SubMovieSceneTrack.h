@@ -19,6 +19,7 @@ public:
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual TArray<UMovieSceneSection*> GetAllSections() const override;
 	virtual void RemoveSection( UMovieSceneSection* Section ) override;
+	virtual void RemoveAllAnimationData() override;
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual bool HasSection( UMovieSceneSection* Section ) const override;
@@ -30,8 +31,8 @@ public:
 	 * @param Time	The time to add the section at
 	 */
 	virtual void AddMovieSceneSection( UMovieScene* SubMovieScene, float Time );
-private:
+protected:
 	/** All movie scene sections.  */
 	UPROPERTY()
-	TArray<class USubMovieSceneSection*> SubMovieSceneSections;
+	TArray<class UMovieSceneSection*> SubMovieSceneSections;
 };
