@@ -69,17 +69,6 @@ public:
 	 * @param	Directory to watch
 	 * @param	Delegate to add to our callback list
 	 * @param	The handle to the registered delegate, if the registration was successful.
-	 * @param   Whether to include notifications for changes to actual directories (such as directories being created or removed)
-	 */
-	DEPRECATED(4.9, "Please use RegisterDirectoryChangedCallback_Handle that takes Flags argument") \
-	virtual bool RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, bool bIncludeDirectoryChanges) = 0;
-
-	/**
-	 * Register a callback to fire when directories are changed
-	 *
-	 * @param	Directory to watch
-	 * @param	Delegate to add to our callback list
-	 * @param	The handle to the registered delegate, if the registration was successful.
 	 * @param	Set of options to use when registering the delegates.
 	 */
 	virtual bool RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, uint32 Flags = 0) = 0;

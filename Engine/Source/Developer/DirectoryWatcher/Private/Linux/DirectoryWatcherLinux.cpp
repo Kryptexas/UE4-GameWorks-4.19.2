@@ -102,11 +102,6 @@ bool FDirectoryWatcherLinux::UnregisterDirectoryChangedCallback(const FString& D
 	return false;
 }
 
-bool FDirectoryWatcherLinux::RegisterDirectoryChangedCallback_Handle (const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, bool bIncludeDirectoryChanges)
-{
-	return RegisterDirectoryChangedCallback_Handle(Directory, InDelegate, OutHandle, bIncludeDirectoryChanges ? IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges : 0);
-}
-
 bool FDirectoryWatcherLinux::RegisterDirectoryChangedCallback_Handle(const FString& Directory, const FDirectoryChanged& InDelegate, FDelegateHandle& OutHandle, uint32 Flags)
 {
 	FDirectoryWatchRequestLinux** RequestPtr = RequestMap.Find(Directory);
