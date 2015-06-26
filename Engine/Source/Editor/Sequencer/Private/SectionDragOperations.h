@@ -139,7 +139,7 @@ private:
 class FMoveKeys : public FSequencerDragOperation
 {
 public:
-	FMoveKeys( FSequencer& Sequencer,  const TSet<FSelectedKey>* InSelectedKeys, FSelectedKey& PressedKey )
+	FMoveKeys( FSequencer& Sequencer,  const TSet<FSelectedKey>& InSelectedKeys, FSelectedKey& PressedKey )
 		: FSequencerDragOperation(Sequencer)
 		, SelectedKeys( InSelectedKeys )
 		, DraggedKey( PressedKey )
@@ -156,7 +156,7 @@ protected:
 
 private:
 	/** The selected keys being moved. */
-	const TSet<FSelectedKey>* SelectedKeys;
+	const TSet<FSelectedKey>& SelectedKeys;
 	/** The exact key that we're dragging */
 	FSelectedKey DraggedKey;
 };

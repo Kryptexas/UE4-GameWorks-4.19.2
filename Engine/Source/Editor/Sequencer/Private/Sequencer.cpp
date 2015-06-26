@@ -423,7 +423,7 @@ void FSequencer::DeleteSelectedKeys()
 {
 	FScopedTransaction DeleteKeysTransaction( NSLOCTEXT("Sequencer", "DeleteSelectedKeys_Transaction", "Delete Selected Keys") );
 	bool bAnythingRemoved = false;
-	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys()->Array();
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
 
 	for ( const FSelectedKey& Key : SelectedKeysArray )
 	{
@@ -1304,7 +1304,7 @@ void FSequencer::SaveCurrentMovieScene()
 
 void FSequencer::OnSectionSelectionChanged()
 {
-	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
 	{
 		// if we select something, consider it unfilterable until we change shot filters
 		UnfilterableSections.AddUnique(TWeakObjectPtr<UMovieSceneSection>(SelectedSection));
@@ -1314,7 +1314,7 @@ void FSequencer::OnSectionSelectionChanged()
 void FSequencer::ZoomToSelectedSections()
 {
 	TArray< TRange<float> > Bounds;
-	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
 	{
 		Bounds.Add(SelectedSection->GetRange());
 	}
@@ -1393,7 +1393,7 @@ void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieS
 void FSequencer::FilterToSelectedShotSections(bool bZoomToShotBounds)
 {
 	TArray< TWeakObjectPtr<UMovieSceneSection> > SelectedShotSections;
-	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
 	{
 		if (SelectedSection->IsA<UMovieSceneShotSection>())
 		{
@@ -1418,12 +1418,12 @@ TSharedRef<ISequencerObjectBindingManager> FSequencer::GetObjectBindingManager()
 	return ObjectBindingManager.ToSharedRef();
 }
 
-FSequencerSelection* FSequencer::GetSelection()
+FSequencerSelection& FSequencer::GetSelection()
 {
-	return &Selection;
+	return Selection;
 }
 
-TArray< TWeakObjectPtr<UMovieSceneSection> > FSequencer::GetFilteringShotSections() const
+const TArray< TWeakObjectPtr<UMovieSceneSection> >& FSequencer::GetFilteringShotSections() const
 {
 	return FilteringShots;
 }
@@ -1474,7 +1474,7 @@ void FSequencer::DeleteSelectedItems()
 	if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection)
 	{
 		DeleteSelectedKeys();
-		for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
+		for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
 		{
 			DeleteSection(SelectedSection.Get());
 		}

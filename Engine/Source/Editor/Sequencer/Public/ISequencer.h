@@ -132,5 +132,5 @@ public:
 
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const = 0;
 
-	virtual FSequencerSelection* GetSelection() = 0;
+	virtual FSequencerSelection& GetSelection() = 0;
 };

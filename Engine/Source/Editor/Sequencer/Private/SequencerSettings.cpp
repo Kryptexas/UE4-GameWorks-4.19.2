@@ -227,12 +227,12 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 		: InTimeValue;
 }
 
-USequencerSettings::FOnCurveVisibilityChanged* USequencerSettings::GetOnCurveVisibilityChanged()
+USequencerSettings::FOnCurveVisibilityChanged& USequencerSettings::GetOnCurveVisibilityChanged()
 {
-	return &OnCurveVisibilityChanged;
+	return OnCurveVisibilityChanged;
 }
 
-USequencerSettings::FOnShowCurveEditorChanged* USequencerSettings::GetOnShowCurveEditorChanged()
+USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
 {
-	return &OnShowCurveEditorChanged;
+	return OnShowCurveEditorChanged;
 }

@@ -99,7 +99,7 @@ public:
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const override;
-	virtual FSequencerSelection* GetSelection() override;
+	virtual FSequencerSelection& GetSelection() override;
 
 	/** @return The current view range */
 	FAnimatedRange GetViewRange() const;
@@ -182,7 +182,7 @@ public:
 	/**
 	 * Gets all shots that are filtering currently
 	 */
-	TArray< TWeakObjectPtr<UMovieSceneSection> > GetFilteringShotSections() const;
+	const TArray< TWeakObjectPtr<UMovieSceneSection> >& GetFilteringShotSections() const;
 
 	/**
 	 * Checks to see if an object is unfilterable

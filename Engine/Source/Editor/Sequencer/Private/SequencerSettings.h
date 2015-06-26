@@ -103,10 +103,10 @@ public:
 	float SnapTimeToInterval(float InTimeValue) const;
 
 	/** Gets the multicast delegate which is run whenever the CurveVisibility value changes. */
-	FOnCurveVisibilityChanged* GetOnCurveVisibilityChanged();
+	FOnCurveVisibilityChanged& GetOnCurveVisibilityChanged();
 
 	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
-	FOnShowCurveEditorChanged* GetOnShowCurveEditorChanged();
+	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
 protected:
 	UPROPERTY( config )

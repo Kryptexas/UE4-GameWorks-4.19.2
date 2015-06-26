@@ -27,13 +27,13 @@ public:
 	FSequencerSelection();
 
 	/** Gets a set of the selected keys. */
-	const TSet<FSelectedKey>* GetSelectedKeys() const;
+	const TSet<FSelectedKey>& GetSelectedKeys() const;
 
 	/** Gets a set of the selected sections */
-	const TSet<TWeakObjectPtr<UMovieSceneSection>>* GetSelectedSections() const;
+	const TSet<TWeakObjectPtr<UMovieSceneSection>>& GetSelectedSections() const;
 
 	/** Gets a set of the selected outliner nodes. */
-	const TSet<TSharedRef<FSequencerDisplayNode>>* GetSelectedOutlinerNodes() const;
+	const TSet<TSharedRef<FSequencerDisplayNode>>& GetSelectedOutlinerNodes() const;
 
 	/** 
 	 * Gets the currently active selection.  This is used to determine which selection actions
@@ -81,13 +81,13 @@ public:
 	void EmptySelectedOutlinerNodes();
 
 	/** Gets a multicast delegate which is called when the key selection changes. */
-	FOnSelectionChanged* GetOnKeySelectionChanged();
+	FOnSelectionChanged& GetOnKeySelectionChanged();
 
 	/** Gets a multicast delegate which is called when the section selection changes. */
-	FOnSelectionChanged* GetOnSectionSelectionChanged();
+	FOnSelectionChanged& GetOnSectionSelectionChanged();
 
 	/** Gets a multicast delegate which is called when the outliner node selection changes. */
-	FOnSelectionChanged* GetOnOutlinerNodeSelectionChanged();
+	FOnSelectionChanged& GetOnOutlinerNodeSelectionChanged();
 	
 private:
 	TSet<FSelectedKey> SelectedKeys;

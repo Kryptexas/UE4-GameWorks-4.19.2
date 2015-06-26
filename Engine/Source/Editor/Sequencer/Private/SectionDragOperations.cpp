@@ -398,13 +398,13 @@ bool FMoveSection::IsSectionAtNewLocationValid(UMovieSceneSection* InSection, in
 
 void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode)
 {
-	check( SelectedKeys->Num() > 0 )
+	check( SelectedKeys.Num() > 0 )
 
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
 	GEditor->BeginTransaction( NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
 
 	TSet<UMovieSceneSection*> ModifiedSections;
-	for( FSelectedKey SelectedKey : *SelectedKeys )
+	for( FSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
 
@@ -447,7 +447,7 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 				GetKeySnapTimes(OutSnapTimes, SequencerNode);
 
 				TArray<float> InitialTimes;
-				for ( FSelectedKey SelectedKey : *SelectedKeys )
+				for ( FSelectedKey SelectedKey : SelectedKeys )
 				{
 					InitialTimes.Add(SelectedKey.KeyArea->GetKeyTime(SelectedKey.KeyHandle.GetValue()) + DistanceMoved);
 				}
@@ -466,7 +466,7 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 			}
 		}
 
-		for( FSelectedKey SelectedKey : *SelectedKeys )
+		for( FSelectedKey SelectedKey : SelectedKeys )
 		{
 			UMovieSceneSection* Section = SelectedKey.Section;
 
@@ -511,7 +511,7 @@ void FMoveKeys::GetKeySnapTimes(TArray<float>& OutSnapTimes, TSharedPtr<FTrackNo
 			{
 				FKeyHandle KeyHandle = KeyHandles[KeyIndex];
 				bool bKeyIsSnappable = true;
-				for ( FSelectedKey SelectedKey : *SelectedKeys )
+				for ( FSelectedKey SelectedKey : SelectedKeys )
 				{
 					if (SelectedKey.KeyArea == KeyArea && SelectedKey.KeyHandle.GetValue() == KeyHandle)
 					{

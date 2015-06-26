@@ -15,7 +15,7 @@ void FSequencerNodeTree::Empty()
 {
 	RootNodes.Empty();
 	ObjectBindingMap.Empty();
-	Sequencer.GetSelection()->EmptySelectedOutlinerNodes();
+	Sequencer.GetSelection().EmptySelectedOutlinerNodes();
 	EditorMap.Empty();
 	FilteredNodes.Empty();
 }

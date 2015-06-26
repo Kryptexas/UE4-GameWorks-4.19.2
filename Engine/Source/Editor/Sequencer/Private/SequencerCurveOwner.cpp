@@ -62,7 +62,7 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 					bAddCurve = true;
 					break;
 				case ESequencerCurveVisibility::SelectedCurves:
-					bAddCurve = KeyAreaNode->GetSequencer().GetSelection()->IsSelected(KeyAreaNode);
+					bAddCurve = KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode);
 					break;
 				case ESequencerCurveVisibility::AnimatedCurves:
 					bAddCurve = RichCurve->GetNumKeys() > 0;

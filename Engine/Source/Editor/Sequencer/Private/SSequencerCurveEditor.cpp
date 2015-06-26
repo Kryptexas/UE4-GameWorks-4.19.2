@@ -11,8 +11,8 @@ void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSeq
 {
 	Sequencer = InSequencer;
 	TimeSliderController = InTimeSliderController;
-	NodeTreeSelectionChangedHandle = Sequencer.Pin()->GetSelection()->GetOnOutlinerNodeSelectionChanged()->AddSP(this, &SSequencerCurveEditor::NodeTreeSelectionChanged);
-	GetMutableDefault<USequencerSettings>()->GetOnCurveVisibilityChanged()->AddSP( this, &SSequencerCurveEditor::SequencerCurveVisibilityChanged );
+	NodeTreeSelectionChangedHandle = Sequencer.Pin()->GetSelection().GetOnOutlinerNodeSelectionChanged().AddSP(this, &SSequencerCurveEditor::NodeTreeSelectionChanged);
+	GetMutableDefault<USequencerSettings>()->GetOnCurveVisibilityChanged().AddSP( this, &SSequencerCurveEditor::SequencerCurveVisibilityChanged );
 
 	// @todo sequencer: switch to lambda capture expressions when support is introduced?
 	auto ViewRange = InArgs._ViewRange;
@@ -157,7 +157,7 @@ SSequencerCurveEditor::~SSequencerCurveEditor()
 {
 	if ( Sequencer.IsValid() )
 	{
-		Sequencer.Pin()->GetSelection()->GetOnOutlinerNodeSelectionChanged()->Remove( NodeTreeSelectionChangedHandle );
+		Sequencer.Pin()->GetSelection().GetOnOutlinerNodeSelectionChanged().Remove( NodeTreeSelectionChangedHandle );
 	}
 }
 

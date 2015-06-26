@@ -288,6 +288,7 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && DisplayNode->IsSelectable() )
 	{
 		FSequencer& Sequencer = DisplayNode->GetSequencer();
+		bool bSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
 
 		TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes;
 		AffectedNodes.Add(DisplayNode.ToSharedRef());
@@ -312,7 +313,7 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 			{
 				TSharedRef<FSequencerDisplayNode> ChildNode = AllNodes[ChildIndex];
 
-				if (ChildNode == DisplayNode.ToSharedRef() || Sequencer.GetSelection()->IsSelected(ChildNode))
+				if (ChildNode == DisplayNode.ToSharedRef() || Sequencer.GetSelection().IsSelected(ChildNode))
 				{
 					if (ChildIndex < FirstIndexToSelect)
 					{
@@ -331,9 +332,9 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 				{
 					TSharedRef<FSequencerDisplayNode> ChildNode = AllNodes[ChildIndex];
 
-					if (!Sequencer.GetSelection()->IsSelected(ChildNode))
+					if (!Sequencer.GetSelection().IsSelected(ChildNode))
 					{
-						Sequencer.GetSelection()->AddToSelection(ChildNode);
+						Sequencer.GetSelection().AddToSelection(ChildNode);
 						AffectedNodes.Add(ChildNode);
 					}
 				}
@@ -341,23 +342,23 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 		}
 		else if( MouseEvent.IsControlDown() )
 		{
-			bool bSelected = Sequencer.GetSelection()->IsSelected(DisplayNode.ToSharedRef());
+			bool bSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
 
 			// Toggle selection when control is down
 			if (bSelected)
 			{
-				Sequencer.GetSelection()->RemoveFromSelection(DisplayNode.ToSharedRef());
+				Sequencer.GetSelection().RemoveFromSelection(DisplayNode.ToSharedRef());
 			}
 			else
 			{
-				Sequencer.GetSelection()->AddToSelection(DisplayNode.ToSharedRef());
+				Sequencer.GetSelection().AddToSelection(DisplayNode.ToSharedRef());
 			}
 		}
 		else
 		{
 			// Deselect the other nodes and select this node.
-			Sequencer.GetSelection()->EmptySelectedOutlinerNodes();
-			Sequencer.GetSelection()->AddToSelection(DisplayNode.ToSharedRef());
+			Sequencer.GetSelection().EmptySelectedOutlinerNodes();
+			Sequencer.GetSelection().AddToSelection(DisplayNode.ToSharedRef());
 		}
 
 		OnSelectionChanged.ExecuteIfBound( AffectedNodes );
@@ -403,10 +404,10 @@ const FSlateBrush* SAnimationOutlinerTreeNode::GetNodeBorderImage() const
 {
 	// Display a highlight when the node is selected
 	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	const bool bIsSelected = Sequencer.GetSelection()->IsSelected(DisplayNode.ToSharedRef());
+	const bool bIsSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
 	if (bIsSelected)
 	{
-		if (Sequencer.GetSelection()->GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
+		if (Sequencer.GetSelection().GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
 		{
 			return SelectedBrush;
 		}
@@ -587,7 +588,7 @@ void SAnimationOutlinerView::OnSelectionChanged( TArray<TSharedPtr<FSequencerDis
 
 					if (IsControlDown)
 					{
-						bSelectActor = Sequencer->GetSelection()->IsSelected(ObjectNodes[ObjectIdx].ToSharedRef());
+						bSelectActor = Sequencer->GetSelection().IsSelected(ObjectNodes[ObjectIdx].ToSharedRef());
 					}
 
 					GEditor->SelectActor(Actor, bSelectActor, bNotifySelectionChanged );

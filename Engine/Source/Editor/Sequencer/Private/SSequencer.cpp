@@ -55,9 +55,9 @@ FReply SSequencerScrollBox::OnMouseButtonDown(const FGeometry& MyGeometry, const
 	// Clear the selection if no sequencer display nodes were clicked on
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		if (Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes()->Num() != 0)
+		if (Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes().Num() != 0)
 		{
-			Sequencer.Pin()->GetSelection()->EmptySelectedOutlinerNodes();
+			Sequencer.Pin()->GetSelection().EmptySelectedOutlinerNodes();
 
 			if (Sequencer.Pin()->IsLevelEditorSequencer())
 			{
@@ -192,7 +192,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	USelection::SelectionChangedEvent.AddSP(this, &SSequencer::OnActorSelectionChanged);
 
-	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged()->AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
+	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
 
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
@@ -677,7 +677,7 @@ TSharedRef<SWidget> SSequencer::MakeTransportControls()
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged()->RemoveAll(this);
+	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged().RemoveAll(this);
 }
 
 void SSequencer::RegisterActiveTimerForPlayback()
@@ -704,13 +704,13 @@ EActiveTimerReturnType SSequencer::EnsureSlateTickDuringPlayback(double InCurren
 	return EActiveTimerReturnType::Stop;
 }
 
-void RestoreSelectionState(const TArray<TSharedRef<FSequencerDisplayNode>>& DisplayNodes, TSet<FString>& SelectedPathNames, FSequencerSelection* SequencerSelection)
+void RestoreSelectionState(const TArray<TSharedRef<FSequencerDisplayNode>>& DisplayNodes, TSet<FString>& SelectedPathNames, FSequencerSelection& SequencerSelection)
 {
 	for (TSharedRef<FSequencerDisplayNode> DisplayNode : DisplayNodes)
 	{
 		if (SelectedPathNames.Contains(DisplayNode->GetPathName()))
 		{
-			SequencerSelection->AddToSelection(DisplayNode);
+			SequencerSelection.AddToSelection(DisplayNode);
 		}
 		for (TSharedRef<FSequencerDisplayNode> ChildDisplayNode : DisplayNode->GetChildNodes())
 		{
@@ -723,7 +723,7 @@ void SSequencer::UpdateLayoutTree()
 {
 	// Cache the selected path names so selection can be restored after the update.
 	TSet<FString> SelectedPathNames;
-	for (TSharedRef<const FSequencerDisplayNode> SelectedDisplayNode : Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes()->Array())
+	for (TSharedRef<const FSequencerDisplayNode> SelectedDisplayNode : Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes().Array())
 	{
 		SelectedPathNames.Add(SelectedDisplayNode->GetPathName());
 	}
@@ -930,13 +930,13 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 		}
 	}
 
-	const TSet< TSharedRef<FSequencerDisplayNode> >* SelectedNodes = Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes();
+	const TSet< TSharedRef<FSequencerDisplayNode> >& SelectedNodes = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
 	FGuid TargetObjectGuid;
 	// if exactly one object node is selected, we have a target object guid
 	TSharedPtr<const FSequencerDisplayNode> DisplayNode;
-	if (SelectedNodes->Num() == 1)
+	if (SelectedNodes.Num() == 1)
 	{
-		for (TSharedRef<const FSequencerDisplayNode> SelectedNode : *SelectedNodes )
+		for (TSharedRef<const FSequencerDisplayNode> SelectedNode : SelectedNodes )
 		{
 			DisplayNode = SelectedNode;
 		}
@@ -1082,7 +1082,7 @@ void SSequencer::OnActorSelectionChanged(UObject*)
 	TSet<TSharedRef<FSequencerDisplayNode>> RootNodes(SequencerNodeTree->GetRootNodes());
 
 	// Clear selection
-	Sequencer.Pin()->GetSelection()->EmptySelectedOutlinerNodes();
+	Sequencer.Pin()->GetSelection().EmptySelectedOutlinerNodes();
 
 	// Select the nodes that have runtime objects that are selected in the level
 	for (auto Node : RootNodes)
@@ -1095,7 +1095,7 @@ void SSequencer::OnActorSelectionChanged(UObject*)
 		{
 			if (GEditor->GetSelectedActors()->IsSelected(RuntimeObjects[RuntimeIndex]))
 			{
-				Sequencer.Pin()->GetSelection()->AddToSelection(Node);
+				Sequencer.Pin()->GetSelection().AddToSelection(Node);
 				break;
 			}
 		}
@@ -1136,15 +1136,15 @@ FText SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
 
 void SSequencer::DeleteSelectedNodes()
 {
-	const TSet< TSharedRef<FSequencerDisplayNode> >* SelectedNodes = Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes();
+	TSet< TSharedRef<FSequencerDisplayNode> > SelectedNodesCopy = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
 
-	if( SelectedNodes->Num() > 0 )
+	if( SelectedNodesCopy.Num() > 0 )
 	{
 		const FScopedTransaction Transaction( LOCTEXT("UndoDeletingObject", "Delete Object from MovieScene") );
 
 		FSequencer& SequencerRef = *Sequencer.Pin();
 
-		for( auto SelectedNode : *SelectedNodes )
+		for( const TSharedRef<FSequencerDisplayNode>& SelectedNode : SelectedNodesCopy )
 		{
 			if( SelectedNode->IsVisible() )
 			{
@@ -1181,9 +1181,9 @@ FReply SSequencer::OnSaveMovieSceneClicked()
 
 void SSequencer::ToggleExpandCollapseSelectedNodes(bool bDescendants)
 {
-	const TSet< TSharedRef<FSequencerDisplayNode> >* SelectedNodes = Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes();
+	const TSet< TSharedRef<FSequencerDisplayNode> >& SelectedNodes = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
 
-	TSet< TSharedRef<FSequencerDisplayNode> > Nodes(*SelectedNodes);
+	TSet< TSharedRef<FSequencerDisplayNode> > Nodes(SelectedNodes);
 
 	if (Nodes.Num() == 0)
 	{

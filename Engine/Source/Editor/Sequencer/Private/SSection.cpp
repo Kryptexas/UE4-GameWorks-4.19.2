@@ -179,7 +179,7 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 
 	if( bKeysUnderMouse )
 	{
-		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection()->GetSelectedKeys(), PressedKey ) );
+		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection().GetSelectedKeys(), PressedKey ) );
 	}
 	else
 	{
@@ -321,8 +321,8 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 
 				FSelectedKey TestKey( SectionObject, KeyArea, KeyHandle );
 
-				bool bSelected = Sequencer.GetSelection()->IsSelected( TestKey );
-				bool bActive = Sequencer.GetSelection()->GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
+				bool bSelected = Sequencer.GetSelection().IsSelected( TestKey );
+				bool bActive = Sequencer.GetSelection().GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
 
 				if( TestKey == PressedKey )
 				{
@@ -365,9 +365,9 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 {
 	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
 
-	FSequencerSelection* Selection = ParentSectionArea->GetSequencer().GetSelection();
-	const bool bSelected = Selection->IsSelected(SectionObject);
-	const bool bActive = Selection->GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
+	FSequencerSelection& Selection = ParentSectionArea->GetSequencer().GetSelection();
+	const bool bSelected = Selection.IsSelected(SectionObject);
+	const bool bActive = Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
 
 	static const FName SelectionColorName("SelectionColor");
 	static const FName SelectionInactiveColorName("SelectionColorInactive");
@@ -619,7 +619,7 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 					if( PressedKey.IsValid() )
 					{
 						// Clear selected sections when beginning to drag keys
-						GetSequencer().GetSelection()->EmptySelectedSections();
+						GetSequencer().GetSelection().EmptySelectedSections();
 
 						bool bSelectDueToDrag = true;
 						HandleKeySelection( PressedKey, MouseEvent, bSelectDueToDrag );
@@ -630,7 +630,7 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 					else
 					{
 						// Clear selected keys when beginning to drag a section
-						GetSequencer().GetSelection()->EmptySelectedKeys();
+						GetSequencer().GetSelection().EmptySelectedKeys();
 
 						HandleSectionSelection( MouseEvent );
 
@@ -724,16 +724,16 @@ void SSection::HandleKeySelection( const FSelectedKey& Key, const FPointerEvent&
 	{
 		// Clear previous key selection if:
 		// we are selecting due to drag and the key being dragged is not selected or control is not down
-		bool bShouldClearSelectionDueToDrag =  bSelectDueToDrag ? !GetSequencer().GetSelection()->IsSelected( Key ) : true;
+		bool bShouldClearSelectionDueToDrag =  bSelectDueToDrag ? !GetSequencer().GetSelection().IsSelected( Key ) : true;
 		
 		// Keep key selection if right clicking to bring up a menu and the current key is selected
-		bool bKeepKeySelection = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && GetSequencer().GetSelection()->IsSelected( Key );
+		bool bKeepKeySelection = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && GetSequencer().GetSelection().IsSelected( Key );
 
 		if( (!MouseEvent.IsControlDown() && bShouldClearSelectionDueToDrag) && !bKeepKeySelection )
 		{
-			GetSequencer().GetSelection()->EmptySelectedKeys();
+			GetSequencer().GetSelection().EmptySelectedKeys();
 		}
-		GetSequencer().GetSelection()->AddToSelection( Key );
+		GetSequencer().GetSelection().AddToSelection( Key );
 	}
 }
 
@@ -741,11 +741,11 @@ void SSection::HandleSectionSelection( const FPointerEvent& MouseEvent )
 {
 	if( !MouseEvent.IsControlDown() )
 	{
-		GetSequencer().GetSelection()->EmptySelectedSections();
+		GetSequencer().GetSelection().EmptySelectedSections();
 	}
 
 	// handle selecting sections 
 	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
-	GetSequencer().GetSelection()->AddToSelection(Section);
+	GetSequencer().GetSelection().AddToSelection(Section);
 }
 

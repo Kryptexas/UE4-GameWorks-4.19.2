@@ -9,19 +9,19 @@ FSequencerSelection::FSequencerSelection()
 	ActiveSelection = EActiveSelection::None;
 }
 
-const TSet<FSelectedKey>* FSequencerSelection::GetSelectedKeys() const
+const TSet<FSelectedKey>& FSequencerSelection::GetSelectedKeys() const
 {
-	return &SelectedKeys;
+	return SelectedKeys;
 }
 
-const TSet<TWeakObjectPtr<UMovieSceneSection>>* FSequencerSelection::GetSelectedSections() const
+const TSet<TWeakObjectPtr<UMovieSceneSection>>& FSequencerSelection::GetSelectedSections() const
 {
-	return &SelectedSections;
+	return SelectedSections;
 }
 
-const TSet<TSharedRef<FSequencerDisplayNode>>* FSequencerSelection::GetSelectedOutlinerNodes() const
+const TSet<TSharedRef<FSequencerDisplayNode>>& FSequencerSelection::GetSelectedOutlinerNodes() const
 {
-	return &SelectedOutlinerNodes;
+	return SelectedOutlinerNodes;
 }
 
 FSequencerSelection::EActiveSelection FSequencerSelection::GetActiveSelection() const
@@ -29,19 +29,19 @@ FSequencerSelection::EActiveSelection FSequencerSelection::GetActiveSelection() 
 	return ActiveSelection;
 }
 
-FSequencerSelection::FOnSelectionChanged* FSequencerSelection::GetOnKeySelectionChanged()
+FSequencerSelection::FOnSelectionChanged& FSequencerSelection::GetOnKeySelectionChanged()
 {
-	return &OnKeySelectionChanged;
+	return OnKeySelectionChanged;
 }
 
-FSequencerSelection::FOnSelectionChanged* FSequencerSelection::GetOnSectionSelectionChanged()
+FSequencerSelection::FOnSelectionChanged& FSequencerSelection::GetOnSectionSelectionChanged()
 {
-	return &OnSectionSelectionChanged;
+	return OnSectionSelectionChanged;
 }
 
-FSequencerSelection::FOnSelectionChanged* FSequencerSelection::GetOnOutlinerNodeSelectionChanged()
+FSequencerSelection::FOnSelectionChanged& FSequencerSelection::GetOnOutlinerNodeSelectionChanged()
 {
-	return &OnOutlinerNodeSelectionChanged;
+	return OnOutlinerNodeSelectionChanged;
 }
 
 void FSequencerSelection::AddToSelection(FSelectedKey Key)
