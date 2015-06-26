@@ -477,7 +477,9 @@ public:
 	*/
 
 	/** Creates a tag query that will match if there are any common tags between the given tags and the tags being queries against. */
-	static FGameplayTagQuery MakeQuery_MatchAnyTag(FGameplayTagContainer const& InTags);
+	static FGameplayTagQuery MakeQuery_MatchAnyTags(FGameplayTagContainer const& InTags);
+	static FGameplayTagQuery MakeQuery_MatchAllTags(FGameplayTagContainer const& InTags);
+	static FGameplayTagQuery MakeQuery_MatchNoTags(FGameplayTagContainer const& InTags);
 
 	friend class FQueryEvaluator;
 };

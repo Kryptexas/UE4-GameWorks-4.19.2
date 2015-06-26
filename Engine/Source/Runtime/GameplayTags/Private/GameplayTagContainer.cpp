@@ -915,7 +915,7 @@ FGameplayTagQuery FGameplayTagQuery::BuildQuery(FGameplayTagQueryExpression& Roo
 }
 
 //static 
-FGameplayTagQuery FGameplayTagQuery::MakeQuery_MatchAnyTag(FGameplayTagContainer const& InTags)
+FGameplayTagQuery FGameplayTagQuery::MakeQuery_MatchAnyTags(FGameplayTagContainer const& InTags)
 {
 	return FGameplayTagQuery::BuildQuery
 	(
@@ -923,6 +923,28 @@ FGameplayTagQuery FGameplayTagQuery::MakeQuery_MatchAnyTag(FGameplayTagContainer
 		.AnyTagsMatch()
 		.AddTags(InTags)
 	);
+}
+
+//static
+FGameplayTagQuery FGameplayTagQuery::MakeQuery_MatchAllTags(FGameplayTagContainer const& InTags)
+{
+	return FGameplayTagQuery::BuildQuery
+		(
+		FGameplayTagQueryExpression()
+		.AllTagsMatch()
+		.AddTags(InTags)
+		);
+}
+
+// static
+FGameplayTagQuery FGameplayTagQuery::MakeQuery_MatchNoTags(FGameplayTagContainer const& InTags)
+{
+	return FGameplayTagQuery::BuildQuery
+		(
+		FGameplayTagQueryExpression()
+		.NoTagsMatch()
+		.AddTags(InTags)
+		);
 }
 
 

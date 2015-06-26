@@ -3312,7 +3312,23 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InTags)
 {
 	FGameplayEffectQuery OutQuery;
-	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTag(InTags);
+	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllOwningTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAllTags(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoOwningTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
 	return OutQuery;
 }
 
@@ -3320,9 +3336,26 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FG
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(const FGameplayTagContainer& InTags)
 {
 	FGameplayEffectQuery OutQuery;
-	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTag(InTags);
+	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(InTags);
 	return OutQuery;
 }
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllEffectTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchAllTags(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoEffectTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
+	return OutQuery;
+}
+
 
 bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 {
