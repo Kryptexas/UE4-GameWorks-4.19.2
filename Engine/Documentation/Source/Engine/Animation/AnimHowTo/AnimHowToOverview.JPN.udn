@@ -1,24 +1,42 @@
-﻿INTSourceChangelist:2591934
+﻿INTSourceChangelist:2600623
 Availability:Public
 Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アンリアル エンジン 4 のアニメーション システムの様々な側面の例を段階的操作ガイドで説明します。
 
-**アニメーションの操作ガイド** のページでは、アンリアル エンジン 4 (UE4) のアニメーション システムの機能での作業および機能を使用する方法例を段階的に示します。UE4 でのアニメーションの操作が初めての場合、またはアニメーション システムの一部の機能で作業する方法を学習したい場合のいずれであっても、以下の操作ガイドは幅広いトピックを取扱っており、学習の開始点、または知識を拡げる場所を提供します。 
+**アニメーションの操作ガイド** では、[**ペルソナ**](Engine/Animation) の様々な機能を使用して作業する手順の例を説明します。ペルソナは UE4 内のアニメーション ツールです。 
+UE4 でのアニメーションの操作が初めての場合、またはペルソナの機能で作業する方法を学習したい場合のいずれであっても、以下の操作ガイドでは幅広いトピックを扱い、学習の開始点、または知識を拡げる場所を提供します。 
 
 詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
 
+## 初心者向け
 |操作ガイド | 説明 |
 | ------- | ------------ |
 | **[](Engine\Animation\AnimHowTo\PreviewingAnimations)** | %Engine\Animation\AnimHowTo\PreviewingAnimations:description% |
-| **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |
-| **[](Engine\Animation\AnimHowTo\AdditiveAnimations)** | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
-| **[](Engine\Animation\AnimHowTo\AimOffset)** | %Engine\Animation\AnimHowTo\AimOffset:description% |
-| **[](Engine\Animation\AnimHowTo\BlendSpace)** | %Engine\Animation\AnimHowTo\BlendSpace:description% |
-<!-- Add this for 4.7 release as it is a 4.7 feature. 
-| **[](Engine\Animation\AnimHowTo\LayerEditing)** | %Engine\Animation\AnimHowTo\LayerEditing:description% |
--->
 
+
+##中級者向け
+|操作ガイド | 説明 |
+| ------- | ------------ |
+| **[](Engine\Animation\AnimHowTo\BlendSpace)** | %Engine\Animation\AnimHowTo\BlendSpace:description% |
+| **[](Engine\Animation\AnimHowTo\AimOffset)** | %Engine\Animation\AnimHowTo\AimOffset:description% |
+| **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |
+
+
+## 高度なオプション
+|操作ガイド | 説明 |
+| ------- | ------------ |
+| **[](Engine\Animation\AnimHowTo\AdditiveAnimations)** | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
+| **[](Engine\Animation\AnimHowTo\LayerEditing)** | %Engine\Animation\AnimHowTo\LayerEditing:description% |
+
+
+<!-- Convert these to Quick Starts
+| **[](Engine\Animation\AnimHowTo\AimOffset)** | %Engine\Animation\AnimHowTo\AimOffset:description% |Beginner|
+| **[](Engine\Animation\AnimHowTo\BlendSpace)** | %Engine\Animation\AnimHowTo\BlendSpace:description% |Beginner|
+
+Split this into two How To's
+| **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
+-->
 
 
 
