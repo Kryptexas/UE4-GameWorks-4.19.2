@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2601213
 Availability:Public
 Title:アニメーション レイヤーを編集する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -10,7 +10,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 Related:Engine\Animation\Skeleton
 Related:Engine\Animation\Overview
 
-**Animation Layer Editing** (アニメーション レイヤー編集) では UE4 内の既存の [](Engine\Animation\Sequences) を **Additive Layer Tracks (加算レイヤー トラック) ** の一部として修正することができます。アニメーション レイヤー編集では、既存のアニメーションを使用して調整し、異なるテイクをアニメーションで作ります。または、オリジナルをもとに独自のモーションを適用した別個の新しいアニメーションを作成することもできます。 
+**Animation Layer Editing** (アニメーション レイヤー編集) では UE4 内の既存の [](Engine\Animation\Sequences) を Additive Layer Tracks (加算レイヤー トラック)  の一部として修正することができます。アニメーション レイヤー編集では、既存のアニメーションを使用して調整し、異なるテイクをアニメーションで作ります。または、オリジナルをもとに独自のモーションを適用した別個の新しいアニメーションを作成することもできます。 
 
 このページではアニメーション レイヤー編集ツールの使用方法、およびアイドル状態のアニメーションを使用してそれをリロード アニメーションに再利用する方法を説明します。 
 
@@ -24,7 +24,7 @@ Related:Engine\Animation\Overview
 
 このセクションではアイドル状態のアニメーションの編集可能なコピーを作成し、オリジナルはそのままの状態にします。 
 
-1. **コンテンツ ブラウザ** の **Game/FirstPersonBP/Animations** フォルダで **FirstPerson_Idle** アニメーションを開きます。 
+1. **コンテンツ ブラウザ** の **Game/FirstPersonBP/Animations** フォルダで **Prone_Idle** アニメーションを開きます。 
 
 	![](AnimEdit1.png)
 
@@ -52,7 +52,7 @@ Related:Engine\Animation\Overview
 
 	![](AnimEdit5.png)
 
-1.	**スケルトン ツリー** で **b_LeftArm** ボーンをクリックして選択状態にします。 
+1.	**スケルトン ツリー** で **upperarm_l** ボーンをクリックして選択状態にします。 
 
 	![](AnimEdit6.png)
 
@@ -70,7 +70,7 @@ Related:Engine\Animation\Overview
 
 	![](AnimEdit8.png)(w:520)
 
-	上の画面では 3 つの別個のトラックが **b_LeftArm** ボーンに追加されました。すなわち、**平行移動** トラック (1)、**回転** トラック (2)、および **スケーリング** トラック (3) の 3 つです。
+	上の画面では 3 つの別個のトラックが **upperarm_l** ボーンに追加されました。すなわち、**平行移動** トラック (1)、**回転** トラック (2)、および **スケーリング** トラック (3) の 3 つです。
 
 1.	**ToNext** ボタンをクリックしてフレーム 30 に進めます。 
 
