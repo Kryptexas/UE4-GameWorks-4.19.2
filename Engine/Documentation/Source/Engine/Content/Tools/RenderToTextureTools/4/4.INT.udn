@@ -5,8 +5,6 @@ Description:
 
 [TOC(start:2)]
 
-## Overview
-
 This function renders a local depth map for a Static Mesh. This allows you to mimic the appearance of crisp dynamic shadows using an entirely unlit material.
  
 ![](17.jpg)
@@ -50,7 +48,7 @@ To represent a 12 o'clock noon light vector, you would enter 0,0,-1.
 | **Use Level Meshes for Depth** | This is a separate and rarely-used case where instead of specifying a single mesh, the tool captures depth for a mesh or group of meshes that are placed on top of the "background" sheet by the user manually. Or you can actually bring the RenderToTexture_LevelBP into an existing level to capture a depthmap for a group of meshes. There are some more advanced settings that must be used in the material when using this option as the bounds will have to be entirely custom. |
 | **Scale XY** |  This tool uses the object sphere bounds to attempt to best-fit the object within the capture region. For some cases this leaves a bit too much dead space around the edge of the object. This setting allows you to fine tune that by manually scaling the object a bit. Suggested to leave it at 1.0 as you must make sure material parameters match your input value if you change this here. |
 | **Scale Z** | Similar to above, this function uses the object sphere-bounds to determine the Local depth range which is used in generating of the normalized depth results. In most cases, the default value of 1 should be used, but if you want to 'clip' the range a bit to make sure you use the full 0-1 range for more precision, you can reduce this setting until you start to see Red show up (that indicates pixels are outside of the local 0-1 range and will be flattened!). If this setting is changed here, it relies on the matching value being set later in the actual material so it is suggested you leave this alone unless there is a good reason to change it. |
-| **Fit Vector and Scale Info Onto Texture** | This option can be useful to make sure you remember what settings you used in the capture. If enabled, it will draw text with the above values onto the the sheet. The next two settings let you scale and move the text.|
+| **Fit Vector and Scale Info Onto Texture** | This option can be useful to make sure you remember what settings you used in the capture. If enabled, it will draw text with the above values onto the sheet. The next two settings let you scale and move the text.|
 | **Text Size** | Indicates the size of the info text. |
 | **Text Locations** | This is an array so you can move each text element to a custom location wherever there is room. There are two text lines so you need to add two items to move both. |
 
