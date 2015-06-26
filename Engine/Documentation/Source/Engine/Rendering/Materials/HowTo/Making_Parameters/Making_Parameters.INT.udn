@@ -9,7 +9,7 @@ Related: Engine/Matinee/HowTo/MHT_6
 
 [TOC(start:2)]
 
-## Overview
+
 
 To interact with Material Instances, you need to use a special kind of Material Expression node called a **Material Parameter**. 
 In this How To, we will be looking at how you can add or convert Material Expression nodes into Material Parameters nodes and also how you can use those Material Parameters nodes inside of your Materials.

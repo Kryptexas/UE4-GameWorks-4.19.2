@@ -10,7 +10,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 The Main Material node of the Material Graph is where all of the Material Expression nodes that are added to the Material Graph will end up being connected to. 
 The results of what is input into the Main Material node is what will be displayed when the Material is compiled and applied to objects in game. 

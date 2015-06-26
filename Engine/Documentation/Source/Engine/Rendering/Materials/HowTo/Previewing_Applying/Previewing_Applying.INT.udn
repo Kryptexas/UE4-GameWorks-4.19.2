@@ -10,7 +10,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 [TOC(start:2 end:3)]
 
-## Overview 
+
 
 Previewing and applying your Materials is something that you will have to do quite often to make sure that you are getting the exact results you want. 
 Unreal Engine 4 (UE4) makes both previewing and applying materials a very straight forward process.

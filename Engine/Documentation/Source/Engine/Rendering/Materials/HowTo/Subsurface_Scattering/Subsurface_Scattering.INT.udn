@@ -9,7 +9,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 [TOC(start:2)]
 
-## Overview 
+
 Subsurface scattering is the term used to describe the lighting phenomenon where light scatters as it passes through a translucent / semi translucent surface.
  Unreal Engine 4 (UE4) offers a special [Shading Model ](Engine/Rendering/Materials/MaterialProperties/LightingModels) called [Subsurface](Engine/Rendering/Materials/LightingModels/SubSurface) that is used specifically for materials that need this interaction like skin or wax.
  The following How To guide will walk you through all you need to know about how to use Subsurface scattering in your Materials.

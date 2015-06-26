@@ -8,7 +8,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 When creating certain surface types such as water or glass, you need the ability to make the surface not only see through, but also give the surface a sense of depth and color. 
 In the real world, these properties are often referred to as **Transparency** or **Opacity** and are often used interchangeably to describe the same thing. 

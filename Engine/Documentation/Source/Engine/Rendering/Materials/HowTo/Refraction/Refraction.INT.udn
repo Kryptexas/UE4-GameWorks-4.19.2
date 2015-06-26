@@ -9,7 +9,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 When light passes from one medium to another, say from air to water, the direction that the light was traveling will be altered where the two mediums meet. 
 This lighting phenomenon is referred to as Refraction and happens because the speed at which light travels can be altered by the different types of materials light come in contact with. 

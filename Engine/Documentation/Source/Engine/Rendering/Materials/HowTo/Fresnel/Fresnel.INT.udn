@@ -11,7 +11,7 @@ Related: Engine/Rendering/Materials/ExpressionReference/Utility
 
 ![](FN_Fresnel_Sample.png)
 
-## Overview 
+
 
 Often times when creating a film or cinematic, you need a way to better highlight the silhouette of a character. This lighting technique is often referred to as rim lighting, or edge lighting, and 
 involves adding additional lights to help better distinguish the Characters silhouette from the background. While this works quite nicely for film, adding additional lights to any 3D scene adds 

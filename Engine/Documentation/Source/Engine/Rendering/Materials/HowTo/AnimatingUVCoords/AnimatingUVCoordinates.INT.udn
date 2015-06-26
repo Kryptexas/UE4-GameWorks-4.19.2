@@ -9,7 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LightFunctions
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 The ability to add motion to your Materials is a must, especially when you try to recreate effects such as fire, water, or smoke. 
 A very cheap and effective way to do this inside Unreal Engine 4 (UE4) is to use the **Panner Material Expression** node. 

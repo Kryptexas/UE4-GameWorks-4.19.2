@@ -9,7 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 In this "How To," we intend to show you how you can setup and use **Translucent Shadow Color** to create a material that can cast a colored shadow. 
 There are many applications where this could be useful to inject some color into your scene, but a common use would be for something like a stained glass window.

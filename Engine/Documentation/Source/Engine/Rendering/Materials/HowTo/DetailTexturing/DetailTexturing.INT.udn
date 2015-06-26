@@ -10,7 +10,7 @@ Related: Engine/Rendering/Materials/ExpressionReference/Textures
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 When viewing a Material very closely, you will notice that the Textures used in the Material break down and become very pixilated, resulting in something that does not look very good. 
 To address this issue, you can use what is known as a Detail Texture to help hide a Textures pixilation when a Material is viewed very closely. 

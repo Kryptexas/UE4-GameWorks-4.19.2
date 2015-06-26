@@ -11,7 +11,7 @@ Related: Engine/Rendering/Materials
 
 [TOC(start:2)]
 
-## Overview
+
 The ability to reuse part of one Material Graph inside another Material Graph can greatly speed up both Material creation time and Material workflow. 
 Unreal Engine 4 (UE4) offers users the ability to do this using what is known as a Material Function.
 In this How To example, we will be re-creating the Fresnel style shading effect that you often see inside of Video Games using a Material Function. 

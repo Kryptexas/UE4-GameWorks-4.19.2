@@ -8,7 +8,7 @@ Related: Engine/UI/KeyBindings
 
 [TOC(start:2)]
 
-## Overview
+
 
 Material Expressions and Material Functions are the building blocks used to create fully functional Materials inside Unreal Engine 4.
 Each expression or function is a self-contained black box that can run little snippets of code on their inputs and output the results. 

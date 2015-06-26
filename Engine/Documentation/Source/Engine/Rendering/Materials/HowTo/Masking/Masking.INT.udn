@@ -12,7 +12,7 @@ Related: Engine/Rendering/Materials/HowTo/Instancing
 
 [TOC(start:2 end:3)]
 
-## Overview 
+
 
 When creating 3D assets, you might find that you need the ability to define different surfaces types within the same Material. 
 A simple and cheap way to achieve this is to use a Texture Mask that defines which surface should be affected by which section of the Material. 

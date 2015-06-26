@@ -11,7 +11,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 [TOC(start:2 end:3)]
 
-## Overview 
+
 
 Having to create, setup, and tweak standard Materials can be a very time consuming process in UE4. 
 To help speed up and streamline this process, Unreal Engine 4 offers a special type of Material called a **Material Instance**. 

@@ -10,7 +10,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_5
 
 [TOC(start:2 end:3)]
 
-## Overview 
+
 
 During the course of project development, the need might arise for a Self-Illuminated Material or glowing Material. 
 Inside of Unreal Engine 4(UE4), Self-Illuminated Materials are known as Emissive Materials. 
