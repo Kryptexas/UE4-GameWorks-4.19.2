@@ -46,8 +46,8 @@ The material on the mesh you are creating an imposter from will require a few tw
 
 	If you do not have a normal map or normal calculation, add a Vector 3 set to 0,0,1 (Blue) and use that instead.
 
-1. On the Transform Node, set the **Source** property to **Tangent**.
-1. On the Transform Node, set the **Destination** property to **Local**.
+1. On the Transform Node, set the Source property to Tangent.
+1. On the Transform Node, set the Destination property to Local.
 
 ![](setupYourMesh.png)
 
@@ -70,7 +70,7 @@ As the High Resolution Screen Shot functionality in Unreal Engine 4 exports .bmp
 You will need to change a few properties on the Normal Map Texture:
 
 1. Open the Normal Map by **double-clicking** it in the **Content Browser**.
-1. Disable the **sRGB** property.
+1. Disable the sRGB property.
 1. Set the **Compression Settings** to `TC_Default`.
 1. Save the texture.
 
@@ -92,7 +92,7 @@ This function sets up the UVs, Normals, and WorldPositionOffset for your materia
 | --- | --- |
 | **Frames X** (S) | This should be the number of frames on the X axis for your imposter. For example if you specified 16 rotations around Z there will be 16 frames on the X axis. |
 | **Fixed Z** (B) | This is a Boolean option that should only be set to _True_ when using an imposter with "Single Rotation Axis". This makes the calculations much cheaper.|
-| **Frames Y** (S) | This should be the number of frames on the Y axis. For square aspect ratios this should always match the frame Y. If you entered an aspect ratio of 2:1,  then the the Y frames would be half of the X frames.|
+| **Frames Y** (S) | This should be the number of frames on the Y axis. For square aspect ratios this should always match the frame Y. If you entered an aspect ratio of 2:1,  then the Y frames would be half of the X frames.|
 | **SpriteWidth** (S) | This is how wide your resulting sprite will be.|
 | **SpriteHeight** (S) | This is how Tall your resulting sprite will be. |
 | **Position** (V3) | Defaults to AbsoluteWorldPosition and should be left untouched in most cases. Can be used if you want to trick the function into displaying the imposter at a weird angle or if you want to use custom data to represent locations. |
