@@ -447,7 +447,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 			int32 DrawsPerCmdList = FMath::DivideAndRoundUp(Total, EffectiveThreads);
 			int32 DrawsPerCmdListMergeLimit = FMath::DivideAndRoundUp(DrawsPerCmdList, 3); // if the last list would be small, we just merge it into the previous one
 
-			int32 Start = 0;
+	int32 Start = 0;
 
 			int32 PreviousBatchStart = -1;
 			int32 PreviousBatchEnd = -2;
@@ -524,26 +524,26 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 			}
 		}
 		else
-		{
-			int32 NumPer = OrderedDrawingPolicies.Num() / EffectiveThreads;
-			int32 Extra = OrderedDrawingPolicies.Num() - NumPer * EffectiveThreads;
+	{
+		int32 NumPer = OrderedDrawingPolicies.Num() / EffectiveThreads;
+		int32 Extra = OrderedDrawingPolicies.Num() - NumPer * EffectiveThreads;
 			int32 Start = 0;
-			for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
-			{
-				int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
-				check(Last >= Start);
+		for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+		{
+			int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+			check(Last >= Start);
 
-				{
-					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
+			{
+				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
 						.ConstructAndDispatchWhenReady(*this, *CmdList, ParallelCommandListSet.View, PolicyContext, StaticMeshVisibilityMap, BatchVisibilityArray, Start, Last, nullptr);
 
-					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
-				}
-
-				Start = Last + 1;
+				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 			}
+
+			Start = Last + 1;
+		}
 			check(Start == OrderedDrawingPolicies.Num());
 		}
 	}
@@ -615,16 +615,10 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 }
 
 template<typename DrawingPolicyType>
-FVector TStaticMeshDrawList<DrawingPolicyType>::SortViewPosition = FVector(0);
-
-template<typename DrawingPolicyType>
-typename TStaticMeshDrawList<DrawingPolicyType>::TDrawingPolicySet* TStaticMeshDrawList<DrawingPolicyType>::SortDrawingPolicySet;
-
-template<typename DrawingPolicyType>
-int32 TStaticMeshDrawList<DrawingPolicyType>::Compare(FSetElementId A, FSetElementId B)
+int32 TStaticMeshDrawList<DrawingPolicyType>::Compare(FSetElementId A, FSetElementId B, const TDrawingPolicySet * const InSortDrawingPolicySet, const FVector InSortViewPosition)
 {
-	const FSphere& BoundsA = (*SortDrawingPolicySet)[A].CachedBoundingSphere;
-	const FSphere& BoundsB = (*SortDrawingPolicySet)[B].CachedBoundingSphere;
+	const FSphere& BoundsA = (*InSortDrawingPolicySet)[A].CachedBoundingSphere;
+	const FSphere& BoundsB = (*InSortDrawingPolicySet)[B].CachedBoundingSphere;
 
 	// Assume state buckets with large bounds are background geometry
 	if (BoundsA.W >= HALF_WORLD_MAX / 2 && BoundsB.W < HALF_WORLD_MAX / 2)
@@ -637,8 +631,8 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::Compare(FSetElementId A, FSetEleme
 	}
 	else
 	{
-		const float DistanceASquared = (BoundsA.Center - SortViewPosition).SizeSquared();
-		const float DistanceBSquared = (BoundsB.Center - SortViewPosition).SizeSquared();
+		const float DistanceASquared = (BoundsA.Center - InSortViewPosition).SizeSquared();
+		const float DistanceBSquared = (BoundsB.Center - InSortViewPosition).SizeSquared();
 		// Sort front to back
 		return DistanceASquared > DistanceBSquared ? 1 : -1;
 	}
@@ -653,22 +647,22 @@ void TStaticMeshDrawList<DrawingPolicyType>::SortFrontToBack(FVector ViewPositio
 		FBoxSphereBounds AccumulatedBounds(ForceInit);
 
 		FDrawingPolicyLink& DrawingPolicyLink = *DrawingPolicyIt;
-		if (DrawingPolicyLink.Elements.Num())
+
+		const int32 NumElements = DrawingPolicyLink.Elements.Num();
+		if (NumElements)
 		{
 			AccumulatedBounds = DrawingPolicyLink.Elements[0].Bounds;
-			for (int32 ElementIndex = 1; ElementIndex < DrawingPolicyLink.Elements.Num(); ElementIndex++)
+
+		    for (int32 ElementIndex = 1; ElementIndex < NumElements; ElementIndex++)
 		    {
-		        FElement& Element = DrawingPolicyLink.Elements[ElementIndex];
-		        AccumulatedBounds = AccumulatedBounds + Element.Bounds;
+			    AccumulatedBounds = AccumulatedBounds + DrawingPolicyLink.Elements[ElementIndex].Bounds;
 		    }
 		}
+
 		DrawingPolicyIt->CachedBoundingSphere = AccumulatedBounds.GetSphere();
 	}
 
-	SortViewPosition = ViewPosition;
-	SortDrawingPolicySet = &DrawingPolicySet;
-
-	OrderedDrawingPolicies.Sort( TCompareStaticMeshDrawList<DrawingPolicyType>() );
+	OrderedDrawingPolicies.Sort(TCompareStaticMeshDrawList<DrawingPolicyType>(&DrawingPolicySet, ViewPosition));
 }
 
 template<typename DrawingPolicyType>

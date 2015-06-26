@@ -271,6 +271,66 @@ void FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefaultParallel(FPar
 	}
 }
 
+template<typename StaticMeshDrawList>
+class FSortFrontToBackTask
+{
+private:
+	StaticMeshDrawList * const StaticMeshDrawListToSort;
+	const FVector ViewPosition;
+
+public:
+	FSortFrontToBackTask(StaticMeshDrawList * const InStaticMeshDrawListToSort, const FVector InViewPosition)
+		: StaticMeshDrawListToSort(InStaticMeshDrawListToSort)
+		, ViewPosition(InViewPosition)
+	{
+
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FSortFrontToBackTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		StaticMeshDrawListToSort->SortFrontToBack(ViewPosition);
+	}
+};
+
+void FDeferredShadingSceneRenderer::AsyncSortBasePassStaticData(const FVector InViewPosition, FGraphEventArray &OutSortEvents)
+{
+	// If we're not using a depth only pass, sort the static draw list buckets roughly front to back, to maximize HiZ culling
+	// Note that this is only a very rough sort, since it does not interfere with state sorting, and each list is sorted separately
+	if (EarlyZPassMode != DDM_None)
+		return;
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AsyncSortBasePassStaticData);
+
+	for (int32 DrawType = 0; DrawType < FScene::EBasePass_MAX; ++DrawType)
+	{
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FNoLightMapPolicy> > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassNoLightMapDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FSimpleDynamicLightingPolicy> > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassSimpleDynamicLightingDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FCachedVolumeIndirectLightingPolicy> > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassCachedVolumeIndirectLightingDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FCachedPointIndirectLightingPolicy> > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassCachedPointIndirectLightingDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<TLightMapPolicy<HQ_LIGHTMAP> > > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassHighQualityLightMapDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP> > > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassDistanceFieldShadowMapLightMapDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<TLightMapPolicy<LQ_LIGHTMAP> > > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassLowQualityLightMapDrawList[DrawType]), InViewPosition));
+	}
+}
+
 void FDeferredShadingSceneRenderer::SortBasePassStaticData(FVector ViewPosition)
 {
 	// If we're not using a depth only pass, sort the static draw list buckets roughly front to back, to maximize HiZ culling

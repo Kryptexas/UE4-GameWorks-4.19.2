@@ -353,8 +353,9 @@ public:
 	// FRenderResource interface.
 	virtual void ReleaseRHI();
 
+	typedef TSet<FDrawingPolicyLink, FDrawingPolicyKeyFuncs> TDrawingPolicySet;
 	/** Sorts OrderedDrawingPolicies front to back.  Relies on static variables SortDrawingPolicySet and SortViewPosition being set. */
-	static int32 Compare(FSetElementId A, FSetElementId B);
+	static int32 Compare(FSetElementId A, FSetElementId B, const TDrawingPolicySet * const InSortDrawingPolicySet, const FVector InSortViewPosition);
 
 	/** Computes statistics for this draw list. */
 	FDrawListStats GetStats() const;
@@ -366,23 +367,27 @@ private:
 	typedef TSet<FDrawingPolicyLink,FDrawingPolicyKeyFuncs> TDrawingPolicySet;
 	/** All drawing policy element sets in the draw list, hashed by drawing policy. */
 	TDrawingPolicySet DrawingPolicySet;
-
-	/** 
-	 * Static variables for getting data into the Compare function.
-	 * Ideally Sort would accept a non-static member function which would avoid having to go through globals.
-	 */ 
-	static TDrawingPolicySet* SortDrawingPolicySet;
-	static FVector SortViewPosition;
 };
 
-/** Helper stuct for sorting */
+/** Helper struct for sorting */
 template<typename DrawingPolicyType>
 struct TCompareStaticMeshDrawList
 {
-	FORCEINLINE bool operator()( const FSetElementId& A, const FSetElementId& B ) const
+private:
+	const typename TStaticMeshDrawList<DrawingPolicyType>::TDrawingPolicySet * const SortDrawingPolicySet;
+	const FVector SortViewPosition;
+
+public:
+	TCompareStaticMeshDrawList(const typename TStaticMeshDrawList<DrawingPolicyType>::TDrawingPolicySet * const InSortDrawingPolicySet, const FVector InSortViewPosition)
+		: SortDrawingPolicySet(InSortDrawingPolicySet)
+		, SortViewPosition(InSortViewPosition)
+	{
+	}
+
+	FORCEINLINE bool operator()(const FSetElementId& A, const FSetElementId& B) const
 	{
 		// Use static Compare from TStaticMeshDrawList
-		return TStaticMeshDrawList<DrawingPolicyType>::Compare( A, B ) < 0;
+		return TStaticMeshDrawList<DrawingPolicyType>::Compare(A, B, SortDrawingPolicySet, SortViewPosition) < 0;
 	}
 };
 

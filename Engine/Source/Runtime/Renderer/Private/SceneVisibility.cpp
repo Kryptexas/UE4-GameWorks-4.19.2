@@ -2081,7 +2081,15 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		AverageViewPosition += View.ViewMatrices.ViewOrigin / Views.Num();
 	}
 
-	SortBasePassStaticData(AverageViewPosition);
+	FGraphEventArray SortEvents;
+	if (FApp::ShouldUseThreadingForPerformance() && CVarParallelInitViews.GetValueOnRenderThread() > 0)
+	{
+		AsyncSortBasePassStaticData(AverageViewPosition, SortEvents);
+	}
+	else
+	{
+		SortBasePassStaticData(AverageViewPosition);
+	}
 
 	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 
@@ -2096,7 +2104,13 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	{
 		// Initialize the view's RHI resources.
 		Views[ViewIndex].InitRHIResources(nullptr);
-	}	
+	}
+
+	if (SortEvents.Num())
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AsyncSortBasePassStaticData_Wait);
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(SortEvents, ENamedThreads::RenderThread);
+	}
 
 	OnStartFrame();
 }

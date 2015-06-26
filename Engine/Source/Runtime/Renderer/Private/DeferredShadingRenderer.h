@@ -77,6 +77,9 @@ public:
 	void RenderBasePassStaticDataMaskedParallel(FParallelCommandListSet& ParallelCommandListSet);
 	void RenderBasePassStaticDataDefaultParallel(FParallelCommandListSet& ParallelCommandListSet);
 
+	/** Asynchronously sorts base pass draw lists front to back for improved GPU culling. */
+	void AsyncSortBasePassStaticData(const FVector ViewPosition, FGraphEventArray &SortEvents);
+
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
 
