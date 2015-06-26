@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Behavior Tree ノードのリファレンス:Services
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -23,4 +23,9 @@ Default Focus は、 AI コントローラーのフォーカスを設定する�
 [REGION:note]
 4.4 では、 Vector Blackboard Key を受け取るために Blackboard Key が表示されますが、 Set/Clear/Get Focus Actor 関数がアクタ上で機能するため、何も行いません。
 [/REGION]
+
+
+
+
+
 
