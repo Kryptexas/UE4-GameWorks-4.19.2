@@ -5,8 +5,6 @@ Description:
 
 [TOC(start:2)]
 
-## Overview
-
 This function is similar to the Imposter sprite function. It uses a series of mesh rotations but this time they are specified by user input rather than pre-set by the blueprint.
  
 ![](23.jpg)(w:920)
@@ -41,7 +39,7 @@ This is a dropdown list that lets you choose between three types of flipbook.
 | **Flipbook Static Mesh** | This is where you specify the mesh to use. |
 | **Flipbook Mesh Scale** | This allows you to scale the mesh manually in case there is some edge-bleeding between frames. Leave this setting alone unless you are trying to solve a specific issue as you will either lose resolution or make the mesh too large. |
 | **Preview Motion On Mesh** | With this option checked, you can press the editor's "Simulate" button to see a little preview mesh that will spin with motion that is based on your rotation settings. The preview motion does not match exactly when the two axis rotations are wildly different. It is generally a good idea to keep them fairly similar or just use one axis when possible. |
-| **Preview Speed** | Lets you adjust the spinning speed of the preview mesh. |
+| **Preview Speed** | Allows you to adjust the spinning speed of the preview mesh. |
 
 Rendering the Flipbook textures uses the same process as the first three functions:
 
@@ -58,7 +56,7 @@ Function Inputs:
 
 | Property | Description |
 | ---- | ---- |
-| **Animation Phase (0-1) (S)** | The default value here is the "Time" node. If you want to change the speed, you will need to hook up Time*Speed(scalarparameter) here. |
+| **Animation Phase (0-1) (S)** | The default value here is the "Time" node. If you want to change the speed, you will need to hook up Time*Speed (scalarparameter) here. |
 | **Number of Rows (S)** | Number of Rows Y in your texture. |
 | **Number of Columns (S)** | Number of Columns X in your texture. |
 | **Texture (T2d)** | You can hook up a texture here if you want to use the "Result" pin. In most cases, it is suggested to leave this input blank and instead use a regular texture sample and plug the "UVs" output of this function into the texture UV's. That way you can re-use the same UVs for several textures. |
