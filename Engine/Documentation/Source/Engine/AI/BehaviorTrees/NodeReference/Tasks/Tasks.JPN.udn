@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Behavior Tree ノードのリファレンス:Tasks
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -91,3 +91,8 @@ Run EQS Query ノード
 | -------- | ----------- |
 | **Blackboard Key**| 待ち時間の長さを参照するためのフロート型の Blackboard Key です。
 | **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+
+
+
