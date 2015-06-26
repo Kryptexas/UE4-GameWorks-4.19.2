@@ -50,6 +50,15 @@ public:
 	/** Adds an outliner node to the selection */
 	void AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
 
+	/** Removes a key from the selection */
+	void RemoveFromSelection(FSelectedKey Key);
+
+	/** Removes a section from the selection */
+	void RemoveFromSelection(UMovieSceneSection* Section);
+
+	/** Removes an outliner node from the selection */
+	void RemoveFromSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
+
 	/** Returns whether or not the key is selected. */
 	bool IsSelected(FSelectedKey Key) const;
 

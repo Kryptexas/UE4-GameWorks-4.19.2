@@ -137,6 +137,9 @@ public:
 	/** Gets the sequencer that owns this node */
 	FSequencer& GetSequencer() const { return ParentTree.GetSequencer(); }
 	
+	/** Gets the parent tree that this node is in */
+	FSequencerNodeTree& GetParentTree() const { return ParentTree; }
+
 	/** Gets all the key area nodes recursively, including this node if applicable */
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const;
 

@@ -10,7 +10,7 @@ class SAnimationOutlinerTreeNode : public SCompoundWidget
 {
 public:
 	/** A delegate called when the widget is selected */
-	DECLARE_DELEGATE_OneParam( FOnNodeSelectionChanged, TSharedPtr<class FSequencerDisplayNode> )
+	DECLARE_DELEGATE_OneParam( FOnNodeSelectionChanged, TArray<TSharedPtr<class FSequencerDisplayNode> >)
 
 	SLATE_BEGIN_ARGS( SAnimationOutlinerTreeNode ) {}
 		/** Called when the widget is selected */	
@@ -72,6 +72,9 @@ private:
 	/** Handles the add key button being clicked. */
 	FReply OnAddKeyClicked();
 
+	/** Get all descendant nodes from the given root node */
+	void GetAllDescendantNodes(TSharedPtr<FSequencerDisplayNode> RootNode, TArray<TSharedRef<FSequencerDisplayNode> >& AllNodes);
+
 private:
 	/** Layout node the widget is visualizing */
 	TSharedPtr<FSequencerDisplayNode> DisplayNode;
@@ -121,8 +124,7 @@ private:
 	 *
 	 * @param AffectedNode	The node that was selected
 	 */
-	void OnSelectionChanged( TSharedPtr<FSequencerDisplayNode> AffectedNode );
-
+	void OnSelectionChanged( TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes );
 private:
 	/** Internal sequencer interface */
 	FSequencer* Sequencer;

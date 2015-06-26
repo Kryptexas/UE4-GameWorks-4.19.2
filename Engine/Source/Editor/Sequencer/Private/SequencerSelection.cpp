@@ -65,6 +65,27 @@ void FSequencerSelection::AddToSelection(TSharedRef<FSequencerDisplayNode> Outli
 	OnOutlinerNodeSelectionChanged.Broadcast();
 }
 
+void FSequencerSelection::RemoveFromSelection(FSelectedKey Key)
+{
+	SelectedKeys.Remove(Key);
+	ActiveSelection = EActiveSelection::KeyAndSection;
+	OnKeySelectionChanged.Broadcast();
+}
+
+void FSequencerSelection::RemoveFromSelection(UMovieSceneSection* Section)
+{
+	SelectedSections.Remove(Section);
+	ActiveSelection = EActiveSelection::KeyAndSection;
+	OnSectionSelectionChanged.Broadcast();
+}
+
+void FSequencerSelection::RemoveFromSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode)
+{
+	SelectedOutlinerNodes.Remove(OutlinerNode);
+	ActiveSelection = EActiveSelection::OutlinerNode;
+	OnOutlinerNodeSelectionChanged.Broadcast();
+}
+
 bool FSequencerSelection::IsSelected(FSelectedKey Key) const
 {
 	return SelectedKeys.Contains(Key);
