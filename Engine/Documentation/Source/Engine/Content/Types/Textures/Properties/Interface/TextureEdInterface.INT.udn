@@ -46,9 +46,6 @@ Description:Description of the Texture Editor UI.
 
 [TOC(end:2)]
 
-
-## Overview
-
 [EXCERPT:Intro]
 The **Texture Properties Editor** allows you to preview a Texture asset and edit its properties.  You can also apply color adjustments and modify compression and LOD settings here.
 
@@ -111,7 +108,7 @@ The upper-left corner of the viewport contains a drop-down **View** menu that gi
 
 ![](TextureUI_Viewport_ViewMenu.png)
 
-You can resize the Texture asset being previewed by dragging the **Zoom** slider in the lower-right corner of the viewport, or by changing the **Fill** setting with the drop-down menu.
+You can resize the Texture asset being previewed by dragging the Zoom slider in the lower-right corner of the viewport, or by changing the **Fill** setting with the drop-down menu.
 
 ## Details Panel
 
