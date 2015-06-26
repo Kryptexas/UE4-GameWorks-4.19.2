@@ -335,7 +335,7 @@ bool FDesktopPlatformBase::GetEngineIdentifierForProject(const FString& ProjectF
 	if(EngineVersionString.Len() > 0)
 	{
 		FEngineVersion EngineVersion;
-		if(FEngineVersion::Parse(EngineVersionString, EngineVersion) && EngineVersion.IsPromotedBuild() && EngineVersion.ToString(EVersionComponent::Minor) == TEXT("4.0"))
+		if(FEngineVersion::Parse(EngineVersionString, EngineVersion) && EngineVersion.HasChangelist() && EngineVersion.ToString(EVersionComponent::Minor) == TEXT("4.0"))
 		{
 			OutIdentifier = TEXT("4.0");
 			return true;

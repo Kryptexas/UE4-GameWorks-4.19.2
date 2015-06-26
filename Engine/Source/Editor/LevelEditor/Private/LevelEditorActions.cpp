@@ -878,7 +878,7 @@ bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 	// We're not able to recompile if a compile is already in progress!
 
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
-	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
+	return !HotReloadSupport.IsCurrentlyCompiling() && !(FApp::GetEngineIsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
 
 void FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked()
