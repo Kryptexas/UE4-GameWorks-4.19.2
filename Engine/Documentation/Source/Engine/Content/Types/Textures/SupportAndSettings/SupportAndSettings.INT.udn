@@ -30,15 +30,15 @@ This constant is defined in the following source files (as of QAMar09, be sure t
 	Src\Engine\Src\RHI.cpp   
 	Src\Engine\Src\TextureCube.cpp
 
-With the release of UE 4.8 you can now modify your projects to use Textures up to 8192 in size with out having to modify the C++ code by adding the following text to your projects **DefaultEngine.INI** file and setting the **MaxLODsize** to **8192**
+With the release of UE 4.8 you can now modify your projects to use Textures up to 8192 in size without having to modify the C++ code by adding the following text to your projects **DefaultEngine.INI** file and setting the **MaxLODsize** to **8192**
 
 	[SystemSettings]
 	TEXTUREGROUP_World=(MinLODSize=1,MaxLODSize=8192,LODBias=0,MinMagFilter=aniso,MipFilter=point)
 
 Once you have added the section you want to increase the size for, save the file and restart the Editor. 
 When the Editor restarts any Textures that were imported at a size of 8192 should now show 8192 as the size of LOD 1, instead of being clamped to a maximum of 4096. 
-In the following example image we have moded the **DefaultEngine.INI** file in a UE 4.8 project to allow for the use of Textures that are up to 8192 in size. 
-When the texture, **T_8K_Test** is loaded in UE4 we can see that both the imported and displayed texture size are at 8192.
+In the following example image we have moded the DefaultEngine.INI file in a UE 4.8 project to allow for the use of Textures that are up to 8192 in size. 
+When the texture, T_8K_Test is loaded in UE4 we can see that both the imported and displayed texture size are at 8192.
 
 ![](T_Getting_8K_Textures.png)
 
@@ -182,7 +182,7 @@ Any textures assigned to the TEXTUREGROUP_World LODGroup will use these settings
 The additional LODBias setting in the Texture Properties is additive with the LODBias specified in the config ini file TextureGroup.
 
 The LODBias _biases_ or offsets which mip is chosen for rendering.  The LODBias is calculated before the LODGroup Min/Max range.  The LODBias in the Texture Properties is added to the LODBias in the TextureGroup to determine the final LODBias value used.   
-An LODBias of 0 is the main (native) texture resolution.  An LODBias of 1 is the first mip down for the texture, an LODBias of 2 is the second mip down, etc.  For example, a 1024x1024 texture that has an LODBias of 1 results in the 512x512 mip being chosen for rendering.
+A LODBias of 0 is the main (native) texture resolution.  A LODBias of 1 is the first mip down for the texture, a LODBias of 2 is the second mip down, etc.  For example, a 1024x1024 texture that has a LODBias of 1 results in the 512x512 mip being chosen for rendering.
 
 The LODBias specified in the Texture Properties for each individual texture can be positive or negative, so that it can offset the TextureGroup's default LODBias to either higher or lower mip values.   
 For example:
@@ -203,7 +203,7 @@ It would increase distributable package size with no rendering quality benefit i
 
 ## Texture Properties
 
-For an explanation of the meaning of the various texture properties, see the [**Texture Properties**](Engine/Content/Types/Textures/Properties) page.
+For an explanation of the meaning of the various texture properties, see the [Texture Properties](Engine/Content/Types/Textures/Properties) page.
 
  
 
