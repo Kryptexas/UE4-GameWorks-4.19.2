@@ -404,7 +404,6 @@ FGameplayEffectSpec::FGameplayEffectSpec()
 	, bDurationLocked(false)
 	, Level(UGameplayEffect::INVALID_LEVEL)
 {
-
 }
 
 FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float InLevel)
@@ -964,7 +963,6 @@ const FGameplayEffectAttributeCaptureDefinition& FGameplayEffectAttributeCapture
 FGameplayEffectAttributeCaptureSpecContainer::FGameplayEffectAttributeCaptureSpecContainer()
 	: bHasNonSnapshottedAttributes(false)
 {
-
 }
 
 FGameplayEffectAttributeCaptureSpecContainer::FGameplayEffectAttributeCaptureSpecContainer(FGameplayEffectAttributeCaptureSpecContainer&& Other)
@@ -980,7 +978,6 @@ FGameplayEffectAttributeCaptureSpecContainer::FGameplayEffectAttributeCaptureSpe
 	, bHasNonSnapshottedAttributes(Other.bHasNonSnapshottedAttributes)
 {
 }
-
 
 FGameplayEffectAttributeCaptureSpecContainer& FGameplayEffectAttributeCaptureSpecContainer::operator=(FGameplayEffectAttributeCaptureSpecContainer&& Other)
 {
@@ -3178,7 +3175,7 @@ FGameplayEffectQuery::FGameplayEffectQuery(FActiveGameplayEffectQueryCustomMatch
 
 FGameplayEffectQuery::FGameplayEffectQuery(FGameplayEffectQuery&& Other)
 {
-	*this = Other;
+	*this = MoveTemp(Other);
 }
 
 FGameplayEffectQuery& FGameplayEffectQuery::operator=(FGameplayEffectQuery&& Other)

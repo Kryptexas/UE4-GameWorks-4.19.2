@@ -839,7 +839,7 @@ FGameplayTagQuery::FGameplayTagQuery(FGameplayTagQuery const& Other)
 
 FGameplayTagQuery::FGameplayTagQuery(FGameplayTagQuery&& Other)
 {
-	*this = Other;
+	*this = MoveTemp(Other);
 }
 
 /** Assignment/Equality operators */
