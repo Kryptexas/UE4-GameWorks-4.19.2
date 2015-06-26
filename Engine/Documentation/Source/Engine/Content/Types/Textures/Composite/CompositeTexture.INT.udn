@@ -12,7 +12,7 @@ when near to the camera, but uses the mip maps of the normalmap that might appea
 
 ## Setting up the Composite Texture to Modify the Roughness Depending on Normalmap Details
 
-To configure a _Texture_ to use the **Composite Texture**, assign the normal map (same size or higher res) to 
+To configure a _Texture_ to use the Composite Texture, assign the normal map (same size or higher res) to 
 the **Composite Texture** property in your diffuse _Texture_. We often store the roughness in the diffuse alpha
 channel, but you can adjust any channel by changing the default settings. 
 
@@ -23,10 +23,10 @@ variation in the normal map to a rougher value (brighter).
 
 [REGION:tip]
 If the _Texture_ does not already contain info in the alpha channel, the process of modifying that particular 
-channel will not work as no alpha channel means white. Instead, you must first adjust the **Max Alpha** property 
+channel will not work as no alpha channel means white. Instead, you must first adjust the Max Alpha property 
 to set the source alpha to a constant value. If you directly hook up the alpha channel of the texture to the material
 roughness and your alpha channel was white (1, which is the default), then you can directly specify the roughness value
-as **Max Alpha**. The adjustment will be done to the texture content. The roughness adjustment will be done on top of that.
+as Max Alpha. The adjustment will be done to the texture content. The roughness adjustment will be done on top of that.
 [/REGION]
 
 [REGION:imagetable]
@@ -41,12 +41,12 @@ You can set the **Texture Editor** to only show the alpha channel to verify your
 
 ### Compositing Properties
 
-There are some additional properties that affect how the **Composite Texture** modifies the _Texture_'s channel.
+There are some additional properties that affect how the Composite Texture modifies the _Texture_'s channel.
 
 | Property | Description |
 | -------- | ----------- |
-| Composite Texture Mode | Specifies which channel of the _Texture_ (_R_, _G_, _B_, or _A_) the **Composite Texture** is used to modify. |
-| Composite Power | Determines how much influence the **Composite Texture** has on the target channel. [1:default, <1 less influence, >1 more influence] |
+| Composite Texture Mode | Specifies which channel of the _Texture_ (_R_, _G_, _B_, or _A_) the Composite Texture is used to modify. |
+| Composite Power | Determines how much influence the Composite Texture has on the target channel. [1:default, <1 less influence, >1 more influence] |
 
 ## Using the Composited Roughness Map
 
