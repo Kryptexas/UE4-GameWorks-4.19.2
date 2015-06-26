@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2601030
 Availability:Public
 Title:加算アニメーションを使用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -30,9 +30,9 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 このセクションでは、プレイヤー キャラクターを割り当て、動きのアニメーションとブレンドするアニメーションに変更を加えます。 
 
-1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **MyGame** ブループリントを開きます。 
+1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **ThirdPersonGameMode** ブループリントを開きます。 
 
-1.	**Default Pawn Class** でドロップダウン メニューをクリックし、**ASP_Character** を選択します。 
+1.	**Default Pawn Class** （デフォルトのポーン クラス）でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
 
 	![](Animations1.png)
 
@@ -66,7 +66,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 次に Character ブループリントを更新し、射撃ボタンを押した場合に判定できるようにします。 
 
-1.	**コンテンツ ブラウザ** 内の **Game/AnimStarterPack/Character** で、**ASP_Character** ブループリントを開きます。 
+1.	**コンテンツ ブラウザ** 内の **Game/AnimStarterPack/Character** で、**Ue4ASP_Character** ブループリントを開きます。 
 
 1.	**Crouching** セクションを探して、**InputAction Crouch** イベント (Warning! 付き) 記号を削除します。 
 
@@ -102,7 +102,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 ここでは、アニメーション グラフをセットアップし、現在のポーズと武器発砲アニメーションとをブレンドするために必要なノードを配置します。 
 
-1.	**Game/AnimStarterPack/Character** で **ASP_HeroTPP_AnimBlueprint** Animation ブループリントを開きます。 
+1.	**Game/AnimStarterPack/Character** で **UE4ASP_HeroTPP_AnimBlueprint** Animation ブループリントを開きます。 
 
 1.	**MyBlueprint** ウィンドウ内で **AnimGraph** を開きます。 
 
@@ -160,7 +160,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 	![](Animations18b.png)
 
-1.	**Cast To ASP_Character** ノードの **As ASP Character** ピンをドラッグして **Get Fire Button Down** ノードを追加します。 
+1.	**Cast To ASP_Character** ノードの **Cast To Ue4ASP_Character** ノードを追加します。 
 
 	![](Animations19.png)
 
