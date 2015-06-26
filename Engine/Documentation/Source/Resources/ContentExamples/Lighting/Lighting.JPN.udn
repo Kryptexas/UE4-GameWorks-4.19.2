@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title:ライティングのコンテンツ例
+Title:ライティングのコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
-Description:ライティングのコンテンツ例で提供されるサンプルの概要
+Description:ライティングのコンテンツ サンプルで提供されるサンプルの概要
 Related:Engine/Rendering/LightingAndShadows/Basics
-Related:Engine/Rendering/LightingAndShadows/LightTypes/Point/
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
@@ -53,7 +53,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 ## 概要
 
-コンテンツ例プロジェクトの中にある **Lighting** マップでは、アンリアル エンジン 4 で使用できる様々なライトのタイプに加え lit 環境をより現実的に作成しやすく調整する設定も説明します。 
+Content Examples プロジェクトの中にある **Lighting** マップでは、アンリアル エンジン 4 で使用できる様々なライトのタイプに加え lit 環境をより現実的に作成しやすく調整する設定も説明します。 
 マップは幾つかのセクションに分かれています。最初の 2 セクションではライトの種類と可動性、そして残りのセクションではシャドウイング、フォールオフ、高度なテクニックを紹介しています。 
 
 各サンプルの詳細は、それぞれの表の中にあるリンクを参照してください。 
@@ -90,7 +90,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 | 例 | 実演内容 |
 | ------- | ------------ |
-| ** [3.1 IES ライトプロファイル](Resources\ContentExamples\Lighting\3_1)** | Illuminating Engineering Society (IES) プロファイルは、現実のライティング結果を作成するための輝度やフォールオフのダイアグラム (照度データ) を作成する北米照明学会の標準手法です。
+| ** [3.1 IES ライト プロファイル](Resources\ContentExamples\Lighting\3_1)** | Illuminating Engineering Society (IES) プロファイルは、現実のライティング結果を作成するための輝度やフォールオフのダイアグラム (照度データ) を作成する北米照明学会の標準手法です。
 | ** [3.2 ライト機能](Resources\ContentExamples\Lighting\3_2)** | ライトの密度をフィルタするために適用できるマテリアルです (アンリアル エンジン 4 は **ライト機能** を使用するウォール上に投影されます)。|
 
 
@@ -129,7 +129,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 [REGION:note]
 ライトの半径または形状のインジケーターを表示するには、ライトを選択しなくてはいけません。
 
-ライトの半径や形状を表すインジケーターが表示されない場合、ビューポートの **[表示]** メニューを必ずクリックして **Use Defaults** を選択してください。
+ライトの半径や形状を表すインジケーターが表示されない場合、ビューポートの **[Show]** (表示) メニューを必ずクリックして **[Use Defaults]** (デフォルトを使用) を選択してください。
 [/REGION]
 [/EXCERPT:RadiusNote]
 
@@ -139,7 +139,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 
 [EXCERPT:LightMobility]
-オブジェクトでは次の 3 種類の可動性、 **Static (静的)** 、 **Stationary (固定)** 、そして **Movable (可動)** が利用できます。可動性はオブジェクトの選択時に **[詳細]** パネルの上部で設定可能です。
+オブジェクトでは次の 3 種類の可動性、 **Static (静的)** 、 **Stationary (固定)** 、そして **Movable (可動)** が利用できます。可動性はオブジェクトの選択時に **[Details]** (詳細) パネルの上部で設定可能です。
 
 ![](MobilitySetting.png)
 [/EXCERPT:LightMobility]
