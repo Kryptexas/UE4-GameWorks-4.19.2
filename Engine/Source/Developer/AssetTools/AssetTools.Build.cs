@@ -33,6 +33,7 @@ public class AssetTools : ModuleRules
 				"Analytics",
 				"AssetRegistry",
 				"ContentBrowser",
+				"CollectionManager",
                 "CurveAssetEditor",
 				"DesktopPlatform",
 				"EditorWidgets",
@@ -53,6 +54,7 @@ public class AssetTools : ModuleRules
 			new string[] {
 				"AssetRegistry",
 				"ContentBrowser",
+				"CollectionManager",
                 "CurveAssetEditor",
 				"CurveTableEditor",
 				"DataTableEditor",

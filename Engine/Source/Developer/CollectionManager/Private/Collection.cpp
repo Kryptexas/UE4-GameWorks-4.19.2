@@ -117,7 +117,7 @@ bool FCollection::Load(FText& OutError)
 
 			if ( Line.Len() )
 			{
-				AddAssetToCollection(FName(*Line));
+				AddObjectToCollection(FName(*Line));
 			}
 		}
 	}
@@ -200,8 +200,8 @@ bool FCollection::Save(FText& OutError)
 		}
 		else
 		{
-			OutError = LOCTEXT("Error_WriteFailed", "Failed to write to collection file.");
-			UE_LOG(LogCollectionManager, Error, TEXT("%s %s"), *OutError.ToString(), *CollectionName.ToString());
+			OutError = FText::Format(LOCTEXT("Error_WriteFailed", "Failed to write to collection file: {0}"), FText::FromString(SourceFilename));
+			UE_LOG(LogCollectionManager, Error, TEXT("%s"), *OutError.ToString());
 		}
 	}
 	else
@@ -272,7 +272,7 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 			bSuccessfullyDeleted = IFileManager::Get().Delete(*SourceFilename);
 			if ( !bSuccessfullyDeleted )
 			{
-				OutError = LOCTEXT("Error_DiskDeleteFailed", "Failed to delete the collection file from disk.");
+				OutError = FText::Format(LOCTEXT("Error_DiskDeleteFailed", "Failed to delete the collection file: {0}"), FText::FromString(SourceFilename));
 			}
 		}
 	}
@@ -290,9 +290,8 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 	return bSuccessfullyDeleted;
 }
 
-bool FCollection::AddAssetToCollection(FName ObjectPath)
+bool FCollection::AddObjectToCollection(FName ObjectPath)
 {
-	// @todo collection Does this apply to dynamic collections?
 	if (!ObjectSet.Contains(ObjectPath))
 	{
 		ObjectSet.Add(ObjectPath);
@@ -302,15 +301,13 @@ bool FCollection::AddAssetToCollection(FName ObjectPath)
 	return false;
 }
 
-bool FCollection::RemoveAssetFromCollection(FName ObjectPath)
+bool FCollection::RemoveObjectFromCollection(FName ObjectPath)
 {
-	// @todo collection Does this apply to dynamic collections?
 	return ObjectSet.Remove(ObjectPath) > 0;
 }
 
 void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 {
-	// @todo collection Does this apply to dynamic collections?
 	for (const FName& ObjectName : ObjectSet)
 	{
 		if (!ObjectName.ToString().StartsWith(TEXT("/Script/")))
@@ -322,7 +319,6 @@ void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 
 void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 {
-	// @todo collection Does this apply to dynamic collections?
 	for (const FName& ObjectName : ObjectSet)
 	{
 		if (ObjectName.ToString().StartsWith(TEXT("/Script/")))
@@ -334,14 +330,19 @@ void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 
 void FCollection::GetObjectsInCollection(TArray<FName>& Objects) const
 {
-	// @todo collection Does this apply to dynamic collections?
 	FCollectionUtils::AppendCollectionToArray(ObjectSet, Objects);
 }
 
 bool FCollection::IsObjectInCollection(FName ObjectPath) const
 {
-	// @todo collection Does this apply to dynamic collections?
 	return ObjectSet.Contains(ObjectPath);
+}
+
+bool FCollection::IsRedirectorInCollection(FName ObjectPath) const
+{
+	// Redirectors are fixed up in-memory once the asset registry has finished loading, 
+	// so we need to test our on-disk set of objects rather than our in-memory set of objects
+	return DiskSnapshot.ObjectSet.Contains(ObjectPath);
 }
 
 bool FCollection::IsDynamic() const
@@ -526,7 +527,7 @@ bool FCollection::CheckoutCollection(FText& OutError)
 		if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), AbsoluteFilename) == ECommandResult::Failed )
 		{
 			// Could not sync up with the head revision
-			OutError = LOCTEXT("Error_SCCSync", "Failed to sync collection to the head revision.");
+			OutError = FText::Format(LOCTEXT("Error_SCCSync", "Failed to sync collection '{0}' to the head revision."), FText::FromName(CollectionName));
 			return false;
 		}
 
@@ -539,7 +540,7 @@ bool FCollection::CheckoutCollection(FText& OutError)
 			if ( !NewCollection.Load(LoadErrorText) )
 			{
 				// Failed to load the head revision file so it isn't safe to delete it
-				OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection at the head revision. {0}"), LoadErrorText);
+				OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection '{0}' at the head revision. {1}"), FText::FromName(CollectionName), LoadErrorText);
 				return false;
 			}
 
@@ -569,20 +570,20 @@ bool FCollection::CheckoutCollection(FText& OutError)
 			bSuccessfullyCheckedOut = (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), AbsoluteFilename) == ECommandResult::Succeeded);
 			if (!bSuccessfullyCheckedOut)
 			{
-				OutError = LOCTEXT("Error_SCCCheckout", "Failed to check out collection.");
+				OutError = FText::Format(LOCTEXT("Error_SCCCheckout", "Failed to check out collection '{0}'"), FText::FromName(CollectionName));
 			}
 		}
 		else if(!SourceControlState->IsCurrent())
 		{
-			OutError = LOCTEXT("Error_SCCNotCurrent", "Collection is not at head revision after sync.");
+			OutError = FText::Format(LOCTEXT("Error_SCCNotCurrent", "Collection '{0}' is not at head revision after sync."), FText::FromName(CollectionName));
 		}
 		else if(SourceControlState->IsCheckedOutOther())
 		{
-			OutError = LOCTEXT("Error_SCCCheckedOutOther", "Collection is checked out by another user.");
+			OutError = FText::Format(LOCTEXT("Error_SCCCheckedOutOther", "Collection '{0}' is checked out by another user."), FText::FromName(CollectionName));
 		}
 		else
 		{
-			OutError = LOCTEXT("Error_SCCUnknown", "Could not determine source control state.");
+			OutError = FText::Format(LOCTEXT("Error_SCCUnknown", "Could not determine source control state for collection '{0}'"), FText::FromName(CollectionName));
 		}
 	}
 	else
@@ -623,7 +624,7 @@ bool FCollection::CheckinCollection(FText& OutError)
 		const bool bWasAdded = (SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), AbsoluteFilename) == ECommandResult::Succeeded);
 		if (!bWasAdded)
 		{
-			OutError = LOCTEXT("Error_SCCAdd", "Failed to add new collection to source control.");
+			OutError = FText::Format(LOCTEXT("Error_SCCAdd", "Failed to add collection '{0}' to source control."), FText::FromName(CollectionName));
 			return false;
 		}
 		SourceControlState = SourceControlProvider.GetState(AbsoluteFilename, EStateCacheUsage::ForceUpdate);
@@ -631,7 +632,7 @@ bool FCollection::CheckinCollection(FText& OutError)
 
 	if ( SourceControlState.IsValid() && !(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()) )
 	{
-		OutError = LOCTEXT("Error_SCCNotCheckedOut", "Collection not checked out or open for add.");
+		OutError = FText::Format(LOCTEXT("Error_SCCNotCheckedOut", "Collection '{0}' not checked out or open for add."), FText::FromName(CollectionName));
 		return false;
 	}
 
@@ -729,7 +730,7 @@ bool FCollection::CheckinCollection(FText& OutError)
 	}
 	else 
 	{
-		OutError = LOCTEXT("Error_SCCCheckIn", "Failed to check in collection.");
+		OutError = FText::Format(LOCTEXT("Error_SCCCheckIn", "Failed to check in collection '{0}'."), FText::FromName(CollectionName));
 		return false;
 	}
 }
@@ -760,7 +761,7 @@ bool FCollection::RevertCollection(FText& OutError)
 
 	if ( SourceControlState.IsValid() && !(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()) )
 	{
-		OutError = LOCTEXT("Error_SCCNotCheckedOut", "Collection not checked out or open for add.");
+		OutError = FText::Format(LOCTEXT("Error_SCCNotCheckedOut", "Collection '{0}' not checked out or open for add."), FText::FromName(CollectionName));
 		return false;
 	}
 
@@ -770,7 +771,7 @@ bool FCollection::RevertCollection(FText& OutError)
 	}
 	else
 	{
-		OutError = LOCTEXT("Error_SCCRevert", "Could not revert Collection.");
+		OutError = FText::Format(LOCTEXT("Error_SCCRevert", "Could not revert collection '{0}'"), FText::FromName(CollectionName));
 		return false;
 	}
 }
@@ -830,7 +831,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 		{
 			// Could not sync up with the head revision
 			GWarn->EndSlowTask();
-			OutError = LOCTEXT("Error_SCCSync", "Failed to sync collection to the head revision.");
+			OutError = FText::Format(LOCTEXT("Error_SCCSync", "Failed to sync collection '{0}' to the head revision."), FText::FromName(CollectionName));
 			return false;
 		}
 
@@ -848,7 +849,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 		{
 			// Failed to load the head revision file so it isn't safe to delete it
 			GWarn->EndSlowTask();
-			OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection at the head revision. {0}"), LoadErrorText);
+			OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection '{0}' at the head revision. {1}"), FText::FromName(CollectionName), LoadErrorText);
 			return false;
 		}
 
@@ -865,7 +866,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 	{
 		if(SourceControlState->IsAdded() || SourceControlState->IsCheckedOut())
 		{
-			OutError = LOCTEXT("Error_SCCDeleteWhileCheckedOut", "Failed to delete collection in source control because it is checked out or open for add.");
+			OutError = FText::Format(LOCTEXT("Error_SCCDeleteWhileCheckedOut", "Failed to delete collection '{0}' in source control because it is checked out or open for add."), FText::FromName(CollectionName));
 		}
 		else if(SourceControlState->CanCheckout())
 		{
@@ -888,12 +889,12 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 						UE_LOG(LogCollectionManager, Warning, TEXT("Failed to revert collection '%s' after failing to check in the file that was marked for delete."), *CollectionName.ToString());
 					}
 
-					OutError = LOCTEXT("Error_SCCCheckIn", "Failed to check in collection.");
+					OutError = FText::Format(LOCTEXT("Error_SCCCheckIn", "Failed to check in collection '{0}'."), FText::FromName(CollectionName));
 				}
 			}
 			else
 			{
-				OutError = LOCTEXT("Error_SCCDeleteFailed", "Failed to delete collection in source control.");
+				OutError = FText::Format(LOCTEXT("Error_SCCDeleteFailed", "Failed to delete collection '{0}' in source control."), FText::FromName(CollectionName));
 			}
 		}
 		else if(!SourceControlState->IsSourceControlled())
@@ -902,20 +903,20 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 			bDeletedSuccessfully = IFileManager::Get().Delete(*AbsoluteFilename);
 			if ( !bDeletedSuccessfully )
 			{
-				OutError = LOCTEXT("Error_DiskDeleteFailed", "Failed to delete the collection file from disk.");
+				OutError = FText::Format(LOCTEXT("Error_DiskDeleteFailed", "Failed to delete the collection file: {0}"), FText::FromString(AbsoluteFilename));
 			}
 		}
 		else if (!SourceControlState->IsCurrent())
 		{
-			OutError = LOCTEXT("Error_SCCNotCurrent", "Collection is not at head revision after sync.");
+			OutError = FText::Format(LOCTEXT("Error_SCCNotCurrent", "Collection '{0}' is not at head revision after sync."), FText::FromName(CollectionName));
 		}
 		else if(SourceControlState->IsCheckedOutOther())
 		{
-			OutError = LOCTEXT("Error_SCCCheckedOutOther", "Collection is checked out by another user.");
+			OutError = FText::Format(LOCTEXT("Error_SCCCheckedOutOther", "Collection '{0}' is checked out by another user."), FText::FromName(CollectionName));
 		}
 		else
 		{
-			OutError = LOCTEXT("Error_SCCUnknown", "Could not determine source control state.");
+			OutError = FText::Format(LOCTEXT("Error_SCCUnknown", "Could not determine source control state for collection '{0}'"), FText::FromName(CollectionName));
 		}
 	}
 	else

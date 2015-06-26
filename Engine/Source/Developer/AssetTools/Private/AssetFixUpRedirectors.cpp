@@ -3,6 +3,7 @@
 
 #include "AssetToolsPrivatePCH.h"
 #include "AssetRegistryModule.h"
+#include "CollectionManagerModule.h"
 #include "ISourceControlModule.h"
 #include "ObjectTools.h"
 #include "MessageLog.h"
@@ -13,12 +14,14 @@
 struct FRedirectorRefs
 {
 	UObjectRedirector* Redirector;
+	FName RedirectorPackageName;
 	TArray<FName> ReferencingPackageNames;
 	FText FailureReason;
 	bool bRedirectorValidForFixup;
 
 	FRedirectorRefs(UObjectRedirector* InRedirector)
 		: Redirector(InRedirector)
+		, RedirectorPackageName(InRedirector->GetOutermost()->GetFName())
 		, bRedirectorValidForFixup(true)
 	{}
 };
@@ -91,6 +94,9 @@ void FAssetFixUpRedirectors::ExecuteFixUp(TArray<TWeakObjectPtr<UObjectRedirecto
 				TArray<UPackage*> FailedToSave;
 				SaveReferencingPackages(ReferencingPackagesToSave, FailedToSave);
 
+				// Save any collections that were referencing any of the redirectors
+				SaveReferencingCollections(RedirectorRefsList);
+
 				// Wait for package referencers to be updated
 				UpdateAssetReferencers(RedirectorRefsList);
 
@@ -110,7 +116,7 @@ void FAssetFixUpRedirectors::PopulateRedirectorReferencers(TArray<FRedirectorRef
 	for ( auto RedirectorRefsIt = RedirectorsToPopulate.CreateIterator(); RedirectorRefsIt; ++RedirectorRefsIt )
 	{
 		FRedirectorRefs& RedirectorRefs = *RedirectorRefsIt;
-		AssetRegistryModule.Get().GetReferencers(RedirectorRefs.Redirector->GetOutermost()->GetFName(), RedirectorRefs.ReferencingPackageNames);
+		AssetRegistryModule.Get().GetReferencers(RedirectorRefs.RedirectorPackageName, RedirectorRefs.ReferencingPackageNames);
 	}
 }
 
@@ -296,6 +302,29 @@ void FAssetFixUpRedirectors::SaveReferencingPackages(const TArray<UPackage*>& Re
 	}
 }
 
+void FAssetFixUpRedirectors::SaveReferencingCollections(TArray<FRedirectorRefs>& RedirectorsToFix) const
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	// Find all collections that were referenced by any of the redirectors that are potentially going to be removed and attempt to re-save them
+	// The redirectors themselves will have already been fixed up, as collections do that once the asset registry has been populated, 
+	// however collections lazily re-save redirector fix-up to avoid SCC issues, so we need to force that now
+	for (FRedirectorRefs& RedirectorRefs : RedirectorsToFix)
+	{
+		// Follow each link in the redirector, and notify the collections manager that it is going to be removed - this will force it to re-save any required collections
+		for (UObjectRedirector* Redirector = RedirectorRefs.Redirector; Redirector; Redirector = Cast<UObjectRedirector>(Redirector->DestinationObject))
+		{
+			const FName RedirectorObjectPath = *Redirector->GetPathName();
+			if (!CollectionManagerModule.Get().HandleRedirectorDeleted(RedirectorObjectPath))
+			{
+				RedirectorRefs.FailureReason = FText::Format(LOCTEXT("RedirectorFixupFailed_CollectionsFailedToSave", "Referencing collection(s) failed to save: {0}"), CollectionManagerModule.Get().GetLastError());
+				RedirectorRefs.bRedirectorValidForFixup = false;
+			}
+		}
+	}
+}
+
 void FAssetFixUpRedirectors::UpdateAssetReferencers(const TArray<FRedirectorRefs>& RedirectorsToFix) const
 {
 	// Load the asset registry module
@@ -304,7 +333,7 @@ void FAssetFixUpRedirectors::UpdateAssetReferencers(const TArray<FRedirectorRefs
 	TArray<FString> AssetPaths;
 	for (const auto& Redirector : RedirectorsToFix)
 	{
-		AssetPaths.AddUnique(FPackageName::GetLongPackagePath(Redirector.Redirector->GetOutermost()->GetName()));
+		AssetPaths.AddUnique(FPackageName::GetLongPackagePath(Redirector.RedirectorPackageName.ToString()) / TEXT("")); // Ensure trailing slash
 	}
 	AssetRegistryModule.Get().ScanPathsSynchronous(AssetPaths, true);
 }
@@ -395,7 +424,7 @@ void FAssetFixUpRedirectors::ReportFailures(const TArray<FRedirectorRefs>& Redir
 				bTitleOutput = true;
 			}
 			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("PackageName"), FText::FromString(RedirectorRefs.Redirector->GetOutermost()->GetName()));
+			Arguments.Add(TEXT("PackageName"), FText::FromName(RedirectorRefs.RedirectorPackageName));
 			Arguments.Add(TEXT("FailureReason"), FText::FromString(RedirectorRefs.FailureReason.ToString()));
 			EditorErrors.Warning(FText::Format(LOCTEXT("RedirectorFixupFailedReason", "{PackageName} - {FailureReason}"), Arguments ));
 		}

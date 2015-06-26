@@ -38,6 +38,10 @@ public:
 	virtual bool IsObjectInCollection(FName ObjectPath, FName CollectionName, ECollectionShareType::Type ShareType, ECollectionRecursionFlags::Flags RecursionMode = ECollectionRecursionFlags::Self) const override;
 	virtual bool IsValidParentCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ParentCollectionName, ECollectionShareType::Type ParentShareType) const override;
 	virtual FText GetLastError() const override { return LastError; }
+	virtual void HandleFixupRedirectors(ICollectionRedirectorFollower& InRedirectorFollower) override;
+	virtual bool HandleRedirectorDeleted(const FName& ObjectPath) override;
+	virtual void HandleObjectRenamed(const FName& OldObjectPath, const FName& NewObjectPath) override;
+	virtual void HandleObjectDeleted(const FName& ObjectPath) override;
 
 	/** Event for when collections are created */
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FCollectionCreatedEvent, FCollectionCreatedEvent );

@@ -47,10 +47,10 @@ public:
 	/** Deletes the source file for this collection. If false, OutError is a human readable warning depicting the error. */
 	bool DeleteSourceFile(FText& OutError);
 
-	/** Adds a single asset to the collection. Static collections only. */
-	bool AddAssetToCollection(FName ObjectPath);
-	/** Removes a single asset from the collection. Static collections only. */
-	bool RemoveAssetFromCollection(FName ObjectPath);
+	/** Adds a single object to the collection. Static collections only. */
+	bool AddObjectToCollection(FName ObjectPath);
+	/** Removes a single object from the collection. Static collections only. */
+	bool RemoveObjectFromCollection(FName ObjectPath);
 	/** Gets a list of assets in the collection. Static collections only. */
 	void GetAssetsInCollection(TArray<FName>& Assets) const;
 	/** Gets a list of classes in the collection. Static collections only. */
@@ -59,6 +59,8 @@ public:
 	void GetObjectsInCollection(TArray<FName>& Objects) const;
 	/** Returns true when the specified object is in the collection. Static collections only. */
 	bool IsObjectInCollection(FName ObjectPath) const;
+	/** Returns true when the specified redirector is in the collection. Static collections only. */
+	bool IsRedirectorInCollection(FName ObjectPath) const;
 
 	/** Returns true if the collection contains rules instead of a flat list */
 	bool IsDynamic() const;

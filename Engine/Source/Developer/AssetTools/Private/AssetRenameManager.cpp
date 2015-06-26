@@ -4,6 +4,7 @@
 #include "AssetToolsPrivatePCH.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "CollectionManagerModule.h"
 #include "ISourceControlModule.h"
 #include "FileHelpers.h"
 #include "ObjectTools.h"
@@ -165,9 +166,9 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 	// Prep a list of assets to rename with an extra boolean to determine if they should leave a redirector or not
 	TArray<FAssetRenameDataWithReferencers> AssetsToRename;
 	AssetsToRename.Reset(AssetsAndNames.Num());
-	for (int32 AssetIdx = 0; AssetIdx < AssetsAndNames.Num(); ++AssetIdx)
+	for (const FAssetRenameData& AssetRenameData : AssetsAndNames)
 	{
-		new(AssetsToRename)FAssetRenameDataWithReferencers(AssetsAndNames[AssetIdx]);
+		AssetsToRename.Emplace(FAssetRenameDataWithReferencers(AssetRenameData));
 	}
 
 	// Warn the user if they are about to rename an asset that is referenced by a CDO
@@ -199,6 +200,9 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> Assets
 	// Update the source control state for the packages containing the assets we are renaming if source control is enabled. If source control is enabled and this fails we can not continue.
 	if ( UpdatePackageStatus(AssetsToRename) )
 	{
+		// Detect whether the assets are being referenced by a collection. Assets within a collection must leave a redirector to avoid the collection losing its references.
+		DetectReferencingCollections(AssetsToRename);
+
 		// Load all referencing packages and mark any assets that must have redirectors.
 		TArray<UPackage*> ReferencingPackagesToSave;
 		LoadReferencingPackages(AssetsToRename, ReferencingPackagesToSave);
@@ -463,6 +467,25 @@ bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencer
 	}
 
 	return bUserAcceptedCheckout;
+}
+
+void FAssetRenameManager::DetectReferencingCollections(TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const
+{
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	for (auto& AssetToRename : AssetsToRename)
+	{
+		if (AssetToRename.Asset.IsValid())
+		{
+			TArray<FCollectionNameType> ReferencingCollections;
+			CollectionManagerModule.Get().GetCollectionsContainingObject(*AssetToRename.Asset->GetPathName(), ReferencingCollections);
+
+			if (ReferencingCollections.Num() > 0)
+			{
+				AssetToRename.bCreateRedirector = true;
+			}
+		}
+	}
 }
 
 void FAssetRenameManager::DetectReadOnlyPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const

@@ -162,6 +162,24 @@ public:
 	/** Returns the most recent error. */
 	virtual FText GetLastError() const = 0;
 
+	/**
+	 * Called to notify the collections that they should fix-up their object references so that they no longer contain any redirectors
+	 * References are only updated in-memory, and won't be saved to disk until a redirector is deleted (which forces our hand), or the collection is saved for any other reason
+	 */
+	virtual void HandleFixupRedirectors(ICollectionRedirectorFollower& InRedirectorFollower) = 0;
+
+	/**
+	 * Called to notify the collections that a redirector has been deleted and that they should ensure their on-disk representation is re-saved with the fixed up in-memory version
+	 * @return true if all of the collections that were referencing this redirector could be re-saved, false otherwise
+	 */
+	virtual bool HandleRedirectorDeleted(const FName& ObjectPath) = 0;
+
+	/** Called to notify the collections that an object has been renamed or moved */
+	virtual void HandleObjectRenamed(const FName& OldObjectPath, const FName& NewObjectPath) = 0;
+
+	/** Called to notify the collections that an object has been deleted */
+	virtual void HandleObjectDeleted(const FName& ObjectPath) = 0;
+
 	/** Event for when collections are created */
 	DECLARE_EVENT_OneParam( ICollectionManager, FCollectionCreatedEvent, const FCollectionNameType& );
 	virtual FCollectionCreatedEvent& OnCollectionCreated() = 0;

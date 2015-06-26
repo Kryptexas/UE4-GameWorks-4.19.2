@@ -638,7 +638,7 @@ bool FCollectionManager::AddToCollection(FName CollectionName, ECollectionShareT
 	int32 NumAdded = 0;
 	for (const FName& ObjectPath : ObjectPaths)
 	{
-		if ((*CollectionRefPtr)->AddAssetToCollection(ObjectPath))
+		if ((*CollectionRefPtr)->AddObjectToCollection(ObjectPath))
 		{
 			NumAdded++;
 		}
@@ -664,7 +664,7 @@ bool FCollectionManager::AddToCollection(FName CollectionName, ECollectionShareT
 			// Added but not saved, revert the add
 			for (const FName& ObjectPath : ObjectPaths)
 			{
-				(*CollectionRefPtr)->RemoveAssetFromCollection(ObjectPath);
+				(*CollectionRefPtr)->RemoveObjectFromCollection(ObjectPath);
 			}
 			return false;
 		}
@@ -710,7 +710,7 @@ bool FCollectionManager::RemoveFromCollection(FName CollectionName, ECollectionS
 	TArray<FName> RemovedAssets;
 	for (const FName& ObjectPath : ObjectPaths)
 	{
-		if ((*CollectionRefPtr)->RemoveAssetFromCollection(ObjectPath))
+		if ((*CollectionRefPtr)->RemoveObjectFromCollection(ObjectPath))
 		{
 			RemovedAssets.Add(ObjectPath);
 		}
@@ -741,7 +741,7 @@ bool FCollectionManager::RemoveFromCollection(FName CollectionName, ECollectionS
 		// Removed but not saved, revert the remove
 		for (const FName& RemovedAssetName : RemovedAssets)
 		{
-			(*CollectionRefPtr)->AddAssetToCollection(RemovedAssetName);
+			(*CollectionRefPtr)->AddObjectToCollection(RemovedAssetName);
 		}
 		return false;
 	}
@@ -859,6 +859,127 @@ bool FCollectionManager::IsValidParentCollection(FName CollectionName, ECollecti
 	return bValidParent;
 }
 
+void FCollectionManager::HandleFixupRedirectors(ICollectionRedirectorFollower& InRedirectorFollower)
+{
+	const double LoadStartTime = FPlatformTime::Seconds();
+
+	TArray<TPair<FName, FName>> ObjectsToRename;
+
+	// Build up the list of redirected object into rename pairs
+	for (const auto& CachedObjectInfo : CachedObjects)
+	{
+		FName NewObjectPath;
+		if (InRedirectorFollower.FixupObject(CachedObjectInfo.Key, NewObjectPath))
+		{
+			ObjectsToRename.Add(TPairInitializer<FName, FName>(CachedObjectInfo.Key, NewObjectPath));
+		}
+	}
+
+	// Notify the rename for each redirected object
+	for (const auto& ObjectToRename : ObjectsToRename)
+	{
+		HandleObjectRenamed(ObjectToRename.Key, ObjectToRename.Value);
+	}
+
+	UE_LOG(LogCollectionManager, Log, TEXT( "Fixed up redirectors for %d collections in %0.6f seconds (updated %d objects)" ), CachedCollections.Num(), FPlatformTime::Seconds() - LoadStartTime, ObjectsToRename.Num());
+
+	for (const auto& ObjectToRename : ObjectsToRename)
+	{
+		UE_LOG(LogCollectionManager, Verbose, TEXT( "\tRedirected '%s' to '%s'" ), *ObjectToRename.Key.ToString(), *ObjectToRename.Value.ToString());
+	}
+}
+
+bool FCollectionManager::HandleRedirectorDeleted(const FName& ObjectPath)
+{
+	bool bSavedAllCollections = true;
+
+	FTextBuilder AllErrors;
+
+	// We don't have a cache for on-disk objects, so we have to do this the slower way and query each collection in turn
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
+
+		if (Collection->IsRedirectorInCollection(ObjectPath))
+		{
+			FText SaveError;
+			if (!Collection->Save(SaveError))
+			{
+				AllErrors.AppendLine(SaveError);
+				bSavedAllCollections = false;
+			}
+		}
+	}
+
+	if (!bSavedAllCollections)
+	{
+		LastError = AllErrors.ToText();
+	}
+
+	return bSavedAllCollections;
+}
+
+void FCollectionManager::HandleObjectRenamed(const FName& OldObjectPath, const FName& NewObjectPath)
+{
+	// Remove the info about the collections that the old object path is within - we'll add this info back in under the new object path shortly
+	TArray<FObjectCollectionInfo> OldObjectCollectionInfos;
+	if (!CachedObjects.RemoveAndCopyValue(OldObjectPath, OldObjectCollectionInfos))
+	{
+		return;
+	}
+
+	// Replace this object reference in all collections that use it, and update our object cache
+	auto& NewObjectCollectionInfos = CachedObjects.FindOrAdd(NewObjectPath);
+	for (const FObjectCollectionInfo& OldObjectCollectionInfo : OldObjectCollectionInfos)
+	{
+		if ((OldObjectCollectionInfo.Reason & ECollectionRecursionFlags::Self) != 0)
+		{
+			// The old object is contained directly within this collection (rather than coming from a parent or child collection), so update the object reference
+			const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(OldObjectCollectionInfo.CollectionKey);
+			if (CollectionRefPtr)
+			{
+				(*CollectionRefPtr)->RemoveObjectFromCollection(OldObjectPath);
+				(*CollectionRefPtr)->AddObjectToCollection(NewObjectPath);
+			}
+		}
+
+		// Merge the collection references for the old object with any collection references that already exist for the new object
+		FObjectCollectionInfo* ObjectInfoPtr = NewObjectCollectionInfos.FindByPredicate([&](const FObjectCollectionInfo& InCollectionInfo) { return InCollectionInfo.CollectionKey == OldObjectCollectionInfo.CollectionKey; });
+		if (ObjectInfoPtr)
+		{
+			ObjectInfoPtr->Reason |= OldObjectCollectionInfo.Reason;
+		}
+		else
+		{
+			NewObjectCollectionInfos.Add(OldObjectCollectionInfo);
+		}
+	}
+}
+
+void FCollectionManager::HandleObjectDeleted(const FName& ObjectPath)
+{
+	// Remove the info about the collections that the old object path is within
+	TArray<FObjectCollectionInfo> ObjectCollectionInfos;
+	if (!CachedObjects.RemoveAndCopyValue(ObjectPath, ObjectCollectionInfos))
+	{
+		return;
+	}
+
+	// Remove this object reference from all collections that use it
+	for (const FObjectCollectionInfo& ObjectCollectionInfo : ObjectCollectionInfos)
+	{
+		if ((ObjectCollectionInfo.Reason & ECollectionRecursionFlags::Self) != 0)
+		{
+			// The object is contained directly within this collection (rather than coming from a parent or child collection), so remove the object reference
+			const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(ObjectCollectionInfo.CollectionKey);
+			if (CollectionRefPtr)
+			{
+				(*CollectionRefPtr)->RemoveObjectFromCollection(ObjectPath);
+			}
+		}
+	}
+}
+
 void FCollectionManager::LoadCollections()
 {
 	const double LoadStartTime = FPlatformTime::Seconds();
@@ -908,7 +1029,7 @@ void FCollectionManager::RebuildCachedObjects()
 		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
 
 		TArray<FName> ObjectsInCollection;
-		CachedCollection.Value->GetObjectsInCollection(ObjectsInCollection);
+		Collection->GetObjectsInCollection(ObjectsInCollection);
 
 		if (ObjectsInCollection.Num() > 0)
 		{

@@ -143,3 +143,12 @@ struct FCollectionNameType
 	FName Name;
 	ECollectionShareType::Type Type;
 };
+
+class ICollectionRedirectorFollower
+{
+public:
+	virtual ~ICollectionRedirectorFollower() {}
+
+	/** Given an object path, will see if it needs to follow any redirectors, and if so, will populate OutNewObjectPath with the new name and return true */
+	virtual bool FixupObject(const FName& InObjectPath, FName& OutNewObjectPath) = 0;
+};

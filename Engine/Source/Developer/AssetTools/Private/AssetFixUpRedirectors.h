@@ -43,6 +43,9 @@ private:
 	/** Saves all the referencing packages and updates SCC state */
 	void SaveReferencingPackages(const TArray<UPackage*>& ReferencingPackagesToSave, TArray<UPackage*>& OutFailedToSave) const;
 
+	/** Saves any collections that were referencing any of the redirectors and updates SCC state */
+	void SaveReferencingCollections(TArray<FRedirectorRefs>& RedirectorsToFix) const;
+
 	/** Waits for the asset registry to update its asset referencer cache */
 	void UpdateAssetReferencers(const TArray<FRedirectorRefs>& RedirectorsToFix) const;
 
