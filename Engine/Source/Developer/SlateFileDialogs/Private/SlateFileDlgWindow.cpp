@@ -885,7 +885,7 @@ void SSlateFileOpenDlg::OnPathClicked(const FString & NewPath)
 
 	// set new current path and flag that we need to update directory display
 	CurrentPath = NewPath;
-	bRebuildDirPath = false;
+	bRebuildDirPath = true;
 	bNeedsBuilding = true;
 
 	RefreshCrumbs();
