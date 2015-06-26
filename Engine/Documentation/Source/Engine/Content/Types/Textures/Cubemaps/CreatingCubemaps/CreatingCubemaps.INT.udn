@@ -3,15 +3,13 @@ Title:Creating Cubemaps
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
 Description:The process for assembling cubemaps in Photoshop.
 
-## Overview
-
 %Description%
 
 ## Creating Cubemaps
 
 To create a cubemap, all you need is a series of six images that represent the view down the positive and negative directions of the X, Y, and Z coordinates. However, these images will need to be properly assembled and there are some things to consider to make that happen.
 
-When using the NVIDIA Texture Tools plug-in for Photoshop [**(32bits/Channel, 8.8.8.8 ARGB 32 bpp, unsigned)**](Engine/Content/Types/Textures\Cubemaps\CubemapTools), you will need to arrange your six images in a very particular fashion to generate a cubemap. The plug-in looks for all six images to be in the same document, side-by-side, and arranged like so:
+When using the NVIDIA Texture Tools plug-in for Photoshop [(32bits/Channel, 8.8.8.8 ARGB 32 bpp, unsigned)](Engine/Content/Types/Textures\Cubemaps\CubemapTools), you will need to arrange your six images in a very particular fashion to generate a cubemap. The plug-in looks for all six images to be in the same document, side-by-side, and arranged like so:
 
 **Positive X-Axis, Negative X-Axis, Positive Y-Axis, Negative Y-Axis, Positive Z-Axis, Negative Z-Axis**
 
