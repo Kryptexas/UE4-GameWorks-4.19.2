@@ -116,11 +116,11 @@ Groups of triangles with contiguous UVs are called UV charts.
 
 ![uvs_charts.jpg](uvs_charts.jpg)
 
-Padding between UV charts is necessary to prevent bleeding artifacts. Padding around the edges of the lightmap UV layout, however, is not necessary as Lightmass automatically pads around the edges by enough to prevent bleeding artifcats.  Note when you are setting up padding between UV charts that 4 texels are usually required to avoid all bleeding, as DXT compression operates on 4x4 texel blocks.
+Padding between UV charts is necessary to prevent bleeding artifacts. Padding around the edges of the lightmap UV layout, however, is not necessary as Lightmass automatically pads around the edges by enough to prevent bleeding artifacts.  Note when you are setting up padding between UV charts that 4 texels are usually required to avoid all bleeding, as DXT compression operates on 4x4 texel blocks.
 
 ![uvs_padding.jpg](uvs_padding.jpg)
 
-This means that for a lightmap resolution of 32, the padding between the UV charts should be 12.5% of the entire UV space. However, keep in mind that placing more padding between UV charts will result in more lightmap memory being wasted at higher lightmap resolutions.The more contiguous you can make the lightmap UVs for a mesh, the better off you will be. This will reduce the amount of padding necessary and allow for increased resolution. Prior to Lightmass being implemented or when relying mostly on vertex lighting, meshes may have been created by modeling elements seperately and merging them together. 
+This means that for a lightmap resolution of 32, the padding between the UV charts should be 12.5% of the entire UV space. However, keep in mind that placing more padding between UV charts will result in more lightmap memory being wasted at higher lightmap resolutions. The more contiguous you can make the lightmap UVs for a mesh, the better off you will be. This will reduce the amount of padding necessary and allow for increased resolution. Prior to Lightmass being implemented or when relying mostly on vertex lighting, meshes may have been created by modeling elements separately and merging them together. 
 
 ![old_mesh_seperate.jpg](old_mesh_seperate.jpg)(w:821 h:364)
 
