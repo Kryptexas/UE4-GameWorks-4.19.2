@@ -78,12 +78,12 @@ Currently, there are three types of extra joints you can add to your character. 
 
 	![](ART_JiggleJointInfo.png)
 
-* ![](ART_ChainIcon.png)  **Dynamic Joint Chain:** With the last of the extra joint options, you can create a joint chain with however many joints you would like. The joint chain will be rigged with an FK setup, a Spline IK setup, and a physics rig using hair follicles. When you add a dynamic joint chain, you will need to specify the base name(for instance, ponytail), the parent of the root joint of the chain, and how many joints are in the chain.
+* ![](ART_ChainIcon.png)  **Dynamic Joint Chain:** With the last of the extra joint options, you can create a joint chain with however many joints you would like. The joint chain will be rigged with an FK setup, a Spline IK setup, and a physics rig using hair follicles. When you add a dynamic joint chain, you will need to specify the base name (for instance, ponytail), the parent of the root joint of the chain, and how many joints are in the chain.
 
 	![](ART_DynChainJointInfo.png)
 
 
-Once you create one of these custom joints, it will appear in the **Added Modules** list at the bottom of the Skeleton Setup panel. To the right of **Added Modules** are the settings for the selected module. This allows you to change the initial settings you had entered, like the parent, or the number of joints for example.
+Once you create one of these custom joints, it will appear in the **Added Modules** list at the bottom of the Skeleton Setup panel. To the right of Added Modules are the settings for the selected module. This allows you to change the initial settings you had entered, like the parent, or the number of joints for example.
 
 ![](ART_CustomJointChains.png)
 
@@ -143,8 +143,8 @@ The Toolbar contains all of the necessary function for the setup of your charact
 |**Button**|**Name**|**Description**|
 |----------| -------|---------------|
 |![](ART_button_SaveLoadTemplate.png)|**Save/Load Templates**|Just like on the skeleton creation tools, you can save out a template for your joint positions and load them back onto other characters. This is really useful when you have a project where characters need to share a skeleton.|
-|![](ART_button_AimMode.png)|**Aim Mode**|Aim Mode will aim each parent mover at the child, allowing you to translate the movers and keep the parent pointing at the child at all times. Disabling aim mode will keep all of the joint placement that was affected.|
-|![](ART_button_SymmetryMode.png)|**Symmetry Mode**|This causes your movements to be mirrored across to the other side of the character. This can be turned on after you have placed your left side to mirror over your placements to the right side, or it can be turned on from the start for real-time symmetry during placement. You will notice when Symmetry Mode is on, many other modes become disabled. Disable Symmetry Mode to get access to the other tools again. Disabling symmetry will keep all of the joint placement that has been mirrored.|
+|![](ART_button_AimMode.png)|**Aim Mode**|Aim Mode will aim each parent mover at the child, allowing you to translate the movers and keep the parent pointing at the child at all times. Disabling aim mode will keep the entire joint placement that was affected.|
+|![](ART_button_SymmetryMode.png)|**Symmetry Mode**|This causes your movements to be mirrored across to the other side of the character. This can be turned on after you have placed your left side to mirror over your placements to the right side, or it can be turned on from the start for real-time symmetry during placement. You will notice when Symmetry Mode is on, many other modes become disabled. Disable Symmetry Mode to get access to the other tools again. Disabling symmetry will keep the entire joint placement that has been mirrored.|
 |![](ART_button_ResetToDefaults.png) |**Reset to Defaults**|This will reset the entire joint mover back to the original creation pose (how it came into the scene). **Ctrl + Left Mouse Button** will reset only your current selected controls, while **Alt + Left Mouse Button** will reset your selection and the hierarchy below.|
 |![](ART_button_GlobalMode.png)|**Global Mover Mode**|In this mode, the Joint Mover will move the selected joint and everything below it in the hierarchy.|
 |![](ART_button_OffsetMode.png)|**Offset Mover Mode**|In this mode, the Joint Mover will only move the selected joint and nothing else.|
@@ -238,7 +238,7 @@ Once you have selected **Create Rig Pose**, another dialog box will come up aski
 ![](ART_AutoRigPose.png)
 
 [REGION:note]
-You will still be able to edit the rig pose after this, it will just give you a good starting point. You can also hit "No" and define the rig pose the way you want it from scatch.
+You will still be able to edit the rig pose after this, it will just give you a good starting point. You can also hit "No" and define the rig pose the way you want it from scratch.
 [/REGION]
 
 When finished creating your pose, **left-click** the **Save Rig Pose** button, which will be floating in its own dialog.
@@ -389,10 +389,10 @@ To Remove a Range of Motion animation, which you should always do before Buildin
 
 |**Name**|**Description**|
 | -------|---------------|
-|**Assume Model Pose**| The skeleton will assume the **Model Pose**, which can be set by editing the rotation of the control objects in **Edit Placement** mode and using **Reset Model Pose**. |
-|**Assume Rig Pose**| The skeleton will assume the **Rig Pose**, which can be set by editing the rotation of the control objects in **Edit Placement** mode and using **Reset Rig Pose**. |
-|**Reset Model Pose**| Will set the **Model Pose** to the pose the control objects are currently in. Most useful in **Edit Placement** mode. |
-|**Reset Rig Pose**| Will set the **Rig Pose** to the pose the control objects are currently in. Once leaving **Edit Placement** mode the system will ask if you want to use the current pose as the rig pose and note best practices. Most useful in **Edit Placement** mode. |
+|**Assume Model Pose**| The skeleton will assume the Model Pose, which can be set by editing the rotation of the control objects in Edit Placement mode and using Reset Model Pose. |
+|**Assume Rig Pose**| The skeleton will assume the Rig Pose, which can be set by editing the rotation of the control objects in Edit Placement mode and using Reset Rig Pose. |
+|**Reset Model Pose**| Will set the Model Pose to the pose the control objects are currently in. Most useful in Edit Placement mode. |
+|**Reset Rig Pose**| Will set the Rig Pose to the pose the control objects are currently in. Once leaving Edit Placement mode the system will ask if you want to use the current pose as the rig pose and note best practices. Most useful in Edit Placement mode. |
 
 
 
@@ -484,7 +484,7 @@ This will bring up an interface for you to select a character to edit. The list 
 Once you select a character and **left-click Edit Export File**, it will open the Character's export file and bring up the UI used for the rigging pipeline. Once loaded, you can make any changes you wish using the ART Rigging Toolset interface. Just make sure to re-build the control rig again if you have made any changes beyond skin weighting, once you are finished editing by using the **Build Control Rig** button.
 
 [REGION:tip]
-Maya's referencing system is robust, you can make all the changes you want to and it will have a minimal impact on any work down the line (animation, skinning, etc...). This assumes no **major** changes are made to the naming and organization of the rig, otherwise changes will propagate up the reference chain.
+Maya's referencing system is robust, you can make all the changes you want to and it will have a minimal impact on any work down the line (animation, skinning, etc...). This assumes no major changes are made to the naming and organization of the rig, otherwise changes will propagate up the reference chain.
 
 An example of a major change would be if a character had a tail and you rebuilt the tail but with a new name, you would lose all animation and skinning data for those joints.
 
