@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2601100
 Availability:Public
 Title:ブレンドスペースを作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -29,7 +29,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **MyGame** ブループリントを開きます。 
 
-1.	**Default Pawn Class** （デフォルトのポーン クラス）でドロップダウン メニューをクリックし、**ASP_Character** を選択します。 
+1.	**Default Pawn Class** （デフォルトのポーン クラス）でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
 
 	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
 
@@ -85,7 +85,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 	これにより、_ブレンドスペース_ のアニメーション間での移行を滑らかにし、ポーズ間でのポッピングを防ぎます。 
 
-1.	**[Save]** （保存）をクリックして、_ブレンドスペース_ を閉じます。 **コンテンツ ブラウザ** で **ASP_HeroTPP_AnimBlueprint** を開きます。 
+1.	**[Save]** （保存）をクリックして、_ブレンドスペース_ を閉じます。 **コンテンツ ブラウザ** で **Ue4ASP_HeroTPP_AnimBlueprint** を開きます。 
 
 1.	 _Animation ブループリント_ 内で、**MyBlueprint** タブをクリックします。次に **AnimGraph** を展開し、 **Locomotion をダブルクリック** します。 
 
@@ -107,7 +107,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 1.	**[コンパイル]** と **[保存]** をクリックし、_Animation ブループリント_ を閉じます。 
 
-1.	**コンテンツ ブラウザ** で、 **ASP_Character** _ブループリント_ フォルダを開きます。 
+1.	**コンテンツ ブラウザ** で、 **Ue4ASP_Character** _ブループリント_ フォルダを開きます。 
 
 1.	_ブループリント_ が開いた状態で、**Crouching** セクションを見つけて、**InputAction Crouch** ノードを **C** Key イベントに置き換えます。 
 
