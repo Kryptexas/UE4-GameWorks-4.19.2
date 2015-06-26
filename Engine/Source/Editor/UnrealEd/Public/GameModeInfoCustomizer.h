@@ -169,6 +169,9 @@ public:
 		FString ClassName;
 		DefaultGameModeClassHandle->GetValueAsFormattedString(ClassName);
 
+		// Blueprints may have type information before the class name, so make sure and strip that off now
+		ConstructorHelpers::StripObjectClass(ClassName);
+
 		// Do we have a valid cached class pointer? (Note: We can't search for the class while a save is happening)
 		const UClass* GameModeClass = CachedGameModeClass.Get();
 		if ((!GameModeClass || GameModeClass->GetPathName() != ClassName) && !GIsSavingPackage)
