@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_LayeredBoneBlend.h"
 #include "AnimationRuntime.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_LayeredBoneBlend
@@ -89,6 +89,9 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 		TArray<FCompactPose> TargetBlendPoses;
 		TargetBlendPoses.SetNum(NumPoses);
 
+		TArray<FBlendedCurve> TargetBlendCurves;
+		TargetBlendCurves.SetNum(NumPoses);
+
 		for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
 		{
 			if (BlendWeights[ChildIndex] > ZERO_ANIMWEIGHT_THRESH)
@@ -97,14 +100,16 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 				BlendPoses[ChildIndex].Evaluate(CurrentPoseContext);
 
 				TargetBlendPoses[ChildIndex].MoveBonesFrom(CurrentPoseContext.Pose);
+				TargetBlendCurves[ChildIndex].MoveFrom(CurrentPoseContext.Curve);
 			}
 			else
 			{
 				TargetBlendPoses[ChildIndex].ResetToRefPose(BasePoseContext.Pose.GetBoneContainer());
+				TargetBlendCurves[ChildIndex].InitFrom(Output.Curve);
 			}
 		}
 
-		FAnimationRuntime::BlendPosesPerBoneFilter(BasePoseContext.Pose, TargetBlendPoses, Output.Pose, CurrentBoneBlendWeights, bMeshSpaceRotationBlend);
+		FAnimationRuntime::BlendPosesPerBoneFilter(BasePoseContext.Pose, TargetBlendPoses, BasePoseContext.Curve, TargetBlendCurves, Output.Pose, Output.Curve, CurrentBoneBlendWeights, bMeshSpaceRotationBlend, CurveBlendOption);
 	}
 }
 

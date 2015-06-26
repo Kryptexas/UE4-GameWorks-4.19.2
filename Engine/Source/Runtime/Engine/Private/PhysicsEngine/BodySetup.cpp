@@ -8,7 +8,7 @@
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "TargetPlatform.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"

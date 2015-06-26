@@ -416,7 +416,8 @@ void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 	TempLocalAtoms.AddUninitialized(OutSpaceBases.Num());
 	TArray<FActiveVertexAnim> TempVertexAnims;
 	FVector TempRootBoneTranslation;
-	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempLocalAtoms, TempVertexAnims, TempRootBoneTranslation);
+	FBlendedCurve TempCurve;
+	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempLocalAtoms, TempVertexAnims, TempRootBoneTranslation, TempCurve);
 }
 
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
@@ -489,9 +490,9 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 				FCSPose<FCompactPose> CSAdditiveBasePose;
 				{
 					FCompactPose AdditiveBasePose;
+					FBlendedCurve AdditiveCurve(PreviewInstance);
 					AdditiveBasePose.SetBoneContainer(&PreviewInstance->RequiredBones);
-
-					Sequence->GetAdditiveBasePose(AdditiveBasePose, FAnimExtractContext(PreviewInstance->CurrentTime));
+					Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->CurrentTime));
 					CSAdditiveBasePose.InitPose(AdditiveBasePose);
 				}
 

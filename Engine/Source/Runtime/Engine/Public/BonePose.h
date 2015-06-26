@@ -217,6 +217,16 @@ public:
 		BoneContainer = NULL;
 	}
 
+	// Copy bone transform from SrcPose to this
+	void CopyBonesFrom(FCompactPose& SrcPose)
+	{
+		if (this != &SrcPose)
+		{
+			Bones = SrcPose.Bones;
+			BoneContainer = SrcPose.BoneContainer;
+		}
+	}
+
 	// Sets this pose to its ref pose
 	void ResetToRefPose()
 	{

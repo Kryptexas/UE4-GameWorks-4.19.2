@@ -13,7 +13,7 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "PhysXASync.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -934,7 +934,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	CachedSpaceBases.Empty();
 }
 
-void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
+void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedCurve& OutCurve) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimBlendTime);
 
@@ -957,13 +957,14 @@ void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMe
 			
 			// Run the anim blueprint
 			InAnimInstance->EvaluateAnimation(EvaluationContext);
-
+			// Move the curves
+			OutCurve.MoveFrom(EvaluationContext.Curve);
+			
 			// can we avoid that copy?
 			if( EvaluationContext.Pose.GetNumBones() > 0 )
 			{
 				// Make sure rotations are normalized to account for accumulation of errors.
 				EvaluationContext.Pose.NormalizeRotations();
-
 				for (const FCompactPoseBoneIndex BoneIndex : EvaluationContext.Pose.ForEachBoneIndex())
 				{
 					FMeshPoseBoneIndex MeshPoseBoneIndex = EvaluationContext.Pose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
@@ -1015,7 +1016,7 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 	Super::UpdateSlaveComponent();
 }
 
-void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const
+void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedCurve& OutCurve) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_PerformAnimEvaluation);
 	// Can't do anything without a SkeletalMesh
@@ -1026,7 +1027,7 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	}
 
 	// evaluate pure animations, and fill up LocalAtoms
-	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation);
+	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation, OutCurve);
 	// Fill SpaceBases from LocalAtoms
 	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
 }
@@ -1034,6 +1035,21 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
 	TEXT("tick.HiPriSkinnedMeshes"),1,
 	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
+
+int32 GetCurveNumber(USkeleton* Skeleton)
+{
+	check (Skeleton);
+	// get all curve list
+	if(const FSmartNameMapping* Mapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
+	{
+		TArray<FSmartNameMapping::UID> UIDList;
+		Mapping->FillUidArray(UIDList);
+
+		return UIDList.Num();
+	}
+
+	return 0;
+}
 
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
@@ -1066,6 +1082,10 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
 									 || (GetNumSpaceBases() != CachedSpaceBases.Num()));
 
+
+	const bool bInvalidCachedCurve = bDoEvaluationRateOptimization && 
+									CachedCurve.Num() != GetCurveNumber(SkeletalMesh->Skeleton);
+
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
 	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread() && FApp::ShouldUseThreadingForPerformance();
@@ -1091,12 +1111,13 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	
 	AnimEvaluationContext.bDoInterpolation = bDoEvaluationRateOptimization && !bInvalidCachedBones && AnimUpdateRateParams->ShouldInterpolateSkippedFrames();
 	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoEvaluationRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
-
+	AnimEvaluationContext.bDuplicateToCacheCurve = bInvalidCachedCurve || (bDoEvaluationRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
 	if (!bDoEvaluationRateOptimization)
 	{
 		//If we aren't optimizing clear the cached local atoms
 		CachedLocalAtoms.Empty();
 		CachedSpaceBases.Empty();
+		CachedCurve.Empty();
 	}
 
 	if (bDoParallelEvaluation)
@@ -1137,17 +1158,18 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		{
 			if (AnimEvaluationContext.bDoInterpolation)
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, CachedSpaceBases, CachedLocalAtoms, ActiveVertexAnims, RootBoneTranslation);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, CachedSpaceBases, CachedLocalAtoms, ActiveVertexAnims, RootBoneTranslation, CachedCurve);
 			}
 			else
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, ActiveVertexAnims, RootBoneTranslation, AnimEvaluationContext.Curve);
 			}
 		}
 		else if (!AnimEvaluationContext.bDoInterpolation)
 		{
 			LocalAtoms = CachedLocalAtoms;
 			GetEditableSpaceBases() = CachedSpaceBases;
+			AnimEvaluationContext.Curve = CachedCurve;
 		}
 
 		PostAnimEvaluation(AnimEvaluationContext);
@@ -1162,11 +1184,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
-	if (AnimScriptInstance)
-	{
-		AnimScriptInstance->PostAnimEvaluation();
-	}
-
+	FBlendedCurve EvaluatedCurve = EvaluationContext.Curve;
 	AnimEvaluationContext.Clear();
 
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
@@ -1174,6 +1192,11 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	{
 		CachedSpaceBases = GetEditableSpaceBases();
 		CachedLocalAtoms = LocalAtoms;
+	}
+
+	if (EvaluationContext.bDuplicateToCacheCurve)
+	{
+		CachedCurve = EvaluatedCurve;
 	}
 
 	if (EvaluationContext.bDoInterpolation)
@@ -1189,6 +1212,9 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 			GetEditableSpaceBases() = GetSpaceBases();
 		}
 		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
+
+		// interpolate curve
+		EvaluatedCurve.Blend(EvaluatedCurve, CachedCurve, Alpha);
 	}
 
 	bNeedToFlipSpaceBaseBuffers = true;
@@ -1217,6 +1243,13 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 		// animation often change overlap. 
 		UpdateOverlaps();
+	}
+
+	if(AnimScriptInstance)
+	{
+		// curve update happens first
+		AnimScriptInstance->UpdateCurves(EvaluatedCurve);
+		AnimScriptInstance->PostAnimEvaluation();
 	}
 
 	MarkRenderDynamicDataDirty();

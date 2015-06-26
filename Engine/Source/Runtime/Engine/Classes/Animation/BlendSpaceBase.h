@@ -232,7 +232,7 @@ public:
 	 * When you use blend per bone, allows rotation to blend in mesh space. This only works if this does not contain additive animation samples
 	 * This is more performance intensive
 	 */
-	UPROPERTY(EditAnywhere, Category=SampleInterpolation)
+	UPROPERTY()
 	bool bRotationBlendInMeshSpace;
 
 	/** Number of dimensions for this blend space (1 or 2) **/
@@ -273,6 +273,11 @@ public:
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 #endif
 	// End of UAnimationAsset interface
+
+	/**
+	 * BlendSpace Get Animation Pose function
+	 */
+	void GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve);
 
 	/** Accessor for blend parameter **/
 	ENGINE_API const FBlendParameter& GetBlendParameter(int32 Index)

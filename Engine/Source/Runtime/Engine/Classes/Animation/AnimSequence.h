@@ -45,21 +45,6 @@ enum AnimationKeyFormat
 };
 
 /** 
- * Indicates whether an animation is additive, and what kind.
- */
-UENUM()
-enum EAdditiveAnimationType
-{
-	/** No additive. */
-	AAT_None  UMETA(DisplayName="No additive"),
-	/* Create Additive from LocalSpace Base. */
-	AAT_LocalSpaceBase UMETA(DisplayName="Local Space"),
-	/* Create Additive from MeshSpace Rotation Only, Translation still will be LocalSpace. */
-	AAT_RotationOffsetMeshSpace UMETA(DisplayName="Mesh Space"),
-	AAT_MAX,
-};
-
-/** 
  * For an additive animation, indicates what the animation is relative to.
  */
 UENUM()
@@ -583,19 +568,21 @@ public:
 	* Get Bone Transform of the Time given, relative to Parent for all RequiredBones
 	* This returns different transform based on additive or not. Or what kind of additive.
 	*
-	* @param	OutPose				Pose object to fill
+	* @param	OutPose				[out] Pose object to fill
+	* @param	OutCurve			[out] Curves to fill
 	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	*/
-	void GetAnimationPose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
+	virtual void GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const override;
 
 	/**
 	* Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones
 	*
 	* @param	OutPose				[out] Array of output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
 	* @param	RequiredBones		Array of Desired Tracks
 	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	*/
-	ENGINE_API void GetBonePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
+	ENGINE_API void GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 private:
 	/** 
@@ -623,17 +610,19 @@ public:
 	* Get Bone Transform of the additive animation for the Time given, relative to Parent for all RequiredBones
 	*
 	* @param	OutPose				[out] Output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
 	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	*/
-	ENGINE_API void GetBonePose_Additive(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
+	ENGINE_API void GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 	/**
 	* Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones
 	*
-	* @param	OutPose			[out] Output bone transforms
+	* @param	OutPose				[out] Output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
 	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	*/
-	ENGINE_API void GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
+	ENGINE_API void GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 	/**
 	 * Get Bone Transform of the Time given, relative to Parent for the Track Given
@@ -808,9 +797,10 @@ private:
 	* This return mesh rotation only additive pose
 	*
 	* @param	OutPose				[out] Output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
 	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	*/
-	void GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
+	void GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 #if WITH_EDITOR
 	/**

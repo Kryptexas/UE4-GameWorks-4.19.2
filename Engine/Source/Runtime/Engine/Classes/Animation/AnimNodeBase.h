@@ -106,23 +106,29 @@ public:
 struct FPoseContext : public FAnimationBaseContext
 {
 public:
-	FCompactPose Pose;
+	FCompactPose	Pose;
+	FBlendedCurve	Curve;
 
 public:
 	// This constructor allocates a new uninitialized pose for the specified anim instance
 	FPoseContext(UAnimInstance* InAnimInstance)
 		: FAnimationBaseContext(InAnimInstance)
 	{
-		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-		Pose.SetBoneContainer(&AnimInstance->RequiredBones);
+		Initialize(InAnimInstance);
 	}
 
 	// This constructor allocates a new uninitialized pose, copying non-pose state from the source context
 	FPoseContext(const FPoseContext& SourceContext)
 		: FAnimationBaseContext(SourceContext.AnimInstance)
 	{
-		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
+		Initialize(SourceContext.AnimInstance);
+	}
+
+	void Initialize(UAnimInstance* InAnimInstance)
+	{
+		checkSlow(AnimInstance && AnimInstance->RequiredBones.IsValid());
 		Pose.SetBoneContainer(&AnimInstance->RequiredBones);
+		Curve.InitFrom(AnimInstance->CurrentSkeleton);
 	}
 
 	void ResetToRefPose()
@@ -144,6 +150,18 @@ public:
 	{
 		return Pose.IsNormalized();
 	}
+
+	FPoseContext& operator=(const FPoseContext& Other)
+	{
+		if (AnimInstance != Other.AnimInstance)
+		{
+			Initialize(AnimInstance);
+		}
+
+		Pose = Other.Pose;
+		Curve = Other.Curve;
+		return *this;
+	}
 };
 
 
@@ -151,7 +169,8 @@ public:
 struct FComponentSpacePoseContext : public FAnimationBaseContext
 {
 public:
-	FCSPose<FCompactPose> Pose;
+	FCSPose<FCompactPose>	Pose;
+	FBlendedCurve			Curve;
 
 public:
 	// This constructor allocates a new uninitialized pose for the specified anim instance
@@ -172,6 +191,7 @@ public:
 	{
 		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
 		Pose.InitPose(&AnimInstance->RequiredBones);
+		Curve.InitFrom(AnimInstance->CurrentSkeleton);
 	}
 
 	bool ContainsNaN() const;

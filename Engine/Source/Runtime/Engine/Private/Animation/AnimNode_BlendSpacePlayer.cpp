@@ -74,7 +74,7 @@ void FAnimNode_BlendSpacePlayer::Evaluate(FPoseContext& Output)
 {
 	if ((BlendSpace != NULL) && (Output.AnimInstance->CurrentSkeleton->IsCompatible(BlendSpace->GetSkeleton())))
 	{
-		Output.AnimInstance->BlendSpaceEvaluatePose(BlendSpace, BlendSampleDataCache, Output.Pose);
+		BlendSpace->GetAnimationPose(BlendSampleDataCache, Output.Pose, Output.Curve);
 	}
 	else
 	{

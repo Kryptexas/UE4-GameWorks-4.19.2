@@ -19,10 +19,16 @@ public:
 	UPROPERTY()
 	struct FAnimTrack AnimationTrack;
 
+#if WITH_EDITORONLY_DATA
+	/** Preview Base pose for additive BlendSpace **/
+	UPROPERTY(EditAnywhere, Category=AdditiveSettings)
+	UAnimSequence* PreviewBasePose;
+#endif // WITH_EDITORONLY_DATA
+
 	// Begin UAnimSequenceBase interface
 	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
+	virtual void GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const override;	
 	// End UAnimSequenceBase interface
-
 	// Begin UAnimSequence interface
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;

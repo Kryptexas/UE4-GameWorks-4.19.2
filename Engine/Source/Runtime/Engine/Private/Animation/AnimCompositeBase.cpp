@@ -484,6 +484,66 @@ void FAnimTrack::SortAnimSegments()
 }
 #endif
 
+void FAnimTrack::GetAnimationPose(/*out*/ FCompactPose& OutPose,/*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
+{
+	TArray<FCompactPose> SourcePoses;
+	TArray<float> SourceWeights;
+	TArray<FBlendedCurve> SourceCurves;
+	float TotalWeight = 0.f;
+
+	float CurrentTime = FMath::Clamp(ExtractionContext.CurrentTime, 0.f, GetLength());
+
+	// first get all the montage instance weight this slot node has
+	for(int32 I = 0; I<AnimSegments.Num(); ++I)
+	{
+		const FAnimSegment& AnimSegment = AnimSegments[I];
+
+		float PositionInAnim = 0.f;
+		float Weight = 0.f;
+		UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(CurrentTime, PositionInAnim, Weight);
+
+		// make this to be 1 function
+		if(AnimRef && (Weight > ZERO_ANIMWEIGHT_THRESH))
+		{
+			// todo anim: hack - until we fix animcomposite
+			const int32 NewIndex = SourceWeights.AddUninitialized(1);
+			SourcePoses.Add(FCompactPose());
+			SourceCurves.Add(FBlendedCurve());
+			SourcePoses[NewIndex].SetBoneContainer(&OutPose.GetBoneContainer());
+			SourceCurves[NewIndex].InitFrom(OutCurve);
+			SourceWeights[NewIndex] = Weight;
+			TotalWeight += Weight;
+
+			// Copy passed in Extraction Context, but override position and looping parameters.
+			FAnimExtractContext SequenceExtractionContext(ExtractionContext);
+			SequenceExtractionContext.CurrentTime = PositionInAnim;
+			SequenceExtractionContext.bExtractRootMotion &= AnimRef->HasRootMotion();
+				
+			AnimRef->GetAnimationPose(SourcePoses[NewIndex], SourceCurves[NewIndex], SequenceExtractionContext);
+		}
+	}
+
+	if(SourcePoses.Num() == 0)
+	{
+		OutPose.ResetToRefPose();
+	}
+	else if(SourcePoses.Num() == 1)
+	{
+		OutPose = SourcePoses[0];
+		OutCurve = SourceCurves[0];
+	}
+	else
+	{
+		// If we have SourcePoses.Num() > 0, then we will have a non zero weight.
+		check(TotalWeight >= ZERO_ANIMWEIGHT_THRESH);
+		for(int32 I = 0; I < SourceWeights.Num(); ++I)
+		{
+			// normalize I
+			SourceWeights[I] /= TotalWeight;
+		}
+		FAnimationRuntime::BlendPosesTogether(SourcePoses, SourceCurves, SourceWeights, OutPose, OutCurve);
+	}
+}
 ///////////////////////////////////////////////////////
 // UAnimCompositeBase
 ///////////////////////////////////////////////////////

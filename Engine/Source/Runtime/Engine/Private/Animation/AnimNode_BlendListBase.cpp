@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_BlendListBase.h"
 #include "AnimationRuntime.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_BlendListBase
@@ -122,6 +122,9 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 		TArray<FCompactPose> FilteredPoses;
 		FilteredPoses.SetNum(NumPoses);
 
+		TArray<FBlendedCurve> FilteredCurve;
+		FilteredCurve.SetNum(NumPoses);
+
 		TArray<float> FilteredWeights;
 		FilteredWeights.AddUninitialized(NumPoses);
 
@@ -137,10 +140,11 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 			CurrentPose.Evaluate(EvaluateContext);
 
 			FilteredPoses[i].MoveBonesFrom(EvaluateContext.Pose);
+			FilteredCurve[i] = EvaluateContext.Curve;
 			FilteredWeights[i] = BlendWeight;
 		}
 
-		FAnimationRuntime::BlendPosesTogether(FilteredPoses, FilteredWeights, Output.Pose);
+		FAnimationRuntime::BlendPosesTogether(FilteredPoses, FilteredCurve, FilteredWeights, Output.Pose, Output.Curve);
 	}
 	else
 	{

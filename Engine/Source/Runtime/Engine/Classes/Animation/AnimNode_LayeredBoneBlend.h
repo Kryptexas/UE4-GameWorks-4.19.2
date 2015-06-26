@@ -4,6 +4,7 @@
 
 #include "AnimNodeBase.h"
 #include "Animation/AnimData/BoneMaskFilter.h"
+#include "Animation/AnimTypes.h"
 #include "AnimNode_LayeredBoneBlend.generated.h"
 
 
@@ -29,7 +30,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Config)
 	bool bMeshSpaceRotationBlend;
-
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Config)
+	TEnumAsByte<enum ECurveBlendOption::Type>	CurveBlendOption;
 
 protected:
 	TArray<FPerBoneBlendWeight> DesiredBoneBlendWeights;

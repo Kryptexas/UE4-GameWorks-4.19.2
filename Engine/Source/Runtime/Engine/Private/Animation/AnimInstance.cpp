@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "Animation/AnimNode_StateMachine.h"
 #include "GameFramework/Character.h"
 #include "ParticleDefinitions.h"
@@ -39,7 +39,6 @@ DEFINE_STAT(STAT_GetAnimationPose);
 DEFINE_STAT(STAT_AnimNativeEvaluatePoses);
 DEFINE_STAT(STAT_AnimTriggerAnimNotifies);
 DEFINE_STAT(STAT_AnimNativeBlendPoses);
-DEFINE_STAT(STAT_AnimNativeCopyPoses);
 DEFINE_STAT(STAT_AnimGraphEvaluate);
 DEFINE_STAT(STAT_AnimBlendTime);
 DEFINE_STAT(STAT_RefreshBoneTransforms);
@@ -138,64 +137,6 @@ FAnimTickRecord& UAnimInstance::CreateUninitializedTickRecord(int32 GroupIndex, 
 	// Create the record
 	FAnimTickRecord* TickRecord = new ((OutSyncGroupPtr != NULL) ? OutSyncGroupPtr->ActivePlayers : UngroupedActivePlayers) FAnimTickRecord();
 	return *TickRecord;
-}
-
-void UAnimInstance::SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FCompactPose& Pose, const FAnimExtractContext& ExtractionContext)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
-	checkSlow(RequiredBones.IsValid());
-
-	USkeletalMeshComponent* Component = GetSkelMeshComponent();
-
-	FAnimExtractContext NewExtractContext(ExtractionContext);
-	NewExtractContext.bExtractRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion;
-
-	if (const UAnimSequence* AnimSequence = Cast<const UAnimSequence>(Sequence))
-	{
-		FAnimationRuntime::GetPoseFromSequence(
-			AnimSequence,
-			/*out*/ Pose,
-			NewExtractContext);
-	}
-	else if (const UAnimComposite* Composite = Cast<const UAnimComposite>(Sequence))
-	{
-		FAnimationRuntime::GetPoseFromAnimTrack(
-			Composite->AnimationTrack,
-			/*out*/ Pose,
-			NewExtractContext);
-	}
-	else
-	{
-#if 0
-		UE_LOG(LogAnimation, Log, TEXT("FAnimationRuntime::GetPoseFromSequence - %s - No animation data!"), *GetFName());
-#endif
-		Pose.ResetToRefPose();
-	}
-}
-
-void UAnimInstance::BlendSequences(const FCompactPose& Pose1, const FCompactPose& Pose2, float Alpha, FCompactPose& Result)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
-
-	Alpha = FMath::Clamp<float>(Alpha, 0.0f, 1.0f);
-
-	if (Result.GetNumBones() < Pose1.GetNumBones())
-	{
-		ensureMsg(false, TEXT("Source Pose has more bones than Target Pose"));
-		//@hack
-		Result.SetBoneContainer(&Pose1.GetBoneContainer());
-	}
-
-	FAnimationRuntime::BlendTwoPosesTogether(Pose1, Pose2, (1.0f - Alpha), Result);
-}
-
-void UAnimInstance::CopyPose(const FCompactPose& Source, FCompactPose& Destination)
-{
-	if (&Destination != &Source)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_AnimNativeCopyPoses);
-		Destination = Source;
-	}
 }
 
 AActor* UAnimInstance::GetOwningActor() const
@@ -392,21 +333,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 #endif
 
 	AnimNotifies.Empty();
-	MorphTargetCurves.Empty();
 
 	ClearSlotNodeWeights();
-
-	//Track material params we set last time round so we can clear them if they aren't set again.
-	MaterialParamatersToClear.Empty();
-	for( auto Iter = MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter )
-	{
-		if(Iter.Value() > 0.0f)
-		{
-			MaterialParamatersToClear.Add(Iter.Key());
-		}
-	}
-	MaterialParameterCurves.Empty();
-	VertexAnims.Empty();
 
 	// Reset the player tick list (but keep it presized)
 	UngroupedActivePlayers.Empty(UngroupedActivePlayers.Num());
@@ -434,10 +362,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
 		RootNode->Update(UpdateContext);
 	}
-
-	// curve values can be used during update state, so we need to clear the array before ticking each elements
-	// where we collect new items
-	EventCurves.Empty();
 
 	// Handle all players inside sync groups
 	for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
@@ -507,15 +431,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
 	TriggerQueuedMontageEvents();
 
-	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
-	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
-	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
-	for (int i = 0; i < ParamsToClearCopy.Num(); ++i)
-	{
-		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
-	}
-
-
 #if WITH_EDITOR && 0
 	{
 		// Take a snapshot if the scrub control is locked to the end, we are playing, and we are the one being debugged
@@ -538,6 +453,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
+
 	// If bone caches have been invalidated, have AnimNodes refresh those.
 	if( bBoneCachesInvalidated && RootNode )
 	{
@@ -1046,16 +963,6 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
-void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FCompactPose& OutPose)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
-
-	FAnimationRuntime::GetPoseFromBlendSpace(
-		BlendSpace,
-		BlendSampleDataCache, 
-		/*out*/ OutPose);
-}
-
 void UAnimInstance::RecalcRequiredBones()
 {
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();
@@ -1216,6 +1123,37 @@ void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value
 		NameMapping->GetName(Uid, CurrentCurveName);
 	}
 	AddCurveValue(CurrentCurveName, Value, CurveTypeFlags);
+}
+
+void UAnimInstance::UpdateCurves(const FBlendedCurve& InCurve)
+{
+	//Track material params we set last time round so we can clear them if they aren't set again.
+	MaterialParamatersToClear.Empty();
+	for(auto Iter = MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter)
+	{
+		if(Iter.Value() > 0.0f)
+		{
+			MaterialParamatersToClear.Add(Iter.Key());
+		}
+	}
+
+	EventCurves.Empty();
+	MorphTargetCurves.Empty();
+	MaterialParameterCurves.Empty();
+
+	for(int32 CurveId=0; CurveId<InCurve.UIDList.Num(); ++CurveId)
+	{
+		// had to add to anotehr data type
+		AddCurveValue(InCurve.UIDList[CurveId], InCurve.Elements[CurveId].Value, InCurve.Elements[CurveId].Flags);
+	}
+
+	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
+	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
+	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
+	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
+	{
+		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
+	}
 }
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
@@ -1386,16 +1324,15 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 	out_SourceWeight = 1.f - NonAdditiveTotalWeight;
 }
 
-void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, FCompactPose& BlendedPose, float SlotNodeWeight)
+void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float SlotNodeWeight)
 {
 	//Accessing MontageInstances from this function is not safe (as this can be called during Parallel Anim Evaluation!
 	//Any montage data you need to add should be part of MontageEvaluationData
 
-	//MDW TODO
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
 	if (SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		BlendedPose = SourcePose;
+		BlendedCurve = SourceCurve;
 		return;
 	}
 
@@ -1421,10 +1358,17 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 			
 			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
 			NewPose.Pose.SetBoneContainer(&RequiredBones);
+			NewPose.Curve.InitFrom(this);
 
 			// Extract pose from Track
 			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
-			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, NewPose.Pose, ExtractionContext);
+			AnimTrack->GetAnimationPose(NewPose.Pose, NewPose.Curve, ExtractionContext);
+
+			// add montage curves 
+			FBlendedCurve MontageCurve;
+			MontageCurve.InitFrom(this);
+			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
+			NewPose.Curve.Combine(MontageCurve);
 
 			TotalWeight += EvalState.MontageWeight;
 			if (AdditiveAnimType == AAT_None)
@@ -1436,6 +1380,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 			{
 				AdditivePoses.Add(NewPose);
 			}
+		
 		}
 	}
 
@@ -1443,6 +1388,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 	if (TotalWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		BlendedPose = SourcePose;
+		BlendedCurve = SourceCurve;
 		return;
 	}
 	// Make sure weights don't exceed 1.f, otherwise re-normalize.
@@ -1472,6 +1418,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 		if (NonAdditivePoses.Num() == 0)
 		{
 			BlendedPose = SourcePose;
+			BlendedCurve = SourceCurve;
 		}
 		// Otherwise we need to blend non additive poses together
 		else
@@ -1486,9 +1433,14 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 
 			TArray<float> BlendWeights;
 			BlendWeights.AddUninitialized(NumPoses);
+
+			TArray<const FBlendedCurve*> BlendingCurves;
+			BlendingCurves.AddUninitialized(NumPoses);
+
 			for (int32 Index = 0; Index < NonAdditivePoses.Num(); Index++)
 			{
 				BlendingPoses[Index] = &NonAdditivePoses[Index].Pose;
+				BlendingCurves[Index] = &NonAdditivePoses[Index].Curve;
 				BlendWeights[Index] = NonAdditivePoses[Index].Weight;
 			}
 
@@ -1496,11 +1448,12 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 			{
 				int32 const SourceIndex = BlendWeights.Num() - 1;
 				BlendingPoses[SourceIndex] = &SourcePose;
+				BlendingCurves[SourceIndex] = &SourceCurve;
 				BlendWeights[SourceIndex] = SourceWeight;
 			}
 
 			// now time to blend all montages
-			FAnimationRuntime::BlendPosesTogether(BlendingPoses, BlendWeights, BlendedPose);
+			FAnimationRuntime::BlendPosesTogether(BlendingPoses, BlendingCurves, BlendWeights, BlendedPose, BlendedCurve);
 		}
 	}
 
@@ -1510,19 +1463,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
 		{
 			FSlotEvaluationPose const & AdditivePose = AdditivePoses[Index];
-			// if additive, we should blend with source to make it full body
-			if (AdditivePose.AdditiveType == AAT_LocalSpaceBase)
-			{
-				FAnimationRuntime::AccumulateAdditivePose(BlendedPose, AdditivePose.Pose, AdditivePose.Weight);
-			}
-			else if (AdditivePose.AdditiveType == AAT_RotationOffsetMeshSpace)
-			{
-				FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(BlendedPose, AdditivePose.Pose, AdditivePose.Weight);
-			}
-			else
-			{
-				check(false);
-			}
+			FAnimationRuntime::AccumulateAdditivePose(BlendedPose, AdditivePose.Pose, BlendedCurve, AdditivePose.Curve, AdditivePose.Weight, AdditivePose.AdditiveType);
 		}
 	}
 

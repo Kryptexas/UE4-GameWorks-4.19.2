@@ -107,7 +107,7 @@ FVector2D UBlendSpace::CalculateThreshold() const
 
 bool UBlendSpace::IsValidAdditive()  const
 {
-	return IsValidAdditiveInternal(AAT_LocalSpaceBase);
+	return IsValidAdditiveInternal(AAT_LocalSpaceBase) || IsValidAdditiveInternal(AAT_RotationOffsetMeshSpace);
 }
 
 void UBlendSpace::SnapToBorder(FBlendSample& Sample) const

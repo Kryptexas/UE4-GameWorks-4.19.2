@@ -535,10 +535,6 @@ private:
 
 
 public:
-	// UAnimSequenceBase Interface
-	virtual void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight) const override;
-	// End of UAnimSequenceBase Interface
-
 #if WITH_EDITOR
 	/**
 	 * Add Composite section with InSectionName

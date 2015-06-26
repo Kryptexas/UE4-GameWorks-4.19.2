@@ -10,7 +10,7 @@
 #include "SkeletalRenderCPUSkin.h"
 #include "SkeletalRenderGPUSkin.h"
 #include "AnimationUtils.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "Animation/VertexAnim/MorphTarget.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"

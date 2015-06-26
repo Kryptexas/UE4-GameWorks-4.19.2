@@ -23,7 +23,7 @@ void FAnimNode_SequenceEvaluator::Evaluate(FPoseContext& Output)
 {
 	if ((Sequence != NULL) && (Output.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		Output.AnimInstance->SequenceEvaluatePose(Sequence, Output.Pose, FAnimExtractContext(ExplicitTime));
+		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(ExplicitTime, Output.AnimInstance->ShouldExtractRootMotion()));
 	}
 	else
 	{

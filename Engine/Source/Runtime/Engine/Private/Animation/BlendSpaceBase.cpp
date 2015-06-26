@@ -275,8 +275,6 @@ void UBlendSpaceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, c
 								Context.RootMotionMovementParams.AccumulateWithBlend(Sample.Animation->ExtractRootMotion(PrevSampleDataTime, DeltaTimePosition, Instance.bLooping), SampleEntry.GetWeight());
 							}
 
-							// handle curves
-							Sample.Animation->EvaluateCurveData(InstanceOwner, CurrentSampleDataTime, Instance.EffectiveBlendWeight * SampleEntry.GetWeight());
 
 							UE_LOG(LogAnimation, Verbose, TEXT("%d. Blending animation(%s) with %f weight at time %0.2f"), I+1, *Sample.Animation->GetName(), SampleEntry.GetWeight(), CurrentSampleDataTime);
 						}
@@ -613,9 +611,17 @@ bool UBlendSpaceBase::ValidateSampleInput(FBlendSample & BlendSample, int32 Orig
 	// make sure we get same kinds of samples(additive or nonadditive)
 	if (SampleData.Num() > 0 && BlendSample.Animation)
 	{
-		if (IsValidAdditive() != (BlendSample.Animation->IsValidAdditive()))
+		bool bIsAdditive = IsValidAdditive();
+		if (bIsAdditive != (BlendSample.Animation->IsValidAdditive()))
 		{
 			UE_LOG(LogAnimation, Log, TEXT("Adding sample failed. Please add same kinds of sequence (additive/non-additive)."));
+			return false;
+		}
+
+		// make sure it's same additive if it is additive
+		if (bIsAdditive && !IsValidAdditiveInternal(BlendSample.Animation->AdditiveAnimType))
+		{
+			UE_LOG(LogAnimation, Log, TEXT("Adding sample failed. Please add same kinds of additive sequence (loca/mesh)."));
 			return false;
 		}
 	}
@@ -657,6 +663,9 @@ void UBlendSpaceBase::ValidateSampleData()
 			bSampleDataChanged = true;
 			continue;
 		}
+
+		// set rotation blend in mesh space
+		bRotationBlendInMeshSpace = IsValidAdditiveInternal(AAT_RotationOffsetMeshSpace);
 
 		// we need data to be snapped on the border
 		// otherwise, you have this grid area that doesn't have valid 
@@ -923,6 +932,86 @@ void UBlendSpaceBase::FillupGridElements(const TArray<FVector> & PointList, cons
 
 		GridSamples[I] = NewGrid;
 	}
+}
+
+void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve)
+{
+	if(BlendSampleDataCache.Num() == 0)
+	{
+		OutPose.ResetToRefPose();
+		return;
+	}
+
+	const int32 NumPoses = BlendSampleDataCache.Num();
+
+	TArray<FCompactPose> ChildrenPoses;
+	ChildrenPoses.AddZeroed(NumPoses);
+
+	TArray<FBlendedCurve> ChildrenCurves;
+	ChildrenCurves.AddZeroed(NumPoses);
+
+	TArray<float>	ChildrenWeights;
+	ChildrenWeights.AddZeroed(NumPoses);
+
+	for(int32 ChildrenIdx=0; ChildrenIdx<ChildrenPoses.Num(); ++ChildrenIdx)
+	{
+		ChildrenPoses[ChildrenIdx].SetBoneContainer(&OutPose.GetBoneContainer());
+		ChildrenCurves[ChildrenIdx].InitFrom(OutCurve);
+	}
+
+	// get all child atoms we interested in
+	for(int32 I = 0; I < BlendSampleDataCache.Num(); ++I)
+	{
+		FCompactPose& Pose = ChildrenPoses[I];
+
+		if(SampleData.IsValidIndex(BlendSampleDataCache[I].SampleDataIndex))
+		{
+			const FBlendSample& Sample = SampleData[BlendSampleDataCache[I].SampleDataIndex];
+			ChildrenWeights[I] = BlendSampleDataCache[I].GetWeight();
+
+			if(Sample.Animation)
+			{
+				const float Time = FMath::Clamp<float>(BlendSampleDataCache[I].Time, 0.f, Sample.Animation->SequenceLength);
+
+				// first one always fills up the source one
+				Sample.Animation->GetAnimationPose(Pose, ChildrenCurves[I], FAnimExtractContext(Time, true));
+			}
+			else
+			{
+				Pose.ResetToRefPose();
+			}
+		}
+		else
+		{
+			Pose.ResetToRefPose();
+		}
+	}
+
+	if(PerBoneBlend.Num() > 0)
+	{
+		if(IsValidAdditive())
+		{
+			if(bRotationBlendInMeshSpace)
+			{
+				FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+			}
+			else
+			{
+				FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+			}
+		}
+		else
+		{
+			FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+		}
+	}
+	else
+	{
+		FAnimationRuntime::BlendPosesTogether(ChildrenPoses, ChildrenCurves, ChildrenWeights, OutPose, OutCurve);
+	}
+
+	// Once all the accumulation and blending has been done, normalize rotations.
+	OutPose.NormalizeRotations();
 }
 
 #if WITH_EDITOR

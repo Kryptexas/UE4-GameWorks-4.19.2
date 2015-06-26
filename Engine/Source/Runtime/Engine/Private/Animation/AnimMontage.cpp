@@ -806,38 +806,6 @@ bool UAnimMontage::HasValidSlotSetup() const
 	return true;
 }
 
-void UAnimMontage::EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const
-{
-	Super::EvaluateCurveData(Instance, CurrentTime, BlendWeight);
-
-	// I also need to evaluate curve of the animation
-	// for now we only get the first slot
-	// in the future, we'll need to do based on highest weight?
-	// first get all the montage instance weight this slot node has
-	if ( SlotAnimTracks.Num() > 0 )
-	{
-		const FAnimTrack& Track = SlotAnimTracks[0].AnimTrack;
-		for (int32 I=0; I<Track.AnimSegments.Num(); ++I)
-		{
-			const FAnimSegment& AnimSegment = Track.AnimSegments[I];
-
-			float PositionInAnim = 0.f;
-			float Weight = 0.f;
-			UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(CurrentTime, PositionInAnim, Weight);
-			// make this to be 1 function
-			if ( AnimRef && Weight > ZERO_ANIMWEIGHT_THRESH )
-			{
-				// todo anim: hack - until we fix animcomposite
-				UAnimSequence * Sequence = Cast<UAnimSequence>(AnimRef);
-				if ( Sequence )
-				{
-					Sequence->EvaluateCurveData(Instance, PositionInAnim, BlendWeight*Weight);
-				}
-			}
-		}	
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////
 // MontageInstance
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -1459,12 +1427,6 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 		// nothing else to do
 		Terminate();
 		return;
-	}
-
-	// Update curves based on final position.
-	if( (Weight > ZERO_ANIMWEIGHT_THRESH) && IsValid() )
-	{
-		Montage->EvaluateCurveData(AnimInstance.Get(), Position, Weight);
 	}
 
 	if (!bInterrupted)

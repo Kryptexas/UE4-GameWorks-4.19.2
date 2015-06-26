@@ -5,7 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "SkeletalRenderPublic.h"
 #include "Components/LineBatchComponent.h"
 #if WITH_PHYSX

@@ -6,7 +6,7 @@
 #include "Animation/AnimNode_TransitionPoseEvaluator.h"
 #include "Animation/AnimNode_SequencePlayer.h"
 #include "AnimationRuntime.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationActiveTransitionEntry
@@ -626,7 +626,7 @@ void FAnimNode_StateMachine::EvaluateTransitionStandardBlend(FPoseContext& Outpu
 
 	if (bIntermediatePoseIsValid)
 	{
-		Output.AnimInstance->CopyPose(Output.Pose, PreviouseStateResult.Pose);
+		PreviouseStateResult = Output;
 	}
 	else
 	{
@@ -644,6 +644,10 @@ void FAnimNode_StateMachine::EvaluateTransitionStandardBlend(FPoseContext& Outpu
 		Output.Pose[BoneIndex] = PreviouseStateResult.Pose[BoneIndex] * VPreviousWeight;
 		Output.Pose[BoneIndex].AccumulateWithShortestRotation(NextStateResult.Pose[BoneIndex], VWeight);
 	}
+
+	// blend curve in
+	Output.Curve.Override(PreviouseStateResult.Curve, 1.0-Transition.Alpha);
+	Output.Curve.Accumulate(NextStateResult.Curve, Transition.Alpha);
 }
 
 void FAnimNode_StateMachine::EvaluateTransitionCustomBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid)
@@ -668,12 +672,12 @@ void FAnimNode_StateMachine::EvaluateTransitionCustomBlend(FPoseContext& Output,
 					EvaluateState(EffectiveStateIndex, PoseEvalResult);
 
 					// push transform to node.
-					Evaluator->CachePose(Output, PoseEvalResult.Pose);
+					Evaluator->CachePose(PoseEvalResult);
 				}
 				else
 				{
 					// push transform to node.
-					Evaluator->CachePose(Output, Output.Pose);
+					Evaluator->CachePose(Output);
 				}
 			}
 		}
@@ -870,7 +874,7 @@ void FAnimNode_StateMachine::UpdateState(int32 StateIndex, const FAnimationUpdat
 
 void FAnimNode_StateMachine::EvaluateState(int32 StateIndex, FPoseContext& Output)
 {
-	Output.Pose.SetBoneContainer(&Output.AnimInstance->RequiredBones);
+	Output.Initialize(Output.AnimInstance);
 
 	if (!IsAConduitState(StateIndex))
 	{

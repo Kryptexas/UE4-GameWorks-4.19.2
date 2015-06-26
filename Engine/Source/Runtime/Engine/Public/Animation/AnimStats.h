@@ -1,14 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	AnimTree.h:	Animation tree element definitions and helper structs.
+	AnimStats.h:	Animation stats
 =============================================================================*/
 
 #pragma once
 
-/**
-* Engine stats
-*/
 /** Skeletal stats */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("SkinnedMeshComp Tick"), STAT_SkinnedMeshCompTick, STATGROUP_Anim, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("TickUpdateRate"), STAT_TickUpdateRate, STATGROUP_Anim, );

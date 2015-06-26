@@ -851,24 +851,31 @@ FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, f
 	return EndTransform.GetRelativeTransform(StartTransform);
 }
 
-void UAnimSequence::GetAnimationPose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_GetAnimationPose);
+
 	// @todo anim: if compressed and baked in the future, we don't have to do this 
 	if (IsValidAdditive())
 	{
 		if (AdditiveAnimType == AAT_LocalSpaceBase)
 		{
-			GetBonePose_Additive(OutPose, ExtractionContext);
+			GetBonePose_Additive(OutPose, OutCurve, ExtractionContext);
 		}
 		else if (AdditiveAnimType == AAT_RotationOffsetMeshSpace)
 		{
-			GetBonePose_AdditiveMeshRotationOnly(OutPose, ExtractionContext);
+			GetBonePose_AdditiveMeshRotationOnly(OutPose, OutCurve, ExtractionContext);
 		}
 	}
 	else
 	{
-		GetBonePose(OutPose, ExtractionContext);
+		GetBonePose(OutPose, OutCurve, ExtractionContext);
 	}
+
+	// Check that all bone atoms coming from animation are normalized
+#if DO_CHECK && WITH_EDITORONLY_DATA
+	check(OutPose.IsNormalized());
+#endif
 }
 
 void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer& RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const
@@ -882,7 +889,7 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 	}
 }
 
-void UAnimSequence::GetBonePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE);
 
@@ -917,6 +924,9 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, const FAnimExtractContext
 		// initialize with ref-pose
 		OutPose.ResetToRefPose();
 	}
+
+	// extract curve data . Even if no track, it can contain curve data
+	EvaluateCurveData(OutCurve, ExtractionContext.CurrentTime);
 
 	int32 const NumTracks = GetNumberOfTracks();
 	if (NumTracks == 0)
@@ -1107,7 +1117,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, const FAnimExtractContext
 	}
 }
 
-void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	if (!IsValidAdditive())
 	{
@@ -1116,19 +1126,23 @@ void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, const FAnimExtra
 	}
 
 	// Extract target pose
-	GetBonePose(OutPose, ExtractionContext);
+	GetBonePose(OutPose, OutCurve, ExtractionContext);
 
 	// Extract base pose
 	FCompactPose BasePose;
+	FBlendedCurve BaseCurve;
+	
 	BasePose.SetBoneContainer(&OutPose.GetBoneContainer());
+	BaseCurve.InitFrom(OutCurve);	
 
-	GetAdditiveBasePose(BasePose, ExtractionContext);
+	GetAdditiveBasePose(BasePose, BaseCurve, ExtractionContext);
 
 	// Create Additive animation
 	FAnimationRuntime::ConvertPoseToAdditive(OutPose, BasePose);
+	OutCurve.ConvertToAdditive(BaseCurve);
 }
 
-void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	switch (RefPoseType)
 	{
@@ -1141,7 +1155,7 @@ void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtrac
 
 		FAnimExtractContext BasePoseExtractionContext(ExtractionContext);
 		BasePoseExtractionContext.CurrentTime = BasePoseTime;
-		RefPoseSeq->GetBonePose(OutPose, BasePoseExtractionContext);
+		RefPoseSeq->GetBonePose(OutPose, OutCurve, BasePoseExtractionContext);
 		break;
 	}
 		// use animation as a base pose. Need BasePoseSeq and RefFrameIndex (will clamp if outside).
@@ -1152,7 +1166,7 @@ void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtrac
 
 		FAnimExtractContext BasePoseExtractionContext(ExtractionContext);
 		BasePoseExtractionContext.CurrentTime = BasePoseTime;
-		RefPoseSeq->GetBonePose(OutPose, BasePoseExtractionContext);
+		RefPoseSeq->GetBonePose(OutPose, OutCurve, BasePoseExtractionContext);
 		break;
 	}
 		// use ref pose of Skeleton as base
@@ -1163,7 +1177,7 @@ void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtrac
 	}
 }
 
-void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	if (!IsValidAdditive())
 	{
@@ -1173,12 +1187,14 @@ void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, 
 	}
 
 	// Get target pose
-	GetBonePose(OutPose, ExtractionContext);
+	GetBonePose(OutPose, OutCurve, ExtractionContext);
 
 	// get base pose
 	FCompactPose BasePose;
+	FBlendedCurve BaseCurve;
 	BasePose.SetBoneContainer(&OutPose.GetBoneContainer());
-	GetAdditiveBasePose(BasePose, ExtractionContext);
+	BaseCurve.InitFrom(OutCurve);
+	GetAdditiveBasePose(BasePose, BaseCurve, ExtractionContext);
 
 	// Convert them to mesh rotation.
 	FAnimationRuntime::ConvertPoseToMeshRotation(OutPose);
@@ -1186,6 +1202,7 @@ void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, 
 
 	// Turn into Additive
 	FAnimationRuntime::ConvertPoseToAdditive(OutPose, BasePose);
+	OutCurve.ConvertToAdditive(BaseCurve);
 }
 
 void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones) const

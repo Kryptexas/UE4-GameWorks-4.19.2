@@ -52,6 +52,7 @@ struct ENGINE_API FAnimNode_TransitionPoseEvaluator : public FAnimNode_Base
 	int32 FramesToCachePose;
 
 	FCompactPose CachedPose;
+	FBlendedCurve CachedCurve;
 
 	UPROPERTY(transient)
 	int32 CacheFramesRemaining;
@@ -69,5 +70,5 @@ public:
 
 	bool InputNodeNeedsUpdate() const;
 	bool InputNodeNeedsEvaluate() const;
-	void CachePose(FPoseContext& Output, FCompactPose& PoseToCache);
+	void CachePose(FPoseContext& PoseToCache);
 };

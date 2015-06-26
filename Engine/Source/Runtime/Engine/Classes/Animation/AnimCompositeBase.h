@@ -193,6 +193,9 @@ struct FAnimTrack
 	/** Get the segment at the given absolute montage time */
 	FAnimSegment* GetSegmentAtTime(float InTime);
 
+	/** Get animation pose function */
+	void GetAnimationPose(/*out*/ FCompactPose& OutPose,/*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
+
 #if WITH_EDITOR
 	bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) const;
 	void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap);

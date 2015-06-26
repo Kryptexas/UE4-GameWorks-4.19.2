@@ -3,11 +3,11 @@
 #pragma once
 
 #include "AnimationAsset.h"
-#include "AnimSequence.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "AnimStateMachineTypes.h"
 #include "BonePose.h"
+#include "Animation/AnimTypes.h"
 #include "AnimInstance.generated.h"
 
 struct FAnimMontageInstance;
@@ -182,7 +182,6 @@ struct FPerBoneBlendWeights
 	FPerBoneBlendWeights() {}
 
 };
-
 /** Helper struct for Slot node pose evaluation. */
 USTRUCT()
 struct FSlotEvaluationPose
@@ -199,7 +198,9 @@ struct FSlotEvaluationPose
 
 	/** Pose */
 	FCompactPose Pose;
-	
+	/** Curve */
+	FBlendedCurve Curve;
+
 	FSlotEvaluationPose()
 	{
 	}
@@ -365,17 +366,9 @@ public:
 	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
 	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
 
-	void SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FCompactPose& Pose, const FAnimExtractContext& ExtractionContext);
-
-	void BlendSequences(const FCompactPose& Pose1, const FCompactPose& Pose2, float Alpha, FCompactPose& Result);
-
-	static void CopyPose(const struct FCompactPose& Source, struct FCompactPose& Destination);
-
-	void BlendSpaceEvaluatePose(UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FCompactPose& OutPose);
-
 	// slotnode interfaces
 	void GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const;
-	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, FCompactPose& BlendedPose, float SlotNodeWeight);
+	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float SlotNodeWeight);
 
 	// slot node run-time functions
 	void ReinitializeSlotNodes();
@@ -389,7 +382,8 @@ public:
 	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
 	// Get the root motion weight for the montage slot
 	float GetSlotRootMotionWeight(FName SlotNodeName) const;
-
+	// Should Extract Root Motion or not. Return true if we do. 
+	bool ShouldExtractRootMotion() const { return RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion; }
 
 	// kismet event functions
 
@@ -836,16 +830,20 @@ public:
 	UPROPERTY(transient)
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
+private:
 	/** Curve Values that are added to trigger in event**/
 	TMap<FName, float>	EventCurves;
+	/** Material parameters that we had been changing and now need to clear */
+	TArray<FName> MaterialParamatersToClear;
+
+public: 
+	/** Update all internal curves from Blended Curve */
+	void UpdateCurves(const FBlendedCurve& InCurves);
+
 	/** Morph Target Curves that will be used for SkeletalMeshComponent **/
 	TMap<FName, float>	MorphTargetCurves;
 	/** Material Curves that will be used for SkeletalMeshComponent **/
 	TMap<FName, float>	MaterialParameterCurves;
-	/** Material parameters that we had been changing and now need to clear */
-	TArray<FName> MaterialParamatersToClear;
-
-
 
 #if WITH_EDITORONLY_DATA
 	// Maximum playback position ever reached (only used when debugging in Persona)

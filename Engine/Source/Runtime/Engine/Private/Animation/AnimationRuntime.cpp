@@ -101,10 +101,82 @@ FORCEINLINE void BlendPose(const FCompactPose& SourcePose, FCompactPose& ResultP
 	}
 }
 
+FORCEINLINE void BlendCurves(const TArray<FBlendedCurve>& SourceCurves, const TArray<float>&	SourceWeights, FBlendedCurve& OutCurve)
+{
+	if (SourceCurves.Num() > 0)
+	{
+		OutCurve.Override(SourceCurves[0], SourceWeights[0]);
+
+		for(int32 CurveIndex=1; CurveIndex<SourceCurves.Num(); ++CurveIndex)
+		{
+			OutCurve.Accumulate(SourceCurves[CurveIndex], SourceWeights[CurveIndex]);
+		}
+	}
+}
+
+FORCEINLINE void BlendCurves(const TArray<const FBlendedCurve*>& SourceCurves, const TArray<float>&	SourceWeights, FBlendedCurve& OutCurve)
+{
+	if(SourceCurves.Num() > 0)
+	{
+		OutCurve.Override(*SourceCurves[0], SourceWeights[0]);
+
+		for(int32 CurveIndex=1; CurveIndex<SourceCurves.Num(); ++CurveIndex)
+		{
+			OutCurve.Accumulate(*SourceCurves[CurveIndex], SourceWeights[CurveIndex]);
+		}
+	}
+}
+
+FORCEINLINE void BlendCurves(const TArray<const FBlendedCurve*>& SourceCurves, const TArray<float>&	SourceWeights, FBlendedCurve& OutCurve, ECurveBlendOption::Type BlendOption)
+{
+	if(SourceCurves.Num() > 0)
+	{
+		if (BlendOption == ECurveBlendOption::Type::BlendByWeight)
+		{
+			BlendCurves(SourceCurves, SourceWeights, OutCurve);
+		}
+		else if (BlendOption == ECurveBlendOption::Type::NormalizeByWeight)
+		{
+			float SumOfWeight = 0.f;
+			for (const auto& Weight : SourceWeights)
+			{
+				SumOfWeight += Weight;
+			}
+
+			if (SumOfWeight > ZERO_ANIMWEIGHT_THRESH)
+			{
+				TArray<float>	NormalizeSourceWeights;
+				NormalizeSourceWeights.AddUninitialized(SourceWeights.Num());
+				for(int32 Idx=0; Idx<SourceWeights.Num(); ++Idx)
+				{
+					NormalizeSourceWeights[Idx] = SourceWeights[Idx] / SumOfWeight;
+				}
+
+				BlendCurves(SourceCurves, NormalizeSourceWeights, OutCurve);
+			}
+			else
+			{
+				BlendCurves(SourceCurves, SourceWeights, OutCurve);
+			}
+		}
+		else
+		{
+			OutCurve.Override(*SourceCurves[0], SourceWeights[0]);
+
+			for(int32 CurveIndex=1; CurveIndex<SourceCurves.Num(); ++CurveIndex)
+			{
+				OutCurve.Combine(*SourceCurves[CurveIndex]);
+			}
+		}
+	}
+}
+
 void FAnimationRuntime::BlendPosesTogether(
 	const TArray<FCompactPose>& SourcePoses,
+	const TArray<FBlendedCurve>& SourceCurves,
 	const TArray<float>&	SourceWeights,
-	/*out*/ FCompactPose& ResultPose)
+	/*out*/ FCompactPose& ResultPose, 
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
 
@@ -120,12 +192,20 @@ void FAnimationRuntime::BlendPosesTogether(
 	{
 		ResultPose.NormalizeRotations();
 	}
+
+	// curve blending if exists
+	if (SourceCurves.Num() > 0)
+	{
+		BlendCurves(SourceCurves, SourceWeights, ResultCurve);
+	}
 }
 
 void FAnimationRuntime::BlendPosesTogether(
 	const TArray<const FCompactPose*>& SourcePoses,
+	const TArray<const FBlendedCurve*>& SourceCurves,
 	const TArray<float>&	SourceWeights,
-	/*out*/ FCompactPose& ResultPose)
+	/*out*/ FCompactPose& ResultPose, 
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
 
@@ -141,19 +221,28 @@ void FAnimationRuntime::BlendPosesTogether(
 	{
 		ResultPose.NormalizeRotations();
 	}
+
+	if(SourceCurves.Num() > 0)
+	{
+		BlendCurves(SourceCurves, SourceWeights, ResultCurve);
+	}
 }
 
 void FAnimationRuntime::BlendTwoPosesTogether(
 	const FCompactPose& SourcePose1,
 	const FCompactPose& SourcePose2,
+	const FBlendedCurve& SourceCurve1,
+	const FBlendedCurve& SourceCurve2,
 	const float			WeightOfPose1,
-	/*out*/ FCompactPose& ResultPose)
+	/*out*/ FCompactPose& ResultPose,
+	/*out*/ FBlendedCurve& ResultCurve)
 {
 	BlendPose<ETransformBlendMode::Overwrite>(SourcePose1, ResultPose, WeightOfPose1);
 	BlendPose<ETransformBlendMode::Accumulate>(SourcePose2, ResultPose, 1.f - WeightOfPose1);
 
 	// Ensure that all of the resulting rotations are normalized
 	ResultPose.NormalizeRotations();
+	ResultCurve.Blend(SourceCurve1, SourceCurve2, 1.f - WeightOfPose1);
 }
 
 template <int32 TRANSFORM_BLEND_MODE>
@@ -218,7 +307,7 @@ void BlendPosePerBone(const TArray<int32>& PerBoneIndices, const FBlendSampleDat
  *							This array must be in strictly increasing order.
  */
 
-void FAnimationRuntime::BlendPosesTogetherPerBone(const TArray<FCompactPose>& SourcePoses, const UBlendSpaceBase* BlendSpace, const TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& ResultPose)
+void FAnimationRuntime::BlendPosesTogetherPerBone(const TArray<FCompactPose>& SourcePoses, const TArray<FBlendedCurve>& SourceCurves, const UBlendSpaceBase* BlendSpace, const TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& ResultPose, /*out*/ FBlendedCurve& ResultCurve)
 {
 	check(SourcePoses.Num() > 0);
 
@@ -226,7 +315,7 @@ void FAnimationRuntime::BlendPosesTogetherPerBone(const TArray<FCompactPose>& So
 
 	TArray<int32> PerBoneIndices;
 	PerBoneIndices.AddUninitialized(ResultPose.GetNumBones());
-	for (int BoneIndex = 0; BoneIndex < PerBoneIndices.Num(); ++BoneIndex)
+	for (int32 BoneIndex = 0; BoneIndex < PerBoneIndices.Num(); ++BoneIndex)
 	{
 		PerBoneIndices[BoneIndex] = BlendSpace->GetPerBoneInterpolationIndex(RequiredBoneIndices[BoneIndex], ResultPose.GetBoneContainer());
 	}
@@ -240,9 +329,21 @@ void FAnimationRuntime::BlendPosesTogetherPerBone(const TArray<FCompactPose>& So
 
 	// Ensure that all of the resulting rotations are normalized
 	ResultPose.NormalizeRotations();
+
+	if (SourceCurves.Num() > 0)
+	{
+		TArray<float> SourceWeights;
+		SourceWeights.AddUninitialized(BlendSampleDataCache.Num());
+		for (int32 CacheIndex=0; CacheIndex<BlendSampleDataCache.Num(); ++CacheIndex)
+		{
+			SourceWeights[CacheIndex] = BlendSampleDataCache[CacheIndex].TotalWeight;
+		}
+
+		BlendCurves(SourceCurves, SourceWeights, ResultCurve);
+	}
 }
 
-void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(TArray<FCompactPose>& SourcePoses, const UBlendSpaceBase* BlendSpace, const TArray<FBlendSampleData>& BlendSampleDataCache, FCompactPose& ResultPose)
+void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(TArray<FCompactPose>& SourcePoses, const TArray<FBlendedCurve>& SourceCurves, const UBlendSpaceBase* BlendSpace, const TArray<FBlendSampleData>& BlendSampleDataCache, FCompactPose& ResultPose, FBlendedCurve& ResultCurve)
 {
 	FQuat NewRotation;
 	USkeleton* Skeleton = BlendSpace->GetSkeleton();
@@ -269,7 +370,7 @@ void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(TArray<FCompactPose
 	}
 
 	// now we have mesh space rotation, call BlendPosesTogetherPerBone
-	BlendPosesTogetherPerBone(SourcePoses, BlendSpace, BlendSampleDataCache, ResultPose);
+	BlendPosesTogetherPerBone(SourcePoses, SourceCurves, BlendSpace, BlendSampleDataCache, ResultPose, ResultCurve);
 
 	// now result atoms has the output with mesh space rotation. Convert back to local space, start from back
 	for (const FCompactPoseBoneIndex BoneIndex : ResultPose.ForEachBoneIndex())
@@ -282,20 +383,6 @@ void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(TArray<FCompactPose
 			ResultPose[BoneIndex].NormalizeRotation();
 		}
 	}
-}
-/**
- * Accumulates BlendPoses to ResultAtoms with BlendWeight. 
- * ResultAtoms += BlendPose*BlendWeight.
- * Result is NOT Normalized, as this is expected to be called several times with each 'BlendPoses' transform array to be accumulated.
- * 
- * @param	BlendPoses		Array to BoneTransforms to scale and accumulate.
- * @param	BlendWeight		Weight to apply to 'BlendPoses'
- * @param	RequiredBones	Indices of bones to process, in strictly increasing order.
- * @param	ResultAtoms		Array of BoneTransforms to accumulate to.
- */
-void FAnimationRuntime::BlendPosesAccumulate(const FCompactPose& SourcePose, const float BlendWeight, /*inout*/ FCompactPose& ResultPose)
-{
-	BlendPose<ETransformBlendMode::Accumulate>(SourcePose, ResultPose, BlendWeight);
 }
 
 void FAnimationRuntime::LerpBoneTransforms(TArray<FTransform> & A, const TArray<FTransform> & B, float Alpha, const TArray<FBoneIndexType> & RequiredBonesArray)
@@ -343,95 +430,6 @@ void FAnimationRuntime::CombineWithAdditiveAnimations(int32 NumAdditivePoses, co
 	}
 }
 
-void FAnimationRuntime::GetPoseFromSequence(
-		const UAnimSequenceBase* InSequence,
-		/*out*/ FCompactPose& ResultPose,
-		const FAnimExtractContext& ExtractionContext)
-{
-	//@TODO: ANIM: ANIMCOMPOSITE: Some of the code in here cares about UAnimSequence members and won't work on something derived from a different branch of UAnimSequenceBase
-	const UAnimSequence* Sequence = Cast<const UAnimSequence>(InSequence);
-
-	if (!Sequence)
-	{
-#if 0
-		UE_LOG(LogAnimation, Log, TEXT("FAnimationRuntime::GetPoseFromSequence - %s - No animation data!"), *GetFName());
-#endif
-		ResultPose.ResetToRefPose();
-		return;
-	}
-
-	Sequence->GetAnimationPose(ResultPose, ExtractionContext);
-
-	// Check that all bone atoms coming from animation are normalized
-#if DO_CHECK && WITH_EDITORONLY_DATA
-	check(ResultPose.IsNormalized());
-#endif
-}
-
-void FAnimationRuntime::GetPoseFromAnimTrack(
-	const FAnimTrack& Track,
-	/*out*/ FCompactPose& ResultPose,
-	const FAnimExtractContext& ExtractionContext)
-{
-	TArray<FCompactPose> SourcePoses;
-	TArray<float> SourceWeights;
-	float TotalWeight = 0.f;
-
-	float CurrentTime = FMath::Clamp(ExtractionContext.CurrentTime, 0.f, Track.GetLength());
-
-	// first get all the montage instance weight this slot node has
-	for (int32 I = 0; I<Track.AnimSegments.Num(); ++I)
-	{
-		const FAnimSegment& AnimSegment = Track.AnimSegments[I];
-
-		float PositionInAnim = 0.f;
-		float Weight = 0.f;
-		UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(CurrentTime, PositionInAnim, Weight);
-
-		// make this to be 1 function
-		if (AnimRef && (Weight > ZERO_ANIMWEIGHT_THRESH))
-		{
-			// todo anim: hack - until we fix animcomposite
-			UAnimSequence * Sequence = Cast<UAnimSequence>(AnimRef);
-			if (Sequence)
-			{
-				const int32 NewIndex = SourceWeights.AddUninitialized(1);
-				SourcePoses.Add(FCompactPose());
-
-				SourcePoses[NewIndex].SetBoneContainer(&ResultPose.GetBoneContainer());
-				SourceWeights[NewIndex] = Weight;
-				TotalWeight += Weight;
-
-				// Copy passed in Extraction Context, but override position and looping parameters.
-				FAnimExtractContext SequenceExtractionContext(ExtractionContext);
-				SequenceExtractionContext.CurrentTime = PositionInAnim;
-				SequenceExtractionContext.bExtractRootMotion &= Sequence->bEnableRootMotion;
-				FAnimationRuntime::GetPoseFromSequence(Sequence, SourcePoses[NewIndex], SequenceExtractionContext);
-			}
-		}
-	}
-
-	if (SourcePoses.Num() == 0)
-	{
-		ResultPose.ResetToRefPose();
-	}
-	else if (SourcePoses.Num() == 1)
-	{
-		ResultPose = SourcePoses[0];
-	}
-	else
-	{
-		// If we have SourcePoses.Num() > 0, then we will have a non zero weight.
-		check(TotalWeight >= ZERO_ANIMWEIGHT_THRESH);
-		for (int32 I = 0; I < SourceWeights.Num(); ++I)
-		{
-			// normalize I
-			SourceWeights[I] /= TotalWeight;
-		}
-		FAnimationRuntime::BlendPosesTogether(SourcePoses, SourceWeights, ResultPose);
-	}
-}
-
 void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FCompactPose& BasePose)
 {
 	for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
@@ -471,8 +469,24 @@ void FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(FCompactPose& Pose)
 		Pose[BoneIndex].SetRotation(LocalSpaceRotation);
 	}
 }
+void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight, enum EAdditiveAnimationType AdditiveType)
+{
+	if (AdditiveType == AAT_RotationOffsetMeshSpace)
+	{
+		AccumulateMeshSpaceRotationAdditiveToLocalPose(BasePose, AdditivePose, BaseCurve, AdditiveCurve, Weight);
+	}
+	else
+	{
+		AccumulateLocalSpaceAdditivePose(BasePose, AdditivePose, BaseCurve, AdditiveCurve, Weight);
+	}
 
-void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, float Weight)
+	// if curve exists, accumulate with the weight, 
+	BaseCurve.Accumulate(AdditiveCurve, Weight);
+	// normalize
+	BasePose.NormalizeRotations();
+}
+
+void FAnimationRuntime::AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight)
 {
 	if (Weight > ZERO_ANIMWEIGHT_THRESH)
 	{
@@ -498,7 +512,7 @@ void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCo
 	}
 }
 
-void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, float Weight)
+void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight)
 {
 	if (Weight > ZERO_ANIMWEIGHT_THRESH)
 	{
@@ -506,7 +520,7 @@ void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactP
 		FAnimationRuntime::ConvertPoseToMeshRotation(BasePose);
 
 		// Add MeshSpaceRotAdditive to it
-		FAnimationRuntime::AccumulateAdditivePose(BasePose, MeshSpaceRotationAdditive, Weight);
+		FAnimationRuntime::AccumulateLocalSpaceAdditivePose(BasePose, MeshSpaceRotationAdditive, BaseCurve, AdditiveCurve, Weight);
 
 		// Convert back to local space
 		FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(BasePose);
@@ -562,89 +576,6 @@ void FAnimationRuntime::ApplyWeightToTransform(const FBoneContainer& RequiredBon
 		Atoms[BoneIndex] *= MultWeight;
 	}			
 }
-
-void FAnimationRuntime::GetPoseFromBlendSpace(
-	UBlendSpaceBase * BlendSpace,
-	TArray<FBlendSampleData>& BlendSampleDataCache,
-	/*out*/ FCompactPose& ResultPose)
-{
-	// if not valid parameters
-	if (BlendSpace == NULL || BlendSampleDataCache.Num() == 0)
-	{
-		ResultPose.ResetToRefPose();
-		return;
-	}
-
-	const int32 NumPoses = BlendSampleDataCache.Num();
-
-	TArray<FCompactPose> ChildrenPoses;
-	ChildrenPoses.AddZeroed(NumPoses);
-
-	TArray<float>	ChildrenWeights;
-	ChildrenWeights.AddZeroed(NumPoses);
-
-	for (FCompactPose& Pose : ChildrenPoses)
-	{
-		Pose.SetBoneContainer(&ResultPose.GetBoneContainer());
-	}
-
-	const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
-
-	// get all child atoms we interested in
-	for (int32 I = 0; I < BlendSampleDataCache.Num(); ++I)
-	{
-		FCompactPose& Pose = ChildrenPoses[I];
-
-		if (SampleData.IsValidIndex(BlendSampleDataCache[I].SampleDataIndex))
-		{
-			const FBlendSample& Sample = SampleData[BlendSampleDataCache[I].SampleDataIndex];
-			ChildrenWeights[I] = BlendSampleDataCache[I].GetWeight();
-
-			if (Sample.Animation)
-			{
-				const float Time = FMath::Clamp<float>(BlendSampleDataCache[I].Time, 0.f, Sample.Animation->SequenceLength);
-
-				// first one always fills up the source one
-				FAnimationRuntime::GetPoseFromSequence(Sample.Animation, Pose, FAnimExtractContext(Time, true));
-			}
-			else
-			{
-				Pose.ResetToRefPose();
-			}
-		}
-		else
-		{
-			Pose.ResetToRefPose();
-		}
-	}
-
-	if (BlendSpace->PerBoneBlend.Num() > 0)
-	{
-		if (BlendSpace->IsValidAdditive())
-		{
-			FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, BlendSpace, BlendSampleDataCache, ResultPose);
-		}
-		else
-		{
-			if (BlendSpace->bRotationBlendInMeshSpace)
-			{
-				FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(ChildrenPoses, BlendSpace, BlendSampleDataCache, ResultPose);
-			}
-			else
-			{
-				FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, BlendSpace, BlendSampleDataCache, ResultPose);
-			}
-		}
-	}
-	else
-	{
-		FAnimationRuntime::BlendPosesTogether(ChildrenPoses, ChildrenWeights, ResultPose);
-	}
-
-	// Once all the accumulation and blending has been done, normalize rotations.
-	ResultPose.NormalizeRotations();
-}
-
 
 /* from % from OutKeyIndex1, meaning (CurrentKeyIndex(float)-OutKeyIndex1)/(OutKeyIndex2-OutKeyIndex1) */
 void FAnimationRuntime::GetKeyIndicesFromTime(int32& OutKeyIndex1, int32& OutKeyIndex2, float& OutAlpha, const float Time, const int32 NumFrames, const float SequenceLength)
@@ -853,8 +784,12 @@ void FAnimationRuntime::ExcludeBonesWithNoParents(const TArray<int32> & BoneIndi
 void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 		struct FCompactPose& BasePose,
 		const TArray<struct FCompactPose>& BlendPoses,
-		const TArray<FPerBoneBlendWeight> & BoneBlendWeights,
-		/*out*/ FCompactPose& OutPose)
+		struct FBlendedCurve& BaseCurve,
+		const TArray<struct FBlendedCurve>& BlendedCurves,
+		const TArray<FPerBoneBlendWeight>& BoneBlendWeights,
+		ECurveBlendOption::Type CurveBlendOption,
+		/*out*/ FCompactPose& OutPose,
+		/*out*/ struct FBlendedCurve& OutCurve)
 {
 	check(BasePose.GetNumBones() == BoneBlendWeights.Num());
 
@@ -867,6 +802,11 @@ void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 	SourceRotations.AddUninitialized(BasePose.GetNumBones());
 	BlendRotations.AddUninitialized(BasePose.GetNumBones());
 	TargetRotations.AddUninitialized(BasePose.GetNumBones());
+
+	int32 PoseNum = BlendPoses.Num();
+
+	TArray<float> MaxPoseWeights;
+	MaxPoseWeights.AddZeroed(PoseNum);
 
 	for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
 	{
@@ -897,6 +837,8 @@ void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 		FTransform BlendAtom;
 
 		const float BlendWeight = FMath::Clamp(BoneBlendWeights[BoneIndex.GetInt()].BlendWeight, 0.f, 1.f);
+		MaxPoseWeights[PoseIndex] = FMath::Max(MaxPoseWeights[PoseIndex], BlendWeight);
+
 		if (BlendWeight < ZERO_ANIMWEIGHT_THRESH)
 		{
 			BlendAtom = BaseAtom;
@@ -929,15 +871,45 @@ void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 			OutPose[BoneIndex].SetRotation(LocalBlendQuat);
 		}
 	}
+
+	// time to blend curves
+	// the way we blend curve per bone
+	// is to find out max weight per that pose, and then apply that weight to the curve
+	{
+		TArray<const FBlendedCurve*> SourceCurves;
+		TArray<float> SourceWegihts;
+
+		SourceCurves.SetNumUninitialized(PoseNum+1);
+		SourceWegihts.SetNumUninitialized(PoseNum+1);
+
+		SourceCurves[0] = &BaseCurve;
+		SourceWegihts[0] = 1.f;
+
+		for(int32 Idx=0; Idx<PoseNum; ++Idx)
+		{
+			SourceCurves[Idx+1] = &BlendedCurves[Idx];
+			SourceWegihts[Idx+1] = MaxPoseWeights[Idx];
+		}
+
+		BlendCurves(SourceCurves, SourceWegihts, OutCurve, CurveBlendOption);
+	}
 }
 
 void FAnimationRuntime::BlendLocalPosesPerBoneWeights(
 	FCompactPose& BasePose,
 	const TArray<FCompactPose>& BlendPoses,
+	struct FBlendedCurve& BaseCurve,
+	const TArray<struct FBlendedCurve>& BlendedCurves,
 	const TArray<FPerBoneBlendWeight> & BoneBlendWeights,
-	/*out*/ FCompactPose& OutPose)
+	ECurveBlendOption::Type CurveBlendOption,
+	/*out*/ FCompactPose& OutPose, 
+	/*out*/ struct FBlendedCurve& OutCurve)
 {
 	check(BasePose.GetNumBones() == BoneBlendWeights.Num());
+	int32 PoseNum = BlendPoses.Num();
+
+	TArray<float> MaxPoseWeights;
+	MaxPoseWeights.AddZeroed(PoseNum);
 
 	for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
 	{
@@ -945,6 +917,7 @@ void FAnimationRuntime::BlendLocalPosesPerBoneWeights(
 		const FTransform& BaseAtom = BasePose[BoneIndex];
 
 		const float BlendWeight = FMath::Clamp(BoneBlendWeights[BoneIndex.GetInt()].BlendWeight, 0.f, 1.f);
+		MaxPoseWeights[PoseIndex] = FMath::Max(MaxPoseWeights[PoseIndex], BlendWeight);
 
 		if (BlendWeight < ZERO_ANIMWEIGHT_THRESH)
 		{
@@ -961,6 +934,28 @@ void FAnimationRuntime::BlendLocalPosesPerBoneWeights(
 			BlendAtom.BlendWith(TargetAtom, BlendWeight);
 			OutPose[BoneIndex] = BlendAtom;
 		}
+	}
+
+	// time to blend curves
+	// the way we blend curve per bone
+	// is to find out max weight per that pose, and then apply that weight to the curve
+	{
+		TArray<const FBlendedCurve*> SourceCurves;
+		TArray<float> SourceWegihts;
+
+		SourceCurves.SetNumUninitialized(PoseNum+1);
+		SourceWegihts.SetNumUninitialized(PoseNum+1);
+
+		SourceCurves[0] = &BaseCurve;
+		SourceWegihts[0] = 1.f;
+
+		for (int32 Idx=0; Idx<PoseNum; ++Idx)
+		{
+			SourceCurves[Idx+1] = &BlendedCurves[Idx];
+			SourceWegihts[Idx+1] = MaxPoseWeights[Idx];
+		}
+		
+		BlendCurves(SourceCurves, SourceWegihts, OutCurve, CurveBlendOption);
 	}
 }
 
@@ -984,7 +979,16 @@ void FAnimationRuntime::UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight
 	}
 }
 
-void FAnimationRuntime::BlendPosesPerBoneFilter(struct FCompactPose& BasePose, const TArray<struct FCompactPose>& BlendPoses, struct FCompactPose& OutPose, TArray<FPerBoneBlendWeight>& BoneBlendWeights, bool bMeshSpaceRotationBlending)
+void FAnimationRuntime::BlendPosesPerBoneFilter(
+	struct FCompactPose& BasePose, 
+	const TArray<struct FCompactPose>& BlendPoses, 
+	struct FBlendedCurve& BaseCurve, 
+	const TArray<struct FBlendedCurve>& BlendedCurves, 
+	struct FCompactPose& OutPose, 
+	struct FBlendedCurve& OutCurve, 
+	TArray<FPerBoneBlendWeight>& BoneBlendWeights, 
+	bool bMeshSpaceRotationBlending, 
+	ECurveBlendOption::Type CurveBlendOption)
 {
 	ensure(OutPose.GetNumBones() == BasePose.GetNumBones());
 
@@ -992,11 +996,11 @@ void FAnimationRuntime::BlendPosesPerBoneFilter(struct FCompactPose& BasePose, c
 	{
 		if (bMeshSpaceRotationBlending)
 		{
-			BlendMeshPosesPerBoneWeights(BasePose, BlendPoses, BoneBlendWeights, OutPose);
+			BlendMeshPosesPerBoneWeights(BasePose, BlendPoses, BaseCurve, BlendedCurves, BoneBlendWeights, CurveBlendOption, OutPose, OutCurve);
 		}
 		else
 		{
-			BlendLocalPosesPerBoneWeights(BasePose, BlendPoses, BoneBlendWeights, OutPose);
+			BlendLocalPosesPerBoneWeights(BasePose, BlendPoses, BaseCurve, BlendedCurves, BoneBlendWeights, CurveBlendOption, OutPose, OutCurve);
 		}
 	}
 	else // if no blendpose, outpose = basepose

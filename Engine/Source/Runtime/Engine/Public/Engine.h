@@ -164,6 +164,7 @@
 #include "Components/SceneCaptureComponentCube.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Animation/AnimCurveTypes.h"
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimComposite.h"

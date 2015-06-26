@@ -33,6 +33,7 @@ void FAnimNode_ConvertComponentToLocalSpace::Evaluate(FPoseContext & Output)
 
 	checkSlow( InputCSPose.Pose.GetPose().IsValid() );
 	InputCSPose.Pose.ConvertToLocalPoses(Output.Pose);
+	Output.Curve = InputCSPose.Curve;
 }
 
 void FAnimNode_ConvertComponentToLocalSpace::GatherDebugData(FNodeDebugData& DebugData)
@@ -78,4 +79,5 @@ void FAnimNode_ConvertLocalToComponentSpace::EvaluateComponentSpace(FComponentSp
 	LocalPose.Evaluate(InputPose);
 
 	OutputCSPose.Pose.InitPose(InputPose.Pose);
+	OutputCSPose.Curve = InputPose.Curve;
 }
