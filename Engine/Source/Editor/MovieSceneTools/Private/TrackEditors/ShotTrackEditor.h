@@ -6,7 +6,7 @@
 /**
  * Tools for director tracks
  */
-class FDirectorTrackEditor : public FMovieSceneTrackEditor
+class FShotTrackEditor : public FMovieSceneTrackEditor
 {
 public:
 	/**
@@ -14,8 +14,8 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	FDirectorTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~FDirectorTrackEditor();
+	FShotTrackEditor( TSharedRef<ISequencer> InSequencer );
+	~FShotTrackEditor();
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -113,8 +113,8 @@ private:
 	/** Where in time this thumbnail is a rendering of */
 	TRange<float> TimeRange;
 
-	/** The time when the thumbnail started to fade in. */
-	double FadeInStartTime;
+	/** Fade curve to display while the thumbnail is redrawing */
+	FCurveSequence FadeInCurve;
 };
 
 
@@ -131,7 +131,7 @@ public:
 	virtual UMovieSceneSection* GetSectionObject() override;
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual FText GetDisplayName() const override { return NSLOCTEXT("FShotSection", "DirectorTrack", "Director Track"); }
+	virtual FText GetDisplayName() const override { return NSLOCTEXT("FShotSection", "", "Shots"); }
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
@@ -152,6 +152,8 @@ public:
 	/** Gets the time range of what in the sequencer is visible */
 	TRange<float> GetVisibleTimeRange() const {return VisibleTimeRange;}
 
+	/** @return The sequencer widget owning the shot section */
+	TSharedRef<SWidget> GetSequencerWidget() { return Sequencer.Pin()->GetSequencerWidget(); }
 private:
 	/** The section we are visualizing */
 	UMovieSceneSection* Section;
@@ -179,4 +181,7 @@ private:
 	TSharedPtr<FSceneViewport> InternalViewportScene;
 	/** An internal editor viewport client to render the thumbnails with */
 	TSharedPtr<FLevelEditorViewportClient> InternalViewportClient;
+	
+	/** Fade brush */
+	const FSlateBrush* WhiteBrush;
 };

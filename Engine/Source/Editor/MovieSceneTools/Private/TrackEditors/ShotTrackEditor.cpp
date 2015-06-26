@@ -25,7 +25,8 @@
 namespace AnimatableShotToolConstants
 {
 	// @todo Sequencer Perhaps allow this to be customizable
-	const uint32 DirectorTrackHeight = 100;
+	const uint32 TrackHeight = 90;
+	const uint32 TrackWidth = 90;
 	const double ThumbnailFadeInDuration = 0.25f;
 
 }
@@ -95,7 +96,7 @@ FShotThumbnail::FShotThumbnail(TSharedPtr<FShotSection> InSection, TRange<float>
 	: OwningSection(InSection)
 	, Texture(NULL)
 	, TimeRange(InTimeRange)
-	, FadeInStartTime(0.0)
+	, FadeInCurve( 0.0f, AnimatableShotToolConstants::ThumbnailFadeInDuration )
 {
 	Texture = new FSlateTexture2DRHIRef(GetSize().X, GetSize().Y, PF_B8G8R8A8, NULL, TexCreate_Dynamic, true);
 
@@ -115,7 +116,7 @@ FShotThumbnail::~FShotThumbnail()
 	}
 }
 
-FIntPoint FShotThumbnail::GetSize() const {return FIntPoint(OwningSection.Pin()->GetThumbnailWidth(), AnimatableShotToolConstants::DirectorTrackHeight);}
+FIntPoint FShotThumbnail::GetSize() const {return FIntPoint(OwningSection.Pin()->GetThumbnailWidth(), AnimatableShotToolConstants::TrackHeight);}
 bool FShotThumbnail::RequiresVsync() const {return false;}
 
 FSlateShaderResource* FShotThumbnail::GetViewportRenderTargetTexture() const
@@ -126,7 +127,7 @@ FSlateShaderResource* FShotThumbnail::GetViewportRenderTargetTexture() const
 void FShotThumbnail::DrawThumbnail()
 {
 	OwningSection.Pin()->DrawViewportThumbnail(SharedThis(this));
-	FadeInStartTime = FSlateApplication::Get().GetCurrentTime();
+	FadeInCurve.PlayReverse( OwningSection.Pin()->GetSequencerWidget() );
 }
 
 float FShotThumbnail::GetTime() const {return TimeRange.GetLowerBoundValue();}
@@ -143,7 +144,7 @@ void FShotThumbnail::CopyTextureIn(FSlateRenderTargetRHI* InTexture)
 
 float FShotThumbnail::GetFadeInCurve() const 
 {
-	return (float)FMath::Clamp(FadeInStartTime / AnimatableShotToolConstants::ThumbnailFadeInDuration, 0.0, 1.0);
+	return FadeInCurve.GetLerp();
 }
 
 bool FShotThumbnail::IsVisible() const
@@ -189,6 +190,8 @@ FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShot
 
 		CalculateThumbnailWidthAndResize();
 	}
+
+	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
 }
 
 FShotSection::~FShotSection()
@@ -213,7 +216,7 @@ FText FShotSection::GetSectionTitle() const
 
 float FShotSection::GetSectionHeight() const
 {
-	return AnimatableShotToolConstants::DirectorTrackHeight;
+	return AnimatableShotToolConstants::TrackHeight+10;
 }
 
 FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent )
@@ -232,19 +235,29 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 {
 	if (Camera.IsValid())
 	{
-		for (int32 i = 0; i < Thumbnails.Num(); ++i)
+		FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(),
+				WhiteBrush,
+				SectionClippingRect,
+				ESlateDrawEffect::None,
+				FLinearColor::Black
+			);
+
+		int32 ThumbnailIndex = 0;
+		for( const TSharedPtr<FShotThumbnail>& Thumbnail : Thumbnails )
 		{
 			FGeometry TruncatedGeometry = AllottedGeometry.MakeChild(
-				FVector2D(ThumbnailWidth, AllottedGeometry.Size.Y),
-				FSlateLayoutTransform(AllottedGeometry.Scale, FVector2D(i * ThumbnailWidth, 0.0f))
+				Thumbnail->GetSize(),
+				FSlateLayoutTransform(AllottedGeometry.Scale, FVector2D(ThumbnailIndex * ThumbnailWidth, 5.0f))
 				);
-			ensure(TruncatedGeometry.Size.Y == AnimatableShotToolConstants::DirectorTrackHeight);
-
+			
 			FSlateDrawElement::MakeViewport(
 				OutDrawElements,
 				LayerId,
 				TruncatedGeometry.ToPaintGeometry(),
-				Thumbnails[i],
+				Thumbnail,
 				SectionClippingRect,
 				false,
 				false,
@@ -252,15 +265,20 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 				FLinearColor::White
 			);
 
-			FSlateDrawElement::MakeBox( 
-				OutDrawElements,
-				LayerId + 1,
-				TruncatedGeometry.ToPaintGeometry(),
-				FEditorStyle::GetBrush("WhiteBrush"),
-				SectionClippingRect,
-				ESlateDrawEffect::None,
-				FColor(255, 255, 255, Thumbnails[i]->GetFadeInCurve() * 255)
-			);
+			if(Thumbnail->GetFadeInCurve() > 0.0f )
+			{
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					LayerId + 1,
+					TruncatedGeometry.ToPaintGeometry(),
+					WhiteBrush,
+					SectionClippingRect,
+					ESlateDrawEffect::None,
+					FColor(255, 255, 255, Thumbnail->GetFadeInCurve() * 255)
+					);
+			}
+
+			++ThumbnailIndex;
 		}
 	}
 	else
@@ -294,7 +312,7 @@ void FShotSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Par
 	FIntPoint AllocatedSize = AllottedGeometry.Size.IntPoint();
 	float StartTime = Section->GetStartTime();
 
-	if (AllocatedSize.X != StoredSize.X || !FMath::IsNearlyEqual(StartTime, StoredStartTime))
+	if (!FSlateApplication::Get().HasAnyMouseCaptor() && ( AllocatedSize.X != StoredSize.X || !FMath::IsNearlyEqual(StartTime, StoredStartTime) ) )
 	{
 		RegenerateViewportThumbnails(AllocatedSize);
 	}
@@ -372,7 +390,7 @@ void FShotSection::CalculateThumbnailWidthAndResize()
 	float SavedTime = Sequencer.Pin()->GetGlobalTime();
 	
 	Sequencer.Pin()->SetGlobalTime(Section->GetStartTime());
-	uint32 OutThumbnailWidth = AnimatableShotToolConstants::DirectorTrackHeight * Camera->GetCameraComponent()->AspectRatio;
+	uint32 OutThumbnailWidth = AnimatableShotToolConstants::TrackWidth * Camera->GetCameraComponent()->AspectRatio;
 
 	// restore the global time
 	Sequencer.Pin()->SetGlobalTime(SavedTime);
@@ -381,34 +399,34 @@ void FShotSection::CalculateThumbnailWidthAndResize()
 	if (OutThumbnailWidth != ThumbnailWidth)
 	{
 		ThumbnailWidth = OutThumbnailWidth;
-		InternalViewportScene->UpdateViewportRHI( false, ThumbnailWidth, AnimatableShotToolConstants::DirectorTrackHeight, EWindowMode::Windowed );
+		InternalViewportScene->UpdateViewportRHI( false, ThumbnailWidth, AnimatableShotToolConstants::TrackHeight, EWindowMode::Windowed );
 	}
 }
 
 /////////////////////////////////////////////////
-// FDirectorTrackEditor
+// FShotTrackEditor
 
-FDirectorTrackEditor::FDirectorTrackEditor( TSharedRef<ISequencer> InSequencer )
+FShotTrackEditor::FShotTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
 	ThumbnailPool = MakeShareable(new FShotThumbnailPool(InSequencer));
 }
 
-FDirectorTrackEditor::~FDirectorTrackEditor()
+FShotTrackEditor::~FShotTrackEditor()
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> FDirectorTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<FMovieSceneTrackEditor> FShotTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
-	return MakeShareable( new FDirectorTrackEditor( InSequencer ) );
+	return MakeShareable( new FShotTrackEditor( InSequencer ) );
 }
 
-bool FDirectorTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
+bool FShotTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneShotTrack::StaticClass();
 }
 
-TSharedRef<ISequencerSection> FDirectorTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FShotTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 	
@@ -421,7 +439,7 @@ TSharedRef<ISequencerSection> FDirectorTrackEditor::MakeSectionInterface( UMovie
 	return NewSection;
 }
 
-void FDirectorTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
+void FShotTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
 {
 	TArray<UObject*> OutObjects;
 	// @todo Sequencer - Sub-MovieScenes The director track may be able to get cameras from sub-movie scenes
@@ -429,11 +447,11 @@ void FDirectorTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAs
 	bool bValidKey = OutObjects.Num() == 1 && OutObjects[0]->IsA<ACameraActor>();
 	if (bValidKey)
 	{
-		AnimatablePropertyChanged( UMovieSceneShotTrack::StaticClass(), false, FOnKeyProperty::CreateRaw( this, &FDirectorTrackEditor::AddKeyInternal, ObjectGuid ) );
+		AnimatablePropertyChanged( UMovieSceneShotTrack::StaticClass(), false, FOnKeyProperty::CreateRaw( this, &FShotTrackEditor::AddKeyInternal, ObjectGuid ) );
 	}
 }
 
-void FDirectorTrackEditor::Tick(float DeltaTime)
+void FShotTrackEditor::Tick(float DeltaTime)
 {
 	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
 	{
@@ -441,7 +459,7 @@ void FDirectorTrackEditor::Tick(float DeltaTime)
 	}
 }
 
-void FDirectorTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+void FShotTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(ACameraActor::StaticClass()))
 	{
@@ -456,9 +474,16 @@ void FDirectorTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuild
 	}
 }
 
-void FDirectorTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
+void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
-	UMovieSceneTrack* Track = GetMasterTrack( UMovieSceneShotTrack::StaticClass() );
+	UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
 
-	Cast<UMovieSceneShotTrack>(Track)->AddNewShot(ObjectGuid, KeyTime);
+	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
+
+	if( !ShotTrack )
+	{
+		ShotTrack = MovieScene->AddShotTrack( UMovieSceneShotTrack::StaticClass() );
+	}
+
+	Cast<UMovieSceneShotTrack>(ShotTrack)->AddNewShot(ObjectGuid, KeyTime);
 }
