@@ -5,7 +5,7 @@ Description:Procedurally generated textures and operations, such as the creation
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The Procedural functions provide a quick way to make simple procedurally generated textures and masks. This saves memory over having to use imported textures.
 

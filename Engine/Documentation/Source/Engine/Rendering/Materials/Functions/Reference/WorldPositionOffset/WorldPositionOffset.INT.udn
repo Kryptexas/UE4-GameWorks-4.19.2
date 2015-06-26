@@ -5,7 +5,7 @@ Description:Functions for handling vertex manipulation using world position offs
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The WorldPositionOffset category contains special functions for applying manipulating vertices of a mesh via world position offset. These functions can be chained together for additive effects. 
 
