@@ -182,6 +182,10 @@ TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionN
 	{
 		// No existing node found make a new one
 		SectionNode = MakeShareable( new FTrackNode( SectionName, AssociatedTrack, SharedThis( this ), ParentTree ) );
+		if (SectionNode.Get()->IsExpanded())
+		{
+			SectionNode.Get()->ToggleExpansion();
+		}
 		ChildNodes.Add( SectionNode.ToSharedRef() );
 	}
 
