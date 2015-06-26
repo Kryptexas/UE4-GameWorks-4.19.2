@@ -1160,7 +1160,7 @@ void SSlateFileOpenDlg::ReadDir(bool bIsRefresh)
 	{
 		DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(CurrentPath.Get(),
 						IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &SSlateFileOpenDlg::OnDirectoryChanged),
-						OnDialogDirectoryChangedDelegateHandle);
+						OnDialogDirectoryChangedDelegateHandle, IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges | IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree);
 
 		RegisteredPath = CurrentPath.Get();
 	}
