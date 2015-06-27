@@ -221,6 +221,15 @@ public:
 	 */
 	void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass);
 
+	/**
+	 * Builds up the edit buttons for object binding nodes in the outliner
+	 * 
+	 * @param EditBox	    The edit box to add things to
+	 * @param ObjectBinding	The object binding of the selected node
+	 * @param ObjectClass	The class of the selected object
+	 */
+	void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const class UClass* ObjectClass);
+
 	/** IMovieScenePlayer interface */
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
 	virtual void UpdatePreviewViewports(UObject* ObjectToViewThrough) const override;

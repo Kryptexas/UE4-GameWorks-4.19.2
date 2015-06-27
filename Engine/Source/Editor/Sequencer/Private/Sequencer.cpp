@@ -1683,4 +1683,12 @@ void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const 
 	}
 }
 
+void FSequencer::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass)
+{
+	for (int32 i = 0; i < TrackEditors.Num(); ++i)
+	{
+		TrackEditors[i]->BuildObjectBindingEditButtons(EditBox, ObjectBinding, ObjectClass);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

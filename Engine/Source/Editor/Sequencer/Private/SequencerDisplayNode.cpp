@@ -492,9 +492,32 @@ bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
 	return !GetSequencer().IsShotFilteringOn() || GetSequencer().IsObjectUnfilterable(ObjectBinding) || HasVisibleChildren();
 }
 
+const UClass* FObjectBindingNode::GetClassForObjectBinding()
+{
+	FSequencer& ParentSequencer = GetSequencer();
+
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieScene();
+
+	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
+	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectBinding);
+	
+	// should exist, but also shouldn't be both a spawnable and a possessable
+	check((Spawnable != NULL) ^ (Possessable != NULL));
+	check((NULL == Spawnable) || (NULL != Spawnable->GetClass())  );
+	const UClass* ObjectClass = Spawnable ? Spawnable->GetClass()->GetSuperClass() : Possessable->GetPossessedObjectClass();
+
+	return ObjectClass;
+}
+
 TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 {
-	return
+	// Create a container edit box
+	TSharedPtr<class SHorizontalBox> EditBox;
+	SAssignNew(EditBox, SHorizontalBox);	
+
+	// Add the property combo box
+	EditBox.Get()->AddSlot()
+	[
 		SNew(SComboButton)
 		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
 		.OnGetMenuContent(this, &FObjectBindingNode::OnGetAddPropertyTrackMenuContent)
@@ -520,22 +543,19 @@ TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 				.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
 				.Text(LOCTEXT("AddPropertyButton", "Property"))
 			]
-		];
+		]
+	];
+
+	const UClass* ObjectClass = GetClassForObjectBinding();
+
+	GetSequencer().BuildObjectBindingEditButtons(EditBox, ObjectBinding, ObjectClass);
+
+	return EditBox.ToSharedRef();
 }
 
 TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FSequencer& ParentSequencer = GetSequencer();
-
-	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieScene();
-
-	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
-	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectBinding);
-	
-	// should exist, but also shouldn't be both a spawnable and a possessable
-	check((Spawnable != NULL) ^ (Possessable != NULL));
-	check((NULL == Spawnable) || (NULL != Spawnable->GetClass())  );
-	const UClass* ObjectClass = Spawnable ? Spawnable->GetClass()->GetSuperClass() : Possessable->GetPossessedObjectClass();
+	const UClass* ObjectClass = GetClassForObjectBinding();
 
 	// @todo sequencer replace with UI Commands instead of faking it
 	const bool bShouldCloseWindowAfterMenuSelection = true;

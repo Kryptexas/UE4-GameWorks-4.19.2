@@ -6,7 +6,7 @@
 /**
  * Tools for particle tracks
  */
-class FParticleTrackEditor : public FMovieSceneTrackEditor, public TSharedFromThis<FParticleTrackEditor>
+class FParticleTrackEditor : public FMovieSceneTrackEditor
 {
 public:
 	/**

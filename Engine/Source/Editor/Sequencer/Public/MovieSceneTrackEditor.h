@@ -15,7 +15,7 @@ DECLARE_DELEGATE_OneParam(FOnKeyProperty, float)
  * Base class for handling key and section drawing and manipulation for a UMovieSceneTrack class
  * @todo Sequencer - Interface needs cleanup
  */
-class FMovieSceneTrackEditor
+class FMovieSceneTrackEditor : public TSharedFromThis<FMovieSceneTrackEditor>
 {
 public:
 	/** Constructor */
@@ -182,6 +182,15 @@ public:
 	 * @param ObjectClass	The class of the object this is for
 	 */
 	virtual void BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
+
+	/**
+	 * Builds up the object binding edit buttons for the outliner
+	 *
+	 * @param EditBox	    The edit box to add buttons to
+	 * @param ObjectBinding	The object binding this is for
+	 * @param ObjectClass	The class of the object this is for
+	 */
+	virtual void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
 
 private:
 	/** The sequencer bound to this handler.  Used to access movie scene and time info during auto-key */

@@ -390,6 +390,9 @@ private:
 
 	void AddTrackForProperty(TArray<UProperty*> PropertyPath);
 
+	/** Get class for object binding */
+	const UClass* GetClassForObjectBinding();
+
 	/** The binding to live objects */
 	FGuid ObjectBinding;
 	/** The default display name of the object which is used if the binding manager doesn't provide one. */
