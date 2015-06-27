@@ -28,7 +28,7 @@ FTimespan FWmfMediaPlayer::GetDuration() const
 }
 
 
-TRange<float> FWmfMediaPlayer::GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const
+TRange<float> FWmfMediaPlayer::GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const
 {
 	if (MediaSession != NULL)
 	{
@@ -159,7 +159,7 @@ bool FWmfMediaPlayer::IsReady() const
 }
 
 
-bool FWmfMediaPlayer::Open( const FString& Url )
+bool FWmfMediaPlayer::Open(const FString& Url)
 {
 	if (Url.IsEmpty())
 	{
@@ -188,9 +188,9 @@ bool FWmfMediaPlayer::Open( const FString& Url )
 }
 
 
-bool FWmfMediaPlayer::Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer, const FString& OriginalUrl )
+bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl)
 {
-	if ((Buffer->Num() == 0) || OriginalUrl.IsEmpty())
+	if ((Archive->TotalSize() == 0) || OriginalUrl.IsEmpty())
 	{
 		return false;
 	}
@@ -203,7 +203,7 @@ bool FWmfMediaPlayer::Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>
 	}
 
 	// create the media source from the given buffer
-	TComPtr<FWmfMediaByteStream> ByteStream = new FWmfMediaByteStream(Buffer);
+	TComPtr<FWmfMediaByteStream> ByteStream = new FWmfMediaByteStream(Archive);
 	MF_OBJECT_TYPE ObjectType = MF_OBJECT_INVALID;
 	TComPtr<IUnknown> SourceObject;
 	
@@ -218,13 +218,13 @@ bool FWmfMediaPlayer::Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>
 }
 
 
-bool FWmfMediaPlayer::Seek( const FTimespan& Time )
+bool FWmfMediaPlayer::Seek(const FTimespan& Time)
 {
 	return ((MediaSession != NULL) && MediaSession->SetPosition(Time));
 }
 
 
-bool FWmfMediaPlayer::SetLooping( bool Looping )
+bool FWmfMediaPlayer::SetLooping(bool Looping)
 {
 	if (MediaSession == NULL)
 	{
@@ -237,7 +237,7 @@ bool FWmfMediaPlayer::SetLooping( bool Looping )
 }
 
 
-bool FWmfMediaPlayer::SetRate( float Rate )
+bool FWmfMediaPlayer::SetRate(float Rate)
 {
 	if (MediaSession == NULL)
 	{
@@ -261,7 +261,7 @@ bool FWmfMediaPlayer::SetRate( float Rate )
 /* FWmfMediaPlayer implementation
  *****************************************************************************/
 
-void FWmfMediaPlayer::AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject )
+void FWmfMediaPlayer::AddStreamToTopology(uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject)
 {
 	// get stream descriptor
 	TComPtr<IMFStreamDescriptor> StreamDescriptor;
@@ -400,7 +400,7 @@ void FWmfMediaPlayer::AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topo
 }
 
 
-bool FWmfMediaPlayer::InitializeMediaSession( IUnknown* SourceObject, const FString& SourceUrl )
+bool FWmfMediaPlayer::InitializeMediaSession(IUnknown* SourceObject, const FString& SourceUrl)
 {
 	Close();
 

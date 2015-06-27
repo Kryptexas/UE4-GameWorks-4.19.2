@@ -41,7 +41,7 @@ public:
 	virtual bool IsPlaying() const override;
 	virtual bool IsReady() const override;
 	virtual bool Open(const FString& Url) override;
-	virtual bool Open(const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer,
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive,
 		const FString& OriginalUrl) override;
 	virtual bool Seek(const FTimespan& Time) override;
 	virtual bool SetLooping(bool Looping) override;

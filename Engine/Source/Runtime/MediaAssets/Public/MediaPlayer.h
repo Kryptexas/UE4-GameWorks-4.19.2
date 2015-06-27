@@ -8,22 +8,6 @@
 class IMediaPlayer;
 
 
-/**
- * Enumerates available media streaming modes.
- */
-UENUM()
-enum EMediaPlayerStreamModes
-{
-	/** Load media contents to memory before playing. */
-	MASM_FromMemory UMETA(DisplayName="FromMemory"),
-
-	/** Play media directly from the URL. */
-	MASM_FromUrl UMETA(DisplayName="FromUrl"),
-
-	MASM_MAX,
-};
-
-
 /** Multicast delegate that is invoked when a media player's media has been closed. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaClosed);
 
@@ -297,10 +281,6 @@ protected:
 	/** Whether playback should loop when it reaches the end. */
 	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 Looping:1;
-
-	/** Select where to stream the media from, i.e. file or memory. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Source)
-	TEnumAsByte<EMediaPlayerStreamModes> StreamMode;
 
 	/** The path or URL to the media file to be played. */
 	UPROPERTY(EditAnywhere, Category=Source)

@@ -7,10 +7,9 @@
 /* FWmfByteStream structors
  *****************************************************************************/
 
-FWmfMediaByteStream::FWmfMediaByteStream( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& InBuffer )
+FWmfMediaByteStream::FWmfMediaByteStream(const TSharedRef<FArchive, ESPMode::ThreadSafe>& InArchive)
 	: AsyncReadInProgress(false)
-	, Buffer(InBuffer)
-	, Position(0)
+	, Archive(InArchive)
 	, RefCount(0)
 { }
 
@@ -24,13 +23,13 @@ STDMETHODIMP_(ULONG) FWmfMediaByteStream::AddRef()
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::GetParameters( unsigned long*, unsigned long*)
+STDMETHODIMP FWmfMediaByteStream::GetParameters(unsigned long*, unsigned long*)
 {
 	return E_NOTIMPL;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::Invoke( IMFAsyncResult* AsyncResult )
+STDMETHODIMP FWmfMediaByteStream::Invoke(IMFAsyncResult* AsyncResult)
 {
 	// recover read state
 	IUnknown* State = NULL;
@@ -83,7 +82,7 @@ STDMETHODIMP FWmfMediaByteStream::Invoke( IMFAsyncResult* AsyncResult )
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::QueryInterface( REFIID RefID, void** Object )
+STDMETHODIMP FWmfMediaByteStream::QueryInterface(REFIID RefID, void** Object)
 {
 	static const QITAB QITab[] =
 	{
@@ -112,7 +111,7 @@ STDMETHODIMP_(ULONG) FWmfMediaByteStream::Release()
 /* IMFByteStream interface
  *****************************************************************************/
 
-STDMETHODIMP FWmfMediaByteStream::BeginRead( BYTE* pb, ULONG cb, IMFAsyncCallback* pCallback, IUnknown* punkState )
+STDMETHODIMP FWmfMediaByteStream::BeginRead(BYTE* pb, ULONG cb, IMFAsyncCallback* pCallback, IUnknown* punkState)
 {
 	if ((pCallback == NULL) || (pb == NULL))
 	{
@@ -141,7 +140,7 @@ STDMETHODIMP FWmfMediaByteStream::BeginRead( BYTE* pb, ULONG cb, IMFAsyncCallbac
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::BeginWrite( const BYTE* pb, ULONG cb, IMFAsyncCallback* pCallback, IUnknown* punkState )
+STDMETHODIMP FWmfMediaByteStream::BeginWrite(const BYTE* pb, ULONG cb, IMFAsyncCallback* pCallback, IUnknown* punkState)
 {
 	return E_NOTIMPL;
 }
@@ -153,7 +152,7 @@ STDMETHODIMP FWmfMediaByteStream::Close()
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::EndRead( IMFAsyncResult* pResult, ULONG* pcbRead )
+STDMETHODIMP FWmfMediaByteStream::EndRead(IMFAsyncResult* pResult, ULONG* pcbRead)
 {
 	if (pcbRead == NULL)
 	{
@@ -175,7 +174,7 @@ STDMETHODIMP FWmfMediaByteStream::EndRead( IMFAsyncResult* pResult, ULONG* pcbRe
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::EndWrite( IMFAsyncResult* pResult, ULONG* pcbWritten )
+STDMETHODIMP FWmfMediaByteStream::EndWrite(IMFAsyncResult* pResult, ULONG* pcbWritten)
 {
 	return E_NOTIMPL;
 }
@@ -187,7 +186,7 @@ STDMETHODIMP FWmfMediaByteStream::Flush()
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::GetCapabilities( DWORD* pdwCapabilities )
+STDMETHODIMP FWmfMediaByteStream::GetCapabilities(DWORD* pdwCapabilities)
 {
 	FScopeLock ScopeLock(&CriticalSection);
 	*pdwCapabilities = MFBYTESTREAM_IS_READABLE | MFBYTESTREAM_IS_SEEKABLE;
@@ -196,25 +195,25 @@ STDMETHODIMP FWmfMediaByteStream::GetCapabilities( DWORD* pdwCapabilities )
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::GetCurrentPosition( QWORD* pqwPosition )
+STDMETHODIMP FWmfMediaByteStream::GetCurrentPosition(QWORD* pqwPosition)
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	*pqwPosition = Position;
+	*pqwPosition = Archive->Tell();
 
 	return S_OK;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::GetLength( QWORD* pqwLength )
+STDMETHODIMP FWmfMediaByteStream::GetLength(QWORD* pqwLength)
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	*pqwLength = (QWORD)Buffer->Num();
+	*pqwLength = (QWORD)Archive->TotalSize();
 
 	return S_OK;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::IsEndOfStream( BOOL* pfEndOfStream )
+STDMETHODIMP FWmfMediaByteStream::IsEndOfStream(BOOL* pfEndOfStream)
 {
 	if (pfEndOfStream == NULL)
 	{
@@ -222,31 +221,33 @@ STDMETHODIMP FWmfMediaByteStream::IsEndOfStream( BOOL* pfEndOfStream )
 	}
 
 	FScopeLock ScopeLock(&CriticalSection);
-	*pfEndOfStream = (Position >= Buffer->Num()) ? TRUE : FALSE;
+	*pfEndOfStream = Archive->AtEnd() ? TRUE : FALSE;
 
 	return S_OK;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::Read( BYTE* pb, ULONG cb, ULONG* pcbRead )
+STDMETHODIMP FWmfMediaByteStream::Read(BYTE* pb, ULONG cb, ULONG* pcbRead)
 {
 	FScopeLock ScopeLock(&CriticalSection);
 
+	int64 Position = Archive->Tell();
+	int64 Size = Archive->TotalSize();
 	ULONG BytesToRead = cb;
 
-	if (BytesToRead > (ULONG)Buffer->Num())
+	if (BytesToRead > (ULONG)Size)
 	{
-		BytesToRead = Buffer->Num();
+		BytesToRead = Size;
 	}
 
-	if ((Buffer->Num() - BytesToRead) < Position)
+	if ((Size - BytesToRead) < Archive->Tell())
 	{
-		BytesToRead = Buffer->Num() - Position;
+		BytesToRead = Size - Position;
 	}
 
 	if (BytesToRead > 0)
 	{
-		FMemory::Memcpy(pb, ((BYTE*)Buffer->GetData() + Position), BytesToRead);
+		Archive->Serialize(pb, BytesToRead);
 	}
 
 	if (pcbRead != NULL)
@@ -254,13 +255,13 @@ STDMETHODIMP FWmfMediaByteStream::Read( BYTE* pb, ULONG cb, ULONG* pcbRead )
 		*pcbRead = BytesToRead;
 	}	
 
-	Position += BytesToRead;
+	Archive->Seek(Position + BytesToRead);
 
 	return S_OK;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::Seek( MFBYTESTREAM_SEEK_ORIGIN SeekOrigin, LONGLONG qwSeekOffset, DWORD dwSeekFlags, QWORD* pqwCurrentPosition )
+STDMETHODIMP FWmfMediaByteStream::Seek(MFBYTESTREAM_SEEK_ORIGIN SeekOrigin, LONGLONG qwSeekOffset, DWORD dwSeekFlags, QWORD* pqwCurrentPosition)
 {
 	FScopeLock ScopeLock(&CriticalSection);
 
@@ -271,29 +272,29 @@ STDMETHODIMP FWmfMediaByteStream::Seek( MFBYTESTREAM_SEEK_ORIGIN SeekOrigin, LON
 
 	if (SeekOrigin == msoCurrent)
 	{
-		Position += qwSeekOffset;
+		Archive->Seek(Archive->Tell() + qwSeekOffset);
 	}
 	else
 	{
-		Position = qwSeekOffset;
+		Archive->Seek(qwSeekOffset);
 	}
 
 	if (pqwCurrentPosition != NULL)
 	{
-		*pqwCurrentPosition = (QWORD)Position;
+		*pqwCurrentPosition = (QWORD)Archive->Tell();
 	}
 
 	return S_OK;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::SetLength( QWORD qwLength )
+STDMETHODIMP FWmfMediaByteStream::SetLength(QWORD qwLength)
 {
 	return E_NOTIMPL;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::SetCurrentPosition( QWORD qwPosition )
+STDMETHODIMP FWmfMediaByteStream::SetCurrentPosition(QWORD qwPosition)
 {
 	FScopeLock ScopeLock(&CriticalSection);
 
@@ -302,13 +303,13 @@ STDMETHODIMP FWmfMediaByteStream::SetCurrentPosition( QWORD qwPosition )
 		return S_FALSE;
 	}
 
-	Position = (uint64)qwPosition;
+	Archive->Seek((int64)qwPosition);
 
 	return S_OK;
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::Write( const BYTE* pb, ULONG cb, ULONG* pcbWritten )
+STDMETHODIMP FWmfMediaByteStream::Write(const BYTE* pb, ULONG cb, ULONG* pcbWritten)
 {
 	return E_NOTIMPL;
 }

@@ -130,14 +130,14 @@ public:
 	virtual bool Open( const FString& Url ) = 0;
 
 	/**
-	 * Opens a media from a buffer.
+	 * Opens a media from a file or memory archive.
 	 *
-	 * @param Buffer The buffer holding the media data.
+	 * @param Archive The archive holding the media data.
 	 * @param OriginalUrl The original URL of the media that was loaded into the buffer.
 	 * @return true if the media was opened, false otherwise.
 	 * @see Close, IsReady
 	 */
-	virtual bool Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer, const FString& OriginalUrl ) = 0;
+	virtual bool Open( const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl ) = 0;
 
 	/**
 	 * Changes the media's playback time.

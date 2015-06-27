@@ -533,7 +533,7 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 	return MediaState == EMediaState::Prepared;
 }
 
-bool FAndroidMediaPlayer::Open(const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer,
+bool FAndroidMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive,
 	const FString& OriginalUrl)
 {
 	return false;

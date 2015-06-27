@@ -11,7 +11,6 @@
 UMediaPlayer::UMediaPlayer( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, Looping(true)
-	, StreamMode(MASM_FromUrl)
 	, Player(nullptr)
 { }
 
@@ -265,33 +264,13 @@ void UMediaPlayer::InitializePlayer()
 		}
 		else
 		{
-			const FString FullUrl = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(URL) ? FPaths::GameContentDir() / URL : URL);
+			const FString FullUrl = FPaths::ConvertRelativePathToFull(
+				FPaths::IsRelative(URL)
+					? FPaths::GameContentDir() / URL
+					: URL
+			);
 
-			if (StreamMode == EMediaPlayerStreamModes::MASM_FromUrl)
-			{
-				OpenedSuccessfully = Player->Open(FullUrl);
-			}
-			else if (FPaths::FileExists(FullUrl))
-			{
-				FArchive* FileReader = IFileManager::Get().CreateFileReader(*FullUrl);
-		
-				if (FileReader == nullptr)
-				{
-					return;
-				}
-
-				if (FileReader->TotalSize() > 0)
-				{
-					TArray<uint8>* FileData = new TArray<uint8>();
-
-					FileData->AddUninitialized(FileReader->TotalSize());
-					FileReader->Serialize(FileData->GetData(), FileReader->TotalSize());
-
-					OpenedSuccessfully = Player->Open(MakeShareable(FileData), FullUrl);
-				}
-
-				delete FileReader;
-			}
+			OpenedSuccessfully = Player->Open(FullUrl);
 		}
 
 		// finish initialization

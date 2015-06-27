@@ -25,9 +25,9 @@ public:
 	// IMediaInfo interface
 
 	virtual FTimespan GetDuration() const override;
-	virtual TRange<float> GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const override;
+	virtual TRange<float> GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const override;
 	virtual FString GetUrl() const override;
-	virtual bool SupportsRate( float Rate, bool Unthinned ) const override;
+	virtual bool SupportsRate(float Rate, bool Unthinned) const override;
 	virtual bool SupportsScrubbing() const override;
 	virtual bool SupportsSeeking() const override;
 
@@ -44,11 +44,11 @@ public:
 	virtual bool IsPaused() const override;
 	virtual bool IsPlaying() const override;
 	virtual bool IsReady() const override;
-	virtual bool Open( const FString& Url ) override;
-	virtual bool Open( const TSharedRef<TArray<uint8>, ESPMode::ThreadSafe>& Buffer, const FString& OriginalUrl ) override;
-	virtual bool Seek( const FTimespan& Time ) override;
-	virtual bool SetLooping( bool Looping ) override;
-	virtual bool SetRate( float Rate ) override;
+	virtual bool Open(const FString& Url) override;
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl) override;
+	virtual bool Seek(const FTimespan& Time) override;
+	virtual bool SetLooping(bool Looping) override;
+	virtual bool SetRate(float Rate) override;
 
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaClosed, FOnMediaClosed);
 	virtual FOnMediaClosed& OnClosed() override
@@ -73,7 +73,7 @@ protected:
 	 * @param MediaSourceObject The media source object.
 	 * @return true on success, false otherwise.
 	 */
-	void AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject );
+	void AddStreamToTopology(uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject);
 
 	/**
 	 * Initializes the media session for the given media source.
@@ -82,7 +82,7 @@ protected:
 	 * @param SourceUrl The original URL of the media source.
 	 * @return true on success, false otherwise.
 	 */
-	bool InitializeMediaSession( IUnknown* SourceObject, const FString& SourceUrl );
+	bool InitializeMediaSession(IUnknown* SourceObject, const FString& SourceUrl);
 
 private:
 
