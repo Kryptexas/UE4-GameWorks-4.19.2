@@ -36,7 +36,7 @@ public:
 protected:
 
 	/** Reloads the media texture and updates all options. */
-	void ReloadMediaPlayer();
+	void ReloadTracks();
 
 private:
 
@@ -66,6 +66,9 @@ private:
 
 	/** Callback for when the media player's media has changed. */
 	void HandleMediaPlayerMediaChanged();
+
+	/** Callback for when the media player's tracks changed. */
+	void HandleMediaPlayerTracksChanged();
 
 	/** Callback for getting the visibility of the 'No media selected' warning text. */
 	EVisibility HandleNoMediaSelectedTextVisibility() const;

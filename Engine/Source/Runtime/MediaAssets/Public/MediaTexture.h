@@ -129,8 +129,8 @@ protected:
 
 private:
 
-	/** Callback for when the UMediaPlayer asset changed its media. */
-	void HandleMediaPlayerMediaChanged();
+	/** Callback for when the UMediaPlayer changed tracks. */
+	void HandleMediaPlayerTracksChanged();
 
 private:
 

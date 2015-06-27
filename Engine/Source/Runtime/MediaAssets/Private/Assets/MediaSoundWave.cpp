@@ -12,6 +12,7 @@
 UMediaSoundWave::UMediaSoundWave( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, AudioQueue(MakeShareable(new FMediaSampleQueue))
+	, AudioTrackIndex(INDEX_NONE)
 {
 	bLooping = false;
 	bProcedural = true;
@@ -24,6 +25,11 @@ UMediaSoundWave::~UMediaSoundWave()
 	if (AudioTrack.IsValid())
 	{
 		AudioTrack->RemoveSink(AudioQueue);
+	}
+
+	if (CurrentMediaPlayer != nullptr)
+	{
+		CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
 	}
 }
 
@@ -147,14 +153,14 @@ void UMediaSoundWave::InitializeTrack()
 	{
 		if (CurrentMediaPlayer != nullptr)
 		{
-			CurrentMediaPlayer->OnMediaChanged().RemoveAll(this);
+			CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
 		}
 
 		CurrentMediaPlayer = MediaPlayer;
 
 		if (MediaPlayer != nullptr)
 		{
-			MediaPlayer->OnMediaChanged().AddUObject(this, &UMediaSoundWave::HandleMediaPlayerMediaChanged);
+			MediaPlayer->OnTracksChanged().AddUObject(this, &UMediaSoundWave::HandleMediaPlayerTracksChanged);
 		}	
 	}
 
@@ -173,9 +179,7 @@ void UMediaSoundWave::InitializeTrack()
 
 		if (Player .IsValid())
 		{
-			AudioTrack = Player ->GetTrack(AudioTrackIndex, EMediaTrackTypes::Audio);
-
-			if (!AudioTrack.IsValid())
+			if (AudioTrackIndex == INDEX_NONE)
 			{
 				AudioTrack = Player->GetFirstTrack(EMediaTrackTypes::Audio);
 
@@ -183,6 +187,10 @@ void UMediaSoundWave::InitializeTrack()
 				{
 					AudioTrackIndex = AudioTrack->GetIndex();
 				}
+			}
+			else
+			{
+				AudioTrack = Player ->GetTrack(AudioTrackIndex, EMediaTrackTypes::Audio);
 			}
 		}
 	}
@@ -209,7 +217,7 @@ void UMediaSoundWave::InitializeTrack()
 /* UMediaSoundWave callbacks
  *****************************************************************************/
 
-void UMediaSoundWave::HandleMediaPlayerMediaChanged()
+void UMediaSoundWave::HandleMediaPlayerTracksChanged()
 {
 	InitializeTrack();
 }

@@ -282,15 +282,17 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 	];
 
 	MediaPlayer->OnMediaChanged().AddRaw(this, &SMediaPlayerEditorViewer::HandleMediaPlayerMediaChanged);
+	MediaPlayer->OnTracksChanged().AddRaw(this, &SMediaPlayerEditorViewer::HandleMediaPlayerTracksChanged);
+
 	RegisterActiveTimer(0.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SMediaPlayerEditorViewer::HandleActiveTimer));
-	ReloadMediaPlayer();
+	ReloadTracks();
 }
 
 
 /* SMediaPlayerEditorPlayer implementation
  *****************************************************************************/
 
-void SMediaPlayerEditorViewer::ReloadMediaPlayer()
+void SMediaPlayerEditorViewer::ReloadTracks()
 {
 	// clear track collections
 	IMediaTrackPtr SelectedCaptionTrack = CaptionTrackComboBox->GetSelectedItem();
@@ -398,7 +400,7 @@ void SMediaPlayerEditorViewer::HandleAudioTrackComboBoxSelectionChanged( IMediaT
 {
 	if (SelectInfo != ESelectInfo::Direct)
 	{
-		ReloadMediaPlayer();
+		ReloadTracks();
 	}
 }
 
@@ -432,7 +434,7 @@ void SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxSelectionChanged( IMedi
 {
 	if (SelectInfo != ESelectInfo::Direct)
 	{
-		ReloadMediaPlayer();
+		ReloadTracks();
 	}
 }
 
@@ -463,7 +465,13 @@ FText SMediaPlayerEditorViewer::HandleElapsedTimeTextBlockText() const
 
 void SMediaPlayerEditorViewer::HandleMediaPlayerMediaChanged()
 {
-	ReloadMediaPlayer();
+	ReloadTracks();
+}
+
+
+void SMediaPlayerEditorViewer::HandleMediaPlayerTracksChanged()
+{
+	ReloadTracks();
 }
 
 
@@ -632,7 +640,7 @@ void SMediaPlayerEditorViewer::HandleVideoTrackComboBoxSelectionChanged( IMediaT
 {
 	if (SelectInfo != ESelectInfo::Direct)
 	{
-		ReloadMediaPlayer();
+		ReloadTracks();
 	}
 }
 

@@ -371,7 +371,10 @@ void FAndroidMediaPlayer::Close()
 		}
 		MediaUrl = FString();
 		MediaState = EMediaState::Idle;
+		
 		Tracks.Reset();
+
+		TracksChangedEvent.Broadcast();
 		ClosedEvent.Broadcast();
 	}
 }
@@ -525,6 +528,8 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 		{
 			Tracks.Add(MakeShareable(new AudioTrack(*this, Tracks.Num())));
 		}
+
+		TracksChangedEvent.Broadcast();
 	}
 	if (MediaState == EMediaState::Prepared)
 	{

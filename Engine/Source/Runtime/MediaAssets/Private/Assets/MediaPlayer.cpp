@@ -229,6 +229,7 @@ void UMediaPlayer::InitializePlayer()
 			Player->Close();
 			Player->OnClosed().RemoveAll(this);
 			Player->OnOpened().RemoveAll(this);
+			Player->OnTracksChanged().RemoveAll(this);
 			Player.Reset();
 		}
 
@@ -252,8 +253,9 @@ void UMediaPlayer::InitializePlayer()
 			return;
 		}
 
-		Player->OnClosed().AddUObject(this, &UMediaPlayer::HandleMediaPlayerMediaClosed);
-		Player->OnOpened().AddUObject(this, &UMediaPlayer::HandleMediaPlayerMediaOpened);
+		Player->OnClosed().AddUObject(this, &UMediaPlayer::HandlePlayerMediaClosed);
+		Player->OnOpened().AddUObject(this, &UMediaPlayer::HandlePlayerMediaOpened);
+		Player->OnTracksChanged().AddUObject(this, &UMediaPlayer::HandlePlayerTracksChanged);
 
 		// open the new media file
 		bool OpenedSuccessfully = false;
@@ -290,15 +292,21 @@ void UMediaPlayer::InitializePlayer()
 /* UMediaPlayer callbacks
  *****************************************************************************/
 
-void UMediaPlayer::HandleMediaPlayerMediaClosed()
+void UMediaPlayer::HandlePlayerMediaClosed()
 {
 	MediaChangedEvent.Broadcast();
 	OnMediaClosed.Broadcast();
 }
 
 
-void UMediaPlayer::HandleMediaPlayerMediaOpened( FString OpenedUrl )
+void UMediaPlayer::HandlePlayerMediaOpened( FString OpenedUrl )
 {
 	MediaChangedEvent.Broadcast();
 	OnMediaOpened.Broadcast(OpenedUrl);
+}
+
+
+void UMediaPlayer::HandlePlayerTracksChanged()
+{
+	TracksChangedEvent.Broadcast();
 }

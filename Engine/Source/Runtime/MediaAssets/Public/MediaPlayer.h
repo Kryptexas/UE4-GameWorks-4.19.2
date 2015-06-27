@@ -239,6 +239,13 @@ public:
 		return MediaChangedEvent;
 	}
 
+	/** Gets an event delegate that is invoked when media tracks have changed. */
+	DECLARE_EVENT(UMediaPlayer, FOnTracksChanged)
+	FOnTracksChanged& OnTracksChanged()
+	{
+		return TracksChangedEvent;
+	}
+
 	/** Holds a delegate that is invoked when a media source has been closed. */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaClosed OnMediaClosed;
@@ -288,11 +295,14 @@ protected:
 
 private:
 
-	/** Callback for when the media player has closed a media source. */
-	void HandleMediaPlayerMediaClosed();
+	/** Callback for when the player has closed a media source. */
+	void HandlePlayerMediaClosed();
 
-	/** Callback for when the media player has opened a new media source. */
-	void HandleMediaPlayerMediaOpened( FString OpenedUrl );
+	/** Callback for when the player has opened a new media source. */
+	void HandlePlayerMediaOpened( FString OpenedUrl );
+
+	/** Callback for when the player's tracks changed. */
+	void HandlePlayerTracksChanged();
 
 private:
 
@@ -306,4 +316,7 @@ private:
 
 	/** Holds a delegate that is executed when media has been opened or closed. */
 	FOnMediaChanged MediaChangedEvent;
+
+	/** Holds a delegate that is executed when media tracks have changed. */
+	FOnTracksChanged TracksChangedEvent;
 };

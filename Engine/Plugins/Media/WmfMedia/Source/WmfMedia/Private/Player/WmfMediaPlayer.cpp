@@ -91,6 +91,7 @@ void FWmfMediaPlayer::Close()
 	Duration = 0;
 	MediaUrl = FString();
 
+	TracksChangedEvent.Broadcast();
 	ClosedEvent.Broadcast();
 }
 
@@ -455,6 +456,7 @@ bool FWmfMediaPlayer::InitializeMediaSession(IUnknown* SourceObject, const FStri
 	}
 
 	UE_LOG(LogWmfMedia, Verbose, TEXT("Added a total of %i tracks"), Tracks.Num());
+	TracksChangedEvent.Broadcast();
 
 	UINT64 PresentationDuration = 0;
 	PresentationDescriptor->GetUINT64(MF_PD_DURATION, &PresentationDuration);

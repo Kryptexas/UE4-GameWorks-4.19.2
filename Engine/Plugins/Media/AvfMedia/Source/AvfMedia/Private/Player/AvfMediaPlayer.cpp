@@ -131,6 +131,7 @@ void FAvfMediaPlayer::Close()
     }
     
 	Tracks.Reset();
+	TracksChangedEvent.Broadcast();
     
     Duration = CurrentTime = FTimespan::Zero();
     
@@ -265,7 +266,7 @@ bool FAvfMediaPlayer::Open( const FString& Url )
                         {
                             AVAssetTrack* VideoTrack = [VideoTracks objectAtIndex: 0];
                             Tracks.Add( MakeShareable( new FAvfMediaVideoTrack(VideoTrack) ) );
-     
+
 #if PLATFORM_MAC
                             GameThreadCall(^{
 #elif PLATFORM_IOS
@@ -273,8 +274,9 @@ bool FAvfMediaPlayer::Open( const FString& Url )
                             [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
 #endif
                                 // Displatch on the gamethread that we have opened the video.
+								TracksChangedEvent.Broadcast();
                                 OpenedEvent.Broadcast( CachedUrl );
-                         
+
 #if PLATFORM_IOS
                                 return true;
                             }];

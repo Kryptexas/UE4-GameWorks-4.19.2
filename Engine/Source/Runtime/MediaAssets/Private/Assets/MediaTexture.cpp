@@ -14,6 +14,7 @@ UMediaTexture::UMediaTexture( const FObjectInitializer& ObjectInitializer )
 	, MediaPlayer(nullptr)
 	, CurrentMediaPlayer(nullptr)
 	, VideoBuffer(MakeShareable(new FMediaSampleBuffer))
+	, VideoTrackIndex(INDEX_NONE)
 {
 	NeverStream = true;
 
@@ -26,6 +27,11 @@ UMediaTexture::~UMediaTexture()
 	if (VideoTrack.IsValid())
 	{
 		VideoTrack->RemoveSink(VideoBuffer);
+	}
+
+	if (CurrentMediaPlayer != nullptr)
+	{
+		CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
 	}
 }
 
@@ -171,14 +177,14 @@ void UMediaTexture::InitializeTrack()
 	{
 		if (CurrentMediaPlayer != nullptr)
 		{
-			CurrentMediaPlayer->OnMediaChanged().RemoveAll(this);
+			CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
 		}
 
 		CurrentMediaPlayer = MediaPlayer;
 
 		if (MediaPlayer != nullptr)
 		{
-			MediaPlayer->OnMediaChanged().AddUObject(this, &UMediaTexture::HandleMediaPlayerMediaChanged);
+			MediaPlayer->OnTracksChanged().AddUObject(this, &UMediaTexture::HandleMediaPlayerTracksChanged);
 		}	
 	}
 
@@ -196,9 +202,7 @@ void UMediaTexture::InitializeTrack()
 
 		if (Player.IsValid())
 		{
-			VideoTrack = Player->GetTrack(VideoTrackIndex, EMediaTrackTypes::Video);
-
-			if (!VideoTrack.IsValid())
+			if (VideoTrackIndex == INDEX_NONE)
 			{
 				VideoTrack = Player->GetFirstTrack(EMediaTrackTypes::Video);
 
@@ -206,6 +210,10 @@ void UMediaTexture::InitializeTrack()
 				{
 					VideoTrackIndex = VideoTrack->GetIndex();
 				}
+			}
+			else
+			{
+				VideoTrack = Player->GetTrack(VideoTrackIndex, EMediaTrackTypes::Video);
 			}
 		}
 	}
@@ -232,7 +240,7 @@ void UMediaTexture::InitializeTrack()
 /* UMediaTexture callbacks
  *****************************************************************************/
 
-void UMediaTexture::HandleMediaPlayerMediaChanged()
+void UMediaTexture::HandleMediaPlayerTracksChanged()
 {
 	InitializeTrack();
 }

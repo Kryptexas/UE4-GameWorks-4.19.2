@@ -180,6 +180,10 @@ public:
 	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaOpened, FString /*OpenedUrl*/)
 	virtual FOnMediaOpened& OnOpened() = 0;
 
+	/** Gets an event delegate that is invoked when the media tracks have changed. */
+	DECLARE_EVENT(IMediaPlayer, FOnTracksChanged)
+	virtual FOnTracksChanged& OnTracksChanged() = 0;
+
 public:
 
 	/**
