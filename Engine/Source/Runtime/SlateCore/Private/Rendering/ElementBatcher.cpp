@@ -47,22 +47,12 @@ FSlateRotatedClipRectType ToSnappedRotatedRect(const FSlateRect& ClipRectInLayou
 		SnappedBottomLeft - SnappedTopLeft);
 }
 
-/**
- * Computes the element tint color based in the user specified color and brush being used.
- * Note: The color could be in RGB or HSV
- * @return The final color to be passed per vertex
- */
-static FColor GetElementColor( const FLinearColor& InColor, const FSlateBrush* InBrush )
-{
-	// Pass the color through
-	return InColor.ToFColor(true);
-}
-
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
 	: BatchData( nullptr )
 	, ResourceManager( *InRenderingPolicy->GetResourceManager() )
 	, FontCache( *InRenderingPolicy->GetFontCache() )
 	, PixelCenterOffset( InRenderingPolicy->GetPixelCenterOffset() )
+	, bSRGBVertexColor( !InRenderingPolicy->IsVertexColorInLinearSpace() )
 {
 
 }
@@ -309,7 +299,7 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 		}
 
 
-		FColor Tint = GetElementColor(InPayload.Tint, BrushResource);
+		FColor Tint = InPayload.Tint.ToFColor(bSRGBVertexColor);
 
 		const ESlateBrushTileType::Type TilingRule = BrushResource->Tiling;
 		const bool bTileHorizontal = (TilingRule == ESlateBrushTileType::Both || TilingRule == ESlateBrushTileType::Horizontal);
@@ -603,7 +593,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 	
 	const bool bIsFontMaterial = InPayload.FontInfo.FontMaterial != nullptr;
 
-	FColor FinalColor = GetElementColor( InPayload.Tint, nullptr );
+	FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
 
 	uint32 NumChars = Text.Len();
 
@@ -911,7 +901,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	FVector2D StartPos = StartPt;
 	FVector2D EndPos = FVector2D( FMath::CubicInterp( StartPt, StartDir, EndPt, EndDir, Alpha ) );
 
-	FColor FinalColor = GetElementColor( InPayload.Tint, nullptr );
+	FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
 
 	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos + Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
 	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos - Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
@@ -1014,7 +1004,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 		return;
 	}
 
-	FColor FinalColor = GetElementColor( InPayload.Tint, nullptr );
+	FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
 
 	if( InPayload.bAntialias )
 	{
@@ -1181,7 +1171,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
 	FSlateRotatedClipRectType RenderClipRect = ToSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
 
-	const FColor FinalColor = GetElementColor( InPayload.Tint, nullptr );
+	const FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
 
 	ESlateBatchDrawFlag::Type DrawFlags = ESlateBatchDrawFlag::None;
 	
@@ -1341,7 +1331,7 @@ void FSlateElementBatcher::AddBorderElement( const FSlateDrawElement& DrawElemen
 	FShaderParams ShaderParams = FShaderParams::MakePixelShaderParams( FVector4(LeftMarginU,RightMarginU,TopMarginV,BottomMarginV) );
 
 	// The tint color applies to all brushes and is passed per vertex
-	FColor Tint = GetElementColor( InPayload.Tint, InPayload.BrushResource );
+	FColor Tint = InPayload.Tint.ToFColor(bSRGBVertexColor);
 
 	// Pass the tiling information as a flag so we can pick the correct texture addressing mode
 	ESlateBatchDrawFlag::Type DrawFlags = (ESlateBatchDrawFlag::TileU|ESlateBatchDrawFlag::TileV);

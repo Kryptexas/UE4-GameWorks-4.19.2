@@ -117,6 +117,9 @@ private:
 	/** Offset to use when supporting 1:1 texture to pixel snapping */
 	const float PixelCenterOffset;
 
+	/** Are the vertex colors expected to be in sRGB space? */
+	const bool bSRGBVertexColor;
+
 	// true if any element in the batch requires vsync.
 	bool bRequiresVsync;
 };

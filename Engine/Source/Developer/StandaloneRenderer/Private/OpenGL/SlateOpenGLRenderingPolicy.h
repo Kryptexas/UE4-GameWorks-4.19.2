@@ -18,7 +18,6 @@ public:
 	 */
 	void UpdateVertexAndIndexBuffers(FSlateBatchData& BatchData);
 
-	
 	/**
 	 * Draws Slate elements
 	 *
@@ -27,12 +26,14 @@ public:
 	 */
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override;
+
 	/**
 	 * Returns the font cache used when the OpenGL rendering policy is active
- 	 */
+	 */
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
+
+	virtual bool IsVertexColorInLinearSpace() const override { return false; }
 
 	/** 
 	 * Initializes resources if needed

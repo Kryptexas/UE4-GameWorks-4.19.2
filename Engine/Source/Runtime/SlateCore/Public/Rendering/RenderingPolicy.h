@@ -31,6 +31,8 @@ public:
 
 	virtual TSharedRef<class FSlateShaderResourceManager> GetResourceManager() = 0;
 
+	virtual bool IsVertexColorInLinearSpace() const = 0;
+
 	float GetPixelCenterOffset() const
 	{
 		return PixelCenterOffset;
