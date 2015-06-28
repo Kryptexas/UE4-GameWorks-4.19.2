@@ -12,6 +12,7 @@
 #include "ConsoleSettings.h"
 #include "GameFramework/InputSettings.h"
 #include "Stats/StatsData.h"
+#include "TextFilter.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 
@@ -302,17 +303,52 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 #endif
 }
 
+typedef TTextFilter< const FAutoCompleteCommand& > FCheatTextFilter;
+
+void CommandToStringArray(const FAutoCompleteCommand& Command, OUT TArray< FString >& StringArray)
+{
+	StringArray.Add(Command.Desc);
+}
+
 void UConsole::UpdateCompleteIndices()
 {
 	if (!bIsRuntimeAutoCompleteUpToDate)
 	{
 		BuildRuntimeAutoCompleteList(true);
 	}
+
+	// see if we should do a full search instead of normal autocomplete
+	static FString Space(" ");
+	static FString QuestionMark("?");
+	FString Left, Right;
+	if ((TypedStr.Split(Space, &Left, &Right) && !Left.Compare(QuestionMark)) ||
+		!TypedStr.Compare(QuestionMark))
+	{
+		static FCheatTextFilter Filter(FCheatTextFilter::FItemToStringArray::CreateStatic(&CommandToStringArray));
+		Filter.SetRawFilterText(FText::FromString(Right));
+
+		AutoCompleteIndex = 0;
+		AutoCompleteCursor = -1;
+		AutoComplete.Empty();
+
+		for (auto Command : AutoCompleteList)
+		{
+			if (Filter.PassesFilter(Command))
+			{
+				AutoComplete.Add(Command);
+			}
+		}
+
+		AutoComplete.Sort();
+		return;
+	}
+
 	AutoCompleteIndex = 0;
 	AutoCompleteCursor = -1;
 	AutoComplete.Empty();
 	FAutoCompleteNode *Node = &AutoCompleteTree;
 	FString LowerTypedStr = TypedStr.ToLower();
+	int32 EndIdx = -1;
 	for (int32 Idx = 0; Idx < TypedStr.Len(); Idx++)
 	{
 		int32 Char = LowerTypedStr[Idx];
@@ -339,6 +375,12 @@ void UConsole::UpdateCompleteIndices()
 			{
 				if(Idx < TypedStr.Len())
 				{
+					// if the first non-matching character is a space we might be adding parameters, stay on the last node we found so users can see the parameter info
+					if (TypedStr[Idx] == TCHAR(' '))
+					{
+						EndIdx = Idx;
+						break;
+					}
 					// there is more text behind the auto completed text, we don't need auto completion
 					return;
 				}
@@ -355,7 +397,12 @@ void UConsole::UpdateCompleteIndices()
 
 		for(uint32 i = 0, Num = (uint32)Leaf.Num(); i < Num; ++i)
 		{
-			AutoComplete.Add(AutoCompleteList[Leaf[i]]);
+			// if we're adding parameters we want to make sure that we only display exact matches
+			// ie Typing "Foo 5" should still show info for "Foo" but not for "FooBar"
+			if (EndIdx < 0 || AutoCompleteList[Leaf[i]].Command.Len() == EndIdx)
+			{
+				AutoComplete.Add(AutoCompleteList[Leaf[i]]);
+			}
 		}
 		AutoComplete.Sort();
 	}
