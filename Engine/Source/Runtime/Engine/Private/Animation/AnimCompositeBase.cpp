@@ -8,6 +8,7 @@
 #include "AnimationUtils.h"
 #include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimSequence.h"
+#include "AnimationRuntime.h"
 
 ///////////////////////////////////////////////////////
 // FAnimSegment
