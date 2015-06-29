@@ -5,17 +5,42 @@
 #include "StatsData.h"
 #include "StatsFile.h"
 
+/*-----------------------------------------------------------------------------
+	Basic structures
+-----------------------------------------------------------------------------*/
+
 /** Simple allocation info. Assumes the sequence tag are unique and doesn't wrap. */
 struct FAllocationInfo
 {
+	/** Old pointer, for Realloc. */
 	uint64 OldPtr;
+
+	/** Pointer, for Alloc, Realloc and Free. */
 	uint64 Ptr;
+
+	/** Size of the allocation. */
 	int64 Size;
+	
+	/**
+	 * Encoded callstack as FNames indices separated with +
+	 * 123+45+56+76
+	 */
 	FName EncodedCallstack;
+	
+	/**
+	 * Index of the memory operation. 
+	 * Stats are handled with packets sent from different threads.
+	 * This is used to sort the memory operations to be in the sequence order.
+	 */
 	uint32 SequenceTag;
+	
+	/** Memory operation, can be Alloc, Free or Realloc. */
 	EMemoryOperation Op;
+	
+	/** If true, the callstack is broken. Missing Start/End scope. */
 	bool bHasBrokenCallstack;
 
+	/** Initialization constructor. */
 	FAllocationInfo(
 		uint64 InOldPtr,
 		uint64 InPtr,
@@ -26,28 +51,40 @@ struct FAllocationInfo
 		bool bInHasBrokenCallstack
 		);
 
+	/** Copy constructor. */
 	FAllocationInfo( const FAllocationInfo& Other );
-
-	bool operator<(const FAllocationInfo& Other) const
-	{
-		return SequenceTag < Other.SequenceTag;
-	}
 };
 
-// #YRX_Profiler: Add TArray<FName> etc 2015-06-25 
-struct FSizeAndCount
+/** Contains data about combined allocations for an unique scope. */
+struct FCombinedAllocationInfo
 {
-	int64 Size;
-	int64 Count;
+	/** Size as MB. */
 	double SizeMB;
 
-	FSizeAndCount()
-		: Size( 0 )
+	/** Allocations count. */
+	int64 Count;
+
+	/** Human readable callstack like 'GameThread -> Preinit -> LoadModule */
+	FString HumanReadableCallstack;
+
+	/** Encoded callstack like '45+656+6565'. */
+	FName EncodedCallstack;
+
+	/** Callstack indices, encoded callstack parsed into an array [45,656,6565] */
+	TArray<FName> DecodedCallstack;
+
+	/** Size for this node and children. */
+	int64 Size;
+
+	/** Default constructor. */
+	FCombinedAllocationInfo()
+		: SizeMB( 0 )
 		, Count( 0 )
-		, SizeMB( 0 )
+		, Size( 0 )
 	{}
 
-	FSizeAndCount& operator+=(const FSizeAndCount& Other)
+	/** Operator for adding another combined allocation. */
+	FCombinedAllocationInfo& operator+=(const FCombinedAllocationInfo& Other)
 	{
 		if ((UPTRINT*)this != (UPTRINT*)&Other)
 		{
@@ -56,15 +93,36 @@ struct FSizeAndCount
 		return *this;
 	}
 
-	FSizeAndCount& operator-=(const FSizeAndCount& Other)
+	/** Operator for subtracting another combined allocation. */
+	FCombinedAllocationInfo& operator-=(const FCombinedAllocationInfo& Other)
 	{
 		if ((UPTRINT*)this != (UPTRINT*)&Other)
 		{
-			RemoveAllocation( Other.Size, Other.Count );
+			AddAllocation( -Other.Size, -Other.Count );
 		}
 		return *this;
 	}
 
+	/** Operator for adding a new allocation. */
+	FCombinedAllocationInfo& operator+=(const FAllocationInfo& Other)
+	{
+		if ((UPTRINT*)this != (UPTRINT*)&Other)
+		{
+			AddAllocation( Other.Size, 1 );
+		}
+		return *this;
+	}
+	
+	/**
+	 * @return true, if the combined allocation is alive, the allocated data is larger than 0
+	 */
+	bool IsAlive()
+	{
+		return Size > 0;
+	}
+
+protected:
+	/** Adds a new allocation. */
 	void AddAllocation( int64 SizeToAdd, int64 CountToAdd = 1 )
 	{
 		Size += SizeToAdd;
@@ -73,18 +131,9 @@ struct FSizeAndCount
 		const double InvMB = 1.0 / 1024.0 / 1024.0;
 		SizeMB = Size * InvMB;
 	}
-
-	void RemoveAllocation( int64 SizeToRemove, int64 CountToRemove )
-	{
-		AddAllocation( -SizeToRemove, -CountToRemove );
-	}
-
-	bool IsAlive()
-	{
-		return Size > 0;
-	}
 };
 
+/** Contains data about node allocations, parent and children allocations. */
 struct FNodeAllocationInfo
 {
 	/** Size as MBs for this node and children. */
@@ -114,6 +163,7 @@ struct FNodeAllocationInfo
 	/** Node's depth. */
 	int32 Depth;
 
+	/** Default constructor. */
 	FNodeAllocationInfo()
 		: SizeMB( 0.0 )
 		, Count( 0 )
@@ -122,13 +172,14 @@ struct FNodeAllocationInfo
 		, Depth( 0 )
 	{}
 
-
+	/** Destructor. */
 	~FNodeAllocationInfo()
 	{
 		DeleteAllChildrenNodes();
 	}
 
-	void Accumulate( const FSizeAndCount& Other )
+	/** Accumulates this node with the other combined allocation. */
+	void Accumulate( const FCombinedAllocationInfo& Other )
 	{
 		Size += Other.Size;
 		Count += Other.Count;
@@ -137,6 +188,14 @@ struct FNodeAllocationInfo
 		SizeMB = Size * InvMB;
 	}
 
+	/** Recursively sorts all children by size. */
+	void SortBySize();
+
+	/** Prepares all callstack data for this node. */
+	void PrepareCallstackData( const TArray<FName>& InDecodedCallstack );
+
+protected:
+	/** Recursively deletes all children. */
 	void DeleteAllChildrenNodes()
 	{
 		for (auto& It : ChildNodes)
@@ -145,8 +204,6 @@ struct FNodeAllocationInfo
 		}
 		ChildNodes.Empty();
 	}
-
-	void SortBySize();
 };
 
 /** An example command loading a raw stats file and dumping memory usage. */
@@ -177,22 +234,30 @@ protected:
 	/** Generates UObject allocation statistics. */
 	void ProcessAndDumpUObjectAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap );
 
-	void DumpScopedAllocations( const TCHAR* Name, const TMap<FString, FSizeAndCount>& ScopedAllocations );
+	void DumpScopedAllocations( const TCHAR* Name, const TMap<FString, FCombinedAllocationInfo>& CombinedAllocations );
 
 	/** Generates callstack based allocation map. */
-	void GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, TMap<FName, FSizeAndCount>& out_ScopedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations );
+	void GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, TMap<FName, FCombinedAllocationInfo>& out_CombinedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations );
 
-	void GenerateScopedTreeAllocations( const TMap<FName, FSizeAndCount>& ScopedAllocations, FNodeAllocationInfo& out_Root );
+	void GenerateScopedTreeAllocations( const TMap<FName, FCombinedAllocationInfo>& ScopedAllocations, FNodeAllocationInfo& out_Root );
 
 	/** Prepares data for a snapshot. */
 	void PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& AllocationMap );
 
-	void CompareSnapshots_FName( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FSizeAndCount>& out_Result );
-	void CompareSnapshots_FString( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FString, FSizeAndCount>& out_Result );
+	void CompareSnapshots_FName( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result );
+	void CompareSnapshots_FString( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FString, FCombinedAllocationInfo>& out_Result );
 
-	/** Stats thread state, mostly used to manage the stats metadata. */
-	FStatsThreadState StatsThreadStats;
-	FStatsReadStream Stream;
+
+	/**
+	 * @return Platform's name based on the loaded ue4statsraw file
+	 */
+	const FString& GetPlatformName() const
+	{
+		return PlatformName;
+	}
+
+	/** Map from a thread id to the thread name. */
+	TMap<uint32, FName> ThreadIdToName;
 
 	/** All names that contains a path to an UObject. */
 	TSet<FName> UObjectNames;
@@ -207,10 +272,13 @@ protected:
 	TMap<FName, TMap<uint64, FAllocationInfo> > SnapshotsWithAllocationMap;
 
 	/** Snapshots with callstack based allocation map. */
-	TMap<FName, TMap<FName, FSizeAndCount> > SnapshotsWithScopedAllocations;
+	TMap<FName, TMap<FName, FCombinedAllocationInfo> > SnapshotsWithScopedAllocations;
 
-	TMap<FName, TMap<FString, FSizeAndCount> > SnapshotsWithDecodedScopedAllocations;
+	TMap<FName, TMap<FString, FCombinedAllocationInfo> > SnapshotsWithDecodedScopedAllocations;
 
 	/** Filepath to the raw stats file. */
 	FString SourceFilepath;
+
+	/** Platform's name based on the loaded ue4statsraw file. */
+	FString PlatformName;
 };
