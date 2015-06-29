@@ -4,6 +4,8 @@
 	Definitions.usf: Defines undefined defines to 0 as Cg can't handle them.
 =============================================================================*/
 
+#pragma once
+
 #ifndef MATERIAL_TWOSIDED
 #define	MATERIAL_TWOSIDED								0
 #endif
@@ -98,6 +100,10 @@
 
 #ifndef METAL_MRT_PROFILE
 #define METAL_MRT_PROFILE								0
+#endif
+
+#ifndef METAL_SM5_PROFILE
+#define METAL_SM5_PROFILE								0
 #endif
 
 #ifndef VULKAN_PROFILE

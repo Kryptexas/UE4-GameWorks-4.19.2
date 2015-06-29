@@ -14,7 +14,7 @@ float3 TangentToWorld( float3 Vec, float3 TangentZ )
 
 uint ReverseBits32( uint bits )
 {
-#if SM5_PROFILE
+#if SM5_PROFILE && !METAL_MRT_PROFILE && !METAL_PROFILE && !METAL_SM5_PROFILE
 	return reversebits( bits );
 #else
 	bits = ( bits << 16) | ( bits >> 16);
