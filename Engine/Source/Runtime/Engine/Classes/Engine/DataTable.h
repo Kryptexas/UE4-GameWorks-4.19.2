@@ -2,10 +2,8 @@
 
 #pragma once
 
+#include "DataTableUtils.h" // Needed here for LogDataTable
 #include "DataTable.generated.h"
-
-
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDataTable, Log, All);
 
 
 // forward declare JSON writer

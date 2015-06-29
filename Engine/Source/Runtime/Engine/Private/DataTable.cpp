@@ -2,12 +2,9 @@
 
 #include "EnginePrivate.h"
 #include "Engine/DataTable.h"
-#include "DataTableUtils.h"
 #include "DataTableCSV.h"
 #include "DataTableJSON.h"
 #include "EditorFramework/AssetImportData.h"
-
-DEFINE_LOG_CATEGORY(LogDataTable);
 
 ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
 ENGINE_API const FString FDataTableCategoryHandle::Unknown(TEXT("UNKNOWN"));
