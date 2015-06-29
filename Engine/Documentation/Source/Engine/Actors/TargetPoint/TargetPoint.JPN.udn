@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2602352
 Availability:Public
 Title:Target Point アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -8,10 +8,10 @@ Related:Gameplay/HowTo/SpawnAndDestroyActors/Blueprints
 ![](Target_Point_Actors.png)
 
 ## 概要
-ゲームのワールドを作成する場合、プレイヤーがインタラクションするワールドのアイテムを配置し、スポーンする機能が必要になる場合があります。Target Point アクタはまさにこれを行います。アイテムをスポーンできる汎用ポイントを提供します。3D Max や Maya などの他の 3D アプリケーションを使い慣れている場合、Target Point アクタはこうしたプログラムのダミー アクタに非常に似ています。 
+ゲームのワールドを作成する場合、プレイヤーがインタラクションするワールドのアイテムを配置し、スポーンする機能が必要になる場合があります。**Target Point** アクタはまさにこれを行います。アイテムをスポーンできる汎用ポイントを提供します。3D Max や Maya などの他の 3D アプリケーションを使い慣れている場合、Target Point アクタはこうしたプログラムのダミー アクタに非常に似ています。 
 
 ## Target Point アクタを配置する
-Target Point アクタは、**[Mode]** パネルの **[Basic]** カテゴリにあります。Target Point アクタをワールドに追加するには、[Mode] パネルから選択して、ワールドにドラッグします。 
+Target Point アクタは、**[Mode]** パネルの **[All Classes]** カテゴリにあります。Target Point アクタをワールドに追加するには、**[Mode]** パネルから選択して、ワールドにドラッグします。 
 
 ![](Using_Target_Point_Actor.gif)
 
@@ -30,7 +30,7 @@ Target Point アクタを使用すると、アンリアル エンジン 4.0 内�
 
 ![](Target_Point_As_Spawn.png)
 
-ブループリントで Target ポイントノードを使用する方法の詳細な例については、[ブループリントでアクタをスポーン/破壊する方法](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) チュートリアルをご覧ください。
+ブループリントで Target ポイントノードを使用する方法の詳細例については、[ブループリントでアクタをスポーン/破壊する方法](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) チュートリアルをご覧ください。
 
 
 
