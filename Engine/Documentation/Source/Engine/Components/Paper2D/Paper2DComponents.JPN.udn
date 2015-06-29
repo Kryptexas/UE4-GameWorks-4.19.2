@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2508900
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Paper 2D コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -12,20 +12,20 @@ Paper 2D コンポーネントはアクタのサブオブジェクトとして 2
 
 ## Paper Sprite コンポーネント
 
-**PaperSpriteComponent** は、`UPaperSprite` アセットの単一のインスタンスのレンダリングとコリジョンを処理します。 
+**PaperSprite コンポーネント** は、`UPaperSprite` アセットの単一のインスタンスのレンダリングとコリジョンを処理します。 
 このコンポーネントは、**コンテンツ ブラウザ** からスプライト アセットを **ブループリント** にドラッグしたときに作成されるか、またはレベルにドラッグした場合に作成されるアクタ内に含まれます。 
 
-このタイプのコンポーネントを使用する例としては、レベルを構築するために使用するスプライト アセットの形式があります。例えば、岩棚、高台、はしご、斜面などです。こうしたスプライト アセットをレベルに配置すると、選択したスプライト アセットのインスタンス化された **PaperSpriteComponent** (または固有のコピー) を使用する **PaperSpriteActor** が作成されます。 
+このタイプのコンポーネントを使用する例としては、レベルを構築するために使用するスプライト アセットの形式があります。例えば、岩棚、高台、はしご、斜面などです。こうしたスプライト アセットをレベルに配置すると、選択したスプライト アセットのインスタンス化された **PaperSprite コンポーネント** (または固有のコピー) を使用する **PaperSpriteActor** が作成されます。 
 
 UE4 でスプライトを作成する方法については、[](Engine\Paper2D\Sprites\Creation) のドキュメントをご覧ください。 
 
 
 ## Paper Flipbook コンポーネント
 
-**PaperFlipbookComponent** は、簡単にいうと **SourceFlipbook** (2D アニメーションを作成するために順次再生される一連のスプライト) のラッパーです。 
+**PaperFlipbook コンポーネント** は、簡単にいうと **SourceFlipbook** (2D アニメーションを作成するために順次再生される一連のスプライト) のラッパーです。 
 **Paper2DCharacter** を作成する場合、このコンポーネント タイプは自動的に追加されます。これにより、プレイ可能なアニメートされた 2D キャラクタを作成できます。 
 
-**PaperFlipbookComponents** は、3D で任意にポーズさせ、他のコンポーネントにアタッチしたり、PaperFlipbookComponents に他のコンポーネントをアタッチさせたりすることができます。
+**PaperFlipbook コンポーネント** は、3D で任意にポーズさせ、他のコンポーネントにアタッチしたり、PaperFlipbook コンポーネントに他のコンポーネントをアタッチさせたりすることができます。
 各インスタンスはカスタム カラーを指定することができます。これは、頂点カラーとしフリップブック マテリアルに渡されます。SourceFlipbook で定義されているデフォルトのマテリアルをオーバーライドするように指定したカスタム マテリアルを持つこともできます。 
 
 スクリプトを通して、現在の SourceFlipbook を変更することができます。これは、**SetFlipbook** 関数を呼び出して行いますが、 **Mobility** プロパティが _Moveable_ の場合にのみ機能することに注意してください (またはアクタの構築中に呼び出されます)。 
@@ -35,7 +35,12 @@ UE4 でスプライトを作成する方法については、[](Engine\Paper2D\S
 
 
 <!-- Hidden for now, still experimental
-## Paper Tile Map Render Component
+## Paper Tile Map Render コンポーネント
 
-**PaperTileMapRenderComponent** は、標準のコンストラクタであり、すべての反映されたプロパティが初期化された後に呼び出されます。 
+**PaperTileMapRender コンポーネント** は、標準のコンストラクタであり、すべての反映されたプロパティが初期化された後に呼び出されます。 
 -->
+
+
+
+
+
