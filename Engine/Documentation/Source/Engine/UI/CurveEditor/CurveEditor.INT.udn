@@ -44,10 +44,6 @@ Description:Tool for interactively setting up and modifying curves to drive valu
 
 [TOC(start:2)]
 
-
-
-## Overview
-
 [EXCERPT:Intro]
 The **Curve Editor** allows fine control over properties that change over time, e.g. properties which make use of [Distributions](Engine/Basics/Distributions). It is currently used in both [Matinee](Engine/Matinee) and the [Cascade](Engine/Rendering/ParticleSystems/Cascade) particle system editor.
 [/EXCERPT:Intro]
