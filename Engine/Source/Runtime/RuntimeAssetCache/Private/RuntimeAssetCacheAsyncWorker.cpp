@@ -31,10 +31,22 @@ FRuntimeAssetCacheAsyncWorker::FRuntimeAssetCacheAsyncWorker(IRuntimeAssetCacheB
 
 void FRuntimeAssetCacheAsyncWorker::DoWork()
 {
-	const TCHAR* Bucket = CacheBuilder->GetTypeName();
+	ON_SCOPE_EXIT
+	{
+		/** Make sure completed work counter works properly regardless of where function is exited. */
+		GetRuntimeAssetCache().AddToAsyncCompletionCounter(-1);
+	};
+
+	const TCHAR* Bucket = CacheBuilder->GetBucketConfigName();
 	FName BucketName = FName(Bucket);
 	FString CacheKey = BuildCacheKey(CacheBuilder);
 	FName CacheKeyName = FName(*CacheKey);
+	if (!Buckets->Contains(BucketName))
+	{
+		UE_LOG(RuntimeAssetCache, Warning, TEXT("Caching asset %s to unknown bucket %s. Asset won't be cached."), *CacheBuilder->GetAssetUniqueName(), Bucket);
+		Data = nullptr;
+		return;
+	}
 	FRuntimeAssetCacheBucket* CurrentBucket = (*Buckets)[BucketName];
 	int64 CachedDataSize = -1;
 	INC_DWORD_STAT(STAT_RAC_NumGets);
@@ -59,12 +71,6 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 
 		Metadata = FRuntimeAssetCacheBackend::Get().GetCachedData(BucketName, *CacheKey, Data, CachedDataSize);
 	}
-
-	ON_SCOPE_EXIT
-	{
-		/** Make sure completed work counter works properly regardless of where function is exited. */
-		GetRuntimeAssetCache().AddToAsyncCompletionCounter(-1);
-	};
 
 	/* Entry found. */
 	if (Metadata
@@ -111,7 +117,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	{
 		// Failed, cleanup data and return false.
 		INC_DWORD_STAT(STAT_RAC_NumFails);
-		CurrentBucket->RemoveMetadataEntry(CacheKey);
+		CurrentBucket->RemoveMetadataEntry(CacheKey, true);
 		return;
 	}
 

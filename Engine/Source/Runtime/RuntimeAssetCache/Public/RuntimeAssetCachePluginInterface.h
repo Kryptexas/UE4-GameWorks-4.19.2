@@ -23,7 +23,7 @@ public:
 	* Get the builder type name. This is used to categorize cached data to buckets.
 	* @return Type name of builder.
 	*/
-	virtual const TCHAR* GetTypeName() const = 0;
+	virtual const TCHAR* GetBucketConfigName() const = 0;
 
 	/**
 	* Get the name of cache builder, this is used as part of the cache key.
@@ -64,4 +64,19 @@ public:
 	* @return Asset version.
 	*/
 	virtual int32 GetAssetVersion() = 0;
+
+	/**
+	* Gets whether Build function must be called asynchronously.
+	* @return true if Build should be called asynchronously, false otherwise.
+	*/
+	virtual bool ShouldBuildAsynchronously() const
+	{
+		return false;
+	}
+
+	/**
+	* Gets whether Build function is threadsafe
+	* @return true if Build is threadsafe, false otherwise.
+	*/
+	virtual bool IsBuildThreadSafe() const = 0;
 };

@@ -50,8 +50,9 @@ public:
 	/**
 	* Removes metadata entry for given key.
 	* @param Key Key to remove metadata for.
+	* @param bBuildFailed Indicates that building cache entry failed and some checks should be skipped.
 	*/
-	void RemoveMetadataEntry(const FString& Key);
+	void RemoveMetadataEntry(const FString& Key, bool bBuildFailed = false);
 
 	/**
 	* Adds metadata entry for given key.

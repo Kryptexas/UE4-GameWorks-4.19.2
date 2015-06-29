@@ -32,12 +32,12 @@ FCacheEntryMetadata* FRuntimeAssetCacheBucket::GetMetadata(const FString& Key)
 	return CacheMetadata.FindOrAdd(Key);
 }
 
-void FRuntimeAssetCacheBucket::RemoveMetadataEntry(const FString& Key)
+void FRuntimeAssetCacheBucket::RemoveMetadataEntry(const FString& Key, bool bBuildFailed)
 {
 	FScopeLock Lock(&MetadataCriticalSection);
 #if UE_BUILD_DEBUG
 	FCacheEntryMetadata* Entry = CacheMetadata.FindOrAdd(Key);
-	if (Entry)
+	if (Entry && !bBuildFailed)
 	{
 		check(!Entry->IsBuilding());
 	}

@@ -10,6 +10,8 @@
 class FRuntimeAssetCacheFilesystemBackend : public FRuntimeAssetCacheBackend
 {
 public:
+	FRuntimeAssetCacheFilesystemBackend();
+
 	/** FRuntimeAssetCacheBackend interface implementation. */
 	virtual bool RemoveCacheEntry(FName Bucket, const TCHAR* CacheKey) override;
 	virtual bool ClearCache() override;
@@ -23,5 +25,5 @@ protected:
 private:
 
 	/** File system path to runtime asset cache. */
-	static const FString PathToRAC;
+	FString PathToRAC;
 };

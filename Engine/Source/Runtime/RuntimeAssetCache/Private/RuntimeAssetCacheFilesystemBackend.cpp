@@ -6,24 +6,25 @@
 #include "RuntimeAssetCacheEntryMetadata.h"
 #include "RuntimeAssetCacheBucket.h"
 
-const FString FRuntimeAssetCacheFilesystemBackend::PathToRAC = TEXT("../../RuntimeAssetCache/");
-
 FArchive* FRuntimeAssetCacheFilesystemBackend::CreateReadArchive(FName Bucket, const TCHAR* CacheKey)
 {
-	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
-	return IFileManager::Get().CreateFileReader(*Path);
+	return IFileManager::Get().CreateFileReader(CacheKey);
 }
 
 FArchive* FRuntimeAssetCacheFilesystemBackend::CreateWriteArchive(FName Bucket, const TCHAR* CacheKey)
 {
-	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
-	return IFileManager::Get().CreateFileWriter(*Path);
+	return IFileManager::Get().CreateFileWriter(CacheKey);
+}
+
+FRuntimeAssetCacheFilesystemBackend::FRuntimeAssetCacheFilesystemBackend()
+{
+	GConfig->GetString(TEXT("RuntimeAssetCache"), TEXT("PathToRAC"), PathToRAC, GEngineIni);
+	PathToRAC = FPaths::GameSavedDir() / PathToRAC;
 }
 
 bool FRuntimeAssetCacheFilesystemBackend::RemoveCacheEntry(const FName Bucket, const TCHAR* CacheKey)
 {
-	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
-	return IFileManager::Get().Delete(*Path);
+	return IFileManager::Get().Delete(CacheKey);
 }
 
 bool FRuntimeAssetCacheFilesystemBackend::ClearCache()
@@ -52,6 +53,10 @@ FRuntimeAssetCacheBucket* FRuntimeAssetCacheFilesystemBackend::PreLoadBucket(FNa
 
 		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
 		{
+			if (bIsDirectory)
+			{
+				return true;
+			}
 			FArchive* Ar = Backend->CreateReadArchive(BucketName, FilenameOrDirectory);
 			FCacheEntryMetadata* Metadata = Backend->PreloadMetadata(Ar);
 			Bucket->AddMetadataEntry(*FPaths::GetBaseFilename(FilenameOrDirectory), Metadata, true);
