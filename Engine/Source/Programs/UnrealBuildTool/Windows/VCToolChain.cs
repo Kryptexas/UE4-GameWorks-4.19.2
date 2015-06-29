@@ -372,13 +372,18 @@ namespace UnrealBuildTool
 			if ((CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) || 
 				(CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64))
 			{
-				// SSE options are not allowed when using CLR compilation or the 64 bit toolchain
-				// (both enable SSE2 automatically)
-				if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLRDisabled &&
-					CompileEnvironment.Config.Target.Platform != CPPTargetPlatform.Win64)
+				// SSE options are not allowed when using CLR compilation
+				if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLRDisabled && WindowsPlatform.bUseVCCompilerArgs)
 				{
-					if( WindowsPlatform.bUseVCCompilerArgs )
-					{ 
+					if (CompileEnvironment.Config.bUseAVX)
+					{
+						// Allow the compiler to generate AVX instructions.
+						Arguments.Append(" /arch:AVX");
+					}
+					// SSE options are not allowed when using the 64 bit toolchain
+					// (enables SSE2 automatically)
+					else if (CompileEnvironment.Config.Target.Platform != CPPTargetPlatform.Win64)
+					{
 						// Allow the compiler to generate SSE2 instructions.
 						Arguments.Append(" /arch:SSE2");
 					}

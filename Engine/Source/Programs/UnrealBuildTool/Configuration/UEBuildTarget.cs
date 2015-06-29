@@ -2171,7 +2171,8 @@ namespace UnrealBuildTool
 				InEnableExceptions: false,
 				InEnableShadowVariableWarnings: true,
 				bInBuildSourceFiles: true,
-				InBuildCsFilename: null);
+				InBuildCsFilename: null,
+				bInUseAVX: false);
 		}
 
 
@@ -3213,7 +3214,8 @@ namespace UnrealBuildTool
 							InEnableExceptions: RulesObject.bEnableExceptions,
 							InEnableShadowVariableWarnings: RulesObject.bEnableShadowVariableWarnings,
 							bInBuildSourceFiles: bBuildSourceFiles,
-							InBuildCsFilename: InBuildCsFile
+							InBuildCsFilename: InBuildCsFile,
+							bInUseAVX: RulesObject.bUseAVX
 						);
 
 				case ModuleRules.ModuleType.CPlusPlusCLR:
@@ -3256,7 +3258,8 @@ namespace UnrealBuildTool
 							InEnableExceptions: RulesObject.bEnableExceptions,
 							InEnableShadowVariableWarnings: RulesObject.bEnableShadowVariableWarnings,
 							bInBuildSourceFiles : bBuildSourceFiles,
-							InBuildCsFilename: InBuildCsFile
+							InBuildCsFilename: InBuildCsFile,
+							bInUseAVX: RulesObject.bUseAVX
 						);
 
 				case ModuleRules.ModuleType.External:

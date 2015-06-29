@@ -1071,6 +1071,9 @@ namespace UnrealBuildTool
 		/** Use run time type information */
 		public bool bUseRTTI = false;
 
+		/** Use AVX instructions */
+		public bool bUseAVX = false;
+
 		/** Enable buffer security checks. This should usually be enabled as it prevents severe security risks. */
 		public bool bEnableBufferSecurityChecks = true;
 
@@ -1176,7 +1179,8 @@ namespace UnrealBuildTool
 			bool InEnableExceptions,
 			bool InEnableShadowVariableWarnings,
 			bool bInBuildSourceFiles,
-			string InBuildCsFilename
+			string InBuildCsFilename,
+			bool bInUseAVX
 			)
 			: base(	InTarget,
 					InName, 
@@ -1224,6 +1228,7 @@ namespace UnrealBuildTool
 			bAllowSharedPCH                        = InAllowSharedPCH;
 			SharedPCHHeaderFile                    = InSharedPCHHeaderFile;
 			bUseRTTI                               = InUseRTTI;
+			bUseAVX                                = bInUseAVX;
 			bEnableBufferSecurityChecks 		   = InEnableBufferSecurityChecks;
 			bFasterWithoutUnity                    = InFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InMinFilesUsingPrecompiledHeaderOverride;
@@ -1883,6 +1888,7 @@ namespace UnrealBuildTool
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
 			Result.Config.OptimizeCode                           = OptimizeCode;
 			Result.Config.bUseRTTI                               = bUseRTTI;
+			Result.Config.bUseAVX                                = bUseAVX;
 			Result.Config.bEnableBufferSecurityChecks            = bEnableBufferSecurityChecks;
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
 			Result.Config.MinFilesUsingPrecompiledHeaderOverride = MinFilesUsingPrecompiledHeaderOverride;
@@ -2138,7 +2144,8 @@ namespace UnrealBuildTool
 			bool InEnableExceptions,
 			bool InEnableShadowVariableWarnings,
 			bool bInBuildSourceFiles,
-			string InBuildCsFilename
+			string InBuildCsFilename,
+			bool bInUseAVX
 			)
 			: base(InTarget,InName,InType,InModuleDirectory,InGeneratedCodeDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,null,InDefinitions,
@@ -2146,7 +2153,7 @@ namespace UnrealBuildTool
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InRuntimeDependencies, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
-			InEnableExceptions, InEnableShadowVariableWarnings, bInBuildSourceFiles, InBuildCsFilename)
+			InEnableExceptions, InEnableShadowVariableWarnings, bInBuildSourceFiles, InBuildCsFilename, bInUseAVX)
 		{
 			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
 		}
