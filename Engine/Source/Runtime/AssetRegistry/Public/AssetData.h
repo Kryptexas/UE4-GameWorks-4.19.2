@@ -313,10 +313,10 @@ public:
 			}
 			else // if (Ar.IsLoading())
 			{
-				TMap<FName, FString> TagsAndValues;
-				Ar << TagsAndValues;
-				TagsAndValues.Remove(FiBName);
-				AssetData.TagsAndValues = MakeSharedMapView(MoveTemp(TagsAndValues));
+				TMap<FName, FString> LocalTagsAndValues;
+				Ar << LocalTagsAndValues;
+				LocalTagsAndValues.Remove(FiBName);
+				AssetData.TagsAndValues = MakeSharedMapView(MoveTemp(LocalTagsAndValues));
 			}
 		}
 		else

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Map.h"
+
 /** Immutable wrapper of shared pointer to a map */
 template <class FKey, class FValue>
 class TSharedMapView
@@ -85,14 +87,12 @@ public:
 	/** Range for iterator access - DO NOT USE DIRECTLY */
 	friend typename FMap::TConstIterator begin(const TSharedMapView& View)
 	{
-		using ::begin;
 		return begin(*View.Map);
 	}
 
 	/** Range for iterator access - DO NOT USE DIRECTLY */
 	friend typename FMap::TConstIterator end(const TSharedMapView& View)
 	{
-		using ::end;
 		return end(*View.Map);
 	}
 
