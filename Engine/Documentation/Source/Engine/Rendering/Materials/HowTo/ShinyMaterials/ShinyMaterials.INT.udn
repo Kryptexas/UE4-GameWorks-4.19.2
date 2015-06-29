@@ -29,8 +29,8 @@ all of this can affect a surface's ability to reflect light.
 ## Roughness & Shininess
 
 Roughness plays a major role in helping to determine the Shininess of a surface. 
-The more rough a surface is, the **less** Shininess it will have. 
-While the less rough a surface is, the **more** Shininess it will have.
+The more rough a surface is, the less Shininess it will have. 
+While the less rough a surface is, the more Shininess it will have.
 Here is an example of how Roughness can affect Shininess. 
 
 ![](Engine\Rendering\Materials\PhysicallyBased\roughness_nonmetal.png)
