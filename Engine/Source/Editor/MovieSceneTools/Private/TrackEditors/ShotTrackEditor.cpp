@@ -21,6 +21,7 @@
 #include "ShotTrackEditor.h"
 #include "CommonMovieSceneTools.h"
 #include "Camera/CameraActor.h"
+#include "STextEntryPopup.h"
 
 namespace AnimatableShotToolConstants
 {
@@ -229,6 +230,62 @@ FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, c
 	}
 
 	return FReply::Handled();
+}
+
+void FShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "RenameShot", "Rename"),
+		NSLOCTEXT("Sequencer", "RenameShotToolTip", "Renames this shot."),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FShotSection::RenameShot))
+		);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "FilterToShots", "Filter To Shots"),
+		NSLOCTEXT("Sequencer", "FilterToShotsToolTip", "Filters to the selected shot sections"),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FShotSection::FilterToSelectedShotSections, true))
+		);
+}
+
+void FShotSection::RenameShot()
+{
+	auto ActualShotSection = CastChecked<UMovieSceneShotSection>(Section);
+
+	TSharedRef<STextEntryPopup> TextEntry = 
+		SNew(STextEntryPopup)
+		.Label(NSLOCTEXT("Sequencer", "RenameShotHeader", "Name"))
+		.DefaultText( ActualShotSection->GetTitle() )
+		.OnTextCommitted(this, &FShotSection::RenameShotCommitted, Section)
+		.ClearKeyboardFocusOnCommit( false );
+	
+	NameEntryPopupMenu = FSlateApplication::Get().PushMenu(
+		Sequencer.Pin()->GetSequencerWidget(),
+		FWidgetPath(),
+		TextEntry,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
+		);
+}
+
+void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
+{
+	Sequencer.Pin()->FilterToSelectedShotSections(bZoomToShotBounds);
+}
+
+void FShotSection::RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section)
+{
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		auto ShotSection = CastChecked<UMovieSceneShotSection>(Section);
+		ShotSection->SetTitle(RenameText);
+	}
+
+	if (NameEntryPopupMenu.IsValid())
+	{
+		NameEntryPopupMenu.Pin()->Dismiss();
+	}
 }
 
 int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const

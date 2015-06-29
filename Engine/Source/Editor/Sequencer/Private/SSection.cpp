@@ -446,24 +446,7 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 	}
 	else
 	{
-		bool bIsAShotSection = SceneSection->IsA<UMovieSceneShotSection>();
-
-		if (bIsAShotSection)
-		{
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "RenameShot", "Rename"),
-				NSLOCTEXT("Sequencer", "RenameShotToolTip", "Renames this shot."),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::RenameShot, SceneSection))
-				);
-
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "FilterToShots", "Filter To Shots"),
-				NSLOCTEXT("Sequencer", "FilterToShotsToolTip", "Filters to the selected shot sections"),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::FilterToSelectedShotSections, true))
-				);
-		}
+		SectionInterface->BuildSectionContextMenu(MenuBuilder);
 
 		// @todo Sequencer this should delete all selected sections
 		// delete/selection needs to be rethought in general

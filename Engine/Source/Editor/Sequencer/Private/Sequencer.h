@@ -119,11 +119,6 @@ public:
 	void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 
 	/** 
-	 * Opens a renaming dialog for the passed in shot section
-	 */
-	void RenameShot(class UMovieSceneSection* ShotSection);
-	 
-	/** 
 	 * Deletes the passed in section
 	 */
 	void DeleteSection(class UMovieSceneSection* Section);
@@ -341,9 +336,6 @@ protected:
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const;
 	
-	/* Called when committing a rename shot text entry popup */
-	void RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section);
-
 	/** Called when a user executes the delete command to delete sections or keys */
 	void DeleteSelectedItems();
 	
@@ -403,9 +395,6 @@ private:
 	/** Main sequencer widget */
 	TSharedPtr< class SSequencer > SequencerWidget;
 	
-	/** Reference to owner of the current popup */
-	TWeakPtr<class IMenu> NameEntryPopupMenu;
-
 	/** The asset editor that created this Sequencer if any */
 	TWeakPtr<IToolkitHost> ToolkitHost;
 

@@ -136,6 +136,16 @@ public:
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) override;
+
+	/** Opens a renaming dialog for the passed in shot section */
+	void RenameShot();
+	 
+	/** Called when committing a rename shot text entry popup */
+	void RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section);
+
+	/** Filter to selected shot sections */
+	void FilterToSelectedShotSections(bool bZoomToShotBounds);
 
 	/** Gets the thumbnail width */
 	uint32 GetThumbnailWidth() const;
@@ -184,4 +194,7 @@ private:
 	
 	/** Fade brush */
 	const FSlateBrush* WhiteBrush;
+
+	/** Reference to owner of the current popup */
+	TWeakPtr<class IMenu> NameEntryPopupMenu;
 };

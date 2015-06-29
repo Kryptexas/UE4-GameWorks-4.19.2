@@ -32,7 +32,6 @@
 #include "MovieSceneInstance.h"
 #include "IKeyArea.h"
 #include "SnappingUtils.h"
-#include "STextEntryPopup.h"
 #include "GenericCommands.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/Selection.h"
@@ -371,26 +370,6 @@ void FSequencer::AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequenc
 	}
 }
 
-void FSequencer::RenameShot(UMovieSceneSection* ShotSection)
-{
-	auto ActualShotSection = CastChecked<UMovieSceneShotSection>(ShotSection);
-
-	TSharedRef<STextEntryPopup> TextEntry = 
-		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Sequencer", "RenameShotHeader", "Name"))
-		.DefaultText( ActualShotSection->GetTitle() )
-		.OnTextCommitted(this, &FSequencer::RenameShotCommitted, ShotSection)
-		.ClearKeyboardFocusOnCommit( false );
-	
-	NameEntryPopupMenu = FSlateApplication::Get().PushMenu(
-		SequencerWidget.ToSharedRef(),
-		FWidgetPath(),
-		TextEntry,
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-		);
-}
-
 void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 {
 	UMovieScene* MovieScene = GetFocusedMovieScene();
@@ -438,20 +417,6 @@ void FSequencer::DeleteSelectedKeys()
 	if (bAnythingRemoved)
 	{
 		UpdateRuntimeInstances();
-	}
-}
-
-void FSequencer::RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section)
-{
-	if (CommitInfo == ETextCommit::OnEnter)
-	{
-		auto ShotSection = CastChecked<UMovieSceneShotSection>(Section);
-		ShotSection->SetTitle(RenameText);
-	}
-
-	if (NameEntryPopupMenu.IsValid())
-	{
-		NameEntryPopupMenu.Pin()->Dismiss();
 	}
 }
 

@@ -73,4 +73,11 @@ public:
 	 * @param  InDeltaTime  Real time passed since last tick
 	 */
 	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime ) {}
+
+	/**
+	 * Builds up the section context menu for the outliner
+	 *
+	 * @param MenuBuilder	The menu builder to change
+	 */
+	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) {}
 };
