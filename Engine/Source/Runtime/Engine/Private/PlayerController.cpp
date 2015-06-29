@@ -2503,10 +2503,11 @@ void APlayerController::GetAudioListenerPosition(FVector& OutLocation, FVector& 
 
 	if (bOverrideAudioListener)
 	{
-		if (AudioListenerComponent != nullptr)
+		USceneComponent* ListenerComponent = AudioListenerComponent.Get();
+		if (ListenerComponent != nullptr)
 		{
-			ViewRotation = AudioListenerComponent->GetComponentRotation() + AudioListenerRotationOverride;
-			ViewLocation = AudioListenerComponent->GetComponentLocation() + ViewRotation.RotateVector(AudioListenerLocationOverride);
+			ViewRotation = ListenerComponent->GetComponentRotation() + AudioListenerRotationOverride;
+			ViewLocation = ListenerComponent->GetComponentLocation() + ViewRotation.RotateVector(AudioListenerLocationOverride);
 		}
 		else
 		{

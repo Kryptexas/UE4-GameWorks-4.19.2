@@ -1295,7 +1295,7 @@ protected:
 	/** Whether to override the normal audio listener positioning method */
 	uint32 bOverrideAudioListener:1;
 	/** Component that is currently driving the audio listener position/orientation */
-	USceneComponent* AudioListenerComponent;
+	TWeakObjectPtr<USceneComponent> AudioListenerComponent;
 	/** Currently overridden location of audio listener */
 	FVector AudioListenerLocationOverride;
 	/** Currently overridden rotation of audio listener */
