@@ -665,4 +665,7 @@ private:
 
 	/** Callback delegate to have first chance handling of the OnKeyDown event */
 	FOnKeyDown OnKeyDownHandler;
+
+	/** Keep track of whether we showed the virtual keyboard when focus was received */
+	bool bShowingVirtualKeyboard;
 };
