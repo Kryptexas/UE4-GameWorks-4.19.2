@@ -1,0 +1,24 @@
+Availability:Docs
+Title:Importing Content - How To's
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:Learn how to import content to your UE4 project.
+SkillLevel: Beginner
+Version: 4.8
+
+Developers can import meshes, textures, and other assets into their Unreal Engine 4 (UE4) projects in many ways. These pages explain common methods of importing content into UE4; including, using the content browser's import function, dragging files from a hard disk into your content browser, and saving files into the project directory from an external program.
+
+[REGION:lightbox]
+	[![](Content_Browser.png)(w:925)](Content_Browser.png)
+[/REGION]
+
+Reference the following pages to learn more about importing content into your UE4 project.
+
+## Beginner
+
+|How To... | Description |
+| ------- | ------------ |
+| [](Engine/Content/ImportingContent/ContentBrowserImport) | %Engine/Content/ImportingContent/ContentBrowserImport:description% |
+| [](Engine/Content/ImportingContent/DragAndDropImport) | %Engine/Content/ImportingContent/DragAndDropImport:description% |
+| [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
+| [](Engine/Content/ImportingContent/ImportingMeshes) | %Engine/Content/ImportingContent/ImportingMeshes:description% |
+| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% |

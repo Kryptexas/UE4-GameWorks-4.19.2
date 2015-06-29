@@ -1,0 +1,51 @@
+Availability:Docs
+Title:Drag-and-Drop Import
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import content by dragging and dropping files into your Content Browser.
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+Before you get started: Download Quick Start Assets from the following link.
+* [Sample Assets](SampleAssets.zip)
+[/REGION]
+
+This is where the description is going.
+
+## Goal
+
+This is where the goal is going.
+
+## Objective
+
+This is where the objective is going.
+
+## Importing using Click and Drag
+
+(#Bookmark2)
+
+**Dragging** files from your hard drive into the **Content Browser** (pictured below) is another way of adding content to your project.
+
+<!--![](CnD_importAll.jpg)-->
+
+### When Importing Meshes
+
+<!--![](FBXImportOptions.png)-->
+
+UE4 prompts you to define import options for FBX/OBJ files (pictured above).
+
+### When Importing Textures
+
+UE4 batch imports [__supported__](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
+
+If you see the following pop-up message:
+
+<!--![](TextureImportMessage.png)-->
+
+UE4 just prevented you from importing an unsupported image file.
+
+Also, if you see the following pop-up message:
+
+<!--![](nonpoweoftwowarning.png)-->
+
+UE4 is telling you that odd-sized images aren't streamed or mipmapped.

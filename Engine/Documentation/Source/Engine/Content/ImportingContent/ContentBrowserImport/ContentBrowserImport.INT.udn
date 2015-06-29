@@ -1,0 +1,36 @@
+Availability:Docs
+Title:Content Browser Import
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to add content using the Content Browser's 'Import' function.
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+Before you get started: Download Quick Start Assets from the following link.
+* [Sample Assets](SampleAssets.zip)
+[/REGION]
+
+Developers can use the Content Browser's **Import** function to add content to their UE4 projects.
+
+## Goal
+
+The focus of this guide is to teach developers how to use the Content Browser's **Import** function from inside the Unreal Editor.
+
+## Objective
+
+After going through this tutorial, developers will know the following:
+
+* Where to find the Content Browser's **Import** function.
+* How to use the Content Browser's **Import** function.
+
+## Importing with the Content Browser
+
+![](ContentHowToPrjSetup.png)
+
+[REGION:note]
+For the purposes of this guide, we're using the following project **settings** (pictured above):
+* **Desktop / Console**
+* **Maximum Quality**
+* **No Starter Content**
+[/REGION]
+
