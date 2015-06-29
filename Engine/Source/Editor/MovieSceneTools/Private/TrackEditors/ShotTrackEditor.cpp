@@ -18,8 +18,8 @@
 #include "ShotTrackEditor.h"
 #include "CommonMovieSceneTools.h"
 #include "Camera/CameraActor.h"
-#include "STextEntryPopup.h"
 #include "AssetToolsModule.h"
+#include "SInlineEditableTextBlock.h"
 
 namespace AnimatableShotToolConstants
 {
@@ -159,10 +159,9 @@ bool FShotThumbnail::IsValid() const
 /////////////////////////////////////////////////
 // FShotSection
 
-FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShotThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection, UObject* InTargetObject )
-	: Section( &InSection )
+FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShotThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection )
+	: Section( CastChecked<UMovieSceneShotSection>( &InSection ) )
 	, Sequencer( InSequencer )
-	, Camera(Cast<ACameraActor>(InTargetObject))
 	, ThumbnailPool( InThumbnailPool )
 	, Thumbnails()
 	, ThumbnailWidth(0)
@@ -172,6 +171,9 @@ FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShot
 	, InternalViewportScene(nullptr)
 	, InternalViewportClient(nullptr)
 {
+
+	Camera = UpdateCameraObject();
+
 	if (Camera.IsValid())
 	{
 		// @todo Sequencer optimize This code shouldn't even be called if this is offscreen
@@ -208,9 +210,25 @@ UMovieSceneSection* FShotSection::GetSectionObject()
 	return Section;
 }
 
+TSharedRef<SWidget> FShotSection::GenerateSectionWidget()
+{
+	return 
+		SNew( SBox )
+		.HAlign( HAlign_Left )
+		.VAlign( VAlign_Top )
+		.Padding( FMargin( 15.0f, 7.0f, 0.0f, 0.0f ) )
+		[
+			SNew( SInlineEditableTextBlock )
+			.ToolTipText( NSLOCTEXT("FShotTrackEditor", "RenameShot", "The name of this shot.  Click or hit F2 to rename") )
+			.Text( this, &FShotSection::GetShotName )
+			.ShadowOffset( FVector2D(1,1) )
+			.OnTextCommitted(this, &FShotSection::OnRenameShot )
+		];
+}
+
 FText FShotSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneShotSection>(Section)->GetShotDisplayName();
+	return FText::GetEmpty();
 }
 
 float FShotSection::GetSectionHeight() const
@@ -222,9 +240,9 @@ FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, c
 {
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		check( Section->IsA<UMovieSceneSection>() );
+		TSharedRef<FMovieSceneInstance> MovieSceneInstance = Sequencer.Pin()->GetInstanceForSubMovieSceneSection( *Section );
 
-		Sequencer.Pin()->FilterToSelectedShotSections();
+		Sequencer.Pin()->FocusSubMovieScene( MovieSceneInstance );
 	}
 
 	return FReply::Handled();
@@ -232,61 +250,18 @@ FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, c
 
 void FShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder)
 {
-/*
 	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("Sequencer", "RenameShot", "Rename"),
-		NSLOCTEXT("Sequencer", "RenameShotToolTip", "Renames this shot."),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(this, &FShotSection::RenameShot))
-		);
-*/
-
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("Sequencer", "FilterToShots", "Filter To Shots"),
-		NSLOCTEXT("Sequencer", "FilterToShotsToolTip", "Filters to the selected shot sections"),
+		NSLOCTEXT("FShotTrackEditor", "FilterToShots", "Filter To Shots"),
+		NSLOCTEXT("FShotTrackEditor", "FilterToShotsToolTip", "Filters to the selected shot sections"),
 		FSlateIcon(),
 		FUIAction(FExecuteAction::CreateSP(this, &FShotSection::FilterToSelectedShotSections, true))
 		);
 }
 
-void FShotSection::RenameShot()
-{
-	auto ActualShotSection = CastChecked<UMovieSceneShotSection>(Section);
-
-	/*TSharedRef<STextEntryPopup> TextEntry = 
-		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Sequencer", "RenameShotHeader", "Name"))
-		.DefaultText( ActualShotSection->GetTitle() )
-		.OnTextCommitted(this, &FShotSection::RenameShotCommitted, Section)
-		.ClearKeyboardFocusOnCommit( false );
-	
-	NameEntryPopupMenu = FSlateApplication::Get().PushMenu(
-		Sequencer.Pin()->GetSequencerWidget(),
-		FWidgetPath(),
-		TextEntry,
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-		);*/
-}
 
 void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
 {
 	Sequencer.Pin()->FilterToSelectedShotSections(bZoomToShotBounds);
-}
-
-void FShotSection::RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* InSection)
-{
-/*
-	if (CommitInfo == ETextCommit::OnEnter)
-	{
-		auto ShotSection = CastChecked<UMovieSceneShotSection>(Section);
-		ShotSection->SetTitle(RenameText);
-	}
-
-	if (NameEntryPopupMenu.IsValid())
-	{
-		NameEntryPopupMenu.Pin()->Dismiss();
-	}*/
 }
 
 int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
@@ -357,7 +332,7 @@ void FShotSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Par
 {
 	if (!Camera.IsValid())
 	{
-		return;
+		Camera = UpdateCameraObject();
 	}
 
 	FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( Section->GetStartTime(), Section->GetEndTime() ) );
@@ -461,6 +436,53 @@ void FShotSection::CalculateThumbnailWidthAndResize()
 	}
 }
 
+ACameraActor* FShotSection::UpdateCameraObject()
+{
+	TArray<UObject*> OutObjects;
+	// @todo Sequencer - Sub-MovieScenes The director track may be able to get cameras from sub-movie scenes
+	Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetRootMovieSceneInstance(),  Section->GetCameraGuid(), OutObjects);
+
+	ACameraActor* Camera = nullptr;
+	if( OutObjects.Num() > 0 )
+	{
+		Camera = Cast<ACameraActor>( OutObjects[0] );
+	}
+
+	return Camera;
+}
+
+FText FShotSection::GetShotName() const
+{
+	return Section->GetShotDisplayName();
+}
+
+void FShotSection::OnRenameShot( const FText& NewShotName, ETextCommit::Type CommitType )
+{
+	if (CommitType == ETextCommit::OnEnter && !GetShotName().EqualTo( NewShotName ) )
+	{
+		Section->Modify();
+		Section->SetShotNameAndNumber( NewShotName, Section->GetShotNumber() );
+
+		UMovieScene* ShotMovieScene = Section->GetMovieScene();
+		if( ShotMovieScene )
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+			TArray<FAssetRenameData> AssetsAndNames;
+			const FString PackagePath = FPackageName::GetLongPackagePath(ShotMovieScene->GetOutermost()->GetName());
+
+			// We want to prepend the owning movie scene name.  This is not the movie scene inside referenced by the shot but the movie scene containing 
+			// the shot track
+			UMovieScene* OwningMovieScene = Section->GetTypedOuter<UMovieScene>();
+			const FString NewAssetName = OwningMovieScene->GetName() + TEXT("_") + NewShotName.ToString();
+
+			new (AssetsAndNames) FAssetRenameData(ShotMovieScene, PackagePath, NewAssetName );
+
+			AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+		}
+	}
+}
+
 /////////////////////////////////////////////////
 // FShotTrackEditor
 
@@ -487,12 +509,8 @@ bool FShotTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 TSharedRef<ISequencerSection> FShotTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
-	
-	TArray<UObject*> OutObjects;
-	// @todo Sequencer - Sub-MovieScenes The director track may be able to get cameras from sub-movie scenes
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetRootMovieSceneInstance(), Cast<const UMovieSceneShotSection>(&SectionObject)->GetCameraGuid(), OutObjects);
-	check(OutObjects.Num() <= 1);
-	TSharedRef<ISequencerSection> NewSection( new FShotSection( GetSequencer(), ThumbnailPool, SectionObject, OutObjects.Num() ? OutObjects[0] : NULL ) );
+
+	TSharedRef<ISequencerSection> NewSection( new FShotSection( GetSequencer(), ThumbnailPool, SectionObject ) );
 
 	return NewSection;
 }
@@ -524,8 +542,8 @@ void FShotTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, 
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("Sequencer", "AddShot", "Add New Shot"),
-			NSLOCTEXT("Sequencer", "AddShotTooltip", "Adds a new shot using this camera at the scrubber location."),
+			NSLOCTEXT("FShotTrackEditor", "AddShot", "Add New Shot"),
+			NSLOCTEXT("FShotTrackEditor", "AddShotTooltip", "Adds a new shot using this camera at the scrubber location."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(ParentSequencer.Get(), &ISequencer::AddNewShot, ObjectBinding))
 			);

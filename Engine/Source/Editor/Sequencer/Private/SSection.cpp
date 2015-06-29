@@ -19,6 +19,11 @@ void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> Secti
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;
 	SectionInterface = SectionNode->GetSections()[InSectionIndex];
+
+	ChildSlot
+	[
+		SectionInterface->GenerateSectionWidget()
+	];
 }
 
 void SSection::GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreas ) const

@@ -129,11 +129,12 @@ private:
 class FShotSection : public ISequencerSection, public TSharedFromThis<FShotSection>
 {
 public:
-	FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShotThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection, UObject* InTargetObject );
+	FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShotThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection );
 	~FShotSection();
 
 	/** ISequencerSection interface */
 	virtual UMovieSceneSection* GetSectionObject() override;
+	virtual TSharedRef<SWidget> GenerateSectionWidget() override;
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FText GetDisplayName() const override { return NSLOCTEXT("FShotSection", "", "Shots"); }
@@ -142,12 +143,6 @@ public:
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) override;
-
-	/** Opens a renaming dialog for the passed in shot section */
-	void RenameShot();
-	 
-	/** Called when committing a rename shot text entry popup */
-	void RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section);
 
 	/** Filter to selected shot sections */
 	void FilterToSelectedShotSections(bool bZoomToShotBounds);
@@ -170,8 +165,12 @@ public:
 	/** @return The sequencer widget owning the shot section */
 	TSharedRef<SWidget> GetSequencerWidget() { return Sequencer.Pin()->GetSequencerWidget(); }
 private:
+	ACameraActor* UpdateCameraObject();
+	FText GetShotName() const;
+	void OnRenameShot( const FText& NewShotName, ETextCommit::Type CommitType );
+private:
 	/** The section we are visualizing */
-	UMovieSceneSection* Section;
+	class UMovieSceneShotSection* Section;
 	/** The parent sequencer we are a part of */
 	TWeakPtr<ISequencer> Sequencer;
 	/** The actual camera actor we are possessing */

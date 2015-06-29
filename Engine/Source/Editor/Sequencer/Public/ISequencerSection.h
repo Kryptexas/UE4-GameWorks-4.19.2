@@ -17,6 +17,14 @@ public:
 	virtual UMovieSceneSection* GetSectionObject() = 0;
 
 	/**
+	 * Allows each section to have it's own unique widget for advanced editing functionality
+	 * OnPaintSection will still be called if a widget is provided.  OnPaintSection is still used for the background section display
+	 * 
+	 * @return The generated widget 
+	 */
+	virtual TSharedRef<SWidget> GenerateSectionWidget() { return SNullWidget::NullWidget; }
+
+	/**
 	 * Called when the section should be painted
 	 *
 	 * @param AllottedGeometry		The geometry of the section
