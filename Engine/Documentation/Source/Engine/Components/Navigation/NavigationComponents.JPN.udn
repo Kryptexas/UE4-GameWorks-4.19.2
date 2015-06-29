@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2600564
 Availability:Public
 Title:ナビゲーション コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -9,7 +9,7 @@ Related:Gameplay/Framework/Controller
 Related:Engine/Blueprints/UserGuide/Components
 
 
-ナビゲーション コンポーネントは、UE4 の **NavMesh** (パスファインディング) システムの機能を修正または拡張するタイプのコンポーネントです。
+Navigation コンポーネントは、UE4 の **NavMesh** (パスファインディング) システムの機能を修正または拡張するタイプのコンポーネントです。
 
 ## Nav Modifier コンポーネント
 
@@ -30,3 +30,8 @@ Related:Engine/Blueprints/UserGuide/Components
 すると、ポーンはたとえそれがかなり長くかかるルートを進むことを意味しても、赤いエリアを避けます。
 
 ---
+
+
+
+
+
