@@ -45,9 +45,13 @@
 // 2 ALU
 float rsqrtFast( float x )
 {
+#if !GL3_PROFILE
 	int i = asint(x);
 	i = 0x5f3759df - (i >> 1);
 	return asfloat(i);
+#else
+	return rsqrt(x);
+#endif
 }
 
 // Relative error : < 0.7% over full
@@ -55,9 +59,13 @@ float rsqrtFast( float x )
 // 1 ALU
 float sqrtFast( float x )
 {
+#if !GL3_PROFILE
 	int i = asint(x);
 	i = 0x1FBD1DF5 + (i >> 1);
 	return asfloat(i);
+#else
+	return sqrt(x);
+#endif
 }
 
 // Relative error : < 0.4% over full
