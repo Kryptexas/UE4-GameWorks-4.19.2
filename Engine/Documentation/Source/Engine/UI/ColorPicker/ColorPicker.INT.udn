@@ -43,7 +43,7 @@ Description:Tool for interactively choosing colors to assign to color properties
 [/VAR]
 
 [EXCERPT:Intro]
-The **Color Picker** allows you to easily adjust a color value for a color property in the Unreal Editor.  You can adjust colors by RGBA (red, green, blue, alpha), HSV(hue, saturation, value), and Hex (ARGB). Alternatively you can select a color by clicking anywhere in the color wheel or by capturing the color under your mouse, anywhere on your monitors.
+The **Color Picker** allows you to easily adjust a color value for a color property in the Unreal Editor.  You can adjust colors by RGBA (red, green, blue, alpha), HSV (hue, saturation, value), and Hex (ARGB). Alternatively you can select a color by clicking anywhere in the color wheel or by capturing the color under your mouse, anywhere on your monitors.
 [/EXCERPT:Intro]
 
 [REGION:imagetable]
