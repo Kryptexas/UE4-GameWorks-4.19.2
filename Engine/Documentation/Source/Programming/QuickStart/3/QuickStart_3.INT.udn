@@ -107,7 +107,7 @@ Version: 4.8
 
 ----
 
-We're now ready to create objects in **Unreal Engine** based on our code! For reference, all code used on this page is included below.
+We're now ready to create objects in **Unreal Engine** based on our code. For reference, all code used on this page is included below.
 
 [OBJECT:Section]
     [PARAMLITERAL:id]

@@ -28,15 +28,15 @@ This is what you'll see when you launch UE4 (pictured below).
 
 _Setting up your project is easy!_
 
-1.	Click the **New Project** tab from the Unreal Project Browser. 
+1.	Click the **New Project** tab from the **Unreal Project Browser**. 
 1.	Click the **Blueprint** tab and select **Blank**.
 1.	Select the following **settings**:
 	* **Desktop / Console**
 	* **Maximum Quality**
 	* **With Starter Content**
-1.	Select a location for your project to be stored: ![](ProjectLocation.png).
-1.	Name your project: ![](ProjectName.png).
-1.	Click the **Create Project** button: ![](CreateProjectButton.png).
+1.	Select a location for your project to be stored: ![](ProjectLocation.png)
+1.	Name your project: ![](ProjectName.png)
+1.	Click the **Create Project** button: ![](CreateProjectButton.png)
 
 From now on, UE4 will save all of your content as a project on the disk. As you complete this tutorial, UE4 organizes your meshes and textures.
 
