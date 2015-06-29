@@ -245,7 +245,7 @@ EVisibility FSequencerAssetEditor::GetTransportControlVisibility(TWeakPtr<ILevel
 	TSharedPtr<ILevelViewport> LevelViewportPin = LevelViewport.Pin();
 
 	FLevelEditorViewportClient& ViewportClient = LevelViewportPin->GetLevelViewportClient();
-	return (ViewportClient.IsPerspective() && ViewportClient.AllowMatineePreview()) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (ViewportClient.IsPerspective() && ViewportClient.AllowsCinematicPreview()) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 

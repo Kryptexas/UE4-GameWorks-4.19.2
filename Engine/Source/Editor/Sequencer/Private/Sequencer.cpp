@@ -739,7 +739,7 @@ void FSequencer::UpdatePreviewViewports(UObject* ObjectToViewThrough) const
 
 	for(FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
 	{
-		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
+		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
 		{
 			LevelVC->SetMatineeActorLock(Cast<AActor>(ObjectToViewThrough));
 		}
