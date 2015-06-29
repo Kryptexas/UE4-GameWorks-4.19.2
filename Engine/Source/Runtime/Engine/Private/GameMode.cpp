@@ -1454,7 +1454,7 @@ bool AGameMode::CanSpectate_Implementation( APlayerController* Viewer, APlayerSt
 
 void AGameMode::ChangeName( AController* Other, const FString& S, bool bNameChange )
 {
-	if( !S.IsEmpty() )
+	if( Other && !S.IsEmpty() )
 	{
 		Other->PlayerState->SetPlayerName(S);
 	}
