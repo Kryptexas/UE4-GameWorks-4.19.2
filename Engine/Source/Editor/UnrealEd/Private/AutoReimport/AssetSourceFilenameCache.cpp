@@ -72,7 +72,7 @@ TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(co
 	return Info;
 }
 
-TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(const TMap<FName, FString>& InTags)
+TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(const TSharedMapView<FName, FString>& InTags)
 {
 	static const FName LegacySourceFilePathName("SourceFile");
 

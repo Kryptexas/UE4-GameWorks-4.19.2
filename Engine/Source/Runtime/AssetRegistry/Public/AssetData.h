@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SharedMapView.h"
+
 DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);
 /** A class to hold important information about an assets found by the Asset Registry */
 class FAssetData
@@ -21,7 +23,7 @@ public:
 	/** The name of the asset's class */
 	FName AssetClass;
 	/** The map of values for properties that were marked AssetRegistrySearchable */
-	TMap<FName, FString> TagsAndValues;
+	TSharedMapView<FName, FString> TagsAndValues;
 	/** The IDs of the chunks this asset is located in for streaming install.  Empty if not assigned to a chunk */
 	TArray<int32> ChunkIDs;
 
@@ -31,14 +33,14 @@ public:
 	{}
 
 	/** Constructor */
-	FAssetData(FName InPackageName, FName InPackagePath, FName InGroupNames, FName InAssetName, FName InAssetClass, const TMap<FName, FString>& InTags, const TArray<int32>& InChunkIDs)
+	FAssetData(FName InPackageName, FName InPackagePath, FName InGroupNames, FName InAssetName, FName InAssetClass, TMap<FName, FString> InTags, const TArray<int32>& InChunkIDs)
 	{
 		PackageName = InPackageName;
 		PackagePath = InPackagePath;
 		GroupNames = InGroupNames;
 		AssetName = InAssetName;
 		AssetClass = InAssetClass;
-		TagsAndValues = InTags;
+		TagsAndValues = MakeSharedMapView(MoveTemp(InTags));
 
 		FString ObjectPathStr = PackageName.ToString() + TEXT(".");
 
@@ -83,10 +85,12 @@ public:
 			TArray<UObject::FAssetRegistryTag> TagList;
 			InAsset->GetAssetRegistryTags(TagList);
 
+			TMap<FName, FString> TagsAndValuesMap;
 			for ( auto TagIt = TagList.CreateConstIterator(); TagIt; ++TagIt )
 			{
-				TagsAndValues.Add(TagIt->Name, TagIt->Value);
+				TagsAndValuesMap.Add(TagIt->Name, TagIt->Value);
 			}
+			TagsAndValues = MakeSharedMapView(MoveTemp(TagsAndValuesMap));
 
 			ChunkIDs = Outermost->GetChunkIDs();
 		}
@@ -296,30 +300,28 @@ public:
 		Ar << AssetData.PackageName;
 		Ar << AssetData.AssetName;
 
-		static FName BlueprintClassName = TEXT("Blueprint");
-		if (Ar.IsFilterEditorOnly() && AssetData.AssetClass == BlueprintClassName)
+		static const FName BlueprintClassName = TEXT("Blueprint");
+		if ((Ar.IsSaving() || Ar.IsLoading()) && Ar.IsFilterEditorOnly() && AssetData.AssetClass == BlueprintClassName)
 		{
 			// Exclude FiB data from serialization
 			static FName FiBName = TEXT("FiB");
 			if (Ar.IsSaving())
 			{
-				TMap<FName, FString> LocalTagsAndValues = AssetData.TagsAndValues;
+				auto LocalTagsAndValues = AssetData.TagsAndValues.GetMap();
 				LocalTagsAndValues.Remove(FiBName);
 				Ar << LocalTagsAndValues;
 			}
-			else if (Ar.IsLoading())
+			else // if (Ar.IsLoading())
 			{
-				Ar << AssetData.TagsAndValues;
-				AssetData.TagsAndValues.Remove(FiBName);
-			}
-			else
-			{
-				Ar << AssetData.TagsAndValues;
+				TMap<FName, FString> TagsAndValues;
+				Ar << TagsAndValues;
+				TagsAndValues.Remove(FiBName);
+				AssetData.TagsAndValues = MakeSharedMapView(MoveTemp(TagsAndValues));
 			}
 		}
 		else
 		{
-			Ar << AssetData.TagsAndValues;
+			Ar << const_cast<TMap<FName, FString>&>(AssetData.TagsAndValues.GetMap());
 		}
 
 		if (Ar.UE4Ver() >= VER_UE4_CHANGED_CHUNKID_TO_BE_AN_ARRAY_OF_CHUNKIDS)

@@ -14,7 +14,7 @@ public:
 	static FAssetSourceFilenameCache& Get();
 
 	/** Helper functions to extract asset import information from asset registry tags */
-	static TOptional<FAssetImportInfo> ExtractAssetImportInfo(const TMap<FName, FString>& InTags);
+	static TOptional<FAssetImportInfo> ExtractAssetImportInfo(const TSharedMapView<FName, FString>& InTags);
 	static TOptional<FAssetImportInfo> ExtractAssetImportInfo(const TArray<UObject::FAssetRegistryTag>& InTags);
 
 	/** Retrieve a list of assets that were imported from the specified filename */
