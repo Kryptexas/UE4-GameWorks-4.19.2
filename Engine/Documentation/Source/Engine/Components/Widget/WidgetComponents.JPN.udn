@@ -1,4 +1,6 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2600667
+Availability:Public
+Availability:Public
 Title:ウィジェット コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
 Description:ワールド内でインタラクション可能なウィジェット ブループリントの 3D インスタンスであるウィジェット コンポーネントの説明。 
@@ -7,30 +9,35 @@ Related:Engine/UMG/UserGuide/WidgetBlueprints
 Related:Engine/MediaFramework
 Related:Engine/Blueprints/UserGuide/Components
 
-ウィジェット コンポーネントを使用すると、[UMG](Engine/UMG/UserGuide) で作成した 3D UI エレメントをゲームワールドで表すことができます。 
+Widget コンポーネントを使用すると、[UMG](Engine/UMG/UserGuide) で作成した 3D UI エレメントをゲームワールドで表すことができます。 
 
 ## ウィジェット コンポーネント
 
-**WidgetComponent** 自体は、ゲームワールド内でインタラクションできる **Widget ブループリント** の 3D インスタンスです。 
+**Widget コンポーネント** 自体は、ゲームワールド内でインタラクションできる Widget ブループリント の 3D インスタンスです。 
 
-以下の例では、**WidgetComponent** を追加しました。これで、**Widget クラス ブループリント** を指定できるようになります。 
+以下の例では、Widget ウィジェットを追加しました。これで、Widget クラス ブループリントを指定できるようになります。 
 
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_21.png)
 
-_この例では、**Widget ブループリント** を使用してゲームワールド内に表示されるインタラクティブ メニューを表示します。_
+_この例では、Widget ブループリント を使用してゲームワールド内に表示されるインタラクティブ メニューを表示します。_
 
-**Widget Blueprint** がワールドでどのように見えるかの設定を、 **Draw Size** または **Max Interaction** を変更することで変えることができます。 
+Widget Blueprint がワールドでどのように見えるかの設定を、 Draw Size または Max Interaction を変更することで変えることができます。 
 
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_22.png)(w:720)
 
-**Widget Blueprint** を含むアクタをレベルに配置すると、**Widget クラスのブループリント** がワールドに表示されます。 
+Widget Blueprint を含むアクタをレベルに配置すると、Widget クラスのブループリント がワールドに表示されます。 
 
 ![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_30.png)(w:720)
 
- **WidgetCompoment** および **Widget ブループリント** を使用してこの例を作成する段階的なガイドについては、 [](Engine/UMG/HowTo/Create3DWidgets) をご覧ください。 
+Widget コンポーネントおよび Widget ブループリント を使用してこの例を作成する段階的なガイドについては、 [](Engine/UMG/HowTo/Create3DWidgets) をご覧ください。 
 
 [REGION:note]
 このコンポーネントは実験段階であり、将来のリリースでは大幅に変更または削除される可能性があります。 
 [/REGION]
+
+
+
+
+
 
 
