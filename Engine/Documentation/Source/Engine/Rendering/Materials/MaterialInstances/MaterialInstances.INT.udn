@@ -9,7 +9,7 @@ Description:Hierarchical material relationships that allow modification of prope
 [TOC(start:2)]
 
 
-## Overview
+
 
 In Unreal Engine 4, Material instancing is used to change the appearance of a Material without incurring an expensive recompilation of the Material. Whereas a typical Material cannot be edited or changed without recompiling (something that _must_ happen prior to gameplay), an instanced Material can be made to change without such recompilation. Certain types of instanced Materials can even change during gameplay in response to in-game events (such as a tree whose Material blackens and chars while it burns). This allows tremendous visual flexibility in your artistic elements.
 
@@ -64,7 +64,7 @@ MIDs are created within script, either from a parameterized Material or a Materi
 To allow applying un-instanced Materials to primitives, the abstract base class _MaterialInterface_ is used.  This class is an interface to both the expressions and parameter values of an applied Material.  The Material class is a subclass of MaterialInterface which defines the expressions and default parameter values.  These types both inherit their expressions and parameter values from their parent, optionally overriding or animating some of the parameter values.
 
 [REGION:tip]
-Incidentally, this means that if you want a Blueprint variable to be able to accept _either_ a **Material** or a **Material Instance Constant**, you will need to make sure it is a variable of type _MaterialInterface_!
+Incidentally, this means that if you want a Blueprint variable to be able to accept _either_ a Material or a Material Instance Constant, you will need to make sure it is a variable of type _MaterialInterface_!
 [/REGION]
 
 
@@ -148,7 +148,7 @@ See the [](Engine/Rendering/Materials/ExpressionReference) for a complete listin
 
 Static parameters are applied at compile-time, so they produce more optimal code as entire branches of the material that are masked out by a static parameter will be compiled out and not executed at runtime.  Because they are applied at compile-time, they can only be changed from within the [MaterialInstanceEditor](Engine/Rendering/Materials/MaterialInstances/Editor) and not from script.
 
-**Warning: A new material will be compiled out for every combination of static parameters in the base material that are used by instances!**
+*Warning: A new material will be compiled out for every combination of static parameters in the base material that are used by instances!
 
 This can lead to an excessive amount of shaders being compiled.  Try to minimize the number of static parameters in the material and the number of permutations of those static parameters that are actually used.  See [Static Switch Parameter](Engine/Rendering/Materials/ExpressionReference/Parameters#StaticSwitchParameter) and [Static Component Mask Parameter](Engine/Rendering/Materials/ExpressionReference/Parameters#StaticComponentMaskParameter) for information on the specific static parameter types.
 

@@ -10,7 +10,7 @@ Not all inputs are used with every combination of Blend Mode and Shading Model. 
 
 ## Inputs and Material Settings
 
-Not all inputs will be useful for every type of Material you create. For instance, when developing a Light Function - a Material that is applied to a light - you can only use the **Emissive Color** input on the material and nothing else, since other inputs, such as Metallic or Roughness, would not be applicable. Because of this, it is important to know what type of Material you are creating before you start worrying too much about inputs. The three primary controlling properties in this are:
+Not all inputs will be useful for every type of Material you create. For instance, when developing a Light Function - a Material that is applied to a light - you can only use the Emissive Color input on the material and nothing else, since other inputs, such as Metallic or Roughness, would not be applicable. Because of this, it is important to know what type of Material you are creating before you start worrying too much about inputs. The three primary controlling properties in this are:
 
 * **Blend Mode** - This controls how your Material will blend in with the pixels behind it.
 * **Shading Model** - This defines how light is calculated for the surface of the Material.
@@ -143,11 +143,11 @@ When using World Position Offset to expand your object beyond its original bound
 ## World Displacement & Tessellation Multiplier
 
 [EXCERPT:WorldDisp]
-**World Displacement** works very much like World Position Offset, but it uses Tessellation vertices rather than the base vertices of the mesh. In order for this to be enabled, the **Tessellation** property on the Material must be set to something other than _None_.
+**World Displacement** works very much like World Position Offset, but it uses Tessellation vertices rather than the base vertices of the mesh. In order for this to be enabled, the Tessellation property on the Material must be set to something other than _None_.
 [/EXCERPT:WorldDisp]
 
 [EXCERPT:TessMult]
-**Tessellation Multiplier** controls the amount tessellation along the surface, allowing more detail to be added where needed. As with World Displacement, for this to be enabled, the **Tessellation** property must be set to something other than _None_.
+**Tessellation Multiplier** controls the amount tessellation along the surface, allowing more detail to be added where needed. As with World Displacement, for this to be enabled, the Tessellation property must be set to something other than _None_.
 [/EXCERPT:TessMult]
 
 [EXCERPT:WorldDispAndTess]
