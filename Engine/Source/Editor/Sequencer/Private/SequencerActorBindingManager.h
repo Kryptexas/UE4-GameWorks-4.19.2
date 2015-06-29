@@ -70,7 +70,7 @@ public:
 	 *
 	 * @param	InWorld	The world to spawn actors in
 	 */
-	FSequencerActorBindingManager( UWorld* InWorld, TSharedRef<ISequencerObjectChangeListener> InObjectChangeListener, TSharedRef<FSequencer> InSequencer );
+	FSequencerActorBindingManager( TSharedRef<ISequencerObjectChangeListener> InObjectChangeListener, TSharedRef<FSequencer> InSequencer );
 
 
 	/** Destructor */
@@ -148,9 +148,11 @@ protected:
 	 */
 	class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound ) const;
 	
+	/**
+	 * @return The world that possessed actors belong to or where spawned actors should go
+	 */
+	UWorld* GetWorld() const;
 private:
-	TWeakObjectPtr< UWorld > ActorWorld;
-	
 	/** 'PlayMovieScene' node in level script that we're currently associating with the active MovieScene.  This node contains the bindings
 	 information that we need to be able to preview possessed actors in the level */
 	mutable TWeakObjectPtr< UK2Node_PlayMovieScene > PlayMovieSceneNode;

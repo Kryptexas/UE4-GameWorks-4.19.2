@@ -13,12 +13,12 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/Selection.h"
+#include "LevelEditor.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
-FSequencerActorBindingManager::FSequencerActorBindingManager( UWorld* InWorld, TSharedRef<ISequencerObjectChangeListener> InObjectChangeListener, TSharedRef<FSequencer> InSequencer )
-	: ActorWorld( InWorld )
-	, PlayMovieSceneNode( nullptr )
+FSequencerActorBindingManager::FSequencerActorBindingManager( TSharedRef<ISequencerObjectChangeListener> InObjectChangeListener, TSharedRef<FSequencer> InSequencer )
+	: PlayMovieSceneNode( nullptr )
 	, Sequencer( InSequencer )
 	, ObjectChangeListener( InObjectChangeListener )
 {
@@ -89,6 +89,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 
 	UMovieScene* MovieScene = MovieSceneInstance->GetMovieScene();
 
+	UWorld* ActorWorld = GetWorld();
 	// Remove any puppet objects that we no longer need
 	if( MovieScene )
 	{
@@ -166,6 +167,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 
 	if( !bDestroyAll && MovieScene )
 	{
+
 		for( auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex )
 		{
 			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable( SpawnableIndex );
@@ -334,6 +336,8 @@ UK2Node_PlayMovieScene* FSequencerActorBindingManager::FindPlayMovieSceneNodeInL
 	// Grab the world object for this editor
 	check( MovieScene != NULL );
 	
+	UWorld* ActorWorld = GetWorld();
+
 	// Search all levels in the specified world
 	for( TArray<ULevel*>::TConstIterator LevelIter( ActorWorld->GetLevels().CreateConstIterator() ); LevelIter; ++LevelIter )
 	{
@@ -369,6 +373,8 @@ UK2Node_PlayMovieScene* FSequencerActorBindingManager::CreateNewPlayMovieSceneNo
 	// Grab the world object for this editor
 	check( MovieScene != NULL );
 	
+	UWorld* ActorWorld = GetWorld();
+
 	ULevel* Level = ActorWorld->GetCurrentLevel();
 	check( Level != NULL );
 	
@@ -482,6 +488,17 @@ UK2Node_PlayMovieScene* FSequencerActorBindingManager::BindToPlayMovieSceneNode(
 	}
 	
 	return PlayMovieSceneNode.Get();
+}
+
+UWorld* FSequencerActorBindingManager::GetWorld() const
+{
+	if( FModuleManager::Get().IsModuleLoaded("LevelEditor") )
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>("LevelEditor");
+		return LevelEditorModule.GetFirstLevelEditor()->GetWorld();
+	}
+
+	return nullptr;
 }
 
 void FSequencerActorBindingManager::OnPlayMovieSceneBindingsChanged()
