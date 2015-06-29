@@ -5,7 +5,7 @@ Description:Interface for hierarchical tree-view of all Actors within the curren
 
 [TOC(start:2)]
 
-## Overview
+
 
 [INCLUDE:Engine/UI/LevelEditor/SceneOutliner/#SceneOutliner]
 
