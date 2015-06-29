@@ -100,27 +100,27 @@ Setting up a Material to use the Main Material Node is something can be accompli
 	 
 	 ![](Material_Open_Material_Editor.png)
 
-1. To use the Main Material Node, you first have to add Material Expression nodes to the Material Graph. Add a **Constant3Vector** Material Expression node the Material Graph by holding down the **Number 3 Key** on the keyboard and using the **Left Mouse Button** to click anywhere inside of the Material Graph to place the node.
+1. To use the Main Material Node, you first have to add Material Expression nodes to the Material Graph. Add a Constant3Vector Material Expression node the Material Graph by holding down the Number 3 Key on the keyboard and using the **Left Mouse Button** to click anywhere inside of the Material Graph to place the node.
 
 	![](Material_Adding_Const3Vector_Node.png)
 
 	[region:tip]
-	There are multiple ways to add nodes to the Material Graph. You can drag and drop form the **Material Pallet**, you can also **Right-Click** in the **Material Graph** and then search for nodes via the Context menu. Finally, you can use **Keyboard Shortcuts** to also place nodes in the Material Graph. You can read more about this in the [Material Editor UI]( Engine/Rendering/Materials/Editor/Interface) page.
+	There are multiple ways to add nodes to the Material Graph. You can drag and drop form the **Material Pallet**, you can also **Right-Click** in the **Material Graph** and then search for nodes via the Context menu. Finally, you can use Keyboard Shortcuts to also place nodes in the Material Graph. You can read more about this in the [Material Editor UI]( Engine/Rendering/Materials/Editor/Interface) page.
 	[/region]
 
-1. Next add a **Constant** Material Expression nodes to the Material Graph by first searching in the **Material Pallet** using the word **Constant** as a search term. When the **Constant** Material Expression is found select it by clicking on it with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the Material Expression node into the Material Graph releasing the **Left Mouse Button** when your mouse is over the location in the Material Graph you want to place the Material Expression node. 
+1. Next add a Constant Material Expression nodes to the Material Graph by first searching in the **Material Pallet** using the word Constant as a search term. When the Constant Material Expression is found select it by clicking on it with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the Material Expression node into the Material Graph releasing the **Left Mouse Button** when your mouse is over the location in the Material Graph you want to place the Material Expression node. 
 
 	![](MMN_Add_Const_Pram.gif)(convert:false)
 
-1. Now that we have a **Constant node**, duplicate it by first selecting it and then pressing **Ctrl+W** on the keyboard once. When completed, you should have something that looks like this. 
+1. Now that we have a Constant node, duplicate it by first selecting it and then pressing Ctrl+W on the keyboard once. When completed, you should have something that looks like this. 
 	
 	![](Materail_Duplication_Of_Nodes.png)
 
-1. With all of the required Material Expression nodes now in place, it is now time to setup and connect them to the **Main Material Node**. First **Double-Click** on the **Constant3Vector** node using the **Left Mouse Button** to open up the Color Picker.  With the **Color Picker** open, select the color red and then press the **Ok** button.
+1. With all of the required Material Expression nodes now in place, it is now time to setup and connect them to the Main Material Node. First **Double-Click** on the Constant3Vector node using the **Left Mouse Button** to open up the Color Picker.  With the **Color Picker** open, select the color red and then press the **Ok** button.
 	 
 	 ![](Materials_Color_Picker.gif)(convert:false)
 
-1. Now connect the **Constant3Vector** to the **Base Color** input on the Main Material node. To do this, use the **Left Mouse Button** to click on the circle output that is on the right of the **Constant3Vector**. Then with the **Left Mouse Button** still held down, drag to the right until you see a line coming from the circle output. Connect this line to the **Base Color** input on the **Main Material node**.
+1. Now connect the **Constant3Vector** to the **Base Color** input on the Main Material node. To do this, use the **Left Mouse Button** to click on the circle output that is on the right of theConstant3Vector. Then with the **Left Mouse Button** still held down, drag to the right until you see a line coming from the circle output. Connect this line to the Base Color input on the Main Material node.
 	
 	![](Materials_Connect_Nodes_To_Graph.gif)(convert:false)
 
@@ -128,11 +128,11 @@ Setting up a Material to use the Main Material Node is something can be accompli
 	As you make changes to the Main Material Node the viewport in the Material Editor will update to reflect your changes.  However this viewport can take a few seconds to update with changes depending on the complexity of your Material. For making slight tweaks to the Material a [Material Instance](Engine/Rendering/Materials/MaterialInstances) should be used as it shows changes instantly. 
 	[/region]
 
-1. With the Base Color now set, set up the remaining **Constant** Material Expression nodes by first selecting one of them with the **Left Mouse Button**. Then under the **Details** panel, input a value. For the first node, input a value of  **1.0** and for the second node input a value of **0.5**. 
+1. With the Base Color now set, set up the remaining **Constant** Material Expression nodes by first selecting one of them with the **Left Mouse Button**. Then under the **Details** panel, input a value. For the first node, input a value of  1.0 and for the second node input a value of 0.5. 
 	
 	![](Materail_Setup_Constants.png)
 
-1. Once the values of the **Constant**  Material Expression are set, connect the **Constant** Material Expression node with the value of 1.0 to the **Metallic** input on the Main Material Node. Then connect the **Constant** Material Expression node with the value of 0.5 to the **Roughness** input on the Main Material node.  
+1. Once the values of the **Constant**  Material Expression are set, connect the **Constant** Material Expression node with the value of 1.0 to the **Metallic** input on the Main Material Node. Then connect the **Constant** Material Expression node with the value of 0.5 to the Roughness input on the Main Material node.  
 	
 	![](Materials_Connect_&_Compile.gif)(convert:false)
 

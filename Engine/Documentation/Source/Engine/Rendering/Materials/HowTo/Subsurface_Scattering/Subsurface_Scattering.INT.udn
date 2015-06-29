@@ -60,9 +60,9 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 	| **Subsurface _Amount**| 0.5|
 	| **Subsurface_Color**|r:1.0, b:0, g:0|
 1. Once the Material Nodes have been named and filled in with the correct data, it is then time to connect the Material nodes to the Main Material Node. 
-	To wire a node to the main Material node, use the **Left Mouse Button** to click on the **White Circle** that is on the **Right Side** of the node. 
+	To wire a node to the main Material node, use the **Left Mouse Button** to click on the White Circle that is on the Right Side of the node. 
 	With the **Left Mouse Button** still held down, drag to the **Right** and the connection wire will appear. 
-	Keep dragging to the **Right** with the  **Left Mouse Button** still held until you come to the input you want to use on the Main Material node. 
+	Keep dragging to the Right with the  **Left Mouse Button** still held until you come to the input you want to use on the Main Material node. 
 	Once your mouse is over the input you want to use, release the  **Left Mouse Button** to connect.
 
 	![](SSM_Connecting_Nodes.gif)(convert:false)
@@ -99,7 +99,7 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 
 1. With all of the lights added, we can now add a Static Mesh to test with. For this example, we will be using the following mesh. 
 
-	**StaticMesh'/Game/StarterContent/Props/SM_Chair.SM_Chair'**
+	StaticMesh'/Game/StarterContent/Props/SM_Chair.SM_Chair'
 
 	[region:tip]
 	If you cannot find the SM_Chair mesh, it is probably because you did not include the Starter Content with your project. 

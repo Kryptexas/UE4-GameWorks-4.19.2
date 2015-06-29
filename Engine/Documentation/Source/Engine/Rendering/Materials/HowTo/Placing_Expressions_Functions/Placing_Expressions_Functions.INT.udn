@@ -28,9 +28,9 @@ As you will soon see,  Material Expression nodes are key to building and interac
 While Material Expressions and Material Functions are the building blocks used to create Materials, there are some differences between the nodes and how they work.
 The main difference between Material Functions and Material Expressions is that Material Functions are made inside of the Material Function Editor and saved assets in the **Content Browser**. 
 
-* **[Material Expressions]( Engine/Rendering/Materials/ExpressionReference)**: Material Expressions are static pieces of code that can only do what they are programmed to do. For example, a Multiply node can only Multiply, it will never be able to add two numbers together. The only way you could change this was to make changes to the source code.
+* [Material Expressions]( Engine/Rendering/Materials/ExpressionReference): Material Expressions are static pieces of code that can only do what they are programmed to do. For example, a Multiply node can only Multiply, it will never be able to add two numbers together. The only way you could change this was to make changes to the source code.
 
-* **[Material Functions]( Engine/Rendering/Materials/Functions)**: Material Functions are more dynamic because you can create Material Functions to perform any type of calculations you want. If you wanted your Material Function to have the ability to not only Multiply but also Add, you could set it up to do so as those changes would be made right inside the Material Function Editor without having to make source code changes.
+* [Material Functions]( Engine/Rendering/Materials/Functions): Material Functions are more dynamic because you can create Material Functions to perform any type of calculations you want. If you wanted your Material Function to have the ability to not only Multiply but also Add, you could set it up to do so as those changes would be made right inside the Material Function Editor without having to make source code changes.
 
 
 ## Placing Material Expressions
@@ -51,7 +51,7 @@ You can also add Material Expressions by **Right-Clicking** anywhere in the Mate
 
 ### Keyboard Shortcuts
 
-There are a number of Keyboard shortcuts that you can use to help you quickly place down Material Expressions that are most commonly used. You can change what key spawns what Material Expression by going to **Edit -> Editor Preferences -> Keyboard Shortcuts -> Material Editor�Spawn Nodes**.
+There are a number of Keyboard shortcuts that you can use to help you quickly place down Material Expressions that are most commonly used. You can change what key spawns what Material Expression by going to **Edit -> Editor Preferences -> Keyboard Shortcuts -> Material Editor Spawn Nodes**.
 
 ![](Placing_Functions_Setting_Shortcuts.gif)(convert:false)
 

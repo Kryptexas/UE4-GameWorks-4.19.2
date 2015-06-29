@@ -37,7 +37,7 @@ Creating Material Functions can be accomplished in the few following steps.
 
 1. Once the Material Function has been created it needs to be named. 
 	Your name should be as descriptive as possible so that when someone goes to look at your Material Function they can easily understand what it does. 
-	For this example, we are going to call our node **Custom_Fresnel**. 
+	For this example, we are going to call our node Custom_Fresnel. 
 	You can re-name your Material Function by selecting it in the **Content Browser**, pressing **F2** on the keyboard, and then typing in the name that you want. 
 	
 	![](Material_Functions_Rename.gif)(convert:false)
@@ -51,20 +51,20 @@ Creating Material Functions can be accomplished in the few following steps.
 
 	[region:tip]
 	The Material Function editor works in a very similar manner to how the Material Editor works, 
-	the two biggest differences between being what the **Details** panel does and how the **Final Material** node works. 
-	You can read more about how the Material Function editor works but checking out the **[Material Functions Overview](Engine/Rendering/Materials/Functions/Overview)**
+	the two biggest differences between being what the **Details** panel does and how the Final Material node works. 
+	You can read more about how the Material Function editor works but checking out the [Material Functions Overview](Engine/Rendering/Materials/Functions/Overview)
 	[/region]
 
 1. Now with the Material Function Editor open, let us begin to create our Fresnel effect. 
 	Since the Fresnel Effect works based on glancing angles, we are going to need to compare the current surface angle with our camera angle and then use that to determine our **Fresnel Value**. 
-	To do this inside of our shader, we use the **[Dot Product]( Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct)** node to compare our current camera angle with the angle of the surface currently being viewed. 
+	To do this inside of our shader, we use the [Dot Product]( Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct) node to compare our current camera angle with the angle of the surface currently being viewed. 
 	To perform this type of calculation with Material nodes, we are going to need to make use of the following nodes. 
-	* **[Constant 3 Vector Node](Engine/Rendering/Materials/ExpressionReference/Constant#constant3vector)** x 1
-	* **[Transform Node](Engine/Rendering/Materials/ExpressionReference/VectorOps#transform)** x 1
-	* **[Dot Product Node](Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct)** x 1
-	* **[Camera Vector WS Node](Engine/Rendering/Materials/ExpressionReference/Vector#cameravectorws)** x 1
+	* [Constant 3 Vector Node](Engine/Rendering/Materials/ExpressionReference/Constant#constant3vector) x 1
+	* [Transform Node](Engine/Rendering/Materials/ExpressionReference/VectorOps#transform) x 1
+	* [Dot Product Node](Engine/Rendering/Materials/ExpressionReference/VectorOps#dotproduct) x 1
+	* [Camera Vector WS Node](Engine/Rendering/Materials/ExpressionReference/Vector#cameravectorws) x 1
 
-	You can add the above nodes to the Material Function graph a number of ways, but the easiest is to search for each node in the **Palette** menu and then select the node with the **Left Mouse Button** and Drag it into the Material Graph. When completed, you should have something that looks like this.   
+	You can add the above nodes to the Material Function graph a number of ways, but the easiest is to search for each node in the **Palette** menu and then select the node with the **Left Mouse Button** and Drag it into the Material Graph. When completed, you should have something that looks like this:   
 	
 	![](Material_Function_Needed_Nodes.png)
 
@@ -72,19 +72,19 @@ Creating Material Functions can be accomplished in the few following steps.
 	The Fresnel Effect is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. For example, if you are standing over a pool looking straight down at the pool, you will not see a lot of reflections in the water. As you start to move your head so that the water in the pool becomes more and more parallel to your eye level, you will begin to notice more and more reflections in the water and this is the type of behavior that we are trying to re-create in our shader, the ability to add or remove visual information based on viewing angle. 
 	[/region]
 	
-1. With the nodes now placed down, it is now time to set them up and wire them together. First, set the **Blue Channel** of the **Constant 3 Vector** to **1.0** as this will represent the Z value in our Fresnel term. Then take the output of the **Constant 3 Vector** node and wire that into the Input of the **Vector Transform** node. Also make sure that the **Transform Node** is setup so that we are transforming from **Tangent Space** into **World Space**. Then take the output of the **Vector Transform** node and wire that into the **A** input of the **Dot Product** node. Once that has been completed, take the output of the **Camera Vector** node and wire that into the **B** input of the **Dot Product** node. When completed, you should have something that looks like this.
+1. With the nodes now placed down, it is now time to set them up and wire them together. First, set the Blue Channel of the Constant 3 Vector to **1.0** as this will represent the Z value in our Fresnel term. Then take the output of the Constant 3 Vector node and wire that into the Input of the Vector Transform node. Also make sure that the Transform Node is setup so that we are transforming from Tangent Space into World Space. Then take the output of the Vector Transform node and wire that into the A input of the Dot Product node. Once that has been completed, take the output of the Camera Vector node and wire that into the B input of the Dot Product node. When completed, you should have something that looks like this.
 
 	![](Material_Function_Nodes_Setup.png)
 
-1. The next thing that we want to do is add a **[Clamp Node](Engine/Rendering/Materials/ExpressionReference/Math#clamp)** to clamp our results to the 0 to 1 range to make sure that we do not get any errors that might cause rendering artifacts. You can find the **Clamp** node by searching for it in the **Palette** menu and the Drag it into the Material Graph. When completed, you should have something that looks like this. 
+1. The next thing that we want to do is add a [Clamp Node](Engine/Rendering/Materials/ExpressionReference/Math#clamp) to clamp our results to the 0 to 1 range to make sure that we do not get any errors that might cause rendering artifacts. You can find the **Clamp** node by searching for it in the **Palette** menu and the Drag it into the Material Graph. When completed, you should have something that looks like this. 
 	
 	![](Material_Function_Adding_Clamp_Node.png)
 
-1. After the Clamp node, we need to add a **[One-Minus node](Engine/Rendering/Materials/ExpressionReference/Math#oneminus)** to invert our effect so that only the edges are effected. You can find the One-Minus node by searching for **OneMinus** in the **Palette**. When completed, you should have something that looks like the following. 
+1. After the Clamp node, we need to add a [One-Minus node](Engine/Rendering/Materials/ExpressionReference/Math#oneminus) to invert our effect so that only the edges are effected. You can find the One-Minus node by searching for OneMinus in the Palette. When completed, you should have something that looks like the following. 
 	
 	![](Material_Function_Adding_OneMinus.png)
 
-1. Next, we need to add two **[Function Input]( Engine/Rendering/Materials/Functions/Overview #functioninputnodes)** nodes. Function Input nodes are how we supply our Material Function with values or textures when placed inside of another Material.  To add a Function Input to our material search for **Function Input** in the **Palette** and then drag it into the Material Graph. Once you have one placed, you can duplicate it by first selecting the node and then pressing **Ctrl+W** on the keyboard. When completed, you should have something that looks like this. 
+1. Next, we need to add two [Function Input]( Engine/Rendering/Materials/Functions/Overview #functioninputnodes) nodes. Function Input nodes are how we supply our Material Function with values or textures when placed inside of another Material.  To add a Function Input to our material search for **Function Input** in the **Palette** and then drag it into the Material Graph. Once you have one placed, you can duplicate it by first selecting the node and then pressing **Ctrl+W** on the keyboard. When completed, you should have something that looks like this. 
 	
 	![](Material_Function_Adding_Input_Nodes.png)
 
@@ -102,26 +102,26 @@ Creating Material Functions can be accomplished in the few following steps.
 	![](Material_Function_Input_Node_Pow.png)
 	
 	[region:tip]
-	For more information about what each option of the Function node does, check out the **[Function Input node documentation](Engine/Rendering/Materials/Functions/Overview#functioninputnodes)**. 
+	For more information about what each option of the Function node does, check out the [Function Input node documentation](Engine/Rendering/Materials/Functions/Overview#functioninputnodes). 
 	[/region]
 
-1. With the Function Input nodes now setup, we now need to add a **Power Node** to the Material Graph. We are using a **Power Node** so that we can either increase or decrease the falloff of our Fresnel effect. This will help to push the Fresnel effect either closer or further from the edges of the mesh that it is on. To add a **Power Node** search for it in the **Palette** and then Drag and Drop it into the Material Graph. When completed, you should have something that looks like this. 
+1. With the Function Input nodes now setup, we now need to add a Power Node to the Material Graph. We are using a Power Node so that we can either increase or decrease the falloff of our Fresnel effect. This will help to push the Fresnel effect either closer or further from the edges of the mesh that it is on. To add a Power Node search for it in the **Palette** and then Drag and Drop it into the Material Graph. When completed, you should have something that looks like this. 
 	
 	![](Material_Function_Adding_Power.png)
 
-1. Next, we are going to add a **Multiply Node** so that we can control the intensity of the Fresnel effect.  To add a **Multiply Node** search for it in the **Palette** and then Drag and Drop it into the Material Graph. When completed, you should have something that looks like this. 
+1. Next, we are going to add a Multiply Node so that we can control the intensity of the Fresnel effect.  To add a Multiply Node search for it in the **Palette** and then Drag and Drop it into the Material Graph. When completed, you should have something that looks like this. 
 	
 	![](Material_Function_Adding_Multiply.png)
 
-1. Now with all the nodes we need added to the Material Graph, it is now time to wire everything together. First, we need to wire the output of the **OneMinus** node to the **Base** input of the **Power** node. Then we need to connect our first **Function Input** node, **Fresnel Exponent**, into the **Exp** input of the **Power** node. Once that has been completed, we need to then connect the output of the **Power** node to the A input of the **Multiply** node and then connect our second **Function Input**, **Fresnel Intensity**, into the B input of the **Multiply** node. Finally we need to take the output of the ** Multiply** node and connect that to the input of the **Output Results** node.  
+1. Now with all the nodes we need added to the Material Graph, it is now time to wire everything together. First, we need to wire the output of the OneMinus node to the Base input of the Power node. Then we need to connect our first Function Input node, Fresnel Exponent, into the Exp input of the Power node. Once that has been completed, we need to then connect the output of the Power node to the A input of the Multiply node and then connect our second Function Input, Fresnel Intensity, into the B input of the Multiply node. Finally we need to take the output of the Multiply node and connect that to the input of the Output Results node.  
 	
-	![](Material_Functions_Making_Connections.gif)(convert:false)
+	![](Material_Functions_Making_Connections.gif)(convert:false)                                                                                                                                                                                                      
 
 1. Once the Material nodes have all been connected, we need to now compile the Material Function by pressing the **Apply** button on the main tool bar. If the Material Function compiled correctly, the **Apply** button will be grayed out. When completed, you should have something that looks like the following image.
 
 	![](Material_Function_Completed_Material.png)
 
-
+	
 ## Using Material Functions 
 
 1. With our Material Function now finished, close the Material Function Editor and create a new Material in the **Content Browser**. To create a new Material, **Right-Click** in the **Content Browser** and then select **Material** from **Basic Assets List** and name your newly created Material, **Fresnel_Material**.
@@ -140,7 +140,7 @@ Creating Material Functions can be accomplished in the few following steps.
 
 	![](Material_Function_Adding_Nodes.png)
 
-1. Now that all the nodes have been added, it is now time to connect to the proper inputs and outputs. First, connect the **Constant 3 Vector** to the **Base Color** input on the Main Shader node. Then, connect one of the **Constant One** to the **Metallic** input on the Main Shader node. Then connect another of the **Constant One** to the **Roughness** input on the Main Shader node. Finally we are going to want to connect the final two **Constant One** nodes to the **Fresnel Intensity** and the **Fresnel Exponent** and then connect the output of the **Custom_Fresnel** node to the **Emissive Color** input on the Main Shader node. When completed, you should have something that looks like this.
+1. Now that all the nodes have been added, it is now time to connect to the proper inputs and outputs. First, connect the Constant 3 Vector to the Base Color input on the Main Shader node. Then, connect one of the Constant One to the Metallic input on the Main Shader node. Then connect another of the Constant One to the Roughness input on the Main Shader node. Finally we are going to want to connect the final two Constant One nodes to the Fresnel Intensity and the Fresnel Exponent and then connect the output of the Custom_Fresnel node to the Emissive Color input on the Main Shader node. When completed, you should have something that looks like this.
 
 	![](Material_Functions_Connecting_Material_Function.gif)(convert:false)
 
