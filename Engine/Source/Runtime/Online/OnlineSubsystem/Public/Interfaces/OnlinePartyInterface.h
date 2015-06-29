@@ -950,6 +950,13 @@ public:
 	virtual TSharedRef<IOnlinePartyJoinInfo> MakeJoinInfoFromToken(const FString& Token) const = 0;
 
 	/**
+	* Checks to see if there is a pending command line invite and consumes it
+	*
+	* return the pending IOnlinePartyJoinInfo object
+	*/
+	virtual TSharedPtr<IOnlinePartyJoinInfo> ConsumePendingCommandLineInvite() = 0;
+
+	/**
 	 * List of all subscribe-able notifications
 	 *
 	 * OnPartyJoined
