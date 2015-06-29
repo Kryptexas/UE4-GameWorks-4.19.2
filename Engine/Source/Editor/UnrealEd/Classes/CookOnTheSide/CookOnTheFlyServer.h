@@ -503,6 +503,14 @@ private:
 			}
 			return true;
 		}
+
+		bool Exists(const FName& Filename)
+		{
+			const TArray<FName>* Platforms = PlatformList.Find(Filename);
+			if (Platforms == NULL)
+				return false;
+			return true;
+		}
 		
 		bool HasItems() const
 		{
@@ -658,7 +666,11 @@ private:
 		bool bForceEnableCompressedPackages;
 		bool bForceDisableCompressedPackages;
 		bool bIsChildCooker;
+		FString ChildCookFilename;
+		TSet<FName> ChildUnsolicitedPackages;
 		TArray<FChildCooker> ChildCookers;
+		TArray<FName> TargetPlatformNames;
+		
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -741,6 +753,7 @@ public:
 		COSR_ErrorLoadingPackage= 0x00000004,
 		COSR_RequiresGC			= 0x00000008,
 		COSR_WaitingOnCache		= 0x00000010,
+		COSR_WaitingOnChildCookers = 0x00000020,
 	};
 
 
@@ -949,7 +962,7 @@ private:
 	 */
 	void CollectFilesToCook(TArray<FName>& FilesInPath, 
 		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, 
-		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev, const FString& ChildCookFilename);
+		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev);
 
 	/**
 	 * AddFileToCook add file to cook list 
@@ -975,7 +988,7 @@ private:
 	 * 
 	 * @return return true if all child cookers are finished
 	 */
-	bool TickChildCookers();
+	bool TickChildCookers( const bool bCheckIfFinished );
 
 	/**
 	 * Get all the packages which are listed in asset registry passed in.  
