@@ -52,6 +52,8 @@ private:
 
 	/** MovieScene that is instanced */
 	TWeakObjectPtr<UMovieScene> MovieScene;
+	/** The shot track instance map */
+	TSharedPtr<class IMovieSceneTrackInstance> ShotTrackInstance;
 	/** All Master track instances */
 	FMovieSceneInstanceMap MasterTrackInstances;
 	/** All object binding instances */

@@ -41,13 +41,7 @@ public:
 private:
 	EVisibility GetTransportControlVisibility(TWeakPtr<ILevelViewport> LevelViewport) const;
 	TSharedRef<SDockTab> SpawnTab_SequencerMain(const FSpawnTabArgs& Args);	
-protected:
 
-	/** Generates and attaches transport control widgets to the main level editor viewports */
-	void AttachTransportControlsToViewports();
-	/** Purges all transport control widgets from the main level editor viewports */
-	void DetachTransportControlsFromViewports();
-	
 private:
 	TSharedPtr<FSequencer> Sequencer;
 

@@ -27,17 +27,19 @@ void FSequencerNodeTree::Update()
 
 	UMovieScene* MovieScene = Sequencer.GetFocusedMovieScene();
 
+	TArray< TSharedRef<FSequencerDisplayNode> > NewRootNodes;
+
 	// Get the master tracks  so we can get sections from them
 	const TArray<UMovieSceneTrack*>& MasterTracks = MovieScene->GetMasterTracks();
 
-	for( int32 TrackIndex = 0; TrackIndex < MasterTracks.Num(); ++TrackIndex )
+	for( UMovieSceneTrack* Track : MasterTracks )
 	{
-		UMovieSceneTrack& Track = *MasterTracks[TrackIndex];
+		UMovieSceneTrack& TrackRef = *Track;
 
-		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( Track.GetTrackName(), Track, NULL, *this ) );
-		RootNodes.Add( SectionNode );
+		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( TrackRef.GetTrackName(), TrackRef, NULL, *this ) );
+		NewRootNodes.Add( SectionNode );
 	
-		MakeSectionInterfaces( Track, SectionNode );
+		MakeSectionInterfaces( TrackRef, SectionNode );
 
 		SectionNode->PinNode();
 	}
@@ -46,21 +48,21 @@ void FSequencerNodeTree::Update()
 	const TArray<FMovieSceneObjectBinding>& ObjectBindings = MovieScene->GetObjectBindings();
 
 	// Make nodes for all object bindings
-	for( int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex )
+	for( const FMovieSceneObjectBinding& Binding : ObjectBindings )
 	{
-		TSharedRef<FObjectBindingNode> ObjectBindingNode = AddObjectBinding( ObjectBindings[BindingIndex].GetName(), ObjectBindings[BindingIndex].GetObjectGuid() );
+		TSharedRef<FObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), NewRootNodes );
 
-		const TArray<UMovieSceneTrack*>& Tracks = ObjectBindings[BindingIndex].GetTracks();
+		const TArray<UMovieSceneTrack*>& Tracks = Binding.GetTracks();
 
-		for( int32 TrackIndex = 0; TrackIndex < Tracks.Num(); ++TrackIndex )
+		for( UMovieSceneTrack* Track : Tracks )
 		{
-			UMovieSceneTrack& Track = *Tracks[TrackIndex];
+			UMovieSceneTrack& TrackRef = *Track;
 
-			FName SectionName = Track.GetTrackName();
+			FName SectionName = TrackRef.GetTrackName();
 			check( SectionName != NAME_None );
 
-			TSharedRef<FTrackNode> SectionAreaNode = ObjectBindingNode->AddSectionAreaNode( SectionName, Track );
-			MakeSectionInterfaces( Track, SectionAreaNode );
+			TSharedRef<FTrackNode> SectionAreaNode = ObjectBindingNode->AddSectionAreaNode( SectionName, TrackRef );
+			MakeSectionInterfaces( TrackRef, SectionAreaNode );
 		}
 
 	}
@@ -96,7 +98,24 @@ void FSequencerNodeTree::Update()
 	};
 
 	// Sort so that master tracks appear before object tracks
-	RootNodes.Sort( FRootNodeSorter() );
+	NewRootNodes.Sort( FRootNodeSorter() );
+
+	// Look for a shot track.  It will always come first if it exists
+	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
+	if( ShotTrack )
+	{
+		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( ShotTrack->GetTrackName(), *ShotTrack, NULL, *this ) );
+
+		// Shot track always comes first
+		RootNodes.Add( SectionNode );
+
+		MakeSectionInterfaces( *ShotTrack, SectionNode );
+
+		SectionNode->PinNode();
+	}
+
+	// Add all other nodes after the shot track
+	RootNodes.Append( NewRootNodes );
 
 	// Re-filter the tree after updating 
 	// @todo Sequencer - Newly added sections may need to be visible even when there is a filter
@@ -155,7 +174,7 @@ const TArray< TSharedRef<FSequencerDisplayNode> >& FSequencerNodeTree::GetRootNo
 }
 
 
-TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding )
+TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList )
 {
 	// The node name is the object guid
 	FName ObjectNodeName = *ObjectBinding.ToString();
@@ -164,7 +183,7 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding( const FStri
 	TSharedRef< FObjectBindingNode > ObjectNode = MakeShareable( new FObjectBindingNode( ObjectNodeName, ObjectName, ObjectBinding, ParentNode, *this ) );
 
 	// Object binding nodes are always root nodes
-	RootNodes.Add( ObjectNode );
+	OutNodeList.Add( ObjectNode );
 
 	// Map the guid to the object binding node for fast lookup later
 	ObjectBindingMap.Add( ObjectBinding, ObjectNode );

@@ -26,15 +26,47 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneShotTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneShotTrackInstance( *this ) ); 
 }
 
-void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, float Time)
+void UMovieSceneShotTrack::RemoveSection( UMovieSceneSection* Section )
 {
-	UMovieSceneShotSection* NewSection = NewObject<UMovieSceneShotSection>(this);
-	NewSection->InitialPlacement(SubMovieSceneSections, Time, Time + 1.f, SupportsMultipleRows()); //@todo find a better default end time
-	NewSection->SetCameraGuid(CameraHandle);
-	NewSection->SetTitle(LOCTEXT("AddNewShot", "New Shot"));
+	Super::RemoveSection( Section );
 
-	SubMovieSceneSections.Add(NewSection);
+	// @todo Sequencer: The movie scene owned by the section is now abandoned.  Should we offer to delete it?  
 }
 
+void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, UMovieScene& ShotMovieScene, const TRange<float>& TimeRange, const FText& ShotName, int32 ShotNumber )
+{
+	Modify();
+
+	FName UniqueShotName = MakeUniqueObjectName( this, UMovieSceneShotSection::StaticClass(), *ShotName.ToString() );
+
+	UMovieSceneShotSection* NewSection = NewObject<UMovieSceneShotSection>( this, UniqueShotName, RF_Transactional );
+	NewSection->SetMovieScene( &ShotMovieScene );
+	NewSection->SetStartTime( TimeRange.GetLowerBoundValue() );
+	NewSection->SetEndTime( TimeRange.GetUpperBoundValue() );
+	NewSection->SetCameraGuid( CameraHandle );
+	NewSection->SetShotNameAndNumber( ShotName , ShotNumber );
+
+	SubMovieSceneSections.Add( NewSection );
+	
+	// When a new shot is added, sort all shots to ensure they are in the correct order
+	SortShots();
+}
+
+#if WITH_EDITOR
+void UMovieSceneShotTrack::OnSectionMoved( UMovieSceneSection& Section )
+{
+	// Sort all shots when one moves.  They should be in order of start time
+	SortShots();
+}
+#endif
+
+void UMovieSceneShotTrack::SortShots()
+{
+	SubMovieSceneSections.Sort(
+		[](const UMovieSceneSection& A, const UMovieSceneSection& B)
+	{
+		return A.GetStartTime() < B.GetStartTime();
+	});
+}
 
 #undef LOCTEXT_NAMESPACE

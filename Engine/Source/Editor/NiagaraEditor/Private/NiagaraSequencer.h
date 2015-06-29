@@ -166,7 +166,7 @@ public:
 	{
 		return MakeShareable(new INiagaraTrackInstance(this));
 	}
-	virtual TArray<UMovieSceneSection*> GetAllSections() const
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override
 	{
 		return Sections;
 	}
@@ -229,6 +229,7 @@ public:
 	virtual bool AllowsSpawnableObjects() const override { return false; }
 	virtual FGuid FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const override { return FGuid(); }
 	virtual void SpawnOrDestroyObjectsForInstance(TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll) override { }
+	virtual void RemoveMovieSceneInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance ) override {}
 	virtual void DestroyAllSpawnedObjects() override { }
 	virtual bool CanPossessObject(UObject& Object) const override 	{ return false; }
 	virtual void BindPossessableObject(const FGuid& PossessableGuid, UObject& PossessedObject) override	{};

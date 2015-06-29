@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "IMovieSceneTrackInstance.h"
-
+#include "SubMovieSceneTrackInstance.h"
 
 class UMovieSceneShotTrack;
 
@@ -12,18 +11,20 @@ class UMovieSceneShotTrack;
  * Instance of a UMovieSceneShotTrack
  */
 class FMovieSceneShotTrackInstance
-	: public IMovieSceneTrackInstance
+	: public FSubMovieSceneTrackInstance
 {
 public:
 
-	FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InDirectorTrack );
+	FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InShotTrack );
 
 	/** IMovieSceneTrackInstance interface */
+	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
-	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player  ) override {}
 
 private:
+	/** Runtime camera objects.  One for each shot.  Must be the same number of entries as sections */
+	TArray< TWeakObjectPtr<UObject> > RuntimeCameraObjects;
 
-	/** Track that is being instanced */
-	UMovieSceneShotTrack* DirectorTrack;
+	/** Current camera object we are looking through.  Used to determine when making a new cut */
+	TWeakObjectPtr<UObject> CurrentCameraObject;
 };

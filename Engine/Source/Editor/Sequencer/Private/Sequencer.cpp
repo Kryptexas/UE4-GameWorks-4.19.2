@@ -695,7 +695,7 @@ void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneIn
 	}*/
 }
 
-void FSequencer::UpdatePreviewViewports(UObject* ObjectToViewThrough) const
+void FSequencer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
 {
 	if(!IsPerspectiveViewportPosessionEnabled())
 	{
@@ -706,7 +706,7 @@ void FSequencer::UpdatePreviewViewports(UObject* ObjectToViewThrough) const
 	{
 		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
 		{
-			LevelVC->SetMatineeActorLock(Cast<AActor>(ObjectToViewThrough));
+			UpdatePreviewLevelViewportClientFromCameraCut( *LevelVC, ObjectToViewThrough, bNewCameraCut );
 		}
 	}
 }
@@ -727,8 +727,7 @@ void FSequencer::RemoveMovieSceneInstance( UMovieSceneSection& MovieSceneSection
 {
 	if( ObjectBindingManager->AllowsSpawnableObjects() )
 	{
-		const bool bDestroyAll = true;
-		ObjectBindingManager->SpawnOrDestroyObjectsForInstance( InstanceToRemove, bDestroyAll );
+		ObjectBindingManager->RemoveMovieSceneInstance( InstanceToRemove );
 	}
 	
 
@@ -1254,6 +1253,63 @@ void FSequencer::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSu
 {
 	// Reset the time after saving so that an update will be triggered to put objects back to their animated state.
 	SetGlobalTime(GetGlobalTime());
+}
+
+void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const
+{
+	ACameraActor* Cam = Cast<ACameraActor>(InCameraObject);
+	if (Cam)
+	{
+		InViewportClient.SetViewLocation(Cam->GetActorLocation());
+		InViewportClient.SetViewRotation(Cam->GetActorRotation());
+
+		// @todo Sequencer previewing
+		/*InViewportClient.FadeAmount = InFadeAmount;
+		InViewportClient.bEnableFading = true;*/
+
+		/*InViewportClient.bEnableColorScaling = bInEnableColorScaling;
+		InViewportClient.ColorScale = InColorScale;*/
+
+		InViewportClient.bEditorCameraCut = bNewCameraCut;
+	}
+	else
+	{
+		InViewportClient.ViewFOV = InViewportClient.FOVAngle;
+
+		// @todo Sequencer previewing
+		/*InViewportClient.>FadeAmount = InFadeAmount;
+		InViewportClient.bEnableFading = true;*/
+
+		InViewportClient.bEditorCameraCut = false;
+	}
+
+	// Set the actor lock.
+	InViewportClient.SetMatineeActorLock(Cam);
+
+	// If viewing through a camera - enforce aspect ratio.
+	if (Cam)
+	{
+		if (Cam->GetCameraComponent()->AspectRatio == 0)
+		{
+			InViewportClient.AspectRatio = 1.7f;
+		}
+		else
+		{
+			InViewportClient.AspectRatio = Cam->GetCameraComponent()->AspectRatio;
+		}
+
+		//don't stop the camera from zooming when not playing back
+		InViewportClient.ViewFOV = Cam->GetCameraComponent()->FieldOfView;
+
+		// If there are selected actors, invalidate the viewports hit proxies, otherwise they won't be selectable afterwards
+		if (InViewportClient.Viewport && GEditor->GetSelectedActorCount() > 0)
+		{
+			InViewportClient.Viewport->InvalidateHitProxy();
+		}
+	}
+
+	// Update ControllingActorViewInfo, so it is in sync with the updated viewport
+	InViewportClient.UpdateViewForLockedActor();
 }
 
 void FSequencer::SaveCurrentMovieScene()

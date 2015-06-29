@@ -32,6 +32,8 @@ public:
 	 */
 	virtual void SpawnOrDestroyObjectsForInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll ) = 0;
 	
+	virtual void RemoveMovieSceneInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance ) = 0;
+
 	virtual void DestroyAllSpawnedObjects() = 0;
 	
 	virtual bool CanPossessObject( UObject& Object ) const = 0;

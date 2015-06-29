@@ -51,7 +51,10 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 		{
 			const UMovieSceneSection* OverlappedSection = OverlapsWithSections(Sections);
 
-			if (OverlappedSection == NULL) {break;}
+			if (OverlappedSection == NULL)
+			{
+				break;
+			}
 
 			TSet<FKeyHandle> KeyHandles;
 			MoveSection(OverlappedSection->GetEndTime() - StartTime, KeyHandles);

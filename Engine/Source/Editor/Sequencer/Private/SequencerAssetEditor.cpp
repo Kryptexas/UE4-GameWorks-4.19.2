@@ -93,8 +93,6 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
 		LevelEditorModule.OnMapChanged().AddSP(Sequencer.ToSharedRef(), &FSequencer::OnMapChanged);
-
-		AttachTransportControlsToViewports();
 	}
 }
 
@@ -110,8 +108,6 @@ FSequencerAssetEditor::FSequencerAssetEditor()
 
 FSequencerAssetEditor::~FSequencerAssetEditor()
 {
-	DetachTransportControlsFromViewports();
-
 	Sequencer->OnClose();
 
 	// Unregister delegates
@@ -159,95 +155,6 @@ FString FSequencerAssetEditor::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("WorldCentricTabPrefix", "Sequencer ").ToString();
 }
-
-
-void FSequencerAssetEditor::AttachTransportControlsToViewports()
-{
-	FLevelEditorModule* Module = FModuleManager::Get().LoadModulePtr<FLevelEditorModule>("LevelEditor");
-	if (Module)
-	{
-		TSharedPtr<ILevelEditor> LevelEditor = Module->GetFirstLevelEditor();
-		const TArray< TSharedPtr<ILevelViewport> >& LevelViewports = LevelEditor->GetViewports();
-		
-		FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::Get().LoadModuleChecked<FEditorWidgetsModule>( "EditorWidgets" );
-
-		TSharedRef<FSequencer> SequencerRef = Sequencer.ToSharedRef();
-
-		FTransportControlArgs TransportControlArgs;
-		TransportControlArgs.OnForwardPlay.BindSP(SequencerRef, &FSequencer::OnPlay, true);
-		TransportControlArgs.OnRecord.BindSP(SequencerRef, &FSequencer::OnRecord);
-		TransportControlArgs.OnForwardStep.BindSP(SequencerRef, &FSequencer::OnStepForward);
-		TransportControlArgs.OnBackwardStep.BindSP(SequencerRef, &FSequencer::OnStepBackward);
-		TransportControlArgs.OnForwardEnd.BindSP(SequencerRef, &FSequencer::OnStepToEnd);
-		TransportControlArgs.OnBackwardEnd.BindSP(SequencerRef, &FSequencer::OnStepToBeginning);
-		TransportControlArgs.OnToggleLooping.BindSP(SequencerRef, &FSequencer::OnToggleLooping);
-		TransportControlArgs.OnGetLooping.BindSP(SequencerRef, &FSequencer::IsLooping);
-		TransportControlArgs.OnGetPlaybackMode.BindSP(SequencerRef, &FSequencer::GetPlaybackMode);
-
-		for ( const TSharedPtr<ILevelViewport>& LevelViewport : LevelViewports )
-		{
-			TWeakPtr<ILevelViewport> LevelViewportWeakPtr = LevelViewport;
-			
-			TSharedPtr<SWidget> TransportControl =
-				SNew(SHorizontalBox)
-				.Visibility(EVisibility::SelfHitTestInvisible)
-				+SHorizontalBox::Slot()
-				.FillWidth(1)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Bottom)
-				.Padding(4.f)
-				[
-					SNew(SBorder)
-					.Padding(4.f)
-					.Cursor( EMouseCursor::Default )
-					.BorderImage( FEditorStyle::GetBrush( "FilledBorder" ) )
-					.Visibility(this, &FSequencerAssetEditor::GetTransportControlVisibility, LevelViewportWeakPtr)
-					.Content()
-					[
-						EditorWidgetsModule.CreateTransportControl(TransportControlArgs)
-					]
-				];
-
-			LevelViewport->AddOverlayWidget(TransportControl.ToSharedRef());
-
-			TransportControls.Add(LevelViewportWeakPtr, TransportControl);
-		}
-	}
-}
-
-
-void FSequencerAssetEditor::DetachTransportControlsFromViewports()
-{
-	FLevelEditorModule* Module = FModuleManager::Get().LoadModulePtr<FLevelEditorModule>("LevelEditor");
-	if (Module)
-	{
-		TSharedPtr<ILevelEditor> LevelEditor = Module->GetFirstLevelEditor();
-		if (LevelEditor.IsValid())
-		{
-			const TArray< TSharedPtr<ILevelViewport> >& LevelViewports = LevelEditor->GetViewports();
-		
-			for (int32 i = 0; i < LevelViewports.Num(); ++i)
-			{
-				const TSharedPtr<ILevelViewport>& LevelViewport = LevelViewports[i];
-
-				TSharedPtr<SWidget>* TransportControl = TransportControls.Find(LevelViewport);
-				if (TransportControl && TransportControl->IsValid())
-				{
-					LevelViewport->RemoveOverlayWidget(TransportControl->ToSharedRef());
-				}
-			}
-		}
-	}
-}
-
-EVisibility FSequencerAssetEditor::GetTransportControlVisibility(TWeakPtr<ILevelViewport> LevelViewport) const
-{
-	TSharedPtr<ILevelViewport> LevelViewportPin = LevelViewport.Pin();
-
-	FLevelEditorViewportClient& ViewportClient = LevelViewportPin->GetLevelViewportClient();
-	return (ViewportClient.IsPerspective() && ViewportClient.AllowsCinematicPreview()) ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
 
 
 #undef LOCTEXT_NAMESPACE

@@ -34,15 +34,9 @@ TSharedPtr<IMovieSceneTrackInstance> USubMovieSceneTrack::CreateInstance()
 	return MakeShareable( new FSubMovieSceneTrackInstance( *this ) ); 
 }
 
-TArray<UMovieSceneSection*> USubMovieSceneTrack::GetAllSections() const 
+const TArray<UMovieSceneSection*>& USubMovieSceneTrack::GetAllSections() const 
 {
-	TArray<UMovieSceneSection*> AllSections;
-	for( int32 Section = 0; Section < SubMovieSceneSections.Num(); ++Section )
-	{
-		AllSections.Add( SubMovieSceneSections[Section] );
-	}
-
-	return AllSections;
+	return SubMovieSceneSections;
 }
 
 void USubMovieSceneTrack::RemoveSection( UMovieSceneSection* Section )

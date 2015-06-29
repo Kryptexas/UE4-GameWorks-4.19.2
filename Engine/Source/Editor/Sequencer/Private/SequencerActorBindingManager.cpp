@@ -90,6 +90,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 	UMovieScene* MovieScene = MovieSceneInstance->GetMovieScene();
 
 	// Remove any puppet objects that we no longer need
+	if( MovieScene )
 	{
 		for( auto PuppetObjectIndex = 0; PuppetObjectIndex < PuppetObjects.Num(); ++PuppetObjectIndex )
 		{
@@ -163,7 +164,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 		}
 	}
 
-	if( !bDestroyAll )
+	if( !bDestroyAll && MovieScene )
 	{
 		for( auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex )
 		{
@@ -236,6 +237,12 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 			}
 		}
 	}
+}
+
+void FSequencerActorBindingManager::RemoveMovieSceneInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance )
+{
+	SpawnOrDestroyObjectsForInstance( MovieSceneInstance, true );
+	InstanceToPuppetObjectsMap.Remove( MovieSceneInstance );
 }
 
 void FSequencerActorBindingManager::DestroyAllSpawnedObjects()

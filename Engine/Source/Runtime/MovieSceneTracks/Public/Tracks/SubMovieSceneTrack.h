@@ -17,7 +17,7 @@ public:
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual FName GetTrackName() const override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-	virtual TArray<UMovieSceneSection*> GetAllSections() const override;
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual void RemoveSection( UMovieSceneSection* Section ) override;
 	virtual void RemoveAllAnimationData() override;
 	virtual bool IsEmpty() const override;

@@ -18,12 +18,9 @@ FGuid UMovieSceneShotSection::GetCameraGuid() const
 	return CameraGuid;
 }
 
-void UMovieSceneShotSection::SetTitle(const FText& InTitle)
+void UMovieSceneShotSection::SetShotNameAndNumber(const FText& InDisplayName, int32 InShotNumber)
 {
-	Title = InTitle;
+	DisplayName = InDisplayName;
+	ShotNumber = InShotNumber;
 }
 
-FText UMovieSceneShotSection::GetTitle() const
-{
-	return Title;
-}

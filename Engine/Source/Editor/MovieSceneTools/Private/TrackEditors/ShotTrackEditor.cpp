@@ -4,15 +4,12 @@
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
 #include "ISequencerSection.h"
-#include "PropertyEditorModule.h"
-#include "PropertyHandle.h"
 #include "MovieSceneTrack.h"
 #include "MovieSceneShotTrack.h"
 #include "ScopedTransaction.h"
 #include "ISequencerObjectChangeListener.h"
 #include "ISectionLayoutBuilder.h"
 #include "Runtime/Engine/Public/Slate/SlateTextures.h"
-#include "ObjectTools.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "Runtime/MovieSceneTracks/Public/Sections/MovieSceneShotSection.h"
 #include "IKeyArea.h"
@@ -22,6 +19,7 @@
 #include "CommonMovieSceneTools.h"
 #include "Camera/CameraActor.h"
 #include "STextEntryPopup.h"
+#include "AssetToolsModule.h"
 
 namespace AnimatableShotToolConstants
 {
@@ -212,7 +210,7 @@ UMovieSceneSection* FShotSection::GetSectionObject()
 
 FText FShotSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneShotSection>(Section)->GetTitle();
+	return Cast<UMovieSceneShotSection>(Section)->GetShotDisplayName();
 }
 
 float FShotSection::GetSectionHeight() const
@@ -234,12 +232,14 @@ FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, c
 
 void FShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder)
 {
+/*
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("Sequencer", "RenameShot", "Rename"),
 		NSLOCTEXT("Sequencer", "RenameShotToolTip", "Renames this shot."),
 		FSlateIcon(),
 		FUIAction(FExecuteAction::CreateSP(this, &FShotSection::RenameShot))
 		);
+*/
 
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("Sequencer", "FilterToShots", "Filter To Shots"),
@@ -253,7 +253,7 @@ void FShotSection::RenameShot()
 {
 	auto ActualShotSection = CastChecked<UMovieSceneShotSection>(Section);
 
-	TSharedRef<STextEntryPopup> TextEntry = 
+	/*TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
 		.Label(NSLOCTEXT("Sequencer", "RenameShotHeader", "Name"))
 		.DefaultText( ActualShotSection->GetTitle() )
@@ -266,7 +266,7 @@ void FShotSection::RenameShot()
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-		);
+		);*/
 }
 
 void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
@@ -276,6 +276,7 @@ void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
 
 void FShotSection::RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section)
 {
+/*
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
 		auto ShotSection = CastChecked<UMovieSceneShotSection>(Section);
@@ -285,7 +286,7 @@ void FShotSection::RenameShotCommitted(const FText& RenameText, ETextCommit::Typ
 	if (NameEntryPopupMenu.IsValid())
 	{
 		NameEntryPopupMenu.Pin()->Dismiss();
-	}
+	}*/
 }
 
 int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
@@ -533,7 +534,130 @@ void FShotTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, 
 
 void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
-	UMovieSceneTrack* Track = GetMasterTrack( UMovieSceneShotTrack::StaticClass() );
+	UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
 
-	Cast<UMovieSceneShotTrack>(Track)->AddNewShot(ObjectGuid, KeyTime);
+	UMovieSceneTrack* Track = MovieScene->GetShotTrack();
+	if( !Track )
+	{
+		Track = MovieScene->AddShotTrack( UMovieSceneShotTrack::StaticClass() );
+	}
+
+	UMovieSceneShotTrack* ShotTrack = CastChecked<UMovieSceneShotTrack>( Track );
+
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+	// Get the current path of the movie scene the shot is in
+	const FString LongPackagePath = FPackageName::GetLongPackagePath(ShotTrack->GetOutermost()->GetPathName());
+
+	const TArray<UMovieSceneSection*>& AllSections = ShotTrack->GetAllSections();
+
+	// Find where the section will be inserted
+	int32 SectionIndex = FindIndexForNewShot( AllSections, KeyTime );
+
+	const int32 ShotNumber = GenerateShotNumber( *ShotTrack, SectionIndex );
+
+	FString ShotName = FString::Printf( TEXT("Shot_%04d"), ShotNumber );
+
+	const FString NewShotPackagePath = LongPackagePath + TEXT("/") + MovieScene->GetName() + TEXT("_") + ShotName;
+
+	const FString EmptySuffix;
+
+	// Create a package name and asset name for the new movie scene
+	FString PackageName;
+	FString AssetName;
+	AssetToolsModule.Get().CreateUniqueAssetName(NewShotPackagePath, EmptySuffix, PackageName, AssetName);
+	const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+
+	UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UMovieScene::StaticClass(), nullptr );
+	
+	float EndTime = KeyTime;
+	if( AllSections.IsValidIndex( SectionIndex + 1 ) )
+	{
+		// The new section ends where the next section begins
+		EndTime = AllSections[SectionIndex+1]->GetStartTime();
+	}
+	else
+	{
+		// There is no section after this one so the new section should be the length of the movie scene
+		EndTime = MovieScene->GetTimeRange().GetUpperBoundValue();
+	}
+
+
+	if (AllSections.IsValidIndex(SectionIndex - 1))
+	{
+		// Shift the previous shot's end time so that it ends when the new shot starts
+		AllSections[SectionIndex - 1]->SetEndTime(KeyTime);
+	}
+
+	if (AllSections.IsValidIndex(SectionIndex + 1))
+	{
+		// Shift the next shot's start time so that it starts when the new shot ends
+		AllSections[SectionIndex + 1]->SetStartTime(EndTime);
+	}
+
+	TRange<float> TimeRange( KeyTime, EndTime );
+	ShotTrack->AddNewShot( ObjectGuid, *CastChecked<UMovieScene>( NewAsset ), TimeRange, FText::FromString( ShotName ), ShotNumber );
+}
+
+int32 FShotTrackEditor::GenerateShotNumber( UMovieSceneShotTrack& ShotTrack, int32 SectionIndex ) const
+{
+	const TArray<UMovieSceneSection*>& AllSections = ShotTrack.GetAllSections();
+
+	const int32 Interval = 10;
+	int32 ShotNum = Interval;
+	int32 LastKeyIndex = AllSections.Num() - 1;
+
+	int32 PrevShotNum = 0;
+	//get the preceding shot number if any
+	if (SectionIndex > 0)
+	{
+		PrevShotNum = CastChecked<UMovieSceneShotSection>( AllSections[SectionIndex - 1] )->GetShotNumber();
+	}
+
+	if (SectionIndex < LastKeyIndex)
+	{
+		//we're inserting before something before the first frame
+		int32 NextShotNum = CastChecked<UMovieSceneShotSection>( AllSections[SectionIndex + 1] )->GetShotNumber();
+		if (NextShotNum == 0)
+		{
+			NextShotNum = PrevShotNum + (Interval * 2);
+		}
+
+		if (NextShotNum > PrevShotNum)
+		{
+			//find a midpoint if we're in order
+
+			//try to stick to the nearest interval if possible
+			int32 NearestInterval = PrevShotNum - (PrevShotNum % Interval) + Interval;
+			if (NearestInterval > PrevShotNum && NearestInterval < NextShotNum)
+			{
+				ShotNum = NearestInterval;
+			}
+			//else find the exact mid point
+			else
+			{
+				ShotNum = ((NextShotNum - PrevShotNum) / 2) + PrevShotNum;
+			}
+		}
+		else
+		{
+			//Just use the previous shot number + 1 with we're out of order
+			ShotNum = PrevShotNum + 1;
+		}
+	}
+	else
+	{
+		//we're adding to the end of the track
+		ShotNum = PrevShotNum + Interval;
+	}
+
+	return ShotNum;
+}
+
+int32 FShotTrackEditor::FindIndexForNewShot( const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime ) const
+{
+	int32 SectionIndex = 0;
+	for (SectionIndex = 0; SectionIndex < ShotSections.Num() && ShotSections[SectionIndex]->GetStartTime() < NewShotTime; ++SectionIndex);
+
+	return SectionIndex;
 }

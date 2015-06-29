@@ -25,7 +25,7 @@ public:
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual bool SupportsMultipleRows() const override { return false; }
-	virtual TArray<UMovieSceneSection*> GetAllSections() const override;
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	
 	virtual void AddNewParticleSystem(float KeyTime, bool bTrigger);
 

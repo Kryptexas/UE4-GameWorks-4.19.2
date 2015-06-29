@@ -30,7 +30,7 @@ public:
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual bool SupportsMultipleRows() const override { return true; }
-	virtual TArray<UMovieSceneSection*> GetAllSections() const override;
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 
 	/** Adds a new sound cue to the audio */
 	virtual void AddNewSound(class USoundBase* Sound, float Time);

@@ -1131,7 +1131,7 @@ FText SSequencer::GetRootMovieSceneName() const
 
 FText SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
 {
-	return Cast<UMovieSceneShotSection>(ShotSection)->GetTitle();
+	return Cast<UMovieSceneShotSection>(ShotSection)->GetShotDisplayName();
 }
 
 void SSequencer::DeleteSelectedNodes()

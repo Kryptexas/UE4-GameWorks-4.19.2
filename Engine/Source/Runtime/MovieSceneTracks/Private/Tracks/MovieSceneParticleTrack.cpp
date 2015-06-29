@@ -24,14 +24,9 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneParticleTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneParticleTrackInstance( *this ) ); 
 }
 
-TArray<UMovieSceneSection*> UMovieSceneParticleTrack::GetAllSections() const
+const TArray<UMovieSceneSection*>& UMovieSceneParticleTrack::GetAllSections() const
 {
-	TArray<UMovieSceneSection*> OutSections;
-	for (int32 SectionIndex = 0; SectionIndex < ParticleSections.Num(); ++SectionIndex)
-	{
-		OutSections.Add( ParticleSections[SectionIndex] );
-	}
-	return OutSections;
+	return ParticleSections;
 }
 
 void UMovieSceneParticleTrack::RemoveAllAnimationData()

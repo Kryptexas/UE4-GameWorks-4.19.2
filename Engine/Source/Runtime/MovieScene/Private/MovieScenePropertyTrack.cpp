@@ -19,15 +19,9 @@ void UMovieScenePropertyTrack::SetPropertyNameAndPath( FName InPropertyName, con
 	PropertyPath = InPropertyPath;
 }
 
-TArray<UMovieSceneSection*> UMovieScenePropertyTrack::GetAllSections() const
+const TArray<UMovieSceneSection*>& UMovieScenePropertyTrack::GetAllSections() const
 {
-	TArray<UMovieSceneSection*> OutSectionPayloads;
-	for( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
-	{
-		OutSectionPayloads.Add( Sections[SectionIndex] );
-	}
-	
-	return OutSectionPayloads;
+	return Sections;
 }
 
 

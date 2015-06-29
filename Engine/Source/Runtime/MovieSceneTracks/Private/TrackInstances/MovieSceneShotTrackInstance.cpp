@@ -7,41 +7,57 @@
 #include "IMovieScenePlayer.h"
 
 
-FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InDirectorTrack )
+FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InShotTrack )
+	: FSubMovieSceneTrackInstance( InShotTrack )
 {
-	DirectorTrack = &InDirectorTrack;
 }
 
+void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player )
+{
+	const TArray<UMovieSceneSection*>& ShotSections = SubMovieSceneTrack->GetAllSections();
+
+	RuntimeCameraObjects.Empty( ShotSections.Num() );
+
+	for( UMovieSceneSection* Section : ShotSections )
+	{
+		// @todo Sequencer - Sub-moviescenes: Get the cameras from the root movie scene instance.  We should support adding cameras for sub-moviescenes as shots
+		TArray<UObject*> CameraObjects;
+		Player.GetRuntimeObjects(Player.GetRootMovieSceneInstance(), CastChecked<UMovieSceneShotSection>( Section )->GetCameraGuid(), CameraObjects );
+		if( CameraObjects.Num() == 1 )
+		{
+			RuntimeCameraObjects.Add( CameraObjects[0] );
+		}
+		else
+		{
+			// No valid camera object was found, take up space.  There should be one entry per section
+			RuntimeCameraObjects.Add( nullptr );
+		}
+	}
+
+	FSubMovieSceneTrackInstance::RefreshInstance( RuntimeObjects, Player );
+}
 
 void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
-	// possess the 'first' shot section in order of track index
-	ACameraActor* PossessedCamera = NULL;
-	UMovieSceneShotSection* FirstShotSection = NULL;
-
-	const TArray<UMovieSceneSection*>& ShotSections = DirectorTrack->GetAllSections();
+	const TArray<UMovieSceneSection*>& ShotSections = SubMovieSceneTrack->GetAllSections();
 
 	for (int32 ShotIndex = 0; ShotIndex < ShotSections.Num(); ++ShotIndex)
 	{
 		UMovieSceneShotSection* ShotSection = CastChecked<UMovieSceneShotSection>(ShotSections[ShotIndex]);
 
-		if (ShotSection->IsTimeWithinSection(Position) &&
-			(FirstShotSection == NULL || FirstShotSection->GetRowIndex() > ShotSection->GetRowIndex()))
+		// Note shot times are not inclusive
+		// @todo Sequencer: This could be faster with a binary search
+		if( ShotSection->GetStartTime() <= Position && ShotSection->GetEndTime() > Position )
 		{
-			TArray<UObject*> CameraObjects;
-			// @todo Sequencer - Sub-moviescenes: Get the cameras from the root movie scene instance.  We should support adding cameras for sub-moviescenes as shots
-			Player.GetRuntimeObjects( Player.GetRootMovieSceneInstance(), ShotSection->GetCameraGuid(), CameraObjects);
+			UObject* Camera = RuntimeCameraObjects[ShotIndex].Get();
+			
+			const bool bNewCameraCut = CurrentCameraObject != Camera;
+			Player.UpdateCameraCut(Camera, bNewCameraCut);
 
-			if (CameraObjects.Num() > 0)
-			{
-				check(CameraObjects.Num() == 1 && CameraObjects[0]->IsA(ACameraActor::StaticClass()));
+			CurrentCameraObject = Camera;
 
-				PossessedCamera = Cast<ACameraActor>(CameraObjects[0]);
-
-				FirstShotSection = ShotSection;
-			}
+			// no need to process any more shots.  Only one shot can be active at a time
+			break;
 		}
 	}
-
-	Player.UpdatePreviewViewports(PossessedCamera);
 }

@@ -81,7 +81,7 @@ void FSequencerDragOperation::GetSectionSnapTimes(TArray<float>& OutSnapTimes, U
 	UMovieSceneTrack* ShotTrack = MovieScene->FindMasterTrack(UMovieSceneShotTrack::StaticClass());
 	if (ShotTrack && OuterTrack != ShotTrack)
 	{
-		TArray<UMovieSceneSection*> ShotSections = ShotTrack->GetAllSections();
+		const TArray<UMovieSceneSection*>& ShotSections = ShotTrack->GetAllSections();
 		for (int32 SectionIndex = 0; SectionIndex < ShotSections.Num(); ++SectionIndex)
 		{
 			auto Shot = ShotSections[SectionIndex];
@@ -257,15 +257,24 @@ void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrack
 
 void FMoveSection::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
-	EndTransaction();
-
 	DraggedKeyHandles.Empty();
 
 	if (Section.IsValid())
 	{
 		SequencerNode->FixRowIndices();
+
+		UMovieSceneTrack* OuterTrack = Cast<UMovieSceneTrack>(Section->GetOuter());
+
+		if (OuterTrack)
+		{
+			OuterTrack->Modify();
+			OuterTrack->OnSectionMoved(*Section);
+		}
 	}
+
+	EndTransaction();
 }
+
 
 void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode )
 {
@@ -288,22 +297,22 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 		{
 			bool bSnappedToSection = false;
 			if ( Settings->GetSnapSectionTimesToSections() )
-		{
-			TArray<float> TimesToSnapTo;
-			GetSectionSnapTimes(TimesToSnapTo, Section.Get(), SequencerNode, true);
-
-			TArray<float> TimesToSnap;
-			TimesToSnap.Add(DistanceMoved + Section->GetStartTime());
-			TimesToSnap.Add(DistanceMoved + Section->GetEndTime());
-
-			float OutSnappedTime = 0.f;
-			float OutNewTime = 0.f;
-				if ( SnapToTimes( TimesToSnap, TimesToSnapTo, TimeToPixelConverter, OutSnappedTime, OutNewTime ) )
 			{
-				DeltaTime = OutNewTime - (OutSnappedTime - DistanceMoved);
+				TArray<float> TimesToSnapTo;
+				GetSectionSnapTimes(TimesToSnapTo, Section.Get(), SequencerNode, true);
+
+				TArray<float> TimesToSnap;
+				TimesToSnap.Add(DistanceMoved + Section->GetStartTime());
+				TimesToSnap.Add(DistanceMoved + Section->GetEndTime());
+
+				float OutSnappedTime = 0.f;
+				float OutNewTime = 0.f;
+				if (SnapToTimes(TimesToSnap, TimesToSnapTo, TimeToPixelConverter, OutSnappedTime, OutNewTime))
+				{
+					DeltaTime = OutNewTime - (OutSnappedTime - DistanceMoved);
 					bSnappedToSection = true;
+				}
 			}
-		}
 
 			if ( bSnappedToSection == false && Settings->GetSnapSectionTimesToInterval() )
 			{

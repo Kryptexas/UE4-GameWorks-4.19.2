@@ -27,14 +27,9 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
 }
 
-TArray<UMovieSceneSection*> UMovieSceneAudioTrack::GetAllSections() const
+const TArray<UMovieSceneSection*>& UMovieSceneAudioTrack::GetAllSections() const
 {
-	TArray<UMovieSceneSection*> OutSections;
-	for (int32 SectionIndex = 0; SectionIndex < AudioSections.Num(); ++SectionIndex)
-	{
-		OutSections.Add( AudioSections[SectionIndex] );
-	}
-	return OutSections;
+	return AudioSections;
 }
 
 void UMovieSceneAudioTrack::RemoveAllAnimationData()

@@ -36,6 +36,11 @@ private:
 	/** Delegate for AnimatablePropertyChanged in AddKey */
 	void AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
 
+	/** Generates a shot number for a new section by looking at the existing shots in relation to the new shot time */
+	int32 GenerateShotNumber( class UMovieSceneShotTrack& ShotTrack, int32 SectionIndex ) const;
+
+	/** Finds the index in the ShotSections array where a new shot should be inserted */
+	int32 FindIndexForNewShot( const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime ) const;
 private:
 	/** The Thumbnail pool which draws all the viewport thumbnails for the director track */
 	TSharedPtr<class FShotThumbnailPool> ThumbnailPool;

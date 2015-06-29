@@ -25,7 +25,7 @@ public:
 	 * 
 	 * @return List of all the sections in the track
 	 */
-	virtual TArray<UMovieSceneSection*> GetAllSections() const PURE_VIRTUAL( UMovieSceneTrack::GetAllSections, return TArray<UMovieSceneSection*>(); );
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const PURE_VIRTUAL( UMovieSceneTrack::GetAllSections, static TArray<UMovieSceneSection*> Empty; return Empty; );
 
 	/**
 	 * Creates a runtime instance of this class
@@ -82,4 +82,13 @@ public:
 	 * @return The range of time boundaries
 	 */
 	virtual TRange<float> GetSectionBoundaries() const PURE_VIRTUAL( UMovieSceneTrack::GetSectionBoundaries, return TRange<float>::Empty(); );
+
+#if WITH_EDITOR
+	/**
+	 * Called if the section is moved in Sequencer
+	 *
+	 * @param Section	The section that moved
+	 */
+	virtual void OnSectionMoved( UMovieSceneSection& Section ) {}
+#endif
 };

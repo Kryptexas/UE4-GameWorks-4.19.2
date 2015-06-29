@@ -378,6 +378,19 @@ public:
 	UMovieSceneTrack* AddMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass);
 	
 	/**
+	 * Adds a new shot track if it doesn't exist 
+	 * A shot track is a special kind of sub-movie scene track that allows for cutting between camera views
+	 * There is only one per movie scene. 
+	 *
+	 * @param TrackClass  The shot track class type
+	 * @return The created shot track
+	 */
+	UMovieSceneTrack* AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass );
+	
+	/** @return The shot track if it exists */
+	UMovieSceneTrack* GetShotTrack();
+
+	/**
 	 * Removes a master track.
 	 *
 	 * @param Track The track to remove.
@@ -468,6 +481,10 @@ private:
 	/** Master tracks which are not bound to spawned or possessed objects */
 	UPROPERTY()
 	TArray<UMovieSceneTrack*> MasterTracks;
+
+	/** The shot track is a specialized track for switching between cameras on a cinematic */
+	UPROPERTY()
+	UMovieSceneTrack* ShotTrack;
 
 #if WITH_EDITORONLY_DATA
 	/** Editor only data that needs to be saved between sessions for editing but has no runtime purpose */
