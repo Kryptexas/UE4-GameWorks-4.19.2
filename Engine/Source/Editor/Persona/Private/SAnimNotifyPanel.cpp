@@ -4261,6 +4261,13 @@ void SAnimNotifyPanel::OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float Cli
 
 void SAnimNotifyPanel::OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent)
 {
+	// Bail if it isn't a notify
+	if(!ChangedObject->GetClass()->IsChildOf(UAnimNotify::StaticClass()) &&
+	   !ChangedObject->GetClass()->IsChildOf(UAnimNotifyState::StaticClass()))
+	{
+		return;
+	}
+
 	// Don't process if it's an interactive change; wait till we receive the final event.
 	if(PropertyEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
