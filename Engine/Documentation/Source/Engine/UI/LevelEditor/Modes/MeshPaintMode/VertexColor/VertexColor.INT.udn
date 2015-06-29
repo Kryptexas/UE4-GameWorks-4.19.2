@@ -128,7 +128,7 @@ Mesh Paint can handle painting on individual level-placed instances of meshes an
 
 ## Setting up Materials
 
-The mesh paint system requires the material of the mesh to contain a **Vertex Color** expression as this is how the vertex color data is passed from the mesh to the material. The following sections cover ways to set up a material so that it can be used with Mesh Paint mode.
+The mesh paint system requires the material of the mesh to contain a Vertex Color expression as this is how the vertex color data is passed from the mesh to the material. The following sections cover ways to set up a material so that it can be used with Mesh Paint mode.
 
 
 [REGION:topics fifth]
