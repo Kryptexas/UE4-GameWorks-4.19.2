@@ -267,7 +267,9 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
 		if(Project != nullptr)
 		{
-			for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
+			// Take a copy of the Project's plugins as we may remove some
+			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
+			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
 				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
 				{
@@ -288,6 +290,27 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
 						
 						if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("PluginMissingDisable", "Would you like to disable {0}? You will no longer be able to open any assets created using it."), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::No)
+						{
+							return false;
+						}
+
+						FText FailReason;
+						if (!IProjectManager::Get().SetPluginEnabled(*Plugin.Name, false, FailReason))
+						{
+							FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+						}
+					}
+				}
+				else if (Plugin.bEnabled && Project->Modules.Num() == 0)
+				{
+					// Content only project - check whether any plugins are incompatible and offer to disable instead of trying to build them later
+					TSharedPtr<FPlugin> PluginInstance = FindPluginInstance(Plugin.Name);
+					TArray<FString> IncompatibleFiles;
+					if (!FModuleDescriptor::CheckModuleCompatbility(PluginInstance->Descriptor.Modules, PluginInstance->LoadedFrom == EPluginLoadedFrom::GameProject, IncompatibleFiles))
+					{
+						// Ask whether to disable plugin if incompatible
+						FText Caption(LOCTEXT("IncompatiblePluginCaption", "Plugin missing or incompatible"));
+						if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginText", "Missing or incompatible modules in {0} plugin - would you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::No)
 						{
 							return false;
 						}
