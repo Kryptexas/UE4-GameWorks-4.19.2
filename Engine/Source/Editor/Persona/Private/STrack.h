@@ -267,6 +267,8 @@ public:
 	FVector2D			ComputeDesiredSize(float) const override;
 	virtual FChildren*	GetChildren() override;
 
+	void GetSelectedNodeIndices(TArray<int32>& OutIndices);
+
 protected:
 	
 	bool									GetDraggableBarSnapPosition(const FGeometry& MyGeometry, float &OutPosition) const;

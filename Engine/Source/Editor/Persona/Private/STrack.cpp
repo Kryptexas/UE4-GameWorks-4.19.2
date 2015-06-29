@@ -857,4 +857,17 @@ void STrack::ClearTrack()
 	TrackNodes.Empty();
 }
 
+void STrack::GetSelectedNodeIndices(TArray<int32>& OutIndices)
+{
+	OutIndices.Empty();
+	for(int32 i = 0 ; i < TrackNodes.Num() ; ++i)
+	{
+		TSharedRef<STrackNode> Node = TrackNodes[i];
+		if(Node->IsSelected())
+		{
+			OutIndices.Add(i);
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
