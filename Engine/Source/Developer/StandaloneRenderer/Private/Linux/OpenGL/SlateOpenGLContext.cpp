@@ -263,7 +263,7 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 		#ifdef GL_KHR_debug
 				glDebugMessageControlARB(GL_DEBUG_SOURCE_API_ARB, GL_DEBUG_TYPE_OTHER_ARB, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 		#endif
-				UE_LOG(LogStandaloneRenderer,Warning,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
+				UE_LOG(LogStandaloneRenderer,Verbose,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
 			}
 		#endif // GL_ARB_debug_output || GL_KHR_debug
 		}
