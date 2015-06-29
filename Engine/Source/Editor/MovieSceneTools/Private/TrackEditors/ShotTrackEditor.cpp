@@ -436,19 +436,19 @@ void FShotSection::CalculateThumbnailWidthAndResize()
 	}
 }
 
-ACameraActor* FShotSection::UpdateCameraObject()
+ACameraActor* FShotSection::UpdateCameraObject() const
 {
 	TArray<UObject*> OutObjects;
 	// @todo Sequencer - Sub-MovieScenes The director track may be able to get cameras from sub-movie scenes
 	Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetRootMovieSceneInstance(),  Section->GetCameraGuid(), OutObjects);
 
-	ACameraActor* Camera = nullptr;
+	ACameraActor* ReturnCam = nullptr;
 	if( OutObjects.Num() > 0 )
 	{
-		Camera = Cast<ACameraActor>( OutObjects[0] );
+		ReturnCam = Cast<ACameraActor>( OutObjects[0] );
 	}
 
-	return Camera;
+	return ReturnCam;
 }
 
 FText FShotSection::GetShotName() const

@@ -165,7 +165,7 @@ public:
 	/** @return The sequencer widget owning the shot section */
 	TSharedRef<SWidget> GetSequencerWidget() { return Sequencer.Pin()->GetSequencerWidget(); }
 private:
-	ACameraActor* UpdateCameraObject();
+	ACameraActor* UpdateCameraObject() const;
 	FText GetShotName() const;
 	void OnRenameShot( const FText& NewShotName, ETextCommit::Type CommitType );
 private:
