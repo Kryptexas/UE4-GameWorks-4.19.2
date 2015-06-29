@@ -8,6 +8,8 @@
 #include "Tests/AutomationTestSettings.h"
 #include "AutomationEditorCommon.h"
 #include "GameFramework/PlayerStart.h"
+#include "../TemplateCategory.h"
+#include "../TemplateItem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameProjectGenerationTests, Log, All);
 
