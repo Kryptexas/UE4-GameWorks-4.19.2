@@ -5,8 +5,6 @@ Description:Kill modules will kill a given particle if it meets the rules define
 
 [TOC(start:2 end:3)]
 
-## Kill Modules 
-
 Kill modules will kill a given particle if it meets the rules defined by specific implementations. 
 
 
