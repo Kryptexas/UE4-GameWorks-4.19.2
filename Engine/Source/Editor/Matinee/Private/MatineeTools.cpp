@@ -108,7 +108,7 @@ void FMatinee::UpdateViewportSettings()
 {
 	if ( GCurrentLevelEditingViewportClient )
 	{
-		if ( GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
+		if ( GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowsCinematicPreview() )
 		{
 			bool bSafeFrames = IsSafeFrameDisplayEnabled();
 			bool bAspectRatioBars = AreAspectRatioBarsEnabled();
@@ -3760,7 +3760,7 @@ void FMatinee::LockCamToGroup(class UInterpGroup* InGroup, const bool bResetView
 			for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
 			{
 				FLevelEditorViewportClient* LevelVC =GEditor->LevelViewportClients[i];
-				if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
+				if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
 				{
 					LevelVC->RemoveCameraRoll();
 					LevelVC->ViewFOV = LevelVC->FOVAngle;
@@ -3845,7 +3845,7 @@ void FMatinee::UpdateCameraToGroup(const bool bInUpdateStandardViewports, bool b
 		for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
 		{
 			FLevelEditorViewportClient* LevelVC =GEditor->LevelViewportClients[i];
-			if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
+			if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
 			{
 				UpdateLevelViewport(DefaultViewedActor, LevelVC, FadeAmount, ColorScale, bEnableColorScaling, bUpdateViewportTransform );
 			}
@@ -3955,7 +3955,7 @@ void FMatinee::SaveLevelViewports()
 	for( int32 ViewIndex = 0; ViewIndex < GEditor->LevelViewportClients.Num(); ++ViewIndex )
 	{
 		FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[ ViewIndex ];
-		if( LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
+		if( LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
 		{
 			FMatineeViewSaveData SaveData;
 			SaveData.ViewIndex = ViewIndex;
@@ -3976,7 +3976,7 @@ void FMatinee::RestoreLevelViewports()
 		if( SavedData.ViewIndex < GEditor->LevelViewportClients.Num() )
 		{
 			FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[ SavedData.ViewIndex ];
-			if ( LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
+			if ( LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
 			{
 				LevelVC->SetMatineeActorLock( nullptr );
 				LevelVC->SetViewRotation( SavedData.ViewRotation );

@@ -2058,7 +2058,7 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 void FLevelEditorViewportClient::UpdateViewForLockedActor()
 {
 	// We can't be locked to a matinee actor if this viewport doesn't allow matinee control
-	if ( !bAllowMatineePreview && ActorLockedByMatinee.IsValid() )
+	if ( !bAllowCinematicPreview && ActorLockedByMatinee.IsValid() )
 	{
 		ActorLockedByMatinee = nullptr;
 	}
@@ -3984,7 +3984,7 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 		}
 	}
 
-	if (ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowMatineePreview())
+	if (ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowsCinematicPreview())
 	{
 		// in the editor, disable camera motion blur and other rendering features that rely on the former frame
 		// unless the view port is Matinee controlled
@@ -4098,7 +4098,7 @@ void FLevelEditorViewportClient::CopyLayoutFromViewport( const FLevelEditorViewp
 	ViewportType = InViewport.ViewportType;
 	SetOrthoZoom( InViewport.GetOrthoZoom() );
 	ActorLockedToCamera = InViewport.ActorLockedToCamera;
-	bAllowMatineePreview = InViewport.bAllowMatineePreview;
+	bAllowCinematicPreview = InViewport.bAllowCinematicPreview;
 }
 
 

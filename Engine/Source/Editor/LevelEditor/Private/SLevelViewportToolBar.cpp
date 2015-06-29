@@ -526,8 +526,8 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 		{
 			if( bIsPerspective )
 			{
-				// Allow matinee preview only applies to perspective
-				OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.AllowMatineePreview );
+				// Cinematic preview only applies to perspective
+				OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.ToggleCinematicPreview );
 			}
 
 			OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.ToggleGameView );

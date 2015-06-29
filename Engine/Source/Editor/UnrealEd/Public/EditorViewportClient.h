@@ -683,18 +683,25 @@ public:
 	virtual bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL ) { return false; }
 
 	/** Returns true if the viewport is allowed to be possessed by Matinee for previewing sequences */
-	bool AllowMatineePreview() const { return bAllowMatineePreview; }
+	DEPRECATED(4.9, "AllowMatineePreview is deprecated.  Use AllowsCinematicPreview instead")
+	bool AllowMatineePreview() const { return AllowsCinematicPreview(); }
 
-	/** Sets whether or not this viewport is allowed to be possessed by Matinee */
-	void SetAllowMatineePreview(const bool bInAllowMatineePreview)
+	
+	DEPRECATED(4.9, "SetAllowMatineePreview is deprecated.  Use SetAllowCinematicPreview instead")
+	void SetAllowMatineePreview(const bool bInAllowCinematicPreview)
 	{
-		bAllowMatineePreview = bInAllowMatineePreview;
+		SetAllowCinematicPreview( bInAllowCinematicPreview );
 	}
 
+	/** Returns true if the viewport is allowed to be possessed for previewing cinematic sequences or keyframe animations*/
+	bool AllowsCinematicPreview() const { return bAllowCinematicPreview; }
+
+	/** Sets whether or not this viewport is allowed to be possessed by cinematic/scrubbing tools */
+	void SetAllowCinematicPreview( bool bInAllowCinematicPreview ) { bAllowCinematicPreview = bInAllowCinematicPreview; }
 protected:
 
-	/** true if this window is allowed to be possessed by Matinee for previewing sequences in real-time */
-	bool bAllowMatineePreview;
+	/** true if this window is allowed to be possessed by cinematic tools for previewing sequences in real-time */
+	bool bAllowCinematicPreview;
 
 public:
 	/** True if the window is maximized or floating */

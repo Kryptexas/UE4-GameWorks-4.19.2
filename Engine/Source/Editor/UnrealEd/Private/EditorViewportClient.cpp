@@ -214,7 +214,7 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 float const FEditorViewportClient::SafePadding = 0.075f;
 
 FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
-	: bAllowMatineePreview(false)
+	: bAllowCinematicPreview(false)
 	, CameraSpeedSetting(4)
 	, ImmersiveDelegate()
 	, VisibilityDelegate()

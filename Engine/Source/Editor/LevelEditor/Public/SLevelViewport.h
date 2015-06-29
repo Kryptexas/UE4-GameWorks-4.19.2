@@ -438,12 +438,12 @@ private:
 	/**
 	 * Called to toggle allowing matinee to use this viewport to preview in
 	 */
-	void OnToggleAllowMatineePreview();
+	void OnToggleAllowCinematicPreview();
 
 	/**
 	 * @return true if this viewport allows matinee to be previewed in it                   
 	 */
-	bool DoesAllowMatineePreview() const;
+	bool AllowsCinematicPreview() const;
 
 	/** Find currently selected actor in the level script.  */
 	void FindSelectedInLevelScript();

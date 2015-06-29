@@ -102,7 +102,7 @@ void FEdModeInterpEdit::CamMoveNotify(FEditorViewportClient* ViewportClient)
 	if(!InterpEd)
 		return;
 
-	if( ViewportClient->AllowMatineePreview() )
+	if( ViewportClient->AllowsCinematicPreview() )
 	{
 		InterpEd->CamMoved( ViewportClient->GetViewLocation(), ViewportClient->GetViewRotation() );
 	}

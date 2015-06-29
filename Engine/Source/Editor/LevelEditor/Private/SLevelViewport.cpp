@@ -354,7 +354,7 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	{
 		LevelViewportClient->SetViewLocation( EditorViewportDefs::DefaultPerspectiveViewLocation );
 		LevelViewportClient->SetViewRotation( EditorViewportDefs::DefaultPerspectiveViewRotation );
-		LevelViewportClient->SetAllowMatineePreview(true);
+		LevelViewportClient->SetAllowCinematicPreview(true);
 	}
 	LevelViewportClient->SetRealtime(ViewportInstanceSettings.bIsRealtime);
 	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowStats);
@@ -1135,10 +1135,10 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 
 
 	CommandList.MapAction(
-		ViewportActions.AllowMatineePreview,
-		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllowMatineePreview ),
+		ViewportActions.ToggleCinematicPreview,
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllowCinematicPreview ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SLevelViewport::DoesAllowMatineePreview )
+		FIsActionChecked::CreateSP( this, &SLevelViewport::AllowsCinematicPreview )
 		);
 
 
@@ -2040,18 +2040,18 @@ void SLevelViewport::OnClearAllBookMarks()
 	GLevelEditorModeTools().ClearAllBookmarks( LevelViewportClient.Get() );
 }
 
-void SLevelViewport::OnToggleAllowMatineePreview()
+void SLevelViewport::OnToggleAllowCinematicPreview()
 {
 	// Reset the FOV of Viewport for cases where we have been previewing the matinee with a changing FOV
-	LevelViewportClient->ViewFOV = LevelViewportClient->AllowMatineePreview() ? LevelViewportClient->ViewFOV : LevelViewportClient->FOVAngle;
+	LevelViewportClient->ViewFOV = LevelViewportClient->AllowsCinematicPreview() ? LevelViewportClient->ViewFOV : LevelViewportClient->FOVAngle;
 
-	LevelViewportClient->SetAllowMatineePreview( !LevelViewportClient->AllowMatineePreview() );
+	LevelViewportClient->SetAllowCinematicPreview( !LevelViewportClient->AllowsCinematicPreview() );
 	LevelViewportClient->Invalidate( false );
 }
 
-bool SLevelViewport::DoesAllowMatineePreview() const
+bool SLevelViewport::AllowsCinematicPreview() const
 {
-	return LevelViewportClient->AllowMatineePreview();
+	return LevelViewportClient->AllowsCinematicPreview();
 }
 
 void SLevelViewport::OnIncrementPositionGridSize()
@@ -2978,7 +2978,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 				ActorPreviewLevelViewportClient->bDisableInput = true;
 
 				// Never allow Matinee to possess these views
-				ActorPreviewLevelViewportClient->SetAllowMatineePreview( false );
+				ActorPreviewLevelViewportClient->SetAllowCinematicPreview( false );
 
 				// Our preview viewport is always visible if our owning SLevelViewport is visible, so we hook up
 				// to the same IsVisible method
