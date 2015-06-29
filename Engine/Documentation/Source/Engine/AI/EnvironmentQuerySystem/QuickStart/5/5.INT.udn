@@ -33,7 +33,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\meshComp.png)
 
-1. In the **Details** panel, find the **Mesh** category and assign the `HeroTPP` (or your own) **Skeletal Mesh**.
+1. In the **Details** panel, find the **Mesh** category and assign the **SK_Mannequin** (or your own) **Skeletal Mesh**.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\assignSkelMesh.png)
 
@@ -41,7 +41,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 1. Rotate the **Mesh** Component so it faces the direction the blue **Arrow Component** is pointing.
 
-1. In the **Details** panel, find the **Animation** category and assign the `HeroTPP_AnimBlueprint` to the **Animation Blueprint Generated Class** property.
+1. In the **Details** panel, find the **Animation** category and assign the `TopDown_AnimBlueprint` to the **Animation Blueprint Generated Class** property.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\assignAnimBP.png)
 
@@ -53,13 +53,13 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\charmve.png)
 
-1. In the **Details** panel, in the Movement Component category, adjust the Agent Radius and Agent Height values.
+1. In the **Details** panel, in the **Movement Capabilities** category, adjust the Agent Radius and Agent Height values.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\agentProps.png)
 
 	_Set the Agent Radius to at least the Capsule's radius, and the Agent Height to at least twice the Capsule's "half height."_
 
-1. With the Character Movement Component still selected, change the **Max Walk Speed** property, in the **Character Movement** category to `400`.
+1. With the Character Movement Component still selected, change the **Max Walk Speed** property, in the **Character Movement: Walking** category to `400`.
 	
 	![](Engine\AI\BehaviorTrees\QuickStart\4\maxWalk.png)
 

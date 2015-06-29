@@ -21,7 +21,7 @@ Description: Adding the needed Key Values to the Runner Blackboard.
 
 %Steps%
 
-The **Blackboard** is the "memory" of the **Behavior Tree**. Here we will store a reference to the Actor we should flee from and a location to flee to.
+The **Blackboard** is the memory of the **Behavior Tree**. Here we will store a reference to the Actor we should flee from and a location to flee to.
 
 ## Steps
 
