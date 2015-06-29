@@ -40,6 +40,7 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tTargets:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-metal\tCompile for Metal"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-es2\tCompile for OpenGL ES 2"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-es31ext\tCompile for OpenGL ES 3.1 with AEP"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl3\tCompile for OpenGL 3.2"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl4\tCompile for OpenGL 4.3"));
 	}
@@ -153,6 +154,18 @@ namespace CCT
 				else
 				{
 					Target = HCT_FeatureLevelES2;
+					OutBackEnd = BE_OpenGL;
+				}
+			}
+			else if (Switch == "es31ext")
+			{
+				if (Target != HCT_InvalidTarget)
+				{
+					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -es31ext!"));
+				}
+				else
+				{
+					Target = HCT_FeatureLevelES3_1Ext;
 					OutBackEnd = BE_OpenGL;
 				}
 			}

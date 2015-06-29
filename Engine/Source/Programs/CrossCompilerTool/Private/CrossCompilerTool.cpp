@@ -38,9 +38,9 @@ namespace CCT
 		Flags |= RunInfo.bForcePackedUBs ? (HLSLCC_PackUniforms | HLSLCC_FlattenUniformBufferStructures | HLSLCC_FlattenUniformBuffers) : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
-		FGlslCodeBackend GlslBackend(Flags);
+		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags);
+		FMetalCodeBackend MetalBackend(Flags, RunInfo.Target);
 
 		switch (RunInfo.BackEnd)
 		{
