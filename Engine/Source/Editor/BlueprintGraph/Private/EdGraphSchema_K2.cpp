@@ -2149,9 +2149,10 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 	{
 		// Autocasting
 		FName DummyName;
+		UClass* DummyClass;
 		UK2Node* DummyNode;
 
-		const bool bCanAutocast = SearchForAutocastFunction(OutputPin, InputPin, /*out*/ DummyName);
+		const bool bCanAutocast = SearchForAutocastFunction(OutputPin, InputPin, /*out*/ DummyName, DummyClass);
 		const bool bCanAutoConvert = FindSpecializedConversionNode(OutputPin, InputPin, false, /* out */ DummyNode);
 
 		if (bCanAutocast || bCanAutoConvert)
@@ -2180,7 +2181,128 @@ bool UEdGraphSchema_K2::TryCreateConnection(UEdGraphPin* PinA, UEdGraphPin* PinB
 	return bModified;
 }
 
-bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, const UEdGraphPin* InputPin, /*out*/ FName& TargetFunction) const
+struct FAutocastFunctionMap
+{
+private:
+	TMap<FString, TWeakObjectPtr<UFunction>> InnerMap;
+
+	static FString GenerateTypeData(const FEdGraphPinType& PinType)
+	{
+		auto Obj = PinType.PinSubCategoryObject.Get();
+		return FString::Printf(TEXT("%s;%s;%s"), *PinType.PinCategory, *PinType.PinSubCategory, Obj ? *Obj->GetPathName() : TEXT(""));
+	}
+
+	static FString GenerateCastData(const FEdGraphPinType& InputPinType, const FEdGraphPinType& OutputPinType)
+	{
+		return FString::Printf(TEXT("%s;%s"), *GenerateTypeData(InputPinType), *GenerateTypeData(OutputPinType));
+	}
+
+	static bool IsInputParam(const UProperty* Property)
+	{
+		const uint64 ConstOutParamFlag = CPF_OutParm | CPF_ConstParm;
+		const uint64 IsConstOut = Property ? (Property->PropertyFlags & ConstOutParamFlag) : 0;
+		return Property 
+			&& (CPF_Parm == (Property->PropertyFlags & (CPF_Parm | CPF_ReturnParm)))
+			&& ((0 == IsConstOut) || (ConstOutParamFlag == IsConstOut));
+	}
+
+	static int32 GetInputPropertiesNum(const UFunction* Function)
+	{
+		int32 InputPropNum = 0;
+		for (auto Property : TFieldRange<const UProperty>(Function))
+		{
+			InputPropNum += IsInputParam(Property) ? 1 : 0;
+		}
+		return InputPropNum;
+	}
+
+	static const UProperty* GetFirstInputProperty(const UFunction* Function)
+	{
+		for (auto Property : TFieldRange<const UProperty>(Function))
+		{
+			if (IsInputParam(Property))
+			{
+				return Property;
+			}
+		}
+		return nullptr;
+	}
+
+	void InsertFunction(UFunction* Function, const UEdGraphSchema_K2* Schema)
+	{
+		FEdGraphPinType InputPinType;
+		Schema->ConvertPropertyToPinType(GetFirstInputProperty(Function), InputPinType);
+
+		FEdGraphPinType OutputPinType;
+		Schema->ConvertPropertyToPinType(Function->GetReturnProperty(), OutputPinType);
+
+		InnerMap.Add(GenerateCastData(InputPinType, OutputPinType), Function);
+	}
+public:
+
+	static bool IsAutocastFunction(const UFunction* Function)
+	{
+		const FName BlueprintAutocast(TEXT("BlueprintAutocast"));
+		return Function
+			&& Function->HasMetaData(BlueprintAutocast)
+			&& Function->HasAllFunctionFlags(FUNC_Static | FUNC_Native | FUNC_Public | FUNC_BlueprintPure)
+			&& Function->GetReturnProperty()
+			&& (1 == GetInputPropertiesNum(Function));
+	}
+
+	void Refresh()
+	{
+		InnerMap.Empty();
+		auto Schema = GetDefault<UEdGraphSchema_K2>();
+
+		TArray<UClass*> Libraries;
+		GetDerivedClasses(UBlueprintFunctionLibrary::StaticClass(), Libraries);
+		for (auto Library : Libraries)
+		{
+			if (Library && (0 != (Library->ClassFlags & CLASS_Native)))
+			{
+				for (auto Function : TFieldRange<UFunction>(Library, EFieldIteratorFlags::ExcludeSuper, EFieldIteratorFlags::ExcludeDeprecated))
+				{
+					if (IsAutocastFunction(Function))
+					{
+						InsertFunction(Function, Schema);
+					}
+				}
+			}
+		}
+	}
+
+	UFunction* Find(const FEdGraphPinType& InputPinType, const FEdGraphPinType& OutputPinType)
+	{
+		TWeakObjectPtr<UFunction>* FuncPtr = InnerMap.Find(GenerateCastData(InputPinType, OutputPinType));
+		return FuncPtr ? FuncPtr->Get() : nullptr;
+	}
+
+	static FAutocastFunctionMap& Get()
+	{
+		static FAutocastFunctionMap* AutocastFunctionMap = nullptr;
+		if (AutocastFunctionMap == nullptr)
+		{
+			AutocastFunctionMap = new FAutocastFunctionMap();
+		}
+		return *AutocastFunctionMap;
+	}
+
+	static void OnProjectHotReloaded(bool bWasTriggeredAutomatically)
+	{
+		Get().Refresh();
+	}
+
+	FAutocastFunctionMap()
+	{
+		Refresh();
+
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.OnHotReload().AddStatic(&FAutocastFunctionMap::OnProjectHotReloaded);
+	}
+};
+
+bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, const UEdGraphPin* InputPin, /*out*/ FName& TargetFunction, /*out*/ UClass*& FunctionOwner) const
 {
 	// NOTE: Under no circumstances should anyone *ever* add a questionable cast to this function.
 	// If it could be at all confusing why a function is provided, to even a novice user, err on the side of do not cast!!!
@@ -2415,6 +2537,16 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 		}
 	}
 
+	if (TargetFunction == NAME_None)
+	{
+		auto AutocastFunctionMap = FAutocastFunctionMap::Get();
+		if (auto Func = AutocastFunctionMap.Find(OutputPin->PinType, InputPin->PinType))
+		{
+			TargetFunction = Func->GetFName();
+			FunctionOwner = Func->GetOwnerClass();
+		}
+	}
+
 	return TargetFunction != NAME_None;
 }
 
@@ -2592,15 +2724,14 @@ bool UEdGraphSchema_K2::CreateAutomaticConversionNodeAndConnections(UEdGraphPin*
 	}
 
 	FName TargetFunctionName;
+	UClass* ClassContainingConversionFunction = nullptr;
 	TSubclassOf<UK2Node> ConversionNodeClass;
 
 	UK2Node* TemplateConversionNode = NULL;
 
-	if (SearchForAutocastFunction(OutputPin, InputPin, /*out*/ TargetFunctionName))
+	if (SearchForAutocastFunction(OutputPin, InputPin, /*out*/ TargetFunctionName, /*out*/ClassContainingConversionFunction))
 	{
 		// Create a new call function node for the casting operator
-		UClass* ClassContainingConversionFunction = NULL; //@TODO: Should probably return this from the search function too
-
 		UK2Node_CallFunction* TemplateNode = NewObject<UK2Node_CallFunction>();
 		TemplateNode->FunctionReference.SetExternalMember(TargetFunctionName, ClassContainingConversionFunction);
 		//TemplateNode->bIsBeadFunction = true;
