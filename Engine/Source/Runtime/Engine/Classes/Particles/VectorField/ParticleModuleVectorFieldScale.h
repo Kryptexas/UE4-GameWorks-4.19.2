@@ -17,7 +17,13 @@ class UParticleModuleVectorFieldScale : public UParticleModuleVectorFieldBase
 	UPROPERTY(EditAnywhere, Category=VectorField)
 	class UDistributionFloat* VectorFieldScale;
 
+	/** Initializes the default values for this property */
+	void InitializeDefaults();
+
 	// Begin UObject Interface
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
 	// End UObject Interface
 

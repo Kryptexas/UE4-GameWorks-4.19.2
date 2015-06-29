@@ -17,7 +17,13 @@ class UParticleModuleVectorFieldScaleOverLife : public UParticleModuleVectorFiel
 	UPROPERTY(EditAnywhere, Category=VectorField)
 	class UDistributionFloat* VectorFieldScaleOverLife;
 
+	/** Initializes the default values for this property */
+	void InitializeDefaults();
+
 	// Begin UObject Interface
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
 	// End UObject Interface
 
