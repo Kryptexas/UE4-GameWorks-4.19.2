@@ -362,7 +362,7 @@ void FComponentTypeRegistryData::Tick(float)
 			const FName BPParentClassName(GET_MEMBER_NAME_CHECKED(UBlueprint, ParentClass));
 
 			bool FoundBPNotify = false;
-			for (TMap<FName, FString>::TConstIterator TagIt(Asset.TagsAndValues); TagIt; ++TagIt)
+			for (auto TagIt = Asset.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 			{
 				FString TagValue = Asset.TagsAndValues.FindRef(BPParentClassName);
 				const FString ObjectPath = FPackageName::ExportTextPathToObjectPath(TagValue);

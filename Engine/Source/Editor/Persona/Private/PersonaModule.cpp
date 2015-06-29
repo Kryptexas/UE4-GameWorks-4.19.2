@@ -37,18 +37,8 @@ void FPersonaModule::StartupModule()
 
 		for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
 		{
-			bool FoundBPNotify = false;
-			for (TMap<FName, FString>::TConstIterator TagIt(AssetData[ AssetIndex ].TagsAndValues); TagIt; ++TagIt)
-			{
-				FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPParentClassName);
-				if(TagValue == BPAnimNotify)
-				{
-					FoundBPNotify = true;
-					break;
-				}
-			}
-
-			if(FoundBPNotify)
+			FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPParentClassName);
+			if (TagValue == BPAnimNotify)
 			{
 				FString BlueprintPath = AssetData[AssetIndex].ObjectPath.ToString();
 				LoadObject<UBlueprint>(NULL, *BlueprintPath, NULL, 0, NULL);

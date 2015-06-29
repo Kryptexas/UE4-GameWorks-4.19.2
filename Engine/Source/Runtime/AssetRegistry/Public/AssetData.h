@@ -103,7 +103,7 @@ public:
 	{
 		return ObjectPath != NAME_None;
 	}
-	
+
 	/** Returns true if this asset was found in a UAsset file */
 	bool IsUAsset() const
 	{
@@ -229,7 +229,7 @@ public:
 	{
 		return IsValid() && FindObject<UObject>(NULL, *ObjectPath.ToString()) != NULL;
 	}
-	
+
 	/** Prints the details of the asset to the log */
 	void PrintAssetData() const
 	{
@@ -242,16 +242,16 @@ public:
 		UE_LOG(LogAssetData, Log, TEXT("        AssetClass: %s"), *AssetClass.ToString());
 		UE_LOG(LogAssetData, Log, TEXT("        TagsAndValues: %d"), TagsAndValues.Num());
 
-		for (TMap<FName, FString>::TConstIterator TagIt(TagsAndValues); TagIt; ++TagIt)
+		for (const auto& TagValue: TagsAndValues)
 		{
-			UE_LOG(LogAssetData, Log, TEXT("            %s : %s"), *TagIt.Key().ToString(), *TagIt.Value());
+			UE_LOG(LogAssetData, Log, TEXT("            %s : %s"), *TagValue.Key.ToString(), *TagValue.Value);
 		}
 
 		UE_LOG(LogAssetData, Log, TEXT("        ChunkIDs: %d"), ChunkIDs.Num());
 
-		for (auto ChunkIt = ChunkIDs.CreateConstIterator(); ChunkIt; ++ChunkIt)
+		for (int32 Chunk: ChunkIDs)
 		{
-			UE_LOG(LogAssetData, Log, TEXT("                 %d"), *ChunkIt);
+			UE_LOG(LogAssetData, Log, TEXT("                 %d"), Chunk);
 		}
 	}
 

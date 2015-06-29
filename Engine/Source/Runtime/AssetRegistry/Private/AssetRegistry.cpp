@@ -1660,7 +1660,7 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 	PathAssets.Add(AssetData);
 	ClassAssets.Add(AssetData);
 
-	for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
+	for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		FName Key = TagIt.Key();
 
@@ -1674,8 +1674,8 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 	// Populate the class map if adding blueprint
 	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
-		FString* GeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
-		FString* ParentClassPtr = AssetData->TagsAndValues.Find("ParentClass");
+		auto GeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
+		auto ParentClassPtr = AssetData->TagsAndValues.Find("ParentClass");
 		if ( GeneratedClassPtr && ParentClassPtr )
 		{
 			const FName GeneratedClassFName = FName(*ExportTextPathToObjectName(*GeneratedClassPtr));
@@ -1693,7 +1693,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	// If the old and new asset data has the same number of tags, see if any are different (its ok if values are different)
 	if (!bTagsChanged)
 	{
-		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
+		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			if ( !NewAssetData.TagsAndValues.Contains(TagIt.Key()) )
 			{
@@ -1743,7 +1743,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	// Update Tags
 	if (bTagsChanged)
 	{
-		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
+		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
 			auto OldTagAssets = CachedAssetsByTag.Find(FNameKey);
@@ -1751,7 +1751,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 			OldTagAssets->Remove(AssetData);
 		}
 
-		for (TMap<FName, FString>::TConstIterator TagIt(NewAssetData.TagsAndValues); TagIt; ++TagIt)
+		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
 			auto& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
@@ -1763,7 +1763,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	// Update the class map if updating a blueprint
 	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
-		FString* OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
+		auto OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 
 		if ( OldGeneratedClassPtr )
 		{
@@ -1797,7 +1797,7 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		// Remove from the class map if removing a blueprint
 		if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 		{
-			FString* OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
+			auto OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 
 			if ( OldGeneratedClassPtr )
 			{
@@ -1815,7 +1815,7 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		OldPathAssets->Remove(AssetData);
 		OldClassAssets->Remove(AssetData);
 
-		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
+		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			auto OldTagAssets = CachedAssetsByTag.Find(TagIt.Key());
 			OldTagAssets->Remove(AssetData);

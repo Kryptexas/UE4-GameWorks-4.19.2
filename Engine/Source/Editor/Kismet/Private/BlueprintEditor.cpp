@@ -1484,20 +1484,10 @@ void FBlueprintEditor::LoadLibrariesFromAssetRegistry()
 
 			for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
 			{
-				bool FoundBPType = false;
-				for (TMap<FName, FString>::TConstIterator TagIt(AssetData[ AssetIndex ].TagsAndValues); TagIt; ++TagIt)
-				{
-					FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPTypeName);
+				FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPTypeName);
 
-					//Only check for Blueprint Macros & Functions in the asset data for loading
-					if ( TagValue == BPMacroTypeStr || TagValue == BPFunctionTypeStr )
-					{
-						FoundBPType = true;
-						break;
-					}
-				}
-
-				if( FoundBPType )
+				//Only check for Blueprint Macros & Functions in the asset data for loading
+				if ( TagValue == BPMacroTypeStr || TagValue == BPFunctionTypeStr )
 				{
 					FString BlueprintPath = AssetData[AssetIndex].ObjectPath.ToString();
 
