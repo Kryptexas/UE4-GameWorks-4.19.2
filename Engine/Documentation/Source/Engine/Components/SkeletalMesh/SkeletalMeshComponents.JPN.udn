@@ -1,20 +1,25 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2600648
 Availability:Public
-Title:スケルタルメッシュのコンポーネント
+Title:スケルタルメッシュ コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:スケルタルメッシュのコンポーネントとその使用方法 
+Description:スケルタルメッシュ コンポーネントとその使用方法 
 Related:Engine/Content/Types/SkeletalMeshes
 Related:Engine/Actors/SkeletalMeshActors
 Related:Engine/Animation
 Related:Engine/Blueprints/UserGuide/Components
 
-スケルタルメッシュのコンポーネントは、複雑なアニメーション データを持ち、スケルトンを使用するものに使います。 
+Skeletal Mesh コンポーネントは、複雑なアニメーション データを持ち、スケルトンを使用するものに使います。 
 
-## スケルタルメッシュのコンポーネント
+## スケルタルメッシュ コンポーネント
 
-**SkeletalMeshComponents** は、`USkeletalMesh` のインスタンスの作成に使用します。**スケルタルメッシュ** (外見) には、内側に複雑な **スケルトン** (相互接続されたボーン) があります。これは、スケルタルメッシュの各頂点を移動させ、再生中の現在のアニメーションに一致させる支援をします。 
-そのため、**SkeletalMeshComponents** はキャラクター、生き物、複雑な機械、または変形や複雑な動きをする必要があるものにとって理想的です。**スケルタルメッシュ** での作業に関する詳しい情報は、[](Engine/Content/Types/SkeletalMeshes) と [](Engine/Actors/SkeletalMeshActors) をご覧ください。 
+**SkeletalMesh コンポーネント** は、`USkeletalMesh` のインスタンスの作成に使用します。スケルタルメッシュ (外見) には、内側に複雑な スケルトン (相互接続されたボーン) があります。これは、スケルタルメッシュの各頂点を移動させ、再生中の現在のアニメーションに一致させる支援をします。 
+そのため、SkeletalMesh コンポーネントはキャラクター、生き物、複雑な機械、または変形や複雑な動きをする必要があるものにとって理想的です。スケルタルメッシュ での作業に関する詳しい情報は、[](Engine/Content/Types/SkeletalMeshes) と [](Engine/Actors/SkeletalMeshActors) をご覧ください。 
 
 ![](mesh_component.png)
 
-上の図では、**SkeletalMeshComponent** は、**Character ブループリント** と合わせて使用され、プレイ可能なキャラクターを作っています。使用する **スケルタルメッシュ** アセットの指定に加えて、使用するメッシュの **アニメーション モード** を定義することもできます([Animation ブループリント](Engine/Animation/AnimBlueprints) または [アニメーション アセット](Engine/Animation/Sequences))。 
+上の図では、SkeletalMesh コンポーネントは、Character ブループリント と合わせて使用され、プレイ可能なキャラクターを作っています。使用する スケルタルメッシュ アセットの指定に加えて、使用するメッシュの アニメーション モード([Animation ブループリント](Engine/Animation/AnimBlueprints) または [Animation アセット](Engine/Animation/Sequences)) を定義することもできます。 
+
+
+
+
+
