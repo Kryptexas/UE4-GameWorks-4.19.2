@@ -5,15 +5,13 @@ Description:SubUV modules allow particles to utilize subUV multi-frame textures.
 
 [TOC(start:2 end:3)]
 
-## SubUV Modules 
-
 SubUV modules allow particles to utilize subUV textures, in which a grid of individual "frames" is laid out.
 
 [REGION:note]
 SubUV modules should only be applied to an emitter when the InterpolationMethod is set to something other than PSUVIM_None. 
 [/REGION]
 
-### SubImage Index
+## SubImage Index
 
 The SubImage Index module selects the sub-image to use based on a float distribution. Currently, sub-images are ordered from left-to-right, top-to-bottom. It contains the following member(s):
 
@@ -26,7 +24,7 @@ The SubImage Index module selects the sub-image to use based on a float distribu
 
 
 
-### SubUV Movie
+## SubUV Movie
 
 The SubUV Movie module cycles through the sub-images of the texture in sequential order at a specified frame rate, similar to how a flipbook texture behaves. It contains the following properties:
 

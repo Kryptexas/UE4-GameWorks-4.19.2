@@ -5,11 +5,9 @@ Description:These modules affect the sizes of particles across various points of
 
 [TOC(start:2 end:3)]
 
-## Size Modules 
-
 These modules affect the sizes of particles across various points of their lifespans.
 
-### Initial Size
+## Initial Size
 
 ![psys_initial_size.gif](psys_initial_size.gif)(convert:false)
 
@@ -22,7 +20,7 @@ The Initial Size module is used to set the initial size of a particle at spawn t
 
 
 
-### Initial Size (Seeded)
+## Initial Size (Seeded)
 
 The Initial Size (Seeded) module is identical to the [Initial Size](#InitialSize) module in that it sets the size of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
@@ -35,7 +33,7 @@ The Initial Size (Seeded) module is identical to the [Initial Size](#InitialSize
 
 
 
-### Size By Life
+## Size By Life
 
 ![](SizeByLife.gif)(convert:false)
 
@@ -51,7 +49,7 @@ The Size By Life module scales the size of the particle by a given value over it
 During both Spawn and Update, the Particle.Size value is multiplied with the retrieved scale value.
 
 
-### Size Scale
+## Size Scale
 
 The Size Scale module sets the Size of the particle to the BaseSize times the given scale factor. NOTE that this module overrides any size adjustments made prior to this module in that frame. It contains the following member(s): 
 
@@ -62,7 +60,7 @@ The Size Scale module sets the Size of the particle to the BaseSize times the gi
 |**Enable X, Enable Y, Enable Z** | Ignored.|
 
 
-### Size By Speed
+## Size By Speed
 
 ![](SizeBySpeed.gif)(convert:false)
 

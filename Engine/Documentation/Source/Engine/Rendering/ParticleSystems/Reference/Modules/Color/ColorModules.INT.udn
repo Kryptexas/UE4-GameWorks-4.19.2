@@ -15,7 +15,7 @@ Color modules impact the color of the emitted particles.
 	Color is calculated on a full floating point range. Values beyond 1 will often result in a glow effect.
 [/REGION]
 
-### Initial Color
+## Initial Color
 
 ![psys_initial_color.gif](psys_initial_color.gif)(convert:false)
 
@@ -32,7 +32,7 @@ The Initial Color module sets the color of a particle at spawn time. The particl
 In Spawn, the module retrieves the appropriate values from the distributions using the emitter time, setting the Particle.Color and Particle.BaseColor values to it directly.
 
 
-### Init Color (Seed)
+## Init Color (Seed)
 
 The Init Color (Seed) module is identical to the [Initial Color](#InitialColor) module in that it sets the initial color of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
@@ -55,7 +55,7 @@ In Spawn, the module retrieves the appropriate values from the distributions usi
 
 
 
-### Color Over Life
+## Color Over Life
 
 ![psys_color_life.gif](psys_color_life.gif)(convert:false)
 
@@ -78,7 +78,7 @@ In Spawn, the module retrieves the appropriate values from the distributions usi
 In Update, the module retrieves the appropriate values from the distributions using the particle time, and sets the Particle.Color value to it.
 
 
-### Scale Color/Life
+## Scale Color/Life
 
 The Scale Color/Life module is used to scale the color of a particle over its lifetime. It contains the following member(s):
 

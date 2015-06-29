@@ -5,11 +5,9 @@ Description:Velocity modules exist to make adjustments to particle velocity in a
 
 [TOC(start:2 end:3)]
 
-## Velocity Modules
-
 Velocity modules exist to make adjustments to particle velocity in a variety of ways.
 
-### Initial Velocity
+## Initial Velocity
 
 ![psys_initial_velocity.gif](psys_initial_velocity.gif)(convert:false)
 
@@ -27,7 +25,7 @@ The Initial Velocity module sets the initial velocity of a particle. It contains
 
 
 
-### Initial Vel (Seed)
+## Initial Vel (Seed)
 
 The Initial Vel (Seed) module is identical to the [Initial Velocity](#InitialVelocity) module in that it sets the velocity of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
@@ -42,7 +40,7 @@ The Initial Vel (Seed) module is identical to the [Initial Velocity](#InitialVel
 |**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
 
 
-### Velocity Cone
+## Velocity Cone
 
 The Velocity Cone module emits particles in the shape of a user-defined cone. 
 
@@ -55,7 +53,7 @@ The Velocity Cone module emits particles in the shape of a user-defined cone.
 |**In World Space** | If _true_, the velocity is assumed to be in world-space.|
 |**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
 
-### Inherit Parent Vel
+## Inherit Parent Vel
 
 Contributes the velocity of the parent (the particle emitter itself) to a particle when spawning. It contains the following member(s): 
 
@@ -69,7 +67,7 @@ Contributes the velocity of the parent (the particle emitter itself) to a partic
 
 
 
-### Velocity/Life
+## Velocity/Life
 
 ![psys_velocity_life.gif](psys_velocity_life.gif)(convert:false)
 

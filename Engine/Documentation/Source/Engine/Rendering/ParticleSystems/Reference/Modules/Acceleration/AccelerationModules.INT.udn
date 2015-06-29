@@ -8,7 +8,7 @@ Description:These modules provide the ability to apply a change in velocity over
 These modules provide the ability to apply acceleration, or a change in velocity over time, to particles.
 
 
-### Acceleration
+## Acceleration
 
 ![psys_acceleration.gif](psys_acceleration.gif)(convert:false)
 
@@ -26,7 +26,7 @@ This module will add a vector parameter to the particle payload data, UsedAccele
 Each frame, the current and base velocity values of the particle is then updated using the formula (velocity += acceleration * DeltaTime) where DeltaTime is the amount of time passed since the last frame.
 
 
-### Const Acceleration
+## Const Acceleration
 
 
 ![psys_acceleration.gif](psys_acceleration.gif)(convert:false)
@@ -46,7 +46,7 @@ This module will add a vector parameter to the particle payload data, UsedAccele
 
 Each frame, the current and base velocity values of the particle is then updated using the formula (velocity += acceleration * DeltaTime) where DeltaTime is the amount of time passed since the last frame.
 
-### Drag 
+## Drag 
 
 ![phys_drag.gif](phys_drag.gif)(w:430 convert:false)
 
@@ -57,7 +57,7 @@ Drag applies a constant resistance to motion to each particle. The coefficient v
 |[REGION:tablesection]Drag[/REGION]||
 | **Coefficient** | A float distribution defining the drag coefficient, or the amount of resistance to motion, that will be applied to each particle.|
 
-### Drag Scale/Life
+## Drag Scale/Life
 
 Drag Scale/Life is a multiplier value that works with an existing Drag module, allowing, for example, for the drag to be scaled via a curve across the life of the particle.
 
@@ -70,7 +70,7 @@ Drag Scale/Life is a multiplier value that works with an existing Drag module, a
 |[REGION:tablesection]Drag Scale/Life[/REGION]||
 | **Drag Scale** | A float distribution defining the scaling value that will be applied to the existing particle drag coefficient.|
 
-### AccelerationOverLife
+## AccelerationOverLife
 
 Sets the acceleration of the particle over its lifetime. It contains the following member(s):
 

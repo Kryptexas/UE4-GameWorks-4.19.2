@@ -5,11 +5,9 @@ Description:These modules control the orientation of particles, preventing rotat
 
 [TOC(start:2 end:3)]
 
-## Orientation Modules
-
 These modules control the orientation of particles, preventing rotation on certain axes.
 
-### Axis Lock
+## Axis Lock
 
 The Axis Lock module is used to lock the particle facing to a given axis. Currently, this is a sprite-based module only. It contains the following member(s): 
 

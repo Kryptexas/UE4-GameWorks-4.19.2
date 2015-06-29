@@ -5,11 +5,9 @@ Description:Rotation modules control how particles will be rotated at various po
 
 [TOC(start:2 end:3)]
 
-## Rotation Modules 
-
 Rotation modules control how particles will be rotated at various points in their lives.
 
-### Init Mesh Rotation
+## Init Mesh Rotation
 
 The Init Mesh Rotation module applies an initial rotation to mesh particles created with a Mesh Data emitter.
 
@@ -21,7 +19,7 @@ The Init Mesh Rotation module applies an initial rotation to mesh particles crea
 
 
 
-### Init Mesh Rot (Seed)
+## Init Mesh Rot (Seed)
 
 The Init Mesh Rot (Seed) module applies an initial rotation to mesh particles created with a Mesh Data emitter, with the added benefit of randomization.
 
@@ -34,7 +32,7 @@ The Init Mesh Rot (Seed) module applies an initial rotation to mesh particles cr
 |**Inherit Parent** | If this Boolean value is _true_, then the rotation of the parent will be applied to the mesh particles as well. |
 
 
-### Initial Rotation
+## Initial Rotation
 
 ![psys_initial_rotation.gif](psys_initial_rotation.gif)(convert:false)
 
@@ -47,7 +45,7 @@ The Initial Rotation module is used to set the initial rotation of a particle at
 
 
 
-### Init Rotation (Seeded)
+## Init Rotation (Seeded)
 
 The Init Rotation (Seeded) module is identical to the [Initial Rotation](#InitialRotation) module in that it sets the initial rotation or particles; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
@@ -60,7 +58,7 @@ The Init Rotation (Seeded) module is identical to the [Initial Rotation](#Initia
 
 
 
-### Rotation/Life
+## Rotation/Life
 
 ![psys_rotation_life.gif](psys_rotation_life.gif)(convert:false)
 

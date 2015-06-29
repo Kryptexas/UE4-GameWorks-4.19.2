@@ -5,15 +5,13 @@ Description:Modules for causing particles to be attracted toward specific points
 
 [TOC(start:2 end:3)]
 
-## Attractor Modules
-
 These modules implement methods of causing particles to be attracted toward a specific position in space, which can be defined in the form of a point, line, or another particle's position. They can even be combined to create more complex effects.
 
 This is the result of using a point attractor in combination with a line attractor with its strength animated over the life of the particle to create the swirling effect.
 
 ![psys_attractor.gif](psys_attractor.gif)(convert:false)
 
-### Attractor Line
+## Attractor Line
 
 The line attractor allows for having particles be drawn to a line in 3D space.
 
@@ -27,7 +25,7 @@ The line attractor allows for having particles be drawn to a line in 3D space.
 
 
 
-### Particle Attractor
+## Particle Attractor
 
 ![psys_attractor_particle.gif](psys_attractor_particle.gif)(convert:false)
 
@@ -60,7 +58,7 @@ The particle attractor allows for having particles be drawn to the particles emi
 --------End Attractor Particle Includes---------->
 
 
-### Point Attractor
+## Point Attractor
 
 ![psys_attractor_point.gif](psys_attractor_point.gif)(convert:false)
 
