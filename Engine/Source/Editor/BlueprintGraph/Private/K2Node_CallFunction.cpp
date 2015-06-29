@@ -1604,14 +1604,19 @@ void UK2Node_CallFunction::EnsureFunctionIsInBlueprint()
 		UClass* FunctionOwnerClass = Function->GetOuterUClass();
 		UObject* FunctionGenerator = FunctionOwnerClass ? FunctionOwnerClass->ClassGeneratedBy : NULL;
 
-		// If function is generated from a blueprint object then dbl check self pin compatibility
-		UEdGraphPin* SelfPin = GetDefault<UEdGraphSchema_K2>()->FindSelfPin(*this, EGPD_Input);
-		if ((FunctionGenerator != NULL) && SelfPin)
+		// Never change the type if the function is an Interface function type, this only occurs when 
+		// the function is the interface function and the self pin will be PC_Interface type
+		if (!FunctionOwnerClass->IsChildOf(UInterface::StaticClass()))
 		{
-			UBlueprint* BlueprintObj = FBlueprintEditorUtils::FindBlueprintForNode(this);
-			if ((BlueprintObj != NULL) && !IsSelfPinCompatibleWithBlueprintContext(SelfPin, BlueprintObj))
+			// If function is generated from a blueprint object then dbl check self pin compatibility
+			UEdGraphPin* SelfPin = GetDefault<UEdGraphSchema_K2>()->FindSelfPin(*this, EGPD_Input);
+			if ((FunctionGenerator != NULL) && SelfPin)
 			{
-				FunctionReference.SetSelfMember(Function->GetFName());
+				UBlueprint* BlueprintObj = FBlueprintEditorUtils::FindBlueprintForNode(this);
+				if ((BlueprintObj != NULL) && !IsSelfPinCompatibleWithBlueprintContext(SelfPin, BlueprintObj))
+				{
+					FunctionReference.SetSelfMember(Function->GetFName());
+				}
 			}
 		}
 	}
