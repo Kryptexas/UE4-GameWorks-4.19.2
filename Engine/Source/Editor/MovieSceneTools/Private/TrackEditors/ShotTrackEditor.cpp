@@ -274,7 +274,7 @@ void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
 	Sequencer.Pin()->FilterToSelectedShotSections(bZoomToShotBounds);
 }
 
-void FShotSection::RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* Section)
+void FShotSection::RenameShotCommitted(const FText& RenameText, ETextCommit::Type CommitInfo, UMovieSceneSection* InSection)
 {
 /*
 	if (CommitInfo == ETextCommit::OnEnter)
@@ -560,7 +560,7 @@ void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 
 	const FString NewShotPackagePath = LongPackagePath + TEXT("/") + MovieScene->GetName() + TEXT("_") + ShotName;
 
-	const FString EmptySuffix;
+	const FString EmptySuffix(TEXT(""));
 
 	// Create a package name and asset name for the new movie scene
 	FString PackageName;
