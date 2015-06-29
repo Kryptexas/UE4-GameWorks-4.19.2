@@ -526,4 +526,9 @@ void UWidgetBlueprintLibrary::GetAllWidgetsWithInterface(UObject* WorldContextOb
 		}
 	}
 }
+
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromKeyEvent(const FKeyEvent& KeyEvent)
+{
+	return KeyEvent;
+}
 #undef LOCTEXT_NAMESPACE

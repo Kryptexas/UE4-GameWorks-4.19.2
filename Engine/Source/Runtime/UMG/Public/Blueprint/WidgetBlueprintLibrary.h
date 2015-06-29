@@ -261,4 +261,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Widget", meta = (WorldContext = "WorldContextObject"))
 	static void GetAllWidgetsWithInterface(UObject* WorldContextObject, TSubclassOf<UInterface> Interface, TArray<UUserWidget*>& FoundWidgets, bool TopLevelOnly);
+
+	UFUNCTION(BlueprintPure, Category = "Widget", meta = (CompactNodeTitle = "->", BlueprintAutocast))
+	static FInputEvent GetInputEventFromKeyEvent(const FKeyEvent& KeyEvent);
 };
