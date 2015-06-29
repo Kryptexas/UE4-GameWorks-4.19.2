@@ -60,18 +60,6 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
 	uint32 CastDynamicShadows:1;
 
-	/**
-	* Whether the light should cast modulated shadows from dynamic objects (mobile only).  Also requires Cast Shadows to be set to True.
-	**/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay)
-	uint32 bCastModulatedShadows : 1;
-
-	/**
-	* Color to modulate against the scene color when rendering modulated shadows. (mobile only)
-	**/
-	UPROPERTY(BlueprintReadOnly, interp, Category = Light, meta = (HideAlphaChannel), AdvancedDisplay)
-	FColor ModulatedShadowColor;
-
 	/** Whether the light affects translucency or not.  Disabling this can save GPU time when there are many small lights. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
 	uint32 bAffectTranslucentLighting:1;

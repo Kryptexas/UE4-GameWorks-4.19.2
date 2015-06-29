@@ -127,6 +127,9 @@ public:
 			FarShadowDistance = Component->FarShadowDistance;
 			FarShadowCascadeCount = Component->FarShadowCascadeCount;
 		}
+
+		bCastModulatedShadows = Component->bCastModulatedShadows;
+		ModulatedShadowColor = FLinearColor(Component->ModulatedShadowColor);
 	}
 
 	void UpdateLightShaftOverrideDirection_GameThread(const UDirectionalLightComponent* Component)
@@ -680,6 +683,8 @@ UDirectionalLightComponent::UDirectionalLightComponent(const FObjectInitializer&
 	IndirectLightingIntensity = 1.0f;
 	CastTranslucentShadows = true;
 	bUseInsetShadowsForMovableObjects = true;
+
+	ModulatedShadowColor = FColor(128, 128, 128);
 }
 
 #if WITH_EDITOR
@@ -757,6 +762,11 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, OcclusionDepthRange))
 		{
 			return bEnableLightShaftOcclusion;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, ModulatedShadowColor))
+		{
+			return bCastModulatedShadows;
 		}
 	}
 
