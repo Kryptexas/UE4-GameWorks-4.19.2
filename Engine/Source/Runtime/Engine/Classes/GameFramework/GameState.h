@@ -74,10 +74,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category=GameState)
 	TArray<class APlayerState*> PlayerArray;
 
-	/** This list mirrors the GameMode's list of inactive PlayerState objects. */
-	UPROPERTY()
-	TArray<class APlayerState*> InactivePlayerArray;
-
 	/** GameMode class notification callback. */
 	UFUNCTION()
 	virtual void OnRep_GameModeClass();

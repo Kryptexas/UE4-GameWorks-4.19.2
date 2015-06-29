@@ -135,21 +135,7 @@ void AGameState::AddPlayerState(APlayerState* PlayerState)
 	if (!PlayerState->bIsInactive)
 	{
 		// make sure no duplicates
-		for (int32 i=0; i<PlayerArray.Num(); i++)
-		{
-			if (PlayerArray[i] == PlayerState)
-				return;
-		}
-
-		PlayerArray.Add(PlayerState);
-	}
-	else
-	{
-		// Add once only
-		if (InactivePlayerArray.Find(PlayerState) == INDEX_NONE)
-		{
-			InactivePlayerArray.Add(PlayerState);
-		}
+		PlayerArray.AddUnique(PlayerState);
 	}
 }
 
