@@ -4787,11 +4787,6 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprin
 				break;
 			}
 		}
-
-		if(!ReturnVariable)
-		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Could not find local variable '%s'!"), *InVariableName.ToString());
-		}
 	}
 
 	return ReturnVariable;
