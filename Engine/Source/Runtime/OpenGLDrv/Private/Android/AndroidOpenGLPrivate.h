@@ -5,6 +5,8 @@
 =============================================================================*/
 #pragma once
 
+#include "AndroidApplication.h"
+
 bool GAndroidGPUInfoReady = false;
 
 class FAndroidGPUInfo

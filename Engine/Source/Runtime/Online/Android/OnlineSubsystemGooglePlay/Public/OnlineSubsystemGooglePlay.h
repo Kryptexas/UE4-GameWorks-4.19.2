@@ -8,6 +8,7 @@
 #include "OnlineAchievementsInterfaceGooglePlay.h"
 #include "OnlineLeaderboardInterfaceGooglePlay.h"
 #include "OnlineExternalUIInterfaceGooglePlay.h"
+#include "OnlineAsyncTaskManagerGooglePlay.h"
 #include "UniquePtr.h"
 
 #include "gpg/game_services.h"

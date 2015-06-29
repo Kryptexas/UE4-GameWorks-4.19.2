@@ -29,9 +29,9 @@ void FOnlineAsyncTaskGooglePlayLogin::TriggerDelegates()
 
 void FOnlineAsyncTaskGooglePlayLogin::OnAuthActionFinished(gpg::AuthOperation InOp, gpg::AuthStatus InStatus)
 {
-	if (InOp == AuthOperation::SIGN_IN)
+	if (InOp == gpg::AuthOperation::SIGN_IN)
 	{
-		if (InStatus == AuthStatus::ERROR_NOT_AUTHORIZED && RetryCount > 0)
+		if (InStatus == gpg::AuthStatus::ERROR_NOT_AUTHORIZED && RetryCount > 0)
 		{
 			--RetryCount;
 			Subsystem->GetGameServices()->StartAuthorizationUI();
@@ -39,7 +39,7 @@ void FOnlineAsyncTaskGooglePlayLogin::OnAuthActionFinished(gpg::AuthOperation In
 		}
 		
 		Status = InStatus;
-		bWasSuccessful = Status == AuthStatus::VALID;
+		bWasSuccessful = Status == gpg::AuthStatus::VALID;
 		bIsComplete = true;
 	}
 }

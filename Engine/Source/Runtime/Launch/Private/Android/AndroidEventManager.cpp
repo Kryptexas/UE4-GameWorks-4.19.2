@@ -7,6 +7,7 @@
 #include "CallbackDevice.h"
 #include <android/native_window.h> 
 #include <android/native_window_jni.h> 
+#include "IHeadMountedDisplay.h"
 
 
 DEFINE_LOG_CATEGORY(LogAndroidEvents);
@@ -86,7 +87,7 @@ void FAppEventManager::Tick()
 			bHaveGame = true;
 			break;
 
-		// window focus events that follow their own  heirarchy, and might or might not respect App main events heirarchy
+		// window focus events that follow their own hierarchy, and might or might not respect App main events hierarchy
 
 		case APP_EVENT_STATE_WINDOW_GAINED_FOCUS: 
 			bWindowInFocus = true;

@@ -15,6 +15,8 @@
 #include "AndroidWindow.h"
 #include <android/sensor.h>
 #include "Core.h"
+#include "AndroidApplication.h"
+#include "IHeadMountedDisplayModule.h"
 
 // Function pointer for retrieving joystick events
 // Function has been part of the OS since Honeycomb, but only appeared in the
