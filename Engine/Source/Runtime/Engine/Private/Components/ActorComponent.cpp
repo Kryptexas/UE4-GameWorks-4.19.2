@@ -813,7 +813,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 
 	if (MyOwner && MyOwner->HasActorBegunPlay())
 	{
-		if (bWantsBeginPlay)
+		if (!bHasBegunPlay && bWantsBeginPlay)
 		{
 			BeginPlay();
 		}
