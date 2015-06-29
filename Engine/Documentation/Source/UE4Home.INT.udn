@@ -66,12 +66,13 @@ Navigation:home
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
-	%Engine/UI:role%
+	%Engine/Editor:role%
 	%Engine:role%
 	%Gameplay:role%
 	%Engine/Blueprints:role%
 	%Programming:topicrole%
 	%Platforms:role%
 	%Resources:role%
+	%Support/Builds:role%
 	[/REGION]
 [/REGION]

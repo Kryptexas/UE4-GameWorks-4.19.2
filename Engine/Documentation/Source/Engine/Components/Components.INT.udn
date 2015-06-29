@@ -1,7 +1,7 @@
 Availability:Public
 Title:Components
 Crumbs:%ROOT%, Engine
-Description:A Component is a special type of Object designed to be used as a sub-object within an Actor and this page covers the different types of Components.  
+Description: A compendium of the different types of Components designed to be used as sub-objects within an Actor.  
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,7 +1,7 @@
 Availability:Public
-Title: Unreal Editor Manual
+Title: Unreal Editor Interface
 Crumbs:%ROOT%, Engine
-Description:A breakdown of the Unreal Editor user interface, along with key principles on how the interface works.
+Description:A breakdown of the Unreal Editor user interface, along with key principles on how the editor works.
 Navigation:topic
 
 [EXCERPT:LevelEditor]
@@ -150,7 +150,7 @@ Not every part of Unreal Editor is exposed by default, as it would simply requir
 		[REGION:simplegallery]
 		[OBJECT:VideoLink]
 			[PARAMLITERAL:videoid]
-			QMsFxzYzFJ8
+			w4XlBKeE46E
 			[/PARAMLITERAL]
 			[PARAMLITERAL:playlistid]
 			PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl

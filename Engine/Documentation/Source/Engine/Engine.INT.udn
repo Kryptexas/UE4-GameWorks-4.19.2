@@ -1,7 +1,7 @@
 Availability:Public
 Title: Engine Features
 Crumbs: %ROOT%
-Description:The complete guide to creating games with Unreal Engine.
+Description:Complete guide to using the tools and systems that make up Unreal Engine.
 Navigation:topic
 
 [VAR:Params]
@@ -73,23 +73,18 @@ engine
 
 ## Browse Topics
 
-[REGION:topics fourth]
-%Engine/Basics/Projects:topiccompact%
-%Engine/UI:topiccompact%
-%Engine/Actors:topiccompact%
-%Engine/Components:topiccompact%
-%Engine/Content:topiccompact%
-%Engine/Blueprints:topiccompact%
+[REGION:topics third]
 %Engine/Rendering:topiccompact%
-%Engine/Animation:topiccompact%
 %Engine/UMG:topiccompact%
+%Engine/Animation:topiccompact%
+%Engine/Audio:topiccompact%
 %Engine/AI/BehaviorTrees:topiccompact%
+<!--%Engine/Paper2D:topiccompact%-->
+%Engine/Physics:topiccompact%
+%Engine/OpenWorldTools:topiccompact%
 %Engine/Landscape:topiccompact%
 %Engine/Foliage:topiccompact%
-%Engine/OpenWorldTools:topiccompact%
 %Engine/LevelStreaming:topiccompact%
-%Engine/Audio:topiccompact%
-%Engine/Physics:topiccompact%
 %Engine/Matinee:topiccompact%
 %Engine/MediaFramework:topiccompact%
 %Engine/Performance:topiccompact%
