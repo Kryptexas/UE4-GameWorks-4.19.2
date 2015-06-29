@@ -97,12 +97,17 @@ class UTemplateProjectDefs : public UObject
 	UPROPERTY(config)
 	FString AssetTypes;
 
+	/* Should we allow creation of a project from this template */
 	UPROPERTY(config)
-	bool bHasFeaturePack;
+	bool bAllowProjectCreation;
 	
 	/* Optional list of feature packs to include */
 	UPROPERTY(config)
 	TArray<FString> PacksToInclude;
+
+	/** What detail level to edit when editing shared template resources  */
+	UPROPERTY(config)
+	EFeaturePackDetailLevel EditDetailLevelPreference;
 
 	/* Shared feature packs. The files in these packs listed in these structures marked as 'additionalfiles' will be copied on project generation*/
 	UPROPERTY(config)

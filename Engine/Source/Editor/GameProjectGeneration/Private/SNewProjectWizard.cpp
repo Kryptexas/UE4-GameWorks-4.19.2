@@ -51,6 +51,20 @@ struct FTemplateItem
 		: Name(InName), Description(InDescription), bGenerateCode(bInGenerateCode), Type(InType), SortKey(MoveTemp(InSortKey)), ProjectFile(MoveTemp(InProjectFile)), Thumbnail(InThumbnail), PreviewImage(InPreviewImage)
 		, ClassTypes(InClassTypes), AssetTypes(InAssetTypes)
 	{}
+
+	FTemplateItem(const FTemplateItem& InItem)
+	{
+		Name = InItem.Name;
+		Description = InItem.Description;
+		bGenerateCode = InItem.bGenerateCode;
+		Type = InItem.Type;
+
+		SortKey = InItem.SortKey;
+		ProjectFile = InItem.ProjectFile;
+
+		ClassTypes = InItem.ClassTypes;
+		AssetTypes = InItem.AssetTypes;
+	}
 };
 
 /**
@@ -1131,10 +1145,13 @@ FText SNewProjectWizard::GetNameAndLocationErrorLabelText() const
 	return FText::GetEmpty();
 }
 
-void SNewProjectWizard::FindTemplateProjects()
+TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplateProjects()
 {
 	// Default to showing the blueprint category
 	ActiveCategory = FTemplateCategory::BlueprintCategoryName;
+	
+	// Clear the list out first - or we could end up with duplicates
+	Templates.Empty();
 
 	// Add some default non-data driven templates
 	Templates.FindOrAdd(FTemplateCategory::BlueprintCategoryName).Add(MakeShareable(new FTemplateItem(
@@ -1211,6 +1228,9 @@ void SNewProjectWizard::FindTemplateProjects()
 				UTemplateProjectDefs* TemplateDefs = GameProjectUtils::LoadTemplateDefs(Root);
 				if ( TemplateDefs )
 				{
+					// Ignore any templates whoose definition says we cannot use to create a project
+					if( TemplateDefs->bAllowProjectCreation == false )
+						continue;
 					// Found a template. Add it to the template items list.
 					const FString ProjectFilename = Root / FoundProjectFiles[0];
 					FText TemplateName = TemplateDefs->GetDisplayNameText();
@@ -1282,6 +1302,7 @@ void SNewProjectWizard::FindTemplateProjects()
 			}
 		}
 	}
+	return Templates;
 }
 
 

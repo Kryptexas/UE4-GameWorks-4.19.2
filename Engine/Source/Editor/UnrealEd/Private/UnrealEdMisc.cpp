@@ -1632,15 +1632,14 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 	UTemplateProjectDefs* TemplateInfo = GameProjectUtils::LoadTemplateDefs(TemplateFilename);
 	
 	if( TemplateInfo != nullptr )
-	{
-		// Which detail level do we want to mount for editing
-		EFeaturePackDetailLevel EditDetail = EFeaturePackDetailLevel::Standard;
-		
+	{	
+		EFeaturePackDetailLevel EditDetail = TemplateInfo->EditDetailLevelPreference;
+
 		// Extract the mount names and insert mount points for each of the shared packs
 		TArray<FString> AddedMountSources;
 		for (int32 iShared = 0; iShared < TemplateInfo->SharedContentPacks.Num() ; iShared++)
 		{
-			EFeaturePackDetailLevel EachEditDetail = EditDetail;
+			EFeaturePackDetailLevel EachEditDetail = (EFeaturePackDetailLevel)EditDetail;
 			FFeaturePackLevelSet EachPack = TemplateInfo->SharedContentPacks[iShared];
 			if (EachPack.DetailLevels.Num() == 1)
 			{

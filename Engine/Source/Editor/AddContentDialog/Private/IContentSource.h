@@ -11,6 +11,7 @@ enum class EContentSourceCategory:uint8
 	BlueprintFeature,
 	CodeFeature,
 	Content,
+	SharedPack,
 	Unknown
 };
 
