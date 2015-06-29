@@ -11,10 +11,10 @@
 UMediaTexture::UMediaTexture( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, ClearColor(FLinearColor::Black)
+	, VideoTrackIndex(INDEX_NONE)
 	, MediaPlayer(nullptr)
 	, CurrentMediaPlayer(nullptr)
 	, VideoBuffer(MakeShareable(new FMediaSampleBuffer))
-	, VideoTrackIndex(INDEX_NONE)
 {
 	NeverStream = true;
 

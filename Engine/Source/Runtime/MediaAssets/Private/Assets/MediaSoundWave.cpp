@@ -11,8 +11,8 @@
 
 UMediaSoundWave::UMediaSoundWave( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, AudioQueue(MakeShareable(new FMediaSampleQueue))
 	, AudioTrackIndex(INDEX_NONE)
+	, AudioQueue(MakeShareable(new FMediaSampleQueue))
 {
 	bLooping = false;
 	bProcedural = true;
