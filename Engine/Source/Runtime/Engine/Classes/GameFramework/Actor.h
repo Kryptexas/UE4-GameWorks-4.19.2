@@ -525,7 +525,7 @@ public:
 	FActorBeginOverlapSignature OnActorBeginOverlap;
 
 	/** 
-	 *	Called when another actor steps overlapping this actor. 
+	 *	Called when another actor stops overlapping this actor. 
 	 *	@note Components on both this and the other Actor must have bGenerateOverlapEvents set to true to generate overlap events.
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
