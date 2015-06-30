@@ -57,7 +57,7 @@ namespace AutomationTool
             var StartBuildSolution = DateTime.Now.ToString();
 			RunAndLog(Env, Env.MsDevExe, CmdLine, LogName);
             var FinishBuildSolution = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,Compile,{0},{1}", StartBuildSolution, FinishBuildSolution));
+            PrintCSVFile(String.Format("UAT,Compile.{0}.{1}.{2},{3},{4}", Path.GetFileName(SolutionFile), "WinC#", BuildConfig, StartBuildSolution, FinishBuildSolution));
 		}
 
 		/// <summary>
