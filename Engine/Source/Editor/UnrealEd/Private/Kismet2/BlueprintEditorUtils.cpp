@@ -1180,7 +1180,8 @@ struct FEditoronlyBlueprintHelper
 			{
 				if (bLogWhy)
 				{
-					UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed"));
+					const FString UnwantedType = GetNameSafe(VarDesc.VarType.PinSubCategoryObject.Get());
+					UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed. [%s] Unwanted type '%s' in variable '%s'"), *Blueprint->GetName(), *UnwantedType, *VarDesc.FriendlyName);
 				}
 				return true;
 			}
@@ -1197,13 +1198,36 @@ struct FEditoronlyBlueprintHelper
 			{
 				for (const auto Pin : Node->Pins)
 				{
-					if (Pin && (IsUnwantedType(Pin->PinType) || IsUnwantedDefaultObject(Pin->DefaultObject)))
+					if (Pin)
 					{
-						if (bLogWhy)
+						const bool bUnwantedType = IsUnwantedType(Pin->PinType);
+						const bool bUnwantedDefaultObject = IsUnwantedDefaultObject(Pin->DefaultObject);
+						if (bUnwantedType || bUnwantedDefaultObject)
 						{
-							UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed"));
+							if (bLogWhy)
+							{
+								const FString ReasonPrefix = FString::Printf(TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed. [%s]"), *Blueprint->GetName());
+								const FString PinName = Pin->GetDisplayName().ToString();
+								const FString PinNodeName = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
+								if (bUnwantedType)
+								{
+									const FString UnwantedType = GetNameSafe(Pin->PinType.PinSubCategoryObject.Get());
+									UE_LOG(LogBlueprint, Warning, TEXT("%s Unwanted type '%s' on pin '%s' on node '%s'"), *ReasonPrefix, *UnwantedType, *PinName, *PinNodeName);
+								}
+								else if (bUnwantedDefaultObject)
+								{
+									const FString UnwantedDefaultObject = GetNameSafe(Pin->DefaultObject);
+									UE_LOG(LogBlueprint, Warning, TEXT("%s Unwanted default object '%s' on pin '%s' on node '%s'"), *ReasonPrefix, *UnwantedDefaultObject, *PinName, *PinNodeName);
+								}
+								else
+								{
+									ensureMsg(false, TEXT("Can not describe why the blueprint should be fixed."));
+									UE_LOG(LogBlueprint, Warning, TEXT("%s Unknown reason. Pin '%s' on node '%s'"), *ReasonPrefix, *PinName, *PinNodeName);
+								}
+							}
+
+							return true;
 						}
-						return true;
 					}
 				}
 			}
