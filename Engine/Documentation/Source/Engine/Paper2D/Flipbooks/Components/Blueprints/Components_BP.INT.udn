@@ -13,7 +13,7 @@ Related: Engine/Blueprints
 
 [TOC (start:2 end:2)]
 
-Working with **Flipbook Components** in **Blueprints** is very similar to working with other types of [Components](Engine/Blueprints/UserGuide/Components) in Blueprints. After adding a Flipbook Component to a Blueprint, you can specify the **Source Flipbook** asset to use, define the Flipbook's **Play Rate** or adjust the **Sprite Color** used in addition to standard options that are available to all components such as **Transforming**. 
+Working with **Flipbook Components** in Blueprints is very similar to working with other types of [Components](Engine/Blueprints/UserGuide/Components) in Blueprints. After adding a Flipbook Component to a Blueprint, you can specify the Source Flipbook asset to use, define the Flipbook's Play Rate or adjust the Sprite Color used in addition to standard options that are available to all components such as Transforming. 
 
 Inside the [Graph](Engine/Blueprints/UserGuide/Graphs) tab, you can directly access and modify the properties of the Flipbook Component through your script. This includes things like adjusting the Play Rate, Playing, Stopping or Reversing the Flipbook, or even changing the Source Flipbook to a different Flipbook asset (useful for when you want to switch between Flipbook animations for a character for example). 
 
@@ -23,7 +23,7 @@ This page will show you how to add, access and modify Flipbook Components in a B
 
 You can add a Flipbook Component to a Blueprint from the **Components** window of a Blueprint. 
 
-1. Inside a Blueprint, click the **Add Component** button inside the **Components** window and search for and add a **Paper Flipbook**. 
+1. Inside a Blueprint, **Left-Click** the **Add Component** button inside the **Components** window and search for and add a **Paper Flipbook**. 
 
 	![](Components1.png)	
 
@@ -31,7 +31,7 @@ You can add a Flipbook Component to a Blueprint from the **Components** window o
 
 	![](Components2.png)
 
-	You can then begin adjusting the **Properties** of the Flipbook Component inside the **Details** panel. 
+	You can then begin adjusting the Properties of the Flipbook Component inside the **Details** panel. 
 
 You can also add Flipbook Components to Blueprints by using **Blueprint/Add Script** option. 
 
@@ -87,11 +87,11 @@ When you are ready to start working with your Flipbook Component, you can head t
 
 ![](MyBlueprint1.png)
 
-To access or affect the Flipbook Component in anyway, you will need to hold **Ctrl** and drag-drop the Flipbook Component into a graph. 
+To access or affect the Flipbook Component in anyway, you will need to hold **Ctrl** and **Drag-Drop** the Flipbook Component into a graph. 
 
 ![](Graph1.png)
 
-This will **Get** the Flipbook Component at which point you can drag off it and call any number of Events or Functions on it. 
+This will Get the Flipbook Component at which point you can drag off it and call any number of Events or Functions on it. 
 
 ![](Graph2.png)(w:600)
 

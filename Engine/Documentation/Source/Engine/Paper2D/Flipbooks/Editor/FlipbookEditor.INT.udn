@@ -10,24 +10,23 @@ Related: Engine/Content/Types/Textures
 
 [TOC (start:2 end:2)]
 
-## Flipbook Editor Overview
 
 The **Flipbook Editor** enables setup and editing of individual Flipbook assets and is where you can edit the sequintal playable of your sprites, tune or tweak the duration in which a sprite is displayed or determine the overall playback speed of the Flipbook animation through the **Frames Per Second** option. 
 
 ## Opening the Flipbook Editor
 
-After you've created a Flipbook, you can then open it for editing in the **Flipbook Editor** in the follow ways: 
+After you've created a Flipbook, you can then open it for editing in the Flipbook Editor in the follow ways: 
 
 1. **Double-click** on a Flipbook inside the **Content Browser** (or **Right-click** on a Flipbook and select **Edit**). 
 
 	![](EditFlipbook.png)
 
-1.	This will open the **Flipbook Editor** window. 
+1.	This will open the Flipbook Editor window. 
 
 	![](FlipbookEditorMain.png)(w:800)
 
 [REGION:note]
-With a Flipbook Actor in your level and the Actor selected, you can press **Ctrl+E** to open it in the **Flipbook Editor** as well. 
+With a Flipbook Actor in your level and the Actor selected, you can press **Ctrl+E** to open it in the Flipbook Editor as well. 
 [/REGION]
 
 ## Flipbook Editor Interface
@@ -49,10 +48,10 @@ Each of the **Tool Bar** options are described in the table below:
 |----|----|
 |![](Toolbar1.png)(w:60)| Saves the Flipbook asset. |
 |![](Toolbar2.png)(w:60)| Locates and selectes the current Flipbook asset inside the **Content Browser** (**Ctrl+B**). |
-|![](Toolbar3.png)(w:60)| This toggles the grid display inside the viewport. |
-|![](Toolbar4.png)(w:60)| Toggles the display of the bounds of the Static Mesh in the viewport. |
+|![](Toolbar3.png)(w:60)| This toggles the grid display inside the **Viewport**. |
+|![](Toolbar4.png)(w:60)| Toggles the display of the bounds of the Static Mesh in the **Viewport**. |
 |![](Toolbar5.png)(w:60)| Toggles the display of the simplified collision mesh of the static mesh, if one has been assigned (**Alt+C**). |
-|![](Toolbar6.png)(w:60)| Displays the pivot location of the sprite in the viewport. |
+|![](Toolbar6.png)(w:60)| Displays the pivot location of the sprite in the **Viewport**. |
 
 ### Viewport
 
@@ -74,7 +73,7 @@ Mousing over a sprite in the Timeline will also give you more information about 
 
 ![](Timeline3.png)
 
-Above the name of the **Sprite** that is being used, its **Index** (location in the sequence) and **Duration** in frames are displayed. 
+Above the name of the Sprite that is being used, its **Index** (location in the sequence) and **Duration** in frames are displayed. 
 
 You can also **Right-click** on a key frame to bring up a context menu with additional key frame actions. 
 
@@ -88,7 +87,7 @@ When you insert a key frame before or after a key, an empty key frame will be ad
 
 You will need to specify the sprite to be used for those key frames, otherwise the Flipbook will render nothing in those frames. 
 
-**Sprites** or **Flipbook** assets can also be drag-dropped onto the Timeline to append them as additional key frames to the end of the Timeline. 
+Sprites or Flipbook assets can also be drag-dropped onto the Timeline to append them as additional key frames to the end of the Timeline. 
 
 ![](Timeline6.png)
 
@@ -100,7 +99,7 @@ The **Scrub Bar/Playback Controls** allow you to scrub through or use the playba
 
 ### Details
 
-The **Details** panel inside the **Flipbook Editor** is where you determine the animation playrate through **Frames Per Second**, assign **Key Frames** and their order as well as the **Sprites** to use at each key frame and their duration with the **Frame Run** setting. There's also an option to assign a **Default Material** to use for the Flipbook player instance (there is a Default Material supplied here that you can use or override with your own Material if you wish). 
+The **Details** panel inside the Flipbook Editor is where you determine the animation playrate through **Frames Per Second**, assign **Key Frames** and their order as well as the Sprites to use at each key frame and their duration with the **Frame Run** setting. There's also an option to assign a **Default Material** to use for the Flipbook player instance (there is a Default Material supplied here that you can use or override with your own Material if you wish). 
 
 ![](DetailsPanel.png)
 
@@ -131,7 +130,7 @@ If you are working with a blank Flipbook, you can add sprites to the Flipbook in
 
 You can **Drag-drop** a Sprite (or Flipbook) asset onto the Timeline from the **Content Browser**. 
 
-![](Adding1.png)
+![](Timeline6.png)
 
 Which will add the Sprite(s) to the Timeline as well as update the **Key Frames** section inside the **Details** panel. 
 
