@@ -292,8 +292,8 @@ public:
 		// Used as a non-indexed triangle list, so 3 vertices per triangle
 		const uint32 Size = 3 * NumSections * sizeof(FScreenVertex);
 		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
-		void* Buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Size, RLM_WriteOnly);
+		void* Buffer = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Static, CreateInfo, Buffer);
 		FScreenVertex* DestVertex = (FScreenVertex*)Buffer;
 
 		const float RadiansPerRingSegment = PI / (float)NumSections;

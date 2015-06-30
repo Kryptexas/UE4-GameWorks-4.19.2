@@ -181,10 +181,10 @@ public:
 		if (Indices.Num() > 0)
 		{
 			FRHIResourceCreateInfo CreateInfo;
-			IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo);
+			void* Buffer = nullptr;
+			IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo, Buffer);
 
-			// Write the indices to the index buffer.
-			void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
+			// Write the indices to the index buffer.			
 			FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
 			RHIUnlockIndexBuffer(IndexBufferRHI);
 		}
@@ -202,10 +202,10 @@ public:
 		if (Vertices.Num() > 0)
 		{
 			FRHIResourceCreateInfo CreateInfo;
-			VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
+			void* VertexBufferData = nullptr;
+			VertexBufferRHI = RHICreateAndLockVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo, VertexBufferData);
 
-			// Copy the vertex data into the vertex buffer.
-			void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+			// Copy the vertex data into the vertex buffer.			
 			FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
 			RHIUnlockVertexBuffer(VertexBufferRHI);
 		}

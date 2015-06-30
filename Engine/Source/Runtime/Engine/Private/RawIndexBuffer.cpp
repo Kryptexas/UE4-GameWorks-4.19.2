@@ -40,10 +40,10 @@ void FRawIndexBuffer::InitRHI()
 	{
 		// Create the index buffer.
 		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),Size,BUF_Static,CreateInfo);
+		void* Buffer = nullptr;
+		IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(uint16),Size,BUF_Static,CreateInfo, Buffer);
 
-		// Initialize the buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Size, RLM_WriteOnly);
+		// Initialize the buffer.		
 		FMemory::Memcpy(Buffer,Indices.GetData(),Size);
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
@@ -103,10 +103,10 @@ void FRawIndexBuffer16or32::InitRHI()
 	{
 		// Create the index buffer.
 		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer(IndexStride,Size,BUF_Static,CreateInfo);
+		void* Buffer = nullptr;
+		IndexBufferRHI = RHICreateAndLockIndexBuffer(IndexStride,Size,BUF_Static,CreateInfo, Buffer);
 		
-		// Initialize the buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Size, RLM_WriteOnly);
+		// Initialize the buffer.		
 		if (b32Bit)
 		{
 			FMemory::Memcpy(Buffer, Indices.GetData(), Size);

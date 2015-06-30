@@ -206,8 +206,9 @@ void FLandscapeVertexBufferMobile::InitRHI()
 {
 	// create a static vertex buffer
 	FRHIResourceCreateInfo CreateInfo;
-	VertexBufferRHI = RHICreateVertexBuffer(DataSize, BUF_Static, CreateInfo);
-	void* VertexData = RHILockVertexBuffer(VertexBufferRHI, 0, DataSize, RLM_WriteOnly);
+	void* VertexData = nullptr;
+	VertexBufferRHI = RHICreateAndLockVertexBuffer(DataSize, BUF_Static, CreateInfo, VertexData);
+	
 	// Copy stored platform data
 	FMemory::Memcpy(VertexData, (uint8*)Data, DataSize);
 	RHIUnlockVertexBuffer(VertexBufferRHI);

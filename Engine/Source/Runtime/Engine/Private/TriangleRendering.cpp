@@ -56,9 +56,9 @@ public:
 		uint32 Size = 3 * sizeof(FMaterialTriangleVertex);
 		// create vertex buffer
 		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
-		// lock it
-		void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
+		void* Buffer = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size,BUF_Static,CreateInfo, Buffer);
+
 		// first vertex element
 		FMaterialTriangleVertex* DestVertex = (FMaterialTriangleVertex*)Buffer;
 		// fill out the verts

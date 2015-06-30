@@ -62,10 +62,11 @@ void FMorphVertexBuffer::InitDynamicRHI()
 	// Create the buffer rendering resource
 	uint32 Size = LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
 	FRHIResourceCreateInfo CreateInfo;
-	VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Dynamic,CreateInfo);
+	void* BufferData = nullptr;
+	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Dynamic, CreateInfo, BufferData);
 
 	// Lock the buffer.
-	FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*) RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
+	FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)BufferData;
 
 	// zero all deltas (NOTE: DeltaTangentZ is FPackedNormal, so we can't just FMemory::Memzero)
 	for (uint32 VertIndex=0; VertIndex < LodModel.NumVertices; ++VertIndex)

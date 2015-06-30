@@ -801,8 +801,8 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList)
 			FRHIResourceCreateInfo Info;
 			uint32 Stride = sizeof(uint16);
 			uint32 Size = sizeof(uint16) * 3;
-			IndexBufferUInt16 = RHICreateIndexBuffer(Stride, Size, BUF_Static, Info);
-			void* Data = RHILockIndexBuffer(IndexBufferUInt16, 0, Size, RLM_WriteOnly);
+			void* Data = nullptr;
+			IndexBufferUInt16 = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, Info, Data);			
 			if ( Data )
 			{
 				FMemory::Memzero(Data, Size);
@@ -814,8 +814,8 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList)
 			FRHIResourceCreateInfo Info;
 			uint32 Stride = sizeof(uint32);
 			uint32 Size = sizeof(uint32) * 3;
-			IndexBufferUInt32 = RHICreateIndexBuffer(Stride, Size, BUF_Static, Info);
-			void* Data = RHILockIndexBuffer(IndexBufferUInt32, 0, Size, RLM_WriteOnly);
+			void* Data = nullptr;
+			IndexBufferUInt32 = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, Info, Data);			
 			if ( Data )
 			{
 				FMemory::Memzero(Data, Size);

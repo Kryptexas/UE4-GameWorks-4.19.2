@@ -76,10 +76,8 @@ void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 	uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
 
 	FRHIResourceCreateInfo CreateInfo;
-	VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Dynamic, CreateInfo);
-
-	// Lock the buffer.
-	void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
+	void* Buffer = nullptr;
+	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size,BUF_Dynamic, CreateInfo, Buffer);	
 
 	// Initialize the vertex data
 	// All chunks are combined into one (rigid first, soft next)

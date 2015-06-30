@@ -1413,6 +1413,21 @@ void FRHICommandList::operator delete(void *RawMemory)
 
 ///////// Pass through functions that allow RHIs to optimize certain calls.
 
+FVertexBufferRHIRef FDynamicRHI::CreateAndLockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, void*& OutDataBuffer)
+{
+	FVertexBufferRHIRef VertexBuffer = CreateVertexBuffer_RenderThread(RHICmdList, Size, InUsage, CreateInfo);
+	OutDataBuffer = LockVertexBuffer_RenderThread(RHICmdList, VertexBuffer, 0, Size, RLM_WriteOnly);
+
+	return VertexBuffer;
+}
+
+FIndexBufferRHIRef FDynamicRHI::CreateAndLockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, void*& OutDataBuffer)
+{
+	FIndexBufferRHIRef IndexBuffer = CreateIndexBuffer_RenderThread(RHICmdList, Stride, Size, InUsage, CreateInfo);
+	OutDataBuffer = LockIndexBuffer_RenderThread(RHICmdList, IndexBuffer, 0, Size, RLM_WriteOnly);
+	return IndexBuffer;
+}
+
 
 FVertexBufferRHIRef FDynamicRHI::CreateVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
