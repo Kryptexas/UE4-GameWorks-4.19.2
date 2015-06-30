@@ -1368,22 +1368,12 @@ bool UStaticMesh::HasValidRenderData() const
 
 FBoxSphereBounds UStaticMesh::GetBounds() const
 {
-	FBoxSphereBounds Bounds(ForceInit);
-	if (RenderData)
-	{
-		Bounds = RenderData->Bounds;
-	}
-	return Bounds;
+	return ExtendedBounds;
 }
 
 FBox UStaticMesh::GetBoundingBox() const
 {
-	FBox BoundingBox(FVector(0,0,0), FVector(0,0,0));
-	if (RenderData != nullptr)
-	{
-		BoundingBox = RenderData->Bounds.GetBox();
-	}
-	return BoundingBox;
+	return ExtendedBounds.GetBox();
 }
 
 float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
@@ -1472,6 +1462,11 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		GEngine->TriggerStreamingDataRebuild();
 	}
 
+	if (PropertyChangedEvent.MemberProperty && ( (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension) ) || ( PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension) ) ))
+	{
+		// Update the extended bounds
+		CalculateExtendedBounds();
+	}
 	AutoLODPixelError = FMath::Max(AutoLODPixelError, 1.0f);
 
 	if (!bAutoComputeLODScreenSize
@@ -1759,6 +1754,29 @@ void UStaticMesh::CacheDerivedData()
 		}
 	}
 }
+
+void UStaticMesh::CalculateExtendedBounds()
+{
+	FBoxSphereBounds Bounds(ForceInit);
+	if (RenderData)
+	{
+		Bounds = RenderData->Bounds;
+	}
+
+	// Convert to Min and Max
+	FVector Min = Bounds.Origin - Bounds.BoxExtent;
+	FVector Max = Bounds.Origin + Bounds.BoxExtent;
+	// Apply bound extensions
+	Min -= NegativeBoundsExtension;
+	Max += PositiveBoundsExtension;
+	// Convert back to Origin, Extent and update SphereRadius
+	Bounds.Origin = (Min + Max) / 2;
+	Bounds.BoxExtent = (Max - Min) / 2;	
+	Bounds.SphereRadius = Bounds.BoxExtent.GetAbsMax();
+
+	ExtendedBounds = Bounds;
+}
+
 #endif // #if WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
@@ -1980,6 +1998,11 @@ void UStaticMesh::PostLoad()
 	if( FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject) )
 	{
 		InitResources();
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS)
+	{
+		CalculateExtendedBounds();
 	}
 
 	// We want to always have a BodySetup, its used for per-poly collision as well

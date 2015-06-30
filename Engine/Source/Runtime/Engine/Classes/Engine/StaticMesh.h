@@ -419,6 +419,16 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	/** Data that is only available if this static mesh is an imported SpeedTree */
 	TSharedPtr<class FSpeedTreeWind> SpeedTreeWind;
 
+	/** Bound extension values in the positive direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = StaticMesh)
+	FVector PositiveBoundsExtension;
+	/** Bound extension values in the negative direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = StaticMesh)
+	FVector NegativeBoundsExtension;
+	/** Original mesh bounds extended with Positive/NegativeBoundsExtension */
+	UPROPERTY()
+	FBoxSphereBounds ExtendedBounds;
+
 protected:
 	/**
 	 * Index of an element to ignore while gathering streaming texture factors.
@@ -435,7 +445,6 @@ public:
 	/** Pre-build navigation collision */
 	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
-	
 public:
 	/**
 	 * Default constructor
@@ -502,7 +511,7 @@ public:
 	 */
 	ENGINE_API FBoxSphereBounds GetBounds() const;
 
-	/** Returns the bounding box, in local space, of the StaticMesh asset */
+	/** Returns the bounding box, in local space including bounds extension(s), of the StaticMesh asset */
 	UFUNCTION(BlueprintCallable, Category="StaticMesh")
 	ENGINE_API FBox GetBoundingBox() const;
 
@@ -633,5 +642,8 @@ private:
 	 * Caches derived renderable data.
 	 */
 	void CacheDerivedData();
+
+	/** Calculates the extended bounds */
+	void CalculateExtendedBounds();
 #endif // #if WITH_EDITOR
 };

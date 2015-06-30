@@ -5728,6 +5728,10 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 				(UNavCollision*)StaticDuplicateObject(Mesh->NavCollision, GetTransientPackage(), nullptr) :
 				nullptr;
 
+			// preserve extended bound settings
+			const FVector PositiveBoundsExtension = Mesh->PositiveBoundsExtension;
+			const FVector NegativeBoundsExtension = Mesh->NegativeBoundsExtension;
+
 			if (FFbxImporter->ReimportStaticMesh(Mesh, ImportData))
 			{
 				UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
@@ -5744,6 +5748,10 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 					Mesh->NavCollision = NavCollision;
 					NavCollision->Rename(NULL, Mesh, REN_DontCreateRedirectors | REN_DoNotDirty);
 				}
+
+				// Restore bounds extension settings
+				Mesh->PositiveBoundsExtension = PositiveBoundsExtension;
+				Mesh->NegativeBoundsExtension = NegativeBoundsExtension;
 
 				// Try to find the outer package so we can dirty it up
 				if (Mesh->GetOuter())
