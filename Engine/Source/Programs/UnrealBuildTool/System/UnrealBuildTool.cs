@@ -604,7 +604,7 @@ namespace UnrealBuildTool
                 bLogSeverity: false,
                 bLogSources: false,
                 bColorConsoleOutput: true,
-                TraceListeners: new[] { new ConsoleTraceListener() });
+                TraceListeners: new[] { new FilteredConsoleTraceListener() });
         }
 
         /// <summary>
