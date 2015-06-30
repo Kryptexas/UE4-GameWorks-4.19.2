@@ -8,12 +8,14 @@
 
 FArchive* FRuntimeAssetCacheFilesystemBackend::CreateReadArchive(FName Bucket, const TCHAR* CacheKey)
 {
-	return IFileManager::Get().CreateFileReader(CacheKey);
+	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
+	return IFileManager::Get().CreateFileReader(*Path);
 }
 
 FArchive* FRuntimeAssetCacheFilesystemBackend::CreateWriteArchive(FName Bucket, const TCHAR* CacheKey)
 {
-	return IFileManager::Get().CreateFileWriter(CacheKey);
+	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
+	return IFileManager::Get().CreateFileWriter(*Path);
 }
 
 FRuntimeAssetCacheFilesystemBackend::FRuntimeAssetCacheFilesystemBackend()
@@ -24,7 +26,8 @@ FRuntimeAssetCacheFilesystemBackend::FRuntimeAssetCacheFilesystemBackend()
 
 bool FRuntimeAssetCacheFilesystemBackend::RemoveCacheEntry(const FName Bucket, const TCHAR* CacheKey)
 {
-	return IFileManager::Get().Delete(CacheKey);
+	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
+	return IFileManager::Get().Delete(*Path);
 }
 
 bool FRuntimeAssetCacheFilesystemBackend::ClearCache()
