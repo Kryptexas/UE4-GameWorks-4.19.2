@@ -41,6 +41,7 @@ FMacCursor::FMacCursor()
 		switch( CurCursorIndex )
 		{
 			case EMouseCursor::None:
+			case EMouseCursor::Custom:
 				break;
 
 			case EMouseCursor::Default:
@@ -193,7 +194,11 @@ FMacCursor::~FMacCursor()
 			case EMouseCursor::ResizeSouthWest:
 			case EMouseCursor::CardinalCross:
 			case EMouseCursor::EyeDropper:
-				[CursorHandles[CurCursorIndex] release];
+			case EMouseCursor::Custom:
+				if (CursorHandles[CurCursorIndex] != NULL)
+				{
+					[CursorHandles[CurCursorIndex] release];
+				}
 				break;
 
 			default:
@@ -202,6 +207,17 @@ FMacCursor::~FMacCursor()
 				break;
 		}
 	}
+}
+
+void FMacCursor::SetCustomShape( NSCursor* CursorHandle )
+{
+	SCOPED_AUTORELEASE_POOL;
+	[CursorHandle retain];
+	if (CursorHandles[EMouseCursor::Custom] != NULL)
+	{
+		[CursorHandles[EMouseCursor::Custom] release];
+	}
+	CursorHandles[EMouseCursor::Custom] = CursorHandle;
 }
 
 FVector2D FMacCursor::GetPosition() const

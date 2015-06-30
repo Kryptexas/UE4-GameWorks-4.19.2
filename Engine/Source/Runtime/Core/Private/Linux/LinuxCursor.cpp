@@ -34,6 +34,7 @@ FLinuxCursor::FLinuxCursor()
 		switch( CurCursorIndex )
 		{
 		case EMouseCursor::None:
+		case EMouseCursor::Custom:
 			// The mouse cursor will not be visible when None is used
 			break;
 
@@ -149,6 +150,7 @@ FLinuxCursor::~FLinuxCursor()
 			case EMouseCursor::GrabHand:
 			case EMouseCursor::GrabHandClosed:
 			case EMouseCursor::SlashedCircle:
+			case EMouseCursor::Custom:
 				// Standard shared cursors don't need to be destroyed
 				break;
 			case EMouseCursor::EyeDropper:
@@ -161,6 +163,11 @@ FLinuxCursor::~FLinuxCursor()
 				break;
 		}
 	}
+}
+
+void FLinuxCursor::SetCustomShape( SDL_HCursor CursorHandle )
+{
+	CursorHandles[EMouseCursor::Custom] = CursorHandle;
 }
 
 FVector2D FLinuxCursor::GetPosition() const
@@ -212,7 +219,7 @@ void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
 {	
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor );
 	CurrentType = InNewCursor;
-	if(InNewCursor == EMouseCursor::None)
+	if(CursorHandles[InNewCursor] == NULL)
 	{
 		bHidden = true;
 		SDL_ShowCursor(SDL_DISABLE);

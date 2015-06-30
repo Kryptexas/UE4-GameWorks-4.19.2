@@ -465,6 +465,11 @@ public:
 	 */
 	bool IsSlateAsleep();
 
+	TSharedPtr<ICursor> GetPlatformCursor()
+	{
+		return PlatformApplication->Cursor;
+	}
+
 protected:
 
 	// Gets set when Slate goes to sleep and cleared when active.

@@ -35,6 +35,13 @@ public:
 
 public:
 
+	/**
+	 * Defines a custom cursor shape for the EMouseCursor::Custom type.
+	 * 
+	 * @param CursorHandle	A native cursor handle to show when EMouseCursor::Custom is selected.
+	 */
+	virtual void SetCustomShape( SDL_HCursor CursorHandle );
+
 	bool UpdateCursorClipping( FVector2D& CursorPosition );
 
 	bool IsHidden();

@@ -14,6 +14,15 @@
 #include <AppKit/NSEvent.h>
 #endif
 
+#if PLATFORM_WINDOWS
+#include "WindowsCursor.h"
+typedef FWindowsCursor FPlatformCursor;
+#elif PLATFORM_MAC
+#include "MacCursor.h"
+typedef FMacCursor FPlatformCursor;
+#else
+#endif
+
 FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, UpdatableTexture(nullptr)
@@ -780,10 +789,27 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
 void FWebBrowserWindow::OnCursorChange(CefCursorHandle CefCursor, CefRenderHandler::CursorType Type, const CefCursorInfo& CustomCursorInfo)
 {
 	switch (Type) {
+		// Map the basic 3 cursor types directly to Slate types on all platforms
 		case CT_NONE:
 			Cursor = EMouseCursor::None;
 			break;
+		case CT_POINTER:
+			Cursor = EMouseCursor::Default;
+			break;
 		case CT_IBEAM:
+			Cursor = EMouseCursor::TextEditBeam;
+			break;
+		#if PLATFORM_WINDOWS || PLATFORM_MAC
+		// Platform specific support for native cursor types
+		default:
+			{
+				FPlatformCursor* PlatformCursor = (FPlatformCursor*)FSlateApplication::Get().GetPlatformCursor().Get();
+				PlatformCursor->SetCustomShape(CefCursor);
+				Cursor = EMouseCursor::Custom;
+			}
+			break;
+		#else
+		// Map to closest Slate equivalent on platforms where native cursors are not available.
 		case CT_VERTICALTEXT:
 			Cursor = EMouseCursor::TextEditBeam;
 			break;
@@ -837,12 +863,11 @@ void FWebBrowserWindow::OnCursorChange(CefCursorHandle CefCursor, CefRenderHandl
 		case CT_NODROP:
 			Cursor = EMouseCursor::SlashedCircle;
 			break;
-		case CT_POINTER:
 		default:
 			Cursor = EMouseCursor::Default;
 			break;
+		#endif
 	}
-
 	// Tell Slate to update the cursor now
 	FSlateApplication::Get().QueryCursor();
 }
