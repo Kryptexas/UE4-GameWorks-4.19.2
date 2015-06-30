@@ -219,8 +219,7 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 
 	// Ask the interface to draw the section
 	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bParentEnabled );
-
-	// @todo Sequencer - Temp indicators of the area of a section which can be dragged.
+	
 	DrawSectionBorders(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer );
 
 	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle );
@@ -411,13 +410,13 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 	// draw selection box
 	if(bSelected)
 	{
-		static const FName PlainBorder("PlainBorder");
+		static const FName SelectionBorder("Sequencer.Section.SelectionBorder");
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			LayerId,
+			LayerId+1,
 			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush(PlainBorder),
+			FEditorStyle::GetBrush(SelectionBorder),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			bActive ? SelectionColor : SelectionInactiveColor
@@ -667,6 +666,8 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 
 void SSection::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
+	SCompoundWidget::OnMouseLeave( MouseEvent );
+
 	if( !HasMouseCapture() )
 	{
 		ResetHoveredState();
