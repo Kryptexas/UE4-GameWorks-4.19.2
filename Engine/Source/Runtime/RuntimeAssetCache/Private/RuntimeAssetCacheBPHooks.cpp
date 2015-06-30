@@ -6,7 +6,7 @@
 
 FVoidPtrParam URuntimeAssetCacheBPHooks::GetSynchronous(TScriptInterface<IRuntimeAssetCacheBuilder> CacheBuilder)
 {
-	return FVoidPtrParam(GetRuntimeAssetCache().GetSynchronous(static_cast<IRuntimeAssetCacheBuilder*>(CacheBuilder.GetInterface())));
+	return GetRuntimeAssetCache().GetSynchronous(static_cast<IRuntimeAssetCacheBuilder*>(CacheBuilder.GetInterface()));
 }
 
 int32 URuntimeAssetCacheBPHooks::GetAsynchronous(TScriptInterface<IRuntimeAssetCacheBuilder> CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& CompletionDelegate)
@@ -31,7 +31,7 @@ void URuntimeAssetCacheBPHooks::WaitAsynchronousCompletion(int32 Handle)
 
 FVoidPtrParam URuntimeAssetCacheBPHooks::GetAsynchronousResults(int32 Handle)
 {
-	return FVoidPtrParam(GetRuntimeAssetCache().GetAsynchronousResults(Handle));
+	return GetRuntimeAssetCache().GetAsynchronousResults(Handle);
 }
 
 bool URuntimeAssetCacheBPHooks::PollAsynchronousCompletion(int32 Handle)

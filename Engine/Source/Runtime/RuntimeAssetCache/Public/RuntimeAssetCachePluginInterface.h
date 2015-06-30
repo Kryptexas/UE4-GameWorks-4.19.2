@@ -41,22 +41,16 @@ public:
 	* Does the work of creating serialized cache entry.
 	* @return Pointer to contiguous memory block with serialized cache entry on success, nullptr otherwise.
 	*/
-	virtual void* Build() = 0;
-
-	/**
-	 * Get size in bytes of serialized cache entry.
-	 * @return Cache entry size.
-	 */
-	virtual int64 GetSerializedDataSize() = 0;
+	virtual FVoidPtrParam Build() = 0;
 
 	/**
 	* Serializes data into archive
 	* @param Ar Archive to serialize to.
 	* @param InData Data to serialize.
 	*/
-	virtual void SerializeData(FArchive& Ar, void* InData)
+	virtual void SerializeData(FArchive& Ar, FVoidPtrParam InData)
 	{
-		Ar.Serialize(InData, GetSerializedDataSize());
+		Ar.Serialize(InData.Data, InData.DataSize);
 	}
 
 	/**

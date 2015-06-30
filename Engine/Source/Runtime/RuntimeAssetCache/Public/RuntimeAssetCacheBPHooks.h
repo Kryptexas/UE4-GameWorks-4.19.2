@@ -4,22 +4,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RuntimeAssetCacheInterface.h"
 #include "RuntimeAssetCacheBPHooks.generated.h"
-USTRUCT()
-struct FVoidPtrParam
-{
-	GENERATED_BODY()
 
-	FVoidPtrParam(void* InData)
-		: Data(InData)
-	{ }
-
-	FVoidPtrParam()
-		: Data(nullptr)
-	{ }
-
-
-	void* Data;
-};
 
 /** Delegates. */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRuntimeAssetCacheAsyncComplete, int32, Handle, FVoidPtrParam, Data);

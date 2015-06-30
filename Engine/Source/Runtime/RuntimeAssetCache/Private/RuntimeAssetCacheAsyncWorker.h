@@ -34,6 +34,18 @@ public:
 		return Data;
 	}
 
+	/** Gets serialized cache data size in bytes. */
+	int64 GetDataSize()
+	{
+		return DataSize;
+	}
+
+	/** Gets serialized cache data and data size. */
+	FVoidPtrParam GetDataAndSize()
+	{
+		return FVoidPtrParam(Data, DataSize);
+	}
+
 	/**
 	 * Fires completion delegate only if it wasn't fired earlier.
 	 */
@@ -84,6 +96,9 @@ private:
 	
 	/** Data to return to caller. */
 	void* Data;
+
+	/** Size of data returned to caller */
+	int64 DataSize;
 
 	/** Reference to map of bucket names to their descriptions. */
 	TMap<FName, FRuntimeAssetCacheBucket*>* Buckets;

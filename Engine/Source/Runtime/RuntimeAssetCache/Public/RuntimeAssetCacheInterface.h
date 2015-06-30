@@ -1,10 +1,49 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "RuntimeAssetCacheInterface.generated.h"
 
 /** Forward declarations */
 class IRuntimeAssetCacheBuilder;
 class FOnRuntimeAssetCacheAsyncComplete;
+
+/**
+* Useful for passing around void* data and size
+*/
+USTRUCT()
+struct FVoidPtrParam
+{
+	GENERATED_BODY()
+
+	FVoidPtrParam(void* InData, int64 InDataSize)
+	: Data(InData)
+	, DataSize(InDataSize)
+	{ }
+
+	FVoidPtrParam()
+		: Data(nullptr)
+		, DataSize(0)
+	{ }
+
+	static FVoidPtrParam NullPtr()
+	{
+		return FVoidPtrParam();
+	}
+
+	FORCEINLINE bool operator!() const
+	{
+		return (!Data || DataSize <= 0);
+	}
+
+	FORCEINLINE operator bool() const
+	{
+		return (Data && DataSize > 0);
+	}
+
+	void* Data;
+	int64 DataSize;
+};
+
 
 /**
 * Interface for the Runtime Asset Cache. Cache is split into buckets to cache various assets separately.
@@ -23,7 +62,7 @@ public:
 	* - there's no entry in cache and CacheBuilder is nullptr or
 	* - CacheBuilder returned nullptr
 	**/
-	virtual void* GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) = 0;
+	virtual FVoidPtrParam GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) = 0;
 
 	/**
 	* Asynchronously checks the cache. If value is not found, builds entry using CacheBuilder and updates cache.
@@ -73,7 +112,7 @@ public:
 	* - there's no entry in cache and CacheBuilder is nullptr or
 	* - CacheBuilder returned nullptr
 	*/
-	virtual void* GetAsynchronousResults(int32 Handle) = 0;
+	virtual FVoidPtrParam GetAsynchronousResults(int32 Handle) = 0;
 
 	/**
 	* Checks if worker finished execution.

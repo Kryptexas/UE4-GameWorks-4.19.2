@@ -20,14 +20,14 @@ class FRuntimeAssetCache : public FRuntimeAssetCacheInterface
 {
 	/** FRuntimeAssetCacheInterface implementation */
 public:
-	virtual void* GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) override;
+	virtual FVoidPtrParam GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) override;
 	virtual int32 GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& OnCompletionDelegate) override;
 	virtual int32 GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder) override;
 	virtual int32 GetCacheSize(FName Bucket) const override;
 	virtual bool ClearCache() override;
 	virtual bool ClearCache(FName Bucket) override;
 	virtual void WaitAsynchronousCompletion(int32 Handle) override;
-	virtual void* GetAsynchronousResults(int32 Handle) override;
+	virtual FVoidPtrParam GetAsynchronousResults(int32 Handle) override;
 	virtual bool PollAsynchronousCompletion(int32 Handle) override;
 	virtual void AddToAsyncCompletionCounter(int32 Addend) override;
 	virtual void Tick() override;

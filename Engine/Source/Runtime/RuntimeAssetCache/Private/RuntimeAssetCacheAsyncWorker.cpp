@@ -41,6 +41,8 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	FName BucketName = FName(Bucket);
 	FString CacheKey = BuildCacheKey(CacheBuilder);
 	FName CacheKeyName = FName(*CacheKey);
+	DataSize = 0;
+	bEntryRetrieved = false;
 	if (!Buckets->Contains(BucketName))
 	{
 		UE_LOG(RuntimeAssetCache, Warning, TEXT("Caching asset %s to unknown bucket %s. Asset won't be cached."), *CacheBuilder->GetAssetUniqueName(), Bucket);
@@ -48,7 +50,6 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 		return;
 	}
 	FRuntimeAssetCacheBucket* CurrentBucket = (*Buckets)[BucketName];
-	int64 CachedDataSize = -1;
 	INC_DWORD_STAT(STAT_RAC_NumGets);
 
 	FCacheEntryMetadata* Metadata = nullptr;
@@ -69,7 +70,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 			FPlatformProcess::SleepNoStats(0.0f);
 		}
 
-		Metadata = FRuntimeAssetCacheBackend::Get().GetCachedData(BucketName, *CacheKey, Data, CachedDataSize);
+		Metadata = FRuntimeAssetCacheBackend::Get().GetCachedData(BucketName, *CacheKey, Data, DataSize);
 	}
 
 	/* Entry found. */
@@ -88,10 +89,8 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 
 	if (Metadata)
 	{
-		check(CacheBuilder->GetSerializedDataSize());
 		INC_DWORD_STAT(STAT_RAC_NumCacheHits);
 		FRuntimeAssetCacheBucketScopeLock Guard(*CurrentBucket);
-		Metadata->SetCachedAssetSize(CacheBuilder->GetSerializedDataSize());
 		Metadata->SetLastAccessTime(FDateTime::Now());
 		bEntryRetrieved = true;
 		return;
@@ -102,6 +101,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 		// Failed, cleanup data and return false.
 		INC_DWORD_STAT(STAT_RAC_NumFails);
 		Data = nullptr;
+		DataSize = 0;
 		bEntryRetrieved = false;
 		CurrentBucket->RemoveMetadataEntry(CacheKey);
 		return;
@@ -110,24 +110,28 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	{
 		INC_DWORD_STAT(STAT_RAC_NumBuilds);
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("RAC async build time"), STAT_RAC_AsyncBuildTime, STATGROUP_RAC)
-		Data = CacheBuilder->Build();
+		FVoidPtrParam Results = CacheBuilder->Build();
+		Data = Results.Data;
+		DataSize = Results.DataSize;
 	}
 
 	if (!Data)
 	{
 		// Failed, cleanup data and return false.
 		INC_DWORD_STAT(STAT_RAC_NumFails);
+		DataSize = 0;
+		bEntryRetrieved = false;
 		CurrentBucket->RemoveMetadataEntry(CacheKey, true);
 		return;
 	}
 
-	checkf(CacheBuilder->GetSerializedDataSize(), TEXT("Size of asset to cache cannot be null. Asset cache key: %s"), *CacheKey);
-	checkf(CacheBuilder->GetSerializedDataSize() < CurrentBucket->GetSize(), TEXT("Cached asset is bigger than cache size. Increase cache size (%d) or reduce asset size(%d). Asset cache key: %s"), CurrentBucket->GetSize(), CacheBuilder->GetSerializedDataSize(), *CacheKey);
+	checkf(DataSize, TEXT("Size of asset to cache cannot be null. Asset cache key: %s"), *CacheKey);
+	checkf(DataSize < CurrentBucket->GetSize(), TEXT("Cached asset is bigger than cache size. Increase cache size (%d) or reduce asset size(%d). Asset cache key: %s"), CurrentBucket->GetSize(), DataSize, *CacheKey);
 
 	FRuntimeAssetCacheBucketScopeLock Lock(*CurrentBucket);
 
 	// Do we need to make some space in cache?
-	int32 SizeOfSpaceToFree = CurrentBucket->GetCurrentSize() + CacheBuilder->GetSerializedDataSize() - CurrentBucket->GetSize();
+	int32 SizeOfSpaceToFree = CurrentBucket->GetCurrentSize() + DataSize - CurrentBucket->GetSize();
 	if (SizeOfSpaceToFree > 0)
 	{
 		// Remove oldest entries from cache until we can fit upcoming entry.
@@ -143,18 +147,18 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 			Metadata->SetLastAccessTime(Now);
 			if (Metadata->GetCachedAssetSize() == 0)
 			{
-				CurrentBucket->AddToCurrentSize(CacheBuilder->GetSerializedDataSize());
+				CurrentBucket->AddToCurrentSize(DataSize);
 			}
-			Metadata->SetCachedAssetSize(CacheBuilder->GetSerializedDataSize());
+			Metadata->SetCachedAssetSize(DataSize);
 			Metadata->SetCachedAssetVersion(CacheBuilder->GetAssetVersion());
 			CurrentBucket->AddMetadataEntry(CacheKey, Metadata, false);
 		}
 		else
 		{
-			Metadata = new FCacheEntryMetadata(Now, CacheBuilder->GetSerializedDataSize(), CacheBuilder->GetAssetVersion(), CacheKeyName);
+			Metadata = new FCacheEntryMetadata(Now, DataSize, CacheBuilder->GetAssetVersion(), CacheKeyName);
 			CurrentBucket->AddMetadataEntry(CacheKey, Metadata, true);
 		}
-		FRuntimeAssetCacheBackend::Get().PutCachedData(BucketName, *CacheKey, Data, CacheBuilder->GetSerializedDataSize(), Metadata);
+		FRuntimeAssetCacheBackend::Get().PutCachedData(BucketName, *CacheKey, Data, DataSize, Metadata);
 
 		// Mark that building is finished AFTER putting data into
 		// cache to avoid duplicate builds of the same entry.
@@ -175,7 +179,7 @@ void FRuntimeAssetCacheAsyncWorker::FireCompletionDelegate()
 	if (!FiredCompletionDelegate())
 	{
 		bFiredCompletionDelegate = true;
-		CompletionCallback.ExecuteIfBound(Handle, FVoidPtrParam(Data));
+		CompletionCallback.ExecuteIfBound(Handle, FVoidPtrParam(Data, DataSize));
 	}
 }
 
