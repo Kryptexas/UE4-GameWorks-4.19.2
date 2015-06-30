@@ -562,8 +562,9 @@ public:
 	 * @param			Graph			The graph that you're looking to call the function from (some functions hide different pins depending on the graph they're in)
 	 * @param			Function		The function to consider
 	 * @param [out]		HiddenPins		Set of pins that should be hidden
+	 * @param [out]		OutInternalPins	Subset of hidden pins that are marked for internal use only rather than marked as hidden (optional)
 	 */
-	static void GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins);
+	static void GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins, TSet<FString>* OutInternalPins = nullptr);
 
 	/** Makes sure that calls to parent functions are valid, and removes them if not */
 	static void ConformCallsToParentFunctions(UBlueprint* Blueprint);

@@ -3815,7 +3815,7 @@ UEdGraph* FBlueprintEditorUtils::GetDelegateSignatureGraphByName(UBlueprint* Blu
 }
 
 // Gets a list of pins that should hidden for a given function
-void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins)
+void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins, TSet<FString>* OutInternalPins)
 {
 	check(Function != NULL);
 	TMap<FName, FString>* MetaData = UMetaData::GetMapForObject(Function);	
@@ -3835,6 +3835,15 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFun
 			else if (Key == NAME_HidePin)
 			{
 				HiddenPins.Add(It.Value());
+			}
+			else if (Key == FBlueprintMetadata::MD_InternalUseParam)
+			{
+				HiddenPins.Add(It.Value());
+
+				if (OutInternalPins != nullptr)
+				{
+					OutInternalPins->Add(It.Value());
+				}
 			}
 			else if(Key == FBlueprintMetadata::MD_ExpandEnumAsExecs)
 			{

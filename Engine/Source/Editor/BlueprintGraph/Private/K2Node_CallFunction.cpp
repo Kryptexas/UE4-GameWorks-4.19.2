@@ -852,7 +852,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 
 	// Build a list of the pins that should be hidden for this function (ones that are automagically filled in by the K2 compiler)
 	TSet<FString> PinsToHide;
-	FBlueprintEditorUtils::GetHiddenPinsForFunction(Graph, Function, PinsToHide);
+	TSet<FString> InternalPins;
+	FBlueprintEditorUtils::GetHiddenPinsForFunction(Graph, Function, PinsToHide, &InternalPins);
 
 	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
@@ -892,6 +893,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 				if (!bShowWorldContextPin || !bIsSelfPin)
 				{
 					Pin->bHidden = true;
+					Pin->bNotConnectable = InternalPins.Contains(Pin->PinName);
 					K2Schema->SetPinDefaultValueBasedOnType(Pin);
 				}
 			}
@@ -984,6 +986,12 @@ void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 	if (Pin)
 	{
 		FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this, Pin);
+
+		// Refresh the node to hide internal-only pins once the [invalid] connection has been broken
+		if (Pin->bHidden && Pin->bNotConnectable && Pin->LinkedTo.Num() == 0)
+		{
+			GetGraph()->NotifyGraphChanged();
+		}
 	}
 
 	if (bIsBeadFunction)
@@ -2336,6 +2344,21 @@ void UK2Node_CallFunction::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPai
 	{
 		OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_NativeName, FText::FromString(TargetFunction->GetName())));
 	}
+}
+
+bool UK2Node_CallFunction::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	bool bIsDisallowed = Super::IsConnectionDisallowed(MyPin, OtherPin, OutReason);
+	if (!bIsDisallowed && MyPin != nullptr)
+	{
+		if (MyPin->bNotConnectable)
+		{
+			bIsDisallowed = true;
+			OutReason = LOCTEXT("PinConnectionDisallowed", "This parameter is for internal use only.").ToString();
+		}
+	}
+
+	return bIsDisallowed;
 }
 
 #undef LOCTEXT_NAMESPACE
