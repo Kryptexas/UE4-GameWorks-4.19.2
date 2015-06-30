@@ -8,14 +8,12 @@
 
 FArchive* FRuntimeAssetCacheFilesystemBackend::CreateReadArchive(FName Bucket, const TCHAR* CacheKey)
 {
-	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
-	return IFileManager::Get().CreateFileReader(*Path);
+	return IFileManager::Get().CreateFileReader(CacheKey);
 }
 
 FArchive* FRuntimeAssetCacheFilesystemBackend::CreateWriteArchive(FName Bucket, const TCHAR* CacheKey)
 {
-	FString Path = FPaths::Combine(*PathToRAC, *Bucket.ToString(), CacheKey);
-	return IFileManager::Get().CreateFileWriter(*Path);
+	return IFileManager::Get().CreateFileWriter(CacheKey);
 }
 
 FRuntimeAssetCacheFilesystemBackend::FRuntimeAssetCacheFilesystemBackend()
