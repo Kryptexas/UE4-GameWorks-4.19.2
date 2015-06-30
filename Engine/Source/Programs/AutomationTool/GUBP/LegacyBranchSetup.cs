@@ -241,14 +241,14 @@ partial class GUBP
         return Frequency;
     }    
 
-	void AddNodesForBranch(bool bNoAutomatedTesting)
+	void AddNodesForBranch(int TimeIndex, bool bNoAutomatedTesting)
 	{
         AddNode(new VersionFilesNode());
 
 
         foreach (var HostPlatform in HostPlatforms)
         {
-			AddNode(new ToolsForCompileNode(HostPlatform));
+			AddNode(new ToolsForCompileNode(HostPlatform, TimeIndex));
 			
 			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
 			{

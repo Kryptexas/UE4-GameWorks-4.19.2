@@ -420,13 +420,17 @@ partial class GUBP
 
     public class ToolsForCompileNode : CompileNode
     {
-        public ToolsForCompileNode(UnrealTargetPlatform InHostPlatform)
+		int TimeIndex;
+
+        public ToolsForCompileNode(UnrealTargetPlatform InHostPlatform, int InTimeIndex)
             : base(InHostPlatform, false)
         {
-            if (InHostPlatform != UnrealTargetPlatform.Win64)
+			TimeIndex = InTimeIndex;
+
+			if (InHostPlatform != UnrealTargetPlatform.Win64)
             {
-            AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(InHostPlatform);
-        }
+				AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
         {
@@ -458,7 +462,7 @@ partial class GUBP
         }
         public override int AgentMemoryRequirement(GUBP bp)
         {
-            if (bp.ParseParam("Launcher") || bp.TimeIndex != 0  && HostPlatform != UnrealTargetPlatform.Mac)
+            if (bp.ParseParam("Launcher") || TimeIndex != 0  && HostPlatform != UnrealTargetPlatform.Mac)
             {
                 return base.AgentMemoryRequirement(bp);
             }
