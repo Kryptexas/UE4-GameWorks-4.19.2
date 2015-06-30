@@ -35,7 +35,7 @@ There are a few ways to add content to your UE4 project; however, we'll focus on
 
 1.	Click **Open** to begin importing the FBX mesh files to your project (pictured above).
 
-1.	Entering the Editor, the **FBX Import Options** dialog box appears. Clicking **Import** or **Import All** will add your mesh to the Project.
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. Clicking **Import** or **Import All** will add your meshes to the Project.
 
 	![](FBXImportOptionsDialogBox.png)
 

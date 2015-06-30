@@ -35,7 +35,7 @@ For the purposes of this guide, we're using the following project **settings** (
 
 ## Locating the Content Browser's Import Button
 
-1.	The **Import** button is located inside Unreal Editor's **Content Browser** (click on the image below).
+1.	The **Import** button is located inside Unreal Editor's **Content Browser** (click the image below).
 
 	[REGION:lightbox]
 		[![](FindingImportButton.png)(w:900)](FindingImportButton.png)
@@ -53,7 +53,7 @@ For the purposes of this guide, we're using the following project **settings** (
 
 1.	**Click Open** to begin importing the content files to your project (pictured above).
 
-1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** will add your mesh to the Project.
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** will add your meshes to the Project.
 
 	![](FBX_ImportOptionsDialogBox.png)
 
@@ -73,9 +73,9 @@ For the purposes of this guide, we're using the following project **settings** (
 
 ## Verifying Imported Assets
 
-It's always good practice to verify that your assets were imported properly into your UE4 project.
+It's good practice to verify that assets were imported properly into the UE4 project.
 
-1.	From inside the editor, **right-click** the **'Content'** folder to bring up the dialog box (pictured below).
+1.	From inside the editor, **right-click** the **'Content'** folder to open the dialog box (pictured below).
 
 	![](FolderDialogBox_UI.png)
 
