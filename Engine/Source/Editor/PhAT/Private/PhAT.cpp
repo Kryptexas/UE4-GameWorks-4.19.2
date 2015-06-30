@@ -949,7 +949,7 @@ void FPhAT::BindCommands()
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation));
 
 	ToolkitCommands->MapAction(
-		Commands.RestetBoneCollision,
+		Commands.ResetBoneCollision,
 		FExecuteAction::CreateSP(this, &FPhAT::OnResetBoneCollision),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsSelectedEditBodyMode));
 
@@ -1652,7 +1652,7 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetBody(bool bHierarchy /*= false*/)
 		MenuBuilder.AddMenuEntry( Commands.AddBox );
 		MenuBuilder.AddMenuEntry( Commands.AddSphere );
 		MenuBuilder.AddMenuEntry( Commands.AddSphyl );
-		MenuBuilder.AddMenuEntry( Commands.RestetBoneCollision );
+		MenuBuilder.AddMenuEntry( Commands.ResetBoneCollision );
 		MenuBuilder.EndSection();
 
 		MenuBuilder.BeginSection( "BodyActions", LOCTEXT( "BodyHeader", "Body" ) );
@@ -2200,6 +2200,7 @@ void FPhAT::OnResetBoneCollision()
 
 	SharedData->RefreshPhysicsAssetChange(SharedData->PhysicsAsset);	
 	RefreshPreviewViewport();
+	RefreshHierachyTree();
 }
 
 void FPhAT::OnApplyPhysicalMaterial()
