@@ -1584,8 +1584,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					if(!ViewFamily.bWorldIsPaused)
 					{
 						ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
-						ViewState->TemporalAAHistoryRT = ViewState->PendingTemporalAAHistoryRT;
-						ViewState->PendingTemporalAAHistoryRT.SafeRelease();
+						if( ViewState->PendingTemporalAAHistoryRT.GetRefCount() )
+						{
+							ViewState->TemporalAAHistoryRT = ViewState->PendingTemporalAAHistoryRT;
+							ViewState->PendingTemporalAAHistoryRT.SafeRelease();
+						}
 
 						// pending is needed as we are in init view and still need to render.
 						ViewState->PendingPrevViewMatrices = View.ViewMatrices;

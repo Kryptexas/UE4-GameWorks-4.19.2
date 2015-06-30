@@ -703,15 +703,15 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	}
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-	
-	if( !CVarTemporalAAPauseCorrect.GetValueOnRenderThread() )
+
+	if( CVarTemporalAAPauseCorrect.GetValueOnRenderThread() )
 	{
-		// Release to potentially reuse memory.
-		// Otherwise keep around so that pause looks correct.
-		ViewState->TemporalAAHistoryRT.SafeRelease();
+		ViewState->PendingTemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
 	}
-	ViewState->PendingTemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
-	check( ViewState->PendingTemporalAAHistoryRT );
+	else
+	{
+		ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
+	}
 
 	// TODO draw separate translucency after jitter has been removed
 
@@ -734,7 +734,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOut
 	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
-	Ret.Format = PF_FloatRGBA;
+	//Ret.Format = PF_FloatRGBA;
 	Ret.DebugName = TEXT("TemporalAA");
 
 	return Ret;
