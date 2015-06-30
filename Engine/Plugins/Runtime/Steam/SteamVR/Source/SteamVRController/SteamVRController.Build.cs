@@ -17,11 +17,20 @@ public class SteamVRController : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputDevice",
-			"SteamVR",
 			"HeadMountedDisplay"
 		});
 
-        AddThirdPartyPrivateStaticDependencies(Target,
+		DynamicallyLoadedModuleNames.AddRange(new string[]
+		{
+			"SteamVR",
+		});
+
+		PrivateIncludePathModuleNames.AddRange(new string[]
+		{
+			"SteamVR",
+		});
+
+		AddThirdPartyPrivateStaticDependencies(Target,
             "OpenVR"
         );
     }

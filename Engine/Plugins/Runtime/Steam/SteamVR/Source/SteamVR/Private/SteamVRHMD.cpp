@@ -39,7 +39,7 @@ public:
 		VRSystem = InVRSystem;
 	}
 
-	virtual void SetControllerToDeviceMap(int32* InControllerToDeviceMap) override
+	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2]) override
 	{
 		if (!GEngine->HMDDevice.IsValid() || (GEngine->HMDDevice->GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR))
 		{
@@ -49,7 +49,7 @@ public:
 
 		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
 
-		SteamVRHMD->SetControllerToDeviceMap(InControllerToDeviceMap);
+		SteamVRHMD->SetUnrealControllerIdAndHandToDeviceIdMap(InUnrealControllerIdAndHandToDeviceIdMap);
 	}
 
 private:
@@ -161,7 +161,7 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 		return;
 	}
 
-	check(DeviceId < vr::k_unMaxTrackedDeviceCount);
+	check(DeviceId >= 0 && DeviceId < vr::k_unMaxTrackedDeviceCount);
 
 	if (bForceRefresh)
 	{
@@ -269,7 +269,7 @@ TArray<FVector> FSteamVRHMD::GetHardBounds() const
 	return Bounds;
 }
 
-void FSteamVRHMD::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace::Type> NewSpace)
+void FSteamVRHMD::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace)
 {
 	if(VRCompositor)
 	{
@@ -290,7 +290,7 @@ void FSteamVRHMD::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace::Type> NewS
 	}
 }
 
-ESteamVRTrackingSpace::Type FSteamVRHMD::GetTrackingSpace() const
+ESteamVRTrackingSpace FSteamVRHMD::GetTrackingSpace() const
 {
 	if(VRCompositor)
 	{
@@ -310,11 +310,15 @@ ESteamVRTrackingSpace::Type FSteamVRHMD::GetTrackingSpace() const
 	return ESteamVRTrackingSpace::Standing;
 }
 
-void FSteamVRHMD::SetControllerToDeviceMap(int32* InControllerToDeviceMap)
+void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ] )
 {
-	check(sizeof(ControllerToDeviceMap) == (MAX_STEAMVR_CONTROLLERS*sizeof(int32)));
-
-	FMemory::Memcpy(ControllerToDeviceMap, InControllerToDeviceMap, sizeof(ControllerToDeviceMap));
+	for( int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex )
+	{
+		for( int32 HandIndex = 0; HandIndex < 2; ++HandIndex )
+		{
+			UnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ] = InUnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ];
+		}
+	}
 }
 
 void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, FQuat& OutOrientation, FVector& OutPosition) const
@@ -343,7 +347,7 @@ void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FV
 	CurrentPosition = CurHmdPosition;
 }
 
-ESteamVRTrackedDeviceType::Type FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) const
+ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) const
 {
 	vr::TrackedDeviceClass DeviceClass = VRSystem->GetTrackedDeviceClass(DeviceId);
 
@@ -361,7 +365,7 @@ ESteamVRTrackedDeviceType::Type FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceI
 }
 
 
-void FSteamVRHMD::GetTrackedDeviceIds(ESteamVRTrackedDeviceType::Type DeviceType, TArray<int32>& TrackedIds)
+void FSteamVRHMD::GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds)
 {
 	TrackedIds.Empty();
 
@@ -383,7 +387,7 @@ bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat&
 
 	bool bHasValidPose = false;
 
-	if (DeviceId < vr::k_unMaxTrackedDeviceCount)
+	if (DeviceId >= 0 && DeviceId < vr::k_unMaxTrackedDeviceCount)
 	{
 		CurrentOrientation = TrackingFrame.DeviceOrientation[DeviceId];
 		CurrentPosition = TrackingFrame.DevicePosition[DeviceId];
@@ -394,21 +398,20 @@ bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat&
 	return bHasValidPose;
 }
 
-bool FSteamVRHMD::GetTrackedDeviceIdFromControllerIndex(int32 ControllerIndex, int32& OutDeviceId)
+
+bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, ESteamVRControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
 {
-	check(IsInGameThread());
+	check( IsInGameThread() );
 
-	OutDeviceId = -1;
-
-	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLERS))
+	if( ( ControllerIndex < 0 ) || ( ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS ) || Hand < ESteamVRControllerHand::Left || Hand > ESteamVRControllerHand::Right )
 	{
 		return false;
 	}
 
-	OutDeviceId = ControllerToDeviceMap[ControllerIndex];
-	
-	return (OutDeviceId != -1);
+	const int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ ControllerIndex ][ (int32)Hand ];
+	return GetTrackedObjectOrientationAndPosition(DeviceId, OutOrientation, OutPosition);
 }
+
 
 TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> FSteamVRHMD::GetViewExtension()
 {
@@ -949,9 +952,12 @@ void FSteamVRHMD::Startup()
 		}
 
 		// Initialize our controller to device index
-		for (int32 i = 0; i < MAX_STEAMVR_CONTROLLERS; ++i)
+		for (int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex )
 		{
-			ControllerToDeviceMap[i] = -1;
+			for( int32 HandIndex = 0; HandIndex < 2; ++HandIndex )
+			{
+				UnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ] = INDEX_NONE;
+			}
 		}
 
 #if PLATFORM_WINDOWS
