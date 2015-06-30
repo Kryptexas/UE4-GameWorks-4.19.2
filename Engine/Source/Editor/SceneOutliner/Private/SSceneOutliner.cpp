@@ -1580,8 +1580,13 @@ namespace SceneOutliner
 				auto SelectedActors = TSet<AActor*>(Selection.GetActorPtrs());
 
 				bool bChanged = false;
+				bool bAnyInPIE = false;
 				for (auto* Actor : SelectedActors)
 				{
+					if (!bAnyInPIE && Actor && (Actor->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+					{
+						bAnyInPIE = true;
+					}
 					if (!GEditor->GetSelectedActors()->IsSelected(Actor))
 					{
 						bChanged = true;
@@ -1592,6 +1597,10 @@ namespace SceneOutliner
 				for (FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt && !bChanged; ++SelectionIt)
 				{
 					AActor* Actor = CastChecked< AActor >( *SelectionIt );
+					if (!bAnyInPIE && (Actor->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+					{
+						bAnyInPIE = true;
+					}
 					if (!SelectedActors.Contains(Actor))
 					{
 						// Actor has been deselected
@@ -1616,7 +1625,7 @@ namespace SceneOutliner
 				// If there's a discrepancy, update the selected actors to reflect this list.
 				if ( bChanged )
 				{
-					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors") );
+					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"), !bAnyInPIE );
 					GEditor->GetSelectedActors()->Modify();
 
 					// Clear the selection.
