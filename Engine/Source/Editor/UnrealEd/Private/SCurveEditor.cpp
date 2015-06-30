@@ -2516,8 +2516,11 @@ FVector2D SCurveEditor::SnapLocation(FVector2D InLocation)
 {
 	if (bSnappingEnabled.Get())
 	{
-		InLocation.X = InputSnap != 0 ? FMath::RoundToInt(InLocation.X / InputSnap.Get()) * InputSnap.Get() : InLocation.X;
-		InLocation.Y = OutputSnap != 0 ? FMath::RoundToInt(InLocation.Y / OutputSnap.Get()) * OutputSnap.Get() : InLocation.Y;
+		const float InputSnapNow = InputSnap.Get();
+		const float OutputSnapNow = OutputSnap.Get();
+
+		InLocation.X = InputSnapNow != 0 ? FMath::RoundToInt(InLocation.X / InputSnapNow) * InputSnapNow : InLocation.X;
+		InLocation.Y = OutputSnapNow != 0 ? FMath::RoundToInt(InLocation.Y / OutputSnapNow) * OutputSnapNow : InLocation.Y;
 	}
 	return InLocation;
 }
