@@ -391,6 +391,11 @@ public:
 	UMovieSceneTrack* GetShotTrack();
 
 	/**
+	 * Removes the shot track if it exists
+	 */
+	void RemoveShotTrack();
+
+	/**
 	 * Removes a master track.
 	 *
 	 * @param Track The track to remove.

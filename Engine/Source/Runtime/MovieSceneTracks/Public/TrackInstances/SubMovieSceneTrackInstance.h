@@ -25,6 +25,7 @@ public:
 	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
 	virtual void SaveState (const TArray<UObject*>& RuntimeObjects) override;
 	virtual void RestoreState (const TArray<UObject*>& RuntimeObjects) override;
+	virtual void ClearInstance( IMovieScenePlayer& Player ) override;
 protected:
 
 	/** Track that is being instanced */

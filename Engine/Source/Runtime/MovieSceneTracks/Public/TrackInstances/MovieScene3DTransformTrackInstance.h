@@ -23,6 +23,7 @@ public:
 	virtual void RestoreState (const TArray<UObject*>& RuntimeObjects) override;
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
 	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override {}
+	virtual void ClearInstance( IMovieScenePlayer& Player ) override {}
 
 private:
 

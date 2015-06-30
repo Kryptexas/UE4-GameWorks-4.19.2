@@ -58,7 +58,6 @@ void FShotThumbnailPool::DrawThumbnails()
 	if (ThumbnailsNeedingDraw.Num() > 0)
 	{
 		// save the global time
-		Sequencer.Pin()->SetPerspectiveViewportPossessionEnabled(false);
 		float SavedTime = Sequencer.Pin()->GetGlobalTime();
 
 		uint32 ThumbnailsDrawn = 0;
@@ -68,7 +67,13 @@ void FShotThumbnailPool::DrawThumbnails()
 			
 			if (Thumbnail->IsVisible())
 			{
+			
+				Sequencer.Pin()->SetPerspectiveViewportPossessionEnabled(false);
+			
 				Thumbnail->DrawThumbnail();
+
+			
+				Sequencer.Pin()->SetPerspectiveViewportPossessionEnabled(true);
 				++ThumbnailsDrawn;
 
 				ThumbnailsNeedingDraw.Remove(Thumbnail);
@@ -80,10 +85,13 @@ void FShotThumbnailPool::DrawThumbnails()
 				ThumbnailsNeedingDraw.Remove(Thumbnail);
 			}
 		}
+		
+		if( ThumbnailsDrawn > 0 )
+		{
+			// restore the global time
+			Sequencer.Pin()->SetGlobalTime(SavedTime);
+		}
 
-		// restore the global time
-		Sequencer.Pin()->SetGlobalTime(SavedTime);
-		Sequencer.Pin()->SetPerspectiveViewportPossessionEnabled(true);
 	}
 }
 

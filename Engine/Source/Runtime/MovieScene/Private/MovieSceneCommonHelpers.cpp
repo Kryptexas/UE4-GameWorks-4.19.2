@@ -19,7 +19,7 @@ TArray<UMovieSceneSection*> MovieSceneHelpers::GetTraversedSections( const TArra
 	for( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
 	{
 		UMovieSceneSection* Section = Sections[SectionIndex];
-		if( SliderRange.Overlaps( TRange<float>( Section->GetRange() ) ) )
+		if( Section->GetStartTime() == CurrentTime || SliderRange.Overlaps( TRange<float>( Section->GetRange() ) ) )
 		{
 			TraversedSections.Add( Section );
 		}

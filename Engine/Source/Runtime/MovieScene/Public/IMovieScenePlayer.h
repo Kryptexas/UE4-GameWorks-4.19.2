@@ -47,7 +47,7 @@ public:
 	 * @param MovieSceneSection	The section owning the MovieScene being instanced. 
 	 * @param InstanceToAdd		The instance being added
 	 */
-	virtual void AddMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) = 0;
+	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) = 0;
 
 	/**
 	 * Removes a MovieScene instance from the player. 

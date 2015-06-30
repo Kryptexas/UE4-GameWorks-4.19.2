@@ -19,12 +19,12 @@ public:
 	/**
 	 * Save state of objects that this instance will be editing.
 	 */
-	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) { }
+	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) = 0;
 
 	/**
 	 * Restore state of objects that this instance edited.
 	 */
-	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) { }
+	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) = 0;
 
 	/**
 	 * Main update function for track instances.  Called in game and in editor when we update a moviescene.
@@ -40,4 +40,11 @@ public:
 	 * Refreshes the current instance
 	 */
 	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) = 0;
+
+	/**
+	 * Removes all instance data from this track instance
+	 *
+	 * Called before an instance is removed
+	 */
+	virtual void ClearInstance( IMovieScenePlayer& Player ) = 0;
 };

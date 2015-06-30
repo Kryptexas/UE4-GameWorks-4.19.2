@@ -120,6 +120,10 @@ public:
 	}
 
 	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player);
+
+	virtual void ClearInstance( IMovieScenePlayer& Player ) override {}
+	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) override {}
+	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) override {}
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
 	class UEmitterMovieSceneTrack *Track;

@@ -211,7 +211,7 @@ EMovieScenePlayerStatus::Type URuntimeMovieScenePlayer::GetPlaybackStatus() cons
 	return bIsPlaying ? EMovieScenePlayerStatus::Playing : EMovieScenePlayerStatus::Stopped;
 }
 
-void URuntimeMovieScenePlayer::AddMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd )
+void URuntimeMovieScenePlayer::AddOrUpdateMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd )
 {
 	SpawnActorsForMovie( InstanceToAdd );
 }

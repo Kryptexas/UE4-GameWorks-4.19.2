@@ -70,16 +70,26 @@ void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 
 	TSharedRef<FMovieSceneInstance> ThisInstance = AsShared();
 
+	FMovieSceneInstanceMap ShotTrackInstanceMap;
 	// Only if root movie scene. Any sub-movie scene that has a shot track is ignored
 	if( ShotTrack && Player.GetRootMovieSceneInstance() == ThisInstance )
 	{
-		FMovieSceneInstanceMap ShotTrackInstanceMap;
+		if( ShotTrackInstance.IsValid() )
+		{
+			ShotTrackInstanceMap.Add(  ShotTrack, ShotTrackInstance );
+		}
+
 		TArray<UObject*> Objects;
 		TArray<UMovieSceneTrack*> Tracks;
 		Tracks.Add(ShotTrack);
 		RefreshInstanceMap(Tracks, Objects, ShotTrackInstanceMap, Player);
 
 		ShotTrackInstance = ShotTrackInstanceMap.FindRef( ShotTrack );
+	}
+	else if( !ShotTrack && ShotTrackInstance.IsValid() )
+	{
+		ShotTrackInstance->ClearInstance( Player );
+		ShotTrackInstance.Reset();
 	}
 
 	// Get all the master tracks and create instances for them if needed
@@ -162,6 +172,8 @@ void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& T
 	{
 		if( !FoundTracks.Contains( It.Key().Get() ) )
 		{
+			It.Value()->ClearInstance( Player );
+
 			// This track was not found in the moviescene's track list so it was removed.
 			It.RemoveCurrent();
 		}

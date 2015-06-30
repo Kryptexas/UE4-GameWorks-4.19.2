@@ -37,10 +37,10 @@ void FSubMovieSceneTrackInstance::RefreshInstance( const TArray<UObject*>& Runti
 			{
 				Instance = MakeShareable(new FMovieSceneInstance(*Section->GetMovieScene()));
 
-				Player.AddMovieSceneInstance(*Section, Instance.ToSharedRef());
-
 				SubMovieSceneInstances.Add(Section, Instance.ToSharedRef());
 			}
+
+			Player.AddOrUpdateMovieSceneInstance(*Section, Instance.ToSharedRef());
 
 			// Refresh the existing instance
 			Instance->RefreshInstance(Player);
@@ -117,5 +117,14 @@ void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeOb
 		{
 			Instance->RestoreState();
 		}
+	}
+}
+
+void FSubMovieSceneTrackInstance::ClearInstance( IMovieScenePlayer& Player )
+{
+	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneInstance> >::TIterator It =  SubMovieSceneInstances.CreateIterator();
+	for( ; It; ++It )
+	{
+		Player.RemoveMovieSceneInstance( *It.Key().Get(), It.Value().ToSharedRef() );
 	}
 }

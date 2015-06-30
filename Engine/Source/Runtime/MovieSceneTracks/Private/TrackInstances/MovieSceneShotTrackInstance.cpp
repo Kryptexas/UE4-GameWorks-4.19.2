@@ -39,6 +39,8 @@ void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& Runt
 
 void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
+	FSubMovieSceneTrackInstance::Update( Position, LastPosition, RuntimeObjects, Player );
+
 	const TArray<UMovieSceneSection*>& ShotSections = SubMovieSceneTrack->GetAllSections();
 
 	for (int32 ShotIndex = 0; ShotIndex < ShotSections.Num(); ++ShotIndex)
@@ -60,4 +62,10 @@ void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, c
 			break;
 		}
 	}
+}
+
+void FMovieSceneShotTrackInstance::ClearInstance( IMovieScenePlayer& Player )
+{
+	FSubMovieSceneTrackInstance::ClearInstance( Player );
+	Player.UpdateCameraCut( nullptr, false );
 }

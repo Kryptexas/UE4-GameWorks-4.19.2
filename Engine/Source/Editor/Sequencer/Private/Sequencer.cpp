@@ -718,9 +718,12 @@ EMovieScenePlayerStatus::Type FSequencer::GetPlaybackStatus() const
 	return PlaybackState;
 }
 
-void FSequencer::AddMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd )
+void FSequencer::AddOrUpdateMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd )
 {
-	MovieSceneSectionToInstanceMap.Add( &MovieSceneSection, InstanceToAdd );
+	if( !MovieSceneSectionToInstanceMap.Contains( &MovieSceneSection ) )
+	{
+		MovieSceneSectionToInstanceMap.Add( &MovieSceneSection, InstanceToAdd );
+	}
 
 	SpawnOrDestroyPuppetObjects( InstanceToAdd );
 }
@@ -1169,6 +1172,10 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& 
 		{
 			FocusedMovieScene->RemoveMasterTrack( Track );
 		}
+		else if( FocusedMovieScene->GetShotTrack() == Track )
+		{
+			FocusedMovieScene->RemoveShotTrack();
+		}
 		else
 		{
 			FocusedMovieScene->RemoveTrack( Track );
@@ -1180,12 +1187,6 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& 
 	
 	if( bAnythingRemoved )
 	{
-		if( bAnySpawnablesRemoved )
-		{
-			// @todo Sequencer Sub-MovieScenes needs to destroy objects for all movie scenes that had this node
-			SpawnOrDestroyPuppetObjects( MovieSceneInstance );
-		}
-
 		NotifyMovieSceneDataChanged();
 	}
 }

@@ -384,6 +384,16 @@ UMovieSceneTrack* UMovieScene::GetShotTrack()
 	return ShotTrack;
 }
 
+void UMovieScene::RemoveShotTrack()
+{
+	if( ShotTrack )
+	{
+		Modify();
+
+		ShotTrack = nullptr;
+	}
+}
+
 bool UMovieScene::RemoveMasterTrack( UMovieSceneTrack* Track ) 
 {
 	Modify();
