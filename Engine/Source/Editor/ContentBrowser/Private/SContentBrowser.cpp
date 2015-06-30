@@ -590,6 +590,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.CanShowFolders(true)
 						.CanShowRealTimeThumbnails(true)
 						.CanShowDevelopersFolder(true)
+						.CanShowCollections(true)
 						.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserAssets")))
 					]
 				]
@@ -632,21 +633,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	// We want to be able to search the feature packs in the super search so we need the module loaded 
 	IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");
 
-	const TWeakPtr<SContentBrowser> WeakThis = SharedThis(this);
-
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
-	ContentBrowserModule.GetAllAssetViewViewMenuExtenders().Add( 
-		FContentBrowserMenuExtender::CreateLambda( [=]()
-		{
-			TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
-			if( WeakThis.IsValid() )
-			{
-				Extender->AddMenuExtension(FName("Folders"), EExtensionHook::After, nullptr, FMenuExtensionDelegate::CreateSP(WeakThis.Pin().ToSharedRef(), &SContentBrowser::ExtendAssetViewMenu));
-			}
-
-			return Extender;
-		})
-	);
 	// Update the breadcrumb trail path
 	UpdatePath();
 }
@@ -679,36 +665,9 @@ void SContentBrowser::BindCommands()
 		));
 }
 
-void SContentBrowser::ExtendAssetViewMenu( FMenuBuilder& MenuBuilder )
-{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ShowCollectionOption", "Show Collections"),
-		LOCTEXT("ShowCollectionOptionToolTip", "Show the collections list in the view."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP(this, &SContentBrowser::ToggleShowCollections),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SContentBrowser::IsShowingCollections)
-		),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
-}
-
-void SContentBrowser::ToggleShowCollections()
-{
-	GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections(!GetDefault<UContentBrowserSettings>()->GetDisplayCollections());
-	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
-}
-
-bool SContentBrowser::IsShowingCollections() const
-{
-	return GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
-}
-
 EVisibility SContentBrowser::GetCollectionViewVisibility() const
 {
-	return IsShowingCollections() ? EVisibility::Visible : EVisibility::Collapsed;
+	return GetDefault<UContentBrowserSettings>()->GetDisplayCollections() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 FText SContentBrowser::GetHighlightedText() const

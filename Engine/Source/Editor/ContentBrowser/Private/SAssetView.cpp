@@ -147,6 +147,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	bCanShowDevelopersFolder = InArgs._CanShowDevelopersFolder;
 
+	bCanShowCollections = InArgs._CanShowCollections;
+
 	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
 
 	SelectionMode = InArgs._SelectionMode;
@@ -2381,6 +2383,19 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowCollectionOption", "Show Collections"),
+			LOCTEXT("ShowCollectionOptionToolTip", "Show the collections list in the view."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateSP( this, &SAssetView::ToggleShowCollections ),
+			FCanExecuteAction::CreateSP( this, &SAssetView::IsToggleShowCollectionsAllowed ),
+			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingCollections )
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -2532,6 +2547,23 @@ bool SAssetView::IsToggleShowDevelopersFolderAllowed() const
 bool SAssetView::IsShowingDevelopersFolder() const
 {
 	return GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+}
+
+void SAssetView::ToggleShowCollections()
+{
+	const bool bDisplayCollections = GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections( !bDisplayCollections );
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsToggleShowCollectionsAllowed() const
+{
+	return bCanShowCollections;
+}
+
+bool SAssetView::IsShowingCollections() const
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
 }
 
 void SAssetView::SetCurrentViewType(EAssetViewType::Type NewType)

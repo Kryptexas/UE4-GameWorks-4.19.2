@@ -26,6 +26,7 @@ public:
 		, _FilterRecursivelyWithBackendFilter(true)
 		, _CanShowRealTimeThumbnails(false)
 		, _CanShowDevelopersFolder(false)
+		, _CanShowCollections(false)
 		, _PreloadAssetsForContextMenu(true)
 		, _SelectionMode( ESelectionMode::Multi )
 		, _AllowDragging(true)
@@ -119,6 +120,9 @@ public:
 
 		/** Indicates if the 'Show Developers' option should be enabled or disabled */
 		SLATE_ARGUMENT( bool, CanShowDevelopersFolder )
+
+		/** Indicates if the 'Show Collections' option should be enabled or disabled */
+		SLATE_ARGUMENT( bool, CanShowCollections )
 
 		/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 		SLATE_ARGUMENT( bool, PreloadAssetsForContextMenu )
@@ -387,6 +391,15 @@ private:
 
 	/** @return true when we are showing the developers folder */
 	bool IsShowingDevelopersFolder() const;
+
+	/** Toggle whether collections should be shown or not */
+	void ToggleShowCollections();
+
+	/** Whether or not it's possible to toggle collections */
+	bool IsToggleShowCollectionsAllowed() const;
+
+	/** @return true when we are showing collections */
+	bool IsShowingCollections() const;
 
 	/** Sets the view type and updates lists accordingly */
 	void SetCurrentViewType(EAssetViewType::Type NewType);
@@ -766,6 +779,9 @@ private:
 
 	/** Indicates if the 'Show Developers' option should be enabled or disabled */
 	bool bCanShowDevelopersFolder;
+
+	/** Indicates if the 'Show Collections' option should be enabled or disabled */
+	bool bCanShowCollections;
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 	bool bPreloadAssetsForContextMenu;
