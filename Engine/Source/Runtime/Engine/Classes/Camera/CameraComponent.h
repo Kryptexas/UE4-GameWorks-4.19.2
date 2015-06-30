@@ -102,7 +102,7 @@ protected:
 
 public:
 
-	virtual void SetCameraMesh(UStaticMesh* Mesh) { CameraMesh = Mesh; }
+	virtual void SetCameraMesh(UStaticMesh* Mesh);
 
 #endif
 public:
