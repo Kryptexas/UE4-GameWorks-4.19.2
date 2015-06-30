@@ -6,7 +6,7 @@ SkillLevel: Beginner
 Version: 4.8
 
 [REGION:note]
-Before you get started: Download and extract Sample Assets from the following link.
+Before you get started: Download and extract sample assets from the following link.
 * [Sample Assets](SampleAssets.zip)
 [/REGION]
 
@@ -20,10 +20,9 @@ The focus of this guide is to teach developers how to use the Content Browser's 
 
 After going through this tutorial, developers will know the following:
 
-*	Where to find the Content Browser's **Import** function.
+*	Where to locate the Content Browser's **Import** function.
 *	How to use the Content Browser's **Import** function.
-
-## Importing with the Content Browser
+*	How to verify that assets were properly imported into the project folder.
 
 ![](ContentHowToPrjSetup.png)
 
@@ -33,6 +32,16 @@ For the purposes of this guide, we're using the following project **settings** (
 *	**Maximum Quality**
 *	**No Starter Content**
 [/REGION]
+
+## Locating the Content Browser's Import Button
+
+1.	The **Import** button is located inside Unreal Editor's **Content Browser** (click on the image below).
+
+	[REGION:lightbox]
+		[![](FindingImportButton.png)(w:900)](FindingImportButton.png)
+	[/REGION]
+
+## Using the Content Browser's Import Function
 
 1.	From inside the editor, **click** the **Import** button (pictured below).
 
@@ -62,5 +71,24 @@ For the purposes of this guide, we're using the following project **settings** (
 
 	![](SaveSelectedButton_UI.png)
 
-1.	Navigating to the **'QuickStartContent'** folder, verify that UE4 created the corresponding ** *.uasset files ** (pictured below).
+## Verifying Imported Assets
 
+It's always good practice to verify that your assets were imported properly into your UE4 project.
+
+1.	From inside the editor, **right-click** the **'Content'** folder to bring up the dialog box (pictured below).
+
+	![](FolderDialogBox_UI.png)
+
+1.	Under **Folder Options**, **click 'Show In Explorer'** (pictured below).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	With Explorer open, verify that UE4 created the corresponding ** *.uasset files **  for your project (pictured below).
+
+	![](ImportedAssets_Explorer.png)
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	Find the Content Browser's **Import** function.  
+&#x2713;	Use the Content Browser's **Import** function.  
+&#x2713;	Verify that assets were properly imported to the project folder.
