@@ -4441,8 +4441,6 @@ void UMaterialExpressionDynamicParameter::PostEditChangeProperty(FPropertyChange
 	}
 }
 
-#endif // WITH_EDITOR
-
 void UMaterialExpressionDynamicParameter::PostLoad()
 {
 	Super::PostLoad();
@@ -4452,6 +4450,8 @@ void UMaterialExpressionDynamicParameter::PostLoad()
 		DefaultValue = FLinearColor::Black;//Old data should default to 0.0f;
 	}
 }
+
+#endif // WITH_EDITOR
 
 void UMaterialExpressionDynamicParameter::UpdateDynamicParameterProperties()
 {
