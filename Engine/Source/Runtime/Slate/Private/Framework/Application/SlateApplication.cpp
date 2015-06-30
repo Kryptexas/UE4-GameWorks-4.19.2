@@ -4166,7 +4166,7 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 				}
 
 #if PLATFORM_MAC
-				if (WidgetsUnderCursor.TopLevelWindow.IsValid())
+				if (bNeedToActivateWindow && WidgetsUnderCursor.TopLevelWindow.IsValid())
 				{
 					// Clicking on a context menu should not activate anything
 					// @todo: This needs to be updated when we have window type in SWindow and we no longer have to guess if WidgetsUnderCursor.TopLevelWindow is a menu
