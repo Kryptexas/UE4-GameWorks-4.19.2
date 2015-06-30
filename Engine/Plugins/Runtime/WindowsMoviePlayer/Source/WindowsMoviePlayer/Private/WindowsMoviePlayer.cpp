@@ -20,22 +20,26 @@ class FWindowsMoviePlayerModule : public IModuleInterface
 		// now attempt to load the delay loaded DLLs
 		if (LoadLibraryW(TEXT("shlwapi.dll")) == NULL)
 		{
-			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load shlwapi.dll") );
+			uint32 ErrorCode = GetLastError();
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load shlwapi.dll. Error = %d"), ErrorCode);
 			bLoadSuccessful = false;
 		}
 		if (LoadLibraryW(TEXT("mf.dll")) == NULL)
 		{
-			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mf.dll"));
+			uint32 ErrorCode = GetLastError();
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mf.dll. Error = %d"), ErrorCode);
 			bLoadSuccessful = false;
 		}
 		if (LoadLibraryW(TEXT("mfplat.dll")) == NULL)
 		{
-			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mfplat.dll"));
+			uint32 ErrorCode = GetLastError();
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mfplat.dll. Error = %d"), ErrorCode);
 			bLoadSuccessful = false;
 		}
 		if (LoadLibraryW(TEXT("mfplay.dll")) == NULL)
 		{
-			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mfplay.dll"));
+			uint32 ErrorCode = GetLastError();
+			UE_LOG(LogWindowsMoviePlayer, Warning, TEXT("Could not load mfplay.dll. Error = %d"), ErrorCode);
 			bLoadSuccessful = false;
 		}
 
