@@ -5,7 +5,6 @@
 
 /** Forward declarations */
 class IRuntimeAssetCacheBuilder;
-class FOnRuntimeAssetCacheAsyncComplete;
 
 /**
 * Useful for passing around void* data and size
@@ -44,6 +43,9 @@ struct FVoidPtrParam
 	int64 DataSize;
 };
 
+
+/** Delegates. */
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRuntimeAssetCacheAsyncComplete, int32, Handle, FVoidPtrParam, Data);
 
 /**
 * Interface for the Runtime Asset Cache. Cache is split into buckets to cache various assets separately.

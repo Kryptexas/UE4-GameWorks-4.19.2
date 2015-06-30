@@ -6,9 +6,6 @@
 #include "RuntimeAssetCacheBPHooks.generated.h"
 
 
-/** Delegates. */
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRuntimeAssetCacheAsyncComplete, int32, Handle, FVoidPtrParam, Data);
-
 /** Forward declarations */
 class IRuntimeAssetCacheBuilder;
 class FOnRuntimeAssetCacheAsyncComplete;
