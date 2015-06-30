@@ -1126,6 +1126,21 @@ FTransform UKismetMathLibrary::TInterpTo(const FTransform& Current, const FTrans
 	return TLerp(Current, Target, Alpha);
 }
 
+bool UKismetMathLibrary::EqualEqual_TransformTransform(const FTransform& A, const FTransform& B)
+{
+	return NearlyEqual_TransformTransform(A, B);
+}
+
+bool UKismetMathLibrary::NearlyEqual_TransformTransform(const FTransform& A, const FTransform& B, float LocationTolerance, float RotationTolerance, float Scale3DTolerance)
+{
+	return 
+		A.GetRotation().Equals(B.GetRotation(), RotationTolerance) && 
+		A.GetTranslation().Equals(B.GetTranslation(), LocationTolerance) && 
+		A.GetScale3D().Equals(B.GetScale3D(), Scale3DTolerance);
+}
+
+
+
 FVector2D UKismetMathLibrary::Add_Vector2DVector2D(FVector2D A, FVector2D B)
 {
 	return A + B;

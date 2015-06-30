@@ -1435,6 +1435,19 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
 	static FTransform TInterpTo(const FTransform& Current, const FTransform& Target, float DeltaTime, float InterpSpeed);
 
+	/** Returns true if transform A is equal to transform B */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal Transform", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Transform")
+	static bool EqualEqual_TransformTransform(const FTransform& A, const FTransform& B);
+
+	/** 
+	 *	Returns true if transform A is nearly equal to B 
+	 *	@param LocationTolerance	How close position of transforms need to be to be considered equal
+	 *	@param RotationTolerance	How close rotations of transforms need to be to be considered equal
+	 *	@param Scale3DTolerance		How close scale of transforms need to be to be considered equal
+	 */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Nearly Equal (transform)", Keywords = "== equal"), Category = "Math|Transform")
+	static bool NearlyEqual_TransformTransform(const FTransform& A, const FTransform& B, float LocationTolerance = 1.e-4f, float RotationTolerance = 1.e-4f, float Scale3DTolerance = 1.e-4f);
+
 	//
 	// Vector2D functions
 	//
