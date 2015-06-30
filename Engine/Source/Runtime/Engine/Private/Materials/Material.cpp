@@ -2851,7 +2851,7 @@ bool UMaterial::HasDuplicateDynamicParameters(const UMaterialExpression* Express
 }
 
 
-void UMaterial::UpdateExpressionDynamicParameterNames(const UMaterialExpression* Expression)
+void UMaterial::UpdateExpressionDynamicParameters(const UMaterialExpression* Expression)
 {
 	const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
 	if (DynParam)
@@ -2859,7 +2859,7 @@ void UMaterial::UpdateExpressionDynamicParameterNames(const UMaterialExpression*
 		for (int32 ExpIndex = 0; ExpIndex < Expressions.Num(); ExpIndex++)
 		{
 			UMaterialExpressionDynamicParameter* CheckParam = Cast<UMaterialExpressionDynamicParameter>(Expressions[ExpIndex]);
-			if (CheckParam && CheckParam->CopyDynamicParameterNames(DynParam))
+			if (CheckParam && CheckParam->CopyDynamicParameterProperties(DynParam))
 			{
 #if WITH_EDITOR
 				CheckParam->GraphNode->ReconstructNode();

@@ -4375,13 +4375,15 @@ UMaterialExpressionDynamicParameter::UMaterialExpressionDynamicParameter(const F
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 0, 0, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 0, 0, 0, 1));
 
+	DefaultValue = FLinearColor::White;
+
 	bShaderInputData = true;
 }
 
 
 int32 UMaterialExpressionDynamicParameter::Compile( FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex )
 {
-	return Compiler->DynamicParameter();
+	return Compiler->DynamicParameter(DefaultValue);
 }
 
 
@@ -4441,20 +4443,30 @@ void UMaterialExpressionDynamicParameter::PostEditChangeProperty(FPropertyChange
 
 #endif // WITH_EDITOR
 
-void UMaterialExpressionDynamicParameter::UpdateDynamicParameterNames()
+void UMaterialExpressionDynamicParameter::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetLinkerUE4Version() < VER_UE4_DYNAMIC_PARAMETER_DEFAULT_VALUE)
+	{
+		DefaultValue = FLinearColor::Black;//Old data should default to 0.0f;
+	}
+}
+
+void UMaterialExpressionDynamicParameter::UpdateDynamicParameterProperties()
 {
 	check(Material);
 	for (int32 ExpIndex = 0; ExpIndex < Material->Expressions.Num(); ExpIndex++)
 	{
 		const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Material->Expressions[ExpIndex]);
-		if (CopyDynamicParameterNames(DynParam))
+		if (CopyDynamicParameterProperties(DynParam))
 		{
 			break;
 		}
 	}
 }
 
-bool UMaterialExpressionDynamicParameter::CopyDynamicParameterNames(const UMaterialExpressionDynamicParameter* FromParam)
+bool UMaterialExpressionDynamicParameter::CopyDynamicParameterProperties(const UMaterialExpressionDynamicParameter* FromParam)
 {
 	if (FromParam && (FromParam != this))
 	{
@@ -4462,6 +4474,7 @@ bool UMaterialExpressionDynamicParameter::CopyDynamicParameterNames(const UMater
 		{
 			ParamNames[NameIndex] = FromParam->ParamNames[NameIndex];
 		}
+		DefaultValue = FromParam->DefaultValue;
 		return true;
 	}
 	return false;

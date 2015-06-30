@@ -1110,12 +1110,12 @@ public:
 	ENGINE_API virtual bool HasDuplicateDynamicParameters(const UMaterialExpression* Expression);
 
 	/**
-	 * Iterate through all of the expression nodes and fix up changed names on
-	 * matching dynamic parameters when a name change occurs.
+	 * Iterate through all of the expression nodes and fix up changed properties on
+	 * matching dynamic parameters when a change occurs.
 	 *
 	 * @param	Expression	The expression dynamic parameter.
 	 */
-	ENGINE_API virtual void UpdateExpressionDynamicParameterNames(const UMaterialExpression* Expression);
+	ENGINE_API virtual void UpdateExpressionDynamicParameters(const UMaterialExpression* Expression);
 
 	/**
 	 * Get the name of a parameter.

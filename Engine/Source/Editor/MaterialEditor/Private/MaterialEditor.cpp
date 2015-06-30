@@ -2993,7 +2993,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		UMaterialExpressionDynamicParameter* DynamicExpression = Cast<UMaterialExpressionDynamicParameter>(NewExpression);
 		if (DynamicExpression)
 		{
-			DynamicExpression->UpdateDynamicParameterNames();
+			DynamicExpression->UpdateDynamicParameterProperties();
 		}
 
 		Material->AddExpressionParameter(NewExpression, Material->EditorParameters);
@@ -3552,9 +3552,9 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 				{
 					Material->UpdateExpressionParameterName(SelectedNode->MaterialExpression);
 				}
-				else if (NameOfPropertyThatChanged == FName(TEXT("ParamNames")))
+				else if (SelectedNode->MaterialExpression->IsA(UMaterialExpressionDynamicParameter::StaticClass()))
 				{
-					Material->UpdateExpressionDynamicParameterNames(SelectedNode->MaterialExpression);
+					Material->UpdateExpressionDynamicParameters(SelectedNode->MaterialExpression);
 				}
 				else
 				{

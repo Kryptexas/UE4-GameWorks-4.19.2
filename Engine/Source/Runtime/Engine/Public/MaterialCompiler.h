@@ -151,7 +151,7 @@ public:
 	virtual int32 TransformVector(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) = 0;
 	virtual int32 TransformPosition(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) = 0;
 
-	virtual int32 DynamicParameter() = 0;
+	virtual int32 DynamicParameter(FLinearColor& DefaultValue) = 0;
 	virtual int32 LightmapUVs() = 0;
 
 	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) = 0;
@@ -315,7 +315,7 @@ public:
 		return Compiler->TransformPosition(SourceCoordBasis, DestCoordBasis, A);
 	}
 
-	virtual int32 DynamicParameter() override { return Compiler->DynamicParameter(); }
+	virtual int32 DynamicParameter(FLinearColor& DefaultValue) override { return Compiler->DynamicParameter(DefaultValue); }
 	virtual int32 LightmapUVs() override { return Compiler->LightmapUVs(); }
 
 	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Realtime; }

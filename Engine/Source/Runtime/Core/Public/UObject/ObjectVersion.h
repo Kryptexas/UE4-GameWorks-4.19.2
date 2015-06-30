@@ -542,6 +542,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_CHARACTER_MOVEMENT_ADD_BRAKING_FRICTION,
 	// Removed TTransArrays from UModel
 	VER_UE4_BSP_UNDO_FIX,
+	// Added default value to dynamic parameter.
+	VER_UE4_DYNAMIC_PARAMETER_DEFAULT_VALUE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

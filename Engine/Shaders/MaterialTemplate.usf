@@ -68,6 +68,15 @@ struct FMaterialParticleParameters
 	float2 Size;
 };
 
+float4 GetDynamicParameter(FMaterialParticleParameters Parameters, float4 Default)
+{
+	#if PARTICLE_FACTORY
+	return Parameters.DynamicParameter;
+	#else
+	return Default;
+	#endif
+}
+
 /** 
  * Parameters needed by pixel shader material inputs.
  * These are independent of vertex factory.

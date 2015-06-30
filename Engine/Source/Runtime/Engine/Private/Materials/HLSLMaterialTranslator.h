@@ -3360,7 +3360,7 @@ protected:
 		return TransformBase(SourceCoordBasis, DestCoordBasis, A, 1);
 	}
 
-	virtual int32 DynamicParameter() override
+	virtual int32 DynamicParameter(FLinearColor& DefaultValue) override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -3369,9 +3369,11 @@ protected:
 
 		bNeedsParticleDynamicParameter = true;
 
+		int32 Default = Constant4(DefaultValue.R, DefaultValue.G, DefaultValue.B, DefaultValue.A);
 		return AddInlinedCodeChunk(
 			MCT_Float4,
-			TEXT("Parameters.Particle.DynamicParameter")
+			TEXT("GetDynamicParameter(Parameters.Particle, %s)"),
+			*GetParameterCode(Default)
 			);
 	}
 
