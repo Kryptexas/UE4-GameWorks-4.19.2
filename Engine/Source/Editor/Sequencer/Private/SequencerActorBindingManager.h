@@ -5,56 +5,8 @@
 #include "Editor/Sequencer/Public/ISequencerObjectBindingManager.h"
 
 class FSequencer;
+struct FPuppetActorInfo;
 
-namespace EPuppetObjectType
-{
-	enum Type
-	{
-		/** Puppet actor */
-		Actor,
-	};
-}
-
-
-/**
- * Stores the relationship between a spawned puppet object (e.g. actor) and it's data descriptor (e.g. blueprint)
- */
-class FBasePuppetInfo
-{	
-
-public:
-
-	/** @return Gets the type of puppet */
-	virtual EPuppetObjectType::Type GetType() const = 0;
-};
-
-
-/**
- * Puppet actor info
- */
-struct FPuppetActorInfo : public FBasePuppetInfo
-{	
-
-public:
-
-	virtual ~FPuppetActorInfo() {}
-
-	/** @return Gets the type of puppet */
-	virtual EPuppetObjectType::Type GetType() const override
-	{
-		return EPuppetObjectType::Actor;
-	}
-
-
-public:
-
-	/** Spawnable guid */
-	FGuid SpawnableGuid;
-
-	/** The actual puppet actor that we are actively managing.  These actors actually live in the editor level
-	    just like any other actor, but we'll directly manage their lifetimes while in the editor */
-	TWeakObjectPtr< class AActor > PuppetActor;	
-};
 
 
 /**
