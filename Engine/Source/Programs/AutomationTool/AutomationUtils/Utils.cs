@@ -678,25 +678,16 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Delegate use by RunSingleInstance
-		/// </summary>
-		/// <param name="Param"></param>
-		/// <returns></returns>
-		public delegate int MainProc(object Param);
-
-		/// <summary>
 		/// Runs the specified delegate checking if this is the only instance of the application.
 		/// </summary>
 		/// <param name="Main"></param>
 		/// <param name="Param"></param>
-		/// <returns>Exit code.</returns>
-		public static int RunSingleInstance(MainProc Main, object Param)
+		public static void RunSingleInstance(System.Action<object> Main, object Param)
 		{
 			if (Environment.GetEnvironmentVariable("uebp_UATMutexNoWait") == "1")
 			{
-				return Main(Param);
+				Main(Param);
 			}
-			var Result = 1;
 			var bCreatedMutex = false;
 			var LocationHash = InternalUtils.ExecutingAssemblyLocation.GetHashCode();
 			var MutexName = "Global/" + Path.GetFileNameWithoutExtension(ExecutingAssemblyLocation) + "_" + LocationHash.ToString() + "_Mutex";
@@ -711,11 +702,10 @@ namespace AutomationTool
 					Log.WriteLine(TraceEventType.Verbose, "No other instance of {0} is running.", ExecutingAssemblyLocation);
 				}
 
-				Result = Main(Param);
+				Main(Param);
 
 				SingleInstanceMutex.ReleaseMutex();
 			}
-			return Result;
 		}
 
 		/// <summary>

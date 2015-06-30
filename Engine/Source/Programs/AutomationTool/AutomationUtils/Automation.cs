@@ -141,7 +141,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 	[Help("nosubmit", "Prevents any submit attempts")]
 	[Help("nokill", "Does not kill any spawned processes on exit")]
 	[Help("ignorejunk", "Prevents UBT from cleaning junk files")]
-	static class Automation
+	public static class Automation
 	{
 		#region Command line parsing
 

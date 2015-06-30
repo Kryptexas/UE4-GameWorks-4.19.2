@@ -44,14 +44,17 @@ namespace AutomationTool
                 });
         }
 
+        /// <summary>
+        /// Shuts down logging. This is a nothrow function as shutdown errors are ignored.
+        /// </summary>
         public static void ShutdownLogging()
         {
-            // This closes all the output streams immediately, inside the Global Lock, so it's threadsafe.
-            Trace.Close();
-
             // from here we can copy the log file to its final resting place
             try
             {
+                // This closes all the output streams immediately, inside the Global Lock, so it's threadsafe.
+                Trace.Close();
+
                 // Try to copy the log file to the log folder. The reason why it's done here is that
                 // at the time the log file is being initialized the env var may not yet be set (this 
                 // applies to local log folder in particular)

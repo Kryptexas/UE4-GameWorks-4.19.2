@@ -33,7 +33,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Initializes the current platform.
 		/// </summary>
-		internal static void Initialize()
+		public static void Initialize()
 		{
 			PlatformID Platform = Environment.OSVersion.Platform;
 			switch (Platform)

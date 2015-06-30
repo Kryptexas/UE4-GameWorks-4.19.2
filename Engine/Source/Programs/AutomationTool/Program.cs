@@ -11,89 +11,23 @@ using System.Reflection;
 
 namespace AutomationTool
 {
-	// NOTE: this needs to be kept in sync with EditorAnalytics.h and iPhonePackager.cs
-	public enum ErrorCodes
-	{
-		Error_UATNotFound = -1,
-		Error_Success = 0,
-		Error_Unknown = 1,
-		Error_Arguments = 2,
-		Error_UnknownCommand = 3,
-		Error_SDKNotFound = 10,
-		Error_ProvisionNotFound = 11,
-		Error_CertificateNotFound = 12,
-		Error_ProvisionAndCertificateNotFound = 13,
-		Error_InfoPListNotFound = 14,
-		Error_KeyNotFoundInPList = 15,
-		Error_ProvisionExpired = 16,
-		Error_CertificateExpired = 17,
-		Error_CertificateProvisionMismatch = 18,
-		Error_CodeUnsupported = 19,
-		Error_PluginsUnsupported = 20,
-		Error_UnknownCookFailure = 25,
-		Error_UnknownDeployFailure = 26,
-		Error_UnknownBuildFailure = 27,
-		Error_UnknownPackageFailure = 28,
-		Error_UnknownLaunchFailure = 29,
-		Error_StageMissingFile = 30,
-		Error_FailedToCreateIPA = 31,
-		Error_FailedToCodeSign = 32,
-		Error_DeviceBackupFailed = 33,
-		Error_AppUninstallFailed = 34,
-		Error_AppInstallFailed = 35,
-		Error_AppNotFound = 36,
-		Error_StubNotSignedCorrectly = 37,
-		Error_IPAMissingInfoPList = 38,
-		Error_DeleteFile = 39,
-		Error_DeleteDirectory = 40,
-		Error_CreateDirectory = 41,
-		Error_CopyFile = 42,
-        Error_OnlyOneObbFileSupported = 50,
-        Error_FailureGettingPackageInfo = 51,
-        Error_OnlyOneTargetConfigurationSupported = 52,
-        Error_ObbNotFound = 53,
-        Error_AndroidBuildToolsPathNotFound = 54,
-        Error_NoApkSuitableForArchitecture = 55,
-		Error_FilesInstallFailed = 56,
-		Error_RemoteCertificatesNotFound = 57,
-		Error_LauncherFailed = 100,
-		Error_UATLaunchFailure = 101,
-		Error_FailedToDeleteStagingDirectory = 102,
-		Error_MissingExecutable = 103,
-		Error_DeviceNotSetupForDevelopment = 150,
-		Error_DeviceOSNewerThanSDK = 151,
-	};
-
-	public class ErrorReporter
-	{
-		static public void Error(string Line, int Code = 1)
-		{
-			if (Program.ReturnCode == 0)
-			{
-				Program.ReturnCode = Code;
-			}
-
-			Console.ForegroundColor = ConsoleColor.Red;
-			Log.WriteLine(TraceEventType.Error, "AutomationTool error: " + Line);
-			Console.ResetColor();
-		}
-	};
-
 	public class Program
 	{
 		// This needs to be static, otherwise SetConsoleCtrlHandler will result in a crash on exit.
 		static ProcessManager.CtrlHandlerDelegate ProgramCtrlHandler = new ProcessManager.CtrlHandlerDelegate(CtrlHandler);
-		static public int ReturnCode = 0;
 
 		[STAThread]
 		public static int Main()
 		{
-			var CommandLine = SharedUtils.ParseCommandLine();
-			HostPlatform.Initialize();
-			
-			LogUtils.InitLogging(CommandLine);
+            var CommandLine = SharedUtils.ParseCommandLine();
+            LogUtils.InitLogging(CommandLine);
+
+            ErrorCodes ReturnCode = ErrorCodes.Error_Success;
+
             try
             {
+                HostPlatform.Initialize();
+
                 Log.WriteLine(TraceEventType.Information, "Running on {0}", HostPlatform.Current.GetType().Name);
 
                 XmlConfigLoader.Init();
@@ -115,44 +49,65 @@ namespace AutomationTool
                 var Version = InternalUtils.ExecutableVersion;
                 Log.WriteLine(TraceEventType.Verbose, "{0} ver. {1}", Version.ProductName, Version.ProductVersion);
 
-                try
-                {
-                    // Don't allow simultaneous execution of AT (in the same branch)
-                    ReturnCode = InternalUtils.RunSingleInstance(MainProc, CommandLine);
-                }
-                catch (Exception Ex)
-                {
-                    Log.WriteLine(TraceEventType.Error, "AutomationTool terminated with exception:");
-                    Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
-                    Log.WriteLine(TraceEventType.Error, Ex.Message);
-                    if (ReturnCode == 0)
-                    {
-                        ReturnCode = (int)ErrorCodes.Error_Unknown;
-                    }
-                }
+                // Don't allow simultaneous execution of AT (in the same branch)
+                InternalUtils.RunSingleInstance(MainProc, CommandLine);
 
-                // Make sure there's no directiories on the stack.
-                CommandUtils.ClearDirStack();
-                Environment.ExitCode = ReturnCode;
-
-                // Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
-                if (ShouldKillProcesses && !Utils.IsRunningOnMono)
+            }
+            catch (Exception Ex)
+            {
+                // Catch all exceptions and propagate the ErrorCode if we are given one.
+                Log.WriteLine(TraceEventType.Error, "AutomationTool terminated with exception:");
+                Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+                // set the exit code of the process
+                if (Ex is AutomationException)
                 {
-                    ProcessManager.KillAll();
+                    ReturnCode = (Ex as AutomationException).ErrorCode;
                 }
-
-                Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", ReturnCode);
+                else
+                {
+                    ReturnCode = ErrorCodes.Error_Unknown;
+                }
             }
             finally
             {
-                // ensure that logging is always shut down cleanly, as this potentially copies the log to a final resting place.
+                // In all cases, do necessary shut down stuff, but don't let any additional exceptions leak out while trying to shut down.
+
+                // Make sure there's no directories on the stack.
+                NoThrow(() => CommandUtils.ClearDirStack(), "Clear Dir Stack");
+
+                // Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
+                NoThrow(() => { if (ShouldKillProcesses && !Utils.IsRunningOnMono) ProcessManager.KillAll(); }, "Kill All Processes");
+
+                Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", ReturnCode);
+
+                // Can't use NoThrow here because the code logs exceptions. We're shutting down logging!
                 LogUtils.ShutdownLogging();
             }
 
-			return ReturnCode;
-		}
+            // STOP: No code beyond the return statement should go beyond this point!
+            // Nothing should happen after the finally block above is finished. 
+            return (int)ReturnCode;
+        }
 
-		static bool CtrlHandler(CtrlTypes EventType)
+        /// <summary>
+        /// Wraps an action in an exception block.
+        /// Ensures individual actions can be performed and exceptions won't prevent further actions from being executed.
+        /// Useful for shutdown code where shutdown may be in several stages and it's important that all stages get a chance to run.
+        /// </summary>
+        /// <param name="Action"></param>
+        private static void NoThrow(System.Action Action, string ActionDesc)
+        {
+            try
+            {
+                Action();
+            }
+            catch (Exception Ex)
+            {
+                Log.WriteLine(TraceEventType.Error, "Exception performing nothrow action \"{0}\": {1}", ActionDesc, LogUtils.FormatException(Ex));
+            }
+        }
+
+        static bool CtrlHandler(CtrlTypes EventType)
 		{
 			Domain_ProcessExit(null, null);
 			if (EventType == CtrlTypes.CTRL_C_EVENT)
@@ -174,11 +129,10 @@ namespace AutomationTool
 			Trace.Close();
 		}
 
-		static int MainProc(object Param)
+		static void MainProc(object Param)
 		{
 			Automation.Process((string[])Param);
 			ShouldKillProcesses = Automation.ShouldKillProcesses;
-			return 0;
 		}
 
 		static bool ShouldKillProcesses = true;

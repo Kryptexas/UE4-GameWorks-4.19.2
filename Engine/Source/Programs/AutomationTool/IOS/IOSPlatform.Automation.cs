@@ -134,8 +134,7 @@ public class IOSPlatform : Platform
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath))
 		{
 			Log("Failed to find game binary " + FullExePath);
-			AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);
-			throw new AutomationException("Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
+			throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
 		}
 
 		//@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
@@ -323,8 +322,7 @@ public class IOSPlatform : Platform
 			// verify the .ipa exists
 			if (!FileExists(ProjectIPA))
 			{
-				ErrorReporter.Error(String.Format("PACKAGE FAILED - {0} was not created", ProjectIPA), (int)ErrorCodes.Error_FailedToCreateIPA);
-				throw new AutomationException("PACKAGE FAILED - {0} was not created", ProjectIPA);
+				throw new AutomationException(ErrorCodes.Error_FailedToCreateIPA, "PACKAGE FAILED - {0} was not created", ProjectIPA);
 			}
 
 			if (WorkingCL > 0)
@@ -415,8 +413,7 @@ public class IOSPlatform : Platform
 		}
 		if (Result.ExitCode != 0)
 		{
-			ErrorReporter.Error("CodeSign Failed", (int)ErrorCodes.Error_FailedToCodeSign);
-			throw new AutomationException("CodeSign Failed");
+			throw new AutomationException(ErrorCodes.Error_FailedToCodeSign, "CodeSign Failed");
 		}
 	}
 
@@ -824,12 +821,9 @@ public class IOSPlatform : Platform
 			switch (Result.ExitCode)
 			{
 				case 253:
-					ErrorReporter.Error("Launch Failure", (int)ErrorCodes.Error_DeviceNotSetupForDevelopment);
-					break;
-
+                    throw new AutomationException(ErrorCodes.Error_DeviceNotSetupForDevelopment, "Launch Failure");
 				case 255:
-					ErrorReporter.Error("Launch Failure", (int)ErrorCodes.Error_DeviceOSNewerThanSDK);
-					break;
+                    throw new AutomationException(ErrorCodes.Error_DeviceOSNewerThanSDK, "Launch Failure");
 			}
 		}
 	}

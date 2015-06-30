@@ -370,6 +370,8 @@ public partial class Project : CommandUtils
 
 				SC.StageTargetPlatform.PostRunClient(ClientProcess, Params);
 
+                // any non-zero exit code should propagate an exception. The Virtual function above may have
+                // already thrown a more specific exception or given a more specific ErrorCode, but this catches the rest.
 				if (ClientProcess.ExitCode != 0)
 				{
 					throw new AutomationException("Client exited with error code: " + ClientProcess.ExitCode);

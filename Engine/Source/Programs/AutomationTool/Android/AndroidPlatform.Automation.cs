@@ -63,15 +63,13 @@ public class AndroidPlatform : Platform
 		string PackageName = GetPackageInfo(ApkName, false);
 		if (PackageName == null)
 		{
-            ErrorReporter.Error("Failed to get package name from " + ApkName, (int)ErrorCodes.Error_FailureGettingPackageInfo);
-			throw new AutomationException("Failed to get package name from " + ApkName);
+			throw new AutomationException(ErrorCodes.Error_FailureGettingPackageInfo, "Failed to get package name from " + ApkName);
 		}
 
 		string PackageVersion = GetPackageInfo(ApkName, true);
 		if (PackageVersion == null || PackageVersion.Length == 0)
 		{
-            ErrorReporter.Error("Failed to get package version from " + ApkName, (int)ErrorCodes.Error_FailureGettingPackageInfo);
-			throw new AutomationException("Failed to get package version from " + ApkName);
+			throw new AutomationException(ErrorCodes.Error_FailureGettingPackageInfo, "Failed to get package version from " + ApkName);
 		}
 
 		if (PackageVersion.Length > 0)
@@ -169,8 +167,7 @@ public class AndroidPlatform : Platform
                     if (FileExists_NoExceptions(UE4SOName) == false)
 					{
                         Log("Failed to find game .so " + UE4SOName);
-						AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);
-                        throw new AutomationException("Could not find .so {0}. You may need to build the UE4 project with your target configuration and platform.", UE4SOName);
+                        throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find .so {0}. You may need to build the UE4 project with your target configuration and platform.", UE4SOName);
 					}
 				}
 				
@@ -317,9 +314,7 @@ public class AndroidPlatform : Platform
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
 		{
-            string ErrorString = String.Format("Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
-            ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_OnlyOneTargetConfigurationSupported);
-			throw new AutomationException(ErrorString);
+			throw new AutomationException(ErrorCodes.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
 		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
@@ -340,15 +335,11 @@ public class AndroidPlatform : Platform
 				// verify the files exist
 				if (!FileExists(ApkName))
 				{
-					string ErrorString = String.Format("ARCHIVE FAILED - {0} was not found", ApkName);
-					ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_AppNotFound);
-					throw new AutomationException(ErrorString);
+					throw new AutomationException(ErrorCodes.Error_AppNotFound, "ARCHIVE FAILED - {0} was not found", ApkName);
 				}
 				if (!bPackageDataInsideApk && !FileExists(ObbName))
 				{
-					string ErrorString = String.Format("ARCHIVE FAILED - {0} was not found", ObbName);
-					ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_ObbNotFound);
-					throw new AutomationException(ErrorString);
+                    throw new AutomationException(ErrorCodes.Error_ObbNotFound, "ARCHIVE FAILED - {0} was not found", ObbName);
 				}
 
 				SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
@@ -595,8 +586,7 @@ public class AndroidPlatform : Platform
 					}
 				}
 
-				ErrorReporter.Error(ErrorMessage, (int)ErrorCodes.Error_AppInstallFailed);
-				throw new AutomationException(ErrorMessage);
+				throw new AutomationException(ErrorCodes.Error_AppInstallFailed, ErrorMessage);
 			}
 		}
  
@@ -871,8 +861,7 @@ public class AndroidPlatform : Platform
 		string[] Subdirs = Directory.GetDirectories(path);
         if (Subdirs.Length == 0)
         {
-            ErrorReporter.Error("Failed to find %ANDROID_HOME%/build-tools subdirectory", (int)ErrorCodes.Error_AndroidBuildToolsPathNotFound);
-            throw new AutomationException("Failed to find %ANDROID_HOME%/build-tools subdirectory");
+            throw new AutomationException(ErrorCodes.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory");
         }
 		// we expect there to be one, so use the first one
 		return Path.Combine(Subdirs[0], Utils.IsRunningOnMono ? "aapt" : "aapt.exe");
@@ -937,9 +926,7 @@ public class AndroidPlatform : Platform
 		// if after the fallbacks, we still don't have it, we can't continue
 		if (!AppArchitectures.Contains(DeviceArch))
 		{
-			string ErrorString = String.Format("Unable to run because you don't have an apk that is usable on {0}. Looked for {1}", Params.Device, DeviceArch);
-            ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_NoApkSuitableForArchitecture);
-            throw new AutomationException(ErrorString);
+            throw new AutomationException(ErrorCodes.Error_NoApkSuitableForArchitecture, "Unable to run because you don't have an apk that is usable on {0}. Looked for {1}", Params.Device, DeviceArch);
 		}
 
 		return DeviceArch;
@@ -989,8 +976,7 @@ public class AndroidPlatform : Platform
 		string PackageName = GetPackageInfo(ApkName, false);
 		if (PackageName == null)
 		{
-            ErrorReporter.Error("Failed to get package name from " + ClientApp, (int)ErrorCodes.Error_FailureGettingPackageInfo);
-            throw new AutomationException("Failed to get package name from " + ClientApp);
+            throw new AutomationException(ErrorCodes.Error_FailureGettingPackageInfo, "Failed to get package name from " + ClientApp);
 		}
 
 		if (Params.Prebuilt)
