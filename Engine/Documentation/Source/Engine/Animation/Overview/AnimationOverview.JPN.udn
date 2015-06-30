@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2227436
+﻿INTSourceChangelist:2600873
 Availability:Public
 Title:アニメーション システムの概要
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,7 +9,7 @@ Description:アニメーション ブループリント、ブレンドスペー�
 ## 概要
 
 [EXCERPT:Intro]
-アンリアル エンジン 4 (UE4) のアニメーション システムは、キャラクタとスケルタルメッシュを高度に管理できます。このドキュメントでは、 UE4 でアニメーションがどのように動作するか、またアニメーションを動かす基本概念について、おおまかに説明します。 <!---In the documents that follow, we'll cover the---> 
+アンリアル エンジン 4 (UE4) のアニメーション システムは、キャラクターとスケルタルメッシュを高度に管理できます。このドキュメントでは、 UE4 でアニメーションがどのように動作するか、またアニメーションを動かす基本概念について、おおまかに説明します。 <!---In the documents that follow, we'll cover the---> 
 
 
 
@@ -36,8 +36,8 @@ Description:アニメーション ブループリント、ブレンドスペー�
 	[/PARAM]
 	[PARAM:description]
 	[INCLUDE:Engine/Animation/Persona#Intro]
-		[/PARAM]
 
+		[/PARAM]
 [/OBJECT]
 
 
@@ -51,28 +51,30 @@ Description:アニメーション ブループリント、ブレンドスペー�
 	[/PARAM]
 	[PARAM:description]
 		**スケルトン** は、スケルタルメッシュを変形するために使用するボーンの位置と回転の階層です。UE4 では、スケルトンはその独自のアセットにあるスケルタルメッシュから抽出されます。つまり、アニメーションは、スケルタルメッシュではなくスケルトンに適用されます。同じスケルトンを使用することで、複数のスケルタルメッシュがアニメーションを共有できます。
+
+
 		[/PARAM]
-
-
 [/OBJECT]
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+		![](AnimSequenceIcon.png)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences)
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/Animation/Sequences#Intro]
+
+
+
 		**Additive Animation (加算的アニメーション)**
-
-
 
 		アニメーションはいつでも絶対的もしくは加算的に使用できます。システムは、必要に応じてデータをオフセットに変換する 
 
 		適切な演算を実行します。この機能により、あらかじめ加算的アニメーションであることを指定する必要がないため、 
 		前バージョンのエンジンよりもよりシステムの柔軟性が高まりました。
+
 		**Blending Animations (アニメーション ブレンディング)**
 
 		[](Engine/Animation/NodeReference/Blend) および [](Engine/Animation/Blendspaces) を使用して 
@@ -103,7 +105,7 @@ Description:アニメーション ブループリント、ブレンドスペー�
 		アニメーションポーズです。もしくは、 _SkeletalMesh_ に適用する 
 		その時点までのアニメーションのスナップショットです。 
 
-		**コンポーネント対ローカル空間**
+		**コンポーネント空間とローカル空間**
 
 		[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
 
@@ -115,7 +117,7 @@ Description:アニメーション ブループリント、ブレンドスペー�
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+		![](ParticleEffectNotify.png)(w:192)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences/Notifies)
@@ -131,13 +133,13 @@ Description:アニメーション ブループリント、ブレンドスペー�
 		[![Vim Blueprint](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints)
 	[/PARAM]
 	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints)
+		[ブループリント グラフ パネル](Engine/Animation/AnimBlueprints)
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
 
-		[/PARAM]
 
+		[/PARAM]
 [/OBJECT]
 
 [OBJECT:IconSection]
@@ -241,4 +243,4 @@ Description:アニメーション ブループリント、ブレンドスペー�
 | **Montages** | キャラクターが使用中のモンタージュをリスト表示します。アクティブなモンタージュは緑で強調表示されます。 |
 | **Curves** | アニメーションの再生でアクティブにされたカーブ値 (名前:値の組み合わせで) をリスト表示します。 |
 | **Notifies** | 現在有効になっている通知ステートを表示します。 |
-| **Graph** | アクティブなポーズ グラフを表示します。最終ポーズを表す最終ノード (ルートノード) から表示が始まり、最終ポーズを構成するすべてのノードがリスト化されていきます。ノードは階層が保たれるように表されるので、ユーザーは元のブループリント アセットを参照しなくてもノードの接続関係を理解することができます。アクティブなノードは緑、(ShowDebugToggleSubCategory FullGraph を使って表示するよう切り替えてある場合は) アクティブでないノードはグレーで表示されます。
+| **Graph** | アクティブなポーズ グラフを表示します。最終ポーズを表す最終ノード (ルートノード) から表示が始まり、最終ポーズを構成するすべてのノードがリスト化されていきます。ノードは階層が保たれるように表されるので、ユーザーは元のブループリント アセットを参照しなくてもノードの接続関係を理解することができます。アクティブなノードは緑、(ShowDebugToggleSubCategory FullGraph を使って表示するよう切り替えてある場合は) アクティブでないノードはグレーで表示されます。 |
