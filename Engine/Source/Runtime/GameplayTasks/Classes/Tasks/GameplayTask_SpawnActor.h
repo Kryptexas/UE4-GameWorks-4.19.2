@@ -3,7 +3,7 @@
 #include "GameplayTask.h"
 #include "GameplayTask_SpawnActor.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnActorDelegate, AActor*, SpawnedActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGameplayTaskSpawnActorDelegate, AActor*, SpawnedActor);
 
 /**
  *	Convenience task for spawning actors (optionally limiting the spawning to the network authority). If not the net authority, we will not spawn 
@@ -24,11 +24,11 @@ class UGameplayTask_SpawnActor : public UGameplayTask
 	GENERATED_BODY()
 public:
 	UPROPERTY(BlueprintAssignable)
-	FSpawnActorDelegate	Success;
+	FGameplayTaskSpawnActorDelegate	Success;
 
 	/** Called when we can't spawn: on clients or potentially on server if they fail to spawn (rare) */
 	UPROPERTY(BlueprintAssignable)
-	FSpawnActorDelegate	DidNotSpawn;
+	FGameplayTaskSpawnActorDelegate	DidNotSpawn;
 	
 	/** Spawn new Actor on the network authority (server) */
 	UFUNCTION(BlueprintCallable, Category = "GameplayTasks", meta = (DisplayName="Spawn Actor for Gameplay Task", AdvancedDisplay = "TaskOwner, bSpawnOnlyOnAuthority", DefaultToSelf = "TaskOwner", BlueprintInternalUseOnly = "TRUE"))
