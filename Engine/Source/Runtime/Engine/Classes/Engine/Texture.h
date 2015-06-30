@@ -777,7 +777,7 @@ public:
 	/**
 	 * Retrieves the pixel format enum for enum <-> string conversions.
 	 */
-	static class UEnum* GetPixelFormatEnum();
+	ENGINE_API static class UEnum* GetPixelFormatEnum();
 
 };
 
