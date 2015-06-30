@@ -230,8 +230,6 @@ private:
 	friend class FLightmassProcessor;
 };
 
-#if WITH_EDITOR
-
 USTRUCT()
 struct ENGINE_API FLevelSimplificationDetails
 {
@@ -298,8 +296,6 @@ struct ENGINE_API FLevelSimplificationDetails
 	FLevelSimplificationDetails();
 	bool operator == (const FLevelSimplificationDetails& Other) const;
 };
-
-#endif //WITH_EDITOR
 
 //
 // The level object.  Contains the level's actor list, BSP information, and brush list.
