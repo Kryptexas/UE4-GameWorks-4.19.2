@@ -103,7 +103,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	void SetWidget(UUserWidget* Widget);
 
-	/** Sets the local player that owns this widget component. */
+	/**
+	 * Sets the local player that owns this widget component.  Setting the owning player controls
+	 * which player's viewport the widget appears on in a split screen scenario.  Additionally it
+	 * forwards the owning player to the actual UserWidget that is spawned.
+	 */
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	void SetOwnerPlayer(ULocalPlayer* LocalPlayer);
 

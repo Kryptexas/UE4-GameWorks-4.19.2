@@ -972,7 +972,11 @@ void UWidgetComponent::InitWidget()
 
 void UWidgetComponent::SetOwnerPlayer(ULocalPlayer* LocalPlayer)
 {
-	OwnerPlayer = LocalPlayer;
+	if ( OwnerPlayer != LocalPlayer )
+	{
+		RemoveWidgetFromScreen();
+		OwnerPlayer = LocalPlayer;
+	}
 }
 
 ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
