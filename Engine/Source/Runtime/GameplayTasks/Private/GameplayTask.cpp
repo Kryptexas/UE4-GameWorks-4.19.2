@@ -360,7 +360,7 @@ void UGameplayTask::PauseInTaskQueue()
 	}
 }
 
-#if ENABLE_VISUAL_LOG
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
@@ -378,4 +378,4 @@ FString UGameplayTask::GetTaskStateName() const
 	return Enum->GetEnumName(int32(TaskState));
 }
 
-#endif // ENABLE_VISUAL_LOG
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

@@ -324,7 +324,7 @@ protected:
 
 	TWeakObjectPtr<UGameplayTasksComponent>	TasksComponent;
 
-#if ENABLE_VISUAL_LOG
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	mutable FString DebugDescription;
 public:
 	const FString& GetDebugDescription() const
@@ -337,7 +337,7 @@ public:
 	}
 	virtual FString GenerateDebugDescription() const;
 	FString GetTaskStateName() const;
-#endif // ENABLE_VISUAL_LOG
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 };
 
 template <class T>

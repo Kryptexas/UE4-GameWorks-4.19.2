@@ -428,6 +428,7 @@ void UGameplayTasksComponent::SetCurrentlyClaimedResources(FGameplayResourceSet 
 //----------------------------------------------------------------------//
 // debugging
 //----------------------------------------------------------------------//
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 FString UGameplayTasksComponent::GetTickingTasksDescription() const
 {
 	FString TasksDescription;
@@ -461,6 +462,7 @@ FString UGameplayTasksComponent::GetTasksPriorityQueueDescription() const
 	}
 	return TasksDescription;
 }
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 #if ENABLE_VISUAL_LOG
 void UGameplayTasksComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
