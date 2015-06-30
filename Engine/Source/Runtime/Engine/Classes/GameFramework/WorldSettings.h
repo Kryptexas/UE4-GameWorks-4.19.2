@@ -471,6 +471,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 
 public:
 	// Begin UObject interface.
+	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR

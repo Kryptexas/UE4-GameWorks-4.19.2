@@ -211,6 +211,19 @@ void AWorldSettings::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDat
 	}
 }
 
+void AWorldSettings::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITOR
+	for (FHierarchicalSimplification Entry : HierarchicalLODSetup)
+	{
+		Entry.ProxySetting.PostLoadDeprecated();	
+	}
+#endif// WITH_EDITOR
+}
+
+
 #if WITH_EDITOR
 
 void AWorldSettings::CheckForErrors()
