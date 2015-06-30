@@ -50,9 +50,7 @@ private:
 	UPROPERTY()
 	const UWidgetAnimation* Animation;
 
-	/** Bindings to actual live objects */
-	UPROPERTY()
-	UMovieSceneBindings* RuntimeBindings;
+	TMap<FGuid, TArray<UObject*> > GuidToRuntimeObjectMap;
 
 	/** The root movie scene instance to update when playing. */
 	TSharedPtr<class FMovieSceneInstance> RootMovieSceneInstance;
