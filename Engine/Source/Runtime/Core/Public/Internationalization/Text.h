@@ -301,6 +301,9 @@ public:
 	 */
 	static bool IsWhitespace( const TCHAR Char );
 
+	/** Checks to see if the given character is considered a letter */
+	static bool IsLetter( const TCHAR Char );
+
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
 
 	static FText Format(const FText& Pattern, const FFormatNamedArguments& Arguments);
