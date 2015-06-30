@@ -1,16 +1,13 @@
 Availability: Public
-Title:How to Respawn a Player
+Title:Respawning a Player
 Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for respawning player characters in Unreal Engine 4. 
 
-
-##Overview
-
-In most games, there comes a time when the player character is killed and you want to respawn them in the world. In this **How To** guide, you will learn how to set up a simple respawn system for single player purposes. 
+In most games, there comes a time when the player character is killed and you want to respawn them in the world. In this How To guide, you will learn how to set up a simple respawn system for single player purposes. 
 
 ## Setup
 
-To learn more about **Respawning a Player** using Blueprints, follow the link below:
+To learn more about Respawning a Player using Blueprints, follow the link below:
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\RespawnPlayer\Blueprints)
