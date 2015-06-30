@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2518148
+﻿INTSourceChangelist:2600863
 Availability:Public
 Title:アセットを移行する 
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
-Description:コンテンツ ブラウザ内の別のプロジェクトへのアセットの移行方法を説明するドキュメントです。
+Description:コンテンツ ブラウザ内の別のプロジェクトへのアセットの移行方法を説明します。
 
 
 [VAR:TopicCompact]
@@ -23,8 +23,6 @@ Description:コンテンツ ブラウザ内の別のプロジェクトへのア�
 ![](MigrateBanner.png)
 [/REGION]
 
-## 概要
-
 [INCLUDE:Shared/Glossary/M/#Glossary_Migrate_Tool]
 
 ## 使用法
@@ -35,11 +33,11 @@ Migrate Tool (移行ツール) の使い方:
 
 	![](SelectedAssetsForMigration.png)(w:400)
 
-1. 選択中のアセットのどれかを **右クリック** し、コンテキスト メニューから **Asset Actions** を選択し、次に **[Migrate]** を選びます。
+1. 選択中のアセットのどれかを **右クリック** し、コンテキスト メニューから **Asset Actions** (アセットのアクション) を選択し、次に **[Migrate]** (移行) を選びます。
 
 	![](MigrateContextMenu.png)![](MigrateContextMenu2.png)
 
-1. **[Asset Report]** が表示され、すべてのアセットと依存関連物が移行されることを示します。確認して **Ok** をクリックします。
+1. [Asset Report] が表示され、移行する全アセットと従属関係にあるものを示します。確認して **Ok** をクリックします。
 
 	![](AssetReport.png)
 
