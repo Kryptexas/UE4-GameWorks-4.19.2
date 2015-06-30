@@ -334,6 +334,11 @@ void FAssetFixUpRedirectors::UpdateAssetReferencers(const TArray<FRedirectorRefs
 	for (const auto& Redirector : RedirectorsToFix)
 	{
 		AssetPaths.AddUnique(FPackageName::GetLongPackagePath(Redirector.RedirectorPackageName.ToString()) / TEXT("")); // Ensure trailing slash
+
+		for (const auto& Referencer : Redirector.ReferencingPackageNames)
+		{
+			AssetPaths.AddUnique(FPackageName::GetLongPackagePath(Referencer.ToString()) / TEXT("")); // Ensure trailing slash
+		}
 	}
 	AssetRegistryModule.Get().ScanPathsSynchronous(AssetPaths, true);
 }

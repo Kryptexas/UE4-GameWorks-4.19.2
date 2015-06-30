@@ -38,7 +38,10 @@ FAssetDeleteModel::~FAssetDeleteModel()
 
 void FAssetDeleteModel::AddObjectToDelete( UObject* InObject )
 {
-	PendingDeletes.Add(MakeShareable(new FPendingDelete(InObject)));
+	if (!PendingDeletes.ContainsByPredicate([=](const TSharedPtr<FPendingDelete>& A) { return A->GetObject() == InObject; }))
+	{
+		PendingDeletes.Add(MakeShareable(new FPendingDelete(InObject)));
+	}
 
 	PrepareToDelete(InObject);
 
@@ -544,7 +547,10 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 			if ( PackageMetaData )
 			{
 				PackageMetaData->RemoveFromRoot();
-				PendingDeletes.AddUnique(MakeShareable(new FPendingDelete(PackageMetaData)));
+				if (!PendingDeletes.ContainsByPredicate([=](const TSharedPtr<FPendingDelete>& A) { return A->GetObject() == PackageMetaData; }))
+				{
+					PendingDeletes.Add(MakeShareable(new FPendingDelete(PackageMetaData)));
+				}
 			}
 		}
 	}
