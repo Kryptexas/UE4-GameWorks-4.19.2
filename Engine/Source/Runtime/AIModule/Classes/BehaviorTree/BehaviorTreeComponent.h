@@ -13,6 +13,7 @@ class UBTCompositeNode;
 class UBTTaskNode;
 class UBTDecorator;
 class UBTTask_RunBehavior;
+class UBTTask_RunBehaviorDynamic;
 class FBehaviorTreeDebugger;
 class UBehaviorTree;
 class UBTAuxiliaryNode;
@@ -198,10 +199,16 @@ public:
 	virtual FString DescribeActiveTrees() const;
 
 	/** @return the cooldown tag end time, 0.0f if CooldownTag is not found */
+	UFUNCTION(BlueprintCallable, Category = "AI|Logic")
 	float GetTagCooldownEndTime(FGameplayTag CooldownTag) const;
 
 	/** add to the cooldown tag's duration */
+	UFUNCTION(BlueprintCallable, Category = "AI|Logic")
 	void AddCooldownTagDuration(FGameplayTag CooldownTag, float CooldownDuration, bool bAddToExistingDuration);
+
+	/** assign subtree to RunBehaviorDynamic task specified by tag */
+	UFUNCTION(BlueprintCallable, Category="AI|Logic")
+	virtual void SetDynamicSubtree(FGameplayTag InjectTag, UBehaviorTree* BehaviorAsset);
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
@@ -352,6 +359,7 @@ protected:
 	friend UBTCompositeNode;
 	friend UBTTaskNode;
 	friend UBTTask_RunBehavior;
+	friend UBTTask_RunBehaviorDynamic;
 	friend FBehaviorTreeDebugger;
 	friend FBehaviorTreeInstance;
 };
