@@ -6,11 +6,11 @@ SkillLevel: Beginner
 Version: 4.8
 
 [REGION:note]
-Before you get started: Download Quick Start Assets from the following link.
+Before you get started: Download and extract Sample Assets from the following link.
 * [Sample Assets](SampleAssets.zip)
 [/REGION]
 
-Developers can use the Content Browser's **Import** function to add content to their UE4 projects.
+Developers typically use the Content Browser's **Import** function to add content to their UE4 projects.
 
 ## Goal
 
@@ -20,8 +20,8 @@ The focus of this guide is to teach developers how to use the Content Browser's 
 
 After going through this tutorial, developers will know the following:
 
-* Where to find the Content Browser's **Import** function.
-* How to use the Content Browser's **Import** function.
+*	Where to find the Content Browser's **Import** function.
+*	How to use the Content Browser's **Import** function.
 
 ## Importing with the Content Browser
 
@@ -29,8 +29,38 @@ After going through this tutorial, developers will know the following:
 
 [REGION:note]
 For the purposes of this guide, we're using the following project **settings** (pictured above):
-* **Desktop / Console**
-* **Maximum Quality**
-* **No Starter Content**
+*	**Desktop / Console**
+*	**Maximum Quality**
+*	**No Starter Content**
 [/REGION]
+
+1.	From inside the editor, **click** the **Import** button (pictured below).
+
+	![](ImportButton_UI.png)
+
+1.	Locate and **select** the **Basic_Asset1.fbx**, **Basic_Asset2.FBX**, **T_Rock_04_D.TGA**, and **T_Rock_04_n.TGA** content files (pictured below).
+
+	![](ImportFileDialogBox.png)
+
+1.	**Click Open** to begin importing the content files to your project (pictured above).
+
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** will add your mesh to the Project.
+
+	![](FBX_ImportOptionsDialogBox.png)
+
+1.	A confirmation box appears in the lower right corner of the Unreal Editor (pictured below).
+
+	![](TextureDialogBox.png)
+
+1.	Click **OK** to accept the **T_Rock_04_n.TGA** normal map's settings (pictured above).
+
+1.	**Click** the **Save All** button to save your imported meshes.
+
+	![](SaveAllButton_UI.png)
+
+1.	A **Save Content** dialog box appears (pictured below). **Click** **Save Selected** to save your imported assets.
+
+	![](SaveSelectedButton_UI.png)
+
+1.	Navigating to the **'QuickStartContent'** folder, verify that UE4 created the corresponding ** *.uasset files ** (pictured below).
 
