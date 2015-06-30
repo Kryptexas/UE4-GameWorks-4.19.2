@@ -1203,7 +1203,7 @@ namespace UM
 		/// [FunctionMetadta] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
 		WorldContext,
 
-		/// [FunctionMetadta] Used only by static BlueprintPure functions (with one return param and exactly one input param) from BlueprintLibrary.
+		/// [FunctionMetadta] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
 		BlueprintAutocast,
 	};
 

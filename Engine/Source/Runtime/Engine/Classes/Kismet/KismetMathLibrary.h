@@ -488,7 +488,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static int32 FFloor(float A);
 	
 	/* Rounds A to an integer with truncation towards zero.  (e.g. -1.7 truncated to -1, 2.8 truncated to 2) */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Truncate"), Category="Math|Float")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Truncate", BlueprintAutocast), Category="Math|Float")
 	static int32 FTrunc(float A);
 	
 	/* Rounds A to the smallest following integer */
@@ -1073,71 +1073,71 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// -- Begin K2 utilities
 
 	/** Converts a byte to a float */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToFloat (byte)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToFloat (byte)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static float Conv_ByteToFloat(uint8 InByte);
 
 	/** Converts an integer to a float */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToFloat (int)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToFloat (int)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static float Conv_IntToFloat(int32 InInt);
 
 	/** Converts an integer to a byte (if the integer is too large, returns the low 8 bits) */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToByte (int)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToByte (int)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static uint8 Conv_IntToByte(int32 InInt);
 
 	/** Converts a int to a bool*/
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToBool (int)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToBool (int)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static bool Conv_IntToBool(int32 InInt);
 
 	/** Converts a bool to an int */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToInt (bool)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToInt (bool)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static int32 Conv_BoolToInt(bool InBool);
 
 	/** Converts a bool to a float (0.0f or 1.0f) */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToFloat (bool)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToFloat (bool)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static float Conv_BoolToFloat(bool InBool);
 
 	/** Converts a bool to a byte */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToByte (bool)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToByte (bool)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static uint8 Conv_BoolToByte(bool InBool);
 	
 	/** Converts a byte to an integer */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToInt (byte)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToInt (byte)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static int32 Conv_ByteToInt(uint8 InByte);
 
 	/** Converts a vector to LinearColor */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (vector)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (vector)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FLinearColor Conv_VectorToLinearColor(FVector InVec);
 
 	/** Converts a LinearColor to a vector */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector (linear color)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector (linear color)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FVector Conv_LinearColorToVector(FLinearColor InLinearColor);
 
 	/** Converts a color to LinearColor */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (color)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (color)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FLinearColor Conv_ColorToLinearColor(FColor InColor);
 
 	/** Converts a LinearColor to a color*/
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToColor (linear color)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToColor (linear color)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FColor Conv_LinearColorToColor(FLinearColor InLinearColor);
 
 	/** Convert a vector to a transform. Uses vector as location */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToTransform (vector)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToTransform (vector)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FTransform Conv_VectorToTransform(FVector InLocation);
 	
 	/** Convert a Vector to a Vector2D */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector2D (Vector)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector2D (Vector)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FVector2D Conv_VectorToVector2D(FVector InVector);
 
 	/** Convert a Vector2D to a Vector */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector (Vector2D)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector (Vector2D)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FVector Conv_Vector2DToVector(FVector2D InVector2D, float Z = 0);
 
 	/** Convert a float into a vector, where each element is that float */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector (float)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToVector (float)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FVector Conv_FloatToVector(float InFloat);
 
 	/** Convert a float into a LinearColor, where each element is that float */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (float)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (float)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FLinearColor Conv_FloatToLinearColor(float InFloat);
 
 	/** Makes a vector {X, Y, Z} */
@@ -1301,11 +1301,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FRotator MakeRotationFromAxes(FVector Forward, FVector Right, FVector Up);
 
 	/** Create a rotator which orients X along the supplied direction vector */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "RotationFromXVector", Keywords="rotation rotate cast convert"), Category="Math|Rotator")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "RotationFromXVector", Keywords="rotation rotate cast convert", BlueprintAutocast), Category="Math|Rotator")
 	static FRotator Conv_VectorToRotator(FVector InVec);
 
 	/** Get the X direction vector after this rotation */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "GetRotationXVector", Keywords="rotation rotate cast convert"), Category="Math|Rotator")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "GetRotationXVector", Keywords="rotation rotate cast convert", BlueprintAutocast), Category="Math|Rotator")
 	static FVector Conv_RotatorToVector(FRotator InRot);
 
 

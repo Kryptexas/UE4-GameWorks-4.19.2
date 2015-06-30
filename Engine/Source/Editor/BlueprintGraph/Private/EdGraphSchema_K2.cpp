@@ -2182,10 +2182,14 @@ bool UEdGraphSchema_K2::TryCreateConnection(UEdGraphPin* PinA, UEdGraphPin* PinB
 	return bModified;
 }
 
-struct FAutocastFunctionMap
+struct FAutocastFunctionMap : private FNoncopyable
 {
 private:
+	static FAutocastFunctionMap* AutocastFunctionMap;
+
 	TMap<FString, TWeakObjectPtr<UFunction>> InnerMap;
+	FDelegateHandle OnHotReloadDelegateHandle;
+	FDelegateHandle OnModulesChangedDelegateHandle;
 
 	static FString GenerateTypeData(const FEdGraphPinType& PinType)
 	{
@@ -2198,30 +2202,19 @@ private:
 		return FString::Printf(TEXT("%s;%s"), *GenerateTypeData(InputPinType), *GenerateTypeData(OutputPinType));
 	}
 
-	static bool IsInputParam(const UProperty* Property)
+	static bool IsInputParam(uint64 PropertyFlags)
 	{
 		const uint64 ConstOutParamFlag = CPF_OutParm | CPF_ConstParm;
-		const uint64 IsConstOut = Property ? (Property->PropertyFlags & ConstOutParamFlag) : 0;
-		return Property 
-			&& (CPF_Parm == (Property->PropertyFlags & (CPF_Parm | CPF_ReturnParm)))
+		const uint64 IsConstOut = PropertyFlags & ConstOutParamFlag;
+		return (CPF_Parm == (PropertyFlags & (CPF_Parm | CPF_ReturnParm)))
 			&& ((0 == IsConstOut) || (ConstOutParamFlag == IsConstOut));
-	}
-
-	static int32 GetInputPropertiesNum(const UFunction* Function)
-	{
-		int32 InputPropNum = 0;
-		for (auto Property : TFieldRange<const UProperty>(Function))
-		{
-			InputPropNum += IsInputParam(Property) ? 1 : 0;
-		}
-		return InputPropNum;
 	}
 
 	static const UProperty* GetFirstInputProperty(const UFunction* Function)
 	{
 		for (auto Property : TFieldRange<const UProperty>(Function))
 		{
-			if (IsInputParam(Property))
+			if (Property && IsInputParam(Property->PropertyFlags))
 			{
 				return Property;
 			}
@@ -2248,11 +2241,19 @@ public:
 			&& Function->HasMetaData(BlueprintAutocast)
 			&& Function->HasAllFunctionFlags(FUNC_Static | FUNC_Native | FUNC_Public | FUNC_BlueprintPure)
 			&& Function->GetReturnProperty()
-			&& (1 == GetInputPropertiesNum(Function));
+			&& GetFirstInputProperty(Function);
 	}
 
 	void Refresh()
 	{
+#ifdef SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME
+		static_assert(false, "Macro redefinition.");
+#endif
+#define SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME 0
+#if SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME
+		const auto StartTime = FPlatformTime::Seconds();
+#endif //SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME
+
 		InnerMap.Empty();
 		auto Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -2260,7 +2261,7 @@ public:
 		GetDerivedClasses(UBlueprintFunctionLibrary::StaticClass(), Libraries);
 		for (auto Library : Libraries)
 		{
-			if (Library && (0 != (Library->ClassFlags & CLASS_Native)))
+			if (Library && (CLASS_Native == (Library->ClassFlags & (CLASS_Native | CLASS_Deprecated | CLASS_NewerVersionExists))))
 			{
 				for (auto Function : TFieldRange<UFunction>(Library, EFieldIteratorFlags::ExcludeSuper, EFieldIteratorFlags::ExcludeDeprecated))
 				{
@@ -2271,17 +2272,22 @@ public:
 				}
 			}
 		}
+
+#if SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME
+		const auto EndTime = FPlatformTime::Seconds();
+		UE_LOG(LogBlueprint, Warning, TEXT("FAutocastFunctionMap::Refresh took %fs"), EndTime - StartTime);
+#endif //SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME
+#undef SCHEMA_K2_AUTOCASTFUNCTIONMAP_LOG_TIME
 	}
 
-	UFunction* Find(const FEdGraphPinType& InputPinType, const FEdGraphPinType& OutputPinType)
+	UFunction* Find(const FEdGraphPinType& InputPinType, const FEdGraphPinType& OutputPinType) const
 	{
-		TWeakObjectPtr<UFunction>* FuncPtr = InnerMap.Find(GenerateCastData(InputPinType, OutputPinType));
+		const TWeakObjectPtr<UFunction>* FuncPtr = InnerMap.Find(GenerateCastData(InputPinType, OutputPinType));
 		return FuncPtr ? FuncPtr->Get() : nullptr;
 	}
 
 	static FAutocastFunctionMap& Get()
 	{
-		static FAutocastFunctionMap* AutocastFunctionMap = nullptr;
 		if (AutocastFunctionMap == nullptr)
 		{
 			AutocastFunctionMap = new FAutocastFunctionMap();
@@ -2291,7 +2297,18 @@ public:
 
 	static void OnProjectHotReloaded(bool bWasTriggeredAutomatically)
 	{
-		Get().Refresh();
+		if (AutocastFunctionMap)
+		{
+			AutocastFunctionMap->Refresh();
+		}
+	}
+
+	static void OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason ReasonForChange)
+	{
+		if (AutocastFunctionMap)
+		{
+			AutocastFunctionMap->Refresh();
+		}
 	}
 
 	FAutocastFunctionMap()
@@ -2299,9 +2316,23 @@ public:
 		Refresh();
 
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		HotReloadSupport.OnHotReload().AddStatic(&FAutocastFunctionMap::OnProjectHotReloaded);
+		OnHotReloadDelegateHandle = HotReloadSupport.OnHotReload().AddStatic(&FAutocastFunctionMap::OnProjectHotReloaded);
+
+		OnModulesChangedDelegateHandle = FModuleManager::Get().OnModulesChanged().AddStatic(&OnModulesChanged);
+	}
+
+	~FAutocastFunctionMap()
+	{
+		if (auto HotReloadSupport = FModuleManager::GetModulePtr<IHotReloadInterface>("HotReload"))
+		{
+			HotReloadSupport->OnHotReload().Remove(OnHotReloadDelegateHandle);
+		}
+
+		FModuleManager::Get().OnModulesChanged().Remove(OnModulesChangedDelegateHandle); 
 	}
 };
+
+FAutocastFunctionMap* FAutocastFunctionMap::AutocastFunctionMap = nullptr;
 
 bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, const UEdGraphPin* InputPin, /*out*/ FName& TargetFunction, /*out*/ UClass*& FunctionOwner) const
 {
@@ -2310,206 +2341,15 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 	// This includes things like string->int (does it do length, atoi, or what?) that would be autocasts in a traditional scripting language
 
 	TargetFunction = NAME_None;
-
-	const UScriptStruct* InputStructType = Cast<const UScriptStruct>(InputPin->PinType.PinSubCategoryObject.Get());
-	const UScriptStruct* OutputStructType = Cast<const UScriptStruct>(OutputPin->PinType.PinSubCategoryObject.Get());
+	FunctionOwner = nullptr;
 
 	if (OutputPin->PinType.bIsArray != InputPin->PinType.bIsArray)
 	{
-		// We don't autoconvert between arrays and non-arrays.  Those are handled by specialized conversions
+		return false;
 	}
-	else if (OutputPin->PinType.PinCategory == PC_Int)
-	{
-		if (InputPin->PinType.PinCategory == PC_Float)
-		{
-			TargetFunction = TEXT("Conv_IntToFloat");
-		}
-		else if (InputPin->PinType.PinCategory == PC_String)
-		{
-			TargetFunction = TEXT("Conv_IntToString");
-		}
-		else if ((InputPin->PinType.PinCategory == PC_Byte) && (InputPin->PinType.PinSubCategoryObject == NULL))
-		{
-			TargetFunction = TEXT("Conv_IntToByte");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Boolean)
-		{
-			TargetFunction = TEXT("Conv_IntToBool");
-		}
-		else if(InputPin->PinType.PinCategory == PC_Text)
-		{
-			TargetFunction = TEXT("Conv_IntToText");
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_Float)
-	{
-		if (InputPin->PinType.PinCategory == PC_Int)
-		{
-			TargetFunction = TEXT("FTrunc");
-		}
-		else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == VectorStruct))
-		{
-			TargetFunction = TEXT("Conv_FloatToVector");
-		}
-		else if (InputPin->PinType.PinCategory == PC_String)
-		{
-			TargetFunction = TEXT("Conv_FloatToString");
-		}
-		else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == LinearColorStruct))
-		{
-			TargetFunction = TEXT("Conv_FloatToLinearColor");
-		}
-		else if(InputPin->PinType.PinCategory == PC_Text)
-		{
-			TargetFunction = TEXT("Conv_FloatToText");
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_Struct)
-	{
-		if (OutputStructType == VectorStruct)
-		{
-			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == TransformStruct))
-			{
-				TargetFunction = TEXT("Conv_VectorToTransform");
-			}
-			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == LinearColorStruct))
-			{
-				TargetFunction = TEXT("Conv_VectorToLinearColor");
-			}
-			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == RotatorStruct))
-			{
-				TargetFunction = TEXT("Conv_VectorToRotator");
-			}
-			else if (InputPin->PinType.PinCategory == PC_String)
-			{
-				TargetFunction = TEXT("Conv_VectorToString");
-			}
-			// NOTE: Did you see the note above about unsafe and unclear casts?
-		}
-		else if(OutputStructType == RotatorStruct)
-		{
-			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == TransformStruct))
-			{
-				TargetFunction = TEXT("MakeTransform");
-			}
-			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == VectorStruct))
-			{
-				TargetFunction = TEXT("Conv_RotatorToVector");
-			}
-			else if (InputPin->PinType.PinCategory == PC_String)
-			{
-				TargetFunction = TEXT("Conv_RotatorToString");
-			}
-			// NOTE: Did you see the note above about unsafe and unclear casts?
-		}
-		else if(OutputStructType == LinearColorStruct)
-		{
-			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == ColorStruct))
-			{
-				TargetFunction = TEXT("Conv_LinearColorToColor");
-			}
-			else if (InputPin->PinType.PinCategory == PC_String)
-			{
-				TargetFunction = TEXT("Conv_ColorToString");
-			}
-			else if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == VectorStruct))
-			{
-				TargetFunction = TEXT("Conv_LinearColorToVector");
-			}
-		}
-		else if(OutputStructType == ColorStruct)
-		{
-			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == LinearColorStruct))
-			{
-				TargetFunction = TEXT("Conv_ColorToLinearColor");
-			}
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_Boolean)
-	{
-		if (InputPin->PinType.PinCategory == PC_String)
-		{
-			TargetFunction = TEXT("Conv_BoolToString");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Int)
-		{
-			TargetFunction = TEXT("Conv_BoolToInt");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Float)
-		{
-			TargetFunction = TEXT("Conv_BoolToFloat");
-		}
-		else if ((InputPin->PinType.PinCategory == PC_Byte) && (InputPin->PinType.PinSubCategoryObject == NULL))
-		{
-			TargetFunction = TEXT("Conv_BoolToByte");
-		}
-		else if ( InputPin->PinType.PinCategory == PC_Text )
-		{
-			TargetFunction = TEXT("Conv_BoolToText");
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_Byte &&
-			 (OutputPin->PinType.PinSubCategoryObject == NULL || !OutputPin->PinType.PinSubCategoryObject->IsA(UEnum::StaticClass())))
-	{
-		if (InputPin->PinType.PinCategory == PC_String)
-		{
-			TargetFunction = TEXT("Conv_ByteToString");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Int)
-		{
-			TargetFunction = TEXT("Conv_ByteToInt");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Float)
-		{
-			TargetFunction = TEXT("Conv_ByteToFloat");
-		}
-		else if ( InputPin->PinType.PinCategory == PC_Text )
-		{
-			TargetFunction = TEXT("Conv_ByteToText");
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_Name)
-	{
-		if (InputPin->PinType.PinCategory == PC_String)
-		{
-			TargetFunction = TEXT("Conv_NameToString");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Text)
-		{
-			TargetFunction = TEXT("Conv_NameToText");
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_String)
-	{
-		if (InputPin->PinType.PinCategory == PC_Name)
-		{
-			TargetFunction = TEXT("Conv_StringToName");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Int)
-		{
-			TargetFunction = TEXT("Conv_StringToInt");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Float)
-		{
-			TargetFunction = TEXT("Conv_StringToFloat");
-		}
-		else if (InputPin->PinType.PinCategory == PC_Text)
-		{
-			TargetFunction = TEXT("Conv_StringToText");
-		}
-		else
-		{
-			// NOTE: Did you see the note above about unsafe and unclear casts?
-		}
-	}
-	else if (OutputPin->PinType.PinCategory == PC_Text)
-	{
-		if(InputPin->PinType.PinCategory == PC_String)
-		{
-			TargetFunction = TEXT("Conv_TextToString");
-		}
-	}
-	else if ((OutputPin->PinType.PinCategory == PC_Interface) && (InputPin->PinType.PinCategory == PC_Object))
+
+	// SPECIAL CASES, not supported by FAutocastFunctionMap
+	if ((OutputPin->PinType.PinCategory == PC_Interface) && (InputPin->PinType.PinCategory == PC_Object))
 	{
 		UClass const* InputClass = Cast<UClass const>(InputPin->PinType.PinSubCategoryObject.Get());
 
@@ -2537,10 +2377,22 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 			TargetFunction = TEXT("GetDisplayName");
 		}
 	}
+	else if (OutputPin->PinType.PinCategory == PC_Struct)
+	{
+		const UScriptStruct* OutputStructType = Cast<const UScriptStruct>(OutputPin->PinType.PinSubCategoryObject.Get());
+		if (OutputStructType == TBaseStructure<FRotator>::Get())
+		{
+			const UScriptStruct* InputStructType = Cast<const UScriptStruct>(InputPin->PinType.PinSubCategoryObject.Get());
+			if ((InputPin->PinType.PinCategory == PC_Struct) && (InputStructType == TBaseStructure<FTransform>::Get()))
+			{
+				TargetFunction = TEXT("MakeTransform");
+			}
+		}
+	}
 
 	if (TargetFunction == NAME_None)
 	{
-		auto AutocastFunctionMap = FAutocastFunctionMap::Get();
+		const auto& AutocastFunctionMap = FAutocastFunctionMap::Get();
 		if (auto Func = AutocastFunctionMap.Find(OutputPin->PinType, InputPin->PinType))
 		{
 			TargetFunction = Func->GetFName();
