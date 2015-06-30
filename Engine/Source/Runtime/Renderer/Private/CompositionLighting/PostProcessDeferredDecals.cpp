@@ -626,7 +626,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FScene& Scene = *(FScene*)ViewFamily.Scene;
 
-	if(!Scene.Decals.Num())
+	if(!Scene.Decals.Num() || !ViewFamily.EngineShowFlags.Decals)
 	{
 		// to avoid the stats showing up
 		return;
