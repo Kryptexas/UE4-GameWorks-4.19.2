@@ -1016,13 +1016,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void AccumulateAllBodiesBelowPhysicsBlendWeight(const FName& InBoneName, float AddPhysicsBlendWeight, bool bSkipCustomPhysicsType = false );
 
-	/** Enable or Disable AngularPositionDrive */
+	/** Enable or Disable AngularPositionDrive. If motor is in SLERP mode it will be turned on if either EnableSwingDrive OR EnableTwistDrive are enabled. In Twist and Swing mode the twist and the swing can be controlled individually.*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, bool bSkipCustomPhysicsType = false);
 
-	/** Enable or Disable AngularVelocityDrive based on a list of bone names */
+	/** Enable or Disable AngularVelocityDrive. If motor is in SLERP mode it will be turned on if either EnableSwingDrive OR EnableTwistDrive are enabled. In Twist and Swing mode the twist and the swing can be controlled individually.*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, bool bSkipCustomPhysicsType = false);
 
-	/** Set Angular Drive motors params for all constraint instance */
+	/** Set Angular Drive motors params for all constraint instances */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularDriveParams(float InSpring, float InDamping, float InForceLimit, bool bSkipCustomPhysicsType = false);
 
 	/** Enable or Disable AngularPositionDrive based on a list of bone names */

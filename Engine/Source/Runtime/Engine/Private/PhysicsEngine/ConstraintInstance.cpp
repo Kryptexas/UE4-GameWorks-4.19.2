@@ -967,28 +967,25 @@ void FConstraintInstance::SetAngularVelocityTarget(const FVector& InVelTarget)
 void FConstraintInstance::SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit)
 {
 #if WITH_PHYSX
-	if (bAngularOrientationDrive || bAngularVelocityDrive)
+	ExecuteOnUnbrokenJointReadWrite([&] (PxD6Joint* Joint)
 	{
-		ExecuteOnUnbrokenJointReadWrite([&] (PxD6Joint* Joint)
-		{
-			const float AngularForceLimit = InForceLimit > 0.0f ? InForceLimit : PX_MAX_F32;
-			const float DriveSpring = bAngularOrientationDrive ? InSpring : 0.0f;
-			const float DriveDamping = bAngularVelocityDrive ? InDamping : 0.0f;
+		const float AngularForceLimit = InForceLimit > 0.0f ? InForceLimit : PX_MAX_F32;
+		const float DriveSpring = bAngularOrientationDrive ? InSpring : 0.0f;
+		const float DriveDamping = bAngularVelocityDrive ? InDamping : 0.0f;
 
-			if (AngularDriveMode == EAngularDriveMode::SLERP)
-			{
-				Joint->setDrive(PxD6Drive::eTWIST, PxD6JointDrive());
-				Joint->setDrive(PxD6Drive::eSWING, PxD6JointDrive());
-				Joint->setDrive(PxD6Drive::eSLERP, (bEnableSwingDrive || bEnableTwistDrive) ? PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bIsAccelerationDrive) : PxD6JointDrive());				
-			}
-			else
-			{
-				Joint->setDrive(PxD6Drive::eTWIST, bEnableTwistDrive ? PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bIsAccelerationDrive) : PxD6JointDrive());
-				Joint->setDrive(PxD6Drive::eSWING, bEnableSwingDrive ? PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bIsAccelerationDrive) : PxD6JointDrive());
-				Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive());
-			}
-		});
-	}
+		if (AngularDriveMode == EAngularDriveMode::SLERP)
+		{
+			Joint->setDrive(PxD6Drive::eTWIST, PxD6JointDrive());
+			Joint->setDrive(PxD6Drive::eSWING, PxD6JointDrive());
+			Joint->setDrive(PxD6Drive::eSLERP, (bEnableSwingDrive || bEnableTwistDrive) ? PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bIsAccelerationDrive) : PxD6JointDrive());				
+		}
+		else
+		{
+			Joint->setDrive(PxD6Drive::eTWIST, bEnableTwistDrive ? PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bIsAccelerationDrive) : PxD6JointDrive());
+			Joint->setDrive(PxD6Drive::eSWING, bEnableSwingDrive ? PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bIsAccelerationDrive) : PxD6JointDrive());
+			Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive());
+		}
+	});
 #endif
 
 	AngularDriveSpring = InSpring;
