@@ -366,10 +366,13 @@ bool FWebJSScripting::HandleExecuteUObjectMethodMessage(CefRefPtr<CefListValue> 
 
 		if (ParamsSize > 0)
 		{
-			Params.AddZeroed(ParamsSize);
 			// UFunction is a subclass of UStruct, so we can treat the arguments as a struct for deserialization
+			UStruct* TypeInfo = Cast<UStruct>(Function);
+
+			Params.AddUninitialized(ParamsSize);
+			TypeInfo->InitializeStruct(Params.GetData());
 			FWebJSStructDeserializerBackend Backend = FWebJSStructDeserializerBackend(SharedThis(this), NamedArgs);
-			FStructDeserializer::Deserialize(Params.GetData(), *Cast<UStruct>(Function), Backend);
+			FStructDeserializer::Deserialize(Params.GetData(), *TypeInfo, Backend);
 		}
 	}
 

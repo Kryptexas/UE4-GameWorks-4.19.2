@@ -69,7 +69,6 @@ namespace {
 		}
 	}
 
-
 	/**
 	 * Sets the value of the given property.
 	 *
@@ -102,7 +101,7 @@ namespace {
 		{
 			UPropertyType* TypedProperty = Cast<UPropertyType>(Property);
 
-			if (TypedProperty == nullptr)
+			if (TypedProperty == nullptr || ArrayIndex >= TypedProperty->ArrayDim)
 			{
 				return false;
 			}
@@ -224,8 +223,6 @@ namespace {
 			|| ReadNumericProperty<UDoubleProperty>(Property, Outer, Data, ArrayIndex, Container, Key)
 			|| ReadJSFunctionProperty(Scripting, Property, Outer, Data, ArrayIndex, Container, Key);
 	}
-
-
 }
 
 TSharedPtr<ICefContainerWalker> FCefListValueWalker::GetNextToken(EStructDeserializerBackendTokens& OutToken, FString& PropertyName)
