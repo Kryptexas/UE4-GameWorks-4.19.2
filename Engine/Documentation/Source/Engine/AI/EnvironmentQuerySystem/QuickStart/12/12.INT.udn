@@ -119,7 +119,7 @@ Just a quick reminder:
 * **Space Between** = `150.0`
 * **Navigation Filer** = `RecastFilter_UseDefaultArea`
 * **Project Down** = `2048.0`
-* **Post Projection Vertical Offset** = `120.0`
+* **Post Projection Vertical Offset** = `32.0`
 [/EXCERPT]
 
 [EXCERPT:eqsqs122]
