@@ -458,6 +458,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 	}
 
 	bCheckForMovieCapture = true;
+	LastTimeLogsFlushed = FPlatformTime::Seconds();
 
 	// Attach the viewport client to a new viewport.
 	if(ViewportClient)
@@ -822,7 +823,17 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		HotReload->Tick();
 	}
 
-	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
+	if (IsRunningDedicatedServer())
+	{
+		double CurrentTime = FPlatformTime::Seconds();
+		if (CurrentTime - LastTimeLogsFlushed > static_cast<double>(ServerFlushLogInterval))
+		{
+			GLog->Flush();
+
+			LastTimeLogsFlushed = FPlatformTime::Seconds();
+		}
+	}
+	else if (!IsRunningCommandlet())
 	{
 		// Clean up the game viewports that have been closed.
 		CleanupGameViewport();
