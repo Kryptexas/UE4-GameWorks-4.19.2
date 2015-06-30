@@ -19,7 +19,7 @@ Description:This document overviews the Source Control features.
 
 [TOC(start:2)]
 
-## Overview
+
 
 Unreal Editor supports source control, allowing teams to coordinate their game development and design efforts, as well as handling version control.
 
