@@ -101,7 +101,7 @@ class ENGINE_API UNavCollision : public UObject
 	void GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld);
 
 	/** Read collisions data */
-	bool GatherCollision();
+	void GatherCollision();
 
 protected:
 	void ClearCollision();
