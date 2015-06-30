@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2558633
+﻿INTSourceChangelist:2600565
 Availability: Public
-Title:2. C++ 클래스 생성
+Title:2 - C++ 클래스 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:C++ 클래스를 생성합니다.
-Version: 4.7
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,9 +24,9 @@ Version: 4.7
 
 %Steps%
 
- 1. **언리얼 에디터** 에서 **파일** 드롭다운 메뉴에 위치한 **프로젝트에 코드 추가** 명령으로 C++ /클래스를 새로 만들 수 있습니다.
+ 1. **언리얼 에디터** 에서 **파일** 드롭다운 메뉴에 위치한 **새 C++ 클래스...** 명령으로 C++ /클래스를 새로 만들 수 있습니다.
  
-	[![](AddCPPCode.png)](AddCPPCode.png)
+	[![](AddCPPClass.png)](AddCPPClass.png)
 
  2. **부모 클래스 선택** 메뉴가 열립니다. **Actor**, 액터가 **언리얼 엔진** 레벨에서 존재할 수 있는 가장 기본 클래스이므로, **액터** 를 베이스로 사용하겠습니다.
  

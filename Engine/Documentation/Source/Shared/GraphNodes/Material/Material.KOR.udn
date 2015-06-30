@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2573986
+﻿INTSourceChangelist:2588108
 Availability:NoPublish
 Title:
 Crumbs:
@@ -278,6 +278,14 @@ VertexNormalWS 는 월드 스페이스 버텍스 노멀을 출력하는 표현�
 Engine/Rendering/Materials/ExpressionReference/Coordinates#vertexnormalws
 [/VAR]
 [/EXCERPT:UMaterialExpressionVertexNormalWS]
+
+[EXCERPT:UMaterialExpressionViewProperty]
+ViewProperty (뷰 프로퍼티) 표현식은 뷰 종속 상수 프로퍼티를 출력합니다. 접근할 뷰 프로퍼티는 환경설정 가능하며, 출력 유형은 환경설정된 접근 프로퍼티에 따라 달라집니다.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Constant#viewproperty
+[/VAR]
+[/EXCERPT:UMaterialExpressionViewProperty]
 
 [EXCERPT:UMaterialExpressionViewSize]
 현재 뷰의 픽셀 단위 크기를 나타내는 2D 벡터를 출력하는 표현식입니다. 화면의 현재 해상도에 따라 머티리얼에 다양한 변화를 유발시키는 데 좋습니다.

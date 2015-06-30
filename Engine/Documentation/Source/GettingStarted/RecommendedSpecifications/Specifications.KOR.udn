@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2298466
+﻿INTSourceChangelist:2604630
 Availability:Public
 Title:하드웨어 & 소프트웨어 사양
+SEO-Title:하드웨어 & 소프트웨어 사양
 Crumbs: %ROOT%, GettingStarted
 Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드웨어 사양과 필수 소프트웨어 입니다.
 
 [PUBLISH:Rocket]
-%Globals:OSSelect%
+%Globals:OSSelect_Linux%
 [/PUBLISH:Rocket]
 
 [TOC(start:2)]
@@ -48,23 +49,47 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 	[INCLUDE:#macosminhardware]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#linuxminhardware]
+	[/PARAM]
+[/OBJECT]
 [/PUBLISH:Rocket]
 
 <!--
 [EXCERPT:WindowsMinHardware]
-| 엔진 실행 및 개발 ||
+|||
 | -------- | --- |
+| **운영 체제** | 윈도우 7/8 64 비트 |
 | **프로세서** | 쿼드코어 인텔 또는 AMD 2.5 GHz 이상|
 | **메모리** | 8 GB 램 |
-| **비디오 카드** | NVIDIA GeForce 470 GTX 또는 AMD Radeon 6870 HD 시리즈 이상 |
+| **비디오 카드** | DirectX 11 호환 그래픽 카드 |
+| **DirectX 버전** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
 [/EXCERPT:WindowsMinHardware]
 [EXCERPT:MacOSMinHardware]
-| 엔진 실행 및 개발 ||
+|||
 | -------- | --- |
-| **프로세서** | 쿼드코어 인텔 또는 AMD 2.5 GHz 이상|
+| **운영 체제** | Mac OS X 10.9.2  |
+| **프로세서** | 쿼드코어 인텔 2.5 GHz 이상|
 | **메모리** | 8 GB 램 |
-| **비디오 카드** | NVIDIA GeForce 470 GTX 또는 AMD Radeon 6870 HD 시리즈 이상 |
+| **비디오 카드** | DirectX 11 호환 그래픽 카드 |
 [/EXCERPT:MacOSMinHardware]
+[EXCERPT:LinuxMinHardware]
+|||
+| -------- | --- |
+| **운영 체제** | Ubuntu 15.04  |
+| **프로세서** | 쿼드코어 인텔 또는 AMD 2.5 GHz 이상|
+| **메모리** | 16 GB 램 |
+| **비디오 카드** | 	NVIDIA GeForce 470 GTX 이상에 최신 NVidia 바이너리 드라이버 |
+[/EXCERPT:LinuxMinHardware]
 -->
 
 [PUBLISH:Licensee]
@@ -79,7 +104,7 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 | -------- | --- |
 | **프로세서** | 2.5 GHz 이상 쿼드코어 |
 | **메모리** | 8 GB 이상 램 |
-| **비디오 카드** | GDDR5 메모리 2GB 이상 DirectX 11 |
+| **비디오 카드** | DirectX 11 호환 그래픽 카드에 GDDR5 메모리 2GB 이상 |
 | **모니터** | 1680x1050 이상 듀얼 모니터 |
 [/EXCERPT:WindowsRecHardware]
 [EXCERPT:MacOSRecHardware]
@@ -87,9 +112,17 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 | -------- | --- |
 | **프로세서** | 2.5 GHz 이상 쿼드코어 |
 | **메모리** | 8 GB 이상 램 |
-| **비디오 카드** | GDDR5 메모리 2GB 이상 |
+| **비디오 카드** | GDDR5 메모리 2GB 이상 DirectX 11 호환 그래픽 카드 |
 | **모니터** | 1680x1050 이상 듀얼 모니터 |
 [/EXCERPT:MacOSRecHardware]
+[EXCERPT:LinuxRecHardware]
+| 엔진으로 개발 ||
+| -------- | --- |
+| **프로세서** | 2.5 GHz 이상 쿼드코어 |
+| **메모리** | 8+ GB 램 |
+| **비디오 카드** | GDDR5 메모리 2GB 이상 DirectX 11 호환 그래픽 카드 |
+| **모니터** | 1680x1050 이상 듀얼 모니터 |
+[/EXCERPT:LinuxRecHardware]
 -->
 
 [PUBLISH:Licensee]
@@ -145,18 +178,27 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 	[INCLUDE:#macosminsoftware]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#linuxminsoftware]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsMinSoftware]
 | 엔진 실행 ||
 | -------- | --- |
-| **운영체제** | Windows 7/8 64-bit [INCLUDE:#WER] |
+| **운영체제** | Windows 7/8 64-bit |
 | **DirectX 버전** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
-| **.NET 버전** | .NET 4.0 (윈도우 업데이트를 통해 이미 설치되어 있을 것입니다) |
 
-[REGION:note]
-엔진 실행에 필요한 소프트웨어는 인스톨러가 자동으로 설치해 줍니다.
-[/REGION]
 [/EXCERPT:WindowsMinSoftware]
 
 [EXCERPT:MacOSMinSoftware]
@@ -164,6 +206,14 @@ Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드�
 | -------- | --- |
 | **운영체제** | Mac OS X 10.9.2  |
 [/EXCERPT:MacOSMinSoftware]
+
+[EXCERPT:LinuxMinSoftware]
+| 엔진 실행 ||
+| -------- | --- |
+| **운영체제 ** | 적당히 신형 리눅스 배포판 (테스트를 거친 가장 오래된 버전은 CentOS 6.x)  |
+| **리눅스 커널 버전** | kernel 2.6.32 이상 |
+| **부가 종속성** | glibc 2.12.2 이상  |
+[/EXCERPT:LinuxMinSoftware]
 
 [EXCERPT:WER]
 [REGION:note]
@@ -231,6 +281,19 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 	[INCLUDE:#macosmindevelopment]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#linuxmindevelopment]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsMinDevelopment]
@@ -246,15 +309,21 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 | -------- | --- |
 | **Xcode 버전** | 5.0 |
 [/EXCERPT:MacOSMinDevelopment]
+[EXCERPT:LinuxMinDevelopment]
+| 엔진으로 개발 ||
+| -------- | --- |
+| **운영체제** | Ubuntu 15.04  |
+| **컴파일러** | clang 3.5.x 또는 3.6.x  |
+| [REGION:tablesection]옵션[/REGION] ||
+| **IDE** | QtCreator 3.1 또는 KDevelop 4.6|
+| **빌드 시스템** | CMake 2.8 |
+[/EXCERPT:LinuxMinDevelopment]
 [EXCERPT:VS2013]
-Visual Studio 2013 Professional 또는 Visual Studio 2013 Express for Windows Desktop:
+Visual Studio 2013 Professional 또는 Visual Studio 2013 Community:
 
 * [Pro](http://www.microsoft.com/en-us/download/details.aspx?id=43730)
-* [Express](http://www.microsoft.com/en-us/download/details.aspx?id=43733)
+* [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
-[REGION:note]
-어느 버전이든, 최신 Visual Studio 업데이트 설치도 의무는 아니지만 추천합니다. Visual Studio 설치 후 실행하면 최신 버전으로 업데이트하겠냐고 물어올 것입니다.
-[/REGION]
 [/EXCERPT:VS2013]
 -->
 [/PUBLISH:Rocket]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2566595
+﻿INTSourceChangelist:2604445
 Availability:Public
 Title: 코딩 표준
 Crumbs:%ROOT%, Programming, Programming\Development
@@ -66,28 +66,28 @@ Version: 4.5
 
 ### Examples
 
-		/** 차의 무게, 킬로그램 */
+		/* 차의 무게, 킬로그램 */
 		float TeaWeight;
 
-		/** 찻잎 수 */
+		/* 찻잎 수 */
 		int32 TeaCount;
 
-		/** _True_ 면 냄새나는 차입니다. */
+		/* _True_ 면 냄새나는 차입니다. */
 		bool bDoesTeaStink;
 
-		/** 사람이 읽을 수 없는 차 FName 입니다. */
+		/* 사람이 읽을 수 없는 차 FName 입니다. */
 		FName TeaName;
 
-		/** 사람이 읽을 수 있는 차 이름입니다. */
+		/* 사람이 읽을 수 있는 차 이름입니다. */
 		FString TeaFriendlyName;
 
-		/** 사용할 차 등급입니다. */
+		/* 사용할 차 등급입니다. */
 		UClass* TeaClass;
 
-		/** 차 따르는 소리입니다. */
+		/* 차 따르는 소리입니다. */
 		USoundCue* TeaSound;
 
-		/** 차 그림입니다. */
+		/* 차 그림입니다. */
 		UTexture* TeaTexture;
 
 
@@ -172,12 +172,12 @@ Version: 4.5
 UE3 코딩 표준과는 달리, 메소드 코멘트는 딱 한번, 메소드가 공개적으로 선언되는 곳에 include 시켜야 합니다. 메소드 코멘트는 다른 호출자에게 관련이 있을 메소드 오버라이드 관련 정보를 포함해서, 메소드 호출자에 관련된 정보만을 담아야 합니다. 메소드 구현에 대한 세부사항이나 호출자에 관련이 없는 오버라이드는 메소드 구현 안에 코멘트를 달아야 할 것입니다.
 
 
-		/** 마실 수 있는 오브젝트에 대한 인터페이스 */
+		/* 마실 수 있는 오브젝트에 대한 인터페이스 */
 		class IDrinkable
 		{
 		public:
 
-			/**
+			/*
 			 * 플레이어가 이 오브젝트를 마실 때 호출.
 			 * @param OutFocusMultiplier - 반환되면 마신 사람의 포커스에 적용할 배수가 들어갑니다.
 			 * @param OutThirstQuenchingFraction - 반환되면 마신 사람의 갈증 해소 정도가 들어갑니다 (0-1).
@@ -185,12 +185,12 @@ UE3 코딩 표준과는 달리, 메소드 코멘트는 딱 한번, 메소드가 
 			virtual void Drink(float& OutFocusMultiplier,float& OutThirstQuenchingFraction) = 0;
 		};
 
-		/** (차) 한 곱뿌 */
+		/* (차) 한 곱뿌 */
 		class FTea : public IDrinkable
 		{
 		public:
 
-			/**
+			/*
 			 * 우려내는 데 사용한 물의 용량과 온도가 주어진 경우 차에 대한 델타-테이스트 값을 계산합니다.
 			 * @param VolumeOfWater - 우려내는 데 사용할 물의 양 mL 입니다.
 			 * @param TemperatureOfWater - 물의 온도 켈빈입니다.
@@ -203,24 +203,24 @@ UE3 코딩 표준과는 달리, 메소드 코멘트는 딱 한번, 메소드가 
 				float& OutNewPotency
 				);
 
-			/** 차에 감미료를 추가, 같은 당도를 내는 수크로오스 그램 단위별 감미료를 차에 추가합니다. */
+			// 차에 감미료를 추가, 같은 당도를 내는 수크로오스 그램 단위별 감미료를 차에 추가합니다.
 			void Sweeten(float EquivalentGramsOfSucrose);
 
-			/** 일본에서 판매되는 차의 가치 옌 단위입니다. */
+			/* 일본에서 판매되는 차의 가치 옌 단위입니다. */
 			float GetPrice() const
 			{
 				return Price;
 			}
 
-			// IDrinkable 인터페이스입니다.
+			//- IDrinkable 인터페이스입니다.
 			virtual void Drink(float& OutFocusMultiplier,float& OutThirstQuenchingFraction);
 
 		private:
 
-			/** 차의 가치 옌 단위입니다. */
+			/* 차의 가치 옌 단위입니다. */
 			float Price;
 
-			/** 차의 당도로, 같은 당도를 내는 만큼의 수크로오스 그램 단위입니다. */
+			// 차의 당도로, 같은 당도를 내는 만큼의 수크로오스 그램 단위입니다.
 			float Sweetness;
 		};
 
@@ -335,7 +335,9 @@ Enum 클래스는 모든 컴파일러에 지원되며, 일반 열거형이든 UE
 		{
 			enum Type
 			{
+				/* Description of Thing1 */
 				Thing1,
+				// Description of Thing2
 				Thing2
 			};
 		}
@@ -344,7 +346,9 @@ Enum 클래스는 모든 컴파일러에 지원되며, 일반 열거형이든 UE
 		UENUM()
 		enum class EThing : uint8
 		{
+			/* Description of Thing1 */
 			Thing1,
+			// Description of Thing2
 			Thing2
 		};
 
@@ -497,10 +501,10 @@ default 케이스는 항상 만들어 두시고, 다른 사람이 그 디폴트 
 
 * 네임스페이스로 영역을 지정한 enum 예제입니다:
 
-		/** 네임스페이스 안에 enum 을 정의하여 C# 스타일 enum 영역 규칙 이뤄내기 */
+		/* 네임스페이스 안에 enum 을 정의하여 C# 스타일 enum 영역 규칙 이뤄내기 */
 		namespace EColorChannel
 		{
-			/** EColorChannel::Type 을 이 enum 에 대한 실제 유형으로 선언합니다. */
+			/* EColorChannel::Type 을 이 enum 에 대한 실제 유형으로 선언합니다. */
 			enum Type
 			{
 				Red,
@@ -509,7 +513,7 @@ default 케이스는 항상 만들어 두시고, 다른 사람이 그 디폴트 
 			};
 		}
 
-		/** 컬러 채널이 주어지면, 그 채널의 이름을 반환합니다. */
+		/* 컬러 채널이 주어지면, 그 채널의 이름을 반환합니다. */
 		FString GetNameForColorChannel(const EColorChannel::Type ColorChannel)
 		{
 			switch(ColorChannel)
@@ -524,12 +528,12 @@ default 케이스는 항상 만들어 두시고, 다른 사람이 그 디폴트 
 
 * 참고로 로컬 선언된 enum 의 경우 영역 지정에 네임스페이스를 사용할 수 없을 것입니다. 그러한 경우 멤버 변수 없이 로컬 enum type 만으로 로컬 구조체를 선언한 다음 그 구조체를 영역 지정에 사용하는 방법을 택합니다.
 
-		/** 구조체를 사용하여 로컬 영역 지정된 열거형 정의 */
+		/* 구조체를 사용하여 로컬 영역 지정된 열거형 정의 */
 		class FObjectMover
 		{
         public:
 
-            /** 이동 방향 */
+            /* 이동 방향 */
             struct EMoveDirection
             {
 			    enum Type
@@ -539,7 +543,7 @@ default 케이스는 항상 만들어 두시고, 다른 사람이 그 디폴트 
 			    };
             };
 
-            /** 지정된 이동 방향으로 FObjectMover 생성 */
+            /* 지정된 이동 방향으로 FObjectMover 생성 */
             FObjectMover( const EMoveDirection::Type Direction );
 		}
 

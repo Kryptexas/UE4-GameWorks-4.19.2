@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2576224
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:1. 초기 레벨 구성
 Crumbs:
@@ -14,7 +14,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[비법 홈](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[퀵스타트 홈](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[다음 단계](Engine\OpenWorldTools\Grass\QuickStart\2 "%Engine\OpenWorldTools\Grass\QuickStart\2:title%") 

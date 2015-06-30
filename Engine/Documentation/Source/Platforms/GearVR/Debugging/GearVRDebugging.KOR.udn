@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2520747
+﻿INTSourceChangelist:2602692
 Availability:Public
 Title:삼성 기어 VR 디버깅
-Crumbs:%ROOT%, Platforms
 Description:기어 VR 헤드셋용 어플리케이션 디버깅 방법에 대한 정보입니다.
 Navigation:platform
+Crumbs:
 Platform:Gear VR
 Related: Platforms/Mobile/Performance
 Related: Engine/Performance
@@ -12,6 +12,8 @@ Related: Platforms/Mobile/Textures
 Related: Platforms/Mobile/Materials
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/CustomizedUVs
+Skilllevel: Intermediate
+Version: 4.8
 
 [TOC(start:2 end:3)]
 

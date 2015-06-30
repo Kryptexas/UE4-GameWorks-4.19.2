@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2508659
+﻿INTSourceChangelist:2602692
 Availability:Public
 Title:2. 기어 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms/GearVR
 Description:기어 VR 헤드셋과 사용할 C++ 기반 UE4 프로젝트 구성 방법입니다.
 Navigation:platform
+Skilllevel: Intermediate
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -27,6 +29,10 @@ Navigation:platform
 1. 프로젝트 생성 및 컴파일이 완료되면, Visual Studio 2013 이 (설치된 경우) 에디터와 함께 자동으로 열립니다.
 
 	![](GVR_Editor_Opened.png)
+
+	[region:note]
+	언리얼 엔진 4.8 이상 버전에 블루프린트 기반 프로젝트를 사용하시는 경우, Visual Studio 2013 은 필요치 않아 열리지 않을 것입니다.
+	[/region]
 
 1. UE4 에디터가 로드되면, **메인 툴바** 에서 **창** 탭을 열고 **플러그인** 메뉴 항목을 선택합니다.
 

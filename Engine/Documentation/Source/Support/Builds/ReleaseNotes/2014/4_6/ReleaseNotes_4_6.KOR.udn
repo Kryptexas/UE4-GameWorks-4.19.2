@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2402269
+﻿INTSourceChangelist:2592784
 Title: 언리얼 엔진 4.6 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -36,7 +36,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 이번 릴리즈에는 언리얼 엔진의 우월한 개발자 커뮤니티에서 제출된 변경사항 88 개가 포함되어 있습니다. 기여해 주신 분들께 감사의 마음 전하고자 합니다:
 
-Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Cengiz Terzibas (yaakuro), Flenzine, Gigantoad, Rama (EverNewJoy), Joel Riendeau (joelriendeau), Jakub Stasiak (jstasiak), Joe Hegarty (JoeHegarty), Marat Radchenko (slonopotamus), Michael K&ouml;sel (TheCodez), Michelle12188, Marcin Polaczyk (mpolaczyk), MyDigitalLife, mordentral, KazumasaOhashi, leobenaducci, Lukasz (iniside), Nicholas Hughes (piinecone), Sebastian K&ouml;cke (byte3), Salamanderrake, Stephen Whittle (stephenwhittle), Tomas Jedlicka (jedlickat), Rick Yorgason (Skrapion), Kyle Rocha (kylawl)
+Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Cengiz Terzibas (yaakuro), Flenzine, Gigantoad, Rama (EverNewJoy), Joel Riendeau (joelriendeau), Jakub Stasiak (jstasiak), Joe Hegarty (JoeHegarty), Marat Radchenko (slonopotamus), Michael Kösel (TheCodez), Michelle12188, Marcin Polaczyk (mpolaczyk), MyDigitalLife, mordentral, KazumasaOhashi, leobenaducci, Lukasz (iniside), Nicholas Hughes (piinecone), Sebastian Köcke (byte3), Salamanderrake, Stephen Whittle (stephenwhittle), Tomas Jedlicka (jedlickat), Rick Yorgason (Skrapion), Kyle Rocha (kylawl)
 
 ## 주요 신기능
 
@@ -1311,4 +1311,5 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 ## Known Issues
 * Cannot create events in the AnimBP EventGraph for new Anim Notifies.
 	* Workaround for this issue is to reopen the editor. 
+
 

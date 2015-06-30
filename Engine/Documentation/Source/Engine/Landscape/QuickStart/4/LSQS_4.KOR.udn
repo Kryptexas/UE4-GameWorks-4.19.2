@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516340
+﻿INTSourceChangelist:2591123
 Availability: Public
 Title:4. 랜드스케이프 머티리얼 만들기
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -32,13 +32,10 @@ Description:랜드스케이프에 사용할 머티리얼을 만드는 법입니�
 언리얼 엔진 4 에서의 폴더 셋업 방법에 대해 더욱 자세히 알고자 하는 경우, [](Engine/Content/Browser/UserGuide/WorkingWithSources) 문서를 참고해 주시기 바랍니다.
 [/REGION]
 
-**Landscape** 
-
-**Materials**
-
-**Resources**
-
-**Textures**
+1. **Landscape** 
+2. **Materials**
+3. **Resources**
+4. **Textures**
 
 완료되면 다음과 같은 모습일 것입니다.
 

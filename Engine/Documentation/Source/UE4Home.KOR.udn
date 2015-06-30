@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2414058
+﻿INTSourceChangelist:2604022
 Availability:Public
 Title: 언리얼 엔진 4 문서
 Crumbs:
@@ -67,10 +67,13 @@ Navigation:home
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
+	%Engine/Editor:role%
 	%Engine:role%
-	%Programming:topicrole%
+	%Gameplay:role%
 	%Engine/Blueprints:role%
+	%Programming:topicrole%
 	%Platforms:role%
 	%Resources:role%
+	%Support/Builds:role%
 	[/REGION]
 [/REGION]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2520707
+﻿INTSourceChangelist:2602692
 Availability:Public
 Title:삼성 기어 VR 실전 사례
 Crumbs:%ROOT%, Platforms
@@ -12,10 +12,11 @@ Related: Platforms/Mobile/Textures
 Related: Platforms/Mobile/Materials
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/CustomizedUVs
+Skilllevel: Intermediate
+Version: 4.8
 
 [TOC(start:2 end:3)]
 
-## 개요
 가상현실(VR) 프로젝트용 콘텐츠 개발시, 사용자에게 최적의 VR 경험을 선사하기 위해 꼭 해 줘야만 하는 일이 몇 가지 있습니다.
 이 실전 사례 안내에서는 삼성 기어 VR 헤드셋과 삼성 갤럭시 노트 4 스마트폰을 사용해서 프로젝트를 확인할 때 최적의 경험을 보장하기 위해 
 알아야 하는 모든 것에 대해 다루겠습니다.
@@ -24,7 +25,7 @@ Related: Engine/Rendering/Materials/CustomizedUVs
 ## 기어 VR 렌더링 옵션
 기어 VR 헤드셋과 삼성 갤럭시 노트 4 스마트폰과의 결합으로 매우 몰입도 높은 VR 경험을 선사하는 것이 가능하기는 하지만,
 기어 VR 헤드셋 하드웨어상의 한계로 인해 UE4 가 할 수 없는 렌더링 기능이 몇 가지 있습니다.
-그 한계 중 많은 부분은 [모바일 디바이스](Platforms/Mobile/Performance) 제약과 유사합니다.
+그 한계 중 많은 부분은 **[모바일 디바이스](Platforms/Mobile/Performance)** 제약과 유사합니다.
 하지만 기어 VR 헤드셋의 독특한 렌더링 요구사항으로 인해 추가적으로 고려해야 하는 사항이 조금 있습니다.
 여기서는 그 요구사항이 무엇이고 기어 VR 프로젝트에 어떻게 영향을 끼치는지 알아보겠습니다.
 
@@ -99,7 +100,7 @@ Material Blend Mode 는 이미 배경에 그려진 것에 현재 머티리얼의
 | bUseLightmapDirectionality | 라이트맵 방향성 사용 - 끄면 라이트맵의 라이팅이 평이해 지지만 저렴해집니다. |
 
 ### Customized UVs
-[Customized UVs](Engine/Rendering/Materials/CustomizedUVs) 는 특정 셰이더의 연산을 픽셀 셰이더가 아닌 버텍스 셰이더로 옮겨 의존 텍스처 페치를 피하는 데 도움이 됩니다.
+**[Customized UVs](Engine/Rendering/Materials/CustomizedUVs)** 는 특정 셰이더의 연산을 픽셀 셰이더가 아닌 버텍스 셰이더로 옮겨 의존 텍스처 페치를 피하는 데 도움이 됩니다.
 이를 통해 텍스처를 원래보다 화려해 보이도록 만들기 위해 UV 조작같은 간단한 작업에 드는 퍼포먼스를 많은 부분 환수하는 것이 가능합니다.
 가급적 모든 UV 조작 작업은, 특히나 기어 VR 헤드셋용 콘텐츠 개발시에는 Customized UVs 를 사용하도록 하십시오.
 
@@ -108,7 +109,7 @@ Customized UVs 는 현재 스태틱 메시, 스켈레탈 메시, BSP, 랜드스�
 [/region]
 
 ### 리플렉션
-기어 VR 은 스크린 스페이스 리플렉션(SSR)을 지원하지 않습니다. 즉 레벨에 배치된 [리플렉션 캡처 액터](Resources/ContentExamples/Reflections/1_4/) 에서 오는 리플렉션만 생성 가능하다는 뜻입니다.
+기어 VR 은 스크린 스페이스 리플렉션(SSR)을 지원하지 않습니다. 즉 레벨에 배치된 **[리플렉션 캡처 액터](Resources/ContentExamples/Reflections/1_4/)** 에서 오는 리플렉션만 생성 가능하다는 뜻입니다.
 또 한가지, 리플렉션 액터에서 생성되는 리플렉션은 하드웨어상의 한계로 인해 정확도가 매우 높지는 않다는 점 유념하시기 바랍니다.
 
 ## 기어 VR & 콘텐츠 구성

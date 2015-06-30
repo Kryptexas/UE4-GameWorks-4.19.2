@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2601353
 Availability: Public
 Title:프로그래밍 퀵스타트
 Crumbs:%ROOT%, Programming
 Description:첫 코드 프로젝트를 만들고, C++ 클래스를 새로 추가해 봅니다.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +40,7 @@ Description:첫 코드 프로젝트를 만들고, C++ 클래스를 새로 추가
 [/OBJECT]
 [/VAR]
 
-이 튜토리얼 과정에서는 **언리얼 엔진** 프로젝트를 새로 만들고, 거기에 새 클래스를 추가한 다음, 프로젝트를 컴파일한 뒤 레벨에 새 클래스 인스턴스를 추가해 봅니다. 완료되면 화면에 C++ 로 프로그래밍한 **액터** 가 돌아다니는 것을 확인할 수 있을 것입니다.
+----
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -51,6 +53,21 @@ Description:첫 코드 프로젝트를 만들고, C++ 클래스를 새로 추가
 	dS1f71pS-5I
 	[/PARAMLITERAL]
 [/OBJECT]
+
+## 목적
+
+이 튜토리얼의 주목적은 프로그래머에게 언리얼 엔진 4 의 개발 환경을 소개하는 것입니다. 이 퀵스타트 가이드가 끝날 무렵이면 개발자들은 언리얼 엔진 4 에서 C++ 프로젝트를 편하게 구성하고 개발할 수 있을 것입니다.
+
+## 목표
+
+완료하면 개발자들은 다음 스킬을 갖게 될 것입니다:
+
+* 언리얼 엔진 프로젝트 새로 생성
+* C++ 클래스 새로 추가
+* 프로젝트 컴파일
+* 레벨에 새 클래스의 인스턴스 추가
+
+_완료하면 C++ 로 프로그래밍한 액터가 화면을 돌아다니는 것을 볼 수 있을 것입니다._
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2578359
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title: 4. 다수의 폴리지 타입 사용
 Crumbs:
@@ -15,7 +15,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[비법 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+		[퀵스타트 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[다음 단계](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5:title%") 

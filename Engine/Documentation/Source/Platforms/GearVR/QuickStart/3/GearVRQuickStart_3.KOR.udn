@@ -1,10 +1,15 @@
-﻿INTSourceChangelist:2520626
+﻿INTSourceChangelist:2602692
 Availability:Public
 Title:3. 기어 VR 프로젝트 패키징 & 디플로이
 Crumbs:%ROOT%, Platforms/GearVR
 Description:삼성 기어 VR 헤드셋을 사용하는 UE4 프로젝트 디플로이 방법 안내입니다.
 Navigation:platform
 Platform:Gear VR
+Related: Platforms\GearVR\Prerequisites
+Related: Platforms\GearVR\BestPractices
+Related: Platforms\GearVR\Debugging
+Skilllevel: Intermediate
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]

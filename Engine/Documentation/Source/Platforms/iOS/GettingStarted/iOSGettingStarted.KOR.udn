@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2430506
+﻿INTSourceChangelist:2591123
 Availability: Public
 Title: 고급 iOS PC/Mac 작업방식
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -217,15 +217,6 @@ Certificate 설치시, 마법사의 기본 옵션으로 대부분의 경우 통�
     * Terminal 에서 UnrealRemoteTool 을 실행시킵니다 (디버거에 잡히지 않는 희귀한 버그가 URT 에 있어서, 루프로 실행시키고 있습니다).
         * for (( ;; )) ; do ./UnrealRemoteTool; done
     * 참고로 Mountain Lion 에서는, Terminal 이 작업 디렉토리와 명령 히스토리를 기억하므로, 리부팅한 경우 위 화살표를 누르면 기억된 명령이 나타날 것입니다.
-
-## 윈도우 시스템 셋업
-
-* 환경 변수를 설정(하거나 하나의 맥을 모두가 공유할 수 있도록 RemoteToolchain.cs 의 코드를 변경)합니다.
-    * ue.RemoteCompileServerName = 컴파일에 사용되는 맥의 DNS 이름 또는 IP 주소 (예: a1012)
-    * ue.IOSSigningServer = 옵션입니다 (컴파일시 패키지는 ue.RemoteCompileServerName 와 동일한 것으로 강제되지만, IPhonePackager.exe 를 독립적으로 실행한 경우 -mac 이 지정되지 않으면 이것이 사용할 맥을 결정합니다).
-
-환경 변수 세트가 둘인 이유는, 컴파일과 Signing 서버를 완전히 별개로 분리할 수 있도록 하기 위해서입니다. 이 값을 변경하면 컴퓨터를 재시작해야 효력이 적용될 수 있습니다.
-
 
 ### 윈도우에서 컴파일하기
 위의 윈도우 및 맥 시스템 셋업 단계를 마치고나면, 컴파일은 UnrealBuildTool 이 활용되니 간단해 질 것입니다:

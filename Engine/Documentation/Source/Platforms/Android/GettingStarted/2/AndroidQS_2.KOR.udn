@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2559056
+﻿INTSourceChangelist:2588647
 Availability:Public
 Title:2. 안드로이드 디바이스 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -22,11 +22,42 @@ Description:안드로이드 디바이스 개발용으로 셋업하기 입니다.
 [/OBJECT]
 [/VAR]
 
-
-
-
 %Steps%
 
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:WindowsSetup]
 
 1.	디바이스를 연결합니다.
 1.	디바이스 드라이버 소프트웨어가 자동으로 설치될 수도 있지만, 그렇지 않은 경우 [Android's OEM USB Driver](http://developer.android.com/tools/extras/oem-usb.html) 페이지를 방문하여 드라이버 설치 링크 및 추가 정보를 확인할 수 있습니다.
@@ -48,7 +79,49 @@ Description:안드로이드 디바이스 개발용으로 셋업하기 입니다.
 	* Always allow 체크박스는 체크해 두는 것이 좋습니다.
 	* 어떤 경우에는 제대로 환경설정된 디바이스도 **Camera (PTP)** 가 아닌 **Media Device (MTP)** 로 연결된 경우 나타나지 않을 수도 있습니다. 이 때 `adb devices` 아래 디바이스가 전혀 나타나지 않는 경우 **Camera (PTP)** 옵션을 선택해 보세요.
 
+[/EXCERPT:WindowsSetup]
 
+[EXCERPT:MacOSSetup]
+
+1. 디바이스를 맥에 연결합니다.
+
+1. 디바이스에서 **Settings** 어플리케이션을 엽니다.
+
+1. Developer Options 메뉴를 찾습니다. 사용할 수 없는 경우, 디바이스의 Developer Options 를 먼저 켜 줘야 합니다. 
+	Developer Options 관련 상세 내용은 [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) 페이지를 참고하세요.
+	디바이스의 개발자 옵션을 켜기 위해서는 다음 작업이 필요할 것입니다.
+
+	* 화면 스크롤을 내려 About Phone 을 선택합니다. 
+	* 안드로이드 디바이스에 따라 About Device, About Tablet, About Shield 옵션이 대신 나타날 수도 있습니다.
+
+	[region:note]
+	안드로이드 새로운 버전에는 More 섹션에 있을 수 있습니다.
+	[/region]
+
+	* Build Number 를 7 회 탭합니다. 
+	* 처음 몇 번 탭하고 나면 **You are now # steps away from becoming a developer.** 메시지가 뜰 것입니다.
+	* Developer Mode 가 활성화되면 성공 메시지가 뜰 것입니다.
+	* Settings 메뉴로 되돌아가 사용가능해진 Developer Options 를 선택합니다.
+
+1. Developer Options 메뉴에서 USB 디버깅을 켭니다.
+
+1. 묻는 창이 뜨면 OK 를 선택합니다.
+
+1. 디바이스 셋업이 제대로 되었는지 확인하기 위해, /Applications/Utilties 에서 **Terminal app** 을 엽니다.
+
+1. 터미널 창에 **adb devices** 라 입력합니다. 디바이스가 나열되는 것을 볼 수 있을 것입니다. 여기서 디바이스가 보이지 않는다면 해 볼 수 있는 방법은:
+
+	* 디바이스가 나열은 되어 있으되 허가되지 않은 것으로 나타나는 경우, 디바이스에서 맥 승인을 하도록 해 줘야 함을 나타냅니다.
+
+	* 디바이스가 나타나지 않으면 연결을 해제한 후 다시 연결해야 할 수도 있습니다.
+
+	* 연결된 컴퓨터에서의 접속을 항상 허용하기 위해 Always allow 박스는 체크해 두는 것이 좋습니다.
+
+	* 어떤 경우에는 제대로 환경설정된 디바이스도 **Camera (PTP)** 가 아닌 **Media Device (MTP)** 로 연결된 경우 나타나지 않을 수도 있습니다. 이 때 `adb devices` 아래 디바이스가 전혀 나타나지 않는 경우 **Camera (PTP)** 옵션을 선택해 보세요.
+
+[/EXCERPT:MacOSSetup]
+
+-->
 
 
 

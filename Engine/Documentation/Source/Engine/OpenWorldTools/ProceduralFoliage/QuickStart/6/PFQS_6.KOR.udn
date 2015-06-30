@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2576224
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title: 6. 직접 해보기
 Crumbs:
@@ -15,7 +15,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[비법 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+		[퀵스타트 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 

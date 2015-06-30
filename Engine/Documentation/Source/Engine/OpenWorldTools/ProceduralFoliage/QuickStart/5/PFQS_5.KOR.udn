@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2578359
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title: 5. 프로시저럴 폴리지 블로킹 볼륨 구현
 Crumbs:
@@ -15,7 +15,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[비법 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+		[퀵스타트 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[다음 단계](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6:title%") 

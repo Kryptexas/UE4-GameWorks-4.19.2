@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2558633
+﻿INTSourceChangelist:2600565
 Availability: Public
-Title:1. 필수 프로젝트 생성
+Title:1 - 필수 프로젝트 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:지정한 사양으로 새로운 C++ 프로젝트를 만듭니다.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,6 +22,11 @@ Description:지정한 사양으로 새로운 C++ 프로젝트를 만듭니다.
 [/VAR]
 
 %Steps%
+
+[REGION:note]
+이 튜토리얼 시작 전 **Visual Studio** 가 설치되어 있어야 합니다.
+[/REGION]
+
 1. 런처에서 **언리얼 엔진** 을 엽니다. [](Engine/Basics/Projects/Browser) 가 나타납니다.
 
 1. **새 프로젝트** 탭을 클릭한 다음 **C++** 탭을 선택합니다. 거기서 **기본 코드** 를 선택하여 깨끗한 시작점을 확보하고, "시작용 콘텐츠 포함" 설정되었는지 확인합니다. 프로젝트 이름을 지어줘야 하는데, 여기서는 "QuickStart" 라 하겠습니다. 이제 **프로젝트 생성** 을 클릭하여 시작하면 됩니다.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:3. 프로젝트 생성
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -26,7 +26,7 @@ Description:템플릿 프로젝트를 시작합니다.
 %Steps%
 
 
-1.	새 프로젝트를 생성합니다. 여기서는 블루프린트 기반 프로젝트를 테스트하지만, C++ 프로젝트로 시작한 다음 에디터에서 열 수 있도록 컴파일만 해 주면 다음 단계는 똑같습니다.
+1.	새 프로젝트를 생성합니다. 여기서는 블루프린트 기반 프로젝트를 테스트하지만, C++ 프로젝트로 시작한 다음 컴파일만 해 주면 다음 단계는 똑같습니다.
 
 ![](new_android_project.png)
 

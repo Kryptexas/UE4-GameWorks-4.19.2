@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2464839
+﻿INTSourceChangelist:2588647
 Availability:Public
 Title:1. 안드로이드 SDK 설치
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -21,60 +21,106 @@ Description: TADP 안드로이드 SDK 설치입니다.
 [/OBJECT]
 [/VAR]
 
-
-
-
 %Steps%
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsSetup]
 
 [REGION:tip]
 이미 안드로이드 SDK 가 설치되어 있는데 환경 변수는 없어진 경우, 이 단계는 전부 건너뛰고 에디터의 **편집 메뉴** -> **프로젝트 세팅** -> **Android SDK** 프로퍼티에서 설치 위치를 지정해 주기만 해도 됩니다.
 [/REGION]
 
-1.	TADP 설치 폴더로 이동합니다:
+1. TADP 설치 폴더로 이동합니다:
 | 설치 유형 | 위치 |
 | ------------ | ---------|
 | Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
 | GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
-1.	tadp-2.0r8-windows.exe 에 더블클릭합니다.
-1.	Next 를 클릭합니다.
+
+1. tadp-2.0r8-windows.exe 에 더블클릭합니다.
+
+1. Next 를 클릭합니다.
     
 	![](tadpinstaller_1.png)(w:450)
+
 1.	"I accept the agreement" 를 선택한 다음 Next 를 클릭합니다.
 
 	![](tadpinstaller_2.png)(w:450)
+
 1.	Next 를 클릭합니다.
 
 	![](tadpinstaller_3.png)(w:450)
+
 1.	Express install 을 선택한 다음 Next 를 클릭합니다.
 	
 	![](tadpinstaller_4.png)(w:450)
+
 1.	설치 위치가 `C:\NVPACK` 인지 확인합니다.
 	
 	![](tadpinstaller_5.png)(w:450) 
+
 1.	설치할 컴포넌트 목록과 이 목록이 일치하는지 확인합니다:
 	
 	![](tadpinstaller_6.png)(w:450)
+
 1.	필요한 경우 프록시를 입력합니다:
 	
 	![](tadpinstaller_7.png)(w:450)
+
 1.	Next 를 클릭합니다. 인터넷 접속이 필요하며, 몇 분 걸릴 수 있습니다.
 	
 	![](tadpinstaller_8.png)(w:450)
+
 1.	Next 를 클릭합니다.
 	
 	![](tadpinstaller_9.png)(w:450)
+
 1.	인스톨러가 실행되며, 시간이 조금 걸립니다.
 	
 	![](tadpinstaller_10.png)(w:450)
+
 1.	소프트웨어 퍼블리셔 관련 경고가 뜨는 경우, "Install this driver software anyway" 를 선택합니다.
 	
 	![](tadpinstaller_11.png)
+
 1.	설치 후 파일 저장에 관해 묻는 경우, Yes 든 No 든 아무거나 선택해도 됩니다.
 	
 	![](tadpinstaller_12.png)
+
 1.	Next 를 클릭합니다.
 	
 	![](tadpinstaller_13.png)(w:450)
+
 1.	모든 컴포넌트가 올바르게 설치되었는지 확인합니다.
 	
 	![](tadpinstaller_14.png)(w:450)
@@ -82,5 +128,95 @@ Description: TADP 안드로이드 SDK 설치입니다.
 	
 	![](tadpinstaller_15.png)(w:450)
 
+[/EXCERPT:WindowsSetup]
+
+[EXCERPT:MacOSSetup]
+
+[region:tip]
+이 단계는 에디터와 런처가 둘 다 닫혀있는 동안에 하는 것이 가장 좋습니다. 열어둔 채 SDK 를 설치하는 경우, 에디터와 런처를 재시작해야 안드로이드 디바이스 작업을 할 수 있게 될 것입니다.
+[/region]
+
+TADP 인스톨러와 안드로이드 SDK 툴은 맥에 Java 6 와 Java 7 둘 다 설치되어 있어야 합니다.
+
+* **Java 6** 는 [여기서](http://support.apple.com/kb/DL1572) 다운로드 가능합니다.
+* **Java 7** 은 [여기서](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html) 다운로드 가능합니다.
+
+1. TADP 설치 폴더로 이동합니다:
+| 설치 유형 | 위치 |
+| --- | --- |
+| 바이너리 | [EngineInstallLocation]\Unreal Engine[EngineVersion]\Engine\Extras\Android |
+| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+
+1. tadp-3.0r4-osx.dmg 에 **더블클릭** 합니다. 그러면 TADP 인스톨러 디스크를 마운트하여 그 창을 엽니다.
+
+1. TADP 인스톨러 아이콘을 **더블클릭** 합니다.
+
+	![](Tadp_Mac_Setup-00.png)
+
+1. **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-01.png)
+
+1. **I accept the agreement** 옵션을 선택한 뒤 **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-02.png)
+
+1. **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-03.png)
+
+1. **Express** 설치를 선택한 뒤 **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-04.png)
+
+1. 설치 위치를 선택합니다.
+	[region:note]
+	기본 위치로 놔둬도 정말 괜찮습니다.
+	[/region]
+
+	![](Tadp_Mac_Setup-05.png)
+
+1. 아설치할 컴포넌트 목록이 아래 그림과 일치하는지 확인합니다.
+
+	![](Tadp_Mac_Setup-06.png)
+
+1. 필요한 경우 프록시를 입력합니다.Enter a proxy if needed.
+
+	![](Tadp_Mac_Setup-07.png)
+
+1. **다음** 을 클릭합니다. 
+	[region:note]
+	구성 이 부분의 완료에는 시간이 몇 분 걸리며, 인터넷 접속이 필요할 것입니다.
+	[/region]
+
+	![](Tadp_Mac_Setup-08.png)
+
+1. **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-09.png)
+
+1. 인스톨러가 이제 실행되어 설치 완료에 시간이 약간 걸릴 것입니다.
+
+	![](Tadp_Mac_Setup-10.png)
+
+1. **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-11.png)
+
+1. **다음** 을 클릭합니다.
+
+	![](Tadp_Mac_Setup-12.png)
+
+1. 모든 컴포넌트가 제대로 설치되었는지 확인합니다.
+
+	![](Tadp_Mac_Setup-13.png)
+
+1. **View Readme File** 및 **Browse Documentation** 둘 다 체크 해제하고 **완료** 를 클릭합니다.
+
+	![](Tadp_Mac_Setup-14.png)
+
+[/EXCERPT:MacOSSetup]
+
+-->
 %Steps%
 
