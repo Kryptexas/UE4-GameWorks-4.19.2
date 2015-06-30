@@ -167,13 +167,23 @@ FAreaNavModifier::FAreaNavModifier(const FBox& Box, const FTransform& LocalToWor
 FAreaNavModifier::FAreaNavModifier(const TArray<FVector>& InPoints, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> InAreaClass)
 {
 	Init(InAreaClass);
-	SetConvex(InPoints, 0, InPoints.Num(), CoordType, LocalToWorld);
+	SetConvex(InPoints.GetData(), 0, InPoints.Num(), CoordType, LocalToWorld);
 }
 
 FAreaNavModifier::FAreaNavModifier(const TArray<FVector>& InPoints, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> InAreaClass)
 {
+	check(InPoints.IsValidIndex(FirstIndex) && InPoints.IsValidIndex(LastIndex-1));
+
 	Init(InAreaClass);
-	SetConvex(InPoints, FirstIndex, LastIndex, CoordType, LocalToWorld);
+	SetConvex(InPoints.GetData(), FirstIndex, LastIndex, CoordType, LocalToWorld);
+}
+
+FAreaNavModifier::FAreaNavModifier(const TNavStatArray<FVector>& InPoints, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> InAreaClass)
+{
+	check(InPoints.IsValidIndex(FirstIndex) && InPoints.IsValidIndex(LastIndex-1));
+
+	Init(InAreaClass);
+	SetConvex(InPoints.GetData(), FirstIndex, LastIndex, CoordType, LocalToWorld);
 }
 
 FAreaNavModifier::FAreaNavModifier(const UBrushComponent* BrushComponent, const TSubclassOf<UNavArea> InAreaClass)
@@ -194,7 +204,7 @@ FAreaNavModifier::FAreaNavModifier(const UBrushComponent* BrushComponent, const 
 	}
 
 	Init(InAreaClass);
-	SetConvex(Verts, 0, Verts.Num(), ENavigationCoordSystem::Unreal, BrushComponent->ComponentToWorld);
+	SetConvex(Verts.GetData(), 0, Verts.Num(), ENavigationCoordSystem::Unreal, BrushComponent->ComponentToWorld);
 }
 
 void FAreaNavModifier::GetCylinder(FCylinderNavAreaData& Data) const
@@ -282,11 +292,11 @@ void FAreaNavModifier::SetBox(const FBox& Box, const FTransform& LocalToWorld)
 	}
 	else
 	{
-		SetConvex(Corners, 0, Corners.Num(), ENavigationCoordSystem::Unreal, FTransform::Identity);
+		SetConvex(Corners.GetData(), 0, Corners.Num(), ENavigationCoordSystem::Unreal, FTransform::Identity);
 	}
 }
 
-void FAreaNavModifier::SetConvex(const TArray<FVector>& InPoints, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld)
+void FAreaNavModifier::SetConvex(const FVector* InPoints, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld)
 {
 	FConvexNavAreaData ConvexData;
 	ConvexData.MinZ = MAX_FLT;

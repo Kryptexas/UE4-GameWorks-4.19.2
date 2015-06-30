@@ -245,14 +245,13 @@ void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const
 		if (ConvexCollision.VertexBuffer.Num() > 0)
 		{
 			int32 LastVertIndex = 0;
-			TArray<FVector> Verts(ConvexCollision.VertexBuffer);
 
 			for (int32 i = 0; i < ConvexShapeIndices.Num(); i++)
 			{
 				int32 FirstVertIndex = LastVertIndex;
 				LastVertIndex = ConvexShapeIndices.IsValidIndex(i + 1) ? ConvexShapeIndices[i + 1] : ConvexCollision.VertexBuffer.Num();
 
-				FAreaNavModifier AreaMod(Verts, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+				FAreaNavModifier AreaMod(ConvexCollision.VertexBuffer, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
 				AreaMod.SetIncludeAgentHeight(true);
 				Modifier.Add(AreaMod);
 			}
