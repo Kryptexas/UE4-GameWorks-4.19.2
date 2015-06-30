@@ -4441,6 +4441,8 @@ void UMaterialExpressionDynamicParameter::PostEditChangeProperty(FPropertyChange
 	}
 }
 
+#endif // WITH_EDITOR
+
 void UMaterialExpressionDynamicParameter::PostLoad()
 {
 	Super::PostLoad();
@@ -4451,7 +4453,6 @@ void UMaterialExpressionDynamicParameter::PostLoad()
 	}
 }
 
-#endif // WITH_EDITOR
 
 void UMaterialExpressionDynamicParameter::UpdateDynamicParameterProperties()
 {
