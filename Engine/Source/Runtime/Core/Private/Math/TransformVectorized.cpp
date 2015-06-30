@@ -224,21 +224,21 @@ bool FTransform::DebugEqualMatrix(const FMatrix& Matrix) const
 	if (!Equals(TestResult))
 	{
 		// see now which one isn't equal		
-		if (!Scale3DEquals(TestResult.Scale3D, ScalarRegister(0.01f)))
+		if (!Scale3DEquals(TestResult, 0.01f))
 		{
 			UE_LOG(LogTransform, Log, TEXT("Matrix(S)\t%s"), *TestResult.GetScale3D().ToString());
 			UE_LOG(LogTransform, Log, TEXT("VQS(S)\t%s"), *GetScale3D().ToString());
 		}
 
 		// see now which one isn't equal
-		if (!RotationEquals(TestResult.Rotation))
+		if (!RotationEquals(TestResult))
 		{
 			UE_LOG(LogTransform, Log, TEXT("Matrix(R)\t%s"), *TestResult.GetRotation().ToString());
 			UE_LOG(LogTransform, Log, TEXT("VQS(R)\t%s"), *GetRotation().ToString());
 		}
 
 		// see now which one isn't equal
-		if (!TranslationEquals(TestResult.Translation, ScalarRegister(0.01f)))
+		if (!TranslationEquals(TestResult, 0.01f))
 		{
 			UE_LOG(LogTransform, Log, TEXT("Matrix(T)\t%s"), *TestResult.GetTranslation().ToString());
 			UE_LOG(LogTransform, Log, TEXT("VQS(T)\t%s"), *GetTranslation().ToString());

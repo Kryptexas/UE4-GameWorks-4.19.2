@@ -612,17 +612,17 @@ public:
 
 private:
 
-	FORCEINLINE bool RotationEquals(const FQuat& InRotation, const float Tolerance = KINDA_SMALL_NUMBER) const
+	FORCEINLINE bool Private_RotationEquals(const FQuat& InRotation, const float Tolerance = KINDA_SMALL_NUMBER) const
 	{
 		return Rotation.Equals(InRotation, Tolerance);
 	}
 
-	FORCEINLINE bool TranslationEquals(const FVector& InTranslation, const float Tolerance = KINDA_SMALL_NUMBER) const
+	FORCEINLINE bool Private_TranslationEquals(const FVector& InTranslation, const float Tolerance = KINDA_SMALL_NUMBER) const
 	{
 		return Translation.Equals(InTranslation, Tolerance);
 	}
 
-	FORCEINLINE bool Scale3DEquals(const FVector& InScale3D, const float Tolerance = KINDA_SMALL_NUMBER) const
+	FORCEINLINE bool Private_Scale3DEquals(const FVector& InScale3D, const float Tolerance = KINDA_SMALL_NUMBER) const
 	{
 		return (Scale3D-InScale3D).SizeSquared() <= FMath::Square(Tolerance);
 	}
@@ -632,32 +632,52 @@ public:
 	// Test if A's rotation equals B's rotation, within a tolerance. Preferred over "A.GetRotation().Equals(B.GetRotation())" because it is faster on some platforms.
 	FORCEINLINE static bool AreRotationsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
 	{
-		return A.RotationEquals(B.Rotation, Tolerance);
+		return A.Private_RotationEquals(B.Rotation, Tolerance);
 	}
 
 	// Test if A's translation equals B's translation, within a tolerance. Preferred over "A.GetTranslation().Equals(B.GetTranslation())" because it is faster on some platforms.
 	FORCEINLINE static bool AreTranslationsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
 	{
-		return A.TranslationEquals(B.Translation, Tolerance);
+		return A.Private_TranslationEquals(B.Translation, Tolerance);
 	}
 
 	// Test if A's scale equals B's scale, within a tolerance. Preferred over "A.GetScale3D().Equals(B.GetScale3D())" because it is faster on some platforms.
 	FORCEINLINE static bool AreScale3DsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
 	{
-		return A.Scale3DEquals(B.Scale3D, Tolerance);
+		return A.Private_Scale3DEquals(B.Scale3D, Tolerance);
+	}
+
+
+
+	// Test if this Transform's rotation equals another's rotation, within a tolerance. Preferred over "GetRotation().Equals(Other.GetRotation())" because it is faster on some platforms.
+	FORCEINLINE bool RotationEquals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
+	{
+		return AreRotationsEqual(*this, Other, Tolerance);
+	}
+
+	// Test if this Transform's translation equals another's translation, within a tolerance. Preferred over "GetTranslation().Equals(Other.GetTranslation())" because it is faster on some platforms.
+	FORCEINLINE bool TranslationEquals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
+	{
+		return AreTranslationsEqual(*this, Other, Tolerance);
+	}
+
+	// Test if this Transform's scale equals another's scale, within a tolerance. Preferred over "GetScale3D().Equals(Other.GetScale3D())" because it is faster on some platforms.
+	FORCEINLINE bool Scale3DEquals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
+	{
+		return AreScale3DsEqual(*this, Other, Tolerance);
 	}
 
 
 	// Test if all components of the transforms are equal, within a tolerance.
 	inline bool Equals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
-		return RotationEquals(Other.Rotation, Tolerance) && TranslationEquals(Other.Translation, Tolerance) && Scale3DEquals(Other.Scale3D, Tolerance);
+		return Private_RotationEquals(Other.Rotation, Tolerance) && Private_TranslationEquals(Other.Translation, Tolerance) && Private_Scale3DEquals(Other.Scale3D, Tolerance);
 	}
 
 	// Test if rotation and translation components of the transforms are equal, within a tolerance.
 	inline bool EqualsNoScale(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
-		return RotationEquals(Other.Rotation, Tolerance) && TranslationEquals(Other.Translation, Tolerance);
+		return Private_RotationEquals(Other.Rotation, Tolerance) && Private_TranslationEquals(Other.Translation, Tolerance);
 	}
 
 	/**
