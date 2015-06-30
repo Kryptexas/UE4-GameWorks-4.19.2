@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:2604829
+Availability:Docs
+Title:ドラッグ＆ドロップによるインポート
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:ファイルをドラッグ＆ドロップしてコンテンツ ブラウザにコンテンツをインポートする方法を学習しましょう。
+スキルレベル:初心者向け
+バージョン：4.8
+
+[REGION:note]
+開始前に、以下のリンクから Quick Start Assets (クイックスタート アセット) をダウンロードしてください。
+* [サンプル アセット](SampleAssets.zip)
+[/REGION]
+
+ここに説明の概要を示します。
+
+## ゴール
+
+ここにゴールを示します。
+
+## 目的
+
+ここに目的を示します。
+
+## クリック＆ドラッグでインポートする
+
+(#Bookmark2)
+
+ハードディスクから **コンテンツ ブラウザ** (下の画像) へファイルを直接 **ドラッグ** する方法でもプロジェクトへコンテンツを追加できます。
+
+<!--![](CnD_importAll.jpg)-->
+
+### メッシュをインポートすると
+
+<!--![](FBXImportOptions.png)-->
+
+FBX/OBJ ファイルに対するインポート オプションを定義するように UE4 から求められます (下の画像)。
+
+### テクスチャをインポートすると
+
+UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") 画像ファイルをバッチ処理でインポートします。
+
+次のようなメッセージが表示されることがあります。
+
+<!--![](TextureImportMessage.png)-->
+
+サポート対象外の画像ファイルがインポートされないようにしているのです。
+
+また、次のメッセージがでた場合は、
+
+<!--![](nonpoweoftwowarning.png)-->
+
+不適切なサイズの画像のストリーミングやミップマップが行われていないことを示しています。
