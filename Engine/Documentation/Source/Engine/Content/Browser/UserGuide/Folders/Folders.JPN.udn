@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2215050
+﻿INTSourceChangelist:2600850
 Availability:Public
 Title:フォルダ
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
-Description:コンテンツ ブラウザでのフォルダのコンセプトと使用方法に関するドキュメントです。
+Description:コンテンツ ブラウザでのフォルダのコンセプトと使用方法を説明します。
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -28,26 +28,24 @@ Description:コンテンツ ブラウザでのフォルダのコンセプトと�
 ![](FoldersBanner.png)
 [/REGION]
 
-## 概要
-
 **コンテンツ ブラウザ** のフォルダ構造は、プロジェクトに対して設定したフォルダ構造を反映しています。フォルダはお好きな方法で設定することができます。
 
 [REGION:note]
-デフォルトで、ソース ビューの **Asset Tree** には **Developers** フォルダがあります。このフォルダは、テストと実験で使用するためのものです。詳しい情報については、以下を参照してください。[](Engine/Content/Browser\UserGuide\WorkingWithSources) および [](Engine/Content/Browser\UserGuide\DevelopersFolder)
+デフォルトで、ソース ビューのアセット ツリーには Developers フォルダがあります。このフォルダは、テストと実験目的のためのものです。詳しい情報については、[](Engine/Content/Browser\UserGuide\WorkingWithSources) および [](Engine/Content/Browser\UserGuide\DevelopersFolder) を参照してください。
 [/REGION]
 
-**コンテンツ ブラウザ** の Asset View は、各アセットの代わりにフォルダを表示するようにカスタマイズが可能です。Asset View のデフォルト動作が拡張され、ファイル管理が一層楽になります。
+**コンテンツ ブラウザ** のアセットビューは、各アセットの代わりにフォルダを表示するようにカスタマイズが可能です。アセットビューのデフォルト動作が拡張され、ファイル管理が一層楽になります。
 
-Asset View でフォルダを表示するには、**コンテンツ ブラウザ** の右下の隅にある ![](icon_CB_ViewOptions.png) ボタンをクリックし、**Show Folders** を選択します。
+アセットビューでフォルダを表示するには、**コンテンツ ブラウザ** の右下隅にある ![](icon_CB_ViewOptions.png) ボタンをクリックし、**Show Folders**  (フォルダを表示) を選択します。
 
 ![Show Folders](CB_ShowFolders.png)
 
-**Show Folders** オプションを選択した状態で、**コンテンツ ブラウザ** が Asset View 内に既存フォルダに存在するアセットと一緒にフォルダを表示します。
+Show Folders オプションを選択すると、**コンテンツ ブラウザ** ではアセットビューに現フォルダ内に存在するアセットとフォルダを表示します。
 
 ![](ContentBrowserFolders.png)
 
-Asset Tree と同様、Asset View からドラッグしてプロジェクト内の新しい位置にフォルダを入れることができます。これにより、**Show Folders** はプロジェクト フォルダ管理にとって便利なツールにすることができます。
+アセットツリーと同様、アセットビューからドラッグしてプロジェクト内の新しい位置にフォルダを入れることができます。これにより、Show Folders はプロジェクト フォルダを管理するうえで便利なツールになります。
 
-**Developers** フォルダの詳しい情報については、[](Engine/Content/Browser\UserGuide\DevelopersFolder) を参照してください。
+Developers フォルダの詳しい情報については、[](Engine/Content/Browser\UserGuide\DevelopersFolder) を参照してください。
 
-**ソース パネル** の作業に関する詳細は、[](Engine/Content/Browser\UserGuide\WorkingWithSources) を参照してください。
+ソース パネルの作業に関する詳細は、[](Engine/Content/Browser\UserGuide\WorkingWithSources) を参照してください。
