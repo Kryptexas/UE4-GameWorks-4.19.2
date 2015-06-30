@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2603866
 Availability:Public
 Title:最適化の中心的な概念
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
@@ -15,7 +15,7 @@ UE4 には、エフェクト アーティストがパフォーマンス問題の
 
 
 1. ゲームを起動します。
-1. バックスラッシュ **\`**  キーを押して、コンソールに `stat unit` を入力します。
+1. バックスラッシュ` キーを押して、コンソールに `stat unit` を入力します。
 
     ![statunit.png](statunit.png)
 
