@@ -149,16 +149,6 @@ public:
 		return NeedsRedrawEvent;
 	}
 	
-	virtual FONJSQueryReceived& OnJSQueryReceived() override
-	{
-		return JSQueryReceivedDelegate;
-	}
-
-	virtual FONJSQueryCanceled& OnJSQueryCanceled() override
-	{
-		return JSQueryCanceledDelegate;
-	}
-
 	virtual FOnBeforeBrowse& OnBeforeBrowse() override
 	{
 		return BeforeBrowseDelegate;
@@ -260,25 +250,6 @@ private:
 	 */
 	bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser, CefProcessId SourceProcess, CefRefPtr<CefProcessMessage> Message);
 
-	/**
-	 * Called when JavaScript code sends a message to the UE process.
-	 * Needs to return true or false to tell CEF wether the query is being handled by user code or not.
-	 *
-	 * @param QueryId A unique id for the query. Used to refer to it in OnQueryCanceled.
-	 * @param Request The query string itself as passed in from the JS code.
-	 * @param Persistent Is this a persistent query or not. If not, client code expects the callback to be invoked only once, wheras persistent queries are terminated by invoking Failure, Success can be invoked multiple times until then.
-	 * @param Callback A handle to pass data back to the JS code. 
-	 */
-	bool OnQuery(int64 QueryId, const CefString& Request, bool Persistent, CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback);
-
-	/**
-	 * Called when an outstanding query has been canceled eother explicitly from JS code or implicitly by navigating away from the page containing the code.
-	 * Will only be called if OnQuery has previously returned true for the same QueryId.
-	 *
-	 * @param QueryId A unique id for the query. A handler should use it to locate and remove any handlers that might be in flight.
-	 */
-	void OnQueryCanceled(int64 QueryId);
-	
 	/**
 	 * Called before browser navigation.
 	 *
@@ -427,9 +398,6 @@ private:
 
 	/** Delegate for overriding Url contents. */
 	FOnLoadUrl LoadUrlDelegate;
-
-	FONJSQueryReceived JSQueryReceivedDelegate;
-	FONJSQueryCanceled JSQueryCanceledDelegate;
 
 	/** Delegate for notifying that a popup window is attempting to open. */
 	FOnBeforePopupDelegate BeforePopupDelegate;

@@ -11,12 +11,6 @@
 FWebBrowserHandler::FWebBrowserHandler()
 	: ShowErrorMessage(true)
 {
-	// This has to match the config in UnrealCEFSubpProcess
-	CefMessageRouterConfig MessageRouterConfig;
-	MessageRouterConfig.js_query_function = "ueQuery";
-	MessageRouterConfig.js_cancel_function = "ueQueryCancel";
-	MessageRouter = CefMessageRouterBrowserSide::Create(MessageRouterConfig);
-	MessageRouter->AddHandler(this, true);
 }
 
 void FWebBrowserHandler::OnTitleChange(CefRefPtr<CefBrowser> Browser, const CefString& Title)
@@ -99,7 +93,6 @@ void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 
 void FWebBrowserHandler::OnBeforeClose(CefRefPtr<CefBrowser> Browser)
 {
-	MessageRouter->OnBeforeClose(Browser);
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
 
 	if (BrowserWindow.IsValid())
@@ -266,7 +259,6 @@ bool FWebBrowserHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser, Cef
 
 void FWebBrowserHandler::OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status)
 {
-	MessageRouter->OnRenderProcessTerminated(Browser);
 }
 
 bool FWebBrowserHandler::OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
@@ -283,7 +275,6 @@ bool FWebBrowserHandler::OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
 		}
 	}
 
-	MessageRouter->OnBeforeBrowse(Browser, Frame);
 	return false;
 }
 
@@ -317,35 +308,7 @@ bool FWebBrowserHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
 	{
 		Retval = BrowserWindow->OnProcessMessageReceived(Browser, SourceProcess, Message);
 	}
-	if (! Retval)
-	{
-		Retval = MessageRouter->OnProcessMessageReceived(Browser, SourceProcess, Message);
-	}
 	return Retval;
-}
-
-bool FWebBrowserHandler::OnQuery(CefRefPtr<CefBrowser> Browser,
-		CefRefPtr<CefFrame> Frame,
-		int64 QueryId,
-		const CefString& Request,
-		bool Persistent,
-		CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback)
-{
-	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid())
-	{
-		return BrowserWindow->OnQuery(QueryId, Request, Persistent, Callback);
-	}
-	return false;
-}
-
-void FWebBrowserHandler::OnQueryCanceled(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, int64 QueryId)
-{
-	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid())
-	{
-		BrowserWindow->OnQueryCanceled(QueryId);
-	}
 }
 
 bool FWebBrowserHandler::OnKeyEvent(CefRefPtr<CefBrowser> Browser,

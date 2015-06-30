@@ -7,32 +7,19 @@
 
 FUnrealCEFSubProcessApp::FUnrealCEFSubProcessApp()
 {
-    CefMessageRouterConfig MessageRouterConfig;
-    MessageRouterConfig.js_query_function = "ueQuery";
-    MessageRouterConfig.js_cancel_function = "ueQueryCancel";
-    MessageRouter = CefMessageRouterRendererSide::Create(MessageRouterConfig);
 }
 
-
-void FUnrealCEFSubProcessApp::OnContextCreated(CefRefPtr<CefBrowser> Browser,
-    CefRefPtr<CefFrame> Frame,
-    CefRefPtr<CefV8Context> Context)
+void FUnrealCEFSubProcessApp::OnContextCreated( CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefV8Context> Context )
 {
 	RemoteScripting.OnContextCreated(Browser, Frame, Context);
-	MessageRouter->OnContextCreated(Browser, Frame, Context);
 }
 
-void FUnrealCEFSubProcessApp::OnContextReleased(CefRefPtr<CefBrowser> Browser,
-    CefRefPtr<CefFrame> Frame,
-    CefRefPtr<CefV8Context> Context)
+void FUnrealCEFSubProcessApp::OnContextReleased( CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefV8Context> Context )
 {
 	RemoteScripting.OnContextReleased(Browser, Frame, Context);
-    MessageRouter->OnContextReleased(Browser, Frame, Context);
 }
 
-bool FUnrealCEFSubProcessApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
-    CefProcessId SourceProcess,
-    CefRefPtr<CefProcessMessage> Message)
+bool FUnrealCEFSubProcessApp::OnProcessMessageReceived( CefRefPtr<CefBrowser> Browser, CefProcessId SourceProcess, CefRefPtr<CefProcessMessage> Message )
 {
 	bool Result = false;
 	FString MessageName = Message->GetName().ToWString().c_str();
@@ -40,14 +27,11 @@ bool FUnrealCEFSubProcessApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> Bro
 	{
 		Result = RemoteScripting.OnProcessMessageReceived(Browser, SourceProcess, Message);
 	}
-	else
-	{
-		Result = MessageRouter->OnProcessMessageReceived(Browser, SourceProcess, Message);
-	}
+
 	return Result;
 }
 
-void FUnrealCEFSubProcessApp::OnRenderThreadCreated(CefRefPtr<CefListValue> ExtraInfo)
+void FUnrealCEFSubProcessApp::OnRenderThreadCreated( CefRefPtr<CefListValue> ExtraInfo )
 {
 	for(size_t I=0; I<ExtraInfo->GetSize(); I++)
 	{
@@ -63,6 +47,5 @@ void FUnrealCEFSubProcessApp::OnRenderThreadCreated(CefRefPtr<CefListValue> Extr
 		}
 	}
 }
-
 
 #endif

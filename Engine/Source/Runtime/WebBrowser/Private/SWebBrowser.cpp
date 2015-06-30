@@ -22,8 +22,6 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	OnTitleChanged = InArgs._OnTitleChanged;
 	OnUrlChanged = InArgs._OnUrlChanged;
 	OnBeforeNavigation = InArgs._OnBeforeNavigation;
-	OnJSQueryReceived = InArgs._OnJSQueryReceived;
-	OnJSQueryCanceled = InArgs._OnJSQueryCanceled;
 	OnLoadUrl = InArgs._OnLoadUrl;
 	OnBeforePopup = InArgs._OnBeforePopup;
 	OnCreateWindow = InArgs._OnCreateWindow;
@@ -155,8 +153,6 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow->OnToolTip().AddSP(this, &SWebBrowser::HandleToolTip);
 		BrowserWindow->OnBeforeBrowse().BindSP(this, &SWebBrowser::HandleBeforeNavigation);
 		BrowserWindow->OnLoadUrl().BindSP(this, &SWebBrowser::HandleLoadUrl);
-		BrowserWindow->OnJSQueryReceived().BindSP(this, &SWebBrowser::HandleJSQueryReceived);
-		BrowserWindow->OnJSQueryCanceled().BindSP(this, &SWebBrowser::HandleJSQueryCanceled);
 		BrowserWindow->OnBeforePopup().BindSP(this, &SWebBrowser::HandleBeforePopup);
 		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, ViewportWidget));
 		ViewportWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
@@ -406,20 +402,6 @@ bool SWebBrowser::HandleLoadUrl(const FString& Method, const FString& Url, FStri
 		return OnLoadUrl.Execute(Method, Url, OutResponse);
 	}
 	return false;
-}
-
-bool SWebBrowser::HandleJSQueryReceived( int64 QueryId, FString QueryString, bool Persistent, FJSQueryResultDelegate Delegate )
-{
-	if (OnJSQueryReceived.IsBound())
-	{
-		return OnJSQueryReceived.Execute(QueryId, QueryString, Persistent, Delegate);
-	}
-	return false;
-}
-
-void SWebBrowser::HandleJSQueryCanceled( int64 QueryId )
-{
-	OnJSQueryCanceled.ExecuteIfBound(QueryId);
 }
 
 bool SWebBrowser::HandleBeforePopup(FString URL, FString Target)

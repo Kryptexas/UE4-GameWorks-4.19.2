@@ -9,13 +9,6 @@ class IWebBrowserWindow;
 class FWebBrowserViewport;
 class UObject;
 
-DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
-DECLARE_DELEGATE_RetVal_FourParams(bool, FOnJSQueryReceivedDelegate, int64, FString, bool, FJSQueryResultDelegate);
-DECLARE_DELEGATE_OneParam(FOnJSQueryCanceledDelegate, int64);
-
-DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
-DECLARE_DELEGATE_RetVal_FourParams(bool, FOnJSQueryReceivedDelegate, int64, FString, bool, FJSQueryResultDelegate);
-DECLARE_DELEGATE_OneParam(FOnJSQueryCanceledDelegate, int64);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&);
 
@@ -27,12 +20,13 @@ public:
 	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnLoadUrl, const FString& /*Method*/, const FString& /*Url*/, FString& /* Response */)
 
 	SLATE_BEGIN_ARGS(SWebBrowser)
-		: _InitialURL(TEXT("www.google.com"))
+		: _InitialURL(TEXT("https://www.google.com"))
 		, _ShowControls(true)
 		, _ShowAddressBar(false)
 		, _ShowErrorMessage(true)
 		, _SupportsTransparency(false)
 		, _SupportsThumbMouseButtonNavigation(false)
+		, _BackgroundColor(255,255,255,255)
 		, _ViewportSize(FVector2D::ZeroVector)
 	{ }
 
@@ -81,12 +75,6 @@ public:
 		/** Called when the Url changes. */
 		SLATE_EVENT(FOnTextChanged, OnUrlChanged)
 	
-		/** Called when a custom Javascript message is received from the browser process. */
-		SLATE_EVENT(FOnJSQueryReceivedDelegate, OnJSQueryReceived)
-	
-		/** Called when a pending Javascript message has been canceled, either explicitly or by navigating away from the page containing the script. */
-		SLATE_EVENT(FOnJSQueryCanceledDelegate, OnJSQueryCanceled)
-		
 		/** Called before a popup window happens */
 		SLATE_EVENT(FOnBeforePopupDelegate, OnBeforePopup)
 
@@ -227,12 +215,6 @@ private:
 	/** Callback for showing browser tool tips. */
 	void HandleToolTip(FString ToolTipText);
 
-	/** Callback for received JS queries. */
-	bool HandleJSQueryReceived(int64 QueryId, FString QueryString, bool Persistent, FJSQueryResultDelegate ResultDelegate);
-
-	/** Callback for cancelled JS queries. */
-	void HandleJSQueryCanceled(int64 QueryId);
-
 	/**
 	 * A delegate that is executed prior to browser navigation.
 	 *
@@ -283,12 +265,6 @@ private:
 
 	/** A delegate that is invoked when document address changed. */
 	FOnTextChanged OnUrlChanged;
-	
-	/** A delegate that is invoked when render process Javascript code sends a query message to the client. */
-	FOnJSQueryReceivedDelegate OnJSQueryReceived;
-	
-	/** A delegate that is invoked when render process cancels an ongoing query. Handler must clean up corresponding result delegate. */
-	FOnJSQueryCanceledDelegate OnJSQueryCanceled;
 	
 	/** A delegate that is invoked when the browser attempts to pop up a new window */
 	FOnBeforePopupDelegate OnBeforePopup;
