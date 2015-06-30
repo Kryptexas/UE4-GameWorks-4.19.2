@@ -3,7 +3,6 @@
 #pragma once
 
 #include "BehaviorTree/BTNode.h"
-#include "GameplayTaskOwnerInterface.h"
 #include "BTTaskNode.generated.h"
 
 class UBehaviorTreeComponent;
@@ -25,7 +24,7 @@ struct FAIMessage;
  */
 
 UCLASS(Abstract)
-class AIMODULE_API UBTTaskNode : public UBTNode, public IGameplayTaskOwnerInterface
+class AIMODULE_API UBTTaskNode : public UBTNode
 {
 	GENERATED_UCLASS_BODY()
 
@@ -66,6 +65,11 @@ public:
 	/** helper function: finishes latent aborting */
 	void FinishLatentAbort(UBehaviorTreeComponent& OwnerComp) const;
 
+	//----------------------------------------------------------------------//
+	// UBTTaskNode IGameplayTaskOwnerInterface
+	//----------------------------------------------------------------------//
+	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
+
 protected:
 
 	/** if set, TickTask will be called */
@@ -73,11 +77,7 @@ protected:
 
 	/** if set, OnTaskFinished will be called */
 	uint8 bNotifyTaskFinished : 1;
-
-	/** set to true if task owns any GameplayTasks. Note this requires tasks to be created via NewBTAITask
-	 *	Otherwise specific BT task node class is responsible for ending the gameplay tasks on node finish */
-	uint8 bOwnsGameplayTasks : 1;
-
+	
 	/** ticks this task 
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds);
@@ -96,32 +96,7 @@ protected:
 	
 	/** unregister message observers */
 	void StopWaitingForMessages(UBehaviorTreeComponent& OwnerComp) const;
-
-	template <class T>
-	T* NewBTAITask(UBehaviorTreeComponent& BTComponent)
-	{
-		T* NewAITask = NewObject<T>();
-		AAIController* AIController = BTComponent.GetAIOwner();
-		check(AIController && "Can\'t spawn an AI task without AI controller!");
-		NewAITask->InitAITask(*AIController, *this, GetDefaultPriority());
-		bOwnsGameplayTasks = true;
-		
-		return NewAITask;
-	}
-
-	//----------------------------------------------------------------------//
-	// IGameplayTaskOwnerInterface
-	//----------------------------------------------------------------------//
-	virtual UGameplayTasksComponent* GetGameplayTasksComponent(const UGameplayTask& Task) const override;
-	virtual void OnTaskActivated(UGameplayTask& Task) override;
-	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
-	virtual void OnTaskInitialized(UGameplayTask& Task) override;
-	virtual AActor* GetOwnerActor(const UGameplayTask* Task) const;
-	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const;
-	virtual uint8 GetDefaultPriority() const;
-
-	UBehaviorTreeComponent* GetBTComponentForTask(UGameplayTask& Task) const;
-
+	
 	//----------------------------------------------------------------------//
 	// DEPRECATED
 	//----------------------------------------------------------------------//
