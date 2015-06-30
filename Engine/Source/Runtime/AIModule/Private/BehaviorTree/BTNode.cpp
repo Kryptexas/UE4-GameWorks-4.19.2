@@ -4,6 +4,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BTNode.h"
 #include "BehaviorTree/BTCompositeNode.h"
+#include "GameplayTasksComponent.h"
 
 //----------------------------------------------------------------------//
 // UBTNode
