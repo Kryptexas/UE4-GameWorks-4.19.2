@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572450
+﻿INTSourceChangelist:2604193
 Availability:Public
 Title:7.AI コントローラーの設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -25,6 +25,8 @@ Description:EQS クイックスタートのための AI Controller の設定
 この AI Controller の設定は、 **Event BeginPlay** が実行されるたびに、単一の **Run Behavior Tree** ノードが `RunnerBT` **ビヘイビアツリー** を実行します。
 
 ## ステップ
+
+1. コンテンツ ブラウザ の `Runner_AI_CON` ブループリントをダブルクリック して、編集用に開きます。
 
 1. イベントグラフで、`RunnerBT` を **BTAsset**: として使用して **On Begin Play** に **Run Beahvior Tree** ノードを実行させます。
 
