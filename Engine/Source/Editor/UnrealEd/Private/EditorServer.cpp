@@ -2254,7 +2254,9 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					for (TObjectIterator<UWorld> It; It; ++It)
 					{
 						UPackage* Package = Cast<UPackage>(It->GetOuter());
-						if (Package && Package != GetTransientPackage())
+						
+
+						if (Package && Package != GetTransientPackage() && Package->GetPathName() != LongTempFname)
 						{
 							WorldPackages.AddUnique(Package);
 						}
