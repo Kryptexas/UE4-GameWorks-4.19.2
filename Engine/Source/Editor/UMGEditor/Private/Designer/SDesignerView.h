@@ -214,12 +214,14 @@ private:
 	bool CanSetTransformMode(ETransformMode::Type InTransformMode) const;
 	bool IsTransformModeActive(ETransformMode::Type InTransformMode) const;
 
-	UWidget* ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview);
+	void ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, const bool bIsPreview);
 
 	FVector2D GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
 
 	FVector2D GetExtensionSize(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
 	
+	void ClearDropPreviews();
+
 private:
 	/** A reference to the BP Editor that owns this designer */
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
@@ -236,8 +238,13 @@ private:
 	/** The current preview widget's slate widget */
 	TWeakPtr<SWidget> PreviewSlateWidget;
 	
-	UWidget* DropPreviewWidget;
-	UPanelWidget* DropPreviewParent;
+	struct FDropPreview
+	{
+		UWidget* Widget;
+		UPanelWidget* Parent;
+	};
+
+	TArray<FDropPreview> DropPreviews;
 
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
 	TSharedPtr<SBox> PreviewAreaConstraint;
