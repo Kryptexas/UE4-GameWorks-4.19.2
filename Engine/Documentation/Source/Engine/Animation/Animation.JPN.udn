@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2590930
-Availability:Public
+﻿Availability:Public
 Title:ペルソナ：スケルタルメッシュのアニメーション
 Crumbs: %ROOT%, Engine
 Description:キーフレーム アニメーション データとモーフ ターゲットに基いてスケルタル メッシュを変形するシステム
@@ -55,7 +54,7 @@ Navigation:topic
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Essentials
+		必須情報
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
@@ -125,7 +124,7 @@ Navigation:topic
 		![](%ROOT%/related_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Related Links
+		関連リンク
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Content/Types/SkeletalMeshes "%Engine/Content/Types/SkeletalMeshes:description%")
