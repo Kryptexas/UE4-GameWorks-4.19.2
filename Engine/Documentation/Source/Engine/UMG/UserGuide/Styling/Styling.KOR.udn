@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2338489
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title: 스타일링
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -120,6 +120,10 @@ _클릭하면 크게 볼 수 있습니다._
 ![](RenderTransforms.png)(w:520)
 
 렌더 트랜스폼 세팅 각각은 키프레임을 통해 **애니메이션** 으로 변경 가능하며, **블루프린트** 를 통한 변경을 통해 사용자가 수행한 게임플레이 동작 도중 내지 결과에 따른 수정도 가능합니다. 렌더 트랜스폼은 **레이아웃** 트랜스폼에 상대적이며, 그 부모에 의해 잘리지 않습니다 (예를 들어 버튼으로 가득찬 스크롤 박스가 있는 경우, 렌더 트랜스폼 세팅에서 **Translation** 을 조절하면 박스 범위 밖으로 버튼이 밀려날 수 있습니다).
+
+
+
+
 
 
 

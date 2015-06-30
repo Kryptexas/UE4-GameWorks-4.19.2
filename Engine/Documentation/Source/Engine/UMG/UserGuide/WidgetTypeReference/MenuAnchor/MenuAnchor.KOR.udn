@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2527287
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title: 메뉴 앵커
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -97,6 +97,9 @@ Menu Anchor, 메뉴 앵커는 팝업 메뉴의 기준이 되어 띄울 위치를
 팝업의 각 버튼을 누르면 (화면 출력 말고) 무언가를 하도록 약간의 함수성을 추가해 주고 싶을 것입니다. 예를 들어 첫 버튼은 인벤토리의 아이템을 "사용하고", 두 번째는 "버리고", 세 번째는 "취소" 및 플레이어를 인벤토리 메뉴로 돌려보냅니다.
 
 이는 한 예제일 뿐, **Menu Anchor** 를 여는 방식을 바꿀 수도 있습니다. 버튼 눌림 대신 **IsHovered** 함수를 사용하여 오브젝트에 마우스 커서를 올렸는지 확인하고, 그렇다면 Menu Anchor 를 열어 팝업창에 툴팁이나 다른 형태의 알림을 표시하도록 할 수도 있습니다. 어느 경우든, 스크립트를 통해 **Menu Anchor** 를 사용하여 팝업 위젯을 표시/제거하는 방법의 운을 떼 보기에는 충분할 것입니다.
+
+
+
 
 
 

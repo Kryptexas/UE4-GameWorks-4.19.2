@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2426237
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title: 네임드 슬롯
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -60,6 +60,10 @@ Button 의 Text 도 변경합니다.
 Named Slot 에 위젯을 다수 추가하여, 다양한 위젯으로 채울 수 있는 "템플릿" 구성이 가능합니다.
 
 ![](NamedSlot10.png)(w:800)
+
+
+
+
 
 
 

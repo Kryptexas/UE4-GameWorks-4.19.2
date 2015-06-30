@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2426256
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title: 랩 박스
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -53,6 +53,10 @@ Related: Engine/UMG/UserGuide/Slots
 ![](GIF3.gif)(w:520 convert:false)
 
 **Wrap Box** 는 폭만 검사하여 그 안의 위젯 배치 시기를 결정할 때 폭만 검사하는 반면, 여기에 **Scroll Box** 를 조합해 사용하면 창 안의 위젯 갯수 제한이 넘는 경우 사용자가 화면을 내려 나머지 위젯을 볼 수 있도록 해 주는 스크롤 바가 추가됩니다.
+
+
+
+
 
 
 

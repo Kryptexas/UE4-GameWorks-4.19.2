@@ -1,4 +1,4 @@
-INTSourceChangelist:2033300
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피지컬 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -57,3 +57,7 @@ Description:물리 시뮬레이션 프리미티브에 바로 또는 머티리얼
 		* [](Engine/Physics/PhysicalMaterials/PhysMatReference "%Engine/Physics/PhysicalMaterials/PhysMatReference:description%")
 	[/PARAM]
 [/OBJECT]
+
+
+
+

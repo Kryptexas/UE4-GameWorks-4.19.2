@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2077918
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피직스 바디 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -116,3 +116,7 @@ Box, Sphere, Capsule (박스, 구체, 캡슐) 컴포넌트는 콜리전, 오버�
 | **Use CCD** | CCD 사용 - %doxygen:FBodyInstance::bUseCCD% |
 | **Check Async Scene On Move** | 이동시 비동기 씬 점검 - %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
 | **Can Ever Affect Navigation** | 내비게이션 영향 가능 - %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+
+
+
+

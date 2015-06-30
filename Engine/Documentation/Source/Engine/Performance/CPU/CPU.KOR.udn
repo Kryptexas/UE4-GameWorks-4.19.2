@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519200
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title: CPU 프로파일링
 Crumbs: %ROOT%, Engine
@@ -67,5 +67,10 @@ CPU 프로파일러의 빌드로 문제를 유발하는 함수를 찾을 수 있
 	}
 
 CPU 에 묶이지 않은 경우, [GPU 에 묶인](Engine/Performance\GPU) 것입니다.
+
+
+
+
+
 
 

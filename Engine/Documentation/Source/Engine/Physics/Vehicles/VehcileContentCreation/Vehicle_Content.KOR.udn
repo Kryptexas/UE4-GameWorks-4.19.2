@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2520015
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:비히클 아트 셋업
 Crumbs:%ROOT%
@@ -138,3 +138,7 @@ Navigation:topic
 ![](goodPA.png)
 
 휠 외에 모든 콜리전 바디는 비히클의 루트 조인트상에 존재합니다. 휠이 특정 게임 요소에 걸리지 않도록 하고, 휠의 메시가 벽이나 철책에 잘리지 않도록 하기도 합니다.
+
+
+
+

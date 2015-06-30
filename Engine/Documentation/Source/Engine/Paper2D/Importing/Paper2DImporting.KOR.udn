@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2514961
+﻿INTSourceChangelist:2590930
 Title:페이퍼 2D 임포트 옵션
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:페이퍼 2D 에서 사용할 써드 파티 어플리케이션 제작 애셋 임포트하기 입니다.
@@ -78,6 +78,11 @@ Related: Engine\Paper2D\TileMaps
 	![](JSONAssets.png)
 
 	생성된 **타일 맵** 을 열어보면, 외부에서 만든 맵을 UE4 에서 변경할 수 있을 것입니다.
+
+
+
+
+
 
 
 

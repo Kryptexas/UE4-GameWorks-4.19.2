@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519584
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:콜리전 반응
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -211,3 +211,8 @@ Description:콜리전, 콜리전 반응, 콜리전 프리셋에 대한 모든 �
 ![](COL_customPresets.png)
 
 여기서 프리셋 이름을 짓고, 콜리전을 켜거나 끄고, 프리셋의 오브젝트 유형을 선택한 다음, 마지막으로 선택된 오브젝트 유형에 대한 각 반응 채널의 행위를 정의하면 됩니다.
+
+
+
+
+

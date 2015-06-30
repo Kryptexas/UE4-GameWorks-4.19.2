@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2541375
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:5. 게임내 일시정지 메뉴 생성 / 스크립트 작성
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -181,6 +181,10 @@ Description:게임 일시정지 또는 종료가 가능한 게임내 일시정�
 ---
 
 %Steps%
+
+
+
+
 
 
 

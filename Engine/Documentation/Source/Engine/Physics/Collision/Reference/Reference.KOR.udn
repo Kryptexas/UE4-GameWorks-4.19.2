@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2415526
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:스태틱 메시 콜리전 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
@@ -137,4 +137,9 @@ Description:Collilsion, 콜리전 지오메트리 생성 및 구성을 위한 �
 * **stat game** - 여러가지 유형별 콜리전이 얼마나 오래 걸리는가에 대해 다양한 통계를 표시해 줍니다.
 
 ![](Collision_StatGame.png)(w:900)
+
+
+
+
+
 

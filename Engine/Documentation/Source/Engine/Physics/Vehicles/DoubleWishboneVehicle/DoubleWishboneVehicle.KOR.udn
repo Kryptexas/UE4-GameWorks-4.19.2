@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519987
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:더블 위시본 서스펜션 비히클 만드는 법
 Crumbs:%ROOT%, Engine, Engine/Physics
@@ -223,3 +223,7 @@ _메뉴 제일 하단 "Advanced" 아래 있는 콜리전 복사 옵션입니다.
 _프로토타입 비히클에 사용된 임포트 옵션입니다._
 
 ...이정도면, 고급 비히클을 자체 제작하는 데 필요한 개념이 충분히 잡히셨을 줄로 믿습니다. 행운을 빕니다!
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2277845
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피지컬 머티리얼 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
@@ -181,3 +181,7 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 * 스켈레탈 메시의 피직스 애셋은 항상 단순 콜리전을 반환하기에, 이 옵션을 사용해서 배치된 스켈레탈 메시 액터의 모든 피지컬 머티리얼을 덮어쓸 수 있습니다.
 
 복합 콜리전 트레이스에는 효과가 없습니다.
+
+
+
+

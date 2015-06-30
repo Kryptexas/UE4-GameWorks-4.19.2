@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537752
+﻿INTSourceChangelist:2590930
 Availability:Epic
 Title:크래시 리포터
 Crumbs:%ROOT%
@@ -112,3 +112,7 @@ clientspec 은 심볼 룩업에 대한 모든 콘텐츠가 필요하지는 않�
 
 RegisterPII 어플리케이션은 윈도우 오류 리포트의 무명 사용자와 머신 Guid 를 알려진 사용자와 머신 이름에 일치시킵니다. 일반 사용자에 대해 그러한 정보를 수집하는 것은 불법이기에, 개발자의 크래시 추적 편의를 위해서만 사용해야 합니다.
 PII 는 Personally Identifiable Information, 개인 식별 가능 정보의 약자로 http://en.wikipedia.org/wiki/Personally_identifiable_information 에 설명되어 있습니다.
+
+
+
+

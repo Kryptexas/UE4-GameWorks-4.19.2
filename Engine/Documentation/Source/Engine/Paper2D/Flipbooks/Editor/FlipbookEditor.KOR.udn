@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2518166
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:플립북 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks
@@ -163,4 +163,8 @@ Related: Engine/Content/Types/Textures
 ### 디폴트 머티리얼
 
 **Default Material** (디폴트 머티리얼)은 플립북 플레이어에 사용할 머티리얼을 결정합니다 (디폴트 머티리얼이 자동 할당됩니다).
+
+
+
+
 

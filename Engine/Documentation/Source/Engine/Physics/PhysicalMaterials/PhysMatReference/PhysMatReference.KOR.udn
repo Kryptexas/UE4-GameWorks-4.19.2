@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572434
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피지컬 머티리얼 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
@@ -228,3 +228,7 @@ Surface Types (서피스 타입)은 프로젝트의 DefaultEngine.ini 에 설정
 | **Max** | 최대 - 접한 머티리얼의 큰 값을 사용합니다: max(a,b) |
 [/EXCERPT]
 -->
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2560172
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Utility 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -333,6 +333,10 @@ AntialiasedTextureMask 로는 부드러운 (안티 앨리어싱이 적용된) �
 이 기법은 블러링이 적용된 입력 콘텐츠나 확대 상태에서 두각을 드러냅니다. 압축으로 인한 퀄리티 손상이 크니 미압축 저해상도 텍스처를 사용하시기를 권합니다.
 
 [/EXCERPT:AntialiasedTextureMask]
+
+
+
+
 
 
 

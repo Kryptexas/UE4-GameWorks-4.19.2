@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2530673
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:버텍스 애니메이션 툴 - 타임라인 메시
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -165,3 +165,7 @@ UE4 안에서의 머티리얼 작업방식에 익숙치 않은 경우, [](Engine
 1. **콘텐츠 브라우저** 에서 임포트된 차주전자 메시를 선택한 다음 콘텐츠 브라우저에서 끌어 레벨에 놓습니다. 레벨에 차주전자 메시가 배치되면, 생성한 **MAT_Vertex_Animation** 머티리얼을 선택한 뒤 콘텐츠 브라우저에서 레벨에 배치된 메시 위에 놓아 적용합니다.
 
 	![](VAT_Final_Effect.gif)(convert:false)
+
+
+
+

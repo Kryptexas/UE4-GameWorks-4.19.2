@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2325839
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피직스 애셋 툴 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
@@ -223,3 +223,7 @@ PhAT 피직스 에디터는 다음과 같이 나뉘어 있습니다:
 [REGION:note]
 4.5 버전 이후 PhAT 에서 좌/우 작명 규칙에 따라 한 본에서 다른 본으로 **피직스 바디** 를 복사할 수 있습니다. 조인트에 `_L` `_R` 작명 규칙을 사용하는 경우, **M** 키를 치면 **피직스 바디** 를 같은 이름을 공유하되 접미사가 반대인 것에 복사합니다. 하지만 현재 이 기능은 피직스 바디만 복사할 뿐, 컨스트레인트는 복사하지 않습니다. 또한 현재 로테이션도 미러링되지 않습니다.
 [/REGION:note]
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2522609
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:스프라이트 소켓 사용하기
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -87,6 +87,11 @@ Related: Engine\Paper2D\Flipbooks
 	![](Example_GIF.gif)(convert:false)
 
 스프라이트에 소켓을 추가하면 그 소켓에 여러가지 것들을 붙일 수 있으며, 스프라이트가 플립북의 일부인지와는 상관없이 애니메이션이 적용될 뿐만 아니라, 소켓에 무엇이 들어가는지도 전적으로 여러분에게 달려있습니다.
+
+
+
+
+
 
 
 

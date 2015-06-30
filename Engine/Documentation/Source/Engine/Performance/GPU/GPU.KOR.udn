@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2362484
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title: GPU 프로파일링
 Crumbs: %ROOT%, Engine
@@ -96,4 +96,9 @@ GPU 가 2x2 픽셀 블록의 트라이앵글을 처리한 뒤 약간 후 트라�
   * 레벨 오브 디테일 (LOD) 메시 사용
 * 뷰 비옹 (예: HZB 오클루전 컬링)
 * 씬 비용 (예: GPU 파티클 시뮬레이션)
+
+
+
+
+
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2277863
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피직스 서브스테핑
 Crumbs: %ROOT%, Engine
@@ -78,3 +78,7 @@ UE4 는 가변 프레임 속도를 사용합니다. 하드웨어의 폭넓은 �
 ## 사용법
 
 서브스테핑은 래그돌에 사용되는 것과 같은 복잡한 물리 애셋의 퀄리티를 크게 향상시킵니다. 하지만 항상 CPU 비용과 퀄리티 향상을 저울질해 보고, 게임에 정말 중요한 것이 무엇인지 고민해 보셔야 할 것입니다.
+
+
+
+

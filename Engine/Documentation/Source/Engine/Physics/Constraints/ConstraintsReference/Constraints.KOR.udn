@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2222719
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:피직스 컨스트레인트 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -251,6 +251,11 @@ prismatic joint(직선축, 프리즈매틱 조인트)는 선형 부분의 2/3 �
 
 -->
  
+
+
+
+
+
 
 
 

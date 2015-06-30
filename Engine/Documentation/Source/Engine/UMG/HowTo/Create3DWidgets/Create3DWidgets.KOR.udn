@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2426066
+﻿INTSourceChangelist:2590930
 Availability: Public
 Title:3D 위젯 생성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -217,6 +217,10 @@ Related: Engine/Blueprints
 이 예제에서는 월드에 표시되어 플레이어가 조작 가능한 3D 메뉴를 만들어 봤습니다. 이 예제에서는 플레이어 캐릭터가 월드를 뛰어다니지만, "Main Menu" 레벨을 만들고 다른 캐릭터 블루프린트를 사용하여 플레이어의 이동 능력을 제거하거나, 그냥 이동을 비활성화시킬 수도 있습니다. 거기서 메인 메뉴 화면에 나타나도록 했으면 하는 요소를 (플레이어 캐릭터의 커스텀 플레이어 모델이든, 기타 액터든, 파티클 이펙트든, 라이트든) 추가시키면 됩니다. 3D 공간을 어떻게 장식할 것인지는 전적으로 여러분께 달려 있습니다.
 
 ---
+
+
+
+
 
 
 
