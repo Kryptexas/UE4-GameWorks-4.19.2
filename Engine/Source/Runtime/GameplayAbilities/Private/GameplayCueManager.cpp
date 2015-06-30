@@ -34,6 +34,7 @@ UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 #endif
 
 	GlobalCueSet = NewObject<UGameplayCueSet>(this, TEXT("GlobalCueSet"));
+	CurrentWorld = nullptr;
 }
 
 bool IsDedicatedServerForGameplayCue()
@@ -92,6 +93,9 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 		FColor DebugColor = FColor::Green;
 		DrawDebugString(TargetActor->GetWorld(), FVector(0.f, 0.f, 100.f), DebugStr, TargetActor, DebugColor, DisplayGameplayCueDuration);
 	}
+
+	CurrentWorld = TargetActor->GetWorld();
+
 	// Give the global set a chance
 	check(GlobalCueSet);
 	if (bAcceptsCue)
@@ -104,6 +108,8 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 	{
 		GameplayCueInterface->HandleGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
 	}
+
+	CurrentWorld = nullptr;
 }
 
 void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
@@ -379,6 +385,12 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 }
 
 #endif
+
+
+UWorld* UGameplayCueManager::GetWorld() const
+{
+	return CurrentWorld;
+}
 
 void UGameplayCueManager::PrintGameplayCueNotifyMap()
 {

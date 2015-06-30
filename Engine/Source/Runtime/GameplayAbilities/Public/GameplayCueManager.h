@@ -209,6 +209,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	void PrintGameplayCueNotifyMap();
 
+	virtual class UWorld* GetWorld() const override;
+
 #if WITH_EDITOR
 	bool IsAssetInLoadedPaths(UObject *Object) const;
 
@@ -245,4 +247,7 @@ protected:
 	/** Number of active gameplay cue send contexts, when it goes to 0 cues are flushed */
 	UPROPERTY()
 	int32 GameplayCueSendContextCount;
+
+	/** Cached world we are currently handling cues for. Used for non instanced GC Notifies that need world. */
+	UWorld* CurrentWorld;
 };
