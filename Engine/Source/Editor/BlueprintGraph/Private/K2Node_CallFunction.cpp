@@ -238,8 +238,8 @@ UClass* FDynamicOutputHelper::GetPinClass(UEdGraphPin* Pin)
 {
 	UClass* PinClass = UObject::StaticClass();
 
-	bool const bIsClassPin = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
-	if (bIsClassPin)
+	bool const bIsClassOrObjectPin = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object);
+	if (bIsClassOrObjectPin)
 	{
 		if (UClass* DefaultClass = Cast<UClass>(Pin->DefaultObject))
 		{
@@ -252,24 +252,33 @@ UClass* FDynamicOutputHelper::GetPinClass(UEdGraphPin* Pin)
 
 		if (Pin->LinkedTo.Num() > 0)
 		{
-			UClass* CommonInputClass = Cast<UClass>(Pin->LinkedTo[0]->PinType.PinSubCategoryObject.Get());
-			for (int32 LinkIndex = 1; LinkIndex < Pin->LinkedTo.Num(); ++LinkIndex)
+			UClass* CommonInputClass = nullptr;
+			for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
 			{
-				UClass* LinkClass = Cast<UClass>(Pin->LinkedTo[LinkIndex]->PinType.PinSubCategoryObject.Get());
-				if (LinkClass == nullptr)
+				const FEdGraphPinType& LinkedPinType = LinkedPin->PinType;
+
+				UClass* LinkClass = Cast<UClass>(LinkedPinType.PinSubCategoryObject.Get());
+				if (LinkClass == nullptr && LinkedPinType.PinSubCategory == UEdGraphSchema_K2::PSC_Self)
 				{
-					continue;
+					if (UK2Node* K2Node = Cast<UK2Node>(LinkedPin->GetOwningNode()))
+					{
+						LinkClass = K2Node->GetBlueprint()->GeneratedClass;
+					}
 				}
 
-				if (CommonInputClass == nullptr)
+				if (LinkClass != nullptr)
 				{
-					CommonInputClass = LinkClass;
-					continue;
-				}
-
-				while (!LinkClass->IsChildOf(CommonInputClass))
-				{
-					CommonInputClass = CommonInputClass->GetSuperClass();
+					if (CommonInputClass != nullptr)
+					{
+						while (!LinkClass->IsChildOf(CommonInputClass))
+						{
+							CommonInputClass = CommonInputClass->GetSuperClass();
+						}
+					}
+					else
+					{
+						CommonInputClass = LinkClass;
+					}
 				}
 			}
 
@@ -319,7 +328,8 @@ bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
 	}
 
 	bool const bPinIsClassPicker = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
-	return bIsTypeDeterminingPin && bPinIsClassPicker && (Pin->Direction == EGPD_Input);
+	bool const bPinIsObjectPicker = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object);
+	return bIsTypeDeterminingPin && (bPinIsClassPicker || bPinIsObjectPicker) && (Pin->Direction == EGPD_Input);
 }
 
 UEdGraphPin* FDynamicOutputHelper::GetDynamicOutPin(const UK2Node_CallFunction* FuncNode)
