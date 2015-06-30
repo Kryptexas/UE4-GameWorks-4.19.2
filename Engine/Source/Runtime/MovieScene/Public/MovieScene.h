@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MovieSceneObjectId.h"
 #include "MovieScene.generated.h"
 
 
@@ -25,14 +26,12 @@ struct FMovieSceneSpawnable
 public:
 
 	/** FMovieSceneSpawnable default constructor */
-	FMovieSceneSpawnable()
-	{
-	}
+	FMovieSceneSpawnable() { }
 
 	/** FMovieSceneSpawnable initialization constructor */
 	FMovieSceneSpawnable( const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject );
 
-	/** @return Returns the guid for this possessable */
+	/** @return Returns the guid for this spawnable */
 	const FGuid& GetGuid() const
 	{
 		return Guid;
@@ -42,6 +41,14 @@ public:
 	const FString& GetName() const
 	{
 		return Name;
+	}
+
+	/**
+	 * Get the unique object identifier.
+	 */
+	const FMovieSceneObjectId& GetObjectId() const
+	{
+		return ObjectId;
 	}
 
 	/** @return Returns the blueprint associated with this spawnable */
@@ -75,6 +82,9 @@ private:
 	    used in the editor when capturing keyframe data from a live simulation */
 	// @todo sequencer data: Should be editor only
 	FWeakObjectPtr CounterpartGamePreviewObject;
+
+	// @todo sequencer: gmp: refactor sequencer object IDs.
+	FMovieSceneObjectId ObjectId;
 };
 
 /**
@@ -133,8 +143,8 @@ private:
 	// possessable object available.
 	UPROPERTY()
 	UClass* PossessedObjectClass;
-
 };
+
 
 /**
  * Editor only data that needs to be saved between sessions for editing but has no runtime purpose
@@ -421,6 +431,16 @@ public:
 	}
 
 public:
+
+	/**
+	 * Get the movie scene's object binding manager.
+	 *
+	 * @return The scene's binding manager.
+	 */
+	TScriptInterface<UMovieSceneBindingManager> GetBindingManager() const
+	{
+		return BindingManager;
+	}
 
 	/**
 	 * @return All object bindings.

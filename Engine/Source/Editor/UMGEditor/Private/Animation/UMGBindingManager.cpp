@@ -17,9 +17,15 @@ UUMGBindingManager::UUMGBindingManager(const FObjectInitializer& ObjectInitializ
 /* IMovieSceneBindingManager interface
  *****************************************************************************/
 
-void UUMGBindingManager::BindPossessableObject(const FMovieSceneObjectId& PossessableGuid, UObject& PossessedObject)
+bool UUMGBindingManager::AllowsSpawnableObjects() const
 {
+	return false;
+}
 
+
+void UUMGBindingManager::BindPossessableObject(const FMovieSceneObjectId& ObjectId, UObject& PossessedObject)
+{
+	// @todo gmp: sequencer: bind possessable object
 }
 
 
@@ -29,25 +35,43 @@ bool UUMGBindingManager::CanPossessObject(UObject& Object) const
 }
 
 
-FMovieSceneObjectId UUMGBindingManager::FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const
+void UUMGBindingManager::DestroyAllSpawnedObjects()
+{
+
+}
+
+
+FMovieSceneObjectId UUMGBindingManager::FindIdForObject(const UMovieScene& MovieScene, UObject& Object) const
 {
 	return FMovieSceneObjectId();
 }
 
 
-void UUMGBindingManager::GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects) const
+void UUMGBindingManager::GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, TArray<UObject*>& OutRuntimeObjects) const
 {
 
 }
 
 
-bool UUMGBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const
+void UUMGBindingManager::RemoveMovieSceneInstance(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance)
+{
+
+}
+
+
+void UUMGBindingManager::SpawnOrDestroyObjectsForInstance(TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll)
+{
+
+}
+
+
+bool UUMGBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, FText& OutDisplayName) const
 {
 	return false;
 }
 
 
-void UUMGBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& PossessableGuid)
+void UUMGBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& ObjectId)
 {
-
+	// @todo gmp: sequencer: bind possessable object
 }

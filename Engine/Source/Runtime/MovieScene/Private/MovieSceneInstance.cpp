@@ -3,11 +3,19 @@
 #include "MovieScenePrivatePCH.h"
 #include "MovieSceneInstance.h"
 
+
 FMovieSceneInstance::FMovieSceneInstance( UMovieScene& InMovieScene )
 	: MovieScene( &InMovieScene )
 {
 	TimeRange = MovieScene->GetTimeRange();
 }
+
+
+TScriptInterface<UMovieSceneBindingManager> FMovieSceneInstance::GetBindingManager() const
+{
+	return MovieScene.Get()->GetBindingManager();
+}
+
 
 void FMovieSceneInstance::SaveState()
 {
@@ -23,6 +31,7 @@ void FMovieSceneInstance::SaveState()
 	}
 }
 
+
 void FMovieSceneInstance::RestoreState()
 {
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
@@ -36,6 +45,7 @@ void FMovieSceneInstance::RestoreState()
 		}
 	}
 }
+
 
 void FMovieSceneInstance::Update( float Position, float LastPosition, class IMovieScenePlayer& Player )
 {
@@ -64,6 +74,7 @@ void FMovieSceneInstance::Update( float Position, float LastPosition, class IMov
 		}
 	}
 }
+
 
 void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 {
