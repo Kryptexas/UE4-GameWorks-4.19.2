@@ -33,6 +33,8 @@ struct FEdGraphSchemaAction_K2AddPlayMovieScene : public FEdGraphSchemaAction_K2
 };
 
 
+struct FMovieSceneBoundObjectInfo;
+
 UCLASS( MinimalAPI )
 class UK2Node_PlayMovieScene : public UK2Node
 {
@@ -70,9 +72,9 @@ class UK2Node_PlayMovieScene : public UK2Node
 	 * Binds a possessable in the MovieScene asset (based on the guid of that possessable) to the specified objects
 	 *
 	 * @param	PossessableGuid		The guid of the posessable in the MovieScene to bind to
-	 * @param	Objects				The object(s) to bind to
+	 * @param	ObjectInfos				The object(s) to bind to
 	 */
-	virtual void BindPossessableToObjects( const FGuid& PossessableGuid, const TArray< UObject* >& Objects );
+	virtual void BindPossessableToObjects( const FGuid& PossessableGuid, const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos );
 
 	/**
 	 * Given a guid for a possessable, attempts to find the object bound to that guid
@@ -81,15 +83,15 @@ class UK2Node_PlayMovieScene : public UK2Node
 	 *
 	 * @return	The bound objects, if found, otherwise NULL
 	 */
-	virtual TArray< UObject* > FindBoundObjects( const FGuid& Guid );
+	virtual TArray< FMovieSceneBoundObjectInfo > FindBoundObjectInfos(const FGuid& Guid);
 
 	/**
 	 * Finds a guid for a bound posessable object if it exists 
 	 *
-	 * @param Object	The object to search for
+	 * @param ObjectInfo	The object to search for
 	 * @return A valid guid if the object was found.  Otherwise the guid is invalid
 	 */
-	virtual FGuid FindGuidForObject( UObject* Object ) const;
+	virtual FGuid FindGuidForObjectInfo( FMovieSceneBoundObjectInfo ObjectInfo ) const;
 
 	/**
 	 * Returns access to an event you can bind to to find out when the object bindings change
@@ -118,7 +120,7 @@ protected:
 	 *
 	 * @param	BoundObject		The object to create a pin for
 	 */
-	virtual void CreatePinForBoundObject( struct FMovieSceneBoundObject& BoundObject );
+	virtual void CreatePinsForBoundObject( struct FMovieSceneBoundObject& BoundObject );
 
 	/**
 	 * Creates a MovieSceneBindings object if we don't have one yet

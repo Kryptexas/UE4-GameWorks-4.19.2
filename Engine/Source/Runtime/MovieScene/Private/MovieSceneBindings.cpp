@@ -3,9 +3,9 @@
 #include "MovieScenePrivatePCH.h"
 #include "MovieSceneBindings.h"
 
-FMovieSceneBoundObject::FMovieSceneBoundObject( const FGuid& InitPosessableGuid, const TArray< UObject* >& InitObjects )
+FMovieSceneBoundObject::FMovieSceneBoundObject(const FGuid& InitPosessableGuid, const TArray< FMovieSceneBoundObjectInfo >& InitObjectInfos)
 	: PossessableGuid( InitPosessableGuid ),
-	  Objects( InitObjects )
+	  ObjectInfos( InitObjectInfos )
 {
 }
 
@@ -36,15 +36,15 @@ void UMovieSceneBindings::SetRootMovieScene( class UMovieScene* NewMovieScene )
 }
 
 
-FMovieSceneBoundObject& UMovieSceneBindings::AddBinding( const FGuid& PosessableGuid, const TArray< UObject* >& Objects )
+FMovieSceneBoundObject& UMovieSceneBindings::AddBinding(const FGuid& PosessableGuid, const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos)
 {
 	Modify();
-	BoundObjects.Add( FMovieSceneBoundObject( PosessableGuid, Objects ) );
+	BoundObjects.Add( FMovieSceneBoundObject( PosessableGuid, ObjectInfos ) );
 	return BoundObjects.Last();
 }
 
 
-TArray< UObject* > UMovieSceneBindings::FindBoundObjects( const FGuid& Guid ) const
+TArray< FMovieSceneBoundObjectInfo > UMovieSceneBindings::FindBoundObjects( const FGuid& Guid ) const
 {
 	for( TArray< FMovieSceneBoundObject >::TConstIterator BoundObjectIter( BoundObjects.CreateConstIterator() ); BoundObjectIter; ++BoundObjectIter )
 	{
@@ -52,11 +52,11 @@ TArray< UObject* > UMovieSceneBindings::FindBoundObjects( const FGuid& Guid ) co
 
 		if( BoundObject.GetPossessableGuid() == Guid )
 		{
-			return BoundObject.GetObjects();
+			return BoundObject.GetObjectInfos();
 		}
 	}
 
-	return TArray< UObject* >();
+	return TArray< FMovieSceneBoundObjectInfo >();
 }
 
 

@@ -556,16 +556,16 @@ void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& Pr
 
 void UActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	ConsolidatedPostEditChange(PropertyChangedEvent);
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	ConsolidatedPostEditChange(PropertyChangedEvent);
 }
 
 void UActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	ConsolidatedPostEditChange(PropertyChangedEvent);
-
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	ConsolidatedPostEditChange(PropertyChangedEvent);
 }
 
 

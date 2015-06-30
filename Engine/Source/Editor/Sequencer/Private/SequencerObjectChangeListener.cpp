@@ -80,7 +80,7 @@ bool FSequencerObjectChangeListener::IsObjectValidForListening( UObject* Object 
 {
 	// @todo Sequencer - Pre/PostEditChange is sometimes called for inner objects of other objects (like actors with components)
 	// We only want the outer object so assume it's an actor for now
-	return bListenForActorsOnly ? Object->IsA<AActor>() : true;
+	return bListenForActorsOnly ? Object->IsA<AActor>() || Object->IsA<UActorComponent>() : true;
 }
 
 FOnAnimatablePropertyChanged& FSequencerObjectChangeListener::GetOnAnimatablePropertyChanged( FName PropertyTypeName )

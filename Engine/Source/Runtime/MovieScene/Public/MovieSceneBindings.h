@@ -4,6 +4,42 @@
 
 #include "MovieSceneBindings.generated.h"
 
+/**
+ * Identifies a bound object and an optional tag for sub-object lookup.
+ */
+USTRUCT()
+struct FMovieSceneBoundObjectInfo
+{
+	GENERATED_USTRUCT_BODY( FMovieSceneBoundObjectInfo )
+
+public:
+	FMovieSceneBoundObjectInfo()
+	{
+		Object = nullptr;
+	}
+
+	FMovieSceneBoundObjectInfo(UObject* InObject)
+	{
+		Object = InObject;
+	}
+
+	FMovieSceneBoundObjectInfo(UObject* InObject, FString InTag)
+	{
+		Object = InObject;
+		Tag = InTag;
+	}
+
+	inline bool operator==(const FMovieSceneBoundObjectInfo& Other) const
+	{
+		return (Object == Other.Object) && (Tag == Other.Tag);
+	}
+
+	UPROPERTY()
+	UObject* Object;
+
+	UPROPERTY()
+	FString Tag;
+};
 
 /**
  * MovieSceneBoundObject connects an object to a "possessable" slot in the MovieScene asset
@@ -24,9 +60,9 @@ public:
 	 * FMovieSceneBoundObject initialization constructor.  Binds the specified possessable from a MovieScene asset, to the specified object
 	 *
 	 * @param	InitPossessableGuid		The Guid of the possessable from the MovieScene asset to bind to
-	 * @param	InitObjects				The objects to bind
+	 * @param	InitObjectInfos			The object infos to bind
 	 */
-	FMovieSceneBoundObject( const FGuid& InitPosessableGuid, const TArray< UObject* >& InitObjects );
+	FMovieSceneBoundObject( const FGuid& InitPosessableGuid, const TArray< FMovieSceneBoundObjectInfo >& InitObjectInfos );
 
 	/** @return Returns the guid of the possessable that we're bound to */
 	const FGuid& GetPossessableGuid() const
@@ -35,36 +71,25 @@ public:
 	}
 
 	/** @return Returns the objects we're bound to */
-	TArray< UObject* >& GetObjects()
+	TArray< FMovieSceneBoundObjectInfo >& GetObjectInfos()
 	{
-		return Objects;
+		return ObjectInfos;
 	}
 
 	/** @return Returns the objects we're bound to */
-	const TArray< UObject* >& GetObjects() const
+	const TArray< FMovieSceneBoundObjectInfo >& GetObjectInfos() const
 	{
-		return Objects;
-	}
-
-	/**
-	 * Returns whether or not an object is bound
-	 *
-	 * @param Object	The object to search for
-	 * @return true if the passed in object is bound, false otherwise 
-	 */
-	bool ContainsObject( UObject* Object )
-	{
-		return Objects.Contains( Object );	
+		return ObjectInfos;
 	}
 
 	/**
 	 * Sets the actual objects bound to this slot.  Remember to call Modify() on the owner object if you change this!
 	 * 
-	 * @param	NewObjects	The list of new bound object (can be NULL)
+	 * @param	NewObjectInfos	The list of new bound object infos (can be NULL)
 	 */
-	void SetObjects( TArray< UObject* > NewObjects )
+	void SetObjectInfos( TArray< FMovieSceneBoundObjectInfo > NewObjectInfos )
 	{
-		Objects = NewObjects;
+		ObjectInfos = NewObjectInfos;
 	}
 
 private:
@@ -76,7 +101,7 @@ private:
 
 	/** The actual bound objects (we support binding multiple objects to the same possessable) */
 	UPROPERTY()
-	TArray<	UObject* > Objects;
+	TArray< FMovieSceneBoundObjectInfo > ObjectInfos;
 
 };
 
@@ -109,7 +134,7 @@ public:
 	 *
 	 * @return	Reference to the wrapper structure for this bound object
 	 */
-	virtual FMovieSceneBoundObject& AddBinding( const FGuid& PosessableGuid, const TArray< UObject* >& Objects );
+	virtual FMovieSceneBoundObject& AddBinding( const FGuid& PosessableGuid, const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos );
 
 	/**
 	 * Given a guid for a possessable, attempts to find the object bound to that guid
@@ -118,7 +143,7 @@ public:
 	 *
 	 * @return	The bound object, if found, otherwise NULL
 	 */
-	virtual TArray< UObject* > FindBoundObjects( const FGuid& Guid ) const;
+	virtual TArray< FMovieSceneBoundObjectInfo > FindBoundObjects( const FGuid& Guid ) const;
 
 	/**
 	 * Gets all bound objects

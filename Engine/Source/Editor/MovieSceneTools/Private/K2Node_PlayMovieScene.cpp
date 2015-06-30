@@ -8,7 +8,6 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "MovieSceneBindings.h"
 
-
 UEdGraphNode* FEdGraphSchemaAction_K2AddPlayMovieScene::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("PlayMovieSceneNode", "UndoAddingNewNode", "Add PlayMovieScene Node") );
@@ -63,7 +62,7 @@ void UK2Node_PlayMovieScene::AllocateDefaultPins()
 		{
 			auto& BoundObject = *BoundObjectIter;
 
-			CreatePinForBoundObject( BoundObject );
+			CreatePinsForBoundObject( BoundObject );
 		}
 	}
 	
@@ -130,43 +129,51 @@ void UK2Node_PlayMovieScene::PinConnectionListChanged( UEdGraphPin* InPin )
 		{
 			auto& BoundObject = *BoundObjectIter;
 
-			TArray< UObject* > OtherObjects;
+			TArray< FMovieSceneBoundObjectInfo > OtherObjectInfos;
 
 			// Find the pin that goes with this object
-			auto* Pin = FindPinChecked( BoundObject.GetPossessableGuid().ToString( EGuidFormats::DigitsWithHyphens ) );
+			UEdGraphPin* ActorPin = FindPinChecked( BoundObject.GetPossessableGuid().ToString( EGuidFormats::DigitsWithHyphens ) );
+			UEdGraphPin* ComponentNamePin = FindPinChecked(BoundObject.GetPossessableGuid().ToString(EGuidFormats::DigitsWithHyphens) + "_ComponentName");
 
 			// Is the pin even linked to anything?
-			if( Pin->LinkedTo.Num() > 0 )
+			checkf(ActorPin->LinkedTo.Num() == ComponentNamePin->LinkedTo.Num(), TEXT("Actor pin link count must match the component name link count"));
+			for (int32 i = 0; i < ActorPin->LinkedTo.Num(); i++)
 			{
-				// @todo sequencer major: Add support for multiple connections to a single input pin to be treated as an "unordered array"
-				for( auto OtherPinIter( Pin->LinkedTo.CreateIterator() ); OtherPinIter; ++OtherPinIter )
+				UEdGraphPin* LinkedActorPin = ActorPin->LinkedTo[i];
+				UEdGraphPin* LinkedComponentNamePin = ComponentNamePin->LinkedTo[i];
+				if( LinkedActorPin != NULL )
 				{
-					auto* OtherPin = *OtherPinIter;
-					if( OtherPin != NULL )
+					// Look for an object bound to a literal.  We can use these for scrub preview in the editor!
+					UK2Node_Literal* LinkedActorLiteralNode = Cast< UK2Node_Literal >( LinkedActorPin->GetOwningNode() );
+					if (LinkedActorLiteralNode != NULL)
 					{
-						// Look for an object bound to a literal.  We can use these for scrub preview in the editor!
-						UK2Node_Literal* OtherLiteralPin = Cast< UK2Node_Literal >( OtherPin->GetOwningNode() );
-						if( OtherLiteralPin != NULL )
+						// @todo sequencer: Because we only recognize object literals, any dynamically bound actor won't be scrubable
+						//   in the editor.  Maybe we should support a "preview actor" that can be hooked up just for scrubbing and puppeting?
+						//  ==> Maybe use the pin's default value as the preview actor, even when overridden with a dynamically spawned actor?
+						UObject* LinkedActor = LinkedActorLiteralNode->GetObjectRef();
+						if ( LinkedActor != NULL )
 						{
-							// @todo sequencer: Because we only recognize object literals, any dynamically bound actor won't be scrubable
-							//   in the editor.  Maybe we should support a "preview actor" that can be hooked up just for scrubbing and puppeting?
-							//  ==> Maybe use the pin's default value as the preview actor, even when overridden with a dynamically spawned actor?
-							UObject* OtherObject = OtherLiteralPin->GetObjectRef();
-							if ( OtherObject != NULL )
+							FString LinkedComponentName;
+							if (LinkedComponentNamePin)
 							{
-								OtherObjects.Add( OtherObject );
-							}							
+								UK2Node_Literal* LinkedComponentNameLiteralNode = Cast< UK2Node_Literal >(LinkedComponentNamePin->GetOwningNode());
+								if (LinkedComponentNameLiteralNode != NULL)
+								{
+									LinkedComponentName = LinkedComponentNameLiteralNode->GetValuePin()->GetDefaultAsString();
+								}
+							}
+							OtherObjectInfos.Add( FMovieSceneBoundObjectInfo(LinkedActor, LinkedComponentName));
 						}
 					}
 				}
 			}
 
 			// Update our bindings to match the state of the node
-			if( BoundObject.GetObjects() != OtherObjects )	// @todo sequencer: Kind of weird to compare entire array (order change shouldn't cause us to invalidate).  Change to a set compare?
+			if( BoundObject.GetObjectInfos() != OtherObjectInfos )	// @todo sequencer: Kind of weird to compare entire array (order change shouldn't cause us to invalidate).  Change to a set compare?
 			{
 				// @todo sequencer: No type checking is happening here.  Should we? (interactive during pin drag?)
 				Modify();
-				BoundObject.SetObjects( OtherObjects );
+				BoundObject.SetObjectInfos( OtherObjectInfos );
 
 				bAnyBindingsChanged = true;
 			}
@@ -220,63 +227,62 @@ void UK2Node_PlayMovieScene::SetMovieScene( class UMovieScene* NewMovieScene )
 }
 
 
-void UK2Node_PlayMovieScene::BindPossessableToObjects( const FGuid& PossessableGuid, const TArray< UObject* >& Objects )
+void UK2Node_PlayMovieScene::BindPossessableToObjects(const FGuid& PossessableGuid, const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos )
 {
 	CreateBindingsIfNeeded();
 
 	// Bind the possessable from the MovieScene asset to the supplied object
-	FMovieSceneBoundObject& BoundObject = MovieSceneBindings->AddBinding( PossessableGuid, Objects );
+	FMovieSceneBoundObject& BoundObject = MovieSceneBindings->AddBinding( PossessableGuid, ObjectInfos );
 
 	// Create a pin for the bound object
 	Modify();
-	CreatePinForBoundObject( BoundObject );
+	CreatePinsForBoundObject( BoundObject );
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( this->GetBlueprint() );
 }
 
 
-TArray< UObject* > UK2Node_PlayMovieScene::FindBoundObjects( const FGuid& Guid )
+TArray< FMovieSceneBoundObjectInfo > UK2Node_PlayMovieScene::FindBoundObjectInfos( const FGuid& Guid )
 {
+	TArray< UObject* > BoundObjects;
 	if( MovieSceneBindings != NULL )
 	{
-		return MovieSceneBindings->FindBoundObjects( Guid );
+		return MovieSceneBindings->FindBoundObjects(Guid);
 	}
-
-	return TArray< UObject* >();
+	return TArray< FMovieSceneBoundObjectInfo >();
 }
 
-FGuid UK2Node_PlayMovieScene::FindGuidForObject( UObject* Object ) const
+FGuid UK2Node_PlayMovieScene::FindGuidForObjectInfo( FMovieSceneBoundObjectInfo ObjectInfo ) const
 {
 	if( MovieSceneBindings != NULL )
 	{
 		// Search all bindings for the object 
 		TArray<FMovieSceneBoundObject>& ObjectBindings = MovieSceneBindings->GetBoundObjects();
-		for( int32 BoundObjIndex = 0; BoundObjIndex < ObjectBindings.Num(); ++BoundObjIndex )
+		for(FMovieSceneBoundObject& BoundObject : MovieSceneBindings->GetBoundObjects())
 		{
-			// A binding slots can have multiple objects.  Ask the slot if the object is bound
-			FMovieSceneBoundObject& BindingSlot = ObjectBindings[BoundObjIndex];
-			if( BindingSlot.ContainsObject( Object ) )
+			if(BoundObject.GetObjectInfos().Contains(ObjectInfo))
 			{
-				return BindingSlot.GetPossessableGuid();
+				return BoundObject.GetPossessableGuid();
 			}
 		}
 	}
-
 	return FGuid();
 }
 
 
-void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& BoundObject )
+void UK2Node_PlayMovieScene::CreatePinsForBoundObject( FMovieSceneBoundObject& BoundObject )
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// We use the GUID as the pin name as this uniquely identifies it
-	const FString PinName = BoundObject.GetPossessableGuid().ToString( EGuidFormats::DigitsWithHyphens );
+	const FString ActorPinName = BoundObject.GetPossessableGuid().ToString( EGuidFormats::DigitsWithHyphens );
+	const FString ComponentNamePinName = ActorPinName + "_ComponentName";
 
 	// For the friendly name, we use the possessable name from the MovieScene asset that is associated with this node
-	FText PinFriendlyName = FText::FromString(PinName);
+	FText ActorPinFriendlyName = FText::FromString(ActorPinName);
+	FText ComponentNamePinFriendlyName = FText::FromString(ComponentNamePinName);
 	{
 		UMovieScene* MovieScene = GetMovieScene();
-		if( MovieScene != NULL )		// @todo sequencer: Need to refresh the PinFriendlyName if the MovieScene asset changes, or if the possessable slot is renamed within Sequencer
+		if( MovieScene != NULL )		// @todo sequencer: Need to refresh the ActorPinFriendlyName if the MovieScene asset changes, or if the possessable slot is renamed within Sequencer
 		{
 			for( auto PossessableIndex = 0; PossessableIndex < MovieScene->GetPossessableCount(); ++PossessableIndex )
 			{
@@ -284,7 +290,8 @@ void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& Bo
 				if( Possessable.GetGuid() == BoundObject.GetPossessableGuid() )
 				{
 					// Found a name for this possessable
-					PinFriendlyName = FText::FromString(Possessable.GetName());
+					ActorPinFriendlyName = FText::FromString(Possessable.GetName());
+					ComponentNamePinFriendlyName = FText::Format(NSLOCTEXT("PlayMovieSceneNode", "ComponentNamePinFormat", "{0} Component Name"), FText::FromString(Possessable.GetName()));
 					break;
 				}
 			}
@@ -295,24 +302,26 @@ void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& Bo
 	UObject* PinSubCategoryObject = AActor::StaticClass();
 	const bool bIsArray = false;
 	const bool bIsReference = false;
-	UEdGraphPin* NewPin = CreatePin( EGPD_Input, K2Schema->PC_Object, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference, PinName );
-	check( NewPin != NULL );
+	UEdGraphPin* NewActorPin = CreatePin( EGPD_Input, K2Schema->PC_Object, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference, ActorPinName );
+	UEdGraphPin* NewComponentNamePin = CreatePin(EGPD_Input, K2Schema->PC_String, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference, ComponentNamePinName );
+	check( NewActorPin != NULL && NewComponentNamePin != NULL );
 
 	// Set the friendly name for this pin
-	NewPin->PinFriendlyName = PinFriendlyName;
+	NewActorPin->PinFriendlyName = ActorPinFriendlyName;
+	NewComponentNamePin->PinFriendlyName = ComponentNamePinFriendlyName;
 
 	// Place a literal for the bound object and hook it up to the pin
 	// @todo sequencer: Should we instead set the default on the pin to the object instead?
-	const TArray< UObject* >& Objects = BoundObject.GetObjects();
-	if( Objects.Num() > 0 )
+	const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos = BoundObject.GetObjectInfos();
+	if( ObjectInfos.Num() > 0 )
 	{
-		for( auto ObjectIter( Objects.CreateConstIterator() ); ObjectIter; ++ObjectIter )
+		for(const FMovieSceneBoundObjectInfo& BoundObjectInfo : ObjectInfos )
 		{
-			auto* Object = *ObjectIter;
-			if( ensure( Object != NULL ) )
+			if( ensure( BoundObjectInfo.Object != NULL ) )
 			{
 				// Check to see if we have a literal for this object already
-				UK2Node_Literal* LiteralNode = NULL;
+				UK2Node_Literal* ActorLiteralNode = NULL;
+				UK2Node_Literal* ComponentNameLiteralNode = NULL;
 				{
 					TArray< UK2Node_Literal* > LiteralNodes;
 					GetGraph()->GetNodesOfClass( LiteralNodes );
@@ -320,29 +329,58 @@ void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& Bo
 					{
 						const auto CurLiteralNode = *NodeIt;
 
-						if( CurLiteralNode->GetObjectRef() == Object )
+						if( CurLiteralNode->GetObjectRef() == BoundObjectInfo.Object )
 						{
 							// Found one!
-							LiteralNode = CurLiteralNode;
-							break;
+							ActorLiteralNode = CurLiteralNode;
 						}
+						else
+						{
+							UEdGraphPin* ValuePin = CurLiteralNode->GetValuePin();
+							if (ValuePin->PinType.PinCategory == K2Schema->PC_String && ValuePin->GetDefaultAsString() == BoundObjectInfo.Tag)
+							{
+								ComponentNameLiteralNode = CurLiteralNode;
+							}
+						}
+					}
+
+					if (ActorLiteralNode != NULL && ComponentNameLiteralNode != NULL)
+					{
+						break;
 					}
 				}
 
-				if( LiteralNode == NULL )
+				if( ActorLiteralNode == NULL )
 				{
 					// No literal for this object yet, so we'll make one now.
 					UK2Node_Literal* LiteralNodeTemplate = NewObject<UK2Node_Literal>();
-					LiteralNodeTemplate->SetObjectRef( Object );
+					LiteralNodeTemplate->SetObjectRef( BoundObjectInfo.Object );
 
 					// Figure out a decent place to stick the node
 					// @todo sequencer: The placement of these is really unacceptable.  We should setup new logic specific for moviescene pin objects.
 					const FVector2D NewNodePos = GetGraph()->GetGoodPlaceForNewNode();
-					LiteralNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Literal>(GetGraph(), LiteralNodeTemplate, NewNodePos);
+					ActorLiteralNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Literal>(GetGraph(), LiteralNodeTemplate, NewNodePos);
 				}
 
 				// Hook up the object reference literal to our pin
-				LiteralNode->GetValuePin()->MakeLinkTo( NewPin );
+				ActorLiteralNode->GetValuePin()->MakeLinkTo(NewActorPin);
+
+				if (BoundObjectInfo.Tag.IsEmpty() == false)
+				{
+					if (ComponentNameLiteralNode == NULL)
+					{
+						// No literal for this object yet, so we'll make one now.
+						UK2Node_Literal* LiteralNodeTemplate = NewObject<UK2Node_Literal>();
+
+						// Figure out a decent place to stick the node
+						// @todo sequencer: The placement of these is really unacceptable.  We should setup new logic specific for moviescene pin objects.
+						const FVector2D NewNodePos = GetGraph()->GetGoodPlaceForNewNode();
+						ComponentNameLiteralNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Literal>(GetGraph(), LiteralNodeTemplate, NewNodePos);
+						ComponentNameLiteralNode->GetSchema()->TrySetDefaultValue(*ComponentNameLiteralNode->GetValuePin(), BoundObjectInfo.Tag);
+					}
+
+					ComponentNameLiteralNode->GetValuePin()->MakeLinkTo(NewComponentNamePin);
+				}
 			}
 		}
 	}

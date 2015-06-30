@@ -198,7 +198,27 @@ void URuntimeMovieScenePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance
 	// Otherwise, check to see if we have one or more possessed actors that are mapped to this handle
 	else if( MovieSceneBindings != NULL )
 	{
-		OutObjects = MovieSceneBindings->FindBoundObjects( ObjectHandle );
+		for (FMovieSceneBoundObjectInfo& BoundObject : MovieSceneBindings->FindBoundObjects(ObjectHandle))
+		{
+			if (BoundObject.Tag.IsEmpty() == false)
+			{
+				AActor* Actor = Cast<AActor>(BoundObject.Object);
+				if (Actor != nullptr)
+				{
+					for (UActorComponent* ActorComponent : Actor->GetComponents())
+					{
+						if (ActorComponent->GetName() == BoundObject.Tag)
+						{
+							OutObjects.Add(ActorComponent);
+						}
+					}
+				}
+			}
+			else
+			{
+				OutObjects.Add(BoundObject.Object);
+			}
+		}
 	}
 }
 
