@@ -32,6 +32,12 @@ bool FOneSkyLocalizationServiceCommand::DoWork()
 	while (!bExecuteProcessed)
 	{
 		FPlatformProcess::Sleep(0.01f);
+
+		// If the editor was closed, our callbacks won't get called anyway, so just kill the thread
+		if (GIsRequestingExit)
+		{
+			Abandon();
+		}
 	}
 
 	return bCommandSuccessful;
