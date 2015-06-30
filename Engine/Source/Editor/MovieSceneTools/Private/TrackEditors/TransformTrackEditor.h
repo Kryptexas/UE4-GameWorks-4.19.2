@@ -30,9 +30,14 @@ public:
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL ) override;
+	virtual void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings) override;
 	virtual void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 
 private:
+
+	/** Custom add key implementation */
+	void AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL, bool bForceKey = false, F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All);
+
 	/**
 	 * Called before an actor or component transform changes
 	 *
@@ -48,7 +53,7 @@ private:
 	void OnTransformChanged( UObject& InObject );
 
 	/** Delegate for animatable property changed in OnTransformChanged */
-	void OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, struct FTransformDataPair TransformPair, bool bAutoKeying);
+	void OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, struct FTransformDataPair TransformPair, bool bAutoKeying, bool bForceKey, F3DTransformTrackKey::Type KeyType);
 
 	/** Delegate for camera button lock state */
 	ECheckBoxState IsCameraLocked(TWeakObjectPtr<ACameraActor> CameraActor) const; 
@@ -58,6 +63,21 @@ private:
 
 	/** Delegate for camera button lock tooltip */
 	FText GetLockCameraToolTip(TWeakObjectPtr<ACameraActor> CameraActor) const; 
+
+	/** Add a transform key */
+	void AddTransformKey();
+
+	/** Add a translation key */
+	void AddTranslationKey();
+
+	/** Add a rotation key */
+	void AddRotationKey();
+
+	/** Add a scale key */
+	void AddScaleKey();
+
+	/** Internal add transform key */
+	void AddTransformKeyInternal(F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All);
 
 private:
 	/** Mapping of objects to their existing transform data (for comparing against new transform data) */

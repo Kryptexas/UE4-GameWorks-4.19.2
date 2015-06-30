@@ -175,6 +175,13 @@ public:
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) {return false;}
 	
 	/**
+	 * Allows the track editors to bind commands
+	 *
+	 * @param SequencerCommandBindings	The command bindings to map to
+	*/
+	virtual void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings) {}
+
+	/**
 	 * Builds up the object binding context menu for the outliner
 	 *
 	 * @param MenuBuilder	The menu builder to change

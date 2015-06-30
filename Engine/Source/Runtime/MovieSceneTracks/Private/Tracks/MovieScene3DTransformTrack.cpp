@@ -72,7 +72,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance
 	return MakeShareable( new FMovieScene3DTransformTrackInstance( *this ) );
 }
 
-bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation )
+bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation, F3DTransformTrackKey::Type KeyType )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime(Sections, InKey.GetKeyTime());
 	if (!NearestSection || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
@@ -82,9 +82,12 @@ bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, co
 		UMovieScene3DTransformSection* NewSection = Cast<UMovieScene3DTransformSection>( FindOrAddSection( InKey.GetKeyTime() ) );
 
 		// key each component of the transform
-		NewSection->AddTranslationKeys( InKey );
-		NewSection->AddRotationKeys( InKey, bUnwindRotation );
-		NewSection->AddScaleKeys( InKey );
+		if (KeyType & F3DTransformTrackKey::Key_Translation)
+			NewSection->AddTranslationKeys( InKey );
+		if (KeyType & F3DTransformTrackKey::Key_Rotation)
+			NewSection->AddRotationKeys( InKey, bUnwindRotation );
+		if (KeyType & F3DTransformTrackKey::Key_Scale)
+			NewSection->AddScaleKeys( InKey );
 
 		return true;
 	}

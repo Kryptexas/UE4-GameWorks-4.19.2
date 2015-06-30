@@ -7,6 +7,17 @@
 #include "MovieScenePropertyTrack.h"
 #include "MovieScene3DTransformTrack.generated.h"
 
+namespace F3DTransformTrackKey
+{
+	enum Type
+	{
+		Key_Translation = 0x00000001,
+		Key_Rotation    = 0x00000002,
+		Key_Scale       = 0x00000004,
+		Key_All         = Key_Translation | Key_Rotation | Key_Scale
+	};
+}
+
 /**
  * Stores information about a transform for the purpose of adding keys to a transform section
  */
@@ -141,9 +152,10 @@ public:
 	 * @param ObjectHandle		Handle to the object(s) being changed
 	 * @param InKey				The transform key to add
 	 * @param bUnwindRotation	When true, the value will be treated like a rotation value in degrees, and will automatically be unwound to prevent flipping 360 degrees from the previous key 	 
+	 * @param KeyType           Key type (trans, rot, scale)
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation );
+	virtual bool AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation, F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All );
 
 	/**
 	 * Evaluates the track at the playback position
