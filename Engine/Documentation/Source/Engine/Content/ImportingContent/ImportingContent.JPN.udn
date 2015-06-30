@@ -1,0 +1,25 @@
+﻿INTSourceChangelist:2604829
+Availability:Docs
+Title:コンテンツのインポートの操作ガイド
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:UE4 プロジェクトにコンテンツをインポートする方法について学習しましょう。
+スキルレベル:初心者向け
+バージョン：4.8
+
+メッシュ、テクスチャ、その他のアセットを UE4 プロジェクトに様々な方法でインポートすることができます。コンテンツを UE4 にインポートする一般的な方法について説明します。例えば、コンテンツ ブラウザのインポート機能を使用する、ハードディスクからコンテンツ ブラウザにファイルをドラッグする、外部プログラムからプロジェクト ディレクトリにファイルを保存するなどがあります。
+
+[REGION:lightbox]
+	[![](Content_Browser.png)(w:925)](Content_Browser.png)
+[/REGION]
+
+コンテンツを UE4 プロジェクトにインポートする方法について学習するには以下のページを参照してください。
+
+## 初心者向け
+
+| 操作手順 | 説明 |
+| ------- | ------------ |
+| [](Engine/Content/ImportingContent/ContentBrowserImport) | %Engine/Content/ImportingContent/ContentBrowserImport:description% |
+| [](Engine/Content/ImportingContent/DragAndDropImport) | %Engine/Content/ImportingContent/DragAndDropImport:description% |
+| [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
+| [](Engine/Content/ImportingContent/ImportingMeshes) | %Engine/Content/ImportingContent/ImportingMeshes:description% |
+| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% |
