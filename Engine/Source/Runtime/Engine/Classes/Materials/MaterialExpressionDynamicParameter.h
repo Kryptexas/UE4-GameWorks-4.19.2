@@ -29,8 +29,9 @@ class UMaterialExpressionDynamicParameter : public UMaterialExpression
 	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PostLoad();
 #endif // WITH_EDITOR
+
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
