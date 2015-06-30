@@ -395,7 +395,7 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 		PrintString(DefaultContext, FString::Printf(TEXT("Behavior: {yellow}%s{white}, Tree: {yellow}%s\n"), *DebugComponent->CurrentAIState, *DebugComponent->CurrentAIAssets));
 		PrintString(DefaultContext, FString::Printf(TEXT("Active task: {yellow}%s\n"), *DebugComponent->CurrentAITask));
 	}
-
+		
 	// ability + animation
 	if (DebugComponent->bIsUsingAbilities && DebugComponent->bIsUsingCharacter)
 	{
@@ -409,6 +409,9 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 	{
 		PrintString(DefaultContext, FString::Printf(TEXT("Ability: {yellow}%s\n"), *DebugComponent->AbilityInfo));
 	}
+
+	// putting gameplay tasks' stuff last since it can expand heavily
+	PrintString(DefaultContext, FString::Printf(TEXT("GameplayTasks:\n{yellow}%s\n"), *DebugComponent->GameplayTasksState));
 
 	DrawPath(PC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)

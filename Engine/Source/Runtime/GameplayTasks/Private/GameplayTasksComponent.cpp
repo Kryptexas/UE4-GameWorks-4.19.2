@@ -428,6 +428,40 @@ void UGameplayTasksComponent::SetCurrentlyClaimedResources(FGameplayResourceSet 
 //----------------------------------------------------------------------//
 // debugging
 //----------------------------------------------------------------------//
+FString UGameplayTasksComponent::GetTickingTasksDescription() const
+{
+	FString TasksDescription;
+	for (auto& Task : TickingTasks)
+	{
+		if (Task.IsValid())
+		{
+			TasksDescription += FString::Printf(TEXT("\n%s %s"), *GetTaskStateName(Task->GetState()), *Task->GetDebugDescription());
+		}
+		else
+		{
+			TasksDescription += TEXT("\nNULL");
+		}
+	}
+	return TasksDescription;
+}
+
+FString UGameplayTasksComponent::GetTasksPriorityQueueDescription() const
+{
+	FString TasksDescription;
+	for (auto Task : TaskPriorityQueue)
+	{
+		if (Task != nullptr)
+		{
+			TasksDescription += FString::Printf(TEXT("\n%s %s"), *GetTaskStateName(Task->GetState()), *Task->GetDebugDescription());
+		}
+		else
+		{
+			TasksDescription += TEXT("\nNULL");
+		}
+	}
+	return TasksDescription;
+}
+
 #if ENABLE_VISUAL_LOG
 void UGameplayTasksComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
@@ -442,33 +476,8 @@ void UGameplayTasksComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) co
 
 	FVisualLogStatusCategory StatusCategory(CategoryName);
 
-	FString TasksDescription;
-	for (auto& Task : TickingTasks)
-	{
-		if (Task.IsValid())
-		{
-			TasksDescription += FString::Printf(TEXT("%s %s\n"), *GetTaskStateName(Task->GetState()), *Task->GetDebugDescription());
-		}
-		else
-		{
-			TasksDescription += TEXT("NULL\n");
-		}
-	}
-	StatusCategory.Add(TickingTasksName, TasksDescription);
-
-	TasksDescription.Reset();
-	for (auto Task : TaskPriorityQueue)
-	{
-		if (Task != nullptr)
-		{
-			TasksDescription += FString::Printf(TEXT("%s %s\n"), *GetTaskStateName(Task->GetState()), *Task->GetDebugDescription());
-		}
-		else
-		{
-			TasksDescription += TEXT("NULL\n");
-		}
-	}
-	StatusCategory.Add(PriorityQueueName, TasksDescription);
+	StatusCategory.Add(TickingTasksName, GetTickingTasksDescription());
+	StatusCategory.Add(PriorityQueueName, GetTasksPriorityQueueDescription());
 
 	Snapshot->Status.Add(StatusCategory);
 }

@@ -86,6 +86,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	FString CurrentAIAssets;
 
 	UPROPERTY(Replicated)
+	FString GameplayTasksState;
+
+	UPROPERTY(Replicated)
 	FString NavDataInfo;
 
 	UPROPERTY(Replicated)

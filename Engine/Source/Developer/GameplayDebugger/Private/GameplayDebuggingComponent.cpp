@@ -214,6 +214,8 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIState);
 	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIAssets);
 
+	DOREPLIFETIME(UGameplayDebuggingComponent, GameplayTasksState);
+
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingAbilities);
 	DOREPLIFETIME(UGameplayDebuggingComponent, AbilityInfo);
 
@@ -530,6 +532,16 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 		CurrentAITask = TEXT("");
 		CurrentAIState = TEXT("");
 		CurrentAIAssets = TEXT("");
+	}
+
+	UGameplayTasksComponent* GTComponent = MyPawn->FindComponentByClass<UGameplayTasksComponent>();
+	if (GTComponent)
+	{
+		GameplayTasksState = FString::Printf(TEXT("Ticking Tasks: %s\nTask Queue: %s"), *GTComponent->GetTickingTasksDescription(), *GTComponent->GetTasksPriorityQueueDescription());
+	}
+	else
+	{
+		GameplayTasksState = TEXT("");
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
