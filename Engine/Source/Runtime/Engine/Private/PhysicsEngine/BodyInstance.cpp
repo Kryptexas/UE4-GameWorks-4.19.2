@@ -4432,8 +4432,6 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 			UpdateDampingProperties();
 			SetMaxAngularVelocity(MaxAngularVelocity, false);
 			SetMaxDepenetrationVelocity(bOverrideMaxDepenetrationVelocity ? MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
-
-			RigidActor->setLinearVelocity(U2PVector(InitialLinearVelocity));
 		}else
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -4447,6 +4445,11 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 				
 			}
 #endif
+		}
+
+		if (ShouldInstanceSimulatingPhysics())
+		{
+			RigidActor->setLinearVelocity(U2PVector(InitialLinearVelocity));
 		}
 
 		float SleepEnergyThresh = RigidActor->getSleepThreshold();

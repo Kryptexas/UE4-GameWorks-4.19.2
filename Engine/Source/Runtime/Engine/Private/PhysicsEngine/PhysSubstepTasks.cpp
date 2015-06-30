@@ -168,6 +168,14 @@ void FPhysSubstepTask::ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyIn
 #endif
 }
 
+#if WITH_PHYSX
+bool IsKinematicHelper(const PxRigidBody* PRigidBody)
+{
+	const bool bIsKinematic = PRigidBody->getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC;
+	return bIsKinematic;
+}
+#endif
+
 /** Applies forces - Assumes caller has obtained writer lock */
 void FPhysSubstepTask::ApplyForces_AssumesLocked(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance)
 {
@@ -281,11 +289,16 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 		//We should only be iterating over actors that belong to this scene
 		check(PRigidBody->getScene() == PScene);
 
-		ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
-		ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
-		ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
-		ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
-		InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
+		if (!IsKinematicHelper(PRigidBody))
+		{
+			ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
+			ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
+		}else
+		{
+			InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
+		}
 	}
 
 	/** Final substep */
