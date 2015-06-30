@@ -435,4 +435,8 @@ class ENGINE_API UKismetStringLibrary : public UBlueprintFunctionLibrary
 	/** @return the substring from Start position for Count characters. */
 	UFUNCTION(BlueprintPure, Category = "Utilities|String")
 		static FString Mid(const FString& SourceString, int32 Start, int32 Count);
+
+	/** Convert a number of seconds into minutes:seconds.milliseconds format string */
+	UFUNCTION(BlueprintPure,  Category = "Utilities|String")
+	static FString TimeSecondsToString(float InSeconds);
 };
