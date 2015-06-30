@@ -1958,12 +1958,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 
 			FMeshProxySettings ProxySettings;
 			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(SimplificationDetails.DetailsPercentage/100.f);
-			ProxySettings.TextureWidth = 1024; // TODO: Expose texture size
-			ProxySettings.TextureHeight = 1024;
-			ProxySettings.bExportNormalMap = SimplificationDetails.bGenerateMeshNormalMap;
-			ProxySettings.bExportMetallicMap = SimplificationDetails.bGenerateMeshMetallicMap;
-			ProxySettings.bExportRoughnessMap = SimplificationDetails.bGenerateMeshRoughnessMap;
-			ProxySettings.bExportSpecularMap = SimplificationDetails.bGenerateMeshSpecularMap;
+			ProxySettings.Material = SimplificationDetails.StaticMeshMaterial;
 
 			TArray<UObject*> OutAssets;
 			FVector OutProxyLocation;
@@ -2033,14 +2028,35 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 								
 			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
-			const FIntPoint LandscapeTextureSize(1024, 1024);
-			LandscapeFlattenMaterial.DiffuseSize	= LandscapeTextureSize;
-			LandscapeFlattenMaterial.NormalSize		= SimplificationDetails.bGenerateLandscapeNormalMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.MetallicSize	= SimplificationDetails.bGenerateLandscapeMetallicMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.RoughnessSize	= SimplificationDetails.bGenerateLandscapeRoughnessMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.SpecularSize	= SimplificationDetails.bGenerateLandscapeSpecularMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.DiffuseSize	= SimplificationDetails.LandscapeMaterial.BaseColorMapSize;
+			LandscapeFlattenMaterial.NormalSize		= SimplificationDetails.LandscapeMaterial.bNormalMap ?  SimplificationDetails.LandscapeMaterial.NormalMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.MetallicSize	= SimplificationDetails.LandscapeMaterial.bMetallicMap ? SimplificationDetails.LandscapeMaterial.MetallicMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.RoughnessSize	= SimplificationDetails.LandscapeMaterial.bRoughnessMap ? SimplificationDetails.LandscapeMaterial.RoughnessMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.SpecularSize	= SimplificationDetails.LandscapeMaterial.bSpecularMap ? SimplificationDetails.LandscapeMaterial.SpecularMapSize : FIntPoint::ZeroValue;
 			
 			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
+
+			// Fill landscape material constants
+			{
+				if (LandscapeFlattenMaterial.MetallicSamples.Num() == 0)
+				{
+					LandscapeFlattenMaterial.MetallicSize = FIntPoint(1, 1);
+					LandscapeFlattenMaterial.MetallicSamples.SetNum(1);
+					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.MetallicConstant);
+				}
+				if (LandscapeFlattenMaterial.RoughnessSamples.Num() == 0)
+				{
+					LandscapeFlattenMaterial.RoughnessSize = FIntPoint(1, 1);
+					LandscapeFlattenMaterial.RoughnessSamples.SetNum(1);
+					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.RoughnessConstant);
+				}
+				if (LandscapeFlattenMaterial.SpecularSamples.Num() == 0)
+				{
+					LandscapeFlattenMaterial.SpecularSize = FIntPoint(1, 1);
+					LandscapeFlattenMaterial.SpecularSamples.SetNum(1);
+					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.SpecularConstant);
+				}
+			}
 		
 			if (SimplificationDetails.bBakeGrassToLandscape)
 			{

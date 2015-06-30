@@ -348,98 +348,6 @@ public:
 		return Ar << V.MaterialInterface;
 	}
 
-	bool IsMaterialInputConnected(UMaterial* InMaterial, EMaterialProperty MaterialInput)
-	{
-		bool bConnected = false;
-
-		switch (MaterialInput)
-		{
-		case MP_EmissiveColor:
-			bConnected = InMaterial->EmissiveColor.Expression != NULL;
-			break;
-		case MP_BaseColor:
-			bConnected = InMaterial->BaseColor.Expression != NULL;
-			break;
-		case MP_Specular:
-			bConnected = InMaterial->Specular.Expression != NULL;
-			break;
-		case MP_Normal:
-			bConnected = InMaterial->Normal.Expression != NULL;
-			break;
-		case MP_Metallic:
-			bConnected = InMaterial->Metallic.Expression != NULL;
-			break;
-		case MP_Roughness:
-			bConnected = InMaterial->Roughness.Expression != NULL;
-			break;
-		default:
-			break;
-		}
-
-		// Note: only checking to see whether the entire material attributes connection exists.  
-		// This means materials using the material attributes input will export more attributes than is necessary.
-		bConnected = InMaterial->bUseMaterialAttributes ? InMaterial->MaterialAttributes.Expression != NULL : bConnected;
-		return bConnected;
-	}
-
-	/**
-	 *	Checks if the configuration of the material proxy will generate a uniform
-	 *	value across the sampling... (Ie, nothing is hooked to the property)
-	 *
-	 *	@param	OutUniformValue		The value that will be returned.
-	 *
-	 *	@return	bool				true if a single value would be generated.
-	 *								false if not.
-	 */
-	bool WillGenerateUniformData(FColor& OutUniformValue)
-	{
-		// Pre-fill the value...
-		OutUniformValue.R = 0;
-		OutUniformValue.G = 0;
-		OutUniformValue.B = 0;
-		OutUniformValue.A = 0;
-
-		EBlendMode BlendMode = MaterialInterface->GetBlendMode();
-		EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
-		
-		check(Material);
-		bool bExpressionIsNULL = false;
-		switch (PropertyToCompile)
-		{
-		case MP_EmissiveColor:
-			// Emissive is ALWAYS returned...
-			bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
-			break;
-		case MP_BaseColor:
-			// Only return for Opaque and Masked...
-			if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
-			{
-				bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
-			}
-			break;
-		case MP_Specular: 
-		case MP_Metallic:
-		case MP_Roughness:
-			// Only return for Opaque and Masked...
-			if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
-			{
-				bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
-				OutUniformValue.A = 255;
-			}
-			break;
-		case MP_Normal:
-			// Only return for Opaque and Masked...
-			if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
-			{
-				bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
-				OutUniformValue.B = 255;	// Default normal is (0,0,1)
-			}
-			break;
-		}
-
-		return bExpressionIsNULL;
-	}
-
 	/**
 	* Iterate through all textures used by the material and return the maximum texture resolution used
 	* (ideally this could be made dependent of the material property)
@@ -677,15 +585,6 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 		return false;
 	}
 
-	FColor UniformValue;
-	if (MaterialProxy->WillGenerateUniformData(UniformValue))
-	{
-		// Single value... fill it in.
-		OutBMP.Empty();
-		OutBMP.Add(UniformValue);
-		return true;
-	}
-
 	bool bNormalmap = (InMaterialProperty == MP_Normal);
 
 	RenderMaterialTile(InWorld, MaterialProxy, InRenderTarget, !bNormalmap);
@@ -703,15 +602,6 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 	if (MaterialProxy == NULL)
 	{
 		return false;
-	}
-
-	FColor UniformValue;
-	if (MaterialProxy->WillGenerateUniformData(UniformValue))
-	{
-		// Single value... fill it in.
-		OutBMP.Empty();
-		OutBMP.Add(UniformValue);
-		return true;
 	}
 
 	bool bNormalmap = (InMaterialProperty == MP_Normal);
@@ -1054,10 +944,10 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 		MaterialNodeY+= MaterialNodeStepY;
 	}
-	else
+	else if (InFlattenMaterial.MetallicSamples.Num() == 1)
 	{
 		// Set Metallic to constant
-		float Metallic = InFlattenMaterial.MetallicSamples.Num() ? InFlattenMaterial.MetallicSamples[0].R : 0.0f;
+		float Metallic = *(float*)(&InFlattenMaterial.MetallicSamples[0].DWColor());
 		auto MetallicExpression = NewObject<UMaterialExpressionConstant>(Material);
 		MetallicExpression->R = Metallic;
 		MetallicExpression->MaterialExpressionEditorX = -400;
@@ -1086,7 +976,20 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 		MaterialNodeY+= MaterialNodeStepY;
 	}
+	else if (InFlattenMaterial.SpecularSamples.Num() == 1)
+	{
+		// Set Specular to constant
+		float Specular = *(float*)(&InFlattenMaterial.SpecularSamples[0].DWColor());
+		auto SpecularExpression = NewObject<UMaterialExpressionConstant>(Material);
+		SpecularExpression->R = Specular;
+		SpecularExpression->MaterialExpressionEditorX = -400;
+		SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
+		Material->Expressions.Add(SpecularExpression);
+		Material->Specular.Expression = SpecularExpression;
 
+		MaterialNodeY+= MaterialNodeStepY;
+	}
+	
 	// Roughness
 	if (InFlattenMaterial.RoughnessSamples.Num() > 1)
 	{
@@ -1105,10 +1008,10 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 		MaterialNodeY+= MaterialNodeStepY;
 	}
-	else
+	else if (InFlattenMaterial.RoughnessSamples.Num() == 1)
 	{
 		// Set Roughness to constant
-		float Roughness = InFlattenMaterial.RoughnessSamples.Num() ? InFlattenMaterial.RoughnessSamples[0].R : 0.8f;
+		float Roughness = *(float*)(&InFlattenMaterial.RoughnessSamples[0].DWColor());
 		auto RoughnessExpression = NewObject<UMaterialExpressionConstant>(Material);
 		RoughnessExpression->R = Roughness;
 		RoughnessExpression->MaterialExpressionEditorX = -400;

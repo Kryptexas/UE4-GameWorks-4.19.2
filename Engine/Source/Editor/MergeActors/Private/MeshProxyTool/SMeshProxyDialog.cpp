@@ -512,49 +512,53 @@ void SMeshProxyDialog::SetTextureResolution(TSharedPtr<FString> NewSelection, ES
 {
 	int32 Resolution = 512;
 	TTypeFromString<int32>::FromString(Resolution, **NewSelection);
+	FIntPoint TextureSize(Resolution, Resolution);
 	
-	Tool->ProxySettings.TextureWidth	= Resolution;
-	Tool->ProxySettings.TextureHeight = Resolution;
+	Tool->ProxySettings.Material.BaseColorMapSize = TextureSize;
+	Tool->ProxySettings.Material.NormalMapSize = TextureSize;
+	Tool->ProxySettings.Material.MetallicMapSize = TextureSize;
+	Tool->ProxySettings.Material.RoughnessMapSize = TextureSize;
+	Tool->ProxySettings.Material.SpecularMapSize = TextureSize;
 }
 
 ECheckBoxState SMeshProxyDialog::GetExportNormalMap() const
 {
-	return Tool->ProxySettings.bExportNormalMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+	return Tool->ProxySettings.Material.bNormalMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 void SMeshProxyDialog::SetExportNormalMap(ECheckBoxState NewValue)
 {
-	Tool->ProxySettings.bExportNormalMap = (NewValue == ECheckBoxState::Checked);
+	Tool->ProxySettings.Material.bNormalMap = (NewValue == ECheckBoxState::Checked);
 }
 
 ECheckBoxState SMeshProxyDialog::GetExportMetallicMap() const
 {
-	return Tool->ProxySettings.bExportMetallicMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+	return Tool->ProxySettings.Material.bMetallicMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 void SMeshProxyDialog::SetExportMetallicMap(ECheckBoxState NewValue)
 {
-	Tool->ProxySettings.bExportMetallicMap = (NewValue == ECheckBoxState::Checked);
+	Tool->ProxySettings.Material.bMetallicMap = (NewValue == ECheckBoxState::Checked);
 }
 
 ECheckBoxState SMeshProxyDialog::GetExportRoughnessMap() const
 {
-	return Tool->ProxySettings.bExportRoughnessMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+	return Tool->ProxySettings.Material.bRoughnessMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 void SMeshProxyDialog::SetExportRoughnessMap(ECheckBoxState NewValue)
 {
-	Tool->ProxySettings.bExportRoughnessMap = (NewValue == ECheckBoxState::Checked);
+	Tool->ProxySettings.Material.bRoughnessMap = (NewValue == ECheckBoxState::Checked);
 }
 
 ECheckBoxState SMeshProxyDialog::GetExportSpecularMap() const
 {
-	return Tool->ProxySettings.bExportSpecularMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+	return Tool->ProxySettings.Material.bSpecularMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 void SMeshProxyDialog::SetExportSpecularMap(ECheckBoxState NewValue)
 {
-	Tool->ProxySettings.bExportSpecularMap = (NewValue == ECheckBoxState::Checked);
+	Tool->ProxySettings.Material.bSpecularMap = (NewValue == ECheckBoxState::Checked);
 }
 
 

@@ -515,8 +515,10 @@ public:
 		MappingSettings->SetGenerateMappingImage( true );
 		MappingSettings->SetGenerateTexCoords( true );
 		MappingSettings->SetGenerateTangents( false );
-		MappingSettings->SetWidth( InProxySettings.TextureWidth );
-		MappingSettings->SetHeight( InProxySettings.TextureHeight );
+
+		FIntPoint MappingImageSize = ComputeMappingImageSize(InProxySettings.Material);
+		MappingSettings->SetWidth(MappingImageSize.X);
+		MappingSettings->SetHeight(MappingImageSize.Y);
 
 		//Start remeshing the geometry
 		RemeshingProcessor->RemeshGeometry();
@@ -1697,6 +1699,16 @@ private:
 
 		// Specular
 		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SPECULAR, OutMaterial.SpecularSamples, OutMaterial.SpecularSize);
+	}
+
+	static FIntPoint ComputeMappingImageSize(const FMaterialSimplificationSettings& Settings)
+	{
+		FIntPoint ImageSize = Settings.BaseColorMapSize;
+		ImageSize = ImageSize.ComponentMax(Settings.NormalMapSize);
+		ImageSize = ImageSize.ComponentMax(Settings.MetallicMapSize);
+		ImageSize = ImageSize.ComponentMax(Settings.RoughnessMapSize);
+		ImageSize = ImageSize.ComponentMax(Settings.SpecularMapSize);
+		return ImageSize;
 	}
 };
 

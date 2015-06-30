@@ -2229,6 +2229,91 @@ struct FMeshBuildSettings
 	}
 };
 
+USTRUCT()
+struct FMaterialSimplificationSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Size of generated BaseColor map
+	UPROPERTY(Category=Material, EditAnywhere)
+	FIntPoint BaseColorMapSize;
+
+	// Whether to generate normal map
+	UPROPERTY()
+	bool bNormalMap;
+	
+	// Size of generated specular map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bNormalMap"))
+	FIntPoint NormalMapSize;
+
+	// Metallic constant
+	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float MetallicConstant;
+
+	// Whether to generate metallic map
+	UPROPERTY()
+	bool bMetallicMap;
+
+	// Size of generated metallic map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bMetallicMap"))
+	FIntPoint MetallicMapSize;
+
+	// Roughness constant
+	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float RoughnessConstant;
+
+	// Whether to generate roughness map
+	UPROPERTY()
+	bool bRoughnessMap;
+
+	// Size of generated roughness map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bRoughnessMap"))
+	FIntPoint RoughnessMapSize;
+		
+	// Specular constant
+	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float SpecularConstant;
+
+	// Whether to generate specular map
+	UPROPERTY()
+	bool bSpecularMap;
+
+	// Size of generated specular map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bSpecularMap"))
+	FIntPoint SpecularMapSize;
+
+	FMaterialSimplificationSettings()
+		: BaseColorMapSize(1024, 1024)
+		, bNormalMap(true)
+		, NormalMapSize(1024, 1024)
+		, MetallicConstant(0.0f)
+		, bMetallicMap(false)
+		, MetallicMapSize(1024, 1024)
+		, RoughnessConstant(0.5f)
+		, bRoughnessMap(false)
+		, RoughnessMapSize(1024, 1024)
+		, SpecularConstant(0.5f)
+		, bSpecularMap(false)
+		, SpecularMapSize(1024, 1024)
+	{
+	}
+	
+	bool operator == (const FMaterialSimplificationSettings& Other) const
+	{
+		return BaseColorMapSize == Other.BaseColorMapSize
+			&& bNormalMap == Other.bNormalMap
+			&& NormalMapSize == Other.NormalMapSize
+			&& MetallicConstant == Other.MetallicConstant
+			&& bMetallicMap == Other.bMetallicMap
+			&& MetallicMapSize == Other.MetallicMapSize
+			&& RoughnessConstant == Other.RoughnessConstant
+			&& bRoughnessMap == Other.bRoughnessMap
+			&& RoughnessMapSize == Other.RoughnessMapSize
+			&& SpecularConstant == Other.SpecularConstant
+			&& bSpecularMap == Other.bSpecularMap
+			&& SpecularMapSize == Other.SpecularMapSize;
+	}
+};
 
 USTRUCT()
 struct FMeshProxySettings
@@ -2238,27 +2323,26 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 ScreenSize;
 
-	/** Texture resolution used for the proxy mesh*/
+	/** Material simplification */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 TextureWidth;
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 TextureHeight;
+	FMaterialSimplificationSettings Material;
 
-	/** Whether to create normal map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportNormalMap;
+	UPROPERTY()
+	int32 TextureWidth_DEPRECATED;
+	UPROPERTY()
+	int32 TextureHeight_DEPRECATED;
 
-	/** Whether to create metallic map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportMetallicMap;
+	UPROPERTY()
+	bool bExportNormalMap_DEPRECATED;
 
-	/** Whether to create roughness map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportRoughnessMap;
+	UPROPERTY()
+	bool bExportMetallicMap_DEPRECATED;
 
-	/** Whether to create specular map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportSpecularMap;
+	UPROPERTY()
+	bool bExportRoughnessMap_DEPRECATED;
+
+	UPROPERTY()
+	bool bExportSpecularMap_DEPRECATED;
 
 	/** Should Simplygon recalculate normals for the proxy mesh? */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
@@ -2286,12 +2370,12 @@ struct FMeshProxySettings
 	/** Default settings. */
 	FMeshProxySettings()
 		: ScreenSize(300)
-		, TextureWidth(512)
-		, TextureHeight(512)
-		, bExportNormalMap(true)
-		, bExportMetallicMap(false)
-		, bExportRoughnessMap(false)
-		, bExportSpecularMap(false)
+		, TextureWidth_DEPRECATED(512)
+		, TextureHeight_DEPRECATED(512)
+		, bExportNormalMap_DEPRECATED(true)
+		, bExportMetallicMap_DEPRECATED(false)
+		, bExportRoughnessMap_DEPRECATED(false)
+		, bExportSpecularMap_DEPRECATED(false)
 		, bRecalculateNormals(true)
 		, HardAngleThreshold(80.0f)
 		, MergeDistance(4)
@@ -2305,12 +2389,7 @@ struct FMeshProxySettings
 	bool operator==(const FMeshProxySettings& Other) const
 	{
 		return ScreenSize == Other.ScreenSize
-			&& TextureWidth == Other.TextureWidth
-			&& TextureHeight == Other.TextureHeight
-			&& bExportNormalMap == Other.bExportNormalMap
-			&& bExportMetallicMap == Other.bExportMetallicMap
-			&& bExportRoughnessMap == Other.bExportRoughnessMap
-			&& bExportSpecularMap == Other.bExportSpecularMap
+			&& Material == Other.Material
 			&& bRecalculateNormals == Other.bRecalculateNormals
 			&& HardAngleThreshold == Other.HardAngleThreshold
 			&& MergeDistance == Other.MergeDistance;
@@ -2321,6 +2400,9 @@ struct FMeshProxySettings
 	{
 		return !(*this == Other);
 	}
+
+	/** Handles deprecated properties */
+	void PostLoadDeprecated();
 };
 
 /**
@@ -2340,7 +2422,7 @@ struct FMeshMergingSettings
 	int32 TargetLightMapUVChannel;
 
 	/** Target lightmap resolution */
-UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
 	int32 TargetLightMapResolution;
 		
 	/** Whether we should import vertex colors into merged mesh */

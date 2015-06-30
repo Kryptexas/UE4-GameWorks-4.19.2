@@ -163,39 +163,69 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 
 FLevelSimplificationDetails::FLevelSimplificationDetails()
  : bCreatePackagePerAsset(true)
- , DetailsPercentage(70.f)
- , bGenerateMeshNormalMap(true)
- , bGenerateMeshMetallicMap(false)
- , bGenerateMeshRoughnessMap(false)
- , bGenerateMeshSpecularMap(false)
+ , DetailsPercentage(70.0f)
  , bOverrideLandscapeExportLOD(false)
  , LandscapeExportLOD(7)
- , bGenerateLandscapeNormalMap(true)
- , bGenerateLandscapeMetallicMap(false)
- , bGenerateLandscapeRoughnessMap(false)
- , bGenerateLandscapeSpecularMap(false)
  , bBakeFoliageToLandscape(false)
  , bBakeGrassToLandscape(false)
+ , bGenerateMeshNormalMap_DEPRECATED(true)
+ , bGenerateMeshMetallicMap_DEPRECATED(false)
+ , bGenerateMeshRoughnessMap_DEPRECATED(false)
+ , bGenerateMeshSpecularMap_DEPRECATED(false)
+ , bGenerateLandscapeNormalMap_DEPRECATED(true)
+ , bGenerateLandscapeMetallicMap_DEPRECATED(false)
+ , bGenerateLandscapeRoughnessMap_DEPRECATED(false)
+ , bGenerateLandscapeSpecularMap_DEPRECATED(false)
 {
 }
 
 bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails& Other) const
 {
-	return
-		bCreatePackagePerAsset == Other.bCreatePackagePerAsset &&
-		DetailsPercentage == Other.DetailsPercentage &&
-		bGenerateMeshNormalMap == Other.bGenerateMeshNormalMap &&
-		bGenerateMeshMetallicMap == Other.bGenerateMeshMetallicMap &&
-		bGenerateMeshRoughnessMap == Other.bGenerateMeshRoughnessMap &&
-		bGenerateMeshSpecularMap == Other.bGenerateMeshSpecularMap &&
-		bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD &&
-		LandscapeExportLOD == Other.LandscapeExportLOD &&
-		bGenerateLandscapeNormalMap == Other.bGenerateLandscapeNormalMap &&
-		bGenerateLandscapeMetallicMap == Other.bGenerateLandscapeMetallicMap &&
-		bGenerateLandscapeRoughnessMap == Other.bGenerateLandscapeRoughnessMap &&
-		bGenerateLandscapeSpecularMap == Other.bGenerateLandscapeSpecularMap &&
-		bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape &&
-		bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
+	return bCreatePackagePerAsset == Other.bCreatePackagePerAsset
+		&& DetailsPercentage == Other.DetailsPercentage
+		&& StaticMeshMaterial == Other.StaticMeshMaterial
+		&& bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD
+		&& LandscapeExportLOD == Other.LandscapeExportLOD
+		&& LandscapeMaterial == Other.LandscapeMaterial
+		&& bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape
+		&& bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
+}
+
+void FLevelSimplificationDetails::PostLoadDeprecated()
+{
+	FLevelSimplificationDetails DefaultObject;
+	if (bGenerateMeshNormalMap_DEPRECATED != DefaultObject.bGenerateMeshNormalMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bNormalMap = bGenerateMeshNormalMap_DEPRECATED;
+	}
+	if (bGenerateMeshMetallicMap_DEPRECATED != DefaultObject.bGenerateMeshMetallicMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bMetallicMap = bGenerateMeshMetallicMap_DEPRECATED;
+	}
+	if (bGenerateMeshRoughnessMap_DEPRECATED != DefaultObject.bGenerateMeshRoughnessMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bRoughnessMap = bGenerateMeshRoughnessMap_DEPRECATED;
+	}
+	if (bGenerateMeshSpecularMap_DEPRECATED != DefaultObject.bGenerateMeshSpecularMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bSpecularMap = bGenerateMeshSpecularMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeNormalMap_DEPRECATED != DefaultObject.bGenerateLandscapeNormalMap_DEPRECATED)
+	{
+		LandscapeMaterial.bNormalMap = bGenerateLandscapeNormalMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeMetallicMap_DEPRECATED != DefaultObject.bGenerateLandscapeMetallicMap_DEPRECATED)
+	{
+		LandscapeMaterial.bMetallicMap = bGenerateLandscapeMetallicMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeRoughnessMap_DEPRECATED != DefaultObject.bGenerateLandscapeRoughnessMap_DEPRECATED)
+	{
+		LandscapeMaterial.bRoughnessMap = bGenerateLandscapeRoughnessMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeSpecularMap_DEPRECATED != DefaultObject.bGenerateLandscapeSpecularMap_DEPRECATED)
+	{
+		LandscapeMaterial.bSpecularMap = bGenerateLandscapeSpecularMap_DEPRECATED;
+	}
 }
 
 TMap<FName, TWeakObjectPtr<UWorld> > ULevel::StreamedLevelsOwningWorld;
@@ -547,6 +577,13 @@ void ULevel::PostLoad()
 			LevelScriptBlueprint->Rename(*OuterWorld->GetName(), LevelScriptBlueprint->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional | REN_SkipGeneratedClasses);
 		}
 	}
+
+	// Fixup deprecated stuff in levels simplification settings
+	for (int32 Index = 0; Index < ARRAY_COUNT(LevelSimplification); ++Index)
+	{
+		LevelSimplification[Index].PostLoadDeprecated();
+	}
+
 #endif
 }
 

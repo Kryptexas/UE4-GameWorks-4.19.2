@@ -3648,6 +3648,24 @@ static bool NonOpaqueMaterialPredicate(UStaticMeshComponent* InMesh)
 	return false; 
 }
 
+static FIntPoint ConditionalImageResize(const FIntPoint& SrcSize, const FIntPoint& DesiredSize, TArray<FColor>& InOutImage, bool bLinearSpace)
+{
+	const int32 NumDesiredSamples = DesiredSize.X*DesiredSize.Y;
+	if (InOutImage.Num() && InOutImage.Num() != NumDesiredSamples)
+	{
+		check(InOutImage.Num() == SrcSize.X*SrcSize.Y);
+		TArray<FColor> OutImage;
+		if (NumDesiredSamples > 0)
+		{
+			FImageUtils::ImageResize(SrcSize.X, SrcSize.Y, InOutImage, DesiredSize.X, DesiredSize.Y, OutImage, bLinearSpace);
+		}
+		Exchange(InOutImage, OutImage);
+		return DesiredSize;
+	}
+
+	return SrcSize;
+}
+
 void FMeshUtilities::CreateProxyMesh( 
 	const TArray<AActor*>& SourceActors, 
 	const struct FMeshProxySettings& InProxySettings,
@@ -3725,13 +3743,11 @@ void FMeshUtilities::CreateProxyMesh(
 	// Convert materials into flatten materials
 	{
 		FFlattenMaterial FlattenMaterial;
-		FIntPoint TargetTextureSize = FIntPoint(InProxySettings.TextureWidth, InProxySettings.TextureHeight);
-
-		FlattenMaterial.DiffuseSize = TargetTextureSize;
-		FlattenMaterial.NormalSize = InProxySettings.bExportNormalMap ?	TargetTextureSize : FIntPoint::ZeroValue;
-		FlattenMaterial.MetallicSize = InProxySettings.bExportMetallicMap ? TargetTextureSize : FIntPoint::ZeroValue;
-		FlattenMaterial.RoughnessSize = InProxySettings.bExportRoughnessMap ? TargetTextureSize : FIntPoint::ZeroValue;
-		FlattenMaterial.SpecularSize = InProxySettings.bExportSpecularMap ? TargetTextureSize : FIntPoint::ZeroValue;
+		FlattenMaterial.DiffuseSize		= InProxySettings.Material.BaseColorMapSize;
+		FlattenMaterial.NormalSize		= InProxySettings.Material.bNormalMap ?	InProxySettings.Material.NormalMapSize	: FIntPoint::ZeroValue;
+		FlattenMaterial.MetallicSize	= InProxySettings.Material.bMetallicMap ? InProxySettings.Material.MetallicMapSize : FIntPoint::ZeroValue;
+		FlattenMaterial.RoughnessSize	= InProxySettings.Material.bRoughnessMap ? InProxySettings.Material.RoughnessMapSize : FIntPoint::ZeroValue;
+		FlattenMaterial.SpecularSize	= InProxySettings.Material.bSpecularMap ? InProxySettings.Material.SpecularMapSize : FIntPoint::ZeroValue;
 
 		for (UMaterialInterface* Material : StaticMeshMaterials)
 		{
@@ -3772,6 +3788,35 @@ void FMeshUtilities::CreateProxyMesh(
 		Vertex-= OutProxyLocation;
 	}
 	
+	{
+		// Resize merged textures into user requested size
+		ProxyFlattenMaterial.DiffuseSize	= ConditionalImageResize(ProxyFlattenMaterial.DiffuseSize, InProxySettings.Material.BaseColorMapSize, ProxyFlattenMaterial.DiffuseSamples, false);
+		ProxyFlattenMaterial.NormalSize		= ConditionalImageResize(ProxyFlattenMaterial.NormalSize, InProxySettings.Material.NormalMapSize, ProxyFlattenMaterial.NormalSamples, true);
+		ProxyFlattenMaterial.MetallicSize	= ConditionalImageResize(ProxyFlattenMaterial.MetallicSize, InProxySettings.Material.MetallicMapSize, ProxyFlattenMaterial.MetallicSamples, true);
+		ProxyFlattenMaterial.RoughnessSize	= ConditionalImageResize(ProxyFlattenMaterial.RoughnessSize, InProxySettings.Material.RoughnessMapSize, ProxyFlattenMaterial.RoughnessSamples, true);
+		ProxyFlattenMaterial.SpecularSize	= ConditionalImageResize(ProxyFlattenMaterial.SpecularSize, InProxySettings.Material.SpecularMapSize, ProxyFlattenMaterial.SpecularSamples, true);
+		
+		// Fill proxy material constants
+		if (ProxyFlattenMaterial.MetallicSamples.Num() == 0)
+		{
+			ProxyFlattenMaterial.MetallicSize = FIntPoint(1, 1);
+			ProxyFlattenMaterial.MetallicSamples.SetNum(1);
+			ProxyFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&InProxySettings.Material.MetallicConstant);
+		}
+		if (ProxyFlattenMaterial.RoughnessSamples.Num() == 0)
+		{
+			ProxyFlattenMaterial.RoughnessSize = FIntPoint(1, 1);
+			ProxyFlattenMaterial.RoughnessSamples.SetNum(1);
+			ProxyFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&InProxySettings.Material.RoughnessConstant);
+		}
+		if (ProxyFlattenMaterial.SpecularSamples.Num() == 0)
+		{
+			ProxyFlattenMaterial.SpecularSize = FIntPoint(1, 1);
+			ProxyFlattenMaterial.SpecularSamples.SetNum(1);
+			ProxyFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&InProxySettings.Material.SpecularConstant);
+		}
+	}
+
 	// Construct proxy material
 	UMaterial* ProxyMaterial = FMaterialUtilities::CreateMaterial(ProxyFlattenMaterial, InOuter, ProxyBasePackageName, RF_Public|RF_Standalone, OutAssetsToSync);
 	
