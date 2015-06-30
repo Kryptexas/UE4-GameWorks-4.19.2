@@ -1020,16 +1020,37 @@ bool FIntegralCurve::IsKeyHandleValid(FKeyHandle KeyHandle) const
 	return bValid;
 }
 
-int32 FIntegralCurve::Evaluate(float Time) const
+int32 FIntegralCurve::Evaluate(float Time, int32 DefaultValue) const
 {
-	for (int32 i = 0; i < Keys.Num(); ++i)
+	int32 ReturnVal = DefaultValue;
+	if( Keys.Num() == 0 )
 	{
-		if (Time < Keys[i].Time)
+		ReturnVal = DefaultValue;
+	}
+	else if( Keys.Num() < 2 || Time < Keys[0].Time )
+	{
+		// There is only one key or the time is before the first value. Return the first value
+		ReturnVal = Keys[0].Value;
+	}
+	else if( Time < Keys[Keys.Num()-1].Time )
+	{
+		// The key is in the range of Key[0] to Keys[Keys.Num()-1].  Find it by searching
+		for(int32 i = 0; i < Keys.Num(); ++i)
 		{
-			return Keys[FMath::Max(0, i - 1)].Value;
+			if(Time < Keys[i].Time)
+			{
+				ReturnVal = Keys[FMath::Max(0, i - 1)].Value;
+				break;
+			}
 		}
 	}
-	return Keys.Num() ? Keys.Last().Value : 0;
+	else
+	{
+		// Key is beyon the last point in the curve.  Return it's value
+		ReturnVal = Keys[Keys.Num() - 1].Value;
+	}
+
+	return ReturnVal;
 }
 
 TArray<FIntegralKey>::TConstIterator FIntegralCurve::GetKeyIterator() const

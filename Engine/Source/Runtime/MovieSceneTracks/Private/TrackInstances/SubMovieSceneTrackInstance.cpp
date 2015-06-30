@@ -72,10 +72,7 @@ void FSubMovieSceneTrackInstance::Update( float Position, float LastPosition, co
 
 		TSharedPtr<FMovieSceneInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
 
-		UMovieScene* MovieScene = Section->GetMovieScene();
-
-		// @todo Sequencer we should not do this every update
-		TRange<float> TimeRange = MovieScene->GetTimeRange();
+		TRange<float> TimeRange = Instance->GetMovieSceneTimeRange();
 
 		// Position for the movie scene needs to be in local space
 		float LocalDelta = TimeRange.GetLowerBoundValue() - Section->GetStartTime();

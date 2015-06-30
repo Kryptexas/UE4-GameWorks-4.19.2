@@ -6,6 +6,7 @@
 FMovieSceneInstance::FMovieSceneInstance( UMovieScene& InMovieScene )
 	: MovieScene( &InMovieScene )
 {
+	TimeRange = MovieScene->GetTimeRange();
 }
 
 void FMovieSceneInstance::SaveState()
@@ -66,6 +67,8 @@ void FMovieSceneInstance::Update( float Position, float LastPosition, class IMov
 
 void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 {
+	TimeRange = MovieScene->GetTimeRange();
+
 	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
 
 	TSharedRef<FMovieSceneInstance> ThisInstance = AsShared();

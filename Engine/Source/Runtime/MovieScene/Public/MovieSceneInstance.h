@@ -36,6 +36,13 @@ public:
 
 	/** @return The movie scene being instanced */
 	UMovieScene* GetMovieScene() { return MovieScene.Get(); }
+
+	/** 
+	 * @return The time range for the movie scene 
+	 * Note this is not necessarily how long the instance will be playing.  The parent could have changed the length 
+	 */
+	TRange<float> GetMovieSceneTimeRange() const { return TimeRange; }
+
 private:
 	void RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, class IMovieScenePlayer& Player );
 private:
@@ -58,6 +65,8 @@ private:
 	FMovieSceneInstanceMap MasterTrackInstances;
 	/** All object binding instances */
 	TMap<FGuid, FMovieSceneObjectBindingInstance> ObjectBindingInstances;
+	/** Cached time range for the movie scene */
+	TRange<float> TimeRange;
 };
 
 

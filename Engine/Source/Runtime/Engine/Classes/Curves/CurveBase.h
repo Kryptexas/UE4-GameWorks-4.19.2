@@ -560,7 +560,7 @@ public:
 	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const override;
 
 	/** Evaluates the value of an array of keys at a time */
-	int32 Evaluate(float Time) const;
+	int32 Evaluate(float Time, int32 DefaultValue = 0) const;
 
 	/** Const iterator for the keys, so the indices and handles stay valid */
 	TArray<FIntegralKey>::TConstIterator GetKeyIterator() const;
