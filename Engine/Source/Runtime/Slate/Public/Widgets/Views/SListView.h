@@ -288,7 +288,7 @@ public:
 					ItemType SelectorItemDereference( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( SelectorItem ) );
 
 					// Deselect.
-					if( InKeyEvent.IsControlDown() || this->SelectionMode == ESelectionMode::SingleToggle )
+					if( InKeyEvent.IsControlDown() || SelectionMode.Get() == ESelectionMode::SingleToggle )
 					{
 						this->Private_SetItemSelection( SelectorItemDereference, !( this->Private_IsItemSelected( SelectorItemDereference ) ), true );
 						this->Private_SignalSelectionChanged( ESelectInfo::OnKeyPress );
@@ -320,7 +320,7 @@ public:
 					}
 				}
 				// Select all items
-				else if ( (!InKeyEvent.IsShiftDown() && !InKeyEvent.IsAltDown() && InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::A) && this->SelectionMode == ESelectionMode::Multi )
+				else if ( (!InKeyEvent.IsShiftDown() && !InKeyEvent.IsAltDown() && InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::A) && SelectionMode.Get() == ESelectionMode::Multi )
 				{
 					this->Private_ClearSelection();
 
@@ -344,7 +344,7 @@ public:
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( bClearSelectionOnClick
-			&& SelectionMode != ESelectionMode::None
+			&& SelectionMode.Get() != ESelectionMode::None
 			&& MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton
 			&& !MouseEvent.IsControlDown()
 			&& !MouseEvent.IsShiftDown()
@@ -367,7 +367,7 @@ public:
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( bClearSelectionOnClick
-			&& SelectionMode != ESelectionMode::None
+			&& SelectionMode.Get() != ESelectionMode::None
 			&& MouseEvent.GetEffectingButton() == EKeys::RightMouseButton
 			&& !MouseEvent.IsControlDown()
 			&& !MouseEvent.IsShiftDown()
@@ -529,7 +529,7 @@ public:
 
 	virtual void Private_SetItemSelection( ItemType TheItem, bool bShouldBeSelected, bool bWasUserDirected = false ) override
 	{
-		if ( SelectionMode == ESelectionMode::None )
+		if ( SelectionMode.Get() == ESelectionMode::None )
 		{
 			return;
 		}
@@ -562,7 +562,7 @@ public:
 
 	virtual void Private_SelectRangeFromCurrentTo( ItemType InRangeSelectionEnd ) override
 	{
-		if ( SelectionMode == ESelectionMode::None )
+		if ( SelectionMode.Get() == ESelectionMode::None )
 		{
 			return;
 		}
@@ -595,7 +595,7 @@ public:
 
 	virtual void Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo) override
 	{
-		if ( SelectionMode == ESelectionMode::None )
+		if ( SelectionMode.Get() == ESelectionMode::None )
 		{
 			return;
 		}
@@ -969,7 +969,7 @@ public:
 	 */
 	bool IsItemSelected( const ItemType& InItem ) const
 	{
-		if ( SelectionMode == ESelectionMode::None )
+		if ( SelectionMode.Get() == ESelectionMode::None )
 		{
 			return false;
 		}
@@ -986,7 +986,7 @@ public:
 	 */
 	void SetItemSelection( const ItemType& InItem, bool bSelected, ESelectInfo::Type SelectInfo = ESelectInfo::Direct )
 	{
-		if ( SelectionMode == ESelectionMode::None )
+		if ( SelectionMode.Get() == ESelectionMode::None )
 		{
 			return;
 		}
@@ -1000,7 +1000,7 @@ public:
 	 */
 	void ClearSelection()
 	{
-		if ( SelectionMode == ESelectionMode::None )
+		if ( SelectionMode.Get() == ESelectionMode::None )
 		{
 			return;
 		}
@@ -1319,12 +1319,14 @@ protected:
 	 */
 	virtual void KeyboardSelect(const ItemType& ItemToSelect, const FKeyEvent& InKeyEvent, bool bCausedByNavigation=false)
 	{
-		if ( SelectionMode != ESelectionMode::None )
+		const ESelectionMode::Type CurrentSelectionMode = SelectionMode.Get();
+
+		if ( CurrentSelectionMode != ESelectionMode::None )
 		{
 			// Must be set before signaling selection changes because sometimes new items will be selected that need to stomp this value
 			SelectorItem = ItemToSelect;
 
-			if ( SelectionMode == ESelectionMode::Multi && ( InKeyEvent.IsShiftDown() || InKeyEvent.IsControlDown() ) )
+			if ( CurrentSelectionMode == ESelectionMode::Multi && ( InKeyEvent.IsShiftDown() || InKeyEvent.IsControlDown() ) )
 			{
 				// Range select.
 				if ( InKeyEvent.IsShiftDown() )

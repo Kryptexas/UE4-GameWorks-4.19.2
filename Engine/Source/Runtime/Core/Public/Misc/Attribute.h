@@ -286,16 +286,41 @@ public:
 	}
 
 	/**
-	 * Equality operator
+	 * Is this attribute identical to another TAttribute.
 	 *
 	 * @param InOther The other attribute to compare with.
-	 * @return true if the attributes are equal, false otherwise.
+	 * @return true if the attributes are identical, false otherwise.
 	 */
-	bool operator==( const TAttribute& InOther ) const
+	bool IdenticalTo(const TAttribute& InOther) const
 	{
-		return InOther.Get() == Get();
+		const bool bIsBound = IsBound();
+
+		if ( bIsBound == InOther.IsBound() )
+		{
+			if ( bIsBound )
+			{
+				return Getter.GetHandle() == InOther.Getter.GetHandle();
+			}
+			else
+			{
+				return Value == InOther.Value;
+			}
+		}
+
+		return false;
 	}
 
+	/**
+	 * Equal operator.
+	 *
+	 * @param InOther The other attribute to compare with.
+	 * @return true if the attributes are not equal, false otherwise.
+	 */
+	DEPRECATED(4.9, "Comparing an attribute directly to a literal value is deprecated.  Please call Get() on the attribute before comparing it." )
+	bool operator==( const ObjectType& InOther ) const
+	{
+		return Get() == InOther;
+	}
 
 	/**
 	 * Not equal operator.
@@ -303,9 +328,10 @@ public:
 	 * @param InOther The other attribute to compare with.
 	 * @return true if the attributes are not equal, false otherwise.
 	 */
-	bool operator!=( const TAttribute& InOther ) const
+	DEPRECATED(4.9, "Comparing an attribute directly to a literal value is deprecated.  Please call Get() on the attribute before comparing it.")
+	bool operator!=( const ObjectType& InOther ) const
 	{
-		return InOther.Get() != Get();
+		return Get() != InOther;
 	}
 	
 private:

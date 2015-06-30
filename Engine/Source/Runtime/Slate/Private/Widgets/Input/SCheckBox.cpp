@@ -65,12 +65,13 @@ FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEv
 	if ( InKeyEvent.GetKey() == EKeys::SpaceBar )
 	{
 		ToggleCheckedState();
-		const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
-		if(State == ECheckBoxState::Checked)
+
+		const ECheckBoxState State = IsCheckboxChecked.Get();
+		if ( State == ECheckBoxState::Checked )
 		{
 			PlayCheckedSound();
 		}
-		else if(State == ECheckBoxState::Unchecked)
+		else if ( State == ECheckBoxState::Unchecked )
 		{
 			PlayUncheckedSound();
 		}
@@ -98,7 +99,7 @@ FReply SCheckBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointer
 		if( ClickMethod == EButtonClickMethod::MouseDown )
 		{
 			ToggleCheckedState();
-			const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
+			const ECheckBoxState State = IsCheckboxChecked.Get();
 			if(State == ECheckBoxState::Checked)
 			{
 				PlayCheckedSound();
@@ -180,7 +181,7 @@ FReply SCheckBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 				if( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() )
 				{
 					ToggleCheckedState();
-					const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
+					const ECheckBoxState State = IsCheckboxChecked.Get();
 					if(State == ECheckBoxState::Checked)
 					{
 						PlayCheckedSound();
@@ -259,7 +260,7 @@ ECheckBoxState SCheckBox::GetCheckedState() const
  */
 void SCheckBox::ToggleCheckedState()
 {
-	const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
+	const ECheckBoxState State = IsCheckboxChecked.Get();
 
 	// If the current check box state is checked OR undetermined we set the check box to checked.
 	if( State == ECheckBoxState::Checked || State == ECheckBoxState::Undetermined )
