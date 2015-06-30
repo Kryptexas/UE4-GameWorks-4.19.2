@@ -25,7 +25,7 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerControlle
 }
 
 bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APlayerController* PlayerController, FVector WorldLocation, FVector& ScreenPosition)
-{
+{	
 	if ( PlayerController )
 	{
 		FVector PixelLocation;
@@ -33,15 +33,7 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APla
 
 		if ( bProjected )
 		{
-			// If the user has configured a resolution quality we need to multiply
-			// the pixels by the resolution quality to arrive at the true position in
-			// the viewport, as the rendered image will be stretched to fill whatever
-			// size the viewport is at.
-			Scalability::FQualityLevels ScalabilityQuality = Scalability::GetQualityLevels();
-			const float QualityScale = ( ScalabilityQuality.ResolutionQuality / 100.0f );
-
-			// Remove the resolution quality scale.
-			ScreenPosition = PixelLocation / QualityScale;
+			ScreenPosition = PixelLocation;
 
 			// Round the pixel projected value to reduce jittering due to layout rounding,
 			// I do this before I remove scaling, because scaling is going to be applied later
@@ -60,6 +52,8 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APla
 			return true;
 		}
 	}
+
+	ScreenPosition = FVector(0, 0, 0);
 
 	return false;
 }

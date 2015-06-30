@@ -3273,7 +3273,8 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
 
-	PlayClient->SetViewportOverlayWidget( TSharedPtr<SWindow>(), PIEViewportOverlayWidget.ToSharedRef() );
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+	PlayClient->SetViewportOverlayWidget(ParentWindow, PIEViewportOverlayWidget.ToSharedRef());
 	PlayClient->SetGameLayerManager(GameLayerManager);
 
 	// Our viewport widget should start rendering the new viewport for the play in editor scene

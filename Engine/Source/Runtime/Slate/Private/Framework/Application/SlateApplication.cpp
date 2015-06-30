@@ -4732,18 +4732,17 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 			DragDropWindowPtr = nullptr;
 		}
 
-		// check the drag-drop operation for a cursor switch (on Windows, the OS thinks the mouse is
-		// captured so we wont get QueryCursor calls for drag/drops internal to the Slate application)
-		FCursorReply CursorResult = DragDropContent->OnCursorQuery();
-		if (CursorResult.IsEventHandled())
+		// Don't update the cursor for the platform if we don't have a valid cursor on this platform
+		if ( PlatformApplication->Cursor.IsValid() )
 		{
-			// Query was handled, so we should set the cursor.
-			PlatformApplication->Cursor->SetType(CursorResult.GetCursorType());
-		}
-		else
-		{
-			// reset the cursor to default for drag-drops
-			PlatformApplication->Cursor->SetType( EMouseCursor::Default );
+			FCursorReply CursorReply = DragDropContent->OnCursorQuery();
+			if ( !CursorReply.IsEventHandled() )
+			{
+				// Set the default cursor when there isn't an active window under the cursor and the mouse isn't captured
+				CursorReply = FCursorReply::Cursor(EMouseCursor::Default);
+			}
+
+			ProcessCursorReply(CursorReply);
 		}
 	}
 	else
