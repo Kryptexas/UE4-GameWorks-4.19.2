@@ -67,6 +67,18 @@ TSharedRef<FHierarchyWidgetDragDropOp> FHierarchyWidgetDragDropOp::New(UWidgetBl
 
 	TSharedRef<FHierarchyWidgetDragDropOp> Operation = MakeShareable(new FHierarchyWidgetDragDropOp());
 
+	// Set the display text and the transaction name based on whether we're dragging a single or multiple widgets
+	if (InWidgets.Num() == 1)
+	{
+		Operation->CurrentHoverText = Operation->DefaultHoverText = InWidgets[0].GetTemplate()->GetLabelText();
+		Operation->Transaction = new FScopedTransaction(LOCTEXT("Designer_MoveWidget", "Move Widget"));
+	}
+	else
+	{
+		Operation->CurrentHoverText = Operation->DefaultHoverText = LOCTEXT("Designer_DragMultipleWidgets", "Multiple Widgets");
+		Operation->Transaction = new FScopedTransaction(LOCTEXT("Designer_MoveWidgets", "Move Widgets"));
+	}
+
 	// Add an FItem for each widget in the drag operation
 	for (const auto& Widget : InWidgets)
 	{
@@ -88,17 +100,6 @@ TSharedRef<FHierarchyWidgetDragDropOp> FHierarchyWidgetDragDropOp::New(UWidgetBl
 		Operation->DraggedWidgets.Add(DraggedWidget);
 	}
 
-	// Set the display text and the transaction name based on whether we're dragging a single or multiple widgets
-	if (InWidgets.Num() == 1)
-	{
-		Operation->CurrentHoverText = Operation->DefaultHoverText = InWidgets[0].GetTemplate()->GetLabelText();
-		Operation->Transaction = new FScopedTransaction(LOCTEXT("Designer_MoveWidget", "Move Widget"));
-	}
-	else
-	{
-		Operation->CurrentHoverText = Operation->DefaultHoverText = LOCTEXT("Designer_DragMultipleWidgets", "Multiple Widgets");
-		Operation->Transaction = new FScopedTransaction(LOCTEXT("Designer_MoveWidgets", "Move Widgets"));
-	}
 	Operation->Construct();
 	
 	Blueprint->WidgetTree->SetFlags(RF_Transactional);
