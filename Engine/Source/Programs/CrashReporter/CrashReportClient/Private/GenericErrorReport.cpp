@@ -43,6 +43,43 @@ FGenericErrorReport::FGenericErrorReport(const FString& Directory)
 
 bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowToBeContacted)
 {
+	// Load the file and remove all PII if bAllowToBeContacted is set to false.
+	const bool bRemovePersonalData = !bAllowToBeContacted;
+	if( bRemovePersonalData )
+	{
+		FString CrashContextFilename;
+		const bool bFound = FindFirstReportFileWithExtension( CrashContextFilename, TEXT( ".runtime-xml" ) );
+		if (bFound)
+		{
+			const FString CrashContextPath = GetReportDirectory() / CrashContextFilename;
+
+			// Cannot use FXMLFile because runtime-xml may contain multi line elements.
+			FString CrashContextString;
+			FFileHelper::LoadFileToString( CrashContextString, *CrashContextPath );
+
+			// Remove UserName and EpicAccountId;
+			TArray<FString> Lines;
+			CrashContextString.ParseIntoArrayLines( Lines, true );
+
+			for( auto& It : Lines )
+			{
+				if (It.Contains( TEXT( "<UserName>" ) ))
+				{
+					It = TEXT( "<UserName></UserName>" );
+				}
+				else if (It.Contains( TEXT( "<EpicAccountId>" ) ))
+				{
+					It = TEXT( "<EpicAccountId></EpicAccountId>" );
+				}
+			}
+
+			const FString FixedCrashContextString = FString::Join( Lines, TEXT( "\n" ) );
+			FFileHelper::SaveStringToFile( FixedCrashContextString, *CrashContextPath );
+		}
+
+		// #YRX_Crash: 2015-07-01 Move to FGenericCrashContext
+	}
+
 	// Find .xml file
 	FString XmlFilename;
 	if (!FindFirstReportFileWithExtension(XmlFilename, TEXT(".xml")))
@@ -50,7 +87,7 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 		return false;
 	}
 
-	FString XmlFilePath = ReportDirectory / XmlFilename;
+	FString XmlFilePath = GetReportDirectory() / XmlFilename;
 	// FXmlFile's constructor loads the file to memory, closes the file and parses the data
 	FXmlFile XmlFile(XmlFilePath);
 	FXmlNode* DynamicSignaturesNode = XmlFile.IsValid() ?

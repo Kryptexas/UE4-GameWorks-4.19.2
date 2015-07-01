@@ -27,12 +27,35 @@ struct FCrashReportClientConfig
 		return DiagnosticsFilename;
 	}
 
+	const bool& GetAllowToBeContacted() const
+	{
+		return bAllowToBeContacted;
+	}
+
+	const bool& GetSendLogFile() const
+	{
+		return bSendLogFile;
+	}
+
+	void SetAllowToBeContacted( bool bNewValue );
+	void SetSendLogFile( bool bNewValue );
+
 protected:
 	/** IP address of crash report receiver. */
 	FString CrashReportReceiverIP;
 
 	/** Filename to use when saving diagnostics report, if generated locally. */
 	FString DiagnosticsFilename;
+
+	/**
+	 *	Whether the user allowed us to be contacted. 
+	 *	If true the following properties are retrieved from the system: UserName (for non-launcher build) and EpicAccountID.
+	 *	Otherwise they will be empty.
+	 */
+	bool bAllowToBeContacted;
+
+	/** Whether the user allowed us to send the log file. */
+	bool bSendLogFile;
 };
 
 

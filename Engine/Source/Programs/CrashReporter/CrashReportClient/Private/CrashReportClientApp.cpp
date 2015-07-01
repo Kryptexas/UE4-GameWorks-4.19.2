@@ -21,7 +21,7 @@
 #include "XmlFile.h"
 
 /** Default main window size */
-const FVector2D InitialWindowDimensions(640, 560);
+const FVector2D InitialWindowDimensions(740, 560);
 
 /** Average tick rate the app aims for */
 const float IdealTickRate = 30.f;
@@ -78,7 +78,7 @@ FPlatformErrorReport LoadErrorReport()
 	ErrorReport.FindFirstReportFileWithExtension( XMLWerFilename, TEXT( ".xml" ) );
 
 	extern FCrashDescription& GetCrashDescription();
-	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );
+	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );	
 
 #if CRASH_REPORT_UNATTENDED_ONLY
 	return ErrorReport;
@@ -101,7 +101,22 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		CrashReportReceiverIP = TEXT( "http://crashreporter.epicgames.com:57005" );
 	}
 
+	GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni );
+	GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
+
 	UE_LOG( CrashReportClientLog, Log, TEXT( "CrashReportReceiverIP: %s" ), *CrashReportReceiverIP );
+}
+
+void FCrashReportClientConfig::SetAllowToBeContacted( bool bNewValue )
+{
+	bAllowToBeContacted = bNewValue;
+	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni );
+}
+
+void FCrashReportClientConfig::SetSendLogFile( bool bNewValue )
+{
+	bSendLogFile = bNewValue;
+	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
 }
 
 void RunCrashReportClient(const TCHAR* CommandLine)
@@ -133,16 +148,10 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
-	
-	if( ErrorReport.HasFilesToUpload() )
-	{
-		// Send analytics.
-		extern FCrashDescription& GetCrashDescription();
-		GetCrashDescription().SendAnalytics();
-	}
 
 	if (bUnattended)
 	{
+		// In the unattended mode we don't send any PII.
 		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ), false );
 		FCrashReportClientUnattended CrashReportClient( ErrorReport );
 

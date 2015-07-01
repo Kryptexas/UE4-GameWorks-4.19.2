@@ -173,7 +173,7 @@ void FCrashUpload::CompressAndSendData()
 	// Loop to keep trying files until a send succeeds or we run out of files
 	while (PendingFiles.Num() != 0)
 	{
-		FString PathOfFileToUpload = PendingFiles.Pop();
+		const FString PathOfFileToUpload = PendingFiles.Pop();
 		
 		if (FPlatformFileManager::Get().GetPlatformFile().FileSize(*PathOfFileToUpload) > MaxFileSizeToUpload)
 		{
@@ -184,6 +184,13 @@ void FCrashUpload::CompressAndSendData()
 		if (!FFileHelper::LoadFileToArray(PostData, *PathOfFileToUpload))
 		{
 			UE_LOG(CrashReportClientLog, Warning, TEXT("Failed to load crash report file"));
+			continue;
+		}
+
+		const bool bSkipLogFile = !FCrashReportClientConfig::Get().GetSendLogFile() && PathOfFileToUpload.EndsWith( TEXT( ".log" ) );
+		if (bSkipLogFile)
+		{
+			UE_LOG( CrashReportClientLog, Warning, TEXT( "Skipping the log file" ) );
 			continue;
 		}
 

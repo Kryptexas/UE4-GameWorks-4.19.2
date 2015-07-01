@@ -9,9 +9,9 @@
  *	Must contain the same properties as ...\CrashReportServer\CrashReportCommon\CrashDescription.cs.
  *	Contains all usable information about the crash. 
  *	
+ *	At this moment only used to sent the analytics.
  */
 
-// @TODO yrx 2014-08-27 add samples data
 struct FCrashDescription
 {
 	/** 
@@ -161,8 +161,6 @@ struct FCrashDescription
 	 */
 	TArray<FString> ErrorMessage;
 
-	// @TODO yrx 2014-09-10 Add misc data
-
 	/**
 	 *	Generic platform memory stats.
 	 *	@ADD-TO-THE-DATABASE
@@ -227,8 +225,8 @@ struct FCrashDescription
 	/** Initializes engine version from the separate components. */
 	void InitializeEngineVersion();
 
-	/** Initializes following properties: UserNAme, MachineID and EpicAccountID. */
-	void InitializeIDs();
+	/** Updates following properties: UserName, MachineID and EpicAccountID. */
+	void UpdateIDs();
 
 	/** Sends this crash for analytics. */
 	void SendAnalytics();
