@@ -42,6 +42,7 @@ enum class EPlaneConstraintAxisSetting : uint8
  *    - Utility functions for moving when there may be initial penetration (SafeMoveUpdatedComponent(), ResolvePenetration()).
  *    - Automatically registering the component tick and finding a component to move on the owning Actor.
  * Normally the root component of the owning actor is moved, however another component may be selected (see SetUpdatedComponent()).
+ * During swept (non-teleporting) movement only collision of UpdatedComponent is considered, attached components will teleport to the end location ignoring collision.
  */
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
