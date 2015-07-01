@@ -31,6 +31,9 @@ public:
 	/** Returns the list of child collections of the given collection that are also of the specified share type */
 	virtual void GetChildCollectionNames(FName CollectionName, ECollectionShareType::Type ShareType, ECollectionShareType::Type ChildShareType, TArray<FName>& CollectionNames) const = 0;
 
+	/** Returns the parent collection of the given collection, or an unset value if there is no parent set */
+	virtual TOptional<FCollectionNameType> GetParentCollection(FName CollectionName, ECollectionShareType::Type ShareType) const = 0;
+
 	/** Returns true if the collection exists */
 	virtual bool CollectionExists(FName CollectionName, ECollectionShareType::Type ShareType) const = 0;
 

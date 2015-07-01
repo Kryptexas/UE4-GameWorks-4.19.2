@@ -132,6 +132,11 @@ struct FCollectionNameType
 		return Name == Other.Name && Type == Other.Type;
 	}
 
+	bool operator!=(const FCollectionNameType& Other) const
+	{
+		return !(*this == Other);
+	}
+
 	friend inline uint32 GetTypeHash( const FCollectionNameType& Key )
 	{
 		uint32 Hash = 0;

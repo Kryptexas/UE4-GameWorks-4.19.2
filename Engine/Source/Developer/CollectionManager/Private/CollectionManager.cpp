@@ -154,6 +154,21 @@ void FCollectionManager::GetChildCollectionNames(FName CollectionName, ECollecti
 	}
 }
 
+TOptional<FCollectionNameType> FCollectionManager::GetParentCollection(FName CollectionName, ECollectionShareType::Type ShareType) const
+{
+	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(FCollectionNameType(CollectionName, ShareType));
+	if (CollectionRefPtr)
+	{
+		const FCollectionNameType* const ParentCollectionKeyPtr = CachedCollectionNamesFromGuids.Find((*CollectionRefPtr)->GetParentCollectionGuid());
+		if (ParentCollectionKeyPtr)
+		{
+			return *ParentCollectionKeyPtr;
+		}
+	}
+
+	return TOptional<FCollectionNameType>();
+}
+
 bool FCollectionManager::CollectionExists(FName CollectionName, ECollectionShareType::Type ShareType) const
 {
 	if (ShareType == ECollectionShareType::CST_All)
