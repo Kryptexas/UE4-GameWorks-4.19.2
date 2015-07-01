@@ -157,6 +157,9 @@ private:
 	/** Exception and call-stack to show, valid once diagnosis task is complete */
 	FText DiagnosticText;
 
+	/** Formatted diagnostics crash reporter data. */
+	FText FormattedDiagnosticText;
+
 	/** Background worker to get a callstack from the report */
 	FAsyncTask<FDiagnoseReportWorker>* DiagnoseReportTask;
 
