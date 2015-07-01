@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2603959
 Availability:Public
 Title:Environment Query System クイックスタートガイド
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -43,11 +43,10 @@ Description:複数のRun EQS Query ノードを使用してプレイヤー キ�
 [/OBJECT]
 [/VAR]
 
-## 概要
 
 このクイックスタートでは **Environment Query System** 使用の基礎について説明します。Environment Query を使用してアクタと位置を探し、一連のテストを用いて「最良」のオプションが与えられます。次にビヘイビアツリーを使用して、AI がプレイヤーのポーン (単数または複数) から逃げて隠れ場所に行くようにします。
 
-これは高度なクイックスタートであり、[ブループリント](Engine/Blueprints/BP_HowTo/BasicUsage) と [ビヘイビア ツリー](Engine/AI/BehaviorTrees/QuickStart) の操作に慣れていることを前提としています。
+これはどちらかというと上級者向けのクイックスタートであり、[ブループリント](Engine/Blueprints/BP_HowTo/BasicUsage) と [ビヘイビア ツリー](Engine/AI/BehaviorTrees/QuickStart) の操作に慣れていることを前提としています。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
