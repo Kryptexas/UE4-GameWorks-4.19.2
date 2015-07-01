@@ -209,7 +209,16 @@ public:
 
 	void RecompileAnimBlueprintIfDirty();
 
+	/* Reference Pose Handler */
+	bool IsShowReferencePoseEnabled() const;
+	bool CanShowReferencePose() const;
+	void ShowReferencePose(bool bReferencePose);
+
 protected:
+	bool IsPreviewAssetEnabled() const;
+	bool CanPreviewAsset() const;
+	FText GetPreviewAssetTooltip() const;
+
 	// FBlueprintEditor interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
@@ -272,6 +281,7 @@ protected:
 
 protected:
 	USkeleton* TargetSkeleton;
+	TWeakObjectPtr<UObject> CachedPreviewAsset;
 
 public:
 	class UDebugSkelMeshComponent* PreviewComponent;
@@ -602,6 +612,7 @@ private:
 	void OnExportToFBX();
 	void OnAddLoopingInterpolation();
 	bool HasValidAnimationSequencePlaying() const;
+	/** Return true if currently in the given mode */
 	bool IsInPersonaMode(const FName InPersonaMode) const;
 
 	/** Animation Editing Features **/

@@ -1107,27 +1107,17 @@ bool SAnimationEditorViewportTabBody::IsPlaybackSpeedSelected(int32 PlaybackSpee
 
 void SAnimationEditorViewportTabBody::ShowReferencePose()
 {
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if(PreviewComponent)
-	{
-		PreviewComponent->bForceRefpose = !PreviewComponent->bForceRefpose;
-	}
+	PersonaPtr.Pin()->ShowReferencePose(IsShowReferencePoseEnabled() == false);
 }
 
 bool SAnimationEditorViewportTabBody::CanShowReferencePose() const
 {
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	return PreviewComponent != NULL;
+	return PersonaPtr.Pin()->CanShowReferencePose();
 }
 
 bool SAnimationEditorViewportTabBody::IsShowReferencePoseEnabled() const
 {
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if(PreviewComponent)
-	{
-		return PreviewComponent->bForceRefpose;
-	}
-	return false;
+	return PersonaPtr.Pin()->IsShowReferencePoseEnabled();
 }
 
 void SAnimationEditorViewportTabBody::ShowRetargetBasePose()
