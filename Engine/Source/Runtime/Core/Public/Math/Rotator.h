@@ -106,6 +106,7 @@ public:
 	 *
 	 * @return A negated copy of the rotator.
 	 */
+	DEPRECATED(4.9, "The unary negation operator has been deprecated as componentwise negation is not meaningful for a Rotator. To get the inverse, please use FRotator::GetInverse()")
 	FORCEINLINE FRotator operator-() const;
 
 	// Binary comparison operators.
@@ -181,6 +182,11 @@ public:
 	 * @return Copy of rotator after addition.
 	 */
 	FRotator Add( float DeltaPitch, float DeltaYaw, float DeltaRoll );
+
+	/**
+	 * Returns the inverse of the rotator.
+	 */
+	CORE_API FRotator GetInverse() const;
 
 	/**
 	 * Get the rotation, snapped to specified degree segments.

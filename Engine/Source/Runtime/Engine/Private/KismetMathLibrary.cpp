@@ -969,8 +969,7 @@ FRotator UKismetMathLibrary::ComposeRotators(FRotator A, FRotator B)
 
 FRotator UKismetMathLibrary::NegateRotator( FRotator A )
 {
-	FQuat AQuat = FQuat(A);
-	return FRotator(AQuat.Inverse());
+	return A.GetInverse();
 }
 
 void UKismetMathLibrary::GetAxes(FRotator A, FVector& X, FVector& Y, FVector& Z)

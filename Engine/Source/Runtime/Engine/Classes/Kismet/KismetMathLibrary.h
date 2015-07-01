@@ -735,7 +735,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FRotator ComposeRotators(FRotator A, FRotator B);
 
 	/** Negate a rotator*/
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotate rotation"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(DisplayName="InvertRotator", Keywords="rotate rotation"))
 	static FRotator NegateRotator(FRotator A);
 
 	/** Get the reference frame direction vectors (axes) described by this rotation */

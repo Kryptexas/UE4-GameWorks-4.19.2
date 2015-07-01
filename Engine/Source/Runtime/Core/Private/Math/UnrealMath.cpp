@@ -272,6 +272,12 @@ CORE_API FVector FRotator::Vector() const
 }
 
 
+FRotator FRotator::GetInverse() const
+{
+	return Quaternion().Inverse().Rotator();
+}
+
+
 FQuat FRotator::Quaternion() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MathConvertRotatorToQuat);
