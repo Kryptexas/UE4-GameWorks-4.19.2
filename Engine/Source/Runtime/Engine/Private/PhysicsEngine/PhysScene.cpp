@@ -107,8 +107,7 @@ FPhysScene::FPhysScene()
 	{
 		CPUDispatcher = new FPhysXCPUDispatcher();
 	}
-	// Create sim event callback
-	SimEventCallback = new FPhysXSimEventCallback();
+
 #endif	//#if WITH_PHYSX
 
 	// initialize console variable - this console variable change requires it to restart scene. 
@@ -183,7 +182,6 @@ FPhysScene::~FPhysScene()
 
 #if WITH_PHYSX
 	GPhysCommandHandler->DeferredDeleteCPUDispathcer(CPUDispatcher);
-	GPhysCommandHandler->DeferredDeleteSimEventCallback(SimEventCallback);
 #endif	//#if WITH_PHYSX
 }
 
@@ -1248,6 +1246,9 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 #if WITH_PHYSX
 	PhysxUserData = FPhysxUserData(this);
 
+	// Create sim event callback
+	SimEventCallback[SceneType] = new FPhysXSimEventCallback(this, SceneType);
+
 	// Include scene descriptor in loop, so that we might vary it with scene type
 	PxSceneDesc PSceneDesc(GPhysXSDK->getTolerancesScale());
 	PSceneDesc.cpuDispatcher = CPUDispatcher;
@@ -1258,7 +1259,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PSceneDesc.filterShaderDataSize = sizeof(PhysSceneShaderInfo);
 
 	PSceneDesc.filterShader = PhysXSimFilterShader;
-	PSceneDesc.simulationEventCallback = SimEventCallback;
+	PSceneDesc.simulationEventCallback = SimEventCallback[SceneType];
 
 	if(UPhysicsSettings::Get()->bEnablePCM)
 	{
@@ -1434,6 +1435,7 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 
 		// @todo block on any running scene before calling this
 		GPhysCommandHandler->DeferredRelease(PScene);
+		GPhysCommandHandler->DeferredDeleteSimEventCallback(SimEventCallback[SceneType]);
 
 		// Commands may have accumulated as the scene is terminated - flush any commands for this scene.
 		DeferredCommandHandler.Flush();

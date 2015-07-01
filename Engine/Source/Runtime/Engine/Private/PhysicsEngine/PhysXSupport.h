@@ -854,15 +854,23 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 									PxFilterObjectAttributes attributes1, PxFilterData filterData1,
 									PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize );
 
+class FPhysScene;
 
 /** Event callback used to notify engine about various collision events */
 class FPhysXSimEventCallback : public PxSimulationEventCallback
 {
+public:
+	FPhysXSimEventCallback(FPhysScene* InOwningScene, int32 InSceneType) : OwningScene(InOwningScene), SceneType(InSceneType){}
+
 	virtual void onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) override;
-	virtual void onWake(PxActor** actors, PxU32 count) override {}
-	virtual void onSleep(PxActor** actors, PxU32 count) override {}
+	virtual void onWake(PxActor** actors, PxU32 count) override;
+	virtual void onSleep(PxActor** actors, PxU32 count) override;
 	virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) override {}
 	virtual void onContact(const PxContactPairHeader& PairHeader, const PxContactPair* Pairs, PxU32 NumPairs) override;
+
+private:	
+	FPhysScene* OwningScene;
+	int32 SceneType;
 };
 
 /** Used to dispatch physx tasks to task graph */

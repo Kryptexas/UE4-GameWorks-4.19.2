@@ -433,14 +433,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 		}
 	}
 
-	// Get the Scene. 
-	const PxScene* PScene = PActor0->getScene();
-	check(PScene == PActor1->getScene());
-	FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-	check(PhysScene);
-
-	const EPhysicsSceneType SceneType = PhysScene->GetPhysXScene(PST_Sync) == PScene ? PST_Sync : PST_Async;
-	TArray<FCollisionNotifyInfo>& PendingCollisionNotifies = PhysScene->GetPendingCollisionNotifies(SceneType);
+	TArray<FCollisionNotifyInfo>& PendingCollisionNotifies = OwningScene->GetPendingCollisionNotifies(SceneType);
 
 	uint32 PreAddingCollisionNotify = PendingCollisionNotifies.Num() - 1;
 	TArray<int32> PairNotifyMapping = FBodyInstance::AddCollisionNotifyInfo(BodyInst0, BodyInst1, Pairs, NumPairs, PendingCollisionNotifies);
@@ -523,6 +516,16 @@ void FPhysXSimEventCallback::onConstraintBreak( PxConstraintInfo* constraints, P
 			}
 		}
 	}
+}
+
+void FPhysXSimEventCallback::onWake(PxActor** actors, PxU32 count)
+{
+
+}
+
+void FPhysXSimEventCallback::onSleep(PxActor** actors, PxU32 count)
+{
+
 }
 
 //////////////////////////////////////////////////////////////////////////
