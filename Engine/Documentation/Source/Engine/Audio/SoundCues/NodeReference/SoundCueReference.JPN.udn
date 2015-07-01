@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2260984
+﻿INTSourceChangelist:2594157
 Availability:Public
 Title:サウンド キュー リファレンス
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -8,7 +8,7 @@ Description:サウンド キューとそのプロパティに使用できるノ�
 
 ## 概要
 
-アンリアル エンジンには、プロパティの修正可能な様々なサウンド ノードが提供されていますので、サウンド キュー エディタに複雑かつ面白いサウンド キューを作成することができます。これらのサウンド ノードは **[パレット]** パネルにあります。
+アンリアル エンジンには、プロパティの修正可能な様々なサウンド ノードが提供されていますので、サウンド キュー エディタに複雑かつ面白いサウンド キューを作成することができます。これらのサウンド ノードは **[Palette]** (パレット) パネルにあります。
 
 ![Sound node list](SoundCueEditor_NodeList.png)
 
@@ -17,7 +17,7 @@ Description:サウンド キューとそのプロパティに使用できるノ�
 サウンド キュー エディタに関する詳細は、 [](Engine/Audio\SoundCues\Editor) を参照してください。サウンドキューの UI に関する詳細は、 [](Engine/Audio\SoundCues\Editor\Interface) を参照してください。
 
 [REGION:tip]
-ノードを右クリックしてから **[入力値を追加]** をクリックして、 Input を追加できるノードもあります。
+ノードを右クリックしてから **[Add Input]** (インプットを追加) をクリックして、 Input を追加できるノードもあります。
 [/REGION]
 
 ## Attenuation (減衰) ノード
@@ -25,7 +25,7 @@ Description:サウンド キューとそのプロパティに使用できるノ�
 **Attenuation** ノードは、空間化、減衰、半径の各プロパティを調整するために使用されます。 
 
 [REGION:note]
-Attenuation ノードを使ってサウンド キューの減衰設定をオーバーライドしたい場合は、サウンド キュー エディタで Attenuation ノードの **[Override Attenuation]** チェック ボックスを _True_ に設定し、レベル エディタの **[詳細]** パネルでサウンド キュー アセットの **[Override Attenuation]** チェック ボックスを _False_ に設定する必要があります。
+Attenuation ノードを使ってサウンド キューの減衰設定をオーバーライドしたい場合は、サウンド キュー エディタで Attenuation ノードの **[Override Attenuation]** (減衰をオーバーライド) チェック ボックスを _True_ に設定し、レベル エディタの **[Details]** パネルでサウンド キュー アセットの **[Override Attenuation]** チェック ボックスを _False_ に設定する必要があります。
 [/REGION]
 
 ![Attenuation Node](SoundCueEditor_Attenuation.png)
@@ -120,7 +120,7 @@ Attenuation ノードを使ってサウンド キューの減衰設定をオー�
 
 ## Distance ノードによるクロスフェード
 
-**Crossfade by Distance (距離クロスフェード)** ノードは、サウンド キューの原点からの距離に応じて、 2 つ以上の入力サウンド間でフェードさせることができます。デフォルトで、このノード上にある入力はデフォルトでは 2 つですが、Crossfade by Distance ノード上を右クリックし、コンテクストメニューの **[入力値を追加]** をクリックすれば入力の追加が可能です。サウンド ノードは、 Crossfade by Distance ノードの入力への直接接続も可能ですが、それらの間にノードを追加することによって、レイヤごとに独立した制御を行うことも可能です。
+**Crossfade by Distance (距離クロスフェード)** ノードは、サウンド キューの原点からの距離に応じて、 2 つ以上の入力サウンド間でフェードさせることができます。デフォルトで、このノード上にある入力はデフォルトでは 2 つですが、Crossfade by Distance ノード上を右クリックし、コンテクストメニューの **[Add Input]** (インプットを追加) をクリックすれば入力の追加が可能です。サウンド ノードは、 Crossfade by Distance ノードの入力への直接接続も可能ですが、それらの間にノードを追加することによって、レイヤごとに独立した制御を行うことも可能です。
 
 ![Crossfade by Distance Node](SoundCueEditor_CrossfadeDistance.png)
 
@@ -221,7 +221,7 @@ Delay ノードは入力サウンドが出力として渡される前にオー�
 
 
 [REGION:note]
-Enveloper ノードの **[詳細]** パネルはエンベロープ カーブ作成用の各種オプションが含まれます。
+Enveloper ノードの **[Details]** パネルはエンベロープ カーブ作成用の各種オプションが含まれます。
 
 ![](Engine/Audio\SoundCues\NodeReference\SoundCueEditor_Curve.png)
 
@@ -318,7 +318,7 @@ Looping ノードは、遅延の導入など、ロジカルなループまたは
 
 ## Random ノード
 
-**Random** ノードは、Sound Wave ノードのグループの中からランダムに Sound Wave ノードをトリガーするために使用されます。ウェイトは、そのサウンド キューの他の Sound Wave ノードに対して Sound Wave ノードがトリガされる確率を指定します。**RandomWithoutReplacement** のチェックボックスによって、反復の前に、可能な Sound ノード のリストが全て使い尽くされます。各オーディオファイルのために入力を追加するには、 Random ノード上で右クリックして、 **[入力値を追加]** を選択します。Sound Wave ノードは、 Random ノードの入力へ直接接続することもできますが、それらの間にノードを追加することによって、追加の制御を行うことも可能です。
+**Random** ノードは、Sound Wave ノードのグループの中からランダムに Sound Wave ノードをトリガーするために使用されます。ウェイトは、そのサウンド キューの他の Sound Wave ノードに対して Sound Wave ノードがトリガされる確率を指定します。**RandomWithoutReplacement** のチェックボックスによって、反復の前に、可能な Sound ノード のリストが全て使い尽くされます。各オーディオファイルのために入力を追加するには、 Random ノード上で右クリックして、 **[Add Input]** (入力を追加) を選択します。Sound Wave ノードは、 Random ノードの入力へ直接接続することもできますが、それらの間にノードを追加することによって、追加の制御を行うことも可能です。
 
 
 ![Random Node](SoundCueEditor_Random.png)
