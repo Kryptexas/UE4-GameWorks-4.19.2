@@ -37,9 +37,14 @@ struct FCrashReportClientConfig
 		return bSendLogFile;
 	}
 
-	void SetAllowToBeContacted( bool bNewValue );
+	const bool& GetSendAnalyticsForCrash() const
+	{
+		return bSendAnalyticsForCrash;
+	}
 
+	void SetAllowToBeContacted( bool bNewValue );
 	void SetSendLogFile( bool bNewValue );
+	void SetSendAnalyticsForCrash( bool bNewValue );
 
 protected:
 	/** IP address of crash report receiver. */
@@ -50,13 +55,23 @@ protected:
 
 	/**
 	 *	Whether the user allowed us to be contacted. 
-	 *	If true the following properties are retrieved from the system: UserName (for non-launcher build), MachineID and EpicAccountID.
+	 *	If true the following properties are retrieved from the system: UserName (for non-launcher build) and EpicAccountID.
 	 *	Otherwise they will be empty.
 	 */
 	bool bAllowToBeContacted;
 
 	/** Whether the user allowed us to send the log file. */
 	bool bSendLogFile;
+
+	/**
+	 *	Whether the user allowed us to send the analytics for the crash.
+	 *	Enabled by default.
+	 *	Can be changed in the config file located here, for Windows:
+	 *	C:\Users\<user>\AppData\Local\CrashReportClient\Saved\Config\Windows\Engine.ini
+	 *	
+	 *	This will be improved in the next release.
+	 */
+	bool bSendAnalyticsForCrash;
 };
 
 

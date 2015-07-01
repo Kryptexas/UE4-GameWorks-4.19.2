@@ -103,6 +103,13 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 
 	GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni );
 	GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
+	if (!GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bSendAnalyticsForCrash" ), bSendAnalyticsForCrash, GEngineIni ))
+	{
+		// Be default send.
+		bSendAnalyticsForCrash = true;
+		// Add to the config.
+		FCrashReportClientConfig::Get().SetSendAnalyticsForCrash( bSendAnalyticsForCrash );
+	}
 
 	UE_LOG( CrashReportClientLog, Log, TEXT( "CrashReportReceiverIP: %s" ), *CrashReportReceiverIP );
 }
@@ -117,6 +124,12 @@ void FCrashReportClientConfig::SetSendLogFile( bool bNewValue )
 {
 	bSendLogFile = bNewValue;
 	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
+}
+
+void FCrashReportClientConfig::SetSendAnalyticsForCrash( bool bNewValue )
+{
+	bSendAnalyticsForCrash = bNewValue;
+	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bSendAnalyticsForCrash" ), bSendAnalyticsForCrash, GEngineIni );
 }
 
 void RunCrashReportClient(const TCHAR* CommandLine)

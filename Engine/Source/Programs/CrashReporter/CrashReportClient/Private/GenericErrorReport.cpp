@@ -57,7 +57,7 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 			FString CrashContextString;
 			FFileHelper::LoadFileToString( CrashContextString, *CrashContextPath );
 
-			// Remove UserName, MachineId and EpicAccountId;
+			// Remove UserName and EpicAccountId;
 			TArray<FString> Lines;
 			CrashContextString.ParseIntoArrayLines( Lines, true );
 
@@ -66,10 +66,6 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 				if (It.Contains( TEXT( "<UserName>" ) ))
 				{
 					It = TEXT( "<UserName></UserName>" );
-				}
-				else if (It.Contains( TEXT( "<MachineId>" ) ))
-				{
-					It = TEXT( "<MachineId></MachineId>" );
 				}
 				else if (It.Contains( TEXT( "<EpicAccountId>" ) ))
 				{
