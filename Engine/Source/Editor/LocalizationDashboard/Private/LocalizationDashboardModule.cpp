@@ -12,6 +12,7 @@
 #include "GatherTextDetailCustomizations.h"
 #include "PropertyEditorModule.h"
 #include "ILocalizationServiceModule.h"
+#include "LocalizationDashboardSettings.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -151,6 +152,35 @@ public:
 		ILocalizationServiceProvider* const * LSP = ServiceProviders.FindByPredicate(ServiceProviderNameComparator);
 		return LSP ? *LSP : nullptr;
 	}
+
+	ULocalizationTarget* GetLocalizationTargetByName(FString TargetName, bool bIsEngineTarget) override
+	{
+		if (bIsEngineTarget)
+		{
+			ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+			for (ULocalizationTarget* Target : EngineTargetSet->TargetObjects)
+			{
+				if (Target->Settings.Name == TargetName)
+				{
+					return Target;
+				}
+			}
+		}
+		else
+		{
+			ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+			for (ULocalizationTarget* Target : EngineTargetSet->TargetObjects)
+			{
+				if (Target->Settings.Name == TargetName)
+				{
+					return Target;
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
 
 private:
 	TArray<ILocalizationServiceProvider*> ServiceProviders;

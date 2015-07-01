@@ -46,6 +46,15 @@ struct FLocalizationServiceTranslationIdentifierKeyFuncs : BaseKeyFuncs < TPair<
 	}
 };
 
+// Struct representing a show import task in our queue
+struct FShowImportTaskQueueItem
+{
+	int32 ProjectId;
+	int32 ImportId;
+	FDateTime CreatedTimestamp;
+	int32 ExecutionDelayInSeconds;
+};
+
 class FOneSkyLocalizationServiceProvider : public ILocalizationServiceProvider
 {
 public:
@@ -96,6 +105,12 @@ public:
 		return PersistentConnection;
 	}
 
+	// Enqueue a show import task for later exection
+	void EnqueShowImportTask(FShowImportTaskQueueItem QueueItem)
+	{
+		ShowImportTaskQueue.Enqueue(QueueItem);
+	}
+
 private:
 
 	/** Helper function used to create a worker for a particular operation */
@@ -134,4 +149,7 @@ private:
 
 	/** Queue for commands given by the main thread */
 	TArray < FOneSkyLocalizationServiceCommand* > CommandQueue;
+
+	/** Queue for import status tasks  */
+	TQueue < FShowImportTaskQueueItem, EQueueMode::Mpsc > ShowImportTaskQueue;
 };

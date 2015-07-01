@@ -2,8 +2,67 @@
 
 #pragma once
 #include "SCompoundWidget.h"
+#include "TranslationPickerEditWindow.generated.h"
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
+
+UCLASS(config = TranslationPickerSettings)
+class UTranslationPickerSettings : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	/** Bool submit translation picker changes to Localization Service */
+	UPROPERTY(config)
+	bool bSubmitTranslationPickerChangesToLocalizationService;
+};
+
+class FTranslationPickerSettingsManager
+{
+	FTranslationPickerSettingsManager()
+	{
+		TranslationPickerSettingsObject = NewObject<UTranslationPickerSettings>();
+		TranslationPickerSettingsObject->LoadConfig();
+	}
+
+public:
+	void SaveSettings()
+	{
+		TranslationPickerSettingsObject->SaveConfig();
+	}
+
+	void LoadSettings()
+	{
+		TranslationPickerSettingsObject->LoadConfig();
+	}
+
+	UTranslationPickerSettings* GetSettings()
+	{
+		return TranslationPickerSettingsObject;
+	}
+
+	/**
+	* Gets a reference to the translation picker manager instance.
+	*
+	* @return A reference to the translation picker manager instance.
+	*/
+	static inline TSharedPtr<FTranslationPickerSettingsManager>& Get()
+	{
+		if (!TranslationPickerSettingsManagerInstance.IsValid())
+		{
+			TranslationPickerSettingsManagerInstance = MakeShareable(new FTranslationPickerSettingsManager());
+		}
+
+		return TranslationPickerSettingsManagerInstance;
+	}
+
+private:
+
+	static TSharedPtr<FTranslationPickerSettingsManager> TranslationPickerSettingsManagerInstance;
+
+	/** Used to load and store settings for the Translation Picker */
+	UTranslationPickerSettings* TranslationPickerSettingsObject;
+};
 
 /** Translation picker edit Widget to handle the display and editing of a single selected FText */
 class STranslationPickerEditWidget : public SCompoundWidget
@@ -86,6 +145,8 @@ private:
 
 	/** Save all translations and close */
 	FReply SaveAllAndClose();
+
+
 };
 
 #undef LOCTEXT_NAMESPACE

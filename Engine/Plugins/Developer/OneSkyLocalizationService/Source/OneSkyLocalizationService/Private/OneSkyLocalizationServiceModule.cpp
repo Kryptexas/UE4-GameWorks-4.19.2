@@ -39,7 +39,10 @@ void FOneSkyLocalizationServiceModule::StartupModule()
 
 	// Files API
 	OneSkyLocalizationServiceProvider.RegisterWorker("ListUploadedFiles", FGetOneSkyLocalizationServiceWorker::CreateStatic(&CreateWorker<FOneSkyListUploadedFilesWorker>));
-	OneSkyLocalizationServiceProvider.RegisterWorker("UploadFile", FGetOneSkyLocalizationServiceWorker::CreateStatic(&CreateWorker<FOneSkyUploadFileWorker>));
+	OneSkyLocalizationServiceProvider.RegisterWorker("UploadLocalizationTargetFile", FGetOneSkyLocalizationServiceWorker::CreateStatic(&CreateWorker<FOneSkyUploadFileWorker>));
+
+	// Import API
+	OneSkyLocalizationServiceProvider.RegisterWorker("ShowImportTask", FGetOneSkyLocalizationServiceWorker::CreateStatic(&CreateWorker<FOneSkyShowImportTaskWorker>));
 
 	// Phrase Collections API
 	OneSkyLocalizationServiceProvider.RegisterWorker("ListPhraseCollections", FGetOneSkyLocalizationServiceWorker::CreateStatic(&CreateWorker<FOneSkyListPhraseCollectionsWorker>));

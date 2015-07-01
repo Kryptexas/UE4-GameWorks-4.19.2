@@ -46,5 +46,13 @@ public class LocalizationDashboard : ModuleRules
 				"Editor/LocalizationDashboard/Public",
 			}
 		);
+
+        CircularlyReferencedDependentModules.AddRange(
+            new string[]
+			{
+                 "MainFrame",
+                 "TranslationEditor"
+			}
+            );
 	}
 }

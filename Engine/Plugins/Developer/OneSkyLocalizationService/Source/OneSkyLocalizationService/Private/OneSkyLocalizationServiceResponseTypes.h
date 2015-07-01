@@ -1205,3 +1205,150 @@ struct FOneSkyListPhraseCollectionsResponse
 };
 
 // end LIST PHRASE COLLECTIONS
+
+
+// SHOW IMPORT TASK 
+
+USTRUCT()
+struct FOneSkyShowImportTaskResponseMeta
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 status;
+
+	/** Default constructor. */
+	FOneSkyShowImportTaskResponseMeta()
+		: status(-1)
+	{ }
+
+	/** Creates an uninitialized instance. */
+	FOneSkyShowImportTaskResponseMeta(ENoInit) { }
+};
+
+USTRUCT()
+struct FOneSkyShowImportTaskResponseLocale
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString code;
+
+	UPROPERTY()
+		FString english_name;
+
+	UPROPERTY()
+		FString local_name;
+
+	UPROPERTY()
+		FString locale;
+
+	UPROPERTY()
+		FString region;
+
+	/** Default constructor. */
+	FOneSkyShowImportTaskResponseLocale()
+		: code("")
+		, english_name("")
+		, local_name("")
+		, locale("")
+		, region("")
+	{ }
+
+	/** Creates an uninitialized instance. */
+	FOneSkyShowImportTaskResponseLocale(ENoInit) { }
+};
+
+
+USTRUCT()
+struct FOneSkyShowImportTaskResponseFile
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString name;
+
+	UPROPERTY()
+	FString format;
+
+	UPROPERTY()
+	FOneSkyShowImportTaskResponseLocale locale;
+
+	/** Default constructor. */
+	FOneSkyShowImportTaskResponseFile()
+		: name("")
+		, format("")
+		, locale()
+	{ }
+
+	/** Creates an uninitialized instance. */
+	FOneSkyShowImportTaskResponseFile(ENoInit) { }
+};
+
+USTRUCT()
+struct FOneSkyShowImportTaskResponseData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 id;
+
+	UPROPERTY()
+	FOneSkyShowImportTaskResponseFile file;
+
+	UPROPERTY()
+	int32 string_count;
+
+	UPROPERTY()
+	int32 word_count;
+
+	UPROPERTY()
+	FString status;
+
+	UPROPERTY()
+	FString created_at;
+
+	UPROPERTY()
+	int32 created_at_timestamp;
+
+	/** Default constructor. */
+	FOneSkyShowImportTaskResponseData()
+		: id(-1)
+		, file()
+		, string_count(-1)
+		, word_count(-1)
+		, status("")
+		, created_at("")
+		, created_at_timestamp(-1)
+	{ }
+
+	/** Creates an uninitialized instance. */
+	FOneSkyShowImportTaskResponseData(ENoInit) { }
+};
+
+/**
+* Response from a Show Import Task query on OneSky
+* //https://github.com/onesky/api-documentation-platform/blob/master/resources/import_task.md
+*/
+USTRUCT()
+struct FOneSkyShowImportTaskResponse
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FOneSkyShowImportTaskResponseMeta meta;
+
+	UPROPERTY()
+	FOneSkyShowImportTaskResponseData data;
+
+	/** Default constructor. */
+	FOneSkyShowImportTaskResponse()
+		: meta()
+		, data()
+	{ }
+
+	/** Creates an uninitialized instance. */
+	FOneSkyShowImportTaskResponse(ENoInit) { }
+};
+
+// end SHOW IMPORT TASK 

@@ -11,6 +11,10 @@
 #include "JsonInternationalizationManifestSerializer.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "PortableObjectFormatDOM.h"
+#include "ILocalizationServiceModule.h"
+#include "Editor/LocalizationDashboard/Public/ILocalizationDashboardModule.h"
+#include "Editor/LocalizationDashboard/Public/LocalizationTargetTypes.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
@@ -805,7 +809,7 @@ void FTranslationDataManager::UnloadHistoryInformation()
 	}
 }
 
-bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave)
+bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave, bool bSaveChangesToTranslationService)
 {
 	bool bSucceeded = true;
 	
@@ -837,34 +841,89 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 		FString ManifestPath = FPaths::GetPath(ArchiveFilePath);
 		FString ArchiveFullPath = ArchiveFilePath / ManifestAndArchiveName + ".archive";
 		FString ManifestFullPath = ManifestPath / ManifestAndArchiveName + ".manifest";
+		FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+		bool IsEngineManifest = false;
+		if (ManifestFullPath.StartsWith(EngineFullPath))
+		{
+			IsEngineManifest = true;
+		}
 
 		if (FPaths::FileExists(ManifestFullPath) && FPaths::FileExists(ArchiveFullPath))
 		{
 			TSharedRef<FTranslationDataManager> DataManager = MakeShareable(new FTranslationDataManager(ManifestFullPath, ArchiveFullPath));
 
-			TArray<UTranslationUnit*>& TranslationsArray = DataManager->GetAllTranslationsArray();
-			TSharedPtr<TArray<UTranslationUnit*>> EditedItems = Item.Value;
-
-			// For each edited item belonging to this manifest/archive pair
-			for (auto EditedItemIt = EditedItems->CreateIterator(); EditedItemIt; ++EditedItemIt)
+			if (DataManager->GetLoadedSuccessfully())
 			{
-				UTranslationUnit* EditedItem = *EditedItemIt;
+				FPortableObjectFormatDOM PortableObjectDom;
+				PortableObjectDom.SetProjectName(ManifestAndArchiveName);
+				PortableObjectDom.SetLanguage(CultureName);
+				PortableObjectDom.CreateNewHeader();
 
-				// Search all translations for the one that matches this FText
-				for (UTranslationUnit* Translation : TranslationsArray)
+				TArray<UTranslationUnit*>& TranslationsArray = DataManager->GetAllTranslationsArray();
+				TSharedPtr<TArray<UTranslationUnit*>> EditedItems = Item.Value;
+
+				// For each edited item belonging to this manifest/archive pair
+				for (auto EditedItemIt = EditedItems->CreateIterator(); EditedItemIt; ++EditedItemIt)
 				{
-					// If namespace matches...
-					if (Translation->Namespace == EditedItem->Namespace)
+					UTranslationUnit* EditedItem = *EditedItemIt;
+
+					// Search all translations for the one that matches this FText
+					for (UTranslationUnit* Translation : TranslationsArray)
 					{
-						// And source matches
-						if (Translation->Source == EditedItem->Source)
+						// If namespace matches...
+						if (Translation->Namespace == EditedItem->Namespace)
 						{
-							// Update the translation in TranslationDataManager, and finish searching these translations
-							Translation->Translation = EditedItem->Translation;
-							break;
+							// And source matches
+							if (Translation->Source == EditedItem->Source)
+							{
+								// Update the translation in TranslationDataManager, and finish searching these translations
+								Translation->Translation = EditedItem->Translation;
+
+								TSharedRef<FPortableObjectEntry> NewEntry = MakeShareable(new FPortableObjectEntry);
+								for (FTranslationContextInfo ContextInfo : Translation->Contexts)
+								{
+									NewEntry->ExtractedComments.Add(ContextInfo.Key);
+									NewEntry->ReferenceComments.Add(ContextInfo.Context);
+								}
+
+								NewEntry->MsgCtxt = Translation->Namespace;
+								NewEntry->MsgId = Translation->Source;
+								NewEntry->MsgStr.Add(Translation->Translation);
+								PortableObjectDom.AddEntry(NewEntry);
+
+								break;
+							}
 						}
 					}
 				}
+
+				if (bSaveChangesToTranslationService)
+				{
+					FString UploadFilePath = FPaths::GameSavedDir() / "Temp" / CultureName / ManifestAndArchiveName + ".po";
+					FFileHelper::SaveStringToFile(PortableObjectDom.ToString(), *UploadFilePath);
+
+					ULocalizationTarget* Target = ILocalizationDashboardModule::Get().GetLocalizationTargetByName(ManifestAndArchiveName, IsEngineManifest);
+					FGuid LocalizationTargetGuid;
+					if (Target)
+					{
+						LocalizationTargetGuid = Target->Settings.Guid;
+					}
+
+					ILocalizationServiceProvider& Provider = ILocalizationServiceModule::Get().GetProvider();
+					TSharedRef<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadTargetFileOp = ILocalizationServiceOperation::Create<FUploadLocalizationTargetFile>();
+					UploadTargetFileOp->SetInTargetGuid(LocalizationTargetGuid);
+					UploadTargetFileOp->SetInLocale(CultureName);
+					FPaths::MakePathRelativeTo(UploadFilePath, *FPaths::GameDir());
+					UploadTargetFileOp->SetInRelativeInputFilePathAndName(UploadFilePath);
+					UploadTargetFileOp->SetPreserveAllText(true);
+
+					Provider.Execute(UploadTargetFileOp, TArray<FLocalizationServiceTranslationIdentifier>(), ELocalizationServiceOperationConcurrency::Asynchronous, FLocalizationServiceOperationComplete::CreateStatic(&FTranslationDataManager::SaveSelectedTranslationsToTranslationServiceCallback));
+				}
+
+			}
+			else
+			{
+				bSucceeded = false;
 			}
 
 			// Save the data to file, and preview in editor
@@ -878,6 +937,59 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 	}
 
 	return bSucceeded;
+}
+
+void FTranslationDataManager::SaveSelectedTranslationsToTranslationServiceCallback(const FLocalizationServiceOperationRef& Operation, ELocalizationServiceOperationCommandResult::Type Result)
+{
+	TSharedPtr<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> DownloadLocalizationTargetOp = StaticCastSharedRef<FUploadLocalizationTargetFile>(Operation);
+	bool bError = !(Result == ELocalizationServiceOperationCommandResult::Succeeded);
+	FText ErrorText = FText::GetEmpty();
+	FGuid InTargetGuid;
+	FString InLocale;
+	FString InRelativeOutputFilePathAndName;
+	FString TargetName = "";
+	FString TargetPath = "";
+	FString CultureName = "";
+	if (DownloadLocalizationTargetOp.IsValid())
+	{
+		ErrorText = DownloadLocalizationTargetOp->GetOutErrorText();
+		InTargetGuid = DownloadLocalizationTargetOp->GetInTargetGuid();
+		InLocale = DownloadLocalizationTargetOp->GetInLocale();
+		InRelativeOutputFilePathAndName = DownloadLocalizationTargetOp->GetInRelativeInputFilePathAndName();
+		TargetName = FPaths::GetBaseFilename(InRelativeOutputFilePathAndName);
+		TargetPath = FPaths::GetPath(InRelativeOutputFilePathAndName);
+		CultureName = FPaths::GetBaseFilename(TargetPath);
+	}
+
+	// Try to get display name
+	FInternationalization& I18N = FInternationalization::Get();
+	FCulturePtr CulturePtr = I18N.GetCulture(CultureName);
+	FString CultureDisplayName = CultureName;
+	if (CulturePtr.IsValid())
+	{
+		CultureName = CulturePtr->GetDisplayName();
+	}
+
+	if (!bError && ErrorText.IsEmpty())
+	{
+		FText SuccessText = FText::Format(LOCTEXT("SaveSelectedTranslationsToTranslationServiceSuccess", "{0} translations for {1} target uploaded for processing to Translation Service."), FText::FromString(CultureDisplayName), FText::FromString(TargetName));
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+		TranslationEditorMessageLog.Info(SuccessText);
+		TranslationEditorMessageLog.Notify(SuccessText, EMessageSeverity::Info, true);
+	}
+	else
+	{
+		if (ErrorText.IsEmpty())
+		{
+			ErrorText = LOCTEXT("DownloadLatestFromLocalizationServiceUnspecifiedError", "An unspecified error occured when trying download and import from the Localization Service.");
+		}
+
+		FText ErrorNotify = FText::Format(LOCTEXT("SaveSelectedTranslationsToTranslationServiceFail", "{0} translations for {1} target failed to save to Translation Service!"), FText::FromString(CultureDisplayName), FText::FromString(TargetName));
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+		TranslationEditorMessageLog.Error(ErrorNotify);
+		TranslationEditorMessageLog.Error(ErrorText);
+		TranslationEditorMessageLog.Notify(ErrorNotify);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

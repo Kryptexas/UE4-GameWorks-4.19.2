@@ -242,6 +242,19 @@ void FOneSkyLocalizationServiceProvider::OutputCommandMessages(const FOneSkyLoca
 void FOneSkyLocalizationServiceProvider::Tick()
 {	
 	bool bStatesUpdated = false;
+
+	while (!ShowImportTaskQueue.IsEmpty())
+	{
+		FShowImportTaskQueueItem ImportTaskItem;
+		ShowImportTaskQueue.Dequeue(ImportTaskItem);
+		TSharedRef<FOneSkyShowImportTaskOperation, ESPMode::ThreadSafe> ShowImportTaskOperation = ILocalizationServiceOperation::Create<FOneSkyShowImportTaskOperation>();
+		ShowImportTaskOperation->SetInProjectId(ImportTaskItem.ProjectId);
+		ShowImportTaskOperation->SetInImportId(ImportTaskItem.ImportId);
+		ShowImportTaskOperation->SetInExecutionDelayInSeconds(ImportTaskItem.ExecutionDelayInSeconds);
+		ShowImportTaskOperation->SetInCreationTimestamp(ImportTaskItem.CreatedTimestamp);
+		FOneSkyLocalizationServiceModule::Get().GetProvider().Execute(ShowImportTaskOperation, TArray<FLocalizationServiceTranslationIdentifier>(), ELocalizationServiceOperationConcurrency::Asynchronous);
+	}
+
 	for (int32 CommandIndex = 0; CommandIndex < CommandQueue.Num(); ++CommandIndex)
 	{
 		FOneSkyLocalizationServiceCommand& Command = *CommandQueue[CommandIndex];

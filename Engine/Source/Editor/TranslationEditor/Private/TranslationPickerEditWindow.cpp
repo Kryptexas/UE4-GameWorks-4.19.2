@@ -4,12 +4,21 @@
 #include "TranslationPickerEditWindow.h"
 #include "Editor/Documentation/Public/SDocumentationToolTip.h"
 #include "TranslationUnit.h"
+#include "ILocalizationServiceModule.h"
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
+
+TSharedPtr<FTranslationPickerSettingsManager> FTranslationPickerSettingsManager::TranslationPickerSettingsManagerInstance;
 
 // Default dimensions of the Translation Picker edit window (floating window also uses these sizes, so it matches roughly)
 const int32 STranslationPickerEditWindow::DefaultEditWindowWidth = 500;
 const int32 STranslationPickerEditWindow::DefaultEditWindowHeight = 500;
+
+UTranslationPickerSettings::UTranslationPickerSettings(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+
+}
 
 void STranslationPickerEditWindow::Construct(const FArguments& InArgs)
 {
@@ -17,6 +26,15 @@ void STranslationPickerEditWindow::Construct(const FArguments& InArgs)
 	PickedTexts = InArgs._PickedTexts;
 	WindowContents = SNew(SBox);
 	TSharedRef<SVerticalBox> TextsBox = SNew(SVerticalBox);
+	UTranslationPickerSettings* TranslationPickerSettings = FTranslationPickerSettingsManager::Get()->GetSettings();
+
+	bool bShowLocServiceCheckbox = ILocalizationServiceModule::Get().GetProvider().IsEnabled();
+
+	if (!FParse::Param(FCommandLine::Get(), TEXT("AllowTranslationPickerSubmissionsToOneSky")))
+	{
+		bShowLocServiceCheckbox = false;
+		TranslationPickerSettings->bSubmitTranslationPickerChangesToLocalizationService = false;
+	}
 
 	// Add a new Translation Picker Edit Widget for each picked text
 	for (FText PickedText : PickedTexts)
@@ -79,38 +97,79 @@ void STranslationPickerEditWindow::Construct(const FArguments& InArgs)
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.HAlign(HAlign_Right)
+			.HAlign(HAlign_Fill)
 			.Padding(DefaultPadding)
 			[
-				SNew(SUniformGridPanel)
-				.SlotPadding(FEditorStyle::GetMargin("StandardDialog.SlotPadding"))
-				.MinDesiredSlotWidth(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotWidth"))
-				.MinDesiredSlotHeight(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotHeight"))
-				+ SUniformGridPanel::Slot(0, 0)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Left)
+				.Padding(DefaultPadding)
 				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					.OnClicked(this, &STranslationPickerEditWindow::SaveAllAndClose)
+					SNew(SHorizontalBox)
+					.Visibility(bShowLocServiceCheckbox ? EVisibility::Visible : EVisibility::Collapsed)
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(3, 3, 3, 3))
+					.VAlign(VAlign_Center)
+					.AutoWidth()
 					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.Padding(FMargin(0, 0, 3, 0))
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						[
-							SNew(STextBlock).Text(LOCTEXT("SaveAllAndClose", "Save all and close"))
-						]
+						SNew(SCheckBox)
+						.HAlign(HAlign_Center)
+						.IsChecked(TranslationPickerSettings->bSubmitTranslationPickerChangesToLocalizationService ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+						.ToolTipText(LOCTEXT("SubmitTranslationPickerChangesToLocalizationServiceToolTip", "Submit changes to localization service"))
+						.OnCheckStateChanged_Lambda([&](ECheckBoxState CheckedState)
+						{
+							UTranslationPickerSettings* TranslationPickerSettingsLocal = FTranslationPickerSettingsManager::Get()->GetSettings();
+							TranslationPickerSettingsLocal->bSubmitTranslationPickerChangesToLocalizationService = CheckedState == ECheckBoxState::Checked;
+							TranslationPickerSettingsLocal->SaveConfig();
+						}
+						)
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0, 0, 3, 0))
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("SubmitTranslationPickerChangesToLocalizationService", "Save to Localization Service"))
+						.ToolTipText(LOCTEXT("SubmitTranslationPickerChangesToLocalizationServiceToolTip", "Submit changes to localization service"))
 					]
 				]
-				+ SUniformGridPanel::Slot(1, 0)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Right)
+				.Padding(DefaultPadding)
 				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					.OnClicked(this, &STranslationPickerEditWindow::Close)
-					.VAlign(VAlign_Center)
-					.Text(LOCTEXT("CancelButton", "Cancel"))
+					SNew(SUniformGridPanel)
+					.SlotPadding(FEditorStyle::GetMargin("StandardDialog.SlotPadding"))
+					.MinDesiredSlotWidth(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotWidth"))
+					.MinDesiredSlotHeight(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotHeight"))
+					+ SUniformGridPanel::Slot(0, 0)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+						.OnClicked(this, &STranslationPickerEditWindow::SaveAllAndClose)
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.Padding(FMargin(0, 0, 3, 0))
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(STextBlock).Text(LOCTEXT("SaveAllAndClose", "Save all and close"))
+							]
+						]
+					]
+					+ SUniformGridPanel::Slot(1, 0)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+						.OnClicked(this, &STranslationPickerEditWindow::Close)
+						.VAlign(VAlign_Center)
+						.Text(LOCTEXT("CancelButton", "Cancel"))
+					]
 				]
 			]
 		]
@@ -161,8 +220,9 @@ FReply STranslationPickerEditWindow::SaveAllAndClose()
 
 	if (TempArray.Num() > 0)
 	{
+		UTranslationPickerSettings* TranslationPickerSettings = FTranslationPickerSettingsManager::Get()->GetSettings();
 		// Save the data via translation data manager
-		FTranslationDataManager::SaveSelectedTranslations(TempArray);
+		FTranslationDataManager::SaveSelectedTranslations(TempArray, ILocalizationServiceModule::Get().GetProvider().IsEnabled() && TranslationPickerSettings->bSubmitTranslationPickerChangesToLocalizationService);
 	}
 
 	Close();
@@ -195,6 +255,19 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 			LocresFullPath = *LocResId;
 			ManifestAndArchiveNameString = FPaths::GetBaseFilename(*LocResId);
 		}
+	}
+
+	FString ArchiveFilePath = FPaths::GetPath(LocresFullPath);
+	FString LocResCultureName = FPaths::GetBaseFilename(ArchiveFilePath);
+
+	FInternationalization& I18N = FInternationalization::Get();
+	FString CurrentCultureName = I18N.GetCurrentCulture()->GetName();
+
+	// Make sure locres path matches the current culture (can change if using the culture=__ console command)
+	if (CurrentCultureName != LocResCultureName)
+	{
+		FString BasePath = FPaths::GetPath(ArchiveFilePath);
+		LocresFullPath = BasePath / CurrentCultureName / ManifestAndArchiveNameString + ".locres";
 	}
 
 	FText Namespace = FText::FromString(NamespaceString.Get(TEXT("")));
@@ -392,11 +465,12 @@ FReply STranslationPickerEditWidget::SaveAndPreview()
 {
 	// Update translation string from entered text
 	TranslationUnit->Translation = TextBox->GetText().ToString();
+	UTranslationPickerSettings* TranslationPickerSettings = FTranslationPickerSettingsManager::Get()->GetSettings();
 
 	// Save the data via translation data manager
 	TArray<UTranslationUnit*> TempArray;
 	TempArray.Add(TranslationUnit);
-	FTranslationDataManager::SaveSelectedTranslations(TempArray);
+	FTranslationDataManager::SaveSelectedTranslations(TempArray, ILocalizationServiceModule::Get().GetProvider().IsEnabled() && TranslationPickerSettings->bSubmitTranslationPickerChangesToLocalizationService);
 
 	return FReply::Handled();
 }

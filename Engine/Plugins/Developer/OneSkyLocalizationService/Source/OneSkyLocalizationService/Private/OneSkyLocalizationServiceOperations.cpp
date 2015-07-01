@@ -12,6 +12,7 @@
 #include "JsonStructDeserializerBackend.h"
 #include "StructDeserializer.h"
 #include "OneSkyLocalizationServiceResponseTypes.h"
+#include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "OneSkyLocalizationService"
 
@@ -925,23 +926,33 @@ bool FOneSkyUploadFileWorker::Execute(class FOneSkyLocalizationServiceCommand& I
 {
 	// Store pointer to command so we can access it in the http request callback
 	Command = &InCommand;
-	TSharedPtr<FOneSkyUploadFileOperation, ESPMode::ThreadSafe> UploadFilesOp = StaticCastSharedRef<FOneSkyUploadFileOperation>(InCommand.Operation);
+	TSharedPtr<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadFileOp = StaticCastSharedRef<FUploadLocalizationTargetFile>(InCommand.Operation);
 
-	int32 InProjectId = -1;
+	FGuid InTargetGuid;
 	FString InFilePathAndName = "";
-	FString InOneSkyTargetFileName = "";
 	FString InLocale = "";
-	bool bInIsKeepingAllStrings = false;
+	bool bInIsKeepingAllStrings = true;
 	FString InFileFormat = "";
 
-	if (UploadFilesOp.IsValid())
+	if (UploadFileOp.IsValid())
 	{
-		InProjectId = UploadFilesOp->GetInProjectId();
-		InFilePathAndName = UploadFilesOp->GetInLocalFilePathAndName();
-		InOneSkyTargetFileName = UploadFilesOp->GetInOneSkyTargetFileName();
-		InLocale = UploadFilesOp->GetInLocale();
-		bInIsKeepingAllStrings = UploadFilesOp->GetInIsKeepingAllStrings();
+		InTargetGuid = UploadFileOp->GetInTargetGuid();
+		InLocale = UploadFileOp->GetInLocale();
+		// Path is relative to game directory
+		InFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / UploadFileOp->GetInRelativeInputFilePathAndName());
+		bInIsKeepingAllStrings = UploadFileOp->GetPreserveAllText();
 		InFileFormat = GetFileFormat(FPaths::GetExtension(InFilePathAndName, true));
+	}
+
+	int32 InProjectId = -1;
+	FString InOneSkyTargetFileName = "";
+
+	// OneSky project settings are accessed by their localization target guid. These settings are set in the Localization Dashboard
+	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(InTargetGuid);
+	if (Settings != nullptr)
+	{
+		InProjectId = Settings->OneSkyProjectId;
+		InOneSkyTargetFileName = FGenericPlatformHttp::UrlEncode(Settings->OneSkyFileName);
 	}
 
 	FString Url = AddAuthenticationParameters(InCommand.ConnectionInfo, "https://platform.api.onesky.io/1/projects/" + FString::FromInt(InProjectId) / "files");
@@ -990,6 +1001,34 @@ void FOneSkyUploadFileWorker::Query_HttpRequestComplete(FHttpRequestPtr HttpRequ
 	{
 		UScriptStruct& StructType = *(FOneSkyUploadFileResponse::StaticStruct());
 		bResult = DeserializeResponseToStruct(&OutUploadFileResponse, StructType, HttpResponse);
+	}
+
+	if (bResult)
+	{
+		TSharedPtr<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadFileOp = StaticCastSharedRef<FUploadLocalizationTargetFile>(Command->Operation);
+
+		FGuid InTargetGuid;
+		int32 InProjectId = -1;
+
+		if (UploadFileOp.IsValid())
+		{
+			InTargetGuid = UploadFileOp->GetInTargetGuid();
+
+			// OneSky project settings are accessed by their localization target guid. These settings are set in the Localization Dashboard
+			FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(InTargetGuid);
+			if (Settings != nullptr)
+			{
+				InProjectId = Settings->OneSkyProjectId;
+			}
+		}
+
+		FShowImportTaskQueueItem ImportTaskQueueItem;
+		ImportTaskQueueItem.ImportId = OutUploadFileResponse.data.import.id;
+		ImportTaskQueueItem.ProjectId = InProjectId;
+		// Wait one minute before querying the status of the import
+		ImportTaskQueueItem.ExecutionDelayInSeconds = 60.0f;
+		ImportTaskQueueItem.CreatedTimestamp = FDateTime::UtcNow();
+		FOneSkyLocalizationServiceModule::Get().GetProvider().EnqueShowImportTask(ImportTaskQueueItem);
 	}
 
 	if (Command != nullptr)
@@ -1067,6 +1106,114 @@ void FOneSkyListPhraseCollectionsWorker::Query_HttpRequestComplete(FHttpRequestP
 }
 
 // end LIST PHRASE COLLECTIONS
+
+
+// SHOW IMPORT TASK
+
+FName FOneSkyShowImportTaskWorker::GetName() const
+{
+	return "ShowImportTask";
+}
+
+bool FOneSkyShowImportTaskWorker::Execute(class FOneSkyLocalizationServiceCommand& InCommand)
+{
+	// Store pointer to command so we can access it in the http request callback
+	Command = &InCommand;
+
+	TSharedPtr<FOneSkyShowImportTaskOperation, ESPMode::ThreadSafe> ShowImportTaskOp = StaticCastSharedRef<FOneSkyShowImportTaskOperation>(InCommand.Operation);
+
+	int32 InProjectId = -1;
+	int32 InImportId = -1;
+	int32 InExecutionDelayInSeconds = -1;
+	FDateTime InCreationTimeStamp = FDateTime::FDateTime(1970, 1, 1);
+
+	if (ShowImportTaskOp.IsValid())
+	{
+		InProjectId = ShowImportTaskOp->GetInProjectId();
+		InImportId = ShowImportTaskOp->GetInImportId();
+		InExecutionDelayInSeconds = ShowImportTaskOp->GetInExecutionDelayInSeconds();
+		InCreationTimeStamp = ShowImportTaskOp->GetInCreationTimestamp();
+	}
+
+	double ElapsedTimeInSeconds = (FDateTime::UtcNow() - InCreationTimeStamp).GetTotalSeconds();
+
+	while (!GIsRequestingExit && (ElapsedTimeInSeconds <= InExecutionDelayInSeconds))
+	{
+		ElapsedTimeInSeconds = (FDateTime::UtcNow() - InCreationTimeStamp).GetTotalSeconds();
+		FPlatformProcess::Sleep(0.05);
+	}
+
+	FString Url = "https://platform.api.onesky.io/1/projects/" + FString::FromInt(InProjectId) / "import-tasks/" + FString::FromInt(InImportId);
+	Url = AddAuthenticationParameters(InCommand.ConnectionInfo, Url);
+
+	FHttpModule& HttpModule = FModuleManager::LoadModuleChecked<FHttpModule>("HTTP");
+	TSharedRef<class IHttpRequest> HttpRequest = HttpModule.Get().CreateRequest();
+
+	// kick off http request to read
+	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FOneSkyShowImportTaskWorker::Query_HttpRequestComplete);
+	HttpRequest->SetURL(Url);
+	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+	HttpRequest->SetVerb(TEXT("GET"));
+	HttpRequest->ProcessRequest();
+
+	return InCommand.bCommandSuccessful;
+
+	return false;
+}
+
+void FOneSkyShowImportTaskWorker::Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
+{
+	bool bResult = false;
+
+	if (bSucceeded)
+	{
+		UScriptStruct& StructType = *(FOneSkyShowImportTaskResponse::StaticStruct());
+		bResult = DeserializeResponseToStruct(&OutShowImportTaskResponse, StructType, HttpResponse);
+	}
+
+	if (bResult)
+	{
+		TSharedPtr<FOneSkyShowImportTaskOperation, ESPMode::ThreadSafe> ShowImportTaskOp = StaticCastSharedRef<FOneSkyShowImportTaskOperation>(Command->Operation);
+
+		int32 InProjectId = -1;
+		int32 InImportId = -1;
+		int32 InExecutionDelayInSeconds = -1;
+
+		if (ShowImportTaskOp.IsValid())
+		{
+			InProjectId = ShowImportTaskOp->GetInProjectId();
+			InImportId = ShowImportTaskOp->GetInImportId();
+			InExecutionDelayInSeconds = ShowImportTaskOp->GetInExecutionDelayInSeconds();
+
+			if (OutShowImportTaskResponse.data.status == "in-progress")
+			{
+				FShowImportTaskQueueItem ImportTaskQueueItem;
+				ImportTaskQueueItem.ImportId = InImportId;
+				ImportTaskQueueItem.ProjectId = InProjectId;
+				ImportTaskQueueItem.ExecutionDelayInSeconds = InExecutionDelayInSeconds;
+				ImportTaskQueueItem.CreatedTimestamp = FDateTime::UtcNow();
+				FOneSkyLocalizationServiceModule::Get().GetProvider().EnqueShowImportTask(ImportTaskQueueItem);
+			}
+			else if (OutShowImportTaskResponse.data.status == "failed")
+			{
+				FString CultureName = OutShowImportTaskResponse.data.file.locale.code;
+				FString TargetName = OutShowImportTaskResponse.data.file.name;
+				FText FailureText = FText::Format(LOCTEXT("ImportTaskFailed", "{0} translations for {1} target failed to import to OneSky!"), FText::FromString(CultureName), FText::FromString(TargetName));
+				FMessageLog LocalizationServiceMessageLog("TranslationEditor");
+				LocalizationServiceMessageLog.Error(FailureText);
+				LocalizationServiceMessageLog.Notify(FailureText, EMessageSeverity::Error, true);
+			}
+		}
+	}
+
+	if (Command != nullptr)
+	{
+		Command->bCommandSuccessful = bResult;
+		FPlatformAtomics::InterlockedExchange(&(Command->bExecuteProcessed), 1);
+	}
+}
+
+// end SHOW IMPORT TASK
 
 
 //FName FOneSkyListProjectTypesWorker::GetName() const

@@ -52,7 +52,7 @@ protected:
 };
 
 /**
- * Operation used to commit localization(s) to localization service
+ * Operation used to download a localization target file from a localization service
  */
 class FDownloadLocalizationTargetFile : public ILocalizationServiceOperation
 {
@@ -66,7 +66,7 @@ public:
 
 	virtual FText GetInProgressString() const override
 	{ 
-		return LOCTEXT("LocalizationService_FLocalizationServicerDownloadLocalizationTargetFile", "Getting Localization Target File from localization Service..."); 
+		return LOCTEXT("LocalizationService_FLocalizationServiceDownloadLocalizationTargetFile", "Getting Localization Target File from localization Service..."); 
 	}
 
 
@@ -126,79 +126,96 @@ protected:
 	FText OutErrorText;
 };
 
-///**
-// * Operation used to commit localization(s) to localization service
-// */
-//class FCommitTranslations : public ILocalizationServiceOperation
-//{
-//public:
-//	// ILocalizationServiceOperation interface
-//	virtual FName GetName() const override
-//	{
-//		return "CommitTranslations";
-//	}
-//
-//	virtual FText GetInProgressString() const override
-//	{ 
-//		return LOCTEXT("LocalizationService_FCommit", "Committing translation(s) to localization Service..."); 
-//	}
-//
-//
-//	void SetSuccessMessage( const FText& InSuccessMessage )
-//	{
-//		SuccessMessage = InSuccessMessage;
-//	}
-//
-//	const FText& GetSuccessMessage() const
-//	{
-//		return SuccessMessage;
-//	}
-//
-//protected:
-//
-//	/** A short message listing changelist/revision we submitted, if successful */
-//	FText SuccessMessage;
-//
-//	/** The translations we are committing */
-//	TArray<TPair<FLocalizationServiceTranslationIdentifier, FString>> TranslationsToCommit;
-//};
 
-///**
-//* Operation used to update the localization service status of files
-//*/
-//class FLocalizationServiceUpdateStatus : public ILocalizationServiceOperation
-//{
-//public:
-//	FLocalizationServiceUpdateStatus()
-//		: bUpdateHistory(false)
-//	{
-//	}
-//
-//	// ILocalizationServiceOperation interface
-//	virtual FName GetName() const override
-//	{
-//		return "UpdateStatus";
-//	}
-//
-//	virtual FText GetInProgressString() const override
-//	{
-//		return LOCTEXT("LocalizationService_Update", "Updating translation(s) localization service status...");
-//	}
-//
-//	void SetUpdateHistory(bool bInUpdateHistory)
-//	{
-//		bUpdateHistory = bInUpdateHistory;
-//	}
-//
-//	bool ShouldUpdateHistory() const
-//	{
-//		return bUpdateHistory;
-//	}
-//	
-//protected:
-//	/** Whether to update history */
-//	bool bUpdateHistory;
-//};
+/**
+* Operation used to upload a localization file to a localization service
+*/
+class FUploadLocalizationTargetFile : public ILocalizationServiceOperation
+{
+public:
+
+	FUploadLocalizationTargetFile() : bPreserveAllText(true) {}
+
+	// ILocalizationServiceOperation interface
+	virtual FName GetName() const override
+	{
+		return "UploadLocalizationTargetFile";
+	}
+
+	virtual FText GetInProgressString() const override
+	{
+		return LOCTEXT("LocalizationService_FLocalizationServiceUploadLocalizationTargetFile", "Uploading Localization Target File to localization Service...");
+	}
+
+
+	void SetInTargetGuid(const FGuid& NewInTargetGuid)
+	{
+		InTargetGuid = NewInTargetGuid;
+	}
+
+	const FGuid& GetInTargetGuid() const
+	{
+		return InTargetGuid;
+	}
+
+	void SetInRelativeInputFilePathAndName(const FString& NewInRelativeInputFilePathAndName)
+	{
+		InRelativeInputFilePathAndName = NewInRelativeInputFilePathAndName;
+	}
+
+	const FString& GetInRelativeInputFilePathAndName() const
+	{
+		return InRelativeInputFilePathAndName;
+	}
+
+	FString GetInLocale()
+	{
+		return InLocale;
+	}
+
+	void SetInLocale(FString NewLocale)
+	{
+		InLocale = NewLocale;
+	}
+
+	FText GetOutErrorText()
+	{
+		return OutErrorText;
+	}
+
+	void SetOutErrorText(const FText& NewOutErrorText)
+	{
+		OutErrorText = NewOutErrorText;
+	}
+
+	bool GetPreserveAllText()
+	{
+		return bPreserveAllText;
+	}
+
+	void SetPreserveAllText(bool NewPreserveAllText)
+	{
+		bPreserveAllText = NewPreserveAllText;
+	}
+
+
+protected:
+
+	/** The GUID of the Localization Target */
+	FGuid InTargetGuid;
+
+	/** The locale (culture code, for example "fr" or "en-us" or "ja-jp") to download the translations for */
+	FString InLocale;
+
+	/** The path and name to the file to upload, relative to project directory */
+	FString InRelativeInputFilePathAndName;
+
+	/** Place to easily store and access error message */
+	FText OutErrorText;
+
+	/** Ask the translations service to keep all text, even if not present in the current upload file.*/
+	bool bPreserveAllText;
+};
 
 
 #undef LOCTEXT_NAMESPACE

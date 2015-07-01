@@ -9,6 +9,7 @@ class UTranslationUnit;
 
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
+#include "ILocalizationServiceProvider.h"
 
 class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 {
@@ -74,7 +75,10 @@ public:
 	void UnloadHistoryInformation();
 
 	/** Save the specified translations */
-	static bool SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave);
+	static bool SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave, bool bSaveChangesToTranslationService = false);
+
+	/** Save the specified translations */
+	static void SaveSelectedTranslationsToTranslationServiceCallback(const FLocalizationServiceOperationRef& Operation, ELocalizationServiceOperationCommandResult::Type Result);
 
 	/** Whether or not we successfully loaded the .manifest and .archive */
 	bool GetLoadedSuccessfully()

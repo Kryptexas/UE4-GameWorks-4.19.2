@@ -719,86 +719,7 @@ public:
 // end LIST UPLOADED FILES
 
 
-// UPLOADED FILE
-
-/**
-* Operation used to upload a files to a project in one sky
-*/
-class FOneSkyUploadFileOperation : public ILocalizationServiceOperation
-{
-public:
-
-	// ILocalizationServiceOperation interface
-	virtual FName GetName() const override
-	{
-		return "UploadFile";
-	}
-
-	virtual FText GetInProgressString() const override
-	{
-		return LOCTEXT("OneSkyLocalizationService_UploadFileWorker", "Uploading File to a Project in OneSky...");
-	}
-
-	FOneSkyUploadFileOperation() : InProjectId(-1), bInIsKeepingAllStrings(true) { }
-
-	void SetInLocalFilePathAndName(FString NewInLocalFilePathAndName)
-	{
-		InLocalFilePathAndName = NewInLocalFilePathAndName;
-	}
-
-	FString GetInLocalFilePathAndName()
-	{
-		return InLocalFilePathAndName;
-	}
-
-	void SetInOneSkyTargetFileName(FString NewInOneSkyTargetFileName)
-	{
-		InOneSkyTargetFileName = NewInOneSkyTargetFileName;
-	}
-
-	FString GetInOneSkyTargetFileName()
-	{
-		return InOneSkyTargetFileName;
-	}
-
-	void SetInLocale(FString NewInLocale)
-	{
-		InLocale = NewInLocale;
-	}
-
-	FString GetInLocale()
-	{
-		return InLocale;
-	}
-
-	bool GetInIsKeepingAllStrings()
-	{
-		return bInIsKeepingAllStrings;
-	}
-
-	void SetInIsKeepingAllStrings(bool NewInIsKeepingAllStrings)
-	{
-		bInIsKeepingAllStrings = NewInIsKeepingAllStrings;
-	}
-
-	int32 GetInProjectId()
-	{
-		return InProjectId;
-	}
-
-	void SetInProjectId(int32 NewProjectGroupId)
-	{
-		InProjectId = NewProjectGroupId;
-	}
-
-protected:
-
-	int32 InProjectId;
-	FString InLocalFilePathAndName;
-	FString InOneSkyTargetFileName;
-	FString InLocale;
-	bool bInIsKeepingAllStrings;
-};
+//// UPLOAD FILE
 
 class FOneSkyUploadFileWorker : public IOneSkyLocalizationServiceWorker
 {
@@ -817,7 +738,7 @@ public:
 	FOneSkyUploadFileResponse OutUploadFileResponse;
 };
 
-// end UPLOAD FILES
+// end UPLOAD FILE
 
 
 // LIST PHRASE COLLECTIONS
@@ -896,6 +817,95 @@ public:
 };
 
 // end LIST PHRASE COLLECTIONS
+
+
+// SHOW IMPORT TASK
+
+/**
+* Operation used to show a project in one sky
+*/
+class FOneSkyShowImportTaskOperation : public ILocalizationServiceOperation
+{
+public:
+	// ILocalizationServiceOperation interface
+	virtual FName GetName() const override
+	{
+		return "ShowImportTask";
+	}
+
+	virtual FText GetInProgressString() const override
+	{
+		return LOCTEXT("OneSkyLocalizationService_ShowImportTask", "Showing Import Task in OneSky...");
+	}
+
+	FOneSkyShowImportTaskOperation() : InProjectId(-1) { }
+
+	int32 GetInProjectId()
+	{
+		return InProjectId;
+	}
+
+	void SetInProjectId(int32 NewProjectId)
+	{
+		InProjectId = NewProjectId;
+	}
+
+	int32 GetInImportId()
+	{
+		return InImportId;
+	}
+
+	void SetInImportId(int32 NewImportId)
+	{
+		InImportId = NewImportId;
+	}
+
+	int32 GetInExecutionDelayInSeconds()
+	{
+		return InExecutionDelayInSeconds;
+	}
+
+	void SetInExecutionDelayInSeconds(int32 NewInExecutionDelayInSeconds)
+	{
+		InExecutionDelayInSeconds = NewInExecutionDelayInSeconds;
+	}
+
+	FDateTime GetInCreationTimestamp()
+	{
+		return InCreationTimestamp;
+	}
+
+	void SetInCreationTimestamp(FDateTime NewInCreationTimestamp)
+	{
+		InCreationTimestamp = NewInCreationTimestamp;
+	}
+
+protected:
+
+	int32 InProjectId;
+	int32 InImportId;
+	int32 InExecutionDelayInSeconds;
+	FDateTime InCreationTimestamp;
+};
+
+class FOneSkyShowImportTaskWorker : public IOneSkyLocalizationServiceWorker
+{
+public:
+	virtual ~FOneSkyShowImportTaskWorker() {}
+	// IOneSkyLocalizationServiceWorker interface
+	virtual FName GetName() const override;
+	virtual bool Execute(class FOneSkyLocalizationServiceCommand& InCommand) override;
+	virtual bool UpdateStates() const override {/*TODO:*/return true; }
+	void Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
+public:
+
+	FOneSkyLocalizationServiceCommand* Command;
+
+	/** Response to the command */
+	FOneSkyShowImportTaskResponse OutShowImportTaskResponse;
+};
+
+// end SHOW IMPORT TASK
 
 //class FOneSkyListProjectTypesWorker : public IOneSkyLocalizationServiceWorker
 //{

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ModuleInterface.h"
+#include "LocalizationTargetTypes.h"
 
 class ILocalizationServiceProvider;
 
@@ -28,4 +29,6 @@ public:
 	{
 		return FModuleManager::LoadModuleChecked<ILocalizationDashboardModule>("LocalizationDashboard");
 	}
+
+	virtual ULocalizationTarget* GetLocalizationTargetByName(FString TargetName, bool bIsEngineTarget) = 0;
 };
