@@ -1722,7 +1722,15 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	if ( bPerObject == true )
 	{
 		FString PathNameString;
-		GetPathName(GetOutermost(), PathNameString);
+		UObject* Outermost = GetOutermost();
+		if ( Outermost == GetTransientPackage() )
+		{
+			PathNameString = GetName();
+		}
+		else
+		{
+			GetPathName(Outermost, PathNameString);
+		}
 		Section = PathNameString + TEXT(" ") + GetClass()->GetName();
 	}
 
