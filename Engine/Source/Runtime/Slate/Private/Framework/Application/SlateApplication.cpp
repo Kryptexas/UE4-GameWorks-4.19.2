@@ -2851,6 +2851,7 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 			NewToolTipWindow->MoveWindowTo( DesiredToolTipLocation );
 		}
 
+		NewToolTipWindow->SetOpacity(0.0f);
 
 		// Show the window
 		NewToolTipWindow->ShowWindow();
