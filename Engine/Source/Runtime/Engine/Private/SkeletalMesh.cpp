@@ -2501,8 +2501,19 @@ void USkeletalMesh::CalculateInvRefMatrices()
 				RefBases[b] = RefBases[b] * RefBases[Parent];
 			}
 
+			FVector XAxis, YAxis, ZAxis;
+
+			RefBases[b].GetScaledAxes(XAxis, YAxis, ZAxis);
+			if(	XAxis.IsNearlyZero(SMALL_NUMBER) &&
+				YAxis.IsNearlyZero(SMALL_NUMBER) &&
+				ZAxis.IsNearlyZero(SMALL_NUMBER))
+			{
+				// this is not allowed, warn them 
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Reference Pose for joint (%s) includes NIL matrix. Zero scale isn't allowed on ref pose. "), *RefSkeleton.GetBoneName(b).ToString());
+			}
+
 			// Precompute inverse so we can use from-refpose-skin vertices.
-			RefBasesInvMatrix[b] = RefBases[b].InverseFast(); 
+			RefBasesInvMatrix[b] = RefBases[b].Inverse(); 
 		}
 
 #if WITH_EDITORONLY_DATA
