@@ -47,7 +47,7 @@ private:
 		, TrackIndex(InIndex)
 	{
 		bIsExpanded = true;
-		bool bIsCurveViewSynchronized = true;
+		bIsCurveViewSynchronized = true;
 	}
 
 	/** Hidden constructor, always use Make above */
