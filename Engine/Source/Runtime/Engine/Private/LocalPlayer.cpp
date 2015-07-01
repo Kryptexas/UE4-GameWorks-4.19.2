@@ -334,7 +334,7 @@ public:
 	 * @param OutFOV			The FOV at which the view was locked.
 	 * @returns true if the view is locked, false if it is not.
 	 */
-	bool GetViewPoint(ULocalPlayer* Player, FVector& OutViewLocation, FRotator& OutViewRotation, float& OutFOV)
+	bool GetViewPoint(ULocalPlayer const* Player, FVector& OutViewLocation, FRotator& OutViewRotation, float& OutFOV)
 	{
 		FPlayerState PlayerState = PlayerStates.GetAnnotation(Player);
 		if (PlayerState.bLocked)
@@ -350,7 +350,7 @@ public:
 	/**
 	 * Returns true if the player's viewpoint is locked.
 	 */
-	bool IsViewLocked(ULocalPlayer* Player)
+	bool IsViewLocked(ULocalPlayer const* Player)
 	{
 		FPlayerState PlayerState = PlayerStates.GetAnnotation(Player);
 		return PlayerState.bLocked;
@@ -604,7 +604,7 @@ FAutoConsoleCommand FLockedViewState::CmdCopyLockedViews(
 	FConsoleCommandDelegate::CreateStatic(FLockedViewState::CopyLockedViews)
 	);
 
-void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass)
+void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass) const
 {
 	if (FLockedViewState::Get().GetViewPoint(this, OutViewInfo.Location, OutViewInfo.Rotation, OutViewInfo.FOV) == false
 		&& PlayerController != NULL)
@@ -867,7 +867,7 @@ bool ULocalPlayer::GetPixelPoint(const FVector& InPoint, FVector2D& OutPoint, co
 	return bInFrontOfCamera;
 }
 
-bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData)
+bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData) const
 {
 	// If the actor
 	if ((Viewport == NULL) || (PlayerController == NULL) || (Viewport->GetSizeXY().X == 0) || (Viewport->GetSizeXY().Y == 0))

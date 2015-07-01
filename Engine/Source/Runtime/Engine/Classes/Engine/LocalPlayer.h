@@ -220,7 +220,7 @@ protected:
 	 * @param OutViewInfo - Upon return contains the view information for the player.
 	 * @param StereoPass - Which stereoscopic pass, if any, to get the viewport for.  This will include eye offsetting
 	 */
-	void GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass = eSSP_FULL);
+	void GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass = eSSP_FULL) const;
 
 	/** @todo document */
 	void ExecMacro( const TCHAR* Filename, FOutputDevice& Ar );
@@ -394,7 +394,7 @@ public:
 	 * @param	ProjectionData			The structure to be filled with projection data
 	 * @return  False if there is no viewport, or if the Actor is null
 	 */
-	bool GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData);
+	bool GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData) const;
 
 	/**
 	 * Determines whether this player is the first and primary player on their machine.
