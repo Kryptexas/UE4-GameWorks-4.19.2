@@ -116,9 +116,6 @@ public:
 
 		{
 			const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
-			const FIntPoint ViewportSize = Context.GetViewport().Size();
-			const float Width = ViewportSize.X;
-			const float Height = ViewportSize.Y;
 
 			static const float SampleOffsets[9][2] =
 			{
