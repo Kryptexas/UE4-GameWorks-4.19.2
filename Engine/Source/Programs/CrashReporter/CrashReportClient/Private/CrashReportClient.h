@@ -58,6 +58,9 @@ public:
 	/** Destructor. */
 	virtual ~FCrashReportClient();
 
+	/** Closes the crash report client without sending any data. Except the startup analytics. */
+	FReply CloseWithoutSending();
+
 	/**
 	 * Respond to the user pressing Submit
 	 * @return Whether the request was handled
@@ -87,6 +90,12 @@ public:
 	 * @return Name of executable
 	 */
 	FString GetCrashedAppName() const;
+
+
+	/**
+	 * @return the full path of the crash directory.
+	 */
+	FString GetCrashDirectory() const;
 
 	/**
 	 * Handle the user updating the user comment text

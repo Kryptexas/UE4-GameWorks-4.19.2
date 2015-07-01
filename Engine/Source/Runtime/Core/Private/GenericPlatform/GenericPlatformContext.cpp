@@ -100,6 +100,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), (int32)NCachedCrashContextProperties::bIsPerforceBuild );
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), (int32)NCachedCrashContextProperties::bIsSourceDistribution );
 
+	// Added 'editor/game open time till crash' 
+
 	// Add common crash properties.
 	AddCrashProperty( TEXT( "GameName" ), FApp::GetGameName() );
 	AddCrashProperty(TEXT("ExecutableName"), *NCachedCrashContextProperties::ExecutableName);
@@ -115,9 +117,10 @@ void FGenericCrashContext::SerializeContentToBuffer()
 
 	AddCrashProperty( TEXT( "IsUE4Release" ), (int32)NCachedCrashContextProperties::bIsUE4Release);
 
+	const bool bSetUserName = NCachedCrashContextProperties::bIsInternalBuild || NCachedCrashContextProperties::bIsPerforceBuild || NCachedCrashContextProperties::bIsSourceDistribution;
 	// Remove periods from user names to match AutoReporter user names
 	// The name prefix is read by CrashRepository.AddNewCrash in the website code
-	AddCrashProperty(TEXT("UserName"), *NCachedCrashContextProperties::UserName.Replace(TEXT("."), TEXT("")));
+	AddCrashProperty( TEXT( "UserName" ), bSetUserName ? *NCachedCrashContextProperties::UserName.Replace( TEXT( "." ), TEXT( "" ) ) : TEXT( "" ) );
 
 	AddCrashProperty(TEXT("BaseDir"), *NCachedCrashContextProperties::BaseDir);
 	AddCrashProperty(TEXT("RootDir"), *NCachedCrashContextProperties::RootDir);

@@ -78,7 +78,7 @@ FPlatformErrorReport LoadErrorReport()
 	ErrorReport.FindFirstReportFileWithExtension( XMLWerFilename, TEXT( ".xml" ) );
 
 	extern FCrashDescription& GetCrashDescription();
-	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );
+	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );	
 
 #if CRASH_REPORT_UNATTENDED_ONLY
 	return ErrorReport;
@@ -158,6 +158,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	if (bUnattended)
 	{
+		// In the unattended mode we don't send any PII.
 		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ), false );
 		FCrashReportClientUnattended CrashReportClient( ErrorReport );
 

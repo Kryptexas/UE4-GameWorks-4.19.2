@@ -18,7 +18,7 @@ struct CORE_API FWindowsPlatformCrashContext : public FGenericCrashContext
 
 	virtual void AddPlatformSpecificProperties() override
 	{
-		AddCrashProperty( TEXT( "Platform.IsRunningWindows" ), 1 );
+		AddCrashProperty( TEXT( "PlatformIsRunningWindows" ), 1 );
 	}
 };
 

@@ -20,6 +20,15 @@ static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata, 
 	}
 }
 
+static void OnViewCrashDirectory( const FSlateHyperlinkRun::FMetadata& Metadata, TSharedRef<SWidget> ParentWidget )
+{
+	const FString* UrlPtr = Metadata.Find( TEXT( "href" ) );
+	if (UrlPtr)
+	{
+		FPlatformProcess::ExploreFolder( **UrlPtr );
+	}
+}
+
 void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashReportClient> Client)
 {
 	CrashReportClient = Client;
@@ -27,9 +36,14 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 	auto CrashedAppName = CrashReportClient->GetCrashedAppName();
 
 	// Set the text displaying the name of the crashed app, if available
-	FText CrashedAppText = CrashedAppName.IsEmpty() ?
+	const FText CrashedAppText = CrashedAppName.IsEmpty() ?
 		LOCTEXT("CrashedAppNotFound", "An Unreal process has crashed") :
 		LOCTEXT("CrashedApp", "The following process has crashed: ");
+
+	const FText CrashReportDataText = FText::Format( LOCTEXT(
+		"CrashReportData",
+		"Crash reports comprise diagnostics files (<a id=\"browser\" href=\"{0}\" style=\"Richtext.Hyperlink\">click here to view directory</>) and the following summary information: " ),
+		FText::FromString( CrashReportClient->GetCrashDirectory()) );
 
 	ChildSlot
 	[
@@ -130,12 +144,13 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 
 						+ SOverlay::Slot()
 						[
-							SNew(STextBlock)
-							.Margin(FMargin(4, 2, 0, 8))
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Testing/Fonts/Roboto-Italic.ttf"), 9))
-							.Text(LOCTEXT("CrashReportData", "Crash report data:"))
-							.ColorAndOpacity(FSlateColor(FLinearColor::White * 0.5f))
-							.AutoWrapText(false)
+							SNew( SRichTextBlock )
+							.Margin( FMargin( 4, 2, 0, 8 ) )
+							.TextStyle( &FCrashReportClientStyle::Get().GetWidgetStyle<FTextBlockStyle>( "CrashReportDataStyle" ) )
+							.Text( CrashReportDataText )
+							.AutoWrapText( true )
+							.DecoratorStyleSet( &FCrashReportClientStyle::Get() )
+							+ SRichTextBlock::HyperlinkDecorator( TEXT( "browser" ), FSlateHyperlinkRun::FOnClick::CreateStatic( &OnViewCrashDirectory, AsShared() ) )
 						]
 					]
 
@@ -235,6 +250,19 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 				.Padding(0)
 				[			
 					SNew(SSpacer)
+				]
+
+				
+				+ SHorizontalBox::Slot()
+				.HAlign( HAlign_Center )
+				.VAlign( VAlign_Center )
+				.AutoWidth()
+				.Padding( FMargin( 0 ) )
+				[
+					SNew( SButton )
+					.ContentPadding( FMargin( 8, 2 ) )
+					.Text( LOCTEXT( "CloseWithoutSending", "Close Without Sending" ) )
+					.OnClicked( Client, &FCrashReportClient::CloseWithoutSending )
 				]
 
 				+SHorizontalBox::Slot()

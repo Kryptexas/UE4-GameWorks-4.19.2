@@ -51,6 +51,12 @@ FCrashReportClient::~FCrashReportClient()
 	}
 }
 
+FReply FCrashReportClient::CloseWithoutSending()
+{
+	GIsRequestingExit = true;
+	return FReply::Handled();
+}
+
 FReply FCrashReportClient::Submit()
 {
 	bSendData = true;
@@ -117,6 +123,9 @@ EVisibility FCrashReportClient::IsThrobberVisible() const
 void FCrashReportClient::AllowToBeContacted_OnCheckStateChanged( ECheckBoxState NewRadioState )
 {
 	FCrashReportClientConfig::Get().SetAllowToBeContacted( NewRadioState == ECheckBoxState::Checked );
+
+	// Refresh PII based on the bAllowToBeContacted flag.
+	GetCrashDescription().UpdateIDs();
 }
 
 void FCrashReportClient::SendLogFile_OnCheckStateChanged( ECheckBoxState NewRadioState )
@@ -131,7 +140,7 @@ void FCrashReportClient::StartTicker()
 
 void FCrashReportClient::StoreCommentAndUpload()
 {
-	// Call upload even if the report is empty: pending reports will be sent if any
+	// Write user's comment
 	ErrorReport.SetUserComment( UserComment, FCrashReportClientConfig::Get().GetAllowToBeContacted() );
 	StartTicker();
 }
@@ -169,6 +178,11 @@ bool FCrashReportClient::Tick(float UnusedDeltaTime)
 FString FCrashReportClient::GetCrashedAppName() const
 {
 	return GetCrashDescription().GameName;
+}
+
+FString FCrashReportClient::GetCrashDirectory() const
+{
+	return ErrorReport.GetReportDirectory();
 }
 
 void FCrashReportClient::FinalizeDiagnoseReportWorker( FText ReportText )

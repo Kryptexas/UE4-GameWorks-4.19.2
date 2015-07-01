@@ -38,7 +38,7 @@ public:
 	}
 
 	/**
-	 * Write the provided comment into the error report
+	 * Write the provided comment into the error report, also remove any PII if bAllowToBeContacted is set to false
 	 * @param UserComment Information provided by the user to add to the report
 	 * @return Whether the comment was successfully written to the report
 	 */
