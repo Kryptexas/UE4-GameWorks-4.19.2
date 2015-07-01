@@ -1,10 +1,8 @@
 Availability:Public
-Title: Overview
+Title:Localization System Overview
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:An overview of the elements involved in localizing your project. 
 
-
-## Overview
 Localization of a project involves a few key concepts:
 
 * [Text](#text)
