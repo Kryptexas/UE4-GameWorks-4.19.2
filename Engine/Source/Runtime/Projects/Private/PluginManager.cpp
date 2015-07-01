@@ -301,12 +301,14 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						}
 					}
 				}
+#if !IS_MONOLITHIC
+				// Only check this when in a non-monolithic build where modules could be in separate binaries
 				else if (Plugin.bEnabled && Project->Modules.Num() == 0)
 				{
 					// Content only project - check whether any plugins are incompatible and offer to disable instead of trying to build them later
 					TSharedPtr<FPlugin> PluginInstance = FindPluginInstance(Plugin.Name);
 					TArray<FString> IncompatibleFiles;
-					if (!FModuleDescriptor::CheckModuleCompatbility(PluginInstance->Descriptor.Modules, PluginInstance->LoadedFrom == EPluginLoadedFrom::GameProject, IncompatibleFiles))
+					if (!FModuleDescriptor::CheckModuleCompatibility(PluginInstance->Descriptor.Modules, PluginInstance->LoadedFrom == EPluginLoadedFrom::GameProject, IncompatibleFiles))
 					{
 						// Ask whether to disable plugin if incompatible
 						FText Caption(LOCTEXT("IncompatiblePluginCaption", "Plugin missing or incompatible"));
@@ -322,6 +324,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						}
 					}
 				}
+#endif //!IS_MONOLITHIC
 			}
 		}
 
@@ -513,7 +516,7 @@ bool FPluginManager::CheckModuleCompatibility(TArray<FString>& OutIncompatibleMo
 	for (TArray< TSharedRef< FPlugin > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
 	{
 		const TSharedRef< FPlugin > &Plugin = *Iter;
-		if (Plugin->bEnabled && !FModuleDescriptor::CheckModuleCompatbility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, OutIncompatibleModules))
+		if (Plugin->bEnabled && !FModuleDescriptor::CheckModuleCompatibility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, OutIncompatibleModules))
 		{
 			bResult = false;
 		}

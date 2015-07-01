@@ -98,7 +98,7 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 bool FProjectManager::CheckModuleCompatibility(TArray<FString>& OutIncompatibleModules)
 {
-	return !CurrentProject.IsValid() || FModuleDescriptor::CheckModuleCompatbility(CurrentProject->Modules, true, OutIncompatibleModules);
+	return !CurrentProject.IsValid() || FModuleDescriptor::CheckModuleCompatibility(CurrentProject->Modules, true, OutIncompatibleModules);
 }
 
 const FString& FProjectManager::GetAutoLoadProjectFileName()
