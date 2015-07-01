@@ -417,11 +417,11 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 	return true;
 }
 
-void UAnimSingleNodeInstance::PostAnimEvaluation()
+void UAnimSingleNodeInstance::NativePostEvaluateAnimation()
 {
 	PostEvaluateAnimEvent.ExecuteIfBound();
 
-	Super::PostAnimEvaluation();
+	Super::NativePostEvaluateAnimation();
 }
 
 void UAnimSingleNodeInstance::Montage_Advance(float DeltaTime)

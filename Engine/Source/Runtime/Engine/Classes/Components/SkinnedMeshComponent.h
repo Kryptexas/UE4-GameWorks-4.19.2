@@ -741,6 +741,7 @@ public:
 	 * @return true if child (strictly, not same). false otherwise
 	 * Note - will return false if ChildBoneIndex is the same as ParentBoneIndex ie. must be strictly a child.
 	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	bool BoneIsChildOf(FName BoneName, FName ParentBoneName) const;
 
 	/** 

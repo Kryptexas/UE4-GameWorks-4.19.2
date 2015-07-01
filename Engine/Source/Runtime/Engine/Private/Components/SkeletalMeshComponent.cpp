@@ -38,6 +38,7 @@ TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelA
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimSpawnTime);
+DEFINE_STAT(STAT_PostAnimEvaluation);
 
 class FParallelAnimationEvaluationTask
 {
@@ -1249,7 +1250,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	{
 		// curve update happens first
 		AnimScriptInstance->UpdateCurves(EvaluatedCurve);
-		AnimScriptInstance->PostAnimEvaluation();
+		AnimScriptInstance->PostEvaluateAnimation();
 	}
 
 	MarkRenderDynamicDataDirty();

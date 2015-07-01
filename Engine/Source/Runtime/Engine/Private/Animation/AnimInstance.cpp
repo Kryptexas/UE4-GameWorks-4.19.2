@@ -47,8 +47,8 @@ DEFINE_STAT(STAT_AnimTickTime);
 DEFINE_STAT(STAT_SkinnedMeshCompTick);
 DEFINE_STAT(STAT_TickUpdateRate);
 DEFINE_STAT(STAT_PerformAnimEvaluation);
-DEFINE_STAT(STAT_PostAnimEvaluation);
 DEFINE_STAT(STAT_BlueprintUpdateAnimation);
+DEFINE_STAT(STAT_BlueprintPostEvaluateAnimation);
 DEFINE_STAT(STAT_NativeUpdateAnimation);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Init Time"), STAT_AnimInitTime, STATGROUP_Anim, );
@@ -481,6 +481,16 @@ void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 	}
 }
 
+void UAnimInstance::PostEvaluateAnimation()
+{
+	NativePostEvaluateAnimation();
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_BlueprintPostEvaluateAnimation);
+		BlueprintPostEvaluateAnimation();
+	}
+}
+
 void UAnimInstance::NativeInitializeAnimation()
 {
 }
@@ -492,6 +502,10 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 bool UAnimInstance::NativeEvaluateAnimation(FPoseContext& Output)
 {
 	return false;
+}
+
+void UAnimInstance::NativePostEvaluateAnimation()
+{
 }
 
 void UAnimInstance::AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate)
