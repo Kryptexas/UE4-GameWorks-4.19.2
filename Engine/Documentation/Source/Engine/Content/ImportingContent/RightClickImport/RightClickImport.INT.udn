@@ -5,12 +5,15 @@ Description:Learn how to add content by right-clicking inside of your Content Br
 SkillLevel: Beginner
 Version: 4.8
 
-This is where the description is going.
+[REGION:note]
+Before you get started: Download and extract sample assets from the following link.
+* [Sample Assets](SampleAssets.zip)
+[/REGION]
 
 ## Goal
 
 This is where the goal is going.
 
-## Objective
+## Objectives
 
 This is where the objective is going.
