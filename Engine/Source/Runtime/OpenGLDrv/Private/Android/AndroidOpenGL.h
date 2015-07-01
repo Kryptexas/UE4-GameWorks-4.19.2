@@ -209,7 +209,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	static FORCEINLINE bool TexStorage2D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLenum Format, GLenum Type, uint32 Flags)
 	{
-		if( bUseAdrenoHalfFloatTexStorage && Type == GL_HALF_FLOAT_OES && (Flags & TexCreate_RenderTargetable) != 0 )
+		if( bUseHalfFloatTexStorage && Type == GL_HALF_FLOAT_OES && (Flags & TexCreate_RenderTargetable) != 0 )
 		{
 			glTexStorage2D(Target, Levels, InternalFormat, Width, Height);
 			VERIFY_GL(glTexStorage2D)
@@ -231,8 +231,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	static void ProcessExtensions(const FString& ExtensionsString);
 
-	// whether to use ES 3.0 function glTexStorage2D to allocate storage for GL_HALF_FLOAT_OES render target textures, working around a driver limitation on Adreno 3x0.
-	static bool bUseAdrenoHalfFloatTexStorage;
+	// whether to use ES 3.0 function glTexStorage2D to allocate storage for GL_HALF_FLOAT_OES render target textures
+	static bool bUseHalfFloatTexStorage;
 
 	// whether to use ES 3.0 shading language
 	static bool bUseES30ShadingLanguage;
