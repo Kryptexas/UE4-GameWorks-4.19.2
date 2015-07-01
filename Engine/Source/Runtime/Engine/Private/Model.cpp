@@ -360,7 +360,7 @@ void UModel::PostLoad()
 			OwnerLocationWhenLastBuilt = Owner->GetActorLocation();
 			OwnerPrepivotWhenLastBuilt = Owner->GetPrePivot();
 			OwnerScaleWhenLastBuilt = Owner->GetActorScale();
-			OwnerRotationWhenLastBuilt = -Owner->GetActorRotation();
+			OwnerRotationWhenLastBuilt = Owner->GetActorRotation();
 			bCachedOwnerTransformValid = true;
 		}
 #endif
