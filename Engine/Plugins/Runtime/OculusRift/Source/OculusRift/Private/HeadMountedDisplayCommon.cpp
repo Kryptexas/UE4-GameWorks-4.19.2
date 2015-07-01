@@ -201,14 +201,14 @@ bool FHeadMountedDisplay::OnStartGameFrame()
 {
 	check(IsInGameThread());
 
-	Frame.Reset();
-	Flags.bFrameStarted = true;
-
 	if (!GWorld || !GWorld->IsGameWorld())
 	{
 		// ignore all non-game worlds
 		return false;
 	}
+
+	Frame.Reset();
+	Flags.bFrameStarted = true;
 
 	if (Flags.bNeedDisableStereo || (Settings->Flags.bStereoEnabled && !IsHMDConnected()))
 	{
