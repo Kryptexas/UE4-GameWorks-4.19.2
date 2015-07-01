@@ -5,7 +5,6 @@ Description:How to set up a project for localization.
 
 [TOC (start:2)]
 
-## Overview
 Setting a project up for localization involves:
 * writing localization configuration scripts for the commandlet pipeline.
 * configuring where to load localization data from.
