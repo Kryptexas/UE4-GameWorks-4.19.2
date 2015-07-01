@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2600840
 Availability:Public
 Title: 블렌드 스페이스
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -117,7 +117,17 @@ Related: Engine/Content/Tools/MayaRiggingTool
 
 축이 두 개가 아니라 하나뿐이라는 점만 제외하면 블렌드 스페이스 1D 는 표준 양축 블렌드 스페이스와 똑같습니다. 그렇기에 이 문서에서는 2D 버전에 초점을 맞추겠습니다. 모든 규칙과 프로퍼티가 그대로 유지된다는 점만 알아두시면 되겠습니다.
 
-![](BlendSpace_1D.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+2mkn8FZL2KA
+[/PARAMLITERAL]
+[/OBJECT]
 
 ## 구조
 
@@ -160,3 +170,7 @@ Sample Data 배열에 있는 각 항목에는 다음과 같은 프로퍼티가 �
 | -------- | ---- |
 | **Animation** | 애니메이션 - 블렌딩 대상 AnimationSequence 애셋입니다. |
 | **Sample Value** | 샘플 값 - **Animation** 이 최대 영향력을 갖는 입력값 (블렌드 파라미터에 상응하는 X, Y) 입니다. |
+
+
+
+

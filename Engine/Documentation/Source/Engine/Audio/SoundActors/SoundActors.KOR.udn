@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2374994
+﻿INTSourceChangelist:2594116
 Availability: Public
 Title:사운드 액터 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -72,7 +72,8 @@ Description:게임내 배경음이나 국소적인 소리를 내기 위해 여�
 
 ### Attenuation 프로퍼티
 Attenuation (감쇠)는 플레이어가 사운드 위치에서 멀어지면서 볼륨을 줄이는 기능을 말합니다. MinRadius 와 MaxRadius 두 가지 반경을 사용하여 작동합니다.
-사운드의 원점에서 MinRadius 까지는 사운드 볼륨 100% 로 재생됩니다. MinRadius 에서 MaxRadius 사이의 공간을 이동하면서는, **Distance Algorithm** 에 따라 볼륨을 조절합니다. MaxRadius 밖에서는 사운드 볼륨이 0% 입니다.
+사운드의 원점에서 MinRadius 까지는 사운드 볼륨 100% 로 재생됩니다. MinRadius 에서 MaxRadius 사이의 공간을 이동하면서는, **Distance Algorithm** 에 따라 볼륨을 조절합니다. 
+MaxRadius 밖에서는 사운드 볼륨이 0% 입니다.
 
 Attenuation 관련 추가 정보는, [디스턴스 모델 감쇠](Engine/Audio/DistanceModelAttenuation) 문서를 참고해 주시기 바랍니다.
 
@@ -151,6 +152,7 @@ Attenuation 관련 추가 정보는, [디스턴스 모델 감쇠](Engine/Audio/D
 [REGION:tip]
 **Audio Volume** 에 변경을 가해도 에디터 안에서 실시간 작동하지는 않습니다. 편집된 볼륨이 들어있는 레벨의 지오메트리를 다시 빌드해 줘야 효과가 발휘될 것입니다.
 [/REGION]
+
 
 
 

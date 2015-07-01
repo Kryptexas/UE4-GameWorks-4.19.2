@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2593377
 Availability:Public
 Title: 캐릭터 셋업 개요
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -202,3 +202,7 @@ GameMode 셋업을 마치고나서 커스텀 캐릭터로 플레이하기 위한
 [/REGION]
 
 콘텐츠 예제는 저희 에픽의 아티스트와 전문가가 디자인한 특별판 콘텐츠입니다. **ContentExamples** 라는 이름의 프로젝트에서 찾을 수 있으며, **마켓플레이스** 를 통해 다운로드 가능합니다. 특히나 중요한 부분은 _Animation.umap_ 레벨에서 찾을 수 있는 애셋으로, 캐릭터의 스켈레탈 메시 애니메이션에 대한 여러가지 사용법을 확인할 수 있습니다.
+
+
+
+

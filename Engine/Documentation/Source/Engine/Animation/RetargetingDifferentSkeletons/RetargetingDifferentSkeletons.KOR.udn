@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2414249
+﻿INTSourceChangelist:2593612
 Availability:Public
 Title: 애니메이션 리타게팅 (다른 스켈레톤)
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -256,6 +256,11 @@ Animation Starter Pack 에는 Mixamo Character Pack 의 캐릭터에 리타게�
 리타게팅된 베이스 포즈로 애니메이션을 리타게팅하면, 더 나은 모습의 애니메이션을 얻을 수 있습니다.
 
 ![](Retarget23.png)
+
+
+
+
+
 
 
 

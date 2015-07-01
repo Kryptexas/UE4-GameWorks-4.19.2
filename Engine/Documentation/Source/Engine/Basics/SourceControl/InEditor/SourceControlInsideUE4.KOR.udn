@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2375209
+﻿INTSourceChangelist:2595351
 Availability: Public
 Title: 언리얼 엔진 4 안에서의 소스 콘트롤
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
@@ -121,6 +121,11 @@ Related: Programming/Basics/ConfigurationFiles
 
 파일을 체크아웃하면 이 세팅을 편집할 수 있습니다. 아쉽게도 현재 에디터 안에서 이 파일을 소스 콘트롤에 다시 체크인 시키는 방법은 없으며, P4V 나 TortoiseSVN 같은 외부 툴을 사용하여 
 언리얼 에디터 세션 종료 후 체크인시켜야 합니다.
+
+
+
+
+
 
 
 

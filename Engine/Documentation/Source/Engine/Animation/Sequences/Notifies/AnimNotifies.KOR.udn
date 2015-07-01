@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2328561
+﻿INTSourceChangelist:2593658
 Availability:Public
 Title:애니메이션 노티파이
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
@@ -265,7 +265,8 @@ _왼쪽 그림은 중앙에서 바깥쪽으로 스케일이 커지는 **중앙�
 
 1. **이미터** 컴포넌트를 생성( 또는 기존의 것을 사용)합니다.
 1. 컴포넌트에서 **BeginTrails** 함수를 호출합니다. 컴포넌트의 모든 트레일 이미터를 시작합니다. 여기에 트레일의 다른 프로퍼티도 제공해 줘야 합니다.
- ![](TrailBlueprint2.png)
+
+    ![](TrailBlueprint2.png)
 1. 컴포넌트에서 **EndTrails** 함수를 호출합니다.
  ![](TrailBlueprint3.png)
 1. 트레일 실행 도중 그 프로퍼티를 변경할 수도 있습니다 (아래 예제는 게임 시간을 사용해서 매 틱마다 폭을 변경합니다).

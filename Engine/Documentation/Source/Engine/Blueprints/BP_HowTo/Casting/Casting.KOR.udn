@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2541080
+﻿INTSourceChangelist:2595877
 Availability: Public
 Title:블루프린트 형변환
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -91,3 +91,8 @@ Related: Engine/Blueprints/UserGuide
 
 	**Casting** (형변환) 사용법 및 예제 관련 상세 정보는 아래 **관련 토픽** 부분을 참고하시기 바랍니다.
 	
+
+
+
+
+

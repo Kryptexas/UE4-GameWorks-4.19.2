@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2491062
+﻿INTSourceChangelist:2596007
 Availability: Public
 Title:블루프린트 디버깅
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,8 +8,6 @@ Related: Engine/Blueprints
 
 
 [TOC(start:2)]
-
-## 개요
 
 블루프린트 작업시 계획했던 대로 작동하지 않는 경우가 생길 수 있습니다. 이러한 문제 진단을 위해, 블루프린트 비주얼 스크립팅 툴에는 디버거가 내장되어 있으며, 그 중 가장 강력한 기능 중 하나가 그래프의 노드에 **Breakpoint** 중단점을 추가하는 기능입니다. 그래프의 노드에 중단점을 추가하면, 에디터에서 게임을 정상적으로 플레이( 또는 시뮬레이트)하다가, 중단점을 추가해 둔 노드에 도달하면 게임이 일시정지되고 그래프의 그 노드로 점프하여 스크립트를 한 단계씩 진행해 보며 어디서 문제가 생기는지 확인해 볼 수 있습니다.
 
@@ -146,6 +144,11 @@ Related: Engine/Blueprints
 ![](DebugHowTo21.png)
 
 컴파일러 결과 창은 오류가 생길 때마다 자동으로 뜹니다. 확대경 클래스를 클릭하면 오류 위치로 점프하여 문제가 되는 노드를 확인할 수 있습니다. 문제 해결을 돕고자 글로도 오류에 대한 설명이 표시됩니다.
+
+
+
+
+
 
 
 

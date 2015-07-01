@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2592070
 Availability:Public
 Title: 에임 오프셋
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -97,4 +97,9 @@ Related: Engine/Content/Tools/MayaRiggingTool
 이러한 문제는 메시 스페이스 회전으로 해결됩니다. 스켈레탈 메시의 박스를 기준으로 회전되므로, 그 방향은 캐릭터가 어떤 작업을 하고 있든 항상 일정하게 유지됩니다. 즉 캐릭터가 측면으로 기댄 상태라 할지라도, 상향 조준은 그대로 위쪽으로 틀게 되는 것입니다.
 
 메시 스페이스는 애니메이션 시퀀스의 프로퍼티로 설정됩니다. **Additive Settings** (애디티브 세팅) 카테고리 아래 **Additive Anim Type** (애디티브 애님 타입) 프로퍼티가 있습니다. 이것을 _Mesh Space_ (메시 스페이스)로 설정하면 설명한 대로 메시 좌표계가 활용됩니다. 이 블렌딩은 비용이 꽤 들기 때문에, 일반적으로 에임 오프셋처럼 일정한 방향으로 계속해서 움직이는 애니메이션이 필요한 블렌드 스페이스 유형에만 사용해야 할 것입니다.
+
+
+
+
+
 

@@ -1,4 +1,4 @@
-INTSourceChangelist:2170734
+﻿INTSourceChangelist:2600917
 Availability:Public
 Title: 블렌드 스페이스 편집하기
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
@@ -173,8 +173,16 @@ _블렌드 스페이스_ 미리보기를 켜려면, UI 의 **옵션** 부분에�
 
 ![Graph Tooltip](bs_samples_tooltip.png)
 
-[REGION:caption]
-**우클릭 - 다른 이름으로 저장으로 비디오를 내려받을 수 있습니다.**
-[/REGION]
+블렌드 스페이스 미리보기 예제는 아래와 같습니다.
 
-[![](PlayBlendSpaceVideo.png)(w:640)](BlendSpace.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+L435S6VaUMY
+[/PARAMLITERAL]
+[/OBJECT]

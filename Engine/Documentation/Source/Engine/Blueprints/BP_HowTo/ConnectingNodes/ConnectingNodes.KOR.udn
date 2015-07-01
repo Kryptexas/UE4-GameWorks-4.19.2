@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2369064
+﻿INTSourceChangelist:2595877
 Availability: Public
 Title:노드 연결하기
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -126,6 +126,11 @@ Related: Engine/Blueprints/UserGuide/CheatSheet
 ![](ReRoute5.png)
 
 경로변경 노드를 사용하면 블루프린트를 말끔히 정리하는 데 도움이 되므로, 블루프린트의 가독성을 높일 수 있습니다.
+
+
+
+
+
 
 
 
