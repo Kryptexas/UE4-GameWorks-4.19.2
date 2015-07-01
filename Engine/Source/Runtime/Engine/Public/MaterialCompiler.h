@@ -153,6 +153,7 @@ public:
 
 	virtual int32 DynamicParameter(FLinearColor& DefaultValue) = 0;
 	virtual int32 LightmapUVs() = 0;
+	virtual int32 PrecomputedAOMask()  = 0;
 
 	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) = 0;
 	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) = 0;
@@ -317,6 +318,7 @@ public:
 
 	virtual int32 DynamicParameter(FLinearColor& DefaultValue) override { return Compiler->DynamicParameter(DefaultValue); }
 	virtual int32 LightmapUVs() override { return Compiler->LightmapUVs(); }
+	virtual int32 PrecomputedAOMask() override { return Compiler->PrecomputedAOMask(); }
 
 	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Realtime; }
 	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) override { return Compiler->GIReplace(Direct, StaticIndirect, DynamicIndirect); }

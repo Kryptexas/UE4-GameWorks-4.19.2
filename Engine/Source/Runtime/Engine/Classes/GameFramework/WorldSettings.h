@@ -93,6 +93,14 @@ struct FLightmassWorldInfoSettings
 	UPROPERTY(EditAnywhere, Category=LightmassOcclusion)
 	uint32 bUseAmbientOcclusion:1;
 
+	/** 
+	 * Whether to generate textures storing the AO computed by Lightmass.
+	 * These can be accessed through the PrecomputedAmbientOcclusion material node, 
+	 * Which is useful for blending between material layers on environment assets.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassOcclusion)
+	uint32 bGenerateAmbientOcclusionMaterialMask:1;
+
 	/** How much of the AO to apply to direct lighting. */
 	UPROPERTY(EditAnywhere, Category=LightmassOcclusion, meta=(UIMin = "0", UIMax = "1"))
 	float DirectIlluminationOcclusionFraction;
@@ -145,6 +153,7 @@ struct FLightmassWorldInfoSettings
 		, EmissiveBoost(1.0f)
 		, DiffuseBoost(1.0f)
 		, bUseAmbientOcclusion(false)
+		, bGenerateAmbientOcclusionMaterialMask(false)
 		, DirectIlluminationOcclusionFraction(0.5f)
 		, IndirectIlluminationOcclusionFraction(1.0f)
 		, OcclusionExponent(1.0f)

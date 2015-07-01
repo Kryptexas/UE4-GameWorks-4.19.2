@@ -492,13 +492,13 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 					if (DistanceToDebugTexelSq < 40000
 						|| X == Scene.DebugInput.LocalX && Y == Scene.DebugInput.LocalY)
 					{
-						FDebugStaticLightingVertex DebugVertex;
-						DebugVertex.VertexNormal = FVector4(TexelToVertex.WorldTangentZ);
-						DebugVertex.VertexPosition = TexelToVertex.WorldPosition;
-						DebugOutput.Vertices.Add(DebugVertex);
-
 						if (X == Scene.DebugInput.LocalX && Y == Scene.DebugInput.LocalY)
-						{							
+						{		
+							FDebugStaticLightingVertex DebugVertex;
+							DebugVertex.VertexNormal = FVector4(TexelToVertex.WorldTangentZ);
+							DebugVertex.VertexPosition = TexelToVertex.WorldPosition;
+							DebugOutput.Vertices.Add(DebugVertex);
+
 							DebugOutput.SelectedVertexIndices.Add(DebugOutput.Vertices.Num() - 1);
 							DebugOutput.SampleRadius = TexelToVertex.TexelRadius;
 						}
@@ -2969,6 +2969,7 @@ void FStaticLightingSystem::ProcessInterpolateTask(FInterpolateIndirectTaskDescr
 
 				// Apply occlusion to indirect lighting and add this texel's indirect lighting to its running total
 				CurrentLightSample.AddWeighted(IndirectLighting, 1);
+				CurrentLightSample.HighQuality.AOMaterialMask = IndirectLighting.Occlusion;
 
 				// Stationary sky light contribution goes into low quality lightmap only, bent normal sky shadowing will be exported separately
 				CurrentLightSample.LowQuality.AddWeighted(IndirectLighting.StationarySkyLighting, 1);

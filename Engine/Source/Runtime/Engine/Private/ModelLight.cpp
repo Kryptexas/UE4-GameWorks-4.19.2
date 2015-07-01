@@ -1149,6 +1149,8 @@ void UModel::ApplyStaticLighting()
 					{
 						DestSample.SkyOcclusion[ColorIndex] = SourceSample.SkyOcclusion[ColorIndex];
 					}
+
+					DestSample.AOMaterialMask = SourceSample.AOMaterialMask;
 				}
 			}
 

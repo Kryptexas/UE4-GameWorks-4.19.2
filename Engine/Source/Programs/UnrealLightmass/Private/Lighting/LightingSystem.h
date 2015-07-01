@@ -41,12 +41,15 @@ public:
 	/** Sky bent normal, points toward the most unoccluded direction, and the length is the visibility amount (0 = occluded, 1 = visible). */
 	FVector SkyOcclusion;
 
+	float AOMaterialMask;
+
 	/** Initialization constructor. */
 	FGatheredLightSample()
 	{
 		SHCorrection = 0.0f;
 		IncidentLighting = FLinearColor(0, 0, 0, 0);
 		SkyOcclusion = FVector(0);
+		AOMaterialMask = 0;
 	}
 
 	FGatheredLightSample(EForceInit)
@@ -54,6 +57,7 @@ public:
 		SHCorrection = 0.0f;
 		IncidentLighting = FLinearColor(0, 0, 0, 0);
 		SkyOcclusion = FVector(0);
+		AOMaterialMask = 0;
 	}
 
 	/**
@@ -93,6 +97,7 @@ public:
 		Result.SHCorrection = SHCorrection * Scalar;
 		Result.IncidentLighting = IncidentLighting * Scalar;
 		Result.SkyOcclusion = SkyOcclusion * Scalar;
+		Result.AOMaterialMask = AOMaterialMask * Scalar;
 		return Result;
 	}
 
@@ -103,6 +108,7 @@ public:
 		Result.SHCorrection = SHCorrection + SampleB.SHCorrection;
 		Result.IncidentLighting = IncidentLighting + SampleB.IncidentLighting;
 		Result.SkyOcclusion = SkyOcclusion + SampleB.SkyOcclusion;
+		Result.AOMaterialMask = AOMaterialMask + SampleB.AOMaterialMask;
 		return Result;
 	}
 };
@@ -1336,27 +1342,30 @@ public:
 	FLinearColor Lighting;
 	FVector UnoccludedSkyVector;
 	FLinearColor StationarySkyLighting;
+	float NumSamplesOccluded;
 
 	FLightingAndOcclusion() :
 		Lighting(ForceInit),
 		UnoccludedSkyVector(FVector(0)),
-		StationarySkyLighting(FLinearColor::Black)
+		StationarySkyLighting(FLinearColor::Black),
+		NumSamplesOccluded(0)
 	{}
 
-	FLightingAndOcclusion(const FLinearColor& InLighting, FVector InUnoccludedSkyVector, const FLinearColor& InStationarySkyLighting) : 
+	FLightingAndOcclusion(const FLinearColor& InLighting, FVector InUnoccludedSkyVector, const FLinearColor& InStationarySkyLighting, float InNumSamplesOccluded) : 
 		Lighting(InLighting),
 		UnoccludedSkyVector(InUnoccludedSkyVector),
-		StationarySkyLighting(InStationarySkyLighting)
+		StationarySkyLighting(InStationarySkyLighting),
+		NumSamplesOccluded(InNumSamplesOccluded)
 	{}
 
 	friend inline FLightingAndOcclusion operator+ (const FLightingAndOcclusion& A, const FLightingAndOcclusion& B)
 	{
-		return FLightingAndOcclusion(A.Lighting + B.Lighting, A.UnoccludedSkyVector + B.UnoccludedSkyVector, A.StationarySkyLighting + B.StationarySkyLighting);
+		return FLightingAndOcclusion(A.Lighting + B.Lighting, A.UnoccludedSkyVector + B.UnoccludedSkyVector, A.StationarySkyLighting + B.StationarySkyLighting, A.NumSamplesOccluded + B.NumSamplesOccluded);
 	}
 
 	friend inline FLightingAndOcclusion operator/ (const FLightingAndOcclusion& A, float Divisor)
 	{
-		return FLightingAndOcclusion(A.Lighting / Divisor, A.UnoccludedSkyVector / Divisor, A.StationarySkyLighting / Divisor);
+		return FLightingAndOcclusion(A.Lighting / Divisor, A.UnoccludedSkyVector / Divisor, A.StationarySkyLighting / Divisor, A.NumSamplesOccluded / Divisor);
 	}
 };
 

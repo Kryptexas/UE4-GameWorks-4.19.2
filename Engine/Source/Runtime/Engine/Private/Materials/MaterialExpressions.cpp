@@ -55,6 +55,7 @@
 #include "Materials/MaterialExpressionGIReplace.h"
 #include "Materials/MaterialExpressionIf.h"
 #include "Materials/MaterialExpressionLightmapUVs.h"
+#include "Materials/MaterialExpressionPrecomputedAOMask.h"
 #include "Materials/MaterialExpressionLightmassReplace.h"
 #include "Materials/MaterialExpressionLightVector.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
@@ -7947,6 +7948,47 @@ void UMaterialExpressionLightmapUVs::GetCaption(TArray<FString>& OutCaptions) co
 {
 	OutCaptions.Add(TEXT("LightmapUVs"));
 }
+
+
+//
+//	UMaterialExpressionAOMaterialMask
+//
+UMaterialExpressionPrecomputedAOMask::UMaterialExpressionPrecomputedAOMask(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	bShowOutputNameOnPin = true;
+	bHidePreviewWindow = true;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("")));
+
+	bShaderInputData = true;
+}
+
+int32 UMaterialExpressionPrecomputedAOMask::Compile( FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex )
+{
+	return Compiler->PrecomputedAOMask();
+}
+
+	
+void UMaterialExpressionPrecomputedAOMask::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("PrecomputedAOMask"));
+}
+
 
 
 //

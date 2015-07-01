@@ -250,6 +250,7 @@ public:
 	static FLightMapInteraction Texture(
 		const class ULightMapTexture2D* const* InTextures,
 		const ULightMapTexture2D* InSkyOcclusionTexture,
+		const ULightMapTexture2D* InAOMaterialMaskTexture,
 		const FVector4* InCoefficientScales,
 		const FVector4* InCoefficientAdds,
 		const FVector2D& InCoordinateScale,
@@ -259,6 +260,7 @@ public:
 	/** Default constructor. */
 	FLightMapInteraction():
 		SkyOcclusionTexture(NULL),
+		AOMaterialMaskTexture(NULL),
 		Type(LMIT_None)
 	{}
 
@@ -282,6 +284,16 @@ public:
 		check(Type == LMIT_Texture);
 #if ALLOW_HQ_LIGHTMAPS
 		return SkyOcclusionTexture;
+#else
+		return NULL;
+#endif
+	}
+
+	const ULightMapTexture2D* GetAOMaterialMaskTexture() const
+	{
+		check(Type == LMIT_Texture);
+#if ALLOW_HQ_LIGHTMAPS
+		return AOMaterialMaskTexture;
 #else
 		return NULL;
 #endif
@@ -387,6 +399,7 @@ private:
 	FVector4 HighQualityCoefficientAdds[NUM_HQ_LIGHTMAP_COEF];
 	const class ULightMapTexture2D* HighQualityTexture;
 	const ULightMapTexture2D* SkyOcclusionTexture;
+	const ULightMapTexture2D* AOMaterialMaskTexture;
 #endif
 
 #if ALLOW_LQ_LIGHTMAPS

@@ -66,6 +66,8 @@ void FGatheredLightSample::AddWeighted(const FGatheredLightSample& OtherSample,f
 	SHCorrection += OtherSample.SHCorrection * Weight;
 	IncidentLighting += OtherSample.IncidentLighting * Weight;
 	SkyOcclusion += OtherSample.SkyOcclusion * Weight;
+	AOMaterialMask += OtherSample.AOMaterialMask * Weight;
+
 }
 
 void FGatheredLightSample::ApplyOcclusion(float Occlusion)
@@ -128,6 +130,8 @@ FLightSample FGatheredLightMapSample::ConvertToLightSample(bool bDebugThisSample
 	NewSample.SkyOcclusion[0] = HighQuality.SkyOcclusion.X;
 	NewSample.SkyOcclusion[1] = HighQuality.SkyOcclusion.Y;
 	NewSample.SkyOcclusion[2] = HighQuality.SkyOcclusion.Z;
+
+	NewSample.AOMaterialMask = HighQuality.AOMaterialMask;
 
 	return NewSample;
 }

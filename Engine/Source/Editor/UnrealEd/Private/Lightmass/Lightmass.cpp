@@ -1896,6 +1896,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 	}
 	{
 		Scene.AmbientOcclusionSettings.bUseAmbientOcclusion = LevelSettings.bUseAmbientOcclusion;
+		Scene.AmbientOcclusionSettings.bGenerateAmbientOcclusionMaterialMask = LevelSettings.bGenerateAmbientOcclusionMaterialMask;
 		Scene.AmbientOcclusionSettings.bVisualizeAmbientOcclusion = LevelSettings.bVisualizeAmbientOcclusion;
 		Scene.AmbientOcclusionSettings.DirectIlluminationOcclusionFraction = LevelSettings.DirectIlluminationOcclusionFraction;
 		Scene.AmbientOcclusionSettings.IndirectIlluminationOcclusionFraction = LevelSettings.IndirectIlluminationOcclusionFraction;

@@ -244,6 +244,7 @@ void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 FLightMapInteraction FLightMapInteraction::Texture(
 	const class ULightMapTexture2D* const* InTextures,
 	const ULightMapTexture2D* InSkyOcclusionTexture,
+	const ULightMapTexture2D* InAOMaterialMaskTexture,
 	const FVector4* InCoefficientScales,
 	const FVector4* InCoefficientAdds,
 	const FVector2D& InCoordinateScale,
@@ -273,6 +274,7 @@ FLightMapInteraction FLightMapInteraction::Texture(
 #if ALLOW_HQ_LIGHTMAPS
 		Result.HighQualityTexture = InTextures[0];
 		Result.SkyOcclusionTexture = InSkyOcclusionTexture;
+		Result.AOMaterialMaskTexture = InAOMaterialMaskTexture;
 		for(uint32 CoefficientIndex = 0;CoefficientIndex < NUM_HQ_LIGHTMAP_COEF;CoefficientIndex++)
 		{
 			Result.HighQualityCoefficientScales[CoefficientIndex] = InCoefficientScales[CoefficientIndex];

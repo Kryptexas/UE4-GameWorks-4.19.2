@@ -213,6 +213,13 @@ public:
 	 */
 	bool bUseAmbientOcclusion;
 
+	/** 
+	 * Whether to generate textures storing the AO computed by Lightmass.
+	 * These can be accessed through the PrecomputedAmbientOcclusion material node, 
+	 * Which is useful for blending between material layers on environment assets.
+	 */
+	bool bGenerateAmbientOcclusionMaterialMask;
+
 	/** Debugging - whether to only show the ambient occlusion term, useful for seeing the impact of AO settings in isolation. */
 	bool bVisualizeAmbientOcclusion;
 

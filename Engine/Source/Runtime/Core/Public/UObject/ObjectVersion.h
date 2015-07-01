@@ -548,6 +548,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STATIC_MESH_EXTENDED_BOUNDS,
 	// Added non-linear blending to anim transitions, deprecating old types
 	VER_UE4_ADDED_NON_LINEAR_TRANSITION_BLENDS,
+	// AO Material Mask texture
+	VER_UE4_AO_MATERIAL_MASK,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
