@@ -37,8 +37,9 @@ FORCEINLINE float AlphaToBlendType(float InAlpha, uint8 BlendType)
 /**
  * Alpha Blend Type
  */
+struct 
 DEPRECATED(4.9, "FTAlphaBlend is deprecated, please use FAlphaBlend instead")
-struct FTAlphaBlend
+FTAlphaBlend
 {
 	/** Internal Lerped value for Alpha */
 	float	AlphaIn;
