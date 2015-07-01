@@ -2042,6 +2042,8 @@ UWorld* UEditorEngine::NewMap()
 	Context.SetCurrentWorld(NewWorld);
 	GWorld = NewWorld;
 	NewWorld->AddToRoot();
+	// Register components in the persistent level (current)
+	NewWorld->UpdateWorldComponents(true, true);
 
 	NoteSelectionChange();
 
@@ -2413,6 +2415,9 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					{
 						Context.World()->GetModel()->Polys->SetFlags( RF_Transactional );
 					}
+
+					// Register components in the persistent level (current)
+					Context.World()->UpdateWorldComponents(true, true);
 
 					// Make sure secondary levels are loaded & visible.
 					Context.World()->FlushLevelStreaming();

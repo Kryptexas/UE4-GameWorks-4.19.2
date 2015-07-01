@@ -920,20 +920,22 @@ void FUnrealEdMisc::CB_MapChange( uint32 InFlags )
 	const FString EmptyString(TEXT(""));
 	GEditor->SetPropertyColorationTarget( World, EmptyString, NULL, NULL, NULL );
 
-	// Rebuild the collision hash if this map change is something major ("new", "open", etc).
-	// Minor things like brush subtraction will set it to "0".
-
-	if( InFlags != MapChangeEventFlags::Default )
+	if (InFlags != MapChangeEventFlags::NewMap)
 	{
-		World->ClearWorldComponents();
+		// Rebuild the collision hash if this map change was rebuilt
+		// Minor things like brush subtraction will set it to "0".
+		if (InFlags != MapChangeEventFlags::Default)
+		{
+			World->ClearWorldComponents();
 
-		// Note: CleanupWorld is being abused here to detach components and some other stuff
-		// CleanupWorld should only be called before destroying the world
-		// So bCleanupResources is being passed as false
-		World->CleanupWorld(true, false);
+			// Note: CleanupWorld is being abused here to detach components and some other stuff
+			// CleanupWorld should only be called before destroying the world
+			// So bCleanupResources is being passed as false
+			World->CleanupWorld(true, false);
+		}
+
+		GEditor->EditorUpdateComponents();
 	}
-
-	GEditor->EditorUpdateComponents();
 
 	GLevelEditorModeTools().MapChangeNotify();
 
