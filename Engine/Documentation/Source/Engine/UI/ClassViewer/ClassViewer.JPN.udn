@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537797
+﻿INTSourceChangelist:2604229
 Availability:Public
 Title:クラス ビューア
 Crumbs: %ROOT%, Engine, Engine/UI
@@ -47,7 +47,7 @@ Description:UE4 クラスを調べるツール
 
 
 [EXCERPT:Intro]
-**クラス ビューア** では、エディタで使用するクラスの階層リストを調べることができます。このツールでは、修正するために **ブループリント** を作成し開くことができます。関連する C++ ヘッダー ファイルを開くか、選択したクラスに基づき新規 C++ クラスを作成することができます。 
+**クラス ビューア** では、エディタで使用するクラスの階層リストを調べることができます。このツールでは、修正するためにブループリントを作成し開くことができます。関連する C++ ヘッダー ファイルを開くか、選択したクラスに基づき新規 C++ クラスを作成することができます。 
 [/EXCERPT:Intro]
 
 ## クラスビューアを開く
@@ -83,6 +83,7 @@ Description:UE4 クラスを調べるツール
 
 ![Highlighting search results.](SearchHighlight.png)(type:png)
 
+
 複数の単語の場合は、いずれかの単語が部分一致するとフィルタリングされます。複数の単語検索の場合、ハイライトは利用できません。
 
 ![Highlighting search results.](SearchMultiple.png)(type:png)
@@ -104,12 +105,12 @@ Description:UE4 クラスを調べるツール
 
 |クラス タイプ|オプション|説明|
 |----------|-------|-----------|
-|**Blueprint Class**|**Create Blueprint...**<br>**Edit Blueprint...**<br>**Find In Content Browser**|選択したブループリントを親にもつブループリントを新規作成します。<br>選択したブループリントを [ブループリント エディタ](Engine/Blueprints) で開きます。<br> [コンテンツ ブラウザ](Engine/Content/Browser) でブループリント アクタを検索します。|
-|**Code Class**|**Create Blueprint...**<br>**Open C++ Header File...**<br>**Create New C++ Class...**|選択したブループリントを親にもつブループリントを新規作成します。<br> Visual Studio でクラスのヘッダファイルを開きます。<br>選択したクラスを親とする新規クラスを作成するために、[](Programming\Development\ManagingGameCode\CppClassWizard) を開きます。|
+|**Blueprint クラス**|**Create Blueprint...**<br>**Edit Blueprint...**<br>**Find In Content Browser**|選択したブループリントを親にもつブループリントを新規作成します。<br>選択したブループリントを [ブループリント エディタ](Engine/Blueprints) で開きます。<br> [コンテンツ ブラウザ](Engine/Content/Browser) で Blueprint アクタを検索します。|
+|**Code クラス**|**Create Blueprint...**<br>**Open C++ Header File...**<br>**Create New C++ Class...**|選択したブループリントを親にもつブループリントを新規作成します。<br> Visual Studio でクラスのヘッダファイルを開きます。<br>選択したクラスを親とする新規クラスを作成するために、[](Programming\Development\ManagingGameCode\CppClassWizard) を開きます。|
 
 
 ## ドラッグ& ドロップ
-ブループリント クラス アクタをビューポートにドロップするとアクタがシーンに追加されます。クラスを正常にドラッグすると、掴んでいるクラスがマウスに表示されます。1 度にドラッグできるクラスは 1 つです。
+Blueprint クラス アクタをビューポートにドロップするとアクタがシーンに追加されます。クラスを正常にドラッグすると、掴んでいるクラスがマウスに表示されます。1 度にドラッグできるクラスは 1 つです。
 
 ![The mouse informs what class is being dragged.](DragDrop.png)(type:png)
 
@@ -128,18 +129,18 @@ Description:UE4 クラスを調べるツール
 [/REGION]
 
 ###クラスピッカーのオプション
-FClassViewerInitializationOptions は クラスピッカーを初期化するために使用され、最大限に活用するために特筆すべき重要なオプションがたくさんあります。
+FClassViewerInitializationOptions はクラスピッカーを初期化するために使用され、最大限に活用するために特筆すべき重要なオプションがたくさんあります。
+
 * **Mode** - オプションは 2 つあります。ClassPicker と ClassBrowsing です。ClassPicker はデフォルトで設定されており、ClassBrowsing はノーマルクラスビューアの総数分スポーンします。ほとんどのオプションはクラスビューアでは機能しません。
 
 * **DisplayMode** - オプションは 2 つあります。TreeView と ListView です。リストは表示中のクラスのシンプルな一覧である一方、ツリーはクラス間の親子関係を表示します。 
-
-####一般的なフィルタ
+	####一般的なフィルタ
 
 * **bIsActorsOnly** - クラスを AActor の子供として表示するように制限します。
 * **bIsPlaceableOnly** - ゲーム ワールドに置くことができるように表示されるように制限します。この値が _true_ の場合、bIsActorsOnly が _true_ と仮定されます。
-* **bIsBlueprintBaseOnly** - クラスを ブループリント ベースとして表示するように制限します。
+* **bIsBlueprintBaseOnly** - クラスをブループリント ベースとして表示するように制限します。
 * **bShowUnloadedBlueprints** - カスタム フィルタのため親がフィルタリングで *除外* されていても、ロードされていないブループリントを表示します。
-* **bShowNoneOption** - クラスピッカーの [None] オプションを表示し、クラスビューア には何も行いません。アイテムがピックされると、NULL クラスが渡されます。
+* **bShowNoneOption** - クラスピッカーの [None] オプションを表示し、クラスビューアには何も行いません。アイテムがピックされると、NULL クラスが渡されます。
 
 [REGION:tip]
 bIsBlueprintBaseOnly はブループリントが作成されるクラスにリストを制限する場合に便利です。
