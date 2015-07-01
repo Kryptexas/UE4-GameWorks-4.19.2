@@ -1363,15 +1363,17 @@ partial class GUBP
     public class GamePlatformMonolithicsNode : CompileNode
     {
         BranchInfo.BranchUProject GameProj;
+		List<UnrealTargetPlatform> ActivePlatforms;
         UnrealTargetPlatform TargetPlatform;
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 
-        public GamePlatformMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
+        public GamePlatformMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InHostPlatform)
         {
             GameProj = InGameProj;
             TargetPlatform = InTargetPlatform;
+			ActivePlatforms = InActivePlatforms;
 			WithXp = InWithXp;
 			Precompiled = InPrecompiled;
 
@@ -1409,6 +1411,36 @@ partial class GUBP
 		public override string GetDisplayGroupName()
 		{
 			return GameProj.GameName + "_Monolithics" + (Precompiled? "_Precompiled" : "");
+		}
+
+		public static List<UnrealTargetPlatform> GetMonolithicPlatformsForUProject(UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> ActivePlatforms, BranchInfo.BranchUProject GameProj, bool bIncludeHostPlatform)
+		{
+			UnrealTargetPlatform AltHostPlatform = GUBP.GetAltHostPlatform(HostPlatform);
+			var Result = new List<UnrealTargetPlatform>();
+			foreach (var Kind in BranchInfo.MonolithicKinds)
+			{
+				if (GameProj.Properties.Targets.ContainsKey(Kind))
+				{
+					var Target = GameProj.Properties.Targets[Kind];
+					var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
+					var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
+					var AllPlatforms = Platforms.Union(AdditionalPlatforms);
+					foreach (var Plat in AllPlatforms)
+					{
+						if (GUBP.bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
+						{
+							continue;
+						}
+
+						if (ActivePlatforms.Contains(Plat) && Target.Rules.SupportsPlatform(Plat) &&
+							((Plat != HostPlatform && Plat != AltHostPlatform) || bIncludeHostPlatform))
+						{
+							Result.Add(Plat);
+						}
+					}
+				}
+			}
+			return Result;
 		}
 
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool WithXp = false, bool Precompiled = false)
@@ -1531,7 +1563,7 @@ partial class GUBP
 
         public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
-            if (!bp.ActivePlatforms.Contains(TargetPlatform))
+            if (!ActivePlatforms.Contains(TargetPlatform))
             {
                 throw new AutomationException("{0} is not a supported platform for {1}", TargetPlatform.ToString(), GetFullName());
             }
@@ -1734,7 +1766,7 @@ partial class GUBP
     {
         BranchInfo.BranchUProject GameProj;		
 
-        public GameAggregatePromotableNode(GUBP bp, List<UnrealTargetPlatform> InHostPlatforms, BranchInfo.BranchUProject InGameProj, bool IsSeparate)
+        public GameAggregatePromotableNode(GUBP bp, List<UnrealTargetPlatform> InHostPlatforms, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, bool IsSeparate)
             : base(InHostPlatforms, InGameProj.GameName)
         {
             GameProj = InGameProj;
@@ -1753,7 +1785,7 @@ partial class GUBP
                 }				
                 // add all of the platforms I use
                 {
-                    var Platforms = bp.GetMonolithicPlatformsForUProject(HostPlatform, InGameProj, false);
+                    var Platforms = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, InActivePlatforms, InGameProj, false);
                     if (bp.bOrthogonalizeEditorPlatforms)
                     {
                         foreach (var Plat in Platforms)
@@ -1765,21 +1797,21 @@ partial class GUBP
                 {
                     if (!GameProj.Options(HostPlatform).bPromoteEditorOnly)
                     {
-                    var Platforms = bp.GetMonolithicPlatformsForUProject(HostPlatform, InGameProj, true);
-                    foreach (var Plat in Platforms)
-                    {
-                        AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat));
-                            if (Plat == UnrealTargetPlatform.Win32 && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
+						var Platforms = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, InActivePlatforms, InGameProj, true);
+						foreach (var Plat in Platforms)
 						{
-                                if (GameProj.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_BuildWindowsXPMonolithics())
+							AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat));
+								if (Plat == UnrealTargetPlatform.Win32 && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
 							{
-								AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat, true));
+									if (GameProj.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_BuildWindowsXPMonolithics())
+								{
+									AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat, true));
+								}
 							}
 						}
 					}
 				}
 			}
-        }
         }
 
         public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj)
@@ -1808,7 +1840,7 @@ partial class GUBP
     public class SharedAggregatePromotableNode : AggregatePromotableNode
     {
 
-        public SharedAggregatePromotableNode(GUBP bp, List<UnrealTargetPlatform> InHostPlatforms)
+        public SharedAggregatePromotableNode(GUBP bp, List<UnrealTargetPlatform> InHostPlatforms, List<UnrealTargetPlatform> InActivePlatforms)
             : base(InHostPlatforms, "Shared")
         {
             foreach (var HostPlatform in HostPlatforms)
@@ -1839,7 +1871,7 @@ partial class GUBP
                         }
                     }
                 }
-                if(HostPlatform == UnrealTargetPlatform.Win64 && bp.ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
+                if(HostPlatform == UnrealTargetPlatform.Win64 && InActivePlatforms.Contains(UnrealTargetPlatform.Linux))
                 {
                     AddDependency(RootEditorCrossCompileLinuxNode.StaticGetFullName());
                     AddDependency(ToolsCrossCompileNode.StaticGetFullName(HostPlatform));

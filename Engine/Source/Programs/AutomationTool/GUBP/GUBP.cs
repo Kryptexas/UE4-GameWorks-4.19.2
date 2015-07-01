@@ -16,7 +16,6 @@ public partial class GUBP : BuildCommand
     public int CL = 0;
     public bool bSignBuildProducts = false;
     public bool bHasTests = false;
-    public List<UnrealTargetPlatform> ActivePlatforms = null;
     public BranchInfo Branch = null;
     public bool bOrthogonalizeEditorPlatforms = false;
     public List<UnrealTargetPlatform> HostPlatforms;
@@ -717,36 +716,6 @@ public partial class GUBP : BuildCommand
             AltHostPlatform = UnrealTargetPlatform.Win32;
         }
         return AltHostPlatform;
-    }
-
-    public List<UnrealTargetPlatform> GetMonolithicPlatformsForUProject(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, bool bIncludeHostPlatform)
-    {
-        UnrealTargetPlatform AltHostPlatform = GetAltHostPlatform(HostPlatform);
-        var Result = new List<UnrealTargetPlatform>();
-        foreach (var Kind in BranchInfo.MonolithicKinds)
-        {
-            if (GameProj.Properties.Targets.ContainsKey(Kind))
-            {
-                var Target = GameProj.Properties.Targets[Kind];
-                var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
-				var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
-				var AllPlatforms = Platforms.Union(AdditionalPlatforms);
-				foreach (var Plat in AllPlatforms)
-                {
-                    if (GUBP.bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
-                    {
-                        continue;
-                    }
-
-                    if (ActivePlatforms.Contains(Plat) && Target.Rules.SupportsPlatform(Plat) &&
-                        ((Plat != HostPlatform && Plat != AltHostPlatform) || bIncludeHostPlatform))
-                    {
-                        Result.Add(Plat);
-                    }
-                }
-            }
-        }
-        return Result;
     }
 
     List<int> ConvertCLToIntList(List<string> Strings)
@@ -1578,56 +1547,6 @@ public partial class GUBP : BuildCommand
 
         GUBPNodes = new Dictionary<string, GUBPNode>();        
         Branch = new BranchInfo(HostPlatforms);        
-        if (IsBuildMachine || ParseParam("AllPlatforms"))
-        {
-            ActivePlatforms = new List<UnrealTargetPlatform>();
-            
-			List<BranchInfo.BranchUProject> BranchCodeProjects = new List<BranchInfo.BranchUProject>();
-			BranchCodeProjects.Add(Branch.BaseEngineProject);
-			BranchCodeProjects.AddRange(Branch.CodeProjects);
-			BranchCodeProjects.RemoveAll(Project => BranchOptions.ExcludeNodes.Contains(Project.GameName));
-
-			foreach (var GameProj in BranchCodeProjects)
-            {
-                foreach (var Kind in BranchInfo.MonolithicKinds)
-                {
-                    if (GameProj.Properties.Targets.ContainsKey(Kind))
-                    {
-                        var Target = GameProj.Properties.Targets[Kind];
-                        foreach (var HostPlatform in HostPlatforms)
-                        {
-                            var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
-							var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
-							var AllPlatforms = Platforms.Union(AdditionalPlatforms);
-							foreach (var Plat in AllPlatforms)
-                            {
-                                if (Target.Rules.SupportsPlatform(Plat) && !ActivePlatforms.Contains(Plat))
-                                {
-                                    ActivePlatforms.Add(Plat);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            ActivePlatforms     = new List<UnrealTargetPlatform>(CommandUtils.KnownTargetPlatforms);
-        }
-        var SupportedPlatforms = new List<UnrealTargetPlatform>();
-        foreach(var Plat in ActivePlatforms)
-        {
-            if(!BranchOptions.PlatformsToRemove.Contains(Plat))
-            {
-                SupportedPlatforms.Add(Plat);
-            }
-        }
-        ActivePlatforms = SupportedPlatforms;
-        foreach (var Plat in ActivePlatforms)
-        {
-            LogVerbose("Active Platform: {0}", Plat.ToString());
-        }
 
 		AddNodesForBranch(TimeIndex, bNoAutomatedTesting);
 

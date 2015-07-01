@@ -136,7 +136,7 @@ class BlueprintDocumentationNode : DocumentationNode
 
 public class DocumentationNodeAdder : GUBP.GUBPNodeAdder
 {
-	public override void AddNodes(GUBP bp, UnrealTargetPlatform InHostPlatform)
+	public override void AddNodes(GUBP bp, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms)
 	{
 		if(InHostPlatform == UnrealTargetPlatform.Win64 && !bp.BranchOptions.bNoDocumentation)
 		{

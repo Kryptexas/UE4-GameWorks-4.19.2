@@ -74,7 +74,7 @@ namespace Rocket
 		{
 		}
 
-		public override void AddNodes(GUBP bp, UnrealTargetPlatform HostPlatform)
+		public override void AddNodes(GUBP bp, UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> ActivePlatforms)
 		{
 			if(!bp.BranchOptions.bNoInstalledEngine)
 			{
@@ -82,7 +82,7 @@ namespace Rocket
 				List<UnrealTargetPlatform> TargetPlatforms = GetTargetPlatforms(bp, HostPlatform);
 
 				// Remove any platforms that aren't available on this machine
-				TargetPlatforms.RemoveAll(x => !bp.ActivePlatforms.Contains(x));
+				TargetPlatforms.RemoveAll(x => !ActivePlatforms.Contains(x));
 
 				// Get the temp directory for stripped files for this host
 				string StrippedDir = Path.GetFullPath(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Rocket", HostPlatform.ToString()));
