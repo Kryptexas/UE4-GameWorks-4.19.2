@@ -852,6 +852,12 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	// Super tick may destroy/invalidate CharacterOwner or UpdatedComponent, so we need to re-check.
+	if (!HasValidData())
+	{
+		return;
+	}
+
 	// See if we fell out of the world.
 	const bool bIsSimulatingPhysics = UpdatedComponent->IsSimulatingPhysics();
 	if (CharacterOwner->Role == ROLE_Authority)
