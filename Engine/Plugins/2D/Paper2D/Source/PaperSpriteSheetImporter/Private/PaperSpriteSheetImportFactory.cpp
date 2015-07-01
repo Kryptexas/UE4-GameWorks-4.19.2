@@ -54,7 +54,7 @@ UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObj
 	const FString NameForErrors(InName.ToString());
 	const FString FileContent(BufferEnd - Buffer, Buffer);
 	
-	if (Importer.ImportFromString(FileContent, NameForErrors) &&
+	if (Importer.ImportFromString(FileContent, NameForErrors, /*bSilent=*/ false) &&
 		Importer.ImportTextures(LongPackagePath, CurrentSourcePath))
 	{
 		UPaperSpriteSheet* SpriteSheet = NewObject<UPaperSpriteSheet>(InParent, InName, Flags);
