@@ -118,9 +118,10 @@ protected:
 	/**
 	 * Creates a pin on this node for the specified bound object
 	 *
-	 * @param	BoundObject		The object to create a pin for
+	 * @param	BoundObject				The object to create a pin for
+	 * @param	bLinkNewPinsToObject	When true the new pins will be linked to the bound object.
 	 */
-	virtual void CreatePinsForBoundObject( struct FMovieSceneBoundObject& BoundObject );
+	virtual void CreatePinsForBoundObject( struct FMovieSceneBoundObject& BoundObject, bool bLinkNewPinsToObject );
 
 	/**
 	 * Creates a MovieSceneBindings object if we don't have one yet

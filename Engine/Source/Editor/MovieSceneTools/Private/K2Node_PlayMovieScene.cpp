@@ -63,7 +63,7 @@ void UK2Node_PlayMovieScene::AllocateDefaultPins()
 		{
 			auto& BoundObject = *BoundObjectIter;
 
-			CreatePinsForBoundObject( BoundObject );
+			CreatePinsForBoundObject( BoundObject, false );
 		}
 	}
 	
@@ -236,7 +236,7 @@ void UK2Node_PlayMovieScene::BindPossessableToObjects(const FGuid& PossessableGu
 
 	// Create a pin for the bound object
 	Modify();
-	CreatePinsForBoundObject( BoundObject );
+	CreatePinsForBoundObject( BoundObject, true );
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( this->GetBlueprint() );
 }
 
@@ -269,7 +269,7 @@ FGuid UK2Node_PlayMovieScene::FindGuidForObjectInfo( FMovieSceneBoundObjectInfo 
 }
 
 
-void UK2Node_PlayMovieScene::CreatePinsForBoundObject( FMovieSceneBoundObject& BoundObject )
+void UK2Node_PlayMovieScene::CreatePinsForBoundObject( FMovieSceneBoundObject& BoundObject, bool bLinkNewPinsToObject )
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -363,8 +363,11 @@ void UK2Node_PlayMovieScene::CreatePinsForBoundObject( FMovieSceneBoundObject& B
 					ActorLiteralNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Literal>(GetGraph(), LiteralNodeTemplate, NewNodePos);
 				}
 
-				// Hook up the object reference literal to our pin
-				ActorLiteralNode->GetValuePin()->MakeLinkTo(NewActorPin);
+				if (bLinkNewPinsToObject)
+				{
+					// Hook up the object reference literal to our pin
+					ActorLiteralNode->GetValuePin()->MakeLinkTo(NewActorPin);
+				}
 
 				if (BoundObjectInfo.Tag.IsEmpty() == false)
 				{
@@ -381,7 +384,10 @@ void UK2Node_PlayMovieScene::CreatePinsForBoundObject( FMovieSceneBoundObject& B
 						ValuePin->DefaultValue = BoundObjectInfo.Tag;
 					}
 
-					ComponentNameLiteralNode->GetReturnValuePin()->MakeLinkTo(NewComponentNamePin);
+					if (bLinkNewPinsToObject)
+					{
+						ComponentNameLiteralNode->GetReturnValuePin()->MakeLinkTo(NewComponentNamePin);
+					}
 				}
 			}
 		}
