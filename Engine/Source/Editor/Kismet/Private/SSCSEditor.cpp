@@ -1875,7 +1875,8 @@ FReply SSCS_RowWidget::HandleOnDragDetected( const FGeometry& MyGeometry, const 
 		TSharedPtr<FSCSEditorTreeNode> FirstNode = SelectedNodePtrs[0];
 		if (FirstNode->GetNodeType() == FSCSEditorTreeNode::ComponentNode)
 		{
-			UBlueprint* Blueprint = FirstNode->GetBlueprint();
+			// Do not use the Blueprint from FirstNode, it may still be referencing the parent.
+			UBlueprint* Blueprint = GetBlueprint();
 			const FName VariableName = FirstNode->GetVariableName();
 			UStruct* VariableScope = (Blueprint != nullptr) ? Blueprint->SkeletonGeneratedClass : nullptr;
 
