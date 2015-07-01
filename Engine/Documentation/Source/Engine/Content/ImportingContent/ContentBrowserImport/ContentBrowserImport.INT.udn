@@ -16,7 +16,7 @@ Developers typically use the Content Browser's **Import** function to add conten
 
 The focus of this guide is to teach developers how to use the Content Browser's **Import** function from inside the Unreal Editor.
 
-## Objective
+## Objectives
 
 After going through this tutorial, developers will know the following:
 
@@ -27,7 +27,7 @@ After going through this tutorial, developers will know the following:
 ![](ContentHowToPrjSetup.png)
 
 [REGION:note]
-For the purposes of this guide, we're using the following project **settings** (pictured above):
+If you're creating a new project, use these project **settings** (also pictured above):
 *	**Desktop / Console**
 *	**Maximum Quality**
 *	**No Starter Content**
@@ -62,6 +62,22 @@ For the purposes of this guide, we're using the following project **settings** (
 	![](TextureDialogBox.png)
 
 1.	Click **OK** to accept the **T_Rock_04_n.TGA** normal map's settings (pictured above).
+
+[REGION:warning]
+	UE4 batch imports [supported](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
+	
+	If you see the following pop-up message:
+	
+	![](TextureImportMessage.png)
+	
+	UE4 just prevented you from importing an unsupported image file.
+	
+	Also, if you see the following pop-up message:
+	
+	![](nonpoweoftwowarning.png)
+
+	UE4 is telling you that odd-sized images aren't streamed or mipmapped.
+[/REGION]
 
 1.	**Click** the **Save All** button to save your imported meshes.
 
