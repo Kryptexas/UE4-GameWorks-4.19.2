@@ -76,7 +76,7 @@ After locating your content, **drag-and-drop** the files from your Explorer menu
 
 It's good practice to verify that assets were imported properly into the UE4 project.
 
-1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options Dialog Box** (pictured below).
+1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
 
 	![](FolderDialogBox_UI.png)
 
