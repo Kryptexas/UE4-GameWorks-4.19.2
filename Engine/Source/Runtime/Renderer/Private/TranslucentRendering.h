@@ -19,11 +19,13 @@ public:
 		const FProjectedShadowInfo* TranslucentSelfShadow;
 		bool bSeparateTranslucencyPass;
 		bool bSceneColorCopyIsUpToDate;
+		bool bPostAA;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, bool bSeparateTranslucencyPassIn = false)
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, bool bSeparateTranslucencyPassIn = false, bool bPostAAIn = false)
 			: TranslucentSelfShadow(InTranslucentSelfShadow),
 			bSeparateTranslucencyPass(bSeparateTranslucencyPassIn),
-			bSceneColorCopyIsUpToDate(false)
+			bSceneColorCopyIsUpToDate(false),
+			bPostAA(bPostAAIn)
 		{}
 	};
 

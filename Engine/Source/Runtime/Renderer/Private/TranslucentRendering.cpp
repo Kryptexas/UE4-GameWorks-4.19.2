@@ -425,7 +425,8 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 		// editor compositing not supported on translucent materials currently
 		const bool bEditorCompositeDepthTest = false;
 
-		if( bEnableResponsiveAA )
+		// if this draw is coming postAA then there is probably no depth buffer (it's canvas) and bEnableResponsiveAA wont' do anything anyway.
+		if (bEnableResponsiveAA && !DrawingContext.bPostAA)
 		{
 			if( bDisableDepthTest )
 			{
