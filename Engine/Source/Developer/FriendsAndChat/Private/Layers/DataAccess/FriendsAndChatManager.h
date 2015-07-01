@@ -661,6 +661,11 @@ private:
 	void ProcessReceivedGameInvites();
 
 	/**
+	* Process any invites that came in from the command line and add them to received invites
+	*/
+	void ProcessCommandLineInvites();
+
+	/**
 	 * Query for user info associated with user invites
 	 *
 	 * @return true if request is pending
@@ -977,7 +982,7 @@ private:
 	int32 LocalControllerIndex;
 
 	/** Party that may have been passed on command line to auto-join */
-	FString CmdLinePartyId;
+	FString AutoAcceptPartyId;
 
 	/** Recent players namespace to query */
 	TArray<FString> RecentPlayersNamespaces;

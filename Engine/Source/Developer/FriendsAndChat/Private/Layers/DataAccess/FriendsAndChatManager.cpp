@@ -953,6 +953,8 @@ bool FFriendsAndChatManager::Tick( float Delta )
 		{
 			SetState(EFriendsAndManagerState::RequestGameInviteRefresh);
 		}
+
+		ProcessCommandLineInvites();
 	}
 
 	FlushChatAnalyticsCountdown -= Delta;
@@ -1774,6 +1776,20 @@ void FFriendsAndChatManager::OnPartyInviteReceived(const FUniqueNetId& Recipient
 	}
 }
 
+void FFriendsAndChatManager::ProcessCommandLineInvites()
+{
+	if (OnlineSub != NULL && OnlineSub->GetPartyInterface().IsValid())
+	{
+		TSharedPtr<IOnlinePartyJoinInfo> AutoAcceptJoinInfo = OnlineSub->GetPartyInterface()->ConsumePendingCommandLineInvite();
+		if (AutoAcceptJoinInfo.IsValid())
+		{
+			ReceivedPartyInvites.Add(FReceivedPartyInvite(AutoAcceptJoinInfo->GetLeaderId(), AutoAcceptJoinInfo.ToSharedRef()));
+
+			AutoAcceptPartyId = AutoAcceptJoinInfo->GetPartyId()->ToString();
+		}
+	}
+}
+
 void FFriendsAndChatManager::ProcessReceivedGameInvites()
 {
 	if (OnlineSub != NULL &&
@@ -1821,6 +1837,7 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 				}
 			}
 		}
+
 		// received party invites waiting to be processed
 		for (int32 Idx = 0; Idx < ReceivedPartyInvites.Num(); Idx++)
 		{
@@ -1837,10 +1854,9 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 				UpdatedGameInvites.Add(PartyInvite);
 				ReceivedPartyInvites.RemoveAt(Idx--);
 
-				// spcial case of getting a party invite that was also passed to launch app on command line. auto-accept it
-				if (PartyInvite->GetPartyJoinInfo()->GetPartyId()->ToString() == CmdLinePartyId)
+				if (!AutoAcceptPartyId.IsEmpty() && (AutoAcceptPartyId == PartyInvite->GetPartyJoinInfo()->GetPartyId()->ToString()))
 				{
-					CmdLinePartyId.Empty();
+					AutoAcceptPartyId.Empty();
 					AcceptGameInvite(PartyInvite);
 				}
 			}
