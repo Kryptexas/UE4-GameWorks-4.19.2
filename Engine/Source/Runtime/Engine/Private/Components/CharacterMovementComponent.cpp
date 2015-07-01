@@ -6359,7 +6359,8 @@ void UCharacterMovementComponent::MoveAutonomous
 	UpdateFromCompressedFlags(CompressedFlags);
 	CharacterOwner->CheckJumpInput(DeltaTime);
 
-	Acceleration = ScaleInputAcceleration( ConstrainInputAcceleration(NewAccel) );
+	Acceleration = ConstrainInputAcceleration(NewAccel);
+	Acceleration = Acceleration.GetClampedToMaxSize(GetMaxAcceleration());
 	AnalogInputModifier = ComputeAnalogInputModifier();
 	
 	PerformMovement(DeltaTime);
