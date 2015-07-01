@@ -795,9 +795,6 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 						{
 							EMaterialSamplerType SamplerType = UMaterialExpressionTextureBase::GetSamplerTypeForTexture( Texture );
 							UMaterialExpressionTextureSampleParameter* Expression = BaseMaterial->FindExpressionByGUID<UMaterialExpressionTextureSampleParameter>( TextureParameterValue->ExpressionId );
-							
-							// We want a crash report if that happens
-							ensure(Expression);
 
 							if ( Expression && Expression->SamplerType != SamplerType )
 							{
