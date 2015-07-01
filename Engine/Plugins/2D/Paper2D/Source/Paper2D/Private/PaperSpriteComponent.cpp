@@ -198,7 +198,7 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 	{
 		// Don't allow changing the sprite if we are "static".
 		AActor* Owner = GetOwner();
-		if (!IsRegistered() || (Owner == nullptr) || (Mobility != EComponentMobility::Static))
+		if ((Owner == nullptr) || AreDynamicDataChangesAllowed())
 		{
 			SourceSprite = NewSprite;
 
