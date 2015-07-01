@@ -168,25 +168,30 @@ namespace AutomationTool
 		{
 			const int MaxAttempts = 1000;
 
-			string LogFilename = string.Empty;
-
+			var Now     = DateTime.Now;
 			int Attempt = 0;
-			do
-			{
-				if (Attempt == 0)
-				{
-					LogFilename = String.Format("{0}.txt", Base);
-				}
-				else
-				{
-					LogFilename = String.Format("{0}.{1}.txt", Base, Attempt);
-				}
-			} while (File.Exists(LogFilename) && ++Attempt < MaxAttempts);
 
-			if (File.Exists(LogFilename))
+			string LogFilename;
+			for (;;)
 			{
-				throw new AutomationException(String.Format("Failed to create logfile {0}.", LogFilename));
+				var NowStr = Now.ToString("yyyy.MM.dd-HH.mm.ss");
+
+				LogFilename = String.Format("{0}-{1}.txt", Base, NowStr);
+
+				if (!File.Exists(LogFilename))
+				{
+					break;
+				}
+
+				++Attempt;
+				if (Attempt == MaxAttempts)
+				{
+					throw new AutomationException(String.Format("Failed to create logfile {0}.", LogFilename));
+				}
+
+				Now.AddSeconds(1);
 			}
+
 			return LogFilename;
 		}
 
