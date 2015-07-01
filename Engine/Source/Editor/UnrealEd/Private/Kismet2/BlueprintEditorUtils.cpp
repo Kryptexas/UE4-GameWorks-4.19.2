@@ -1398,8 +1398,14 @@ static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Bl
 
 		while (Fn)
 		{
-			Class->RemoveFunctionFromFunctionMap(*Fn);
-			Fn->Rename(nullptr, OrphanedClass, RenFlags);
+			UFunction* Function = *Fn;
+			Class->RemoveFunctionFromFunctionMap(Function);
+			Function->Rename(nullptr, OrphanedClass, RenFlags);
+
+			// invalidate this package's reference to this function, so 
+			// subsequent packages that import it will treat it as if it didn't 
+			// exist (because data-only blueprints shouldn't have functions)
+			FLinkerLoad::InvalidateExport(Function); 
 			++Fn;
 		}
 	}
