@@ -202,6 +202,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	AirControlBoostVelocityThreshold = 25.f;
 	FallingLateralFriction = 0.f;
 	MaxAcceleration = 2048.0f;
+	BrakingFrictionFactor = 2.0f; // Historical value, 1 would be more appropriate.
 	BrakingDecelerationWalking = MaxAcceleration;
 	BrakingDecelerationFalling = 0.f;
 	BrakingDecelerationFlying = 0.f;
@@ -2692,7 +2693,8 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 		return;
 	}
 
-	Friction = FMath::Max(0.f, Friction);
+	const float FrictionFactor = FMath::Max(0.f, BrakingFrictionFactor);
+	Friction = FMath::Max(0.f, Friction * FrictionFactor);
 	BrakingDeceleration = FMath::Max(0.f, BrakingDeceleration);
 	const bool bZeroFriction = (Friction == 0.f);
 	const bool bZeroBraking = (BrakingDeceleration == 0.f);
@@ -2709,9 +2711,6 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 	float RemainingTime = DeltaTime;
 	const float MaxTimeStep = (1.0f / 33.0f);
 
-	// Old (legacy) friction doubled the affect of "Friction" here.
-	const float FrictionFactor = (bUseSeparateBrakingFriction ? 1.0f : 2.0f);
-
 	// Decelerate to brake to a stop
 	const FVector RevAccel = (bZeroBraking ? FVector::ZeroVector : (-BrakingDeceleration * Velocity.GetSafeNormal()));
 	while( RemainingTime >= MIN_TICK_TIME )
@@ -2721,7 +2720,7 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 		RemainingTime -= dt;
 
 		// apply friction and braking
-		Velocity = Velocity + ((-FrictionFactor * Friction) * Velocity + RevAccel) * dt ; 
+		Velocity = Velocity + ((-Friction) * Velocity + RevAccel) * dt ; 
 		
 		// Don't reverse direction
 		if ((Velocity | OldVel) <= 0.f)
