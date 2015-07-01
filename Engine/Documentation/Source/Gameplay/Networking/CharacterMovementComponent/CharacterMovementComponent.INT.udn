@@ -6,8 +6,6 @@ Related: Gameplay/Networking/Actors
 
 [TOC (start:2 end:3)]
 
-##Overview
-
 Characters using CharacterMovementComponent automatically have client-server networking built in. Here's how player movement prediction, replication and correction works in network games through CharacterMovementComponent:
 	
 Every tick, the TickComponent() function is called.  It figures out the acceleration and rotation change for the frame, and then calls PerformMovement() (for locally controlled Characters), or ReplicateMoveToServer() (if it's a network client).
@@ -56,7 +54,7 @@ In this approach, we didn't think about networking at all and just teleport forw
 **Analysis**: This really is just the baseline that doesn't do anything special for networking, and is destined to fail. Why? Because the server has no indication that the ability was triggered, so is just working with the location, rotation, and acceleration of the client's character to trigger movement, and so from the server's perspective, it doesn't make sense that the character moved forward so far.
 
 ###Approach 2: Server only RPC
-The most simple approach to making it work networked is to set up a reliable network RPC that triggers the ability. In this case, we just call a Server function that does the teleport.
+The simplest approach to making it work networked is to set up a reliable network RPC that triggers the ability. In this case, we just call a Server function that does the teleport.
 
 **Result**: Works in networked games, but with major issues, such as a noticeable delay in execution on the client side and possible loss of some teleport functionality.
 
