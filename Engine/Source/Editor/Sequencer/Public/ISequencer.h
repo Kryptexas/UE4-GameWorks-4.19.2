@@ -4,6 +4,7 @@
 
 
 #include "Runtime/MovieScene/Public/IMovieScenePlayer.h"
+#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 #include "KeyPropertyParams.h"
 
 class UMovieScene;
@@ -103,6 +104,9 @@ public:
 	 * @param Time The global time to set to.
 	 */
 	virtual void SetGlobalTime(float Time) = 0;
+
+	/** @return The current view range */
+	virtual FAnimatedRange GetViewRange() const { return FAnimatedRange(); }
 
 	/**
 	 * Sets whether perspective viewport hijacking is enabled.

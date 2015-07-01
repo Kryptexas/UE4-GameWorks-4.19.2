@@ -23,6 +23,7 @@
 #include "AudioTrackEditor.h"
 #include "AnimationTrackEditor.h"
 #include "ParticleTrackEditor.h"
+#include "PathTrackEditor.h"
 
 /**
  * MovieSceneTools module implementation (private)
@@ -44,6 +45,7 @@ class FMovieSceneToolsModule : public IMovieSceneTools
 		AudioTrackEditorCreateTrackEditorDelegateHandle         = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FAudioTrackEditor::CreateTrackEditor ) );
 		AnimationTrackEditorCreateTrackEditorDelegateHandle     = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FAnimationTrackEditor::CreateTrackEditor ) );
 		ParticleTrackEditorCreateTrackEditorDelegateHandle      = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FParticleTrackEditor::CreateTrackEditor ) );
+		PathTrackEditorCreateTrackEditorDelegateHandle          = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DPathTrackEditor::CreateTrackEditor ) );
 	}
 
 
@@ -69,6 +71,7 @@ class FMovieSceneToolsModule : public IMovieSceneTools
 			SequencerModule.UnRegisterTrackEditor_Handle( AudioTrackEditorCreateTrackEditorDelegateHandle );
 			SequencerModule.UnRegisterTrackEditor_Handle( AnimationTrackEditorCreateTrackEditorDelegateHandle );
 			SequencerModule.UnRegisterTrackEditor_Handle( ParticleTrackEditorCreateTrackEditorDelegateHandle );
+			SequencerModule.UnRegisterTrackEditor_Handle( PathTrackEditorCreateTrackEditorDelegateHandle );
 		}
 		
 	}
@@ -87,6 +90,7 @@ private:
 	FDelegateHandle AudioTrackEditorCreateTrackEditorDelegateHandle;
 	FDelegateHandle AnimationTrackEditorCreateTrackEditorDelegateHandle;
 	FDelegateHandle ParticleTrackEditorCreateTrackEditorDelegateHandle;
+	FDelegateHandle PathTrackEditorCreateTrackEditorDelegateHandle;
 };
 
 

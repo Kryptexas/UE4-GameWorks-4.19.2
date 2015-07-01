@@ -147,6 +147,13 @@ void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 	}
 }
 
+struct FTrackInstanceEvalSorter
+{
+	bool operator()( const TSharedPtr<IMovieSceneTrackInstance> A, const TSharedPtr<IMovieSceneTrackInstance> B ) const
+	{
+		return A->EvalOrder() > B->EvalOrder();
+	}
+};
 
 void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, IMovieScenePlayer& Player  )
 {
@@ -192,4 +199,7 @@ void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& T
 			It.RemoveCurrent();
 		}
 	}
+
+	// Sort based on evaluation order
+	TrackInstances.ValueSort(FTrackInstanceEvalSorter());
 }

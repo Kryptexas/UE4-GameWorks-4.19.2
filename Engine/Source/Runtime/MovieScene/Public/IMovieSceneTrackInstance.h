@@ -47,4 +47,9 @@ public:
 	 * Called before an instance is removed
 	 */
 	virtual void ClearInstance( IMovieScenePlayer& Player ) = 0;
+
+	/**
+	* Evaluation order
+	*/
+	virtual float EvalOrder() { return 0.f; }
 };

@@ -102,7 +102,7 @@ public:
 	virtual FSequencerSelection& GetSelection() override;
 
 	/** @return The current view range */
-	FAnimatedRange GetViewRange() const;
+	virtual FAnimatedRange GetViewRange() const override;
 
 	/** Access the user-supplied settings object */
 	USequencerSettings* GetSettings() const { return Settings; }
