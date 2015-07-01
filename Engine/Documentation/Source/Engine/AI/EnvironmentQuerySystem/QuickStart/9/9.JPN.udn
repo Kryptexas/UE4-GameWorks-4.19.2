@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2604304
 Availability:Public
 Title:9.ビヘイビアツリーの設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -29,11 +29,13 @@ Description:EQS クイックスタートのビヘイビアツリーの設定
 この [ビヘイビアツリー](Engine/AI/BehaviorTrees/UserGuide) を作成する手順に進む前に、ビヘイビアツリーが何を行うかについて説明します (厳密にいうと必要な EQS の部分を作成するとビヘイビアツリーが何を行うかについて説明します)。 
 
 * 一番上にある Sequence ノードでグラフを入力し、その子を左から右に実行します。子の実行が成功している限り、実行は続きます。
-* ひとつめは、 _FindPlayer_ テンプレートを実行する EQS Query ノードです。このノードは 0.5 秒毎に 1 回だけ実行できます。実行が失敗すると、Cooldown ノードが **failed** を戻し、その結果、親のシーケンス ノードを失敗にすることで、ツリーは他のノードの実行をしないようにロックされます。
+* ひとつめは、 _FindPlayer_ テンプレートを実行する EQS Query ノードです。このノードは 0.5 秒毎に 1 回だけ実行できます。実行が失敗すると、Cooldown ノードが failed を戻し、その結果、親のシーケンス ノードを失敗にすることで、ツリーは他のノードの実行をしないようにロックされます。
 * しかし、EQS Query が成功すると (プレイヤーを見つける)、第 2 の EQS Query の実行が認められ、AI が隠れる場所を見つけます。
 * 最後に第 2 の EQS Query が見つかった場所に移動します。
 
 ## ステップ
+
+1. コンテンツ ブラウザ の `RunnerBT` ブループリントをダブルクリック して、編集用に開きます。
 
 1. [REGION:raw] **Sequence Node** を追加します(グラフ エリアで右クリック %arrow% **Composites** %arrow% **Sequence**)。[/REGION]
 
