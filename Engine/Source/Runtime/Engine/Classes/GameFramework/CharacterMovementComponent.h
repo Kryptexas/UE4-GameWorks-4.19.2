@@ -1884,6 +1884,18 @@ public:
 };
 
 
+FORCEINLINE ACharacter* UCharacterMovementComponent::GetCharacterOwner() const
+{
+	return CharacterOwner;
+}
+
+FORCEINLINE_DEBUGGABLE bool UCharacterMovementComponent::IsWalking() const
+{
+	return IsMovingOnGround();
+}
+
+
+
 /** FSavedMove_Character represents a saved move on the client that has been sent to the server and might need to be played back. */
 class ENGINE_API FSavedMove_Character
 {
@@ -2118,10 +2130,6 @@ public:
 	float UpdateTimeStampAndDeltaTime(float DeltaTime, ACharacter & CharacterOwner, class UCharacterMovementComponent & CharacterMovementComponent);
 };
 
-FORCEINLINE ACharacter* UCharacterMovementComponent::GetCharacterOwner() const
-{
-	return CharacterOwner;
-}
 
 class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredictionData_Server
 {

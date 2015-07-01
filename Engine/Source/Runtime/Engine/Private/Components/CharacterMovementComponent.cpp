@@ -2235,56 +2235,27 @@ float UCharacterMovementComponent::ImmersionDepth()
 
 bool UCharacterMovementComponent::IsFlying() const
 {
-	if (!CharacterOwner || !UpdatedComponent)
-	{
-		return false;
-	}
-
-	return MovementMode == MOVE_Flying;
+	return (MovementMode == MOVE_Flying) && UpdatedComponent;
 }
-
-
 
 bool UCharacterMovementComponent::IsMovingOnGround() const
 {
-	if (!CharacterOwner || !UpdatedComponent)
-	{
-		return false;
-	}
-
-	return (MovementMode == MOVE_Walking) || (MovementMode == MOVE_NavWalking);
+	return ((MovementMode == MOVE_Walking) || (MovementMode == MOVE_NavWalking)) && UpdatedComponent;
 }
-
-
 
 bool UCharacterMovementComponent::IsFalling() const
 {
-	if (!CharacterOwner || !UpdatedComponent)
-	{
-		return false;
-	}
-
-	return MovementMode == MOVE_Falling;
+	return (MovementMode == MOVE_Falling) && UpdatedComponent;
 }
 
 bool UCharacterMovementComponent::IsSwimming() const
 {
-	if (!CharacterOwner || !UpdatedComponent)
-	{
-		return false;
-	}
-
-	return MovementMode == MOVE_Swimming;
+	return (MovementMode == MOVE_Swimming) && UpdatedComponent;
 }
 
 bool UCharacterMovementComponent::IsCrouching() const
 {
 	return CharacterOwner && CharacterOwner->bIsCrouched;
-}
-
-bool UCharacterMovementComponent::IsWalking() const
-{
-	return IsMovingOnGround();
 }
 
 void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
