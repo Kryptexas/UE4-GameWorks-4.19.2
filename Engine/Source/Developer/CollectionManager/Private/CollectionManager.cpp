@@ -877,6 +877,15 @@ bool FCollectionManager::IsValidParentCollection(FName CollectionName, ECollecti
 				: LOCTEXT("InvalidParent_CannotParentToChildren", "A collection cannot be parented to its children");
 			return ERecursiveWorkerFlowControl::Stop;
 		}
+
+		const bool bIsValidChildType = ECollectionShareType::IsValidChildType(InCollectionKey.Type, ShareType);
+		if (!bIsValidChildType)
+		{
+			bValidParent = false;
+			LastError = FText::Format(LOCTEXT("InvalidParent_InvalidChildType", "A {0} collection cannot contain a {1} collection"), ECollectionShareType::ToText(InCollectionKey.Type), ECollectionShareType::ToText(ShareType));
+			return ERecursiveWorkerFlowControl::Stop;
+		}
+
 		return ERecursiveWorkerFlowControl::Continue;
 	};
 

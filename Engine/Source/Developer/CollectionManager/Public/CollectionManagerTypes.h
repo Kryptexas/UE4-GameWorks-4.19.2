@@ -95,6 +95,29 @@ struct ECollectionShareType
 		}
 		return NAME_None;
 	}
+
+	static bool IsValidChildType(const Type InParentType, const Type InChildType)
+	{
+		if (InParentType == CST_Local)
+		{
+			// Local collections can only contain other local collections
+			return InChildType == CST_Local;
+		}
+
+		if (InParentType == CST_Private)
+		{
+			// Private collections can only contain local or private collections
+			return InChildType == CST_Local || InChildType == CST_Private;
+		}
+
+		if (InParentType == CST_Shared)
+		{
+			// Shared collections can contain any kind of collection
+			return InChildType == CST_Local || InChildType == CST_Private || InChildType == CST_Shared;
+		}
+
+		return false;
+	}
 };
 
 /** Controls how the collections manager will recurse when performing work against a given collection */
