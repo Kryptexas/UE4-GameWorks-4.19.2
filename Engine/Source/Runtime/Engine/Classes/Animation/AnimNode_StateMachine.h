@@ -23,8 +23,8 @@ struct FAnimationActiveTransitionEntry
 	// Duration of this cross-fade (may be shorter than the nominal duration specified by the state machine if the target state had non-zero weight at the start)
 	float CrossfadeDuration;
 
-	// Blend type (type of curve applied to time)
-	TEnumAsByte<ETransitionBlendMode::Type> CrossfadeMode;
+	// Type of blend to use
+	EAlphaBlendOption BlendOption;
 
 	// Is this transition active?
 	bool bActive;
@@ -58,8 +58,8 @@ struct FAnimationActiveTransitionEntry
 
 public:
 	FAnimationActiveTransitionEntry();
-	FAnimationActiveTransitionEntry(int32 NextStateID, float ExistingWeightOfNextState, int32 PreviousStateID, const FAnimationTransitionBetweenStates& ReferenceTransitionInfo);
-	
+	FAnimationActiveTransitionEntry(int32 NextStateID, float ExistingWeightOfNextState, FAnimationActiveTransitionEntry* ExistingTransitionForNextState, int32 PreviousStateID, const FAnimationTransitionBetweenStates& ReferenceTransitionInfo);
+
 	void InitializeCustomGraphLinks(const FAnimationUpdateContext& Context, const FBakedStateExitTransition& TransitionRule);
 
 	void Update(const FAnimationUpdateContext& Context, int32 CurrentStateIndex, bool &OutFinished);
@@ -70,8 +70,11 @@ public:
 	bool Serialize(FArchive& Ar);
 
 protected:
-	float CalculateInverseAlpha(ETransitionBlendMode::Type BlendType, float InFraction) const;
+	float CalculateInverseAlpha(EAlphaBlendOption BlendMode, float InFraction) const;
 	float CalculateAlpha(float InFraction) const;
+
+	// Blend object to handle alpha interpolation
+	FAlphaBlend Blend;
 };
 
 USTRUCT()

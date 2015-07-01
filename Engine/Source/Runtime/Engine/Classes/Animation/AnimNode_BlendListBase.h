@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AlphaBlend.h"
 #include "AnimNodeBase.h"
 #include "AnimNode_BlendListBase.generated.h"
 
@@ -16,6 +17,15 @@ public:
 
 	UPROPERTY(EditAnywhere, EditFixedSize, BlueprintReadWrite, Category=Config, meta=(PinShownByDefault))
 	TArray<float> BlendTime;
+
+	UPROPERTY(EditAnywhere, Category=BlendType)
+	EAlphaBlendOption BlendType;
+
+	UPROPERTY(EditAnywhere, Category=BlendType)
+	UCurveFloat* CustomBlendCurve;
+
+	UPROPERTY()
+	TArray<FAlphaBlend> Blends;
 
 protected:
 	UPROPERTY()

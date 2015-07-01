@@ -805,7 +805,8 @@ void FAnimBlueprintCompiler::ProcessStateMachine(UAnimGraphNode_StateMachineBase
 			BakedTransition.StartNotify = FindOrAddNotify(TransitionNode->TransitionStart);
 			BakedTransition.EndNotify = FindOrAddNotify(TransitionNode->TransitionEnd);
 			BakedTransition.InterruptNotify = FindOrAddNotify(TransitionNode->TransitionInterrupt);
-			BakedTransition.CrossfadeMode = TransitionNode->CrossfadeMode;
+			BakedTransition.BlendMode = TransitionNode->BlendMode;
+			BakedTransition.CustomCurve = TransitionNode->CustomBlendCurve;
 			BakedTransition.LogicType = TransitionNode->LogicType;
 
 			UAnimStateNodeBase* PreviousState = TransitionNode->GetPreviousState();

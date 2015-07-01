@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AlphaBlend.h"
 #include "AnimStateMachineTypes.generated.h"
 
 //@TODO: Document
@@ -128,7 +129,10 @@ struct FAnimationTransitionBetweenStates : public FAnimationStateBase
 	int32 InterruptNotify;
 
 	UPROPERTY()
-	TEnumAsByte<ETransitionBlendMode::Type> CrossfadeMode;
+	EAlphaBlendOption BlendMode;
+
+	UPROPERTY()
+	UCurveFloat* CustomCurve;
 
 	UPROPERTY()
 	TEnumAsByte<ETransitionLogicType::Type> LogicType;
@@ -145,7 +149,8 @@ struct FAnimationTransitionBetweenStates : public FAnimationStateBase
 		, StartNotify(INDEX_NONE)
 		, EndNotify(INDEX_NONE)
 		, InterruptNotify(INDEX_NONE)
-		, CrossfadeMode(ETransitionBlendMode::TBM_Cubic)
+		, BlendMode(EAlphaBlendOption::CubicInOut)
+		, CustomCurve(nullptr)
 		, LogicType(ETransitionLogicType::TLT_StandardBlend)
 #if WITH_EDITOR
 		, ReverseTransition(false)

@@ -31,8 +31,14 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	float CrossfadeDuration;
 
 	// The type of blending to use in the crossfade
-	UPROPERTY(EditAnywhere, Config, Category=Transition)
-	TEnumAsByte<ETransitionBlendMode::Type> CrossfadeMode;
+	UPROPERTY()
+	TEnumAsByte<ETransitionBlendMode::Type> CrossfadeMode_DEPRECATED;
+
+	UPROPERTY(EditAnywhere, Category=Transition)
+	EAlphaBlendOption BlendMode;
+
+	UPROPERTY(EditAnywhere, Category=Transition)
+	UCurveFloat* CustomBlendCurve;
 
 	// Try setting the rule automatically based on the player node remaining time and the CrossfadeDuration, ignoring the internal time
 	UPROPERTY(EditAnywhere, Category=Transition)

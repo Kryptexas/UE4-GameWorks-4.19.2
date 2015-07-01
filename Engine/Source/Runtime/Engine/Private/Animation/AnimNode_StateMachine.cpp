@@ -15,7 +15,7 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry()
 	: ElapsedTime(0.0f)
 	, Alpha(0.0f)
 	, CrossfadeDuration(0.0f)
-	, CrossfadeMode(ETransitionBlendMode::TBM_Cubic)
+	, BlendOption(EAlphaBlendOption::HermiteCubic)
 	, bActive(false)
 	, NextState(INDEX_NONE)
 	, PreviousState(INDEX_NONE)
@@ -26,10 +26,10 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry()
 {
 }
 
-FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextStateID, float ExistingWeightOfNextState, int32 PreviousStateID, const FAnimationTransitionBetweenStates& ReferenceTransitionInfo)
+FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextStateID, float ExistingWeightOfNextState, FAnimationActiveTransitionEntry* ExistingTransitionForNextState, int32 PreviousStateID, const FAnimationTransitionBetweenStates& ReferenceTransitionInfo)
 	: ElapsedTime(0.0f)
 	, Alpha(0.0f)
-	, CrossfadeMode(ReferenceTransitionInfo.CrossfadeMode)
+	, BlendOption(ReferenceTransitionInfo.BlendMode)
 	, bActive(true)
 	, NextState(NextStateID)
 	, PreviousState(PreviousStateID)
@@ -38,18 +38,23 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextState
 	, InterruptNotify(ReferenceTransitionInfo.InterruptNotify)
 	, LogicType(ReferenceTransitionInfo.LogicType)
 {
-	// Adjust the duration of the blend based on the target weight to get us there quicker if we're closer
 	const float Scaler = 1.0f - ExistingWeightOfNextState;
-	CrossfadeDuration = ReferenceTransitionInfo.CrossfadeDuration * CalculateInverseAlpha(CrossfadeMode, Scaler);
+	CrossfadeDuration = ReferenceTransitionInfo.CrossfadeDuration * CalculateInverseAlpha(BlendOption, Scaler);
+
+	Blend.SetBlendTime(CrossfadeDuration);
+	Blend.SetBlendOption(BlendOption);
+	Blend.CustomCurve = ReferenceTransitionInfo.CustomCurve;
+	Blend.SetValueRange(0.0f, 1.0f);
+	Blend.Reset();
 }
 
-float FAnimationActiveTransitionEntry::CalculateInverseAlpha(ETransitionBlendMode::Type BlendType, float InFraction) const
+float FAnimationActiveTransitionEntry::CalculateInverseAlpha(EAlphaBlendOption BlendMode, float InFraction) const
 {
-	if (BlendType == ETransitionBlendMode::TBM_Cubic)
+	if(BlendMode == EAlphaBlendOption::HermiteCubic)
 	{
-		const float A = 4.0f/3.0f;
+		const float A = 4.0f / 3.0f;
 		const float B = -2.0f;
-		const float C = 5.0f/3.0f;
+		const float C = 5.0f / 3.0f;
 
 		const float T = InFraction;
 		const float TT = InFraction*InFraction;
@@ -88,33 +93,14 @@ void FAnimationActiveTransitionEntry::Update(const FAnimationUpdateContext& Cont
 	if (bActive)
 	{
 		ElapsedTime += Context.GetDeltaTime();
-		if (ElapsedTime >= CrossfadeDuration)
+		Blend.Update(Context.GetDeltaTime());
+		Alpha = FAlphaBlend::AlphaToBlendOption(ElapsedTime / CrossfadeDuration, Blend.BlendOption, Blend.CustomCurve); //Blend.GetBlendedValue();
+
+		if(Blend.IsComplete())
 		{
 			bActive = false;
 			bOutFinished = true;
 		}
-
-		if(CrossfadeDuration <= 0.0f)
-		{
-			Alpha = 1.0f;
-		}
-		else
-		{
-			Alpha = CalculateAlpha(ElapsedTime / CrossfadeDuration);
-		}
-
-	}
-}
-
-float FAnimationActiveTransitionEntry::CalculateAlpha(float InFraction) const
-{
-	if (CrossfadeMode == ETransitionBlendMode::TBM_Cubic)
-	{
-		return FMath::SmoothStep(0.0f, 1.0f, InFraction);
-	}
-	else
-	{
-		return FMath::Clamp<float>(InFraction, 0.0f, 1.0f);
 	}
 }
 
@@ -322,16 +308,27 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 			// Get the current weight of the next state, which may be non-zero
 			const float ExistingWeightOfNextState = GetStateWeight(NextState);
 
+			FAnimationActiveTransitionEntry* PreviousTransitionForNextState = nullptr;
+			for(int32 i = ActiveTransitionArray.Num() - 1 ;  i >= 0 ; ++i)
+			{
+				FAnimationActiveTransitionEntry& TransitionEntry = ActiveTransitionArray[i];
+				if(TransitionEntry.PreviousState == NextState)
+				{
+					PreviousTransitionForNextState = &TransitionEntry;
+					break;
+				}
+			}
+
 			// Push the transition onto the stack
 			const FAnimationTransitionBetweenStates& ReferenceTransition = GetTransitionInfo(PotentialTransition.TransitionRule->TransitionIndex);
-			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousState, ReferenceTransition);
+			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousTransitionForNextState, PreviousState, ReferenceTransition);
 			NewTransition->InitializeCustomGraphLinks(Context, *(PotentialTransition.TransitionRule));
 
 #if WITH_EDITORONLY_DATA
 			NewTransition->SourceTransitionIndices = PotentialTransition.SourceTransitionIndices;
 #endif
 
-			if (!bFirstUpdate)
+			if(!bFirstUpdate)
 			{
 				Context.AnimInstance->AddAnimNotifyFromGeneratedClass(NewTransition->StartNotify);
 			}
