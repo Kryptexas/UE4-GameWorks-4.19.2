@@ -12,7 +12,17 @@ FAnimNode_BoneDrivenController::FAnimNode_BoneDrivenController()
 	, bUseRange(false)
 	, RangeMin(-1.0f)
 	, RangeMax(1.0f)
-	, TargetComponent(EComponentType::None)
+	, TargetComponent_DEPRECATED(EComponentType::None)
+	, bAffectTargetTranslationX(false)
+	, bAffectTargetTranslationY(false)
+	, bAffectTargetTranslationZ(false)
+	, bAffectTargetRotationX(false)
+	, bAffectTargetRotationY(false)
+	, bAffectTargetRotationZ(false)
+	, bAffectTargetScaleX(false)
+	, bAffectTargetScaleY(false)
+	, bAffectTargetScaleZ(false)
+	, ModificationMode(EDrivenBoneModificationMode::AddToInput)
 {
 }
 
@@ -27,12 +37,12 @@ void FAnimNode_BoneDrivenController::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutCSBoneTransforms)
 {
-	check(OutBoneTransforms.Num() == 0);
+	check(OutCSBoneTransforms.Num() == 0);
 	
 	// Early out if we're not driving from or to anything
-	if ((SourceComponent == EComponentType::None) || (TargetComponent == EComponentType::None))
+	if (SourceComponent == EComponentType::None)
 	{
 		return;
 	}
@@ -54,12 +64,17 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 		const FVector RotationDiff = (SourceCurr.GetRotation() * SourceOrigRef.GetRotation().Inverse()).Euler();
 		SourceValue = RotationDiff[(int32)(SourceComponent - EComponentType::RotationX)];
 	}
-	else
+	else if (SourceComponent == EComponentType::Scale)
 	{
 		const FVector CurrentScale = SourceCurr.GetScale3D();
 		const FVector RefScale = SourceOrigRef.GetScale3D();
 		const float ScaleDiff = FMath::Max3(CurrentScale[0], CurrentScale[1], CurrentScale[2]) - FMath::Max3(RefScale[0], RefScale[1], RefScale[2]);
 		SourceValue = ScaleDiff;
+	}
+	else
+	{
+		const FVector ScaleDiff = SourceCurr.GetScale3D() - SourceOrigRef.GetScale3D();
+		SourceValue = ScaleDiff[(int32)(SourceComponent - EComponentType::ScaleX)];
 	}
 	
 	// Determine the resulting value
@@ -72,44 +87,96 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	else
 	{
 		// Apply the fixed function remapping/clamping
-		FinalDriverValue *= Multiplier;
 		if (bUseRange)
 		{
 			FinalDriverValue = FMath::Clamp(FinalDriverValue, RangeMin, RangeMax);
 		}
+
+		FinalDriverValue *= Multiplier;
 	}
 
-	// Difference to apply after processing
-	FVector NewRotDiff(FVector::ZeroVector);
-	FVector NewTransDiff(FVector::ZeroVector);
-	float NewScaleDiff = 0.0f;
+	// Calculate a new local-space bone position by adding or replacing target components in the current local space position
+	const FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
 
-	// Resolve target value
-	float* DestPtr = nullptr;
-	if (TargetComponent < EComponentType::RotationX)
+	const FTransform OriginalLocalTM = MeshBases.GetLocalSpaceTransform(TargetBoneIndex);
+	FVector NewTrans(OriginalLocalTM.GetTranslation());
+	FVector NewScale(OriginalLocalTM.GetScale3D());
+	FQuat NewRot(OriginalLocalTM.GetRotation());
+
+	if (ModificationMode == EDrivenBoneModificationMode::AddToInput)
 	{
-		DestPtr = &NewTransDiff[(int32)(TargetComponent - EComponentType::TranslationX)];
+		// Add the mapped value to the target components
+		if (bAffectTargetTranslationX) { NewTrans.X += FinalDriverValue; }
+		if (bAffectTargetTranslationY) { NewTrans.Y += FinalDriverValue; }
+		if (bAffectTargetTranslationZ) { NewTrans.Z += FinalDriverValue; }
+
+		if (bAffectTargetRotationX || bAffectTargetRotationY || bAffectTargetRotationZ)
+		{
+			FVector NewRotDeltaEuler(ForceInitToZero);
+			if (bAffectTargetRotationX) { NewRotDeltaEuler.X = FinalDriverValue; }
+			if (bAffectTargetRotationY) { NewRotDeltaEuler.Y = FinalDriverValue; }
+			if (bAffectTargetRotationZ) { NewRotDeltaEuler.Z = FinalDriverValue; }
+			NewRot = NewRot * FQuat::MakeFromEuler(NewRotDeltaEuler);
+		}
+
+		if (bAffectTargetScaleX) { NewScale.X += FinalDriverValue; }
+		if (bAffectTargetScaleY) { NewScale.Y += FinalDriverValue; }
+		if (bAffectTargetScaleZ) { NewScale.Z += FinalDriverValue; }
 	}
-	else if (TargetComponent < EComponentType::Scale)
+	else if (ModificationMode == EDrivenBoneModificationMode::ReplaceComponent)
 	{
-		DestPtr = &NewRotDiff[(int32)(TargetComponent - EComponentType::RotationX)];
+		// Replace the target components with the mapped value
+		if (bAffectTargetTranslationX) { NewTrans.X = FinalDriverValue; }
+		if (bAffectTargetTranslationY) { NewTrans.Y = FinalDriverValue; }
+		if (bAffectTargetTranslationZ) { NewTrans.Z = FinalDriverValue; }
+
+		if (bAffectTargetRotationX || bAffectTargetRotationY || bAffectTargetRotationZ)
+		{
+			FVector NewRotEuler(NewRot.Euler());
+			if (bAffectTargetRotationX) { NewRotEuler.X = FinalDriverValue; }
+			if (bAffectTargetRotationY) { NewRotEuler.Y = FinalDriverValue; }
+			if (bAffectTargetRotationZ) { NewRotEuler.Z = FinalDriverValue; }
+			NewRot = FQuat::MakeFromEuler(NewRotEuler);
+		}
+
+		if (bAffectTargetScaleX) { NewScale.X = FinalDriverValue; }
+		if (bAffectTargetScaleY) { NewScale.Y = FinalDriverValue; }
+		if (bAffectTargetScaleZ) { NewScale.Z = FinalDriverValue; }
+	}
+	else if (ModificationMode == EDrivenBoneModificationMode::AddToRefPose)
+	{
+		const FTransform RefPoseTransform = MeshBases.GetPose().GetRefPose(TargetBoneIndex);
+
+		// Add the mapped value to the ref pose components
+		if (bAffectTargetTranslationX) { NewTrans.X = RefPoseTransform.GetTranslation().X + FinalDriverValue; }
+		if (bAffectTargetTranslationY) { NewTrans.Y = RefPoseTransform.GetTranslation().Y + FinalDriverValue; }
+		if (bAffectTargetTranslationZ) { NewTrans.Z = RefPoseTransform.GetTranslation().Z + FinalDriverValue; }
+
+		if (bAffectTargetRotationX || bAffectTargetRotationY || bAffectTargetRotationZ)
+		{
+			const FVector RefPoseRotEuler(RefPoseTransform.GetRotation().Euler());
+
+			// Replace any components that are being driven with their ref pose value first and create a delta rotation as well
+			FVector SourceRotationEuler(NewRot.Euler());
+			FVector NewRotDeltaEuler(ForceInitToZero);
+			if (bAffectTargetRotationX) { SourceRotationEuler.X = RefPoseRotEuler.X; NewRotDeltaEuler.X = FinalDriverValue; }
+			if (bAffectTargetRotationY) { SourceRotationEuler.Y = RefPoseRotEuler.Y; NewRotDeltaEuler.Y = FinalDriverValue; }
+			if (bAffectTargetRotationZ) { SourceRotationEuler.Z = RefPoseRotEuler.Z; NewRotDeltaEuler.Z = FinalDriverValue; }
+
+			// Combine the (modified) source and the delta rotation
+			NewRot = FQuat::MakeFromEuler(SourceRotationEuler) * FQuat::MakeFromEuler(NewRotDeltaEuler);
+		}
+
+		if (bAffectTargetScaleX) { NewScale.X = RefPoseTransform.GetScale3D().X + FinalDriverValue; }
+		if (bAffectTargetScaleY) { NewScale.Y = RefPoseTransform.GetScale3D().Y + FinalDriverValue; }
+		if (bAffectTargetScaleZ) { NewScale.Z = RefPoseTransform.GetScale3D().Z + FinalDriverValue; }
 	}
 	else
 	{
-		DestPtr = &NewScaleDiff;
+		ensureMsgf(false, TEXT("Unknown entry in EDrivenBoneModificationMode"));
 	}
 
-	// Set the value
-	*DestPtr = FinalDriverValue;
-
-	// Build final transform difference
-	const FTransform FinalDiff(FQuat::MakeFromEuler(NewRotDiff), NewTransDiff, FVector(NewScaleDiff));
-
-	const FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
-
-	// Starting point for the new transform
-	FTransform NewLocal = MeshBases.GetLocalSpaceTransform(TargetBoneIndex);
-	NewLocal.AccumulateWithAdditiveScale3D(FinalDiff);
+	const FTransform ModifiedLocalTM(NewRot, NewTrans, NewScale);
 
 	// If we have a parent, concatenate the transform, otherwise just take the new transform
 	const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(TargetBoneIndex);
@@ -118,17 +185,47 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	{
 		const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
 		
-		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, NewLocal * ParentTM));
+		OutCSBoneTransforms.Add(FBoneTransform(TargetBoneIndex, ModifiedLocalTM * ParentTM));
 	}
 	else
 	{
-		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, NewLocal));
+		OutCSBoneTransforms.Add(FBoneTransform(TargetBoneIndex, ModifiedLocalTM));
 	}
 }
 
 bool FAnimNode_BoneDrivenController::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
 	return SourceBone.IsValid(RequiredBones) && TargetBone.IsValid(RequiredBones);
+}
+
+void FAnimNode_BoneDrivenController::ConvertTargetComponentToBits()
+{
+	switch (TargetComponent_DEPRECATED)
+	{
+	case EComponentType::TranslationX:
+		bAffectTargetTranslationX = true;
+		break;
+	case EComponentType::TranslationY:
+		bAffectTargetTranslationY = true;
+		break;
+	case EComponentType::TranslationZ:
+		bAffectTargetTranslationZ = true;
+		break;
+	case EComponentType::RotationX:
+		bAffectTargetRotationX = true;
+		break;
+	case EComponentType::RotationY:
+		bAffectTargetRotationY = true;
+		break;
+	case EComponentType::RotationZ:
+		bAffectTargetRotationZ = true;
+		break;
+	case EComponentType::Scale:
+		bAffectTargetScaleX = true;
+		bAffectTargetScaleY = true;
+		bAffectTargetScaleZ = true;
+		break;
+	}
 }
 
 void FAnimNode_BoneDrivenController::InitializeBoneReferences(const FBoneContainer& RequiredBones)

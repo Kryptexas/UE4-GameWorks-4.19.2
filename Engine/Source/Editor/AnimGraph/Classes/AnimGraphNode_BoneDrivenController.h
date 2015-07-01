@@ -2,6 +2,9 @@
 
 #pragma once
 
+class IDetailCategoryBuilder;
+class IPropertyHandle;
+
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "BoneControllers/AnimNode_BoneDrivenController.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
@@ -19,6 +22,9 @@ class ANIMGRAPH_API UAnimGraphNode_BoneDrivenController : public UAnimGraphNode_
 	FAnimNode_BoneDrivenController Node;
 
 public:
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
 
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -43,7 +49,7 @@ protected:
 	// Should non-curve mapping values be shown (multipler, range)?
 	EVisibility AreNonCurveMappingValuesVisible() const;
 
-private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
-	FNodeTitleTextTable CachedNodeTitles;
+	static void AddTripletPropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName XPropertyName, const FName YPropertyName, const FName ZPropertyName);
+
+	static FText ComponentTypeToText(EComponentType::Type Component);
 };
