@@ -57,7 +57,7 @@ bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerInde
 		OutOrientation = DeviceOrientation.Rotator();
 	}
 
-	return false;
+	return RetVal;
 }
 
 void USteamVRFunctionLibrary::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace)
