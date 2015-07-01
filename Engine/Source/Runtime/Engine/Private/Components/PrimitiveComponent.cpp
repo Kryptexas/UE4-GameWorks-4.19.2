@@ -1691,6 +1691,39 @@ void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& B
 	}
 }
 
+void UPrimitiveComponent::DispatchWakeEvents(int32 WakeEvent, FName BoneName)
+{
+	FBodyInstance* RootBI = GetBodyInstance(BoneName, false);
+	if(RootBI)
+	{
+		if(RootBI->bGenerateWakeEvents)
+		{
+			if (WakeEvent == SleepEvent::SET_Wakeup)
+			{
+				OnComponentWake.Broadcast(BoneName);
+			}else
+			{
+				OnComponentSleep.Broadcast(BoneName);
+			}
+		}
+	}
+	
+	//now update children that are welded
+	for(USceneComponent* SceneComp : AttachChildren)
+	{
+		if(UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp))
+		{
+			if(FBodyInstance* BI = PrimComp->GetBodyInstance(BoneName, false))
+			{
+				if(BI->WeldParent == RootBI)
+				{
+					PrimComp->DispatchWakeEvents(WakeEvent, BoneName);	
+				}
+			}
+		}
+	}
+}
+
 
 bool UPrimitiveComponent::IsNavigationRelevant() const 
 { 

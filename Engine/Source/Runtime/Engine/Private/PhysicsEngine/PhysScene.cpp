@@ -357,13 +357,15 @@ void FPhysScene::AddTorque_AssumesLocked(FBodyInstance* BodyInstance, const FVec
 }
 
 #if WITH_PHYSX
-void FPhysScene::RemoveActiveBody(FBodyInstance* BodyInstance, uint32 SceneType)
+void FPhysScene::RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType)
 {
 	int32 BodyIndex = ActiveBodyInstances[SceneType].Find(BodyInstance);
 	if (BodyIndex != INDEX_NONE)
 	{
 		ActiveBodyInstances[SceneType][BodyIndex] = nullptr;
 	}
+
+	PendingSleepEvents[SceneType].Remove(BodyInstance->GetPxRigidActor_AssumesLocked(SceneType));
 }
 #endif
 void FPhysScene::TermBody_AssumesLocked(FBodyInstance* BodyInstance)
@@ -388,8 +390,8 @@ void FPhysScene::TermBody_AssumesLocked(FBodyInstance* BodyInstance)
 	}
 
 #if WITH_PHYSX
-	RemoveActiveBody(BodyInstance, PST_Sync);
-	RemoveActiveBody(BodyInstance, PST_Async);
+	RemoveActiveBody_AssumesLocked(BodyInstance, PST_Sync);
+	RemoveActiveBody_AssumesLocked(BodyInstance, PST_Async);
 #endif
 }
 
@@ -902,6 +904,25 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 	}
 
 	PendingApexDamageManager->PendingDamageEvents.Empty();
+#endif
+
+#if WITH_PHYSX
+	for (int32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
+	{
+		for (auto MapItr = PendingSleepEvents[SceneType].CreateIterator(); MapItr; ++MapItr)
+		{
+			PxActor* Actor = MapItr.Key();
+			if(FBodyInstance* BodyInstance = FPhysxUserData::Get<FBodyInstance>(Actor->userData))
+			{
+				if(UPrimitiveComponent* PrimitiveComponent = BodyInstance->OwnerComponent.Get())
+				{
+					PrimitiveComponent->DispatchWakeEvents(MapItr.Value(), BodyInstance->BodySetup->BoneName);
+				}
+			}
+		}
+
+		PendingSleepEvents[SceneType].Empty();
+	}
 #endif
 }
 
@@ -1447,6 +1468,11 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 }
 
 #if WITH_PHYSX
+
+void FPhysScene::AddPendingSleepingEvent(PxActor* Actor, SleepEvent::Type SleepEventType, int32 SceneType)
+{
+	PendingSleepEvents[SceneType].FindOrAdd(Actor) = SleepEventType;
+}
 
 void FPhysScene::FDeferredSceneData::FlushDeferredActors()
 {

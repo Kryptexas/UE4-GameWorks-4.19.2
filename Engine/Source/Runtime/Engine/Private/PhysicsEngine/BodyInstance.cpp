@@ -225,6 +225,7 @@ FBodyInstance::FBodyInstance()
 , bAutoWeld(false)
 , bWelded(false)
 , bStartAwake(true)
+, bGenerateWakeEvents(false)
 , bUpdateMassWhenScaleChanges(false)
 , bLockTranslation(true)
 , bLockRotation(true)
@@ -1062,6 +1063,11 @@ struct FInitBodiesHelper
 			{
 				PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
 			}
+
+			if(Instance->bGenerateWakeEvents)
+			{
+				PNewDynamic->setActorFlag(PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
+			}
 		}
 
 		return PNewDynamic;
@@ -1857,12 +1863,20 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 		//child body gets placed into the same scenes as parent body
 		if (PxRigidActor* MyBody = RigidActorSync)
 		{
-				TheirBody->BodySetup->AddShapesToRigidActor_AssumesLocked(this, MyBody, PST_Sync, Scale3D, PSimpleMat, ComplexPhysMats, ShapeData, RelativeTM, &PNewShapes);
+			TheirBody->BodySetup->AddShapesToRigidActor_AssumesLocked(this, MyBody, PST_Sync, Scale3D, PSimpleMat, ComplexPhysMats, ShapeData, RelativeTM, &PNewShapes);
+			if (TheirBody->bGenerateWakeEvents)
+			{
+				MyBody->setActorFlag(PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
+			}
 		}
 
 		if (PxRigidActor* MyBody = RigidActorAsync)
 		{
-				TheirBody->BodySetup->AddShapesToRigidActor_AssumesLocked(this, MyBody, PST_Sync, Scale3D, PSimpleMat, ComplexPhysMats, ShapeData, RelativeTM, &PNewShapes);
+			TheirBody->BodySetup->AddShapesToRigidActor_AssumesLocked(this, MyBody, PST_Sync, Scale3D, PSimpleMat, ComplexPhysMats, ShapeData, RelativeTM, &PNewShapes);
+			if (TheirBody->bGenerateWakeEvents)
+			{
+				MyBody->setActorFlag(PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
+			}
 		}
 
 		for (int32 ShapeIdx = 0; ShapeIdx < PNewShapes.Num(); ++ShapeIdx)

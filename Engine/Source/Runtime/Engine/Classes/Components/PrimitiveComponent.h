@@ -96,6 +96,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentHitSignature, class AAc
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FComponentBeginOverlapSignature,class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex, bool, bFromSweep, const FHitResult &, SweepResult);
 /** Delegate for notification of end of overlap with a specific component */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentEndOverlapSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex);
+/** Delegate for notification when a wake event is fired by physics*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentWakeSignature, FName, BoneName);
+/** Delegate for notification when a sleep event is fired by physics*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentSleepSignature, FName, BoneName);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentBeginCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentEndCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
@@ -649,6 +653,18 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentEndOverlapSignature OnComponentEndOverlap;
+
+	/** 
+	 *	Event called when the underlying physics objects is woken up
+	 */
+	UPROPERTY(BlueprintAssignable, Category="Collision")
+	FComponentWakeSignature OnComponentWake;
+
+	/** 
+	 *	Event called when the underlying physics objects is put to sleep
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "Collision")
+	FComponentSleepSignature OnComponentSleep;
 
 	/** Event called when the mouse cursor is moved over this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
@@ -1411,6 +1427,12 @@ public:
 	 * @param BlockingHit: FHitResult that generated the blocking hit.
 	 */
 	void DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit);
+
+	/**
+	 * Dispatch notification for wake events and propagate to any welded bodies
+	 */
+
+	void DispatchWakeEvents(int32 WakeEvent, FName BoneName);
 
 	/**
 	 * Set collision params on OutParams (such as CollisionResponse, bTraceAsyncScene) to match the settings on this PrimitiveComponent.
