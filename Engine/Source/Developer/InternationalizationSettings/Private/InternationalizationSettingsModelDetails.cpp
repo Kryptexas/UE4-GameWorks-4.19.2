@@ -10,15 +10,24 @@ struct FCompareCultureByNativeLanguage
 {
 	static FText GetCultureNativeLanguageText( const FCulturePtr Culture )
 	{
-		check( Culture.IsValid() );
-		const FString Language = Culture->GetNativeLanguage();
-		return FText::FromString(Language);
+		return Culture.IsValid() ? FText::FromString(Culture->GetNativeLanguage()) : LOCTEXT("None", "(None)");
 	}
 
 	FORCEINLINE bool operator()( const FCulturePtr A, const FCulturePtr B ) const
 	{
-		check( A.IsValid() );
-		check( B.IsValid() );
+		const FText AText = GetCultureNativeLanguageText(A);
+		const FText BText = GetCultureNativeLanguageText(B);
+
+		// (None) should appear before all else.
+		if(AText.IdenticalTo(LOCTEXT("None", "(None)")))
+		{
+			return true;
+		}
+		// (None) should appear before all else.
+		if(BText.IdenticalTo(LOCTEXT("None", "(None)")))
+		{
+			return false;
+		}
 		return( GetCultureNativeLanguageText( A ).CompareToCaseIgnored( GetCultureNativeLanguageText( B ) ) ) < 0;
 	}
 };
@@ -29,30 +38,52 @@ struct FCompareCultureByNativeRegion
 {
 	static FText GetCultureNativeRegionText( const FCulturePtr Culture )
 	{
-		check( Culture.IsValid() );
-		FString Region = Culture->GetNativeRegion();
-		if ( Region.IsEmpty() )
+		FString Region;
+		if (Culture.IsValid())
 		{
-			// Fallback to displaying the language, if no region is available
-			return LOCTEXT("NoSpecificRegionOption", "Non-Specific Region");
+			Region = Culture->GetNativeRegion();
+			if ( Region.IsEmpty() )
+			{
+				// Fallback to displaying the language, if no region is available
+				return LOCTEXT("NoSpecificRegionOption", "Non-Specific Region");
+			}
+			else
+			{
+				return FText::FromString(Region);
+			}
 		}
-		return FText::FromString(Region);
+		else
+		{
+			return LOCTEXT("None", "(None)");
+		}
 	}
 
 	FORCEINLINE bool operator()( const FCulturePtr A, const FCulturePtr B ) const
 	{
-		check( A.IsValid() );
-		check( B.IsValid() );
+		const FText AText = GetCultureNativeRegionText(A);
+		const FText BText = GetCultureNativeRegionText(B);
+
+		// (None) should appear before all else.
+		if(AText.IdenticalTo(LOCTEXT("None", "(None)")))
+		{
+			return true;
+		}
+		// (None) should appear before all else.
+		if(BText.IdenticalTo(LOCTEXT("None", "(None)")))
+		{
+			return false;
+		}
 		// Non-Specific Region should appear before all else.
-		if(A->GetNativeRegion().IsEmpty())
+		if(AText.IdenticalTo(LOCTEXT("NoSpecificRegionOption", "Non-Specific Region")))
 		{
 			return true;
 		}
 		// Non-Specific Region should appear before all else.
-		if(B->GetNativeRegion().IsEmpty())
+		if(BText.IdenticalTo(LOCTEXT("NoSpecificRegionOption", "Non-Specific Region")))
 		{
 			return false;
 		}
+
 		// Compare native region strings.
 		return( GetCultureNativeRegionText( A ).CompareToCaseIgnored( GetCultureNativeRegionText( B ) ) ) < 0;
 	}
@@ -67,29 +98,50 @@ TSharedRef<IDetailCustomization> FInternationalizationSettingsModelDetails::Make
 FInternationalizationSettingsModelDetails::~FInternationalizationSettingsModelDetails()
 {
 	check(Model.IsValid());
-	Model->OnSettingChanged().RemoveAll(this);
+	Model->OnSettingsChanged().RemoveAll(this);
 }
 
 void FInternationalizationSettingsModelDetails::OnSettingsChanged()
 {
-	FInternationalization& I18N = FInternationalization::Get();
-
-	check(Model.IsValid());
-	FString SavedCultureName = Model->GetCultureName();
-	if ( !SavedCultureName.IsEmpty() && SavedCultureName != I18N.GetCurrentCulture()->GetName() )
+	// If we made the changes, there's no need to update ourselves from the model.
+	if (IsMakingChangesToModel)
 	{
-		SelectedCulture = I18N.GetCulture(SavedCultureName);
-		RequiresRestart = true;
+		return;
+	}
+
+	FInternationalization& I18N = FInternationalization::Get();
+	check(Model.IsValid());
+
+	RequiresRestart = true;
+
+	const FString SavedEditorCultureName = Model->GetEditorCultureName();
+	SelectedEditorCulture = I18N.GetCulture(SavedEditorCultureName);
+	SelectedEditorLanguage = SelectedEditorCulture.IsValid() ? I18N.GetCulture(SelectedEditorCulture->GetTwoLetterISOLanguageName()) : nullptr;
+
+	RefreshAvailableEditorLanguages();
+	EditorLanguageComboBox->SetSelectedItem(SelectedEditorLanguage);
+	RefreshAvailableEditorRegions();
+	EditorRegionComboBox->SetSelectedItem(SelectedEditorCulture);
+
+	const FString SavedNativeGameCultureName = Model->GetNativeGameCultureName();
+	if (!SavedNativeGameCultureName.IsEmpty())
+	{
+		SelectedNativeGameCulture = I18N.GetCulture(SavedNativeGameCultureName);
+		SelectedNativeGameLanguage = SelectedNativeGameCulture.IsValid() ? I18N.GetCulture(SelectedNativeGameCulture->GetTwoLetterISOLanguageName()) : nullptr;
 	}
 	else
 	{
-		SelectedCulture = I18N.GetCurrentCulture();
-		RequiresRestart = false;
+		SelectedNativeGameCulture = nullptr;
+		SelectedNativeGameLanguage = nullptr;
 	}
-	RefreshAvailableLanguages();
-	LanguageComboBox->SetSelectedItem(SelectedLanguage);
-	RefreshAvailableRegions();
-	RegionComboBox->SetSelectedItem(SelectedCulture);
+
+	RefreshAvailableNativeGameLanguages();
+	NativeGameLanguageComboBox->SetSelectedItem(SelectedNativeGameLanguage);
+	RefreshAvailableNativeGameRegions();
+	NativeGameRegionComboBox->SetSelectedItem(SelectedNativeGameCulture);
+
+	LocalizedPropertyNamesCheckBox->SetIsChecked(Model->ShouldLoadLocalizedPropertyNames() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	UnlocalizedNodesAndPinsCheckBox->SetIsChecked(Model->ShouldShowNodesAndPinsUnlocalized() ? ECheckBoxState::Unchecked : ECheckBoxState::Checked);
 }
 
 void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
@@ -106,95 +158,176 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	}
 	check(Model.IsValid());
 
-	Model->OnSettingChanged().AddRaw(this, &FInternationalizationSettingsModelDetails::OnSettingsChanged);
+	Model->OnSettingsChanged().AddRaw(this, &FInternationalizationSettingsModelDetails::OnSettingsChanged);
 
 	// If the saved culture is not the same as the actual current culture, a restart is needed to sync them fully and properly.
-	FString SavedCultureName = Model->GetCultureName();
-	if ( !SavedCultureName.IsEmpty() && SavedCultureName != I18N.GetCurrentCulture()->GetName() )
+	FString SavedEditorCultureName = Model->GetEditorCultureName();
+	if ( !SavedEditorCultureName.IsEmpty() && SavedEditorCultureName != I18N.GetCurrentCulture()->GetName() )
 	{
-		SelectedCulture = I18N.GetCulture(SavedCultureName);
+		SelectedEditorCulture = I18N.GetCulture(SavedEditorCultureName);
 		RequiresRestart = true;
 	}
 	else
 	{
-		SelectedCulture = I18N.GetCurrentCulture();
+		SelectedEditorCulture = I18N.GetCurrentCulture();
 		RequiresRestart = false;
 	}
 
+	const FString SavedNativeGameCultureName = Model->GetNativeGameCultureName();
+	if (!SavedNativeGameCultureName.IsEmpty())
+	{
+		SelectedNativeGameCulture = I18N.GetCulture(SavedNativeGameCultureName);
+		SelectedNativeGameLanguage = SelectedNativeGameCulture.IsValid() ? I18N.GetCulture(SelectedNativeGameCulture->GetTwoLetterISOLanguageName()) : nullptr;
+	}
+	else
+	{
+		SelectedNativeGameCulture = nullptr;
+		SelectedNativeGameLanguage = nullptr;
+	}
+
 	// Populate all our cultures
-	RefreshAvailableCultures();
+	RefreshAvailableEditorCultures();
+	RefreshAvailableNativeGameCultures();
 
 	IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory("Internationalization");
 
-	const FText LanguageToolTipText = LOCTEXT("EditorLanguageTooltip", "Change the Editor language (requires restart to take effect)");
+	{
+		const FText LanguageToolTipText = LOCTEXT("EditorLanguageTooltip", "Change which language's translations the editor uses. (Requires restart to take effect.)");
 
-	// For use in the Slate macros below, the type must be typedef'd to compile.
-	typedef FCulturePtr ThreadSafeCulturePtr;
+		CategoryBuilder.AddCustomRow(LOCTEXT("EditorLanguageLabel", "Editor Localization Language"))
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.Padding( FMargin( 0, 1, 0, 1 ) )
+				.FillWidth(1.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("EditorLanguageLabel", "Editor Localization Language"))
+					.Font(DetailBuilder.GetDetailFont())
+					.ToolTipText(LanguageToolTipText)
+				]
+			]
+		.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				SAssignNew(EditorLanguageComboBox, SComboBox< FCulturePtr > )
+				.OptionsSource( &AvailableEditorLanguages )
+				.InitiallySelectedItem(SelectedEditorLanguage)
+				.OnGenerateWidget(this, &FInternationalizationSettingsModelDetails::OnLanguageGenerateWidget, &DetailBuilder)
+				.ToolTipText(LanguageToolTipText)
+				.OnSelectionChanged(this, &FInternationalizationSettingsModelDetails::OnEditorLanguageSelectionChanged)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(this, &FInternationalizationSettingsModelDetails::GetEditorCurrentLanguageText)
+					.Font(DetailBuilder.GetDetailFont())
+				]
+			];
 
-	CategoryBuilder.AddCustomRow(LOCTEXT("EditorLanguageLabel", "Language"))
-	.NameContent()
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.Padding( FMargin( 0, 1, 0, 1 ) )
-		.FillWidth(1.0f)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("EditorLanguageLabel", "Language"))
-			.Font(DetailBuilder.GetDetailFont())
-			.ToolTipText(LanguageToolTipText)
-		]
-	]
-	.ValueContent()
-	.MaxDesiredWidth(300.0f)
-	[
-		SAssignNew(LanguageComboBox, SComboBox< ThreadSafeCulturePtr > )
-		.OptionsSource( &AvailableLanguages )
-		.InitiallySelectedItem(SelectedLanguage)
-		.OnGenerateWidget(this, &FInternationalizationSettingsModelDetails::OnLanguageGenerateWidget, &DetailBuilder)
-		.ToolTipText(LanguageToolTipText)
-		.OnSelectionChanged(this, &FInternationalizationSettingsModelDetails::OnLanguageSelectionChanged)
-		.Content()
-		[
-			SNew(STextBlock)
-			.Text(this, &FInternationalizationSettingsModelDetails::GetCurrentLanguageText)
-			.Font(DetailBuilder.GetDetailFont())
-		]
-	];
+		const FText RegionToolTipText = LOCTEXT("EditorRegionTooltip", "Change which region's translations the editor uses. (Requires restart to take effect.)");
 
-	const FText RegionToolTipText = LOCTEXT("EditorRegionTooltip", "Change the Editor region (requires restart to take effect)");
+		CategoryBuilder.AddCustomRow(LOCTEXT("EditorRegionLabel", "Editor Localization Region"))
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.Padding( FMargin( 0, 1, 0, 1 ) )
+				.FillWidth(1.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("EditorRegionLabel", "Editor Localization Region"))
+					.Font(DetailBuilder.GetDetailFont())
+					.ToolTipText(RegionToolTipText)
+				]
+			]
+		.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				SAssignNew(EditorRegionComboBox, SComboBox< FCulturePtr > )
+				.OptionsSource( &AvailableEditorRegions )
+				.InitiallySelectedItem(SelectedEditorCulture)
+				.OnGenerateWidget(this, &FInternationalizationSettingsModelDetails::OnRegionGenerateWidget, &DetailBuilder)
+				.ToolTipText(RegionToolTipText)
+				.OnSelectionChanged(this, &FInternationalizationSettingsModelDetails::OnEditorRegionSelectionChanged)
+				.IsEnabled(this, &FInternationalizationSettingsModelDetails::IsEditorRegionSelectionAllowed)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(this, &FInternationalizationSettingsModelDetails::GetCurrentEditorRegionText)
+					.Font(DetailBuilder.GetDetailFont())
+				]
+			];
+	}
 
-	CategoryBuilder.AddCustomRow(LOCTEXT("EditorRegionLabel", "Region"))
-	.NameContent()
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.Padding( FMargin( 0, 1, 0, 1 ) )
-		.FillWidth(1.0f)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("EditorRegionLabel", "Region"))
-			.Font(DetailBuilder.GetDetailFont())
-			.ToolTipText(RegionToolTipText)
-		]
-	]
-	.ValueContent()
-	.MaxDesiredWidth(300.0f)
-	[
-		SAssignNew(RegionComboBox, SComboBox< ThreadSafeCulturePtr > )
-		.OptionsSource( &AvailableRegions )
-		.InitiallySelectedItem(SelectedCulture)
-		.OnGenerateWidget(this, &FInternationalizationSettingsModelDetails::OnRegionGenerateWidget, &DetailBuilder)
-		.ToolTipText(RegionToolTipText)
-		.OnSelectionChanged(this, &FInternationalizationSettingsModelDetails::OnRegionSelectionChanged)
-		.IsEnabled(this, &FInternationalizationSettingsModelDetails::IsRegionSelectionAllowed)
-		.Content()
-		[
-			SNew(STextBlock)
-			.Text(this, &FInternationalizationSettingsModelDetails::GetCurrentRegionText)
-			.Font(DetailBuilder.GetDetailFont())
-		]
-	];
+	{
+		const FText LanguageToolTipText = LOCTEXT("GameLanguageTooltip", "Change which language the editor treats as native for game localizations. (Requires restart to take effect.)");
+
+		CategoryBuilder.AddCustomRow(LOCTEXT("GameLanguageLabel", "Game Localization Language"))
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.Padding( FMargin( 0, 1, 0, 1 ) )
+				.FillWidth(1.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("GameLanguageLabel", "Game Localization Language"))
+					.Font(DetailBuilder.GetDetailFont())
+					.ToolTipText(LanguageToolTipText)
+				]
+			]
+		.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				SAssignNew(NativeGameLanguageComboBox, SComboBox< FCulturePtr > )
+				.OptionsSource( &AvailableNativeGameLanguages )
+				.InitiallySelectedItem(SelectedNativeGameLanguage)
+				.OnGenerateWidget(this, &FInternationalizationSettingsModelDetails::OnLanguageGenerateWidget, &DetailBuilder)
+				.ToolTipText(LanguageToolTipText)
+				.OnSelectionChanged(this, &FInternationalizationSettingsModelDetails::OnNativeGameLanguageSelectionChanged)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(this, &FInternationalizationSettingsModelDetails::GetNativeGameCurrentLanguageText)
+					.Font(DetailBuilder.GetDetailFont())
+				]
+			];
+
+		const FText RegionToolTipText = LOCTEXT("GameRegionTooltip", "Change which region the editor treats as native for game localizations. (Requires restart to take effect.)");
+
+		CategoryBuilder.AddCustomRow(LOCTEXT("GameRegionLabel", "Game Localization Region"))
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.Padding( FMargin( 0, 1, 0, 1 ) )
+				.FillWidth(1.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("GameRegionLabel", "Game Localization Region"))
+					.Font(DetailBuilder.GetDetailFont())
+					.ToolTipText(RegionToolTipText)
+				]
+			]
+		.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				SAssignNew(NativeGameRegionComboBox, SComboBox< FCulturePtr > )
+				.OptionsSource( &AvailableNativeGameRegions )
+				.InitiallySelectedItem(SelectedNativeGameCulture)
+				.OnGenerateWidget(this, &FInternationalizationSettingsModelDetails::OnRegionGenerateWidget, &DetailBuilder)
+				.ToolTipText(RegionToolTipText)
+				.OnSelectionChanged(this, &FInternationalizationSettingsModelDetails::OnNativeGameRegionSelectionChanged)
+				.IsEnabled(this, &FInternationalizationSettingsModelDetails::IsNativeGameRegionSelectionAllowed)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(this, &FInternationalizationSettingsModelDetails::GetCurrentNativeGameRegionText)
+					.Font(DetailBuilder.GetDetailFont())
+				]
+			];
+	}
 
 	const FText FieldNamesToolTipText = LOCTEXT("EditorFieldNamesTooltip", "Toggle showing localized field names (requires restart to take effect)");
 
@@ -215,7 +348,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	.ValueContent()
 	.MaxDesiredWidth(300.0f)
 	[
-		SAssignNew(FieldNamesCheckBox, SCheckBox)
+		SAssignNew(LocalizedPropertyNamesCheckBox, SCheckBox)
 		.IsChecked(Model->ShouldLoadLocalizedPropertyNames() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 		.ToolTipText(FieldNamesToolTipText)
 		.OnCheckStateChanged(this, &FInternationalizationSettingsModelDetails::ShouldLoadLocalizedFieldNamesCheckChanged)
@@ -240,7 +373,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	.ValueContent()
 	.MaxDesiredWidth(300.0f)
 	[
-		SAssignNew(FieldNamesCheckBox, SCheckBox)
+		SAssignNew(UnlocalizedNodesAndPinsCheckBox, SCheckBox)
 		.IsChecked(Model->ShouldShowNodesAndPinsUnlocalized() ? ECheckBoxState::Unchecked : ECheckBoxState::Checked)
 		.ToolTipText(NodeAndPinsNamesToolTipText)
 		.OnCheckStateChanged(this, &FInternationalizationSettingsModelDetails::ShouldShowNodesAndPinsUnlocalized)
@@ -271,73 +404,73 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	];
 }
 
-void FInternationalizationSettingsModelDetails::RefreshAvailableCultures()
+void FInternationalizationSettingsModelDetails::RefreshAvailableEditorCultures()
 {
-	AvailableCultures.Empty();
-	TArray<FCultureRef> LocalizedCultures;
-	FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), LocalizedCultures, true);
-	for (const FCultureRef& Culture : LocalizedCultures)
 	{
-		AvailableCultures.Add(Culture);
-	}
+		AvailableEditorCultures.Empty();
+		TArray<FCultureRef> LocalizedCultures;
+		FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), LocalizedCultures, true);
+		for (const FCultureRef& Culture : LocalizedCultures)
+		{
+			AvailableEditorCultures.Add(Culture);
+		}
 
-	// Update our selected culture based on the available choices
-	if ( !AvailableCultures.Contains( SelectedCulture ) )
-	{
-		SelectedCulture = NULL;
+		// Update our selected culture based on the available choices
+		if ( !AvailableEditorCultures.Contains( SelectedEditorCulture ) )
+		{
+			SelectedEditorCulture = NULL;
+		}
+		RefreshAvailableEditorLanguages();
+		RefreshAvailableEditorRegions();
 	}
-
-	RefreshAvailableLanguages();
 }
 
-void FInternationalizationSettingsModelDetails::RefreshAvailableLanguages()
+void FInternationalizationSettingsModelDetails::RefreshAvailableEditorLanguages()
 {
-	AvailableLanguages.Empty();
+	AvailableEditorLanguages.Empty();
 	
 	FString SelectedLanguageName;
-	if ( SelectedCulture.IsValid() )
+	if ( SelectedEditorCulture.IsValid() )
 	{
-		SelectedLanguageName = SelectedCulture->GetNativeLanguage();
+		SelectedLanguageName = SelectedEditorCulture->GetNativeLanguage();
 	}
 
 	// Setup the language list
-	for( const auto& Culture : AvailableCultures )
+	for( const auto& Culture : AvailableEditorCultures )
 	{
 		FCulturePtr LanguageCulture = FInternationalization::Get().GetCulture(Culture->GetTwoLetterISOLanguageName());
-		if (LanguageCulture.IsValid() && AvailableLanguages.Find(LanguageCulture) == INDEX_NONE)
+		if (LanguageCulture.IsValid() && AvailableEditorLanguages.Find(LanguageCulture) == INDEX_NONE)
 		{
-			AvailableLanguages.Add(LanguageCulture);
+			AvailableEditorLanguages.Add(LanguageCulture);
 				
 			// Do we have a match for the base language
 			const FString CultureLanguageName = Culture->GetNativeLanguage();
 			if ( SelectedLanguageName == CultureLanguageName)
 			{
-				SelectedLanguage = Culture;
+				SelectedEditorLanguage = Culture;
 			}
 		}
 	}
 
-	AvailableLanguages.Sort( FCompareCultureByNativeLanguage() );
-
-	RefreshAvailableRegions();
+	AvailableEditorLanguages.Sort( FCompareCultureByNativeLanguage() );
 }
 
-void FInternationalizationSettingsModelDetails::RefreshAvailableRegions()
+void FInternationalizationSettingsModelDetails::RefreshAvailableEditorRegions()
 {
-	AvailableRegions.Empty();
+	AvailableEditorRegions.Empty();
 
 	FCulturePtr DefaultCulture;
-	if ( SelectedLanguage.IsValid() )
+	if ( SelectedEditorLanguage.IsValid() )
 	{
-		const FString SelectedLanguageName = SelectedLanguage->GetTwoLetterISOLanguageName();
+		const FString SelectedLanguageName = SelectedEditorLanguage->GetTwoLetterISOLanguageName();
 
 		// Setup the region list
-		for( const auto& Culture : AvailableCultures )
+		for( const auto& Culture : AvailableEditorCultures )
 		{
 			const FString CultureLanguageName = Culture->GetTwoLetterISOLanguageName();
 			if ( SelectedLanguageName == CultureLanguageName)
 			{
-				AvailableRegions.Add( Culture );
+				AvailableEditorRegions.Add( Culture );
 
 				// If this doesn't have a valid region... assume it's the default
 				const FString CultureRegionName = Culture->GetNativeRegion();
@@ -348,41 +481,218 @@ void FInternationalizationSettingsModelDetails::RefreshAvailableRegions()
 			}
 		}
 
-		AvailableRegions.Sort( FCompareCultureByNativeRegion() );
+		AvailableEditorRegions.Sort( FCompareCultureByNativeRegion() );
 	}
 
 	// If we have a preferred default (or there's only one in the list), select that now
 	if ( !DefaultCulture.IsValid() )
 	{
-		if(AvailableRegions.Num() == 1)
+		if(AvailableEditorRegions.Num() == 1)
 		{
-			DefaultCulture = AvailableRegions.Last();
+			DefaultCulture = AvailableEditorRegions.Last();
 		}
 	}
 
 	if ( DefaultCulture.IsValid() )
 	{
 		// Set it as our default region, if one hasn't already been chosen
-		if ( !SelectedCulture.IsValid() && RegionComboBox.IsValid() )
+		if ( !SelectedEditorCulture.IsValid() && EditorRegionComboBox.IsValid() )
 		{
 			// We have to update the combo box like this, otherwise it'll do a null selection when we next click on it
-			RegionComboBox->SetSelectedItem( DefaultCulture );
+			EditorRegionComboBox->SetSelectedItem( DefaultCulture );
 		}
 	}
 
-	if ( RegionComboBox.IsValid() )
+	if ( EditorRegionComboBox.IsValid() )
 	{
-		RegionComboBox->RefreshOptions();
+		EditorRegionComboBox->RefreshOptions();
 	}
 }
 
-FText FInternationalizationSettingsModelDetails::GetCurrentLanguageText() const
+FText FInternationalizationSettingsModelDetails::GetEditorCurrentLanguageText() const
 {
-	if( SelectedLanguage.IsValid() )
+	if( SelectedEditorLanguage.IsValid() )
 	{
-		return FCompareCultureByNativeLanguage::GetCultureNativeLanguageText(SelectedLanguage);
+		return FCompareCultureByNativeLanguage::GetCultureNativeLanguageText(SelectedEditorLanguage);
 	}
 	return FText::GetEmpty();
+}
+
+void FInternationalizationSettingsModelDetails::OnEditorLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
+{
+	SelectedEditorLanguage = Culture;
+	SelectedEditorCulture = Culture;
+	Model->SetEditorCultureName(SelectedEditorCulture->GetName());
+	RequiresRestart = true;
+	RefreshAvailableEditorRegions();
+}
+
+FText FInternationalizationSettingsModelDetails::GetCurrentEditorRegionText() const
+{
+	if( SelectedEditorCulture.IsValid() )
+	{
+		return FCompareCultureByNativeRegion::GetCultureNativeRegionText(SelectedEditorCulture);
+	}
+	return FText::GetEmpty();
+}
+
+void FInternationalizationSettingsModelDetails::OnEditorRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
+{
+	TGuardValue<bool> Guard(IsMakingChangesToModel, true);
+	IsMakingChangesToModel = true;
+	SelectedEditorCulture = Culture;
+	Model->SetEditorCultureName(SelectedEditorCulture->GetName());
+	RequiresRestart = true;
+}
+
+bool FInternationalizationSettingsModelDetails::IsEditorRegionSelectionAllowed() const
+{
+	return SelectedEditorLanguage.IsValid();
+}
+
+void FInternationalizationSettingsModelDetails::RefreshAvailableNativeGameCultures()
+{
+	{
+		AvailableNativeGameCultures.Empty();
+		TArray<FCultureRef> LocalizedCultures;
+		FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetGameLocalizationPaths(), LocalizedCultures, true);
+		for (const FCultureRef& Culture : LocalizedCultures)
+		{
+			AvailableNativeGameCultures.Add(Culture);
+		}
+		AvailableNativeGameCultures.Add(nullptr);
+
+		// Update our selected culture based on the available choices
+		if ( !AvailableNativeGameCultures.Contains( SelectedNativeGameCulture ) )
+		{
+			SelectedNativeGameCulture = NULL;
+		}
+		RefreshAvailableNativeGameLanguages();
+		RefreshAvailableNativeGameRegions();
+	}
+}
+
+void FInternationalizationSettingsModelDetails::RefreshAvailableNativeGameLanguages()
+{
+	AvailableNativeGameLanguages.Empty();
+
+	FString SelectedLanguageName;
+	if ( SelectedNativeGameCulture.IsValid() )
+	{
+		SelectedLanguageName = SelectedNativeGameCulture->GetNativeLanguage();
+	}
+
+	// Setup the language list
+	for( const auto& Culture : AvailableNativeGameCultures )
+	{
+		FCulturePtr LanguageCulture = Culture.IsValid() ? FInternationalization::Get().GetCulture(Culture->GetTwoLetterISOLanguageName()) : nullptr;
+		if (AvailableNativeGameLanguages.Find(LanguageCulture) == INDEX_NONE)
+		{
+			AvailableNativeGameLanguages.Add(LanguageCulture);
+
+			// Do we have a match for the base language
+			const FString CultureLanguageName = Culture.IsValid() ? Culture->GetNativeLanguage() : TEXT("");
+			if ( SelectedLanguageName == CultureLanguageName)
+			{
+				SelectedNativeGameLanguage = Culture;
+			}
+		}
+	}
+
+	AvailableNativeGameLanguages.Sort( FCompareCultureByNativeLanguage() );
+}
+
+void FInternationalizationSettingsModelDetails::RefreshAvailableNativeGameRegions()
+{
+	AvailableNativeGameRegions.Empty();
+
+	FCulturePtr DefaultCulture;
+	{
+		const FString SelectedLanguageName = SelectedNativeGameLanguage.IsValid() ? SelectedNativeGameLanguage->GetTwoLetterISOLanguageName() : TEXT("");
+
+		// Setup the region list
+		for( const auto& Culture : AvailableNativeGameCultures )
+		{
+			const FString CultureLanguageName = Culture.IsValid() ? Culture->GetTwoLetterISOLanguageName() : TEXT("");
+			if ( SelectedLanguageName == CultureLanguageName)
+			{
+				AvailableNativeGameRegions.Add( Culture );
+
+				// If this doesn't have a valid region... assume it's the default
+				const FString CultureRegionName = Culture.IsValid() ? Culture->GetNativeRegion() : TEXT("");
+				if ( CultureRegionName.IsEmpty() )
+				{	
+					DefaultCulture = Culture;
+				}
+			}
+		}
+
+		AvailableNativeGameRegions.Sort( FCompareCultureByNativeRegion() );
+	}
+
+	// If we have a preferred default (or there's only one in the list), select that now
+	if ( !DefaultCulture.IsValid() )
+	{
+		if(AvailableNativeGameRegions.Num() == 1)
+		{
+			DefaultCulture = AvailableNativeGameRegions.Last();
+		}
+	}
+
+	if ( DefaultCulture.IsValid() )
+	{
+		// Set it as our default region, if one hasn't already been chosen
+		if ( !SelectedNativeGameCulture.IsValid() && NativeGameRegionComboBox.IsValid() )
+		{
+			// We have to update the combo box like this, otherwise it'll do a null selection when we next click on it
+			NativeGameRegionComboBox->SetSelectedItem( DefaultCulture );
+		}
+	}
+
+	if ( NativeGameRegionComboBox.IsValid() )
+	{
+		NativeGameRegionComboBox->RefreshOptions();
+	}
+}
+
+FText FInternationalizationSettingsModelDetails::GetNativeGameCurrentLanguageText() const
+{
+	if( SelectedNativeGameLanguage.IsValid() )
+	{
+		return FCompareCultureByNativeLanguage::GetCultureNativeLanguageText(SelectedNativeGameLanguage);
+	}
+	return LOCTEXT("None", "(None)");
+}
+
+void FInternationalizationSettingsModelDetails::OnNativeGameLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
+{
+	TGuardValue<bool> Guard(IsMakingChangesToModel, true);
+	SelectedNativeGameLanguage = Culture;
+	SelectedNativeGameCulture = Culture;
+	Model->SetNativeGameCultureName(SelectedNativeGameCulture.IsValid() ? SelectedNativeGameCulture->GetName() : TEXT(""));
+	RefreshAvailableNativeGameRegions();
+}
+
+FText FInternationalizationSettingsModelDetails::GetCurrentNativeGameRegionText() const
+{
+	if( SelectedNativeGameCulture.IsValid() )
+	{
+		return FCompareCultureByNativeRegion::GetCultureNativeRegionText(SelectedNativeGameCulture);
+	}
+	return LOCTEXT("None", "(None)");
+}
+
+void FInternationalizationSettingsModelDetails::OnNativeGameRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
+{
+	TGuardValue<bool> Guard(IsMakingChangesToModel, true);
+	SelectedNativeGameCulture = Culture;
+	Model->SetNativeGameCultureName(SelectedNativeGameCulture.IsValid() ? SelectedNativeGameCulture->GetName() : TEXT(""));
+	RequiresRestart = true;
+}
+
+bool FInternationalizationSettingsModelDetails::IsNativeGameRegionSelectionAllowed() const
+{
+	return SelectedNativeGameLanguage.IsValid();
 }
 
 TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnLanguageGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const
@@ -392,41 +702,11 @@ TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnLanguageGenerat
 		.Font(DetailBuilder->GetDetailFont());
 }
 
-void FInternationalizationSettingsModelDetails::OnLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
-{
-	SelectedLanguage = Culture;
-	SelectedCulture = NULL;
-	RegionComboBox->ClearSelection();
-
-	RefreshAvailableRegions();
-}
-
-FText FInternationalizationSettingsModelDetails::GetCurrentRegionText() const
-{
-	if( SelectedCulture.IsValid() )
-	{
-		return FCompareCultureByNativeRegion::GetCultureNativeRegionText(SelectedCulture);
-	}
-	return FText::GetEmpty();
-}
-
 TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnRegionGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const
 {
 	return SNew(STextBlock)
 		.Text(FCompareCultureByNativeRegion::GetCultureNativeRegionText(Culture))
 		.Font(DetailBuilder->GetDetailFont());
-}
-
-void FInternationalizationSettingsModelDetails::OnRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
-{
-	SelectedCulture = Culture;
-
-	HandleShutdownPostPackagesSaved();
-}
-
-bool FInternationalizationSettingsModelDetails::IsRegionSelectionAllowed() const
-{
-	return SelectedLanguage.IsValid();
 }
 
 EVisibility FInternationalizationSettingsModelDetails::GetInternationalizationRestartRowVisibility() const
@@ -436,31 +716,13 @@ EVisibility FInternationalizationSettingsModelDetails::GetInternationalizationRe
 
 void FInternationalizationSettingsModelDetails::ShouldLoadLocalizedFieldNamesCheckChanged(ECheckBoxState CheckState)
 {
-	HandleShutdownPostPackagesSaved();
-}
-
-
-void FInternationalizationSettingsModelDetails::HandleShutdownPostPackagesSaved()
-{
-	if ( SelectedCulture.IsValid() )
-	{
-		check(Model.IsValid());
-		Model->SetCultureName(SelectedCulture->GetName());
-		Model->ShouldLoadLocalizedPropertyNames(FieldNamesCheckBox->IsChecked());
-		if(SelectedCulture != FInternationalization::Get().GetCurrentCulture())
-		{
-			RequiresRestart = true;
-		}
-		else
-		{
-			RequiresRestart = false;
-		}
-	}
+	TGuardValue<bool> Guard(IsMakingChangesToModel, true);
+	Model->ShouldLoadLocalizedPropertyNames(LocalizedPropertyNamesCheckBox->IsChecked());
 }
 
 void FInternationalizationSettingsModelDetails::ShouldShowNodesAndPinsUnlocalized(ECheckBoxState CheckState)
 {
-	check(Model.IsValid());
+	TGuardValue<bool> Guard(IsMakingChangesToModel, true);
 	Model->ShouldShowNodesAndPinsUnlocalized(CheckState == ECheckBoxState::Unchecked);
 
 	// Find all Schemas and force a visualization cache clear

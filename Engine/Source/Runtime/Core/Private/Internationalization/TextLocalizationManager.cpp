@@ -713,15 +713,16 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	}
 
 	// Collect the localization paths to load from.
-	TArray<FString> LocalizationPaths;
-	if(ShouldLoadGame)
+	TArray<FString> GameLocalizationPaths;
+	if(ShouldLoadGame || GIsEditor)
 	{
-		LocalizationPaths += FPaths::GetGameLocalizationPaths();
+		GameLocalizationPaths += FPaths::GetGameLocalizationPaths();
 	}
+	TArray<FString> EditorLocalizationPaths;
 	if(ShouldLoadEditor)
 	{
-		LocalizationPaths += FPaths::GetEditorLocalizationPaths();
-		LocalizationPaths += FPaths::GetToolTipLocalizationPaths();
+		EditorLocalizationPaths += FPaths::GetEditorLocalizationPaths();
+		EditorLocalizationPaths += FPaths::GetToolTipLocalizationPaths();
 
 		bool bShouldLoadLocalizedPropertyNames = true;
 		if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni ) )
@@ -730,10 +731,11 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 		}
 		if(bShouldLoadLocalizedPropertyNames)
 		{
-			LocalizationPaths += FPaths::GetPropertyNameLocalizationPaths();
+			EditorLocalizationPaths += FPaths::GetPropertyNameLocalizationPaths();
 		}
 	}
-	LocalizationPaths += FPaths::GetEngineLocalizationPaths();
+	TArray<FString> EngineLocalizationPaths;
+	EngineLocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
 	// Prioritized array of localization entry trackers.
 	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
@@ -776,17 +778,57 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	};
 
 	TMap< FString, TMap<FString, FString> > LocalizationPathToCultureDirectoryMap;
-	for (const FString& LocalizationPath : LocalizationPaths)
+	for (const FString& LocalizationPath : GameLocalizationPaths)
 	{
 		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
 	}
+	for (const FString& LocalizationPath : EditorLocalizationPaths)
+	{
+		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+	}
+	for (const FString& LocalizationPath : EngineLocalizationPaths)
+	{
+		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+	}
+
+	TArray<FString> PrioritizedLocalizationPaths;
+	if (!GIsEditor)
+	{
+		PrioritizedLocalizationPaths += GameLocalizationPaths;
+	}
+	PrioritizedLocalizationPaths += EditorLocalizationPaths;
+	PrioritizedLocalizationPaths += EngineLocalizationPaths;
+
+	// The editor cheats and loads the native culture's localizations.
+	if (GIsEditor)
+	{
+		FString NativeCultureName = TEXT("");
+		GConfig->GetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeCultureName, GEditorSettingsIni );
+
+		if (!NativeCultureName.IsEmpty())
+		{
+			FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
+			for (const FString& LocalizationPath : GameLocalizationPaths)
+			{
+				const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeCultureName));
+				if (Entry)
+				{
+					const FString CulturePath = LocalizationPath / (*Entry);
+
+					CultureTracker.LoadFromDirectory(CulturePath);
+				}
+			}
+			CultureTracker.DetectAndLogConflicts();
+		}
+	}
+
 
 	// Read culture localization resources.
 	const TArray<FString> PrioritizedParentCultureNames = Culture->GetPrioritizedParentCultureNames();
 	for (const FString& ParentCultureName : PrioritizedParentCultureNames)
 	{
 		FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-		for (const FString& LocalizationPath : LocalizationPaths)
+		for (const FString& LocalizationPath : PrioritizedLocalizationPaths)
 		{
 			const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(ParentCultureName));
 			if (Entry)

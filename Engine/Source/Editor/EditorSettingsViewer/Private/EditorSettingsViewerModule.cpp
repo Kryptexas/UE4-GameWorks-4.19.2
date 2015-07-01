@@ -110,7 +110,6 @@ protected:
 			RegionAndLanguageSettingsSection->OnImport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
 			RegionAndLanguageSettingsSection->OnSaveDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
 			RegionAndLanguageSettingsSection->OnResetDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
-			GetMutableDefault<UInternationalizationSettingsModel>()->OnSettingChanged().AddRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSettingChanged);
 		}
 
 		// input bindings
@@ -371,19 +370,23 @@ private:
 
 	bool HandleRegionAndLanguageExport(const FString& FileName)
 	{
-		FString CultureName = GetMutableDefault<UInternationalizationSettingsModel>()->GetCultureName();
-		GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, FileName );
-		GConfig->Flush( false, FileName );
-		return true;
+		UInternationalizationSettingsModel* Model = GetMutableDefault<UInternationalizationSettingsModel>();
+		GConfig->Flush(false, Model->GetDefaultConfigFilename());
+		return BackupFile(Model->GetDefaultConfigFilename(), FileName);
 	}
 
 	bool HandleRegionAndLanguageImport(const FString& FileName)
 	{
-		FString CultureName;
-		GConfig->LoadFile(FileName);
-		GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, FileName );
-		GetMutableDefault<UInternationalizationSettingsModel>()->SetCultureName(CultureName);
-		return true;
+		UInternationalizationSettingsModel* Model = GetMutableDefault<UInternationalizationSettingsModel>();
+		if( EAppReturnType::Ok == ShowRestartWarning(LOCTEXT("ImportRegionAndLanguage_Title", "Import Region & Language")))
+		{
+			FUnrealEdMisc::Get().SetConfigRestoreFilename(FileName, Model->GetDefaultConfigFilename());
+			FUnrealEdMisc::Get().RestartEditor(false);
+
+			return true;
+		}
+
+		return false;
 	}
 
 	bool HandleRegionAndLanguageSaveDefaults()
@@ -396,12 +399,6 @@ private:
 	{
 		GetMutableDefault<UInternationalizationSettingsModel>()->ResetToDefault();
 		return true;
-	}
-
-	void HandleRegionAndLanguageSettingChanged()
-	{
-		ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
-		SettingsEditorModule.OnApplicationRestartRequired();
 	}
 
 private:

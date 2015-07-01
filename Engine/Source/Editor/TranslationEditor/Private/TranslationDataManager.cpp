@@ -627,6 +627,29 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 	{
 		TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
 
+		for (auto Iter = Archive->GetEntryIterator(); Iter; ++Iter)
+		{
+			const FString SourceText = Iter->Key;
+			const TSharedRef< FArchiveEntry >& ArchiveEntry = Iter->Value;
+
+			const bool HasTranslationUnit = InTranslationUnits.ContainsByPredicate([&](UTranslationUnit* TU) -> bool
+			{
+				return TU->Namespace == ArchiveEntry->Namespace && TU->Source == ArchiveEntry->Source.Text;
+			});
+
+			// If a translation unit doesn't exist for this namespace and source, add it.
+			if (!HasTranslationUnit)
+			{
+				UTranslationUnit* TranslationUnit = NewObject<UTranslationUnit>();
+				check(TranslationUnit != nullptr);
+				TranslationUnit->SetFlags(RF_Transactional);
+				TranslationUnit->HasBeenReviewed = false;
+				TranslationUnit->Source = ArchiveEntry->Source.Text;
+				TranslationUnit->Namespace = ArchiveEntry->Namespace;
+				InTranslationUnits.Add(TranslationUnit);
+			}
+		}
+
 		// Make a local copy of this array before we empty the arrays below (we might have been passed AllTranslations array)
 		TArray<UTranslationUnit*> TranslationUnits;
 		TranslationUnits.Append(InTranslationUnits);
