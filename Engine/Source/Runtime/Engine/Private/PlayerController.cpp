@@ -3733,6 +3733,11 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	ReceivedPlayer();
 }
 
+ULocalPlayer* APlayerController::GetLocalPlayer() const
+{
+	return Cast<ULocalPlayer>(Player);
+}
+
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)
 {
 	SCOPE_CYCLE_COUNTER(STAT_PC_TickInput);

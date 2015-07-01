@@ -560,5 +560,25 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Foliage", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
 	static int32 GrassOverlappingSphereCount(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FVector CenterPosition, float Radius);
+
+	/** 
+	 * Transforms the given 2D screen space coordinate into a 3D world-space point and direction
+	 * @param Player			Deproject using this player's view.
+	 * @param ScreenPosition	2D screen space to deproject
+	 * @param WorldPosition		(out) Corresponding 3D position in world space
+	 * @param WorldDirection	(out) World space direction vector away from the camera at the given 2d poiunt
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities", meta = (Keywords = "unproject"))
+	static bool DeprojectScreenToWorld(APlayerController const* Player, const FVector2D& ScreenPosition, FVector& WorldPosition, FVector& WorldDirection);
+
+	/** 
+	 * Transforms the given 3D world-space point into a its 2D screen space coordinate. 
+	 * @param Player			Project using this player's view.
+	 * @param WorldPosition		World position to project.
+	 * @param ScreenPosition	(out) Corresponding 2D position in screen space
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static bool ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition);
+
 };
 

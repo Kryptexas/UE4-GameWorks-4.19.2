@@ -1173,6 +1173,9 @@ public:
 	/** Associate a new UPlayer with this PlayerController. */
 	virtual void SetPlayer(UPlayer* Player);
 
+	/** Returns the ULocalPlayer for this controller if it exists, or null otherwise */
+	class ULocalPlayer* GetLocalPlayer() const;
+
 	/**
 	 * Called client-side to smoothly interpolate received TargetViewRotation (result is in BlendedTargetViewRotation)
 	 * @param TargetPawn   is the pawn which is the current ViewTarget

@@ -1599,4 +1599,45 @@ int32 UGameplayStatics::GrassOverlappingSphereCount(UObject* WorldContextObject,
 	return Count;
 }
 
+
+bool UGameplayStatics::DeprojectScreenToWorld(APlayerController const* Player, const FVector2D& ScreenPosition, FVector& WorldPosition, FVector& WorldDirection)
+{
+	ULocalPlayer* const LP = Player ? Player->GetLocalPlayer() : nullptr;
+	if (LP && LP->ViewportClient)
+	{
+		// get the projection data
+		FSceneViewProjectionData ProjectionData;
+		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+		{
+			FMatrix const InvViewProjMatrix = ProjectionData.ComputeViewProjectionMatrix().InverseFast();
+			FSceneView::DeprojectScreenToWorld(ScreenPosition, ProjectionData.GetConstrainedViewRect(), InvViewProjMatrix, /*out*/ WorldPosition, /*out*/ WorldDirection);
+			return true;
+		}
+	}
+
+	// something went wrong, zero things and return false
+	WorldPosition = FVector::ZeroVector;
+	WorldDirection = FVector::ZeroVector;
+	return false;
+}
+
+bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition)
+{
+	ULocalPlayer* const LP = Player ? Player->GetLocalPlayer() : nullptr;
+	if (LP && LP->ViewportClient)
+	{
+		// get the projection data
+		FSceneViewProjectionData ProjectionData;
+		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+		{
+			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
+			FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
+			return true;
+		}
+	}
+
+	ScreenPosition = FVector2D::ZeroVector;
+	return false;
+}
+
 #undef LOCTEXT_NAMESPACE

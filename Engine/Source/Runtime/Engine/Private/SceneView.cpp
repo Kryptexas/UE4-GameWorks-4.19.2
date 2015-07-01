@@ -678,10 +678,8 @@ FVector FSceneView::Deproject(const FPlane& ScreenPoint) const
 
 void FSceneView::DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_WorldOrigin, FVector& out_WorldDirection) const
 {
-	const FMatrix InverseViewMatrix = ViewMatrices.ViewMatrix.InverseFast();
-	const FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
-	
-	DeprojectScreenToWorld(ScreenPos, UnscaledViewRect, InverseViewMatrix, InvProjectionMatrix, out_WorldOrigin, out_WorldDirection);
+	const FMatrix InvViewProjMatrix = ViewMatrices.GetInvViewProjMatrix();
+	DeprojectScreenToWorld(ScreenPos, UnscaledViewRect, InvViewProjectionMatrix, out_WorldOrigin, out_WorldDirection);
 }
 
 void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRect& ViewRect, const FMatrix& InvViewMatrix, const FMatrix& InvProjectionMatrix, FVector& out_WorldOrigin, FVector& out_WorldDirection)
@@ -734,9 +732,76 @@ void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRe
 	out_WorldDirection = RayDirWorldSpace.GetSafeNormal();
 }
 
+void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRect& ViewRect, const FMatrix& InvViewProjMatrix, FVector& out_WorldOrigin, FVector& out_WorldDirection)
+{
+	float PixelX = FMath::TruncToFloat(ScreenPos.X);
+	float PixelY = FMath::TruncToFloat(ScreenPos.Y);
+
+	// Get the eye position and direction of the mouse cursor in two stages (inverse transform projection, then inverse transform view).
+	// This avoids the numerical instability that occurs when a view matrix with large translation is composed with a projection matrix
+
+	// Get the pixel coordinates into 0..1 normalized coordinates within the constrained view rectangle
+	const float NormalizedX = (PixelX - ViewRect.Min.X) / ((float)ViewRect.Width());
+	const float NormalizedY = (PixelY - ViewRect.Min.Y) / ((float)ViewRect.Height());
+
+	// Get the pixel coordinates into -1..1 projection space
+	const float ScreenSpaceX = (NormalizedX - 0.5f) * 2.0f;
+	const float ScreenSpaceY = ((1.0f - NormalizedY) - 0.5f) * 2.0f;
+
+	// The start of the raytrace is defined to be at mousex,mousey,1 in projection space (z=1 is near, z=0 is far - this gives us better precision)
+	// To get the direction of the raytrace we need to use any z between the near and the far plane, so let's use (mousex, mousey, 0.5)
+	const FVector4 RayStartProjectionSpace = FVector4(ScreenSpaceX, ScreenSpaceY, 1.0f, 1.0f);
+	const FVector4 RayEndProjectionSpace = FVector4(ScreenSpaceX, ScreenSpaceY, 0.5f, 1.0f);
+
+	// Projection (changing the W coordinate) is not handled by the FMatrix transforms that work with vectors, so multiplications
+	// by the projection matrix should use homogeneous coordinates (i.e. FPlane).
+	const FVector4 HGRayStartWorldSpace = InvViewProjMatrix.TransformFVector4(RayStartProjectionSpace);
+	const FVector4 HGRayEndWorldSpace = InvViewProjMatrix.TransformFVector4(RayEndProjectionSpace);
+	FVector RayStartWorldSpace(HGRayStartWorldSpace.X, HGRayStartWorldSpace.Y, HGRayStartWorldSpace.Z);
+	FVector RayEndWorldSpace(HGRayEndWorldSpace.X, HGRayEndWorldSpace.Y, HGRayEndWorldSpace.Z);
+	// divide vectors by W to undo any projection and get the 3-space coordinate 
+	if (HGRayStartWorldSpace.W != 0.0f)
+	{
+		RayStartWorldSpace /= HGRayStartWorldSpace.W;
+	}
+	if (HGRayEndWorldSpace.W != 0.0f)
+	{
+		RayEndWorldSpace /= HGRayEndWorldSpace.W;
+	}
+	const FVector RayDirWorldSpace = (RayEndWorldSpace - RayStartWorldSpace).GetSafeNormal();
+
+	// Finally, store the results in the outputs
+	out_WorldOrigin = RayStartWorldSpace;
+	out_WorldDirection = RayDirWorldSpace;
+}
+
+void FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRect& ViewRect, const FMatrix& ViewProjectionMatrix, FVector2D& out_ScreenPos)
+{
+	FPlane Result = ViewProjectionMatrix.TransformFVector4(FVector4(WorldPosition, 1.f));
+	if (Result.W == 0)
+	{
+		Result.W = KINDA_SMALL_NUMBER;
+	}
+
+	// the result of this will be x and y coords in -1..1 projection space
+	const float RHW = 1.0f / Result.W;
+	FPlane PosInScreenSpace = FPlane(Result.X * RHW, Result.Y * RHW, Result.Z * RHW, Result.W);
+
+	// Move from projection space to normalized 0..1 UI space
+	const float NormalizedX = (PosInScreenSpace.X / 2.f) + 0.5f;
+	const float NormalizedY = 1.f - (PosInScreenSpace.Y / 2.f) - 0.5f;
+
+	FVector2D RayStartViewRectSpace(
+		(float)ViewRect.Min.X + (NormalizedX * (float)ViewRect.Width()),
+		(float)ViewRect.Min.Y + (NormalizedY * (float)ViewRect.Height())
+		);
+
+	out_ScreenPos = RayStartViewRectSpace;
+}
+
+
 #define LERP_PP(NAME) if(Src.bOverride_ ## NAME)	Dest . NAME = FMath::Lerp(Dest . NAME, Src . NAME, Weight);
 #define IF_PP(NAME) if(Src.bOverride_ ## NAME && Src . NAME)
-
 
 // @param Weight 0..1
 void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, float Weight)
