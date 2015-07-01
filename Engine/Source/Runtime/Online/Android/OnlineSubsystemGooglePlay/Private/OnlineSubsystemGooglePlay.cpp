@@ -116,7 +116,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemAndroid::Init"));
 	
 	OnlineAsyncTaskThreadRunnable.Reset(new FOnlineAsyncTaskManagerGooglePlay);
-	OnlineAsyncTaskThread.Reset(FRunnableThread::Create(OnlineAsyncTaskThreadRunnable.Get(), *FString::Printf(TEXT("OnlineAsyncTaskThread %s")), *InstanceName.ToString()));
+	OnlineAsyncTaskThread.Reset(FRunnableThread::Create(OnlineAsyncTaskThreadRunnable.Get(), *FString::Printf(TEXT("OnlineAsyncTaskThread %s"), *InstanceName.ToString())));
 
 	IdentityInterface = MakeShareable(new FOnlineIdentityGooglePlay(this));
 	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
