@@ -1663,6 +1663,12 @@ void FSequencer::BindSequencerCommands()
 		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapPlayTimeToInterval(); } ) );
 
 	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapPlayTimeToDraggedKey,
+		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapPlayTimeToDraggedKey( !Settings->GetSnapPlayTimeToDraggedKey() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [Settings]{ return Settings->GetSnapPlayTimeToDraggedKey(); } ) );
+
+	SequencerCommandBindings->MapAction(
 		Commands.ToggleSnapCurveValueToInterval,
 		FExecuteAction::CreateLambda( [Settings]{ Settings->SetSnapCurveValueToInterval( !Settings->GetSnapCurveValueToInterval() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),

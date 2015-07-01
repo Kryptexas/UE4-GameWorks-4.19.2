@@ -64,6 +64,11 @@ public:
 	/** Sets whether or not to snap the play time to the interval while scrubbing. */
 	void SetSnapPlayTimeToInterval(bool InbSnapPlayTimeToInterval);
 
+	/** Gets whether or not to snap the play time to the dragged key. */
+	bool GetSnapPlayTimeToDraggedKey() const;
+	/** Sets whether or not to snap the play time to the dragged key. */
+	void SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDraggedKey);
+
 	/** Gets the snapping interval for curve values. */
 	float GetCurveValueSnapInterval() const;
 	/** Sets the snapping interval for curve values. */
@@ -129,6 +134,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bSnapPlayTimeToInterval;
+
+	UPROPERTY( config )
+	bool bSnapPlayTimeToDraggedKey;
 
 	UPROPERTY( config )
 	float CurveValueSnapInterval;

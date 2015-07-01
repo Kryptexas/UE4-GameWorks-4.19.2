@@ -60,6 +60,9 @@ public:
 	/** Toggles whether or not the play time should snap to the selected interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToInterval;
 
+	/** Toggles whether or not the play time should snap to the dragged key. */
+	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToDraggedKey;
+
 	/** Toggles whether or not to snap curve values to the interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapCurveValueToInterval;
 

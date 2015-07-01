@@ -12,6 +12,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapSectionTimesToInterval = true;
 	bSnapSectionTimesToSections = true;
 	bSnapPlayTimeToInterval = true;
+	bSnapPlayTimeToDraggedKey = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bIsUsingCleanView = false;
@@ -115,6 +116,20 @@ void USequencerSettings::SetSnapPlayTimeToInterval(bool InbSnapPlayTimeToInterva
 	if ( bSnapPlayTimeToInterval != InbSnapPlayTimeToInterval )
 	{
 		bSnapPlayTimeToInterval = InbSnapPlayTimeToInterval;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetSnapPlayTimeToDraggedKey() const
+{
+	return bSnapPlayTimeToDraggedKey;
+}
+
+void USequencerSettings::SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDraggedKey)
+{
+	if ( bSnapPlayTimeToDraggedKey != InbSnapPlayTimeToDraggedKey )
+	{
+		bSnapPlayTimeToDraggedKey = InbSnapPlayTimeToDraggedKey;
 		SaveConfig();
 	}
 }
