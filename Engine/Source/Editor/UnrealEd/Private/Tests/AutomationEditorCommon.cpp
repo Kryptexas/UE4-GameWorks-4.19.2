@@ -673,7 +673,7 @@ bool FBuildLightingCommand::Update()
 	//If we are running with -NullRHI then we have to skip this step.
 	if (GUsingNullRHI)
 	{
-		UE_LOG(LogEditorAutomationTests, Warning, TEXT("SKIPPED Build Lighting Step.  You're currently running with -NullRHI."));
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("SKIPPED Build Lighting Step.  You're currently running with -NullRHI."));
 		return true;
 	}
 
