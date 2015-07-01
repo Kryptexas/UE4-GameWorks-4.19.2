@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
+#include "MovieSceneCommonHelpers.h"
 #include "MovieScene3DTransformTrackInstance.h"
 #include "MovieScene3DTransformTrack.h"
 
@@ -10,34 +11,11 @@ FMovieScene3DTransformTrackInstance::FMovieScene3DTransformTrackInstance( UMovie
 	TransformTrack = &InTransformTrack;
 }
 
-namespace
-{
-
-USceneComponent* SceneComponentFromRuntimeObject(UObject* Object)
-{
-	AActor* Actor = Cast<AActor>(Object);
-
-	USceneComponent* SceneComponent = NULL;
-	if (Actor && Actor->GetRootComponent())
-	{
-		// If there is an actor, modify its root component
-		SceneComponent = Actor->GetRootComponent();
-	}
-	else
-	{
-		// No actor was found.  Attempt to get the object as a component in the case that we are editing them directly.
-		SceneComponent = Cast<USceneComponent>(Object);
-	}
-	return SceneComponent;
-}
-
-}
-
 void FMovieScene3DTransformTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
 {
 	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
 	{
-		USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 		if (SceneComponent != NULL)
 		{
 			InitTransformMap.Add(RuntimeObjects[ObjIndex], SceneComponent->GetRelativeTransform());
@@ -54,7 +32,7 @@ void FMovieScene3DTransformTrackInstance::RestoreState(const TArray<UObject*>& R
 			continue;
 		}
 
-		USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 		if (SceneComponent != NULL)
 		{
 			FTransform *Transform = InitTransformMap.Find(RuntimeObjects[ObjIndex]);
@@ -79,7 +57,7 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 	{
 		for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
 		{
-			USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 
 			if (SceneComponent != NULL)
 			{

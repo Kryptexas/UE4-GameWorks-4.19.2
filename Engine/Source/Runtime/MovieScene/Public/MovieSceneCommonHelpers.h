@@ -26,6 +26,14 @@ public:
 	* @return The found section or null
 	*/
 	static UMovieSceneSection* FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
+
+	/**
+	* Get the scene component from the runtime object
+	*
+	* @param Object The object to get the scene component for
+	* @return The found scene component
+	*/	
+	static USceneComponent* SceneComponentFromRuntimeObject(UObject* Object);
 };
 
 /**

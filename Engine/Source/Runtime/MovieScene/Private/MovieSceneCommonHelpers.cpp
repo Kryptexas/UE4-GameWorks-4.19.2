@@ -86,6 +86,24 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 	return ClosestSection ? ClosestSection : EarliestSection;
 }
 
+USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Object)
+{
+	AActor* Actor = Cast<AActor>(Object);
+
+	USceneComponent* SceneComponent = NULL;
+	if (Actor && Actor->GetRootComponent())
+	{
+		// If there is an actor, modify its root component
+		SceneComponent = Actor->GetRootComponent();
+	}
+	else
+	{
+		// No actor was found.  Attempt to get the object as a component in the case that we are editing them directly.
+		SceneComponent = Cast<USceneComponent>(Object);
+	}
+	return SceneComponent;
+}
+
 FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
     : PropertyPath( InPropertyPath )
 	, PropertyName( InPropertyName )
