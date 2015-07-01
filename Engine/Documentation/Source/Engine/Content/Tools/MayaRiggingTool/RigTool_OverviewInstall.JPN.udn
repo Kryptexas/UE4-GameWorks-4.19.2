@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2108142
+﻿INTSourceChangelist:2602109
 Availability:Public
 Title:Maya アニメーション リギング ツールセット
 Crumbs: %ROOT%, Engine, Engine/Content
@@ -28,16 +28,13 @@ Description:Maya アニメーションリギングツールセット（ART）の
 ![](CharacterSetupImage.jpg)
 [/REGION]
 
-
-## 概要
-
 [EXCERPT:Intro]
-アニメーションとリギング ツールセット (A.R.T) は、アニメーターのワークフローを迅速化するたくさんのアニメーションツールだけではなく、スケルトン作成、スケルトンの配置、リグの作成などからキャラクターを取り入れることができる総合ツールセットです。現時点では Maya2013 とそれ以降のバージョンでテストを終了し互換性を確認しています。以下の機能が含まれます。
+アニメーションとリギング ツールセット (A.R.T) は、アニメーターのワークフローを迅速化する豊富なアニメーションツールのセットというだけではなく、スケルトン作成、スケルトンの配置、リグの作成によるキャラクターの取り入れを可能にする総合ツールセットです。現時点では Maya2013 とそれ以降のバージョンでテストを終了し互換性を確認しています。以下の機能が含まれます。
 
 * 各プロセスをユーザーに対し直観的に指導するユーザーインターフェース
 * 完全なスケルタルの作成
 * 直観的な位置調整リグを用いたスケルトンのカスタム配置
-* アニメーションチームへリグ全体の公開および送信が **一分足らず** で可能
+* アニメーションチームへリグ全体の公開および送信がわずか 1 分で完了！
 * 最終キャラクターに簡易なスキニングを設定
 * アニメーションツール一式には、モーキャップまたはアニメーションデータのインポートを含むユーザーインターフェース、 FBX フォーマットへの書き出し、一時停止ツール、空間の切り替えなどが完備されています。
 [/EXCERPT:Intro]
@@ -97,6 +94,6 @@ ART は次の 2 つのモードに分けられます。リギングとアニメ�
 	[PARAM:links]
 		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:Description%
 		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Animation) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Animation:Description%
-		
+
 	[/PARAM]
 [/OBJECT]
