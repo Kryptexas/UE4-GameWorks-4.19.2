@@ -379,6 +379,7 @@ void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)
 void FD3D11DynamicRHI::RHIEndFrame()
 {
 	GPUProfilingData.EndFrame();
+	CurrentComputeShader = nullptr;
 }
 
 void FD3DGPUProfiler::EndFrame()

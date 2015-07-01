@@ -199,8 +199,18 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	}
 }
 
+FD3D11DynamicRHI::~FD3D11DynamicRHI()
+{
+	UE_LOG(LogD3D11RHI, Log, TEXT("~FD3D11DynamicRHI"));
+
+	check(Direct3DDeviceIMContext == nullptr);
+	check(Direct3DDevice == nullptr);
+	check(DXGIFactory1 == nullptr || DXGIFactory1.GetRefCount() == 1);
+}
+
 void FD3D11DynamicRHI::Shutdown()
 {
+	UE_LOG(LogD3D11RHI, Log, TEXT("Shutdown"));
 	check(IsInGameThread() && IsInRenderingThread());  // require that the render thread has been shut down
 
 	// Cleanup the D3D device.
@@ -217,8 +227,9 @@ void FD3D11DynamicRHI::Shutdown()
 
 void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name)
 { 
-	GPUProfilingData.PushEvent(Name); 
+	GPUProfilingData.PushEvent(Name);
 }
+
 void FD3D11DynamicRHI::RHIPopEvent()
 { 
 	GPUProfilingData.PopEvent(); 
@@ -261,9 +272,13 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 			TRefCountPtr<IDXGIOutput> Output;
 			hr = Adapter->EnumOutputs(o,Output.GetInitReference());
 			if(DXGI_ERROR_NOT_FOUND == hr)
+			{
 				break;
+			}
 			if(FAILED(hr))
+			{
 				return;
+			}
 
 			// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 			//  We might want to work around some DXGI badness here.
@@ -393,6 +408,8 @@ void FD3D11DynamicRHI::UpdateMSAASettings()
 
 void FD3D11DynamicRHI::CleanupD3DDevice()
 {
+	UE_LOG(LogD3D11RHI, Log, TEXT("CleanupD3DDevice"));
+
 	if(GIsRHIInitialized)
 	{
 		check(Direct3DDevice);
