@@ -6,7 +6,7 @@ SkillLevel: Beginner
 Version: 4.8
 
 [REGION:note]
-Before you get started: Download and extract sample assets from the following link.
+Before getting started: Download and extract sample assets from the following link.
 * [Sample Assets](SampleAssets.zip)
 [/REGION]
 
@@ -91,7 +91,7 @@ If you're creating a new project, use these project **settings** (also pictured 
 
 It's good practice to verify that assets were imported properly into the UE4 project.
 
-1.	From inside the editor, **right-click** the **'Content'** folder to open the dialog box (pictured below).
+1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options Dialog Box** (pictured below).
 
 	![](FolderDialogBox_UI.png)
 
@@ -105,6 +105,6 @@ It's good practice to verify that assets were imported properly into the UE4 pro
 
 Now that we've reached the end of this tutorial, you've learned how to:
 
-&#x2713;	Find the Content Browser's **Import** function.  
+&#x2713;	Locate the Content Browser's **Import** function.  
 &#x2713;	Use the Content Browser's **Import** function.  
 &#x2713;	Verify that assets were properly imported to the project folder.
