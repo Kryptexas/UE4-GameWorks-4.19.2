@@ -2,17 +2,15 @@
 
 #pragma once
 
+class USequencerSettings;
+
 /**
  * An drag operation that occurs on a section or key
  */
 class FSequencerDragOperation
 {
 public:
-	FSequencerDragOperation( FSequencer& InSequencer )
-		: Sequencer(InSequencer)
-	{
-		Settings = Sequencer.GetSettings();
-	}
+	FSequencerDragOperation( FSequencer& InSequencer );
 
 	virtual ~FSequencerDragOperation(){}
 	void BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc );

@@ -14,6 +14,12 @@
 /** How many pixels near the mouse has to be before snapping occurs */
 const float PixelSnapWidth = 10.f;
 
+FSequencerDragOperation::FSequencerDragOperation( FSequencer& InSequencer )
+	: Sequencer(InSequencer)
+{
+	Settings = Sequencer.GetSettings();
+}
+
 void FSequencerDragOperation::BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc )
 {
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
