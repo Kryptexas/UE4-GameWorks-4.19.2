@@ -150,6 +150,7 @@ FSequencer::FSequencer()
 	: SequencerCommandBindings( new FUICommandList )
 	, TargetViewRange(0.f, 5.f)
 	, LastViewRange(0.f, 5.f)
+	, ViewRangeBeforeZoom(TRange<float>::Empty())
 	, bAutoScrollEnabled(true)
 	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, ScrubPosition( 0.0f )
@@ -1351,7 +1352,19 @@ void FSequencer::ZoomToSelectedSections()
 
 	if (!BoundsHull.IsEmpty() && !BoundsHull.IsDegenerate())
 	{
-		OnViewRangeChanged(BoundsHull);
+		// Zoom back to last view range if already expanded
+		if (!ViewRangeBeforeZoom.IsEmpty() &&
+			FMath::IsNearlyEqual(BoundsHull.GetLowerBoundValue(), GetViewRange().GetLowerBoundValue()) &&
+			FMath::IsNearlyEqual(BoundsHull.GetUpperBoundValue(), GetViewRange().GetUpperBoundValue()))
+		{
+			OnViewRangeChanged(ViewRangeBeforeZoom);
+		}
+		else
+		{
+			ViewRangeBeforeZoom = GetViewRange();
+
+			OnViewRangeChanged(BoundsHull);
+		}
 	}
 }
 

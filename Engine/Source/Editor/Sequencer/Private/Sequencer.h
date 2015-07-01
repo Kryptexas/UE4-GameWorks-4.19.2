@@ -418,6 +418,8 @@ private:
 	TRange<float> TargetViewRange;
 	/** The last time range that was viewed */
 	TRange<float> LastViewRange;
+	/** The view range before zooming */
+	TRange<float> ViewRangeBeforeZoom;
 	/** The amount of autoscroll pan offset that is currently being applied */
 	TOptional<float> AutoscrollOffset;
 	/** Whether or not we are allowing autoscroll */
