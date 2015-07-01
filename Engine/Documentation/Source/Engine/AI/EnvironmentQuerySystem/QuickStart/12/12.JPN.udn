@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2606076
 Availability:Public
 Title:12.FindHidingSpot EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -26,13 +26,13 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 以下は簡単な覚書です。
 
-* **Generator** は、**Context** に関連して **Items** を作成します。
-* **Items** は多くの場合、 **Context** (Item X は Context Y からどれくらい離れているか) に関連して **Tests** で使用されます。
-* **Items** は **Tests** 結果に基づき選別またはスコアリングされます。
+* Generator は、Context に関連して Items を作成します。
+* Items は多くの場合、 Context (Item X は Context Y からどれくらい離れているか) に関連して Tests で使用されます。
+* Items は Tests 結果に基づき選別またはスコアリングされます。
 
 ## ステップ
 
-1. はじめに、**コンテンツ ブラウザ** にある `FindHidingSpot` **Environment Query** アセットをダブルクリックします。
+1. はじめに、**コンテンツ ブラウザ** にある `FindHidingSpot` Environment Query アセットを **ダブルクリック** します。
 
 	![](findHide.png)
 
@@ -40,15 +40,15 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	![](simpleGrid.png)
 
-1. Simple Grid Generator を選択し、その **[Details]** （詳細）パネルで以下のプロパティを設定します。
+1. **Simple Grid** Generator を選択し、その **[Details]** （詳細）パネルで以下のプロパティを設定します。
 
 	 ![](gridProp.png)
 
 	[INCLUDE:#eqsqs121]
 
-	こうした Grid Generator の設定では、かなりの数だが管理可能な Query のテスト対象のアイテムを作成します。**Project Down**、**Project Up**、**Post Projection Vertical Offset** のプロパティの変更は、それよりも上または下にある何かを見つける必要がある AI を持っている場合に特に役立ちます。
+	こうした Grid Generator の設定では、かなりの数であるものの管理可能な Query のテスト対象のアイテムを作成します。**Project Down**、**Project Up**、**Post Projection Vertical Offset** のプロパティの変更は、それよりも上または下にある何かを見つける必要がある AI を持っている場合に特に役立ちます。
 
-1. [REGION:raw] **Simple Grid** ノードを右クリックして、 **Tests** %arrow% **Distance** を選択して 2 つの **Distance** テストを追加します。[/REGION]
+1. [REGION:raw] **Simple Grid** ノードを **右クリック** して、 **Tests** %arrow% **Distance** を選択して 2 つの **Distance** テストを追加します。[/REGION]
 
 	![](addDistance.png)
 
@@ -58,7 +58,7 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	[INCLUDE:#eqsqs122]
 
-	この Distance テストは、プレイヤーから _より遠い_ **Items** により高いスコアを与えます。
+	この Distance テストは、プレイヤーから _より遠い_ Items により高いスコアを与えます。
 
 1. 2 つめを選択し、 **[Details]** パネルで、以下のプロパティを調整します。
 
@@ -66,9 +66,9 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	[INCLUDE:#eqsqs123]
 
-	この Distance テストは、AI により _近い_ **アイテム** により高い _スコア_ を与えるものです。このテストは、この前の **Distance Test** よりも大きなウェイトを持ちます。つまり、AI により近い方を優先するもののプレイヤーから離れたものを選択します。
+	この Distance テストは、AI により _近い_ アイテム により高い _スコア_ を与えるものです。このテストは、この前の **Distance Test** よりも大きなウェイトを持ちます。つまり、AI により近い方を優先するもののプレイヤーから離れたものを選択します。
 
-1. [REGION:raw] **Simple Grid** ノードを右クリックして **Tests** %arrow% **Trace** を選択して 2 つの **Trace** テストを追加します。[/REGION]
+1. [REGION:raw] **Simple Grid** ノードを **右クリック** して **Tests** %arrow% **Trace** を選択して 2 つの **Trace** テストを追加します。[/REGION]
 
 	![](addTrace.png)
 
@@ -78,11 +78,11 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	ここではプレイヤーのポーンまたは AI のポーンが視線を持つアイテムがあれば取り除きます。このテストが多くの **Distance** テストの後に行われることに懸念を抱かれるかもしれませんが大丈夫です。Environment Query はここでの順序に関係なく **Trace** テストを実行するからです。もうひとつの Trace では、追加のセットアップは不要です。
 
-1. [REGION:raw] **Simple Grid** ノードを右クリックして **Tests** %arrow% **Dot** を選択して **Dot** テストを追加します。[/REGION]
+1. [REGION:raw] **Simple Grid** ノードを **右クリック** して **Tests** %arrow% **Dot** を選択して **Dot** テストを追加します。[/REGION]
 
 	![](addDot.png)
 
-1. Dot テストを選択し、 **[Details]** パネルで、以下のプロパティを調整します。 
+1. **Dot** テストを選択し、 **[Details]** パネルで、以下のプロパティを調整します。 
 
 	![](dotProps.png)
 
@@ -90,11 +90,11 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 
 	これからは少し難しくなります。大まかにいうと、「プレイヤーのポーンの横にあるアイテムを優先する」ということですが、その仕組みは少々変わっています。Dot Product (内積) 関数は、1.0 (全く同じ) から -1.0 (完全に逆) のスケールで2 つのベクターがどれくらい「似ている」かを戻します。従って、プレイヤーの回転ベクターとプレイヤーからアイテムまでのベクターとの間の Dot Product の **Absolute Value** を取得すると、プレイヤーの前または後ろのポイントを優先します。しかし、 **Scoring Factor** を -1.0 に設定すると、プレイヤーの側面を優先します。
 
-1. [REGION:raw] **Simple Grid** ノードを右クリックし、**Tests** %arrow% **PathFinding** を選択して、 **PathFinding** テストを追加します。[/REGION]
+1. [REGION:raw] **Simple Grid** ノードを **右クリック** し、**Tests** %arrow% **PathFinding** を選択して、 **PathFinding** テストを追加します。[/REGION]
 
 	![](addPath.png)
 
-1. PathFinding テストを選択し、 **[Details]** パネルで、**Test Purpose** （テスト目的）を `Score Only` に調整します。
+1. **PathFinding** テストを選択し、 **[Details]** パネルで、**Test Purpose** （テスト目的）を `Score Only` に調整します。
 
 	![](pathProps.png)
 
@@ -116,11 +116,11 @@ Description:プレイヤーの TopDownCharacter から隠れるグリッド上�
 [/EXCERPT]
 
 [EXCERPT:eqsqs121]
-* Grid Size = `2000.0`
-* Space Between = `150.0`
-* Navigation Filer = `RecastFilter_UseDefaultArea`
-* Project Down = `2048.0`
-* Post Projection Vertical Offset = `120.0`
+* **Grid Size** = `2000.0`
+* **Space Between** = `150.0`
+* **Navigation Filer** = `RecastFilter_UseDefaultArea`
+* **Project Down** = `2048.0`
+* **Post Projection Vertical Offset** = `32.0`
 [/EXCERPT]
 
 [EXCERPT:eqsqs122]
