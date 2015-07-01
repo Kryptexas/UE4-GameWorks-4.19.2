@@ -294,6 +294,22 @@ public:
 	{ 
 		return new FRHIShaderResourceView(); 
 	}
+
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel) final override
+	{
+		return new FRHIShaderResourceView(); 
+	}
+
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel) final override
+	{
+		return new FRHIShaderResourceView(); 
+	}
+
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel) final override
+	{
+		return new FRHIShaderResourceView(); 
+	}
+
 	virtual void RHIGenerateMips(FTextureRHIParamRef Texture) final override
 	{
 

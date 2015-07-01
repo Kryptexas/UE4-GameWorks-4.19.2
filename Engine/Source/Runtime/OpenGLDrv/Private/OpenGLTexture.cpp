@@ -1732,6 +1732,96 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 	return View;
 }
 
+FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel)
+{
+	FOpenGLTexture3D* Texture3D = ResourceCast(Texture3DRHI);
+
+	FOpenGLShaderResourceView *View = 0;
+
+	if (FOpenGL::SupportsTextureView())
+	{
+		VERIFY_GL_SCOPE();
+
+		GLuint Resource = 0;
+
+		FOpenGL::GenTextures( 1, &Resource);
+		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Texture3D->GetFormat()];
+		const bool bSRGB = (Texture3D->GetFlags()&TexCreate_SRGB) != 0;
+		
+		FOpenGL::TextureView( Resource, Texture3D->Target, Texture3D->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 1);
+		
+		View = new FOpenGLShaderResourceView(this, Resource, Texture3D->Target, MipLevel, true);
+	}
+	else
+	{
+		View = new FOpenGLShaderResourceView(this, Texture3D->Resource, Texture3D->Target, MipLevel, false);
+	}
+	
+	FShaderCache::LogSRV(View, Texture3DRHI, MipLevel, Texture3DRHI->GetNumMips(), Texture3DRHI->GetFormat());
+
+	return View;
+}
+
+FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel)
+{
+	FOpenGLTexture2DArray* Texture2DArray = ResourceCast(Texture2DArrayRHI);
+
+	FOpenGLShaderResourceView *View = 0;
+
+	if (FOpenGL::SupportsTextureView())
+	{
+		VERIFY_GL_SCOPE();
+
+		GLuint Resource = 0;
+
+		FOpenGL::GenTextures( 1, &Resource);
+		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Texture2DArray->GetFormat()];
+		const bool bSRGB = (Texture2DArray->GetFlags()&TexCreate_SRGB) != 0;
+		
+		FOpenGL::TextureView( Resource, Texture2DArray->Target, Texture2DArray->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 1);
+		
+		View = new FOpenGLShaderResourceView(this, Resource, Texture2DArray->Target, MipLevel, true);
+	}
+	else
+	{
+		View = new FOpenGLShaderResourceView(this, Texture2DArray->Resource, Texture2DArray->Target, MipLevel, false);
+	}
+	
+	FShaderCache::LogSRV(View, Texture2DArrayRHI, MipLevel, Texture2DArrayRHI->GetNumMips(), Texture2DArrayRHI->GetFormat());
+
+	return View;
+}
+
+FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel)
+{
+	FOpenGLTextureCube* TextureCube = ResourceCast(TextureCubeRHI);
+
+	FOpenGLShaderResourceView *View = 0;
+
+	if (FOpenGL::SupportsTextureView())
+	{
+		VERIFY_GL_SCOPE();
+
+		GLuint Resource = 0;
+
+		FOpenGL::GenTextures( 1, &Resource);
+		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[TextureCube->GetFormat()];
+		const bool bSRGB = (TextureCube->GetFlags()&TexCreate_SRGB) != 0;
+		
+		FOpenGL::TextureView( Resource, TextureCube->Target, TextureCube->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 1);
+		
+		View = new FOpenGLShaderResourceView(this, Resource, TextureCube->Target, MipLevel, true);
+	}
+	else
+	{
+		View = new FOpenGLShaderResourceView(this, TextureCube->Resource, TextureCube->Target, MipLevel, false);
+	}
+	
+	FShaderCache::LogSRV(View, TextureCube, MipLevel, TextureCubeRHI->GetNumMips(), TextureCubeRHI->GetFormat());
+
+	return View;
+}
+
 
 /** Generates mip maps for the surface. */
 void FOpenGLDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SurfaceRHI)

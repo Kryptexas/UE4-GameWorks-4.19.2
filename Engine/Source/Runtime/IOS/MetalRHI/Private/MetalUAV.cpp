@@ -103,6 +103,27 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	return SRV;
 }
 
+FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel)
+{
+	FEmptyShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceTexture = (FRHITexture*)Texture3DRHI;
+	return SRV;
+}
+
+FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel)
+{
+	FEmptyShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceTexture = (FRHITexture*)Texture2DArrayRHI;
+	return SRV;
+}
+
+FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel)
+{
+	FEmptyShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceTexture = (FRHITexture*)TextureCubeRHI;
+	return SRV;
+}
+
 void FMetalDynamicRHI::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
 	FMetalUnorderedAccessView* UnorderedAccessView = ResourceCast(UnorderedAccessViewRHI);
