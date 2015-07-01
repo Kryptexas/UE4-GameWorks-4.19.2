@@ -3017,27 +3017,37 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 	bool bRecreateNavmesh = true;
 	if (DestNavMesh->HasValidNavmesh())
 	{
+		const bool bGameStaticNavMesh = IsGameStaticNavMesh(DestNavMesh);
 		const dtNavMeshParams* SavedNavParams = DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh->getParams();
 		if (SavedNavParams)
 		{
-			const float TileDim = Config.tileSize * Config.cs;
-			if (SavedNavParams->tileHeight == TileDim && SavedNavParams->tileWidth == TileDim)
+			if (bGameStaticNavMesh)
 			{
-				const FVector Orig = Recast2UnrealPoint(SavedNavParams->orig);
-				const FVector OrigError(FMath::Fmod(Orig.X, TileDim), FMath::Fmod(Orig.X, TileDim), FMath::Fmod(Orig.X, TileDim));
-				if (OrigError.IsNearlyZero())
-				{
-					bRecreateNavmesh = false;
-				}
+				bRecreateNavmesh = false;
+				MaxTiles = SavedNavParams->maxTiles;
+				MaxPolysPerTile = SavedNavParams->maxPolys;
 			}
-
-			// if new navmesh needs more tiles, force recreating
-			if (!bRecreateNavmesh)
+			else
 			{
-				CalcNavMeshProperties(MaxTiles, MaxPolysPerTile);
-				if (FMath::Log2(MaxTiles) != FMath::Log2(SavedNavParams->maxTiles))
+				const float TileDim = Config.tileSize * Config.cs;
+				if (SavedNavParams->tileHeight == TileDim && SavedNavParams->tileWidth == TileDim)
 				{
-					bRecreateNavmesh = true;
+					const FVector Orig = Recast2UnrealPoint(SavedNavParams->orig);
+					const FVector OrigError(FMath::Fmod(Orig.X, TileDim), FMath::Fmod(Orig.X, TileDim), FMath::Fmod(Orig.X, TileDim));
+					if (OrigError.IsNearlyZero())
+					{
+						bRecreateNavmesh = false;
+					}
+				}
+
+				// if new navmesh needs more tiles, force recreating
+				if (!bRecreateNavmesh)
+				{
+					CalcNavMeshProperties(MaxTiles, MaxPolysPerTile);
+					if (FMath::Log2(MaxTiles) != FMath::Log2(SavedNavParams->maxTiles))
+					{
+						bRecreateNavmesh = true;
+					}
 				}
 			}
 		};
