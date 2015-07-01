@@ -3506,7 +3506,7 @@ partial class GUBP
                 var StartTime = DateTime.UtcNow;
                 foreach (var NodeToDo in bp.GUBPNodes)
                 {
-                    TempStorage.CleanSharedTempStorageDirectory(NodeToDo.Value.GameNameIfAnyForTempStorage());
+                    TempStorage.CleanSharedTempStorageDirectory(NodeToDo.Value.Node.GameNameIfAnyForTempStorage());
                 }
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
                 Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);

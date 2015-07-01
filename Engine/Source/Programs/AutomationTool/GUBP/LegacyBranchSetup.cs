@@ -669,16 +669,16 @@ partial class GUBP
 														{
 															BuildAgentSharingGroup = "";
 														}
-														GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
-														GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
-														GUBPNodes[NodeName].AgentSharingGroup = BuildAgentSharingGroup;
+														GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].Node.AgentSharingGroup = BuildAgentSharingGroup;
+														GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].Node.AgentSharingGroup = BuildAgentSharingGroup;
+														GUBPNodes[NodeName].Node.AgentSharingGroup = BuildAgentSharingGroup;
 													}
 													else
 													{
 														//GUBPNodes[NodeName].AgentSharingGroup = FormalAgentSharingGroup;
 															if (Plat == UnrealTargetPlatform.XboxOne)
 														{
-															GUBPNodes[NodeName].AgentSharingGroup = "";
+															GUBPNodes[NodeName].Node.AgentSharingGroup = "";
 														}
 													}
 													if (PlatPair.bTest)
@@ -911,16 +911,16 @@ partial class GUBP
 												{
 													BuildAgentSharingGroup = "";
 												}
-												GUBPNodes[CookNode.StaticGetFullName(HostPlatform, CodeProj, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
-												GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, CodeProj, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
-												GUBPNodes[FormalNodeName].AgentSharingGroup = BuildAgentSharingGroup;
+												GUBPNodes[CookNode.StaticGetFullName(HostPlatform, CodeProj, CookedPlatform)].Node.AgentSharingGroup = BuildAgentSharingGroup;
+												GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, CodeProj, Plat)].Node.AgentSharingGroup = BuildAgentSharingGroup;
+												GUBPNodes[FormalNodeName].Node.AgentSharingGroup = BuildAgentSharingGroup;
 											}
 											else
 											{
 												//GUBPNodes[FormalNodeName].AgentSharingGroup = FormalAgentSharingGroup;
 												if (Plat == UnrealTargetPlatform.XboxOne)
 												{
-													GUBPNodes[FormalNodeName].AgentSharingGroup = "";
+													GUBPNodes[FormalNodeName].Node.AgentSharingGroup = "";
 												}
 											}
 											if (Config.bTest)
