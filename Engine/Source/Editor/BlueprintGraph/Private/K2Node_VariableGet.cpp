@@ -383,7 +383,8 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (!bIsPureGet)
+	// Do not attempt to expand the node when not a pure get nor when there is no property. Normal compilation error detection will detect the missing property.
+	if (!bIsPureGet && GetPropertyForVariable() != nullptr)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 		UEdGraphPin* ValuePin = GetValuePin();
