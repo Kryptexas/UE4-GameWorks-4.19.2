@@ -214,7 +214,7 @@ public:
 	FORCEINLINE bool IsSimulating() const { return (bIsSimulating != 0); }
 	FORCEINLINE bool IsPausable() const { return (bIsPausable != 0); }
 	FORCEINLINE uint8 GetPriority() const { return Priority; }
-	FORCEINLINE bool RequiresPriorityOrResourceManagement() const { return bCaresAboutPriority == true || RequiredResources.IsEmpty() == false; }
+	FORCEINLINE bool RequiresPriorityOrResourceManagement() const { return bCaresAboutPriority == true || RequiredResources.IsEmpty() == false || ClaimedResources.IsEmpty() == false; }
 	FORCEINLINE FGameplayResourceSet GetRequiredResources() { return RequiredResources; }
 	FORCEINLINE FGameplayResourceSet GetClaimedResources() { return ClaimedResources; }
 	
