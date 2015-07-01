@@ -742,9 +742,9 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 		if (bCreateThenPin)
 		{
 			UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
-		// Use 'completed' name for output pins on latent functions
-		if(Function->HasMetaData(FBlueprintMetadata::MD_Latent))
-		{
+			// Use 'completed' name for output pins on latent functions
+			if (Function->HasMetaData(FBlueprintMetadata::MD_Latent))
+			{
 				OutputExecPin->PinFriendlyName = FText::FromString(K2Schema->PN_Completed);
 			}
 		}
@@ -818,8 +818,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 
 	UEdGraphPin* SelfPin = CreateSelfPin(Function);
 
-	//Renamed self pin to target
-	SelfPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+	// Renamed self pin to target
+	SelfPin->PinFriendlyName = LOCTEXT("Target", "Target");
 
 	const bool bIsProtectedFunc = Function->GetBoolMetaData(FBlueprintMetadata::MD_Protected);
 	const bool bIsStaticFunc = Function->HasAllFunctionFlags(FUNC_Static);
