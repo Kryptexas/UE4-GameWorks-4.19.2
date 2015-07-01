@@ -22,10 +22,12 @@ public class AnimGraph : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"InputCore",
 				"SlateCore",
 				"UnrealEd",
                 "GraphEditor",
-				"PropertyEditor"
+				"PropertyEditor",
+				"EditorStyle"
 			}
 		);
 
