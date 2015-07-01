@@ -85,6 +85,9 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
 	}
 
+	IDetailPropertyRow& CustomCurveRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, CustomAttenuationCurve)).ToSharedRef());
+	CustomCurveRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsCustomCurveSelected));
+
 	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
 	dbAttenuationRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsNaturalSoundSelected));
 
@@ -188,7 +191,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFRadiusMin)).ToSharedRef());
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFRadiusMax)).ToSharedRef());
 
-	if (PropertyHandles.Num() != 13)
+	if (PropertyHandles.Num() != 14)
 	{
 		FString PropertyList;
 		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)
@@ -247,4 +250,14 @@ EVisibility FAttenuationSettingsCustomization::IsNaturalSoundSelected() const
 	const ESoundDistanceModel DistanceAlgorithm = (ESoundDistanceModel)DistanceAlgorithmValue;
 
 	return (DistanceAlgorithm == ATTENUATION_NaturalSound ? EVisibility::Visible : EVisibility::Hidden);
+}
+
+EVisibility FAttenuationSettingsCustomization::IsCustomCurveSelected() const
+{
+	uint8 DistanceAlgorithmValue;
+	DistanceAlgorithmHandle->GetValue(DistanceAlgorithmValue);
+
+	const ESoundDistanceModel DistanceAlgorithm = (ESoundDistanceModel)DistanceAlgorithmValue;
+
+	return (DistanceAlgorithm == ATTENUATION_Custom ? EVisibility::Visible : EVisibility::Hidden);
 }
