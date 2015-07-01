@@ -60,6 +60,8 @@ private:
 
 	/** The sequencer which owns this widget. */
 	TWeakPtr<FSequencer> Sequencer;
+	/** Cached user-supplied settings object */
+	USequencerSettings* Settings; 
 	/** The class responsible for time sliding on the curve editor */
 	TSharedPtr<class ITimeSliderController> TimeSliderController;
 	/** The sequencer node tree which contains the key area nodes which supply the curves to edit. */

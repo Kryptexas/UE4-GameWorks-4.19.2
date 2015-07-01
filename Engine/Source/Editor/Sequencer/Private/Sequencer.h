@@ -104,6 +104,9 @@ public:
 	/** @return The current view range */
 	FAnimatedRange GetViewRange() const;
 
+	/** Access the user-supplied settings object */
+	USequencerSettings* GetSettings() const { return Settings; }
+
 	bool IsPerspectiveViewportPosessionEnabled() const { return bPerspectiveViewportPossessionEnabled; }
 
 	/**
@@ -375,6 +378,9 @@ protected:
 	void UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const;
 
 private:
+	/** User-supplied settings object for this sequencer */
+	USequencerSettings* Settings;
+
 	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;
 
 	/** Command list for sequencer commands */

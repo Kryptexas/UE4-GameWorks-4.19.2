@@ -81,7 +81,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 	if (!Sequencer.IsValid())
 	{
-		FSequencerViewParams ViewParams;
+		FSequencerViewParams ViewParams( TEXT( "NiagaraSequencerSettings" ) );
 		ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
 		ViewParams.InitialScrubPosition = 0;
 

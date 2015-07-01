@@ -340,10 +340,9 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> Widg
 			FVector2D CursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 			float NewValue = RangeToScreen.LocalXToInput(CursorPos.X);
 
-			const USequencerSettings* Settings = GetDefault<USequencerSettings>();
-			if ( Settings->GetIsSnapEnabled() && Settings->GetSnapPlayTimeToInterval() )
+			if ( TimeSliderArgs.Settings->GetIsSnapEnabled() && TimeSliderArgs.Settings->GetSnapPlayTimeToInterval() )
 			{
-				NewValue = Settings->SnapTimeToInterval( NewValue );
+				NewValue = TimeSliderArgs.Settings->SnapTimeToInterval( NewValue );
 			}
 
 			CommitScrubPosition( NewValue, /*bIsScrubbing=*/false );
@@ -405,10 +404,9 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
 				float NewValue = RangeToScreen.LocalXToInput( CursorPos.X );
 
-				const USequencerSettings* Settings = GetDefault<USequencerSettings>();
-				if ( Settings->GetIsSnapEnabled() && Settings->GetSnapPlayTimeToInterval() )
+				if ( TimeSliderArgs.Settings->GetIsSnapEnabled() && TimeSliderArgs.Settings->GetSnapPlayTimeToInterval() )
 				{
-					NewValue = Settings->SnapTimeToInterval(NewValue);
+					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
 				}
 
 				CommitScrubPosition( NewValue, /*bIsScrubbing=*/true );

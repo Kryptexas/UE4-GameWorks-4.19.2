@@ -28,9 +28,13 @@ struct FSequencerViewParams
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 
-	FSequencerViewParams()
+	/** Unique name for the sequencer */
+	FString UniqueName;
+
+	FSequencerViewParams(FString InName = FString())
 		: InitalViewRange( 0.0f, 5.0f )
 		, InitialScrubPosition( 0.0f )
+		, UniqueName(MoveTemp(InName))
 	{}
 };
 

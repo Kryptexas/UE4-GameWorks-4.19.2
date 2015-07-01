@@ -191,8 +191,9 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	bUserIsSelecting = false;
 
 	USelection::SelectionChangedEvent.AddSP(this, &SSequencer::OnActorSelectionChanged);
+	Settings = InSequencer->GetSettings();
 
-	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
+	Settings->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
 
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
@@ -206,6 +207,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	TimeSliderArgs.OnBeginScrubberMovement = InArgs._OnBeginScrubbing;
 	TimeSliderArgs.OnEndScrubberMovement = InArgs._OnEndScrubbing;
 	TimeSliderArgs.OnScrubPositionChanged = InArgs._OnScrubPositionChanged;
+	TimeSliderArgs.Settings = Settings;
 
 	TSharedRef<FSequencerTimeSliderController> TimeSliderController( new FSequencerTimeSliderController( TimeSliderArgs ) );
 	
@@ -678,7 +680,7 @@ TSharedRef<SWidget> SSequencer::MakeTransportControls()
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	GetMutableDefault<USequencerSettings>()->GetOnShowCurveEditorChanged().RemoveAll(this);
+	Settings->GetOnShowCurveEditorChanged().RemoveAll(this);
 }
 
 void SSequencer::RegisterActiveTimerForPlayback()
@@ -792,22 +794,22 @@ void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 
 float SSequencer::OnGetTimeSnapInterval() const
 {
-	return GetDefault<USequencerSettings>()->GetTimeSnapInterval();
+	return Settings->GetTimeSnapInterval();
 }
 
 void SSequencer::OnTimeSnapIntervalChanged( float InInterval )
 {
-	GetMutableDefault<USequencerSettings>()->SetTimeSnapInterval(InInterval);
+	Settings->SetTimeSnapInterval(InInterval);
 }
 
 float SSequencer::OnGetValueSnapInterval() const
 {
-	return GetDefault<USequencerSettings>()->GetCurveValueSnapInterval();
+	return Settings->GetCurveValueSnapInterval();
 }
 
 void SSequencer::OnValueSnapIntervalChanged( float InInterval )
 {
-	GetMutableDefault<USequencerSettings>()->SetCurveValueSnapInterval( InInterval );
+	Settings->SetCurveValueSnapInterval( InInterval );
 }
 
 
@@ -1211,13 +1213,13 @@ EVisibility SSequencer::GetBreadcrumbTrailVisibility() const
 
 EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 {
-	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 float SSequencer::GetOutlinerSpacerFill() const
 {
 	const float Column1Coeff = GetColumnFillCoefficient(1);
-	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
+	return Settings->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
 }
 
 void SSequencer::OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex)
@@ -1227,12 +1229,12 @@ void SSequencer::OnColumnFillCoefficientChanged(float FillCoefficient, int32 Col
 
 EVisibility SSequencer::GetTrackAreaVisibility() const
 {
-	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
+	return Settings->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
-	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 void SSequencer::OnCurveEditorVisibilityChanged()
@@ -1240,7 +1242,7 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 	if (CurveEditor.IsValid())
 	{
 		// Only zoom horizontally if the editor is visible
-		CurveEditor->SetZoomToFit(true, GetDefault<USequencerSettings>()->GetShowCurveEditor());
+		CurveEditor->SetZoomToFit(true, Settings->GetShowCurveEditor());
 	}
 }
 

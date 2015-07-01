@@ -11,7 +11,7 @@ public:
 	FSequencerDragOperation( FSequencer& InSequencer )
 		: Sequencer(InSequencer)
 	{
-		Settings = GetDefault<USequencerSettings>();
+		Settings = Sequencer.GetSettings();
 	}
 
 	virtual ~FSequencerDragOperation(){}

@@ -56,7 +56,7 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 			if ( RichCurve != nullptr )
 			{
 				bool bAddCurve = false;
-				switch ( GetDefault<USequencerSettings>()->GetCurveVisibility() )
+				switch ( SequencerNodeTree->GetSequencer().GetSettings()->GetCurveVisibility() )
 				{
 				case ESequencerCurveVisibility::AllCurves:
 					bAddCurve = true;

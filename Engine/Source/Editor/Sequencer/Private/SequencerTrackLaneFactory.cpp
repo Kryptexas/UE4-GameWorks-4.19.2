@@ -87,13 +87,15 @@ void FSequencerTrackLaneFactory::Repopulate(const FSequencerNodeTree& NodeTree)
 	}
 }
 
-void FSequencerTrackLaneFactory::GenerateWidgetForNode( FSequencerDisplayNode& Node)
+void FSequencerTrackLaneFactory::GenerateWidgetForNode( FSequencerDisplayNode& Node )
 {
+	auto* Settings = Sequencer->GetSettings();
+
 	TAttribute<FAnimatedRange> ViewRange;
 	ViewRange.Bind(TAttribute<FAnimatedRange>::FGetter::CreateSP(Sequencer, &FSequencer::GetViewRange));
 
 	TSharedRef<SWidget> OutlinerWidget = Node.GenerateContainerWidgetForOutliner();
-	TSharedRef<SWidget> TrackWidget = Node.GenerateWidgetForSectionArea( FAnimatedRange::WrapAttribute(ViewRange) );
+	TSharedRef<SWidget> TrackWidget = Node.GenerateWidgetForSectionArea( FAnimatedRange::WrapAttribute( ViewRange ) );
 
 	// Link the height of the widgets using a size linker
 	FWidgetSizeLinker Link;
@@ -106,8 +108,8 @@ void FSequencerTrackLaneFactory::GenerateWidgetForNode( FSequencerDisplayNode& N
 	auto GetMaxSize = [=]() -> float {
 		return Link.GetMaxSize().Y;
 	};
-	auto IsVisible = []() -> EVisibility{
-		return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Hidden : EVisibility::Visible;
+	auto IsVisible = [=]() -> EVisibility{
+		return Settings->GetShowCurveEditor() ? EVisibility::Hidden : EVisibility::Visible;
 	};
 
 	TrackOutliner->AddSlot()

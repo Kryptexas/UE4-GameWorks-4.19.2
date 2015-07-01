@@ -45,7 +45,7 @@ struct FSequencerBreadcrumb
 /**
  * Main sequencer UI widget
  */
-class SSequencer : public SCompoundWidget
+class SSequencer : public SCompoundWidget, public FGCObject
 {
 public:
 	DECLARE_DELEGATE_OneParam( FOnToggleBoolOption, bool )
@@ -72,6 +72,11 @@ public:
 	void Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer );
 
 	~SSequencer();
+	
+	virtual void AddReferencedObjects( FReferenceCollector& Collector )
+	{
+		Collector.AddReferencedObject( Settings );
+	}
 
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
@@ -241,6 +246,8 @@ private:
 	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
+	/** Cached settings provided to the sequencer itself on creation */
+	USequencerSettings* Settings;
 	/** The fill coefficients of each column in the grid. */
 	float ColumnFillCoefficients[2];
 	/** Whether the active timer is currently registered */

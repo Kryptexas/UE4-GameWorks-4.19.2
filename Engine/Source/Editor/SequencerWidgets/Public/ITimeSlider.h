@@ -2,6 +2,8 @@
 
 #pragma once
 
+class USequencerSettings;
+
 /** Enum specifying how to interpolate to a new view range */
 enum class EViewRangeInterpolation
 {
@@ -60,6 +62,7 @@ struct FTimeSliderArgs
 		, OnEndScrubberMovement()
 		, OnViewRangeChanged()
 		, AllowZoom(true)
+		, Settings(nullptr)
 	{}
 
 	/** The scrub position */
@@ -80,6 +83,8 @@ struct FTimeSliderArgs
 	FOnViewRangeChanged OnViewRangeChanged;
 	/** If we are allowed to zoom */
 	bool AllowZoom;
+	/** User-supplied settings object */
+	USequencerSettings* Settings;
 };
 
 class ITimeSliderController

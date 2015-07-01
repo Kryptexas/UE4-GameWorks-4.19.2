@@ -2,6 +2,27 @@
 
 #include "SequencerPrivatePCH.h"
 
+USequencerSettings* USequencerSettingsContainer::GetOrCreate(const TCHAR* InName)
+{
+	static const TCHAR* SettingsContainerName = TEXT("SequencerSettingsContainer");
+
+	auto* Outer = FindObject<USequencerSettingsContainer>(GetTransientPackage(), SettingsContainerName);
+	if (!Outer)
+	{
+		Outer = NewObject<USequencerSettingsContainer>(GetTransientPackage(), USequencerSettingsContainer::StaticClass(), SettingsContainerName);
+		Outer->AddToRoot();
+	}
+	
+	USequencerSettings* Inst = FindObject<USequencerSettings>( Outer, InName );
+	if (!Inst)
+	{
+		Inst = NewObject<USequencerSettings>( Outer, USequencerSettings::StaticClass(), InName );
+		Inst->LoadConfig();
+	}
+
+	return Inst;
+}
+
 USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {

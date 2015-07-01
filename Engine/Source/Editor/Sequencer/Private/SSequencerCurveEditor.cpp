@@ -10,9 +10,11 @@
 void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer, TSharedRef<ITimeSliderController> InTimeSliderController )
 {
 	Sequencer = InSequencer;
+	Settings = InSequencer->GetSettings();
+
 	TimeSliderController = InTimeSliderController;
 	NodeTreeSelectionChangedHandle = Sequencer.Pin()->GetSelection().GetOnOutlinerNodeSelectionChanged().AddSP(this, &SSequencerCurveEditor::NodeTreeSelectionChanged);
-	GetMutableDefault<USequencerSettings>()->GetOnCurveVisibilityChanged().AddSP( this, &SSequencerCurveEditor::SequencerCurveVisibilityChanged );
+	Settings->GetOnCurveVisibilityChanged().AddSP( this, &SSequencerCurveEditor::SequencerCurveVisibilityChanged );
 
 	// @todo sequencer: switch to lambda capture expressions when support is introduced?
 	auto ViewRange = InArgs._ViewRange;
@@ -24,7 +26,7 @@ void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSeq
 		.ViewMaxInput_Lambda( [=]{ return ViewRange.Get().GetUpperBoundValue(); } )
 		.OnSetInputViewRange_Lambda( [=](float InLowerBound, float InUpperBound){ OnViewRangeChanged.ExecuteIfBound(TRange<float>(InLowerBound, InUpperBound), EViewRangeInterpolation::Immediate); } )
 		.HideUI( false )
-		.ZoomToFitHorizontal( GetDefault<USequencerSettings>()->GetShowCurveEditor() )
+		.ZoomToFitHorizontal( Settings->GetShowCurveEditor() )
 		.ShowCurveSelector( false )
 		.ShowZoomButtons( false )
 		.ShowInputGridNumbers( false )
@@ -114,34 +116,33 @@ void SSequencerCurveEditor::UpdateCurveOwner()
 
 bool SSequencerCurveEditor::GetCurveSnapEnabled() const
 {
-	const USequencerSettings* Settings = GetDefault<USequencerSettings>();
 	return Settings->GetIsSnapEnabled();
 }
 
 float SSequencerCurveEditor::GetCurveTimeSnapInterval() const
 {
-	return GetDefault<USequencerSettings>()->GetSnapKeyTimesToInterval()
-		? GetDefault<USequencerSettings>()->GetTimeSnapInterval()
+	return Settings->GetSnapKeyTimesToInterval()
+		? Settings->GetTimeSnapInterval()
 		: 0;
 }
 
 float SSequencerCurveEditor::GetCurveValueSnapInterval() const
 {
-	return GetDefault<USequencerSettings>()->GetSnapCurveValueToInterval()
-		? GetDefault<USequencerSettings>()->GetCurveValueSnapInterval()
+	return Settings->GetSnapCurveValueToInterval()
+		? Settings->GetCurveValueSnapInterval()
 		: 0;
 }
 
 bool SSequencerCurveEditor::GetShowCurveEditorCurveToolTips() const
 {
-	return GetDefault<USequencerSettings>()->GetShowCurveEditorCurveToolTips();
+	return Settings->GetShowCurveEditorCurveToolTips();
 }
 
 void SSequencerCurveEditor::NodeTreeSelectionChanged()
 {
 	if (SequencerNodeTree.IsValid())
 	{
-		if (GetDefault<USequencerSettings>()->GetCurveVisibility() == ESequencerCurveVisibility::SelectedCurves)
+		if (Settings->GetCurveVisibility() == ESequencerCurveVisibility::SelectedCurves)
 		{
 			UpdateCurveOwner();
 		}

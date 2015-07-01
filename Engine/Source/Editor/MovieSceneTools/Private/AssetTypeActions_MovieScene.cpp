@@ -27,7 +27,7 @@ void FAssetTypeActions_MovieScene::OpenAssetEditor( const TArray<UObject*>& InOb
 			// @todo sequencer: Only allow users to create new MovieScenes if that feature is turned on globally.
 			if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
 			{
-				FSequencerViewParams ViewParams;
+				FSequencerViewParams ViewParams( TEXT( "MovieSceneEditorSettings" ) );
 				FModuleManager::LoadModuleChecked< ISequencerModule >( "Sequencer" ).CreateSequencerAssetEditor( Mode, ViewParams, EditWithinLevelEditor, MovieScene, true );
 			}
 		}

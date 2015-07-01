@@ -28,7 +28,7 @@ private:
 	 *
 	 * @param Node	The node to generate a widget for
 	 */
-	void GenerateWidgetForNode( FSequencerDisplayNode& Node);
+	void GenerateWidgetForNode( FSequencerDisplayNode& Node );
 	
 	/**
 	 * Recursively generates widgets for each layout node
