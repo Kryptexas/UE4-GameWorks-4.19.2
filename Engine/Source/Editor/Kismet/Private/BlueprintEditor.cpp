@@ -2970,7 +2970,7 @@ void FBlueprintEditor::OnBlueprintCompiled(UBlueprint* InBlueprint)
 			{
 				if (Node)
 				{
-					auto Widget = Node->NodeWidget.Pin();
+					auto Widget = Node->DEPRECATED_NodeWidget.Pin();
 					if (Widget.IsValid())
 					{
 						Widget->RefreshErrorInfo();
@@ -3968,7 +3968,7 @@ void FBlueprintEditor::OnAddParentNode()
 				int32 NodeSizeY = 15;
 				if( UK2Node* Node = Cast<UK2Node>(SelectedObj))
 				{
-					NodeSizeY += Node->NodeWidget.IsValid() ? static_cast<int32>(Node->NodeWidget.Pin()->GetDesiredSize().Y) : 0;
+					NodeSizeY += Node->DEPRECATED_NodeWidget.IsValid() ? static_cast<int32>(Node->DEPRECATED_NodeWidget.Pin()->GetDesiredSize().Y) : 0;
 				}
 				ParentFunctionNode->NodePosX = FunctionFromNode.Node->NodePosX;
 				ParentFunctionNode->NodePosY = FunctionFromNode.Node->NodePosY + NodeSizeY;

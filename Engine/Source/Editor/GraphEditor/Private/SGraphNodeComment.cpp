@@ -356,9 +356,9 @@ void SGraphNodeComment::MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilt
 			{
 				if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
 				{
-					if ( !Panel->SelectionManager.IsNodeSelected(Node) && !NodeFilter.Find( Node->NodeWidget.Pin() ))
+					if (!Panel->SelectionManager.IsNodeSelected(Node) && !NodeFilter.Find(Node->DEPRECATED_NodeWidget.Pin()))
 					{
-						NodeFilter.Add(Node->NodeWidget.Pin());
+						NodeFilter.Add(Node->DEPRECATED_NodeWidget.Pin());
 						Node->Modify();
 						Node->NodePosX += PositionDelta.X;
 						Node->NodePosY += PositionDelta.Y;

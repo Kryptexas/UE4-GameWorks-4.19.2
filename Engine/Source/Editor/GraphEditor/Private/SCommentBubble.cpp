@@ -320,9 +320,9 @@ float SCommentBubble::GetArrowCenterOffset() const
 {
 	float CentreOffset = GraphNode->bCommentBubbleVisible ? SCommentBubbleDefs::ArrowCentreOffset : SCommentBubbleDefs::ToggleButtonCentreOffset;
 	const bool bVisibleAndUnpinned = !GraphNode->bCommentBubblePinned && GraphNode->bCommentBubbleVisible;
-	if( bVisibleAndUnpinned && GraphNode->NodeWidget.IsValid() )
+	if (bVisibleAndUnpinned && GraphNode->DEPRECATED_NodeWidget.IsValid())
 	{
-		TSharedPtr<SGraphPanel> GraphPanel = GraphNode->NodeWidget.Pin()->GetOwnerPanel();
+		TSharedPtr<SGraphPanel> GraphPanel = GraphNode->DEPRECATED_NodeWidget.Pin()->GetOwnerPanel();
 		CentreOffset *= GraphPanel.IsValid() ? GraphPanel->GetZoomAmount() : 1.f;
 	}
 	return CentreOffset;
@@ -463,9 +463,9 @@ void SCommentBubble::OnPinStateToggle( ECheckBoxState State ) const
 bool SCommentBubble::IsReadOnly() const
 {
 	bool bReadOnly = true;
-	if( GraphNode && GraphNode->NodeWidget.IsValid() )
+	if (GraphNode && GraphNode->DEPRECATED_NodeWidget.IsValid())
 	{
-		bReadOnly = !GraphNode->NodeWidget.Pin()->IsNodeEditable();
+		bReadOnly = !GraphNode->DEPRECATED_NodeWidget.Pin()->IsNodeEditable();
 	}
 	return bReadOnly;
 }

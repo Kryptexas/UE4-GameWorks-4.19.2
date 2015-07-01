@@ -167,8 +167,8 @@ public:
 	virtual void PostLoad() override;
 	// End of UObject interface
 
-	/** widget representing this node if exists */
-	TWeakPtr<SGraphNode> NodeWidget;
+	/** widget representing this node if it exists; Note: This is not safe to use in general and will be removed in the future, as there is no guarantee that only one graph editor/panel is viewing a given graph */
+	TWeakPtr<SGraphNode> DEPRECATED_NodeWidget;
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
 	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false, int32 Index = INDEX_NONE);

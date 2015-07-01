@@ -449,7 +449,7 @@ void SGraphNode::SetOwner( const TSharedRef<SGraphPanel>& OwnerPanel )
 	check( !OwnerGraphPanelPtr.IsValid() );
 	SetParentPanel(OwnerPanel);
 	OwnerGraphPanelPtr = OwnerPanel;
-	GraphNode->NodeWidget = SharedThis(this);
+	GraphNode->DEPRECATED_NodeWidget = SharedThis(this);
 
 	/*Once we have an owner, and if hide Unused pins is enabled, we need to remake our pins to drop the hidden ones*/
 	if(OwnerGraphPanelPtr.Pin()->GetPinVisibility() != SGraphEditor::Pin_Show 
