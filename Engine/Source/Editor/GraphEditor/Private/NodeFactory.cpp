@@ -82,6 +82,15 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 {
 	check(InNode != NULL);
 
+	// First give a shot to the node itself
+	{
+		TSharedPtr<SGraphNode> NodeCreatedResult = InNode->CreateVisualWidget();
+		if (NodeCreatedResult.IsValid())
+		{
+			return NodeCreatedResult;
+		}
+	}
+
 	// First give a shot to the registered node factories
 	for (auto FactoryIt = FEdGraphUtilities::VisualNodeFactories.CreateIterator(); FactoryIt; ++FactoryIt)
 	{

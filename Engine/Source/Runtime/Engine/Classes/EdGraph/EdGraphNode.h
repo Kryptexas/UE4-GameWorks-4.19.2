@@ -439,6 +439,10 @@ public:
 
 	/** If the node has a subgraph, should they be merged into the main graph? */
 	virtual bool ShouldMergeChildGraphs() const { return true; }
+
+	/** Create a visual widget to represent this node in a graph editor or graph panel.  If not implemented, the default node factory will be used. */
+	virtual TSharedPtr<SGraphNode> CreateVisualWidget() { return TSharedPtr<SGraphNode>(); }
+
 #endif // WITH_EDITOR
 
 };
