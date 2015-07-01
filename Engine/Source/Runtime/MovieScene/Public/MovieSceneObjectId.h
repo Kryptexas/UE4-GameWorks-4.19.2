@@ -46,7 +46,7 @@ public:
 	 * @param Y The second identifier to compare.
 	 * @return true if the identifiers are equal, false otherwise.
 	 */
-	friend bool operator==( const FMovieSceneObjectId& X, const FMovieSceneObjectId& Y )
+	friend bool operator==(const FMovieSceneObjectId& X, const FMovieSceneObjectId& Y)
 	{
 		return ((X.ObjectGuid == Y.ObjectGuid) && (X.ComponentName == X.ComponentName));
 	}
@@ -58,9 +58,20 @@ public:
 	 * @param Y The second identifier to compare.
 	 * @return true if the identifier are not equal, false otherwise.
 	 */
-	friend bool operator!=( const FMovieSceneObjectId& X, const FMovieSceneObjectId& Y )
+	friend bool operator!=(const FMovieSceneObjectId& X, const FMovieSceneObjectId& Y)
 	{
 		return ((X.ObjectGuid != Y.ObjectGuid) || (X.ComponentName != X.ComponentName));
+	}
+
+	/**
+	 * Calculates the hash for an object identifier.
+	 *
+	 * @param ObjectId The identifier to calculate the hash for.
+	 * @return The hash.
+	 */
+	friend uint32 GetTypeHash(const FMovieSceneObjectId& ObjectId)
+	{
+		return GetTypeHash(ObjectId.ObjectGuid) ^ GetTypeHash(ObjectId.ComponentName);
 	}
 
 	/**
