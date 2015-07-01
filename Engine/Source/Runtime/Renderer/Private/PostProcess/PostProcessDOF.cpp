@@ -356,7 +356,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDOFRecombine::ComputeOutputDesc(EPassO
 
 // Convert f-stop and focal distance into projected size in half resolution pixels.
 // Setup depth based blur.
-static FVector CircleDofCoc(const FRenderingCompositePassContext& Context)
+static FVector4 CircleDofCoc(const FRenderingCompositePassContext& Context)
 {
 	// Convert FOV to focal length,
 	// 
@@ -386,7 +386,7 @@ static FVector CircleDofCoc(const FRenderingCompositePassContext& Context)
 
 	// Scale so that APS-C 24.576 mm = full frame.
 	// Convert mm to pixels.
-	float Width = (float)Context.GetViewport().Size().X;
+	float Width = (float)Context.View.ViewRect.Width();
 	Radius = Radius * Width * (1.0f/24.576f);
 
 	// Convert diameter to radius at half resolution (algorithm radius is at half resolution).
@@ -403,10 +403,11 @@ static FVector CircleDofCoc(const FRenderingCompositePassContext& Context)
 
 	// The DepthOfFieldDepthBlurAmount = km at which depth blur is 50%.
 	// Need to convert to cm here.
-	return FVector(
+	return FVector4(
 		Radius, 
 		1.0f/(Context.View.FinalPostProcessSettings.DepthOfFieldDepthBlurAmount * 100000.0),
-		Context.View.FinalPostProcessSettings.DepthOfFieldDepthBlurRadius * Width / 1920.0f);
+		Context.View.FinalPostProcessSettings.DepthOfFieldDepthBlurRadius * Width / 1920.0f,
+		Width / 1920.0f);
 }
 
 /** Encapsulates the Circle DOF setup pixel shader. */
