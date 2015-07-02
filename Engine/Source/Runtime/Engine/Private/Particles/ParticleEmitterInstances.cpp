@@ -3349,6 +3349,7 @@ SIZE_T FParticleMeshEmitterInstance::GetResourceSize(EResourceSizeMode::Type Mod
  */
 void FParticleMeshEmitterInstance::SetMeshMaterials( const TArray<UMaterialInterface*>& InMaterials )
 {
+	check(IsInGameThread());
 	CurrentMaterials = InMaterials;
 }
 

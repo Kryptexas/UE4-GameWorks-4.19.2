@@ -313,17 +313,7 @@ class UParticleEmitter : public UObject
 	/**
 	 *   Calculate spawn rate multiplier based on global effects quality level and emitter's quality scale
  	 */
-	FORCEINLINE float GetQualityLevelSpawnRateMult()
-	{
-		float Level = (1 - Scalability::GetQualityLevels().EffectsQuality);
-		float Q = 1;
-		for (int i = 0; i < Level + 1; i++)
-		{
-
-			Q = Q*QualityLevelSpawnRateScale;
-		}
-		return Q;
-	}
+	float GetQualityLevelSpawnRateMult();
 
 	/** Returns true if the is emitter has any enabled LODs, false otherwise. */
 	bool HasAnyEnabledLODs()const;

@@ -276,6 +276,7 @@ void UParticleModule::ChangeEditorColor(FColor& Color, UInterpCurveEdSetup* EdSe
 
 void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp)
 {
+	check(IsInGameThread());
 	for (TFieldIterator<UStructProperty> It(GetClass()); It; ++It)
 	{
 		// attempt to get a distribution from a random struct property
@@ -2788,6 +2789,11 @@ void UParticleModuleLight::PostEditChangeProperty(FPropertyChangedEvent& Propert
 }
 #endif // WITH_EDITOR
 
+bool UParticleModuleLight::CanTickInAnyThread()
+{
+	return BrightnessOverLife.OkForParallel() && ColorScaleOverLife.OkForParallel() && RadiusScale.OkForParallel() && LightExponent.OkForParallel();
+}
+
 void UParticleModuleLight::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
@@ -2867,7 +2873,6 @@ void UParticleModuleLight::SetToSensibleDefaults(UParticleEmitter* Owner)
 void UParticleModuleLight::Render3DPreview(FParticleEmitterInstance* Owner, const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
 #if WITH_EDITOR
-
 	if ((Owner == NULL) || (Owner->ActiveParticles <= 0) || 
 		(Owner->ParticleData == NULL) || (Owner->ParticleIndices == NULL))
 	{
@@ -2876,6 +2881,7 @@ void UParticleModuleLight::Render3DPreview(FParticleEmitterInstance* Owner, cons
 
 	if (bPreviewLightRadius)
 	{
+		check(IsInGameThread());
 		int32 Offset = 0;
 		UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 		const bool bLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
@@ -4078,29 +4084,8 @@ bool UDistributionVectorParticleParameter::GetParamValue(UObject* Data, FName Pa
 	UParticleSystemComponent* ParticleComp = Cast<UParticleSystemComponent>(Data);
 	if(ParticleComp)
 	{
-		bFoundParam = ParticleComp->GetVectorParameter(ParameterName, OutVector);
-
-		// If we failed to get a Vector parameter with the given name, see if we can get a Color parameter or Float parameter
-		if(!bFoundParam)
-		{
-			FLinearColor OutColor;
-			bFoundParam = ParticleComp->GetColorParameter(ParameterName, OutColor);
-			if(bFoundParam)
-			{
-				OutVector = FVector(OutColor);
-			}
-			else
-			{
-				float OutFloat;
-				bFoundParam = ParticleComp->GetFloatParameter(ParameterName, OutFloat);
-				if(bFoundParam)
-				{
-					OutVector = FVector(OutFloat);
-				}
-			}
-		}
+		bFoundParam = ParticleComp->GetAnyVectorParameter(ParameterName, OutVector);
 	}
-
 	return bFoundParam;
 }
 

@@ -134,6 +134,8 @@ struct FParticleSysParam
 
 };
 
+template <> struct TIsPODType<FParticleSysParam> { enum { Value = true }; };
+
 /**
  *	The base class for all particle event data.
  */
@@ -444,6 +446,35 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnSystemFinished OnSystemFinished;
 
+private:
+	/** Cached copy of the transform for async work */
+	FTransform AsyncComponentToWorld;
+	/** Cached copy of the instance params */
+	TArray<struct FParticleSysParam> AsyncInstanceParameters;
+	/** Is AsyncComponentToWorld etc valid? */
+	bool bAsyncDataCopyIsValid;
+public:
+
+	const FTransform& GetAsyncComponentToWorld()
+	{
+		if (!IsInGameThread())
+		{
+			check(bAsyncDataCopyIsValid); 
+			return AsyncComponentToWorld;
+		}
+		return ComponentToWorld;
+	}
+
+	const TArray<struct FParticleSysParam>& GetAsyncInstanceParameters()
+	{
+		if (!IsInGameThread())
+		{
+			check(bAsyncDataCopyIsValid); 
+			return AsyncInstanceParameters;
+		}
+		return InstanceParameters;
+	}
+
 	//
 	//	Beam-related script functions.
 	//
@@ -579,6 +610,17 @@ public:
 	 *			false		Parameter was not found - OutVector is invalid
 	 */
 	virtual bool GetVectorParameter(const FName InName, FVector& OutVector);
+
+	/**
+	 *	Retrieve the Vector parameter value for the given name...also looks for colors and floats and returns those
+	 *
+	 *	@param	InName		Name of the parameter
+	 *	@param	OutVector	The value of the parameter found
+	 *
+	 *	@return	true		Parameter was found - OutVector is valid
+	 *			false		Parameter was not found - OutVector is invalid
+	 */
+	virtual bool GetAnyVectorParameter(const FName InName, FVector& OutVector);
 
 	/**
 	 *	Retrieve the Color parameter value for the given name.
@@ -722,12 +764,13 @@ public:
 	  */
 	int32 GetCurrentDetailMode() const;
 
-private:
 	/** Possibly parallel phase of TickComponent **/
 	void ComputeTickComponent_Concurrent();
 
 	/** After the possibly parallel phase of TickComponent, we fire events, etc **/
 	void FinalizeTickComponent();
+
+private:
 	/** Wait on the async task and call finalize on the tick **/
 	void WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior) const;
 

@@ -103,6 +103,7 @@ public:
 	 */
 	uint32 Allocate()
 	{
+		FScopeLock Lock(&CriticalSection);
 		if ( FreeTileCount > 0 )
 		{
 			FreeTileCount--;
@@ -117,6 +118,7 @@ public:
 	 */
 	void Free( uint32 TileIndex )
 	{
+		FScopeLock Lock(&CriticalSection);
 		check( TileIndex < GParticleSimulationTileCount );
 		check( FreeTileCount < GParticleSimulationTileCount );
 		FreeTiles[FreeTileCount] = TileIndex;
@@ -128,6 +130,7 @@ public:
 	 */
 	int32 GetFreeTileCount() const
 	{
+		FScopeLock Lock(&CriticalSection);
 		return FreeTileCount;
 	}
 
@@ -137,6 +140,8 @@ private:
 	uint32 FreeTiles[GParticleSimulationTileCount];
 	/** How many tiles are in the free list. */
 	int32 FreeTileCount;
+
+	mutable FCriticalSection CriticalSection;
 };
 
 /*-----------------------------------------------------------------------------
@@ -3063,7 +3068,6 @@ public:
 
 		FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
 		const int32 MinTileCount = GetMinTileCount();
-		const int32 CheckTileCount = ParticleSimulationResources->GetFreeTileCount();
 		int32 NumAllocated = 0;
 		while (AllocatedTiles.Num() < MinTileCount)
 		{
@@ -3081,7 +3085,6 @@ public:
 		}
 		
 #if TRACK_TILE_ALLOCATIONS
-		check(ParticleSimulationResources->GetFreeTileCount() + NumAllocated == CheckTileCount);
 		UE_LOG(LogParticles,VeryVerbose,
 			TEXT("%s|%s|0x%016x [Init] %d tiles"),
 			*Component->GetName(),*Component->Template->GetName(),(PTRINT)this, AllocatedTiles.Num());
@@ -3428,7 +3431,6 @@ private:
 		if (TilesToFree > 0)
 		{
 			FParticleSimulationResources* SimulationResources = FXSystem->GetParticleSimulationResources();
-			const int32 CheckTileCount = SimulationResources->GetFreeTileCount();
 			const int32 FirstTileIndex = AllocatedTiles.Num() - TilesToFree;
 			const int32 LastTileIndex = FirstTileIndex + TilesToFree;
 			for (int32 TileIndex = FirstTileIndex; TileIndex < LastTileIndex; ++TileIndex)
@@ -3439,9 +3441,6 @@ private:
 			AllocatedTiles.RemoveAt(FirstTileIndex, TilesToFree);
 			TileTimeOfDeath.RemoveAt(FirstTileIndex, TilesToFree);
 			Simulation->bDirty_GameThread = true;
-#if TRACK_TILE_ALLOCATIONS
-			check(SimulationResources->GetFreeTileCount() == CheckTileCount + TilesToFree);
-#endif // #if TRACK_TILE_ALLOCATIONS
 		}
 		return TilesToFree;
 	}
@@ -3459,7 +3458,6 @@ private:
 			if (!GIsRequestingExit)
 			{
 				FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
-				const int32 CheckTileCount = ParticleSimulationResources->GetFreeTileCount();
 				const int32 TileCount = AllocatedTiles.Num();
 				for ( int32 ActiveTileIndex = 0; ActiveTileIndex < TileCount; ++ActiveTileIndex )
 				{
@@ -3468,7 +3466,6 @@ private:
 				}
 				AllocatedTiles.Reset();
 #if TRACK_TILE_ALLOCATIONS
-				check(ParticleSimulationResources->GetFreeTileCount() == CheckTileCount + TileCount);
 				UE_LOG(LogParticles,VeryVerbose,
 					TEXT("%s|%s|0x%016p [ReleaseSimulationResources] %d tiles"),
 					*Component->GetName(),*Component->Template->GetName(),(PTRINT)this, AllocatedTiles.Num());

@@ -161,7 +161,6 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	{
 		float ScaleValue = 1.0f;
 		float DistributionValue = 1.0f;
-		float TimeValue = InDynParams.bUseEmitterTime ? Owner->EmitterTime : Particle.RelativeTime;
 		switch (InDynParams.ValueMethod)
 		{
 		case EDPV_VelocityX:
@@ -179,6 +178,7 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 
 		if ((InDynParams.bScaleVelocityByParamValue == true) || (InDynParams.ValueMethod == EDPV_UserSet))
 		{
+			float TimeValue = InDynParams.bUseEmitterTime ? Owner->EmitterTime : Particle.RelativeTime;
 			DistributionValue = InDynParams.ParamValue.GetValue(TimeValue, Owner->Component, InRandomStream);
 		}
 
@@ -204,6 +204,8 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	 *	Set the UpdatesFlags and bUsesVelocity
 	 */
 	virtual	void UpdateUsageFlags();
+
+	virtual bool CanTickInAnyThread() override;
 };
 
 

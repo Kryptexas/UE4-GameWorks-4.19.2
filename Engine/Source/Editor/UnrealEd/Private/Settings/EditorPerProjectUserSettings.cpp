@@ -32,7 +32,7 @@ void UEditorPerProjectUserSettings::PostEditChangeProperty( FPropertyChangedEven
 
 	if (Name == FName(TEXT("bUseCurvesForDistributions")))
 	{
-		extern CORE_API uint32 GDistributionType;
+		extern ENGINE_API uint32 GDistributionType;
 		//GDistributionType == 0 for curves
 		GDistributionType = (bUseCurvesForDistributions) ? 0 : 1;
 	}

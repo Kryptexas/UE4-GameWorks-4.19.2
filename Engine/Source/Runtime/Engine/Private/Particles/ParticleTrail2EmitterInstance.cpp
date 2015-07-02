@@ -2036,6 +2036,7 @@ void FParticleRibbonEmitterInstance::SetupTrailModules()
 
 void FParticleRibbonEmitterInstance::ResolveSource()
 {
+	check(IsInGameThread());
 	if (SourceModule && SourceModule->SourceName != NAME_None)
 	{
 		switch (SourceModule->SourceMethod)
@@ -3322,8 +3323,10 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	// Figure out spawn rate for this tick.
 	if (bProcessSpawnRate)
 	{
+		static IConsoleVariable* EffectsQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("sg.EffectsQuality"));
+
 		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
-		float QualityMult = 0.25f * (1 << Scalability::GetQualityLevels().EffectsQuality);
+		float QualityMult = 0.25f * (1 << EffectsQuality->GetInt());
 		RateScale *= SpriteTemplate->QualityLevelSpawnRateScale*QualityMult;
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);
 	}

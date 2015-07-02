@@ -119,6 +119,19 @@ void UParticleModuleParameterDynamic::PostLoad()
 	UpdateUsageFlags();
 }
 
+bool UParticleModuleParameterDynamic::CanTickInAnyThread()
+{
+	for (FEmitterDynamicParameter& Parm : DynamicParams)
+	{
+		if (!Parm.ParamValue.OkForParallel())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
 void UParticleModuleParameterDynamic::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
