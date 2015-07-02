@@ -51,11 +51,14 @@ namespace ContentBrowserUtils
 	 */
 	bool PromptToLoadAssets(const TArray<FString>& UnloadedObjects);
 
+	/** Checks to see if the given folder can be renamed */
+	bool CanRenameFolder(const FString& InFolderPath);
+
+	/** Checks to see if the given asset can be renamed */
+	bool CanRenameAsset(const FAssetData& InAssetData);
+
 	/** Renames an asset */
 	void RenameAsset(UObject* Asset, const FString& NewName, FText& ErrorMessage);
-
-	/** Renames a folder */
-	void RenameFolder(const FString& FolderPath, const FString& NewName, FText& ErrorMessage);
 
 	/** 
 	 * Copies assets to a new path 

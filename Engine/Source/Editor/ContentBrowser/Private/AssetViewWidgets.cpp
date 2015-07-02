@@ -469,6 +469,34 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 	return FReply::Unhandled();
 }
 
+bool SAssetViewItem::IsNameReadOnly() const
+{
+	if (ThumbnailEditMode.Get())
+	{
+		// Read-only while editing thumbnails
+		return true;
+	}
+
+	if (!AssetItem.IsValid())
+	{
+		// Read-only if no valid asset item
+		return true;
+	}
+
+	if (AssetItem->GetType() != EAssetItemType::Folder)
+	{
+		// Read-only if we can't be renamed
+		return !ContentBrowserUtils::CanRenameAsset(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data);
+	}
+	else
+	{
+		// Read-only if we can't be renamed
+		return !ContentBrowserUtils::CanRenameFolder(StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
+	}
+
+	return false;
+}
+
 void SAssetViewItem::HandleBeginNameChange( const FText& OriginalText )
 {
 	OnRenameBegin.ExecuteIfBound(AssetItem, OriginalText.ToString(), LastGeometry.GetClippingRect());
@@ -1196,7 +1224,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 					.OnVerifyTextChanged(this, &SAssetListItem::HandleVerifyNameChanged)
 					.HighlightText(InArgs._HighlightText)
 					.IsSelected(InArgs._IsSelected)
-					.IsReadOnly(ThumbnailEditMode)
+					.IsReadOnly(this, &SAssetListItem::IsNameReadOnly)
 				]
 
 				+SVerticalBox::Slot()
@@ -1344,7 +1372,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 					.OnVerifyTextChanged(this, &SAssetTileItem::HandleVerifyNameChanged)
 					.HighlightText(InArgs._HighlightText)
 					.IsSelected(InArgs._IsSelected)
-					.IsReadOnly(ThumbnailEditMode)
+					.IsReadOnly(this, &SAssetTileItem::IsNameReadOnly)
 					.Justification(ETextJustify::Center)
 					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 			]
@@ -1567,7 +1595,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 				.OnVerifyTextChanged(this, &SAssetColumnItem::HandleVerifyNameChanged)
 				.HighlightText(HighlightText)
 				.IsSelected(InIsSelected)
-				.IsReadOnly(ThumbnailEditMode)
+				.IsReadOnly(this, &SAssetColumnItem::IsNameReadOnly)
 			];
 
 		if(AssetItem.IsValid())

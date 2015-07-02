@@ -405,6 +405,18 @@ bool ContentBrowserUtils::PromptToLoadAssets(const TArray<FString>& UnloadedObje
 	return bShouldLoadAssets;
 }
 
+bool ContentBrowserUtils::CanRenameFolder(const FString& InFolderPath)
+{
+	// Cannot rename folders that are part of a classes or collections root
+	return !ContentBrowserUtils::IsClassPath(InFolderPath) && !ContentBrowserUtils::IsCollectionPath(InFolderPath);
+}
+
+bool ContentBrowserUtils::CanRenameAsset(const FAssetData& InAssetData)
+{
+	// Cannot rename redirectors or classes
+	return !InAssetData.IsRedirector() && InAssetData.AssetClass != NAME_Class;
+}
+
 void ContentBrowserUtils::RenameAsset(UObject* Asset, const FString& NewName, FText& ErrorMessage)
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");

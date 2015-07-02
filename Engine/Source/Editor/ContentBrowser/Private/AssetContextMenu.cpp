@@ -203,6 +203,11 @@ bool FAssetContextMenu::AddImportedAssetMenuOptions(FMenuBuilder& MenuBuilder)
 
 bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 {
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+
+	int32 NumAssetItems, NumClassItems;
+	ContentBrowserUtils::CountItemTypes(AssetViewSelectedAssets, NumAssetItems, NumClassItems);
+
 	MenuBuilder.BeginSection("CommonAssetActions", LOCTEXT("CommonAssetActionsMenuHeading", "Common"));
 	{
 		// Edit
@@ -213,52 +218,56 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			FUIAction( FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteEditAsset) )
 			);
 	
-		// Rename
-		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None,
-			LOCTEXT("Rename", "Rename"),
-			LOCTEXT("RenameTooltip", "Rename the selected asset."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename")
-			);
+		// Only add these options if assets are selected
+		if (NumAssetItems > 0)
+		{
+			// Rename
+			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None,
+				LOCTEXT("Rename", "Rename"),
+				LOCTEXT("RenameTooltip", "Rename the selected asset."),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename")
+				);
 
-		// Duplicate
-		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate, NAME_None,
-			LOCTEXT("Duplicate", "Duplicate"),
-			LOCTEXT("DuplicateTooltip", "Create a copy of the selected asset(s)."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Duplicate")
-			);
+			// Duplicate
+			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate, NAME_None,
+				LOCTEXT("Duplicate", "Duplicate"),
+				LOCTEXT("DuplicateTooltip", "Create a copy of the selected asset(s)."),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Duplicate")
+				);
 
-		// Save
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SaveAsset", "Save"),
-			LOCTEXT("SaveAssetTooltip", "Saves the asset to file."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x"),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSaveAsset ),
-				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSaveAsset )
-				)
-			);
+			// Save
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("SaveAsset", "Save"),
+				LOCTEXT("SaveAssetTooltip", "Saves the asset to file."),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x"),
+				FUIAction(
+					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSaveAsset ),
+					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSaveAsset )
+					)
+				);
 
-		// Delete
-		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
-			LOCTEXT("Delete", "Delete"),
-			LOCTEXT("DeleteTooltip", "Delete the selected assets."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete")
-			);
+			// Delete
+			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
+				LOCTEXT("Delete", "Delete"),
+				LOCTEXT("DeleteTooltip", "Delete the selected assets."),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete")
+				);
 
-		// Asset Actions sub-menu
-		MenuBuilder.AddSubMenu(
-			LOCTEXT("AssetActionsSubMenuLabel", "Asset Actions"),
-			LOCTEXT("AssetActionsSubMenuToolTip", "Other asset actions"),
-			FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::MakeAssetActionsSubMenu),
-			FUIAction(
-				FExecuteAction(),
-				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteAssetActions )
-				),
-			NAME_None,
-			EUserInterfaceActionType::Button,
-			false, 
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
-			);
+			// Asset Actions sub-menu
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("AssetActionsSubMenuLabel", "Asset Actions"),
+				LOCTEXT("AssetActionsSubMenuToolTip", "Other asset actions"),
+				FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::MakeAssetActionsSubMenu),
+				FUIAction(
+					FExecuteAction(),
+					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteAssetActions )
+					),
+				NAME_None,
+				EUserInterfaceActionType::Button,
+				false, 
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
+				);
+		}
 	}
 	MenuBuilder.EndSection();
 
@@ -1835,11 +1844,10 @@ bool FAssetContextMenu::CanExecuteRename() const
 	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
 
 	const bool bOneAssetSelected = AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0		// A single asset
-		&& AssetViewSelectedAssets[0].AssetClass != UObjectRedirector::StaticClass()->GetFName()		// Which isn't a redirector
-		&& AssetViewSelectedAssets[0].AssetClass != NAME_Class;											// And isn't a class
+		&& ContentBrowserUtils::CanRenameAsset(AssetViewSelectedAssets[0]);								// Which can be renamed
 
 	const bool bOneFolderSelected = AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1	// A single folder
-		&& !ContentBrowserUtils::IsClassPath(SelectedFolders[0]);										// Which doesn't belong to a class path
+		&& ContentBrowserUtils::CanRenameFolder(SelectedFolders[0]);									// Which can be renamed
 	
 	return (bOneAssetSelected || bOneFolderSelected) && !AssetView.Pin()->IsThumbnailEditMode();
 }
@@ -1855,8 +1863,18 @@ bool FAssetContextMenu::CanExecuteDelete() const
 	int32 NumAssetPaths, NumClassPaths;
 	ContentBrowserUtils::CountPathTypes(SelectedFolders, NumAssetPaths, NumClassPaths);
 
-	// We can't delete classes, or folders containing classes
-	return (NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0);
+	bool bHasSelectedCollections = false;
+	for (const FString& SelectedFolder : SelectedFolders)
+	{
+		if (ContentBrowserUtils::IsCollectionPath(SelectedFolder))
+		{
+			bHasSelectedCollections = true;
+			break;
+		}
+	}
+
+	// We can't delete classes, or folders containing classes, or any collection folders
+	return ((NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0)) && !bHasSelectedCollections;
 }
 
 bool FAssetContextMenu::CanExecuteRemoveFromCollection() const 

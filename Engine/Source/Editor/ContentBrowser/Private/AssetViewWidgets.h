@@ -144,6 +144,9 @@ protected:
 	/** Used by OnDragEnter, OnDragOver, and OnDrop to check and update the validity of the drag operation */
 	bool ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation ) const;
 
+	/** Check to see if the name should be read-only */
+	bool IsNameReadOnly() const;
+
 	/** Handles starting a name change */
 	virtual void HandleBeginNameChange( const FText& OriginalText );
 
