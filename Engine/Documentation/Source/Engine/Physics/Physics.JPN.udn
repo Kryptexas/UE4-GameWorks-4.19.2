@@ -73,13 +73,13 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 		![](%ROOT%/vehicle_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Vehicles
+		ビークル
 	[/PARAM]
 	[PARAM:links]
 		* [ビークル ユーザー ガイド](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
 		* [ビークル コンテンツ作成ガイド](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
 		* [高度なビークル テンプレート](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
-		* [ビークル API リファレンス](API:AWheeledVehicle)
+		* [Vehicle API Reference](API:AWheeledVehicle)
 	[/PARAM]
 [/OBJECT]
 
@@ -109,4 +109,9 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 		* [FBX パイプライン：スタティックメッシュ](Engine/Content/FBX/StaticMeshes "%Engine/Physics/PhAT:description%")
 	[/PARAM]
 [/OBJECT]
+
+
+
+
+
 
