@@ -158,3 +158,36 @@ public class BuildCommonTools : BuildCommand
 		return Agenda;
 	}
 }
+
+public class ZipProjectUp : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        Log(System.Diagnostics.TraceEventType.Warning, "Started zipping project up");
+
+        // Get the zip path
+        //string ZipPath = ParseParamValue("path", "");
+        //string FullZipFileName = Path.Combine(CmdEnv.LocalRoot, "FullInstall" + StaticGetHostPlatformSuffix(HostPlatform) + ".zip");
+
+        string InstallDirectory = ParseParamValue("install", "");
+        Log("Install directory: {0}", InstallDirectory);
+
+        // Get project directory and format it properly
+        string ProjectDirectory = ParseParamValue("project", "");
+        ProjectDirectory = Path.GetDirectoryName(ProjectDirectory);
+        string path2 = @"C:\Users\timothy.reynolds\Documents\Unreal Projects\MyProject2";
+        Log("Project name: {0}", ProjectDirectory);
+        Log("Project path: {0}", path2);
+
+        // Setup filters
+        FileFilter Filter = new FileFilter();
+        Filter.Include("/Config/...");
+        Filter.Include("/Content/...");
+        Filter.Include("*.uproject");
+
+        ZipFiles(InstallDirectory, ProjectDirectory, Filter);
+        //ZipFiles("d:\\test.zip", path2, Filter);
+
+        Log(System.Diagnostics.TraceEventType.Warning, "Completed zipping project up");
+    }
+}

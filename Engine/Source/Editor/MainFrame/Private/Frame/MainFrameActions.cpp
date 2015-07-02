@@ -73,6 +73,9 @@ void FMainFrameCommands::RegisterCommands()
 	UI_COMMAND( OpenIDE, "Open IDE", "Opens your C++ code in an integrated development environment.", EUserInterfaceActionType::Button, FInputChord() );
 	ActionList->MapAction( OpenIDE, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenIDE ), DefaultExecuteAction );
 
+	UI_COMMAND( ZipUpProject, "Zip Up Project", "Zips up the project into a zip file.", EUserInterfaceActionType::Button, FInputChord() );
+	ActionList->MapAction(ZipUpProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ZipUpProject ), DefaultExecuteAction);
+
 	UI_COMMAND( PackagingSettings, "Packaging Settings...", "Opens the settings for project packaging", EUserInterfaceActionType::Button, FInputChord() );
 	ActionList->MapAction( PackagingSettings, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::PackagingSettings ), DefaultExecuteAction );
 
@@ -654,6 +657,37 @@ void FMainFrameActionCallbacks::OpenIDE()
 			{
 				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("OpenIDEFailed_MissingSolution", "Couldn't find solution"));
 			}
+		}
+	}
+}
+
+void FMainFrameActionCallbacks::ZipUpProject()
+{
+	bool bOpened = false;
+	TArray<FString> SaveFilenames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (DesktopPlatform != NULL)
+	{
+		bOpened = DesktopPlatform->SaveFileDialog(
+			NULL,
+			NSLOCTEXT("UnrealEd", "InterpEd_ExportSoundCueInfoDialogTitle", "Zip file location").ToString(),
+			FPaths::GameDir(),
+			FApp::GetGameName(),
+			TEXT("Zip file|*.zip"),
+			EFileDialogFlags::None,
+			SaveFilenames);
+	}
+
+	if (bOpened)
+	{
+		for (FString FileName : SaveFilenames)
+		{
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GameDir()) :
+				FPaths::RootDir() / FApp::GetGameName();
+			FString CommandLine = FString::Printf(TEXT("ZipProjectUp -project=\"%s\" -install=\"%s\""), *ProjectPath, *FileName);
+
+			CreateUatTask(CommandLine, LOCTEXT("Windows", "Windows"), LOCTEXT("ZipTaskName", "Zipping Up Project"), 
+				LOCTEXT("ZipTaskShortName", "Zip"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
 		}
 	}
 }
