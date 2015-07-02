@@ -640,8 +640,6 @@ bool UConsole::InputChar_Typing( int32 ControllerId, const FString& Unicode )
 
 bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
-	//`log(`location@`showvar(Key));
-
 	if ( Event == IE_Pressed )
 	{
 		bCaptureKeyInput = false;

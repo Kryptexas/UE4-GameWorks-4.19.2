@@ -514,7 +514,6 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 		}
 		else
 		{
-			//`log("Adding debug text:"@DebugText@"for actor:"@SrcActor);
 			// search for an existing entry
 			int32 Idx = 0;
 			if (!bSkipOverwriteCheck)

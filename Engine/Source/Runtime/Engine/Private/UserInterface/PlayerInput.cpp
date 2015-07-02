@@ -1693,13 +1693,11 @@ void UPlayerInput::SetBind(FName BindName, const FString& Command)
 			if (DebugExecBindings[BindIndex].Key == BindKey)
 			{
 				DebugExecBindings[BindIndex].Command = CommandMod;
-				// `log("Binding '"@BindName@"' found, setting CommandMod '"@CommandMod@"'");
 				SaveConfig();
 				return;
 			}
 		}
 
-		// `log("Binding '"@BindName@"' NOT found, adding new binding with CommandMod '"@CommandMod@"'");
 		FKeyBind NewBind;
 		NewBind.Key = BindKey;
 		NewBind.Command = CommandMod;

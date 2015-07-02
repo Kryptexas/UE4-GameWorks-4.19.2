@@ -2312,7 +2312,6 @@ void APlayerController::SetCinematicMode( bool bInCinematicMode, bool bAffectsMo
 void APlayerController::SetIgnoreMoveInput( bool bNewMoveInput )
 {
 	IgnoreMoveInput = FMath::Max( IgnoreMoveInput + (bNewMoveInput ? +1 : -1), 0 );
-	//`Log("IgnoreMove: " $ IgnoreMoveInput);
 }
 
 void APlayerController::ResetIgnoreMoveInput()
@@ -2328,7 +2327,6 @@ bool APlayerController::IsMoveInputIgnored() const
 void APlayerController::SetIgnoreLookInput( bool bNewLookInput )
 {
 	IgnoreLookInput = FMath::Max( IgnoreLookInput + (bNewLookInput ? +1 : -1), 0 );
-	//`Log("IgnoreLook: " $ IgnoreLookInput);
 }
 
 void APlayerController::ResetIgnoreLookInput()
@@ -2863,7 +2861,6 @@ void APlayerController::ClientForceGarbageCollection_Implementation()
 
 void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
-	//`log( "LevelStreamingStatusChanged: " @ LevelObject @ bNewShouldBeLoaded @ bNewShouldBeVisible @ bNewShouldBeVisible );
 	ClientUpdateLevelStreamingStatus(LevelObject->GetWorldAssetPackageFName(),bNewShouldBeLoaded,bNewShouldBeVisible,bNewShouldBlockOnLoad,LODIndex);
 }
 
