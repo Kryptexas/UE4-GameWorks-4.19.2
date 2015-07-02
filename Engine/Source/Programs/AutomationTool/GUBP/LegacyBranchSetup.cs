@@ -38,10 +38,10 @@ partial class GUBP
         {
             Adders = new List<GUBPNodeAdder>();
             Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var Dll in LoadedAssemblies)
+            foreach (Assembly Dll in LoadedAssemblies)
             {
 				Type[] AllTypes = GetTypesFromAssembly(Dll);
-                foreach (var PotentialConfigType in AllTypes)
+                foreach (Type PotentialConfigType in AllTypes)
                 {
                     if (PotentialConfigType != typeof(GUBPNodeAdder) && typeof(GUBPNodeAdder).IsAssignableFrom(PotentialConfigType))
                     {
@@ -54,7 +54,7 @@ partial class GUBP
                 }
             }
         }
-        foreach(var Adder in Adders)
+        foreach(GUBPNodeAdder Adder in Adders)
         {
             Adder.AddNodes(this, InHostPlatform, InActivePlatforms);
         }
@@ -93,7 +93,7 @@ partial class GUBP
         {
             BranchHackers = new List<GUBPBranchHacker>();
             Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var Dll in LoadedAssemblies)
+            foreach (Assembly Dll in LoadedAssemblies)
             {
 				Type[] AllTypes = GetTypesFromAssembly(Dll);
                 foreach (var PotentialConfigType in AllTypes)
@@ -109,8 +109,8 @@ partial class GUBP
                 }
             }
         }
-        var Result = new GUBPBranchHacker.BranchOptions();
-        foreach (var Hacker in BranchHackers)
+        GUBPBranchHacker.BranchOptions Result = new GUBPBranchHacker.BranchOptions();
+        foreach (GUBPBranchHacker Hacker in BranchHackers)
         {
             Hacker.ModifyOptions(this, ref Result, Branch);
         }
@@ -138,7 +138,7 @@ partial class GUBP
     }
 
     private static List<GUBPEmailHacker> EmailHackers;
-    private string HackEmails(string Emails, string Causers, string Branch, string NodeName)
+    private string HackEmails(string Emails, string Causers, string Branch, NodeInfo NodeInfo)
     {
         string OnlyEmail = ParseParamValue("OnlyEmail");
         if (!String.IsNullOrEmpty(OnlyEmail))
@@ -171,26 +171,26 @@ partial class GUBP
             }
         }
         List<string> Result = new List<string>(Emails.Split(' '));
-		if(!EmailHackers.Any(x => x.VetoEmailingCausers(this, Branch, NodeName)))
+		if(!EmailHackers.Any(x => x.VetoEmailingCausers(this, Branch, NodeInfo.Name)))
 		{
 			Result.AddRange(Causers.Split(' '));
 		}
         foreach (var EmailHacker in EmailHackers)
         {
-            Result.AddRange(EmailHacker.AddEmails(this, Branch, NodeName));
+            Result.AddRange(EmailHacker.AddEmails(this, Branch, NodeInfo.Name));
         }
         foreach (var EmailHacker in EmailHackers)
         {
             var NewResult = new List<string>();
             foreach (var Email in Result)
             {
-                NewResult.AddRange(EmailHacker.ModifyEmail(Email, this, Branch, NodeName));
+                NewResult.AddRange(EmailHacker.ModifyEmail(Email, this, Branch, NodeInfo.Name));
             }
             Result = NewResult;
         }
         foreach (var EmailHacker in EmailHackers)
         {
-            Result = EmailHacker.FinalizeEmails(Result, this, Branch, NodeName);
+            Result = EmailHacker.FinalizeEmails(Result, this, Branch, NodeInfo.Name);
         }
         string FinalEmails = "";
         int Count = 0;
@@ -209,7 +209,7 @@ partial class GUBP
         }
     }
     private static List<GUBPFrequencyHacker> FrequencyHackers;
-    private int HackFrequency(GUBP bp, string Branch, string NodeName, int BaseFrequency)
+    private int HackFrequency(GUBP bp, string Branch, NodeInfo NodeInfo, int BaseFrequency)
     {
         int Frequency = BaseFrequency;
         if (FrequencyHackers == null)
@@ -234,7 +234,7 @@ partial class GUBP
         }
         foreach(var FrequencyHacker in FrequencyHackers)
         {
-           Frequency = FrequencyHacker.GetNodeFrequency(bp, Branch, NodeName, BaseFrequency);            
+           Frequency = FrequencyHacker.GetNodeFrequency(bp, Branch, NodeInfo.Name, BaseFrequency);            
         }
         return Frequency;
     }    
