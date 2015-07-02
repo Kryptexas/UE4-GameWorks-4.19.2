@@ -104,6 +104,18 @@ public:
 	virtual bool IsGameJoinable() const override;
 
 	/**
+	 * Get if the user is in a party
+	 * @return The user in party state.
+	 */
+	virtual bool IsInParty() const override;
+
+	/**
+	 * Get if the user is in a joinable party
+	 * @return The user joinable party state.
+	 */
+	virtual bool CanJoinParty() const override;
+
+	/**
 	* Get if the user can join our game if we were to invite them
 	* @return True if we can invite them
 	*/

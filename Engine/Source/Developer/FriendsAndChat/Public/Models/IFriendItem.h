@@ -121,6 +121,18 @@ public:
 	virtual bool IsGameJoinable() const = 0;
 
 	/**
+	 * Get if the user is in a party
+	 * @return The user in party state.
+	 */
+	virtual bool IsInParty() const = 0;
+
+	/**
+	 * Get if the user is in a joinable party
+	 * @return The user joinable party state.
+	 */
+	virtual bool CanJoinParty() const = 0;
+
+	/**
 	 * Get if the user can join our game if we were to invite them
 	 * @return True if we can invite them
 	 */

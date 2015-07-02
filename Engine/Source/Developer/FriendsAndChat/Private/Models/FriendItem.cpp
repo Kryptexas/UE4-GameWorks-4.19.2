@@ -142,15 +142,21 @@ bool FFriendItem::IsGameJoinable() const
 			{
 				return true;
 			}
-			//@todo samz1 - determine if party is joinable
-			const bool bIsPartyJoinable = GetPartyJoinInfo().IsValid() && !FriendsAndChatManager.Pin()->IsFriendInSameParty(AsShared());
-			if (bIsPartyJoinable)
-			{
-				return true;
-			}
 		}
 	}
 	return false;
+}
+
+bool FFriendItem::IsInParty() const
+{
+	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
+	return PartyInfo.IsValid();
+}
+
+bool FFriendItem::CanJoinParty() const
+{
+	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
+	return PartyInfo.IsValid() && PartyInfo->GetIsAcceptingMembers() && !FriendsAndChatManager.Pin()->IsFriendInSameParty(AsShared());
 }
 
 bool FFriendItem::CanInvite() const

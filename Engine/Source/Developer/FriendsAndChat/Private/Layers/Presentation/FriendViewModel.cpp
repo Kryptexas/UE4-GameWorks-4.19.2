@@ -46,9 +46,13 @@ public:
 			{
 				case EInviteStatus::Accepted :
 				{
-					if (FriendItem->IsOnline() && FriendItem->IsGameJoinable())
+					if (FriendItem->IsOnline() && FriendItem->IsGameJoinable() || FriendItem->IsInParty())
 					{
 						if(CanPerformAction(EFriendActionType::JoinGame))
+						{
+							Actions.Add(EFriendActionType::JoinGame);
+						}
+						else if(FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId()) && FriendItem->IsInParty())
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
@@ -162,7 +166,15 @@ public:
 		{
 			case EFriendActionType::JoinGame:
 			{
-				return FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId());
+				if(FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId()))
+				{
+					if(FriendItem->IsInParty())
+					{
+						return FriendItem->CanJoinParty();
+					}
+					return true;
+				}
+				return false;
 			}
 			case EFriendActionType::AcceptFriendRequest:
 			case EFriendActionType::RemoveFriend:

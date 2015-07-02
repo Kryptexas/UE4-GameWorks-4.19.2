@@ -110,6 +110,16 @@ bool FFriendRecentPlayerItem::CanInvite() const
 	return false;
 }
 
+bool FFriendRecentPlayerItem::IsInParty() const
+{
+	return false;
+}
+
+bool FFriendRecentPlayerItem::CanJoinParty() const
+{
+	return false;
+}
+
 TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
 {
 	return nullptr;

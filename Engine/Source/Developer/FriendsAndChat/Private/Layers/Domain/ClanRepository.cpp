@@ -123,6 +123,16 @@ public:
 		return false;
 	}
 
+	virtual bool IsInParty() const override
+	{
+		return false;
+	}
+
+	virtual bool CanJoinParty() const override
+	{
+		return false;
+	}
+
 	virtual bool CanInvite() const override
 	{
 		return false;
