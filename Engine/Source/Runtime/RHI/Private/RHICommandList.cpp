@@ -1411,7 +1411,7 @@ void FRHICommandList::operator delete(void *RawMemory)
 void* FRHICommandListBase::operator new(size_t Size)
 {
 	check(0); // you shouldn't be creating these
-	return nullptr;
+	return FMemory::Malloc(Size);
 }
 
 void FRHICommandListBase::operator delete(void *RawMemory)
