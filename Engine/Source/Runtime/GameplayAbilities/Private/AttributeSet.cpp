@@ -195,7 +195,7 @@ void FScalableFloat::SetScalingValue(float InCoeffecient, FName InRowName, UCurv
 void FScalableFloat::RegisterOnCurveTablePostReimport() const
 {
 #if WITH_EDITOR
-	if (!OnCurveTablePostReimportHandle.IsValid())
+	if (GIsEditor && !OnCurveTablePostReimportHandle.IsValid())
 	{
 		// Register our interest in knowing when our referenced curve table is changed, so that we can update FinalCurve appropriately
 		OnCurveTablePostReimportHandle = FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FScalableFloat::OnCurveTablePostReimport);
@@ -206,7 +206,7 @@ void FScalableFloat::RegisterOnCurveTablePostReimport() const
 void FScalableFloat::UnRegisterOnCurveTablePostReimport() const
 {
 #if WITH_EDITOR
-	if (OnCurveTablePostReimportHandle.IsValid())
+	if (GIsEditor && OnCurveTablePostReimportHandle.IsValid())
 	{
 		FReimportManager::Instance()->OnPostReimport().Remove(OnCurveTablePostReimportHandle);
 	}
