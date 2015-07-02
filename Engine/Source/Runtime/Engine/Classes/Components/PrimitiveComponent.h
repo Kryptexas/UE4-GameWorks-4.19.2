@@ -875,6 +875,14 @@ public:
 	FVector GetPhysicsLinearVelocity(FName BoneName = NAME_None);
 
 	/**
+	*	Get the linear velocity of a point on a single body.
+	*	@param Point			Point is specified in world space.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	FVector GetPhysicsLinearVelocityAtPoint(FVector Point, FName BoneName = NAME_None);
+
+	/**
 	 *	Set the linear velocity of all bodies in this component.
 	 *
 	 *	@param NewVel			New linear velocity to apply to physics.
@@ -918,6 +926,14 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")
 	FVector GetCenterOfMass(FName BoneName = NAME_None);
+
+	/**
+	*	Set the center of mass of a single body. This will offset the physx-calculated center of mass.
+	*	@param CenterOfMassOffset		User specified offset for the center of mass of this object, from the calculated location.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to set center of mass of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	void SetCenterOfMass(FVector CenterOfMassOffset, FName BoneName = NAME_None);
 
 	/**
 	 *	'Wake' physics simulation for a single body.
@@ -1208,6 +1224,20 @@ public:
 	 *				If returns < 0.f, this primitive does not have collsion
 	 */
 	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
+
+	/**
+	* Returns the distance and closest point to the collision surface.
+	* Component must have simple collision to be queried for closest point.
+	*
+	* @param Point				World 3D vector
+	* @param OutPointOnBody		Point on the surface of collision closest to Point
+	* @param BoneName			If a SkeletalMeshComponent, name of body to set center of mass of. 'None' indicates root body.
+	*
+	* @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
+	*				If returns < 0.f, this primitive does not have collsion
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	float GetClosestPointOnCollision(const FVector& Point, FVector& OutPointOnBody, FName BoneName = NAME_None) const;
 
 	/**
 	 * Creates a proxy to represent the primitive to the scene manager in the rendering thread.
@@ -1538,6 +1568,13 @@ public:
 	/** Change the mass scale used fo all bodies in this component */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual void SetAllMassScale(float InMassScale = 1.f);
+
+	/**
+	*	Override the mass (in Kg) of a single physics body.
+	*	Set the Override Mass to false if you want to reset the body's mass to the auto-calculated physx mass.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void SetMassOverrideInKg(FName BoneName = NAME_None, float MassInKg = 1.f, bool bOverrideMass = true);
 
 	/** Returns the mass of this component in kg. */
 	UFUNCTION(BlueprintCallable, Category="Physics")
