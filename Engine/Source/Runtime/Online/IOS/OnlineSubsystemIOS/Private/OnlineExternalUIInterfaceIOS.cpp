@@ -17,7 +17,7 @@ bool FOnlineExternalUIIOS::ShowFriendsUI(int32 LocalUserNum)
 	return false;
 }
 
-bool FOnlineExternalUIIOS::ShowInviteUI(int32 LocalUserNum) 
+bool FOnlineExternalUIIOS::ShowInviteUI(int32 LocalUserNum, FName SessionMame)
 {
 	return false;
 }

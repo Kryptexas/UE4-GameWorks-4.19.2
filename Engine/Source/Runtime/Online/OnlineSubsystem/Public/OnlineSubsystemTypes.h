@@ -32,6 +32,12 @@
 #define S_OK 0
 #endif
 
+const FName GameSessionName(TEXT("Game"));
+const FName PartySessionName(TEXT("Party"));
+
+const FName GamePort(TEXT("GamePort"));
+const FName BeaconPort(TEXT("BeaconPort"));
+
 /**
  * Generates a random nonce (number used once) of the desired length
  *

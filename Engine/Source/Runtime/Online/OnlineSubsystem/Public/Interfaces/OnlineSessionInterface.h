@@ -4,12 +4,7 @@
 
 #include "OnlineSessionSettings.h"
 #include "OnlineDelegateMacros.h"
-
-const FName GameSessionName(TEXT("Game"));
-const FName PartySessionName(TEXT("Party"));
-
-const FName GamePort(TEXT("GamePort"));
-const FName BeaconPort(TEXT("BeaconPort"));
+#include "OnlineSubsystemTypes.h"
 
 /**
  * Delegate fired when a session create request has completed
