@@ -15,6 +15,7 @@
 #include "ILocalizationServiceModule.h"
 #include "Editor/LocalizationDashboard/Public/ILocalizationDashboardModule.h"
 #include "Editor/LocalizationDashboard/Public/LocalizationTargetTypes.h"
+#include "LocalizationConfigurationScript.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
@@ -569,22 +570,24 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor()
 		IsEngineManifest = true;
 	}
 
-	FString ConfigDirectory;
-	if (IsEngineManifest)
+	ULocalizationTarget* Target = ILocalizationDashboardModule::Get().GetLocalizationTargetByName(FPaths::GetBaseFilename(ManifestFilePath), IsEngineManifest);
+	if (Target)
 	{
-		ConfigDirectory = FPaths::EngineConfigDir();
+		const FString ConfigFilePath = LocalizationConfigurationScript::GetRegenerateResourcesScriptPath(Target);
+		LocalizationConfigurationScript::GenerateRegenerateResourcesScript(Target).Write(ConfigFilePath);
+
+		FJsonInternationalizationArchiveSerializer LocalizationArchiveSerializer;
+		FJsonInternationalizationManifestSerializer LocalizationManifestSerializer;
+
+		FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, LocalizationArchiveSerializer, LocalizationManifestSerializer);
 	}
 	else
 	{
-		ConfigDirectory = FPaths::GameConfigDir();
+		FText ErrorNotify = LOCTEXT("PreviewAllTranslationsInEditorFail", "Failed to preview translations in Editor!");
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+		TranslationEditorMessageLog.Error(ErrorNotify);
+		TranslationEditorMessageLog.Notify(ErrorNotify);
 	}
-
-	FString ConfigFilePath = ConfigDirectory / "Localization" / "Regenerate" + FPaths::GetBaseFilename(ManifestFilePath) + ".ini";
-
-	FJsonInternationalizationArchiveSerializer LocalizationArchiveSerializer;
-	FJsonInternationalizationManifestSerializer LocalizationManifestSerializer;
-
-	FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, LocalizationArchiveSerializer, LocalizationManifestSerializer);
 }
 
 void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& SearchFilter)

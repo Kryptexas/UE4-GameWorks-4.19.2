@@ -48,4 +48,7 @@ namespace LocalizationConfigurationScript
 
 	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
 	FString GetCompileScriptPath(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
+
+	LOCALIZATIONDASHBOARD_API FLocalizationConfigurationScript GenerateRegenerateResourcesScript(const ULocalizationTarget* const Target);
+	LOCALIZATIONDASHBOARD_API FString GetRegenerateResourcesScriptPath(const ULocalizationTarget* const Target);
 }

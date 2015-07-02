@@ -585,9 +585,46 @@ namespace LocalizationConfigurationScript
 			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Compile_%s.%s"), *Target->Settings.Name, *CultureName.GetValue(), TEXT("ini") );
 		}
 		else
-	{
+		{
 			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Compile.%s"), *Target->Settings.Name, TEXT("ini") );
 		}
 		return ConfigFilePath;
 	}
+
+	FLocalizationConfigurationScript GenerateRegenerateResourcesScript(const ULocalizationTarget* const Target)
+	{
+		FLocalizationConfigurationScript Script;
+
+		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
+
+		// RegenerateResources
+		{
+			FConfigSection& ConfigSection = Script.FindOrAdd("RegenerateResources");;
+
+			if (Target->Settings.SupportedCulturesStatistics.IsValidIndex(Target->Settings.NativeCultureIndex))
+			{
+				ConfigSection.Add(TEXT("NativeCulture"), Target->Settings.SupportedCulturesStatistics[Target->Settings.NativeCultureIndex].CultureName);
+			}
+
+			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
+			ConfigSection.Add(TEXT("SourcePath"), SourcePath);
+			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
+			ConfigSection.Add(TEXT("DestinationPath"), DestinationPath);
+
+			ConfigSection.Add(TEXT("ManifestName"), FString::Printf(TEXT("%s.%s"), *Target->Settings.Name, TEXT("manifest")));
+
+			ConfigSection.Add(TEXT("ResourceName"), FString::Printf(TEXT("%s.%s"), *Target->Settings.Name, TEXT("locres")));
+
+		}
+
+		Script.Dirty = true;
+
+		return Script;
+	}
+
+	FString GetRegenerateResourcesScriptPath(const ULocalizationTarget* const Target)
+	{
+		return GetScriptDirectory(Target) / FString::Printf(TEXT("Regenerate%s.%s"), *(Target->Settings.Name), TEXT("ini"));
+	}
+
 }
