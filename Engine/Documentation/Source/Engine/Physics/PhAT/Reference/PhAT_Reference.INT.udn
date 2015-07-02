@@ -45,7 +45,7 @@ Description:Tool to set up physics bodies and joints to use for physical simulat
 [TOC(start:2)]
 
 
-## Overview
+
 
 This document contains descriptions for all interface elements within the **Physics Asset Tool** (**PhAT**).
 
