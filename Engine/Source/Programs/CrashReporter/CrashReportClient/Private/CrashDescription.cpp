@@ -238,9 +238,6 @@ void FCrashDescription::UpdateIDs()
 
 void FCrashDescription::SendAnalytics()
 {
-	bool bSendAnalyticsForCrash = FCrashReportClientConfig::Get().GetSendAnalyticsForCrash();
-	if (bSendAnalyticsForCrash)
-	{
 		// Connect the crash report client analytics provider.
 		FCrashReportAnalytics::Initialize();
 
@@ -276,4 +273,3 @@ void FCrashDescription::SendAnalytics()
 		// Shutdown analytics.
 		FCrashReportAnalytics::Shutdown();
 	}
-}

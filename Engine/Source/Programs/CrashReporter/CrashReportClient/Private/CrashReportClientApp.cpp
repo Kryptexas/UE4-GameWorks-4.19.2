@@ -103,13 +103,6 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 
 	GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni );
 	GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
-	if (!GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bSendAnalyticsForCrash" ), bSendAnalyticsForCrash, GEngineIni ))
-	{
-		// Be default send.
-		bSendAnalyticsForCrash = true;
-		// Add to the config.
-		FCrashReportClientConfig::Get().SetSendAnalyticsForCrash( bSendAnalyticsForCrash );
-	}
 
 	UE_LOG( CrashReportClientLog, Log, TEXT( "CrashReportReceiverIP: %s" ), *CrashReportReceiverIP );
 }
@@ -124,12 +117,6 @@ void FCrashReportClientConfig::SetSendLogFile( bool bNewValue )
 {
 	bSendLogFile = bNewValue;
 	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
-}
-
-void FCrashReportClientConfig::SetSendAnalyticsForCrash( bool bNewValue )
-{
-	bSendAnalyticsForCrash = bNewValue;
-	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bSendAnalyticsForCrash" ), bSendAnalyticsForCrash, GEngineIni );
 }
 
 void RunCrashReportClient(const TCHAR* CommandLine)
@@ -162,13 +149,6 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
 	
-	if( ErrorReport.HasFilesToUpload() )
-	{
-		// Send analytics.
-		extern FCrashDescription& GetCrashDescription();
-		GetCrashDescription().SendAnalytics();
-	}
-
 	if (bUnattended)
 	{
 		// In the unattended mode we don't send any PII.
