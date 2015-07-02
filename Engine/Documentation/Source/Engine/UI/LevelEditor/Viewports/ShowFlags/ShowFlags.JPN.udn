@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539111
+﻿INTSourceChangelist:2605750
 Availability:Public
 Title:ビューポートの [Show Flag] 機能
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -52,9 +52,9 @@ Description:ビューポートで利用できる全ての Show Flags の説明
 [TOC(start:2 end:2)]
 
 
-## 概要
 
-Show Flags はビューポートの**[Show]** メニューの下にあります。Show Flags はビューポート内に表示できる色々なアセットを表示/非表示にするための手段です。例えば、全パーティクルやランドスケープ オブジェクトを非表示にしたり、スプライトのアイコン画像を全て非表示にするなど少し高度な設定もできます。
+
+Show Flags （表示フラグ）はビューポートの**[Show]** （表示）メニューの下にあります。Show Flags はビューポート内に表示できる色々なアセットを表示/非表示にするための手段です。例えば、全パーティクルやランドスケープ オブジェクトを非表示にしたり、スプライトのアイコン画像を全て非表示にするなど少し高度な設定もできます。
 
 
 ## 共通
@@ -63,11 +63,11 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |---|---|
 |[REGION:tablesection]名前[/REGION]|[REGION:tablesection]説明[/REGION]|
 |**Anti-aliasing**|アンチエイリアス エフェクトを表示 / 非表示にします。|
-|**Atmosphere**|レベル内の Atmospheric Fog を表示 / 非表示にします。|
+|**Atmosphere**|レベル内の Atmospheric Fog （大気フォグ）を表示 / 非表示にします。|
 |**BSP** |レベルのブラシを表示 / 非表示にします。 _(**Alt + Q**)_ |
 |**Collision**|レベルのコリジョン オブジェクトを表示 / 非表示にします。 _(**Alt + C**)_ |
 |**Decals**|シーンのデカールを表示 / 非表示にします。|
-|**Fog**|Height Fog エフェクトを表示 / 非表示にします。 _(**Alt + F**)_ |
+|**Fog**|Height Fog （高さフォグ）エフェクトを表示 / 非表示にします。 _(**Alt + F**)_ |
 |**Grid**|グリッドを表示 / 非表示にします。|
 |**Landscape**|ランドスケープ オブジェクトを表示 / 非表示にします。 _(**T**)_ |
 |**Navigation**|ナビゲーション メッシュ、その他のナビゲーション アクタを表示 / 非表示にします。_(**P**)_|
@@ -136,7 +136,7 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |---|---|
 |[REGION:tablesection]名前[/REGION]|[REGION:tablesection]説明[/REGION]|
 |**AI Debug**|AI 駆動型ポーンがナビゲーション メッシュに沿って移動するパスを表示します。|
-|**Blur GBuffer**|Post Process Volumes 上にあるプロパティの **Blur GBuffer Intensity** の結果を表示 / 非表示にします。この機能は GBuffer 法線をぼかし、GBuffer ラフネスを調整してスペキュラ エイリアシングを減らします。ただし、結果に対してパフォーマンス負荷が高いので、Temporal AA の使用のみを検討するのが一般的です。
+|**Blur GBuffer**|Post Process Volumes 上にあるプロパティの Blur GBuffer Intensity の結果を表示 / 非表示にします。この機能は GBuffer 法線をぼかし、GBuffer ラフネスを調整してスペキュラ エイリアシングを減らします。ただし、結果に対してパフォーマンス負荷が高いので、Temporal AA の使用のみを検討するのが一般的です。
 |**GBuffer Hints (material attributes)**|不適切なマテリアルを持つオブジェクトに色づけします。極端に反射のないオブジェクトは黄色、受け取る分よりも多くライトをエミットするオブジェクトには赤です。|
 |**Hit Proxies**|HitDirection に使うプロキシ形状を表示 / 非表示にします。|
 |**Log Visualizer**|Log Visualizer システムが必要とする画面に任意のデータを描画します。|
@@ -155,8 +155,8 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |**Adaptive Depth of Field**|被写界深度によってブラーされたオブジェクトが緑に色付けられ、フォーカスされた領域のみ通常色になるように、ビューにカラーコード フィルターを適用します。|
 |**Depth of Field Layers**|近距離の被写界深度でぼやけたオブジェクトは緑、遠距離の被写界深度でぼやけたオブジェクトは青になるように、ビューにカラーコード フィルターを適用します。ピントが合っているオブジェクトは黒く表示されます。 |
 |**HDR**|シーン ヒストグラムおよび露出設定の明るさへの影響を表す視覚化ウィンドウを表示します。|
-|**Motion Blur**|モーション ブラーがオンの場合、モーション ブラー ビジュアライザに対するビューを変更し、ブラーの計算に使用中のモーション ベクターを確認することができます。|
-| [**Out of Bounds Pixels**](Engine/Performance/Visualizers/OutOfBoundsPixels) | オブジェクトのピクセルが該当オブジェクトの境界ボリュームの外側に存在する場合、境界ボリューム (メッシュではなく) がカメラが回っていない位置にある時、点滅またはオブジェクトが消滅してしまいます。このビジュアライザにより、ピクセルは青、黄、白に色づけられます。|
+|**Motion Blur**|モーション ブラーがオンの場合、モーション ブラー ビジュアライザのビューに変わり、ブラーの計算に使用中のモーション ベクターを確認することができます。|
+| [**Out of Bounds Pixels**](Engine/Performance/Visualizers/OutOfBoundsPixels) | オブジェクトのピクセルが該当オブジェクトの境界ボリュームの外側に存在する場合、境界ボリューム (メッシュではなく) がカメラが回っていない位置にある時、フリッカが発生またはオブジェクトが消滅してしまいます。このビジュアライザにより、ピクセルは青、黄、白に色付けられます。|
 
 
 ##高度なオプション
@@ -201,7 +201,7 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |[REGION:tablesection]名前[/REGION]|[REGION:tablesection]説明[/REGION]|
 |**Show All**|シーンの全てのタイプのボリュームを表示します。|
 |**Hide All**|シーンの全てのタイプのボリュームを非表示にします。|
-|**Audio**|オーディオ ボリュームを表示 / 非表示にします。|
+|**Audio**|Audio Volume を表示 / 非表示にします。|
 |**Blocking**|Blocking Volume を表示 / 非表示にします。|
 |**Cull Distance**|Cull Distance Volume を表示 / 非表示にします。|
 |**Level Streaming**|Level Streaming Volume を表示 / 非表示にします。|
