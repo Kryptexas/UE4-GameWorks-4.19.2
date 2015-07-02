@@ -149,29 +149,29 @@ protected:
 public:
 	/** Bool indicating that this function should execute even if the game is paused. Pause ticks are very limited in capabilities. **/
 	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
-	uint32 bTickEvenWhenPaused:1;
+	uint8 bTickEvenWhenPaused:1;
 
 	/** If false, this tick function will never be registered and will never tick. Only settable in defaults. */
 	UPROPERTY()
-	uint32 bCanEverTick:1;
+	uint8 bCanEverTick:1;
 
 	/** If true, this tick function will start enabled, but can be disabled later on. */
 	UPROPERTY(EditDefaultsOnly, Category="Tick")
-	uint32 bStartWithTickEnabled:1;
+	uint8 bStartWithTickEnabled:1;
 
 	/** If we allow this tick to run on a dedicated server */
 	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
-	uint32 bAllowTickOnDedicatedServer:1;
+	uint8 bAllowTickOnDedicatedServer:1;
 
 	/** Run this tick first within the tick group, presumably to start async tasks that must be completed with this tick group, hiding the latency. */
-	uint32 bHighPriority:1;
+	uint8 bHighPriority:1;
 
 	/** If false, this tick will run on the game thread, otherwise it will run on any thread in parallel with the game thread and in parallel with other "async ticks" **/
-	uint32 bRunOnAnyThread:1;
+	uint8 bRunOnAnyThread:1;
 
 private:
 	/** If true, means that this tick function is in the master array of tick functions **/
-	uint32 bRegistered:1;
+	uint8 bRegistered:1;
 
 	enum class ETickState : uint8
 	{
@@ -193,8 +193,8 @@ private:
 	/** Internal data to track if we have finshed visiting this tick function yet this frame **/
 	int32 TickQueuedGFrameCounter;
 
-	/** Completion handle for the task that will run this tick. Caution, this is no reset to nullptr until an unspecified future time **/
-	FGraphEventRef CompletionHandle;
+	/** Pointer to the task, only used during setup. This is often stale. **/
+	void *TaskPointer;
 
 	/** Prerequisites for this tick function **/
 	TArray<struct FTickPrerequisite> Prerequisites;
@@ -238,13 +238,11 @@ public:
 
 	/**
 	* Gets the current completion handle of this tick function, so it can be delayed until a later point when some additional
-	* tasks have been completed.  Only valid after TG_PreAsyncWork has started and then only until the TickFunction itself has
-	* started to run
+	* tasks have been completed.  Only valid after TG_PreAsyncWork has started and then only until the TickFunction finishes
+	* execution
 	**/
-	FGraphEventRef GetCompletionHandle() const
-	{
-		return CompletionHandle;
-	}
+	FGraphEventRef GetCompletionHandle() const;
+
 	/** 
 	* Gets the action tick group that this function will execute in this frame.
 	* Only valid after TG_PreAsyncWork has started through the end of the frame.
@@ -295,6 +293,13 @@ private:
 	 */
 	void QueueTickFunction(class FTickTaskSequencer& TTS, const struct FTickContext& TickContext);
 
+	/**
+	 * Queues a tick function for execution from the game thread
+	 * @param TickContext - context to tick in
+	 * @param StackForCycleDetection - Stack For Cycle Detection
+	 */
+	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<4> >& StackForCycleDetection, struct FTickGroupCompletionItem* AllCompletionEvents, int32 Index, bool bWasInterval);
+
 	/** 
 	 * Logs the prerequisites
 	 */
@@ -321,6 +326,7 @@ private:
 	friend class FTickTaskSequencer;
 	friend class FTickTaskManager;
 	friend class FTickTaskLevel;
+	friend class FTickFunctionTask;
 };
 
 template<>
