@@ -21,7 +21,6 @@ partial class GUBP
 		public List<string> DependentPromotions = new List<string>();
         public List<string> AllDependencyBuildProducts = null;
         public List<string> AllDependencies = null;		
-		public List<string> CompletedDependencies = new List<string>();
         public string AgentSharingGroup = "";
         public int ComputedDependentCISFrequencyQuantumShift = -1;
 
@@ -203,13 +202,6 @@ partial class GUBP
                 FullNamesOfPseudosependencies.Add(Node);
             }
         }
-		public void AddCompletedDependency(string Node)
-		{
-			if(!CompletedDependencies.Contains(Node))
-			{
-				CompletedDependencies.Add(Node);
-			}
-		}
         public void RemovePseudodependency(string Node)
         {
             if (FullNamesOfPseudosependencies.Contains(Node))
