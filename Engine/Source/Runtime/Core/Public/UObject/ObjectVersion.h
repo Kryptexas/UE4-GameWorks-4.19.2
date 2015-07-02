@@ -552,6 +552,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_AO_MATERIAL_MASK,
 	// Replaced navigation agents selection with single structure
 	VER_UE4_NAVIGATION_AGENT_SELECTOR,
+	// Mesh particle collisions consider particle size.
+	VER_UE4_MESH_PARTICLE_COLLISIONS_CONSIDER_PARTICLE_SIZE,
+
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

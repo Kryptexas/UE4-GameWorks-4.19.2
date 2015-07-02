@@ -2966,6 +2966,7 @@ UParticleModuleTypeDataMesh::UParticleModuleTypeDataMesh(const FObjectInitialize
 	AxisLockOption = EPAL_NONE;
 	CameraFacingUpAxisOption_DEPRECATED = CameraFacing_NoneUP;
 	CameraFacingOption = XAxisFacing_NoUp;
+	bCollisionsConsiderPartilceSize = true;
 }
 
 FParticleEmitterInstance* UParticleModuleTypeDataMesh::CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent)
@@ -3000,6 +3001,10 @@ void UParticleModuleTypeDataMesh::Serialize(FArchive& Ar)
 		RPYDistribution->Min = oldOrient;
 		RPYDistribution->Max = oldOrient;
 		RPYDistribution->bIsDirty = true;
+	}
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MESH_PARTICLE_COLLISIONS_CONSIDER_PARTICLE_SIZE)
+	{
+		bCollisionsConsiderPartilceSize = false;//Old data should default to the old behavior of not considering particle size.
 	}
 }
 

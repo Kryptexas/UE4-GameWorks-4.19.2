@@ -347,6 +347,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 		if (MeshType && MeshType->Mesh)
 		{
 			Extent = MeshType->Mesh->GetBounds().BoxExtent;
+			Extent = MeshType->bCollisionsConsiderPartilceSize ? Extent * Size : Extent;
 		}
 		
 		FHitResult Hit;
