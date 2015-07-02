@@ -51,6 +51,9 @@ UCSVImportFactory::UCSVImportFactory(const FObjectInitializer& ObjectInitializer
 	bEditorImport = true;
 	bText = true;
 
+	// Give this factory a lower than normal import priority, as CSV and JSON can be commonly used and we'd like to give the other import factories a shot first
+	--ImportPriority;
+
 	Formats.Add(TEXT("csv;Comma-separated values"));
 }
 
@@ -58,7 +61,6 @@ FText UCSVImportFactory::GetDisplayName() const
 {
 	return LOCTEXT("CSVImportFactoryDescription", "Comma Separated Values");
 }
-
 
 bool UCSVImportFactory::DoesSupportClass(UClass * Class)
 {
@@ -298,6 +300,11 @@ UReimportDataTableFactory::UReimportDataTableFactory(const FObjectInitializer& O
 	: Super(ObjectInitializer)
 {
 	Formats.Add(TEXT("json;JavaScript Object Notation"));
+}
+
+bool UReimportDataTableFactory::FactoryCanImport( const FString& Filename )
+{
+	return true;
 }
 
 bool UReimportDataTableFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )

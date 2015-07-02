@@ -415,6 +415,18 @@ bool FPaperJsonSpriteSheetImporter::Import(TSharedPtr<FJsonObject> SpriteDescrip
 	return bLoadedSuccessfully;
 }
 
+bool FPaperJsonSpriteSheetImporter::CanImportJSON(const FString& FileContents)
+{
+	TSharedPtr<FJsonObject> SpriteDescriptorObject = ParseJSON(FileContents, FString(), /*bSilent=*/ true);
+	if (SpriteDescriptorObject.IsValid())
+	{
+		FString Unused;
+		return ParseMetaBlock(FString(), SpriteDescriptorObject, /*out*/ Unused, /*bSilent=*/ true);
+	}
+	
+	return false;
+}
+
 bool FPaperJsonSpriteSheetImporter::ImportFromString(const FString& FileContents, const FString& NameForErrors, bool bSilent)
 {
 	TSharedPtr<FJsonObject> SpriteDescriptorObject = ParseJSON(FileContents, NameForErrors, bSilent);

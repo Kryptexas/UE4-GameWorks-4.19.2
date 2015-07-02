@@ -36,6 +36,9 @@ class FPaperJsonSpriteSheetImporter
 {
 public:
 	FPaperJsonSpriteSheetImporter();
+
+	static bool CanImportJSON(const FString& FileContents);
+
 	bool ImportFromString(const FString& FileContents, const FString& NameForErrors, bool bSilent);
 	bool ImportFromArchive(FArchive* Archive, const FString& NameForErrors, bool bSilent);
 

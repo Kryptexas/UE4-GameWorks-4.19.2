@@ -32,6 +32,17 @@ FText UPaperSpriteSheetImportFactory::GetToolTip() const
 	return NSLOCTEXT("Paper2D", "PaperJsonImporterFactoryDescription", "Sprite sheets exported from Adobe Flash or Texture Packer");
 }
 
+bool UPaperSpriteSheetImportFactory::FactoryCanImport(const FString& Filename)
+{
+	FString FileContent;
+	if (FFileHelper::LoadFileToString(/*out*/ FileContent, *Filename))
+	{
+		return FPaperJsonSpriteSheetImporter::CanImportJSON(FileContent);
+	}
+
+	return false;
+}
+
 UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
 {
 	Flags |= RF_Transactional;

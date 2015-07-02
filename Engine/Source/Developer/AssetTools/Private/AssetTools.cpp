@@ -692,6 +692,11 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 		}
 	}
 
+	// We need to sort the factories so that they get tested in priority order
+	for (auto& ExtensionToFactories : ExtensionToFactoriesMap)
+	{
+		ExtensionToFactories.Value.Sort(&UFactory::SortFactoriesByPriority);
+	}
 
 	// Some flags to keep track of what the user decided when asked about overwriting or replacing
 	bool bOverwriteAll = false;

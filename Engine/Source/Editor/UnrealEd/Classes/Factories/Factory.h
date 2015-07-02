@@ -73,6 +73,9 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
+	/** Helper function to sort an array of factories by their import priority - use as a predicate for Sort */
+	static bool SortFactoriesByPriority(const UFactory& A, const UFactory& B);
+
 	/** Returns true if this factory should be shown in the New Asset menu (by default calls CanCreateNew). */
 	virtual bool ShouldShowInNewMenu() const;
 
