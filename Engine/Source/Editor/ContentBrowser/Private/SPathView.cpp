@@ -949,7 +949,10 @@ void SPathView::Populate()
 			{
 				CleanRootPathName = CleanRootPathName.Mid( 0, CleanRootPathName.Len() - 1 );
 			}
-			AddRootItem(CleanRootPathName);
+
+			// Templates can mount "root" items which are actually sub-items under a root (see FUnrealEdMisc::MountTemplateSharedPaths)
+			// We can use AddPath here (rather than AddRootItem), as this will ensure that both the root and any sub-path items are added correctly
+			AddPath(CleanRootPathName);
 		}
 	}
 	
