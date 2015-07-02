@@ -719,47 +719,47 @@ namespace AutomationTool
             BaseEngineProject = new BranchUProject();
 
             var AllProjects = UnrealBuildTool.UProjectInfo.FilterGameProjects(false, null);
-            var StartTime = DateTime.Now.ToString();
-            foreach (var InfoEntry in AllProjects)
-            {
-                var UProject = new BranchUProject(InfoEntry);
-                if (UProject.Properties.bIsCodeBasedProject)
-                {
-                    CodeProjects.Add(UProject);
-                }
-                else
-                {
-                    NonCodeProjects.Add(UProject);
-                    // the base project uses BlankProject if it really needs a .uproject file
-                    if (String.IsNullOrEmpty(BaseEngineProject.FilePath) && UProject.GameName == "BlankProject")
-                    {
-                        BaseEngineProject.FilePath = UProject.FilePath;
-                    }
-                }
-            }
-            var FinishTime = DateTime.Now.ToString();
-            CommandUtils.PrintCSVFile(String.Format("UAT,SortProjects,{0},{1}", StartTime, FinishTime));            
+			using(CommandUtils.TelemetryStopwatch SortProjectsStopwatch = new CommandUtils.TelemetryStopwatch("SortProjects"))
+			{
+				foreach (var InfoEntry in AllProjects)
+				{
+					var UProject = new BranchUProject(InfoEntry);
+					if (UProject.Properties.bIsCodeBasedProject)
+					{
+						CodeProjects.Add(UProject);
+					}
+					else
+					{
+						NonCodeProjects.Add(UProject);
+						// the base project uses BlankProject if it really needs a .uproject file
+						if (String.IsNullOrEmpty(BaseEngineProject.FilePath) && UProject.GameName == "BlankProject")
+						{
+							BaseEngineProject.FilePath = UProject.FilePath;
+						}
+					}
+				}
+			}
  /*           if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
             {
                 throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
             }*/
 
-            CommandUtils.Log("  Base Engine:");
-            var StartBranchDump = DateTime.Now.ToString();
-            BaseEngineProject.Dump(InHostPlatforms);
+			using(CommandUtils.TelemetryStopwatch ProjectDumpStopwatch = new CommandUtils.TelemetryStopwatch("Project Dump"))
+			{
+				CommandUtils.Log("  Base Engine:");
+				BaseEngineProject.Dump(InHostPlatforms);
 
-            CommandUtils.Log("  {0} Code projects:", CodeProjects.Count);
-            foreach (var Proj in CodeProjects)
-            {
-                Proj.Dump(InHostPlatforms);
-            }
-            CommandUtils.Log("  {0} Non-Code projects:", CodeProjects.Count);
-            foreach (var Proj in NonCodeProjects)
-            {
-                Proj.Dump(InHostPlatforms);
-            }
-            var FinishBranchDump = DateTime.Now.ToString();
-            CommandUtils.PrintCSVFile(String.Format("UAT,Project Dump,{0},{1}", StartBranchDump, FinishBranchDump));
+				CommandUtils.Log("  {0} Code projects:", CodeProjects.Count);
+				foreach (var Proj in CodeProjects)
+				{
+					Proj.Dump(InHostPlatforms);
+				}
+				CommandUtils.Log("  {0} Non-Code projects:", CodeProjects.Count);
+				foreach (var Proj in NonCodeProjects)
+				{
+					Proj.Dump(InHostPlatforms);
+				}
+			}
         }
 
         public BranchUProject FindGame(string GameName)

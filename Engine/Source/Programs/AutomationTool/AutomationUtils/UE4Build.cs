@@ -189,10 +189,10 @@ namespace AutomationTool
 
 			ClearExportedXGEXML();
 
-            var StartXGEManifestExport = DateTime.Now.ToString();
-            RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs, EnvVars: EnvVars);
-            var FinishXGEManifestExport = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,GenerateXGEManifest.{0}.{1}.{2},{3},{4}", TargetName, Platform.ToString(), Config, StartXGEManifestExport, FinishXGEManifestExport));
+			using(TelemetryStopwatch GenerateManifestStopwatch = new TelemetryStopwatch("GenerateXGEManifest.{0}.{1}.{2}", TargetName, Platform.ToString(), Config))
+			{
+				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs, EnvVars: EnvVars);
+			}
 
 			PrepareManifest(UBTManifest, true);
 
@@ -285,10 +285,10 @@ namespace AutomationTool
 			}
 
 			PrepareUBT();
-            var StartCleanUBT = DateTime.Now.ToString();
-            RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs, EnvVars: EnvVars);
-            var FinishCleanUBT = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,CleanWithUBT.{0}.{1}.{2},{3},{4}", TargetName, Platform.ToString(), Config, StartCleanUBT, FinishCleanUBT));
+			using(TelemetryStopwatch CleanStopwatch = new TelemetryStopwatch("CleanWithUBT.{0}.{1}.{2}", TargetName, Platform.ToString(), Config))
+			{
+				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs, EnvVars: EnvVars);
+			}
         }
 
 		void BuildWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform TargetPlatform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, bool ForceFlushMac = false, bool DisableXGE = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
@@ -334,16 +334,17 @@ namespace AutomationTool
                 string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
 				DeleteFile(UBTManifest);
-                var StartGenerateManifest = DateTime.Now.ToString();
-                RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs + " -generatemanifest", EnvVars: EnvVars);
-                var FinishGenerateManifest = DateTime.Now.ToString();
-                PrintCSVFile(String.Format("UAT,PrepareUBTManifest.{0}.{1}.{2},{3},{4}", TargetName, TargetPlatform.ToString(), Config, StartGenerateManifest, FinishGenerateManifest));
+				using(TelemetryStopwatch PrepareManifestStopwatch = new TelemetryStopwatch("PrepareUBTManifest.{0}.{1}.{2}", TargetName, TargetPlatform.ToString(), Config))
+				{
+					RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs + " -generatemanifest", EnvVars: EnvVars);
+				}
                 PrepareManifest(UBTManifest, false);
 			}
-            var StartCompile = DateTime.Now.ToString();
-            RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
-            var FinishCompile = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,Compile.{0}.{1}.{2},{3},{4}", TargetName, TargetPlatform.ToString(), Config, StartCompile, FinishCompile));
+
+			using(TelemetryStopwatch CompileStopwatch = new TelemetryStopwatch("Compile.{0}.{1}.{2}", TargetName, TargetPlatform.ToString(), Config))
+			{
+				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
+			}
             // allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
 			Platform.Platforms[TargetPlatform].PostBuildTarget(this, string.IsNullOrEmpty(ProjectName) ? TargetName : ProjectName, UprojectPath, Config);
 
@@ -785,11 +786,12 @@ namespace AutomationTool
 
 		public bool ProcessXGEItems(List<XGEItem> Actions, string XGETool, string Args, string TaskFilePath, bool DoRetries, bool SpecialTestFlag, bool ShowProgress)
 		{
-            var StartProcessTime = DateTime.Now.ToString();
             if (string.IsNullOrEmpty(XGETool))
 			{
 				throw new AutomationException("Unable to find xge tool: " + XGETool);
 			}
+
+			TelemetryStopwatch CombineXGEStopwatch = new TelemetryStopwatch("CombineXGEItemFiles.{0}", Path.GetFileNameWithoutExtension(XGETool));
 
 			XmlDocument XGETaskDocument;	
 			if (!CombineXGEItemFiles(Actions, TaskFilePath, out XGETaskDocument))
@@ -843,68 +845,67 @@ namespace AutomationTool
 					throw new AutomationException("Unable to find xge xml: " + TaskFilePath);
 				}
 
-                var FinishCombineXGEItemFilesTime = DateTime.Now.ToString();
-                PrintCSVFile(String.Format("UAT,CombineXGEItemFiles.{0},{1},{2}", Path.GetFileNameWithoutExtension(XGETool), StartProcessTime, FinishCombineXGEItemFilesTime));
-                
-                int Retries = DoRetries ? 2 : 1;
-                int ConnectionRetries = 4;
-                for (int i = 0; i < Retries; i++)
+				CombineXGEStopwatch.Finish();
+               
+				using(TelemetryStopwatch ProcessXGEStopwatch = new TelemetryStopwatch("ProcessXGE.{0}", Path.GetFileNameWithoutExtension(XGETool)))
 				{
-					try
+					int Retries = DoRetries ? 2 : 1;
+					int ConnectionRetries = 4;
+					for (int i = 0; i < Retries; i++)
 					{
-                        while (true)
-                        {
-                            Log("Running {0} *******", XGETool);
-                            PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
-                            int SuccesCode;
-                            string LogFile = GetRunAndLogLogName(CmdEnv, XGETool);
-                            string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
-                            PopDir();
-                            if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !Output.Contains("------Project:"))
-                            {
-                                Log(System.Diagnostics.TraceEventType.Warning, String.Format("{0} failure on the local connection timeout", XGETool));
-                                if (ConnectionRetries < 2)
-                                {
-                                    System.Threading.Thread.Sleep(60000);
-                                }
-                                ConnectionRetries--;
-                                continue;
-                            }
-                            else if (SuccesCode != 0)
-                            {
-                                Log("{0} did not succeed *******", XGETool);
-                                throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
-                                                                XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
-                            }
-                            Log("{0} {1} Done *******", XGETool, Args);
-                            break;
-                        }
-                        break;
-					}
-					catch (Exception Ex)
-					{
-						Log("{0} failed on try {1}: {2}", XGETool, i + 1, Ex.ToString());
-						if (i + 1 >= Retries)
+						try
 						{
-							return false;
+							while (true)
+							{
+								Log("Running {0} *******", XGETool);
+								PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+								int SuccesCode;
+								string LogFile = GetRunAndLogLogName(CmdEnv, XGETool);
+								string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
+								PopDir();
+								if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !Output.Contains("------Project:"))
+								{
+									Log(System.Diagnostics.TraceEventType.Warning, String.Format("{0} failure on the local connection timeout", XGETool));
+									if (ConnectionRetries < 2)
+									{
+										System.Threading.Thread.Sleep(60000);
+									}
+									ConnectionRetries--;
+									continue;
+								}
+								else if (SuccesCode != 0)
+								{
+									Log("{0} did not succeed *******", XGETool);
+									throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+																	XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
+								}
+								Log("{0} {1} Done *******", XGETool, Args);
+								break;
+							}
+							break;
 						}
-						Log("Deleting build products to force a rebuild.");
-						foreach (var Item in Actions)
+						catch (Exception Ex)
 						{
-							XGEDeleteBuildProducts(Item.Manifest);
+							Log("{0} failed on try {1}: {2}", XGETool, i + 1, Ex.ToString());
+							if (i + 1 >= Retries)
+							{
+								return false;
+							}
+							Log("Deleting build products to force a rebuild.");
+							foreach (var Item in Actions)
+							{
+								XGEDeleteBuildProducts(Item.Manifest);
+							}
 						}
 					}
 				}
-                var FinishXGEToolTime = DateTime.Now.ToString();
-                PrintCSVFile(String.Format("UAT,ProcessXGE.{0},{1},{2}", Path.GetFileNameWithoutExtension(XGETool), FinishCombineXGEItemFilesTime, FinishXGEToolTime));
-
 			}
 			foreach (var Item in Actions)
 			{
 				XGEFinishBuildWithUBT(Item);
 			}
 			return true;
-			}
+		}
 
         private static bool CombineXGEItemFiles(List<XGEItem> Actions, string TaskFilePath, out XmlDocument XGETaskDocument)
         {

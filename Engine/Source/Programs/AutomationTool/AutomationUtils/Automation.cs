@@ -320,10 +320,10 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Compile scripts.
 			Log.TraceInformation("Compiling scripts.");
 			ScriptCompiler Compiler = new ScriptCompiler();
-            var StartScriptCompile = DateTime.Now.ToString();
-			Compiler.FindAndCompileAllScripts(AdditionalScriptsFolders: AdditionalScriptsFolders);
-            var FinishScriptCompile = DateTime.Now.ToString();
-            CommandUtils.PrintCSVFile(String.Format("UAT,ScriptCompile,{0},{1}", StartScriptCompile, FinishScriptCompile));
+			using(CommandUtils.TelemetryStopwatch ScriptCompileStopwatch = new CommandUtils.TelemetryStopwatch("ScriptCompile"))
+			{
+				Compiler.FindAndCompileAllScripts(AdditionalScriptsFolders: AdditionalScriptsFolders);
+			}
 
 			if (GlobalCommandLine.CompileOnly)
 			{

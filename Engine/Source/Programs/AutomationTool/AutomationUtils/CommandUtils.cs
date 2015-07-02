@@ -1896,24 +1896,45 @@ namespace AutomationTool
 			}
 		}
 		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms; 
-        public static void PrintCSVFile(string Input)
-        {
-            // sometimes nul is used as the CSV file so batch scripts can append using output redirectors easily. We have to ignore those.
-            if (IsBuildMachine && CmdEnv.CSVFile != "" && CmdEnv.CSVFile != "nul")
-            {
-                var CSVBuilder = new StringBuilder();
-                var CSVLineToAppend = String.Format("{0}{1}", Input, Environment.NewLine);
-                CSVBuilder.Append(CSVLineToAppend);
-                try
-                {
-                    File.AppendAllText(CmdEnv.CSVFile, CSVBuilder.ToString());
-                }
-                catch (Exception e)
-                {
-                    Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, e.ToString());
-                }
-            }
-        }
+
+		public class TelemetryStopwatch : IDisposable
+		{
+			string Name;
+			DateTime StartTime;
+			bool bFinished;
+
+			public TelemetryStopwatch(string Format, params object[] Args)
+			{
+				Name = String.Format(Format, Args);
+				StartTime = DateTime.Now;
+			}
+
+			public void Cancel()
+			{
+				bFinished = true;
+			}
+
+			public void Finish()
+			{
+				if(!bFinished && IsBuildMachine && !String.IsNullOrEmpty(CmdEnv.CSVFile) && CmdEnv.CSVFile != "nul")
+				{
+					try
+					{
+						File.AppendAllText(CmdEnv.CSVFile, String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime.ToString(), DateTime.Now.ToString()));
+					}
+					catch (Exception Ex)
+					{
+						Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
+					}
+					bFinished = true;
+				}
+			}
+
+			public void Dispose()
+			{
+				Finish();
+			}
+		}
 
 		#endregion
 

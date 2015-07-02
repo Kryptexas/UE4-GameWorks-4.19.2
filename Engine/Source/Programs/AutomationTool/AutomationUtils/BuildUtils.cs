@@ -54,10 +54,10 @@ namespace AutomationTool
 				throw new AutomationException(String.Format("Unabled to build Solution {0}. devenv.com not found.", SolutionFile));
 			}
 			string CmdLine = String.Format("\"{0}\" /build \"{1}\"", SolutionFile, BuildConfig);
-            var StartBuildSolution = DateTime.Now.ToString();
-			RunAndLog(Env, Env.MsDevExe, CmdLine, LogName);
-            var FinishBuildSolution = DateTime.Now.ToString();
-            PrintCSVFile(String.Format("UAT,Compile.{0}.{1}.{2},{3},{4}", Path.GetFileName(SolutionFile), "WinC#", BuildConfig, StartBuildSolution, FinishBuildSolution));
+			using(TelemetryStopwatch CompileStopwatch = new TelemetryStopwatch("Compile.{0}.{1}.{2}", Path.GetFileName(SolutionFile), "WinC#", BuildConfig))
+			{
+				RunAndLog(Env, Env.MsDevExe, CmdLine, LogName);
+			}
 		}
 
 		/// <summary>
