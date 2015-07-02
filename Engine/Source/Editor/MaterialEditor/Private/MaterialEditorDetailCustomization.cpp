@@ -5,6 +5,7 @@
 #include "MaterialEditor.h"
 #include "MaterialEditorDetailCustomization.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
