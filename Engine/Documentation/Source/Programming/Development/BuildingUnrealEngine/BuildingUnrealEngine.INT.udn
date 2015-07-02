@@ -2,7 +2,7 @@ Availability:Public
 Title:Building Unreal Engine
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:Compiling the Unreal Engine.
-Version: 4.5
+Version: 4.9
 
 %Globals:OSSelect%
 
@@ -28,17 +28,17 @@ Version: 4.5
 
 		Before you dive right in and start getting your hands dirty with the engine, there are a few basic setup steps to perform:
 
-		1.	Run the `GenerateProjectFiles.bat` batch file located in the root directory.
+		1.	Run the **GenerateProjectFiles.bat** batch file located in the root directory.
 
 			[REGION:warning]
 				All of the project files and even the UE4 solution are intermediate files - located in `[UE4Root]\Engine\Intermediate\ProjectFiles`. You must generate them each time you sync a new build to ensure they exist and are up to date. This also means if you delete your `Intermediate` folder, you must regenerate the project files using the above-mentioned batch file.
 			[/REGION]
 
-		1.	Open the `UE4.sln` Visual Studio solution located in the root directory. This is the main Visual Studio solution for the entire engine. The projects for the engine core and games are contained within this solution. 
+		1.	Open the **UE4.sln** Visual Studio solution located in the root directory. This is the main Visual Studio solution for the entire engine. The projects for the engine core and games are contained within this solution. 
 
 		1.	**Right-click** the **UE4** project and choose **Set As StartUp Project**.
 
-		1.	Save the `UE4.sln`. Make sure to save the changes you have made so the next time you open the solution you will not have to go through the process all over again.
+		1.	Save the **UE4.sln**. Make sure to save the changes you have made so the next time you open the solution you will not have to go through the process all over again.
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -52,16 +52,16 @@ Version: 4.5
 	[/PARAMLITERAL]
 	[PARAM:content]
 		[REGION:note]
-		Please make sure you are running Xcode 5.1 before proceeding.
+		Please make sure you are running Xcode 6.1 before proceeding.
 		[/REGION]
 
 		Before you dive right in and start getting your hands dirty with the engine, you will need project files in order to compile: 
 		
-		1. Run `GenerateProjectFiles.command` located in the root directory. It should take less than a minute to complete. 
+		1. Run **GenerateProjectFiles.command** located in the root directory. It should take less than a minute to complete. 
 		
 		1. Close the Terminal window once the operation has completed.
 
-		1. Open the `UE4.xcodeproj` Xcode project located in the root directory. This is the main project for the entire engine. All of the projects for the engine core, tools, and games are contained within this project.
+		1. Open the **UE4.xcodeproj** Xcode project located in the root directory. This is the main project for the entire engine. All of the projects for the engine core, tools, and games are contained within this project.
 
 		1. in Xcode, choose **UE4Editor - Mac** and **My Mac 64-bit** for the active scheme.
 
@@ -71,7 +71,7 @@ Version: 4.5
 
 ## Compiling Unreal Engine
 
-Unreal Engine 4 uses a custom building method via the UnrealBuildTool. This tool handles all the complex aspects of compiling the engine and all of its parts. 
+Unreal Engine 4 (UE4) uses a custom building method via the UnrealBuildTool. This tool handles all the complex aspects of compiling the engine and all of its parts. 
 
 ### Build Configuration
 
@@ -88,7 +88,7 @@ Unreal Engine 4 uses a custom building method via the UnrealBuildTool. This tool
 	[PARAM:content]
 		Not all configurations will appear by default. Edit the [GenerateProjectFiles.bat](Programming/UnrealBuildSystem/ProjectFileGenerator) file in the main UE4 directory to generate the project files for additional configurations as needed.
 
-		Unreal Engine 4 and the UnrealBuildTool use different build configurations to determine how the engine is compiled. Which configuration you use will be determined by the purposes of the build you want to create.
+		UE4 and the UnrealBuildTool use different build configurations to determine how the engine is compiled. Which configuration you use will be determined by the purposes of the build you want to create.
 
 		The available configurations:
 
@@ -127,7 +127,7 @@ Unreal Engine 4 uses a custom building method via the UnrealBuildTool. This tool
 
 ### Target Platforms
 
-Unreal Engine 4 currently supports the following platforms:
+UE4 currently supports the following platforms:
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
