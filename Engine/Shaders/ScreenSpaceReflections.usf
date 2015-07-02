@@ -122,13 +122,10 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	return;
 #endif
 
-	float3 N = GBuffer.WorldNormal;
-	float SceneDepth = CalcSceneDepth(UV);
-
-	float3 PositionTranslatedWorld = mul( float4( ScreenPos * SceneDepth, SceneDepth, 1 ), View.ScreenToTranslatedWorld ).xyz;
-
-	float3 V = View.TranslatedViewOrigin.xyz - PositionTranslatedWorld;
-	V = normalize( V );
+	const float3 N = GBuffer.WorldNormal;
+	const float SceneDepth = CalcSceneDepth(UV);
+	const float3 PositionTranslatedWorld = mul( float4( ScreenPos * SceneDepth, SceneDepth, 1 ), View.ScreenToTranslatedWorld ).xyz;
+	const float3 V = normalize(View.TranslatedViewOrigin.xyz - PositionTranslatedWorld);
 
 	uint FrameRandom;
 	{
@@ -148,6 +145,40 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 		}
 	}
 
+#if SSR_QUALITY == SSR_CONE_QUALITY
+	const int NumSteps = 16;
+	
+	{
+		const float2 PixelPos = UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw;
+		const float2 E = float2(PseudoRandom(PixelPos + int2(FrameRandom, 0)), PseudoRandom(PixelPos + int2(0, FrameRandom)));
+		const float StepOffset = PseudoRandom(PixelPos + FrameRandom);
+
+		const float4 HNAndPDF = ImportanceSampleBlinn( E, Roughness );
+		const float3 H = TangentToWorld( HNAndPDF.xyz, N );
+		const float3 R = 2 * dot( V, H ) * H - V;
+
+		const float ReflectPDF = HNAndPDF.w / (4 * saturate(dot(V, H)));
+		const float TotalSamples = View.TemporalAAParams.g;
+		const float SolidAngleSample = 1.0 / ( TotalSamples * ReflectPDF );
+		const float ConeAngleWorld = acos( 1 - SolidAngleSample / (2*PI) );
+
+		float4 HitUVzTime;
+		float HCBLevel;
+		
+		RayCast(
+			PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size,
+			PositionTranslatedWorld, R, Roughness, ConeAngleWorld, SceneDepth,
+			NumSteps, StepOffset,
+			HitUVzTime, HCBLevel
+		);
+
+		// if there was a hit
+		BRANCH if( HitUVzTime.w < 1 )
+		{
+			OutColor = SampleHCBLevel( PostprocessInput2, PostprocessInput2Sampler, HitUVzTime.xyz, HCBLevel );
+		}
+	}
+#else //SSR_QUALITY != SSR_CONE_QUALITY
 #if SSR_QUALITY == 1
 	const int NumSteps = 8;
 	const int NumRays = 1;
@@ -182,15 +213,20 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 			float3 H = TangentToWorld( ImportanceSampleBlinn( E, Roughness ).xyz, N );
 			float3 R = 2 * dot( V, H ) * H - V;
 
-			float4 HitUVzTime = RayCast( PostprocessInput1, PostprocessInput1Sampler, R, Roughness, SceneDepth, PositionTranslatedWorld, NumSteps, StepOffset );
+			float4 HitUVzTime;
+			float HCBLevel;
+
+			RayCast(
+				PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size,
+				PositionTranslatedWorld, R, Roughness, 0.001, SceneDepth,
+				NumSteps, StepOffset,
+				HitUVzTime, HCBLevel
+			);
 
 			// if there was a hit
 			BRANCH if( HitUVzTime.w < 1 )
 			{
 				float4 SampleColor = SampleScreenColor( PostprocessInput0, PostprocessInput0Sampler, HitUVzTime.xyz );
-				
-				// Fade end of trace
-				SampleColor *= saturate( 4 - 4 * HitUVzTime.w );
 				
 				SampleColor.rgb /= 1 + Luminance(SampleColor.rgb);
 				OutColor += SampleColor;
@@ -207,17 +243,24 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 		StepOffset -= 0.5;
 		
 		float3 R = reflect( -V, N );
+		
+		float4 HitUVzTime;
+		float HCBLevel;
 
-		float4 HitUVzTime = RayCast( PostprocessInput1, PostprocessInput1Sampler, R, Roughness, SceneDepth, PositionTranslatedWorld, NumSteps, StepOffset );
+		RayCast(
+			PostprocessInput1, PostprocessInput1Sampler, PostprocessInput1Size,
+			PositionTranslatedWorld, R, Roughness, 0.001, SceneDepth,
+			NumSteps, StepOffset,
+			HitUVzTime, HCBLevel
+		);
+
 		// if there was a hit
 		BRANCH if( HitUVzTime.w < 1 )
 		{
 			OutColor = SampleScreenColor( PostprocessInput0, PostprocessInput0Sampler, HitUVzTime.xyz );
-
-			// Fade end of trace
-			OutColor *= saturate( 4 - 4 * HitUVzTime.w );
 		}
 	}
+#endif //SSR_QUALITY  != SSR_CONE_QUALITY
 	
 	OutColor *= RoughnessFade;
 	OutColor *= SSRParams.r;
