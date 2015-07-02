@@ -52,44 +52,49 @@ struct ENGINE_API FNavigationLinkBase
 	UPROPERTY(EditAnywhere, Category=Default)
 	TSubclassOf<class UNavArea> AreaClass;
 
+	/** restrict area only to specified agents */
+	UPROPERTY(EditAnywhere, Category=Default)
+	FNavAgentSelector SupportedAgents;
+
+	// DEPRECATED AGENT CONFIG
 #if CPP
 	union
 	{
 		struct
 		{
 #endif
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent0 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent1 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent2 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent3 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent4 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent5 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent6 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent7 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent8 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent9 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent10 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent11 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent12 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent13 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent14 : 1;
-			UPROPERTY(EditAnywhere, Category=Default)
-			uint32 bSupportsAgent15 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent0 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent1 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent2 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent3 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent4 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent5 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent6 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent7 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent8 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent9 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent10 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent11 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent12 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent13 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent14 : 1;
+	UPROPERTY()
+	uint32 bSupportsAgent15 : 1;
 #if CPP
 		};
 		uint32 SupportedAgentsBits;
@@ -103,6 +108,17 @@ struct ENGINE_API FNavigationLinkBase
 #endif // WITH_EDITORONLY_DATA
 
 	FNavigationLinkBase();
+
+	void PostSerialize(const FArchive& Ar);
+};
+
+template<>
+struct TStructOpsTypeTraits< FNavigationLinkBase > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 USTRUCT()
@@ -151,6 +167,20 @@ struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 
 		return Result;
 	}
+
+	void PostSerialize(const FArchive& Ar)
+	{
+		FNavigationLinkBase::PostSerialize(Ar);
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits< FNavigationLink > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 USTRUCT()
@@ -199,6 +229,20 @@ struct ENGINE_API FNavigationSegmentLink : public FNavigationLinkBase
 
 		return Result;
 	}
+
+	void PostSerialize(const FArchive& Ar)
+	{
+		FNavigationLinkBase::PostSerialize(Ar);
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits< FNavigationSegmentLink > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 /** Class containing definition of a navigation area */

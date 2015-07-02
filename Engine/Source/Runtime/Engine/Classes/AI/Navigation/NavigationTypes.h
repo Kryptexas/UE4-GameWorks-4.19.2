@@ -415,6 +415,84 @@ inline uint32 GetTypeHash(const FNavAgentProperties& A)
 }
 
 USTRUCT()
+struct ENGINE_API FNavAgentSelector
+{
+	GENERATED_USTRUCT_BODY()
+
+#if CPP
+	union
+	{
+		struct
+		{
+#endif
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent0 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent1 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent2 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent3 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent4 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent5 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent6 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent7 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent8 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent9 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent10 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent11 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent12 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent13 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent14 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent15 : 1;
+#if CPP
+		};
+		uint32 PackedBits;
+	};
+#endif
+
+	FNavAgentSelector();
+
+	FORCEINLINE bool Contains(int32 AgentIndex) const
+	{
+		return (AgentIndex >= 0 && AgentIndex < 16) ? !!(PackedBits & (1 << AgentIndex)) : false;
+	}
+
+	FORCEINLINE bool IsInitialized() const
+	{
+		return (PackedBits & 0x80000000) != 0;
+	}
+
+	FORCEINLINE void MarkInitialized()
+	{
+		PackedBits |= 0x80000000;
+	}
+
+	bool Serialize(FArchive& Ar);
+};
+
+template<>
+struct TStructOpsTypeTraits< FNavAgentSelector > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializer = true,
+	};
+};
+
+USTRUCT()
 struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 {
 	GENERATED_USTRUCT_BODY()

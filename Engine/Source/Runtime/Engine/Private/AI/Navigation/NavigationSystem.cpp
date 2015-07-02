@@ -160,6 +160,19 @@ FNavHeightfieldSamples::FNavHeightfieldSamples()
 }
 
 //----------------------------------------------------------------------//
+// FNavAgentSelector
+//----------------------------------------------------------------------//
+FNavAgentSelector::FNavAgentSelector() : PackedBits(0x7fffffff)
+{
+}
+
+bool FNavAgentSelector::Serialize(FArchive& Ar)
+{
+	Ar << PackedBits;
+	return true;
+}
+
+//----------------------------------------------------------------------//
 // FNavDataConfig
 //----------------------------------------------------------------------//
 FNavDataConfig::FNavDataConfig(float Radius, float Height)

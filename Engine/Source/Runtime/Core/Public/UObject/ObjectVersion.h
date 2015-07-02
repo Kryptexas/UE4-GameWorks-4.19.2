@@ -550,6 +550,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADDED_NON_LINEAR_TRANSITION_BLENDS,
 	// AO Material Mask texture
 	VER_UE4_AO_MATERIAL_MASK,
+	// Replaced navigation agents selection with single structure
+	VER_UE4_NAVIGATION_AGENT_SELECTOR,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

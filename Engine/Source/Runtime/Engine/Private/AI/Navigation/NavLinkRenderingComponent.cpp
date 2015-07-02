@@ -137,7 +137,7 @@ void FNavLinkRenderingProxy::StorePointLinks(const FTransform& LocalToWorld, con
 		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
 		LinkDrawing.SnapRadius = Link->SnapRadius;
 		LinkDrawing.SnapHeight = Link->bUseSnapHeight ? Link->SnapHeight : -1.0f;
-		LinkDrawing.SupportedAgentsBits = Link->SupportedAgentsBits;
+		LinkDrawing.SupportedAgentsBits = Link->SupportedAgents.PackedBits;
 		OffMeshPointLinks.Add(LinkDrawing);
 	}
 }
@@ -156,7 +156,7 @@ void FNavLinkRenderingProxy::StoreSegmentLinks(const FTransform& LocalToWorld, c
 		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
 		LinkDrawing.SnapRadius = Link->SnapRadius;
 		LinkDrawing.SnapHeight = Link->bUseSnapHeight ? Link->SnapHeight : -1.0f;
-		LinkDrawing.SupportedAgentsBits = Link->SupportedAgentsBits;
+		LinkDrawing.SupportedAgentsBits = Link->SupportedAgents.PackedBits;
 		OffMeshSegmentLinks.Add(LinkDrawing);
 	}
 }
