@@ -533,6 +533,13 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 
 		if (AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistance())
 		{
+			// Make sure the active timer is registered to update the inertial scroll
+			if ( !bIsScrollingActiveTimerRegistered )
+			{
+				bIsScrollingActiveTimerRegistered = true;
+				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STableViewBase::UpdateInertialScroll));
+			}
+
 			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
 			// The user has moved the list some amount; they are probably
