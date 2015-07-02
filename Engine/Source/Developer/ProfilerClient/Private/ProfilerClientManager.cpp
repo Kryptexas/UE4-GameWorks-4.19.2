@@ -1085,6 +1085,8 @@ bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUse
 			Reader << UncompressedData;
 			if( UncompressedData.HasReachedEndOfCompressedData() )
 			{
+				static FStatNameAndInfo Adv( NAME_AdvanceFrame, "", "", TEXT( "" ), EStatDataType::ST_int64, true, false );
+				GenerateNewFrame( FStatMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, 0ll, false ), Reader, bUseInAsync );
 				return true;
 			}
 
@@ -1100,27 +1102,7 @@ bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUse
 				{
 					if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
 					{
-						AddCollectedStatMessages( Message );
-
-						// create an old format data frame from the data
-						GenerateProfilerDataFrame();
-
-						{
-							// add the frame to the work list
-							FScopeLock ScopeLock( &CriticalSection );
-							DataFrames.Add( CurrentData );
-							DataLoadingProgress = (double)Reader.Tell() / (double)Reader.TotalSize();
-						}
-
-						if( bUseInAsync )
-						{
-							if( DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick )
-							{
-								FPlatformProcess::Sleep( 0.1f );
-							}
-						}
-
-
+						GenerateNewFrame( Message, Reader, bUseInAsync );
 					}
 
 					new (Messages)FStatMessage( Message );			
@@ -1137,6 +1119,7 @@ bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUse
 			}
 		}
 	}
+	// Obsolete. Remove later.
 	else
 	{
 		while( Reader.Tell() < Reader.TotalSize() )
@@ -1199,6 +1182,29 @@ bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUse
 	}
 
 	return false;
+}
+
+void FServiceConnection::GenerateNewFrame( FStatMessage Message, FArchive &Reader, bool bUseInAsync )
+{
+	AddCollectedStatMessages( Message );
+
+	// create an old format data frame from the data
+	GenerateProfilerDataFrame();
+
+	{
+		// add the frame to the work list
+		FScopeLock ScopeLock( &CriticalSection );
+		DataFrames.Add( CurrentData );
+		DataLoadingProgress = (double)Reader.Tell() / (double)Reader.TotalSize();
+	}
+
+	if (bUseInAsync)
+	{
+		if (DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick)
+		{
+			FPlatformProcess::Sleep( 0.1f );
+		}
+	}
 }
 
 void FServiceConnection::AddCollectedStatMessages( FStatMessage Message )
