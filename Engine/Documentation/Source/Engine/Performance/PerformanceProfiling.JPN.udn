@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519182
+﻿INTSourceChangelist:2607480
 Availability:Public
 Title:パフォーマンスおよびプロファイリング
 Crumbs: %ROOT%, Engine
@@ -118,27 +118,27 @@ Navigation:topic
 
 エンジンの表示フラグを使用して多くのレンダリング機能を切り替えることができます。エディタには、便利な 2D UI に全ての表示フラグがリスト化されます。チェックボックスをクリックすれば、メニューを閉じずに複数のチェックボックスを切り替えることができます。
 
-インゲームで、**show** (表示) コマンドを使用することができます。**show** を使って、すべての表示フラグと状態のリストを取得します。**show showflagname** を使って機能を切り替えます。これは、ゲーム ビューポートでのみ有効なことにご注意ください。そのため、エディタ内のビューポートでは
+インゲームで、show (表示) コマンドを使用することができます。show を使って、すべての表示フラグと状態のリストを取得します。`show showflagname` を使って機能を切り替えます。これは、ゲーム ビューポートでのみ有効なことにご注意ください。そのため、エディタ内のビューポートでは
 エディタの UI を使用する必要があります。コンソール変数 (例、howflag.Bloom) を使用してインゲームまたはエディタ内で表示フラグ値をオーバーライドできますが、UI も無効にします。
 
 [REGION:note]
-機能がレンダリングを行っていなくてもパフォーマンスを消費することにご注意ください。例えば、 **show particles** はパーティクルを隠しますが、
-後でそれらをもう一度有効にするためにシミュレーション時間が必要になります。コンソール変数 **fx.freezeparticlesimulation** は更新部分も無効にできます (エディタ UI も存在します)。
-もうひとつの変数、**show tesselation** は、triangle amplification を無効にしますが、なおもテッセレーションのシェーダを使用します。
+機能がレンダリングを行っていなくてもパフォーマンスを消費することにご注意ください。例えば、 show particles はパーティクルを隠しますが、
+後でそれらをもう一度有効にするためにシミュレーション時間が必要になります。コンソール変数 fx.freezeparticlesimulation は更新部分も無効にできます (エディタ UI も存在します)。
+もうひとつの変数、show tesselation は、triangle amplification を無効にしますが、なおもテッセレーションのシェーダを使用します。
 [/REGION:note]
 
-ハイレベル機能のプロファイリングの開始点として良いものは、 **show StaticMeshes** や **show tesselation** などです。
+ハイレベル機能のプロファイリングの開始点として良いものは、 show StaticMeshes や show tesselation などです。
 
-すべての表示フラグは、コンソール変数としても公開されています。例えば、コンソールの **show Bloom** 、 **showflag.Bloom 0** 、 またはコンフィギュレーション ファイルの **showflag.Bloom = 0** です。
+すべての表示フラグは、コンソール変数としても公開されています。例えば、コンソールの show Bloom 、 showflag.Bloom 0 、 またはコンフィギュレーション ファイルの showflag.Bloom = 0 です。
 コンソール変数は入力が多くなりますが、エディタ UI 表示フラグのオーバーライドもしますし、他のコンソール変数のように ini ファイルに置くこともできます。
 
 便利なものは、ほとんどがプロファイリング用です。
 
 | 表示フラグ | 説明 |
 | -------- | ----------- |
-| **ScreenSpaceReflections** | スクリーン空間の反射を切り替えます。多くのパフォーマンスの消費を生じる、一定のラフネスまでのピクセルのみに影響を与えることができます (**r.SSR.MaxRoughness** で調整、またはポストプロセスの設定で調整)。
+| **ScreenSpaceReflections** | スクリーン空間の反射を切り替えます。多くのパフォーマンスの消費を生じる、一定のラフネスまでのピクセルのみに影響を与えることができます (r.SSR.MaxRoughness で調整、またはポストプロセスの設定で調整)。
 | **AmbientOcclusion** | スクリーン空間環境オクルージョン (シーンによっては、ライトマスで AO（アンビエント オクルージョン）をベイクする静的オブジェクトに対して成果はごくわずかです)。
-| **AntiAliasing** | アンチエイリアシング (TemporalAA と FXAA) を切り替え、 **TemporalAA** を使って FXAA に切り替えます (速め、遅めの品質)
+| **AntiAliasing** | アンチエイリアシング (TemporalAA と FXAA) を切り替え、 TemporalAA を使って FXAA に切り替えます (速め、遅めの品質)。
 | **Bloom** | レンズフレアとブルーム機能を基にした画像に影響します。
 | **DeferredLighting** | すべてのディファード ライティング パスを切り替えます。
 | **DirectionalLights** **PointLights** **SpotLights** | 各照明タイプを切り替えます (各照明タイプがどのようなエフェクトをもたらすか、パフォーマンスの影響を確認するために役立ちます)。
@@ -160,15 +160,15 @@ Navigation:topic
 [REGION:imagetable]
 | ![](SSR.png)(w:794) |
 | :----: | 
-| CONSOLE: r.SSR.MaxRoughness 0.9 = 最高品質 (左), r.SSR.MaxRoughness 0.1 = より高速 (右) |
-| Unlit (ライティングなし)  (上), VisualizeSSR 表示 (下) |
+| CONSOLE: r.SSR.MaxRoughness 0.9 = 最高品質 (左) と r.SSR.MaxRoughness 0.1 = より高速 (右) |
+| Unlit (ライティングなし) (上) と VisualizeSSR 表示 (下) |
 [/REGION]
 
 
 ###ビュー モード
 
-ビュー モードは表示フラグの単なる組み合わせです。エディタの UI は表示フラグとは別のものであり、**ViewMode** コンソール コマンドを使用してエディタの UI と表示フラグとを切り替えることができます。
-パフォーマンスで非常に役立つものは、**Wireframe**、**LightComplexity**、**ShaderComplexity**、および **Lit** です。
+ビュー モードは表示フラグの単なる組み合わせです。エディタの UI は表示フラグとは別のものであり、ViewMode コンソール コマンドを使用してエディタの UI と表示フラグとを切り替えることができます。
+パフォーマンスで非常に役立つものは、Wireframe、LightComplexity、ShaderComplexity、および Lit です。
 
 [REGION:imagetable]
 | ![](ViewModes.png)(w:794) |
@@ -182,11 +182,11 @@ Navigation:topic
 
 [REGION:note]
 統合型グラフィックス チップでは多くの場合、メモリ サブシステムが遅くなりますが、ALU (Arithmetic Logic Unit:演算論理ユニット) とテクスチャ ユニットも少なくなります。様々なハードウェアでテストするか、実際のパフォーマンスの特性を特定することが重要です。
-**SynthBenchmark** ツールは、テストする価値があるハードウェアのグループを特定するのに役立ちます。約 100 の数字は、最近の GPU では普通ですが、ある部分で目立った変化がある場合は、
+SynthBenchmark ツールは、テストする価値があるハードウェアのグループを特定するのに役立ちます。約 100 の数字は、最近の GPU では普通ですが、ある部分で目立った変化がある場合は、
 この GPU は特別な特性を持っており、特別な配慮が必要であるかもしれません。
 [/REGION]
 
-コンソールで **SynthBenchmark** と入力することでこのツールを使用できます。
+コンソールで SynthBenchmark と入力することでこのツールを使用できます。
 
 
     FSynthBenchmark (V0.92):
@@ -229,9 +229,9 @@ Navigation:topic
 
 長期間にわたって stat unit を得ることが非常に役立つ場合があります (例、多くのケースをテストするためのインゲームのカットシーンやカメラ パスのセットアップ)。
 
-以下のチャートは、アンドロイド デバイスでカットシーンから生成されたものです (**Streaming**)。カットシーンの前後でコンソール コマンド、**StartFPSChart** と **StopFPSChart** が入力されました。
-結果として得られる、csv ファイルが、([ProjectFolder]\Saved\Cooked\Android_ES31\SubwayPatrol\Saved\Profiling\FPSChartStats にあります) Microsoft Excel で開きました。
-この例では、初めから 4 つのヘッダラインを取り除き、全てを選択し、**Scatter With Straight Lines** プロットを挿入しました。
+以下のチャートは、アンドロイド デバイスでカットシーンから生成されたものです (Streaming)。カットシーンの前後でコンソール コマンド、StartFPSChart と StopFPSChart が入力されました。
+結果として得られる、csv ファイル ([ProjectFolder]\Saved\Cooked\Android_ES31\SubwayPatrol\Saved\Profiling\FPSChartStats にあります)  が Microsoft Excel で開きました。
+この例では、初めから 4 つのヘッダラインを取り除き、全てを選択し、Scatter With Straight Lines プロットを挿入しました。
 
 [REGION:imagetable]
 | ![](fpschart.png)(w:837) |
@@ -244,4 +244,9 @@ Navigation:topic
 * [](Engine/Performance/SystemSettings)
 * [](Engine/Performance/Profiler)
 * [](Engine/Performance/Scalability)
-* [VFX Optimization: Core Optimization Concepts](Engine/Rendering/ParticleSystems/Optimization/Concepts)
+* [VFX 最適化の中心的な概念](Engine/Rendering/ParticleSystems/Optimization/Concepts)
+
+
+
+
+
