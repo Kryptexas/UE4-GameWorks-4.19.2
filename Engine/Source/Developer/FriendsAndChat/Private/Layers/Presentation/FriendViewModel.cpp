@@ -46,7 +46,7 @@ public:
 			{
 				case EInviteStatus::Accepted :
 				{
-					if (FriendItem->IsOnline() && FriendItem->IsGameJoinable() || FriendItem->IsInParty())
+					if (FriendItem->IsOnline() && (FriendItem->IsGameJoinable() || FriendItem->IsInParty()))
 					{
 						if(CanPerformAction(EFriendActionType::JoinGame))
 						{
