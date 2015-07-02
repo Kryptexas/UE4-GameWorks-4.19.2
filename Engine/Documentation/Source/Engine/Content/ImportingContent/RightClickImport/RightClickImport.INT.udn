@@ -1,4 +1,4 @@
-Availability:Docs
+﻿Availability:Docs
 Title:Right-Click Import
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to add content by right-clicking inside of your Content Browser.
@@ -112,5 +112,5 @@ It's good practice to verify that assets were imported properly into the UE4 pro
 Now that we've reached the end of this tutorial, you've learned how to:
 
 &#x2713;	Locate the Content Browser's **right-click** area.  
-&#x2713;	Use the Content Browser's **right-click** input feature.  
+&#x2713;	Use the Content Browser's **right-click** import feature.  
 &#x2713;	Verify that assets were properly imported to the project folder.
