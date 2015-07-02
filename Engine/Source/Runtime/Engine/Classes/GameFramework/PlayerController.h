@@ -1013,15 +1013,24 @@ public:
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerToggleAILogging();
 
-	/** Add Pitch (look up) input */
+	/**
+	 * Add Pitch (look up) input. This value is multiplied by InputPitchScale.
+	 * @param Val Amount to add to Pitch. This value is multiplied by InputPitchScale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(Keywords="up down"))
 	virtual void AddPitchInput(float Val);
 
-	/** Add Yaw (turn) input */
+	/**
+	 * Add Yaw (turn) input. This value is multiplied by InputYawScale.
+	 * @param Val Amount to add to Yaw. This value is multiplied by InputYawScale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(Keywords="left right turn"))
 	virtual void AddYawInput(float Val);
 
-	/** Add Roll input */
+	/**
+	 * Add Roll input. This value is multiplied by InputRollScale.
+	 * @param Val Amount to add to Roll. This value is multiplied by InputRollScale.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
 	virtual void AddRollInput(float Val);
 
