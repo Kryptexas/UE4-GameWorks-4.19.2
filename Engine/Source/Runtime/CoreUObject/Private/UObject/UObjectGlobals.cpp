@@ -11,6 +11,7 @@
 #include "UObject/TlsObjectInitializers.h"
 #include "UObject/UObjectThreadContext.h"
 #include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
+#include "AssetRegistryInterface.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -955,6 +956,36 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			EndLoadAndCopyLocalizationGatherFlag();
 			return Result;
 		}
+
+#if !WITH_EDITOR
+		static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
+		if (CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
+		{
+			if (Result->PackageFlags & PKG_ProcessingDependencies)
+			{
+				// We've currently already processing the dependencies of this package, so there is a circular dependency
+				EndLoad();
+				return nullptr;
+			}
+
+			auto AssetRegistry = IAssetRegistryInterface::GetPtr();
+
+			if (AssetRegistry)
+			{
+				TArray<FName> PackageDependencies;
+				FName PackageName(InLongPackageName);
+
+				AssetRegistry->GetDependencies(PackageName, PackageDependencies);
+
+				Result->PackageFlags |= PKG_ProcessingDependencies;
+				for (auto Dependency : PackageDependencies)
+				{
+					LoadPackage(InOuter, *Dependency.ToString(), LoadFlags);
+				}
+				Result->PackageFlags &= ~PKG_ProcessingDependencies;
+			}
+		}
+#endif
 
 		// If we are loading a package for diff'ing, set the package flag
 		if(LoadFlags & LOAD_ForDiff)

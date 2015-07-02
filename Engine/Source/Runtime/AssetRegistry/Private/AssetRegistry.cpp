@@ -34,6 +34,7 @@ EChunkProgressReportingType::Type GetChunkAvailabilityProgressType(EAssetAvailab
 FAssetRegistry::FAssetRegistry()
 	: PathTreeRoot(FString())
 	, PreallocatedAssetDataBuffer(NULL)
+	, PreallocatedDependsNodeDataBuffer(NULL)
 {
 	const double StartupStartTime = FPlatformTime::Seconds();
 
@@ -130,6 +131,7 @@ FAssetRegistry::~FAssetRegistry()
 	if (PreallocatedAssetDataBuffer != NULL)
 	{
 		delete [] PreallocatedAssetDataBuffer;
+		PreallocatedAssetDataBuffer = nullptr;
 		NumAssets = 0;
 	}
 	else
@@ -149,13 +151,22 @@ FAssetRegistry::~FAssetRegistry()
 	// Make sure we have deleted all our allocated FAssetData objects
 	ensure(NumAssets == 0);
 
-	// Delete all depends nodes in the cache
-	for (TMap<FName, FDependsNode*>::TConstIterator DependsIt(CachedDependsNodes); DependsIt; ++DependsIt)
+	if (PreallocatedDependsNodeDataBuffer != NULL)
 	{
-		if ( DependsIt.Value() )
+		delete[] PreallocatedDependsNodeDataBuffer;
+		PreallocatedDependsNodeDataBuffer = nullptr;
+		NumDependsNodes = 0;
+	}
+	else
+	{
+		// Delete all depends nodes in the cache
+		for (TMap<FName, FDependsNode*>::TConstIterator DependsIt(CachedDependsNodes); DependsIt; ++DependsIt)
 		{
-			delete DependsIt.Value();
-			NumDependsNodes--;
+			if (DependsIt.Value())
+			{
+				delete DependsIt.Value();
+				NumDependsNodes--;
+			}
 		}
 	}
 
@@ -1320,28 +1331,158 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 
 			AddAssetPath(NewAssetData->PackagePath.ToString());
 		}
+
+		int32 LocalNumDependsNodes = 0;
+		Ar << LocalNumDependsNodes;
+
+		PreallocatedDependsNodeDataBuffer = new FDependsNode[LocalNumDependsNodes];
+
+		for (int32 DependsNodeIndex = 0; DependsNodeIndex < LocalNumDependsNodes; DependsNodeIndex++)
+		{
+			auto NewDependsNodeData = &PreallocatedDependsNodeDataBuffer[DependsNodeIndex];
+			int32 AssetIndex = 0;
+			Ar << AssetIndex;
+			NewDependsNodeData->PackageName = PreallocatedAssetDataBuffer[AssetIndex].PackageName;
+
+			CachedDependsNodes.Add(NewDependsNodeData->PackageName, NewDependsNodeData);
+		}
+
+		for (int32 DependsNodeIndex = 0; DependsNodeIndex < LocalNumDependsNodes; DependsNodeIndex++)
+		{
+			auto NewDependsNodeData = &PreallocatedDependsNodeDataBuffer[DependsNodeIndex];
+			int32 LocalNumDependencies = 0;
+			int32 LocalNumReferencers = 0;
+			Ar << LocalNumDependencies;
+			Ar << LocalNumReferencers;
+
+			for (int32 DependencyIndex = 0; DependencyIndex < LocalNumDependencies; ++DependencyIndex)
+			{
+				int32 Index = 0;
+				Ar << Index;
+				NewDependsNodeData->Dependencies.Add(&PreallocatedDependsNodeDataBuffer[Index]);
+			}
+
+			for (int32 ReferencerIndex = 0; ReferencerIndex < LocalNumReferencers; ++ReferencerIndex)
+			{
+				int32 Index = 0;
+				Ar << Index;
+				NewDependsNodeData->Referencers.Add(&PreallocatedDependsNodeDataBuffer[Index]);
+			}
+		}
 	}
 }
 
-void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data )
+void AddDependsNodesRecursive(FDependsNode* InDependsNode, TArray<FDependsNode*>& OutArray, TMap<FName, FAssetData*>& InAssets)
+{
+	if (!OutArray.Contains(InDependsNode))
+	{
+		if (InAssets.Contains(InDependsNode->PackageName))
+		{
+			OutArray.Add(InDependsNode);
+
+			for (auto Dependency : InDependsNode->Dependencies)
+			{
+				AddDependsNodesRecursive(Dependency, OutArray, InAssets);
+			}
+
+			for (auto Referencer : InDependsNode->Referencers)
+			{
+				AddDependsNodesRecursive(Referencer, OutArray, InAssets);
+			}
+		}
+	}
+}
+
+void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps /* = nullptr */)
 {
 	// serialize number of objects
 	int32 AssetCount = Data.Num();
 	Ar << AssetCount;
 
+	TArray<FName> DependencyNames;
+	TArray<FDependsNode*> Dependencies;
+	TMap<FName, int32> AssetIndexMap;
+	AssetIndexMap.Reserve(Data.Num());
+
 	// save out by walking the TMap
 	for (TMap<FName, FAssetData*>::TIterator It(Data); It; ++It)
 	{
 		Ar << *It.Value();
+		AssetIndexMap.Add(It.Value()->PackageName, AssetIndexMap.Num());
+
+		AddDependsNodesRecursive(FindDependsNode(It.Value()->PackageName), Dependencies, Data);
+	}
+
+	int32 DependsNodeCount = Dependencies.Num();
+	Ar << DependsNodeCount;
+
+	TMap<FDependsNode*, int32> DependencyIndexMap;
+	DependencyIndexMap.Reserve(DependsNodeCount);
+
+	for (auto DependentNode : Dependencies)
+	{
+		int32 AssetIndex = AssetIndexMap[DependentNode->PackageName];
+		Ar << AssetIndex;
+		DependencyIndexMap.Add(DependentNode, DependencyIndexMap.Num());
+	}
+
+	for (auto DependentNode : Dependencies)
+	{
+		auto DependencyCount = 0;
+		auto ReferencerCount = 0;
+
+		for (auto Dependency : DependentNode->Dependencies)
+		{
+			bool bIsMap = InMaps && InMaps->Contains(Dependency->PackageName);
+		
+			if (!bIsMap && DependencyIndexMap.Contains(Dependency))
+			{
+				DependencyCount++;
+			}
+		}
+
+		for (auto Referencer : DependentNode->Referencers)
+		{
+			if (DependencyIndexMap.Contains(Referencer))
+			{
+				ReferencerCount++;
+			}
+		}
+
+		Ar << DependencyCount;
+		Ar << ReferencerCount;
+
+		for (auto Dependency : DependentNode->Dependencies)
+		{
+			bool bIsMap = InMaps && InMaps->Contains(Dependency->PackageName);
+
+			if (!bIsMap && DependencyIndexMap.Contains(Dependency))
+			{
+				int32 Index = DependencyIndexMap[Dependency];
+				Ar << Index;
+			}
+		}
+
+		for (auto Referencer : DependentNode->Referencers)
+		{
+			if (DependencyIndexMap.Contains(Referencer))
+			{
+				int32 Index = DependencyIndexMap[Referencer];
+				Ar << Index;
+			}
+		}
 	}
 }
 
-void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data )
+void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FDependsNode*>& OutDependencyData)
 {
 	check(Ar.IsLoading());
 	// serialize number of objects
 	int AssetCount = 0;
 	Ar << AssetCount;
+
+	Data.Reserve(AssetCount);
+	TMap<int32, FName> AssetIndexMap;
 
 	for (int32 AssetIndex = 0; AssetIndex < AssetCount; AssetIndex++)
 	{
@@ -1351,7 +1492,55 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 		// load it
 		Ar << *NewAssetData;
 
-		Data.Add(NewAssetData->ObjectPath, NewAssetData);
+		Data.Add(NewAssetData->PackageName, NewAssetData);
+		AssetIndexMap.Add(AssetIndexMap.Num(), NewAssetData->PackageName);
+	}
+
+	if (Ar.TotalSize() > Ar.Tell())
+	{
+		int DependsNodeCount = 0;
+		Ar << DependsNodeCount;
+
+		OutDependencyData.Reserve(DependsNodeCount);
+
+		for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
+		{
+			int32 AssetIndex;
+			Ar << AssetIndex;
+
+			auto PackageName = AssetIndexMap[AssetIndex];
+			auto NewNode = new FDependsNode(PackageName);
+			OutDependencyData.Add(NewNode);
+		}
+
+		for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
+		{
+			int32 NumDependencies = 0;
+			Ar << NumDependencies;
+
+			int32 NumReferencers = 0;
+			Ar << NumReferencers;
+
+			auto DependsNode = OutDependencyData[DependsNodeIndex];
+			DependsNode->Dependencies.Reserve(NumDependencies);
+			DependsNode->Referencers.Reserve(NumReferencers);
+
+			for (int32 i = 0; i < NumDependencies; ++i)
+			{
+				int32 DependencyIndex = 0;
+				Ar << DependencyIndex;
+
+				DependsNode->Dependencies.Add(OutDependencyData[DependencyIndex]);
+			}
+
+			for (int32 i = 0; i < NumReferencers; ++i)
+			{
+				int32 Index = 0;
+				Ar << Index;
+
+				DependsNode->Referencers.Add(OutDependencyData[Index]);
+			}
+		}
 	}
 }
 
@@ -1540,12 +1729,25 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 	DependsResults.RemoveAt(0, ResultIdx);
 }
 
-FDependsNode* FAssetRegistry::CreateOrFindDependsNode(FName ObjectPath)
+FDependsNode* FAssetRegistry::FindDependsNode(FName ObjectName)
 {
-	FDependsNode** FoundNode = CachedDependsNodes.Find(ObjectPath);
-	if ( FoundNode )
+	FDependsNode** FoundNode = CachedDependsNodes.Find(ObjectName);
+	if (FoundNode)
 	{
 		return *FoundNode;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+FDependsNode* FAssetRegistry::CreateOrFindDependsNode(FName ObjectPath)
+{
+	FDependsNode* FoundNode = FindDependsNode(ObjectPath);
+	if ( FoundNode )
+	{
+		return FoundNode;
 	}
 
 	FDependsNode* NewNode = new FDependsNode(ObjectPath);

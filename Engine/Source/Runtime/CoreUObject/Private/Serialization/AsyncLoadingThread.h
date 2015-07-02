@@ -74,6 +74,9 @@ class FAsyncLoadingThread : public FRunnable
 	/** Async loading thread ID */
 	static uint32 AsyncLoadingThreadID;
 
+	/** Helper map for tracking the dependency packages that have been requested while loading a package */
+	TMap<FName, int32> DependencyTracker;
+
 #if LOOKING_FOR_PERF_ISSUES
 	/** Thread safe counter used to accumulate cycles spent on blocking. Using stats may generate to many stats messages. */
 	static FThreadSafeCounter BlockingCycles;
@@ -348,6 +351,12 @@ private:
 	* [ASYNC THREAD] Creates async packages from the queued requests
 	*/
 	int32 CreateAsyncPackagesFromQueue();
+
+	/**
+	* [ASYNC THREAD] Internal helper function for processing a package load request. If dependency preloading is enabled, 
+	* it will call itself recursively for all the package dependencies
+	*/
+	void ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TMap<FName, int32>& InDependencyTracker);
 
 	/**
 	* [ASYNC THREAD] Finds existing async package and adds the new request's completion callback to it.

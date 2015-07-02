@@ -706,11 +706,17 @@ public partial class Project : CommandUtils
 		var OutputLocation = CombinePaths(SC.RuntimeRootDir, OutputRelativeLocation);
 		// Add input file to controll order of file within the pak
 		var PakOrderFileLocationBase = CombinePaths(SC.ProjectRoot, "Build", SC.FinalCookPlatform, "FileOpenOrder");
-		var PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "GameOpenOrder.log");
-		if (!FileExists_NoExceptions(PakOrderFileLocation))
+
+		var OrderFileLocations = new string[] { "GameOpenOrder.log", "CookerOpenOrder.log", "EditorOpenOrder.log" };
+		string PakOrderFileLocation = null;
+		foreach (var Location in OrderFileLocations)
 		{
-			// Use a fall back, it doesn't matter if this file exists or not. GameOpenOrder.log is preferred however
-			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
+			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, Location);
+
+			if (FileExists_NoExceptions(PakOrderFileLocation))
+			{
+				break;
+			}
 		}
 
 		bool bCopiedExistingPak = false;

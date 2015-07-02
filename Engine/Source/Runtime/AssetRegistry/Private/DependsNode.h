@@ -6,6 +6,7 @@
 class FDependsNode
 {
 public:
+	FDependsNode() { PackageName = NAME_None; }
 	FDependsNode(FName InPackageName);
 
 	/** Prints the dependencies and referencers for this node to the log */

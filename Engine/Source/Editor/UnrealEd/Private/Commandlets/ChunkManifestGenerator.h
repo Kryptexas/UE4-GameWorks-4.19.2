@@ -291,4 +291,22 @@ public:
 	 */
 	bool SaveCookedPackageAssetRegistry( const FString& SandboxPath, const bool Append );
 
+	/**
+	* Follows an assets dependency chain to build up a list of package names in the same order as the runtime would attempt to load them
+	* 
+	* @param InAsset - The asset to (potentially) add to the file order
+	* @param OutFileOrder - Output array which collects the package names
+	* @param OutEncounteredArray - Temporary collection of package names we've seen. Similar to OutFileOrder but updated BEFORE following dependencies so as to avoid circular references
+	* @param InAssets - The source asset list. Used to distinguish between dependencies on other packages and internal objects
+	* @param InAssetTypeMap - Lookup table of package name to type. Used to determine if a dependency is a streamed level so as not to follow dependencies
+	*/
+	void AddAssetToFileOrderRecursive(FAssetData* InAsset, TArray<FName>& OutFileOrder, TArray<FName>& OutEncounteredNames, const TMap<FName, FAssetData*>& InAssets, const TArray<FName>& InMapList);
+
+	/**
+	* Build a file order string which represents the order in which files would be loaded at runtime. 
+	* 
+	* @param InAssetData - Assets data for those assets which were cooked on this run. 
+	* @param InTopLevelAssets - Names of map assets
+	*/
+	FString CreateCookerFileOrderString(const TMap<FName, FAssetData*>& InAssetData, const TArray<FName>& InMaps);
 };

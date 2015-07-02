@@ -11,6 +11,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/LinkerManager.h"
 #include "Serialization/AsyncLoadingThread.h"
+#include "AssetRegistryInterface.h"
 
 /*-----------------------------------------------------------------------------
 	Async loading stats.
@@ -48,6 +49,9 @@ DECLARE_FLOAT_ACCUMULATOR_STAT( TEXT( "Async package precache wait time" ), STAT
 
 /** Returns true if we're inside a FGCScopeLock */
 bool IsGarbageCollectionLocked();
+
+/** Global request ID counter */
+static FThreadSafeCounter GPackageRequestID;
 
 /** 
  * Keeps a reference to all objects created during async load until streaming has finished 
@@ -243,6 +247,16 @@ static FAutoConsoleVariableRef CVarTimeLimitExceededMinTime(
 	ECVF_Default
 	);
 
+static int32 GPreloadPackageDependencies = 0;
+static FAutoConsoleVariableRef CVarPreloadPackageDependencies(
+	TEXT("s.PreloadPackageDependencies"),
+	GPreloadPackageDependencies,
+	TEXT("Enables preloading of package dependencies based on data from the asset registry\n") \
+	TEXT("0 - Do not preload dependencies. Can cause more seeks but uses less memory [default].\n") \
+	TEXT("1 - Preload package dependencies. Faster but requires asset registry data to be loaded into memory\n"),
+	ECVF_Default
+	);
+
 static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTimeLimit, float InTimeLimit, const TCHAR* InLastTypeOfWorkPerformed = nullptr, UObject* InLastObjectWorkWasPerformedOn = nullptr)
 {
 	bool bTimeLimitExceeded = false;
@@ -394,6 +408,83 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 	return Result;
 }
 
+void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TMap<FName, int32>& InDependencyTracker)
+{
+	check(!InDependencyTracker.Contains(InRequest->Name));
+	FAsyncPackage* Package = FindExistingPackageAndAddCompletionCallback(InRequest, AsyncPackages);
+
+	if (!Package)
+	{
+		// [BLOCKING] LoadedPackages are accessed on the main thread too, so lock to be able to add a completion callback
+#if THREADSAFE_UOBJECTS
+		FScopeLock LoadedLock(&LoadedPackagesCritical);
+#endif
+		Package = FindExistingPackageAndAddCompletionCallback(InRequest, LoadedPackages);
+	}
+
+	if (!Package)
+	{
+		// [BLOCKING] LoadedPackagesToProcess are modified on the main thread, so lock to be able to add a completion callback
+#if THREADSAFE_UOBJECTS
+		FScopeLock LoadedLock(&LoadedPackagesToProcessCritical);
+#endif
+		Package = FindExistingPackageAndAddCompletionCallback(InRequest, LoadedPackagesToProcess);
+	}
+
+	if (!Package)
+	{
+		// New package that needs to be loaded or a package has already been loaded long time ago
+		Package = new FAsyncPackage(*InRequest);
+		if (InRequest->PackageLoadedDelegate.IsBound())
+		{
+			const bool bInternalCallback = false;
+			Package->AddCompletionCallback(InRequest->PackageLoadedDelegate, bInternalCallback);
+		}
+		Package->SetDependencyRootPackage(InRootPackage);
+
+#if !WITH_EDITOR
+		if (GPreloadPackageDependencies != 0)
+		{
+			auto AssetRegistry = IAssetRegistryInterface::GetPtr();
+			if (AssetRegistry)
+			{
+				TArray<FName> Dependencies;
+				AssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies);
+
+				int32 PIEInstanceID = INDEX_NONE;
+#if WITH_EDITOR
+				PIEInstanceID = InRequest->PIEInstanceID;
+#endif
+
+				if (InRootPackage == nullptr)
+				{
+					InRootPackage = Package;
+				}
+
+				for (auto DependencyName : Dependencies)
+				{
+					if (!InDependencyTracker.Contains(DependencyName))
+					{
+						QueuedPackagesCounter.Increment();
+						const int32 RequestID = GPackageRequestID.Increment();
+						FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
+						FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, PIEInstanceID, InRequest->Priority);
+						InDependencyTracker.Add(InRequest->Name);
+						ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker);
+					}
+				}
+			}
+		}
+#endif
+		// Add to queue according to priority.
+		InsertPackage(Package);
+
+		// For all other cases this is handled in FindExistingPackageAndAddCompletionCallback
+		const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
+		check(QueuedPackagesCount >= 0);
+	}
+}
+
 int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateAsyncPackagesFromQueue);
@@ -412,46 +503,20 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 		QueuedPackages.Empty();
 	}
 
-	for (FAsyncPackageDesc* PackageRequest : QueueCopy)
+	if (QueueCopy.Num() > 0)
 	{
-		FAsyncPackage* Package = FindExistingPackageAndAddCompletionCallback(PackageRequest, AsyncPackages);
-
-		if (!Package)
+		double Timer = 0;
 		{
-			// [BLOCKING] LoadedPackages are accessed on the main thread too, so lock to be able to add a completion callback
-#if THREADSAFE_UOBJECTS
-			FScopeLock LoadedLock(&LoadedPackagesCritical);
-#endif
-			Package = FindExistingPackageAndAddCompletionCallback(PackageRequest, LoadedPackages);
-		}
-
-		if (!Package)
-		{
-			// [BLOCKING] LoadedPackagesToProcess are modified on the main thread, so lock to be able to add a completion callback
-#if THREADSAFE_UOBJECTS
-			FScopeLock LoadedLock(&LoadedPackagesToProcessCritical);
-#endif
-			Package = FindExistingPackageAndAddCompletionCallback(PackageRequest, LoadedPackagesToProcess);
-		}
-
-		if (!Package)
-		{
-			// New package that needs to be loaded or a package has already been loaded long time ago
-			Package = new FAsyncPackage(*PackageRequest);
-			if (PackageRequest->PackageLoadedDelegate.IsBound())
+			SCOPE_SECONDS_COUNTER(Timer);
+			DependencyTracker.Empty();
+			for (auto PackageRequest : QueueCopy)
 			{
-				const bool bInternalCallback = false;
-				Package->AddCompletionCallback(PackageRequest->PackageLoadedDelegate, bInternalCallback);
+				ProcessAsyncPackageRequest(PackageRequest, nullptr, DependencyTracker);
 			}
-
-			// Add to queue according to priority.
-			InsertPackage(Package);
-
-			// For all other cases this is handled in FindExistingPackageAndAddCompletionCallback
-			const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
-			check(QueuedPackagesCount >= 0);
 		}
+		UE_LOG(LogStreaming, Display, TEXT("Async package requests inserted in %fms"), Timer * 1000.0);
 	}
+
 	NumCreated = QueueCopy.Num();
 
 	return NumCreated;
@@ -474,7 +539,9 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
 		// Insert new package keeping descending priority order in AsyncPackages
 		auto InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
 		{
-			return Element->GetPriority() <= Package->GetPriority();
+			// NOTE: Switched to < because we want newly inserted packages to go AFTER all existing packages of the 
+			//		 same priority. If this is too slow, we could probably do "LastIndexOfByPredicate" where we iterate backwards??
+			return Element->GetPriority() < Package->GetPriority();
 		});
 
 		InsertIndex = InsertIndex == INDEX_NONE ? AsyncPackages.Num() : InsertIndex;
@@ -873,6 +940,7 @@ FAsyncPackage::FAsyncPackage(const FAsyncPackageDesc& InDesc)
 : Desc(InDesc)
 , Linker(nullptr)
 , LinkerRoot(nullptr)
+, DependencyRootPackage(nullptr)
 , DependencyRefCount(0)
 , LoadImportIndex(0)
 , ImportIndex(0)
@@ -1062,6 +1130,17 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 	if (LoadStartTime == 0.0)
 	{
 		LoadStartTime = TickStartTime;
+
+		// If we are a dependency of another package, we need to tell that package when its first dependent started loading,
+		// otherwise because that package loads last it'll not include the entire load time of all its dependencies
+		if (DependencyRootPackage)
+		{
+			// Only the first dependent needs to register the start time
+			if (DependencyRootPackage->GetLoadStartTime() == 0.0)
+			{
+				DependencyRootPackage->LoadStartTime = TickStartTime;
+			}
+		}
 	}
 
 	// Make sure we finish our work if there's no time limit. The loop is required as PostLoad
@@ -1871,11 +1950,19 @@ void FAsyncPackage::UpdateLoadPercentage()
 	LoadPercentage = FMath::Max(NewLoadPercentage, LoadPercentage);
 }
 
-/** Global request ID counter */
-static FThreadSafeCounter GPackageRequestID;
-
 int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
 {
+#if !WITH_EDITOR
+	if (GPreloadPackageDependencies)
+	{
+		// If dependency preloading is enabled, we need to force the asset registry module to be loaded on the game thread
+		// as it will potentiall be used on the async loading thread, which isn't allowed to load modules.
+		// We could do this at init time, but doing it here allows us to not load the module at all if preloading is
+		// disabled.
+		IAssetRegistryInterface::GetPtr();
+	}
+#endif
+
 	// The comments clearly state that it should be a package name but we also handle it being a filename as this function is not perf critical
 	// and LoadPackage handles having a filename being passed in as well.
 	FString PackageName;

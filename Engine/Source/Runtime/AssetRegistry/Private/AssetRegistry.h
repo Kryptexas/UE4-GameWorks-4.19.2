@@ -38,8 +38,8 @@ public:
 	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) override;
 	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) override;
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) override;
-	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) override;
+	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) override;
+	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FDependsNode*>& OutDependencyData) override;
 
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathAddedEvent, FPathAddedEvent);
 	virtual FPathAddedEvent& OnPathAdded() override { return PathAddedEvent; }
@@ -92,6 +92,9 @@ private:
 
 	/** Called every tick to when data is retrieved by the background dependency search */
 	void DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults);
+
+	/** Finds an existing node for the given package and returns it, or returns null if one isn't found */
+	FDependsNode* FindDependsNode(FName ObjectName);
 
 	/** Creates a node in the CachedDependsNodes map or finds the existing node and returns it */
 	FDependsNode* CreateOrFindDependsNode(FName ObjectName);
@@ -249,6 +252,7 @@ private:
 
 	/** When loading a registry from disk, we can allocate all the FAssetData objects in one chunk, to save on 10s of thousands of heap allocations */
 	FAssetData* PreallocatedAssetDataBuffer;
+	FDependsNode* PreallocatedDependsNodeDataBuffer;
 
 	/** A set used to ignore repeated requests to synchronously scan the same folder multiple times */
 	TSet<FString> SynchronouslyScannedPaths;
