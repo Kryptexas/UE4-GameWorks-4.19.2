@@ -1529,12 +1529,6 @@ public partial class GUBP : BuildCommand
             }
         }	
 
-        Dictionary<string, string> FullNodeList;
-        Dictionary<string, string> FullNodeDirectDependencies;
-		GetFullNodeListAndDirectDependencies(out FullNodeList, out FullNodeDirectDependencies);
-
-		Dictionary<string, int> FullNodeListSortKey = GetDisplayOrder(FullNodeList.Keys.ToList(), FullNodeDirectDependencies, GUBPNodes);
-
 		bool bOnlyNode;
 		HashSet<NodeInfo> NodesToDo;
 		Dictionary<string, string> FullNodeDependedOnBy = new Dictionary<string, string>();
@@ -1625,6 +1619,12 @@ public partial class GUBP : BuildCommand
         string FakeFail = ParseParamValue("FakeFail");
         if(CommanderSetup)
         {
+			Dictionary<string, string> FullNodeList;
+			Dictionary<string, string> FullNodeDirectDependencies;
+			GetFullNodeListAndDirectDependencies(out FullNodeList, out FullNodeDirectDependencies);
+
+			Dictionary<string, int> FullNodeListSortKey = GetDisplayOrder(FullNodeList.Keys.ToList(), FullNodeDirectDependencies, GUBPNodes);
+
 			DoCommanderSetup(TimeIndex, bSkipTriggers, bFakeEC, CLString, ExplicitTrigger, FullNodeList, FullNodeDirectDependencies, FullNodeDependedOnBy, FullNodeDependentPromotions, SeparatePromotables, FullNodeListSortKey, GUBPNodesHistory, OrdereredToDo, UnfinishedTriggers, FakeFail);
         }
 		else if(ParseParam("SaveGraph"))
