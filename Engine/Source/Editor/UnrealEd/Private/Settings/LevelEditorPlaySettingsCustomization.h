@@ -343,8 +343,15 @@ public:
 		// play in new window settings
 		IDetailCategoryBuilder& PlayInNewWindowCategory = LayoutBuilder.EditCategory("PlayInNewWindow");
 		{
+		// Mac does not support parenting, do not show
+#if PLATFORM_MAC
+			PlayInNewWindowCategory.AddProperty("PIEAlwaysOnTop")
+				.DisplayName(LOCTEXT("PIEAlwaysOnTop", "Always On Top"))
+				.IsEnabled(false);
+#else
 			PlayInNewWindowCategory.AddProperty("PIEAlwaysOnTop")
 				.DisplayName(LOCTEXT("PIEAlwaysOnTop", "Always On Top"));
+#endif
 
 			// new window size
 			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowHeight));
