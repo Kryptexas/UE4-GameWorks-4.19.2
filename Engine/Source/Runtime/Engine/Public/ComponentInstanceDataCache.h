@@ -24,7 +24,7 @@ public:
 	{}
 
 	/** Determines whether this component instance data matches the component */
-	bool MatchesComponent(const UActorComponent* Component) const;
+	bool MatchesComponent(const UActorComponent* Component, const UObject* ComponentTemplate) const;
 
 	/** Applies this component instance data to the supplied component */
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase);
@@ -36,21 +36,17 @@ public:
 
 	bool ContainsSavedProperties() const { return SavedProperties.Num() > 0; }
 
-	UClass* GetComponentClass() const { return SourceComponentClass; }
+	const UClass* GetComponentClass() const { return SourceComponentTemplate ? SourceComponentTemplate->GetClass() : nullptr; }
 
 protected:
-	/** The name of the source component */
-	FName SourceComponentName;
-
-	/** The class type of the source component */
-	UClass* SourceComponentClass;
+	/** The template used to create the source component */
+	const UObject* SourceComponentTemplate;
 
 	/** The index of the source component in its owner's serialized array 
 		when filtered to just that component type */
 	int32 SourceComponentTypeSerializedIndex;
 
-	/** The index of the source component in its owner's serialized array 
-		when filtered to just that component type */
+	/** The method that was used to create the source component */
 	EComponentCreationMethod SourceComponentCreationMethod;
 
 	TArray<uint8> SavedProperties;

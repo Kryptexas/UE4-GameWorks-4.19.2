@@ -4,7 +4,7 @@
 #include "ComponentInstanceDataCache.h"
 
 FActorComponentInstanceData::FActorComponentInstanceData()
-	: SourceComponentClass(nullptr)
+	: SourceComponentTemplate(nullptr)
 	, SourceComponentTypeSerializedIndex(-1)
 	, SourceComponentCreationMethod(EComponentCreationMethod::Native)
 {
@@ -13,35 +13,38 @@ FActorComponentInstanceData::FActorComponentInstanceData()
 FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* SourceComponent)
 {
 	check(SourceComponent);
-	SourceComponentName = SourceComponent->GetFName();
-	SourceComponentClass = SourceComponent->GetClass();
+	SourceComponentTemplate = SourceComponent->GetArchetype();
 	SourceComponentCreationMethod = SourceComponent->CreationMethod;
 	SourceComponentTypeSerializedIndex = -1;
-	
-	AActor* ComponentOwner = SourceComponent->GetOwner();
-	if (ComponentOwner)
+
+	// UCS components can share the same template (e.g. an AddComponent node inside a loop), so we also cache their serialization index here (relative to the shared template) as a means for identification
+	if(SourceComponentCreationMethod == EComponentCreationMethod::UserConstructionScript)
 	{
-		bool bFound = false;
-		for (const UActorComponent* BlueprintCreatedComponent : ComponentOwner->BlueprintCreatedComponents)
+		AActor* ComponentOwner = SourceComponent->GetOwner();
+		if (ComponentOwner)
 		{
-			if (BlueprintCreatedComponent)
+			bool bFound = false;
+			for (const UActorComponent* BlueprintCreatedComponent : ComponentOwner->BlueprintCreatedComponents)
 			{
-				if (BlueprintCreatedComponent == SourceComponent)
+				if (BlueprintCreatedComponent)
 				{
-					++SourceComponentTypeSerializedIndex;
-					bFound = true;
-					break;
-				}
-				else if (   BlueprintCreatedComponent->GetClass() == SourceComponentClass
-						 && BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
-				{
-					++SourceComponentTypeSerializedIndex;
+					if (BlueprintCreatedComponent == SourceComponent)
+					{
+						++SourceComponentTypeSerializedIndex;
+						bFound = true;
+						break;
+					}
+					else if (   BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod
+						&& BlueprintCreatedComponent->GetArchetype() == SourceComponentTemplate)
+					{
+						++SourceComponentTypeSerializedIndex;
+					}
 				}
 			}
-		}
-		if (!bFound)
-		{
-			SourceComponentTypeSerializedIndex = -1;
+			if (!bFound)
+			{
+				SourceComponentTypeSerializedIndex = -1;
+			}
 		}
 	}
 
@@ -73,20 +76,18 @@ FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* 
 	}
 }
 
-bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Component) const
+bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Component, const UObject* ComponentTemplate) const
 {
 	bool bMatches = false;
-	if (   Component 
-		&& (Component->CreationMethod == SourceComponentCreationMethod)
-		&& (Component->GetClass() == SourceComponentClass))
+	if (   Component
+		&& Component->CreationMethod == SourceComponentCreationMethod
+		&& ComponentTemplate == SourceComponentTemplate)
 	{
-		if (   (SourceComponentCreationMethod != EComponentCreationMethod::UserConstructionScript)
-			&& (Component->GetFName() == SourceComponentName))
+		if (SourceComponentCreationMethod != EComponentCreationMethod::UserConstructionScript)
 		{
 			bMatches = true;
 		}
-		else if (SourceComponentTypeSerializedIndex >= 0
-			&& SourceComponentCreationMethod != EComponentCreationMethod::SimpleConstructionScript)
+		else if (SourceComponentTypeSerializedIndex >= 0)
 		{
 			int32 FoundSerializedComponentsOfType = -1;
 			AActor* ComponentOwner = Component->GetOwner();
@@ -95,7 +96,7 @@ bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Compon
 				for (const UActorComponent* BlueprintCreatedComponent : ComponentOwner->BlueprintCreatedComponents)
 				{
 					if (   BlueprintCreatedComponent
-						&& (BlueprintCreatedComponent->GetClass() == SourceComponentClass)
+						&& (BlueprintCreatedComponent->GetArchetype() == SourceComponentTemplate)
 						&& (BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
 						&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
 					{
@@ -147,7 +148,7 @@ void FActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 
 void FActorComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	Collector.AddReferencedObject(SourceComponentClass);
+	Collector.AddReferencedObject(SourceComponentTemplate);
 }
 
 FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
@@ -163,10 +164,15 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 		{
 			if (Component->IsCreatedByConstructionScript()) // Only cache data from 'created by construction script' components
 			{
-				FActorComponentInstanceData* ComponentInstanceData = Component->GetComponentInstanceData();
-				if (ComponentInstanceData)
+				// Also exclude instances that are based on the component CDO (i.e. not a unique archetype) - these are not going to be editable anyway.
+				const UObject* ComponentTemplate = Component->GetArchetype();
+				if (ComponentTemplate && ComponentTemplate != Component->GetClass()->GetDefaultObject())
 				{
-					ComponentsInstanceData.Add(ComponentInstanceData);
+					FActorComponentInstanceData* ComponentInstanceData = Component->GetComponentInstanceData();
+					if (ComponentInstanceData)
+					{
+						ComponentsInstanceData.Add(ComponentInstanceData);
+					}
 				}
 			}
 			else if (Component->CreationMethod == EComponentCreationMethod::Instance)
@@ -200,18 +206,22 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor, const ECacheApplyP
 		Actor->GetComponents(Components);
 
 		// Apply per-instance data.
-		for (UActorComponent* Component : Components)
+		for (UActorComponent* ComponentInstance : Components)
 		{
-			if(Component->IsCreatedByConstructionScript()) // Only try and apply data to 'created by construction script' components
+			if(ComponentInstance && ComponentInstance->IsCreatedByConstructionScript()) // Only try and apply data to 'created by construction script' components
 			{
-				for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
+				// Cache template here to avoid redundant calls in the loop below
+				if (const UObject* ComponentTemplate = ComponentInstance->GetArchetype())
 				{
-					if (	ComponentInstanceData 
-						&&	ComponentInstanceData->GetComponentClass() == Component->GetClass() // filter on class early to avoid unnecessary virtual and expensive tests
-						&&	ComponentInstanceData->MatchesComponent(Component))
+					for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 					{
-						ComponentInstanceData->ApplyToComponent(Component, CacheApplyPhase);
-						break;
+						if (	ComponentInstanceData
+							&&	ComponentInstanceData->GetComponentClass() == ComponentTemplate->GetClass() // filter on class early to avoid unnecessary virtual and expensive tests
+							&&	ComponentInstanceData->MatchesComponent(ComponentInstance, ComponentTemplate))
+						{
+							ComponentInstanceData->ApplyToComponent(ComponentInstance, CacheApplyPhase);
+							break;
+						}
 					}
 				}
 			}
