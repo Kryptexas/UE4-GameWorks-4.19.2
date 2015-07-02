@@ -2297,6 +2297,11 @@ public:
 	 */
 	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
 
+	/** 
+	 * Cancel playing via the Launcher
+	 */
+	void CancelPlayingViaLauncher();
+
 	/** @return true if the editor is able to launch PIE with online platform support */
 	bool SupportsOnlinePIE() const;
 

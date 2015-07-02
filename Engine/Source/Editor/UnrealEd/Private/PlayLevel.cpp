@@ -2432,6 +2432,14 @@ bool UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	}
 }
 
+void UEditorEngine::CancelPlayingViaLauncher()
+{
+	if (LauncherWorker.IsValid())
+	{
+		LauncherWorker->Cancel();
+	}
+}
+
 bool UEditorEngine::SupportsOnlinePIE() const
 {
 	if (bOnlinePIEEnabled && PIELogins.Num() > 0)

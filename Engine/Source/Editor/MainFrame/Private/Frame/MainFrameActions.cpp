@@ -367,6 +367,8 @@ bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPack
 
 void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 {
+	GUnrealEd->CancelPlayingViaLauncher();
+	
 	// does the project have any code?
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 	bool bProjectHasCode = GameProjectModule.Get().ProjectRequiresBuild(InPlatformInfoName);
