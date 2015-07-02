@@ -620,8 +620,8 @@ void AGameMode::HandleMatchHasStarted()
 	GetWorldSettings()->NotifyMatchStarted();
 
 	// if passed in bug info, send player to right location
-	FString BugLocString = ParseOption(OptionsString, TEXT("BugLoc"));
-	FString BugRotString = ParseOption(OptionsString, TEXT("BugRot"));
+	const FString BugLocString = UGameplayStatics::ParseOption(OptionsString, TEXT("BugLoc"));
+	const FString BugRotString = UGameplayStatics::ParseOption(OptionsString, TEXT("BugRot"));
 	if( !BugLocString.IsEmpty() || !BugRotString.IsEmpty() )
 	{
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
@@ -629,9 +629,6 @@ void AGameMode::HandleMatchHasStarted()
 			APlayerController* PlayerController = *Iterator;
 			if( PlayerController->CheatManager != NULL )
 			{
-				//`log( "BugLocString:" @ BugLocString );
-				//`log( "BugRotString:" @ BugRotString );
-
 				PlayerController->CheatManager->BugItGoString( BugLocString, BugRotString );
 			}
 		}
@@ -1019,10 +1016,10 @@ FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const T
 	FString ErrorMessage;
 
 	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId, UGameplayStatics::HasOption(Options, TEXT("bIsFromInvite")));
 
 	// Init player's name
-	FString InName = ParseOption(Options, TEXT("Name")).Left(20);
+	FString InName = UGameplayStatics::ParseOption(Options, TEXT("Name")).Left(20);
 	if (InName.IsEmpty())
 	{
 		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName.ToString(), NewPlayerController->PlayerState->PlayerId);
@@ -1079,7 +1076,7 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, con
 	}
 
 	// Set up spectating
-	bool bSpectator = FCString::Stricmp(*ParseOption(Options, TEXT("SpectatorOnly")), TEXT("1")) == 0;
+	bool bSpectator = FCString::Stricmp(*UGameplayStatics::ParseOption(Options, TEXT("SpectatorOnly")), TEXT("1")) == 0;
 	if (bSpectator || MustSpectate(NewPlayerController))
 	{
 		NewPlayerController->StartSpectatingOnly();
@@ -1177,82 +1174,27 @@ void AGameMode::ClearPause()
 
 bool AGameMode::GrabOption( FString& Options, FString& Result )
 {
-	if( Options.Left(1)==TEXT("?") )
-	{
-		// Get result.
-		Result = Options.Mid(1, MAX_int32);
-		if (Result.Contains(TEXT("?"), ESearchCase::CaseSensitive))
-		{
-			Result = Result.Left(Result.Find(TEXT("?"), ESearchCase::CaseSensitive));
-		}
-
-		// Update options.
-		Options = Options.Mid(1, MAX_int32);
-		if (Options.Contains(TEXT("?"), ESearchCase::CaseSensitive))
-		{
-			Options = Options.Mid(Options.Find(TEXT("?"), ESearchCase::CaseSensitive), MAX_int32);
-		}
-		else
-		{
-			Options = TEXT("");
-		}
-
-		return true;
-	}
-	else return false;
+	return UGameplayStatics::GrabOption(Options, Result);
 }
 
 void AGameMode::GetKeyValue( const FString& Pair, FString& Key, FString& Value )
 {
-	const int32 EqualSignIndex = Pair.Find(TEXT("="), ESearchCase::CaseSensitive);
-	if( EqualSignIndex != INDEX_NONE )
-	{
-		Key = Pair.Left(EqualSignIndex);
-		Value = Pair.Mid(EqualSignIndex + 1, MAX_int32);
-	}
-	else
-	{
-		Key = Pair;
-		Value = TEXT("");
-	}
+	return UGameplayStatics::GetKeyValue(Pair, Key, Value);
 }
 
-FString AGameMode::ParseOption( const FString& Options, const FString& InKey )
+FString AGameMode::ParseOption( FString Options, const FString& InKey )
 {
-	FString OptionsMod = Options;
-	FString Pair, Key, Value;
-	while( GrabOption( OptionsMod, Pair ) )
-	{
-		GetKeyValue( Pair, Key, Value );
-		if( FCString::Stricmp(*Key, *InKey) == 0 )
-			return Value;
-	}
-	return TEXT("");
+	return UGameplayStatics::ParseOption(Options, InKey);
 }
 
-bool AGameMode::HasOption( const FString& Options, const FString& InKey )
+bool AGameMode::HasOption( FString Options, const FString& InKey )
 {
-	FString OptionsMod = Options;
-	FString Pair, Key, Value;
-	while( GrabOption( OptionsMod, Pair ) )
-	{
-		GetKeyValue( Pair, Key, Value );
-		if( FCString::Stricmp(*Key, *InKey) == 0 )
-		{
-			return true;
-		}
-	}
-	return false;
+	return UGameplayStatics::HasOption(Options, InKey);
 }
 
 int32 AGameMode::GetIntOption( const FString& Options, const FString& ParseString, int32 CurrentValue)
 {
-	FString InOpt = ParseOption( Options, ParseString );
-	if ( !InOpt.IsEmpty() )
-	{
-		return FCString::Atoi(*InOpt);
-	}
-	return CurrentValue;
+	return UGameplayStatics::GetIntOption(Options, ParseString, CurrentValue);
 }
 
 FString AGameMode::GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal) const

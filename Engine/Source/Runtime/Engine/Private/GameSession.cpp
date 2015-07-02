@@ -122,8 +122,8 @@ void AGameSession::InitOptions( const FString& Options )
 	check(World);
 	AGameMode* const GameMode = World->GetAuthGameMode();
 
-	MaxPlayers = GameMode->GetIntOption( Options, TEXT("MaxPlayers"), MaxPlayers );
-	MaxSpectators = GameMode->GetIntOption( Options, TEXT("MaxSpectators"), MaxSpectators );
+	MaxPlayers = UGameplayStatics::GetIntOption( Options, TEXT("MaxPlayers"), MaxPlayers );
+	MaxSpectators = UGameplayStatics::GetIntOption( Options, TEXT("MaxSpectators"), MaxSpectators );
 	SessionName = GetDefault<APlayerState>(GameMode->PlayerStateClass)->SessionName;
 }
 
@@ -183,7 +183,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 	check(GameMode);
 
 	int32 SpectatorOnly = 0;
-	SpectatorOnly = GameMode->GetIntOption(Options, TEXT("SpectatorOnly"), SpectatorOnly);
+	SpectatorOnly = UGameplayStatics::GetIntOption(Options, TEXT("SpectatorOnly"), SpectatorOnly);
 
 	if (AtCapacity(SpectatorOnly == 1))
 	{
@@ -191,7 +191,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 	}
 
 	int32 SplitscreenCount = 0;
-	SplitscreenCount = GameMode->GetIntOption(Options, TEXT("SplitscreenCount"), SplitscreenCount);
+	SplitscreenCount = UGameplayStatics::GetIntOption(Options, TEXT("SplitscreenCount"), SplitscreenCount);
 
 	if (SplitscreenCount > MaxSplitscreensPerConnection)
 	{

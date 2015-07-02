@@ -580,5 +580,48 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Utilities")
 	static bool ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition);
 
+	// Utility functions for interacting with Options strings
+
+	//=========================================================================
+	// URL Parsing
+
+	static bool GrabOption( FString& Options, FString& ResultString );
+
+	/** 
+	 * Break up a key=value pair into its key and value. 
+	 * @param Pair			The string containing a pair to split apart.
+	 * @param Key			(out) Key portion of Pair. If no = in string will be the same as Pair.
+	 * @param Value			(out) Value portion of Pair. If no = in string will be empty.
+	 */
+	UFUNCTION(BlueprintPure, Category="Game Options")
+	static void GetKeyValue( const FString& Pair, FString& Key, FString& Value );
+
+	/** 
+	 * Find an option in the options string and return it.
+	 * @param Options		The string containing the options.
+	 * @param Key			The key to find the value of in Options.
+	 * @return				The value associated with Key if Key found in Options string.
+	 */
+	UFUNCTION(BlueprintPure, Category="Game Options")
+	static FString ParseOption( FString Options, const FString& Key );
+
+	/** 
+	 * Returns whether a key exists in an options string.
+	 * @param Options		The string containing the options.
+	 * @param Key			The key to determine if it exists in Options.
+	 * @return				Whether Key was found in Options.
+	 */
+	UFUNCTION(BlueprintPure, Category="Game Options")
+	static bool HasOption( FString Options, const FString& InKey );
+
+	/** 
+	 * Find an option in the options string and return it as an integer.
+	 * @param Options		The string containing the options.
+	 * @param Key			The key to find the value of in Options.
+	 * @return				The value associated with Key as an integer if Key found in Options string, otherwise DefaultValue.
+	 */
+	UFUNCTION(BlueprintPure, Category="Game Options")
+	static int32 GetIntOption( const FString& Options, const FString& Key, int32 DefaultValue);
+
 };
 
