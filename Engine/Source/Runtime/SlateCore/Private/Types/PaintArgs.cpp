@@ -11,30 +11,48 @@ FPaintArgs::FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHitte
 , WindowOffset(InWindowOffset)
 , CurrentTime(InCurrentTime)
 , DeltaTime(InDeltaTime)
+, bIsCaching(false)
 {
 }
-
 
 FPaintArgs FPaintArgs::WithNewParent( const SWidget* Parent ) const
 {
 	FPaintArgs Args = FPaintArgs( const_cast<SWidget*>(Parent)->AsShared(), this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime );
 	Args.LastHittestIndex = this->LastHittestIndex;
 	Args.LastRecordedVisibility = this->LastRecordedVisibility;
+	Args.LayoutCache = this->LayoutCache;
+	Args.bIsCaching = this->bIsCaching;
+	Args.bIsVolatilityPass = this->bIsVolatilityPass;
+
 	return Args;
 }
 
+FPaintArgs FPaintArgs::EnableCaching(const TSharedPtr<ILayoutCache>& InLayoutCache, bool bEnableCaching, bool bEnableVolatile) const
+{
+	FPaintArgs UpdatedArgs(*this);
+	UpdatedArgs.LayoutCache = InLayoutCache;
+	UpdatedArgs.bIsCaching = bEnableCaching;
+	UpdatedArgs.bIsVolatilityPass = bEnableVolatile;
+
+	return UpdatedArgs;
+}
 
 FPaintArgs FPaintArgs::RecordHittestGeometry(const SWidget* Widget, const FGeometry& WidgetGeometry, const FSlateRect& InClippingRect) const
 {
-	const EVisibility RecordedVisibility = (LastRecordedVisibility.AreChildrenHitTestVisible())
-		? Widget->GetVisibility()
-		: LastRecordedVisibility;
-
-	const int32 RecordedHittestIndex = Grid.InsertWidget( LastHittestIndex, RecordedVisibility, FArrangedWidget(const_cast<SWidget*>(Widget)->AsShared(), WidgetGeometry), WindowOffset, InClippingRect );
-
 	FPaintArgs UpdatedArgs(*this);
-	UpdatedArgs.LastHittestIndex = RecordedHittestIndex;
-	UpdatedArgs.LastRecordedVisibility = RecordedVisibility;
+
+	if ( LastRecordedVisibility.AreChildrenHitTestVisible() )
+	{
+		const EVisibility RecordedVisibility = Widget->GetVisibility();
+		const int32 RecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry), WindowOffset, InClippingRect);
+		UpdatedArgs.LastHittestIndex = RecordedHittestIndex;
+		UpdatedArgs.LastRecordedVisibility = RecordedVisibility;
+	}
+	else
+	{
+		UpdatedArgs.LastRecordedVisibility = LastRecordedVisibility;
+	}
+
 	return UpdatedArgs;
 }
 

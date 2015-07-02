@@ -1055,6 +1055,8 @@ private:
 };
 
 
+#if WITH_EDITOR
+
 /**
  * Hack to switch wolds in a scope and switch back when we fall out of scope                   
  */
@@ -1096,3 +1098,14 @@ private:
 	// The worldID serves as identification to the user about the world.  It can be anything although -1 is assumed to be always invalid.
 	int32 WorldId;
 };
+
+#else
+
+struct FScopedSwitchWorldHack
+{
+	FORCEINLINE FScopedSwitchWorldHack(const FWidgetPath& WidgetPath) { }
+	FORCEINLINE FScopedSwitchWorldHack(TSharedPtr<SWindow> InWindow) { }
+	FORCEINLINE ~FScopedSwitchWorldHack() { }
+};
+
+#endif

@@ -2,6 +2,8 @@
 
 #include "SlateCorePrivatePCH.h"
 
+DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_Slate);
+
 void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects)
 {
 	RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
@@ -17,6 +19,7 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 
 void FSlateDrawElement::MakeDebugQuad( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect)
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, ESlateDrawEffect::None);
@@ -33,6 +36,7 @@ void FSlateDrawElement::MakeBox(
 	ESlateDrawEffect::Type InDrawEffects, 
 	const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -52,6 +56,7 @@ void FSlateDrawElement::MakeRotatedBox(
 	ERotationSpace RotationSpace,
 	const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -64,6 +69,7 @@ void FSlateDrawElement::MakeRotatedBox(
 
 void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const int32 StartIndex, const int32 EndIndex, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -74,6 +80,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 
 void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -84,6 +91,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 
 void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FText& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -93,6 +101,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 
 void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, bool bGammaCorrect )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -103,6 +112,7 @@ void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint
 
 void FSlateDrawElement::MakeSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -119,6 +129,7 @@ void FSlateDrawElement::MakeDrawSpaceSpline( FSlateWindowElementList& ElementLis
 
 void FSlateDrawElement::MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint, bool bAntialias )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -129,6 +140,7 @@ void FSlateDrawElement::MakeLines( FSlateWindowElementList& ElementList, uint32 
 
 void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, bool bGammaCorrect, bool bAllowBlending, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
@@ -139,6 +151,7 @@ void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint
 
 void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer )
 {
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, FPaintGeometry(), FSlateRect(1,1,1,1), ESlateDrawEffect::None);
 	DrawElt.RenderTransform = FSlateRenderTransform();
@@ -335,15 +348,69 @@ void FSlateWindowElementList::QueueDeferredPainting( const FDeferredPaint& InDef
 	DeferredPaintList.Add( MakeShareable( new FDeferredPaint( InDeferredPaint ) ) );
 }
 
-
-int32 FSlateWindowElementList::PaintDeferred( int32 LayerId )
+int32 FSlateWindowElementList::PaintDeferred(int32 LayerId)
 {
 	for ( int32 i = 0; i < DeferredPaintList.Num(); ++i )
 	{
-		const TSharedRef< FDeferredPaint >& Args = DeferredPaintList[ i ];
+		const TSharedRef< FDeferredPaint >& Args = DeferredPaintList[i];
 
-		LayerId = Args->ExecutePaint( LayerId, *this );
+		LayerId = Args->ExecutePaint(LayerId, *this);
 	}
 
 	return LayerId;
+}
+
+
+FSlateWindowElementList::FVolatilePaint::FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 InLayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled)
+	: WidgetToPaintPtr(InWidgetToPaint)
+	, Args(InArgs.EnableCaching(InArgs.GetLayoutCache().Pin(), false, true))
+	, AllottedGeometry(InAllottedGeometry)
+	, MyClippingRect(InMyClippingRect)
+	, LayerId(InLayerId)
+	, WidgetStyle(InWidgetStyle)
+	, bParentEnabled(InParentEnabled)
+{
+}
+
+int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementList& OutDrawElements) const
+{
+	TSharedPtr<const SWidget> WidgetToPaint = WidgetToPaintPtr.Pin();
+	if ( WidgetToPaint.IsValid() )
+	{
+		// Have to run a slate pre-pass for all volatile elements, some widgets cache information like 
+		// the STextBlock.  This may be all kinds of terrible an idea to do during paint.
+		SWidget* MutableWidget = const_cast<SWidget*>( WidgetToPaint.Get() );
+		MutableWidget->SlatePrepass(AllottedGeometry.Scale);
+
+		return WidgetToPaint->Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled);
+	}
+
+	return LayerId;
+}
+
+void FSlateWindowElementList::QueueVolatilePainting(const FVolatilePaint& InDeferredPaint)
+{
+	VolatilePaintList.Add(MakeShareable(new FVolatilePaint(InDeferredPaint)));
+}
+
+int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElementList)
+{
+	int32 MaxLayerId = 0;
+
+	for ( int32 VolatileIndex = 0; VolatileIndex < VolatilePaintList.Num(); ++VolatileIndex )
+	{
+		const TSharedRef< FVolatilePaint >& Args = VolatilePaintList[VolatileIndex];
+
+		MaxLayerId = FMath::Max(MaxLayerId, Args->ExecutePaint(OutElementList));
+	}
+
+	return MaxLayerId;
+}
+
+void FSlateWindowElementList::Reset()
+{
+	BatchData.Reset();
+	DrawElements.Reset();
+	DeferredPaintList.Reset();
+	VolatilePaintList.Reset();
 }

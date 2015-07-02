@@ -76,21 +76,29 @@ void STextBlock::SetText( const TAttribute< FString >& InText )
 	};
 
 	BoundText = TAttribute< FText >::Create(TAttribute<FText>::FGetter::CreateStatic( &Local::PassThroughAttribute, InText) );
+
+	InvalidateLayout();
 }
 
 void STextBlock::SetText( const FString& InText )
 {
 	BoundText = FText::FromString( InText );
+	InvalidateLayout();
 }
 
 void STextBlock::SetText( const TAttribute< FText >& InText )
 {
 	BoundText = InText;
+	InvalidateLayout();
 }
 
 void STextBlock::SetText( const FText& InText )
 {
-	BoundText = InText;
+	if ( BoundText.IsBound() || BoundText.Get().ToString() != InText.ToString() )
+	{
+		BoundText = InText;
+		InvalidateLayout();
+	}
 }
 
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -183,59 +191,78 @@ FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 	return FVector2D(FMath::Max(MinDesiredWidth.Get(0.0f), TextSize.X), TextSize.Y);
 }
 
+bool STextBlock::ComputeVolatility() const
+{
+	return SLeafWidget::ComputeVolatility() || BoundText.IsBound();
+}
+
 void STextBlock::SetFont(const TAttribute< FSlateFontInfo >& InFont)
 {
 	Font = InFont;
+	InvalidateLayout();
 }
 
 void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpacity)
 {
-	ColorAndOpacity = InColorAndOpacity;
+	if ( !ColorAndOpacity.IdenticalTo(InColorAndOpacity) )
+	{
+		ColorAndOpacity = InColorAndOpacity;
+		InvalidateLayout();
+	}
 }
 
 void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
 {
 	TextStyle = InTextStyle;
+	InvalidateLayout();
 }
 
 void STextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 {
 	WrapTextAt = InWrapTextAt;
+	InvalidateLayout();
 }
 
 void STextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
+	InvalidateLayout();
 }
 
 void STextBlock::SetShadowOffset(const TAttribute<FVector2D>& InShadowOffset)
 {
 	ShadowOffset = InShadowOffset;
+	InvalidateLayout();
 }
 
 void STextBlock::SetShadowColorAndOpacity(const TAttribute<FLinearColor>& InShadowColorAndOpacity)
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;
+	InvalidateLayout();
 }
 
 void STextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
 {
 	MinDesiredWidth = InMinDesiredWidth;
+	InvalidateLayout();
 }
 
 void STextBlock::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
 {
 	LineHeightPercentage = InLineHeightPercentage;
+	InvalidateLayout();
 }
 
 void STextBlock::SetMargin(const TAttribute<FMargin>& InMargin)
 {
 	Margin = InMargin;
+	InvalidateLayout();
 }
 
 void STextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
 {
 	Justification = InJustification;
+	InvalidateLayout();
 }
 
 FTextBlockStyle STextBlock::GetComputedTextStyle() const
@@ -249,4 +276,3 @@ FTextBlockStyle STextBlock::GetComputedTextStyle() const
 	ComputedStyle.SetHighlightShape( *GetHighlightShape() );
 	return ComputedStyle;
 }
-

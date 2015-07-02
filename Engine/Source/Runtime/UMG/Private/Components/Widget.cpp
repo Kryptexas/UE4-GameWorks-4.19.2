@@ -217,6 +217,16 @@ void UWidget::SetVisibility(ESlateVisibility InVisibility)
 	}
 }
 
+void UWidget::ForceVolatile(bool bForce)
+{
+	bIsVolatile = bForce;
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		SafeWidget->ForceVolatile(bForce);
+	}
+}
+
 void UWidget::SetToolTipText(const FText& InToolTipText)
 {
 	ToolTipText = InToolTipText;
@@ -395,6 +405,15 @@ void UWidget::ForceLayoutPrepass()
 	if (SafeWidget.IsValid())
 	{
 		SafeWidget->SlatePrepass();
+	}
+}
+
+void UWidget::InvalidateLayout()
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		SafeWidget->InvalidateLayout();
 	}
 }
 
@@ -719,6 +738,8 @@ void UWidget::SynchronizeProperties()
 		SafeWidget->SetEnabled(GAME_SAFE_OPTIONAL_BINDING( bool, bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
+
+	SafeWidget->ForceVolatile(bIsVolatile);
 
 	UpdateRenderTransform();
 	SafeWidget->SetRenderTransformPivot(RenderTransformPivot);

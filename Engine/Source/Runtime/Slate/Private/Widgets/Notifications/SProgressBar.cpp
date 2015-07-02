@@ -29,42 +29,53 @@ void SProgressBar::Construct( const FArguments& InArgs )
 
 void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
 {
-	Percent = InPercent;
+	if ( !Percent.IdenticalTo(InPercent) )
+	{
+		Percent = InPercent;
+		InvalidateLayout();
+	}
 }
 
 void SProgressBar::SetStyle(const FProgressBarStyle* InStyle)
 {
 	Style = InStyle;
+	InvalidateLayout();
 }
 
 void SProgressBar::SetBarFillType(EProgressBarFillType::Type InBarFillType)
 {
 	BarFillType = InBarFillType;
+	InvalidateLayout();
 }
 
 void SProgressBar::SetFillColorAndOpacity(TAttribute< FSlateColor > InFillColorAndOpacity)
 {
 	FillColorAndOpacity = InFillColorAndOpacity;
+	InvalidateLayout();
 }
 
 void SProgressBar::SetBorderPadding(TAttribute< FVector2D > InBorderPadding)
 {
 	BorderPadding = InBorderPadding;
+	InvalidateLayout();
 }
 
 void SProgressBar::SetBackgroundImage(const FSlateBrush* InBackgroundImage)
 {
 	BackgroundImage = InBackgroundImage;
+	InvalidateLayout();
 }
 
 void SProgressBar::SetFillImage(const FSlateBrush* InFillImage)
 {
 	FillImage = InFillImage;
+	InvalidateLayout();
 }
 
 void SProgressBar::SetMarqueeImage(const FSlateBrush* InMarqueeImage)
 {
 	MarqueeImage = InMarqueeImage;
+	InvalidateLayout();
 }
 
 const FSlateBrush* SProgressBar::GetBackgroundImage() const
@@ -240,14 +251,14 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 	return RetLayerId - 1;
 }
 
-/**
- * Computes the desired size of this widget (SWidget)
- *
- * @return  The widget's desired size
- */
 FVector2D SProgressBar::ComputeDesiredSize( float ) const
 {
 	return GetMarqueeImage()->ImageSize;
+}
+
+bool SProgressBar::ComputeVolatility() const
+{
+	return SLeafWidget::ComputeVolatility() || Percent.IsBound();
 }
 
 void SProgressBar::SetActiveTimerTickRate(float TickRate)

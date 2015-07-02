@@ -222,6 +222,12 @@ void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float Star
 			( *FoundPlayer )->Play( StartAtTime, NumberOfLoops, PlayMode );
 		}
 
+		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			CachedWidget->InvalidateLayout();
+		}
+
 		OnAnimationStarted( InAnimation );
 	}
 }
@@ -733,13 +739,25 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 		Player->Tick(InDeltaTime);
 	}
 
+	const bool bWasPlayingAnimation = IsPlayingAnimation();
+
 	// The process of ticking the players above can stop them so we remove them after all players have ticked
 	for ( UUMGSequencePlayer* StoppedPlayer : StoppedSequencePlayers )
 	{
-		ActiveSequencePlayers.Remove(StoppedPlayer);
+		ActiveSequencePlayers.RemoveSwap(StoppedPlayer);
 	}
 
 	StoppedSequencePlayers.Empty();
+
+	// If we're no longer playing animations invalidate layout so that we recache the volatility of the widget.
+	if ( bWasPlayingAnimation && IsPlayingAnimation() == false )
+	{
+		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			CachedWidget->InvalidateLayout();
+		}
+	}
 
 	UWorld* World = GetWorld();
 	if ( World )

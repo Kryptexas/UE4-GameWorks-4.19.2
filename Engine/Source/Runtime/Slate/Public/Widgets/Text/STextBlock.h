@@ -172,6 +172,11 @@ public:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	// End of SWidget interface
 
+protected:
+	// SWidget interface
+	virtual bool ComputeVolatility() const override;
+	// End of SWidget interface
+
 private:
 	/** Get the computed text style to use with the text marshaller */
 	FTextBlockStyle GetComputedTextStyle() const;

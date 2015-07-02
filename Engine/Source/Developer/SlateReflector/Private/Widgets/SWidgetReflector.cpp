@@ -3,6 +3,7 @@
 #include "SlateReflectorPrivatePCH.h"
 #include "ISlateReflectorModule.h"
 #include "SlateStats.h"
+#include "SInvalidationPanel.h"
 
 #define LOCTEXT_NAMESPACE "SWidgetReflector"
 #define WITH_EVENT_LOGGING 0
@@ -432,6 +433,33 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							]
 						]
 					]
+#if !UE_BUILD_SHIPPING
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						SNew(SCheckBox)
+						.Style(FCoreStyle::Get(), "ToggleButtonCheckbox")
+						.IsChecked_Lambda([&]()
+						{
+							return SInvalidationPanel::IsInvalidationDebuggingEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+						})
+						.OnCheckStateChanged_Lambda([&](const ECheckBoxState NewState)
+						{
+							SInvalidationPanel::EnableInvalidationDebugging(( NewState == ECheckBoxState::Checked ) ? true : false);
+						})
+						[
+							SNew(SBox)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("InvalidationDebugging", "Invalidation Debugging"))
+							]
+						]
+					]
+#endif
+
 #if SLATE_STATS
 					+SHorizontalBox::Slot()
 					.AutoWidth()

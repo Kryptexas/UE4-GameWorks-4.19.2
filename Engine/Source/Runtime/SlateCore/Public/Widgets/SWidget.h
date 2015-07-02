@@ -66,6 +66,14 @@ public:
 	}
 };
 
+
+class ILayoutCache
+{
+public:
+	virtual void InvalidateWidget(class SWidget* InvalidateWidget) = 0;
+};
+
+
 class IToolTip;
 
 /**
@@ -572,7 +580,6 @@ public:
 	 */
 	virtual bool SupportsKeyboardFocus() const;
 
-
 	/**
 	 * Checks to see if this widget currently has the keyboard focus
 	 *
@@ -633,6 +640,7 @@ public:
 	void SetEnabled( const TAttribute<bool>& InEnabledState )
 	{
 		EnabledState = InEnabledState;
+		InvalidateLayout();
 	}
 
 	/** @return Whether or not this widget is enabled */
@@ -682,29 +690,81 @@ public:
 	/** @param InVisibility  should this widget be */
 	virtual void SetVisibility( TAttribute<EVisibility> InVisibility )
 	{
-		Visibility = InVisibility;
+		if ( !Visibility.IdenticalTo(InVisibility) )
+		{
+			Visibility = InVisibility;
+			InvalidateLayout();
+		}
+	}
+
+	/**
+	 * When performing a caching pass, volatile widgets are not cached as part of everything
+	 * else, instead they and their children are drawn as normal standard widgets and excluded
+	 * from the cache.  This is extremely useful for things like timers and text that change
+	 * every frame.
+	 */
+	FORCEINLINE bool IsVolatile() const { return bCachedVolatile; }
+
+	/**
+	 * Was this widget painted as part of a volatile pass previously.  This may mean it was the
+	 * widget directly responsible for making a hierarchy volatile, or it may mean it was simply
+	 * a child of a volatile panel.
+	 */
+	FORCEINLINE bool IsVolatileIndirectly() const { return bInheritedVolatility; }
+
+	/**
+	 * Should this widget always appear as volatile for any layout caching host widget.  A volatile
+	 * widget's geometry and layout data will never be cached, and neither will any children.
+	 * @param bForce should we force the widget to be volatile?
+	 */
+	FORCEINLINE void ForceVolatile(bool bForce)
+	{
+		bForceVolatile = bForce;
+		InvalidateLayout();
+	}
+
+	/**
+	 * Invalidates the widget from the view of a layout caching widget that may own this widget.
+	 * will force the owning widget to redraw and cache children on the next paint pass.
+	 */
+	FORCEINLINE void InvalidateLayout()
+	{
+		const bool bWasVolatile = IsVolatileIndirectly() || IsVolatile();
+		const bool bWasDirectlyVolatile = IsVolatile();
+		CacheVolatility();
+		const bool bVolatilityChanged = bWasDirectlyVolatile != IsVolatile();
+
+		if ( bWasVolatile == false || bVolatilityChanged )
+		{
+			TSharedPtr<ILayoutCache> Cache = LayoutCache.Pin();
+			if ( Cache.IsValid() )
+			{
+				Cache->InvalidateWidget(this);
+			}
+		}
 	}
 
 	/** @return the render transform of the widget. */
-	const TOptional<FSlateRenderTransform>& GetRenderTransform() const
+	FORCEINLINE const TOptional<FSlateRenderTransform>& GetRenderTransform() const
 	{
 		return RenderTransform.Get();
 	}
 
-	/** @param InTransform the render transform to set for the widget (tranforms from widget's local space). TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
-	void SetRenderTransform( TAttribute<TOptional<FSlateRenderTransform>> InTransform )
+	/** @param InTransform the render transform to set for the widget (transforms from widget's local space). TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
+	FORCEINLINE void SetRenderTransform(TAttribute<TOptional<FSlateRenderTransform>> InTransform)
 	{
 		RenderTransform = InTransform;
+		InvalidateLayout();
 	}
 
 	/** @return the pivot point of the render transform. */
-	const FVector2D& GetRenderTransformPivot() const
+	FORCEINLINE const FVector2D& GetRenderTransformPivot() const
 	{
 		return RenderTransformPivot.Get();
 	}
 
 	/** @param InTransformPivot Sets the pivot point of the widget's render transform (in normalized local space). */
-	void SetRenderTransformPivot( TAttribute<FVector2D> InTransformPivot )
+	FORCEINLINE void SetRenderTransformPivot(TAttribute<FVector2D> InTransformPivot)
 	{
 		RenderTransformPivot = InTransformPivot;
 	}
@@ -869,6 +929,24 @@ protected:
 	/** @return a brush to draw focus, nullptr if no focus drawing is desired */
 	virtual const FSlateBrush* GetFocusBrush() const;
 
+	/**
+	 * Recalculates volatility of the widget and caches the result.  Should be called any time 
+	 * anything examined by your implementation of ComputeVolatility is changed.
+	 */
+	FORCEINLINE void CacheVolatility()
+	{
+		bCachedVolatile = bForceVolatile || ComputeVolatility();
+	}
+
+	/**
+	 * Recomputes the volatility of the widget.  If you have additional state you automatically want to make
+	 * the widget volatile, you should sample that information here.
+	 */
+	virtual bool ComputeVolatility() const
+	{
+		return Visibility.IsBound();
+	}
+
 private:
 
 	/**
@@ -898,6 +976,15 @@ private:
 	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
 	 */
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const = 0;
+
+protected:
+
+	/**
+	 * Don't call this directly unless you're a layout cache, this is used to recursively set the layout cache on
+	 * on invisible children that never get the opportunity to paint and receive the layout cache through the normal
+	 * means.  That way if an invisible widget becomes visible, we still properly invalidate the hierarchy.
+	 */
+	void CachePrepass(TWeakPtr<ILayoutCache> LayoutCache);
 
 protected:
 	/**
@@ -969,9 +1056,6 @@ protected:
 	/** Render transform pivot of this widget (in normalized local space) */
 	TAttribute< FVector2D > RenderTransformPivot;
 
-	/** Is this widget hovered? */
-	bool bIsHovered;
-
 private:
 
 	/**
@@ -984,7 +1068,27 @@ private:
 	/** Tool tip content for this widget */
 	TSharedPtr<IToolTip> ToolTip;
 
-	// Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
-	// occupied by this widget, and will instead be repelled to an outside edge
+	/** The current layout cache that may need to invalidated by changes to this widget. */
+	mutable TWeakPtr<ILayoutCache> LayoutCache;
+
+protected:
+	/** Is this widget hovered? */
+	bool bIsHovered;
+
+private:
+
+	/**
+	 * Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
+	 * occupied by this widget, and will instead be repelled to an outside edge
+	 */
 	bool bToolTipForceFieldEnabled;
+
+	/** Should we be forcing this widget to be volatile at all times and redrawn every frame? */
+	bool bForceVolatile;
+
+	/** The last cached volatility of this widget.  Cached so that we don't need to recompute volatility every frame. */
+	bool bCachedVolatile;
+
+	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
+	mutable bool bInheritedVolatility;
 };

@@ -23,10 +23,13 @@ SWidget::SWidget()
 	, Visibility( EVisibility::Visible )
 	, RenderTransform( )
 	, RenderTransformPivot( FVector2D::ZeroVector )
-	, bIsHovered(false)
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
+	, bIsHovered(false)
 	, bToolTipForceFieldEnabled( false )
+	, bForceVolatile(false)
+	, bCachedVolatile(false)
+	, bInheritedVolatility(false)
 {
 
 }
@@ -366,7 +369,6 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	}
 }
 
-
 void SWidget::SlatePrepass()
 {
 	SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale() );
@@ -379,12 +381,13 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 	// a function of its children's sizes.
 	FChildren* MyChildren = this->GetChildren();
 	int32 NumChildren = MyChildren->Num();
-	for(int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex)
+	for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 	{
 		const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
+
 		if ( Child->Visibility.Get() != EVisibility::Collapsed )
 		{
-			const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale( MyChildren->GetSlotAt(ChildIndex) );
+			const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale(MyChildren->GetSlotAt(ChildIndex));
 			// Recur: Descend down the widget tree.
 			Child->SlatePrepass(LayoutScaleMultiplier*ChildLayoutScaleMultiplier);
 		}
@@ -394,19 +397,34 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 	CacheDesiredSize(LayoutScaleMultiplier);
 }
 
-
 void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 {
 	// Cache this widget's desired size.
 	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
-
 const FVector2D& SWidget::GetDesiredSize() const
 {
 	return DesiredSize;
 }
 
+void SWidget::CachePrepass(TWeakPtr<ILayoutCache> InLayoutCache)
+{
+	FChildren* MyChildren = this->GetChildren();
+	int32 NumChildren = MyChildren->Num();
+	for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
+	{
+		const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
+		if ( Child->GetVisibility().IsVisible() == false )
+		{
+			Child->LayoutCache = InLayoutCache;
+		}
+		else
+		{
+			Child->CachePrepass(InLayoutCache);
+		}
+	}
+}
 
 bool SWidget::SupportsKeyboardFocus() const
 {
@@ -642,6 +660,29 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 {
 	INC_DWORD_STAT(STAT_SlateNumPaintedWidgets);
 	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateOnPaint, GetType());
+
+	// Save the current layout cache we're associated with (if any)
+	LayoutCache = Args.GetLayoutCache();
+
+	// Record if we're part of a volatility pass, this is critical for ensuring we don't report a child
+	// of a volatile widget as non-volatile, causing the invalidation panel to do work that's not required.
+	bInheritedVolatility = Args.IsVolatilityPass();
+
+	// If this paint pass is to cache off our geometry, but we're a volatile widget,
+	// record this widget as volatile in the draw elements so that we get our own tick/paint 
+	// pass later when the layout cache draws.
+	if ( Args.IsCaching() && IsVolatile() )
+	{
+		// Volatile widgets don't have an associated layout cache.
+		LayoutCache.Reset();
+
+		OutDrawElements.QueueVolatilePainting(
+			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, MyClippingRect, LayerId, InWidgetStyle, bParentEnabled));
+
+		// Add a layer padding so that cached elements drawn on top of this volatile widget have some airspace room and not be drawn on top
+		// of when the volatile element draws.
+		return LayerId + 1000;
+	}
 
 	if ( bFoldTick )
 	{

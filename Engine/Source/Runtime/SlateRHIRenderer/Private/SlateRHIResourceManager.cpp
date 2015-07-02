@@ -217,6 +217,12 @@ bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
 	return false;
 }
 
+void FSlateRHIResourceManager::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObjects(AccessedUTextures);
+	Collector.AddReferencedObjects(AccessedMaterials);
+}
+
 void FSlateRHIResourceManager::CreateTextures( const TArray< const FSlateBrush* >& Resources )
 {
 	TMap<FName,FNewTextureInfo> TextureInfoMap;
@@ -696,6 +702,8 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
 	}
 
+	AccessedMaterials.Add(const_cast<UMaterialInterface*>( Material ));
+
 	return MaterialResource.Get();
 }
 
@@ -790,9 +798,10 @@ void FSlateRHIResourceManager::LoadStyleResources( const ISlateStyle& Style )
 	CreateTextures( Resources );
 }
 
-void FSlateRHIResourceManager::ClearAccessedUTextures()
+void FSlateRHIResourceManager::ClearAccessedResources()
 {
-	AccessedUTextures.Empty();
+	AccessedUTextures.Reset();
+	AccessedMaterials.Reset();
 }
 
 void FSlateRHIResourceManager::UpdateTextureAtlases()
@@ -838,6 +847,7 @@ void FSlateRHIResourceManager::DeleteResources()
 	SET_DWORD_STAT(STAT_SlateNumDynamicTextures, 0);
 
 	AccessedUTextures.Empty();
+	AccessedMaterials.Empty();
 	DynamicResourceMap.Empty();
 	TextureAtlases.Empty();
 	NonAtlasedTextures.Empty();

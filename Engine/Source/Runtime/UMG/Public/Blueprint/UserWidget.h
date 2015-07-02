@@ -760,6 +760,9 @@ public:
 	virtual void PreSave() override;
 	// End UObject interface
 
+	/** Are we currently playing any animations? */
+	bool IsPlayingAnimation() const { return ActiveSequencePlayers.Num() > 0; }
+
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;

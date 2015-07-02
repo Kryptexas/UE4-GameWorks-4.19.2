@@ -18,7 +18,6 @@ DECLARE_CYCLE_STAT(TEXT("Slate RT Present Time"), STAT_SlatePresentRTTime, STATG
 #define MAX_VIEWPORT_SIZE 16384
 
 
-
 void FSlateCrashReportResource::InitDynamicRHI()
 {
 	FRHIResourceCreateInfo CreateInfo;
@@ -152,7 +151,7 @@ void FSlateRHIRenderer::Initialize()
 {
 	LoadUsedTextures();
 
-	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager.ToSharedRef() ) ); 
+	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager.ToSharedRef() ) );
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
 }
@@ -565,8 +564,8 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		Policy.BeginDrawingWindows();
 	});
 
-	// Clear accessed UTexture objects from the previous frame
-	ResourceManager->ClearAccessedUTextures();
+	// Clear accessed UTexture and Material objects from the previous frame
+	ResourceManager->ClearAccessedResources();
 
 	// Update texture atlases if needed
 	ResourceManager->UpdateTextureAtlases();

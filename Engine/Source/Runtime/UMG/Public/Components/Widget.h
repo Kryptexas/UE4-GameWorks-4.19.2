@@ -177,6 +177,19 @@ public:
 	UPROPERTY()
 	FGetMouseCursor CursorDelegate;
 
+protected:
+
+	/**
+	 * If true prevents the widget or its child's geometry or layout information from being cached.  If this widget
+	 * changes every frame, but you want it to still be in an invalidation panel you should make it as volatile
+	 * instead of invalidating it every frame, which would prevent the invalidation panel from actually
+	 * ever caching anything.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Performance")
+	bool bIsVolatile;
+
+public:
+
 	/** The render transform of the widget allows for arbitrary 2D transforms to be applied to the widget. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Transform" ))
 	FWidgetTransform RenderTransform;
@@ -266,6 +279,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetVisibility(ESlateVisibility InVisibility);
 
+	/** Sets the forced volatility of the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ForceVolatile(bool bForce);
+
 	/** @return true if the widget is currently being hovered by a pointer device */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsHovered() const;
@@ -316,6 +333,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();
+
+	/**
+	 *
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void InvalidateLayout();
 
 	/**
 	 * Gets the widgets desired size.

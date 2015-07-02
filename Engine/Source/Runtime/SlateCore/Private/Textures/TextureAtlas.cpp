@@ -56,7 +56,10 @@ void FSlateTextureAtlas::MarkTextureDirty()
 {
 	check( 
 		(GSlateLoadingThreadId != 0) || 
-		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Game && IsInGameThread()) || 
+		// Note: For Game thread ownership, there is a point at which multiple worker threads operate on text simulatenously while the game thread is blocked
+		// Access to the font cache is controlled through mutexes so we simply need to check that we are not accessing it from the render thread
+		// Game thread access is also allowed when the game thread and render thread are the same
+		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Game && !IsInActualRenderingThread()) || 
 		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Render && IsInRenderingThread()) 
 		);
 

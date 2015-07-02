@@ -74,6 +74,16 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 	return MaxLayer;
 }
 
+bool SObjectWidget::ComputeVolatility() const
+{
+	if ( CanRouteEvent() )
+	{
+		return SCompoundWidget::ComputeVolatility() || WidgetObject->IsPlayingAnimation();
+	}
+
+	return SCompoundWidget::ComputeVolatility();
+}
+
 bool SObjectWidget::IsInteractable() const
 {
 	if ( CanRouteEvent() )

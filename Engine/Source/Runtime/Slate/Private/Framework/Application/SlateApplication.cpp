@@ -1027,6 +1027,8 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 			}
 		}
 
+#if SLATE_HAS_WIDGET_REFLECTOR
+
 		// The widget reflector may want to paint some additional stuff as part of the Widget introspection that it performs.
 		// For example: it may draw layout rectangles for hovered widgets.
 		const bool bVisualizeLayoutUnderCursor = DrawWindowArgs.WidgetsUnderCursor.IsValid();
@@ -1043,6 +1045,8 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 		{
 			MaxLayerId = WidgetReflector->VisualizeCursorAndKeys( WindowElementList, MaxLayerId );
 		}
+
+#endif
 
 		// Draw the child windows
 		const TArray< TSharedRef<SWindow> >& WindowChildren = WindowToDraw->GetChildWindows();
@@ -1133,8 +1137,12 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 {
 	check(Renderer.IsValid());
 
+#if SLATE_HAS_WIDGET_REFLECTOR
 	// Is user expecting visual feedback from the Widget Reflector?
 	const bool bVisualizeLayoutUnderCursor = WidgetReflectorPtr.IsValid() && WidgetReflectorPtr.Pin()->IsVisualizingLayoutUnderCursor();
+#else
+	const bool bVisualizeLayoutUnderCursor = false;
+#endif
 
 	FWidgetPath WidgetsUnderCursor = bVisualizeLayoutUnderCursor
 		? WidgetsUnderCursorLastEvent.ToWidgetPath()
@@ -3841,6 +3849,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 	{
 		LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
+#if SLATE_HAS_WIDGET_REFLECTOR
 		// If we are inspecting, pressing ESC exits inspection mode.
 		if ( InKeyEvent.GetKey() == EKeys::Escape )
 		{
@@ -3854,6 +3863,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 					return Reply.IsEventHandled();
 			}
 		}
+#endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// Ctrl+Shift+~ summons the Toolbox.

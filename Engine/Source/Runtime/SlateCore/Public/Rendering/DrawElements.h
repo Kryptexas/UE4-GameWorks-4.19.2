@@ -651,19 +651,19 @@ public:
 	}
 	
 	/** @return Get the window that we will be painting */
-	const TSharedPtr<SWindow> GetWindow() const
+	FORCEINLINE const TSharedPtr<SWindow> GetWindow() const
 	{
 		return TopLevelWindow.Pin();
 	}
 	
 	/** @return Get the window that we will be painting */
-	TSharedPtr<SWindow> GetWindow()
+	FORCEINLINE TSharedPtr<SWindow> GetWindow()
 	{
 		return TopLevelWindow.Pin();
 	}
 	
 	/** @return Get the draw elements that we want to render into this window */
-	const TArray<FSlateDrawElement>& GetDrawElements() const
+	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
 	{
 		return DrawElements;
 	}
@@ -673,21 +673,32 @@ public:
 	 *
 	 * @param InDrawElement  The draw element to add
 	 */
-	void AddItem( const FSlateDrawElement& InDrawElement )
+	FORCEINLINE void AddItem(const FSlateDrawElement& InDrawElement)
 	{
 		DrawElements.Add( InDrawElement );
 	}
 
-	FSlateDrawElement& AddUninitialized()
+	/**
+	 * Creates an uninitialized draw element
+	 */
+	FORCEINLINE FSlateDrawElement& AddUninitialized()
 	{
-		const int32 InsertIdx = DrawElements.AddUninitialized();
-		return *(new(DrawElements.GetData() + InsertIdx) FSlateDrawElement());
+		const int32 InsertIdx = DrawElements.AddDefaulted();
+		return DrawElements[InsertIdx];
 	}
 
 	/**
-	* Some widgets may want to paint their children after after another, loosely-related widget finished painting.
-	* Or they may want to paint "after everyone".
-	*/
+	 * Append draw elements to the list of draw elements
+	 */
+	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement>& InDrawElements)
+	{
+		DrawElements.Append(InDrawElements);
+	}
+
+	/**
+	 * Some widgets may want to paint their children after after another, loosely-related widget finished painting.
+	 * Or they may want to paint "after everyone".
+	 */
 	struct FDeferredPaint
 	{
 	public:
@@ -706,17 +717,37 @@ public:
 
 	SLATECORE_API void QueueDeferredPainting( const FDeferredPaint& InDeferredPaint );
 
-	int32 PaintDeferred( int32 LayerId );
+	int32 PaintDeferred(int32 LayerId);
+
+	struct FVolatilePaint
+	{
+	public:
+		SLATECORE_API FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled);
+
+		int32 ExecutePaint( FSlateWindowElementList& OutDrawElements ) const;
+
+		FORCEINLINE FGeometry GetGeometry() const { return AllottedGeometry; }
+	 
+	private:
+		const TWeakPtr<const SWidget> WidgetToPaintPtr;
+		const FPaintArgs Args;
+		const FGeometry AllottedGeometry;
+		const FSlateRect MyClippingRect;
+		const int32 LayerId;
+		const FWidgetStyle WidgetStyle;
+		const bool bParentEnabled;
+	};
+
+	SLATECORE_API void QueueVolatilePainting( const FVolatilePaint& InVolatilePaint );
+
+	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList);
+
+	SLATECORE_API const TArray< TSharedRef<FVolatilePaint> >& GetVolatileElements() const { return VolatilePaintList; }
 	
 	/**
 	 * Remove all the elements from this draw list.
 	 */
-	void Reset()
-	{
-		DrawElements.Reset();
-		BatchData.Reset();
-		DeferredPaintList.Reset();
-	}
+	SLATECORE_API void Reset();
 
 	FSlateBatchData& GetBatchData() { return BatchData; }
 
@@ -735,4 +766,7 @@ private:
 	 * We accomplish this by deferring their painting.
 	 */
 	TArray< TSharedRef<FDeferredPaint> > DeferredPaintList;
+
+	/** The widgets be cached for a later paint pass when the invalidation host paints. */
+	TArray< TSharedRef<FVolatilePaint> > VolatilePaintList;
 };

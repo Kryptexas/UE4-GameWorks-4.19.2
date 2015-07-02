@@ -68,17 +68,26 @@ FVector2D SImage::ComputeDesiredSize( float ) const
 
 void SImage::SetColorAndOpacity( const TAttribute<FSlateColor>& InColorAndOpacity )
 {
-	ColorAndOpacity = InColorAndOpacity;
+	if ( !ColorAndOpacity.IdenticalTo(InColorAndOpacity) )
+	{
+		ColorAndOpacity = InColorAndOpacity;
+		InvalidateLayout();
+	}
 }
 
 void SImage::SetColorAndOpacity( FLinearColor InColorAndOpacity )
 {
-	ColorAndOpacity = InColorAndOpacity;
+	if ( ColorAndOpacity.IsBound() || ColorAndOpacity.Get() != InColorAndOpacity )
+	{
+		ColorAndOpacity = InColorAndOpacity;
+		InvalidateLayout();
+	}
 }
 
 void SImage::SetImage(TAttribute<const FSlateBrush*> InImage)
 {
 	Image = InImage;
+	InvalidateLayout();
 }
 
 void SImage::SetOnMouseButtonDown(FPointerEventHandler EventHandler)
