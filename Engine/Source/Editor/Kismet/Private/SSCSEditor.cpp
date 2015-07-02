@@ -1237,7 +1237,7 @@ UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemp
 	const bool BlueprintCanOverrideComponentFromKey = Key.IsValid()
 		&& Blueprint
 		&& Blueprint->ParentClass
-		&& Blueprint->ParentClass->IsChildOf(Key.OwnerClass);
+		&& Blueprint->ParentClass->IsChildOf(Key.GetComponentOwner());
 
 	if (BlueprintCanOverrideComponentFromKey)
 	{

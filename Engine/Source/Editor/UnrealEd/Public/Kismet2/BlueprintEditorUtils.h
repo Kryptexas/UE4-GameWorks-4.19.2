@@ -7,7 +7,8 @@
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
 
-class USCS_Node;
+class  USCS_Node;
+struct FComponentKey;
 
 /** 
   * Flags describing how to handle graph removal
@@ -79,6 +80,16 @@ public:
 
 	virtual void EditCreateDelegates(class UK2Node_CreateDelegate* CallSite) override;
 
+};
+
+struct UNREALED_API FUCSComponentId
+{
+public:
+	FUCSComponentId(const class UK2Node_AddComponent* UCSNode);
+	FGuid GetAssociatedGuid() const { return GraphNodeGuid; }
+
+private:
+	FGuid GraphNodeGuid;
 };
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
@@ -997,6 +1008,9 @@ public:
 
 	/** Determines if this property is associated with a component that would be displayed in the SCS editor */
 	static bool IsSCSComponentProperty(UObjectProperty* MemberProperty);
+
+	/** Attempts to match up the FComponentKey with a ComponentTemplate from the Blueprint's UCS */
+	static UActorComponent* FindUCSComponentTemplate(const FComponentKey& ComponentKey);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Interface

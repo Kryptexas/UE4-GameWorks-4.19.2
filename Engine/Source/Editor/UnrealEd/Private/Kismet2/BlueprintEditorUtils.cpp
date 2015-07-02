@@ -453,6 +453,14 @@ void FParamsChangedHelper::EditCreateDelegates(UK2Node_CreateDelegate* CallSite)
 }
 
 //////////////////////////////////////
+// FUCSComponentId
+
+FUCSComponentId::FUCSComponentId(const UK2Node_AddComponent* UCSNode)
+	: GraphNodeGuid(UCSNode->NodeGuid)
+{
+}
+
+//////////////////////////////////////
 // FBlueprintEditorUtils
 
 void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
@@ -4164,6 +4172,11 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 	{
 		Blueprint->Modify();
 
+		// Update the name
+		const FName OldName = Node->VariableName;
+		Node->Modify();
+		Node->VariableName = NewName;
+
 		// Rename Inheritable Component Templates
 		{
 			const FComponentKey Key(Node);
@@ -4175,16 +4188,11 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 				if (InheritableComponentHandler && InheritableComponentHandler->GetOverridenComponentTemplate(Key))
 				{
 					InheritableComponentHandler->Modify();
-					InheritableComponentHandler->RenameTemplate(Key, NewName);
+					InheritableComponentHandler->RefreshTemplateName(Key);
 					InheritableComponentHandler->MarkPackageDirty();
 				}
 			}
 		}
-
-		// Update the name
-		const FName OldName = Node->VariableName;
-		Node->Modify();
-		Node->VariableName = NewName;
 
 		Node->NameWasModified();
 
@@ -6163,6 +6171,32 @@ bool FBlueprintEditorUtils::IsSCSComponentProperty(UObjectProperty* MemberProper
 		}
 	}
 	return false;
+}
+
+UActorComponent* FBlueprintEditorUtils::FindUCSComponentTemplate(const FComponentKey& ComponentKey)
+{
+	UActorComponent* FoundTemplate = nullptr;
+	if (ComponentKey.IsValid() && ComponentKey.IsUCSKey())
+	{
+		UBlueprint* Blueprint = Cast<UBlueprint>(ComponentKey.GetComponentOwner()->ClassGeneratedBy);
+		check(Blueprint != nullptr);
+
+		if (UEdGraph* UCSGraph = FBlueprintEditorUtils::FindUserConstructionScript(Blueprint))
+		{
+			TArray<UK2Node_AddComponent*> ComponentNodes;
+			UCSGraph->GetNodesOfClass<UK2Node_AddComponent>(ComponentNodes);
+
+			for (UK2Node_AddComponent* UCSNode : ComponentNodes)
+			{
+				if (UCSNode->NodeGuid == ComponentKey.GetAssociatedGuid())
+				{
+					FoundTemplate = UCSNode->GetTemplateFromNode();
+					break;
+				}
+			}
+		}
+	}
+	return FoundTemplate;
 }
 
 /** Temporary fix for cut-n-paste error that failed to carry transactional flags */

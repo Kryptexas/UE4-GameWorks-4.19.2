@@ -724,18 +724,55 @@ namespace EditorUtilities
 							UInheritableComponentHandler* InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(true);
 							if (InheritableComponentHandler)
 							{
-								BPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
-								USCS_Node* SCSNode = nullptr;
-								while (BPGC)
-								{
-									SCSNode = BPGC->SimpleConstructionScript->FindSCSNode(SourceComponent->GetFName());
-									BPGC = (SCSNode ? nullptr : Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass()));
-								}
-								check(SCSNode);
+								FComponentKey Key;
+								FName const SourceComponentName = SourceComponent->GetFName();
 
-								FComponentKey Key(SCSNode);
-								check(InheritableComponentHandler->GetOverridenComponentTemplate(Key) == nullptr);
-								TargetComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
+								BPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
+								while (!Key.IsValid() && BPGC)
+								{
+									USCS_Node* SCSNode = BPGC->SimpleConstructionScript->FindSCSNode(SourceComponentName);
+									if (!SCSNode)
+									{
+										UBlueprint* SuperBlueprint = CastChecked<UBlueprint>(BPGC->ClassGeneratedBy);
+										for (UActorComponent* ComponentTemplate : BPGC->ComponentTemplates)
+										{
+											if (ComponentTemplate->GetFName() == SourceComponentName)
+											{
+												if (UEdGraph* UCSGraph = FBlueprintEditorUtils::FindUserConstructionScript(SuperBlueprint))
+												{
+													TArray<UK2Node_AddComponent*> ComponentNodes;
+													UCSGraph->GetNodesOfClass<UK2Node_AddComponent>(ComponentNodes);
+
+													for (UK2Node_AddComponent* UCSNode : ComponentNodes)
+													{
+														if (ComponentTemplate == UCSNode->GetTemplateFromNode())
+														{
+															Key = FComponentKey(SuperBlueprint, FUCSComponentId(UCSNode));
+															break;
+														}
+													}
+												}
+												break;
+											}
+										}
+									}
+									else
+									{
+										Key = FComponentKey(SCSNode);
+										break;
+									}
+									BPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
+								}
+
+								if (ensure(Key.IsValid()))
+								{
+									check(InheritableComponentHandler->GetOverridenComponentTemplate(Key) == nullptr);
+									TargetComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
+								}
+								else
+								{
+									TargetComponent = nullptr;
+								}								
 							}
 						}
 					}
@@ -978,6 +1015,10 @@ namespace EditorUtilities
 		for( auto SourceComponentIter( SourceComponents.CreateConstIterator() ); SourceComponentIter; ++SourceComponentIter )
 		{
 			UActorComponent* SourceComponent = *SourceComponentIter;
+			if (SourceComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript)
+			{
+				continue;
+			}
 			UActorComponent* TargetComponent = FindMatchingComponentInstance( SourceComponent, TargetActor, TargetComponents, TargetComponentIndex );
 
 			if( SourceComponent != nullptr && TargetComponent != nullptr )
