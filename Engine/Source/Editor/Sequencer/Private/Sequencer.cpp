@@ -2,6 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
+#include "SequencerEdMode.h"
 #include "ISequencerObjectBindingManager.h"
 #include "MovieScene.h"
 #include "Engine/LevelScriptBlueprint.h"
@@ -131,8 +132,6 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 			TrackEditors.Add( TrackEditor );
 		}
 
-
-
 		ZoomAnimation = FCurveSequence();
 		ZoomCurve = ZoomAnimation.AddCurve(0.f, 0.2f, ECurveEaseFunction::QuadIn);
 		OverlayAnimation = FCurveSequence();
@@ -144,6 +143,16 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 		// NOTE: Could fill in asset editor commands here!
 
 		BindSequencerCommands();
+
+		if( GLevelEditorModeTools().IsModeActive( FSequencerEdMode::EM_SequencerMode ) )
+		{
+			GLevelEditorModeTools().DeactivateMode( FSequencerEdMode::EM_SequencerMode );
+		}
+
+		GLevelEditorModeTools().ActivateMode( FSequencerEdMode::EM_SequencerMode );
+
+		FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
+		SequencerEdMode->SetSequencer(ActiveSequencer.Get());
 	}
 }
 
@@ -190,6 +199,11 @@ FSequencer::OnClose()
 		FEditorDelegates::PostSaveWorld.RemoveAll(this);
 
 		ActiveSequencer.Reset();
+
+		if( GLevelEditorModeTools().IsModeActive( FSequencerEdMode::EM_SequencerMode ) )
+		{
+			GLevelEditorModeTools().DeactivateMode( FSequencerEdMode::EM_SequencerMode );
+		}
 	}
 }
 

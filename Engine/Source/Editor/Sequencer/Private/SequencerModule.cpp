@@ -6,6 +6,7 @@
 #include "Toolkits/ToolkitManager.h"
 #include "SequencerCommands.h"
 #include "SequencerAssetEditor.h"
+#include "SequencerEdMode.h"
 #include "SequencerObjectChangeListener.h"
 
 // We disable the deprecation warnings here because otherwise it'll complain about us
@@ -80,6 +81,12 @@ class FSequencerModule : public ISequencerModule
 		if (GIsEditor)
 		{
 			FSequencerCommands::Register();
+
+			FEditorModeRegistry::Get().RegisterMode<FSequencerEdMode>(
+				FSequencerEdMode::EM_SequencerMode,
+				NSLOCTEXT("Sequencer", "SequencerEditMode", "Sequencer Mode"),
+				FSlateIcon(),
+				false);
 		}
 	}
 
@@ -88,6 +95,8 @@ class FSequencerModule : public ISequencerModule
 		if (GIsEditor)
 		{
 			FSequencerCommands::Unregister();
+
+			FEditorModeRegistry::Get().UnregisterMode(FSequencerEdMode::EM_SequencerMode);
 		}
 	}
 private:
