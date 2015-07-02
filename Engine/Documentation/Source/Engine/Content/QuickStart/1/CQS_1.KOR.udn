@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2511899
+﻿INTSourceChangelist:2604547
 Availability: Public
 Title:1. UE4 프로젝트에 콘텐츠 임포트하기
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
@@ -15,27 +15,43 @@ Description:언리얼 엔진 4 에서 사용할 수 있는 중요 외부 콘텐�
 		[퀵스타트 홈](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[다음 단계](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
+		[다음 단계](Engine/Content/QuickStart/1/1 "%Engine/Content/QuickStart/1/1:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-콘텐츠 임포트 작업을 시작하기 전, 먼저 언리얼 엔진 4 (UE4) **프로젝트** 라는 개념에 익숙해 질 필요가 있습니다.
+아래 그림은 UE4 를 실행하면 보게되는 화면입니다.
 
-**Project**, 프로젝트란 각 게임을 이루는 콘텐츠와 코드가 전부 들어있는 단위를 말하며, 디스크상의 디렉토리 세트와도 일치합니다. 예를 들어 아래 그림에서 [](Engine/Content/Browser) 의 계층구조 트리에는 디스크의 Project 폴더에서 찾을 수 있는 디렉토리와 같은 계층구조를 갖습니다.
+![](UnrealProjectBrowser.png)
 
-![](ProjectHierarchy.png)
+_프로젝트 구성은 쉽습니다!_
 
-[REGION:note]
-새로운 게임 프로젝트를 만드는 법을 잘 모르겠는 경우, [](Engine/Basics/Projects/Browser) 문서를 참고하세요.
-[/REGION]
+1.	**언리얼 프로젝트 브라우저** 에서 **새 프로젝트** 탭을 클릭합니다.
+1.	**블루프린트** 탭을 클릭한 다음 **공백** 을 선택합니다.
+1.	다음 **세팅** 을 선택합니다:
+	* **데스크탑 / 콘솔**
+	* **최대 퀄리티**
+	* **시작용 콘텐츠 포함**
+1.	프로젝트 저장 위치를 선택하세요: ![](ProjectLocation.png)
+1.	프로젝트 이름을 짓습니다 ![](ProjectName.png)
+1.	**프로젝트 생성** 버튼을 누릅니다: ![](CreateProjectButton.png)
 
-애셋을 수동으로 임포트할 수도 있지만, UE4 는 디스크의 디렉토리 구조에 추가된 애셋을 자동으로 임포트해 줍니다. UE4 가 실행중인 동안 프로젝트의 디렉토리에 애셋을 추가하면, 즉시 임포트해 줍니다 (아니면 다음 번 UE4 실행시 임포트됩니다). 궁극적으로 프로젝트의 디렉토리 구조대로 결정되는 위치에서 UE4 안의 **콘텐츠 브라우저** 에 모든 파일이 자동으로 나타나게 됩니다.
+이제부터 UE4 는 모든 콘텐츠를 디스크에 프로젝트로 저장합니다. 이 튜토리얼을 완료해 가면서, UE4 에서는 메시와 텍스처를 체계적으로 관리해 줍니다.
+
+![](ContentBrowserWSC.png)
+
+위 그림의 **콘텐츠 브라우저** 는 프로젝트의 디렉토리 구조를 탐색하기에 좋은 툴입니다.
+
+아래 그림처럼 하드 디스크에 위치한 프로젝트 폴더를 통해 콘텐츠를 탐색하는 것도 가능합니다.
+
+![](updatedPrjHierarchy.png)
+
+이제쯤 UE4 에서 편하게 프로젝트를 만들고 콘텐츠를 탐색할 수 있을 것입니다.
 
 [REGION:tip]
-UE4 외부에서 제작된 콘텐츠는 자동으로 임포트되도록 UE4 프로젝트 디렉토리에 저장하세요.
+*UE4 는 프로젝트의 디렉토리에 추가된 콘텐츠를 자동으로 임포트합니다.*
 [/REGION]
 
 <!--

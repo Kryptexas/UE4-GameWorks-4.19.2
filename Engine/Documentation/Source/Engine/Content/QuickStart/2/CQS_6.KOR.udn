@@ -1,27 +1,60 @@
-﻿INTSourceChangelist:2465039
+﻿INTSourceChangelist:2604029
 Availability: Public
-Title:6. 직접 해보기!
+Title:2 - 머티리얼 만들기
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:머티리얼을 직접 만들어 적용해 보고, 아티스트 퀵스타트 가이드에 다룬 추가적인 주제에 대한 링크를 제공해 드립니다.
-
-
+Description:프로젝트 구성을 마쳤으니, 머티리얼 제작법을 배워봅시다.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[예전 단계](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+		[예전 단계](Engine/Content/QuickStart/1/4 "%Engine/Content/QuickStart/1/4:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵 스타트 홈](Engine/Content/QuickStart)
+		[퀵스타트 홈](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
+		[다음 단계](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
+
+머티리얼은 메시에 적용시켜 씬의 시각미에 기여하는 애셋입니다.
+
+UE4 프로젝트에 쓸 머티리얼을 만들고 편집하는 방법은 몇 가지 있는데, 여기서는 **머티리얼 에디터** 를 사용하는 방법에 초점을 맞춰보겠습니다.
+
+## 새 'Rock' 머티리얼 만들기
+
+1.	**콘텐츠 브라우저** 로 가서 **신규 추가** 버튼을 클릭한 다음 **머티리얼** 을 선택합니다 (아래 그림).
+
+	![](newCreateMaterial.png)
+	
+1.	머티리얼 이름을 **'Rock'** 이라 짓습니다.
+
+	![](materialNaming.png)
+
+1.	**'Rock' 머티리얼** 이 사용할 준비가 되었습니다.
+
+	![](NewRockMaterial.png)
+
+1.	**'Rock' 머티리얼** 을 더블클릭하면 [머티리얼 에디터](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") 가 열립니다 (아래 그림).
+
+	[REGION:lightbox]
+		[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
+	[/REGION]
+ 
+	[머티리얼 - 비법](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") 문서를 통해 머티리얼 노드에 대해 자세히 알아보실 수 있습니다.
+
+[REGION:tip]
+*텍스처 크기는 2 제곱수로 하세요.*
+[/REGION]
+
+<!--
 
 지금까지 배운 것을 토대로, 이 그래프와 비슷한 **머티리얼** 을 새로 만들어 보세요:
 
@@ -33,7 +66,30 @@ Description:머티리얼을 직접 만들어 적용해 보고, 아티스트 퀵�
 
 ![](NormalMapAdded.png)
 
+## Creating New Material with the Material Editor
 
+1.	Navigate to your **Content Browser**, click **Add New**, and select **Material** (pictured below).
+
+	![](newMaterial.jpg)
+
+	_Alternatively, you can **Right-click** in an empty space within the **Content Browser.**_
+	
+1.	Enter a name for your newly created **Material**.
+
+	![](materialNaming.jpg)
+
+	_If you'd like to rename your material, Right-click on the asset and select Rename._
+
+1.	**Double-clicking** the Material will open the Material Editor [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") (pictured below).
+
+	![](materialEditorInterface.jpg)
+
+	_At this point, the Material Editor only contains the **Main Material Node.**_
+
+You've just created new materials for your project using two methods:
+
+* Using **existing textures** to create new materials.
+* Working in the **Material Editor** to create new materials.
 
 
 이 퀵 스타트 가이드에 다룬 주제, 에디터 전반에 대한 상세 정보는 [언리얼 에디터 매뉴얼](Engine) 을 참고하시기 바랍니다.
@@ -62,6 +118,6 @@ Description:머티리얼을 직접 만들어 적용해 보고, 아티스트 퀵�
 
 * 스태틱 메시 에디터 관련 정보: [](Engine/Content/Types/StaticMeshes/Editor)
 
-
+-->
 
 %Steps%

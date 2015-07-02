@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2466505
+﻿INTSourceChangelist:2601450
 Availability: Public
-Title:2. FBX 를 통한 메시 임포트
+Title:1.1 - 폴더 만들기
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:여기서는 언리얼 엔진 4 에 메시를 임포트/익스포트하는 프로세스를 다루겠습니다.
-
+Description:콘텐츠 브라우저에서 폴더 만드는 법을 배워봅니다.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,34 +14,162 @@ Description:여기서는 언리얼 엔진 4 에 메시를 임포트/익스포트
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵 스타트 홈](Engine/Content/QuickStart)
+		[퀵스타트 홈](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[다음 단계](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+		[다음 단계](Engine/Content/QuickStart/1/2 "%Engine/Content/QuickStart/1/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-임포트할 애셋이 있다면, 아래 [메시 준비](#메시준비) 섹션으로 넘어가세요.
+이쯤에서 아래 그림처럼 새로운 UE4 **프로젝트** 를 만들었을 것입니다.
 
-애셋이나 모델링 패키지가 없는 경우, 아래에서 샘플 애셋을 다운로드하면 됩니다:
+![](NewUE4Project.png)
 
-* [샘플 애셋](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+언제나 프로젝트의 콘텐츠를 체계적으로 정리해 두는 습관을 들이는 것이 좋습니다. 먼저 배워볼 것은, 중요한 콘텐츠를 저장할 폴더를 만드는 법입니다.
 
-로컬 컴퓨터 위치에 압축을 푼 다음 **Basic_Asset1** & **Basic Asset2** 를 UE4 프로젝트의 **Content** 폴더에 끌어 놓습니다.
+[REGION:note]
+시작하기 전, 다음 링크에서 퀵스타트 애셋을 다운로드하세요.
+* [샘플 애셋](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "퀵스타트 샘플 애셋 다운로드 링크")
+[/REGION]
+
+1.	다운로드한 애셋 압축을 아래 그림처럼 컴퓨터에 풉니다.
+
+	![](Engine\Content\QuickStart\2\ExtractedContent.png)
+
+1.	에디터의 **콘텐츠 브라우저** 에서 **신규 추가** 버튼을 클릭합니다 (아래 그림).
+
+	![](Engine\Content\QuickStart\2\AddNewButton.png)
+
+1.	**새 폴더** 를 선택하여 **'/Game'** 아래 새 폴더를 만듭니다 (아래 그림).
+
+	![](Engine\Content\QuickStart\2\NewFolderSelection.png)
+
+1.	폴더 이름을 **'QuickStartContent'** 라 합니다 (아래 그림).
+
+	![](Engine\Content\QuickStart\2\QuickStartContentFolder.png)
+
+1.	**'QuickStartContent'** 폴더를 더블클릭합니다.
+
+[REGION:tip]
+*작명 규칙이 중요합니다! 폴더와 파일 이름은 일관되게 지어주세요.*
+[/REGION]
+<!-- The commented out Markdown Text (below) is from the second iteration -->
+<!--
+There are a few ways to add content to your UE4 project:
+
+>* [Using the Content Browser's **Import** function.](#Bookmark1)
+>* [**Dragging** files from your hard drive into the Content Browser.](#Bookmark2)
+>* [**Saving** files into the Project directory from external programs (e.g. Photoshop).](#Bookmark3)
+
+## Importing with the Content Browser
+
+(#Bookmark1)
+
+The **Content Browser** is located in the lower-left corner of the Editor interface (pictured below).
+
+![](ContentBrowser.jpg)
+
+**Clicking** on the **Content Browser's** ![](ImportButton.jpg) button opens a file dialog, enabling you to add assets to your project.
+
+## Importing using Click and Drag
+
+(#Bookmark2)
+
+**Dragging** files from your hard drive into the **Content Browser** (pictured below) is another way of adding content to your project.
+
+![](CnD_importAll.jpg)
+
+### When Importing Meshes
+
+![](FBXImportOptions.png)
+
+UE4 prompts you to define import options for FBX/OBJ files (pictured above).
+
+### When Importing Textures
+
+UE4 batch imports [__supported__](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
+
+If you see the following pop-up message:
+
+![](TextureImportMessage.png)
+
+UE4 just prevented you from importing an unsupported image file.
+
+Also, if you see the following pop-up message:
+
+![](nonpoweoftwowarning.png)
+
+UE4 is telling you that odd-sized images aren't streamed or mipmapped.
+
+## Importing from an External Program
+
+(#Bookmark3)
+
+Although we're using Photoshop in this example, you can follow along with any image editor of your choice.
+
+### While Running Photoshop
+
+Click **File** and **Save As**.
+
+![](photoshop_export1.jpg)
+
+### Inside the 'Save As' Dialog Box
+
+Locating your UE4 Project Directory and Content folder, enter a filename (using a supported format), then click Save.
+
+![](photoshop_export2.jpg)
+
+### Browsing to your Content Folder
+
+You'll see that your file has been added.
+
+![](photoshop_export6.jpg)
+
+If the Editor is open, the Processing outstanding content changes message will appear (pictured below).
+
+![](photoshop_export4.jpg)
+
+### Reviewing your Content Browser
+
+Confirm that UE4 created a corresponding __*.uasset__ file.
+
+![](photoshop_export5.jpg)
+
+At this point, you've learned how to add content using three methods.
+
+* [Importing with the **Content Browser**.](#Bookmark1)
+* [Importing using **Click and Drag**.](#Bookmark2)
+* [Importing from an **External Program**.](#Bookmark3)
+
+&#x2713; [_Click here if you don't have your own meshes to import._](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+[REGION:tip]
+*Naming conventions matter! Be consistent when naming files.*
+[/REGION]
+-->
+<!-- The commented out Markdown Text (below) is from the first iteration -->
+<!--
+If you have assets to import, you can jump to the [Mesh Preparation](#meshpreparation) section below. 
+
+If you do not have any assets or access to a modeling package, you can download some sample assets below:
+
+* [Sample Assets](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+Extract these to a location on your computer then drag the **Basic_Asset1** and **Basic_Asset2** into the **Content** folder of your UE4 Project. 
 
  ![](ExplorerImport.png)(w:640)
 
- 여기서 아래 **4 단계** 로 이어갈 수 있습니다.
+ From here, you can continue from **Step 4** below. 
  
 [REGION:note]
- 여기 보이는 작명 규칙과 파일 구조가 애셋 이름과 프로젝트 위치에 따라 살짝 달라 보일 수 있습니다.
+ The naming convention and file structure may look slightly different depending upon your asset name and project location. 
 [/REGION]
  
 
-## 메시 준비
+## Mesh Preparation
 
 %Globals:DCCSelect%
 
@@ -75,9 +204,10 @@ Description:여기서는 언리얼 엔진 4 에 메시를 임포트/익스포트
 [/OBJECT]
 
 [REGION:note]
-FBX 파이프라인 관련 상세 정보는, [](Engine/Content/FBX) 문서를 참고하세요.
+For more information on the FBX pipeline, see the [](Engine/Content/FBX) documentation.
 [/REGION]
 
+-->
 
 
 <!--

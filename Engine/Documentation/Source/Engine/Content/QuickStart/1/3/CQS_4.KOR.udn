@@ -1,26 +1,93 @@
-﻿INTSourceChangelist:2511975
+﻿INTSourceChangelist:2601450
 Availability: Public
-Title:4. 머티리얼 적용
+Title:1.3 - 텍스처 임포트하기
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:텍스처를 임포트했으니, 머티리얼을 생성하여 스태틱 메시에 적용하도록 하겠습니다.
+Description:언리얼 엔진 4 프로젝트에 이미지를 임포트하는 법을 배워봅시다.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[예전 단계](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+		[예전 단계](Engine/Content/QuickStart/1/2 "%Engine/Content/QuickStart/1/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵 스타트 홈](Engine/Content/QuickStart)
+		[퀵스타트 홈](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[다음 단계](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+		[다음 단계](Engine/Content/QuickStart/1/4 "%Engine/Content/QuickStart/1/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
+
+1.	에디터에서 **'QuickStartContent'** 폴더로 이동하여, 콘텐츠 브라우저의 **임포트** 버튼을 클릭하면 파일 열기 창이 열립니다 (아래 그림).
+
+	![](ContentBrowserImportButton.png)
+
+1.	**T_Rock_04_D** 와 **T_Rock_04_n** Targa (TGA) 이미지 파일을 찾아 선택합니다 (아래 그림).
+
+	![](ImportTextureDialogBox.png)
+
+1.	**열기** 를 클릭하여 TGA 이미지 파일을 프로젝트에 임포트 시작합니다 (위 그림).
+
+1.	언리얼 에디터 우하단 구석에 확인창이 뜹니다 (아래 그림).
+
+	![](TextureNormalConfirmation.png)
+
+1.	**OK** 를 클릭하여 **T_Rock_04_n.TGA** 노멀 맵 세팅을 수락합니다 (위 그림).
+
+1.	**모두 저장** 버튼을 클릭하여 임포트된 이미지를 저장합니다.
+
+	![](SaveAllTextures.png)
+
+1.	**콘텐츠 저장** 대화창이 뜹니다 (아래 그림). **선택 저장** 을 클릭하여 임포트된 애셋을 저장합니다.
+
+	![](SaveSelectedDialogBox.png)
+
+1.	**'QuickStartContent'** 폴더로 이동, ** *.uasset ** 파일이 제대로 만들어졌는지 확인합니다 (아래 그림).
+
+	![](QuickStartContentFolder.png)
+
+[REGION:tip]
+*(에픽 런처에서 접근 가능한) 마켓플레이스는 콘텐츠를 찾아 공유하기에 좋은 곳입니다.*
+[/REGION]
+
+<!--
+
+[REGION:note]
+**If you don't have meshes to import, we've got you covered.**
+[/REGION]
+
+1. Download sample assets from the following link:
+	* [__Sample Assets__](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+1. Extract the downloaded assets to a location on your computer.
+
+1. Drag **Basic_Asset1** and **Basic_Asset2** into the **Content** folder of your project's directory (pictured below).
+
+	![](ExplorerImport.jpg)
+
+1. Entering the Editor, the **FBX Import Options** dialog box appears. Clicking **Import** or **Import All** will add your mesh to the Project.
+
+	![](FBX_ImportOptions.jpg)
+
+1. Now that you've imported your asset, drag-and-drop the mesh from the **Content Browser** into your level.
+
+	![](ImportMesh.jpg)
+
+Now that you've added meshes to your level, you're ready to add another important asset: Images!
+
+&#x2713; [_Click here if you want to refresh yourself on adding content to a UE4 project._](Engine/Content/QuickStart/4 "How to add content to UE4 projects.")
+
+[REGION:tip]
+*The Marketplace (accessible from the 'Epic Launcher') is a great place to find and share content.*
+[/REGION]
+-->
+<!--
 
 이 글에서는 예전 단계에서 만든 **머티리얼** 을 가지고 임포트한 스태틱 메시에 적용하도록 하겠습니다.
 
@@ -87,6 +154,8 @@ Description:텍스처를 임포트했으니, 머티리얼을 생성하여 스태
 1.	머티리얼을 끌어 레벨에 있는 스태틱 메시 액터에 놓는 것으로 새 머티리얼을 적용할 수 있습니다.
 
 	![](draganddropMaterial.png)
+
+-->
 		
 <!--
 
@@ -211,9 +280,8 @@ Using the two textures you imported earlier or any other textures you happened t
 
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
--->
-
 다음 단계에서는 애셋을 수동으로 임포트하는 여러가지 방법을 배워보도록 하겠습니다.
+-->
 
 %Steps%
 

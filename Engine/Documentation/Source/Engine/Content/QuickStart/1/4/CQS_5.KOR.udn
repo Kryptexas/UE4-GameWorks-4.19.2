@@ -1,26 +1,113 @@
-﻿INTSourceChangelist:2466505
+﻿INTSourceChangelist:2601450
 Availability: Public
-Title:5. 콘텐츠 수동 임포트
+Title:1.4 - 임포트할 메시 준비하기
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:콘텐츠를 언리얼 엔진 4 에 수동으로 임포트하는 방법을 살펴봅니다.
+Description:언리얼 엔진 4 프로젝트에 쓸 메시를 준비하는 법을 배웁니다.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[예전 단계](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+		[예전 단계](Engine/Content/QuickStart/1/3 "%Engine/Content/QuickStart/1/3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵 스타트 홈](Engine/Content/QuickStart)
+		[퀵스타트 홈](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[다음 단계](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+		[다음 단계](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
+
+[REGION:note]
+별도로 임포트할 메시가 있다면, 지금이 딱입니다.
+[/REGION]
+
+## 메시 준비
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+잘하셨습니다! UE4 로 임포트할 메시를 준비하는 법을 배우셨습니다.
+
+&#x2713; [_FBX 콘텐츠 파이프라인에 대해 좀 더 자세히 알아보려면 여기를 클릭하세요._](Engine/Content/FBX "FBX Content Pipeline Documentation").
+
+[REGION:tip]
+*깔끔한 모델링은 게임의 퍼포먼스를 향상시킵니다.*
+[/REGION]
+
+<!--
+[REGION:note]
+**If you don't have images to import, we've got you covered.**
+[/REGION]
+
+1. Download sample assets from the following link:
+
+* [__Sample Assets__](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+1. Extract the downloaded assets to a location on your computer.
+
+1. Drag **T_Rock_04_D** and **T_Rock_04_n** into the **Content** folder of your project's directory (pictured below).
+
+	![](ExplorerImport2.jpg)
+
+1. If the Editor is open, the **Processing outstanding content changes** message will appear (pictured below).
+
+	![](photoshop_export4.jpg)
+
+1. Confirm that UE4 created a corresponding __*.uasset file__.
+
+	![](photoshop_export5.jpg)
+
+Congratulations! You're done setting up your UE4 Project.
+
+You've learned how to: 
+
+* **Setup your project.**
+* **Add meshes to your project.**
+* **Add textures to your project.**
+
+&#x2713; [_Click here if you want to refresh yourself on adding content to a UE4 project._](Engine/Content/QuickStart/1/3 "How to add content to UE4 projects.")
+
+[REGION:tip]
+*Organize your assets so that you can easily find them.*
+[/REGION]
+-->
+<!--
 
 콘텐츠를 언리얼 엔진 4 에 수동으로 임포트하는 방법은 두 가지 있습니다:
 * **콘텐츠 브라우저** 의 임포트 기능을 사용하는 방법.
@@ -40,7 +127,7 @@ Description:콘텐츠를 언리얼 엔진 4 에 수동으로 임포트하는 방
 샘플 애셋을 다운로드한 경우, 또는 자체 애셋이 있는 경우, 다음 방법으로 임포트할 수 있습니다.
 
 1. **콘텐츠 브라우저** 의 **임포트** 버튼을 클릭합니다.
-1. 다운로드한 [샘플 애셋](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip) 압축을 푼 위치로 이동합니다.
+1. 다운로드한 [샘플 애셋](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip) 압축을 푼 위치로 이동합니다.
 1. **Basic_Asset2.fbx**, **T_Rock_04_n.tga** 파일을 선택한 다음 **열기** 를 선택합니다.
 
 	![](ImportManual1.png)
@@ -79,6 +166,7 @@ Description:콘텐츠를 언리얼 엔진 4 에 수동으로 임포트하는 방
 [/REGION]
 
 다음 단계에서는 머티리얼을 직접 만들어 적용해 볼 수 있도록 하고, 추가적인 문서 링크를 제공해 드립니다.
+-->
 
 <!--
 To apply a **Material** to a **Static Mesh**:
@@ -110,4 +198,5 @@ _When releasing the mouse button on top of the Static Mesh Actor, it will become
 -->
 
 %Steps%
+
 

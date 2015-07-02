@@ -1,27 +1,109 @@
-﻿INTSourceChangelist:2500409
+﻿INTSourceChangelist:2606248
 Availability: Public
-Title:3. 이미지 임포트 및 머티리얼 제작
+Title:1.2 - Importing Meshes
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:언리얼 엔진 4 에 지원되는 임포트 이미지 유형 및 그 방법은 물론 머티리얼 제작법에 대한 개요입니다.
+Description:Learn how to import meshes into your Unreal Engine 4 project.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[예전 단계](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
+		[예전 단계](Engine/Content/QuickStart/1/1 "%Engine/Content/QuickStart/1/1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵 스타트 홈](Engine/Content/QuickStart)
+		[퀵스타트 홈](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[다음 단계](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+		[다음 단계](Engine/Content/QuickStart/1/3 "%Engine/Content/QuickStart/1/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
+UE4 프로젝트에 콘텐츠를 추가하는 방법은 몇 가지 있지만, 여기서는 콘텐츠 브라우저의 **임포트** 기능에 초점을 맞추겠습니다.
+
+1.	**'QuickStartContent'** 폴더 안에서 콘텐츠 브라우서의 **임포트** 버튼을 눌러 파일 열기 대화창을 엽니다 (아래 그림).
+
+	![](ContentBrowserImportButton.png)
+
+1.	**Basic_Asset1** 및 **Basic_Asset2** FBX 메시 파일을 찾아 선택합니다 (아래 그림).
+
+	![](ImportMeshDialogBox.png)
+
+1.	**열기** 를 눌러 FBX 메시 파일을 프로젝트로 임포트 시작합니다 (위 그림).
+
+1.	에디터에 들어가면 **FBX 임포트 옵션** 대화창이 뜹니다. **임포트** 또는 **모두 임포트** 를 클릭하면 메시가 프로젝트에 추가됩니다.
+
+	![](FBXImportOptionsDialogBox.png)
+
+1.	**모두 저장** 버튼을 클릭하여 임포트된 메시를 저장합니다.
+
+	![](SaveAllMeshesButton.png)
+
+1.	**콘텐츠 저장** 대화창이 뜹니다 (아래 그림). **선택 저장** 을 클릭하여 임포트된 애셋을 저장합니다.
+
+	![](SaveSelectedDialogBox.png)
+
+1.	**'QuickStartContent'** 폴더로 이동하여 ** *.uasset ** 파일이 제대로 생성되었는지 확인합니다 (아래 그림).
+
+	![](QuickStartContentFolder.png)
+
+[REGION:tip]
+*애셋을 쉽게 찾을 수 있도록 체계적으로 정리하세요.*
+[/REGION]
+
+<!--
+[REGION:note]
+**If you have your own meshes to import, this section is for you.**
+[/REGION]
+
+## Mesh Preparation
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+Well done! You've learned how to prepare meshes for import into UE4.
+
+&#x2713; [_Click here if you want to learn more about the FBX content pipeline._](Engine/Content/FBX "FBX Content Pipeline Documentation").
+
+[REGION:tip]
+*Clean modeling improves a game's performance.*
+[/REGION]
+-->
+<!--
 
 언리얼 엔진 4 (UE4) 에 임포트된 이미지 파일은 주로 [머티리얼](Engine/Rendering/Materials) 에 사용되지만, 랜드스케이프 에디터나 하이트맵 또는 페인트 브러시 마스크와 같은 다양한 페인트 툴에도 사용 가능합니다. HUD 에 직접 적용할 수 있는 경우도 있습니다. 어떤 포맷은 매우 특정한 용도로 사용되는데, 예를 들면 .hdr 이나 일부 .dds 파일 유형은 **큐브맵** 에 사용되는 반면, .raw 파일은 랜드스케이프 에디터에 하이트맵으로 임포트할 수 있습니다.
 
@@ -229,7 +311,7 @@ Description:언리얼 엔진 4 에 지원되는 임포트 이미지 유형 및 �
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
 다음 단계에서는 이 페이지에서 만든 머티리얼을 스태틱 메시에 적용해 보도록 하겠습니다.
-	
+-->	
 <!--
 
 [REGION:note]

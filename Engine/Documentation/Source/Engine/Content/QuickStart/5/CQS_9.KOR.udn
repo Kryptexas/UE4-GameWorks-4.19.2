@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2604029
+Availability: Public
+Title:5 - 직접 해보기!
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:프로젝트 구성, 머티리얼 제작, 스태틱 메시 액터에 머티리얼 적용법을 배웠으니 직접 연습해 봅시다.
+SkillLevel: Beginner
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+지금까지 배운 것을 토대로, 이 그래프와 비슷한 **머티리얼** 을 새로 만듭니다:
+
+![](Engine/Content/QuickStart/1/4/PlasticMaterialNetwork.png)
+
+메인 머티리얼 노드 세팅은 플라스틱 머티리얼에 대한 시뮬레이션입니다.
+
+레벨에 __Basic_Asset1__ 을 추가하고, 머티리얼을 적용한 뒤, "Brick" 노멀 맵 텍스처를 적용시켜 머티리얼을 업데이트합니다.
+
+![](NormalMapAdded.jpg)
+
+이 퀵스타트 가이드에 다룬 주제 관련 상세 정보는, [언리얼 엔진 매뉴얼](Engine "%Engine:description%") 을 참고하시기 바랍니다.
+
+다양한 콘텐츠 임포트 관련 정보:
+
+* FBX 파이프라인 (전반)에 관한 정보: [](Engine/Content/FBX "%Engine/Content/FBX:description%").
+* FBX 스켈레탈 메시 파이프라인에 관한 정보: [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%").
+* FBX 애니메이션 파이프라인 관련 정보: [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%").
+* FBX 모프 타겟 파이프라인 관련 정보: [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%").
+* FBX 머티리얼 파이프라인 관련 정보: [](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%").
+* 오디오 임포트 관련 정보: [](Engine/Audio/WAV "%Engine/Audio/WAV:description%").
+
+이 퀵스타트 가이드의 내용 중 구체적인 정보:
+
+* 지원되는 이미지 유형 관련 정보: [](Engine/Content/Types/Textures/Importing "%Engine/Content/Types/Textures/Importing%").
+* 머티리얼 관련 정보: [](Engine/Rendering/Materials "%Engine/Rendering/Materials%").
+* 콘텐츠 브라우저 관련 정보: [](Engine\Content\Browser "%Engine\Content\Browser%").
+* 스태틱 메시 에디터 관련 정보: [](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor%").
+
+%Steps%
+
+
