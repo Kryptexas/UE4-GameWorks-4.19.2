@@ -100,6 +100,11 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (!IsValid(UpdatedComponent))
+	{
+		return;
+	}
+
 	AActor* ActorOwner = UpdatedComponent->GetOwner();
 	if ( !ActorOwner || !CheckStillInWorld() )
 	{
