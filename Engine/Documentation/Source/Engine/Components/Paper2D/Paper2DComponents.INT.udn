@@ -28,7 +28,7 @@ When creating a **Paper2DCharacter**, this component type is automatically added
 Each instance can specify a custom color that will be passed down to the Flipbook Material as a Vertex Color. They can also have a custom material specified that will override the default Material defined in the SourceFlipbook. 
 
 Through script you can change the current SourceFlipbook asset by calling the **SetFlipbook** function, but note that this will only work if the **Mobility** property is set to _Moveable_ (or if it is called during the construction of the Actor). 
-You can also control play rate, play direction, looping, etc�, with various other methods on the Component. 
+You can also control play rate, play direction, looping, etc, with various other methods on the Component. 
 
 For information on setting up and working with Flipbook Components, see the [](Engine\Paper2D\Flipbooks\Components) documentation. 
 

@@ -25,9 +25,6 @@ Description:Guide to using the tools for editing Landscape terrains.
 
 [TOC(start:2 end:2)]
 
-
-## Overview
-
 After you have created a Landscape, you can now do any of the following to it:
 
 * Modify its shape in **[Sculpt](Engine/Landscape\Editing\SculptMode)** mode.

@@ -25,8 +25,6 @@ Description:Guide to the Landscape tool's Paint mode.
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 The tools in **Paint** mode enable you to modify the appearance of your Landscape by selectively applying Material layers to parts of your Landscape.
 
 For more information about Landscape Materials, see [](Engine/Landscape\Materials).

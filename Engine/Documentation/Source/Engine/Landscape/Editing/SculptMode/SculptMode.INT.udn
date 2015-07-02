@@ -26,10 +26,6 @@ Description:Guide to the Landscape tool's Sculpt mode.
 
 [TOC(start:2 end:3)]
 
-
-## Overview
-
-
 The process of sculpting a Landscape involves using one or more tools that modify the underlying heightmap. These tools range from the simple Sculpt tool to other tools that use complex algorithms to apply interesting effects to the heightmap, such as erosion. Each tool has a set of properties that determine how the tool affects the Landscape.
 
 The currently selected tool determines the operation that will be performed on the Landscape. The tools use [brushes](Engine\Landscape\Editing\Brushes) to apply their effects using strokes.

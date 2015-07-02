@@ -6,8 +6,6 @@ Description:Creating and using custom Heightmaps and layers for your landscapes.
 
 [TOC(start:2 end:3)]
 
-
-## Overview
 ![](Landscape_Example_Image.png)
 
 Sometimes your Landscape will require that you use external programs to create both the height map and layers that are needed. 

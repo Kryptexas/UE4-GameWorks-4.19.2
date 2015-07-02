@@ -25,10 +25,6 @@ Description:Setting up materials to work with Landscape terrains.
 
 [TOC(start:2 end:3)]
 
-
-## Overview
-
-
 Although any random Material can be used with a Landscape Actor, the Material system inside Unreal Engine 4 (UE4) does provide some special Landscape specific material nodes that can greatly help you to better texture your Landscape. In the following document, we will be taking an in-depth look at these nodes, how they function, and how you can use them in your Landscapes materials. 
 
 [REGION:note]
