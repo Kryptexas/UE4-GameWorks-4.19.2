@@ -4,6 +4,7 @@
 
 #include "Core.h"
 #include "ShaderCore.h"
+#include "CrossCompilerCommon.h"
 
 
 /**
@@ -63,11 +64,104 @@ extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderReso
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
 
 // Cross compiler support/common functionality
+namespace CrossCompiler
+{
+	extern SHADERCOMPILERCOMMON_API FString CreateBatchFileContents(
+		const FString& ShaderFile,
+		const FString& OutputFile,
+		const FString& FrequencySwitch,
+		const FString& EntryPoint,
+		const FString& VersionSwitch,
+		const FString& ExtraArguments = TEXT(""));
 
-extern SHADERCOMPILERCOMMON_API FString CreateCrossCompilerBatchFileContents(
-											const FString& ShaderFile,
-											const FString& OutputFile,
-											const FString& FrequencySwitch,
-											const FString& EntryPoint,
-											const FString& VersionSwitch,
-											const FString& ExtraArguments = TEXT(""));
+	extern SHADERCOMPILERCOMMON_API void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine);
+
+	struct SHADERCOMPILERCOMMON_API FHlslccHeader
+	{
+		FHlslccHeader();
+
+		bool Read(const ANSICHAR*& ShaderSource, int32 SourceLen);
+
+		struct FInOut
+		{
+			FString Type;
+			int32 Index;
+			int32 ArrayCount;
+			FString Name;
+		};
+
+		struct FAttribute
+		{
+			int32 Index;
+			FString Name;
+		};
+
+		struct FPackedGlobal
+		{
+			ANSICHAR PackedType;
+			FString Name;
+			int32 Offset;
+			int32 Count;
+		};
+
+		//struct FUniform
+		//{
+		//};
+
+		struct FPackedUB
+		{
+			FAttribute Attribute;
+			struct FMember
+			{
+				FString Name;
+				int32 Offset;
+				int32 Count;
+			};
+			TArray<FMember> Members;
+		};
+
+		struct FPackedUBCopy
+		{
+			int32 SourceUB;
+			int32 SourceOffset;
+			int32 DestUB;
+			ANSICHAR DestPackedType;
+			int32 DestOffset;
+			int32 Count;
+		};
+
+		struct FSampler
+		{
+			FString Name;
+			int32 Offset;
+			int32 Count;
+			TArray<FString> SamplerStates;
+		};
+
+		struct FUAV
+		{
+			FString Name;
+			int32 Offset;
+			int32 Count;
+		};
+
+		FString Name;
+		TArray<FInOut> Inputs;
+		TArray<FInOut> Outputs;
+		TArray<FAttribute> UniformBlocks;
+		//TArray<FUniform> Uniforms;
+		TArray<FPackedGlobal> PackedGlobals;
+		TArray<FPackedUB> PackedUBs;
+		TArray<FPackedUBCopy> PackedUBCopies;
+		TArray<FPackedUBCopy> PackedUBGlobalCopies;
+		TArray<FSampler> Samplers;
+		TArray<FUAV> UAVs;
+		TArray<FAttribute> SamplerStates;
+		uint32 NumThreads[3];
+
+		static bool ReadInOut(const ANSICHAR*& ShaderSource, TArray<FInOut>& OutAttributes);
+		static bool ReadCopies(const ANSICHAR*& ShaderSource, bool bGlobals, TArray<FPackedUBCopy>& OutCopies);
+	};
+
+	extern SHADERCOMPILERCOMMON_API const TCHAR* GetFrequencyName(EShaderFrequency Frequency);
+}

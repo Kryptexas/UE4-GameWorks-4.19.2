@@ -133,38 +133,12 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderBindings& Bindings)
 	return Ar;
 }
 
-// Information for copying members from uniform buffers to packed
-struct FMetalUniformBufferCopyInfo
-{
-	uint16 SourceOffsetInFloats;
-	uint8 SourceUBIndex;
-	uint8 DestUBIndex;
-	uint8 DestUBTypeName;
-	uint8 DestUBTypeIndex;
-	uint16 DestOffsetInFloats;
-	uint16 SizeInFloats;
-};
-
-inline FArchive& operator<<(FArchive& Ar, FMetalUniformBufferCopyInfo& Info)
-{
-	Ar << Info.SourceOffsetInFloats;
-	Ar << Info.SourceUBIndex;
-	Ar << Info.DestUBIndex;
-	Ar << Info.DestUBTypeName;
-	if (Ar.IsLoading())
-	{
-		Info.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(Info.DestUBTypeName);
-	}
-	Ar << Info.DestOffsetInFloats;
-	Ar << Info.SizeInFloats;
-	return Ar;
-}
-
 struct FMetalCodeHeader
 {
 	uint32 Frequency;
 	FMetalShaderBindings Bindings;
-	TArray<FMetalUniformBufferCopyInfo> UniformBuffersCopyInfo;
+	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
+	TArray<TCHAR> ShaderName;
 
 	uint8 NumThreadsX;
 	uint8 NumThreadsY;
@@ -190,7 +164,7 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 		Header.UniformBuffersCopyInfo.Empty(NumInfos);
 		for (int32 Index = 0; Index < NumInfos; ++Index)
 		{
-			FMetalUniformBufferCopyInfo Info;
+			CrossCompiler::FUniformBufferCopyInfo Info;
 			Ar << Info;
 			Header.UniformBuffersCopyInfo.Add(Info);
 		}

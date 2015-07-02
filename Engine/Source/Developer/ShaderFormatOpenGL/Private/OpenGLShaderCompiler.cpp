@@ -438,20 +438,7 @@ GLenum GLFrequencyTable[] =
 	
 };
 
-/** Map shader frequency -> string for messages. */
-static const TCHAR* GLFrequencyStringTable[] =
-{
-	TEXT("Vertex"),
-	TEXT("Hull"),
-	TEXT("Domain"),
-	TEXT("Pixel"),
-	TEXT("Geometry"),
-	TEXT("Compute")
-};
-
-/** Compile time check to verify that the GL mapping tables are up-to-date. */
-static_assert(SF_NumFrequencies == ARRAY_COUNT(GLFrequencyTable), "NumFrequencies changed. Please update tables.");
-static_assert(ARRAY_COUNT(GLFrequencyTable) == ARRAY_COUNT(GLFrequencyStringTable), "Frequency table size mismatch.");
+static_assert(ARRAY_COUNT(GLFrequencyTable) == SF_NumFrequencies, "Frequency table size mismatch.");
 
 /**
  * Parse a GLSL error.
@@ -494,51 +481,20 @@ void ParseGlslError(TArray<FShaderCompilerError>& OutErrors, const FString& InLi
 	}
 }
 
-static TArray<ANSICHAR> ParseIdentifierANSI(const ANSICHAR* &Str)
+static TArray<ANSICHAR> ParseIdentifierANSI(const FString& Str)
 {
 	TArray<ANSICHAR> Result;
-	
-	while ((*Str >= 'A' && *Str <= 'Z')
-		   || (*Str >= 'a' && *Str <= 'z')
-		   || (*Str >= '0' && *Str <= '9')
-		   || *Str == '_')
+	Result.Reserve(Str.Len());
+	for (int32 Index = 0; Index < Str.Len(); ++Index)
 	{
-		Result.Add(FChar::ToLower(*Str));
-		++Str;
+		Result.Add(FChar::ToLower((ANSICHAR)Str[Index]));
 	}
 	Result.Add('\0');
-	
-	return Result;
-}
-
-static FString ParseIdentifier(const ANSICHAR* &Str)
-{
-	FString Result;
-
-	while ((*Str >= 'A' && *Str <= 'Z')
-		|| (*Str >= 'a' && *Str <= 'z')
-		|| (*Str >= '0' && *Str <= '9')
-		|| *Str == '_')
-	{
-		Result += *Str;
-		++Str;
-	}
 
 	return Result;
 }
 
-static bool Match(const ANSICHAR* &Str, ANSICHAR Char)
-{
-	if (*Str == Char)
-	{
-		++Str;
-		return true;
-	}
-
-	return false;
-}
-
-static uint32 ParseNumber(const ANSICHAR* &Str)
+static uint32 ParseNumber(const TCHAR* Str)
 {
 	uint32 Num = 0;
 	while (*Str && *Str >= '0' && *Str <= '9')
@@ -562,13 +518,24 @@ static void BuildShaderOutput(
 	GLSLVersion Version
 	)
 {
+	const ANSICHAR* USFSource = InShaderSource;
+	CrossCompiler::FHlslccHeader CCHeader;
+	if (!CCHeader.Read(USFSource, SourceLen))
+	{
+		UE_LOG(LogOpenGLShaderCompiler, Error, TEXT("Bad hlslcc header found"));
+	}
+	
+	if (*USFSource != '#')
+	{
+		UE_LOG(LogOpenGLShaderCompiler, Error, TEXT("Bad hlslcc header found! Missing '#'!"));
+	}
+
 	FOpenGLCodeHeader Header = {0};
-	const ANSICHAR* ShaderSource = InShaderSource;
 	FShaderParameterMap& ParameterMap = ShaderOutput.ParameterMap;
 	EShaderFrequency Frequency = (EShaderFrequency)ShaderOutput.Target.Frequency;
 
 	TBitArray<> UsedUniformBufferSlots;
-	UsedUniformBufferSlots.Init(false,32);
+	UsedUniformBufferSlots.Init(false, 32);
 
 	// Write out the magic markers.
 	Header.GlslMarker = 0x474c534c;
@@ -596,74 +563,24 @@ static void BuildShaderOutput(
 		UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("Invalid shader frequency: %d"), (int32)Frequency);
 	}
 
-	#define DEF_PREFIX_STR(Str) \
-		const ANSICHAR* Str##Prefix = "// @" #Str ": "; \
-		const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
-	DEF_PREFIX_STR(Inputs);
-	DEF_PREFIX_STR(Outputs);
-	DEF_PREFIX_STR(UniformBlocks);
-	DEF_PREFIX_STR(Uniforms);
-	DEF_PREFIX_STR(PackedGlobals);
-	DEF_PREFIX_STR(PackedUB);
-	DEF_PREFIX_STR(PackedUBCopies);
-	DEF_PREFIX_STR(PackedUBGlobalCopies);
-	DEF_PREFIX_STR(Samplers);
-	DEF_PREFIX_STR(UAVs);
-	DEF_PREFIX_STR(SamplerStates);
-	#undef DEF_PREFIX_STR
-
-	// Skip any comments that come before the signature.
-	while (	FCStringAnsi::Strncmp(ShaderSource, "//", 2) == 0 &&
-			FCStringAnsi::Strncmp(ShaderSource, "// @", 4) != 0 )
+	static const FString AttributePrefix = TEXT("in_ATTRIBUTE");
+	static const FString GL_Prefix = TEXT("gl_");
+	for (auto& Input : CCHeader.Inputs)
 	{
-		while (*ShaderSource && *ShaderSource++ != '\n') {}
-	}
-
-	// HLSLCC first prints the list of inputs.
-	if (FCStringAnsi::Strncmp(ShaderSource, InputsPrefix, InputsPrefixLen) == 0)
-	{
-		ShaderSource += InputsPrefixLen;
-
-		const ANSICHAR* AttributePrefix = "in_ATTRIBUTE";
-        const int32 AttributePrefixLen = FCStringAnsi::Strlen(AttributePrefix);
-        while (*ShaderSource && *ShaderSource != '\n')
-        {
-            // Get the location
-            while (*ShaderSource && *ShaderSource++ != ';') {}
-            int32 Location = FCStringAnsi::Atoi(ShaderSource);
-            
-            // Skip the type.
-            while (*ShaderSource && *ShaderSource++ != ':') {}
-            
-            // Only process attributes for vertex shaders.
-            if (Frequency == SF_Vertex && FCStringAnsi::Strncmp(ShaderSource, AttributePrefix, AttributePrefixLen) == 0)
-            {
-                ShaderSource += AttributePrefixLen;
-                uint8 AttributeIndex = ParseNumber(ShaderSource);
-                Header.Bindings.InOutMask |= (1 << AttributeIndex);
-            }
-            // Record user-defined input varyings
-            else if( FCStringAnsi::Strncmp(ShaderSource, "gl_", 3) != 0 )
-            {
-                FOpenGLShaderVarying Var;
-                Var.Location = Location;
-                Var.Varying = ParseIdentifierANSI(ShaderSource);
-                Header.Bindings.InputVaryings.Add(Var);
-            }
-
-            // Skip to the next.
-            while (*ShaderSource && *ShaderSource != ',' && *ShaderSource != '\n')
-            {
-                ShaderSource++;
-            }
-
-            if (Match(ShaderSource, '\n'))
-            {
-                break;
-            }
-
-            verify(Match(ShaderSource, ','));
-        }
+		// Only process attributes for vertex shaders.
+		if (Frequency == SF_Vertex && Input.Name.StartsWith(AttributePrefix))
+		{
+			int32 AttributeIndex = ParseNumber(*Input.Name + AttributePrefix.Len());
+			Header.Bindings.InOutMask |= (1 << AttributeIndex);
+		}
+		// Record user-defined input varyings
+		else if (!Input.Name.StartsWith(GL_Prefix))
+		{
+			FOpenGLShaderVarying Var;
+			Var.Location = Input.Index;
+			Var.Varying = ParseIdentifierANSI(Input.Name);
+			Header.Bindings.InputVaryings.Add(Var);
+		}
 	}
 
 	// Generate vertex attribute remapping table.
@@ -673,7 +590,7 @@ static void BuildShaderOutput(
 		uint32 AttributeMask = Header.Bindings.InOutMask;
 		int32 NextAttributeSlot = 0;
 		Header.Bindings.VertexRemappedMask = 0;
-		for (int32 AttributeIndex = 0; AttributeIndex<16; AttributeIndex++, AttributeMask >>= 1)
+		for (int32 AttributeIndex = 0; AttributeIndex < 16; AttributeIndex++, AttributeMask >>= 1)
 		{
 			if (AttributeMask & 0x1)
 			{
@@ -687,220 +604,69 @@ static void BuildShaderOutput(
 		}
 	}
 
-	// Then the list of outputs.
-	if (FCStringAnsi::Strncmp(ShaderSource, OutputsPrefix, OutputsPrefixLen) == 0)
+	static const FString TargetPrefix = "out_Target";
+	static const FString GL_FragDepth = "gl_FragDepth";
+	for (auto& Output : CCHeader.Outputs)
 	{
-		ShaderSource += OutputsPrefixLen;
-        
-        const ANSICHAR* TargetPrefix = "out_Target";
-        const int32 TargetPrefixLen = FCStringAnsi::Strlen(TargetPrefix);
-        
-		while (*ShaderSource && *ShaderSource != '\n')
+        // Only targets for pixel shaders must be tracked.
+        if (Frequency == SF_Pixel && Output.Name.StartsWith(TargetPrefix))
         {
-            // Get the location
-            while (*ShaderSource && *ShaderSource++ != ';') {}
-            int32 Location = FCStringAnsi::Atoi(ShaderSource);
-            
-            // Skip the type.
-            while (*ShaderSource && *ShaderSource++ != ':') {}
-
-            // Only targets for pixel shaders must be tracked.
-            if (Frequency == SF_Pixel && FCStringAnsi::Strncmp(ShaderSource, TargetPrefix, TargetPrefixLen) == 0)
-            {
-                ShaderSource += TargetPrefixLen;
-                uint8 TargetIndex = ParseNumber(ShaderSource);
-                Header.Bindings.InOutMask |= (1 << TargetIndex);
-            }
-            // Only depth writes for pixel shaders must be tracked.
-            else if (Frequency == SF_Pixel && FCStringAnsi::Strcmp(ShaderSource, "gl_FragDepth") == 0)
-            {
-                Header.Bindings.InOutMask |= 0x8000;
-            }
-            // Record user-defined output varyings
-            else if( FCStringAnsi::Strncmp(ShaderSource, "gl_", 3) != 0 )
-            {
-                FOpenGLShaderVarying Var;
-                Var.Location = Location;
-                Var.Varying = ParseIdentifierANSI(ShaderSource);
-                Header.Bindings.OutputVaryings.Add(Var);
-            }
-
-            // Skip to the next.
-            while (*ShaderSource && *ShaderSource != ',' && *ShaderSource != '\n')
-            {
-                ShaderSource++;
-            }
-
-            if (Match(ShaderSource, '\n'))
-            {
-                break;
-            }
-
-            verify(Match(ShaderSource, ','));
+			uint8 TargetIndex = ParseNumber(*Output.Name + TargetPrefix.Len());
+            Header.Bindings.InOutMask |= (1 << TargetIndex);
+        }
+        // Only depth writes for pixel shaders must be tracked.
+        else if (Frequency == SF_Pixel && Output.Name.Equals(GL_FragDepth))
+        {
+            Header.Bindings.InOutMask |= 0x8000;
+        }
+        // Record user-defined output varyings
+        else if (!Output.Name.StartsWith(GL_Prefix))
+        {
+            FOpenGLShaderVarying Var;
+            Var.Location = Output.Index;
+            Var.Varying = ParseIdentifierANSI(Output.Name);
+            Header.Bindings.OutputVaryings.Add(Var);
         }
 	}
 
 	// Then 'normal' uniform buffers.
-	if (FCStringAnsi::Strncmp(ShaderSource, UniformBlocksPrefix, UniformBlocksPrefixLen) == 0)
+	for (auto& UniformBlock : CCHeader.UniformBlocks)
 	{
-		ShaderSource += UniformBlocksPrefixLen;
-
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			FString BufferName = ParseIdentifier(ShaderSource);
-			verify(BufferName.Len() > 0);
-			verify(Match(ShaderSource, '('));
-			uint16 UBIndex = ParseNumber(ShaderSource);
-			check(UBIndex == Header.Bindings.NumUniformBuffers);
-			UsedUniformBufferSlots[UBIndex] = true;
-			verify(Match(ShaderSource, ')'));
-			ParameterMap.AddParameterAllocation(*BufferName, Header.Bindings.NumUniformBuffers++, 0, 0);
-
-			// Skip the comma.
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			verify(Match(ShaderSource, ','));
-		}
-
-		Match(ShaderSource, '\n');
+		uint16 UBIndex = UniformBlock.Index;
+		check(UBIndex == Header.Bindings.NumUniformBuffers);
+		UsedUniformBufferSlots[UBIndex] = true;
+		ParameterMap.AddParameterAllocation(*UniformBlock.Name, Header.Bindings.NumUniformBuffers++, 0, 0);
 	}
 
-	// Then uniforms.
 	const uint16 BytesPerComponent = 4;
-/*
-	uint16 PackedUniformSize[OGL_NUM_PACKED_UNIFORM_ARRAYS] = {0};
-	FMemory::Memzero(&PackedUniformSize, sizeof(PackedUniformSize));
-*/
-	if (FCStringAnsi::Strncmp(ShaderSource, UniformsPrefix, UniformsPrefixLen) == 0)
-	{
-		// @todo-mobile: Will we ever need to support this code path?
-		check(0);
-/*
-		ShaderSource += UniformsPrefixLen;
-
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			uint16 ArrayIndex = 0;
-			uint16 Offset = 0;
-			uint16 NumComponents = 0;
-
-			FString ParameterName = ParseIdentifier(ShaderSource);
-			verify(ParameterName.Len() > 0);
-			verify(Match(ShaderSource, '('));
-			ArrayIndex = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-			Offset = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-			NumComponents = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ')'));
-
-			ParameterMap.AddParameterAllocation(
-				*ParameterName,
-				ArrayIndex,
-				Offset * BytesPerComponent,
-				NumComponents * BytesPerComponent
-				);
-
-			if (ArrayIndex < OGL_NUM_PACKED_UNIFORM_ARRAYS)
-			{
-				PackedUniformSize[ArrayIndex] = FMath::Max<uint16>(
-					PackedUniformSize[ArrayIndex],
-					BytesPerComponent * (Offset + NumComponents)
-					);
-			}
-
-			// Skip the comma.
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			verify(Match(ShaderSource, ','));
-		}
-
-		Match(ShaderSource, '\n');
-*/
-	}
 
 	// Packed global uniforms
 	TMap<ANSICHAR, uint16> PackedGlobalArraySize;
-	if (FCStringAnsi::Strncmp(ShaderSource, PackedGlobalsPrefix, PackedGlobalsPrefixLen) == 0)
+	for (auto& PackedGlobal : CCHeader.PackedGlobals)
 	{
-		ShaderSource += PackedGlobalsPrefixLen;
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			ANSICHAR ArrayIndex = 0;
-			uint16 Offset = 0;
-			uint16 NumComponents = 0;
+		ParameterMap.AddParameterAllocation(
+			*PackedGlobal.Name,
+			PackedGlobal.PackedType,
+			PackedGlobal.Offset * BytesPerComponent,
+			PackedGlobal.Count * BytesPerComponent
+			);
 
-			FString ParameterName = ParseIdentifier(ShaderSource);
-			verify(ParameterName.Len() > 0);
-			verify(Match(ShaderSource, '('));
-			ArrayIndex = *ShaderSource++;
-			verify(Match(ShaderSource, ':'));
-			Offset = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ','));
-			NumComponents = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ')'));
-
-			ParameterMap.AddParameterAllocation(
-				*ParameterName,
-				ArrayIndex,
-				Offset * BytesPerComponent,
-				NumComponents * BytesPerComponent
-				);
-
-			uint16& Size = PackedGlobalArraySize.FindOrAdd(ArrayIndex);
-			Size = FMath::Max<uint16>(BytesPerComponent * (Offset + NumComponents), Size);
-
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			// Skip the comma.
-			verify(Match(ShaderSource, ','));
-		}
-
-		Match(ShaderSource, '\n');
+		uint16& Size = PackedGlobalArraySize.FindOrAdd(PackedGlobal.PackedType);
+		Size = FMath::Max<uint16>(BytesPerComponent * (PackedGlobal.Offset + PackedGlobal.Count), Size);
 	}
 
 	// Packed Uniform Buffers
 	TMap<int, TMap<ANSICHAR, uint16> > PackedUniformBuffersSize;
-	while (FCStringAnsi::Strncmp(ShaderSource, PackedUBPrefix, PackedUBPrefixLen) == 0)
+	for (auto& PackedUB : CCHeader.PackedUBs)
 	{
-		ShaderSource += PackedUBPrefixLen;
-		FString BufferName = ParseIdentifier(ShaderSource);
-		verify(BufferName.Len() > 0);
-		verify(Match(ShaderSource, '('));
-		uint16 BufferIndex = ParseNumber(ShaderSource);
-		check(BufferIndex == Header.Bindings.NumUniformBuffers);
-		UsedUniformBufferSlots[BufferIndex] = true;
-		verify(Match(ShaderSource, ')'));
-		ParameterMap.AddParameterAllocation(*BufferName, Header.Bindings.NumUniformBuffers++, 0, 0);
+		check(PackedUB.Attribute.Index == Header.Bindings.NumUniformBuffers);
+		UsedUniformBufferSlots[PackedUB.Attribute.Index] = true;
+		ParameterMap.AddParameterAllocation(*PackedUB.Attribute.Name, Header.Bindings.NumUniformBuffers++, 0, 0);
 
-		verify(Match(ShaderSource, ':'));
-		Match(ShaderSource, ' ');
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			FString ParameterName = ParseIdentifier(ShaderSource);
-			verify(ParameterName.Len() > 0);
-			verify(Match(ShaderSource, '('));
-			ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ','));
-			ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ')'));
-
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			verify(Match(ShaderSource, ','));
-		}
+		// Nothing else...
+		//for (auto& Member : PackedUB.Members)
+		//{
+		//}
 	}
 
 	// Packed Uniform Buffers copy lists & setup sizes for each UB/Precision entry
@@ -911,87 +677,44 @@ static void BuildShaderOutput(
 		FlattenedUBs,
 	};
 	EFlattenUBState UBState = Unknown;
-	if (FCStringAnsi::Strncmp(ShaderSource, PackedUBCopiesPrefix, PackedUBCopiesPrefixLen) == 0)
+	for (auto& PackedUBCopy : CCHeader.PackedUBCopies)
 	{
-		ShaderSource += PackedUBCopiesPrefixLen;
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			FOpenGLUniformBufferCopyInfo CopyInfo;
+		CrossCompiler::FUniformBufferCopyInfo CopyInfo;
+		CopyInfo.SourceUBIndex = PackedUBCopy.SourceUB;
+		CopyInfo.SourceOffsetInFloats = PackedUBCopy.SourceOffset;
+		CopyInfo.DestUBIndex = PackedUBCopy.DestUB;
+		CopyInfo.DestUBTypeName = PackedUBCopy.DestPackedType;
+		CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+		CopyInfo.DestOffsetInFloats = PackedUBCopy.DestOffset;
+		CopyInfo.SizeInFloats = PackedUBCopy.Count;
 
-			CopyInfo.SourceUBIndex = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
+		Header.UniformBuffersCopyInfo.Add(CopyInfo);
 
-			CopyInfo.SourceOffsetInFloats = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, '-'));
+		auto& UniformBufferSize = PackedUniformBuffersSize.FindOrAdd(CopyInfo.DestUBIndex);
+		uint16& Size = UniformBufferSize.FindOrAdd(CopyInfo.DestUBTypeName);
+		Size = FMath::Max<uint16>(BytesPerComponent * (CopyInfo.DestOffsetInFloats + CopyInfo.SizeInFloats), Size);
 
-			CopyInfo.DestUBIndex = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-
-			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
-			verify(Match(ShaderSource, ':'));
-
-			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-
-			CopyInfo.SizeInFloats = ParseNumber(ShaderSource);
-
-			Header.UniformBuffersCopyInfo.Add(CopyInfo);
-
-			auto& UniformBufferSize = PackedUniformBuffersSize.FindOrAdd(CopyInfo.DestUBIndex);
-			uint16& Size = UniformBufferSize.FindOrAdd(CopyInfo.DestUBTypeName);
-			Size = FMath::Max<uint16>(BytesPerComponent * (CopyInfo.DestOffsetInFloats + CopyInfo.SizeInFloats), Size);
-
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			verify(Match(ShaderSource, ','));
-		}
-
-		check(UBState == Unknown);
+		check(UBState == Unknown || UBState == GroupedUBs);
 		UBState = GroupedUBs;
 	}
 
-	if (FCStringAnsi::Strncmp(ShaderSource, PackedUBGlobalCopiesPrefix, PackedUBGlobalCopiesPrefixLen) == 0)
+	for (auto& PackedUBCopy : CCHeader.PackedUBGlobalCopies)
 	{
-		ShaderSource += PackedUBGlobalCopiesPrefixLen;
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			FOpenGLUniformBufferCopyInfo CopyInfo;
+		CrossCompiler::FUniformBufferCopyInfo CopyInfo;
+		CopyInfo.SourceUBIndex = PackedUBCopy.SourceUB;
+		CopyInfo.SourceOffsetInFloats = PackedUBCopy.SourceOffset;
+		CopyInfo.DestUBIndex = PackedUBCopy.DestUB;
+		CopyInfo.DestUBTypeName = PackedUBCopy.DestPackedType;
+		CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+		CopyInfo.DestOffsetInFloats = PackedUBCopy.DestOffset;
+		CopyInfo.SizeInFloats = PackedUBCopy.Count;
 
-			CopyInfo.SourceUBIndex = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
+		Header.UniformBuffersCopyInfo.Add(CopyInfo);
 
-			CopyInfo.SourceOffsetInFloats = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, '-'));
+		uint16& Size = PackedGlobalArraySize.FindOrAdd(CopyInfo.DestUBTypeName);
+		Size = FMath::Max<uint16>(BytesPerComponent * (CopyInfo.DestOffsetInFloats + CopyInfo.SizeInFloats), Size);
 
-			CopyInfo.DestUBIndex = 0;
-
-			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
-			verify(Match(ShaderSource, ':'));
-
-			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-
-			CopyInfo.SizeInFloats = ParseNumber(ShaderSource);
-
-			Header.UniformBuffersCopyInfo.Add(CopyInfo);
-
-			uint16& Size = PackedGlobalArraySize.FindOrAdd(CopyInfo.DestUBTypeName);
-			Size = FMath::Max<uint16>(BytesPerComponent * (CopyInfo.DestOffsetInFloats + CopyInfo.SizeInFloats), Size);
-
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			verify(Match(ShaderSource, ','));
-		}
-
-		check(UBState == Unknown);
+		check(UBState == Unknown || UBState == FlattenedUBs);
 		UBState = FlattenedUBs;
 	}
 
@@ -1035,103 +758,48 @@ static void BuildShaderOutput(
 	}
 
 	// Then samplers.
-	if (FCStringAnsi::Strncmp(ShaderSource, SamplersPrefix, SamplersPrefixLen) == 0)
+	for (auto& Sampler : CCHeader.Samplers)
 	{
-		ShaderSource += SamplersPrefixLen;
+		ParameterMap.AddParameterAllocation(
+			*Sampler.Name,
+			0,
+			Sampler.Offset,
+			Sampler.Count
+			);
 
-		while (*ShaderSource && *ShaderSource != '\n')
+		Header.Bindings.NumSamplers = FMath::Max<uint8>(
+			Header.Bindings.NumSamplers,
+			Sampler.Offset + Sampler.Count
+			);
+
+		for (auto& SamplerState : Sampler.SamplerStates)
 		{
-			uint16 Offset = 0;
-			uint16 NumSamplers = 0;
-
-			FString ParameterName = ParseIdentifier(ShaderSource);
-			verify(ParameterName.Len() > 0);
-			verify(Match(ShaderSource, '('));
-			Offset = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-			NumSamplers = ParseNumber(ShaderSource);
 			ParameterMap.AddParameterAllocation(
-				*ParameterName,
+				*SamplerState,
 				0,
-				Offset,
-				NumSamplers
+				Sampler.Offset,
+				Sampler.Count
 				);
-
-			Header.Bindings.NumSamplers = FMath::Max<uint8>(
-				Header.Bindings.NumSamplers,
-				Offset + NumSamplers
-				);
-
-			if (Match(ShaderSource, '['))
-			{
-				// Sampler States
-				do
-				{
-					FString SamplerState = ParseIdentifier(ShaderSource);
-					checkSlow(SamplerState.Len() != 0);
-					ParameterMap.AddParameterAllocation(
-						*SamplerState,
-						0,
-						Offset,
-						NumSamplers
-						);
-				}
-				while (Match(ShaderSource, ','));
-				verify(Match(ShaderSource, ']'));
-			}
-
-			verify(Match(ShaderSource, ')'));
-
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			// Skip the comma.
-			verify(Match(ShaderSource, ','));
 		}
 	}	
 
 	// Then UAVs (images in GLSL)
-	if (FCStringAnsi::Strncmp(ShaderSource, UAVsPrefix, UAVsPrefixLen) == 0)
+	for (auto& UAV : CCHeader.UAVs)
 	{
-		ShaderSource += UAVsPrefixLen;
+		ParameterMap.AddParameterAllocation(
+			*UAV.Name,
+			0,
+			UAV.Offset,
+			UAV.Count
+			);
 
-		while (*ShaderSource && *ShaderSource != '\n')
-		{
-			uint16 Offset = 0;
-			uint16 NumUAVs = 0;
-
-			FString ParameterName = ParseIdentifier(ShaderSource);
-			verify(ParameterName.Len() > 0);
-			verify(Match(ShaderSource, '('));
-			Offset = ParseNumber(ShaderSource);
-			verify(Match(ShaderSource, ':'));
-			NumUAVs = ParseNumber(ShaderSource);
-
-			ParameterMap.AddParameterAllocation(
-				*ParameterName,
-				0,
-				Offset,
-				NumUAVs
-				);
-
-			Header.Bindings.NumUAVs = FMath::Max<uint8>(
-				Header.Bindings.NumUAVs,
-				Offset + NumUAVs
-				);
-
-			verify(Match(ShaderSource, ')'));
-
-			if (Match(ShaderSource, '\n'))
-			{
-				break;
-			}
-
-			// Skip the comma.
-			verify(Match(ShaderSource, ','));
-		}
+		Header.Bindings.NumUAVs = FMath::Max<uint8>(
+			Header.Bindings.NumSamplers,
+			UAV.Offset + UAV.Count
+			);
 	}
+
+	Header.ShaderName = CCHeader.Name.GetCharArray();
 
 	// Build the SRT for this shader.
 	{
@@ -1166,7 +834,7 @@ static void BuildShaderOutput(
 		// Write out the header and shader source code.
 		FMemoryWriter Ar(ShaderOutput.Code, true);
 		Ar << Header;
-		Ar.Serialize((void*)ShaderSource, SourceLen + 1 - (ShaderSource - InShaderSource));
+		Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 		
 		ShaderOutput.NumInstructions = 0;
 		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
@@ -1364,7 +1032,7 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 	{
 		ShaderOutput.bSucceeded = false;
 		FShaderCompilerError* NewError = new(ShaderOutput.Errors) FShaderCompilerError();
-		NewError->StrippedErrorMessage = FString::Printf(TEXT("%s shaders not supported for use in OpenGL."), GLFrequencyStringTable[ShaderInput.Target.Frequency]);
+		NewError->StrippedErrorMessage = FString::Printf(TEXT("%s shaders not supported for use in OpenGL."), CrossCompiler::GetFrequencyName((EShaderFrequency)ShaderInput.Target.Frequency));
 		return;
 	}
 
@@ -1450,34 +1118,6 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 	}
 }
 
-/**
- * Parse an error emitted by the HLSL cross-compiler.
- * @param OutErrors - Array into which compiler errors may be added.
- * @param InLine - A line from the compile log.
- */
-static void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine)
-{
-	const TCHAR* p = *InLine;
-	FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-
-	// Copy the filename.
-	while (*p && *p != TEXT('(')) { Error->ErrorFile += (*p++); }
-	Error->ErrorFile = GetRelativeShaderFilename(Error->ErrorFile);
-	p++;
-
-	// Parse the line number.
-	int32 LineNumber = 0;
-	while (*p && *p >= TEXT('0') && *p <= TEXT('9'))
-	{
-		LineNumber = 10 * LineNumber + (*p++ - TEXT('0'));
-	}
-	Error->ErrorLineString = *FString::Printf(TEXT("%d"), LineNumber);
-
-	// Skip to the warning message.
-	while (*p && (*p == TEXT(')') || *p == TEXT(':') || *p == TEXT(' ') || *p == TEXT('\t'))) { p++; }
-	Error->StrippedErrorMessage = p;
-}
-
 /*------------------------------------------------------------------------------
 	External interface.
 ------------------------------------------------------------------------------*/
@@ -1554,7 +1194,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 	}
 
 	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
+	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
 }
 
 /**
@@ -1664,7 +1304,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			FShaderCompilerError* NewError = new(Output.Errors) FShaderCompilerError();
 			NewError->StrippedErrorMessage = FString::Printf(
 				TEXT("%s shaders not supported for use in OpenGL."),
-				GLFrequencyStringTable[Input.Target.Frequency]
+				CrossCompiler::GetFrequencyName((EShaderFrequency)Input.Target.Frequency)
 				);
 			return;
 		}
@@ -1793,7 +1433,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			for (int32 LineIndex = 0; LineIndex < ErrorLines.Num(); ++LineIndex)
 			{
 				const FString& Line = ErrorLines[LineIndex];
-				ParseHlslccError(Output.Errors, Line);
+				CrossCompiler::ParseHlslccError(Output.Errors, Line);
 			}
 		}
 

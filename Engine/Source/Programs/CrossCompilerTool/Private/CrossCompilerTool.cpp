@@ -9,6 +9,7 @@
 #include "HlslLexer.h"
 #include "HlslParser.h"
 #include "ShaderPreprocessor.h"
+#include "ShaderCompilerCommon.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -166,6 +167,21 @@ namespace CCT
 			if (RunInfo.OutputFile.Len() > 0)
 			{
 				FFileHelper::SaveStringToFile(OutSource, *RunInfo.OutputFile);
+			}
+		}
+
+		{
+			const ANSICHAR* USFSource = ShaderSource;
+			CrossCompiler::FHlslccHeader CCHeader;
+			int32 Len = FCStringAnsi::Strlen(USFSource);
+			if (!CCHeader.Read(USFSource, Len))
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("Bad hlslcc header found"));
+			}
+
+			if (*USFSource != '#')
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("Bad hlslcc header found! Missing '#'!"));
 			}
 		}
 

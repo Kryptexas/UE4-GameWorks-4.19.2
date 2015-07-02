@@ -3,6 +3,8 @@
 
 #include "ShaderCompilerCommon.h"
 #include "ModuleManager.h"
+#include "CrossCompilerCommon.h"
+#include "TypeHash.h"
 
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);
@@ -273,30 +275,838 @@ bool RemoveUniformBuffersFromSource(FString& SourceCode)
 }
 
 
-FString CreateCrossCompilerBatchFileContents(const FString& ShaderFile, const FString& OutputFile, const FString& FrequencySwitch, const FString& EntryPoint, const FString& VersionSwitch, const FString& ExtraArguments)
+namespace CrossCompiler
 {
-	FString BatchFile;
-	if (PLATFORM_MAC)
+	FString CreateBatchFileContents(const FString& ShaderFile, const FString& OutputFile, const FString& FrequencySwitch, const FString& EntryPoint, const FString& VersionSwitch, const FString& ExtraArguments)
 	{
-		BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Source/ThirdParty/hlslcc/hlslcc/bin/Mac/hlslcc_64 %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
-	}
-	else if (PLATFORM_LINUX)
-	{
-		BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
-	}
-	else if (PLATFORM_WINDOWS)
-	{
-		BatchFile = TEXT("@echo off");
-		BatchFile += TEXT("\nif defined ue.hlslcc GOTO DONE\nset ue.hlslcc=");
-		BatchFile += FPaths::RootDir() / TEXT("Engine\\Binaries\\Win64\\CrossCompilerTool.exe");
-		BatchFile += TEXT("\n\n:DONE\n%ue.hlslcc% ");
-		BatchFile += FString::Printf(TEXT("\"%s\" -o=\"%s\" %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
-		BatchFile += TEXT("\npause\n");
-	}
-	else
-	{
-		checkf(false, TEXT("CreateCrossCompilerBatchFileContents: unsupported platform!"));
+		FString BatchFile;
+		if (PLATFORM_MAC)
+		{
+			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Source/ThirdParty/hlslcc/hlslcc/bin/Mac/hlslcc_64 %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
+		}
+		else if (PLATFORM_LINUX)
+		{
+			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
+		}
+		else if (PLATFORM_WINDOWS)
+		{
+			BatchFile = TEXT("@echo off");
+			BatchFile += TEXT("\nif defined ue.hlslcc GOTO DONE\nset ue.hlslcc=");
+			BatchFile += FPaths::RootDir() / TEXT("Engine\\Binaries\\Win64\\CrossCompilerTool.exe");
+			BatchFile += TEXT("\n\n:DONE\n%ue.hlslcc% ");
+			BatchFile += FString::Printf(TEXT("\"%s\" -o=\"%s\" %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
+			BatchFile += TEXT("\npause\n");
+		}
+		else
+		{
+			checkf(false, TEXT("CreateCrossCompilerBatchFileContents: unsupported platform!"));
+		}
+
+		return BatchFile;
 	}
 
-	return BatchFile;
+
+	/**
+	 * Parse an error emitted by the HLSL cross-compiler.
+	 * @param OutErrors - Array into which compiler errors may be added.
+	 * @param InLine - A line from the compile log.
+	 */
+	void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine)
+	{
+		const TCHAR* p = *InLine;
+		FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
+
+		// Copy the filename.
+		while (*p && *p != TEXT('(')) { Error->ErrorFile += (*p++); }
+		Error->ErrorFile = GetRelativeShaderFilename(Error->ErrorFile);
+		p++;
+
+		// Parse the line number.
+		int32 LineNumber = 0;
+		while (*p && *p >= TEXT('0') && *p <= TEXT('9'))
+		{
+			LineNumber = 10 * LineNumber + (*p++ - TEXT('0'));
+		}
+		Error->ErrorLineString = *FString::Printf(TEXT("%d"), LineNumber);
+
+		// Skip to the warning message.
+		while (*p && (*p == TEXT(')') || *p == TEXT(':') || *p == TEXT(' ') || *p == TEXT('\t'))) { p++; }
+		Error->StrippedErrorMessage = p;
+	}
+
+	static inline bool ParseIdentifier(const ANSICHAR*& Str, FString& OutStr)
+	{
+		OutStr = TEXT("");
+		FString Result;
+		while ((*Str >= 'A' && *Str <= 'Z')
+			|| (*Str >= 'a' && *Str <= 'z')
+			|| (*Str >= '0' && *Str <= '9')
+			|| *Str == '_')
+		{
+			OutStr += (TCHAR)*Str;
+			++Str;
+		}
+
+		return OutStr.Len() > 0;
+	}
+
+	static FORCEINLINE bool Match(const ANSICHAR*& Str, ANSICHAR Char)
+	{
+		if (*Str == Char)
+		{
+			++Str;
+			return true;
+		}
+
+		return false;
+	}
+
+	template <typename T>
+	static bool ParseIntegerNumber(const ANSICHAR*& Str, T& OutNum)
+	{
+		auto* OriginalStr = Str;
+		OutNum = 0;
+		while (*Str >= '0' && *Str <= '9')
+		{
+			OutNum = OutNum * 10 + *Str++ - '0';
+		}
+
+		return Str != OriginalStr;
+	}
+
+	static bool ParseSignedNumber(const ANSICHAR*& Str, int32& OutNum)
+	{
+		int32 Sign = Match(Str, '-') ? -1 : 1;
+		uint32 Num = 0;
+		if (ParseIntegerNumber(Str, Num))
+		{
+			OutNum = Sign * (int32)Num;
+			return true;
+		}
+
+		return false;
+	}
+
+	/** Map shader frequency -> string for messages. */
+	static const TCHAR* FrequencyStringTable[] =
+	{
+		TEXT("Vertex"),
+		TEXT("Hull"),
+		TEXT("Domain"),
+		TEXT("Pixel"),
+		TEXT("Geometry"),
+		TEXT("Compute")
+	};
+
+	/** Compile time check to verify that the GL mapping tables are up-to-date. */
+	static_assert(SF_NumFrequencies == ARRAY_COUNT(FrequencyStringTable), "NumFrequencies changed. Please update tables.");
+
+	const TCHAR* GetFrequencyName(EShaderFrequency Frequency)
+	{
+		check((int32)Frequency >= 0 && Frequency < SF_NumFrequencies);
+		return FrequencyStringTable[Frequency];
+	}
+
+	FHlslccHeader::FHlslccHeader() :
+		Name(TEXT(""))
+	{
+		NumThreads[0] = NumThreads[1] = NumThreads[2] = 0;
+	}
+
+	bool FHlslccHeader::Read(const ANSICHAR*& ShaderSource, int32 SourceLen)
+	{
+#define DEF_PREFIX_STR(Str) \
+		static const ANSICHAR* Str##Prefix = "// @" #Str ": "; \
+		static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
+		DEF_PREFIX_STR(Inputs);
+		DEF_PREFIX_STR(Outputs);
+		DEF_PREFIX_STR(UniformBlocks);
+		DEF_PREFIX_STR(Uniforms);
+		DEF_PREFIX_STR(PackedGlobals);
+		DEF_PREFIX_STR(PackedUB);
+		DEF_PREFIX_STR(PackedUBCopies);
+		DEF_PREFIX_STR(PackedUBGlobalCopies);
+		DEF_PREFIX_STR(Samplers);
+		DEF_PREFIX_STR(UAVs);
+		DEF_PREFIX_STR(SamplerStates);
+		DEF_PREFIX_STR(NumThreads);
+#undef DEF_PREFIX_STR
+
+		// Skip any comments that come before the signature.
+		while (FCStringAnsi::Strncmp(ShaderSource, "//", 2) == 0 &&
+			FCStringAnsi::Strncmp(ShaderSource + 2, " !", 2) != 0 &&
+			FCStringAnsi::Strncmp(ShaderSource + 2, " @", 2) != 0)
+		{
+			ShaderSource += 2;
+			while (*ShaderSource && *ShaderSource++ != '\n')
+			{
+				// Do nothing
+			}
+		}
+
+		// Read shader name if any
+		ANSICHAR const* ShaderName = nullptr;
+		uint32 ShaderNameLen = 0;
+		while (FCStringAnsi::Strncmp(ShaderSource, "// !", 4) == 0)
+		{
+			ShaderName = ShaderSource;
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				Name += (TCHAR)*ShaderSource;
+				++ShaderSource;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, InputsPrefix, InputsPrefixLen) == 0)
+		{
+			ShaderSource += InputsPrefixLen;
+
+			if (!ReadInOut(ShaderSource, Inputs))
+			{
+				return false;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, OutputsPrefix, OutputsPrefixLen) == 0)
+		{
+			ShaderSource += OutputsPrefixLen;
+
+			if (!ReadInOut(ShaderSource, Outputs))
+			{
+				return false;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, UniformBlocksPrefix, UniformBlocksPrefixLen) == 0)
+		{
+			ShaderSource += UniformBlocksPrefixLen;
+
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				FAttribute UniformBlock;
+				if (!ParseIdentifier(ShaderSource, UniformBlock.Name))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, '('))
+				{
+					return false;
+				}
+				
+				if (!ParseIntegerNumber(ShaderSource, UniformBlock.Index))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ')'))
+				{
+					return false;
+				}
+
+				UniformBlocks.Add(UniformBlock);
+
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				if (Match(ShaderSource, ','))
+				{
+					continue;
+				}
+			
+				//#todo-rco: Need a log here
+				//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+				return false;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, UniformsPrefix, UniformsPrefixLen) == 0)
+		{
+			// @todo-mobile: Will we ever need to support this code path?
+			check(0);
+			return false;
+/*
+			ShaderSource += UniformsPrefixLen;
+
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				uint16 ArrayIndex = 0;
+				uint16 Offset = 0;
+				uint16 NumComponents = 0;
+
+				FString ParameterName = ParseIdentifier(ShaderSource);
+				verify(ParameterName.Len() > 0);
+				verify(Match(ShaderSource, '('));
+				ArrayIndex = ParseNumber(ShaderSource);
+				verify(Match(ShaderSource, ':'));
+				Offset = ParseNumber(ShaderSource);
+				verify(Match(ShaderSource, ':'));
+				NumComponents = ParseNumber(ShaderSource);
+				verify(Match(ShaderSource, ')'));
+
+				ParameterMap.AddParameterAllocation(
+					*ParameterName,
+					ArrayIndex,
+					Offset * BytesPerComponent,
+					NumComponents * BytesPerComponent
+					);
+
+				if (ArrayIndex < OGL_NUM_PACKED_UNIFORM_ARRAYS)
+				{
+					PackedUniformSize[ArrayIndex] = FMath::Max<uint16>(
+						PackedUniformSize[ArrayIndex],
+						BytesPerComponent * (Offset + NumComponents)
+						);
+				}
+
+				// Skip the comma.
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				verify(Match(ShaderSource, ','));
+			}
+
+			Match(ShaderSource, '\n');
+*/
+		}
+
+		// @PackedGlobals: Global0(h:0,1),Global1(h:4,1),Global2(h:8,1)
+		if (FCStringAnsi::Strncmp(ShaderSource, PackedGlobalsPrefix, PackedGlobalsPrefixLen) == 0)
+		{
+			ShaderSource += PackedGlobalsPrefixLen;
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				FPackedGlobal PackedGlobal;
+				if (!ParseIdentifier(ShaderSource, PackedGlobal.Name))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, '('))
+				{
+					return false;
+				}
+
+				PackedGlobal.PackedType = *ShaderSource++;
+
+				if (!Match(ShaderSource, ':'))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, PackedGlobal.Offset))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ','))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, PackedGlobal.Count))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ')'))
+				{
+					return false;
+				}
+
+				PackedGlobals.Add(PackedGlobal);
+
+				// Break if EOL
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				// Has to be a comma!
+				if (Match(ShaderSource, ','))
+				{
+					continue;
+				}
+
+				//#todo-rco: Need a log here
+				//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+				return false;
+			}
+		}
+
+		// Packed Uniform Buffers (Multiple lines)
+		// @PackedUB: CBuffer(0): CBMember0(0,1),CBMember1(1,1)
+		while (FCStringAnsi::Strncmp(ShaderSource, PackedUBPrefix, PackedUBPrefixLen) == 0)
+		{
+			ShaderSource += PackedUBPrefixLen;
+
+			FPackedUB PackedUB;
+
+			if (!ParseIdentifier(ShaderSource, PackedUB.Attribute.Name))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, '('))
+			{
+				return false;
+			}
+			
+			if (!ParseIntegerNumber(ShaderSource, PackedUB.Attribute.Index))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ')'))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ':'))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ' '))
+			{
+				return false;
+			}
+
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				FPackedUB::FMember Member;
+				ParseIdentifier(ShaderSource, Member.Name);
+				if (!Match(ShaderSource, '('))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, Member.Offset))
+				{
+					return false;
+				}
+				
+				if (!Match(ShaderSource, ','))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, Member.Count))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ')'))
+				{
+					return false;
+				}
+
+				PackedUB.Members.Add(Member);
+
+				// Break if EOL
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				// Has to be a comma!
+				if (Match(ShaderSource, ','))
+				{
+					continue;
+				}
+
+				//#todo-rco: Need a log here
+				//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+				return false;
+			}
+
+			PackedUBs.Add(PackedUB);
+		}
+
+		// @PackedUBCopies: 0:0-0:h:0:1,0:1-0:h:4:1,1:0-1:h:0:1
+		if (FCStringAnsi::Strncmp(ShaderSource, PackedUBCopiesPrefix, PackedUBCopiesPrefixLen) == 0)
+		{
+			ShaderSource += PackedUBCopiesPrefixLen;
+			if (!ReadCopies(ShaderSource, false, PackedUBCopies))
+			{
+				return false;
+			}
+		}
+
+		// @PackedUBGlobalCopies: 0:0-h:12:1,0:1-h:16:1,1:0-h:20:1
+		if (FCStringAnsi::Strncmp(ShaderSource, PackedUBGlobalCopiesPrefix, PackedUBGlobalCopiesPrefixLen) == 0)
+		{
+			ShaderSource += PackedUBGlobalCopiesPrefixLen;
+			if (!ReadCopies(ShaderSource, true, PackedUBGlobalCopies))
+			{
+				return false;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, SamplersPrefix, SamplersPrefixLen) == 0)
+		{
+			ShaderSource += SamplersPrefixLen;
+
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				FSampler Sampler;
+
+				if (!ParseIdentifier(ShaderSource, Sampler.Name))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, '('))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, Sampler.Offset))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ':'))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, Sampler.Count))
+				{
+					return false;
+				}
+
+				if (Match(ShaderSource, '['))
+				{
+					// Sampler States
+					do
+					{
+						FString SamplerState;
+						
+						if (!ParseIdentifier(ShaderSource, SamplerState))
+						{
+							return false;
+						}
+
+						Sampler.SamplerStates.Add(SamplerState);
+					}
+					while (Match(ShaderSource, ','));
+
+					if (!Match(ShaderSource, ']'))
+					{
+						return false;
+					}
+				}
+
+				if (!Match(ShaderSource, ')'))
+				{
+					return false;
+				}
+
+				Samplers.Add(Sampler);
+
+				// Break if EOL
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				// Has to be a comma!
+				if (Match(ShaderSource, ','))
+				{
+					continue;
+				}
+
+				//#todo-rco: Need a log here
+				//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+				return false;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, UAVsPrefix, UAVsPrefixLen) == 0)
+		{
+			ShaderSource += UAVsPrefixLen;
+
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				FUAV UAV;
+
+				if (!ParseIdentifier(ShaderSource, UAV.Name))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, '('))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, UAV.Offset))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ':'))
+				{
+					return false;
+				}
+
+				if (!ParseIntegerNumber(ShaderSource, UAV.Count))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ')'))
+				{
+					return false;
+				}
+
+				UAVs.Add(UAV);
+
+				// Break if EOL
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				// Has to be a comma!
+				if (Match(ShaderSource, ','))
+				{
+					continue;
+				}
+
+				//#todo-rco: Need a log here
+				//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+				return false;
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, SamplerStatesPrefix, SamplerStatesPrefixLen) == 0)
+		{
+			ShaderSource += SamplerStatesPrefixLen;
+			while (*ShaderSource && *ShaderSource != '\n')
+			{
+				FAttribute SamplerState;
+				if (!ParseIntegerNumber(ShaderSource, SamplerState.Index))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ':'))
+				{
+					return false;
+				}
+
+				if (!ParseIdentifier(ShaderSource, SamplerState.Name))
+				{
+					return false;
+				}
+
+				SamplerStates.Add(SamplerState);
+			}
+		}
+
+		if (FCStringAnsi::Strncmp(ShaderSource, NumThreadsPrefix, NumThreadsPrefixLen) == 0)
+		{
+			ShaderSource += NumThreadsPrefixLen;
+			if (!ParseIntegerNumber(ShaderSource, NumThreads[0]))
+			{
+				return false;
+			}
+			if (!Match(ShaderSource, ','))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ' '))
+			{
+				return false;
+			}
+
+			if (!ParseIntegerNumber(ShaderSource, NumThreads[1]))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ','))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ' '))
+			{
+				return false;
+			}
+
+			if (!ParseIntegerNumber(ShaderSource, NumThreads[2]))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, '\n'))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool FHlslccHeader::ReadCopies(const ANSICHAR*& ShaderSource, bool bGlobals, TArray<FPackedUBCopy>& OutCopies)
+	{
+		while (*ShaderSource && *ShaderSource != '\n')
+		{
+			FPackedUBCopy PackedUBCopy;
+			PackedUBCopy.DestUB = 0;
+
+			if (!ParseIntegerNumber(ShaderSource, PackedUBCopy.SourceUB))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ':'))
+			{
+				return false;
+			}
+
+			if (!ParseIntegerNumber(ShaderSource, PackedUBCopy.SourceOffset))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, '-'))
+			{
+				return false;
+			}
+
+			if (!bGlobals)
+			{
+				if (!ParseIntegerNumber(ShaderSource, PackedUBCopy.DestUB))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ':'))
+				{
+					return false;
+				}
+			}
+
+			PackedUBCopy.DestPackedType = *ShaderSource++;
+
+			if (!Match(ShaderSource, ':'))
+			{
+				return false;
+			}
+
+			if (!ParseIntegerNumber(ShaderSource, PackedUBCopy.DestOffset))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ':'))
+			{
+				return false;
+			}
+
+			if (!ParseIntegerNumber(ShaderSource, PackedUBCopy.Count))
+			{
+				return false;
+			}
+
+			OutCopies.Add(PackedUBCopy);
+
+			// Break if EOL
+			if (Match(ShaderSource, '\n'))
+			{
+				break;
+			}
+
+			// Has to be a comma!
+			if (Match(ShaderSource, ','))
+			{
+				continue;
+			}
+
+			//#todo-rco: Need a log here
+			//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool FHlslccHeader::ReadInOut(const ANSICHAR*& ShaderSource, TArray<FInOut>& OutAttributes)
+	{
+		while (*ShaderSource && *ShaderSource != '\n')
+		{
+			FInOut Attribute;
+
+			if (!ParseIdentifier(ShaderSource, Attribute.Type))
+			{
+				return false;
+			}
+
+			if (Match(ShaderSource, '['))
+			{
+				if (!ParseIntegerNumber(ShaderSource, Attribute.ArrayCount))
+				{
+					return false;
+				}
+
+				if (!Match(ShaderSource, ']'))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				Attribute.ArrayCount = 0;
+			}
+
+			if (!Match(ShaderSource, ';'))
+			{
+				return false;
+			}
+
+			if (!ParseSignedNumber(ShaderSource, Attribute.Index))
+			{
+				return false;
+			}
+
+			if (!Match(ShaderSource, ':'))
+			{
+				return false;
+			}
+
+			if (!ParseIdentifier(ShaderSource, Attribute.Name))
+			{
+				return false;
+			}
+
+			OutAttributes.Add(Attribute);
+
+			// Break if EOL
+			if (Match(ShaderSource, '\n'))
+			{
+				break;
+			}
+
+			// Has to be a comma!
+			if (Match(ShaderSource, ','))
+			{
+				continue;
+			}
+
+			//#todo-rco: Need a log here
+			//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+			return false;
+		}
+
+		return true;
+	}
 }

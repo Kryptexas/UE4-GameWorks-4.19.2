@@ -2616,7 +2616,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			}
 			ralloc_asprintf_append(buffer, "%s%s%s%s",
 				need_comma ? "," : "",
-				type_str[type->base_type],
+				type->base_type == GLSL_TYPE_STRUCT ? type->name : type_str[type->base_type],
 				col_str[type->matrix_columns],
 				row_str[type->vector_elements]);
 			if (is_array)
