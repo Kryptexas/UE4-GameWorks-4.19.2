@@ -160,7 +160,7 @@ struct ENGINE_API FAttenuationSettings
 
 private:
 
-	float AttenuationEval(const float Distance, const float Falloff, const float dBAttenuationAtMax) const;
+	float AttenuationEval(const float Distance, const float Falloff) const;
 	float AttenuationEvalBox(const FTransform& SoundLocation, const FVector ListenerLocation) const;
 	float AttenuationEvalCapsule(const FTransform& SoundLocation, const FVector ListenerLocation) const;
 	float AttenuationEvalCone(const FTransform& SoundLocation, const FVector ListenerLocation) const;
