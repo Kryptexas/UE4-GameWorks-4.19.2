@@ -90,14 +90,10 @@ public:
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetScalarValue(const FName ParameterName,float* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override;
-	virtual float GetDistanceFieldPenumbraScale() const override { return DistanceFieldPenumbraScale; }
 
 	/** Sets the material instance's parent. */
 	void GameThread_SetParent(UMaterialInterface* InParent);
 
-	/** Called from the game thread to update DistanceFieldPenumbraScale. */
-	void GameThread_UpdateDistanceFieldPenumbraScale(float NewDistanceFieldPenumbraScale);
-	
 	/** Called from the game thread to update the overridable base properties in the proxy. */
 	void GameThread_UpdateOverridableBaseProperties(const UMaterialInterface* MaterialInterface);
 
@@ -173,9 +169,6 @@ private:
 
 	/** The UMaterialInstance which owns this resource. */
 	UMaterialInstance* Owner;
-
-	/** Scales the penumbra size of distance field shadows. */
-	float DistanceFieldPenumbraScale;
 
 	/** The game thread accessible parent of the material instance. */
 	UMaterialInterface* GameThreadParent;

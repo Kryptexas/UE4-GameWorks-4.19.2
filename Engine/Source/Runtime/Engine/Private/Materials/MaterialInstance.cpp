@@ -75,7 +75,6 @@ FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,
 	: FMaterialRenderProxy(bInSelected, bInHovered)
 	, Parent(NULL)
 	, Owner(InOwner)
-	, DistanceFieldPenumbraScale(1.0f)
 	, GameThreadParent(NULL)
 	, OpacityMaskClipValue(0.3333333f)
 	, BlendMode(BLEND_Opaque)
@@ -238,18 +237,6 @@ bool FMaterialInstanceResource::GetTextureValue(
 	}
 }
 
-/** Called from the game thread to update DistanceFieldPenumbraScale. */
-void FMaterialInstanceResource::GameThread_UpdateDistanceFieldPenumbraScale(float NewDistanceFieldPenumbraScale)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		UpdateDistanceFieldPenumbraScaleCommand,
-		float*,DistanceFieldPenumbraScale,&DistanceFieldPenumbraScale,
-		float,NewDistanceFieldPenumbraScale,NewDistanceFieldPenumbraScale,
-	{
-		*DistanceFieldPenumbraScale = NewDistanceFieldPenumbraScale;
-	});
-}
-
 void FMaterialInstanceResource::GameThread_UpdateOverridableBaseProperties(const UMaterialInterface* MaterialInterface)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
@@ -283,8 +270,6 @@ void UMaterialInstance::PropagateDataToMaterialProxy()
 	{
 		if (Resources[i])
 		{
-			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale()); 
-
 			UpdateMaterialRenderProxy(*Resources[i]);
 		}
 	}
@@ -2227,22 +2212,6 @@ float UMaterialInstance::GetExportResolutionScale() const
 
 	return 1.0f;
 }
-
-float UMaterialInstance::GetDistanceFieldPenumbraScale() const
-{
-	if (LightmassSettings.bOverrideDistanceFieldPenumbraScale)
-	{
-		return LightmassSettings.DistanceFieldPenumbraScale;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetDistanceFieldPenumbraScale();
-	}
-
-	return 1.0f;
-}
-
 
 bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,  
 	TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet)

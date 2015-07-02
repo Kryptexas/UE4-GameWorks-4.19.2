@@ -267,29 +267,14 @@ public:
 		}
 	}
 
-	virtual float GetDistanceFieldPenumbraScale() const { return DistanceFieldPenumbraScale; }
-
 	// FRenderResource interface.
 	virtual FString GetFriendlyName() const { return Material->GetName(); }
 
 	// Constructor.
 	FDefaultMaterialInstance(UMaterial* InMaterial,bool bInSelected,bool bInHovered):
 		FMaterialRenderProxy(bInSelected, bInHovered),
-		Material(InMaterial),
-		DistanceFieldPenumbraScale(1.0f)
+		Material(InMaterial)
 	{}
-
-	/** Called from the game thread to update DistanceFieldPenumbraScale. */
-	void GameThread_UpdateDistanceFieldPenumbraScale(float NewDistanceFieldPenumbraScale)
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			UpdateDistanceFieldPenumbraScaleCommand,
-			float*,DistanceFieldPenumbraScale,&DistanceFieldPenumbraScale,
-			float,NewDistanceFieldPenumbraScale,NewDistanceFieldPenumbraScale,
-		{
-			*DistanceFieldPenumbraScale = NewDistanceFieldPenumbraScale;
-		});
-	}
 
 private:
 
@@ -300,9 +285,6 @@ private:
 	}
 
 	UMaterial* Material;
-
-	// maintained by the render thread
-	float DistanceFieldPenumbraScale;
 };
 
 #if WITH_EDITOR
@@ -2408,8 +2390,6 @@ void UMaterial::PropagateDataToMaterialProxy()
 	{
 		if (DefaultMaterialInstances[i])
 		{
-			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-
 			UpdateMaterialRenderProxy(*DefaultMaterialInstances[i]);
 		}
 	}

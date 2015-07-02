@@ -129,10 +129,6 @@ struct FLightmassMaterialInterfaceSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material)
 	float ExportResolutionScale;
 
-	/***/
-	UPROPERTY()
-	float DistanceFieldPenumbraScale;
-
 	/** Boolean override flags - only used in MaterialInstance* cases. */
 	/** If true, override the bCastShadowAsMasked setting of the parent material. */
 	UPROPERTY()
@@ -150,26 +146,16 @@ struct FLightmassMaterialInterfaceSettings
 	UPROPERTY()
 	uint32 bOverrideExportResolutionScale:1;
 
-	/** If true, override the distance field penumbra scale setting of the parent material. */
-	UPROPERTY()
-	uint32 bOverrideDistanceFieldPenumbraScale:1;
-
-
-
-		FLightmassMaterialInterfaceSettings()
+	FLightmassMaterialInterfaceSettings()
 		: bCastShadowAsMasked(false)
 		, EmissiveBoost(1.0f)
 		, DiffuseBoost(1.0f)
 		, ExportResolutionScale(1.0f)
-		, DistanceFieldPenumbraScale(1.0f)
 		, bOverrideCastShadowAsMasked(false)
 		, bOverrideEmissiveBoost(false)
 		, bOverrideDiffuseBoost(false)
 		, bOverrideExportResolutionScale(false)
-		, bOverrideDistanceFieldPenumbraScale(false)
-		{
-		}
-	
+	{}
 };
 
 UCLASS(abstract, BlueprintType,MinimalAPI)
@@ -419,11 +405,6 @@ public:
 		return LightmassSettings.bOverrideExportResolutionScale;
 	}
 
-	inline bool GetOverrideDistanceFieldPenumbraScale() const
-	{
-		return LightmassSettings.bOverrideDistanceFieldPenumbraScale;
-	}
-
 	/** @return	The bCastShadowAsMasked value for this material. */
 	virtual bool GetCastShadowAsMasked() const
 	{
@@ -447,11 +428,6 @@ public:
 	virtual float GetExportResolutionScale() const
 	{
 		return FMath::Clamp(LightmassSettings.ExportResolutionScale, .1f, 10.0f);
-	}
-
-	virtual float GetDistanceFieldPenumbraScale() const
-	{
-		return LightmassSettings.DistanceFieldPenumbraScale;
 	}
 
 	/** @param	bInOverrideCastShadowAsMasked	The override CastShadowAsMasked setting to set. */
@@ -478,11 +454,6 @@ public:
 		LightmassSettings.bOverrideExportResolutionScale = bInOverrideExportResolutionScale;
 	}
 
-	inline void SetOverrideDistanceFieldPenumbraScale(bool bInOverrideDistanceFieldPenumbraScale)
-	{
-		LightmassSettings.bOverrideDistanceFieldPenumbraScale = bInOverrideDistanceFieldPenumbraScale;
-	}
-
 	/** @param	InCastShadowAsMasked	The CastShadowAsMasked value for this material. */
 	inline void SetCastShadowAsMasked(bool InCastShadowAsMasked)
 	{
@@ -505,11 +476,6 @@ public:
 	inline void SetExportResolutionScale(float InExportResolutionScale)
 	{
 		LightmassSettings.ExportResolutionScale = InExportResolutionScale;
-	}
-
-	inline void SetDistanceFieldPenumbraScale(float InDistanceFieldPenumbraScale)
-	{
-		LightmassSettings.DistanceFieldPenumbraScale = InDistanceFieldPenumbraScale;
 	}
 
 	/**

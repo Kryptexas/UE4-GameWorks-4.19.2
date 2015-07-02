@@ -92,20 +92,11 @@ struct FLightmassParameterizedMaterialSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
 	struct FLightmassScalarParameterValue ExportResolutionScale;
 
-	/** Scales the penumbra size of distance field shadows.  This is useful to get softer precomputed shadows on certain material types like foliage. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
-	struct FLightmassScalarParameterValue DistanceFieldPenumbraScale;
-
-
-
-		FLightmassParameterizedMaterialSettings()
+	FLightmassParameterizedMaterialSettings()
 		: EmissiveBoost(1.0f)
 		, DiffuseBoost(1.0f)
 		, ExportResolutionScale(1.0f)
-		, DistanceFieldPenumbraScale(1.0f)
-		{
-		}
-	
+	{}
 };
 
 

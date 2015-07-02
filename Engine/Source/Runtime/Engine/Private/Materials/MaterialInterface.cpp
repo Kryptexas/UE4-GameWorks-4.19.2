@@ -159,7 +159,6 @@ void UMaterialInterface::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	LightmassSettings.EmissiveBoost = FMath::Max(LightmassSettings.EmissiveBoost, 0.0f);
 	LightmassSettings.DiffuseBoost = FMath::Max(LightmassSettings.DiffuseBoost, 0.0f);
 	LightmassSettings.ExportResolutionScale = FMath::Clamp(LightmassSettings.ExportResolutionScale, 0.0f, 16.0f);
-	LightmassSettings.DistanceFieldPenumbraScale = FMath::Clamp(LightmassSettings.DistanceFieldPenumbraScale, 0.01f, 100.0f);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }

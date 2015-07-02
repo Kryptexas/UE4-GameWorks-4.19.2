@@ -609,8 +609,6 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 		SourceInstance->SetDiffuseBoost(LightmassSettings.DiffuseBoost.ParameterValue);
 		SourceInstance->SetOverrideExportResolutionScale(LightmassSettings.ExportResolutionScale.bOverride);
 		SourceInstance->SetExportResolutionScale(LightmassSettings.ExportResolutionScale.ParameterValue);
-		SourceInstance->SetOverrideDistanceFieldPenumbraScale(LightmassSettings.DistanceFieldPenumbraScale.bOverride);
-		SourceInstance->SetDistanceFieldPenumbraScale(LightmassSettings.DistanceFieldPenumbraScale.ParameterValue);
 
 		// Copy Refraction bias setting
 		SourceInstance->SetScalarParameterValueEditorOnly(TEXT("RefractionDepthBias"), RefractionDepthBias);
@@ -699,8 +697,6 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 	LightmassSettings.DiffuseBoost.ParameterValue = SourceInstance->GetDiffuseBoost();
 	LightmassSettings.ExportResolutionScale.bOverride = SourceInstance->GetOverrideExportResolutionScale();
 	LightmassSettings.ExportResolutionScale.ParameterValue = SourceInstance->GetExportResolutionScale();
-	LightmassSettings.DistanceFieldPenumbraScale.bOverride = SourceInstance->GetOverrideDistanceFieldPenumbraScale();
-	LightmassSettings.DistanceFieldPenumbraScale.ParameterValue = SourceInstance->GetDistanceFieldPenumbraScale();
 
 	//Copy refraction settings
 	SourceInstance->GetRefractionSettings(RefractionDepthBias);
