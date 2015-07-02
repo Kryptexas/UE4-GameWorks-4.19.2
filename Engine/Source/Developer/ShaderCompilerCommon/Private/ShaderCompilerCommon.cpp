@@ -1068,14 +1068,12 @@ namespace CrossCompiler
 				Attribute.ArrayCount = 0;
 			}
 
-			if (!Match(ShaderSource, ';'))
+			if (Match(ShaderSource, ';'))
 			{
-				return false;
-			}
-
-			if (!ParseSignedNumber(ShaderSource, Attribute.Index))
-			{
-				return false;
+				if (!ParseSignedNumber(ShaderSource, Attribute.Index))
+				{
+					return false;
+				}
 			}
 
 			if (!Match(ShaderSource, ':'))

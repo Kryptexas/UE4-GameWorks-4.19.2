@@ -170,6 +170,7 @@ namespace CCT
 			}
 		}
 
+		if (ShaderSource)
 		{
 			const ANSICHAR* USFSource = ShaderSource;
 			CrossCompiler::FHlslccHeader CCHeader;
