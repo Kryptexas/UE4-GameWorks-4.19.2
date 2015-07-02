@@ -283,6 +283,10 @@ private:
 		{
 			FriendsAndChatManager.Pin()->AcceptGameInvite(FriendItem);
 		}
+		else if(FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId()) && FriendItem->CanJoinParty())
+		{
+			FriendsAndChatManager.Pin()->AcceptGameInvite(FriendItem);
+		}
 	}
 
 	void RejectGame()
