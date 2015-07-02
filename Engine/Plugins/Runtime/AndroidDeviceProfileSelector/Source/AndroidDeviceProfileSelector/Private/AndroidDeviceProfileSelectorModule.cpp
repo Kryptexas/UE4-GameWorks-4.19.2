@@ -103,8 +103,32 @@ FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 			ProfileName = TEXT("Android_IntelHD");
 		}
 	}
+	else if (GPUFamily.StartsWith(TEXT("Mali-4")))
+	{
+		ProfileName = TEXT("Android_Mali_4xx");
+	}
+	else if (GPUFamily.StartsWith(TEXT("Mali-T6")))
+	{
+		ProfileName = TEXT("Android_Mali_T6xx");
+	}
+	else if (GPUFamily.StartsWith(TEXT("Mali-T7")))
+	{
+		ProfileName = TEXT("Android_Mali_T7xx");
+	}
+	else
+	{
+		FString GLVersion = FAndroidMisc::GetGLVersion();
 
-
+		if (GLVersion.StartsWith(TEXT("OpenGL ES 3.")))
+		{
+			ProfileName = TEXT("Android_Mid");
+		}
+		else if (GLVersion.StartsWith(TEXT("OpenGL ES 2.")))
+		{
+			ProfileName = TEXT("Android_Low");
+		}
+	}
+	
 	UE_LOG(LogAndroid, Log, TEXT("Selected Device Profile: [%s]"), *ProfileName);
 
 	// If no type was obtained, just select IOS as default
