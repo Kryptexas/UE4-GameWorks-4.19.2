@@ -5,7 +5,7 @@
 #include "SClanDetails.h"
 #include "SClanHome.h"
 #include "SWidgetSwitcher.h"
-#include "ClanViewModel.h"
+#include "ClanCollectionViewModel.h"
 
 #define LOCTEXT_NAMESPACE ""
 
@@ -16,47 +16,71 @@ class SClanContainerImpl : public SClanContainer
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FClanViewModel>& InViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FClanCollectionViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		ViewModel = InViewModel;
 		MenuMethod = InArgs._Method;
 
+		ViewModel->OpenClanDetails().AddSP(this, &SClanContainerImpl::OnOpenClanDetails);
+
+		ExternalScrollbar = SNew(SScrollBar)
+			.Thickness(FVector2D(4, 4))
+			.Style(&FriendStyle.ScrollBarStyle)
+			.AlwaysShowScrollbar(true);
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Top)
-			.HAlign(HAlign_Fill)
+			SNew(SBorder)
+			.BorderImage(&FriendStyle.FriendsContainerBackground)
+			.Padding(0)
 			[
-				SAssignNew(Switcher, SWidgetSwitcher)
-				+SWidgetSwitcher::Slot()
+				SNew(SOverlay)
+				+ SOverlay::Slot()
 				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-					.AutoHeight()
+					SNew(SScrollBox)
+					.ExternalScrollbar(ExternalScrollbar.ToSharedRef())
+					+ SScrollBox::Slot()
+					.HAlign(HAlign_Fill)
 					[
-						SNew(SButton)
-						.Text(FText::FromString("Details"))
-						.OnClicked(this, &SClanContainerImpl::HandleWidgetSwitcherClicked, 1)
-					]
-					+SVerticalBox::Slot()
-					[
-						SNew(SClanHome, ViewModel.ToSharedRef())
-						.FriendStyle(&FriendStyle)
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.VAlign(VAlign_Top)
+						.AutoHeight()
+						[
+							SAssignNew(Switcher, SWidgetSwitcher)
+							+ SWidgetSwitcher::Slot()
+							[
+								SNew(SClanHome, ViewModel.ToSharedRef())
+								.FriendStyle(&FriendStyle)
+							]
+							+ SWidgetSwitcher::Slot()
+							[
+								SAssignNew(ClanDetailsBox, SBox)
+							]
+						]
 					]
 				]
-				+SWidgetSwitcher::Slot()
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Right)
+				.Padding(FMargin(10, 20, 10, 20))
 				[
-					SNew(SClanDetails, ViewModel->GetClanInfoViewModel().ToSharedRef())
-					.FriendStyle(&FriendStyle)
-					.OnHomeClicked(this, &SClanContainerImpl::HandleWidgetSwitcherClicked, 0)
+					ExternalScrollbar.ToSharedRef()
 				]
 			]
 		]);
 	}
 
 private:
+
+	void OnOpenClanDetails(const TSharedRef < FClanInfoViewModel > &ClanInfoViewModel)
+	{
+		TSharedRef<SClanDetails> ClanDetails = SNew(SClanDetails, ClanInfoViewModel)
+			.FriendStyle(&FriendStyle)
+			.OnHomeClicked(this, &SClanContainerImpl::HandleWidgetSwitcherClicked, 0);
+		ClanDetailsBox->SetContent(ClanDetails);
+		Switcher->SetActiveWidgetIndex(1);
+	}
 
 	FReply HandleWidgetSwitcherClicked(int32 Index)
 	{
@@ -67,10 +91,13 @@ private:
 	/** Holds the style to use when making the widget. */
 	FFriendsListStyle FriendStyle;
 
-	TSharedPtr<FClanViewModel> ViewModel;
+	TSharedPtr<SBox> ClanDetailsBox;
+	TSharedPtr<FClanCollectionViewModel> ViewModel;
 
 	// Holds the list container switcher
 	TSharedPtr<SWidgetSwitcher> Switcher;
+
+	TSharedPtr<SScrollBar> ExternalScrollbar;
 
 	EPopupMethod MenuMethod;
 };

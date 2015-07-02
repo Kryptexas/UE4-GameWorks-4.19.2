@@ -32,7 +32,7 @@ class FClanListViewModel
 {
 public:
 	virtual ~FClanListViewModel() {}
-	virtual const TArray<TSharedRef<class IClanInfo>>& GetClanList() const = 0;
+	virtual const TArray<TSharedRef<class FClanInfoViewModel>>& GetClanList() const = 0;
 	virtual FText GetListCountText() const = 0;
 	virtual int32 GetListCount() const = 0;
 	virtual const FText GetListName() const = 0;
@@ -48,4 +48,4 @@ public:
  *
  * @return the newly created FClanListViewModel implementation.
  */
-FACTORY(TSharedRef< FClanListViewModel >, FClanListViewModel,const TSharedRef<class FClanViewModel>& ClanViewModel, EClanDisplayLists::Type ListType);
+FACTORY(TSharedRef< FClanListViewModel >, FClanListViewModel,const TSharedRef<class FClanCollectionViewModel>& ClanViewModel, EClanDisplayLists::Type ListType);

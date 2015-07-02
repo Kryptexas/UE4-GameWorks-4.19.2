@@ -118,7 +118,7 @@ public:
 			case EFriendActionType::RejectFriendRequest:
 			case EFriendActionType::CancelFriendRequest:
 			{
-				RemoveFriend(EFriendActionType::ToText(ActionType).ToString());
+				RemoveFriend(ActionType);
 				break;
 			}
 			case EFriendActionType::SendFriendRequest : 
@@ -257,9 +257,9 @@ public:
 
 private:
 
-	void RemoveFriend(const FString& Action) const
+	void RemoveFriend(EFriendActionType::Type Reason) const
 	{
-		FriendsAndChatManager.Pin()->DeleteFriend(FriendItem, Action);
+		FriendsAndChatManager.Pin()->DeleteFriend(FriendItem, Reason);
 	}
 
 	void AcceptFriend() const

@@ -55,6 +55,25 @@ namespace EFriendActionType
 		}
 	}
 
+	inline FString ToAnalyticString(EFriendActionType::Type State)
+	{
+		static const FString FriendRequestIgnored = TEXT("Ignored");
+		static const FString FriendRequestRejected = TEXT("Rejected");
+		static const FString FriendRequestCancelled = TEXT("Cancelled");
+		static const FString FriendBlocked = TEXT("Blocked");
+		static const FString FriendRemoved = TEXT("Removed");
+
+		switch (State)
+		{
+			case IgnoreFriendRequest: return FriendRequestIgnored;
+			case RejectFriendRequest: return FriendRequestRejected;
+			case CancelFriendRequest: return FriendRequestCancelled;
+			case BlockFriend: return FriendBlocked;
+
+			default: return FriendRemoved;
+		}
+	}
+
 	inline EFriendActionLevel ToActionLevel(EFriendActionType::Type State)
 	{
 		switch (State)
@@ -207,14 +226,30 @@ public:
 	/** Get if is from a game request. */
 	virtual bool IsGameRequest() const = 0;
 
+	// Hacks Nick Davies - cache some states so the UI can be regenerated correctly after a refresh
+
+	/** Set if this friend has a pending action. */
 	virtual void SetPendingAction(EFriendActionType::Type InPendingAction)
 	{
 		PendingActionType = InPendingAction;
 	}
 
+	/** Get the current pending action. */
 	virtual EFriendActionType::Type GetPendingAction()
 	{
 		return PendingActionType;
+	}
+
+	/** Set if this friend is online from the last know presence. */
+	virtual void SetChachedOnline(bool InIsOnline)
+	{
+		CachedOnline = InIsOnline;
+	}
+
+	/** Get if this friend is online so we can check if it differs from received presence. */
+	virtual bool IsCachedOnline()
+	{
+		return CachedOnline;
 	}
 
 	/**
@@ -226,10 +261,12 @@ public:
 
 	IFriendItem()
 		: PendingActionType(EFriendActionType::MAX_None)
+		, CachedOnline(false)
 	{}
 
 private:
 	EFriendActionType::Type PendingActionType;
+	bool CachedOnline;
 public:
 
 	/** Virtual destructor. */

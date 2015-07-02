@@ -10,6 +10,7 @@
 #include "FriendsChatMarkupService.h"
 #include "ChatTipViewModel.h"
 #include "ChatSettingsService.h"
+#include "FriendsAndChatAnalytics.h"
 
 #define LOCTEXT_NAMESPACE ""
 
@@ -145,7 +146,7 @@ public:
 			}
 			else if(SelectedFriend.IsValid())
 			{
-				return FText::Format(NSLOCTEXT("ChatViewModel", "FriendUnavailable", "Unable to send whisper to {0}."), SelectedFriend->DisplayName);
+				return FText::Format(NSLOCTEXT("ChatViewModel", "FriendUnavailable_WithDisplayName", "Unable to send whisper to {0}."), SelectedFriend->DisplayName);
 			}
 			else
 			{
@@ -186,7 +187,7 @@ public:
 								//@todo will need to support multiple party channels eventually, hardcoded to first party for now
 								bSuccess = MessageManager.Pin()->SendRoomMessage((*PartyRoomId).ToString(), NewMessage.ToString());
 
-								FriendsAndChatManager.Pin()->GetAnalytics().RecordChannelChat(TEXT("Party"));
+								FriendsAndChatManager.Pin()->GetAnalytics()->RecordChannelChat(TEXT("Party"));
 							}
 						}
 						break;
@@ -194,7 +195,7 @@ public:
 						{
 								//@todo samz - send message to specific room (empty room name will send to all rooms)
 								bSuccess = MessageManager.Pin()->SendRoomMessage(FString(), PlainText.ToString());
-								FriendsAndChatManager.Pin()->GetAnalytics().RecordChannelChat(TEXT("Global"));
+								FriendsAndChatManager.Pin()->GetAnalytics()->RecordChannelChat(TEXT("Global"));
 						}
 					}
 				}

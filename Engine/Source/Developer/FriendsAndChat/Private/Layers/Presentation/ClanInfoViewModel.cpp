@@ -37,6 +37,22 @@ public:
 		return ClanInfo->GetClanBrushName();
 	}
 
+	virtual void EnumerateActions(TArray<EClanActionType::Type>& OUTActions) override
+	{
+		// TODO Antony.Carter - Add enumerations on a context specific basis
+		OUTActions.Add(EClanActionType::AcceptClanRequest);
+		OUTActions.Add(EClanActionType::LeaveClan);
+		OUTActions.Add(EClanActionType::CancelClanRequest);
+		OUTActions.Add(EClanActionType::IgnoreClanRequest);
+		OUTActions.Add(EClanActionType::SetPrimaryClan);
+	}
+
+	DECLARE_DERIVED_EVENT(FClanInfoViewModelImpl, FClanInfoViewModel::FOpenClanDetails, FOpenClanDetails);
+	virtual FOpenClanDetails& OpenClanDetails() override
+	{
+		return OpenClanDetailsEvent;
+	}
+
 private:
 	void Initialize()
 	{
@@ -54,6 +70,7 @@ private:
 	{
 	}
 
+	FOpenClanDetails OpenClanDetailsEvent;
 	TSharedRef<IClanInfo> ClanInfo;
 	TSharedRef<IFriendListFactory> FriendsListFactory;
 	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;

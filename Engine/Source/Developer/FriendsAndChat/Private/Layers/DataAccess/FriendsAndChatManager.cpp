@@ -26,6 +26,7 @@
 #include "FriendsChatMarkupService.h"
 #include "ChatDisplayService.h"
 #include "ChatSettingsService.h"
+#include "FriendsAndChatAnalytics.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
@@ -57,6 +58,7 @@ void FFriendsAndChatManager::Initialize()
 	FriendsListFactory = FFriendListFactoryFactory::Create(FriendViewModelFactory.ToSharedRef(), SharedThis(this));
 	TSharedRef<IChatCommunicationService> CommunicationService = StaticCastSharedRef<IChatCommunicationService>(MessageManager.ToSharedRef());
 	MarkupServiceFactory = FFriendsChatMarkupServiceFactoryFactory::Create(CommunicationService, NavigationService.ToSharedRef(), FriendsListFactory.ToSharedRef());
+	Analytics = FFriendsAndChatAnalyticsFactory::Create();
 }
 
 /* IFriendsAndChatManager interface
@@ -114,7 +116,6 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 			OnDestroySessionCompleteDelegate     = FOnDestroySessionCompleteDelegate               ::CreateSP (this, &FFriendsAndChatManager::OnGameDestroyed);
 			OnPartyMemberJoinedDelegate          = FOnPartyMemberJoinedDelegate                    ::CreateSP (this, &FFriendsAndChatManager::OnPartyMemberJoined);
 			OnPartyMemberExitedDelegate          = FOnPartyMemberExitedDelegate                    ::CreateSP (this, &FFriendsAndChatManager::OnPartyMemberExited);
-			OnPartyJoinedDelegate = FOnPartyJoinedDelegate::CreateSP(this, &FFriendsAndChatManager::OnPartyJoined);
 
 			OnQueryRecentPlayersCompleteDelegateHandle	= FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegate);
 			OnFriendsListChangedDelegateHandle			= FriendsInterface->AddOnFriendsChangeDelegate_Handle(LocalControllerIndex, OnFriendsListChangedDelegate);
@@ -128,12 +129,11 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 
 			OnPresenceReceivedCompleteDelegateHandle = OnlineSub->GetPresenceInterface()->AddOnPresenceReceivedDelegate_Handle      (OnPresenceReceivedCompleteDelegate);
 			OnGameInviteReceivedDelegateHandle       = OnlineSub->GetSessionInterface ()->AddOnSessionInviteReceivedDelegate_Handle (OnGameInviteReceivedDelegate);
-			OnPartyInviteReceivedDelegateHandle      = OnlineSub->GetPartyInterface()->AddOnPartyInviteReceivedDelegate_Handle      (OnPartyInviteReceivedDelegate);
+			OnPartyInviteReceivedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyInviteReceivedDelegate_Handle(OnPartyInviteReceivedDelegate);
 			OnDestroySessionCompleteDelegateHandle   = OnlineSub->GetSessionInterface ()->AddOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegate);
 
 			OnPartyMemberJoinedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyMemberJoinedDelegate_Handle(OnPartyMemberJoinedDelegate);
 			OnPartyMemberExitedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyMemberExitedDelegate_Handle(OnPartyMemberExitedDelegate);
-			OnPartyJoinedDelegateHandle       = OnlineSub->GetPartyInterface()->AddOnPartyJoinedDelegate_Handle      (OnPartyJoinedDelegate);
 
 			ManagerState = EFriendsAndManagerState::Idle;
 
@@ -170,7 +170,7 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 void FFriendsAndChatManager::Logout()
 {
 	// flush before removing the analytics provider
-	Analytics.FlushChatStats(); 
+	Analytics->FireEvent_FlushChatStats(); 
 
 	if (OnlineSub != nullptr)
 	{
@@ -205,7 +205,6 @@ void FFriendsAndChatManager::Logout()
 		{
 			OnlineSub->GetPartyInterface()->ClearOnPartyMemberJoinedDelegate_Handle(OnPartyMemberJoinedDelegateHandle);
 			OnlineSub->GetPartyInterface()->ClearOnPartyMemberExitedDelegate_Handle(OnPartyMemberExitedDelegateHandle);
-			OnlineSub->GetPartyInterface()->ClearOnPartyJoinedDelegate_Handle(OnPartyJoinedDelegateHandle);
 		}
 	}
 
@@ -270,7 +269,7 @@ void FFriendsAndChatManager::ClearApplicationViewModels()
 
 void FFriendsAndChatManager::SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider)
 {
-	Analytics.SetProvider(AnalyticsProvider);
+	Analytics->SetProvider(AnalyticsProvider);
 }
 
 void FFriendsAndChatManager::InsertNetworkChatMessage(const FString& InMessage)
@@ -393,6 +392,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateStatusWidget( const FFrien
 TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TAttribute<FText> ActivationHintDelegate, EChatMessageType::Type MessageType, TSharedPtr<IFriendItem> FriendItem, TSharedPtr< SWindow > WindowPtr)
 {
 	TSharedRef<IChatDisplayService> ChatDisplayService = GenerateChatDisplayService();
+	Style = *InStyle;
 
 	TSharedPtr<FChatViewModel> ViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, SharedThis(this), EChatViewModelType::Windowed);
 	ViewModel->SetChannelFlags(MessageType);
@@ -487,7 +487,7 @@ void FFriendsAndChatManager::OpenGlobalChat()
 		if (OnlineIdentity.IsValid() &&
 			OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 		{
-			Analytics.RecordToggleChat(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), TEXT("Global"), true, TEXT("Social.Chat.Toggle"));
+			Analytics->FireEvent_RecordToggleChat(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), TEXT("Global"), true);
 			NavigationService->ChangeViewChannel(EChatMessageType::Global);
 		}
 	}
@@ -519,12 +519,11 @@ void FFriendsAndChatManager::AcceptFriend( TSharedPtr< IFriendItem > FriendItem 
 {
 	PendingOutgoingAcceptFriendRequests.Add(FriendItem->GetOnlineUser()->GetUserId()->ToString());
 	FriendItem->SetPendingAccept();
-	RefreshList();
 	OnFriendsNotification().Broadcast(false);
 	if (OnlineIdentity.IsValid() &&
 		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 	{
-		Analytics.RecordFriendAction(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, TEXT("Social.FriendAction.Accept"));
+		Analytics->FireEvent_FriendRequestAccepted(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem);
 	}
 }
 
@@ -534,17 +533,16 @@ void FFriendsAndChatManager::RejectFriend(TSharedPtr< IFriendItem > FriendItem)
 	NotifiedRequest.Remove( FriendItem->GetOnlineUser()->GetUserId() );
 	PendingOutgoingDeleteFriendRequests.Add(FriendItem->GetOnlineUser()->GetUserId().Get().ToString());
 	FriendsList.Remove( FriendItem );
-	RefreshList();
 	OnFriendsNotification().Broadcast(false);
 
 	if (OnlineIdentity.IsValid() &&
 		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 	{
-		Analytics.RecordFriendAction(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, TEXT("Social.FriendAction.Reject"));
+		Analytics->FireEvent_FriendRemoved(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, EFriendActionType::ToAnalyticString(EFriendActionType::RejectFriendRequest));
 	}
 }
 
-void FFriendsAndChatManager::DeleteFriend(TSharedPtr< IFriendItem > FriendItem, const FString& Action)
+void FFriendsAndChatManager::DeleteFriend(TSharedPtr< IFriendItem > FriendItem, EFriendActionType::Type Reason)
 {
 	TSharedRef<const FUniqueNetId> UserID = FriendItem->GetOnlineFriend()->GetUserId();
 	NotifiedRequest.Remove( UserID );
@@ -558,7 +556,7 @@ void FFriendsAndChatManager::DeleteFriend(TSharedPtr< IFriendItem > FriendItem, 
 	if (OnlineIdentity.IsValid() &&
 		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 	{
-		Analytics.RecordFriendAction(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, TEXT("Social.FriendAction.") + Action);
+		Analytics->FireEvent_FriendRemoved(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, EFriendActionType::ToAnalyticString(Reason));
 	}
 }
 
@@ -602,7 +600,7 @@ FReply FFriendsAndChatManager::HandleMessageAccepted( TSharedPtr< FFriendsAndCha
 			TSharedPtr< IFriendItem > User = FindUser(ChatMessage->GetUniqueID().Get());
 			if (User.IsValid())
 			{
-				DeleteFriend(User, EFriendActionType::ToText(EFriendActionType::IgnoreFriendRequest).ToString());
+				DeleteFriend(User, EFriendActionType::IgnoreFriendRequest);
 			}
 		}
 	break;
@@ -610,6 +608,25 @@ FReply FFriendsAndChatManager::HandleMessageAccepted( TSharedPtr< FFriendsAndCha
 
 	NotificationMessages.Remove( ChatMessage );
 
+	return FReply::Handled();
+}
+
+FReply FFriendsAndChatManager::HandleGameInviteResponse( TSharedPtr< FFriendsAndChatMessage > MessageNotification, EFriendsResponseType::Type ResponseType )
+{
+	TSharedPtr< IFriendItem > User = FindUser(MessageNotification->GetUniqueID().Get());
+	if(User.IsValid())
+	{
+		if(ResponseType == EFriendsResponseType::Response_Accept)
+		{
+			AcceptGameInvite(User);
+		}
+		else
+		{
+			RejectGameInvite(User);
+		}
+	}
+
+	NotificationMessages.Remove(MessageNotification);
 	return FReply::Handled();
 }
 
@@ -960,7 +977,7 @@ bool FFriendsAndChatManager::Tick( float Delta )
 	FlushChatAnalyticsCountdown -= Delta;
 	if (FlushChatAnalyticsCountdown <= 0)
 	{
-		Analytics.FlushChatStats();
+		Analytics->FireEvent_FlushChatStats();
 		// Reset countdown for new update
 		FlushChatAnalyticsCountdown = CHAT_ANALYTICS_INTERVAL;
 	}
@@ -1207,6 +1224,7 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 				{
 					TSharedPtr< FFriendItem > FriendItem = MakeShareable(new FFriendItem(OnlineFriend, OnlineUser, EFriendsDisplayLists::DefaultDisplay, SharedThis(this)));
 					PendingFriendsList.Add(FriendItem);
+					FriendItem->SetChachedOnline(FriendItem->IsOnline());
 				}
 			}
 			else
@@ -1458,7 +1476,7 @@ void FFriendsAndChatManager::SendMessageReceivedNotification(const TSharedPtr< I
 {
 	if (OnFriendsActionNotification().IsBound())
 	{
-		const FText FriendReceivedMessage = FText::Format(LOCTEXT("FriendAddedToast", "Message from {0}"), FText::FromString(Friend->GetName()));
+		const FText FriendReceivedMessage = FText::Format(LOCTEXT("FriendMessageRecievedToast", "Message from {0}"), FText::FromString(Friend->GetName()));
 		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(FriendReceivedMessage.ToString()));
 		NotificationMessage->SetMessageType(EFriendsRequestType::ChatMessage);
 		OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
@@ -1531,12 +1549,11 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 	if (OnlineIdentity.IsValid() &&
 		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 	{
-		Analytics.RecordAddFriend(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), 
+		Analytics->FireEvent_AddFriend(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), 
 								  DisplayName, 
 								  IdentifiedUserId, 
 								  FindFriendResult, 
-								  bRecentPlayer, 
-								  TEXT("Social.AddFriend"));
+								  bRecentPlayer);
 	}
 
 	FriendByNameRequests.Remove( DisplayName );
@@ -1553,7 +1570,6 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 		}
 		else
 		{
-			RefreshList();
 			SetState(EFriendsAndManagerState::Idle);
 		}
 	}
@@ -1566,7 +1582,6 @@ void FFriendsAndChatManager::OnSendInviteComplete( int32 LocalPlayer, bool bWasS
 
 	if ( PendingOutgoingFriendRequests.Num() == 0 )
 	{
-		RefreshList();
 		RequestListRefresh();
 		SetState(EFriendsAndManagerState::Idle);
 	}
@@ -1574,13 +1589,9 @@ void FFriendsAndChatManager::OnSendInviteComplete( int32 LocalPlayer, bool bWasS
 
 void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& NewPresence)
 {
-	RefreshList();
-
 	// Compare to previous presence for this friend, display a toast if a friend has came online or joined a game
 	TSharedPtr<const FUniqueNetId> SelfId = OnlineIdentity->GetUniquePlayerId(0);
 	bool bIsSelf = (SelfId.IsValid() && UserId == *SelfId);
-	TSharedPtr<IFriendItem> PresenceFriend = FindUser(UserId);
-	bool bFoundFriend = PresenceFriend.IsValid();
 	bool bFriendNotificationsBound = OnFriendsActionNotification().IsBound();
 	// Don't show notifications if we're building the friends list presences for the first time.
 	// Guess at this using the size of the saved presence list. OK to show the last 1 or 2, but avoid spamming dozens of notifications at startup
@@ -1628,6 +1639,16 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 		}
 	}
 
+	TSharedPtr<IFriendItem> PresenceFriend = FindUser(UserId);
+	if(PresenceFriend.IsValid())
+	{
+		if(PresenceFriend->IsCachedOnline() != PresenceFriend->IsOnline())
+		{
+			RefreshList();
+		}
+		PresenceFriend->SetChachedOnline(PresenceFriend->IsOnline());
+	}
+
 // @todo Antony.Carter Disabled for GDC as its a bit spammy
 #if 0
 	// When a new friend comes online, we should see eg. OnlineFriedCount = 3, OldUserPresence = 2.  Only assume we're starting up if there's a difference of 2 or more
@@ -1671,7 +1692,7 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 					&& NewPresence->SessionId.IsValid()
 					&& NewPresence->SessionId->IsValid())
 				{
-					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now In A Game"), Args);
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_InGame", "{FriendName} Is Now In A Game"), Args);
 					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
 					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
 					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
@@ -1681,7 +1702,7 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 				{
 					// could limit notifications to same game only by removing isPlaying check above
 					Args.Add(TEXT("GameName"), FText::FromString(PresenceFriend->GetClientName()));
-					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now Playing {GameName}"), Args);
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_NowPlayingThisGame", "{FriendName} Is Now Playing {GameName}"), Args);
 					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
 					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
 					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
@@ -1690,7 +1711,7 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 				else if (OldPresence.bIsPlaying == false && NewPresence->bIsPlaying == true)
 				{
 					Args.Add(TEXT("GameName"), FText::FromString(PresenceFriend->GetClientName()));
-					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Online", "{FriendName} Is Now Playing {GameName}"), Args);
+					const FText PresenceChangeText = FText::Format(LOCTEXT("FriendPresenceChange_Nowplaying", "{FriendName} Is Now Playing {GameName}"), Args);
 					TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(PresenceChangeText.ToString()));
 					NotificationMessage->SetMessageType(EFriendsRequestType::PresenceChange);
 					OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
@@ -1717,7 +1738,6 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 
 void FFriendsAndChatManager::OnPresenceUpdated(const FUniqueNetId& UserId, const bool bWasSuccessful)
 {
-	RefreshList();
 }
 
 void FFriendsAndChatManager::OnFriendsListChanged()
@@ -1909,9 +1929,16 @@ void FFriendsAndChatManager::SendGameInviteNotification(const TSharedPtr<IFriend
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Username"), FText::FromString(FriendItem->GetName()));
 		const FText FriendRequestMessage = FText::Format(LOCTEXT("FFriendsAndChatManager_GameInvite", "Game invite from {Username}"), Args);
-
-		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(FriendRequestMessage.ToString()));
+		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(FriendRequestMessage.ToString(), FriendItem->GetUniqueID()));
 		NotificationMessage->SetMessageType(EFriendsRequestType::GameInvite);
+
+		NotificationMessage->SetButtonCallback( FOnClicked::CreateSP(this, &FFriendsAndChatManager::HandleGameInviteResponse, NotificationMessage, EFriendsResponseType::Response_Accept));
+		NotificationMessage->SetButtonCallback( FOnClicked::CreateSP(this, &FFriendsAndChatManager::HandleGameInviteResponse, NotificationMessage, EFriendsResponseType::Response_Reject));
+		NotificationMessage->SetButtonDescription(LOCTEXT("FFriendsAndChatManager_GameInviteJoin", "Join Game"));
+		NotificationMessage->SetButtonDescription(LOCTEXT("FFriendsAndChatManager_GameInviteReject", "Reject"));
+		NotificationMessage->SetButtonStyle(TEXT("FriendsListEmphasisButton"));
+		NotificationMessage->SetButtonStyle(TEXT("FriendsListCriticalButton"));
+		NotificationMessage->SetMessageType(EFriendsRequestType::FriendInvite);
 		OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
 	}
 
@@ -1946,13 +1973,6 @@ void FFriendsAndChatManager::OnPartyMemberExited(const FUniqueNetId& LocalUserId
 	//GetChatViewModel()->UpdateInPartyUI();
 }
 
-void FFriendsAndChatManager::OnPartyJoined(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId)
-{
-	//ToDo - NickDavies - re-add party 
-	// You joined a party, update the UI to make party chat available & the default output channel
-	//GetChatViewModel()->UpdateInPartyUI();
-}
-
 void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
 {
 	TSharedPtr<IFriendItem>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());
@@ -1978,9 +1998,9 @@ void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& Fri
 	if (OnlineIdentity.IsValid() &&
 		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 	{
-		Analytics.RecordGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Reject"));
+		Analytics->FireEvent_RejectGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem->GetUniqueID());
 	}
-	
+	OnFriendsNotification().Broadcast(false);
 }
 
 void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
@@ -2000,8 +2020,7 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	if (PartyInfo.IsValid())
 	{
 		// notify for further processing of join party request 
-		const bool bIsFromInvite = FriendItem->GetListType() == EFriendsDisplayLists::GameInviteDisplay;
-		OnFriendsJoinParty().Broadcast(*FriendItem->GetUniqueID(), PartyInfo.ToSharedRef(), bIsFromInvite);
+		OnFriendsJoinParty().Broadcast(*FriendItem->GetUniqueID(), PartyInfo.ToSharedRef(), true);
 
 		AdditionalCommandline = OnlineSub->GetPartyInterface()->MakeTokenFromJoinInfo(*PartyInfo);
 	}
@@ -2026,8 +2045,9 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	if (OnlineIdentity.IsValid() &&
 		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 	{
-		Analytics.RecordGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
+		Analytics->FireEvent_AcceptGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem->GetUniqueID());
 	}
+	OnFriendsNotification().Broadcast(false);
 }
 
 void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
@@ -2079,7 +2099,7 @@ void FFriendsAndChatManager::SendGameInvite(const FUniqueNetId& ToUser)
 				}
 			}
 
-			Analytics.RecordGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), ToUser, TEXT("Social.GameInvite.Send"));
+			Analytics->FireEvent_SendGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), ToUser);
 		}
 	}
 }
@@ -2102,7 +2122,6 @@ void FFriendsAndChatManager::OnInviteAccepted(const FUniqueNetId& UserId, const 
 		SendInviteAcceptedNotification(Friend);
 		Friend->SetPendingAccept();
 	}
-	RefreshList();
 	RequestListRefresh();
 }
 
@@ -2117,7 +2136,6 @@ void FFriendsAndChatManager::OnAcceptInviteComplete( int32 LocalPlayer, bool bWa
 	}
 	else
 	{
-		RefreshList();
 		RequestListRefresh();
 		SetState( EFriendsAndManagerState::Idle );
 	}
@@ -2126,8 +2144,6 @@ void FFriendsAndChatManager::OnAcceptInviteComplete( int32 LocalPlayer, bool bWa
 void FFriendsAndChatManager::OnDeleteFriendComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& DeletedFriendID, const FString& ListName, const FString& ErrorStr )
 {
 	PendingOutgoingDeleteFriendRequests.Remove(DeletedFriendID.ToString());
-
-	RefreshList();
 
 	if ( PendingOutgoingDeleteFriendRequests.Num() > 0 )
 	{
@@ -2147,139 +2163,6 @@ void FFriendsAndChatManager::AddFriendsToast(const FText Message)
 		Info.ExpireDuration = 2.0f;
 		Info.bUseLargeFont = false;
 		FriendsNotificationBox->AddNotification(Info);
-	}
-}
-
-
-// Analytics
-
-void FFriendsAndChatAnalytics::RecordGameInvite(const FUniqueNetId& LocalUserId, const FUniqueNetId& ToUser, const FString& EventStr) const
-{
-	if (Provider.IsValid())
-	{
-		if (LocalUserId.IsValid())
-		{
-			TArray<FAnalyticsEventAttribute> Attributes;
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), ToUser.ToString()));
-			AddPresenceAttributes(LocalUserId, Attributes);
-			Provider->RecordEvent(EventStr, Attributes);
-		}
-	}
-}
-
-void FFriendsAndChatAnalytics::RecordFriendAction(const FUniqueNetId& LocalUserId, const IFriendItem& Friend, const FString& EventStr) const
-{
-	if (Provider.IsValid())
-	{
-		if (LocalUserId.IsValid())
-		{
-			TArray<FAnalyticsEventAttribute> Attributes;
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), Friend.GetUniqueID()->ToString()));
-			AddPresenceAttributes(LocalUserId, Attributes);
-			Provider->RecordEvent(EventStr, Attributes);
-		}
-	}
-}
-
-void FFriendsAndChatAnalytics::RecordAddFriend(const FUniqueNetId& LocalUserId, const FString& FriendName, const FUniqueNetId& FriendId, EFindFriendResult::Type Result, bool bRecentPlayer, const FString& EventStr) const
-{
-	if (Provider.IsValid())
-	{
-		if (LocalUserId.IsValid())
-		{
-			TArray<FAnalyticsEventAttribute> Attributes;
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), FriendId.ToString()));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("FriendName"), FriendName));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("Result"), EFindFriendResult::ToString(Result)));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("bRecentPlayer"), bRecentPlayer));
-			AddPresenceAttributes(LocalUserId, Attributes);
-			Provider->RecordEvent(EventStr, Attributes);
-		}
-	}
-}
-
-void FFriendsAndChatAnalytics::RecordToggleChat(const FUniqueNetId& LocalUserId, const FString& Channel, bool bEnabled, const FString& EventStr) const
-{
-	if (Provider.IsValid())
-	{
-		if (LocalUserId.IsValid())
-		{
-			TArray<FAnalyticsEventAttribute> Attributes;
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("Channel"), Channel));
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("bEnabled"), bEnabled));
-			AddPresenceAttributes(LocalUserId, Attributes);
-			Provider->RecordEvent(EventStr, Attributes);
-		}
-	}
-}
-
-void FFriendsAndChatAnalytics::RecordPrivateChat(const FString& ToUser)
-{
-	int32& Count = PrivateChatCounts.FindOrAdd(ToUser);
-	Count += 1;
-}
-
-void FFriendsAndChatAnalytics::RecordChannelChat(const FString& ToChannel)
-{
-	int32& Count = ChannelChatCounts.FindOrAdd(ToChannel);
-	Count += 1;
-}
-
-void FFriendsAndChatAnalytics::FlushChatStats()
-{
-	if (Provider.IsValid())
-	{
-		IOnlineIdentityPtr OnlineIdentity = Online::GetIdentityInterface(TEXT("MCP"));
-		if (OnlineIdentity.IsValid())
-		{
-			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if (UserId.IsValid())
-			{
-				auto RecordSocialChatCountsEvents = [=](const TMap<FString, int32>& ChatCounts, const FString& ChatType)
-				{
-					if (ChatCounts.Num())
-					{
-						TArray<FAnalyticsEventAttribute> Attributes;
-						for (const auto& Pair : ChatCounts)
-						{
-							Attributes.Empty(3);
-							Attributes.Emplace(TEXT("Name"), Pair.Key);
-							Attributes.Emplace(TEXT("Type"), ChatType);
-							Attributes.Emplace(TEXT("Count"), Pair.Value);
-							Provider->RecordEvent("Social.Chat.Counts.2", Attributes);
-						}
-					}
-				};
-
-				RecordSocialChatCountsEvents(ChannelChatCounts, TEXT("Channel"));
-				RecordSocialChatCountsEvents(PrivateChatCounts, TEXT("Private"));
-			}
-		}
-	}
-	ChannelChatCounts.Empty();
-	PrivateChatCounts.Empty();
-}
-
-void FFriendsAndChatAnalytics::AddPresenceAttributes(const FUniqueNetId& UserId, TArray<FAnalyticsEventAttribute>& Attributes) const
-{
-	IOnlinePresencePtr OnlinePresence = Online::GetPresenceInterface(TEXT("MCP"));
-	if (OnlinePresence.IsValid())
-	{
-		TSharedPtr<FOnlineUserPresence> Presence;
-		OnlinePresence->GetCachedPresence(UserId, Presence);
-		if (Presence.IsValid())
-		{
-			FVariantData* ClientIdData = Presence->Status.Properties.Find(DefaultClientIdKey);
-			if (ClientIdData != nullptr)
-			{
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("ClientId"), ClientIdData->ToString()));
-			}
-			Attributes.Add(FAnalyticsEventAttribute(TEXT("Status"), Presence->Status.StatusStr));
-		}
 	}
 }
 

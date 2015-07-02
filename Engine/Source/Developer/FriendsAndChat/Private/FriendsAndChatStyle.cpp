@@ -35,6 +35,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsChatChromeStyle(const FFri
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsMarkupStyle(const FFriendsMarkupStyle& InFriendsMarkupStyle)
+{
+	FriendsMarkupStyle = InFriendsMarkupStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowEdgingBrush(const FSlateBrush& Value)
 {
 	WindowEdgingBrush = Value;

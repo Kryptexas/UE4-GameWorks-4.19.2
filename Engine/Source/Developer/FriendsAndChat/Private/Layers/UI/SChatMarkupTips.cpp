@@ -18,6 +18,7 @@ public:
 	{
 		ViewModel = InViewModel;
 		ViewModel->OnChatTipAvailable().AddSP(this, &SChatMarkupTipsImpl::HandleTipAvailable);
+		MarkupStyle = *InArgs._MarkupStyle;
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
@@ -39,9 +40,15 @@ private:
 				.AutoHeight()
 				[
 					SNew(SButton)
+					.ButtonStyle(&MarkupStyle.MarkupButtonStyle)
 					.ButtonColorAndOpacity(this, &SChatMarkupTipsImpl::GetActionBackgroundColor, TWeakPtr<IChatTip>(ChatTip))
-					.Text(ChatTip->GetTipText())
 					.OnClicked(this, &SChatMarkupTipsImpl::HandleActionClicked, ChatTip)
+					[
+						SNew(STextBlock)
+						.Text(ChatTip->GetTipText())
+						.TextStyle(&MarkupStyle.MarkupTextStyle)
+						.ColorAndOpacity(FLinearColor::White)
+					]
 				];
 			}
 		}
@@ -55,12 +62,9 @@ private:
 	FSlateColor GetActionBackgroundColor(TWeakPtr<IChatTip> TabPtr) const
 	{
 		TSharedPtr<IChatTip> Tab = TabPtr.Pin();
-		if (Tab.IsValid())
+		if (Tab.IsValid() && Tab == ViewModel->GetActiveTip())
 		{
-			if (Tab == ViewModel->GetActiveTip())
-			{
-				return FLinearColor::White;
-			}
+			return FLinearColor::Black;
 		}
 		return FLinearColor::Gray;
 	}
@@ -68,6 +72,8 @@ private:
 private:
 	TSharedPtr<FChatTipViewModel> ViewModel;
 	TSharedPtr<SVerticalBox> ChatTipBox;
+	/** Holds the style to use when making the widget. */
+	FFriendsMarkupStyle MarkupStyle;
 };
 
 TSharedRef<SChatMarkupTips> SChatMarkupTips::New()

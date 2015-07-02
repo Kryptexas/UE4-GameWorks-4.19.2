@@ -56,55 +56,6 @@ namespace EFindFriendResult
 	}
 };
 
-// Analytics
-
-class FFriendsAndChatAnalytics
-{
-public:
-	FFriendsAndChatAnalytics() {}
-	/**
-	 * Update provider to use for capturing events
-	 */
-	void SetProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) {	Provider = AnalyticsProvider; }
-	/**
-	 * Record a game invite event
- 	 */
-	void RecordGameInvite(const FUniqueNetId& LocalUserId, const FUniqueNetId& ToUser, const FString& EventStr) const;
-	/**
-	 * Record a friend action event
-	 */
-	void RecordFriendAction(const FUniqueNetId& LocalUserId, const IFriendItem& Friend, const FString& EventStr) const;
-	/**
-	 * Record a add friend action event
-	 */
-	void RecordAddFriend(const FUniqueNetId& LocalUserId, const FString& FriendName, const FUniqueNetId& FriendId, EFindFriendResult::Type Result, bool bRecentPlayer, const FString& EventStr) const;
-	/**
-	 * Record chat option toggle
-	 */
-	void RecordToggleChat(const FUniqueNetId& LocalUserId, const FString& Channel, bool bEnabled, const FString& EventStr) const;
-	/**
-	 * Record a private chat to a user (aggregates pending FlushChat)
-	 */
-	void RecordPrivateChat(const FString& ToUser);
-	/**
-	 * Record a public chat to a channel (aggregates pending FlushChat)
-	 */
-	void RecordChannelChat(const FString& ToChannel);
-	/**
-	 * Flush any aggregated chat stats
-	 */
-	void FlushChatStats();
-
-private:
-	void AddPresenceAttributes(const FUniqueNetId& UserId, TArray<FAnalyticsEventAttribute>& Attributes) const;
-
-	// cached analytics provider for pushing events
-	TSharedPtr<IAnalyticsProvider> Provider;
-	// map of chat id to # of messages sent
-	TMap<FString, int32> PrivateChatCounts;
-	TMap<FString, int32> ChannelChatCounts;
-};
-
 /**
  * Implement the Friend and Chat manager
  */
@@ -186,7 +137,7 @@ public:
 	/**
 	 * Get the analytics for recording friends chat events
 	 */
-	FFriendsAndChatAnalytics& GetAnalytics()
+	TSharedPtr<class FFriendsAndChatAnalytics> GetAnalytics()
 	{
 		return Analytics;
 	}
@@ -320,7 +271,7 @@ public:
 	 * @param FriendItem The friend item to delete.
 	 * @param DeleteReason The reason the friend is being deleted.
 	 */
-	void DeleteFriend(TSharedPtr< IFriendItem > FriendItem, const FString& Action);
+	void DeleteFriend(TSharedPtr< IFriendItem > FriendItem, EFriendActionType::Type DeleteReason);
 
 	/**
 	 * Reject a game invite
@@ -733,6 +684,14 @@ private:
 	FReply HandleMessageAccepted( TSharedPtr< FFriendsAndChatMessage > MessageNotification, EFriendsResponseType::Type ResponseType );
 
 	/**
+	 * Handle an join game message accepted from a notification.
+	 *
+	 * @param MessageNotification The message responded to.
+ 	 * @param ResponseTpe The response from the message request.
+	 */
+	FReply HandleGameInviteResponse( TSharedPtr< FFriendsAndChatMessage > MessageNotification, EFriendsResponseType::Type ResponseType );
+
+	/**
 	 * Validate friend list after a refresh. Check if the list has changed.
 	 *
 	 * @return True if the list has changes and the UI needs refreshing.
@@ -990,7 +949,7 @@ private:
 
 private:
 
-	FFriendsAndChatAnalytics Analytics;
+	TSharedPtr<class FFriendsAndChatAnalytics> Analytics;
 	float FlushChatAnalyticsCountdown;
 
 	/** Handle to various registered delegates */

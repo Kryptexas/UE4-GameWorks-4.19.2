@@ -7,6 +7,7 @@
 #include "FriendsChatStyle.h"
 #include "FriendsChatChromeStyle.h"
 #include "FriendsFontStyle.h"
+#include "FriendsMarkupStyle.h"
 
 #include "FriendsAndChatStyle.generated.h"
 
@@ -88,6 +89,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY()
 	FFriendsChatChromeStyle FriendsChatChromeStyle;
 	FFriendsAndChatStyle& SetFriendsChatChromeStyle(const FFriendsChatChromeStyle& InFriendsChatChromeStyle);
+
+	UPROPERTY()
+	FFriendsMarkupStyle FriendsMarkupStyle;
+	FFriendsAndChatStyle& SetFriendsMarkupStyle(const FFriendsMarkupStyle& InFriendsMarkupStyle);
 };
 
 /** Manages the style which provides resources for the rich text widget. */

@@ -3,7 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsViewModel.h"
 #include "FriendListViewModel.h"
-#include "ClanViewModel.h"
+#include "ClanCollectionViewModel.h"
 #include "SFriendUserHeader.h"
 #include "SFriendsList.h"
 #include "SFriendsListContainer.h"
@@ -31,6 +31,7 @@ public:
 		FriendStyle = *InArgs._FriendStyle;
 		FriendListStyle = FriendStyle.FriendsListStyle;
 		FriendFontStyle =  *InArgs._FontStyle;
+		MaxFriendsNameLength = InArgs._MaxFriendNameLength;
 
 		for (int32 ListIndex = 0; ListIndex < EFriendsDisplayLists::MAX_None; ListIndex++)
 		{
@@ -197,7 +198,16 @@ private:
 			{
 				ViewModel->PerformAction();
 			}
-		}		
+		}
+	}
+
+	void HandleChatTextChanged(const FText& CurrentText)
+	{
+		FString CurrentTextString = CurrentText.ToString();
+		if(CurrentTextString.Len() > MaxFriendsNameLength)
+		{
+			FriendNameTextBox->SetText(FText::FromString(CurrentTextString.Left(MaxFriendsNameLength)));
+		}
 	}
 
 	EVisibility AddFriendBoxVisibility() const
@@ -251,7 +261,7 @@ private:
 
 	TSharedRef<SWidget> GetClanWidget()
 	{
-		return SNew(SClanContainer, ViewModel->GetClanViewModel())
+		return SNew(SClanContainer, ViewModel->GetClanCollectionViewModel())
 		.FriendStyle(&FriendListStyle);
 	}
 
@@ -378,6 +388,7 @@ private:
 								.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
 								.Style(&FriendListStyle.AddFriendEditableTextStyle)
 								.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+								.OnTextChanged(this, &SFriendsContainerImpl::HandleChatTextChanged)
 							]
 						]
 					]
@@ -483,6 +494,9 @@ FSlateColor GetFriendTabTextColor(int32 WidgetIndex) const
 }
 
 private:
+
+	// Max Friend Name Length
+	int32 MaxFriendsNameLength;
 
 	// Holds the Friends List view model
 	TSharedPtr<FFriendsViewModel> ViewModel;

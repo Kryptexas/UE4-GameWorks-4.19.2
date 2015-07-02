@@ -4,7 +4,7 @@
 #include "SClanHome.h"
 #include "SClanList.h"
 #include "SClanListContainer.h"
-#include "ClanViewModel.h"
+#include "ClanCollectionViewModel.h"
 #include "ClanListViewModel.h"
 
 #define LOCTEXT_NAMESPACE ""
@@ -16,7 +16,7 @@ class SClanHomeImpl : public SClanHome
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FClanViewModel>& InViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FClanCollectionViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		ViewModel = InViewModel;
@@ -25,19 +25,35 @@ public:
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
+			.AutoHeight()
 			.Padding(10)
+			[
+				SNew(SButton)
+				.Visibility(this, &SClanHomeImpl::ViewClansVisibility)
+				.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
+				[
+					SNew(STextBlock)
+					.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
+					.ColorAndOpacity(FriendStyle.FriendsNormalFontStyle.DefaultFontColor)
+					.Text(LOCTEXT("ViewClans","View Clans"))
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(10, 10, 30, 0))
 			[
 				SNew(SClanListContainer, InViewModel)
 				.FriendStyle(&FriendStyle)
-				.Visibility(EVisibility::Visible)
+				.Visibility(this, &SClanHomeImpl::ClanListVisibility)
 				.ClanListType(EClanDisplayLists::DefaultDisplay)
 			]
 			+ SVerticalBox::Slot()
-			.Padding(10)
+			.AutoHeight()
+			.Padding(FMargin(10, 10, 30, 0))
 			[
 				SNew(SClanListContainer, InViewModel)
 				.FriendStyle(&FriendStyle)
-				.Visibility(EVisibility::Collapsed)
+				.Visibility(this, &SClanHomeImpl::InviteListVisibility)
 				.ClanListType(EClanDisplayLists::ClanRequestsDisplay)
 			]
 		]);
@@ -45,10 +61,37 @@ public:
 
 private:
 
+	EVisibility ViewClansVisibility() const
+	{
+		if (ViewModel.IsValid() && ViewModel->NumberOfJoinedClans() == 0)
+		{
+			return EVisibility::Visible;
+		}
+		return EVisibility::Collapsed;
+	}
+
+	EVisibility ClanListVisibility() const
+	{
+		if (ViewModel.IsValid() && ViewModel->NumberOfJoinedClans() > 0)
+		{
+			return EVisibility::Visible;
+		}
+		return EVisibility::Collapsed;
+	}
+
+	EVisibility InviteListVisibility() const
+	{
+		if (ViewModel.IsValid() && ViewModel->NumberOfJoinedClans() > 0)
+		{
+			return EVisibility::Visible;
+		}
+		return EVisibility::Collapsed;
+	}
+
 	/** Holds the style to use when making the widget. */
 	FFriendsListStyle FriendStyle;
 
-	TSharedPtr<FClanViewModel> ViewModel;
+	TSharedPtr<FClanCollectionViewModel> ViewModel;
 };
 
 TSharedRef<SClanHome> SClanHome::New()

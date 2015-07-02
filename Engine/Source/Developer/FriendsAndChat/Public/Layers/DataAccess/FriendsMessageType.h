@@ -9,14 +9,15 @@ namespace EChatMessageType
 {
 	enum Type : uint8
 	{
-		Custom = 0,
-		Whisper = 1 << 0,		// Person whisper Item
-		Game = 1 << 1,		// Game Chat Item
-		Global = 1 << 2,		// Global Chat Item
-		Team = 1 << 3,		// Team Chat Item
-		Clan = 1 << 4,		// Clan Chat Item
-		Party = 1 << 5,		// Party Chat Item
-		Invalid = 1 << 6,		// Invalid or max
+		Custom = 0,			// Empty
+		Empty = 1 << 0,		// Person whisper Item
+		Whisper = 1 << 1,		// Person whisper Item
+		Game = 1 << 2,		// Game Chat Item
+		Global = 1 << 3,		// Global Chat Item
+		Team = 1 << 4,		// Team Chat Item
+		Clan = 1 << 5,		// Clan Chat Item
+		Party = 1 << 6,		// Party Chat Item
+		Invalid = 1 << 7,		// Invalid or max
 	};
 
 	/** @return the FTextified version of the enum passed in */
@@ -70,6 +71,7 @@ namespace EChatMessageType
 
 	inline EChatMessageType::Type EnumFromString(FString ShortcutString)
 	{
+		static FString EmptyShortcut = TEXT("/");
 		static FString CustomShortcut = TEXT("/c");
 		static FString WhisperShortcut = TEXT("/w");
 		static FString GameShortcut = TEXT("/i");
@@ -105,6 +107,10 @@ namespace EChatMessageType
 		else if (ShortcutString == PartyShortcut)
 		{
 			return EChatMessageType::Party;
+		}
+		else if( ShortcutString == EmptyShortcut)
+		{
+			return EChatMessageType::Empty;
 		}
 		return EChatMessageType::Invalid;
 	}

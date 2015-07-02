@@ -12,7 +12,7 @@ public:
 	virtual TSharedRef< class FFriendsUserViewModel > GetUserViewModel() = 0;
 	virtual TSharedRef< class FFriendsStatusViewModel > GetStatusViewModel() = 0;
 	virtual TSharedRef< class FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) = 0;
-	virtual TSharedRef< class FClanViewModel > GetClanViewModel() = 0;
+	virtual TSharedRef< class FClanCollectionViewModel > GetClanCollectionViewModel() = 0;
 	virtual void RequestFriend(const FText& FriendName) const = 0;
 	virtual EVisibility GetGlobalChatButtonVisibility() const = 0;
 	virtual void DisplayGlobalChatWindow() const = 0;

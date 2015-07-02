@@ -34,6 +34,7 @@ public class FriendsAndChat : ModuleRules
 				"Developer/FriendsAndChat/Private/Models",
 				"Developer/FriendsAndChat/Private/Core",
 				"Developer/FriendsAndChat/Private/Layers/DataAccess",
+		 		"Developer/FriendsAndChat/Private/Layers/DataAccess/Analytics",
 				"Developer/FriendsAndChat/Private/Layers/Domain",
 				"Developer/FriendsAndChat/Private/Layers/Presentation",
 				"Developer/FriendsAndChat/Private/Layers/UI"

@@ -2,7 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SClanItem.h"
-#include "ClanInfo.h"
+#include "ClanInfoViewModel.h"
 #include "SFriendsAndChatCombo.h"
 
 #define LOCTEXT_NAMESPACE "SClassItem"
@@ -11,10 +11,10 @@ class SClanItemImpl : public SClanItem
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<class IClanInfo>& InClanInfo)
+	void Construct(const FArguments& InArgs, const TSharedRef<FClanInfoViewModel>& InClanInfoViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		ClanInfo = InClanInfo;
+		ClanInfoViewModel = InClanInfoViewModel;
 
 		FFriendsAndChatComboButtonStyle ActionButtonStyle;
 		ActionButtonStyle.ComboButtonStyle = &FriendStyle.FriendsComboStyle.ActionComboButtonStyle;
@@ -79,6 +79,7 @@ public:
 					.Padding(0, 10)
 					[
 						SNew(SButton)
+						.OnClicked(this, &SClanItemImpl::OnOpenClanDetails)
 						.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
 						[
 							SNew(SHorizontalBox)
@@ -114,7 +115,7 @@ public:
 					SNew(STextBlock)
 					.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
 					.ColorAndOpacity(FriendStyle.FriendsNormalFontStyle.DefaultFontColor)
-					.Text(ClanInfo->GetTitle())
+					.Text(ClanInfoViewModel->GetClanTitle())
 				]
 			]
 		]);
@@ -122,10 +123,25 @@ public:
 
 private:
 
+	FReply OnOpenClanDetails()
+	{
+		ClanInfoViewModel->OpenClanDetails().Broadcast(ClanInfoViewModel.ToSharedRef());
+		return FReply::Handled();
+	}
+
 	SFriendsAndChatCombo::FItemsArray GetActionItems() const
 	{
 		SFriendsAndChatCombo::FItemsArray ActionItems;
 		// Need to Add some actions
+
+		TArray<EClanActionType::Type> Actions;
+		ClanInfoViewModel->EnumerateActions(Actions);
+ 
+ 		for (const auto& ClanAction : Actions)
+ 		{
+			ActionItems.AddItem(EClanActionType::ToText(ClanAction), nullptr, FName(*EClanActionType::ToText(ClanAction).ToString()), true);
+ 		}
+
 		return ActionItems;
 	}
 
@@ -149,11 +165,11 @@ private:
 
 	FText GetClanMemberCountText() const
 	{
-		return FText::AsNumber(ClanInfo->GetClanMembersCount());
+		return FText::AsNumber(ClanInfoViewModel->GetMemberCount());
 	}
 
 
-	TSharedPtr<IClanInfo> ClanInfo;
+	TSharedPtr<FClanInfoViewModel> ClanInfoViewModel;
 
 	/** Holds the style to use when making the widget. */
 	FFriendsListStyle FriendStyle;

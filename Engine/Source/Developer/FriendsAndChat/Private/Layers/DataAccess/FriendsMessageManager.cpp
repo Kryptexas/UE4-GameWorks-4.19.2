@@ -4,6 +4,7 @@
 #include "OnlineChatInterface.h"
 #include "ChatItemViewModel.h"
 #include "IChatCommunicationService.h"
+#include "FriendsAndChatAnalytics.h"
 
 #define LOCTEXT_NAMESPACE "FriendsMessageManager"
 // Message expiry time for different message types
@@ -117,14 +118,14 @@ public:
 				ChatItem->ToName = FText::FromString(*FoundFriend->GetName());
 				ChatItem->Message = MessageText;
 				ChatItem->MessageType = EChatMessageType::Whisper;
-				ChatItem->MessageTime = FDateTime::UtcNow();
-				ChatItem->ExpireTime = FDateTime::UtcNow() + FTimespan::FromSeconds(WhisperMessageLifetime);
+				ChatItem->MessageTime = FDateTime::Now();
+				ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(WhisperMessageLifetime);
 				ChatItem->bIsFromSelf = true;
 				ChatItem->SenderId = LoggedInUser;
 				ChatItem->RecipientId = UserID;
 				AddMessage(ChatItem.ToSharedRef());
 				
-				FriendsAndChatManager.Pin()->GetAnalytics().RecordPrivateChat(UserID->ToString());
+				FriendsAndChatManager.Pin()->GetAnalytics()->RecordPrivateChat(UserID->ToString());
 
 				return ChatInterface->SendPrivateChat(*LoggedInUser, *UserID.Get(), MessageText.ToString());
 			}
@@ -138,8 +139,8 @@ public:
 		ChatItem->FromName = FText::FromString("Game");
 		ChatItem->Message = FText::FromString(MsgBody);
 		ChatItem->MessageType = EChatMessageType::Game;
-		ChatItem->MessageTime = FDateTime::UtcNow();
-		ChatItem->ExpireTime = FDateTime::UtcNow() + FTimespan::FromSeconds(GameMessageLifetime);
+		ChatItem->MessageTime = FDateTime::Now();
+		ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(GameMessageLifetime);
 		ChatItem->bIsFromSelf = false;
 		GameMessagesCount++;
 		AddMessage(ChatItem.ToSharedRef());
@@ -281,8 +282,8 @@ private:
 			}
 			ChatItem->Message = FText::FromString(TEXT("entered room"));
 			ChatItem->MessageType = EChatMessageType::Global;
-			ChatItem->MessageTime = FDateTime::UtcNow();
-			ChatItem->ExpireTime = FDateTime::UtcNow() + GlobalMessageLifetime;
+			ChatItem->MessageTime = FDateTime::Now();
+			ChatItem->ExpireTime = FDateTime::Now() + GlobalMessageLifetime;
 			ChatItem->bIsFromSelf = false;
 			GlobalMessagesCount++;
 			AddMessage(ChatItem.ToSharedRef());
@@ -303,8 +304,8 @@ private:
 			}
 			ChatItem->Message = FText::FromString(TEXT("left room"));
 			ChatItem->MessageType = EChatMessageType::Global;
-			ChatItem->MessageTime = FDateTime::UtcNow();
-			ChatItem->ExpireTime = FDateTime::UtcNow() + GlobalMessageLifetime;
+			ChatItem->MessageTime = FDateTime::Now();
+			ChatItem->ExpireTime = FDateTime::Now() + GlobalMessageLifetime;
 			ChatItem->bIsFromSelf = false;
 			GlobalMessagesCount++;
 			AddMessage(ChatItem.ToSharedRef());
@@ -338,8 +339,8 @@ private:
 		}
 		ChatItem->FromName = FText::FromString(*ChatMessage->GetNickname());
 		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
-		ChatItem->MessageTime = ChatMessage->GetTimestamp();
-		ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(GlobalMessageLifetime);
+		ChatItem->MessageTime = FDateTime::Now();
+		ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(GlobalMessageLifetime);
 		ChatItem->bIsFromSelf = *ChatMessage->GetUserId() == *LoggedInUser;
 		ChatItem->SenderId = ChatMessage->GetUserId();
 		ChatItem->RecipientId = nullptr;
@@ -361,8 +362,8 @@ private:
 			ChatItem->RecipientId = LoggedInUser;
 			ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
 			ChatItem->MessageType = EChatMessageType::Whisper;
-			ChatItem->MessageTime = ChatMessage->GetTimestamp();
-			ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(WhisperMessageLifetime);
+			ChatItem->MessageTime = FDateTime::Now();
+			ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(WhisperMessageLifetime);
 			ChatItem->MessageRef = ChatMessage;
 			WhisperMessagesCount++;
 			AddMessage(ChatItem.ToSharedRef());
@@ -397,7 +398,7 @@ private:
 			bool bGameTimeFound = false;
 			bool bPartyTimeFound = false;
 			bool bWhisperFound = false;
-			FDateTime CurrentTime = FDateTime::UtcNow();
+			FDateTime CurrentTime = FDateTime::Now();
 			for(int32 Index = 0; Index < ReceivedMessages.Num(); Index++)
 			{
 				TSharedRef<FFriendChatMessage> Message = ReceivedMessages[Index];

@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
-#include "ClanViewModel.h"
+#include "ClanCollectionViewModel.h"
 #include "ClanListViewModel.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChat"
@@ -10,7 +10,7 @@ class FClanListViewModelImpl : public FClanListViewModel
 {
 public:
 
-	FClanListViewModelImpl(const TSharedRef<FClanViewModel>& InClanViewModel, EClanDisplayLists::Type InListType)
+	FClanListViewModelImpl(const TSharedRef<FClanCollectionViewModel>& InClanViewModel, EClanDisplayLists::Type InListType)
 		: ViewModel(InClanViewModel)
 		, ListType(InListType)
 	{
@@ -21,7 +21,7 @@ public:
 		Uninitialize();
 	}
 
-	virtual const TArray<TSharedRef<IClanInfo>>& GetClanList() const override
+	virtual const TArray<TSharedRef<FClanInfoViewModel>>& GetClanList() const override
 	{
 		return ClanList;
 	}
@@ -75,17 +75,17 @@ private:
 
 
 private:
-	const TSharedRef<FClanViewModel> ViewModel;
+	const TSharedRef<FClanCollectionViewModel> ViewModel;
 	const EClanDisplayLists::Type ListType;
 
 	/** Holds the list of clans. */
-	TArray<TSharedRef<IClanInfo>> ClanList;
+	TArray<TSharedRef<FClanInfoViewModel>> ClanList;
 	FClanListUpdated ClanListUpdatedEvent;
 
 	friend FClanListViewModelFactory;
 };
 
-TSharedRef< FClanListViewModel > FClanListViewModelFactory::Create(const TSharedRef<class FClanViewModel>& ClanViewModel, EClanDisplayLists::Type ListType)
+TSharedRef< FClanListViewModel > FClanListViewModelFactory::Create(const TSharedRef<class FClanCollectionViewModel>& ClanViewModel, EClanDisplayLists::Type ListType)
 {
 	TSharedRef< FClanListViewModelImpl > ViewModel(new FClanListViewModelImpl(ClanViewModel, ListType));
 	ViewModel->Initialize();

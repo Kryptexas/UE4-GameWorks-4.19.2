@@ -6,7 +6,7 @@
 #include "FriendsStatusViewModel.h"
 #include "FriendListViewModel.h"
 #include "FriendsUserViewModel.h"
-#include "ClanViewModel.h"
+#include "ClanCollectionViewModel.h"
 #include "ClanRepository.h"
 #include "IFriendList.h"
 #include "FriendsNavigationService.h"
@@ -41,9 +41,9 @@ public:
 		return FFriendListViewModelFactory::Create(FriendsListFactory->Create(ListType), ListType);
 	}
 
-	virtual TSharedRef< FClanViewModel > GetClanViewModel() override
+	virtual TSharedRef< FClanCollectionViewModel > GetClanCollectionViewModel() override
 	{
-		return FClanViewModelFactory::Create(ClanRepository, FriendsListFactory, FriendsAndChatManager.Pin().ToSharedRef());
+		return FClanCollectionViewModelFactory::Create(ClanRepository, FriendsListFactory, FriendsAndChatManager.Pin().ToSharedRef());
 	}
 
 	virtual void RequestFriend(const FText& FriendName) const override

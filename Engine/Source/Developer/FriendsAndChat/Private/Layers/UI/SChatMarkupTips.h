@@ -7,6 +7,7 @@ class SChatMarkupTips : public SUserWidget
 public:
 	SLATE_USER_ARGS(SChatMarkupTips)
 	{ }
+		SLATE_ARGUMENT(const FFriendsMarkupStyle*, MarkupStyle)
 	SLATE_END_ARGS()
 
 	/**

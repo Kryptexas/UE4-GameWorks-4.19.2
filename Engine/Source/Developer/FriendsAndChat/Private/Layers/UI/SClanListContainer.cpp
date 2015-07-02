@@ -14,7 +14,7 @@ class SClanListContainerImpl : public SClanListContainer
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FClanViewModel>& InViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FClanCollectionViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		ClanListType = InArgs._ClanListType;
@@ -115,7 +115,7 @@ private:
 
 	EVisibility  ClansVisibility;
 
-	TSharedPtr<FClanViewModel> ViewModel;
+	TSharedPtr<FClanCollectionViewModel> ViewModel;
 
 	EPopupMethod MenuMethod;
 
