@@ -4773,74 +4773,6 @@ bool FSlateApplication::OnCursorSet()
 	return true;
 }
 
-FKey TranslateControllerButtonToKey( EControllerButtons::Type Button )
-{
-	FKey Key = EKeys::Invalid;
-
-	switch ( Button )
-	{
-	case EControllerButtons::LeftAnalogY: Key = EKeys::Gamepad_LeftY; break;
-	case EControllerButtons::LeftAnalogX: Key = EKeys::Gamepad_LeftX; break;
-
-	case EControllerButtons::RightAnalogY: Key = EKeys::Gamepad_RightY; break;
-	case EControllerButtons::RightAnalogX: Key = EKeys::Gamepad_RightX; break;
-
-	case EControllerButtons::LeftTriggerAnalog: Key = EKeys::Gamepad_LeftTriggerAxis; break;
-	case EControllerButtons::RightTriggerAnalog: Key = EKeys::Gamepad_RightTriggerAxis; break;
-
-	case EControllerButtons::FaceButtonBottom: Key = EKeys::Gamepad_FaceButton_Bottom; break;
-	case EControllerButtons::FaceButtonRight: Key = EKeys::Gamepad_FaceButton_Right; break;
-	case EControllerButtons::FaceButtonLeft: Key = EKeys::Gamepad_FaceButton_Left; break;
-	case EControllerButtons::FaceButtonTop: Key = EKeys::Gamepad_FaceButton_Top; break;
-
-	case EControllerButtons::LeftShoulder: Key = EKeys::Gamepad_LeftShoulder; break;
-	case EControllerButtons::RightShoulder: Key = EKeys::Gamepad_RightShoulder; break;
-	case EControllerButtons::SpecialLeft: Key = EKeys::Gamepad_Special_Left; break;
-	case EControllerButtons::SpecialRight: Key = EKeys::Gamepad_Special_Right; break;
-	case EControllerButtons::LeftThumb: Key = EKeys::Gamepad_LeftThumbstick; break;
-	case EControllerButtons::RightThumb: Key = EKeys::Gamepad_RightThumbstick; break;
-	case EControllerButtons::LeftTriggerThreshold: Key = EKeys::Gamepad_LeftTrigger; break;
-	case EControllerButtons::RightTriggerThreshold: Key = EKeys::Gamepad_RightTrigger; break;
-
-	case EControllerButtons::DPadUp: Key = EKeys::Gamepad_DPad_Up; break;
-	case EControllerButtons::DPadDown: Key = EKeys::Gamepad_DPad_Down; break;
-	case EControllerButtons::DPadLeft: Key = EKeys::Gamepad_DPad_Left; break;
-	case EControllerButtons::DPadRight: Key = EKeys::Gamepad_DPad_Right; break;
-
-	case EControllerButtons::LeftStickUp: Key = EKeys::Gamepad_LeftStick_Up; break;
-	case EControllerButtons::LeftStickDown: Key = EKeys::Gamepad_LeftStick_Down; break;
-	case EControllerButtons::LeftStickLeft: Key = EKeys::Gamepad_LeftStick_Left; break;
-	case EControllerButtons::LeftStickRight: Key = EKeys::Gamepad_LeftStick_Right; break;
-
-	case EControllerButtons::RightStickUp: Key = EKeys::Gamepad_RightStick_Up; break;
-	case EControllerButtons::RightStickDown: Key = EKeys::Gamepad_RightStick_Down; break;
-	case EControllerButtons::RightStickLeft: Key = EKeys::Gamepad_RightStick_Left; break;
-	case EControllerButtons::RightStickRight: Key = EKeys::Gamepad_RightStick_Right; break;
-
-	case EControllerButtons::Touch0: Key = EKeys::Steam_Touch_0; break;
-	case EControllerButtons::Touch1: Key = EKeys::Steam_Touch_1; break;
-	case EControllerButtons::Touch2: Key = EKeys::Steam_Touch_2; break;
-	case EControllerButtons::Touch3: Key = EKeys::Steam_Touch_3; break;
-	case EControllerButtons::BackLeft: Key = EKeys::Steam_Back_Left; break;
-	case EControllerButtons::BackRight: Key = EKeys::Steam_Back_Right; break;
-
-	case EControllerButtons::GlobalMenu: Key = EKeys::Global_Menu; break;
-	case EControllerButtons::GlobalView: Key = EKeys::Global_View; break;
-	case EControllerButtons::GlobalPause: Key = EKeys::Global_Pause; break;
-	case EControllerButtons::GlobalPlay: Key = EKeys::Global_Play; break;
-	case EControllerButtons::GlobalBack: Key = EKeys::Global_Back; break;
-
-	case EControllerButtons::AndroidBack: Key = EKeys::Android_Back; break;
-	case EControllerButtons::AndroidVolumeUp: Key = EKeys::Android_Volume_Up; break;
-	case EControllerButtons::AndroidVolumeDown: Key = EKeys::Android_Volume_Down; break;
-	case EControllerButtons::AndroidMenu: Key = EKeys::Android_Menu; break;
-
-	case EControllerButtons::Invalid: Key = EKeys::Invalid; break;
-	}
-
-	return Key;
-}
-
 bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget)
 {
 	// Get the controller focus target for this user
@@ -4900,9 +4832,11 @@ bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEven
 	return false;
 }
 
-bool FSlateApplication::OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue )
+bool FSlateApplication::OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue )
 {
-	FKey Key = TranslateControllerButtonToKey(Button);
+	FKey Key(KeyName);
+	check(Key.IsValid());
+
 	int32 UserIndex = GetUserIndexForController(ControllerId);
 	
 	FAnalogInputEvent AnalogInputEvent(Key, PlatformApplication->GetModifierKeys(), UserIndex, false, 0, 0, AnalogValue);
@@ -4910,9 +4844,11 @@ bool FSlateApplication::OnControllerAnalog( EControllerButtons::Type Button, int
 	return ProcessAnalogInputEvent(AnalogInputEvent);
 }
 
-bool FSlateApplication::OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat )
+bool FSlateApplication::OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat )
 {
-	FKey Key = TranslateControllerButtonToKey(Button);
+	FKey Key(KeyName);
+	check(Key.IsValid());
+
 	int32 UserIndex = GetUserIndexForController(ControllerId);
 
 	FKeyEvent KeyEvent(Key, PlatformApplication->GetModifierKeys(), UserIndex, IsRepeat, 0, 0);
@@ -4920,9 +4856,11 @@ bool FSlateApplication::OnControllerButtonPressed( EControllerButtons::Type Butt
 	return ProcessKeyDownEvent(KeyEvent);
 }
 
-bool FSlateApplication::OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat )
+bool FSlateApplication::OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat )
 {
-	FKey Key = TranslateControllerButtonToKey(Button);
+	FKey Key(KeyName);
+	check(Key.IsValid());
+
 	int32 UserIndex = GetUserIndexForController(ControllerId);
 	
 	FKeyEvent KeyEvent(Key, PlatformApplication->GetModifierKeys(),UserIndex, IsRepeat,  0, 0);

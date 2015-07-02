@@ -381,8 +381,8 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 			// Assume that joystick size is all equal
 			float JoystickInputSize = Control.ThumbPosition.Size() * 2.f / Control.CorrectedVisualSize.X;
 			FVector2D NormalizedOffset = Control.ThumbPosition.GetSafeNormal() * Control.CorrectedInputScale * JoystickInputSize;
-			EControllerButtons::Type XAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogX : EControllerButtons::RightAnalogX;
-			EControllerButtons::Type YAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogY : EControllerButtons::RightAnalogY;
+			const FGamepadKeyNames::Type XAxis = ControlIndex == 0 ? FGamepadKeyNames::LeftAnalogX : FGamepadKeyNames::RightAnalogX;
+			const FGamepadKeyNames::Type YAxis = ControlIndex == 0 ? FGamepadKeyNames::LeftAnalogY : FGamepadKeyNames::RightAnalogY;
 
 	//		UE_LOG(LogTemp, Log, TEXT("Joysticking %f,%f"), NormalizedOffset.X, -NormalizedOffset.Y);
 			FSlateApplication::Get().SetAllUserFocusToGameViewport();

@@ -24,71 +24,46 @@ namespace EMouseButtons
 	};
 }
 
-
-namespace EControllerButtons
+struct CORE_API FGamepadKeyNames
 {
-	enum Type
-	{
-		LeftAnalogY = 0,
-		LeftAnalogX,
-		
-		RightAnalogY,
-		RightAnalogX,
+	typedef FName Type;
 
-		LeftTriggerAnalog,
-		RightTriggerAnalog,
+	static const FName Invalid;
 
-		FaceButtonBottom,
-		FaceButtonRight,
-		FaceButtonLeft,
-		FaceButtonTop,
-		LeftShoulder,
-		RightShoulder,
-		SpecialLeft,
-		SpecialRight,
-		LeftThumb,
-		RightThumb,
-		LeftTriggerThreshold,
-		RightTriggerThreshold,
-		DPadUp,
-		DPadDown,
-		DPadLeft,
-		DPadRight,
+	static const FName LeftAnalogX;
+	static const FName LeftAnalogY;
+	static const FName RightAnalogX;
+	static const FName RightAnalogY;
+	static const FName LeftTriggerAnalog;
+	static const FName RightTriggerAnalog;
 
-		LeftStickUp,
-		LeftStickDown,
-		LeftStickLeft,
-		LeftStickRight,
+	static const FName LeftThumb;
+	static const FName RightThumb;
+	static const FName SpecialLeft;
+	static const FName SpecialRight;
+	static const FName FaceButtonBottom;
+	static const FName FaceButtonRight;
+	static const FName FaceButtonLeft;
+	static const FName FaceButtonTop;
+	static const FName LeftShoulder;
+	static const FName RightShoulder;
+	static const FName LeftTriggerThreshold;
+	static const FName RightTriggerThreshold;
+	static const FName DPadUp;
+	static const FName DPadDown;
+	static const FName DPadRight;
+	static const FName DPadLeft;
 
-		RightStickUp,
-		RightStickDown,
-		RightStickLeft,
-		RightStickRight,
+	static const FName LeftStickUp;
+	static const FName LeftStickDown;
+	static const FName LeftStickRight;
+	static const FName LeftStickLeft;
 
-		// Steam Controller
-		Touch0,
-		Touch1,
-		Touch2,
-		Touch3,
-		BackLeft,
-		BackRight,
-
-		// global speech commands
-		GlobalMenu,
-		GlobalView,
-		GlobalPause,
-		GlobalPlay,
-		GlobalBack,
-
-		AndroidBack,
-		AndroidVolumeUp,
-		AndroidVolumeDown,
-		AndroidMenu,
-
-		Invalid,
-	};
-}
-
+	static const FName RightStickUp;
+	static const FName RightStickDown;
+	static const FName RightStickRight;
+	static const FName RightStickLeft;
+};
 
 namespace EWindowActivation
 {
@@ -254,21 +229,21 @@ public:
 		return false;
 	}
 
-	virtual bool OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue )
+	virtual bool OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue )
 	{
 		return false;
 	}
 
-	virtual bool OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat )
+	virtual bool OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat )
 	{
 		return false;
 	}
 
-	virtual bool OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat )
+	virtual bool OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat )
 	{
 		return false;
 	}
-    
+
     virtual void OnBeginGesture()
     {
     }

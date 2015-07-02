@@ -14,7 +14,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogSteamVRController, Log, All);
 //
 #define TOUCHPAD_DEADZONE  0.0f
 
-
+namespace SteamVRControllerKeyNames
+{
+	const FGamepadKeyNames::Type Touch0("Steam_Touch_0");
+	const FGamepadKeyNames::Type Touch1("Steam_Touch_1");
+	const FGamepadKeyNames::Type BackLeft("Steam_Back_Left");
+	const FGamepadKeyNames::Type BackRight("Steam_Back_Right");
+}
 
 class FSteamVRController : public IInputDevice
 {
@@ -90,27 +96,27 @@ public:
 		InitialButtonRepeatDelay = 0.2f;
 		ButtonRepeatDelay = 0.1f;
 
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::System ] = EControllerButtons::SpecialLeft;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::ApplicationMenu ] = EControllerButtons::LeftShoulder;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadPress ] = EControllerButtons::LeftThumb;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadTouch ] = EControllerButtons::Touch0;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TriggerPress ] = EControllerButtons::LeftTriggerThreshold;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::Grip ] = EControllerButtons::BackLeft;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadUp ] = EControllerButtons::LeftStickUp;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadDown ] = EControllerButtons::LeftStickDown;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadLeft ] = EControllerButtons::LeftStickLeft;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadRight ] = EControllerButtons::LeftStickRight;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::System ] = FGamepadKeyNames::SpecialLeft;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::LeftShoulder;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadPress ] = FGamepadKeyNames::LeftThumb;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadTouch ] = SteamVRControllerKeyNames::Touch0;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::LeftTriggerThreshold;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::Grip ] = SteamVRControllerKeyNames::BackLeft;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::LeftStickUp;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::LeftStickDown;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::LeftStickLeft;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::LeftStickRight;
 
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::System ] = EControllerButtons::SpecialRight;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::ApplicationMenu ] = EControllerButtons::RightShoulder;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadPress ] = EControllerButtons::RightThumb;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadTouch ] = EControllerButtons::Touch1;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TriggerPress ] = EControllerButtons::RightTriggerThreshold;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::Grip ] = EControllerButtons::BackRight;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadUp ] = EControllerButtons::RightStickUp;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadDown ] = EControllerButtons::RightStickDown;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadLeft ] = EControllerButtons::RightStickLeft;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = EControllerButtons::RightStickRight;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::System ] = FGamepadKeyNames::SpecialRight;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::RightShoulder;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadPress ] = FGamepadKeyNames::RightThumb;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadTouch ] = SteamVRControllerKeyNames::Touch1;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::RightTriggerThreshold;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::Grip ] = SteamVRControllerKeyNames::BackRight;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::RightStickUp;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::RightStickDown;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::RightStickLeft;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::RightStickRight;
 	}
 
 	virtual ~FSteamVRController()
@@ -199,19 +205,19 @@ public:
 
 						if ( ControllerState.TouchPadXAnalog != VRControllerState.rAxis[TOUCHPAD_AXIS].x)
 						{
-							MessageHandler->OnControllerAnalog(EControllerButtons::LeftAnalogX, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].x);
+							MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftAnalogX, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].x);
 							ControllerState.TouchPadXAnalog = VRControllerState.rAxis[TOUCHPAD_AXIS].x;
 						}
 
 						if ( ControllerState.TouchPadYAnalog != VRControllerState.rAxis[TOUCHPAD_AXIS].y)
 						{
-							MessageHandler->OnControllerAnalog(EControllerButtons::LeftAnalogY, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].y);
+							MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftAnalogY, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].y);
 							ControllerState.TouchPadYAnalog = VRControllerState.rAxis[TOUCHPAD_AXIS].y;
 						}
 
 						if ( ControllerState.TriggerAnalog != VRControllerState.rAxis[TRIGGER_AXIS].x)
 						{
-							MessageHandler->OnControllerAnalog(EControllerButtons::LeftTriggerAnalog, ControllerIndex, VRControllerState.rAxis[TRIGGER_AXIS].x);
+							MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftTriggerAnalog, ControllerIndex, VRControllerState.rAxis[TRIGGER_AXIS].x);
 							ControllerState.TriggerAnalog = VRControllerState.rAxis[TRIGGER_AXIS].x;
 						}
 
@@ -401,7 +407,7 @@ private:
 	float ButtonRepeatDelay;
 
 	/** Mapping of controller buttons */
-	EControllerButtons::Type Buttons[ (int32)EControllerHand::TotalHandCount ][ ESteamVRControllerButton::TotalButtonCount ];
+	FGamepadKeyNames::Type Buttons[ (int32)EControllerHand::TotalHandCount ][ ESteamVRControllerButton::TotalButtonCount ];
 
 	/** handler to send all messages to */
 	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;

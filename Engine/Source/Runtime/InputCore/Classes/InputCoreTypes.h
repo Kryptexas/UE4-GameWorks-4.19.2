@@ -307,7 +307,7 @@ struct INPUTCORE_API EKeys
 	// On Macs, the Delete key is the virtual key for BackSpace.
 	static const FKey Platform_Delete;
 
-	// Gameplay Keys
+	// Gamepad Keys
 	static const FKey Gamepad_LeftX;
 	static const FKey Gamepad_LeftY;
 	static const FKey Gamepad_RightX;

@@ -202,7 +202,7 @@ private:
 	static FAndroidControllerData OldControllerData[MAX_NUM_CONTROLLERS];
 	static FAndroidControllerData NewControllerData[MAX_NUM_CONTROLLERS];
 
-	static EControllerButtons::Type ButtonMapping[MAX_NUM_CONTROLLER_BUTTONS];
+	static FGamepadKeyNames::Type ButtonMapping[MAX_NUM_CONTROLLER_BUTTONS];
 
 	static float InitialButtonRepeatDelay;
 	static float ButtonRepeatDelay;
