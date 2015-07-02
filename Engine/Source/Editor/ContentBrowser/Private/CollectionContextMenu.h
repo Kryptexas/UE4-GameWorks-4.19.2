@@ -15,7 +15,7 @@ public:
 	TSharedPtr<SWidget> MakeCollectionTreeContextMenu(TSharedPtr< FUICommandList > InCommandList);
 
 	/** Makes the new collection submenu */
-	void MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder);
+	void MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder, TOptional<FCollectionNameType> ParentCollection);
 
 	/** Makes the collection share type submenu */
 	void MakeCollectionShareTypeSubMenu(FMenuBuilder& MenuBuilder);
@@ -32,7 +32,7 @@ protected:
 
 private:
 	/** Handler for when a collection is selected in the "New" menu */
-	void ExecuteNewCollection(ECollectionShareType::Type CollectionType);
+	void ExecuteNewCollection(ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection);
 
 	/** Handler for when a collection share type is changed in the "Share Type" menu */
 	void ExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType);
@@ -53,7 +53,7 @@ private:
 	void ExecutePickColor();
 
 	/** Handler to check to see if "New Collection" can be executed */
-	bool CanExecuteNewCollection(ECollectionShareType::Type CollectionType) const;
+	bool CanExecuteNewCollection(ECollectionShareType::Type CollectionType, bool bIsValidChildType) const;
 
 	/** Handler to check to see if a entry in the "Share Type" menu can be executed */
 	bool CanExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType) const;

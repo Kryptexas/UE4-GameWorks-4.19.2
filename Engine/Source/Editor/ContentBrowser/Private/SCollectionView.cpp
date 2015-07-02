@@ -677,7 +677,7 @@ FReply SCollectionView::MakeAddCollectionMenu()
 
 	CollectionContextMenu->UpdateProjectSourceControl();
 
-	CollectionContextMenu->MakeNewCollectionSubMenu(MenuBuilder);
+	CollectionContextMenu->MakeNewCollectionSubMenu(MenuBuilder, TOptional<FCollectionNameType>());
 
 	FSlateApplication::Get().PushMenu(
 		AsShared(),
@@ -707,7 +707,7 @@ EVisibility SCollectionView::GetAddCollectionButtonVisibility() const
 	return (bAllowCollectionButtons && ( !CollectionsExpandableAreaPtr.IsValid() || CollectionsExpandableAreaPtr->IsExpanded() ) ) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SCollectionView::CreateCollectionItem( ECollectionShareType::Type CollectionType )
+void SCollectionView::CreateCollectionItem( ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection )
 {
 	if ( ensure(CollectionType != ECollectionShareType::CST_All) )
 	{
@@ -720,6 +720,19 @@ void SCollectionView::CreateCollectionItem( ECollectionShareType::Type Collectio
 
 		// Adding a new collection now, so clear any filter we may have applied
 		SearchBoxPtr->SetText(FText::GetEmpty());
+
+		if ( ParentCollection.IsSet() )
+		{
+			TSharedPtr<FCollectionItem> ParentCollectionItem = AvailableCollections.FindRef(ParentCollection.GetValue());
+			if ( ParentCollectionItem.IsValid() )
+			{
+				ParentCollectionItem->ChildCollections.Add(NewItem);
+				NewItem->ParentCollection = ParentCollectionItem;
+
+				// Make sure the parent is expanded so we can see its newly added child item
+				CollectionTreePtr->SetItemExpansion(ParentCollectionItem, true);
+			}
+		}
 
 		// Mark the new collection for rename and that it is new so it will be created upon successful rename
 		NewItem->bRenaming = true;
@@ -1239,8 +1252,16 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 	if ( CollectionItem->bNewCollection )
 	{
 		CollectionItem->bNewCollection = false;
+		
+		// Cache this here as CreateCollection will invalidate the current parent pointer
+		TOptional<FCollectionNameType> NewCollectionParentKey;
+		TSharedPtr<FCollectionItem> ParentCollectionItem = CollectionItem->ParentCollection.Pin();
+		if ( ParentCollectionItem.IsValid() )
+		{
+			NewCollectionParentKey = FCollectionNameType(ParentCollectionItem->CollectionName, ParentCollectionItem->CollectionType);
+		}
 
-		// If we can canceled the name change when creating a new asset, we want to silently remove it
+		// If we canceled the name change when creating a new asset, we want to silently remove it
 		if ( !bChangeConfirmed )
 		{
 			AvailableCollections.Remove(FCollectionNameType(CollectionItem->CollectionName, CollectionItem->CollectionType));
@@ -1256,6 +1277,12 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 
 			OutWarningMessage = FText::Format( LOCTEXT("CreateCollectionFailed", "Failed to create the collection. {0}"), CollectionManagerModule.Get().GetLastError());
 			return false;
+		}
+
+		if ( NewCollectionParentKey.IsSet() )
+		{
+			// Try and set the parent correctly (if this fails for any reason, the collection will still be added, but will just appear at the root)
+			CollectionManagerModule.Get().ReparentCollection(NewNameFinal, CollectionType, NewCollectionParentKey->Name, NewCollectionParentKey->Type);
 		}
 	}
 	else

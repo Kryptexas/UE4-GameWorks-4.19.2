@@ -50,12 +50,15 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionTreeContextMenu(TShare
 
 	MenuBuilder.BeginSection("CollectionOptions", LOCTEXT("CollectionListOptionsMenuHeading", "Collection Options"));
 	{
-		// New... (submenu)
-		MenuBuilder.AddSubMenu(
-			LOCTEXT("NewCollection", "New..."),
-			LOCTEXT("NewCollectionTooltip", "Create a collection."),
-			FNewMenuDelegate::CreateRaw( this, &FCollectionContextMenu::MakeNewCollectionSubMenu )
-			);
+		if ( SelectedCollections.Num() == 1 )
+		{
+			// New... (submenu)
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("NewChildCollection", "New..."),
+				LOCTEXT("NewChildCollectionTooltip", "Create child a collection."),
+				FNewMenuDelegate::CreateRaw( this, &FCollectionContextMenu::MakeNewCollectionSubMenu, TOptional<FCollectionNameType>( FCollectionNameType( SelectedCollections[0]->CollectionName, SelectedCollections[0]->CollectionType ) ) )
+				);
+		}
 
 		// Only add rename/delete if at least one collection is selected
 		if ( SelectedCollections.Num() )
@@ -125,37 +128,42 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionTreeContextMenu(TShare
 	return MenuBuilder.MakeWidget();
 }
 
-void FCollectionContextMenu::MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder)
+void FCollectionContextMenu::MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder, TOptional<FCollectionNameType> ParentCollection)
 {
-	MenuBuilder.BeginSection("CollectionNewCollection", LOCTEXT("NewCollectionMenuHeading", "New Collection"));
+	const FText MenuHeading = (ParentCollection.IsSet()) ? LOCTEXT("NewChildCollectionMenuHeading", "New Child Collection"): LOCTEXT("NewCollectionMenuHeading", "New Collection");
+
+	MenuBuilder.BeginSection("CollectionNewCollection", MenuHeading);
 	{
+		const bool bCanCreateSharedChildren = !ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( ParentCollection->Type, ECollectionShareType::CST_Shared );
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Shared", "Shared Collection"),
 			LOCTEXT("NewCollection_SharedTooltip", "Create a collection that can be seen by anyone."),
 			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Shared ) ),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Shared ),
-				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Shared )
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Shared, ParentCollection ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Shared, bCanCreateSharedChildren )
 				)
 			);
 
+		const bool bCanCreatePrivateChildren = !ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( ParentCollection->Type, ECollectionShareType::CST_Private );
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Private", "Private Collection"),
 			LOCTEXT("NewCollection_PrivateTooltip", "Create a collection that can only be seen by you."),
 			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Private ) ),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Private ),
-				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Private )
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Private, ParentCollection ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Private, bCanCreatePrivateChildren )
 				)
 			);
 
+		const bool bCanCreateLocalChildren = !ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( ParentCollection->Type, ECollectionShareType::CST_Local );
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Local", "Local Collection"),
 			LOCTEXT("NewCollection_LocalTooltip", "Create a collection that is not in source control and can only be seen by you."),
 			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Local ) ),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Local ),
-				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Local )
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Local, ParentCollection ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Local, bCanCreateLocalChildren )
 				)
 			);
 	}
@@ -285,14 +293,14 @@ bool FCollectionContextMenu::CanRenameSelectedCollections() const
 	return false;
 }
 
-void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type CollectionType)
+void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection)
 {
 	if ( !ensure(CollectionView.IsValid()) )
 	{
 		return;
 	}
 
-	CollectionView.Pin()->CreateCollectionItem(CollectionType);
+	CollectionView.Pin()->CreateCollectionItem(CollectionType, ParentCollection);
 }
 
 void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType)
@@ -407,9 +415,9 @@ void FCollectionContextMenu::ExecutePickColor()
 	OpenColorPicker(PickerArgs);
 }
 
-bool FCollectionContextMenu::CanExecuteNewCollection(ECollectionShareType::Type CollectionType) const
+bool FCollectionContextMenu::CanExecuteNewCollection(ECollectionShareType::Type CollectionType, bool bIsValidChildType) const
 {
-	return (CollectionType == ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
+	return bIsValidChildType && (CollectionType == ECollectionShareType::CST_Local || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable()));
 }
 
 bool FCollectionContextMenu::CanExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType) const

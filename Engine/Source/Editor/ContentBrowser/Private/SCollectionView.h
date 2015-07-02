@@ -94,7 +94,7 @@ private:
 	EVisibility GetAddCollectionButtonVisibility() const;
 	
 	/** Sets up an inline creation process for a new collection of the specified type */
-	void CreateCollectionItem( ECollectionShareType::Type CollectionType );
+	void CreateCollectionItem( ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection );
 
 	/** Sets up an inline rename for the specified collection */
 	void RenameCollectionItem( const TSharedPtr<FCollectionItem>& ItemToRename );
