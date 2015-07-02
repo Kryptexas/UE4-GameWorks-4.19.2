@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2520034
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:ビークル ユーザー ガイド
 Crumbs:%ROOT%
@@ -55,7 +55,7 @@ Navigation:topic
 
 ## Vehicle のブループリントを作成する
 
-新規 **Vehicle ブループリント** を作成するには、以下の手順に従います。**[コンテンツ ブラウザ]** で、以下の順序でクリックします。**New** ボタン -> **Blueprint** -> "vehicle" を検索し、次に、リストから **[WheeledVehicle]** をクリックします。
+新規 **Vehicle ブループリント** を作成するには、以下の手順に従います。**[コンテンツ ブラウザ]** で、以下の順序でクリックします。**[New]** ボタン -> **Blueprint** -> 「vehicle」を検索し、次に、リストから **[WheeledVehicle]** をクリックします。
 
 [REGION:raw]
 ![](newVehicle.png)(convert:false)
@@ -63,7 +63,7 @@ Navigation:topic
 
 ## Wheel ブループリントを作成する
 
-新規 **Wheel ブループリント** を作成するには、以下の手順に従います。**[コンテンツ ブラウザ]** で、以下の順序でクリックします。**[New]** ボタン -> **Blueprint** -> 続いて「vehicle」を検索します。次に、リストから **[VehicleWheel]** を選択します。前輪と後輪の車輪タイプを選ぶように、少なくとも上記の手順を 1 回繰り返します。
+新規 **Vehicle ブループリント** を作成するには、以下の手順に従います。**[コンテンツ ブラウザ]** で、以下の順序でクリックします。**[New]** ボタン -> **Blueprint** -> 「vehicle」を検索し、次に、リストから **[WheeledVehicle]** をクリックします。前輪と後輪の車輪タイプを選ぶように、少なくとも上記の手順を 1 回繰り返します。
 
 [REGION:raw]
 ![](newWheels.png)(convert:false)
@@ -74,7 +74,7 @@ Navigation:topic
 
 ## TireType のデータアセットを作成する
 
-**コンテンツ ブラウザ** で新規 **TireType のデータアセット** を作成するには、以下の順序で選択します。**[New]** ボタン-> **Misc** -> **Data Asset** -> **TireType** を選択します。-> **[Select]** ボタンをクリックします。
+**コンテンツ ブラウザ** で新規 **TireType のデータアセット** を作成するには、以下の順序で選択します。**[New]** ボタン-> **Misc** -> **Data Asset** -> **TireType** を選択し **[Select]** ボタンをクリックします。
 
 [REGION:raw]
 ![](newDataAsset.png)(convert:false)
@@ -169,7 +169,7 @@ Navigation:topic
 	[/REGION]
 
 
-上記の 5 つは各車輪に対して変更する必要があるものです。それ以外のプロパティは、ビークルの動き方を変えるものであり、ビークルのテストを開始後に微調整できます。
+上記 5 つのプロパティを、各車輪に対して変更する必要があります。それ以外のプロパティは、ビークルの動き方を変えるものであり、ビークルのテストを開始後に微調整できます。
 
 ## Vehicle のブループリントを編集する
 
@@ -197,11 +197,11 @@ Navigation:topic
 
 	![](cameraPlacement.png)
 
-1. 以下の順序で、 **Camera Settings** -> **Use Controller View Rotation** を無効にします。これにより、カメラをプレイヤー コントローラの方向ではなく視線方向にロックします。
+1. 以下の順序で、 **Camera Settings** (カメラ設定) -> **Use Controller View Rotation** を無効にします。これにより、カメラをプレイヤー コントローラの方向ではなく視線方向にロックします。
 
 	![](cameraControllerOff.png)
 
-1. **デフォル トモード** の、**Vehicle Setup** カテゴリで [Wheel Setups] を展開します。
+1. **デフォル トモード** の、**Vehicle Setup** (ビークル設定) カテゴリで [Wheel Setups (車輪設定)] を展開します。
 
 	![](defaultsMode.png)
 
@@ -226,7 +226,7 @@ Navigation:topic
 
 ## テスト
 
-テストのためにビークルをセットアップするには、2、3の方法があります。いくつかの手順は、どのテンプレートで開始したかによって変わります。
+テストのためにビークルをセットアップするには、2、3 の方法があります。いくつかの手順は、どのテンプレートで開始したかによって変わります。
 
 1. コントロール
 
@@ -234,7 +234,7 @@ Navigation:topic
 	![](input.png)
 	[/REGION]
 
-	1. **[Project Settings]** -> **[Input]**
+	1. **[Project Settings]** (プロジェクト設定) -> **[Input]** (入力)
 	1. **Axis Mappings** プロパティの隣にある "**+**" 記号をクリックして、**Axis Mappings** を追加します。
 	1. 軸マッピングを展開します。
 	1. 軸マッピングを "None" から **Forward** に名前変更します。
@@ -272,7 +272,7 @@ Navigation:topic
 		![](defaultPawnClass.png)
 		[/REGION]
 
-1. **[World Settings]** -> **[Game Mode]** -> **[Gamemode Override]** をご自身のゲームモードに設定します。
+1. **[World Settings]** (ワールド設定) -> **[Game Mode]** -> **[Gamemode Override]** (ゲームモードをオーバーライド) をご自身のゲームモードに設定します。
 
 	[REGION:raw]
 	![](setGameMode.png)
@@ -310,6 +310,11 @@ Navigation:topic
 	[/REGION]
 
 	上記で設定した軸と Axis と Action Bindings を前提に、**W** はスロットルを強め、**S** はブレーキを適用し、**A** は左折、**D** は右折、**Space Bar** はハンドブレーキを適用します。
+
+
+
+
+
 
 
 
