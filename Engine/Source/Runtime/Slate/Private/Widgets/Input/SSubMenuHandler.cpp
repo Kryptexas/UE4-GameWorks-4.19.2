@@ -62,7 +62,6 @@ void SSubMenuHandler::OnMouseEnter( const FGeometry& MyGeometry, const FPointerE
 
 	if (MenuAnchor.IsValid())
 	{
-		TSharedPtr< SMenuOwner > PinnedMenuOwnerWidget( MenuOwnerWidget.Pin() );
 		check( PinnedMenuOwnerWidget.IsValid() );
 
 		// Do we have a different pull-down menu open?
