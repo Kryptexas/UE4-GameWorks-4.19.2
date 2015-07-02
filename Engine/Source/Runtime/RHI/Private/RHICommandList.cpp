@@ -1401,10 +1401,20 @@ void* FRHICommandList::operator new(size_t Size)
 	//return FMemory::Malloc(Size);
 }
 
-/**
- * Custom delete
- */
 void FRHICommandList::operator delete(void *RawMemory)
+{
+	check(RawMemory != (void*) &GRHICommandList.GetImmediateCommandList());
+	RHICommandListAllocator.Free(RawMemory);
+	//FMemory::Free(RawMemory);
+}	
+
+void* FRHICommandListBase::operator new(size_t Size)
+{
+	check(0); // you shouldn't be creating these
+	return nullptr;
+}
+
+void FRHICommandListBase::operator delete(void *RawMemory)
 {
 	check(RawMemory != (void*) &GRHICommandList.GetImmediateCommandList());
 	RHICommandListAllocator.Free(RawMemory);

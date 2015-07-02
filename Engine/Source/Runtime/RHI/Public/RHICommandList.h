@@ -108,6 +108,10 @@ public:
 	FRHICommandListBase();
 	~FRHICommandListBase();
 
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void *RawMemory);
+
 	inline void Flush();
 	inline bool IsImmediate();
 	const int32 GetUsedMemory() const;

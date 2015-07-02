@@ -315,6 +315,7 @@ public:
 	FRHICommandListImmediate& ParentCmdList;
 	FSceneRenderTargets* Snapshot;
 	int32 Width;
+	int32 NumAlloc;
 	int32 MinDrawsPerCommandList;
 	bool bBalanceCommands;
 	bool bSpewBalance;
