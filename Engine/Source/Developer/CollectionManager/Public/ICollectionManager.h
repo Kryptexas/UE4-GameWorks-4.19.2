@@ -61,6 +61,9 @@ public:
 	/** Creates a unique collection name for the given type taking the form BaseName+(unique number) */
 	virtual void CreateUniqueCollectionName(const FName& BaseName, ECollectionShareType::Type ShareType, FName& OutCollectionName) const = 0;
 
+	/** Returns whether or not the given collection name is valid. If false, GetLastError will return a human readable string description of the error. */
+	virtual bool IsValidCollectionName(const FString& CollectionName, ECollectionShareType::Type ShareType) const = 0;
+
 	/**
 	  * Adds a collection to the asset registry. A .collection file will be added to disk.
 	  *

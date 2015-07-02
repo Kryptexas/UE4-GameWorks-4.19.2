@@ -397,6 +397,40 @@ void FCollectionManager::CreateUniqueCollectionName(const FName& BaseName, EColl
 	while (CollectionAlreadyExists);
 }
 
+bool FCollectionManager::IsValidCollectionName(const FString& CollectionName, ECollectionShareType::Type ShareType) const
+{
+	// Make sure we are not creating an FName that is too large
+	if (CollectionName.Len() > NAME_SIZE)
+	{
+		LastError = LOCTEXT("Error_CollectionNameTooLong", "This collection name is too long. Please choose a shorter name.");
+		return false;
+	}
+
+	const FName CollectionNameFinal = *CollectionName;
+
+	// Make sure the we actually have a new name set
+	if (CollectionNameFinal.IsNone())
+	{
+		LastError = LOCTEXT("Error_CollectionNameEmptyOrNone", "This collection name cannot be empty or 'None'.");
+		return false;
+	}
+
+	// Make sure the new name only contains valid characters
+	if (!CollectionNameFinal.IsValidXName(INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &LastError))
+	{
+		return false;
+	}
+
+	// Make sure we're not duplicating an existing collection name
+	if (CollectionExists(CollectionNameFinal, ShareType))
+	{
+		LastError = FText::Format(LOCTEXT("Error_CollectionAlreadyExists", "A collection already exists with the name '{0}'."), FText::FromName(CollectionNameFinal));
+		return false;
+	}
+
+	return true;
+}
+
 bool FCollectionManager::CreateCollection(FName CollectionName, ECollectionShareType::Type ShareType)
 {
 	if (!ensure(ShareType < ECollectionShareType::CST_All))

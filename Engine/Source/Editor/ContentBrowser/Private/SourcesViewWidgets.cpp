@@ -355,8 +355,6 @@ void SCollectionTreeItem::Construct( const FArguments& InArgs )
 			]
 
 			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
 			[
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
 				.Text( this, &SCollectionTreeItem::GetNameText )

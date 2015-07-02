@@ -1332,22 +1332,17 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 
 bool SCollectionView::CollectionVerifyRenameCommit(const TSharedPtr< FCollectionItem >& CollectionItem, const FString& NewName, const FSlateRect& MessageAnchor, FText& OutErrorMessage)
 {
-	const FName NewNameFinal = *NewName;
-
 	// If the new name is the same as the old name, consider this to be unchanged, and accept it.
-	if (CollectionItem->CollectionName == NewNameFinal)
+	if (CollectionItem->CollectionName.ToString() == NewName)
 	{
 		return true;
 	}
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
-	if (CollectionManagerModule.Get().CollectionExists(NewNameFinal, ECollectionShareType::CST_All))
+	if (!CollectionManagerModule.Get().IsValidCollectionName(NewName, ECollectionShareType::CST_Shared))
 	{
-		// This collection already exists, inform the user and continue
-		OutErrorMessage = FText::Format(LOCTEXT("RenameCollectionAlreadyExists", "A collection already exists with the name '{0}'."), FText::FromName(NewNameFinal));
-
-		// Return false to indicate that the user should enter a new name
+		OutErrorMessage = CollectionManagerModule.Get().GetLastError();
 		return false;
 	}
 
