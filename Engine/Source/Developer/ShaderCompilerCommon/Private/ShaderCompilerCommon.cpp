@@ -445,15 +445,29 @@ namespace CrossCompiler
 		}
 
 		// Read shader name if any
-		ANSICHAR const* ShaderName = nullptr;
-		uint32 ShaderNameLen = 0;
-		while (FCStringAnsi::Strncmp(ShaderSource, "// !", 4) == 0)
+		if (FCStringAnsi::Strncmp(ShaderSource, "// !", 4) == 0)
 		{
-			ShaderName = ShaderSource;
+			ShaderSource += 4;
 			while (*ShaderSource && *ShaderSource != '\n')
 			{
 				Name += (TCHAR)*ShaderSource;
 				++ShaderSource;
+			}
+
+			if (*ShaderSource == '\n')
+			{
+				++ShaderSource;
+			}
+		}
+
+		// Skip any comments that come before the signature.
+		while (FCStringAnsi::Strncmp(ShaderSource, "//", 2) == 0 &&
+			FCStringAnsi::Strncmp(ShaderSource + 2, " @", 2) != 0)
+		{
+			ShaderSource += 2;
+			while (*ShaderSource && *ShaderSource++ != '\n')
+			{
+				// Do nothing
 			}
 		}
 
@@ -907,6 +921,22 @@ namespace CrossCompiler
 				}
 
 				SamplerStates.Add(SamplerState);
+
+				// Break if EOL
+				if (Match(ShaderSource, '\n'))
+				{
+					break;
+				}
+
+				// Has to be a comma!
+				if (Match(ShaderSource, ','))
+				{
+					continue;
+				}
+
+				//#todo-rco: Need a log here
+				//UE_LOG(ShaderCompilerCommon, Warning, TEXT("Invalid char '%c'"), *ShaderSource);
+				return false;
 			}
 		}
 

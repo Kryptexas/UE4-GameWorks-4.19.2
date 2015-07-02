@@ -180,7 +180,7 @@ namespace CCT
 				UE_LOG(LogCrossCompilerTool, Error, TEXT("Bad hlslcc header found"));
 			}
 
-			if (*USFSource != '#')
+			if (Language == &GlslLanguage && *USFSource != '#')
 			{
 				UE_LOG(LogCrossCompilerTool, Error, TEXT("Bad hlslcc header found! Missing '#'!"));
 			}
