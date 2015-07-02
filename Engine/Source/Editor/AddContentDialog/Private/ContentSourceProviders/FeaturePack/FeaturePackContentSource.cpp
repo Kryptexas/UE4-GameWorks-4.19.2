@@ -14,6 +14,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogFeaturePack, Log, All);
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
 bool TryValidateTranslatedValue(TSharedPtr<FJsonValue> TranslatedValue, TSharedPtr<FString>& ErrorMessage)
 {
 	if (TranslatedValue.IsValid() == false)
@@ -467,5 +469,7 @@ FLocalizedTextArray FFeaturePackContentSource::ChooseLocalizedTextArray(TArray<F
 	}
 	return Default;
 }
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 #undef LOCTEXT_NAMESPACE 
