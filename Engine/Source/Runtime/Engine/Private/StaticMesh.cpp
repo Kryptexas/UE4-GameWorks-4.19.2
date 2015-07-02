@@ -1024,6 +1024,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bRecomputeTangents;
 	Ar << BuildSettings.bUseMikkTSpace;
 	Ar << BuildSettings.bRemoveDegenerates;
+	Ar << BuildSettings.bBuildAdjacencyBuffer;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
 
@@ -1955,6 +1956,27 @@ void UStaticMesh::PostLoad()
 		for (int32 i = 0; i < SourceModels.Num(); ++i)
 		{
 			SourceModels[i].BuildSettings.bUseMikkTSpace = true;
+		}
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_BUILD_MESH_ADJ_BUFFER_FLAG_EXPOSED)
+	{
+		FRawMesh TempRawMesh;
+		uint32 TotalIndexCount = 0;
+
+		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		{
+			FRawMeshBulkData* RawMeshBulkData = SourceModels[i].RawMeshBulkData;
+			if (RawMeshBulkData)
+			{
+				RawMeshBulkData->LoadRawMesh(TempRawMesh);
+				TotalIndexCount += TempRawMesh.WedgeIndices.Num();
+			}
+		}
+
+		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		{
+			SourceModels[i].BuildSettings.bBuildAdjacencyBuffer = (TotalIndexCount < 50000);
 		}
 	}
 

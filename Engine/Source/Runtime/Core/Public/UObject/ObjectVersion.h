@@ -554,8 +554,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_NAVIGATION_AGENT_SELECTOR,
 	// Mesh particle collisions consider particle size.
 	VER_UE4_MESH_PARTICLE_COLLISIONS_CONSIDER_PARTICLE_SIZE,
-
-
+	// Adjacency buffer building no longer automatically handled based on triangle count, user-controlled
+	VER_UE4_BUILD_MESH_ADJ_BUFFER_FLAG_EXPOSED,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
