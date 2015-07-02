@@ -1109,7 +1109,7 @@ public:
 	/* Helper function to look at both IsMasked and IsDitheredLODTransition to determine if it writes every pixel */
 	ENGINE_API bool WritesEveryPixel() const
 	{
-		return !IsMasked() && !IsDitheredLODTransition();
+		return !IsMasked() && !IsDitheredLODTransition() && !IsWireframe();
 	}
 
 	/** 
