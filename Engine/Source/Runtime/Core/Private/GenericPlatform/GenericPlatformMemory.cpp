@@ -34,11 +34,23 @@ FGenericPlatformMemoryStats::FGenericPlatformMemoryStats()
 
 bool FGenericPlatformMemory::bIsOOM = false;
 
+/**
+ * Value determined by series of tests on Fortnite with limited process memory.
+ * 26MB sufficed to report all test crashes, using 32MB to have some slack.
+ * If this pool is too large, use the following values to determine proper size:
+ * 2MB pool allowed to report 78% of crashes.
+ * 6MB pool allowed to report 90% of crashes.
+ */
+uint32 FGenericPlatformMemory::BackupOOMMemoryPoolSize = 32 * 1024 * 1024;
+void* FGenericPlatformMemory::BackupOOMMemoryPool = nullptr;
+
 void FGenericPlatformMemory::SetupMemoryPools()
 {
 	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_GPU, 0); // "unlimited" GPU memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_TexturePool, 0); // "unlimited" Texture memory, we still need to make this call to set the short name, etc
+
+	BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(BackupOOMMemoryPoolSize);
 }
 
 void FGenericPlatformMemory::Init()
@@ -50,7 +62,13 @@ void FGenericPlatformMemory::Init()
 void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 {
 	// Update memory stats before we enter the crash handler.
+
 	bIsOOM = true;
+	if (BackupOOMMemoryPool)
+	{
+		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool);
+		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), BackupOOMMemoryPoolSize);
+	}
 	UE_LOG(LogMemory, Fatal, TEXT("Ran out of memory allocating %llu bytes with alignment %u"), Size, Alignment);
 }
 
