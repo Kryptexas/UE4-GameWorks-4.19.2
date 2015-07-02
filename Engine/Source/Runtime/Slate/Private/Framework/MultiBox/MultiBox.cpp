@@ -773,46 +773,6 @@ void SMultiBoxWidget::BuildMultiBoxWidget()
 
 }
 
-
-void SMultiBoxWidget::SetSummonedMenu( TSharedRef< SMenuAnchor > InMenuAnchor )
-{
-	SummonedMenuAnchor = InMenuAnchor;
-}
-
-	
-/**
- * For menu bar multibox widgets, returns the currently open pull-down menu, if there is one open
- *
- * @return	Pull-down menu anchor, or null pointer
- */
-TSharedPtr< const SMenuAnchor > SMultiBoxWidget::GetOpenMenu() const
-{
-	if( SummonedMenuAnchor.IsValid() && SummonedMenuAnchor.Pin()->IsOpen() )
-	{
-		return SummonedMenuAnchor.Pin();
-	}
-
-	// No open menus
-	return TSharedPtr< SMenuAnchor >();
-}
-
-
-
-/**
- * For menu bar multibox widget, closes any open pull-down menus
- */
-void SMultiBoxWidget::CloseSummonedMenus()
-{
-	if( GetOpenMenu().IsValid() )
-	{
-		SummonedMenuAnchor.Pin()->SetIsOpen( false );
-
-		// Menu was closed, so we no longer need a weak reference to it
-		SummonedMenuAnchor = NULL;
-	}
-}
-
-
 TSharedRef<SWidget> SMultiBoxWidget::OnWrapButtonClicked()
 {
 	FMenuBuilder MenuBuilder(true, NULL, TSharedPtr<FExtender>(), false, GetStyleSet());
@@ -1090,3 +1050,4 @@ FReply SMultiBoxWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent&
 
 	return FReply::Unhandled();
 }
+

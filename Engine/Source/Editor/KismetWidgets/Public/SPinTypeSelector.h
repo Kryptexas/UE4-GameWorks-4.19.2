@@ -114,7 +114,7 @@ protected:
 	void GetTypeChildren(FPinTypeTreeItem InItem, TArray<FPinTypeTreeItem>& OutChildren);
 
 	/** Reference to the menu content that's displayed when the type button is clicked on */
-	TSharedPtr<SWidget> MenuContent;
+	TSharedPtr<SMenuOwner> MenuContent;
 	virtual TSharedRef<SWidget>	GetMenuContent();
 
 	/** Type searching support */
@@ -138,4 +138,25 @@ protected:
 
 	/** Callback to get the tooltip for the array button widget */
 	FText GetToolTipForArrayWidget() const;
+
+	/**
+	 * Helper function to add an object reference menu entry to a MenuBuilder
+	 *
+	 * @param InOutMenuBuilder		Menu builder to add the menu entry to
+	 * @param InItem				Tree item to use for the callback when a menu item is selected
+	 * @param InPinType				Pin type for generation of the widget to display for the menu entry
+	 * @param InIconBrush			Brush icon to use for the menu entry item
+	 */
+	void AddObjectReferenceMenuEntry(FMenuBuilder& InOutMenuBuilder, FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush) const;
+
+	/** Gets the allowable object types for an tree item, used for building the sub-menu */
+	TSharedRef< SWidget > GetAllowedObjectTypes(FPinTypeTreeItem InItem) const;
+	
+	/**
+	 * When a pin type is selected, handle it
+	 *
+	 * @param InItem				Item selected
+	 * @param InPinCategory			This is the PinType's category, must be provided separately as the PinType in the tree item is always Object Types for any object related type.
+	 */
+	void OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory);
 };

@@ -424,7 +424,7 @@ protected:
  * MultiBox Slate widget
  */
 class SLATE_API SMultiBoxWidget
-	: public SCompoundWidget
+	: public SMenuOwner
 {
 
 public:
@@ -469,28 +469,6 @@ public:
 	 * Builds this MultiBox widget up from the MultiBox associated with it
 	 */
 	void BuildMultiBoxWidget();
-
-	
-	/**
-	 * For menu bar multibox widgets, tells the multibox widget about a currently active pull-down menu
-	 *
-	 * @param	InMenuAnchor	Menu anchor for active pull-down menu or sub-menu
-	 */
-	void SetSummonedMenu( TSharedRef< SMenuAnchor > InMenuAnchor );
-	
-
-	/**
-	 * For menu bar or sub-menu multibox widgets, returns the currently open menu, if there is one open
-	 *
-	 * @return	Menu anchor, or null pointer
-	 */
-	TSharedPtr< const SMenuAnchor > GetOpenMenu() const;
-
-	/**
-	 * For menu bar multibox widget, closes any open pull-down or sub menus
-	 */
-	void CloseSummonedMenus();
-	
 
 	/** Generates the tiles for an STileView for button rows */
 	TSharedRef<ITableRow> GenerateTiles(TSharedPtr<SWidget> Item, const TSharedRef<STableViewBase>& OwnerTable);
@@ -584,9 +562,6 @@ private:
 	
 	/** The MultiBox we're associated with */
 	TSharedPtr< FMultiBox > MultiBox;
-
-	/** For menu bar multibox widgets, this stores a weak reference to the last pull-down or sub-menu that was summoned. */
-	TWeakPtr< SMenuAnchor > SummonedMenuAnchor;
 
 	/** An array of widgets used for an STileView if used */
 	TArray< TSharedPtr<SWidget> > TileViewWidgets;

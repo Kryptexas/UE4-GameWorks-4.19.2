@@ -453,6 +453,8 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 
 void STableViewBase::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+
 	bStartedTouchInteraction = false;
 	if(this->HasMouseCapture() == false)
 	{

@@ -66,6 +66,7 @@ class FGenericCommands;
 #include "SUniformGridPanel.h"
 #include "SMenuAnchor.h"
 #include "MultiBoxDefs.h"
+#include "SMenuOwner.h"
 ////
 #include "MultiBox.h"
 ////

@@ -194,6 +194,16 @@ struct FBlueprintCallableFunctionRedirect
 	FString ClassParamName;
 };
 
+enum class EObjectReferenceType : uint8
+{
+	NotAnObject		= 0x00,
+	ObjectReference = 0x01,
+	ClassReference	= 0x02,
+	AssetID			= 0x04,
+	ClassAssetID	= 0x08,
+	AllTypes		= 0x0f,
+};
+
 struct FTypesDatabase;
 
 UCLASS(config=Editor)
@@ -273,33 +283,28 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	// ID for checking dirty status of node titles against, increases every compile
 	static int32 CurrentCacheRefreshID;
 
+	// Pin Selector category for all object types
+	static const FString AllObjectTypes;
+
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
 
 public:
+
 	//////////////////////////////////////////////////////////////////////////
 	// FPinTypeInfo
 	/** Class used for creating type tree selection info, which aggregates the various PC_* and PinSubtypes in the schema into a heirarchy */
 	class BLUEPRINTGRAPH_API FPinTypeTreeInfo
 	{
 	private:
-		FPinTypeTreeInfo()
-			: bReadOnly(false)
-		{
-		}
-
-		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly, FTypesDatabase* TypesDatabase);
-	
-	private:
 		/** The pin type corresponding to the schema type */
 		FEdGraphPinType PinType;
+		uint8 PossibleObjectReferenceTypes;
 
 		/** Asset Reference, used when PinType.PinSubCategoryObject is not loaded yet */
 		FStringAssetReference SubCategoryObjectAssetReference;
 
 		FText CachedDescription;
-
-		FText GenerateDescription();
 
 	public:
 		/** The children of this pin type */
@@ -322,9 +327,8 @@ public:
 		}
 
 		FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false, FTypesDatabase* TypesDatabase = nullptr);
-		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false, uint8 InPossibleObjectReferenceTypes = 0);
+		FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false, uint8 InPossibleObjectReferenceTypes = 0);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
@@ -334,6 +338,7 @@ public:
 			Tooltip = InInfo->Tooltip;
 			SubCategoryObjectAssetReference = InInfo->SubCategoryObjectAssetReference;
 			CachedDescription = InInfo->CachedDescription;
+			PossibleObjectReferenceTypes = InInfo->PossibleObjectReferenceTypes;
 		}
 		
 		/** Returns a succinct menu description of this type */
@@ -353,6 +358,22 @@ public:
 			}
 			return Tooltip;
 		}
+
+		uint8 GetPossibleObjectReferenceTypes() const
+		{
+			return PossibleObjectReferenceTypes;
+		}
+
+	private:
+
+		FPinTypeTreeInfo()
+			: PossibleObjectReferenceTypes(0)
+			, bReadOnly(false)
+		{}
+
+		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly, FTypesDatabase* TypesDatabase);
+
+		FText GenerateDescription();
 	};
 
 public:
@@ -802,7 +823,7 @@ public:
 	 * @param	bAllowExec		Whether or not to add the exec type to the type tree
 	 * @param	bAllowWildcard	Whether or not to add the wildcard type to the type tree
 	 */
-	void GetVariableTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard ) const;
+	void GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard) const;
 
 	/**
 	 * Get the type tree for the index property types valid for this schema
@@ -972,6 +993,8 @@ public:
 	static void GetReplaceVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, bool bReplaceExistingVariable = false);
 
 private:
+
+	void GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildCard, bool bIndexTypesOnly) const;
 
 	/**
 	 * Returns true if the specified function has any out parameters

@@ -6,10 +6,59 @@
 #include "IDocumentation.h"
 #include "Editor/UnrealEd/Public/SListViewSelectorDropdownMenu.h"
 #include "SSearchBox.h"
+#include "SSubMenuHandler.h"
 
 #define LOCTEXT_NAMESPACE "PinTypeSelector"
 
 static const FString BigTooltipDocLink = TEXT("Shared/Editor/Blueprint/VariableTypes");
+
+class SPinTypeRow : public SComboRow<FPinTypeTreeItem>
+{
+public:
+	SLATE_BEGIN_ARGS( SPinTypeRow )
+	{}
+		SLATE_DEFAULT_SLOT( FArguments, Content )
+		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
+	SLATE_END_ARGS()
+public:
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakPtr<SMenuOwner> InMenuOwner)
+	{
+		SComboRow<FPinTypeTreeItem>::Construct( SComboRow<FPinTypeTreeItem>::FArguments()
+			.ToolTip(InArgs._ToolTip)
+			[
+				SAssignNew(SubMenuHandler, SSubMenuHandler, InMenuOwner)
+				.OnGetMenuContent(InArgs._OnGetMenuContent)
+				.MenuContent(nullptr)
+				[
+					InArgs._Content.Widget
+				]
+			],
+			InOwnerTable);
+	}
+
+	// SWidget interface
+	virtual bool IsHovered() const override
+	{
+		return SComboRow<FPinTypeTreeItem>::IsHovered() || SubMenuHandler.Pin()->ShouldSubMenuAppearHovered();
+	}
+	// End of SWidget interface
+
+	/** Returns TRUE if there is a Sub-Menu to open */
+	bool HasSubMenu() const
+	{
+		return SubMenuHandler.Pin()->HasSubMenu();
+	}
+
+	/** Forces the sub-menu open, clobbering any other open ones in the process */
+	void RequestSubMenuToggle()
+	{
+		SubMenuHandler.Pin()->RequestSubMenuToggle(true, true);
+	}
+
+private:
+	/** The Sub-MenuHandler which is managing the sub-menu content so that mousing over other rows will not close the sub-menus immediately */
+	TWeakPtr<SSubMenuHandler> SubMenuHandler;
+};
 
 void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPinTypeTreeFunc)
 {
@@ -176,29 +225,148 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 
 	const FString PinTooltipExcerpt = ((PinType.PinCategory != UEdGraphSchema_K2::PC_Byte || PinType.PinSubCategoryObject == nullptr) ? PinType.PinCategory : TEXT("Enum")); 
 
-	return SNew( SComboRow<FPinTypeTreeItem>, OwnerTree )
+	// If there is a sub-menu for this pin type, we need to bind the function to handle the sub-menu
+	FOnGetContent OnGetContent;
+	if (InItem->GetPossibleObjectReferenceTypes() != static_cast<uint8>(EObjectReferenceType::NotAnObject))
+	{
+		OnGetContent.BindSP(this, &SPinTypeSelector::GetAllowedObjectTypes, InItem);
+	}
+
+	TSharedPtr< SHorizontalBox > HorizontalBox;
+	TSharedRef< ITableRow > ReturnWidget = SNew( SPinTypeRow, OwnerTree, MenuContent )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( Tooltip, NULL, *BigTooltipDocLink, PinTooltipExcerpt) )
+		.OnGetMenuContent(OnGetContent)
 		[
-			SNew(SHorizontalBox)
+			SAssignNew(HorizontalBox, SHorizontalBox)
+			+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(1.f)
+			[
+				SNew(SImage)
+					.Image(IconBrush)
+					.ColorAndOpacity(Schema->GetPinTypeColor(PinType))
+					.Visibility( InItem->bReadOnly ? EVisibility::Collapsed : EVisibility::Visible )
+			]
+			+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(1.f)
+			[
+				SNew(STextBlock)
+					.Text(Description)
+					.HighlightText(SearchText)
+					.Font( bHasChildren ? FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.CategoryFont")) : FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.NormalFont")) )
+			]
+		];
+
+	// Add a sub-menu indicator arrow to inform the user that there are sub-items to be displayed
+	if (OnGetContent.IsBound())
+	{
+		HorizontalBox->AddSlot()
+			.FillWidth(1.0f)
+			.VAlign( VAlign_Center )
+			.HAlign( HAlign_Right )
+			[
+				SNew( SBox )
+				.Padding(FMargin(7,0,0,0))
+				[
+					SNew( SImage )
+					.Image( FEditorStyle::Get().GetBrush( "ToolBar.SubMenuIndicator" ) )
+				]
+			];
+	}
+
+	return ReturnWidget;
+}
+
+void SPinTypeSelector::AddObjectReferenceMenuEntry(FMenuBuilder& InOutMenuBuilder, FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush) const
+{
+	InOutMenuBuilder.AddMenuEntry(
+		FUIAction(
+		FExecuteAction::CreateSP(this, &SPinTypeSelector::OnSelectPinType, InItem, InPinType.PinCategory)
+		),
+		// Contents
+		SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(1.f)
 			[
 				SNew(SImage)
-				.Image(IconBrush)
-				.ColorAndOpacity(Schema->GetPinTypeColor(PinType))
-				.Visibility( InItem->bReadOnly ? EVisibility::Collapsed : EVisibility::Visible )
+				.Image(InIconBrush)
+				.ColorAndOpacity(Schema->GetPinTypeColor(InPinType))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(1.f)
 			[
 				SNew(STextBlock)
-				.Text(Description)
-				.HighlightText(SearchText)
-				.Font( bHasChildren ? FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.CategoryFont")) : FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.NormalFont")) )
+				.Text(UEdGraphSchema_K2::GetCategoryText(InPinType.PinCategory))
+				.Font(FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.NormalFont")) )
 			]
-		];
+		);
+}
+
+TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem InItem) const
+{
+	FMenuBuilder MenuBuilder( false, MakeShareable(new FUICommandList) );
+
+	// Do not force the pin type here, that causes a load of the Blueprint (if unloaded)
+	FEdGraphPinType PinType = InItem->GetPinType(false);
+	const FSlateBrush* IconBrush = GetIconFromPin(PinType);
+
+	uint8 PossibleObjectReferenceTypes = InItem->GetPossibleObjectReferenceTypes();
+
+	// Per each object reference type, change the category to the type and add a menu entry (this will get the color to be correct)
+
+	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ObjectReference))
+	{
+		PinType.PinCategory = UEdGraphSchema_K2::PC_Object;
+		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush);
+	}
+
+	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ClassReference))
+	{
+		PinType.PinCategory = UEdGraphSchema_K2::PC_Class;
+		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush);
+	}
+
+	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::AssetID))
+	{
+		PinType.PinCategory = UEdGraphSchema_K2::PC_Asset;
+		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush);
+	}
+
+	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ClassAssetID))
+	{
+		PinType.PinCategory = UEdGraphSchema_K2::PC_AssetClass;
+		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush);
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory)
+{
+	const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Paramater Type") );
+
+	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
+	//Call delegate in order to notify pin type change is about to happen
+	OnTypePreChanged.ExecuteIfBound(NewTargetPinType);
+
+	const FEdGraphPinType& SelectionPinType = InItem->GetPinType(true);
+
+	// Change the pin's type
+	NewTargetPinType.PinCategory = InPinCategory;
+	NewTargetPinType.PinSubCategory = SelectionPinType.PinSubCategory;
+	NewTargetPinType.PinSubCategoryObject = SelectionPinType.PinSubCategoryObject;
+
+	TypeComboButton->SetIsOpen(false);
+
+	if( NewTargetPinType.PinCategory == Schema->PC_Exec )
+	{
+		NewTargetPinType.bIsArray = false;
+	}
+
+	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
 
 void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type SelectInfo)
@@ -214,27 +382,16 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 	{
 		if( !Selection->bReadOnly )
 		{
-			const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Paramater Type") );
-			
-			FEdGraphPinType NewTargetPinType = TargetPinType.Get();
-			//Call delegate in order to notify pin type change is about to happen
-			OnTypePreChanged.ExecuteIfBound(NewTargetPinType);
-
-			const FEdGraphPinType& SelectionPinType = Selection->GetPinType(true);
-
-			// Change the pin's type
-			NewTargetPinType.PinCategory = SelectionPinType.PinCategory;
-			NewTargetPinType.PinSubCategory = SelectionPinType.PinSubCategory;
-			NewTargetPinType.PinSubCategoryObject = SelectionPinType.PinSubCategoryObject;
-
-			TypeComboButton->SetIsOpen(false);
-
-			if( NewTargetPinType.PinCategory == Schema->PC_Exec )
+			// Unless mouse clicking on an item with a sub-menu, all attempts to auto-select should open the sub-menu
+			TSharedPtr<SPinTypeRow> PinRow = StaticCastSharedPtr<SPinTypeRow>(TypeTreeView->WidgetFromItem(Selection));
+			if (SelectInfo != ESelectInfo::OnMouseClick && PinRow.IsValid() && PinRow->HasSubMenu())
 			{
-				NewTargetPinType.bIsArray = false;
+				PinRow->RequestSubMenuToggle();
 			}
-
-			OnTypeChanged.ExecuteIfBound(NewTargetPinType);
+			else
+			{
+				OnSelectPinType(Selection, Selection->GetPossibleObjectReferenceTypes() == static_cast<uint8>(EObjectReferenceType::AllTypes)? Schema->PC_Object : Selection->GetPinType(false).PinCategory);
+			}
 		}
 		else
 		{
@@ -295,26 +452,29 @@ TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent()
 			.OnTextChanged( this, &SPinTypeSelector::OnFilterTextChanged )
 			.OnTextCommitted( this, &SPinTypeSelector::OnFilterTextCommitted );
 
-		MenuContent = SNew(SListViewSelectorDropdownMenu<FPinTypeTreeItem>, FilterTextBox, TypeTreeView)
+		MenuContent = SNew(SMenuOwner)
 			[
-				SNew( SVerticalBox )
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(4.f, 4.f, 4.f, 4.f)
+				SNew(SListViewSelectorDropdownMenu<FPinTypeTreeItem>, FilterTextBox, TypeTreeView)
 				[
-					FilterTextBox.ToSharedRef()
-				]
-				+SVerticalBox::Slot()
+					SNew( SVerticalBox )
+					+SVerticalBox::Slot()
 					.AutoHeight()
 					.Padding(4.f, 4.f, 4.f, 4.f)
 					[
-						SNew(SBox)
-						.HeightOverride(TreeViewHeight)
-						.WidthOverride(TreeViewWidth)
-						[
-							TypeTreeView.ToSharedRef()
-						]
+						FilterTextBox.ToSharedRef()
 					]
+					+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(4.f, 4.f, 4.f, 4.f)
+						[
+							SNew(SBox)
+							.HeightOverride(TreeViewHeight)
+							.WidthOverride(TreeViewWidth)
+							[
+								TypeTreeView.ToSharedRef()
+							]
+						]
+				]
 			];
 			
 
@@ -511,6 +671,7 @@ FReply SPinTypeSelector::OnMouseButtonUp( const FGeometry& MyGeometry, const FPo
 
 void SPinTypeSelector::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
+	SCompoundWidget::OnMouseLeave(MouseEvent);
 	bIsRightMousePressed = false;
 }
 
