@@ -104,6 +104,91 @@ FString UEnum::GenerateFullEnumName(const TCHAR* InEnumName) const
 	return (CppForm != ECppForm::Regular) ? GenerateFullEnumName(this, InEnumName) : InEnumName;
 }
 
+FName UEnum::GetNameByIndex(int8 Index) const
+{
+	if (Names.IsValidIndex(Index))
+	{
+		return Names[Index].Key;
+	}
+
+	return NAME_None;
+}
+
+int8 UEnum::GetValueByIndex(int8 Index) const
+{
+	check(Names.IsValidIndex(Index));
+	return Names[Index].Value;
+}
+
+FName UEnum::GetNameByValue(int8 InValue) const
+{
+	for (TPair<FName, int8> Kvp : Names)
+	{
+		if (Kvp.Value == InValue)
+		{
+			return Kvp.Key;
+		}
+	}
+
+	return NAME_None;
+}
+
+int8 UEnum::GetValueByName(FName InName)
+{
+	for (TPair<FName, int8> Kvp : Names)
+	{
+		if (Kvp.Key == InName)
+		{
+			return Kvp.Value;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+int32 UEnum::GetIndexByName(FName Name) const
+{
+	int32 Count = Names.Num();
+	for (int32 Counter = 0; Counter < Count; ++Counter)
+	{
+		if (Names[Counter].Key == Name)
+		{
+			return Counter;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+int8 UEnum::GetMaxEnumValue() const
+{
+	int8 MaxValue = -1;
+	if (Names.Num() > 0)
+	{
+		MaxValue = Names[0].Value;
+	}
+
+	for (const auto& Pair : Names)
+	{
+		if (Pair.Value > MaxValue)
+		{
+			MaxValue = Pair.Value;
+		}
+	}
+
+	return MaxValue;
+}
+
+FString UEnum::GenerateFullEnumName(const UEnum* InEnum, const TCHAR* InEnumName)
+{
+	if (InEnum->GetCppForm() == ECppForm::Regular || IsFullEnumName(InEnumName))
+	{
+		return InEnumName;
+	}
+
+	return FString::Printf(TEXT("%s::%s"), *InEnum->GetName(), InEnumName);
+}
+
 void UEnum::AddNamesToMasterList()
 {
 	for (TPair<FName, int8> Kvp : Names)
@@ -187,6 +272,40 @@ FString UEnum::GenerateEnumPrefix() const
 		Prefix = GetName();
 	}
 	return Prefix;
+}
+
+FString UEnum::GetEnumName(int32 InIndex) const
+{
+	if (Names.IsValidIndex(InIndex))
+	{
+		if (CppForm == ECppForm::Regular)
+		{
+			return GetNameByIndex(InIndex).ToString();
+		}
+
+		// Strip the namespace from the name.
+		FString EnumName(GetNameByIndex(InIndex).ToString());
+		int32 ScopeIndex = EnumName.Find(TEXT("::"), ESearchCase::CaseSensitive);
+		if (ScopeIndex != INDEX_NONE)
+		{
+			return EnumName.Mid(ScopeIndex + 2);
+		}
+	}
+	return FName(NAME_None).ToString();
+}
+
+FText UEnum::GetEnumText(int32 InIndex) const
+{
+#if WITH_EDITOR
+	//@todo These values should be properly localized [9/24/2013 justin.sargent]
+	FText LocalizedDisplayName = GetDisplayNameText(InIndex);
+	if(!LocalizedDisplayName.IsEmpty())
+	{
+		return LocalizedDisplayName;
+	}
+#endif
+
+	return FText::FromString( GetEnumName(InIndex) );
 }
 
 int32 UEnum::FindEnumIndex(FName InName) const
@@ -517,6 +636,39 @@ void UEnum::RemoveMetaData( const TCHAR* Key, int32 NameIndex/*=INDEX_NONE*/) co
 }
 
 #endif
+
+int32 UEnum::LookupEnumName(FName TestName, UEnum** FoundEnum)
+{
+	UEnum* TheEnum = AllEnumNames.FindRef(TestName);
+	if (FoundEnum != nullptr)
+	{
+		*FoundEnum = TheEnum;
+	}
+	return (TheEnum != nullptr) ? TheEnum->GetIndexByName(TestName) : INDEX_NONE;
+}
+
+int32 UEnum::LookupEnumNameSlow(const TCHAR* InTestShortName, UEnum** FoundEnum)
+{
+	int32 EnumIndex = LookupEnumName(InTestShortName, FoundEnum);
+	if (EnumIndex == INDEX_NONE)
+	{
+		FString TestShortName = FString(TEXT("::")) + InTestShortName;
+		UEnum* TheEnum = NULL;
+		for (TMap<FName, UEnum*>::TIterator It(AllEnumNames); It; ++It)
+		{
+			if (It.Key().ToString().Contains(TestShortName) )
+			{
+				TheEnum = It.Value();
+			}
+		}
+		if (FoundEnum != NULL)
+		{
+			*FoundEnum = TheEnum;
+		}
+		EnumIndex = (TheEnum != NULL) ? TheEnum->FindEnumIndex(InTestShortName) : INDEX_NONE;
+	}
+	return EnumIndex;
+}
 
 int32 UEnum::ParseEnum(const TCHAR*& Str)
 {
