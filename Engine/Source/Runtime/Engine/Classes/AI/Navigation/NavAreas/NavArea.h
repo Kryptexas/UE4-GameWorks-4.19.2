@@ -75,6 +75,7 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 
 	FORCEINLINE uint16 GetAreaFlags() const { return AreaFlags; }
 	FORCEINLINE bool HasFlags(uint16 InFlags) const { return (InFlags & AreaFlags) != 0; }

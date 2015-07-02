@@ -67,6 +67,16 @@ void UNavArea::PostLoad()
 	}
 }
 
+void UNavArea::Serialize(FArchive& Ar)
+{
+	if (Ar.IsSaving() && !SupportedAgents.IsInitialized())
+	{
+		SupportedAgents.MarkInitialized();
+	}
+		
+	Super::Serialize(Ar);
+}
+
 FColor UNavArea::GetColor(UClass* AreaDefinitionClass)
 {
 	return AreaDefinitionClass ? AreaDefinitionClass->GetDefaultObject<UNavArea>()->DrawColor : FColor::Black;
