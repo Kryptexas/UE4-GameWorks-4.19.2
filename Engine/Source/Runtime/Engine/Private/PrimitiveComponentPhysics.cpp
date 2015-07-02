@@ -298,8 +298,7 @@ void UPrimitiveComponent::SetPhysicsLinearVelocity(FVector NewVel, bool bAddToCu
 
 FVector UPrimitiveComponent::GetPhysicsLinearVelocity(FName BoneName)
 {
-	FBodyInstance* BI = GetBodyInstance(BoneName);
-	if(BI != NULL)
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		return BI->GetUnrealWorldVelocity();
 	}
@@ -308,8 +307,7 @@ FVector UPrimitiveComponent::GetPhysicsLinearVelocity(FName BoneName)
 
 FVector UPrimitiveComponent::GetPhysicsLinearVelocityAtPoint(FVector Point, FName BoneName)
 {
-	FBodyInstance* BI = GetBodyInstance(BoneName);
-	if (BI != NULL)
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		return BI->GetUnrealWorldVelocityAtPoint(Point);
 	}
@@ -490,8 +488,7 @@ void UPrimitiveComponent::SetAllMassScale(float InMassScale)
 
 void UPrimitiveComponent::SetMassOverrideInKg(FName BoneName, float MassInKg, bool bOverrideMass)
 {
-	FBodyInstance* BI = GetBodyInstance(BoneName);
-	if (BI)
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("SetCenterOfMass", "SetCenterOfMass"), nullptr);
 		BI->bOverrideMass = bOverrideMass;
@@ -885,8 +882,7 @@ float UPrimitiveComponent::GetClosestPointOnCollision(const FVector& Point, FVec
 {
 	OutPointOnBody = Point;
 
-	FBodyInstance* BodyInst = GetBodyInstance(BoneName);
-	if (BodyInst != NULL)
+	if (FBodyInstance* BodyInst = GetBodyInstance(BoneName))
 	{
 		return BodyInst->GetDistanceToBody(Point, OutPointOnBody);
 	}
