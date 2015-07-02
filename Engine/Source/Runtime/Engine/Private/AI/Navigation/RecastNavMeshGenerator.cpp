@@ -3160,6 +3160,7 @@ void FRecastNavMeshGenerator::UpdateNavigationBounds()
 {
 	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	const TSet<FNavigationBounds>& NavigationBoundsSet = NavSys->GetNavigationBounds();
+	const int32 AgentIndex = NavSys->GetSupportedAgentIndex(DestNavMesh);
 
 	TotalNavBounds = FBox(0);
 	InclusionBounds.Empty(NavigationBoundsSet.Num());
@@ -3169,8 +3170,11 @@ void FRecastNavMeshGenerator::UpdateNavigationBounds()
 	{
 		for (const auto& NavigationBounds : NavigationBoundsSet)
 		{
-			InclusionBounds.Add(NavigationBounds.AreaBox);
-			TotalNavBounds+= NavigationBounds.AreaBox;
+			if (NavigationBounds.SupportedAgents.Contains(AgentIndex))
+			{
+				InclusionBounds.Add(NavigationBounds.AreaBox);
+				TotalNavBounds += NavigationBounds.AreaBox;
+			}
 		}
 	}
 	else
