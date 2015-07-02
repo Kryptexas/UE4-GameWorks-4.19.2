@@ -144,6 +144,10 @@ public:
 	UPROPERTY(replicated)
 	uint32 bTearOff:1;    
 
+	/** Networking - Server - TearOff this actor to stop replication to clients. Will set bTearOff to true. */
+	UFUNCTION(BlueprintCallable, Category = Replication)
+	virtual void TearOff();
+
 	/**
 	 * Whether we have already exchanged Role/RemoteRole on the client, as when removing then re-adding a streaming level.
 	 * Causes all initialization to be performed again even though the actor may not have actually been reloaded.

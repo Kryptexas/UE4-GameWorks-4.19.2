@@ -1699,6 +1699,16 @@ void AActor::Destroyed()
 	}
 }
 
+void AActor::TearOff()
+{
+	const ENetMode NetMode = GetNetMode();
+
+	if (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer)
+	{
+		bTearOff = true;
+	}
+}
+
 void AActor::TornOff() {}
 
 void AActor::Reset()
