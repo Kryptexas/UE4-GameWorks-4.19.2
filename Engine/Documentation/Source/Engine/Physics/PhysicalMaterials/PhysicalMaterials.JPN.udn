@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2033300
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:物理マテリアル
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -57,3 +57,8 @@ Description:シミュレーションする物理プロパティの設定およ�
 		* [](Engine/Physics/PhysicalMaterials/PhysMatReference "%Engine/Physics/PhysicalMaterials/PhysMatReference:description%")
 	[/PARAM]
 [/OBJECT]
+
+
+
+
+
