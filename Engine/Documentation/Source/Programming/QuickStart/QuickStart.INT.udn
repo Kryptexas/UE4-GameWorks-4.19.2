@@ -2,6 +2,7 @@ Availability: Public
 Title:Programming Quick Start
 Crumbs:%ROOT%, Programming
 Description:Create your first code project and add a new C++ class.
+prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.8
 

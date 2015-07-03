@@ -2,6 +2,10 @@ Availability:Docs
 Title:Drag-and-Drop Import
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import content by dragging and dropping files into your Content Browser.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
 
@@ -48,7 +52,7 @@ After locating your content, **drag-and-drop** the files from your Explorer menu
 
 1.	Click **OK** to accept the **T_Rock_04_n.TGA** normal map's settings (pictured above).
 
-[REGION:warning]
+	[REGION:warning]
 	UE4 batch imports [supported](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
 	
 	If you see the following pop-up message:
@@ -60,9 +64,13 @@ After locating your content, **drag-and-drop** the files from your Explorer menu
 	Also, if you see the following pop-up message:
 	
 	![](nonpoweoftwowarning.png)
-
+	
 	UE4 is telling you that odd-sized images aren't streamed or mipmapped.
-[/REGION]
+	[/REGION]
+
+1.	Unsaved assets are marked with an asterisk (pictured below).
+
+	![](UnsavedAssets.png)
 
 1.	**Click** the **Save All** button to save your imported meshes.
 
@@ -72,9 +80,13 @@ After locating your content, **drag-and-drop** the files from your Explorer menu
 
 	![](SaveSelectedButton_UI.png)
 
+1.	UE4 removes the asterisk from saved assets (pictured below).
+
+	![](SavedAssets.png)
+
 ## Verifying Imported Assets
 
-It's good practice to verify that assets were imported properly into the UE4 project.
+It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
 
 1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
 

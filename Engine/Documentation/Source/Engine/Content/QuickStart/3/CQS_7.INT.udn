@@ -26,7 +26,7 @@ Version: 4.8
 At this point, you should have created a new material and opened the **Material Editor** (pictured below).
 
 [REGION:lightbox]
-	[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
+	[![](MaterialEditor.png)(w:900)](MaterialEditor.png)
 [/REGION]
 
 You can define a material's color, shininess, transparency, and much more in the [Material Editor](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%"). You're now ready to edit the **'Rock' Material** you created.
