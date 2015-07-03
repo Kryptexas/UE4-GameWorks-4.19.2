@@ -5,6 +5,7 @@
 #include "SecureHash.h"
 #include "WindowsApplication.h"
 #include "EngineVersion.h"
+#include "WindowsPlatformCrashContext.h"
 
 #include "GenericPlatformChunkInstall.h"
 
