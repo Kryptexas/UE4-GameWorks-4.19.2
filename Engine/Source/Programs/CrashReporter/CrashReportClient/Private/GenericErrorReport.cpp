@@ -110,27 +110,22 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter3"), UserComment.ToString());
 	}
 	
-	FString MachineIDandUserID;
+
 	// Set global user name ID: will be added to the report
 	extern FCrashDescription& GetCrashDescription();
 
-	MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId );
-
-	const bool bSendName = FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
-	if (bSendName)
-	{
-		MachineIDandUserID += FString::Printf( TEXT( "!Name:%s" ), *GetCrashDescription().UserName );
-	}
+	// @see FCrashDescription::UpdateIDs
+	const FString EpicMachindAndUserNameIDs = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s!Name:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId, *GetCrashDescription().UserName );
 
 	// Add or update a user ID.
 	FXmlNode* Parameter4Node = DynamicSignaturesNode->FindChildNode(TEXT("Parameter4"));
 	if( Parameter4Node )
 	{
-		Parameter4Node->SetContent(MachineIDandUserID);
+		Parameter4Node->SetContent(EpicMachindAndUserNameIDs);
 	}
 	else
 	{
-		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), MachineIDandUserID);
+		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), EpicMachindAndUserNameIDs);
 	}
 
 	// Add or update bAllowToBeContacted
