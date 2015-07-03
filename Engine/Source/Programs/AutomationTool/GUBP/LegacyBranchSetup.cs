@@ -293,6 +293,8 @@ partial class GUBP
             LogVerbose("Active Platform: {0}", Plat.ToString());
         }
 
+		bool bNoIOSOnPC = HostPlatforms.Contains(UnrealTargetPlatform.Mac);
+
         if (HostPlatforms.Count >= 2)
         {
             // make sure each project is set up with the right assumptions on monolithics that prefer a platform.
@@ -301,8 +303,8 @@ partial class GUBP
                 var OptionsMac = CodeProj.Options(UnrealTargetPlatform.Mac);
                 var OptionsPC = CodeProj.Options(UnrealTargetPlatform.Win64);
 
-                var MacMonos = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(UnrealTargetPlatform.Mac, ActivePlatforms, CodeProj, false);
-                var PCMonos = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(UnrealTargetPlatform.Win64, ActivePlatforms, CodeProj, false);
+				var MacMonos = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(UnrealTargetPlatform.Mac, ActivePlatforms, CodeProj, false, bNoIOSOnPC);
+				var PCMonos = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(UnrealTargetPlatform.Win64, ActivePlatforms, CodeProj, false, bNoIOSOnPC);
 
                 if (!OptionsMac.bIsPromotable && OptionsPC.bIsPromotable && 
                     (MacMonos.Contains(UnrealTargetPlatform.IOS) || PCMonos.Contains(UnrealTargetPlatform.IOS)))
@@ -392,20 +394,6 @@ partial class GUBP
 				}
 
 				AddNode(new EditorAndToolsNode(this, HostPlatform));
-
-				if (bOrthogonalizeEditorPlatforms)
-				{
-					foreach (var Plat in ActivePlatforms)
-					{
-						if (Plat != HostPlatform && Plat != GetAltHostPlatform(HostPlatform))
-						{
-							if (Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
-							{
-								AddNode(new EditorPlatformNode(HostPlatform, Plat));
-							}
-						}
-					}
-				}
 			}
 
             bool DoASharedPromotable = false;
@@ -448,7 +436,7 @@ partial class GUBP
                 }
 
                 var TempNonCodeFormalBuilds = Target.Rules.GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly();
-                var HostMonos = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, ActivePlatforms, Branch.BaseEngineProject, true);
+				var HostMonos = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, ActivePlatforms, Branch.BaseEngineProject, true, bNoIOSOnPC);
 
                 foreach (var Codeless in TempNonCodeFormalBuilds)
                 {
@@ -1010,7 +998,7 @@ partial class GUBP
                 }
                 if (PromotedHosts.Count > 0)
                 {
-                    AddNode(new GameAggregatePromotableNode(this, PromotedHosts, ActivePlatforms, CodeProj, true));
+                    AddNode(new GameAggregatePromotableNode(this, PromotedHosts, ActivePlatforms, CodeProj, true, bNoIOSOnPC));
                     if (AnySeparate)
                     {
                         AddNode(new WaitForGamePromotionUserInput(this, CodeProj, false));
@@ -1023,7 +1011,7 @@ partial class GUBP
         }
         if (NumSharedAllHosts > 0)
         {
-            AddNode(new GameAggregatePromotableNode(this, HostPlatforms, ActivePlatforms, Branch.BaseEngineProject, false));
+            AddNode(new GameAggregatePromotableNode(this, HostPlatforms, ActivePlatforms, Branch.BaseEngineProject, false, bNoIOSOnPC));
 
             AddNode(new SharedAggregatePromotableNode(this, HostPlatforms, ActivePlatforms));
             AddNode(new WaitForSharedPromotionUserInput(this, false));

@@ -556,10 +556,6 @@ partial class GUBP
 			{
 				AddArgs += " -precompile";
 			}
-            if (bp.bOrthogonalizeEditorPlatforms)
-            {
-                AddArgs += " -skipnonhostplatforms";
-            }
             Agenda.AddTargets(
                 new string[] { bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName },
                 HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
@@ -1098,79 +1094,6 @@ partial class GUBP
         }
     }
 
-
-    public class EditorPlatformNode : CompileNode
-    {
-        UnrealTargetPlatform EditorPlatform;
-
-        public EditorPlatformNode(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform Plat)
-            : base(InHostPlatform)
-        {
-            if (InHostPlatform != UnrealTargetPlatform.Win64)
-            {
-            AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(InHostPlatform);
-            }
-            EditorPlatform = Plat;
-            AddDependency(RootEditorNode.StaticGetFullName(InHostPlatform));
-        }
-
-        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform Plat)
-        {
-            return Plat.ToString() + "_EditorPlatform" + StaticGetHostPlatformSuffix(InHostPlatform);
-        }
-        public override string GetFullName()
-        {
-            return StaticGetFullName(HostPlatform, EditorPlatform);
-        }
-        public override float Priority()
-        {
-            return base.Priority() + 1;
-        }
-        public override bool IsSticky()
-        {
-            if (HostPlatform == UnrealTargetPlatform.Win64)
-            {
-                return true;
-            }
-            return false;
-        }
-        public override string ECProcedure()
-        {
-            if (HostPlatform == UnrealTargetPlatform.Win64)
-            {
-                return String.Format("GUBP_UAT_Node_Parallel_AgentShare_Editor");
-            }
-            return base.ECProcedure();
-        }
-        public override int CISFrequencyQuantumShift(GUBP bp)
-        {
-            int Result = base.CISFrequencyQuantumShift(bp);            
-            return Result;
-        }
-
-        public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
-        {
-            if (!bp.bOrthogonalizeEditorPlatforms)
-            {
-                throw new AutomationException("EditorPlatformNode node should not be used unless we are orthogonalizing editor platforms.");
-            }
-            var Agenda = new UE4Build.BuildAgenda();
-
-            Agenda.AddTargets(
-                new string[] { bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName },
-                HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice -onlyplatformspecificfor=" + EditorPlatform.ToString());
-            foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
-            {
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && ProgramTarget.Rules.GUBP_NeedsPlatformSpecificDLLs())
-                {
-                    Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice -onlyplatformspecificfor=" + EditorPlatform.ToString());
-                }
-            }
-            return Agenda;
-        }
-
-    }
-
     public class EditorGameNode : CompileNode
     {
 		List<BranchInfo.BranchUProject> GameProjects = new List<BranchInfo.BranchUProject>();
@@ -1403,7 +1326,7 @@ partial class GUBP
 			return GameProj.GameName + "_Monolithics" + (Precompiled? "_Precompiled" : "");
 		}
 
-		public static List<UnrealTargetPlatform> GetMonolithicPlatformsForUProject(UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> ActivePlatforms, BranchInfo.BranchUProject GameProj, bool bIncludeHostPlatform)
+		public static List<UnrealTargetPlatform> GetMonolithicPlatformsForUProject(UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> ActivePlatforms, BranchInfo.BranchUProject GameProj, bool bIncludeHostPlatform, bool bNoIOSOnPC)
 		{
 			UnrealTargetPlatform AltHostPlatform = GUBP.GetAltHostPlatform(HostPlatform);
 			var Result = new List<UnrealTargetPlatform>();
@@ -1417,7 +1340,7 @@ partial class GUBP
 					var AllPlatforms = Platforms.Union(AdditionalPlatforms);
 					foreach (var Plat in AllPlatforms)
 					{
-						if (GUBP.bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
+						if (bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
 						{
 							continue;
 						}
@@ -1756,7 +1679,7 @@ partial class GUBP
     {
         BranchInfo.BranchUProject GameProj;		
 
-        public GameAggregatePromotableNode(GUBP bp, List<UnrealTargetPlatform> InHostPlatforms, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, bool IsSeparate)
+        public GameAggregatePromotableNode(GUBP bp, List<UnrealTargetPlatform> InHostPlatforms, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, bool IsSeparate, bool bNoIOSOnPC)
             : base(InHostPlatforms, InGameProj.GameName)
         {
             GameProj = InGameProj;
@@ -1775,19 +1698,9 @@ partial class GUBP
                 }				
                 // add all of the platforms I use
                 {
-                    var Platforms = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, InActivePlatforms, InGameProj, false);
-                    if (bp.bOrthogonalizeEditorPlatforms)
-                    {
-                        foreach (var Plat in Platforms)
-                        {
-                            AddDependency(EditorPlatformNode.StaticGetFullName(HostPlatform, Plat));
-                        }
-                    }
-                }
-                {
                     if (!GameProj.Options(HostPlatform).bPromoteEditorOnly)
                     {
-						var Platforms = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, InActivePlatforms, InGameProj, true);
+						var Platforms = GamePlatformMonolithicsNode.GetMonolithicPlatformsForUProject(HostPlatform, InActivePlatforms, InGameProj, true, bNoIOSOnPC);
 						foreach (var Plat in Platforms)
 						{
 							AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat));
@@ -2291,13 +2204,6 @@ partial class GUBP
             CookPlatform = InCookPlatform;
             bIsMassive = false;
             AddDependency(EditorAndToolsNode.StaticGetFullName(HostPlatform));
-            if (bp.bOrthogonalizeEditorPlatforms)
-            {
-                if (TargetPlatform != HostPlatform && TargetPlatform != GUBP.GetAltHostPlatform(HostPlatform))
-                {
-                    AddDependency(EditorPlatformNode.StaticGetFullName(HostPlatform, TargetPlatform));
-                }
-            }			
             bool bIsShared = false;
             // is this the "base game" or a non code project?
             if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
@@ -2422,13 +2328,6 @@ partial class GUBP
             CookPlatform = InCookPlatform;
             bIsMassive = false;
             AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
-            if (bp.bOrthogonalizeEditorPlatforms)
-            {
-                if (TargetPlatform != HostPlatform && TargetPlatform != GUBP.GetAltHostPlatform(HostPlatform))
-                {
-                    AddDependency(EditorPlatformNode.StaticGetFullName(HostPlatform, TargetPlatform));
-                }
-            }
 
             bool bIsShared = false;
             // is this the "base game" or a non code project?
@@ -3265,10 +3164,6 @@ partial class GUBP
 			var Agenda = new UE4Build.BuildAgenda();
 
 			string AddArgs = "-nobuilduht";
-			if (bp.bOrthogonalizeEditorPlatforms)
-			{
-				AddArgs += " -skipnonhostplatforms";
-			}
 
 			Agenda.AddTargets(
 				new string[] { bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName },

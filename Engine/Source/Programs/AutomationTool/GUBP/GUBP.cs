@@ -11,16 +11,11 @@ using System.Linq;
 
 public partial class GUBP : BuildCommand
 {
-    public string StoreName = null;
 	public string BranchName;
     public int CL = 0;
     public bool bSignBuildProducts = false;
-    public bool bHasTests = false;
     public BranchInfo Branch = null;
-    public bool bOrthogonalizeEditorPlatforms = false;
     public List<UnrealTargetPlatform> HostPlatforms;
-    public bool bFake = false;
-    public static bool bNoIOSOnPC = false;
     public static bool bForceIncrementalCompile = false;
     public string EmailHint;
     static public bool bPreflightBuild = false;
@@ -950,7 +945,7 @@ public partial class GUBP : BuildCommand
         return ParentPath + "/" + GetJobStepPath(Dep);
     }
 
-    void UpdateNodeHistory(Dictionary<string, NodeHistory> GUBPNodesHistory, NodeInfo NodeToDo, string CLString)
+    void UpdateNodeHistory(Dictionary<string, NodeHistory> GUBPNodesHistory, NodeInfo NodeToDo, string CLString, string StoreName)
     {
         if (NodeToDo.Node.RunInEC() && !NodeToDo.Node.TriggerNode() && CLString != "")
         {
@@ -994,7 +989,7 @@ public partial class GUBP : BuildCommand
 			GUBPNodesHistory.Add(NodeToDo.Name, History);
         }
     }
-	void GetFailureEmails(Dictionary<string, NodeHistory> GUBPNodesHistory, NodeInfo NodeToDo, string CLString, bool OnlyLateUpdates = false)
+	void GetFailureEmails(Dictionary<string, NodeHistory> GUBPNodesHistory, NodeInfo NodeToDo, string CLString, string StoreName, bool OnlyLateUpdates = false)
 	{
         string EMails;
         string FailCauserEMails = "";
@@ -1014,7 +1009,7 @@ public partial class GUBP : BuildCommand
                 {
                     if (OnlyLateUpdates)
                     {
-                        LastNonDuplicateFail = FindLastNonDuplicateFail(GUBPNodesHistory, NodeToDo, CLString);
+                        LastNonDuplicateFail = FindLastNonDuplicateFail(GUBPNodesHistory, NodeToDo, CLString, StoreName);
                         if (LastNonDuplicateFail < P4Env.Changelist)
                         {
                             Log("*** Red-after-red spam reduction, changed CL {0} to CL {1} because the errors didn't change.", P4Env.Changelist, LastNonDuplicateFail);
@@ -1121,7 +1116,7 @@ public partial class GUBP : BuildCommand
         return true;
     }
 
-    int FindLastNonDuplicateFail(Dictionary<string, NodeHistory> GUBPNodesHistory, NodeInfo NodeToDo, string CLString)
+    int FindLastNonDuplicateFail(Dictionary<string, NodeHistory> GUBPNodesHistory, NodeInfo NodeToDo, string CLString, string StoreName)
     {
         NodeHistory History = GUBPNodesHistory[NodeToDo.Name];
         int Result = P4Env.Changelist;
@@ -1343,7 +1338,7 @@ public partial class GUBP : BuildCommand
 
         bForceIncrementalCompile = ParseParam("ForceIncrementalCompile");
         bool bNoAutomatedTesting = ParseParam("NoAutomatedTesting") || BranchOptions.bNoAutomatedTesting;		
-        StoreName = ParseParamValue("Store");
+        string StoreName = ParseParamValue("Store");
         string StoreSuffix = ParseParamValue("StoreSuffix", "");
 
         if (bPreflightBuild)
@@ -1358,15 +1353,13 @@ public partial class GUBP : BuildCommand
         bool bHistory = ParseParam("History") || bChanges;
         bool bListOnly = ParseParam("ListOnly") || bHistory;
         bool bSkipTriggers = ParseParam("SkipTriggers");
-        bFake = ParseParam("fake");
+        bool bFake = ParseParam("fake");
         bool bFakeEC = ParseParam("FakeEC");
         int TimeIndex = ParseParamInt("TimeIndex", 0);
         if (TimeIndex == 0)
         {
             TimeIndex = ParseParamInt("UserTimeIndex", 0);
         }
-
-        bNoIOSOnPC = HostPlatforms.Contains(UnrealTargetPlatform.Mac);
 
         bool bSaveSharedTempStorage = false;
 
@@ -1568,7 +1561,7 @@ public partial class GUBP : BuildCommand
 
 			Dictionary<string, int> FullNodeListSortKey = GetDisplayOrder(FullNodeList.Keys.ToList(), FullNodeDirectDependencies, GUBPNodes);
 
-			DoCommanderSetup(TimeIndex, bSkipTriggers, bFakeEC, CLString, ExplicitTrigger, FullNodeList, FullNodeDirectDependencies, FullNodeDependedOnBy, DependentPromotions, SeparatePromotables, FullNodeListSortKey, GUBPNodesHistory, OrdereredToDo, UnfinishedTriggers, FakeFail);
+			DoCommanderSetup(TimeIndex, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, FullNodeList, FullNodeDirectDependencies, FullNodeDependedOnBy, DependentPromotions, SeparatePromotables, FullNodeListSortKey, GUBPNodesHistory, OrdereredToDo, UnfinishedTriggers, FakeFail);
         }
 		else if(ParseParam("SaveGraph"))
 		{
@@ -1576,7 +1569,7 @@ public partial class GUBP : BuildCommand
 		}
 		else if(!bListOnly)
 		{
-			ExecuteNodes(OrdereredToDo, bOnlyNode, bFakeEC, bSaveSharedTempStorage, GUBPNodesHistory, CLString, FakeFail);
+			ExecuteNodes(OrdereredToDo, bOnlyNode, bFake, bFakeEC, bSaveSharedTempStorage, GUBPNodesHistory, CLString, StoreName, FakeFail);
 		}
         PrintRunTime();
 	}
@@ -2177,10 +2170,6 @@ public partial class GUBP : BuildCommand
 			{
 				continue;
 			}
-			if (NodeToDo.Node.IsTest())
-			{
-				bHasTests = true;
-			}
 			int MyIndex = OrdereredToDo.IndexOf(NodeToDo);
 			foreach (NodeInfo Dep in NodeToDo.Dependencies)
 			{
@@ -2201,7 +2190,7 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-	private void DoCommanderSetup(int TimeIndex, bool bSkipTriggers, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, Dictionary<string, string> FullNodeList, Dictionary<string, string> FullNodeDirectDependencies, Dictionary<string, string> FullNodeDependedOnBy, Dictionary<NodeInfo, List<NodeInfo>> DependentPromotions, List<NodeInfo> SeparatePromotables, Dictionary<string, int> FullNodeListSortKey, Dictionary<string, NodeHistory> GUBPNodesHistory, List<NodeInfo> OrdereredToDo, List<NodeInfo> UnfinishedTriggers, string FakeFail)
+	private void DoCommanderSetup(int TimeIndex, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, Dictionary<string, string> FullNodeList, Dictionary<string, string> FullNodeDirectDependencies, Dictionary<string, string> FullNodeDependedOnBy, Dictionary<NodeInfo, List<NodeInfo>> DependentPromotions, List<NodeInfo> SeparatePromotables, Dictionary<string, int> FullNodeListSortKey, Dictionary<string, NodeHistory> GUBPNodesHistory, List<NodeInfo> OrdereredToDo, List<NodeInfo> UnfinishedTriggers, string FakeFail)
 	{
 
 		if (OrdereredToDo.Count == 0)
@@ -2652,6 +2641,7 @@ public partial class GUBP : BuildCommand
 			}
 			WriteECPerl(StepList);
 		}
+		bool bHasTests = OrdereredToDo.Any(x => x.Node.IsTest());
 		RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
 		{
 			ECProps.Add("GUBP_LoadedProps=1");
@@ -2674,7 +2664,7 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-	void ExecuteNodes(List<NodeInfo> OrdereredToDo, bool bOnlyNode, bool bFakeEC, bool bSaveSharedTempStorage, Dictionary<string, NodeHistory> GUBPNodesHistory, string CLString, string FakeFail)
+	void ExecuteNodes(List<NodeInfo> OrdereredToDo, bool bOnlyNode, bool bFake, bool bFakeEC, bool bSaveSharedTempStorage, Dictionary<string, NodeHistory> GUBPNodesHistory, string CLString, string StoreName, string FakeFail)
 	{
         Dictionary<string, NodeInfo> BuildProductToNodeMap = new Dictionary<string, NodeInfo>();
 		foreach (NodeInfo NodeToDo in OrdereredToDo)
@@ -2852,7 +2842,7 @@ public partial class GUBP : BuildCommand
                     {
 						using(TelemetryStopwatch UpdateNodeHistoryStopwatch = new TelemetryStopwatch("UpdateNodeHistory"))
 						{
-							UpdateNodeHistory(GUBPNodesHistory, NodeToDo, CLString);
+							UpdateNodeHistory(GUBPNodesHistory, NodeToDo, CLString, StoreName);
 						}
 						using(TelemetryStopwatch SaveNodeStatusStopwatch = new TelemetryStopwatch("SaveNodeStatus"))
 						{
@@ -2867,7 +2857,7 @@ public partial class GUBP : BuildCommand
 						{
 							using(TelemetryStopwatch GetFailEmailsStopwatch = new TelemetryStopwatch("GetFailEmails"))
 							{
-								GetFailureEmails(GUBPNodesHistory, NodeToDo, CLString);
+								GetFailureEmails(GUBPNodesHistory, NodeToDo, CLString, StoreName);
 							}
 						}
 						UpdateECBuildTime(NodeToDo, BuildDuration);
@@ -2922,7 +2912,7 @@ public partial class GUBP : BuildCommand
                 {
 					using(TelemetryStopwatch UpdateNodeHistoryStopwatch = new TelemetryStopwatch("UpdateNodeHistory"))
 					{
-						UpdateNodeHistory(GUBPNodesHistory, NodeToDo, CLString);
+						UpdateNodeHistory(GUBPNodesHistory, NodeToDo, CLString, StoreName);
 					}
 					using(TelemetryStopwatch SaveNodeStatusStopwatch = new TelemetryStopwatch("SaveNodeStatus"))
 					{
@@ -2937,7 +2927,7 @@ public partial class GUBP : BuildCommand
 					{
 						using(TelemetryStopwatch GetFailEmailsStopwatch = new TelemetryStopwatch("GetFailEmails"))
 						{
-							GetFailureEmails(GUBPNodesHistory, NodeToDo, CLString);
+							GetFailureEmails(GUBPNodesHistory, NodeToDo, CLString, StoreName);
 						}
 					}
 					UpdateECBuildTime(NodeToDo, BuildDuration);
