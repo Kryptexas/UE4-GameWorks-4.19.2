@@ -3189,11 +3189,9 @@ void FPersona::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeing
 
 	if(PreviewComponent != NULL)
 	{
-		if(PreviewComponent->AnimScriptInstance == NULL)
-		{
-			// try reinitialize animation if it doesn't exist
-			PreviewComponent->InitAnim(true);
-		}
+		// Reinitialize the animation, anything we reference could have changed triggering
+		// the blueprint change
+		PreviewComponent->InitAnim(true);
 
 		if(bIsDebuggingPreview)
 		{
