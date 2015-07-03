@@ -131,7 +131,7 @@ namespace Rocket
 
 				// Get the output directory for the build zips
 				string PublishedEngineDir;
-				if(ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP())
+				if(ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(bp))
 				{
 					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.RootSharedTempStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
 				}
@@ -155,7 +155,7 @@ namespace Rocket
 				WaitForPromotionNode.AddDependency(PublishRocketSymbolsNode.StaticGetFullName(HostPlatform));
 
 				// Push everything behind the promotion triggers if we're doing things on the build machines
-				if(ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP() || bp.ParseParam("WithRocketPromotable"))
+				if(ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(bp) || bp.ParseParam("WithRocketPromotable"))
 				{
 					string WaitForTrigger = GUBP.WaitForSharedPromotionUserInput.StaticGetFullName(false);
 
@@ -247,9 +247,9 @@ namespace Rocket
 			return CommandUtils.CombineCommandletParams(CookPlatforms.Distinct().ToArray());
 		}
 
-		public static bool ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP()
+		public static bool ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(GUBP bp)
 		{
-			return CommandUtils.P4Enabled && CommandUtils.AllowSubmit && !GUBP.bPreflightBuild; // we don't do serious things in a preflight
+			return CommandUtils.P4Enabled && CommandUtils.AllowSubmit && !bp.bPreflightBuild; // we don't do serious things in a preflight
 		}
 
 		public static UnrealTargetPlatform GetSourceHostPlatform(GUBP bp, UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
@@ -903,7 +903,7 @@ namespace Rocket
 
 		public override void DoBuild(GUBP bp)
 		{
-			if(RocketBuild.ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP())
+			if(RocketBuild.ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(bp))
 			{
 				// Make a lookup for all the known debug extensions, and filter all the dependency build products against that
 				HashSet<string> DebugExtensions = new HashSet<string>(Platform.Platforms.Values.SelectMany(x => x.GetDebugFileExtentions()).Distinct().ToArray(), StringComparer.InvariantCultureIgnoreCase);

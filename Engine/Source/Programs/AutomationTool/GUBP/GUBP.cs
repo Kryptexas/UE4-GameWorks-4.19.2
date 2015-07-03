@@ -20,10 +20,9 @@ public partial class GUBP : BuildCommand
     public bool bSignBuildProducts = false;
     public BranchInfo Branch = null;
     public List<UnrealTargetPlatform> HostPlatforms;
-    public static bool bForceIncrementalCompile = false;
-    static public bool bPreflightBuild = false;
-    public int PreflightShelveCL = 0;
-    static public string PreflightMangleSuffix = "";
+    public bool bForceIncrementalCompile = false;
+    public bool bPreflightBuild = false;
+    public string PreflightMangleSuffix = "";
     public GUBPBranchHacker.BranchOptions BranchOptions = null;	
 
     Dictionary<string, NodeInfo> GUBPNodes;
@@ -1290,6 +1289,8 @@ public partial class GUBP : BuildCommand
     public override void ExecuteBuild()
     {
         Log("************************* GUBP");
+
+		int PreflightShelveCL = 0;
         string PreflightShelveCLString = GetEnvVar("uebp_PreflightShelveCL");
         if ((!String.IsNullOrEmpty(PreflightShelveCLString) && IsBuildMachine) || ParseParam("PreflightTest"))
         {
