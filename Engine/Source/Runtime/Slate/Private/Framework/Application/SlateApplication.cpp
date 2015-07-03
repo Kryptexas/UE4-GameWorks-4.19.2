@@ -13,6 +13,8 @@
 #include "ToolboxModule.h"
 #include "TabCommands.h"
 
+#define SLATE_HAS_WIDGET_REFLECTOR !UE_BUILD_SHIPPING || PLATFORM_DESKTOP
+
 extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 
 class FEventRouter
@@ -5523,3 +5525,5 @@ void FSlateApplication::SetWidgetReflector(const TSharedRef<IWidgetReflector>& W
 
 	WidgetReflectorPtr = WidgetReflector;
 }
+
+#undef SLATE_HAS_WIDGET_REFLECTOR

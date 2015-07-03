@@ -6,4 +6,3 @@ EMIT_DEPRECATED_WARNING_MESSAGE("including Slate.h is deprecated. Please include
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 
-#define SLATE_HAS_WIDGET_REFLECTOR !UE_BUILD_SHIPPING || PLATFORM_DESKTOP
