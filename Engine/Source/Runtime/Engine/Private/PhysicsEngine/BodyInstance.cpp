@@ -3783,7 +3783,8 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 					{
 						for (int HitIndex = 0; HitIndex < NumHits; HitIndex++)
 						{
-							if (PHits[HitIndex].distance < BestHitDistance)
+							PxRaycastHit& Hit = PHits[HitIndex];
+							if (Hit.distance < BestHitDistance)
 							{
 								BestHitDistance = PHits[HitIndex].distance;
 								BestHit = PHits[HitIndex];
