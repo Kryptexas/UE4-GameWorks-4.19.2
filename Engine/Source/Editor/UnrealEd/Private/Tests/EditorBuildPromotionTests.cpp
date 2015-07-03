@@ -1815,7 +1815,7 @@ namespace BuildPromotionTestHelper
 	else \
 	{ \
 		SkippedTests.Add(FString::Printf(TEXT("Importing Workflow: Importing %s. (No file path)"),TEXT(#ImportSetting))); \
-		UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("No asset import path set for %s"), TEXT(#ImportSetting)); \
+		UE_LOG(LogEditorBuildPromotionTests, Log, TEXT("No asset import path set for %s"), TEXT(#ImportSetting)); \
 	} \
 	TagPreviousLogs(TEXT(#ImportSetting)); \
 }
@@ -1939,7 +1939,7 @@ namespace BuildPromotionTestHelper
 				} 
 				else 
 				{ 
-					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("No asset import path set for OtherAssetsToImport.  Index: %i"), i);
+					UE_LOG(LogEditorBuildPromotionTests, Log, TEXT("No asset import path set for OtherAssetsToImport.  Index: %i"), i);
 				}
 				TagPreviousLogs(FString::Printf(TEXT("OtherAssetsToImport #%i"),i+1));
 			}
