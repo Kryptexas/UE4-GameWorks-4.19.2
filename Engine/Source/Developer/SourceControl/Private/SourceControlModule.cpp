@@ -325,10 +325,20 @@ void FSourceControlModule::SetProvider( const FName& InName )
 
 void FSourceControlModule::ClearCurrentSourceControlProvider()
 {
-	if( CurrentSourceControlProvider != NULL )
+	if( !CurrentSourceControlProvider || CurrentSourceControlProvider != &DefaultSourceControlProvider )
 	{
-		CurrentSourceControlProvider->Close();
+		ISourceControlProvider* OldSourceControlProvider = CurrentSourceControlProvider;
+		if (CurrentSourceControlProvider)
+		{
+			CurrentSourceControlProvider->Close();
+		}
+
 		CurrentSourceControlProvider = &DefaultSourceControlProvider;
+
+		if (OldSourceControlProvider)
+		{
+			OnSourceControlProviderChanged.Broadcast(*OldSourceControlProvider, *CurrentSourceControlProvider);
+		}
 	}
 }
 
@@ -354,12 +364,19 @@ void FSourceControlModule::SetCurrentSourceControlProvider(ISourceControlProvide
 
 	ClearCurrentSourceControlProvider();
 
+	ISourceControlProvider* OldSourceControlProvider = CurrentSourceControlProvider;
+
 	CurrentSourceControlProvider = &InProvider;
 	CurrentSourceControlProvider->Init(false);	// Don't force a connection here, as its synchronous. Let the user establish a connection.
 
 	SourceControlSettings.SetProvider(CurrentSourceControlProvider->GetName().ToString());
 
 	SaveSettings();
+
+	if (OldSourceControlProvider)
+	{
+		OnSourceControlProviderChanged.Broadcast(*OldSourceControlProvider, *CurrentSourceControlProvider);
+	}
 }
 
 FName FSourceControlModule::GetSourceControlProviderName(int32 ProviderIndex)
@@ -402,6 +419,16 @@ void FSourceControlModule::SetUseGlobalSettings(bool bIsUseGlobalSettings)
 	// force the user to re-log in
 	ShowLoginDialog(FSourceControlLoginClosed(), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
 }	
+
+FDelegateHandle FSourceControlModule::RegisterProviderChanged(const FSourceControlProviderChanged::FDelegate& SourceControlProviderChanged)
+{
+	return OnSourceControlProviderChanged.Add(SourceControlProviderChanged);
+}
+
+void FSourceControlModule::UnregisterProviderChanged(FDelegateHandle Handle)
+{
+	OnSourceControlProviderChanged.Remove(Handle);
+}
 
 IMPLEMENT_MODULE( FSourceControlModule, SourceControl );
 
