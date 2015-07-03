@@ -420,37 +420,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					}
 				}
 
-				// Check to see if we need to fix up any terms for array property coersion
-				if( UK2Node_CallArrayFunction* ArrayNode = Cast<UK2Node_CallArrayFunction>(Node) )
-				{
-					TArray< FArrayPropertyPinCombo > ArrayPinInfo;
-					ArrayNode->GetArrayPins(ArrayPinInfo);
-
-					for(auto Iter = ArrayPinInfo.CreateConstIterator(); Iter; ++Iter)
-					{
-						UEdGraphPin* ArrayPropPin = Iter->ArrayPropPin;
-						UEdGraphPin* ArrayTargetPin = Iter->ArrayPin;
-						if( ArrayPropPin && ArrayTargetPin )
-						{
-							// Find the array property literal term, used for specifying the type of TargetArray
-							for( int32 i = 0; i < Context.Literals.Num(); i++ )
-							{
-								FBPTerminal& Term = Context.Literals[i];
-								if( Term.Source == ArrayPropPin )
-								{
-									// Now, map the array property literal term to the TargetArray term.  The AssociatedVarProperty will later be filled in as the array prop's object literal in the backend
-									UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(ArrayTargetPin);
-									FBPTerminal** TargetTerm = Context.NetMap.Find(Net);
-									if( TargetTerm )
-									{
-										Statement.ArrayCoersionTermMap.Add(&Term, *TargetTerm);
-									}
-								}
-							}
-						}
-					}
-				}
-
 				AdditionalCompiledStatementHandling(Context, Node, Statement);
 			}
 

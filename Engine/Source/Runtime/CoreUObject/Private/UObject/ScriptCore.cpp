@@ -1461,7 +1461,63 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 	checkf(false, TEXT("execLetValueOnPersistentFrame: UberGraphPersistentFrame is not supported by current build!"));
 #endif
 }
-IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
+IMPLEMENT_VM_FUNCTION(EX_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
+
+void UObject::execSwithValue(FFrame& Stack, RESULT_DECL)
+{
+	const int32 NumCases = Stack.ReadWord();
+	const CodeSkipSizeType OffsetToEnd = Stack.ReadCodeSkipCount();
+
+	Stack.MostRecentProperty = nullptr;
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.Step(Stack.Object, nullptr);
+
+	UProperty* IndexProperty = Stack.MostRecentProperty;
+	checkSlow(IndexProperty);
+
+	uint8* IndexAdress = Stack.MostRecentPropertyAddress;
+	if (!ensure(IndexAdress))
+	{
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Unknown index"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
+
+	bool bProperCaseUsed = false;
+	{
+		auto LocalTempIndexMem = (uint8*)FMemory_Alloca(IndexProperty->GetSize());
+		IndexProperty->InitializeValue(LocalTempIndexMem);
+		for (int32 CaseIndex = 0; CaseIndex < NumCases; ++CaseIndex)
+		{
+			Stack.Step(Stack.Object, LocalTempIndexMem); // case index value
+			const CodeSkipSizeType OffsetToNextCase = Stack.ReadCodeSkipCount();
+
+			if (IndexAdress && IndexProperty->Identical(IndexAdress, LocalTempIndexMem))
+			{
+				Stack.Step(Stack.Object, RESULT_PARAM);
+				bProperCaseUsed = true;
+				break;
+			}
+
+			// skip to the next case
+			Stack.Code = &Stack.Node->Script[OffsetToNextCase];
+		}
+		IndexProperty->DestroyValue(LocalTempIndexMem);
+	}
+
+	if (bProperCaseUsed)
+	{
+		Stack.Code = &Stack.Node->Script[OffsetToEnd];
+	}
+	else
+	{
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Out of bounds index"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+		// get default value
+		Stack.Step(Stack.Object, RESULT_PARAM);
+	}
+}
+IMPLEMENT_VM_FUNCTION(EX_SwithValue, execSwithValue);
 
 void UObject::execLet(FFrame& Stack, RESULT_DECL)
 {
