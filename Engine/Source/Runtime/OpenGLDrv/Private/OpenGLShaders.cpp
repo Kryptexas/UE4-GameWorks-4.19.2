@@ -719,7 +719,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 				
 				glLinkProgram(SeparateResource);
 				bool const bLinkedOK = VerifyLinkedProgram(SeparateResource);
-				if (!VerifyLinkedProgram(SeparateResource))
+				if (!bLinkedOK)
 				{
 					check(VerifyCompiledShader(Resource, GlslCodeString));
 				}
