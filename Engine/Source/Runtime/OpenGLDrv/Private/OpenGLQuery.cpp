@@ -89,6 +89,7 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 		else if(Query->QueryType == RQT_AbsoluteTime)
 		{
 			FOpenGL::QueryTimestampCounter(Query->Resource);
+			Query->bResultIsCached = false;
 		}
 	}
 }
