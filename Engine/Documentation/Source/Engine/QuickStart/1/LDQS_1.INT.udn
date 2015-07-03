@@ -25,12 +25,12 @@ Related:GettingStarted/Installation
 
 %Steps%
 
-Before we get started, the first thing that we will need to do is create a [**Project**](Engine/Basics/Projects) to work from for the duration of this guide. In the steps below we will use Unreal Engine 4's [**Project Browser**](Engine/Basics/Projects/Browser) to create our project. 
+Before we get started, the first thing that we will need to do is create a [Project](Engine/Basics/Projects) to work from for the duration of this guide. In the steps below we will use Unreal Engine 4's [Project Browser](Engine/Basics/Projects/Browser) to create our project. 
 After completing this step, our project will be ready and you will gone through the process of creating a Project and using a Template which you can then use for your very own future projects. 
 
 ## Steps
 
-1. After [**Installing Unreal Engine**](GettingStarted/Installation) and launching the Unreal Editor, you will first be presented with the **Project Browser**. 
+1. After [Installing Unreal Engine](GettingStarted/Installation) and launching the Unreal Editor, you will first be presented with the **Project Browser**. 
 
 1. Click the **New Project** tab and select the **Blank** Blueprint Template, enter a Save Location and Name, then click **Create Project**. 
 

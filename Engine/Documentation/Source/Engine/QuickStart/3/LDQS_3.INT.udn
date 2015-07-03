@@ -25,8 +25,8 @@ Related:Engine/Content/Browser
 
 %Steps%
 
-Next we will create a new [**Level**](Engine/Levels) that we will use to build our game environment in. 
-While there are several different ways in which you can create a new Level, we will use the most common method by using the [**Content Browser**](Engine/Content/Browser) which is used to create several different types of assets inside the Unreal Editor. 
+Next we will create a new [Level](Engine/Levels) that we will use to build our game environment in. 
+While there are several different ways in which you can create a new Level, we will use the most common method by using the [Content Browser](Engine/Content/Browser) which is used to create several different types of assets inside the Unreal Editor. 
 
 
 ## Steps

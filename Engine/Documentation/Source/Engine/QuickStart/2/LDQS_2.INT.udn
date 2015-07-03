@@ -26,12 +26,12 @@ Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 
 %Steps%
 
-With the project open and ready to go, the first thing you may notice is the [**Viewport**](Engine/UI/LevelEditor/Viewports) in the center of the Unreal Editor. 
+With the project open and ready to go, the first thing you may notice is the [Viewport](Engine/UI/LevelEditor/Viewports) in the center of the Unreal Editor. 
 
 ![](TableAndChairs.png)(w:720)
 
-Inside the Viewport is where you will do most of your level construction. The template project that we selected in the previous step includes a small sample [**Level**](Engine/Levels) and some assets for us to get us started with. 
-Using this little area as a point of reference, take a moment to get used to the [**Viewport Camera Controls**](Engine/UI/LevelEditor/Viewports/ViewportControls) by using the most common methods of navigating the Viewport in Unreal Engine 4. 
+Inside the Viewport is where you will do most of your level construction. The template project that we selected in the previous step includes a small sample [Level](Engine/Levels) and some assets for us to get us started with. 
+Using this little area as a point of reference, take a moment to get used to the [Viewport Camera Controls](Engine/UI/LevelEditor/Viewports/ViewportControls) by using the most common methods of navigating the Viewport in Unreal Engine 4. 
 
 
 ## Standard Controls
@@ -39,7 +39,7 @@ Using this little area as a point of reference, take a moment to get used to the
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
 
 [REGION:tip]
-To switch to an [**Orthographic View**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q), click the **Perspective** drop-down then select an Orthographic View Mode. 
+To switch to an [Orthographic View](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q), click the **Perspective** drop-down then select an Orthographic View Mode. 
 
 ![](OrthographicViews.png)
 [/REGION]
