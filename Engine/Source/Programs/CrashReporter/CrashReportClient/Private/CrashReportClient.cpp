@@ -196,6 +196,7 @@ FString FCrashReportClient::GetCrashDirectory() const
 
 void FCrashReportClient::FinalizeDiagnoseReportWorker( FText ReportText )
 {
+	DiagnosticText = ReportText;
 	FormattedDiagnosticText = FCrashReportUtil::FormatDiagnosticText( ReportText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName );
 
 	auto DiagnosticsFilePath = ErrorReport.GetReportDirectory() / FCrashReportClientConfig::Get().GetDiagnosticsFilename();
