@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:2589385
+﻿INTSourceChangelist:2601450
 Availability:Public
-Title:メッシュのインポート
+Title:1.3 - テクスチャのインポート
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:メッシュをアンリアル エンジン 4 プロジェクトへインポートする方法を学習しましょう。
+Description:画像をアンリアル エンジン 4 プロジェクトへインポートする方法を学習しましょう。
+SkillLevel:初心者向け
+バージョン：4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前のステップ](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+		[前のステップ](Engine/Content/QuickStart/1/2 "%Engine/Content/QuickStart/1/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,19 +17,53 @@ Description:メッシュをアンリアル エンジン 4 プロジェクトへ�
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+		[次のステップ](Engine/Content/QuickStart/1/4 "%Engine/Content/QuickStart/1/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
+1.	エディタの 「**QuickStartContent**」 フォルダに移動して、コンテンツ ブラウザの **[Import]** ボタンをクリックしてファイル ダイアログ ボックスを開きます (下図)。
+
+	![](ContentBrowserImportButton.png)
+
+1.	**T_Rock_04_D** と **T_Rock_04_n** Targa (TGA) 画像ファイルを探して選択します (下図)。
+
+	![](ImportTextureDialogBox.png)
+
+1.	**[Open]** をクリックして TGA 画像ファイルのプロジェクトへのインポートを開始します (下図)。
+
+1.	アンリアル エディタの右下隅に確認ボックスが表示されます (下図)。
+
+	![](TextureNormalConfirmation.png)
+
+1.	**[OK]** をクリックして **T_Rock_04_n.TGA** 法線マップの設定を許可します (下図)。
+
+1.	**[Save All]** ボタンをクリックして、インポートした画像を保存します。
+
+	![](SaveAllTextures.png)
+
+1.	**Save Content** (コンテンツを保存) ダイアログ ボックスが表示されます (下図)。**Save Selected** (選択項目を保存) をクリックして、インポートしたアセットを保存します。
+
+	![](SaveSelectedDialogBox.png)
+
+1.	「**QuickStartContent**」フォルダへ移動し、 UE4 が対応する ** *.uasset files ** を作成したことを確認します (下図)。
+
+	![](QuickStartContentFolder.png)
+
+[REGION:tip]
+*マーケットプレイス (Epic Launcher からアクセスできます) はコンテンツを探したり共有する最適の場所です。*
+[/REGION]
+
+<!--
+
 [REGION:note]
 **インポートするメッシュがない場合は、ここで用意しましょう。**
 [/REGION]
 
 1. 次のリンクからサンプル アセットをダウンロードしてください。
-	* [_サンプル アセット_](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+	* [サンプル アセット](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
 
 1. ダウンロードしたアセットを PC の位置に展開します。
 
@@ -50,7 +86,7 @@ Description:メッシュをアンリアル エンジン 4 プロジェクトへ�
 [REGION:tip]
 *マーケットプレイス (Epic Launcher からアクセスできます) はコンテンツを探したり共有する最適の場所です。*
 [/REGION]
-
+-->
 <!--
 
 このページでは、前のステップで作成した **マテリアル** を、インポートしたスタティックメッシュに適用します。 
@@ -75,7 +111,7 @@ Description:メッシュをアンリアル エンジン 4 プロジェクトへ�
 
 	_画像をクリックしてフルサイズで表示_
 
-1.	**[Details (詳細)]** パネルの **[Default Value (デフォルト値)]** で [Material] ドロップダウン メニューをクリックします。 
+1.	**[Details]** (詳細) パネルの **[Default Value]** (デフォルト値) で [Material] ドロップダウン メニューをクリックします。 
 
 	![](Element0.png)
 
@@ -87,7 +123,7 @@ Description:メッシュをアンリアル エンジン 4 プロジェクトへ�
 
 	![](NewDefaultMaterial.png)
 
-1.	**[Save (保存)]** ボタンをクリックして、 **Material Editor** を閉じます。 
+1.	**[Save]** ボタンをクリックして、 **マテリアル エディタ** を閉じます。 
 
 1.	**コンテンツ ブラウザ** で、スタティックメッシュをレベルへドラッグします。 
 
@@ -105,7 +141,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	![](StaticMeshSelected.png)
 
-1.	**[Details (詳細)]** パネル (エディタの右下のウィンドウ) の **[Materials]** セクションで、[Material] ドロップダウン ボックスをクリックします。 
+1.	**[Details]** パネル (エディタの右下のウィンドウ) の **[Materials]** セクションで、[Material] ドロップダウン ボックスをクリックします。 
 
 	![](ActorMaterial.png)
 
@@ -130,12 +166,12 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 マテリアルを作成するには以下の操作を行います。
 
-1. **コンテンツ ブラウザ** で **[Add New (新規追加)]** をクリックし、 _[Basic Assets]_ から **Material** を選択します。 
+1. **コンテンツ ブラウザ** で **[Add New]** をクリックし、 _[Basic Assets]_ から **Material** を選択します。 
 
 	![](newMaterial.png)
 
 	[REGION:tip]
-	**[Add New (新規追加)]** ボタンをクリックする代わりに **コンテンツ ブラウザ** 内の空いているスペースを **右クリック** してコンテキスト メニューを呼び出すこともできます。 
+	**[Add New]** ボタンをクリックする代わりに **コンテンツ ブラウザ** 内の空いているスペースを **右クリック** してコンテキスト メニューを呼び出すこともできます。 
 	[/REGION]
 
 1. 新しいマテリアルが選択され、 **コンテンツ ブラウザ** で名前を入力できるようになります。
@@ -166,7 +202,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	_グラフエリア内にはこのノードしかありません。マテリアルに因んだ名前が付けられます。選択されるとハイライトされます。_
 
-1. **[Details (詳細)] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
+1. **[Details] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
 
 	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
 
@@ -184,7 +220,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	![](textureSampleNodes.png)
 
-1. Texture Sample ノードをどれか 1 つ選択すると、 **Material Expression Texture Base** カテゴリの **[Details (詳細)] パネル** に **Texture** という名前のプロパティがあります。[None] とラベルされたプルダウンを **左クリック** して **[T_Rock_04_D]** というカラーテクスチャを選択します。
+1. Texture Sample ノードをどれか 1 つ選択すると、 **Material Expression Texture Base** カテゴリの **[Details] パネル** に **Texture** という名前のプロパティがあります。[None] とラベルされたプルダウンを **左クリック** して **[T_Rock_04_D]** というカラーテクスチャを選択します。
 
 	![](Engine/Content/QuickStart/5/textureNone.png)
 
@@ -230,7 +266,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
 
-1. **Constant** を選択して **[Details (詳細)]** パネルの **Value** パラメータを変更することで、それぞれの値の調節が可能になります。
+1. **Constant** を選択して **[Details]** パネルの **Value** パラメータを変更することで、それぞれの値の調節が可能になります。
 
 	* Metallic/Specular Value = 0.0
 	* Roughness Value = 0.8
