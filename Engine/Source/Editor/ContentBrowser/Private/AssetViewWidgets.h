@@ -210,6 +210,9 @@ protected:
 	/** Set mips to be resident while this (loaded) asset is visible */
 	void SetForceMipLevelsToBeResident(bool bForce) const;
 
+	/** Delegate handler for when the source control provider changes */
+	void HandleSourceControlProviderChanged(class ISourceControlProvider& OldProvider, class ISourceControlProvider& NewProvider);
+
 	/** Delegate handler for when source control state changes */
 	void HandleSourceControlStateChanged();
 
@@ -311,6 +314,9 @@ protected:
 
 	/** Cached brush for the source control state */
 	const FSlateBrush* SCCStateBrush;
+
+	/** Delegate handle for the HandleSourceControlStateChanged function callback */
+	FDelegateHandle SourceControlStateChangedDelegateHandle;
 };
 
 
