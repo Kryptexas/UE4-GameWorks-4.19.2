@@ -182,6 +182,9 @@ namespace UnrealBuildTool
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
+		/**  Module uses a #import so must be built locally when compiling with SN-DBS */
+		public bool bBuildLocallyWithSNDBS = false;
+
 		/// List of modules with header files that our module's public headers needs access to, but we don't need to "import" or link against.
 		public List<string> PublicIncludePathModuleNames = new List<string>();
 

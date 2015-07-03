@@ -212,6 +212,9 @@ namespace UnrealBuildTool
         /** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
         public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
+		/**  Module uses a #import so must be built locally when compiling with SN-DBS */
+		public bool bBuildLocallyWithSNDBS = false;
+
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
@@ -276,6 +279,7 @@ namespace UnrealBuildTool
 			bUseAVX                                = InCopyEnvironment.bUseAVX;
 			bFasterWithoutUnity                    = InCopyEnvironment.bFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
+			bBuildLocallyWithSNDBS				   = InCopyEnvironment.bBuildLocallyWithSNDBS;
 			bEnableExceptions                      = InCopyEnvironment.bEnableExceptions;
 			bEnableShadowVariableWarning          = InCopyEnvironment.bEnableShadowVariableWarning;
 			OptimizeCode                           = InCopyEnvironment.OptimizeCode;

@@ -1350,6 +1350,12 @@ namespace UnrealBuildTool
 				{
 					CompileAction.bCanExecuteRemotely = false;
 				}
+
+				// When compiling with SN-DBS, modules that contain a #import must be built locally
+				if( CompileEnvironment.Config.bBuildLocallyWithSNDBS == true && BuildConfiguration.bAllowSNDBS)
+				{
+					CompileAction.bCanExecuteRemotely = false;
+				}
 			}
 			return Result;
 		}
