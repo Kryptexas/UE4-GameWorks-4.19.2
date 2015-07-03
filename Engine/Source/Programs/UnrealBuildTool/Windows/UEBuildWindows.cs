@@ -225,9 +225,16 @@ namespace UnrealBuildTool
 		{
 			// Check that SN-DBS is available
 			string SCERootPath = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
-			string SNDBSPath = Path.Combine(SCERootPath, "common", "sn-dbs", "bin", "dbsbuild.exe");
-			bool bIsSNDBSAvailable = File.Exists(SNDBSPath);
-			return bIsSNDBSAvailable;
+			if (!String.IsNullOrEmpty(SCERootPath))
+			{
+				string SNDBSPath = Path.Combine(SCERootPath, "common", "sn-dbs", "bin", "dbsbuild.exe");
+				bool bIsSNDBSAvailable = File.Exists(SNDBSPath);
+				return bIsSNDBSAvailable;
+			}
+			else
+			{
+				return false;
+			}
 		}
 
         /**
