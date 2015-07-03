@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:2589385
+﻿INTSourceChangelist:2601450
 Availability:Public
-Title:テクスチャのインポート
+Title:1.4 -インポートするメッシュの準備
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:テクスチャをアンリアル エンジン 4 プロジェクトへインポートする方法を学習しましょう。
+Description:画像をアンリアル エンジン 4 プロジェクト用にメッシュを準備する方法を学習しましょう。
+SkillLevel:初心者向け
+バージョン：4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前のステップ](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+		[前のステップ](Engine/Content/QuickStart/1/3 "%Engine/Content/QuickStart/1/3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,7 +17,7 @@ Description:テクスチャをアンリアル エンジン 4 プロジェクト�
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+		[次のステップ](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -23,11 +25,59 @@ Description:テクスチャをアンリアル エンジン 4 プロジェクト�
 %Steps%
 
 [REGION:note]
+インポートするメッシュがある場合は、このセクションへ進んでください。
+[/REGION]
+
+## メッシュを準備する
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+完了です！UE4 にインポートするメッシュの準備方法について学習しました。
+
+&#x2713; [FBX コンテンツ パイプラインについての詳細はここをクリック](Engine/Content/FBX "FBX Content Pipeline Documentation")。
+
+[REGION:tip]
+*モデリングを整理するとゲームのパフォーマンスがあがります。*
+[/REGION]
+
+<!--
+[REGION:note]
 **インポートする画像がない場合は、ここで用意しましょう。**
 [/REGION]
 
 1. 次のリンクからサンプル アセットをダウンロードしてください。
-* [_サンプル アセット_](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+* [サンプル アセット](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
 
 1. ダウンロードしたアセットを PC の位置に展開します。
 
@@ -51,12 +101,12 @@ Congratulations!UE4 プロジェクトの設定が完了しました！
 * **プロジェクトへのメッシュの追加**
 * **プロジェクトへのテクスチャの追加**
 
-&#x2713; [コンテンツを UE4 プロジェクトに追加して更新したい場合はここをクリック](Engine/Content/QuickStart/4 "How to add content to UE4 projects.")
+&#x2713; [コンテンツを UE4 プロジェクトに追加して更新したい場合はここをクリック](Engine/Content/QuickStart/1/3 "How to add content to UE4 projects.")
 
 [REGION:tip]
 *アセットを整理しておけば、簡単に見つけることができます。*
 [/REGION]
-
+-->
 <!--
 
 アンリアル エンジン 4 にコンテンツを手動でインポートする方法は 4 通りあります。
@@ -64,6 +114,7 @@ Congratulations!UE4 プロジェクトの設定が完了しました！
 * ファイルをハードドライブから **コンテンツ ブラウザ** へドラッグする
 
 アンリアル エンジン 4 はインポートしているファイルのタイプをきちんと認識し、アセットをバッチ インポートします。
+
 
 ## コンテンツ ブラウザでインポートする
 
@@ -76,7 +127,7 @@ Congratulations!UE4 プロジェクトの設定が完了しました！
 サンプル アセットをダウンロードまたは独自のアセットを用意している場合、以下の手順でそれらをインポートすることができます。 
 
 1. **コンテンツ ブラウザ** で [Import] ボタンをクリックします。
-1. ダウンロードした [サンプル アセット](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip) を展開した位置を表示します。
+1. ダウンロードした [サンプル アセット](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip) を展開した位置を表示します。
 1. **Basic_Asset2.fbx** ファイルと **T_Rock_04_n.tga** ファイルを選択して **[Open]** をクリックします。 
 
 	![](ImportManual1.png)
@@ -124,13 +175,14 @@ Congratulations!UE4 プロジェクトの設定が完了しました！
 
 	![](Engine/Content/QuickStart/6/SMEditor.png)
 
-1. エディタの右側の **[Details (詳細)]** パネル の **LOD0** カテゴリで、プルダウンをクリックしてマテリアルを「Rock」マテリアルに変えることで **Element 0** Material プロパティを変更します。
+1. エディタの右側の **[Details]** パネル の **LOD0** カテゴリで、プルダウンをクリックしてマテリアルを「Rock」マテリアルに変えることで **Element 0** Material プロパティを変更します。
 
 	![](Engine/Content/QuickStart/6/SMEditor2.png)
 
 	_新規マテリアルを選択すると、プレビュー ウィンドウが更新され、新規マテリアルが適用されます。_
 
 	![](assignedMaterial.png)
+
 	マテリアルをクリックして **コンテンツ ブラウザ** から **Static Mesh アクタ** へドラッグしても、マテリアルをレベル内の **Static Mesh アクタ** へ適用することもできます。
 
 [REGION:note]
