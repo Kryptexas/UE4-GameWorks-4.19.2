@@ -264,6 +264,20 @@ void FGenericPlatformMisc::HandleIOFailure( const TCHAR* Filename )
 	UE_LOG(LogGenericPlatformMisc, Fatal,TEXT("I/O failure operating on '%s'"), Filename ? Filename : TEXT("Unknown file"));
 }
 
+void FGenericPlatformMisc::RaiseException(uint32 ExceptionCode)
+{
+	/** This is the last place to gather memory stats before exception. */
+	FGenericCrashContext::CrashMemoryStats = FPlatformMemory::GetStats();
+
+#if HACK_HEADER_GENERATOR && !PLATFORM_EXCEPTIONS_DISABLED
+	// We want Unreal Header Tool to throw an exception but in normal runtime code 
+	// we don't support exception handling
+	throw(ExceptionCode);
+#else	
+	*((uint32*)3) = ExceptionCode;
+#endif
+}
+
 bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
 {
 	check(!InStoreId.IsEmpty());
