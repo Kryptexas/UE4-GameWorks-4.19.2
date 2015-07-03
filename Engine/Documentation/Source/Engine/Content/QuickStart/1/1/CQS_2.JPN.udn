@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2589385
+﻿INTSourceChangelist:2601450
 Availability:Public
-Title:UE4 プロジェクトへのコンテンツの追加
+Title:1.1 - フォルダの作成
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:コンテンツをインポートする幾つかの方法を学びましょう。
-
+Description:コンテンツ ブラウザ から以下の操作を行います。
+SkillLevel:初心者向け
+バージョン:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -16,7 +17,7 @@ Description:コンテンツをインポートする幾つかの方法を学び�
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+		[次のステップ](Engine/Content/QuickStart/1/2 "%Engine/Content/QuickStart/1/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -27,13 +28,43 @@ Description:コンテンツをインポートする幾つかの方法を学び�
 
 ![](NewUE4Project.png)
 
+プロジェクトのコンテンツをいつも整理しておくと便利です。まず最初に、インポートしたコンテンツを格納するフォルダを作成してみましょう。
+
+[REGION:note]
+その前に：以下のリンクから Quick Start アセットをダウンロードします。
+* [サンプル アセット](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+[/REGION]
+
+1.	ダウンロードしたアセットを PC の位置に展開します (下図)。
+
+	![](Engine\Content\QuickStart\2\ExtractedContent.png)
+
+1.	エディタの **コンテンツ ブラウザ** で、**Add New** (新規を追加) ボタンをクリックします (下図)。
+
+	![](Engine\Content\QuickStart\2\AddNewButton.png)
+
+1.	**[New Folder]** (新規フォルダ) を選択して **'/Game'** にフォルダを作成します (下図)。
+
+	![](Engine\Content\QuickStart\2\NewFolderSelection.png)
+
+1.	フォルダに 「**QuickStartContent**」 という名前をつけます (下図)。
+
+	![](Engine\Content\QuickStart\2\QuickStartContentFolder.png)
+
+1.	この 「**QuickStartContent**」 フォルダをダブルクリックします。
+
+[REGION:tip]
+*命名規則は重要です！フォルダとファイルの命名には一貫性を持たせましょう。*
+[/REGION]
+<!-- コメントアウトされた Markdown Text (以下) は二回目のイタレーションからです。 -->
+<!--
 コンテンツを UE4 プロジェクトに追加する方法は何通りかあります。
 
->1. [コンテンツ ブラウザの **インポート** 機能を使う](#Bookmark1)
->2. [ハードドライブからコンテンツ ブラウザへファイルを **ドラッグ** する](#Bookmark2)
->3. [(Photoshop などの) 外部プログラムからプロジェクト ディレクトリへ直接ファイルを **保存する**](#Bookmark3)
+>* [コンテンツ ブラウザの **インポート** 機能を使う](#Bookmark1)
+>* [ファイルをハードドライブからコンテンツ ブラウザへ **ドラッグ** する](#Bookmark2)
+>* [ファイルを外部プログラム (Photoshop などの) プロジェクト ディレクトリへ **保存する**](#Bookmark3)
 
-##1. コンテンツ ブラウザでインポートする
+## コンテンツ ブラウザでインポートする
 
 (#Bookmark1)
 
@@ -43,7 +74,7 @@ Description:コンテンツをインポートする幾つかの方法を学び�
 
 **コンテンツ ブラウザの** ![](ImportButton.jpg) ボタンを **クリックすると** ファイル ダイアログが開き、プロジェクトにアセットを追加できるようになります。
 
-##2. クリック＆ドラッグでインポートする
+## クリック＆ドラッグでインポートする
 
 (#Bookmark2)
 
@@ -73,7 +104,7 @@ UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HE
 
 不適切なサイズの画像のストリーミングまたはミップマップが行われていることを表しています。
 
-##3. 外部プログラムからインポートする
+## 外部プログラムからインポートする
 
 (#Bookmark3)
 
@@ -81,11 +112,11 @@ UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HE
 
 ### Photoshop の実行中
 
-**[File (ファイル)]** から **[Save As (名前をつけて保存)]** をクリックします。
+**[File]** (ファイル) から **[Save As]** (名前をつけて保存) をクリックします。
 
 ![](photoshop_export1.jpg)
 
-### �Save As のダイアログ ボックスが表示されたら
+### [Save As] のダイアログ ボックスが表示されたら
 
 UE4 Project Directory の Content フォルダに (サポートされている形式で) ファイル名を入力し、[Save (保存)] をクリックします。
 
@@ -103,7 +134,7 @@ UE4 Project Directory の Content フォルダに (サポートされている�
 
 ### コンテンツ ブラウザをレビューする
 
-対応する *.uasset ファイルが UE4 で作成されていることを確認してください。
+対応する __*.uasset ファイル__ が UE4 で作成されていることを確認してください。
 
 ![](photoshop_export5.jpg)
 
@@ -113,12 +144,13 @@ UE4 Project Directory の Content フォルダに (サポートされている�
 * [**クリック＆ドラッグ** でインポートする](#Bookmark2)
 * [**外部プログラムからインポートする](#Bookmark3)
 
-&#x2713; [インポートするメッシュがない場合はここをクリック](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+&#x2713; [メッシュをお持ちでない場合はここからインポート](Engine/Content/QuickStart/1/2/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
 
 [REGION:tip]
 *命名規則は重要です！一貫したファイル名を付けましょう。*
 [/REGION]
-
+-->
+<!-- コメントアウトされた Markdown Text (以下) は最初のイタレーションからです。 -->
 <!--
 インポートするアセットが既にある場合、以下の [メッシュを準備する](#メッシュを準備する) セクションへ進んでください。 
 
