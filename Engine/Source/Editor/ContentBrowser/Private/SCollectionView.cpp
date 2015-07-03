@@ -10,6 +10,7 @@
 #include "ObjectTools.h"
 #include "SourcesViewWidgets.h"
 #include "ContentBrowserModule.h"
+#include "ISourceControlModule.h"
 #include "SExpandableArea.h"
 #include "SSearchBox.h"
 
@@ -66,12 +67,19 @@ void SCollectionView::Construct( const FArguments& InArgs )
 	bAllowRightClickMenu = InArgs._AllowRightClickMenu;
 	bAllowCollectionDrag = InArgs._AllowCollectionDrag;
 	bDraggedOver = false;
+	bQueueSCCRefresh = true;
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	CollectionManagerModule.Get().OnCollectionCreated().AddSP( this, &SCollectionView::HandleCollectionCreated );
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SCollectionView::HandleCollectionRenamed );
 	CollectionManagerModule.Get().OnCollectionReparented().AddSP( this, &SCollectionView::HandleCollectionReparented );
 	CollectionManagerModule.Get().OnCollectionDestroyed().AddSP( this, &SCollectionView::HandleCollectionDestroyed );
+	CollectionManagerModule.Get().OnCollectionUpdated().AddSP( this, &SCollectionView::HandleCollectionUpdated );
+	CollectionManagerModule.Get().OnAssetsAdded().AddSP( this, &SCollectionView::HandleAssetsAddedToCollection );
+	CollectionManagerModule.Get().OnAssetsRemoved().AddSP( this, &SCollectionView::HandleAssetsRemovedFromCollection );
+
+	ISourceControlModule::Get().RegisterProviderChanged(FSourceControlProviderChanged::FDelegate::CreateSP(this, &SCollectionView::HandleSourceControlProviderChanged));
+	SourceControlStateChangedDelegateHandle = ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged_Handle(FSourceControlStateChanged::FDelegate::CreateSP(this, &SCollectionView::HandleSourceControlStateChanged));
 
 	Commands = TSharedPtr< FUICommandList >(new FUICommandList);
 	CollectionContextMenu = MakeShareable(new FCollectionContextMenu( SharedThis(this) ));
@@ -262,6 +270,102 @@ void SCollectionView::HandleCollectionDestroyed( const FCollectionNameType& Coll
 	UpdateCollectionItems();
 }
 
+void SCollectionView::HandleCollectionUpdated( const FCollectionNameType& Collection )
+{
+	TSharedPtr<FCollectionItem> CollectionItemToUpdate = AvailableCollections.FindRef(Collection);
+	if (CollectionItemToUpdate.IsValid())
+	{
+		bQueueSCCRefresh = true;
+		UpdateCollectionItemStatus(CollectionItemToUpdate.ToSharedRef());
+	}
+}
+
+void SCollectionView::HandleAssetsAddedToCollection( const FCollectionNameType& Collection, const TArray<FName>& AssetsAdded )
+{
+	HandleCollectionUpdated(Collection);
+}
+
+void SCollectionView::HandleAssetsRemovedFromCollection( const FCollectionNameType& Collection, const TArray<FName>& AssetsRemoved )
+{
+	HandleCollectionUpdated(Collection);
+}
+
+void SCollectionView::HandleSourceControlProviderChanged(ISourceControlProvider& OldProvider, ISourceControlProvider& NewProvider)
+{
+	OldProvider.UnregisterSourceControlStateChanged_Handle(SourceControlStateChangedDelegateHandle);
+	SourceControlStateChangedDelegateHandle = NewProvider.RegisterSourceControlStateChanged_Handle(FSourceControlStateChanged::FDelegate::CreateSP(this, &SCollectionView::HandleSourceControlStateChanged));
+	
+	bQueueSCCRefresh = true;
+	HandleSourceControlStateChanged();
+}
+
+void SCollectionView::HandleSourceControlStateChanged()
+{
+	// Update the status of each collection
+	for (const auto& AvailableCollectionInfo : AvailableCollections)
+	{
+		UpdateCollectionItemStatus(AvailableCollectionInfo.Value.ToSharedRef());
+	}
+}
+
+void SCollectionView::UpdateCollectionItemStatus( const TSharedRef<FCollectionItem>& CollectionItem )
+{
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	TOptional<ECollectionItemStatus> NewStatus;
+
+	FCollectionStatusInfo StatusInfo;
+	if (CollectionManagerModule.Get().GetCollectionStatusInfo(CollectionItem->CollectionName, CollectionItem->CollectionType, StatusInfo))
+	{
+		// Test the SCC state first as this should take priority when reporting the status back to the user
+		if (StatusInfo.bUseSCC)
+		{
+			if (StatusInfo.SCCState.IsValid() && StatusInfo.SCCState->IsSourceControlled())
+			{
+				if (StatusInfo.SCCState->IsCheckedOutOther())
+				{
+					NewStatus = ECollectionItemStatus::IsCheckedOutByAnotherUser;
+				}
+				else if (StatusInfo.SCCState->IsConflicted())
+				{
+					NewStatus = ECollectionItemStatus::IsConflicted;
+				}
+				else if (!StatusInfo.SCCState->IsCurrent())
+				{
+					NewStatus = ECollectionItemStatus::IsOutOfDate;
+				}
+				else if (StatusInfo.SCCState->IsModified())
+				{
+					NewStatus = ECollectionItemStatus::HasLocalChanges;
+				}
+			}
+			else
+			{
+				NewStatus = ECollectionItemStatus::IsMissingSCCProvider;
+			}
+		}
+
+		// Not set by the SCC status, so check just use the local state
+		if (!NewStatus.IsSet())
+		{
+			if (StatusInfo.bIsDirty)
+			{
+				NewStatus = ECollectionItemStatus::HasLocalChanges;
+			}
+			else if (StatusInfo.bIsEmpty)
+			{
+				NewStatus = ECollectionItemStatus::IsUpToDateAndEmpty;
+			}
+			else
+			{
+				NewStatus = ECollectionItemStatus::IsUpToDateAndPopulated;
+			}
+		}
+	}
+
+	CollectionItem->CurrentStatus = NewStatus.Get(ECollectionItemStatus::IsUpToDateAndEmpty);
+}
+
 void SCollectionView::UpdateCollectionItems()
 {
 	struct FGatherCollectionItems
@@ -299,8 +403,10 @@ void SCollectionView::UpdateCollectionItems()
 					continue;
 				}
 
-				TSharedPtr<FCollectionItem> CollectionItem = MakeShareable(new FCollectionItem(Collection.Name, Collection.Type));
+				TSharedRef<FCollectionItem> CollectionItem = MakeShareable(new FCollectionItem(Collection.Name, Collection.Type));
 				OutAvailableCollections.Add(Collection, CollectionItem);
+
+				SCollectionView::UpdateCollectionItemStatus(CollectionItem);
 
 				if (InParentCollectionItem.IsValid())
 				{
@@ -347,6 +453,8 @@ void SCollectionView::UpdateCollectionItems()
 	// Restore selection and expansion
 	SetSelectedCollections(SelectedCollections, false);
 	SetExpandedCollections(ExpandedCollections);
+
+	bQueueSCCRefresh = true;
 }
 
 void SCollectionView::UpdateFilteredCollectionItems()
@@ -606,6 +714,36 @@ void SCollectionView::LoadSettings(const FString& IniFilename, const FString& In
 	if (NewExpandedCollections.Num() > 0)
 	{
 		SetExpandedCollections(NewExpandedCollections);
+	}
+}
+
+void SCollectionView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if (bQueueSCCRefresh && ISourceControlModule::Get().IsEnabled())
+	{
+		bQueueSCCRefresh = false;
+
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		TArray<FString> CollectionFilesToRefresh;
+		for (const auto& AvailableCollectionInfo : AvailableCollections)
+		{
+			FCollectionStatusInfo StatusInfo;
+			if (CollectionManagerModule.Get().GetCollectionStatusInfo(AvailableCollectionInfo.Value->CollectionName, AvailableCollectionInfo.Value->CollectionType, StatusInfo))
+			{
+				if (StatusInfo.bUseSCC && StatusInfo.SCCState.IsValid() && StatusInfo.SCCState->IsSourceControlled())
+				{
+					CollectionFilesToRefresh.Add(StatusInfo.SCCState->GetFilename());
+				}
+			}
+		}
+
+		if (CollectionFilesToRefresh.Num() > 0)
+		{
+			ISourceControlModule::Get().QueueStatusUpdate(CollectionFilesToRefresh);
+		}
 	}
 }
 

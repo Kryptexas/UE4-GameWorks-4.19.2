@@ -2,6 +2,31 @@
 
 #pragma once
 
+/** Status states that a collection item can be in */
+enum class ECollectionItemStatus : uint8
+{
+	/** The collection is up-to-date in source control, and isn't empty */
+	IsUpToDateAndPopulated,
+		
+	/** The collection is up-to-date in source control, but is empty */
+	IsUpToDateAndEmpty,
+
+	/** The collection is out-of-date in source control */
+	IsOutOfDate,
+
+	/** The collection is checked out by another source control user, so can't be modified at this time */
+	IsCheckedOutByAnotherUser,
+
+	/** The collection is conflicted in source control, so can't be modified at this time */
+	IsConflicted,
+
+	/** The collection is under source control but the SCC provider is currently unavailable, so can't be modified at this time */
+	IsMissingSCCProvider,
+
+	/** The collection has local changes that either haven't been saved, or haven't been committed to source control */
+	HasLocalChanges,
+};
+
 /** A list item representing a collection */
 struct FCollectionItem
 {
@@ -31,6 +56,9 @@ struct FCollectionItem
 	/** If true, this item will be created the next time it is renamed */
 	bool bNewCollection;
 
+	/** Current status of this collection item */
+	ECollectionItemStatus CurrentStatus;
+
 	/** Broadcasts whenever renaming a collection item is requested */
 	DECLARE_MULTICAST_DELEGATE( FRenamedRequestEvent )
 
@@ -45,5 +73,6 @@ struct FCollectionItem
 		, ChildCollections()
 		, bRenaming(false)
 		, bNewCollection(false)
+		, CurrentStatus(ECollectionItemStatus::IsUpToDateAndEmpty)
 	{}
 };

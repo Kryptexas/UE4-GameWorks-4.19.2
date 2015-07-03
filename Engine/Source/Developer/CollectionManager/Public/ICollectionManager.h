@@ -131,18 +131,44 @@ public:
 	/**
 	  * Removes all assets from the specified collection.
 	  *
-	  * @param CollectionName The collection from which to remove the asset
+	  * @param CollectionName The collection to empty
 	  * @param ShareType The way the collection is shared.
-	  * @return true if the remove was successful. If false, GetLastError will return a human readable string description of the error.
+	  * @return true if the clear was successful. If false, GetLastError will return a human readable string description of the error.
 	  */
 	virtual bool EmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType) = 0;
 
 	/**
-	  * @param CollectionName The collection from which to remove the asset
+	  * Save the collection (if dirty) and check it into source control (if under SCC control)
+	  *
+	  * Note: Generally you won't need to save collections manually as the collection manager takes care of that as objects and added/removed, etc. 
+	  *	      however, you may want to manually save a collection if a previous save attempt failed (and you've since corrected the issue), or if 
+	  *       the collection contains redirected object references that you'd like to save to disk.
+	  *
+	  * @param CollectionName The collection to save
 	  * @param ShareType The way the collection is shared.
-	  * @return true if the collection is empty.
+	  * @return true if the save was successful. If false, GetLastError will return a human readable string description of the error.
 	  */
-	virtual bool IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) const = 0;
+	virtual bool SaveCollection(FName CollectionName, ECollectionShareType::Type ShareType) = 0;
+
+	/**
+	  * Update the collection to make sure it's using the latest version from source control (if under SCC control)
+	  *
+	  * Note: Generally you won't need to update collections manually as the collection manager takes care of that as collections are saved to disk.
+	  *
+	  * @param CollectionName The collection to update
+	  * @param ShareType The way the collection is shared.
+	  * @return true if the update was successful. If false, GetLastError will return a human readable string description of the error.
+	  */
+	virtual bool UpdateCollection(FName CollectionName, ECollectionShareType::Type ShareType) = 0;
+
+	/**
+	  * Gets the status info for the specified collection
+	  *
+	  * @param CollectionName The collection to get the status info for
+	  * @param ShareType The way the collection is shared.
+	  * @return true if the status info was filled in. If false, GetLastError will return a human readable string description of the error.
+	  */
+	virtual bool GetCollectionStatusInfo(FName CollectionName, ECollectionShareType::Type ShareType, FCollectionStatusInfo& OutStatusInfo) const = 0;
 
 	/**
 	 * Check to see if the given object exists in the given collection
@@ -209,4 +235,8 @@ public:
 	/** Event for when collections are re-parented (params: Collection, OldParent, NewParent) */
 	DECLARE_EVENT_ThreeParams( ICollectionManager, FCollectionReparentedEvent, const FCollectionNameType&, const TOptional<FCollectionNameType>&, const TOptional<FCollectionNameType>& );
 	virtual FCollectionReparentedEvent& OnCollectionReparented() = 0;
+
+	/** Event for when collections is updated, or otherwise changed and we can't tell exactly how (eg, after updating from source control and merging) */
+	DECLARE_EVENT_OneParam( ICollectionManager, FCollectionUpdatedEvent, const FCollectionNameType& );
+	virtual FCollectionUpdatedEvent& OnCollectionUpdated() = 0;
 };

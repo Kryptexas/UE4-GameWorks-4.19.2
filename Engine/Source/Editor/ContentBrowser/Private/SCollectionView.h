@@ -70,6 +70,7 @@ public:
 	/** Loads any settings to config that should be persistent between editor sessions */
 	void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString);
 
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
@@ -171,6 +172,24 @@ private:
 	/** Handles an on collection destroyed event */
 	void HandleCollectionDestroyed( const FCollectionNameType& Collection );
 
+	/** Handles an on collection updated event */
+	void HandleCollectionUpdated( const FCollectionNameType& Collection );
+
+	/** Handles assets being added to a collection */
+	void HandleAssetsAddedToCollection( const FCollectionNameType& Collection, const TArray<FName>& AssetsAdded );
+
+	/** Handles assets being removed from a collection */
+	void HandleAssetsRemovedFromCollection( const FCollectionNameType& Collection, const TArray<FName>& AssetsRemoved );
+
+	/** Handles the source control provider changing */
+	void HandleSourceControlProviderChanged(class ISourceControlProvider& OldProvider, class ISourceControlProvider& NewProvider);
+
+	/** Handles the source control state changing */
+	void HandleSourceControlStateChanged();
+
+	/** Handles updating the status of the given collection item */
+	static void UpdateCollectionItemStatus( const TSharedRef<FCollectionItem>& CollectionItem );
+
 	/** Updates the collections shown in the tree view */
 	void UpdateCollectionItems();
 
@@ -260,4 +279,10 @@ private:
 	 * We keep a weak pointer to this so we can tell if that drag and drop is still ongoing, and if so, what collections it affects 
 	 */
 	TWeakPtr<class FCollectionDragDropOp> CurrentCollectionDragDropOp;
+
+	/** Delegate handle for the HandleSourceControlStateChanged function callback */
+	FDelegateHandle SourceControlStateChangedDelegateHandle;
+
+	/** True if we should queue an SCC refresh for the collections on the next Tick */
+	bool bQueueSCCRefresh;
 };

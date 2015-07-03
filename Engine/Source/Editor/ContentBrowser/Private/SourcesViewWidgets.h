@@ -240,6 +240,12 @@ private:
 	/** Returns the image for the border around this item. Used for drag/drop operations */
 	const FSlateBrush* GetBorderImage() const;
 
+	/** Get the color to use for the collection item status */
+	FSlateColor GetCollectionStatusColor() const;
+
+	/** Get the tooltip correspinding to the current collection item status */
+	FText GetCollectionStatusToolTipText() const;
+
 private:
 	/** A shared pointer to the parent widget. */
 	TSharedPtr<SWidget> ParentWidget;

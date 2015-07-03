@@ -40,6 +40,12 @@ private:
 	/** Handler for when "Rename Collection" is selected */
 	void ExecuteRenameCollection();
 
+	/** Handler for when "Update Collection" is selected */
+	void ExecuteUpdateCollection();
+
+	/** Handler for when "Save Collection" is selected */
+	void ExecuteSaveCollection();
+
 	/** Handler for when "Destroy Collection" is selected */
 	void ExecuteDestroyCollection();
 

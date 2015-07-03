@@ -838,7 +838,62 @@ bool FCollectionManager::EmptyCollection(FName CollectionName, ECollectionShareT
 	return false;
 }
 
-bool FCollectionManager::IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) const
+bool FCollectionManager::SaveCollection(FName CollectionName, ECollectionShareType::Type ShareType)
+{
+	if (!ensure(ShareType < ECollectionShareType::CST_All))
+	{
+		// Bad share type
+		LastError = LOCTEXT("Error_Internal", "There was an internal error.");
+		return false;
+	}
+
+	const FCollectionNameType CollectionKey(CollectionName, ShareType);
+	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(CollectionKey);
+	if (CollectionRefPtr)
+	{
+		FCollectionStatusInfo StatusInfo = (*CollectionRefPtr)->GetStatusInfo();
+
+		const bool bNeedsSave = StatusInfo.bIsDirty || (StatusInfo.SCCState.IsValid() && StatusInfo.SCCState->IsModified());
+		if (!bNeedsSave)
+		{
+			// No changes - nothing to save
+			return true;
+		}
+
+		if ((*CollectionRefPtr)->Save(LastError))
+		{
+			CollectionUpdatedEvent.Broadcast(CollectionKey);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FCollectionManager::UpdateCollection(FName CollectionName, ECollectionShareType::Type ShareType)
+{
+	if (!ensure(ShareType < ECollectionShareType::CST_All))
+	{
+		// Bad share type
+		LastError = LOCTEXT("Error_Internal", "There was an internal error.");
+		return false;
+	}
+
+	const FCollectionNameType CollectionKey(CollectionName, ShareType);
+	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(CollectionKey);
+	if (CollectionRefPtr)
+	{
+		if ((*CollectionRefPtr)->Update(LastError))
+		{
+			CollectionUpdatedEvent.Broadcast(CollectionKey);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FCollectionManager::GetCollectionStatusInfo(FName CollectionName, ECollectionShareType::Type ShareType, FCollectionStatusInfo& OutStatusInfo) const
 {
 	if (!ensure(ShareType < ECollectionShareType::CST_All))
 	{
@@ -851,7 +906,8 @@ bool FCollectionManager::IsCollectionEmpty(FName CollectionName, ECollectionShar
 	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(CollectionKey);
 	if (CollectionRefPtr)
 	{
-		return (*CollectionRefPtr)->IsEmpty();
+		OutStatusInfo = (*CollectionRefPtr)->GetStatusInfo();
+		return true;
 	}
 
 	return true;
@@ -944,10 +1000,28 @@ void FCollectionManager::HandleFixupRedirectors(ICollectionRedirectorFollower& I
 		}
 	}
 
-	// Notify the rename for each redirected object
+	TArray<FCollectionNameType> UpdatedCollections;
+
+	TArray<FName> AddedObjects;
+	AddedObjects.Reserve(ObjectsToRename.Num());
+
+	TArray<FName> RemovedObjects;
+	RemovedObjects.Reserve(ObjectsToRename.Num());
+
+	// Handle the rename for each redirected object
 	for (const auto& ObjectToRename : ObjectsToRename)
 	{
-		HandleObjectRenamed(ObjectToRename.Key, ObjectToRename.Value);
+		AddedObjects.Add(ObjectToRename.Value);
+		RemovedObjects.Add(ObjectToRename.Key);
+
+		ReplaceObjectInCollections(ObjectToRename.Key, ObjectToRename.Value, UpdatedCollections);
+	}
+
+	// Notify every collection that changed
+	for (const FCollectionNameType& UpdatedCollection : UpdatedCollections)
+	{
+		AssetsRemovedEvent.Broadcast(UpdatedCollection, RemovedObjects);
+		AssetsAddedEvent.Broadcast(UpdatedCollection, AddedObjects);
 	}
 
 	UE_LOG(LogCollectionManager, Log, TEXT( "Fixed up redirectors for %d collections in %0.6f seconds (updated %d objects)" ), CachedCollections.Num(), FPlatformTime::Seconds() - LoadStartTime, ObjectsToRename.Num());
@@ -964,20 +1038,36 @@ bool FCollectionManager::HandleRedirectorDeleted(const FName& ObjectPath)
 
 	FTextBuilder AllErrors;
 
+	TArray<FCollectionNameType> UpdatedCollections;
+
 	// We don't have a cache for on-disk objects, so we have to do this the slower way and query each collection in turn
 	for (const auto& CachedCollection : CachedCollections)
 	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
 		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
 
 		if (Collection->IsRedirectorInCollection(ObjectPath))
 		{
 			FText SaveError;
-			if (!Collection->Save(SaveError))
+			if (Collection->Save(SaveError))
+			{
+				UpdatedCollections.Add(CollectionKey);
+			}
+			else
 			{
 				AllErrors.AppendLine(SaveError);
 				bSavedAllCollections = false;
 			}
 		}
+	}
+
+	TArray<FName> RemovedObjects;
+	RemovedObjects.Add(ObjectPath);
+
+	// Notify every collection that changed
+	for (const FCollectionNameType& UpdatedCollection : UpdatedCollections)
+	{
+		AssetsRemovedEvent.Broadcast(UpdatedCollection, RemovedObjects);
 	}
 
 	if (!bSavedAllCollections)
@@ -990,62 +1080,35 @@ bool FCollectionManager::HandleRedirectorDeleted(const FName& ObjectPath)
 
 void FCollectionManager::HandleObjectRenamed(const FName& OldObjectPath, const FName& NewObjectPath)
 {
-	// Remove the info about the collections that the old object path is within - we'll add this info back in under the new object path shortly
-	TArray<FObjectCollectionInfo> OldObjectCollectionInfos;
-	if (!CachedObjects.RemoveAndCopyValue(OldObjectPath, OldObjectCollectionInfos))
-	{
-		return;
-	}
+	TArray<FCollectionNameType> UpdatedCollections;
+	ReplaceObjectInCollections(OldObjectPath, NewObjectPath, UpdatedCollections);
 
-	// Replace this object reference in all collections that use it, and update our object cache
-	auto& NewObjectCollectionInfos = CachedObjects.FindOrAdd(NewObjectPath);
-	for (const FObjectCollectionInfo& OldObjectCollectionInfo : OldObjectCollectionInfos)
-	{
-		if ((OldObjectCollectionInfo.Reason & ECollectionRecursionFlags::Self) != 0)
-		{
-			// The old object is contained directly within this collection (rather than coming from a parent or child collection), so update the object reference
-			const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(OldObjectCollectionInfo.CollectionKey);
-			if (CollectionRefPtr)
-			{
-				(*CollectionRefPtr)->RemoveObjectFromCollection(OldObjectPath);
-				(*CollectionRefPtr)->AddObjectToCollection(NewObjectPath);
-			}
-		}
+	TArray<FName> AddedObjects;
+	AddedObjects.Add(NewObjectPath);
 
-		// Merge the collection references for the old object with any collection references that already exist for the new object
-		FObjectCollectionInfo* ObjectInfoPtr = NewObjectCollectionInfos.FindByPredicate([&](const FObjectCollectionInfo& InCollectionInfo) { return InCollectionInfo.CollectionKey == OldObjectCollectionInfo.CollectionKey; });
-		if (ObjectInfoPtr)
-		{
-			ObjectInfoPtr->Reason |= OldObjectCollectionInfo.Reason;
-		}
-		else
-		{
-			NewObjectCollectionInfos.Add(OldObjectCollectionInfo);
-		}
+	TArray<FName> RemovedObjects;
+	RemovedObjects.Add(OldObjectPath);
+
+	// Notify every collection that changed
+	for (const FCollectionNameType& UpdatedCollection : UpdatedCollections)
+	{
+		AssetsRemovedEvent.Broadcast(UpdatedCollection, RemovedObjects);
+		AssetsAddedEvent.Broadcast(UpdatedCollection, AddedObjects);
 	}
 }
 
 void FCollectionManager::HandleObjectDeleted(const FName& ObjectPath)
 {
-	// Remove the info about the collections that the old object path is within
-	TArray<FObjectCollectionInfo> ObjectCollectionInfos;
-	if (!CachedObjects.RemoveAndCopyValue(ObjectPath, ObjectCollectionInfos))
-	{
-		return;
-	}
+	TArray<FCollectionNameType> UpdatedCollections;
+	RemoveObjectFromCollections(ObjectPath, UpdatedCollections);
 
-	// Remove this object reference from all collections that use it
-	for (const FObjectCollectionInfo& ObjectCollectionInfo : ObjectCollectionInfos)
+	TArray<FName> RemovedObjects;
+	RemovedObjects.Add(ObjectPath);
+
+	// Notify every collection that changed
+	for (const FCollectionNameType& UpdatedCollection : UpdatedCollections)
 	{
-		if ((ObjectCollectionInfo.Reason & ECollectionRecursionFlags::Self) != 0)
-		{
-			// The object is contained directly within this collection (rather than coming from a parent or child collection), so remove the object reference
-			const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(ObjectCollectionInfo.CollectionKey);
-			if (CollectionRefPtr)
-			{
-				(*CollectionRefPtr)->RemoveObjectFromCollection(ObjectPath);
-			}
-		}
+		AssetsRemovedEvent.Broadcast(UpdatedCollection, RemovedObjects);
 	}
 }
 
@@ -1211,6 +1274,71 @@ bool FCollectionManager::RemoveCollection(const TSharedRef<FCollection>& Collect
 	const FCollectionNameType CollectionKey(CollectionRef->GetCollectionName(), ShareType);
 	CachedCollectionNamesFromGuids.Remove(CollectionRef->GetCollectionGuid());
 	return CachedCollections.Remove(CollectionKey) > 0;
+}
+
+void FCollectionManager::RemoveObjectFromCollections(const FName& ObjectPath, TArray<FCollectionNameType>& OutUpdatedCollections)
+{
+	// Remove the info about the collections that the old object path is within
+	TArray<FObjectCollectionInfo> ObjectCollectionInfos;
+	if (!CachedObjects.RemoveAndCopyValue(ObjectPath, ObjectCollectionInfos))
+	{
+		return;
+	}
+
+	// Remove this object reference from all collections that use it
+	for (const FObjectCollectionInfo& ObjectCollectionInfo : ObjectCollectionInfos)
+	{
+		if ((ObjectCollectionInfo.Reason & ECollectionRecursionFlags::Self) != 0)
+		{
+			// The object is contained directly within this collection (rather than coming from a parent or child collection), so remove the object reference
+			const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(ObjectCollectionInfo.CollectionKey);
+			if (CollectionRefPtr)
+			{
+				OutUpdatedCollections.AddUnique(ObjectCollectionInfo.CollectionKey);
+
+				(*CollectionRefPtr)->RemoveObjectFromCollection(ObjectPath);
+			}
+		}
+	}
+}
+
+void FCollectionManager::ReplaceObjectInCollections(const FName& OldObjectPath, const FName& NewObjectPath, TArray<FCollectionNameType>& OutUpdatedCollections)
+{
+	// Remove the info about the collections that the old object path is within - we'll add this info back in under the new object path shortly
+	TArray<FObjectCollectionInfo> OldObjectCollectionInfos;
+	if (!CachedObjects.RemoveAndCopyValue(OldObjectPath, OldObjectCollectionInfos))
+	{
+		return;
+	}
+
+	// Replace this object reference in all collections that use it, and update our object cache
+	auto& NewObjectCollectionInfos = CachedObjects.FindOrAdd(NewObjectPath);
+	for (const FObjectCollectionInfo& OldObjectCollectionInfo : OldObjectCollectionInfos)
+	{
+		if ((OldObjectCollectionInfo.Reason & ECollectionRecursionFlags::Self) != 0)
+		{
+			// The old object is contained directly within this collection (rather than coming from a parent or child collection), so update the object reference
+			const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(OldObjectCollectionInfo.CollectionKey);
+			if (CollectionRefPtr)
+			{
+				OutUpdatedCollections.AddUnique(OldObjectCollectionInfo.CollectionKey);
+
+				(*CollectionRefPtr)->RemoveObjectFromCollection(OldObjectPath);
+				(*CollectionRefPtr)->AddObjectToCollection(NewObjectPath);
+			}
+		}
+
+		// Merge the collection references for the old object with any collection references that already exist for the new object
+		FObjectCollectionInfo* ObjectInfoPtr = NewObjectCollectionInfos.FindByPredicate([&](const FObjectCollectionInfo& InCollectionInfo) { return InCollectionInfo.CollectionKey == OldObjectCollectionInfo.CollectionKey; });
+		if (ObjectInfoPtr)
+		{
+			ObjectInfoPtr->Reason |= OldObjectCollectionInfo.Reason;
+		}
+		else
+		{
+			NewObjectCollectionInfos.Add(OldObjectCollectionInfo);
+		}
+	}
 }
 
 void FCollectionManager::RecursionHelper_DoWork(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InRecursionMode, const FRecursiveWorkerFunc& InWorkerFunc) const

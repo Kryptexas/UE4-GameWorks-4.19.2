@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ISourceControlState.h"
+
 struct ECollectionShareType
 {
 	enum Type
@@ -170,6 +172,25 @@ struct FCollectionNameType
 
 	FName Name;
 	ECollectionShareType::Type Type;
+};
+
+/** The status information for a collection */
+struct FCollectionStatusInfo
+{
+	/** True if the collection has unsaved changes */
+	bool bIsDirty;
+
+	/** True if the collection is empty */
+	bool bIsEmpty;
+
+	/** True if the collection uses SCC */
+	bool bUseSCC;
+
+	/** Number of objects within the collection (static collections only) */
+	int32 NumObjects;
+
+	/** The current source control state of the collection. Only filled in for those collections that are under source control, but may also be empty if the SCC is unavailable (see bUseSCC) */
+	FSourceControlStatePtr SCCState;
 };
 
 class ICollectionRedirectorFollower

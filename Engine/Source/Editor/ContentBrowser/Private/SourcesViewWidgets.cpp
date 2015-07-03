@@ -366,6 +366,17 @@ void SCollectionTreeItem::Construct( const FArguments& InArgs )
 				.IsSelected( InArgs._IsSelected )
 				.IsReadOnly( InArgs._IsReadOnly )
 			]
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2, 0, 2, 0)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("ContentBrowser.CollectionStatus"))
+				.ColorAndOpacity(this, &SCollectionTreeItem::GetCollectionStatusColor)
+				.ToolTipText(this, &SCollectionTreeItem::GetCollectionStatusToolTipText)
+			]
 		]
 	];
 
@@ -534,5 +545,74 @@ const FSlateBrush* SCollectionTreeItem::GetBorderImage() const
 	return bDraggedOver ? FEditorStyle::GetBrush("Menu.Background") : FEditorStyle::GetBrush("NoBorder");
 }
 
+FSlateColor SCollectionTreeItem::GetCollectionStatusColor() const
+{
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+
+	if (CollectionItemPtr.IsValid())
+	{
+		switch(CollectionItemPtr->CurrentStatus)
+		{
+		case ECollectionItemStatus::IsUpToDateAndPopulated:
+			return FLinearColor(0.10616, 0.48777, 0.10616); // Green
+
+		case ECollectionItemStatus::IsUpToDateAndEmpty:
+			return FLinearColor::Gray;
+
+		case ECollectionItemStatus::IsOutOfDate:
+			return FLinearColor(0.87514, 0.42591, 0.07383); // Orange
+
+		case ECollectionItemStatus::IsCheckedOutByAnotherUser:
+		case ECollectionItemStatus::IsConflicted:
+		case ECollectionItemStatus::IsMissingSCCProvider:
+			return FLinearColor(0.70117, 0.08464, 0.07593); // Red
+
+		case ECollectionItemStatus::HasLocalChanges:
+			return FLinearColor(0.10363, 0.53564, 0.7372); // Blue
+
+		default:
+			break;
+		}
+	}
+
+	return FLinearColor::White;
+}
+
+FText SCollectionTreeItem::GetCollectionStatusToolTipText() const
+{
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+
+	if (CollectionItemPtr.IsValid())
+	{
+		switch(CollectionItemPtr->CurrentStatus)
+		{
+		case ECollectionItemStatus::IsUpToDateAndPopulated:
+			return LOCTEXT("CollectionStatus_IsUpToDateAndPopulated", "Collection is up-to-date");
+
+		case ECollectionItemStatus::IsUpToDateAndEmpty:
+			return LOCTEXT("CollectionStatus_IsUpToDateAndEmpty", "Collection is empty");
+
+		case ECollectionItemStatus::IsOutOfDate:
+			return LOCTEXT("CollectionStatus_IsOutOfDate", "Collection is not at the latest revision");
+
+		case ECollectionItemStatus::IsCheckedOutByAnotherUser:
+			return LOCTEXT("CollectionStatus_IsCheckedOutByAnotherUser", "Collection is checked out by another user");
+
+		case ECollectionItemStatus::IsConflicted:
+			return LOCTEXT("CollectionStatus_IsConflicted", "Collection is conflicted - please use your external source control provider to resolve this conflict");
+
+		case ECollectionItemStatus::IsMissingSCCProvider:
+			return LOCTEXT("CollectionStatus_IsMissingSCCProvider", "Collection is missing its source control provider - please check your source control settings");
+
+		case ECollectionItemStatus::HasLocalChanges:
+			return LOCTEXT("CollectionStatus_HasLocalChanges", "Collection has local unsaved or uncomitted changes");
+
+		default:
+			break;
+		}
+	}
+
+	return FText::GetEmpty();
+}
 
 #undef LOCTEXT_NAMESPACE

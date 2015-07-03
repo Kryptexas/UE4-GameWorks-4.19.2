@@ -36,7 +36,9 @@ public:
 	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) override;
 	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumRemoved = nullptr) override;
 	virtual bool EmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
-	virtual bool IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) const override;
+	virtual bool SaveCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual bool UpdateCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual bool GetCollectionStatusInfo(FName CollectionName, ECollectionShareType::Type ShareType, FCollectionStatusInfo& OutStatusInfo) const override;
 	virtual bool IsObjectInCollection(FName ObjectPath, FName CollectionName, ECollectionShareType::Type ShareType, ECollectionRecursionFlags::Flags RecursionMode = ECollectionRecursionFlags::Self) const override;
 	virtual bool IsValidParentCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ParentCollectionName, ECollectionShareType::Type ParentShareType) const override;
 	virtual FText GetLastError() const override { return LastError; }
@@ -69,6 +71,10 @@ public:
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FCollectionReparentedEvent, FCollectionReparentedEvent );
 	virtual FCollectionReparentedEvent& OnCollectionReparented() override { return CollectionReparentedEvent; }
 
+	/** Event for when collections is updated, or otherwise changed and we can't tell exactly how (eg, after updating from source control and merging) */
+	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FCollectionUpdatedEvent, FCollectionUpdatedEvent );
+	virtual FCollectionUpdatedEvent& OnCollectionUpdated() override { return CollectionUpdatedEvent; }
+
 private:
 	/** Loads all collection files from disk */
 	void LoadCollections();
@@ -90,6 +96,12 @@ private:
 
 	/** Removes a collection from the lookup maps */
 	bool RemoveCollection(const TSharedRef<FCollection>& CollectionRef, ECollectionShareType::Type ShareType);
+
+	/** Removes an object from any collections that contain it */
+	void RemoveObjectFromCollections(const FName& ObjectPath, TArray<FCollectionNameType>& OutUpdatedCollections);
+
+	/** Replaces an object with another in any collections that contain it */
+	void ReplaceObjectInCollections(const FName& OldObjectPath, const FName& NewObjectPath, TArray<FCollectionNameType>& OutUpdatedCollections);
 
 	enum class ERecursiveWorkerFlowControl : uint8
 	{
@@ -157,6 +169,9 @@ private:
 
 	/** Event for when collections are re-parented */
 	FCollectionReparentedEvent CollectionReparentedEvent;
+
+	/** Event for when collections are updated, or otherwise changed and we can't tell exactly how (eg, after updating from source control and merging) */
+	FCollectionUpdatedEvent CollectionUpdatedEvent;
 
 	/** Event for when collections are created */
 	FCollectionCreatedEvent CollectionCreatedEvent;

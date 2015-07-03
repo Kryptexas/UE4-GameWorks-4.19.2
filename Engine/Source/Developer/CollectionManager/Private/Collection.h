@@ -44,6 +44,8 @@ public:
 	bool Load(FText& OutError);
 	/** Saves this collection to SourceFilename. If false, OutError is a human readable warning depicting the error. */
 	bool Save(FText& OutError);
+	/** Updates this collection to ensure it's the latest version from source control. If false, OutError is a human readable warning depicting the error. */
+	bool Update(FText& OutError);
 	/** Deletes the source file for this collection. If false, OutError is a human readable warning depicting the error. */
 	bool DeleteSourceFile(FText& OutError);
 
@@ -61,6 +63,12 @@ public:
 	bool IsObjectInCollection(FName ObjectPath) const;
 	/** Returns true when the specified redirector is in the collection. Static collections only. */
 	bool IsRedirectorInCollection(FName ObjectPath) const;
+
+	/** Get the status info for this collection */
+	FCollectionStatusInfo GetStatusInfo() const;
+
+	/** Does this collection contain unsaved changes? */
+	bool IsDirty() const;
 
 	/** Returns true if the collection contains rules instead of a flat list */
 	bool IsDynamic() const;
@@ -101,7 +109,7 @@ private:
 	/** Merges the assets from the specified collection with this collection */
 	void MergeWithCollection(const FCollection& Other);
 	/** Gets the object differences between collections A and B */
-	void GetObjectDifferencesFromDisk(TArray<FName>& ObjectsAdded, TArray<FName>& ObjectsRemoved);
+	void GetObjectDifferencesFromDisk(TArray<FName>& ObjectsAdded, TArray<FName>& ObjectsRemoved) const;
 	/** Checks the shared collection out from source control so it may be saved. If false, OutError is a human readable warning depicting the error. */
 	bool CheckoutCollection(FText& OutError);
 	/** Checks the shared collection in to source control after it is saved. If false, OutError is a human readable warning depicting the error. */
