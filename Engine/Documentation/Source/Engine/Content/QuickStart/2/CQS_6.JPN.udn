@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2589385
+﻿INTSourceChangelist:2604029
 Availability:Public
-Title:2. マテリアルの作成
+Title:2 - マテリアルの作成
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:プロジェクトを設定したので、次はマテリアルの作成方法を学習しましょう。
-
-
+SkillLevel:初心者向け
+バージョン：4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前のステップ](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+		[前のステップ](Engine/Content/QuickStart/1/4 "%Engine/Content/QuickStart/1/4:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -17,7 +17,7 @@ Description:プロジェクトを設定したので、次はマテリアルの�
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:title%")
+		[次のステップ](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -26,36 +26,49 @@ Description:プロジェクトを設定したので、次はマテリアルの�
 
 マテリアルはメッシュに適用されるアセットで、シーンに見た目の美しさを加えます。
 
-&#x2713; [プロジェクト ブラウザ上にリフレッシャーを希望する場合は、ここをクリックしてください](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%")
+UE4 プロジェクト用マテリアルの作成および編集方法は何通りかありますが、ここでは **マテリアル エディタ** を使う方法を紹介します。
 
-マテリアルの作成方法には、一般的なものが 2 通りあります。
+## Rock マテリアルの新規作成
 
-* **既存テクスチャ** に依存する
-* **マテリアル エディタ** を使う
+1.	**コンテンツ ブラウザ** へ移動して **[Add New (新規追加)]** をクリックし、 **Material** を選びます (下の画像)。
 
-## テクスチャでマテリアルを作成する
+	![](newCreateMaterial.png)
 
-1.	サンプル アセットが保存されている **コンテンツ ブラウザ** へ移動します。**T_Rock_04_D** を **右クリック** し **Texture Actions** メニューから **[Create Material (マテリアルを作成)]** を選択します (下の画像)。
+1.	マテリアル名を 「**Rock**」 にします。
 
-	![](createMaterial.jpg)
+	![](materialNaming.png)
 
-1.	作成した **マテリアル** の名前を入力します。
+1.	これで **Rock マテリアル** が使える状態になりました。
 
-	![](materialNaming.jpg)
+	![](NewRockMaterial.png)
 
-1.	これで **マテリアル** が使える状態になりました。
+1.	**Rockマテリアル** をダブルクリックすると、[マテリアル エディタ](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") が開きます (下図)。
 
-	![](MaterialCreated.jpg)
+	[REGION:lightbox]
+		[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
+	[/REGION]
+ 
+	マテリアル ノードの操作については、[マテリアル操作ガイド](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") を参照してください。
 
-1.	マテリアルを **ダブルクリック** すると、[＿マテリアル エディタ＿](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") が開きます (下の画像)。
+[REGION:tip]
+*べき乗をつかってテクスチャ サイズを調整します。*
+[/REGION]
 
-	![](MaterialEditor.jpg)
+<!--
 
-	このサンプルでは、**T_Rock_04_D** テクスチャに対して 1 つしか Texture Sample ノードを使用していません。マテリアル ノードの操作については、[＿マテリアル操作ガイド＿](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") を参照してください。
+ではこれを踏まえて、このグラフと同様の **マテリアル** を作成してみましょう。
+
+![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+
+メインのマテリアル ノードは、特別な設定もない、単なるプラスチックの マテリアルです。 
+
+_Basic_Asset1_ をレベルへ追加し、それにマテリアルを適用し、マテリアルを更新して "Brick" のノーマル マップ テクスチャを追加します。 
+
+![](NormalMapAdded.png)
 
 ## マテリアル エディタでマテリアルを作成する
 
-1.	**コンテンツ ブラウザ** へ移動して **[Add New (新規追加)]** をクリックし、 **Material** を選びます (下の画像)。
+1.	**コンテンツ ブラウザ** へ移動して **[Add New]** (新規追加) をクリックし、 **Material** を選びます (下の画像)。
 
 	![](newMaterial.jpg)
 
@@ -77,24 +90,6 @@ Description:プロジェクトを設定したので、次はマテリアルの�
 
 * **既存のテクスチャ** を使用する
 * **マテリアル エディタ** を操作する
-
-[REGION:tip]
-*べき乗をつかってテクスチャ サイズを調整します。*
-[/REGION]
-
-<!--
-
-知っていることを活用して、このグラフと同様の **マテリアル** を新規作成します。
-
-![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
-
-メインのマテリアル ノードは、特別な設定もない、単なるプラスチックの マテリアルです。 
-
-_Basic_Asset1_ をレベルへ追加し、それにマテリアルを適用し、マテリアルを更新して "Brick" のノーマル マップ テクスチャを追加します。 
-
-![](NormalMapAdded.png)
-
-
 
 
 コンテンツ クイック スタートガイドおよびエディタ全般にで説明したトピックスに関しては、 [アンリアル エディタのマニュアル](Engine) をご覧ください。
