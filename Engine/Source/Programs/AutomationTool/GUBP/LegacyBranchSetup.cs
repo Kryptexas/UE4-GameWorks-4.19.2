@@ -118,8 +118,8 @@ partial class GUBP
     }
 
     public abstract class GUBPEmailHacker
-    {        
-        public virtual List<string> AddEmails(GUBP bp, string Branch, string NodeName)
+    {
+		public virtual List<string> AddEmails(GUBP bp, string Branch, string NodeName, string EmailHint)
         {
             return new List<string>();
         }
@@ -145,7 +145,7 @@ partial class GUBP
         {
             return OnlyEmail;
         }
-        EmailHint = ParseParamValue("EmailHint");
+        string EmailHint = ParseParamValue("EmailHint");
         if(EmailHint == null)
         {
             EmailHint = "";
@@ -177,7 +177,7 @@ partial class GUBP
 		}
         foreach (var EmailHacker in EmailHackers)
         {
-            Result.AddRange(EmailHacker.AddEmails(this, Branch, NodeInfo.Name));
+            Result.AddRange(EmailHacker.AddEmails(this, Branch, NodeInfo.Name, EmailHint));
         }
         foreach (var EmailHacker in EmailHackers)
         {

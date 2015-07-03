@@ -17,7 +17,6 @@ public partial class GUBP : BuildCommand
     public BranchInfo Branch = null;
     public List<UnrealTargetPlatform> HostPlatforms;
     public static bool bForceIncrementalCompile = false;
-    public string EmailHint;
     static public bool bPreflightBuild = false;
     public int PreflightShelveCL = 0;
     static public string PreflightMangleSuffix = "";
