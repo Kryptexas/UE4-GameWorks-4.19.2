@@ -463,7 +463,7 @@ void FBatchedElements::PrepareShaders(
 	if( BatchedElementParameters != NULL )
 	{
 		// Use the vertex/pixel shader that we were given
-		BatchedElementParameters->BindShaders(RHICmdList, FeatureLevel, Transform, Gamma, ColorWeights, Texture);
+		BatchedElementParameters->BindShaders(RHICmdList, FeatureLevel, Transform, GammaToUse, ColorWeights, Texture);
 	}
 	else
 	{
