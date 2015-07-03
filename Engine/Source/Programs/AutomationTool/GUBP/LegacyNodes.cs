@@ -16,9 +16,7 @@ partial class GUBP
     {
         public List<string> FullNamesOfDependencies = new List<string>();
         public List<string> FullNamesOfPseudosependencies = new List<string>(); //these are really only used for sorting. We want the editor to fail before the monolithics. Think of it as "can't possibly be useful without".
-		public List<string> FullNamesOfDependedOn = new List<string>();
         public List<string> BuildProducts = null;
-		public List<string> DependentPromotions = new List<string>();
         public List<string> AllDependencyBuildProducts = null;
         public List<string> AllDependencies = null;		
         public string AgentSharingGroup = "";
