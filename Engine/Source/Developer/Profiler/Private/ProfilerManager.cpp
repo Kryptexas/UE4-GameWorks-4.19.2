@@ -267,6 +267,8 @@ void FProfilerManager::ProfilerSession_OnCaptureFileProcessed( const FGuid Profi
 	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( ProfilerInstanceID );
 	if( ProfilerSession && ProfilerWindow.IsValid())
 	{
+		TrackDefaultStats();
+
 		RequestFilterAndPresetsUpdateEvent.Broadcast();
 
 		GetProfilerWindow()->UpdateEventGraph( ProfilerInstanceID, (*ProfilerSession)->GetEventGraphDataAverage(), (*ProfilerSession)->GetEventGraphDataMaximum(), true );
