@@ -109,6 +109,7 @@
 #include "UnrealEngine.h"
 #include "EngineStats.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "K2Node_AddComponent.h"
 
 #include "Settings/EditorSettings.h"
 
