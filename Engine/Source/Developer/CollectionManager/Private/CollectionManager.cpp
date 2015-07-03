@@ -885,6 +885,9 @@ bool FCollectionManager::UpdateCollection(FName CollectionName, ECollectionShare
 	{
 		if ((*CollectionRefPtr)->Update(LastError))
 		{
+			RebuildCachedHierarchy();
+			RebuildCachedObjects();
+
 			CollectionUpdatedEvent.Broadcast(CollectionKey);
 			return true;
 		}

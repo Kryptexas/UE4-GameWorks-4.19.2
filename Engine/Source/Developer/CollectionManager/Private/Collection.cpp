@@ -312,6 +312,9 @@ bool FCollection::Update(FText& OutError)
 				return false;
 			}
 
+			// Update the info about what the collection looks like on disk
+			DiskSnapshot.TakeSnapshot(NewCollection);
+
 			// Loaded the head revision, now merge up so the files are in a consistent state
 			MergeWithCollection(NewCollection);
 		}
@@ -654,6 +657,9 @@ bool FCollection::CheckoutCollection(FText& OutError)
 				return false;
 			}
 
+			// Update the info about what the collection looks like on disk
+			DiskSnapshot.TakeSnapshot(NewCollection);
+
 			// Loaded the head revision, now merge up so the files are in a consistent state
 			MergeWithCollection(NewCollection);
 		}
@@ -962,6 +968,9 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 			OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection '{0}' at the head revision. {1}"), FText::FromName(CollectionName), LoadErrorText);
 			return false;
 		}
+
+		// Update the info about what the collection looks like on disk
+		DiskSnapshot.TakeSnapshot(NewCollection);
 
 		// Loaded the head revision, now merge up so the files are in a consistent state
 		MergeWithCollection(NewCollection);
