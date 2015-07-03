@@ -33,6 +33,8 @@ FGenericPlatformMemoryStats::FGenericPlatformMemoryStats()
 {}
 
 bool FGenericPlatformMemory::bIsOOM = false;
+uint64 FGenericPlatformMemory::OOMAllocationSize = 0;
+uint32 FGenericPlatformMemory::OOMAllocationAlignment = 0;
 
 /**
  * Value determined by series of tests on Fortnite with limited process memory.
@@ -62,6 +64,9 @@ void FGenericPlatformMemory::Init()
 void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 {
 	// Update memory stats before we enter the crash handler.
+
+	OOMAllocationSize = Size;
+	OOMAllocationAlignment = Alignment;
 
 	bIsOOM = true;
 	if (BackupOOMMemoryPool)

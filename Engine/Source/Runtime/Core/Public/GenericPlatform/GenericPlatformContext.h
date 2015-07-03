@@ -64,6 +64,12 @@ enum class ECrashDumpMode : int32
 struct CORE_API FGenericCrashContext
 {
 public:
+
+	/**
+	* We can't gather memory stats in crash handling function, so we gather them just before raising
+	* exception and use in crash reporting.
+	*/
+	static FPlatformMemoryStats CrashMemoryStats;
 	static const ANSICHAR* CrashContextRuntimeXMLNameA;
 	static const TCHAR* CrashContextRuntimeXMLNameW;
 
