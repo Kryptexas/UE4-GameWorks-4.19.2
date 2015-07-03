@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:2591123
-Availability:Docs
-Title:3. マテリアルの編集
+﻿INTSourceChangelist:2610008
+Availability:Public
+Title:3 - マテリアルの編集
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:マテリアルの編集方法を学習しましょう。
+SkillLevel:初心者向け
+バージョン：4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前のステップ](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+		[前のステップ](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,112 +17,121 @@ Description:マテリアルの編集方法を学習しましょう。
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次のステップ](Engine/Content/QuickStart/8 "%Engine/Content/QuickStart/8:title%")
+		[次のステップ](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-[＿マテリアル エディタ＿](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") の中で、マテリアルの色、輝き、透明度をはじめ、マテリアルの様々な定義を設定することができます。
+この時点で、新規マテリアルが作成されて **マテリアル エディタ** (下図) が開いているはずです。
 
-[＿マテリアルの作成＿](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%") でインポートした 2 つのテクスチャを使って、作成した **Rock マテリアル** を編集してみましょう。
+[REGION:lightbox]
+	[![](MaterialEditor.png)(w:900)](MaterialEditor.png)
+[/REGION]
 
-1.	マテリアル グラフの中央にあるMain Material ノードを **選択** します。選択すると、マテリアル エディタでノードがハイライトされます (下の画像)。
+[マテリアル エディタ](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") の中で、マテリアルの色、輝き、透明度をはじめ、マテリアルの様々な定義を設定することができます。それでは、作成した **Rock マテリアル** の編集を行ってみましょう。
 
-	![](mainNode.jpg)
+## Rock マテリアルの編集
 
-	_グラフ内には、マテリアルに因んだ名前のこのノードしかありません。_
+1.	**マテリアル グラフ** の中央にある **Main Material ノードを** 選択します。選択すると、**マテリアル エディタ** でノードがハイライトされます (下図)。
 
-1.	**[Details (詳細)] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
+	![](newMainNode.png)
 
-	![](subsurfaceEnable.jpg)
+	_グラフエリア内にはこのノードしかありません。マテリアルに因んだ名前が付けられます。_
 
-1.	**Subsurface Shading Model** を選択すると、Main Material ノードの **Opacity** と **Subsurface Color** のピンが 2 つとも有効になります。
+1.	**[Details] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
 
-	![](morePins.jpg)
+	![](selectSubsurface.png)
 
-1.	テクスチャをグラフに入れる必要があります。エディタのグラフ内で **[T]** キーを押しながら **左クリック** します。**Texture Sample** ノードがグラフ内に表示されます。
+1.	**Subsurface Shading Model** を選択すると、**Main Material ノード** の **Opacity** と **Subsurface Color** のピンが 2 つとも有効になります (下図)。
+
+	![](newMorePins.png)
+
+1.	そしてここでテクスチャをグラフに入れます。エディタのグラフ内で **[T]** キーを押しながら左クリックします。**Texture Sample ノード** がグラフ内に表示されます。
 
 	![](TextureSample.png)
 
-1.	テクスチャは最低 2 つはあるといいです。以下の画像のようになるまで、ステップ 4 を繰り返してください。
+1.	テクスチャは最低 2 つはあるといいです。以下のようになるまで、ステップ 4 を繰り返してください。
 
-	![](textureSampleNodes.jpg)
+	![](newTextureSampleNodes.png)
 
-1.	**Texture Sample ノード** をどれか 1 つ選択し、 **Material Expression Texture Base** カテゴリの **[Details (詳細)] パネル** の **Texture** という名前のプロパティを見つけてください。 
+1.	**Texture Sample ノード** をどれか 1 つ選択し、**Material Expression Texture Base** カテゴリの **[Details] パネル** の **Texture** という名前のプロパティを見つけてください。 
 
-	![](textureNone.jpg)
+	![](matExpressionTextureBase.png)
 
-	Texture プロパティの "None" というプルダウン メニューを **左クリック** して、**T_Rock_04_D** というカラー テクスチャを選びます。
+	Texture プロパティの "None" というプルダウン メニューを 左クリック して、**T_Rock_04_D** というカラー テクスチャを選びます。
 
-	テクスチャ アセットを見つけるために検索フィールドをを使う場合は、検索フィールドに「 **T_Rock_04_D** 」と入力します。
+	[REGION:note]
+		検索フィールドに「 **T_Rock_04_D** 」と入力しても、テクスチャ アセットを検索できます。
+	[/REGION]
 
 1.	もう片方の **Texture Sample ノード** にも同様のプロセスを行いますが、 **T_Rock_04_n** という法線マップテクスチャを選択します。
 
-	![](bothTexturesSelected.jpg)
+	![](newBothTexturesSelected.png)
 
 	_マテリアル グラフは下の画像のようになっているはずです。_
 
 1.	 **T_Rock_04_D** テクスチャ サンプルの **カラーピン (白)** を Rock マテリアルの **Base Color ピン** に接続します。
 
-	![](connectColorPin.jpg)
+	![](newConnectColorPin.png)
 
-	_いま接続した白いピン (上の画像) にはテクスチャのカラー チャンネルが含まれています。_
+	_いま接続した白いピン (上図) にはテクスチャのカラー チャンネルが含まれています。_
 
 1.	 **T_Rock_04_n** テクスチャ サンプルの **Normal ピン (白)** を Rock マテリアルの **Normal ピン** に接続します。
 
-	![](connectNormalPin.jpg)
+	![](newConnectNormalPin.png)
 
-	_いま接続した白いピン (上の画像) にはテクスチャの **Normal Map** が含まれています。_
+	_この **白いピン** (上図) には、テクスチャの Normal Map が含まれています。_
 
 1.	**プレビュー** すると、下の画像のようになっているはずです。
 
-	![](preview_DN.jpg)
+	![](newPreview_DN.png)
 
-1.	**[1]** キーを押したまま [Graph] パネル内で **左クリック** すると、**Constant** ノードが **3** つ作成されます。
+1.	**[1]** キーを押したまま [Graph] パネル内で左クリックすると、**Constant** ノードが **3** つ作成されます。
 
 	![](Constants.jpg)
 
-	_**Constant** ノード (上の画像) は、変更可能なスカラーの float 変数です。_
+	_**Constant ノード** (上図) は、変更可能なスカラーの float 変数です。_
 
-1.	**[3]** キーを押したまま [Graph] パネル内で **左クリック** すると、**Constant3Vector** ノードが **3** つ作成されます。
+1.	**[3]** キーを押したまま [Graph] パネル内で 左クリック すると、**Constant3Vector** ノードが **1** つ作成されます。
 
 	![](Constant3.jpg)
 
 	_**Constant3Vector** ノード (下の画像) はアルファ チャンネルのない色に対応する変更可能なベクターです。_
-
-	**Constant 表現式** については、[＿マテリアル操作ガイド＿](Engine/Rendering/Materials/ExpressionReference/Constant "%Engine/Rendering/Materials/ExpressionReference/Constant:description%") を参照してください。
+	[REGION:note]
+		Constant 表現式 については、[Constant 表現式](Engine/Rendering/Materials/ExpressionReference/Constant "%Engine/Rendering/Materials/ExpressionReference/Constant:description%") を参照してください。
+	[/REGION]
 
 1.	ワイヤーが交差したり重なりあったりせず、簡単に接続できるようにノードを調整してください (下の画像)。
 
-	![](MatConstantsAdded.jpg)
+	![](newMatConstantsAdded.png)
 
-1.	すべての **Constant** ノードと **Constant3Vector** を **Rock マテリアル** ノードの対応するピンに接続します (下の画像)。
+1.	すべての **Constant** ノードと **Constant3Vector** を **Rock マテリアル** ノードの対応するピンに接続します (下図)。
 
-	![](allNodesConnectedNoVal.jpg)
+	![](newAllNodesConnectedNoVal.png)
 
-1.	**[Details]** パネルの **Value** パラメータを変更することで、**Constant** と **Constant3Vector** のそれぞれの値を変更します。
+1.	 を選択して **[Details]** パネルの **Value** パラメータを変更することで、**Constant** と **Constant3Vector** のそれぞれの値を変更します。
 
-	* Metallic/Specular Value = 0.0
-	* Roughness Value = 0.8
-	* Opacity Value = 0.95
-	* Subsurface Color = Red(1,0,0)
+	* **Specular Value** = 0.0
+	* **Roughness Value** = 0.8
+	* **Opacity Value** = 0.95
+	* **Subsurface Color** = Red(1,0,0)
 
-	![](allConnectedAllAdjusted.jpg)
+	![](newAllConnectedAllAdjusted.png)
 
-1.	プレビュー すると、下の画像のようになっているはずです。
+1.	**プレビュー** すると、下のようになっているはずです。
 
-	![](preview_All.jpg)
+	![](newPreviewAll.png)
 
-1.	マテリアル エディタ **を終了する前に** 必ずマテリアルを **保存** してください。
+	[REGION:warning]
+		**マテリアル エディタ** を終了する前に、必ずマテリアルを保存してください。
+	[/REGION]
 
-あともう少しです！**マテリアル エディタ** を使って、カスタム仕様の Rock マテリアルが作成されました。
-
-&#x2713; [UE4 の Constants 表現式の詳細はここをクリックしてください。(Engine/Rendering/Materials/ExpressionReference/Constant "%Engine/Rendering/Materials/ExpressionReference/Constant:description%")
+あともう少しです！**マテリアル エディタ** を使って、カスタム仕様の **Rock マテリアル** を編集しました。
 
 [REGION:tip]
-*マテリアル エディタのキーボード ショートカットの一覧は、__Edit Menu (編集メニュー) -> Editor Preferences (エディタの環境設定) -> Keyboard Shortcuts (キーボード ショートカット) ->[Material Editor] および [Material Editor � Spawn Nodes] __ カテゴリで参照できます。*
+*マテリアル エディタのキーボード ショートカットの一覧は、__Edit Menu (編集メニュー) -> Editor Preferences (エディタの環境設定) -> Keyboard Shortcuts (キーボード ショートカット) ->[Material Editor] および [Material Editor-Spawn Nodes] __ カテゴリで参照できます。*
 [/REGION]
 
 <!--
