@@ -23,7 +23,7 @@ bool FOnlineExternalUIGooglePlay::ShowFriendsUI(int32 LocalUserNum)
 	return false;
 }
 
-bool FOnlineExternalUIGooglePlay::ShowInviteUI(int32 LocalUserNum) 
+bool FOnlineExternalUIGooglePlay::ShowInviteUI(int32 LocalUserNum, FName SessionMame)
 {
 	return false;
 }
