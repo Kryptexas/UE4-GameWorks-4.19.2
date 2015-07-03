@@ -3769,6 +3769,7 @@ bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
 
 	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Sent PIE keyboard shortcut"));
 
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.f));
 	ADD_LATENT_AUTOMATION_COMMAND(FSettingsCheckForPIECommand());
 	ADD_LATENT_AUTOMATION_COMMAND(FLogTestResultCommand(&ExecutionInfo));
 
