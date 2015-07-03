@@ -584,6 +584,11 @@ float UKismetMathLibrary::MakePulsatingValue(float InCurrentTime, float InPulses
 	return FMath::MakePulsatingValue((double)InCurrentTime, InPulsesPerSecond, InPhase);
 }
 
+float UKismetMathLibrary::FixedTurn(float InCurrent, float InDesired, float InDeltaRate)
+{
+	return FMath::FixedTurn(InCurrent, InDesired, InDeltaRate);
+}
+
 float UKismetMathLibrary::RandomFloat()
 {
 	return FMath::FRand();

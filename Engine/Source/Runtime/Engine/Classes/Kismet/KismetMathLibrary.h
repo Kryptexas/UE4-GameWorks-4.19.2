@@ -535,6 +535,17 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Math|Float")
 	static float MakePulsatingValue(float InCurrentTime, float InPulsesPerSecond = 1.0f, float InPhase = 0.0f);
 
+	/** 
+	 * Returns a new rotation component value
+	 *
+	 * @param InCurrent is the current rotation value
+	 * @param InDesired is the desired rotation value
+	 * @param  is the rotation amount to apply
+	 *
+	 * @return a new rotation component value clamped in the range (-360,360)
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Float")
+	static float FixedTurn(float InCurrent, float InDesired, float InDeltaRate);
 
 	//
 	// Vector functions.
