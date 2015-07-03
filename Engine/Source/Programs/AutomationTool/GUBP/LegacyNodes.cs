@@ -20,7 +20,6 @@ partial class GUBP
         public List<string> AllDependencyBuildProducts = null;
         public List<string> AllDependencies = null;		
         public string AgentSharingGroup = "";
-        public int ComputedDependentCISFrequencyQuantumShift = -1;
 
         public virtual string GetFullName()
         {
@@ -100,17 +99,6 @@ partial class GUBP
         public virtual int CISFrequencyQuantumShift(GUBP bp)
         {
             return 0;
-        }
-        /// <summary>
-        /// As above the maximum of all ancestors and pseudoancestors
-        /// </summary>
-        public int DependentCISFrequencyQuantumShift()
-        {
-            if (ComputedDependentCISFrequencyQuantumShift < 0)
-            {
-                throw new AutomationException("Asked for frequency shift before it was computed.");
-            }
-            return ComputedDependentCISFrequencyQuantumShift;
         }
 
         public virtual float Priority()
