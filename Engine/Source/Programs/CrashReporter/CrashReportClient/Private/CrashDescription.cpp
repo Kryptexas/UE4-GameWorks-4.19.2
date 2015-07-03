@@ -217,19 +217,22 @@ void FCrashDescription::UpdateIDs()
 	{
 		// The Epic ID can be looked up from this ID.
 		EpicAccountId = FPlatformMisc::GetEpicAccountId();
-
-		// Don't add real user name if running from the launcher.
-		const bool bAddUserName = FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
-		if (bAddUserName)
-		{
-			// Remove periods from user names to match AutoReporter user names
-			// The name prefix is read by CrashRepository.AddNewCrash in the website code
-			UserName = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
-		}
 	}
 	else
 	{
 		EpicAccountId.Empty();
+	}
+
+	// Add real user name only for internal builds.
+	const bool bSendUserName = FEngineBuildSettings::IsInternalBuild();
+	if (bSendUserName)
+	{
+		// Remove periods from user names to match AutoReporter user names
+		// The name prefix is read by CrashRepository.AddNewCrash in the website code
+		UserName = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
+	}
+	else
+	{
 		UserName.Empty();
 	}
 

@@ -117,10 +117,10 @@ void FGenericCrashContext::SerializeContentToBuffer()
 
 	AddCrashProperty( TEXT( "IsUE4Release" ), (int32)NCachedCrashContextProperties::bIsUE4Release);
 
-	const bool bSetUserName = NCachedCrashContextProperties::bIsInternalBuild || NCachedCrashContextProperties::bIsPerforceBuild || NCachedCrashContextProperties::bIsSourceDistribution;
 	// Remove periods from user names to match AutoReporter user names
 	// The name prefix is read by CrashRepository.AddNewCrash in the website code
-	AddCrashProperty( TEXT( "UserName" ), bSetUserName ? *NCachedCrashContextProperties::UserName.Replace( TEXT( "." ), TEXT( "" ) ) : TEXT( "" ) );
+	const bool bSendUserName = NCachedCrashContextProperties::bIsInternalBuild;
+	AddCrashProperty( TEXT( "UserName" ), bSendUserName ? *NCachedCrashContextProperties::UserName.Replace( TEXT( "." ), TEXT( "" ) ) : TEXT( "" ) );
 
 	AddCrashProperty(TEXT("BaseDir"), *NCachedCrashContextProperties::BaseDir);
 	AddCrashProperty(TEXT("RootDir"), *NCachedCrashContextProperties::RootDir);
@@ -131,13 +131,6 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "SourceContext" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "UserDescription" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "ErrorMessage" ), (const TCHAR*)GErrorMessage ); // GErrorMessage may be broken.
-
-	// @TODO yrx 2014-10-08 Move to the crash report client.
-	/*if( CanUseUnsafeAPI() )
-	{
-		AddCrashProperty( TEXT( "TimeOfCrash" ), FDateTime::UtcNow().GetTicks() );
-	}
-	*/
 
 	// Add misc stats.
 	AddCrashProperty(TEXT("MiscNumberOfCores"), NCachedCrashContextProperties::NumberOfCores);
