@@ -58,18 +58,10 @@ partial class GUBP
         {
             return false;
         }
-        public virtual bool RunInEC()
-        {
-            return true;
-        }
 		public virtual bool IsTest()
 		{
 			return false;
 		}
-        public virtual bool IsAggregate()
-        {
-            return false;
-        }
 		public virtual string NodeHostPlatform()
 		{
 			return "";
