@@ -1786,6 +1786,30 @@ partial class GUBP
         }
     }
 
+	public class FullGameAggregateNode : AggregateNode
+	{
+		string GameName;
+
+		public FullGameAggregateNode(string InGameName, List<string> NodeNames)
+		{
+			GameName = InGameName;
+
+			foreach (string NodeName in NodeNames)
+			{
+				AddDependency(NodeName);
+			}
+		}
+
+		public static string StaticGetFullName(string GameName)
+		{
+			return "FullGameAggregate_" + GameName;
+		}
+
+		public override string GetFullName()
+		{
+			return StaticGetFullName(GameName);
+		}
+	}
 
     public class WaitForUserInput : GUBPNode
     {

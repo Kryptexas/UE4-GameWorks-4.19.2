@@ -1055,5 +1055,26 @@ partial class GUBP
             AddNode(PreflightSuccessNode);
         }
 #endif
+
+		// Add aggregate nodes for every project in the branch
+		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
+		{
+			List<string> NodeNames = new List<string>();
+			if (GameProj.Options(UnrealTargetPlatform.Win64).bIsPromotable)
+			{
+				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
+			}
+			foreach (NodeInfo Node in GUBPNodes.Values)
+			{
+				if (Node.Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
+				{
+					NodeNames.Add(Node.Name);
+				}
+			}
+			if (NodeNames.Count > 0)
+			{
+				AddNode(new FullGameAggregateNode(GameProj.GameName, NodeNames));
+			}
+		}
 	}
 }
