@@ -726,7 +726,7 @@ namespace AutomationTool
 		{
 			get
 			{
-				return CommandUtils.CombinePaths(new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath);
+				return CommandUtils.CombinePaths(new Uri(System.Reflection.Assembly.GetEntryAssembly().CodeBase).LocalPath);
 			}
 		}
 
