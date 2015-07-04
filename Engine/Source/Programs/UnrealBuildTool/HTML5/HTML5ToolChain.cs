@@ -11,34 +11,29 @@ namespace UnrealBuildTool
 {
 	class HTML5ToolChain : VCToolChain
 	{
-        static string EMCCPath;
-        static string PythonPath;
-		static string EMSDKVersionString;
         // Debug options -- TODO: add these to SDK/Project setup?
         static bool   bEnableTracing = false;
 
 		// cache the location of SDK tools
 		public override void RegisterToolChain()
 		{
-            if (HTML5SDKInfo.IsSDKInstalled() && HTML5SDKInfo.IsPythonInstalled())
-            {
-                    EMCCPath = "\"" + HTML5SDKInfo.EmscriptenCompiler() + "\"";
-					PythonPath = HTML5SDKInfo.PythonPath();
-					EMSDKVersionString = HTML5SDKInfo.EmscriptenVersion().Replace(".", "");
-
+			if (HTML5SDKInfo.IsSDKInstalled())
+			{
 					// set some environment variable we'll need
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
 					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
-					Environment.SetEnvironmentVariable("EMCC_FORCE_STDLIBS", "1");
 					Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 					// finally register the toolchain that is now ready to go
-                    Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
+					Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
 					UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
-
-   
 			}
 		}
-
+		public override void PreBuildSync()
+		{
+			HTML5SDKInfo.SetupEmscriptenTemp();
+			HTML5SDKInfo.SetUpEmscriptenConfigFile();
+		}
+	
 		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
 		{
             string Result = " ";
@@ -94,7 +89,6 @@ namespace UnrealBuildTool
             {
             	Result += " --tracing";
             }
-
             return Result;
 		}
 		
@@ -206,9 +200,7 @@ namespace UnrealBuildTool
 				}
 
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
-
-
-			}
+		}
 
 			return Result;
 		}
@@ -327,9 +319,6 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" -D__EMSCRIPTEN_TRACING__");
 			}
 
-			Arguments += string.Format(" -D__EMCC_VER__={0}", EMSDKVersionString);
-
-        
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
 			foreach (FileItem SourceFile in SourceFiles)
@@ -364,9 +353,9 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = PythonPath;
+				CompileAction.CommandPath = HTML5SDKInfo.Python();
 
-				CompileAction.CommandArguments = EMCCPath + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler() + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 
                 //System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
@@ -474,8 +463,8 @@ namespace UnrealBuildTool
 
 			LinkAction.bCanExecuteRemotely = false;
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
-			LinkAction.CommandPath = PythonPath;
-			LinkAction.CommandArguments = EMCCPath;
+			LinkAction.CommandPath = HTML5SDKInfo.Python();
+			LinkAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler();
 			ReponseLines.Add(GetLinkArguments(LinkEnvironment));
 
 			// Add the input files to a response file, and pass the response file on the command-line.
@@ -509,9 +498,9 @@ namespace UnrealBuildTool
 								ReponseLines.Add(string.Format(" --js-library \"{0}\"", Item.AbsolutePath));
 							else
 								ReponseLines.Add(string.Format(" \"{0}\"", Item.AbsolutePath));
-                            LinkAction.PrerequisiteItems.Add(Item);
-                        }
-                    }
+							LinkAction.PrerequisiteItems.Add(Item);
+						}
+					}
 			}
 			// make the file we will create
 
@@ -527,7 +516,9 @@ namespace UnrealBuildTool
      		LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 
 			string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
-			LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, ReponseLines));
+
+
+			LinkAction.CommandArguments += string.Format(" @\"{0}\""  , ResponseFile.Create(ResponseFileName, ReponseLines));
 
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 

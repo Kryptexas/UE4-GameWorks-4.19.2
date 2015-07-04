@@ -23,7 +23,7 @@ public:
 	 */
 	FHTML5TargetPlatform( );
 
-	void RefreshAvailableDevices();
+	void RefreshHTML5Setup();
 
 	// Begin ITargetPlatform interface
 
@@ -94,8 +94,6 @@ public:
 
 	// End ITargetPlatform interface
 
-	static void GetInstalledSDKVersions(const TCHAR* SDKDirectory, TArray<FHTML5SDKVersionNumber>& OutSDKs);
-
 private:
 
 	// Holds the HTML5 engine settings.
@@ -119,4 +117,5 @@ private:
 
 	// Holds an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	FOnTargetDeviceLost DeviceLostEvent;
+
 };

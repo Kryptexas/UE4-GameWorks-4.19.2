@@ -34,9 +34,10 @@ public:
 	 * @param InTargetPlatform - The target platform.
 	 * @param InName - The device name.
 	 */
-	FHTML5TargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InName )
+	FHTML5TargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InName, const FString& InPath )
 		: TargetPlatform(InTargetPlatform), 
-		  Name(InName)
+		  Name(InName),
+		  Path(InPath)
 	{ }
 
 	/**
@@ -114,4 +115,6 @@ private:
 	const ITargetPlatform& TargetPlatform;
 
 	FString Name; 
+
+	FString Path;
 };

@@ -52,7 +52,8 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 #else
 			emscripten_log(255, "DebugBreak() called!");
 			EM_ASM(
-				throw new Error('DebugBreak() called! Check Log for information');
+				var callstack = new Error;
+				throw callstack.stack;
 			);
 #endif
 		}

@@ -51,13 +51,6 @@ public:
  	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Port to use when deploying game from the editor", ClampMin="49152", ClampMax="65535"))
  	int32 DeployServerPort;
 
-
-	/**
-	* Setting to control which template to use
-	*/
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Use new template [experimental]"))
-	bool UseExperimentalTemplate;
-
 	/**
 	 * Use a loading level and download maps during transitions.                                                                     
 	 */

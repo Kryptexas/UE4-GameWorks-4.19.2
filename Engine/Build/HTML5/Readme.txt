@@ -14,14 +14,18 @@ Files Required for final deployment.
 Local Testing
 ------------- 
 
-run HTML5Launcher.exe (via mono on Mac) to start a web sever which is conigured to serve compressed files on localhost. This is not a production quality server.
+run HTML5Launcher.exe (via mono on Mac) to start a web sever which is configured to serve compressed files on localhost. This is not a production quality server.
 add -ServerPort=XXXX to the command line if necessary to change the serving port. Default port is 8000. 
 
 
 How to deploy on Apache 
 ------------------------ 
 
-Todo. 
+Add the following in .conf or .htaccess file. ( edit the directory name accordingly )
+
+<Directory "${SRVROOT}/htdocs">
+ AddEncoding gzip gz
+</Directory>
 
 
 
