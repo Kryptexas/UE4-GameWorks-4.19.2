@@ -70,14 +70,6 @@ partial class GUBP
         {
             return false;
         }
-		public virtual bool IsPromotableAggregate()
-		{
-			return false;
-		}
-		public virtual bool IsSeparatePromotable()
-		{
-			return false;
-		}
 		public virtual string NodeHostPlatform()
 		{
 			return "";
@@ -1575,30 +1567,41 @@ partial class GUBP
         }
     }
 
-    public class AggregateNode : GUBPNode
+    public abstract class AggregateNode
     {
+		public List<string> Dependencies = new List<string>();
+
         public AggregateNode()
         {
         }
-        public override bool RunInEC()
-        {
-            return false;
-        }		
-        public override bool IsAggregate()
-        {
-            return true;
-        }
-        public override void DoBuild(GUBP bp)
-        {
-            BuildProducts = new List<string>();
-        }
-        public override void DoFakeBuild(GUBP bp) // this is used to more rapidly test a build system, it does nothing but save a record of success as a build product
-        {
-            BuildProducts = new List<string>();
-        }
+
+		public void AddDependency(string Name)
+		{
+			if(!Dependencies.Contains(Name))
+			{
+				Dependencies.Add(Name);
+			}
+		}
+
+		public abstract string GetFullName();
+
+		public virtual string GameNameIfAnyForTempStorage()
+		{
+			return "";
+		}
+
+		public virtual bool IsPromotableAggregate()
+		{
+			return false;
+		}
+
+		public virtual bool IsSeparatePromotable()
+		{
+			return false;
+		}
     }
 
-    public class HostPlatformAggregateNode : AggregateNode
+    public abstract class HostPlatformAggregateNode : AggregateNode
     {
         protected UnrealTargetPlatform HostPlatform;
         public HostPlatformAggregateNode(UnrealTargetPlatform InHostPlatform)
@@ -2166,10 +2169,6 @@ partial class GUBP
         {
             return StaticGetFullName();
         }
-        public override int CISFrequencyQuantumShift(GUBP bp)
-        {
-            return base.CISFrequencyQuantumShift(bp) + 5;
-        }
     }
 
     public class CookNode : HostPlatformNode
@@ -2351,21 +2350,6 @@ partial class GUBP
                     }
                 }
             }
-
-            // put these in the right agent group, even though they aren't exposed to EC to sort right.
-            if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                var Options = InGameProj.Options(HostPlatform);
-                if ((Options.bIsPromotable || Options.bTestWithShared) && !Options.bSeparateGamePromotion)
-                {
-                    AgentSharingGroup = "SharedCooks" + StaticGetHostPlatformSuffix(HostPlatform);
-                }
-            }
-            else
-            {
-                AgentSharingGroup = "SharedCooks" + StaticGetHostPlatformSuffix(HostPlatform);
-            }
-
         }
 
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform)
@@ -3209,23 +3193,17 @@ partial class GUBP
     {
         BranchInfo.BranchUProject GameProj;
         string AggregateName;
-        float ECPriority;
 
-        public GameAggregateNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InAggregateName, List<string> Dependencies, float InECPriority = 100.0f)
+        public GameAggregateNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InAggregateName, List<string> Dependencies)
             : base(InHostPlatform)
         {
             GameProj = InGameProj;
             AggregateName = InAggregateName;
-            ECPriority = InECPriority;
 
             foreach (var Dep in Dependencies)
             {
                 AddDependency(Dep);
             }
-        }
-        public override float Priority()
-        {
-            return ECPriority;
         }
 
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InAggregateName)

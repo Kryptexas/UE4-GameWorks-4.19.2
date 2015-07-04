@@ -8,6 +8,7 @@ using UnrealBuildTool;
 using System.Reflection;
 using System.Xml;
 using System.Linq;
+using System.Diagnostics;
 
 public partial class GUBP : BuildCommand
 {
@@ -25,15 +26,17 @@ public partial class GUBP : BuildCommand
     public string PreflightMangleSuffix = "";
     public GUBPBranchHacker.BranchOptions BranchOptions = null;	
 
-    Dictionary<string, NodeInfo> GUBPNodes;
+	Dictionary<string, NodeInfo> GUBPNodes;
+	Dictionary<string, AggregateInfo> GUBPAggregates;
 
+	[DebuggerDisplay("{Name}")]
 	class NodeInfo
 	{
 		public string Name;
 		public GUBPNode Node;
-		public List<NodeInfo> Dependencies;
-		public List<NodeInfo> PseudoDependencies;
-		public List<NodeInfo> ControllingTriggers;
+		public NodeInfo[] Dependencies;
+		public NodeInfo[] PseudoDependencies;
+		public NodeInfo[] ControllingTriggers;
 		public int FrequencyShift = -1;
 		public bool IsComplete;
 
@@ -47,6 +50,14 @@ public partial class GUBP : BuildCommand
 			System.Diagnostics.Trace.TraceWarning("Implicit conversion from NodeInfo to string\n{0}", Environment.StackTrace);
 			return Name;
 		}
+	}
+
+	[DebuggerDisplay("{Name}")]
+	class AggregateInfo
+	{
+		public string Name;
+		public AggregateNode Node;
+		public NodeInfo[] Dependencies;
 	}
 
     class NodeHistory
@@ -65,22 +76,38 @@ public partial class GUBP : BuildCommand
     public string AddNode(GUBPNode Node)
     {
         string Name = Node.GetFullName();
-        if (GUBPNodes.ContainsKey(Name))
-        {
+		if (GUBPNodes.ContainsKey(Name) || GUBPAggregates.ContainsKey(Name))
+		{
             throw new AutomationException("Attempt to add a duplicate node {0}", Node.GetFullName());
         }
         GUBPNodes.Add(Name, new NodeInfo{ Name = Name, Node = Node });
         return Name;
     }
 
+	public string AddNode(AggregateNode Node)
+	{
+		string Name = Node.GetFullName();
+		if (GUBPNodes.ContainsKey(Name) || GUBPAggregates.ContainsKey(Name))
+		{
+			throw new AutomationException("Attempt to add a duplicate node {0}", Node.GetFullName());
+		}
+		GUBPAggregates.Add(Name, new AggregateInfo { Name = Name, Node = Node });
+		return Name;
+	}
+
     public bool HasNode(string Node)
     {
-        return GUBPNodes.ContainsKey(Node);
+        return GUBPNodes.ContainsKey(Node) || GUBPAggregates.ContainsKey(Node);
     }
 
     public GUBPNode FindNode(string Node)
     {
         return GUBPNodes[Node].Node;
+    }
+
+    public AggregateNode FindAggregateNode(string Node)
+    {
+        return GUBPAggregates[Node].Node;
     }
 
 	public GUBPNode TryFindNode(string Node)
@@ -178,7 +205,7 @@ public partial class GUBP : BuildCommand
     {
 		if(NodeToDo.ControllingTriggers == null)
 		{
-			NodeToDo.ControllingTriggers = new List<NodeInfo>();
+			NodeToDo.ControllingTriggers = new NodeInfo[0];
 
 			// Find all the dependencies of this node
 			List<NodeInfo> AllDependencies = new List<NodeInfo>();
@@ -196,7 +223,7 @@ public partial class GUBP : BuildCommand
 				{
 					PreviousTrigger = Dependency;
 				}
-				else if(Dependency.ControllingTriggers.Count > 0)
+				else if(Dependency.ControllingTriggers.Length > 0)
 				{
 					PreviousTrigger = Dependency.ControllingTriggers.Last();
 				}
@@ -217,10 +244,12 @@ public partial class GUBP : BuildCommand
 			}
 
 			// Update the list of controlling triggers
-			if(PreviousTriggers.Count == 1)
+			if (PreviousTriggers.Count == 1)
 			{
-				NodeToDo.ControllingTriggers.AddRange(PreviousTriggers[0].ControllingTriggers);
-				NodeToDo.ControllingTriggers.Add(PreviousTriggers[0]);
+				List<NodeInfo> ControllingTriggers = new List<NodeInfo>();
+				ControllingTriggers.AddRange(PreviousTriggers[0].ControllingTriggers);
+				ControllingTriggers.Add(PreviousTriggers[0]);
+				NodeToDo.ControllingTriggers = ControllingTriggers.ToArray();
 			}
 		}
 	}
@@ -482,7 +511,7 @@ public partial class GUBP : BuildCommand
                         string Finished = "";
                         if (UnfinishedTriggers != null)
                         {
-                            if (NodeToDo.ControllingTriggers.Count > 0 && UnfinishedTriggers.Contains(NodeToDo.ControllingTriggers.Last()))
+                            if (NodeToDo.ControllingTriggers.Length > 0 && UnfinishedTriggers.Contains(NodeToDo.ControllingTriggers.Last()))
                             {
                                 Finished = "(not yet triggered)";
                             }
@@ -1447,12 +1476,13 @@ public partial class GUBP : BuildCommand
 		LogVerbose("************************* TimeIndex:           		    {0}", TimeIndex);        
 
 
-        GUBPNodes = new Dictionary<string, NodeInfo>();        
+        GUBPNodes = new Dictionary<string, NodeInfo>();
+		GUBPAggregates = new Dictionary<string, AggregateInfo>();
         Branch = new BranchInfo(HostPlatforms);        
 
 		AddNodesForBranch(TimeIndex, bNoAutomatedTesting);
 
-		LinkGraph(GUBPNodes);
+		LinkGraph(GUBPAggregates, GUBPNodes);
 		FindControllingTriggers(GUBPNodes.Values);
 		FindCompletionState(GUBPNodes.Values, StoreName, LocalOnly);
 
@@ -1538,8 +1568,8 @@ public partial class GUBP : BuildCommand
         {
 			Dictionary<string, string> FullNodeDependedOnBy = GetFullNodeDependedOnBy(NodesToDo);
 
-			List<NodeInfo> SeparatePromotables = FindPromotables(GUBPNodes.Values);
-			Dictionary<NodeInfo, List<NodeInfo>> DependentPromotions = FindDependentPromotables(GUBPNodes.Values, SeparatePromotables);
+			List<AggregateInfo> SeparatePromotables = FindPromotables(GUBPAggregates.Values);
+			Dictionary<NodeInfo, List<AggregateInfo>> DependentPromotions = FindDependentPromotables(GUBPNodes.Values, SeparatePromotables);
 
 			Dictionary<string, string> FullNodeList;
 			Dictionary<string, string> FullNodeDirectDependencies;
@@ -1560,10 +1590,10 @@ public partial class GUBP : BuildCommand
         PrintRunTime();
 	}
 
-	private static List<NodeInfo> FindPromotables(IEnumerable<NodeInfo> NodesToDo)
+	private static List<AggregateInfo> FindPromotables(IEnumerable<AggregateInfo> NodesToDo)
 	{
-		List<NodeInfo> SeparatePromotables = new List<NodeInfo>();
-		foreach (NodeInfo NodeToDo in NodesToDo)
+		List<AggregateInfo> SeparatePromotables = new List<AggregateInfo>();
+		foreach (AggregateInfo NodeToDo in NodesToDo)
 		{
 			if (NodeToDo.Node.IsSeparatePromotable())
 			{
@@ -1573,74 +1603,112 @@ public partial class GUBP : BuildCommand
 		return SeparatePromotables;
 	}
 
-	private static Dictionary<NodeInfo, List<NodeInfo>> FindDependentPromotables(IEnumerable<NodeInfo> NodesToDo, IEnumerable<NodeInfo> SeparatePromotions)
+	private static Dictionary<NodeInfo, List<AggregateInfo>> FindDependentPromotables(IEnumerable<NodeInfo> NodesToDo, IEnumerable<AggregateInfo> SeparatePromotions)
 	{
-		Dictionary<NodeInfo, List<NodeInfo>> DependentPromotions = NodesToDo.ToDictionary(x => x, x => new List<NodeInfo>());
-		foreach (NodeInfo NodeToDo in SeparatePromotions)
+		Dictionary<NodeInfo, List<AggregateInfo>> DependentPromotions = NodesToDo.ToDictionary(x => x, x => new List<AggregateInfo>());
+		foreach (AggregateInfo SeparatePromotion in SeparatePromotions)
 		{
-			List<NodeInfo> Dependencies = GetECDependencies(NodeToDo);
-			foreach (NodeInfo Dep in Dependencies)
+			NodeInfo[] Dependencies = SeparatePromotion.Dependencies.SelectMany(x => GetDependencies(x)).Distinct().ToArray();
+			foreach (NodeInfo Dependency in Dependencies)
 			{
-				if (!Dep.Node.IsPromotableAggregate())
-				{
-					DependentPromotions[Dep].Add(NodeToDo);
-				}
+				DependentPromotions[Dependency].Add(SeparatePromotion);
 			}
 		}
 		return DependentPromotions;
 	}
 
-	private static void LinkGraph(Dictionary<string, NodeInfo> GUBPNodes)
+	private static void LinkGraph(Dictionary<string, AggregateInfo> AggregateNodes, Dictionary<string, NodeInfo> BuildNodes)
 	{
 		int NumErrors = 0;
-		foreach (NodeInfo NodeToDo in GUBPNodes.Values)
+		foreach (AggregateInfo AggregateNode in AggregateNodes.Values)
 		{
-			// Find all the dependencies
-			NodeToDo.Dependencies = new List<NodeInfo>();
-			foreach (string DependencyName in NodeToDo.Node.FullNamesOfDependencies)
-			{
-				NodeInfo Dependency;
-				if (!GUBPNodes.TryGetValue(DependencyName, out Dependency))
-				{
-					CommandUtils.LogError("Node {0} is not in the graph. It is a dependency of {1}.", DependencyName, NodeToDo.Name);
-					NumErrors++;
-				}
-				else if(Dependency == NodeToDo)
-				{
-					CommandUtils.LogError("Node {0} has a self arc.", NodeToDo.Name);
-					NumErrors++;
-				}
-				else
-				{
-					NodeToDo.Dependencies.Add(Dependency);
-				}
-			}
-
-			// Find all the pseudo-dependencies
-			NodeToDo.PseudoDependencies = new List<NodeInfo>();
-			foreach (string PseudoDependencyName in NodeToDo.Node.FullNamesOfPseudosependencies)
-			{
-				NodeInfo PseudoDependency;
-				if (!GUBPNodes.TryGetValue(PseudoDependencyName, out PseudoDependency))
-				{
-					CommandUtils.LogError("Node {0} is not in the graph. It is a pseudodependency of {1}.", PseudoDependencyName, NodeToDo.Name);
-					NumErrors++;
-				}
-				else if(PseudoDependency == NodeToDo)
-				{
-					CommandUtils.LogError("Node {0} has a self pseudoarc.", NodeToDo.Name);
-					NumErrors++;
-				}
-				else
-				{
-					NodeToDo.PseudoDependencies.Add(PseudoDependency);
-				}
-			}
+			LinkAggregate(AggregateNode, AggregateNodes, BuildNodes, ref NumErrors);
 		}
-		if (NumErrors > 0)
+		foreach (NodeInfo BuildNode in BuildNodes.Values)
+		{
+			LinkNode(BuildNode, AggregateNodes, BuildNodes, ref NumErrors);
+		}
+		if(NumErrors > 0)
 		{
 			throw new AutomationException("Failed to link graph ({0} errors).", NumErrors);
 		}
+	}
+
+	private static void LinkAggregate(AggregateInfo Aggregate, Dictionary<string, AggregateInfo> AggregateNodes, Dictionary<string, NodeInfo> BuildNodes, ref int NumErrors)
+	{
+		if (Aggregate.Dependencies == null)
+		{
+			Aggregate.Dependencies = new NodeInfo[0];
+
+			HashSet<NodeInfo> Dependencies = new HashSet<NodeInfo>();
+			foreach (string DependencyName in Aggregate.Node.Dependencies)
+			{
+				AggregateInfo AggregateDependency;
+				if(AggregateNodes.TryGetValue(DependencyName, out AggregateDependency))
+				{
+					LinkAggregate(AggregateDependency, AggregateNodes, BuildNodes, ref NumErrors);
+					Dependencies.UnionWith(AggregateDependency.Dependencies);
+					continue;
+				}
+
+				NodeInfo Dependency;
+				if(BuildNodes.TryGetValue(DependencyName, out Dependency))
+				{
+					Dependencies.Add(Dependency);
+					continue;
+				}
+
+				CommandUtils.LogError("Node {0} is not in the graph. It is a dependency of {1}.", DependencyName, Aggregate.Name);
+				NumErrors++;
+			}
+			Aggregate.Dependencies = Dependencies.ToArray();
+		}
+	}
+
+	private static void LinkNode(NodeInfo BuildNode, Dictionary<string, AggregateInfo> GUBPAggregates, Dictionary<string, NodeInfo> GUBPNodes, ref int NumErrors)
+	{
+		// Find all the dependencies
+		HashSet<NodeInfo> Dependencies = new HashSet<NodeInfo>();
+		foreach (string DependencyName in BuildNode.Node.FullNamesOfDependencies)
+		{
+			if (!FindDependencies(DependencyName, GUBPAggregates, GUBPNodes, Dependencies))
+			{
+				CommandUtils.LogError("Node {0} is not in the graph. It is a dependency of {1}.", DependencyName, BuildNode.Name);
+				NumErrors++;
+			}
+		}
+		BuildNode.Dependencies = Dependencies.ToArray();
+
+		// Find all the pseudo-dependencies
+		HashSet<NodeInfo> PseudoDependencies = new HashSet<NodeInfo>();
+		foreach (string PseudoDependencyName in BuildNode.Node.FullNamesOfPseudosependencies)
+		{
+			if (!FindDependencies(PseudoDependencyName, GUBPAggregates, GUBPNodes, PseudoDependencies))
+			{
+				CommandUtils.LogError("Node {0} is not in the graph. It is a pseudodependency of {1}.", PseudoDependencyName, BuildNode.Name);
+				NumErrors++;
+			}
+		}
+		BuildNode.PseudoDependencies = PseudoDependencies.ToArray();
+	}
+
+	private static bool FindDependencies(string Name, Dictionary<string, AggregateInfo> NameToAggregate, Dictionary<string, NodeInfo> NameToNode, HashSet<NodeInfo> Dependencies)
+	{
+		AggregateInfo AggregateDependency;
+		if (NameToAggregate.TryGetValue(Name, out AggregateDependency))
+		{
+			Dependencies.UnionWith(AggregateDependency.Dependencies);
+			return true;
+		}
+
+		NodeInfo NodeDependency;
+		if (NameToNode.TryGetValue(Name, out NodeDependency))
+		{
+			Dependencies.Add(NodeDependency);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static Dictionary<NodeInfo, int> ApplyFrequencyBarriers(Dictionary<string, NodeInfo> GUBPNodes, Dictionary<string, sbyte> FrequencyBarriers)
@@ -1722,6 +1790,20 @@ public partial class GUBP : BuildCommand
 							bFoundAnything = true;
 						}
 					}
+					foreach (KeyValuePair<string, AggregateInfo> AggregateNode in GUBPAggregates)
+					{
+						if(AggregateNode.Key.Equals(NodeArg, StringComparison.InvariantCultureIgnoreCase))
+						{
+							foreach(NodeInfo Node in AggregateNode.Value.Dependencies)
+							{
+								if(!NodesToDo.Contains(Node))
+								{
+									NodesToDo.Add(Node);
+								}
+								bFoundAnything = true;
+							}
+						}
+					}
 					if (!bFoundAnything)
 					{
 						throw new AutomationException("Could not find node named {0}", NodeName);
@@ -1745,7 +1827,10 @@ public partial class GUBP : BuildCommand
 						{
 							if (GameProj.Options(UnrealTargetPlatform.Win64).bIsPromotable)
 							{
-								NodesToDo.Add(GUBPNodes[GameAggregatePromotableNode.StaticGetFullName(GameProj)]);
+								foreach (NodeInfo Dependency in GUBPAggregates[GameAggregatePromotableNode.StaticGetFullName(GameProj)].Dependencies)
+								{
+									NodesToDo.Add(Dependency);
+								}
 							}
 							foreach (KeyValuePair<string, NodeInfo> Node in GUBPNodes)
 							{
@@ -2140,7 +2225,7 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-	private void DoCommanderSetup(int TimeIndex, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, Dictionary<string, string> FullNodeList, Dictionary<string, string> FullNodeDirectDependencies, Dictionary<string, string> FullNodeDependedOnBy, Dictionary<NodeInfo, List<NodeInfo>> DependentPromotions, List<NodeInfo> SeparatePromotables, Dictionary<string, int> FullNodeListSortKey, Dictionary<string, NodeHistory> GUBPNodesHistory, List<NodeInfo> OrdereredToDo, List<NodeInfo> UnfinishedTriggers, string FakeFail)
+	private void DoCommanderSetup(int TimeIndex, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, Dictionary<string, string> FullNodeList, Dictionary<string, string> FullNodeDirectDependencies, Dictionary<string, string> FullNodeDependedOnBy, Dictionary<NodeInfo, List<AggregateInfo>> DependentPromotions, List<AggregateInfo> SeparatePromotables, Dictionary<string, int> FullNodeListSortKey, Dictionary<string, NodeHistory> GUBPNodesHistory, List<NodeInfo> OrdereredToDo, List<NodeInfo> UnfinishedTriggers, string FakeFail)
 	{
 
 		if (OrdereredToDo.Count == 0)
@@ -2165,11 +2250,11 @@ public partial class GUBP : BuildCommand
 		{
 			ECProps.Add(string.Format("DependedOnBy/{0}={1}", NodePair.Key, NodePair.Value));
 		}
-		foreach (KeyValuePair<NodeInfo, List<NodeInfo>> NodePair in DependentPromotions)
+		foreach (KeyValuePair<NodeInfo, List<AggregateInfo>> NodePair in DependentPromotions)
 		{
 			ECProps.Add(string.Format("DependentPromotions/{0}={1}", NodePair.Key.Name, String.Join(" ", NodePair.Value.Select(x => x.Name))));
 		}
-		foreach (NodeInfo Node in SeparatePromotables)
+		foreach (AggregateInfo Node in SeparatePromotables)
 		{
 			ECProps.Add(string.Format("PossiblePromotables/{0}={1}", Node.Name, ""));
 		}
@@ -2189,7 +2274,7 @@ public partial class GUBP : BuildCommand
 			// remove nodes that have unfinished triggers
 			foreach (NodeInfo NodeToDo in OrdereredToDo)
 			{
-				NodeInfo ControllingTrigger = (NodeToDo.ControllingTriggers.Count > 0)? NodeToDo.ControllingTriggers.Last() : null;
+				NodeInfo ControllingTrigger = (NodeToDo.ControllingTriggers.Length > 0)? NodeToDo.ControllingTriggers.Last() : null;
 				bool bNoUnfinishedTriggers = !UnfinishedTriggers.Contains(ControllingTrigger);
 
 				if (bNoUnfinishedTriggers)
