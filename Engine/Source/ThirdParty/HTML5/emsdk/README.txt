@@ -11,6 +11,7 @@ Unreal Engine HTML5 SDK.
 	llvm-rtdyld
 	diagtool
 	clang-format
+  - Delete emscripten/tests folder from the emscripten directory to save space. 
   - Copy folders for each platforms to this folder, 
   - Update version string in HTML5SDKInfo.cs
   - Perforce: Delete older SDK, Checkin new SDK. 
