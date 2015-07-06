@@ -57,6 +57,8 @@ public class Landscape : ModuleRules
 				new string[] {
                     "UnrealEd",
                     "MaterialUtilities", 
+    				"SlateCore",
+    				"Slate",
                 }
 			);
 
