@@ -420,14 +420,17 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 {
 	Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
 		
-		// Update Child Transform - The above function changes bone transform, so will need to update child transform
-		UpdateChildTransforms();
 
-		// animation often change overlap. 
-		UpdateOverlaps();
+	FlipEditableSpaceBases();
 
-		// New bone positions need to be sent to render thread
-		MarkRenderDynamicDataDirty();
+	// Update Child Transform - The above function changes bone transform, so will need to update child transform
+	UpdateChildTransforms();
+
+	// animation often change overlap. 
+	UpdateOverlaps();
+
+	// New bone positions need to be sent to render thread
+	MarkRenderDynamicDataDirty();
 
 	FinalizeBoneTransform();
 
