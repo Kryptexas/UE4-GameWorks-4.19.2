@@ -255,7 +255,7 @@ public class UnrealEd : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            PublicDependencyModuleNames.Add("HTML5Audio");
+			PublicDependencyModuleNames.Add("ALAudio");
         }
 
 		AddThirdPartyPrivateStaticDependencies(Target,

@@ -181,7 +181,7 @@ public class Launch : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.HTML5 )
         {
-            PrivateDependencyModuleNames.Add("HTML5Audio");
+			PrivateDependencyModuleNames.Add("ALAudio");
 			if (Target.Architecture == "-win32")
 			{
                 PrivateDependencyModuleNames.Add("HTML5Win32");

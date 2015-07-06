@@ -100,6 +100,7 @@ void FALSoundSource::Update( void )
 			Volume *= 1.25f;
 		}
 		Volume *= FApp::GetVolumeMultiplier();
+		Volume *= AUDIO_OPEN_AL_VOLUME_SCALE;
 		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	}
 
@@ -128,20 +129,27 @@ void FALSoundSource::Update( void )
 	Velocity *= AUDIO_DISTANCE_FACTOR;
 
 	// We're using a relative coordinate system for un- spatialized sounds.
-	if( !WaveInstance->bUseSpatialization )
+	FVector RelativeDirection = FVector::ZeroVector;
+	if (WaveInstance->bUseSpatialization)
 	{
-		Location = FVector( 0.f, 0.f, 0.f );
+		FVector UnnormalizedDirection = ((FALAudioDevice*)AudioDevice)->InverseTransform.TransformPosition(WaveInstance->Location);
+		RelativeDirection = UnnormalizedDirection.GetSafeNormal();
+	}
+	else
+	{
+		Location = FVector(0.f, 0.f, 0.f);
 	}
 
-	alSourcef( SourceId, AL_GAIN, Volume );
-	alSourcef( SourceId, AL_PITCH, Pitch );
+	FVector EmitterPosition;
+	EmitterPosition.X = RelativeDirection.Y;
+	EmitterPosition.Y = RelativeDirection.X;
+	EmitterPosition.Z = -RelativeDirection.Z;
 
-	alSourcefv( SourceId, AL_POSITION, ( ALfloat* )&Location );
-	alSourcefv( SourceId, AL_VELOCITY, ( ALfloat* )&Velocity );
+	alSourcef(SourceId, AL_GAIN, Volume);
+	alSourcef(SourceId, AL_PITCH, Pitch);
 
-	// Platform dependent call to update the sound output with new parameters
-	// @todo openal: Is this no longer needed?
-	/// AudioDevice->UpdateEffect( this );
+	alSourcefv(SourceId, AL_POSITION, (ALfloat*)&EmitterPosition);
+	alSourcefv(SourceId, AL_VELOCITY, (ALfloat*)&Velocity);
 }
 
 /**

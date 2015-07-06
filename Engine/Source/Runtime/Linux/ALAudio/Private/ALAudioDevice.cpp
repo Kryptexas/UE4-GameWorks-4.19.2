@@ -212,48 +212,17 @@ bool FALAudioDevice::InitializeHardware( void )
 /**
  * Update the audio device and calculates the cached inverse transform later
  * on used for spatialization.
- *
- * @param	Realtime	whether we are paused or not
  */
-void FALAudioDevice::Update( bool Realtime )
+void FALAudioDevice::UpdateHardware()
 {
-	FVector ListenerLocation	= Listeners[ 0 ].Transform.GetLocation();
-	FVector ListenerFront		= Listeners[ 0 ].GetFront();
-	FVector ListenerUp			= Listeners[ 0 ].GetUp();
-
-	// Set Player position
-	FVector Location;
-
-	// See file header for coordinate system explanation.
-	Location.X = ListenerLocation.X;
-	Location.Y = ListenerLocation.Z; // Z/Y swapped on purpose, see file header
-	Location.Z = ListenerLocation.Y; // Z/Y swapped on purpose, see file header
-	Location *= AUDIO_DISTANCE_FACTOR;
-
-	// Set Player orientation.
-	FVector Orientation[2];
-
-	// See file header for coordinate system explanation.
-	Orientation[0].X = ListenerFront.X;
-	Orientation[0].Y = ListenerFront.Z; // Z/Y swapped on purpose, see file header
-	Orientation[0].Z = ListenerFront.Y; // Z/Y swapped on purpose, see file header
-
-	// See file header for coordinate system explanation.
-	Orientation[1].X = ListenerUp.X;
-	Orientation[1].Y = ListenerUp.Z; // Z/Y swapped on purpose, see file header
-	Orientation[1].Z = ListenerUp.Y; // Z/Y swapped on purpose, see file header
-
-	// Make the listener still and the sounds move relatively -- this allows
-	// us to scale the doppler effect on a per-sound basis.
-	FVector Velocity = FVector( 0.0f, 0.0f, 0.0f );
-
-	MakeCurrent(TEXT("FALAudioDevice::Update()"));
-
-	alListenerfv( AL_POSITION, ( ALfloat* )&Location );
-	alListenerfv( AL_ORIENTATION, ( ALfloat* )&Orientation[0] );
-	alListenerfv( AL_VELOCITY, ( ALfloat* )&Velocity );
-
-	alError( TEXT( "UALAudioDevice::Update" ) );
+	if (Listeners.Num() > 0)
+	{
+		// Caches the matrix used to transform a sounds position into local space so we can just look
+		// at the Y component after normalization to determine spatialization.
+		const FVector Up = Listeners[0].GetUp();
+		const FVector Right = Listeners[0].GetFront();
+		InverseTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
+	}
 }
 
 ALuint FALAudioDevice::GetInternalFormat( int NumChannels )
@@ -293,11 +262,13 @@ ALuint FALAudioDevice::GetInternalFormat( int NumChannels )
 
 void FALAudioDevice::MakeCurrent(const TCHAR * CallSiteIdentifier)
 {
+#if PLATFORM_LINUX
 	checkf(SoundContext, TEXT("Unitialiized sound context in FALAudioDevice::MakeCurrent()!"));
 	if (!alcMakeContextCurrent(SoundContext))
 	{
 		alError(CallSiteIdentifier ? CallSiteIdentifier : TEXT("FALAudioDevice::MakeCurrent()"));
 	}
+#endif
 }
 
 /*------------------------------------------------------------------------------------
