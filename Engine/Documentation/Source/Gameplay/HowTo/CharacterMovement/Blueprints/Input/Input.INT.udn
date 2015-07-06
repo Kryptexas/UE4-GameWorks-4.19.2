@@ -64,7 +64,7 @@ Here we will set up the **Input** (Game Controls) to control the character and c
 	![](GameMode_2.png)
 
 	[REGION:note]
-	For more details on **Game Modes**, see [](Gameplay\HowTo\SettingUpAGameMode) for more information. 
+	For more details on Game Modes, see [](Gameplay\HowTo\SettingUpAGameMode) for more information. 
 	[/REGION]
 
 1.	After setting both the Input and Game Mode settings, close the Project Settings Window. 
