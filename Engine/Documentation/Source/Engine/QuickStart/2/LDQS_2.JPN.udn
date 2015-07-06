@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2521138
+﻿INTSourceChangelist:2610045
 Availability:Public
-Title:2.新規レベルのスタート
+Title:2 - ビューポートの遷移
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:[New Level] ダイアログ ウィンドウで Empty Level を作成します。
-
+Description:アンリアル エンジン 4 で様々なビューポートへ遷移する方法をいろいろ学びましょう。 
+SkillLevel:初心者
+Version:4.8
+Related:Engine/UI/LevelEditor/Viewports
+Related:Engine/Levels
+Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,20 +27,37 @@ Description:[New Level] ダイアログ ウィンドウで Empty Level を作成
 
 %Steps%
 
-次に、ゲーム環境を構築するための新規レベルを作成します新規レベルを作成する場合、新規プロジェクトを作成したときと同じように、 
-アンリアル エンジンでは、 _テンプレート_ から選択することができます。デフォルトで、選択肢として _Default_ テンプレートがあります。これは、非常にシンプルな環境であり、 
-完全にブランクな _Empty Level_ のテンプレートです。
+プロジェクトを開いて準備でできると、まず最初にアンリアル エディタの真ん中の [**ビューポート**](Engine/UI/LevelEditor/Viewports) に目が向くと思います。 
 
-新規レベルの作成を開始してみましょう。
+![](TableAndChairs.png)(w:720)
 
-1. **[Level Editor]** ウィンドウの [File] メニューから ![](Engine/QuickStart/3/new_button.png) **[New Level...]** を選択します。**[New Level]** ダイアログが表示されます。
+レベル構築のほとんどは、ビューポートで済ますことができます。前のステップで選択したテンプレート プロジェクトに含まれている小さなサンプル [**レベル**](Engine/Levels) とアセットを使って、作業を開始します。 
+この小さな領域をリファレンスのポイントとして使用して、アンリアル エンジン 4 のビューポートの遷移に一番よく使う方法で [**ビューポート カメラ コントロール**](Engine/UI/LevelEditor/Viewports/ViewportControls) に慣れていきましょう。 
 
-	![](Engine/QuickStart/3/level_new.png)
 
-1. このガイドの用途では、作業用に完全にブランクのスレートが必要です。**Empty Level** テンプレート上でクリックして選択します。
+## 標準の制御
 
-1. この新規のブランク レベルには、必要なすべてのビジュアル、ゲームプレイ関連のアイテムを入れる準備が整っています。
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
 
-	![](Engine/QuickStart/3/level_empty.png)
+[REGION:tip]
+[**Orthographic View**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q) へ切り替えるには、**Perspective** ドロップダウンをクリックして、Orthographic ビューモードを選択します。 
+
+![](OrthographicViews.png)
+[/REGION]
+
+## WASD 飛行制御
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+
+##周回、ドリー 、トラック
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+
+## 結果
+
+ビューポートの遷移方法を何通りか理解し、レベル内でカメラを自由に移動させる方法が分かったと思います。 
+レベルの作成中はカメラをかなり大きく移動することになるので、精度が必要となる場合はいつでも他の方法に切り替えてください。 
+
+次のステップでは、**新規レベル** を作成し、サンプル領域を作成または所有して、アセットを追加していきます。 
 
 %Steps%
