@@ -603,6 +603,7 @@ void FIndirectLightingCache::SetLightingCacheDirty()
 	for (TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*>::TIterator It(PrimitiveAllocations); It; ++It)
 	{
 		It.Value()->bIsDirty = true;
+		It.Value()->bHasEverUpdatedSingleSample = false;
 	}
 	
 	// next rendering we update all entries no matter if they are visible to avoid further hitches
