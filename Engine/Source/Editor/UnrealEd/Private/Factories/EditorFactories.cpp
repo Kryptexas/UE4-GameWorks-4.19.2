@@ -4291,12 +4291,8 @@ UObject* UTextureFactory::FactoryCreateBinary
 		// Update with new settings, which should disable streaming...
 		ExistingTexture2D->UpdateResource();
 	}
-
-	if (ExistingTexture)
-	{
-		// Release the existing resource so the new texture can get a fresh one. 
-		ExistingTexture->ReleaseResource();
-	}
+	
+	FTextureReferenceReplacer RefReplacer(ExistingTexture);
 
 	UTexture* Texture = ImportTexture(Class, InParent, Name, Flags, Type, Buffer, BufferEnd, Warn);
 
@@ -4312,6 +4308,9 @@ UObject* UTextureFactory::FactoryCreateBinary
 		FEditorDelegates::OnAssetPostImport.Broadcast( this, nullptr );
 		return nullptr;
 	}
+
+	//Replace the reference for the new texture with the existing one so that all current users still have valid references.
+	RefReplacer.Replace(Texture);
 
 	// Start with the value that the loader suggests.
 	CompressionSettings = Texture->CompressionSettings;
