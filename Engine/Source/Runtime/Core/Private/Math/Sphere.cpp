@@ -59,7 +59,7 @@ FSphere FSphere::TransformBy(const FTransform& M) const
 	FSphere	Result;
 
 	Result.Center = M.TransformPosition(this->Center);
-	Result.W = M.GetMaximumAxisScale();
+	Result.W *= M.GetMaximumAxisScale();
 
 	return Result;
 }
