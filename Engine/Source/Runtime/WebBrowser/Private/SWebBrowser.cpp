@@ -14,6 +14,27 @@ SWebBrowser::SWebBrowser()
 {
 }
 
+SWebBrowser::~SWebBrowser()
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->OnCreateWindow().Unbind();		
+		BrowserWindow->OnCloseWindow().Unbind();
+		BrowserWindow->OnDocumentStateChanged().RemoveAll(this);
+		BrowserWindow->OnNeedsRedraw().RemoveAll(this);
+		BrowserWindow->OnTitleChanged().RemoveAll(this);
+		BrowserWindow->OnUrlChanged().RemoveAll(this);
+		BrowserWindow->OnToolTip().RemoveAll(this);
+		BrowserWindow->OnBeforeBrowse().Unbind();
+		BrowserWindow->OnLoadUrl().Unbind();
+		BrowserWindow->OnBeforePopup().Unbind();
+		if(!BrowserWindow->IsClosing())
+		{
+			BrowserWindow->CloseBrowser(true);
+		}
+	}
+}
+
 void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrowserWindow>& InWebBrowserWindow)
 {
 	OnLoadCompleted = InArgs._OnLoadCompleted;
@@ -25,6 +46,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	OnLoadUrl = InArgs._OnLoadUrl;
 	OnBeforePopup = InArgs._OnBeforePopup;
 	OnCreateWindow = InArgs._OnCreateWindow;
+	OnCloseWindow = InArgs._OnCloseWindow;
 	AddressBarUrl = FText::FromString(InArgs._InitialURL);
 
 	BrowserWindow = InWebBrowserWindow;
@@ -144,6 +166,11 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		if(OnCreateWindow.IsBound())
 		{
 			BrowserWindow->OnCreateWindow().BindSP(this, &SWebBrowser::HandleCreateWindow);		
+		}
+
+		if(OnCloseWindow.IsBound())
+		{
+			BrowserWindow->OnCloseWindow().BindSP(this, &SWebBrowser::HandleCloseWindow);
 		}
 
 		BrowserWindow->OnDocumentStateChanged().AddSP(this, &SWebBrowser::HandleBrowserWindowDocumentStateChanged);
@@ -422,11 +449,20 @@ void SWebBrowser::ExecuteJavascript(const FString& ScriptText)
 	}
 }
 
-bool SWebBrowser::HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow)
+bool SWebBrowser::HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow, const TWeakPtr<IWebBrowserPopupFeatures>& PopupFeatures)
 {
 	if(OnCreateWindow.IsBound())
 	{
-		return OnCreateWindow.Execute(NewBrowserWindow);
+		return OnCreateWindow.Execute(NewBrowserWindow, PopupFeatures);
+	}
+	return false;
+}
+
+bool SWebBrowser::HandleCloseWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow)
+{
+	if(OnCloseWindow.IsBound())
+	{
+		return OnCloseWindow.Execute(NewBrowserWindow);
 	}
 	return false;
 }

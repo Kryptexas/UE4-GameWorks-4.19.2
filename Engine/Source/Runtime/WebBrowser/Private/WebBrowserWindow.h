@@ -115,7 +115,7 @@ public:
 	virtual void Reload() override;
 	virtual void StopLoad() override;
 	virtual void ExecuteJavascript(const FString& Script) override;
-	virtual void CloseBrowser() override;
+	virtual void CloseBrowser(bool bForce) override;
 	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) override;
 	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;
 
@@ -162,6 +162,11 @@ public:
 	virtual FOnCreateWindow& OnCreateWindow() override
 	{
 		return CreateWindowDelegate;
+	}
+
+	virtual FOnCloseWindow& OnCloseWindow() override
+	{
+		return CloseWindowDelegate;
 	}
 
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) override
@@ -277,13 +282,28 @@ private:
 	 * @return true if window creation functionality was provided, false otherwise.  If false, RequestCreateWindow() will always return false.
 	 */
 	bool SupportsNewWindows();
-	
+
 	/** Called when the browser requests a new UI window
 	 *
 	 * @param NewBrowserWindow The web browser window to display in the new UI window.
+	 * @param BrowserPopupFeatures The popup features and settings for the browser window.
 	 * @return true if the UI window was created, false otherwise.
 	 */
-	bool RequestCreateWindow(const TSharedRef<IWebBrowserWindow>& NewBrowserWindow);
+	bool RequestCreateWindow(const TSharedRef<IWebBrowserWindow>& NewBrowserWindow, const TSharedPtr<IWebBrowserPopupFeatures>& BrowserPopupFeatures);
+	
+	//bool SupportsCloseWindows();
+	//bool RequestCloseWindow(const TSharedRef<IWebBrowserWindow>& BrowserWindow);
+
+
+	/**
+	 * Called once the browser begins closing procedures.
+	 */
+	void OnBrowserClosing();
+	
+	/**
+	 * Called once the browser is closed.
+	 */
+	void OnBrowserClosed();
 
 public:
 
@@ -404,6 +424,9 @@ private:
 	
 	/** Delegate for handaling requests to create new windows. */
 	FOnCreateWindow CreateWindowDelegate;
+
+	/** Delegate for handaling requests to close new windows that were created. */
+	FOnCloseWindow CloseWindowDelegate;
 
 	/** Tracks the current mouse cursor */
 	EMouseCursor::Type Cursor;

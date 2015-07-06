@@ -3,6 +3,7 @@
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserWindow.h"
 #include "WebBrowserByteResource.h"
+#include "WebBrowserPopupFeatures.h"
 #include "WebJSScripting.h"
 #include "RHI.h"
 
@@ -49,7 +50,7 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TO
 
 FWebBrowserWindow::~FWebBrowserWindow()
 {
-	CloseBrowser();
+	CloseBrowser(true);
 
 	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid() && UpdatableTexture != nullptr)
 	{
@@ -434,11 +435,11 @@ bool FWebBrowserWindow::SupportsNewWindows()
 	return OnCreateWindow().IsBound() ? true : false;
 }
 
-bool FWebBrowserWindow::RequestCreateWindow( const TSharedRef<IWebBrowserWindow>& NewBrowserWindow )
+bool FWebBrowserWindow::RequestCreateWindow( const TSharedRef<IWebBrowserWindow>& NewBrowserWindow, const TSharedPtr<IWebBrowserPopupFeatures>& BrowserPopupFeatures )
 {
 	if(OnCreateWindow().IsBound())
 	{
-		return OnCreateWindow().Execute(TWeakPtr<IWebBrowserWindow>(NewBrowserWindow));
+		return OnCreateWindow().Execute(TWeakPtr<IWebBrowserWindow>(NewBrowserWindow), TWeakPtr<IWebBrowserPopupFeatures>(BrowserPopupFeatures));
 	}
 	return false;
 }
@@ -678,15 +679,11 @@ void FWebBrowserWindow::SetHandler(CefRefPtr<FWebBrowserHandler> InHandler)
 	}
 }
 
-void FWebBrowserWindow::CloseBrowser()
+void FWebBrowserWindow::CloseBrowser(bool bForce)
 {
-	bIsClosing = true;
 	if (IsValid())
 	{
-		Scripting->UnbindCefBrowser();
-		InternalCefBrowser->GetHost()->CloseBrowser(false);
-		InternalCefBrowser = nullptr;
-		Handler = nullptr;
+		InternalCefBrowser->GetHost()->CloseBrowser(bForce);
 	}
 }
 
@@ -1083,6 +1080,23 @@ bool FWebBrowserWindow::OnCefBeforePopup(const CefString& Target_Url, const CefS
 	}
 
 	return false;
+}
+
+void FWebBrowserWindow::OnBrowserClosing()
+{
+	bIsClosing = true;
+}
+
+void FWebBrowserWindow::OnBrowserClosed()
+{
+	if(OnCloseWindow().IsBound())
+	{
+		OnCloseWindow().Execute(TWeakPtr<IWebBrowserWindow>(SharedThis(this)));
+	}
+
+	Scripting->UnbindCefBrowser();
+	InternalCefBrowser = nullptr;
+	Handler = nullptr;
 }
 
 #endif

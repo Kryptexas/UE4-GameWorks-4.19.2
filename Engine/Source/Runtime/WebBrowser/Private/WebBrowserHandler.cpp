@@ -4,6 +4,8 @@
 #include "WebBrowserHandler.h"
 #include "WebBrowserWindow.h"
 #include "WebBrowserSingleton.h"
+#include "WebBrowserPopupFeatures.h"
+
 
 #define LOCTEXT_NAMESPACE "WebBrowserHandler"
 
@@ -77,10 +79,10 @@ void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 				}
 
 				// Request a UI window for the browser.  If it is not created we do some cleanup.
-				bool bUIWindowCreated = BrowserWindowParent->RequestCreateWindow(NewBrowserWindow.ToSharedRef());
+				bool bUIWindowCreated = BrowserWindowParent->RequestCreateWindow(NewBrowserWindow.ToSharedRef(), BrowserPopupFeatures);
 				if(!bUIWindowCreated)
 				{
-					NewBrowserWindow->CloseBrowser();
+					NewBrowserWindow->CloseBrowser(true);
 				}
 			}
 			else
@@ -91,13 +93,23 @@ void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 	}
 }
 
+ bool FWebBrowserHandler::DoClose(CefRefPtr<CefBrowser> Browser)
+ {
+	 TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if(BrowserWindow.IsValid())
+	{
+		BrowserWindow->OnBrowserClosing();
+	}
+
+	return false;
+ }
+
 void FWebBrowserHandler::OnBeforeClose(CefRefPtr<CefBrowser> Browser)
 {
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-
 	if (BrowserWindow.IsValid())
 	{
-		BrowserWindow->BindCefBrowser(nullptr);
+		BrowserWindow->OnBrowserClosed();
 	}
 }
 
@@ -126,6 +138,7 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 			{
 				CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
 				NewHandler->SetBrowserWindowParent(BrowserWindow);
+				NewHandler->SetPopupFeatures(MakeShareable(new FWebBrowserPopupFeatures(PopupFeatures)));
 				Client = NewHandler;
 				
 				CefWindowHandle ParentWindowHandle = BrowserWindow->GetCefBrowser()->GetHost()->GetWindowHandle();

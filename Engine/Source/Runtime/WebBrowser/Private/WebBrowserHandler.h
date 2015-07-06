@@ -19,6 +19,7 @@
 
 
 class FWebBrowserWindow;
+class FWebBrowserPopupFeatures;
 
 
 /**
@@ -53,6 +54,16 @@ public:
 	 * @param InBrowserWindow The parent browser window.
 	 */
 	void SetBrowserWindowParent(TSharedPtr<FWebBrowserWindow> InBrowserWindow);
+
+	/**
+	 * Sets the browser window features and settings for popups which will be passed along when creating the new window.
+	 *
+	 * @param InPopupFeatures The popup features and settings for the window.
+	 */
+	void SetPopupFeatures(const TSharedPtr<FWebBrowserPopupFeatures>& InPopupFeatures)
+	{
+		BrowserPopupFeatures = InPopupFeatures;
+	}
 
 	/** Sets whether to show messages on loading errors. */
 	void SetShowErrorMessage(bool InShowErrorMessage)
@@ -113,6 +124,7 @@ public:
 	// CefLifeSpanHandler Interface
 
 	virtual void OnAfterCreated(CefRefPtr<CefBrowser> Browser) override;
+	virtual bool DoClose(CefRefPtr<CefBrowser> Browser) override;
 	virtual void OnBeforeClose(CefRefPtr<CefBrowser> Browser) override;
 	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser, 
 		CefRefPtr<CefFrame> Frame, 
@@ -185,6 +197,9 @@ private:
 	
 	/** Weak Pointer to the parent web browser window */
 	TWeakPtr<FWebBrowserWindow> BrowserWindowParentPtr;
+
+	/** Stores popup window features and settings */
+	TSharedPtr<FWebBrowserPopupFeatures> BrowserPopupFeatures;
 
 	/** Whether to show an error message in case of loading errors. */
 	bool ShowErrorMessage;

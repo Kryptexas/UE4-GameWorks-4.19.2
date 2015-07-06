@@ -129,7 +129,7 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 	{
 		if (WindowInterfaces[Index].IsValid())
 		{
-			WindowInterfaces[Index].Pin()->CloseBrowser();
+			WindowInterfaces[Index].Pin()->CloseBrowser(true);
 		}
 	}
 	// Just in case, although we deallocate WebBrowserApp right after this.
@@ -230,8 +230,11 @@ bool FWebBrowserSingleton::Tick(float DeltaTime)
 		else if (bIsSlateAwake) // only check for Tick activity if Slate is currently ticking
 		{
 			TSharedPtr<FWebBrowserWindow> BrowserWindow = WindowInterfaces[Index].Pin();
-			// Test if we've ticked recently. If not assume the browser window has become hidden.
-			BrowserWindow->CheckTickActivity();
+			if(BrowserWindow.IsValid())
+			{
+				// Test if we've ticked recently. If not assume the browser window has become hidden.
+				BrowserWindow->CheckTickActivity();
+			}
 		}
 	}
 	CefDoMessageLoopWork();

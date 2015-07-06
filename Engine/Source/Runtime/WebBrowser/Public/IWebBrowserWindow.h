@@ -10,7 +10,7 @@ struct FPointerEvent;
 class FReply;
 class FCursorReply;
 class FSlateShaderResource;
-
+class IWebBrowserPopupFeatures;
 
 enum class EWebBrowserDocumentState
 {
@@ -201,9 +201,13 @@ public:
 
 	/** Execute Javascript on the page. */
 	virtual void ExecuteJavascript(const FString& Script) = 0;
-	
-	/** Close this window so that it can no longer be used. */
-	virtual void CloseBrowser() = 0;
+
+	/**
+	 * Close this window so that it can no longer be used.
+	 *
+	 * @param bForce Designates whether the web browser close should be forced.
+	 */
+	virtual void CloseBrowser(bool bForce) = 0;
 
 	/** 
 	 * Expose a UObject instance to the browser runtime.
@@ -259,9 +263,13 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
 	virtual FOnBeforePopupDelegate& OnBeforePopup() = 0;
 
-	/** A delegate this is invoked when an existing browser requests creation of a new browser window. */
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCreateWindow, const TWeakPtr<IWebBrowserWindow>& /*NewBrowserWindow*/)
+	/** A delegate that is invoked when an existing browser requests creation of a new browser window. */
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCreateWindow, const TWeakPtr<IWebBrowserWindow>& /*NewBrowserWindow*/, const TWeakPtr<IWebBrowserPopupFeatures>& /* PopupFeatures*/)
 	virtual FOnCreateWindow& OnCreateWindow() = 0;
+
+	/** A delegate that is invoked when closing created popup windows. */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCloseWindow, const TWeakPtr<IWebBrowserWindow>& /*BrowserWindow*/)
+	virtual FOnCloseWindow& OnCloseWindow() = 0;
 
 protected:
 

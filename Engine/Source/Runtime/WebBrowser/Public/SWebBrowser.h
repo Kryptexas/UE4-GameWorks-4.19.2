@@ -8,9 +8,12 @@ enum class EWebBrowserDocumentState;
 class IWebBrowserWindow;
 class FWebBrowserViewport;
 class UObject;
+class IWebBrowserPopupFeatures;
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
-DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&, const TWeakPtr<IWebBrowserPopupFeatures>&);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCloseWindowDelegate, const TWeakPtr<IWebBrowserWindow>&);
+
 
 class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget
@@ -81,6 +84,9 @@ public:
 		/** Called when the browser requests the creation of a new window */
 		SLATE_EVENT(FOnCreateWindowDelegate, OnCreateWindow)
 
+		/** Called when a browser window close event is detected */
+		SLATE_EVENT(FOnCloseWindowDelegate, OnCloseWindow)
+
 		/** Called before browser navigation. */
 		SLATE_EVENT(FOnBeforeBrowse, OnBeforeNavigation)
 	
@@ -91,6 +97,8 @@ public:
 
 	/** Default constructor. */
 	SWebBrowser();
+
+	~SWebBrowser();
 
 	/**
 	 * Construct the widget.
@@ -229,7 +237,14 @@ private:
 	 *
 	 * @return true if if the window request was handled, false if the browser requesting the new window should be closed.
 	 */
-	bool HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow);
+	bool HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow, const TWeakPtr<IWebBrowserPopupFeatures>& PopupFeatures);
+
+	/**
+	 * A delegate that is executed when closing the browser window.
+	 *
+	 * @return true if if the window close was handled, false otherwise.
+	 */
+	bool HandleCloseWindow(const TWeakPtr<IWebBrowserWindow>& BrowserWindow);
 
 	/** Callback for popup window permission */
 	bool HandleBeforePopup(FString URL, FString Target);
@@ -271,6 +286,9 @@ private:
 
 	/** A delegate that is invoked when the browser requests a UI window for another browser it spawned */
 	FOnCreateWindowDelegate OnCreateWindow;
+
+	/** A delegate that is invoked when a window close event is detected */
+	FOnCloseWindowDelegate OnCloseWindow;
 
 	/** A delegate that is invoked prior to browser navigation */
 	FOnBeforeBrowse OnBeforeNavigation;
