@@ -4,13 +4,14 @@
 #include "RuntimeMovieScenePlayer.h"
 #include "MovieSceneInstance.h"
 
+
 URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer( ULevel* Level, UMovieSceneBindings* MovieSceneBindings )
 {	
 	URuntimeMovieScenePlayer* NewRuntimeMovieScenePlayer = NewObject<URuntimeMovieScenePlayer>(
 		(UObject*)GetTransientPackage(), 
 		NAME_None, 
 		RF_Transient );
-	check( NewRuntimeMovieScenePlayer != NULL );
+	check( NewRuntimeMovieScenePlayer != nullptr );
 
 	// Associate the player with its world
 	NewRuntimeMovieScenePlayer->World = Level->OwningWorld;
@@ -22,7 +23,7 @@ URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlaye
 	// Spawn actors for each spawnable!
 
 	// Add this to the level's list of active RuntimeMovieScenePlayers.  The level will own this player from now on.
-	check( Level != NULL );
+	check( Level != nullptr );
 	Level->AddActiveRuntimeMovieScenePlayer( NewRuntimeMovieScenePlayer );
 
 	return NewRuntimeMovieScenePlayer;
@@ -33,7 +34,7 @@ URuntimeMovieScenePlayer::URuntimeMovieScenePlayer( const FObjectInitializer& Ob
 	: Super( ObjectInitializer )
 {
 
-	MovieSceneBindings = NULL;
+	MovieSceneBindings = nullptr;
 	TimeCursorPosition = 0.0f;
 	bIsPlaying = false;
 }
@@ -42,10 +43,10 @@ URuntimeMovieScenePlayer::URuntimeMovieScenePlayer( const FObjectInitializer& Ob
 void URuntimeMovieScenePlayer::SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance  )
 {
 	UWorld* WorldPtr = World.Get();
-	if( WorldPtr != NULL && MovieSceneBindings != NULL )
+	if( WorldPtr != nullptr && MovieSceneBindings != nullptr )
 	{
 		UMovieScene* MovieScene = MovieSceneInstance->GetMovieScene();
-		if( MovieScene != NULL )
+		if( MovieScene != nullptr )
 		{
 			TArray<FSpawnedActorInfo>* FoundSpawnedActors = InstanceToSpawnedActorMap.Find( MovieSceneInstance );
 			if( FoundSpawnedActors )
@@ -61,7 +62,7 @@ void URuntimeMovieScenePlayer::SpawnActorsForMovie( TSharedRef<FMovieSceneInstan
 				auto& Spawnable = MovieScene->GetSpawnable( SpawnableIndex );
 
 				UClass* GeneratedClass = Spawnable.GetClass();
-				if ( GeneratedClass != NULL )
+				if ( GeneratedClass != nullptr )
 				{
 					const bool bIsActorBlueprint = GeneratedClass->IsChildOf( AActor::StaticClass() );
 					if ( bIsActorBlueprint )
@@ -90,10 +91,11 @@ void URuntimeMovieScenePlayer::SpawnActorsForMovie( TSharedRef<FMovieSceneInstan
 	}
 }
 
+
 void URuntimeMovieScenePlayer::DestroyActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance )
 {
 	UWorld* WorldPtr = World.Get();
-	if( WorldPtr != NULL && MovieSceneBindings != NULL )
+	if( WorldPtr != nullptr && MovieSceneBindings != nullptr )
 	{
 		TArray<FSpawnedActorInfo>* SpawnedActors = InstanceToSpawnedActorMap.Find( MovieSceneInstance );
 		if( SpawnedActors )
@@ -117,6 +119,7 @@ void URuntimeMovieScenePlayer::DestroyActorsForMovie( TSharedRef<FMovieSceneInst
 	}
 }
 
+
 bool URuntimeMovieScenePlayer::IsPlaying() const
 {
 	return bIsPlaying;
@@ -126,7 +129,7 @@ bool URuntimeMovieScenePlayer::IsPlaying() const
 void URuntimeMovieScenePlayer::Play()
 {
 	// Init the root movie scene instance
-	if( MovieSceneBindings != NULL )
+	if( MovieSceneBindings != nullptr )
 	{
 		UMovieScene* MovieScene = MovieSceneBindings->GetRootMovieScene();
 	
@@ -165,7 +168,7 @@ void URuntimeMovieScenePlayer::Tick( const float DeltaSeconds )
 	}
 
 	// Update the movie scene!
-	if( MovieSceneBindings != NULL && RootMovieSceneInstance.IsValid() )
+	if( MovieSceneBindings != nullptr && RootMovieSceneInstance.IsValid() )
 	{
 		RootMovieSceneInstance->Update( TimeCursorPosition, LastTimePosition, *this );
 	}
@@ -196,7 +199,7 @@ void URuntimeMovieScenePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance
 	
 	}
 	// Otherwise, check to see if we have one or more possessed actors that are mapped to this handle
-	else if( MovieSceneBindings != NULL )
+	else if( MovieSceneBindings != nullptr )
 	{
 		for (FMovieSceneBoundObjectInfo& BoundObject : MovieSceneBindings->FindBoundObjects(ObjectHandle))
 		{
@@ -222,19 +225,23 @@ void URuntimeMovieScenePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance
 	}
 }
 
+
 void URuntimeMovieScenePlayer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
 {
 }
+
 
 EMovieScenePlayerStatus::Type URuntimeMovieScenePlayer::GetPlaybackStatus() const
 {
 	return bIsPlaying ? EMovieScenePlayerStatus::Playing : EMovieScenePlayerStatus::Stopped;
 }
 
+
 void URuntimeMovieScenePlayer::AddOrUpdateMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd )
 {
 	SpawnActorsForMovie( InstanceToAdd );
 }
+
 
 void URuntimeMovieScenePlayer::RemoveMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove )
 {

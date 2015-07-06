@@ -2,10 +2,10 @@
 
 #include "MovieScenePrivatePCH.h"
 #include "ModuleManager.h"
-
 #include "MovieScene.h"
 #include "MovieSceneBindings.h"
 #include "RuntimeMovieScenePlayer.h"
+
 
 DEFINE_LOG_CATEGORY(LogSequencerRuntime);
 
@@ -13,27 +13,15 @@ DEFINE_LOG_CATEGORY(LogSequencerRuntime);
 /**
  * MovieScene module implementation (private)
  */
-class FMovieSceneModule : public IMovieSceneModule
+class FMovieSceneModule
+	: public IMovieSceneModule
 {
-
 public:
 
 	/** IModuleInterface */
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-
+	virtual void StartupModule() override { }
+	virtual void ShutdownModule() override { }
 };
 
 
 IMPLEMENT_MODULE( FMovieSceneModule, MovieScene );
-
-
-
-void FMovieSceneModule::StartupModule()
-{
-}
-
-
-void FMovieSceneModule::ShutdownModule()
-{
-}

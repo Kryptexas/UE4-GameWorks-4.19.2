@@ -28,6 +28,7 @@ TArray<UMovieSceneSection*> MovieSceneHelpers::GetTraversedSections( const TArra
 	return TraversedSections;
 }
 
+
 UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time )
 {
 	if( Sections.Num() == 1 )
@@ -41,14 +42,15 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 
 }
 
+
 UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time )
 {
 	// Only update the section if the position is within the time span of the section
 	// Or if there are no sections at the time, the left closest section to the time
 	// Or in the case that Time is before all sections, take the section with the earliest start time
-	UMovieSceneSection* ClosestSection = NULL;
+	UMovieSceneSection* ClosestSection = nullptr;
 	float ClosestSectionTime = 0.f;
-	UMovieSceneSection* EarliestSection = NULL;
+	UMovieSceneSection* EarliestSection = nullptr;
 	float EarliestSectionTime = 0.f;
 	for( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
 	{
@@ -82,15 +84,16 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 	// if we get here, we are off of any section
 	// if ClosestSection, then we take the closest to left of this time
 	// else, we take the EarliestSection
-	// if that's NULL, then there are no sections
+	// if that's nullptr, then there are no sections
 	return ClosestSection ? ClosestSection : EarliestSection;
 }
+
 
 USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Object)
 {
 	AActor* Actor = Cast<AActor>(Object);
 
-	USceneComponent* SceneComponent = NULL;
+	USceneComponent* SceneComponent = nullptr;
 	if (Actor && Actor->GetRootComponent())
 	{
 		// If there is an actor, modify its root component
@@ -103,6 +106,7 @@ USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Obj
 	}
 	return SceneComponent;
 }
+
 
 FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
     : PropertyPath( InPropertyPath )
@@ -121,6 +125,7 @@ FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InProperty
 		FunctionName = FName(*FunctionString);
 	}
 }
+
 
 void FTrackInstancePropertyBindings::CallFunction( UObject* InRuntimeObject, void* FunctionParams )
 {
@@ -164,6 +169,7 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 
 }
 
+
 FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindProperty( UObject* InObject, const FString& InPropertyPath ) const
 {
 	TArray<FString> PropertyNames;
@@ -180,6 +186,7 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 	}
 
 }
+
 
 void FTrackInstancePropertyBindings::UpdateBindings( const TArray<UObject*>& InRuntimeObjects )
 {

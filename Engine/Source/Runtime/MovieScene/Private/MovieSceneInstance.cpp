@@ -147,6 +147,7 @@ void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 	}
 }
 
+
 struct FTrackInstanceEvalSorter
 {
 	bool operator()( const TSharedPtr<IMovieSceneTrackInstance> A, const TSharedPtr<IMovieSceneTrackInstance> B ) const
@@ -154,6 +155,7 @@ struct FTrackInstanceEvalSorter
 		return A->EvalOrder() > B->EvalOrder();
 	}
 };
+
 
 void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, IMovieScenePlayer& Player  )
 {

@@ -13,7 +13,6 @@ FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* Ini
 }
 
 
-
 FMovieScenePossessable::FMovieScenePossessable( const FString& InitName, UClass* InitPossessedObjectClass )
 {
 	Guid = FGuid::NewGuid();
@@ -24,14 +23,15 @@ FMovieScenePossessable::FMovieScenePossessable( const FString& InitName, UClass*
 
 UMovieScene::UMovieScene( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 #if WITH_EDITOR
+
 // @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieScene!
 FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject )
 {
-	check( (Blueprint != NULL) && (Blueprint->GeneratedClass) );
+	check( (Blueprint != nullptr) && (Blueprint->GeneratedClass) );
 
 	Modify();
 
@@ -43,6 +43,7 @@ FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UOb
 
 	return NewSpawnable.GetGuid();
 }
+
 
 bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 {
@@ -58,8 +59,8 @@ bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 
 				{
 					UClass* GeneratedClass = CurSpawnable.GetClass();
-					UBlueprint* Blueprint = GeneratedClass ? Cast<UBlueprint>(GeneratedClass->ClassGeneratedBy) : NULL;
-					check(NULL != Blueprint);
+					UBlueprint* Blueprint = GeneratedClass ? Cast<UBlueprint>(GeneratedClass->ClassGeneratedBy) : nullptr;
+					check(nullptr != Blueprint);
 					// @todo sequencer: Also remove created Blueprint inner object.  Is this sufficient?  Needs to work with Undo too!
 					Blueprint->ClearFlags( RF_Standalone );	// @todo sequencer: Probably not needed for Blueprint
 					Blueprint->MarkPendingKill();
@@ -105,13 +106,13 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnable( const FGuid& Guid )
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
 const FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePreviewObject ) const
 {
-	check( GamePreviewObject != NULL );
+	check( GamePreviewObject != nullptr );
 
 	// Must only be called for objects in game preview worlds
 	const bool bIsGamePreviewObject = !!( GamePreviewObject->GetOutermost()->PackageFlags & PKG_PlayInEditor );
@@ -126,7 +127,7 @@ const FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* G
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -181,7 +182,7 @@ FMovieScenePossessable* UMovieScene::FindPossessable( const FGuid& Guid )
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -193,23 +194,28 @@ int32 UMovieScene::GetPossessableCount() const
 
 FMovieScenePossessable& UMovieScene::GetPossessable( const int32 Index )
 {
-	return Possessables[ Index ];
+	return Possessables[Index];
 }
+
 
 TRange<float> UMovieScene::GetTimeRange() const
 {
 	// Get the range of all sections combined
 	TArray< TRange<float> > Bounds;
+
 	for (int32 TypeIndex = 0; TypeIndex < MasterTracks.Num(); ++TypeIndex)
 	{
 		Bounds.Add(MasterTracks[TypeIndex]->GetSectionBoundaries());
 	}
+
 	for (int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex)
 	{
 		Bounds.Add(ObjectBindings[BindingIndex].GetTimeRange());
 	}
+
 	return TRange<float>::Hull(Bounds);
 }
+
 
 TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 {
@@ -236,6 +242,7 @@ TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 	return OutSections;
 }
 
+
 void UMovieScene::RemoveBinding( const FGuid& Guid )
 {
 	// Update each type
@@ -249,9 +256,10 @@ void UMovieScene::RemoveBinding( const FGuid& Guid )
 	}
 }
 
+
 UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTrackName ) const
 {
-	UMovieSceneTrack* FoundTrack = NULL;
+	UMovieSceneTrack* FoundTrack = nullptr;
 	
 	check( UniqueTrackName != NAME_None );
 	check( ObjectGuid.IsValid() );
@@ -278,9 +286,10 @@ UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackCla
 	return FoundTrack;
 }
 
+
 class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid )
 {
-	UMovieSceneTrack* CreatedType = NULL;
+	UMovieSceneTrack* CreatedType = nullptr;
 
 	check( ObjectGuid.IsValid() )
 
@@ -293,7 +302,6 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 			Modify();
 
 			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
-			
 			Binding.AddTrack( *CreatedType );
 		}
 	}
@@ -301,9 +309,11 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 	return CreatedType;
 }
 
+
 bool UMovieScene::RemoveTrack( UMovieSceneTrack* Track )
 {
 	Modify();
+
 	bool bAnythingRemoved = false;
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
@@ -320,9 +330,10 @@ bool UMovieScene::RemoveTrack( UMovieSceneTrack* Track )
 	return bAnythingRemoved;
 }
 
+
 UMovieSceneTrack* UMovieScene::FindMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass ) const
 {
-	UMovieSceneTrack* FoundTrack = NULL;
+	UMovieSceneTrack* FoundTrack = nullptr;
 	for( int32 TrackIndex = 0; TrackIndex < MasterTracks.Num(); ++TrackIndex )
 	{
 		UMovieSceneTrack* Track = MasterTracks[TrackIndex];
@@ -336,6 +347,7 @@ UMovieSceneTrack* UMovieScene::FindMasterTrack( TSubclassOf<UMovieSceneTrack> Tr
 	return FoundTrack;
 }
 
+
 class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
 	Modify();
@@ -346,6 +358,7 @@ class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrac
 	
 	return CreatedType;
 }
+
 
 UMovieSceneTrack* UMovieScene::AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
@@ -359,10 +372,12 @@ UMovieSceneTrack* UMovieScene::AddShotTrack( TSubclassOf<UMovieSceneTrack> Track
 	return ShotTrack;
 }
 
+
 UMovieSceneTrack* UMovieScene::GetShotTrack()
 {
 	return ShotTrack;
 }
+
 
 void UMovieScene::RemoveShotTrack()
 {
@@ -374,21 +389,24 @@ void UMovieScene::RemoveShotTrack()
 	}
 }
 
+
 bool UMovieScene::RemoveMasterTrack( UMovieSceneTrack* Track ) 
 {
 	Modify();
 
-	return MasterTracks.RemoveSingle( Track ) != 0;
+	return MasterTracks.RemoveSingle(Track) != 0;
 }
+
 
 bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack* Track) const
 {
-	for( int32 TrackIndex = 0; TrackIndex < MasterTracks.Num(); ++TrackIndex )
+	for (int32 TrackIndex = 0; TrackIndex < MasterTracks.Num(); ++TrackIndex)
 	{
 		if (Track == MasterTracks[TrackIndex])
 		{
 			return true;
 		}
 	}
+
 	return false;
 }

@@ -19,6 +19,7 @@ void UMovieScenePropertyTrack::SetPropertyNameAndPath( FName InPropertyName, con
 	PropertyPath = InPropertyPath;
 }
 
+
 const TArray<UMovieSceneSection*>& UMovieScenePropertyTrack::GetAllSections() const
 {
 	return Sections;
@@ -30,21 +31,23 @@ void UMovieScenePropertyTrack::RemoveAllAnimationData()
 	Sections.Empty();
 }
 
+
 bool UMovieScenePropertyTrack::HasSection( UMovieSceneSection* Section ) const 
 {
 	return Sections.Contains( Section );
 }
+
 
 void UMovieScenePropertyTrack::RemoveSection( UMovieSceneSection* Section ) 
 {
 	Sections.Remove( Section );
 }
 
+
 bool UMovieScenePropertyTrack::IsEmpty() const
 {
 	return Sections.Num() == 0;
 }
-
 
 
 UMovieSceneSection* UMovieScenePropertyTrack::FindOrAddSection( float Time )
@@ -111,12 +114,15 @@ UMovieSceneSection* UMovieScenePropertyTrack::FindOrAddSection( float Time )
 	return NewSection;
 }
 
+
 TRange<float> UMovieScenePropertyTrack::GetSectionBoundaries() const
 {
 	TArray< TRange<float> > Bounds;
+
 	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
 		Bounds.Add(Sections[SectionIndex]->GetRange());
 	}
+
 	return TRange<float>::Hull(Bounds);
 }

@@ -27,7 +27,7 @@ const UMovieSceneSection* UMovieSceneSection::OverlapsWithSections(const TArray<
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sections, float InStartTime, float InEndTime, bool bAllowMultipleRows)
@@ -40,7 +40,7 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 	RowIndex = 0;
 	if (bAllowMultipleRows)
 	{
-		while (OverlapsWithSections(Sections) != NULL)
+		while (OverlapsWithSections(Sections) != nullptr)
 		{
 			++RowIndex;
 		}
@@ -51,7 +51,7 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 		{
 			const UMovieSceneSection* OverlappedSection = OverlapsWithSections(Sections);
 
-			if (OverlappedSection == NULL)
+			if (OverlappedSection == nullptr)
 			{
 				break;
 			}
