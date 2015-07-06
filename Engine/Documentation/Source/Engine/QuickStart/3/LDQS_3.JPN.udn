@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2521084
+﻿INTSourceChangelist:2610045
 Availability:Public
-Title:3.アクタの配置
+Title:3 - 新規レベルの作成
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:レベル作成の基礎となるアクタの配置と操作
+Description: このステップでは、サンプル領域をビルドするために使うレベルを新規作成します。 
+SkillLevel:Beginner
+Version:4.8
+Related:Engine/Levels
+Related:Engine/Content/Browser
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,111 +26,33 @@ Description:レベル作成の基礎となるアクタの配置と操作
 
 %Steps%
 
-「配置」という考え方は、エディタの多くの部分に及ぶものです。常に何かをクリックし、レベルのビューポートにドラッグする操作を伴います。
+次にゲームの背景を作成していく [**レベル**](Engine/Levels) を作成します。 
+レベルを新規作成する方法は何通りかありますが、ここでは最もよく使われる [**コンテンツ ブラウザ**](Engine/Content/Browser) による方法でアンリアル エディタ内に異なるアセットの種類を作成していきます。 
 
-**[Modes] パネル** にある **[Place] モード** では、ライトやジオメトリなどの一般的に使用する多くのアクタを配置することができます。次のステップでは、フロアー、平行光源、 Atmospheric Fog アクタ、 Player Start アクタを配置します。 
 
-[REGION:tip]
-ごく簡単に言うと、 **アクタ** はレベルに配置可能な任意のオブジェクトで、アンリアル エンジン 4 でレベルを作成するときに、多くの **アクタ** を配置、移動、編集することでしょう。
+## ステップ
 
-**アクタ** についての詳細は、 [アクタとジオメトリ](Engine\Actors) を参照してください。
-[/REGION]
+1. アンリアル エディタで、**コンテンツ ブラウザ** ウィンドウを探して **[Add New]** (新規追加) ボタンをクリックして **Level** アセットを選択します。 
 
-何を配置するにしても、まずは配置するフロアーが必要です。そのために、 Box Geometry アクタを使用します。
+	![](ContentBrowserLevel.png)
 
-1. **[Modes] パネル** で、 **Place** モードを有効にした状態で、 **BSP** カテゴリをクリックします。
-1. **[Modes] パネル** で Box Geometry アクタをクリックし、レベルにドラッグすることで、Box Geometry アクタを配置します。
+	**[New Level]** (新規レベル) ダイアログ ウィンドウが開きます。
 
-	![](Engine/QuickStart/4/placeBox.png)
+	![](level_new.png)(w:550)
 
-	_**マウスの左ボタン** を放すと、 **Box Brush** がレベルに追加されます。_
+	**Default** レベルには、レベル構築によく使用されるアセットがいくつか含まれています。**Empty レベル** は完全にブランクで、アセットは 1 つも含まれていません。このガイドの目的のため、完全にブランクのスレートから作業を開始します。 
 
-	![](place2.png)
+1. **[Empty Level]** をクリックして選択します。
 
-1. Box を選択し、 (エディタの右下のウィンドウの) **[Details]** パネルで **Location** と **Rotation** をすべて **0** に設定します。 
+	## 結果
 
-1. **Scale** を **4 x 4 x 0.10** に設定して、フロアのようなサーフェスを作成します。 
+レベルが作成され、プレイ可能な背景を構築するためにビジュアルそしてゲームプレイに関連するアセットを追加する準備ができました。 
 
-	![](resize_floor.png)
+![](level_empty.png)(w:640)
 
-1. フロアーを配置し、位置合わせした状態で、 **[Modes] パネル** の **Lights** カテゴリに切り替えます。
+次のステップ では、アセットを追加し、背景をビルドしていきます。 
 
-1. レベル内でフロアー ボックスの上に **Directional Light** (平行光源) を配置します。
+%Steps%	
 
-	![](Engine/QuickStart/4/placeLight.png)
 
-1. (**[W]** キーを用いて) **Translation (平行移動) ツール** に切り替えて、フロアーの上方向に **移動** しておくと見つけやすいです。
 
-1. **Translation (平行移動) ツール** の Z 軸 (青色) ギズモをクリックし、フロアーから上方にドラッグします。
-
-	![](Engine/QuickStart/4/moveLight.png)
-
-	_平行光源が選択されていない場合 (1)、ビューポート内でそれを **左クリック** して選択すると、現在の変形ギズモが表示されます (2)。光を選択すると、Z 軸をクリックしてフロアから上方にドラッグして、光を上方へ移動することができます (3)。_ 
-
-1. **[Modes] パネル** の **Visual Effects** カテゴリに切り替えます。
-
-1. **Atmospheric Fog** をレベルに配置します。
-
-	![](Engine/QuickStart/4/placeFog.png)
-
-	_Atmospheric Fog アクタは基本的な空をシーンに付け加え、ビューポートが黒ではなく lit になります。_
-
-1. **[Modes]** パネルの **Basic** カテゴリに切り替えます。
-
-1. **[Player Start]** をレベルに配置します。
-
-	![](Engine/QuickStart/4/placeStart.png)
-
-1. 上図の **Player Start アクタ** は、平行移動ギズモのX 軸 (赤) が下を向いています。つまり、フロアーの端から離れてポイントしています。**回転ツール** を使用して、フロアーの中央に向くように回転させる必要があります。ビューポート内の **[E]** キーを押して **回転ツール** に切り替えます。
-1. Z 軸 (青色) 円弧ギズモ上でクリックしドラッグして、 **Player Start Actor** 上の青色矢印がフロアーの中央を向くように、 **Player Start Actor** を回転させます。
-
-	![](rotate1.png) ![](rotate2.png)(h:320)
-
-1. **[Modes]** パネルで **[Volumes]** カテゴリに切り替えます。
-1. **Lightmass Importance Volume** をレベルに配置します。
-
-	![](Engine/QuickStart/4/placeVolume.png)
-
-	**Lightmass Importance Volume** を使って、ボリューム内で光源とシャドウイング エフェクトを制御および集中させます。詳細は [ライトマスの基礎](Engine/Rendering/LightingAndShadows/Lightmass/Basics) をご覧ください。
-
-1. **[Lightmass Importance Volume]** は、フロアーと同じサイズです。しかし、レベル内に配置するすべての物を包含できるように、さらに大きくする必要があります。**[R]** キーを押して **スケールツール** に切り替えます。
-
-1. **[Lightmass Importance Volume]** がフロアー ボックスよりも大きくなるように **スケールツール** の軸をそれぞれクリックし、ドラッグします。
-
-	![](Engine/QuickStart/4/scaleVolume.png)
-
-	_上の画像では、ボリュームを一段とくっきり表示するために、ビューポートのレンダリング モードは **Unlit** (**Alt+3**) に設定されています (**Alt+4** を押すと **Lit** へ戻ります)。_
-
-この時点で、配置したすべてのアクタは **[Modes] パネル** からのものです。しかし、 **コンテンツ ブラウザ** からも配置できます。 
-
-このような **コンテンツ ブラウザ** を探します。
-
-![](Engine/QuickStart/4/contentBrowser.png)
-
-ここから、スタティックメッシュ、スケルタルメッシュ、ブループリントなどを配置可能です。既にレベル内に配置されているアクタにマテリアルを追加することもできます。**コンテンツ ブラウザ** に関する詳細は、[**コンテンツ ブラウザ**](Engine\Content\Browser) 以下を参照してください。 
-
-**スタティックメッシュ** をレベルに追加していきましょう。 
-
-1. **[Starter Content]** には、「props」という名前のフォルダが含まれています。**Asset Tree** ビューの**「Props」** フォルダを **左クリック** します (下図でハイライトされています)。 
-
-	![](Engine/QuickStart/4/openProps.png)
-
-	_**[Content] ウィンドウ** (**コンテンツ ブラウザ** の右側) に、フォルダ内に存在するアセットが表示されます。_
-
-1. 下方にスクロールし、 **SM_TableRound** という名前がついているスタティックメッシュ アセットを探します。
-
-	![](Engine/QuickStart/4/findSMTableRound.png)
-
-1. **SM_TableRound** スタティック メッシュ アセットをクリックしレベル内へドラッグします。
-
-	![](Engine/QuickStart/4/placeTable.png)
-
-1. 学んだことを活かして、 **[Modes] パネル** と **コンテンツ ブラウザ** からさらにアクタを追加して、小さなシーンを作ります。  
-
-	![](Engine/QuickStart/4/placeThings.png)
-
-	_「 **Architecture** 」フォルダから **ポイントライト** 、 **Props** 、屋根のついたウォールを追加します！_
-
-次のセクションでは、レベル内に配置したアクタを編集する方法について学びます。
-
-%Steps%
