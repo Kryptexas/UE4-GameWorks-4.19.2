@@ -3,9 +3,9 @@
 #pragma once
 
 #include "ModuleInterface.h"
-#include "LocalizationTargetTypes.h"
 
 class ILocalizationServiceProvider;
+class ULocalizationTarget;
 
 /**
  * Interface for localization dashboard module.

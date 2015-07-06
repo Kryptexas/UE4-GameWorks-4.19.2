@@ -24,7 +24,7 @@ struct FGatherTextSearchDirectory
 	UPROPERTY(config, EditAnywhere, Category="Path")
 	FString Path;
 
-	bool Validate(const FString& RootDirectory, FText& OutError) const;
+	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
 
 USTRUCT()
@@ -35,7 +35,7 @@ struct FGatherTextIncludePath
 	UPROPERTY(config, EditAnywhere, Category="Pattern")
 	FString Pattern;
 
-	bool Validate(const FString& RootDirectory, FText& OutError) const;
+	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
 
 USTRUCT()
@@ -46,7 +46,7 @@ struct FGatherTextExcludePath
 	UPROPERTY(config, EditAnywhere, Category="Pattern")
 	FString Pattern;
 
-	bool Validate(FText& OutError) const;
+	LOCALIZATION_API bool Validate(FText& OutError) const;
 };
 
 USTRUCT()
@@ -57,7 +57,7 @@ struct FGatherTextFileExtension
 	UPROPERTY(config, EditAnywhere, Category="Pattern")
 	FString Pattern;
 
-	bool Validate(FText& OutError) const;
+	LOCALIZATION_API bool Validate(FText& OutError) const;
 };
 
 USTRUCT()
@@ -89,7 +89,7 @@ struct FGatherTextFromTextFilesConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FGatherTextFileExtension> FileExtensions;
 
-	bool Validate(const FString& RootDirectory, FText& OutError) const;
+	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
 
 
@@ -122,7 +122,7 @@ struct FGatherTextFromPackagesConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FGatherTextFileExtension> FileExtensions;
 
-	bool Validate(const FString& RootDirectory, FText& OutError) const;
+	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
 
 USTRUCT()
@@ -133,9 +133,9 @@ struct FMetaDataTextKeyPattern
 	UPROPERTY(config, EditAnywhere, Category="Pattern")
 	FString Pattern;
 
-	static const TArray<FString> PossiblePlaceHolders;
+	LOCALIZATION_API bool Validate(FText& OutError) const;
 
-	bool Validate(FText& OutError) const;
+	LOCALIZATION_API static const TArray<FString>& GetPossiblePlaceHolders();
 };
 
 USTRUCT()
@@ -146,7 +146,7 @@ struct FMetaDataKeyName
 	UPROPERTY(config, EditAnywhere, Category="Name")
 	FString Name;
 
-	bool Validate(FText& OutError) const;
+	LOCALIZATION_API bool Validate(FText& OutError) const;
 };
 
 USTRUCT()
@@ -169,7 +169,7 @@ struct FMetaDataKeyGatherSpecification
 	UPROPERTY(config, EditAnywhere, Category = "Output")
 	FMetaDataTextKeyPattern TextKeyPattern;
 
-	bool Validate(FText& OutError) const;
+	LOCALIZATION_API bool Validate(FText& OutError) const;
 };
 
 USTRUCT()
@@ -198,7 +198,7 @@ struct FGatherTextFromMetaDataConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "MetaData")
 	TArray<FMetaDataKeyGatherSpecification> KeySpecifications;
 
-	bool Validate(const FString& RootDirectory, FText& OutError) const;
+	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
 
 USTRUCT()
@@ -301,7 +301,7 @@ struct FLocalizationTargetSettings
 };
 
 UCLASS(Within=LocalizationTargetSet)
-class ULocalizationTarget : public UObject
+class LOCALIZATION_API ULocalizationTarget : public UObject
 {
 	GENERATED_BODY()
 
@@ -321,8 +321,8 @@ public:
 	bool DeleteFiles(const FString* const Culture = nullptr) const;
 };
 
-UCLASS(Within=LocalizationDashboardSettings)
-class ULocalizationTargetSet : public UObject
+UCLASS(Within=LocalizationSettings)
+class LOCALIZATION_API ULocalizationTargetSet : public UObject
 {
 	GENERATED_BODY()
 

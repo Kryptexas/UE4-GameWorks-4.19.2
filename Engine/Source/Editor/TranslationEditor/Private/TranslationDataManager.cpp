@@ -13,8 +13,8 @@
 #include "NotificationManager.h"
 #include "PortableObjectFormatDOM.h"
 #include "ILocalizationServiceModule.h"
-#include "Editor/LocalizationDashboard/Public/ILocalizationDashboardModule.h"
-#include "Editor/LocalizationDashboard/Public/LocalizationTargetTypes.h"
+#include "ILocalizationDashboardModule.h"
+#include "LocalizationTargetTypes.h"
 #include "LocalizationConfigurationScript.h"
 
 

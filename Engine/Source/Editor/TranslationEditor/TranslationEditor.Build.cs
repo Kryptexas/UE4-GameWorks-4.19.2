@@ -35,6 +35,7 @@ public class TranslationEditor : ModuleRules
 				"SourceControl",
                 "MessageLog",
                 "Documentation",
+                "Localization",
                 "LocalizationService",
                 "LocalizationDashboard",
 			}

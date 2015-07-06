@@ -12,7 +12,7 @@
 #include "GatherTextDetailCustomizations.h"
 #include "PropertyEditorModule.h"
 #include "ILocalizationServiceModule.h"
-#include "LocalizationDashboardSettings.h"
+#include "LocalizationSettings.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -157,7 +157,7 @@ public:
 	{
 		if (bIsEngineTarget)
 		{
-			ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+			ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
 			for (ULocalizationTarget* Target : EngineTargetSet->TargetObjects)
 			{
 				if (Target->Settings.Name == TargetName)
@@ -168,7 +168,7 @@ public:
 		}
 		else
 		{
-			ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+			ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
 			for (ULocalizationTarget* Target : EngineTargetSet->TargetObjects)
 			{
 				if (Target->Settings.Name == TargetName)

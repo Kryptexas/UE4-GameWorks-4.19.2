@@ -13,7 +13,7 @@
 #include "IDetailsView.h"
 #include "LocalizationCommandletTasks.h"
 #include "ObjectEditorUtils.h"
-#include "LocalizationDashboardSettings.h"
+#include "LocalizationSettings.h"
 #include "SErrorText.h"
 #include "ILocalizationServiceModule.h"
 #include "ILocalizationServiceProvider.h"
@@ -393,7 +393,7 @@ FText FLocalizationTargetDetailCustomization::GetTargetName() const
 bool FLocalizationTargetDetailCustomization::IsTargetNameUnique(const FString& Name) const
 {
 	TArray<ULocalizationTarget*> AllLocalizationTargets;
-	ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+	ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
 	if (EngineTargetSet != TargetSet)
 	{
 		AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
@@ -537,7 +537,7 @@ void FLocalizationTargetDetailCustomization::RebuildTargetDependenciesBox()
 		TargetDependenciesWidgets.Empty();
 
 		TArray<ULocalizationTarget*> AllLocalizationTargets;
-		ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+		ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
 		if (EngineTargetSet != TargetSet)
 		{
 			AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
@@ -591,7 +591,7 @@ void FLocalizationTargetDetailCustomization::RebuildTargetsList()
 	};
 
 	TArray<ULocalizationTarget*> AllLocalizationTargets;
-	ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
+	ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
 	if (EngineTargetSet != TargetSet)
 	{
 		AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
