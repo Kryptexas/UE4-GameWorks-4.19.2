@@ -357,6 +357,12 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionConte
 			FBPTerminal* Term = Statement.RHS[NumParams];
 			ensure(Term != NULL);
 
+			// See if this is a hidden array param term, which needs to be fixed up with the final generated UArrayProperty
+			if (FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term))
+			{
+				Term->ObjectLiteral = (*ArrayParmTerm)->AssociatedVarProperty;
+			}
+
 			if ((Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams))
 			{
 				// The target label will only ever be set on a call function when calling into the Ubergraph or
@@ -459,6 +465,12 @@ void FBlueprintCompilerCppBackend::EmitCallStatment(FKismetFunctionContext& Func
 
 				FBPTerminal* Term = Statement.RHS[NumParams];
 				ensure(Term != NULL);
+
+				// See if this is a hidden array param term, which needs to be fixed up with the final generated UArrayProperty
+				if (FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term))
+				{
+					Term->ObjectLiteral = (*ArrayParmTerm)->AssociatedVarProperty;
+				}
 
 				if ((Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams))
 				{
