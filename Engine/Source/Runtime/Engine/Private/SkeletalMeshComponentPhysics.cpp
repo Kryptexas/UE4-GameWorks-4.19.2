@@ -36,6 +36,8 @@
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
 
+extern TAutoConsoleVariable<int32> CVarEnableClothPhysics;
+
 void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(FSkeletalMeshComponentPreClothTickFunction_ExecuteTick);
@@ -3487,8 +3489,6 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 		}
 	}
 }
-
-extern TAutoConsoleVariable<int32> CVarEnableClothPhysics;
 
 void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 {
