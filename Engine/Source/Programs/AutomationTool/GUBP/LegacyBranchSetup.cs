@@ -127,10 +127,6 @@ partial class GUBP
         {
             return new List<string>{Email};
         }
-        public virtual List<string> FinalizeEmails(List<string> Emails, GUBP bp, string Branch, string NodeName)
-        {
-            return Emails;
-        }
 		public virtual bool VetoEmailingCausers(GUBP bp, string Branch, string NodeName)
 		{
 			return false; // People who have submitted since last-green will be included unless vetoed by overriding this method. 
@@ -138,13 +134,20 @@ partial class GUBP
     }
 
     private static List<GUBPEmailHacker> EmailHackers;
-    private string HackEmails(string Emails, string Causers, string Branch, NodeInfo NodeInfo)
+    private string[] HackEmails(string Causers, string Branch, NodeInfo NodeInfo)
     {
-        string OnlyEmail = ParseParamValue("OnlyEmail");
+		string OnlyEmail = ParseParamValue("OnlyEmail");
         if (!String.IsNullOrEmpty(OnlyEmail))
         {
-            return OnlyEmail;
+            return new string[]{ OnlyEmail };
         }
+
+		string EmailOnly = ParseParamValue("EmailOnly");
+		if (!String.IsNullOrEmpty(EmailOnly))
+		{
+			return new string[]{ EmailOnly };
+		}
+
         string EmailHint = ParseParamValue("EmailHint");
         if(EmailHint == null)
         {
@@ -170,7 +173,14 @@ partial class GUBP
                 }
             }
         }
-        List<string> Result = new List<string>(Emails.Split(' '));
+        List<string> Result = new List<string>();
+
+        string AddEmails = ParseParamValue("AddEmails");
+        if (!String.IsNullOrEmpty(AddEmails))
+        {
+			Result.AddRange(AddEmails.Split(new char[]{ ' ' }, StringSplitOptions.RemoveEmptyEntries));
+        }
+
 		if(!EmailHackers.Any(x => x.VetoEmailingCausers(this, Branch, NodeInfo.Name)))
 		{
 			Result.AddRange(Causers.Split(' '));
@@ -188,18 +198,7 @@ partial class GUBP
             }
             Result = NewResult;
         }
-        foreach (var EmailHacker in EmailHackers)
-        {
-            Result = EmailHacker.FinalizeEmails(Result, this, Branch, NodeInfo.Name);
-        }
-        string FinalEmails = "";
-        int Count = 0;
-        foreach (var Email in Result)
-        {
-            FinalEmails = GUBPNode.MergeSpaceStrings(FinalEmails, Email);
-            Count++;
-        }
-        return FinalEmails;
+		return Result.ToArray();
     }
     public abstract class GUBPFrequencyHacker
     {
