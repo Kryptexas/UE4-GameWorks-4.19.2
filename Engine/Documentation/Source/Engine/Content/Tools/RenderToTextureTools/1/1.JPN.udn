@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472960
+﻿INTSourceChangelist:2602247
 Availability:Public
 Title:タイリング マテリアルをテクスチャにタイリングする
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
@@ -18,7 +18,7 @@ UE4.3 では、この特定の機能はマテリアルターゲットを指定�
 [/REGION]
 
 [EXCERPT:HRSS1]
-バッファ表示ターゲットをエクスポートする機能をエディタで有効にしなければなりません。これを行うには、パースペクティブ ビューポートで左上の下向き矢印ボタンをクリックし、**High Resolution Screenshot** を選択し、続いて **Include Buffer Visualization Targets** を有効にします。
+バッファ表示対象をエクスポートする機能をエディタで有効にしなければなりません。これを行うには、パースペクティブ ビューポートで左上にある下向き矢印ボタンをクリックし、**High Resolution Screenshot** (高解像度スクリーンショット) を選択し、続いて **Include Buffer Visualization Targets** (バッファ表示対象を含む) を有効にします。
 
 [REGION:raw] 
 ![](Enable_IBVT.png)
@@ -32,7 +32,7 @@ UE4.3 では、この特定の機能はマテリアルターゲットを指定�
 ## テクスチャをレンダリングする
 
 [EXCERPT:RT1]
-**Capture Settings** で必要なバッファ ターゲットを選択します。**High resolution screenshot** ウィンドウが開いていることと、**Include buffer visualization** が有効であることを確認します。**New Window** でゲームを **プレイ** し、 ~ キーを用いて _コンソール_ を呼び出し、コンソールで `ke * rendertextures` と入力し、Enter キーを押します。
+**Capture Settings** (キャプチャ設定) で必要なバッファ対象を選択します。**High resolution screenshot** (高解像度スクリーンショット) ウィンドウが開いていることと、**Include buffer visualization** (バッファ表示対象を含む) が有効であることを確認します。**New Window** でゲームを **プレイ** し、 ~ キーを用いて _コンソール_ を呼び出し、コンソールで `ke * rendertextures` と入力し、Enter キーを押します。
 
 ![](renderTextures.png)
 
