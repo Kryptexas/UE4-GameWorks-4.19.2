@@ -164,12 +164,11 @@ void ABrush::SetPrePivot( const FVector& InPrePivot )
 	}
 }
 
-
+#if WITH_EDITOR
 void ABrush::PostLoad()
 {
 	Super::PostLoad();
 
-#if WITH_EDITOR
 	if (BrushBuilder && BrushBuilder->GetOuter() != this)
 	{
 		BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder, this);
@@ -202,7 +201,6 @@ void ABrush::PostLoad()
 	{
 		UE_LOG(LogPhysics, Log, TEXT("%s does not have BrushBodySetup. No collision."), *GetName());
 	}
-#endif
 }
 
 void ABrush::Destroyed()
@@ -220,13 +218,12 @@ void ABrush::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();
 
-#if WITH_EDITOR
 	if ( GIsEditor )
 	{
 		OnBrushRegistered.Broadcast(this);
 	}
-#endif
 }
+#endif
 
 bool ABrush::IsLevelBoundsRelevant() const
 {

@@ -139,10 +139,8 @@ public:
 public:
 	
 	// UObject interface.
-
-	virtual void PostLoad() override;
-
 #if WITH_EDITOR
+	virtual void PostLoad() override;
 	virtual void PostEditMove(bool bFinished) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -162,11 +160,11 @@ public:
 public:
 	
 	// AActor interface
-	virtual void Destroyed() override;
-	virtual void PostRegisterAllComponents() override;
 	virtual bool IsLevelBoundsRelevant() const override;
 
 #if WITH_EDITOR
+	virtual void Destroyed() override;
+	virtual void PostRegisterAllComponents() override;
 	virtual void CheckForErrors() override;
 	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) override;
 
@@ -215,10 +213,6 @@ public:
 	 * @param	InLevel The level that needs rebuilding
 	 */
 	static void SetNeedRebuild(ULevel* InLevel){if(InLevel){LevelsToRebuild.AddUnique(InLevel);}}
-#else
-	static bool NeedsRebuild(TArray< TWeakObjectPtr< ULevel > >* OutLevels = nullptr){return false;}
-	static void OnRebuildDone(){}
-	static void SetNeedRebuild(ULevel* InLevel){}
 #endif//WITH_EDITOR
 
 	/** @return true if this is a static brush */

@@ -1373,16 +1373,12 @@ void ALandscapeProxy::Destroyed()
 		SplineComponent->ModifySplines();
 	}
 
-#if WITH_EDITOR
 	TotalComponentsNeedingGrassMapRender -= NumComponentsNeedingGrassMapRender;
 	NumComponentsNeedingGrassMapRender = 0;
 	TotalTexturesToStreamForVisibleGrassMapRender -= NumTexturesToStreamForVisibleGrassMapRender;
 	NumTexturesToStreamForVisibleGrassMapRender = 0;
-#endif
 }
-#endif
 
-#if WITH_EDITOR
 void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 {
 	if (GIsEditor && Landscape)

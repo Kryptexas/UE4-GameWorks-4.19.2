@@ -16,19 +16,17 @@ ACullDistanceVolume::ACullDistanceVolume(const FObjectInitializer& ObjectInitial
 	bEnabled = true;
 }
 
+#if WITH_EDITOR
 void ACullDistanceVolume::Destroyed()
 {
 	Super::Destroyed();
 
-#if WITH_EDITOR
 	if (GetWorld())
 	{
 		GetWorld()->bDoDelayedUpdateCullDistanceVolumes = true;
 	}
-#endif
 }
 
-#if WITH_EDITOR
 void ACullDistanceVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
