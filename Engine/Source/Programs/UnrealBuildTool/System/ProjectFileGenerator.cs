@@ -375,23 +375,22 @@ namespace UnrealBuildTool
 
 			// Build the list of games to generate projects for
 			var AllGameProjects = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
-				
+
+			List<string> AssemblyGameFolders = new List<string>();
 			var AssemblyName = "ProjectFileGenerator";
-			if( bGeneratingGameProjectFiles )
-			{
-				AssemblyName = GameProjectName + "ProjectFileGenerator";
-			}
-			else if( bGeneratingRocketProjectFiles )
+			if (bGeneratingRocketProjectFiles)
 			{
 				AssemblyName = "RocketProjectFileGenerator";
 			}
-
-			List<string> AssemblyGameFolders = new List<string>();
+			else if (bGeneratingGameProjectFiles)
+			{
+				AssemblyName = GameProjectName + "ProjectFileGenerator";
+			}
 			foreach (UProjectInfo Project in AllGameProjects)
 			{
 				AssemblyGameFolders.Add(Project.Folder);
 			}
-			RulesCompiler.SetAssemblyNameAndGameFolders( AssemblyName, AssemblyGameFolders );
+			RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
 
 			ProjectFile EngineProject = null;
 			Dictionary<string, ProjectFile> GameProjects = null;
@@ -1725,6 +1724,16 @@ namespace UnrealBuildTool
 
 				if (WantProjectFileForTarget)
 				{
+					var AssemblyName = bGeneratingRocketProjectFiles ? "RocketUE4" : "UE4";
+					List<string> AssemblyGameFolders = new List<string>();
+					string CheckProjectFile = UProjectInfo.GetProjectForTarget(TargetName);
+					if (string.IsNullOrEmpty(CheckProjectFile) == false)
+					{
+						AssemblyGameFolders.Add(Path.GetDirectoryName(Path.GetFullPath(CheckProjectFile)));
+						AssemblyName = Path.GetFileNameWithoutExtension(CheckProjectFile);
+					}
+					RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
+
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
