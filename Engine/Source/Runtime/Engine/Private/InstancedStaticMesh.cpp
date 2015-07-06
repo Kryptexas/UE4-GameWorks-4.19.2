@@ -1483,7 +1483,7 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 
 bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 {
-	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+	return IsRegistered() && !IsBeingDestroyed() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
 void UInstancedStaticMeshComponent::ClearInstances()

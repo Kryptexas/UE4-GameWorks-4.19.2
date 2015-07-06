@@ -893,6 +893,11 @@ bool UPrimitiveComponent::ShouldComponentAddToScene() const
 
 bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 {
+	if (IsBeingDestroyed())
+	{
+		return false;
+	}
+
 	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 
 #if WITH_EDITOR

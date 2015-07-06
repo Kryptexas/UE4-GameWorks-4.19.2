@@ -658,6 +658,11 @@ void UWheeledVehicleMovementComponent::DestroyPhysicsState()
 
 bool UWheeledVehicleMovementComponent::ShouldCreatePhysicsState() const
 {
+	if (!IsRegistered() || IsBeingDestroyed())
+	{
+		return false;
+	}
+
 	// only create physx vehicle in game
 	if (GetWorld()->IsGameWorld())
 	{
