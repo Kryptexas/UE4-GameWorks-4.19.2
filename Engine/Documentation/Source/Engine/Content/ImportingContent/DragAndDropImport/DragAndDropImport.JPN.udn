@@ -1,52 +1,107 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2610008
 Availability:Docs
 Title:ドラッグ＆ドロップによるインポート
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:ファイルをドラッグ＆ドロップしてコンテンツ ブラウザにコンテンツをインポートする方法を学習しましょう。
+prereq:Engine/Basics/Projects/Browser
+Related:GettingStarted
+Related:GettingStarted/HowTo
+Related:Engine/Content/Packs
 スキルレベル:初心者向け
 バージョン：4.8
 
 [REGION:note]
-開始前に、以下のリンクから Quick Start Assets (クイックスタート アセット) をダウンロードしてください。
+開始する前に、次のリンクからサンプル アセットをダウンロードし、抽出してください。
 * [サンプル アセット](SampleAssets.zip)
 [/REGION]
 
-ここに説明の概要を示します。
+アンリアル エンジンでは、プロジェクトのディレクトリにコンテンツを **ドラッグ & ドロップ** したいユーザー向けに、**ドラッグ & ドロップ** ワークフローに対応しています。
 
 ## ゴール
 
-ここにゴールを示します。
+アンリアル エディタにコンテンツを **ドラッグ & ドロップ** する方法を中心に説明します。
 
 ## 目的
 
-ここに目的を示します。
+このチュートリアルを終了すると、以下がわかるようになります。
 
-## クリック＆ドラッグでインポートする
+*	プロジェクトにコンテンツを **ドラッグ & ドロップ** する方法。
+*	アセットが適切にプロジェクト フォルダにインポートされたかを確認する方法。
 
-(#Bookmark2)
+![](ContentHowToPrjSetup.png)
 
-ハードディスクから **コンテンツ ブラウザ** (下の画像) へファイルを直接 **ドラッグ** する方法でもプロジェクトへコンテンツを追加できます。
+[REGION:note]
+新規プロジェクトを作成している場合、以下のプロジェクトの **設定** を使用します。
+* 	**Desktop / Console** (デスクトップ / コンソール) 
+* 	**Maximum Quality** (最高品質) 
+* 	**No Starter Content** (スターター コンテンツなし) 
+[/REGION]
 
-<!--![](CnD_importAll.jpg)-->
+## コンテンツをプロジェクトにドラッグ＆ドロップする
 
-### メッシュをインポートすると
+コンテンツを見つけたら、エクスプローラ メニューからファイルをコンテンツ ブラウザのファイル ボックスに **ドラッグ & ドロップ** します (以下で図示)。
 
-<!--![](FBXImportOptions.png)-->
+![](DragAndDropContent.png)
 
-FBX/OBJ ファイルに対するインポート オプションを定義するように UE4 から求められます (下の画像)。
+1.	エディタを開くと、**FBX Import Options** ダイアログ ボックスが表示されます。****[Import (インポート)]** または **[Import All (すべてインポート)]** をクリックして、メッシュをプロジェクトに追加します。
 
-### テクスチャをインポートすると
+	![](FBX_ImportOptionsDialogBox.png)
 
-UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") 画像ファイルをバッチ処理でインポートします。
+1.	確認ボックスがアンリアル エディタの右下隅に表示されます (以下で図示)。
 
-次のようなメッセージが表示されることがあります。
+	![](TextureDialogBox.png)
 
-<!--![](TextureImportMessage.png)-->
+1.	**T_Rock_04_n.TGA** 法線マップの設定をアクセプトするには、 **OK** をクリックします。
 
-サポート対象外の画像ファイルがインポートされないようにしているのです。
+	[REGION:warning]
+	UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") 画像ファイルをバッチ処理でインポートします。
+	次のようなメッセージが表示されることがあります。
 
-また、次のメッセージがでた場合は、
+	![](TextureImportMessage.png)
 
-<!--![](nonpoweoftwowarning.png)-->
+	サポート対象外の画像ファイルがインポートされないようにしているのです。
 
-不適切なサイズの画像のストリーミングやミップマップが行われていないことを示しています。
+	また、次のメッセージがでた場合は、
+
+	![](nonpoweoftwowarning.png)
+
+	不適切なサイズの画像のストリーミングやミップマップが行われていないことを示しています。
+
+	[/REGION]
+
+1.	未保存のアセットにはアスタリスクのマークが付きます (以下で図示)。
+
+	![](UnsavedAssets.png)
+
+1.	**[Save All]** ボタンを **クリック** してインポートしたメッシュを保存します。
+
+	![](SaveAllButton_UI.png)
+
+1.	**Save Content** (コンテンツを保存) ダイアログボックスが表示されます (以下で図示)。インポートしたアセットを保存するには、**Save Selected** (選択したものを保存) を **クリック** します。
+
+	![](SaveSelectedButton_UI.png)
+
+1.	UE4 は、保存したアセットからアスタリスクを取り除きます (以下の画像)。
+
+	![](SavedAssets.png)
+
+## インポートしたアセットを確認する
+
+ ** *.uasset files ** がハードディスクに適切にインポートされたことを確認するのはグッドプラクティスです。
+
+1.	エディタ内から、**'Content'** フォルダを右クリックして、**Folder Options** ダイアログ ボックスを開きます (以下で図示)。
+
+	![](FolderDialogBox_UI.png)
+
+1.	**Folder Options** (フォルダ オプション) で **'Show In Explorer' をクリック** します (以下で図示)。
+
+	![](ShowInExplorer_Selection.png)
+
+1.	エクスプローラが開いた状態で、UE4 がプロジェクトの対応する ** *.uasset files ** を作成したことを確認します (以下で図示)。
+
+	![](ImportedAssets_Explorer.png)
+
+ここまでのチュートリアルで、以下について学習したことになります。
+
+&#x2713;	プロジェクトにコンテンツを **ドラッグ & ドラッグ** する方法。  
+&#x2713;	アセットがプロジェクト フォルダに適切にインポートされたことを確認する。
