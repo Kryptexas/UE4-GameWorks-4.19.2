@@ -1,17 +1,104 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2610008
 Availability:Docs
 Title:テクスチャのインポート
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:外部プログラムからテクスチャをインポートする方法について学習しましょう。
+prereq:Engine/Basics/Projects/Browser
+Related:GettingStarted
+Related:GettingStarted/HowTo
+Related:Engine/Content/Packs
 スキルレベル:初心者向け
 バージョン：4.8
 
-ここに説明の概要を示します。
+[REGION:note]
+開始する前に、画像編集アプリケーションを利用できることを確認してください。**Photoshop** を使用してこのレッスンのゴールを示していますが、保存機能があれば、どの画像編集アプリケーションからでもアンリアル エンジンにテクスチャをインポートすることができます。
+[/REGION]
+
+コンテンツ クリエータは外部の画像編集アプリケーションからテクスチャをアンリアル エンジンにインポートできます。
 
 ## ゴール
 
-ここにゴールを示します。
+外部の画像編集アプリケーションからテクスチャをインポートする方法を中心に説明します。
 
-# 目的
+## 目的
 
-ここに目的を示します。
+このチュートリアルを終了すると、以下がわかるようになります。
+
+*	外部の画像編集アプリケーションからテクスチャをアンリアル エディタにインポートする方法。
+*	アセットが適切にプロジェクト フォルダにインポートされたかを確認する方法。
+
+## 画像編集アプリケーションからインポートする
+
+1.	画像エディタ内で **[File (ファイル)]** と **[Save As (名前をつけて保存)]** をクリックします。 
+
+	![](photoshop_export1.png)
+
+1.	ダイアログ ボックスで、UE4 Project ディレクトリと「 **Content** 」フォルダ (1) を探し、名前とサポート形式を入力して (2) 、**Save** (3) をクリックします。 
+
+	![](photoshop_export2.png)
+
+1.	ハードディスクで、プロジェクトの **Content** フォルダまでブラウズして、テクスチャが追加されたことを確認します。
+
+	![](photoshop_export6.png)(w:800)	
+
+1.	アンリアル エディタが開いていると、**「Processing outstanding content changes (未処理のコンテンツ変更を処理中)」** というメッセージが表示されます (下の画像)。 
+
+	![](photoshop_export4.png)
+
+1.	アンリアル エディタがコンテンツをインポートしたら、テクスチャはエディタで利用できる状態になります。
+
+	![](photoshop_export5.png)(w:900)
+
+	[REGION:warning]
+	UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") 画像ファイルをバッチ処理でインポートします。
+
+	次のようなメッセージが表示されることがあります。
+
+	![](TextureImportMessage.png)
+
+	サポート対象外の画像ファイルがインポートされないようにしているのです。
+
+	また、次のメッセージがでた場合は、
+
+	![](nonpoweoftwowarning.png)
+
+	不適切なサイズの画像のストリーミングやミップマップの処理が行われていないことを示しています。
+
+	[/REGION]
+
+1.	未保存のアセットにはアスタリスクのマークが付きます (以下で図示)。
+
+	![](UnsavedAssets.png)
+
+1.	**[Save All]** (すべて保存) ボタンを **クリック** してインポートしたテクスチャを保存します。
+
+	![](SaveAllButton_UI.png)
+
+1.	**Save Content** (コンテンツを保存) ダイアログボックスが表示されます (以下で図示)。インポートしたアセットを保存するには、**Save Selected (選択したものを保存) をクリック** します。
+
+	![](SaveSelectedButton_UI.png)
+
+1.	UE4 は、保存したアセットからアスタリスクを取り除きます (以下の画像)。
+
+	![](SavedAssets.png)
+
+## インポートしたアセットを確認する
+
+** *.uasset files ** がハードディスクに適切にインポートされたことを確認するのはグッドプラクティスです。
+
+1.	エディタ内から、**'Content'** フォルダを **右クリック** して、**Folder Options** ダイアログ ボックス を開きます (以下で図示)。
+
+	![](FolderDialogBox_UI.png)
+
+1.	**Folder Options** (フォルダ オプション) で **'Show In Explorer' をクリック** します (以下で図示)。
+
+	![](ShowInExplorer_Selection.png)
+
+1.	エクスプローラが開いた状態で、UE4 がプロジェクトの対応する ** *.uasset files ** を作成したことを確認します (以下で図示)。
+
+	![](ImportedAssets_Explorer.png)
+
+ここまでのチュートリアルで、以下について学習したことになります。
+
+&#x2713;	外部の画像編集アプリケーションからテクスチャをアンリアル エディタにインポートする方法。  
+&#x2713;	アセットがプロジェクト フォルダに適切にインポートされたことを確認する。
