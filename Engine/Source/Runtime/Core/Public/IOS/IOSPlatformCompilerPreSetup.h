@@ -103,6 +103,3 @@
 // since they cannot be caught by all compilers that we support. They are deemed to be relatively safe to be ignored, at least until all SDKs/toolchains start supporting them.
 #pragma clang diagnostic warning "-Wreorder"
 #pragma clang diagnostic warning "-Wparentheses-equality"
-#pragma clang diagnostic ignored "-Winconsistent-missing-override"
-#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
-#pragma clang diagnostic ignored "-Wunused-local-typedef"
