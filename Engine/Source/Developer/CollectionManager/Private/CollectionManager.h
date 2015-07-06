@@ -2,6 +2,91 @@
 
 #pragma once
 
+/** Collection info for a given object - gives the collection name, as well as the reason this object is considered to be part of this collection */
+struct FObjectCollectionInfo
+{
+	explicit FObjectCollectionInfo(const FCollectionNameType& InCollectionKey)
+		: CollectionKey(InCollectionKey)
+		, Reason(0)
+	{
+	}
+
+	FObjectCollectionInfo(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InReason)
+		: CollectionKey(InCollectionKey)
+		, Reason(InReason)
+	{
+	}
+
+	/** The key identifying the collection that contains this object */
+	FCollectionNameType CollectionKey;
+	/** The reason(s) why this collection contains this object - this can be tested against the recursion mode when getting the collections for an object */
+	ECollectionRecursionFlags::Flags Reason;
+};
+
+typedef TMap<FCollectionNameType, TSharedRef<FCollection>> FAvailableCollectionsMap;
+typedef TMap<FGuid, FCollectionNameType> FGuidToCollectionNamesMap;
+typedef TMap<FName, TArray<FObjectCollectionInfo>> FCollectionObjectsMap;
+typedef TMap<FGuid, TArray<FGuid>> FCollectionHierarchyMap;
+
+/** Wraps up the lazy caching of the collection manager */
+class FCollectionManagerCache
+{
+public:
+	FCollectionManagerCache(FAvailableCollectionsMap& InAvailableCollections);
+
+	/** Dirty the parts of the cache that need to change when a collection is added to our collection manager */
+	void HandleCollectionAdded();
+	
+	/** Dirty the parts of the cache that need to change when a collection is removed from our collection manager */
+	void HandleCollectionRemoved();
+
+	/** Dirty the parts of the cache that need to change when a collection is modified */
+	void HandleCollectionChanged();
+
+	/** Access the CachedCollectionNamesFromGuids map, ensuring that it is up-to-date */
+	const FGuidToCollectionNamesMap& GetCachedCollectionNamesFromGuids() const;
+
+	/** Access the CachedObjects map, ensuring that it is up-to-date */
+	const FCollectionObjectsMap& GetCachedObjects() const;
+
+	/** Access the CachedHierarchy map, ensuring that it is up-to-date */
+	const FCollectionHierarchyMap& GetCachedHierarchy() const;
+
+	enum class ERecursiveWorkerFlowControl : uint8
+	{
+		Stop,
+		Continue,
+	};
+
+	typedef TFunctionRef<ERecursiveWorkerFlowControl(const FCollectionNameType&, ECollectionRecursionFlags::Flag)> FRecursiveWorkerFunc;
+
+	void RecursionHelper_DoWork(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InRecursionMode, const FRecursiveWorkerFunc& InWorkerFunc) const;
+	ERecursiveWorkerFlowControl RecursionHelper_DoWorkOnParents(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const;
+	ERecursiveWorkerFlowControl RecursionHelper_DoWorkOnChildren(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const;
+
+private:
+	/** Reference to the collections that are currently available in our owner collection manager */
+	FAvailableCollectionsMap& AvailableCollections;
+
+	/** A map of collection GUIDs to their associated collection names */
+	mutable FGuidToCollectionNamesMap CachedCollectionNamesFromGuids_Internal;
+
+	/** A map of object paths to their associated collection info - only objects that are in collections will appear in here */
+	mutable FCollectionObjectsMap CachedObjects_Internal;
+
+	/** A map of parent collection GUIDs to their child collection GUIDs - only collections that have children will appear in here */
+	mutable FCollectionHierarchyMap CachedHierarchy_Internal;
+
+	/** Flag to say whether the CachedCollectionNamesFromGuids map is dirty */
+	mutable bool bIsCachedCollectionNamesFromGuidsDirty : 1;
+
+	/** Flag to say whether the CachedObjects map is dirty */
+	mutable bool bIsCachedObjectsDirty : 1;
+
+	/** Flag to say whether the CachedHierarchy map is dirty */
+	mutable bool bIsCachedHierarchyDirty : 1;
+};
+
 class FCollectionManager : public ICollectionManager
 {
 public:
@@ -79,12 +164,6 @@ private:
 	/** Loads all collection files from disk */
 	void LoadCollections();
 
-	/** Rebuild the entire cached objects map based on the current collection data */
-	void RebuildCachedObjects();
-
-	/** Rebuild the entire cached hierarchy map based on the current collection data */
-	void RebuildCachedHierarchy();
-
 	/** Returns true if the specified share type requires source control */
 	bool ShouldUseSCC(ECollectionShareType::Type ShareType) const;
 
@@ -103,40 +182,7 @@ private:
 	/** Replaces an object with another in any collections that contain it */
 	void ReplaceObjectInCollections(const FName& OldObjectPath, const FName& NewObjectPath, TArray<FCollectionNameType>& OutUpdatedCollections);
 
-	enum class ERecursiveWorkerFlowControl : uint8
-	{
-		Stop,
-		Continue,
-	};
-
-	typedef TFunctionRef<ERecursiveWorkerFlowControl(const FCollectionNameType&, ECollectionRecursionFlags::Flag)> FRecursiveWorkerFunc;
-
-	void RecursionHelper_DoWork(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InRecursionMode, const FRecursiveWorkerFunc& InWorkerFunc) const;
-	ERecursiveWorkerFlowControl RecursionHelper_DoWorkOnParents(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const;
-	ERecursiveWorkerFlowControl RecursionHelper_DoWorkOnChildren(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const;
-
 private:
-	/** Collection info for a given object - gives the collection name, as well as the reason this object is considered to be part of this collection */
-	struct FObjectCollectionInfo
-	{
-		explicit FObjectCollectionInfo(const FCollectionNameType& InCollectionKey)
-			: CollectionKey(InCollectionKey)
-			, Reason(0)
-		{
-		}
-
-		FObjectCollectionInfo(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InReason)
-			: CollectionKey(InCollectionKey)
-			, Reason(InReason)
-		{
-		}
-
-		/** The key identifying the collection that contains this object */
-		FCollectionNameType CollectionKey;
-		/** The reason(s) why this collection contains this object - this can be tested against the recursion mode when getting the collections for an object */
-		ECollectionRecursionFlags::Flags Reason;
-	};
-
 	/** The folders that contain collections */
 	FString CollectionFolders[ECollectionShareType::CST_All];
 
@@ -144,16 +190,10 @@ private:
 	FString CollectionExtension;
 
 	/** A map of collection names to FCollection objects */
-	TMap<FCollectionNameType, TSharedRef<FCollection>> CachedCollections;
+	TMap<FCollectionNameType, TSharedRef<FCollection>> AvailableCollections;
 
-	/** A map of collection GUIDs to their associated collection names */
-	TMap<FGuid, FCollectionNameType> CachedCollectionNamesFromGuids;
-
-	/** A map of object paths to their associated collection info - only objects that are in collections will appear in here */
-	TMap<FName, TArray<FObjectCollectionInfo>> CachedObjects;
-
-	/** A map of parent collection GUIDs to their child collection GUIDs - only collections that have children will appear in here */
-	TMap<FGuid, TArray<FGuid>> CachedHierarchy;
+	/** The lazily updated cache for this collection manager */
+	FCollectionManagerCache CollectionCache;
 
 	/** The most recent error that occurred */
 	mutable FText LastError;
