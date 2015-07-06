@@ -112,7 +112,7 @@
 - (void)initSessionWithName:(NSString*) sessionName
 {
     UE_LOG(LogOnline, Display, TEXT("- (void)initSessionWithName:(NSString*) sessionName"));
-    self.PeerID = [[MCPeerID alloc] initWithDisplayName:nil];
+    self.PeerID = [[MCPeerID alloc] initWithDisplayName:@""];
     self.Session = [[MCSession alloc] initWithPeer:self.PeerID];
     self.Session.delegate = self;
 }
