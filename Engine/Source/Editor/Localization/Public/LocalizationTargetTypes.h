@@ -65,11 +65,11 @@ struct FGatherTextFromTextFilesConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
-	static const TArray<FGatherTextFileExtension> DefaultTextFileExtensions;
+	static const TArray<FGatherTextFileExtension>& GetDefaultTextFileExtensions();
 
 	FGatherTextFromTextFilesConfiguration()
 		: IsEnabled(true)
-		, FileExtensions(DefaultTextFileExtensions)
+		, FileExtensions(GetDefaultTextFileExtensions())
 	{
 	}
 
@@ -98,11 +98,11 @@ struct FGatherTextFromPackagesConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
-	static const TArray<FGatherTextFileExtension> DefaultPackageFileExtensions;
+	static const TArray<FGatherTextFileExtension>& GetDefaultPackageFileExtensions();
 
 	FGatherTextFromPackagesConfiguration()
 		: IsEnabled(true)
-		, FileExtensions(DefaultPackageFileExtensions)
+		, FileExtensions(GetDefaultPackageFileExtensions())
 	{
 	}
 

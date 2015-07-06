@@ -77,22 +77,22 @@ bool FGatherTextFileExtension::Validate(FText& OutError) const
 	return true;
 }
 
-const TArray<FGatherTextFileExtension> FGatherTextFromTextFilesConfiguration::DefaultTextFileExtensions = []()
+const TArray<FGatherTextFileExtension>& FGatherTextFromTextFilesConfiguration::GetDefaultTextFileExtensions()
 {
 	TArray<FGatherTextFileExtension> Result;
 	Result.Add(FGatherTextFileExtension{TEXT("h")});
 	Result.Add(FGatherTextFileExtension{TEXT("cpp")});
 	Result.Add(FGatherTextFileExtension{TEXT("ini")});
 	return Result;
-}();
+}
 
-const TArray<FGatherTextFileExtension> FGatherTextFromPackagesConfiguration::DefaultPackageFileExtensions = []()
+const TArray<FGatherTextFileExtension>& FGatherTextFromPackagesConfiguration::GetDefaultPackageFileExtensions()
 {
 	TArray<FGatherTextFileExtension> Result;
 	Result.Add(FGatherTextFileExtension{TEXT("umap")});
 	Result.Add(FGatherTextFileExtension{TEXT("uasset")});
 	return Result;
-}();
+}
 
 bool FGatherTextFromTextFilesConfiguration::Validate(const FString& RootDirectory, FText& OutError) const
 {
