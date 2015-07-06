@@ -453,11 +453,12 @@ private:
 	TArray<struct FParticleSysParam> AsyncInstanceParameters;
 	/** Is AsyncComponentToWorld etc valid? */
 	bool bAsyncDataCopyIsValid;
+	bool bParallelRenderThreadUpdate;
 public:
 
 	const FTransform& GetAsyncComponentToWorld()
 	{
-		if (!IsInGameThread())
+		if (!bParallelRenderThreadUpdate && !IsInGameThread())
 		{
 			check(bAsyncDataCopyIsValid); 
 			return AsyncComponentToWorld;
@@ -467,7 +468,7 @@ public:
 
 	const TArray<struct FParticleSysParam>& GetAsyncInstanceParameters()
 	{
-		if (!IsInGameThread())
+		if (!bParallelRenderThreadUpdate && !IsInGameThread())
 		{
 			check(bAsyncDataCopyIsValid); 
 			return AsyncInstanceParameters;

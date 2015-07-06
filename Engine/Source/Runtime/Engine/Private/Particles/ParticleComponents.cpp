@@ -2916,6 +2916,11 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	Super::SendRenderDynamicData_Concurrent();
 
+	check(!bAsyncDataCopyIsValid);
+	check(!bParallelRenderThreadUpdate);
+	bParallelRenderThreadUpdate = true;
+
+
 	FParticleSystemSceneProxy* PSysSceneProxy = (FParticleSystemSceneProxy*)SceneProxy;
 	if (PSysSceneProxy != NULL)
 	{
@@ -2935,6 +2940,7 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 			}
 		}
 	}
+	bParallelRenderThreadUpdate = false;
 }
 
 void UParticleSystemComponent::DestroyRenderState_Concurrent()
@@ -3734,6 +3740,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueTasks);
 		bAsyncDataCopyIsValid = true;
+		check(!bParallelRenderThreadUpdate);
 		AsyncComponentToWorld = ComponentToWorld;
 		AsyncInstanceParameters = InstanceParameters;
 
