@@ -5547,6 +5547,12 @@ UReimportFbxStaticMeshFactory::UReimportFbxStaticMeshFactory(const FObjectInitia
 	ImportPriority = DefaultImportPriority - 1;
 }
 
+bool UReimportFbxStaticMeshFactory::FactoryCanImport(const FString& Filename)
+{
+	// Return false, we are a reimport only factory
+	return false;
+}
+
 bool UReimportFbxStaticMeshFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
 {	
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
@@ -5737,6 +5743,12 @@ UReimportFbxSkeletalMeshFactory::UReimportFbxSkeletalMeshFactory(const FObjectIn
 	bText = false;
 }
 
+bool UReimportFbxSkeletalMeshFactory::FactoryCanImport(const FString& Filename)
+{
+	// Return false, we are a reimport only factory
+	return false;
+}
+
 bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
 {	
 	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
@@ -5907,6 +5919,12 @@ UReimportFbxAnimSequenceFactory::UReimportFbxAnimSequenceFactory(const FObjectIn
 
 	bCreateNew = false;
 	bText = false;
+}
+
+bool UReimportFbxAnimSequenceFactory::FactoryCanImport(const FString& Filename)
+{
+	// Return false, we are a reimport only factory
+	return false;
 }
 
 bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )

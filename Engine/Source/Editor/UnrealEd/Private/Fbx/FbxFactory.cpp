@@ -581,6 +581,15 @@ void UFbxFactory::CleanUp()
 	}
 }
 
+bool UFbxFactory::FactoryCanImport(const FString& Filename)
+{
+	if(FPaths::GetExtension(Filename) == TEXT("fbx"))
+	{
+		return true;
+	}
+	return false;
+}
+
 UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
