@@ -45,7 +45,6 @@ Description:Overview of the audio system used for playing in-game sounds, includ
 [TOC(start:2)]
 
 
-## Overview
 The audio system in Unreal Engine 4 is made up of several components, each working together to produce the audio experience for players. 
 When you import an audio file into the engine and drop it in a level, you will have several options such as the basic **Volume** or **Pitch** levels to adjust, as well as more fine-tuning settings such as **Attenuation**, which defines how a sound is heard based on your distance from its origin. 
 
@@ -69,8 +68,8 @@ Importing a sound file can be handled in two ways:
 
 In the **Content Browser**:
 
-1. Click the **New Asset** ![](CB_button_NewAsset.png) button.
-1. Select _Import_ from the menu.
+1.	 From the Content Browser, click the **Import** button (pictured below).
+	![](ImportButton_UI.png)
 1. Select the .WAV file you wish to import.
 
 Or
