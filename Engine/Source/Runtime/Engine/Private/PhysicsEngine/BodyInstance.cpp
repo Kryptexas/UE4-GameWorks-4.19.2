@@ -1375,6 +1375,10 @@ struct FInitBodiesHelper
 
 			AddActorsToScene_PhysX_AssumesLocked(PSyncActors, PAsyncActors, PDynamicActors, bDynamicsUseAsync ? PAsyncScene : PSyncScene);
 		}
+
+		PhysScene->FlushDeferredActors();	//For now we do not actually defer over multiple frames. This needs better profiling to determine how useful it actually is.
+
+
 	}
 #endif
 
