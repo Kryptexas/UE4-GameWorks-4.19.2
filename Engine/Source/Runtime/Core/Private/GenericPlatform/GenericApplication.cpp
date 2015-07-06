@@ -6,6 +6,7 @@
 
 const FGamepadKeyNames::Type FGamepadKeyNames::Invalid(NAME_None);
 
+// Ensure that the GamepadKeyNames match those in InputCoreTypes.cpp
 const FGamepadKeyNames::Type FGamepadKeyNames::LeftAnalogX("Gamepad_LeftX");
 const FGamepadKeyNames::Type FGamepadKeyNames::LeftAnalogY("Gamepad_LeftY");
 const FGamepadKeyNames::Type FGamepadKeyNames::RightAnalogX("Gamepad_RightX");
