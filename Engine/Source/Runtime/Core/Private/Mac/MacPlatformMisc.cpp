@@ -1273,14 +1273,18 @@ static void DefaultCrashHandler(FMacCrashContext const& Context)
 	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 
+/** Number of stack entries to ignore in backtrace */
+static uint32 GMacStackIgnoreDepth = 6;
+
 /** True system-specific crash handler that gets called first */
-static void PlatformCrashHandler(siginfo_t* Info, ucontext_t* Uap, void* Context)
+static void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 {
 	// Disable CoreSymbolication
 	FApplePlatformSymbolication::EnableCoreSymbolication( false );
 	
 	FMacCrashContext CrashContext;
-	CrashContext.InitFromSignal((int32)Info->si_signo, Info, Context);
+	CrashContext.IgnoreDepth = GMacStackIgnoreDepth;
+	CrashContext.InitFromSignal(Signal, Info, Context);
 	
 	// Switch to crash handler malloc to avoid malloc reentrancy
 	check(FMacApplicationInfo::CrashMalloc);
@@ -1295,6 +1299,11 @@ static void PlatformCrashHandler(siginfo_t* Info, ucontext_t* Uap, void* Context
 		// call default one
 		DefaultCrashHandler(CrashContext);
 	}
+}
+
+static void PLCrashReporterHandler(siginfo_t* Info, ucontext_t* Uap, void* Context)
+{
+	PlatformCrashHandler((int32)Info->si_signo, Info, Uap);
 }
 
 /**
@@ -1358,15 +1367,35 @@ void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 		PLCrashReporterCallbacks CrashReportCallback = {
 			.version = 0,
 			.context = nullptr,
-			.handleSignal = PlatformCrashHandler
+			.handleSignal = PLCrashReporterHandler
 		};
 		
 		[FMacApplicationInfo::CrashReporter setCrashCallbacks: &CrashReportCallback];
 
 		NSError* Error = nil;
-		if (![FMacApplicationInfo::CrashReporter enableCrashReporterAndReturnError: &Error])
+		if ([FMacApplicationInfo::CrashReporter enableCrashReporterAndReturnError: &Error])
+		{
+			GMacStackIgnoreDepth = 0;
+		}
+		else
 		{
 			UE_LOG(LogMac, Log,  TEXT("Failed to enable PLCrashReporter: %s"), *FString([Error localizedDescription]) );
+			
+			UE_LOG(LogMac, Log,  TEXT("Falling back to native signal handlers."));
+			
+			struct sigaction Action;
+			FMemory::Memzero(&Action, sizeof(struct sigaction));
+			Action.sa_sigaction = PlatformCrashHandler;
+			sigemptyset(&Action.sa_mask);
+			Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+			sigaction(SIGQUIT, &Action, NULL);	// SIGQUIT is a user-initiated "crash".
+			sigaction(SIGILL, &Action, NULL);
+			sigaction(SIGEMT, &Action, NULL);
+			sigaction(SIGFPE, &Action, NULL);
+			sigaction(SIGBUS, &Action, NULL);
+			sigaction(SIGSEGV, &Action, NULL);
+			sigaction(SIGSYS, &Action, NULL);
+			sigaction(SIGABRT, &Action, NULL);
 		}
 	}
 }
