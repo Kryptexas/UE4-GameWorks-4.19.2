@@ -17,8 +17,3 @@ ADefaultPhysicsVolume::ADefaultPhysicsVolume(const FObjectInitializer& ObjectIni
 	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
 	FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
 }
-
-void ADefaultPhysicsVolume::Destroyed()
-{
-	UE_LOG(LogVolume, Log, TEXT("%s destroyed!"), *GetName());
-}
