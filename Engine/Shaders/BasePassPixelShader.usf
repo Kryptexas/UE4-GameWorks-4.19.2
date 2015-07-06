@@ -124,7 +124,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		uint FrameRandom = (View.FrameNumber & 15) * 1551;
 
 		uint Morton = MortonCode( (uint)MaterialParameters.SVPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
-		uint PixelIndex = reversebits( Morton ) >> 28;
+		uint PixelIndex = ReverseBits32( Morton ) >> 28;
 		//uint PixelIndex = ( (uint)MaterialParameters.SVPosition.x & 3 ) | ( ( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
 		//PixelIndex = ( PixelIndex * 1551 ) & 15;
 
