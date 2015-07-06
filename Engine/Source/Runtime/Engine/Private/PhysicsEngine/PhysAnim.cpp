@@ -429,7 +429,7 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 		// New bone positions need to be sent to render thread
 		MarkRenderDynamicDataDirty();
 
-	FlipEditableSpaceBases();
+	FinalizeBoneTransform();
 
 	ParallelAnimationEvaluationTask.SafeRelease();
 	ParallelBlendPhysicsCompletionTask.SafeRelease();

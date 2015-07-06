@@ -1890,6 +1890,11 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	return OutVertexAnims;
 }
 
+void USkinnedMeshComponent::FinalizeBoneTransform()
+{
+	FlipEditableSpaceBases();
+}
+
 void USkinnedMeshComponent::FlipEditableSpaceBases()
 {
 	if (bNeedToFlipSpaceBaseBuffers)

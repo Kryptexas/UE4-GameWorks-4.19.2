@@ -549,6 +549,12 @@ public:
 	 */
 	virtual bool UpdateLODStatus();
 
+	/**
+	 * Finalize bone transform of this current tick
+	 * After this function, any query to bone transform should be latest of the data
+	 */
+	virtual void FinalizeBoneTransform();
+
 	/** Initialize the LOD entries for the component */
 	void InitLODInfos();
 
@@ -574,12 +580,12 @@ public:
 	/** Get the number of space bases */
 	int32 GetNumSpaceBases() const { return GetSpaceBases().Num(); }
 
-	/** Flip the editable space base buffer */
-	void FlipEditableSpaceBases();
-
 	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces);
 
 protected:
+
+	/** Flip the editable space base buffer */
+	void FlipEditableSpaceBases();
 
 	/** Track whether we still need to flip to recently modified buffer */
 	bool bNeedToFlipSpaceBaseBuffers;

@@ -35,7 +35,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 		}
 
 		FillSpaceBases();
-		FlipEditableSpaceBases();
+		FinalizeBoneTransform();
 
 		return true;
 	}
@@ -63,7 +63,7 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	// We need the mesh space bone transforms now for renderer to get delta from ref pose:
 	FillSpaceBases();
-	FlipEditableSpaceBases();
+	FinalizeBoneTransform();
 
 	MarkRenderDynamicDataDirty();
 }

@@ -1179,7 +1179,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	if (TickFunction == NULL)
 	{
 		//Since we aren't doing this through the tick system, assume we want the buffer flipped now
-		FlipEditableSpaceBases();
+		FinalizeBoneTransform();
 	}
 }
 
@@ -1189,6 +1189,13 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	AnimEvaluationContext.Clear();
 
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
+	
+	if(AnimScriptInstance)
+	{
+		// curve update happens first
+		AnimScriptInstance->UpdateCurves(EvaluatedCurve);
+	}
+	
 	if (EvaluationContext.bDuplicateToCacheBones)
 	{
 		CachedSpaceBases = GetEditableSpaceBases();
@@ -1237,7 +1244,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
 
 		// Updated last good bone positions
-		FlipEditableSpaceBases();
+		FinalizeBoneTransform();
 
 		// New bone positions need to be sent to render thread
 		UpdateComponentToWorld();
@@ -1246,12 +1253,6 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		UpdateOverlaps();
 	}
 
-	if(AnimScriptInstance)
-	{
-		// curve update happens first
-		AnimScriptInstance->UpdateCurves(EvaluatedCurve);
-		AnimScriptInstance->PostEvaluateAnimation();
-	}
 
 	MarkRenderDynamicDataDirty();
 }
@@ -2346,4 +2347,14 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 
 	// skip fallback export of body setup data
 	return false;
+}
+
+void USkeletalMeshComponent::FinalizeBoneTransform() 
+{
+	Super::FinalizeBoneTransform();
+
+	if (AnimScriptInstance)
+	{
+		AnimScriptInstance->PostEvaluateAnimation();
+	}
 }

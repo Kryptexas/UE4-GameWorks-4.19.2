@@ -1000,7 +1000,7 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 	MarkRenderDynamicDataDirty();
 
 	//Update bone visibilty and flip the editable space base buffer
-	FlipEditableSpaceBases();
+	FinalizeBoneTransform();
 }
 
 void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& WorldRotation, const FVector& WorldTranslation )

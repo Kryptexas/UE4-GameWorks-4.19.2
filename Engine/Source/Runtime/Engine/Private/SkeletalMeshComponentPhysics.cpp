@@ -3122,7 +3122,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// if physics is disabled on dedicated server, no reason to be here. 
 	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
 	{
-		FlipEditableSpaceBases();
+		FinalizeBoneTransform();
 		return;
 	}
 

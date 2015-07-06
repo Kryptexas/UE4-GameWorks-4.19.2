@@ -3803,7 +3803,7 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 		SkeletalMeshComponent->RefreshSlaveComponents();
 		SkeletalMeshComponent->UpdateComponentToWorld();
 	}
-	SkeletalMeshComponent->FlipEditableSpaceBases();
+	SkeletalMeshComponent->FinalizeBoneTransform();
 }
 
 
