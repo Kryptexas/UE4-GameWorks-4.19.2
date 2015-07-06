@@ -2442,7 +2442,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 	Super::AddReferencedObjects(This, Collector);
 }
 
-bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex)
+bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex, FFoliageTraceFilterFunc FilterFunc)
 {
 	FCollisionQueryParams QueryParams(InTraceTag, true);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
@@ -2494,8 +2494,16 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 			continue;
 		}
 
-		if (Hit.Component.IsValid() && Hit.Component->GetComponentLevel())
+		const UPrimitiveComponent* HitComponent = Hit.Component.Get();
+
+		if (HitComponent && HitComponent->GetComponentLevel())
 		{
+			if (FilterFunc && FilterFunc(HitComponent) == false)
+			{
+				// supplied filter does not like this component, so keep iterating
+				continue;
+			}
+			
 			OutHit = Hit;
 			return (DesiredInstance.PlacementMode != EFoliagePlacementMode::Procedural) || bInsideProceduralVolume;
 		}
