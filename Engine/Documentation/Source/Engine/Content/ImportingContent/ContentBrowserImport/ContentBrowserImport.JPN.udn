@@ -1,16 +1,21 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2610008
+Availability:Docs
 Title:コンテンツ ブラウザでインポート
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:コンテンツ ブラウザのインポート機能を使用してコンテンツを追加する方法を学習します。
+prereq:Engine/Basics/Projects/Browser
+Related:GettingStarted
+Related:GettingStarted/HowTo
+Related:Engine/Content/Packs
 スキルレベル:初心者向け
 バージョン：4.8
 
 [REGION:note]
-開始前に、以下のリンクから Quick Start Assets (クイックスタート アセット) をダウンロードしてください。
+開始する前に、次のリンクからサンプル アセットをダウンロードし、抽出してください。
 * [サンプル アセット](SampleAssets.zip)
 [/REGION]
 
-コンテンツ ブラウザの **インポート** 機能を使用して UE4 プロジェクトにコンテンツを追加することができます。
+デベロッパーは通常、コンテンツ ブラウザの **インポート** 機能を使用して UE4 プロジェクトにコンテンツを追加します。
 
 ## チュートリアルのゴール
 
@@ -20,17 +25,99 @@ Description:コンテンツ ブラウザのインポート機能を使用して�
 
 このチュートリアルを終了すると、以下がわかるようになります。
 
-* コンテンツ ブラウザの **インポート** 機能の場所。
-* コンテンツ ブラウザの **インポート** 機能の使用方法。
-
-## コンテンツ ブラウザでインポートする
+*	コンテンツ ブラウザの **インポート** 機能の見つけ方。
+*	コンテンツ ブラウザの **インポート** 機能の使用方法。
+*	アセットが適切にプロジェクト フォルダにインポートされたかを確認する方法。
 
 ![](ContentHowToPrjSetup.png)
 
 [REGION:note]
-本ガイドの目的上、以下のプロジェクト **設定** を使用します (上の画面の黄色の枠部分)。
-* **Desktop / Console** (デスクトップ / コンソール) 
-* **Maximum Quality** (最高品質) 
-* **No Starter Content** (スターター コンテンツなし) 
+新規プロジェクトを作成している場合、以下のプロジェクトの **設定** を使用します。
+* 	**Desktop / Console** (デスクトップ / コンソール) 
+* 	**Maximum Quality** (最高品質) 
+* 	**No Starter Content** (スターター コンテンツなし) 
 [/REGION]
 
+## コンテンツ ブラウザのインポート ボタンを見つける
+
+1.	 **Import** ボタンは、アンリアル エディタの **コンテンツ ブラウザ** 内にあります (以下の画像をクリック)。
+
+	[REGION:lightbox]
+		[![](FindingImportButton.png)(w:900)](FindingImportButton.png)
+	[/REGION]
+
+## コンテンツ ブラウザのインポート機能を使用する
+
+1.	エディタ内から、**Import** ボタンを **クリック** します (以下で図示)。
+
+	![](ImportButton_UI.png)
+
+1.	以下を見つけて **選択** してください。すなわち、**Basic_Asset1.fbx**, **Basic_Asset2.FBX**, **T_Rock_04_D.TGA**, および **T_Rock_04_n.TGA** コンテンツ ファイル (以下で図示)。
+
+	![](ImportFileDialogBox.png)
+
+1.	コンテンツ ファイルのプロジェクトへのインポートを開始するには、**Open をクリック** します (上で図示)。
+
+1.	エディタを開くと、**FBX Import Options** ダイアログ ボックスが表示されます。****[Import (インポート)]** または **[Import All (すべてインポート)]** をクリックして、メッシュをプロジェクトに追加します。
+
+	![](FBX_ImportOptionsDialogBox.png)
+
+1.	確認ボックスがアンリアル エディタの右下隅に表示されます (以下で図示)。
+
+	![](TextureDialogBox.png)
+
+1.	**T_Rock_04_n.TGA** 法線マップの設定をアクセプトするには、 **OK** をクリックします。
+
+	[REGION:warning]
+	UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") 画像ファイルをバッチ処理でインポートします。
+	次のようなメッセージが表示されることがあります。
+
+	![](TextureImportMessage.png)
+
+	サポート対象外の画像ファイルがインポートされないようにしているのです。
+
+	また、次のメッセージがでた場合は、
+
+	![](nonpoweoftwowarning.png)
+
+	不適切なサイズの画像のストリーミングやミップマップの処理が行われていないことを示しています。
+
+	[/REGION]
+
+1.	未保存のアセットにはアスタリスクのマークが付きます (以下で図示)。
+
+	![](UnsavedAssets.png)
+
+1.	**[Save All]** ボタンを **クリック** してインポートしたメッシュを保存します。
+
+	![](SaveAllButton_UI.png)
+
+1.	**Save Content** (コンテンツを保存) ダイアログボックスが表示されます (以下で図示)。インポートしたアセットを保存するには、**Save Selected** (選択したものを保存) を **クリック** します。
+
+	![](SaveSelectedButton_UI.png)
+
+1.	UE4 は、保存したアセットからアスタリスクを取り除きます (以下の画像)。
+
+	![](SavedAssets.png)
+
+## インポートしたアセットを確認する
+
+ ** *.uasset files ** がハードディスクに適切にインポートされたことを確認するのはグッドプラクティスです。
+
+1.	エディタ内から、**'Content'** フォルダを右クリックして、**Folder Options** ダイアログ ボックスを開きます (以下で図示)。
+
+	![](FolderDialogBox_UI.png)
+
+1.	**Folder Options** (フォルダ オプション) で **'Show In Explorer' をクリック** します (以下で図示)。
+
+	![](ShowInExplorer_Selection.png)
+
+1.	エクスプローラが開いた状態で、UE4 がプロジェクトの対応する ** *.uasset files ** を作成したことを確認します (以下で図示)。
+
+	![](ImportedAssets_Explorer.png)
+
+ここまでのチュートリアルで、以下について学習したことになります。
+
+&#x2713;	コンテンツ ブラウザの **Import** 機能を見つける。  
+&#x2713;	コンテンツ ブラウザの **Import** 機能を使用する。  
+&#x2713;	アセットがプロジェクト フォルダに適切にインポートされたことを確認する。
