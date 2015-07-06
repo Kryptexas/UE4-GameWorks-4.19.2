@@ -495,7 +495,10 @@ void FAnimBlueprintCompiler::PruneIsolatedAnimationNodes(const TArray<UAnimGraph
 void FAnimBlueprintCompiler::ProcessAnimationNodesGivenRoot(TArray<UAnimGraphNode_Base*>& AnimNodeList, const TArray<UAnimGraphNode_Base*>& RootSet)
 {
 	// Now prune based on the root set
-	PruneIsolatedAnimationNodes(RootSet, AnimNodeList);
+	if (MessageLog.NumErrors == 0)
+	{
+		PruneIsolatedAnimationNodes(RootSet, AnimNodeList);
+	}
 
 	// Process the remaining nodes
 	for (auto SourceNodeIt = AnimNodeList.CreateIterator(); SourceNodeIt; ++SourceNodeIt)
@@ -507,6 +510,9 @@ void FAnimBlueprintCompiler::ProcessAnimationNodesGivenRoot(TArray<UAnimGraphNod
 
 void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 {
+	// Validate the graph
+	ValidateGraphIsWellFormed(ConsolidatedEventGraph);
+
 	// Build the raw node list
 	TArray<UAnimGraphNode_Base*> AnimNodeList;
 	ConsolidatedEventGraph->GetNodesOfClass<UAnimGraphNode_Base>(/*out*/ AnimNodeList);
