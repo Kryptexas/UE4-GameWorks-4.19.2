@@ -726,10 +726,6 @@ void Main(
 	}
 #endif
 
-	// TODO Replace with proper EnvBRDF for Burley diffuse model.
-	// Any indirect diffuse done in the base pass does not properly account for the Burley diffuse model besides this crude approximation.
-	DiffuseColor *= 1 - 0.3333 * Roughness;
-
 
 	half3 Color = 0;
 	float IndirectIrradiance = 0;

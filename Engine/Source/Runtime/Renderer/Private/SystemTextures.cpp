@@ -258,11 +258,9 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 
 			EPixelFormat Format = PF_R8G8;
 			// for low roughness we would get banding with PF_R8G8 but for low spec it could be used, for now we don't do this optimization
-			if (GPixelFormats[PF_A16B16G16R16].Supported)
+			if (GPixelFormats[PF_G16R16].Supported)
 			{
-				// 3rd channel required for diffuse
-				// TODO try 11:11:10
-				Format = PF_A16B16G16R16;
+				Format = PF_G16R16;
 			}
 
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), Format, TexCreate_FastVRAM, TexCreate_None, false));
@@ -346,10 +344,10 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 							float NoH = FMath::Max(H.Z, 0.0f);
 							float VoH = FMath::Max(V | H, 0.0f);
 
-							float FD90 = ( 0.5f + 2.0f * VoH * VoH ) * Roughness;
+							float FD90 = 0.5f + 2.0f * VoH * VoH * Roughness;
 							float FdV = 1.0f + (FD90 - 1.0f) * pow( 1.0f - NoV, 5 );
 							float FdL = 1.0f + (FD90 - 1.0f) * pow( 1.0f - NoL, 5 );
-							C += FdV * FdL * ( 1.0f - 0.3333f * Roughness );
+							C += FdV * FdL;// * ( 1.0f - 0.3333f * Roughness );
 						}
 					}
 					A /= NumSamples;
