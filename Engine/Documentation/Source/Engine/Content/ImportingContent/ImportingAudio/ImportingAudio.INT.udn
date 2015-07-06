@@ -1,0 +1,84 @@
+Availability:Docs
+Title:Importing Audio
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import audio content into Unreal Editor.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Audio/WAV
+Related: Engine/Content/Packs
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+Unreal Engine currently imports uncompressed, little endian, 16-bit Wave (WAV) files at any sample rate (although, we recommend sample rates of 44.1 kHz or 22.05 kHz).
+[/REGION]
+
+## Goal
+
+Content creators can import single and multi-channel audio files into their project directories.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	Where to locate the Content Browser's **Import** function.
+*	How to import single audio files.
+*	How to use the multi-channel audio extension table.
+*	How to import multi-channel audio.
+*	How to verify that assets were properly imported into the project folder.
+
+## Locating the Content Browser's Import Button
+
+1.	The **Import** button is located inside Unreal Editor's **Content Browser** (click the image below).
+
+	[REGION:lightbox]
+		[![](FindingImportButton.png)(w:900)](FindingImportButton.png)
+	[/REGION]
+
+## Importing Single Audio Files
+
+
+
+## Using the Multi-Channel Audio Extension Table
+
+[REGION:raw]
+|                   | Extension | 4.0         | 5.1         | 6.1         | 7.1         |  
+| ---               | ---       | ---         | ---         | ---         | ---         | 
+| **FrontLeft**     | _fl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **FrontRight**    | _fr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **FrontCenter**   | _fc       |             |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **LowFrequency**  | _lf       |             |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **SideLeft**      | _sl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **SideRight**     | _sr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **BackLeft**      | _bl       |             |             |  &#x2713;   |  &#x2713;   |  
+| **BackRight**     | _br       |             |             |             |  &#x2713;   |  
+[/REGION]
+
+## Importing Multi-Channel Audio
+
+
+
+## Verifying Imported Assets
+
+It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
+
+1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+
+	![](FolderDialogBox_UI.png)
+
+1.	Under **Folder Options**, **click 'Show In Explorer'** (pictured below).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	With Explorer open, verify that UE4 created the corresponding ** *.uasset files **  for your project (pictured below).
+
+	![](ImportedAssets_Explorer.png)
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	Locate the Content Browser's **Import** function.  
+&#x2713;	Import single audio files.  
+&#x2713;	Use the multi-channel audio extension table.  
+&#x2713;	Import multi-channel audio.  
+&#x2713;	Verify that assets were properly imported to the project folder.
