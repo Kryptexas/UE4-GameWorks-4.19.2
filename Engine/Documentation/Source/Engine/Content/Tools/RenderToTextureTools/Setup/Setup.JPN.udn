@@ -1,36 +1,36 @@
-﻿INTSourceChangelist:2390113
+﻿INTSourceChangelist:2602289
 Availability:Public
 Title:Render To Texture ツールセットのセットアップ
 Crumbs:%ROOT%, Engine, Engine/Content
 Description:
 
-RenderToTexture ブループリントは、必要最低限の **GameMode** セットアップを使用することで機能します。**RenderToTexture_Game** と呼ばれる比較アセットがあります。これは、**RenderToTexture_Pawn** を参照します。Pawn は非常に基本的なブループリントで正投影に設定された **Camera Component** とレンダリング コンソール コマンドをセットアップするためのいくつかのイベントグラフノードを持ちます。 
+RenderToTexture ブループリントは、必要最低限の GameMode セットアップを使用することで機能します。RenderToTexture_Game と呼ばれる比較アセットがあります。これは、RenderToTexture_Pawn を参照します。Pawn は非常に基本的なブループリントで正投影に設定された **Camera Component** とレンダリング コンソール コマンドをセットアップするためのいくつかのイベントグラフノードを持ちます。 
 
 Render to Texture ツールを使用する基本的なセットアップは以下のとおりです。
 
 1. 新規ブランクレベルを作成します。
-1. **Modes** パネル、**Basic** カテゴリから **Player Start** を 0,0,0 の位置に配置します。**Player Start** の回転を 0,0,0 に設定するようにしてください。
+1. **[Modes] ** パネル、**[Basic]** カテゴリから Player Start を 0,0,0 の位置に配置します。Player Start の回転を 0,0,0 に設定するようにしてください。
 
 	![](ZeroedTrans.png)
 
-1. **コンテンツ ブラウザ** の **View Options** で、**Show Engine Content** を有効にします。
+1. **コンテンツ ブラウザ** の **View Options** (表示オプション) で、**Show Engine Content** (エンジン コンテンツを表示) を有効にします。
 
 	[REGION:raw]
 	![](viewOptions.png)
 	[/REGION]
 
 1. **コンテンツ ブラウザ** で以下の順序でブラウズします。**Engine** -> **ArtTools** -> **RenderToTexture** -> **Blueprints** 
-1. ワールドで **RenderToTexture_LevelBP** ブループリントを 0,0,0 に配置します。
+1. ワールドで RenderToTexture_LevelBP ブループリントを 0,0,0 に配置します。
 
 	[REGION:raw]
 	![](placeRTT_LBP.png)(w:880 convert:false)
 	[/REGION]
 
-1. **[World Settings]** ボタンをクリックします。**[Details]** パネルが (デフォルトで) ドッキングされている場所で **[World Settings]** パネルが開きます。
+1. **[World Setting s(ワールド設定)]** ボタンをクリックします。**[Details (詳細)]** パネルが (デフォルトで) ドッキングされている場所で **[World Settings]** パネルが開きます。
 
 	![](worldSettingsBar.png)
 
-1. **World Settings** で **RenderToTexture_GameMode** ブループリント (RenderToTexture/Blueprints/ にあります) を **GameMode** として割り当てます。
+1. World Settings で RenderToTexture_GameMode ブループリント (RenderToTexture/Blueprints/ にあります) を **GameMode** として割り当てます。
 
 	[REGION:raw]
 	![](worldSettings.png)
@@ -38,7 +38,7 @@ Render to Texture ツールを使用する基本的なセットアップは以�
 
 1. [INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#hrss1]
 
-1. **[High Resolution Screenshot]** ダイアログは開いたままにします。
+1. [High Resolution Screenshot (高解像度スクリーンショット)] ダイアログは開いたままにします。
 1. **Editor** -> **Preferences** -> **Play** にある ** [New Window Size]** プロパティを 2 の累乗にします。512x512 のサイズをお勧めします。このサイズは出力画像の品質に影響を与えません。
 
 	[REGION:lightbox]
@@ -51,7 +51,7 @@ Render to Texture ツールを使用する基本的なセットアップは以�
 
 以下は、**Render Type** プロパティの値に対応するカテゴリです。
 
-デフォルト以外ですべての関数に関係がある唯一のプロパティ カテゴリは、**Capture Settings** カテゴリです。このカテゴリでは、どのバッファ ターゲットを保存するかを選択できます。ほとんどの場合、**Base Color** と **Normal** で十分です。オパシティ マスクをレンダリングするには、**Decal Mask** オプションが効果的です。
+デフォルト以外ですべての関数に関係がある唯一のプロパティ カテゴリは、**[Capture Settings (キャプチャ設定)]** カテゴリです。このカテゴリでは、どのバッファ ターゲットを保存するかを選択できます。ほとんどの場合、**Base Color** と **Normal** で十分です。オパシティ マスクをレンダリングするには、**Decal Mask** オプションが効果的です。
 
 ![](captureSettings.png)
  
@@ -59,7 +59,7 @@ Render to Texture ツールを使用する基本的なセットアップは以�
 
  この方法では現在、`.bmp` フォーマットの画像を保存します。現時点では、画像処理ツールを使用して開いて、`.tga` として再保存する必要があります。実際にはこれは大きな問題ではありません。ほとんどの場合、高解像度でレンダリングしてから後で画像処理パスを使用してダウンサンプリングするからです。
 
- 最後に必要に応じてシーンにライトを追加することができます。これは、レンダリングされるビジュアル化バッファには何も影響を与えません。
+ 最後に必要に応じてシーンにライトを追加することができます。これは、レンダリングされるビジュアル化のバッファには何も影響を与えません。
 
 ## 具体的な手順
 
