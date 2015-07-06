@@ -176,6 +176,12 @@ public class DeploymentContext //: ProjectParams
 	static public readonly string NonUFSDeployDeltaFileName			= "Manifest_DeltaNonUFSFiles.txt";
 
 	/// <summary>
+	/// Filename for the manifest of files to delete during deployment.
+	/// </summary>
+	static public readonly string UFSDeployObsoleteFileName = "Manifest_ObsoleteUFSFiles.txt";
+	static public readonly string NonUFSDeployObsoleteFileName = "Manifest_ObsoleteNonUFSFiles.txt";
+
+	/// <summary>
 	/// Filename for the manifest of files currently deployed on a device.
 	/// </summary>
 	static public readonly string UFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
@@ -709,5 +715,15 @@ public class DeploymentContext //: ProjectParams
 	public String GetNonUFSDeploymentDeltaPath()
 	{
 		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName);
+	}
+
+	public String GetUFSDeploymentObsoletePath()
+	{
+		return Path.Combine(StageDirectory, UFSDeployObsoleteFileName);
+	}
+
+	public String GetNonUFSDeploymentObsoletePath()
+	{
+		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName);
 	}
 }

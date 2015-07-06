@@ -1342,6 +1342,29 @@ public partial class Project : CommandUtils
 		return StagedFiles;
 	}
 
+	protected static void WriteObsoleteManifest(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> DeployedFiles, Dictionary<string, string> StagedFiles, string ObsoleteManifest)
+	{
+		List<string> ObsoleteFiles = new List<string>();
+
+		// any file that has been deployed, but is no longer in the staged files is obsolete and should be deleted.
+		foreach (KeyValuePair<string, string> File in DeployedFiles)
+		{
+			if (!StagedFiles.ContainsKey(File.Key))
+			{
+				ObsoleteFiles.Add(File.Key);
+			}
+		}
+
+		// write out to the deltamanifest.json
+		string ManifestFile = CombinePaths(SC.StageDirectory, ObsoleteManifest);
+		StreamWriter Writer = System.IO.File.CreateText(ManifestFile);
+		foreach (string Line in ObsoleteFiles)
+		{
+			Writer.WriteLine(Line);
+		}
+		Writer.Close();
+	}	
+
 	protected static void WriteDeltaManifest(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> DeployedFiles, Dictionary<string, string> StagedFiles, string DeltaManifest)
 	{
 		List<string> CRCFiles = SC.StageTargetPlatform.GetFilesForCRCCheck();
@@ -1558,13 +1581,12 @@ public partial class Project : CommandUtils
 					CreateStagingManifest(Params, SC);
 					ApplyStagingManifest(Params, SC);
 
-					if (Params.IterativeDeploy)
 					{
 						// get the deployed file data
 						Dictionary<string, string> DeployedUFSFiles = new Dictionary<string, string>();
 						Dictionary<string, string> DeployedNonUFSFiles = new Dictionary<string, string>();
 						List<string> UFSManifests;
-						List<string> NonUFSManifests; 
+						List<string> NonUFSManifests;
 						if (SC.StageTargetPlatform.RetrieveDeployedManifests(Params, SC, out UFSManifests, out NonUFSManifests))
 						{
 							DeployedUFSFiles = ReadDeployedManifest(Params, SC, UFSManifests);
@@ -1575,9 +1597,16 @@ public partial class Project : CommandUtils
 						Dictionary<string, string> StagedUFSFiles = ReadStagedManifest(Params, SC, DeploymentContext.UFSDeployedManifestFileName);
 						Dictionary<string, string> StagedNonUFSFiles = ReadStagedManifest(Params, SC, DeploymentContext.NonUFSDeployedManifestFileName);
 
-						// write out the delta file data
-						WriteDeltaManifest(Params, SC, DeployedUFSFiles, StagedUFSFiles, DeploymentContext.UFSDeployDeltaFileName);
-						WriteDeltaManifest(Params, SC, DeployedNonUFSFiles, StagedNonUFSFiles, DeploymentContext.NonUFSDeployDeltaFileName);
+						WriteObsoleteManifest(Params, SC, DeployedUFSFiles, StagedUFSFiles, DeploymentContext.UFSDeployObsoleteFileName);
+						WriteObsoleteManifest(Params, SC, DeployedNonUFSFiles, StagedNonUFSFiles, DeploymentContext.NonUFSDeployObsoleteFileName);
+
+						if (Params.IterativeDeploy)
+						{
+							
+							// write out the delta file data
+							WriteDeltaManifest(Params, SC, DeployedUFSFiles, StagedUFSFiles, DeploymentContext.UFSDeployDeltaFileName);
+							WriteDeltaManifest(Params, SC, DeployedNonUFSFiles, StagedNonUFSFiles, DeploymentContext.NonUFSDeployDeltaFileName);
+						}
 					}
 				}
 			}
