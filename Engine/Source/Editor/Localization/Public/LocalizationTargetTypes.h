@@ -65,7 +65,7 @@ struct FGatherTextFromTextFilesConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
-	static const TArray<FGatherTextFileExtension>& GetDefaultTextFileExtensions();
+	LOCALIZATION_API static const TArray<FGatherTextFileExtension>& GetDefaultTextFileExtensions();
 
 	FGatherTextFromTextFilesConfiguration()
 		: IsEnabled(true)
@@ -98,7 +98,7 @@ struct FGatherTextFromPackagesConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
-	static const TArray<FGatherTextFileExtension>& GetDefaultPackageFileExtensions();
+	LOCALIZATION_API static const TArray<FGatherTextFileExtension>& GetDefaultPackageFileExtensions();
 
 	FGatherTextFromPackagesConfiguration()
 		: IsEnabled(true)
