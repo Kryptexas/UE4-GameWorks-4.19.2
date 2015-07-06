@@ -199,7 +199,7 @@ void FStats::TickCommandletStats()
 {
 	if (HasStatsForCommandletsToken())
 	{
-		FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
+		//FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
 		//check( ThreadStats->ScopeCount == 0 && TEXT( "FStats::TickCommandletStats must be called outside any scope counters" ) );
 
 		FTaskGraphInterface::Get().ProcessThreadUntilIdle( ENamedThreads::GameThread );
