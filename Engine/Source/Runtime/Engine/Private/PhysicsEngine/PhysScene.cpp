@@ -1037,26 +1037,32 @@ void FPhysScene::StartFrame()
 	SyncDeltaSeconds = DeltaSeconds;
 }
 
+TAutoConsoleVariable<int32> CVarEnableClothPhysics(TEXT("p.ClothPhysics"), 1, TEXT("If 1, physics cloth will be used for simulation."));
+
 void FPhysScene::StartCloth()
 {
 	FGraphEventArray FinishPrerequisites;
-	TickPhysScene(PST_Cloth, PhysicsSubsceneCompletion[PST_Cloth]);
+	if(CVarEnableClothPhysics.GetValueOnGameThread())
 	{
-		if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
+		TickPhysScene(PST_Cloth, PhysicsSubsceneCompletion[PST_Cloth]);
 		{
-			DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Cloth"),
+			if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
+			{
+				DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Cloth"),
 				STAT_FDelegateGraphTask_ProcessPhysScene_Cloth,
-				STATGROUP_TaskGraphTasks);
+					STATGROUP_TaskGraphTasks);
 
-			new (FinishPrerequisites)FGraphEventRef(
-				FDelegateGraphTask::CreateAndDispatchWhenReady(
+				new (FinishPrerequisites)FGraphEventRef(
+					FDelegateGraphTask::CreateAndDispatchWhenReady(
 					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth),
 					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Cloth), PhysicsSubsceneCompletion[PST_Cloth],
 					ENamedThreads::GameThread, ENamedThreads::GameThread
-				)
-			);
+					)
+					);
+			}
 		}
 	}
+	
 
 	//If the async scene is lagged we start it here to make sure any cloth in the async scene is using the results of the previous simulation.
 	if (FrameLagAsync() && bAsyncSceneEnabled)

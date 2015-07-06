@@ -3488,8 +3488,15 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 	}
 }
 
+extern TAutoConsoleVariable<int32> CVarEnableClothPhysics;
+
 void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 {
+	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	{
+		return;
+	}
+
 	// if turned on bClothMorphTarget option
 	if (bClothMorphTarget)
 	{
@@ -3697,6 +3704,11 @@ public:
 
 void USkeletalMeshComponent::PerformTickClothing(float DeltaTime)
 {
+	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	{
+		return;
+	}
+
 #if WITH_APEX_CLOTHING
 	// animated but bone transforms were not updated because it was not rendered
 	if(PoseTickedThisFrame() && !bRecentlyRendered)
@@ -3730,6 +3742,11 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent)
 {
 #if WITH_APEX_CLOTHING
+
+	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	{
+		return;
+	}
 
 	int32 NumClothingActors = ClothingActors.Num();
 
