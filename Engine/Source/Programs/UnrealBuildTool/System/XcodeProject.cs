@@ -183,7 +183,8 @@ namespace UnrealBuildTool
 				foreach (string PlatformName in Enum.GetNames(typeof(UnrealTargetPlatform)))
 				{
 					string AltName = PlatformName == "Win32" || PlatformName == "Win64" ? "windows" : PlatformName.ToLower();
-					if ((SourceFile.FilePath.ToLower().Contains("/" + PlatformName.ToLower() + "/") || SourceFile.FilePath.ToLower().Contains("/" + AltName + "/")) && PlatformName != "Mac")
+					if ((SourceFile.FilePath.ToLower().Contains("/" + PlatformName.ToLower() + "/") || SourceFile.FilePath.ToLower().Contains("/" + AltName + "/"))
+						&& PlatformName != "Mac" && !SourceFile.FilePath.Contains("MetalRHI"))
 					{
 						// UE4XcodeHelper is Mac only target, so skip other platforms files
 						return false;
