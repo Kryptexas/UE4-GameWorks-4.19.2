@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "MovieSceneBindingManager.h"
-#include "UMGBindingManager.generated.h"
+#include "MovieSceneObjectManager.h"
+#include "UMGMovieSceneObjectManager.generated.h"
 
 
 class FWidgetBlueprintEditor;
@@ -12,12 +12,12 @@ class UWidgetAnimation;
 
 
 /**
- * Movie scene binding manager used by Sequencer.
+ * Movie scene object manager used by Sequencer.
  */
 UCLASS(BlueprintType, MinimalAPI)
-class UUMGBindingManager
+class UUMGMovieSceneObjectManager
 	: public UObject
-	, public IMovieSceneBindingManager
+	, public IMovieSceneObjectManager
 {
 	GENERATED_UCLASS_BODY()
 
@@ -45,7 +45,7 @@ public:
 	void InitPreviewObjects();
 
 	/**
-	 * Bind the binding manager the given widget BP editor.
+	 * Bind the object manager to the given widget BP editor.
 	 *
 	 * @param InWidgetBlueprintEditor The widget BP editor to bind to.
 	 * @param InAnimation The current animation to set.
@@ -59,12 +59,11 @@ public:
 
 public:
 
-	// IMovieSceneBindingManager interface
+	// IMovieSceneObjectManager interface
 
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
 	virtual bool CanPossessObject(UObject& Object) const override;
-	virtual void ClearBindings() override;
 	virtual void DestroyAllSpawnedObjects(UMovieScene& MovieScene) override { }
 	virtual FGuid FindObjectId(const UMovieScene& MovieScene, UObject& Object) const override;
 	virtual UObject* FindObject(const FGuid& ObjectId) const override;

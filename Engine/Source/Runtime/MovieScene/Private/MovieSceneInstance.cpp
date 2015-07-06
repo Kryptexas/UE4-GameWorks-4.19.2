@@ -11,9 +11,9 @@ FMovieSceneInstance::FMovieSceneInstance( UMovieScene& InMovieScene )
 }
 
 
-TScriptInterface<UMovieSceneBindingManager> FMovieSceneInstance::GetBindingManager() const
+TScriptInterface<UMovieSceneObjectManager> FMovieSceneInstance::GetObjectManager() const
 {
-	return MovieScene.Get()->GetBindingManager();
+	return MovieScene.Get()->GetObjectManager();
 }
 
 
@@ -113,10 +113,10 @@ void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 
 	TSet< FGuid > FoundObjectBindings;
 	// Get all tracks for each object binding and create instances for them if needed
-	const TArray<FMovieSceneObjectBinding>& ObjectBindings = MovieScene->GetObjectBindings();
+	const TArray<FMovieSceneBinding>& ObjectBindings = MovieScene->GetBindings();
 	for( int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex )
 	{
-		const FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[BindingIndex];
+		const FMovieSceneBinding& ObjectBinding = ObjectBindings[BindingIndex];
 
 		// Create an instance for this object binding
 		FMovieSceneObjectBindingInstance& BindingInstance = ObjectBindingInstances.FindOrAdd( ObjectBinding.GetObjectGuid() );

@@ -2,32 +2,31 @@
 
 #pragma once
 
-#include "MovieSceneBindingManager.h"
-#include "SequencerBinding.h"
-#include "SequencerBindingManager.generated.h"
+#include "MovieSceneObjectManager.h"
+#include "SequencerPossessedObject.h"
+#include "SequencerMovieSceneObjectManager.generated.h"
 
 
 /**
- * Movie scene binding manager used by Sequencer.
+ * Movie scene object manager used by Sequencer.
  */
 UCLASS(BlueprintType, MinimalAPI)
-class USequencerBindingManager
+class USequencerMovieSceneObjectManager
 	: public UObject
-	, public IMovieSceneBindingManager
+	, public IMovieSceneObjectManager
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Virtual destructor. */
-	virtual ~USequencerBindingManager();
+	virtual ~USequencerMovieSceneObjectManager();
 
 public:
 
-	// IMovieSceneBindingManager interface
+	// IMovieSceneObjectManager interface
 
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
 	virtual bool CanPossessObject(UObject& Object) const override;
-	virtual void ClearBindings() override;
 	virtual void DestroyAllSpawnedObjects(UMovieScene& MovieScene) override;
 	virtual FGuid FindObjectId(const UMovieScene& MovieScene, UObject& Object) const override;
 	virtual UObject* FindObject(const FGuid& ObjectId) const override;
@@ -40,7 +39,7 @@ protected:
 	/**
 	 * Deselect all proxy actors in the Editor.
 	 *
-	 * @todo sequencer: gmp: remove Editor dependencies from this class
+	 * @todo sequencer: remove Editor dependencies from this class
 	 */
 	SEQUENCER_API void DeselectAllActors();
 
@@ -48,6 +47,7 @@ protected:
 	 * Get the world that possessed actors belong to or where spawned actors should go.
 	 *
 	 * @return The world object.
+	 * @todo sequencer: remove Editor dependencies from this class
 	 */
 	SEQUENCER_API UWorld* GetWorld() const;
 
@@ -61,10 +61,10 @@ private:
 
 private:
 
-	/** Collection of object bindings. */
+	/** Collection of possessed objects. */
 	// @todo sequencer: gmp: need support for UStruct keys in TMap
 	UPROPERTY()
-	TMap<FString, FSequencerBinding> Bindings;
+	TMap<FString, FSequencerPossessedObject> PossessedObjects;
 	//TMap<FGuid, FSequencerBinding> Bindings;
 
 	/** The object change listener. */

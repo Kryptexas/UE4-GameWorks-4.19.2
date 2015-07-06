@@ -8,7 +8,7 @@
 /* FMovieSceneBinding interface
  *****************************************************************************/
 
-TRange<float> FMovieSceneObjectBinding::GetTimeRange() const
+TRange<float> FMovieSceneBinding::GetTimeRange() const
 {
 	TArray<TRange<float>> Bounds;
 
@@ -21,13 +21,13 @@ TRange<float> FMovieSceneObjectBinding::GetTimeRange() const
 }
 
 
-void FMovieSceneObjectBinding::AddTrack(UMovieSceneTrack& NewTrack)
+void FMovieSceneBinding::AddTrack(UMovieSceneTrack& NewTrack)
 {
 	Tracks.Add( &NewTrack );
 }
 
 
-bool FMovieSceneObjectBinding::RemoveTrack(UMovieSceneTrack& Track)
+bool FMovieSceneBinding::RemoveTrack(UMovieSceneTrack& Track)
 {
 	return (Tracks.RemoveSingle(&Track) != 0);
 }

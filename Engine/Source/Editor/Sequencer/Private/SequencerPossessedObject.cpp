@@ -1,18 +1,18 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
-#include "SequencerBinding.h"
+#include "SequencerPossessedObject.h"
 
 
-/* FSequencerBinding interface
+/* FSequencerPossessedObject interface
  *****************************************************************************/
 
-UObject* FSequencerBinding::GetBoundObject() const
+UObject* FSequencerPossessedObject::GetObject() const
 {
 	// get component-less object
 	if (ComponentName.IsEmpty())
 	{
-		return Object;
+		return ObjectOrOwner.Get();
 	}
 
 	// get cached component
@@ -24,14 +24,21 @@ UObject* FSequencerBinding::GetBoundObject() const
 	CachedComponent = nullptr;
 
 	// find & cache component
-	AActor* Actor = Cast<AActor>(Object);
+	UObject* Object = ObjectOrOwner.Get();
 
-	if (Actor == nullptr)
+	if (Object == nullptr)
+	{
+		return nullptr;
+	}
+
+	AActor* Owner = Cast<AActor>(Object);
+
+	if (Owner == nullptr)
 	{
 		return Object;
 	}
 
-	for (UActorComponent* ActorComponent : Actor->GetComponents())
+	for (UActorComponent* ActorComponent : Owner->GetComponents())
 	{
 		if (ActorComponent->GetName() == ComponentName)
 		{

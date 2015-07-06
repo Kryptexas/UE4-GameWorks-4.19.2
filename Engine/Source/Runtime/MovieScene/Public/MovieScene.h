@@ -7,7 +7,7 @@
 
 
 class UBlueprint;
-class UMovieSceneBindingManager;
+class UMovieSceneObjectManager;
 class UMovieSceneSection;
 class UMovieSceneTrack;
 
@@ -354,21 +354,21 @@ public:
 public:
 
 	/**
-	 * Get the movie scene's object binding manager.
-	 *
-	 * @return The scene's binding manager.
+	 * @return All object bindings.
 	 */
-	TScriptInterface<UMovieSceneBindingManager> GetBindingManager() const
+	const TArray<FMovieSceneBinding>& GetBindings() const
 	{
-		return BindingManager;
+		return ObjectBindings;
 	}
 
 	/**
-	 * @return All object bindings.
+	 * Get the movie scene's object manager.
+	 *
+	 * @return The object manager.
 	 */
-	const TArray<FMovieSceneObjectBinding>& GetObjectBindings() const
+	TScriptInterface<UMovieSceneObjectManager> GetObjectManager() const
 	{
-		return ObjectBindings;
+		return BindingManager;
 	}
 
 	/**
@@ -396,17 +396,17 @@ public:
 protected:
 
 	/**
-	 * Removes animation data bound to a guid.
+	 * Removes animation data bound to a GUID.
 	 *
 	 * @param Guid The guid bound to animation data to remove
 	 */
-	void RemoveObjectBinding(const FGuid& Guid);
+	void RemoveBinding(const FGuid& Guid);
 
 private:
 
 	/** The object binding manager. */
 	UPROPERTY()
-	TScriptInterface<UMovieSceneBindingManager> BindingManager;
+	TScriptInterface<UMovieSceneObjectManager> BindingManager;
 
 	/**
 	 * Data-only blueprints for all of the objects that we we're able to spawn.
@@ -422,7 +422,7 @@ private:
 
 	/** Tracks bound to possessed or spawned objects */
 	UPROPERTY()
-	TArray<FMovieSceneObjectBinding> ObjectBindings;
+	TArray<FMovieSceneBinding> ObjectBindings;
 
 	/** Master tracks which are not bound to spawned or possessed objects */
 	UPROPERTY()

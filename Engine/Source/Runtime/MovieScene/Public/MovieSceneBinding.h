@@ -12,12 +12,12 @@ class UMovieSceneTrack;
  * A set of tracks bound to runtime objects
  */
 USTRUCT()
-struct FMovieSceneObjectBinding
+struct FMovieSceneBinding
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Default constructor. */
-	FMovieSceneObjectBinding() { }
+	FMovieSceneBinding() { }
 
 	/**
 	 * Creates and initializes a new instance.
@@ -26,7 +26,7 @@ struct FMovieSceneObjectBinding
 	 * @param InBindingName
 	 * @param InTracks
 	 */
-	FMovieSceneObjectBinding(const FGuid& InObjectGuid, const FString& InBindingName, const TArray<UMovieSceneTrack*>& InTracks)
+	FMovieSceneBinding(const FGuid& InObjectGuid, const FString& InBindingName, const TArray<UMovieSceneTrack*>& InTracks)
 		: ObjectGuid(InObjectGuid)
 		, BindingName(InBindingName)
 		, Tracks(InTracks)
@@ -38,7 +38,7 @@ struct FMovieSceneObjectBinding
 	 * @param InObjectGuid
 	 * @param InBindingName
 	 */
-	FMovieSceneObjectBinding(const FGuid& InObjectGuid, const FString& InBindingName)
+	FMovieSceneBinding(const FGuid& InObjectGuid, const FString& InBindingName)
 		: ObjectGuid(InObjectGuid)
 		, BindingName(InBindingName)
 	{ }

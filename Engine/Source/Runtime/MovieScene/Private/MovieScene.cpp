@@ -39,7 +39,7 @@ FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UOb
 	Spawnables.Add( NewSpawnable );
 
 	// Add a new binding so that tracks can be added to it
-	new (ObjectBindings) FMovieSceneObjectBinding( NewSpawnable.GetGuid(), NewSpawnable.GetName() );
+	new (ObjectBindings) FMovieSceneBinding( NewSpawnable.GetGuid(), NewSpawnable.GetName() );
 
 	return NewSpawnable.GetGuid();
 }
@@ -65,7 +65,7 @@ bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 					Blueprint->MarkPendingKill();
 				}
 
-				RemoveObjectBinding( Guid );
+				RemoveBinding( Guid );
 
 				// Found it!
 				Spawnables.RemoveAt( SpawnableIter.GetIndex() );
@@ -138,7 +138,7 @@ FGuid UMovieScene::AddPossessable( const FString& Name, UClass* Class )
 	Possessables.Add( NewPossessable );
 
 	// Add a new binding so that tracks can be added to it
-	new (ObjectBindings) FMovieSceneObjectBinding( NewPossessable.GetGuid(), NewPossessable.GetName() );
+	new (ObjectBindings) FMovieSceneBinding( NewPossessable.GetGuid(), NewPossessable.GetName() );
 
 	return NewPossessable.GetGuid();
 }
@@ -159,7 +159,7 @@ bool UMovieScene::RemovePossessable( const FGuid& PossessableGuid )
 			// Found it!
 			Possessables.RemoveAt( PossesableIter.GetIndex() );
 
-			RemoveObjectBinding( PossessableGuid );
+			RemoveBinding( PossessableGuid );
 
 			bAnythingRemoved = true;
 			break;
@@ -224,8 +224,8 @@ TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 	// Add all object binding sections
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
-		const FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[ObjectBindingIndex];
-		const TArray<UMovieSceneTrack*>& Tracks = ObjectBinding.GetTracks();
+		const FMovieSceneBinding& Binding = ObjectBindings[ObjectBindingIndex];
+		const TArray<UMovieSceneTrack*>& Tracks = Binding.GetTracks();
 
 		for( int32 TrackIndex = 0; TrackIndex < Tracks.Num(); ++TrackIndex )
 		{
@@ -236,7 +236,7 @@ TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 	return OutSections;
 }
 
-void UMovieScene::RemoveObjectBinding( const FGuid& Guid )
+void UMovieScene::RemoveBinding( const FGuid& Guid )
 {
 	// Update each type
 	for( int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex )
@@ -258,11 +258,11 @@ UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackCla
 	
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
-		const FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[ObjectBindingIndex];
+		const FMovieSceneBinding& Binding = ObjectBindings[ObjectBindingIndex];
 
-		if( ObjectBinding.GetObjectGuid() == ObjectGuid ) 
+		if( Binding.GetObjectGuid() == ObjectGuid ) 
 		{
-			const TArray<UMovieSceneTrack*>& Tracks = ObjectBinding.GetTracks();
+			const TArray<UMovieSceneTrack*>& Tracks = Binding.GetTracks();
 			for( int32 TrackIndex = 0; TrackIndex < Tracks.Num(); ++TrackIndex )
 			{
 				UMovieSceneTrack* Track = Tracks[TrackIndex];
@@ -286,15 +286,15 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
-		FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[ObjectBindingIndex];
+		FMovieSceneBinding& Binding = ObjectBindings[ObjectBindingIndex];
 
-		if( ObjectBinding.GetObjectGuid() == ObjectGuid ) 
+		if( Binding.GetObjectGuid() == ObjectGuid ) 
 		{
 			Modify();
 
 			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
 			
-			ObjectBinding.AddTrack( *CreatedType );
+			Binding.AddTrack( *CreatedType );
 		}
 	}
 
@@ -307,9 +307,9 @@ bool UMovieScene::RemoveTrack( UMovieSceneTrack* Track )
 	bool bAnythingRemoved = false;
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
-		FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[ObjectBindingIndex];
+		FMovieSceneBinding& Binding = ObjectBindings[ObjectBindingIndex];
 
-		if( ObjectBinding.RemoveTrack( *Track ) )
+		if( Binding.RemoveTrack( *Track ) )
 		{
 			bAnythingRemoved = true;
 			// The track was removed from the current binding, stop searching now as it cannot exist in any other binding

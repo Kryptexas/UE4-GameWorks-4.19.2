@@ -45,10 +45,10 @@ void FSequencerNodeTree::Update()
 	}
 
 
-	const TArray<FMovieSceneObjectBinding>& ObjectBindings = MovieScene->GetObjectBindings();
+	const TArray<FMovieSceneBinding>& Bindings = MovieScene->GetBindings();
 
 	// Make nodes for all object bindings
-	for( const FMovieSceneObjectBinding& Binding : ObjectBindings )
+	for( const FMovieSceneBinding& Binding : Bindings )
 	{
 		TSharedRef<FObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), NewRootNodes );
 

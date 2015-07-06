@@ -3,7 +3,7 @@
 #pragma once
 
 
-class UMovieSceneBindingManager;
+class UMovieSceneObjectManager;
 class UMovieSceneTrack;
 
 
@@ -45,13 +45,6 @@ public:
 	MOVIESCENE_API void RefreshInstance(class IMovieScenePlayer& Player);
 
 	/**
-	 * Get the movie scene's object binding manager.
-	 *
-	 * @return The scene's binding manager.
-	 */
-	TScriptInterface<UMovieSceneBindingManager> GetBindingManager() const;
-
-	/**
 	 * Get the movie scene associated with this instance.
 	 *
 	 * @return The movie scene object.
@@ -73,6 +66,13 @@ public:
 	{
 		return TimeRange;
 	}
+
+	/**
+	 * Get the movie scene's object manager.
+	 *
+	 * @return The object manager.
+	 */
+	TScriptInterface<UMovieSceneObjectManager> GetObjectManager() const;
 
 protected:
 

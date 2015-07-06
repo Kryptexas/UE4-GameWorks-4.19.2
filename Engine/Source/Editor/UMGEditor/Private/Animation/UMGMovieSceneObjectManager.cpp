@@ -2,7 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "MovieScene.h"
-#include "UMGBindingManager.h"
+#include "UMGMovieSceneObjectManager.h"
 #include "Animation/WidgetAnimation.h"
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintEditor.h"
@@ -14,7 +14,7 @@
 /* UUMGBindingManager structors
  *****************************************************************************/
 
-UUMGBindingManager::UUMGBindingManager(const FObjectInitializer& ObjectInitializer)
+UUMGMovieSceneObjectManager::UUMGMovieSceneObjectManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, WidgetAnimation(nullptr)
 	, WidgetBlueprintEditor(nullptr)
@@ -24,7 +24,7 @@ UUMGBindingManager::UUMGBindingManager(const FObjectInitializer& ObjectInitializ
 /* UUMGBindingManager interface
  *****************************************************************************/
 
-void UUMGBindingManager::InitPreviewObjects()
+void UUMGMovieSceneObjectManager::InitPreviewObjects()
 {
 	if ((WidgetAnimation == nullptr) || (WidgetBlueprintEditor == nullptr))
 	{
@@ -66,15 +66,15 @@ void UUMGBindingManager::InitPreviewObjects()
 }
 
 
-void UUMGBindingManager::BindWidgetBlueprintEditor(FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation)
+void UUMGMovieSceneObjectManager::BindWidgetBlueprintEditor(FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation)
 {
 	WidgetAnimation = &InAnimation;
 	WidgetBlueprintEditor = &InWidgetBlueprintEditor;
-	WidgetBlueprintEditor->GetOnWidgetPreviewUpdated().AddUObject(this, &UUMGBindingManager::HandleWidgetPreviewUpdated);
+	WidgetBlueprintEditor->GetOnWidgetPreviewUpdated().AddUObject(this, &UUMGMovieSceneObjectManager::HandleWidgetPreviewUpdated);
 }
 
 
-void UUMGBindingManager::UnbindWidgetBlueprintEditor()
+void UUMGMovieSceneObjectManager::UnbindWidgetBlueprintEditor()
 {
 	if (WidgetBlueprintEditor != nullptr)
 	{
@@ -84,16 +84,16 @@ void UUMGBindingManager::UnbindWidgetBlueprintEditor()
 
 
 
-/* IMovieSceneBindingManager interface
+/* IMovieSceneObjectManager interface
  *****************************************************************************/
 
-bool UUMGBindingManager::AllowsSpawnableObjects() const
+bool UUMGMovieSceneObjectManager::AllowsSpawnableObjects() const
 {
 	return false;
 }
 
 
-void UUMGBindingManager::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
+void UUMGMovieSceneObjectManager::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
 	if (WidgetAnimation == nullptr)
 	{
@@ -134,7 +134,7 @@ void UUMGBindingManager::BindPossessableObject(const FGuid& ObjectId, UObject& P
 }
 
 
-bool UUMGBindingManager::CanPossessObject(UObject& Object) const
+bool UUMGMovieSceneObjectManager::CanPossessObject(UObject& Object) const
 {
 	if (WidgetBlueprintEditor == nullptr)
 	{
@@ -156,13 +156,7 @@ bool UUMGBindingManager::CanPossessObject(UObject& Object) const
 }
 
 
-void UUMGBindingManager::ClearBindings()
-{
-	 // @todo sequencer: clear UMG bindings?
-}
-
-
-FGuid UUMGBindingManager::FindObjectId(const UMovieScene& MovieScene, UObject& Object) const
+FGuid UUMGMovieSceneObjectManager::FindObjectId(const UMovieScene& MovieScene, UObject& Object) const
 {
 	UPanelSlot* Slot = Cast<UPanelSlot>(&Object);
 
@@ -176,7 +170,7 @@ FGuid UUMGBindingManager::FindObjectId(const UMovieScene& MovieScene, UObject& O
 }
 
 
-UObject* UUMGBindingManager::FindObject(const FGuid& ObjectId) const
+UObject* UUMGMovieSceneObjectManager::FindObject(const FGuid& ObjectId) const
 {
 	TWeakObjectPtr<UObject> PreviewObject = IdToPreviewObjects.FindRef(ObjectId);
 
@@ -196,7 +190,7 @@ UObject* UUMGBindingManager::FindObject(const FGuid& ObjectId) const
 }
 
 
-bool UUMGBindingManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
+bool UUMGMovieSceneObjectManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
 {
 	// TODO: This gets called every frame for every bound object and could
 	// be a potential performance issue for a really complicated animation.
@@ -227,7 +221,7 @@ bool UUMGBindingManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& O
 }
 
 
-void UUMGBindingManager::UnbindPossessableObjects(const FGuid& ObjectId)
+void UUMGMovieSceneObjectManager::UnbindPossessableObjects(const FGuid& ObjectId)
 {
 	// unbind widgets
 	TArray<TWeakObjectPtr<UObject>> PreviewObjects;
@@ -267,7 +261,7 @@ void UUMGBindingManager::UnbindPossessableObjects(const FGuid& ObjectId)
 /* UUMGBindingManager event handlers
  *****************************************************************************/
 
-void UUMGBindingManager::HandleWidgetPreviewUpdated()
+void UUMGMovieSceneObjectManager::HandleWidgetPreviewUpdated()
 {
 	PreviewObjectToIds.Empty();
 	IdToPreviewObjects.Empty();

@@ -3,27 +3,27 @@
 #include "SequencerPrivatePCH.h"
 #include "MovieScene.h"
 #include "MovieSceneInstance.h"
-#include "SequencerBinding.h"
-#include "SequencerBindingManager.h"
+#include "SequencerMovieSceneObjectManager.h"
+#include "SequencerPossessedObject.h"
 
 // @todo sequencer: gmp: refactor these dependencies into another module
 #include "ModuleManager.h"
 #include "LevelEditor.h"
 
 
-/* USequencerBindingManager structors
+/* USequencerMovieSceneObjectManager structors
  *****************************************************************************/
 
-USequencerBindingManager::USequencerBindingManager(const FObjectInitializer& ObjectInitializer)
+USequencerMovieSceneObjectManager::USequencerMovieSceneObjectManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	//, ObjectChangeListener(InObjectChangeListener)
 {
 	// @todo sequencer: gmp: initialize ObjectChangeListener
-	//ObjectChangeListener->GetOnPropagateObjectChanges().AddUObject(this, &USequencerBindingManager::HandlePropagateObjectChanges);
+	//ObjectChangeListener->GetOnPropagateObjectChanges().AddUObject(this, &USequencerMovieSceneObjectManager::HandlePropagateObjectChanges);
 }
 
 
-USequencerBindingManager::~USequencerBindingManager()
+USequencerMovieSceneObjectManager::~USequencerMovieSceneObjectManager()
 {
 	if (ObjectChangeListener.IsValid())
 	{
@@ -32,16 +32,16 @@ USequencerBindingManager::~USequencerBindingManager()
 }
 
 
-/* IMovieSceneBindingManager interface
+/* IMovieSceneObjectManager interface
  *****************************************************************************/
 
-bool USequencerBindingManager::AllowsSpawnableObjects() const
+bool USequencerMovieSceneObjectManager::AllowsSpawnableObjects() const
 {
 	return true;
 }
 
 
-void USequencerBindingManager::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
+void USequencerMovieSceneObjectManager::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
 	FString ComponentName;
 	UActorComponent* Component = Cast<UActorComponent>(&PossessedObject);
@@ -49,31 +49,25 @@ void USequencerBindingManager::BindPossessableObject(const FGuid& ObjectId, UObj
 	if (Component != nullptr)
 	{
 		// @todo sequencer: gmp: need support for UStruct keys in TMap
-		Bindings.Add(ObjectId.ToString(), FSequencerBinding(PossessedObject.GetOuter(), ComponentName));
-		//Bindings.Add(ObjectId, FSequencerBinding(PossessedObject.GetOuter(), ComponentName));
+		PossessedObjects.Add(ObjectId.ToString(), FSequencerPossessedObject(PossessedObject.GetOuter(), ComponentName));
+		//PossessedObjects.Add(ObjectId, FSequencerPossessedObject(PossessedObject.GetOuter(), ComponentName));
 	}
 	else
 	{
 		// @todo sequencer: gmp: need support for UStruct keys in TMap
-		Bindings.Add(ObjectId.ToString(), FSequencerBinding(&PossessedObject));
-		//Bindings.Add(ObjectId, FSequencerBinding(Actor));
+		PossessedObjects.Add(ObjectId.ToString(), FSequencerPossessedObject(&PossessedObject));
+		//PossessedObjects.Add(ObjectId, FSequencerPossessedObject(Actor));
 	}
 }
 
 
-bool USequencerBindingManager::CanPossessObject(UObject& Object) const
+bool USequencerMovieSceneObjectManager::CanPossessObject(UObject& Object) const
 {
 	return Object.IsA<AActor>();
 }
 
 
-void USequencerBindingManager::ClearBindings()
-{
-	Bindings.Empty();
-}
-
-
-void USequencerBindingManager::DestroyAllSpawnedObjects(UMovieScene& MovieScene)
+void USequencerMovieSceneObjectManager::DestroyAllSpawnedObjects(UMovieScene& MovieScene)
 {
 	const bool DestroyAll = true;
 	SpawnOrDestroyObjects(&MovieScene, DestroyAll);
@@ -81,17 +75,17 @@ void USequencerBindingManager::DestroyAllSpawnedObjects(UMovieScene& MovieScene)
 }
 
 
-FGuid USequencerBindingManager::FindObjectId(const UMovieScene& MovieScene, UObject& Object) const
+FGuid USequencerMovieSceneObjectManager::FindObjectId(const UMovieScene& MovieScene, UObject& Object) const
 {
 	// search bindings (possessables)
-	for (auto BindingPair : Bindings)
+	for (auto PossessedObjectPair : PossessedObjects)
 	{
-		const FSequencerBinding& Binding = BindingPair.Value;
+		const FSequencerPossessedObject& PossessedObject = PossessedObjectPair.Value;
 
-		if (Binding.GetBoundObject() == &Object)
+		if (PossessedObject.GetObject() == &Object)
 		{
-			FGuid Result; FGuid::Parse(BindingPair.Key, Result); return Result;
-			//return BindingPair.Key;
+			FGuid Result; FGuid::Parse(PossessedObjectPair.Key, Result); return Result;
+			//return PossessedObjectsPair.Key;
 		}
 	}
 
@@ -132,16 +126,16 @@ FGuid USequencerBindingManager::FindObjectId(const UMovieScene& MovieScene, UObj
 }
 
 
-UObject* USequencerBindingManager::FindObject(const FGuid& ObjectId) const
+UObject* USequencerMovieSceneObjectManager::FindObject(const FGuid& ObjectId) const
 {
 	// search bindings (possessables)
 	// @todo sequencer: gmp: need support for UStruct keys in TMap
-	const FSequencerBinding* Binding = Bindings.Find(ObjectId.ToString());
-	//const FSequencerBinding* Binding = Bindings.Find(ObjectId);
+	const FSequencerPossessedObject* PossessedObject = PossessedObjects.Find(ObjectId.ToString());
+	//const FSequencerPossessedObject* PossessedObject = PossessedObjects.Find(ObjectId);
 
-	if (Binding != nullptr)
+	if (PossessedObject != nullptr)
 	{
-		return Binding->GetBoundObject();
+		return PossessedObject->GetObject();
 	}
 
 	// search proxies (spawnables)
@@ -157,7 +151,7 @@ UObject* USequencerBindingManager::FindObject(const FGuid& ObjectId) const
 }
 
 
-void USequencerBindingManager::SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll)
+void USequencerMovieSceneObjectManager::SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll)
 {
 	bool bAnyLevelActorsChanged = false;
 
@@ -296,7 +290,7 @@ void USequencerBindingManager::SpawnOrDestroyObjects(UMovieScene* MovieScene, bo
 }
 
 
-bool USequencerBindingManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
+bool USequencerMovieSceneObjectManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
 {
 	UObject* Object = FindObject(ObjectId);
 
@@ -318,18 +312,18 @@ bool USequencerBindingManager::TryGetObjectDisplayName(const FGuid& ObjectId, FT
 }
 
 
-void USequencerBindingManager::UnbindPossessableObjects(const FGuid& ObjectId)
+void USequencerMovieSceneObjectManager::UnbindPossessableObjects(const FGuid& ObjectId)
 {
 	// @todo sequencer: gmp: need support for UStruct keys in TMap
-	Bindings.Remove(ObjectId.ToString());
-	//Bindings.Remove(ObjectId);
+	PossessedObjects.Remove(ObjectId.ToString());
+	//PossessedObjects.Remove(ObjectId);
 }
 
 
-/* USequencerBindingManager implementation
+/* USequencerMovieSceneObjectManager implementation
  *****************************************************************************/
 
-void USequencerBindingManager::DeselectAllActors()
+void USequencerMovieSceneObjectManager::DeselectAllActors()
 {
 	USelection* Selection = GEditor->GetSelectedActors();
 	{
@@ -351,7 +345,7 @@ void USequencerBindingManager::DeselectAllActors()
 }
 
 
-UWorld* USequencerBindingManager::GetWorld() const
+UWorld* USequencerMovieSceneObjectManager::GetWorld() const
 {
 	if (FModuleManager::Get().IsModuleLoaded("LevelEditor"))
 	{
@@ -364,10 +358,10 @@ UWorld* USequencerBindingManager::GetWorld() const
 }
 
 
-/* USequencerBindingManager internals
+/* USequencerMovieSceneObjectManager internals
  *****************************************************************************/
 
-void USequencerBindingManager::HandlePropagateObjectChanges(UObject* Object)
+void USequencerMovieSceneObjectManager::HandlePropagateObjectChanges(UObject* Object)
 {
 	if (Object == nullptr)
 	{
@@ -399,7 +393,7 @@ void USequencerBindingManager::HandlePropagateObjectChanges(UObject* Object)
 }
 
 
-void USequencerBindingManager::PropagateActorChanges(const FGuid& ObjectId, AActor* Actor)
+void USequencerMovieSceneObjectManager::PropagateActorChanges(const FGuid& ObjectId, AActor* Actor)
 {
 	if (Actor == nullptr)
 	{
