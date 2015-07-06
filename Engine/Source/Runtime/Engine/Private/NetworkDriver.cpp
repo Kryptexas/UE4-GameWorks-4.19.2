@@ -707,6 +707,13 @@ void UNetDriver::InternalProcessRemoteFunction
 		Connection = ((UChildConnection*)Connection)->Parent;
 	}
 
+	// Prevent RPC calls to closed connections
+	if (Connection->State == USOCK_Closed)
+	{
+		DEBUG_REMOTEFUNCTION(TEXT("Attempting to call RPC on a closed connection. Not calling %s::%s"), *Actor->GetName(), *Function->GetName());
+		return;
+	}
+
 	// If we have a subobject, thats who we are actually calling this on. If no subobject, we are calling on the actor.
 	UObject* TargetObj = SubObject ? SubObject : Actor;
 
