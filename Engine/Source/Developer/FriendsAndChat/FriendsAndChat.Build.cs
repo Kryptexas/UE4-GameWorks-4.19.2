@@ -60,7 +60,6 @@ public class FriendsAndChat : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"EditorStyle",
-				"OnlineSubsystem"
 			}
 		);
 
@@ -83,13 +82,6 @@ public class FriendsAndChat : ModuleRules
 			);	
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"OnlineSubsystemMcp",
-				}
-			);
-		
-			DynamicallyLoadedModuleNames.AddRange(
 				new string[]
 				{
 					"OnlineSubsystemMcp",

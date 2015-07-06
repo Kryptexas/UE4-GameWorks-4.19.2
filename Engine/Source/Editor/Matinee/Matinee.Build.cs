@@ -49,7 +49,6 @@ public class Matinee : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
-                "ContentBrowser"
 				}
 			);
 	}

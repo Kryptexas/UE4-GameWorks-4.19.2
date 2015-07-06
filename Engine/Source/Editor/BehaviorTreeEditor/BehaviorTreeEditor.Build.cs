@@ -53,7 +53,6 @@ public class BehaviorTreeEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
             new string[] { 
                 "WorkspaceMenuStructure",
-                "PropertyEditor",
 				"AssetTools",
 				"AssetRegistry",
 				"ContentBrowser"

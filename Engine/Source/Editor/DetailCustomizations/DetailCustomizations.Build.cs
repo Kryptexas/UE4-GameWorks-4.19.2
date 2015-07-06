@@ -62,7 +62,6 @@ public class DetailCustomizations : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"Layers",
-				"PropertyEditor",
 				"GameProjectGeneration",
 			}
 		);

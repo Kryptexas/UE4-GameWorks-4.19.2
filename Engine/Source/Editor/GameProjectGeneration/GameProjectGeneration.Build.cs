@@ -53,7 +53,6 @@ public class GameProjectGeneration : ModuleRules
             new string[] {
 				"AssetRegistry",
 				"ContentBrowser",
-                "DesktopPlatform",
                 "Documentation",
                 "MainFrame",
             }

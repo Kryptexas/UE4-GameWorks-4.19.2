@@ -49,7 +49,6 @@ public class MovieSceneTools : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
-				"Sequencer",
 				"PropertyEditor"
 			}
 		);

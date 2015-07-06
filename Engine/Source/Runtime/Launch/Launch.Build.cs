@@ -71,7 +71,6 @@ public class Launch : ModuleRules
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
 			        "SlateRHIRenderer",
-					"HeadMountedDisplay"
 		        }
             );
         }
@@ -129,7 +128,6 @@ public class Launch : ModuleRules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"AutomationController",
-					"AutomationWorker",
 					"AutomationWindow",
 					"ProfilerClient",
 					"Toolbox",

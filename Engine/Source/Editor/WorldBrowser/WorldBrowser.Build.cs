@@ -55,7 +55,6 @@ public class WorldBrowser : ModuleRules
 				"SceneOutliner",
                 "MeshUtilities",
                 "ContentBrowser",
-                "ImageWrapper",
 			}
 		);
     }

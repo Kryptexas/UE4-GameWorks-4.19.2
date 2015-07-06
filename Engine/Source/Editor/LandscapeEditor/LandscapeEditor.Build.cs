@@ -38,7 +38,6 @@ public class LandscapeEditor : ModuleRules
 			new string[] {
 				"MainFrame",
 				"DesktopPlatform",
-				"ImageWrapper",
 			}
 			);
 

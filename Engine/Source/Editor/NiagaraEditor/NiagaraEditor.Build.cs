@@ -46,7 +46,6 @@ public class NiagaraEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
             new string[] {
                 "WorkspaceMenuStructure",
-				"PropertyEditor",
                 }
             );
 	}

@@ -52,8 +52,6 @@ public class TranslationEditor : ModuleRules
 			new string[] {
 				"WorkspaceMenuStructure",
 				"DesktopPlatform",
-				"SourceControl",
-                "LocalizationService",
 			}
 		);
 	}

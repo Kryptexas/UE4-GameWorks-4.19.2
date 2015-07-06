@@ -55,14 +55,5 @@ public class UMGEditor : ModuleRules
 				"RenderCore",
 			}
 			);
-
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[] {
-				"PropertyEditor",
-				"AssetTools",
-				"UMG",
-				"Sequencer",
-			}
-			);
 	}
 }

@@ -55,7 +55,6 @@ public class AssetTools : ModuleRules
 				"AssetRegistry",
 				"ContentBrowser",
 				"CollectionManager",
-                "CurveAssetEditor",
 				"CurveTableEditor",
 				"DataTableEditor",
 				"DesktopPlatform",

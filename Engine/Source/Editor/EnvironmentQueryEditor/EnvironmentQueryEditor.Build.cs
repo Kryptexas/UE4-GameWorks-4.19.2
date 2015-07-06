@@ -49,7 +49,6 @@ public class EnvironmentQueryEditor : ModuleRules
         DynamicallyLoadedModuleNames.AddRange(
             new string[] { 
                 "WorkspaceMenuStructure",
-                "PropertyEditor"
             }
 		);
 	}

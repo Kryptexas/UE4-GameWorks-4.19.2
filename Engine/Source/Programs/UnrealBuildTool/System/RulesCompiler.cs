@@ -1590,7 +1590,13 @@ namespace UnrealBuildTool
 				{
 					if (RulesObject.PrivateAssemblyReferences.Count > 0)
 					{
-						throw new BuildException("Module rules for '{0}' may not specify PrivateAssemblyReferences unless it is a CPlusPlusCLR module type.", AssemblyFileName);
+						throw new BuildException("Module rules for '{0}' may not specify PrivateAssemblyReferences unless it is a CPlusPlusCLR module type.", ModuleName);
+					}
+
+					var InvalidDependencies = RulesObject.DynamicallyLoadedModuleNames.Intersect(RulesObject.PublicDependencyModuleNames.Concat(RulesObject.PrivateDependencyModuleNames)).ToList();
+					if (InvalidDependencies.Count != 0)
+					{
+						throw new BuildException("Module rules for '{0}' should not be dependent on modules which are also dynamically loaded: {1}", ModuleName, String.Join(", ", InvalidDependencies));
 					}
 
 					// Choose code optimization options based on module type (game/engine) if
