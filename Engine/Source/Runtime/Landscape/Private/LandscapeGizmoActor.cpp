@@ -652,8 +652,9 @@ void ALandscapeGizmoActiveActor::SetTargetLandscape(ULandscapeInfo* LandscapeInf
 		SetLength(LengthZ);
 		SetActorLocation( NewLocation, false );
 		SetActorRotation(FRotator::ZeroRotator);
-		ReregisterAllComponents();
 	}
+
+	ReregisterAllComponents();
 }
 
 void ALandscapeGizmoActiveActor::ClearGizmoData()
