@@ -97,7 +97,7 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 
 	// parse output & errors
 	TArray<FString> Errors;
-	StdError.ParseIntoArray(Errors, TEXT("\r\n"), true);
+	StdError.ParseIntoArray(Errors, LINE_TERMINATOR, true);
 	OutErrorMessages.Append(MoveTemp(Errors));
 
 	return ReturnCode == 0;
@@ -154,7 +154,7 @@ bool RunAtomicCommand(const FString& InCommand, const TArray<FString>& InFiles, 
 	FString Results;
 	if( RunCommandInternal(InCommand, InFiles, InParameters, Results, OutErrorMessages, UserName, Password) )
 	{
-		Results.ParseIntoArray(OutResults, TEXT("\r\n"), true);
+		Results.ParseIntoArray(OutResults, LINE_TERMINATOR, true);
 		return true;
 	}
 	return false;
@@ -178,14 +178,14 @@ bool RunCommand(const FString& InCommand, const TArray<FString>& InFiles, const 
 
 			FString Results;
 			bResult &= RunCommandInternal(InCommand, FilesInBatch, InParameters, Results, OutErrorMessages, UserName, Password);
-			Results.ParseIntoArray(OutResults, TEXT("\r\n"), true);
+			Results.ParseIntoArray(OutResults, LINE_TERMINATOR, true);
 		}
 	}
 	else
 	{
 		FString Results;
 		bResult &= RunCommandInternal(InCommand, InFiles, InParameters, Results, OutErrorMessages, UserName, Password);
-		Results.ParseIntoArray(OutResults, TEXT("\r\n"), true);
+		Results.ParseIntoArray(OutResults, LINE_TERMINATOR, true);
 	}
 
 	return bResult;
