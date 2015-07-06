@@ -2031,8 +2031,10 @@ bool UActorChannel::ReplicateActor()
 {
 	SCOPE_CYCLE_COUNTER(STAT_NetReplicateActorsTime);
 
-	checkSlow(Actor);
-	checkSlow(!Closing);
+	check(Actor);
+	check(!Closing);
+	check(Connection);
+	check(Connection->PackageMap);
 
 	// The package map shouldn't have any carry over guids
 	if ( CastChecked< UPackageMapClient >( Connection->PackageMap )->GetMustBeMappedGuidsInLastBunch().Num() != 0 )
