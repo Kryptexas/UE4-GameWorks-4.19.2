@@ -681,10 +681,10 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 }
 #endif
 
+DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_PreInit_AfterStats, STATGROUP_LoadTime );
+
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Engine Pre-Initialized"), STAT_PreInit, STATGROUP_LoadTime);
-
 	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
 	{
 		FPlatformMisc::SetUTF8Output();
@@ -925,7 +925,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if (bHasCommandletToken)
 		{
 #if STATS
-			FThreadStats::MasterDisableForever();
+			// Leave the stats enabled.
+			if (!FStats::HasStatsForCommandletsToken())
+			{
+				FThreadStats::MasterDisableForever();
+			}
 #endif
 			if (Token.StartsWith(TEXT("run=")))
 			{
@@ -982,7 +986,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (bHasCommandletToken)
 	{
 #if STATS
-		FThreadStats::MasterDisableForever();
+		// Leave the stats enabled.
+		if (!FStats::HasStatsForCommandletsToken())
+		{
+			FThreadStats::MasterDisableForever();
+		}
 #endif
 		if (Token.StartsWith(TEXT("run=")))
 		{
@@ -1057,7 +1065,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FThreadStats::StartThread();
 #endif
 
-	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_PreInit_AfterStats, STATGROUP_LoadTime );
+	FScopeCycleCounter CycleCount_AfterStats( GET_STATID( STAT_FEngineLoop_PreInit_AfterStats ) );
 
 	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
 	LoadCoreModules();
@@ -1601,8 +1609,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
-			Commandlet->ParseParms( CommandletCommandLine );
+			Commandlet->ParseParms( CommandletCommandLine ); 
+			// We have to close the scope, otherwise we will end with broken stats.
+			CycleCount_AfterStats.StopAndResetStatId();
+			FStats::TickCommandletStats();
 			int32 ErrorLevel = Commandlet->Main( CommandletCommandLine );
+			FStats::TickCommandletStats();
 
 			// Log warning/ error summary.
 			if( Commandlet->ShowErrorCount )
@@ -2532,7 +2544,7 @@ void FEngineLoop::Tick()
 		const FCPUTime CPUTime = FPlatformTime::GetCPUTime();
 		SET_FLOAT_STAT( STAT_CPUTimePct, CPUTime.CPUTimePct );
 		SET_FLOAT_STAT( STAT_CPUTimePctRelative, CPUTime.CPUTimePctRelative );
-	} 
+	}
 }
 
 void FEngineLoop::ClearPendingCleanupObjects()

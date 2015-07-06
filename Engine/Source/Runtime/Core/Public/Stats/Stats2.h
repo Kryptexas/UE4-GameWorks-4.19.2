@@ -61,6 +61,15 @@ struct CORE_API FStats
 	/** Advances stats for the current frame. */
 	static void AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate = FOnAdvanceRenderingThreadStats() );
 
+	/** Advances stats for commandlets, only valid if the command line has the proper token. @see HasStatsForCommandletsToken */
+	static void TickCommandletStats();
+
+	/**
+	* @return true, if the command line has the StatsForCommandlets token which enables stats in the commandlets.
+	* !!!CAUTION!!! You need to manually advanced frame in order to maintain the data integrity and not to leak the memory.
+	*/
+	static bool HasStatsForCommandletsToken();
+
 	/** Current game thread stats frame. */
 	static int32 GameThreadStatsFrame;
 };
@@ -1526,6 +1535,15 @@ public:
 				FPlatformMisc::EndNamedEvent();
 			}
 		}
+	}
+
+	/**
+	 * Stops the capturing and stores the result and resets the stat id.
+	 */
+	FORCEINLINE_STATS void StopAndResetStatId()
+	{
+		Stop();
+		StatId = NAME_None;
 	}
 };
 

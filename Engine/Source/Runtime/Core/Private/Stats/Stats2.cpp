@@ -195,6 +195,24 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 #endif
 }
 
+void FStats::TickCommandletStats()
+{
+	if (HasStatsForCommandletsToken())
+	{
+		FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
+		//check( ThreadStats->ScopeCount == 0 && TEXT( "FStats::TickCommandletStats must be called outside any scope counters" ) );
+
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle( ENamedThreads::GameThread );
+		FTicker::GetCoreTicker().Tick( 1 / 60.0f );
+
+		FStats::AdvanceFrame( false );
+	}
+}
+
+bool FStats::HasStatsForCommandletsToken()
+{
+	return FParse::Param( FCommandLine::Get(), TEXT( "StatsForCommandlets" ) );
+}
 
 /* Todo
 
@@ -1000,7 +1018,7 @@ FThreadStats::FThreadStats( EConstructor ):
 void FThreadStats::CheckEnable()
 {
 	bool bOldMasterEnable(bMasterEnable);
-	bool bNewMasterEnable( WillEverCollectData() && !IsRunningCommandlet() && IsThreadingReady() && (MasterEnableCounter.GetValue()) );
+	bool bNewMasterEnable( WillEverCollectData() && (!IsRunningCommandlet() || FStats::HasStatsForCommandletsToken()) && IsThreadingReady() && (MasterEnableCounter.GetValue()) );
 	if (bMasterEnable != bNewMasterEnable)
 	{
 		MasterDisableChangeTagLockAdd();
@@ -1228,7 +1246,7 @@ void FThreadStats::StartThread()
 
 	CheckForCollectingStartupStats();
 
-	UE_LOG( LogStats, Log, TEXT( "Stats thread started" ) );
+	UE_LOG( LogStats, Log, TEXT( "Stats thread started at %f" ), FPlatformTime::Seconds() - GStartTime );
 }
 
 static FGraphEventRef LastFramesEvents[MAX_STAT_LAG];
