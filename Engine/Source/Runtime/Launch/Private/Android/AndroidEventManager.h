@@ -58,7 +58,6 @@ private:
 	void PauseAudio();
 	void ResumeAudio();
 
-	void ExecWindowChanged();
 	void ExecWindowCreated();
 	
 	static FAppEventManager* sInstance;
@@ -75,7 +74,6 @@ private:
 	bool bCreateWindow;
 	ANativeWindow* PendingWindow;
 
-	bool bWindowChanged;
 	bool bWindowInFocus;
 	bool bSaveState;
 	bool bAudioPaused;

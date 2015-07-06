@@ -7,6 +7,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogAndroidApplication, Log, All);
 
+bool FAndroidApplication::bWindowSizeChanged = false;
+
 FAndroidApplication* FAndroidApplication::CreateAndroidApplication()
 {
 	return new FAndroidApplication();
@@ -29,6 +31,24 @@ void FAndroidApplication::PollGameDeviceState( const float TimeDelta )
 	// Poll game device state and send new events
 	InputInterface->Tick( TimeDelta );
 	InputInterface->SendControllerEvents();
+	
+	if (bWindowSizeChanged && 
+		Windows.Num() > 0 && 
+		FPlatformMisc::GetHardwareWindow() != nullptr)
+	{
+		FAndroidWindow::InvalidateCachedScreenRect();
+		FAndroidAppEntry::ReInitWindow();
+				
+		int32 WindowX,WindowY, WindowWidth,WindowHeight;
+		Windows[0]->GetFullScreenInfo(WindowX, WindowY, WindowWidth, WindowHeight);
+		GenericApplication::GetMessageHandler()->OnSizeChanged(Windows[0],WindowWidth,WindowHeight, false);
+		GenericApplication::GetMessageHandler()->OnResizingWindow(Windows[0]);
+		
+		FDisplayMetrics DisplayMetrics;
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		BroadcastDisplayMetricsChanged(DisplayMetrics);
+		bWindowSizeChanged = false;
+	}
 }
 
 FPlatformRect FAndroidApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
@@ -77,6 +97,11 @@ void FAndroidApplication::InitializeWindow( const TSharedRef< FGenericWindow >& 
 
 	Windows.Add( Window );
 	Window->Initialize( this, InDefinition, ParentWindow, bShowImmediately );
+}
+
+void FAndroidApplication::OnWindowSizeChanged()
+{
+	bWindowSizeChanged = true;
 }
 
 //////////////////////////////////////////////////////////////////////////

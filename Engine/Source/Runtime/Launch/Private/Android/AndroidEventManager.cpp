@@ -42,10 +42,10 @@ void FAppEventManager::Tick()
 			PendingWindow = (ANativeWindow*)Event.Data;
 			break;
 		case APP_EVENT_STATE_WINDOW_RESIZED:
-			bWindowChanged = true;
+			FAndroidApplication::OnWindowSizeChanged();
 			break;
 		case APP_EVENT_STATE_WINDOW_CHANGED:
-			bWindowChanged = true;
+			FAndroidApplication::OnWindowSizeChanged();
 			break;
 		case APP_EVENT_STATE_SAVE_STATE:
 			bSaveState = true; //todo android: handle save state.
@@ -111,20 +111,6 @@ void FAppEventManager::Tick()
 			}
 		}
 
-		if (bWindowChanged)
-		{
-			// wait until window is valid and created. 
-			if(FPlatformMisc::GetHardwareWindow() != NULL)
-			{
-				if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
-				{
-					ExecWindowChanged();
-					bWindowChanged = false;
-					bHaveWindow = true;
-				}
-			}
-		}
-
 		if (!bRunning && bHaveWindow && bHaveGame)
 		{
 			ResumeRendering();
@@ -186,7 +172,6 @@ void FAppEventManager::Tick()
 FAppEventManager::FAppEventManager():
 	FirstInitialized(false)
 	,bCreateWindow(false)
-	,bWindowChanged(false)
 	,bWindowInFocus(false)
 	,bSaveState(false)
 	,bAudioPaused(false)
@@ -278,18 +263,6 @@ void FAppEventManager::ExecWindowCreated()
 	PendingWindow = NULL;
 	
 	FAndroidAppEntry::ReInitWindow();
-}
-
-
-void FAppEventManager::ExecWindowChanged()
-{
-	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
-	UE_LOG(LogAndroidEvents, Display, TEXT("ExecWindowChanged : width: %u, height:  %u"), ScreenRect.Right, ScreenRect.Bottom);
-
-	if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
-	{
-		GEngine->GameViewport->ViewportFrame->ResizeFrame(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
-	}
 }
 
 

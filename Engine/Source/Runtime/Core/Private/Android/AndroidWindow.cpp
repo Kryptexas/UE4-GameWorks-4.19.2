@@ -72,6 +72,11 @@ int32 FAndroidWindow::GetDepthBufferPreference()
 	return GAndroidDepthBufferPreference;
 }
 
+void FAndroidWindow::InvalidateCachedScreenRect()
+{
+	WindowInit = false;
+}
+
 FPlatformRect FAndroidWindow::GetScreenRect()
 {
 	// CSF is a multiplier to 1280x720
@@ -208,4 +213,13 @@ void FAndroidWindow::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth,
 	const int DividableBy = 8;
 	SurfaceWidth  = ((SurfaceWidth  + DividableBy - 1) / DividableBy) * DividableBy;
 	SurfaceHeight = ((SurfaceHeight + DividableBy - 1) / DividableBy) * DividableBy;
+}
+
+void FAndroidWindow::OnWindowOrientationChanged(bool bIsPortrait)
+{
+	if (GAndroidIsPortrait != bIsPortrait)
+	{
+		UE_LOG(LogAndroid, Log, TEXT("Window orientation changed: %s"), bIsPortrait ? TEXT("Portrait") : TEXT("Landscape"));
+		GAndroidIsPortrait = bIsPortrait;
+	}
 }
