@@ -182,10 +182,6 @@ namespace GitDependencies
 				{
 					ExcludeFolders.Add("Mac");
 				}
-				if(Environment.GetEnvironmentVariable("EMSCRIPTEN") == null)
-				{
-					ExcludeFolders.Add("HTML5");
-				}
 				if(Environment.GetEnvironmentVariable("NDKROOT") == null)
 				{
 					ExcludeFolders.Add("Android");
