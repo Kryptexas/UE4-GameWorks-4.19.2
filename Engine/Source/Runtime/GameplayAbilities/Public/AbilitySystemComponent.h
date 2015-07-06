@@ -782,7 +782,8 @@ public:
 	// ----------------------------------------------------------------------------------------------------------------
 
 	virtual void BindToInputComponent(UInputComponent* InputComponent);
-	
+
+	void SetBlockAbilityBindingsArray(FGameplayAbiliyInputBinds BindInfo);
 	virtual void BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo);
 
 	virtual void AbilityLocalInputPressed(int32 InputID);
