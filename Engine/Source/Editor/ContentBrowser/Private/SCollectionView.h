@@ -283,6 +283,9 @@ private:
 	/** Delegate handle for the HandleSourceControlStateChanged function callback */
 	FDelegateHandle SourceControlStateChangedDelegateHandle;
 
+	/** True if we should queue a collection items update for the next Tick */
+	bool bQueueCollectionItemsUpdate;
+
 	/** True if we should queue an SCC refresh for the collections on the next Tick */
 	bool bQueueSCCRefresh;
 };

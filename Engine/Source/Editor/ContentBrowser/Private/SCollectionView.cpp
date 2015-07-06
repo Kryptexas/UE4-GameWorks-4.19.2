@@ -67,6 +67,8 @@ void SCollectionView::Construct( const FArguments& InArgs )
 	bAllowRightClickMenu = InArgs._AllowRightClickMenu;
 	bAllowCollectionDrag = InArgs._AllowCollectionDrag;
 	bDraggedOver = false;
+
+	bQueueCollectionItemsUpdate = false;
 	bQueueSCCRefresh = true;
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
@@ -233,41 +235,30 @@ void SCollectionView::Construct( const FArguments& InArgs )
 
 void SCollectionView::HandleCollectionCreated( const FCollectionNameType& Collection )
 {
-	UpdateCollectionItems();
+	bQueueCollectionItemsUpdate = true;
 }
 
 void SCollectionView::HandleCollectionRenamed( const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection )
 {
-	// If the original collection was expanded, we want to pass that expansion state onto its new entry
-	bool bWasExpanded = false;
-	{
-		TSharedPtr<FCollectionItem> OriginalCollectionItem = AvailableCollections.FindRef(OriginalCollection);
-		if (OriginalCollectionItem.IsValid())
-		{
-			bWasExpanded = CollectionTreePtr->IsItemExpanded(OriginalCollectionItem);
-		}
-	}
+	bQueueCollectionItemsUpdate = true;
 
-	UpdateCollectionItems();
-
-	if (bWasExpanded)
+	// Rename the item in-place so we can maintain its expansion and selection states correctly once the view is refreshed on the next Tick
+	TSharedPtr<FCollectionItem> CollectionItem = AvailableCollections.FindRef(OriginalCollection);
+	if (CollectionItem.IsValid())
 	{
-		TSharedPtr<FCollectionItem> NewCollectionItem = AvailableCollections.FindRef(NewCollection);
-		if (NewCollectionItem.IsValid())
-		{
-			CollectionTreePtr->SetItemExpansion(NewCollectionItem, true);
-		}
+		CollectionItem->CollectionName = NewCollection.Name;
+		CollectionItem->CollectionType = NewCollection.Type;
 	}
 }
 
 void SCollectionView::HandleCollectionReparented( const FCollectionNameType& Collection, const TOptional<FCollectionNameType>& OldParent, const TOptional<FCollectionNameType>& NewParent )
 {
-	UpdateCollectionItems();
+	bQueueCollectionItemsUpdate = true;
 }
 
 void SCollectionView::HandleCollectionDestroyed( const FCollectionNameType& Collection )
 {
-	UpdateCollectionItems();
+	bQueueCollectionItemsUpdate = true;
 }
 
 void SCollectionView::HandleCollectionUpdated( const FCollectionNameType& Collection )
@@ -720,6 +711,12 @@ void SCollectionView::LoadSettings(const FString& IniFilename, const FString& In
 void SCollectionView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if (bQueueCollectionItemsUpdate)
+	{
+		bQueueCollectionItemsUpdate = false;
+		UpdateCollectionItems();
+	}
 
 	if (bQueueSCCRefresh && ISourceControlModule::Get().IsEnabled())
 	{
