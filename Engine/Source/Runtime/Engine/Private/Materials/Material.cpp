@@ -32,6 +32,8 @@
 #include "ShaderCompiler.h"
 #include "Materials/MaterialParameterCollection.h"
 #if WITH_EDITOR
+#include "MessageLog.h"
+#include "UObjectToken.h"
 #include "UnrealEd.h"
 #include "SlateBasics.h"  // For AddNotification
 #include "SNotificationList.h"
@@ -1024,7 +1026,20 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 
 			// Mark the package dirty so that hopefully it will be saved with the new usage flag.
 			// This is important because the only way an artist can fix an infinite 'compile on load' scenario is by saving with the new usage flag
-			MarkPackageDirty();
+			if (!MarkPackageDirty())
+			{
+#if WITH_EDITOR
+				// The package could not be marked as dirty as we're loading content in the editor. Add a Map Check error to notify the user.
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("Material"), FText::FromString(*GetPathName()));
+				Arguments.Add(TEXT("Usage"), FText::FromString(*GetUsageName(Usage)));
+				FMessageLog("MapCheck").Warning()
+					->AddToken(FUObjectToken::Create(this))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_SetMaterialUsage", "Material {Material} was missing the usage flag {Usage}. If the material asset is not re-saved, it may not render correctly when run outside the editor."), Arguments)))
+					->AddToken(FActionToken::Create(LOCTEXT("MapCheck_FixMaterialUsage", "Fix"), LOCTEXT("MapCheck_FixMaterialUsage_Desc", "Click to set the usage flag correctly and mark the asset file as needing to be saved."), FOnActionTokenExecuted::CreateUObject(this, &UMaterial::FixupMaterialUsageAfterLoad), true));
+				FMessageLog("MapCheck").Open(EMessageSeverity::Warning);
+#endif
+			}
 		}
 		else
 		{
@@ -1060,6 +1075,14 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	}
 	return true;
 }
+
+#if WITH_EDITOR
+void UMaterial::FixupMaterialUsageAfterLoad()
+{
+	// All we need to do here is mark the package dirty as the usage itself was set on load.
+	MarkPackageDirty();
+}
+#endif
 
 void UMaterial::GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
 {

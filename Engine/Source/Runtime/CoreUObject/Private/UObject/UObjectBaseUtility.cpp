@@ -127,7 +127,7 @@ UPackage* UObjectBaseUtility::GetOutermost() const
 /** 
  * Finds the outermost package and marks it dirty
  */
-void UObjectBaseUtility::MarkPackageDirty() const
+bool UObjectBaseUtility::MarkPackageDirty() const
 {
 	// since transient objects will never be saved into a package, there is no need to mark a package dirty
 	// if we're transient
@@ -157,9 +157,17 @@ void UObjectBaseUtility::MarkPackageDirty() const
 
 				// Always call PackageMarkedDirtyEvent, even when the package is already dirty
 				Package->PackageMarkedDirtyEvent.Broadcast(Package, bIsDirty);
+
+				return true;
+			}
+			else
+			{
+				// notify the caller that the request to mark the package as dirty was suppressed
+				return false;
 			}
 		}
 	}
+	return true;
 }
 
 /**

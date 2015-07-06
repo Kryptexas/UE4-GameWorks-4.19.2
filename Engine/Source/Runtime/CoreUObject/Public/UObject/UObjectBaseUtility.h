@@ -222,9 +222,12 @@ public:
 	UPackage* GetOutermost() const;
 
 	/** 
-	 * Finds the outermost package and marks it dirty
+	 * Finds the outermost package and marks it dirty. 
+	 * The editor suppresses this behavior during load as it is against policy to dirty packages simply by loading them.
+	 *
+	 * @return false if the request to mark the package dirty was suppressed by the editor and true otherwise.
 	 */
-	void MarkPackageDirty() const;
+	bool MarkPackageDirty() const;
 
 	/**
 	* Determines whether this object is a template object

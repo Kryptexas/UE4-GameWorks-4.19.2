@@ -882,6 +882,14 @@ private:
 	/** to share code for PostLoad() and PostEditChangeProperty(), and UMaterialInstance::InitResources(), needs to be refactored */
 	void PropagateDataToMaterialProxy();
 
+#if WITH_EDITOR
+	/** Marks the material's package dirty in order to make a material usage change set during map load persistent. 
+	  * This couldn't be done during map load as loading cannot mark packages dirty. Invoked manually by the user 
+	  * from the Map Check message log.
+	  */
+	void FixupMaterialUsageAfterLoad();
+#endif
+
 public:
 
 	/** @return the name of the given usage flag. */
