@@ -1055,6 +1055,20 @@ partial class GUBP
         }
 #endif
 
+		// Calculate the frequencies for each node
+		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(GUBPNodes, GUBPAggregates, BranchOptions.FrequencyBarriers);
+		foreach(NodeInfo Node in GUBPNodes.Values)
+		{
+			Node.FrequencyShift = Node.Node.CISFrequencyQuantumShift(this);
+            Node.FrequencyShift = HackFrequency(this, BranchName, Node, Node.FrequencyShift);
+
+			int FrequencyOverride;
+			if (FrequencyOverrides.TryGetValue(Node.Name, out FrequencyOverride) && Node.FrequencyShift > FrequencyOverride)
+			{
+				Node.FrequencyShift = FrequencyOverride;
+			}
+		}
+
 		// Add aggregate nodes for every project in the branch
 		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
 		{
@@ -1075,5 +1089,62 @@ partial class GUBP
 				AddNode(new FullGameAggregateNode(GameProj.GameName, NodeNames));
 			}
 		}
+	}
+
+	private static Dictionary<string, int> ApplyFrequencyBarriers(Dictionary<string, NodeInfo> GUBPNodes, Dictionary<string, AggregateInfo> GUBPAggregates, Dictionary<string, sbyte> FrequencyBarriers)
+	{
+		// Make sure that everything that's listed as a frequency barrier is completed with the given interval
+		Dictionary<string, int> FrequencyOverrides = new Dictionary<string,int>();
+		foreach (KeyValuePair<string, sbyte> Barrier in FrequencyBarriers)
+		{
+			// All the nodes which are dependencies of the barrier node
+			HashSet<string> IncludedNodes = new HashSet<string>();
+
+			// Find all the nodes which are indirect dependencies of this node
+			List<string> SearchNodes = new List<string> { Barrier.Key };
+			for (int Idx = 0; Idx < SearchNodes.Count; Idx++)
+			{
+				if(IncludedNodes.Add(SearchNodes[Idx]))
+				{
+					NodeInfo Node;
+					if(GUBPNodes.TryGetValue(SearchNodes[Idx], out Node))
+					{
+						SearchNodes.AddRange(Node.Node.FullNamesOfDependencies);
+						SearchNodes.AddRange(Node.Node.FullNamesOfPseudosependencies);
+					}
+					else
+					{
+						AggregateInfo Aggregate;
+						if(GUBPAggregates.TryGetValue(SearchNodes[Idx], out Aggregate))
+						{
+							SearchNodes.AddRange(Aggregate.Node.Dependencies);
+						}
+						else
+						{
+							throw new AutomationException("Couldn't find referenced node {0} in graph", Aggregate.Name);
+						}
+					}
+				}
+			}
+
+			// Make sure that everything included in this list is before the cap, and everything not in the list is after it
+			foreach (string NodeName in GUBPNodes.Keys)
+			{
+				if (IncludedNodes.Contains(NodeName))
+				{
+					int Frequency;
+					if(FrequencyOverrides.TryGetValue(NodeName, out Frequency))
+					{
+						Frequency = Math.Min(Frequency, Barrier.Value);
+					}
+					else
+					{
+						Frequency = Barrier.Value;
+					}
+					FrequencyOverrides[NodeName] = Frequency;
+				}
+			}
+		}
+		return FrequencyOverrides;
 	}
 }
