@@ -1,18 +1,83 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2610008
 Availability:Docs
 Title:メッシュのインポート
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:外部プログラムからメッシュをインポートする方法について学習しましょう。
+prereq:Engine/Basics/Projects/Browser
+Related:GettingStarted
+Related:GettingStarted/HowTo
+Related:Engine/Content/Packs
 スキルレベル:初心者向け
 バージョン：4.8
 
-ここに説明の概要を示します。
+[REGION:note]
+開始する前に、3D モデリング アプリケーションを利用できることを確認してください。**3DS Max と Maya** を使用してこのレッスンのゴールを示していますが、保存機能があれば、どの3D モデリング アプリケーションからでもアンリアル エンジンにメッシュをインポートすることができます。
+[/REGION]
+
+コンテンツ クリエータは外部の 3D モデリング アプリケーションからメッシュをアンリアル エンジンにインポートできます。
 
 ## ゴール
 
-ここにゴールを示します。
+外部の 3D モデリング アプリケーションからメッシュをインポートする方法を中心に説明します。
 
 ## 目的
 
-ここに目的を示します。
+このチュートリアルを終了すると、以下がわかるようになります。
 
+*	外部の 3D モデリング アプリケーションからメッシュをアンリアル エディタにインポートする方法
+*	アセットが適切にプロジェクト フォルダにインポートされたかを確認する方法。
+
+## 3D モデリング アプリケーションからインポートする
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+## インポートしたアセットを確認する
+
+** *.uasset files ** がハードディスクに適切にインポートされたことを確認するのはグッドプラクティスです。
+
+1.	エディタ内から、**'Content'** フォルダを **右クリック** して、**Folder Options** ダイアログ ボックス を開きます (以下で図示)。
+
+	![](FolderDialogBox_UI.png)
+
+1.	**Folder Options** (フォルダ オプション) で **'Show In Explorer' をクリック** します (以下で図示)。
+
+	![](ShowInExplorer_Selection.png)
+
+1.	エクスプローラが開いた状態で、UE4 がプロジェクトの対応する ** *.uasset files ** を作成したことを確認します (以下で図示)。
+
+	![](ImportedAssets_Explorer.png)
+
+ここまでのチュートリアルで、以下について学習したことになります。
+
+&#x2713;	外部の 3D モデリング アプリケーションからメッシュをアンリアル エディタにインポートする方法  
+&#x2713;	アセットがプロジェクト フォルダに適切にインポートされたことを確認する。
