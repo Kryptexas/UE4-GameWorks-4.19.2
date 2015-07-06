@@ -471,9 +471,10 @@ struct TRenderingCompositePassBase :public FRenderingCompositePass
 		PassOutputColorArrays[OutputId] = OutputBuffer;
 	}
 
-protected:
-	/** hack to allow 0 inputs */
+private:
+	/** use GetInput() instead of accessing PassInputs directly */
 	FRenderingCompositeOutputRef PassInputs[InputCount == 0 ? 1 : InputCount];
+protected:
 	/** */
 	FRenderingCompositeOutput PassOutputs[OutputCount];
 	/** Filenames that the outputs can be written to after being processed */

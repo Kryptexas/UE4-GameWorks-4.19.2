@@ -151,7 +151,7 @@ FIntPoint FRCPassPostProcessHistogram::ComputeThreadGroupCount(FIntPoint PixelEx
 
 FPooledRenderTargetDesc FRCPassPostProcessHistogram::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc UnmodifiedRet = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc UnmodifiedRet = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	UnmodifiedRet.Reset();
 	FIntPoint PixelExtent = UnmodifiedRet.Extent;

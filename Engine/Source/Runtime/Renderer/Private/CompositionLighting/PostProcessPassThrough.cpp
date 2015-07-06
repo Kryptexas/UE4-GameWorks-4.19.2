@@ -151,7 +151,7 @@ FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOu
 	// we assume this pass is additively blended with the scene color so an intermediate is not always needed
 	if(!Dest)
 	{
-		Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+		Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 		if(NewDesc.IsValid())
 		{

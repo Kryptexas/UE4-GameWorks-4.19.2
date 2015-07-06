@@ -494,7 +494,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 {
 	const FSceneView& View = Context.View;
 
-	FRenderingCompositeOutput *Input = PassInputs[0].GetOutput();
+	FRenderingCompositeOutput *Input = GetInput(ePId_Input0)->GetOutput();
 
 	// input is not hooked up correctly
 	check(Input);
@@ -557,7 +557,9 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	const FTextureRHIRef& FilterTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 
-	FRenderingCompositeOutput *Input1 = PassInputs[1].GetOutput();
+	FRenderingCompositeOutputRef* NodeInput1 = GetInput(ePId_Input1);
+
+	FRenderingCompositeOutput *Input1 = NodeInput1 ? NodeInput1->GetOutput() : 0;
 
 	uint32 CombineMethodInt = 0;
 
@@ -631,7 +633,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	if(DoFastBlur())
 	{

@@ -2807,7 +2807,7 @@ FPooledRenderTargetDesc FRCPassPostProcessAaES2::ComputeOutputDesc(EPassOutputId
 	Ret.Format = PF_B8G8R8A8;
 	Ret.NumSamples = 1;
 	Ret.DebugName = TEXT("Aa");
-	Ret.Extent = PassInputs[0].GetOutput()->RenderTargetDesc.Extent;
+	Ret.Extent = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc.Extent;
 	return Ret;
 }
 

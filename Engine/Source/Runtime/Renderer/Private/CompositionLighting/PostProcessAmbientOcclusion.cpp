@@ -362,11 +362,11 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusionSetup::ComputeOutputDe
 	
 	if(IsInitialPass())
 	{
-		Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+		Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 	}
 	else
 	{
-		Ret = PassInputs[1].GetOutput()->RenderTargetDesc;
+		Ret = GetInput(ePId_Input1)->GetOutput()->RenderTargetDesc;
 	}
 
 	Ret.Reset();
@@ -524,7 +524,7 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusion::ComputeOutputDesc(EP
 		return Ret;
 	}
 
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	// R:AmbientOcclusion, GBA:used for normal

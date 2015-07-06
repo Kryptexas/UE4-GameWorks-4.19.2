@@ -225,7 +225,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlurSetup::ComputeOutputDesc(EPa
 	{
 		// downsampled velocity
 
-		FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+		FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 		Ret.Reset();
 		Ret.Extent /= 2;
@@ -248,7 +248,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlurSetup::ComputeOutputDesc(EPa
 		check(InPassOutputId == ePId_Output1);
 
 		// scene color with depth in alpha
-		FPooledRenderTargetDesc Ret = PassInputs[1].GetOutput()->RenderTargetDesc;
+		FPooledRenderTargetDesc Ret = GetInput(ePId_Input1)->GetOutput()->RenderTargetDesc;
 
 		Ret.Reset();
 		Ret.Extent /= 2;
@@ -533,7 +533,7 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 
 FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("MotionBlur");
@@ -668,7 +668,7 @@ void FRCPassPostProcessMotionBlurRecombine::Process(FRenderingCompositePassConte
 
 FPooledRenderTargetDesc FRCPassPostProcessMotionBlurRecombine::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	// we don't need the alpha channel and 32bit is faster and costs less memory
@@ -834,7 +834,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 	if( InPassOutputId == ePId_Output0 )
 	{
 		// Flattened velocity
-		FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+		FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 		Ret.Reset();
 
 		Ret.Format = PF_FloatR11G11B10;
@@ -847,7 +847,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 	else
 	{
 		// Max tile velocity
-		FPooledRenderTargetDesc UnmodifiedRet = PassInputs[0].GetOutput()->RenderTargetDesc;
+		FPooledRenderTargetDesc UnmodifiedRet = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 		UnmodifiedRet.Reset();
 
 		FIntPoint PixelExtent = UnmodifiedRet.Extent;
@@ -1073,7 +1073,7 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 
 FPooledRenderTargetDesc FRCPassPostProcessVelocityScatter::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 	Ret.Reset();
 
 	Ret.DebugName = TEXT("ScatteredMaxVelocity");
@@ -1173,7 +1173,7 @@ void FRCPassPostProcessVelocityGather::Process(FRenderingCompositePassContext& C
 
 FPooledRenderTargetDesc FRCPassPostProcessVelocityGather::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 	Ret.Reset();
 
 	Ret.TargetableFlags |= TexCreate_UAV;
@@ -1421,7 +1421,7 @@ void FRCPassPostProcessMotionBlurNew::Process(FRenderingCompositePassContext& Co
 
 FPooledRenderTargetDesc FRCPassPostProcessMotionBlurNew::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	// we don't need the alpha channel and 32bit is faster and costs less memory
@@ -1580,7 +1580,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 
 FPooledRenderTargetDesc FRCPassPostProcessVisualizeMotionBlur::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("MotionBlur");
