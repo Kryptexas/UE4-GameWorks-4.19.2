@@ -416,6 +416,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 				UATCommand += Cmd;
 			}
 
+			if (InProfile->GetNumCookersToSpawn() > 0)
+			{
+				UATCommand += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), InProfile->GetNumCookersToSpawn());
+			}
+
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherCookDesc", "Cook content for {0}"), FText::FromString(Platforms.RightChop(1)));
 			Desc.Name = "Cook Task";
@@ -468,6 +473,10 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		UATCommand += TEXT(" -iterativecooking");
 	}
 
+	if (InProfile->GetSkipCookingEditorContent())
+	{
+		UATCommand += TEXT(" -SkipCookingEditorContent");
+	}
 
 	if ( InProfile->IsCompressed() )
 	{

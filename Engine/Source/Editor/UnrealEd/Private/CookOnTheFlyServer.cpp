@@ -43,7 +43,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 
 
 #define DEBUG_COOKONTHEFLY 0
-#define OUTPUT_TIMING 0
+#define OUTPUT_TIMING 1
 
 #define USEASSETREGISTRYFORDEPENDENTPACKAGES 1
 #define VERIFY_GETDEPENDENTPACKAGES 0 // verify has false hits because old serialization method for generating dependencies had errors (included transient objects which shouldn't be in asset registry), but you can still use verify to build a list then cross check against transient objects.  
@@ -1140,6 +1140,7 @@ COREUOBJECT_API extern bool GOutputCookingWarnings;
 
 bool UCookOnTheFlyServer::TickChildCookers(const bool bCheckIfFinished)
 {
+	SCOPE_TIMER(TickChildCookers);
 	bool bChildCookersFinished = true;
 	if (IsCookByTheBookMode())
 	{
@@ -1151,15 +1152,16 @@ bool UCookOnTheFlyServer::TickChildCookers(const bool bCheckIfFinished)
 				int32 ReturnCode = 0;
 				if (bCheckIfFinished == true)
 				{
+					SCOPE_TIMER(CheckIfChildCookerIsFinished);
 					if (FPlatformProcess::GetProcReturnCode(ChildCooker.ProcessHandle, &ReturnCode))
 					{
-						UE_LOG(LogCook, Display, TEXT("ChildCooker returned error code %d"), ReturnCode);
+						UE_LOG(LogCook, Display, TEXT("Child cooker %s returned error code %d"), *ChildCooker.BaseResponseFileName, ReturnCode);
 						ChildCooker.ReturnCode = ReturnCode;
 						ChildCooker.bFinished = true;
 
 						if (ReturnCode != 0)
 						{
-							UE_LOG(LogCook, Error, TEXT("ChildCooker returned error code %d"), ReturnCode);
+							UE_LOG(LogCook, Error, TEXT("Child cooker %s returned error code %d"), *ChildCooker.BaseResponseFileName, ReturnCode);
 						}
 
 
@@ -1194,6 +1196,7 @@ bool UCookOnTheFlyServer::TickChildCookers(const bool bCheckIfFinished)
 					bChildCookersFinished = false;
 				}
 
+				SCOPE_TIMER(ProcessLogOutput);
 				// process the log output from the child cooker even if we just finished to ensure that we get the end of the log
 				FString PipeContents = FPlatformProcess::ReadPipe(ChildCooker.ReadPipe);
 				if (PipeContents.Len())
@@ -1276,18 +1279,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 	
 	if (CurrentCookMode == ECookMode::CookByTheBook)
 	{
-		SCOPE_TIMER(TickChildCookers);
 		if (CookRequests.HasItems() == false)
 		{
-			SCOPE_TIMER(WaitingForChildCookersToFinish);
+			SCOPE_TIMER(WaitingForChildCookers);
 			// we have nothing left to cook so we are now waiting for child cookers to finish
 			if (TickChildCookers(true) == false)
 			{
 				Result |= COSR_WaitingOnChildCookers;
-				if (CookRequests.HasItems() == false)
-				{
-					FPlatformProcess::Sleep(0.001f);
-				}
 			}
 			
 		}
@@ -4107,17 +4105,46 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 
 		FFileHelper::SaveStringToFile(ResponseFileText, *ChildCooker.ResponseFileName);
 
-		FString CommandLine = FString::Printf(TEXT("%s -run=cook -targetplatform=%s -cookchild=%s -abslog=%sLog.txt"), *FPaths::GetProjectFilePath(), *TargetPlatformString, *ChildCooker.ResponseFileName, *ChildCooker.ResponseFileName);
+		// default commands
+		// multiprocess tells unreal in general we shouldn't do things like save ddc, clean shader working directory, and other various multiprocess unsafe things
+		FString CommandLine = FString::Printf(TEXT("\"%s\" -run=cook -multiprocess -targetplatform=%s -cookchild=\"%s\" -abslog=\"%sLog.txt\""), *FPaths::GetProjectFilePath(), *TargetPlatformString, *ChildCooker.ResponseFileName, *ChildCooker.ResponseFileName);
 
-		FString DDCCommandline;
-		if (FParse::Value(FCommandLine::Get(), TEXT("ddc="), DDCCommandline))
+		auto KeepCommandlineValue = [&](const TCHAR* CommandlineToKeep)
 		{
-			CommandLine += TEXT(" -ddc=");
-			CommandLine += DDCCommandline;
-		}
+			FString CommandlineValue;
+			if (FParse::Value(FCommandLine::Get(), CommandlineToKeep, CommandlineValue ))
+			{
+				CommandLine += TEXT(" -");
+				CommandLine += CommandlineToKeep;
+				CommandLine += TEXT("=");
+				CommandLine += *CommandlineValue;
+			}
+		};
+
+		auto KeepCommandlineParam = [&](const TCHAR* CommandlineToKeep)
+		{
+			if (FParse::Param(FCommandLine::Get(), CommandlineToKeep))
+			{
+				CommandLine += TEXT(" -");
+				CommandLine += CommandlineToKeep;
+			}
+		};
+
+
+
+		KeepCommandlineValue(TEXT("ddc="));
+		KeepCommandlineParam(TEXT("SkipEditorContent"));
+		KeepCommandlineParam(TEXT("compressed"));
+		KeepCommandlineParam(TEXT("Unversioned"));
+		KeepCommandlineParam(TEXT("buildmachine"));
+		KeepCommandlineParam(TEXT("fileopenlog"));
+		KeepCommandlineParam(TEXT("stdout"));
+		KeepCommandlineParam(TEXT("FORCELOGFLUSH"));
+		KeepCommandlineParam(TEXT("CrashForUAT"));
+		KeepCommandlineParam(TEXT("AllowStdOutLogVerbosity"));
+		KeepCommandlineParam(TEXT("UTF8Output"));
 
 		FString ExecutablePath = FPlatformProcess::ExecutableName(true);
-		// FString ExeFileName = FPaths::EngineDir() / TEXT("Binaries") / PlatformConfig / FString(FPlatformProcess::ExecutableName()) + TEXT(".exe");
 
 		UE_LOG(LogCook, Display, TEXT("Launching cooker using commandline %s %s"), *ExecutablePath, *CommandLine);
 
@@ -4125,8 +4152,7 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 		void* WritePipe = NULL;
 		FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
 
-		//ChildCooker.ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *CommandLine, false, true, true, NULL, 0, NULL, WritePipe);
-		ChildCooker.ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *CommandLine, false, true, true, NULL, 0, NULL, NULL);
+		ChildCooker.ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *CommandLine, false, true, true, NULL, 0, NULL, WritePipe);
 		ChildCooker.ReadPipe = ReadPipe;
 	}
 

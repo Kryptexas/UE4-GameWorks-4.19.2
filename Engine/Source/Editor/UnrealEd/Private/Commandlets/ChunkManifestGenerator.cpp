@@ -21,6 +21,48 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogChunkManifestGenerator, Log, All);
 
+#define LOCTEXT_NAMESPACE "ChunkManifestGenerator"
+
+//////////////////////////////////////////////////////////////////////////
+// Static functions
+FName GetPackageNameFromDependencyPackageName(const FName RawPackageFName)
+{
+	FName PackageFName = RawPackageFName;
+	if ((FPackageName::IsValidLongPackageName(RawPackageFName.ToString()) == false) &&
+		(FPackageName::IsScriptPackage(RawPackageFName.ToString()) == false))
+	{
+		FText OutReason;
+		if (!FPackageName::IsValidLongPackageName(RawPackageFName.ToString(), true, &OutReason))
+		{
+			const FText FailMessage = FText::Format(LOCTEXT("UnableToGeneratePackageName", "Unable to generate long package name for {0}. {1}"),
+				FText::FromString(RawPackageFName.ToString()), OutReason);
+
+			UE_LOG(LogChunkManifestGenerator, Warning, TEXT("%s"), *(FailMessage.ToString()));
+			return NAME_None;
+		}
+
+
+		FString LongPackageName;
+		if (FPackageName::SearchForPackageOnDisk(RawPackageFName.ToString(), &LongPackageName) == false)
+		{
+			return NAME_None;
+		}
+		PackageFName = FName(*LongPackageName);
+	}
+
+	// don't include script packages in dependencies as they are always in memory
+	if (FPackageName::IsScriptPackage(PackageFName.ToString()))
+	{
+		// no one likes script packages
+		return NAME_None;
+	}
+	return PackageFName;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// FChunkManifestGenerator
+
 FChunkManifestGenerator::FChunkManifestGenerator(const TArray<ITargetPlatform*>& InPlatforms)
 	: AssetRegistry(FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get())
 	, Platforms(InPlatforms)
@@ -410,27 +452,13 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 		
 		for (const auto& RawPackageFName : MapDependencies)
 		{
-			FName PackageFName = RawPackageFName;
-			if ((FPackageName::IsValidLongPackageName(RawPackageFName.ToString()) == false) &&
-				(FPackageName::IsScriptPackage(RawPackageFName.ToString()) == false) )
-			{
-				FString LongPackageName;
-				if (FPackageName::SearchForPackageOnDisk(RawPackageFName.ToString(), &LongPackageName) == false)
-				{
-					continue;
-				}
-				PackageFName = FName(*LongPackageName);
-			}
+			const FName PackageFName = GetPackageNameFromDependencyPackageName(RawPackageFName);
 			
-			// don't include script packages in dependencies as they are always in memory
-			if (FPackageName::IsScriptPackage(PackageFName.ToString()))
+			if (PackageFName == NAME_None)
 			{
-				// no one likes script packages
 				continue;
 			}
 			
-
-
 			const FString PackagePathName = PackageFName.ToString();
 			const FString MapName = MapFName.ToString();
 			const FString* SandboxFilenamePtr = AllCookedPackages.Find(PackageFName);
@@ -507,7 +535,7 @@ bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath, cons
 			IgnorePackageSet.Add(IgnorePackage);
 		}
 	}
-
+	
 
 	// Create asset registry data
 	TArray<FName> MapList;
@@ -529,8 +557,8 @@ bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath, cons
 			if (ContainsMap(AssetData.PackageName))
 			{
 				MapList.Add(AssetData.PackageName);
-			}
 		}
+	}
 	}
 
 	AssetRegistry.SaveRegistryData(SerializedAssetRegistry, GeneratedAssetRegistryData, &MapList);
@@ -1076,13 +1104,13 @@ void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet*
 			}
 			if (!bSkip)
 			{
-				auto DependentPackageLongName = PkgName.ToString();
-				if (FPackageName::IsShortPackageName(PkgName))
+				const FName FilteredPackageName = GetPackageNameFromDependencyPackageName(PkgName);
+				if (FilteredPackageName == NAME_None)
 				{
-					DependentPackageLongName = FPackageName::ConvertToLongScriptPackageName(*PkgName.ToString());
+					continue;
 				}
-				FString DependentSandboxFile = SandboxPlatformFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(DependentPackageLongName));
-				ThisPackageSet->Add(PkgName, DependentSandboxFile);
+				FString DependentSandboxFile = SandboxPlatformFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(*FilteredPackageName.ToString()));
+				ThisPackageSet->Add(FilteredPackageName, DependentSandboxFile);
 				UnassignedPackageSet.Remove(PkgName);
 			}
 		}

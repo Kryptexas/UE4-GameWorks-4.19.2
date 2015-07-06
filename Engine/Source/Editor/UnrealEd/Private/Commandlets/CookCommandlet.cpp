@@ -1057,7 +1057,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FParse::Value(*Params, TEXT("cookchild="), ChildCookFile);
 
 	int32 NumProcesses = 0;
-	FParse::Value(*Params, TEXT("multiprocesscooker="), NumProcesses);
+	FParse::Value(*Params, TEXT("numcookerstospawn="), NumProcesses);
 
 	FString BasedOnReleaseVersion;
 	FParse::Value( *Params, TEXT("BasedOnReleaseVersion="), BasedOnReleaseVersion);
@@ -1248,7 +1248,6 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 
 			FPlatformProcess::Sleep(0.0f);
 		}
-
 
 
 		ProcessDeferredCommands();

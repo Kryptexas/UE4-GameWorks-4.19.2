@@ -22,7 +22,7 @@ enum class ECookInitializationFlags
 	AutoTick = 0x10,				// enable ticking (only works in the editor)
 	AsyncSave = 0x20,				// save packages async
 	IncludeServerMaps = 0x80,		// should we include the server maps when cooking
-	UseSerializationForPackageDependencies = 0x100, // should we use the serialization code path for generating package dependencies (old method will be depricated)
+	UseSerializationForPackageDependencies = 0x100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 

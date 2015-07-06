@@ -40,12 +40,15 @@ public:
 			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FTargetPlatformManagerModule.StartAutoSDK" ), STAT_FTargetPlatformManagerModule_StartAutoSDK, STATGROUP_TargetPlatform );
 
 			// amortize UBT cost by calling it once for all platforms, rather than once per platform.
-			FString UBTParams(TEXT("-autosdkonly"));
-			int32 UBTReturnCode = -1;
-			FString UBTOutput;
-			if (!FDesktopPlatformModule::Get()->InvokeUnrealBuildToolSync(UBTParams, *GLog, true, UBTReturnCode, UBTOutput))
+			if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess"))==false)
 			{
-				UE_LOG(LogTargetPlatformManager, Fatal, TEXT("Failed to run UBT to check SDK status!"));
+				FString UBTParams(TEXT("-autosdkonly"));
+				int32 UBTReturnCode = -1;
+				FString UBTOutput;
+				if (!FDesktopPlatformModule::Get()->InvokeUnrealBuildToolSync(UBTParams, *GLog, true, UBTReturnCode, UBTOutput))
+				{
+					UE_LOG(LogTargetPlatformManager, Fatal, TEXT("Failed to run UBT to check SDK status!"));
+				}
 			}
 
 			// we have to setup our local environment according to AutoSDKs or the ITargetPlatform's IsSDkInstalled calls may fail

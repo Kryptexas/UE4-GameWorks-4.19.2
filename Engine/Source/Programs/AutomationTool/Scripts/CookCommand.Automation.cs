@@ -175,6 +175,15 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -createreleaseversion=" + Params.CreateReleaseVersion;
                 }
+                if ( Params.SkipCookingEditorContent)
+                {
+                    CommandletParams += " -skipeditorcontent";
+                }
+                if ( Params.NumCookersToSpawn != 0)
+                {
+                    CommandletParams += " -numcookerstospawn=" + Params.NumCookersToSpawn;
+
+                }
                 if (Params.HasDLCName)
                 {
                     CommandletParams += " -dlcname=" + Params.DLCName;

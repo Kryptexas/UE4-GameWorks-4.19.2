@@ -233,6 +233,8 @@ namespace AutomationTool
 			this.CookOnTheFly = InParams.CookOnTheFly;
             this.CookOnTheFlyStreaming = InParams.CookOnTheFlyStreaming;
             this.UnversionedCookedContent = InParams.UnversionedCookedContent;
+            this.SkipCookingEditorContent = InParams.SkipCookingEditorContent;
+            this.NumCookersToSpawn = InParams.NumCookersToSpawn;
 			this.FileServer = InParams.FileServer;
 			this.DedicatedServer = InParams.DedicatedServer;
 			this.Client = InParams.Client;
@@ -344,6 +346,8 @@ namespace AutomationTool
             bool? CookOnTheFly = null,
             bool? CookOnTheFlyStreaming = null,
             bool? UnversionedCookedContent = null,
+            bool? SkipCookingEditorContent = null,
+            int? NumCookersToSpawn = null,
             string AdditionalCookerOptions = null,
             string BasedOnReleaseVersion = null,
             string CreateReleaseVersion = null,
@@ -478,6 +482,15 @@ namespace AutomationTool
             }
             this.CookOnTheFlyStreaming = GetParamValueIfNotSpecified(Command, CookOnTheFlyStreaming, this.CookOnTheFlyStreaming, "cookontheflystreaming");
             this.UnversionedCookedContent = GetParamValueIfNotSpecified(Command, UnversionedCookedContent, this.UnversionedCookedContent, "UnversionedCookedContent");
+            this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
+            if (NumCookersToSpawn.HasValue)
+            {
+                this.NumCookersToSpawn = NumCookersToSpawn.Value;
+            }
+            else if (Command != null)
+            {
+                this.NumCookersToSpawn = Command.ParseParamInt("NumCookersToSpawn");
+            }
             this.Compressed = GetParamValueIfNotSpecified(Command, Compressed, this.Compressed, "compressed");
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
             this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" } );
@@ -1074,7 +1087,7 @@ namespace AutomationTool
         public bool UseDebugParamForEditorExe;
 
         /// <summary>
-        /// 
+        /// Cook: Do not include a version number in the cooked content
         /// </summary>
         public bool UnversionedCookedContent;
 
@@ -1097,6 +1110,16 @@ namespace AutomationTool
         [Help("CookAll", "Cook all the things in the content directory for this project")]
         public bool CookAll;
 
+
+        /// <summary>
+        /// Cook: Skip cooking editor content 
+        /// </summary>
+        public bool SkipCookingEditorContent;
+
+        /// <summary>
+        /// Cook: number of additional cookers to spawn while cooking
+        /// </summary>
+        public int NumCookersToSpawn;
 
 		/// <summary>
 		/// Cook: Uses the iterative deploy, command line: -iterativedeploy or -iterate
@@ -2019,6 +2042,8 @@ namespace AutomationTool
 				CommandUtils.Log("CookOnTheFly={0}", CookOnTheFly);
                 CommandUtils.Log("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
                 CommandUtils.Log("UnversionedCookedContent={0}", UnversionedCookedContent);
+                CommandUtils.Log("SkipCookingEditorContent={0}", SkipCookingEditorContent);
+                CommandUtils.Log("NumCookersToSpawn={0}", NumCookersToSpawn);
                 CommandUtils.Log("GeneratePatch={0}", GeneratePatch);
                 CommandUtils.Log("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.Log("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);

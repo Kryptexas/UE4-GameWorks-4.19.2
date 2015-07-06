@@ -8,6 +8,8 @@
 #define LAUNCHERSERVICES_REMOVEDPATCHSOURCECONTENTPATH 14
 #define LAUNCHERSERVICES_ADDEDDLCINCLUDEENGINECONTENT 15
 #define LAUNCHERSERVICES_ADDEDGENERATECHUNKS 16
+#define LAUNCHERSERVICES_ADDEDNUMCOOKERSTOSPAWN 17
+#define LAUNCHERSERVICES_ADDEDSKIPCOOKINGEDITORCONTENT 18
 
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
@@ -130,7 +132,9 @@ public:
 	FLauncherProfile(ILauncherProfileManagerRef ProfileManager)
 		: LauncherProfileManager(ProfileManager)
 		, DefaultLaunchRole(MakeShareable(new FLauncherProfileLaunchRole()))
-	{ }
+	{ 
+		SetDefaults();
+	}
 
 	/**
 	 * Creates and initializes a new instance.
@@ -256,6 +260,16 @@ public:
 	virtual const TArray<FString>& GetCookedCultures( ) const override
 	{
 		return CookedCultures;
+	}
+
+	virtual const int32 GetNumCookersToSpawn() const override
+	{
+		return NumCookersToSpawn;
+	}
+
+	virtual const bool GetSkipCookingEditorContent() const override
+	{
+		return bSkipCookingEditorContent;
 	}
 
 	virtual const TArray<FString>& GetCookedMaps( ) const override
@@ -582,7 +596,7 @@ public:
 
 	virtual bool Serialize( FArchive& Archive ) override
 	{
-		int32 Version = LAUNCHERSERVICES_PROFILEVERSION;
+		int32 Version = LAUNCHERSERVICES_ADDEDSKIPCOOKINGEDITORCONTENT;
 
 		Archive	<< Version;
 
@@ -630,11 +644,18 @@ public:
                 << ForceClose
                 << Timeout;
 
+		if (Version >= LAUNCHERSERVICES_ADDEDNUMCOOKERSTOSPAWN)
+		{
+			Archive << NumCookersToSpawn;
+		}
+		if (Version >= LAUNCHERSERVICES_ADDEDSKIPCOOKINGEDITORCONTENT)
+		{
+			Archive << bSkipCookingEditorContent;
+		}
 		if (Version >= LAUNCHERSERVICES_ADDEDINCREMENTALDEPLOYVERSION)
 		{
 			Archive << DeployIncremental;
 		}
-
 		if ( Version >= LAUNCHERSERVICES_REMOVEDPATCHSOURCECONTENTPATH )
 		{
 			Archive << GeneratePatch;
@@ -645,21 +666,11 @@ public:
 			Archive << Temp;
 			Archive << GeneratePatch;
 		}
-		else if ( Archive.IsLoading() )
-		{
-			GeneratePatch = false;
-		}
-
 		if (Version >= LAUNCHERSERVICES_ADDEDDLCINCLUDEENGINECONTENT)
 		{
 			Archive << DLCIncludeEngineContent;
 		}
-		else if (Archive.IsLoading())
-		{
-			DLCIncludeEngineContent = false;
-		}
 		
-
 		if ( Version >= LAUNCHERSERVICES_ADDEDRELEASEVERSION )
 		{
 			Archive << CreateReleaseVersion;
@@ -669,12 +680,6 @@ public:
 			Archive << CreateDLC;
 			Archive << DLCName;
 		}
-		else if ( Archive.IsLoading() )
-		{
-			CreateReleaseVersion = false;
-			CreateDLC = false;
-		}
-
 		if (Version >= LAUNCHERSERVICES_ADDEDGENERATECHUNKS)
 		{
 			Archive << bGenerateChunks;
@@ -682,14 +687,7 @@ public:
 			Archive << HttpChunkDataDirectory;
 			Archive << HttpChunkDataReleaseName;
 		}
-		else if (Archive.IsLoading())
-		{
-			bGenerateChunks = false;
-			bGenerateHttpChunkData = false;
-			HttpChunkDataDirectory = TEXT("");
-			HttpChunkDataReleaseName = TEXT("");
-		}
-
+		
 		DefaultLaunchRole->Serialize(Archive);
 
 		// serialize launch roles
@@ -762,8 +760,10 @@ public:
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
 		CookedPlatforms.Reset();
+		bSkipCookingEditorContent = true;
         ForceClose = true;
         Timeout = 60;
+		NumCookersToSpawn = 0;
 
 /*		if (GetTargetPlatformManager()->GetRunningTargetPlatform() != NULL)
 		{
@@ -864,6 +864,24 @@ public:
 		{
 			CookOptions = Options;
 
+			Validate();
+		}
+	}
+
+	virtual void SetNumCookersToSpawn(const int32 InNumCookersToSpawn) override
+	{
+		if (NumCookersToSpawn != InNumCookersToSpawn)
+		{
+			NumCookersToSpawn = InNumCookersToSpawn;
+			Validate();
+		}
+	}
+
+	virtual void SetSkipCookingEditorContent(const bool InSkipCookingEditorContent) override
+	{
+		if (bSkipCookingEditorContent != InSkipCookingEditorContent)
+		{
+			bSkipCookingEditorContent = InSkipCookingEditorContent;
 			Validate();
 		}
 	}
@@ -1374,6 +1392,11 @@ private:
 
 	// Holds a flag indicating whether packages should be saved without a version.
 	bool CookUnversioned;
+
+	// num cookers we want to spawn during cooking
+	int32 NumCookersToSpawn;
+
+	bool bSkipCookingEditorContent;
 
 	// This setting is used only if cooking by the book (only used if cooking by the book).
 	TArray<FString> CookedCultures;
