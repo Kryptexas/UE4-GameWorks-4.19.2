@@ -489,6 +489,11 @@ void UWorld::FinishDestroy()
 		{
 			delete PhysicsScene;
 			PhysicsScene = NULL;
+
+			if(GPhysCommandHandler)
+			{
+				GPhysCommandHandler->Flush();
+			}
 		}
 
 		if (Scene)
