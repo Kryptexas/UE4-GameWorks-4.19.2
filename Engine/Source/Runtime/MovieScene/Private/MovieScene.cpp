@@ -22,26 +22,6 @@ FMovieScenePossessable::FMovieScenePossessable( const FString& InitName, UClass*
 }
 
 
-TRange<float> FMovieSceneObjectBinding::GetTimeRange() const
-{
-	TArray< TRange<float> > Bounds;
-	for (int32 TypeIndex = 0; TypeIndex < Tracks.Num(); ++TypeIndex)
-	{
-		Bounds.Add(Tracks[TypeIndex]->GetSectionBoundaries());
-	}
-	return TRange<float>::Hull(Bounds);
-}
-
-void FMovieSceneObjectBinding::AddTrack( UMovieSceneTrack& NewTrack )
-{
-	Tracks.Add( &NewTrack );
-}
-
-bool FMovieSceneObjectBinding::RemoveTrack( UMovieSceneTrack& Track )
-{
-	return Tracks.RemoveSingle( &Track ) != 0;
-}
-
 UMovieScene::UMovieScene( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {

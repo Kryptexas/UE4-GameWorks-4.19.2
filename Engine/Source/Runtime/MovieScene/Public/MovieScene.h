@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MovieSceneBinding.h"
 #include "MovieScene.generated.h"
 
 
@@ -43,7 +44,10 @@ public:
 	}
 
 	/** @return Returns the blueprint associated with this spawnable */
-	UClass* GetClass() { return GeneratedClass; }
+	UClass* GetClass()
+	{
+		return GeneratedClass;
+	}
 
 	/** @return	Returns the game preview counterpart object for this spawnable, if it has one. */
 	const FWeakObjectPtr& GetCounterpartGamePreviewObject() const
@@ -74,6 +78,7 @@ private:
 	// @todo sequencer data: Should be editor only
 	FWeakObjectPtr CounterpartGamePreviewObject;
 };
+
 
 /**
  * MovieScenePossessable is a "typed slot" used to allow the MovieScene to control an already-existing object
@@ -145,78 +150,6 @@ struct FMovieSceneEditorData
 	/** List of collapsed sequencer nodes.  We store collapsed instead of expanded so that new nodes with no saved state are expanded by default */
 	UPROPERTY()
 	TArray<FString> CollapsedSequencerNodes;
-};
-
-/**
- * A set of tracks bound to runtime objects
- */
-USTRUCT()
-struct FMovieSceneObjectBinding
-{
-	GENERATED_USTRUCT_BODY()
-
-	FMovieSceneObjectBinding()
-	{}
-
-	FMovieSceneObjectBinding( const FGuid& InObjectGuid, const FString& InBindingName, const TArray<UMovieSceneTrack*>& InTracks )
-		: ObjectGuid( InObjectGuid )
-		, BindingName( InBindingName )
-		, Tracks( InTracks )
-	{}
-
-	FMovieSceneObjectBinding( const FGuid& InObjectGuid, const FString& InBindingName )
-		: ObjectGuid( InObjectGuid )
-		, BindingName( InBindingName )
-	{}
-
-	/**
-	 * @return The time range of all tracks in this binding
-	 */
-	TRange<float> GetTimeRange() const;
-
-	/**
-	 * @return The guid of runtime objects in this binding
-	 */
-	const FGuid& GetObjectGuid() const { return ObjectGuid; }
-
-	/**
-	 * @return The display name of the binding
-	 */
-	const FString& GetName() const { return BindingName; } 
-
-	/**
-	 * Adds a new track to this binding
-	 *
-	 * @param NewTrack	The track to add
-	 */
-	void AddTrack( UMovieSceneTrack& NewTrack );
-
-	/**
-	 * Removes a track from this binding
-	 * 
-	 * @param Track	The track to remove
-	 * @return true if the track was successfully removed, false if the track could not be found
-	 */
-	bool RemoveTrack( UMovieSceneTrack& Track );
-
-	/**
-	 * @return All tracks in this binding
-	 */
-	const TArray<UMovieSceneTrack*>& GetTracks() const { return Tracks; }
-
-private:
-
-	/** Object binding guid for runtime objects */
-	UPROPERTY()
-	FGuid ObjectGuid;
-	
-	/** Display name */
-	UPROPERTY()
-	FString BindingName;
-
-	/** All tracks in this binding */
-	UPROPERTY()
-	TArray<UMovieSceneTrack*> Tracks;
 };
 
 
