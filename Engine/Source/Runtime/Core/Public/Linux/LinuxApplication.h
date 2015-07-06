@@ -6,8 +6,6 @@
 #include "LinuxWindow.h"
 #include "LinuxCursor.h"
 
-typedef SDL_GameController* SDL_HController;
-
 class FLinuxWindow;
 class FGenericApplicationMessageHandler;
 
@@ -120,10 +118,24 @@ private:
 
 	struct SDLControllerState
 	{
-		SDL_HController controller;
+		/** SDL controller */
+		SDL_GameController* Controller;
 
-		// We need to remember if the "button" was previously pressed so we don't generate extra events
-		bool analogOverThreshold[10];
+		/** Tracks whether the "button" was previously pressed so we don't generate extra events */
+		bool AnalogOverThreshold[10];
+
+		/** The player index of the controller, because the joystick index includes devices that are not controllers. */
+		int32 ControllerIndex;
+
+		/** Store axis values from events here to be handled once per frame. */
+		TMap<FGamepadKeyNames::Type, float> AxisEvents;
+
+		SDLControllerState()
+			:	Controller(nullptr)
+			,	ControllerIndex(-1)
+		{
+			FMemory::Memzero(AnalogOverThreshold);
+		}
 	};
 
 	bool bUsingHighPrecisionMouseInput;
@@ -157,7 +169,7 @@ private:
 
 	SDL_HWindow MouseCaptureWindow;
 
-	SDLControllerState *ControllerStates;
+	TMap<SDL_JoystickID, SDLControllerState> ControllerStates;
 
 	float fMouseWheelScrollAccel;
 
