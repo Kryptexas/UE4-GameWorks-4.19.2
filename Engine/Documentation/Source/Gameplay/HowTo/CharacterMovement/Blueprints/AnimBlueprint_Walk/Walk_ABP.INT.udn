@@ -24,7 +24,7 @@ Description:Here in this step, we'll create the logic for Idle and Walking state
 In this section, we will set up the **Animation Blueprint** that will determine what animations to play based on the actions that are taken in game by the player. We will then set up a **State Machine** and create an **Idle** and **Walk** state and set up the transition between each state. 
 
 [REGION:note]
-For more information on **Animation Blueprints**, refer to the [](Engine/Animation/AnimBlueprints) documentation. 
+For more information on Animation Blueprints, refer to the [](Engine/Animation/AnimBlueprints) documentation. 
 [/REGION]
 
 The steps below will show you how to set up the Animation Blueprint: 
