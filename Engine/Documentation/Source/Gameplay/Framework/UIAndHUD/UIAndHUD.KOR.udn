@@ -1,4 +1,4 @@
-INTSourceChangelist:2100980
+﻿INTSourceChangelist:2100980
 Availability: Public
 Title:유저 인터페이스와 HUD
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -63,4 +63,4 @@ UI 의 가장 명확한 예는 게임 시작시 표시되는 메인 메뉴나,
 
 [INCLUDE:Programming/Slate/Overview#Intro]
 
-* 자사한 내용은 [](Programming/Slate) 문서를 참고하세요.
+* 자세한 내용은 [](Programming/Slate) 문서를 참고하세요.
