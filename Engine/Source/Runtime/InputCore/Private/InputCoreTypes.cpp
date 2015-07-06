@@ -218,6 +218,62 @@ const FKey EKeys::TouchKeys[NUM_TOUCH_KEYS] =
 const FKey EKeys::Gesture_Pinch("Gesture_Pinch");
 const FKey EKeys::Gesture_Flick("Gesture_Flick");
 
+// Motion Controllers
+//		Left Controller
+const FKey EKeys::MotionController_Left_FaceButton1("MotionController_Left_FaceButton1");
+const FKey EKeys::MotionController_Left_FaceButton2("MotionController_Left_FaceButton2");
+const FKey EKeys::MotionController_Left_FaceButton3("MotionController_Left_FaceButton3");
+const FKey EKeys::MotionController_Left_FaceButton4("MotionController_Left_FaceButton4");
+const FKey EKeys::MotionController_Left_FaceButton5("MotionController_Left_FaceButton5");
+const FKey EKeys::MotionController_Left_FaceButton6("MotionController_Left_FaceButton6");
+const FKey EKeys::MotionController_Left_FaceButton7("MotionController_Left_FaceButton7");
+const FKey EKeys::MotionController_Left_FaceButton8("MotionController_Left_FaceButton8");
+
+const FKey EKeys::MotionController_Left_Shoulder("MotionController_Left_Shoulder");
+const FKey EKeys::MotionController_Left_Trigger("MotionController_Left_Trigger");
+
+const FKey EKeys::MotionController_Left_Grip1("MotionController_Left_Grip1");
+const FKey EKeys::MotionController_Left_Grip2("MotionController_Left_Grip2");
+
+const FKey EKeys::MotionController_Left_Thumbstick("MotionController_Left_Thumbstick");
+const FKey EKeys::MotionController_Left_Thumbstick_Up("MotionController_Left_Thumbstick_Up");
+const FKey EKeys::MotionController_Left_Thumbstick_Down("MotionController_Left_Thumbstick_Down");
+const FKey EKeys::MotionController_Left_Thumbstick_Left("MotionController_Left_Thumbstick_Left");
+const FKey EKeys::MotionController_Left_Thumbstick_Right("MotionController_Left_Thumbstick_Right");
+
+//		Right Controller
+const FKey EKeys::MotionController_Right_FaceButton1("MotionController_Right_FaceButton1");
+const FKey EKeys::MotionController_Right_FaceButton2("MotionController_Right_FaceButton2");
+const FKey EKeys::MotionController_Right_FaceButton3("MotionController_Right_FaceButton3");
+const FKey EKeys::MotionController_Right_FaceButton4("MotionController_Right_FaceButton4");
+const FKey EKeys::MotionController_Right_FaceButton5("MotionController_Right_FaceButton5");
+const FKey EKeys::MotionController_Right_FaceButton6("MotionController_Right_FaceButton6");
+const FKey EKeys::MotionController_Right_FaceButton7("MotionController_Right_FaceButton7");
+const FKey EKeys::MotionController_Right_FaceButton8("MotionController_Right_FaceButton8");
+
+const FKey EKeys::MotionController_Right_Shoulder("MotionController_Right_Shoulder");
+const FKey EKeys::MotionController_Right_Trigger("MotionController_Right_Trigger");
+
+const FKey EKeys::MotionController_Right_Grip1("MotionController_Right_Grip1");
+const FKey EKeys::MotionController_Right_Grip2("MotionController_Right_Grip2");
+
+const FKey EKeys::MotionController_Right_Thumbstick("MotionController_Right_Thumbstick");
+const FKey EKeys::MotionController_Right_Thumbstick_Up("MotionController_Right_Thumbstick_Up");
+const FKey EKeys::MotionController_Right_Thumbstick_Down("MotionController_Right_Thumbstick_Down");
+const FKey EKeys::MotionController_Right_Thumbstick_Left("MotionController_Right_Thumbstick_Left");
+const FKey EKeys::MotionController_Right_Thumbstick_Right("MotionController_Right_Thumbstick_Right");
+
+//   Motion Controller Axes
+//		Left Controller
+const FKey EKeys::MotionController_Left_Thumbstick_X("MotionController_Left_Thumbstick_X");
+const FKey EKeys::MotionController_Left_Thumbstick_Y("MotionController_Left_Thumbstick_Y");
+const FKey EKeys::MotionController_Left_TriggerAxis("MotionController_Left_TriggerAxis");
+
+//		Right Controller
+const FKey EKeys::MotionController_Right_Thumbstick_X("MotionController_Right_Thumbstick_X");
+const FKey EKeys::MotionController_Right_Thumbstick_Y("MotionController_Right_Thumbstick_Y");
+const FKey EKeys::MotionController_Right_TriggerAxis("MotionController_Right_TriggerAxis");
+
 // PS4-specific
 const FKey EKeys::PS4_Special("PS4_Special");
 
@@ -511,7 +567,66 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Gesture_Pinch, LOCTEXT("Gesture_Pinch", "Pinch"), 0, "Gesture"));
 	AddKey(FKeyDetails(EKeys::Gesture_Flick, LOCTEXT("Gesture_Flick", "Flick"), 0, "Gesture"));
 
+	// Motion Controllers
+	AddMenuCategoryDisplayInfo("Steam", LOCTEXT("MotionControllerSubCategory", "Motion Controller"), TEXT("GraphEditor.PadEvent_16x"));
+
+	//	Left Controller
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton1, LOCTEXT("MotionController_Left_FaceButton1", "MotionController (L) FaceButton1"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton2, LOCTEXT("MotionController_Left_FaceButton2", "MotionController (L) FaceButton2"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton3, LOCTEXT("MotionController_Left_FaceButton3", "MotionController (L) FaceButton3"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton4, LOCTEXT("MotionController_Left_FaceButton4", "MotionController (L) FaceButton4"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton5, LOCTEXT("MotionController_Left_FaceButton5", "MotionController (L) FaceButton5"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton6, LOCTEXT("MotionController_Left_FaceButton6", "MotionController (L) FaceButton6"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton7, LOCTEXT("MotionController_Left_FaceButton7", "MotionController (L) FaceButton7"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_FaceButton8, LOCTEXT("MotionController_Left_FaceButton8", "MotionController (L) FaceButton8"), FKeyDetails::GamepadKey));
+	
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Shoulder, LOCTEXT("MotionController_Left_Shoulder", "MotionController (L) Shoulder"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Trigger, LOCTEXT("MotionController_Left_Trigger", "MotionController (L) Trigger"), FKeyDetails::GamepadKey));
+	
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Grip1, LOCTEXT("MotionController_Left_Grip1", "MotionController (L) Grip1"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Grip2, LOCTEXT("MotionController_Left_Grip2", "MotionController (L) Grip2"), FKeyDetails::GamepadKey));
+	
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick, LOCTEXT("MotionController_Left_Thumbstick", "MotionController (L) Thumbstick"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_Up, LOCTEXT("MotionController_Left_Thumbstick_Up", "MotionController (L) Thumbstick Up"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_Down, LOCTEXT("MotionController_Left_Thumbstick_Down", "MotionController (L) Thumbstick Down"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_Left, LOCTEXT("MotionController_Left_Thumbstick_Left", "MotionController (L) Thumbstick Left"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_Right, LOCTEXT("MotionController_Left_Thumbstick_Right", "MotionController (L) Thumbstick Right"), FKeyDetails::GamepadKey));
+	
+	//	Right Controller
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton1, LOCTEXT("MotionController_Right_FaceButton1", "MotionController (R) FaceButton1"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton2, LOCTEXT("MotionController_Right_FaceButton2", "MotionController (R) FaceButton2"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton3, LOCTEXT("MotionController_Right_FaceButton3", "MotionController (R) FaceButton3"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton4, LOCTEXT("MotionController_Right_FaceButton4", "MotionController (R) FaceButton4"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton5, LOCTEXT("MotionController_Right_FaceButton5", "MotionController (R) FaceButton5"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton6, LOCTEXT("MotionController_Right_FaceButton6", "MotionController (R) FaceButton6"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton7, LOCTEXT("MotionController_Right_FaceButton7", "MotionController (R) FaceButton7"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_FaceButton8, LOCTEXT("MotionController_Right_FaceButton8", "MotionController (R) FaceButton8"), FKeyDetails::GamepadKey));
+	
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Shoulder, LOCTEXT("MotionController_Right_Shoulder", "MotionController (R) Shoulder"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Trigger, LOCTEXT("MotionController_Right_Trigger", "MotionController (R) Trigger"), FKeyDetails::GamepadKey));
+	
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Grip1, LOCTEXT("MotionController_Right_Grip1", "MotionController (R) Grip1"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Grip2, LOCTEXT("MotionController_Right_Grip2", "MotionController (R) Grip2"), FKeyDetails::GamepadKey));
+	
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick, LOCTEXT("MotionController_Right_Thumbstick", "MotionController (R) Thumbstick"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Up, LOCTEXT("MotionController_Right_Thumbstick_Up", "MotionController (R) Thumbstick Up"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Down, LOCTEXT("MotionController_Right_Thumbstick_Down", "MotionController (R) Thumbstick Down"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Left, LOCTEXT("MotionController_Right_Thumbstick_Left", "MotionController (R) Thumbstick Left"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Right, LOCTEXT("MotionController_Right_Thumbstick_Right", "MotionController (R) Thumbstick Right"), FKeyDetails::GamepadKey));
+	
+	//   Motion Controller Axes
+	//	Left Controller
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_X, LOCTEXT("MotionController_Left_Thumbstick_X", "MotionController (L) Thumbstick X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_Y, LOCTEXT("MotionController_Left_Thumbstick_Y", "MotionController (L) Thumbstick Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_TriggerAxis, LOCTEXT("MotionController_Left_TriggerAxis", "MotionController (L) TriggerAxis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	
+	//	Right Controller
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_X, LOCTEXT("MotionController_Right_Thumbstick_X", "MotionController (R) Thumbstick X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Y, LOCTEXT("MotionController_Right_Thumbstick_Y", "MotionController (R) Thumbstick Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_TriggerAxis, LOCTEXT("MotionController_Right_TriggerAxis", "MotionController (R) TriggerAxis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+
 	// PS4-specific
+	AddMenuCategoryDisplayInfo("Steam", LOCTEXT("PS4SubCategory", "PS4"), TEXT("GraphEditor.PadEvent_16x"));
 	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey));
 
 	// Steam Controller specific

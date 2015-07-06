@@ -8,6 +8,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogSteamVRController, Log, All);
 /** Controller axis mappings. @todo steamvr: should enumerate rather than hard code */
 #define TOUCHPAD_AXIS	0
 #define TRIGGER_AXIS	1
+#define DOT_45DEG		0.7071f
 
 //
 // Gamepad thresholds
@@ -18,8 +19,6 @@ namespace SteamVRControllerKeyNames
 {
 	const FGamepadKeyNames::Type Touch0("Steam_Touch_0");
 	const FGamepadKeyNames::Type Touch1("Steam_Touch_1");
-	const FGamepadKeyNames::Type BackLeft("Steam_Back_Left");
-	const FGamepadKeyNames::Type BackRight("Steam_Back_Right");
 }
 
 class FSteamVRController : public IInputDevice
@@ -97,26 +96,26 @@ public:
 		ButtonRepeatDelay = 0.1f;
 
 		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::System ] = FGamepadKeyNames::SpecialLeft;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::LeftShoulder;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadPress ] = FGamepadKeyNames::LeftThumb;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::MotionController_Left_Shoulder;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadPress ] = FGamepadKeyNames::MotionController_Left_Thumbstick;
 		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadTouch ] = SteamVRControllerKeyNames::Touch0;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::LeftTriggerThreshold;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::Grip ] = SteamVRControllerKeyNames::BackLeft;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::LeftStickUp;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::LeftStickDown;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::LeftStickLeft;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::LeftStickRight;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::MotionController_Left_Trigger;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::Grip ] = FGamepadKeyNames::MotionController_Left_Grip1;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::MotionController_Left_FaceButton1;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::MotionController_Left_FaceButton3;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::MotionController_Left_FaceButton4;
+		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Left_FaceButton2;
 
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::System ] = FGamepadKeyNames::SpecialRight;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::RightShoulder;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadPress ] = FGamepadKeyNames::RightThumb;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::MotionController_Right_Shoulder;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadPress ] = FGamepadKeyNames::MotionController_Right_Thumbstick;
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadTouch ] = SteamVRControllerKeyNames::Touch1;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::RightTriggerThreshold;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::Grip ] = SteamVRControllerKeyNames::BackRight;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::RightStickUp;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::RightStickDown;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::RightStickLeft;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::RightStickRight;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::MotionController_Right_Trigger;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::Grip ] = FGamepadKeyNames::MotionController_Right_Grip1;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::MotionController_Right_FaceButton1;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::MotionController_Right_FaceButton3;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::MotionController_Right_FaceButton4;
+		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Right_FaceButton2;
 	}
 
 	virtual ~FSteamVRController()
@@ -154,7 +153,7 @@ public:
 						continue;
 					}
 
-					DeviceToControllerMap[DeviceIndex] = NumControllersMapped;
+					DeviceToControllerMap[DeviceIndex] = FMath::FloorToInt(NumControllersMapped / (int32)EControllerHand::TotalHandCount);
 					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
 					++NumControllersMapped;
 
@@ -174,7 +173,7 @@ public:
 
 				// get the controller index for this device
 				int32 ControllerIndex = DeviceToControllerMap[DeviceIndex];
-				FControllerState& ControllerState = ControllerStates[ ControllerIndex ];
+				FControllerState& ControllerState = ControllerStates[ DeviceIndex ];
 
 				if (VRSystem->GetControllerState(DeviceIndex, &VRControllerState))
 				{
@@ -191,33 +190,45 @@ public:
 						CurrentStates[ ESteamVRControllerButton::Grip ] = !!(VRControllerState.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_Grip));
 
 						// If the touchpad isn't currently pressed or touched, zero put both of the axes
-						if (!CurrentStates[ ESteamVRControllerButton::TouchPadTouch ] ||	// @todo steamvr: This should actually be a '&&', not an '||'.  For now we require button to be pressed to have non-zeroed data.  This is hack to workaround faulty hardware that reports the touchpad as pressed all of the time
-							!CurrentStates[ ESteamVRControllerButton::TouchPadPress ] )
+						if (!CurrentStates[ ESteamVRControllerButton::TouchPadTouch ])
 						{
-							VRControllerState.rAxis[TOUCHPAD_AXIS].y = 0.0f;
-							VRControllerState.rAxis[TOUCHPAD_AXIS].x = 0.0f;
+ 							VRControllerState.rAxis[TOUCHPAD_AXIS].y = 0.0f;
+ 							VRControllerState.rAxis[TOUCHPAD_AXIS].x = 0.0f;
 						}
 
-						CurrentStates[ ESteamVRControllerButton::TouchPadUp ] = !!(VRControllerState.rAxis[TOUCHPAD_AXIS].y > TOUCHPAD_DEADZONE);
-						CurrentStates[ ESteamVRControllerButton::TouchPadDown ] = !!(VRControllerState.rAxis[TOUCHPAD_AXIS].y < -TOUCHPAD_DEADZONE);
-						CurrentStates[ ESteamVRControllerButton::TouchPadLeft ] = !!(VRControllerState.rAxis[TOUCHPAD_AXIS].x < -TOUCHPAD_DEADZONE);
-						CurrentStates[ ESteamVRControllerButton::TouchPadRight ] = !!(VRControllerState.rAxis[TOUCHPAD_AXIS].x > TOUCHPAD_DEADZONE);
+						// D-pad emulation
+						const FVector2D TouchDir = FVector2D(VRControllerState.rAxis[TOUCHPAD_AXIS].x, VRControllerState.rAxis[TOUCHPAD_AXIS].y).GetSafeNormal();
+						const FVector2D UpDir(0.f, 1.f);
+						const FVector2D RightDir(1.f, 0.f);
+
+						const float VerticalDot = TouchDir | UpDir;
+						const float RightDot = TouchDir | RightDir;
+
+						const bool bPressed = !TouchDir.IsNearlyZero() && CurrentStates[ ESteamVRControllerButton::TouchPadPress ];
+						
+						CurrentStates[ ESteamVRControllerButton::TouchPadUp ]		= bPressed && (VerticalDot >= DOT_45DEG);
+						CurrentStates[ ESteamVRControllerButton::TouchPadDown ]		= bPressed && (VerticalDot <= -DOT_45DEG);
+						CurrentStates[ ESteamVRControllerButton::TouchPadLeft ]		= bPressed && (RightDot <= -DOT_45DEG);
+						CurrentStates[ ESteamVRControllerButton::TouchPadRight ]	= bPressed && (RightDot >= DOT_45DEG);
 
 						if ( ControllerState.TouchPadXAnalog != VRControllerState.rAxis[TOUCHPAD_AXIS].x)
 						{
-							MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftAnalogX, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].x);
+							const FGamepadKeyNames::Type AxisButton = (ControllerState.Hand == EControllerHand::Left) ? FGamepadKeyNames::MotionController_Left_Thumbstick_X : FGamepadKeyNames::MotionController_Right_Thumbstick_X;
+							MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].x);
 							ControllerState.TouchPadXAnalog = VRControllerState.rAxis[TOUCHPAD_AXIS].x;
 						}
 
 						if ( ControllerState.TouchPadYAnalog != VRControllerState.rAxis[TOUCHPAD_AXIS].y)
 						{
-							MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftAnalogY, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].y);
+							const FGamepadKeyNames::Type AxisButton = (ControllerState.Hand == EControllerHand::Left) ? FGamepadKeyNames::MotionController_Left_Thumbstick_Y : FGamepadKeyNames::MotionController_Right_Thumbstick_Y;
+							MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].y);
 							ControllerState.TouchPadYAnalog = VRControllerState.rAxis[TOUCHPAD_AXIS].y;
 						}
 
 						if ( ControllerState.TriggerAnalog != VRControllerState.rAxis[TRIGGER_AXIS].x)
 						{
-							MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftTriggerAnalog, ControllerIndex, VRControllerState.rAxis[TRIGGER_AXIS].x);
+							const FGamepadKeyNames::Type AxisButton = (ControllerState.Hand == EControllerHand::Left) ? FGamepadKeyNames::MotionController_Left_TriggerAxis : FGamepadKeyNames::MotionController_Right_TriggerAxis;
+							MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[TRIGGER_AXIS].x);
 							ControllerState.TriggerAnalog = VRControllerState.rAxis[TRIGGER_AXIS].x;
 						}
 

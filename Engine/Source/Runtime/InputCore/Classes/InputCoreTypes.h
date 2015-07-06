@@ -353,6 +353,62 @@ struct INPUTCORE_API EKeys
 	static const FKey Gesture_Pinch;
 	static const FKey Gesture_Flick;
 
+	// Motion Controllers
+	//		Left Controller
+	static const FKey MotionController_Left_FaceButton1;
+	static const FKey MotionController_Left_FaceButton2;
+	static const FKey MotionController_Left_FaceButton3;
+	static const FKey MotionController_Left_FaceButton4;
+	static const FKey MotionController_Left_FaceButton5;
+	static const FKey MotionController_Left_FaceButton6;
+	static const FKey MotionController_Left_FaceButton7;
+	static const FKey MotionController_Left_FaceButton8;
+
+	static const FKey MotionController_Left_Shoulder;
+	static const FKey MotionController_Left_Trigger;
+
+	static const FKey MotionController_Left_Grip1;
+	static const FKey MotionController_Left_Grip2;
+
+	static const FKey MotionController_Left_Thumbstick;
+	static const FKey MotionController_Left_Thumbstick_Up;
+	static const FKey MotionController_Left_Thumbstick_Down;
+	static const FKey MotionController_Left_Thumbstick_Left;
+	static const FKey MotionController_Left_Thumbstick_Right;
+
+	//		Right Controller
+	static const FKey MotionController_Right_FaceButton1;
+	static const FKey MotionController_Right_FaceButton2;
+	static const FKey MotionController_Right_FaceButton3;
+	static const FKey MotionController_Right_FaceButton4;
+	static const FKey MotionController_Right_FaceButton5;
+	static const FKey MotionController_Right_FaceButton6;
+	static const FKey MotionController_Right_FaceButton7;
+	static const FKey MotionController_Right_FaceButton8;
+
+	static const FKey MotionController_Right_Shoulder;
+	static const FKey MotionController_Right_Trigger;
+
+	static const FKey MotionController_Right_Grip1;
+	static const FKey MotionController_Right_Grip2;
+
+	static const FKey MotionController_Right_Thumbstick;
+	static const FKey MotionController_Right_Thumbstick_Up;
+	static const FKey MotionController_Right_Thumbstick_Down;
+	static const FKey MotionController_Right_Thumbstick_Left;
+	static const FKey MotionController_Right_Thumbstick_Right;
+	 
+	//   Motion Controller Axes
+	//		Left Controller
+	static const FKey MotionController_Left_Thumbstick_X;
+	static const FKey MotionController_Left_Thumbstick_Y;
+	static const FKey MotionController_Left_TriggerAxis;
+
+	//		Right Controller
+	static const FKey MotionController_Right_Thumbstick_X;
+	static const FKey MotionController_Right_Thumbstick_Y;
+	static const FKey MotionController_Right_TriggerAxis;
+
 	// PS4-specific
 	static const FKey PS4_Special;
 
