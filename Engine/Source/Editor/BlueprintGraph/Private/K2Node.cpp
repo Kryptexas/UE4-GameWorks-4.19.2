@@ -9,6 +9,8 @@
 #include "KismetCompiler.h"
 #include "GraphEditorSettings.h"
 
+#include "ObjectEditorUtils.h"
+
 #define LOCTEXT_NAMESPACE "K2Node"
 
 // File-Scoped Globals
@@ -848,7 +850,9 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 			Record->PropertyName = TestProperty->GetFName();
 			Record->PropertyFriendlyName = UEditorEngine::GetFriendlyName(TestProperty, SourceStruct);
 			Record->PropertyTooltip = TestProperty->GetToolTipText();
-
+#if WITH_EDITOR
+			Record->CategoryName = FObjectEditorUtils::GetCategoryFName(TestProperty);
+#endif //WITH_EDITOR
 			// Get the defaults
 			GetRecordDefaults(TestProperty, *Record);
 

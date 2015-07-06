@@ -15,7 +15,7 @@ public:
 	// End of IDetailCustomization interface
 
 protected:
-	void OnGenerateElementForPropertyPin(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder );
+	void OnGenerateElementForPropertyPin(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder, FName CategoryName);
 private:
 	IDetailCategoryBuilder* DetailCategory;
 };
