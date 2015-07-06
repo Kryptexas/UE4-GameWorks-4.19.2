@@ -348,9 +348,12 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 FFeaturePackContentSource::~FFeaturePackContentSource()
 {
 	// Remove any search handler delegates for this pack
-	FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
-	SuperSearchModule.GetActOnSearchTextClicked().RemoveRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
-	SuperSearchModule.GetSearchTextChanged().RemoveRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
+	if (FModuleManager::Get().IsModuleLoaded("SuperSearch"))
+	{
+		FSuperSearchModule& SuperSearchModule = FModuleManager::GetModuleChecked<FSuperSearchModule>("SuperSearch");
+		SuperSearchModule.GetActOnSearchTextClicked().RemoveRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
+		SuperSearchModule.GetSearchTextChanged().RemoveRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
+	}
 }
 
 bool FFeaturePackContentSource::IsDataValid() const
