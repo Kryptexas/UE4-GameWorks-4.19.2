@@ -8,6 +8,7 @@
 #include "MovieScene.h"
 #include "WidgetAnimation.h"
 
+
 UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -150,7 +151,16 @@ void UUMGSequencePlayer::Stop()
 
 void UUMGSequencePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const
 {
-	OutObjects.Append(GuidToRuntimeObjectMap[ObjectHandle]);
+	const TArray<UObject*>* FoundObjects = GuidToRuntimeObjectMap.Find( ObjectHandle );
+
+	if( FoundObjects )
+	{
+		OutObjects.Append(*FoundObjects);
+	}
+	else
+	{
+		UE_LOG( LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation"), Animation ? *Animation->GetName() : TEXT("(none)") );
+	}
 }
 
 EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const
