@@ -420,7 +420,7 @@
 			SerializeExpr( iCode, Ar ); 
 			break;
 		}
-		case EX_SwithValue:
+		case EX_SwitchValue:
 		{
 			XFER(uint16); // number of cases, without default one
 			const uint16 NumCases = *(uint16*)(&Script[iCode - sizeof(uint16)]);

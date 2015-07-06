@@ -1258,7 +1258,7 @@ public:
 			ensure(false);
 		}
 
-		Writer << EX_SwithValue;
+		Writer << EX_SwitchValue;
 		// number of cases (without default)
 		const int32 TermsPerCase = 2;
 		uint16 NumCases = ((Statement.RHS.Num() - 2) / TermsPerCase);

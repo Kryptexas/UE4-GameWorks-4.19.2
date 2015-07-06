@@ -1463,7 +1463,7 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
-void UObject::execSwithValue(FFrame& Stack, RESULT_DECL)
+void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 {
 	const int32 NumCases = Stack.ReadWord();
 	const CodeSkipSizeType OffsetToEnd = Stack.ReadCodeSkipCount();
@@ -1517,7 +1517,7 @@ void UObject::execSwithValue(FFrame& Stack, RESULT_DECL)
 		Stack.Step(Stack.Object, RESULT_PARAM);
 	}
 }
-IMPLEMENT_VM_FUNCTION(EX_SwithValue, execSwithValue);
+IMPLEMENT_VM_FUNCTION(EX_SwitchValue, execSwitchValue);
 
 void UObject::execLet(FFrame& Stack, RESULT_DECL)
 {

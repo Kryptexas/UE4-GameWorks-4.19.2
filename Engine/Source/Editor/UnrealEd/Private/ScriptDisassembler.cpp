@@ -815,7 +815,7 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: .. debug site .."), *Indents, (int32)Opcode);
 			break;
 		}
-	case EX_SwithValue:
+	case EX_SwitchValue:
 		{
 			const auto NumCases = ReadWORD(ScriptIndex);
 			const auto AfterSkip = ReadSkipCount(ScriptIndex);
