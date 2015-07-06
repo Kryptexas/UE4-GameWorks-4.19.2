@@ -993,6 +993,9 @@ namespace UM
 
 		/// [StructMetadata] Indicates that the struct has a custom make node (and what the path to the BlueprintCallable UFunction is) that should be used instead of the default MakeStruct node.  
 		HasNativeMake,
+
+		/// [StructMetadata] Pins in Make and Break nodes are hidden by default.
+		HiddenByDefault,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior when displaying the property in a property panel

@@ -72,7 +72,7 @@ struct FWeightedBlendables
 // Each property consists of a bool to enable it (by default off),
 // the variable declaration and further down the default value for it.
 // The comment should include the meaning and usable range.
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(HiddenByDefault))
 struct FPostProcessSettings
 {
 	GENERATED_USTRUCT_BODY()
