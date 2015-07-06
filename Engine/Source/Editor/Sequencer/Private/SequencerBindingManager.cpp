@@ -3,31 +3,12 @@
 #include "SequencerPrivatePCH.h"
 #include "MovieScene.h"
 #include "MovieSceneInstance.h"
+#include "SequencerBinding.h"
 #include "SequencerBindingManager.h"
 
 // @todo sequencer: gmp: refactor these dependencies into another module
 #include "ModuleManager.h"
 #include "LevelEditor.h"
-
-
-/* Private types
- *****************************************************************************/
-
-/**
- * Puppet actor info
- */
-struct FSequencerActorInfo
-{
-	/** Unique object identifier. */
-	FMovieSceneObjectId ObjectId;
-
-	/**
-	 * The actual puppet actor that we are actively managing.
-	 * These actors actually live in the editor level just like any other actor,
-	 * but we'll directly manage their lifetimes while in the editor.
-	 */
-	TWeakObjectPtr<AActor> Actor;	
-};
 
 
 /* USequencerBindingManager structors
@@ -59,9 +40,24 @@ bool USequencerBindingManager::AllowsSpawnableObjects() const
 	return true;
 }
 
-void USequencerBindingManager::BindPossessableObject(const FMovieSceneObjectId& ObjectId, UObject& PossessedObject)
+
+void USequencerBindingManager::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
-	// @todo sequencer: gmp: bind possessable object
+	FString ComponentName;
+	UActorComponent* Component = Cast<UActorComponent>(&PossessedObject);
+
+	if (Component != nullptr)
+	{
+		// @todo sequencer: gmp: need support for UStruct keys in TMap
+		Bindings.Add(ObjectId.ToString(), FSequencerBinding(PossessedObject.GetOuter(), ComponentName));
+		//Bindings.Add(ObjectId, FSequencerBinding(PossessedObject.GetOuter(), ComponentName));
+	}
+	else
+	{
+		// @todo sequencer: gmp: need support for UStruct keys in TMap
+		Bindings.Add(ObjectId.ToString(), FSequencerBinding(&PossessedObject));
+		//Bindings.Add(ObjectId, FSequencerBinding(Actor));
+	}
 }
 
 
@@ -71,32 +67,41 @@ bool USequencerBindingManager::CanPossessObject(UObject& Object) const
 }
 
 
-void USequencerBindingManager::DestroyAllSpawnedObjects()
+void USequencerBindingManager::ClearBindings()
 {
-	const bool bDestroyAll = true;
-
-	for (auto It = InstanceToActorInfos.CreateConstIterator(); It; ++It)
-	{
-		SpawnOrDestroyObjectsForInstance(It.Key().Pin().ToSharedRef(), bDestroyAll);
-	}
-
-	InstanceToActorInfos.Empty();
+	Bindings.Empty();
 }
 
 
-FMovieSceneObjectId USequencerBindingManager::FindIdForObject(const UMovieScene& MovieScene, UObject& Object) const
+void USequencerBindingManager::DestroyAllSpawnedObjects(UMovieScene& MovieScene)
 {
-	FMovieSceneObjectId Result = FindIdForSpawnableObject(Object);
+	const bool DestroyAll = true;
+	SpawnOrDestroyObjects(&MovieScene, DestroyAll);
+	SpawnedActors.Empty();
+}
 
-	if (Result.IsValid())
+
+FGuid USequencerBindingManager::FindObjectId(const UMovieScene& MovieScene, UObject& Object) const
+{
+	// search bindings (possessables)
+	for (auto BindingPair : Bindings)
 	{
-		return Result;
+		const FSequencerBinding& Binding = BindingPair.Value;
+
+		if (Binding.GetBoundObject() == &Object)
+		{
+			FGuid Result; FGuid::Parse(BindingPair.Key, Result); return Result;
+			//return BindingPair.Key;
+		}
 	}
 
+	// search proxies (spawnables)
 	const bool bIsGamePreviewObject = !!(Object.GetOutermost()->PackageFlags & PKG_PlayInEditor);
 
 	if (bIsGamePreviewObject)
 	{
+		// @todo sequencer: gmp: i don't want this class to know the MovieScene that owns it
+		//
 		// someone is asking for a handle to an object from a game preview session,
 		// probably because they want to capture keys during live simulation.
 		//
@@ -109,141 +114,122 @@ FMovieSceneObjectId USequencerBindingManager::FindIdForObject(const UMovieScene&
 		
 		if (FoundSpawnable != nullptr)
 		{
-			Result = FoundSpawnable->GetObjectId();
+			return FoundSpawnable->GetGuid();
 		}
 	}
 	else
 	{
-		// @todo sequencer: gmp: update bindings
-/*		BindToPlayMovieSceneNode(false);
-
-		// when editing within the level editor, make sure we're bound to the level
-		// script node which contains data about possessables.
-		if (PlayMovieSceneNode.IsValid())
+		for (auto SpawnedActorPair : SpawnedActors)
 		{
-			ObjectGuid = PlayMovieSceneNode->FindGuidForObject(&Object);
-		}*/
-	}
-
-	return Result;
-}
-
-
-void USequencerBindingManager::GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, TArray<UObject*>& OutRuntimeObjects) const
-{
-	UObject* Object = FindActorInfoById(MovieSceneInstance, ObjectId);
-
-	if (Object)
-	{
-		// spawnable object
-		OutRuntimeObjects.Reset();
-		OutRuntimeObjects.Add(Object);
-	}
-	else
-	{
-		// possessable object
-		// @todo sequenceR: gmp: bind object?
-/*		if (!PlayMovieSceneNode.IsValid())
-		{
-			BindToPlayMovieSceneNode(false);
+			if (SpawnedActorPair.Value.Get() == &Object)
+			{
+				return SpawnedActorPair.Key;
+			}
 		}
-	
-		if (PlayMovieSceneNode.IsValid())
-		{
-			OutRuntimeObjects = PlayMovieSceneNode->FindBoundObjects( ObjectGuid );
-		}*/
 	}
+
+	return FGuid();
 }
 
 
-void USequencerBindingManager::RemoveMovieSceneInstance(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance)
+UObject* USequencerBindingManager::FindObject(const FGuid& ObjectId) const
 {
-	SpawnOrDestroyObjectsForInstance(MovieSceneInstance, true);
-	InstanceToActorInfos.Remove(MovieSceneInstance);
+	// search bindings (possessables)
+	// @todo sequencer: gmp: need support for UStruct keys in TMap
+	const FSequencerBinding* Binding = Bindings.Find(ObjectId.ToString());
+	//const FSequencerBinding* Binding = Bindings.Find(ObjectId);
+
+	if (Binding != nullptr)
+	{
+		return Binding->GetBoundObject();
+	}
+
+	// search proxies (spawnables)
+	TWeakObjectPtr<AActor> Actor = SpawnedActors.FindRef(ObjectId);
+
+	if (Actor.IsValid())
+	{
+		return Actor.Get();
+	}
+
+	// not found
+	return nullptr;
 }
 
 
-void USequencerBindingManager::SpawnOrDestroyObjectsForInstance(TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll)
+void USequencerBindingManager::SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll)
 {
 	bool bAnyLevelActorsChanged = false;
 
-	// Get the list of puppet objects for the movie scene
-	TArray<TSharedRef<FSequencerActorInfo>>& ActorInfos = InstanceToActorInfos.FindOrAdd(MovieSceneInstance);
-	UMovieScene* MovieScene = MovieSceneInstance->GetMovieScene();
-	UWorld* ActorWorld = GetWorld();
-
-	// remove any puppet objects that we no longer need
+	// remove any proxy actors that we no longer need
 	if (MovieScene != nullptr)
 	{
-		for (auto ActorInfoIndex = 0; ActorInfoIndex < ActorInfos.Num(); ++ActorInfoIndex)
+		for (auto SpawnedActorPair : SpawnedActors)
 		{
-			TSharedRef<FSequencerActorInfo> ActorInfo = ActorInfos[ActorInfoIndex];
-			bool bShouldDestroyActor = true;
+			bool ShouldDestroyActor = true;
 
-			// figure out if we still need this puppet actor
-			if (!bDestroyAll)
+			if (!DestroyAll)
 			{
+				// figure out if we still need this proxy actor
 				for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
 				{
 					auto& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
 
-					if (Spawnable.GetObjectId() == ActorInfo->ObjectId)
+					if (Spawnable.GetGuid() == SpawnedActorPair.Key)
 					{
-						bShouldDestroyActor = false;
+						ShouldDestroyActor = false;
 						break;
 					}
 				}
 			}
 
-			if (!bShouldDestroyActor)
+			if (!ShouldDestroyActor)
 			{
 				// Actor is no longer valid (probably the world was destroyed)
 				continue;
 			}
 
-			AActor* Actor = ActorInfo->Actor.Get();
+			AActor* Actor = SpawnedActorPair.Value.Get();
 				
 			if (Actor == nullptr)
 			{
 				continue;
 			}
 
-			UWorld* PuppetWorld = Actor->GetWorld();
+			// destroy Actor
+			UWorld* World = Actor->GetWorld();
 
-			if (ensure(PuppetWorld != nullptr))
+			if (ensure(World != nullptr))
 			{
-				// destroy this actor
-				// Ignored unless called while game is running
-				const bool bNetForce = false;
-
-				// We don't want to dirty the level for puppet actor changes
-				const bool bShouldModifyLevel = false;
-
 				if (!bAnyLevelActorsChanged)
 				{
 					DeselectAllActors();
 				}
 
-				// Actor should never be selected in the editor at this point.  We took care of that up above.
+				// Actor should never be selected in the Editor at this point (we took care of that up above)
 				ensure(!Actor->IsSelected());
 
-				const bool bWasDestroyed = PuppetWorld->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
+				const bool bNetForce = false;
+				const bool bShouldModifyLevel = false;
+				const bool bWasDestroyed = World->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
 
 				if (bWasDestroyed)
 				{
 					bAnyLevelActorsChanged = true;
-					ActorInfos.RemoveAt(ActorInfoIndex--);
+					SpawnedActors.Remove(SpawnedActorPair.Key);
 				}
 				else
 				{
-					// @todo sequencer: At least one puppet couldn't be cleaned up!
+					// @todo sequencer: At least one proxy actor couldn't be cleaned up!
 				}
 			}
 		}
 	}
 
-	if( !bDestroyAll && MovieScene )
+	if (!DestroyAll && (MovieScene != nullptr))
 	{
+		UWorld* ActorWorld = GetWorld();
+
 		for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
 		{
 			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable( SpawnableIndex );
@@ -254,22 +240,8 @@ void USequencerBindingManager::SpawnOrDestroyObjectsForInstance(TSharedRef<FMovi
 				continue;
 			}
 
-			// Do we already have a puppet for this spawnable?
-			bool bIsAlreadySpawned = false;
-
-			for (auto PuppetIndex = 0; PuppetIndex < ActorInfos.Num(); ++PuppetIndex)
-			{
-				auto& ActorInfo = ActorInfos[PuppetIndex];
-
-				if (ActorInfo->ObjectId == Spawnable.GetObjectId())
-				{
-					bIsAlreadySpawned = true;
-
-					break;
-				}
-			}
-
-			if (bIsAlreadySpawned)
+			// Do we already have a proxy for this spawnable?
+			if (SpawnedActors.Contains(Spawnable.GetGuid()))
 			{
 				continue;
 			}
@@ -312,14 +284,7 @@ void USequencerBindingManager::SpawnOrDestroyObjectsForInstance(TSharedRef<FMovi
 			{
 				// @todo sequencer: We're naming the actor based off of the spawnable's name.  Is that really what we want?
 				FActorLabelUtilities::SetActorLabelUnique(NewActor, Spawnable.GetName());
-
-				// Keep track of this actor
-				TSharedRef<FSequencerActorInfo> NewActorInfo(new FSequencerActorInfo());
-				{
-					NewActorInfo->ObjectId = Spawnable.GetObjectId();
-					NewActorInfo->Actor = NewActor;
-					ActorInfos.Add(NewActorInfo);
-				}
+				SpawnedActors.Add(Spawnable.GetGuid(), NewActor);
 			}
 			else
 			{
@@ -331,30 +296,33 @@ void USequencerBindingManager::SpawnOrDestroyObjectsForInstance(TSharedRef<FMovi
 }
 
 
-bool USequencerBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, FText& OutDisplayName) const
+bool USequencerBindingManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
 {
-	TArray<UObject*> RuntimeObjects;
-	GetRuntimeObjects(MovieSceneInstance, ObjectId, RuntimeObjects);
+	UObject* Object = FindObject(ObjectId);
 
-	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+	if (Object == nullptr)
 	{
-		AActor* Actor = Cast<AActor>(RuntimeObjects[ObjIndex]);
-
-		if (Actor != nullptr)
-		{
-			OutDisplayName = FText::FromString(Actor->GetActorLabel());
-
-			return true;
-		}
+		return false;
 	}
 
-	return false;
+	AActor* Actor = Cast<AActor>(Object);
+
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+
+	OutDisplayName = FText::FromString(Actor->GetActorLabel());
+
+	return true;
 }
 
 
-void USequencerBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& ObjectId)
+void USequencerBindingManager::UnbindPossessableObjects(const FGuid& ObjectId)
 {
-	// @todo sequencer: gmp: unbind object
+	// @todo sequencer: gmp: need support for UStruct keys in TMap
+	Bindings.Remove(ObjectId.ToString());
+	//Bindings.Remove(ObjectId);
 }
 
 
@@ -363,82 +331,23 @@ void USequencerBindingManager::UnbindPossessableObjects(const FMovieSceneObjectI
 
 void USequencerBindingManager::DeselectAllActors()
 {
-	TArray<AActor*> ActorsToDeselect;
-
-	// find actors to deselect
-	for (auto ActorInfosPair : InstanceToActorInfos)
-	{
-		for (const TSharedRef<FSequencerActorInfo>& ActorInfo : ActorInfosPair.Value)
-		{
-			AActor* Actor = ActorInfo->Actor.Get();
-
-			if (Actor != nullptr)
-			{
-				ActorsToDeselect.Add(Actor);
-			}
-		}
-	}
-
-	if (ActorsToDeselect.Num() == 0)
-	{
-		return;
-	}
-
-	// deselect actors
 	USelection* Selection = GEditor->GetSelectedActors();
 	{
 		Selection->BeginBatchSelectOperation();
 		Selection->MarkBatchDirty();
 
-		for (AActor* Actor : ActorsToDeselect)
+		for (auto SpawnedActorPair : SpawnedActors)
 		{
-			GEditor->GetSelectedActors()->Deselect(Actor);
+			AActor* SpawnedActor = SpawnedActorPair.Value.Get();
+
+			if (SpawnedActor != nullptr)
+			{
+				GEditor->GetSelectedActors()->Deselect(SpawnedActor);
+			}
 		}
 
 		Selection->EndBatchSelectOperation();
 	}
-}
-
-
-FMovieSceneObjectId USequencerBindingManager::FindIdForSpawnableObject(UObject& Object) const
-{
-	for (auto ActorInfosPair : InstanceToActorInfos)
-	{
-		for (const TSharedRef<FSequencerActorInfo>& ActorInfo : ActorInfosPair.Value)
-		{
-			AActor* Actor = ActorInfo->Actor.Get();
-
-			if (Actor == &Object)
-			{
-				return ActorInfo->ObjectId;
-			}
-		}
-	}
-
-	// not found
-	return FMovieSceneObjectId();
-}
-
-
-UObject* USequencerBindingManager::FindActorInfoById(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId) const
-{
-	const TArray<TSharedRef<FSequencerActorInfo>>* ActorInfos = InstanceToActorInfos.Find(MovieSceneInstance);
-
-	if (ActorInfos == nullptr)
-	{
-		return nullptr;
-	}
-
-	for (TSharedRef<FSequencerActorInfo> ActorInfo : *ActorInfos)
-	{
-		if (ActorInfo->ObjectId == ObjectId)
-		{
-			return ActorInfo->Actor.Get();
-		}
-	}
-
-	// not found
-	return nullptr;
 }
 
 
@@ -477,33 +386,30 @@ void USequencerBindingManager::HandlePropagateObjectChanges(UObject* Object)
 		return;
 	}
 
-	for (auto ActorInfosPair : InstanceToActorInfos)
+	for (auto SpawnedActorPair : SpawnedActors)
 	{
-		// is this an object that we care about?
-		for (const TSharedRef<FSequencerActorInfo>& ActorInfo : ActorInfosPair.Value)
+		AActor* SpawnedActor = SpawnedActorPair.Value.Get();
+
+		if (SpawnedActor == Object)
 		{
-			AActor* Actor = ActorInfo->Actor.Get();
-
-			if (Actor == Object)
-			{
-				// @todo sequencer: propagation: Don't propagate changes that are being auto-keyed or key-adjusted!
-
-				// Our puppet actor was modified.
-				PropagateActorChanges(ActorInfo);
-			}
+			// @todo sequencer: propagation: Don't propagate changes that are being auto-keyed or key-adjusted!
+			PropagateActorChanges(SpawnedActorPair.Key, SpawnedActor);
 		}
 	}
 }
 
 
-void USequencerBindingManager::PropagateActorChanges(const TSharedRef<FSequencerActorInfo> ActorInfo)
+void USequencerBindingManager::PropagateActorChanges(const FGuid& ObjectId, AActor* Actor)
 {
-	AActor* Actor = ActorInfo->Actor.Get();
-	AActor* TargetActor = nullptr;
+	if (Actor == nullptr)
+	{
+		return;
+	}
 
-	// find the spawnable for this puppet actor
+	AActor* TargetActor = nullptr;
 	FMovieSceneSpawnable* FoundSpawnable = nullptr;
 
+	// find the spawnable for this puppet actor
 	// @todo sequencer: gmp: add horrible sequencer dependencies to binding manager
 /*	TArray<UMovieScene*> MovieScenesBeingEdited = Sequencer.Pin()->GetMovieScenesBeingEdited();
 

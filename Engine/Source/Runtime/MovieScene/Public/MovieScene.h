@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "MovieSceneObjectId.h"
 #include "MovieScene.generated.h"
 
 
@@ -43,14 +42,6 @@ public:
 		return Name;
 	}
 
-	/**
-	 * Get the unique object identifier.
-	 */
-	const FMovieSceneObjectId& GetObjectId() const
-	{
-		return ObjectId;
-	}
-
 	/** @return Returns the blueprint associated with this spawnable */
 	UClass* GetClass() { return GeneratedClass; }
 
@@ -82,9 +73,6 @@ private:
 	    used in the editor when capturing keyframe data from a live simulation */
 	// @todo sequencer data: Should be editor only
 	FWeakObjectPtr CounterpartGamePreviewObject;
-
-	// @todo sequencer: gmp: refactor sequencer object IDs.
-	FMovieSceneObjectId ObjectId;
 };
 
 /**

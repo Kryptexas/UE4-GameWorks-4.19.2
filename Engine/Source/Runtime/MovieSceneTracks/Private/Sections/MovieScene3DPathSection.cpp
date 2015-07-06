@@ -15,14 +15,14 @@ UMovieScene3DPathSection::UMovieScene3DPathSection( const FObjectInitializer& Ob
 {
 }
 
-void UMovieScene3DPathSection::SetPathId(const FMovieSceneObjectId& InPathId)
+void UMovieScene3DPathSection::SetPathId(const FGuid& InPathId)
 {
 	Modify();
 
 	PathId = InPathId;
 }
 
-FMovieSceneObjectId UMovieScene3DPathSection::GetPathId() const
+FGuid UMovieScene3DPathSection::GetPathId() const
 {
 	return PathId;
 }
@@ -144,7 +144,7 @@ void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
-void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FMovieSceneObjectId& InPathId )
+void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FGuid& InPathId )
 {
 	Modify();
 	PathId = InPathId;

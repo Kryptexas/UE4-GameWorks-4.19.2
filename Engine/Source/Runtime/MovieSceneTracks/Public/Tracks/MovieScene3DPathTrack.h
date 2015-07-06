@@ -31,7 +31,7 @@ public:
 	 * @param PathEndTime       Set the path to end at this time
 	 * @param PathId			The id to the spline
 	 */
-	virtual void AddPath( float Time, float PathEndTime, const FMovieSceneObjectId& PathId );
+	virtual void AddPath( float Time, float PathEndTime, const FGuid& PathId );
 
 private:
 	/** List of all path sections */

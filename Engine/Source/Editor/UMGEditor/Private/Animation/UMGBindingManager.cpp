@@ -2,7 +2,6 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "MovieScene.h"
-#include "MovieSceneInstance.h"
 #include "UMGBindingManager.h"
 #include "Animation/WidgetAnimation.h"
 #include "WidgetBlueprint.h"
@@ -55,13 +54,13 @@ void UUMGBindingManager::InitPreviewObjects()
 
 		if (FoundSlot == nullptr)
 		{
-			ObjectIdToPreviewObjects.Add(Binding.AnimationId, FoundObject);
-			PreviewObjectToId.Add(FoundObject, Binding.AnimationId);
+			IdToPreviewObjects.Add(Binding.AnimationId, FoundObject);
+			PreviewObjectToIds.Add(FoundObject, Binding.AnimationId);
 		}
 		else
 		{
-			ObjectIdToSlotContentPreviewObjects.Add(Binding.AnimationId, FoundSlot->Content);
-			SlotContentPreviewObjectToId.Add(FoundSlot->Content, Binding.AnimationId);
+			IdToSlotContentPreviewObjects.Add(Binding.AnimationId, FoundSlot->Content);
+			SlotContentPreviewObjectToIds.Add(FoundSlot->Content, Binding.AnimationId);
 		}
 	}
 }
@@ -94,7 +93,7 @@ bool UUMGBindingManager::AllowsSpawnableObjects() const
 }
 
 
-void UUMGBindingManager::BindPossessableObject(const FMovieSceneObjectId& ObjectId, UObject& PossessedObject)
+void UUMGBindingManager::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
 	if (WidgetAnimation == nullptr)
 	{
@@ -105,8 +104,8 @@ void UUMGBindingManager::BindPossessableObject(const FMovieSceneObjectId& Object
 
 	if ((PossessedSlot != nullptr) && (PossessedSlot->Content != nullptr))
 	{
-		SlotContentPreviewObjectToId.Add(PossessedSlot->Content, ObjectId);
-		ObjectIdToSlotContentPreviewObjects.Add(ObjectId, PossessedSlot->Content);
+		SlotContentPreviewObjectToIds.Add(PossessedSlot->Content, ObjectId);
+		IdToSlotContentPreviewObjects.Add(ObjectId, PossessedSlot->Content);
 
 		// Save the name of the widget containing the slots. This is the object
 		// to look up that contains the slot itself (the thing we are animating).
@@ -121,8 +120,8 @@ void UUMGBindingManager::BindPossessableObject(const FMovieSceneObjectId& Object
 	}
 	else if (PossessedSlot == nullptr)
 	{
-		PreviewObjectToId.Add(&PossessedObject, ObjectId);
-		ObjectIdToPreviewObjects.Add(ObjectId, &PossessedObject);
+		PreviewObjectToIds.Add(&PossessedObject, ObjectId);
+		IdToPreviewObjects.Add(ObjectId, &PossessedObject);
 
 		FWidgetAnimationBinding NewBinding;
 		{
@@ -157,98 +156,102 @@ bool UUMGBindingManager::CanPossessObject(UObject& Object) const
 }
 
 
-FMovieSceneObjectId UUMGBindingManager::FindIdForObject(const UMovieScene& MovieScene, UObject& Object) const
+void UUMGBindingManager::ClearBindings()
+{
+	 // @todo sequencer: clear UMG bindings?
+}
+
+
+FGuid UUMGBindingManager::FindObjectId(const UMovieScene& MovieScene, UObject& Object) const
 {
 	UPanelSlot* Slot = Cast<UPanelSlot>(&Object);
 
 	if (Slot != nullptr)
 	{
 		// slot guids are tracked by their content.
-		return PreviewObjectToId.FindRef(Slot->Content);
+		return PreviewObjectToIds.FindRef(Slot->Content);
 	}
 
-	return PreviewObjectToId.FindRef(&Object);
+	return PreviewObjectToIds.FindRef(&Object);
 }
 
 
-void UUMGBindingManager::GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, TArray<UObject*>& OutRuntimeObjects) const
+UObject* UUMGBindingManager::FindObject(const FGuid& ObjectId) const
 {
-	TArray<TWeakObjectPtr<UObject>> PreviewObjects;
-	ObjectIdToPreviewObjects.MultiFind(ObjectId, PreviewObjects);
+	TWeakObjectPtr<UObject> PreviewObject = IdToPreviewObjects.FindRef(ObjectId);
 
-	for (TWeakObjectPtr<UObject>& PreviewObject : PreviewObjects)
+	if (PreviewObject.IsValid())
 	{
-		OutRuntimeObjects.Add(PreviewObject.Get());
+		return PreviewObject.Get();
 	}
 
-	TArray<TWeakObjectPtr<UObject>> SlotContentPreviewObjects;
-	ObjectIdToSlotContentPreviewObjects.MultiFind(ObjectId, SlotContentPreviewObjects);
+	TWeakObjectPtr<UObject> SlotContentPreviewObject = IdToSlotContentPreviewObjects.FindRef(ObjectId);
 
-	for (TWeakObjectPtr<UObject>& SlotContentPreviewObject : SlotContentPreviewObjects)
+	if (SlotContentPreviewObject.IsValid())
 	{
-		UWidget* ContentWidget = Cast<UWidget>(SlotContentPreviewObject.Get());
-		OutRuntimeObjects.Add(ContentWidget->Slot);
+		return SlotContentPreviewObject.Get();
 	}
+	
+	return nullptr;
 }
 
 
-bool UUMGBindingManager::TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, FText& OutDisplayName) const
+bool UUMGBindingManager::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
 {
-	// TODO: This gets called every frame for every bound object and could be a potential performance issue for a really complicated animation.
-	TArray<TWeakObjectPtr<UObject>> BindingObjects;
-	ObjectIdToPreviewObjects.MultiFind(ObjectId, BindingObjects);
-	
-	TArray<TWeakObjectPtr<UObject>> SlotContentBindingObjects;
-	ObjectIdToSlotContentPreviewObjects.MultiFind(ObjectId, SlotContentBindingObjects);
-	
-	if ((BindingObjects.Num() == 0) && (SlotContentBindingObjects.Num() == 0))
+	// TODO: This gets called every frame for every bound object and could
+	// be a potential performance issue for a really complicated animation.
+
+	TWeakObjectPtr<UObject> PreviewObject = IdToPreviewObjects.FindRef(ObjectId);
+
+	if (PreviewObject.IsValid())
 	{
-		OutDisplayName = LOCTEXT("NoBoundObjects", "No bound objects");
+		OutDisplayName = FText::FromString(PreviewObject.Get()->GetName());
+		return true;
 	}
-	else if (BindingObjects.Num() + SlotContentBindingObjects.Num() > 1)
+
+	TWeakObjectPtr<UObject> SlotContentPreviewObject = IdToSlotContentPreviewObjects.FindRef(ObjectId);
+
+	if (SlotContentPreviewObject.IsValid())
 	{
-		OutDisplayName = LOCTEXT("Multiple bound objects", "Multilple bound objects");
-	}
-	else if (BindingObjects.Num() == 1)
-	{
-		OutDisplayName = FText::FromString(BindingObjects[0].Get()->GetName());
-	}
-	else // SlotContentBindingObjects.Num() == 1
-	{
-		UWidget* SlotContent = Cast<UWidget>(SlotContentBindingObjects[0].Get());
+		UWidget* SlotContent = Cast<UWidget>(SlotContentPreviewObject.Get());
 		FText PanelName = SlotContent->Slot != nullptr && SlotContent->Slot->Parent != nullptr
 			? FText::FromString(SlotContent->Slot->Parent->GetName())
 			: LOCTEXT("InvalidPanel", "Invalid Panel");
 		FText ContentName = FText::FromString(SlotContent->GetName());
 		OutDisplayName = FText::Format(LOCTEXT("SlotObject", "{0} ({1} Slot)"), ContentName, PanelName);
+
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 
-void UUMGBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& ObjectId)
+void UUMGBindingManager::UnbindPossessableObjects(const FGuid& ObjectId)
 {
+	// unbind widgets
 	TArray<TWeakObjectPtr<UObject>> PreviewObjects;
-	ObjectIdToPreviewObjects.MultiFind(ObjectId, PreviewObjects);
+	IdToPreviewObjects.MultiFind(ObjectId, PreviewObjects);
 
 	for (TWeakObjectPtr<UObject>& PreviewObject : PreviewObjects)
 	{
-		PreviewObjectToId.Remove(PreviewObject);
+		PreviewObjectToIds.Remove(PreviewObject);
 	}
 
-	ObjectIdToPreviewObjects.Remove(ObjectId);
+	IdToPreviewObjects.Remove(ObjectId);
 
+	// unbind slots
 	TArray<TWeakObjectPtr<UObject>> SlotContentPreviewObjects;
-	ObjectIdToSlotContentPreviewObjects.MultiFind(ObjectId, SlotContentPreviewObjects);
+	IdToSlotContentPreviewObjects.MultiFind(ObjectId, SlotContentPreviewObjects);
 
 	for (TWeakObjectPtr<UObject>& SlotContentPreviewObject : SlotContentPreviewObjects)
 	{
-		SlotContentPreviewObjectToId.Remove(SlotContentPreviewObject);
+		SlotContentPreviewObjectToIds.Remove(SlotContentPreviewObject);
 	}
 
-	ObjectIdToSlotContentPreviewObjects.Remove(ObjectId);
+	IdToSlotContentPreviewObjects.Remove(ObjectId);
 
+	// remove animation bindings
 	if ((WidgetAnimation != nullptr) && (WidgetBlueprintEditor != nullptr))
 	{
 		UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor->GetWidgetBlueprintObj();
@@ -266,10 +269,10 @@ void UUMGBindingManager::UnbindPossessableObjects(const FMovieSceneObjectId& Obj
 
 void UUMGBindingManager::HandleWidgetPreviewUpdated()
 {
-	PreviewObjectToId.Empty();
-	ObjectIdToPreviewObjects.Empty();
-	ObjectIdToSlotContentPreviewObjects.Empty();
-	SlotContentPreviewObjectToId.Empty();
+	PreviewObjectToIds.Empty();
+	IdToPreviewObjects.Empty();
+	IdToSlotContentPreviewObjects.Empty();
+	SlotContentPreviewObjectToIds.Empty();
 
 	InitPreviewObjects();
 

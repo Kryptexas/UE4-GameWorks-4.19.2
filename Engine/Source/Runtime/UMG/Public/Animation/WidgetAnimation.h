@@ -3,7 +3,6 @@
 #pragma once
 
 #include "IMovieScenePlayer.h"
-#include "MovieSceneObjectId.h"
 #include "WidgetAnimation.generated.h"
 
 class UMovieScene;
@@ -26,7 +25,7 @@ struct FWidgetAnimationBinding
 
 	// @todo sequencer: gmp: UMG integration
 	//UPROPERTY()
-	FMovieSceneObjectId AnimationId;
+	FGuid AnimationId;
 
 public:
 	/**

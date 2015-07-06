@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "MovieSceneObjectId.h"
 #include "MovieSceneSection.h"
 #include "MovieScene3DPathSection.generated.h"
 
@@ -36,10 +35,10 @@ public:
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
 
 	/** Sets the path id for this path section */
-	virtual void SetPathId(const FMovieSceneObjectId& InId);
+	virtual void SetPathId(const FGuid& InId);
 
 	/** Gets the path id for this path section */
-	virtual FMovieSceneObjectId GetPathId() const;
+	virtual FGuid GetPathId() const;
 
 	/**
 	 * Evaluates the path track
@@ -55,7 +54,7 @@ public:
 	 * @param SequenceEndTime   The time at the end of the sequence, by default the path is set to end at this time
 	 * @param InPathId The id to the path
 	 */
-	void AddPath( float Time, float SequenceEndTime, const FMovieSceneObjectId& InPathId);
+	void AddPath( float Time, float SequenceEndTime, const FGuid& InPathId);
 
 	/** 
 	 * Returns the timing curve
@@ -67,7 +66,7 @@ public:
 private:
 	/** The path possessable that this path uses */
 	UPROPERTY()
-	FMovieSceneObjectId PathId;
+	FGuid PathId;
 
 	/** Timing Curve */
 	UPROPERTY()

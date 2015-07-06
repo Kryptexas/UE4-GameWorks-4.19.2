@@ -200,7 +200,7 @@ void F3DPathTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder
 		}
 		else
 		{
-			AActor* ActorWithSplineComponent = NULL;
+			AActor* ActorWithSplineComponent = nullptr;
 			FFormatNamedArguments Args;
 			MenuBuilder.AddMenuEntry(
 				FText::Format( NSLOCTEXT("Sequencer", "AddPath", "Add Path"), Args),
@@ -280,14 +280,9 @@ void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithS
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "UndoSetPath", "Set Path"));
 
 	UMovieScene3DPathSection* PathSection = (UMovieScene3DPathSection*)(Section);
+	FGuid SplineId = FindOrCreateHandleToObject(ActorWithSplineComponent);
 
-	//@todo sequencer - replace this with movie scene object id stuff
-	FGuid SplineGuid = FindOrCreateHandleToObject(ActorWithSplineComponent);
-
-	FMovieSceneObjectId SplineId;
-	SplineId.ObjectGuid = SplineGuid;
-
-	if (SplineGuid.IsValid())
+	if (SplineId.IsValid())
 	{
 		PathSection->SetPathId(SplineId);
 	}
@@ -295,25 +290,22 @@ void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithS
 
 void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset)
 {
-	AActor* ActorWithSplineComponent = NULL;
+	AActor* ActorWithSplineComponent = nullptr;
 	
-	if (AdditionalAsset != NULL)
+	if (AdditionalAsset != nullptr)
 	{
 		ActorWithSplineComponent = Cast<AActor>(AdditionalAsset);
 	}
 
-	//@todo sequencer - replace this with movie scene object id stuff
-	FGuid SplineGuid;
-	if (ActorWithSplineComponent != NULL)
+	FGuid SplineId;
+
+	if (ActorWithSplineComponent != nullptr)
 	{
-		SplineGuid = FindOrCreateHandleToObject(ActorWithSplineComponent);
+		SplineId = FindOrCreateHandleToObject(ActorWithSplineComponent);
 	}
 
-	if (SplineGuid.IsValid())
+	if (SplineId.IsValid())
 	{
-		FMovieSceneObjectId SplineId;
-		SplineId.ObjectGuid = SplineGuid;
-
 		for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 		{
 			UObject* Object = Objects[ObjectIndex];

@@ -54,7 +54,7 @@ TRange<float> UMovieScene3DPathTrack::GetSectionBoundaries() const
 	return TRange<float>::Hull(Bounds);
 }
 
-void UMovieScene3DPathTrack::AddPath(float KeyTime, float PathEndTime, const FMovieSceneObjectId& PathId)
+void UMovieScene3DPathTrack::AddPath(float KeyTime, float PathEndTime, const FGuid& PathId)
 {
 	// add the section
 	UMovieScene3DPathSection* NewSection = NewObject<UMovieScene3DPathSection>(this);

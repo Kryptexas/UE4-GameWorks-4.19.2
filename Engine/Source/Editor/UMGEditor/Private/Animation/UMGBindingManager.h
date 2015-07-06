@@ -62,15 +62,15 @@ public:
 	// IMovieSceneBindingManager interface
 
 	virtual bool AllowsSpawnableObjects() const override;
-	virtual void BindPossessableObject(const FMovieSceneObjectId& ObjectId, UObject& PossessedObject) override;
-	virtual bool CanPossessObject( UObject& Object ) const override;
-	virtual void DestroyAllSpawnedObjects() override { }
-	virtual FMovieSceneObjectId FindIdForObject(const UMovieScene& MovieScene, UObject& Object) const override;
-	virtual void GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, TArray<UObject*>& OutRuntimeObjects) const override;
-	virtual void RemoveMovieSceneInstance(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance) override { }
-	virtual void SpawnOrDestroyObjectsForInstance(TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll) override { }
-	virtual bool TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, FText& OutDisplayName) const override;
-	virtual void UnbindPossessableObjects(const FMovieSceneObjectId& ObjectId) override;
+	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
+	virtual bool CanPossessObject(UObject& Object) const override;
+	virtual void ClearBindings() override;
+	virtual void DestroyAllSpawnedObjects(UMovieScene& MovieScene) override { }
+	virtual FGuid FindObjectId(const UMovieScene& MovieScene, UObject& Object) const override;
+	virtual UObject* FindObject(const FGuid& ObjectId) const override;
+	virtual void SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll) override { }
+	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const override;
+	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
 
 private:
 
@@ -79,11 +79,11 @@ private:
 
 private:
 
-	/** Mapping of preview objects to sequencer guids */
-	TMap<TWeakObjectPtr<UObject>, FMovieSceneObjectId> PreviewObjectToId;
-	TMultiMap<FMovieSceneObjectId, TWeakObjectPtr<UObject>> ObjectIdToPreviewObjects;
-	TMultiMap<FMovieSceneObjectId, TWeakObjectPtr<UObject>> ObjectIdToSlotContentPreviewObjects;
-	TMap<TWeakObjectPtr<UObject>, FMovieSceneObjectId> SlotContentPreviewObjectToId;
+	/** Mapping of preview objects to sequencer GUIDs */
+	TMap<TWeakObjectPtr<UObject>, FGuid> PreviewObjectToIds;
+	TMultiMap<FGuid, TWeakObjectPtr<UObject>> IdToPreviewObjects;
+	TMultiMap<FGuid, TWeakObjectPtr<UObject>> IdToSlotContentPreviewObjects;
+	TMap<TWeakObjectPtr<UObject>, FGuid> SlotContentPreviewObjectToIds;
 
 	/** The current widget animation. */
 	UPROPERTY(transient)

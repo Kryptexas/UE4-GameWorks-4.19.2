@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "MovieSceneObjectId.h"
 #include "MovieSceneBindingManager.generated.h"
 
 
@@ -44,44 +43,47 @@ class IMovieSceneBindingManager
 	 * @param PossessedObject The runtime object which was possessed.
 	 * @see UnbindPossessableObjects
 	 */
-	virtual void BindPossessableObject(const FMovieSceneObjectId& ObjectId, UObject& PossessedObject) PURE_VIRTUAL(IMovieSceneBindingManager::BindPossessableObject,);
+	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) PURE_VIRTUAL(IMovieSceneBindingManager::BindPossessableObject,);
 	
 	/**
 	 * @todo gmp: sequencer: add documentation.
 	 */
-	virtual bool CanPossessObject( UObject& Object ) const PURE_VIRTUAL(IMovieSceneBindingManager::CanPossessObject, return false;);
+	virtual bool CanPossessObject(UObject& Object) const PURE_VIRTUAL(IMovieSceneBindingManager::CanPossessObject, return false;);
+
+	/** Remove all bindings from this manager. */
+	virtual void ClearBindings() PURE_VIRTUAL(IMovieSceneBindingManager::ClearBindings,);
 
 	/**
-	 * @todo gmp: sequencer: add documentation
-	 */
-	virtual void DestroyAllSpawnedObjects() PURE_VIRTUAL(IMovieSceneBindingManager::DestroyAllSpawnedObjects,);
-
-	/**
-	 * Finds an existing guid for a bound object.
+	 * Destroy all objects that were spawned by this binding manager.
 	 *
-	 * @param MovieScene The movie scene that may contain the binding.
-	 * @param The object to get the guid for.
-	 * @return The object identifier or an invalid guid if not found.
+	 * @param MovieScene The movie scene that owns this manager.
 	 */
-	virtual FMovieSceneObjectId FindIdForObject(const UMovieScene& MovieScene, UObject& Object) const PURE_VIRTUAL(IMovieSceneBindingManager::FindGuidForObject, return FGuid(););
+	virtual void DestroyAllSpawnedObjects(UMovieScene& MovieScene) PURE_VIRTUAL(IMovieSceneBindingManager::DestroyAllSpawnedObjects,);
 
 	/**
-	 * @todo gmp: sequencer: add documentation
+	 * Find the identifier for a possessed or spawned object.
+	 *
+	 * @param The scene that owns this binding manager.
+	 * @param The object to get the identifier for.
+	 * @return The object identifier, or an invalid GUID if not found.
 	 */
-	virtual void GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, TArray<UObject*>& OutRuntimeObjects) const PURE_VIRTUAL(IMovieSceneBindingManager::GetRuntimeObjects,);
+	virtual FGuid FindObjectId(const UMovieScene& MovieScene, UObject& Object) const PURE_VIRTUAL(IMovieSceneBindingManager::FindGuidForObject, return FGuid(););
 
 	/**
-	 * @todo gmp: sequencer: add documentation
+	 * Gets the possessed or spawned object for the specified identifier.
+	 *
+	 * @param ObjectId The unique identifier of the object.
+	 * @return The object, or nullptr if not found.
 	 */
-	virtual void RemoveMovieSceneInstance(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance) PURE_VIRTUAL(IMovieSceneBindingManager::RemoveMovieSceneInstance,);
+	virtual UObject* FindObject(const FGuid& ObjectId) const PURE_VIRTUAL(IMovieSceneBindingManager::FindObject, return nullptr;);
 
 	/**
 	 * Called to spawn or destroy objects for a movie instance.
 	 *
-	 * @param MovieSceneInstance The instance to spawn or destroy objects for.
-	 * @param bDestroyAll If true, destroy all spawned objects for the instance, if false only destroy unused objects.
+	 * @param MovieScene The movie scene to spawn or destroy objects for.
+	 * @param DestroyAll If true, destroy all spawned objects for the instance, if false only destroy unused objects.
 	 */
-	virtual void SpawnOrDestroyObjectsForInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll ) PURE_VIRTUAL(IMovieSceneBindingManager::SpawnOrDestroyObjectsForInstance,);
+	virtual void SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll) PURE_VIRTUAL(IMovieSceneBindingManager::SpawnOrDestroyObjects,);
 
 	/**
 	 * 
@@ -91,7 +93,7 @@ class IMovieSceneBindingManager
 	 * @param DisplayName The display name for the object binding.
 	 * @returns true if DisplayName has been set to a valid display name, otherwise false.
 	 */
-	virtual bool TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FMovieSceneObjectId& ObjectId, FText& OutDisplayName) const PURE_VIRTUAL(IMovieSceneBindingManager::TryGetObjectBindingDisplayName, return false;);
+	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const PURE_VIRTUAL(IMovieSceneBindingManager::TryGetObjectDisplayName, return false;);
 
 	/**
 	 * Unbinds all possessable objects from the provided GUID.
@@ -99,5 +101,5 @@ class IMovieSceneBindingManager
 	 * @param ObjectId The guid bound to possessable objects that should be removed.
 	 * @see BindPossessableObject
 	 */
-	virtual void UnbindPossessableObjects(const FMovieSceneObjectId& ObjectId) PURE_VIRTUAL(IMovieSceneBindingManager::UnbindPossessableObjects,);
+	virtual void UnbindPossessableObjects(const FGuid& ObjectId) PURE_VIRTUAL(IMovieSceneBindingManager::UnbindPossessableObjects,);
 };

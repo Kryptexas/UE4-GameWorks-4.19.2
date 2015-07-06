@@ -63,10 +63,11 @@ void FMovieScene3DPathTrackInstance::Update( float Position, float LastPosition,
 			(FirstPathSection == NULL || FirstPathSection->GetRowIndex() > PathSection->GetRowIndex()))
 		{
 			TArray<UObject*> PathObjects;
-			FMovieSceneObjectId PathId = PathSection->GetPathId();
+			FGuid PathId = PathSection->GetPathId();
+
 			if (PathId.IsValid())
 			{
-				Player.GetRuntimeObjects( Player.GetRootMovieSceneInstance(), PathId.ObjectGuid, PathObjects);
+				Player.GetRuntimeObjects( Player.GetRootMovieSceneInstance(), PathId, PathObjects);
 
 				for (int32 PathObjectIndex = 0; PathObjectIndex < PathObjects.Num(); ++PathObjectIndex)
 				{
