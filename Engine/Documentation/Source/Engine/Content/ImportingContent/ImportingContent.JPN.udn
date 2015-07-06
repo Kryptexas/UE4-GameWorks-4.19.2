@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2610008
 Availability:Docs
 Title:コンテンツのインポートの操作ガイド
 Crumbs:%ROOT%, Engine, Engine/Content
@@ -7,6 +7,8 @@ Description:UE4 プロジェクトにコンテンツをインポートする方�
 バージョン：4.8
 
 メッシュ、テクスチャ、その他のアセットを UE4 プロジェクトに様々な方法でインポートすることができます。コンテンツを UE4 にインポートする一般的な方法について説明します。例えば、コンテンツ ブラウザのインポート機能を使用する、ハードディスクからコンテンツ ブラウザにファイルをドラッグする、外部プログラムからプロジェクト ディレクトリにファイルを保存するなどがあります。
+
+_画像 (以下で図示) をクリックすると、コンテンツ ブラウザがどのように表示されるかがわかります。_
 
 [REGION:lightbox]
 	[![](Content_Browser.png)(w:925)](Content_Browser.png)
