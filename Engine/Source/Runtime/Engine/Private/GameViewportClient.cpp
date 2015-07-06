@@ -886,7 +886,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
 			int32 NumViews = bEnableStereo ? 2 : 1;
 
-			for (int i = 0; i < NumViews; ++i)
+			for (int32 i = 0; i < NumViews; ++i)
 			{
 				// Calculate the player's view information.
 				FVector		ViewLocation;
