@@ -32,6 +32,7 @@ FAudioDevice::FAudioDevice()
 	, DefaultBaseSoundMix(nullptr)
 	, Effects(nullptr)
 	, CurrentAudioVolume(nullptr)
+	, PlatformAudioHeadroom(1.0f)
 	, HighestPriorityReverb(nullptr)
 	, SpatializationPlugin(nullptr)
 	, SpatializeProcessor(nullptr)
@@ -59,9 +60,17 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	// initialize config variables
 	MaxChannels = InMaxChannels;
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
-	
+
 	// If this is true, skip the initial startup precache so we can do it later in the flow
 	GConfig->GetBool(TEXT("Audio"), TEXT("DeferStartupPrecache"), bDeferStartupPrecache, GEngineIni);
+
+	// Get an optional engine ini setting for platform headroom. 
+	float Headroom = 1.0f;
+	if (GConfig->GetFloat(TEXT("Audio"), TEXT("PlatformHeadroomDB"), Headroom, GEngineIni))
+	{
+		// Convert dB to linear volume
+		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 10.0f);
+	}
 
 	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
 	if (DefaultBaseSoundMixName.IsValid())

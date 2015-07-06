@@ -298,7 +298,9 @@ void FCoreAudioSoundSource::Update( void )
 	{
 		Volume = WaveInstance->GetActualVolume();
 	}
-	
+
+	Volume *= AudioDevice->PlatformAudioHeadroom;
+
 	if( Buffer->NumChannels < 3 )
 	{
 		float Azimuth = 0.0f;

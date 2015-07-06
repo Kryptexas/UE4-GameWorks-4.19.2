@@ -33,10 +33,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogALAudio, Log, All);
 // <=> 1 UU == 0.0127 m
 #define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 
-// Audio volume is higher in OpenAL than XAudio2, we'll add a -3dB attenuation as headroom
-// to attempt to make it more on-par.
-#define AUDIO_OPEN_AL_VOLUME_SCALE (0.707f)
-
 /**
  * OpenAL implementation of FSoundBuffer, containing the wave data and format information.
  */

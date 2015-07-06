@@ -100,7 +100,7 @@ void FALSoundSource::Update( void )
 			Volume *= 1.25f;
 		}
 		Volume *= FApp::GetVolumeMultiplier();
-		Volume *= AUDIO_OPEN_AL_VOLUME_SCALE;
+		Volume *= AudioDevice->PlatformAudioHeadroom;
 		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	}
 
