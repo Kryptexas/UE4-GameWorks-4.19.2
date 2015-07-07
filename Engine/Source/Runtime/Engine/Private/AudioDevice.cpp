@@ -226,7 +226,10 @@ void FAudioDevice::AddReferencedObjects( FReferenceCollector& Collector )
 		Collector.AddReferencedObject(It.Key());
 	}
 
-	Effects->AddReferencedObjects(Collector);
+	if (Effects)
+	{
+		Effects->AddReferencedObjects(Collector);
+	}
 
 	for( int32 i = 0; i < ActiveSounds.Num(); ++i )
 	{
