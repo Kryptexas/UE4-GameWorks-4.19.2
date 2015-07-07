@@ -412,6 +412,34 @@ bool FLinuxPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Outp
 	return false;
 }
 
+bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FString* OutWritten)
+{
+	// if there is not a message or WritePipe is null
+	if ((Message.Len() == 0) || (WritePipe == nullptr))
+	{
+		return false;
+	}
+
+	// convert input to UTF8CHAR
+	uint32 BytesAvailable = Message.Len();
+	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
+
+	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
+	{
+		return false;
+	}
+
+	// write to pipe
+	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
+
+	if (OutWritten != nullptr)
+	{
+		OutWritten->FromBlob(Buffer, BytesWritten);
+	}
+
+	return (BytesWritten == BytesAvailable);
+}
+
 FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
 {
 	return new FRunnableThreadLinux();

@@ -506,6 +506,17 @@ struct CORE_API FGenericPlatformProcess
 	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
 
 	/**
+	* Sends the message to process through pipe
+	*
+	* @param WritePipe Pipe for writing.
+	* @param Message The message to be written.
+	* @param OutWritten Optional parameter to know how much of the string written.
+	* @return True if all bytes written successfully.
+	* @see CreatePipe, ClosePipe, ReadPipe
+	*/
+	static bool WritePipe(void* WritePipe, const FString& Message, FString* OutWritten = nullptr);
+
+	/**
 	 * Gets whether this platform can use multiple threads.
 	 *
 	 * @return true if the platform can use multiple threads, false otherwise.
