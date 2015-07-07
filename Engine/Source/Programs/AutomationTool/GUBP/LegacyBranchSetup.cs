@@ -133,19 +133,47 @@ partial class GUBP
 		}
     }
 
-    private static List<GUBPEmailHacker> EmailHackers;
-    private string[] HackEmails(string Causers, string Branch, NodeInfo NodeInfo)
+	private void FindEmailsForNodes(IEnumerable<NodeInfo> Nodes)
+	{
+		List<GUBPEmailHacker> EmailHackers = new List<GUBPEmailHacker>();
+
+		Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+		foreach (var Dll in LoadedAssemblies)
+		{
+			Type[] AllTypes = GetTypesFromAssembly(Dll);
+			foreach (var PotentialConfigType in AllTypes)
+			{
+				if (PotentialConfigType != typeof(GUBPEmailHacker) && typeof(GUBPEmailHacker).IsAssignableFrom(PotentialConfigType))
+				{
+					GUBPEmailHacker Config = Activator.CreateInstance(PotentialConfigType) as GUBPEmailHacker;
+					if (Config != null)
+					{
+						EmailHackers.Add(Config);
+					}
+				}
+			}
+		}
+
+		foreach (NodeInfo Node in GUBPNodes.Values)
+		{
+			Node.RecipientsForFailureEmails = HackEmails(EmailHackers, BranchName, Node, out Node.AddSubmittersToFailureEmails);
+		}
+	}
+
+    private string[] HackEmails(List<GUBPEmailHacker> EmailHackers, string Branch, NodeInfo NodeInfo, out bool bIncludeCausers)
     {
 		string OnlyEmail = ParseParamValue("OnlyEmail");
         if (!String.IsNullOrEmpty(OnlyEmail))
         {
+			bIncludeCausers = false;
             return new string[]{ OnlyEmail };
         }
 
 		string EmailOnly = ParseParamValue("EmailOnly");
 		if (!String.IsNullOrEmpty(EmailOnly))
 		{
-			return new string[]{ EmailOnly };
+			bIncludeCausers = false;
+			return new string[] { EmailOnly };
 		}
 
         string EmailHint = ParseParamValue("EmailHint");
@@ -153,26 +181,7 @@ partial class GUBP
         {
             EmailHint = "";
         }			
-        if (EmailHackers == null)
-        {
-            EmailHackers = new List<GUBPEmailHacker>();
-            Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var Dll in LoadedAssemblies)
-            {
-				Type[] AllTypes = GetTypesFromAssembly(Dll);
-                foreach (var PotentialConfigType in AllTypes)
-                {
-                    if (PotentialConfigType != typeof(GUBPEmailHacker) && typeof(GUBPEmailHacker).IsAssignableFrom(PotentialConfigType))
-                    {
-                        GUBPEmailHacker Config = Activator.CreateInstance(PotentialConfigType) as GUBPEmailHacker;
-                        if (Config != null)
-                        {
-                            EmailHackers.Add(Config);
-                        }
-                    }
-                }
-            }
-        }
+
         List<string> Result = new List<string>();
 
         string AddEmails = ParseParamValue("AddEmails");
@@ -181,10 +190,6 @@ partial class GUBP
 			Result.AddRange(AddEmails.Split(new char[]{ ' ' }, StringSplitOptions.RemoveEmptyEntries));
         }
 
-		if(!EmailHackers.Any(x => x.VetoEmailingCausers(this, Branch, NodeInfo.Name)))
-		{
-			Result.AddRange(Causers.Split(' '));
-		}
         foreach (var EmailHacker in EmailHackers)
         {
             Result.AddRange(EmailHacker.AddEmails(this, Branch, NodeInfo.Name, EmailHint));
@@ -198,6 +203,8 @@ partial class GUBP
             }
             Result = NewResult;
         }
+
+		bIncludeCausers = !EmailHackers.Any(x => x.VetoEmailingCausers(this, Branch, NodeInfo.Name));
 		return Result.ToArray();
     }
     public abstract class GUBPFrequencyHacker
@@ -1068,6 +1075,9 @@ partial class GUBP
 				Node.FrequencyShift = FrequencyOverride;
 			}
 		}
+
+		// Get the email list for each node
+		FindEmailsForNodes(GUBPNodes.Values);
 
 		// Add aggregate nodes for every project in the branch
 		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
