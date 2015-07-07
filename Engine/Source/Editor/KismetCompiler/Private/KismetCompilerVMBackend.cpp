@@ -211,6 +211,10 @@ private:
 	bool bIsUbergraph;
 
 	FBlueprintCompiledStatement& ReturnStatement;
+
+	FKismetCompilerContext* CurrentCompilerContext;
+	FKismetFunctionContext* CurrentFunctionContext;
+
 protected:
 	/**
 	 * This class is designed to be used like so to emit a bytecode context expression:
@@ -319,6 +323,8 @@ public:
 		, UbergraphStatementLabelMap(InUbergraphStatementLabelMap)
 		, bIsUbergraph(bInIsUbergraph)
 		, ReturnStatement(InReturnStatement)
+		, CurrentCompilerContext(nullptr)
+		, CurrentFunctionContext(nullptr)
 	{
 		VectorStruct = TBaseStructure<FVector>::Get();
 		RotatorStruct = TBaseStructure<FRotator>::Get();
@@ -699,7 +705,7 @@ public:
 					// SetArray instruction will be called with empty parameter list.
 					Writer << EX_SetArray;
 					FBPTerminal* ArrayTerm = Statement.RHS[NumParams];
-					ensure(ArrayTerm && !ArrayTerm->bIsLiteral && !Statement.ArrayCoersionTermMap.Find(ArrayTerm));
+					ensure(ArrayTerm && !ArrayTerm->bIsLiteral);
 					EmitTerm(ArrayTerm, Param);
 					Writer << EX_EndArray;
 				}
@@ -808,12 +814,6 @@ public:
 				FBPTerminal* Term = Statement.RHS[NumParams];
 				check(Term != NULL);
 
-				// See if this is a hidden array param term, which needs to be fixed up with the final generated UArrayProperty
-				if( FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term) )
-				{
-					Term->ObjectLiteral = (*ArrayParmTerm)->AssociatedVarProperty;
-				}
-
 				// Latent function handling:  Need to emit a fixup request into the FLatentInfo struct
 				static const FName NAME_LatentInfo = TEXT("LatentInfo");
  				if (bIsUbergraph && FuncParamProperty->GetName() == FunctionToCall->GetMetaData("LatentInfo"))
@@ -822,18 +822,8 @@ public:
  				}
 				else
 				{
-					if (Term->InlineGeneratedParameter)
-					{
-						ensure(!Term->InlineGeneratedParameter->bIsJumpTarget);
-						ensure(Term->InlineGeneratedParameter->Type == KCST_CallFunction);
-
-						GenerateCodeForStatement(CompilerContext, FunctionContext, *Term->InlineGeneratedParameter, SourceNode);
-					}
-					else
-					{
-						// Emit parameter term normally
-						EmitTerm(Term, FuncParamProperty);
-					}
+					// Emit parameter term normally
+					EmitTerm(Term, FuncParamProperty);
 				}
 
 
@@ -866,12 +856,6 @@ public:
 			FBPTerminal* Term = Statement.RHS[NumParams];
 			check(Term != NULL);
 
-			// See if this is a hidden array param term, which needs to be fixed up with the final generated UArrayProperty
-			if( FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term) )
-			{
-				Term->ObjectLiteral = (*ArrayParmTerm)->AssociatedVarProperty;
-			}
-
 			// Emit parameter term normally
 			EmitTerm(Term, FuncParamProperty);
 
@@ -884,7 +868,19 @@ public:
 
 	void EmitTerm(FBPTerminal* Term, UProperty* CoerceProperty = NULL, FBPTerminal* RValueTerm = NULL)
 	{
-		if (Term->Context == NULL)
+		if (Term->InlineGeneratedParameter)
+		{
+			ensure(!Term->InlineGeneratedParameter->bIsJumpTarget);
+			auto TermSourceAsNode = Cast<UEdGraphNode>(Term->Source);
+			auto TermSourceAsPin = Cast<UEdGraphPin>(Term->Source);
+			UEdGraphNode* SourceNode = TermSourceAsNode ? TermSourceAsNode
+				: (TermSourceAsPin ? TermSourceAsPin->GetOwningNodeUnchecked() : nullptr);
+			if (ensure(CurrentCompilerContext && CurrentFunctionContext))
+			{
+				GenerateCodeForStatement(*CurrentCompilerContext, *CurrentFunctionContext, *Term->InlineGeneratedParameter, SourceNode);
+			}
+		}
+		else if (Term->Context == NULL)
 		{
 			EmitTermExpr(Term, CoerceProperty);
 		}
@@ -919,15 +915,22 @@ public:
 
 	void EmitDestinationExpression(FBPTerminal* DestinationExpression)
 	{
-		check(DestinationExpression->AssociatedVarProperty != NULL);
+		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
 
-		const bool bIsDelegate = Cast<UDelegateProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
-		const bool bIsMulticastDelegate = Cast<UMulticastDelegateProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
-		const bool bIsBoolean = Cast<UBoolProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
-		const bool bIsObj = Cast<UObjectPropertyBase>(DestinationExpression->AssociatedVarProperty) != NULL;
-		const bool bIsAsset = Cast<UAssetObjectProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
-		const bool bIsWeakObjPtr = Cast<UWeakObjectProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
-		if (bIsMulticastDelegate)
+		const bool bIsArray = DestinationExpression->Type.bIsArray;
+		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
+		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
+		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
+		const bool bIsObj = (Schema->PC_Object == DestinationExpression->Type.PinCategory) || (Schema->PC_Class == DestinationExpression->Type.PinCategory);
+		const bool bIsAsset = Schema->PC_Asset == DestinationExpression->Type.PinCategory;
+		const bool bIsWeakObjPtr = DestinationExpression->Type.bIsWeakPointer;
+
+		if (bIsArray)
+		{
+			Writer << EX_Let;
+			Writer << DestinationExpression->AssociatedVarProperty;
+		}
+		else if (bIsMulticastDelegate)
 		{
 			Writer << EX_LetMulticastDelegate;
 		}
@@ -974,7 +977,7 @@ public:
 		FBPTerminal* DestinationExpression = Statement.LHS;
 		FBPTerminal* SourceExpression = Statement.RHS[0];
 
-		Writer << Ex_LetValueOnPersistentFrame;
+		Writer << EX_LetValueOnPersistentFrame;
 		check(ClassBeingBuilt && ClassBeingBuilt->UberGraphFunction);
 		Writer << DestinationExpression->AssociatedVarProperty;
 
@@ -1254,6 +1257,43 @@ public:
 		}
 	}
 
+	void EmitSwitchValue(FBlueprintCompiledStatement& Statement)
+	{
+		if ((Statement.RHS.Num() < 4) || (1 == (Statement.RHS.Num() % 2)))
+		{
+			// Error
+			ensure(false);
+		}
+
+		Writer << EX_SwitchValue;
+		// number of cases (without default)
+		const int32 TermsPerCase = 2;
+		uint16 NumCases = ((Statement.RHS.Num() - 2) / TermsPerCase);
+		Writer << NumCases;
+		// end goto index
+		CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
+		// index term
+		const int32 TermsBeforeCases = 1;
+		EmitTerm(Statement.RHS[0]);
+
+		UProperty* VirtualIndexProperty = Statement.RHS[0]->AssociatedVarProperty;
+		check(VirtualIndexProperty);
+
+		for (uint16 TermIndex = TermsBeforeCases; TermIndex < (NumCases * TermsPerCase); ++TermIndex)
+		{
+			EmitTerm(Statement.RHS[TermIndex], VirtualIndexProperty); // it's a literal value
+			++TermIndex;
+			CodeSkipSizeType PatchOffsetToNextCase = Writer.EmitPlaceholderSkip();
+			EmitTerm(Statement.RHS[TermIndex]);  // it's not a literal
+			Writer.CommitSkip(PatchOffsetToNextCase, Writer.ScriptBuffer.Num());
+		}
+
+		// default term
+		EmitTerm(Statement.RHS[TermsBeforeCases + NumCases*TermsPerCase]);
+
+		Writer.CommitSkip(PatchUpNeededAtOffset, Writer.ScriptBuffer.Num());
+	}
+
 	void PushReturnAddress(FBlueprintCompiledStatement& ReturnTarget)
 	{
 		Writer << EX_PushExecutionFlow;
@@ -1273,6 +1313,9 @@ public:
 
 	void GenerateCodeForStatement(FKismetCompilerContext& CompilerContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement, UEdGraphNode* SourceNode)
 	{
+		TGuardValue<FKismetCompilerContext*> CompilerContextGuard(CurrentCompilerContext, &CompilerContext);
+		TGuardValue<FKismetFunctionContext*> FunctionContextGuard(CurrentFunctionContext, &FunctionContext);
+
 		// Record the start of this statement in the bytecode if it's needed as a target label
 		if (Statement.bIsJumpTarget)
 		{
@@ -1401,6 +1444,9 @@ public:
 			break;
 		case KCST_Return:
 			EmitReturn(FunctionContext);
+			break;
+		case KCST_SwitchValue:
+			EmitSwitchValue(Statement);
 			break;
 		default:
 			UE_LOG(LogK2Compiler, Warning, TEXT("VM backend encountered unsupported statement type %d"), (int32)Statement.Type);

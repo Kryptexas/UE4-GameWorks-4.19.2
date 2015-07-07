@@ -291,7 +291,7 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			DropIndent();
 			break;
 		}
-	case Ex_LetValueOnPersistentFrame:
+	case EX_LetValueOnPersistentFrame:
 		{
 			Ar.Logf(TEXT("%s $%X: LetValueOnPersistentFrame"), *Indents, (int32)Opcode);
 			AddIndent();
@@ -813,6 +813,32 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 	case EX_Tracepoint:
 		{
 			Ar.Logf(TEXT("%s $%X: .. debug site .."), *Indents, (int32)Opcode);
+			break;
+		}
+	case EX_SwitchValue:
+		{
+			const auto NumCases = ReadWORD(ScriptIndex);
+			const auto AfterSkip = ReadSkipCount(ScriptIndex);
+
+			Ar.Logf(TEXT("%s $%X: Switch Value %d cases, end in 0x%X"), *Indents, (int32)Opcode, NumCases, AfterSkip);
+			AddIndent();
+			Ar.Logf(TEXT("%s Index:"), *Indents);
+			SerializeExpr(ScriptIndex);
+
+			for (uint16 CaseIndex = 0; CaseIndex < NumCases; ++CaseIndex)
+			{
+				Ar.Logf(TEXT("%s [%d] Case Index (label: 0x%X):"), *Indents, CaseIndex, ScriptIndex);
+				SerializeExpr(ScriptIndex);	// case index value term
+				const auto OffsetToNextCase = ReadSkipCount(ScriptIndex);
+				Ar.Logf(TEXT("%s [%d] Offset to the next case: 0x%X"), *Indents, CaseIndex, OffsetToNextCase);
+				Ar.Logf(TEXT("%s [%d] Case Result:"), *Indents, CaseIndex);
+				SerializeExpr(ScriptIndex);	// case term
+			}
+
+			Ar.Logf(TEXT("%s Default result (label: 0x%X):"), *Indents, ScriptIndex);
+			SerializeExpr(ScriptIndex);
+			Ar.Logf(TEXT("%s (label: 0x%X)"), *Indents, ScriptIndex);
+			DropIndent();
 			break;
 		}
 	default:

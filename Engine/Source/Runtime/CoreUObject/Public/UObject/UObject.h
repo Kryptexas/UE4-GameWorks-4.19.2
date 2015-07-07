@@ -1144,6 +1144,8 @@ public:
 
 	DECLARE_FUNCTION(execCallMathFunction);
 
+	DECLARE_FUNCTION(execSwitchValue);
+
 	// -- K2 support functions
 	struct Object_eventExecuteUbergraph_Parms
 	{

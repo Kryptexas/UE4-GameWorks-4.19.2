@@ -20,93 +20,116 @@ struct FCustomThunkTemplates
 	//Replacements for CustomThunk functions from UKismetArrayLibrary
 
 	template<typename T>
-	static int32 Array_Add(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& NewItem)
+	static int32 Array_Add(TArray<T>& TargetArray, const T& NewItem)
 	{
-		return UKismetArrayLibrary::GenericArray_Add(&TargetArray, ArrayProperty, &NewItem);
+		return TargetArray.Add(NewItem);
 	}
 
 	template<typename T>
-	static int32 Array_AddUnique(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& NewItem)
+	static int32 Array_AddUnique(TArray<T>& TargetArray, const T& NewItem)
 	{
-		return UKismetArrayLibrary::GenericArray_AddUnique(&TargetArray, ArrayProperty, &NewItem);
+		return TargetArray.AddUnique(NewItem);
 	}
 
 	template<typename T>
 	static void Array_Shuffle(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty)
 	{
-		UKismetArrayLibrary::GenericArray_Shuffle(&TargetArray, ArrayProperty);
+		int32 LastIndex = TargetArray.Num() - 1;
+		for (int32 i = 0; i < LastIndex; ++i)
+		{
+			int32 Index = FMath::RandRange(0, LastIndex);
+			if (i != Index)
+			{
+				TargetArray.Swap(i, Index);
+			}
+		}
 	}
 
 	template<typename T>
-	static void Array_Append(TArray<T>& TargetArray, const UArrayProperty* TargetArrayProperty, const TArray<T>& SourceArray, const UArrayProperty* SourceArrayProperty)
+	static void Array_Append(TArray<T>& TargetArray, const TArray<T>& SourceArray)
 	{
-		UKismetArrayLibrary::GenericArray_Append(&TargetArray, TargetArrayProperty, &SourceArray, SourceArrayProperty);
+		TargetArray.Append(SourceArray);
 	}
 
 	template<typename T>
-	static void Array_Insert(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& NewItem, int32 Index)
+	static void Array_Insert(TArray<T>& TargetArray, const T& NewItem, int32 Index)
 	{
-		UKismetArrayLibrary::GenericArray_Insert(&TargetArray, ArrayProperty, &NewItem, Index);
+		TargetArray.Insert(NewItem, Index);
 	}
 
 	template<typename T>
-	static void Array_Remove(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, int32 IndexToRemove)
+	static void Array_Remove(TArray<T>& TargetArray, int32 IndexToRemove)
 	{
-		UKismetArrayLibrary::GenericArray_Remove(&TargetArray, ArrayProperty, IndexToRemove);
+		if (ensure(TargetArray.IsValidIndex(IndexToRemove)))
+		{
+			TargetArray.RemoveAt(IndexToRemove);
+		}
 	}
 
 	template<typename T>
-	static int32 Array_Find(const TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& ItemToFind)
+	static int32 Array_Find(const TArray<T>& TargetArray, const T& ItemToFind)
 	{
 		return TargetArray.Find(ItemToFind);
 	}
 
 	template<typename T>
-	static bool Array_RemoveItem(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& Item)
+	static bool Array_RemoveItem(TArray<T>& TargetArray, const T& Item)
 	{
 		return TargetArray.Remove(Item);
 	}
 
 	template<typename T>
-	static void Array_Clear(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty)
+	static void Array_Clear(TArray<T>& TargetArray)
 	{
-		UKismetArrayLibrary::GenericArray_Clear(&TargetArray, ArrayProperty);
+		TargetArray.Empty();
 	}
 
 	template<typename T>
-	static void Array_Resize(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, int32 Size)
+	static void Array_Resize(TArray<T>& TargetArray, int32 Size)
 	{
-		UKismetArrayLibrary::GenericArray_Resize(&TargetArray, ArrayProperty, Size);
+		TargetArray.SetNum(Size);
 	}
 
 	template<typename T>
-	static int32 Array_Length(const TArray<T>& TargetArray, const UArrayProperty* ArrayProperty)
+	static int32 Array_Length(const TArray<T>& TargetArray)
 	{
-		return UKismetArrayLibrary::GenericArray_Length(&TargetArray, ArrayProperty);
+		return TargetArray.Num();
 	}
 
 	template<typename T>
-	static int32 Array_LastIndex(const TArray<T>& TargetArray, const UArrayProperty* ArrayProperty)
+	static int32 Array_LastIndex(const TArray<T>& TargetArray)
 	{
-		return UKismetArrayLibrary::GenericArray_Length(&TargetArray, ArrayProperty);
+		return TargetArray.Num() - 1;
 	}
 
 	template<typename T>
-	static void Array_Get(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, int32 Index, T& Item)
+	static void Array_Get(TArray<T>& TargetArray, int32 Index, T& Item)
 	{
-		UKismetArrayLibrary::GenericArray_Get(&TargetArray, ArrayProperty, Index, &Item);
+		Item = TargetArray[Index];
 	}
 
 	template<typename T>
-	static void Array_Set(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, int32 Index, const T& Item, bool bSizeToFit)
+	static void Array_Set(TArray<T>& TargetArray, int32 Index, const T& Item, bool bSizeToFit)
 	{
-		UKismetArrayLibrary::GenericArray_Set(&TargetArray, ArrayProperty, Index, &Item, bSizeToFit);
+		if (ensure(Index > 0))
+		{
+			const bool bIsValidIndex = ;
+			if (!TargetArray.IsValidIndex(Index) && bSizeToFit)
+			{
+				TargetArray.SetNum(Index + 1);
+			}
+
+			if (TargetArray.IsValidIndex(Index))
+			{
+				TargetArray[Index] = Item;
+			}
+		}
 	}
 
 	template<typename T>
-	static bool Array_Contains(const TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& ItemToFind)
+	static bool Array_Contains(const TArray<T>& TargetArray, const T& ItemToFind)
 	{
-		return Array_Find(TargetArray, ArrayProperty, ItemToFind) > 0;
+		return TargetArray.Contains(ItemToFind);
 	}
 
 	template<typename T>
