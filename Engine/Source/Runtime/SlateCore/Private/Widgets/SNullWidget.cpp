@@ -27,6 +27,7 @@ public:
 			InArgs._RenderTransform,
 			InArgs._RenderTransformPivot,
 			InArgs._Tag,
+			InArgs._ForceVolatile,
 			InArgs.MetaData
 		);
 	}

@@ -194,6 +194,8 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 		}
 	}
 
+	Invalidate(EInvalidateWidget::Layout);
+
 	//return the constructed reply
 	return Reply;
 }
@@ -251,6 +253,8 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 		}
 	}
 
+	Invalidate(EInvalidateWidget::Layout);
+
 	return Reply;
 }
 
@@ -272,6 +276,8 @@ void SButton::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& Mo
 	}
 	
 	SBorder::OnMouseEnter( MyGeometry, MouseEvent );
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
@@ -285,6 +291,8 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		Release();
 	}
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SButton::Press()

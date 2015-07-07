@@ -1013,6 +1013,7 @@ struct TSlateBaseNamedArgs
 	, _Visibility( EVisibility::Visible )
 	, _RenderTransform( )
 	, _RenderTransformPivot( FVector2D::ZeroVector )
+	, _ForceVolatile( false )
 	{
 	}
 
@@ -1053,6 +1054,7 @@ struct TSlateBaseNamedArgs
 	SLATE_ATTRIBUTE( TOptional<FSlateRenderTransform>, RenderTransform )
 	SLATE_ATTRIBUTE( FVector2D, RenderTransformPivot )
 	SLATE_ARGUMENT( FName, Tag )
+	SLATE_ARGUMENT( bool, ForceVolatile )
 
 	TArray<TSharedRef<ISlateMetaData>> MetaData;
 };
@@ -1070,6 +1072,7 @@ namespace RequiredArgs
 		{
 			// YOUR WIDGET MUST IMPLEMENT void Construct(const FArguments& InArgs)
 			OnWidget->Construct(WithNamedArgs);
+			OnWidget->CacheVolatility();
 		}
 	};
 
@@ -1086,6 +1089,7 @@ namespace RequiredArgs
 		{
 			// YOUR WIDGET MUST IMPLEMENT void Construct(const FArguments& InArgs)
 			OnWidget->Construct(WithNamedArgs, Forward<Arg0Type>(Arg0));
+			OnWidget->CacheVolatility();
 		}
 
 		Arg0Type& Arg0;
@@ -1105,6 +1109,7 @@ namespace RequiredArgs
 		{
 			// YOUR WIDGET MUST IMPLEMENT Construct(const FArguments& InArgs)
 			OnWidget->Construct(WithNamedArgs, Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1));
+			OnWidget->CacheVolatility();
 		}
 
 		Arg0Type& Arg0;
@@ -1126,6 +1131,7 @@ namespace RequiredArgs
 		{
 			// YOUR WIDGET MUST IMPLEMENT Construct(const FArguments& InArgs)
 			OnWidget->Construct(WithNamedArgs, Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2));
+			OnWidget->CacheVolatility();
 		}
 
 		Arg0Type& Arg0;
@@ -1149,6 +1155,7 @@ namespace RequiredArgs
 		{
 			// YOUR WIDGET MUST IMPLEMENT Construct(const FArguments& InArgs)
 			OnWidget->Construct(WithNamedArgs, Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3));
+			OnWidget->CacheVolatility();
 		}
 
 		Arg0Type& Arg0;
@@ -1174,6 +1181,7 @@ namespace RequiredArgs
 		{
 			// YOUR WIDGET MUST IMPLEMENT Construct(const FArguments& InArgs)
 			OnWidget->Construct(WithNamedArgs, Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4));
+			OnWidget->CacheVolatility();
 		}
 
 		Arg0Type& Arg0;
@@ -1316,6 +1324,7 @@ struct TDecl
 			InArgs._RenderTransform,
 			InArgs._RenderTransformPivot,
 			InArgs._Tag,
+			InArgs._ForceVolatile,
 			InArgs.MetaData );
 
 		_RequiredArgs.CallConstruct(_Widget, InArgs);

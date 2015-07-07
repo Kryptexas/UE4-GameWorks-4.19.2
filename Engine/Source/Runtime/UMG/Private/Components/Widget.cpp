@@ -408,12 +408,12 @@ void UWidget::ForceLayoutPrepass()
 	}
 }
 
-void UWidget::InvalidateLayout()
+void UWidget::InvalidateLayoutAndVolatility()
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if ( SafeWidget.IsValid() )
 	{
-		SafeWidget->InvalidateLayout();
+		SafeWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 

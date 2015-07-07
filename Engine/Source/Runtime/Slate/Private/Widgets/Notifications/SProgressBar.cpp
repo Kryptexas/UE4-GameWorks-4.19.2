@@ -32,50 +32,50 @@ void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
 	if ( !Percent.IdenticalTo(InPercent) )
 	{
 		Percent = InPercent;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
 void SProgressBar::SetStyle(const FProgressBarStyle* InStyle)
 {
 	Style = InStyle;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SProgressBar::SetBarFillType(EProgressBarFillType::Type InBarFillType)
 {
 	BarFillType = InBarFillType;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SProgressBar::SetFillColorAndOpacity(TAttribute< FSlateColor > InFillColorAndOpacity)
 {
 	FillColorAndOpacity = InFillColorAndOpacity;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SProgressBar::SetBorderPadding(TAttribute< FVector2D > InBorderPadding)
 {
 	BorderPadding = InBorderPadding;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SProgressBar::SetBackgroundImage(const FSlateBrush* InBackgroundImage)
 {
 	BackgroundImage = InBackgroundImage;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SProgressBar::SetFillImage(const FSlateBrush* InFillImage)
 {
 	FillImage = InFillImage;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SProgressBar::SetMarqueeImage(const FSlateBrush* InMarqueeImage)
 {
 	MarqueeImage = InMarqueeImage;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 const FSlateBrush* SProgressBar::GetBackgroundImage() const

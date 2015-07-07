@@ -71,7 +71,7 @@ void SImage::SetColorAndOpacity( const TAttribute<FSlateColor>& InColorAndOpacit
 	if ( !ColorAndOpacity.IdenticalTo(InColorAndOpacity) )
 	{
 		ColorAndOpacity = InColorAndOpacity;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::Layout);
 	}
 }
 
@@ -80,14 +80,14 @@ void SImage::SetColorAndOpacity( FLinearColor InColorAndOpacity )
 	if ( ColorAndOpacity.IsBound() || ColorAndOpacity.Get() != InColorAndOpacity )
 	{
 		ColorAndOpacity = InColorAndOpacity;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::Layout);
 	}
 }
 
 void SImage::SetImage(TAttribute<const FSlateBrush*> InImage)
 {
 	Image = InImage;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SImage::SetOnMouseButtonDown(FPointerEventHandler EventHandler)

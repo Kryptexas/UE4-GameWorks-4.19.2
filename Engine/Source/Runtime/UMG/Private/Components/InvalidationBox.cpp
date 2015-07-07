@@ -57,11 +57,11 @@ void UInvalidationBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-void UInvalidationBox::Invalidate()
+void UInvalidationBox::InvalidateCache()
 {
 	if ( MyInvalidationPanel.IsValid() )
 	{
-		return MyInvalidationPanel->Invalidate();
+		return MyInvalidationPanel->InvalidateCache();
 	}
 }
 

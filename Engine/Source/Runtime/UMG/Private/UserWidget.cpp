@@ -225,7 +225,7 @@ void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float Star
 		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
 		if ( CachedWidget.IsValid() )
 		{
-			CachedWidget->InvalidateLayout();
+			CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 		}
 
 		OnAnimationStarted( InAnimation );
@@ -755,7 +755,7 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
 		if ( CachedWidget.IsValid() )
 		{
-			CachedWidget->InvalidateLayout();
+			CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 		}
 	}
 

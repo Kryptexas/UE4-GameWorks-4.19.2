@@ -24,6 +24,7 @@
 #include "SColorPicker.h"
 #include "INotificationWidget.h"
 #include "IMenu.h"
+#include "SInvalidationPanel.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 
@@ -3841,6 +3842,97 @@ class SDPIScalingTest : public SCompoundWidget
 	SVerticalBox::FSlot* ScalerSlot;
 };
 
+class SInvalidationTest : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SInvalidationTest)
+	{}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
+		.Padding(10)
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SAssignNew(CachePanel1, SInvalidationPanel)
+				.Visibility(EVisibility::Visible)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("StaticText", "This text is static and cached."))
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("InvalidateManually", "Manually Invalidate"))
+				.OnClicked(this, &SInvalidationTest::ManuallyInvalidatePanel1)
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SInvalidationPanel)
+				.Visibility(EVisibility::Visible)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("StaticText", "Support Input"))
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.Padding(10)
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("CachedClickable", "I'm Cached - But Clickable"))
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.Padding(10)
+						[
+							SNew(SButton)
+							.ForceVolatile(true)
+							.Text(LOCTEXT("VolatileClickable", "Volatile - But Clickable"))
+						]
+					]
+				]
+			]
+		];
+	}
+
+private:
+	FReply ManuallyInvalidatePanel1()
+	{
+		CachePanel1->InvalidateCache();
+		return FReply::Handled();
+	}
+
+private:
+	TSharedPtr<SInvalidationPanel> CachePanel1;
+};
+
 class SColorPickerTest : public SCompoundWidget
 {
 public:
@@ -5210,6 +5302,18 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			]
 		];
 	}
+	else if ( TabIdentifier == FName(TEXT("InvalidationTest")) )
+	{
+		return SNew(SDockTab)
+			[
+				SNew(SScissorRectBox)
+				[
+					SNew(SInvalidationTest)
+					.RenderTransform_Static(&::GetTestRenderTransform)
+					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
+				]
+			];
+	}
 	else if (TabIdentifier == FName(TEXT("NotificationListTestTab")))
 	{
 		return SNew(SDockTab)
@@ -5431,6 +5535,7 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 			->AddTab("NotificationListTestTab", ETabState::OpenedTab)
 			->AddTab("GridPanelTest", ETabState::OpenedTab)
 			->AddTab("DPIScalingTest", ETabState::OpenedTab)
+			->AddTab("InvalidationTest", ETabState::OpenedTab)
 		)
 	);
 
@@ -5464,8 +5569,11 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 
 		TestSuite2TabManager->RegisterTabSpawner( "DPIScalingTest", FOnSpawnTab::CreateStatic( &SpawnTab, FName("DPIScalingTest") )  )
 			.SetDisplayName( NSLOCTEXT("TestSuite1", "DPIScalingTest", "DPI Scaling") )
-			.SetGroup(TestSuiteMenu::SuiteTabs
-			);
+			.SetGroup(TestSuiteMenu::SuiteTabs);
+
+		TestSuite2TabManager->RegisterTabSpawner("InvalidationTest", FOnSpawnTab::CreateStatic(&SpawnTab, FName("InvalidationTest")))
+			.SetDisplayName(NSLOCTEXT("TestSuite1", "InvalidationTest", "Invalidtion"))
+			.SetGroup(TestSuiteMenu::SuiteTabs);
 	}
 
 	FMenuBarBuilder MenuBarBuilder = FMenuBarBuilder( TSharedPtr<FUICommandList>() );

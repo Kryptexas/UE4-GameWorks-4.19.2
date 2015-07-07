@@ -67,10 +67,24 @@ public:
 };
 
 
+/**
+ * 
+ */
+enum class EInvalidateWidget
+{
+	Layout,
+	LayoutAndVolatility
+};
+
+
+/**
+ * 
+ */
 class ILayoutCache
 {
 public:
 	virtual void InvalidateWidget(class SWidget* InvalidateWidget) = 0;
+	virtual FCachedWidgetNode* CreateCacheNode() const = 0;
 };
 
 
@@ -119,6 +133,7 @@ public:
 		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
+		const bool InForceVolatile,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
 	void SWidgetConstruct( const TAttribute<FText> & InToolTipText ,
@@ -129,9 +144,10 @@ public:
 		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
+		const bool InForceVolatile,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
 	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InMetaData);
+		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InForceVolatile, InMetaData);
 	}
 
 	//
@@ -640,7 +656,7 @@ public:
 	void SetEnabled( const TAttribute<bool>& InEnabledState )
 	{
 		EnabledState = InEnabledState;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 
 	/** @return Whether or not this widget is enabled */
@@ -693,7 +709,7 @@ public:
 		if ( !Visibility.IdenticalTo(InVisibility) )
 		{
 			Visibility = InVisibility;
-			InvalidateLayout();
+			Invalidate(EInvalidateWidget::LayoutAndVolatility);
 		}
 	}
 
@@ -720,29 +736,58 @@ public:
 	FORCEINLINE void ForceVolatile(bool bForce)
 	{
 		bForceVolatile = bForce;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 
 	/**
 	 * Invalidates the widget from the view of a layout caching widget that may own this widget.
 	 * will force the owning widget to redraw and cache children on the next paint pass.
 	 */
-	FORCEINLINE void InvalidateLayout()
+	FORCEINLINE void Invalidate(EInvalidateWidget Invalidate)
 	{
 		const bool bWasVolatile = IsVolatileIndirectly() || IsVolatile();
-		const bool bWasDirectlyVolatile = IsVolatile();
-		CacheVolatility();
-		const bool bVolatilityChanged = bWasDirectlyVolatile != IsVolatile();
+		const bool bVolatilityChanged = Invalidate == EInvalidateWidget::LayoutAndVolatility ? Advanced_InvalidateVolatility() : false;
 
 		if ( bWasVolatile == false || bVolatilityChanged )
 		{
-			TSharedPtr<ILayoutCache> Cache = LayoutCache.Pin();
-			if ( Cache.IsValid() )
-			{
-				Cache->InvalidateWidget(this);
-			}
+			Advanced_ForceInvalidateLayout();
 		}
 	}
+
+	/**
+	 * Recalculates volatility of the widget and caches the result.  Should be called any time 
+	 * anything examined by your implementation of ComputeVolatility is changed.
+	 */
+	FORCEINLINE void CacheVolatility()
+	{
+		bCachedVolatile = bForceVolatile || ComputeVolatility();
+	}
+
+protected:
+
+	/**
+	 * Recalculates and caches volatility and returns 'true' if the volatility changed.
+	 */
+	FORCEINLINE bool Advanced_InvalidateVolatility()
+	{
+		const bool bWasDirectlyVolatile = IsVolatile();
+		CacheVolatility();
+		return bWasDirectlyVolatile != IsVolatile();
+	}
+
+	/**
+	 * Forces invalidation, doesn't check volatility.
+	 */
+	FORCEINLINE void Advanced_ForceInvalidateLayout()
+	{
+		TSharedPtr<ILayoutCache> Cache = LayoutCache.Pin();
+		if ( Cache.IsValid() )
+		{
+			Cache->InvalidateWidget(this);
+		}
+	}
+
+public:
 
 	/** @return the render transform of the widget. */
 	FORCEINLINE const TOptional<FSlateRenderTransform>& GetRenderTransform() const
@@ -754,7 +799,7 @@ public:
 	FORCEINLINE void SetRenderTransform(TAttribute<TOptional<FSlateRenderTransform>> InTransform)
 	{
 		RenderTransform = InTransform;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 
 	/** @return the pivot point of the render transform. */
@@ -930,21 +975,12 @@ protected:
 	virtual const FSlateBrush* GetFocusBrush() const;
 
 	/**
-	 * Recalculates volatility of the widget and caches the result.  Should be called any time 
-	 * anything examined by your implementation of ComputeVolatility is changed.
-	 */
-	FORCEINLINE void CacheVolatility()
-	{
-		bCachedVolatile = bForceVolatile || ComputeVolatility();
-	}
-
-	/**
 	 * Recomputes the volatility of the widget.  If you have additional state you automatically want to make
 	 * the widget volatile, you should sample that information here.
 	 */
 	virtual bool ComputeVolatility() const
 	{
-		return Visibility.IsBound();
+		return Visibility.IsBound() || EnabledState.IsBound() || RenderTransform.IsBound();
 	}
 
 private:

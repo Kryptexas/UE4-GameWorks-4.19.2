@@ -339,7 +339,7 @@ public:
 	 * will force the owning widget to redraw and cache children on the next paint pass.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void InvalidateLayout();
+	void InvalidateLayoutAndVolatility();
 
 	/**
 	 * Gets the widgets desired size.

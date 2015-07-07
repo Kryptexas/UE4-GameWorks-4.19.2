@@ -43,6 +43,7 @@ void SWidget::Construct(
 	const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 	const TAttribute<FVector2D>& InTransformPivot,
 	const FName& InTag,
+	const bool InForceVolatile,
 	const TArray<TSharedRef<ISlateMetaData>>& InMetaData
 )
 {
@@ -68,6 +69,7 @@ void SWidget::Construct(
 	RenderTransform = InTransform;
 	RenderTransformPivot = InTransformPivot;
 	Tag = InTag;
+	bForceVolatile = InForceVolatile;
 	MetaData = InMetaData;
 }
 
@@ -694,9 +696,14 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 		MutableThis->Tick( TickGeometry, Args.GetCurrentTime(), Args.GetDeltaTime() );
 	}
 
-	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
+	// Record hit test geometry, but only if we're not caching.
+	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, MyClippingRect);
+
+	// Paint the geometry of this widget.
 	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
+	// HACK Doing this on every widget is expensive to call this virtual on everyone, do we really need this?
+	// it's not even all that useful on a shipped game you'd never use the built in keyboard focusing system.
 	if (SupportsKeyboardFocus())
 	{
 		bool bShowUserFocus = FSlateApplicationBase::Get().ShowUserFocus(SharedThis(this));

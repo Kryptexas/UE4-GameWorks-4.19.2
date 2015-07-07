@@ -3,6 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 #include "SInvalidationPanel.h"
+#include "WidgetCaching.h"
 
 #if !UE_BUILD_SHIPPING
 
@@ -40,6 +41,16 @@ void SInvalidationPanel::Construct( const FArguments& InArgs )
 	bNeedsCaching = true;
 	bIsInvalidating = false;
 	bCanCache = true;
+	RootCacheNode = nullptr;
+	LastUsedCachedNodeIndex = 0;
+}
+
+SInvalidationPanel::~SInvalidationPanel()
+{
+	for ( int32 i = 0; i < NodePool.Num(); i++ )
+	{
+		delete NodePool[i];
+	}
 }
 
 bool SInvalidationPanel::GetCanCache() const
@@ -54,10 +65,8 @@ bool SInvalidationPanel::GetCanCache() const
 void SInvalidationPanel::SetCanCache(bool InCanCache)
 {
 	bCanCache = InCanCache;
-	Visibility = InCanCache ? EVisibility::HitTestInvisible : EVisibility::SelfHitTestInvisible;
 
-	Invalidate();
-	InvalidateLayout();
+	InvalidateCache();
 }
 
 void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -70,7 +79,7 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 			if ( AllottedGeometry.GetAccumulatedLayoutTransform() != LastAllottedGeometry.GetAccumulatedLayoutTransform() ||
 				AllottedGeometry.GetAccumulatedRenderTransform() != LastAllottedGeometry.GetAccumulatedRenderTransform() )
 			{
-				Invalidate();
+				InvalidateCache();
 			}
 		}
 
@@ -82,11 +91,6 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 			CachePrepass(SharedThis(this));
 		}
 	}
-}
-
-void SInvalidationPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
-{
-	SCompoundWidget::OnArrangeChildren( AllottedGeometry, ArrangedChildren );
 }
 
 FChildren* SInvalidationPanel::GetChildren()
@@ -113,8 +117,29 @@ void SInvalidationPanel::InvalidateWidget(SWidget* InvalidateWidget)
 #endif
 }
 
+FCachedWidgetNode* SInvalidationPanel::CreateCacheNode() const
+{
+	// If the node pool is empty, allocate a few
+	if ( LastUsedCachedNodeIndex >= NodePool.Num() )
+	{
+		for ( int32 i = 0; i < 10; i++ )
+		{
+			NodePool.Add(new FCachedWidgetNode());
+		}
+	}
+
+	// Return one of the preallocated nodes and increment the next node index.
+	FCachedWidgetNode* NewNode = NodePool[LastUsedCachedNodeIndex];
+	++LastUsedCachedNodeIndex;
+
+	return NewNode;
+}
+
 int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	//TODO If the LayerId changes, or other properties, we should probably invalidate, but
+	// we can't invalidate here, because we haven't done a pre-pass yet, need to do it next frame.
+
 	if ( GetCanCache() )
 	{
 		const bool bWasCachingNeeded = bNeedsCaching;
@@ -136,9 +161,15 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 				CachedWindowElements->Reset();
 			}
 
+			// Reset the cached node pool index so that we effectively reset the pool.
+			LastUsedCachedNodeIndex = 0;
+
+			RootCacheNode = CreateCacheNode();
+			RootCacheNode->Initialize(Args, SharedThis(const_cast<SInvalidationPanel*>( this )), AllottedGeometry, MyClippingRect);
+
 			//TODO: When SWidget::Paint is called don't drag self if volatile, and we're doing a cache pass.
 			CachedMaxChildLayer = SCompoundWidget::OnPaint(
-				Args.EnableCaching(SharedThis(const_cast<SInvalidationPanel*>( this )), true, false),
+				Args.EnableCaching(SharedThis(const_cast<SInvalidationPanel*>( this )), RootCacheNode, true, false),
 				AllottedGeometry,
 				MyClippingRect,
 				*CachedWindowElements.Get(),
@@ -148,6 +179,8 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 			bIsInvalidating = false;
 		}
+
+		RootCacheNode->RecordHittestGeometry(Args.GetGrid(), Args.GetLastHitTestIndex());
 
 		OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
 
@@ -237,7 +270,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 void SInvalidationPanel::SetContent(const TSharedRef< SWidget >& InContent)
 {
-	Invalidate();
+	InvalidateCache();
 
 	ChildSlot
 	[
@@ -245,12 +278,7 @@ void SInvalidationPanel::SetContent(const TSharedRef< SWidget >& InContent)
 	];
 }
 
-void SInvalidationPanel::CacheDesiredSize(float LayoutScaleMultiplier)
-{
-	SCompoundWidget::CacheDesiredSize(LayoutScaleMultiplier);
-}
-
-void SInvalidationPanel::Invalidate()
+void SInvalidationPanel::InvalidateCache()
 {
 	bNeedsCaching = true;
 }

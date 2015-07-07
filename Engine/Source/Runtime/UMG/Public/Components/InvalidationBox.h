@@ -19,8 +19,8 @@ public:
 	/**
 	 * 
 	 */
-	UFUNCTION(BlueprintCallable, Category="Invalidate")
-	void Invalidate();
+	UFUNCTION(BlueprintCallable, Category="Invalidation Box")
+	void InvalidateCache();
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 

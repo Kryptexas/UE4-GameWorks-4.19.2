@@ -77,19 +77,19 @@ void STextBlock::SetText( const TAttribute< FString >& InText )
 
 	BoundText = TAttribute< FText >::Create(TAttribute<FText>::FGetter::CreateStatic( &Local::PassThroughAttribute, InText) );
 
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void STextBlock::SetText( const FString& InText )
 {
 	BoundText = FText::FromString( InText );
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void STextBlock::SetText( const TAttribute< FText >& InText )
 {
 	BoundText = InText;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void STextBlock::SetText( const FText& InText )
@@ -97,7 +97,7 @@ void STextBlock::SetText( const FText& InText )
 	if ( BoundText.IsBound() || BoundText.Get().ToString() != InText.ToString() )
 	{
 		BoundText = InText;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -199,7 +199,7 @@ bool STextBlock::ComputeVolatility() const
 void STextBlock::SetFont(const TAttribute< FSlateFontInfo >& InFont)
 {
 	Font = InFont;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpacity)
@@ -207,62 +207,62 @@ void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpa
 	if ( !ColorAndOpacity.IdenticalTo(InColorAndOpacity) )
 	{
 		ColorAndOpacity = InColorAndOpacity;
-		InvalidateLayout();
+		Invalidate(EInvalidateWidget::Layout);
 	}
 }
 
 void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
 {
 	TextStyle = InTextStyle;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 {
 	WrapTextAt = InWrapTextAt;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetShadowOffset(const TAttribute<FVector2D>& InShadowOffset)
 {
 	ShadowOffset = InShadowOffset;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetShadowColorAndOpacity(const TAttribute<FLinearColor>& InShadowColorAndOpacity)
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
 {
 	MinDesiredWidth = InMinDesiredWidth;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
 {
 	LineHeightPercentage = InLineHeightPercentage;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetMargin(const TAttribute<FMargin>& InMargin)
 {
 	Margin = InMargin;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void STextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
 {
 	Justification = InJustification;
-	InvalidateLayout();
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 FTextBlockStyle STextBlock::GetComputedTextStyle() const
