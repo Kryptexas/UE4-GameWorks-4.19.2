@@ -220,7 +220,7 @@ void UTexAlignerDefault::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, F
 	InPoly->TextureV *= VTile;
 
 	ABrush* Actor = InSurfIdx->Surf->Actor;
-	const FVector PrePivot = Actor->GetPrePivot();
+	const FVector PrePivot = Actor->GetPivotOffset();
 	const FVector Location = Actor->GetActorLocation();
 	const FRotator Rotation = Actor->GetActorRotation();
 	const FVector Scale = Actor->GetActorScale();

@@ -1140,7 +1140,6 @@ int UEditorEngine::bspBrushCSG
 
 	UMaterialInterface* SelectedMaterialInstance = GetSelectedObjects()->GetTop<UMaterialInterface>();
 
-	const FVector PrePivot = Actor->GetPrePivot();
 	const FVector Scale = Actor->GetActorScale();
 	const FRotator Rotation = Actor->GetActorRotation();
 	const FVector Location = Actor->GetActorLocation();
@@ -1149,7 +1148,6 @@ int UEditorEngine::bspBrushCSG
 	Brush->OwnerLocationWhenLastBuilt = Location;
 	Brush->OwnerRotationWhenLastBuilt = Rotation;
 	Brush->OwnerScaleWhenLastBuilt = Scale;
-	Brush->OwnerPrepivotWhenLastBuilt = PrePivot;
 	Brush->bCachedOwnerTransformValid = true;
 
 	for( i=0; i<Brush->Polys->Element.Num(); i++ )
@@ -1182,9 +1180,9 @@ int UEditorEngine::bspBrushCSG
 			DestEdPoly.iLink = i;
 
 		// Transform it.
-		DestEdPoly.Scale( PrePivot, Scale );
-		DestEdPoly.Rotate( PrePivot, Rotation );
-		DestEdPoly.Transform( PrePivot, Location );
+		DestEdPoly.Scale( Scale );
+		DestEdPoly.Rotate( Rotation );
+		DestEdPoly.Transform( Location );
 
 		// Add poly to the temp model.
 		new(TempModel->Polys->Element)FPoly( DestEdPoly );
@@ -1303,7 +1301,9 @@ int UEditorEngine::bspBrushCSG
 		for( i=0; i<Brush->Polys->Element.Num(); i++ )
 		{
 			FPoly *DestEdPoly = &Brush->Polys->Element[i];
-			DestEdPoly->Transform( Actor->GetActorLocation(), Actor->GetPrePivot() );
+			DestEdPoly->Transform(-Location);
+			DestEdPoly->Rotate(Rotation.GetInverse());
+			DestEdPoly->Scale(FVector(1.0f) / Scale);
 			DestEdPoly->Fix();
 			DestEdPoly->Actor		= NULL;
 			DestEdPoly->iBrushPoly	= i;

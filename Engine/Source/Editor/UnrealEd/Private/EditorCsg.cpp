@@ -373,7 +373,6 @@ void UEditorEngine::polyUpdateMaster
 		// Use transform cached when the geometry was last built, in case the current Actor transform has changed since then
 		// (e.g. because Auto Update BSP is disabled)
 		ActorLocation = Brush->OwnerLocationWhenLastBuilt;
-		ActorPrePivot = Brush->OwnerPrepivotWhenLastBuilt;
 		ActorScale = Brush->OwnerScaleWhenLastBuilt;
 		ActorRotation = Brush->OwnerRotationWhenLastBuilt;
 	}
@@ -381,7 +380,6 @@ void UEditorEngine::polyUpdateMaster
 	{
 		// No cached owner transform, so use the current one
 		ActorLocation = Actor->GetActorLocation();
-		ActorPrePivot = Actor->GetPrePivot();
 		ActorScale = Actor->GetActorScale();
 		ActorRotation = Actor->GetActorRotation();
 	}
@@ -398,7 +396,7 @@ void UEditorEngine::polyUpdateMaster
 
 			if (UpdateTexCoords)
 			{
-				MasterEdPoly.Base = RotationMatrix.InverseTransformVector(Model->Points[Surf.pBase] - ActorLocation) / ActorScale + ActorPrePivot;
+				MasterEdPoly.Base = RotationMatrix.InverseTransformVector(Model->Points[Surf.pBase] - ActorLocation) / ActorScale;
 				MasterEdPoly.TextureU = RotationMatrix.InverseTransformVector(Model->Vectors[Surf.vTextureU]) * ActorScale;
 				MasterEdPoly.TextureV = RotationMatrix.InverseTransformVector(Model->Vectors[Surf.vTextureV]) * ActorScale;
 			}

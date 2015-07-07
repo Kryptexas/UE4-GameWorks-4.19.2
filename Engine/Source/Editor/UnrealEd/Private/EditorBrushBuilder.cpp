@@ -67,7 +67,7 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 	FRotator Temp(0.0f,0.0f,0.0f);
 	FSnappingUtils::SnapToBSPVertex( Location, FVector::ZeroVector, Temp );
 	BuilderBrush->SetActorLocation(Location, false);
-	BuilderBrush->SetPrePivot( FVector::ZeroVector );
+	BuilderBrush->SetPivotOffset( FVector::ZeroVector );
 
 	// Try and maintain the materials assigned to the surfaces. 
 	TArray<FPoly> CachedPolys;

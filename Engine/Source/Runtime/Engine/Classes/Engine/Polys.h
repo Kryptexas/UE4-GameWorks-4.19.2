@@ -67,20 +67,19 @@ public:
 	ENGINE_API void Reverse();
 
 	/**
-	 * Transform an editor polygon with a coordinate system, a pre-transformation
-	 * addition, and a post-transformation addition.
+	 * Transform an editor polygon with a post-transformation addition.
 	 */
-	ENGINE_API void Transform(const FVector &PreSubtract,const FVector &PostAdd);
+	ENGINE_API void Transform(const FVector &PostAdd);
 
 	/**
-	 * Rotate an editor polygon with a pre-transformation addition.
+	 * Rotate an editor polygon.
 	 */
-	ENGINE_API void Rotate(const FVector &PreSubtract, const FRotator &Rotation);
+	ENGINE_API void Rotate(const FRotator &Rotation);
 
 	/**
-	 * Scale an editor polygon with a pre-transformation addition.
+	 * Scale an editor polygon.
 	 */
-	ENGINE_API void Scale(const FVector &PreSubtract, const FVector &Scale);
+	ENGINE_API void Scale(const FVector &Scale);
 
 	/**
 	 * Fix up an editor poly by deleting vertices that are identical.  Sets

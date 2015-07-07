@@ -358,7 +358,6 @@ void UModel::PostLoad()
 		if (ABrush* Owner = Cast<ABrush>(GetOuter()))
 		{
 			OwnerLocationWhenLastBuilt = Owner->GetActorLocation();
-			OwnerPrepivotWhenLastBuilt = Owner->GetPrePivot();
 			OwnerScaleWhenLastBuilt = Owner->GetActorScale();
 			OwnerRotationWhenLastBuilt = Owner->GetActorRotation();
 			bCachedOwnerTransformValid = true;
@@ -640,7 +639,7 @@ void UModel::Transform( ABrush* Owner )
 	check(Owner);
 
 	for( int32 i=0; i<Polys->Element.Num(); i++ )
-		Polys->Element[ i ].Transform( Owner->GetPrePivot(), Owner->GetActorLocation());
+		Polys->Element[i].Transform(Owner->GetActorLocation());
 
 }
 

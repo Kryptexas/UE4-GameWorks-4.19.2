@@ -377,6 +377,12 @@ protected:
 	UPROPERTY()
 	class USceneComponent* RootComponent;
 
+#if WITH_EDITORONLY_DATA
+	/** Local space pivot offset for the actor */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = Actor)
+	FVector PivotOffset;
+#endif
+
 	/** The matinee actors that control this actor. */
 	UPROPERTY(transient)
 	TArray<class AMatineeActor*> ControllingMatineeActors;
@@ -1386,6 +1392,20 @@ public:
 	{
 		return GetActorQuat(RootComponent);
 	}
+
+#if WITH_EDITOR
+	/** Sets the local space offset added to the actor's pivot as used by the editor */
+	FORCEINLINE void SetPivotOffset(const FVector& InPivotOffset)
+	{
+		PivotOffset = InPivotOffset;
+	}
+
+	/** Gets the local space offset added to the actor's pivot as used by the editor */
+	FORCEINLINE FVector GetPivotOffset() const
+	{
+		return PivotOffset;
+	}
+#endif
 
 /*-----------------------------------------------------------------------------
 	Relations.

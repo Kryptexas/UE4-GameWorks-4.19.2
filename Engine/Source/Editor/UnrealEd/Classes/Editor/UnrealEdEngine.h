@@ -186,6 +186,7 @@ public:
 	virtual void SelectComponent(class UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden = false) override;
 	virtual void SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange) override;
 	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) override;
+	virtual void DeselectAllSurfaces() override;
 	virtual void NoteSelectionChange() override;
 	virtual void NoteActorMovement() override;
 	virtual void FinishAllSnaps() override;

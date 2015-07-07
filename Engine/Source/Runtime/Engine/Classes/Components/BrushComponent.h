@@ -24,8 +24,8 @@ class UBrushComponent : public UPrimitiveComponent
 	class UBodySetup* BrushBodySetup;
 
 	/** Local space translation */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Transform)
-	FVector PrePivot;
+	UPROPERTY()
+	FVector PrePivot_DEPRECATED;
 
 	// Begin UObject interface
 	virtual void PostLoad() override;
@@ -34,15 +34,7 @@ class UBrushComponent : public UPrimitiveComponent
 
 	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	virtual FVector GetCustomLocation() const override;
 	virtual bool ShouldCollideWhenPlacing() const override { return true; }
-
-protected:
-	
-	/** Calculate the new ComponentToWorld transform for this component.
-	Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
-	If Parent is not passed in we use the component's AttachParent*/
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL) const override;
 	// End USceneComponent interface
 
 public:

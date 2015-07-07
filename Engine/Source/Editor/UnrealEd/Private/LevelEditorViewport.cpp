@@ -1530,6 +1530,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bDuplicateOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
 	, bIsTrackingBrushModification( false )
+	, bOnlyMovedPivot(false)
 	, bLockedCameraView(true)
 	, bReceivedFocusRecently(false)
 	, SpriteCategoryVisibility()
@@ -1855,9 +1856,6 @@ void FLevelEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 //
 void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
-	// We clicked, allow the pivot to reposition itself.
-	bPivotMovedIndependently = false;
-
 	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
 	const FViewportClick Click(&View,this,Key,Event,HitX,HitY);
@@ -1936,6 +1934,9 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			{
 				ClickHandlers::ClickActor(this, ActorHitProxy->Actor, Click, true);
 			}
+
+			// We clicked an actor, allow the pivot to reposition itself.
+			bPivotMovedIndependently = false;
 		}
 		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
@@ -2336,6 +2337,7 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 				{
 					FSnappingUtils::SnapDragLocationToNearestVertex( ModeTools->PivotLocation, Drag, this );
 					bPivotMovedIndependently = true;
+					bOnlyMovedPivot = true;
 				}
 
 				ModeTools->PivotLocation += Drag;
@@ -2540,6 +2542,8 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 		}
 	}
 
+	bOnlyMovedPivot = false;
+
 	const bool bIsDraggingComponents = GEditor->GetSelectedComponentCount() > 0;
 	PreDragActorTransforms.Empty();
 	if (bIsDraggingComponents)
@@ -2682,7 +2686,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	// Finish tracking a brush transform and update the Bsp
 	if (bIsTrackingBrushModification)
 	{
-		bDidAnythingActuallyChange = HaveSelectedObjectsBeenChanged();
+		bDidAnythingActuallyChange = HaveSelectedObjectsBeenChanged() && !bOnlyMovedPivot;
 
 		bIsTrackingBrushModification = false;
 		if ( bDidAnythingActuallyChange && bWidgetAxisControlledByDrag )

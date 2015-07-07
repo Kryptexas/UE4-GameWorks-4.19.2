@@ -411,7 +411,6 @@ class UModel : public UObject
 	FVector OwnerLocationWhenLastBuilt;
 	FRotator OwnerRotationWhenLastBuilt;
 	FVector OwnerScaleWhenLastBuilt;
-	FVector OwnerPrepivotWhenLastBuilt;
 
 	/** Specifies whether the above cached transform is valid */
 	bool bCachedOwnerTransformValid;

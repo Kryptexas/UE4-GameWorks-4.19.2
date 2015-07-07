@@ -410,23 +410,11 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 					FNewMenuDelegate::CreateStatic(&FLevelEditorContextMenuImpl::FillTransformMenu));
 			}
 
-			// @todo UE4: The current pivot options only work for brushes
-			if (SelectionInfo.bHaveBrush)
-			{
-				// You can only move the pivot in ortho viewports, but you can reset it in any viewport
-				if (GCurrentLevelEditingViewportClient->ViewportType != LVT_Perspective)
-				{
-					// Add a sub-menu for "Pivot"
-					MenuBuilder.AddSubMenu(
-						LOCTEXT("PivotSubMenu", "Pivot"),
-						LOCTEXT("PivotSubMenu_ToolTip", "Actor pivoting utils"),
-						FNewMenuDelegate::CreateStatic(&FLevelEditorContextMenuImpl::FillPivotMenu));
-				}
-				else
-				{
-					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ResetPivot);
-				}
-			}
+			// Add a sub-menu for "Pivot"
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("PivotSubMenu", "Pivot"),
+				LOCTEXT("PivotSubMenu_ToolTip", "Actor pivoting utils"),
+				FNewMenuDelegate::CreateStatic(&FLevelEditorContextMenuImpl::FillPivotMenu));
 		}
 		MenuBuilder.EndSection();
 
@@ -928,7 +916,6 @@ void FLevelEditorContextMenuImpl::FillPivotMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.BeginSection("SaveResetPivot");
 	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SavePivotToPrePivot );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ResetPrePivot );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ResetPivot );
 	}
 	MenuBuilder.EndSection();

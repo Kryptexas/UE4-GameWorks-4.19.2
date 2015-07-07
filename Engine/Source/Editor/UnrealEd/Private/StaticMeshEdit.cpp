@@ -620,7 +620,7 @@ void GetBrushMesh(ABrush* Brush,UModel* Model,struct FRawMesh& OutMesh,TArray<UM
 
 		// Cache the texture coordinate system for this polygon.
 
-		FVector	TextureBase = Polygon.Base - (Brush ? Brush->GetPrePivot() : FVector::ZeroVector),
+		FVector	TextureBase = Polygon.Base - (Brush ? Brush->GetPivotOffset() : FVector::ZeroVector),
 				TextureX = Polygon.TextureU / UModel::GetGlobalBSPTexelScale(),
 				TextureY = Polygon.TextureV / UModel::GetGlobalBSPTexelScale();
 

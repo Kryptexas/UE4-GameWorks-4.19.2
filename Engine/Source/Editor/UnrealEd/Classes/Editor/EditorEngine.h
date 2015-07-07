@@ -1344,6 +1344,11 @@ public:
 	 */
 	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) {}
 
+	/**
+	 * Deselect all surfaces.
+	 */
+	virtual void DeselectAllSurfaces() {}
+
 	// Bsp Poly selection virtuals from EditorCsg.cpp.
 	virtual void polySelectAll ( UModel* Model );
 	virtual void polySelectMatchingGroups( UModel* Model );

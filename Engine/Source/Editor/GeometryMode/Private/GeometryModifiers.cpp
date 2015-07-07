@@ -912,7 +912,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 	BuilderBrush->SetActorLocation(GeomMode->GetWidgetLocation(), false);
-	BuilderBrush->SetPrePivot(FVector::ZeroVector);
+	BuilderBrush->SetPivotOffset(FVector::ZeroVector);
 	BuilderBrush->SetFlags( RF_Transactional );
 	BuilderBrush->Brush->Polys->Element.Empty();
 
@@ -975,7 +975,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 e = 0 ; e < WindingVerts->Num() ; ++e )
 					{
-						FVector vtx = (*WindingVerts)[e] - delta - BrushShape->GetPrePivot();
+						FVector vtx = (*WindingVerts)[e] - delta - BrushShape->GetPivotOffset();
 
 						vtx = RotationMatrix.TransformPosition( vtx );
 
@@ -1043,7 +1043,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 v = 0 ; v < WindingVerts->Num() ; ++v )
 					{
-						Poly.Vertices.Add( (*WindingVerts)[v] - delta - BrushShape->GetPrePivot() );
+						Poly.Vertices.Add((*WindingVerts)[v] - delta - BrushShape->GetPivotOffset());
 					}
 
 					Poly.Finalize( BuilderBrush, 1 );
@@ -1089,7 +1089,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 v = 0 ; v < WindingVerts->Num() ; ++v )
 					{
-						Poly.Vertices.Add( RotationMatrix.TransformPosition( (*WindingVerts)[v] - delta - BrushShape->GetPrePivot() ) );
+						Poly.Vertices.Add(RotationMatrix.TransformPosition((*WindingVerts)[v] - delta - BrushShape->GetPivotOffset()));
 					}
 
 					Poly.Finalize( BuilderBrush, 1 );
@@ -1238,7 +1238,7 @@ void UGeomModifier_Pen::Apply()
 		FlushRenderingCommands();
 		
 		ResultingBrush->SetActorLocation(BaseLocation, false);
-		ResultingBrush->SetPrePivot(FVector::ZeroVector);
+		ResultingBrush->SetPivotOffset(FVector::ZeroVector);
 		ResultingBrush->SetFlags( RF_Transactional );
 		ResultingBrush->Brush->Polys->Element.Empty();
 
@@ -1688,7 +1688,7 @@ namespace GeometryClipping {
 static void BuildGiantAlignedBrush( ABrush& OutGiantBrush, const FPlane& InPlane )
 {
 	OutGiantBrush.SetActorLocation(FVector::ZeroVector, false);
-	OutGiantBrush.SetPrePivot(FVector::ZeroVector);
+	OutGiantBrush.SetPivotOffset(FVector::ZeroVector);
 
 	verify( OutGiantBrush.Brush );
 	verify( OutGiantBrush.Brush->Polys );

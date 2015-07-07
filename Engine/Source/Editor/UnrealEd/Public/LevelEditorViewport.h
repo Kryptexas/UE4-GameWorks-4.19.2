@@ -670,6 +670,11 @@ public:
 	 */
 	bool					bIsTrackingBrushModification;
 
+	/**
+	 * true if only the pivot position has been moved
+	 */
+	bool					bOnlyMovedPivot;
+
 	/** True if this viewport is to change its view (aspect ratio, post processing, FOV etc) to match that of the currently locked camera, if applicable */
 	bool					bLockedCameraView;
 

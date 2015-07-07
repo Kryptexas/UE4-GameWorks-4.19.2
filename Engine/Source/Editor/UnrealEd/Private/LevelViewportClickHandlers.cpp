@@ -864,8 +864,12 @@ namespace ClickHandlers
 			check( Model );
 
 			bool bNeedViewportRefresh = false;
+			bool bIsActorAlreadySelected = Surf.Actor && Surf.Actor->IsSelected();
 			{
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectSurfaces", "Select Surfaces") );
+
+				USelection* SelectedActors = GEditor->GetSelectedActors();
+				SelectedActors->BeginBatchSelectOperation();
 
 				// We only need to unselect surfaces if the surface the user clicked on was not already selected
 				if( !( Surf.PolyFlags & PF_Selected ) )
@@ -878,7 +882,13 @@ namespace ClickHandlers
 				Model->ModifySurf( iSurf, false );
 				Surf.PolyFlags |= PF_Selected;
 
-				GEditor->NoteSelectionChange();
+				GEditor->SelectActor(Surf.Actor, true, false);
+				SelectedActors->EndBatchSelectOperation(false);
+
+				if (!bIsActorAlreadySelected)
+				{
+					GEditor->NoteSelectionChange();
+				}
 			}
 
 			if( bNeedViewportRefresh )
@@ -912,7 +922,11 @@ namespace ClickHandlers
 		{	
 			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectBrushSurface", "Select Brush Surface") );
 			bool bDeselectAlreadyHandled = false;
-			
+			bool bIsActorAlreadySelected = Surf.Actor && Surf.Actor->IsSelected();
+
+			USelection* SelectedActors = GEditor->GetSelectedActors();
+			SelectedActors->BeginBatchSelectOperation();
+
 			// We are going to handle the notification ourselves
 			const bool bNotify = false;
 			if(GetDefault<ULevelEditorViewportSettings>()->bClickBSPSelectsBrush)
@@ -927,7 +941,6 @@ namespace ClickHandlers
 						bDeselectAlreadyHandled = true;
 					}
 					// If the builder brush is selected, first deselect it.
-					USelection* SelectedActors = GEditor->GetSelectedActors();
 					for(FSelectionIterator It(*SelectedActors); It; ++It)
 					{
 						ABrush* Brush = Cast<ABrush>(*It);
@@ -955,12 +968,16 @@ namespace ClickHandlers
 				if (!Model->HasSelectedSurfaces())
 				{
 					GEditor->SelectActor(Surf.Actor, false, bNotify);
+					bIsActorAlreadySelected = false;
 				}
 			}
 
+			SelectedActors->EndBatchSelectOperation(false);
 
-
-			GEditor->NoteSelectionChange();
+			if (!bIsActorAlreadySelected)
+			{
+				GEditor->NoteSelectionChange();
+			}
 		}
 	}
 

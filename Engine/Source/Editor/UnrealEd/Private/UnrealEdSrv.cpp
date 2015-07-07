@@ -937,11 +937,11 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 								Poly->TextureU /= ScaleVec;
 								Poly->TextureV /= ScaleVec;
-								Poly->Base = ((Poly->Base - Brush->GetPrePivot()) * ScaleVec) + Brush->GetPrePivot();
+								Poly->Base = ((Poly->Base - Brush->GetPivotOffset()) * ScaleVec) + Brush->GetPivotOffset();
 
 								for( int32 vtx = 0 ; vtx < Poly->Vertices.Num() ; vtx++ )
 								{
-									Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPrePivot()) * ScaleVec) + Brush->GetPrePivot();
+									Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPivotOffset()) * ScaleVec) + Brush->GetPivotOffset();
 
 									// "Then snap the vertices new positions by the specified Snap amount"
 									if ( bSnap )
@@ -2591,7 +2591,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		FScopedLevelDirtied				LevelDirtyCallback;
 		FScopedActorPropertiesChange	ActorPropertiesChangeCallback;
 
-		// Bakes the current pivot position into all selected brushes as their PrePivot
+		// Bakes the current pivot position into all selected actors
 
 		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
@@ -2602,16 +2602,9 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 			FVector Delta( EditorModeTools.PivotLocation - Actor->GetActorLocation() );
 
-			ABrush* Brush = Cast<ABrush>(Actor);
-			if( Brush )
-			{
-				Brush->Modify();
-
-				Brush->SetActorLocation(Actor->GetActorLocation() + Delta, false);
-				Brush->SetPrePivot(Brush->GetPrePivot() + Delta);
-
-				Brush->PostEditMove( true );
-			}
+			Actor->Modify();
+			Actor->SetPivotOffset(Actor->GetPivotOffset() + Actor->GetTransform().InverseTransformVector(Delta));
+			Actor->PostEditMove(true);
 		}
 
 		GUnrealEd->NoteSelectionChange();
@@ -2621,7 +2614,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		FScopedLevelDirtied		LevelDirtyCallback;
 		FScopedActorPropertiesChange	ActorPropertiesChangeCallback;
 
-		// Resets the PrePivot of the selected brushes to 0,0,0 while leaving them in the same world location.
+		// Resets the PrePivot of the selected actors to 0,0,0 while leaving them in the same world location.
 
 		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
@@ -2630,18 +2623,9 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-			ABrush* Brush = Cast<ABrush>(Actor);
-			if( Brush )
-			{
-				Brush->Modify();
-
-				FVector Delta = Brush->GetPrePivot();
-
-				Brush->SetActorLocation(Actor->GetActorLocation() - Delta, false);
-				Brush->SetPrePivot(FVector::ZeroVector);
-
-				Brush->PostEditMove( true );
-			}
+			Actor->Modify();
+			Actor->SetPivotOffset(FVector::ZeroVector);
+			Actor->PostEditMove(true);
 		}
 
 		GUnrealEd->NoteSelectionChange();
@@ -2703,12 +2687,9 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				{
 					Actor->SetActorLocation(FVector::ZeroVector, false);
 				}
-				ABrush* Brush = Cast< ABrush >( Actor );
-				if( bPivot && Brush )
+				if( bPivot )
 				{
-					Brush->SetActorLocation(Brush->GetActorLocation() - Brush->GetPrePivot(), false);
-					Brush->SetPrePivot(FVector::ZeroVector);
-					Brush->PostEditChange();
+					Actor->SetPivotOffset(FVector::ZeroVector);
 				}
 
 				if( bScale && Actor->GetRootComponent() != NULL ) 

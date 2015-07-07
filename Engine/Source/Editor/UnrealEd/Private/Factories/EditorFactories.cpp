@@ -1439,7 +1439,7 @@ UObject* UModelFactory::FactoryCreateText
 			{
 				FVector TempPrePivot(0.f);
 				GetFVECTOR 	(StrPtr,TempPrePivot);
-				TempOwner->SetPrePivot(TempPrePivot);
+				TempOwner->SetPivotOffset(TempPrePivot);
 			}
 			else if (FParse::Command(&StrPtr,TEXT("LOCATION"	))) 
 			{

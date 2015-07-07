@@ -457,22 +457,20 @@ int32 FPoly::CalcNormal( bool bSilent )
 
 void FPoly::Transform
 (
-	const FVector&		PreSubtract,
 	const FVector&		PostAdd
 )
 {
 	FVector 	Temp;
 	int32 		i;
 
-	Base = (Base - PreSubtract) + PostAdd;
+	Base += PostAdd;
 	for( i=0; i<Vertices.Num(); i++ )
-		Vertices[i]  = (Vertices[i] - PreSubtract) + PostAdd;
+		Vertices[i] += PostAdd;
 }
 
 
 void FPoly::Rotate
 (
-	const FVector&		PreSubtract,
 	const FRotator&		Rotation
 )
 {
@@ -481,10 +479,10 @@ void FPoly::Rotate
 	// Rotate the vertices.
 	for (int32 Vertex = 0; Vertex < Vertices.Num(); Vertex++)
 	{
-		Vertices[Vertex] = PreSubtract + RotMatrix.TransformVector(Vertices[Vertex] - PreSubtract);
+		Vertices[Vertex] = RotMatrix.TransformVector(Vertices[Vertex]);
 	}
 
-	Base = PreSubtract + RotMatrix.TransformVector(Base - PreSubtract);
+	Base = RotMatrix.TransformVector(Base);
 
 	// Rotate the texture vectors.
 	TextureU = RotMatrix.TransformVector(TextureU);
@@ -498,7 +496,6 @@ void FPoly::Rotate
 
 void FPoly::Scale
 (
-	const FVector&		PreSubtract,
 	const FVector&		Scale
 )
 {
@@ -512,10 +509,10 @@ void FPoly::Scale
 	// Scale the vertices.
 	for (int32 Vertex = 0; Vertex < Vertices.Num(); Vertex++)
 	{
-		Vertices[Vertex] = PreSubtract + (Vertices[Vertex] - PreSubtract) * Scale;
+		Vertices[Vertex] *= Scale;
 	}
 
-	Base = PreSubtract + (Base - PreSubtract) * Scale;
+	Base *= Scale;
 
 	// Scale the texture vectors.
 	TextureU /= Scale;

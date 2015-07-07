@@ -571,13 +571,13 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			{
 				DefaultBrush->Brush->Modify();
 				SnapLocation = DefaultBrush->GetActorLocation();
-				PrePivot = DefaultBrush->GetPrePivot();
+				PrePivot = DefaultBrush->GetPivotOffset();
 			}
 			
 			FSnappingUtils::SnapToBSPVertex( SnapLocation, FVector::ZeroVector, Temp );
 
 			WorldBrush->SetActorLocation(SnapLocation - PrePivot, false);
-			WorldBrush->SetPrePivot( FVector::ZeroVector );
+			WorldBrush->SetPivotOffset( FVector::ZeroVector );
 			WorldBrush->Brush->Polys->Element.Empty();
 			UPolysFactory* It = NewObject<UPolysFactory>();
 			It->FactoryCreateText( UPolys::StaticClass(), WorldBrush->Brush->Polys->GetOuter(), *WorldBrush->Brush->Polys->GetName(), RF_NoFlags, WorldBrush->Brush->Polys, TEXT("t3d"), GStream, GStream+FCString::Strlen(GStream), GWarn );
@@ -628,11 +628,11 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 						Poly->TextureU *= InvScale;
 						Poly->TextureV *= InvScale;
-						Poly->Base = ((Poly->Base - Brush->GetPrePivot()) * Scale) + Brush->GetPrePivot();
+						Poly->Base = ((Poly->Base - Brush->GetPivotOffset()) * Scale) + Brush->GetPivotOffset();
 
 						for( int32 vtx = 0 ; vtx < Poly->Vertices.Num() ; vtx++ )
 						{
-							Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPrePivot()) * Scale) + Brush->GetPrePivot();
+							Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPivotOffset()) * Scale) + Brush->GetPivotOffset();
 						}
 
 						Poly->CalcNormal();
@@ -3811,11 +3811,11 @@ bool UEditorEngine::Map_Scale( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 
 					Poly->TextureU /= Factor;
 					Poly->TextureV /= Factor;
-					Poly->Base = ((Poly->Base - Brush->GetPrePivot()) * Factor) + Brush->GetPrePivot();
+					Poly->Base = ((Poly->Base - Brush->GetPivotOffset()) * Factor) + Brush->GetPivotOffset();
 
 					for( int32 vtx = 0 ; vtx < Poly->Vertices.Num() ; vtx++ )
 					{
-						Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPrePivot()) * Factor) + Brush->GetPrePivot();
+						Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPivotOffset()) * Factor) + Brush->GetPivotOffset();
 					}
 
 					Poly->CalcNormal();

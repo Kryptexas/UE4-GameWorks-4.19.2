@@ -90,7 +90,7 @@ void ABrush::CopyPosRotScaleFrom( ABrush* Other )
 	SetActorRotation(Other->GetActorRotation());
 	if( GetRootComponent() != NULL )
 	{
-		SetPrePivot( Other->GetPrePivot() );
+		SetPivotOffset(Other->GetPivotOffset());
 	}
 
 	if(Brush)
@@ -107,7 +107,7 @@ void ABrush::InitPosRotScale()
 
 	SetActorLocation(FVector::ZeroVector, false);
 	SetActorRotation(FRotator::ZeroRotator);
-	SetPrePivot( FVector::ZeroVector );
+	SetPivotOffset( FVector::ZeroVector );
 }
 
 void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
@@ -147,21 +147,12 @@ void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 
 FVector ABrush::GetPrePivot() const
 {
-	FVector Result(0.f);
-	if( BrushComponent )
-	{
-		Result = BrushComponent->PrePivot;
-	}
-	return Result;
+	return GetPivotOffset();
 }
 
 void ABrush::SetPrePivot( const FVector& InPrePivot )
 {
-	if( BrushComponent )
-	{
-		BrushComponent->PrePivot = InPrePivot;
-		BrushComponent->UpdateComponentToWorld();
-	}
+	SetPivotOffset(InPrePivot);
 }
 
 #if WITH_EDITOR
