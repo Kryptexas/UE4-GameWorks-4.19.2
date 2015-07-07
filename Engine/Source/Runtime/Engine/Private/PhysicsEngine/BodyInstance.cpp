@@ -239,7 +239,6 @@ FBodyInstance::FBodyInstance()
 , CustomDOFPlaneNormal(FVector::ZeroVector)
 , COMNudge(ForceInit)
 , MassScale(1.f)
-, MaxAngularVelocity(400.f)
 , DOFConstraint(NULL)
 , WeldParent(NULL)
 , bUseAsyncScene(false)
@@ -266,6 +265,7 @@ FBodyInstance::FBodyInstance()
 , BodyInstancePtr(nullptr)
 #endif
 {
+	MaxAngularVelocity = UPhysicsSettings::Get()->MaxAngularVelocity;
 }
 
 FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst)
@@ -274,6 +274,14 @@ FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst)
 	{
 		Ar << BodyInst.OwnerComponent;
 		Ar << BodyInst.PhysMaterialOverride;
+	}
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MAX_ANGULAR_VELOCITY_DEFAULT)
+	{
+		if(BodyInst.MaxAngularVelocity != 400.f)
+		{
+			BodyInst.bOverrideMaxAngularVelocity = true;
+		}
 	}
 
 	return Ar;
@@ -1530,7 +1538,7 @@ struct FInitBodiesHelper
 						// Update damping
 						Instance->UpdateDampingProperties();
 
-						Instance->SetMaxAngularVelocity(Instance->MaxAngularVelocity, false);
+						Instance->SetMaxAngularVelocity(Instance->GetMaxAngularVelocity(), false, false);
 
 						Instance->SetMaxDepenetrationVelocity(Instance->bOverrideMaxDepenetrationVelocity ? Instance->MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
 
@@ -3348,7 +3356,12 @@ void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurr
 #endif
 }
 
-void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent)
+float FBodyInstance::GetMaxAngularVelocity() const
+{
+	return bOverrideMaxAngularVelocity ? MaxAngularVelocity : UPhysicsSettings::Get()->MaxAngularVelocity;
+}
+
+void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity)
 {
 #if WITH_PHYSX
 	const bool bIsDynamic = ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
@@ -3374,6 +3387,12 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 	{
 		MaxAngularVelocity = NewMaxAngVel;	//doesn't really matter since we are not dynamic, but makes sense that we update this anyway
 	}
+
+	if(bUpdateOverrideMaxAngularVelocity)
+	{
+		bOverrideMaxAngularVelocity = true;
+	}
+	
 #endif
 
 	//@TODO: BOX2D: Implement SetMaxAngularVelocity
@@ -4450,7 +4469,7 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 		{
 			UpdateMassProperties();
 			UpdateDampingProperties();
-			SetMaxAngularVelocity(MaxAngularVelocity, false);
+			SetMaxAngularVelocity(GetMaxAngularVelocity(), false, false);
 			SetMaxDepenetrationVelocity(bOverrideMaxDepenetrationVelocity ? MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
 		}else
 		{

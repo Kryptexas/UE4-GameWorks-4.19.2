@@ -151,6 +151,10 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	TEnumAsByte<EFrictionCombineMode::Type> RestitutionCombineMode;
 
+	/** Max angular velocity that a simulated object can achieve.*/
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	float MaxAngularVelocity;
+
 	/** Max velocity which may be used to depenetrate simulated physics objects. 0 means no maximum. */
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	float MaxDepenetrationVelocity;

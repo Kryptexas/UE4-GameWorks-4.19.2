@@ -208,7 +208,7 @@ public:
 	uint32 bSimulatePhysics:1;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta=(DisplayName="Override"))
+	UPROPERTY(meta=(DisplayName="Override"))
 	uint32 bOverrideMass : 1;
 
 	/**Mass of the body in KG. By default we compute this based on physical material and mass scale.
@@ -279,6 +279,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Z"))
 	uint32 bLockZRotation : 1;
 
+	/** Override the default max angular velocity */
+	UPROPERTY(meta = (editcondition = "bSimulatePhysics"))
+	uint32 bOverrideMaxAngularVelocity : 1;
+
 	/** Locks physical movement along specified axis.*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
 	TEnumAsByte<EDOFMode::Type> DOFMode;
@@ -296,7 +300,7 @@ public:
 	float MassScale;
 
 	/** The maximum angular velocity for this instance */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bSimulatePhysics"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxAngularVelocity"))
 	float MaxAngularVelocity;
 
 
@@ -330,7 +334,7 @@ protected:
 	uint32 bUseAsyncScene:1;
 
 	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
+	UPROPERTY()
 	uint32 bOverrideMaxDepenetrationVelocity : 1;
 
 	/** The maximum velocity used to depenetrate this object*/
@@ -338,7 +342,7 @@ protected:
 	float MaxDepenetrationVelocity;
 
 	/** Whether this instance of the object has its own custom walkable slope override setting. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	UPROPERTY()
 	uint32 bOverrideWalkableSlopeOnInstance : 1;
 
 	/**
@@ -716,7 +720,10 @@ public:
 	/** Set the angular velocity of this body */
 	void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent);
 	/** Set the maximum angular velocity of this body */
-	void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent);
+	void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true);
+	/** Get the maximum angular velocity of this body */
+	float GetMaxAngularVelocity() const;
+
 	/** Set the maximum depenetration velocity the physics simulation will introduce */
 	void SetMaxDepenetrationVelocity(float MaxVelocity);
 	/** Set whether we should get a notification about physics collisions */
