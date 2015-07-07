@@ -5,7 +5,7 @@ Description:Learn how to import audio content into Unreal Editor.
 prereq:Engine/Basics/Projects/Browser
 Related: GettingStarted
 Related: GettingStarted/HowTo
-Related: Engine/Audio/WAV
+Related: Engine/Audio
 Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
@@ -24,7 +24,7 @@ After going through this tutorial, developers will know the following:
 
 *	Where to locate the Content Browser's **Import** function.
 *	How to import single audio files.
-*	How to use the multi-channel audio extension table.
+*	How to reference the multi-channel audio extension table.
 *	How to import multi-channel audio.
 *	How to verify that assets were properly imported into the project folder.
 
@@ -38,9 +38,45 @@ After going through this tutorial, developers will know the following:
 
 ## Importing Single Audio Files
 
+1.	From inside the editor, **click** the **Import** button (pictured below).
 
+	![](ImportButton_UI.png)
 
-## Using the Multi-Channel Audio Extension Table
+1.	Locate and **select** your ** *.WAV ** file (example pictured below).
+
+	![](ImportDialogBox.png)
+
+1.	**Click Open** to begin importing the audio file to your project (pictured above).
+
+1.	An import progress bar pops-up (pictured below).
+
+	![](ImportingProgressBar.png)
+
+1.	A sound asset appears inside the **Content Browser** once UE4 successfully imports the audio file (example pictured below).
+
+	![](UnsavedSoundAsset.png)
+
+1.	The unsaved sound asset is marked with an asterisk (pictured above).
+
+1.	**Click** the **Save All** button to save your imported sound asset.
+
+	![](SaveAllButton.png)
+
+1.	A **Save Content** dialog box appears (pictured below). **Click Save Selected** to save your imported asset.
+
+	![](SaveContentDialogBox.png)
+
+1.	UE4 removes the asterisk from your saved asset (pictured below).
+
+	![](SavedSoundAsset.png)
+
+1.	**Hover over** the saved asset inside the **Content Browser** to view a summary of the sound asset's properties (pictured below).
+
+	![](HoverOverSingle.png)
+
+## Referencing the Multi-Channel Audio Extension Table
+
+Prior to importing multi-channel audio, developers should reference the following table when naming their ** *.WAV ** files.
 
 [REGION:raw]
 |                   | Extension | 4.0         | 5.1         | 6.1         | 7.1         |  
@@ -55,9 +91,57 @@ After going through this tutorial, developers will know the following:
 | **BackRight**     | _br       |             |             |             |  &#x2713;   |  
 [/REGION]
 
+[REGION:note]
+The following steps demonstrate a specific use-case for importing a 4.0 surround sound asset into the editor. Refer to our [](Engine/Audio) documentation for information on sample rates, audio specifications, and best practices when importing audio into UE4.
+[/REGION]
+
+1.	After exporting your multi-channel sound asset, verify that your audio files are named according to the above-listed Multi-Channel Audio Extension Table (4.0 example pictured below).
+
+	![](VerifyMultiChannelNames.png)
+
+	*You can find alternative extension requirements for 5.1, 6.1, and 7.1 channel surround sound assets.*
+
 ## Importing Multi-Channel Audio
 
+[REGION:note]
+Exporting a multi-channel sound asset will create a mono ** .WAV ** file for each channel with the above speaker extension naming convention.
+[/REGION]
 
+1.	From inside the editor, **click** the **Import** button (pictured below).
+
+	![](ImportButtonUI_Multi.png)
+
+1.	Locate and **select** your ** *.WAV ** files (example pictured below).
+
+	![](ImportDialogBox_Multi.png)
+
+1.	**Click Open** to begin importing the audio file to your project (pictured above).
+
+1.	An import progress bar pops-up (pictured below).
+
+	![](ImportingProgressBar_Multi.png)
+
+1.	A four channel sound asset (named "Surround") appears inside the **Content Browser** once UE4 successfully imports the audio files (example pictured below).
+
+	![](UnsavedSurroundSoundAsset.png)
+
+1.	The unsaved sound asset is marked with an asterisk (pictured above).
+
+1.	**Click** the **Save All** button to save your imported sound asset.
+
+	![](SaveAllButtonSurround.png)
+
+1.	A **Save Content** dialog box appears (pictured below). **Click Save Selected** to save your imported asset.
+
+	![](SaveContentDialogSurround.png)
+
+1.	UE4 removes the asterisk from your saved asset (pictured below).
+
+	![](SavedSurroundSoundAsset.png)
+
+1.	**Hover over** the saved asset inside the **Content Browser** to view a summary of the sound asset's properties (pictured below).
+
+	![](HoverOverSurround.png)
 
 ## Verifying Imported Assets
 
@@ -79,6 +163,6 @@ Now that we've reached the end of this tutorial, you've learned how to:
 
 &#x2713;	Locate the Content Browser's **Import** function.  
 &#x2713;	Import single audio files.  
-&#x2713;	Use the multi-channel audio extension table.  
+&#x2713;	Reference the multi-channel audio extension table.  
 &#x2713;	Import multi-channel audio.  
 &#x2713;	Verify that assets were properly imported to the project folder.
