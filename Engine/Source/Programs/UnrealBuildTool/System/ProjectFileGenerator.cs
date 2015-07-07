@@ -392,6 +392,10 @@ namespace UnrealBuildTool
 			}
 			RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
 
+			// Find all of the module files.  This will filter out any modules or targets that don't belong to platforms
+			// we're generating project files for.
+			var AllModuleFiles = DiscoverModules();
+
 			ProjectFile EngineProject = null;
 			Dictionary<string, ProjectFile> GameProjects = null;
 			Dictionary<string, ProjectFile> ProgramProjects = null;
@@ -504,10 +508,6 @@ namespace UnrealBuildTool
 					AddEngineProgramConfigFiles( ProgramProjects );
 				}
 			}
-
-			// Find all of the module files.  This will filter out any modules or targets that don't belong to platforms
-			// we're generating project files for.
-			var AllModuleFiles = DiscoverModules();
 
 			// Setup "stub" projects for all modules
 			AddProjectsForAllModules(AllGameProjects, ProgramProjects, AllModuleFiles, bGatherThirdPartySource);
