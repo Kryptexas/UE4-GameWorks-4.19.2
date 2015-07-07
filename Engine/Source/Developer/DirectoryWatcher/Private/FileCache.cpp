@@ -3,6 +3,7 @@
 #include "DirectoryWatcherPrivatePCH.h"
 #include "FileCache.h"
 #include "DirectoryWatcherModule.h"
+#include "ModuleManager.h"
 
 namespace DirectoryWatcher
 {
