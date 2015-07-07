@@ -1661,9 +1661,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			OverrideRenderTarget(Context.FinalOutput, Temp, Desc);
 
-			// We want this executed early as it uses AsyncCompute (where available e.g. XboxOne).
-			//CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
-			// Now we process the remaining part of the graph.
+			// execute the graph/DAG
 			CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("PostProcessing"));
 		}
 	}

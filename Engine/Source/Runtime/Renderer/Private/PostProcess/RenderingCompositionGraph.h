@@ -45,14 +45,17 @@ private:
 	/** */
 	TArray<FRenderingCompositePass*> Nodes;
 
-	/** */
+	/** release all nodes */
 	void Free();
 
 	/** */
 	void ProcessGatherDependency(const FRenderingCompositeOutputRef* OutputRefIt);
 
-	/** should only be called by GatherDependencies(), can also be implemented without recursion */
-	static void RecursivelyGatherDependencies(const FRenderingCompositeOutputRef& InOutputRef);
+	/**
+	 * could also be implemented without recursion
+	 * @param Pass must not be 0
+	 */
+	static void RecursivelyGatherDependencies(FRenderingCompositePass *Pass);
 
 	/** can also be implemented without recursion */
 	void RecursivelyProcess(const FRenderingCompositeOutputRef& InOutputRef, FRenderingCompositePassContext& Context) const;
@@ -76,18 +79,15 @@ private:
 
 struct FRenderingCompositePassContext
 {
+	// constructor
 	FRenderingCompositePassContext(FRHICommandListImmediate& RHICmdList, FViewInfo& InView);
 
+	// destructor
 	~FRenderingCompositePassContext();
 
+	// call this only once after all nodes have been registered and connected (SetInput() or SetDependency())
 	// @param GraphDebugName must not be 0
 	void Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName);
-
-	//
-	FViewInfo& View;
-	FSceneViewState* ViewState;
-	// is updated before each Pass->Process() call
-	FRenderingCompositePass* Pass;
 
 	// call this method instead of RHISetViewport() so we can cache the values and use them to map beteen ScreenPos and pixels
 	void SetViewportAndCallRHI(FIntRect InViewPortRect, float InMinZ = 0.0f, float InMaxZ = 1.0f)
@@ -123,6 +123,7 @@ struct FRenderingCompositePassContext
 		return ViewPortRect;
 	}
 
+	//
 	bool IsViewportValid() const
 	{
 		return ViewPortRect.Min != ViewPortRect.Max;
@@ -132,16 +133,27 @@ struct FRenderingCompositePassContext
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
 
+	//
+	FViewInfo& View;
+	//
+	FSceneViewState* ViewState;
+	// is updated before each Pass->Process() call
+	FRenderingCompositePass* Pass;
+	//
 	FRenderingCompositionGraph Graph;
-
+	//
 	FRHICommandListImmediate& RHICmdList;
 
 private:
+
 	// cached state to map between ScreenPos and pixels
 	FIntRect ViewPortRect;
-
+	//
 	ERHIFeatureLevel::Type FeatureLevel;
+	//
 	TShaderMap<FGlobalShaderType>* ShaderMap;
+	// to ensure we only process the graph once
+	bool bWasProcessed;
 };
 
 // ---------------------------------------------------------------------------

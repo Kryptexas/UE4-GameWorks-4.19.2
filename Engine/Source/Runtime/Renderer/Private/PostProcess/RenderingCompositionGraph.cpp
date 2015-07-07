@@ -8,6 +8,26 @@
 #include "RenderingCompositionGraph.h"
 #include "HighResScreenshot.h"
 
+void ExecuteCompositionGraphDebug();
+
+static TAutoConsoleVariable<int32> CVarCompositionGraphOrder(
+	TEXT("r.CompositionGraphOrder"),
+	0,
+	TEXT("Defines in which order the nodes in the CompositionGraph are executed (affects postprocess and some lighting).\n")
+	TEXT("Option 1 provides more control, which can be useful for preserving ESRAM, avoid GPU sync, cluster up compute shaders for performance and control AsyncCompute.\n")
+	TEXT(" 0: tree order starting with the root, first all inputs then dependencies (classic UE4, unconnected nodes are not getting executed)\n")
+	TEXT(" 1: RegisterPass() call order, unless the dependencies (input and additional) require a different order (might become new default as it provides more control, executes all registered nodes)"),
+	ECVF_RenderThreadSafe);
+
+#if !UE_BUILD_SHIPPING
+FAutoConsoleCommand CmdCompositionGraphDebug(
+	TEXT("r.CompositionGraphDebug"),
+	TEXT("Execute this command to get a single frame dump of the composition graph of one frame (post processing and lighting)."),
+	FConsoleCommandDelegate::CreateStatic(ExecuteCompositionGraphDebug)
+	);
+#endif
+
+
 // render thread, 0:off, >0 next n frames should be debugged
 uint32 GDebugCompositionGraphFrames = 0;
 
@@ -94,15 +114,6 @@ void CompositionGraph_OnStartFrame()
 #endif
 }
 
-
-#if !UE_BUILD_SHIPPING
-FAutoConsoleCommand CmdCompositionGraphDebug(
-	TEXT("r.CompositionGraphDebug"),
-	TEXT("Execute to get a single frame dump of the composition graph of one frame (post processing and lighting)."),
-	FConsoleCommandDelegate::CreateStatic(ExecuteCompositionGraphDebug)
-	);
-#endif
-
 FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListImmediate& InRHICmdList, FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
 	: View(InView)
 	, ViewState((FSceneViewState*)InView.State)
@@ -111,6 +122,7 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListIm
 	, ViewPortRect(0, 0, 0 ,0)
 	, FeatureLevel(View.GetFeatureLevel())
 	, ShaderMap(InView.ShaderMap)
+	, bWasProcessed(false)
 {
 	check(!IsViewportValid());
 }
@@ -122,6 +134,11 @@ FRenderingCompositePassContext::~FRenderingCompositePassContext()
 
 void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
 {
+	// call this method only once afetr the graph is finished
+	check(!bWasProcessed);
+
+	bWasProcessed = true;
+
 	if(Root)
 	{
 		if(ShouldDebugCompositionGraph())
@@ -140,10 +157,25 @@ void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, cons
 			GGMLFileWriter.WriteLine("\tdirected\t1");
 		}
 
-		FRenderingCompositeOutputRef Output(Root);
+		bool bNewOrder = CVarCompositionGraphOrder.GetValueOnRenderThread() != 0;
 
-		Graph.RecursivelyGatherDependencies(Output);
-		Graph.RecursivelyProcess(Root, *this);
+		if(bNewOrder)
+		{
+			for (FRenderingCompositePass* Node : Graph.Nodes)
+			{
+				Graph.RecursivelyGatherDependencies(Node);
+			}
+
+			for (FRenderingCompositePass* Node : Graph.Nodes)
+			{
+				Graph.RecursivelyProcess(Node, *this);
+			}
+		}
+		else
+		{
+			Graph.RecursivelyGatherDependencies(Root);
+			Graph.RecursivelyProcess(Root, *this);
+		}
 
 		if(ShouldDebugCompositionGraph())
 		{
@@ -185,9 +217,9 @@ void FRenderingCompositionGraph::Free()
 	Nodes.Empty();
 }
 
-void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingCompositeOutputRef& InOutputRef)
+void FRenderingCompositionGraph::RecursivelyGatherDependencies(FRenderingCompositePass *Pass)
 {
-	FRenderingCompositePass *Pass = InOutputRef.GetPass();
+	checkSlow(Pass);
 
 	if(Pass->bComputeOutputDescWasCalled)
 	{
@@ -208,10 +240,10 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingC
 			InputOutput->AddDependency();
 		}
 		
-		if(OutputRefIt->GetPass())
+		if(FRenderingCompositePass* Pass = OutputRefIt->GetPass())
 		{
 			// recursively process all inputs of this Pass
-			RecursivelyGatherDependencies(*OutputRefIt);
+			RecursivelyGatherDependencies(Pass);
 		}
 	}
 

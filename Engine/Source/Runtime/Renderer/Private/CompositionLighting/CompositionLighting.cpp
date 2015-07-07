@@ -398,10 +398,6 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine());
 				RecombinePass->SetInput(ePId_Input0, Pass1);
 				RecombinePass->SetInput(ePId_Input1, PassExtractSpecular);
-				
-				SCOPED_DRAW_EVENT(RHICmdList, CompositionLighting_SSSSS);
-
-				CompositeContext.Process(RecombinePass, TEXT("CompositionLighting_SSSSS"));
 			}
 		}
 
