@@ -1422,6 +1422,18 @@ FDateTime UKismetMathLibrary::UtcNow( )
 }
 
 
+bool UKismetMathLibrary::DateTimeFromIsoString(FString IsoString, FDateTime& Result)
+{
+	return FDateTime::ParseIso8601(*IsoString, Result);
+}
+
+
+bool UKismetMathLibrary::DateTimeFromString(FString DateTimeString, FDateTime& Result)
+{
+	return FDateTime::Parse(DateTimeString, Result);
+}
+
+
 /* Timespan functions
  *****************************************************************************/
 
@@ -1615,6 +1627,12 @@ float UKismetMathLibrary::TimespanRatio( FTimespan A, FTimespan B )
 FTimespan UKismetMathLibrary::TimespanZeroValue( )
 {
 	return FTimespan::Zero();
+}
+
+
+bool UKismetMathLibrary::TimespanFromString(FString TimespanString, FTimespan& Result)
+{
+	return FTimespan::Parse(TimespanString, Result);
 }
 
 

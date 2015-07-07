@@ -953,6 +953,14 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName="UtcNow"), Category="Math|DateTime")
 	static FDateTime UtcNow( );
 
+	/* Converts a date string in ISO-8601 format to a DateTime object */
+	UFUNCTION(BlueprintPure, Category="Math|DateTime")
+	static bool DateTimeFromIsoString(FString IsoString, FDateTime& Result);
+
+	/* Converts a date string to a DateTime object */
+	UFUNCTION(BlueprintPure, Category="Math|DateTime")
+	static bool DateTimeFromString(FString DateTimeString, FDateTime& Result);
+
 	//
 	// Timespan functions.
 	//
@@ -1080,6 +1088,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns a zero time span value */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="ZeroValue"), Category="Math|Timespan")
 	static FTimespan TimespanZeroValue( );
+
+	/* Converts a time span string to a Timespan object */
+	UFUNCTION(BlueprintPure, Category="Math|Timespan")
+	static bool TimespanFromString(FString TimespanString, FTimespan& Result);
+
 
 	// -- Begin K2 utilities
 
