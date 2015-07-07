@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CollectionManagerPrivatePCH.h"
+#include "FileCache.h"
+#include "Ticker.h"
 
 #define LOCTEXT_NAMESPACE "CollectionManager"
 
@@ -228,10 +230,25 @@ FCollectionManager::FCollectionManager()
 	CollectionExtension = TEXT("collection");
 
 	LoadCollections();
+
+	// Watch for changes that may happen outside of the collection manager
+	for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
+	{
+		const FString& CollectionFolder = CollectionFolders[CacheIdx];
+
+		DirectoryWatcher::FFileCacheConfig FileCacheConfig(FPaths::ConvertRelativePathToFull(CollectionFolder), FString());
+		FileCacheConfig.DetectMoves(false);
+		FileCacheConfig.RequireFileHashes(false);
+
+		CollectionFileCaches[CacheIdx] = MakeShareable(new DirectoryWatcher::FFileCache(FileCacheConfig));
+	}
+
+	TickFileCacheDelegateHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FCollectionManager::TickFileCache), 1.0f);
 }
 
 FCollectionManager::~FCollectionManager()
 {
+	FTicker::GetCoreTicker().RemoveTicker(TickFileCacheDelegateHandle);
 }
 
 bool FCollectionManager::HasCollections() const
@@ -687,6 +704,8 @@ bool FCollectionManager::CreateCollection(FName CollectionName, ECollectionShare
 
 	if (NewCollection->Save(LastError))
 	{
+		CollectionFileCaches[ShareType]->IgnoreNewFile(NewCollection->GetSourceFilename());
+
 		// Collection saved!
 		CollectionCreatedEvent.Broadcast(FCollectionNameType(CollectionName, ShareType));
 		return true;
@@ -746,6 +765,8 @@ bool FCollectionManager::RenameCollection(FName CurrentCollectionName, ECollecti
 	{
 		if ((*CollectionRefPtr)->DeleteSourceFile(LastError))
 		{
+			CollectionFileCaches[CurrentShareType]->IgnoreDeletedFile((*CollectionRefPtr)->GetSourceFilename());
+
 			RemoveCollection(*CollectionRefPtr, CurrentShareType);
 		}
 		else
@@ -756,6 +777,8 @@ bool FCollectionManager::RenameCollection(FName CurrentCollectionName, ECollecti
 			return false;
 		}
 	}
+
+	CollectionFileCaches[NewShareType]->IgnoreNewFile(NewCollection->GetSourceFilename());
 
 	CollectionCache.HandleCollectionChanged();
 
@@ -804,7 +827,11 @@ bool FCollectionManager::ReparentCollection(FName CollectionName, ECollectionSha
 		if ((*ParentCollectionRefPtr)->GetCollectionVersion() < ECollectionVersion::AddedCollectionGuid)
 		{
 			// Try and re-save the parent collection now
-			if (!(*ParentCollectionRefPtr)->Save(LastError))
+			if ((*ParentCollectionRefPtr)->Save(LastError))
+			{
+				CollectionFileCaches[ParentShareType]->IgnoreFileModification((*ParentCollectionRefPtr)->GetSourceFilename());
+			}
+			else
 			{
 				return false;
 			}
@@ -828,7 +855,11 @@ bool FCollectionManager::ReparentCollection(FName CollectionName, ECollectionSha
 	(*CollectionRefPtr)->SetParentCollectionGuid(NewParentGuid);
 
 	// Try and save with the new parent GUID
-	if (!(*CollectionRefPtr)->Save(LastError))
+	if ((*CollectionRefPtr)->Save(LastError))
+	{
+		CollectionFileCaches[ShareType]->IgnoreFileModification((*CollectionRefPtr)->GetSourceFilename());
+	}
+	else
 	{
 		// Failed to save... rollback the collection to use its old parent GUID
 		(*CollectionRefPtr)->SetParentCollectionGuid(OldParentGuid);
@@ -873,6 +904,8 @@ bool FCollectionManager::DestroyCollection(FName CollectionName, ECollectionShar
 
 	if ((*CollectionRefPtr)->DeleteSourceFile(LastError))
 	{
+		CollectionFileCaches[ShareType]->IgnoreDeletedFile((*CollectionRefPtr)->GetSourceFilename());
+
 		RemoveCollection(*CollectionRefPtr, ShareType);
 		CollectionDestroyedEvent.Broadcast(CollectionKey);
 		return true;
@@ -927,6 +960,8 @@ bool FCollectionManager::AddToCollection(FName CollectionName, ECollectionShareT
 	{
 		if ((*CollectionRefPtr)->Save(LastError))
 		{
+			CollectionFileCaches[ShareType]->IgnoreFileModification((*CollectionRefPtr)->GetSourceFilename());
+
 			// Added and saved
 			if (OutNumAdded)
 			{
@@ -1003,6 +1038,8 @@ bool FCollectionManager::RemoveFromCollection(FName CollectionName, ECollectionS
 			
 	if ((*CollectionRefPtr)->Save(LastError))
 	{
+		CollectionFileCaches[ShareType]->IgnoreFileModification((*CollectionRefPtr)->GetSourceFilename());
+
 		// Removed and saved
 		if (OutNumRemoved)
 		{
@@ -1073,6 +1110,8 @@ bool FCollectionManager::SaveCollection(FName CollectionName, ECollectionShareTy
 
 		if ((*CollectionRefPtr)->Save(LastError))
 		{
+			CollectionFileCaches[ShareType]->IgnoreFileModification((*CollectionRefPtr)->GetSourceFilename());
+
 			CollectionCache.HandleCollectionChanged();
 			CollectionUpdatedEvent.Broadcast(CollectionKey);
 			return true;
@@ -1097,6 +1136,8 @@ bool FCollectionManager::UpdateCollection(FName CollectionName, ECollectionShare
 	{
 		if ((*CollectionRefPtr)->Update(LastError))
 		{
+			CollectionFileCaches[ShareType]->IgnoreFileModification((*CollectionRefPtr)->GetSourceFilename());
+
 			CollectionCache.HandleCollectionChanged();
 			CollectionUpdatedEvent.Broadcast(CollectionKey);
 			return true;
@@ -1272,6 +1313,8 @@ bool FCollectionManager::HandleRedirectorDeleted(const FName& ObjectPath)
 			FText SaveError;
 			if (Collection->Save(SaveError))
 			{
+				CollectionFileCaches[CollectionKey.Type]->IgnoreFileModification(Collection->GetSourceFilename());
+
 				UpdatedCollections.Add(CollectionKey);
 			}
 			else
@@ -1343,6 +1386,125 @@ void FCollectionManager::HandleObjectDeleted(const FName& ObjectPath)
 	}
 }
 
+bool FCollectionManager::TickFileCache(float InDeltaTime)
+{
+	enum class ECollectionFileAction : uint8
+	{
+		None,
+		AddCollection,
+		MergeCollection,
+		RemoveCollection,
+	};
+
+	bool bDidChangeCollection = false;
+
+	// Process changes that have happened outside of the collection manager
+	for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
+	{
+		const ECollectionShareType::Type ShareType = ECollectionShareType::Type(CacheIdx);
+
+		auto& FileCache = CollectionFileCaches[CacheIdx];
+		if (FileCache.IsValid())
+		{
+			FileCache->Tick();
+
+			const auto FileCacheChanges = FileCache->GetOutstandingChanges();
+			for (const auto& FileCacheChange : FileCacheChanges)
+			{
+				const FName CollectionName = *FPaths::GetBaseFilename(FileCacheChange.Filename.Get());
+
+				ECollectionFileAction CollectionFileAction = ECollectionFileAction::None;
+				switch (FileCacheChange.Action)
+				{
+				case DirectoryWatcher::EFileAction::Added:
+				case DirectoryWatcher::EFileAction::Modified:
+					// File was added or modified, but does this collection already exist?
+					CollectionFileAction = (AvailableCollections.Contains(FCollectionNameType(CollectionName, ShareType))) 
+						? ECollectionFileAction::MergeCollection 
+						: ECollectionFileAction::AddCollection;
+					break;
+
+				case DirectoryWatcher::EFileAction::Removed:
+					// File was removed, but does this collection actually exist?
+					CollectionFileAction = (AvailableCollections.Contains(FCollectionNameType(CollectionName, ShareType))) 
+						? ECollectionFileAction::RemoveCollection 
+						: ECollectionFileAction::None;
+					break;
+
+				default:
+					break;
+				}
+
+				switch (CollectionFileAction)
+				{
+				case ECollectionFileAction::AddCollection:
+					{
+						const bool bUseSCC = ShouldUseSCC(ShareType);
+
+						FText LoadErrorText;
+						TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(GetCollectionFilename(CollectionName, ShareType), bUseSCC));
+						if (NewCollection->Load(LoadErrorText))
+						{
+							if (AddCollection(NewCollection, ShareType))
+							{
+								bDidChangeCollection = true;
+								CollectionCreatedEvent.Broadcast(FCollectionNameType(CollectionName, ShareType));
+							}
+						}
+						else
+						{
+							UE_LOG(LogCollectionManager, Warning, TEXT("%s"), *LoadErrorText.ToString());
+						}
+					}
+					break;
+
+				case ECollectionFileAction::MergeCollection:
+					{
+						TSharedRef<FCollection>* const CollectionRefPtr = AvailableCollections.Find(FCollectionNameType(CollectionName, ShareType));
+						check(CollectionRefPtr); // We tested AvailableCollections.Contains(...) above, so this shouldn't fail
+
+						FText LoadErrorText;
+						FCollection TempCollection(GetCollectionFilename(CollectionName, ShareType), /*bUseSCC*/false);
+						if (TempCollection.Load(LoadErrorText))
+						{
+							if ((*CollectionRefPtr)->Merge(TempCollection))
+							{
+								bDidChangeCollection = true;
+								CollectionUpdatedEvent.Broadcast(FCollectionNameType(CollectionName, ShareType));
+							}
+						}
+						else
+						{
+							UE_LOG(LogCollectionManager, Warning, TEXT("%s"), *LoadErrorText.ToString());
+						}
+					}
+					break;
+
+				case ECollectionFileAction::RemoveCollection:
+					{
+						TSharedRef<FCollection>* const CollectionRefPtr = AvailableCollections.Find(FCollectionNameType(CollectionName, ShareType));
+						check(CollectionRefPtr); // We tested AvailableCollections.Contains(...) above, so this shouldn't fail
+
+						RemoveCollection(*CollectionRefPtr, ShareType);
+						CollectionDestroyedEvent.Broadcast(FCollectionNameType(CollectionName, ShareType));
+					}
+					break;
+
+				default:
+					break;
+				}
+			}
+		}
+	}
+
+	if (bDidChangeCollection)
+	{
+		CollectionCache.HandleCollectionChanged();
+	}
+
+	return true; // Tick again
+}
+
 void FCollectionManager::LoadCollections()
 {
 	const double LoadStartTime = FPlatformTime::Seconds();
@@ -1350,6 +1512,7 @@ void FCollectionManager::LoadCollections()
 
 	for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
 	{
+		const ECollectionShareType::Type ShareType = ECollectionShareType::Type(CacheIdx);
 		const FString& CollectionFolder = CollectionFolders[CacheIdx];
 		const FString WildCard = FString::Printf(TEXT("%s/*.%s"), *CollectionFolder, *CollectionExtension);
 
@@ -1359,13 +1522,13 @@ void FCollectionManager::LoadCollections()
 		for (const FString& BaseFilename : Filenames)
 		{
 			const FString Filename = CollectionFolder / BaseFilename;
-			const bool bUseSCC = ShouldUseSCC(ECollectionShareType::Type(CacheIdx));
+			const bool bUseSCC = ShouldUseSCC(ShareType);
 
 			FText LoadErrorText;
 			TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(Filename, bUseSCC));
 			if (NewCollection->Load(LoadErrorText))
 			{
-				AddCollection(NewCollection, ECollectionShareType::Type(CacheIdx));
+				AddCollection(NewCollection, ShareType);
 			}
 			else
 			{

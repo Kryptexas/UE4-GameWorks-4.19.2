@@ -2,6 +2,8 @@
 
 #pragma once
 
+namespace DirectoryWatcher { class FFileCache; }
+
 /** Collection info for a given object - gives the collection name, as well as the reason this object is considered to be part of this collection */
 struct FObjectCollectionInfo
 {
@@ -161,6 +163,9 @@ public:
 	virtual FCollectionUpdatedEvent& OnCollectionUpdated() override { return CollectionUpdatedEvent; }
 
 private:
+	/** Tick this collection manager so it can process any file cache events */
+	bool TickFileCache(float InDeltaTime);
+
 	/** Loads all collection files from disk */
 	void LoadCollections();
 
@@ -188,6 +193,12 @@ private:
 
 	/** The extension used for collection files */
 	FString CollectionExtension;
+
+	/** Array of file cache instances that are watching for the collection files changing on disk */
+	TSharedPtr<DirectoryWatcher::FFileCache> CollectionFileCaches[ECollectionShareType::CST_All];
+
+	/** Delegate handle for the TickFileCache function */
+	FDelegateHandle TickFileCacheDelegateHandle;
 
 	/** A map of collection names to FCollection objects */
 	TMap<FCollectionNameType, TSharedRef<FCollection>> AvailableCollections;

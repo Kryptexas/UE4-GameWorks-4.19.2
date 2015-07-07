@@ -314,6 +314,9 @@ private:
 	/** Handler for when a collection is renamed */
 	void OnCollectionRenamed( const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection );
 
+	/** Handler for when a collection is updated */
+	void OnCollectionUpdated( const FCollectionNameType& Collection );
+
 	/** Handler for when an asset was renamed in the asset registry */
 	void OnAssetRenamed(const FAssetData& AssetData, const FString& OldObjectPath);
 

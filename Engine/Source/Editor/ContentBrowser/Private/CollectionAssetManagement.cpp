@@ -15,6 +15,7 @@ FCollectionAssetManagement::FCollectionAssetManagement()
 	// Register the notifications we need in order to keep things up-to-date
 	OnCollectionRenamedHandle = CollectionManagerModule.Get().OnCollectionRenamed().AddRaw(this, &FCollectionAssetManagement::HandleCollectionRenamed);
 	OnCollectionDestroyedHandle = CollectionManagerModule.Get().OnCollectionDestroyed().AddRaw(this, &FCollectionAssetManagement::HandleCollectionDestroyed);
+	OnCollectionUpdatedHandle = CollectionManagerModule.Get().OnCollectionUpdated().AddRaw(this, &FCollectionAssetManagement::HandleCollectionUpdated);
 	OnAssetsAddedHandle = CollectionManagerModule.Get().OnAssetsAdded().AddRaw(this, &FCollectionAssetManagement::HandleAssetsAddedToCollection);
 	OnAssetsRemovedHandle = CollectionManagerModule.Get().OnAssetsRemoved().AddRaw(this, &FCollectionAssetManagement::HandleAssetsRemovedFromCollection);
 }
@@ -28,6 +29,7 @@ FCollectionAssetManagement::~FCollectionAssetManagement()
 
 		CollectionManagerModule.Get().OnCollectionRenamed().Remove(OnCollectionRenamedHandle);
 		CollectionManagerModule.Get().OnCollectionDestroyed().Remove(OnCollectionDestroyedHandle);
+		CollectionManagerModule.Get().OnCollectionUpdated().Remove(OnCollectionUpdatedHandle);
 		CollectionManagerModule.Get().OnAssetsAdded().Remove(OnAssetsAddedHandle);
 		CollectionManagerModule.Get().OnAssetsRemoved().Remove(OnAssetsRemovedHandle);
 	}
@@ -192,6 +194,12 @@ void FCollectionAssetManagement::HandleCollectionRenamed(const FCollectionNameTy
 		AssetManagementState.Add(NewCollection, AssetManagementState[OriginalCollection]);
 		AssetManagementState.Remove(OriginalCollection);
 	}
+}
+
+void FCollectionAssetManagement::HandleCollectionUpdated(const FCollectionNameType& Collection)
+{
+	// Collection has changed in an unknown way - we need to update everything to be sure
+	UpdateAssetManagementState();
 }
 
 void FCollectionAssetManagement::HandleCollectionDestroyed(const FCollectionNameType& Collection)

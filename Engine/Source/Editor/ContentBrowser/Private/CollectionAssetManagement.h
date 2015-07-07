@@ -34,6 +34,9 @@ private:
 	/** Handles an on collection renamed event */
 	void HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection);
 
+	/** Handles an on collection updated event */
+	void HandleCollectionUpdated(const FCollectionNameType& Collection);
+
 	/** Handles an on collection destroyed event */
 	void HandleCollectionDestroyed(const FCollectionNameType& Collection);
 
@@ -52,6 +55,7 @@ private:
 	/** Delegate handles */
 	FDelegateHandle OnCollectionRenamedHandle;
 	FDelegateHandle OnCollectionDestroyedHandle;
+	FDelegateHandle OnCollectionUpdatedHandle;
 	FDelegateHandle OnAssetsAddedHandle;
 	FDelegateHandle OnAssetsRemovedHandle;
 };

@@ -92,6 +92,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	CollectionManagerModule.Get().OnAssetsAdded().AddSP( this, &SAssetView::OnAssetsAddedToCollection );
 	CollectionManagerModule.Get().OnAssetsRemoved().AddSP( this, &SAssetView::OnAssetsRemovedFromCollection );
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SAssetView::OnCollectionRenamed );
+	CollectionManagerModule.Get().OnCollectionUpdated().AddSP( this, &SAssetView::OnCollectionUpdated );
 
 	// Listen for when assets are loaded or changed to update item data
 	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
@@ -2117,6 +2118,12 @@ void SAssetView::OnCollectionRenamed( const FCollectionNameType& OriginalCollect
 	{
 		SourcesData.Collections[ FoundIndex ] = NewCollection;
 	}
+}
+
+void SAssetView::OnCollectionUpdated( const FCollectionNameType& Collection )
+{
+	// A collection has changed in some way, so we need to refresh our backend list
+	RequestSlowFullListRefresh();
 }
 
 void SAssetView::OnAssetRenamed(const FAssetData& AssetData, const FString& OldObjectPath)

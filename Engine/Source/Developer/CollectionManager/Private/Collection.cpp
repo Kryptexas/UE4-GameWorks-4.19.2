@@ -312,9 +312,6 @@ bool FCollection::Update(FText& OutError)
 				return false;
 			}
 
-			// Update the info about what the collection looks like on disk
-			DiskSnapshot.TakeSnapshot(NewCollection);
-
 			// Loaded the head revision, now merge up so the files are in a consistent state
 			MergeWithCollection(NewCollection);
 		}
@@ -331,6 +328,11 @@ bool FCollection::Update(FText& OutError)
 	}
 
 	return true;
+}
+
+bool FCollection::Merge(const FCollection& NewCollection)
+{
+	return MergeWithCollection(NewCollection);
 }
 
 bool FCollection::DeleteSourceFile(FText& OutError)
@@ -544,56 +546,81 @@ bool FCollection::LoadHeaderPairs(const TMap<FString,FString>& InHeaderPairs)
 	return FileVersion > 0 && FileVersion <= ECollectionVersion::CurrentVersion;
 }
 
-void FCollection::MergeWithCollection(const FCollection& Other)
+bool FCollection::MergeWithCollection(const FCollection& Other)
 {
+	bool bHasChanges = false;
+
 	if ( IsDynamic() )
 	{
 		// @todo collection Merging dynamic collections?
 	}
 	else
 	{
-		// Gather the differences from the file on disk
+		// Work out whether we have any changes compared to the other collection
 		TArray<FName> ObjectsAdded;
 		TArray<FName> ObjectsRemoved;
-		GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
+		GetObjectDifferences(ObjectSet, Other.ObjectSet, ObjectsAdded, ObjectsRemoved);
 
-		// Copy asset list from other collection
-		DiskSnapshot = Other.DiskSnapshot;
-		ObjectSet = DiskSnapshot.ObjectSet;
+		bHasChanges = ParentCollectionGuid != Other.ParentCollectionGuid || ObjectsAdded.Num() > 0 || ObjectsRemoved.Num() > 0;
 
-		// Add the objects that were added before the merge
-		for (const FName& AddedObjectName : ObjectsAdded)
+		if (bHasChanges)
 		{
-			ObjectSet.Add(AddedObjectName);
+			// Gather the differences from the file on disk
+			ObjectsAdded.Reset();
+			ObjectsRemoved.Reset();
+			GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
+
+			// Copy asset list from other collection
+			DiskSnapshot = Other.DiskSnapshot;
+			ObjectSet = DiskSnapshot.ObjectSet;
+
+			ParentCollectionGuid = Other.ParentCollectionGuid;
+
+			// Add the objects that were added before the merge
+			for (const FName& AddedObjectName : ObjectsAdded)
+			{
+				ObjectSet.Add(AddedObjectName);
+			}
+
+			// Remove the objects that were removed before the merge
+			for (const FName& RemovedObjectName : ObjectsRemoved)
+			{
+				ObjectSet.Remove(RemovedObjectName);
+			}
 		}
-
-		// Remove the objects that were removed before the merge
-		for (const FName& RemovedObjectName : ObjectsRemoved)
+		else
 		{
-			ObjectSet.Remove(RemovedObjectName);
+			DiskSnapshot = Other.DiskSnapshot;
+		}
+	}
+
+	return bHasChanges;
+}
+
+void FCollection::GetObjectDifferences(const TSet<FName>& BaseSet, const TSet<FName>& NewSet, TArray<FName>& ObjectsAdded, TArray<FName>& ObjectsRemoved)
+{
+	// Find the objects that were removed compared to the base set
+	for (const FName& BaseObjectName : BaseSet)
+	{
+		if (!NewSet.Contains(BaseObjectName))
+		{
+			ObjectsRemoved.Add(BaseObjectName);
+		}
+	}
+
+	// Find the objects that were added compare to the base set
+	for (const FName& NewObjectName : NewSet)
+	{
+		if (!BaseSet.Contains(NewObjectName))
+		{
+			ObjectsAdded.Add(NewObjectName);
 		}
 	}
 }
 
 void FCollection::GetObjectDifferencesFromDisk(TArray<FName>& ObjectsAdded, TArray<FName>& ObjectsRemoved) const
 {
-	// Find the objects that were removed since the disk list
-	for (const FName& DiskObjectName : DiskSnapshot.ObjectSet)
-	{
-		if (!ObjectSet.Contains(DiskObjectName))
-		{
-			ObjectsRemoved.Add(DiskObjectName);
-		}
-	}
-
-	// Find the objects that were added since the disk list
-	for (const FName& MemoryObjectName : ObjectSet)
-	{
-		if (!DiskSnapshot.ObjectSet.Contains(MemoryObjectName))
-		{
-			ObjectsAdded.Add(MemoryObjectName);
-		}
-	}
+	GetObjectDifferences(DiskSnapshot.ObjectSet, ObjectSet, ObjectsAdded, ObjectsRemoved);
 }
 
 bool FCollection::CheckoutCollection(FText& OutError)
@@ -656,9 +683,6 @@ bool FCollection::CheckoutCollection(FText& OutError)
 				OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection '{0}' at the head revision. {1}"), FText::FromName(CollectionName), LoadErrorText);
 				return false;
 			}
-
-			// Update the info about what the collection looks like on disk
-			DiskSnapshot.TakeSnapshot(NewCollection);
 
 			// Loaded the head revision, now merge up so the files are in a consistent state
 			MergeWithCollection(NewCollection);
@@ -968,9 +992,6 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 			OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection '{0}' at the head revision. {1}"), FText::FromName(CollectionName), LoadErrorText);
 			return false;
 		}
-
-		// Update the info about what the collection looks like on disk
-		DiskSnapshot.TakeSnapshot(NewCollection);
 
 		// Loaded the head revision, now merge up so the files are in a consistent state
 		MergeWithCollection(NewCollection);
