@@ -180,13 +180,6 @@ public:
 	virtual IOnlineUserCloudPtr GetUserCloudInterface() const = 0;
 
 	/**
-	* Get the interface for accessing user files in the cloud for a specific service
-	* @param Key   The key for the required user cloud interface
-	* @return      Interface pointer for the appropriate cloud service
-	*/
-	virtual IOnlineUserCloudPtr GetUserCloudInterface(const FString& Key) const = 0;
-
-	/**
 	 * Get the interface for accessing user entitlements
 	 * @return Interface pointer for the appropriate entitlements service
 	 */
@@ -277,24 +270,24 @@ public:
 	virtual IOnlineChatPtr GetChatInterface() const = 0;
 
 	/**
-	 * Get the notification handler instance for this subsystem
-	 * @return Pointer for the appropriate notification handler
-	 */
+	* Get the notification handler instance for this subsystem
+	* @return Pointer for the appropriate notification handler
+	*/
 	FOnlineNotificationHandlerPtr GetOnlineNotificationHandler() const
 	{
 		return OnlineNotificationHandler;
 	}
 
 	/**
-	 * Get the interface for managing turn based multiplayer games
-	 * @return Interface pointer for the appropriate online user service
-	 */
+	* Get the interface for managing turn based multiplayer games
+	* @return Interface pointer for the appropriate online user service
+	*/
 	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const = 0;
 
 	/**
-	 * Get the transport manager instance for this subsystem
-	 * @return Pointer for the appropriate transport manager
-	 */
+	* Get the transport manager instance for this subsystem
+	* @return Pointer for the appropriate transport manager
+	*/
 	FOnlineNotificationTransportManagerPtr GetOnlineNotificationTransportManager() const
 	{
 		return OnlineNotificationTransportManager;
