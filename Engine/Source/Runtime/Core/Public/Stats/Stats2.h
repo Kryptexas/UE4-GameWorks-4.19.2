@@ -65,10 +65,21 @@ struct CORE_API FStats
 	static void TickCommandletStats();
 
 	/**
-	* @return true, if the command line has the StatsForCommandlets token which enables stats in the commandlets.
+	* @return true, if the command line has the LoadTimeStatsForCommandlet or LoadTimeFileForCommandlet token which enables stats in the commandlets.
 	* !!!CAUTION!!! You need to manually advance stats frame in order to maintain the data integrity and not to leak the memory.
 	*/
-	static bool HasStatsForCommandletsToken();
+	static bool EnabledForCommandlet();
+
+	/**
+	* @return true, if the command line has the LoadTimeStatsForCommandlet token which enables LoadTimeStats equivalent for commandlets.
+	* All collected stats will be dumped to the log file at the end of running the specified commandlet.
+	*/
+	static bool HasLoadTimeStatsForCommandletToken();
+
+	/**
+	* @return true, if the command line has the LoadTimeFileForCommandlet token which enables LoadTimeFile equivalent for commandlets.
+	*/
+	static bool HasLoadTimeFileForCommandletToken();
 
 	/** Current game thread stats frame. */
 	static int32 GameThreadStatsFrame;

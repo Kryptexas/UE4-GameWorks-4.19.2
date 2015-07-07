@@ -926,7 +926,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 #if STATS
 			// Leave the stats enabled.
-			if (!FStats::HasStatsForCommandletsToken())
+			if (!FStats::EnabledForCommandlet())
 			{
 				FThreadStats::MasterDisableForever();
 			}
@@ -987,7 +987,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 #if STATS
 		// Leave the stats enabled.
-		if (!FStats::HasStatsForCommandletsToken())
+		if (!FStats::EnabledForCommandlet())
 		{
 			FThreadStats::MasterDisableForever();
 		}

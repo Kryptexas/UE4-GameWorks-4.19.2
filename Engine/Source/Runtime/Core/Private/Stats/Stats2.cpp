@@ -197,7 +197,7 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 
 void FStats::TickCommandletStats()
 {
-	if (HasStatsForCommandletsToken())
+	if (EnabledForCommandlet())
 	{
 		//FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
 		//check( ThreadStats->ScopeCount == 0 && TEXT( "FStats::TickCommandletStats must be called outside any scope counters" ) );
@@ -209,10 +209,22 @@ void FStats::TickCommandletStats()
 	}
 }
 
-bool FStats::HasStatsForCommandletsToken()
+bool FStats::EnabledForCommandlet()
 {
-	static bool bHasStatsForCommandletsToken = FParse::Param( FCommandLine::Get(), TEXT( "StatsForCommandlets" ) );
+	static bool bHasStatsForCommandletsToken = HasLoadTimeStatsForCommandletToken() || HasLoadTimeFileForCommandletToken();
 	return bHasStatsForCommandletsToken;
+}
+
+bool FStats::HasLoadTimeStatsForCommandletToken()
+{
+	static bool bHasLoadTimeStatsForCommandletToken = FParse::Param( FCommandLine::Get(), TEXT( "LoadTimeStatsForCommandlet" ) );
+	return bHasLoadTimeStatsForCommandletToken;
+}
+
+bool FStats::HasLoadTimeFileForCommandletToken()
+{
+	static bool bHasLoadTimeFileForCommandletToken = FParse::Param( FCommandLine::Get(), TEXT( "LoadTimeFileForCommandlet" ) );
+	return bHasLoadTimeFileForCommandletToken;
 }
 
 /* Todo
@@ -846,7 +858,7 @@ public:
 		{
 			// For regular stats we won't process more than every 5ms or every 16 packets. 
 			// Commandlet stats are flushed as soon as.
-			bShouldProcess = bReadyToProcess && (FPlatformTime::Seconds() - LastTime > 0.005f || IncomingData.Packets.Num() > MaxIncomingPackets || FStats::HasStatsForCommandletsToken());
+			bShouldProcess = bReadyToProcess && (FPlatformTime::Seconds() - LastTime > 0.005f || IncomingData.Packets.Num() > MaxIncomingPackets || FStats::EnabledForCommandlet());
 		}
 
 		if( bShouldProcess )
@@ -1020,7 +1032,7 @@ FThreadStats::FThreadStats( EConstructor ):
 void FThreadStats::CheckEnable()
 {
 	bool bOldMasterEnable(bMasterEnable);
-	bool bNewMasterEnable( WillEverCollectData() && (!IsRunningCommandlet() || FStats::HasStatsForCommandletsToken()) && IsThreadingReady() && (MasterEnableCounter.GetValue()) );
+	bool bNewMasterEnable( WillEverCollectData() && (!IsRunningCommandlet() || FStats::EnabledForCommandlet()) && IsThreadingReady() && (MasterEnableCounter.GetValue()) );
 	if (bMasterEnable != bNewMasterEnable)
 	{
 		MasterDisableChangeTagLockAdd();
@@ -1184,11 +1196,17 @@ void FThreadStats::CheckForCollectingStartupStats()
 		DirectStatsCommand( TEXT( "stat group enable AsyncLoad" ) );
 		DirectStatsCommand( TEXT( "stat dumpsum -start -ms=250 -num=240" ), true );
 	}
-	if (FParse::Param( FCommandLine::Get(), TEXT( "LoadTimeFile" ) ))
+	else if (FParse::Param( FCommandLine::Get(), TEXT( "LoadTimeFile" ) ) || FStats::HasLoadTimeFileForCommandletToken())
 	{
 		DirectStatsCommand( TEXT( "stat group enable LinkerLoad" ) );
 		DirectStatsCommand( TEXT( "stat group enable AsyncLoad" ) );
 		DirectStatsCommand( TEXT( "stat startfile" ), true );
+	}
+	else if (FStats::HasLoadTimeStatsForCommandletToken())
+	{
+		DirectStatsCommand( TEXT( "stat group enable LinkerLoad" ) );
+		DirectStatsCommand( TEXT( "stat group enable AsyncLoad" ) );
+		DirectStatsCommand( TEXT( "stat dumpsum -start" ), true );
 	}
 
 	// Now we can safely enable malloc profiler.
@@ -1259,6 +1277,12 @@ void FThreadStats::StopThread()
 	// Nothing to stop if it was never started
 	if (IsThreadingReady())
 	{	
+		if (FStats::HasLoadTimeStatsForCommandletToken())
+		{
+			// Dump all the collected stats to the log, if any.
+			DirectStatsCommand( TEXT( "stat dumpsum -stop -ms=100" ), true );
+		}
+
 		// If we are writing stats data, stop it now.
 		DirectStatsCommand(TEXT("stat stopfile"), true);
 
