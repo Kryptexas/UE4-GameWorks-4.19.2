@@ -487,18 +487,6 @@ public partial class GUBP : BuildCommand
         Log("Wrote graph to {0}", Filename);
      }
 
-
-    // when the host is win64, this is win32 because those are also "host platforms"
-    static public UnrealTargetPlatform GetAltHostPlatform(UnrealTargetPlatform HostPlatform)
-    {
-        UnrealTargetPlatform AltHostPlatform = UnrealTargetPlatform.Unknown; // when the host is win64, this is win32 because those are also "host platforms"
-        if (HostPlatform == UnrealTargetPlatform.Win64)
-        {
-            AltHostPlatform = UnrealTargetPlatform.Win32;
-        }
-        return AltHostPlatform;
-    }
-
     static List<int> ConvertCLToIntList(List<string> Strings)
     {
         List<int> Result = new List<int>();
