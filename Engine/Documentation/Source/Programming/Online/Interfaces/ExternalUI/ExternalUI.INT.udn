@@ -1,4 +1,4 @@
-Availability:Public
+Availability:Docs
 Title: External UI Interface
 Crumbs:%ROOT%, Programming, Programming/Online
 Description:Overview of the external UI interface
@@ -6,7 +6,6 @@ Description:Overview of the external UI interface
 [TOC(start:2)]
 
 
-## Overview
 
 Overview of the external UI interface
 
