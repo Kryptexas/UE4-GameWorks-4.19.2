@@ -55,7 +55,7 @@ void AGameState::DefaultTimer()
 		}
 	}
 
-	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, 1.0f / GetWorldSettings()->GetEffectiveTimeDilation(), true);
 }
 
 void AGameState::PostInitializeComponents()
@@ -63,7 +63,7 @@ void AGameState::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	FTimerManager& TimerManager = GetWorldTimerManager();
-	TimerManager.SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+	TimerManager.SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, 1.0f / GetWorldSettings()->GetEffectiveTimeDilation(), true);
 
 	UWorld* World = GetWorld();
 	World->GameState = this;
