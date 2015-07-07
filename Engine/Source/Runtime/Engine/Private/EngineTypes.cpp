@@ -214,3 +214,14 @@ FString FHitResult::ToString() const
 		FaceIndex);
 }
 
+FRepMovement::FRepMovement()
+	: LinearVelocity(ForceInit)
+	, AngularVelocity(ForceInit)
+	, Location(ForceInit)
+	, Rotation(ForceInit)
+	, bSimulatedPhysicSleep(false)
+	, bRepPhysics(false)
+	, VectorQuantizationLevel(EVectorQuantization::RoundWholeNumber)
+	, RotationQuantizationLevel(ERotatorQuantization::ByteComponents)
+{
+}
