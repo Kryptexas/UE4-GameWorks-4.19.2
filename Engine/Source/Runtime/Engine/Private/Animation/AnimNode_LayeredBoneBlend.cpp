@@ -70,7 +70,7 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 
 void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
+	ANIM_MT_SCOPE_CYCLE_COUNTER(BlendPosesInGraph, Output.AnimInstance->IsRunningParallelEvaluation());
 
 	const int NumPoses = BlendPoses.Num();
 	if (NumPoses == 0)

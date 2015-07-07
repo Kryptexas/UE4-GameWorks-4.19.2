@@ -1256,7 +1256,14 @@ public:
 		AnimEvaluationContext.Clear();
 	}
 
-	bool IsRunningParallelEvaluation(bool bBlockOnTask, bool bPerformPostAnimEvaluation);
+	// Returns whether we are currently trying to run a parallel animation evaluation task
+	bool IsRunningParallelEvaluation() const { return IsValidRef(ParallelAnimationEvaluationTask); }
+
+	// Management function for if we want to do an evaluation but may already be running one
+	// bBlockOnTask - if true and we are currently performing parallel eval we wait for it to finish
+	// bPerformPostAnimEvaluation - if true and we are currently performing parallel eval we call PostAnimEvaluation too
+	// return true if parallel task was running.
+	bool HandleExistingParallelEvaluationTask(bool bBlockOnTask, bool bPerformPostAnimEvaluation);
 
 	friend class FSkeletalMeshComponentDetails;
 

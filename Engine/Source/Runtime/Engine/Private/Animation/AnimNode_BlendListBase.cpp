@@ -142,7 +142,7 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 
 void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
+	ANIM_MT_SCOPE_CYCLE_COUNTER(BlendPosesInGraph, Output.AnimInstance->IsRunningParallelEvaluation());
 
 	const int32 NumPoses = PosesToEvaluate.Num();
 

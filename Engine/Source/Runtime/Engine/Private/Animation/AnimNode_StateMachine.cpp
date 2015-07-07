@@ -574,7 +574,7 @@ void FAnimNode_StateMachine::Evaluate(FPoseContext& Output)
 		return;
 	}
 
-	SCOPE_CYCLE_COUNTER(STAT_AnimStateMachineEvaluate);
+	ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimStateMachine, Output.AnimInstance->IsRunningParallelEvaluation());
 	
 	if (ActiveTransitionArray.Num() > 0)
 	{

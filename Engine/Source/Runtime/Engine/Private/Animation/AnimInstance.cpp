@@ -34,19 +34,13 @@ DEFINE_STAT(STAT_SkelCompUpdateTransform);
 DEFINE_STAT(STAT_UpdateRBBones);
 DEFINE_STAT(STAT_UpdateRBJoints);
 DEFINE_STAT(STAT_UpdateLocalToWorldAndOverlaps);
-DEFINE_STAT(STAT_SkelComposeTime);
 DEFINE_STAT(STAT_GetAnimationPose);
-DEFINE_STAT(STAT_AnimNativeEvaluatePoses);
 DEFINE_STAT(STAT_AnimTriggerAnimNotifies);
-DEFINE_STAT(STAT_AnimNativeBlendPoses);
-DEFINE_STAT(STAT_AnimGraphEvaluate);
-DEFINE_STAT(STAT_AnimBlendTime);
 DEFINE_STAT(STAT_RefreshBoneTransforms);
 DEFINE_STAT(STAT_InterpolateSkippedFrames);
 DEFINE_STAT(STAT_AnimTickTime);
 DEFINE_STAT(STAT_SkinnedMeshCompTick);
 DEFINE_STAT(STAT_TickUpdateRate);
-DEFINE_STAT(STAT_PerformAnimEvaluation);
 DEFINE_STAT(STAT_BlueprintUpdateAnimation);
 DEFINE_STAT(STAT_BlueprintPostEvaluateAnimation);
 DEFINE_STAT(STAT_NativeUpdateAnimation);
@@ -56,12 +50,20 @@ DEFINE_STAT(STAT_AnimInitTime);
 
 DEFINE_STAT(STAT_AnimStateMachineUpdate);
 DEFINE_STAT(STAT_AnimStateMachineFindTransition);
-DEFINE_STAT(STAT_AnimStateMachineEvaluate);
 
 DEFINE_STAT(STAT_SkinPerPolyVertices);
 DEFINE_STAT(STAT_UpdateTriMeshVertices);
 
 DEFINE_STAT(STAT_AnimGameThreadTime);
+
+
+#define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
+#include "AnimMTStats.h"
+#undef DO_ANIMSTAT_PROCESSING
+
+#define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName ## _WorkerThread)
+#include "AnimMTStats.h"
+#undef DO_ANIMSTAT_PROCESSING
 
 // Define AnimNotify
 DEFINE_LOG_CATEGORY(LogAnimNotify);
@@ -453,7 +455,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
+	ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimInstance, IsRunningParallelEvaluation());
 
 	// If bone caches have been invalidated, have AnimNodes refresh those.
 	if( bBoneCachesInvalidated && RootNode )
@@ -470,7 +472,7 @@ void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 	{
 		if (RootNode != NULL)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_AnimGraphEvaluate);
+			ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, IsRunningParallelEvaluation());
 			IncrementGraphTraversalCounter();
 			RootNode->Evaluate(Output);
 		}
@@ -2907,6 +2909,16 @@ FAnimNode_AssetPlayerBase* UAnimInstance::GetRelevantAssetPlayerFromState(int32 
 		}
 	}
 	return ResultPlayer;
+}
+
+bool UAnimInstance::IsRunningParallelEvaluation() const
+{
+	USkeletalMeshComponent* Comp = GetOwningComponent();
+	if (Comp)
+	{
+		return Comp->IsRunningParallelEvaluation();
+	}
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE 

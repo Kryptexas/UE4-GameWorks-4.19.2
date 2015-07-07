@@ -390,6 +390,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	virtual APawn* TryGetPawnOwner() const;
 
+	// Are we being evaluated on a worker thread
+	bool IsRunningParallelEvaluation() const;
+
 public:
 	/** Returns the owning actor of this AnimInstance */
 	UFUNCTION(BlueprintCallable, Category = "Animation")

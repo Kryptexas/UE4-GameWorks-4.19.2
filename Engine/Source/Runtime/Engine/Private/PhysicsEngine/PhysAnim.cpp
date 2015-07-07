@@ -384,7 +384,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 	// If we don't have or want any physics, we do nothing.
 	if( Bodies.Num() > 0 )
 	{
-		IsRunningParallelEvaluation(/*bBlockOnTask = */ true, /*bPerformPostAnimEvaluation =*/ true);
+		HandleExistingParallelEvaluationTask(/*bBlockOnTask = */ true, /*bPerformPostAnimEvaluation =*/ true);
 		// start parallel work
 		check(!IsValidRef(ParallelAnimationEvaluationTask));
 
