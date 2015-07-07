@@ -571,7 +571,7 @@ public class HTML5Platform : Platform
 				using (var response = Request.GetResponse() as HttpWebResponse)
 				{
 					var reader = new StreamReader(response.GetResponseStream());
-					var data = reader.ReadToEnd();
+					reader.ReadToEnd();
 				}
 			}
 			catch (Exception ex)
