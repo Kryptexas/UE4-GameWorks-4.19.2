@@ -400,6 +400,16 @@ UObject* UWidgetBlueprintLibrary::GetBrushResource(FSlateBrush& Brush)
 	return Brush.GetResourceObject();
 }
 
+UTexture2D* UWidgetBlueprintLibrary::GetBrushResourceAsTexture2D(UPARAM(ref) FSlateBrush& Brush)
+{
+	return Cast<UTexture2D>(Brush.GetResourceObject());
+}
+
+UMaterialInterface* UWidgetBlueprintLibrary::GetBrushResourceAsMaterial(UPARAM(ref) FSlateBrush& Brush)
+{
+	return Cast<UMaterialInterface>(Brush.GetResourceObject());
+}
+
 void UWidgetBlueprintLibrary::SetBrushResourceToTexture(FSlateBrush& Brush, UTexture2D* Texture)
 {
 	Brush.SetResourceObject(Texture);
@@ -527,8 +537,34 @@ void UWidgetBlueprintLibrary::GetAllWidgetsWithInterface(UObject* WorldContextOb
 	}
 }
 
-FInputEvent UWidgetBlueprintLibrary::GetInputEventFromKeyEvent(const FKeyEvent& KeyEvent)
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromKeyEvent(const FKeyEvent& Event)
 {
-	return KeyEvent;
+	return Event;
 }
+
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromAnalogInputEvent(const FAnalogInputEvent& Event)
+{
+	return Event;
+}
+
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromCharacterEvent(const FCharacterEvent& Event)
+{
+	return Event;
+}
+
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromPointerEvent(const FPointerEvent& Event)
+{
+	return Event;
+}
+
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromControllerEvent(const FControllerEvent& Event)
+{
+	return Event;
+}
+
+FInputEvent UWidgetBlueprintLibrary::GetInputEventFromNavigationEvent(const FNavigationEvent& Event)
+{
+	return Event;
+}
+
 #undef LOCTEXT_NAMESPACE
