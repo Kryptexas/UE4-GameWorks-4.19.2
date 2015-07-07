@@ -102,9 +102,9 @@ private:
 	/** Solve the cable spring constraints */
 	void SolveConstraints();
 	/** Integrate cable point positions */
-	void VerletIntegrate(float SubstepTime, const FVector& Gravity);
+	void VerletIntegrate(float InSubstepTime, const FVector& Gravity);
 	/** Perform a simulation substep */
-	void PerformSubstep(float SubstepTime, const FVector& Gravity);
+	void PerformSubstep(float InSubstepTime, const FVector& Gravity);
 	/** Get start and end position for the cable */
 	void GetEndPositions(FVector& OutStartPosition, FVector& OutEndPosition);
 	/** Amount of time 'left over' from last tick */

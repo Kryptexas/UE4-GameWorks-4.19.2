@@ -153,14 +153,14 @@ FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 {
 	check(InTextureSet);
 
-	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
+	TArray<TRefCountPtr<ID3D11RenderTargetView> > TextureSetRenderTargetViews;
 	FD3D11Texture2DSet* NewTextureSet = new FD3D11Texture2DSet(
 		InD3D11RHI,
 		nullptr,
 		nullptr,
 		false,
 		1,
-		RenderTargetViews,
+		TextureSetRenderTargetViews,
 		/*DepthStencilViews=*/ NULL,
 		InDsDesc.Width,
 		InDsDesc.Height,

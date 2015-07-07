@@ -571,10 +571,10 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 		{
 			FWidgetPath WidgetPath;
 			TSharedRef<SWidget> Widget = ViewportWidget->AsShared();
-			TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
-			if (Window.IsValid())
+			TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
+			if (WidgetWindow.IsValid())
 			{
-				Window->SetViewportSizeDrivenByWindow(true);
+				WidgetWindow->SetViewportSizeDrivenByWindow(true);
 			}
 		}
 		return;

@@ -917,14 +917,14 @@ void FSteamVRHMD::Startup()
 		float WidthPercentage = ((float)RecommendedWidth / (float)ScreenWidth) * 100.0f;
 		float HeightPercentage = ((float)RecommendedHeight / (float)ScreenHeight) * 100.0f;
 
-		float IdealScreenPercentage = FMath::Max(WidthPercentage, HeightPercentage);
+		float ScreenPercentage = FMath::Max(WidthPercentage, HeightPercentage);
 
 		//@todo steamvr: move out of here
 		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
 
-		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(IdealScreenPercentage))
+		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(ScreenPercentage))
 		{
-			CScrPercVar->Set(IdealScreenPercentage);
+			CScrPercVar->Set(ScreenPercentage);
 		}
 
 		// disable vsync

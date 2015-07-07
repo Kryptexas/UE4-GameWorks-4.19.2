@@ -129,7 +129,7 @@ public:
 		bool IsInitialized() const { return bInitialized; }
 
 		virtual void BeginRendering() = 0;
-		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) = 0;
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) = 0;
 		virtual void SetNeedReinitRendererAPI() { bNeedReinitRendererAPI = true; }
 
 		virtual void Reset() = 0;
@@ -152,7 +152,7 @@ public:
 
 		virtual void BeginRendering() override;
 		void FinishRendering();
-		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) override;
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
 		{
