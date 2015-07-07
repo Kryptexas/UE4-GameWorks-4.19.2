@@ -1,9 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. 
 
-#include "ProceduralMeshComponentPrivatePCH.h"
+#include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "ProceduralMeshComponent.h"
 #include "DynamicMeshBuilder.h"
-#include "PhysicsEngine/BodySetup.h"
 
 /** Resource array to pass  */
 class FProcMeshVertexResourceArray : public FResourceArrayInterface

@@ -200,11 +200,11 @@ private:
 
 	/** Array of sections of mesh */
 	UPROPERTY()
-		TArray<FProcMeshSection> ProcMeshSections;
+	TArray<FProcMeshSection> ProcMeshSections;
 
 	/** Local space bounds of mesh */
 	UPROPERTY()
-		FBoxSphereBounds LocalBounds;
+	FBoxSphereBounds LocalBounds;
 
 
 	friend class FProceduralMeshSceneProxy;
