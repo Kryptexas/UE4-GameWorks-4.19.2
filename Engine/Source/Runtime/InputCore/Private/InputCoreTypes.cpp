@@ -12,6 +12,7 @@ const FKey EKeys::MouseX("MouseX");
 const FKey EKeys::MouseY("MouseY");
 const FKey EKeys::MouseScrollUp("MouseScrollUp");
 const FKey EKeys::MouseScrollDown("MouseScrollDown");
+const FKey EKeys::MouseWheelAxis("MouseWheelAxis");
 
 const FKey EKeys::LeftMouseButton("LeftMouseButton");
 const FKey EKeys::RightMouseButton("RightMouseButton");
@@ -316,6 +317,7 @@ FKeyDetails::FKeyDetails(const FKey InKey, const TAttribute<FText>& InDisplayNam
 	, bIsGamepadKey((InKeyFlags & EKeyFlags::GamepadKey) != 0)
 	, bIsMouseButton((InKeyFlags & EKeyFlags::MouseButton) != 0)
 	, bIsBindableInBlueprints((~InKeyFlags & EKeyFlags::NotBlueprintBindableKey) != 0)
+	, bShouldUpdateAxisWithoutSamples((InKeyFlags & EKeyFlags::UpdateAxisWithoutSamples) != 0)
 	, AxisType(EInputAxisType::None)
 {
 	if ((InKeyFlags & EKeyFlags::FloatAxis) != 0)
@@ -355,11 +357,12 @@ void EKeys::Initialize()
 	AddMenuCategoryDisplayInfo(NAME_MouseCategory, LOCTEXT("MouseSubCategory", "Mouse"), TEXT("GraphEditor.MouseEvent_16x"));
 	AddMenuCategoryDisplayInfo(NAME_KeyboardCategory, LOCTEXT("KeyboardSubCategory", "Keyboard"), TEXT("GraphEditor.KeyEvent_16x"));
 
-	AddKey(FKeyDetails(EKeys::MouseX, LOCTEXT("MouseX", "Mouse X"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
-	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
+	AddKey(FKeyDetails(EKeys::MouseX, LOCTEXT("MouseX", "Mouse X"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton | FKeyDetails::UpdateAxisWithoutSamples));
+	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton | FKeyDetails::UpdateAxisWithoutSamples));
+	AddKey(FKeyDetails(EKeys::MouseWheelAxis, LOCTEXT("MouseWheelAxis", "Mouse Wheel Axis"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton | FKeyDetails::UpdateAxisWithoutSamples));
 	AddKey(FKeyDetails(EKeys::MouseScrollUp, LOCTEXT("MouseScrollUp", "Mouse Wheel Up"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollDown, LOCTEXT("MouseScrollDown", "Mouse Wheel Down"), FKeyDetails::MouseButton));
-
+	
 	AddKey(FKeyDetails(EKeys::LeftMouseButton, LOCTEXT("LeftMouseButton", "Left Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::RightMouseButton, LOCTEXT("RightMouseButton", "Right Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MiddleMouseButton, LOCTEXT("MiddleMouseButton", "Middle Mouse Button"), FKeyDetails::MouseButton));
@@ -955,6 +958,12 @@ bool FKey::IsBindableInBlueprints() const
 {
 	ConditionalLookupKeyDetails();
 	return (KeyDetails.IsValid() ? KeyDetails->IsBindableInBlueprints() : false);
+}
+
+bool FKey::ShouldUpdateAxisWithoutSamples() const
+{
+	ConditionalLookupKeyDetails();
+	return (KeyDetails.IsValid() ? KeyDetails->ShouldUpdateAxisWithoutSamples() : false);
 }
 
 FText FKeyDetails::GetDisplayName() const

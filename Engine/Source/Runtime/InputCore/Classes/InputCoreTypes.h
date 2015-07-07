@@ -37,6 +37,7 @@ struct INPUTCORE_API FKey
 	bool IsFloatAxis() const;
 	bool IsVectorAxis() const;
 	bool IsBindableInBlueprints() const;
+	bool ShouldUpdateAxisWithoutSamples() const;
 	FText GetDisplayName() const;
 	FString ToString() const;
 	FName GetFName() const;
@@ -90,6 +91,7 @@ struct INPUTCORE_API FKeyDetails
 		NotBlueprintBindableKey	= 0x08,
 		FloatAxis				= 0x10,
 		VectorAxis				= 0x20,
+		UpdateAxisWithoutSamples = 0x40,
 
 		NoFlags                 = 0,
 	};
@@ -102,6 +104,7 @@ struct INPUTCORE_API FKeyDetails
 	bool IsFloatAxis() const { return AxisType == EInputAxisType::Float; }
 	bool IsVectorAxis() const { return AxisType == EInputAxisType::Vector; }
 	bool IsBindableInBlueprints() const { return bIsBindableInBlueprints != 0; }
+	bool ShouldUpdateAxisWithoutSamples() const { return bShouldUpdateAxisWithoutSamples != 0; }
 	FName GetMenuCategory() const { return MenuCategory; }
 	FText GetDisplayName() const;
 	const FKey& GetKey() const { return Key; }
@@ -125,6 +128,7 @@ private:
 	int32 bIsGamepadKey:1;
 	int32 bIsMouseButton:1;
 	int32 bIsBindableInBlueprints:1;
+	int32 bShouldUpdateAxisWithoutSamples:1;
 	EInputAxisType AxisType;
 
 };
@@ -164,6 +168,7 @@ struct INPUTCORE_API EKeys
 	static const FKey MouseY;
 	static const FKey MouseScrollUp;
 	static const FKey MouseScrollDown;
+	static const FKey MouseWheelAxis;
 
 	static const FKey LeftMouseButton;
 	static const FKey RightMouseButton;
