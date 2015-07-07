@@ -58,6 +58,7 @@
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
+    <Compile Include="BuildNode.cs" />
     <Compile Include="ElectricCommander.cs" />
     <Compile Include="GUBP.cs" />
     <Compile Include="LegacyBranchSetup.cs" />

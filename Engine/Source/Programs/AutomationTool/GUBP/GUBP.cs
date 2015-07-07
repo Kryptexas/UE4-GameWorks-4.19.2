@@ -31,42 +31,10 @@ public partial class GUBP : BuildCommand
 	Dictionary<string, AggregateInfo> GUBPAggregates;
 
 	[DebuggerDisplay("{Name}")]
-	class NodeInfo
-	{
-		public string Name;
-		public GUBPNode Node;
-		public NodeInfo[] Dependencies;
-		public NodeInfo[] PseudoDependencies;
-		public NodeInfo[] AllDirectDependencies;
-		public NodeInfo[] AllIndirectDependencies;
-		public NodeInfo[] ControllingTriggers;
-		public int FrequencyShift;
-		public bool IsComplete;
-		public string[] RecipientsForFailureEmails;
-		public bool AddSubmittersToFailureEmails;
-
-		public string ControllingTriggerDotName
-		{
-			get { return String.Join(".", ControllingTriggers.Select(x => x.Name)); }
-		}
-
-		public bool DependsOn(NodeInfo Node)
-		{
-			return AllIndirectDependencies.Contains(Node);
-		}
-
-		public override string ToString()
-		{
-			System.Diagnostics.Trace.TraceWarning("Implicit conversion from NodeInfo to string\n{0}", Environment.StackTrace);
-			return Name;
-		}
-	}
-
-	[DebuggerDisplay("{Name}")]
 	class AggregateInfo
 	{
 		public string Name;
-		public AggregateNode Node;
+		public GUBPAggregateNode Node;
 		public NodeInfo[] Dependencies;
 	}
 
@@ -94,7 +62,7 @@ public partial class GUBP : BuildCommand
         return Name;
     }
 
-	public string AddNode(AggregateNode Node)
+	public string AddNode(GUBPAggregateNode Node)
 	{
 		string Name = Node.GetFullName();
 		if (GUBPNodes.ContainsKey(Name) || GUBPAggregates.ContainsKey(Name))
@@ -115,7 +83,7 @@ public partial class GUBP : BuildCommand
         return GUBPNodes[Node].Node;
     }
 
-    public AggregateNode FindAggregateNode(string Node)
+    public GUBPAggregateNode FindAggregateNode(string Node)
     {
         return GUBPAggregates[Node].Node;
     }

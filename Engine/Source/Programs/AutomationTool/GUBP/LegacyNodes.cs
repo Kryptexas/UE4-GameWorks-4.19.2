@@ -1559,11 +1559,11 @@ partial class GUBP
         }
     }
 
-    public abstract class AggregateNode
+    public abstract class GUBPAggregateNode
     {
 		public List<string> Dependencies = new List<string>();
 
-        public AggregateNode()
+        public GUBPAggregateNode()
         {
         }
 
@@ -1593,7 +1593,7 @@ partial class GUBP
 		}
     }
 
-    public abstract class HostPlatformAggregateNode : AggregateNode
+    public abstract class HostPlatformAggregateNode : GUBPAggregateNode
     {
         protected UnrealTargetPlatform HostPlatform;
         public HostPlatformAggregateNode(UnrealTargetPlatform InHostPlatform)
@@ -1634,7 +1634,7 @@ partial class GUBP
     }
 
 
-    public class AggregatePromotableNode : AggregateNode
+    public class AggregatePromotableNode : GUBPAggregateNode
     {
         protected List<UnrealTargetPlatform> HostPlatforms;
         string PromotionLabelPrefix;		
@@ -1778,7 +1778,7 @@ partial class GUBP
         }
     }
 
-	public class FullGameAggregateNode : AggregateNode
+	public class FullGameAggregateNode : GUBPAggregateNode
 	{
 		string GameName;
 
@@ -2154,7 +2154,7 @@ partial class GUBP
         }
     }
 
-    public class SharedLabelPromotableSuccessNode : AggregateNode
+    public class SharedLabelPromotableSuccessNode : GUBPAggregateNode
     {        
         public SharedLabelPromotableSuccessNode()
         {
@@ -2172,7 +2172,7 @@ partial class GUBP
 		}
     }
 
-    public class WaitForTestShared : AggregateNode
+    public class WaitForTestShared : GUBPAggregateNode
     {
         public WaitForTestShared(GUBP bp)
         {
