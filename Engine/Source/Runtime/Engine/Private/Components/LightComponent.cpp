@@ -720,9 +720,9 @@ void ULightComponent::SetIndirectLightingIntensity(float NewIntensity)
 }
 
 /** Set color of the light */
-void ULightComponent::SetLightColor(FLinearColor NewLightColor)
+void ULightComponent::SetLightColor(FLinearColor NewLightColor, bool bSRGB)
 {
-	FColor NewColor(NewLightColor.ToFColor(true));
+	FColor NewColor(NewLightColor.ToFColor(bSRGB));
 
 	// Can't set color on a static light
 	if (AreDynamicDataChangesAllowed()
