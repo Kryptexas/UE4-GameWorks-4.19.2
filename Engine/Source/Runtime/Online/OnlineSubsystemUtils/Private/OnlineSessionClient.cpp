@@ -140,8 +140,12 @@ void UOnlineSessionClient::OnDestroyForMainMenuComplete(FName SessionName, bool 
 		SessionInt->ClearOnDestroySessionCompleteDelegate_Handle(OnDestroyForMainMenuCompleteDelegateHandle);
 	}	
 
+
+	UWorld* World = GetWorld();
+	UNetDriver* NetDriver = World ? World->GetNetDriver() : nullptr;
+		
 	// Call disconnect to force us back to the menu level
-	GEngine->HandleDisconnect(GetWorld(), GetWorld()->GetNetDriver());
+	GEngine->HandleDisconnect(World, NetDriver);
 
 	bHandlingDisconnect = false;
 }
