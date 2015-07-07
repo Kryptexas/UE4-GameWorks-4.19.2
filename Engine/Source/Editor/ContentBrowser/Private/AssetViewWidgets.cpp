@@ -8,6 +8,7 @@
 #include "AssetViewWidgets.h"
 #include "SThumbnailEditModeTools.h"
 #include "CollectionManagerModule.h"
+#include "CollectionViewUtils.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragDropHandler.h"
@@ -84,16 +85,17 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 
 		TSharedPtr<FAssetViewFolder> AssetFolderItem = StaticCastSharedPtr<FAssetViewFolder>(InTileOrListItem->AssetItem);
 
-		const bool bIsDeveloperFolder = AssetFolderItem->bDeveloperFolder;
-
 		ECollectionShareType::Type CollectionFolderShareType = ECollectionShareType::CST_All;
-		const bool bIsCollectionFolder = ContentBrowserUtils::IsCollectionPath(AssetFolderItem->FolderPath, nullptr, &CollectionFolderShareType);
+		if (AssetFolderItem->bCollectionFolder)
+		{
+			ContentBrowserUtils::IsCollectionPath(AssetFolderItem->FolderPath, nullptr, &CollectionFolderShareType);
+		}
 
-		const FSlateBrush* FolderBaseImage = bIsDeveloperFolder 
+		const FSlateBrush* FolderBaseImage = AssetFolderItem->bDeveloperFolder 
 			? FEditorStyle::GetBrush("ContentBrowser.ListViewDeveloperFolderIcon.Base") 
 			: FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Base");
 
-		const FSlateBrush* FolderTintImage = bIsDeveloperFolder 
+		const FSlateBrush* FolderTintImage = AssetFolderItem->bDeveloperFolder 
 			? FEditorStyle::GetBrush("ContentBrowser.ListViewDeveloperFolderIcon.Mask") 
 			: FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Mask");
 
@@ -105,7 +107,7 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 			.ColorAndOpacity(InTileOrListItem, &T::GetAssetColor)
 		];
 
-		if (bIsCollectionFolder)
+		if (AssetFolderItem->bCollectionFolder)
 		{
 			FLinearColor IconColor = FLinearColor::White;
 			switch(CollectionFolderShareType)
@@ -1060,7 +1062,22 @@ FSlateColor SAssetViewItem::GetAssetColor() const
 	{
 		if(AssetItem->GetType() == EAssetItemType::Folder)
 		{
-			const TSharedPtr<FLinearColor> Color = ContentBrowserUtils::LoadColor( StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath );
+			TSharedPtr<FAssetViewFolder> AssetFolderItem = StaticCastSharedPtr<FAssetViewFolder>(AssetItem);
+
+			TSharedPtr<FLinearColor> Color;
+			if (AssetFolderItem->bCollectionFolder)
+			{
+				FName CollectionName;
+				ECollectionShareType::Type CollectionFolderShareType = ECollectionShareType::CST_All;
+				ContentBrowserUtils::IsCollectionPath(AssetFolderItem->FolderPath, &CollectionName, &CollectionFolderShareType);
+
+				Color = CollectionViewUtils::LoadColor( CollectionName.ToString(), CollectionFolderShareType );
+			}
+			else
+			{
+				Color = ContentBrowserUtils::LoadColor( AssetFolderItem->FolderPath );
+			}
+
 			if ( Color.IsValid() )
 			{
 				return *Color.Get();
