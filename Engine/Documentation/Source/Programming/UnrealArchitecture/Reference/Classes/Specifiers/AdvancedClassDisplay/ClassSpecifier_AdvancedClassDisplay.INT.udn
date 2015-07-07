@@ -5,7 +5,7 @@ Availability:Public
 Version: 4.5
 
 The **AdvancedClassDisplay** class specifier forces all the properties of the class to only show in 
-the [advanced sections](Engine/UI/LevelEditor/Details#AdvancedProperties) in the **Details** panel, 
+the **[advanced sections](Engine/UI/LevelEditor/Details#AdvancedProperties)** in the **Details** panel, 
 and hidden from view by default.
 
 [REGION:tip]
