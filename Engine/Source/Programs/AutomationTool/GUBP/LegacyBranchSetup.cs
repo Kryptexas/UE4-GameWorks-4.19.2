@@ -1062,6 +1062,16 @@ partial class GUBP
         }
 #endif
 
+		// Remove all the pseudo-dependencies on nodes specified in the branch options
+		foreach(string NodeToRemovePseudoDependencies in BranchOptions.NodesToRemovePseudoDependencies)
+		{
+			GUBPNode Node = TryFindNode(NodeToRemovePseudoDependencies);
+			if(Node != null)
+			{
+				Node.FullNamesOfPseudosependencies.Clear();
+			}
+		}
+
 		// Calculate the frequencies for each node
 		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(GUBPNodes, GUBPAggregates, BranchOptions.FrequencyBarriers);
 		foreach(NodeInfo Node in GUBPNodes.Values)

@@ -104,15 +104,6 @@ public partial class GUBP : BuildCommand
         GUBPNodes[Node].Node.RemovePseudodependency(Dep);
     }
 
-    public void RemoveAllPseudodependenciesFromNode(string Node)
-    {
-        if (!GUBPNodes.ContainsKey(Node))
-        {
-            throw new AutomationException("Node {0} not found", Node);
-        }
-        GUBPNodes[Node].Node.FullNamesOfPseudosependencies.Clear();
-    }
-
 	/// <summary>
 	/// Recursively update the ControllingTriggers array for each of the nodes passed in. 
 	/// </summary>
@@ -1644,20 +1635,6 @@ public partial class GUBP : BuildCommand
 			HashSet<NodeInfo> Fringe = new HashSet<NodeInfo>();
 			foreach (NodeInfo NodeToDo in NodesToDo)
 			{
-				if (BranchOptions.NodesToRemovePseudoDependencies.Count > 0)
-				{
-					List<string> ListOfRetainedNodesToRemovePseudoDependencies = BranchOptions.NodesToRemovePseudoDependencies;
-					foreach (string NodeToRemovePseudoDependencies in BranchOptions.NodesToRemovePseudoDependencies)
-					{
-						if (NodeToDo.Name == NodeToRemovePseudoDependencies)
-						{
-							RemoveAllPseudodependenciesFromNode(NodeToDo.Name);
-							ListOfRetainedNodesToRemovePseudoDependencies.Remove(NodeToDo.Name);
-							break;
-						}
-					}
-					BranchOptions.NodesToRemovePseudoDependencies = ListOfRetainedNodesToRemovePseudoDependencies;
-				}
 				foreach (NodeInfo Dep in NodeToDo.Dependencies)
 				{
 					if (!NodesToDo.Contains(Dep))
