@@ -550,6 +550,12 @@ void FStaticMeshThumbnailScene::SetStaticMesh(UStaticMesh* StaticMesh)
 	}
 }
 
+void FStaticMeshThumbnailScene::SetOverrideMaterials(const TArray<class UMaterialInterface*>& OverrideMaterials)
+{
+	PreviewActor->GetStaticMeshComponent()->OverrideMaterials = OverrideMaterials;
+	PreviewActor->GetStaticMeshComponent()->MarkRenderStateDirty();
+}
+
 void FStaticMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
 {
 	check(PreviewActor);

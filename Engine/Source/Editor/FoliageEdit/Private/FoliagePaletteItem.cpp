@@ -48,7 +48,7 @@ FFoliagePaletteItemModel::FFoliagePaletteItemModel(FFoliageMeshUIInfoPtr InTypeI
 	FAssetData AssetData;
 	if (!IsBlueprint())
 	{
-		AssetData = FAssetData(TypeInfo->Settings->GetStaticMesh());
+		AssetData = FAssetData(TypeInfo->Settings);
 	}
 	else
 	{

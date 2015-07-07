@@ -44,6 +44,9 @@ class UFoliageType : public UObject
 	virtual UStaticMesh* GetStaticMesh() const PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
 	virtual void SetStaticMesh(UStaticMesh* InStaticMesh) PURE_VIRTUAL(UFoliageType::SetStaticMesh,);
 
+	/* Gets the component class to use for instances of this FoliageType */
+	virtual UClass* GetComponentClass() const PURE_VIRTUAL(UFoliageType::GetComponentClass(), return nullptr;);
+	
 	virtual void Serialize(FArchive& Ar) override;
 
 	virtual bool IsNotAssetOrBlueprint() const;

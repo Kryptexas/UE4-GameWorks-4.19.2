@@ -2242,50 +2242,50 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 	const TArray<FClusterNode>& ClusterTree = *Component.ClusterTreePtr;
 	if (ClusterTree.Num())
 	{
-	const FClusterNode& ChildNode = ClusterTree[Child];
-	const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
+		const FClusterNode& ChildNode = ClusterTree[Child];
+		const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
 	
-	if (AreaBox.Intersect(WorldNodeBox))
-	{
-		if (ChildNode.FirstChild < 0 || AreaBox.IsInside(WorldNodeBox))
+		if (AreaBox.Intersect(WorldNodeBox))
 		{
-			// Unfortunately ordering of PerInstanceSMData does not match ordering of cluster tree, so we have to use remaping
-			const bool bUseRemaping = Component.SortedInstances.Num() > 0;
-			
-			// In case there no more subdivision or node is completely encapsulated by a area box
-			// add all instances to the result
-			for (int32 i = ChildNode.FirstInstance; i <= ChildNode.LastInstance; ++i)
+			if (ChildNode.FirstChild < 0 || AreaBox.IsInside(WorldNodeBox))
 			{
-				int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
-
-					FTransform InstanceToComponent;
-					if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
-					{
-						InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
-					}
-					else if (Component.PerInstanceRenderData.IsValid())
-					{
-						// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
-						FInstanceStream const* Inst = Component.PerInstanceRenderData->InstanceBuffer.GetInstance(i);
-						FMatrix XformMat;
-						Inst->GetInstanceTransform(XformMat);
-						InstanceToComponent = FTransform(XformMat);
-					}
-				if (!InstanceToComponent.GetScale3D().IsZero())
+				// Unfortunately ordering of PerInstanceSMData does not match ordering of cluster tree, so we have to use remaping
+				const bool bUseRemaping = Component.SortedInstances.Num() > 0;
+			
+				// In case there no more subdivision or node is completely encapsulated by a area box
+				// add all instances to the result
+				for (int32 i = ChildNode.FirstInstance; i <= ChildNode.LastInstance; ++i)
 				{
-					InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
+					int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
+
+						FTransform InstanceToComponent;
+						if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
+						{
+							InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
+						}
+						else if (Component.PerInstanceRenderData.IsValid())
+						{
+							// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
+							FInstanceStream const* Inst = Component.PerInstanceRenderData->InstanceBuffer.GetInstance(i);
+							FMatrix XformMat;
+							Inst->GetInstanceTransform(XformMat);
+							InstanceToComponent = FTransform(XformMat);
+						}
+					if (!InstanceToComponent.GetScale3D().IsZero())
+					{
+						InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
+					}
+				}
+			}
+			else
+			{
+				for (int32 i = ChildNode.FirstChild; i <= ChildNode.LastChild; ++i)
+				{
+					GatherInstanceTransformsInArea(Component, AreaBox, i, InstanceData);
 				}
 			}
 		}
-		else
-		{
-			for (int32 i = ChildNode.FirstChild; i <= ChildNode.LastChild; ++i)
-			{
-				GatherInstanceTransformsInArea(Component, AreaBox, i, InstanceData);
-			}
-		}
 	}
-}
 }
 
 int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingSphereCount(const FSphere& Sphere) const
@@ -2406,6 +2406,66 @@ void UHierarchicalInstancedStaticMeshComponent::FlushAccumulatedNavigationUpdate
 		}
 			
 		AccumulatedNavigationDirtyArea.Init();
+	}
+}
+
+// recursive helper to gather all instances with locations inside the specified sphere
+static void GatherInstancesOverlappingSphere(const UHierarchicalInstancedStaticMeshComponent& Component, const FSphere& Sphere, const float StaticMeshBoundsRadius, const FBox& AreaBox, int32 Child, TArray<int32>& OutInstanceIndices)
+{
+	const TArray<FClusterNode>& ClusterTree = *Component.ClusterTreePtr;
+	const FClusterNode& ChildNode = ClusterTree[Child];
+	const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
+
+	if (AreaBox.Intersect(WorldNodeBox))
+	{
+		if (ChildNode.FirstChild < 0 || AreaBox.IsInside(WorldNodeBox))
+		{
+			// Unfortunately ordering of PerInstanceSMData does not match ordering of cluster tree, so we have to use remaping
+			const bool bUseRemaping = Component.SortedInstances.Num() > 0;
+
+			// In case there no more subdivision or node is completely encapsulated by a area box
+			// add all instances to the result
+			for (int32 i = ChildNode.FirstInstance; i <= ChildNode.LastInstance; ++i)
+			{
+				int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
+				if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
+				{
+					const FMatrix& Matrix = Component.PerInstanceSMData[SortedIdx].Transform;
+					FSphere InstanceSphere(Matrix.GetOrigin(), StaticMeshBoundsRadius * Matrix.GetScaleVector().GetMax());
+					if (Sphere.Intersects(InstanceSphere))
+					{
+						OutInstanceIndices.Add(SortedIdx);
+					}
+				}
+			}
+		}
+		else
+		{
+			for (int32 i = ChildNode.FirstChild; i <= ChildNode.LastChild; ++i)
+			{
+				GatherInstancesOverlappingSphere(Component, Sphere, StaticMeshBoundsRadius, AreaBox, i, OutInstanceIndices);
+			}
+		}
+	}
+}
+
+TArray<int32> UHierarchicalInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const FVector& Center, float Radius, bool bSphereInWorldSpace) const
+{
+	if (ClusterTreePtr.IsValid() && ClusterTreePtr->Num())
+	{
+		TArray<int32> Result;
+		FSphere Sphere(Center, Radius);
+		if (bSphereInWorldSpace)
+		{
+			Sphere = Sphere.TransformBy(ComponentToWorld.Inverse());
+		}
+		const FBox AABB(Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W));
+		GatherInstancesOverlappingSphere(*this, Sphere, StaticMesh->GetBounds().SphereRadius, AABB, 0, Result);
+		return Result;
+	}
+	else
+	{
+		return Super::GetInstancesOverlappingSphere(Center, Radius, bSphereInWorldSpace);
 	}
 }
 

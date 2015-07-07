@@ -119,6 +119,9 @@ public:
 	/** Sets the static mesh to use in the next GetView() */
 	void SetStaticMesh(class UStaticMesh* StaticMesh);
 
+	/** Sets override materials for the static mesh  */
+	void SetOverrideMaterials(const TArray<class UMaterialInterface*>& OverrideMaterials);
+
 protected:
 	// FThumbnailPreviewScene implementation
 	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;

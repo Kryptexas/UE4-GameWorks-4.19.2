@@ -10,7 +10,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "Components/ModelComponent.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "FoliageInstancedStaticMeshComponent.h"
 #include "Serialization/CustomVersion.h"
 #include "ProceduralFoliageComponent.h"
 #include "ProceduralFoliageBlockingVolume.h"
@@ -48,6 +48,8 @@ struct FFoliageCustomVersion
 		FoliageTypeCustomizationScaling = 7,
 		// FoliageType procedural scale and shade settings updated
 		FoliageTypeProceduralScaleAndShade = 8,
+		// Added FoliageHISMC and blueprint support
+		FoliageHISMCBlueprints = 9,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -453,6 +455,7 @@ UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObject
 	: Super(ObjectInitializer)
 {
 	Mesh = nullptr;
+	ComponentClass = UFoliageInstancedStaticMeshComponent::StaticClass();
 }
 
 
@@ -609,6 +612,75 @@ void FFoliageMeshInfo::CheckValid()
 #endif
 }
 
+void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings)
+{
+	check(!Component);
+
+	UClass* ComponentClass = InSettings->GetComponentClass();
+	if (ComponentClass == nullptr)
+	{
+		ComponentClass = UFoliageInstancedStaticMeshComponent::StaticClass();
+	}
+
+	Component = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
+
+	Component->StaticMesh = InSettings->GetStaticMesh();
+	Component->bSelectable = true;
+	Component->bHasPerInstanceHitProxies = true;
+	Component->InstancingRandomSeed = FMath::Rand();
+
+	UpdateComponentSettings(InSettings);
+
+	Component->AttachTo(InIFA->GetRootComponent());
+
+	if (InIFA->GetRootComponent()->IsRegistered())
+	{
+		Component->RegisterComponent();
+	}
+
+	// Use only instance translation as a component transform
+	Component->SetWorldTransform(InIFA->GetRootComponent()->ComponentToWorld);
+
+	// Add the new component to the transaction buffer so it will get destroyed on undo
+	Component->Modify();
+	// We don't want to track changes to instances later so we mark it as non-transactional
+	Component->ClearFlags(RF_Transactional);
+}
+
+void FFoliageMeshInfo::CheckComponentClass(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings)
+{
+	if (Component)
+	{
+		UClass* ComponentClass = InSettings->GetComponentClass();
+		if (ComponentClass == nullptr)
+		{
+			ComponentClass = UFoliageInstancedStaticMeshComponent::StaticClass();
+		}
+
+		if(ComponentClass != Component->GetClass())
+		{
+			InIFA->Modify();
+
+			// prepare to destroy the old component
+			Component->ClearInstances();
+
+			// make sure the destruction gets stored in the undo buffer, 
+			// so the component will get recreated on undo.
+			Component->SetFlags(RF_Transactional);
+			Component->Modify();
+			
+			Component->DestroyComponent();
+			Component = nullptr;
+
+			// create a new component
+			CreateNewComponent(InIFA, InSettings);
+
+			// apply the instances to it
+			ReapplyInstancesToComponent();
+		}
+	}
+}
+
 void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 {
 	if (Component)
@@ -702,6 +774,31 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
+
+		const UFoliageType_InstancedStaticMesh* FoliageType_ISM = Cast<UFoliageType_InstancedStaticMesh>(FoliageType);
+		if (FoliageType_ISM)
+		{
+			// Check override materials
+			if (Component->OverrideMaterials.Num() != FoliageType_ISM->OverrideMaterials.Num())
+			{
+				Component->OverrideMaterials = FoliageType_ISM->OverrideMaterials;
+				bNeedsMarkRenderStateDirty = true;
+				bNeedsInvalidateLightingCache = true;
+			}
+			else
+			{
+				for (int32 Index = 0; Index < FoliageType_ISM->OverrideMaterials.Num(); Index++)
+				{
+					if (Component->OverrideMaterials[Index] != FoliageType_ISM->OverrideMaterials[Index])
+					{
+						Component->OverrideMaterials = FoliageType_ISM->OverrideMaterials;
+						bNeedsMarkRenderStateDirty = true;
+						bNeedsInvalidateLightingCache = true;
+						break;
+					}
+				}
+			}
+		}	
 		
 		Component->BodyInstance.CopyBodyInstancePropertiesFrom(&FoliageType->BodyInstance);
 
@@ -732,29 +829,8 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 
 	if (Component == nullptr)
 	{
-		Component = NewObject<UHierarchicalInstancedStaticMeshComponent>(InIFA, NAME_None, RF_Transactional);
-
-		Component->StaticMesh = InSettings->GetStaticMesh();
-		Component->bSelectable = true;
-		Component->bHasPerInstanceHitProxies = true;
-		Component->InstancingRandomSeed = FMath::Rand();
-
-		UpdateComponentSettings(InSettings);
-
-		Component->AttachTo(InIFA->GetRootComponent());
-		
-		if (InIFA->GetRootComponent()->IsRegistered())
-		{
-			Component->RegisterComponent();
-		}
-
-		// Use only instance translation as a component transform
-		Component->SetWorldTransform(InIFA->GetRootComponent()->ComponentToWorld);
-
-		// Add the new component to the transaction buffer so it will get destroyed on undo
-		Component->Modify();
-		// We don't want to track changes to instances later so we mark it as non-transactional
-		Component->ClearFlags(RF_Transactional);
+		CreateNewComponent(InIFA, InSettings);
+		check(Component);
 	}
 	else
 	{
@@ -773,12 +849,6 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 
 	// Add the instance to the component
 	Component->AddInstanceWorldSpace(InstanceToWorld);
-
-	// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
-	// it is based on the center of the component's bounds.
-//	float CullDistance = InSettings->EndCullDistance > 0 ? (float)InSettings->EndCullDistance + BestCluster->Bounds.SphereRadius : 0.f;
-//	Component->LDMaxDrawDistance = CullDistance;
-//	Component->CachedMaxDrawDistance = CullDistance;
 
 	CheckValid();
 }
@@ -998,29 +1068,6 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 		Component->RegisterComponent();
 	}
 }
-
-
-// Update settings in the clusters based on the current settings (eg culling distance, collision, ...)
-//void FFoliageMeshInfo::UpdateClusterSettings(AInstancedFoliageActor* InIFA)
-//{
-//	for (FFoliageInstanceCluster& Cluster : InstanceClusters)
-//	{
-//		UInstancedStaticMeshComponent* ClusterComponent = Cluster.ClusterComponent;
-//		ClusterComponent->MarkRenderStateDirty();
-//
-//		// Copy settings
-//		ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
-//		ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;
-//
-//		// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
-//		// it is based on the center of the component's bounds.
-//		float CullDistance = Settings->EndCullDistance > 0 ? (float)Settings->EndCullDistance + Cluster.Bounds.SphereRadius : 0.f;
-//		ClusterComponent->LDMaxDrawDistance = CullDistance;
-//		ClusterComponent->CachedMaxDrawDistance = CullDistance;
-//	}
-//
-//	InIFA->MarkComponentsRenderStateDirty();
-//}
 
 void FFoliageMeshInfo::GetInstancesInsideSphere(const FSphere& Sphere, TArray<int32>& OutInstances)
 {
@@ -1667,28 +1714,6 @@ void UpdateSettingsBounds(const UStaticMesh* InMesh, UFoliageType_InstancedStati
 	Settings->LowBoundOriginRadius = FVector((MinX + MaxX), (MinY + MaxY), FMath::Sqrt(FMath::Square(MaxX - MinX) + FMath::Square(MaxY - MinY))) * 0.5f;
 }
 
-
-#if WITH_EDITORONLY_DATA
-FFoliageMeshInfo* AInstancedFoliageActor::UpdateMeshSettings(const UStaticMesh* InMesh, const UFoliageType_InstancedStaticMesh* DefaultSettings, bool bIncludeAssets)
-{
-	if (UFoliageType* OldSettings = GetLocalFoliageTypeForMesh(InMesh, nullptr))
-	{
-		MarkPackageDirty();
-
-		UFoliageType_InstancedStaticMesh* NewSettings = DuplicateObject<UFoliageType_InstancedStaticMesh>(DefaultSettings, this);
-		UpdateSettingsBounds(InMesh, NewSettings);
-
-		TUniqueObj<FFoliageMeshInfo> MeshInfo;
-		FoliageMeshes.RemoveAndCopyValue(OldSettings, MeshInfo);
-		MeshInfo->FoliageTypeUpdateGuid = NewSettings->UpdateGuid;
-		MeshInfo->UpdateComponentSettings(NewSettings);
-		return &*FoliageMeshes.Add(NewSettings, MoveTemp(MeshInfo));
-	}
-
-	return nullptr;
-}
-#endif
-
 UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType, FFoliageMeshInfo** OutInfo)
 {
 	FFoliageMeshInfo* MeshInfo = nullptr;
@@ -1915,6 +1940,9 @@ void AInstancedFoliageActor::PostEditUndo()
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		
+		MeshInfo.CheckComponentClass(this, MeshPair.Key);
+
 		MeshInfo.ReapplyInstancesToComponent();
 
 		// Regenerate instance hash
@@ -2267,6 +2295,7 @@ void AInstancedFoliageActor::PostLoad()
 			{
 				if (MeshInfo.FoliageTypeUpdateGuid.IsValid())
 				{
+					MeshInfo.CheckComponentClass(this, FoliageType);
 					MeshInfo.UpdateComponentSettings(FoliageType);
 				}
 				MeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
@@ -2318,6 +2347,7 @@ void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType,
 
 	if (TypeInfo)
 	{
+		TypeInfo->CheckComponentClass(this, FoliageType);
 		TypeInfo->UpdateComponentSettings(FoliageType);
 
 		if (bMeshChanged)
@@ -2631,6 +2661,62 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 	}
 
 	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation);
+}
+
+float AInstancedFoliageActor::InternalTakeRadialDamage(float Damage, struct FRadialDamageEvent const& RadialDamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	// Radial damage scaling needs to be applied per instance so we don't do anything here
+	return Damage;
+}
+
+UFoliageInstancedStaticMeshComponent::UFoliageInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
+
+void UFoliageInstancedStaticMeshComponent::ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Super::ReceiveComponentDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (DamageAmount != 0.f)
+	{
+		UDamageType const* const DamageTypeCDO = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>() : GetDefault<UDamageType>();
+		if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+		{
+			// Point damage event, hit a single instance.
+			FPointDamageEvent* const PointDamageEvent = (FPointDamageEvent*)&DamageEvent;
+			if (PerInstanceSMData.IsValidIndex(PointDamageEvent->HitInfo.Item))
+			{
+				OnInstanceTakePointDamage.Broadcast(PointDamageEvent->HitInfo.Item, DamageAmount, EventInstigator, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->ShotDirection, DamageTypeCDO, DamageCauser);
+			}
+		}
+		else if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
+		{
+			// Radial damage event, find which instances it hit and notify
+			FRadialDamageEvent* const RadialDamageEvent = (FRadialDamageEvent*)&DamageEvent;
+
+			float MaxRadius = RadialDamageEvent->Params.GetMaxRadius();
+			TArray<int32> Instances = GetInstancesOverlappingSphere(RadialDamageEvent->Origin, MaxRadius, true);
+
+			if (Instances.Num())
+			{
+				FVector LocalOrigin = GetComponentToWorld().Inverse().TransformPosition(RadialDamageEvent->Origin);
+				float Scale = GetComponentScale().X; // assume component (not instances) is uniformly scaled
+				
+				TArray<FFoliageInstanceDamage> DamageInstances;
+				DamageInstances.Empty(Instances.Num());
+				
+				for (int32 InstanceIndex : Instances)
+				{
+					// Find distance in local space and then scale; quicker than transforming each instance to world space.
+					float DistanceFromOrigin = (PerInstanceSMData[InstanceIndex].Transform.GetOrigin() - LocalOrigin).Size() * Scale;
+					new(DamageInstances) FFoliageInstanceDamage(InstanceIndex, RadialDamageEvent->Params.GetDamageScale(DistanceFromOrigin));
+				}
+
+				OnInstanceTakeRadialDamage.Broadcast(DamageInstances, EventInstigator, RadialDamageEvent->Origin, MaxRadius, DamageTypeCDO, DamageCauser);
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
