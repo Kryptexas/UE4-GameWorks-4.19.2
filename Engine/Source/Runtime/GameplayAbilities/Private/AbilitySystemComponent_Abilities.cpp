@@ -903,7 +903,6 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Abil
 	{
 		if (bAllowRemoteActivation)
 		{
-			FGameplayTagContainer FailureTags;
 			if (Ability->CanActivateAbility(AbilityToActivate, ActorInfo, nullptr, nullptr, &FailureTags))
 			{
 				// No prediction key, server will assign a server-generated key
