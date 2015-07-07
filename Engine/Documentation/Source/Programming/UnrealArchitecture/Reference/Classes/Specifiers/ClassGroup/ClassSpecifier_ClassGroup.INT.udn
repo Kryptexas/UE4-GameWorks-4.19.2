@@ -5,6 +5,6 @@ Availability:Public
 Version: 4.5
 
 Indicates that Unreal Editor's **Actor Browser** should include this class and any subclass of this 
-class within the specified *GroupName* when **Group View** is enabled in the **Actor Browser**.
+class within the specified *GroupName* when **Group View** is enabled in the Actor Browser.
 
 ClassGroup=GroupName
