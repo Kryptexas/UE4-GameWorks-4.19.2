@@ -545,11 +545,13 @@ void UBrushComponent::PostLoad()
 		BrushBodySetup->bGenerateMirroredCollision = false;
 	}
 
+#if WITH_EDITOR
 	AActor* Owner = GetOwner();
 	if (Owner)
 	{
 		Owner->SetPivotOffset(PrePivot_DEPRECATED);
 	}
+#endif
 }
 
 

@@ -143,8 +143,6 @@ void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 	}
 }
 
-#endif
-
 FVector ABrush::GetPrePivot() const
 {
 	return GetPivotOffset();
@@ -155,7 +153,6 @@ void ABrush::SetPrePivot( const FVector& InPrePivot )
 	SetPivotOffset(InPrePivot);
 }
 
-#if WITH_EDITOR
 void ABrush::PostLoad()
 {
 	Super::PostLoad();
