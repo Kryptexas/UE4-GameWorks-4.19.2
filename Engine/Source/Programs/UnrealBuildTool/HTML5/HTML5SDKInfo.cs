@@ -89,7 +89,7 @@ namespace UnrealBuildTool
 			string UserFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); 
 			string ConfigFile = Path.Combine(UserFolder, ".emscripten");
 
-			if (!File.Exists(ConfigFile) || !File.ReadAllText(ConfigFile).Contains(SDKVersion))
+			if (!File.Exists(ConfigFile) || !File.ReadAllText(ConfigFile).Contains("GENERATEDBYUE4"))
 			{
 				var ConfigString = String.Join(
 								Environment.NewLine,
