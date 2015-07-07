@@ -59,6 +59,12 @@ public:
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> OccludedPerObjectShadows;
 };
 
+// enum instead of bool to get better visibility when we pass around multiple bools
+enum ETranslucencyPassType
+{
+	TPT_NonSeparateTransluceny,
+	TPT_SeparateTransluceny
+};
 
 /** 
 * Set of sorted translucent scene prims  
@@ -71,28 +77,28 @@ public:
 	* Iterate over the sorted list of prims and draw them
 	* @param View - current view used to draw items
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
-	* @param bSeparateTranslucencyPass
+	* @param TranslucenyPassType
 	*/
-	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, bool bSeparateTranslucencyPass) const;
+	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType) const;
 
 	/**
 	* Iterate over the sorted list of prims and draw them
 	* @param View - current view used to draw items
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
-	* @param bSeparateTranslucencyPass
+	* @param TranslucenyPassType
 	* @param FirstIndex, range of elements to render
 	* @param LastIndex, range of elements to render
 	*/
-	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, bool bSeparateTranslucencyPass, int32 FirstIndex, int32 LastIndex) const;
+	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType, int32 FirstIndex, int32 LastIndex) const;
 
 	/**
 	* Draw a single primitive...this is used when we are rendering in parallel and we need to handlke a translucent shadow
 	* @param View - current view used to draw items
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
-	* @param bSeparateTranslucencyPass
+	* @param TranslucenyPassType
 	* @param Index, element to render
 	*/
-	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, bool bSeparateTranslucencyPass, int32 Index) const;
+	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType, int32 Index) const;
 
 	/** Draw all the primitives in this set for the forward shading pipeline. */
 	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FSceneRenderer& Renderer) const;
@@ -203,7 +209,7 @@ private:
 	TArray<FSortedPrim,SceneRenderingAllocator> SortedSeparateTranslucencyPrims;
 
 	/** Renders a single primitive for the deferred shading pipeline. */
-	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, bool bSeparateTranslucencyPass) const;
+	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPassType TranslucenyPassType) const;
 };
 
 template <> struct TIsPODType<FTranslucentPrimSet::FDepthSortedPrim> { enum { Value = true }; };
