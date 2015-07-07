@@ -386,6 +386,12 @@ public:
 	/** For debugging */
 	virtual void SetDebugMaterial(bool bUseDebugMaterial, FLinearColor Diffuse);
 
+	/** 
+	 * Whether mesh is always opaque for visibility calculations, 
+	 * otherwise opaque property will be checked for each triangle 
+	 */
+	virtual bool IsAlwaysOpaqueForVisibility() const { return false; }
+
 	/** Evaluates the mesh's Bidirectional Reflectance Distribution Function. */
 	FLinearColor EvaluateBRDF(
 		const FStaticLightingVertex& Vertex, 
