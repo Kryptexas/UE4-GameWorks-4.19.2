@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2532404
+﻿INTSourceChangelist:2603854
 Availability:Public
 Title: 파티클 시스템 레벨 오브 디테일 (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:언제든지 십만 단위의 파티클이 가능한 GPU 파티클 시뮬레이션 입니다.
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 레벨 오브 디테일(LOD)을 통해 이펙트 아티스트는 플레이어 범위에 따라 화면 공간을 가장 효율적으로 활용해 내는 파티클 이펙트를 만들 수 있습니다. 모닥불 파티클 시스템을 예로 들어 봅시다. 관련된 이미터가 여럿 있을 수 있습니다:
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2597265
 Availability:Public
 Title: 툴바 옵션
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes, Engine/Blueprints/Editor/UIComponents/Toolbar
@@ -6,7 +6,6 @@ Description:
 
 [TOC (start:2)]
 
-## 개요
 
 [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Intro]
 

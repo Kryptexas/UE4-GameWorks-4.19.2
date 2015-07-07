@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445736
+﻿INTSourceChangelist:2597139
 Availability:Public
 Title:블루프린트 인터페이스 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -26,8 +26,6 @@ Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
 
 [TOC (start:2)]
 
-## 개요
-
 [INCLUDE:Engine/Blueprints/UserGuide\Types\Interface#intro]
 
 ## 블루프린트 인터페이스 에디터 UI
@@ -49,7 +47,7 @@ Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
 1. [툴바](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
 1. [내 블루프린트](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [디테일](Engine/Blueprints/Editor\UIComponents\Details)
-1. [그래프 에디터](Engine/Blueprints/Editor\UIComponents\GraphEditor)v
+1. [그래프 에디터](Engine/Blueprints/Editor\UIComponents\GraphEditor)
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]

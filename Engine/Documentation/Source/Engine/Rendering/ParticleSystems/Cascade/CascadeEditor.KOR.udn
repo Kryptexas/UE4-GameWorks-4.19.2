@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2532379
+﻿INTSourceChangelist:2603851
 Availability: Public
 Title:캐스케이드 파티클 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -25,10 +25,6 @@ Description:캐스케이드 에디터의 UI 를 핵심 영역별로 나눠 보�
 [/VAR]
 
 [TOC]
-
-
-
-## 개요
 
 캐스케이드는 언리얼 엔진에서 이미터를 사용하여 모듈식 파티클 기반 이펙트를 만드는 툴입니다.
 

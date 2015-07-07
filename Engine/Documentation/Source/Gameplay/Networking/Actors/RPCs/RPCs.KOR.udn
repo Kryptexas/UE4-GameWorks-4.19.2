@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2607925
 Availability:Public
 Title: RPC
 Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -8,7 +8,6 @@ Related: Gameplay/Networking/Actors/Components
 
 [TOC (start:2 end:3)]
 
-## 개요
 RPC (Remote Procedure Call) 는 로컬에서 호출되지만 (호출하는 머신과는) 다른 머신에서 원격 실행되는 함수를 말합니다.
 
 RPC 함수는 매우 유용하게 사용될 수 있으며, 네트워크 연결을 통해 클라이언트와 서버 사이에 메시지를 전송할 수 있습니다.

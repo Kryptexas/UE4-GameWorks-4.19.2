@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2533524
+﻿INTSourceChangelist:2603914
 Availability: Public
 Title:ParticleSystem 클래스
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:ParticleSystem 베이스 클래스에 대한 프로퍼티가 포함 기술 참고서입니다.
-
-## ParticleSystem 클래스
 
 ParticleSystem (파티클 시스템)은 ParticleEmitter (파티클 이미터)로 구성되는 파티클 이펙트 완전체입니다. 디자이너는 한 시스템에 이미터를 여럿 꾸려넣는 식으로 다양한 파티클 이펙트를 조합해낼 수 있습니다. 일단 캐스케이드를 통해 파티클 시스템을 만들고 난 후에는 레벨에 놓거나 스크립트로 만들어 쓸 수 있습니다.
 

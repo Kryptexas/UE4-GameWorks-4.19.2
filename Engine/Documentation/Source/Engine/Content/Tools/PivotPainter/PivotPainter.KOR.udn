@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2512968
+﻿INTSourceChangelist:2602213
 Availability: Public
 Title:피벗 페인터 툴
 Crumbs:%ROOT%, Engine, Engine/Content
@@ -6,7 +6,6 @@ Description:상호작용형 애니메이션용 버텍스 안에 모델 피벗과
 
 [TOC(start:2)]
 
-## 개요
 
 [REGION:header_img]
 [![splash_demo.jpg](splash_demo.jpg)](PivotPainterFoliageExamples.mp4)

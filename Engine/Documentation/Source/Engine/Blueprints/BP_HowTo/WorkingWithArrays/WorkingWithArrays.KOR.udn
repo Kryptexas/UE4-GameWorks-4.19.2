@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492098
+﻿INTSourceChangelist:2597114
 Availability: Public
 Title:배열 작업
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -7,8 +7,6 @@ Related: Engine/Blueprints/UserGuide/Arrays
 Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 
 [TOC(start:2)]
-
-## 개요
 
 프로그래밍 용어에 익숙치 않은 분들의 경우, **Array** 배열이라 함은 하나의 개체 안에 담긴 동일 유형의 배열 집합으로 생각하면 됩니다. 예를 들어 **Float** 배열을 만들고자 하는 경우, 그 배열은 Float 변수만 저장할 수 있습니다. 배열을 생성한 이후에는, 그 배열 내 각각의 변수에 접근하여 개별적으로 변경하거나, 배열 내 모든 항목을 한꺼번에 변경하(여 개별적으로 할 때 비해 반복작업 속도를 크게 향상시키)는 것도 가능합니다.
 
@@ -181,6 +179,11 @@ _이 예제에서는 **시작용 콘텐츠를 포함** 한 **블루프린트 3�
 	![](ExampleGIF.gif)(convert:false)
 
 	에디터에서 플레이할 때, **F** 키를 누를 때마다 (배열에 추가했던 것 중) 임의의 블루프린트가 선택되어 타겟 포인트 배열 중 임의의 위치에 스폰됩니다. **F** Key Event 를 통해서 또는 이펙트 스폰 대신, 같은 로직을 사용하여 플레이어가 획득할 수 있는 생명력 또는 탄창 픽업같은 것을 임의 지점에 스폰하도록 구성하는 것도 가능합니다.
+
+
+
+
+
 
 
 

@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2597347
 Availability:Public
 Title: 블루프린트 에디터 뷰포트
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:블루프린트 클래스의 컴포넌트 모드에 있는 뷰포트에 대한 개요입니다.
 
 [TOC (start:2)]
-
-## 개요
 
 블루프린트 에디터의 **뷰포트** 에서는, 블루프린트의 컴포넌트를 확인하고 조작할 수 있습니다.
 

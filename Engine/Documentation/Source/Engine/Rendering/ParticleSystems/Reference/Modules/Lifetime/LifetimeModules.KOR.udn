@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2603977
 Availability: Public
 Title:Lifetime 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,10 +6,8 @@ Description:Lifetime 은 파티클 스폰시의 초기 수명을 설정하는 �
 
 [TOC(start:2 end:3)]
 
-## Lifetime 모듈
-
 (#Lifetime)
-### Lifetime
+## Lifetime
 
 ![psys_lifetime.gif](psys_lifetime.gif)(convert:false)
 
@@ -24,7 +22,7 @@ Lifetime(수명)은 스폰시 파티클의 초기 수명을 설정하는 데 사
 Spawn에서 모듈은 현재 이미터 시간을 사용한 분포로부터 적절한 값을 구합니다. 그리고 나서 이 값을 Particle.OneOverMaxLifetime 필드에 더하며, 복수의 모듈에 적용 가능해 집니다.
 
 
-### Lifetime (Seeded)
+## Lifetime (Seeded)
 
 Lifetime (Seeded) (수명 (시드))는 스폰시 파티클의 수명을 설정한다는 점에서 [Lifetime](#Lifetime) 모듈과 동일하지만, 이미터가 사용될 때마다 모듈로부터 좀 더 일관된 효과를 내기 위해, 분포값을 선택할 때 사용될 시드 정보를 지정할 수 있는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 

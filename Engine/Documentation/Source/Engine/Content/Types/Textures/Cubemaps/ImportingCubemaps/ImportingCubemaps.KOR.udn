@@ -1,10 +1,8 @@
-INTSourceChangelist:2087463
+﻿INTSourceChangelist:2602650
 Availability:Public
 Title:큐브맵 임포트
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
 Description:언리얼 엔진 4 에 큐브맵을 임포트하는 방법입니다.
-
-## 개요
 
 큐브맵을 언리얼 엔진 4 에 임포트하는 법을 다루는 문서입니다.
 

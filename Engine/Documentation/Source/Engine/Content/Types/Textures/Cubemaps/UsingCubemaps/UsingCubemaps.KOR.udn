@@ -1,11 +1,8 @@
-INTSourceChangelist:2087463
+﻿INTSourceChangelist:2602655
 Availability:Public
 Title:큐브맵 사용하기
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
 Description:엔진에 임포트한 큐브맵을 활용하는 방법에 대한 문서입니다.
-
-
-## 개요
 
 큐브맵을 엔진에 임포트한 이후 활용하는 법에 대한 문서입니다.
 

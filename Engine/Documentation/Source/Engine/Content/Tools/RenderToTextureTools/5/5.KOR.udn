@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2407554
+﻿INTSourceChangelist:2602276
 Availability: Public
 Title:플립북 애니메이션 렌더
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
 Description:
 
 [TOC(start:2)]
-
-## 개요
 
 이 함수는 임포스터 스프라이트 함수와 비슷합니다. 메시 회전 시리즈를 사용합니다만, 여기서는 블루프린트의 프리셋이 아닌 사용자 입력으로 지정된 것을 사용합니다.
  
@@ -59,7 +57,7 @@ Description:
 
 | 프로퍼티 | 설명 |
 | ---- | ---- |
-| **Animation Phase (0-1) (S)** | 애니메이션 페이즈 - 여기 기본값은 "Time" 노드입니다. 속도를 바꾸려면, 여기에 Time*Speed(scalarparameter) 를 연결해야 합니다. |
+| **Animation Phase (0-1) (S)** | 애니메이션 페이즈 - 여기 기본값은 "Time" 노드입니다. 속도를 바꾸려면, 여기에 Time*Speed (scalarparameter) 를 연결해야 합니다. |
 | **Number of Rows (S)** | 행 수 - 텍스처의 Y 행 수입니다. |
 | **Number of Columns (S)** | 열 수 - 텍스처의 X 열 수입니다. |
 | **Texture (T2d)** | 텍스처 - "결과" 핀을 사용하려면 여기에 텍스처를 걸어주면 됩니다. 대부분의 경우 이 입력은 공백으로 놔두고 보통의 Texture Sample 을 사용하여 이 함수의 "UVs" 출력을 텍스처 UV 에 연결하는 것이 좋습니다. 그런 식으로 여러 텍스처에 같은 UVs 를 재사용할 수 있습니다. |

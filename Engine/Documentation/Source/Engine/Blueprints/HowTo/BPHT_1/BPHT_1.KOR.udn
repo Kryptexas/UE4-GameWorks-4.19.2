@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468080
+﻿INTSourceChangelist:2597690
 Availability: Public
 Title:1. 필수 애셋 구성
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -139,7 +139,7 @@ Description:이번에는 프로젝트에서 사용할 애셋을 구성하도록 
 
 	![](MovedWidget.png)
 
-1.	박스에 표시된 텍스트 중 가장 왼쪽 것을 클릭한 다음, **디테일** 패널에서 **Text** 아래 **Pulls :** 를 입력합니다.
+1.	박스에 표시된 텍스트 중 가장 왼쪽 것을 클릭한 다음, **디테일** 패널에서 **Text** 아래 **Pulls:** 를 입력합니다.
 
 	![](EnterText1.png)
 

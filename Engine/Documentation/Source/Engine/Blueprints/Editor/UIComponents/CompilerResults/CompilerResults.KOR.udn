@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2380839
+﻿INTSourceChangelist:2597179
 Availability:Public
 Title: 컴파일러 결과
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
@@ -8,8 +8,6 @@ Description:블루프린트 에디터의 컴파일러 결과 패널에 대한 �
 [REGION:fullwidth]
 ![](CompilerWindow.png)
 [/REGION]
-
-## 개요
 
 **컴파일러 결과** 패널에는 블루프린트 스크립트를 컴파일한 데 대한 피드백이 제공되어, 블루프린트 컴파일이 성공했는지 _오류_ 나 _경고_ 가 있었는지를 알려줍니다. 오류나 경고가 있을 때마다, 컴파일러 결과 패널에는 오류에 대한 정보와 하이퍼링크가 제공되어, 클릭하면 문제의 진원지로 그래프 뷰를 바로 점프시킬 수 있습니다.
 

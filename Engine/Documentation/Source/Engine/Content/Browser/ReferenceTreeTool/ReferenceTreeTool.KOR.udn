@@ -1,4 +1,4 @@
-INTSourceChangelist:2214958
+﻿INTSourceChangelist:2600704
 Availability: Public
 Title:레퍼런스 트리 툴
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser, Engine/Content/Browser/ReferenceViewer
@@ -48,10 +48,6 @@ Description:특정 애셋을 레퍼런싱하는 모든 오브젝트를 계층형
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-
-
-## 개요
 
 레퍼런스 트리는 특정 애셋에 대한 레퍼런스 체인을 나열해 볼 수 있는 툴입니다. 레퍼런스 체인이란, 목록 내의 각 오브젝트가 목록에서 그 아래 오브젝트로 레퍼런스됨을 나타내는 목록을 말합니다. 레퍼런스 트리 툴로 오브젝트가 어떻게 레퍼런스되었는지를 쉽게 알아볼 수 있습니다. 
 

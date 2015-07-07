@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:2611860
+Availability:Docs
+Title:오디오 임포트
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:언리얼 에디터에 오디오 콘텐츠를 임포트하는 법을 배워봅니다.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Audio/WAV
+Related: Engine/Content/Packs
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+언리얼 엔진은 현재 미압축 리틀 엔디안 16 비트 웨이브 (WAV) 파일을 샘플링 레이트 무관하게 임포트합니다. (물론 44.1 kHz 또는 22.05 kHz 를 추천합니다).
+[/REGION]
+
+## 목적
+
+콘텐츠 제작자는 싱글 및 멀티채널 오디오 파일을 프로젝트 디렉토리에 임포트할 수 있습니다.
+
+## 목표
+
+이 튜토리얼을 마치면 개발자는 다음과 같은 지식을 습득합니다:
+
+*	콘텐츠 브라우저의 **임포트** 기능 위치
+*	단일 오디오 파일 임포트 방법
+*	멀티채널 오디오 익스텐션 테이블 사용법
+*	멀티 채널 오디오 임포트 방법
+*	애셋이 프로젝트 폴더에 제대로 임포트되었는지 확인하는 방법
+
+## 콘텐츠 브라우저의 임포트 버튼 위치
+
+1.	**임포트** 버튼은 언리얼 에디터의 **콘텐츠 브라우저** 안에 위치해 있습니다 (아래 그림 클릭).
+
+	[REGION:lightbox]
+		[![](FindingImportButton.png)(w:900)](FindingImportButton.png)
+	[/REGION]
+
+## 싱글 오디오 파일 임포트
+
+
+
+## 멀티 채널 오디오 익스텐션 테이블 사용
+
+[REGION:raw]
+|                   | Extension | 4.0         | 5.1         | 6.1         | 7.1         |  
+| ---               | ---       | ---         | ---         | ---         | ---         | 
+| **FrontLeft**     | _fl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **FrontRight**    | _fr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **FrontCenter**   | _fc       |             |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **LowFrequency**  | _lf       |             |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **SideLeft**      | _sl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **SideRight**     | _sr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
+| **BackLeft**      | _bl       |             |             |  &#x2713;   |  &#x2713;   |  
+| **BackRight**     | _br       |             |             |             |  &#x2713;   |  
+[/REGION]
+
+## 멀티 채널 오디오 임포트
+
+
+
+## 임포트된 애셋 확인
+
+** *.uasset 파일** 이 하드 디스크에 제대로 임포트되었나 확인하는 습관을 들이는 것이 좋습니다.
+
+1.	에디터 안에서 **'콘텐츠'** 폴더에 **우클릭** 하여 **폴더 옵션** 대화창을 엽니다 (아래 그림).
+
+	![](FolderDialogBox_UI.png)
+
+1.	**폴더 옵션** 및 **탐색기에서 표시** 를 클릭합니다 (아래 그림).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	탐색기가 열렸으면 UE4 가 프로젝트에 상응하는 ** *.uasset 파일 ** 을 생성했나 확인합니다 (아래 그림).
+
+	![](ImportedAssets_Explorer.png)
+
+튜토리얼을 마칠 시간입니다. 지금까지 배우신 내용은 다음과 같습니다:
+
+&#x2713;	콘텐츠 브라우저의 **임포트** 기능 위치
+&#x2713;	단일 오디오 파일 임포트 방법
+&#x2713;	멀티채널 오디오 익스텐션 테이블 사용법
+&#x2713;	멀티 채널 오디오 임포트 방법
+&#x2713;	애셋이 프로젝트 폴더에 제대로 임포트되었는지 확인하는 방법

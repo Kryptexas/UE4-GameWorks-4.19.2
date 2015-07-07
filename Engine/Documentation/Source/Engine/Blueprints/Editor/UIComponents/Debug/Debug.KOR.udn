@@ -1,11 +1,8 @@
-﻿INTSourceChangelist:2085864
+﻿INTSourceChangelist:2597179
 Availability:Public
 Title: 디버그 패널
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:
-
-
-## 개요
 
 **Debug** (디버그) 패널에는 Breakpoint (중단점)이나 Watch Value (감시값)처럼 블루프린트에 현재 사용중인 모든 디버그 툴 목록이 제공됩니다. 에디터에서 플레이 도중에는 실행 추적 기능도 제공되어, 주어진 블루프린트 내에서 현재 실행중인 노드를 확인할 수도 있습니다.
 

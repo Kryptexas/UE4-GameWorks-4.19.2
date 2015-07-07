@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2599455
 Availability:Public
 Title:이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -46,8 +46,6 @@ Description: 키즈멧에서 사용할 수 있는 Event 노드에 대한 문서�
 
 
 [TOC (start:2)]
-
-## 개요
 
 [EXCERPT:Intro]
 **Event** 노드는 **EventGraph** 내 개별 네트워크의 실행을 시작시키기 위해 게임플레이 코드에서 

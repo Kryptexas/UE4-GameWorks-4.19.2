@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2550597
+﻿INTSourceChangelist:2599239
 Availability:Public
 Title:블루프린트 통신 방법
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -50,8 +50,6 @@ Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 **블루프린트** 작업을 할 때, 가끔씩 다른 **블루프린트** 에 들어있는 함수, 이벤트, 변수에 접근하고 싶을 때가 있습니다. 이를 일컬어 **블루프린트 통신** 이라고 하며, 필요에 따라 다수의 **블루프린트** 사이의 통신 및 접근을 하는 방법은 여러가지 있습니다.
 
@@ -173,6 +171,11 @@ OnTakeWeaponFire 함수가 들어있는 **블루프린트 인터페이스** 를 
 [/EXCERPT:Castusage]
 
 블루프린트 형변환 셋업 관련 길잡이는 [](Engine\Blueprints\BP_HowTo\Casting) 문서를 참고하세요.
+
+
+
+
+
 
 
 

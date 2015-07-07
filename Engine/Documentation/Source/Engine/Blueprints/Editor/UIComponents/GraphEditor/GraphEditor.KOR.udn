@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2597239
 Availability:Public
 Title: 그래프 에디터 탭
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
@@ -6,8 +6,6 @@ Description:블루프린트 안의 노드 망을 시각적으로 표현한 것�
 
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 
 [EXCERPT:Intro]

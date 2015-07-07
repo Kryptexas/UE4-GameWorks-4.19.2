@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2385439
+﻿INTSourceChangelist:2600920
 Availability: Public
 Title:FBX 애니메이션 파이프라인
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -25,8 +25,6 @@ Description:FBX 콘텐츠 파이프라인을 사용하여 스켈레탈 메시에
 [/VAR]
 
 [TOC(start:2)]
-
-## 개요
 
 [EXCERPT:FBX_Animation001]
 FBX 임포트 파이프라인에 애니메이션이 지원되어, 3D 어플리케이션에서 언리얼로 게임에 사용할 스켈레탈 메시를 단순한 방식으로 가져올 수 있습니다. 현재는 각 스켈레탈 메시에 대해 하나의 애니메이션만 하나의 파일로 익스포트/임포트 할 수 있습니다.

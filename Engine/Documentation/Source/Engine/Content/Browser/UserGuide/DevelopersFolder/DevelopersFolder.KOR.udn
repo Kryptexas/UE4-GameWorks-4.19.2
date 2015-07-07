@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2274158
+﻿INTSourceChangelist:2600825
 Availability: Public
 Title:Developers 폴더
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -17,8 +17,6 @@ Description:콘텐츠 브라우저의 소스 패널 내 Developers 폴더 사용
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-## 개요
 
 ![DevelopersFolder.png](DevelopersFolder.png)(w:220)
 

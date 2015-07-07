@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445787
+﻿INTSourceChangelist:2597122
 Availability:Public
 Title:블루프린트 클래스 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -23,9 +23,6 @@ Description:블루프린트 클래스 작업시 블루프린트 에디터의 UI 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-
-## 개요
 
 ![](ClassBlueprint.png)
 

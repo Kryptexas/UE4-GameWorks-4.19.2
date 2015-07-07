@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2499062
+﻿INTSourceChangelist:2600970
 Availability: Public
 Title:FBX 실전 사례
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -25,9 +25,6 @@ Description:언리얼 엔진 4 의 FBX 콘텐츠 파이프라인 작업에 있�
 [/VAR]
 
 [TOC(start:2)]
-
-
-## 개요
 
 
 여기서는 에픽 게임스의 아티스트들이 사용하는 언리얼 엔진 3 내 FBX 콘텐츠 파이프라인 작업시의 팁과 꼼수, 실전 사례들을 담아보겠습니다.

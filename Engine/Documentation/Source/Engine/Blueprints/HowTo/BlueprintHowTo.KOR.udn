@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468011
+﻿INTSourceChangelist:2597364
 Availability: Public
 Title:블루프린트 통신 프로젝트
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -44,8 +44,6 @@ Description:여러가지 블루프린트 통신 메소드를 사용하여 만든
 [/OBJECT]
 [/VAR]
 
-
-## 개요
 이 **블루프린트 통신 프로젝트** 에서는, 간단한 슈팅 갤러리 스타일의 게임을 만들어 봅니다. 프로젝트를 진행하는 동안 레벨에서 캐릭터로 정보를 전달하는 방법은 물론, 캐릭터 정보를 HUD 에 전달하는 방법까지도 배워봅니다. 프로젝트 종료 시점에서는 다음과 같은 모습일 것입니다:
 
 ![](Engine\Blueprints\HowTo\BPHT_6\GameplayGIF.gif)(convert:false)

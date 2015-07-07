@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492474
+﻿INTSourceChangelist:2599120
 Availability: Public
 Title:2. 발구름판 만들기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
@@ -49,7 +49,7 @@ Description:자주 쓰이는 뷰 포트 조작법에 관한 개요입니다.
 1. **디테일** 패널에서, **컴포넌트 추가** 버튼을 누르고, **기본** 에서 **Cube** 를 선택합니다.
 1. **Cube** 컴포넌트가 선택이 된 상태이므로, 상세 설정을 변경할 수 있습니다. 크기를 (1, 1, 0.1) 로 변경합니다.
 
-1. 어떤 물체든 충돌하면 이벤트를 호출할 박스 콜리전 컴포넌트를(Box Collision Component) 추가할 것입니다. **디테일** 패널에서 **컴포넌트 추가** 버튼을 누르고, **Collision** 아래에 있는 **Cube Collision** 을 선택합니다..
+1. 어떤 물체든 충돌하면 이벤트를 호출할 박스 콜리전 컴포넌트를(Box Collision Component) 추가할 것입니다. **디테일** 패널에서 **컴포넌트 추가** 버튼을 누르고, **Collision** 아래에 있는 **Box Collision** 을 선택합니다..
 1. 바닥의 크기에 맞도록 X, Y 크기를 변경시키고 Z의 크기를 바닥보다 조금 키웁니다. **스케일** 에 직접 (1.25, 1.25, 15.0)를 입력해도 됩니다.
 
 [REGION:tip]

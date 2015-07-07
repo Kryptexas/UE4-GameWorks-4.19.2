@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454950
+﻿INTSourceChangelist:2600525
 Availability:Public
 Title:컨스트럭션 스크립트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -49,8 +49,6 @@ Description:블루프린트의 인스턴스 생성시 초기화 작업을 수행
 
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 [EXCERPT:Intro]
 

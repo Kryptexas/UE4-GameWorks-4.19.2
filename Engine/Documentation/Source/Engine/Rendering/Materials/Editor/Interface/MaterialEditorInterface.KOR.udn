@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2524676
+﻿INTSourceChangelist:2597641
 Availability: Public
 Title:머티리얼 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
@@ -7,7 +7,7 @@ Description:머티리얼 에디터 UI 사용 안내서입니다.
 
 [TOC(start:2)]
 
-## 개요
+
 
 머티리얼 에디터 UI 는 메뉴바, 툴바, 그리고 기본적으로 네 개의 열린 패널로 구성됩니다.
 

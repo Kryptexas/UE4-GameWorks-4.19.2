@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2597124
 Availability:Public
 Title:데이터 전용 블루프린트 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -23,11 +23,6 @@ Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-
-[TOC (start:2)]
-
-## 개요
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#datablueprint]
 

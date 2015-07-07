@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2276197
+﻿INTSourceChangelist:2602642
 Availability:Public
 Title:큐브맵 익스포트하기
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
 Description:NVIDIA 의 Texture Tool 플러그인을 사용하여 포토샵에서 큐브맵을 익스포트하는 방법을 알아보는 개요서입니다.
-
-## 개요
 
 NVIDIA Texture Tool 플러그인을 사용하여 포토샵에서 큐브맵을 익스포트하는 법에 대한 문서입니다.
 

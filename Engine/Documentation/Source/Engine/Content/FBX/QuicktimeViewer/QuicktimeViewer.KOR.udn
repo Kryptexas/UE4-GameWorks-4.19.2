@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2511763
+﻿INTSourceChangelist:2601286
 Availability: Public
 Title:퀵타임으로 FBX 보기
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -25,9 +25,6 @@ Description:퀵타임 FBX 뷰어를 사용해서 스켈레탈 메시와 애니�
 [/VAR]
 
 [TOC(start:2)]
-
-
-## 개요
 
 
 FBX 파일을 보려면 종종 자주 쓰는 3D 콘텐츠 제작 프로그램으로 임포트한 다음 그 안에서 봐야 했습니다. 그러나 이마저도 3D 모델링 작업을 하지 않는 경우, 보통 프로그래머의 경우라면 문제가 될 수 있습니다. 다행히도 오토데스크가 3D 콘텐츠 제작 프로그램을 설치하지 않고도 FBX 파일을 볼 수 있도록 해 주는 퀵타임용 플러그인을 만들었습니다.

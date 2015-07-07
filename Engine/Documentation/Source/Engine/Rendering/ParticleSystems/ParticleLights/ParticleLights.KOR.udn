@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2227015
+﻿INTSourceChangelist:2603901
 Availability:Public
 Title:파티클 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -44,8 +44,6 @@ Description:VFX 아티스트에게 있어서 또하나의 무기, 파티클 라�
 [/VAR]
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 [EXCERPT:PL001]
 _CPU Particle Emitters_ (CPU 파티클 이미터)는 **캐스케이드** 에서 **Particle Light Module** (파티클 라이트 모듈)을 추가하여 각 파티클에 붙은 라이트로써 렌더링되도록 만들 수 있습니다. 주변 환경에 알아볼 만큼의 빛을 내뿜는 스파크나 화염같은 이펙트에 좋습니다.

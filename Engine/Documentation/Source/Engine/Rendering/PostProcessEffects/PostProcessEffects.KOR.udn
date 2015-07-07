@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2424314
+﻿INTSourceChangelist:2596226
 Availability:Public
 Title: 포스트 프로세스 이펙트
 Crumbs: %ROOT%, Engine
@@ -168,6 +168,18 @@ PostProcessVolume 안에서 찾을 수 있는 프로퍼티에 대한 설명입�
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
+		![%Engine/Rendering/PostProcessEffects/Blendables:title%](Blendables.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/PostProcessEffects/Blendables:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/PostProcessEffects/Blendables]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
 		![%Engine/Rendering/PostProcessEffects/SceneFringe:title%](fringe.png)
 	[/PARAM]
 	[PARAM:title]
@@ -203,3 +215,7 @@ PostProcessVolume 안에서 찾을 수 있는 프로퍼티에 대한 설명입�
 	[/PARAM]
 [/OBJECT]
 [/REGION]
+
+
+
+
