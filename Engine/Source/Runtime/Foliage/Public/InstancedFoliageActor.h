@@ -39,8 +39,6 @@ public:
 public:
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostInitProperties() override;
-	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface. 
@@ -54,6 +52,8 @@ protected:
 	virtual float InternalTakeRadialDamage(float Damage, struct FRadialDamageEvent const& RadialDamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 public:
 #if WITH_EDITOR
+	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
 	virtual void Destroyed() override;
 	FOLIAGE_API void CleanupDeletedFoliageType();
 #endif

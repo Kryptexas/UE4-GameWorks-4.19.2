@@ -56,7 +56,7 @@ public:
 
 
 	// Begin AActor Interface
-	ENGINE_API virtual void Destroyed() override;
+	ENGINE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	ENGINE_API virtual void PostInitializeComponents() override;
 	// End AActor Interface
 

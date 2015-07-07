@@ -21,9 +21,10 @@ void ACullDistanceVolume::Destroyed()
 {
 	Super::Destroyed();
 
-	if (GetWorld())
+	UWorld* World = GetWorld();
+	if (GIsEditor && World && World->IsGameWorld())
 	{
-		GetWorld()->bDoDelayedUpdateCullDistanceVolumes = true;
+		World->bDoDelayedUpdateCullDistanceVolumes = true;
 	}
 }
 

@@ -1916,16 +1916,19 @@ bool AInstancedFoliageActor::HasSelectedInstances() const
 
 void AInstancedFoliageActor::Destroyed()
 {
-	for (auto& MeshPair : FoliageMeshes)
+	if (GIsEditor && !GetWorld()->IsGameWorld())
 	{
-		UHierarchicalInstancedStaticMeshComponent* Component = MeshPair.Value->Component;
-
-		if (Component)
+		for (auto& MeshPair : FoliageMeshes)
 		{
-			Component->ClearInstances();
-			// Save the component's PendingKill flag to restore the component if the delete is undone.
-			Component->SetFlags(RF_Transactional);
-			Component->Modify();
+			UHierarchicalInstancedStaticMeshComponent* Component = MeshPair.Value->Component;
+
+			if (Component)
+			{
+				Component->ClearInstances();
+				// Save the component's PendingKill flag to restore the component if the delete is undone.
+				Component->SetFlags(RF_Transactional);
+				Component->Modify();
+			}
 		}
 	}
 
@@ -2189,11 +2192,11 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 	}
 }
 
+#if WITH_EDITOR
 void AInstancedFoliageActor::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-#if WITH_EDITOR
 	if (!IsTemplate())
 	{
 		GEngine->OnActorMoved().Remove(OnLevelActorMovedDelegateHandle);
@@ -2205,22 +2208,20 @@ void AInstancedFoliageActor::PostInitProperties()
 		FWorldDelegates::PostApplyLevelOffset.Remove(OnPostApplyLevelOffsetDelegateHandle);
 		OnPostApplyLevelOffsetDelegateHandle = FWorldDelegates::PostApplyLevelOffset.AddUObject(this, &AInstancedFoliageActor::OnPostApplyLevelOffset);
 	}
-#endif
 }
 
 void AInstancedFoliageActor::BeginDestroy()
 {
 	Super::BeginDestroy();
 
-#if WITH_EDITOR
 	if (!IsTemplate())
 	{
 		GEngine->OnActorMoved().Remove(OnLevelActorMovedDelegateHandle);
 		GEngine->OnLevelActorDeleted().Remove(OnLevelActorDeletedDelegateHandle);
 		FWorldDelegates::PostApplyLevelOffset.Remove(OnPostApplyLevelOffsetDelegateHandle);
 	}
-#endif
 }
+#endif
 
 void AInstancedFoliageActor::PostLoad()
 {

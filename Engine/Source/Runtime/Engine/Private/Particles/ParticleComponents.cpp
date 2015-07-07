@@ -5935,13 +5935,13 @@ void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const F
 	SetActorLocationAndRotation( CamLoc + X * DistAdjustedForFOV, NewRot, false );
 }
 
-void AEmitterCameraLensEffectBase::Destroyed()
+void AEmitterCameraLensEffectBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (BaseCamera != NULL)
 	{
 		BaseCamera->RemoveCameraLensEffect(this);
 	}
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AEmitterCameraLensEffectBase::RegisterCamera(APlayerCameraManager* C)
@@ -5961,11 +5961,12 @@ void AEmitterCameraLensEffectBase::PostInitializeComponents()
 void AEmitterCameraLensEffectBase::ActivateLensEffect()
 {
 	// only play the camera effect on clients
-	check(GetWorld());
+	UWorld* World = GetWorld();
+	check(World);
 	if( GetNetMode() != NM_DedicatedServer )
 	{
 		UParticleSystem* PSToActuallySpawn;
-		if( GetWorld()->GameState && GetWorld()->GameState->ShouldShowGore() )
+		if( World->GameState && World->GameState->ShouldShowGore() )
 		{
 			PSToActuallySpawn = PS_CameraEffect;
 		}

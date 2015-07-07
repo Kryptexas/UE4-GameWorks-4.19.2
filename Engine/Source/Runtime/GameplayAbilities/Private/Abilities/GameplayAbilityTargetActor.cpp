@@ -20,7 +20,7 @@ AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const FObjectInitialize
 	bDestroyOnConfirmation = true;
 }
 
-void AGameplayAbilityTargetActor::Destroyed()
+void AGameplayAbilityTargetActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// We must remove ourselves from GenericLocalConfirmCallbacks/GenericLocalCancelCallbacks, since while these are bound they will inhibit any *other* abilities
 	// that are bound to the same key.
@@ -39,7 +39,7 @@ void AGameplayAbilityTargetActor::Destroyed()
 		}
 	}
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

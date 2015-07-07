@@ -762,15 +762,18 @@ void APlayerCameraManager::PostInitializeComponents()
 	AnimCameraActor = GetWorld()->SpawnActor<ACameraActor>(SpawnInfo);
 }
 
-void APlayerCameraManager::Destroyed()
+void APlayerCameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// clean up the temp camera actor
 	if (AnimCameraActor)
 	{
-		AnimCameraActor->Destroy();
+		if (EndPlayReason == EEndPlayReason::Destroyed)
+		{
+			AnimCameraActor->Destroy();
+		}
 		AnimCameraActor = NULL;
 	}
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 void APlayerCameraManager::InitializeFor(APlayerController* PC)

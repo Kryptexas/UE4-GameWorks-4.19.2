@@ -195,7 +195,7 @@ void ABrush::Destroyed()
 {
 	Super::Destroyed();
 
-	if(IsStaticBrush())
+	if(GIsEditor && IsStaticBrush() && !GetWorld()->IsGameWorld())
 	{
 		// Trigger a csg rebuild if we're in the editor.
 		SetNeedRebuild(GetLevel());

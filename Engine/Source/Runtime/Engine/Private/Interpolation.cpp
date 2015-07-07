@@ -549,14 +549,15 @@ void AMatineeActor::OnObjectsReplaced(const TMap<UObject*,UObject*>& Replacement
 }
 #endif //WITH_EDITOR
 
-void AMatineeActor::Destroyed()
+void AMatineeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if( GetWorld() )
+	UWorld* World = GetWorld();
+	if (World)
 	{
-		GetWorldTimerManager().ClearTimer(TimerHandle_CheckPriorityRefresh);
+		World->GetTimerManager().ClearTimer(TimerHandle_CheckPriorityRefresh);
 	}
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMatineeActor::SetPosition(float NewPosition,bool bJump)
@@ -1785,19 +1786,6 @@ void AMatineeActor::CheckPriorityRefresh()
 			return;
 		}
 	}
-
-	// check if it is controlling a player Pawn, or a platform a player Pawn is standing on
-	
-	/*foreach WorldSettings.AllControllers(class'Controller', C)
-	{
-		if ( C.PlayerState && C.Pawn != None &&
-			( InterpAction.LatentActors.Find(C.Pawn) != INDEX_NONE ||
-				(C.Pawn.Base != None && InterpAction.LatentActors.Find(C.Pawn.Base) != INDEX_NONE) ) )
-		{
-			ForceNetUpdate();
-			return;
-		}
-	}*/
 }
 
 
