@@ -136,13 +136,13 @@ class BlueprintDocumentationNode : DocumentationNode
 
 public class DocumentationNodeAdder : GUBP.GUBPNodeAdder
 {
-	public override void AddNodes(GUBP bp, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms)
+	public override void AddNodes(GUBP bp, GUBP.GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms)
 	{
 		if(InHostPlatform == UnrealTargetPlatform.Win64 && !bp.BranchOptions.bNoDocumentation)
 		{
-			bp.AddNode(new ToolsForDocumentationNode(InHostPlatform));
-			bp.AddNode(new CodeDocumentationNode(InHostPlatform));
-			bp.AddNode(new BlueprintDocumentationNode(InHostPlatform));
+			BranchConfig.AddNode(new ToolsForDocumentationNode(InHostPlatform));
+			BranchConfig.AddNode(new CodeDocumentationNode(InHostPlatform));
+			BranchConfig.AddNode(new BlueprintDocumentationNode(InHostPlatform));
 		}
 	}
 }

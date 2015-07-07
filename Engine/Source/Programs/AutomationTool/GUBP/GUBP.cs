@@ -27,9 +27,6 @@ public partial class GUBP : BuildCommand
     public string PreflightMangleSuffix = "";
     public GUBPBranchHacker.BranchOptions BranchOptions = null;	
 
-	Dictionary<string, NodeInfo> GUBPNodes;
-	Dictionary<string, AggregateInfo> GUBPAggregates;
-
 	[DebuggerDisplay("{Name}")]
 	class AggregateInfo
 	{
@@ -50,59 +47,6 @@ public partial class GUBP : BuildCommand
         public List<int> AllSucceeded = new List<int>();
         public List<int> AllFailed = new List<int>();
     };
-
-    public string AddNode(GUBPNode Node)
-    {
-        string Name = Node.GetFullName();
-		if (GUBPNodes.ContainsKey(Name) || GUBPAggregates.ContainsKey(Name))
-		{
-            throw new AutomationException("Attempt to add a duplicate node {0}", Node.GetFullName());
-        }
-        GUBPNodes.Add(Name, new NodeInfo{ Name = Name, Node = Node });
-        return Name;
-    }
-
-	public string AddNode(GUBPAggregateNode Node)
-	{
-		string Name = Node.GetFullName();
-		if (GUBPNodes.ContainsKey(Name) || GUBPAggregates.ContainsKey(Name))
-		{
-			throw new AutomationException("Attempt to add a duplicate node {0}", Node.GetFullName());
-		}
-		GUBPAggregates.Add(Name, new AggregateInfo { Name = Name, Node = Node });
-		return Name;
-	}
-
-    public bool HasNode(string Node)
-    {
-        return GUBPNodes.ContainsKey(Node) || GUBPAggregates.ContainsKey(Node);
-    }
-
-    public GUBPNode FindNode(string Node)
-    {
-        return GUBPNodes[Node].Node;
-    }
-
-    public GUBPAggregateNode FindAggregateNode(string Node)
-    {
-        return GUBPAggregates[Node].Node;
-    }
-
-	public GUBPNode TryFindNode(string Node)
-	{
-		NodeInfo Result;
-		GUBPNodes.TryGetValue(Node, out Result);
-		return (Result == null)? null : Result.Node;
-	}
-
-    public void RemovePseudodependencyFromNode(string Node, string Dep)
-    {
-        if (!GUBPNodes.ContainsKey(Node))
-        {
-            throw new AutomationException("Node {0} not found", Node);
-        }
-        GUBPNodes[Node].Node.RemovePseudodependency(Dep);
-    }
 
 	/// <summary>
 	/// Recursively update the ControllingTriggers array for each of the nodes passed in. 
@@ -1303,37 +1247,37 @@ public partial class GUBP : BuildCommand
             Log("Setting TimeIndex to {0}", TimeIndex);
         }
 
-        GUBPNodes = new Dictionary<string, NodeInfo>();
-		GUBPAggregates = new Dictionary<string, AggregateInfo>();
         Branch = new BranchInfo(HostPlatforms);        
 
-		AddNodesForBranch(TimeIndex, bNoAutomatedTesting);
+		List<NodeInfo> AllNodes;
+		List<AggregateInfo> AllAggregates;
+		AddNodesForBranch(TimeIndex, bNoAutomatedTesting, out AllNodes, out AllAggregates);
 
-		LinkGraph(GUBPAggregates, GUBPNodes);
-		FindControllingTriggers(GUBPNodes.Values);
-		FindCompletionState(GUBPNodes.Values, StoreName, LocalOnly);
-		ComputeDependentFrequencies(GUBPNodes.Values);
+		LinkGraph(AllAggregates, AllNodes);
+		FindControllingTriggers(AllNodes);
+		FindCompletionState(AllNodes, StoreName, LocalOnly);
+		ComputeDependentFrequencies(AllNodes);
 
         if (bCleanLocalTempStorage)  // shared temp storage can never be wiped
         {
             TempStorage.DeleteLocalTempStorageManifests(CmdEnv);
         }
 
-		HashSet<NodeInfo> NodesToDo = ParseNodesToDo(WithoutLinux, TimeIndex, CommanderSetup);
+		HashSet<NodeInfo> NodesToDo = ParseNodesToDo(AllNodes, AllAggregates, WithoutLinux, TimeIndex, CommanderSetup);
 
 		NodeInfo ExplicitTrigger = null;
 		if (CommanderSetup)
         {
             if (!String.IsNullOrEmpty(ExplicitTriggerName))
             {
-                foreach (KeyValuePair<string, NodeInfo> Node in GUBPNodes)
+                foreach (NodeInfo Node in AllNodes)
                 {
-                    if (Node.Value.Node.GetFullName().Equals(ExplicitTriggerName, StringComparison.InvariantCultureIgnoreCase))
+                    if (Node.Name.Equals(ExplicitTriggerName, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (Node.Value.Node.TriggerNode())
+                        if (Node.Node.TriggerNode())
                         {
-                            Node.Value.Node.SetAsExplicitTrigger();
-							ExplicitTrigger = Node.Value;
+                            Node.Node.SetAsExplicitTrigger();
+							ExplicitTrigger = Node;
                             break;
                         }
                     }
@@ -1347,11 +1291,11 @@ public partial class GUBP : BuildCommand
             {
                 if (bSkipTriggers)
                 {
-                    foreach (KeyValuePair<string, NodeInfo> Node in GUBPNodes)
+                    foreach (NodeInfo Node in AllNodes)
                     {
-                        if (Node.Value.Node.TriggerNode())
+                        if (Node.Node.TriggerNode())
                         {
-                            Node.Value.Node.SetAsExplicitTrigger();
+                            Node.Node.SetAsExplicitTrigger();
                         }
                     }
                 }
@@ -1368,7 +1312,7 @@ public partial class GUBP : BuildCommand
 
 		List<NodeInfo> UnfinishedTriggers = FindUnfinishedTriggers(bSkipTriggers, ExplicitTrigger, OrderedToDo);
 
-		PrintNodes(this, OrderedToDo, GUBPAggregates.Values, UnfinishedTriggers, TimeQuantum);
+		PrintNodes(this, OrderedToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
 
         //check sorting
 		CheckSortOrder(OrderedToDo);
@@ -1376,7 +1320,7 @@ public partial class GUBP : BuildCommand
         string FakeFail = ParseParamValue("FakeFail");
         if(CommanderSetup)
         {
-			DoCommanderSetup(NodesToDo, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, UnfinishedTriggers, FakeFail);
+			DoCommanderSetup(AllNodes, AllAggregates, NodesToDo, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, UnfinishedTriggers, FakeFail);
         }
 		else if(ParseParam("SaveGraph"))
 		{
@@ -1421,8 +1365,20 @@ public partial class GUBP : BuildCommand
 	/// </summary>
 	/// <param name="AggregateNameToInfo">Map of aggregate names to their info objects</param>
 	/// <param name="NodeNameToInfo">Map of node names to their info objects</param>
-	private static void LinkGraph(Dictionary<string, AggregateInfo> AggregateNameToInfo, Dictionary<string, NodeInfo> NodeNameToInfo)
+	private static void LinkGraph(IEnumerable<AggregateInfo> Aggregates, IEnumerable<NodeInfo> Nodes)
 	{
+		Dictionary<string, NodeInfo> NodeNameToInfo = new Dictionary<string,NodeInfo>();
+		foreach(NodeInfo Node in Nodes)
+		{
+			NodeNameToInfo.Add(Node.Name, Node);
+		}
+
+		Dictionary<string, AggregateInfo> AggregateNameToInfo = new Dictionary<string, AggregateInfo>();
+		foreach(AggregateInfo Aggregate in Aggregates)
+		{
+			AggregateNameToInfo.Add(Aggregate.Name, Aggregate);
+		}
+
 		int NumErrors = 0;
 		foreach (AggregateInfo AggregateNode in AggregateNameToInfo.Values)
 		{
@@ -1559,7 +1515,7 @@ public partial class GUBP : BuildCommand
 		return false;
 	}
 
-	private HashSet<NodeInfo> ParseNodesToDo(bool WithoutLinux, int TimeIndex, bool CommanderSetup)
+	private HashSet<NodeInfo> ParseNodesToDo(IEnumerable<NodeInfo> PotentialNodes, IEnumerable<AggregateInfo> PotentialAggregates, bool WithoutLinux, int TimeIndex, bool CommanderSetup)
 	{
 		List<string> NamesToDo = new List<string>();
 
@@ -1579,7 +1535,7 @@ public partial class GUBP : BuildCommand
 		foreach (string NameToDo in NamesToDo)
 		{
 			int FoundNames = 0;
-			foreach (NodeInfo PotentialNode in GUBPNodes.Values)
+			foreach (NodeInfo PotentialNode in PotentialNodes)
 			{
 				if (String.Compare(PotentialNode.Name, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0 || String.Compare(PotentialNode.Node.AgentSharingGroup, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0)
 				{
@@ -1587,7 +1543,7 @@ public partial class GUBP : BuildCommand
 					FoundNames++;
 				}
 			}
-			foreach (AggregateInfo PotentialAggregate in GUBPAggregates.Values)
+			foreach (AggregateInfo PotentialAggregate in PotentialAggregates)
 			{
 				if (String.Compare(PotentialAggregate.Name, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0)
 				{
@@ -1604,10 +1560,7 @@ public partial class GUBP : BuildCommand
 		if (NodesToDo.Count == 0)
 		{
 			LogVerbose("No nodes specified, adding all nodes");
-			foreach (KeyValuePair<string, NodeInfo> Node in GUBPNodes)
-			{
-				NodesToDo.Add(Node.Value);
-			}
+			NodesToDo.UnionWith(PotentialNodes);
 		}
 		else if (TimeIndex != 0)
 		{
@@ -1899,14 +1852,14 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-	private void DoCommanderSetup(HashSet<NodeInfo> NodesToDo, List<NodeInfo> OrdereredToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, List<NodeInfo> UnfinishedTriggers, string FakeFail)
+	private void DoCommanderSetup(IEnumerable<NodeInfo> AllNodes, IEnumerable<AggregateInfo> AllAggregates, HashSet<NodeInfo> NodesToDo, List<NodeInfo> OrdereredToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, List<NodeInfo> UnfinishedTriggers, string FakeFail)
 	{
 		Dictionary<string, string> FullNodeDependedOnBy = GetFullNodeDependedOnBy(NodesToDo);
 
-		List<AggregateInfo> SeparatePromotables = FindPromotables(GUBPAggregates.Values);
-		Dictionary<NodeInfo, List<AggregateInfo>> DependentPromotions = FindDependentPromotables(GUBPNodes.Values, SeparatePromotables);
+		List<AggregateInfo> SeparatePromotables = FindPromotables(AllAggregates);
+		Dictionary<NodeInfo, List<AggregateInfo>> DependentPromotions = FindDependentPromotables(AllNodes, SeparatePromotables);
 
-		List<NodeInfo> SortedNodes = TopologicalSort(new HashSet<NodeInfo>(GUBPNodes.Values), null, SubSort: false, DoNotConsiderCompletion: true);
+		List<NodeInfo> SortedNodes = TopologicalSort(new HashSet<NodeInfo>(AllNodes), null, SubSort: false, DoNotConsiderCompletion: true);
 		Log("******* {0} GUBP Nodes", SortedNodes.Count);
 
 		Dictionary<NodeInfo, int> FullNodeListSortKey = GetDisplayOrder(SortedNodes);
@@ -1983,7 +1936,7 @@ public partial class GUBP : BuildCommand
 		using(TelemetryStopwatch PrintNodesTimer = new TelemetryStopwatch("SetupCommanderPrint"))
 		{
 			Log("*********** EC Nodes, in order.");
-			PrintNodes(this, OrdereredToDo, GUBPAggregates.Values, UnfinishedTriggers, TimeQuantum);
+			PrintNodes(this, OrdereredToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
 		}
 		// here we are just making sure everything before the explicit trigger is completed.
 		if (ExplicitTrigger != null)

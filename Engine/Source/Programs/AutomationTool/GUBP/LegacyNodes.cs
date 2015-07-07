@@ -1011,11 +1011,11 @@ partial class GUBP
         {
 			SetupSingleInternalToolsNode(InProgramTarget);
         }
-		public SingleInternalToolsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
+		public SingleInternalToolsNode(GUBP bp, GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
             : base(InHostPlatform)
         {
 			// Don't add rooteditor dependency if it isn't in the graph
-			var bRootEditorNodeDoesExit = bp.HasNode(RootEditorNode.StaticGetFullName(HostPlatform));
+			var bRootEditorNodeDoesExit = BranchConfig.HasNode(RootEditorNode.StaticGetFullName(HostPlatform));
 			SetupSingleInternalToolsNode(InProgramTarget, !bRootEditorNodeDoesExit && bp.BranchOptions.bNoEditorDependenciesForTools);
         }
 		private void SetupSingleInternalToolsNode(SingleTargetProperties InProgramTarget, bool bSkipRootEditorPsuedoDependency = true)
@@ -1253,7 +1253,7 @@ partial class GUBP
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 
-        public GamePlatformMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
+        public GamePlatformMonolithicsNode(GUBP bp, GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InHostPlatform)
         {
             GameProj = InGameProj;
@@ -1274,14 +1274,14 @@ partial class GUBP
 				{
 					AddPseudodependency(EditorGameNode.StaticGetFullName(InHostPlatform, GameProj));
 				}
-                if (bp.HasNode(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform)))
+                if (BranchConfig.HasNode(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform)))
                 {
                     AddPseudodependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform));
                 }
             }
             else
             {
-                if (TargetPlatform != InHostPlatform && bp.HasNode(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, bp.Branch.BaseEngineProject, InHostPlatform, Precompiled: Precompiled)))
+                if (TargetPlatform != InHostPlatform && BranchConfig.HasNode(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, bp.Branch.BaseEngineProject, InHostPlatform, Precompiled: Precompiled)))
                 {
                     AddPseudodependency(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, bp.Branch.BaseEngineProject, InHostPlatform, Precompiled: Precompiled));
                 }
@@ -2195,7 +2195,7 @@ partial class GUBP
         bool bIsMassive;
 		
 
-        public CookNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, string InCookPlatform)
+        public CookNode(GUBP bp, GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, string InCookPlatform)
             : base(InHostPlatform)
         {
             GameProj = InGameProj;
@@ -2239,7 +2239,7 @@ partial class GUBP
                 AgentSharingGroup = "SharedCooks" + StaticGetHostPlatformSuffix(HostPlatform);
 
                 // If the cook fails for the base engine, don't bother trying
-                if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && bp.HasNode(CookNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, CookPlatform)))
+                if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && BranchConfig.HasNode(CookNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, CookPlatform)))
                 {
                     AddPseudodependency(CookNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, CookPlatform));
                 }
@@ -2247,7 +2247,7 @@ partial class GUBP
                 // If the base cook platform fails, don't bother trying other ones
                 string BaseCookedPlatform = Platform.Platforms[HostPlatform].GetCookPlatform(false, false, "");
                 if (InGameProj.GameName == bp.Branch.BaseEngineProject.GameName && CookPlatform != BaseCookedPlatform &&
-                    bp.HasNode(CookNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, BaseCookedPlatform)))
+                    BranchConfig.HasNode(CookNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, BaseCookedPlatform)))
                 {
                     AddPseudodependency(CookNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, BaseCookedPlatform));
                 }
@@ -3067,7 +3067,7 @@ partial class GUBP
         List<UnrealTargetPlatform> DependsOnCooked;
         float ECPriority;
 
-        public UATTestNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InTestName, string InUATCommandLine, string InAgentSharingGroup, bool InDependsOnEditor = true, List<UnrealTargetPlatform> InDependsOnCooked = null, float InECPriority = 0.0f)
+        public UATTestNode(GUBP bp, GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InTestName, string InUATCommandLine, string InAgentSharingGroup, bool InDependsOnEditor = true, List<UnrealTargetPlatform> InDependsOnCooked = null, float InECPriority = 0.0f)
             : base(InHostPlatform)
         {
             AgentSharingGroup = InAgentSharingGroup;
@@ -3105,7 +3105,7 @@ partial class GUBP
             // If the same test fails for the base engine, don't bother trying
             if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName)
             {
-                if (bp.HasNode(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TestName)))
+                if (BranchConfig.HasNode(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TestName)))
                 {
                     AddPseudodependency(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, InTestName));
                 }
@@ -3115,14 +3115,14 @@ partial class GUBP
                     foreach (var Plat in DependsOnCooked)
                     {
                         var PlatTestName = "CookedGameTest_"  + Plat.ToString();
-                        if (bp.HasNode(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, PlatTestName)))
+                        if (BranchConfig.HasNode(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, PlatTestName)))
                         {
                             AddPseudodependency(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, PlatTestName));
                             bFoundACook = true;
                         }
                     }
 
-                    if (!bFoundACook && bp.HasNode(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, "EditorTest")))
+                    if (!bFoundACook && BranchConfig.HasNode(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, "EditorTest")))
                     {
                         AddPseudodependency(UATTestNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, "EditorTest"));
                     }
@@ -3238,9 +3238,12 @@ partial class GUBP
 
     public class CleanSharedTempStorageNode : GUBPNode
     {
-        public CleanSharedTempStorageNode(GUBP bp)
+		HashSet<string> GameNames;
+
+        public CleanSharedTempStorageNode(GUBP bp, GUBPBranchConfig BranchConfig)
         {
-            var ToolsNode = bp.FindNode(ToolsForCompileNode.StaticGetFullName(UnrealTargetPlatform.Win64));
+            var ToolsNode = BranchConfig.FindNode(ToolsForCompileNode.StaticGetFullName(UnrealTargetPlatform.Win64));
+			GameNames = new HashSet<string>(BranchConfig.GUBPNodes.Values.Select(x => x.GameNameIfAnyForTempStorage()));
             AgentSharingGroup = ToolsNode.AgentSharingGroup;
         }
         public override float Priority()
@@ -3260,9 +3263,9 @@ partial class GUBP
         {
             {
                 var StartTime = DateTime.UtcNow;
-                foreach (var NodeToDo in bp.GUBPNodes)
+                foreach (string GameName in GameNames)
                 {
-                    TempStorage.CleanSharedTempStorageDirectory(NodeToDo.Value.Node.GameNameIfAnyForTempStorage());
+                    TempStorage.CleanSharedTempStorageDirectory(GameName);
                 }
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
                 Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
