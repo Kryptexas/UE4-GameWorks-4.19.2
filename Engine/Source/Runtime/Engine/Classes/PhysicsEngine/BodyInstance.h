@@ -625,6 +625,7 @@ public:
 	 */
 	bool UpdateBodyScale(const FVector& InScale3D);
 
+	/** Dynamically update the vertices of per-poly collision for this body. */
 	void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
 
 	/** Returns the center of mass of this body (in world space) */

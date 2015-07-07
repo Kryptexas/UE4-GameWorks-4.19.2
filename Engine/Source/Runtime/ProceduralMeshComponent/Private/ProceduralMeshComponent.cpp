@@ -121,11 +121,37 @@ public:
 	FProcMeshIndexBuffer IndexBuffer;
 	/** Vertex factory for this section */
 	FProcMeshVertexFactory VertexFactory;
+	/** Whether this section is currently visible */
+	bool bSectionVisible;
 
 	FProcMeshProxySection()
-		: Material(NULL)
+	: Material(NULL)
+	, bSectionVisible(true)
 	{}
 };
+
+/** 
+ *	Struct used to send update to mesh data 
+ *	Arrays may be empty, in which case no update is performed.
+ */
+class FProcMeshSectionUpdateData
+{
+public:
+	/** Section to update */
+	int32 TargetSection;
+	/** New vertex information */
+	TArray<FProcMeshVertex> NewVertexBuffer;
+};
+
+static void ConvertProcMeshToDynMeshVertex(FDynamicMeshVertex& Vert, const FProcMeshVertex& ProcVert)
+{
+	Vert.Position = ProcVert.Position;
+	Vert.Color = ProcVert.Color;
+	Vert.TextureCoordinate = ProcVert.UV0;
+	Vert.TangentX = ProcVert.Tangent.TangentX;
+	Vert.TangentZ = ProcVert.Normal;
+	Vert.TangentZ.Vector.W = ProcVert.Tangent.bFlipTangentY ? 0 : 255;
+}
 
 /** Procedural mesh scene proxy */
 class FProceduralMeshSceneProxy : public FPrimitiveSceneProxy
@@ -154,15 +180,9 @@ public:
 				// Copy verts
 				for (int VertIdx = 0; VertIdx < NumVerts; VertIdx++)
 				{
-					FProcMeshVertex& ProcVert = SrcSection.ProcVertexBuffer[VertIdx];
-
+					const FProcMeshVertex& ProcVert = SrcSection.ProcVertexBuffer[VertIdx];
 					FDynamicMeshVertex& Vert = NewSection->VertexBuffer.Vertices[VertIdx];
-					Vert.Position = ProcVert.Position;
-					Vert.Color = ProcVert.Color;
-					Vert.TextureCoordinate = ProcVert.UV0;
-					Vert.TangentX = ProcVert.Tangent.TangentX;
-					Vert.TangentZ = ProcVert.Normal;
-					Vert.TangentZ.Vector.W = ProcVert.Tangent.bFlipTangentY ? 0 : 255;
+					ConvertProcMeshToDynMeshVertex(Vert, ProcVert);
 				}
 
 				// Copy index buffer
@@ -183,6 +203,9 @@ public:
 					NewSection->Material = UMaterial::GetDefaultMaterial(MD_Surface);
 				}
 
+				// Copy visibility info
+				NewSection->bSectionVisible = SrcSection.bSectionVisible;
+
 				// Save ref to new section
 				Sections[SectionIdx] = NewSection;
 			}
@@ -200,6 +223,52 @@ public:
 				Section->VertexFactory.ReleaseResource();
 				delete Section;
 			}
+		}
+	}
+
+	/** Called on render thread to assign new dynamic data */
+	void UpdateSection_RenderThread(FProcMeshSectionUpdateData* SectionData)
+	{
+		check(IsInRenderingThread());
+
+		// Check we have data 
+		if(	SectionData != nullptr) 			
+		{
+			// Check it references a valid section
+			if (SectionData->TargetSection < Sections.Num() &&
+				Sections[SectionData->TargetSection] != nullptr)
+			{
+				FProcMeshProxySection* Section = Sections[SectionData->TargetSection];
+
+				// Lock vertex buffer
+				const int32 NumVerts = SectionData->NewVertexBuffer.Num();
+				FDynamicMeshVertex* VertexBufferData = (FDynamicMeshVertex*)RHILockVertexBuffer(Section->VertexBuffer.VertexBufferRHI, 0, NumVerts * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+			
+				// Iterate through vertex data, copying in new info
+				for(int32 VertIdx=0; VertIdx<NumVerts; VertIdx++)
+				{
+					const FProcMeshVertex& ProcVert = SectionData->NewVertexBuffer[VertIdx];
+					FDynamicMeshVertex& Vert = VertexBufferData[VertIdx];
+					ConvertProcMeshToDynMeshVertex(Vert, ProcVert);
+				}
+
+				// Unlock vertex buffer
+				RHIUnlockVertexBuffer(Section->VertexBuffer.VertexBufferRHI);
+			}
+
+			// Free data sent from game thread
+			delete SectionData;
+		}
+	}
+
+	void SetSectionVisibility_RenderThread(int32 SectionIndex, bool bNewVisibility)
+	{
+		check(IsInRenderingThread());
+
+		if(	SectionIndex < Sections.Num() &&
+			Sections[SectionIndex] != nullptr)
+		{
+			Sections[SectionIndex]->bSectionVisible = bNewVisibility;
 		}
 	}
 
@@ -222,7 +291,7 @@ public:
 		// Iterate over sections
 		for (const FProcMeshProxySection* Section : Sections)
 		{
-			if (Section != nullptr)
+			if (Section != nullptr && Section->bSectionVisible)
 			{
 				FMaterialRenderProxy* MaterialProxy = bWireframe ? WireframeMaterialInstance : Section->Material->GetRenderProxy(IsSelected());
 
@@ -337,7 +406,9 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 	}
 
 	// Copy index buffer (clamping to vertex range)
-	const int32 NumTriIndices = Triangles.Num();
+	int32 NumTriIndices = Triangles.Num();
+	NumTriIndices = (NumTriIndices/3) * 3; // Ensure we have exact number of triangles (array is multiple of 3 long)
+
 	NewSection.ProcIndexBuffer.Reset();
 	NewSection.ProcIndexBuffer.AddUninitialized(NumTriIndices);
 	for (int32 IndexIdx = 0; IndexIdx < NumTriIndices; IndexIdx++)
@@ -349,7 +420,105 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 
 	UpdateLocalBounds(); // Update overall bounds
 	UpdateCollision(); // Mark collision as dirty
-	MarkRenderStateDirty(); // Recreate scene proxy
+	MarkRenderStateDirty(); // New section requires recreating scene proxy
+}
+
+void UProceduralMeshComponent::UpdateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents)
+{
+	if(SectionIndex < ProcMeshSections.Num())
+	{
+		FProcMeshSection& Section = ProcMeshSections[SectionIndex];
+		const int32 NumVerts = Section.ProcVertexBuffer.Num();
+
+		// See if positions are changing
+		const bool bPositionsChanging = (Vertices.Num() == NumVerts);
+
+		// Update bounds, if we are getting new position data
+		if (bPositionsChanging)
+		{
+			Section.SectionLocalBox.Init();
+		}
+
+		// Iterate through vertex data, copying in new info
+		for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
+		{
+			FProcMeshVertex& ModifyVert = Section.ProcVertexBuffer[VertIdx];
+
+			// Position data
+			if (Vertices.Num() == NumVerts)
+			{
+				ModifyVert.Position = Vertices[VertIdx];
+				Section.SectionLocalBox += ModifyVert.Position;
+			}
+
+			// Normal data
+			if (Normals.Num() == NumVerts)
+			{
+				ModifyVert.Normal = Normals[VertIdx];
+			}
+
+			// Tangent data 
+			if (Tangents.Num() == NumVerts)
+			{
+				ModifyVert.Tangent = Tangents[VertIdx];
+			}
+
+			// UV data
+			if (UV0.Num() == NumVerts)
+			{
+				ModifyVert.UV0 = UV0[VertIdx];
+			}
+
+			// Color data
+			if (VertexColors.Num() == NumVerts)
+			{
+				ModifyVert.Color = VertexColors[VertIdx];
+			}
+		}
+
+		// Create data to update section
+		FProcMeshSectionUpdateData* SectionData = new FProcMeshSectionUpdateData;
+		SectionData->TargetSection = SectionIndex;
+		SectionData->NewVertexBuffer = Section.ProcVertexBuffer;
+
+		// Enqueue command to send to render thread
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			FProcMeshSectionUpdate,
+			FProceduralMeshSceneProxy*, ProcMeshSceneProxy, (FProceduralMeshSceneProxy*)SceneProxy,
+			FProcMeshSectionUpdateData*, SectionData, SectionData,
+			{
+				ProcMeshSceneProxy->UpdateSection_RenderThread(SectionData);
+			}
+		);
+
+		// If we have collision enabled on this section, update that too
+		if(bPositionsChanging && Section.bEnableCollision)
+		{
+			TArray<FVector> CollisionPositions;
+
+			// We have one collision mesh for all sections, so need to build array of _all_ positions
+			for (const FProcMeshSection& CollisionSection : ProcMeshSections)
+			{
+				// If section has collision, copy it
+				if (CollisionSection.bEnableCollision)
+				{
+					for (int32 VertIdx = 0; VertIdx < Section.ProcVertexBuffer.Num(); VertIdx++)
+					{
+						CollisionPositions.Add(Section.ProcVertexBuffer[VertIdx].Position);
+					}
+				}
+			}
+
+			// Pass new positions to trimesh
+			BodyInstance.UpdateTriMeshVertices(CollisionPositions);
+		}
+
+		if (bPositionsChanging)
+		{
+			UpdateLocalBounds(); // Update overall bounds
+			MarkRenderTransformDirty(); // Need to send new bounds to render thread
+		}
+	}
 }
 
 void UProceduralMeshComponent::ClearMeshSection(int32 SectionIndex)
@@ -370,6 +539,32 @@ void UProceduralMeshComponent::ClearAllMeshSections()
 	UpdateCollision();
 	MarkRenderStateDirty();
 }
+
+void UProceduralMeshComponent::SetMeshSectionVisible(int32 SectionIndex, bool bNewVisibility)
+{
+	if(SectionIndex < ProcMeshSections.Num())
+	{
+		// Set game thread state
+		ProcMeshSections[SectionIndex].bSectionVisible = bNewVisibility;
+
+		// Enqueue command to modify render thread info
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			FProcMeshSectionVisibilityUpdate,
+			FProceduralMeshSceneProxy*, ProcMeshSceneProxy, (FProceduralMeshSceneProxy*)SceneProxy,
+			int32, SectionIndex, SectionIndex,
+			bool, bNewVisibility, bNewVisibility,
+			{
+				ProcMeshSceneProxy->SetSectionVisibility_RenderThread(SectionIndex, bNewVisibility);
+			}
+		);
+	}
+}
+
+bool UProceduralMeshComponent::IsMeshSectionVisible(int32 SectionIndex) const
+{
+	return (SectionIndex < ProcMeshSections.Num()) ? ProcMeshSections[SectionIndex].bSectionVisible : false;
+}
+
 
 void UProceduralMeshComponent::UpdateLocalBounds()
 {

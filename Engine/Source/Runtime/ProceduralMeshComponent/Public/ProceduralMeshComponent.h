@@ -13,13 +13,13 @@ struct FProcMeshTangent
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** Direction of X tangent for this vertex */
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tangent)
-		FVector TangentX;
+	/** Direction of X tangent for this vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tangent)
+	FVector TangentX;
 
 	/** Bool that indicates whether we should flip the Y tangent when we compute it using cross product */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tangent)
-		bool bFlipTangentY;
+	bool bFlipTangentY;
 
 	FProcMeshTangent()
 		: TangentX(1.f, 0.f, 0.f)
@@ -43,20 +43,25 @@ struct FProcMeshVertex
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-		FVector Position;
-
+	/** Vertex position */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-		FVector Normal;
+	FVector Position;
 
+	/** Vertex normal */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-		FProcMeshTangent Tangent;
+	FVector Normal;
 
+	/** Vertex tangent */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-		FColor Color;
+	FProcMeshTangent Tangent;
 
+	/** Vertex color */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-		FVector2D UV0;
+	FColor Color;
+
+	/** Vertex texture co-ordinate */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
+	FVector2D UV0;
 
 
 	FProcMeshVertex()
@@ -74,22 +79,29 @@ struct FProcMeshSection
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** Vertex buffer for this section */
-		UPROPERTY()
-		TArray<FProcMeshVertex> ProcVertexBuffer;
+	/** Vertex buffer for this section */
+	UPROPERTY()
+	TArray<FProcMeshVertex> ProcVertexBuffer;
+
 	/** Index buffer for this section */
 	UPROPERTY()
-		TArray<int32> ProcIndexBuffer;
+	TArray<int32> ProcIndexBuffer;
 	/** Local bounding box of section */
 	UPROPERTY()
-		FBox SectionLocalBox;
+	FBox SectionLocalBox;
+
 	/** Should we build collision data for triangles in this section */
 	UPROPERTY()
-		bool bEnableCollision;
+	bool bEnableCollision;
+
+	/** Should we display this section */
+	UPROPERTY()
+	bool bSectionVisible;
 
 	FProcMeshSection()
 		: SectionLocalBox(0)
 		, bEnableCollision(false)
+		, bSectionVisible(true)
 	{}
 
 	/** Reset this section, clear all mesh info. */
@@ -99,6 +111,7 @@ struct FProcMeshSection
 		ProcIndexBuffer.Empty();
 		SectionLocalBox.Init();
 		bEnableCollision = false;
+		bSectionVisible = true;
 	}
 };
 
@@ -111,28 +124,46 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 {
 	GENERATED_UCLASS_BODY()
 
-		/**
-		*	Create/replace a section for this procedural mesh component.
-		*	@param	SectionIndex		Index of the section to create or replace.
-		*	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
-		*	@param	Triangles			Index buffer indicating which vertices make up each triangle. Length must be a multiple of 3.
-		*	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
-		*	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
-		*	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
-		*	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
-		*	@param	bCreateCollision	Indicates whether collision should be created for this section. This adds significant cost.
-		*/
-		UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
-		void CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
+	/**
+	 *	Create/replace a section for this procedural mesh component.
+	 *	@param	SectionIndex		Index of the section to create or replace.
+	 *	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
+	 *	@param	Triangles			Index buffer indicating which vertices make up each triangle. Length must be a multiple of 3.
+	 *	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	bCreateCollision	Indicates whether collision should be created for this section. This adds significant cost.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+	void CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
+
+	/**
+	 *	Updates a section of this procedural mesh component. This is faster than CreateMeshSection, but does not let you change topology. Collision info is also updated.
+	 *	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
+	 *	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
+	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+	void UpdateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents);
 
 	/** Clear a section of the procedural mesh. Other sections do not change index. */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
-		void ClearMeshSection(int32 SectionIndex);
+	void ClearMeshSection(int32 SectionIndex);
 
 	/** Clear all mesh sections and reset to empty state */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
-		void ClearAllMeshSections();
+	void ClearAllMeshSections();
 
+	/** Control visibility of a particular section */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	void SetMeshSectionVisible(int32 SectionIndex, bool bNewVisibility);
+
+	/** Returns whether a particular section is currently visible */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	bool IsMeshSectionVisible(int32 SectionIndex) const;
 
 	// Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
@@ -145,6 +176,10 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	class UBodySetup* ProcMeshBodySetup;
 
 private:
+	// Begin USceneComponent interface.
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	// Begin USceneComponent interface.
+
 	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override;
@@ -154,9 +189,7 @@ private:
 	virtual int32 GetNumMaterials() const override;
 	// End UMeshComponent interface.
 
-	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	// Begin USceneComponent interface.
+
 
 	/** Update LocalBounds member from the local box of each section */
 	void UpdateLocalBounds();
