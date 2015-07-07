@@ -608,6 +608,7 @@ void FMainFrameModule::StartupModule( )
 {
 	MRUFavoritesList = NULL;
 
+	ensureMsgf(!IsRunningGame(), TEXT("The MainFrame module should only be loaded when running the editor.  Code that extends the editor, adds menu items, etc... should not run when running in -game mode or in a non-WITH_EDITOR build"));
 	MainFrameHandler = MakeShareable(new FMainFrameHandler);
 
 	FMainFrameCommands::Register();
