@@ -49,7 +49,7 @@ void FSlateD3DTexture::Init( DXGI_FORMAT InFormat, D3D11_SUBRESOURCE_DATA* Inita
 		TexDesc.BindFlags = 0;
 		TexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
 
-		HRESULT Hr = GD3DDevice->CreateTexture2D(&TexDesc, InitalData, StagingTexture.GetInitReference());
+		Hr = GD3DDevice->CreateTexture2D(&TexDesc, InitalData, StagingTexture.GetInitReference());
 		checkf(SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr);
 	}
 	else

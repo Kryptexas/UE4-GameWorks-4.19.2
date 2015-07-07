@@ -379,7 +379,7 @@ struct AIMODULE_API FEnvQueryItem
 	int32 DataOffset:31;
 
 	/** has this item been discarded? */
-	int32 bIsDiscarded:1;
+	uint32 bIsDiscarded:1;
 
 	FORCEINLINE bool IsValid() const { return DataOffset >= 0 && !bIsDiscarded; }
 	FORCEINLINE void Discard() { bIsDiscarded = true; }
