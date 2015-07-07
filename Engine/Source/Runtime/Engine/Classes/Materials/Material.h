@@ -1000,6 +1000,42 @@ public:
 		}
 	}
 
+	/** Get all expressions of the requested type, recursing through any function expressions in the material */
+	template<typename ExpressionType>
+	void GetAllExpressionsInMaterialAndFunctionsOfType(TArray<ExpressionType*>& OutExpressions) const
+	{
+		for (UMaterialExpression* Expression : Expressions)
+		{
+			ExpressionType* ExpressionOfType = Cast<ExpressionType>(Expression);
+			if (ExpressionOfType)
+			{
+				OutExpressions.Add(ExpressionOfType);
+			}
+
+			UMaterialExpressionMaterialFunctionCall* ExpressionFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
+			if (ExpressionFunctionCall && ExpressionFunctionCall->MaterialFunction)
+			{
+				TArray<UMaterialFunction*> Functions;
+				Functions.Add(ExpressionFunctionCall->MaterialFunction);
+
+				ExpressionFunctionCall->MaterialFunction->GetDependentFunctions(Functions);
+
+				// Handle nested functions
+				for (UMaterialFunction* Function : Functions)
+				{
+					for (UMaterialExpression* Expression : Function->FunctionExpressions)
+					{
+						ExpressionType* ExpressionOfType = Cast<ExpressionType>(Expression);
+						if (ExpressionOfType)
+						{
+							OutExpressions.Add(ExpressionOfType);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/** Determines whether each quality level has different nodes by inspecting the material's expressions. */
 	void GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& QualityLevelsUsed);
 
