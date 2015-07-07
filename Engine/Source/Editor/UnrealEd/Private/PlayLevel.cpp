@@ -2855,8 +2855,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 #if PLATFORM_MAC
 				FSlateApplication::Get().AddWindow(PieWindow);
 #else
-				if (PlayInSettings->PIEAlwaysOnTop && FSlateApplication::Get().GetActiveTopLevelWindow().IsValid())
-					FSlateApplication::Get().AddWindowAsNativeChild(PieWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef(), true);
+				TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
+				if (PlayInSettings->PIEAlwaysOnTop)
+				{
+					FSlateApplication::Get().AddWindowAsNativeChild(PieWindow, MainWindow, true);
+				}
 				else
 					FSlateApplication::Get().AddWindow(PieWindow);
 #endif
