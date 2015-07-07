@@ -12,7 +12,7 @@ void ExecuteCompositionGraphDebug();
 
 static TAutoConsoleVariable<int32> CVarCompositionGraphOrder(
 	TEXT("r.CompositionGraphOrder"),
-	0,
+	1,
 	TEXT("Defines in which order the nodes in the CompositionGraph are executed (affects postprocess and some lighting).\n")
 	TEXT("Option 1 provides more control, which can be useful for preserving ESRAM, avoid GPU sync, cluster up compute shaders for performance and control AsyncCompute.\n")
 	TEXT(" 0: tree order starting with the root, first all inputs then dependencies (classic UE4, unconnected nodes are not getting executed)\n")

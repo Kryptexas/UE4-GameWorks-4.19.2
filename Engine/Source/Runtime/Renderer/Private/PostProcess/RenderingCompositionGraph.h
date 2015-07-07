@@ -52,12 +52,12 @@ private:
 	void ProcessGatherDependency(const FRenderingCompositeOutputRef* OutputRefIt);
 
 	/**
-	 * could also be implemented without recursion
+	 * Is called by FRenderingCompositePassContext::Process(), could be implemented without recursion
 	 * @param Pass must not be 0
 	 */
 	static void RecursivelyGatherDependencies(FRenderingCompositePass *Pass);
 
-	/** can also be implemented without recursion */
+	/** could be implemented without recursion */
 	void RecursivelyProcess(const FRenderingCompositeOutputRef& InOutputRef, FRenderingCompositePassContext& Context) const;
 
 	/** Write the contents of the specified output to a file */
