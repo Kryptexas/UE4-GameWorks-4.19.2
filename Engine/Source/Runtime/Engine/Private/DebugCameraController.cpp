@@ -265,7 +265,10 @@ ASpectatorPawn* ADebugCameraController::SpawnSpectatorPawn()
 			{
 				SpawnedSpectator->PossessedBy(this);
 				SpawnedSpectator->PawnClientRestart();
-				SpawnedSpectator->SetActorTickEnabled(true);
+				if (SpawnedSpectator->PrimaryActorTick.bStartWithTickEnabled)
+				{
+					SpawnedSpectator->SetActorTickEnabled(true);
+				}
 
 				UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
 			}
