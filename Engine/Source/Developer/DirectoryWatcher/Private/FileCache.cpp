@@ -1,11 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
-#include "UnrealEd.h"
+#include "DirectoryWatcherPrivatePCH.h"
 #include "FileCache.h"
-#include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
-#include "AutoReimportUtilities.h"
+
+namespace DirectoryWatcher
+{
 
 template<typename T>
 void ReadWithCustomVersions(FArchive& Ar, T& Data)
@@ -308,7 +308,7 @@ FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FTimeLi
 
 	bIsComplete = true;
 
-	UE_LOG(LogAutoReimportManager, Log, TEXT("Scanning file cache for directory '%s' took %.2fs"), *RootPath, GetAge());
+	UE_LOG(LogFileCache, Log, TEXT("Scanning file cache for directory '%s' took %.2fs"), *RootPath, GetAge());
 	return EProgressResult::Finished;
 }
 
@@ -890,7 +890,7 @@ void FFileCache::Tick()
 
 			if (AsyncFileHasher->IsComplete())
 			{
-				UE_LOG(LogAutoReimportManager, Log, TEXT("Retrieving MD5 hashes for directory '%s' took %.2fs"), *Config.Directory, AsyncFileHasher->GetAge());
+				UE_LOG(LogFileCache, Log, TEXT("Retrieving MD5 hashes for directory '%s' took %.2fs"), *Config.Directory, AsyncFileHasher->GetAge());
 				AsyncFileHasher = nullptr;
 			}
 		}
@@ -1017,3 +1017,5 @@ void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 
 	RescanForDirtyFileHashes();
 }
+
+} // namespace DirectoryWatcher

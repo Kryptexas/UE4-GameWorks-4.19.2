@@ -356,7 +356,7 @@ public:
 	void Disable()
 	{
 
-		ExpireTimeout = FTimeLimit(ExpireDuration);
+		ExpireTimeout = DirectoryWatcher::FTimeLimit(ExpireDuration);
 
 		WidgetStack->SetVisibility(EVisibility::HitTestInvisible);
 		PauseButton->SetVisibility(EVisibility::Collapsed);
@@ -367,7 +367,7 @@ public:
 	/** Enable, if previously disabled */
 	void Enable()
 	{
-		ExpireTimeout = FTimeLimit();
+		ExpireTimeout = DirectoryWatcher::FTimeLimit();
 
 		bPaused = false;
 		WidgetStack->SetVisibility(EVisibility::Visible);
@@ -436,7 +436,7 @@ private:
 private:
 
 	/** The expire timeout used to fire OnExpired. Invalid when no timeout is set. */
-	FTimeLimit ExpireTimeout;
+	DirectoryWatcher::FTimeLimit ExpireTimeout;
 
 	/** Amount of time to wait after this widget has been disabled before calling OnExpired */
 	float ExpireDuration;

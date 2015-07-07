@@ -3,11 +3,15 @@
 #pragma once
 
 #include "Serialization/CustomVersion.h"
-#include "AutoReimportUtilities.h"
+#include "FileCacheUtilities.h"
+#include "SecureHash.h"
 #include "IDirectoryWatcher.h"
 
+namespace DirectoryWatcher
+{
+
 /** Custom serialization version for FFileCache */
-struct UNREALED_API FFileCacheCustomVersion
+struct DIRECTORYWATCHER_API FFileCacheCustomVersion
 {
 	static const FGuid Key;
 	enum Type {	Initial, IncludeFileHash, Latest = IncludeFileHash };
@@ -377,7 +381,7 @@ private:
  * Changes in the cache can be retrieved through GetOutstandingChanges(). Changes will be reported for any
  * change in the cached state even between runs of the process.
  */
-class UNREALED_API FFileCache
+class DIRECTORYWATCHER_API FFileCache
 {
 public:
 
@@ -495,3 +499,5 @@ private:
 	double LastFileHashGetTime;
 
 };
+
+} // namespace DirectoryWatcher

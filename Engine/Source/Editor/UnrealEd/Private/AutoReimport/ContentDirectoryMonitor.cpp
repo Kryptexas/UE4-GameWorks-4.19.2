@@ -20,7 +20,7 @@ bool IsAssetDirty(UObject* Asset)
 }
 
 /** Generate a config from the specified options, to pass to FFileCache on construction */
-FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const FMatchRules& InMatchRules, const FString& InMountedContentPath)
+DirectoryWatcher::FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const DirectoryWatcher::FMatchRules& InMatchRules, const FString& InMountedContentPath)
 {
 	FString Directory = FPaths::ConvertRelativePathToFull(InPath);
 
@@ -28,23 +28,23 @@ FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const FMatchRule
 	const uint32 CRC = FCrc::MemCrc32(*HashString, HashString.Len()*sizeof(TCHAR));	
 	FString CacheFilename = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
 
-	FFileCacheConfig Config(MoveTemp(Directory), MoveTemp(CacheFilename));
+	DirectoryWatcher::FFileCacheConfig Config(MoveTemp(Directory), MoveTemp(CacheFilename));
 	Config.Rules = InMatchRules;
 	// We always store paths inside content folders relative to the folder
-	Config.PathType = EPathType::Relative;
+	Config.PathType = DirectoryWatcher::EPathType::Relative;
 
 	Config.bDetectChangesSinceLastRun = GetDefault<UEditorLoadingSavingSettings>()->bDetectChangesOnRestart;
 
 	// We only detect changes for when the file *contents* have changed (not its timestamp)
 	Config
 		.DetectMoves(true)
-		.DetectChangesFor(FFileCacheConfig::Timestamp, false)
-		.DetectChangesFor(FFileCacheConfig::FileHash, true);
+		.DetectChangesFor(DirectoryWatcher::FFileCacheConfig::Timestamp, false)
+		.DetectChangesFor(DirectoryWatcher::FFileCacheConfig::FileHash, true);
 
 	return Config;
 }
 
-FContentDirectoryMonitor::FContentDirectoryMonitor(const FString& InDirectory, const FMatchRules& InMatchRules, const FString& InMountedContentPath)
+FContentDirectoryMonitor::FContentDirectoryMonitor(const FString& InDirectory, const DirectoryWatcher::FMatchRules& InMatchRules, const FString& InMountedContentPath)
 	: Cache(GenerateFileCacheConfig(InDirectory, InMatchRules, InMountedContentPath))
 	, MountedContentPath(InMountedContentPath)
 	, LastSaveTime(0)
@@ -96,7 +96,7 @@ int32 FContentDirectoryMonitor::StartProcessing()
 	const FDateTime Threshold = FDateTime::UtcNow() - FTimespan(0, 0, GetDefault<UEditorLoadingSavingSettings>()->AutoReimportThreshold);
 
 	// Get all the changes that have happend beyond our import threshold
-	auto OutstandingChanges = Cache.FilterOutstandingChanges([&](const FUpdateCacheTransaction& Transaction, const FDateTime& TimeOfChange){
+	auto OutstandingChanges = Cache.FilterOutstandingChanges([&](const DirectoryWatcher::FUpdateCacheTransaction& Transaction, const FDateTime& TimeOfChange){
 		return TimeOfChange <= Threshold;
 	});
 
@@ -110,7 +110,7 @@ int32 FContentDirectoryMonitor::StartProcessing()
 	{
 		switch(Transaction.Action)
 		{
-			case EFileAction::Added:
+			case DirectoryWatcher::EFileAction::Added:
 				if (Settings->bAutoCreateAssets && !MountedContentPath.IsEmpty())
 				{
 					AddedFiles.Emplace(MoveTemp(Transaction));
@@ -121,12 +121,12 @@ int32 FContentDirectoryMonitor::StartProcessing()
 				}
 				break;
 
-			case EFileAction::Moved:
-			case EFileAction::Modified:
+			case DirectoryWatcher::EFileAction::Moved:
+			case DirectoryWatcher::EFileAction::Modified:
 				ModifiedFiles.Emplace(MoveTemp(Transaction));
 				break;
 
-			case EFileAction::Removed:
+			case DirectoryWatcher::EFileAction::Removed:
 				if (Settings->bAutoDeleteAssets && !MountedContentPath.IsEmpty())
 				{
 					DeletedFiles.Emplace(MoveTemp(Transaction));
@@ -159,7 +159,7 @@ UObject* AttemptImport(UClass* InFactoryType, UPackage* Package, FName InName, b
 	return Asset;
 }
 
-void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context)
+void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, const DirectoryWatcher::FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context)
 {
 	bool bCancelled = false;
 	for (int32 Index = 0; Index < AddedFiles.Num(); ++Index)
@@ -289,7 +289,7 @@ void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, 
 	AddedFiles.Empty();
 }
 
-void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context)
+void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const DirectoryWatcher::FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context)
 {
 	auto* ReimportManager = FReimportManager::Instance();
 
@@ -301,7 +301,7 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 		const FString FullFilename = Cache.GetDirectory() + Change.Filename.Get();
 
 		// Move the asset before reimporting it. We always reimport moved assets to ensure that their import path is up to date
-		if (Change.Action == EFileAction::Moved)
+		if (Change.Action == DirectoryWatcher::EFileAction::Moved)
 		{
 			const FString OldFilename = Cache.GetDirectory() + Change.MovedFromFilename.Get();
 			const auto Assets = Utils::FindAssetsPertainingToFile(Registry, OldFilename);
@@ -357,7 +357,7 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 				}
 			}
 		}
-		else if (Change.Action == EFileAction::Modified)
+		else if (Change.Action == DirectoryWatcher::EFileAction::Modified)
 		{
 			for (const auto& AssetData : Utils::FindAssetsPertainingToFile(Registry, FullFilename))
 			{

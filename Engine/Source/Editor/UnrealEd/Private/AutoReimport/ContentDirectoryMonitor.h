@@ -19,7 +19,7 @@ public:
 	 * @param InMatchRules			Rules to select what will apply to this folder
 	 * @param InMountedContentPath	(optional) Mounted content path (eg /Engine/, /Game/) to which InDirectory maps.
 	 */
-	FContentDirectoryMonitor(const FString& InDirectory, const FMatchRules& InMatchRules, const FString& InMountedContentPath = FString());
+	FContentDirectoryMonitor(const FString& InDirectory, const DirectoryWatcher::FMatchRules& InMatchRules, const FString& InMountedContentPath = FString());
 
 	/** Tick this monitor's cache to give it a chance to finish scanning for files */
 	void Tick();
@@ -28,10 +28,10 @@ public:
 	int32 StartProcessing();
 
 	/** Extract the files we need to import from our outstanding changes (happens first)*/ 
-	void ProcessAdditions(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context);
+	void ProcessAdditions(const IAssetRegistry& Registry, const DirectoryWatcher::FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context);
 
 	/** Process the outstanding changes that we have cached */
-	void ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context);
+	void ProcessModifications(const IAssetRegistry& Registry, const DirectoryWatcher::FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context);
 
 	/** Extract the assets we need to delete from our outstanding changes (happens last) */ 
 	void ExtractAssetsToDelete(const IAssetRegistry& Registry, TArray<FAssetData>& OutAssetsToDelete);
@@ -62,13 +62,13 @@ public:
 private:
 
 	/** The file cache that monitors and reflects the content directory. */
-	FFileCache Cache;
+	DirectoryWatcher::FFileCache Cache;
 
 	/** The mounted content path for this monitor (eg /Game/) */
 	FString MountedContentPath;
 
 	/** A list of file system changes that are due to be processed */
-	TArray<FUpdateCacheTransaction> AddedFiles, ModifiedFiles, DeletedFiles;
+	TArray<DirectoryWatcher::FUpdateCacheTransaction> AddedFiles, ModifiedFiles, DeletedFiles;
 
 	/** The last time we attempted to save the cache file */
 	double LastSaveTime;

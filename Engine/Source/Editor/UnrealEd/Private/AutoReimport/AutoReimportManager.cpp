@@ -24,7 +24,7 @@ enum class EStateMachineNode { CallOnce, CallMany };
 template<typename TState>
 struct FStateMachine
 {
-	typedef TFunction<TOptional<TState>(const FTimeLimit&)> FunctionType;
+	typedef TFunction<TOptional<TState>(const DirectoryWatcher::FTimeLimit&)> FunctionType;
 
 	/** Constructor that specifies the initial state of the machine */
 	FStateMachine(TState InitialState) : CurrentState(InitialState){}
@@ -42,7 +42,7 @@ struct FStateMachine
 	}
 
 	/** Tick this state machine with the given time limit. Will continuously enumerate the machine until TimeLimit is reached */
-	void Tick(const FTimeLimit& TimeLimit)
+	void Tick(const DirectoryWatcher::FTimeLimit& TimeLimit)
 	{
 		while (!TimeLimit.Exceeded())
 		{
@@ -155,13 +155,13 @@ private:
 	TOptional<ECurrentState> Idle();
 	
 	/** Process any remaining pending additions we have */
-	TOptional<ECurrentState> ProcessAdditions(const FTimeLimit& TimeLimit);
+	TOptional<ECurrentState> ProcessAdditions(const DirectoryWatcher::FTimeLimit& TimeLimit);
 
 	/** Save any packages that were created inside ProcessAdditions */
 	TOptional<ECurrentState> SavePackages();
 
 	/** Process any remaining pending modifications we have */
-	TOptional<ECurrentState> ProcessModifications(const FTimeLimit& TimeLimit);
+	TOptional<ECurrentState> ProcessModifications(const DirectoryWatcher::FTimeLimit& TimeLimit);
 
 	/** Process any remaining pending deletions we have */
 	TOptional<ECurrentState> ProcessDeletions();
@@ -193,7 +193,7 @@ private:
 	bool bGuardAssetChanges;
 
 	/** A timeout used to refresh directory monitors when the user has made an interactive change to the settings */
-	FTimeLimit ResetMonitorsTimeout;
+	DirectoryWatcher::FTimeLimit ResetMonitorsTimeout;
 
 	/** The paused state of the state machine */
 	ECurrentState PausedState;
@@ -241,13 +241,13 @@ FAutoReimportManager::FAutoReimportManager()
 		SetUpDirectoryMonitors();
 	}
 
-	StateMachine.Add(ECurrentState::Idle,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Idle();					});
-	StateMachine.Add(ECurrentState::Paused,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Paused();					});
-	StateMachine.Add(ECurrentState::Aborting,				EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Abort();					});
-	StateMachine.Add(ECurrentState::ProcessAdditions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessAdditions(T);		});
-	StateMachine.Add(ECurrentState::ProcessModifications,	EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessModifications(T);	});
-	StateMachine.Add(ECurrentState::ProcessDeletions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessDeletions();		});
-	StateMachine.Add(ECurrentState::SavePackages,			EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->SavePackages();			});
+	StateMachine.Add(ECurrentState::Idle,					EStateMachineNode::CallOnce,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->Idle();					});
+	StateMachine.Add(ECurrentState::Paused,					EStateMachineNode::CallOnce,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->Paused();					});
+	StateMachine.Add(ECurrentState::Aborting,				EStateMachineNode::CallOnce,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->Abort();					});
+	StateMachine.Add(ECurrentState::ProcessAdditions,		EStateMachineNode::CallMany,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->ProcessAdditions(T);		});
+	StateMachine.Add(ECurrentState::ProcessModifications,	EStateMachineNode::CallMany,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->ProcessModifications(T);	});
+	StateMachine.Add(ECurrentState::ProcessDeletions,		EStateMachineNode::CallMany,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->ProcessDeletions();		});
+	StateMachine.Add(ECurrentState::SavePackages,			EStateMachineNode::CallOnce,	[this](const DirectoryWatcher::FTimeLimit& T){ return this->SavePackages();			});
 }
 
 TArray<FPathAndMountPoint> FAutoReimportManager::GetMonitoredDirectories() const
@@ -413,7 +413,7 @@ int32 FAutoReimportManager::GetNumUnprocessedChanges() const
 	}, 0);
 }
 
-TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit& TimeLimit)
+TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const DirectoryWatcher::FTimeLimit& TimeLimit)
 {
 	auto NewState = HandlePauseAbort(ECurrentState::ProcessAdditions);
 	if (NewState.IsSet())
@@ -468,7 +468,7 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit
 	return ECurrentState::ProcessModifications;
 }
 
-TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const FTimeLimit& TimeLimit)
+TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const DirectoryWatcher::FTimeLimit& TimeLimit)
 {
 	auto NewState = HandlePauseAbort(ECurrentState::ProcessModifications);
 	if (NewState.IsSet())
@@ -607,7 +607,7 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 			DirectoryMonitors.Empty();
 		}
 
-		ResetMonitorsTimeout = FTimeLimit();
+		ResetMonitorsTimeout = DirectoryWatcher::FTimeLimit();
 		return TOptional<ECurrentState>();
 	}
 
@@ -661,7 +661,7 @@ void FAutoReimportManager::Cleanup()
 void FAutoReimportManager::Tick(float DeltaTime)
 {
 	// Never spend more than a 60fps frame doing this work (meaning we shouldn't drop below 30fps), we can do more if we're throttling CPU usage (ie editor running in background)
-	const FTimeLimit TimeLimit(GEditor->ShouldThrottleCPUUsage() ? 1 / 6.f : 1.f / 60.f);
+	const DirectoryWatcher::FTimeLimit TimeLimit(GEditor->ShouldThrottleCPUUsage() ? 1 / 6.f : 1.f / 60.f);
 	StateMachine.Tick(TimeLimit);
 }
 
@@ -683,7 +683,7 @@ void FAutoReimportManager::HandleLoadingSavingSettingChanged(FName PropertyName)
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, bMonitorContentDirectories) ||
 		PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, AutoReimportDirectorySettings))
 	{
-		ResetMonitorsTimeout = FTimeLimit(5.f);
+		ResetMonitorsTimeout = DirectoryWatcher::FTimeLimit(5.f);
 	}
 }
 
@@ -703,7 +703,7 @@ void FAutoReimportManager::SetUpDirectoryMonitors()
 	{
 		FString SourceDirectory;
 		FString MountPoint;
-		FMatchRules Rules;
+		DirectoryWatcher::FMatchRules Rules;
 	};
 
 	TArray<FParsedSettings> FinalArray;

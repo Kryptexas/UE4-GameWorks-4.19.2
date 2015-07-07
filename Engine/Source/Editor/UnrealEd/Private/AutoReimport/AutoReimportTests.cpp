@@ -30,14 +30,14 @@ private:
 };
 
 /** Generate a config from the specified options, to pass to FFileCache on construction */
-FFileCacheConfig GenerateFileCacheConfig(const FString& InWorkingDir)
+DirectoryWatcher::FFileCacheConfig GenerateFileCacheConfig(const FString& InWorkingDir)
 {
 	FString Directory = FPaths::ConvertRelativePathToFull(InWorkingDir);
 	FString CacheFilename = Directory / TEXT("Cache.bin");
 
-	FFileCacheConfig Config(Directory / TEXT("Content") / TEXT(""), MoveTemp(CacheFilename));
+	DirectoryWatcher::FFileCacheConfig Config(Directory / TEXT("Content") / TEXT(""), MoveTemp(CacheFilename));
 	// We always store paths inside content folders relative to the folder
-	Config.PathType = EPathType::Relative;
+	Config.PathType = DirectoryWatcher::EPathType::Relative;
 
 	Config.bDetectChangesSinceLastRun = false;
 	return Config;
@@ -46,8 +46,8 @@ FFileCacheConfig GenerateFileCacheConfig(const FString& InWorkingDir)
 /** Persistent test payload used for async testing, generally captured by lambdas */
 struct FAutoReimportTestPayload
 {
-	FFileCacheConfig Config;
-	TSharedPtr<FFileCache> FileCache;
+	DirectoryWatcher::FFileCacheConfig Config;
+	TSharedPtr<DirectoryWatcher::FFileCache> FileCache;
 	FString WorkingDir;
 
 	FAutoReimportTestPayload(const FString& InWorkingDir)
@@ -69,7 +69,7 @@ struct FAutoReimportTestPayload
 	{
 		if (!FileCache.IsValid())
 		{
-			FileCache = MakeShareable(new FFileCache(Config));
+			FileCache = MakeShareable(new DirectoryWatcher::FFileCache(Config));
 		}
 	}
 
@@ -164,7 +164,7 @@ bool FAutoReimportSimpleCreateTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Path reported incorrectly (%s != %s)."), *Changes[0].Filename.Get(), Filename);
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Added)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Added)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for added file %s."), Filename);
 			}
@@ -233,7 +233,7 @@ bool FAutoReimportSimpleModifyTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Path reported incorrectly (%s != %s)."), *Changes[0].Filename.Get(), DstFilename);
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Modified)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Modified)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for modified file %s."), DstFilename);
 			}
@@ -301,7 +301,7 @@ bool FAutoReimportSimpleDeleteTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Path reported incorrectly (%s != %s)."), *Changes[0].Filename.Get(), Filename);
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Removed)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Removed)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for deleted file %s."), Filename);
 			}
@@ -358,7 +358,7 @@ bool FAutoReimportSimpleRenameTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 1)."), Changes.Num());
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Moved)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Moved)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for renamed file %s -> %s."), SrcFilename, DstFilename);
 			}
@@ -428,7 +428,7 @@ bool FAutoReimportSimpleMoveExternallyTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 1)."), Changes.Num());
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Removed)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Removed)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for removed file %s -> %s."), SrcFilename, DstFilename);
 			}
@@ -512,7 +512,7 @@ bool FAutoReimportRestartDetectionTest::RunTest(const FString& Parameters)
 				return;
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Modified)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Modified)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for modified file %s."), SrcFilename);
 				return;
@@ -596,7 +596,7 @@ bool FAutoReimportMultipleChangesTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 1)."), Changes.Num());
 			}
 			// Check it was the correct type
-			else if (Changes[0].Action != EFileAction::Added)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Added)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for added file %s."), Filename2);
 			}
@@ -645,7 +645,7 @@ bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 1)."), Changes.Num());
 				return;
 			}
-			else if (Changes[0].Action != EFileAction::Added)
+			else if (Changes[0].Action != DirectoryWatcher::EFileAction::Added)
 			{
 				UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect action for added file %s."), SrcFilename3);
 				return;
@@ -659,7 +659,7 @@ bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 
 			Test->StopWatching();
 			// Change the extensions we're watching, and add another png
-			Test->Config.Rules = FMatchRules();
+			Test->Config.Rules = DirectoryWatcher::FMatchRules();
 			Test->Config.Rules.SetApplicableExtensions(TEXT("png;"));
 
 			Test->StartWatching();
