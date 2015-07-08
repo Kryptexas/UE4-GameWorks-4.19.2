@@ -655,7 +655,7 @@ void DrawDebugCone(const UWorld* InWorld, FVector const& Origin, FVector const& 
 	}
 }
 
-void DrawDebugString(const UWorld* InWorld, FVector const& TextLocation, const FString& Text, class AActor* TestBaseActor, FColor const& TextColor, float Duration)
+void DrawDebugString(const UWorld* InWorld, FVector const& TextLocation, const FString& Text, class AActor* TestBaseActor, FColor const& TextColor, float Duration, bool bDrawShadow)
 {
 	// no debug line drawing on dedicated server
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
@@ -669,7 +669,7 @@ void DrawDebugString(const UWorld* InWorld, FVector const& TextLocation, const F
 			APlayerController* PlayerController = *Iterator;
 			if (PlayerController->MyHUD)
 			{
-				PlayerController->MyHUD->AddDebugText(Text, BaseAct, Duration, TextLocation, TextLocation, TextColor, true, (TestBaseActor==NULL));
+				PlayerController->MyHUD->AddDebugText(Text, BaseAct, Duration, TextLocation, TextLocation, TextColor, true, (TestBaseActor==NULL), false, nullptr, 1.0f, bDrawShadow);
 			}
 		}
 	}
