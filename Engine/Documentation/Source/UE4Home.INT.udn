@@ -27,13 +27,22 @@ Navigation:home
 			How-To
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Blueprint
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Android
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
 			Actor
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			Component
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			Blueprint
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			Materials
@@ -47,15 +56,6 @@ Navigation:home
 		[PARAMLITERAL:terms]
 			UMG UI
 		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			C++
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			iOS
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			Android
-		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
@@ -68,11 +68,11 @@ Navigation:home
 	%GettingStarted:role%
 	%Engine/Editor:role%
 	%Engine:role%
-	%Gameplay:role%
-	%Engine/Blueprints:role%
 	%Programming:topicrole%
-	%Platforms:role%
+	%Engine/Blueprints:role%
+	%Gameplay:role%
 	%Resources:role%
+	%Platforms:role%
 	%Support/Builds:role%
 	[/REGION]
 [/REGION]
