@@ -46,6 +46,10 @@ private:
 	bool IsAutoWeldEditable() const;
 	EVisibility IsAutoWeldVisible() const;
 	EVisibility IsMassVisible(bool bOverrideMass) const;
+	EVisibility IsMaxAngularVelocityVisible(bool bOverrideMaxAngularVelocity) const;
+	TOptional<float> OnGetBodyMaxAngularVelocity() const;
+
+	bool IsMaxAngularVelocityReadOnly() const;
 
 };
 

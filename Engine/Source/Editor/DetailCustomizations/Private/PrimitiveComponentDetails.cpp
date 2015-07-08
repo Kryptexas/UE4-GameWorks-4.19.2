@@ -145,6 +145,19 @@ EVisibility FPrimitiveComponentDetails::IsMassVisible(bool bOverrideMass) const
 	}
 }
 
+EVisibility FPrimitiveComponentDetails::IsMaxAngularVelocityVisible(bool bOverrideMaxAngularVelocity) const
+{
+	bool bIsMaxAngularVelocityReadOnly = IsMaxAngularVelocityReadOnly();
+	if (bOverrideMaxAngularVelocity)
+	{
+		return bIsMaxAngularVelocityReadOnly ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+	else
+	{
+		return bIsMaxAngularVelocityReadOnly ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+}
+
 void FPrimitiveComponentDetails::AddPhysicsCategory(IDetailLayoutBuilder& DetailBuilder)
 {
 	if (DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, BodyInstance))->IsValidHandle())
@@ -157,7 +170,6 @@ void FPrimitiveComponentDetails::AddPhysicsCategory(IDetailLayoutBuilder& Detail
 		IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics");
 
 		bool bDisplayMass = true;
-		bool bDisplayMassOverride = true;
 		bool bDisplayConstraints = true;
 
 		for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
@@ -165,13 +177,7 @@ void FPrimitiveComponentDetails::AddPhysicsCategory(IDetailLayoutBuilder& Detail
 			if (ObjectsCustomized[i].IsValid() && ObjectsCustomized[i]->IsA(UDestructibleComponent::StaticClass()))
 			{
 				bDisplayMass = false;
-				bDisplayMassOverride = false;
 				bDisplayConstraints = false;
-			}
-
-			if (ObjectsCustomized[i].IsValid() && ObjectsCustomized[i]->IsA(USkeletalMeshComponent::StaticClass()))
-			{
-				bDisplayMassOverride = false;
 			}
 		}
 
@@ -355,64 +361,80 @@ void FPrimitiveComponentDetails::AddPhysicsCategory(IDetailLayoutBuilder& Detail
 					PhysicsCategory.AddProperty(ChildProperty).Visibility(TAttribute<EVisibility>(this, &FPrimitiveComponentDetails::IsAutoWeldVisible))
 						.EditCondition(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsAutoWeldEditable), NULL);
 				}
-				else if (PropName == GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKg) || PropName == GET_MEMBER_NAME_CHECKED(FBodyInstance, bOverrideMass))
+				else if (PropName == GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKg))
 				{
 					if (bDisplayMass && bMassUIExists == false)
 					{
 						bMassUIExists = true;
 						TSharedPtr<IPropertyHandle> MassInKGHandle = BodyInstanceHandler->GetChildHandle(TEXT("MassInKg"));
-						TSharedPtr<IPropertyHandle> MassOverrideHandle = BodyInstanceHandler->GetChildHandle(TEXT("bOverrideMass"));
 
-						PhysicsCategory.AddCustomRow(LOCTEXT("Mass", "Mass"), false)
+						PhysicsCategory.AddProperty(MassInKGHandle).CustomWidget()
 						.NameContent()
 						[
 							MassInKGHandle->CreatePropertyNameWidget()
 						]
 						.ValueContent()
-						.MinDesiredWidth(125 * 3.f)
 						[
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							.Padding(0.f, 0.f, 10.f, 0.f)
+							[
+								SNew(SNumericEntryBox<float>)
+								.IsEnabled(false)
+								.Font( IDetailLayoutBuilder::GetDetailFont() )
+								.Value(this, &FPrimitiveComponentDetails::OnGetBodyMass)
+								.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, false)
+							]
+
+							+ SVerticalBox::Slot()
+							.Padding(0.f, 0.f, 10.f, 0.f)
 							[
 								SNew(SVerticalBox)
+								.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, true)
 								+ SVerticalBox::Slot()
-								.Padding(0.f, 0.f, 10.f, 0.f)
+								.AutoHeight()
 								[
-									SNew(SNumericEntryBox<float>)
-									.IsEnabled(false)
-									.Font( IDetailLayoutBuilder::GetDetailFont() )
-									.Value(this, &FPrimitiveComponentDetails::OnGetBodyMass)
-									.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, false)
+									MassInKGHandle->CreatePropertyValueWidget()
 								]
-
-								+ SVerticalBox::Slot()
-								.Padding(0.f, 0.f, 10.f, 0.f)
-								[
-									SNew(SVerticalBox)
-									.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, true)
-									+ SVerticalBox::Slot()
-									.AutoHeight()
-									[
-										MassInKGHandle->CreatePropertyValueWidget()
-									]
-								]
-							]
-
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign( VAlign_Center )
-							[
-								bDisplayMassOverride ? MassOverrideHandle->CreatePropertyValueWidget() : StaticCastSharedRef<SWidget>(SNew(SSpacer))
-							]
-
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								bDisplayMassOverride ? MassOverrideHandle->CreatePropertyNameWidget() : StaticCastSharedRef<SWidget>(SNew(SSpacer))
 							]
 						];
 					}
+				}
+				else if (PropName == GET_MEMBER_NAME_CHECKED(FBodyInstance, MaxAngularVelocity))
+				{
+					bMassUIExists = true;
+					TSharedPtr<IPropertyHandle> MaxAngularVelocityHandle = BodyInstanceHandler->GetChildHandle(PropName);
+
+					PhysicsCategory.AddProperty(MaxAngularVelocityHandle).CustomWidget()
+					.NameContent()
+						[
+							MaxAngularVelocityHandle->CreatePropertyNameWidget()
+						]
+					.ValueContent()
+						[
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							.Padding(0.f, 0.f, 10.f, 0.f)
+							[
+								SNew(SNumericEntryBox<float>)
+								.IsEnabled(false)
+								.Font(IDetailLayoutBuilder::GetDetailFont())
+								.Value(this, &FPrimitiveComponentDetails::OnGetBodyMaxAngularVelocity)
+								.Visibility(this, &FPrimitiveComponentDetails::IsMaxAngularVelocityVisible, false)
+							]
+
+							+ SVerticalBox::Slot()
+								.Padding(0.f, 0.f, 10.f, 0.f)
+								[
+									SNew(SVerticalBox)
+									.Visibility(this, &FPrimitiveComponentDetails::IsMaxAngularVelocityVisible, true)
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									[
+										MaxAngularVelocityHandle->CreatePropertyValueWidget()
+									]
+								]
+						];
 				}
 				else
 				{
@@ -571,6 +593,24 @@ TOptional<float> FPrimitiveComponentDetails::OnGetBodyMass() const
 	return Mass;
 }
 
+
+TOptional<float> FPrimitiveComponentDetails::OnGetBodyMaxAngularVelocity() const
+{
+	UPrimitiveComponent* Comp = nullptr;
+	const float MaxAngularVelocity = UPhysicsSettings::Get()->MaxAngularVelocity;
+
+	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	{
+		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
+		{
+			Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
+			Comp->BodyInstance.MaxAngularVelocity = MaxAngularVelocity;	//update max angular velocity so that overriding gives the same value initially
+		}
+	}
+
+	return MaxAngularVelocity;
+}
+
 bool FPrimitiveComponentDetails::IsBodyMassReadOnly() const
 {
 	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
@@ -580,6 +620,22 @@ bool FPrimitiveComponentDetails::IsBodyMassReadOnly() const
 			if (UPrimitiveComponent* Comp = Cast<UPrimitiveComponent>(ObjectIt->Get()))
 			{
 				if (Comp->BodyInstance.bOverrideMass == false) { return true; }
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FPrimitiveComponentDetails::IsMaxAngularVelocityReadOnly() const
+{
+	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	{
+		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
+		{
+			if (UPrimitiveComponent* Comp = Cast<UPrimitiveComponent>(ObjectIt->Get()))
+			{
+				if (Comp->BodyInstance.bOverrideMaxAngularVelocity == false) { return true; }
 			}
 		}
 	}
