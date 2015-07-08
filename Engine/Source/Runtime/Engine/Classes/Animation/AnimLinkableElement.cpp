@@ -349,10 +349,28 @@ void FAnimLinkableElement::SetTime_Internal(float NewTime, EAnimLinkMethod::Type
 	}
 }
 
-void FAnimLinkableElement::ConditionalRelink()
+bool FAnimLinkableElement::ConditionalRelink()
 {
+	// Check slot index if we're in a montage
+	bool bRequiresRelink = false;
+	
+	if(LinkedMontage)
+	{
+		if(!LinkedMontage->SlotAnimTracks.IsValidIndex(SlotIndex))
+		{
+			bRequiresRelink = true;
+			SlotIndex = 0;
+		}
+	}
+
+	// Check to see if we've moved to a new segment
 	float CurrentAbsTime = GetTime();
 	if(CurrentAbsTime < SegmentBeginTime || CurrentAbsTime > SegmentBeginTime + SegmentLength)
+	{
+		bRequiresRelink = true;
+	}
+
+	if(bRequiresRelink)
 	{
 		if(LinkedMontage)
 		{
@@ -363,6 +381,8 @@ void FAnimLinkableElement::ConditionalRelink()
 			LinkSequence(LinkedSequence, CurrentAbsTime);
 		}
 	}
+
+	return bRequiresRelink;
 }
 
 void FAnimLinkableElement::Link(UAnimSequenceBase* AnimObject, float AbsTime, int32 InSlotIndex /*= 0*/)

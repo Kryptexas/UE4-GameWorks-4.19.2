@@ -118,8 +118,8 @@ struct FAnimLinkableElement
 	 */
 	ENGINE_API void SetSegmentIndex(int32 NewSegmentIndex) {SegmentIndex = NewSegmentIndex;}
 
-	/** Relinks this element if it is outside of its segments */
-	ENGINE_API void ConditionalRelink();
+	/** Relinks this element if internal state requires relinking */
+	ENGINE_API bool ConditionalRelink();
 
 	/** Refreshes the current segment data (Begin time, length etc.) and validate the link time
 	 *  Intended to update the internal state when segment lengths/times could have changed

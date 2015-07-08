@@ -596,6 +596,18 @@ void SMontageEditor::RemoveMontageSlot(int32 AnimSlotIndex)
 		MontageObj->SlotAnimTracks.RemoveAt(AnimSlotIndex);
 		MontageObj->MarkPackageDirty();
 		AnimMontagePanel->Update();
+
+		// Iterate the notifies and relink anything that is now invalid
+		for(FAnimNotifyEvent& Event : MontageObj->Notifies)
+		{
+			Event.ConditionalRelink();
+		}
+
+		// Do the same for sections
+		for(FCompositeSection& Section : MontageObj->CompositeSections)
+		{
+			Section.ConditionalRelink();
+		}
 	}
 }
 

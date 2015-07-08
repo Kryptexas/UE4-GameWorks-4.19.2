@@ -3217,13 +3217,23 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 
 		FAnimNotifyEvent& NewNotify = Sequence->Notifies[NewIdx];
 
-		if(PasteTime != -1.0f)
-		{
-			NewNotify.SetTime(PasteTime);
-		}
+		// We have to link to the montage / sequence again, we need a correct time set and we could be pasting to a new montage / sequence
+		int32 NewSlotIndex = 0;
+		float NewNotifyTime = PasteTime != 1.0f ? PasteTime : NewNotify.GetTime();
+		NewNotifyTime = FMath::Clamp(NewNotifyTime, 0.0f, Sequence->SequenceLength);
 
-		// Make sure the notify is within the track area
-		NewNotify.SetTime(FMath::Clamp(NewNotify.GetTime(), 0.0f, Sequence->SequenceLength));
+		if(UAnimMontage* Montage = Cast<UAnimMontage>(Sequence))
+		{
+			// We have a montage, validate slots
+			int32 OldSlotIndex = NewNotify.GetSlotIndex();
+			if(Montage->SlotAnimTracks.IsValidIndex(OldSlotIndex))
+			{
+				// Link to the same slot index
+				NewSlotIndex = OldSlotIndex;
+			}
+		}
+		NewNotify.Link(Sequence, PasteTime, NewSlotIndex);
+
 		NewNotify.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime()));
 		NewNotify.TrackIndex = TrackIndex;
 
@@ -3243,8 +3253,6 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 			NewNotify.SetDuration(FMath::Clamp(NewNotify.GetDuration(), 1 / 30.0f, Sequence->SequenceLength - NewNotify.GetTime()));
 			NewNotify.EndTriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime() + NewNotify.GetDuration()));
 		}
-
-		NewNotify.ConditionalRelink();
 	}
 	else
 	{
