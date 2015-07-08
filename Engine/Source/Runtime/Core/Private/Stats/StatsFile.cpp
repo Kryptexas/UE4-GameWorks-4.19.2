@@ -71,16 +71,16 @@ public:
 
 FStatsThreadState::FStatsThreadState( FString const& Filename )
 	: HistoryFrames( MAX_int32 )
-	, MaxFrameSeen( -1 )
-	, MinFrameSeen( -1 )
 	, LastFullFrameMetaAndNonFrame( -1 )
 	, LastFullFrameProcessed( -1 )
 	, TotalNumStatMessages( 0 )
 	, MaxNumStatMessages( 0 )
-	, bWasLoaded( true )
 	, bFindMemoryExtensiveStats( false )
 	, CurrentGameFrame( -1 )
 	, CurrentRenderFrame( -1 )	
+	, MaxFrameSeen( -1 )
+	, MinFrameSeen( -1 )
+	, bWasLoaded( true )
 {
 	const int64 Size = IFileManager::Get().FileSize( *Filename );
 	if( Size < 4 )
