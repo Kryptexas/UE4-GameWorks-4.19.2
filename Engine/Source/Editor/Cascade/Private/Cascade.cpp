@@ -3150,6 +3150,9 @@ void FCascade::ExportSelectedEmitter()
 				}
 			}
 
+			ParticleSystem->SetupSoloing();		// we may have changed the number of LODs, so our soloing information could be invalid
+
+
 			if (!DuplicateEmitter(SelectedEmitter, DestPartSys, false))
 			{
 				FText Message = FText::Format( NSLOCTEXT("UnrealEd", "Error_FailedToCopyFormatting", "Failed to copy {0} to {1}"), 
