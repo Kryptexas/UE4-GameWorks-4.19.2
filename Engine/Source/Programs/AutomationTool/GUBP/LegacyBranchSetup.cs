@@ -213,7 +213,7 @@ partial class GUBP
 		}
     }
 
-	private void FindEmailsForNodes(string BranchName, IEnumerable<NodeInfo> Nodes)
+	private void FindEmailsForNodes(string BranchName, IEnumerable<BuildNode> Nodes)
 	{
 		List<GUBPEmailHacker> EmailHackers = new List<GUBPEmailHacker>();
 
@@ -234,13 +234,13 @@ partial class GUBP
 			}
 		}
 
-		foreach (NodeInfo Node in Nodes)
+		foreach (BuildNode Node in Nodes)
 		{
 			Node.RecipientsForFailureEmails = HackEmails(EmailHackers, BranchName, Node, out Node.AddSubmittersToFailureEmails);
 		}
 	}
 
-    private string[] HackEmails(List<GUBPEmailHacker> EmailHackers, string Branch, NodeInfo NodeInfo, out bool bIncludeCausers)
+    private string[] HackEmails(List<GUBPEmailHacker> EmailHackers, string Branch, BuildNode NodeInfo, out bool bIncludeCausers)
     {
 		string OnlyEmail = ParseParamValue("OnlyEmail");
         if (!String.IsNullOrEmpty(OnlyEmail))
@@ -295,7 +295,7 @@ partial class GUBP
         }
     }
 
-	void FindFrequenciesForNodes(GUBP.GUBPBranchConfig BranchConfig, IEnumerable<NodeInfo> Nodes, Dictionary<string, int> FrequencyOverrides)
+	void FindFrequenciesForNodes(GUBP.GUBPBranchConfig BranchConfig, IEnumerable<BuildNode> Nodes, Dictionary<string, int> FrequencyOverrides)
 	{
         List<GUBPFrequencyHacker> FrequencyHackers = new List<GUBPFrequencyHacker>();
 
@@ -316,7 +316,7 @@ partial class GUBP
             }
         }
 
-		foreach(NodeInfo Node in Nodes)
+		foreach(BuildNode Node in Nodes)
 		{
 			Node.FrequencyShift = Node.Node.CISFrequencyQuantumShift(BranchConfig);
 
@@ -344,7 +344,7 @@ partial class GUBP
         return AltHostPlatform;
     }
 
-	void AddNodesForBranch(int CL, List<UnrealTargetPlatform> InitialHostPlatforms, bool bPreflightBuild, string PreflightMangleSuffix, out List<NodeInfo> AllNodes, out List<AggregateInfo> AllAggregates, ref int TimeQuantum)
+	void AddNodesForBranch(int CL, List<UnrealTargetPlatform> InitialHostPlatforms, bool bPreflightBuild, string PreflightMangleSuffix, out List<BuildNode> AllNodes, out List<AggregateNode> AllAggregates, ref int TimeQuantum)
 	{
 		string BranchName;
 		if (P4Enabled)
@@ -1202,11 +1202,11 @@ partial class GUBP
 		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
 
 		// Convert the GUBPNodes and GUBPAggregates maps into lists
-		AllNodes = new List<NodeInfo>();
-		AllNodes.AddRange(BranchConfig.GUBPNodes.Values.Select(x => new NodeInfo{ Name = x.GetFullName(), Node = x, AgentMemoryRequirement = x.AgentMemoryRequirement(BranchConfig) }));
+		AllNodes = new List<BuildNode>();
+		AllNodes.AddRange(BranchConfig.GUBPNodes.Values.Select(x => new BuildNode{ Name = x.GetFullName(), Node = x, AgentMemoryRequirement = x.AgentMemoryRequirement(BranchConfig) }));
 
-		AllAggregates = new List<AggregateInfo>();
-		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new AggregateInfo{ Name = x.GetFullName(), Node = x }));
+		AllAggregates = new List<AggregateNode>();
+		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new AggregateNode{ Name = x.GetFullName(), Node = x }));
 
 		// Calculate the frequencies for each node
 		FindFrequenciesForNodes(BranchConfig, AllNodes, FrequencyOverrides);
@@ -1222,7 +1222,7 @@ partial class GUBP
 			{
 				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
 			}
-			foreach (NodeInfo Node in AllNodes)
+			foreach (BuildNode Node in AllNodes)
 			{
 				if (Node.Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
 				{

@@ -62,6 +62,7 @@
     <Compile Include="GUBP.cs" />
     <Compile Include="LegacyBranchSetup.cs" />
     <Compile Include="LegacyNodes.cs" />
+    <Compile Include="Nodes\AggregateNode.cs" />
     <Compile Include="Nodes\BuildNode.cs" />
     <Compile Include="TempStorage.cs">
       <SubType>Code</SubType>

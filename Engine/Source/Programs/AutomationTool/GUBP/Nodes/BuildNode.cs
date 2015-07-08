@@ -7,15 +7,15 @@ using System.Text;
 namespace AutomationTool
 {
 	[DebuggerDisplay("{Name}")]
-	class NodeInfo
+	class BuildNode
 	{
 		public string Name;
 		public GUBP.GUBPNode Node;
-		public NodeInfo[] Dependencies;
-		public NodeInfo[] PseudoDependencies;
-		public NodeInfo[] AllDirectDependencies;
-		public NodeInfo[] AllIndirectDependencies;
-		public NodeInfo[] ControllingTriggers;
+		public BuildNode[] Dependencies;
+		public BuildNode[] PseudoDependencies;
+		public BuildNode[] AllDirectDependencies;
+		public BuildNode[] AllIndirectDependencies;
+		public BuildNode[] ControllingTriggers;
 		public int FrequencyShift;
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
@@ -27,7 +27,7 @@ namespace AutomationTool
 			get { return String.Join(".", ControllingTriggers.Select(x => x.Name)); }
 		}
 
-		public bool DependsOn(NodeInfo Node)
+		public bool DependsOn(BuildNode Node)
 		{
 			return AllIndirectDependencies.Contains(Node);
 		}
