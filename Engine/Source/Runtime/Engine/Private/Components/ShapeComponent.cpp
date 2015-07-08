@@ -50,11 +50,6 @@ UBodySetup* UShapeComponent::GetBodySetup()
 	return ShapeBodySetup;
 }
 
-void UShapeComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
-{
-	OutMaterials.Add( ShapeMaterial );
-}
-
 #if WITH_EDITOR
 void UShapeComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
