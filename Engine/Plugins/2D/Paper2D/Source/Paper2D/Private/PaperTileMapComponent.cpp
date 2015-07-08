@@ -486,8 +486,8 @@ bool UPaperTileMapComponent::SetTileMap(class UPaperTileMap* NewTileMap)
 	if (NewTileMap != TileMap)
 	{
 		// Don't allow changing the tile map if we are "static".
-		AActor* Owner = GetOwner();
-		if ((Owner == nullptr) || AreDynamicDataChangesAllowed())
+		AActor* ComponentOwner = GetOwner();
+		if ((ComponentOwner == nullptr) || AreDynamicDataChangesAllowed())
 		{
 			TileMap = NewTileMap;
 

@@ -14,7 +14,6 @@
 #include "ComponentReregisterContext.h"
 
 DECLARE_CYCLE_STAT(TEXT("Gen Verts"),STAT_NiagaraGenerateVertices,STATGROUP_Niagara);
-DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGROUP_Niagara);
 
 DEFINE_LOG_CATEGORY(LogNiagara);
 

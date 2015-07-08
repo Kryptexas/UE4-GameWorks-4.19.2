@@ -190,7 +190,6 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 
 	CPUTimeMS = TickTime.GetElapsedMilliseconds();
 
-	DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"), STAT_NiagaraNumParticles, STATGROUP_Niagara);
 	INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, Data.GetNumParticles());
 
 }

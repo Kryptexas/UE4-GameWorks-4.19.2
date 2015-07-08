@@ -1003,12 +1003,12 @@ public:
 	/**
 	 * Clone texture from a source using CopyImageSubData
 	 */
-	void CloneViaCopyImage( TOpenGLTexture* Src, uint32 NumMips, int32 SrcOffset, int32 DstOffset);
+	void CloneViaCopyImage( TOpenGLTexture* Src, uint32 InNumMips, int32 SrcOffset, int32 DstOffset);
 	
 	/**
 	 * Clone texture from a source going via PBOs
 	 */
-	void CloneViaPBO( TOpenGLTexture* Src, uint32 NumMips, int32 SrcOffset, int32 DstOffset);
+	void CloneViaPBO( TOpenGLTexture* Src, uint32 InNumMips, int32 SrcOffset, int32 DstOffset);
 
 	/**
 	 * Resolved the specified face for a read Lock, for non-renderable, CPU readable surfaces this eliminates the readback inside Lock itself.

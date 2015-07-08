@@ -197,8 +197,8 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 	if (NewSprite != SourceSprite)
 	{
 		// Don't allow changing the sprite if we are "static".
-		AActor* Owner = GetOwner();
-		if ((Owner == nullptr) || AreDynamicDataChangesAllowed())
+		AActor* ComponentOwner = GetOwner();
+		if ((ComponentOwner == nullptr) || AreDynamicDataChangesAllowed())
 		{
 			SourceSprite = NewSprite;
 

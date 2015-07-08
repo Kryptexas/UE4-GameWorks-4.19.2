@@ -245,7 +245,7 @@ void FOculusRiftHMD::OGLBridge::Init(ovrHmd InHmd)
 	bInitialized = true;
 }
 
-bool FOculusRiftHMD::OGLBridge::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
+bool FOculusRiftHMD::OGLBridge::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
 {
 	check(SizeX != 0 && SizeY != 0);
 
@@ -254,14 +254,14 @@ bool FOculusRiftHMD::OGLBridge::AllocateRenderTargetTexture(uint32 SizeX, uint32
 		bNeedReAllocateTextureSet = true;
 	}
 
-	Flags |= TargetableTextureFlags;
+	InFlags |= TargetableTextureFlags;
 
 	if (Hmd && bNeedReAllocateTextureSet)
 	{
 		auto GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
 		FResourceBulkDataInterface* BulkData = nullptr;
 
-// 		FRHITexture* p = GLRHI->CreateOpenGLTexture(SizeX, SizeY, false, false, Format, NumMips, NumSamples, 1, Flags, BulkData);
+// 		FRHITexture* p = GLRHI->CreateOpenGLTexture(SizeX, SizeY, false, false, Format, NumMips, NumSamples, 1, InFlags, BulkData);
 // 		OutTargetableTexture = p->GetTexture2D();
 // 		OutShaderResourceTexture = p->GetTexture2D();
 // 		return true;
@@ -272,7 +272,7 @@ bool FOculusRiftHMD::OGLBridge::AllocateRenderTargetTexture(uint32 SizeX, uint32
 			ColorTextureSet = nullptr;
 		}
 
-		const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
+		const bool bSRGB = (InFlags & TexCreate_SRGB) != 0;
 		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
 		if (GLFormat.InternalFormat[bSRGB] == GL_NONE)
 		{

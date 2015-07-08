@@ -361,8 +361,8 @@ bool UPaperFlipbookComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
 	if (NewFlipbook != SourceFlipbook)
 	{
 		// Don't allow changing the sprite if we are "static".
-		AActor* Owner = GetOwner();
-		if ((Owner == nullptr) || AreDynamicDataChangesAllowed())
+		AActor* ComponentOwner = GetOwner();
+		if ((ComponentOwner == nullptr) || AreDynamicDataChangesAllowed())
 		{
 			SourceFlipbook = NewFlipbook;
 

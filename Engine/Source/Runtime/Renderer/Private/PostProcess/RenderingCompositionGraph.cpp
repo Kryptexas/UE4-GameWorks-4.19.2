@@ -240,10 +240,10 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(FRenderingComposi
 			InputOutput->AddDependency();
 		}
 		
-		if(FRenderingCompositePass* Pass = OutputRefIt->GetPass())
+		if(FRenderingCompositePass* OutputRefItPass = OutputRefIt->GetPass())
 		{
 			// recursively process all inputs of this Pass
-			RecursivelyGatherDependencies(Pass);
+			RecursivelyGatherDependencies(OutputRefItPass);
 		}
 	}
 

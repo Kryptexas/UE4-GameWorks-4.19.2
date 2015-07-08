@@ -424,7 +424,7 @@ public:
 	ENGINE_API void StartFrame();
 
 	/** Ends a frame */
-	ENGINE_API void EndFrame(ULineBatchComponent* LineBatcher);
+	ENGINE_API void EndFrame(ULineBatchComponent* InLineBatcher);
 
 	/** Starts cloth Simulation*/
 	ENGINE_API void StartCloth();

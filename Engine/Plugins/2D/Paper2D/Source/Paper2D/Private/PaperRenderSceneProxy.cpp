@@ -122,41 +122,41 @@ class FPaperSpriteVertexFactoryDummy : public FLocalVertexFactory
 public:
 	void AllocateStuff()
 	{
-		FLocalVertexFactory::DataType Data;
+		FLocalVertexFactory::DataType VertData;
 
-		Data.PositionComponent = FVertexStreamComponent(
+		VertData.PositionComponent = FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FPaperSpriteVertex,Position),
 			sizeof(FPaperSpriteVertex),
 			VET_Float3
 			);
-		Data.TangentBasisComponents[0] = FVertexStreamComponent(
+		VertData.TangentBasisComponents[0] = FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FPaperSpriteVertex,TangentX),
 			sizeof(FPaperSpriteVertex),
 			VET_PackedNormal
 			);
-		Data.TangentBasisComponents[1] = FVertexStreamComponent(
+		VertData.TangentBasisComponents[1] = FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FPaperSpriteVertex,TangentZ),
 			sizeof(FPaperSpriteVertex),
 			VET_PackedNormal
 			);
-		Data.ColorComponent = FVertexStreamComponent(
+		VertData.ColorComponent = FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FPaperSpriteVertex,Color),
 			sizeof(FPaperSpriteVertex),
 			VET_Color
 			);
-		Data.TextureCoordinates.Empty();
-		Data.TextureCoordinates.Add(FVertexStreamComponent(
+		VertData.TextureCoordinates.Empty();
+		VertData.TextureCoordinates.Add(FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,
 			STRUCT_OFFSET(FPaperSpriteVertex,TexCoords),
 			sizeof(FPaperSpriteVertex),
 			VET_Float2
 			));
 
-		SetData(Data);
+		SetData(VertData);
 	}
 
 	FPaperSpriteVertexFactoryDummy()

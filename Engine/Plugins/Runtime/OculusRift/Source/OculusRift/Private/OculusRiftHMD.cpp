@@ -761,11 +761,11 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 							// returns false.
 							if (GIsEditor)
 							{
-								FSlateRect PreFullScreenRect;
-								PopPreFullScreenRect(PreFullScreenRect);
-								if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && IsFullscreenAllowed())
+								FSlateRect LocalPreFullScreenRect;
+								PopPreFullScreenRect(LocalPreFullScreenRect);
+								if (LocalPreFullScreenRect.GetSize().X > 0 && LocalPreFullScreenRect.GetSize().Y > 0 && IsFullscreenAllowed())
 								{
-									Window->MoveWindowTo(FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
+									Window->MoveWindowTo(FVector2D(LocalPreFullScreenRect.Left, LocalPreFullScreenRect.Top));
 								}
 							}
 							else
