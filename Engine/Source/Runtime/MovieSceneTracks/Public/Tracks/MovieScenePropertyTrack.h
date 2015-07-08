@@ -9,7 +9,7 @@
  * Base class for tracks that animate an object property
  */
 UCLASS( abstract )
-class MOVIESCENE_API UMovieScenePropertyTrack : public UMovieSceneTrack
+class MOVIESCENETRACKS_API UMovieScenePropertyTrack : public UMovieSceneTrack
 {
 	GENERATED_UCLASS_BODY()
 

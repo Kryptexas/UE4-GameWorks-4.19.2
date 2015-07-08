@@ -30,6 +30,7 @@ public class UMG : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[] {
 				"HTTP",
+                "MovieSceneTracks",
 			}
         );
 

@@ -11,7 +11,6 @@
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneTrack.h"
-#include "MovieScenePropertyTrack.h"
 #include "MovieSceneInstance.h"
 #include "IMovieSceneTrackInstance.h"
 
