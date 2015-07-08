@@ -560,6 +560,8 @@ UModel::UModel(const FObjectInitializer& ObjectInitializer)
 	, Points()
 	, Surfs()
 	, VertexBuffer(this)
+	, InvalidSurfaces(false)
+	, bOnlyRebuildMaterialIndexBuffers(false)
 #if WITH_EDITOR
 	, bCachedOwnerTransformValid(false)
 #endif
@@ -576,6 +578,8 @@ UModel::UModel(FVTableHelper& Helper)
 	, Points()
 	, Surfs()
 	, VertexBuffer(this)
+	, InvalidSurfaces(false)
+	, bOnlyRebuildMaterialIndexBuffers(false)
 #if WITH_EDITOR
 	, bCachedOwnerTransformValid(false)
 #endif

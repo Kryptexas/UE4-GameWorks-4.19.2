@@ -57,7 +57,9 @@ void FLevelEditorGenericDetails::OnMaterialChanged( UMaterialInterface* NewMater
 			const int32 SurfaceIndex = It.GetSurfaceIndex();
 
 			Model->Surfs[SurfaceIndex].Material = NewMaterial;
-			GEditor->polyUpdateMaster( Model, SurfaceIndex, 0 );
+			const bool bUpdateTexCoords = false;
+			const bool bOnlyUpdateSurfaceMaterials = true;
+			GEditor->polyUpdateMaster(Model, SurfaceIndex, bUpdateTexCoords, bOnlyUpdateSurfaceMaterials);
 			Model->MarkPackageDirty();
 
 			bModelDirtied = true;

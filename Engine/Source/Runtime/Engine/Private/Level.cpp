@@ -1187,12 +1187,15 @@ void ULevel::CommitModelSurfaces()
 {
 	if(Model->InvalidSurfaces)
 	{
-		// Unregister model components
-		for(int32 ComponentIndex = 0;ComponentIndex < ModelComponents.Num();ComponentIndex++)
+		if (!Model->bOnlyRebuildMaterialIndexBuffers)
 		{
-			if(ModelComponents[ComponentIndex] && ModelComponents[ComponentIndex]->IsRegistered())
+			// Unregister model components
+			for (int32 ComponentIndex = 0; ComponentIndex < ModelComponents.Num(); ComponentIndex++)
 			{
-				ModelComponents[ComponentIndex]->UnregisterComponent();
+				if (ModelComponents[ComponentIndex] && ModelComponents[ComponentIndex]->IsRegistered())
+				{
+					ModelComponents[ComponentIndex]->UnregisterComponent();
+				}
 			}
 		}
 
@@ -1228,7 +1231,14 @@ void ULevel::CommitModelSurfaces()
 			{
 				if(ModelComponents[ComponentIndex])
 				{
-					ModelComponents[ComponentIndex]->RegisterComponentWithWorld(OwningWorld);
+					if (Model->bOnlyRebuildMaterialIndexBuffers)
+					{
+						ModelComponents[ComponentIndex]->MarkRenderStateDirty();
+					}
+					else
+					{
+						ModelComponents[ComponentIndex]->RegisterComponentWithWorld(OwningWorld);
+					}
 				}
 			}
 		}
@@ -1240,6 +1250,8 @@ void ULevel::CommitModelSurfaces()
 		{
 			BeginInitResource(IndexBufferIt.Value());
 		}
+
+		Model->bOnlyRebuildMaterialIndexBuffers = false;
 	}
 }
 

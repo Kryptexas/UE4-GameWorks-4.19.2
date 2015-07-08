@@ -325,8 +325,12 @@ void UEditorEngine::polySetAndClearPolyFlags(UModel *Model, uint32 SetBits, uint
 			{
 				Model->ModifySurf( i, UpdateMaster );
 				Poly.PolyFlags = NewFlags;
-				if( UpdateMaster )
-					polyUpdateMaster( Model, i, 0 );
+				if (UpdateMaster)
+				{
+					const bool bUpdateTexCoords = false;
+					const bool bOnlyRefreshSurfaceMaterials = false;
+					polyUpdateMaster(Model, i, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
+				}
 			}
 		}
 	}
@@ -352,7 +356,8 @@ void UEditorEngine::polyUpdateMaster
 (
 	UModel*	Model,
 	int32  	iSurf,
-	int32		UpdateTexCoords
+	bool	bUpdateTexCoords,
+	bool	bOnlyRefreshSurfaceMaterials
 )
 {
 	FBspSurf &Surf = Model->Surfs[iSurf];
@@ -394,7 +399,7 @@ void UEditorEngine::polyUpdateMaster
 			MasterEdPoly.Material = Surf.Material;
 			MasterEdPoly.PolyFlags = Surf.PolyFlags & ~(PF_NoEdit);
 
-			if (UpdateTexCoords)
+			if (bUpdateTexCoords)
 			{
 				MasterEdPoly.Base = RotationMatrix.InverseTransformVector(Model->Points[Surf.pBase] - ActorLocation) / ActorScale;
 				MasterEdPoly.TextureU = RotationMatrix.InverseTransformVector(Model->Vectors[Surf.vTextureU]) * ActorScale;
@@ -404,6 +409,11 @@ void UEditorEngine::polyUpdateMaster
 	}
 
 	Model->InvalidSurfaces = true;
+
+	if (bOnlyRefreshSurfaceMaterials)
+	{
+		Model->bOnlyRebuildMaterialIndexBuffers = true;
+	}
 }
 
 
@@ -1460,7 +1470,9 @@ void UEditorEngine::polyTexPan(UModel *Model,int32 PanU,int32 PanV,int32 Absolut
 			Model->Points[Surf.pBase] += PanU * (TextureU / TextureU.SizeSquared());
 			Model->Points[Surf.pBase] += PanV * (TextureV / TextureV.SizeSquared());
 
-			polyUpdateMaster(Model,SurfaceIndex,1);
+			const bool bUpdateTexCoords = true;
+			const bool bOnlyRefreshSurfaceMaterials = true;
+			polyUpdateMaster(Model, SurfaceIndex, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 		}
 	}
 }
@@ -1487,7 +1499,9 @@ void UEditorEngine::polyTexScale( UModel* Model, float UU, float UV, float VU, f
 			Model->Vectors[Poly->vTextureV] = OriginalU * VU + OriginalV * VV;
 
 			// Update generating brush poly.
-			polyUpdateMaster( Model, i, 1 );
+			const bool bUpdateTexCoords = true;
+			const bool bOnlyRefreshSurfaceMaterials = true;
+			polyUpdateMaster(Model, i, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 		}
 	}
 }

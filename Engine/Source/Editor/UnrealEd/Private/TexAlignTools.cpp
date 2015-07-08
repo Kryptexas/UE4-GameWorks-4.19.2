@@ -127,7 +127,9 @@ void UTexAligner::Align( UWorld* InWorld, ETexAlign InTexAlignType, UModel* InMo
 
 		AlignSurf( InTexAlignType == TEXALIGN_None ? (ETexAlign)DefTexAlign : InTexAlignType, InModel, Surf, &EdPoly, &Normal );
 
-		GEditor->polyUpdateMaster( InModel, Surf->Idx, 1 );
+		const bool bUpdateTexCoords = true;
+		const bool bOnlyRefreshSurfaceMaterials = true;
+		GEditor->polyUpdateMaster(InModel, Surf->Idx, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 	}
 
 	GEditor->RedrawLevelEditingViewports();

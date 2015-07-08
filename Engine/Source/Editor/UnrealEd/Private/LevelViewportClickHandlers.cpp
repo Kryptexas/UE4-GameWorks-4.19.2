@@ -782,7 +782,9 @@ namespace ClickHandlers
 				{
 					Model->ModifySurf( i, 1 );
 					Model->Surfs[i].Material = SelectedMaterialInstance;
-					GEditor->polyUpdateMaster( Model, i, 0 );
+					const bool bUpdateTexCoords = false;
+					const bool bOnlyRefreshSurfaceMaterials = true;
+					GEditor->polyUpdateMaster(Model, i, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 				}
 			}
 		}
@@ -851,11 +853,15 @@ namespace ClickHandlers
 					UE_LOG(LogEditorViewport, Log, TEXT("WARNING: the texture coordinates were not parallel to the surface.") );
 				}
 				Surf.PolyFlags	= GSaveSurf.PolyFlags;
-				GEditor->polyUpdateMaster( Model, iSurf, 1 );
+				const bool bUpdateTexCoords = true;
+				const bool bOnlyRefreshSurfaceMaterials = true;
+				GEditor->polyUpdateMaster(Model, iSurf, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 			}
 			else
 			{
-				GEditor->polyUpdateMaster( Model, iSurf, 0 );
+				const bool bUpdateTexCoords = false;
+				const bool bOnlyRefreshSurfaceMaterials = true;
+				GEditor->polyUpdateMaster(Model, iSurf, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 			}
 		}
 		else if( Click.GetKey() == EKeys::RightMouseButton && !Click.IsControlDown() )

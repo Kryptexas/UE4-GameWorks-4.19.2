@@ -740,7 +740,9 @@ UObject* ULevelFactory::FactoryCreateText
 
 							CurrentLevel->MarkPackageDirty();
 
-							GEditor->polyUpdateMaster( CurrentLevel->Model, i, 1 );
+							const bool bUpdateTexCoords = true;
+							const bool bOnlyRefreshSurfaceMaterials = false;
+							GEditor->polyUpdateMaster(CurrentLevel->Model, i, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 						}
 					}
 				}

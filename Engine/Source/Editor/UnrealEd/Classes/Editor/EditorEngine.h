@@ -1285,7 +1285,7 @@ public:
 	 *
 	 * Doesn't do any transaction tracking.
 	 */
-	virtual void polyUpdateMaster( UModel* Model, int32 iSurf, int32 UpdateTexCoords );
+	virtual void polyUpdateMaster( UModel* Model, int32 iSurf, bool bUpdateTexCoords, bool bOnlyRefreshSurfaceMaterials );
 
 	/**
 	 * Populates a list with all polys that are linked to the specified poly.  The
