@@ -546,10 +546,10 @@ namespace UnrealBuildTool
 				}
 			}
 
-			//
-			// Options skipped for UnrealCodeAnalyzer
-			//
-			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)	// Disabled when compiling UnrealCodeAnalyzer as it breaks compilation (some structs in clang/llvm headers require 8-byte alignment in 32-bit compilation)
+			// Disabled when compiling UnrealCodeAnalyzer as it breaks compilation (some structs in clang/llvm headers require 8-byte alignment in 32-bit compilation)
+			if (!UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer")
+				// and when running UnrealCodeAnalyzer as it doesn't understand the /Zp syntax.
+				&& !BuildConfiguration.bRunUnrealCodeAnalyzer)
 			{
 				if (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
 				{
@@ -1299,7 +1299,7 @@ namespace UnrealBuildTool
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
 				if (BuildConfiguration.bRunUnrealCodeAnalyzer)
 				{
-					CompileAction.CommandPath = System.IO.Path.Combine(CompileAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"NotForLicensees", @"UnrealCodeAnalyzer.exe");
+					CompileAction.CommandPath = System.IO.Path.Combine(CompileAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
 				}
 				else
 				{

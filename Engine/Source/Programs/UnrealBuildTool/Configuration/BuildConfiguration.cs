@@ -567,8 +567,8 @@ namespace UnrealBuildTool
 			// By default compile code instead of analyzing it.
 			bRunUnrealCodeAnalyzer = false;
 
-			// If header is included in 30% or more cpp files in module it should be included in PCH.
-			UCAUsageThreshold = 0.3f;
+			// If header is included in 0% or more cpp files in module it should be included in PCH.
+			UCAUsageThreshold = 100.0f;
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
@@ -646,6 +646,34 @@ namespace UnrealBuildTool
 			if (!BuildPlatform.CanUseSNDBS()) 
 			{
 				bAllowSNDBS = false;
+			}
+		}
+
+		/// <summary>
+		/// Function to call to after reset default data.
+		/// </summary>
+		public static void PostReset()
+		{
+			// Analyzing UCA is disabled for debugging convenience.
+			if (UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer")
+				// UHT is necessary to generate code for proper compilation.
+				|| UnrealBuildTool.CommandLineContains(@"UnrealHeaderTool"))
+			{
+				BuildConfiguration.bRunUnrealCodeAnalyzer = false;
+			}
+
+			// Couple flags have to be set properly when running UCA.
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				// Analyzing header usage makes more sense on non unity builds.
+				BuildConfiguration.bUseUnityBuild = false;
+
+				// Unfortunately clang doesn't work with PCH files specified via cl.exe syntax.
+				BuildConfiguration.bUsePCHFiles = false;
+				BuildConfiguration.bUseSharedPCHs = false;
+
+				//BuildConfiguration.bUseUBTMakefiles = false;
+				//BuildConfiguration.bUseActionHistory = false;
 			}
 		}
 	}
