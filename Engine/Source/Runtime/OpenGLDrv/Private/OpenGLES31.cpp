@@ -64,6 +64,9 @@ bool FOpenGLES31::bSupportsTextureHalfFloat = false;
 /** GL_EXT_color_buffer_half_float */
 bool FOpenGLES31::bSupportsColorBufferHalfFloat = false;
 
+/** GL_NV_image_formats */
+bool FOpenGLES31::bSupportsNvImageFormats = false;
+
 /** GL_EXT_shader_framebuffer_fetch */
 bool FOpenGLES31::bSupportsShaderFramebufferFetch = false;
 
@@ -269,6 +272,7 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 	bSupportsSGRB = ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
+	bSupportsNvImageFormats = ExtensionsString.Contains(TEXT("GL_NV_image_formats"));
 	bSupportsShaderFramebufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch"));
 	// @todo es3: SRGB support does not work with our texture format setup (ES2 docs indicate that internalFormat and format must match, but they don't at all with sRGB enabled)
 	//             One possible solution us to use GLFormat.InternalFormat[bSRGB] instead of GLFormat.Format

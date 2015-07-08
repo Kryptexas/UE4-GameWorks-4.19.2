@@ -107,6 +107,8 @@ public:
 	static FORCEINLINE bool SupportsTextureFloat()						{ return true; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return true; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return true; }
+	static FORCEINLINE bool	SupportsRG16UI()							{ return true; }
+	static FORCEINLINE bool SupportsR11G11B10F()						{ return true; }
 	static FORCEINLINE bool SupportsVolumeTextureRendering()			{ return false; }
 	static FORCEINLINE bool SupportsShaderFramebufferFetch()			{ return false; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return true; }
