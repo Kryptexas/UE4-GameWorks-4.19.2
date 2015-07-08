@@ -21,6 +21,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 #endif // #if WITH_APEX
 
+#if WITH_EDITOR
+#include "MeshUtilities.h"
+#endif // #if WITH_EDITOR
+
 #define LOCTEXT_NAMESPACE "ApexClothingUtils"
 
 namespace ApexClothingUtils
@@ -906,6 +910,21 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
 
 	LODModel.NumVertices += ClothChunk.GetNumVertices();
+
+	// build adjacency information for this clothing section
+	{
+		TArray<FSoftSkinVertex> Vertices;
+		FMultiSizeIndexContainerData AdjacencyIndexData;
+		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Building adjacency information for a clothing section in skeletal mesh '%s'."), *SkelMesh->GetPathName());
+
+		LODModel.GetVertices(Vertices);
+		AdjacencyIndexData.DataTypeSize = LODModel.MultiSizeIndexContainer.GetDataTypeSize();
+		MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(Vertices, LODModel.NumTexCoords, OutIndexBuffer, AdjacencyIndexData.Indices);
+		LODModel.AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(AdjacencyIndexData);
+	}
+
 
 	// set asset submesh info to new chunk 
 	ClothChunk.SetClothSubmeshIndex(AssetIndex, AssetSubmeshIndex);

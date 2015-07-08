@@ -2301,7 +2301,12 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	for ( int32 LODIndex = 0; LODIndex < ImportedResource->LODModels.Num(); ++LODIndex )
 	{
 		FStaticLODModel& LODModel = ImportedResource->LODModels[ LODIndex ];
-		if ( !LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() )
+
+		if ( !LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid()
+#if WITH_APEX_CLOTHING
+		|| (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_APEX_CLOTH_TESSELLATION && LODModel.HasApexClothData())
+#endif // WITH_APEX_CLOTHING
+			)
 		{
 			TArray<FSoftSkinVertex> Vertices;
 			FMultiSizeIndexContainerData IndexData;
