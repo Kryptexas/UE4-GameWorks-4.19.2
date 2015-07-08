@@ -1083,7 +1083,7 @@ struct ENGINE_API FRotationConversionCache
 	{
 		if (CachedRotator != InRotator)
 		{
-			CachedRotator = InRotator.GetNormalized();;
+			CachedRotator = InRotator.GetNormalized();
 			CachedQuat = CachedRotator.Quaternion();
 		}
 		return CachedQuat;
@@ -1139,6 +1139,18 @@ struct ENGINE_API FRotationConversionCache
 			return CachedRotator;
 		}
 		return InNormalizedQuat.Rotator();
+	}
+
+	/** Return the cached Quat. */
+	FORCEINLINE_DEBUGGABLE FQuat GetCachedQuat() const
+	{
+		return CachedQuat;
+	}
+
+	/** Return the cached Rotator. */
+	FORCEINLINE_DEBUGGABLE FRotator GetCachedRotator() const
+	{
+		return CachedRotator;
 	}
 
 private:
