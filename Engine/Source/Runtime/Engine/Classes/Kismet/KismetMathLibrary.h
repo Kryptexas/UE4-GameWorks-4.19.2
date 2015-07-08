@@ -554,6 +554,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Scales Vector A by B */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector * float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Vector")
 	static FVector Multiply_VectorFloat(FVector A, float B);
+	
+	/* Scales Vector A by B */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector * int", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Vector")
+	static FVector Multiply_VectorInt(FVector A, int32 B);
 
 	/* Element-wise Vector multiplication (Result = {A.x*B.x, A.y*B.y, A.z*B.z}) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector * vector", CompactNodeTitle = "*", Keywords = "* multiply", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Vector")
@@ -563,6 +567,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector / float", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector")
 	static FVector Divide_VectorFloat(FVector A, float B = 1.f);
 
+	/* Vector divide by an integer */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector / int", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector")
+	static FVector Divide_VectorInt(FVector A, int32 B = 1);
+	
 	/* Vector divide by vector */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector / vector", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector")
 	static FVector Divide_VectorVector(FVector A, FVector B = FVector(1.f,1.f,1.f));
@@ -571,15 +579,25 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector + vector", CompactNodeTitle = "+", Keywords = "+ add plus", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Vector")
 	static FVector Add_VectorVector(FVector A, FVector B);
 
+	/** Adds a float to each component of a vector */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector + float", CompactNodeTitle = "+", Keywords = "+ add plus"), Category="Math|Vector")
 	static FVector Add_VectorFloat(FVector A, float B);
+	
+	/** Adds an integer to each component of a vector */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector + int", CompactNodeTitle = "+", Keywords = "+ add plus"), Category="Math|Vector")
+	static FVector Add_VectorInt(FVector A, int32 B);
 
 	/* Vector subtraction */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector - vector", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector")
 	static FVector Subtract_VectorVector(FVector A, FVector B);
 
+	/** Subtracts a float from each component of a vector */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector - float", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector")
 	static FVector Subtract_VectorFloat(FVector A, float B);
+
+	/** Subtracts an integer from each component of a vector */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector - int", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector")
+	static FVector Subtract_VectorInt(FVector A, int32 B);
 
 	/* Returns result of vector A rotated by the inverse of Rotator B */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "UnrotateVector"), Category="Math|Vector")
@@ -729,17 +747,21 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Rotator functions.
 	//
 
-	//Returns true if rotator A is equal to rotator B (A == B) within a specified error tolerance
+	// Returns true if rotator A is equal to rotator B (A == B) within a specified error tolerance
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Equal (Rotator)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Rotator")
 	static bool EqualEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance = 1.e-4f);
 
-	//Returns true if rotator A is not equal to rotator B (A != B) within a specified error tolerance
+	// Returns true if rotator A is not equal to rotator B (A != B) within a specified error tolerance
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Not Equal (Rotator)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Rotator")
 	static bool NotEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance = 1.e-4f);
 
-	//Returns rotator representing rotator A scaled by B 
+	// Returns rotator representing rotator A scaled by B 
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "ScaleRotator", CompactNodeTitle = "*", Keywords = "* multiply rotate rotation"), Category="Math|Rotator")
 	static FRotator Multiply_RotatorFloat(FRotator A, float B);
+	
+	// Returns rotator representing rotator A scaled by B 
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "ScaleRotator (int)", CompactNodeTitle = "*", Keywords = "* multiply rotate rotation"), Category="Math|Rotator")
+	static FRotator Multiply_RotatorInt(FRotator A, int32 B);
 
 	/** Combine 2 rotations to give you the resulting rotation */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "CombineRotators", Keywords="rotate rotation add"), Category="Math|Rotator")

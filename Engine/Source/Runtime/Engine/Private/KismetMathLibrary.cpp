@@ -686,7 +686,12 @@ float UKismetMathLibrary::FInterpTo_Constant(float Current, float Target, float 
 FVector UKismetMathLibrary::Multiply_VectorFloat(FVector A, float B)
 {
 	return A * B;
-}	
+}
+
+FVector UKismetMathLibrary::Multiply_VectorInt(FVector A, int32 B)
+{
+	return A * (float)B;
+}
 
 FVector UKismetMathLibrary::Multiply_VectorVector(FVector A, FVector B)
 {
@@ -702,8 +707,20 @@ FVector UKismetMathLibrary::Divide_VectorFloat(FVector A, float B)
 		return FVector::ZeroVector;
 	}
 
-	return A/B;
-}	
+	return A / B;
+}
+
+FVector UKismetMathLibrary::Divide_VectorInt(FVector A, int32 B)
+{
+	if (B == 0)
+	{
+		//@TODO: EXCEPTION: Throw script exception 
+		FFrame::KismetExecutionMessage(TEXT("Divide by zero: Divide_VectorInt"), ELogVerbosity::Warning);
+		return FVector::ZeroVector;
+	}
+
+	return A / (float)B;
+}
 
 FVector UKismetMathLibrary::Divide_VectorVector(FVector A, FVector B)
 {
@@ -728,6 +745,11 @@ FVector UKismetMathLibrary::Add_VectorFloat(FVector A, float B)
 	return A + B;
 }	
 
+FVector UKismetMathLibrary::Add_VectorInt(FVector A, int32 B)
+{
+	return A + (float)B;
+}
+
 FVector UKismetMathLibrary::Subtract_VectorVector(FVector A, FVector B)
 {
 	return A - B;
@@ -736,7 +758,12 @@ FVector UKismetMathLibrary::Subtract_VectorVector(FVector A, FVector B)
 FVector UKismetMathLibrary::Subtract_VectorFloat(FVector A, float B)
 {
 	return A - B;
-}	
+}
+
+FVector UKismetMathLibrary::Subtract_VectorInt(FVector A, int32 B)
+{
+	return A - (float)B;
+}
 
 FVector UKismetMathLibrary::LessLess_VectorRotator(FVector A, FRotator B)
 {
@@ -957,11 +984,16 @@ bool UKismetMathLibrary::EqualEqual_RotatorRotator(FRotator A, FRotator B, float
 bool UKismetMathLibrary::NotEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
 {
 	return !A.Equals(B, ErrorTolerance);
-}	
+}
 
 FRotator UKismetMathLibrary::Multiply_RotatorFloat(FRotator A, float B)
 {
 	return A * B;
+}
+
+FRotator UKismetMathLibrary::Multiply_RotatorInt(FRotator A, int32 B)
+{
+	return A * (float)B;
 }	
 
 FRotator UKismetMathLibrary::ComposeRotators(FRotator A, FRotator B)
