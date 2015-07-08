@@ -2,5 +2,5 @@
 
 #pragma once
 
-#define IF_MACRO 0
+#define TEST_IF_MACRO 0
 #define ELIF_MACRO 1

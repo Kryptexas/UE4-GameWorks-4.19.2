@@ -5,7 +5,7 @@
 
 static int Function_UseElifMacro()
 {
-#if IF_MACRO
+#if TEST_IF_MACRO
 	return 0;
 #elif ELIF_MACRO
 	return 1;
