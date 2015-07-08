@@ -2,6 +2,7 @@
 
 #include "SlateCorePrivatePCH.h"
 #include "WidgetCaching.h"
+#include "HittestGrid.h"
 
 // FCachedWidgetNode
 //-------------------------------------------------------------
