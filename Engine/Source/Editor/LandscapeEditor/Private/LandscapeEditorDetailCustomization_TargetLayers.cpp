@@ -772,7 +772,8 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerCreateClicked(
 			TArray<UObject*> Objects;
 			Objects.Add(LayerInfo);
 			GEditor->SyncBrowserToObjects(Objects);
-			//LandscapeEdMode->UpdateTargetList();
+			
+			LandscapeEdMode->TargetsListUpdated.Broadcast();
 		}
 	}
 }
