@@ -5,5 +5,7 @@
 
 static void Function_UseClassWithNonStaticPtrField()
 {
+#ifdef UNREAL_CODE_ANALYZER
 	FTestClassWithNonStaticPtrField TestClassWithNonStaticPtrField;
+#endif
 }

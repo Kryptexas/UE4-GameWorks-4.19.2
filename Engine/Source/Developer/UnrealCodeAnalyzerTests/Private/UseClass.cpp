@@ -5,5 +5,7 @@
 
 static void Function_UseClass()
 {
+#ifdef UNREAL_CODE_ANALYZER
 	FTestClass TestClass;
+#endif
 }

@@ -5,5 +5,7 @@
 
 static void Function_TemplatedClassInstance()
 {
+#ifdef UNREAL_CODE_ANALYZER
 	FTemplateClass<FTestClass> TemplateClass;
+#endif
 }
