@@ -250,6 +250,7 @@ struct FViewMatrices
 		return GetInvProjMatrix() * GetInvViewMatrix();
 	}
 
+	// @return in radians (horizontal,vertical)
 	FVector2D GetHalfFieldOfViewPerAxis() const
 	{
 		const FMatrix ClipToView = GetInvProjNoAAMatrix();
