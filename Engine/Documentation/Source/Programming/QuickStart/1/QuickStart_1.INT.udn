@@ -3,7 +3,7 @@ Title:1 - Essential Project Setup
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a new project with the specifications we need
 SkillLevel: Beginner
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,7 +23,7 @@ Version: 4.8
 %Steps%
 
 [REGION:note]
-You should have a copy of **Visual Studio** installed before starting this tutorial.
+You should have a copy of **Visual Studio 2013** for Deskstop (Preferably Community or Professional) installed before starting this tutorial.
 [/REGION]
 
 1. Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
