@@ -1214,10 +1214,19 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords="rotation rotate"))
 	static FVector GetUpVector(FRotator InRot);
 
-	/** Makes a rotator {Pitch, Yaw, Roll} from rotation values supplied in degrees */
+	/** Makes a rotator {Roll, Pitch, Yaw} from rotation values supplied in degrees */
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator", NativeMakeFunc))
-	static FRotator MakeRot(float Pitch, float Yaw, float Roll);
-	
+	static FRotator MakeRotator(
+		UPARAM(DisplayName="X (Roll)") float Roll,	
+		UPARAM(DisplayName="Y (Pitch)") float Pitch,
+		UPARAM(DisplayName="Z (Yaw)") float Yaw);
+
+	DEPRECATED(4.9, "Method renamed to MakeRotator as the parameter order changed")
+	static inline FRotator MakeRot(float Pitch, float Yaw, float Roll)
+	{
+		return MakeRotator(Roll, Pitch, Yaw);
+	}
+
 	/** Find a rotation for an object at Start location to point at Target location. */
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate"))
 	static FRotator FindLookAtRotation(const FVector& Start, const FVector& Target);
@@ -1258,9 +1267,18 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromZY(const FVector& Z, const FVector& Y);
 
-	/** Breaks apart a rotator into Pitch, Yaw, Roll angles in degrees*/
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate rotator breakrotator", NativeBreakFunc))
-	static void BreakRot(FRotator InRot, float& Pitch, float& Yaw, float& Roll);
+	/** Breaks apart a rotator into {Roll, Pitch, Yaw} angles in degrees */
+	UFUNCTION(BlueprintPure, Category = "Math|Rotator", meta = (Keywords = "rotation rotate rotator breakrotator", NativeBreakFunc))
+	static void BreakRotator(FRotator InRot,
+		UPARAM(DisplayName="X (Roll)") float& Roll,
+		UPARAM(DisplayName="Y (Pitch)") float& Pitch,
+		UPARAM(DisplayName="Z (Yaw)") float& Yaw);
+
+	DEPRECATED(4.9, "Method renamed to BreakRotator as the parameter order changed")
+	static inline void BreakRot(FRotator InRot, float& Pitch, float& Yaw, float& Roll)
+	{
+		BreakRotator(InRot, Roll, Pitch, Yaw);
+	}
 
 	/** Breaks apart a rotator into its component axes */
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate rotator breakrotator"))

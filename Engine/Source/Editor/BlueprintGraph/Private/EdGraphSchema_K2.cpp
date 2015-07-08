@@ -4973,7 +4973,7 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 
 				if(OldMakeStructNode->StructType->GetName() == TEXT("Rotator"))
 				{
-					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRot));
+					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRotator));
 					OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("ReturnValue"));
 				}
 				else if(OldMakeStructNode->StructType->GetName() == TEXT("Vector"))
@@ -5054,7 +5054,7 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 
 				if(OldBreakStructNode->StructType->GetName() == TEXT("Rotator"))
 				{
-					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakRot));
+					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakRotator));
 					OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("InRot"));
 				}
 				else if(OldBreakStructNode->StructType->GetName() == TEXT("Vector"))

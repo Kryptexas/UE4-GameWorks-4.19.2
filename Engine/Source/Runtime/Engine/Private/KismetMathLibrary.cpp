@@ -1804,7 +1804,7 @@ FVector UKismetMathLibrary::GetUpVector(FRotator InRot)
 	return FRotationMatrix(InRot).GetScaledAxis( EAxis::Z );
 }
 
-FRotator UKismetMathLibrary::MakeRot(float Pitch, float Yaw, float Roll)
+FRotator UKismetMathLibrary::MakeRotator(float Roll, float Pitch, float Yaw)
 {
 	return FRotator(Pitch,Yaw,Roll);
 }
@@ -1860,7 +1860,7 @@ FRotator UKismetMathLibrary::MakeRotFromZY(const FVector& Z, const FVector& Y)
 }
 
 
-void UKismetMathLibrary::BreakRot(FRotator InRot, float& Pitch, float& Yaw, float& Roll)
+void UKismetMathLibrary::BreakRotator(FRotator InRot, float& Roll, float& Pitch, float& Yaw)
 {
 	Pitch = InRot.Pitch;
 	Yaw = InRot.Yaw;
