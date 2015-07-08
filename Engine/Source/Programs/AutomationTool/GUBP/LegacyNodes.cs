@@ -1159,16 +1159,9 @@ partial class GUBP
 
 		public static bool IsFeaturePack(BranchInfo.BranchUProject InGameProj)
 		{
-			// No obvious way to store this in the project options; it's a property of non-code projects too.
-			if(InGameProj.GameName == "StarterContent" || InGameProj.GameName == "MobileStarterContent" || InGameProj.GameName.StartsWith("FP_"))
-			{
-				return true;
-			}
-			if(InGameProj.GameName.StartsWith("TP_"))
-			{
-				return CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath), "contents.txt"));
-			}
-			return false;
+			bool bHasContents = CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath), "contents.txt"));
+			bool bHasManifest = CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath), "manifest.json"));
+			return bHasContents && bHasManifest;
 		}
 
 		public static UnrealTargetPlatform GetDefaultBuildPlatform(List<UnrealTargetPlatform> HostPlatforms)
