@@ -29,6 +29,8 @@ public:
 	virtual bool AllowsSharingSamplers() const override { return true; }
 
 	virtual bool UseSamplerInnerType() const { return true; }
+
+	virtual bool CanConvertBetweenHalfAndFloat() const { return false; }
 };
 
 struct FBuffers;

@@ -19,6 +19,9 @@ struct ILanguageSpec
 	// If true, a sampler can be used with multiple textures
 	virtual bool AllowsSharingSamplers() const = 0;
 
+	// Some platforms don't allow implicit math/conversion between float & half types
+	virtual bool CanConvertBetweenHalfAndFloat() const { return true; }
+
 	// Experimental!
 	virtual bool UseSamplerInnerType() const { return false; }
 };

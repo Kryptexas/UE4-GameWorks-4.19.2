@@ -142,20 +142,16 @@ protected:
 		id(ID++)
 	{
 		ir_type = ir_type_unset;
-#if DEBUG
 		if (id == BREAK_ON_ID)
 		{
 #if WIN32
 			__debugbreak();
 #endif
         }
-#endif
 	}
 
 	static int ID;
-#if DEBUG
 	static int BREAK_ON_ID;
-#endif
 };
 
 

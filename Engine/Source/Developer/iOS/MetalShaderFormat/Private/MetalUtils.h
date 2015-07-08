@@ -24,6 +24,14 @@ inline std::string FixVecPrefix(std::string Type)
 		Type = "uint";
 		Type += Num;
 	}
+	else if (!strncmp("mat", Type.c_str(), 3))
+	{
+		std::string Num = Type.substr(3);
+		Type = "float";
+		Type += Num;
+		Type += "x";
+		Type += Num;
+	}
 
 	return Type;
 }
