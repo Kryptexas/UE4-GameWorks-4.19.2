@@ -1338,7 +1338,21 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @return An array of language IDs ordered from most preferred to least
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-		static TArray<FString> GetPreferredLanguages();
+	static TArray<FString> GetPreferredLanguages();
+
+	/**
+	* Returns the currency code associated with the device's locale
+	* @return the currency code associated with the device's locale
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static FString GetLocalCurrencyCode();
+
+	/**
+	* Returns the currency symbol associated with the device's locale
+	* @return the currency symbol associated with the device's locale
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static FString GetLocalCurrencySymbol();
 
 	/**
 	 * Requests permission to send remote notifications to the user's device.

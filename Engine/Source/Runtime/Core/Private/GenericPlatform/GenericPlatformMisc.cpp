@@ -907,7 +907,20 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 
 TArray<FString> FGenericPlatformMisc::GetPreferredLanguages()
 {
+	// not implemented by default
 	return TArray<FString>();
+}
+
+FString FGenericPlatformMisc::GetLocalCurrencyCode()
+{
+	// not implemented by default
+	return FString();
+}
+
+FString FGenericPlatformMisc::GetLocalCurrencySymbol()
+{
+	// not implemented by default
+	return FString();
 }
 
 void FGenericPlatformMisc::PlatformPreInit()

@@ -833,6 +833,18 @@ public:
 	static TArray<FString> GetPreferredLanguages();
 
 	/**
+	* Returns the currency code associated with the device's locale
+	* @return the currency code associated with the device's locale
+	*/
+	static FString GetLocalCurrencyCode();
+
+	/**
+	* Returns the currency symbol associated with the device's locale
+	* @return the currency symbol associated with the device's locale
+	*/
+	static FString GetLocalCurrencySymbol();
+
+	/**
 	 * Requests permission to send remote notifications to the user's device.
 	 */
 	static void RegisterForRemoteNotifications();

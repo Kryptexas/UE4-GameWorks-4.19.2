@@ -752,6 +752,16 @@ TArray<FString> FIOSPlatformMisc::GetPreferredLanguages()
 	return Results;
 }
 
+FString FIOSPlatformMisc::GetLocalCurrencyCode()
+{
+	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode]);
+}
+
+FString FIOSPlatformMisc::GetLocalCurrencySymbol()
+{
+	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencySymbol]);
+}
+
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
 	UIApplication* application = [UIApplication sharedApplication];

@@ -3000,6 +3000,16 @@ TArray<FString> UKismetSystemLibrary::GetPreferredLanguages()
 	return FPlatformMisc::GetPreferredLanguages();
 }
 
+FString UKismetSystemLibrary::GetLocalCurrencyCode()
+{
+	return FPlatformMisc::GetLocalCurrencyCode();
+}
+
+FString UKismetSystemLibrary::GetLocalCurrencySymbol()
+{
+	return FPlatformMisc::GetLocalCurrencySymbol();
+}
+
 struct FLoadAssetActionBase : public FPendingLatentAction, public FGCObject
 {
 	// @TODO: it would be good to have static/global manager? 
