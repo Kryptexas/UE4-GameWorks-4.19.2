@@ -827,6 +827,12 @@ public:
 	static const TCHAR* GetEngineMode();
 
 	/**
+	 * Returns an array of the user's preferred languages in order of preference
+	 * @return An array of language IDs ordered from most preferred to least
+	 */
+	static TArray<FString> GetPreferredLanguages();
+
+	/**
 	 * Requests permission to send remote notifications to the user's device.
 	 */
 	static void RegisterForRemoteNotifications();

@@ -2994,6 +2994,12 @@ void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldCon
 		World->GetFirstLocalPlayerFromController()->ViewportClient->SetSuppressTransitionMessage(bState);
 	}
 }
+
+TArray<FString> UKismetSystemLibrary::GetPreferredLanguages()
+{
+	return FPlatformMisc::GetPreferredLanguages();
+}
+
 struct FLoadAssetActionBase : public FPendingLatentAction, public FGCObject
 {
 	// @TODO: it would be good to have static/global manager? 

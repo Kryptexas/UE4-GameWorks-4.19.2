@@ -740,6 +740,18 @@ TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
 	return FontBytes;
 }
 
+TArray<FString> FIOSPlatformMisc::GetPreferredLanguages()
+{
+	TArray<FString> Results;
+
+	NSArray* Languages = [NSLocale preferredLanguages];
+	for (NSString* Language in Languages)
+	{
+		Results.Add(FString(Language));
+	}
+	return Results;
+}
+
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
 	UIApplication* application = [UIApplication sharedApplication];

@@ -1334,6 +1334,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState);
 
 	/**
+	 * Returns an array of the user's preferred languages in order of preference
+	 * @return An array of language IDs ordered from most preferred to least
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+		static TArray<FString> GetPreferredLanguages();
+
+	/**
 	 * Requests permission to send remote notifications to the user's device.
 	 * (iOS only)
 	 */

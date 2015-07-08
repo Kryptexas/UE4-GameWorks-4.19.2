@@ -905,6 +905,11 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 		TEXT( "Game" );
 }
 
+TArray<FString> FGenericPlatformMisc::GetPreferredLanguages()
+{
+	return TArray<FString>();
+}
+
 void FGenericPlatformMisc::PlatformPreInit()
 {
 	FGenericCrashContext::Initialize();
