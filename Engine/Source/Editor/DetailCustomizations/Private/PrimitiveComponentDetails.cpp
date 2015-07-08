@@ -108,7 +108,7 @@ bool FPrimitiveComponentDetails::IsAutoWeldEditable() const
 		{
 			if (FBodyInstance* BI = SceneComponent->GetBodyInstance())
 			{
-				if (BI->IsInstanceSimulatingPhysics())
+				if (BI->ShouldInstanceSimulatingPhysics())
 				{
 					return false;
 				}
