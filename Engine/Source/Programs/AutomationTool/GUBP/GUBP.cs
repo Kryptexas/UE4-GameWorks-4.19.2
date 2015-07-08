@@ -17,16 +17,6 @@ public partial class GUBP : BuildCommand
 	const string FailedTempStorageSuffix = "_Failed";
 	const string SucceededTempStorageSuffix = "_Succeeded";
 
-	public string BranchName;
-    public int CL = 0;
-    public bool bSignBuildProducts = false;
-    public BranchInfo Branch = null;
-    public List<UnrealTargetPlatform> HostPlatforms;
-    public bool bForceIncrementalCompile = false;
-    public bool bPreflightBuild = false;
-    public string PreflightMangleSuffix = "";
-    public GUBPBranchHacker.BranchOptions BranchOptions = null;	
-
 	[DebuggerDisplay("{Name}")]
 	class AggregateInfo
 	{
@@ -385,13 +375,10 @@ public partial class GUBP : BuildCommand
             {
 				Builder.AppendFormat(" [{0}]", Agent);
             }
-
-			int MemoryRequirement = NodeToDo.Node.AgentMemoryRequirement(bp);
-			if(MemoryRequirement != 0)
+			if(NodeToDo.AgentMemoryRequirement != 0)
 			{
-				Builder.AppendFormat(" [{0}gb]", MemoryRequirement);
+				Builder.AppendFormat(" [{0}gb]", NodeToDo.AgentMemoryRequirement);
 			}
-
             if (AddEmailProps)
             {
 				Builder.AppendFormat(" {0}", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
@@ -1024,7 +1011,7 @@ public partial class GUBP : BuildCommand
 				AgentReq = ParseParamValue("AgentOverride");
 			}
 			ECProps.Add(string.Format("AgentRequirementString/{0}={1}", NodeToDo.Name, AgentReq));
-			ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo.Name, NodeToDo.Node.AgentMemoryRequirement(this)));
+			ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo.Name, NodeToDo.AgentMemoryRequirement));
 			ECProps.Add(string.Format("Timeouts/{0}={1}", NodeToDo.Name, NodeToDo.Node.TimeoutInMinutes()));
 			ECProps.Add(string.Format("JobStepPath/{0}={1}", NodeToDo.Name, GetJobStepPath(NodeToDo)));
 		}
@@ -1105,6 +1092,7 @@ public partial class GUBP : BuildCommand
     {
         Log("************************* GUBP");
 
+		bool bPreflightBuild = false;
 		int PreflightShelveCL = 0;
         string PreflightShelveCLString = GetEnvVar("uebp_PreflightShelveCL");
         if ((!String.IsNullOrEmpty(PreflightShelveCLString) && IsBuildMachine) || ParseParam("PreflightTest"))
@@ -1121,63 +1109,35 @@ public partial class GUBP : BuildCommand
             bPreflightBuild = true;
         }
         
-        HostPlatforms = new List<UnrealTargetPlatform>();
+		List<UnrealTargetPlatform> HostPlatforms = new List<UnrealTargetPlatform>();
         if (!ParseParam("NoPC"))
         {
             HostPlatforms.Add(UnrealTargetPlatform.Win64);
         }
-		if (P4Enabled)
-		{
-			BranchName = P4Env.BuildRootP4;
-		}
-		else
-		{ 
-			BranchName = ParseParamValue("BranchName", "");
-		}
-		BranchOptions = GetBranchOptions(BranchName);
-        bool WithMac = !BranchOptions.PlatformsToRemove.Contains(UnrealTargetPlatform.Mac);
-        if (ParseParam("NoMac"))
+        if (!ParseParam("NoMac"))
         {
-            WithMac = false;
-        }
-        if (WithMac)
-		{
 			HostPlatforms.Add(UnrealTargetPlatform.Mac);
-		}
-
-		bool WithLinux = !BranchOptions.PlatformsToRemove.Contains(UnrealTargetPlatform.Linux);
-		bool WithoutLinux = ParseParam("NoLinux");
-		// @TODO: exclude temporarily unless running on a Linux machine to prevent spurious GUBP failures
-		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux || ParseParam("NoLinux"))
-		{
-			WithLinux = false;
-		}
-		if (WithLinux)
+        }
+		if(!ParseParam("NoLinux") && UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
 		{
 			HostPlatforms.Add(UnrealTargetPlatform.Linux);
 		}
 
-        bForceIncrementalCompile = ParseParam("ForceIncrementalCompile");
-        bool bNoAutomatedTesting = ParseParam("NoAutomatedTesting") || BranchOptions.bNoAutomatedTesting;		
         string StoreName = ParseParamValue("Store");
         string StoreSuffix = ParseParamValue("StoreSuffix", "");
 
+		string PreflightMangleSuffix = "";
         if (bPreflightBuild)
         {
             int PreflightUID = ParseParamInt("PreflightUID", 0);
             PreflightMangleSuffix = String.Format("-PF-{0}-{1}", PreflightShelveCL, PreflightUID);
             StoreSuffix = StoreSuffix + PreflightMangleSuffix;
         }
-        CL = ParseParamInt("CL", 0);
+        int CL = ParseParamInt("CL", 0);
         bool bCleanLocalTempStorage = ParseParam("CleanLocal");
         bool bSkipTriggers = ParseParam("SkipTriggers");
         bool bFake = ParseParam("fake");
         bool bFakeEC = ParseParam("FakeEC");
-        int TimeIndex = ParseParamInt("TimeIndex", 0);
-        if (TimeIndex == 0)
-        {
-            TimeIndex = ParseParamInt("UserTimeIndex", 0);
-        }
 
         bool bSaveSharedTempStorage = false;
 
@@ -1213,7 +1173,6 @@ public partial class GUBP : BuildCommand
             {
                 throw new AutomationException("Request to save to temp storage, but {0} is unavailable.", TempStorage.UE4TempStorageDirectory());
             }
-            bSignBuildProducts = true;
         }
         else if (!LocalOnly && !TempStorage.HaveSharedTempStorage(false))
         {
@@ -1229,17 +1188,10 @@ public partial class GUBP : BuildCommand
 			ExplicitTriggerName = ParseParamValue("TriggerNode", "");
 		}
 
-        if (ParseParam("CIS") && ExplicitTriggerName == "" && CommanderSetup) // explicit triggers will already have a time index assigned
-        {
-			TimeIndex = UpdateCISCounter();
-            Log("Setting TimeIndex to {0}", TimeIndex);
-        }
-
-        Branch = new BranchInfo(HostPlatforms);        
-
 		List<NodeInfo> AllNodes;
 		List<AggregateInfo> AllAggregates;
-		AddNodesForBranch(TimeIndex, bNoAutomatedTesting, out AllNodes, out AllAggregates);
+		int TimeQuantum = 20;
+		AddNodesForBranch(CL, HostPlatforms, bPreflightBuild, PreflightMangleSuffix, out AllNodes, out AllAggregates, ref TimeQuantum);
 
 		LinkGraph(AllAggregates, AllNodes);
 		FindControllingTriggers(AllNodes);
@@ -1251,7 +1203,19 @@ public partial class GUBP : BuildCommand
             TempStorage.DeleteLocalTempStorageManifests(CmdEnv);
         }
 
-		HashSet<NodeInfo> NodesToDo = ParseNodesToDo(AllNodes, AllAggregates, WithoutLinux, TimeIndex, CommanderSetup);
+		int TimeIndex = ParseParamInt("TimeIndex", 0);
+		if (TimeIndex == 0)
+		{
+			TimeIndex = ParseParamInt("UserTimeIndex", 0);
+		}
+		if (ParseParam("CIS") && ExplicitTriggerName == "" && CommanderSetup) // explicit triggers will already have a time index assigned
+		{
+			TimeIndex = UpdateCISCounter(TimeQuantum);
+			Log("Setting TimeIndex to {0}", TimeIndex);
+		}
+
+		bool WithoutLinux = ParseParam("NoLinux");
+		HashSet<NodeInfo> NodesToDo = ParseNodesToDo(AllNodes, AllAggregates, WithoutLinux, TimeIndex, bPreflightBuild, CommanderSetup);
 
 		NodeInfo ExplicitTrigger = null;
 		if (CommanderSetup)
@@ -1292,12 +1256,6 @@ public partial class GUBP : BuildCommand
 
         List<NodeInfo> OrderedToDo = TopologicalSort(NodesToDo, ExplicitTrigger, false, false);
 
-		int TimeQuantum = 20;
-		if(BranchOptions.QuantumOverride != 0)
-		{
-			TimeQuantum = BranchOptions.QuantumOverride;
-		}
-
 		List<NodeInfo> UnfinishedTriggers = FindUnfinishedTriggers(bSkipTriggers, ExplicitTrigger, OrderedToDo);
 
 		PrintNodes(this, OrderedToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
@@ -1308,7 +1266,7 @@ public partial class GUBP : BuildCommand
         string FakeFail = ParseParamValue("FakeFail");
         if(CommanderSetup)
         {
-			DoCommanderSetup(AllNodes, AllAggregates, NodesToDo, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, UnfinishedTriggers, FakeFail);
+			DoCommanderSetup(AllNodes, AllAggregates, NodesToDo, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, UnfinishedTriggers, FakeFail, bPreflightBuild);
         }
 		else if(ParseParam("SaveGraph"))
 		{
@@ -1503,7 +1461,7 @@ public partial class GUBP : BuildCommand
 		return false;
 	}
 
-	private HashSet<NodeInfo> ParseNodesToDo(IEnumerable<NodeInfo> PotentialNodes, IEnumerable<AggregateInfo> PotentialAggregates, bool WithoutLinux, int TimeIndex, bool CommanderSetup)
+	private HashSet<NodeInfo> ParseNodesToDo(IEnumerable<NodeInfo> PotentialNodes, IEnumerable<AggregateInfo> PotentialAggregates, bool WithoutLinux, int TimeIndex, bool bPreflightBuild, bool CommanderSetup)
 	{
 		List<string> NamesToDo = new List<string>();
 
@@ -1674,7 +1632,7 @@ public partial class GUBP : BuildCommand
 		return FullNodeDependedOnBy;
 	}
 
-	private int UpdateCISCounter()
+	private int UpdateCISCounter(int TimeQuantum)
 	{
 		if (!P4Enabled)
 		{
@@ -1739,11 +1697,6 @@ public partial class GUBP : BuildCommand
 
 			int DeltaMinutes = NowMinutes - Minutes;
 
-			int TimeQuantum = 20;
-			if (BranchOptions.QuantumOverride != 0)
-			{
-				TimeQuantum = BranchOptions.QuantumOverride;
-			}
 			int NewIndex = Index + 1;
 
 			if (DeltaMinutes > TimeQuantum * 2)
@@ -1840,7 +1793,7 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-	private void DoCommanderSetup(IEnumerable<NodeInfo> AllNodes, IEnumerable<AggregateInfo> AllAggregates, HashSet<NodeInfo> NodesToDo, List<NodeInfo> OrdereredToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, List<NodeInfo> UnfinishedTriggers, string FakeFail)
+	private void DoCommanderSetup(IEnumerable<NodeInfo> AllNodes, IEnumerable<AggregateInfo> AllAggregates, HashSet<NodeInfo> NodesToDo, List<NodeInfo> OrdereredToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, NodeInfo ExplicitTrigger, List<NodeInfo> UnfinishedTriggers, string FakeFail, bool bPreflightBuild)
 	{
 		Dictionary<string, string> FullNodeDependedOnBy = GetFullNodeDependedOnBy(NodesToDo);
 

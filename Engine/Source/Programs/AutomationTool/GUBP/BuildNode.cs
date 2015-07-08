@@ -20,6 +20,7 @@ namespace AutomationTool
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;
+		public int AgentMemoryRequirement;
 
 		public string ControllingTriggerDotName
 		{
