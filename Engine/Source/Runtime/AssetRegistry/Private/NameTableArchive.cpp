@@ -22,8 +22,7 @@ bool FNameTableArchiveReader::LoadFile(const TCHAR* Filename, int32 Serializatio
 
 			if (VersionNumber == SerializationVersion)
 			{
-				SerializeNameMap();
-				return true;
+				return SerializeNameMap();
 			}
 		}
 	}
@@ -31,10 +30,16 @@ bool FNameTableArchiveReader::LoadFile(const TCHAR* Filename, int32 Serializatio
 	return false;
 }
 
-void FNameTableArchiveReader::SerializeNameMap()
+bool FNameTableArchiveReader::SerializeNameMap()
 {
 	int64 NameOffset = 0;
 	*this << NameOffset;
+
+	if (NameOffset > TotalSize())
+	{
+		// The file was corrupted. Return false to fail to load the cache an thus regenerate it.
+		return false;
+	}
 
 	if( NameOffset > 0 )
 	{
@@ -59,6 +64,8 @@ void FNameTableArchiveReader::SerializeNameMap()
 
 		Seek( OriginalOffset );
 	}
+
+	return true;
 }
 
 void FNameTableArchiveReader::Serialize( void* V, int64 Length )
