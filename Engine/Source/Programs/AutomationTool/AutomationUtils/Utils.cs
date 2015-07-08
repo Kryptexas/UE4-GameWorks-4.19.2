@@ -687,6 +687,7 @@ namespace AutomationTool
 			if (Environment.GetEnvironmentVariable("uebp_UATMutexNoWait") == "1")
 			{
 				Main(Param);
+                return;
 			}
 			var bCreatedMutex = false;
 			var LocationHash = InternalUtils.ExecutingAssemblyLocation.GetHashCode();
