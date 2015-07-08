@@ -50,8 +50,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_5_Header.png)
-## Overview
-
 
 **Screenspace Reflections** are a dynamic post process effect. While it can only reflect what is on screen, thusly creating some odd artifacts on perfectly reflective surfaces. However, by adding a bit of roughness to a Material, these artifacts will be blended away.
 
