@@ -359,6 +359,7 @@ void UAnimMontage::PostLoad()
 		}
 		else
 		{
+			Composite.RefreshSegmentOnLoad();
 			Composite.LinkMontage(this, Composite.GetTime());
 		}
 	}

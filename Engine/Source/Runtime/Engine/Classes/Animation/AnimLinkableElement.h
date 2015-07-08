@@ -121,6 +121,11 @@ struct FAnimLinkableElement
 	/** Relinks this element if it is outside of its segments */
 	ENGINE_API void ConditionalRelink();
 
+	/** Refreshes the current segment data (Begin time, length etc.) and validate the link time
+	 *  Intended to update the internal state when segment lengths/times could have changed
+	 */
+	ENGINE_API void RefreshSegmentOnLoad();
+
 protected:
 
 	/** Gets the segment in the current montage in the current slot that is at the time of this element */

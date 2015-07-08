@@ -376,3 +376,31 @@ void FAnimLinkableElement::Link(UAnimSequenceBase* AnimObject, float AbsTime, in
 		LinkSequence(AnimObject, AbsTime);
 	}
 }
+
+void FAnimLinkableElement::RefreshSegmentOnLoad()
+{
+	// We only perform this step if we have valid data from a previous link
+	if(LinkedMontage && SegmentIndex != INDEX_NONE && SlotIndex != INDEX_NONE)
+	{
+		if(LinkedMontage->SlotAnimTracks.IsValidIndex(SlotIndex))
+		{
+			FSlotAnimationTrack& Slot = LinkedMontage->SlotAnimTracks[SlotIndex];
+			if(Slot.AnimTrack.AnimSegments.IsValidIndex(SegmentIndex))
+			{
+				FAnimSegment& Segment = Slot.AnimTrack.AnimSegments[SegmentIndex];
+
+				if(Segment.AnimReference == LinkedSequence)
+				{
+					if(CachedLinkMethod == EAnimLinkMethod::Relative)
+					{
+						LinkValue = FMath::Clamp<float>(LinkValue, 0.0f, Segment.GetLength());
+					}
+
+					// Update timing
+					SegmentBeginTime = Segment.StartPos;
+					SegmentLength = Segment.GetLength();
+				}
+			}
+		}
+	}
+}
