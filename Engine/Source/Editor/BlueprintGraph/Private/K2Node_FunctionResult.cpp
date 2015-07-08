@@ -209,6 +209,18 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 {
 	Super::PostPlacedNewNode();
 
+	SyncWithPrimaryResultNode();
+}
+
+void UK2Node_FunctionResult::PostPasteNode()
+{
+	Super::PostPasteNode();
+
+	SyncWithPrimaryResultNode();
+}
+
+void UK2Node_FunctionResult::SyncWithPrimaryResultNode()
+{
 	UK2Node_FunctionResult* PrimaryNode = nullptr;
 	TArray<UK2Node_FunctionResult*> AllResultNodes = GetAllResultNodes();
 	for (auto ResultNode : AllResultNodes)
@@ -222,14 +234,12 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 
 	if (PrimaryNode)
 	{
+		TArray< TSharedPtr<FUserPinInfo> > UDPinsCopy = UserDefinedPins;
+		for (auto UDPin : UDPinsCopy)
 		{
-			TArray< TSharedPtr<FUserPinInfo> > UDPinsCopy = UserDefinedPins;
-			for (auto UDPin : UDPinsCopy)
-			{
-				RemoveUserDefinedPin(UDPin);
-			}
-			UserDefinedPins.Empty();
+			RemoveUserDefinedPin(UDPin);
 		}
+		UserDefinedPins.Empty();
 
 		SignatureClass = PrimaryNode->SignatureClass;
 		SignatureName = PrimaryNode->SignatureName;
@@ -244,9 +254,10 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 				NewPinInfo->PinType = UDPin->PinType;
 				NewPinInfo->DesiredPinDirection = UDPin->DesiredPinDirection;
 				UserDefinedPins.Add(NewPinInfo);
-				CreatePinFromUserDefinition(NewPinInfo);
 			}
 		}
+
+		ReconstructNode();
 	}
 }
 

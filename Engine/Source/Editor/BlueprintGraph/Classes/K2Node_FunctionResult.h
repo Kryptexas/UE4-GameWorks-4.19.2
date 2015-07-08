@@ -25,7 +25,8 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const;
 	virtual void PostPlacedNewNode();
-	virtual bool CanDuplicateNode() const { return false; }
+	virtual bool CanDuplicateNode() const { return true; }
+	virtual void PostPasteNode() override;
 	// End UK2Node interface
 
 	// Begin K2Node_FunctionTerminator interface
@@ -34,5 +35,8 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 	// End K2Node_FunctionTerminator interface
 
 	BLUEPRINTGRAPH_API TArray<UK2Node_FunctionResult*> GetAllResultNodes() const;
+
+protected:
+	void SyncWithPrimaryResultNode();
 };
 
