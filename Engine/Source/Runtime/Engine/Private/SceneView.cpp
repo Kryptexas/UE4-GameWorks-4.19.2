@@ -775,28 +775,30 @@ void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRe
 	out_WorldDirection = RayDirWorldSpace;
 }
 
-void FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRect& ViewRect, const FMatrix& ViewProjectionMatrix, FVector2D& out_ScreenPos)
+bool FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRect& ViewRect, const FMatrix& ViewProjectionMatrix, FVector2D& out_ScreenPos)
 {
 	FPlane Result = ViewProjectionMatrix.TransformFVector4(FVector4(WorldPosition, 1.f));
-	if (Result.W == 0)
+	if ( Result.W > 0.0f )
 	{
-		Result.W = KINDA_SMALL_NUMBER;
+		// the result of this will be x and y coords in -1..1 projection space
+		const float RHW = 1.0f / Result.W;
+		FPlane PosInScreenSpace = FPlane(Result.X * RHW, Result.Y * RHW, Result.Z * RHW, Result.W);
+
+		// Move from projection space to normalized 0..1 UI space
+		const float NormalizedX = ( PosInScreenSpace.X / 2.f ) + 0.5f;
+		const float NormalizedY = 1.f - ( PosInScreenSpace.Y / 2.f ) - 0.5f;
+
+		FVector2D RayStartViewRectSpace(
+			(float)ViewRect.Min.X + ( NormalizedX * (float)ViewRect.Width() ),
+			(float)ViewRect.Min.Y + ( NormalizedY * (float)ViewRect.Height() )
+			);
+
+		out_ScreenPos = RayStartViewRectSpace;
+
+		return true;
 	}
-
-	// the result of this will be x and y coords in -1..1 projection space
-	const float RHW = 1.0f / Result.W;
-	FPlane PosInScreenSpace = FPlane(Result.X * RHW, Result.Y * RHW, Result.Z * RHW, Result.W);
-
-	// Move from projection space to normalized 0..1 UI space
-	const float NormalizedX = (PosInScreenSpace.X / 2.f) + 0.5f;
-	const float NormalizedY = 1.f - (PosInScreenSpace.Y / 2.f) - 0.5f;
-
-	FVector2D RayStartViewRectSpace(
-		(float)ViewRect.Min.X + (NormalizedX * (float)ViewRect.Width()),
-		(float)ViewRect.Min.Y + (NormalizedY * (float)ViewRect.Height())
-		);
-
-	out_ScreenPos = RayStartViewRectSpace;
+	
+	return false;
 }
 
 

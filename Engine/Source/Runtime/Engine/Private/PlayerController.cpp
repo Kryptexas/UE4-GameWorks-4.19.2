@@ -1873,6 +1873,8 @@ bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLo
 			if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
 			{
 				ScreenLocation = FVector(ScreenLoc2D.X, ScreenLoc2D.Y, FVector::Dist(ProjectionData.ViewOrigin, WorldLocation));
+
+				return true;
 			}
 		}
 	}
