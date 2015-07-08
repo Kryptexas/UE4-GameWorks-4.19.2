@@ -50,9 +50,11 @@ namespace UnrealBuildTool
 			return ExpectedSDKVersion;
 		}
 
+		// force rebuild for platform every time to force install AutoSDK for HTML5 4.8
 		protected override String GetRequiredScriptVersionString()
 		{
-			return "3.0";
+			TimeSpan Span= DateTime.Now.Subtract(new DateTime(1970,1,1,0,0,0));
+			return Span.TotalSeconds.ToString();
 		}
 		
 		// The current architecture - affects everything about how UBT operates on HTML5
