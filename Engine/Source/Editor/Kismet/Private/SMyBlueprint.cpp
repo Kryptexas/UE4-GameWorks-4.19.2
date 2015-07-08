@@ -1517,12 +1517,21 @@ FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAct
 			}
 		}
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
-		{			
-			// don't need a valid FCanBeDroppedDelegate because this entry means we already have this 
-			// event placed (so this action will just focus it)
-			TSharedRef<FKismetDragDropAction> DragOperation = FKismetDragDropAction::New(InAction, AnalyticsDelegate, FKismetDragDropAction::FCanBeDroppedDelegate());
+		{	
+			// Check if it's a custom event, it is preferable to drop a call function for custom events than to focus on the node
+			FEdGraphSchemaAction_K2Event* FuncAction = (FEdGraphSchemaAction_K2Event*)InAction.Get();
+			if (UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(FuncAction->NodeTemplate))
+			{
+				return FReply::Handled().BeginDragDrop(FKismetFunctionDragDropAction::New(InAction, CustomEvent->GetFunctionName(), GetBlueprintObj()->SkeletonGeneratedClass, FMemberReference(), AnalyticsDelegate, FKismetDragDropAction::FCanBeDroppedDelegate()));
+			}
+			else
+			{
+				// don't need a valid FCanBeDroppedDelegate because this entry means we already have this 
+				// event placed (so this action will just focus it)
+				TSharedRef<FKismetDragDropAction> DragOperation = FKismetDragDropAction::New(InAction, AnalyticsDelegate, FKismetDragDropAction::FCanBeDroppedDelegate());
 
-			return FReply::Handled().BeginDragDrop(DragOperation);
+				return FReply::Handled().BeginDragDrop(DragOperation);
+			}
 		}
 	}
 
