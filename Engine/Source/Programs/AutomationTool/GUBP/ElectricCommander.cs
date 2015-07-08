@@ -51,13 +51,13 @@ namespace AutomationTool
 
 		static string GetJobStepPath(BuildNode Dep)
 		{
-			if (Dep.Node.AgentSharingGroup == "")
+			if (Dep.AgentSharingGroup == "")
 			{
 				return "jobSteps[" + Dep.Name + "]";
 			}
 			else
 			{
-				return "jobSteps[" + Dep.Node.AgentSharingGroup + "]/jobSteps[" + Dep.Name + "]";
+				return "jobSteps[" + Dep.AgentSharingGroup + "]/jobSteps[" + Dep.Name + "]";
 			}
 		}
 		static string GetJobStep(string ParentPath, BuildNode Dep)
@@ -71,13 +71,13 @@ namespace AutomationTool
 			ECProps.Add("FailEmails/" + NodeToDo.Name + "=" + String.Join(" ", NodeToDo.RecipientsForFailureEmails));
 	
 			string AgentReq = NodeToDo.Node.ECAgentString();
-			if(Command.ParseParamValue("AgentOverride") != "" && !NodeToDo.Node.GetFullName().Contains("OnMac"))
+			if(Command.ParseParamValue("AgentOverride") != "" && !NodeToDo.Name.Contains("OnMac"))
 			{
 				AgentReq = Command.ParseParamValue("AgentOverride");
 			}
 			ECProps.Add(string.Format("AgentRequirementString/{0}={1}", NodeToDo.Name, AgentReq));
 			ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo.Name, NodeToDo.AgentMemoryRequirement));
-			ECProps.Add(string.Format("Timeouts/{0}={1}", NodeToDo.Name, NodeToDo.Node.TimeoutInMinutes()));
+			ECProps.Add(string.Format("Timeouts/{0}={1}", NodeToDo.Name, NodeToDo.TimeoutInMinutes));
 			ECProps.Add(string.Format("JobStepPath/{0}={1}", NodeToDo.Name, GetJobStepPath(NodeToDo)));
 		
 			return ECProps;
@@ -140,13 +140,13 @@ namespace AutomationTool
 			RunECTool(String.Format("setProperty \"/myWorkflow/EmailNotes/{0}\" \"{1}\"", NodeToDo.Name, EMailNote));
 			{
 				HashSet<string> Emails = new HashSet<string>(NodeToDo.RecipientsForFailureEmails);
-				if (Command.ParseParam("CIS") && !NodeToDo.Node.SendSuccessEmail() && !NodeToDo.Node.TriggerNode() && NodeToDo.AddSubmittersToFailureEmails)
+				if (Command.ParseParam("CIS") && !NodeToDo.SendSuccessEmail && !NodeToDo.Node.TriggerNode() && NodeToDo.AddSubmittersToFailureEmails)
 				{
 					Emails.UnionWith(FailCauserEMails.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
 				}
 				RunECTool(String.Format("setProperty \"/myWorkflow/FailEmails/{0}\" \"{1}\"", NodeToDo.Name, String.Join(" ", Emails)));
 			}
-			if (NodeToDo.Node.SendSuccessEmail() || SendSuccessForGreenAfterRed)
+			if (NodeToDo.SendSuccessEmail || SendSuccessForGreenAfterRed)
 			{
 				RunECTool(String.Format("setProperty \"/myWorkflow/SendSuccessEmail/{0}\" \"{1}\"", NodeToDo.Name, "1"));
 			}
@@ -269,7 +269,7 @@ namespace AutomationTool
 				{
 					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
 					{
-						string MyAgentGroup = NodeToDo.Node.AgentSharingGroup;
+						string MyAgentGroup = NodeToDo.AgentSharingGroup;
 						if (MyAgentGroup != "")
 						{
 							if (!AgentGroupChains.ContainsKey(MyAgentGroup))
@@ -344,7 +344,7 @@ namespace AutomationTool
 						string PreCondition = GetPreConditionForNode(OrdereredToDo, ParentPath, bHasNoop, AgentGroupChains, StickyChain, NodeToDo, UncompletedEcDeps);
 						string RunCondition = GetRunConditionForNode(UncompletedEcDeps, ParentPath);
 
-						string MyAgentGroup = NodeToDo.Node.AgentSharingGroup;
+						string MyAgentGroup = NodeToDo.AgentSharingGroup;
 						bool bDoNestedJobstep = false;
 						bool bDoFirstNestedJobstep = false;
 
@@ -496,13 +496,13 @@ namespace AutomationTool
 		private string GetPreConditionForNode(List<BuildNode> OrdereredToDo, string PreconditionParentPath, bool bHasNoop, Dictionary<string, List<BuildNode>> AgentGroupChains, List<BuildNode> StickyChain, BuildNode NodeToDo, List<BuildNode> UncompletedEcDeps)
 		{
 			List<BuildNode> PreConditionUncompletedEcDeps = new List<BuildNode>();
-			if(NodeToDo.Node.AgentSharingGroup == "")
+			if(NodeToDo.AgentSharingGroup == "")
 			{
 				PreConditionUncompletedEcDeps = new List<BuildNode>(UncompletedEcDeps);
 			}
 			else 
 			{
-				List<BuildNode> MyChain = AgentGroupChains[NodeToDo.Node.AgentSharingGroup];
+				List<BuildNode> MyChain = AgentGroupChains[NodeToDo.AgentSharingGroup];
 				int MyIndex = MyChain.IndexOf(NodeToDo);
 				if (MyIndex > 0)
 				{

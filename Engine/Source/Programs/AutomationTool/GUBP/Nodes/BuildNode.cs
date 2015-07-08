@@ -7,20 +7,24 @@ using System.Text;
 namespace AutomationTool
 {
 	[DebuggerDisplay("{Name}")]
-	class BuildNode
+	abstract class BuildNode
 	{
 		public string Name;
+		public string AgentSharingGroup;
+		public int FrequencyShift;
+		public int AgentMemoryRequirement;
+		public int TimeoutInMinutes;
+
 		public GUBP.GUBPNode Node;
 		public BuildNode[] Dependencies;
 		public BuildNode[] PseudoDependencies;
 		public BuildNode[] AllDirectDependencies;
 		public BuildNode[] AllIndirectDependencies;
 		public BuildNode[] ControllingTriggers;
-		public int FrequencyShift;
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;
-		public int AgentMemoryRequirement;
+		public bool SendSuccessEmail;
 
 		public string ControllingTriggerDotName
 		{

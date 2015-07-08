@@ -64,6 +64,7 @@
     <Compile Include="LegacyNodes.cs" />
     <Compile Include="Nodes\AggregateNode.cs" />
     <Compile Include="Nodes\BuildNode.cs" />
+    <Compile Include="Nodes\LegacyNode.cs" />
     <Compile Include="TempStorage.cs">
       <SubType>Code</SubType>
     </Compile>

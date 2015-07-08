@@ -1203,7 +1203,7 @@ partial class GUBP
 
 		// Convert the GUBPNodes and GUBPAggregates maps into lists
 		AllNodes = new List<BuildNode>();
-		AllNodes.AddRange(BranchConfig.GUBPNodes.Values.Select(x => new BuildNode{ Name = x.GetFullName(), Node = x, AgentMemoryRequirement = x.AgentMemoryRequirement(BranchConfig) }));
+		AllNodes.AddRange(BranchConfig.GUBPNodes.Values.Select(x => new LegacyNode(BranchConfig, x)));
 
 		AllAggregates = new List<AggregateNode>();
 		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new AggregateNode{ Name = x.GetFullName(), Node = x }));

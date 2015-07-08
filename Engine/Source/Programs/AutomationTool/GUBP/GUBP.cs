@@ -541,11 +541,11 @@ public partial class GUBP : BuildCommand
                 }
             }
 
-			if (NodeToDo.Node.AgentSharingGroup != LastAgentGroup && NodeToDo.Node.AgentSharingGroup != "")
+			if (NodeToDo.AgentSharingGroup != LastAgentGroup && NodeToDo.AgentSharingGroup != "")
             {
-                Log("    Agent Group: {0}", NodeToDo.Node.AgentSharingGroup);
+                Log("    Agent Group: {0}", NodeToDo.AgentSharingGroup);
             }
-            LastAgentGroup = NodeToDo.Node.AgentSharingGroup;
+            LastAgentGroup = NodeToDo.AgentSharingGroup;
 
 			StringBuilder Builder = new StringBuilder("      ");
 			if(LastAgentGroup != "")
@@ -721,7 +721,7 @@ public partial class GUBP : BuildCommand
             Dictionary<string, List<BuildNode>> AgentGroupChains = new Dictionary<string, List<BuildNode>>();
             foreach (BuildNode NodeToDo in NodesToDo)
             {
-                string MyAgentGroup = NodeToDo.Node.AgentSharingGroup;
+                string MyAgentGroup = NodeToDo.AgentSharingGroup;
                 if (MyAgentGroup != "")
                 {
                     if (!AgentGroupChains.ContainsKey(MyAgentGroup))
@@ -756,21 +756,21 @@ public partial class GUBP : BuildCommand
                 bool bReady = true;
 				bool bPseudoReady = true;
 				bool bCompReady = true;
-                if (!SubSort && NodeToDo.Node.AgentSharingGroup != "")
+                if (!SubSort && NodeToDo.AgentSharingGroup != "")
                 {
-                    if (ExaminedAgentGroups.Contains(NodeToDo.Node.AgentSharingGroup))
+                    if (ExaminedAgentGroups.Contains(NodeToDo.AgentSharingGroup))
                     {
-                        bReady = !NonReadyAgentGroups.Contains(NodeToDo.Node.AgentSharingGroup);
-                        bPseudoReady = !NonPeudoReadyAgentGroups.Contains(NodeToDo.Node.AgentSharingGroup); //this might not be accurate if bReady==false
+                        bReady = !NonReadyAgentGroups.Contains(NodeToDo.AgentSharingGroup);
+                        bPseudoReady = !NonPeudoReadyAgentGroups.Contains(NodeToDo.AgentSharingGroup); //this might not be accurate if bReady==false
                     }
                     else
                     {
-                        ExaminedAgentGroups.Add(NodeToDo.Node.AgentSharingGroup);
-                        foreach (BuildNode ChainNode in SortedAgentGroupChains[NodeToDo.Node.AgentSharingGroup])
+                        ExaminedAgentGroups.Add(NodeToDo.AgentSharingGroup);
+                        foreach (BuildNode ChainNode in SortedAgentGroupChains[NodeToDo.AgentSharingGroup])
                         {
                             foreach (BuildNode Dep in ChainNode.Dependencies)
                             {
-                                if (!SortedAgentGroupChains[NodeToDo.Node.AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
+                                if (!SortedAgentGroupChains[NodeToDo.AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
                                 {
                                     bReady = false;
                                     break;
@@ -778,15 +778,15 @@ public partial class GUBP : BuildCommand
                             }
                             if (!bReady)
                             {
-                                NonReadyAgentGroups.Add(NodeToDo.Node.AgentSharingGroup);
+                                NonReadyAgentGroups.Add(NodeToDo.AgentSharingGroup);
                                 break;
                             }
                             foreach (BuildNode Dep in ChainNode.PseudoDependencies)
                             {
-                                if (!SortedAgentGroupChains[NodeToDo.Node.AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
+                                if (!SortedAgentGroupChains[NodeToDo.AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
                                 {
                                     bPseudoReady = false;
-                                    NonPeudoReadyAgentGroups.Add(NodeToDo.Node.AgentSharingGroup);
+                                    NonPeudoReadyAgentGroups.Add(NodeToDo.AgentSharingGroup);
                                     break;
                                 }
                             }
@@ -873,9 +873,9 @@ public partial class GUBP : BuildCommand
             }
             if (bProgressMade)
             {
-                if (!SubSort && BestNode.Node.AgentSharingGroup != "")
+                if (!SubSort && BestNode.AgentSharingGroup != "")
                 {
-                    foreach (BuildNode ChainNode in SortedAgentGroupChains[BestNode.Node.AgentSharingGroup])
+                    foreach (BuildNode ChainNode in SortedAgentGroupChains[BestNode.AgentSharingGroup])
                     {
                         OrdereredToDo.Add(ChainNode);
                         NodesToDo.Remove(ChainNode);
@@ -894,15 +894,15 @@ public partial class GUBP : BuildCommand
                 foreach (BuildNode NodeToDo in NodesToDo)
                 {
                     string Deps = "";
-                    if (!SubSort && NodeToDo.Node.AgentSharingGroup != "")
+                    if (!SubSort && NodeToDo.AgentSharingGroup != "")
                     {
-                        foreach (BuildNode ChainNode in SortedAgentGroupChains[NodeToDo.Node.AgentSharingGroup])
+                        foreach (BuildNode ChainNode in SortedAgentGroupChains[NodeToDo.AgentSharingGroup])
                         {
                             foreach (BuildNode Dep in ChainNode.Dependencies)
                             {
-                                if (!SortedAgentGroupChains[NodeToDo.Node.AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
+                                if (!SortedAgentGroupChains[NodeToDo.AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
                                 {
-                                    Deps = Deps + Dep.Name + "[" + ChainNode.Name + "->" + NodeToDo.Node.AgentSharingGroup + "]" + " ";
+                                    Deps = Deps + Dep.Name + "[" + ChainNode.Name + "->" + NodeToDo.AgentSharingGroup + "]" + " ";
                                 }
                             }
                         }
@@ -942,7 +942,7 @@ public partial class GUBP : BuildCommand
         if (!NodeToDo.Node.TriggerNode() && CLString != "")
         {
             string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
-            string NodeStoreWildCard = StoreName.Replace(CLString, "*") + "-" + NodeToDo.Node.GetFullName();
+            string NodeStoreWildCard = StoreName.Replace(CLString, "*") + "-" + NodeToDo.Name;
             History = new NodeHistory();
 
             History.AllStarted = ConvertCLToIntList(TempStorage.FindTempStorageManifests(CmdEnv, NodeStoreWildCard + StartedTempStorageSuffix, false, true, GameNameIfAny));
@@ -1084,7 +1084,7 @@ public partial class GUBP : BuildCommand
         int Result = P4Env.Changelist;
 
         string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
-        string NodeStore = StoreName + "-" + NodeToDo.Node.GetFullName() + FailedTempStorageSuffix;
+        string NodeStore = StoreName + "-" + NodeToDo.Name + FailedTempStorageSuffix;
 
         List<int> BackwardsFails = new List<int>(History.AllFailed);
         BackwardsFails.Add(P4Env.Changelist);
@@ -1324,7 +1324,7 @@ public partial class GUBP : BuildCommand
 			int FoundNames = 0;
 			foreach (BuildNode PotentialNode in PotentialNodes)
 			{
-				if (String.Compare(PotentialNode.Name, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0 || String.Compare(PotentialNode.Node.AgentSharingGroup, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0)
+				if (String.Compare(PotentialNode.Name, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0 || String.Compare(PotentialNode.AgentSharingGroup, NameToDo, StringComparison.InvariantCultureIgnoreCase) == 0)
 				{
 					NodesToDo.Add(PotentialNode);
 					FoundNames++;
@@ -1657,7 +1657,7 @@ public partial class GUBP : BuildCommand
                 }
             }
 
-            string NodeStoreName = StoreName + "-" + NodeToDo.Node.GetFullName();
+            string NodeStoreName = StoreName + "-" + NodeToDo.Name;
             
             string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
             string StorageRootIfAny = NodeToDo.Node.RootIfAnyForTempStorage();
@@ -1671,18 +1671,18 @@ public partial class GUBP : BuildCommand
             bool SaveSuccessRecords = (IsBuildMachine || bFakeEC) && // no real reason to make these locally except for fakeEC tests
                 (!NodeToDo.Node.TriggerNode() || NodeToDo.Node.IsSticky()); // trigger nodes are run twice, one to start the new workflow and once when it is actually triggered, we will save reconds for the latter
 
-            Log("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Node.GetFullName(), GameNameIfAny, NodeStoreName);
+            Log("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, NodeStoreName);
             if (NodeToDo.IsComplete)
             {
                 if (NodeToDo.Name == VersionFilesNode.StaticGetFullName() && !IsBuildMachine)
                 {
-                    Log("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", NodeToDo.Node.GetFullName(), NodeStoreName);
+                    Log("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", NodeToDo.Name, NodeStoreName);
                     NodeToDo.Node.BuildProducts = new List<string>();
 
                 }
                 else
                 {
-                    Log("***** Retrieving GUBP Node {0} from {1}", NodeToDo.Node.GetFullName(), NodeStoreName);
+                    Log("***** Retrieving GUBP Node {0} from {1}", NodeToDo.Name, NodeStoreName);
                     bool WasLocal;
 					try
 					{
