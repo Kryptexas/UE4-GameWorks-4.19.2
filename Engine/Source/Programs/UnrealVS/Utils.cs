@@ -553,7 +553,7 @@ namespace UnrealVS
 
 		public static bool IsGameProject(Project Project)
 		{
-			return GetUProjectNames().Any(UProject => 0 == string.Compare(UProject, Project.Name, StringComparison.OrdinalIgnoreCase));
+			return GetUProjects().ContainsKey(Project.Name);
 		}
 
 		/// <summary>
@@ -569,26 +569,74 @@ namespace UnrealVS
 			return Project.Name + "." + UProjectExtension;
 		}
 
+		public static string GetAutoUProjectCommandLinePrefix(Project Project)
+		{
+			var UProjectFileName = GetUProjectFileName(Project);
+			var AllUProjects = GetUProjects();
+
+			string UProjectPath = string.Empty;
+			if (!AllUProjects.TryGetValue(Project.Name, out UProjectPath))
+			{
+				// Search the project folder
+				var ProjectFolder = Path.GetDirectoryName(Project.FullName);
+				var UProjUnderProject = Directory.GetFiles(ProjectFolder, UProjectFileName, SearchOption.TopDirectoryOnly);
+				if (UProjUnderProject.Length == 1)
+				{
+					UProjectPath = UProjUnderProject[0];
+				}				
+			}
+
+			return '\"' + UProjectPath + '\"';
+		}
+
 		/// <summary>
 		/// Returns all the .uprojects found under the solution root folder.
-		/// Returns names only with no path or extension.
 		/// </summary>
-		public static IEnumerable<string> GetUProjectNames()
+		public static IDictionary<string, string> GetUProjects()
 		{
 			var Folder = GetSolutionFolder();
 			if (string.IsNullOrEmpty(Folder))
 			{
-				return new string[0];
+				return new Dictionary<string, string>();
 			}
 
 			if (Folder != CachedUProjectRootFolder)
 			{
+				Logging.WriteLine("GetUProjects: recaching uproject paths...");
+
 				CachedUProjectRootFolder = Folder;
-				var UProjects = Directory.GetFiles(Folder, "*." + UProjectExtension, SearchOption.AllDirectories);
-				CachedUProjectNames = (from FullPath in UProjects select Path.GetFileNameWithoutExtension(FullPath)).ToArray();
+				CachedUProjectPaths = Directory.GetFiles(Folder, "*." + UProjectExtension, SearchOption.AllDirectories);
+				CachedUProjects = null;
+
+				Logging.WriteLine("    DONE");
 			}
 
-			return CachedUProjectNames;
+			if (CachedUProjects == null)
+			{
+				Logging.WriteLine("GetUProjects: recaching uproject names...");
+
+				var ProjectPaths = UnrealVSPackage.Instance.GetLoadedProjectPaths();
+				var ProjectNames = (from path in ProjectPaths select Path.GetFileNameWithoutExtension(path)).ToArray();
+
+				var CodeUProjects = from UProjectPath in CachedUProjectPaths
+					let ProjectName = Path.GetFileNameWithoutExtension(UProjectPath)
+					where ProjectNames.Any(name => string.Compare(name, ProjectName, StringComparison.OrdinalIgnoreCase) == 0)
+					select new {Name = ProjectName, FilePath = UProjectPath};
+
+				CachedUProjects = new Dictionary<string, string>();
+
+				foreach (var UProject in CodeUProjects)
+				{
+					if (!CachedUProjects.ContainsKey(UProject.Name))
+					{
+						CachedUProjects.Add(UProject.Name, UProject.FilePath);
+					}
+				}
+
+				Logging.WriteLine("    DONE");
+			}
+
+			return CachedUProjects;
 		}
 
 		public static void GetSolutionConfigsAndPlatforms(out string[] SolutionConfigs, out string[] SolutionPlatforms)
@@ -651,6 +699,11 @@ namespace UnrealVS
 			return false;
 		}
 
+		public static void OnProjectListChanged()
+		{
+			CachedUProjects = null;
+		}
+
 		private static void PrepareOutputPane()
 		{
 			UnrealVSPackage.Instance.DTE.ExecuteCommand("View.Output");
@@ -701,6 +754,7 @@ namespace UnrealVS
 		}
 
 		private static string CachedUProjectRootFolder = string.Empty;
-		private static IEnumerable<string> CachedUProjectNames = new string[0];
+		private static IEnumerable<string> CachedUProjectPaths = new string[0];
+		private static IDictionary<string, string> CachedUProjects = null;
 	}
 }
