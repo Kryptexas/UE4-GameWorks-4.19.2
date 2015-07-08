@@ -81,6 +81,10 @@ STDMETHODIMP FWmfMediaByteStream::Invoke(IMFAsyncResult* AsyncResult)
 	return S_OK;
 }
 
+#if _MSC_VER == 1900
+#pragma warning(push)
+#pragma warning(disable:4838)
+#endif // _MSC_VER == 1900
 
 STDMETHODIMP FWmfMediaByteStream::QueryInterface(REFIID RefID, void** Object)
 {
@@ -93,6 +97,9 @@ STDMETHODIMP FWmfMediaByteStream::QueryInterface(REFIID RefID, void** Object)
 
 	return QISearch( this, QITab, RefID, Object );
 }
+#if _MSC_VER == 1900
+#pragma warning(pop)
+#endif // _MSC_VER == 1900
 
 
 STDMETHODIMP_(ULONG) FWmfMediaByteStream::Release()
