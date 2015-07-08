@@ -89,6 +89,10 @@ struct FInAppPurchaseProductInfo
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 	FString Identifier;
 
+	// the unique transaction identifier
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString TransactionIdentifier;
+
 	// The localized display name
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 	FString DisplayName;
@@ -100,6 +104,22 @@ struct FInAppPurchaseProductInfo
 	// The localized display price name
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 	FString DisplayPrice;
+
+	// The localized currency code of the price
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString CurrencyCode;
+
+	// The localized currency symbol of the price
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString CurrencySymbol;
+
+	// The localized decimal separator used in the price
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString DecimalSeparator;
+
+	// The localized grouping separator of the price
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString GroupingSeparator;
 
 	// The localized display price name
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)

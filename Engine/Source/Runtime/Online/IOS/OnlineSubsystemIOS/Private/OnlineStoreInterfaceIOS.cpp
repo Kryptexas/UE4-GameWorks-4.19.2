@@ -133,6 +133,7 @@
 			}
 
 			StoreInterface->CachedPurchaseStateObject->ProvidedProductInformation.ReceiptData = ReceiptData;
+			StoreInterface->CachedPurchaseStateObject->ProvidedProductInformation.TransactionIdentifier = transaction.transactionIdentifier;
 			StoreInterface->CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
 		}
      
@@ -459,6 +460,10 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 			PurchaseProductInfo.DisplayName = [Product localizedTitle];
 			PurchaseProductInfo.DisplayDescription = [Product localizedDescription];
 			PurchaseProductInfo.DisplayPrice = [numberFormatter stringFromNumber : Product.price];
+			PurchaseProductInfo.CurrencyCode = [Product.priceLocale objectForKey : NSLocaleCurrencyCode];
+			PurchaseProductInfo.CurrencySymbol = [Product.priceLocale objectForKey : NSLocaleCurrencySymbol];
+			PurchaseProductInfo.DecimalSeparator = [Product.priceLocale objectForKey : NSLocaleDecimalSeparator];
+			PurchaseProductInfo.GroupingSeparator = [Product.priceLocale objectForKey : NSLocaleGroupingSeparator];
 
 			[numberFormatter release];
 
@@ -507,6 +512,10 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 				NewProductInfo.DisplayName = [Product localizedTitle];
 				NewProductInfo.DisplayDescription = [Product localizedDescription];
 				NewProductInfo.DisplayPrice = [numberFormatter stringFromNumber : Product.price];
+				NewProductInfo.CurrencyCode = [Product.priceLocale objectForKey : NSLocaleCurrencyCode];
+				NewProductInfo.CurrencySymbol = [Product.priceLocale objectForKey : NSLocaleCurrencySymbol];
+				NewProductInfo.DecimalSeparator = [Product.priceLocale objectForKey : NSLocaleDecimalSeparator];
+				NewProductInfo.GroupingSeparator = [Product.priceLocale objectForKey : NSLocaleGroupingSeparator];
 
 				UE_LOG(LogOnline, Log, TEXT("\nProduct Identifier: %s, Name: %s, Description: %s, Price: %s\n"),
 					*NewProductInfo.Identifier,
