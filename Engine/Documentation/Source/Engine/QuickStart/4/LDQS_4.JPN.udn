@@ -1,8 +1,16 @@
-﻿INTSourceChangelist:2467427
+﻿INTSourceChangelist:2610045
 Availability:Public
-Title:4.配置したアクタの編集
+Title:4 - レベル内へのアクタの配置
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:アクタがレベル内にある状態で、バリエーションを加えます。
+Description:背景を作成するためにレベル内にアクタを配置して操作してみましょう。 
+SkillLevel:初心者
+Version:4.8 
+Related:Engine/UI/LevelEditor/Modes/PlaceMode
+Related:GettingStarted/HowTo/ManipulatingActors
+Related:Engine/UI/LevelEditor/Details
+Related:Engine/Actors
+Related:Engine/Rendering/LightingAndShadows
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,34 +30,92 @@ Description:アクタがレベル内にある状態で、バリエーション�
 
 %Steps%
 
-![](Engine\QuickStart\4\placeThings.png)
+このステップでは空のレベル内に [**アクタ**](Engine/Actors) (ライトやジオメトリなど) を配置していきます。 
+アクタをレベルに追加する最も一般的な 2 つの方法である、[**Place Mode**](Engine/UI/LevelEditor/Modes/PlaceMode) を用いる方法と、[**コンテンツ ブラウザ**](Engine/Content/Browser) による方法を説明します。 
+このステップを完了すると、レベルにアクタを配置する方法を理解し、配置したアクタを操作して背景を作成することができます。 
 
-多くののアクタを配置した状態で、そのいくつかを編集してみましょう。最初に、 **Directional Light (平行光源) アクタ** を編集します。
+## ステップ
 
-1. ビューポート内で **左クリック** して、 **Directional Light アクタ** を選択します。
+1. **[Modes] パネル** の **Place Mode** を有効にして、 [**BSP**](Engine/Actors/Brushes) カテゴリをクリックして **Box** を選択します。 
 
-	![](Engine\QuickStart\5\selectDL.png)
+	![](ModesPanel.png)
 
-1. **Light** カテゴリの **[Details] パネル** で、 **[Used as Atmosphere Sun Light]** を有効にします。
+1. **左クリック** して **Box** を **レベル ビューポート** にドラッグします。 
 
-	![](Engine\QuickStart\5\enableSun.png)
+	![](placeBox.png)
 
-	**Directional Light アクタ** の回転に応じて空の色が変わります。ビューポートを回転させると太陽が **Directional Light アクタ** の位置に合わせされるのがわかります。これはリアルタイム プロセスです。そのため、(**E** を押して **Rotation モード** に切り替えて) **Directional Light Actor** を回転させると、空の色が夜、日の出、日中、日没と変化するのがわかります。
+	**マウスの左ボタン** を放すと、**Box** がレベルに追加されます。
 
-配置した **Static Mesh アクタ** のどれかの上にある **マテリアル** を最初に選択して、変えてみましょう。  
+	![](place2.png)
 
-1. レベル内でアクタを選択し、**[Materials]** の **[Details]** パネルで **Element 0** の下にあるドロップダウン ボックスをクリックします。 
+1. **Box** はまだ選択したまま、(エディタの右下のウィンドウ) の [**Details**] (Engine/UI/LevelEditor/Details) パネルで、**位置** と **回転** をすべて **0** に設定します。 
 
-	![](material_1.png)(w:900)
+1. **Scale** を **4 x 4 x 0.1** に設定します。 
 
-	ポップアップ ウィンドウで、使用するスタティック メッシュ用の **マテリアル** を選択します (下図では **M_Brick_Clay_New** を選択しました)。 
+	![](resize_floor.png)
 
-	![](material_2.png)(w:900)
+	これはプレイヤーが歩き回るフロアとして使用します。 
 
-1.	シーン内のすべての **アクタ** には、調整するためのプロパティが数多く付いています。続ける準備ができたら、 **「次のステップ」** をクリックしてください。 
+1. **[Modes] パネル** で **[Lights]** タブを選択し、**Directional Light** をフロアのレベルにドロップ＆ドラッグします。 
 
-	![](Engine\QuickStart\5\beforeBake.png)(w:900)
+	![](placeLight.png)
 
-	_ライトのカラーを変更し、アクタにマテリアルを追加してみましょう。_
+1. [**Translation ツール**](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewportControls/index.html#transformcontrols) で、Z 軸 (青) ギズモをフロアのサーフェスから上方にドラッグします。
+
+	![](moveLight.png)
+
+	**指向性ライト** が選択されていない場合、**レベル ビューポート** で **左クリック** すれば再度選択できます。 
+
+1. **[Modes] パネル** の **[Visual Effects]** タブを選択し、[**Atmospheric Fog**](Engine/Actors/FogEffects/AtmosphericFog) をレベルへドラッグ＆ドロップします。 
+
+	![](placeFog.png)
+
+	**Atmospheric Fog** アクタは基本的な空をレベルに追加し、レベルは暗くならずに明るくなります。 
+
+1. **[Modes] パネル** の **[Basic]** から、[**Player Start**](Engine/Actors/PlayerStart) iをレベルにドラッグ＆ドロップします。 
+
+	![](placeStart.png)
+
+1. **[Modes] パネル** の **[Volume]** から、[**Lightmass Importance Volume**](Engine/Rendering/LightingAndShadows/Lightmass/Basics) をレベルにドラッグ＆ドロップします。 
+
+	![](placeVolume.png)
+
+	**Lightmass Importance Volume** を使って、ボリューム内で光源とシャドウイング エフェクトを制御および集中させます。レベルに Lightmass Importance Volume を配置した時、デフォルト サイズのままではボリュームはプレイ可能な領域をカバーしていないので、スケーリングする必要があります。 
+
+1. **レベル ビューポート** で **R** を押して [**Scale ツール**](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewportControls/index.html#transformcontrols) へ切り替えます。 
+
+1. **Scale ツール** の中央にある白いボックスをクリックして、**Lightmass Importance Volume** フロアを取り囲むようにドラッグします。 
+
+	![](scaleVolume.png)
+
+1. **コンテンツ ブラウザ** の **Content > StarterContent > Props** で、**SM_TableRound** をレベルにドラッグ＆ドロップします。 
+
+	![](placeTable.png)
+
+	**Move ツール** (キーボード ショートカットは **W**) を使って、テーブルをフロアの中央に置くようにします。 
+
+1. **Content > StarterContent > Props** からも、**SM_Chair** をレベルにドラッグ＆ドロップします。 
+
+	![](addChair.png)
+
+1. **レベル ビューポート** で **SM_Chair** を選択した状態で、 **E** を押して [**Rotation ツール**](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewportControls/index.html#transformcontrols) にアクセスします。 
+
+	![](Rotate1.png)(w:440)
+
+1. **青** 軸の円弧を **左クリック** し (角度はギズモが更新して表示します)テーブルに向かい合うように椅子を回転させます。 
+
+	![](Rotate2.png)(w:440)
+
+1. 上記の配置方法を使って、**[Modes] パネル** と **コンテンツブラウザ** からさらにアクタを追加して小さなシーンを作成します。  
+
+	![](Engine/QuickStart/5/placeThings.png)
+
+	ライト、プロップ、壁、屋根を追加してみましょう (**[Content] > [StarterContent] > 「Architecture」** フォルダにあります)。 
+
+## 結果
+
+レベルには、**[Modes]** パネルと **[コンテンツ ブラウザ]** の両方から幾つか異なるアクタタイプが追加されているはずです。これらのアクタは、**Move** ツール、**Rotate** ツール、**Scale** ツールでも操作できます。最後のステップで配置したアクタによっては、上のような感じになります。 
+
+次のセクションでは、レベルに配置したアクタの編集と、アクタのプロパティのカスタマイズ方法を学習します。 
 
 %Steps%
