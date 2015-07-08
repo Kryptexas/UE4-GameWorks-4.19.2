@@ -3745,7 +3745,7 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 {
 #if WITH_APEX_CLOTHING
 
-	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	if (CVarEnableClothPhysics.GetValueOnAnyThread() == 0)
 	{
 		return;
 	}
