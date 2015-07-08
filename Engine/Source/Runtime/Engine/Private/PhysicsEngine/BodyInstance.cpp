@@ -645,6 +645,7 @@ PxShape* ClonePhysXShape_AssumesLocked(PxShape* PShape)
 	PNewShape->setRestOffset(PShape->getRestOffset());
 	PNewShape->setSimulationFilterData(PShape->getSimulationFilterData());
 	PNewShape->setQueryFilterData(PShape->getQueryFilterData());
+	PNewShape->userData = PShape->userData;
 
 	return PNewShape;
 }
