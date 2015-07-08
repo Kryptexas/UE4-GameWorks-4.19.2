@@ -564,16 +564,16 @@ void FStatPacketArray::Empty()
 
 FStatsThreadState::FStatsThreadState(int32 InHistoryFrames)
 	: HistoryFrames(InHistoryFrames)
-	, MaxFrameSeen(0)
-	, MinFrameSeen(-1)
 	, LastFullFrameMetaAndNonFrame(-1)
 	, LastFullFrameProcessed(-1)
 	, TotalNumStatMessages(0)
 	, MaxNumStatMessages(0)
-	, bWasLoaded(false)
 	, bFindMemoryExtensiveStats(false)
 	, CurrentGameFrame(1)
 	, CurrentRenderFrame(1)
+	, MaxFrameSeen(0)
+	, MinFrameSeen(-1)
+	, bWasLoaded(false)
 {
 }
 
