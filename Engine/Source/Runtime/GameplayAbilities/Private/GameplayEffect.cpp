@@ -1638,6 +1638,12 @@ void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& 
 
 void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect)
 {
+	// We should never be doing this for periodic effects since their mods are not persistent on attribute aggregators
+	if (ActiveEffect.Spec.GetPeriod() > UGameplayEffect::NO_PERIOD)
+	{
+		return;
+	}
+
 	const FGameplayEffectSpec& Spec = ActiveEffect.Spec;
 	TSet<FGameplayAttribute> AttributesToUpdate;
 
