@@ -25,6 +25,7 @@ public:
 	void SetEmitterProps(TWeakObjectPtr<const UNiagaraEmitterProperties> Props)	{ EmitterProps = Props; }
 
 	TWeakObjectPtr<const UNiagaraEmitterProperties> GetEmitterProps() const	{ return EmitterProps; }
+
 private:
 	FText EmitterName;
 	TWeakObjectPtr<const UNiagaraEmitterProperties> EmitterProps;
@@ -124,6 +125,7 @@ public:
 	virtual void ClearInstance( IMovieScenePlayer& Player ) override {}
 	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) override {}
 	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) override {}
+
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
 	class UEmitterMovieSceneTrack *Track;
@@ -173,6 +175,11 @@ public:
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override
 	{
 		return Sections;
+	}
+
+	virtual TRange<float> GetSectionBoundaries() const override
+	{
+		return TRange<float>(0, FLT_MAX);
 	}
 
 	TSharedPtr<FNiagaraSimulation> GetEmitter() { return Emitter; }
