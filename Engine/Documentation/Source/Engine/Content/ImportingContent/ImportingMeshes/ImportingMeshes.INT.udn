@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import meshes from an external program.
 prereq:Engine/Basics/Projects/Browser
 Related: GettingStarted
+Related: Engine/Content/FBX/ImportOptions
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
 SkillLevel: Beginner
