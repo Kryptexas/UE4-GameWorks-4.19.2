@@ -1301,7 +1301,7 @@ public:
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 	
 	/** @Return MovementMode string */
-	virtual FString GetMovementName();
+	virtual FString GetMovementName() const;
 
 	/** 
 	 * Add impulse to character. Impulses are accumulated each tick and applied together
@@ -1338,6 +1338,11 @@ public:
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
+	/**
+	 * Draw in-world debug information for character movement (called with p.VisualizeMovement > 0).
+	 */
+	virtual void VisualizeMovement() const;
 
 	/** Check if swimming pawn just ran into edge of the pool and should jump out. */
 	virtual bool CheckWaterJump(FVector CheckPoint, FVector& WallNormal);
