@@ -21,7 +21,8 @@ Reference the following pages to learn more about importing content into your UE
 | ------- | ------------ |
 | [](Engine/Content/ImportingContent/ContentBrowserImport) | %Engine/Content/ImportingContent/ContentBrowserImport:description% |
 | [](Engine/Content/ImportingContent/DragAndDropImport) | %Engine/Content/ImportingContent/DragAndDropImport:description% |
-| [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
-| [](Engine/Content/ImportingContent/ImportingMeshes) | %Engine/Content/ImportingContent/ImportingMeshes:description% |
-| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% |
 | [](Engine/Content/ImportingContent/ImportingAudio) | %Engine/Content/ImportingContent/ImportingAudio:description% |
+| [](Engine/Content/ImportingContent/ImportingMeshes) | %Engine/Content/ImportingContent/ImportingMeshes:description% |
+| [](Engine/Content/ImportingContent/ImportingLODs) | %Engine/Content/ImportingContent/ImportingLODs:description% |
+| [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
+| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% |
