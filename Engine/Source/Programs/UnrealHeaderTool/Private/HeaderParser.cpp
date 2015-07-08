@@ -2567,7 +2567,7 @@ void FHeaderParser::GetVarType
 
 	TMap<FName, FString> MetaDataFromNewStyle;
 
-	bool bIsParamList = VariableCategory != EVariableCategory::Member && MatchIdentifier(TEXT("UPARAM"));
+	const bool bIsParamList = (VariableCategory != EVariableCategory::Member) && MatchIdentifier(TEXT("UPARAM"));
 
 	// No specifiers are allowed inside a TArray
 	if( (OuterPropertyType == NULL) || !OuterPropertyType->Matches(TEXT("TArray")) )
