@@ -146,8 +146,9 @@ protected:
 	 * @param InItem				Tree item to use for the callback when a menu item is selected
 	 * @param InPinType				Pin type for generation of the widget to display for the menu entry
 	 * @param InIconBrush			Brush icon to use for the menu entry item
+	 * @param InTooltip				The simple tooltip to use for the menu item, an advanced tooltip link will be auto-generated based on the PinCategory
 	 */
-	void AddObjectReferenceMenuEntry(FMenuBuilder& InOutMenuBuilder, FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush) const;
+	void AddObjectReferenceMenuEntry(FMenuBuilder& InOutMenuBuilder, FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush, FText InSimpleTooltip) const;
 
 	/** Gets the allowable object types for an tree item, used for building the sub-menu */
 	TSharedRef< SWidget > GetAllowedObjectTypes(FPinTypeTreeItem InItem) const;
