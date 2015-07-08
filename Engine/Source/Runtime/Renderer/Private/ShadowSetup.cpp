@@ -1342,7 +1342,10 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	for (int32 ChildIndex = 1; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
 	{
 		const FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-		OriginalBounds = OriginalBounds + ShadowChild->Proxy->GetBounds();
+		if (ShadowChild->Proxy->CastsDynamicShadow())
+		{
+			OriginalBounds = OriginalBounds + ShadowChild->Proxy->GetBounds();
+		}
 	}
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	
