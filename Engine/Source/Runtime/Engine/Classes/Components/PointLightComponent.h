@@ -78,7 +78,7 @@ protected:
 public:
 
 	// ULightComponent interface.
-	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const override;
+	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const override;
 	virtual FVector4 GetLightPosition() const override;
 	virtual FBox GetBoundingBox() const override;
 	virtual FSphere GetBoundingSphere() const override;

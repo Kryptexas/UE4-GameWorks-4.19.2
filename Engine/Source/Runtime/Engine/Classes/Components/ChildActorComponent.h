@@ -14,7 +14,7 @@ class UChildActorComponent : public USceneComponent
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, Category=ChildActorComponent)
-	ENGINE_API void SetChildActorClass(TSubclassOf<AActor> Class);
+	ENGINE_API void SetChildActorClass(TSubclassOf<AActor> InClass);
 
 	TSubclassOf<AActor> GetChildActorClass() const { return ChildActorClass; }
 

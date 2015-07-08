@@ -745,7 +745,7 @@ private:
 #endif
 
 	/** Updates the proxy's actor position, called from the game thread. */
-	ENGINE_API void UpdateActorPosition(FVector ActorPosition);
+	ENGINE_API void UpdateActorPosition(FVector InActorPosition);
 
 	/**
 	 * Updates the primitive proxy's cached transforms, and calls OnUpdateTransform to notify it of the change.
@@ -754,7 +754,7 @@ private:
 	 * @param InBounds - The new bounds of the primitive.
 	 * @param InLocalBounds - The local space bounds of the primitive.
 	 */
-	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector ActorPosition);
+	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
 
 	/**
 	 * Either updates the uniform buffer or defers it until it becomes visible depending on a cvar

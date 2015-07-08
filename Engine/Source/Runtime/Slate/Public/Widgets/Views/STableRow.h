@@ -986,7 +986,7 @@ public:
 	 * @param ColumnName    A unique ID for a column in this TableView; see SHeaderRow::FColumn for more info.
 	 * @return a widget to represent the contents of a cell in this row of a TableView. 
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) = 0;
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& InColumnName ) = 0;
 
 	/** Use this to construct the superclass; e.g. FSuperRowType::Construct( FTableRowArgs(), OwnerTableView ) */
 	typedef SMultiColumnTableRow< ItemType > FSuperRowType;

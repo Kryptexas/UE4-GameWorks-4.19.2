@@ -1180,7 +1180,7 @@ public:
 	virtual bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 
 	/** Associate a new UPlayer with this PlayerController. */
-	virtual void SetPlayer(UPlayer* Player);
+	virtual void SetPlayer(UPlayer* InPlayer);
 
 	/** Returns the ULocalPlayer for this controller if it exists, or null otherwise */
 	class ULocalPlayer* GetLocalPlayer() const;

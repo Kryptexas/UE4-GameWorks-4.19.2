@@ -182,7 +182,7 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 FVector2D SConstraintCanvas::ComputeDesiredSize( float ) const
 {
-	FVector2D DesiredSize(0,0);
+	FVector2D FinalDesiredSize(0,0);
 
 	// Arrange the children now in their proper z-order.
 	for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
@@ -207,12 +207,12 @@ FVector2D SConstraintCanvas::ComputeDesiredSize( float ) const
 			const bool bIsDockedHorizontally = ( Anchors.Minimum.X == Anchors.Maximum.X ) && ( Anchors.Minimum.X == 0 || Anchors.Minimum.X == 1 );
 			const bool bIsDockedVertically = ( Anchors.Minimum.Y == Anchors.Maximum.Y ) && ( Anchors.Minimum.Y == 0 || Anchors.Minimum.Y == 1 );
 
-			DesiredSize.X = FMath::Max(DesiredSize.X, Size.X + ( bIsDockedHorizontally ? FMath::Abs(Offset.Left) : 0.0f ));
-			DesiredSize.Y = FMath::Max(DesiredSize.Y, Size.Y + ( bIsDockedVertically ? FMath::Abs(Offset.Top) : 0.0f ));
+			FinalDesiredSize.X = FMath::Max(FinalDesiredSize.X, Size.X + ( bIsDockedHorizontally ? FMath::Abs(Offset.Left) : 0.0f ));
+			FinalDesiredSize.Y = FMath::Max(FinalDesiredSize.Y, Size.Y + ( bIsDockedVertically ? FMath::Abs(Offset.Top) : 0.0f ));
 		}
 	}
 
-	return DesiredSize;
+	return FinalDesiredSize;
 }
 
 FChildren* SConstraintCanvas::GetChildren()

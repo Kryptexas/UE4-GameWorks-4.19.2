@@ -315,7 +315,7 @@ public:
 	 * @param MessageHandler The message handler to register.
 	 * @see RemoveMessageHandler
 	 */
-	virtual void AddMessageHandler(IWindowsMessageHandler& MessageHandler);
+	virtual void AddMessageHandler(IWindowsMessageHandler& InMessageHandler);
 
 	/**
 	 * Removes a Windows message handler with the application instance.
@@ -323,7 +323,7 @@ public:
 	 * @param MessageHandler The message handler to register.
 	 * @see AddMessageHandler
 	 */
-	virtual void RemoveMessageHandler(IWindowsMessageHandler& MessageHandler);
+	virtual void RemoveMessageHandler(IWindowsMessageHandler& InMessageHandler);
 
 public:
 

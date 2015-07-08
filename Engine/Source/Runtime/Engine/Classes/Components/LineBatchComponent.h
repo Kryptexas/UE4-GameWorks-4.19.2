@@ -126,7 +126,7 @@ class ULineBatchComponent : public UPrimitiveComponent
 	void DrawLines(const TArray<FBatchedLine>& InLines);
 
 	/** Draw a box */
-	ENGINE_API void DrawBox(const FBox& Box, const FMatrix& TM, const FColor& Color, uint8 DepthPriorityGroup);
+	ENGINE_API void DrawBox(const FBox& Box, const FMatrix& TM, const FColor& Color, uint8 InDepthPriorityGroup);
 
 	/** Draw an arrow */
 	ENGINE_API void DrawDirectionalArrow(const FMatrix& ArrowToWorld,FColor InColor,float Length,float ArrowSize,uint8 DepthPriority);

@@ -78,8 +78,5 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 #endif
 	// End UMaterialExpression Interface
 
-	void UpdateTextureResource(class UTexture* Texture);
+	void UpdateTextureResource(class UTexture* InTexture);
 };
-
-
-

@@ -71,9 +71,17 @@
 	#endif // PRAGMA_POP
 #else
 	// VC++
+	// 4456 - declaration of 'LocalVariable' hides previous local declaration
+	// 4457 - declaration of 'LocalVariable' hides function parameter
+	// 4458 - declaration of 'LocalVariable' hides class member
+	// 4459 - declaration of 'LocalVariable' hides global declaration
 	#ifndef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		#define PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
-			__pragma (warning(push))
+			__pragma (warning(push)) \
+			__pragma (warning(disable:4456)) \
+			__pragma (warning(disable:4457)) \
+			__pragma (warning(disable:4458)) \
+			__pragma (warning(disable:4459))
 	#endif // PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 
 	#ifndef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS

@@ -129,7 +129,7 @@ public:
 		FSingleThreadManager::Get().RemoveThread(this);
 	}
 
-	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* ThreadName,
+	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* InThreadName,
 		uint32 InStackSize,
 		EThreadPriority InThreadPri, uint64 InThreadAffinityMask) override
 

@@ -102,8 +102,8 @@ protected:
 	/** if set, area shape will be extended by agent's height to cover area underneath like regular colliding geometry */
 	uint8 bIncludeAgentHeight : 1;
 
-	void Init(const TSubclassOf<UNavArea> AreaClass);
-	void SetConvex(const FVector* Points, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld);
+	void Init(const TSubclassOf<UNavArea> InAreaClass);
+	void SetConvex(const FVector* InPoints, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld);
 	void SetBox(const FBox& Box, const FTransform& LocalToWorld);
 };
 
@@ -193,7 +193,7 @@ struct ENGINE_API FCustomLinkNavModifier : public FNavigationModifier
 	FTransform LocalToWorld;
 
 	FCustomLinkNavModifier() : LinkDefinitionClass(NULL) {}
-	void Set(TSubclassOf<UNavLinkDefinition> LinkDefinitionClass, const FTransform& LocalToWorld);
+	void Set(TSubclassOf<UNavLinkDefinition> LinkDefinitionClass, const FTransform& InLocalToWorld);
 	FORCEINLINE const TSubclassOf<UNavLinkDefinition> GetNavLinkClass() const { return LinkDefinitionClass; }
 
 protected:

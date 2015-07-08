@@ -288,8 +288,8 @@ bool FCanvasTriangleRendererItem::Render_GameThread(const FCanvas* Canvas)
 	{
 		View,
 		Data,
-		bNeedsToSwitchVerticalAxis,
-		Canvas->IsHitTesting(),
+		(uint32)bNeedsToSwitchVerticalAxis,
+		(uint32)Canvas->IsHitTesting(),
 		Canvas->GetAllowedModes()
 	};
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(

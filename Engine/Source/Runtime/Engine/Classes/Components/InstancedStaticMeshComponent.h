@@ -237,7 +237,7 @@ protected:
 	virtual void GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const;
 
 	/** Initializes the body instance for the specified instance of the static mesh*/
-	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance);
+	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* InBodyInstance);
 
 	/** Number of pending lightmaps still to be calculated (Apply()'d) */
 	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)

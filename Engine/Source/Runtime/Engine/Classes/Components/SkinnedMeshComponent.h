@@ -906,7 +906,7 @@ public:
 	* 
 	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
-	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
+	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bInRecentlyRendered, const float& InMaxDistanceFactor, const bool & bPlayingRootMotion);
 
 	virtual bool IsPlayingRootMotion(){ return false; }
 

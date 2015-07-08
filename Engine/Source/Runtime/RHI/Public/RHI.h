@@ -845,21 +845,21 @@ struct FResolveParams
 struct FUpdateTextureRegion2D
 {
 	/** offset in texture */
-	int32 DestX;
-	int32 DestY;
+	uint32 DestX;
+	uint32 DestY;
 	
 	/** offset in source image data */
 	int32 SrcX;
 	int32 SrcY;
 	
 	/** size of region to copy */
-	int32 Width;
-	int32 Height;
+	uint32 Width;
+	uint32 Height;
 
 	FUpdateTextureRegion2D()
 	{}
 
-	FUpdateTextureRegion2D(int32 InDestX, int32 InDestY, int32 InSrcX, int32 InSrcY, int32 InWidth, int32 InHeight)
+	FUpdateTextureRegion2D(uint32 InDestX, uint32 InDestY, int32 InSrcX, int32 InSrcY, uint32 InWidth, uint32 InHeight)
 	:	DestX(InDestX)
 	,	DestY(InDestY)
 	,	SrcX(InSrcX)
@@ -884,9 +884,9 @@ struct FUpdateTextureRegion2D
 struct FUpdateTextureRegion3D
 {
 	/** offset in texture */
-	int32 DestX;
-	int32 DestY;
-	int32 DestZ;
+	uint32 DestX;
+	uint32 DestY;
+	uint32 DestZ;
 
 	/** offset in source image data */
 	int32 SrcX;
@@ -894,14 +894,14 @@ struct FUpdateTextureRegion3D
 	int32 SrcZ;
 
 	/** size of region to copy */
-	int32 Width;
-	int32 Height;
-	int32 Depth;
+	uint32 Width;
+	uint32 Height;
+	uint32 Depth;
 
 	FUpdateTextureRegion3D()
 	{}
 
-	FUpdateTextureRegion3D(int32 InDestX, int32 InDestY, int32 InDestZ, int32 InSrcX, int32 InSrcY, int32 InSrcZ, int32 InWidth, int32 InHeight, int32 InDepth)
+	FUpdateTextureRegion3D(uint32 InDestX, uint32 InDestY, uint32 InDestZ, int32 InSrcX, int32 InSrcY, int32 InSrcZ, uint32 InWidth, uint32 InHeight, uint32 InDepth)
 	:	DestX(InDestX)
 	,	DestY(InDestY)
 	,	DestZ(InDestZ)

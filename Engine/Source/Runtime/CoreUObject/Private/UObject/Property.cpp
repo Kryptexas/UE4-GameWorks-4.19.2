@@ -1263,11 +1263,11 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UNumericProperty, UProperty,
 }
 );
 
-UProperty* UStruct::FindPropertyByName(FName Name) const
+UProperty* UStruct::FindPropertyByName(FName InName) const
 {
 	for (UProperty* Property = PropertyLink; Property != NULL; Property = Property->PropertyLinkNext)
 	{
-		if (Property->GetFName() == Name)
+		if (Property->GetFName() == InName)
 		{
 			return Property;
 		}

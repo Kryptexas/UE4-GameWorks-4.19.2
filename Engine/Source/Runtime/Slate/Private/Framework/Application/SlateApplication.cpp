@@ -5497,10 +5497,10 @@ TSharedRef<FSlateApplication> FSlateApplication::InitializeAsStandaloneApplicati
 }
 
 
-TSharedRef<FSlateApplication> FSlateApplication::InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer, const TSharedRef<class GenericApplication>& PlatformApplication)
+TSharedRef<FSlateApplication> FSlateApplication::InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer, const TSharedRef<class GenericApplication>& InPlatformApplication)
 {
 	// create the platform slate application (what FSlateApplication::Get() returns)
-	TSharedRef<FSlateApplication> Slate = FSlateApplication::Create(PlatformApplication);
+	TSharedRef<FSlateApplication> Slate = FSlateApplication::Create(InPlatformApplication);
 
 	// initialize renderer
 	FSlateApplication::Get().InitializeRenderer(PlatformRenderer);

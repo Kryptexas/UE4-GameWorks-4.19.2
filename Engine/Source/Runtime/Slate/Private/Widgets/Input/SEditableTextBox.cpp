@@ -21,14 +21,14 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 
 	TAttribute<FMargin> Padding = PaddingOverride.IsSet() ? PaddingOverride : InArgs._Style->Padding;
 	TAttribute<FSlateFontInfo> Font = FontOverride.IsSet() ? FontOverride : InArgs._Style->Font;
-	TAttribute<FSlateColor> ForegroundColor = ForegroundColorOverride.IsSet() ? ForegroundColorOverride : InArgs._Style->ForegroundColor;
+	TAttribute<FSlateColor> BorderForegroundColor = ForegroundColorOverride.IsSet() ? ForegroundColorOverride : InArgs._Style->ForegroundColor;
 	TAttribute<FSlateColor> BackgroundColor = BackgroundColorOverride.IsSet() ? BackgroundColorOverride : InArgs._Style->BackgroundColor;
 	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : InArgs._Style->ReadOnlyForegroundColor;
 
 	SBorder::Construct( SBorder::FArguments()
 		.BorderImage( this, &SEditableTextBox::GetBorderImage )
 		.BorderBackgroundColor( BackgroundColor )
-		.ForegroundColor( ForegroundColor )
+		.ForegroundColor( BorderForegroundColor )
 		.Padding( 0 )
 		[
 			SAssignNew( Box, SHorizontalBox)

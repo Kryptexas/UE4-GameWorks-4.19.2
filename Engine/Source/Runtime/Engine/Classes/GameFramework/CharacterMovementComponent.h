@@ -1277,7 +1277,7 @@ public:
 	 *  Revert to previous position OldLocation, return to being based on OldBase.
 	 *  if bFailMove, stop movement and notify controller
 	 */	
-	void RevertMove(const FVector& OldLocation, UPrimitiveComponent* OldBase, const FVector& OldBaseLocation, const FFindFloorResult& OldFloor, bool bFailMove);
+	void RevertMove(const FVector& OldLocation, UPrimitiveComponent* OldBase, const FVector& InOldBaseLocation, const FFindFloorResult& OldFloor, bool bFailMove);
 
 	/** Perform rotation over deltaTime */
 	virtual void PhysicsRotation(float DeltaTime);
@@ -1972,7 +1972,7 @@ public:
 	virtual void Clear();
 
 	/** Called to set up this saved move (when initially created) to make a predictive correction. */
-	virtual void SetMoveFor(ACharacter* C, float DeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData);
+	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData);
 
 	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
 	virtual void SetInitialPosition(ACharacter* C);

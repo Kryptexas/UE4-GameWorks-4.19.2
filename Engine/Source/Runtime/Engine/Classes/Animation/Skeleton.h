@@ -614,7 +614,7 @@ public:
 	 *
 	 * @param Name	Name of pose to update
 	 */
-	ENGINE_API void UpdateRetargetSource( const FName Name );
+	ENGINE_API void UpdateRetargetSource( const FName InName );
 #endif
 protected:
 	/** 

@@ -431,13 +431,13 @@ public:
 	 */
 	inline RetValType Execute(ParamTypes... Params) const
 	{
-		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
+		TDelegateInstanceInterface* LocalDelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
 
 		// If this assert goes off, Execute() was called before a function was bound to the delegate.
 		// Consider using ExecuteIfSafe() instead.
-		checkSlow(DelegateInstance != nullptr);
+		checkSlow(LocalDelegateInstance != nullptr);
 
-		return DelegateInstance->Execute(Params...);
+		return LocalDelegateInstance->Execute(Params...);
 	}
 
 	/**
@@ -458,17 +458,17 @@ public:
 	 */
 	bool DEPRECATED_Compare( const TBaseDelegate& Other ) const
 	{
-		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
+		TDelegateInstanceInterface* ThisDelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
 		TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)Other.GetDelegateInstance();
 		
 		// The function these delegates point to must be the same
-		if ((DelegateInstance != nullptr) && (OtherInstance != nullptr))
+		if ((ThisDelegateInstance != nullptr) && (OtherInstance != nullptr))
 		{
-			return DelegateInstance->IsSameFunction(*OtherInstance);
+			return ThisDelegateInstance->IsSameFunction(*OtherInstance);
 		}
 		
 		// If neither delegate is initialized to anything yet, then we treat them as equal
-		if ((DelegateInstance == nullptr) && (OtherInstance == nullptr))
+		if ((ThisDelegateInstance == nullptr) && (OtherInstance == nullptr))
 		{
 			return true;
 		}
@@ -1032,13 +1032,13 @@ public:
 
 		LockInvocationList();
 		{
-			const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+			const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
 			// call bound functions in reverse order, so we ignore any instances that may be added by callees
-			for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
+			for (int32 InvocationListIndex = LocalInvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 			{
 				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex];
+				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)LocalInvocationList[InvocationListIndex];
 
 				if ((DelegateInstanceInterface == nullptr) || !DelegateInstanceInterface->ExecuteIfSafe(Params...))
 				{
@@ -1065,13 +1065,13 @@ protected:
 	 */
 	void RemoveDelegateInstance( FDelegateHandle Handle )
 	{
-		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+		const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
-		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
+		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{
 			// InvocationList is const, so we const_cast to be able to null the entry
 			// TODO: This is horrible, can we get the base class to do it?
-			IDelegateInstance*& DelegateInstanceRef = const_cast<IDelegateInstance*&>(InvocationList[InvocationListIndex]);
+			IDelegateInstance*& DelegateInstanceRef = const_cast<IDelegateInstance*&>(LocalInvocationList[InvocationListIndex]);
 
 			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->GetHandle() == Handle)
 			{
@@ -1095,16 +1095,16 @@ protected:
 	 */
 	void DEPRECATED_RemoveDelegateInstance( const TDelegateInstanceInterface* InDelegateInstance )
 	{
-		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+		const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
 		// NOTE: We assume that this method is never called with a nullptr object, in which case the
 		//       the following algorithm would break down (it would remove the first found instance
 		//       of a matching function binding, which is not necessarily the instance we wish to remove).
 
-		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
+		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface*& DelegateInstanceRef = (TDelegateInstanceInterface*&)InvocationList[InvocationListIndex];
+			TDelegateInstanceInterface*& DelegateInstanceRef = (TDelegateInstanceInterface*&)LocalInvocationList[InvocationListIndex];
 
 			// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
 			//       delegate pointers can refer to the exact same object and method

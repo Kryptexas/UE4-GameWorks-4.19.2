@@ -498,7 +498,7 @@ public:
 	void UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty);
 	
 	// Finds the desired dynamic binding object for this blueprint generated class
-	UDynamicBlueprintBinding* GetDynamicBindingObject(UClass* Class) const;
+	UDynamicBlueprintBinding* GetDynamicBindingObject(UClass* InClass) const;
 
 	/** called to gather blueprint replicated properties */
 	virtual void GetLifetimeBlueprintReplicationList(TArray<class FLifetimeProperty>& OutLifetimeProps) const;

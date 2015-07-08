@@ -122,13 +122,13 @@ class COREUOBJECT_API UPackageMap : public UObject
 {
 	DECLARE_CLASS_INTRINSIC( UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, CoreUObject );
 
-	virtual bool		WriteObject( FArchive & Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
+	virtual bool		WriteObject( FArchive & Ar, UObject* InOuter, FNetworkGUID NetGUID, FString ObjName ) { return false; }
 
 	// @todo document
-	virtual bool		SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) { return false; }
+	virtual bool		SerializeObject( FArchive& Ar, UClass* InClass, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) { return false; }
 
 	// @todo document
-	virtual bool		SerializeName( FArchive& Ar, FName& Name );
+	virtual bool		SerializeName( FArchive& Ar, FName& InName );
 
 	virtual UObject*	ResolvePathAndAssignNetGUID( const FNetworkGUID& NetGUID, const FString& PathName ) { return NULL; }
 

@@ -2787,7 +2787,7 @@ public:
 	 */
 	void RemoveActor( AActor* Actor, bool bShouldModifyLevel );
 
-	AActor* SpawnActor( UClass* Class, FVector const* Location=NULL, FRotator const* Rotation=NULL, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() );
+	AActor* SpawnActor( UClass* InClass, FVector const* Location=NULL, FRotator const* Rotation=NULL, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() );
 
 	/** Templated version of SpawnActor that allows you to specify a class type via the template type */
 	template< class T >
@@ -2891,7 +2891,7 @@ public:
 	 * @param InNetPlayerIndex (optional) - the NetPlayerIndex to set on the PlayerController
 	 * @return the PlayerController that was spawned (may fail and return NULL)
 	 */
-	APlayerController* SpawnPlayActor(class UPlayer* Player, ENetRole RemoteRole, const FURL& URL, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex = 0);
+	APlayerController* SpawnPlayActor(class UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex = 0);
 
 	/** Try to find an acceptable position to place TestActor as close to possible to PlaceLocation.  Expects PlaceLocation to be a valid location inside the level. */
 	bool FindTeleportSpot( AActor* TestActor, FVector& PlaceLocation, FRotator PlaceRotation );
@@ -3088,7 +3088,7 @@ public:
 	 * @param bAbsolute whether we are using relative or absolute travel
 	 * @param bShouldSkipGameNotify whether to notify the clients/game or not
 	 */
-	virtual void ServerTravel(const FString& URL, bool bAbsolute = false, bool bShouldSkipGameNotify = false);
+	virtual void ServerTravel(const FString& InURL, bool bAbsolute = false, bool bShouldSkipGameNotify = false);
 
 	/** seamlessly travels to the given URL by first loading the entry level in the background,
 	 * switching to it, and then loading the specified level. Does not disrupt network communication or disconnect clients.
@@ -3102,7 +3102,7 @@ public:
 	 * @param MapPackageGuid (opt) - the GUID of the map package to travel to - this is used to find the file when it has been auto-downloaded,
 	 * 				so it is only needed for clients
 	 */
-	void SeamlessTravel(const FString& URL, bool bAbsolute = false, FGuid MapPackageGuid = FGuid());
+	void SeamlessTravel(const FString& InURL, bool bAbsolute = false, FGuid MapPackageGuid = FGuid());
 
 	/** @return whether we're currently in a seamless transition */
 	bool IsInSeamlessTravel();

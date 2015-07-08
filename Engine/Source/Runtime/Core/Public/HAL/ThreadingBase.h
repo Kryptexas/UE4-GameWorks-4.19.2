@@ -378,7 +378,7 @@ protected:
 	 * @param InThreadPri Tells the thread whether it needs to adjust its priority or not. Defaults to normal priority
 	 * @return True if the thread and all of its initialization was successful, false otherwise
 	 */
-	virtual bool CreateInternal( FRunnable* InRunnable, const TCHAR* ThreadName,
+	virtual bool CreateInternal( FRunnable* InRunnable, const TCHAR* InThreadName,
 		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0 ) = 0;
 

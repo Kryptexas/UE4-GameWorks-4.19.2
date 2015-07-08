@@ -593,7 +593,7 @@ private:
 	 * @param	RequiredBones		BoneContainer
 	 * @param	ExtractionContext	Extraction Context to access root motion extraction information.
 	 */
-	void ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const;
+	void ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const;
 
 	/**
 	* Retarget a single bone transform, to apply right after extraction.

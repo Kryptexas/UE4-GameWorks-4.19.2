@@ -333,12 +333,12 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	STARTUPINFO StartupInfo = {
 		sizeof(STARTUPINFO),
 		NULL, NULL, NULL,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		0, 0, 0,
-		dwFlags,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)0, (::DWORD)0, (::DWORD)0,
+		(::DWORD)dwFlags,
 		ShowWindowFlags,
 		0, NULL,
 		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE),
@@ -350,7 +350,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	FString CommandLine = FString::Printf(TEXT("\"%s\" %s"), URL, Parms);
 	PROCESS_INFORMATION ProcInfo;
 
-	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags, NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo))
+	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, (::DWORD)CreateFlags, NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo))
 	{
 		UE_LOG(LogWindows, Warning, TEXT("CreateProc failed (%u) %s %s"), ::GetLastError(), URL, Parms);
 		if (OutProcessID != nullptr)
@@ -606,9 +606,9 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 
 	bool bSuccess = false;
 	STARTUPINFO StartupInfo = { sizeof(STARTUPINFO), NULL, NULL, NULL,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
-		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), WritablePipes[0], WritablePipes[1] };
+		(::DWORD)CW_USEDEFAULT, (::DWORD)CW_USEDEFAULT, (::DWORD)CW_USEDEFAULT, (::DWORD)CW_USEDEFAULT,
+		(::DWORD)0, (::DWORD)0, (::DWORD)0, (::DWORD)dwFlags, ShowWindowFlags, 0, NULL,
+		::GetStdHandle((::DWORD)ProcessConstants::WIN_STD_INPUT_HANDLE), WritablePipes[0], WritablePipes[1] };
 	if (CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags,
 		NULL, NULL, &StartupInfo, &ProcInfo))
 	{

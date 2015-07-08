@@ -333,7 +333,7 @@ public:
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::EOpType::GetTimeStamp );
-		double StartTime = FPlatformTime::Seconds();
+		double OpStartTime = FPlatformTime::Seconds();
 		FDateTime Result = LowerLevel->GetTimeStamp(Filename);
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 		return Result;
@@ -342,7 +342,7 @@ public:
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::EOpType::SetTimeStamp );
-		double StartTime = FPlatformTime::Seconds();
+		double OpStartTime = FPlatformTime::Seconds();
 		LowerLevel->SetTimeStamp(Filename, DateTime);
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 	}
@@ -350,7 +350,7 @@ public:
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::EOpType::GetTimeStamp );
-		double StartTime = FPlatformTime::Seconds();
+		double OpStartTime = FPlatformTime::Seconds();
 		FDateTime Result = LowerLevel->GetAccessTimeStamp(Filename);
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 		return Result;
@@ -359,7 +359,7 @@ public:
 	{
 		StatsType* FileStat = CreateStat(Filename);
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::EOpType::GetFilenameOnDisk );
-		double StartTime = FPlatformTime::Seconds();
+		double OpStartTime = FPlatformTime::Seconds();
 		FString Result = LowerLevel->GetFilenameOnDisk(Filename);
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 		return Result;

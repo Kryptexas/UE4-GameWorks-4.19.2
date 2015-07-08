@@ -1005,7 +1005,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				SetRequiresVsync(bLockToVsync);
 
 				//@todo UE4: If Slate controls this viewport, we should not present
-				FEndDrawingCommandParams Params = { this, bLockToVsync, GInputLatencyTimer.GameThreadTrigger, PresentAndStopMovieDelay > 0 ? 0 : (uint32)bShouldPresent };
+				FEndDrawingCommandParams Params = { this, (uint32)bLockToVsync, (uint32)GInputLatencyTimer.GameThreadTrigger, (uint32)(PresentAndStopMovieDelay > 0 ? 0 : bShouldPresent) };
 				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 					EndDrawingCommand,
 					FEndDrawingCommandParams,Parameters,Params,

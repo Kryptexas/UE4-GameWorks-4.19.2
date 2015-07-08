@@ -1233,8 +1233,8 @@ protected:
 
 					if ( ScrollByAmountInSlateUnits > 0 )
 					{
-						FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
-						const float RemainingHeight = DesiredSize.Y * ( 1.0 - FMath::Fractional( NewScrollOffset ) );
+						FVector2D WidgetDesiredSize = RowWidget->AsWidget()->GetDesiredSize();
+						const float RemainingHeight = WidgetDesiredSize.Y * ( 1.0 - FMath::Fractional( NewScrollOffset ) );
 
 						if ( AbsScrollByAmount > RemainingHeight )
 						{
@@ -1257,13 +1257,13 @@ protected:
 						}
 						else
 						{
-							NewScrollOffset = (int32)NewScrollOffset + ( 1.0f - ( ( RemainingHeight - AbsScrollByAmount ) / DesiredSize.Y ) );
+							NewScrollOffset = (int32)NewScrollOffset + ( 1.0f - ( ( RemainingHeight - AbsScrollByAmount ) / WidgetDesiredSize.Y ) );
 							break;
 						}
 					}
 					else
 					{
-						FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
+						FVector2D WidgetDesiredSize = RowWidget->AsWidget()->GetDesiredSize();
 
 						float Fractional = FMath::Fractional( NewScrollOffset );
 						if ( Fractional == 0 )
@@ -1272,7 +1272,7 @@ protected:
 							--NewScrollOffset;
 						}
 
-						const float PrecedingHeight = DesiredSize.Y * Fractional;
+						const float PrecedingHeight = WidgetDesiredSize.Y * Fractional;
 
 						if ( AbsScrollByAmount > PrecedingHeight )
 						{
@@ -1295,7 +1295,7 @@ protected:
 						}
 						else
 						{
-							NewScrollOffset = (int32)NewScrollOffset + ( ( PrecedingHeight - AbsScrollByAmount ) / DesiredSize.Y );
+							NewScrollOffset = (int32)NewScrollOffset + ( ( PrecedingHeight - AbsScrollByAmount ) / WidgetDesiredSize.Y );
 							break;
 						}
 					}

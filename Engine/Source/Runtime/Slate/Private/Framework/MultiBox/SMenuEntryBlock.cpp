@@ -181,7 +181,7 @@ void SMenuEntryBlock::Construct( const FArguments& InArgs )
 TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
-	const TAttribute<FText>& ToolTip = InBuildParams.ToolTip;
+	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 
 	check( OwnerMultiBoxWidget.IsValid() );
 
@@ -222,7 +222,7 @@ TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuild
 				.ClickMethod( EButtonClickMethod::MouseDown )
 
 				// Pass along the block's tool-tip string
-				.ToolTipText( this, &SMenuEntryBlock::GetFilteredToolTipText, ToolTip )
+				.ToolTipText( this, &SMenuEntryBlock::GetFilteredToolTipText, EntryToolTip)
 
 				// Add horizontal padding between the edge of the button and the content.  Also add a bit of vertical
 				// padding to push the text down from the top of the menu bar a bit.
@@ -280,7 +280,7 @@ EVisibility SMenuEntryBlock::GetVisibility() const
 TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
-	const TAttribute<FText>& ToolTip = InBuildParams.ToolTip;
+	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 	const TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = InBuildParams.MenuEntryBlock;
 	const TSharedPtr< const FMultiBox > MultiBox = InBuildParams.MultiBox;
 	const TSharedPtr< const FUICommandInfo >& UICommand = InBuildParams.UICommand;
@@ -462,7 +462,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		.ClickMethod( ButtonClickMethod )
 
 		// Pass along the block's tool-tip string
-		.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ToolTip, nullptr, UICommand ) )
+		.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute(EntryToolTip, nullptr, UICommand ) )
 
 		.ContentPadding(FMargin(0, 2))
 
@@ -568,7 +568,7 @@ private:
 TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
-	const TAttribute<FText>& ToolTip = InBuildParams.ToolTip;
+	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 
 	const TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = InBuildParams.MenuEntryBlock;
 	const TSharedPtr< const FMultiBox > MultiBox = InBuildParams.MultiBox;
@@ -699,7 +699,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 			// Create a button
 			SNew( SSubMenuButton )
 			// Pass along the block's tool-tip string
-			.ToolTipText( ToolTip )
+			.ToolTipText( EntryToolTip )
 			// Style to use
 			.ButtonStyle( &StyleSet->GetWidgetStyle<FButtonStyle>( ISlateStyle::Join( StyleName, ".Button" ) ) )
 			// Allow the button to change its state depending on the state of the submenu

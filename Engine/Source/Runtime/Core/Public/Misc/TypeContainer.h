@@ -325,11 +325,11 @@ public:
 		AddProvider(TNameOf<R>::GetName(), Provider);
 	}
 
-#ifdef __clang__
+#if _MSC_VER >= 1900 || __clang__
 	/**
 	 * Register a factory function for the specified class.
 	 *
-	 * This is a Clang specific overload for handling raw function pointers.
+	 * This is a Clang/VS2015-specific overload for handling raw function pointers.
 	 *
 	 * @param R The type of class to register the instance for.
 	 * @param P Additional parameters that the factory function requires.

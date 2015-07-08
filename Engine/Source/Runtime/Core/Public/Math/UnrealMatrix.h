@@ -502,11 +502,11 @@ inline float FMatrix::GetMaximumAxisScale() const
 	return FMath::Sqrt(MaxRowScaleSquared);
 }
 
-inline void FMatrix::ScaleTranslation(const FVector& Scale3D)
+inline void FMatrix::ScaleTranslation(const FVector& InScale3D)
 {
-	M[3][0] *= Scale3D.X;
-	M[3][1] *= Scale3D.Y;
-	M[3][2] *= Scale3D.Z;
+	M[3][0] *= InScale3D.X;
+	M[3][1] *= InScale3D.Y;
+	M[3][2] *= InScale3D.Z;
 }
 
 // GetOrigin

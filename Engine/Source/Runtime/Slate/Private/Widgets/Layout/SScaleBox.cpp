@@ -32,27 +32,27 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	if ( ArrangedChildren.Accepts(ChildVisibility) )
 	{
 		const FVector2D AreaSize = AllottedGeometry.GetLocalSize();
-		FVector2D DesiredSize = ChildSlot.GetWidget()->GetDesiredSize();
+		FVector2D SlotWidgetDesiredSize = ChildSlot.GetWidget()->GetDesiredSize();
 
 		float FinalScale = 1;
 
 		const EStretch::Type CurrentStretch = Stretch.Get();
 		const EStretchDirection::Type CurrentStretchDirection = StretchDirection.Get();
 
-		if ( DesiredSize.X != 0 && DesiredSize.Y != 0 )
+		if (SlotWidgetDesiredSize.X != 0 && SlotWidgetDesiredSize.Y != 0 )
 		{
 			switch ( CurrentStretch )
 			{
 			case EStretch::None:
 				break;
 			case EStretch::Fill:
-				DesiredSize = AreaSize;
+				SlotWidgetDesiredSize = AreaSize;
 				break;
 			case EStretch::ScaleToFit:
-				FinalScale = FMath::Min(AreaSize.X / DesiredSize.X, AreaSize.Y / DesiredSize.Y);
+				FinalScale = FMath::Min(AreaSize.X / SlotWidgetDesiredSize.X, AreaSize.Y / SlotWidgetDesiredSize.Y);
 				break;
 			case EStretch::ScaleToFill:
-				FinalScale = FMath::Max(AreaSize.X / DesiredSize.X, AreaSize.Y / DesiredSize.Y);
+				FinalScale = FMath::Max(AreaSize.X / SlotWidgetDesiredSize.X, AreaSize.Y / SlotWidgetDesiredSize.Y);
 				break;
 			case EStretch::UserSpecified:
 				FinalScale = UserSpecifiedScale.Get(1.0f);
@@ -87,21 +87,21 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 			// but scale the inverse of the scale we're applying.
 			if ( ChildSlot.HAlignment == HAlign_Fill )
 			{
-				DesiredSize.X = AreaSize.X / FinalScale;
+				SlotWidgetDesiredSize.X = AreaSize.X / FinalScale;
 			}
 
 			// If the layout vertically is fill, then we need the desired size to be the whole size of the widget, 
 			// but scale the inverse of the scale we're applying.
 			if ( ChildSlot.VAlignment == VAlign_Fill )
 			{
-				DesiredSize.Y = AreaSize.Y / FinalScale;
+				SlotWidgetDesiredSize.Y = AreaSize.Y / FinalScale;
 			}
 		}
 
 		ArrangedChildren.AddWidget(ChildVisibility, AllottedGeometry.MakeChild(
 			ChildSlot.GetWidget(),
 			FinalOffset,
-			DesiredSize,
+			SlotWidgetDesiredSize,
 			FinalScale
 		) );
 	}

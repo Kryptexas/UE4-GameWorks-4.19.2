@@ -1587,7 +1587,7 @@ public:
 	 * @param Checked		Whether or not a failure will throw an error
 	 * @return The created object, or (UObject*)-1 if this is just verifying
 	 */
-	UObject* Create( UClass* ObjectClass, FName ObjectName, UObject* Outer, uint32 LoadFlags, bool Checked );
+	UObject* Create( UClass* ObjectClass, FName ObjectName, UObject* Outer, uint32 InLoadFlags, bool Checked );
 
 	/**
 	 * Serialize the object data for the specified object from the unreal package file.  Loads any

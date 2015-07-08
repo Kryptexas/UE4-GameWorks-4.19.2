@@ -638,7 +638,6 @@ public:
 	explicit FAudioStatusMessageContext( const FText& InMessage )
 	 : FScopedSlowTask(1, InMessage, GIsEditor && !IsRunningCommandlet())
 	{
-		DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 		UE_LOG(LogAudioDerivedData, Display, TEXT("%s"), *InMessage.ToString());
 	}
 };

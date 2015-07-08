@@ -97,7 +97,7 @@ public:
 	/**
 	 * Split with plane. Meant to be numerically stable.
 	 */
-	ENGINE_API int32 SplitWithPlane(const FVector &Base,const FVector &Normal,FPoly *FrontPoly,FPoly *BackPoly,int32 VeryPrecise) const;
+	ENGINE_API int32 SplitWithPlane(const FVector &InBase,const FVector &InNormal,FPoly *FrontPoly,FPoly *BackPoly,int32 VeryPrecise) const;
 
 	/** Split with a Bsp node. */
 	ENGINE_API int32 SplitWithNode(const UModel *Model,int32 iNode,FPoly *FrontPoly,FPoly *BackPoly,int32 VeryPrecise) const;
@@ -109,7 +109,7 @@ public:
 	ENGINE_API int32 SplitWithPlaneFast(const FPlane& Plane,FPoly *FrontPoly,FPoly *BackPoly) const;
 
 	/** Split a poly and keep only the front half. Returns number of vertices, 0 if clipped away. */
-	ENGINE_API int32 Split(const FVector &Normal, const FVector &Base );
+	ENGINE_API int32 Split(const FVector &InNormal, const FVector &InBase );
 
 	/** Remove colinear vertices and check convexity.  Returns 1 if convex, 0 if nonconvex or collapsed. */
 	ENGINE_API int32 RemoveColinears();

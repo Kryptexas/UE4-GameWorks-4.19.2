@@ -1639,7 +1639,7 @@ public:
 	virtual void GetRelevantLights( UPrimitiveComponent* Primitive, TArray<const ULightComponent*>* RelevantLights ) const override;
 
 	/** Sets the precomputed visibility handler for the scene, or NULL to clear the current one. */
-	virtual void SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler) override;
+	virtual void SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* InPrecomputedVisibilityHandler) override;
 
 	/** Sets shader maps on the specified materials without blocking. */
 	virtual void SetShaderMapsOnMaterialResources(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate) override;

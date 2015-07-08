@@ -6,6 +6,12 @@
 
 #pragma once
 
+#if _MSC_VER == 1900
+	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+	#endif
+#endif
+
 #include "Templates/PointerIsConvertibleFromTo.h"
 
 class COREUOBJECT_API UObjectBaseUtility : public UObjectBase
@@ -528,4 +534,10 @@ struct FScopeCycleCounterUObject
 	{
 	}
 };
+#endif
+
+#if _MSC_VER == 1900
+	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+	#endif
 #endif

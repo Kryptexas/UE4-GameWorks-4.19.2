@@ -155,7 +155,7 @@ class ENGINE_API AGameSession : public AInfo
 	 * @param bJoinViaPresence anyone who can see you can join the game
 	 * @param bJoinViaPresenceFriendsOnly can only friends actively join your game 
 	 */
-	virtual void UpdateSessionJoinability(FName SessionName, bool bPublicSearchable, bool bAllowInvites, bool bJoinViaPresence, bool bJoinViaPresenceFriendsOnly);
+	virtual void UpdateSessionJoinability(FName InSessionName, bool bPublicSearchable, bool bAllowInvites, bool bJoinViaPresence, bool bJoinViaPresenceFriendsOnly);
 
 	/**
 	 * Travel to a session URL (as client) for a given session
@@ -165,7 +165,7 @@ class ENGINE_API AGameSession : public AInfo
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool TravelToSession(int32 ControllerId, FName SessionName);
+	virtual bool TravelToSession(int32 ControllerId, FName InSessionName);
 
     /**
      * Does the session require push to talk

@@ -11,7 +11,14 @@
 		#define XM_NO_OPERATOR_OVERLOADS 1		// @todo clang: These xnamath operators don't compile correctly under clang
 		#define _XM_NO_INTRINSICS_ 1	// @todo clang: Clang has issues with __m128 intrinsics in xnamathvector.inl
 	#endif
+	#if _MSC_VER == 1900
+		#pragma warning(push)
+		#pragma warning(disable:4838)
+	#endif // _MSC_VER == 1900
 	#include <xnamath.h>
+	#if _MSC_VER == 1900
+		#pragma warning(pop)
+	#endif // _MSC_VER == 1900
 #include "HideWindowsPlatformTypes.h"
 #endif
 #include "D3D11RHIPrivateUtil.h"
@@ -176,7 +183,7 @@ void FD3D11DynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32 
 	check(MaxX <= (uint32)D3D11_VIEWPORT_BOUNDS_MAX);
 	check(MaxY <= (uint32)D3D11_VIEWPORT_BOUNDS_MAX);
 
-	D3D11_VIEWPORT Viewport = { MinX, MinY, MaxX - MinX, MaxY - MinY, MinZ, MaxZ };
+	D3D11_VIEWPORT Viewport = { (float)MinX, (float)MinY, (float)MaxX - MinX, (float)MaxY - MinY, MinZ, MaxZ };
 	//avoid setting a 0 extent viewport, which the debug runtime doesn't like
 	if (Viewport.Width > 0 && Viewport.Height > 0)
 	{

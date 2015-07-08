@@ -454,9 +454,9 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 		{
 			Device->TargetDirty = false;
 			glDisable(GL_FRAMEBUFFER_SRGB);
-			bool bPresent = Viewport.GetCustomPresent()->Present(SyncInterval);
+			bool bShouldPresent = Viewport.GetCustomPresent()->Present(SyncInterval);
 			glEnable(GL_FRAMEBUFFER_SRGB);
-			if (!bPresent)
+			if (!bShouldPresent)
 			{
 				return false;
 			}

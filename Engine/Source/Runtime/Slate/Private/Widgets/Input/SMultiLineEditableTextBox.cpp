@@ -49,7 +49,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	TAttribute<FMargin> HScrollBarPadding = InArgs._HScrollBarPadding.IsSet() ? InArgs._HScrollBarPadding : InArgs._Style->HScrollBarPadding;
 	TAttribute<FMargin> VScrollBarPadding = InArgs._VScrollBarPadding.IsSet() ? InArgs._VScrollBarPadding : InArgs._Style->VScrollBarPadding;
 	TAttribute<FSlateFontInfo> Font = InArgs._Font.IsSet() ? InArgs._Font : InArgs._Style->Font;
-	TAttribute<FSlateColor> ForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
+	TAttribute<FSlateColor> BorderForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
 	TAttribute<FSlateColor> BackgroundColor = InArgs._BackgroundColor.IsSet() ? InArgs._BackgroundColor : InArgs._Style->BackgroundColor;
 	ReadOnlyForegroundColor = InArgs._ReadOnlyForegroundColor.IsSet() ? InArgs._ReadOnlyForegroundColor : InArgs._Style->ReadOnlyForegroundColor;
 
@@ -80,7 +80,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	SBorder::Construct( SBorder::FArguments()
 		.BorderImage( this, &SMultiLineEditableTextBox::GetBorderImage )
 		.BorderBackgroundColor( BackgroundColor )
-		.ForegroundColor( ForegroundColor )
+		.ForegroundColor( BorderForegroundColor )
 		.Padding( Padding )
 		[
 			SAssignNew( Box, SHorizontalBox)

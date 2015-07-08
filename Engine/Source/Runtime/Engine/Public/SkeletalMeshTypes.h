@@ -1242,7 +1242,7 @@ private:
 	/**
 	 * Resizes the vertex data storage & updates the cached info.
 	 */
-	void ResizeData(int32 NumVertices);
+	void ResizeData(int32 InNumVertices);
 
 	/**
 	 * Update the cached 'VertexData' information.
@@ -1830,7 +1830,7 @@ protected:
 	
 	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
 		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
-		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bSelectable, FMeshElementCollector& Collector ) const;
+		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const;
 
-	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
+	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
 };

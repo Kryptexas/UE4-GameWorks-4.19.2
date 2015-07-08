@@ -513,9 +513,9 @@ public:
 	* AnimMontage native C++ interface
 	********************************************************************************************* */
 public:	
-	void Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded, UAnimMontage * Montage = NULL);
+	void Montage_SetEndDelegate(FOnMontageEnded & InOnMontageEnded, UAnimMontage * Montage = NULL);
 	
-	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut, UAnimMontage* Montage = NULL);
+	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & InOnMontageBlendingOut, UAnimMontage* Montage = NULL);
 	
 	/** Get pointer to BlendingOutStarted delegate for Montage.
 	If Montage reference is NULL, it will pick the first active montage found. */

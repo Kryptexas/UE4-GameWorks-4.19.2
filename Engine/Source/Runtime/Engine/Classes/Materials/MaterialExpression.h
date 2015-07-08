@@ -285,7 +285,7 @@ class ENGINE_API UMaterialExpression : public UObject
 	/**
 	 * Connects the specified output to the passed material for previewing. 
 	 */
-	void ConnectToPreviewMaterial(UMaterial* Material, int32 OutputIndex);
+	void ConnectToPreviewMaterial(UMaterial* InMaterial, int32 OutputIndex);
 
 	/**
 	 * Connects the specified input expression to the specified output of this expression.

@@ -702,7 +702,7 @@ public:
 	void UpdateViewMatrix();
 
 	/** Setup defaults and depending on view position (postprocess volumes) */
-	void StartFinalPostprocessSettings(FVector ViewLocation);
+	void StartFinalPostprocessSettings(FVector InViewLocation);
 
 	/**
 	 * custom layers can be combined with the existing settings

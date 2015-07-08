@@ -185,7 +185,7 @@ public:
 #endif
 
 	// Updates the wave instances to be played.
-	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &WaveInstances, const float DeltaTime );
+	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &OutWaveInstances, const float DeltaTime );
 
 	void Stop(FAudioDevice* AudioDevice);
 

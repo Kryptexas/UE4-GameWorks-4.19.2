@@ -733,17 +733,17 @@ void UObject::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=N
 {
 	if( GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) )
 	{
-		UObject* Outer = GetOuter();
+		UObject* ObjOuter = GetOuter();
 		// make sure our Outer has already called ConditionalPostLoadSubobjects
-		if ( Outer != NULL && Outer->HasAnyFlags(RF_NeedPostLoadSubobjects) )
+		if (ObjOuter != NULL && ObjOuter->HasAnyFlags(RF_NeedPostLoadSubobjects) )
 		{
-			if ( Outer->HasAnyFlags(RF_NeedPostLoad) )
+			if (ObjOuter->HasAnyFlags(RF_NeedPostLoad) )
 			{
-				Outer->ConditionalPostLoad();
+				ObjOuter->ConditionalPostLoad();
 			}
 			else
 			{
-				Outer->ConditionalPostLoadSubobjects();
+				ObjOuter->ConditionalPostLoadSubobjects();
 			}
 			if ( !HasAnyFlags(RF_NeedPostLoadSubobjects) )
 			{
@@ -857,23 +857,23 @@ bool UObject::IsSelected() const
 void UObject::Serialize( FArchive& Ar )
 {
 	// These three items are very special items from a serialization standpoint. They aren't actually serialized.
-	UClass *Class = GetClass();
+	UClass *ObjClass = GetClass();
 	UObject* LoadOuter = GetOuter();
 	FName LoadName = GetFName();
 
 	// Make sure this object's class's data is loaded.
-	if( Class->HasAnyFlags(RF_NeedLoad) )
+	if(ObjClass->HasAnyFlags(RF_NeedLoad) )
 	{
-		Ar.Preload( Class );
+		Ar.Preload(ObjClass);
 
 		// make sure this object's template data is loaded - the only objects
 		// this should actually affect are those that don't have any defaults
 		// to serialize.  for objects with defaults that actually require loading
 		// the class default object should be serialized in FLinkerLoad::Preload, before
 		// we've hit this code.
-		if ( !HasAnyFlags(RF_ClassDefaultObject) && Class->GetDefaultsCount() > 0 )
+		if ( !HasAnyFlags(RF_ClassDefaultObject) && ObjClass->GetDefaultsCount() > 0 )
 		{
-			Ar.Preload(Class->GetDefaultObject());
+			Ar.Preload(ObjClass->GetDefaultObject());
 		}
 	}
 
@@ -887,7 +887,7 @@ void UObject::Serialize( FArchive& Ar )
 		}
 		if ( !Ar.IsIgnoringClassRef() )
 		{
-			Ar << Class;
+			Ar << ObjClass;
 		}
 		//@todo UE4 - This seems to be required and it should not be. Seems to be related to the texture streamer.
 		FLinkerLoad* LinkerLoad = GetLinker();
@@ -923,7 +923,7 @@ void UObject::Serialize( FArchive& Ar )
 
 	// Serialize object properties which are defined in the class.
 	// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
-	if (Class != UClass::StaticClass())
+	if (ObjClass != UClass::StaticClass())
 	{
 		SerializeScriptProperties(Ar);
 	}
@@ -974,7 +974,7 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 		Ar.StartSerializingDefaults();
 	}
 
-	UClass *Class = GetClass();
+	UClass *ObjClass = GetClass();
 
 	if( (Ar.IsLoading() || Ar.IsSaving()) && !Ar.WantBinaryPropertySerialization() )
 	{
@@ -985,16 +985,16 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 #else 
 		const bool bBreakSerializationRecursion = false;
 #endif
-		Class->SerializeTaggedProperties(Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? Class->GetSuperClass() : Class, (uint8*)DiffObject, bBreakSerializationRecursion ? this : NULL);
+		ObjClass->SerializeTaggedProperties(Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? ObjClass->GetSuperClass() : ObjClass, (uint8*)DiffObject, bBreakSerializationRecursion ? this : NULL);
 	}
 	else if ( Ar.GetPortFlags() != 0 )
 	{
 		UObject* DiffObject = GetArchetype();
-		Class->SerializeBinEx( Ar, const_cast<UObject *>(this), DiffObject, DiffObject ? DiffObject->GetClass() : NULL );
+		ObjClass->SerializeBinEx( Ar, const_cast<UObject *>(this), DiffObject, DiffObject ? DiffObject->GetClass() : NULL );
 	}
 	else
 	{
-		Class->SerializeBin( Ar, const_cast<UObject *>(this) );
+		ObjClass->SerializeBin( Ar, const_cast<UObject *>(this) );
 	}
 
 	if( HasAnyFlags(RF_ClassDefaultObject) )
@@ -1129,9 +1129,9 @@ bool UObject::CheckDefaultSubobjectsInternal()
 	bool Result = true;	
 
 	CompCheck(this);
-	UClass* Class = GetClass();
+	UClass* ObjClass = GetClass();
 
-	if (Class != UFunction::StaticClass() && Class->GetName() != TEXT("EdGraphPin"))
+	if (ObjClass != UFunction::StaticClass() && ObjClass->GetName() != TEXT("EdGraphPin"))
 	{
 		// Check for references to default subobjects of other objects.
 		// There should never be a pointer to a subobject from outside of the outer (chain) it belongs to.
@@ -1146,21 +1146,21 @@ bool UObject::CheckDefaultSubobjectsInternal()
 	}
 
 #if 0 // usually overkill, but valid tests
-	if (!HasAnyFlags(RF_ClassDefaultObject) && Class->HasAnyClassFlags(CLASS_HasInstancedReference))
+	if (!HasAnyFlags(RF_ClassDefaultObject) && ObjClass->HasAnyClassFlags(CLASS_HasInstancedReference))
 	{
 		UObject *Archetype = GetArchetype();
 		CompCheck(this != Archetype);
 		Archetype->CheckDefaultSubobjects();
-		if (Archetype != Class->GetDefaultObject())
+		if (Archetype != ObjClass->GetDefaultObject())
 		{
-			Class->GetDefaultObject()->CheckDefaultSubobjects();
+			ObjClass->GetDefaultObject()->CheckDefaultSubobjects();
 		}
 	}
 #endif
 
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
-		CompCheck(GetFName() == Class->GetDefaultObjectName());
+		CompCheck(GetFName() == ObjClass->GetDefaultObjectName());
 	}
 
 
@@ -1947,18 +1947,18 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 
 void UObject::InstanceSubobjectTemplates( FObjectInstancingGraph* InstanceGraph )
 {
-	UClass *Class = GetClass();
-	if ( Class->HasAnyClassFlags(CLASS_HasInstancedReference) )
+	UClass *ObjClass = GetClass();
+	if (ObjClass->HasAnyClassFlags(CLASS_HasInstancedReference) )
 	{
 		UObject *Archetype = GetArchetype();
 		if (InstanceGraph)
 		{
-			Class->InstanceSubobjectTemplates( this, Archetype, Archetype ? Archetype->GetClass() : NULL, this, InstanceGraph );
+			ObjClass->InstanceSubobjectTemplates( this, Archetype, Archetype ? Archetype->GetClass() : NULL, this, InstanceGraph );
 		}
 		else
 		{
 			FObjectInstancingGraph TempInstanceGraph(this);
-			Class->InstanceSubobjectTemplates( this, Archetype, Archetype ? Archetype->GetClass() : NULL, this, &TempInstanceGraph );
+			ObjClass->InstanceSubobjectTemplates( this, Archetype, Archetype ? Archetype->GetClass() : NULL, this, &TempInstanceGraph );
 		}
 	}
 	CheckDefaultSubobjects();

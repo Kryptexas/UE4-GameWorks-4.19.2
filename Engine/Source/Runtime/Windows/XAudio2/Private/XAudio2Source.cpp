@@ -329,7 +329,7 @@ bool FXAudio2SoundSource::CreateSource( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSourceCreateTime );
 
-	int32 NumSends = 0;
+	uint32 NumSends = 0;
 
 #if XAUDIO2_SUPPORTS_SENDLIST
 	// Create a source that goes to the spatialisation code and reverb effect

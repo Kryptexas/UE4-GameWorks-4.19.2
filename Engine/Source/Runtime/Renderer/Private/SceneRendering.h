@@ -821,9 +821,9 @@ protected:
 	void PostVisibilityFrameSetup();
 
 	void GatherDynamicMeshElements(
-		TArray<FViewInfo>& Views, 
-		const FScene* Scene, 
-		const FSceneViewFamily& ViewFamily, 
+		TArray<FViewInfo>& InViews, 
+		const FScene* InScene, 
+		const FSceneViewFamily& InViewFamily, 
 		const FPrimitiveViewMasks& HasDynamicMeshElementsMasks, 
 		const FPrimitiveViewMasks& HasDynamicEditorMeshElementsMasks, 
 		FMeshElementCollector& Collector);

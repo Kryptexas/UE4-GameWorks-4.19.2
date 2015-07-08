@@ -1302,7 +1302,7 @@ public:
 		return 0;
 	}
 
-	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
+	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
 
 	/** The batched simple elements. */
 	FBatchedElements BatchedElements;

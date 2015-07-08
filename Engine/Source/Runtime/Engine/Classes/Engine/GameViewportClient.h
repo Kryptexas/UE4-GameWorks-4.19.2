@@ -467,7 +467,7 @@ public:
 	 * @param	FailureType	the type of error
 	 * @param	ErrorString	additional string detailing the error
 	 */
-	virtual void PeekNetworkFailureMessages(UWorld *World, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);
+	virtual void PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);
 
 	/** Make sure all navigation objects have appropriate path rendering components set.  Called when EngineShowFlags.Navigation is set. */
 	virtual void VerifyPathRenderingComponents();

@@ -20,6 +20,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
 
+#if _MSC_VER == 1900
+	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+	#endif
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 
 /**
@@ -4462,3 +4468,10 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateFunction, UFunction,
 	{
 	}
 );
+
+
+#if _MSC_VER == 1900
+	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+	#endif
+#endif

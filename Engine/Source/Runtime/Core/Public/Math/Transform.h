@@ -489,7 +489,7 @@ public:
 	*/
 	FORCEINLINE void operator*=(const FQuat& Other);
 
-	FORCEINLINE void ScaleTranslation(const FVector& Scale3D);
+	FORCEINLINE void ScaleTranslation(const FVector& InScale3D);
 	FORCEINLINE void ScaleTranslation(const float& Scale);
 	FORCEINLINE void RemoveScaling(float Tolerance=SMALL_NUMBER);
 	FORCEINLINE float GetMaximumAxisScale() const;

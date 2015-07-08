@@ -72,7 +72,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	 * @param AlphaOverride - If specified, the values here will become the alpha values in the resulting texture
 	 * @return New UTexture2D object.
 	 */
-	ENGINE_API UTexture2D* ConstructTexture2D(UObject* Outer, const FString& NewTexName, EObjectFlags ObjectFlags, uint32 Flags=CTF_Default, TArray<uint8>* AlphaOverride=NULL);
+	ENGINE_API UTexture2D* ConstructTexture2D(UObject* InOuter, const FString& NewTexName, EObjectFlags InObjectFlags, uint32 Flags=CTF_Default, TArray<uint8>* AlphaOverride=NULL);
 
 	/**
 	 * Updates (resolves) the render target texture immediately.

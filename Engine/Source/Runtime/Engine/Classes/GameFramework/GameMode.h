@@ -461,7 +461,7 @@ public:
 	 *
 	 * @return a new player controller for the logged in player, NULL if login failed for any reason
 	 */
-	virtual APlayerController* Login(class UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage);
+	virtual APlayerController* Login(class UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerAController. */
 	virtual void PostLogin( APlayerController* NewPlayer );
@@ -479,7 +479,7 @@ public:
 	 *
 	 * @return PlayerController for the player, NULL if there is any reason this player shouldn't exist or due to some error
 	 */
-	virtual APlayerController* SpawnPlayerController(ENetRole RemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation);
+	virtual APlayerController* SpawnPlayerController(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
 	/** @Returns true if NewPlayerController may only join the server as a spectator. */
 	UFUNCTION(BlueprintNativeEvent, Category="Game")

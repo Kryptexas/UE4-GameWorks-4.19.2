@@ -177,13 +177,13 @@ public:
 	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
 
 	/** Start recording a replay with the given custom name and friendly name. */
-	virtual void StartRecordingReplay(const FString& Name, const FString& FriendlyName);
+	virtual void StartRecordingReplay(const FString& InName, const FString& FriendlyName);
 
 	/** Stop recording a replay if one is currently in progress */
 	virtual void StopRecordingReplay();
 
 	/** Start playing back a previously recorded replay. */
-	virtual void PlayReplay(const FString& Name);
+	virtual void PlayReplay(const FString& InName);
 
 	/**
 	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)

@@ -764,7 +764,7 @@ public:
 	void RemoveTileCacheLayers(int32 TileX, int32 TileY);
 	
 	/**  */
-	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers);
+	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& InLayers);
 	
 	/**  */
 	TArray<FNavMeshTileData> GetTileCacheLayers(int32 TileX, int32 TileY) const;

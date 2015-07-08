@@ -388,7 +388,7 @@ public:
 	 * @param Priority			The priority of the box used for layering. Larger values are considered first.  Equal values are considered in the order they were added.
 	 */
 	UFUNCTION(BlueprintCallable, Category=HUD)
-	void AddHitBox(FVector2D Position, FVector2D Size, FName Name, bool bConsumesInput, int32 Priority = 0);
+	void AddHitBox(FVector2D Position, FVector2D Size, FName InName, bool bConsumesInput, int32 Priority = 0);
 
 protected:
 	/** Returns the PlayerController for this HUD's player.	 */

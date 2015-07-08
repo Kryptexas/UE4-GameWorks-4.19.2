@@ -36,14 +36,14 @@ void UObjectBaseUtility::GetPathName( const UObject* StopOuter, FString& ResultS
 {
 	if( this != StopOuter && this != NULL )
 	{
-		UObject* Outer = GetOuter();
-		if ( Outer && Outer != StopOuter )
+		UObject* ObjOuter = GetOuter();
+		if (ObjOuter && ObjOuter != StopOuter )
 		{
-			Outer->GetPathName( StopOuter, ResultString );
+			ObjOuter->GetPathName( StopOuter, ResultString );
 
 			// SUBOBJECT_DELIMITER is used to indicate that this object's outer is not a UPackage
-			if (Outer->GetClass() != UPackage::StaticClass()
-			&&	Outer->GetOuter()->GetClass() == UPackage::StaticClass())
+			if (ObjOuter->GetClass() != UPackage::StaticClass()
+			&& ObjOuter->GetOuter()->GetClass() == UPackage::StaticClass())
 			{
 				ResultString += SUBOBJECT_DELIMITER;
 			}
@@ -115,12 +115,12 @@ UPackage* UObjectBaseUtility::GetOutermost() const
 	UObject* Top = (UObject*)this;
 	for (;;)
 	{
-		UObject* Outer = Top->GetOuter();
-		if (!Outer)
+		UObject* CurrentOuter = Top->GetOuter();
+		if (!CurrentOuter)
 		{
 			return CastChecked<UPackage>(Top);
 		}
-		Top = Outer;
+		Top = CurrentOuter;
 	}
 }
 

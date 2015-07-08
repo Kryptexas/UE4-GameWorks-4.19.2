@@ -92,8 +92,8 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 		Mesh->bChartDistanceFactor = true;
 		Mesh->AttachParent = CapsuleComponent;
-		static FName CollisionProfileName(TEXT("CharacterMesh"));
-		Mesh->SetCollisionProfileName(CollisionProfileName);
+		static FName MeshCollisionProfileName(TEXT("CharacterMesh"));
+		Mesh->SetCollisionProfileName(MeshCollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
 		Mesh->bCanEverAffectNavigation = false;
 	}

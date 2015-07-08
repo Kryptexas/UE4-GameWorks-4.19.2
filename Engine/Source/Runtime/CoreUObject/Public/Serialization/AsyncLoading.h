@@ -228,7 +228,7 @@ public:
 	*
 	* @return true if we finished calling PostLoad on all loaded objects and no new ones were created, false otherwise
 	*/
-	EAsyncPackageState::Type PostLoadDeferredObjects(double InTickStartTime, bool bUseTimeLimit, float& InOutTimeLimit);
+	EAsyncPackageState::Type PostLoadDeferredObjects(double InTickStartTime, bool bInUseTimeLimit, float& InOutTimeLimit);
 
 private:
 	/**

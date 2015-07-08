@@ -282,7 +282,7 @@ public:
 	// UField interface.
 	virtual void AddCppProperty(UProperty* Property) override;
 
-	UProperty* FindPropertyByName(FName Name) const;
+	UProperty* FindPropertyByName(FName InName) const;
 
 	/**
 	 * Creates new copies of components
@@ -337,7 +337,7 @@ public:
 
 #if WITH_EDITOR
 private:
-	virtual UProperty* CustomFindProperty(const FName Name) const { return NULL; };
+	virtual UProperty* CustomFindProperty(const FName InName) const { return NULL; };
 #endif // WITH_EDITOR
 public:
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
@@ -409,9 +409,9 @@ public:
 		Children = Child;
 	}
 
-	virtual FString PropertyNameToDisplayName(FName Name) const 
+	virtual FString PropertyNameToDisplayName(FName InName) const 
 	{ 
-		return Name.ToString(); 
+		return InName.ToString();
 	}
 
 #if WITH_EDITOR
@@ -1363,7 +1363,7 @@ public:
 	int8 GetValueByName(FName InName);
 
 	/** Gets index of name in enum. Returns INDEX_NONE when name is not found. */
-	int32 GetIndexByName(FName Name) const;
+	int32 GetIndexByName(FName InName) const;
 
 	/** Gets max value of Enum. Defaults to zero if there are no entries. */
 	int8 GetMaxEnumValue() const;
@@ -1956,7 +1956,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void FinishDestroy() override;
-	virtual void DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName,const TCHAR* Name) override;
+	virtual void DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName,const TCHAR* InName) override;
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 	virtual void PostInitProperties() override;

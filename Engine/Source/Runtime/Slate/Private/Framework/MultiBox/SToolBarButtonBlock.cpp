@@ -31,12 +31,12 @@ FToolBarButtonBlock::FToolBarButtonBlock( const TAttribute<FText>& InLabel, cons
 
 void FToolBarButtonBlock::CreateMenuEntry(FMenuBuilder& MenuBuilder) const
 {
-	TSharedPtr<const FUICommandInfo> Action = GetAction();
-	TSharedPtr<const FUICommandList> ActionList = GetActionList();
-	if (Action.IsValid() && ActionList.IsValid())
+	TSharedPtr<const FUICommandInfo> MenuEntryAction = GetAction();
+	TSharedPtr<const FUICommandList> MenuEntryActionList = GetActionList();
+	if (MenuEntryAction.IsValid() && MenuEntryActionList.IsValid())
 	{
-		MenuBuilder.PushCommandList(ActionList.ToSharedRef());
-		MenuBuilder.AddMenuEntry(Action);				
+		MenuBuilder.PushCommandList(MenuEntryActionList.ToSharedRef());
+		MenuBuilder.AddMenuEntry(MenuEntryAction);
 		MenuBuilder.PopCommandList();
 	}
 	else if ( LabelOverride.IsSet() )

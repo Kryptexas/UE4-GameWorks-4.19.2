@@ -172,7 +172,7 @@ public:
 	 * @param ChunkIndex - Which chunk to affect.  ChunkIndex must lie in the range: 0 <= ChunkIndex < ((DestructibleMesh*)USkeletalMesh)->ApexDestructibleAsset->chunkCount().
 	 * @param bVisible - If true, the chunk will be made visible.  Otherwise, the chunk is made invisible.
 	 */
-	void SetChunkVisible( int32 ChunkIndex, bool bVisible );
+	void SetChunkVisible( int32 ChunkIndex, bool bInVisible );
 
 #if WITH_APEX
 	/** This method takes a collection of active actors and updates the chunks in one pass. Saves a lot of duplicate work instead of calling each individual chunk

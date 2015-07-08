@@ -406,8 +406,8 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 
 	uint32 Mobile32bpp = !IsMobileHDR() || IsMobileHDR32bpp();
 
-	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	int32 MobileMSAA = GShaderPlatformForFeatureLevel[NewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA->GetValueOnRenderThread();
+	static const auto MobileMSAACVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	int32 MobileMSAA = GShaderPlatformForFeatureLevel[NewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACVar->GetValueOnRenderThread();
 
 	bool bLightPropagationVolume = UseLightPropagationVolumeRT(NewFeatureLevel);
 

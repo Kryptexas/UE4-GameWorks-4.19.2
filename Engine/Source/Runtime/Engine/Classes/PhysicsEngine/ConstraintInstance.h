@@ -373,32 +373,32 @@ public:
 	/** Sets the LinearX Motion Type
 	*	@param MotionType	New Motion Type
 	*/
-	void SetLinearXLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+	void SetLinearXLimit(ELinearConstraintMotion ConstraintType, float InLinearLimitSize);
 
 	/** Sets the LinearY Motion Type
 	*	@param MotionType	New Motion Type
 	*/
-	void SetLinearYLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+	void SetLinearYLimit(ELinearConstraintMotion ConstraintType, float InLinearLimitSize);
 
 	/** Sets the LinearZ Motion Type
 	*	@param MotionType	New Motion Type
 	*/
-	void SetLinearZLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+	void SetLinearZLimit(ELinearConstraintMotion ConstraintType, float InLinearLimitSize);
 
 	/** Sets the Angular Swing1 Motion Type
 	*	@param MotionType	New Motion Type
 	*/
-	void SetAngularSwing1Limit(EAngularConstraintMotion MotionType, float Swing1LimitAngle);
+	void SetAngularSwing1Limit(EAngularConstraintMotion MotionType, float InSwing1LimitAngle);
 
 	/** Sets the Angular Swing2 Motion Type
 	*	@param MotionType	New Motion Type
 	*/
-	void SetAngularSwing2Limit(EAngularConstraintMotion MotionType, float Swing2LimitAngle);
+	void SetAngularSwing2Limit(EAngularConstraintMotion MotionType, float InSwing2LimitAngle);
 
 	/** Sets the Angular Twist Motion Type
 	*	@param MotionType	New Motion Type
 	*/
-	void SetAngularTwistLimit(EAngularConstraintMotion MotionType, float TwistLimitAngle);
+	void SetAngularTwistLimit(EAngularConstraintMotion MotionType, float InTwistLimitAngle);
 
 #if WITH_PHYSX
 	FPhysxUserData PhysxUserData;
@@ -457,8 +457,8 @@ public:
 
 	void SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
 	void SetLinearVelocityDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
-	void SetAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
-	void SetAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
+	void SetAngularPositionDrive(bool bInEnableSwingDrive, bool bInEnableTwistDrive);
+	void SetAngularVelocityDrive(bool bInEnableSwingDrive, bool bInEnableTwistDrive);
 
 	void SetLinearPositionTarget(const FVector& InPosTarget);
 	void SetLinearVelocityTarget(const FVector& InVelTarget);

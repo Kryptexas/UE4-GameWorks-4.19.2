@@ -420,7 +420,7 @@ public:
 	 * @return true if we encountered expanded children; false otherwise.
 	 */
 	bool PopulateLinearizedItems(
-		const TArray<ItemType>& ItemsSource,
+		const TArray<ItemType>& InItemsSource,
 		TArray< ItemType >& InLinearizedItems,
 		TArray< FItemInfo >& NewDenseItemInfos,
 		int32 TreeLevel,
@@ -429,13 +429,13 @@ public:
 		bool bAddingItems )
 	{
 		bool bSawExpandedItems = false;
-		for ( int32 ItemIndex = 0; ItemIndex < ItemsSource.Num(); ++ItemIndex )
+		for ( int32 ItemIndex = 0; ItemIndex < InItemsSource.Num(); ++ItemIndex )
 		{
-			const ItemType& CurItem = ItemsSource[ItemIndex];
+			const ItemType& CurItem = InItemsSource[ItemIndex];
 
 			// Find this items children.
 			TArray<ItemType> ChildItems;
-			OnGetChildren.Execute( ItemsSource[ItemIndex], ChildItems );
+			OnGetChildren.Execute(InItemsSource[ItemIndex], ChildItems );
 
 			const bool bHasChildren = ChildItems.Num() > 0;
 

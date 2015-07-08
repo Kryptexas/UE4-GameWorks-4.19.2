@@ -438,8 +438,8 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 		FBatchedDrawParameters DrawParameters =
 		{
 			Data,
-			Canvas->IsHitTesting(),
-			bNeedsToSwitchVerticalAxis,
+			(uint32)(Canvas->IsHitTesting() ? 1 : 0),
+			(uint32)(bNeedsToSwitchVerticalAxis ? 1 : 0),
 			(uint32)CanvasRenderTarget->GetSizeXY().X,
 			(uint32)CanvasRenderTarget->GetSizeXY().Y,
 			Gamma,

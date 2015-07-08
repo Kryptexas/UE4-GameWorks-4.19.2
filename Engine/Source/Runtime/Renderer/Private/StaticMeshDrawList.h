@@ -333,7 +333,7 @@ public:
 	void SortFrontToBack(FVector ViewPosition);
 
 	/** Builds a list of primitives that use the given materials in this static draw list. */
-	void GetUsedPrimitivesBasedOnMaterials(ERHIFeatureLevel::Type FeatureLevel, const TArray<const FMaterial*>& Materials, TArray<FPrimitiveSceneInfo*>& PrimitivesToUpdate);
+	void GetUsedPrimitivesBasedOnMaterials(ERHIFeatureLevel::Type InFeatureLevel, const TArray<const FMaterial*>& Materials, TArray<FPrimitiveSceneInfo*>& PrimitivesToUpdate);
 
 	/**
 	 * Shifts all meshes bounds by an arbitrary delta.

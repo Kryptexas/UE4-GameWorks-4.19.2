@@ -836,14 +836,14 @@ public:
 	* @param Name - The slot name of the material to replace.  If invalid, the material is unchanged and NULL is returned.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
-	virtual class UMaterialInstanceDynamic* CreateNamedDynamicMaterialInstance(FName Name, class UMaterialInterface* SourceMaterial = NULL);
+	virtual class UMaterialInstanceDynamic* CreateNamedDynamicMaterialInstance(FName InName, class UMaterialInterface* SourceMaterial = NULL);
 
 	/** Returns a named material. If this named material is not found, returns NULL. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
-	virtual class UMaterialInterface* GetNamedMaterial(FName Name) const;
+	virtual class UMaterialInterface* GetNamedMaterial(FName InName) const;
 
 	/** Returns the index into the EmitterMaterials array for this named. If there are no named material slots or this material is not found, INDEX_NONE is returned. */
-	virtual int32 GetNamedMaterialIndex(FName Name) const;
+	virtual int32 GetNamedMaterialIndex(FName InName) const;
 
 protected:
 

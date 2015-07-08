@@ -529,8 +529,8 @@ void UConsole::OutputText(const FString& Text)
 
 void UConsole::StartTyping(const FString& Text)
 {
-	static const FName NAME_Typing = FName(TEXT("Typing"));
-	FakeGotoState(NAME_Typing);
+	static const FName TypingName = FName(TEXT("Typing"));
+	FakeGotoState(TypingName);
 	SetInputText(Text);
 	SetCursorPos(Text.Len());
 }
@@ -1358,9 +1358,9 @@ void UConsole::FakeGotoState(FName NextStateName)
 void UConsole::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
 	// e.g. UE_LOG(LogConsoleResponse, Display, TEXT("Test"));
-	static const FName LogConsoleResponse = FName("LogConsoleResponse");
+	static const FName ConsoleResponseLog = FName("LogConsoleResponse");
 
-	if (Category == LogConsoleResponse)
+	if (Category == ConsoleResponseLog)
 	{
 		// log all LogConsoleResponse
 		OutputText(V);
