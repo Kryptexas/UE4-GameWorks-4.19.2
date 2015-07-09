@@ -16,7 +16,8 @@ class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 
 public:
 
-	FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath);
+	FTranslationDataManager(const FString& InManifestFilePath, const FString& InNativeArchiveFilePath, const FString& InArchiveFilePath);
+	FTranslationDataManager(ULocalizationTarget* const LocalizationTarget, const FString& CulturetoEdit);
 
 	virtual ~FTranslationDataManager();
 
@@ -87,6 +88,7 @@ public:
 	}
 
 private:
+	void Initialize();
 
 	/** Read text file into a JSON file */
 	static TSharedPtr<FJsonObject> ReadJSONTextFile( const FString& InFilePath ) ;
@@ -94,7 +96,7 @@ private:
 	/** Take a path and a manifest name and return a manifest data structure */
 	TSharedPtr< FInternationalizationManifest > ReadManifest ( const FString& ManifestFilePath );
 	/** Retrieve an archive data structure from ArchiveFilePath */
-	TSharedPtr< FInternationalizationArchive > ReadArchive();
+	TSharedPtr< FInternationalizationArchive > ReadArchive(const FString& ArchiveFilePath);
 
 	/** Write JSON file to text file */
 	bool WriteJSONToTextFile( TSharedRef<FJsonObject>& Output, const FString& Filename );
@@ -115,6 +117,8 @@ private:
 	/** Serializes and deserializes Manifests */
 	FJsonInternationalizationManifestSerializer ManifestSerializer;
 
+	/** Archive for the current project and native language */
+	TSharedPtr< FInternationalizationArchive > NativeArchivePtr;
 	/** Archive for the current project and translation language */
 	TSharedPtr< FInternationalizationArchive > ArchivePtr;
 	/** Manifest for the current project */
@@ -128,13 +132,18 @@ private:
 	FString ArchiveName;
 	/** Path to the culture (language, sort of) we are targeting */
 	FString CulturePath;
-	/** Path to the Manifest File **/
-	FString ManifestFilePath;
-	/** Path to the Archive File **/
-	FString ArchiveFilePath;
+	/** Path to the manifest file **/
+	FString OpenedManifestFilePath;
+	/** Path to the native culture's archive file **/
+	FString NativeArchiveFilePath;
+	/** Path to the archive file **/
+	FString OpenedArchiveFilePath;
 
 	/** Files that are already checked out from Perforce **/
 	TArray<FString> CheckedOutFiles;
+
+	/** The localization target associated with the files being used/edited, if any. */
+	TWeakObjectPtr<ULocalizationTarget> AssociatedLocalizationTarget;
 
 	/** Whether or not we successfully loaded the .manifest and .archive */
 	bool bLoadedSuccessfully;

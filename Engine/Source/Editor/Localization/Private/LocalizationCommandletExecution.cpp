@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "LocalizationDashboardPrivatePCH.h"
+#include "LocalizationPrivatePCH.h"
 #include "LocalizationCommandletExecution.h"
 #include "LocalizationTargetTypes.h"
 #include "LocalizationConfigurationScript.h"

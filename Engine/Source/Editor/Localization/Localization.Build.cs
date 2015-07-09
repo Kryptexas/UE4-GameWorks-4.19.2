@@ -18,6 +18,13 @@ public class Localization : ModuleRules
 			new string[]
 			{
 				"Engine",
+				"Slate",
+				"SlateCore",
+				"InputCore",
+                "UnrealEd",
+                "EditorStyle",
+				"DesktopPlatform",
+                "SourceControl",
 			}
 		);
 

@@ -46,6 +46,7 @@ public class TranslationEditor : ModuleRules
                 "Core",
 				"CoreUObject",
 				"Engine",
+                "Localization",
             }
         );
 
@@ -55,5 +56,19 @@ public class TranslationEditor : ModuleRules
 				"DesktopPlatform",
 			}
 		);
+
+        PrivateIncludePaths.AddRange(
+            new string[]
+			{
+				"Editor/TranslationEditor/Private",
+			}
+        );
+
+        PublicIncludePaths.AddRange(
+            new string[]
+			{
+				"Editor/TranslationEditor/Public",
+			}
+        );
 	}
 }

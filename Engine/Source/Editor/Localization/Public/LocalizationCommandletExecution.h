@@ -5,7 +5,7 @@
 
 namespace LocalizationCommandletExecution
 {
-	struct FTask
+	struct LOCALIZATION_API FTask
 	{
 		FTask() {}
 
@@ -23,7 +23,7 @@ namespace LocalizationCommandletExecution
 	bool Execute(const TSharedRef<SWindow>& ParentWindow, const FText& Title, const TArray<FTask>& Tasks);
 };
 
-class FLocalizationCommandletProcess : public TSharedFromThis<FLocalizationCommandletProcess>
+class LOCALIZATION_API FLocalizationCommandletProcess : public TSharedFromThis<FLocalizationCommandletProcess>
 {
 public:
 	static TSharedPtr<FLocalizationCommandletProcess> Execute(const FString& ConfigFilePath, const bool UseProjectFile = true);

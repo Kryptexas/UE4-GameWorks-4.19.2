@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TranslationEditorPrivatePCH.h"
 #include "TranslationEditor.h"
@@ -23,15 +23,44 @@ DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
 #define LOCTEXT_NAMESPACE "TranslationDataManager"
 
 
-FTranslationDataManager::FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath )
-: ManifestFilePath(InManifestFilePath)
-, ArchiveFilePath(InArchiveFilePath)
-, bLoadedSuccessfully(true)
+FTranslationDataManager::FTranslationDataManager( const FString& InManifestFilePath, const FString& InNativeArchiveFilePath, const FString& InArchiveFilePath )
+	: AssociatedLocalizationTarget(nullptr)
+	, OpenedManifestFilePath(InManifestFilePath)
+	, NativeArchiveFilePath(InNativeArchiveFilePath)
+	, OpenedArchiveFilePath(InArchiveFilePath)
+	, bLoadedSuccessfully(true)
+{
+	Initialize();
+}
+
+FTranslationDataManager::FTranslationDataManager(ULocalizationTarget* const LocalizationTarget, const FString& CultureToEdit)
+	: AssociatedLocalizationTarget(LocalizationTarget)
+	, bLoadedSuccessfully(true)
+{
+	check(LocalizationTarget);
+ 
+	const FString ManifestFile = LocalizationConfigurationScript::GetManifestPath(LocalizationTarget);
+	FString NativeCultureName;
+	if (LocalizationTarget->Settings.SupportedCulturesStatistics.IsValidIndex(LocalizationTarget->Settings.NativeCultureIndex))
+	{
+		NativeCultureName = LocalizationTarget->Settings.SupportedCulturesStatistics[LocalizationTarget->Settings.NativeCultureIndex].CultureName;
+	}
+	const FString NativeArchiveFile = NativeCultureName.IsEmpty() ? FString() : LocalizationConfigurationScript::GetArchivePath(LocalizationTarget, NativeCultureName);
+	const FString ArchiveFileToEdit = LocalizationConfigurationScript::GetArchivePath(LocalizationTarget, CultureToEdit);
+
+	OpenedManifestFilePath = ManifestFile;
+	NativeArchiveFilePath = NativeArchiveFile;
+	OpenedArchiveFilePath = ArchiveFileToEdit;
+
+	Initialize();
+}
+
+void FTranslationDataManager::Initialize()
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingTranslationData", "Loading Translation Data..."), true);
 	TArray<UTranslationUnit*> TranslationUnits;
 
-	ManifestAtHeadRevisionPtr = ReadManifest( ManifestFilePath );
+	ManifestAtHeadRevisionPtr = ReadManifest( OpenedManifestFilePath );
 	if (ManifestAtHeadRevisionPtr.IsValid())
 	{
 		TSharedRef< FInternationalizationManifest > ManifestAtHeadRevision = ManifestAtHeadRevisionPtr.ToSharedRef();
@@ -41,7 +70,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 		{
 			bLoadedSuccessfully = false;
 			FFormatNamedArguments Arguments;
-			Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
+			Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(OpenedManifestFilePath) );
 			Arguments.Add( TEXT("ManifestEntriesCount"), FText::AsNumber(ManifestEntriesCount) );
 			FMessageLog TranslationEditorMessageLog("TranslationEditor");
 			TranslationEditorMessageLog.Error(FText::Format(LOCTEXT("CurrentManifestEmpty", "Most current translation manifest ({ManifestFilePath}) has {ManifestEntriesCount} entries."), Arguments));
@@ -49,7 +78,9 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 			TranslationEditorMessageLog.Open(EMessageSeverity::Error);
 		}
 
-		ArchivePtr = ReadArchive();
+		ArchivePtr = ReadArchive(OpenedArchiveFilePath);
+		NativeArchivePtr = NativeArchiveFilePath != OpenedArchiveFilePath ? ReadArchive(NativeArchiveFilePath) : ArchivePtr;
+
 		if (ArchivePtr.IsValid())
 		{
 			int32 NumManifestEntriesParsed = 0;
@@ -76,6 +107,16 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 					ContextInfo.Context = AContext.SourceLocation;
 					ContextInfo.Key = AContext.Key;
 
+					if (NativeArchivePtr.IsValid() && NativeArchivePtr != ArchivePtr)
+					{
+						const TSharedPtr<FArchiveEntry> NativeArchiveEntry = NativeArchivePtr->FindEntryBySource(ManifestEntry->Namespace, ManifestEntry->Source, AContext.KeyMetadataObj);
+						// If the native archive contains a translation for the source string that isn't identical to the source string, use the translation as the source string.
+						if (NativeArchiveEntry.IsValid() && !NativeArchiveEntry->Translation.IsExactMatch(NativeArchiveEntry->Source))
+						{
+							TranslationUnit->Source = NativeArchiveEntry->Translation.Text;
+						}
+					}
+
 					TranslationUnit->Contexts.Add(ContextInfo);
 				}
 
@@ -89,7 +130,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 		{
 			bLoadedSuccessfully = false;
 			FFormatNamedArguments Arguments;
-			Arguments.Add( TEXT("ArchiveFilePath"), FText::FromString(ArchiveFilePath) );
+			Arguments.Add( TEXT("ArchiveFilePath"), FText::FromString(OpenedArchiveFilePath) );
 			FMessageLog TranslationEditorMessageLog("TranslationEditor");
 			TranslationEditorMessageLog.Error(FText::Format(LOCTEXT("FailedToLoadCurrentArchive", "Failed to load most current translation archive ({ArchiveFilePath}), unable to load translations."), Arguments));
 			TranslationEditorMessageLog.Notify(LOCTEXT("TranslationLoadError", "Error Loading Translations!"));
@@ -100,7 +141,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 	{
 		bLoadedSuccessfully = false;
 		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
+		Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(OpenedManifestFilePath) );
 		FMessageLog TranslationEditorMessageLog("TranslationEditor");
 		TranslationEditorMessageLog.Error(FText::Format(LOCTEXT("FailedToLoadCurrentManifest", "Failed to load most current translation manifest ({ManifestFilePath}), unable to load translations."), Arguments));
 		TranslationEditorMessageLog.Notify(LOCTEXT("TranslationLoadError", "Error Loading Translations!"));
@@ -133,7 +174,7 @@ TSharedPtr< FInternationalizationManifest > FTranslationDataManager::ReadManifes
 	return InternationalizationManifest;
 }
 
-TSharedPtr< FInternationalizationArchive > FTranslationDataManager::ReadArchive()
+TSharedPtr< FInternationalizationArchive > FTranslationDataManager::ReadArchive(const FString& ArchiveFilePath)
 {
 	// Read in any existing archive for this culture.
 	TSharedPtr< FJsonObject > ArchiveJsonObject = ReadJSONTextFile( ArchiveFilePath );
@@ -238,7 +279,7 @@ bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 			TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable(new FJsonObject);
 			ArchiveSerializer.SerializeArchive(Archive, FinalArchiveJsonObj);
 
-			bSuccess = WriteJSONToTextFile(FinalArchiveJsonObj, ArchiveFilePath);
+			bSuccess = WriteJSONToTextFile(FinalArchiveJsonObj, OpenedArchiveFilePath);
 		}
 	}
 
@@ -362,7 +403,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits()
 	GWarn->BeginSlowTask(LOCTEXT("LoadingSourceControlHistory", "Loading Translation History from Source Control..."), true);
 
 	TArray<UTranslationUnit*>& TranslationUnits = AllTranslations;
-	const FString& InManifestFilePath = ManifestFilePath;
+	const FString& InManifestFilePath = OpenedManifestFilePath;
 
 	// Unload any previous history information, going to retrieve it all again.
 	UnloadHistoryInformation();
@@ -561,7 +602,7 @@ void FTranslationDataManager::HandlePropertyChanged(FName PropertyName)
 
 void FTranslationDataManager::PreviewAllTranslationsInEditor()
 {
-	FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+	FString ManifestFullPath = FPaths::ConvertRelativePathToFull(OpenedManifestFilePath);
 	FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
 
 	bool IsEngineManifest = false;
@@ -570,11 +611,10 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor()
 		IsEngineManifest = true;
 	}
 
-	ULocalizationTarget* Target = ILocalizationDashboardModule::Get().GetLocalizationTargetByName(FPaths::GetBaseFilename(ManifestFilePath), IsEngineManifest);
-	if (Target)
+	if (AssociatedLocalizationTarget.IsValid())
 	{
-		const FString ConfigFilePath = LocalizationConfigurationScript::GetRegenerateResourcesScriptPath(Target);
-		LocalizationConfigurationScript::GenerateRegenerateResourcesScript(Target).Write(ConfigFilePath);
+		const FString ConfigFilePath = LocalizationConfigurationScript::GetRegenerateResourcesScriptPath(AssociatedLocalizationTarget.Get());
+		LocalizationConfigurationScript::GenerateRegenerateResourcesScript(AssociatedLocalizationTarget.Get()).Write(ConfigFilePath);
 
 		FJsonInternationalizationArchiveSerializer LocalizationArchiveSerializer;
 		FJsonInternationalizationManifestSerializer LocalizationManifestSerializer;
@@ -627,35 +667,13 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 
 	if (bReloadFromFile)
 	{
-		ArchivePtr = ReadArchive();
+		ArchivePtr = ReadArchive(OpenedArchiveFilePath);
+		NativeArchivePtr = NativeArchiveFilePath != OpenedArchiveFilePath ? ReadArchive(NativeArchiveFilePath) : ArchivePtr;
 	}
 
 	if (ArchivePtr.IsValid())
 	{
 		TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
-
-		for (auto Iter = Archive->GetEntryIterator(); Iter; ++Iter)
-		{
-			const FString SourceText = Iter->Key;
-			const TSharedRef< FArchiveEntry >& ArchiveEntry = Iter->Value;
-
-			const bool HasTranslationUnit = InTranslationUnits.ContainsByPredicate([&](UTranslationUnit* TU) -> bool
-			{
-				return TU->Namespace == ArchiveEntry->Namespace && TU->Source == ArchiveEntry->Source.Text;
-			});
-
-			// If a translation unit doesn't exist for this namespace and source, add it.
-			if (!HasTranslationUnit)
-			{
-				UTranslationUnit* TranslationUnit = NewObject<UTranslationUnit>();
-				check(TranslationUnit != nullptr);
-				TranslationUnit->SetFlags(RF_Transactional);
-				TranslationUnit->HasBeenReviewed = false;
-				TranslationUnit->Source = ArchiveEntry->Source.Text;
-				TranslationUnit->Namespace = ArchiveEntry->Namespace;
-				InTranslationUnits.Add(TranslationUnit);
-			}
-		}
 
 		// Make a local copy of this array before we empty the arrays below (we might have been passed AllTranslations array)
 		TArray<UTranslationUnit*> TranslationUnits;
@@ -756,11 +774,12 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 				}
 			}
 		}
+
 	}
 	else  // ArchivePtr.IsValid() is false
 	{
 		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ArchiveFilePath"), FText::FromString(ArchiveFilePath));
+		Arguments.Add(TEXT("ArchiveFilePath"), FText::FromString(OpenedArchiveFilePath));
 		FMessageLog TranslationEditorMessageLog("TranslationEditor");
 		TranslationEditorMessageLog.Error(FText::Format(LOCTEXT("FailedToLoadCurrentArchive", "Failed to load most current translation archive ({ArchiveFilePath}), unable to load translations."), Arguments));
 		TranslationEditorMessageLog.Notify(LOCTEXT("TranslationLoadError", "Error Loading Translations!"));
@@ -839,9 +858,14 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 		auto Item = *TextIt;
 		FString CurrentLocResPath = Item.Key;
 		FString ManifestAndArchiveName = FPaths::GetBaseFilename(CurrentLocResPath);
+		
 		FString ArchiveFilePath = FPaths::GetPath(CurrentLocResPath);
 		FString CultureName = FPaths::GetBaseFilename(ArchiveFilePath);
 		FString ManifestPath = FPaths::GetPath(ArchiveFilePath);
+
+		FString NativeCultureName;
+
+		FString NativeArchiveFullPath = ManifestPath / NativeCultureName / ManifestAndArchiveName + ".archive";
 		FString ArchiveFullPath = ArchiveFilePath / ManifestAndArchiveName + ".archive";
 		FString ManifestFullPath = ManifestPath / ManifestAndArchiveName + ".manifest";
 		FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
@@ -853,7 +877,7 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 
 		if (FPaths::FileExists(ManifestFullPath) && FPaths::FileExists(ArchiveFullPath))
 		{
-			TSharedRef<FTranslationDataManager> DataManager = MakeShareable(new FTranslationDataManager(ManifestFullPath, ArchiveFullPath));
+			TSharedRef<FTranslationDataManager> DataManager = MakeShareable(new FTranslationDataManager(ManifestFullPath, NativeArchiveFullPath, ArchiveFullPath));
 
 			if (DataManager->GetLoadedSuccessfully())
 			{
