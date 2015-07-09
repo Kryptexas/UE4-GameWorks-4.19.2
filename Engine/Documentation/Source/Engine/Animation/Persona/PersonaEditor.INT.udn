@@ -2,7 +2,7 @@ Availability:Public
 Title:Persona Animation Editor Reference
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Editor for previewing and editing AnimBlueprints, AnimationSequences and other animation assets.
-Related: Engine/Animation/Persona/MenuBar
+
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
 
