@@ -285,8 +285,18 @@ void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerCo
 	}
 }
 
+bool UKismetSystemLibrary::K2_IsValidTimerHandle(FTimerHandle TimerHandle)
+{
+	return TimerHandle.IsValid();
+}
 
-void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, float Time, bool bLooping)
+FTimerHandle UKismetSystemLibrary::K2_InvalidateTimerHandle(FTimerHandle& TimerHandle)
+{
+	TimerHandle.Invalidate();
+	return TimerHandle;
+}
+
+FTimerHandle UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, float Time, bool bLooping)
 {
 	FName const FunctionFName(*FunctionName);
 
@@ -299,24 +309,25 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 			// FTimerDynamicDelegate expects zero parameters and will choke on execution if it tries
 			// to execute a mismatched function
 			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("SetTimer passed a function (%s) that expects parameters."), *FunctionName);
-			return;
+			return FTimerHandle();
 		}
 	}
 
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, FunctionFName);
-	K2_SetTimerDelegate(Delegate, Time, bLooping);
+	return K2_SetTimerDelegate(Delegate, Time, bLooping);
 }
 
-void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping)
+FTimerHandle UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping)
 {
+	FTimerHandle Handle;
 	if (Delegate.IsBound())
 	{
 		const UWorld* const World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			FTimerManager& TimerManager = World->GetTimerManager();
+			Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
 			TimerManager.SetTimer(Handle, Delegate, Time, bLooping);
 		}
 	}
@@ -326,6 +337,8 @@ void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, f
 			TEXT("SetTimer passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
+
+	return Handle;
 }
 
 void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
@@ -343,9 +356,9 @@ void UKismetSystemLibrary::K2_ClearTimerDelegate(FTimerDynamicDelegate Delegate)
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if (World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			World->GetTimerManager().ClearTimer(Handle);
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			TimerManager.ClearTimer(Handle);
 		}
 	}
 	else
@@ -353,6 +366,18 @@ void UKismetSystemLibrary::K2_ClearTimerDelegate(FTimerDynamicDelegate Delegate)
 		UE_LOG(LogBlueprintUserMessages, Warning, 
 			TEXT("ClearTimer passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
+	}
+}
+
+void UKismetSystemLibrary::K2_ClearTimerHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(Handle);
+		}
 	}
 }
 
@@ -371,9 +396,9 @@ void UKismetSystemLibrary::K2_PauseTimerDelegate(FTimerDynamicDelegate Delegate)
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			World->GetTimerManager().PauseTimer(Handle);
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			TimerManager.PauseTimer(Handle);
 		}
 	}
 	else
@@ -381,6 +406,18 @@ void UKismetSystemLibrary::K2_PauseTimerDelegate(FTimerDynamicDelegate Delegate)
 		UE_LOG(LogBlueprintUserMessages, Warning, 
 			TEXT("PauseTimer passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
+	}
+}
+
+void UKismetSystemLibrary::K2_PauseTimerHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			World->GetTimerManager().PauseTimer(Handle);
+		}
 	}
 }
 
@@ -399,9 +436,9 @@ void UKismetSystemLibrary::K2_UnPauseTimerDelegate(FTimerDynamicDelegate Delegat
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			World->GetTimerManager().UnPauseTimer(Handle);
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			TimerManager.UnPauseTimer(Handle);
 		}
 	}
 	else
@@ -409,6 +446,18 @@ void UKismetSystemLibrary::K2_UnPauseTimerDelegate(FTimerDynamicDelegate Delegat
 		UE_LOG(LogBlueprintUserMessages, Warning,
 			TEXT("UnPauseTimer passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
+	}
+}
+
+void UKismetSystemLibrary::K2_UnPauseTimerHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			World->GetTimerManager().UnPauseTimer(Handle);
+		}
 	}
 }
 
@@ -422,18 +471,15 @@ bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionNam
 
 bool UKismetSystemLibrary::K2_IsTimerActiveDelegate(FTimerDynamicDelegate Delegate)
 {
+	bool bIsActive = false;
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			return World->GetTimerManager().IsTimerActive(Handle);
-		}
-		else
-		{
-			return false;
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			bIsActive = TimerManager.IsTimerActive(Handle);
 		}
 	}
 	else
@@ -441,8 +487,24 @@ bool UKismetSystemLibrary::K2_IsTimerActiveDelegate(FTimerDynamicDelegate Delega
 		UE_LOG(LogBlueprintUserMessages, Warning, 
 			TEXT("IsTimerActive passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
-		return false;
 	}
+
+	return bIsActive;
+}
+
+bool UKismetSystemLibrary::K2_IsTimerActiveHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	bool bIsActive = false;
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			bIsActive = World->GetTimerManager().IsTimerActive(Handle);
+		}
+	}
+
+	return bIsActive;
 }
 
 bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionName)
@@ -455,18 +517,15 @@ bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionNam
 
 bool UKismetSystemLibrary::K2_IsTimerPausedDelegate(FTimerDynamicDelegate Delegate)
 {
+	bool bIsPaused = false;
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			return World->GetTimerManager().IsTimerPaused(Handle);
-		}
-		else
-		{
-			return false;
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			bIsPaused = TimerManager.IsTimerPaused(Handle);
 		}
 	}
 	else
@@ -474,8 +533,23 @@ bool UKismetSystemLibrary::K2_IsTimerPausedDelegate(FTimerDynamicDelegate Delega
 		UE_LOG(LogBlueprintUserMessages, Warning, 
 			TEXT("IsTimerPaused passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
-		return false;
 	}
+	return bIsPaused;
+}
+
+bool UKismetSystemLibrary::K2_IsTimerPausedHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	bool bIsPaused = false;
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			bIsPaused = World->GetTimerManager().IsTimerPaused(Handle);
+		}
+	}
+
+	return bIsPaused;
 }
 
 bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
@@ -488,18 +562,15 @@ bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
 
 bool UKismetSystemLibrary::K2_TimerExistsDelegate(FTimerDynamicDelegate Delegate)
 {
+	bool bTimerExists = false;
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			return World->GetTimerManager().TimerExists(Handle);
-		}
-		else
-		{
-			return false;
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			bTimerExists = TimerManager.TimerExists(Handle);
 		}
 	}
 	else
@@ -507,8 +578,23 @@ bool UKismetSystemLibrary::K2_TimerExistsDelegate(FTimerDynamicDelegate Delegate
 		UE_LOG(LogBlueprintUserMessages, Warning,
 			TEXT("TimerExists passed a bad function (%s) or object (%s)"),
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
-		return false;
 	}
+	return bTimerExists;
+}
+
+bool UKismetSystemLibrary::K2_TimerExistsHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	bool bTimerExists = false;
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			bTimerExists = World->GetTimerManager().TimerExists(Handle);
+		}
+	}
+
+	return bTimerExists;
 }
 
 float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString FunctionName)
@@ -521,18 +607,15 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString Func
 
 float UKismetSystemLibrary::K2_GetTimerElapsedTimeDelegate(FTimerDynamicDelegate Delegate)
 {
+	float ElapsedTime = 0.f;
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			return World->GetTimerManager().GetTimerElapsed(Handle);
-		}
-		else
-		{
-			return false;
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			ElapsedTime = TimerManager.GetTimerElapsed(Handle);
 		}
 	}
 	else
@@ -540,8 +623,23 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTimeDelegate(FTimerDynamicDelegate
 		UE_LOG(LogBlueprintUserMessages, Warning, 
 			TEXT("GetTimerElapsedTime passed a bad function (%s) or object (%s)"), 
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
-		return 0.0f;
 	}
+	return ElapsedTime;
+}
+
+float UKismetSystemLibrary::K2_GetTimerElapsedTimeHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	float ElapsedTime = 0.f;
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			ElapsedTime = World->GetTimerManager().GetTimerElapsed(Handle);
+		}
+	}
+
+	return ElapsedTime;
 }
 
 float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString FunctionName)
@@ -554,18 +652,15 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString Fu
 
 float UKismetSystemLibrary::K2_GetTimerRemainingTimeDelegate(FTimerDynamicDelegate Delegate)
 {
+	float RemainingTime = 0.f;
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if(World)
 		{
-			auto& TimerManager = World->GetTimerManager();
-			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
-			return World->GetTimerManager().GetTimerRemaining(Handle);
-		}
-		else
-		{
-			return false;
+			FTimerManager& TimerManager = World->GetTimerManager();
+			FTimerHandle Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			RemainingTime = TimerManager.GetTimerRemaining(Handle);
 		}
 	}
 	else
@@ -573,8 +668,23 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTimeDelegate(FTimerDynamicDelega
 		UE_LOG(LogBlueprintUserMessages, Warning, 
 			TEXT("GetTimerRemainingTime passed a bad function (%s) or object (%s)"), 
 			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
-		return 0.0f;
 	}
+	return RemainingTime;
+}
+
+float UKismetSystemLibrary::K2_GetTimerRemainingTimeHandle(UObject* WorldContextObject, FTimerHandle Handle)
+{
+	float RemainingTime = 0.f;
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		if (World)
+		{
+			RemainingTime = World->GetTimerManager().GetTimerRemaining(Handle);
+		}
+	}
+
+	return RemainingTime;
 }
 
 void UKismetSystemLibrary::SetIntPropertyByName(UObject* Object, FName PropertyName, int32 Value)
@@ -641,7 +751,7 @@ void UKismetSystemLibrary::SetClassPropertyByName(UObject* Object, FName Propert
 {
 	if (Object && *Value)
 	{
-		auto ClassProp = FindField<UClassProperty>(Object->GetClass(), PropertyName);
+		UClassProperty* ClassProp = FindField<UClassProperty>(Object->GetClass(), PropertyName);
 		if (ClassProp != NULL && Value->IsChildOf(ClassProp->MetaClass)) // check it's the right type
 		{
 			ClassProp->SetObjectPropertyValue_InContainer(Object, *Value);
@@ -677,8 +787,8 @@ void UKismetSystemLibrary::SetAssetPropertyByName(UObject* Object, FName Propert
 {
 	if (Object != NULL)
 	{
-		auto ObjectProp = FindField<UAssetObjectProperty>(Object->GetClass(), PropertyName);
-		auto AssetPtr = (const FAssetPtr*)(&Value);
+		UAssetObjectProperty* ObjectProp = FindField<UAssetObjectProperty>(Object->GetClass(), PropertyName);
+		const FAssetPtr* AssetPtr = (const FAssetPtr*)(&Value);
 		ObjectProp->SetPropertyValue_InContainer(Object, *AssetPtr);
 	}
 }
@@ -687,8 +797,8 @@ void UKismetSystemLibrary::SetAssetClassPropertyByName(UObject* Object, FName Pr
 {
 	if (Object != NULL)
 	{
-		auto ObjectProp = FindField<UAssetClassProperty>(Object->GetClass(), PropertyName);
-		auto AssetPtr = (const FAssetPtr*)(&Value);
+		UAssetClassProperty* ObjectProp = FindField<UAssetClassProperty>(Object->GetClass(), PropertyName);
+		const FAssetPtr* AssetPtr = (const FAssetPtr*)(&Value);
 		ObjectProp->SetPropertyValue_InContainer(Object, *AssetPtr);
 	}
 }
@@ -3085,7 +3195,7 @@ void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, const TAssetPt
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
 		if (LatentManager.FindExistingAction<FLoadAssetAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
 		{
-			auto NewAction = new FLoadAssetAction(Asset.ToStringReference(), OnLoaded, LatentInfo);
+			FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToStringReference(), OnLoaded, LatentInfo);
 			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 		}
 	}
@@ -3105,7 +3215,7 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, const TAs
 
 		virtual void OnLoaded() override
 		{
-			auto LoadedObject = Cast<UClass>(AssetReference.ResolveObject());
+			UClass* LoadedObject = Cast<UClass>(AssetReference.ResolveObject());
 			OnLoadedCallback.ExecuteIfBound(LoadedObject);
 		}
 	};
@@ -3116,7 +3226,7 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, const TAs
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
 		if (LatentManager.FindExistingAction<FLoadAssetClassAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
 		{
-			auto NewAction = new FLoadAssetClassAction(AssetClass.ToStringReference(), OnLoaded, LatentInfo);
+			FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToStringReference(), OnLoaded, LatentInfo);
 			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 		}
 	}

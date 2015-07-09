@@ -2707,8 +2707,49 @@ namespace EEndPlayReason
 
 }
 
-
 DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
+
+// Unique handle that can be used to distinguish timers that have identical delegates.
+USTRUCT(BlueprintType)
+struct FTimerHandle
+{
+	GENERATED_BODY()
+
+	FTimerHandle()
+	: Handle(INDEX_NONE)
+	{
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	void Invalidate()
+	{
+		Handle = INDEX_NONE;
+	}
+
+	void MakeValid();
+
+	bool operator==(const FTimerHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FTimerHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("%d"), Handle);
+	}
+
+private:
+	int32 Handle;
+};
 
 UENUM()
 enum class EVectorQuantization : uint8
