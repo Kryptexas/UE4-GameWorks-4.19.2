@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602167
+﻿INTSourceChangelist:2609228
 Availability:Public
 Title:リギング ツール
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Tools/MayaRiggingTool
@@ -25,8 +25,6 @@ Description:アニメーション＆リギングツールセットに含まれ�
 [/VAR]
 
 [TOC(start:2 end:3)]
-
-## 概要
 
 アニメーション リギング ツールセット (ART) を使用したプロセスの最初のステップは、スケルトンの作成です。ART は、スケルトンがキャラクターのボリュームを満たす、またはキャラクターの見え方を「大まかに描く」ような作成と調整を迅速に行うので、アニメーションをすぐに開始できます。
 
@@ -113,7 +111,7 @@ Description:アニメーション＆リギングツールセットに含まれ�
 
 	![](ART_LoadWindow.png)
 
-1. テンプレートを取り除きたい場合は、取り除きたいテンプレートを選択し、 **[File] から [Remove Selected Template (選択したテンプレートを削除)]** を選びます。
+1. テンプレートを取り除きたい場合は、取り除きたいテンプレートを選択し、 **[File] から [Remove Selected Template]** (選択したテンプレートを削除) を選びます。
 
 	![](ART_RemoveTemplate.png)
 
@@ -261,8 +259,7 @@ Symmetry モードあるいは Aim モードは使いたいけれども、いく
 キャラクターのスキニングは Maya のデフォルト ワークフローです。新規作成した ART ジョイント (またはルートジョイント) と結合したいメッシュを選択し、アニメーション メニュー セットから **[Skin] メニュー  ->  [Smooth Bind (スムースバインド)] -> [Smooth Bind]** を選択します。
 
 [REGION:note]
-![](ART_NormalizeWeights_settings.png)(a:right)Maya 2013では、 **[Skin] メニュー -> [Smooth Bind] -> [Smooth Bind Options]** のデフォルト設定である **Normalize Weights** は **Post** に設定されているため、
-若干いらいらする挙動が生じます。ストレスを減らしたい、もしくは Maya の以前のバージョンで作業したい場合は、オプションを **Interactive** に設定してください。
+![](ART_NormalizeWeights_settings.png)(a:right)Maya 2013では、 **[Skin] メニュー -> [Smooth Bind] -> [Smooth Bind Options]** のデフォルト設定である **Normalize Weights** は **Post** に設定されているため、若干いらいらする挙動が生じます。ストレスを減らしたい、もしくは Maya の以前のバージョンで作業したい場合は、オプションを **Interactive** に設定してください。
 [/REGION]
 
 
@@ -410,7 +407,7 @@ Range of Motion のアニメーションの削除は、コントロール リグ
 
 	![](ART_PublishCharacter_empty.png)
 
-	キャラクターを発行するためのプロジェクトを選択できるようになっています。まだプロジェクトがない場合は、プロジェクト ドロップダウンの左側の [New Project] (新規プロジェクト) ボタンをクリックします。
+	キャラクターを発行するためのプロジェクトを選択できるようになっています。まだプロジェクトがない場合は、プロジェクト ドロップダウンの左側の [New Project (新規プロジェクト)] ボタンをクリックします。
 
 	![](ART_AddNewProject.png)
 
@@ -447,7 +444,7 @@ Range of Motion のアニメーションの削除は、コントロール リグ
 
 エクスポートファイルに参照するアニメーション リグ ファイルが作成されます。場所は以下になります。
 
-/MayaTools/General/ART/Projects/YourProject/AnimRigs
+`/MayaTools/General/ART/Projects/YourProject/AnimRigs`
 [/REGION]
 
 ## キャラクターの追加
@@ -520,7 +517,7 @@ Maya の参照システムは剛健で、希望するだけ変更でき、作業
 #### Joint Mover Proxy Geo 用のカラーパレットのカスタム
 
 ジョイント ムーバー プロキシ ジオメトリは UV 座標化されているので、キャラクター用のカラーパレットのプロトタイプをすぐに作成することができます。PSD は以下に置かれています。
-`/UE4/Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/Icons/ART/jointMover.psd`
+/UE4/Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/Icons/ART/jointMover.psd
 
 PSD では全てのパーツに名前が付けられて色分けされているので、簡単に選んで塗りつぶしができます。
 
