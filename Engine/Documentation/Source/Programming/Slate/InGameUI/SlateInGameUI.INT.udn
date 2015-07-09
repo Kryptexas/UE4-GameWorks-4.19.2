@@ -2,12 +2,11 @@ Availability:Public
 Title: Using Slate In-Game
 Crumbs:%ROOT%, Programming, Programming/Slate
 Description:Using Slate UI widgets for in-game user interfaces.
-Version:4.4
+Version:4.9
 
-## Overview
 
-Slate widgets can be used in-game to create heads up displays (HUDs) or other user interface (UI) elements, such 
-as menus. You will generally create one or more _container_ widgets, each of which may be composed of several 
+Slate widgets can be used in-game to create Heads Up Displays (HUDs) or other User Interface (UI) elements, such 
+as menus. You will generally create one or more container widgets, each of which may be composed of several 
 other types of widgets that are responsible for a particular aspect of the UI. 
 
 <!-- HUD widget w/ menu overlay -->
@@ -37,7 +36,7 @@ In order to display a Slate widget in your game, it must be added to the game's 
 are ordered according to the Z-order specified when adding them, with larger Z-order values appearing on top 
 of smaller Z-orders.
 
-**Accessing the Game Viewport**
+### Accessing the Game Viewport
 
 The game's viewport is an instance of the `GameViewportClient` class. A reference to the current game viewport 
 is accessible via the `GameViewport` member of UEngine, which can be accessed using the `GEngine` global pointer 
@@ -52,7 +51,7 @@ For example:
 or any of their members.
 [/REGION]
 
-**Adding the Widget to the Viewport**
+### Adding the Widget to the Viewport
 
 Slate widgets are added to the viewport by passing a reference - a `TSharedref<SWidget>` to be exact - to the widget 
 to `GameViewportClient::AddViewportWidgetContent()`. This function takes in both a widget and a Z-order, which 
