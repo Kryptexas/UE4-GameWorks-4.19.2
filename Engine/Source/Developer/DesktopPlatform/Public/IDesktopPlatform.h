@@ -163,7 +163,7 @@ public:
 	* @param	OutIdentifier		Identifier which is assigned to the engine
 	* @return true if the directory was added. OutIdentifier will be set to the assigned identifier.
 	*/
-	virtual bool RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier) = 0;
+	virtual bool RegisterEngineInstallation(const FString& RootDir, FString& OutIdentifier) = 0;
 
 	/**
 	* Enumerates all the registered engine installations.
@@ -171,28 +171,28 @@ public:
 	* @param	OutInstallations	Map of identifier/root-directory pairs for all known installations. Identifiers are typically
 	*								version strings for canonical UE4 releases or GUID strings for GitHub releases.
 	*/
-	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
+	virtual void EnumerateEngineInstallations(TMap<FString, FString>& OutInstallations) = 0;
 
 	/**
 	* Enumerates all the registered binary engine installations.
 	*
 	* @param	OutInstallations	Map of identifier/root-directory pairs for all known binary installations.
 	*/
-	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
+	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString>& OutInstallations) = 0;
 
 	/**
 	* Enumerates all the samples installed by the launcher.
 	*
 	* @param	OutInstallations	Array of sample installation paths.
 	*/
-	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) = 0;
+	virtual void EnumerateLauncherSampleInstallations(TArray<FString>& OutInstallations) = 0;
 
 	/**
 	* Enumerates all the sample projects installed by the launcher.
 	*
 	* @param	OutFileNames		Array of sample project filenames.
 	*/
-	virtual void EnumerateLauncherSampleProjects(TArray<FString> &OutFileNames) = 0;
+	virtual void EnumerateLauncherSampleProjects(TArray<FString>& OutFileNames) = 0;
 
 	/**
 	* Returns the identifier for the engine with the given root directory.
@@ -200,7 +200,7 @@ public:
 	* @param	RootDirName			Root directory for the engine.
 	* @param	OutIdentifier		Identifier used to refer to this installation.
 	*/
-	virtual bool GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir) = 0;
+	virtual bool GetEngineRootDirFromIdentifier(const FString& Identifier, FString& OutRootDir) = 0;
 
 	/**
 	* Returns the identifier for the engine with the given root directory.
@@ -208,7 +208,7 @@ public:
 	* @param	RootDirName			Root directory for the engine.
 	* @param	OutIdentifier		Identifier used to refer to this installation.
 	*/
-	virtual bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier) = 0;
+	virtual bool GetEngineIdentifierFromRootDir(const FString& RootDir, FString& OutIdentifier) = 0;
 
 	/**
 	* Gets the identifier for the default engine. This will be the newest installed engine.
@@ -216,7 +216,7 @@ public:
 	* @param	OutIdentifier	String to hold to the default engine's identifier
 	* @return	true if OutIdentifier is valid.
 	*/
-	virtual bool GetDefaultEngineIdentifier(FString &OutIdentifier) = 0;
+	virtual bool GetDefaultEngineIdentifier(FString& OutIdentifier) = 0;
 
 	/**
 	* Compares two identifiers and checks whether the first is preferred to the second.
@@ -225,7 +225,7 @@ public:
 	* @param	OtherIdentifier	Second identifier
 	* @return	true if Identifier is preferred over OtherIdentifier
 	*/
-	virtual bool IsPreferredEngineIdentifier(const FString &Identifier, const FString &OtherIdentifier) = 0;
+	virtual bool IsPreferredEngineIdentifier(const FString& Identifier, const FString& OtherIdentifier) = 0;
 
 	/**
 	* Gets the root directory for the default engine installation.
@@ -233,7 +233,7 @@ public:
 	* @param	OutRootDir	String to hold to the default engine's root directory
 	* @return	true if OutRootDir is valid
 	*/
-	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) = 0;
+	virtual bool GetDefaultEngineRootDir(FString& OutRootDir) = 0;
 
 	/**
 	* Gets the root directory for the engine's saved config files
@@ -249,7 +249,7 @@ public:
 	* @param	Identifier			Engine identifier to check
 	* @return	true if the identifier is for a binary engine release
 	*/
-	virtual bool IsStockEngineRelease(const FString &Identifier) = 0;
+	virtual bool IsStockEngineRelease(const FString& Identifier) = 0;
 
 	/**
 	 * Attempt to get the engine version from the supplied identifier
@@ -265,21 +265,21 @@ public:
 	*
 	* @return	true if the engine contains source.
 	*/
-	virtual bool IsSourceDistribution(const FString &RootDir) = 0;
+	virtual bool IsSourceDistribution(const FString& RootDir) = 0;
 
 	/**
 	* Tests whether an engine installation is a perforce build.
 	*
 	* @return	true if the engine is a perforce build.
 	*/
-	virtual bool IsPerforceBuild(const FString &RootDir) = 0;
+	virtual bool IsPerforceBuild(const FString& RootDir) = 0;
 
 	/**
 	* Tests whether a root directory is a valid Unreal Engine installation
 	*
 	* @return	true if the engine is a valid installation
 	*/
-	virtual bool IsValidRootDirectory(const FString &RootDir) = 0;
+	virtual bool IsValidRootDirectory(const FString& RootDir) = 0;
 
 	/**
 	* Checks that the current file associations are correct.
@@ -302,7 +302,7 @@ public:
 	* @param Identifier			Identifier of the engine to associate it with
 	* @return true if the project was successfully updated
 	*/
-	virtual bool SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier) = 0;
+	virtual bool SetEngineIdentifierForProject(const FString& ProjectFileName, const FString& Identifier) = 0;
 
 	/**
 	* Gets the engine association for a project.
@@ -311,7 +311,7 @@ public:
 	* @param OutIdentifier		Identifier of the engine to associate it with
 	* @return true if OutIdentifier is set to the project's engine association
 	*/
-	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
+	virtual bool GetEngineIdentifierForProject(const FString& ProjectFileName, FString& OutIdentifier) = 0;
 
 	/**
 	* Opens the given project with the appropriate editor. Tries to use the shell association.
@@ -371,14 +371,14 @@ public:
 	 *
 	 * @return true if tool was invoked properly
 	 */
-	virtual bool InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput) = 0;
+	virtual bool InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice& Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput) = 0;
 
 	/** 
 	 * Launches UnrealBuildTool with the specified command line parameters 
 	 * 
 	 * @return process handle to the new UBT process
 	 */
-	virtual FProcHandle InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT = false) = 0;
+	virtual FProcHandle InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice& Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT = false) = 0;
 
 	/**
 	* Runs UnrealBuildTool with the given arguments.
@@ -428,7 +428,7 @@ public:
 	* @param bIncludeNat
 	* @return Path to the folder
 	*/
-	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) = 0;
+	virtual bool EnumerateProjectsKnownByEngine(const FString& Identifier, bool bIncludeNativeProjects, TArray<FString>& OutProjectFileNames) = 0;
 
 	/**
 	* Gets the default folder for creating new projects.
