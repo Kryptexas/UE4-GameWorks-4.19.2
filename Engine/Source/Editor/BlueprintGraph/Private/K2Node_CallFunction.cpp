@@ -836,7 +836,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			// For static methods, wire up the self to the CDO of the class if it's not us
 			if (!bIsFunctionCompatibleWithSelf)
 			{
-				auto AuthoritativeClass = FunctionOwnerClass->GetAuthoritativeClass();
+				UClass* AuthoritativeClass = FunctionOwnerClass->GetAuthoritativeClass();
 				SelfPin->DefaultObject = AuthoritativeClass->GetDefaultObject();
 			}
 
@@ -845,8 +845,16 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 		}
 		else
 		{
-			// Hide the self pin if the function is compatible with the blueprint class and pure (the !bIsConstFunc portion should be going away soon too hopefully)
-			SelfPin->bHidden = bIsFunctionCompatibleWithSelf && (bIsPureFunc && !bIsConstFunc);
+			if (Function->GetBoolMetaData(FBlueprintMetadata::MD_HideSelfPin))
+			{
+				SelfPin->bHidden = true;
+				SelfPin->bNotConnectable = true;
+			}
+			else
+			{
+				// Hide the self pin if the function is compatible with the blueprint class and pure (the !bIsConstFunc portion should be going away soon too hopefully)
+				SelfPin->bHidden = (bIsFunctionCompatibleWithSelf && bIsPureFunc && !bIsConstFunc);
+			}
 		}
 	}
 

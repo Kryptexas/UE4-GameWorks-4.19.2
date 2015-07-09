@@ -104,6 +104,9 @@ public:
 	/** UPROPERTY cannot be modified by other blueprints */
 	static const FName MD_Private;
 
+	/** If true, the self pin should not be shown or connectable regardless of purity, const, etc. similar to InternalUseParam */
+	static const FName MD_HideSelfPin;
+
 	/** If true, the specified UObject parameter will default to "self" if nothing is connected */
 	static const FName MD_DefaultToSelf;
 
