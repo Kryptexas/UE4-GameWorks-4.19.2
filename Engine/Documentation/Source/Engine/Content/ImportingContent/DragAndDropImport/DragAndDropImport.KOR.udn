@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2608256
+﻿INTSourceChangelist:2611656
 Availability:Docs
 Title:드래그 앤 드롭 임포트
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:콘텐츠 브라우저로 파일을 끌어놓아 콘텐츠를 임포트하는 법을 배워봅니다.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
 
@@ -49,7 +53,7 @@ Version: 4.8
 
 1.	**OK** 를 클릭하여 **T_Rock_04_n.TGA** 노멀 맵의 세팅을 수락합니다 (위 그림).
 
-[REGION:warning]
+	[REGION:warning]
 	UE4 는 [지원되는](Engine/Content/Types/Textures/Importing "지원되는 이미지 관련 상세 정보는 여기를 클릭하세요.") 이미지 파일을 뱃치 임포트합니다.
 	
 	다음 팝업 메시지가 보인다면:
@@ -61,9 +65,13 @@ Version: 4.8
 	또한 다음 팝업 메시지가 보이는 경우:
 	
 	![](nonpoweoftwowarning.png)
-
+	
 	이상한 크기의 이미지는 스트리밍 또는 밉맵 가능하지 않다고 알려줍니다.
-[/REGION]
+	[/REGION]
+
+1.	Unsaved assets are marked with an asterisk (pictured below).
+
+	![](UnsavedAssets.png)
 
 1.	**모두 저장** 버튼을 눌러 임포트된 메시를 저장합니다.
 
@@ -73,9 +81,13 @@ Version: 4.8
 
 	![](SaveSelectedButton_UI.png)
 
+1.	UE4 는 저장된 애셋에서 별표를 제거합니다 (아래 그림).
+
+	![](SavedAssets.png)
+
 ## 임포트된 애셋 확인
 
-UE4 프로젝트에 애셋이 제대로 임포트되었나 확인하는 습관을 들이는 것이 좋습니다.
+하드 디스크에 ** *.uasset ** 파일이 제대로 임포트되었나 확인하는 습관을 들이는 것이 좋습니다.
 
 1.	에디터 안에서 **Content** 폴더에 **우클릭** 하여 **폴더 옵션** 대화창을 엽니다 (아래 그림).
 

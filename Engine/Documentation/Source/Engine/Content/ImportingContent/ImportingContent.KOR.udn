@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2611656
 Availability:Docs
 Title:콘텐츠 임포트 - 비법
 Crumbs:%ROOT%, Engine, Engine/Content
@@ -7,6 +7,8 @@ SkillLevel: Beginner
 Version: 4.8
 
 개발자는 여러가지 방법으로 메시, 임포트, 기타 애셋을 언리얼 엔진 4 프로젝트에 임포트할 수 있습니다. 이 글은 UE4 에 콘텐츠를 임포트하는 데 자주 쓰이는 방법에 대해 설명하고, 여기에는 콘텐츠 브라우저의 임포트 기능 사용법, 하드 디스크의 파일을 콘텐츠 브라우저로 끌어놓는 방법, 외부 프로그램에서 프로젝트 디렉토리에 바로 파일을 저장하는 방법이 포함됩니다.
+
+_(아래) 그림을 클릭하면 콘텐츠 브라우저가 어떤 모습인지 파악할 수 있습니다._
 
 [REGION:lightbox]
 	[![](Content_Browser.png)(w:925)](Content_Browser.png)
@@ -22,4 +24,4 @@ UE4 프로젝트에 콘텐츠를 임포트하는 데 관련된 상세 내용은 
 | [](Engine/Content/ImportingContent/DragAndDropImport) | %Engine/Content/ImportingContent/DragAndDropImport:description% |
 | [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
 | [](Engine/Content/ImportingContent/ImportingMeshes) | %Engine/Content/ImportingContent/ImportingMeshes:description% |
-| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% |
+| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% || [](Engine/Content/ImportingContent/ImportingAudio) | %Engine/Content/ImportingContent/ImportingAudio:description% |

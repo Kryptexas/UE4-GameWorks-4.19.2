@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2573954
+﻿INTSourceChangelist:2604022
 Availability:Public
-Title: 언리얼 에디터 매뉴얼
+Title: 엔진 기능
 Crumbs: %ROOT%
-Description:언리얼 엔진으로 게임을 만드는 데 대한 안내서 전집입니다.
+Description:언리얼 엔진을 이루는 툴과 시스템 사용법 안내서 전집입니다.
 Navigation:topic
 
 [VAR:Params]
@@ -74,23 +74,18 @@ engine
 
 ## 주제별 탐색
 
-[REGION:topics fourth]
-%Engine/Basics/Projects:topiccompact%
-%Engine/UI:topiccompact%
-%Engine/Actors:topiccompact%
-%Engine/Components:topiccompact%
-%Engine/Content:topiccompact%
-%Engine/Blueprints:topiccompact%
+[REGION:topics third]
 %Engine/Rendering:topiccompact%
-%Engine/Animation:topiccompact%
 %Engine/UMG:topiccompact%
+%Engine/Animation:topiccompact%
+%Engine/Audio:topiccompact%
 %Engine/AI/BehaviorTrees:topiccompact%
+<!--%Engine/Paper2D:topiccompact%-->
+%Engine/Physics:topiccompact%
+%Engine/OpenWorldTools:topiccompact%
 %Engine/Landscape:topiccompact%
 %Engine/Foliage:topiccompact%
-%Engine/OpenWorldTools:topiccompact%
 %Engine/LevelStreaming:topiccompact%
-%Engine/Audio:topiccompact%
-%Engine/Physics:topiccompact%
 %Engine/Matinee:topiccompact%
 %Engine/MediaFramework:topiccompact%
 %Engine/Performance:topiccompact%
@@ -512,4 +507,9 @@ engine
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]
+
+
+
+
+
 

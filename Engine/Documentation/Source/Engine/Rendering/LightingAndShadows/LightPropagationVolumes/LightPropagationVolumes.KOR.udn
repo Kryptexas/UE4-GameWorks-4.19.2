@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2522250
+﻿INTSourceChangelist:2602324
 Availability:Public
 Title:Light Propagation Volumes
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -50,7 +50,7 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 
 [TOC]
 
-## 개요
+
 
 [REGION:fullwidth]
 ![](lpv_scene.png)
@@ -212,3 +212,6 @@ Light Propagation Volume (라이트 전파 볼륨)은 개발중인 기능으로,
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
 -->
+
+
+

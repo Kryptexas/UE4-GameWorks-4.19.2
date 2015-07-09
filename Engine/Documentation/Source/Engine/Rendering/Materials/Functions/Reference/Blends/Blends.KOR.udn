@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2526990
+﻿INTSourceChangelist:2601129
 Availability: Public
 title:블렌드
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Blends, 블렌드 카테고리 아래 나열되어 있는 머티리�
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 Blends 는 텍스처의 색 정보에 수학적 연산을 하여 특정한 방식으로 다른 텍스처와 블렌딩할 수 있도록 해 주는 함수 유형입니다.
 

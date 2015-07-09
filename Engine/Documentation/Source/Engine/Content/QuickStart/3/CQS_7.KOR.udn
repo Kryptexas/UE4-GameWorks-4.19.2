@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604029
+﻿INTSourceChangelist:2610008
 Availability: Public
 Title:3 - 머티리얼 편집
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
@@ -27,7 +27,7 @@ Version: 4.8
 이제 머티리얼도 새로 만들고 **머티리얼 에디터** 도 열려있을 것입니다 (아래 그림).
 
 [REGION:lightbox]
-	[![](MaterialEditor.png)(w:750)](MaterialEditor.png)
+	[![](MaterialEditor.png)(w:900)](MaterialEditor.png)
 [/REGION]
 
 머티리얼의 색, 광택, 투명도, 그 외 많은 것들을 [머티리얼 에디터](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") 에서 정의할 수 있습니다. 이제 아까 만든 **'Rock' 머티리얼** 을 편집할 준비가 되었습니다.

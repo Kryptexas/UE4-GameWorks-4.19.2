@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2108384
+﻿INTSourceChangelist:2602324
 Availability: Public
 Title:라이트매스 기본
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -47,9 +47,7 @@ Description:Lightmass, 라이트매스에 대한 하이 레벨 소개서입니�
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-[TOC(start:2)]
-
-## 개요
+[TOC(start:2)
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/Lightmass#LightMass_002]
 

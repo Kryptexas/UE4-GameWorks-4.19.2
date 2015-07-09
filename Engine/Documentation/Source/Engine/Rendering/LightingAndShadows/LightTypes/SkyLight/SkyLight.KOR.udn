@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2319288
+﻿INTSourceChangelist:2602348
 Availability: Public
 Title:스카이 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -49,7 +49,7 @@ Description:스카이 라이트 기본입니다.
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 [EXCERPT:SL001]
 **스카이 라이트** 는 레벨의 먼 부분 (`SkyDistanceThreshold` 보다 멀리 있는 모든 것)을 캡처한 다음, 그 부분을 씬에 라이트로 적용합니다. 즉 하늘이 대기로부터 나오든, 스카이박스 위에 구름 레이어가 있든, 원거리에 산악이 있든, 하늘의 외형과 그 라이팅 / 리플렉션이 일치한다는 뜻입니다. 사용할 큐브맵을 수동으로 지정할 수도 있습니다.
 

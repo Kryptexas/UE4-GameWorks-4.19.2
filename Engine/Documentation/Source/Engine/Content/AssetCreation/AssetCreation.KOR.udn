@@ -1,7 +1,6 @@
-﻿INTSourceChangelist:2033300
-Availability:Public
+﻿ㅍAvailability:Public
 Title: 애셋 생성
-Crumbs:%ROOT%, Engine, Engine/UI
+Crumbs:%ROOT%, Engine, Engine/Content
 Description:언리얼 에디터 내부든 외부든, 여러가지 애셋이 생성되는 곳에 대한 설명과 아울러, FBX 파이프라인 문서 링크가 포함된 문서입니다.
 
 [VAR:Topic]

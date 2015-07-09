@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2608841
+﻿INTSourceChangelist:2610008
 Availability:Docs
 Title:우클릭 임포트
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:콘텐츠 브라우저 안에서 우클릭하여 콘텐츠를 추가하는 법을 배워봅니다.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
 
@@ -70,7 +74,7 @@ Version: 4.8
 
 1.	**OK** 를 클릭하여 **T_Rock_04_n.TGA** 노멀 맵의 세팅을 수락합니다 (위 그림).
 
-[REGION:warning]
+	[REGION:warning]
 	UE4 는 [지원](Engine/Content/Types/Textures/Importing "지원되는 이미지에 대해 자세히 알아보시려면 클릭") 되는 이미지 파일을 뱃치 임포트합니다.
 	
 	다음 팝업 메시지가 보이면:
@@ -82,9 +86,13 @@ Version: 4.8
 	또한, 다음 팝업 메시지가 보이면:
 	
 	![](nonpoweoftwowarning.png)
-
+	
 	이상한 크기의 이미지는 스트리밍 또는 밉맵 가능하지 않다고 알려줍니다.
-[/REGION]
+	[/REGION]
+
+1.	저장되지 않은 애셋에는 별표가 붙습니다 (아래 그림).
+
+	![](UnsavedAssets.png)
 
 1.	**모두 저장** 버튼을 클릭하여 임포트된 메시를 저장합니다.
 
@@ -94,9 +102,13 @@ Version: 4.8
 
 	![](SaveSelectedButton_UI.png)
 
+1.	애셋이 저장되면 별표가 제거됩니다 (아래 그림).
+
+	![](SavedAssets.png)
+
 ## 임포트된 애셋 확인
 
-UE4 프로젝트에 애셋이 제대로 임포트되었는지 확인하는 습관을 들이면 좋습니다.
+하드 디스크에 ** *.uasset ** 파일이 제대로 임포트되었는지 확인하는 습관을 들이면 좋습니다.
 
 1.	에디터 안에서 **Content** 폴더에 **우클릭** 하여 **폴더 옵션** 대화창을 엽니다 (아래 그림).
 

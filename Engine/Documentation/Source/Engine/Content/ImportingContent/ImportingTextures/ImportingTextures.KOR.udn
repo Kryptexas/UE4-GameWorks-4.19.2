@@ -1,17 +1,103 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2613047
 Availability:Docs
 Title:텍스처 임포트
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:외부 프로그램에서 텍스처를 임포트하는 법을 배워봅니다.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
 
-설명 부분
+[REGION:note]
+시작하기 전, 사용할 수 있는 이미지 편집 프로그램이 있는지 확인하세요. 여기서는 **포토샵** 을 사용하고 있기는 하지만, 저장 기능이 있는 이미지 편집 프로그램이면 무엇이든 언리얼 엔진으로 텍스처를 임포트할 수 있습니다.
+[/REGION]
+
+콘텐츠 제작자는 외부 이미지 편집 프로그램에서 언리얼 엔진으로 텍스처를 임포트할 수 있습니다.
 
 ## 목적
 
-글의 목적
+이 가이드는 외부 이미지 편집 프로그램에서 텍스처를 임포트하는 법을 보여드리는 데 초점을 맞추고 있습니다.
 
-#목표
+## 목표
 
-글의 목표
+이 튜토리얼을 떼면 얻을 수 있는 것은 다음과 같습니다:
+
+*	외부 이미지 편집 프로그램에서 언리얼 에디터로 텍스처 임포트하는 방법
+*	프로젝트 폴더에 애셋이 제대로 임포트되었는지 확인하는 방법
+
+## 이미지 편집 프로그램에서 임포트
+
+1.	이미지 편집 프로그램에서 **File** - **Save As** 를 선택합니다. 
+
+	![](photoshop_export1.png)
+	
+1.	대화창에서 UE4 Project 디렉토리와 **Content** 폴더 (1) 를 찾은 다음, 이름과 지원되는 포맷을 입력 (2) 하고, **Save** 저장합니다 (3).
+
+	![](photoshop_export2.png)
+
+1.	하드디스크에서, 프로젝트의 **Content** 폴더로 가 보면 방금 추가한 텍스처를 찾을 수 있습니다.
+
+	![](photoshop_export6.png)(w:800)	
+
+1.	언리얼 에디터가 열려있다면 **Processing outstanding content changes** (미해결 콘텐츠 변경사항 처리중) 이라는 메시지가 뜹니다.
+
+	![](photoshop_export4.png)
+
+1.	언리얼 에디터가 콘텐츠를 임포트한 이후에는, 에디터에서 텍스처를 사용할 수 있습니다.
+
+	![](photoshop_export5.png)(w:900)
+
+	[REGION:warning]
+	UE4 는 [지원되는 이미지](Engine/Content/Types/Textures/Importing "클릭하면 지원되는 이미지 관련 상세 정보를 확인합니다.") 의 뱃치 임포트를 지원합니다.
+	
+	다음 팝업 메시지가 보인다면:
+	
+	![](TextureImportMessage.png)
+	
+	미지원 이미지 파일 임포트를 중단한 것입니다.
+	
+	또한 다음 팝업 메시지가 보인다면:
+	
+	![](nonpoweoftwowarning.png)
+	
+	비표준 크기의 이미지는 스트리밍 또는 밉맵 지원되지 않는다는 것입니다.
+	[/REGION]
+
+1.	저장되지 않은 애셋은 별표가 붙습니다 (아래 그림).
+
+	![](UnsavedAssets.png)
+
+1.	**모두 저장** 버튼을 **클릭** 하여 임포트된 텍스처를 저장합니다.
+
+	![](SaveAllButton_UI.png)
+
+1.	**콘텐츠 저장** 대화창이 뜹니다 (아래 그림). **선택 저장** 을 클릭하여 임포트된 애셋을 저장합니다.
+
+	![](SaveSelectedButton_UI.png)
+
+1.	저장된 애셋에서 별표가 없어집니다 (아래 그림).
+
+	![](SavedAssets.png)
+
+## 임포트된 애셋 확인
+
+하드 디스크에 ** *.uasset ** 파일이 제대로 임포트되었는지 확인하는 습관을 들이는 것이 좋습니다.
+
+1.	에디터 안에서 **콘텐츠** 폴더에 **우클릭** 하여 **폴더 옵션** 대화창을 엽니다 (아래 그림).
+
+	![](FolderDialogBox_UI.png)
+
+1.	**폴더 옵션** 아래 **탐색기에서 표시** 를 클릭합니다 (아래 그림).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	탐색기가 열렸으면 프로젝트에 알맞은 ** *.uasset ** 파일이 생성되었는지 확인합니다 (아래 그림).
+
+	![](ImportedAssets_Explorer.png)
+
+이 튜토리얼을 마칩니다. 배운 내용은 다음과 같습니다:
+
+&#x2713;	외부 이미지 편집 프로그램에서 언리얼 에디터로 텍스처 임포트하는 방법
+&#x2713;	프로젝트 폴더에 애셋이 제대로 임포트되었는지 확인하는 방법

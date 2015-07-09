@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611860
+﻿INTSourceChangelist:2613050
 Availability:Docs
 Title:오디오 임포트
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
@@ -6,7 +6,7 @@ Description:언리얼 에디터에 오디오 콘텐츠를 임포트하는 법을
 prereq:Engine/Basics/Projects/Browser
 Related: GettingStarted
 Related: GettingStarted/HowTo
-Related: Engine/Audio/WAV
+Related: Engine/Audio
 Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
@@ -25,7 +25,7 @@ Version: 4.8
 
 *	콘텐츠 브라우저의 **임포트** 기능 위치
 *	단일 오디오 파일 임포트 방법
-*	멀티채널 오디오 익스텐션 테이블 사용법
+*	멀티채널 오디오 익스텐션 참조표 확인 방법
 *	멀티 채널 오디오 임포트 방법
 *	애셋이 프로젝트 폴더에 제대로 임포트되었는지 확인하는 방법
 
@@ -39,12 +39,48 @@ Version: 4.8
 
 ## 싱글 오디오 파일 임포트
 
+1.	에디터 안에서 **임포트** 버튼을 클릭합니다 (아래 그림).
 
+	![](ImportButton_UI.png)
 
-## 멀티 채널 오디오 익스텐션 테이블 사용
+1.	** *.WAV ** 파일을 찾아 선택합니다 (아래 그림).
+
+	![](ImportDialogBox.png)
+
+1.	**열기** 를 클릭하여 프로젝트에 오디오 파일 임포트를 시작합니다 (위 그림)
+
+1.	임포트 진행상황 막대가 뜹니다 (아래 그림).
+
+	![](ImportingProgressBar.png)
+
+1.	오디오 파일 임포트에 성공하면 **콘텐츠 브라우저** 안에 사운드 애셋이 나타납니다 (아래 그림).
+
+	![](UnsavedSoundAsset.png)
+
+1.	저장되지 않은 애셋에는 별표가 표시됩니다 (위 그림).
+
+1.	**모두 저장** 버튼을 눌러 임포트된 사운드 애셋을 저장합니다.
+
+	![](SaveAllButton.png)
+
+1.	**콘텐츠 저장** 대화창이 뜹니다 (아래 그림). **선택 저장** 을 클릭하여 임포트된 애셋을 저장합니다.
+
+	![](SaveContentDialogBox.png)
+
+1.	애셋이 저장되면 별표가 제거됩니다 (아래 그림).
+
+	![](SavedSoundAsset.png)
+
+1.	**콘텐츠 브라우저** 안에서 저장된 애셋 위에 커서를 올리면 사운드 애셋 프로퍼티 요약이 표시됩니다 (아래 그림).
+
+	![](HoverOverSingle.png)
+
+## 멀티 채널 오디오 익스텐션 참조표
+
+멀티 채널 오디오 임포트 전, 다음 표를 참고해서 ** *.WAV ** 파일 이름을 지어줘야 합니다.
 
 [REGION:raw]
-|                   | Extension | 4.0         | 5.1         | 6.1         | 7.1         |  
+|                   | 익스텐션 | 4.0         | 5.1         | 6.1         | 7.1         |  
 | ---               | ---       | ---         | ---         | ---         | ---         | 
 | **FrontLeft**     | _fl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
 | **FrontRight**    | _fr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   | 
@@ -56,9 +92,57 @@ Version: 4.8
 | **BackRight**     | _br       |             |             |             |  &#x2713;   |  
 [/REGION]
 
+[REGION:note]
+다음은 에디터에 4.0 서라운드 사운드 애셋을 임포트하는 구체적인 용례입니다. 샘플 레이트, 오디오 사양, UE4 에 오디오 임포트시 실전 사례 관련 상세 정보는 [](Engine/Audio) 문서를 참고하세요.
+[/REGION]
+
+1.	멀티 채널 사운드 애셋을 익스포트한 후 오디오 파일 이름이 위의 멀티 채널 오디오 익스텐션 참조표대로 되어있는지 확인합니다 (아래 그림 예제에서 4.0).
+
+	![](VerifyMultiChannelNames.png)
+
+	*5.1, 6.1, 7.1 채널 서라운드 사운드에 필요한 익스텐션은 멀티 채널 오디오 익스텐션 참조표를 확인하세요.*
+
 ## 멀티 채널 오디오 임포트
 
+[REGION:note]
+멀티 채널 사운드 애셋을 익스포트하면 위의 익스텐션 작명규칙을 적용하여 각 채널별로 모노 ** .WAV ** 파일이 생성됩니다.
+[/REGION]
 
+1.	에디터 안에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+
+	![](ImportButtonUI_Multi.png)
+
+1.	** *.WAV ** 파일을 찾아 선택합니다 (아래 그림).
+
+	![](ImportDialogBox_Multi.png)
+
+1.	**열기** 를 클릭하여 프로젝트에 오디오 파일 임포트를 시작합니다 (위 그림).
+
+1.	임포트 진행상황 막대가 뜹니다 (아래 그림).
+
+	![](ImportingProgressBar_Multi.png)
+
+1.	오디오 파일 임포트에 성공하면 ("Surround" 라는 이름의) 4 채널 사운드 애셋이 **콘텐츠 브라우저** 안에 표시됩니다 (아래 그림).
+
+	![](UnsavedSurroundSoundAsset.png)
+
+1.	저장되지 않은 애셋에는 별표가 붙습니다 (위 그림).
+
+1.	**모두 저장** 버튼을 눌러 임포트된 사운드 애셋을 저장합니다.
+
+	![](SaveAllButtonSurround.png)
+
+1.	**콘텐츠 저장** 대화창이 뜹니다 (아래 그림). **선택 저장** 을 선택하여 임포트된 애셋을 저장합니다.
+
+	![](SaveContentDialogSurround.png)
+
+1.	애셋이 저장되면 별표가 없어집니다 (아래 그림).
+
+	![](SavedSurroundSoundAsset.png)
+
+1.	**콘텐츠 브라우저** 에서 저장된 애셋 위에 커서를 올리면 사운드 애셋의 프로퍼티 요약 정보가 표시됩니다 (아래 그림).
+
+	![](HoverOverSurround.png)
 
 ## 임포트된 애셋 확인
 
@@ -80,6 +164,6 @@ Version: 4.8
 
 &#x2713;	콘텐츠 브라우저의 **임포트** 기능 위치
 &#x2713;	단일 오디오 파일 임포트 방법
-&#x2713;	멀티채널 오디오 익스텐션 테이블 사용법
+&#x2713;	멀티채널 오디오 익스텐션 참조표 확인 방법
 &#x2713;	멀티 채널 오디오 임포트 방법
 &#x2713;	애셋이 프로젝트 폴더에 제대로 임포트되었는지 확인하는 방법

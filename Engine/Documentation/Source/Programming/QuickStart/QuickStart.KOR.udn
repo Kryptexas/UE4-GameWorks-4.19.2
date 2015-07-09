@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2601353
+﻿INTSourceChangelist:2610008
 Availability: Public
 Title:프로그래밍 퀵스타트
 Crumbs:%ROOT%, Programming
 Description:첫 코드 프로젝트를 만들고, C++ 클래스를 새로 추가해 봅니다.
+prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.8
 

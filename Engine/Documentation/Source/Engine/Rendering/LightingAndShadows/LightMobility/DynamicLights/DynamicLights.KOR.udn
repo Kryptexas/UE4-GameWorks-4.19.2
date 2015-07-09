@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2111820
+﻿INTSourceChangelist:2602324
 Availability:Public
 Title:무버블 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
@@ -49,7 +49,7 @@ Description:무버블, 이동가능한 라이트에 대한 일반적인 정보�
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 [EXCERPT:Movable001]
 

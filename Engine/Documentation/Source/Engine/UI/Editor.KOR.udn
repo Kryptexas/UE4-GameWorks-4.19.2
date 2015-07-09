@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2466035
+﻿INTSourceChangelist:2604022
 Availability:Public
 Title: 언리얼 에디터 인터페이스
 Crumbs:%ROOT%, Engine
-Description:언리얼 에디터 유저 인터페이스의 다양한 부분에 대한 분석과 아울러, 인터페이스 작동에 있어서의 핵심 원칙입니다.
+Description:언리얼 에디터 유저 인터페이스에 대한 분석과 아울러, 에디터 작동방식에 있어서의 핵심 원리입니다.
 Navigation:topic
 
 [EXCERPT:LevelEditor]
@@ -33,7 +33,7 @@ Navigation:topic
 	![](%ROOT%/editor_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	Editor Reference
+	%Engine/UI:title%
 [/PARAM]
 [PARAM:description]
 	%Engine/UI:description%
@@ -151,7 +151,7 @@ Navigation:topic
 		[REGION:simplegallery]
 		[OBJECT:VideoLink]
 			[PARAMLITERAL:videoid]
-			QMsFxzYzFJ8
+			w4XlBKeE46E
 			[/PARAMLITERAL]
 			[PARAMLITERAL:playlistid]
 			PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
@@ -169,3 +169,6 @@ Navigation:topic
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:LevelEditor]
+
+
+

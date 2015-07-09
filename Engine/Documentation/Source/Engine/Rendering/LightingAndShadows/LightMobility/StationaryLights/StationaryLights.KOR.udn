@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521702
+﻿INTSourceChangelist:2602324
 Availability:Public
 Title:스테이셔너리 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
@@ -49,7 +49,7 @@ Description:실행시간에 색이나 밝기는 바꿀 수 있어도 이동 및 
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 [INCLUDE:Resources/ContentExamples\Lighting\2_2#StationaryLights01]
 

@@ -1,18 +1,77 @@
-﻿INTSourceChangelist:2604829
+﻿INTSourceChangelist:2610008
 Availability:Docs
 Title:메시 임포트
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:외부 프로그램에서 메시를 임포트하는 법을 배워봅니다.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
 SkillLevel: Beginner
 Version: 4.8
 
-This is where the description is going.
+[REGION:note]
+시작하기 전에: 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 여기서는 **3DS MAX** 와 **Maya** 를 사용합니다만, 저장 기능이 있는 3D 모델링 프로그램이면 무엇이든 언리얼 엔진에 메시를 임포트할 수 있습니다.
+[/REGION]
 
-## Goal
+콘텐츠 제작자는 외부 3D 모델링 어플리케이션에서 언리얼 엔진으로 메시를 임포트할 수 있습니다.
 
-This is where the goal is going.
+## 목적
 
-## Objective
+이 가이드에서는 외부 3D 모델링 프로그램에서 메시를 임포트하는 법을 보여드리는 데 초점을 맞춥니다.
 
-This is where the objective is going.
+## 목표
+
+이 튜토리얼에서 배울 수 있는 내용은 다음과 같습니다:
+
+*	외부 3D 모델링 프로그램에서 언리얼 에디터로 메시를 임포트하는 방법
+*	프로젝트 폴더에 애셋이 제대로 임포트되었는지 확인하는 방법
+
+## 3D 모델링 프로그램에서 임포트
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+## 임포트된 애셋 확인
+
+하드 디스크에 ** *.uasset ** 파일이 제대로 임포트되었는지 확인하는 습관을 들이는 것이 좋습니다.
+
+1.	에디터에서 **콘텐츠** 폴더에 **우클릭** 하여 **폴더 옵션** 대화창을 엽니다 (아래 그림).
+
+	![](FolderDialogBox_UI.png)
+
+1.	**폴더 옵션** 아래 **탐색기에서 표시** 를 클릭합니다 (아래 그림).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	탐색기가 열렸으면, 프로젝트에 알맞은 ** *.uasset ** 파일이 생성되어 있는지 확인합니다 (아래 그림).
 

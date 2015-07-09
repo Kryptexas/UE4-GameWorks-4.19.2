@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521599
+﻿INTSourceChangelist:2602324
 Availability:Public
 Title: 라이트매스 글로벌 일루미네이션
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -31,7 +31,7 @@ Description:Lightmass, 라이트매스의 모든 기능과 세팅에 대한 일�
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 
 [EXCERPT:LightMass_002]
 Lightmass (라이트매스)는, 에리어 섀도잉(area shadowing, 영역 그림자)과 디퓨즈 인터리플렉션(diffuse interreflection, 확산 상호반사)같은 복잡한 빛 상호작용으로 라이트맵을 만들어 냅니다. 모빌리티가 스테이셔너리 및 스태틱인 라이트의 라이팅 기여 부분을 미리계산하는 데 사용됩니다.

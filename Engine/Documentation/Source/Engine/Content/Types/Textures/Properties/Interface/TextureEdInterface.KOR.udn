@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2557570
+﻿INTSourceChangelist:2602682
 Availability: Public
 Title:텍스처 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
@@ -46,9 +46,6 @@ Description:텍스처 에디터 UI 에 대한 설명입니다.
 
 
 [TOC(end:2)]
-
-
-## 개요
 
 [EXCERPT:Intro]
 **텍스처 프로퍼티 에디터** 에서는 텍스처 애셋을 미리보기 그 프로퍼티를 편집할 수 있습니다. 여기서 색을 조절하고 압축과 LOD 세팅을 변경할 수도 있습니다.
