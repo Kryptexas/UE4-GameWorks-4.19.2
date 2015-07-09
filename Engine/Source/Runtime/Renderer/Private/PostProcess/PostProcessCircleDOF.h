@@ -92,3 +92,4 @@ private:
 // @return in mm, assuming this sensor: APS-C 24.576 mm
 float ComputeFocalLengthFromFov(const FSceneView& View);
 
+FVector4 CircleDofCoc(const FSceneView& View);

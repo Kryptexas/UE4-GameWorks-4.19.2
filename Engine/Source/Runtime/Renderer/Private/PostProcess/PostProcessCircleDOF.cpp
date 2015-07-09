@@ -31,12 +31,12 @@ float ComputeFocalLengthFromFov(const FSceneView& View)
 
 // Convert f-stop and focal distance into projected size in half resolution pixels.
 // Setup depth based blur.
-static FVector4 CircleDofCoc(const FRenderingCompositePassContext& Context)
+FVector4 CircleDofCoc(const FSceneView& View)
 {
-	float FocalLengthInMM = ComputeFocalLengthFromFov(Context.View);
+	float FocalLengthInMM = ComputeFocalLengthFromFov(View);
 	 
 	// Convert focal distance in world position to mm (from cm to mm)
-	float FocalDistanceInMM = Context.View.FinalPostProcessSettings.DepthOfFieldFocalDistance * 10.0f;
+	float FocalDistanceInMM = View.FinalPostProcessSettings.DepthOfFieldFocalDistance * 10.0f;
 
 	// Convert f-stop, focal length, and focal distance to
 	// projected circle of confusion size at infinity in mm.
@@ -46,11 +46,11 @@ static FVector4 CircleDofCoc(const FRenderingCompositePassContext& Context)
 	//   f = focal length
 	//   d = focal distance
 	//   n = fstop (where n is the "n" in "f/n")
-	float Radius = FMath::Square(FocalLengthInMM) / (Context.View.FinalPostProcessSettings.DepthOfFieldFstop * (FocalDistanceInMM - FocalLengthInMM));
+	float Radius = FMath::Square(FocalLengthInMM) / (View.FinalPostProcessSettings.DepthOfFieldFstop * (FocalDistanceInMM - FocalLengthInMM));
 
 	// Scale so that APS-C 24.576 mm = full frame.
 	// Convert mm to pixels.
-	float Width = (float)Context.View.ViewRect.Width();
+	float Width = (float)View.ViewRect.Width();
 	Radius = Radius * Width * (1.0f/24.576f);
 
 	// Convert diameter to radius at half resolution (algorithm radius is at half resolution).
@@ -69,8 +69,8 @@ static FVector4 CircleDofCoc(const FRenderingCompositePassContext& Context)
 	// Need to convert to cm here.
 	return FVector4(
 		Radius, 
-		1.0f/(Context.View.FinalPostProcessSettings.DepthOfFieldDepthBlurAmount * 100000.0),
-		Context.View.FinalPostProcessSettings.DepthOfFieldDepthBlurRadius * Width / 1920.0f,
+		1.0f/(View.FinalPostProcessSettings.DepthOfFieldDepthBlurAmount * 100000.0),
+		View.FinalPostProcessSettings.DepthOfFieldDepthBlurRadius * Width / 1920.0f,
 		Width / 1920.0f);
 }
 
@@ -136,7 +136,7 @@ public:
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context));
+		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context.View));
 	}
 };
 
@@ -324,7 +324,7 @@ public:
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context));
+		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context.View));
 	}
 };
 
@@ -544,7 +544,7 @@ public:
 		TemporalRandom2(&RandomOffsetValue, Context.View.Family->FrameNumber);
 		SetShaderValue(Context.RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context));
+		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context.View));
 	}
 };
 
@@ -735,7 +735,7 @@ public:
 		TemporalRandom2(&RandomOffsetValue, Context.View.Family->FrameNumber);
 		SetShaderValue(Context.RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context));
+		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context. View));
 	}
 };
 

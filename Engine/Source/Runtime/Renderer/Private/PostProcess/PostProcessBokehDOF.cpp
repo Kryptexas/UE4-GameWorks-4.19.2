@@ -94,7 +94,10 @@ public:
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter DepthOfFieldParams;
 	FShaderParameter VisualizeColors;
-
+	FShaderParameter CursorPos;
+	FShaderResourceParameter MiniFontTexture;
+	FShaderParameter CircleDofParams;
+	
 	/** Initialization constructor. */
 	PostProcessVisualizeDOFPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
@@ -102,14 +105,17 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		DepthOfFieldParams.Bind(Initializer.ParameterMap, TEXT("DepthOfFieldParams"));
+		MiniFontTexture.Bind(Initializer.ParameterMap, TEXT("MiniFontTexture"));
 		VisualizeColors.Bind(Initializer.ParameterMap, TEXT("VisualizeColors"));
+		CursorPos.Bind(Initializer.ParameterMap, TEXT("CursorPos"));
+		CircleDofParams.Bind(Initializer.ParameterMap,TEXT("CircleDofParams"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldParams << VisualizeColors;
+		Ar << PostprocessParameter << DeferredParameters << MiniFontTexture << DepthOfFieldParams << VisualizeColors << CursorPos << CircleDofParams;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -123,6 +129,8 @@ public:
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
+		SetTextureParameter(Context.RHICmdList, ShaderRHI, MiniFontTexture, GEngine->MiniFontTexture ? GEngine->MiniFontTexture->Resource->TextureRHI : GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture);
+
 		{
 			FVector4 DepthOfFieldParamValues[2];
 
@@ -132,6 +140,18 @@ public:
 			FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(Context, DepthOfFieldParamValues);
 
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
+		}
+
+		{
+			// a negative values disables the cross hair feature
+			FIntPoint CursorPosValue(-100,-100);
+			
+			if(Context.View.FinalPostProcessSettings.DepthOfFieldMethod == DOFM_CircleDOF)
+			{
+				CursorPosValue = Context.View.CursorPos;
+			}
+
+			SetShaderValue(Context.RHICmdList, ShaderRHI, CursorPos, CursorPosValue);
 		}
 
 		{
@@ -148,11 +168,13 @@ public:
 
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, VisualizeColors, Colors, 2);
 		}
+
+		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context.View));
 	}
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessBokehDOF");
+		return TEXT("PostProcessVisualizeDOF");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -321,14 +343,14 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 		}
 		else if(MethodId == DOFM_CircleDOF)
 		{
-			Line = FString::Printf(TEXT("Method: CircleDOF"));
+			Line = FString::Printf(TEXT("Method: CircleDOF (blue is far, green is near, black is in focus, cross hair shows Depth and CoC radius in pixel)"));
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 			Y += YStep;
 			Line = FString::Printf(TEXT("FocalDistance: %.2f"), View.FinalPostProcessSettings.DepthOfFieldFocalDistance);
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 			Line = FString::Printf(TEXT("Aperture F-stop: %.2f"), View.FinalPostProcessSettings.DepthOfFieldFstop);
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
-			Line = FString::Printf(TEXT("Aperture: 1 / %.2f"), View.FinalPostProcessSettings.DepthOfFieldFstop);
+			Line = FString::Printf(TEXT("Aperture: f/%.2f"), View.FinalPostProcessSettings.DepthOfFieldFstop);
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 			Y += YStep;
 			Line = FString::Printf(TEXT("DepthBlur (not related to Depth of Field, due to light traveling long distances in atmosphere)"));
