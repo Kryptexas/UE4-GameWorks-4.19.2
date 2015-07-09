@@ -53,9 +53,8 @@ namespace UnrealBuildTool
 		// force rebuild for platform every time to force install AutoSDK for HTML5 4.8
 		protected override String GetRequiredScriptVersionString()
 		{
-			TimeSpan Span= DateTime.Now.Subtract(new DateTime(1970,1,1,0,0,0));
-			return Span.TotalSeconds.ToString();
-		}
+			return "2.0";
+		}		
 		
 		// The current architecture - affects everything about how UBT operates on HTML5
         public override string GetActiveArchitecture()
@@ -143,7 +142,41 @@ namespace UnrealBuildTool
                     {
                         UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Device);
                     }
-                }
+
+					string SDKPath = GetPathToPlatformAutoSDKs();
+					if (SDKPath != null && SDKPath != "")
+					{
+						// We have autosdk running.
+	 					// recreate configuration files. 
+						string UserFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+						string ConfigFile = Path.Combine(UserFolder, ".emscripten");
+
+						string CompletePath = Path.Combine(SDKPath, GetRequiredSDKString());
+						// (re)create .emscripten config file. 
+						{
+							var ConfigString = String.Join(
+								Environment.NewLine,
+								"import os",
+								"EMSCRIPTEN='" + Path.Combine(CompletePath, "Emscripten", ExpectedSDKVersion) + "'",
+								"PYTHON='" + Path.Combine(CompletePath, "Emscripten", "python", "2.7.5.3_64bit", "python.exe") + "'",
+								"LLVM='" + Path.Combine(CompletePath, "Emscripten", "clang", "e" + ExpectedSDKVersion + "_64bit") + "'",
+								"LLVM_ROOT='" + Path.Combine(CompletePath, "Emscripten", "clang", "e" + ExpectedSDKVersion + "_64bit") + "'",
+								"NODE= '" + Path.Combine(CompletePath, "Emscripten", "node", "0.10.17_64bit", "node.exe") + "'",
+								"NODE_JS= '" + Path.Combine(CompletePath, "Emscripten", "node", "0.10.17_64bit", "node.exe") + "'",
+								"JS_ENGINES = [NODE]",
+								"COMPILER_ENGINE = NODE_JS"
+								);
+							File.WriteAllText(ConfigFile, ConfigString.Replace("\\", "/"));
+						}
+
+						// clean up cache. 
+						string CacheDir = Path.Combine(UserFolder, ".emscripten_cache");
+						if (Directory.Exists(CacheDir))
+						{
+							Directory.Delete(CacheDir);
+						}
+	                }
+				}
             }
 
         }
