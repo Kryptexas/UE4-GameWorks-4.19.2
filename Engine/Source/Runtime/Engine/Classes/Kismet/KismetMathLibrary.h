@@ -1269,7 +1269,8 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 
 	/** Breaks apart a rotator into {Roll, Pitch, Yaw} angles in degrees */
 	UFUNCTION(BlueprintPure, Category = "Math|Rotator", meta = (Keywords = "rotation rotate rotator breakrotator", NativeBreakFunc))
-	static void BreakRotator(FRotator InRot,
+	static void BreakRotator(
+		UPARAM(DisplayName="Rotation") FRotator InRot,
 		UPARAM(DisplayName="X (Roll)") float& Roll,
 		UPARAM(DisplayName="Y (Pitch)") float& Pitch,
 		UPARAM(DisplayName="Z (Yaw)") float& Yaw);
