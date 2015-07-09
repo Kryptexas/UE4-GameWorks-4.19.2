@@ -109,7 +109,9 @@ void UPaperTileMapComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::MovedTileMapDataToSeparateClass)
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+	
+	if (PaperVer < FPaperCustomVersion::MovedTileMapDataToSeparateClass)
 	{
 		// Create a tile map object and move our old properties over to it
 		TileMap = NewObject<UPaperTileMap>(this);
@@ -134,6 +136,12 @@ void UPaperTileMapComponent::PostLoad()
 		DefaultLayerTileSet_DEPRECATED = nullptr;
 		Material_DEPRECATED = nullptr;
 		TileLayers_DEPRECATED.Empty();
+	}
+
+	if (PaperVer < FPaperCustomVersion::FixVertexColorSpace)
+	{
+		const FColor SRGBColor = TileMapColor.ToFColor(/*bSRGB=*/ true);
+		TileMapColor = SRGBColor.ReinterpretAsLinear();
 	}
 }
 
@@ -297,7 +305,8 @@ void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sec
 			}
 		}
 
-		const FColor DrawColor(( TileMapColor * Layer->GetLayerColor() ).ToFColor(true));
+		const FLinearColor DrawColorLinear = TileMapColor * Layer->GetLayerColor();
+		const FColor DrawColor(DrawColorLinear.ToFColor(/*bSRGB=*/ false));
 
 #if WITH_EDITORONLY_DATA
 		if (!Layer->ShouldRenderInEditor())

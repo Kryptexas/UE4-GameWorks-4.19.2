@@ -42,7 +42,7 @@ int32 UPaperGroupedSpriteComponent::AddInstanceWithMaterial(const FTransform& Tr
 	const FTransform LocalTransform(bWorldSpace ? Transform.GetRelativeTransform(ComponentToWorld) : Transform);
 
 	FSpriteInstanceData& NewInstanceData = *new (PerInstanceSpriteData)FSpriteInstanceData();
-	SetupNewInstanceData(NewInstanceData, NewInstanceIndex, LocalTransform, Sprite, MaterialOverride, Color.ToFColor(true));
+	SetupNewInstanceData(NewInstanceData, NewInstanceIndex, LocalTransform, Sprite, MaterialOverride, Color.ToFColor(/*bSRGB=*/ false));
 
 	MarkRenderStateDirty();
 
@@ -113,7 +113,7 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceColor(int32 InstanceIndex, FLin
 	if (PerInstanceSpriteData.IsValidIndex(InstanceIndex))
 	{
 		FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
-		InstanceData.VertexColor = NewInstanceColor.ToFColor(true);
+		InstanceData.VertexColor = NewInstanceColor.ToFColor(/*bSRGB=*/ false);
 
 		if (bMarkRenderStateDirty)
 		{

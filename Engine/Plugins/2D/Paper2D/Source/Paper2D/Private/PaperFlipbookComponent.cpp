@@ -76,6 +76,12 @@ void UPaperFlipbookComponent::PostLoad()
 			SetMaterial(0, Material_DEPRECATED);
 		}
 	}
+
+	if (PaperVer < FPaperCustomVersion::FixVertexColorSpace)
+	{
+		const FColor SRGBColor = SpriteColor.ToFColor(/*bSRGB=*/ true);
+		SpriteColor = SRGBColor.ReinterpretAsLinear();
+	}
 }
 
 FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
@@ -87,7 +93,7 @@ FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 
 	FSpriteDrawCallRecord DrawCall;
 	DrawCall.BuildFromSprite(SpriteToSend);
-	DrawCall.Color = SpriteColor.ToFColor(true);
+	DrawCall.Color = SpriteColor.ToFColor(/*bSRGB=*/ false);
 	NewProxy->SetDrawCall_RenderThread(DrawCall);
 	return NewProxy;
 }
@@ -342,7 +348,7 @@ void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SpriteToSend);
-		DrawCall.Color = SpriteColor.ToFColor(true);
+		DrawCall.Color = SpriteColor.ToFColor(/*bSRGB=*/ false);
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 				FSendPaperRenderComponentDynamicData,

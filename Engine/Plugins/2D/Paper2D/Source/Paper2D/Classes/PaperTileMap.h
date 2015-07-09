@@ -126,16 +126,16 @@ public:
 
 public:
 	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
-	virtual void PostLoad() override;
 	void ValidateSelectedLayerIndex();
 #endif
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	virtual void Serialize(FArchive& Ar) override;
 #endif
 	// End of UObject interface
 

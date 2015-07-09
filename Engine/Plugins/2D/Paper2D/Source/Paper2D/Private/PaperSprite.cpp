@@ -356,7 +356,7 @@ void FSpriteDrawCallRecord::BuildFromSprite(const UPaperSprite* Sprite)
 		BaseTexture = Sprite->GetBakedTexture();
 		Sprite->GetBakedAdditionalSourceTextures(/*out*/ AdditionalTextures);
 
-		Color = FLinearColor::White.ToFColor(true);
+		Color = FColor::White;
 
 		RenderVerts = Sprite->BakedRenderData;
 	}

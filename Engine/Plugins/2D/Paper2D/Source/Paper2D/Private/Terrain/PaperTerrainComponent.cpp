@@ -2,6 +2,7 @@
 
 #include "Paper2DPrivatePCH.h"
 #include "Components/SplineComponent.h"
+#include "PaperCustomVersion.h"
 
 #include "PaperRenderSceneProxy.h"
 #include "PaperGeomTools.h"
@@ -115,6 +116,26 @@ UPaperTerrainComponent::UPaperTerrainComponent(const FObjectInitializer& ObjectI
 const UObject* UPaperTerrainComponent::AdditionalStatObject() const
 {
 	return TerrainMaterial;
+}
+
+void UPaperTerrainComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
+
+void UPaperTerrainComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+
+	if (PaperVer < FPaperCustomVersion::FixVertexColorSpace)
+	{
+		const FColor SRGBColor = TerrainColor.ToFColor(/*bSRGB=*/ true);
+		TerrainColor = SRGBColor.ReinterpretAsLinear();
+	}
 }
 
 #if WITH_EDITOR
@@ -637,7 +658,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 				FSpriteDrawCallRecord& FillDrawCall = *new (MaterialBatch.Records) FSpriteDrawCallRecord();
 				FillDrawCall.BuildFromSprite(FillSprite);
 				FillDrawCall.RenderVerts.Empty();
-				FillDrawCall.Color = TerrainColor.ToFColor(true);
+				FillDrawCall.Color = TerrainColor.ToFColor(/*bSRGB=*/ false);
 				FillDrawCall.Destination = PaperAxisZ * 0.1f;
 
 				const FVector2D TextureSize = GetSpriteRenderDataBounds2D(FillSprite->BakedRenderData).GetSize();
@@ -818,7 +839,7 @@ void UPaperTerrainComponent::SpawnSegments(const TArray<FTerrainSegment>& Terrai
 
 				FSpriteDrawCallRecord& Record = *new (MaterialBatch.Records) FSpriteDrawCallRecord();
 				Record.BuildFromSprite(NewSprite);
-				Record.Color = TerrainColor.ToFColor(true);
+				Record.Color = TerrainColor.ToFColor(/*bSRGB=*/ false);
 
 				// Work out if the sprite is likely to be bent > X deg (folded over itself)
 				const FVector ForwardVector(1, 0, 0);
@@ -1015,14 +1036,14 @@ void UPaperTerrainComponent::SetTerrainColor(FLinearColor NewColor)
 	{
 		TerrainColor = NewColor;
 
-		FColor TerrainGammaSpaceColor = TerrainColor.ToFColor(true);
+		const FColor TerrainColorQuantized = TerrainColor.ToFColor(/*bSRGB=*/ false);
 
 		// Update the color in the game-thread copy of the render geometry
 		for (FPaperTerrainSpriteGeometry& Batch : GeneratedSpriteGeometry)
 		{
 			for (FSpriteDrawCallRecord& DrawCall : Batch.Records)
 			{
-				DrawCall.Color = TerrainGammaSpaceColor;
+				DrawCall.Color = TerrainColorQuantized;
 			}
 		}
 

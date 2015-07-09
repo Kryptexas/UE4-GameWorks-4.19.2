@@ -58,6 +58,12 @@ void UPaperSpriteComponent::PostLoad()
 			SetMaterial(0, MaterialOverride_DEPRECATED);
 		}
 	}
+
+	if (PaperVer < FPaperCustomVersion::FixVertexColorSpace)
+	{
+		const FColor SRGBColor = SpriteColor.ToFColor(/*bSRGB=*/ true);
+		SpriteColor = SRGBColor.ReinterpretAsLinear();
+	}
 }
 
 FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
@@ -67,7 +73,7 @@ FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 	{
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
-		DrawCall.Color = SpriteColor.ToFColor(true);
+		DrawCall.Color = SpriteColor.ToFColor(/*bSRGB=*/ false);
 		NewProxy->SetSprite_RenderThread(DrawCall, SourceSprite->AlternateMaterialSplitIndex);
 	}
 	return NewProxy;
@@ -108,7 +114,7 @@ void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 	{
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
-		DrawCall.Color = SpriteColor.ToFColor(true);
+		DrawCall.Color = SpriteColor.ToFColor(/*bSRGB=*/ false);
 		const int32 SplitIndex = (SourceSprite != nullptr) ? SourceSprite->AlternateMaterialSplitIndex : INDEX_NONE;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
