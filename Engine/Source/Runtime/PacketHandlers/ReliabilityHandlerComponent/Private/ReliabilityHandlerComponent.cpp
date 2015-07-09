@@ -5,9 +5,9 @@ IMPLEMENT_MODULE(FReliabilityHandlerComponentModuleInterface, ReliabilityHandler
 // RELIABILITY
 ReliabilityHandlerComponent::ReliabilityHandlerComponent()
 : LocalPacketID(1)
+, LocalPacketIDACKED(0)
 , RemotePacketID(0)
 , RemotePacketIDACKED(0)
-, LocalPacketIDACKED(0)
 , ResendResolutionTime(0.5f)
 {
 }
