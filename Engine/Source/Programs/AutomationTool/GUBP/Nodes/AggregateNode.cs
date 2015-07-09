@@ -7,7 +7,7 @@ using System.Text;
 namespace AutomationTool
 {
 	[DebuggerDisplay("{Name}")]
-	class AggregateNode
+	public class AggregateNode
 	{
 		public string Name;
 		public GUBP.GUBPAggregateNode Node;

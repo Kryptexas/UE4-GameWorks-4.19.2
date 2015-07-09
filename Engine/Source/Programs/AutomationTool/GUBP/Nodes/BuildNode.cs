@@ -7,7 +7,7 @@ using System.Text;
 namespace AutomationTool
 {
 	[DebuggerDisplay("{Name}")]
-	abstract class BuildNode
+	public abstract class BuildNode
 	{
 		public string Name;
 		public string AgentSharingGroup;
@@ -20,7 +20,7 @@ namespace AutomationTool
 		public BuildNode[] PseudoDependencies;
 		public BuildNode[] AllDirectDependencies;
 		public BuildNode[] AllIndirectDependencies;
-		public BuildNode[] ControllingTriggers;
+		public TriggerNode[] ControllingTriggers;
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;

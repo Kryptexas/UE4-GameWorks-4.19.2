@@ -37,6 +37,10 @@ partial class GUBP
         {
             return "";
         }
+		public virtual BuildNode GetBuildNode()
+		{
+			return new LegacyNode(this);
+		}
         public virtual void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -66,7 +70,7 @@ partial class GUBP
 		{
 			return "";
 		}
-        public virtual int AgentMemoryRequirement(GUBP.GUBPBranchConfig BranchConfig)
+        public virtual int AgentMemoryRequirement()
         {
             return 0;
         }
@@ -88,10 +92,6 @@ partial class GUBP
         public virtual float Priority()
         {
             return 100.0f;
-        }
-        public virtual bool TriggerNode()
-        {
-            return false;
         }
         public virtual void SetAsExplicitTrigger()
         {
@@ -424,11 +424,11 @@ partial class GUBP
         {
             return true;
         }
-		public override int AgentMemoryRequirement(GUBP.GUBPBranchConfig BranchConfig)
+		public override int AgentMemoryRequirement()
         {
 			if (bHasLauncherParam)
             {
-                return base.AgentMemoryRequirement(BranchConfig);
+                return base.AgentMemoryRequirement();
             }
             return 32;
         }
@@ -1247,6 +1247,7 @@ partial class GUBP
         UnrealTargetPlatform TargetPlatform;
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
+		bool EnhanceAgentRequirements;
 
         public GamePlatformMonolithicsNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InBranchConfig, InHostPlatform)
@@ -1256,6 +1257,7 @@ partial class GUBP
 			ActivePlatforms = InActivePlatforms;
 			WithXp = InWithXp;
 			Precompiled = InPrecompiled;
+			EnhanceAgentRequirements = BranchConfig.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled));
 
             if (TargetPlatform == UnrealTargetPlatform.PS4 || TargetPlatform == UnrealTargetPlatform.XboxOne)
             {
@@ -1352,13 +1354,13 @@ partial class GUBP
         {
             return true;
         }
-		public override int AgentMemoryRequirement(GUBP.GUBPBranchConfig BranchConfig)
+		public override int AgentMemoryRequirement()
         {
-			if (BranchConfig.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled)))
+			if (EnhanceAgentRequirements)
             {
                 return 64;
             }
-            return base.AgentMemoryRequirement(BranchConfig);
+            return base.AgentMemoryRequirement();
         }
         public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
         {            
@@ -1811,9 +1813,9 @@ partial class GUBP
             BuildProducts = new List<string>();
             SaveRecordOfSuccessAndAddToBuildProducts();
         }
-        public override bool TriggerNode()
+        public override BuildNode GetBuildNode()
         {
-            return true;
+			return new TriggerNode(this);
         }
         public override void SetAsExplicitTrigger()
         {
@@ -2270,7 +2272,7 @@ partial class GUBP
         {
             return 10.0f;
         }
-		public override int AgentMemoryRequirement(GUBP.GUBPBranchConfig BranchConfig)
+		public override int AgentMemoryRequirement()
         {
             return bIsMassive ? 32 : 0;
         }
@@ -2894,9 +2896,9 @@ partial class GUBP
 			}		
 			return Result;
 		}
-		public override int AgentMemoryRequirement(GUBP.GUBPBranchConfig BranchConfig)
+		public override int AgentMemoryRequirement()
 		{
-			int Result = base.AgentMemoryRequirement(BranchConfig);
+			int Result = base.AgentMemoryRequirement();
 			if (HostPlatform == UnrealTargetPlatform.Mac)
 			{
 				Result = 32;
@@ -2945,9 +2947,9 @@ partial class GUBP
             }
             return Result;
         }
-		public override int AgentMemoryRequirement(GUBP.GUBPBranchConfig BranchConfig)
+		public override int AgentMemoryRequirement()
         {
-            int Result = base.AgentMemoryRequirement(BranchConfig);
+            int Result = base.AgentMemoryRequirement();
             if(HostPlatform == UnrealTargetPlatform.Mac)
             {
                 Result = 32;
