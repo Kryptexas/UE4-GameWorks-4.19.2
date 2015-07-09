@@ -32,6 +32,7 @@
 #include "PostProcessTemporalAA.h"
 #include "PostProcessMotionBlur.h"
 #include "PostProcessDOF.h"
+#include "PostProcessCircleDOF.h"
 #include "PostProcessUpscale.h"
 #include "PostProcessHMD.h"
 #include "PostProcessVisualizeComplexity.h"

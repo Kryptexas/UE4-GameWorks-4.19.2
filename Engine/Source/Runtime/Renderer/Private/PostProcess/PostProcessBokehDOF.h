@@ -11,8 +11,8 @@
 struct FDepthOfFieldStats
 {
 	FDepthOfFieldStats()
-		: bNear(false)
-		, bFar(false)
+		: bNear(true)
+		, bFar(true)
 	{
 	}
 

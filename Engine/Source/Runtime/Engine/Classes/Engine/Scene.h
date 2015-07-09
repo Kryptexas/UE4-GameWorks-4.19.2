@@ -13,7 +13,7 @@ UENUM()
 enum EDepthOfFieldMethod
 {
 	DOFM_BokehDOF UMETA(DisplayName="BokehDOF"),
-	DOFM_Gaussian UMETA(DisplayName="Gaussian"),
+	DOFM_Gaussian UMETA(DisplayName="GaussianDOF"),
 	DOFM_CircleDOF UMETA(DisplayName="CircleDOF"),
 	DOFM_MAX,
 };
@@ -837,8 +837,8 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(ClampMin = "0.0", ClampMax = "4.0", editcondition = "bOverride_DepthOfFieldDepthBlurRadius", DisplayName = "Depth Blur Radius"))
 	float DepthOfFieldDepthBlurRadius;
 	
-	/** CircleDOF only: F-stop number (1/fstop) */
-	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(ClampMin = "1.0", ClampMax = "32.0", editcondition = "bOverride_DepthOfFieldFstop", DisplayName = "1/Fstop"))
+	/** CircleDOF only: F-stop number (1/fstop) e.g. 1.2 for a large aperture, 2.8 is smaller and results in less Depth of Field effect, does not affect noise/grain but in real world it would */
+	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(ClampMin = "1.0", ClampMax = "32.0", editcondition = "bOverride_DepthOfFieldFstop", DisplayName = "Aperture"))
 	float DepthOfFieldFstop;
 
 	/** Distance in which the Depth of Field effect should be sharp, in unreal units (cm) */
