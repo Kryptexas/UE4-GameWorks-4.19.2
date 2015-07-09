@@ -68,11 +68,14 @@ public class HTMLPakAutomation
 		string PythonPath = HTML5SDKInfo.Python();
 		string PackagerPath = HTML5SDKInfo.EmscriptenPackager();
 
-		// we need to operate in the root
-		using (new PushedDirectory(Path.Combine(PackagePath)))
+		using (new ScopedEnvVar("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN))
 		{
-			string CmdLine = string.Format("\"{0}\" \"{1}\" --preload {2}\\ --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation, SC.ShortProjectName);
-			CommandUtils.RunAndLog(CommandUtils.CmdEnv, PythonPath, CmdLine);
+			// we need to operate in the root
+			using (new PushedDirectory(Path.Combine(PackagePath)))
+			{
+				string CmdLine = string.Format("\"{0}\" \"{1}\" --preload {2}\\ --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation, SC.ShortProjectName);
+				CommandUtils.RunAndLog(CommandUtils.CmdEnv, PythonPath, CmdLine);
+			}
 		}
 	}
 

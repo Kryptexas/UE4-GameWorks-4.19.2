@@ -72,10 +72,13 @@ public class HTML5Platform : Platform
 			string PythonPath = HTML5SDKInfo.Python();
 			string PackagerPath = HTML5SDKInfo.EmscriptenPackager();
 
-			using (new PushedDirectory(Path.Combine(Params.BaseStageDirectory, "HTML5")))
+			using (new ScopedEnvVar("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN))
 			{
-				string CmdLine = string.Format("\"{0}\" \"{1}\" --preload . --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation);
-				RunAndLog(CmdEnv, PythonPath, CmdLine);
+				using (new PushedDirectory(Path.Combine(Params.BaseStageDirectory, "HTML5")))
+				{
+					string CmdLine = string.Format("\"{0}\" \"{1}\" --preload . --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation);
+					RunAndLog(CmdEnv, PythonPath, CmdLine);
+				}
 			}
 		}
 

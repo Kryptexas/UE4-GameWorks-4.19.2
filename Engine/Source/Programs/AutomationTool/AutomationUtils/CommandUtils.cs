@@ -2190,6 +2190,26 @@ namespace AutomationTool
 		}
 	}
 
+	/// <summary>
+	/// Use with "using" syntax to temporarily set and environment variable  in a convenient, exception-safe way
+	/// </summary>
+	public class ScopedEnvVar : IDisposable
+	{
+		private string StoredEnvVar = null;
+
+		public ScopedEnvVar(string EnvVar, string Value)
+		{
+			StoredEnvVar = EnvVar;
+			CommandUtils.SetEnvVar(StoredEnvVar, Value);
+		}
+
+		public void Dispose()
+		{
+			CommandUtils.SetEnvVar(StoredEnvVar, "");
+			GC.SuppressFinalize(this);
+		}
+	}
+
     /// <summary>
     /// Helper class to associate a file and its contents
     /// </summary>
