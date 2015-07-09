@@ -399,11 +399,11 @@ bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat&
 }
 
 
-bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, ESteamVRControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
+bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
 {
 	check( IsInGameThread() );
 
-	if( ( ControllerIndex < 0 ) || ( ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS ) || Hand < ESteamVRControllerHand::Left || Hand > ESteamVRControllerHand::Right )
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || Hand < EControllerHand::Left || Hand > EControllerHand::Right)
 	{
 		return false;
 	}

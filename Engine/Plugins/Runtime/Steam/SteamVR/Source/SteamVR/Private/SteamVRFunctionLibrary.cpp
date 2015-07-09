@@ -1,7 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 //
 #include "SteamVRPrivatePCH.h"
-#include "SteamVRHMD.h"
 #include "Classes/SteamVRFunctionLibrary.h"
 
 USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& ObjectInitializer)
@@ -45,7 +44,7 @@ bool USteamVRFunctionLibrary::GetTrackedDevicePositionAndOrientation(int32 Devic
 	return RetVal;
 }
 
-bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerIndex, ESteamVRControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation)
+bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation)
 {
 	bool RetVal = false;
 

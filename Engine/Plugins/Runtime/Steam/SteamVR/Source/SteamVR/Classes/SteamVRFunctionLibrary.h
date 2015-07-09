@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "IMotionController.h"
 #include "SteamVRFunctionLibrary.generated.h"
 
 /** Defines the class of tracked devices in SteamVR*/
@@ -29,17 +30,6 @@ enum class ESteamVRTrackingSpace
 
 	/** Seated origin, where poses are relative to the user's calibrated seated head position */
 	Seated
-};
-
-/** The motion controller hand for a specific Unreal controller.  Each Unreal controller can support a pair of devices, one for the left hand and one for the right hand. */
-UENUM(BlueprintType)
-enum class ESteamVRControllerHand
-{
-	/** Left hand */
-	Left,
-
-	/** Right hand */
-	Right,
 };
 
 /**
@@ -82,7 +72,7 @@ public:
 	 * @return	True if the specified controller index has a valid tracked device ID
 	 */
 	UFUNCTION(BlueprintPure, Category = "SteamVR")
-	static bool GetHandPositionAndOrientation(int32 ControllerIndex, ESteamVRControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation);
+	static bool GetHandPositionAndOrientation(int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation);
 
 	/**
 	 * Sets the tracking space (e.g. sitting or standing), which changes which space tracked positions are returned to

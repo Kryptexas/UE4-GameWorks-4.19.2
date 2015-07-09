@@ -1,9 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SteamVRControllerPrivatePCH.h"
-
+#include "IMotionController.h"
+#include "../../SteamVR/Private/SteamVRHMD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSteamVRController, Log, All);
+
+/** Total number of controllers in a set */
+#define CONTROLLERS_PER_PLAYER	2
 
 /** Controller axis mappings. @todo steamvr: should enumerate rather than hard code */
 #define TOUCHPAD_AXIS	0
@@ -21,7 +25,17 @@ namespace SteamVRControllerKeyNames
 	const FGamepadKeyNames::Type Touch1("Steam_Touch_1");
 }
 
-class FSteamVRController : public IInputDevice
+FSteamVRHMD* GetSteamVRHMD()
+{
+	if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
+	{
+		return static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
+	}
+
+	return nullptr;
+}
+
+class FSteamVRController : public IInputDevice, public IMotionController
 {
 
 public:
@@ -31,17 +45,6 @@ public:
 
 	/** Total number of motion controllers we'll support */
 	static const int32 MaxControllers = MaxUnrealControllers * 2;
-
-	/** Left and right hands for Steam VR motion controller devices */
-	enum class EControllerHand
-	{
-		Left,
-		Right,
-
-		// ...
-		TotalHandCount
-	};
-
 
 	/**
 	 * Buttons on the SteamVR controller
@@ -74,7 +77,7 @@ public:
 		FMemory::Memzero(ControllerStates, sizeof(ControllerStates));
 		for( int32 ControllerPairIndex = 0; ControllerPairIndex < MaxUnrealControllers; ++ControllerPairIndex )
 		{
-			for( int32 HandIndex = 0; HandIndex < (int32)EControllerHand::TotalHandCount; ++HandIndex )
+			for (int32 HandIndex = 0; HandIndex < CONTROLLERS_PER_PLAYER; ++HandIndex)
 			{
 				ControllerStates[ UnrealControllerIdToControllerIndex( ControllerPairIndex, (EControllerHand)HandIndex ) ].Hand = (EControllerHand)HandIndex;
 			}
@@ -116,10 +119,16 @@ public:
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::MotionController_Right_FaceButton3;
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::MotionController_Right_FaceButton4;
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Right_FaceButton2;
+
+		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
+
+		//@todo:  fix this.  construction of the controller happens after InitializeMotionControllers(), so we manually insert into the array here.
+		GEngine->MotionControllerDevices.AddUnique(this);
 	}
 
 	virtual ~FSteamVRController()
 	{
+		GEngine->MotionControllerDevices.Remove(this);
 	}
 
 	virtual void Tick( float DeltaTime ) override
@@ -153,16 +162,16 @@ public:
 						continue;
 					}
 
-					DeviceToControllerMap[DeviceIndex] = FMath::FloorToInt(NumControllersMapped / (int32)EControllerHand::TotalHandCount);
+					DeviceToControllerMap[DeviceIndex] = FMath::FloorToInt(NumControllersMapped / CONTROLLERS_PER_PLAYER);
 					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
 					++NumControllersMapped;
 
 					// update the SteamVR plugin with the new mapping
 					{
-						int32 UnrealControllerIdAndHandToDeviceIdMap[ MaxUnrealControllers ][ (int32)EControllerHand::TotalHandCount ];
+						int32 UnrealControllerIdAndHandToDeviceIdMap[MaxUnrealControllers][CONTROLLERS_PER_PLAYER];
 						for( int32 UnrealControllerIndex = 0; UnrealControllerIndex < MaxUnrealControllers; ++UnrealControllerIndex )
 						{
-							for( int32 HandIndex = 0; HandIndex < (int32)EControllerHand::TotalHandCount; ++HandIndex )
+							for (int32 HandIndex = 0; HandIndex < CONTROLLERS_PER_PLAYER; ++HandIndex)
 							{
 								UnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ] = ControllerToDeviceMap[ UnrealControllerIdToControllerIndex( UnrealControllerIndex, (EControllerHand)HandIndex ) ];
 							}
@@ -278,7 +287,7 @@ public:
 
 	int32 UnrealControllerIdToControllerIndex( const int32 UnrealControllerId, const EControllerHand Hand ) const
 	{
-		return UnrealControllerId * (int32)EControllerHand::TotalHandCount + (int32)Hand;
+		return UnrealControllerId * CONTROLLERS_PER_PLAYER + (int32)Hand;
 	}
 
 	
@@ -354,6 +363,21 @@ public:
 		MessageHandler = InMessageHandler;
 	}
 
+	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const
+	{
+		bool RetVal = false;
+
+ 		FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+ 		if (SteamVRHMD)
+ 		{
+ 			FQuat DeviceOrientation = FQuat::Identity;
+ 			RetVal = SteamVRHMD->GetControllerHandPositionAndOrientation(ControllerIndex, DeviceHand, OutPosition, DeviceOrientation);
+ 			OutOrientation = DeviceOrientation.Rotator();
+ 		}
+
+		return RetVal;
+	}
+
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		return false;
@@ -418,7 +442,7 @@ private:
 	float ButtonRepeatDelay;
 
 	/** Mapping of controller buttons */
-	FGamepadKeyNames::Type Buttons[ (int32)EControllerHand::TotalHandCount ][ ESteamVRControllerButton::TotalButtonCount ];
+	FGamepadKeyNames::Type Buttons[ CONTROLLERS_PER_PLAYER ][ ESteamVRControllerButton::TotalButtonCount ];
 
 	/** handler to send all messages to */
 	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;

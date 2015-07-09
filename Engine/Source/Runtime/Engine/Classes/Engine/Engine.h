@@ -1496,7 +1496,10 @@ public:
 
 	/** Reference to the HMD device that is attached, if any */
 	TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice;
-	
+
+	/** Reference to the Motion Control devices that are attached, if any */
+	TArray < class IMotionController*> MotionControllerDevices;
+
 	/** Triggered when a world is added. */	
 	DECLARE_EVENT_OneParam( UEngine, FWorldAddedEvent , UWorld* );
 	
@@ -2192,6 +2195,13 @@ protected:
 	 *	@return true if there is an initialized device, false otherwise
 	 */
 	virtual bool InitializeHMDDevice();
+
+	/**
+	 *	Detects and initializes any motion controller devices
+	 *
+	 *	@return true if there are any initialized motion controllers, false otherwise
+	 */
+	virtual bool InitializeMotionControllers();
 
 	/**
 	 *	Record EngineAnalytics information for attached HMD devices
