@@ -665,8 +665,6 @@ void ModuleClothing::destroy()
 
 	PX_DELETE(this);
 
-	releaseModuleProfiling();
-
 	if (traits)
 	{
 #		define PARAM_CLASS(clas) PARAM_CLASS_REMOVE_FACTORY(traits, clas)

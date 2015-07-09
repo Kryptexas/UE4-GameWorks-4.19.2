@@ -1534,6 +1534,12 @@ void ApexSDK::release()
 		}
 	}
 
+#ifdef PHYSX_PROFILE_SDK
+#ifdef PX_WINDOWS
+	gProfileZone = NULL;
+#endif
+#endif
+
 	// Now we destroy each module; but we make sure to null out each array element before we call the
 	// actual destruction routine so that the array of avlie/registered modules contains no pointers to deleted objects
 	for (physx::PxU32 i = 0; i < modules.size(); i++)

@@ -334,9 +334,6 @@ ModuleDestructible::~ModuleDestructible()
 
 	PX_DELETE(mCachedData);
 	mCachedData = NULL;
-
-	// This needs to happen after the scene list is cleared (actors do stuff)
-	releaseModuleProfiling();
 }
 
 NxParameterized::Interface* ModuleDestructible::getDefaultModuleDesc()
