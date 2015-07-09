@@ -56,10 +56,10 @@ namespace AutomationTool
 		/// <param name="AdditionalScriptsFolders">Additional script fodlers to look for source files in.</param>
 		public void FindAndCompileAllScripts(List<string> AdditionalScriptsFolders)
 		{
-			bool DoCompile = true;
-			if (GlobalCommandLine.NoCompile)
+			bool DoCompile = false;
+			if (GlobalCommandLine.Compile)
 			{
-				DoCompile = false;
+				DoCompile = true;
 			}
 
 			// Change to Engine\Source (if exists) to properly discover all UBT classes
@@ -160,8 +160,10 @@ namespace AutomationTool
 			{
 				string Modules = string.Join(";", ModulesToCompile.ToArray());
 				var UATProj = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Programs\AutomationTool\Scripts\UAT.proj");
-				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2}", UATProj, Modules, BuildConfig);
-				var Result = CommandUtils.Run(CommandUtils.CmdEnv.MsBuildExe, CmdLine);
+				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2} /verbosity:minimal", UATProj, Modules, BuildConfig);
+                Log.TraceInformation("Building Automation projects in parallel...");
+                // supress the run command because it can be long and intimidating, making the logs around this code harder to read.
+                var Result = CommandUtils.Run(CommandUtils.CmdEnv.MsBuildExe, CmdLine, Options: CommandUtils.ERunOptions.Default | CommandUtils.ERunOptions.NoLoggingOfRunCommand | CommandUtils.ERunOptions.LoggingOfRunDuration);
 				if (Result.ExitCode != 0)
 				{
 					throw new AutomationException(String.Format("Failed to build \"{0}\":{1}{2}", UATProj, Environment.NewLine, Result.Output));

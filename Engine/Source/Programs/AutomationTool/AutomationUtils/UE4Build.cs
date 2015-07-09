@@ -125,7 +125,7 @@ namespace AutomationTool
 			// Don't build UBT if we're running with pre-compiled binaries and if there's a debugger attached to this process.
 			// With the debugger attached, even though deleting the exe will work, the pdb files are still locked and the build will fail.
 			// Also, if we're running from VS then since UAT references UBT, we already have the most up-to-date version of UBT.exe
-			if (!bIsUBTReady && !GlobalCommandLine.NoCompile && !System.Diagnostics.Debugger.IsAttached)
+			if (!bIsUBTReady && GlobalCommandLine.Compile && !System.Diagnostics.Debugger.IsAttached)
 			{
 				DeleteFile(UBTExecutable);
 
@@ -1545,7 +1545,7 @@ namespace AutomationTool
 		/// </summary>
 		public void AddUBTFilesToBuildProducts()
 		{
-			if (GlobalCommandLine.NoCompile)
+			if (!GlobalCommandLine.Compile)
 			{
 				Log("We are being asked to copy the UBT build products, but we are running precompiled, so this does not make much sense.");
 			}

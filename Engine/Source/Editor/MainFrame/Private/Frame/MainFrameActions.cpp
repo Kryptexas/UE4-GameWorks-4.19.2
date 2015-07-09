@@ -286,8 +286,10 @@ void FMainFrameActionCallbacks::AddCodeToProject()
  */
 const TCHAR* GetUATCompilationFlags()
 {
+	// We never want to compile editor targets when invoking UAT in this context.
+	// If we are rocket or don't have a compiler, we must assume we have a precompiled UAT.
 	return FRocketSupport::IsRocket() || !FSourceCodeNavigation::IsCompilerAvailable()
-		? TEXT("-nocompile")
+		? TEXT("-nocompile -nocompileeditor")
 		: TEXT("-nocompileeditor");
 }
 

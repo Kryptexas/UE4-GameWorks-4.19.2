@@ -103,9 +103,16 @@ namespace AutomationTool
 		public static CommandLineArg ForceLocal = new CommandLineArg("-ForceLocal");
 		public static CommandLineArg NoP4 = new CommandLineArg("-NoP4");
 		public static CommandLineArg P4 = new CommandLineArg("-P4");
-		public static CommandLineArg Preprocess = new CommandLineArg("-Preprocess");
-		public static CommandLineArg NoCompile = new CommandLineArg("-NoCompile");
-		public static CommandLineArg NoCompileEditor = new CommandLineArg("-NoCompileEditor");
+        public static CommandLineArg Preprocess = new CommandLineArg("-Preprocess");
+        public static CommandLineArg Compile = new CommandLineArg("-Compile");
+        /// <summary>
+        /// This command is LEGACY because we used to run UAT.exe to compile scripts by default.
+        /// Now we only compile by default when run via RunUAT.bat, which still understands -nocompile.
+        /// However, the batch file simply passes on all arguments, so UAT will choke when encountering -nocompile.
+        /// Keep this CommandLineArg around so that doesn't happen.
+        /// </summary>
+        public static CommandLineArg NoCompileLegacyDontUse = new CommandLineArg("-NoCompile");
+        public static CommandLineArg NoCompileEditor = new CommandLineArg("-NoCompileEditor");
 		public static CommandLineArg Help = new CommandLineArg("-Help");
 		public static CommandLineArg List = new CommandLineArg("-List");
 		public static CommandLineArg Rocket = new CommandLineArg("-Rocket");
@@ -134,7 +141,8 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 	[Help("nop4", "Disables Perforce functionality (default if not run on a build machine)")]
 	[Help("p4", "Enables Perforce functionality (default if run on a build machine)")]
 	[Help("compileonly", "Does not run any commands, only compiles them")]
-	[Help("forcelocal", "Forces local execution")]
+    [Help("compile", "Dynamically compiles all commands (otherwise assumes they are already built)")]
+    [Help("forcelocal", "Forces local execution")]
 	[Help("help", "Displays help")]
 	[Help("list", "Lists all available commands")]
 	[Help("submit", "Allows UAT command to submit changes")]

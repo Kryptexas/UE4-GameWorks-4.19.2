@@ -9,6 +9,8 @@ using Microsoft.Win32;
 using System.Linq;
 using System.Diagnostics;
 using Tools.DotNETCommon.ExecutingAssembly;
+using System.Xml.Linq;
+using System.Xml;
 
 namespace UnrealBuildTool
 {
@@ -270,7 +272,7 @@ namespace UnrealBuildTool
 					var Project = new VCSharpProjectFile(RelativeFileName);
 					Project.ShouldBuildForAllSolutionTargets = true;
 					AddExistingProjectFile(Project, bForceDevelopmentConfiguration: true);
-
+                    AutomationProjectFiles.Add( Project );
 					Folder.ChildProjects.Add( Project );
 				}
 			}
@@ -2066,7 +2068,7 @@ namespace UnrealBuildTool
 		/// <returns>True if successful</returns>
 		protected virtual bool WriteProjectFiles()
 		{
-			using(ProgressWriter Progress = new ProgressWriter("Writing project files...", true))
+            using(ProgressWriter Progress = new ProgressWriter("Writing project files...", true))
 			{
 				var TotalProjectFileCount = GeneratedProjectFiles.Count + 1;	// +1 for the master project file, which we'll save next
 
@@ -2086,6 +2088,30 @@ namespace UnrealBuildTool
 				WriteMasterProjectFile( UBTProject: UBTProject );
 				Progress.Write(TotalProjectFileCount, TotalProjectFileCount);
 			}
+
+            // Write AutomationReferences file
+            if (AutomationProjectFiles.Any())
+            {
+                var NS = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003");
+
+                var AutomationToolDir = Path.Combine(EngineRelativePath, "Source", "Programs", "AutomationTool");
+                new XDocument(
+                    new XElement(NS + "Project",
+                        new XAttribute("ToolsVersion", "12.0"),
+                        new XAttribute("DefaultTargets", "Build"),
+                        new XElement(NS + "ItemGroup",
+                            from AutomationProject in AutomationProjectFiles
+                            select new XElement(NS + "ProjectReference",
+                                new XAttribute("Include", Utils.MakePathRelativeTo(AutomationProject.ProjectFilePath, AutomationToolDir, true)),
+                                new XElement(NS + "Project", (AutomationProject as VCSharpProjectFile).ProjectGUID.ToString("B")),
+                                new XElement(NS + "Name", Path.GetFileNameWithoutExtension(AutomationProject.RelativeProjectFilePath)),
+                                new XElement(NS + "Private", "false")
+                            )
+                        )
+                    )
+                ).Save(Path.Combine( AutomationToolDir, "AutomationTool.csproj.References" ));
+            }
+
 			return true;
 		}
 
@@ -2304,6 +2330,8 @@ namespace UnrealBuildTool
 		/// List of other project files that we want to include in a generated solution file, even though we
 		/// aren't generating them ourselves.  Note that these may *not* always be C++ project files (e.g. C#)
 		protected readonly List<ProjectFile> OtherProjectFiles = new List<ProjectFile>();
+
+        protected readonly List<ProjectFile> AutomationProjectFiles = new List<ProjectFile>();
 
 		/// List of top-level folders in the master project file
 		protected MasterProjectFolder RootFolder;

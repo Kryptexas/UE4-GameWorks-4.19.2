@@ -650,6 +650,10 @@ namespace AutomationTool
 
 			/// When specified with AllowSpew, the output will be TraceEventType.Verbose instead of TraceEventType.Information
 			SpewIsVerbose = 1 << 6,
+            /// <summary>
+            /// If NoLoggingOfRunCommand is set, it normally suppresses the run duration output. This turns it back on.
+            /// </summary>
+            LoggingOfRunDuration = 1 << 7,
 
 			Default = AllowSpew | AppMustExist,
 		}
@@ -723,7 +727,7 @@ namespace AutomationTool
 				var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
 				AddRunTime(App, (int)(BuildDuration));
 				Result.ExitCode = Proc.ExitCode;
-				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
+				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand) || Options.HasFlag(ERunOptions.LoggingOfRunDuration))
                 {
                     Log(SpewVerbosity,"Run: Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
                 }
@@ -883,8 +887,6 @@ namespace AutomationTool
 			string LogFile = CombinePaths(CmdEnv.LogFolder, DirOnlyName + ".log");
 			Log("Recursive UAT Run, in log folder {0}, main log file {1}", LogSubdir, LogFile);
 			CreateDirectory(LogSubdir);
-
-			CommandLine = CommandLine + " -NoCompile";
 
 			string App = CmdEnv.UATExe;
 
