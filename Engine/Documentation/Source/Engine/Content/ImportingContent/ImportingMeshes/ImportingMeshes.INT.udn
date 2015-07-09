@@ -1,37 +1,37 @@
 Availability:Docs
-Title:Importing Meshes
+Title:Importing Static Meshes
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:Learn how to import meshes from an external program.
-prereq:Engine/Basics/Projects/Browser
-Related: GettingStarted
+Description:Learn how to import static meshes from an external program.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
 Related: Engine/Content/FBX/ImportOptions
-Related: GettingStarted/HowTo
-Related: Engine/Content/Packs
-SkillLevel: Beginner
+Related: Engine/Content/FBX/StaticMeshes
+SkillLevel: Intermediate
 Version: 4.8
 
 [REGION:note]
-Before getting started: Make sure you have access to a 3D modeling application. Although we're using **3DS Max and Maya** to illustrate this lesson's goal, you can import meshes into Unreal Engine from any 3D modeling application with a save feature.
+Before getting started: Make sure you have access to a 3D modeling application. Although we're using **3DS Max and Maya** to illustrate this lesson's goal, you can import **static meshes** into Unreal Engine from any 3D modeling application with a save feature.
 [/REGION]
 
-Content creators can import meshes into Unreal Engine from external 3D modeling applications.
+Content creators can import static meshes into Unreal Engine from external 3D modeling applications.
 
 ## Goal
 
-The focus of this guide is to show developers how to import meshes from external 3D modeling applications.
+The focus of this guide is to show developers how to import static meshes from external 3D modeling applications.
 
 ## Objectives
 
 After going through this tutorial, developers will know the following:
 
-*	How to import meshes into Unreal Editor from external 3D modeling applications.
-*	How to verify that assets were properly imported into the project folder.
+*	How to import static meshes into Unreal Editor from external 3D modeling applications.
+*	How to verify that static meshes were imported properly.
 
-## Importing from a  3D Modeling Application
+[INCLUDE:Engine/Content/FBX#versionwarning]
 
 %Globals:DCCSelect%
 
-[INCLUDE:Engine/Content/FBX#versionwarning]
+## Importing Static Meshes from External 3D Modeling Applications
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -61,23 +61,17 @@ After going through this tutorial, developers will know the following:
 	[/PARAM]
 [/OBJECT]
 
-## Verifying Imported Assets
+## Verifying Imported Static Meshes
 
-It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
+1. **Double-click** the imported mesh to view it in the **Static Mesh Editor** (pictured below).
 
-1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+	[REGION:lightbox]
+		[![](Verify_StaticMeshEditor.png)(w:925)](Verify_StaticMeshEditor.png)
+	[/REGION]
 
-	![](FolderDialogBox_UI.png)
-
-1.	Under **Folder Options**, **click 'Show In Explorer'** (pictured below).
-
-	![](ShowInExplorer_Selection.png)
-
-1.	With Explorer open, verify that UE4 created the corresponding ** *.uasset files **  for your project (pictured below).
-
-	![](ImportedAssets_Explorer.png)
+	_Verify that the asset imported properly by viewing the imported mesh in the **Static Mesh Editor**._
 
 Now that we've reached the end of this tutorial, you've learned how to:
 
-&#x2713;	Import meshes into Unreal Editor from external 3D modeling applications.  
-&#x2713;	Verify that assets were properly imported to the project folder.
+&#x2713;	Import static meshes into Unreal Editor from external 3D modeling applications.  
+&#x2713;	Verify that static meshes were imported properly.
