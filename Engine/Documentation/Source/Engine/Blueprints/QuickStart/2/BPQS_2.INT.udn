@@ -1,7 +1,7 @@
 Availability: Public
-Title:2. Construct your Launch Pad
+Title:2. Construct your Launchpad
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:An overview on the most commonly used viewport navigation controls.
+Description:Build your first launchpad in the level.
 
 
 [VAR:Steps]
@@ -58,7 +58,7 @@ If at any time you need to change your Actor's properties, such as to scale up t
 
 ![](LaunchPadActor.png)
 
-Now that you have your Actor the way you want it, we will turn it into a Blueprint. You can add more components inside the Blueprint Editor, and tweak them just like you can here in the level.
+Now that you have your Actor the way you want it, we will turn it into a Blueprint Class. You can add more components inside the Blueprint Editor, and tweak them just like you can here in the level.
 
 
 ---

@@ -1,7 +1,7 @@
 Availability: Public
-Title:3. Convert Your Actor to a Class Blueprint
+Title:3. Convert Your Actor to a Blueprint Class
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:Creating an empty level via the New Level dialog window.
+Description:Make your launchpad reusable and scriptable by converting it to a Blueprint Class
 
 
 [VAR:Steps]
