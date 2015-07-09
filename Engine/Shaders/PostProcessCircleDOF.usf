@@ -14,12 +14,14 @@
 float4 CircleDofParams;
 
 // CIRCLE DOF: Compute circle of confusion size in pixels.
-float DepthToCoc(float Depth) 
+float DepthToCoc(float SceneDepth) 
 {
+	// We intentionally don't do the DepthOfFieldFocalRegion as it breaks realism.
+
 	float Focus = View.DepthOfFieldFocalDistance;
 	float Radius = CircleDofParams.x;
-	float CocRadius = ((Depth - Focus) / Depth) * Radius;
-	float DepthBlurRadius = (1.0 - exp2(-Depth * CircleDofParams.y)) * CircleDofParams.z;
+	float CocRadius = ((SceneDepth - Focus) / SceneDepth) * Radius;
+	float DepthBlurRadius = (1.0 - exp2(-SceneDepth * CircleDofParams.y)) * CircleDofParams.z;
 	float ReturnCoc = max(abs(CocRadius), DepthBlurRadius);
 	if(CocRadius < 0.0) 
 	{

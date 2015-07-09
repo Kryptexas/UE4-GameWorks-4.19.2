@@ -1256,6 +1256,13 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 #endif
 
+	if(FinalPostProcessSettings.DepthOfFieldMethod == DOFM_CircleDOF)
+	{
+		// We intentionally don't do the DepthOfFieldFocalRegion as it breaks realism.
+		// Doing this fixes DOF material expression.
+		FinalPostProcessSettings.DepthOfFieldFocalRegion = 0;
+	}
+
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 

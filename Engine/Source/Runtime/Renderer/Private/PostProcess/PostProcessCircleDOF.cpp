@@ -33,12 +33,10 @@ float ComputeFocalLengthFromFov(const FSceneView& View)
 // Setup depth based blur.
 static FVector4 CircleDofCoc(const FRenderingCompositePassContext& Context)
 {
-	float FocalLength = ComputeFocalLengthFromFov(Context.View);
+	float FocalLengthInMM = ComputeFocalLengthFromFov(Context.View);
 	 
-	// Convert focal distance in world position to mm.
-	// Conversion is 1 world position = 1 cm.
-	float Distance = Context.View.FinalPostProcessSettings.DepthOfFieldFocalDistance;
-	Distance *= 10.0f;
+	// Convert focal distance in world position to mm (from cm to mm)
+	float FocalDistanceInMM = Context.View.FinalPostProcessSettings.DepthOfFieldFocalDistance * 10.0f;
 
 	// Convert f-stop, focal length, and focal distance to
 	// projected circle of confusion size at infinity in mm.
@@ -48,7 +46,7 @@ static FVector4 CircleDofCoc(const FRenderingCompositePassContext& Context)
 	//   f = focal length
 	//   d = focal distance
 	//   n = fstop (where n is the "n" in "f/n")
-	float Radius = FocalLength * FocalLength / (Context.View.FinalPostProcessSettings.DepthOfFieldFstop * (Distance - FocalLength));
+	float Radius = FMath::Square(FocalLengthInMM) / (Context.View.FinalPostProcessSettings.DepthOfFieldFstop * (FocalDistanceInMM - FocalLengthInMM));
 
 	// Scale so that APS-C 24.576 mm = full frame.
 	// Convert mm to pixels.
