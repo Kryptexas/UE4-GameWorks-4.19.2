@@ -129,7 +129,7 @@ Components Mode
 In **Components Mode**, you can add components to your Blueprint, manage the details of existing components, and arrange components. The list of components in Components Mode is hierarchical.
 [/EXCERPT:Glossary_Components_Mode]
 
-**Components Mode** is one of three modes; the others are **Default Mode** and **Graph Mode**.
+Components Mode is one of three modes; the others are Default Mode and Graph Mode.
 	[/PARAM]
 [/OBJECT]
 
@@ -183,7 +183,7 @@ Controller Class
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Controller_Class]
-**Controllers** are non-physical Actors that can possess a Pawn (or Pawn-derived class like Character) to control its actions. A **PlayerController** is used by human players to control Pawns, while an **AIController** implements the artificial intelligence for the Pawns they control. Controllers take control of a Pawn with the **Possess** function, and give up control of the Pawn with the **Unpossess** function.
+**Controllers** are non-physical Actors that can possess a Pawn (or Pawn-derived class like Character) to control its actions. A PlayerController is used by human players to control Pawns, while an AIController implements the artificial intelligence for the Pawns they control. Controllers take control of a Pawn with the Possess function, and give up control of the Pawn with the Unpossess function.
 [/EXCERPT:Glossary_Controller_Class]
 
 	[/PARAM]
