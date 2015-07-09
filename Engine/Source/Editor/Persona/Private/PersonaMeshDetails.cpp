@@ -527,6 +527,22 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			{
 				LODCategory.AddCustomBuilder(ReductionSettingsWidgets[LODIndex].ToSharedRef());
 			}
+
+			if (LODIndex > 0)
+			{
+				LODCategory.AddCustomRow(LOCTEXT("RemoveLODRow", "Remove LOD"))
+				.ValueContent()
+				.HAlign(HAlign_Left)
+				[
+					SNew(SButton)
+					.OnClicked(this, &FPersonaMeshDetails::RemoveOneLOD, LODIndex)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("RemoveLOD", "Remove this LOD"))
+						.Font(DetailLayout.GetDetailFont())
+					]
+				];
+			}
 		}
 	}
 }
@@ -627,6 +643,22 @@ void FPersonaMeshDetails::OnLODCountCommitted(int32 InValue, ETextCommit::Type C
 FReply FPersonaMeshDetails::OnApplyChanges()
 {
 	ApplyChanges(true);
+	return FReply::Handled();
+}
+
+FReply FPersonaMeshDetails::RemoveOneLOD(int32 LODIndex)
+{
+	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
+	check(SkelMesh);
+	check(SkelMesh->LODInfo.IsValidIndex(LODIndex));
+
+	FSkeletalMeshUpdateContext UpdateContext;
+	UpdateContext.SkeletalMesh = SkelMesh;
+	UpdateContext.AssociatedComponents.Push(PersonaPtr->PreviewComponent);
+
+	FLODUtilities::RemoveLOD(UpdateContext, LODIndex);
+
+	PersonaPtr->PersonaMeshDetailLayout->ForceRefreshDetails();
 	return FReply::Handled();
 }
 

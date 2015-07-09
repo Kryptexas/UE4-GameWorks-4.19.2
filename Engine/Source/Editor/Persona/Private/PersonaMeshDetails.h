@@ -201,6 +201,8 @@ private:
 	FText GetLODCountTooltip() const;
 	/** apply LOD changes if the user modified LOD reduction settings */
 	FReply OnApplyChanges();
+	/** Removes the specified lod from the skeletal mesh */
+	FReply RemoveOneLOD(int32 LODIndex);
 	/** hide properties which don't need to be showed to end users */
 	void HideUnnecessaryProperties(IDetailLayoutBuilder& DetailLayout);
 	/** clear "None" bones and remove already included bones */
