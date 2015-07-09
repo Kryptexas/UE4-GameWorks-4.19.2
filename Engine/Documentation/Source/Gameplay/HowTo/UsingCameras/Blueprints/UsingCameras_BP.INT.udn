@@ -1,55 +1,59 @@
 Availability: Public
-Title:Using Cameras in Blueprints
+Title:Using a Static Camera
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
 Description:A How To Guide for Finding Actors in Blueprints. 
+Related: Gameplay\HowTo\UsingCameras
+Related: Gameplay\Framework\Camera
+Related: Engine/Matinee
+Related: Engine/Blueprints
+SkillLevel: Beginner
+Version: 4.8
 
-[TOC (start:2 end:2)]
-
-This page covers several examples on how to use **Cameras** within Blueprints for gameplay purposes. Whether you are looking to create a fixed camera angle for your game or cycle between multiple cameras, in order for the camera to be used during gameplay, you will need to know how to set them up first in Blueprints. 
+In this How-to we take a look at creating a static (or fixed) camera angle that is used for a player's perspective during gameplay. Once completing this tutorial, you can take the process used here and apply it to your own game to set up a fixed perspective for a player to view your game from. 
 
 [REGION:note]
-For information on using Cameras for cinematic purposes, refer to [](Engine/Matinee/HowTo) documentation and the Camera sections. The [](Resources/Showcases/MatineeFightScene) is also an excellent resource for a sample cutscene and how it was constructed.
+ For this example, we are using the **Blueprint Third Person Template** project with **Starter Content** included.
 [/REGION]
 
- _For these examples, we are using the **Blueprint Third Person Template with Starter Content**._
-
-## Using a Static Camera
-
-This section covers how to place a **Camera** Actor in your level and assign it for use as the default Camera for your game. You can also use the method to switch to a static Camera during gameplay (the next section will cover how to switch between multiple cameras). 
-
-1.	From the **Modes** menu, under the **Basic** tab, drag a **Camera** Actor into your level. 
+1.	From the **Modes** menu while in [](Engine/UI/LevelEditor/Modes/PlaceMode), search for **Camera** then drag a Camera into the level. 
 
 	![](camera_bp1.png)
 
-	Place your Camera in the level where you want the player to view the game from. 
+	You can place the Camera Actor where you would like the view perspective to be for your players. To get a better idea of the view the player will have, you can take a First Person perspective from the Camera's Point of View by locking the Viewport to the Camera Actor and entering **Pilot** mode. 
 	
-	To get a better idea of the view the player will have, you can take a First Person perspective from the Camera's Point of View by locking the Viewport to the Camera Actor.	With the Camera selected, click the **Viewport Options** button and select **Lock Viewport to Actor** then **Camera Actor**. 
+1.	With the Camera selected in the level, **Right-click** on it, then from the context menu select **Pilot 'CameraActor'**. 
 
 	[REGION:raw]
 	![](camera_bp2.png)
 	[/REGION]
 
-	You can now move around the Viewport using the WASD keys and the Camera's position will move along with it. While the Camera is locked to the Viewport, you will notice that a lock icon appears in the upper left corner of the Viewport. 
+	You can now move around the Viewport using the **WASD** keys while holding the **Left** or **Right Mouse Button** down. While you fly around the level, the Camera's position will move along with your movement allowing get an idea of the perspective the camera will take during gameplay. 
+
+1.	To unlock the Camera, click the **Unlock** button. 
 
 	![](camera_bp3.png)
 
-	To unlock the Camera, click the **Viewport Options** button again and select **Lock Viewport to Actor** then select the unlock option. 
+	The camera will remain at the resulting position when you select to unlock it. 
 
+	[REGION:note]
+	The icon next to Unlock allows you to toggle between showing the in-game camera view or level editor view. 
+	[/REGION]
+	
 1.	With the **Camera Actor** selected in the level, click the **Blueprints** button from the Main Toolbar then select **Open Level Blueprint**. 
 
 	![](camera_bp4.png)
 
-1.	Inside the **Level Blueprint**, **Right-click** anywhere in the graph window and select **Add Reference to CameraActor**. 
+1.	Inside the **Level Blueprint**, **Right-click** anywhere in the graph window and select **Create a Reference to CameraActor**. 
 
 	![](camera_bp5.png)
 
-	By adding a reference to the **Camera Actor**, the **Level Blueprint** now knows which camera we are talking about when we want to do something (in our case we want to set this Camera Actor to be the default camera view when the game is started). 
+	By adding a reference to the **Camera Actor**, the **Level Blueprint** now knows which camera we are talking about in the level (as we could have multiple cameras set up inside our level). 
 
 1.	**Right-click** in the graph again and search for and add the **Event Begin Play** node. 
 
 	![](camera_bp6.png)
 
-	This node only executes once and executes anything following it when the game is started, which is what we want. 
+	This node only executes once and executes anything following it when the game is started. 
 
 1.	**Right-click** in the graph again and search for **Set View Target** and select the **Set View Target with Blend** node. 
 
@@ -77,179 +81,23 @@ This section covers how to place a **Camera** Actor in your level and assign it 
 
 1.	From the Main Editor View, click the **Play** button to play in the Editor. 
 
-You should now see that when the game starts, the player's view is assigned to and using the **Camera Actor** that you have placed in your level. You may have also noticed that the view is letterboxed; you can easily disable this by un-checking the **Constrain Aspect Ratio** option inside the **Details** panel for the **Camera Actor**. 
+## End Result
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+mi4YXtSVyPc
+[/PARAMLITERAL]
+[/OBJECT]
+
+You will now see that when the game starts, the player's view is assigned to and using the **Camera Actor** that you have placed in your level. You may have also noticed that the view is letterboxed; you can disable this by un-checking the **Constrain Aspect Ratio** option inside the **Details** panel for the **Camera Actor**. 
 
 ![](camera_bp12.png)
-
-
-## Switching Between Multiple Cameras
-
-This section shows an example of how you can implement multiple camera angles in your game by placing multiple **Camera Actors** then use **TriggerBoxes** to tell the **Level Blueprint** when to switch between each camera. 
-
-1.	From the **Modes** menu, under **Basic**, drag in the number of **Camera Actors** you wish to cycle between. 
-
-	![](camera_bp13.png)(w:800)
-	
-	Here we have placed three cameras using different angles. 
-
-1.	Also in the **Modes** menu, under **Basic**, drag in the number of **Box Triggers** to match the number of cameras you placed. 
-
-	![](camera_bp14.png)(w:800)
-
-	Move the **Box Triggers** to where you want the player to trigger the changing of cameras. You can move/re-size the **Box Triggers** using the **W** key to move it around and the **R** key to scale the box size. Here we have set a trigger at the base of the stairs, one at the top of the stairs, and one when the player walks around the platform.
-
-1.	With each of your cameras selected, click the **Blueprints** button then select **Open Level Blueprint**. 
-
-	![](camera_bp4.png)
-
-1.	Inside the **Level Blueprint**, **Right-click** in the graph and choose **Add references to selected actors**. 
-
-	![](camera_bp15.png)
-
-	This will add references to each of the Camera Actors you have placed in your level. 
-
-1.	Minimize the **Level Blueprint**, and in your level, select each of your **Box Triggers** then return to the **Level Blueprint**. 
-
-1.	**Right-click** in the graph, then under **Add Event for Selected Actors** and **Collision**, select **Add OnActorBeginOverlap**. 
-
-	![](camera_bp16.png)
-
-	This will add **Events** for each **Box Trigger** that will fire off when the player enters them. 
-
-1.	**Right-click** in the graph and add the **Get Player Controller** node. 
-
-	![](camera_bp17.png)
-
-1.	**Right-click** in the graph and add the **Set View Target with Blend** node (un-check **Context Sensitive** if you do not see it). 
-
-1.	Copy the **Set View Target with Blend** node twice, then connect the nodes as shown below. 
-
-	![](camera_bp18.png)
-
-1.	Click **Compile** then close the Blueprint and click **Play** to play in the Editor. 
-
-You should now see that when you enter each of the Box Trigger's you have placed, it updates the game view to the Camera Actor you have specified. This a quick example of how you could start working on a multi-camera based game, you would probably want to also account for situations when the player is outside of your camera's viewing angle and adjust player input based on camera relativity. 	
-
-## Using a Camera Component
-
-This section will show you how to add a **Camera Component** to a **Blueprint** which can be used to create third person perspectives for playable or non-playable Actors in your levels. 
-
-1.	In the **Content Browser**, click the **New** button then click the **Blueprint** option. 
-
-	[REGION:raw]
-	![](Engine\Blueprints\UserGuide\Types\ClassBlueprint\Creation\CreateBP_mainFlow.png)
-	[/REGION]
-	
-1.	Click the **Character** option when the ***Class** window appears, then give the Blueprint a name and open it. 
-
-1.	On the **Components** panel, click the **Add Component** button then select **Camera**. 
-
-	[REGION:raw]
-	![](component3.png)
-	[/REGION]
-
-	This will add a **Camera Component** to the Blueprint Actor. 
-
-1.	When the Camera is added, it will appear inside the Character Movement Capsule which we do not want. 
-
-	![](component4.png)
-
-	[REGION:note]
-	The **Viewport** is docked to the Graph area of the Blueprint Editor. Switch to it by clicking its tab so you can see where your Components are located.
-	[/REGION]
-
-1.	Using the **Translation** widget, move the Camera behind the Capsule to a desired third person perspective. 
-
-	![](component5.png)
-
-	You can angle the Camera by entering **Rotation** mode (press **E**) to get your desired angle. 
-
-1.	Click the **Add Component** button again, and select **Static Mesh**. 
-
-1.	In the **Details** panel for the **Static Mesh**, click the drop-down menu under **Static Mesh** and select a mesh to use. 
-
-	![](component11.png)
-	
-	We have selected a Capsule to use as our Character for this example. 
-
-	![](component6.png)
-
-1.	Minimize the Blueprint, then under the **Game/Blueprints** folder, in the **Content Browser**, open the **MyCharacter** Blueprint. 
-
-1.	Copy the Mouse, Movement, and Jump Input sections (we will paste these in the Character Blueprint we just created). 
-
-	![](component7.png)
-
-1.	Back in your new Character Blueprint, paste the contents that were copied from the **MyCharacter** Blueprint. 
-
-1.	Click the **Compile** button, then close the Blueprint. 
-
-1.	In the **Game/Blueprints** folder, open the **MyGame** Blueprint and assign your new Character to the **Default Pawn Class**. 
-
-	![](component8.png)
-
-1.	Click the **Compile** button, then close the Blueprint and from the Main Editor window and click the **Play** button. 
-
-When you play in the Editor, you should have a character using the Static Mesh you specified that can move around the level and the Camera Component we assigned will follow that Character around. 
-
-All of the Camera Options that exist on a **Camera Actor** can be accessed and set via the **Camera** Component inside the Blueprint we created above (for example if you wanted to add tint or color shifts when the player is damaged or receives a power up), you can also set the location of the Camera Component to create a method by which a player can toggle between first or third person or even an "over-the-shoulder" type of Camera as seen below. 
-
-![](component9.png)
-
-In the above image, we placed two **Arrow** Components to act as markers to where we want our **Camera** Component to move to. In the **Graph** tab of the Blueprint, we then can add a script similar to below to toggle between the two camera locations. 
-
- ![](component10.png)
-
- Here we are saying when **Right Mouse Button** is pressed, set the location of **Camera1** (which is our **Camera** Component) to the location of our **Arrow2** (which is an over-the-shoulder) view. When releasing **Right Mouse Button**, return the camera to its default location (denoted by the location of **Arrow1**). 
-
- 
-## Using a Spring Arm Component
-
-When using a **Camera Component** to create a third person perspective for a character, you will typically want to also include a **Spring Arm Component** and parent it to the Camera. The **Spring Arm** Component tries to maintain its children at a fixed distance from the parent, but will retract the children if there is a collision, and will spring back when there is no collision. 
-
-What this does is prevent or minimize instances when the camera can penetrate solid objects, for example backing up against a wall as shown in the image below where the camera penetrates the wall next to the Character allowing them to view outside the level's play space. When using a **Spring Arm**, the camera will retract to avoid penetrating the wall and will spring back to its normal position when moving away from the wall. 
-
-![](springArm1.png)
-
-The steps below will show you how to add a **Spring Arm** Component to your Camera setup. 
-
-1.	Continuing from the **Using a Camera Component** section, open your **Character Blueprint**. 
-
-1.	On the **Components** tab, click the **Add Component** button then select the **Spring Arm** Component. 
-
-	[REGION:raw]
-	![](springArm2.png)
-	[/REGION]
-
-1.	Inside the **Components** window, drag your **Camera** Component onto the **Spring Arm** Component to attach it to the Spring Arm. 
-
-	[REGION:raw]
-	![](springArm3.png)
-	[/REGION]
-
-1.	There are multiple settings that can be used with the **Spring Arm** which are outlined below. 
-
-	![](springArm4.png)
-
-	| Section | Description |
-	| ------- | ------------ |
-	| **Sockets** | This allows you to parent the Spring Arm to a Bone on a Skeletal Mesh or a Socket. |
-	| **Events** | Allows you to add Events for the Spring Arm or to apply Component Tags. |
-	| **Camera** | Here you can set the length of the Spring Arm when there are no collisions as well as set Offsets. |
-	| **Camera Collision** | Set whether or not to check for collisions and define how big the query probe is to check for collisions. |
-	| **Camera Settings** | Whether or not to inherit Pitch, Yaw, or Roll from the Parent or Use Pawn Control Rotation. |
-	| **Lag** | Set whether or not the camera should lag behind the target position and settings associated with lag. |
-	
-1.	Once you are content with your settings (we have left everything as default), click **Compile** then close the Blueprint. 
-
-1.	Click the **Play** button from the Main Tool Bar to play in the Editor. 
-
-Move the character near a wall or position the character so that an object comes between it and the camera and notice how the camera will automatically adjust and move so that it does not intersect the object in the way.
-
-[REGION:note]
-For more on Cameras in Unreal Engine 4, refer to the [](Gameplay\Framework\Camera) documentation in the **Framework** section. 
-[/REGION]
-
 
 
 

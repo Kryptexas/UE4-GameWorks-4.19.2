@@ -5,11 +5,13 @@ Description:A How To Guide for Finding Actors in your Scenes in Unreal Engine 4.
 
 This "How To" series covers working with and placing **Cameras** in Unreal Engine 4. A Camera can be used by itself and placed directly into a level or it can be a part of a Blueprint (for instance to provide a perspective for the player when flying a plane, driving a car, or controlling a character). 
 
-Placing a Camera Actor can be done by dragging a **Camera** Actor into your level from the **Basic** tab of the **Modes** Menu. 
+Placing a Camera Actor can be done by dragging a **Camera** Actor into your level from **Modes** Menu. 
 
 ![](camera1.png)(w:820)
 
-Or by **Right-clicking** in the Level Viewport and using the Context Menu and selecting **Place Actor** then selecting the **Camera Actor**. 
+You can use the Search Bar to find the Camera Actor or look under the **All Classess** section. 
+
+You can also **Right-click** in the Level Viewport and use the context menu by selecting **Place Actor** then selecting the **Camera Actor**. 
 
 ![](camera4.png)
 
@@ -51,18 +53,18 @@ Below is an overview of each section in the **Details** panel for a Camera Actor
 For information on using Cameras for cinematic purposes, refer to [](Engine/Matinee/HowTo) documentation and the Camera sections. The [](Resources/Showcases/MatineeFightScene) is also an excellent resource for a sample cutscene and how it was constructed.
 [/REGION]
 
-Now that you have an understanding of how to place a Camera Actor in your level and some of the settings used to alter its look, head to the Setup section below to learn how to work with a Camera including how to use a Camera as a viewpoint for a player, how to use a Camera Component as part of a Blueprint, how to use a Spring Arm Component with a Camera Component (typically used for creating Third Person perspectives), as well as how to switch between Cameras during gameplay. 
+Now that you have an understanding of how to place a Camera Actor in your level and some of the settings used to alter its look, the examples below provide some ways in which you can use Camera including how to use a Camera as a viewpoint for a player, how to use a Camera Component as part of a Blueprint, how to use a Spring Arm Component with a Camera Component (typically used for creating Third Person perspectives), as well as how to switch between Cameras during gameplay. 
 
 
-## Setup
+## Usage Examples
 
-To learn more about Using Cameras in Blueprints, use the link below:
+Refer to each of the links below for step-by-step usage case examples. 
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\UsingCameras\Blueprints)
-<!-- When Code is Ready we will re-enable this link.
-* [](Gameplay\HowTo\FindingActors\Code)
--->
+* [](Gameplay\HowTo\UsingCameras\SwitchingCameras)
+* [](Gameplay\HowTo\UsingCameras\CameraComponents)
+* [](Gameplay\HowTo\UsingCameras\SpringArmComponents)
 [/REGION]
 
 
