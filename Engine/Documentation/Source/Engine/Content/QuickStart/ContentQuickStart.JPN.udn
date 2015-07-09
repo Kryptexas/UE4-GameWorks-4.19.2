@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2589385
+﻿INTSourceChangelist:2601450
 Availability:Public
 Title:アーティスト向けクイックスタート
 Crumbs:%ROOT%, GettingStarted
 Description:コンテンツ クリエイター向けアンリアルエンジン入門
+prereq:Engine/Basics/Projects/Browser
+SkillLevel: 初心者向け
+Version: 4.8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -42,15 +45,18 @@ Description:コンテンツ クリエイター向けアンリアルエンジン�
 ![](MaterialsHeader_1.png)
 
 
-アンリアル エンジン 4 (UE4) を使ったビジュアル シーンの作成はやりがいがあります (しかも楽しい！)。
-
 ## 目標
-このクイックスタートでは、以下の操作の習得を目標にしています。
-* **プロジェクトの設定**
-* **マテリアルの作成**
-* **マテリアルの Static Mesh アクタへの適用**
 
-&#x2713; [UE4 のプロジェクト ブラウザについての詳細はここをクリックしてください](Engine/Basics/Projects/Browser "Project Browser Documentation")
+このチュートリアルでは、アンリアル エンジン 4 (UE4) を使うとコンテンツ クリエーターがいかに簡単にアセットを追加することができるかを実演します。このクイックスタート ガイドでコンテンツ クリエーターは **プロジェクト ブラウザ** でのプロジェクトの新規作成、 **コンテンツ ブラウザ** でのコンテンツの検索と追加、**FBX Content Pipeline** 上での情報の探し方、**Static Mesh アクタ** への適用前に **マテリアル エディタ** で **マテリアル** を修正する方法を学ぶことができます。
+
+## 目的
+
+このクイックスタートでは、以下の操作の習得を目標にしています。
+
+* プロジェクトの設定
+* マテリアルの作成
+* マテリアルの編集
+* マテリアルの Static Mesh アクタへの適用
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -62,15 +68,15 @@ Description:コンテンツ クリエイター向けアンリアルエンジン�
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [1. プロジェクトの設定](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
-		* [UE4 プロジェクトへのコンテンツの追加](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
-		* [インポートするメッシュの準備](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
-		* [メッシュのインポート](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
-		* [テクスチャのインポート](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
-	* [2. マテリアルの作成](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
-	* [3. マテリアルの編集](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
-	* [4. Static Mesh アクタへのマテリアルの適用](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
-	* [5. 応用編](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/6:description%")
+	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+		* [](Engine/Content/QuickStart/1/1 "%Engine/Content/QuickStart/1/1:description%")
+		* [](Engine/Content/QuickStart/1/2 "%Engine/Content/QuickStart/1/2:description%")
+		* [](Engine/Content/QuickStart/1/3 "%Engine/Content/QuickStart/1/3:description%")
+		* [](Engine/Content/QuickStart/1/4 "%Engine/Content/QuickStart/1/4:description%")
+	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
 	[/PARAM]
 [/OBJECT]
 
