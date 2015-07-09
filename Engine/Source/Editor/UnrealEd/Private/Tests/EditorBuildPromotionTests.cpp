@@ -2496,7 +2496,14 @@ namespace BuildPromotionTestHelper
 			else
 			{
 				SkippedTests.Add(TEXT("All Blueprint tests. (Missing a required mesh or particle system)"));
-				UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("SKIPPING BLUEPRINT TESTS.  Invalid or missing FirstMeshPath or SecondMeshPath in AutomationTestSettings, or particle system was not created."));
+				if (FirstMeshPath.IsEmpty() || SecondMeshPath.IsEmpty())
+				{
+					UE_LOG(LogEditorBuildPromotionTests, Log, TEXT("SKIPPING BLUEPRINT TESTS.  FirstMeshPath or SecondMeshPath not configured in AutomationTestSettings."));
+				}
+				else
+				{
+					UE_LOG(LogEditorBuildPromotionTests, Warning, TEXT("SKIPPING BLUEPRINT TESTS.  Invalid FirstMeshPath or SecondMeshPath in AutomationTestSettings, or particle system was not created."));
+				}
 			}
 			
 			return true;
