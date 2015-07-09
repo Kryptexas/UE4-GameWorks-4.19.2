@@ -1,0 +1,223 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Using Additive Animations
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:Demonstrates how to blend animations together, in this case a character that can move and fire a weapon. 
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Animation/AnimMontage
+Related: Engine/Animation/NodeReference/Blend
+Related: Engine/Animation/AnimationBlending
+
+Animation blending, as a concept, simply means making a smooth transition between two or more animations on a single character or Skeletal Mesh. In Unreal Engine 4, there are various ways in which such blending can be applied either through [](Engine/Animation/Blendspaces), through additive methods by literally combining two animations based on a weighted bias or alpha value, or even applying direct overrides of the existing pose. 
+
+You can also send animation directly to a specific bone in the Skeleton and all of its children. For instance, you can start with an animation in which the character is running, but then selectively apply a shooting animation to the upper body of the character. The final result would be a character that is running and shooting at the same time, which is what this page will teach you to do in the steps below. 
+
+[TOC(start:2 end:2)]
+
+[EXCERPT:Intro]
+[REGION:note]
+For this guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. 
+
+We are also using the **Animation Starter Pack** which is available for download for free via the **Marketplace**. 
+
+![](AnimationAssetPack.png)
+
+Once downloaded, you can add the Animation Starter Pack to your project via the **Add to project** button from the Launcher.
+[/REGION]
+[/EXCERPT:Intro]
+
+## Setting up the Animation to Blend
+
+In this section, we assign our player character and make modifications to the animation we will blend in with our movement animations. 
+
+1.  With your project open, inside the **Content Browser** under the **Game/Blueprints** folder, open the **ThirdPersonGameMode** Blueprint. 
+
+1.	Under **Default Pawn Class**, click the dropdown menu and select the **Ue4ASP_Character**. 
+
+	![](Animations1.png)
+
+1.	**Compile** and **Save** then close the Blueprint. 
+
+1.	In the **Content Browser**, open the **Game/AnimStarterPack** folder. 
+
+1.	**Right-click** on the **Fire_Shotgun_Ironsights** animation, select **Create** then **Create AnimMontage**.
+  
+	![](Animations2.png)
+
+	You can filter the window by typing **Fire** inside the search window as shown above. 
+
+1.	Rename the Montage if you wish, then open it up and click the magnifying glass icon. 
+
+	![](Animations3.png)
+
+	This will open the **Anim Slot Manager** which we will use to create a **Slot** that we can use to blend to when calling the Slot by name. 
+
+1.	Click the **Add Slot** button, then name the slot **UpperBody** then **Save** and close the window. 
+
+	![](Animations4.png)
+
+1.	Click the dropdown menu inside the **Montage Group** section and change it to **DefaultGroup.UpperBody**, then close the window. 
+
+	![](Animations5.png)
+
+	We have now associated this Montage with the **DefaultGroup.UpperBody**, allowing it to play when the Slot is called.  
+
+## Updating the Character Blueprint
+
+Next we will make some updates to our Character Blueprint so that we can determine when they are pressing the shoot button. 
+
+1.	Inside the **Content Browser** under **Game/AnimStarterPack/Character**, open the **Ue4ASP_Character** Blueprint. 
+
+1.	Locate the **Crouching** section, and delete the **InputAction Crouch** Event (with the Warning!) sign. 
+
+	![](Animations6.png)
+
+	There is a warning on this node because our project is not set up to use the InputAction event "Crouch". 
+
+1.	**Right-click** in the graph and add a **C** Key Event and connect as shown below. 
+
+	![](Animations7.png)
+
+	We have just associated crouch now with the **C** key press, you can change this input to whatever you would like. 
+
+1.	In the **MyBlueprint** window, click the **Add Variable** button to create a **Boolean** variable. 
+
+1.	Name the variable **Fire Button Down** and click the eye icon to make the variable public. 
+
+	![](Animations8.png)
+
+1.	**Right-click** in the graph and add the **Left Mouse Button** Key Event. 
+
+1.	Holding **Alt**, drag the **Fire Button Down** variable in the graph to create a **Set** node. 
+
+1.	Repeat the previous step (or copy the **Set** node) and connect as shown below. 
+
+	![](Animations9.png)
+
+	Make sure that **Fire Button Down** is **True** when **Left Mouse Button** is **Pressed** and **False** when **Released**. 
+
+1.	**Compile** and **Save** then close the Blueprint. 
+
+## Setting up the Animation Graph
+
+Here we will set up the Animation Graph and place the nodes needed to blend between our current pose and the fire weapon animation. 
+
+1.	Also under **Game/AnimStarterPack/Character**, open the **UE4ASP_HeroTPP_AnimBlueprint** Animation Blueprint. 
+
+1.	Inside the **MyBlueprint** window, open the **AnimGraph**. 
+
+	![](Animations9b.png)
+
+1.	Drag off the **Locomotion** State Machine and search for and add **New Save cached pose**. 
+
+	![](Animations10.png)
+
+	Here we are getting the resulting pose from our Locomotion State Machine and storing it in a cached pose that we can use elsewhere. 
+
+1.	Give the cached pose a name such as **LocomotionCache**. 
+
+	![](Animations11.png)
+
+1.	**Right-click** in the graph and add the **Use cached pose 'LocomotionCache'** (or whatever you named the cached pose). 
+
+	![](Animations12.png)
+
+1.	Drag off the **Use cached pose** node and search for and add the **Layered blend per bone** node. 
+
+	![](Animations13.png)
+
+	The **Layered Blend Per Bone** node will allow us to blend animations together from a specified bone on the Skeleton.
+
+1.	Copy/Paste the **Use cached pose 'LocomotionCache'** node, then drag off it and add the **Slot 'DefaultSlot'** node. 
+
+	![](Animations14.png)
+
+1.	In the **Settings** for the **Slot** node, click the dropdown menu and select **DefaultGroup.UpperBody**. 
+
+	![](Animations15.png)
+
+1.	Connect the **Slot** to the **Blend Poses 0** pin on the **Layered blend per bone** node, then connect its out to the **Result**. 
+
+	![](Animations16.png)
+
+	Our AnimGraph is complete, but we still need to modify some settings on the **Layered blend per bone** node. 
+
+## Adjusting the Blend Settings
+
+Finally, we update the way we blend between animations so that our upperbody plays one animation while our lowerbody plays another. 
+
+1.	Click on the **Layered blend per bone** node, then expand the **Layer Setup** section and click the **+** sign. 
+
+	![](Animations17.png)
+
+1.	Under **Bone Name** enter **spine_01**, then set **Blend Depth** to **1** and check **Mesh Space Rotation Blend**. 
+
+	![](Animations18.png)
+
+	With these settings we can blend the shooting AnimMontage onto our Skeleton starting from the **spine_01** bone. 
+
+1.	Inside the **MyBlueprint** window, open the **EventGraph**. 
+
+	![](Animations18b.png)
+
+1.	Drag off the **As Ue 4ASP Character** pin of the **Cast To Ue4ASP_Character** node and add the **Get Fire Button Down** node. 
+
+	![](Animations19.png)
+
+	This will tell us if the player is pressing the fire button or not. 
+
+1.	Hold **B** and **Left-click** in the graph to create a **Branch** node and connect it following **Set Crouching**. 
+
+	![](Animations20.png)
+
+	For the **Condition**, plug in the **FireButtonDown** pin. 
+
+1.	**Right-click** in the graph and add the **Montage Is Playing** node. 
+
+	![](Animations21.png)
+
+1.	Connect the **Montage Is Playing** node to the **True** of the **Branch**. 
+
+	![](Animations22.png)
+
+	For the **Montage**, select your Montage (**Fire_Shotgun_Ironsights_Montage**). 
+
+1.	Off the **Return Value** of the **Montage Is Playing** node, add a **Branch**. 
+
+1.	Off the **False** of the new **Branch** node, add the **Montage Play** node with **Montage to Play** set to your Montage. 
+
+	![](Animations23.png)
+
+	This will check now if the Montage is currently playing and if it is, do not play it (and if it is not, play the Montage). 
+
+1.	**Compile** and **Save**, close the **Blueprint** and play in the editor. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	N96shYlF0Aw
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+You should now see that when you hold the **Left Mouse Button** down, the character will play the shooting AnimMontage. You can walk around while shooting, you can even crouch (by holding **C**) and shoot as well. 
+
+You could use this same method to play a melee attack or reload animation, by creating an **AnimMontage** for the animation you want to blend with the movement animation set and assigning it to the **UpperBody** slot as done in Step 8 above. Because the Slot was set up in the AnimGraph of the character's Animation Blueprint, any animation that is set to use that particular Slot is passed to the Animation Graph and blended in when called. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,103 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Texture Expressions
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:Expressions that sample and output textures.
+
+[EXCERPT:TOC]
+[TOC(start:2)]
+[/EXCERPT:TOC]
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Font#FontSample]
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Font#FontSampleParameter]
+
+
+## SceneColor
+
+The SceneColor expression outputs the existing scene color.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **OffsetFraction** | Takes in a 2D vector that offsets the scene color in screen space. Setting this to either 0,1 or 1,0 will provide a slightly brighter version of the scene color. Setting it to 1,1 will provide an even brighter result.  |
+
+
+![SceneColorExample.png](SceneColorExample.png)
+
+
+## SpriteTextureSampler
+
+A custom sprite material can be created by duplicating one of the existing ones, or creating a new material in the **Content Browser**.  When a sprite is rendered, the texture defined in a sprite asset will be piped into any texture parameters named "SpriteTexture" in the material. The SpriteTextureSampler node can be placed to do this automatically.  
+
+![](SpriteMaterial.png)(w:720)
+
+Sprite instances will pass in their color as a vertex color, but it can be used for anything in the material, not just tinting. 
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Texture** | Specifies the texture sampled by the expression. To set the texture, first select a texture in the **Content Browser**.  Then, select the Texture property in the expression's property window and click the 'Use Current Selection' button. |
+| **Sampler Type** | The type of data that will be sampled and output from the node. |
+| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. |
+| [REGION:tablesection]Outputs[/REGION] ||
+| **RGB** | Outputs the three-channel RGB vector value of the color. |
+| **R** | Outputs the red channel of the color. |
+| **G** | Outputs the green channel of the color. |
+| **B** | Outputs the blue channel of the color. |
+| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Functions#TextureObject]
+
+
+<!---
+## Scene Texture
+
+
+## Texture Object
+
+
+--->
+
+## TextureSample
+
+The TextureSample expression outputs the color value(s) from a texture. This texture can be a regular Texture2D (including normal maps), a cubemap, or a movie texture.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Texture** | Specifies the texture sampled by the expression. To set the texture, first select a texture in the **Content Browser**.  Then, select the Texture property in the expression's property window and click the 'Use Current Selection' button. |
+| **Sampler Type** | The type of data that will be sampled and output from the node. |
+| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. If the TextureSample represents a cubemap texture, the UVs coordinate must be a three-channel value rather than just a two-channel value. |
+| [REGION:tablesection]Outputs[/REGION] ||
+| **RGB** | Outputs the three-channel RGB vector value of the color. |
+| **R** | Outputs the red channel of the color. |
+| **G** | Outputs the green channel of the color. |
+| **B** | Outputs the blue channel of the color. |
+| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+
+
+![TextureSampleExample.png](TextureSampleExample.png)
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#TextureObjectParameter]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#TextureSampleParameter2D]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#TextureSampleParameterSubUV]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#TextureSampleParameterCube]
+
+
+

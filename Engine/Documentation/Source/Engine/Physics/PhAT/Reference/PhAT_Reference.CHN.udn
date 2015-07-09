@@ -1,0 +1,230 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Physics Asset Tool Reference
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
+Description:Tool to set up physics bodies and joints to use for physical simulation and collision for SkeletalMeshes.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Reference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/Reference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+
+
+This document contains descriptions for all interface elements within the **Physics Asset Tool** (**PhAT**).
+
+
+## Opening PhAT
+
+The PhAT Physics Editor can be opened by **double-clicking** any Physics Asset or through the **right-click** context menu of a Physics Asset in the **Content Browser**. Either of these will open up that particular Physics Asset in the PhAT Physics Editor for editing.
+
+
+
+
+## PhAT Interface
+
+The PhAT Physics Editor is divided into the following regions:
+
+![](PhAT_EditingPhysicsAsset_update.png)(w:940)
+
+
+1. [Menu Bar](#MenuBar)
+1. [Tool Bar](#ToolBar)
+1. [Viewport Pane](#ViewportPane)
+1. [Details Pane](#DetailsPane)
+1. [Hierarchy Pane](#HierarchyPane)
+
+
+
+## Menu Bar
+
+### File
+
+* **Save** - Saves the current Physics Asset.
+* **Save All** - Saves all changed files.
+* **Choose Files to Save...** - Brings up the Save Content dialog.
+* **Submit to Source Control...** - Brings up the Submit dialog allowing changed and added files to be submitted to source control.
+
+
+### Edit
+
+* **Undo** - Undo the most recent action on the Undo stack.
+* **Redo** - Redoes the most recently undone action on the Undo stack.
+* **Editor Preferences** - Opens the Editor Preferences.
+* **Project Settings** - Opens the Project Settings.
+
+
+### Asset
+
+* **Find in Content Browser...** - Finds the currently opened Physics Asset in the Content Browser.
+
+
+### Window
+
+* **Viewport** - Shows the Viewport Pane if it is closed.
+* **Details** - Shows the Details Pane if it is closed.
+* **Hierarchy** - Shows the Hierarchy Pane if it is closed.
+* **Toolbar** - Shows the Toolbar if it is closed.
+* **Content Browser>** - Opens or shows one of 4 Content Browser tabs.
+* **Developer Tools>** - Opens the Developer Tools Tab. 
+* **Blueprint Debugger** - Opens the Blueprint Debugger.
+* **Class Viewer** - Opens the Class Viewer.
+* **Message Log** - Opens or shows the Message Log.
+* **Output Log** - Opens the Output Log.
+* **Plugins** - Opens the Plugins interface.
+* **Device Manger** - Opens the Device Manager.
+* **Session Frontend** - Shows the Session Frontend.
+* **Save Layout** - Saves the locations of all attached panes for this editor.
+* **Enable Fullscreen** - Enables Fullscreen for the main Unreal Editor window.
+
+
+### Help
+
+* **Browse PhAT Documentation...** - Opens the Physics Asset Tool documentation.
+* **Ask a Question...** - Opens a web browser to the "Ask a Question" page on the Unreal Developer Network.
+* **Search for Answers...** - Opens a web browser to the "Search" page on the Unreal Developer Network.
+* **Unreal Engine Support Website...** - Opens a web browser to the Unreal Developer Network.
+* **Visit EpicGames.com...** - Opens a web browser to www.EpicGames.com
+* **About Unreal Editor...** - Shows the "About Unreal Editor" window.
+
+
+## Tool Bar
+
+What follows is a description of each of the toolbar buttons, from left to right as they appear on the toolbar.
+
+### Main Tool Bar
+
+| **Icon**  | **Description** | 
+| --- | --- |
+| ![](icon_SaveAsset_40x.png) | **Save** - Saves the Physics Asset currently open in the Physics Asset Tool. |
+| ![](icon_toolbar_genericfinder_40px.png) | **Find in Content Browser** - Will select the current Physics Asset in the Content Browser. |
+| ![](icon_Enable_Simulation_40px.png) | **Simulation** - Simulates the Physics Asset. While simulating, the Poke and Drag functions are available to interact with the simulating Physics Asset. Further, if Physics Blend is set to less than 1.0, an animation can be selected and played by using the Animation selector and the Play button. |
+| ![](Engine\Physics\PhAT\UserGuide\selectedToggle_button.png) | **Selected Simulation** - Toggling this feature on will make the Physics Asset Tool only simulate the selected Physics Bodies and their children. For example, selecting the shoulder of a human would simulate the shoulder down to the fingers. |
+| ![](icon_PhAT_modeSelector.png) | **Mode Selector** - Clicking this enables you to switch between Bodies Mode and Constraints Mode.|
+| ![](icon_translate_40x.png) | **Translation** -  Using the Translation tool allows you to move the currently selected Physics Body or Physics Constraint. |
+| ![](icon_rotate_40x.png) | **Rotation** - Using the Rotation tool allows you to rotate the currently selected Physics Body or Physics Constraint. |
+| ![](icon_scale_40x.png) | **Scale** - Using the Scale tool allows you to scale the currently selected Physics Body. |
+| ![](icon_PhAT_Play_40x.png) | **Play** - Plays the currently selected animation. Physics Blend must be less that 1.0 for any effect to show. |
+|[REGION:tablesection]Animation[/REGION]||
+|![](PhAT_Animation.png) | **Animation** - While the simulation is running, an animation can be selected here to play on the Skeletal Mesh.|
+
+### Bodies Mode Tool Bar
+
+While in Bodies Mode, these buttons will appear to the right of the **Constraints Mode** button:
+
+| **Icon**  | **Description** | 
+| --- | --- |
+| ![](icon_PhAT_EnableCollision_40x.png) | **Collision On** - Enables collision on the currently selected Physics Body with the next selected Physics Body. |
+| ![](icon_PhAT_DisableCollision_40x.png) | **Collision Off** - Disables collision on the currently selected Physics Body with the next selected Physics Body. |
+| ![](icon_PhAT_Weld_40x.png) | **Weld** - Welds the currently selected Physics Body to the next Physics Body that is selected. |
+
+
+### Constraint Mode Tool Bar
+
+While in Constraint Mode, these buttons will appear to the right of the **Constraints Mode** button:
+
+| **Icon**  | **Description** | 
+| --- | --- |
+| ![](icon_PhAT_Ball_40x.png) | **To Ball and Socket** - Sets the currently selected Constraint to a Ball and Socket preset. |
+| ![](icon_PhAT_Hinge_40x.png) | **To Hinge** - Sets the currently selected Constraint to a Hinge preset. |
+| ![](icon_PhAT_Prismatic_40x.png) | **To Prismatic** - Sets the currently selected Constraint to a Prismatic preset. |
+| ![](icon_PhAT_Skeletal_40x.png) | **To Skeletal** - Sets the currently selected Constraint to a Skeletal Joint preset. |
+| ![](icon_PhAT_SnapConstraint_40x.png) | **Snap** - Snaps the Constraint to its bone. |
+
+
+
+
+## Viewport Pane
+
+The Viewport Pane shows a rendered view of the default Skeletal Mesh associated with the Physics Asset. It also shows any physical bodies associated with the ones in the skeleton of the default mesh, any constraints between those bodies, visual tools to manipulate those bodies and constraints, and information about those bodies and constraints. The rendering mode for the mesh, the bodies, and the constraints can all be adjusted individually to get just the right preview for the task at hand. Perhaps most importantly, the physics simulation of the bodies and constraints can be previewed directly in the viewport and the mesh can be manipulated (nudging it or grabbing and moving it) to see how they react to particular actions.
+
+
+## Details Pane
+
+The Details pane is a standard Unreal properties window which shows either a set of basic editor properties if nothing is selected or the properties of the body or constraint currently selected in the Hierarchy Pane, depending on what mode the editor is in.
+
+
+## Hierarchy Pane
+
+The Hierarchy Pane shows a hierarchical view of the Bones of the Skeletal Mesh. Depending on which mode the editor is currently in, selecting a joint name from this list will select either a Body or a Constraint. Bones with Bodies or Constraints directly associated with them are shown in bold to distinguish them. Selecting Bones in the Hierarchy Pane will select their corresponding Body or Constraint (depending which mode is enabled).
+
+
+## Controls
+
+
+### Mouse Controls
+
+| --- | --- |
+| **Left Click** | Select limb/joint or widget axis. |
+| **SHIFT + Left Click** | Will do a non-uniform transform if possible (scaling along one axis). |
+| **X** | Lock Selection. |
+| **CTRL + Left Click** | Multi select Physics Bodies and Physics Constraints. |
+| **CTRL + Left Click** | Poke the Physics Asset (in a live simulation). |
+| **CTRL + Right Click + Drag** | Grab onto the Physics Asset (only in a live simulation). |
+
+
+### Keyboard Controls
+
+| --- | --- |
+| **W** | Translation Mode. |
+| **E** | Rotate Mode. |
+| **R** | Scale Mode. |
+| **Spacebar** | Cycle Widget Mode. |
+| **C** | Copy properties from/to. |
+| **DEL** | Delete constraint/body. |
+| **F** | Center view on selected Body or Constraint. |
+| **L + Left Click and Drag** | Orbit directional light. |
+| **[** | Enable collision between selected body and another. |
+| **]** | Disable collision with the selected body and another. |
+| [REGION:tablesection]**Constraints Mode**[/REGION] ||
+| **Q** | Cycle constraint X -> Y -> Z. |
+| **1** | Switches **Angular Swing 1** of the selected Physics Constraint between **Limited** and **Locked**. |
+| **2** | Switches **Angular Swing 2** of the selected Physics Constraint between **Limited** and **Locked**. |
+| **3** | Switches **Angular Twist** of the selected Physics Constraint between **Limited** and **Locked**. |
+| **4** | Cycles the angular motions of the selected Physics Constraint locking 2 of them and limiting the 3rd. |
+
+[REGION:note]
+As of version 4.5,  PhAT allows you to copy a Physics Body from one bone to another based on the left/right naming convention.  If you use an `_L` `_R` naming convention on your joints, **hitting** the **M** key will copy the Physics Body to the bone that shares the same name, but has the opposing suffix.  However, this only copies the Physics Body and does not currently copy constraints. Also note that currently this does not mirror rotations.
+[/REGION:note]
+
+
+
+
+

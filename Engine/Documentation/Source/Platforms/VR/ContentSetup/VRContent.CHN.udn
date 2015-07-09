@@ -1,0 +1,180 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Virtual Reality Best Practices
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:Information over developing for VR.
+Navigation:platform
+
+[VAR:Params]
+[PARAM:image]
+	![%Platforms:title%](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/platform_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Platforms:title%
+[/PARAM]
+[PARAM:description]
+	%Platforms:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Platforms]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+platforms
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+Developing content for Virtual Reality (VR) does require a few workflow adjustments to ensure that the user has the best 
+VR experience possible. The purpose of this guide to help point out some of the main things that you should aware of when 
+developing content for your VR projects. 
+
+
+## World Scale
+
+Getting the scale of your world correct is one of the most important things to help deliver the best user experience possible 
+on VR platforms. Having the wrong scale can lead to all kind of sensory issues for users and could even result in Simulation 
+Sickness. Objects are most easily viewed in VR when they are in a range of **0.75 to 3.5 Meters** from the player's camera. 
+Inside of UE4, **1 Unreal Unit (UU) is equal to 1 Centimeter (CM)**. This means that object's inside of Unreal are best viewed 
+when they are **75 UU to 350 UU** away from the player's camera when using VR. 
+ 
+| Distance  | Distance in Unreal Units(UU) |
+| --- | --- |
+| 1 Centimeter | 1 Unreal Unit|
+| 1 Meter|100 Unreal Units|
+| 1 Kilometer | 100,000 Unreal Units|
+
+You can adjust the scale of your world in the **World to Meters** variable that is located under **World Settings** in side of 
+UE4. However exercise caution when adjusting the scale of your world as again, selecting the wrong scale could lead to a 
+disconnection between the world and the user which could lead to simulation sickness.
+
+![](T_VR_World_To_Meters_00.png)
+
+## Simulation Sickness
+
+Simulation Sickness is a form of motion sickness that occurs when using HMD devices in a VR world. Simulation Sickness can 
+greatly affect a user's VR experience and in some cases, ruin the VR experience all together. To help reduce the likelihood 
+of your user having a bad VR experience, follow the best practices listed below **closely**. If you do not do this, your users 
+could end up having a very unpleasant VR experience.    
+
+* Developers make the **worst** test subjects because they are too used to using VR devices. Check your game as much as you can with as many different people as you can to make sure that you are not causing Simulation Sickness.
+* **_Avoid_** cinematic cameras or anything that takes control of the camera movements away from the player as this tends to be the biggest culprit of your user having a bad VR experience.
+* **_Do Not_** override the Field of View (FOV) manually, and **Do Not** expose this to the end user to edit. The value needs to match the physical geometry of the headset and lenses and should be automatically set through the device's SDK and internal configuration. If there is a mismatch, the world will appear to warp when you turn your head, leading to discomfort or nausea. 
+* **_Do Not_** have "Walking Bob" for a camera effect like in most first person games. Causing the camera to move up and down to mimic the movement of the human body will give player Simulation Sickness and ruin the VR experience. 
+* **_Do Not_** "Shake" the camera when trying to relay an event to the player. If a grenade goes off next to a player, a camera shake may make sense in non VR games, but in VR games, it can trigger Simulation Sickness very quickly.
+* When you are designing worlds and levels for your VR game, make sure to use dimmer lights and colors than you normally would. Strong and vibrant lighting in VR games can cause Simulation Sickness to occur more quickly. Avoid this by using cooler shades and dimmer lights than you normally would.
+* Try and keep your frame rate as high as possible. Low frame rates are another trigger for Simulation Sickness, so make sure to optimize your game as much as possible. You must maintain a framerate over the refresh rate of the device (60 fps for DK1, 75 fps for DK2).
+* Avoid stairs and use lifts instead. When the player is moving very quickly, especially up and down something like stairs, it can be very disorienting.
+* Players should all start out going full speed and not gradually accelerate to full speed and movement speed should always be at a constant rate of speed. 
+* **Do Not** use the Depth of Field or Motion Blur post process because they can greatly affect what the user is seeing and more importantly, they can give the user Simulation Sickness very quickly. 
+
+
+The above list is some of the main issues that will cause Simulation Sickness but there are many more. 
+
+## VR Character Settings
+
+The setup for a character using a VR headset is slightly different than for a standard character. Things like character 
+Height, Width, Speed, and Camera Location all need to be slightly modified to accommodate a VR character.   
+
+[REGION:tip]
+ When building objects for a VR world it is important that you make the scale of your digital object the same as their real 
+ world counterpart. Making things bigger or smaller than they are in the real world can ruin the emersion that you are trying 
+ to achieve. 
+[/REGION]
+ 
+ **Character Height & Width**
+
+Character Height & Width should mimic real life measurements as much as possible. Using sizes that are too big or two small 
+could ruin the emersion that you are trying to achieve.  
+
+|Property| UE4 Default | Recommended VR |
+|---| --- | --- |
+|Height:| 192 CM|176 CM|
+|Width:| 84 CM|68 CM|
+
+**Movement Speed**
+
+VR movement speed is a difficult property to recommend a setting for because the movement speed that you choose will mainly be 
+determined by the type of experience that you are trying to achieve. In the Elemental VR demo for example, the movement speed 
+was cut to about 1/4 normal speed.  
+
+|Property| UE4 Default | Recommended VR |
+|---| --- | --- |
+Movement Speed:|60 M/S|24 M/S|
+
+**Camera Location**
+
+The VR camera needs to be positioned slightly lower than the base eye height to compensate for being at the characters eye level.  
+
+|Property| UE4 Default | Recommended VR |
+|---| --- | --- |
+Base Eye Height:|180 CM|160 CM|
+
+## VR Content Considerations
+
+When creating VR content, remember that users can look at that content from multiple angles. Here are few things that you might 
+have done in the past but need to avoid in VR:
+
+* **Scale** - The best thing to do about the scale of the objects in your VR world is to mimic reality as closely as you can. Making objects bigger or smaller than their real world counterparts could lead to confusion or Simulation Sickness.
+* **Missing Polygon Faces** - In standard games, it is often acceptable and preferred to remove polygon faces from objects that cannot be seen by the player. However in VR games, players have much more freedom to look around and this old practice can sometimes lead to players being able to see things that are not supposed to and should no longer be done. 
+
+## Blueprint Functions
+ 
+ There are several Blueprint functions will help you better interact with a VR headset. These functions can be found under the 
+ **Head Mounted Display** menu in side of the Blueprint editor. 
+
+ ![](T_BlueprintHMD.jpg)
+
+|Blueprint Node Name| Functionality | 
+|---| --- |
+Enable Low Persistence Mode|Switches between low and full persistence mode.|
+Get Orientation And Position|Grabs the current orientation and position for the HMD.|
+Get Positional Tracking Camera Parameters|If the HMD has a positional tracking camera, this will return the game-world location of the camera, as well as the parameters for the bounding region of the tracking. This allows an in-game representation of the legal positional tracking range. All values will be zeroed if the camera is not available or the HMD does not support it.|
+Has Valid Tracking Position|If the HMD supports positional tracking, whether or not we are currently being tracked.|
+Is In Low Persistence Mode| Returns _true_, if HMD is in low persistence mode; _false_ otherwise.|
+Reset Orientation And Position| Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction and assuming current position as a 'zero-point'(for position tracking).|
+
+## Known Issues 
+
+The amount of resources needed for rendering and displaying the images for HMD devices is quite high and because of this, some 
+features of the Unreal Engine, at this time, do not work when using a HMD device. Below is a list of all of the currently known 
+issues for HMD devices and how to get around them if possible.  
+
+|Know Issue| Workaround | 
+|---| --- |
+| Texture Blurring / Vibrating| This is caused by the TemporalAA that UE4 uses for Anti-Aliasing. The current work around is disable TemporalAA by switching the AA method to FXAA or None in the Post Process volume settings. 
+| Screen Space Reflections(SSR)| This is currently not supported and will not work. However [Reflection Probes](Resources/Showcases/Reflections#reflectionenvironment) will still work. 
+
+
+
+**Normal Mapping Issues**
+
+When viewing Normal maps on objects in VR, you will notice that they do not have the impact that they might have once had. This 
+is because normal mapping does not account for a binocular display or motion parallax. Because of this, Normal maps will come out 
+looking flat when viewed with a VR device. To get around this, you can do one of two things. 
+
+|Shader Type | Description|
+|---|---|
+|[Parallax Mapping](http://en.wikipedia.org/wiki/Parallax_mapping)| Parallax mapping takes Normal mapping to the next level by accounting for depth cues Normal mapping does not. A Parallax mapping shader can better display depth information, making objects appear to have more detail than they do. This is because no matter what angle you look at, a Parallax map will always correct itself to show you the correct depth information from that view point. The best use of a Parallax map would be for cobblestone pathways and fine detail on surfaces. 
+|[Tessellation Shader Displacement](Resources/ContentExamples/MaterialNodes/1_11) | Tessellation Shader Displacement will displace 3D Geometry in real time by adding details that are not modeled into the object. Tessellation shaders do a great job of displaying information because tessellation shaders actually create the missing detail by creating more vertices and displacing them in 3D Space.  |

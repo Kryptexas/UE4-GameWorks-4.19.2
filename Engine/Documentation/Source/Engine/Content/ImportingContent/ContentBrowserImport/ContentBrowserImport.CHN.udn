@@ -1,0 +1,123 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Content Browser Import
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to add content using the Content Browser's 'Import' function.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+Before getting started: Download and extract sample assets from the following link.
+* [Sample Assets](SampleAssets.zip)
+[/REGION]
+
+Developers typically use the Content Browser's **Import** function to add content to their UE4 projects.
+
+## Goal
+
+The focus of this guide is to teach developers how to use the Content Browser's **Import** function from inside the Unreal Editor.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	Where to locate the Content Browser's **Import** function.
+*	How to use the Content Browser's **Import** function.
+*	How to verify that assets were properly imported into the project folder.
+
+![](ContentHowToPrjSetup.png)
+
+[REGION:note]
+If you're creating a new project, use these project **settings** (also pictured above):
+*	**Desktop / Console**
+*	**Maximum Quality**
+*	**No Starter Content**
+[/REGION]
+
+## Locating the Content Browser's Import Button
+
+1.	The **Import** button is located inside Unreal Editor's **Content Browser** (click the image below).
+
+	[REGION:lightbox]
+		[![](FindingImportButton.png)(w:900)](FindingImportButton.png)
+	[/REGION]
+
+## Using the Content Browser's Import Function
+
+1.	From inside the editor, **click** the **Import** button (pictured below).
+
+	![](ImportButton_UI.png)
+
+1.	Locate and **select** the **Basic_Asset1.fbx**, **Basic_Asset2.FBX**, **T_Rock_04_D.TGA**, and **T_Rock_04_n.TGA** content files (pictured below).
+
+	![](ImportFileDialogBox.png)
+
+1.	**Click Open** to begin importing the content files to your project (pictured above).
+
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** will add your meshes to the Project.
+
+	![](FBX_ImportOptionsDialogBox.png)
+
+1.	A confirmation box appears in the lower right corner of the Unreal Editor (pictured below).
+
+	![](TextureDialogBox.png)
+
+1.	Click **OK** to accept the **T_Rock_04_n.TGA** normal map's settings (pictured above).
+
+	[REGION:warning]
+	UE4 batch imports [supported](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
+	
+	If you see the following pop-up message:
+	
+	![](TextureImportMessage.png)
+	
+	UE4 just prevented you from importing an unsupported image file.
+	
+	Also, if you see the following pop-up message:
+	
+	![](nonpoweoftwowarning.png)
+	
+	UE4 is telling you that odd-sized images aren't streamed or mipmapped.
+	[/REGION]
+
+1.	Unsaved assets are marked with an asterisk (pictured below).
+
+	![](UnsavedAssets.png)
+
+1.	**Click** the **Save All** button to save your imported meshes.
+
+	![](SaveAllButton_UI.png)
+
+1.	A **Save Content** dialog box appears (pictured below). **Click** **Save Selected** to save your imported assets.
+
+	![](SaveSelectedButton_UI.png)
+
+1.	UE4 removes the asterisk from saved assets (pictured below).
+
+	![](SavedAssets.png)
+
+## Verifying Imported Assets
+
+It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
+
+1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+
+	![](FolderDialogBox_UI.png)
+
+1.	Under **Folder Options**, **click 'Show In Explorer'** (pictured below).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	With Explorer open, verify that UE4 created the corresponding ** *.uasset files **  for your project (pictured below).
+
+	![](ImportedAssets_Explorer.png)
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	Locate the Content Browser's **Import** function.  
+&#x2713;	Use the Content Browser's **Import** function.  
+&#x2713;	Verify that assets were properly imported to the project folder.

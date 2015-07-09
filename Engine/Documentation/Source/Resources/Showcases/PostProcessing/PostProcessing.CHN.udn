@@ -1,0 +1,260 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:Post Process Matinee Example
+Crumbs:%ROOT%, Resources
+Description:An overview of the Post Process Matinee example included with UE4.
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/Showcases/PostProcessing:title%](PostProcessing_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/PostProcessing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/PostProcessing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/PostProcessing:title%](PostProcessing_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/PostProcessing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/PostProcessing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:fullwidth]
+	![](DragonFlyIntro.png)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+## Overview
+
+This example shows a variety of post processing techniques available within Unreal Engine 4. Post process effects are visual effects applied to the pixels of an image as the final step in the rendering process; after all scene calculations are complete, but just before the pixels are drawn to the screen. 
+
+For more information on post process effects, please see [the Post Process Effects documentation.](Engine/Rendering\PostProcessEffects)
+
+[REGION:note]
+	In this example, all post process effects are applied through the camera. No Post Process Volumes are being used to give the final result.
+[/REGION]
+
+## Scene Breakdown
+
+When playing the example level, the camera continuously makes panning passes past a dragonfly character. With each pass, you see a different application of post process effects. It is important to realize that throughout this demonstration, the lighting in the level remains constant. The only changes come from animating post process settings.
+
+Of the many post process effects available, the following were employed in this example:
+
+* Scene Color
+* Bloom
+* Lens Flares
+* Ambient Occlusion
+* Global Illumination
+* Depth of Field
+
+
+The scene contains a 97-second Matinee animation in which moves the two cameras through 8 shots with camera fades between each shot. The first four are shorter, just establishing basic post processing, as well as showing off the available lighting in the level. The following 3 shots primarily make changes to overall color grading in order to give dramatically different results.
+
+[REGION:imagetable]
+| [![](PPE_BaseScene.png)(w:222)](#BasePostProcessEffects) | [![](PPE_BW.png)(w:222)](#ColorCorrectedScenes) | [![](PPE_ColorGraded.png)(w:222)](#ColorCorrectedScenes) | [![](PPE_Night.png)(w:222)](#ColorCorrectedScenes) |
+| :---: | :---: | :---: | :---: |
+| [Base Post Effects](#BasePostProcessEffects) | [Black & White](#ColorCorrectedScenes) | [Color Graded](#ColorCorrectedScenes) | [Night Shot](#ColorCorrectedScenes) | 
+[/REGION]
+
+For the purposes of this document, we will break down the base post process effects first, touching on them at a high level. We will then discuss how Color Grading was used to dramatically change the feel of the shots through the sequence. More in-depth coverage of each technique can be found in [the Post Process Effects documentation.](Engine/Rendering\PostProcessEffects)
+
+
+
+
+
+
+## Base Post Process Effects
+
+
+
+The first four camera shots - as seen when playing the level - are really just establishing shots to give you an idea of the base lighting. However, there _are_ some post processing effects in play here. To look at these settings yourself, you may select **Camera Actor 2** from the _World Outliner_ panel. The sections below break down how each of the respective post process effects was used to create the final result.
+
+
+
+
+[REGION:topics fifth]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\SceneColor:title%](SceneColor_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\SceneColor:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\SceneColor]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\Bloom:title%](Bloom_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\Bloom:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\Bloom]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\AmbientOcclusion:title%](AmbientOcclusion_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\AmbientOcclusion:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\AmbientOcclusion]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\GlobalIllumination:title%](GI_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\GlobalIllumination:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\GlobalIllumination]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\DepthOfField:title%](DOF_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\DepthOfField:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\DepthOfField]
+	[/PARAM]
+[/OBJECT]
+
+
+
+[/REGION]
+
+
+
+
+## Color Corrected Scenes
+
+After the first few shots of the sequence, the post effects become more dramatic. We see the scene become completely desaturated to full black & white, followed by a semi-desaturated shot where the colors have been carefully subdued, then followed by a night shot that appears to be lit by moonlight. The sections below give an insight into how each of these was created.
+
+[REGION:topics third]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\BWScene:title%](topic_BW.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\BWScene:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\BWScene]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\ColorGradedScene:title%](topic_ColorGraded.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\ColorGradedScene:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\ColorGradedScene]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\NightScene:title%](topic_Night.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\NightScene:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\NightScene]
+	[/PARAM]
+[/OBJECT]
+
+[/REGION]
+
+
+## Matinee
+
+As impressive as the post process effects are in this scene, the end result would not be possible without the animation provided by Matinee. In the following sections, we take a look at how to animate post process values in Matinee, as well as how to use Matinee in tandem with the **Details** panel to help deconstruct the scene yourself.
+
+In this scene, the two cameras were added to a single Matinee object. Float property tracks were added for each property that was going to be changed over time. A Director track was also used to perform a basic camera switch from the desaturated camera to the night shot.
+
+For more information on Matinee, please see [the Matinee documentation](Engine/Matinee).
+
+[REGION:topics half]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\MatineeSetup:title%](topic_MatineeSetup.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\MatineeSetup:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\MatineeSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\MatineeDeconstruction:title%](topic_MatineeDecon.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\MatineeDeconstruction:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\MatineeDeconstruction]
+	[/PARAM]
+[/OBJECT]
+
+
+
+[/REGION]
+
+## Related Topics
+
+* [Post Process Effects](Engine/Rendering\PostProcessEffects)
+* [Matinee](Engine/Matinee)
+

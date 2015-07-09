@@ -1,0 +1,262 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Edit Actor Properties
+Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
+Description:Modifying properties of an Actor such as applying Materials, Physics, Scale through the **Details** panel. 
+Related: Engine/UI/LevelEditor/Details
+Related: Engine/UI/LevelEditor/Details/Interface
+Related: Engine/UI/PropertyMatrix
+
+Once you place an Actor in your level, you may want to modify the way it looks or functions in your level. With the Actor selected in the level, inside the **Details** panel for that Actor, information about the Actor is stored and can be modified. This page will show you some sample use cases for accessing the **Details** panel and modifying an Actor's properties. See the [Details Panel](Engine/UI/LevelEditor/Details) documentation for more detailed information. 
+
+[TOC(start:2 end:2)]
+
+[REGION:note]
+For this How To guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. If you have not created a project based off a template before or are not sure how to enable Starter Content, refer to the [](Engine/Basics/Projects/Browser) page for information on creating/opening projects, templates, and project settings. 
+[/REGION]
+
+
+## Editing Properties
+
+Over the course of the guide we will change several properties that will affect an Actor in our level such as scaling the Actor to increase its size, applying a Material, turning on Physics for the Actor, as well as tweaking Collision Settings so that it registers when it hits other Actors during gameplay. 
+
+### Scaling Properties
+
+First let us pick our Actor, place it in the level, and scale it up a bit. 
+
+1.	With your project open, inside the **Content Browser** open the **Starter Content** then **Shapes** folder. 
+
+1.	Locate the **Shape_Sphere** and drag-and-drop it into the level just above the staircase in the level. 
+
+	![](Details1.png)
+
+1.	When the Actor is placed, the **Details** panel will become populated. 
+
+	[REGION:lightbox]
+	[![](Details2.png)(w:800)](Details2.png)
+	[/REGION]
+
+	_Click for full image._
+
+1.	Inside the **Details** panel, under _Transform_, click the lock icon for **Scale** and set the **XYZ** values to **3.0**. 
+
+	![](Details3.png)
+	
+	As you make the changes, the sphere in the level will update to the new values entered. 
+
+	![](Details4.png)
+
+	We have set the **Scale** for the selected Actor, you can set the **Location** or **Rotation** for the Actor in the **Details** panel as well.
+
+1.	Set the **Location** values for **XYZ** to **-120.0**, **380.0**, and **350.0** respectively. 
+
+	![](Details_Add.png)
+
+### Material Properties
+
+Next, let us apply a new **Material** to our Actor instead of its default one. 
+
+1.	Scroll down in the **Details** panel to the **Materials** section and click the **Select Material** dropdown box. 
+
+	![](Details5.png)
+
+1.	In the menu that appears, select a **Material** to apply to the **Shape_Sphere**. 
+
+	![](Details6.png)
+
+	When you select a Material, the dropdown box will be updated with your selection and the sphere in the level will be updated. 
+
+1.	Click the magnifying glass icon next to the **Select Material** dropdown box. 
+
+	![](Details7.png)
+
+	Clicking this icon will automatically find and select the **Material** inside the **Content Browser**. 
+
+	![](Details8.png)
+
+	This is useful for finding assets in the **Content Browser** when you do not know where they are located. 
+
+1.	In the **Details** panel, click the yellow arrow icon. 
+
+	![](Details9.png)
+
+	Whenever you click this icon, it will reset the option back to its default value. 
+
+	![](Details10.png)
+
+1.	In the **Content Browser**, select another **Material**. 
+
+	![](Details11.png)
+
+1.	In the **Details** panel, click the arrow icon next to the **Select Material** dropdown box. 
+
+	![](Details12.png)
+
+	Clicking this icon will automatically assign the asset selected in the **Content Browser** to the option's setting. 
+
+	![](Details13.png)
+
+### Physics Properties
+
+Here we will enable **Physics** for the Actor so that when the level starts, the Actor will fall to the ground and react to other Actors. 
+
+1.	In the **Details** panel, type in **physics** in the search bar. 
+
+	![](Details14.png)
+
+	You can use the search bar to filter the **Details** panel to only show options based on your entry. 
+
+1.	Check the **Simulate Physics** checkbox to enable physics on the sphere. 
+
+	![](Details15.png)
+
+	Our sphere will now simulate physics when the game is played. 
+
+1.	In the **Details** panel, click the **X** mark inside the search bar. 
+
+	![](Details17.png)
+
+	This will clear the search filter. 
+
+### Collision Properties
+
+In this step, we will update the **Collision** for the Actor so that it generates a **Hit Event** whenever the Actor hits something in-game. 
+
+1.	Scroll down to the **Collision** section and check the **Simulation Generates Hit Events** checkbox. 
+
+	![](Details18.png)
+
+	With this option checked, we can determine if the sphere hits something (useful for gameplay situations). 
+
+1.	From the **Main Toolbar**, click the **Blueprints** button then select **Open Level Blueprint**. 
+
+	![](Details19.png)
+
+	Since the sphere can now register hit events, we will use [Blueprint Visual Scripting](Engine/Blueprints) to kill the player when they are hit by the sphere. 
+
+1.	**Right-click** in the graph window, then under **Add Event for Shape Sphere** and **Collision**, select the **Add On Actor Hit** event. 
+
+	![](Details20.png)
+
+	This will now fire an event when the sphere hits something. 
+
+1.	Off the **OnActorHit** node, drag off the **Other Actor** pin and search for **cast to mycharacter** then select it in the window.  
+
+	![](Details21.png)
+
+	Here we are saying, when the Sphere hits something, is the **Other Actor** we hit **MyCharacter** (the player character). 
+
+1.	Drag off the **As My Character** pin of the **Cast** node and search for and add the **Destroy Actor** node. 
+
+	![](Details22.png)
+
+	If **MyCharacter** was the **Other Actor** hit, then destroy **MyCharacter** (killing the player character). 
+
+1.	Click the **Compile** button in the upper-left corner of the window to finalize the Blueprint, then close the window. 
+
+	![](Details23.png)
+
+1.	From the **Main Toolbar**, click the **Play** button to play in the editor. 
+
+	![](Details24.png)
+
+When you play in the Editor now, you can use **WASD** to move the character around and the **Mouse** to manipulate the camera. You should see that the sphere now rolls down the stairs and if you walk into it, it should kill the character making him disappear (press **Esc** to exit the play session after you have been "killed"). 
+
+#### Try This
+
+*	Return to the **Details** panel and change the scale of the sphere so that you can jump over it. 
+*	Also, search for and find a way to turn off the sphere's shadow. 
+
+
+## Details Panel Options
+
+Located at the top of the **Details** panel are additional options that you can use to work with your Actor(s). 
+
+![](DetailsBreakdown1.png)
+
+In the image above: 
+
+1.	**Name Field** - Here you can enter a name for the Actor (see below). 
+1.	**Search Field** - Used to search for and filter the **Details** panel to show specific properties (see [Editing Properties](#editingproperties) above). 
+1.	**Property Matrix** - This is a tool for viewing and editing multiple properties of multiple Actors at the same time (see [Property Matrix](#propertymatrix)). 
+1.	**Details Viewer** - Modify how the **Details** panel is presented by hiding/showing options (see below). 
+1.	**Details Lock** - This will lock the **Details** panel to the selected Actor (the properties will not change when selecting another Actor). 
+
+### Name Field
+
+For the **Name Field**, you can enter any name you want to represent the Actor you have selected. 
+
+![](DetailsBreakdown2.png)
+
+Above we have entered in the name **RollingBall** for our sphere. Now if we wanted to locate that Actor in the level, we can do so by name. If we search in the [World Outliner](Engine/UI/LevelEditor/SceneOutliner/Interface) for our name, we can filter the list to show it allowing us to quickly and easily locate and select our Actor in the level. 
+
+### Details Viewer
+
+The **Details Viewer** when clicked expands additional options to modify how the **Details** panel properties are presented. 
+
+![](DetailsBreakdown4.png)
+
+You can check **Show Only Modified Properties** to show only properties that have been changed inside the **Details** panel, filtering out all other properties. You can click **Collapse All Categories** to collapse all categories in the panel or **Expand All Categories** to fully expand all the categories. 
+
+The **Show All Advanced Details** option allows you to unhide all **Advanced Options** which are hidden by default. The Advanced Options are denoted in the **Details** panel by a down-arrow icon. 
+
+![](DetailsBreakdown5.png)
+
+
+## Property Matrix
+
+[INCLUDE:Engine/UI/PropertyMatrix#intro]
+
+This section will show you how you can use the **Property Matrix** with multiple Actors in your level. 
+
+1.	Inside the **Content Browser** under **Starter Content** and **Shapes**, drag-and-drop a **Shape_Cube** into the level. 
+
+	![](PropertyMatrix1.png)
+
+1.	Inside the Level Editor Viewport, press **Ctrl+W** to duplicate the cube and use the **Transform** widget to move it. 
+
+	![](PropertyMatrix2.png)
+
+1.	Duplicate the cube **4** more times so that there are **6** cubes in the level (you can place them wherever you like). 
+
+	![](PropertyMatrix_3.png)
+
+1.	Click on one of the cubes, then with **Ctrl** held, click on another cube so that two are selected. 
+
+1.	In the **Details** panel, check the **Simulate Physics** option so that both cubes have physics enabled. 
+
+	![](PropertyMatrix_4.png)
+
+	Also notice at the top of the **Details** panel, it indicates that multiple objects are currently selected and being affected. 
+
+1.	Select each of the cubes in the level, then in the **Details** panel click the **Property Matrix** icon. 
+
+	![](PropertyMatrix_5.png)
+
+1.	The **Property Matrix** window will open. 
+
+	![](PropertyMatrix_6.png)
+
+1.	In the search field in the right window, search for "physics". 
+
+	![](PropertyMatrix_7.png)
+
+1.	Click the push-pin icon next to **Simulate Physics** in the window below the search field. 
+
+	![](PropertyMatrix_8.png)
+
+1.	The window on the left will now become populated to show the **Simulate Physics** property for each of the selected Actors. 
+
+	![](PropertyMatrix_9.png)
+
+	As indicated above, you can see that two of our cubes have **Simulate Physics** set to _true_ while the others do not. This can be a useful tool for when something is not working as expected or a value does not appear to be correct. By using the Property Matrix, you can easily see which of the Actors is set incorrectly at a glance and can mass change them from within the Property Matrix itself instead of the **Details** panel for each individual Actor. 
+	
+	[REGION:note]
+	For more information, please see the [](Engine/UI/PropertyMatrix) documentation. 
+	[/REGION]
+
+
+
+
+
+

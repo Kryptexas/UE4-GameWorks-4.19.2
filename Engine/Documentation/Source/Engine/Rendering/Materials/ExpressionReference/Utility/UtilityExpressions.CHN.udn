@@ -1,0 +1,342 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Utility Expressions
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:Expressions that perform various utility operations on one or more inputs.
+
+[EXCERPT:TOC]
+[TOC(start:2)]
+[/EXCERPT:TOC]
+
+
+## BlackBody
+
+The Black Body expression simulates the effects of [black body radiation](http://en.wikipedia.org/wiki/Black-body_radiation) within your Material. The user inputs a temperature (in Kelvin) and the resulting color and intensity can be used to drive Base Color and Emissive values to get a physically accurate result. 
+
+[REGION:fullwidth]
+![](BlackBody.png)
+[/REGION]
+
+## BumpOffset
+
+[EXCERPT:BumpOffset]
+BumpOffset is the Unreal Engine 4 term for what is commonly known as 'Parallax Mapping'.  The Bump Offset expression allows a material to give the illusion of depth without the need for additional geometry.  BumpOffset materials use a grayscale _heightmap_ to give depth information.  The brighter the value in the heightmap, the more 'popped out' the material will be; these areas will parallax (shift) as a camera moves across the surface.  Darker areas in the heightmap are 'further away' and will shift the least.
+[/EXCERPT:BumpOffset]
+
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **HeightRatio** | Multiplier for the depth taken from the _heightmap_.  The larger the value, the more extreme the depth will be.  Typical values range from 0.02 to 0.1. |
+| **ReferencePlane** | Specifies the approximate height in texture space to apply the effect.  A value of 0 will appear to distort the texture completely off the surface, whereas a value of 0.5 (the default) means that some of the surface will pop off while some areas will be sunken in. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **Coordinate** | Takes in base texture coordinates to be modified by the expression. |
+| **Height** | Takes in the texture (or a value) to be used as the heightmap. |
+| **HeightRatioInput** |  Multiplier for the depth taken from the _heightmap_.  The larger the value, the more extreme the depth will be.  Typical values range from 0.02 to 0.1. If used, this input supersedes any value in the Height Ratio property. |
+
+[REGION:fullwidth]
+![BumpOffsetExample.png](BumpOffsetExample.png)
+[/REGION]
+
+## ConstantBiasScale
+
+The ConstantBiasScale expression takes an input value, adds a bias value to it, and then multiplies it by a scaling factor outputting the result.  So for example, to convert input data from [-1,1] to [0,1] you would use a bias of 1.0 and a scale of 0.5.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Bias** | Specifies the value to be added to the input. |
+| **Scale** | Specifies the multiplier for the biased result. |
+
+
+![ConstantBiasScaleExample.png](ConstantBiasScaleExample.png)
+
+
+## DDX
+
+The DDX expression exposes DDX derivative calculation, a GPU hardware feature used in pixel shader calculation.
+
+## DDY
+
+The DDY expression exposes DDX derivative calculation, a GPU hardware feature used in pixel shader calculation.
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Depth#DepthFade]
+
+
+## DepthOfFieldFunction
+
+The Depth of Field Function expression is designed to give artists control over what happens to a Material when it is being blurred by Depth of Field. It outputs a value between 0-1 such that 0 represents "in focus" and 1 represents "completely blurred." This is useful for interpolating between sharp and blurry versions of a texture, for instance. The Depth input allows for the existing results from the scene's Depth of Field calculations to be overridden by other calculations.
+
+[REGION:imagetable]
+| ![](DepthOfFieldFunction_Color.png)(w:305) |![](DepthOfFieldFunction_Texture.png)(w:305)  | [INCLUDE:#DOFF] |
+| :--: | :--: | :--: |
+| Blended colors | Blending regular and blurred textures | Network sample (click to enlarge) |
+[/REGION]
+
+<!--
+[EXCERPT:DOFF]
+[REGION:lightbox]
+[![](DepthOfFieldFunctionNetwork.png)(w:300)](DepthOfFieldFunctionNetwork.png)
+[/REGION]
+[/EXCERPT:DOFF]
+-->
+
+[EXCERPT:Desaturation]
+## Desaturation
+
+The Desaturation expression desaturates its input, or converts the colors of its input into shades of gray, based a certain percentage.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Luminance Factors** | Specifies the amount that each channel contributes to the desaturated color. This is what controls that green is brighter than red which is brighter than blue when desaturated. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **Fraction** | Specifies the amount of desaturation to apply to the input. Percent can range from 0.0 (fully desaturated) to 1.0 (full original color, no desaturation). |
+
+
+![DesaturationExample.png](DesaturationExample.png)
+
+[REGION:note]
+**Programmers:** Define desaturated color `D`, input color `I` and luminance factor `L`.  The output will be `O = (1-Percent)*(D.dot(I)) + Percent*I`
+[/REGION]
+[/EXCERPT:Desaturation]
+
+
+[EXCERPT:Distance]
+## Distance
+
+The Distance expression computes the (Euclidian) distance between two points/colors/positions/vectors and outputs the resulting value. This works on one, two, three and four component vectors, but both inputs to the expression must have the same number of channels.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **A** | Takes in a value or vector of any length. |
+| **B** | Takes in a value or vector of any length. |
+
+[REGION:fullwidth]
+![DistanceExample.png](DistanceExample.png)
+[/REGION]
+
+**Pseudo code:**
+
+	Result = length(A - B)
+
+**Low level HLSL code:**
+	
+	float Result = sqrt(dot(A-B, A-B))
+	
+[/EXCERPT:Distance]
+
+
+
+[EXCERPT:FeatureLevelSwitch]
+## FeatureLevelSwitch
+
+The Feature Level Switch node allows you to make simplified materials for lower powered devices. 
+
+**Example Usage**: You might have a material with 10 textures overlapping and complex math, but just a single static texture for mobile (feature level ES2). 
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **Default** | The default Feature Level. |
+| **ES2** | Feature Level defined by the core capabilities of OpenGL ES2. |
+| **ES3.1** | Feature Level defined by the capabilities of Metal-level devices. |
+| **SM4** | Feature Level defined by the core capabilities of DX10 Shader Model 4. |
+| **SM5** | Feature Level defined by the core capabilities of DX11 Shader Model 5. |
+
+[/EXCERPT:FeatureLevelSwitch]
+
+
+
+## Fresnel
+
+The Fresnel expression calculates a falloff based on the dot product of the surface normal and the direction to the camera. When the surface normal points directly at the camera, a value of 0 is output. When the surface normal is perpendicular to the camera, a value of 1 is output. The result is clamped to [0,1] so you do not have any negative color in the center.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Exponent** | Specifies the how quickly the output value falls off. Larger values mean tighter or quicker falloff. |
+| **Base Reflect Fraction** | Specifies the fraction of specular reflection the surface is viewed from straight on. A value of 1 effectively disables the Fresnel effect. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **ExponentIn** | Specifies the how quickly the output value falls off. Larger values mean tighter or quicker falloff. If used, value will always supersede the Exponent property value. |
+| **Base Reflect Fraction** | Specifies the fraction of specular reflection the surface is viewed from straight on. A value of 1 effectively disables the Fresnel effect. If used, value will always supersede the Exponent property value. |
+| **Normal** | Takes in a three-channel vector value representing the normal of the surface, in world space. To see the results of a normal map applied to the surface of the Fresnel object, connect the normal map to the Normal input of the material, then connect a (PixelNormalWS)[Engine/Rendering/Materials/ExpressionReference/Vector#PixelNormalWS] expression to this input on the Fresnel. If no normal is specified, the tangent normal of the mesh is used. |
+
+
+![FresnelExample.png](FresnelExample.png)
+
+
+[EXCERPT:GIReplace]
+## GIReplace
+
+GIReplace allows artists to specify a different, usually simpler, expression chain when the material is being used for GI.  
+
+**Example Usage**: Lightmass static GI and LPV dynamic GI use it.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **Default** | The default GI. |
+| **StaticIndirect** | Used for baked indirect lighting. |
+| **DynamicIndirect** | Used for dynamic indirect lighting. |
+
+[INCLUDE:Engine\Rendering\LightingAndShadows\LightPropagationVolumes#gireplaceexample]
+
+
+[/EXCERPT:GIReplace]
+
+
+
+
+## LightmassReplace
+
+The LightmassReplace expression simply passes through the Realtime input when compiling the material for normal rendering purposes, and passes through the Lightmass input when exporting the material to Lightmass for global illumination.  This is useful to work around material expressions that the exported version cannot handle correctly, for example WorldPosition.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **Realtime** | Takes in the value(s) to pass through for normal rendering. |
+| **Lightmass** | Takes in the value(s) to pass through when exporting the material to Lightmass. |
+
+
+[EXCERPT:LinearInterpolate]
+## LinearInterpolate
+
+The LinearInterpolate expression blends between two input value(s) based on a third input value used as a mask. This can be thought of as a mask to define transitions between two textures, like a layer mask in Photoshop.  The intensity of the mask Alpha determines the ratio of color to take from the two input values.  If Alpha is 0.0/black, the first input is used.  If Alpha is 1.0/white, the second input is used.  If Alpha is grey (somewhere between 0.0 and 1.0), the output is a blend between the two inputs. Keep in mind that the blend happens per channel.  So, if Alpha is an RGB color, Alpha's red channel value defines the blend between A and B's red channels **independently** of Alpha's green channel, which defines the blend between A and B's green channels.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Const A** | The value mapped to black (0.0). Only used if the A input is unconnected. |
+| **Const B** | The value mapped to white (1.0). Only used if the B input is unconnected. |
+| **Const Alpha** | Takes in the value to use as the mask alpha. Only used if the Alpha input is unconnected. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **A** | Takes in the value(s) mapped to black (0.0). |
+| **B** | Takes in the value(s) mapped to white (1.0). |
+| **Alpha** | Takes in the value to use as the mask alpha. |
+
+
+**Programmers:** LinearInterpolate does a per-channel lerp between A and B based on the parametric value Alpha.
+
+![LerpExample.png](LerpExample.png)(w:900)
+[/EXCERPT:LinearInterpolate]
+
+
+## Noise
+
+The Noise expression creates a procedural noise field, giving you control over how it is generated.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Scale** | Changes the overall size of the noise cells. Lower numbers make the noise bigger. |
+| **Quality** | A look/performance setting. 0 is fast. Higher values are slower but may look better. |
+| **Function** | Controls the type of noise being calculated. Options include Simplex, Perlin, and Gradient. |
+| **Turbulence** | Whether or not to calculate multiple levels of noise on top of one another. |
+| **Levels** | How many different levels of noise are combined. Only useful is Turbulence is active. |
+| **Output Min** | The lowest value output by the noise calculation. |
+| **Output Max** | The highest value output by the noise calculation. |
+| **Level Scale** | Controls the scale of individual levels when Turbulence is active. This defaults to 2, but higher values can result in more efficient use of low numbers of levels.
+|| [REGION:tablesection]Inputs[/REGION] ||
+| **Position** | Allows the texture size to be adjusted via a 3D vector. |
+| **FilterWidth** | In effect, controls how much blur will be applied to the noise texture. |
+
+![NoiseExample.png](NoiseExample.png)
+
+
+## QualitySwitch
+
+The QualitySwitch expression allows for the use of different expression networks based on the engine is switched between quality levels, such as using lower quality on lower-end devices.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| Default | This input is used for networks designed for default visual quality. |
+| Low | This input is used for networks designed for lower visual quality. |
+| High | This input is used for networks designed for higher visual quality. |
+
+[EXCERPT:RotateAboutAxis]
+## RotateAboutAxis
+
+The RotateAboutAxis expression rotates a three-channel vector input given the rotation axis, a point on the axis, and the angle to rotate.  It is useful for animations using WorldPositionOffset that have better quality than simple shears.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **NormalizedRotationAxis** | Takes in a normalized (0-1) vector which represents the axis about which the object will rotate. |
+| **RotationAngle** | The angle of rotation. A value of 1 equals a full 360-degree rotation.
+| **PivotPoint** | Takes in the three-channel vector representing the pivot point about which the object will rotate. |
+| **Position** | Takes in the three-channel vector representing the position of the object. When the RotateAboutAxis expression is created, a WorldPosition expression is automatically created and connected to this input. |
+
+[REGION:fullwidth]
+![RotateAboutAxisExample.png](RotateAboutAxisExample.png)
+[/REGION]
+In the above example, the preview plane would appear to spin on its vertical axis.
+
+[/EXCERPT:RotateAboutAxis]
+
+
+## SphereMask
+
+The SphereMask expression outputs a mask value based on a distance calculation. If one input is the position of a point and the other input is the center of a sphere with some radius, the mask value is 0 outside and 1 inside with some transition area. This works on one, two, three, and four component vectors
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Attenuation Radius** | Specifies the radius to use for the distance calculation. |
+| **Hardness Percent** | Specifies the transition area size. This works like the Photoshop brush hardness value. 0 means the transition is hard, 100 means the transition area is maximal(soft). |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **A** | Takes in the value representing the position of the point to check. |
+| **B** | Takes in the value representing the center of the sphere. |
+
+[REGION:fullwidth]
+![SphereMaskExample.png](SphereMaskExample.png)
+[/REGION]
+
+In this example, the preview object will smoothly fade to black as the camera exceeds 256 units away from it.
+
+
+
+[EXCERPT:AntialiasedTextureMask]
+
+
+## AntialiasedTextureMask
+
+The AntialiasedTextureMask expression allows you to create a material using a soft (anti-aliased) transition mask. The mask can be used to blend between two complex material properties or to fade out an alpha blended material (works well with SoftMasked). Simple specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value. Assuming the channel stores a grayscale value in the range 0=black to 1=white the comparison function defines if the resulting mask should be 0 or 1. This expression is a parameter, allowing the **Texture** property to be overridden by child MaterialInstances.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Threshold** | Specifies the value used as the cutoff point in pixel coverage. Pixel coverage values less than this become black; values greater become white. |
+| **Channel** | Specifies the channel of the Texture to use as the mask. |
+| **Texture** | Specifies the mask texture to use. |
+| [REGION:tablesection]Inputs[/REGION] ||
+| **UVs** | Takes in texture coordinates to apply to the texture mask. |
+
+
+**Pseudo code:**
+
+    Result = 1
+    if TextureLookup < Threshold then Result = 0
+    
+The actual implementation is quite a bit more complicated as it tries to return values between 0 and 1 depending on the actual pixel coverage to avoid aliasing. 
+
+Example (this tiny 128x128 texture, uncompressed for best quality): 
+
+![ULogoLowBlurred.png](ULogoLowBlurred.png)
+
+Was used as a normal texture (left top) and used with the described material expression (bottom right):
+
+![AAMasked_Demo.png](AAMasked_Demo.png)
+
+The technique works best in magnification and with blurred input content. Compression hurts the quality a lot so try to use uncompressed low resolution textures.
+
+[/EXCERPT:AntialiasedTextureMask]
+
+
+
+
+
+
+

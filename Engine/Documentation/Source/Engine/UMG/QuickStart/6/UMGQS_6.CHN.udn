@@ -1,0 +1,39 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:6. Further Reading
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:The final step in the UMG Quick Start is to provide additional links to reference documentation.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+For more information on the topics covered in this Quick Start Guide, and across the entire editor, see the [Unreal Editor Manual](Engine).
+
+As for coverage related to the topics in this guide:
+
+* For more information on Unreal Motion Graphics, see: [UMG Overview](Engine/UMG)
+
+* For more information on Blueprints, see: [Blueprints Landing Page](Engine\Blueprints)
+
+---
+
+%Steps%
+
+

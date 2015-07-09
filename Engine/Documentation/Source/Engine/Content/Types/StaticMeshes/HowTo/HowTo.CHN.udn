@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Static Mesh How To
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes
+Description: A How To series that will help you learn the basics of using the Static Mesh Editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+The following How To series will teach you the basics of Static Meshes and the Static Mesh Editor.  From importing a mesh from an outside 3D modeling program, to setting up collision to react with other objects in your level, to setting up sockets so that you can attach your mesh with another object in your scene, this How To series will help you get a better grasp on the Static Mesh Editor and feel more comfortable with every aspect of setting up Static Meshes to be used in your level.
+
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Static Mesh How To...
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [How to Import Static Meshes](Engine/Content/Types/StaticMeshes/HowTo/Importing "%Engine/Content/Types/StaticMeshes/HowTo/Importing:Description%")
+		* [How to Set Materials](Engine/Content/Types/StaticMeshes/HowTo/SettingMaterial "%Engine/Content/Types/StaticMeshes/HowTo/SettingMaterial:Description%")
+		* [How to Set Collision](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%")
+		* [How to Set Up LODs](Engine/Content/Types/StaticMeshes/HowTo/LODs "%Engine/Content/Types/StaticMeshes/HowTo/LODs:Description%")
+		* [How to Create and Use Sockets](Engine/Content/Types/StaticMeshes/HowTo/Sockets "%Engine/Content/Types/StaticMeshes/HowTo/Sockets:Description%")
+	[/PARAM]
+[/OBJECT]

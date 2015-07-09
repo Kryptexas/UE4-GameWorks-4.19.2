@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Unreal Build System
+Crumbs: %ROOT%, Programming
+Description:Unreal Engine's custom build system for compiling the engine and game projects.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/UnrealBuildSystem:title%](Engine/build_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/UnrealBuildSystem:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/UnrealBuildSystem:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/UnrealBuildSystem]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![Unreal Build System](build.png)
+[/REGION]
+
+### UnrealBuildTool
+UnrealBuildTool (or UBT) is a custom tool that manages the process of building the UE4 source code across the numerous possible build configurations.  Check out BuildConfiguration.cs to explore various 
+user-configurable build options.
+
+[REGION:note]
+If you would like to debug UnrealBuildTool or UnrealAutomationTool on Mac OS X, you must install [MonoDevelop 4.2.2](http://monodevelop.com/Download) and [Mono 3.2.7](http://www.go-mono.com/mono-downloads/download.html). 
+[/REGION]
+
+### UnrealHeaderTool
+UnrealHeaderTool (or UHT) is a custom parsing and code-generation tool that supports the UObject system.  Code compilation happens in two phases:
+
+1.	UHT is invoked, which parses the C++ headers for Unreal-related class metadata and generates custom code to implement the various UObject-related features.
+1.	The normal C++ compiler is invoked to compile the results.
+
+When compiling, it is possible for either tool to emit errors, so be sure to look carefully.
+
+### Project Files
+The build process happens independently of any project files for the development environment, such as .sln or .vcproj files for Visual Studio.  These files are useful to have for editing purposes though, 
+so there is a provided tool to generate them dynamically based on the contents of your project directory tree. You can run this tool with the [GenerateProjectFiles.bat](Programming\UnrealBuildSystem\ProjectFileGenerator) file located in your root /UE4 directory.
+ It is generally useful to run this batch file from time to time to keep your code editor in sync with code files you have added or removed on disk.
+
+### Modular Architecture
+UE4 is split into many modules.  Each module has a .build.cs file that controls how it is built, including options for defining module dependencies, additional libraries, include paths, etc.
+
+By default, these modules are compiled into DLLs and loaded by a single executable.  You can choose to build a monolithic executable in the BuildConfiguration.cs file.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/UnrealBuildSystem/ProjectFileGenerator "%Programming/UnrealBuildSystem/ProjectFileGenerator:description%")
+		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Setup & Configuration
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/UnrealBuildSystem/Configuration "%Programming/UnrealBuildSystem/Configuration:description%")
+		* [](Programming/UnrealBuildSystem/TargetFiles "%Programming/UnrealBuildSystem/TargetFiles:description%")
+	[/PARAM]
+[/OBJECT]
+

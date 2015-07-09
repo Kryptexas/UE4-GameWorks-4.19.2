@@ -1,0 +1,32 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Working with Models in UE4
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
+Description:Working with SpeedTree models in Unreal Engine 4.
+
+Once you have imported the model as an asset, you can place it in your scenes like you would any other Static Mesh. The most common methods are:
+
+Place them manually. Simply drag the asset and drop it in the scene to place a model. This gives you the most flexibility in how it is lit. Setting the mobility to **Static** will disable the ability to move the SpeedTree at runtime but will allow it to be lit by Lightmass in addition to dynamic lights. Setting it to **Movable** will enable you to move the SpeedTree around at runtime but it will not be able to receive static lighting.
+
+![](ue4_tree_in_scene.jpg)(w:920)
+
+**Paint them as foliage** - Drag the asset to the foliage painting area and paint the models like any other Static Mesh.
+
+![](ue4_painted_grass.jpg)(w:920)
+
+[REGION:note]
+Painted geometry is instanced and renders very quickly; however, it cannot be lightmapped. Keep this in mind as you populate your scenes.
+[/REGION]
+
+### Wind
+
+Add wind to the scene by adding a wind direction source object (Select **Window** -> **Class Viewer**, search for "WindDirectionalSource", and drag it into the scene). The **Speed** property defaults to 1.0 which is considered maximum wind for SpeedTree models. Lower this value to something like 0.1 to start with calm wind.
+
+### Level of Detail
+
+LOD transitions are based on screen space area in UE4. These values are edited by editing the Static Mesh asset associated with the SpeedTree model. Default values are chosen upon import that work for typical situations.
+
+
+
+
+

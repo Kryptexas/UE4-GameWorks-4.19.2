@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Networking Overview
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description:Setting up networked games for multiplayer.
+Related: Gameplay/Networking/Blueprints
+Related: Gameplay/Networking/Example
+Related: Gameplay/Networking/Actors
+
+The UE4 framework is built with multiplayer gaming in mind. As long as you follow the basic framework conventions, you generally don't have to do much to extend a single player experience to multiplayer.
+
+UE4 networking is built around the server/client model. This means that there will be one server that is authoritative (makes all the important decisions), and this server will then make sure all connected clients are continually updated so that they maintain the most up to date approximation of the server's world.
+
+## Actors
+
+In a single player experience, actors are used to represent the game world. In multiplayer, this isn't any different, except for the fact that clients will have an approximation of each actor, while the server will maintain the authoritative version.
+
+Actors are the main workhorse that the server uses to keep clients up to date. When it is time for the server to update a particular client, the server will gather all relevant actors that it determines have changed since the last update, and then sends enough information to the client to catch those actors up to to the latest state.

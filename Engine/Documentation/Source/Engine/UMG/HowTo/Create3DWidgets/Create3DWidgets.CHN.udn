@@ -1,0 +1,232 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Create 3D Widgets
+Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
+Description:Create an interactive 3D menu that appears in the game world instead of 2D screen space. 
+Related: Engine/UMG
+Related: Engine/UMG/UserGuide
+Related: Engine/Blueprints
+
+[REGION:warning]
+This is an experimental feature that is currently undergoing development. Some aspects may not work as expected or may change in future revisions.
+[/REGION]
+
+---
+In the following steps, we are going to create a menu that appears in the game world that can be interacted with as seen below.
+
+![](MenuGIF.gif)(convert:false)
+
+[EXCERPT:ProjectStart]
+[OBJECT:TopicList]
+	[PARAM:title]
+		Creating the Project
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+[/OBJECT]
+
+In this section, we will set up the project. 
+
+1. From the **Unreal Project Browser** window, create a **New Project** and use the **Blueprint First Person** template. 
+
+1. Make sure that **Include starter content** is enabled. 
+
+1. Give the project a name. 
+
+1. With each of the above defined, click **Create Project** to create a new project. 
+[/EXCERPT:ProjectStart]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		Create the Menu to Display
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+[/OBJECT]
+
+In this step, we will create the Main Menu that we want to display in the game world. 
+
+1.  Inside the **Content Browser** under **Game**, **Right-click** and create a new folder and call it **UMG**. 
+
+1.	Inside the **UMG** folder, **Right-click** then under **User Interface**, select **Widget Blueprint**. 
+
+	![](UMG_3D_1.png)
+
+1.	Name the **Widget Blueprint**, **MainMenu**, then click the **Save All** Button. 
+
+	![](UMG_3D_2.png)
+
+	Click **Save Selected** in the pop-up menu that appears to finalize the save process. 
+
+1.	**Double-click** on the **Widget Blueprint** to open it up in the UMG Editor.
+	
+	![](UMG_3D_3.png)(w:720)
+	
+1.	In the **Hierarchy** window, delete the **CanvasPanel** then add a **Vertical Box** from the **Palette** window (found under the **Panel** section). 
+
+	![](UMG_3D_4.png)
+
+	You can **drag-and-drop** the **Vertical Box** onto the **Root** as shown in the image above. 
+
+1.	In the **Palette** window under **Common**, drag a **Text** widget onto the **Vertical Box**. 
+
+	![](UMG_3D_5.png)
+
+1.	In the **Hierarchy** window, click the **Text** widget, then in the **Details** panel, set it to **Fill** and **Center** horizontally and vertically.
+
+	![](UMG_3D_6.png)
+
+1.	In the **Palette** window under **Common**, drag a **Button** widget onto the **Vertical Box**. 
+
+	![](UMG_3D_7.png)
+
+1.	In the **Hierarchy** window, click the **Button** widget, then in the **Details** panel, set it to **Fill**. 
+
+	![](UMG_3D_8.png)
+
+1.	While in the **Details** panel for the **Button**, under **Style** and **Normal**, set the **Tint** to any color you wish (we selected Black). 
+
+1.	Also expand **Hovered** and set the **Tint** color to something other than the color used for **Normal** above. 
+
+	![](UMG_3D_8b.png)
+
+	This will set the button to appear one color when **Normal** and another color when the button is **Hovered** over with the mouse. 
+	
+1.	In the **Hierarchy** window, click the **Text Block** and press **Control+C** to copy it, then click the **Vertical Box** and **Control+V** to paste it. 
+
+1.	Repeat the previous step 2 more times so that there are 4 **Text Blocks**. 
+
+	![](UMG_3D_9.png)
+
+1.	In the **Hierarchy** window, click the **Button** and press **Control+C** to copy it, then click the **Vertical Box** and **Control+V** to paste it. 
+
+1.	Repeat the previous step so that there are 3 **Buttons**. 
+
+	![](UMG_3D_10.png)
+
+1.	Drag a **Text Block** on to each of the **Buttons** in the **Hierarchy**. 
+
+	![](UMG_3D_11.png)
+
+1.	For each **Button** widget in the **Hierarchy**, in the **Details** panel for each, set the **Size** to **Fill**. 
+
+	![](UMG_3D_12.png)
+
+1.	For each **Text Block** widget in the **Hierarchy**, in the **Details** panel for each, set them to **Center** horizontally and vertically. 
+
+	![](UMG_3D_13.png)
+
+1.	Your layout should look similar to below. 
+
+	![](UMG_3D_14.png)
+
+1.	In the **Hierarchy** window, click the top **Text Block** then in the **Details** panel under **Content**, set the **Text** to anything you wish. 
+
+1.	Also for the **Text Block** in the **Details** panel under **Appearance**, you can change the size of the **Font** under the **Font** option. 
+
+	![](UMG_3D_15.png)
+
+	Here we have given a header to the menu called **MY GAME TITLE** and set the size to **102**. 
+
+1.	For each of the texts that appear on the buttons, change the text to the menu options you wish (also set their sizes). 
+
+	![](UMG_3D_16.png)
+
+	Here is our finished menu with **LOAD GAME**, **NEW GAME**, and **QUIT GAME** with font sizes set to **56**. 
+
+1.	Click **Compile**, then click **Save** and close the Blueprint. 
+
+We will not be hooking up functionality for the buttons in this tutorial, but this will give us a menu that we can navigate in 3D world space. 
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		Creating and Adding the 3D Actor to the Game World
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+[/OBJECT]
+
+In this step, we will create the Actor that will contain and display our UI Menu we created in game. 
+
+1.  **Right-click** in the **Content Browser**, then choose **Blueprint** from the context menu that appears to create a new Blueprint. 
+
+	![](UMG_3D_17.png)
+
+1.  Select **Actor** from the pop-up menu that appears, give the new Blueprint a name, then save the Blueprint. 
+
+	![](UMG_3D_18.png)
+
+1.  **Double-click** on the new Blueprint to open it up in the Editor, it should open to the **Components** tab. 
+
+	![](UMG_3D_19.png)(w:720)
+
+	If it does not open up on the **Components** tab, click the **Components** tab to jump to it. 
+
+1.	Click the **Add Component** button, then find and select the **Widget** option. 
+
+	![](UMG_3D_20.png)
+
+1.	Give the component a name (such as MainMenu), then click the **Compile** and **Save** buttons. 
+
+1.	In the **Details** panel for the new widget component, scroll down to the UI section and under **Widget Class**, select the **MainMenu** Widget Blueprint. 
+
+	![](UMG_3D_21.png)
+
+1.	You can adjust the **Draw Size** settings to increase the scale of the widget. 
+
+	![](UMG_3D_22.png)(w:740)
+
+1.	There is also a **Max Interaction** option which will determine how far away the player can be to interact with the widget. 
+
+	![](UMG_3D_23.png)
+
+1.	There are additional options for rendering under the **Rendering** section (below we have set the component to two sided so the component is visible from behind). 
+
+	![](UMG_3D_24.png)
+
+1.	Click the **Graph** tab to jump to the **Graph Editor** tab. 
+
+	![](UMG_3D_25.png)
+
+1.	**Right-click** in the graph and search for then add the **Event Begin Play** node. 
+
+	![](UMG_3D_26.png)
+
+1.	**Right-click** in the graph and search for then add the **Get Player Controller** node. 
+
+	![](UMG_3D_27.png)
+
+1.	**Right-click** in the graph and search for then add the **Set Input Mode Game and UI** node. 
+
+	![](UMG_3D_28.png)
+
+1.	Connect each of the nodes as seen below, then click the **Compile** and **Save** buttons, then close the Blueprint. 
+
+	![](UMG_3D_29.png)
+
+	You can leave the options on the **Set Input Mode Game and UI** node as is. 
+
+1.	In the **Content Browser**, drag the Blueprint Actor into your level. 
+
+	![](UMG_3D_30.png)
+
+	You can use the **Move (W)**, **Rotate (E)**, and **Scale (R)** keys to position the UI where you want in the world. 
+
+1.	If you click the **Play** button to play in the editor, you should be able to interact with the menu when in range. 
+
+In this example, we have created a 3D Menu that can appear in world and be interacted with by the player. While our example allows the player character to run around in the world, you could create a "Main Menu" level and remove the player's ability to run around by using a different Character Blueprint or just disabling its movement. From there, you could add any elements you want to appear in your Main Menu screen (could be the player character's custom "player model" or other Actors, particle effects, lights, etc.), it is really up to you at that point how you want your 3D space to look. 
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+

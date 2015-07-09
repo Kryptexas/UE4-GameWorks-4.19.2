@@ -1,0 +1,66 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Render a Flipbook Animation
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
+Description:
+
+[TOC(start:2)]
+
+This function is similar to the Imposter sprite function. It uses a series of mesh rotations but this time they are specified by user input rather than pre-set by the blueprint.
+ 
+![](23.jpg)(w:920)
+
+Pictured: Example of leaf mesh with a few rotations
+
+It renders a series of image as flipbook textures. You can use them anywhere in the engine such as in a particle system. To use the resulting flipbook you simply use the "Flipbook" material function.
+
+Setting up the Flipbook blueprint settings:
+
+<!--
+[EXCERPT:FBS1]
+This is a dropdown list that lets you choose between three types of flipbook.
+
+1. **Simple Mesh Rotation** : It will rotate the mesh the specified number of times along the specified axes.
+1. **Material Instance Interpolation** : This will not rotate the mesh but will instead increment a Scalar Parameter called "Animation Phase" over the 0-1 range divided between all frames. This method relies on the user replacing every instance of the "Time" node in the asset material with the "Animation Phase" scalar parameter.
+1. **Both Mesh Rotation and Material Instance Interpolation** : Does both operations. You must also use this option if you want to adjust the starting rotation of a material instance interpolation flipbook even if you do not want it to rotate inside the flipbook. You will simply keep the number of rotations at 0.
+[/EXCERPT:FBS1]
+-->
+
+| Property | Description |
+| --- | --- |
+| **Flipbook Type** | [INCLUDE:#fbs1] |
+| **Flipbook Start Rotation **| This is the start rotation of the flipbook animation. |
+| **Flipbook Rotation Axis 1** | This is the axis to rotate around for rotation 1. This gets normalized so 0,0,1 is the same as typing 0,0,100.|
+| **Flipbook Rotation Axis 2** | This is the axis to rotate around for rotation 2. This gets normalized so 0,0,1 is the same as typing 0,0,100. |
+| **Axis 1 Rotations**  |  The number of rotations around Axis 1. Normally going beyond 1 rotation would actually reduce the framerate by causing duplicating frames in the texture. The only time that this is not true is when you are using both rotation axes and want to get a crazy meandering rotation. |
+| **Axis 2 Rotations** | The number of rotations around Axis 2. Normally going beyond 1 rotation would actually reduce the framerate by causing duplicating frames in the texture. The only time that this is not true is when you are using both rotation axes and want to get a crazy meandering rotation. |
+| **Flipbook Rows (Y)** | The number of Y frames in your texture. |
+| **Flipbook Columns (X)** | The number of X frames in your texture. |
+| **Flipbook Material** | Currently the flipbook tool only assigns one material. This should be improved soon. |
+| **Flipbook Static Mesh** | This is where you specify the mesh to use. |
+| **Flipbook Mesh Scale** | This allows you to scale the mesh manually in case there is some edge-bleeding between frames. Leave this setting alone unless you are trying to solve a specific issue as you will either lose resolution or make the mesh too large. |
+| **Preview Motion On Mesh** | With this option checked, you can press the editor's "Simulate" button to see a little preview mesh that will spin with motion that is based on your rotation settings. The preview motion does not match exactly when the two axis rotations are wildly different. It is generally a good idea to keep them fairly similar or just use one axis when possible. |
+| **Preview Speed** | Allows you to adjust the spinning speed of the preview mesh. |
+
+Rendering the Flipbook textures uses the same process as the first three functions:
+
+Choose the desired buffers from "Capture Settings", then play the game in windowed mode and type "ke * rendertextures" at the console and hit enter. You must also remember to have the "Include Buffer Visualization Targets" box checked with the window still open.
+
+## Using the flipbook Textures
+
+To use the flipbook textures, you must simply use the "Flipbook" material function.
+
+![](25.jpg)
+
+
+Function Inputs:
+
+| Property | Description |
+| ---- | ---- |
+| **Animation Phase (0-1) (S)** | The default value here is the "Time" node. If you want to change the speed, you will need to hook up Time*Speed (scalarparameter) here. |
+| **Number of Rows (S)** | Number of Rows Y in your texture. |
+| **Number of Columns (S)** | Number of Columns X in your texture. |
+| **Texture (T2d)** | You can hook up a texture here if you want to use the "Result" pin. In most cases, it is suggested to leave this input blank and instead use a regular texture sample and plug the "UVs" output of this function into the texture UV's. That way you can re-use the same UVs for several textures. |
+| **UVs (V2)** | This allows you to specify which UVs you want to use. Whatever UV's they are, they should cover the entire 0-1 range. |
+| **MipBias (S)** | This lets you Bias the mips of the texture to either make it sharper or blurrier. Only affects the Texture (T2d) input texture. |
+| **Clamp Anim (See tooltip) (B)** | A frac operation is applied to the animation phase. This causes a value of exactly 1 in the animation phase input to return 0. Enabling this feature will clamp the animation phase value from 0 to .9999 which avoids the issue. |

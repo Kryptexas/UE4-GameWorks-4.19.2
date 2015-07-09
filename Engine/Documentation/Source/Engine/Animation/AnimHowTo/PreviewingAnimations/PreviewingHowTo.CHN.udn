@@ -1,0 +1,166 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Previewing Animations
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:Shows how to preview animations and control animation previews and toggle animation information. 
+Related: Engine/Animation/Overview
+Related: Engine/Animation/Persona/Viewport
+Related: Engine/Animation/Sequences
+Related: Engine/Animation/AnimMontage
+Related: Engine/Animation/Blendspaces
+Related: Engine/Animation/AimOffset
+
+
+This page covers the different methods in which you can load and preview animation assets inside the [Persona Animation Editor](Engine/Animation/Persona), which is Unreal Engine 4's Animation Editing Tool. The controls used to manipulate the playback or information displayed about the animation currently being previewed is also covered and additional links to more information are provided. 
+
+
+[TOC(start:2 end:2)]
+
+## Preview from Content Browser
+
+The most common method of opening and previewing an animation asset is by **Double-clicking** on it inside the **Content Browser**. 
+
+![](Preview1.png)
+
+This will open the asset selected inside the **Persona Animation Editor**. 
+
+![](Preview2.png)
+
+The selected asset will automatically start playing inside the [](Engine/Animation/Persona/Viewport) and auto-loop playback of the motion. 
+
+## Preview from Persona
+
+If **Persona** is already open, on the **Animation** tab, you can **Double-click** an asset in the **Asset Browser** to preview it in the Viewport. 
+
+[REGION:lightbox]
+[![](Preview3.png)](Preview3.png)
+[/REGION:lightbox]
+
+_Click for full image._
+
+Also while on the **Animation** tab of **Persona**, you can set the preview animation from the asset pop-up menu. 
+
+![](Preview6.png)
+
+After clicking the pick asset button, a pop-up menu will appear where you can select the animation asset to preview. 
+
+![](Preview7.png)
+
+If you are on a different tab of **Persona**, you can enable the **Asset Browser** window from the **Menu Toolbar** / **Window** option. 
+
+[REGION:lightbox]
+[![](Preview4.png)](Preview4.png)
+[/REGION:lightbox]
+
+_Click for full image._
+
+The **Asset Browser** window will then appear, which you can dock to any other window. 
+
+[REGION:lightbox]
+[![](Preview5.png)](Preview5.png)
+[/REGION:lightbox]
+
+_Click for full image._
+
+You can also get a smaller, looping preview directly inside the **Asset Browser** when highlighting an animation asset. 
+
+![](Preview8.png)
+
+
+## Persona Viewport Controls
+
+Below are the controls for navigating the Persona Viewport, allowing you to move the camera around. 
+
+### Standard
+
+These controls represent the default behavior when clicking and dragging in the viewports with no other keys or buttons pressed. These are also the only controls that can be used to navigate the orthographic viewports.
+
+| Control | Action |
+| ------- | ------- |
+| **LMB + Drag** | Moves the camera forward and backward and rotates left and right. |
+| **RMB + Drag** | Rotates the viewport camera. |
+| **LMB + RMB + Drag** | Moves up and down. |
+| **F** |Focuses the camera on the Mesh in the viewport. |
+
+### Game-style
+
+The WASD controls will feel natural to those who are used to playing shooter games on the PC. They are enabled by default and can be used whenever you are holding the **Right Mouse Button** (RMB). This means you will still use **RMB** to turn the camera while navigating in this way.
+
+These controls are mirrored on the arrow keys and num pad to provide alternate access to them.
+
+| Control | Action |
+| ------- | ------ |
+| **W** &#124; **Numpad8** &#124; **Up** | Moves the camera forward. |
+| **S** &#124; **Numpad2** &#124; **Down** | Moves the camera backward. |
+| **A** &#124; **Numpad4** &#124; **Left** | Moves the camera left. |
+| **D** &#124; **Numpad6** &#124; **Right** | Moves the camera right. |
+| **E** &#124; **Numpad9** &#124; **Page Up** | Moves the camera up. |
+| **Q** &#124; **Numpad7** &#124; **Page Dn** | Moves the camera down. |
+| **Z** &#124; **Numpad1** | Zooms the camera out (raises FOV). |
+| **C** &#124; **Numpad3** | Zooms the camera in (lowers FOV). |
+
+### Pan, Orbit, and Zoom
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#mayalikecontrols]
+
+
+## Persona Viewport Options
+
+This section illustrates the options contained within the **Persona Viewport**. 
+
+![](Preview13.png)
+
+1.	**View Options Toolbar**
+2.	**Movement Toolbar**
+3.	**Animation Display Information**
+
+### View Options Toolbar
+
+[INCLUDE:Engine/Animation/Persona/Viewport#viewoptions]
+
+### Movement Toolbar
+
+[INCLUDE:Engine/Animation/Persona/Viewport#movement]
+
+### Animation Display Information
+
+You can toggle the information displayed in the viewport from the **Show** option under **Display info**. 
+
+![](Preview14.png)
+
+**Basic** will show a condensed version of the display info, while **Detailed** will show more information and **None** will hide the display info. 
+
+## Persona Playback Controls
+
+When you open an **AnimSequence** or **AnimMontage**, at the bottom of the center window you will see the **Timeline** and **Control Bar** used to controlling the playback of the animation asset. You can play, pause, skip, scrub and loop the animation from the Timeline and Control Bar options highlighted in yellow below. 
+
+![](Preview9.png)
+
+[INCLUDE:Engine\Animation\Persona\Viewport#previewcontrols]
+
+## Blend Space & Aim Offsets
+
+You can preview the blending of animations when applied to a [Blend Space](Engine/Animation/Blendspaces) or [](Engine/Animation/AimOffset) inside **Persona** as long as the **Enable Preview BlendSpace** option is checked. 
+
+![](Preview10.png)
+
+To see the blending between animations, move the **Mouse Cursor** inside the **Parameters** grid. 
+
+![](Preview11.png)
+
+Remove the Tooltip Display by unchecking the **Enable Tooltip Display** option. 
+
+![](Preview12.png)
+
+Both **Blend Spaces** and **Aim Offsets** can be previewed in the same fashion as cited above. 
+
+
+
+
+
+
+
+
+
+
+

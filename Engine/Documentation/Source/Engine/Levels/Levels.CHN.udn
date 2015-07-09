@@ -1,0 +1,197 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Levels
+Crumbs: %ROOT%, Engine
+Description:Information regarding the creation and managing of levels inside Unreal Engine 4. 
+Related: Engine/UI/LevelEditor
+Related: Engine/Actors
+Related: Engine/LevelStreaming
+Related: Resources/ContentExamples/LevelDesign
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Levels:title%](level_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Levels:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Levels:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Levels]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Levels:title%](level_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Levels:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Levels:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Levels]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+![](Level_Intro.png)
+
+When playing a Video Game, every object that you see or interact with in the world resides in what is known as a **Level**. In Unreal Engine 4 terms, a Level is made up of a collection of Static Meshes, Volumes, Lights, and Blueprints all working together to bring the desired experience to the player. Levels in UE4 can range in size from massive terrain based worlds to very small levels for just a single mini-game to take place in. The following guide will tell you all you need to know about creating and managing Levels inside of UE4. 
+
+## How to Create Levels
+The ability to create new levels is a must when trying to develop a game. Creating new levels inside UE4 is a very simple process that can be accomplished by following the instructions listed below.
+
+1. To create a new level, we first need to go to the **File** option that is located on the **Main** tool bar.
+![](Level_File_New_Level.png)
+
+1. Next from the **File** menu, we need to select the **New Level** option.
+	![](Level_Create_New_Level.png)
+	[Region:tip]
+	You can also create new levels by using the keyboard shortcut  **Crtl + N**. 
+	[/region]
+
+1. When **New Level** is selected, you will be presented with a pop-up box displaying two types of levels you can chose from, Default or Empty Level.
+
+	![](Level_New_Level_Type.png)
+
+	* **Default:** This will give you a new level with a basic setup that includes a player start, a light, a sky dome, and other various Actors you need for a level to work correctly. 
+	* **Blank:** This will give you a new level that is completely empty. 
+
+1. Select the level that you want by clicking on it with the **Left Mouse  Button**. After you do this, the level type that you picked will now be loaded up in the editor. 
+![](Level_Both_Types.png)
+
+[region:tip]
+When connected to source control, new levels that you create and save will be automatically added to source control.
+[/region]
+
+## Opening & Saving Levels
+Depending on the complexity of your game, you might need to have your game content spread out among multiple levels. This means that you will need to have the ability to open and save these levels at will. UE4 makes opening and saving levels quite easy and the process for both opening levels and saving levels is outlined below. 
+
+### Opening Levels 
+Opening already created levels inside UE4 is a very simple process that can be accomplished by following the instructions listed below. 
+
+1. To open a level, we first need to go to the **File** option that is located on the **Main** tool bar.
+	![](Level_File_New_Level.png)
+
+1. Next from the **File** menu, we need to select the **Open Level ** option.
+	![](Level_Open_New_Level.png)
+	[Region:tip]
+	You can also open levels by using the keyboard shortcut  **Crtl + O**, or by simply **Double Clicking** on the map asset inside the **Content Browser**. 
+	[/region]
+
+1. When **Open Level** is selected from the menu, a pop up box showing the levels that can be opened will be displayed. 
+	![](Level_Available_Levels.png)
+
+1. To open a level, simply find the level you wish to open in the list, click on it, and then press the button labeled **Open**.
+	![](Level_Open_Selected_Level.png)
+
+1. Once you have pressed the **Open** button, the level that you have selected will be loaded in the editor. 
+	![](Level_Selected_Level.png)
+
+### Saving Levels 
+Saving levels inside UE4 is a very simple process that can be accomplished by following the instructions listed below. 
+
+1. To save a level, we first need to go to the **File** option that is located on the **Main** tool bar.
+	![](Level_File_New_Level.png)
+
+1. Next from the **File** menu, we need to select the **Save** option.
+	![](Level_Save_Level.png)
+	[Region:tip]
+	You can also save all opened levels by using the keyboard shortcut  **Crtl + S**. 
+	[/region]
+
+1. Depending on if this is a new map or not, two things can happen when you press **Save**. 
+	* **New Map:** If this is a new map, the first time you press save, you will be prompted with the **Save Level As** dialogue box. In this box, you can give your new level a name and location to be saved to. 
+	![](Level_Save_Level_Box.png)
+	* **Pre-Existing Map:** If this is not a new map but one that already exists in the project, then when you press save, the map will be saved. 
+
+1. Once your level has been saved, you are now free to continue working, open a new level, or close down the Unreal Editor. 
+
+## Changing Default Starting Level
+When creating any game, you will need the ability to set a default level for the game to start on. UE4 not only offers you the ability to define what level your game starts on, it also allows you to define what level your editor will start on as well. As with everything in UE4, the process for changing your default level is quite simple and outlined below. 
+
+1. To change any settings specific to our project, we first need to go to the **Edit** option that is located on the **Main** tool bar.
+	![](Level_Edit_Options.png)
+
+1. From the **Edit** menu, we then need to select the **Project Settings** option.
+	![](Level_Project_Settings.png)
+
+1. Selecting the **Project Settings** option will open up your projects settings.   
+	![](Level_Project_Settings_Menu.png)
+
+1. In this menu, you can edit all kinds of options about your project but for now we will be looking at the **Maps & Modes** Section. To active the **Maps & Modes** section, simply click on it in the menu. When you do so, you should now have something that looks like this in the **Project Settings** box.
+	![](Level_Maps_&_Modes.png)
+
+1. To change your projects default game and editor starting levels, simply press on the arrow icon to the right of the name box and then select the level you want from the list that is displayed. 
+	![](Level_Change_Default_Map.png)
+
+1. Repeat the process above if you wish to change the Editor start up map as well. 
+
+
+## Level World Settings
+Each level can have unique settings applied to it via the **World Settings** options. The **World Settings** options allow you to do everything from making sure the right **Game Mode** is activated when you play the level too allowing you to adjust how the Global Illumination will look for that level. To activate the **World Settings** options, you need to do the following.
+
+1. On the **Toolbar** that is across the top of the editor, click on the **Settings** option. 
+	![](Level_Settings_Menu.png)
+
+1. Clicking on the **Settings** option will display the game specific settings menu and from the menu select **World Settings.**
+	![](Level_Settings_Options.png)
+
+1. Clicking on the **World Settings** option will open up the levels settings in the **World Settings** tab of the **Details** panel.
+	![](Level_Settings_Options_Menu.png)
+
+1. From the **World Settings** panel, you can adjust all kinds of options for your level from how Lightmass will work to what game mode is used. 
+
+## Level Migration
+Sometimes you might need to move entire levels and all of their content from one project to another one. In previous versions of UE4, this task was almost impossible because levels content could have been spread out all over your content folder. Now using the improved migration tool, UE4 will now not only migrate your level over to a new project, it will also migrate all of the content that is also associated with that level. Migrating one level and its assets from one UE4 project to another can be accomplished in the following simple steps. 
+
+1. First, make sure that you have the level and all the content that you want to move saved. 
+
+1. Once you have everything saved, find the level that you want to **Migrate** in the **Content Browser.**
+	![](Level_Level_To_Migrate.png)
+
+1. After the level is found, all you have to do is **Right-Click** on the level and then choose the **Migrate** option from the list.  
+	![](Level_Select_Migrate.png)
+
+1. Once the **Migrate** option was selected, you will be presented with an **Asset Report** box that will allow you to pick and choose what you would like to migrate over to the new project. Once you have selected what you want to move, press the **Ok** button.
+	![](Level_What_To_Migrate.png)
+
+1. After you press the **Ok** button, you will then be asked where you want the content to be moved to. Using the **Browse For Folder** dialogue box, find a location where you would like to move the content to and then press the **Ok** button. Remember that you have to move it to a location that is under the ** Content** folder or the migrate might not work correctly. 
+	![](Level_Where_To_Migrate_to.png)
+
+1. After you press **Ok**, the migration process will start and run until it is done. You can tell if the migration was successful or not if you get the following message in the lower right hand portion of your editor window. 
+	![](Level_Migrate_Completed_Scuess.png)
+
+### Level Migration Troubleshooting
+During the process of migrating a level, you might receive a few error messages. Here is a list of known error message and ways to avoid them. 
+
+* This error message means that the content that you are trying to migrate already exists in the location that you are trying to migrate to. You can either cancel or overwrite the information if you are sure that what you are migrating is correct.
+
+	![](Level_Error_Level_ALready_Exists.png)
+
+* This error message means that you are trying to migrate content to another location that is not inside the content folder. For migrated content to work correctly, you must make sure that you always use the main **Content Folder** of your project. If not, you run the risk of the migration not working correctly. 
+
+	![](Level_Error_Level_Not_In_Content_Folder.png)
+
+
+
+
+
+
+
+

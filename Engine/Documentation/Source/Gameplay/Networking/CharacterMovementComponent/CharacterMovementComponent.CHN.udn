@@ -1,0 +1,88 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Character Movement Component
+Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
+Description:Detailed explanation of Character Movement Component
+Related: Gameplay/Networking/Actors
+
+[TOC (start:2 end:3)]
+
+Characters using CharacterMovementComponent automatically have client-server networking built in. Here's how player movement prediction, replication and correction works in network games through CharacterMovementComponent:
+	
+Every tick, the TickComponent() function is called.  It figures out the acceleration and rotation change for the frame, and then calls PerformMovement() (for locally controlled Characters), or ReplicateMoveToServer() (if it's a network client).
+	
+ReplicateMoveToServer() saves the move (in the PendingMove list), calls PerformMovement(), and then replicates the move to the server by calling the replicated function ServerMove(), passing the movement parameters, the client's resultant position, and a timestamp.
+	
+ServerMove() is executed on the server.  It decodes the movement parameters and causes the appropriate movement to occur.  It then looks at the resulting position and if too much time has passed since the last response, or the position error is significant enough, the server calls ClientAdjustPosition(), a replicated function.
+	
+ClientAdjustPosition() is executed on the client.  The client sets its position to the server's version of position, and sets the bUpdatePosition flag to true.
+	
+When TickComponent() is called on the client again, if bUpdatePosition is true, the client will call ClientUpdatePosition() before calling PerformMovement().  ClientUpdatePosition() replays all the moves in the pending move list which occurred after the timestamp of the move the server was adjusting.
+
+##Character Movement and Simulated Proxies
+
+The networking approach in CharacterMovementComponent described so far has dealt only with the details of a single client connected to an authoritative server. So how about AI that move on the server, or other players playing from a different computer? On our client machine, those are all considered simulated proxies, and go through a slightly different code path.
+
+Movement for non-human controlled characters is normally updated on the server (who is the authority in this regard) using the normal PerformMovement() code. Actor state such as location, rotation, velocity, as well as some other select Character-specific state (jumping, etc) are replicated to other machines via normal replication mechanisms, meaning they don't necessarily come down the network every frame. In order to provide a smoother view of those characters on a remote client, that client machine will run a simulation update every frame for simulated proxies until new (server authoritative) data arrives. The same is true for a local client's view of another remote human player; that remote player will send their updates to the server, which does a full movement update for that player, and periodically replicates that data to all other players.
+
+This update is intended to simulate the estimated result of movement based on replicated state, to "fill in the gaps" until the next update. So rather than placing proxies at the new location sent by the server and leaving them there until the next update arrives (which could be a few frames in the future), the client simulates an update in position each frame by applying velocity and the rules of movement. Once another update arrives, this effectively resets the local simulation and starts a new one.
+
+The bulk of the movement update for simulated proxies is performed in UCharacterMovementComponent::SimulateMovement(), and in turn MoveSmooth(). MoveSmooth() is generally a pared-down version of the full movement mode updates for various movement modes (walking, flying, etc) that is a bit cheaper to run and a bit less complex in its intentions.
+
+###Simulated Proxy Smoothing
+
+In cases where a character was simply moving forward, the simulated update is likely to very closely match the next replicated update, because moving in a straight line is quite simple to predict. Even in the case of running in to a static wall in the world, it's likely the deflection and subsequent updates will also simulate with high accuracy.
+
+However, local simulation based on a previous replicated state snapshot is bound to diverge from the actual correct location in some cases. Consider a replicated state that said a character was moving with velocity (100,0,0) at time t=0. After a second of updates at t=1, the simulated proxy will have moved another 100 units in the X direction. However if the actual movement on the server had immediately ceased to move after sending the (100,0,0) velocity update, the next replication would place the server's version of the proxy location at a different spot than the locally simulated one.
+
+To avoid a visual "pop" in position of the simulated proxies when a server update is received, we smooth the location of the Character's Mesh (complex visual representation of the body, rather than simple shape used for collision representation) using the function UCharacterMovementComponent::SmoothClientPosition(). By default this applies a simple smoothing function to reach the target destination in a specific amount of time (set by "SmoothNetUpdateTime" on the client's network data).
+
+##Debugging CharacterMovementComponent Networking
+
+A few useful tools exist to debug and analyze Character networking. Usually the first thing you'll want to do is enter "p.NetShowCorrections 1" in the console of a client that is behaving erratically (this only works on a non-Shipping build). It may also be useful to enable this on the server. This makes it possible to see whenever a network correction is received on a client (or  sent on the server), by both logging to the output console and by drawing a collision shape at the "correct" location (in green), and the "incorrect" location (in red). On the client, the "correct" location is the one the server sent down as a correction, while the "incorrect" one is the local location that was judged to be outside the error tolerance on the server. On the server the idea is similar-- the "correct" server location is drawn in green, while the "incorrect" received client location is in red. "p.NetCorrectionLifetime" controls how long in seconds the debug visualizations persist in the world before going away (for example, "p.NetCorrectionLifetime 5" keeps them around for 5 seconds.
+
+Another helpful way to diagnose issues is to turn on some logging of the data sent by the CharacterMovement networked movement functions. The console command "log LogNetPlayerMovement Verbose" enables logging of each send and receive of character movement data including location, rotation, and acceleration. This may help explain why an error correction occurs, such as when location is being updated only on the client because it was not done in a way that the location change is replicated to the server.
+
+##Advanced Topic: Adding New Movement Abilities to Character Movement
+
+When adding new movement abilities to a character, you have many options on how to accomplish this. Let's step through a theoretical series of attempts to add a "Teleport" ability to a character that works in a networked game. The basic idea is that when a player presses the "T" key, they will teleport forward 10 meters, if the destination is free of obstruction.
+
+###Approach 1: Execute only on Client
+In this approach, we didn't think about networking at all and just teleport forward when pressing T.
+
+**Result**: Fails in networked games. The local client will appear to teleport forward but will then quickly warp back to their starting location.
+
+**Analysis**: This really is just the baseline that doesn't do anything special for networking, and is destined to fail. Why? Because the server has no indication that the ability was triggered, so is just working with the location, rotation, and acceleration of the client's character to trigger movement, and so from the server's perspective, it doesn't make sense that the character moved forward so far.
+
+###Approach 2: Server only RPC
+The simplest approach to making it work networked is to set up a reliable network RPC that triggers the ability. In this case, we just call a Server function that does the teleport.
+
+**Result**: Works in networked games, but with major issues, such as a noticeable delay in execution on the client side and possible loss of some teleport functionality.
+
+**Analysis**: This works, but it's far from ideal. Here is the sequence of events: The server gets the function call that teleports the player forward. The character movement update from the client is sent to the server with the unteleported location. The server sees this as an error, since the server's version teleported via the RPC. The server sends a correction to the client, and the client position changes as if it teleported. (Debugging tip: Using the "p.NetShowCorrections 1" command would help us here, because we'd see on the client that the movement is a result of a network correction.)
+
+This is plagued with problems: in the presence of network lag, the client will have to wait a full round trip from client to server and back again to have the teleport actually occur on the local machine. This is a poor player experience. Additionally, any additional functionality occurring in the "Teleport" ability might not trigger at all on the client's side, since they never actually have that ability locally execute. So if for example you played sound and particle effects at the destination, those would be lost on the client.
+
+###Approach 3: Server RPC and Local Trigger
+In this approach, the client executes the Teleport and then also calls the server RPC to do the Teleport.
+
+**Result**: Works in networked games, with rare but potentially serious issues.
+
+**Analysis**: This approach attempts to remedy the drawbacks of the previous attempt, namely the delay in local movement and the fact that movement occurred due to the correction, not the ability. We also get the full functionality of the Teleport, such as sound and particle effects. This actually works pretty well, but with some important caveats, and can still break in real networked environments.
+
+The main issue is that if a client is corrected back in time to before the time when the Teleport was triggered, they won't know to retrigger the Teleport as they catch up to their current time, and the Teleport will appear to have been lost on the client side.
+
+###Approach 4: CharacterMovementComponent Ability Implementation
+In this approach, we add knowledge of the teleport ability to the CharacterMovementComponent code (in a child class), to make it robust to network corrections.
+
+**Result**: Works in networked games, with some implementation care. 
+
+**Analysis**: This requires a bit more background: as mentioned earlier, Characters using CharacterMovementComponent queue up the results of input in something called "a saved move list" or "pending move list" (in C++ code these moves derive from the class "FSavedMove_Character"). Each saved move records the state at the beginning of movement for a frame, such as location, rotation, acceleration (usually the result of player input), jump state, etc.
+
+As moves are sent from client to server, we hold on to these moves and remove old ones as moves are acknowledged by the server (remember that the server's view of our position is slightly behind our own immediate view). In the case of a correction, we know when in time that occurred, and can "replay" all moves that occurred after that point in time. This is nice because the client may not even notice that there was a correction, since they will try to move forward again in time from that corrected point in time. This also means that abilities triggered after the correction will get replayed as well. You probably want to check for this case in your ability, so you don't retrigger some effects if it's retriggered (see the "bReplayingMoves" parameter on the UCharacterMovementComponent::DoJump() function for an example).
+
+Now back to adding the "Teleport" ability! This is done in a very similar way as a jump is handled already in CharacterMovementComponent. We just need to indicate that this ability has been triggered, and process it correctly on the server. We still execute it locally of course, for quick client responsiveness. Sending and receiving the data between client and server is automatically done as part of the existing networking, you just need to pack and unpack the data.
+
+First we need to derive from UCharacterMovementComponent class, then override AllocateNewMove() to create our own version of FSavedMove_Character. At this point we need to implement a few methods in FSavedMove_Character, most importantly GetCompressedFlags(), which packs in a bit of data indicating we triggered the Teleport ability. Then we override UCharacterMovementComponent::UpdateFromCompressedFlags(), which handles unpacking those flags and triggering the ability on the server side.
+
+That's mostly it. There can be quite a bit more potential complexity to implementing custom flags in CharacterMovementComponent saved moves, but this should get you started on the correct path. If you want robust networking for your movement, it's worth the effort.

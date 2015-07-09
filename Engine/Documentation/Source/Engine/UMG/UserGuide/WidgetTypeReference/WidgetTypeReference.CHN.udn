@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Widget Type Reference
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
+Description:Reference guide to the different types of Widgets that can be used in a Widget Blueprint in UMG. 
+
+[TOC(start:2 end:2)]
+
+Inside the **Widget Blueprint Editor**, located under the **Palette** window, there are four categories of **Widgets**, each of which contain different Widgets Types that you can drag-and-drop into the **Visual Designer**. By mixing and matching these Widget Types, you can layout the look of your UI on the **Designer** tab and add the functionality behind your Widgets through the settings in the **Details** panel for each Widget and via the **Graph** tab. 
+
+Listed below are each of the Widget Types under the **Palette** window: 
+
+[REGION:note]
+Click the Widget Type (where applicable) for a usage guide along with more information on the Widget itself. 
+[/REGION]
+
+
+## Common Widgets
+
+![](Common.png)
+
+The most frequently used Widgets will more than likely fall under this category. 
+
+| Option | Description |
+| -------- | ----------- |
+| **Border** | A border is a container widget that can contain one child widget, providing an opportunity to surround it with a border image and adjustable padding. |
+| **Button** | The button is a single-child, click-able primitive widget which enables basic interaction. You can place any other widget inside a button to make a more complex and interesting click-able element in your UI.  |
+| **Check Box** | The check box widget allows you to display a toggled state of 'unchecked', 'checked', and 'indeterminable'. You can use the check box for a classic check box, or as a toggle button, or as radio buttons.  |
+| **Image** | The image widget allows you to display a Slate Brush, Texture, or Material in the UI. |
+| [**Named Slot**](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
+| **Progress Bar** | The progress bar widget is a simple bar that fills up and can be restyled to fit any number of uses such as Experience, Health, Points, etc. |
+| **Slider** | A simple widget that shows a sliding bar with a handle that allows you to control the value between 0-1. |
+| **Text** | The basic method for displaying text on screen and could be used for text descriptions of options or other UI elements. |
+| **Text Box** | Allows the user to type in custom text. Only permits a single line of text to be entered. |
+
+## Input Widgets
+
+![](Input.png)
+
+There are a couple of options on how to allow Input from a user which are outlined below. 
+
+| Option | Description |
+| -------- | ----------- |
+| **Combo Box (String)** | The combo box (string) allows you to display a list of options to the user in a dropdown menu from them to select one. |
+| **Spin Box** | A numerical entry box that allows for direct entry of the number or allows the user to click and slide the number. |
+| **Text Box (Multi-Line)** | Similar to the Text Box but allows a user to enter multiple lines of text instead of a single line. |
+
+
+## Panel Widgets
+
+![](Panel.png)
+
+The **Panel** category contains useful Widgets for controlling layouts and placing other Widgets. 
+
+| Option | Description |
+| -------- | ----------- |
+| **Canvas Panel** | The canvas panel is a designer friendly panel that allows widgets to be laid out at arbitrary locations, anchored and z-ordered with other children of the canvas. The canvas panel is a great widget for manual layout, but bad when you want to procedurally just generate widgets and place them in a container (unless you want absolute layout). For more information on Anchors, see the [Anchors](Engine\UMG\UserGuide\Anchors\) page. |
+| **Grid Panel** | This is a panel that evenly divides up available space between all of its children widgets. |
+| **Horizontal Box** | Allows child widgets to be laid out in a flow horizontally. |
+| **Overlay** | Allows widgets to be stacked on top of each other and uses a simple flow layout for content on each layer.  |
+| **Scale Box** | Allows you to place content with a desired size and have it scale to meet the constraints placed on this box's allotted area. If you needed to have a background image scale to fill an area but not become distorted with different aspect rations, or if you need to auto fit some text to an area, this is the control for you. |
+| **Scroll Box** | An arbitrary scrollable collection of widgets. This is great for presenting 10-100 widgets in a list. This does not support virtualization. |
+| **Uniform Grid Panel** | A panel that evenly divides up available space between all of its children. |
+| **Vertical Box** | A vertical box widget is a layout panel allowing child widgets to be automatically laid out vertically. This is great for stacking widgets on top of each other and keeping widgets aligned vertically.|
+| **Widget Switcher** | A widget switcher is like a tab control but without the tabs which you can create on your own and combine with this to get a tabbed effect. At most one widget is visible at a time.  |
+| [**Wrap Box**](Engine\UMG\UserGuide\WidgetTypeReference\WrapBox) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WrapBox#desc] |
+
+
+## Primitive Widgets
+
+![](Primitive.png)
+
+The **Widgets** contained in the **Primitive** category provide additional methods of conveying information to the user or allowing them to select things. 
+
+| Option | Description |
+| -------- | ----------- |
+| **Circular Throbber** | A throbber widget that orients images in a spinning circle.  |
+| **Editable Text** | This a text field that allows for user input without a box background. This only supports a single line of editable text. |
+| **Editable Text (Multi-Line)** | Similar to Editable Text but supports multiple lines of text instead of a single line.|
+| [**Menu Anchor**](Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor#desc] |
+| **Native Widget Host** |This is a container widget that can contain one child Slate widget. This should be used when all you need is to nest a native widget inside a UMG widget. |
+| **Spacer** |A spacer widget provides custom padding between other widgets. The spacer does not have a visual representation and is invisible in game.|
+| **Throbber** | An animated throbber widget that shows several zooming circles in a row (could be used to signify loading for example). |
+
+
+
+
+
+
+
+

@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Importing Meshes
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import meshes from an external program.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: Engine/Content/FBX/ImportOptions
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+Before getting started: Make sure you have access to a 3D modeling application. Although we're using **3DS Max and Maya** to illustrate this lesson's goal, you can import meshes into Unreal Engine from any 3D modeling application with a save feature.
+[/REGION]
+
+Content creators can import meshes into Unreal Engine from external 3D modeling applications.
+
+## Goal
+
+The focus of this guide is to show developers how to import meshes from external 3D modeling applications.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	How to import meshes into Unreal Editor from external 3D modeling applications.
+*	How to verify that assets were properly imported into the project folder.
+
+## Importing from a  3D Modeling Application
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+## Verifying Imported Assets
+
+It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
+
+1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+
+	![](FolderDialogBox_UI.png)
+
+1.	Under **Folder Options**, **click 'Show In Explorer'** (pictured below).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	With Explorer open, verify that UE4 created the corresponding ** *.uasset files **  for your project (pictured below).
+
+	![](ImportedAssets_Explorer.png)
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	Import meshes into Unreal Editor from external 3D modeling applications.  
+&#x2713;	Verify that assets were properly imported to the project folder.

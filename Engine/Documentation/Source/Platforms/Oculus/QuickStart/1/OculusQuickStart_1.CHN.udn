@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:0
+Title:1. Register as an Oculus Developer
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:Register as an Oculus developer to gain access to necessary programs and documentation
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. Visit the [Oculus Developer Center](https://developer.oculus.com/) and click on [Downloads](https://developer.oculus.com/downloads/). 
+
+	![](Oculus_Downloads.png)
+
+From the [Oculus Developer Center](https://developer.oculus.com/) you can also click the Log In link to create an account, or access your existing account. Creating an account
+enables you to post in the forums, submit your game to Oculus Share, and more.
+
+* If you have an Oculus account, enter your e-mail and password and click the **Log In** button.
+
+	![](2-2-click-the-log-in-link.jpg)
+
+* If you do not have an Oculus account, click **Create a free account**.
+	1. Fill out the registration form following the instructions on the page.
+	1. Oculus will e-mail you a link to verify your e-mail address and confirm your registration.
+	1. Return to the [Oculus Developer Center](https://developer.oculus.com/) and click the **Log In** link.
+
+
+%Steps%

@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:0
+Title:5. Test out VR Content
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:Load and play content designed for the Oculus Rift using Unreal Engine 4.
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Oculus/QuickStart/4 "%Platforms/Oculus/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Oculus/QuickStart/6 "%Platforms/Oculus/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. If you have not already, download the [](Resources\ContentExamples) project.
+1. Open the **Content Examples** project.
+	
+	![](CE_Start.png)(w:500)
+1. Click on **File > Open Level**.
+1. Select `VR.umap`, then click **Open**.
+
+	![](VRmap.png)
+1. Click on the arrow next to **Play** in the **Level Editor Toolbar** to open the **Play In Editor** options.
+
+	![](PlayDropdown.png)
+1. Select **Standalone Game** to launch the game. **Standalone Game** is the only **Play In Editor** game testing mode that is compatible with the Oculus.
+
+	![](StandAloneGame.png)
+
+	[REGION:tip]
+	Once you have selected **Standalone Game** for a project, it will remain in that mode until you pick a different one. This means you can just click on the **Play** icon to resume testing.
+	[/REGION]
+
+1. Press **Alt+Enter** to enter VR mode. This will send your game's display to the Oculus, as well as change the view on the screen to stereo view.
+
+	![](VRMode.png)(w:800)
+1. At this point, you can put on the Oculus and move around the level. To end gameplay:
+	* Press **~** and type `quit` in the console, or 
+	* Press **Shift+F1** to reclaim your mouse cursor and close the window.
+
+
+%Steps%

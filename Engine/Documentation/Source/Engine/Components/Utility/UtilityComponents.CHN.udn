@@ -1,0 +1,25 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Utility Components
+Crumbs:%ROOT%, Engine, Engine/Components
+Description:Description of the Utility based Components and how you can use them. 
+Related: Engine/Blueprints/UserGuide/Components
+
+
+## Application Lifecycle Component
+
+The **ApplicationLifecycleComponent** handles receiving notifications from the OS about application state (activated, suspended, termination, etc). 
+
+## Child Actor Component
+
+A **ChildActorComponent** is a Component that spawns an Actor when registered, and destroys it when unregistered. 
+
+## Scene Component
+
+The **SceneComponent** has a transform and supports attachment, but has no rendering or collision capabilities. This is useful as a "dummy" Component in the hierarchy to offset others. 
+
+
+
+
+
+

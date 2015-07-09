@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Render To Texture Blueprint Toolset
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:
+
+
+The **Render to Texture blueprint** is a tool that has several different texture baking functions built in. It makes use of the editor's ability to save high resolution screenshots including visualization buffers such as base color and world normal.
+
+To get started with using the tool, you should read the Setup Guide and then dive into the individual functions the Render to Texture Toolset includes.
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[Start Here: Render to Texture Toolset Setup](Engine/Content/Tools/RenderToTextureTools/Setup "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/Setup "%Engine/Content/Tools/RenderToTextureTools/Setup:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/1 "%Engine/Content/Tools/RenderToTextureTools/1:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/2 "%Engine/Content/Tools/RenderToTextureTools/2:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/3 "%Engine/Content/Tools/RenderToTextureTools/3:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/4 "%Engine/Content/Tools/RenderToTextureTools/4:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/5 "%Engine/Content/Tools/RenderToTextureTools/5:description%")
+	[/PARAM]
+[/OBJECT]
+

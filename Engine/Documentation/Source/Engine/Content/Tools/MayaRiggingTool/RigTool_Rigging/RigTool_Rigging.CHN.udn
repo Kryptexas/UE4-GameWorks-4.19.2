@@ -1,0 +1,539 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Rigging Tools
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Tools/MayaRiggingTool
+Description:Rigging tools included within the Animation & Rigging Toolset (ART).
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:title%](Engine/Content/Tools/MayaRiggingTool/Rigging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+The first part of the process of using the Animation Rigging Toolset is the creation of your initial skeleton. The ART allows for the skeleton to be quickly generated and adjusted to fill the volume of a character, or even just as a way to "sketch out" what a character will look like so you can start animating right away.
+
+## Skeleton Creation
+
+The following steps walk you through the creation of your character's skeleton.
+
+### Initial Character Setup
+
+1. To create a character, go to the **Epic Games** menu in your Maya interface and choose **Character Rig Creator**.
+
+	![](ART_CreateCharacter.png)
+
+	[REGION:note]
+	If your settings are set to use Y up in Maya(default), you will be shown a dialog letting you know that the world settings have been adjusted to Z-Up. This is just to match Unreal's coordinate space. However, it is possible that the viewport may start navigating strangely. This is a Maya behavior and is unrelated to this toolset. To fix it, press **Alt-Home**, or alternatively you may **left-click** the **Home** button, which is visible when you mouse over the **View Cube**.
+	
+	![](ART_ViewCube.png)
+	[/REGION]
+	
+
+	
+	
+1. The character rig creator interface has a flow chart at the top of the UI that shows what step you are on, and what steps come next:
+
+	![](ART_TopButtons.png)
+
+1. During the **Skeleton Creation** phase, you can define the joint setup for your character by entering in values for the various fields for each limb. If you need to add extra joints, fear not! That will be covered shortly. Most of this interface is fairly straight forward. Type in the number of spine joints you would like, the number of finger joints, etc. There are a few neat things that can speed up your creation process. The right leg and right arm both have checkboxes to mirror the left limb settings:
+
+	![](ART_BoneSetup.png)
+
+
+[REGION:note]
+When a field turns orange, it means that the value has been changed from the defaults of the tool. It is just an easy way to identify what is different that the default. At any time, you can reset to default by **right-clicking** on a limb area, and choosing **Reset to Defaults**.![](ART_ResetToDefaults.png)
+[/REGION]
+
+
+### Adding Extra Joints
+
+To add extra joints to your character, scroll through and select a rig module to add in the **Add Rig Modules** section:
+
+![](ART_ExtraJoints.png)
+
+Currently, there are three types of extra joints you can add to your character. (This list will grow over time)
+
+* ![](ART_LeafJointIcon.png) **Leaf Joint:** Leaf Joints will probably be the most used option since it has so many uses. Leaf joints are single joints that can be placed anywhere. To create one, **left-click** the button and fill out the information in the interface. Choosing **Translation** and **Rotation** are used to determine how it will be rigged. If the bones need only rotate, you can just have Rotation checked. Otherwise, it will be built with its translation channels unlocked as well, for example.
+
+	![](ART_LeafJointInfo.png)
+
+* ![](ART_JiggleJointIcon.png) **Jiggle Joint:** A jiggle joint is just like a leaf joint, except it has built in physics simulations. Jiggle joints are great for adding secondary motion to your character. Just like the leaf joint, to add, just fill out the interface with the name for the joint and the joint's parent.
+
+	![](ART_JiggleJointInfo.png)
+
+* ![](ART_ChainIcon.png)  **Dynamic Joint Chain:** With the last of the extra joint options, you can create a joint chain with however many joints you would like. The joint chain will be rigged with an FK setup, a Spline IK setup, and a physics rig using hair follicles. When you add a dynamic joint chain, you will need to specify the base name (for instance, ponytail), the parent of the root joint of the chain, and how many joints are in the chain.
+
+	![](ART_DynChainJointInfo.png)
+
+
+Once you create one of these custom joints, it will appear in the **Added Modules** list at the bottom of the Skeleton Setup panel. To the right of Added Modules are the settings for the selected module. This allows you to change the initial settings you had entered, like the parent, or the number of joints for example.
+
+![](ART_CustomJointChains.png)
+
+[REGION:note]
+To remove any of your added modules from the list, simply hit the [Delete] key on the one you want to remove.
+[/REGION]
+
+You can also specify a prefix or suffix naming convention for your modules. This will allow the joint mover symmetry mode(Next Step) to work on modules you name with the convention you specify.
+
+![](ART_SkelCreationMirrorSettings.png)
+
+[REGION:note]
+For example, I have added two leaf modules that are children of the pelvis: [pouch_a_l] and [pouch_a_r]. Since I have used the convention I specified in the mirror settings, when I turn on symmetry mode in the next step, those modules will know that they are mirrors of each other!
+[/REGION]
+
+### Using Templates
+
+
+You can save out and load in templates for your skeleton creation settings. 
+
+1. To save a template, set up your settings the way you would like, and **left-click** on the **Template** button and choose _Save_.
+
+	![](ART_SaveLoad.png)
+
+1. To load a template, choose the load option and then choose the template from the UI:
+
+	![](ART_LoadWindow.png)
+
+1. If you ever want to remove a template, select the template to remove, and go to **File -> Remove Selected Template**:
+
+	![](ART_RemoveTemplate.png)
+
+## Skeleton Placement
+
+Once you are pleased with your skeleton settings, it is time to build the skeleton and place the joints to your mesh.
+
+1. **Left-click** on the **Skeleton Placement** button at the top of the UI:
+	
+	![](ART_BuildSkel.png)
+
+1. This will build what is called the **Joint Mover**. The joint mover is a rig of sorts that will allow quick placement of your joints in your mesh. You will notice that in your viewport, instead of seeing the typical Maya joints, instead is a proxy mesh. The proxy mesh is there to rough out a character without having to have final assets so animators can start working.
+
+	![](ART_JointMover.png)
+
+
+### Joint Mover UI
+
+The Joint Mover comes with a control picker and a custom outliner view as well as many useful tools to help speed up the process. We will cover each of the tools on the left toolbar as well as a brief description of the controls and the picker.
+
+![](ART_JointMover_UI.png)
+
+#### Toolbar
+
+The Toolbar contains all of the necessary function for the setup of your character's skeleton and proxy geometry.
+
+
+|**Button**|**Name**|**Description**|
+|----------| -------|---------------|
+|![](ART_button_SaveLoadTemplate.png)|**Save/Load Templates**|Just like on the skeleton creation tools, you can save out a template for your joint positions and load them back onto other characters. This is really useful when you have a project where characters need to share a skeleton.|
+|![](ART_button_AimMode.png)|**Aim Mode**|Aim Mode will aim each parent mover at the child, allowing you to translate the movers and keep the parent pointing at the child at all times. Disabling aim mode will keep the entire joint placement that was affected.|
+|![](ART_button_SymmetryMode.png)|**Symmetry Mode**|This causes your movements to be mirrored across to the other side of the character. This can be turned on after you have placed your left side to mirror over your placements to the right side, or it can be turned on from the start for real-time symmetry during placement. You will notice when Symmetry Mode is on, many other modes become disabled. Disable Symmetry Mode to get access to the other tools again. Disabling symmetry will keep the entire joint placement that has been mirrored.|
+|![](ART_button_ResetToDefaults.png) |**Reset to Defaults**|This will reset the entire joint mover back to the original creation pose (how it came into the scene). **Ctrl + Left Mouse Button** will reset only your current selected controls, while **Alt + Left Mouse Button** will reset your selection and the hierarchy below.|
+|![](ART_button_GlobalMode.png)|**Global Mover Mode**|In this mode, the Joint Mover will move the selected joint and everything below it in the hierarchy.|
+|![](ART_button_OffsetMode.png)|**Offset Mover Mode**|In this mode, the Joint Mover will only move the selected joint and nothing else.|
+|![](ART_button_GeometryMode.png)|**Geometry Mover Mode**|In this mode, the Joint Mover will only affect the proxy geometry and not any joint placement. Geometry movers are there for blocking out proportions and volume of your character.|
+|![](ART_button_ProxyPhysique.png)|**Proxy Physique Shaper**|This displays a series of sliders allowing you to reshape the proxy geometry. Each part of the body can be modified in this manner. This is useful for highly specialized humanoid shapes.|
+|![](ART_button_ToggleProxy.png)|**Toggle Proxy Mesh Visibility**|This shows and hides the proxy geometry, which is useful for visualizing joint orientations.|
+|![](ART_button_Help.png)|**Help**|This opens the help documentation on docs.unrealengine.com.|
+
+
+#### Joint Mover Selection
+
+The large character graph next to the toolbar is designed to simplify the selection process for the Joint Mover. **Left-click** on the location of the control you wish to move and it will be selected. 
+
+![](ART_JointMoverSelection.png)
+
+Note that when clicking on the yellow control selection boxes, such as the hand or foot, the control window will update to show that joint chain, allowing you to quickly select extremities and joint chain portions such as spine segments, toes, and fingers. Note that when you do this, a blue arrow will appear in the upper left corner allowing you web browser style navigation back to the base selection screen.
+
+![](ART_HandJointMover.png)
+
+### Outliner View
+
+By clicking on the **Outliner** tab in the UI, you will gain access to the custom outliner for our joint mover rig. Clicking on any entry will select the **Global Mover** control. Clicking on the blue box to the right of the selection will select the **Offset Mover** control. Clicking on the pink box will select the **Geometry Mover** control of that selected item.
+
+![](ART_Outliner_View.png)
+
+### Locking
+
+There will be times when you want to use symmetry mode or aim mode, but do not want these features to affect certain joints. Luckily, there is a built in **lock** feature you can use to prevent this from happening. Simple select whichever joints/movers you do not want to be affected in the outliner, **right-click** and choose "Lock Selected":
+
+![](ART_LockSelected.png)
+
+Once you have chosen locked on a selection, you will notice the text becomes italicized, and a red circle will appear next to the name, indicating it is now locked. To unlock, you can either **right-click** and choose "Unlock Selected" or "Unlock All".
+
+
+### Joint Positions
+
+There is actually no skeleton in the scene at this point of the process. Only the representation of what will eventually be a skeleton. The controls you see here on each joint will tell you exactly where the final joint will be created and what its local rotation axis will be. 
+
+![](ART_jointRep.png)
+
+If you would rather see joints, there is an option in the **Joint Mover Tools** menu to build a preview skeleton:
+
+![](ART_BuildPreviewSkeleton.png)
+
+This will run the same code that is used to create the final skeleton to create a temporary preview of the joints. You can go to the same menu to delete or rebuild the preview skeleton if you wish.
+
+
+### Bake To Global
+
+You can find this tool under the **Joint Mover Tools** menu:
+
+![](ART_BakeToGlobal.png)
+
+What this will do is take any values you have on your offset movers, and bake them to your global movers instead, leaving your offset movers now zeroed out. This can be handy if you want to have clean offsets to work with again.
+This feature also will automatically happen if you use **Aim Mode**. Once you turn off **Aim Mode**, it will automatically run **Bake To Global** to put the values from the offset controls onto the global controls.
+
+
+### Hands and Feet Pivots
+
+You may notice some controls that do not seem to affect any joint positions on the joint mover rig. These controls are for the pivots of the hands and feet that the tool will use when building the rig:
+
+![](ART_PivotControls.png)
+
+These pivots get used for attributes on the rig like hand and foot rolls, side to side rolls, and different pivot swivel points:
+
+![](ART_PivotExample.png)
+
+
+## Creating the Final Skeleton
+
+Once you are finished with placing joints with the Joint Mover, you will want to hit the **Deformation Setup** button at the top of the UI to have the tool create the final skeleton, allow you to create a Rig Pose, and then present you with some skin weighting tools. 
+
+![](ART_SkinWeight.png)
+
+
+
+### Rig Pose
+
+When you **left-click** on the **Deformation Setup** button, you will be presented with a few dialog boxes. The first is the Rig Pose dialog:
+
+![](ART_RigPoseDialog.png)
+
+A **Rig Pose** is the desired pose that the animator would like to work from, which is most often a T-Pose - at least here at Epic. Sometimes, this differs from the modeled pose of the character due to topological flow, reference material, texturing, or even just the modeler's personal preference. The purpose of creating a rig pose is to alleviate the problem of having one pose preferred by modelers and another pose preferred by animators.
+
+[REGION:note]
+If your model is already in the preferred pose for rigging, go ahead and still click on **Create Rig Pose**, but on the next dialog when it asks you if you would like the tool to put the character in a T-Pose, just hit "No".
+[/REGION]
+
+Once you have selected **Create Rig Pose**, another dialog box will come up asking if you would like the tool to try to put your character in a predefined T-Pose:
+
+![](ART_AutoRigPose.png)
+
+[REGION:note]
+You will still be able to edit the rig pose after this, it will just give you a good starting point. You can also hit "No" and define the rig pose the way you want it from scratch.
+[/REGION]
+
+When finished creating your pose, **left-click** the **Save Rig Pose** button, which will be floating in its own dialog.
+
+![](ART_CreateRigPoseDone.png)
+
+[REGION:note]
+You will use the Joint Mover tools to create the rig pose. Do not worry, your original placements are still stored and preserved into what is called the _Model Pose_. You will have access to both the _Model Pose_ and the _Rig Pose_ within the tool via the **Reference Pose Manager** menu during the skin weighting process.
+[/REGION]
+
+After you have saved the rig pose, another dialog will come up asking if you would like to have the proxy mesh weighted for you. This is optional and recommended if you have no final model yet and will be using the proxy mesh for prototyping purposes:
+
+![](ART_AutoSkin.png)
+
+
+
+## Skinning a Character
+
+Skinning a character is the default Maya work flow. Select the newly created ART joints (or root joint) and mesh (or meshes) you want to bind and select **Skin menu -> Smooth Bind -> Smooth Bind** from the Animation menu set.
+
+[REGION:note]
+![](ART_NormalizeWeights_settings.png)(a:right)In Maya 2013, the default **Normalize Weights** setting in **Skin menu -> Smooth Bind -> Smooth Bind Options**  is set to **Post**, which can have some frustrating behavior; to minimize frustration or if you prefer the way it worked in previous versions of Maya, set the option to **Interactive**.
+[/REGION]
+
+
+
+## Skin Weight Tools
+
+For the most part, the skin weight UI is very similar to Maya's default, except there are many added tools and features to speed up your workflow.
+
+![](ART_SkinningWindow.png)
+
+### Skin Weight Tools Toolbar
+
+|**Button**|**Name**|**Description**|
+|----------|--------|---------------|
+|![](ART_button_PaintMode.png)|**Paint Skin Weights**|This engages the paint tool, which allows you to paint skin weights on your mesh. This is essentially the same as Maya's Paint Skin Weights Tool.|
+|![](ART_button_ROM.png)|**Range of Motion**|This brings up the Range of Motion dialog, which allows you to quickly create range of motion key-frames to test out your skinning. See the [Range of Motion](#RangeofMotionTool) section below.|
+|![](ART_button_TabSens.png) |**Toggle Tablet Sensitivity**|This toggles whether Paint Mode will make use of tablet sensitivity.|
+|![](ART_button_MirrorSkin.png)|**Mirror Skin Weights**|Brings up the dialog for Maya's Mirror Skin Weights command.|
+|![](ART_button_Prune.png)|**Prune Skin Weights**|Opens Maya's Prune Weights command options, allowing you to eliminate trivial weight values. This cleans up tiny skinning errors.|
+|![](ART_button_AddInfl.png)|**Add Influence**|Used to add skinning influences to a piece of geometry. For instance, if you need more joints to affect the geometry than are available by default.|
+|![](ART_button_RemoveInfl.png)|**Remove Influence**|This allows you to remove unwanted influences from a piece of geometry, such as bones that should not be deforming the surface. Also includes the ability to automatically remove influences that have zero weight.|
+|![](ART_button_ExportWeights.png)|**Export Weights**|This exports out your skin weight maps. Exporting skin weights requires a name for the file, and it will store out each vertex's weighting information.|
+|![](ART_button_ImportWeight.png)|**Import Skin Weights**|This will bring up an interface for selecting a skin weight file and import those weight values onto the corresponding vertices.|
+|![](ART_button_Help.png)|**Help**|This opens the help documentation at docs.unrealengine.com.|
+
+
+### Paint Skin Weights
+
+
+
+#### Tool Settings
+
+![](ART_SkinningToolSettings.png)
+
+The Tool Settings area contains 3 key areas: Profile, Skin Tools, and Mode.
+
+* **Profile** The Profile controls the shape of your paint brush. You have 3 round brushes with varying falloff shapes and one solid square one.
+* **Skin Tools** - The Skin Tools include a variety of specialized tools to speed up the skinning process. See the [Skin Tools](#SkinTools) section below.
+* **Mode** - This allows you to switch between Weight Painting Mode and Selection Mode. See the [Modes](#Modes) section below.
+
+
+#### Skin Tools
+
+|**Button**|**Name**|**Description**|
+|----------| -------|---------------|
+|![](ART_button_copyWeight.png)|**Copy Skin Weight**|This copies the skin weight from a single selected vertex.|
+|![](ART_button_PasteWeight.png)|**Paste Skin Weight**|This pastes the copied skin weight from a single selected vertex onto any number of selected vertices.|
+|![](ART_button_WeightHammer.png) |**Hammer Weights Tool**|This tool will quickly clean up rogue vertices that are exhibiting unexpected behavior by giving the selected vertex a new weight value that is an average of the surrounding vertices.|
+|![](ART_button_MoveInfluences.png) |**Move Influences Tool**|This allows for weights to be transferred from one influence to another.|
+|![](ART_button_ShowInflVerts.png) |**Show Influenced Vertices**|This will highlight any vertices affected by the selected influence.|
+
+
+### Modes
+
+There are two modes, Paint, and Select. Unlike Maya's paint weights tool, Select will give you more UI options that are incredibly useful.
+
+Most of these selection tools are for selecting an element on a mesh and either converting that selection to vertices for easy flooding, or isolating that element and going back to paint mode to only see that.
+
+#### Select
+
+![](animationTool_ModeSelection_select.png)
+
+![](ART_SelectionTools.png)
+
+In this mode, you will have the full range of Maya's polygon selection tools. 
+
+|**Name**|**Description**|
+| -------|---------------|
+| **Isolate Element From Selection** | With a component selected, this will select the **Element** (set of attached faces) and toggle **View -> Isolate Selection -> View Selection**. Once clicked, the button will change to **Exit Isolation Mode**.|
+| **Select Element** | Based on any selected components, this will select the **Element**  or **Elements**. |
+| **Isolate Selection** | Like **Isolate Element From Selection** but it will not select the entire **Element**, just the faces connected to the component, then it will toggle **View -> Isolate Selection -> View Selection**. Once clicked, the button will change to **Exit Manual Isolation Mode**. |
+| **Convert Selection To Verts** | With faces, edges, or UV's selected, this will convert the selection to vertices. |
+
+[REGION:tip]
+Do not **Undo** out of any of the isolate select modes, use the **Exit Isolation Mode** or **Exit Manual Isolation Mode** buttons. **Undoing** will end **Isolate Selection -> View Selected** but will not **Undo** the click of the button, leaving you with the **Exit** button, which if you click it will toggle back on **Isolate Selection -> View Selected** but with nothing selected it will appear has if everything in the scene is hidden. At which point you can **Undo** again to show everything.
+[/REGION]
+
+#### Influences (Paint)
+
+![](ART_ModeSelection.png)
+
+![](ART_skinning_InfluencesSection.png)
+
+[REGION:note]
+The Influence List does not populate until you are in **Paint Mode** ![](ART_button_PaintMode.png) and have skinned geometry selected.
+[/REGION]
+
+The Influence List can be sorted in many ways, including by influence name or only showing locked or unlocked influences:
+
+The **Paint Operations** are exactly the same as they are in Maya.
+
+![](ART_Skin_PaintOps.png)
+
+Other changes to the tool were adding in quick buttons for the opacity and value sliders. These buttons are just quick ways to set common values on those attributes.
+
+![](ART_Skin_Opacity.png)
+
+#### Display Settings
+
+![](ART_Skin_DisplaySettings.png)
+
+|**Name**|**Description**|
+| -------|---------------|
+|**Draw Brush**|Toggles visibility of the weight brush.|
+|**Show Wireframe**|Toggles visibility of the model's wireframe.|
+|**Color Feedback**|Toggles visibility of the color feedback on skinning.|
+
+### Range of Motion Tool
+
+The Range of Motion button opens the Range of Motion Tool, which deserves special mention. The tool automatically creates range of motion animation for your model, allowing you to test skin weighting quality by dragging the time slider. 
+
+![](ART_RangeOfMotion.png)
+
+
+The interface consists of a list of all the joints in your skeleton. Choose the joints you wish to animate and **left-click** the **Generate Range of Motion Keys** button.  
+
+If you want some joints to rotate as a unit - such as the joints of a spine, which generally will not need to rotate individually - then select those joints and check the **Solve as One Item** checkbox. This ensures that each key that is set is for an entire spine pose rather than just one joint.
+
+[REGION:note]
+To Remove a Range of Motion animation, which you should always do before Building the Control Rig, **right-click** on the Range of Motion button and choose the clear option:
+[/REGION]
+
+### Reference Pose Manager
+
+![](ART_ReferencePoseManager.png)
+
+|**Name**|**Description**|
+| -------|---------------|
+|**Assume Model Pose**| The skeleton will assume the Model Pose, which can be set by editing the rotation of the control objects in Edit Placement mode and using Reset Model Pose. |
+|**Assume Rig Pose**| The skeleton will assume the Rig Pose, which can be set by editing the rotation of the control objects in Edit Placement mode and using Reset Rig Pose. |
+|**Reset Model Pose**| Will set the Model Pose to the pose the control objects are currently in. Most useful in Edit Placement mode. |
+|**Reset Rig Pose**| Will set the Rig Pose to the pose the control objects are currently in. Once leaving Edit Placement mode the system will ask if you want to use the current pose as the rig pose and note best practices. Most useful in Edit Placement mode. |
+
+
+
+## Building the Control Rig
+
+At this point you may just have a bunch of proxy shapes in the rough shape of a hulking brute or you may have a fully realized character skinned to your joints. Either way, it is time to create the **Control Rig**.
+
+1. **Left-click** the **Build Control Rig Button**.
+
+	![](ART_BuildControlRig_full.png)
+
+1. The **Publish Character** interface will appear.
+
+	![](ART_PublishCharacter_empty.png)
+
+	You can now choose a project to publish your character to, or if you have no project yet, simply click on the new project button to the left of the projects drop down:
+	
+	![](ART_AddNewProject.png)
+
+	Then give your character a name or choose from a name in the list to overwrite that character instead:
+
+	![](ART_PublishCharacter_full.png)
+
+	[REGION:note]
+	The advanced section is there for users who would like to add their own additions to the rig via MEL or Python script. These could be simple alterations, like scaling the CVs on a curve, to anything more custom or complicated. Simply load in your script file and the tool will execute it after it finishes building the rig. If it fails to execute for any reason, you will get a notification, but the rig will still be built, just without your script.
+	
+	![](ART_Advanced.png)
+
+	[/REGION]
+
+
+
+
+1. The next step is to give your character a thumbnail. Manipulate the mini viewport using the standard Maya camera controls or use the control buttons on the left side to get the thumbnail you would like to use. Once satisfied, **left-click** the **Camera** button to capture the thumbnail. This will kick off the rig building process.
+
+	![](ART_CharacterPortrait.png)
+
+1. The entire process takes usually under 1 minute and it will display the **Operation Complete** dialog when it is finished.
+
+	![](ART_OperationComplete.png)
+
+	You can view the files that were created on your drive by clicking the magnifying glass icon next to each file path. You can also choose to go directly into editing the rig file to make any manual adjustments you would like.
+
+1. After you **left-click Close**, this scene will clear, this is as intended.
+
+[REGION: note]
+At this point the character is ready to be animated, and its files can be found in:
+
+`/MayaTools/General/ART/Projects/YourProject/ExportFiles`
+
+An animation rig file has been created that references in the export file and can be found here:
+
+`/MayaTools/General/ART/Projects/YourProject/AnimRigs`
+[/REGION]
+
+## Adding Characters
+
+With your character published or if you are an animator pulling it down from source control, you can bring it into a scene to start animating. To add a character to a scene, use the **Epic Games menu -> Add Character For Animation** menu item.
+
+![](ART_AddCharacter.png)
+
+Simply choose the project your character is in, and then the character itself and choose either **Add** or **Add and Close** to close the UI afterwards.
+
+![](ART_AddCharacterUI.png)
+
+For more information on how to use the ART Animation Interface, see: [Animation Tools](Engine/Content\Tools\MayaRiggingTool\RigTool_Animation)
+
+## Editing Characters
+
+At any point, you can go back in the pipeline and edit either the placement of your joints, or even your skeleton settings, adding or removing joints.
+
+Furthermore, you can edit a character that has already been published through the **Build Control Rig** process.
+
+[REGION:warning]
+If you are working on a scene, and need to edit a character using the **Epic Games menu -> Edit Existing Character** option, remember to **save your scene**. The character you choose to edit will force load into Maya to the determent of any progress made in the current scene.
+
+**_SAVE YOUR WORK BEFORE CONTINUING_**
+[/REGION]
+
+
+To edit a character that has been published, go to the **Epic Games menu -> Animation Rigging Toolset ->  Edit Existing Character**:
+
+![](ART_EditCharacter.png)
+
+This will bring up an interface for you to select a character to edit. The list is a list of all of the export files created by the tool:
+
+![](ART_EditCharacter_interface.png)
+
+Once you select a character and **left-click Edit Export File**, it will open the Character's export file and bring up the UI used for the rigging pipeline. Once loaded, you can make any changes you wish using the ART Rigging Toolset interface. Just make sure to re-build the control rig again if you have made any changes beyond skin weighting, once you are finished editing by using the **Build Control Rig** button.
+
+[REGION:tip]
+Maya's referencing system is robust, you can make all the changes you want to and it will have a minimal impact on any work down the line (animation, skinning, etc...). This assumes no major changes are made to the naming and organization of the rig, otherwise changes will propagate up the reference chain.
+
+An example of a major change would be if a character had a tail and you rebuilt the tail but with a new name, you would lose all animation and skinning data for those joints.
+
+Other minor changes may still require the rework of animation.
+[/REGION]
+
+Once the character is loaded, the ART Rigging Toolset will be in **Deformation Setup** mode, but you can cycle back to **Skeleton Placement** or **Skeleton Creation** and make any changes you want.
+
+![](ART_EditCharacter_SkelPlac.png)
+
+When entering **Skeleton Placement** mode from **Skin Weight** mode and you have a mesh skinned to the skeleton (the proxy geometry that is auto skinned does not count), you will get a prompt letting you know the tool will do its best to store skin data but it is not fool proof. 
+
+
+Joints added in **Skeleton Creation** mode will not automatically add themselves to the skinning data of the character mesh that was previously skinned to the skeleton. To add them just use the **Add Influences** button then select the new joints from the list.
+
+![](ART_AddInf.png)
+
+![](ART_AddInf_post.png)
+
+[REGION:note]
+New joints start locked and have no influence on the mesh.
+[/REGION]
+
+Upon returning to **Deformation Setup** mode, saved skin data that was saved will be re-applied to the skinned mesh.
+
+
+### Customization
+
+To help in visualization, the tool allows for customization of both the proxy geometry and the user interface graphics.
+
+#### Custom Color Palette for Joint Mover Proxy Geo
+
+The joint mover proxy geometry is UVed so you can quickly prototype color palettes for your characters. You can find the PSD in the following location:
+`/UE4/Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/Icons/ART/jointMover.psd`
+
+The PSD has all the parts labeled and color coded for easy selection and bucket fills:
+
+![](ART_CharacterProxyUV.png)
+
+This will allow you to add custom color swatches to parts of the joint mover to customize the look or add emblems and such:
+
+![](ART_CharacterColorPrototyping.png)
+
+
+## Additional Resources
+
+For additional help, check out the **Learning Videos** located in the **Epic Games -> Help -> Learning Videos** section:
+
+![](ART_Help.png)
+
+This will bring up a list of videos covering topics on both rigging and animation:
+
+![](ART_Videos.png)

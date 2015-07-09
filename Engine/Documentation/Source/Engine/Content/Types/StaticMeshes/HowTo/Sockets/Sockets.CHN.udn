@@ -1,0 +1,138 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Setting Up and Using Sockets With Static Meshes
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description: How To Set Up and Use Sockets
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+While making your level in UE4, there may come a time where you want to attach something to your Static Mesh.  You could parent an object to the Static Mesh in the **World Outliner**, but you still have to position it in the exact place you want it in relation to your mesh, and that can get tedious.  However, just like you can attach objects to your Skeletal Mesh through the use of sockets, you can also attach objects to your Static Mesh using sockets.  It is as easy as creating your socket in the Static Mesh Editor, placing it where you want it to be in relation to your mesh, and then attaching an object, whether it is a light, particle effect, or even another Static Mesh, to your mesh.  This How To will show you how to create a socket for your Static Mesh, and how you may be able to use it in your level.
+
+
+## Set Up
+
+You may already have a level and Static Meshes of your own to work with.  If you do, you can skip this step.  If not, go ahead and launch UE4 from the launcher and create a new project.  Make sure to choose a path to save your project to and a name it.  Also, choose a template to work with.  In the image below, we have selected the Blueprint First Person Template, but you can use whichever template you would like.
+
+![](NewProjectBlank.png)
+
+ Also make sure that you enable **Starter Content**.  If you do not, you will not have the assets that we will be working with later on in this How To and might find it difficult to follow along.
+
+![](NewProjectWithStarterContent.png)
+
+## Creating Our First Socket
+
+Once your project is open, find the **Starter Content** folder within the **Content Browser**.  Then navigate to the **Props** folder and find the Static Mesh named **SM_DoorFrame**.
+
+![](ContentBrowserWithStarterContent.png)(w:462)
+![](DoorFrameInContentBrowser.png)(w:462)
+
+Once you have found **SM_DoorFrame**, open the asset up in the Static Mesh Editor by either **double-clicking** the asset or by **right-clicking** the asset and selecting **Edit** from the context menu.  Once you have done so, you should have something that looks similar to what is shown below.
+
+![](DoorFrameInEditor.png)
+
+Now that we have the mesh opened in the Static Mesh Editor, we are going to create a socket so that we can place a fire particle in the middle of the doorway to make some type of archway of death.  To start off, we will need to create the socket.  To do this, click on the **Window** drop down menu from the top of the editor and select **Socket Manager**.  When you do, the Socket Manager window will appear.  It should look similar to what is shown below on the right:
+
+![](WindowMenu.png)(h:450)
+![](CreateSocketButton.png)(w:650 a:right)
+
+Once you have the **Socket Manager** window opened, click the **Create Socket** button, highlighted in green.  After you click the button, it will create and ask you to give your new socket a name.  In this example, we will name our socket **Fire**.  After clicking the **Create Socket** button, your **Socket Manager** window should look similar to the image below:
+
+![](NewSocket.png)
+
+If you look at your mesh in the Viewport, you should see a 3D widget with a Translation widget.  If not, make sure that you have sockets visible by clicking the **Sockets** button in the Toolbar.   (![](SocketsButton.png))
+
+Once you can see the socket, it is not quite where we want it to be located.  By default, when you create a new socket, it will be located where the origin of the Static Mesh is, which is directly in the middle at the bottom of the mesh in this case.  We want our socket to be in the middle of the doorway so that they player will have to walk through fire when they walk through the doorway.  You can use the translate widget in the Viewport to move the socket manually, or you can change its relative location, rotation, and scale from within the **Socket Manager** panel.  To achieve the effect we want to change the value of **Z** in its relative location from 0 to 115.  After you do that, you should have something that looks like this.
+
+![](FireSocket.png)
+
+## Attaching Objects to a Static Mesh
+
+Now that we have a socket on our Static Mesh to attach to, we are going to attach an object to our Static Mesh in our level.  Click the **Save**  button in the Toolbar inside the Static Mesh Editor and go back to the level editor.  Find **SM_DoorFrame** inside your **Content Browser** and drag a copy of it into your level.  After you have done that, go to the **Particles** folder inside of the **Starter Content** folder and find the asset named **P_Fire**.
+
+![](FireParticle.png)
+
+Once you have found **P_Fire**, drag a copy of it into your level as well.  This will serve as the fire the player will pass to and thus, the object we will attach to **SM_DoorFrame**.  Once you have dragged in an instance of **P_Fire**, **right-click** the particle inside of the Viewport.  You should get a menu that looks similar to the one below:
+
+![](ContextMenuForFire.png)
+
+In the context menu, select **Attach To** and inside of the search box that appears, start to type **Door Frame**.  Our **SM_DoorFrame** should appear.
+
+![](FireAttachToFrame.png)
+
+Once you select **SM_DoorFrame**, it will ask you where you want to attach the object.  The list will consist of **None** and every socket you created for your Static Mesh.  Select **Fire**, and the particle effect **P_Fire** will magically snap to where the socket is on our Static Mesh.  The particle effect is now attached to our Static Mesh.
+
+![](ChooseSocket.png)
+![](FireInFrameComplete.png)
+
+Note that now that the particle effect is attached to the Static Mesh via its socket, you can still move, rotate, and scale the particle effect separately from the Static Mesh, but any transformations made to the Static Mesh will also affect any objects attached to it.
+
+## Detaching
+
+At any point that you need to detach an object that is attached to another, it is as easy as attaching an object to another. **right-click** on the object that you want to detach and from the context menu that appears, select **Detach**.  The object is no longer attached to the other object.
+
+![](Detach.png)
+
+## Creating a Doorway With a Solid Door
+
+### Overview
+
+Now that you have used sockets to create our archway of doom, we are going to use sockets to create something a little more practical.  In the **Props** folder within the **Starter Content**, find **SM_DoorFrame** and drag another copy of it into the level.  Then find **SM_Door**, and drag a copy of it into the level as well.  Now, we could attach the door to the door frame using the socket we already have, but there is a problem.  When you attach an object to another object, the object will be attached at its origin to the socket.  The Static Mesh **SM_Door** has an origin at the bottom corner of it, so attaching the door to the **Fire** socket will leave the door floating in the air and bursting through the corner of the doorway.  To fix this problem, we are going to make another socket.
+
+### Creating a New Socket
+
+Find **SM_DoorFrame** in the **Content Browser** and open it up in the Static Mesh editor by **double-clicking** on the asset.  If the **Socket Manager** panel is still open, click the **Add Socket** button.  If not, you can reopen the **Socket Manager** panel by selecting **Socket Manager** from the **Window** drop down menu at the top of the editor.  Once you have done so, go ahead and click the **Add Socket** button.
+
+Once you have created the socket, you will be prompted to give it a name.  For our purposes in this example, we will name the socket **Door** so that we will know later on that this is the socket that we want to attach our door mesh to.  Again, once we create the socket, it creates it at the origin of the mesh, which in this case, is at the bottom middle of the door frame.  The origin of our door mesh is at the bottom corner, so that is where we want to move our **Door** socket to.  You can manually move the socket using the 3D widget, or you can move it by changing the relative location, rotation, and scale from within the **Socket Manager** panel.  For this example, changing the value of **Y** of the socket's relative location to 45 should achieve the results we are looking for.  After moving the socket to the bottom corner, your door frame mesh should look similar to what is shown below.
+
+![](DoorSocket.png)
+
+If you are not seeing the sockets, make sure that ![](SocketsButton.png) is highlighted so that sockets are visible.
+
+
+###  Attaching the Door to the Frame
+
+Now that we have a socket to attach the door to the frame, go ahead and save your door frame mesh and head back to the level editor.  Select the instance of the door that is in your level and **right-click** to bring up its context menu.  From within the context menu, select **Attach** and search for **SM_DoorFrame**.  Find the instance of the door frame you want to attach the door to and select it by **left-clicking** on it.  When asked which socket to attach to, select **Door**.  When you are done, you should have something that looks similar to what is shown below.
+
+![](DoorSocketComplete.png)
+
+By default, **SM_Door** will not have collision set.  If you play the level now, the player can walk through the solid door, which is not very useful.  Go ahead and set a simple box collision for the door inside of the Static Mesh Editor so that the player will not be able to just walk through the door when it is closed.  If you do not know how to do that, you can read how [here](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%").
+
+Now that the door is solid and the player cannot walk through it, you can use Blueprints to script behavior for the door so that it can open and close.  That is out of the scope of this How To, but now that you have to door to use that blocks the player out and is attached to your door frame, you can find out how to get script behavior to get the door to open and close [here](Engine/Blueprints/UserGuide/Timelines/Examples/OpeningDoors).

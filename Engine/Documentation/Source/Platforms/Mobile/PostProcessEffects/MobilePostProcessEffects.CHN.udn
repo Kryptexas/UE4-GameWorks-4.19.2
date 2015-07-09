@@ -1,0 +1,122 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Post Process Effects on Mobile Platforms
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:Using Post Process Effects on mobile games.
+Platform:Mobile
+
+[TOC(start:2)]
+
+## Overview
+
+Mobile postprocessing is implemented as a separate code path from PC/Console post processing. This is to reflect the slower dependent texture reads,
+missing hardware features, extra rendertarget resolve costs, and the slower performance in general. The following categories can be found in a postprocess volume (or a camera Actor).
+
+[REGION:tip]
+Some options are in the _Advanced_ properties and require clicking the ![](Engine/UI/LevelEditor/Details/button_advanced.png) button to expands the category in the **Details** panel.
+[/REGION]
+
+## Post Process Categories
+
+### Film
+
+Everything works the same as desktop/console. 
+
+[REGION:tip]
+For best performance, keep "Tint Shadow Amount" set to zero to disable Tint Shadow. Keeping "Channel Mixer" controls unchecked and keeping "Saturation" unchecked or set to 1 can also improve the performance of the tonemapper on mobile.
+[/REGION]
+
+### Scene Color
+
+The following are unsupported on mobile:
+* Fringe Intensity
+* Color Grading
+* Color Grading Intensity
+
+[REGION:tip]
+For best performance keep, "Grain Jitter" and "Grain Intensity" set to zero to disable grain. Turning off Vignette by setting "Vignette Intensity" to zero can provide a small increase in performance if bloom is disabled.
+[/REGION]
+
+### Bloom
+
+The following are unsupported on mobile:
+* Dirt Mask Intensity
+* Dirt Mask
+* Dirt Mask Tint
+
+[REGION:tip]
+Settings on the PC to best emulate mobile bloom are {4, 8, 16, 32, 64} for {#1 Size, #2 Size . . . #5 Size}. However, as the PC size values are in screen percentage, this
+only works for a specific viewport size. We intend to port the mobile bloom to PC to make it match better and to give the PC another more low spec option.
+[/REGION]
+
+### Light Propagation Volume
+
+Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+
+### Ambient Cubemap
+
+Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+
+### Auto Exposure
+
+Auto exposure is not supported on mobile, however the "Auto Exposure Bias" setting is supported.
+Set "Min Brightness" and "Max Brightness" to 1 to emulate mobile on desktop (this clamps the range of auto exposure so that auto exposure will have no effect).
+The "Auto Exposure Bias" setting can then be used to lighten or darken the scene.
+
+### Lens Flares
+
+Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+
+### Ambient Occlusion
+
+Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+
+### Depth Of Field
+
+To turn off Depth of Field, set "Scale" to zero, this is suggested as default to improve performance.
+
+Mobile Depth of Field is currently not compatible with PC. There is no way to currently visualize on the desktop version what the mobile settings will look like
+except using an unsupported "-FeatureLevelES2" launch flag when starting the editor, or using the "Mobile Preview" option from the "Play" button drop down menu.
+
+The following settings are not supported on mobile:
+* Near Transition Region
+* Far Transition Region
+* Max Bokeh Size
+* Near Blur Size
+* Far Blur Size
+
+Mobile Depth of Field provides two focal planes (one for the near and one for the far bokeh). The "Focal Distance" and "Focal Region"
+control those planes as they do on desktop. The "Scale" parameter goes from 0 (off) to 1 (full size) to 2 (faster transition to full size).
+Mobile Depth of Field has a relatively small maximum size.
+
+### Motion Blur
+
+Unsupported. Set "Amount" to zero to emulate mobile on desktop.
+
+### Misc
+
+"Screen Percentage" is unsupported. Only the 100.0 setting works. "AA Method" supports "None" (the fastest) and "TemporalAA" which provides a
+special mobile temporal AA which provides something around 2xSGSSAA with a little bit of judder in motion.
+Postprocess materials (through Blendables) are not supported on mobile.
+
+### Screen Space Reflections
+
+Unsupported. Set "Intensity" to zero to emulate mobile on desktop.
+
+## General Performance Tips
+
+* For best performance and quality, you should stick to Bloom and TemporalAA.
+* Make sure Depth of Field, light shafts, film grain, color grading LUT, ambient cubemap, etc are disabled.
+
+
+[REGION:note]
+For better performance, we have implemented a special workaround which is controlled by the console variable "r.RenderTargetSwitchWorkaround". In `BaseDeviceProfiles.ini`, you can see it is enabled
+for several devices. Note that there will be a small change in appearance to the bloom effect on devices with certain performance characteristics. The console variables help text describes this in more detail:
+
+	r.RenderTargetSwitchWorkaround
+
+	Workaround needed on some mobile platforms to avoid a performance drop related to switching render targets.
+	Only enabled on some hardware. This affects the bloom quality a bit. It runs slower than the normal code path but
+	still faster as it avoids the many render target switches. (Default: 0)
+	We want this enabled (1) on all 32 bit iOS devices (implemented through DeviceProfiles).
+[/REGION]

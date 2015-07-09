@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Physics Constraints
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description:Constraining physics objects together and to the world.
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Constraint Topics
+	[/PARAM]
+	[PARAM:links]
+		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide) - A guide to constraining the joints between bones.
+		* [](Engine/Physics/Constraints/ConstraintsBlueprints) - A user guide on using the Physics Constraint Component in Blueprints.
+		* [](Engine/Physics/Constraints/ConstraintsReference) - A reference for all the properties available on Physics Constraints in Unreal Editor.
+		* [Damping and friction](Engine/Physics/Constraints/DampingAndFriction) - Explanation of the damping and friction attributes in Unreal Engine 4.
+	[/PARAM]
+[/OBJECT]

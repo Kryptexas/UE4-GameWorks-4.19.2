@@ -1,0 +1,159 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Setting Up Collisions With Static Meshes
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description: How To Set Up Collision
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+In UE4, you can have Static Meshes do many things, such as change its texture or material during gameplay, or move throughout your level using a Matinee.  Chances are, whatever you have your Static Mesh do in your level, you do not want to have the player able to walk or shoot through the mesh.  That is where setting up collision on your Static Mesh is useful.
+
+## Set Up
+
+You may already have a level and Static Meshes of your own to work with.  If you do, you can skip this step.  If not, launch UE4 and create a new project.  Name your project and choose a location for your project to be stored. In this example, we are going to use the Blueprint First Person Template.   You do not have to work out of this template, but the ability to fire projectiles that is already implemented in this template will be used to demonstrate a point later, so using this template may help you follow along.
+
+![](NewProjectBlank.png)
+
+ Also make sure that you enable **Starter Content**.  If you do not, you will not have the assets that we will be working with later on in this How To which may make it difficult to follow along.
+
+![](NewProjectWithStarterContent.png)
+
+## Collision On a Simple Shaped Mesh
+
+Once you have the project open, if you enabled the **Starter Content**, you should have a folder in your **Content Browser** that is labeled **Starter Content**.  Within that folder should be another folder labeled **Props**.  Browse to that folder and find the Static Mesh within named **SM_Door**.
+
+
+![](ContentBrowserWithStarterContent.png)(w:460 h:585)
+![](DoorInContentBrowser.png)(w:460 h:585 a:right)
+
+Once you have found **SM_Door**, go ahead and open up the Static Mesh Editor by either **double-clicking** on the asset or by **right-clicking** on the asset and selecting **Edit** from the context menu.  Once the editor is opened up, you should see something similar to what is shown below:
+
+![](DefaultDoor.png)
+
+By default, there is no collision set on this mesh.  Without collision, the player would be able to walk through the mesh and if the mesh simulates physics, the mesh would simply fall through the world as soon as play began.  You can test this by placing this mesh into your level before setting up collision and playing.  Note that your player can walk right through the solid mesh.  Also, if you wanted the door to blow away when you shoot it, or start off in the sky and fall to the ground, you would need to set **Simulate Physics** to _true_ from the **Details** panel, which you cannot do by default if the Static Mesh does not have collision.
+
+![](PhysicsDetailsPanel.png)
+
+These effects are undesirable in most cases, so we will go ahead and set up collision for this mesh.  At the top of the editor, there is a **Collision** drop down menu.  If you click on it, you will see the options you need in order to add collision to your mesh.
+
+![](CollisionMenu.png)
+
+In this case, our mesh is a rather simple shape.  This will make things easy when trying to set up collision for our mesh.  The top three options in the **Collision** menu will surround our mesh with a simple shape that will be used as the bounds of what can and cannot be blocked or overlapped with our mesh.  Below are examples of the mesh with these simple shape collision meshes.
+
+![](Sphere1.png)(w:300)
+![](Capsule1.png)(w:300)
+![](Box1.png)(w:300)
+
+![](Sphere2.png)(w:300)
+![](Capsule2.png)(w:300)
+![](Box2.png)(w:300)
+
+After setting the collision, if you still cannot see the outline around your mesh, make sure that the collision button in the toolbar, (![](CollisionButton.png)) is highlighted.  Also note that if you already have simplified collision on a mesh and you add another simplified collision to the mesh, the new collision will not replace the other collision, but add to it.  If you add all three of the simplified collisions from above without first removing any of the collisions, you might have something that looks like this.
+
+![](AllCollision.png)
+
+To solve this, you can either select one of the collisions and press the **delete** key or select **Delete Selected Collision** from the **Collision** drop down menu to remove them one by one, or, in the **Collision** menu, select **Remove Collision** to remove all collision on the mesh.  A pop-up will appear asking if you are sure that you want to remove all the collision meshes.  Clicking **Yes** will remove collision from your Static Mesh.
+
+![](RemoveCollision.png)
+![](RemoveCollisionPopUp.png)(w:540 a:right)
+
+After applying collision to the mesh, notice that the collision has a translation widget.  After you have set collision, you can translate, rotate, and scale the collision meshes just like you would with any other object within UE4.
+
+##  Collision On a More Complex Mesh
+
+If you have a mesh that can easily fit into a capsule or box, or have a mesh where having precise collision does not matter, using the simple collision we set up in the last section will work fine.  However, you may have a mesh that is a more complex shape yet still needs to have precise collision.  In this section, we will go over how to set that up.
+
+Back in the **Props** folder within the **Starter Content**, browse to the Static Mesh **SM_Chair**.  **Double-click** on the thumbnail to open it up in the Static Mesh Editor.  As you can see, this mesh already has collision on it, and should look something similar to what is shown below:
+
+![](ChairDefaultCollision.png)
+
+Let's assume that for this example, we want the player to be able to sit right on the cushion of the chair.  With the collision mesh set up the way it is by default, there is an invisible barrier that would prevent the player from doing so. (Note that when the player is playing the game, they only see the Static Mesh itself, not the collision mesh, so the player would try to sit on the chair and not know why there is something blocking their way.)
+
+Remove the collision on the mesh by selecting **Remove Collision** from the **Collision** drop down menu at the top of the editor.  We can try to use the primitive shapes that we used in the previous section of this How To, but as you can see in the images below, none of them look quite like what we are looking for.
+
+![](ChairSphere.png)(w:300)
+![](ChairCapsule.png)(w:300)
+![](ChairBox.png)(w:300)
+
+It seems none of the primitive shapes quite achieve what we are looking for.  However, we can get closer with the other options within the **Collision** drop down menu.  These options are called the **K-DOP** simple collision generators.
+K-DOP is a type of bounding volume, which stands for _K discrete oriented polytope_ (where K is the number of axis aligned planes). Basically, it takes K axis-aligned planes and pushes them as close to the mesh as it can. The resulting shape is used as a collision hull. In the **Static Mesh Editor** K can be:
+
+
+* **10** - Box with 4 edges beveled - you can choose X- Y- or Z-aligned edges.
+* **18** - Box with all edges beveled.
+* **26** - Box with all edges and corners beveled.
+
+Here is what our chair mesh looks like with 10-DOP, 18-DOP, and 26-DOP respectively.
+
+![](10DOP.png)(w:300)
+![](18DOP.png)(w:300)
+![](26DOP.png)(w:300)
+
+These collision meshes are coming closer to what we are trying to achieve, but there is still a gap between the cushions that might prevent the player from sitting down in the chair.  Select **Remove Collision** one more time and once you have done that, go ahead and select **Auto Convex Collision** from the **Collision** drop down menu.  Once you have done that, you will be presented with the **Convex Decomposition** panel, which looks much like what is pictured below.
+
+![](ConvexDecomposition.png)
+
+The top option in this window is Max Hulls which will change the number of primitives that your collision mesh has.  The bottom option will increase or decrease the number of vertices your collision mesh has.  The higher these values, the more precise your collision will be, but also the more complex your collision mesh will be.  Clicking **Apply** will apply these settings to your mesh.
+
+![](AutoConvexCollision1.png)(w:460)
+![](AutoConvexCollision2.png)(w:460 a:right)
+
+Another simple way to set up complex collision is by using multiple simple shape collision meshes to create the collision for your mesh.  If you remember from earlier in this How To, creating another simple collision mesh does not replace the original one, but adds to it.  We also went over that each collision mesh has its own transform widget, so that you can translate, rotate, and scale each collision mesh individually.  We can use this to create collision for our Static Mesh.
+
+Start by selecting **Add Box Simplified Collision**  from the **Collision** drop down menu.  **Left-click** on the collision mesh to bring up its transform widget.  Translate, rotate, and scale the collision mesh so that it fits along the arm of the chair down to the ground.  With the collision mesh still selected, duplicate the collision mesh by either selecting **Duplicate Selected Collision** from the **Collision** drop down menu or by pressing **Ctrl + W**.  Move this collision mesh so that it fits along the other arm of the chair.  Duplicate the mesh again.  With this new mesh selected, move, scale, and rotate this mesh so that is fits along the bottom of chair.  Duplicate that collision mesh and move it up so that if fits along the seat of the chair.  Duplicate the mesh one more time and rotate it so that it fits along the back of the chair.  When you are done, you should have something that looks similar to this:
+
+![](CompositeBoxCollision.png)(w:900)
+
+You could go back and follow the shape of the chair more closely, but for the purposes of this example, just using these five boxes we have set up collision on the entire chair and have the collision set up so that the player can sit on the cushion.
+
+## Simulating Physics and Collision Presets
+
+Now that your Static Mesh has collision, it can now simulate physics.  Save your chair mesh by clicking the **Save** button on the very left of the Toolbar within the Static Mesh Editor and then find **SM_Chair** inside your **Content Browser**.  Drag a copy of the mesh into the level and with it selected, take a look at the **Details** panel.  In the **Physics** section of the **Details** panel, the first option is **Simulate Physics** and should be _false_ by default.  If you play the level now with Simulate Physics set to _false_, your character will not be able to walk  through the mesh and shooting projectiles will not affect the mesh at all.
+
+![](PhysicsDetailsPanel.png)
+
+Stop playing the level and set **Simulate Physics** to _true_.  Now when you play, you will notice that when your character walks into the chair, the mesh moves. The mesh also gets shot across the level and into the air when you shoot at it.  This is not only because the mesh is simulating physics, but also because the mesh is set to block all as its default **Collision Preset**.
+
+Go back to the **Details** panel for the chair and in the **Collision** section, there will be a drop down menu labeled **Collision Presets**.  The way this instance of the mesh reacts to other objects in the world depends on what its **Collision Presets** are.  Take a look at the options you have, which are shown below.
+
+![](CollisionPresets.png)
+
+It is set to Block All by default.  If you switch it to Overlap All, as soon as play begins, you will see the mesh fall right through the level.  There is also a custom preset, which allows you to manually set how the mesh responds to different objects in your level.  You may want it to block Pawns, but overlap Projectiles, and ignore everything else.  In the custom preset, you can tell the mesh to do that.  Now that you have collision set up on your mesh, you are now ready to place it in your level and use its collision to set up how it affects and can be affected by other objects in your level.

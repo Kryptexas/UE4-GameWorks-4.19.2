@@ -1,0 +1,157 @@
+﻿INTSourceChangelist:0
+Title: Gameplay Guide
+Crumbs:%ROOT%
+Description:Overviews and examples of gameplay functionality for programmers and visual scripters.
+Availability:Public
+
+[VAR:Params]
+[PARAM:image]
+	![](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/gameplay_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Gameplay:title%
+[/PARAM]
+[PARAM:description]
+	%Gameplay:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Gameplay]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+gameplay
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Basic Gameplay Concepts
+	[/PARAM]
+	[PARAM:description]
+		These pages will introduce you to key Unreal terms. To add new types of gameplay objects, you will generally create a new class. 
+		A class is a template, or collection of rules, for your new object, so that you can create as many copies as you need, each containing 
+		properties and behavior that you set in the template.
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/UnrealTerminology "%Gameplay/UnrealTerminology:description%")
+		* [](Gameplay/ClassCreation "%Gameplay/ClassCreation:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Framework
+	[/PARAM]
+	[PARAM:description]
+		In Unreal Engine 4, there are a number of classes that come with preset behavior to help you get started with your game. Read more 
+		about these building blocks and how they work together in the framework overview or quick reference, or jump straight to a particular 
+		class page for more information.
+	[/PARAM]
+	[PARAM:links]
+		* [Framework Overview](Gameplay/Framework "%Gameplay/Framework:description%")
+		* [Quick Reference](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
+		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
+		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
+		* [](Gameplay/Framework/Camera "%Gameplay/Framework/Camera:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Gameplay Elements
+	[/PARAM]
+	[PARAM:description]
+		Although each game may have different characters, rules, and visual styles, there are some core elements that are more universal. 
+		From input to saving, find overviews of these topics and example setups in C++ and/or Blueprints here.
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/Input "%Gameplay/Input:description%")
+		* [](Gameplay/Networking "%Gameplay/Networking:description%")
+		* [](Gameplay/SaveGame "%Gameplay/SaveGame:description%")
+		* [](Gameplay/DataDriven "%Gameplay/DataDriven:description%")
+		* [](Gameplay/AI "%Gameplay/AI:description%")
+		* [](Gameplay/Localization "%Gameplay/Localization:description%")
+		* [](Gameplay/Analytics "%Gameplay/Analytics:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Gameplay Tools
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/Tools/GameplayDebugger "%Gameplay/Tools/GameplayDebugger:description%")
+		* [](Gameplay/Tools/NetworkProfiler "%Gameplay/Tools/NetworkProfiler:description%")
+		* [](Gameplay/Tools/VisualLogger "%Gameplay/Tools/VisualLogger:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Gameplay How To's
+	[/PARAM]
+	[PARAM:description]
+		This section provides step-by-step instructions on how to generate some of the most common gameplay scenarios. 
+		Whether it is how to spawn enemies or pick-ups in your game, change camera angles, or set up player inputs; these pages provide example setups for you in both Blueprints and C++.
+	[/PARAM]
+	[PARAM:links]
+		* [Spawning/Destroying Actors](Gameplay\HowTo\SpawnAndDestroyActors)
+		* [Respawning (OnDestroyed)](Gameplay\HowTo\RespawnPlayer)
+		* [Possessing Pawns](Gameplay\HowTo\PossessPawns)
+		* [Using Raycasts (Tracing)](Gameplay\HowTo\UseRaycasts)
+		* [Referencing Actors](Gameplay\HowTo\ReferenceAssets)
+		* [Using Timers](Gameplay\HowTo\UseTimers)
+		* [Setting Up a Game Mode](Gameplay\HowTo\SettingUpAGameMode)
+		* [Setting Up Player Input](Gameplay\HowTo\SetUpInput)
+		* [Setting Up Input on an Actor](Gameplay\HowTo\ActorInput)
+		* [Setting Up Character Movement](Gameplay\HowTo\CharacterMovement)
+		* [Finding Actors in your Scene](Gameplay\HowTo\FindingActors)
+		* [Using Cameras](Gameplay\HowTo\UsingCameras)
+		* [Adding Components](Gameplay\HowTo\AddingComponents)
+		* [Using OnHit Events](Gameplay\HowTo\UseOnHit)
+			* **Networking**
+			* [Replicating Actors](Gameplay\HowTo\Networking\ReplicateActor)
+			* [Replicating Functions](Gameplay\HowTo\Networking\ReplicateFunction)
+			* [Replicating Variables](Gameplay\HowTo\Networking\ReplicateVariable)
+			* [Testing Multiplayer](Gameplay\HowTo\Networking\TestMultiplayer)
+	[/PARAM]
+[/OBJECT]
+

@@ -1,0 +1,88 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Textures
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:Image assets used in Materials to apply to surfaces or drawn on-screen by the HUD.
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/Textures:title%](%ROOT%/Engine/Content/Types/Textures/texture_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/Textures:title%](%ROOT%/Engine/Content/Types/Textures/texture_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[INCLUDE:Shared/Glossary/T/#Glossary_Texture]
+
+[EXCERPT:Overview]
+A single material may make use of several textures that are all sampled and applied for different purposes. For instance, a simple material may have a Base Color texture, a Specular texture, and a normal map. In addition, there may be a map for the Emissive and Roughness stored in the alpha channels of one or more of these textures.
+
+You can see that, while these all share the same layout, the colors used are specific to the purpose of the texture.
+[/EXCERPT:Overview]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Texture Creation
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures/Importing "%Engine/Content/Types/Textures/Importing:description%")
+		* [](Engine/Content/Types/Textures/Cubemaps "%Engine/Content/Types/Textures/Cubemaps:description%")
+		* [](Engine/Content/Types/Textures/NormalMaps/Creation "%Engine/Content/Types/Textures/NormalMaps/Creation:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Textures Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures/SupportAndSettings "%Engine/Content/Types/Textures/SupportAndSettings:description%")
+		* [](Engine/Content/Types/Textures/Properties/Interface "%Engine/Content/Types/Textures/Properties/Interface:description%")
+		* [](Engine/Content/Types/Textures/Properties "%Engine/Content/Types/Textures/Properties:description%")
+		* [](Engine/Content/Types/Textures/Streaming "%Engine/Content/Types/Textures/Streaming:description%")
+	[/PARAM]
+[/OBJECT]
+

@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:How to Use Raycasts (Tracing) through Code
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
+Description:A How To Guide for using Raycasts (Tracing) through Code.
+
+[TOC (start:2 end:2)]
+
+## Overview
+
+On this page, you will learn the difference between **Single** and **Multi** Raycasts as well as how to set up each which could be used to retrieve collision information. 
+
+## Single Line Trace
+
+### Single Line Trace by Channel
+
+The **Single Line Trace by Channel** will perform a collision trace along a given line and return the first Object (that responds to the Trace Channel) the trace hits. 
+
+Below you will find steps for setting up a **Single Line Trace by Channel**. 
+
+
+The example above returns all Objects that are set to respond to the provided Trace Channel, however there may be instances when you want to only return certain objects. In the example above, you can use the **Actors to Ignore** pin which takes in an **Array** of Actors which should be ignored by the trace, but this would mean you have to specify each individual Actor to ignore. 
+
+You can also perform a **Single Line Trace by Object** where only the specified **ObjectTypes** are returned. This will allow you to target a specific set of Objects only to be included in the trace. 
+
+### Single Line Trace by Object
+
+The **Single Line Trace by Object** will perform a collision trace along a given line and return the first Object (that responds to the ObjectType) the trace hits. 
+
+To set up a **Single Line Trace by Object** trace, do the following: 
+
+
+## Multi Line Trace
+
+### Multi Line Trace by Channel
+
+The **Multi Line Trace by Channel** will perform a collision trace along a given line and return all hits encountered up to and including the first blocking hit, returning only objects that respond to the specified Trace Channel. 
+
+Below you will find steps for setting up a **Multi Line Trace by Channel**. 
+
+
+### Multi Line Trace by Object
+
+The **Multi Line Trace by Object** will perform a collision trace along a given line and return all hits encountered, returning only objects that respond to the specified Object Type. 
+
+Below you will find steps for setting up a **Multi Line Trace by Object**. 
+
+
+
+## Shape Traces
+
+When a Line Trace is not enough, you may get the results you are after by using a **Shape Trace** instead. For example, maybe you are creating a "vision cone" for an enemy and you want to detect players that enter it. A Line Trace may not be enough as players may be able to avoid detection by ducking under the Line Trace. 
+
+In this situation, you could possibly use a **Box Trace**, **Capsule Trace** or **Sphere Trace** instead. Each Shape Trace functions like a Line Trace where you are sweeping and checking for collision from a start point to an end point, however the Shape Traces have an added layer of checking as you are using a shape as a volume of sorts in your Raycast. 
+
+You can use a Shape Trace as a **Single Trace** or a **Multi Trace** and each are set up in the same manner as a Line Trace however you will need to provide additional details pertaining to the size or orientation of the shape you use. 
+
+
+
+
+
+
+
+
+
+
+

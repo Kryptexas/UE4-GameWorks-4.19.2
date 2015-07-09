@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:4. Deploy Your Level
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:Launch your level with one-click deploying.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+
+1.	Click on the dropdown arrow next to **Launch** in the **Level Editor** toolbar. You will notice that there are multiple entries for your Android device. 
+These are because of different texture formats. Here is a list of the formats as well as the devices that use them:
+
+[INCLUDE:Platforms/Android/Reference#androidformats]
+
+1.	First, you can test launching your game, which will allow you to test out your current level quickly.
+1.	Select the **Launch** option with the correct format for your device.  
+	![](launch_rightformat.png)
+	[REGION:tip]
+	If you do not know your format, choose either the unlabeled or ETC1 format.  
+	![](launch_noformat.png)
+
+	When you run the game, if you tap the screen with 4 fingers at once, a dialog will pop up. This dialog is usually used to enter a console command (like `stat fps`), but it will also display the formats that your device supports. Once you have that list, you can use that to choose a more ideal type when deploying/packaging.
+	[/REGION:tip]
+1. A message will appear in the bottom right corner during the launching process.
+	![](launch_toast.png)
+1.	After the cooking and launching process, the game will appear automatically on your device, and also be accessible from your Apps drawer. 
+1.	You can uninstall the game now, or the batch file you will use to install your game package can manage uninstalling for you later.
+
+
+
+
+
+
+%Steps%

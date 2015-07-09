@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Render a Normalized Depth Map
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
+Description:
+
+[TOC(start:2)]
+
+This function renders a local depth map for a Static Mesh. This allows you to mimic the appearance of crisp dynamic shadows using an entirely unlit material.
+ 
+![](17.jpg)
+
+It renders the depth by basically taking a top-down screenshot of the mesh using a normalized depth material. Because the depth is stored orthographically rather than in UV-space, the amount of texture density is increased dramatically for dense trees.
+
+This feature was used on the Cherry Tree in the Apple Metal API Zen demo.
+
+This technique offers several unique advantages as well as a few disadvantages.
+
+**Advantages:**
+
+1. For complex trees, the unwrapped UVs will have low resolution due to the amount of 'vertical overlap'. The Shadow Depth texture does not lose resolution due to unwrapping thus gives far more resolution in this case. 
+1. You can easily bake correct lighting for things like camera facing sprites with vertex shaders that are otherwise impossible to get good shadows for via lightmass. This is actually the primary reason this function even exists
+1. The resulting depth texture allows fine tuning of depth biasing and transmission of light distance for some realistic effects. 
+1. The resulting texture can also be placed onto a no-collision hidden-game Static Mesh that acts as a shadow caster for the tree onto other geometry including the ground and players. This offers a massive shadowing performance boost.
+1. For massive forest scenes where you want to use very high poly trees, and lightmass rebuilding is problematic for some reason, and cascade shadowmaps cannot provide the required quality, this offers a good alternative. You can fill a massive scene and trees look equally good in the distance as soon as you place them.
+1. The main computations are done in the vertex shader, and a good looking unlit material is cheap enough to run on mobile as evidenced by use on Zen demo.
+
+**Disadvantages:**
+
+1. Somewhat high content creation cost as opposed to just using lightmass to bake the lighting for simple cases, but sometimes the above reasons justify the extra work.
+1. It is difficult to control the blur of the resulting shadows as they tend to appear sharp unless blurred manually or using LODbias.
+1. It only works for static scenes, it is not possible to have the shadow actually change angles since it is baked from a single light view. There are some parameters to 'fake' rotate the light if necessary but the resulting quality will be much lower, and that approximation only works well for very spherical trees since in that case, rotating from the center does not change much.
+1. You lose out on lightmass bounce lighting with the unlit material and end up tweaking it back in.
+
+## Baking the Depth Map
+
+![](16.jpg)
+
+Light Vector: You can either specify a light vector to capture the view from, or you can link to a directional light Actor that you place in the level.
+
+To represent a 12 o'clock noon light vector, you would enter 0,0,-1.
+
+| Property | Description |
+| --- | --- |
+| **Directional Light** | If you select a directional light from your level to use, the light vector setting above will be disregarded and the light will be used instead. |
+| **Depth Map Static Mesh** | This is where you plug in the Static Mesh you want to capture. |
+| **Depth Material Mask Textures** | You do not have to create or specify a material here, it auto creates one for each element in this array. If any element in the array is blank, a while mask is used. If your Static Mesh has 3 sections, just add 3 empty items to this array and it will create the materials for you. Also, if any part of your mesh has as Mask Texture, you can specify that here. Specify the texture to be on the array item matching the desired material ID. |
+| **Mask Channel** | This setting allows you to specify which channel the mask is in. This is helpful if your mask was part of a channel packed texture and you need a specific channel. |
+| **Use Level Meshes for Depth** | This is a separate and rarely-used case where instead of specifying a single mesh, the tool captures depth for a mesh or group of meshes that are placed on top of the "background" sheet by the user manually. Or you can actually bring the RenderToTexture_LevelBP into an existing level to capture a depthmap for a group of meshes. There are some more advanced settings that must be used in the material when using this option as the bounds will have to be entirely custom. |
+| **Scale XY** |  This tool uses the object sphere bounds to attempt to best-fit the object within the capture region. For some cases this leaves a bit too much dead space around the edge of the object. This setting allows you to fine tune that by manually scaling the object a bit. Suggested to leave it at 1.0 as you must make sure material parameters match your input value if you change this here. |
+| **Scale Z** | Similar to above, this function uses the object sphere-bounds to determine the Local depth range which is used in generating of the normalized depth results. In most cases, the default value of 1 should be used, but if you want to 'clip' the range a bit to make sure you use the full 0-1 range for more precision, you can reduce this setting until you start to see Red show up (that indicates pixels are outside of the local 0-1 range and will be flattened!). If this setting is changed here, it relies on the matching value being set later in the actual material so it is suggested you leave this alone unless there is a good reason to change it. |
+| **Fit Vector and Scale Info Onto Texture** | This option can be useful to make sure you remember what settings you used in the capture. If enabled, it will draw text with the above values onto the sheet. The next two settings let you scale and move the text.|
+| **Text Size** | Indicates the size of the info text. |
+| **Text Locations** | This is an array so you can move each text element to a custom location wherever there is room. There are two text lines so you need to add two items to move both. |
+
+With a mesh specified and a mask texture specified for the Leaves material ID, you should see something like the following:
+
+![](18.jpg)
+
+To render the depth map, the steps are slightly different than before.
+
+This function does not care about the selected buffers in "Capture Settings," only the resolution multiplier.
+
+You must play the game in a New Window and then type "renderdepth" at the console and hit enter.
+
+The command is different for this because the Pawn Blueprint must also set "viewmode unlit".
+
+## Using the Depth Map as a Shadow in a Material
+
+To use the Depth Map, you must create a new material. Inside of that material you must place a "VolumeShadowMap" material function:
+ 
+![](20.JPG)
+
+MaterialFunction'/Engine/ArtTools/RenderToTexture/MaterialFunctions/VolumeShadowMap.VolumeShadowMap'
+
+It is worth noting that this material function is mostly set up for foliage at the moment. There is no direct lighting component calculated, only a shadow. As such, shadows on solid geometry that curve away from the light will not look as good as they could. You can fix this by doing a manual DotProduct with the "Projection Vector" and the vertex normal and clamping at 0-1.
+
+Here is an example of the shadow being used on a regular Static Mesh. This Static Mesh is just a few cylinders, boxes, and spheres on top of each other.
+
+![](21.jpg)
+ 
+Left: From top view, Right: from a lower side view, you can see the shadows as well as the accuracy of the self shadows (or lack thereof due to the missing direct N dot L component).
+
+| Input Pins | Description |
+| --- | --- |
+| **Position** (V3) |  Only used when baking a group of level-placed Static Meshes. This option is somewhat experimental so it is suggested to leave it disconnected. |
+| **Range** (S) | This is the setting to clip the range. You need to make sure that this value matches the value that was set as "Scale Z" during the depth map rendering. |
+| **Transform Position** (B) | Whether to transform into a custom light vector. The default is _False_ which means the default local position for a noon 0,0,-1 light will be used. |
+| **Projection Vector** (V3) | This is the light vector your depth map is rendered from. If you opted to render debug text with light vector and scale info on the texture, you should have the light vector value on the texture to use. Otherwise use the light vector specified during the rendering process or simply leave it alone if you are not overriding the default direction of noon. |
+| **Use Custom UVs** (B) |  Defaults to _FALSE_. If this is _TRUE_, the function will calculate the internal UVs using the CustomUVs which are computer on the vertex shader. This is mostly important for mobile but can save pixel shader instructions on any platform. If _True_, you must plug in the X,Y, and Z outputs of the function into appropriate custom UVs, and then plug the correct UV nodes into the below two inputs. |
+|  **Custom UV, XY** (V2) | If you specify CustomUVs, you must place a texture coordinate node that has the index set to the index where you hooked up the "X,Y" output to your material CustomUV inputs. |
+| **Custom UV, Z** (S) | If you specify CustomUVs, you must place a texture coordinate node that has the index set to the index where you hooked up the "Z" output to your material CustomUV inputs. You may have to component mask to pass the correct component. |
+| **Shadow Volume Texture** (T2d) | This is where you should hook up your Depth Map texture as a texture object or texture object parameter. |
+| **Self Shadow Offset** | This should be set to a small negative number such as -0.01. What this does is bias the shadow to prevent objects from appearing to shadow themselves randomly. |
+| **Transmission Mip Bias** | Currently disconnected but will later be reconnected. Allows you to MipBias the depthmap texture that is used for transmission. |
+| **Opacity** (S) | Used for Internal transmission only. This setting only affects the "Internal Transmission Mask" output, not the Shadow output. |
+| **Shadow Accumulation Distance** (S) | This can be used to tweak how quickly the shadow builds to full blackness with distance. When set to 1.0, the shadow will be very harsh. As you decrease the value to 0, light will appear to pass through thinner objects. |
+| **Blur using offset RGB texture** (B) |  Defaults to _FALSE_. When _TRUE_, this allows you to offset each of the R,G,B channels in the depth map texture similar to chromatic aberration. The function will then blend the result of each channel which allows for a wider/softer blur than is normally possible with this technique. |
+
+| Output Pins | Description |
+| --- | --- |
+| **Internal Transmission Mask** | This is the result of the internal transmission allows through via the "opacity" input. It is useful to have this as a separate output. This allows you to multiply the Transmission by a custom color (I suggested a VectorParameter for tweakability), and then Add that result to the "Shadow" output below. |
+| **Shadow** | This is the main shadow result. To use it, simply multiply this pin by your desired texture and/or any other material instructions.  You can tint the shadow several ways. One good way is be to use this Shadow output to Lerp between a "Lit" color and a "Shadow" color which would give you direct control of each. |
+| **XY** | This only needs to be used if you want to use CustomUVs to perform the calculations in the vertex shader. If you do, plug this pin into one of the available CustomUV inputs on your material. |
+| **Z** |  This only needs to be used if you want to use CustomUVs to perform the calculations in the vertex shader. If you do, plug this pin into one of the available CustomUV inputs on your material. |
+
+Example of Internal Transmission settings:
+
+![](22.jpg)(w:920)
+ 
+Left: Opacity  = 1 ; Middle: Opacity  = 0.2 ; Right: Opacity = 0.1
+
+Example of transmission on leaf material:
+
+![](19.jpg)

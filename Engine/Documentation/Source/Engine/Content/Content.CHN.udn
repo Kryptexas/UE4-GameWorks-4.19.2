@@ -1,0 +1,194 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Managing Content
+Crumbs:%ROOT%, Engine
+Description:Information on creating art content in external applications, importing it into Unreal Engine, and setting it up for use in the engine.
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Content:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/import_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/Content:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/content_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	Content Creators
+[/PARAM]
+[PARAM:description]
+	%Engine/Content:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[PARAMLITERAL:id]
+contentcreator
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![FBX](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+Not all of the content you need for your game is intended to be created within the Editor. Most of your artistic assets will be created externally, using such tools as 3ds Max, Maya, Photoshop, ZBrush, and others. Below is a very general breakdown of the types of assets that will be created in the Editor versus those that will be created externally.
+
+|Asset Creation Locations||
+| ------------------------ | ---------------------------------- |
+| [REGION:tablesection]Created in Unreal Editor[/REGION] | [REGION:tablesection]Created Using External Application[/REGION] |
+| [INCLUDE:#InEditor] |[INCLUDE:#External]|
+
+<!------------------------------
+
+
+[EXCERPT:InEditor]
+* Game Levels
+* Materials
+* Particle Systems
+* Cinematic Sequences
+* Blueprint Scripts
+* AI Navigation Meshes
+* Precalculated Light Maps
+* Level Lights
+[/EXCERPT:InEditor]
+
+[EXCERPT:External]
+* Static Meshes
+* Skeletal Meshes
+* Skeletal Animation
+* Textures
+* Sounds (WAVs)
+* IES Light Profiles
+* Nvidia APEX files (APB and APX)
+[/EXCERPT:External]
+--------------------->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/cb_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Content/Browser "%Engine/Content/Browser:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Browser/UI "%Engine/Content/Browser/UI:description%")
+		* [](Engine/Content/Browser/UserGuide/BrowserAssetCreation "%Engine/Content/Browser/UserGuide/BrowserAssetCreation:description%")
+		* [](Engine/Content/Browser/UserGuide/WorkingWithSources "%Engine/Content/Browser/UserGuide/WorkingWithSources:description%")
+		* [](Engine/Content/Browser/UserGuide/Folders "%Engine/Content/Browser/UserGuide/Folders:description%")
+		* [](Engine/Content/Browser/UserGuide/Filters "%Engine/Content/Browser/UserGuide/Filters:description%")
+		* [](Engine/Content/Browser/UserGuide/Migrate "%Engine/Content/Browser/UserGuide/Migrate:description%")
+		* [](Engine/Content/Browser/UserGuide/Collections "%Engine/Content/Browser/UserGuide/Collections:description%")
+		* [](Engine/Content/Browser/UserGuide/DevelopersFolder "%Engine/Content/Browser/UserGuide/DevelopersFolder:description%")
+		* [](Engine/Content/Browser/ReferenceViewer "%Engine/Content/Browser/ReferenceViewer:description%")
+		* [](Engine/Content/Browser/ReferenceTreeTool "%Engine/Content/Browser/ReferenceTreeTool:description%")
+		* [](Engine/Content/Browser/AssetConsolidationTool "%Engine/Content/Browser/AssetConsolidationTool:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tutorial_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Artist Quick Start Guide
+	[/PARAM]
+	[PARAM:description]
+	If you are looking to quickly get into Unreal Engine 4 as a content creator, check out the **Artist Quick Start Guide**. In it, you will be taken through the steps of importing of meshes and textures, the basics of creating materials, and applying materials to your meshes.
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		FBX Import Pipeline
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Content/FBX#intro]
+	[/PARAM]
+	[PARAM:links]
+		* [FBX Import Pipeline](Engine/Content/FBX "%Engine/Content/FBX:description%")
+		* [](Engine/Content/FBX/ImportOptions "%Engine/Content/FBX/ImportOptions:description%")
+		* [](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
+		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
+		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
+		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
+		* [](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Content Type Reference
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures "%Engine/Content/Types/Textures:description%")
+		* [](Engine/Content/Types/StaticMeshes "%Engine/Content/Types/StaticMeshes:description%")
+		* [](Engine/Content/Types/SkeletalMeshes "%Engine/Content/Types/SkeletalMeshes:description%")
+		* [](Engine/Rendering/LightingAndShadows/IESLightProfiles "%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%")
+		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
+		* [](Engine/Physics/Apex/ApexTypes "%Engine/Physics/Apex/ApexTypes:description%")
+		* [](Engine/Content/SpeedTree "%Engine/Content/SpeedTree:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Advanced Content Creation
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool "%Engine/Content/Tools/MayaRiggingTool:description%")
+		* [](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+[/OBJECT]

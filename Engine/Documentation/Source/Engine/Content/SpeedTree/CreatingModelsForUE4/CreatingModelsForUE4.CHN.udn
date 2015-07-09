@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Creating Models for UE4
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
+Description:Creating SpeedTree Models for Unreal Engine 4
+
+Creating a model for use with UE4 can be as simple or as complex as your project requires. The following sections detail everything you can do with SpeedTree that can benefit you inside of UE4.
+
+## Create Your Model
+
+Get started by creating your model at the highest level of detail using standard SpeedTree modeling. If you are new to SpeedTree, you might want to start here or have a look at some of our introductory videos. Do not forget, it is often easier to edit an existing model than it is to start from scratch.
+
+When you save a model, several files are created. For example, if you were editing a model called "MyTree", these files are:
+
+* `MyTree.spm` - This is the SpeedTree model you are editing. It is the file you will open in the Modeler to make changes.
+* `MyTree.srt` - This is an optimized version of the model and the file you will import into UE4.
+* `MyTree_Atlas.tga, MyTree_Atlas_Normal.tga` - This is the texture atlas created from all of the untiled texture maps on your model and its associated normal map.
+* `MyTree_Atlas_Billboards.tga, MyTree_Atlas_Billboards_Normal.tga` - This is a billboard atlas that consists of 360 degree normal mapped images of your model. These can serve as the lowest LOD should you desire it.
+
+## Get it Ready for Static Lighting
+
+If you are going to use static lighting in your scene, you will need to set up lightmapping uv coordinates. SpeedTree will automatically create a set of unwrapped UV texture coordinates for the model suitable for use with UE4's lightmass. If you are not going to use static lighting on your model, you can skip this step; otherwise, this step is essential. Click here for a detailed explanation of how to get the best lightmap for your model.
+
+## Add Wind to the Model
+
+Wind animation in the SpeedTree modeler will carry over to UE4. The best way to get good settings for your model is to start with the Wind Wizard. This utility will apply wind settings based on your answers to a few simple questions. From there, select the "Fan" object and fine tune the wind behavior by editing the properties.
+
+Of particular importance is the "Style" property in the "Presets" group. This property sets the wind complexity and has a direct impact on the vertex shader performance in UE4. Options are detailed below and are ordered from low quality/short shaders to high quality/longer shaders:
+
+* **None** - No wind shader code will be executed in UE4. This is the absolute fastest way to render a SpeedTree model and still get camera facing geometry (should you need it) and smooth LOD transitions.
+* **Fastest** - The model will sway back and forth but will not have individual branch or leaf motion.
+* **Fast** - The model with sway back and forth and leaves will ripple.
+* **Better** - The model will sway, leaves will ripple, and branches will move independently.
+* **Best** - The model will sway, leaves will ripple and tumble, and branches will move independently.
+* **Palm** - Fronds will whip and move in the direction of the wind (leaves behave like "Best").
+
+You can back the effect down in the UE4 material editor, but you cannot go higher than what you set in the Modeler. It is often a good idea to tune the model using "Best" or "Palm" and lower the complexity in UE4 if you need to optimize performance.
+
+## Add Levels of Detail to the Model
+
+LODs are added by selecting the "Tree" generator and checking the "Enabled" property in the "Level of Detail" group. Set the number of LODs in this section as well. Each generator has an LOD group that controls how that part of the model degrades. Click here for more information on how to edit LODs on your model.
+
+## Compute Ambient Occlusion for the Model
+
+SpeedTree will compute a per-vertex ambient occlusion value for your model. These values can be hooked to UE4's material ambient occlusion system or to anything else in the material shader. Click here for more information on computing ambient occlusion.
+
+## Add Collision Object to the Model
+
+A series of spheres and capsules can be added to the model to use as collision volumes in UE4. The quickest way to get started with collision objects is by selecting "Tools -> Generate collision primitives…" and letting SpeedTree add some automatically. Click here for more information.
+
+
+
+
+

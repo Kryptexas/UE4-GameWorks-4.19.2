@@ -1,0 +1,118 @@
+﻿INTSourceChangelist:0
+Title:4. Set Up Your Oculus Rift DK2 Hardware
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:Connect and update your Oculus Rift headset.
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Oculus/QuickStart/5 "%Platforms/Oculus/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macos]
+	[/PARAM]
+[/OBJECT]
+<!--
+[EXCERPT:windows]
+1. Connect your DK2 headset to your computer, following the included Instruction Manual (which can also be found [online](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf)).
+1. Run the **Oculus Configuration Utility** by:
+	* **Right-clicking** on the Oculus icon in the system tray and selecting **Configuration Utility**, or
+	* Opening the Start Menu and navigating to **Oculus Runtime > OculusConfigUtil**, or
+	* Running `OculusConfigUtil.exe` found in `[InstallDirectory]/Tools/`.
+1. Click on **Tools > Rift Display Mode**.
+
+	![](RiftDisplayMode_menu.png)
+1. Make sure the headset is in **Direct HMD Access from Apps** mode, then click **Apply** to save any changes. Close the window.
+	
+	![](DirectHMD.png)
+
+[REGION:tip]
+Your firmware version is listed in the Configuration Utility. If your version is not 2.12, complete the following steps to update the headset's firmware.
+[/REGION]
+
+1. Click on **Tools > Advanced > Update Firmware**.
+
+	![](UpdateFirmware_menu.png)
+
+	[REGION:note]
+	Make sure Unreal Editor, Unreal Engine Launcher, and any other programs that might be using the Oculus are closed before you update the firmware. Otherwise, you will get a warning about closing other software and the firmware will not install.
+	[/REGION]
+
+1. Select `DK2Firmware_2_12.ovrf` when the file dialog appears, then click **Open**.
+
+	![](Firmware.png)
+1. The **Oculus Configuration Utility** will close. Reopen it by:
+	* Opening the Start Menu and navigating to **Oculus Runtime > OculusConfigUtil**, or
+	* Running `OculusConfigUtil.exe` found in `[InstallDirectory]/Tools/`.
+1. Verify that the firmware is 2.12.
+[/EXCERPT:windows]
+[EXCERPT:macos]
+[INCLUDE:Platforms/Oculus#warning]
+
+1. Connect your DK2 headset to your computer, following the included Instruction Manual (which can also be found [online](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf)).
+1. Run the **Oculus Configuration Utility** by:
+	* Using the OculusConfigUtil shortcut on the desktop, or
+	* Running `OculusConfigUtil.app` found in `[InstallDirectory]/Tools/`.
+
+[REGION:tip]
+Your firmware version is listed in the Configuration Utility. If your version is not 2.12, complete the following steps to update the headset's firmware.
+[/REGION]
+
+1. Click on **Tools > Advanced > Update Firmware**.
+
+	![](firmware_mac.png)(w:420)
+
+	[REGION:note]
+	Make sure Unreal Editor, Unreal Engine Launcher, and any other programs that might be using the Oculus are closed before you update the firmware. Otherwise, you will get a warning about closing other software and the firmware will not install.
+	[/REGION]
+
+1. Select `DK2Firmware_2_12.ovrf` when the file dialog appears, then click **Open**.
+1. The **Oculus Configuration Utility** will close. Reopen it by:
+	* Using the OculusConfigUtil shortcut on the desktop, or
+	* Running `OculusConfigUtil.app` found in `[InstallDirectory]/Tools/`.
+1. Verify that the firmware is 2.12.
+[/EXCERPT:macos]
+-->
+
+%Steps%

@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:SpeedTree
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:The landing page for using SpeedTree with Unreal Engine 4.
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Content/SpeedTree:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/import_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content/SpeedTree:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content/SpeedTree:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content/SpeedTree]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/Content/SpeedTree:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/content_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content/SpeedTree:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content/SpeedTree:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content/SpeedTree]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[PARAMLITERAL:id]
+contentcreator
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:note]
+This section is a copy of the documentation from [SpeedTree's Wiki](http://docs.speedtree.com/doku.php?id=ue4_introduction) and only focus on the Unreal Engine portion of SpeedTree. For more information, see the [SpeedTree Documentation](http://docs.speedtree.com/doku.php?).
+[/REGION]
+
+Welcome to SpeedTree for Unreal Engine 4. The pages in this section detail how to use the SpeedTree tools and models to their maximum effect in your Unreal Engine 4 application. The techniques shown here apply to both custom and subscription licensees.
+
+## How Does It Work?
+
+Using SpeedTree with UE4 is a three step process:
+
+* **Create or purchase a SpeedTree model**. Whether you use models from the [SpeedTree library](http://www.speedtree.com/ue4/ue4trees.php) or create one from scratch using the SpeedTree Modeler, you will need a model to get started. Models consist of the SpeedTree files (.spm, .srt) and the textures and component meshes (.obj, .fbx) associated with it. Click [here](http://docs.speedtree.com/doku.php?id=gettingstarted) to learn more about creating models in SpeedTree.
+
+* **Import the model into UE4**. SpeedTree models are imported into UE4 like any other asset. They come in as a Static Mesh with extra vertex attributes to implement wind and smooth LOD. You can do anything with them that you can do with a Static Mesh inside of UE4. Click [here](Engine/Content/SpeedTree/ImportingModelsIntoUE4) to learn more about import SpeedTree models into UE4.
+
+* **Place models in your scene.** Once imported, SpeedTree models can be placed or painted like any other Static Mesh. Click [here](Engine/Content/SpeedTree/WorkingWithModelsinUE4) to learn more about placing SpeedTree models in UE4.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Unreal Engine 4 SpeedTree Pipeline
+	[/PARAM]
+	[PARAM:description]
+	
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/SpeedTree/CreatingModelsForUE4 "%Engine/Content/SpeedTree/CreatingModelsForUE4:description%")
+		* [](Engine/Content/SpeedTree/ImportingModelsIntoUE4 "%Engine/Content/SpeedTree/ImportingModelsIntoUE4:description%")
+		* [](Engine/Content/SpeedTree/WorkingWithModelsinUE4 "%Engine/Content/SpeedTree/WorkingWithModelsinUE4:description%")
+		* [](Engine/Content/SpeedTree/ComputingLightmapUVs "%Engine/Content/SpeedTree/ComputingLightmapUVs:description%")
+	[/PARAM]
+[/OBJECT]
+
+

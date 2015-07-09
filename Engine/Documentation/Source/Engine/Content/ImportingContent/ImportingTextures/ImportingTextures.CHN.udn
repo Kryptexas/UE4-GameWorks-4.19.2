@@ -1,0 +1,103 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Importing Textures
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import textures from an external program.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+Before getting started: Make sure you have access to an image editing application. Although we're using **Photoshop** to illustrate this lesson's goal, you can import textures into Unreal Engine from any image editing application with a save feature.
+[/REGION]
+
+Content creators can import textures into Unreal Engine from external image editing applications.
+
+## Goal
+
+The focus of this guide is to show developers how to import textures from external image editing applications.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	How to import textures into Unreal Editor from external image editing applications.
+*	How to verify that assets were properly imported into the project folder.
+
+## Importing from an Image Editing Application
+
+1.	Inside your image editor, click **File** and **Save As**. 
+
+	![](photoshop_export1.png)
+	
+1.	In the dialog box, locate your UE4 Project Directory and **Content** folder (1), enter a name and supported format (2), then click **Save** (3). 
+
+	![](photoshop_export2.png)
+
+1.	On your hard disk, browse to your project's **'Content'** folder to find that your textures have been added.
+
+	![](photoshop_export6.png)(w:800)	
+
+1.	If Unreal Editor is open, the **'Processing outstanding content changes'** message will appear. 
+
+	![](photoshop_export4.png)
+
+1.	After Unreal Editor imports your content, your textures are ready for use in the editor.
+
+	![](photoshop_export5.png)(w:900)
+
+	[REGION:warning]
+	UE4 batch imports [supported](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
+	
+	If you see the following pop-up message:
+	
+	![](TextureImportMessage.png)
+	
+	UE4 just prevented you from importing an unsupported image file.
+	
+	Also, if you see the following pop-up message:
+	
+	![](nonpoweoftwowarning.png)
+	
+	UE4 is telling you that odd-sized images aren't streamed or mipmapped.
+	[/REGION]
+
+1.	Unsaved assets are marked with an asterisk (pictured below).
+
+	![](UnsavedAssets.png)
+
+1.	**Click** the **Save All** button to save your imported textures.
+
+	![](SaveAllButton_UI.png)
+
+1.	A **Save Content** dialog box appears (pictured below). **Click Save Selected** to save your imported assets.
+
+	![](SaveSelectedButton_UI.png)
+
+1.	UE4 removes the asterisk from saved assets (pictured below).
+
+	![](SavedAssets.png)
+
+## Verifying Imported Assets
+
+It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
+
+1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+
+	![](FolderDialogBox_UI.png)
+
+1.	Under **Folder Options**, **click 'Show In Explorer'** (pictured below).
+
+	![](ShowInExplorer_Selection.png)
+
+1.	With Explorer open, verify that UE4 created the corresponding ** *.uasset files **  for your project (pictured below).
+
+	![](ImportedAssets_Explorer.png)
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	Import textures into Unreal Editor from external image editing applications.  
+&#x2713;	Verify that assets were properly imported to the project folder.

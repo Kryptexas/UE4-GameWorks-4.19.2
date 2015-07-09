@@ -1,0 +1,34 @@
+﻿INTSourceChangelist:0
+Title: Metadata Specifiers
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description: Metadata keywords used when declaring classes, functions, and interfaces to specify how they behave with various aspects of the engine and editor.
+Availability:Public
+
+When declaring classes, functions, and interfaces, metadata specifiers can be added to the declaration to control how they behave with various 
+aspects of the engine and editor.
+
+[EXCERPT:MetadataUsage]
+The usage of metadata specifiers differs from regular class, function, and interface specifiers.  
+[/EXCERPT:MetadataUsage]
+
+
+## Class Metadata Specifiers
+[EXCERPT:ClassMetadata]
+* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintSpawnableComponent)
+[/EXCERPT:ClassMetadata]
+
+
+## Function Metadata Specifiers
+[EXCERPT:FunctionMetadata]
+* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintInternalUseOnly)
+* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintProtected)
+* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecatedFunction)
+* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecationMessage)
+* [](Programming\UnrealArchitecture\Reference\Metadata\UnsafeDuringActorConstruction)
+[/EXCERPT:FunctionMetadata]
+
+
+## Interface Metadata Specifiers
+[EXCERPT:InterfaceMetadata]
+* [](Programming\UnrealArchitecture\Reference\Metadata\CannotImplementInterfaceBlueprint)
+[/EXCERPT:InterfaceMetadata]

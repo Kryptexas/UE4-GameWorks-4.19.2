@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Render a Tiling Material to Textures
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
+Description:
+
+
+[REGION:note]
+In UE4.3, this particular function is missing the setting to specify the material target. This is easily worked around by placing the following mesh at 0,0,0 in the world, and setting the Scale to match the number specified in "Sheet Size" on the Blueprint (Defaults to 1000):
+
+[REGION:raw]
+![](plane.png)(convert:false)
+[/REGION]
+
+`/Engine/ArtTools/RenderToTexture/Meshes/S_1_Unit_Plane.S_1_Unit_Plane`
+
+Then simply apply the desired material and it will work.
+[/REGION]
+
+[EXCERPT:HRSS1]
+You must enable the ability to export buffer visualization targets in the editor. To do this, click the upper-left Down-Arrow button in the perspective viewport and select **High Resolution Screenshot**, then enable **Include Buffer Visualization Targets**.
+
+[REGION:raw] 
+![](Enable_IBVT.png)
+[/REGION]
+
+[REGION:warning]
+**Leave this window open!** This window will move behind the editor and should not interfere. If you accidentally close the window, the buffer images will not render.
+[/REGION]
+[/EXCERPT:HRSS1]
+
+## Rendering the Textures
+
+[EXCERPT:RT1]
+Select the desired buffer targets under **Capture Settings**; Make sure the **High resolution screenshot** window is open and the **Include buffer visualization** option is enabled; **Play** the game in a **New Window**, bring up the _console_ using the ~ key and type `ke * rendertextures` at the console and hit enter.
+
+![](renderTextures.png)
+
+You should get a popup message indicating that images were saved, the message is actually a clickable link to the folder location. If you are not able to click the link in time, you can find the saved textures here:
+
+`\\YourProject\Saved\Screenshots\Windows\`
+[/EXCERPT:RT1]

@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:1. Gear VR Project Creation
+Crumbs:%ROOT%, Platforms/GearVR
+Description:How to create a UE4 C++ based project that can be used with the Gear VR Headset.
+Navigation:platform
+Skilllevel: Intermediate
+Version: 4.8
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/GearVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+With the release of Unreal Engine 4.8, setting up a project that works with the Samsung Gear VR Headset is no different than setup than a normal UE4 project. 
+In the following section we will go over everything you need to know in order to create a new project that will work with the Gear VR headset.
+
+[REGION:warning]
+If you are using UE4 version 4.7 you will need to create your project as a C++ project and not a Blueprint project.
+In UE4 version 4.8 and later you do not have to do this and can use either C++ or Blueprints for your projects.
+[/REGION]
+
+1. First make sure that you have UE4 version **4.7.4** or later downloaded and installed on your development PC. 
+You can get UE4 version **4.7.4** or later from the [Unreal Engine Launcher](http://tinyurl.com/oawb7x2) or from [Github](https://www.unrealengine.com/ue4-on-github). 
+
+	[Region:note]
+	If you are using the [Github](https://www.unrealengine.com/ue4-on-github) version of UE4 to run the **Setup.Bat** file before going any further to ensure that you have the proper files downloaded to your development PC.
+	[/REGION]
+
+	![](GVR_New_Project_03.png)
+
+1. Once you have a version of UE4 **4.7.4** or later installed on your development PC create a new **C++ Project** from the **New Project Tab**.
+	![](GVR_New_Project_00.png)
+
+	[Region:note]
+	If you are using Unreal Engine 4.8 or later you can use either a C++ based project or a Blueprint based project.
+	[/REGION]
+
+1. Next select the **First Person Template** as the template to be used and make sure to change the following options.
+	* **Mobile / Tablet**
+	* **Scalable 3D / 2D** 
+	* Also make sure to not include the **Starter Content** to help reduce project size.
+	![](GVR_New_Project_01.png)
+
+1. Finally give the project a location to be saved to and a name. The name for this example the project name will be **GearVR_QS**. Once everything has been completed press the green **Create Project** button to create the project.
+	![](GVR_New_Project_02.png)
+
+
+
+%Steps%

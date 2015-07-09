@@ -1,0 +1,123 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Physics Bodies Reference
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description:The basis for most physics interactions: the Physics Body.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2)]
+
+## Overview
+
+Given the ever increasing complexity of 3D meshes, proxy shapes must be used to drive physics simulations in real time 3D rendering applications; Physics Bodies are the simplified 3D meshes that Unreal Engine 4 uses for physics simulations. They can be formed of boxes, spheres, capsules, or convex hulls.
+
+The following links have information on the various editors and workflows for creating and working with Physics Bodies.
+
+
+### Static Mesh
+
+For creating Physics Bodies using your 3D art program, see: [FBX: Static Meshes](Engine/Content\FBX\StaticMeshes#Collision)
+
+For creating Physics Bodies using the Static Mesh Editor, see: [Collision Reference: Static Mesh Editor](Engine/Physics\Collision\Reference#CreatingStaticMeshCollisionHullsintheStaticMeshEditor)
+
+
+### Physics Assets/Skeletal Meshes
+
+For documentation over the creation of Physics Assets for use by Skeletal Meshes, see: [](Engine/Physics\PhAT) documentation.
+
+
+### Shape Components
+
+The Box, Sphere, and Capsule components will automatically gain Physics Bodies if they are set for any sort of collision, overlap, or other physics simulation events.
+
+
+## Reference
+
+All Physics Bodies have a shared pool of properties. Below are the properties from the major categories that appear with Physics Bodies. Not all properties will appear on all Actors or Components, depending on the context of the property.
+
+
+### Physics
+
+| Property | Description |
+| --- | --- |
+|[REGION:tablesection]Physics[/REGION]||
+| **Mass in KG** | Mass of the body in KG. |
+| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
+| **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
+| **Phys Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
+| **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
+| **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
+| **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
+| **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
+| **COMNudge** | %doxygen:FBodyInstance::COMNudge% |
+| **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
+| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
+| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
+| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
+| **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
+| **Velocity Solver Iteration Count** | %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+
+
+### Collision
+
+| Property | Description |
+| --- | --- |
+|[REGION:tablesection]Collision[/REGION]||
+| **Notify Rigid Body Collision** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Always Create Physics State** | %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
+| **Generate Overlap Events** | %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
+| **Multi Body Overlap** | %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
+| **Trace Complex On Move** | %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
+| **Return Material On Move** | %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
+|[REGION:tablesection]Collision Responses[/REGION]||
+| | See the [](Engine/Physics\Collision) documentation for more information. |
+|[REGION:tablesection]Extras[/REGION]||
+| **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
+| **Check Async Scene On Move** | %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
+| **Can Ever Affect Navigation** | %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+
+
+
+
+

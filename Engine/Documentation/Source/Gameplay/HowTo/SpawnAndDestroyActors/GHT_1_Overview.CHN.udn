@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Spawning/Destroying an Actor Overview
+Crumbs: %ROOT%, Gameplay
+Description:A How To Guide for Spawning Actors in Unreal Engine 4. 
+
+Often times in your game you will find that you want to add items to your levels dynamically during gameplay, this is called Spawning an Actor. Items you want to spawn could be anything from other players or enemies to pick-ups such as Health, Weapons, or Rewards. On this page, you will find information regarding how to spawn an Actor through Blueprints.<!-- as well as other information regarding **Actor Spawning** and links to more documentation.--> 
+
+## Setup
+
+To learn more about spawning/destroying Actors using Blueprints, follow the link below:
+
+[REGION:buttonlist]
+* [](Gameplay\HowTo\SpawnAndDestroyActors\Blueprints)
+[PUBLISH:Docs]
+* [](Gameplay\HowTo\SpawnAndDestroyActors\Code)
+[/PUBLISH:Docs]
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

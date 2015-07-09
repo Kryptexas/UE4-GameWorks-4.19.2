@@ -1,0 +1,26 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:How to Spawn/Destroy an Actor through Code
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
+Description:A How To Guide for Spawning/Destroying Actors through Code in Unreal Engine 4. 
+
+[TOC (start:2)]
+
+## Overview
+
+Here you will learn how to spawn an Actor through **Code** and define its spawn location. You will also learn how to destroy spawned Actors. 
+
+## Spawning an Actor
+
+Below you will find steps to spawn an Actor in the level by pressing a key. 
+
+
+## Specifying a Spawn Point
+
+The steps below will show you how you can specify a spawn point for **SpawnActor** by referencing another Actor. 
+
+
+## Destroying a Spawned Actor
+
+Once you have spawned an Actor, suppose you wanted to destroy it (for example, maybe the player killed the Actor or picked the Actor up as a pick-up, etc.). 
+

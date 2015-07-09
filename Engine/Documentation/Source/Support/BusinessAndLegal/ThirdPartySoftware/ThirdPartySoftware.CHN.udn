@@ -1,0 +1,15 @@
+﻿INTSourceChangelist:0
+Availability:Licensee
+Title: Third Party Software
+Crumbs:%ROOT%, Support/BusinessAndLegal
+Description:Complete and detailed list of all third-party products used in Unreal Engine 4, including their respective licenses.
+
+
+Epic makes use of various third party products that have been integrated into the Unreal Engine for distribution to, and use by, its customers. Attached is a document that contains a list of these products and their licenses:
+
+* [UE4 Third Party Software](TPS_UE4.pdf) (PDF - 3 MB)
+
+
+[REGION:warning]
+**Important:** This document overrides the version in the **Unreal Engine Integrated Partners Program License Agreement**.
+[/REGION]

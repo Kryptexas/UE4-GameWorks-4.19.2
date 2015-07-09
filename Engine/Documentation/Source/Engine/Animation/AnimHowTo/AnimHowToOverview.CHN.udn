@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Animation How To's
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:Examples of different aspects of the Animation system in Unreal Engine 4 are demonstrated through several step-by-step How To guides.
+
+The **Animation How To's** provide several step-by-step examples of working with and using different aspects of [**Persona**](Engine/Animation), which is the animation tool inside Unreal Engine 4. 
+Whether you are new to animation in Unreal Engine 4 or want to learn how to work with certain aspects of Persona, the How To pages below cover a broad range of topics and aim to give you a place to start or expand upon your current knowledge. 
+
+Refer to the tables below for more information and click each link to view its contents. 
+
+## Beginner
+|How To | Description |
+| ------- | ------------ |
+| **[](Engine\Animation\AnimHowTo\PreviewingAnimations)** | %Engine\Animation\AnimHowTo\PreviewingAnimations:description% |
+
+
+## Intermediate
+|How To | Description |
+| ------- | ------------ |
+| **[](Engine\Animation\AnimHowTo\BlendSpace)** | %Engine\Animation\AnimHowTo\BlendSpace:description% |
+| **[](Engine\Animation\AnimHowTo\AimOffset)** | %Engine\Animation\AnimHowTo\AimOffset:description% |
+| **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |
+
+
+## Advanced
+|How To | Description |
+| ------- | ------------ |
+| **[](Engine\Animation\AnimHowTo\AdditiveAnimations)** | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
+| **[](Engine\Animation\AnimHowTo\LayerEditing)** | %Engine\Animation\AnimHowTo\LayerEditing:description% |
+
+
+<!-- Convert these to Quick Starts
+| **[](Engine\Animation\AnimHowTo\AimOffset)** | %Engine\Animation\AnimHowTo\AimOffset:description% |Beginner|
+| **[](Engine\Animation\AnimHowTo\BlendSpace)** | %Engine\Animation\AnimHowTo\BlendSpace:description% |Beginner|
+
+Split this into two How To's
+| **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
+-->
+
+
+
+
+
+
+

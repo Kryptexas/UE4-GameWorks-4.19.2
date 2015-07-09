@@ -1,0 +1,24 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title: Android Game Development
+Crumbs:%ROOT%, Platforms
+Description:Developing games for the Android platform.
+Platform:Android
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Android Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
+		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
+		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+	[/PARAM]
+[/OBJECT]

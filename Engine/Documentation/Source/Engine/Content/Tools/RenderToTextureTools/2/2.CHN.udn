@@ -1,0 +1,23 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Render an Unwrapped Static Mesh Material to Textures
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
+Description:
+
+
+This function unwraps a Static Mesh in order to bake the result of a custom material using mesh UVs. This can be useful to optimize out complex material instructions that can sometimes be a useful way to texture assets. 
+
+It unwraps a Static Mesh asset that is placed in the level. The mesh should have a material with the companion material function "UnwrapUVsforRender" hooked up to the WorldPositionOffset input. There must also be a few parameters hooked up to the material function. A scalar parameter named "Size" should be hooked up to the Size input; a vector parameter named "RenderLocation" must be hooked up to render location, and a scalar parameter named "Unwrap" should be hooked up to the Unwrap input.
+
+Additionally, the UV input allows you to specify which UV channel to unwrap. The default is 1 which is the lightmap UV channel for most Static Meshes. 
+
+To unwrap the mesh, simply click the Eye dropper icon shown below and then select the desired mesh from inside the world (it does not matter where you place the mesh initially). Then check the "unwrap" box. 
+
+![](07.JPG) 
+
+![](08.JPG)(w:920)
+ 
+
+## Rendering the Texture
+
+[INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#rt1]

@@ -1,0 +1,269 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Gameplay Classes
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:Reference to creating and implementing gameplay classes.
+Version: 4.5
+
+[TOC(start:2)]
+
+Every gameplay class in Unreal Engine is comprised of a class header file (`.h`) and a class source 
+file (`.cpp`). The class header contains the declarations of the class and its members, such as variables and functions, 
+while the class source file is where the functionality of the class is defined by _implementing_ the functions 
+that belong to the class.
+
+Classes in Unreal Engine have a standardized naming scheme so that you know instantly what kind of class it is simply 
+by looking at the first letter, or prefix. The prefixes for gameplay classes are:
+
+| Prefix | Meaning |
+| ------ | ------- |
+| `A` | Extends from the base class of _spawnable_ gameplay objects. These are Actors, and can be spawned directly into the world.  |
+| `U` | Extend from the base class of all gameplay objects. These cannot be directly instanced into the world; they must belong to an Actor. These are generally objects like [](Programming/UnrealArchitecture/Actors/Components). |
+
+
+
+## Adding Classes
+
+The **[](Programming\Development\ManagingGameCode\CppClassWizard)** sets up the header file and source file you need for your new class, and also updates your game module accordingly. 
+The header file and source file automatically include the class declaration and class constructor, as well as Unreal Engine-specific code like the `UCLASS()` macro.
+
+## Class Headers
+
+Every gameplay class in Unreal Engine has a separate and unique class header file. This file must be named to match the class being 
+defined within it, minus the `A` or `U` prefix, and uses the `.h` file extension. So, the class header file for the `AActor` class is named `Actor.h`.
+
+Class header files for gameplay classes use standard C++ syntax in conjunction with specialized macros to simplify the process of declaring classes, variables, and functions.
+
+At the top of each gameplay class header file, the generated header file for the class needs to be included:
+
+	#include "ClassName.generated.h"
+
+### Class Declaration
+
+The class declaration defines the name of the class, what class it inherits from and, thus, any functions and variables it inherits, and other engine and editor specific behavior 
+that may be desired via **[class specifiers](#ClassSpecifiers)** and metadata. The syntax for declaring a class is as follows:
+
+	UCLASS([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	class ClassName : ParentName
+	{
+		GENERATED_UCLASS_BODY()
+	}
+
+The declaration consists of a standard C++ class declaration for the class. Above the standard declaration, descriptors such as class specifiers and metadata are passed to the `UCLASS` 
+macro. These are used to create the `UClass` for the class being declared, which can be thought of as the engine's specialized representation of the class. Also, the `GENERATED_UCLASS_BODY()` 
+macro must be placed at the very beginning of the class body.
+
+#### Class Specifiers
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Classes/Specifiers#main(offset:3)]
+
+## Class Implementation
+
+All gameplay classes must be passed to the `IMPLEMENT_CLASS` macro in order to be implemented properly. This is done in the class source file, which is a C++ (.cpp) file that implements the 
+class and all of its functions. Best practice is for the class source file to be named to match the class being implemented, minus the `A` or `U` prefix. So, the source file for 
+the `AActor` class is named `Actor.cpp`.
+
+This file must include the C++ header that contains the C++ class declaration, which is usually generated automatically but can also be created manually if desired. For example, the C++ declaration 
+for the `AActor` class is automatically generated in the `EngineClasses.h` header file. This means the `Actor.cpp` file must include the `EngineClasses.h` file or another file that in turn 
+includes it. Generally, you just include the header file for your game project, which will include the headers for the gameplay classes in your game project. In the case of `AActor` and 
+`EngineClasses.h`, the `EnginePrivate.h` header is included which includes `Engine.h` - the header file for the **Engine** project - and that includes the `EngineClasses.h` header file.
+
+	#include "EnginePrivate.h"
+
+You may also need to include additional files if you reference other classes in the implementation of the class's functions that are not included simply by the inclusion of that one file.
+
+### Class Constructor
+
+`UObjects` use **constructors** to set default values for properties and other variables as well as perform other necessary initialization. The class constructor is generally placed within the class 
+implementation file, e.g. the `AActor::AActor` constructor is in `Actor.cpp`. 
+
+[REGION:note]
+Some constructors may be located in a special "constructors" file on a per-module basis. For example, the `AActor::AActor` constructor may be found in `EngineConstructors.cpp`. This is the 
+result of an automatic conversion process from the previous use of a `DEFAULTS` block to the use of constructors. Over time, these will be moved to their respective class source files.
+[/REGION]
+
+It is also possible to place the constructor inline in the class header file. However, if the constructor is in the class header file, the UClass must be declared with the `CustomConstructor` 
+specifier as this prevents the automatic code generator from creating a constructor declaration in the header.
+
+#### Constructor Format
+
+The most basic form of a UObject constructor is shown below.
+
+	AMyClass::AMyClass(const FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+	}
+
+Obviously, this constructor does not perform any initialization. In fact, it has no effect on the object being created whatsoever. However, you will notice the 
+`FObjectInitializer` parameter that is passed in to the constructor. This structure initializes the properties from an archetype or class default object (CDO) after the 
+constructor returns. It is used to guarantee that every `UObject` that is constructed has the properties initialized. The `FObjectInitializer` can be used as demonstrated 
+in the following constructor to skip any initialization of properties present in the constructor when they have already been set by an Archetype or CDO.
+
+	AUDKEmitterPool::AUDKEmitterPool(const class FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+		// Property initialization
+		MaxActiveEffects = 200;
+		SMC_MIC_ReductionTime = 2.0;
+		IdealStaticMeshComponents = 200;
+		IdealMaterialInstanceConstants = 200;
+	}
+
+	AUTDemoHUD::AUTDemoHUD(const class FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+		, SomeNonProperty("Hi there")
+	{
+		// Non-property initialization
+		SomeOtherNonProperty = 26;
+
+		// Property initialization
+		SomeProperty = 30;
+		SomeOtherProperty = "My message";
+	}
+
+#### Constructor Statics and Helpers
+
+Setting values for more complex data types, especially class references, names, and asset references, requires the defining and instantiating a **ConstructorStatics** struct in the constructor to 
+hold the various proeprty values needed. This `ConstructorStatics` struct is only created the first time the constructor is run. On subsequent runs, it just copies a pointer which makes it 
+extremely fast. When the `ConstructorStatics` struct is created, the values are assigned to the members of the struct for accessing when assigning the values to the actual properties themselves 
+later on in the constructor.
+
+**ContructorHelpers** is a special namespace defined in `ObjectBase.h` that contains helper templates that are used to perform common actions specific to constructors. For instance, there are 
+helper templates for finding references to assets or classes as well as creating and finding components.
+
+##### Asset References
+
+Ideally asset references in classes do not exist. Hardcoded asset references are brittle and the movement has been toward using Blueprints for configuration of asset properties. However, 
+this is fully supported. We do not want to search for assets every time we construct an object, so these searches are only done once. This is accomplished via a static struct which ensures that 
+we do our asset searches only once:
+
+`ConstructorHelpers::FObjectFinder` finds a reference to the specified `UObject` using `StaticLoadObject`. This is generally used to reference assets stored in content packages. Reports 
+failure if the object is not found.
+
+	ATimelineTestActor::ATimelineTestActor(const class FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinder<UStaticMesh> Object0;
+			FConstructorStatics()
+				: Object0(TEXT("StaticMesh'/Game/UT3/Pickups/Pickups/Health_Large/Mesh/S_Pickups_Base_Health_Large.S_Pickups_Base_Health_Large'"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		// Property initialization
+
+		StaticMesh = ConstructorStatics.Object0.Object;
+	}
+
+##### Class References
+
+`ConstructorHelpers::FClassFinder` finds a reference to the specified `UClass`. Reports failure if the class is not found.
+
+	APylon::APylon(const class FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FClassFinder<UNavigationMeshBase> Class0;
+			FConstructorStatics()
+				: Class0(TEXT("class'Engine.NavigationMeshBase'"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		NavMeshClass = ConstructorStatics.Class0.Class;
+	}
+
+In many cases, you can just use `USomeClass::StaticClass()` and skip the complexity of the ClassFinder altogether. For example, you can use the method below in most circumstances:
+
+	NavMeshClass = UNavigationMeshBase::StaticClass();
+
+For cross-module references, it is probably better to use the ClassFinder method.
+
+##### Names
+
+	APylon::APylon(const class FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_Navigation;
+			FConstructorStatics()
+				: NAME_Navigation(TEXT("Navigation"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		SpriteCategoryName = ConstructorStatics.NAME_Navigation;
+	}
+	
+##### Components and Sub-Objects
+
+Creating sub-objects, especially components, and modifying sub-objects belonging to parent classes also makes use of constructor helpers. The `ConstructorHelpers::CreateComponent` and `ConstructorHelpers::FindComponent` helpers can be used to create and find components, respectively.
+
+	AWindPointSource::AWindPointSource(const class FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_Wind;
+			FConstructorStatics()
+				: NAME_Wind(TEXT("Wind"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		// Property initialization
+
+		//Create a new component
+		UWindPointSourceComponent* NewComponent0 = ConstructorHelpers::CreateComponent<UWindPointSourceComponent>(this, TEXT("WindPointSourceComponent0"));
+		
+		NewComponent0->PreviewRadiusComponent = NewComponent1;
+		Component = NewComponent0;
+		RootComponent = NewComponent0;
+
+		//Create a new component
+		UDrawSphereComponent* NewComponent1 = ConstructorHelpers::CreateComponent<UDrawSphereComponent>(this, TEXT("DrawSphereComponent0"));
+		
+		NewComponent1->ShapeColor.R = 173;
+		NewComponent1->ShapeColor.G = 239;
+		NewComponent1->ShapeColor.B = 231;
+		NewComponent1->ShapeColor.A = 255;
+
+		NewComponent1->AlwaysLoadOnClient = false;
+		NewComponent1->AlwaysLoadOnServer = false;
+		NewComponent1->bAbsoluteScale = true;
+		NewComponent1->AttachParent = NewComponent0;
+		
+		//Find a component on the parent
+		USpriteComponent* NewComponent2 = ConstructorHelpers::FindComponent<USpriteComponent>(this, TEXT("Sprite"));
+		
+		NewComponent2->SpriteCategoryName = ConstructorStatics.NAME_Wind;
+		NewComponent2->AttachParent = NewComponent0;
+
+		bNoDelete = true;
+	}
+
+Finding components belonging to the parent class is generally not necessary. The component should be created and assigned to a property in the parent's constructor, so the component can be accessed using that property. If this is not the case, the best solution is probably to update the parent's constructor to make it so. The `ConstructorHelpers::FindComponent` helper is provided as a backup for situations where the standard methods are not desirable.
+
+#### Array Manipulation
+
+Arrays can be modified and manipulated using the standard methods belonging to the array. 
+
+	ExampleArray.Add(NewComponent0);
+
+In the event this is not desired, helper templates for adding items, expanding the array, and clearing the array are provided. For instance, to add a new component to the `Components` array, the following can be used.
+
+	int32 NewArrayIndex1 = ConstructorHelpers::AddArrayElement(ExampleArray);
+	ExampleArray(NewArrayIndex1) = NewComponent0;
+

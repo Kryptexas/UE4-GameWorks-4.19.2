@@ -1,0 +1,62 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title: Android Quick Start
+Crumbs:%ROOT%, Platforms, Platforms/Android
+Description:Setting up for development for the Android platform.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](AndroidTopic.jpg)
+	[/PARAM]
+	[PARAM:title]
+		%Platforms/Android/GettingStarted:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Platforms/Android/GettingStarted]
+	[/PARAM]
+	[PARAM:description]
+	%Platforms/Android/GettingStarted:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](AndroidTopic.jpg)
+	[/PARAM]
+	[PARAM:title]
+		%Platforms/Android/GettingStarted:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Platforms/Android/GettingStarted]
+	[/PARAM]
+	[PARAM:description]
+	%Platforms/Android/GettingStarted:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The Android Quick Start will walk you through setting up your computer and your Android device for deployment, and putting a template game on your device using both the launching and packaging features.
+This guide uses TADP as the Android SDK, but if you would like to know how to set up another SDK for use with Unreal Engine, see the [](Platforms\Android\Reference) page.
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Android/GettingStarted/1 "%Platforms/Android/GettingStarted/1:description%")
+	* [](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:description%")
+	* [](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:description%")
+	* [](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:description%")
+	* [](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:description%")
+	* [](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:description%")
+	[/PARAM]
+[/OBJECT]

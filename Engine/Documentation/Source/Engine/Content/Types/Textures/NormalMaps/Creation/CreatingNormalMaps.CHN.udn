@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Normal Map Creation Guide
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:Guide to using XNormal to create normal maps for higher-quality shading.
+
+This workflow uses XNormal to bake normal maps which produces much higher quality shading than 
+previous workflows.  The Normal map workflow used in the past will still work, but if you want 
+higher quality shading, this is currently the best workflow to use.  It also allows you to use 
+much less supporting geometry since you do not have to fight incorrect shading.
+
+You can use this method one of two ways.  One is to give your model a single smoothing group.  This will 
+create a very gradient heavy normal map but few seams on UV edges.  The other method is to break 
+Smoothing groups along UV seams.  This will create a flatter normal map but has some seams on UV edges.
+
+## Workflow
+
+1. The first step is to make sure your model consists of 1 smoothing group.  It also helps to 
+triangulate your model using a modifier, that way you do not have to worry about any application 
+changing your triangles.
+
+1. When exporting your low-poly model for XNormal using these settings:
+
+	![FBX Settings](fbx_settings.png)
+
+	The important points are smoothing groups, and tangents & binormals.
+
+1. When loading your low-poly model into XNormal, make sure **Use exported normals** is enabled.
+
+	![XNormal Settings](xnormal_settings.png)
+
+1. After baking your normal map, export your low poly models for Unreal using the SAME FBX settings as before.
+
+1. When importing your model into Unreal, select **Import Normals**:
+
+	![Import Settings](import_settings.png)
+
+
+## Results
+
+Here is an example mesh using this method, notice it is far lower poly count than we could use 
+before, there is no supporting chamfers or subdivisions.
+
+![Mesh Wireframe](wireframe.png)
+
+Here is the model using the new method.
+
+![New Shading](shading_good.jpg)
+
+Vs the Old.
+
+![Old Shading](shading_old.png)

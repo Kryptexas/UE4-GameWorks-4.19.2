@@ -1,0 +1,81 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Render to Texture Toolset Setup
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:
+
+The RenderToTexture Blueprint works by using a bare-bones GameMode setup. There is a companion asset called the RenderToTexture_Game which references the RenderToTexture_Pawn.  The Pawn is a very basic blueprint that has a **Camera Component** set to orthographic and a few event graph nodes to setup the rendering console commands. 
+
+The basic setup for using the Render to Texture tools is as follows:
+
+1. Create a new blank level.
+1. Place a Player Start from the **Modes** panel, **Basic** category, at location 0,0,0. Make sure the rotation on the Player Start is set to 0,0,0.
+
+	![](ZeroedTrans.png)
+
+1. In the **Content Browser** **View Options**, enable **Show Engine Content**.
+
+	[REGION:raw]
+	![](viewOptions.png)
+	[/REGION]
+
+1. Browse to **Engine** -> **ArtTools** -> **RenderToTexture** -> **Blueprints** in the **Content Browser**. 
+1. Place a RenderToTexture_LevelBP Blueprint at location 0,0,0 in the world
+
+	[REGION:raw]
+	![](placeRTT_LBP.png)(w:880 convert:false)
+	[/REGION]
+
+1. Click the **World Settings** button. The **World Settings** panel will open where the **Details** panel is docked (by default).
+
+	![](worldSettingsBar.png)
+
+1. Assign the *enderToTexture_GameMode Blueprint (found in RenderToTexture/Blueprints/) as the **GameMode** in the **World Settings**
+
+	[REGION:raw]
+	![](worldSettings.png)
+	[/REGION]
+
+1. [INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#hrss1]
+
+1. Leave the High Resolution Screenshot dialog open.
+1. Adjust the **New Window Size** property in **Editor** -> **Preferences** -> **Play** to a size that is a power of 2. A size of 512x512 is suggested and will not affect the quality of the output images.
+
+	[REGION:lightbox]
+	[![](windowSize.png)(w:880)](windowSize.png)(convert:false)
+	[/REGION]
+
+The setting to choose which type of basic function will be performed is located under the **Default** category:
+
+![](defaultCat.png)
+
+Below this you will find categories that correspond to the values in the **Render Type** property.
+
+The only Property category besides Default that is relevant to all functions is the **Capture Settings** category. This category enables you to select which buffer targets you wish to save. For most cases, **Base Color** and **Normal** are sufficient. To render out opacity masks the **Decal Mask** option works well.
+
+![](captureSettings.png)
+ 
+The resolution multiplier will multiply the settings you entered into the **New Window Size** in the Editor Preferences. So if you entered 512x512, a multiplier of 2 would result in a 1024x1024 texture size. A multiplier of 4 would result in a 2048x2048 texture size. Depending on the desired results, you may want to render textures as high as 4096 or 8192 in order to down-sample them in Adobe Photoshop. In those cases, it is usually suggested that you add a post process volume and set the Anti Aliasing setting to "none" to get a more crisp result. 
+
+ This method currently saves `.bmp` format images. It is currently necessary to open and resave as `.tga` using an image processing tool. In practice, that is not a big deal since in most cases you will want to render at a large res and down-sample using an image processing pass later.
+
+ Finally, you can add a light to the scene if you like, it has no effect on the visualization buffers that are rendered out.
+
+## Specific Instructions
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/1 "%Engine/Content/Tools/RenderToTextureTools/1:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/2 "%Engine/Content/Tools/RenderToTextureTools/2:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/3 "%Engine/Content/Tools/RenderToTextureTools/3:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/4 "%Engine/Content/Tools/RenderToTextureTools/4:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/5 "%Engine/Content/Tools/RenderToTextureTools/5:description%")
+	[/PARAM]
+[/OBJECT]
+
