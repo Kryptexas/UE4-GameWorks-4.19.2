@@ -2,12 +2,11 @@ Availability:Docs
 Title:Importing Audio
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import audio content into Unreal Editor.
-prereq:Engine/Basics/Projects/Browser
-Related: GettingStarted
-Related: GettingStarted/HowTo
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
 Related: Engine/Audio
-Related: Engine/Content/Packs
-SkillLevel: Beginner
+SkillLevel: Intermediate
 Version: 4.8
 
 [REGION:note]
