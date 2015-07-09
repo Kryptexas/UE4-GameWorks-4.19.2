@@ -73,6 +73,19 @@ namespace UnrealBuildTool
 			}
 		}
 
+		static public string DOT_EMSCRIPTEN
+		{
+			get 
+			{
+				var TempPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder));
+				if (!Directory.Exists(TempPath))
+				{
+					Directory.CreateDirectory(TempPath);
+				}
+				return Path.Combine(TempPath, ".emscripten");
+			}
+		}
+
 		public static string  SetupEmscriptenTemp()
 		{
 			string HTML5Intermediatory = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder));
@@ -86,8 +99,8 @@ namespace UnrealBuildTool
 
 		public static string SetUpEmscriptenConfigFile()
 		{
-			string UserFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); 
-			string ConfigFile = Path.Combine(UserFolder, ".emscripten");
+			string UserFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+			string ConfigFile = DOT_EMSCRIPTEN;
 
 			if (!File.Exists(ConfigFile) || !File.ReadAllText(ConfigFile).Contains("GENERATEDBYUE4"))
 			{

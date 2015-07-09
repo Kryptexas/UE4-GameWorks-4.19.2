@@ -19,19 +19,22 @@ namespace UnrealBuildTool
 		{
 			if (HTML5SDKInfo.IsSDKInstalled())
 			{
-					// set some environment variable we'll need
-					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
-					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
-					Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
-					// finally register the toolchain that is now ready to go
-					Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
-					UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
+				// set some environment variable we'll need
+				//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
+				Environment.SetEnvironmentVariable("EMCC_CORES", "8");
+				Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
+				// finally register the toolchain that is now ready to go
+				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
+				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
 			}
 		}
 		public override void PreBuildSync()
 		{
 			HTML5SDKInfo.SetupEmscriptenTemp();
 			HTML5SDKInfo.SetUpEmscriptenConfigFile();
+			// set some environment variable we'll need.
+			// Forces emcc to use our generated .emscripten config, not the one in the users home directory.
+			Environment.SetEnvironmentVariable("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN);
 		}
 	
 		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
