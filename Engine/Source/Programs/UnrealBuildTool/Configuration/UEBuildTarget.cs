@@ -1045,6 +1045,16 @@ namespace UnrealBuildTool
 		/// <param name="Manifest">Manifest</param>
 		protected void CleanTarget(BuildManifest Manifest)
 		{
+			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+			BuildReceipt ReceiptWithFullPaths = BuildReceipt.Read(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture()));
+			if (ReceiptWithFullPaths == null)
+			{
+				ReceiptWithFullPaths = new BuildReceipt(Receipt);
+			}
+			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+
 			{
 				Log.TraceVerbose("Cleaning target {0} - AppName {1}", TargetName, AppName);
 
@@ -1053,19 +1063,36 @@ namespace UnrealBuildTool
 
 				// Collect all files to delete.
 				var AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response" };
-				var AllFilesToDelete = new List<string>(Manifest.BuildProducts);
-				foreach (var FileManifestItem in Manifest.BuildProducts)
+				var AllFilesToDelete = new List<string>();
+				foreach(BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
 				{
-					var FileExt = Path.GetExtension(FileManifestItem);
+					// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
+					if(UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
+					{
+						continue;
+					}
+
+					// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
+					if(!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
+					{
+						continue;
+					}
+
+					AllFilesToDelete.Add(BuildProduct.Path);
+					var FileExt = Path.GetExtension(BuildProduct.Path);
 					if (FileExt == ".dll" || FileExt == ".exe")
 					{
-						var ManifestFileWithoutExtension = Utils.GetPathWithoutExtension(FileManifestItem);
+						var ManifestFileWithoutExtension = Utils.GetPathWithoutExtension(BuildProduct.Path);
 						foreach (var AdditionalExt in AdditionalFileExtensions)
 						{
 							var AdditionalFileToDelete = ManifestFileWithoutExtension + AdditionalExt;
 							AllFilesToDelete.Add(AdditionalFileToDelete);
 						}
 					}
+				}
+				if (OnlyModules.Count == 0)
+				{
+					AllFilesToDelete.Add(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture()));
 				}
 
 				//@todo. This does not clean up files that are no longer built by the target...				
@@ -1241,6 +1268,95 @@ namespace UnrealBuildTool
 				{
 					CleanUnrealHeaderTool();
 				}
+			}
+		}
+
+		class BuldProductComparer : IEqualityComparer<BuildProduct>
+		{
+			public bool Equals(BuildProduct x, BuildProduct y)
+			{
+				if (Object.ReferenceEquals(x, y))
+					return true;
+
+				if (Object.ReferenceEquals(x, null) || Object.ReferenceEquals(y, null))
+					return false;
+
+				return x.Path == y.Path && x.Type == y.Type;
+			}
+
+			public int GetHashCode(BuildProduct product)
+			{
+				if (Object.ReferenceEquals(product, null))
+					return 0;
+
+				int hashProductPath = product.Path == null ? 0 : product.Path.GetHashCode();
+				int hashProductType = product.Type.GetHashCode();
+				return hashProductPath ^ hashProductType;
+			}
+		}
+		/// <summary>
+		/// Cleans all removed module intermediate files
+		/// </summary>
+		public void CleanStaleModules()
+		{
+			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+			BuildReceipt ReceiptWithFullPaths = new BuildReceipt(Receipt);
+			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+			BuildReceipt BuiltReceiptWithFullPaths = BuildReceipt.Read(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture()));
+			if (BuiltReceiptWithFullPaths == null)
+			{
+				return;
+			}
+			BuiltReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+
+			{
+				// Collect all files to build
+				var AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response" };
+				var AllFilesToDelete = new List<string>();
+				foreach (BuildProduct BuildProduct in BuiltReceiptWithFullPaths.BuildProducts)
+				{
+					// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
+					if (UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
+					{
+						continue;
+					}
+
+					// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
+					if (!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
+					{
+						continue;
+					}
+
+					if (!ReceiptWithFullPaths.BuildProducts.Contains(BuildProduct, new UEBuildTarget.BuldProductComparer()))
+					{
+						AllFilesToDelete.Add(BuildProduct.Path);
+						var FileExt = Path.GetExtension(BuildProduct.Path);
+						if (FileExt == ".dll" || FileExt == ".exe")
+						{
+							var ManifestFileWithoutExtension = Utils.GetPathWithoutExtension(BuildProduct.Path);
+							foreach (var AdditionalExt in AdditionalFileExtensions)
+							{
+								var AdditionalFileToDelete = ManifestFileWithoutExtension + AdditionalExt;
+								AllFilesToDelete.Add(AdditionalFileToDelete);
+							}
+						}
+					}
+				}
+
+				//@todo. This does not clean up files that are no longer built by the target...				
+				// Delete all output files listed in the manifest as well as any additional files.
+				foreach (var FileToDelete in AllFilesToDelete)
+				{
+					if (File.Exists(FileToDelete))
+					{
+						Log.TraceVerbose("\t\tDeleting " + FileToDelete);
+						CleanFile(FileToDelete);
+					}
+				}
+
+				// delete intermediate directory of the extra files
 			}
 		}
 

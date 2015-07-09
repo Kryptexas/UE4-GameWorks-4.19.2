@@ -1913,7 +1913,13 @@ namespace UnrealBuildTool
                                     ActionsToExecute.Count
                                     );
 
-                            ToolChain.PreBuildSync();
+							// clean up any stale modules
+							foreach (UEBuildTarget Target in Targets)
+							{
+								Target.CleanStaleModules();
+							}
+							
+							ToolChain.PreBuildSync();
 
                     
                             // Cache indirect includes for all outdated C++ files.  We kick this off as a background thread so that it can

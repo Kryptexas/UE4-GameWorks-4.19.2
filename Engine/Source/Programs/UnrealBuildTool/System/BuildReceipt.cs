@@ -349,9 +349,16 @@ namespace UnrealBuildTool
 		/// <param name="FileName">Filename to read from</param>
 		public static BuildReceipt Read(string FileName)
 		{
-			using(StreamReader Reader = new StreamReader(FileName))
+			if (File.Exists(FileName))
 			{
-				return (BuildReceipt)Serializer.Deserialize(Reader);
+				using (StreamReader Reader = new StreamReader(FileName))
+				{
+					return (BuildReceipt)Serializer.Deserialize(Reader);
+				}
+			}
+			else
+			{
+				return null;
 			}
 		}
 
