@@ -93,7 +93,7 @@ public:
 		SBox::Construct(SBox::FArguments()
 			.HAlign(HAlign_Right)
 			.VAlign(VAlign_Top)
-			.Padding(FMargin(0.0f, 0.0f, 15.0f, 0.0f))
+			.Padding(FMargin(0.0f, 0.0f, 2.0f, 0.0f))
 			[
 				SNew(SBorder)
 				.BorderImage(FEditorStyle::GetBrush("SProjectBadge.BadgeShape"))
@@ -110,6 +110,10 @@ public:
 			]);
 	}
 
+	FVector2D GetSizeLastFrame() const
+	{
+		return GetDesiredSize();
+	}
 
 	// SWidget interface
 	virtual EWindowZone::Type GetWindowZoneOverride() const override
@@ -117,7 +121,15 @@ public:
 		return EWindowZone::TitleBar;
 	}
 	// End of SWidget interface
+
+private:
+	FGeometry CachedGeometry;
 };
+
+static FMargin GetRoomForBadge(TWeakPtr<SProjectBadge> ProjBadge)
+{
+	return FMargin(8.0f, 0.0f, ProjBadge.Pin()->GetSizeLastFrame().X + 8.0f, 0.0f);
+}
 
 TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 {
@@ -151,6 +163,9 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
 	TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(TEXT("LevelEditor"), OwnerWindow);
 
+	TSharedRef<SProjectBadge> ProjectBadge = SNew(SProjectBadge);
+	TAttribute<FMargin> BadgeSizeGetter = TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateStatic(&GetRoomForBadge, TWeakPtr<SProjectBadge>(ProjectBadge)));
+		
 	TSharedPtr< SWidget > RightContent=
 		SNew( SHorizontalBox )
 
@@ -174,7 +189,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
-		.Padding(8.0f, 0.0f, 8.0f, 0.0f)
+		.Padding(BadgeSizeGetter)
 		.VAlign(VAlign_Center)
 		[
 			TutorialWidget
@@ -183,12 +198,13 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 	LevelEditorTab->SetRightContent( RightContent.ToSharedRef() );
 
 	LevelEditorTab->SetBackgroundContent(
-			SNew(SProjectBadge)
+		ProjectBadge
 	);
 	
 	
 	return LevelEditorTab;
 }
+
 
 /**
  * Called right after the module's DLL has been loaded and the module object has been created

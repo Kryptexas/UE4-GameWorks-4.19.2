@@ -79,48 +79,51 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 	const FButtonStyle* const UnhideTabWellButtonStyle = &FCoreStyle::Get().GetWidgetStyle< FButtonStyle >( "Docking.UnhideTabwellButton" );
 
 	// create inline title bar content
-	TitleBarContent = SNew(SHorizontalBox)
+	TitleBarContent = 
+	SNew(SOverlay)
+	+ SOverlay::Slot().Expose(BackgroundContentArea)
+	+ SOverlay::Slot()
+	[
+	
+		
+		SNew(SHorizontalBox)
 		.Visibility(EVisibility::SelfHitTestInvisible)
 
-	+ SHorizontalBox::Slot()
+		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Expose(InlineContentAreaLeft)
 
-	+ SHorizontalBox::Slot() 
+		+ SHorizontalBox::Slot() 
 		.FillWidth(1.0f)
 		.VAlign(VAlign_Bottom)
 		.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 		[
-			SNew(SOverlay)
-			+ SOverlay::Slot().Expose(BackgroundContentArea)
-			+ SOverlay::Slot()
+			SNew(SVerticalBox)
+			.Visibility(EVisibility::SelfHitTestInvisible)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(SVerticalBox)
-				.Visibility(EVisibility::SelfHitTestInvisible)
+				SNew(SSpacer)
+				.Visibility(this, &SDockingTabStack::GetMaximizeSpacerVisibility)
+				.Size(FVector2D(0.0f, 10.0f))
+			]
 
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SSpacer)
-						.Visibility(this, &SDockingTabStack::GetMaximizeSpacerVisibility)
-						.Size(FVector2D(0.0f, 10.0f))
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					// TabWell
-					SAssignNew(TabWell, SDockingTabWell)
-						.ParentStackNode(SharedThis(this))
-				]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				// TabWell
+				SAssignNew(TabWell, SDockingTabWell)
+				.ParentStackNode(SharedThis(this))
 			]
 		]
 
-	+ SHorizontalBox::Slot()
+		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Expose(InlineContentAreaRight)
 		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
-		.VAlign((VAlign_Center));
+		.VAlign((VAlign_Center))
+	];
 
 	ChildSlot
 	[
