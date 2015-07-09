@@ -42,7 +42,7 @@ After locating your content, **drag-and-drop** the files from your Explorer menu
 
 ![](DragAndDropContent.png)
 
-1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** will add your meshes to the Project.
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** adds your meshes to the Project.
 
 	![](FBX_ImportOptionsDialogBox.png)
 
