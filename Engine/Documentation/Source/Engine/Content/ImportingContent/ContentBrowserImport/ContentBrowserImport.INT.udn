@@ -57,7 +57,7 @@ If you're creating a new project, use these project **settings** (also pictured 
 
 1.	**Click Open** to begin importing the content files to your project (pictured above).
 
-1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking** **Import** or **Import All** will add your meshes to the Project.
+1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking Import** or **Import All** adds your meshes to the Project.
 
 	![](FBX_ImportOptionsDialogBox.png)
 
