@@ -14,6 +14,7 @@ void FCachedWidgetNode::Initialize(const FPaintArgs& Args, TSharedRef<SWidget> I
 	ClippingRect = InClippingRect;
 	WindowOffset = Args.GetWindowToDesktopTransform();
 	RecordedVisibility = Args.GetLastRecordedVisibility();
+	LastRecordedHittestIndex = 0;
 
 	if ( RecordedVisibility.AreChildrenHitTestVisible() )
 	{
@@ -27,12 +28,16 @@ void FCachedWidgetNode::RecordHittestGeometry(FHittestGrid& Grid, int32 LastHitt
 {
 	if ( RecordedVisibility.AreChildrenHitTestVisible() )
 	{
-		const int32 RecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(Widget.Pin()->AsShared(), Geometry), WindowOffset, ClippingRect);
-
-		int32 ChildCount = Children.Num();
-		for ( int32 i = 0; i < ChildCount; i++ )
+		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
+		if ( SafeWidget.IsValid() )
 		{
-			Children[i]->RecordHittestGeometry(Grid, RecordedHittestIndex);
+			LastRecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(SafeWidget.ToSharedRef(), Geometry), WindowOffset, ClippingRect);
+
+			const int32 ChildCount = Children.Num();
+			for ( int32 i = 0; i < ChildCount; i++ )
+			{
+				Children[i]->RecordHittestGeometry(Grid, LastRecordedHittestIndex);
+			}
 		}
 	}
 }

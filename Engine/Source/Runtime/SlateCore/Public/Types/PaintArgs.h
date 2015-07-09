@@ -36,6 +36,7 @@ public:
 	bool IsCaching() const { return bIsCaching; }
 	bool IsVolatilityPass() const { return bIsVolatilityPass; }
 	TSharedPtr<ILayoutCache> GetLayoutCache() const { return LayoutCache; }
+	FCachedWidgetNode* GetParentCacheNode() const { return ParentCacheNode; }
 
 private:
 	const TSharedRef<SWidget>& ParentPtr;

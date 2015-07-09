@@ -7,7 +7,7 @@
 /**
  * Invalidate
  * ● Single Child
- * ● Popup
+ * ● Caching / Performance
  */
 UCLASS()
 class UMG_API UInvalidationBox : public UContentWidget
@@ -15,6 +15,14 @@ class UMG_API UInvalidationBox : public UContentWidget
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	/**
+	 * Caches the locations for child draw elements relative to the invalidation box,
+	 * this adds extra overhead to drawing them every frame.  However, in cases where
+	 * the position of the invalidation boxes changes every frame this can be a big savings.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Caching")
+	bool CacheRelativeTransforms;
 
 	/**
 	 * 

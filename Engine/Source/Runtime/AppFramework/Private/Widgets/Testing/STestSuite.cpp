@@ -3919,6 +3919,23 @@ class SInvalidationTest : public SCompoundWidget
 					]
 				]
 			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SInvalidationPanel)
+				.CacheRelativeTransforms(true)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("RelativeCacheMessage", "I cache relative transforms.  Moving the window has no effect on me, woo!"))
+					]
+				]
+			]
 		];
 	}
 

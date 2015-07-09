@@ -24,6 +24,7 @@ public:
 	FVector2D WindowOffset;
 
 	EVisibility RecordedVisibility;
+	int32 LastRecordedHittestIndex;
 
 	// TODO Do we want to cache information about the elements drawn by each widget?
 	//TArray< FSlateWindowElementList > Elements;

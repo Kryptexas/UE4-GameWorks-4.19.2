@@ -13,6 +13,7 @@ FPaintArgs::FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHitte
 , CurrentTime(InCurrentTime)
 , DeltaTime(InDeltaTime)
 , bIsCaching(false)
+, bIsVolatilityPass(false)
 , ParentCacheNode(nullptr)
 {
 }
@@ -50,18 +51,24 @@ FPaintArgs FPaintArgs::RecordHittestGeometry(const SWidget* Widget, const FGeome
 		if ( bIsCaching )
 		{
 			FCachedWidgetNode* CacheNode = LayoutCache->CreateCacheNode();
-			CacheNode->Initialize(UpdatedArgs, const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry, InClippingRect);
+			CacheNode->Initialize(*this, const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry, InClippingRect);
 			UpdatedArgs.ParentCacheNode->Children.Add(CacheNode);
 
 			UpdatedArgs.ParentCacheNode = CacheNode;
 		}
-		else
+
+		int32 RealLastHitTestIndex = LastHittestIndex;
+		if ( bIsVolatilityPass && ParentCacheNode )
 		{
-			const EVisibility RecordedVisibility = Widget->GetVisibility();
-			const int32 RecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry), WindowOffset, InClippingRect);
-			UpdatedArgs.LastHittestIndex = RecordedHittestIndex;
-			UpdatedArgs.LastRecordedVisibility = RecordedVisibility;
+			RealLastHitTestIndex = ParentCacheNode->LastRecordedHittestIndex;
+			UpdatedArgs.ParentCacheNode = nullptr;
 		}
+
+		// When rendering volatile widgets, their parent widgets who have been cached 
+		const EVisibility RecordedVisibility = Widget->GetVisibility();
+		const int32 RecordedHittestIndex = Grid.InsertWidget(RealLastHitTestIndex, RecordedVisibility, FArrangedWidget(const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry), WindowOffset, InClippingRect);
+		UpdatedArgs.LastHittestIndex = RecordedHittestIndex;
+		UpdatedArgs.LastRecordedVisibility = RecordedVisibility;
 	}
 	else
 	{

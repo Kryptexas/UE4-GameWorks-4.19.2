@@ -10,8 +10,10 @@ public:
 	SLATE_BEGIN_ARGS( SInvalidationPanel )
 	{
 		_Visibility = EVisibility::SelfHitTestInvisible;
+		_CacheRelativeTransforms = false;
 	}
 		SLATE_DEFAULT_SLOT( FArguments, Content )
+		SLATE_ARGUMENT( bool, CacheRelativeTransforms )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
@@ -20,7 +22,7 @@ public:
 	bool GetCanCache() const;
 	void SetCanCache(bool InCanCache);
 
-	void InvalidateCache();
+	FORCEINLINE void InvalidateCache() { bNeedsCaching = true; }
 
 	// ILayoutCache overrides
 	virtual void InvalidateWidget(SWidget* InvalidateWidget) override;
@@ -55,11 +57,16 @@ private:
 
 	mutable FCachedWidgetNode* RootCacheNode;
 	mutable TSharedPtr< FSlateWindowElementList > CachedWindowElements;
+	mutable FVector2D CachedAbsolutePosition;
 	mutable TArray< FCachedWidgetNode* > NodePool;
 	mutable int32 LastUsedCachedNodeIndex;
+	mutable int32 LastLayerId;
+	mutable int32 LastHitTestIndex;
 
 	mutable int32 CachedMaxChildLayer;
 	mutable bool bNeedsCaching;
 	mutable bool bIsInvalidating;
 	bool bCanCache;
+
+	bool bCacheRelativeTransforms;
 };

@@ -12,7 +12,7 @@
 UInvalidationBox::UInvalidationBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	Visibility = ESlateVisibility::HitTestInvisible;
+	Visibility = ESlateVisibility::SelfHitTestInvisible;
 }
 
 void UInvalidationBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -24,7 +24,9 @@ void UInvalidationBox::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UInvalidationBox::RebuildWidget()
 {
-	MyInvalidationPanel = SNew(SInvalidationPanel);
+	MyInvalidationPanel = 
+		SNew(SInvalidationPanel)
+		.CacheRelativeTransforms(CacheRelativeTransforms);
 
 	if ( IsDesignTime() )
 	{

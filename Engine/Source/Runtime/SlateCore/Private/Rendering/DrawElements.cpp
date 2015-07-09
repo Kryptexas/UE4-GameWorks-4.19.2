@@ -363,7 +363,7 @@ int32 FSlateWindowElementList::PaintDeferred(int32 LayerId)
 
 FSlateWindowElementList::FVolatilePaint::FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 InLayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled)
 	: WidgetToPaintPtr(InWidgetToPaint)
-	, Args(InArgs.EnableCaching(InArgs.GetLayoutCache(), nullptr, false, true))
+	, Args(InArgs.EnableCaching(InArgs.GetLayoutCache(), InArgs.GetParentCacheNode(), false, true))
 	, AllottedGeometry(InAllottedGeometry)
 	, MyClippingRect(InMyClippingRect)
 	, LayerId(InLayerId)

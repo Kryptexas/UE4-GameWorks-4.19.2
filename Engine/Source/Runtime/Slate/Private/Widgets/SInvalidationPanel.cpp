@@ -43,6 +43,10 @@ void SInvalidationPanel::Construct( const FArguments& InArgs )
 	bCanCache = true;
 	RootCacheNode = nullptr;
 	LastUsedCachedNodeIndex = 0;
+	LastLayerId = 0;
+	LastHitTestIndex = 0;
+
+	bCacheRelativeTransforms = InArgs._CacheRelativeTransforms;
 }
 
 SInvalidationPanel::~SInvalidationPanel()
@@ -73,11 +77,30 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 {
 	if ( GetCanCache() )
 	{
+		const bool bWasCachingNeeded = bNeedsCaching;
+
 		if ( bNeedsCaching == false )
 		{
-			// If the container we're in has changed in any way we need to invalidate for sure.
-			if ( AllottedGeometry.GetAccumulatedLayoutTransform() != LastAllottedGeometry.GetAccumulatedLayoutTransform() ||
-				AllottedGeometry.GetAccumulatedRenderTransform() != LastAllottedGeometry.GetAccumulatedRenderTransform() )
+			if ( bCacheRelativeTransforms )
+			{
+				// If the container we're in has changed in either scale or the rotation matrix has changed, 
+				if ( AllottedGeometry.GetAccumulatedLayoutTransform().GetScale() != LastAllottedGeometry.GetAccumulatedLayoutTransform().GetScale() ||
+					 AllottedGeometry.GetAccumulatedRenderTransform().GetMatrix() != LastAllottedGeometry.GetAccumulatedRenderTransform().GetMatrix() )
+				{
+					InvalidateCache();
+				}
+			}
+			else
+			{
+				// If the container we're in has changed in any way we need to invalidate for sure.
+				if ( AllottedGeometry.GetAccumulatedLayoutTransform() != LastAllottedGeometry.GetAccumulatedLayoutTransform() ||
+					AllottedGeometry.GetAccumulatedRenderTransform() != LastAllottedGeometry.GetAccumulatedRenderTransform() )
+				{
+					InvalidateCache();
+				}
+			}
+
+			if ( AllottedGeometry.GetLocalSize() != LastAllottedGeometry.GetLocalSize() )
 			{
 				InvalidateCache();
 			}
@@ -85,9 +108,11 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 
 		LastAllottedGeometry = AllottedGeometry;
 
+		// TODO We may be double pre-passing here, if the invalidation happened at the end of last frame,
+		// we'll have already done one pre-pass before getting here.
 		if ( bNeedsCaching )
 		{
-			SlatePrepass(LastAllottedGeometry.Scale);
+			SlatePrepass(AllottedGeometry.Scale);
 			CachePrepass(SharedThis(this));
 		}
 	}
@@ -137,15 +162,14 @@ FCachedWidgetNode* SInvalidationPanel::CreateCacheNode() const
 
 int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	//TODO If the LayerId changes, or other properties, we should probably invalidate, but
-	// we can't invalidate here, because we haven't done a pre-pass yet, need to do it next frame.
-
 	if ( GetCanCache() )
 	{
 		const bool bWasCachingNeeded = bNeedsCaching;
 
 		if ( bNeedsCaching )
 		{
+			SInvalidationPanel* MutableThis = const_cast<SInvalidationPanel*>( this );
+
 			// Always set the caching flag to false first, during the paint / tick pass we may change something
 			// to volatile and need to re-cache.
 			bNeedsCaching = false;
@@ -165,11 +189,11 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			LastUsedCachedNodeIndex = 0;
 
 			RootCacheNode = CreateCacheNode();
-			RootCacheNode->Initialize(Args, SharedThis(const_cast<SInvalidationPanel*>( this )), AllottedGeometry, MyClippingRect);
+			RootCacheNode->Initialize(Args, SharedThis(MutableThis), AllottedGeometry, MyClippingRect);
 
 			//TODO: When SWidget::Paint is called don't drag self if volatile, and we're doing a cache pass.
 			CachedMaxChildLayer = SCompoundWidget::OnPaint(
-				Args.EnableCaching(SharedThis(const_cast<SInvalidationPanel*>( this )), RootCacheNode, true, false),
+				Args.EnableCaching(SharedThis(MutableThis), RootCacheNode, true, false),
 				AllottedGeometry,
 				MyClippingRect,
 				*CachedWindowElements.Get(),
@@ -177,12 +201,45 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 				InWidgetStyle,
 				bParentEnabled);
 
+			if ( bCacheRelativeTransforms )
+			{
+				CachedAbsolutePosition = AllottedGeometry.Position;
+			}
+
+			LastLayerId = LayerId;
+			LastHitTestIndex = Args.GetLastHitTestIndex();
+
 			bIsInvalidating = false;
 		}
 
-		RootCacheNode->RecordHittestGeometry(Args.GetGrid(), Args.GetLastHitTestIndex());
+		// The hit test grid is actually populated during the initial cache phase, so don't bother
+		// recording the hit test geometry on the same frame that we regenerate the cache.
+		if ( bWasCachingNeeded == false )
+		{
+			RootCacheNode->RecordHittestGeometry(Args.GetGrid(), Args.GetLastHitTestIndex());
+		}
 
-		OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
+		if ( bCacheRelativeTransforms )
+		{
+			FVector2D DeltaPosition = AllottedGeometry.Position - CachedAbsolutePosition;
+
+			const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
+			const int32 CachedElementCount = CachedElements.Num();
+			for ( int32 Index = 0; Index < CachedElementCount; Index++ )
+			{
+				const FSlateDrawElement& LocalElement = CachedElements[Index];
+				FSlateDrawElement AbsElement = LocalElement;
+
+				AbsElement.SetPosition(LocalElement.GetPosition() + DeltaPosition);
+				AbsElement.SetClippingRect(LocalElement.GetClippingRect().OffsetBy(DeltaPosition));
+
+				OutDrawElements.AddItem(AbsElement);
+			}
+		}
+		else
+		{
+			OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
+		}
 
 		int32 OutMaxChildLayer = CachedMaxChildLayer;
 
@@ -212,7 +269,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 					MyClippingRect,
 					ESlateDrawEffect::None,
 					DebugTint
-					);
+				);
 			}
 
 			// Draw a yellow outline around any volatile elements.
@@ -276,11 +333,6 @@ void SInvalidationPanel::SetContent(const TSharedRef< SWidget >& InContent)
 	[
 		InContent
 	];
-}
-
-void SInvalidationPanel::InvalidateCache()
-{
-	bNeedsCaching = true;
 }
 
 bool SInvalidationPanel::ComputeVolatility() const

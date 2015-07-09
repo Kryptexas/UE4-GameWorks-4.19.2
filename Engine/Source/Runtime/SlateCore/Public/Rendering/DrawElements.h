@@ -317,10 +317,12 @@ public:
 	EElementType GetElementType() const { return ElementType; }
 	uint32 GetLayer() const { return Layer; }
 	const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
-	const FVector2D& GetPosition() const { return Position; }
+	SLATECORE_API const FVector2D& GetPosition() const { return Position; }
+	SLATECORE_API void SetPosition(const FVector2D& InPosition) { Position = Position; }
 	const FVector2D& GetLocalSize() const { return LocalSize; }
 	float GetScale() const { return Scale; }
-	const FSlateRect& GetClippingRect() const { return ClippingRect; }
+	SLATECORE_API const FSlateRect& GetClippingRect() const { return ClippingRect; }
+	SLATECORE_API void SetClippingRect(const FSlateRect& InClippingRect) { ClippingRect = InClippingRect; }
 	const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
 	uint32 GetDrawEffects() const { return DrawEffects; }
 	const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
