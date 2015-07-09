@@ -4123,8 +4123,8 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 	if (pWorldToComponent)
 	{
 		const FTransform RootTM = WeldParent ? WeldParent->GetUnrealWorldTransform() : GetUnrealWorldTransform();
-		const FTransform ShapeSpaceToComponentSpace = RootTM * (*pWorldToComponent);
-		BodyInstanceSpaceToTestSpace = ShapeSpaceToComponentSpace * ComponentSpaceToTestSpace;
+		const FTransform LocalOffset = (*pWorldToComponent) * RootTM;
+		BodyInstanceSpaceToTestSpace = ComponentSpaceToTestSpace * LocalOffset;
 	}
 	else
 	{
