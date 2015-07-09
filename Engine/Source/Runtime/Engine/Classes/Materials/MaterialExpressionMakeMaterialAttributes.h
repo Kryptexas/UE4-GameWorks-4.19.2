@@ -5,7 +5,7 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionMakeMaterialAttributes.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories = Object, MinimalAPI)
 class UMaterialExpressionMakeMaterialAttributes : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
