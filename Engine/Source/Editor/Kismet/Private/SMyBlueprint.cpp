@@ -2505,7 +2505,16 @@ void SMyBlueprint::OnDuplicateAction()
 
 		DuplicatedGraph->Modify();
 
-		// Only function duplication is supported
+		// Generate new Guids for all nodes in the graph
+		// *NOTE* this cannot occur during PostDuplicate, node Guids need to remain static during duplication for Blueprint compilation
+		for (UEdGraphNode* EdGraphNode : DuplicatedGraph->Nodes)
+		{
+			if (EdGraphNode)
+			{
+				EdGraphNode->CreateNewGuid();
+			}
+		}
+		// Only function and macro duplication is supported
 		EGraphType GraphType = DuplicatedGraph->GetSchema()->GetGraphType(GraphAction->EdGraph);
 		check(GraphType == GT_Function || GraphType == GT_Macro);
 
