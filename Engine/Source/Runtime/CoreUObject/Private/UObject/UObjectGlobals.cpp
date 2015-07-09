@@ -2994,10 +2994,18 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
 			const bool bOwnerArchetypeIsNotNative = !Outer->GetArchetype()->GetClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
 			const bool bOwnerTemplateIsNotCDO = ObjectArchetype != nullptr && ObjectArchetype != Outer->GetClass()->GetDefaultObject(false) && !Outer->HasAnyFlags(RF_ClassDefaultObject);
-			//if (StaticFindObjectFast(OverrideClass, Outer, SubobjectFName) != nullptr)
-			//{
-			//	UE_LOG(LogClass, Fatal, TEXT("Default subobject %s %s already exists for %s."), *OverrideClass->GetName(), *SubobjectFName.ToString(), *Outer->GetFullName());
-			//}
+#if !UE_BUILD_SHIPPING
+			// Guard against constructing the same subobject multiple times.
+			// We only need to check the name as ConstructObject would fail anyway if an object of the same name but different class already existed.
+			if (ConstructedSubobjects.Find(SubobjectFName) != INDEX_NONE)
+			{
+				UE_LOG(LogClass, Fatal, TEXT("Default subobject %s %s already exists for %s."), *OverrideClass->GetName(), *SubobjectFName.ToString(), *Outer->GetFullName());
+			}
+			else
+			{
+				ConstructedSubobjects.Add(SubobjectFName);
+			}
+#endif
 			Result = StaticConstructObject_Internal(OverrideClass, Outer, SubobjectFName, SubobjectFlags);
 			if (!bIsTransient && (bOwnerArchetypeIsNotNative || bOwnerTemplateIsNotCDO))
 			{

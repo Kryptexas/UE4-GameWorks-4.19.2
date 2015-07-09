@@ -1007,6 +1007,10 @@ private:
 	mutable FOverrides ComponentOverrides;
 	/**  List of component classes to intialize after the C++ constructors **/
 	mutable FSubobjectsToInit ComponentInits;
+#if !UE_BUILD_SHIPPING
+	/** List of all subobject names constructed for this object */
+	mutable TArray<FName, TInlineAllocator<8>> ConstructedSubobjects;
+#endif
 	/**  Previously constructed object in the callstack */
 	UObject* LastConstructedObject;
 
