@@ -2,6 +2,7 @@
 //
 #include "SteamVRPrivatePCH.h"
 #include "Classes/SteamVRFunctionLibrary.h"
+#include "SteamVRHMD.h"
 
 USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
