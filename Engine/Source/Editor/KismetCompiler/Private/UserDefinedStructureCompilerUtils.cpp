@@ -13,6 +13,20 @@
 
 struct FUserDefinedStructureCompilerInner
 {
+	static void ClearStructReferencesInBP(UBlueprint* FoundBlueprint, TSet<UBlueprint*>& BlueprintsToRecompile)
+	{
+		bool bAlreadyProcessed = false;
+		BlueprintsToRecompile.Add(FoundBlueprint, &bAlreadyProcessed);
+		if (!bAlreadyProcessed)
+		{
+			for (auto Function : TFieldRange<UFunction>(FoundBlueprint->GeneratedClass, EFieldIteratorFlags::ExcludeSuper))
+			{
+				Function->Script.Empty();
+			}
+			FoundBlueprint->Status = BS_Dirty;
+		}
+	}
+
 	static void ReplaceStructWithTempDuplicate(
 		UUserDefinedStruct* StructureToReinstance, 
 		TSet<UBlueprint*>& BlueprintsToRecompile,
@@ -46,8 +60,8 @@ struct FUserDefinedStructureCompilerInner
 					{
 						if (UBlueprint* FoundBlueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy))
 						{
-							BlueprintsToRecompile.Add(FoundBlueprint);
 							StructProperty->Struct = DuplicatedStruct;
+							ClearStructReferencesInBP(FoundBlueprint, BlueprintsToRecompile);
 						}
 					}
 					else if (auto OwnerStruct = Cast<UUserDefinedStruct>(StructProperty->GetOwnerStruct()))
@@ -71,6 +85,18 @@ struct FUserDefinedStructureCompilerInner
 			}
 
 			DuplicatedStruct->RemoveFromRoot();
+
+			for (auto Blueprint : TObjectRange<UBlueprint>(RF_ClassDefaultObject | RF_PendingKill))
+			{
+				if (Blueprint && !BlueprintsToRecompile.Contains(Blueprint))
+				{
+					FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(Blueprint);
+					if (Blueprint->CachedUDSDependencies.Contains(StructureToReinstance))
+					{
+						ClearStructReferencesInBP(Blueprint, BlueprintsToRecompile);
+					}
+				}
+			}
 		}
 	}
 
@@ -248,10 +274,6 @@ struct FUserDefinedStructureCompilerInner
 			}
 		};
 
-		TArray<UObject*> AllBlueprints;
-		bool const bIncludeDerivedClasses = true;
-		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses);
-
 		TArray<FDependencyMapEntry> DependencyMap;
 		for (auto Iter = ChangedStructs.CreateConstIterator(); Iter; ++Iter)
 		{
@@ -274,35 +296,8 @@ struct FUserDefinedStructureCompilerInner
 			UUserDefinedStruct* Struct = DependencyMap[StructureToCompileIndex].Struct;
 			check(Struct);
 
-			UObject* OldStruct = FUserDefinedStructureCompilerInner::CleanAndSanitizeStruct(Struct);
+			FUserDefinedStructureCompilerInner::CleanAndSanitizeStruct(Struct);
 			FUserDefinedStructureCompilerInner::InnerCompileStruct(Struct, GetDefault<UEdGraphSchema_K2>(), MessageLog);
-
-			// make sure bytecode references are cleared, compile on load will update unloaded blueprints..
-			{
-				for (auto Blueprint : AllBlueprints)
-				{
-					UBlueprint* AsBlueprint = CastChecked<UBlueprint>(Blueprint);
-					if (UClass* BPClass = AsBlueprint->GeneratedClass)
-					{
-						for (TFieldIterator<UFunction> FuncIter(BPClass, EFieldIteratorFlags::ExcludeSuper); FuncIter; ++FuncIter)
-						{
-							UFunction* CurrentFunction = *FuncIter;
-							if (CurrentFunction->Script.Num() > 0)
-							{
-								TArray<UObject*> NewReferences;
-								// if there's a reference to any of the trashed objects we want to nuke the script:
-								FReferenceFinder ReferenceFinder(NewReferences, OldStruct, false, false, true, true);
-								ReferenceFinder.FindReferences(CurrentFunction);
-								if (NewReferences.Num() > 0)
-								{
-									CurrentFunction->Script.Empty();
-									AsBlueprint->Status = BS_Dirty;
-								}
-							}
-						}
-					}
-				}
-			}
 
 			DependencyMap.RemoveAtSwap(StructureToCompileIndex);
 
@@ -318,16 +313,13 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 {
 	if (FStructureEditorUtils::UserDefinedStructEnabled() && Struct)
 	{
-		TSet<UBlueprint*> BlueprintsThatHaveBeenRecompiled;
-		TSet<UBlueprint*> BlueprintsToRecompile;
-
 		TArray<UUserDefinedStruct*> ChangedStructs; 
-
 		if (FUserDefinedStructureCompilerInner::ShouldBeCompiled(Struct) || bForceRecompile)
 		{
 			ChangedStructs.Add(Struct);
 		}
 
+		TSet<UBlueprint*> BlueprintsToRecompile;
 		for (int32 StructIdx = 0; StructIdx < ChangedStructs.Num(); ++StructIdx)
 		{
 			UUserDefinedStruct* ChangedStruct = ChangedStructs[StructIdx];
@@ -343,6 +335,7 @@ void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct*
 		FUserDefinedStructureCompilerInner::BuildDependencyMapAndCompile(ChangedStructs, MessageLog);
 
 		// UPDATE ALL THINGS DEPENDENT ON COMPILED STRUCTURES
+		TSet<UBlueprint*> BlueprintsThatHaveBeenRecompiled;
 		for (TObjectIterator<UK2Node> It(RF_Transient | RF_PendingKill | RF_ClassDefaultObject, true); It && ChangedStructs.Num(); ++It)
 		{
 			bool bReconstruct = false;

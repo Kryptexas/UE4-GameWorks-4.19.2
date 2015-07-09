@@ -2752,7 +2752,7 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 	return NULL;
 }
 
-void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies)
+void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies, TSet<TWeakObjectPtr<UStruct>>& OutUDSDependencies)
 {
 	struct FGatherDependenciesHelper
 	{
@@ -2786,6 +2786,7 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 
 	check(InBlueprint);
 	Dependencies.Empty();
+	OutUDSDependencies.Empty();
 
 	FGatherDependenciesHelper::ProcessHierarchy(InBlueprint->ParentClass, Dependencies);
 
@@ -2813,7 +2814,14 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 				{
 					for (auto Struct : LocalDependentStructures)
 					{
-						FGatherDependenciesHelper::ProcessHierarchy(Struct, Dependencies);
+						if (auto UDS = Cast<UUserDefinedStruct>(Struct))
+						{
+							OutUDSDependencies.Add(UDS);
+						}
+						else
+						{
+							FGatherDependenciesHelper::ProcessHierarchy(Struct, Dependencies);
+						}
 					}
 				}
 			}
@@ -2827,7 +2835,7 @@ void FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(UBlueprint* Bluepri
 {
 	if (Blueprint && !Blueprint->bCachedDependenciesUpToDate)
 	{
-		GatherDependencies(Blueprint, Blueprint->CachedDependencies);
+		GatherDependencies(Blueprint, Blueprint->CachedDependencies, Blueprint->CachedUDSDependencies);
 		Blueprint->bCachedDependenciesUpToDate = true;
 	}
 }

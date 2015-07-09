@@ -475,6 +475,9 @@ public:
 	bool bCachedDependenciesUpToDate;
 	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
 
+	// User Defined Structures, the blueprint depends on
+	TSet<TWeakObjectPtr<UStruct>> CachedUDSDependencies;
+
 	bool IsUpToDate() const
 	{
 		return BS_UpToDate == Status || BS_UpToDateWithWarnings == Status;
