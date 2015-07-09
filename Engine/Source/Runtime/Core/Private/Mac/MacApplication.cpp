@@ -499,10 +499,66 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 	TSharedPtr<FMacWindow> EventWindow = FindWindowByNSWindow(Event.Window);
 	if (Event.Type)
 	{
-		if (CurrentModifierFlags != Event.ModifierFlags)
+		bool bModifiersValid = false;
+		
+		switch (Event.Type)
+		{
+			case NSMouseMoved:
+			case NSLeftMouseDragged:
+			case NSRightMouseDragged:
+			case NSOtherMouseDragged:
+				ProcessMouseMovedEvent(Event, EventWindow);
+				bModifiersValid = true;
+				break;
+
+			case NSLeftMouseDown:
+			case NSRightMouseDown:
+			case NSOtherMouseDown:
+				ProcessMouseDownEvent(Event, EventWindow);
+				bModifiersValid = true;
+				break;
+
+			case NSLeftMouseUp:
+			case NSRightMouseUp:
+			case NSOtherMouseUp:
+				ProcessMouseUpEvent(Event, EventWindow);
+				bModifiersValid = true;
+				break;
+
+			case NSScrollWheel:
+				ProcessScrollWheelEvent(Event, EventWindow);
+				bModifiersValid = true;
+				break;
+
+			case NSEventTypeMagnify:
+			case NSEventTypeSwipe:
+			case NSEventTypeRotate:
+			case NSEventTypeBeginGesture:
+			case NSEventTypeEndGesture:
+				ProcessGestureEvent(Event);
+				bModifiersValid = true;
+				break;
+
+			case NSKeyDown:
+				ProcessKeyDownEvent(Event, EventWindow);
+				bModifiersValid = true;
+				break;
+
+			case NSKeyUp:
+				ProcessKeyUpEvent(Event);
+				bModifiersValid = true;
+				break;
+				
+			case NSMouseEntered:
+			case NSMouseExited:
+				bModifiersValid = true;
+				break;
+		}
+		
+		if (bModifiersValid && CurrentModifierFlags != Event.ModifierFlags)
 		{
 			NSUInteger ModifierFlags = Event.ModifierFlags;
-
+			
 			HandleModifierChange(ModifierFlags, (1<<4), 7, MMK_RightCommand);
 			HandleModifierChange(ModifierFlags, (1<<3), 6, MMK_LeftCommand);
 			HandleModifierChange(ModifierFlags, (1<<1), 0, MMK_LeftShift);
@@ -512,50 +568,8 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 			HandleModifierChange(ModifierFlags, (1<<2), 1, MMK_RightShift);
 			HandleModifierChange(ModifierFlags, (1<<6), 5, MMK_RightAlt);
 			HandleModifierChange(ModifierFlags, (1<<13), 3, MMK_RightControl);
-
+			
 			CurrentModifierFlags = ModifierFlags;
-		}
-
-		switch (Event.Type)
-		{
-			case NSMouseMoved:
-			case NSLeftMouseDragged:
-			case NSRightMouseDragged:
-			case NSOtherMouseDragged:
-				ProcessMouseMovedEvent(Event, EventWindow);
-				break;
-
-			case NSLeftMouseDown:
-			case NSRightMouseDown:
-			case NSOtherMouseDown:
-				ProcessMouseDownEvent(Event, EventWindow);
-				break;
-
-			case NSLeftMouseUp:
-			case NSRightMouseUp:
-			case NSOtherMouseUp:
-				ProcessMouseUpEvent(Event, EventWindow);
-				break;
-
-			case NSScrollWheel:
-				ProcessScrollWheelEvent(Event, EventWindow);
-				break;
-
-			case NSEventTypeMagnify:
-			case NSEventTypeSwipe:
-			case NSEventTypeRotate:
-			case NSEventTypeBeginGesture:
-			case NSEventTypeEndGesture:
-				ProcessGestureEvent(Event);
-				break;
-
-			case NSKeyDown:
-				ProcessKeyDownEvent(Event, EventWindow);
-				break;
-
-			case NSKeyUp:
-				ProcessKeyUpEvent(Event);
-				break;
 		}
 	}
 	else if (EventWindow.IsValid())
