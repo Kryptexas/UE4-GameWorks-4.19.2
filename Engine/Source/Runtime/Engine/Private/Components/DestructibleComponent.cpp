@@ -1472,10 +1472,12 @@ void UDestructibleComponent::SetCollisionResponseForAllActors(const FCollisionRe
 
 void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 ChunkIdx)
 {
+#if WITH_APEX
 	if(ApexDestructibleActor == nullptr) //since we do deferred deletion it's possible we've already meant to delete this so ignore any simulation callbacks
 	{
 		return;
 	}
+#endif
 
 	// Get collision channel and response
 	PxFilterData PQueryFilterData, PSimFilterData;
