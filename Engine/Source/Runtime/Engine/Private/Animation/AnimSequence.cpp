@@ -1274,14 +1274,106 @@ static int32 CropRawTrack(FRawAnimSequenceTrack& RawTrack, int32 StartKey, int32
 	return FMath::Max<int32>( RawTrack.PosKeys.Num(), FMath::Max<int32>(RawTrack.RotKeys.Num(), RawTrack.ScaleKeys.Num()) );
 }
 
-void UAnimSequence::ResizeSequence(float NewLength, int32 NewNumFrames)
+void UAnimSequence::ResizeSequence(float NewLength, int32 NewNumFrames, bool bInsert, int32 StartFrame/*inclusive */, int32 EndFrame/*inclusive*/)
 {
+	check (NewNumFrames > 0);
+	check (StartFrame < EndFrame);
+
+	int32 OldNumFrames = NumFrames;
+	float OldSequenceLength = SequenceLength;
+
+	// verify condition
 	NumFrames = NewNumFrames;
 	// Update sequence length to match new number of frames.
 	SequenceLength = NewLength;
 
+	float Interval = OldSequenceLength / OldNumFrames;
+	ensure (Interval == SequenceLength/NumFrames);
+
+	float OldStartTime = StartFrame * Interval;
+	float OldEndTime = EndFrame * Interval;
+	float Duration = OldEndTime - OldStartTime;
+
+	// re-locate notifies
+	for (auto& Notify: Notifies)
+	{
+		float CurrentTime = Notify.GetTime();
+		float NewDuration = 0.f;
+		if (bInsert)
+		{
+			// if state, make sure to adjust end time
+			if(Notify.NotifyStateClass)
+			{
+				float NotifyDuration = Notify.GetDuration();
+				float NotifyEnd = CurrentTime + NotifyDuration;
+				if(NotifyEnd >= OldStartTime)
+				{
+					NewDuration = NotifyDuration + Duration;
+				}
+				else
+				{
+					NewDuration = NotifyDuration;
+				}
+			}
+
+			// when insert, we only care about start time
+			// if it's later than start time
+			if (CurrentTime >= OldStartTime)
+			{
+				CurrentTime += Duration;
+			}
+		}
+		else
+		{
+			// if state, make sure to adjust end time
+			if(Notify.NotifyStateClass)
+			{
+				float NotifyDuration = Notify.GetDuration();
+				float NotifyEnd = CurrentTime + NotifyDuration;
+				NewDuration = NotifyDuration;
+				if(NotifyEnd >= OldStartTime && NotifyEnd <= OldEndTime)
+				{
+					// small number @todo see if there is define for this
+					NewDuration = 0.1f;
+				}
+				else if (NotifyEnd > OldEndTime)
+				{
+					NewDuration = NotifyEnd-Duration-CurrentTime;
+				}
+				else
+				{
+					NewDuration = NotifyDuration;
+				}
+
+				NewDuration = FMath::Max(NewDuration, 0.1f);
+			}
+
+			if (CurrentTime >= OldStartTime && CurrentTime <= OldEndTime)
+			{
+				CurrentTime = OldStartTime;
+			}
+			else if (CurrentTime > OldEndTime)
+			{
+				CurrentTime -= Duration;
+			}
+		}
+
+		float ClampedCurrentTime = FMath::Clamp(CurrentTime, 0.f, SequenceLength);
+		Notify.LinkSequence(this, ClampedCurrentTime);
+		Notify.SetDuration(NewDuration);
+
+		if (ClampedCurrentTime == 0.f)
+		{
+			Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetAfter);
+		}
+		else if (ClampedCurrentTime == SequenceLength)
+		{
+			Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetBefore);
+		}
+	}
+
 	// resize curves
-	RawCurveData.Resize(NewLength);
+	RawCurveData.Resize(NewLength, bInsert, OldStartTime, OldEndTime);
 }
 
 bool UAnimSequence::InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame, int32 CopyFrame)
@@ -1327,7 +1419,7 @@ bool UAnimSequence::InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame,
 		float const FrameTime = SequenceLength / ((float)NumFrames);
 
 		int32 NewNumFrames = NumFrames + NumFramesToInsert;
-		ResizeSequence((float)NewNumFrames * FrameTime, NewNumFrames);
+		ResizeSequence((float)NewNumFrames * FrameTime, NewNumFrames, true, StartFrame, EndFrame);
 
 		UE_LOG(LogAnimation, Log, TEXT("\tSequenceLength: %f, NumFrames: %d"), SequenceLength, NumFrames);
 
@@ -1376,14 +1468,14 @@ bool UAnimSequence::CropRawAnimData( float CurrentTime, bool bFromStart )
 	int32 const NumKeys = bFromStart ? KeyIndex : TotalNumOfFrames - KeyIndex ;
 
 	// Recalculate NumFrames
-	NumFrames = TotalNumOfFrames - NumKeys;
+	int32 NewNumFrames = TotalNumOfFrames - NumKeys;
 
 	UE_LOG(LogAnimation, Log, TEXT("UAnimSequence::CropRawAnimData %s - CurrentTime: %f, bFromStart: %d, TotalNumOfFrames: %d, KeyIndex: %d, StartKey: %d, NumKeys: %d"), *GetName(), CurrentTime, bFromStart, TotalNumOfFrames, KeyIndex, StartKey, NumKeys);
 
 	// Iterate over tracks removing keys from each one.
 	for(int32 i=0; i<RawAnimationData.Num(); i++)
 	{
-		// Update NumFrames below to reflect actual number of keys while we crop the anim data
+		// Update NewNumFrames below to reflect actual number of keys while we crop the anim data
 		CropRawTrack(RawAnimationData[i], StartKey, NumKeys, TotalNumOfFrames);
 	}
 
@@ -1391,66 +1483,12 @@ bool UAnimSequence::CropRawAnimData( float CurrentTime, bool bFromStart )
 	for(int32 i=0; i<RawAnimationData.Num(); i++)
 	{
 		FRawAnimSequenceTrack& RawTrack = RawAnimationData[i];
-		check(RawTrack.PosKeys.Num() == 1 || RawTrack.PosKeys.Num() == NumFrames);
-		check(RawTrack.RotKeys.Num() == 1 || RawTrack.RotKeys.Num() == NumFrames);
-	}
-
-	// Crop curve data
-	{
-		float CroppedStartTime = (bFromStart)? (NumKeys + StartKey)*FrameTime : 0.f;
-		float CroppedEndTime = (bFromStart)? SequenceLength : (StartKey-1)*FrameTime;
-		
-		// make sure it doesn't go negative
-		CroppedStartTime = FMath::Max<float>(CroppedStartTime, 0.f);
-		CroppedEndTime = FMath::Max<float>(CroppedEndTime, 0.f);
-
-		for ( auto CurveIter = RawCurveData.FloatCurves.CreateIterator(); CurveIter; ++CurveIter )
-		{
-			FFloatCurve& Curve = *CurveIter;
-			// fix up curve before deleting
-			// add these two values to keep the previous curve shape
-			// it's possible I'm adding same values in the same location
-			if (bFromStart)
-			{
-				// start from beginning, just add at the start time
-				float EvaluationTime = CroppedStartTime; 
-				float Value = Curve.FloatCurve.Eval(EvaluationTime);
-				Curve.FloatCurve.AddKey(EvaluationTime, Value);
-			}
-			else
-			{
-				float EvaluationTime = CroppedEndTime; 
-				float Value = Curve.FloatCurve.Eval(EvaluationTime);
-				Curve.FloatCurve.AddKey(EvaluationTime, Value);
-			}
-
-			// now delete anything outside of range
-			TArray<FKeyHandle> KeysToDelete;
-			for (auto It(Curve.FloatCurve.GetKeyHandleIterator()); It; ++It)
-			{
-				FKeyHandle KeyHandle = It.Key();
-				float KeyTime = Curve.FloatCurve.GetKeyTime(KeyHandle);
-				// if outside of range, just delete it. 
-				if ( KeyTime<CroppedStartTime || KeyTime>CroppedEndTime)
-				{
-					KeysToDelete.Add(KeyHandle);
-				}
-				// if starting from beginning, 
-				// fix this up to apply delta
-				else if (bFromStart)
-				{
-					Curve.FloatCurve.SetKeyTime(KeyHandle, KeyTime - CroppedStartTime);
-				}
-			}
-			for (int32 i = 0; i < KeysToDelete.Num(); ++i)
-			{
-				Curve.FloatCurve.DeleteKey(KeysToDelete[i]);
-			}
-		}
+		check(RawTrack.PosKeys.Num() == 1 || RawTrack.PosKeys.Num() == NewNumFrames);
+		check(RawTrack.RotKeys.Num() == 1 || RawTrack.RotKeys.Num() == NewNumFrames);
 	}
 
 	// Update sequence length to match new number of frames.
-	ResizeSequence((float)NumFrames * FrameTime, NumFrames);
+	ResizeSequence((float)NewNumFrames * FrameTime, NewNumFrames, false, StartKey, StartKey+NumKeys);
 
 	UE_LOG(LogAnimation, Log, TEXT("\tSequenceLength: %f, NumFrames: %d"), SequenceLength, NumFrames);
 

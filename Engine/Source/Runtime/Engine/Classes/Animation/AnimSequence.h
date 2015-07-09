@@ -833,7 +833,11 @@ private:
 	 */
 	int32 InsertTrack(const FName& BoneName);
 
-	void ResizeSequence(float NewLength, int32 NewNumFrames);
+	/**
+	 * Utility function to resize the sequence
+	 * It rearranges curve data + notifies
+	 */
+	void ResizeSequence(float NewLength, int32 NewNumFrames, bool bInsert, int32 StartFrame/*inclusive */, int32 EndFrame/*inclusive*/);
 
 #endif
 

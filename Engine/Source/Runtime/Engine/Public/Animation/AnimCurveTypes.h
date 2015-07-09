@@ -131,7 +131,7 @@ struct FFloatCurve : public FAnimCurveBase
 	void CopyCurve(FFloatCurve& SourceCurve);
 	float Evaluate(float CurrentTime) const;
 	void UpdateOrAddKey(float NewKey, float CurrentTime);
-	void Resize(float NewLength);
+	void Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 };
 
 USTRUCT()
@@ -172,7 +172,7 @@ struct FVectorCurve : public FAnimCurveBase
 	FVector Evaluate(float CurrentTime, float BlendWeight) const;
 	void UpdateOrAddKey(const FVector& NewKey, float CurrentTime);
 	bool DoesContainKey() const { return (FloatCurves[0].GetNumKeys() > 0 || FloatCurves[1].GetNumKeys() > 0 || FloatCurves[2].GetNumKeys() > 0);}
-	void Resize(float NewLength);
+	void Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 };
 
 USTRUCT()
@@ -214,7 +214,7 @@ struct FTransformCurve: public FAnimCurveBase
 	void CopyCurve(FTransformCurve& SourceCurve);
 	FTransform Evaluate(float CurrentTime, float BlendWeight) const;
 	ENGINE_API void UpdateOrAddKey(const FTransform& NewKey, float CurrentTime);
-	void Resize(float NewLength);
+	void Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 };
 
 /**
@@ -405,7 +405,7 @@ struct FRawCurveTracks
 	/*
 	 * resize curve length. If longer, it doesn't do any. If shorter, remove previous keys and add new key to the end of the frame. 
 	 */
-	void Resize(float TotalLength);
+	void Resize(float TotalLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 	/** 
 	 * Clear all keys
 	 */

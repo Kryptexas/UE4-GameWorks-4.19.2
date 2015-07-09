@@ -683,8 +683,88 @@ void FRichCurve::AutoSetTangents(float Tension)
 	}
 }
 
-void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
+void FRichCurve::ReadjustTimeRange(float NewMinTimeRange, float NewMaxTimeRange, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
+	// first readjust modified time keys
+	float ModifiedDuration = OldEndTime - OldStartTime;
+	if (bInsert)
+	{
+		for(int32 KeyIndex=0; KeyIndex<Keys.Num(); ++KeyIndex)
+		{
+			float& CurrentTime = Keys[KeyIndex].Time;
+			if (CurrentTime >= OldStartTime)
+			{
+				CurrentTime += ModifiedDuration;
+			}
+		}
+	}
+	else
+	{
+		// since we only allow one key at a given time, we will just cache the value that needs to be saved
+		// this is the key to be replaced when this section is gone
+		bool bAddNewKey = false; 
+		float NewValue = 0.f;
+		TArray<int32> KeysToDelete;
+
+		for(int32 KeyIndex=0; KeyIndex<Keys.Num(); ++KeyIndex)
+		{
+			float& CurrentTime = Keys[KeyIndex].Time;
+			// if this key exists between range of deleted
+			// we'll evaluate the value at the "OldStartTime"
+			// and re-add key, so that it keeps the previous value at the
+			// start time
+			// But that means if there are multiple keys, 
+			// since we don't want multiple values in the same time
+			// the last one will override the value
+			if( CurrentTime >= OldStartTime && CurrentTime <= OldEndTime)
+			{
+				// get new value and add new key on one of OldStartTime, OldEndTime;
+				// this is a bit complicated problem since we don't know if OldStartTime or OldEndTime is preferred. 
+				// generall we use OldEndTime unless OldStartTime == 0.f
+				// which means it's cut in the beginning. Otherwise it will always use the end time. 
+				bAddNewKey = true;
+				if (OldStartTime != 0.f)
+				{
+					NewValue = Eval(OldStartTime);
+				}
+				else
+				{
+					NewValue = Eval(OldEndTime);
+				}
+				// remove this key, but later because it might change eval result
+				KeysToDelete.Add(KeyIndex);
+			}
+			else if (CurrentTime > OldEndTime)
+			{
+				CurrentTime -= ModifiedDuration;
+			}
+		}
+
+		if (bAddNewKey)
+		{
+			for (auto KeyIndex : KeysToDelete)
+			{
+				const FKeyHandle* KeyHandle = KeyHandlesToIndices.FindKey(KeyIndex);
+				if(KeyHandle)
+				{
+					DeleteKey(*KeyHandle);
+				}
+			}
+
+			UpdateOrAddKey(OldStartTime, NewValue);
+		}
+	}
+
+	// now remove all redundant key
+	TArray<FRichCurveKey> NewKeys;
+	Exchange(NewKeys, Keys);
+
+	for(int32 KeyIndex=0; KeyIndex<NewKeys.Num(); ++KeyIndex)
+	{
+		UpdateOrAddKey(NewKeys[KeyIndex].Time, NewKeys[KeyIndex].Value);
+	}
+
+	// now cull out all out of range 
 	float MinTime, MaxTime;
 	GetTimeRange(MinTime, MaxTime);
 
@@ -694,7 +774,7 @@ void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
 	if (MinTime < NewMinTimeRange)
 	{
 		float NewValue = Eval(NewMinTimeRange);
-		AddKey(NewMinTimeRange, NewValue);
+		UpdateOrAddKey(NewMinTimeRange, NewValue);
 
 		bNeedToDeleteKey = true;
 	}
@@ -703,7 +783,7 @@ void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
 	if(MaxTime > NewMaxTimeRange)
 	{
 		float NewValue = Eval(NewMaxTimeRange);
-		AddKey(NewMaxTimeRange, NewValue);
+		UpdateOrAddKey(NewMaxTimeRange, NewValue);
 
 		bNeedToDeleteKey = true;
 	}

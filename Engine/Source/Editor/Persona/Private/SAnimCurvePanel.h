@@ -146,6 +146,11 @@ public:
 	*/
 	void UpdatePanel();
 
+	/**
+	 * Get Sequence Length 
+	 */
+	float GetLength() const { return Sequence->SequenceLength; }
+
 private:
 	TWeakPtr<FPersona> WeakPersona;
 	TSharedPtr<SSplitter> PanelSlot;

@@ -61,9 +61,9 @@ void FFloatCurve::UpdateOrAddKey(float NewKey, float CurrentTime)
 	FloatCurve.UpdateOrAddKey(CurrentTime, NewKey);
 }
 
-void FFloatCurve::Resize(float NewLength)
+void FFloatCurve::Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
-	FloatCurve.ResizeTimeRange(0, NewLength);
+	FloatCurve.ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
 }
 ////////////////////////////////////////////////////
 //  FVectorCurve
@@ -92,11 +92,11 @@ void FVectorCurve::UpdateOrAddKey(const FVector& NewKey, float CurrentTime)
 	FloatCurves[Z].UpdateOrAddKey(CurrentTime, NewKey.Z);
 }
 
-void FVectorCurve::Resize(float NewLength)
+void FVectorCurve::Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
-	FloatCurves[X].ResizeTimeRange(0, NewLength);
-	FloatCurves[Y].ResizeTimeRange(0, NewLength);
-	FloatCurves[Z].ResizeTimeRange(0, NewLength);
+	FloatCurves[X].ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
+	FloatCurves[Y].ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
+	FloatCurves[Z].ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
 }
 ////////////////////////////////////////////////////
 //  FTransformCurve
@@ -145,11 +145,11 @@ void FTransformCurve::UpdateOrAddKey(const FTransform& NewKey, float CurrentTime
 	ScaleCurve.UpdateOrAddKey(NewKey.GetScale3D(), CurrentTime);
 }
 
-void FTransformCurve::Resize(float NewLength)
+void FTransformCurve::Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
-	TranslationCurve.Resize(NewLength);
-	RotationCurve.Resize(NewLength);
-	ScaleCurve.Resize(NewLength);
+	TranslationCurve.Resize(NewLength, bInsert, OldStartTime, OldEndTime);
+	RotationCurve.Resize(NewLength, bInsert, OldStartTime, OldEndTime);
+	ScaleCurve.Resize(NewLength, bInsert, OldStartTime, OldEndTime);
 }
 
 /////////////////////////////////////////////////////
@@ -247,22 +247,22 @@ bool FRawCurveTracks::AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags
 	}
 }
 
-void FRawCurveTracks::Resize(float TotalLength)
+void FRawCurveTracks::Resize(float TotalLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
 	for (auto& Curve: FloatCurves)
 	{
-		Curve.Resize(TotalLength);
+		Curve.Resize(TotalLength, bInsert, OldStartTime, OldEndTime);
 	}
 
 #if WITH_EDITORONLY_DATA
 	for(auto& Curve: VectorCurves)
 	{
-		Curve.Resize(TotalLength);
+		Curve.Resize(TotalLength, bInsert, OldStartTime, OldEndTime);
 	}
 
 	for(auto& Curve: TransformCurves)
 	{
-		Curve.Resize(TotalLength);
+		Curve.Resize(TotalLength, bInsert, OldStartTime, OldEndTime);
 	}
 #endif
 }

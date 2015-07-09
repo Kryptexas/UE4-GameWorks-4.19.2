@@ -179,6 +179,9 @@ public:
 
 	// Bound to attribute for curve name, uses curve interface to request from skeleton
 	FText GetCurveName(USkeleton::AnimCurveUID Uid) const;
+
+	float GetLength() const { return PanelPtr.Pin()->GetLength(); }
+	TOptional<float> GetOptionalLength() const { return GetLength(); }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -222,9 +225,8 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 			.ViewMinInput(InArgs._ViewInputMin)
 			.ViewMaxInput(InArgs._ViewInputMax)
 			.DataMinInput(0.f)
-			.DataMaxInput(Sequence->SequenceLength)
-			// @fixme fix this to delegate
-			.TimelineLength(Sequence->SequenceLength)
+			.DataMaxInput(this, &SCurveEdTrack::GetOptionalLength)
+			.TimelineLength(this, &SCurveEdTrack::GetLength)
 			.NumberOfKeys(NumberOfKeys)
 			.DesiredSize(this, &SCurveEdTrack::GetDesiredSize)
 			.OnSetInputViewRange(InArgs._OnSetInputViewRange)
