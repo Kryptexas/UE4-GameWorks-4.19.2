@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2572494
+﻿INTSourceChangelist:2613952
 Availability:Public
 Title:フォグシート＆ライトビーム
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
-Description:ブループリントのフォグシート効果の概要
+Description:Fog Sheet ブループリントの概要
 Related:Engine/Blueprints/Overview
 Related:Engine/Blueprints/UserGuide/Variables
 Related:Engine/Blueprints/UserGuide/UserConstructionScript
@@ -14,8 +14,6 @@ Related:Engine/Rendering/Materials/MaterialInstances
 ![](FogSheetLightBeams.png)
 [/REGION]
 
-## 概要
-
 [EXCERPT:Overview]
  ブループリントの God Ray (神の光) 効果と同様に、フォグシート効果はブループリントを使用してレベルデザインに半透明のエフェクトを作成するもう 1 つの例です。レベルの装飾時にライトの霧やビームのプレーンなどの透過スタティック メッシュを調整するのは時間がかかります。そこで、ユーザーがもっとこれらのメッシュの外観をコントロールできるようにしながらプロセスを簡単にするのが、これらのブループリントの目的です。
 [/EXCERPT:Overview]
@@ -25,12 +23,12 @@ Related:Engine/Rendering/Materials/MaterialInstances
 
 
 
-##フォグ シート
+## フォグシート
 
 ![](FogSheet.png)(h:267) ![](FogSheetDetails.png)
 
 
-フォグシート効果のブループリントは、上記のとおり、スタティック メッシュに曇った霧のマテリアルが適用されています。ブループリント エディタでネットワークを開くと、ほとんどの設定がコンストラクション スクリプトで行われていることに気づくでしょう。
+フォグシート効果のブループリント  ブループリントは、上記のとおり、スタティック メッシュに曇った霧のマテリアルが適用されています。ブループリント エディタでネットワークを開くと、ほとんどの設定がコンストラクション スクリプトで行われていることに気づくでしょう。
 [REGION:fullwidth]
 [REGION:lightbox]
 [![](FogSheetCS.png)](FogSheetCS.png)
@@ -89,13 +87,13 @@ _Size_ 変数は、 3D ウィジェットを有効にしている点が特に面
 
 
 
-## Light Beam
+## ライトビーム
 
 [REGION:fullwidth]
 ![](LightRayBp.png)
 [/REGION]
 
-Light Beam ブループリントは、ある光源の回転を追うことができ、若干異なるマテリアル設定を使用している点を除き、本質的に Fog Sheet とよく似ています。計算は全てコンストラクション スクリプト内で行われるため、イベント グラフもありません。 
+ライトビーム効果のブループリントは、ある光源の回転を追うことができ、若干異なるマテリアル設定を使用している点を除き、本質的にフォグ シートとよく似ています。計算は全てコンストラクション スクリプト内で行われるため、イベント グラフもありません。 
 
 
 ### ブループリントの設定
@@ -137,7 +135,7 @@ Light Beam ブループリントは、ある光源の回転を追うことがで
 <!----------EXCERPTS---------------
 
 [EXCERPT:FogSheetCS]
-_コンストラクションスクリプト_ は以下のタスクを実行します。
+_コンストラクション スクリプト_ は以下のタスクを実行します。
 * スタティック メッシュを使用してシート ジオメトリを作成する
 * **Size** 変数の配置を読み取り、 スタティック メッシュを適切にスケールするために使用する
 * シート ジオメトリに対し Material Instance Dynamic (MID) を作成し適用する
@@ -146,7 +144,7 @@ _コンストラクションスクリプト_ は以下のタスクを実行し�
 
 
 [EXCERPT:LightBeamCS]
-_コンストラクションスクリプト_ は以下のタスクを実行します。
+_コンストラクション スクリプト_ は以下のタスクを実行します。
 * スタティック メッシュを使用してシート ジオメトリを作成する
 * **Length** 変数と **Width** 変数の配置を読み取り、 スタティック メッシュを適切にスケールするために使用する
 * シート ジオメトリに対し Material Instance Dynamic (MID) を作成し適用する
