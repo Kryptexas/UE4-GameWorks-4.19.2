@@ -72,10 +72,10 @@ If you are completely new to Blueprint editing, or are unsure what type of Bluep
 		Animation Blueprint UI
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Animation/Persona:description%
+		%Engine/Animation/AnimBlueprints/Interface:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona]
+		[RELATIVE:Engine/Animation/AnimBlueprints/Interface]
 	[/PARAM]
 [/OBJECT]
 [/REGION]
