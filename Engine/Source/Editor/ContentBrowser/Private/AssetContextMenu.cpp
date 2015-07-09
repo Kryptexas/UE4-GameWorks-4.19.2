@@ -847,6 +847,14 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 					continue;
 				}
 
+				// Can only manage assets for static collections
+				ECollectionStorageMode::Type StorageMode = ECollectionStorageMode::Static;
+				CollectionManagerModule.Get().GetCollectionStorageMode(AvailableCollection.Name, AvailableCollection.Type, StorageMode);
+				if (StorageMode != ECollectionStorageMode::Static)
+				{
+					continue;
+				}
+
 				TArray<FCollectionNameType> AvailableChildCollections;
 				CollectionManagerModule.Get().GetChildCollections(AvailableCollection.Name, AvailableCollection.Type, AvailableChildCollections);
 
@@ -854,7 +862,7 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 				{
 					SubMenuBuilder.AddSubMenu(
 						FText::FromName(AvailableCollection.Name), 
-						ECollectionShareType::GetDescription(AvailableCollection.Type), 
+						FText::GetEmpty(), 
 						FNewMenuDelegate::CreateStatic(&FManageCollectionsContextMenu::CreateManageCollectionsSubMenu, QuickAssetManagement, AvailableChildCollections),
 						FUIAction(
 							FExecuteAction::CreateStatic(&FManageCollectionsContextMenu::OnCollectionClicked, QuickAssetManagement, AvailableCollection),
@@ -871,7 +879,7 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 				{
 					SubMenuBuilder.AddMenuEntry(
 						FText::FromName(AvailableCollection.Name), 
-						ECollectionShareType::GetDescription(AvailableCollection.Type), 
+						FText::GetEmpty(), 
 						FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(AvailableCollection.Type)), 
 						FUIAction(
 							FExecuteAction::CreateStatic(&FManageCollectionsContextMenu::OnCollectionClicked, QuickAssetManagement, AvailableCollection),
@@ -933,7 +941,7 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 	}
 
 	// "Remove from collection" (only display option if exactly one collection is selected)
-	if ( SourcesData.Collections.Num() == 1 )
+	if ( SourcesData.Collections.Num() == 1 && !SourcesData.IsDynamicCollection() )
 	{
 		MenuBuilder.AddMenuEntry(
 			FText::Format(LOCTEXT("RemoveFromCollectionFmt", "Remove From {0}"), FText::FromName(SourcesData.Collections[0].Name)),
@@ -1572,9 +1580,8 @@ void FAssetContextMenu::ExecuteRemoveFromCollection()
 		{
 			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
-			FName CollectionName = SourcesData.Collections[0].Name;
-			ECollectionShareType::Type CollectionType = SourcesData.Collections[0].Type;
-			CollectionManagerModule.Get().RemoveFromCollection(CollectionName, CollectionType, AssetsToRemove);
+			const FCollectionNameType& Collection = SourcesData.Collections[0];
+			CollectionManagerModule.Get().RemoveFromCollection(Collection.Name, Collection.Type, AssetsToRemove);
 			OnAssetViewRefreshRequested.ExecuteIfBound();
 		}
 	}
@@ -1879,7 +1886,7 @@ bool FAssetContextMenu::CanExecuteDelete() const
 
 bool FAssetContextMenu::CanExecuteRemoveFromCollection() const 
 {
-	return SourcesData.Collections.Num() == 1;
+	return SourcesData.Collections.Num() == 1 && !SourcesData.IsDynamicCollection();
 }
 
 bool FAssetContextMenu::CanExecuteSCCRefresh() const

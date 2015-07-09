@@ -553,9 +553,9 @@ void SPathView::ApplyHistoryData ( const FHistoryData& History )
 
 	// Update paths
 	TArray<FString> SelectedPaths;
-	for ( auto PathIt = History.SourcesData.PackagePaths.CreateConstIterator(); PathIt; ++PathIt)
+	for (const FName& HistoryPath : History.SourcesData.PackagePaths)
 	{
-		SelectedPaths.Add((*PathIt).ToString());
+		SelectedPaths.Add(HistoryPath.ToString());
 	}
 	SetSelectedPaths(SelectedPaths);
 }

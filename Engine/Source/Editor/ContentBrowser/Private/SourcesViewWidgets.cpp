@@ -329,7 +329,6 @@ void SCollectionTreeItem::Construct( const FArguments& InArgs )
 		.Padding(0)
 		[
 			SNew(SHorizontalBox)
-			.ToolTip( SNew(SToolTip).Text( ECollectionShareType::GetDescription(InArgs._CollectionItem->CollectionType) ) )
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -348,10 +347,11 @@ void SCollectionTreeItem::Construct( const FArguments& InArgs )
 			.VAlign(VAlign_Center)
 			.Padding(0, 0, 2, 0)
 			[
-				// Type Icon
+				// Share Type Icon
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush( ECollectionShareType::GetIconStyleName(InArgs._CollectionItem->CollectionType) ) )
 				.ColorAndOpacity( this, &SCollectionTreeItem::GetCollectionColor )
+				.ToolTipText(ECollectionShareType::GetDescription(InArgs._CollectionItem->CollectionType))
 			]
 
 			+SHorizontalBox::Slot()
@@ -365,6 +365,25 @@ void SCollectionTreeItem::Construct( const FArguments& InArgs )
 				.OnVerifyTextChanged(this, &SCollectionTreeItem::HandleVerifyNameChanged)
 				.IsSelected( InArgs._IsSelected )
 				.IsReadOnly( InArgs._IsReadOnly )
+			]
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2, 0, 3, 0)
+			[
+				// Storage Mode Icon
+				SNew(SBox)
+				.WidthOverride(16)
+				.HeightOverride(16)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+					.Text(this, &SCollectionTreeItem::GetCollectionStorageModeIconText)
+					.ColorAndOpacity(FLinearColor::Gray)
+					.ToolTipText(this, &SCollectionTreeItem::GetCollectionStorageModeToolTipText)
+				]
 			]
 
 			+SHorizontalBox::Slot()
@@ -543,6 +562,40 @@ FSlateColor SCollectionTreeItem::GetCollectionColor() const
 const FSlateBrush* SCollectionTreeItem::GetBorderImage() const
 {
 	return bDraggedOver ? FEditorStyle::GetBrush("Menu.Background") : FEditorStyle::GetBrush("NoBorder");
+}
+
+FText SCollectionTreeItem::GetCollectionStorageModeIconText() const
+{
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+
+	if (CollectionItemPtr.IsValid())
+	{
+		switch(CollectionItemPtr->StorageMode)
+		{
+		case ECollectionStorageMode::Static:
+			return FEditorFontGlyphs::List_Alt;
+
+		case ECollectionStorageMode::Dynamic:
+			return FEditorFontGlyphs::Bolt;
+
+		default:
+			break;
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
+FText SCollectionTreeItem::GetCollectionStorageModeToolTipText() const
+{
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+
+	if (CollectionItemPtr.IsValid())
+	{
+		return ECollectionStorageMode::GetDescription(CollectionItemPtr->StorageMode);
+	}
+
+	return FText::GetEmpty();
 }
 
 FSlateColor SCollectionTreeItem::GetCollectionStatusColor() const

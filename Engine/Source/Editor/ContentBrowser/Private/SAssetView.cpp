@@ -1111,7 +1111,8 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 			{
 				TArray< FName > ObjectPaths;
 				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-				CollectionManagerModule.Get().GetObjectsInCollection( SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths );
+				const FCollectionNameType& Collection = SourcesData.Collections[0];
+				CollectionManagerModule.Get().GetObjectsInCollection( Collection.Name, Collection.Type, ObjectPaths );
 
 				bool IsValidDrop = false;
 				for (const auto& AssetData : AssetDatas)
@@ -1176,7 +1177,8 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 			if (ObjectPaths.Num() > 0)
 			{
 				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-				CollectionManagerModule.Get().AddToCollection(SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths);
+				const FCollectionNameType& Collection = SourcesData.Collections[0];
+				CollectionManagerModule.Get().AddToCollection(Collection.Name, Collection.Type, ObjectPaths);
 			}
 
 			return FReply::Handled();
@@ -1341,6 +1343,7 @@ void SAssetView::RefreshSourceItems()
 		// force recursion when the user is searching
 		const bool bRecurse = ShouldFilterRecursively();
 		const bool bUsingFolders = IsShowingFolders();
+		const bool bIsDynamicCollection = SourcesData.IsDynamicCollection();
 		FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 
 		// Add the backend filters from the filter list
@@ -1361,9 +1364,9 @@ void SAssetView::RefreshSourceItems()
 
 		// Only show classes if we have class paths, and the filter allows classes to be shown
 		const bool bFilterAllowsClasses = Filter.ClassNames.Num() == 0 || Filter.ClassNames.Contains(NAME_Class);
-		bShowClasses = ClassPathsToShow.Num() > 0 && bFilterAllowsClasses;
+		bShowClasses = (ClassPathsToShow.Num() > 0 || bIsDynamicCollection) && bFilterAllowsClasses;
 
-		if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
+		if ( SourcesData.HasCollections() && Filter.ObjectPaths.Num() == 0 && !bIsDynamicCollection )
 		{
 			// This is an empty collection, no asset will pass the check
 		}
@@ -1379,19 +1382,20 @@ void SAssetView::RefreshSourceItems()
 
 		if ( bFilterAllowsClasses )
 		{
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
 			// Include objects from child collections if we're recursing
 			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
 
 			TArray< FName > ClassPaths;
-			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-			for (int32 Index = 0; Index < SourcesData.Collections.Num(); Index++)
+			for (const FCollectionNameType& Collection : SourcesData.Collections)
 			{
-				CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths, CollectionRecursionMode );
+				CollectionManagerModule.Get().GetClassesInCollection( Collection.Name, Collection.Type, ClassPaths, CollectionRecursionMode );
 			}
 
-			for (int32 Index = 0; Index < ClassPaths.Num(); Index++)
+			for (const FName& ClassPath : ClassPaths)
 			{
-				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassPaths[Index].ToString());
+				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassPath.ToString());
 
 				if ( Class != NULL )
 				{
@@ -1711,7 +1715,7 @@ void SAssetView::RefreshFolders()
 	}
 
 	// Add folders for any child collections of the currently selected collections
-	if(SourcesData.Collections.Num() > 0)
+	if(SourcesData.HasCollections())
 	{
 		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		
@@ -2014,9 +2018,9 @@ void SAssetView::OnAssetRegistryPathAdded(const FString& Path)
 		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 		if ( bDisplayDev || !ContentBrowserUtils::IsDevelopersFolder(Path) )
 		{
-			for(auto SourcePathIt(SourcesData.PackagePaths.CreateConstIterator()); SourcePathIt; SourcePathIt++)
+			for (const FName& SourcePathName : SourcesData.PackagePaths)
 			{
-				const FString SourcePath = (*SourcePathIt).ToString();
+				const FString SourcePath = SourcePathName.ToString();
 				if(Path.StartsWith(SourcePath))
 				{
 					const FString SubPath = Path.RightChop(SourcePath.Len());
@@ -2192,9 +2196,10 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 {
 	const bool bRecurse = ShouldFilterRecursively();
 	const bool bUsingFolders = IsShowingFolders();
+	const bool bIsDynamicCollection = SourcesData.IsDynamicCollection();
 	FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 	
-	if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
+	if ( SourcesData.HasCollections() && Filter.ObjectPaths.Num() == 0 && !bIsDynamicCollection )
 	{
 		// This is an empty collection, no asset will pass the check
 		InOutAssetDataList.Empty();
@@ -2207,7 +2212,7 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		AssetRegistryModule.Get().RunAssetsThroughFilter(InOutAssetDataList, Filter);
 
-		if ( SourcesData.Collections.Num() > 0 )
+		if ( SourcesData.HasCollections() && !bIsDynamicCollection )
 		{
 			// Include objects from child collections if we're recursing
 			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
@@ -3219,7 +3224,7 @@ bool SAssetView::CanOpenContextMenu() const
 		return false;
 	}
 
-	if ( SelectedAssets.Num() == 0 && SourcesData.Collections.Num() > 0 )
+	if ( SelectedAssets.Num() == 0 && SourcesData.HasCollections() )
 	{
 		// Don't allow a context menu when we're viewing a collection and have no assets selected
 		return false;
@@ -3313,7 +3318,7 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 		{
 			// are we dragging some folders?
 			TArray<FString> SelectedFolders = GetSelectedFolders();
-			if(SelectedFolders.Num() > 0 && SourcesData.Collections.Num() == 0)
+			if(SelectedFolders.Num() > 0 && !SourcesData.HasCollections())
 			{
 				return FReply::Handled().BeginDragDrop(FAssetPathDragDropOp::New(SelectedFolders));
 			}
@@ -3702,7 +3707,7 @@ FText SAssetView::GetAssetShowWarningText() const
 		NothingToShowText = LOCTEXT( "NothingToShowCheckFilter", "No results, check your filter." );
 	}
 
-	if ( SourcesData.Collections.Num() > 0 )
+	if ( SourcesData.HasCollections() && !SourcesData.IsDynamicCollection() )
 	{
 		DropText = LOCTEXT( "DragAssetsHere", "Drag and drop assets here to add them to the collection." );
 	}

@@ -68,15 +68,16 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionTreeContextMenu(TShare
 	MenuBuilder.BeginSection("CollectionOptions", LOCTEXT("CollectionListOptionsMenuHeading", "Collection Options"));
 	{
 		const bool bHasSingleSelectedCollection = SelectedCollections.Num() == 1;
+		const bool bIsFirstSelectedCollectionStatic = SelectedCollections.Num() > 0 && SelectedCollections[0]->StorageMode == ECollectionStorageMode::Static;
 
 		// New... (submenu)
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("NewChildCollection", "New..."),
 			LOCTEXT("NewChildCollectionTooltip", "Create child a collection."),
-			FNewMenuDelegate::CreateRaw( this, &FCollectionContextMenu::MakeNewCollectionSubMenu, TOptional<FCollectionNameType>( FCollectionNameType( SelectedCollections[0]->CollectionName, SelectedCollections[0]->CollectionType ) ) ),
+			FNewMenuDelegate::CreateRaw( this, &FCollectionContextMenu::MakeNewCollectionSubMenu, ECollectionStorageMode::Static, SCollectionView::FCreateCollectionPayload( FCollectionNameType( SelectedCollections[0]->CollectionName, SelectedCollections[0]->CollectionType ) ) ),
 			FUIAction(
 				FExecuteAction(),
-				FCanExecuteAction::CreateLambda( [=]{ return bHasSingleSelectedCollection; } )
+				FCanExecuteAction::CreateLambda( [=]{ return bHasSingleSelectedCollection && bIsFirstSelectedCollectionStatic; } )
 				),
 			NAME_None,
 			EUserInterfaceActionType::Button
@@ -164,46 +165,101 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionTreeContextMenu(TShare
 	return MenuBuilder.MakeWidget();
 }
 
-void FCollectionContextMenu::MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder, TOptional<FCollectionNameType> ParentCollection)
+void FCollectionContextMenu::MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder, ECollectionStorageMode::Type StorageMode, SCollectionView::FCreateCollectionPayload InCreationPayload)
 {
-	const FText MenuHeading = (ParentCollection.IsSet()) ? LOCTEXT("NewChildCollectionMenuHeading", "New Child Collection"): LOCTEXT("NewCollectionMenuHeading", "New Collection");
+	const FText MenuHeading = FText::Format(
+		(InCreationPayload.ParentCollection.IsSet()) ? LOCTEXT("NewXChildCollectionMenuHeading", "New {0} Child Collection") : LOCTEXT("NewXCollectionMenuHeading", "New {0} Collection"),
+		ECollectionStorageMode::ToText(StorageMode)
+		);
 
 	MenuBuilder.BeginSection("CollectionNewCollection", MenuHeading);
 	{
-		const bool bCanCreateSharedChildren = !ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( ParentCollection->Type, ECollectionShareType::CST_Shared );
+		const bool bCanCreateSharedChildren = !InCreationPayload.ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( InCreationPayload.ParentCollection->Type, ECollectionShareType::CST_Shared );
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Shared", "Shared Collection"),
 			LOCTEXT("NewCollection_SharedTooltip", "Create a collection that can be seen by anyone."),
 			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Shared ) ),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Shared, ParentCollection ),
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Shared, StorageMode, InCreationPayload ),
 				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Shared, bCanCreateSharedChildren )
 				)
 			);
 
-		const bool bCanCreatePrivateChildren = !ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( ParentCollection->Type, ECollectionShareType::CST_Private );
+		const bool bCanCreatePrivateChildren = !InCreationPayload.ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( InCreationPayload.ParentCollection->Type, ECollectionShareType::CST_Private );
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Private", "Private Collection"),
 			LOCTEXT("NewCollection_PrivateTooltip", "Create a collection that can only be seen by you."),
 			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Private ) ),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Private, ParentCollection ),
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Private, StorageMode, InCreationPayload ),
 				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Private, bCanCreatePrivateChildren )
 				)
 			);
 
-		const bool bCanCreateLocalChildren = !ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( ParentCollection->Type, ECollectionShareType::CST_Local );
+		const bool bCanCreateLocalChildren = !InCreationPayload.ParentCollection.IsSet() || ECollectionShareType::IsValidChildType( InCreationPayload.ParentCollection->Type, ECollectionShareType::CST_Local );
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Local", "Local Collection"),
 			LOCTEXT("NewCollection_LocalTooltip", "Create a collection that is not in source control and can only be seen by you."),
 			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Local ) ),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Local, ParentCollection ),
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Local, StorageMode, InCreationPayload ),
 				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Local, bCanCreateLocalChildren )
 				)
 			);
 	}
 	MenuBuilder.EndSection();
+}
+
+void FCollectionContextMenu::MakeSaveDynamicCollectionSubMenu(FMenuBuilder& MenuBuilder, FText InSearchQuery)
+{
+	auto OnCollectionCreated = FCollectionItem::FCollectionCreatedEvent::CreateSP(this, &FCollectionContextMenu::ExecuteSaveDynamicCollection, InSearchQuery);
+
+	// Create new root level collection
+	MakeNewCollectionSubMenu(MenuBuilder, ECollectionStorageMode::Dynamic, SCollectionView::FCreateCollectionPayload(OnCollectionCreated));
+
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+	
+	TArray<FCollectionNameType> AvailableCollections;
+	CollectionManagerModule.Get().GetCollections(AvailableCollections);
+
+	AvailableCollections.Sort([](const FCollectionNameType& One, const FCollectionNameType& Two) -> bool
+	{
+		return One.Name < Two.Name;
+	});
+
+	if (AvailableCollections.Num() > 0)
+	{
+		MenuBuilder.BeginSection("CollectionReplaceCollection", LOCTEXT("OverwriteDynamicCollectionMenuHeading", "Overwrite Dynamic Collection"));
+
+		for (const FCollectionNameType& AvailableCollection : AvailableCollections)
+		{
+			// Never display system collections
+			if (AvailableCollection.Type == ECollectionShareType::CST_System)
+			{
+				continue;
+			}
+
+			// Can only overwrite dynamic collections
+			ECollectionStorageMode::Type StorageMode = ECollectionStorageMode::Static;
+			CollectionManagerModule.Get().GetCollectionStorageMode(AvailableCollection.Name, AvailableCollection.Type, StorageMode);
+			if (StorageMode != ECollectionStorageMode::Dynamic)
+			{
+				continue;
+			}
+
+			MenuBuilder.AddMenuEntry(
+				FText::FromName(AvailableCollection.Name), 
+				FText::Format(LOCTEXT("SaveDynamicCollection_OverwriteExistingCollectionToolTip", "Overwrite '{0}' with the current search query"), FText::FromName(AvailableCollection.Name)),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(AvailableCollection.Type)),
+				FUIAction(
+					FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteSaveDynamicCollection, AvailableCollection, InSearchQuery ),
+					FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteSaveDynamicCollection, AvailableCollection )
+					)
+				);
+		}
+
+		MenuBuilder.EndSection();
+	}
 }
 
 void FCollectionContextMenu::MakeCollectionShareTypeSubMenu(FMenuBuilder& MenuBuilder)
@@ -329,14 +385,14 @@ bool FCollectionContextMenu::CanRenameSelectedCollections() const
 	return false;
 }
 
-void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection)
+void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type CollectionType, ECollectionStorageMode::Type StorageMode, SCollectionView::FCreateCollectionPayload InCreationPayload)
 {
 	if ( !ensure(CollectionView.IsValid()) )
 	{
 		return;
 	}
 
-	CollectionView.Pin()->CreateCollectionItem(CollectionType, ParentCollection);
+	CollectionView.Pin()->CreateCollectionItem(CollectionType, StorageMode, InCreationPayload);
 }
 
 void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType)
@@ -356,6 +412,13 @@ void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType:
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	CollectionManagerModule.Get().RenameCollection(SelectedCollections[0]->CollectionName, SelectedCollections[0]->CollectionType, SelectedCollections[0]->CollectionName, CollectionType);
+}
+
+void FCollectionContextMenu::ExecuteSaveDynamicCollection(FCollectionNameType InCollection, FText InSearchQuery)
+{
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	CollectionManagerModule.Get().SetDynamicQueryText(InCollection.Name, InCollection.Type, InSearchQuery.ToString());
 }
 
 void FCollectionContextMenu::ExecuteRenameCollection()
@@ -527,6 +590,11 @@ bool FCollectionContextMenu::IsSetCollectionShareTypeChecked(ECollectionShareTyp
 	}
 
 	return SelectedCollections[0]->CollectionType == CollectionType;
+}
+
+bool FCollectionContextMenu::CanExecuteSaveDynamicCollection(FCollectionNameType InCollection) const
+{
+	return InCollection.Type == ECollectionShareType::CST_Local || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
 }
 
 bool FCollectionContextMenu::CanExecuteRenameCollection() const

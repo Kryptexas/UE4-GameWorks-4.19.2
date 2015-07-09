@@ -240,10 +240,16 @@ private:
 	/** Returns the image for the border around this item. Used for drag/drop operations */
 	const FSlateBrush* GetBorderImage() const;
 
+	/** Get the FontAwesome icon corresponding to the current collection storage mode */
+	FText GetCollectionStorageModeIconText() const;
+
+	/** Get the tooltip corresponding to the current collection storage mode */
+	FText GetCollectionStorageModeToolTipText() const;
+
 	/** Get the color to use for the collection item status */
 	FSlateColor GetCollectionStatusColor() const;
 
-	/** Get the tooltip correspinding to the current collection item status */
+	/** Get the tooltip corresponding to the current collection item status */
 	FText GetCollectionStatusToolTipText() const;
 
 private:

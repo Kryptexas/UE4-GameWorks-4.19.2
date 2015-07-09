@@ -4,6 +4,66 @@
 
 #include "ISourceControlState.h"
 
+struct ECollectionStorageMode
+{
+	enum Type
+	{
+		/** This collection stores a list of contained objects. */
+		Static,
+		/** This collection stores a query that can be run against the Content Browser. This type of collection never directly knows what objects it contains. */
+		Dynamic,
+	};
+
+	static Type FromString(const TCHAR* InString, const Type ReturnIfConversionFails = Static)
+	{
+		if(FPlatformString::Stricmp(InString, TEXT("Static")) == 0)		return Static;
+		if(FPlatformString::Stricmp(InString, TEXT("Dynamic")) == 0)	return Dynamic;
+		return ReturnIfConversionFails;
+	}
+
+	static const TCHAR* ToString(const Type InType)
+	{
+		switch(InType)
+		{
+		case Static:
+			return TEXT("Static");
+		case Dynamic:
+			return TEXT("Dynamic");
+		default:
+			break;
+		}
+		return TEXT("");
+	}
+
+	static FText ToText(const Type InType)
+	{
+		switch(InType)
+		{
+		case Static:
+			return NSLOCTEXT("ECollectionStorageMode", "Static", "Static");
+		case Dynamic:
+			return NSLOCTEXT("ECollectionStorageMode", "Dynamic", "Dynamic");
+		default:
+			break;
+		}
+		return FText::GetEmpty();
+	}
+
+	static FText GetDescription(const Type InType)
+	{
+		switch (InType)
+		{
+		case Static:
+			return NSLOCTEXT("ECollectionStorageMode", "Static_Description", "Static. This collection stores a list of contained objects.");
+		case Dynamic:
+			return NSLOCTEXT("ECollectionStorageMode", "Dynamic_Description", "Dynamic. This collection stores a query that can be run against the Content Browser.");
+		default:
+			break;
+		}
+		return FText::GetEmpty();
+	}
+};
+
 struct ECollectionShareType
 {
 	enum Type
@@ -165,8 +225,8 @@ struct FCollectionNameType
 	friend inline uint32 GetTypeHash( const FCollectionNameType& Key )
 	{
 		uint32 Hash = 0;
-		HashCombine(Hash, GetTypeHash(Key.Name));
-		HashCombine(Hash, GetTypeHash(Key.Type));
+		Hash = HashCombine(Hash, GetTypeHash(Key.Name));
+		Hash = HashCombine(Hash, GetTypeHash(Key.Type));
 		return Hash;
 	}
 

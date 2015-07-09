@@ -44,6 +44,9 @@ struct FCollectionItem
 	/** The type of the collection */
 	ECollectionShareType::Type CollectionType;
 
+	/** How does this collection store its objects? (static or dynamic) */
+	ECollectionStorageMode::Type StorageMode;
+
 	/** Pointer to our parent collection (if any) */
 	TWeakPtr<FCollectionItem> ParentCollection;
 
@@ -59,16 +62,23 @@ struct FCollectionItem
 	/** Current status of this collection item */
 	ECollectionItemStatus CurrentStatus;
 
+	/** Called once after the collection is created (see bNewCollection) */
+	DECLARE_DELEGATE_OneParam( FCollectionCreatedEvent, FCollectionNameType )
+
 	/** Broadcasts whenever renaming a collection item is requested */
 	DECLARE_MULTICAST_DELEGATE( FRenamedRequestEvent )
+
+	/** Broadcasts once after the collection is created (see bNewCollection) */
+	FCollectionCreatedEvent OnCollectionCreatedEvent;
 
 	/** Broadcasts whenever a rename is requested */
 	FRenamedRequestEvent OnRenamedRequestEvent;
 
 	/** Constructor */
-	FCollectionItem(const FName& InCollectionName, const ECollectionShareType::Type& InCollectionType)
+	FCollectionItem(const FName& InCollectionName, const ECollectionShareType::Type InCollectionType)
 		: CollectionName(InCollectionName)
 		, CollectionType(InCollectionType)
+		, StorageMode(ECollectionStorageMode::Static)
 		, ParentCollection()
 		, ChildCollections()
 		, bRenaming(false)

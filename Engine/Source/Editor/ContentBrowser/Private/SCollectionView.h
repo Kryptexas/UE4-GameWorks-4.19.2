@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CollectionManagerModule.h"
+#include "CollectionViewTypes.h"
 
-struct FCollectionItem;
 class SCollectionListItem;
 class FCollectionAssetManagement;
 
@@ -77,7 +77,44 @@ public:
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
+	/** Creates the menu for the save dynamic collection button */
+	void MakeSaveDynamicCollectionMenu(FText InQueryString);
+
 private:
+
+	/** Payload data for CreateCollectionItem (likely from a delegate binding) */
+	struct FCreateCollectionPayload
+	{
+		FCreateCollectionPayload()
+			: ParentCollection()
+			, OnCollectionCreatedEvent()
+		{
+		}
+
+		explicit FCreateCollectionPayload(TOptional<FCollectionNameType> InParentCollection)
+			: ParentCollection(InParentCollection)
+			, OnCollectionCreatedEvent()
+		{
+		}
+
+		explicit FCreateCollectionPayload(FCollectionItem::FCollectionCreatedEvent InCollectionCreatedEvent)
+			: ParentCollection()
+			, OnCollectionCreatedEvent(InCollectionCreatedEvent)
+		{
+		}
+
+		FCreateCollectionPayload(TOptional<FCollectionNameType> InParentCollection, FCollectionItem::FCollectionCreatedEvent InCollectionCreatedEvent)
+			: ParentCollection(InParentCollection)
+			, OnCollectionCreatedEvent(InCollectionCreatedEvent)
+		{
+		}
+
+		/** Should this collection be created as a child of another collection? */
+		TOptional<FCollectionNameType> ParentCollection;
+
+		/** Callback for after the collection has been fully created (delayed due to user naming, and potential cancellation) */
+		FCollectionItem::FCollectionCreatedEvent OnCollectionCreatedEvent;
+	};
 
 	/** True if the selection changed delegate is allowed at the moment */
 	bool ShouldAllowSelectionChangedDelegate() const;
@@ -95,7 +132,7 @@ private:
 	EVisibility GetAddCollectionButtonVisibility() const;
 	
 	/** Sets up an inline creation process for a new collection of the specified type */
-	void CreateCollectionItem( ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection );
+	void CreateCollectionItem( ECollectionShareType::Type CollectionType, ECollectionStorageMode::Type StorageMode, const FCreateCollectionPayload& InCreationPayload );
 
 	/** Sets up an inline rename for the specified collection */
 	void RenameCollectionItem( const TSharedPtr<FCollectionItem>& ItemToRename );

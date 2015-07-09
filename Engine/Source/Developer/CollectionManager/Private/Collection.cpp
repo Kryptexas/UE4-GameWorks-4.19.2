@@ -17,13 +17,15 @@ struct FCollectionUtils
 	}
 };
 
-FCollection::FCollection(const FString& InFilename, bool InUseSCC)
+FCollection::FCollection(const FString& InFilename, bool InUseSCC, ECollectionStorageMode::Type InStorageMode)
 {
 	ensure(InFilename.Len() > 0);
 
 	bUseSCC = InUseSCC;
 	SourceFilename = InFilename;
 	CollectionName = FName(*FPaths::GetBaseFilename(InFilename));
+
+	StorageMode = InStorageMode;
 
 	CollectionGuid = FGuid::NewGuid();
 
@@ -39,6 +41,8 @@ TSharedRef<FCollection> FCollection::Clone(const FString& InFilename, bool InUse
 	NewCollection->bUseSCC = InUseSCC;
 	NewCollection->SourceFilename = InFilename;
 	NewCollection->CollectionName = FName(*FPaths::GetBaseFilename(InFilename));
+
+	NewCollection->StorageMode = StorageMode;
 
 	// Create a new GUID?
 	if (InCloneMode == ECollectionCloneMode::Unique)
@@ -103,11 +107,7 @@ bool FCollection::Load(FText& OutError)
 	}
 
 	// Now load the content if the header load was successful
-	if ( IsDynamic() )
-	{
-		// @todo collection Load dynamic collections
-	}
-	else
+	if (StorageMode == ECollectionStorageMode::Static)
 	{
 		// Static collection, a flat list of asset paths
 		for (FString Line : FileContents)
@@ -120,6 +120,14 @@ bool FCollection::Load(FText& OutError)
 				AddObjectToCollection(FName(*Line));
 			}
 		}
+	}
+	else
+	{
+		// Dynamic collection, a single query line
+		DynamicQueryText = (FileContents.Num() > 0) ? FileContents[0] : FString();
+
+		DynamicQueryText.Trim();
+		DynamicQueryText.TrimTrailing();
 	}
 
 	DiskSnapshot.TakeSnapshot(*this);
@@ -172,11 +180,7 @@ bool FCollection::Save(FText& OutError)
 	FileOutput += LINE_TERMINATOR;
 
 	// Now for the content
-	if ( IsDynamic() )
-	{
-		// @todo Dynamic collections
-	}
-	else
+	if (StorageMode == ECollectionStorageMode::Static)
 	{
 		// Write out the set as a sorted array to keep things in a known order for diffing
 		TArray<FName> ObjectList = ObjectSet.Array();
@@ -187,6 +191,11 @@ bool FCollection::Save(FText& OutError)
 		{
 			FileOutput += ObjectName.ToString() + LINE_TERMINATOR;
 		}
+	}
+	else
+	{
+		// Dynamic collection, a single query line
+		FileOutput += DynamicQueryText + LINE_TERMINATOR;
 	}
 
 	// Attempt to save the file
@@ -304,7 +313,7 @@ bool FCollection::Update(FText& OutError)
 		{
 			// File found! Load it and merge with our local changes
 			FText LoadErrorText;
-			FCollection NewCollection(SourceFilename, false);
+			FCollection NewCollection(SourceFilename, false, ECollectionStorageMode::Static);
 			if ( !NewCollection.Load(LoadErrorText) )
 			{
 				// Failed to load the head revision file so it isn't safe to delete it
@@ -370,7 +379,7 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 
 bool FCollection::AddObjectToCollection(FName ObjectPath)
 {
-	if (!ObjectSet.Contains(ObjectPath))
+	if (StorageMode == ECollectionStorageMode::Static && !ObjectSet.Contains(ObjectPath))
 	{
 		ObjectSet.Add(ObjectPath);
 		return true;
@@ -381,46 +390,86 @@ bool FCollection::AddObjectToCollection(FName ObjectPath)
 
 bool FCollection::RemoveObjectFromCollection(FName ObjectPath)
 {
-	return ObjectSet.Remove(ObjectPath) > 0;
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		return ObjectSet.Remove(ObjectPath) > 0;
+	}
+
+	return false;
 }
 
 void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 {
-	for (const FName& ObjectName : ObjectSet)
+	if (StorageMode == ECollectionStorageMode::Static)
 	{
-		if (!ObjectName.ToString().StartsWith(TEXT("/Script/")))
+		for (const FName& ObjectName : ObjectSet)
 		{
-			Assets.Add(ObjectName);
+			if (!ObjectName.ToString().StartsWith(TEXT("/Script/")))
+			{
+				Assets.Add(ObjectName);
+			}
 		}
 	}
 }
 
 void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 {
-	for (const FName& ObjectName : ObjectSet)
+	if (StorageMode == ECollectionStorageMode::Static)
 	{
-		if (ObjectName.ToString().StartsWith(TEXT("/Script/")))
+		for (const FName& ObjectName : ObjectSet)
 		{
-			Classes.Add(ObjectName);
+			if (ObjectName.ToString().StartsWith(TEXT("/Script/")))
+			{
+				Classes.Add(ObjectName);
+			}
 		}
 	}
 }
 
 void FCollection::GetObjectsInCollection(TArray<FName>& Objects) const
 {
-	FCollectionUtils::AppendCollectionToArray(ObjectSet, Objects);
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		FCollectionUtils::AppendCollectionToArray(ObjectSet, Objects);
+	}
 }
 
 bool FCollection::IsObjectInCollection(FName ObjectPath) const
 {
-	return ObjectSet.Contains(ObjectPath);
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		return ObjectSet.Contains(ObjectPath);
+	}
+
+	return false;
 }
 
 bool FCollection::IsRedirectorInCollection(FName ObjectPath) const
 {
-	// Redirectors are fixed up in-memory once the asset registry has finished loading, 
-	// so we need to test our on-disk set of objects rather than our in-memory set of objects
-	return DiskSnapshot.ObjectSet.Contains(ObjectPath);
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		// Redirectors are fixed up in-memory once the asset registry has finished loading, 
+		// so we need to test our on-disk set of objects rather than our in-memory set of objects
+		return DiskSnapshot.ObjectSet.Contains(ObjectPath);
+	}
+
+	return false;
+}
+
+bool FCollection::SetDynamicQueryText(const FString& InQueryText)
+{
+	if (StorageMode == ECollectionStorageMode::Dynamic)
+	{
+		DynamicQueryText = InQueryText;
+		return true;
+	}
+
+	return false;
+}
+
+FString FCollection::GetDynamicQueryText() const
+{
+	return (StorageMode == ECollectionStorageMode::Dynamic) ? DynamicQueryText : FString();
 }
 
 FCollectionStatusInfo FCollection::GetStatusInfo() const
@@ -428,7 +477,7 @@ FCollectionStatusInfo FCollection::GetStatusInfo() const
 	FCollectionStatusInfo StatusInfo;
 
 	StatusInfo.bIsDirty = IsDirty();
-	StatusInfo.bIsEmpty = ObjectSet.Num() == 0;
+	StatusInfo.bIsEmpty = IsEmpty();
 	StatusInfo.bUseSCC  = bUseSCC;
 
 	StatusInfo.NumObjects = ObjectSet.Num();
@@ -453,31 +502,39 @@ bool FCollection::IsDirty() const
 		return true;
 	}
 	
-	TArray<FName> ObjectsAdded;
-	TArray<FName> ObjectsRemoved;
-	GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
+	bool bHasChanges = false;
 
-	return ObjectsAdded.Num() != 0 || ObjectsRemoved.Num() != 0;
-}
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		TArray<FName> ObjectsAdded;
+		TArray<FName> ObjectsRemoved;
+		GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
 
-bool FCollection::IsDynamic() const
-{
-	// @todo collection Dynamic collections
-	return false;
+		bHasChanges = ObjectsAdded.Num() != 0 || ObjectsRemoved.Num() != 0;
+	}
+	else
+	{
+		bHasChanges = DynamicQueryText != DiskSnapshot.DynamicQueryText;
+	}
+
+	return bHasChanges;
 }
 
 bool FCollection::IsEmpty() const
 {
-	return ObjectSet.Num() == 0;
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		return ObjectSet.Num() == 0;
+	}
+	else
+	{
+		return DynamicQueryText.IsEmpty();
+	}
 }
 
 void FCollection::PrintCollection() const
 {
-	if ( IsDynamic() )
-	{
-		// @todo collection Printing Dynamic collections
-	}
-	else
+	if (StorageMode == ECollectionStorageMode::Static)
 	{
 		UE_LOG(LogCollectionManager, Log, TEXT("    Printing static elements of collection %s"), *CollectionName.ToString());
 		UE_LOG(LogCollectionManager, Log, TEXT("    ============================="));
@@ -491,13 +548,19 @@ void FCollection::PrintCollection() const
 			UE_LOG(LogCollectionManager, Log, TEXT("        %s"), *ObjectName.ToString());
 		}
 	}
+	else
+	{
+		UE_LOG(LogCollectionManager, Log, TEXT("    Printing dynamic query of collection %s"), *CollectionName.ToString());
+		UE_LOG(LogCollectionManager, Log, TEXT("    ============================="));
+		UE_LOG(LogCollectionManager, Log, TEXT("        %s"), *DynamicQueryText);
+	}
 }
 
 void FCollection::SaveHeaderPairs(TMap<FString,FString>& OutHeaderPairs) const
 {
 	// These pairs will appear at the top of the file followed by a newline
 	OutHeaderPairs.Add(TEXT("FileVersion"), FString::FromInt(ECollectionVersion::CurrentVersion)); // Files are always saved at the latest version as loading should take care of data upgrades
-	OutHeaderPairs.Add(TEXT("Type"), IsDynamic() ? TEXT("Dynamic") : TEXT("Static"));
+	OutHeaderPairs.Add(TEXT("Type"), ECollectionStorageMode::ToString(StorageMode));
 	OutHeaderPairs.Add(TEXT("Guid"), CollectionGuid.ToString(EGuidFormats::DigitsWithHyphens));
 	OutHeaderPairs.Add(TEXT("ParentGuid"), ParentCollectionGuid.ToString(EGuidFormats::DigitsWithHyphens));
 }
@@ -520,6 +583,8 @@ bool FCollection::LoadHeaderPairs(const TMap<FString,FString>& InHeaderPairs)
 		return false;
 	}
 
+	StorageMode = ECollectionStorageMode::FromString(**Type);
+
 	FileVersion = (ECollectionVersion::Type)FCString::Atoi(**Version);
 
 	if (FileVersion >= ECollectionVersion::AddedCollectionGuid)
@@ -538,30 +603,35 @@ bool FCollection::LoadHeaderPairs(const TMap<FString,FString>& InHeaderPairs)
 		}
 	}
 
-	if ( *Type == TEXT("Dynamic") )
-	{
-		// @todo Set this file up to be dynamic
-	}
-
 	return FileVersion > 0 && FileVersion <= ECollectionVersion::CurrentVersion;
 }
 
 bool FCollection::MergeWithCollection(const FCollection& Other)
 {
-	bool bHasChanges = false;
+	bool bHasChanges = ParentCollectionGuid != Other.ParentCollectionGuid;
 
-	if ( IsDynamic() )
+	ParentCollectionGuid = Other.ParentCollectionGuid;
+
+	if (StorageMode != Other.StorageMode)
 	{
-		// @todo collection Merging dynamic collections?
+		bHasChanges = true;
+		StorageMode = Other.StorageMode;
+
+		// Storage mode has changed!
+		// Reset the static and dynamic parts of the collection so we just copy over the new data verbatim
+		ObjectSet.Reset();
+		DynamicQueryText.Reset();
+		DiskSnapshot.TakeSnapshot(*this);
 	}
-	else
+
+	if (StorageMode == ECollectionStorageMode::Static)
 	{
 		// Work out whether we have any changes compared to the other collection
 		TArray<FName> ObjectsAdded;
 		TArray<FName> ObjectsRemoved;
 		GetObjectDifferences(ObjectSet, Other.ObjectSet, ObjectsAdded, ObjectsRemoved);
 
-		bHasChanges = ParentCollectionGuid != Other.ParentCollectionGuid || ObjectsAdded.Num() > 0 || ObjectsRemoved.Num() > 0;
+		bHasChanges = bHasChanges || ObjectsAdded.Num() > 0 || ObjectsRemoved.Num() > 0;
 
 		if (bHasChanges)
 		{
@@ -571,10 +641,7 @@ bool FCollection::MergeWithCollection(const FCollection& Other)
 			GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
 
 			// Copy asset list from other collection
-			DiskSnapshot = Other.DiskSnapshot;
-			ObjectSet = DiskSnapshot.ObjectSet;
-
-			ParentCollectionGuid = Other.ParentCollectionGuid;
+			ObjectSet = Other.ObjectSet;
 
 			// Add the objects that were added before the merge
 			for (const FName& AddedObjectName : ObjectsAdded)
@@ -588,11 +655,14 @@ bool FCollection::MergeWithCollection(const FCollection& Other)
 				ObjectSet.Remove(RemovedObjectName);
 			}
 		}
-		else
-		{
-			DiskSnapshot = Other.DiskSnapshot;
-		}
 	}
+	else
+	{
+		bHasChanges = bHasChanges || DynamicQueryText != Other.DynamicQueryText;
+		DynamicQueryText = Other.DynamicQueryText;
+	}
+
+	DiskSnapshot = Other.DiskSnapshot;
 
 	return bHasChanges;
 }
@@ -620,7 +690,10 @@ void FCollection::GetObjectDifferences(const TSet<FName>& BaseSet, const TSet<FN
 
 void FCollection::GetObjectDifferencesFromDisk(TArray<FName>& ObjectsAdded, TArray<FName>& ObjectsRemoved) const
 {
-	GetObjectDifferences(DiskSnapshot.ObjectSet, ObjectSet, ObjectsAdded, ObjectsRemoved);
+	if (StorageMode == ECollectionStorageMode::Static)
+	{
+		GetObjectDifferences(DiskSnapshot.ObjectSet, ObjectSet, ObjectsAdded, ObjectsRemoved);
+	}
 }
 
 bool FCollection::CheckoutCollection(FText& OutError)
@@ -676,7 +749,7 @@ bool FCollection::CheckoutCollection(FText& OutError)
 		{
 			// File found! Load it and merge with our local changes
 			FText LoadErrorText;
-			FCollection NewCollection(SourceFilename, false);
+			FCollection NewCollection(SourceFilename, false, ECollectionStorageMode::Static);
 			if ( !NewCollection.Load(LoadErrorText) )
 			{
 				// Failed to load the head revision file so it isn't safe to delete it
@@ -786,11 +859,7 @@ bool FCollection::CheckinCollection(FText& OutError)
 	}
 	else
 	{
-		if (IsDynamic())
-		{
-			// @todo collection Change description for dynamic collections
-		}
-		else
+		if (StorageMode == ECollectionStorageMode::Static)
 		{
 			// Gather differences from disk
 			TArray<FName> ObjectsAdded;
@@ -838,6 +907,13 @@ bool FCollection::CheckinCollection(FText& OutError)
 					ChangelistDescBuilder.AppendLine(FText::FromName(RemovedObjectName));
 				}
 				ChangelistDescBuilder.Unindent();
+			}
+		}
+		else
+		{
+			if (DiskSnapshot.DynamicQueryText != DynamicQueryText)
+			{
+				ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionChangedParentDesc", "Changed the dynamic query of collection '{0}' to '{1}'"), CollectionNameText, FText::FromString(DynamicQueryText));
 			}
 		}
 
@@ -983,7 +1059,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 			return true;
 		}
 			
-		FCollection NewCollection(SourceFilename, false);
+		FCollection NewCollection(SourceFilename, false, ECollectionStorageMode::Static);
 		FText LoadErrorText;
 		if ( !NewCollection.Load(LoadErrorText) )
 		{

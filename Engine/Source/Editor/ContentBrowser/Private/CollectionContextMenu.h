@@ -15,7 +15,10 @@ public:
 	TSharedPtr<SWidget> MakeCollectionTreeContextMenu(TSharedPtr< FUICommandList > InCommandList);
 
 	/** Makes the new collection submenu */
-	void MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder, TOptional<FCollectionNameType> ParentCollection);
+	void MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder, ECollectionStorageMode::Type StorageMode, SCollectionView::FCreateCollectionPayload InCreationPayload);
+
+	/** Makes the save dynamic collection submenu */
+	void MakeSaveDynamicCollectionSubMenu(FMenuBuilder& MenuBuilder, FText InSearchQuery);
 
 	/** Makes the collection share type submenu */
 	void MakeCollectionShareTypeSubMenu(FMenuBuilder& MenuBuilder);
@@ -32,10 +35,13 @@ protected:
 
 private:
 	/** Handler for when a collection is selected in the "New" menu */
-	void ExecuteNewCollection(ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection);
+	void ExecuteNewCollection(ECollectionShareType::Type CollectionType, ECollectionStorageMode::Type StorageMode, SCollectionView::FCreateCollectionPayload InCreationPayload);
 
 	/** Handler for when a collection share type is changed in the "Share Type" menu */
 	void ExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType);
+
+	/** Handler for when a dynamic collection is selected in the "Save" menu */
+	void ExecuteSaveDynamicCollection(FCollectionNameType InCollection, FText InSearchQuery);
 
 	/** Handler for when "Rename Collection" is selected */
 	void ExecuteRenameCollection();
@@ -66,6 +72,9 @@ private:
 
 	/** Handler to check to see if an entry in the "Share Type" menu should be checked */
 	bool IsSetCollectionShareTypeChecked(ECollectionShareType::Type CollectionType) const;
+
+	/** Handler to check to see if "Save Dynamic Collection" can be executed */
+	bool CanExecuteSaveDynamicCollection(FCollectionNameType InCollection) const;
 
 	/** Handler to check to see if "Rename Collection" can be executed */
 	bool CanExecuteRenameCollection() const;

@@ -235,7 +235,7 @@ public:
 	static bool CreateAssetSet(FName InSetName, ECollectionShareType::Type InSetType)
 	{
 		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-		return CollectionManagerModule.Get().CreateCollection(InSetName, InSetType);
+		return CollectionManagerModule.Get().CreateCollection(InSetName, InSetType, ECollectionStorageMode::Static);
 	}
 
 	static bool DestroyAssetSet(FName InSetName, ECollectionShareType::Type InSetType )

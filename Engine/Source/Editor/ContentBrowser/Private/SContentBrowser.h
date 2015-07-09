@@ -138,6 +138,12 @@ private:
 	/** Called by the editable text control when the user commits a text change */
 	void OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo);
 
+	/** Should the "Save Search" button be enabled? */
+	bool IsSaveSearchButtonEnabled() const;
+
+	/** Open the menu to let you save the current search text as a dynamic collection */
+	FReply OnSaveSearchButtonClicked();
+
 	/** Called when a crumb in the path breadcrumb trail or menu is clicked */
 	void OnPathClicked(const FString& CrumbData);
 
@@ -386,6 +392,9 @@ private:
 
 	/** The splitter between the path & collection view */
 	TSharedPtr<SSplitter> PathCollectionSplitterPtr;
+
+	/** When viewing a dynamic collection, the active search query will be stashed in this variable so that it can be restored again later */
+	TOptional<FText> StashedSearchBoxText;
 
 public: 
 

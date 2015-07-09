@@ -166,10 +166,9 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	// Asset view
 	
 	// Break up the incoming filter into a sources data and backend filter.
-	CurrentSourcesData.PackagePaths = InArgs._AssetPickerConfig.Filter.PackagePaths;
-	CurrentSourcesData.Collections = InArgs._AssetPickerConfig.Collections;
+	CurrentSourcesData = FSourcesData(InArgs._AssetPickerConfig.Filter.PackagePaths, InArgs._AssetPickerConfig.Collections);
 	CurrentBackendFilter = InArgs._AssetPickerConfig.Filter;
-	CurrentBackendFilter.PackagePaths.Empty();
+	CurrentBackendFilter.PackagePaths.Reset();
 
 	if(InArgs._AssetPickerConfig.bAddFilterUI)
 	{
@@ -289,7 +288,7 @@ FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InK
 
 void SAssetPicker::FolderEntered(const FString& FolderPath)
 {
-	CurrentSourcesData.PackagePaths.Empty();
+	CurrentSourcesData.PackagePaths.Reset();
 	CurrentSourcesData.PackagePaths.Add(FName(*FolderPath));
 
 	AssetViewPtr->SetSourcesData(CurrentSourcesData);
@@ -348,7 +347,7 @@ void SAssetPicker::SetNewBackendFilter(const FARFilter& NewFilter)
 	AssetViewPtr->SetSourcesData(CurrentSourcesData);
 
 	CurrentBackendFilter = NewFilter;
-	CurrentBackendFilter.PackagePaths.Empty();
+	CurrentBackendFilter.PackagePaths.Reset();
 
 	// Update the Text filter too, since now class names may no longer matter
 	TextFilter->SetIncludeClassName(NewFilter.ClassNames.Num() != 1);

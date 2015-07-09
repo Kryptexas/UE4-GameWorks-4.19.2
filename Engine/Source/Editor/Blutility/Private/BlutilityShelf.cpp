@@ -68,7 +68,7 @@ void SBlutilityShelf::Construct(const FArguments& InArgs)
 	else
 	{
 		// Create the collection
-		CollectionManagerModule.Get().CreateCollection(BlutilityModule::BlutilityShelfCollectionName, ECollectionShareType::CST_Local);
+		CollectionManagerModule.Get().CreateCollection(BlutilityModule::BlutilityShelfCollectionName, ECollectionShareType::CST_Local, ECollectionStorageMode::Static);
 	}
 
 	// Build the shelf

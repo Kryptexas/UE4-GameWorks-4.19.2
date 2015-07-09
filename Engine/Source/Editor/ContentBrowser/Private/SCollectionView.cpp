@@ -397,6 +397,8 @@ void SCollectionView::UpdateCollectionItems()
 				TSharedRef<FCollectionItem> CollectionItem = MakeShareable(new FCollectionItem(Collection.Name, Collection.Type));
 				OutAvailableCollections.Add(Collection, CollectionItem);
 
+				CollectionManagerModule.Get().GetCollectionStorageMode(Collection.Name, Collection.Type, CollectionItem->StorageMode);
+
 				SCollectionView::UpdateCollectionItemStatus(CollectionItem);
 
 				if (InParentCollectionItem.IsValid())
@@ -547,7 +549,7 @@ void SCollectionView::SetSelectedCollections(const TArray<FCollectionNameType>& 
 			CollectionTreePtr->SetItemSelection(CollectionItemToSelect, true);
 
 			// If the selected collection doesn't pass our current filter, we need to clear it
-			if (bEnsureVisible && !CollectionItemTextFilter->PassesFilter(FCollectionItem(CollectionItemToSelect->CollectionName, CollectionItemToSelect->CollectionType)))
+			if (bEnsureVisible && !CollectionItemTextFilter->PassesFilter(*CollectionItemToSelect))
 			{
 				SearchBoxPtr->SetText(FText::GetEmpty());
 			}
@@ -607,9 +609,9 @@ void SCollectionView::ApplyHistoryData( const FHistoryData& History )
 	FScopedPreventSelectionChangedDelegate DelegatePrevention( SharedThis(this) );
 
 	CollectionTreePtr->ClearSelection();
-	for ( auto HistoryIt = History.SourcesData.Collections.CreateConstIterator(); HistoryIt; ++HistoryIt)
+	for (const FCollectionNameType& HistoryCollection : History.SourcesData.Collections)
 	{
-		TSharedPtr<FCollectionItem> CollectionHistoryItem = AvailableCollections.FindRef(FCollectionNameType((*HistoryIt).Name, (*HistoryIt).Type));
+		TSharedPtr<FCollectionItem> CollectionHistoryItem = AvailableCollections.FindRef(HistoryCollection);
 		if (CollectionHistoryItem.IsValid())
 		{
 			ExpandParentItems(CollectionHistoryItem.ToSharedRef());
@@ -787,6 +789,37 @@ FReply SCollectionView::OnDrop( const FGeometry& MyGeometry, const FDragDropEven
 	return FReply::Unhandled();
 }
 
+void SCollectionView::MakeSaveDynamicCollectionMenu(FText InQueryString)
+{
+	// Get all menu extenders for this context menu from the content browser module
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
+	TArray<FContentBrowserMenuExtender> MenuExtenderDelegates = ContentBrowserModule.GetAllCollectionViewContextMenuExtenders();
+
+	TArray<TSharedPtr<FExtender>> Extenders;
+	for (int32 i = 0; i < MenuExtenderDelegates.Num(); ++i)
+	{
+		if (MenuExtenderDelegates[i].IsBound())
+		{
+			Extenders.Add(MenuExtenderDelegates[i].Execute());
+		}
+	}
+	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
+
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL, MenuExtender, true);
+
+	CollectionContextMenu->UpdateProjectSourceControl();
+
+	CollectionContextMenu->MakeSaveDynamicCollectionSubMenu(MenuBuilder, InQueryString);
+
+	FSlateApplication::Get().PushMenu(
+		AsShared(),
+		FWidgetPath(),
+		MenuBuilder.MakeWidget(),
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect( FPopupTransitionEffect::TopMenu )
+		);
+}
+
 bool SCollectionView::ShouldAllowSelectionChangedDelegate() const
 {
 	return PreventSelectionChangedDelegateCount == 0;
@@ -812,7 +845,7 @@ FReply SCollectionView::MakeAddCollectionMenu()
 
 	CollectionContextMenu->UpdateProjectSourceControl();
 
-	CollectionContextMenu->MakeNewCollectionSubMenu(MenuBuilder, TOptional<FCollectionNameType>());
+	CollectionContextMenu->MakeNewCollectionSubMenu(MenuBuilder, ECollectionStorageMode::Static, SCollectionView::FCreateCollectionPayload());
 
 	FSlateApplication::Get().PushMenu(
 		AsShared(),
@@ -842,7 +875,7 @@ EVisibility SCollectionView::GetAddCollectionButtonVisibility() const
 	return (bAllowCollectionButtons && ( !CollectionsExpandableAreaPtr.IsValid() || CollectionsExpandableAreaPtr->IsExpanded() ) ) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SCollectionView::CreateCollectionItem( ECollectionShareType::Type CollectionType, TOptional<FCollectionNameType> ParentCollection )
+void SCollectionView::CreateCollectionItem( ECollectionShareType::Type CollectionType, ECollectionStorageMode::Type StorageMode, const FCreateCollectionPayload& InCreationPayload )
 {
 	if ( ensure(CollectionType != ECollectionShareType::CST_All) )
 	{
@@ -852,13 +885,14 @@ void SCollectionView::CreateCollectionItem( ECollectionShareType::Type Collectio
 		FName CollectionName;
 		CollectionManagerModule.Get().CreateUniqueCollectionName(BaseCollectionName, CollectionType, CollectionName);
 		TSharedPtr<FCollectionItem> NewItem = MakeShareable(new FCollectionItem(CollectionName, CollectionType));
+		NewItem->StorageMode = StorageMode;
 
 		// Adding a new collection now, so clear any filter we may have applied
 		SearchBoxPtr->SetText(FText::GetEmpty());
 
-		if ( ParentCollection.IsSet() )
+		if ( InCreationPayload.ParentCollection.IsSet() )
 		{
-			TSharedPtr<FCollectionItem> ParentCollectionItem = AvailableCollections.FindRef(ParentCollection.GetValue());
+			TSharedPtr<FCollectionItem> ParentCollectionItem = AvailableCollections.FindRef(InCreationPayload.ParentCollection.GetValue());
 			if ( ParentCollectionItem.IsValid() )
 			{
 				ParentCollectionItem->ChildCollections.Add(NewItem);
@@ -872,6 +906,7 @@ void SCollectionView::CreateCollectionItem( ECollectionShareType::Type Collectio
 		// Mark the new collection for rename and that it is new so it will be created upon successful rename
 		NewItem->bRenaming = true;
 		NewItem->bNewCollection = true;
+		NewItem->OnCollectionCreatedEvent = InCreationPayload.OnCollectionCreatedEvent;
 
 		AvailableCollections.Add( FCollectionNameType(NewItem->CollectionName, NewItem->CollectionType), NewItem );
 		UpdateFilteredCollectionItems();
@@ -1040,9 +1075,18 @@ TSharedRef<ITableRow> SCollectionView::GenerateCollectionRow( TSharedPtr<FCollec
 	FOnCheckStateChanged OnCollectionCheckStateChangedDelegate;
 	if ( QuickAssetManagement.IsValid() )
 	{
-		IsCollectionCheckBoxEnabledAttribute.Bind(TAttribute<bool>::FGetter::CreateSP(this, &SCollectionView::IsCollectionCheckBoxEnabled, CollectionItem));
-		IsCollectionCheckedAttribute.Bind(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &SCollectionView::IsCollectionChecked, CollectionItem));
-		OnCollectionCheckStateChangedDelegate.BindSP(this, &SCollectionView::OnCollectionCheckStateChanged, CollectionItem);
+		// Can only manage assets for static collections
+		if (CollectionItem->StorageMode == ECollectionStorageMode::Static)
+		{
+			IsCollectionCheckBoxEnabledAttribute.Bind(TAttribute<bool>::FGetter::CreateSP(this, &SCollectionView::IsCollectionCheckBoxEnabled, CollectionItem));
+			IsCollectionCheckedAttribute.Bind(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &SCollectionView::IsCollectionChecked, CollectionItem));
+			OnCollectionCheckStateChangedDelegate.BindSP(this, &SCollectionView::OnCollectionCheckStateChanged, CollectionItem);
+		}
+		else
+		{
+			IsCollectionCheckBoxEnabledAttribute.Bind(TAttribute<bool>::FGetter::CreateLambda([]{ return false; }));
+			IsCollectionCheckedAttribute.Bind(TAttribute<ECheckBoxState>::FGetter::CreateLambda([]{ return ECheckBoxState::Unchecked; }));
+		}
 	}
 
 	TSharedPtr< STableRow< TSharedPtr<FCollectionItem> > > TableRow = SNew( STableRow< TSharedPtr<FCollectionItem> >, OwnerTable )
@@ -1379,7 +1423,6 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 	check(CollectionTreePtr->GetNumItemsSelected() == 1);
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-	ECollectionShareType::Type CollectionType = CollectionItem->CollectionType;
 
 	// If new name is empty, set it back to the original name
 	const FName NewNameFinal( NewName.IsEmpty() ? CollectionItem->CollectionName : FName(*NewName) );
@@ -1404,7 +1447,7 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 			return false;
 		}
 
-		if ( !CollectionManagerModule.Get().CreateCollection(NewNameFinal, CollectionType) )
+		if ( !CollectionManagerModule.Get().CreateCollection(NewNameFinal, CollectionItem->CollectionType, CollectionItem->StorageMode) )
 		{
 			// Failed to add the collection, remove it from the list
 			AvailableCollections.Remove(FCollectionNameType(CollectionItem->CollectionName, CollectionItem->CollectionType));
@@ -1417,7 +1460,14 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 		if ( NewCollectionParentKey.IsSet() )
 		{
 			// Try and set the parent correctly (if this fails for any reason, the collection will still be added, but will just appear at the root)
-			CollectionManagerModule.Get().ReparentCollection(NewNameFinal, CollectionType, NewCollectionParentKey->Name, NewCollectionParentKey->Type);
+			CollectionManagerModule.Get().ReparentCollection(NewNameFinal, CollectionItem->CollectionType, NewCollectionParentKey->Name, NewCollectionParentKey->Type);
+		}
+
+		// Notify anything that cares that this collection has been created now
+		if ( CollectionItem->OnCollectionCreatedEvent.IsBound())
+		{
+			CollectionItem->OnCollectionCreatedEvent.Execute(FCollectionNameType(NewNameFinal, CollectionItem->CollectionType));
+			CollectionItem->OnCollectionCreatedEvent.Unbind();
 		}
 	}
 	else
@@ -1429,13 +1479,13 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 		}
 
 		// If the new name doesn't pass our current filter, we need to clear it
-		if ( !CollectionItemTextFilter->PassesFilter( FCollectionItem(NewNameFinal, CollectionType) ) )
+		if ( !CollectionItemTextFilter->PassesFilter( FCollectionItem(NewNameFinal, CollectionItem->CollectionType) ) )
 		{
 			SearchBoxPtr->SetText(FText::GetEmpty());
 		}
 
 		// Otherwise perform the rename
-		if ( !CollectionManagerModule.Get().RenameCollection(CollectionItem->CollectionName, CollectionType, NewNameFinal, CollectionType) )
+		if ( !CollectionManagerModule.Get().RenameCollection(CollectionItem->CollectionName, CollectionItem->CollectionType, NewNameFinal, CollectionItem->CollectionType) )
 		{
 			// Failed to rename the collection
 			OutWarningMessage = FText::Format( LOCTEXT("RenameCollectionFailed", "Failed to rename the collection. {0}"), CollectionManagerModule.Get().GetLastError());
@@ -1446,7 +1496,7 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 	// At this point CollectionItem is no longer a member of the CollectionItems list (as the list is repopulated by
 	// UpdateCollectionItems, which is called by a broadcast from CollectionManagerModule::RenameCollection, above).
 	// So search again for the item by name and type.
-	auto NewCollectionItemPtr = AvailableCollections.Find( FCollectionNameType(NewNameFinal, CollectionType) );
+	auto NewCollectionItemPtr = AvailableCollections.Find( FCollectionNameType(NewNameFinal, CollectionItem->CollectionType) );
 
 	// Reselect the path to notify that the selection has changed
 	{

@@ -8,6 +8,7 @@
 #include "ContentBrowserModule.h"
 #include "ContentBrowserCommands.h"
 #include "CollectionManagerModule.h"
+#include "CollectionContextMenu.h"
 #include "AssetRegistryModule.h"
 #include "SDockTab.h"
 #include "GenericCommands.h"
@@ -542,8 +543,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 						// Search
 						+SHorizontalBox::Slot()
-						.Padding(4, 0, 0, 0)
-						.VAlign(VAlign_Center)
+						.Padding(4, 1, 0, 0)
 						.FillWidth(1.0f)
 						[
 							SAssignNew(SearchBoxPtr, SAssetSearchBox)
@@ -553,6 +553,26 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.PossibleSuggestions( this, &SContentBrowser::GetAssetSearchSuggestions )
 							.DelayChangeNotificationsWhileTyping( true )
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSearchAssets")))
+						]
+
+						// Save Search
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+						[
+							SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+							.ToolTipText(LOCTEXT("SaveSearchButtonTooltip", "Save the current search as a dynamic collection."))
+							.IsEnabled(this, &SContentBrowser::IsSaveSearchButtonEnabled)
+							.OnClicked(this, &SContentBrowser::OnSaveSearchButtonClicked)
+							.ContentPadding( FMargin(1, 1) )
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+								.Text(FEditorFontGlyphs::Floppy_O)
+							]
 						]
 					]
 
@@ -608,9 +628,8 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 
 	// Select /Game by default
-	FSourcesData DefaultSourcesData;
+	FSourcesData DefaultSourcesData(FName("/Game"));
 	TArray<FString> SelectedPaths;
-	DefaultSourcesData.PackagePaths.Add(TEXT("/Game"));
 	SelectedPaths.Add(TEXT("/Game"));
 	PathViewPtr->SetSelectedPaths(SelectedPaths);
 	AssetViewPtr->SetSourcesData(DefaultSourcesData);
@@ -1022,12 +1041,45 @@ void SContentBrowser::SourcesChanged(const TArray<FString>& SelectedPaths, const
 	UE_LOG(LogContentBrowser, VeryVerbose, TEXT("The content browser source was changed by the sources view to '%s'"), *NewSource);
 
 	FSourcesData SourcesData;
-	for (int32 PathIdx = 0; PathIdx < SelectedPaths.Num(); ++PathIdx)
 	{
-		SourcesData.PackagePaths.Add(FName(*SelectedPaths[PathIdx]));
+		TArray<FName> SelectedPathNames;
+		SelectedPathNames.Reserve(SelectedPaths.Num());
+		for (const FString& SelectedPath : SelectedPaths)
+		{
+			SelectedPathNames.Add(FName(*SelectedPath));
+		}
+		SourcesData = FSourcesData(MoveTemp(SelectedPathNames), SelectedCollections);
 	}
-	
-	SourcesData.Collections = SelectedCollections;
+
+	// A dynamic collection should apply its search query to the CB search, so we need to stash the current search so that we can restore it again later
+	if (SourcesData.Collections.Num() == 1 &&  SourcesData.IsDynamicCollection())
+	{
+		// Only stash the user search term once in case we're switching between dynamic collections
+		if (!StashedSearchBoxText.IsSet())
+		{
+			StashedSearchBoxText = TextFilter->GetRawFilterText();
+		}
+
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		const FCollectionNameType& DynamicCollection = SourcesData.Collections[0];
+
+		FString DynamicQueryString;
+		CollectionManagerModule.Get().GetDynamicQueryText(DynamicCollection.Name, DynamicCollection.Type, DynamicQueryString);
+
+		const FText DynamicQueryText = FText::FromString(DynamicQueryString);
+		SetSearchBoxText(DynamicQueryText);
+		SearchBoxPtr->SetText(DynamicQueryText);
+	}
+	else if (StashedSearchBoxText.IsSet())
+	{
+		// Restore the stashed search term
+		const FText StashedText = StashedSearchBoxText.GetValue();
+		StashedSearchBoxText.Reset();
+
+		SetSearchBoxText(StashedText);
+		SearchBoxPtr->SetText(StashedText);
+	}
 
 	if (!AssetViewPtr->GetSourcesData().IsEmpty())
 	{
@@ -1158,7 +1210,7 @@ void SContentBrowser::OnUpdateHistoryData(FHistoryData& HistoryData) const
 	const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
 	const TArray<FAssetData>& SelectedAssets = AssetViewPtr->GetSelectedAssets();
 
-	const FText NewSource = SourcesData.PackagePaths.Num() > 0 ? FText::FromName(SourcesData.PackagePaths[0]) : (SourcesData.Collections.Num() > 0 ? FText::FromName(SourcesData.Collections[0].Name) : LOCTEXT("AllAssets", "All Assets"));
+	const FText NewSource = SourcesData.HasPackagePaths() ? FText::FromName(SourcesData.PackagePaths[0]) : (SourcesData.HasCollections() ? FText::FromName(SourcesData.Collections[0].Name) : LOCTEXT("AllAssets", "All Assets"));
 
 	HistoryData.HistoryDesc = NewSource;
 	HistoryData.SourcesData = SourcesData;
@@ -1248,11 +1300,58 @@ void SContentBrowser::OnSearchBoxCommitted(const FText& InSearchText, ETextCommi
 	SetSearchBoxText(InSearchText);
 }
 
+bool SContentBrowser::IsSaveSearchButtonEnabled() const
+{
+	return !TextFilter->GetRawFilterText().IsEmptyOrWhitespace();
+}
+
+FReply SContentBrowser::OnSaveSearchButtonClicked()
+{
+	// Need to make sure we can see the collections view
+	if (!bSourcesViewExpanded)
+	{
+		SourcesViewExpandClicked();
+	}
+
+	// We want to add any currently selected paths to the final saved query so that you get back roughly the same list of objects as what you're currently seeing
+	FString SelectedPathsQuery;
+	{
+		auto SelectedPaths = PathViewPtr->GetSelectedPaths();
+		for (int32 SelectedPathIndex = 0; SelectedPathIndex < SelectedPaths.Num(); ++SelectedPathIndex)
+		{
+			SelectedPathsQuery.Append(TEXT("Path:'"));
+			SelectedPathsQuery.Append(SelectedPaths[SelectedPathIndex]);
+			SelectedPathsQuery.Append(TEXT("'..."));
+
+			if (SelectedPathIndex + 1 < SelectedPaths.Num())
+			{
+				SelectedPathsQuery.Append(TEXT(" OR "));
+			}
+		}
+	}
+
+	// todo: should we automatically append any type filters too?
+
+	// Produce the final query
+	FText FinalQueryText;
+	if (SelectedPathsQuery.IsEmpty())
+	{
+		FinalQueryText = TextFilter->GetRawFilterText();
+	}
+	else
+	{
+		FinalQueryText = FText::FromString(FString::Printf(TEXT("(%s) AND (%s)"), *TextFilter->GetRawFilterText().ToString(), *SelectedPathsQuery));
+	}
+
+	CollectionViewPtr->MakeSaveDynamicCollectionMenu(FinalQueryText);
+	return FReply::Handled();
+}
+
 void SContentBrowser::OnPathClicked( const FString& CrumbData )
 {
 	FSourcesData SourcesData = AssetViewPtr->GetSourcesData();
 
-	if ( SourcesData.Collections.Num() > 0 )
+	if ( SourcesData.HasCollections() )
 	{
 		// Collection crumb was clicked. See if we've clicked on a different collection in the hierarchy, and change the path if required.
 		TOptional<FCollectionNameType> CollectionClicked;
@@ -1278,7 +1377,7 @@ void SContentBrowser::OnPathClicked( const FString& CrumbData )
 			CollectionSelected(CollectionClicked.GetValue());
 		}
 	}
-	else if ( SourcesData.PackagePaths.Num() == 0 )
+	else if ( !SourcesData.HasPackagePaths() )
 	{
 		// No collections or paths are selected. This is "All Assets". Don't change the path when this is clicked.
 	}
@@ -1290,8 +1389,6 @@ void SContentBrowser::OnPathClicked( const FString& CrumbData )
 		PathViewPtr->SetSelectedPaths(SelectedPaths);
 
 		PathSelected(CrumbData);
-		
-		SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
 	}
 }
 
@@ -1307,7 +1404,7 @@ TSharedPtr<SWidget> SContentBrowser::OnGetCrumbDelimiterContent(const FString& C
 	TSharedPtr<SWidget> Widget = SNullWidget::NullWidget;
 	TSharedPtr<SWidget> MenuWidget;
 
-	if( SourcesData.Collections.Num() > 0 )
+	if( SourcesData.HasCollections() )
 	{
 		TOptional<FCollectionNameType> CollectionClicked;
 		{
@@ -1350,7 +1447,7 @@ TSharedPtr<SWidget> SContentBrowser::OnGetCrumbDelimiterContent(const FString& C
 			}
 		}
 	}
-	else if( SourcesData.PackagePaths.Num() > 0 )
+	else if( SourcesData.HasPackagePaths() )
 	{
 		TArray<FString> SubPaths;
 		const bool bRecurse = false;
@@ -1414,7 +1511,7 @@ TSharedRef<SWidget> SContentBrowser::GetPathPickerContent()
 	FPathPickerConfig PathPickerConfig;
 
 	FSourcesData SourcesData = AssetViewPtr->GetSourcesData();
-	if ( SourcesData.PackagePaths.Num() > 0 )
+	if ( SourcesData.HasPackagePaths() )
 	{
 		PathPickerConfig.DefaultPath = SourcesData.PackagePaths[0].ToString();
 	}
@@ -1454,7 +1551,7 @@ FString SContentBrowser::GetCurrentPath() const
 {
 	FString CurrentPath;
 	const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
-	if ( SourcesData.PackagePaths.Num() > 0 && SourcesData.PackagePaths[0] != NAME_None )
+	if ( SourcesData.HasPackagePaths() && SourcesData.PackagePaths[0] != NAME_None )
 	{
 		CurrentPath = SourcesData.PackagePaths[0].ToString();
 	}
@@ -1725,7 +1822,7 @@ FReply SContentBrowser::SourcesViewExpandClicked()
 {
 	bSourcesViewExpanded = !bSourcesViewExpanded;
 
-	// Notify 'Soureces View Expanded' delegate
+	// Notify 'Sources View Expanded' delegate
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
 	FContentBrowserModule::FOnSourcesViewChanged& SourcesViewChangedDelegate = ContentBrowserModule.GetOnSourcesViewChanged();
 	if(SourcesViewChangedDelegate.IsBound())
@@ -1966,7 +2063,7 @@ void SContentBrowser::UpdatePath()
 
 	PathBreadcrumbTrail->ClearCrumbs();
 
-	if ( SourcesData.PackagePaths.Num() > 0 )
+	if ( SourcesData.HasPackagePaths() )
 	{
 		TArray<FString> Crumbs;
 		SourcesData.PackagePaths[0].ToString().ParseIntoArray(Crumbs, TEXT("/"), true);
@@ -1982,7 +2079,7 @@ void SContentBrowser::UpdatePath()
 			CrumbPath += TEXT("/");
 		}
 	}
-	else if ( SourcesData.Collections.Num() > 0 )
+	else if ( SourcesData.HasCollections() )
 	{
 		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		TArray<FCollectionNameType> CollectionPathItems;
@@ -2033,11 +2130,11 @@ FString SContentBrowser::GetPathText() const
 		const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
 
 		// At least one source is selected
-		int32 NumSources = SourcesData.PackagePaths.Num() + SourcesData.Collections.Num();
+		const int32 NumSources = SourcesData.PackagePaths.Num() + SourcesData.Collections.Num();
 
 		if (NumSources > 0)
 		{
-			PathLabelText = SourcesData.PackagePaths.Num() > 0 ? SourcesData.PackagePaths[0].ToString() : SourcesData.Collections[0].Name.ToString();
+			PathLabelText = SourcesData.HasPackagePaths() ? SourcesData.PackagePaths[0].ToString() : SourcesData.Collections[0].Name.ToString();
 
 			if (NumSources > 1)
 			{
@@ -2056,7 +2153,7 @@ FString SContentBrowser::GetPathText() const
 bool SContentBrowser::IsFilteredBySource() const
 {
 	const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
-	return SourcesData.PackagePaths.Num() != 0 || SourcesData.Collections.Num() != 0;
+	return !SourcesData.IsEmpty();
 }
 
 void SContentBrowser::OnAssetRenameCommitted(const TArray<FAssetData>& Assets)
@@ -2103,8 +2200,7 @@ void SContentBrowser::OnOpenedFolderDeleted()
 	DefaultSelectedPaths.Add(TEXT("/Game"));
 	PathViewPtr->SetSelectedPaths(DefaultSelectedPaths);
 
-	FSourcesData DefaultSourcesData;
-	DefaultSourcesData.PackagePaths.Add(TEXT("/Game"));
+	FSourcesData DefaultSourcesData(FName("/Game"));
 	AssetViewPtr->SetSourcesData(DefaultSourcesData);
 }
 

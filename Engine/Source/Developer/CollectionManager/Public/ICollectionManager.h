@@ -69,9 +69,10 @@ public:
 	  *
 	  * @param CollectionName The name of the new collection
 	  * @param ShareType The way the collection is shared.
+	  * @param StorageMode How does this collection store its objects? (static or dynamic)
 	  * @return true if the add was successful. If false, GetLastError will return a human readable string description of the error.
 	  */
-	virtual bool CreateCollection(FName CollectionName, ECollectionShareType::Type ShareType) = 0;
+	virtual bool CreateCollection(FName CollectionName, ECollectionShareType::Type ShareType, ECollectionStorageMode::Type StorageMode) = 0;
 
 	/**
 	  * Renames a collection. A .collection file will be added to disk and a .collection file will be removed.
@@ -129,6 +130,26 @@ public:
 	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumRemoved = nullptr) = 0;
 
 	/**
+	 * Sets the dynamic query text for the specified collection. 
+	 *
+	 * @param CollectionName The collection to set the query on.
+	 * @param ShareType The way the collection is shared.
+	 * @param InQueryText The new query to set.
+	 * @return true if the set was successful. If false, GetLastError will return a human readable string description of the error.
+	 */
+	virtual bool SetDynamicQueryText(FName CollectionName, ECollectionShareType::Type ShareType, const FString& InQueryText) = 0;
+
+	/**
+	 * Gets the dynamic query text for the specified collection. 
+	 *
+	 * @param CollectionName The collection to get the query from.
+	 * @param ShareType The way the collection is shared.
+	 * @param OutQueryText Filled with the query text.
+	 * @return true if the get was successful. If false, GetLastError will return a human readable string description of the error.
+	 */
+	virtual bool GetDynamicQueryText(FName CollectionName, ECollectionShareType::Type ShareType, FString& OutQueryText) const = 0;
+
+	/**
 	  * Removes all assets from the specified collection.
 	  *
 	  * @param CollectionName The collection to empty
@@ -166,9 +187,20 @@ public:
 	  *
 	  * @param CollectionName The collection to get the status info for
 	  * @param ShareType The way the collection is shared.
+	  * @param OutStatusInfo The status info to populate.
 	  * @return true if the status info was filled in. If false, GetLastError will return a human readable string description of the error.
 	  */
 	virtual bool GetCollectionStatusInfo(FName CollectionName, ECollectionShareType::Type ShareType, FCollectionStatusInfo& OutStatusInfo) const = 0;
+
+	/**
+	 * Gets the method by which the specified collection stores its objects (static or dynamic)
+	 *
+	 * @param CollectionName The collection to get the storage mode for
+	 * @param ShareType The way the collection is shared.
+	 * @param OutStorageMode The variable to populate.
+	 * @return true if the status info was filled in. If false, GetLastError will return a human readable string description of the error.
+	 */
+	virtual bool GetCollectionStorageMode(FName CollectionName, ECollectionShareType::Type ShareType, ECollectionStorageMode::Type& OutStorageMode) const = 0;
 
 	/**
 	 * Check to see if the given object exists in the given collection

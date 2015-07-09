@@ -886,7 +886,7 @@ void FAssetRegistry::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataList, c
 						if ( AssetPackagePath.StartsWith(Path) )
 						{
 							// Only match the exact path or a path that starts with the target path followed by a slash
-							if ( Path.Len() == AssetPackagePath.Len() || AssetPackagePath.Mid(Path.Len(), 1) == TEXT("/") )
+							if ( Path.Len() == 1 || Path.Len() == AssetPackagePath.Len() || AssetPackagePath.Mid(Path.Len(), 1) == TEXT("/") )
 							{
 								bPassesPackagePaths = true;
 								break;
