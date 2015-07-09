@@ -80,9 +80,9 @@ public partial class Project : CommandUtils
 				ApplyArchiveManifest(Params, SC);
 				SC.StageTargetPlatform.ProcessArchivedProject(Params, SC);
 			}
-			Log("********** ARCHIVE COMMAND COMPLETED **********");
 		}
-	}
+        Log("********** ARCHIVE COMMAND COMPLETED **********");
+    }
 
 	#endregion
 }
