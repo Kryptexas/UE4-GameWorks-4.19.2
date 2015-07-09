@@ -74,6 +74,9 @@ public:
 	/* Default initialization of data */
 	PacketHandler();
 
+	/* Destructor */
+	virtual ~PacketHandler() { };
+
 	/* Handles initialization of manager */
 	virtual void Initialize(Handler::Mode Mode);
 

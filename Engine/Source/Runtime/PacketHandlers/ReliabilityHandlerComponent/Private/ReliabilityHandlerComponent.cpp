@@ -1,6 +1,5 @@
 #include "ReliabilityHandlerComponent.h"
 
-DEFINE_LOG_CATEGORY(PacketHandlerLog);
 IMPLEMENT_MODULE(FReliabilityHandlerComponentModuleInterface, ReliabilityHandlerComponent);
 
 // RELIABILITY
@@ -8,8 +7,8 @@ ReliabilityHandlerComponent::ReliabilityHandlerComponent()
 : LocalPacketID(1)
 , RemotePacketID(0)
 , RemotePacketIDACKED(0)
-, ResendResolutionTime(0.5f)
 , LocalPacketIDACKED(0)
+, ResendResolutionTime(0.5f)
 {
 }
 

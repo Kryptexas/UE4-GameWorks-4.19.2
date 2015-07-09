@@ -273,8 +273,8 @@ void PacketHandler::QueuePacketForSending(BufferedPacket* PacketToQueue)
 
 // HANDLER COMPONENT
 HandlerComponent::HandlerComponent()
-: bActive(false)
-, State(Handler::Component::State::UnInitialized)
+: State(Handler::Component::State::UnInitialized)
+, bActive(false)
 , bInitialized(false)
 {
 
