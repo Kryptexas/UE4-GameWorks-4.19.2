@@ -221,7 +221,8 @@ FRepMovement::FRepMovement()
 	, Rotation(ForceInit)
 	, bSimulatedPhysicSleep(false)
 	, bRepPhysics(false)
-	, VectorQuantizationLevel(EVectorQuantization::RoundWholeNumber)
+	, LocationQuantizationLevel(EVectorQuantization::RoundWholeNumber)
+	, VelocityQuantizationLevel(EVectorQuantization::RoundWholeNumber)
 	, RotationQuantizationLevel(ERotatorQuantization::ByteComponents)
 {
 }
