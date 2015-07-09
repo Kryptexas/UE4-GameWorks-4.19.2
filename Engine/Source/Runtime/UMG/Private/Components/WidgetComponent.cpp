@@ -1094,7 +1094,12 @@ void UWidgetComponent::UpdateRenderTarget()
 
 void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 {
-	if( !BodySetup || bDrawSizeChanged )
+	if (Space == EWidgetSpace::Screen)
+	{
+		// We do not have a bodysetup in screen space
+		BodySetup = nullptr;
+	}
+	else if( !BodySetup || bDrawSizeChanged )
 	{
 		BodySetup = NewObject<UBodySetup>(this);
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
