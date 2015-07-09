@@ -34,7 +34,7 @@ class FShaderFormatGLSL : public IShaderFormat
 		UE_SHADER_GLSL_150ES3_1_VER = 3,
 		UE_SHADER_GLSL_ES2_VER_WEBGL  = 17,
 		UE_SHADER_GLSL_ES2_IOS_VER  = 6,
-		UE_SHADER_GLSL_310_ES_EXT_VER = 5,
+		UE_SHADER_GLSL_310_ES_EXT_VER = 6,
 	}; 
 
 	void CheckFormat(FName Format) const

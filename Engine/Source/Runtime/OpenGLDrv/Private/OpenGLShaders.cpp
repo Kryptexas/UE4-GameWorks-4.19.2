@@ -552,9 +552,12 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			{
 #if PLATFORM_DESKTOP
 				AppendCString(GlslCode, "#extension GL_ARB_separate_shader_objects : enable\n");
-#endif
 				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
 				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Interp Modifiers struct { PreType PostType; }\n");
+#else
+				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
+				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Modifiers Semantic { PreType PostType; }\n");
+#endif
 			}
 			else
 			{

@@ -749,6 +749,67 @@ class ir_gen_glsl_visitor : public ir_visitor
 		}
 	}
 
+	enum EPrecisionModifier
+	{
+		GLSL_PRECISION_DEFAULT,
+		GLSL_PRECISION_LOWP,
+		GLSL_PRECISION_MEDIUMP,
+		GLSL_PRECISION_HIGHP,
+	};
+
+	EPrecisionModifier GetPrecisionModifier(const struct glsl_type *type)
+	{
+		if (type->is_sampler() || type->is_image())
+		{
+			if (GDefaultPrecisionIsHalf && type->inner_type->base_type == GLSL_TYPE_FLOAT)
+			{
+				return GLSL_PRECISION_HIGHP;
+			}
+			else if (!GDefaultPrecisionIsHalf && type->inner_type->base_type == GLSL_TYPE_HALF)
+			{
+				return GLSL_PRECISION_MEDIUMP;
+			}
+			else // shadow samplers, integer textures etc
+			{
+				return GLSL_PRECISION_HIGHP;
+			}
+		}
+		else if (GDefaultPrecisionIsHalf && (type->base_type == GLSL_TYPE_FLOAT || (type->is_array() && type->element_type()->base_type == GLSL_TYPE_FLOAT)))
+		{
+			return GLSL_PRECISION_HIGHP;
+		}
+		else if (!GDefaultPrecisionIsHalf && (type->base_type == GLSL_TYPE_HALF || (type->is_array() && type->element_type()->base_type == GLSL_TYPE_HALF)))
+		{
+			return GLSL_PRECISION_MEDIUMP;
+		}
+		else if (type->is_integer())
+		{
+			return GLSL_PRECISION_HIGHP;
+		}
+		return GLSL_PRECISION_DEFAULT;
+	}
+
+	void AppendPrecisionModifier(char** buffer, EPrecisionModifier PrecisionModifier)
+	{
+		switch (PrecisionModifier)
+		{
+			case GLSL_PRECISION_LOWP:
+				ralloc_asprintf_append(buffer, "lowp ");
+				break;
+			case GLSL_PRECISION_MEDIUMP:
+				ralloc_asprintf_append(buffer, "mediump ");
+				break;
+			case GLSL_PRECISION_HIGHP:
+				ralloc_asprintf_append(buffer, "highp ");
+				break;
+			case GLSL_PRECISION_DEFAULT:
+				break;
+			default:
+				// we missed a type
+				check(false);
+		}
+	}
+
 	/**
 	* \name Visit methods
 	*
@@ -887,6 +948,14 @@ class ir_gen_glsl_visitor : public ir_visitor
 					const glsl_struct_field* field = &inner_type->fields.structure[0];
 					check(strcmp(field->name,"Data")==0);
 					
+					if (bEmitPrecision)
+					{
+						if (field->type->is_integer())
+						{
+							ralloc_asprintf_append(buffer, "flat ");
+						}
+						AppendPrecisionModifier(buffer, GetPrecisionModifier(field->type));
+					}
 					print_type_pre(field->type);
 					ralloc_asprintf_append(buffer, ", Data");
 					print_type_post(field->type);
@@ -969,23 +1038,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 				if (bEmitPrecision)
 				{
-					if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
-					{
-						ralloc_asprintf_append(buffer, "highp ");
-					}
-					else if (!GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_HALF)
-					{
-						ralloc_asprintf_append(buffer, "mediump ");
-					}
-					else if (var->type->inner_type->is_integer())
-					{
-						ralloc_asprintf_append(buffer, "highp ");
-					}
-					else
-					{
-						// we missed a type
-						check(false);
-					}
+					AppendPrecisionModifier(buffer, GetPrecisionModifier(var->type));
 				}
 				print_type_pre(var->type);
 			}
@@ -1012,33 +1065,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 					);
 				if (bEmitPrecision)
 				{
-					if (var->type->is_sampler())
-					{
-						if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
-						{
-							ralloc_asprintf_append(buffer, "highp ");
-						}
-						else if (!GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_HALF)
-						{
-							ralloc_asprintf_append(buffer, "mediump ");
-						}
-						else // shadow samplers, integer textures etc
-						{
-							ralloc_asprintf_append(buffer, "highp ");
-						}
-					}
-					else if (GDefaultPrecisionIsHalf && (var->type->base_type == GLSL_TYPE_FLOAT || (var->type->is_array() && var->type->element_type()->base_type == GLSL_TYPE_FLOAT)))
-					{
-						ralloc_asprintf_append(buffer, "highp ");
-					}
-					else if (!GDefaultPrecisionIsHalf && (var->type->base_type == GLSL_TYPE_HALF || (var->type->is_array() && var->type->element_type()->base_type == GLSL_TYPE_HALF)))
-					{
-						ralloc_asprintf_append(buffer, "mediump ");
-					}
-					else if (var->type->is_integer())
-					{
-						ralloc_asprintf_append(buffer, "highp ");
-					}
+					AppendPrecisionModifier(buffer, GetPrecisionModifier(var->type));
 				}
 
 				if (bGenerateLayoutLocations && var->explicit_location)
