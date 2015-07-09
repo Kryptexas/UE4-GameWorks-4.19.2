@@ -308,6 +308,9 @@ private:
 	/** Handles an on collection renamed event */
 	void HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection);
 
+	/** Handles an on collection updated event */
+	void HandleCollectionUpdated(const FCollectionNameType& Collection);
+
 	/** Handles a path removed event */
 	void HandlePathRemoved(const FString& Path);
 
