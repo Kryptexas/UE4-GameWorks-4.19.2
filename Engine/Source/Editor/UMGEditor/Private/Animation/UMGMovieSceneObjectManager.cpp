@@ -54,13 +54,13 @@ void UUMGMovieSceneObjectManager::InitPreviewObjects()
 
 		if (FoundSlot == nullptr)
 		{
-			IdToPreviewObjects.Add(Binding.AnimationId, FoundObject);
-			PreviewObjectToIds.Add(FoundObject, Binding.AnimationId);
+			IdToPreviewObjects.Add(Binding.AnimationGuid, FoundObject);
+			PreviewObjectToIds.Add(FoundObject, Binding.AnimationGuid);
 		}
 		else
 		{
-			IdToSlotContentPreviewObjects.Add(Binding.AnimationId, FoundSlot->Content);
-			SlotContentPreviewObjectToIds.Add(FoundSlot->Content, Binding.AnimationId);
+			IdToSlotContentPreviewObjects.Add(Binding.AnimationGuid, FoundSlot->Content);
+			SlotContentPreviewObjectToIds.Add(FoundSlot->Content, Binding.AnimationGuid);
 		}
 	}
 }
@@ -111,7 +111,7 @@ void UUMGMovieSceneObjectManager::BindPossessableObject(const FGuid& ObjectId, U
 		// to look up that contains the slot itself (the thing we are animating).
 		FWidgetAnimationBinding NewBinding;
 		{
-			NewBinding.AnimationId = ObjectId;
+			NewBinding.AnimationGuid = ObjectId;
 			NewBinding.SlotWidgetName = PossessedSlot->GetFName();
 			NewBinding.WidgetName = PossessedSlot->Content->GetFName();
 		}
@@ -125,7 +125,7 @@ void UUMGMovieSceneObjectManager::BindPossessableObject(const FGuid& ObjectId, U
 
 		FWidgetAnimationBinding NewBinding;
 		{
-			NewBinding.AnimationId = ObjectId;
+			NewBinding.AnimationGuid = ObjectId;
 			NewBinding.WidgetName = PossessedObject.GetFName();
 		}
 
@@ -252,7 +252,7 @@ void UUMGMovieSceneObjectManager::UnbindPossessableObjects(const FGuid& ObjectId
 
 		WidgetAnimation->Modify();
 		WidgetAnimation->AnimationBindings.RemoveAll([&](const FWidgetAnimationBinding& Binding) {
-			return Binding.AnimationId == ObjectId;
+			return Binding.AnimationGuid == ObjectId;
 		});
 	}
 }
