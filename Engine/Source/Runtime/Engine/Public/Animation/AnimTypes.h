@@ -103,6 +103,10 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings, meta = (ClampMin = "0"))
 	int32 NotifyFilterLOD;
 
+	/** If disabled this notify will be skipped on dedicated servers */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings)
+	bool bTriggerOnDedicatedServer;
+
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
 	UPROPERTY()
@@ -128,6 +132,7 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 		, NotifyTriggerChance(1.f)
 		, NotifyFilterType(ENotifyFilterType::NoFiltering)
 		, NotifyFilterLOD(0)
+		, bTriggerOnDedicatedServer(true)
 #if WITH_EDITORONLY_DATA
 		, TrackIndex(0)
 #endif // WITH_EDITORONLY_DATA
