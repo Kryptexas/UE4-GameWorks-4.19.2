@@ -193,6 +193,7 @@ void FNodeAllocationInfo::PrepareCallstackData( const TArray<FName>& InDecodedCa
 /** Holds stats stack state, used to preserve continuity when the game frame has changed. */
 struct FStackState
 {
+	/** Default constructor. */
 	FStackState()
 		: bIsBrokenCallstack( false )
 	{}
@@ -217,186 +218,28 @@ static const double NumSecondsBetweenLogs = 5.0;
 
 void FStatsMemoryDumpCommand::InternalRun()
 {
+	FString SourceFilepath;
 	FParse::Value( FCommandLine::Get(), TEXT( "-INFILE=" ), SourceFilepath );
 
-	const int64 Size = IFileManager::Get().FileSize( *SourceFilepath );
-	if( Size < 4 )
+	FStatsReadFile* NewReader = FStatsReadFile::CreateReaderForRawStats( *SourceFilepath, nullptr );
+	if (NewReader)
 	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *SourceFilepath );
-		return;
-	}
-	TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *SourceFilepath ) );
-	if( !FileReader )
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *SourceFilepath );
-		return;
-	}
-
-	FStatsReadStream Stream;
-
-	if( !Stream.ReadHeader( *FileReader ) )
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open, bad magic: %s" ), *SourceFilepath );
-		return;
-	}
-
-	UE_LOG( LogStats, Warning, TEXT( "Reading a raw stats file for memory profiling: %s" ), *SourceFilepath );
-
-	const bool bIsFinalized = Stream.Header.IsFinalized();
-	check( bIsFinalized );
-	check( Stream.Header.Version >= EStatMagicWithHeader::VERSION_6 );
-
-	FStatsThreadState StatsThreadStats;
-	StatsThreadStats.MarkAsLoaded();
-
-	TArray<FStatMessage> Messages;
-	if( Stream.Header.bRawStatsFile )
-	{
-		FScopeLogTime SLT( TEXT( "FStatsMemoryDumpCommand::InternalRun" ), nullptr, FScopeLogTime::ScopeLog_Seconds );
-
-		// Read metadata.
-		TArray<FStatMessage> MetadataMessages;
-		Stream.ReadFNamesAndMetadataMessages( *FileReader, MetadataMessages );
-		StatsThreadStats.ProcessMetaDataOnly( MetadataMessages );
-
-		ThreadIdToName = StatsThreadStats.Threads;
-
-		// Find all UObject metadata messages.
-		for( const auto& Meta : MetadataMessages )
-		{
-			const FName EncName = Meta.NameAndInfo.GetEncodedName();
-			const FName RawName = Meta.NameAndInfo.GetRawName();
-			const FString Desc = FStatNameAndInfo::GetShortNameFrom( RawName ).GetPlainNameString();
-			const bool bContainsUObject = Desc.Contains( TEXT( "//" ) );
-			if( bContainsUObject )
-			{
-				UObjectNames.Add( RawName );
-			}
-		}
-
-		const int64 CurrentFilePos = FileReader->Tell();
-
-		// Read frames offsets.
-		Stream.ReadFramesOffsets( *FileReader );
-
-		// Buffer used to store the compressed and decompressed data.
-		TArray<uint8> SrcArray;
-		TArray<uint8> DestArray;
-		const bool bHasCompressedData = Stream.Header.HasCompressedData();
-		check( bHasCompressedData );
-
-		PlatformName = Stream.Header.PlatformName;
-
-		TMap<int64, FStatPacketArray> CombinedHistory;
-		int64 TotalDataSize = 0;
-		int64 TotalStatMessagesNum = 0;
-		int64 MaximumPacketSize = 0;
-		int64 TotalPacketsNum = 0;
-		// Read all packets sequentially, forced by the memory profiler which is now a part of the raw stats.
-		// !!CAUTION!! Frame number in the raw stats is pointless, because it is time/cycles based, not frame based.
-		// Background threads usually execute time consuming operations, so the frame number won't be valid.
-		// Needs to be combined by the thread and the time, not by the frame number.
-		{
-			// Display log information once per 5 seconds to avoid spamming.
-			double PreviousSeconds = FPlatformTime::Seconds();
-			const int64 FrameOffset0 = Stream.FramesInfo[0].FrameFileOffset;
-			FileReader->Seek( FrameOffset0 );
-
-			const int64 FileSize = FileReader->TotalSize();
-
-			while( FileReader->Tell() < FileSize )
-			{
-				// Read the compressed data.
-				FCompressedStatsData UncompressedData( SrcArray, DestArray );
-				*FileReader << UncompressedData;
-				if( UncompressedData.HasReachedEndOfCompressedData() )
-				{
-					break;
-				}
-
-				FMemoryReader MemoryReader( DestArray, true );
-
-				FStatPacket* StatPacket = new FStatPacket();
-				Stream.ReadStatPacket( MemoryReader, *StatPacket );
-
-				const int64 StatPacketFrameNum = StatPacket->Frame;
-				FStatPacketArray& Frame = CombinedHistory.FindOrAdd( StatPacketFrameNum );
-
-				// Check if we need to combine packets from the same thread.
-				FStatPacket** CombinedPacket = Frame.Packets.FindByPredicate( [&]( FStatPacket* Item ) -> bool
-				{
-					return Item->ThreadId == StatPacket->ThreadId;
-				} );
-
-				const int64 PacketSize = StatPacket->StatMessages.GetAllocatedSize();
-				TotalStatMessagesNum += StatPacket->StatMessages.Num();
-
-				if( CombinedPacket )
-				{
-					TotalDataSize -= (*CombinedPacket)->StatMessages.GetAllocatedSize();
-					(*CombinedPacket)->StatMessages += StatPacket->StatMessages;
-					TotalDataSize += (*CombinedPacket)->StatMessages.GetAllocatedSize();
-
-					delete StatPacket;
-				}
-				else
-				{
-					Frame.Packets.Add( StatPacket );
-					TotalDataSize += PacketSize;
-				}
-
-				const double CurrentSeconds = FPlatformTime::Seconds();
-				if( CurrentSeconds > PreviousSeconds + NumSecondsBetweenLogs )
-				{
-					const int32 PctPos = int32( 100.0*FileReader->Tell() / FileSize );
-					UE_LOG( LogStats, Log, TEXT( "%3i%% %10llu (%.1f MB) read messages, last read frame %4i" ), PctPos, TotalStatMessagesNum, TotalDataSize / 1024.0f / 1024.0f, StatPacketFrameNum );
-					PreviousSeconds = CurrentSeconds;
-				}
-			
-				MaximumPacketSize = FMath::Max( MaximumPacketSize, PacketSize );			
-				TotalPacketsNum++;
-			}
-		}
-
-		// Dump frame stats
-		for( const auto& It : CombinedHistory )
-		{
-			const int64 FrameNum = It.Key;
-			int64 FramePacketsSize = 0;
-			int64 FrameStatMessages = 0;
-			int64 FramePackets = It.Value.Packets.Num(); // Threads
-			for( const auto& It2 : It.Value.Packets )
-			{
-				FramePacketsSize += It2->StatMessages.GetAllocatedSize();
-				FrameStatMessages += It2->StatMessages.Num();
-			}
-
-			UE_LOG( LogStats, Warning, TEXT( "Frame: %10llu/%3lli Size: %.1f MB / %10lli" ), 
-					FrameNum, 
-					FramePackets, 
-					FramePacketsSize / 1024.0f / 1024.0f,
-					FrameStatMessages );
-		}
-
-		UE_LOG( LogStats, Warning, TEXT( "TotalPacketSize: %.1f MB, Max: %1f MB" ),
-				TotalDataSize / 1024.0f / 1024.0f,
-				MaximumPacketSize / 1024.0f / 1024.0f );
-
-		TArray<int64> Frames;
-		CombinedHistory.GenerateKeyArray( Frames );
-		Frames.Sort();
-		const int64 MiddleFrame = Frames[Frames.Num() / 2];
-
-		ProcessMemoryOperations( CombinedHistory );
+		NewReader->ReadSynchronously();
+		PlatformName = NewReader->Header.PlatformName;
+		ProcessMemoryOperations( *NewReader );
+		delete NewReader;
 	}
 }
 
 
-void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPacketArray>& CombinedHistory )
+void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& File )
 {
+	const TMap<int64, FStatPacketArray>& CombinedHistory = File.CombinedHistory;
+
 	// This is only example code, no fully implemented, may sometimes crash.
 	// This code is not optimized. 
 	double PreviousSeconds = FPlatformTime::Seconds();
+	int32 CurrentStatMessageIndex = 0;
 	uint64 NumMemoryOperations = 0;
 
 	// Generate frames
@@ -423,15 +266,6 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 
 	for( int32 FrameIndex = 0; FrameIndex < Frames.Num(); ++FrameIndex )
 	{
-		{
-			const double CurrentSeconds = FPlatformTime::Seconds();
-			if( CurrentSeconds > PreviousSeconds + NumSecondsBetweenLogs )
-			{
-				UE_LOG( LogStats, Warning, TEXT( "Processing frame %i/%i" ), FrameIndex+1, Frames.Num() );
-				PreviousSeconds = CurrentSeconds;
-			}
-		}
-
 		const int64 TargetFrame = Frames[FrameIndex];
 		const int64 Diff = TargetFrame - FirstFrame;
 		const FStatPacketArray& Frame = CombinedHistory.FindChecked( TargetFrame );
@@ -439,18 +273,8 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 		bool bAtLeastOnePacket = false;
 		for( int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++ )
 		{
-			{
-				const double CurrentSeconds = FPlatformTime::Seconds();
-				if( CurrentSeconds > PreviousSeconds + NumSecondsBetweenLogs )
-				{
-					UE_LOG( LogStats, Log, TEXT( "Processing packet %i/%i" ), PacketIndex, Frame.Packets.Num() );
-					PreviousSeconds = CurrentSeconds;
-					bAtLeastOnePacket = true;
-				}
-			}
-
 			const FStatPacket& StatPacket = *Frame.Packets[PacketIndex];
-			const FName& ThreadFName = ThreadIdToName.FindChecked( StatPacket.ThreadId );
+			const FName& ThreadFName = File.State.Threads.FindChecked( StatPacket.ThreadId );
 
 			FStackState* StackState = StackStates.Find( ThreadFName );
 			if( !StackState )
@@ -462,26 +286,24 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 
 			const FStatMessagesArray& Data = StatPacket.StatMessages;
 
-			int32 LastPct = 0;
-			const int32 NumDataElements = Data.Num();
-			const int32 OnerPercent = FMath::Max( NumDataElements / 100, 1024 );
-			bool bAtLeastOneMessage = false;
-			for( int32 Index = 0; Index < NumDataElements; Index++ )
+			const int32 NumStatMessages = Data.Num();
+			const int32 OnerPercent = FMath::Max( NumStatMessages / 100, 1024 );
+			for( int32 Index = 0; Index < NumStatMessages; Index++ )
 			{
+				CurrentStatMessageIndex++;
+
 				if( Index % OnerPercent )
 				{
 					const double CurrentSeconds = FPlatformTime::Seconds();
 					if( CurrentSeconds > PreviousSeconds + NumSecondsBetweenLogs )
 					{
-						const int32 CurrentPct = int32( 100.0*(Index + 1) / NumDataElements );
-						UE_LOG( LogStats, Log, TEXT( "Processing %3i%% (%i/%i) stat messages" ), CurrentPct, Index, NumDataElements );
+						const int32 CurrentPct = int32( 100.0*CurrentStatMessageIndex / NumStatMessages );
+						UE_LOG( LogStats, Log, TEXT( "Processing %3i%% (%i/%i) stat messages [Frame: %3i, Packet: %2i]" ), CurrentPct, Index, NumStatMessages, FrameIndex, PacketIndex );
 						PreviousSeconds = CurrentSeconds;
-						bAtLeastOneMessage = true;
 					}
 				}
 
 				const FStatMessage& Item = Data[Index];
-
 				const EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 				const FName RawName = Item.NameAndInfo.GetRawName();
 
@@ -638,14 +460,6 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 					}
 				}
 			}
-			if( bAtLeastOneMessage )
-			{
-				PreviousSeconds -= NumSecondsBetweenLogs;
-			}
-		}
-		if( bAtLeastOnePacket )
-		{
-			PreviousSeconds -= NumSecondsBetweenLogs;
 		}
 	}
 
@@ -964,7 +778,7 @@ void FStatsMemoryDumpCommand::GenerateScopedTreeAllocations( const TMap<FName, F
 }
 
 
-void FStatsMemoryDumpCommand::GenerateMemoryUsageReport( const TMap<uint64, FAllocationInfo>& AllocationMap )
+void FStatsMemoryDumpCommand::GenerateMemoryUsageReport( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames )
 {
 	if( AllocationMap.Num() == 0 )
 	{
@@ -1049,7 +863,7 @@ void FStatsMemoryDumpCommand::ProcessAndDumpScopedAllocations( const TMap<uint64
 	MemoryReport.CycleRow();
 }
 
-void FStatsMemoryDumpCommand::ProcessAndDumpUObjectAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap )
+void FStatsMemoryDumpCommand::ProcessAndDumpUObjectAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames )
 {
 	// This code is not optimized. 
 	FScopeLogTime SLT( TEXT( "ProcessingUObjectAllocations" ), nullptr, FScopeLogTime::ScopeLog_Seconds );
@@ -1085,7 +899,7 @@ void FStatsMemoryDumpCommand::ProcessAndDumpUObjectAllocations( const TMap<uint6
 			for( int32 Index = DecodedCallstack.Num() - 1; Index >= 0; --Index )
 			{
 				const FName LongName = DecodedCallstack[Index];
-				const bool bValid = UObjectNames.Contains( LongName );
+				const bool bValid = UObjectRawNames.Contains( LongName );
 				if( bValid )
 				{
 					const FString ObjectName = FStatNameAndInfo::GetShortNameFrom( LongName ).GetPlainNameString();

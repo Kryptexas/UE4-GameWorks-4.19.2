@@ -488,8 +488,6 @@ public:
 	/** Internal method to add meta data packets to the data structures. **/
 	void ProcessMetaDataOnly(TArray<FStatMessage>& Data);
 
-
-
 	/** Toggles tracking the most memory expensive stats. */
 	void ToggleFindMemoryExtensiveStats();
 

@@ -10,53 +10,47 @@ class FAsyncStatsWrite;
 /**
 * Magic numbers for stats streams, this is for the first version.
 */
-namespace EStatMagicNoHeader
+enum EStatMagicNoHeader : uint32
 {
-	enum Type
-	{
-		MAGIC = 0x7E1B83C1,
-		MAGIC_SWAPPED = 0xC1831B7E,
-		NO_VERSION = 0,
-	};
-}
+	MAGIC_NO_HEADER = 0x7E1B83C1,
+	MAGIC_NO_HEADER_SWAPPED = 0xC1831B7E,
+	NO_VERSION = 0,
+};
 
 /**
 * Magic numbers for stats streams, this is for the second and later versions.
 * Allows more advanced options.
 */
-namespace EStatMagicWithHeader
+enum EStatMagicWithHeader : uint32
 {
-	enum Type
-	{
-		MAGIC = 0x10293847,
-		MAGIC_SWAPPED = 0x47382910,
-		VERSION_2 = 2,
-		VERSION_3 = 3,
+	MAGIC = 0x10293847,
+	MAGIC_SWAPPED = 0x47382910,
+	VERSION_2 = 2,
+	VERSION_3 = 3,
 
-		/**
-		 *	Added support for compressing the stats data, now each frame is compressed.
-		 *	!!CAUTION!! Deprecated.
-		 */
-		VERSION_4 = 4,
-		HAS_COMPRESSED_DATA_VER = VERSION_4,
+	/**
+	*	Added support for compressing the stats data, now each frame is compressed.
+	*	!!CAUTION!! Deprecated.
+	*/
+	VERSION_4 = 4,
+	HAS_COMPRESSED_DATA_VER = VERSION_4,
 
-		/**
-		 *	New low-level raw stats with memory profiler functionality.
-		 *  !!CAUTION!! Not backward compatible with version 4.
-		 */
-		VERSION_5 = 5,
+	/**
+	*	New low-level raw stats with memory profiler functionality.
+	*  !!CAUTION!! Not backward compatible with version 4.
+	*/
+	VERSION_5 = 5,
 
-		/**
-		 *	Added realloc message to avoid sending alloc and free
-		 *	Should also reduce the amount of all messages
-		 *  !!CAUTION!! Not backward compatible with version 5.
-		 */
-		VERSION_6 = 6,
+	/**
+	*	Added realloc message to avoid sending alloc and free
+	*	Should also reduce the amount of all messages
+	*  !!CAUTION!! Not backward compatible with version 5.
+	*/
+	VERSION_6 = 6,
 
-		/** Latest version. */
-		VERSION_LATEST = VERSION_6,
-	};
-}
+	/** Latest version. */
+	VERSION_LATEST = VERSION_6,
+};
 
 struct EStatsFileConstants
 {
@@ -559,11 +553,11 @@ public:
 
 		uint32 Magic = 0;
 		Ar << Magic;
-		if( Magic == EStatMagicNoHeader::MAGIC )
+		if( Magic == EStatMagicNoHeader::MAGIC_NO_HEADER )
 		{
 
 		}
-		else if( Magic == EStatMagicNoHeader::MAGIC_SWAPPED )
+		else if( Magic == EStatMagicNoHeader::MAGIC_NO_HEADER_SWAPPED )
 		{
 			Ar.SetByteSwapping( true );
 		}
@@ -590,9 +584,7 @@ public:
 		return true;
 	}
 
-	// @TODO yrx 2014-12-02 Add a better way to read the file.
-
-	/** Reads a stat packed from the specified archive. */
+	/** Reads a stat packed from the specified archive. Only for raw stats files. */
 	void ReadStatPacket( FArchive& Ar, FStatPacket& StatPacked )
 	{
 		Ar << StatPacked.Frame;
@@ -751,6 +743,147 @@ public:
 	}
 };
 
+/** Raw stats information. */
+struct FRawStatsFileInfo
+{
+	/** Default constructor. */
+	FRawStatsFileInfo()
+		: TotalPacketsSize( 0 )
+		, TotalStatMessagesNum( 0 )
+		, MaximumPacketSize( 0 )
+		, TotalPacketsNum( 0 )
+	{}
+
+	/** Size of all packets. */
+	int64 TotalPacketsSize;
+
+	/** Number of all stat messages. */
+	int64 TotalStatMessagesNum;
+
+	/** Maximum packet size. */
+	int64 MaximumPacketSize;
+
+	/** Number of all packets. */
+	int64 TotalPacketsNum;
+};
+
+/** Enumerates raw stats reading stages. */
+enum ERawStatsReadingStage
+{
+	RS_ReadingAndCombiningPackets = 0,
+	RS_DecodingStatMessages,
+	/** Memory profiler only. */
+	RS_SortingSequence,
+
+};
+
+/** Struct used to read from ue4stats/ue4statsraw files, initializes all metadata and starts a process of reading the file asynchronously. */
+// #YRX_Stats: 2015-07-08 Maybe add IStatsReadFile -> FStatsReadFile, FRawStatsReadFile
+// #YRX_Stats: 2015-07-09 Remove CORE_API
+struct CORE_API FStatsReadFile
+{
+protected:
+	/** Number of seconds between updating the current stage. */
+	static const double NumSecondsBetweenUpdates;
+
+	/** Delegate that FStatsReadFile calls on the instance whenever we have a new frame. */
+	DECLARE_DELEGATE_OneParam( FOnNewStatPacket, TArray<FStatMessage>* );
+
+	/** Delegate that FStatsReadFile calls on the instance whenever we have a new raw stats packet. */
+	DECLARE_DELEGATE_OneParam( FOnNewRawStatPacket, FStatPacket* );
+
+public:
+	/** Creates a new reader for regular stats file. Will be nullptr for invalid files. */
+	static FStatsReadFile* CreateReaderForRegularStats( const TCHAR* Filename, FOnNewStatPacket InNewStatPacket );
+
+	/** Creates a new reader for raw stats file. Will be nullptr for invalid files. */
+	static FStatsReadFile* CreateReaderForRawStats( const TCHAR* Filename, FOnNewRawStatPacket InNewRawStatPacket );
+
+	/** Read the file on the current thread. This is a blocking operation. */
+	void ReadSynchronously();
+
+	/** Read the file using the async tasks on the pool thread. The read data is sent to the game thread using the task graph. This is a non-blocking operation. */
+	void ReadAsynchronously();
+
+	/**	 
+	 * @return true, if any asynchronous operation is being processed
+	 */
+	bool IsBusy()
+	{
+		// #YRX_STATS: 2015-07-09 
+		return false;
+	}
+	
+	/**
+	 * @return current stage of reading.
+	 */
+	const ERawStatsReadingStage GetReadingStage() const
+	{
+		return (ERawStatsReadingStage)ReadingStage.GetValue();
+	}
+
+protected:
+	/** Initialization constructor. */
+	FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile );
+
+public:
+	/** Destructor. */
+	~FStatsReadFile();
+
+protected:
+	/**
+	 * Prepares file to be loaded, makes sanity checks, reads and initializes metadata
+	 * @return true, if the process was completed successfully
+	 */
+	bool PrepareLoading();
+
+	/** Dumps combined history stats. Only for raw stats. */
+	void DumpCombinedHistoryStats();
+
+//protected:
+public:
+	/** Current state of the stats. Mostly for metadata. */
+	FStatsThreadState State;
+
+	/** Reading stream. */
+	FStatsReadStream Stream;
+
+	/** Reference to the stream's header. */
+	FStatsStreamHeader& Header;
+
+	/** File reader. */
+	FArchive* Reader;
+
+	/** Delegate we fire every time we read one frame of data. The data must be freed after processing. */
+	mutable FOnNewStatPacket NewStatPacket;
+
+	/** Delegate we fire every time we read one raw stats packet. The data must be freed after processing. */
+	mutable FOnNewRawStatPacket NewRawStatPacket;
+
+	/** Basic information about the stats file. */
+	FRawStatsFileInfo FileInfo;
+
+	/** Combined history for raw packets, indexed by a frame number. */
+	TMap<int64, FStatPacketArray> CombinedHistory;
+
+	/** All raw names that contains a path to an UObject. */
+	TSet<FName> UObjectRawNames;
+
+	/** Current stage of reading. Thread safe. */
+	FThreadSafeCounter ReadingStage;
+
+	/** Percentage progress of the current stage. */
+	FThreadSafeCounter StageProgress;
+
+	/** Time of the last stage update. */
+	double LastUpdateTime;
+
+	/** Filename. */
+	const FString Filename;
+
+	/** Whether this stats file uses raw data. */
+	const bool bRawStatsFile;
+};
 
 /*-----------------------------------------------------------------------------
 	Commands functionality
@@ -769,10 +902,10 @@ struct FCommandStatsFile
 	{}
 
 	/** Stat StartFile. */
-	void Start( const FString& File );
+	void Start( const FString& Filename );
 
 	/** Stat StartFileRaw. */
-	void StartRaw( const FString& File );
+	void StartRaw( const FString& Filename );
 
 	/** Stat StopFile. */
 	void Stop();
