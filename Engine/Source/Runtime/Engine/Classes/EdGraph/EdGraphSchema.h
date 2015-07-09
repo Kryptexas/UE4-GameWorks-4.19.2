@@ -298,9 +298,6 @@ public:
 		ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& RootCategory = TEXT("") );
 
 		/**
-		 * Concatenates RootCategory with the first action's category (RootCategory
-		 * coming first, as a prefix, and the splits the category hierarchy apart 
-		 * into separate entries.
 		 * 
 		 * @param  HierarchyOut	A list of the category tiers that this action should be listed under.
 		 */
@@ -318,8 +315,17 @@ public:
 		TArray< TSharedPtr<FEdGraphSchemaAction> > Actions;
 
 	private:
+		/**
+		 *Concatenates RootCategory with the first action's category (RootCategory
+		 * coming first, as a prefix, and the splits the category hierarchy apart
+		 * into separate entries.
+		 */
+		void InitCategoryChain();
+
 		/** The category to list this entry under (could be left empty, as it gets concatenated with the first sub-action's category) */
 		FString RootCategory;
+		/** The chain of categories */
+		TArray<FString> CategoryChain;
 	};
 private:
 

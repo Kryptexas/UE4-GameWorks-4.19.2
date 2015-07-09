@@ -308,7 +308,7 @@ bool FGraphActionNode::IsCategoryNode() const
 //------------------------------------------------------------------------------
 bool FGraphActionNode::IsActionNode() const
 {
-	return HasValidAction();
+	return Actions.Num() != 0;
 }
 
 //------------------------------------------------------------------------------
@@ -361,15 +361,14 @@ bool FGraphActionNode::HasValidAction() const
 //------------------------------------------------------------------------------
 TSharedPtr<FEdGraphSchemaAction> FGraphActionNode::GetPrimaryAction() const
 {
-	TSharedPtr<FEdGraphSchemaAction> PrimaryAction;
-	for (TSharedPtr<FEdGraphSchemaAction> NodeAction : Actions)
+	for (const TSharedPtr<FEdGraphSchemaAction>& NodeAction : Actions)
 	{
 		if (NodeAction.IsValid())
 		{
-			PrimaryAction = NodeAction;
+			return NodeAction;
 		}
 	}
-	return PrimaryAction;
+	return TSharedPtr<FEdGraphSchemaAction>();
 }
 
 //------------------------------------------------------------------------------

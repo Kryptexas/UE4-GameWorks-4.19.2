@@ -55,34 +55,20 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( TSharedPtr<FEdGraphSchema
 	: RootCategory(CategoryPrefix)
 {
 	Actions.Add( InAction );
+	InitCategoryChain();
 }
 
 FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& CategoryPrefix/* = TEXT("") */ )
 	: RootCategory(CategoryPrefix)
 {
 	Actions = InActions;
+	InitCategoryChain();
 }
 
 void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>& HierarchyOut) const
 {
 #if WITH_EDITOR
-	static FString const CategoryDelim("|");
-	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(HierarchyOut, *CategoryDelim, true);
-
-	if (Actions.Num() > 0)
-	{
-		TArray<FString> SubCategoryChain;
-
-		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category.ToString());
-		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
-
-		HierarchyOut.Append(SubCategoryChain);
-	}
-
-	for (FString& Category : HierarchyOut)
-	{
-		Category.Trim();
-	}
+	HierarchyOut = CategoryChain;
 #endif
 }
 
@@ -95,6 +81,27 @@ void FGraphActionListBuilderBase::ActionGroup::PerformAction( class UEdGraph* Pa
 		{
 			CurrentAction->PerformAction( ParentGraph, FromPins, Location );
 		}
+	}
+}
+
+void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
+{
+	static FString const CategoryDelim("|");
+	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(CategoryChain, *CategoryDelim, true);
+
+	if (Actions.Num() > 0)
+	{
+		TArray<FString> SubCategoryChain;
+
+		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category.ToString());
+		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
+
+		CategoryChain.Append(SubCategoryChain);
+	}
+
+	for (FString& Category : CategoryChain)
+	{
+		Category.Trim();
 	}
 }
 
