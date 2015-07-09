@@ -42,7 +42,7 @@ FName BuildCurveName( TSharedPtr<FSectionKeyAreaNode> KeyAreaNode )
 	return FName(*FString::Join(NameParts, TEXT(" - ")));
 }
 
-FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree )
+FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, ECurveEditorCurveVisibility::Type CurveVisibility )
 {
 	SequencerNodeTree = InSequencerNodeTree;
 
@@ -56,18 +56,19 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 			if ( RichCurve != nullptr )
 			{
 				bool bAddCurve = false;
-				switch ( SequencerNodeTree->GetSequencer().GetSettings()->GetCurveVisibility() )
+				switch ( CurveVisibility )
 				{
-				case ESequencerCurveVisibility::AllCurves:
+				case ECurveEditorCurveVisibility::AllCurves:
 					bAddCurve = true;
 					break;
-				case ESequencerCurveVisibility::SelectedCurves:
+				case ECurveEditorCurveVisibility::SelectedCurves:
 					bAddCurve = KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode);
 					break;
-				case ESequencerCurveVisibility::AnimatedCurves:
+				case ECurveEditorCurveVisibility::AnimatedCurves:
 					bAddCurve = RichCurve->GetNumKeys() > 0;
 					break;
 				}
+				
 				if ( bAddCurve )
 				{
 					FName CurveName = BuildCurveName(KeyAreaNode);

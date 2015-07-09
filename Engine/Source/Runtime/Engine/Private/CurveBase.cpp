@@ -750,8 +750,98 @@ static float BezierInterp2(float P0, float Y1, float Y2, float P3, float mu)
 	return Result;
 }
 
-float FRichCurve::Eval(const float InTime, float DefaultValue) const
+static void CycleTime(float MinTime, float MaxTime, float& InTime, int& CycleCount)
 {
+	float InitTime = InTime;
+	float Duration = MaxTime - MinTime;
+
+	if (InTime > MaxTime)
+	{
+		CycleCount = FMath::FloorToInt((MaxTime-InTime)/Duration);
+		InTime = InTime + Duration*CycleCount;
+	}
+	else if (InTime < MinTime)
+	{
+		CycleCount = FMath::FloorToInt((InTime-MinTime)/Duration);
+		InTime = InTime - Duration*CycleCount;
+	}
+
+	if (InTime == MaxTime && InitTime < MinTime)
+	{
+		InTime = MinTime;
+	}
+
+	if (InTime == MinTime && InitTime > MaxTime)
+	{
+		InTime = MaxTime;
+	}
+
+	CycleCount = FMath::Abs(CycleCount);
+}
+
+void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
+{
+	const int32 NumKeys = Keys.Num();
+	if (NumKeys < 2)
+	{
+		return;
+	} 
+	else if (InTime <= Keys[0].Time)
+	{
+		if (PreInfinityExtrap != RCCE_Linear && PreInfinityExtrap != RCCE_Constant)
+		{
+			float MinTime = Keys[0].Time;
+			float MaxTime = Keys[NumKeys - 1].Time;
+
+			int CycleCount = 0;
+			CycleTime(MinTime, MaxTime, InTime, CycleCount);
+
+			if (PreInfinityExtrap == RCCE_CycleWithOffset)
+			{
+				float DV = Keys[0].Value - Keys[NumKeys - 1].Value;
+				CycleValueOffset = DV * CycleCount;
+			}
+			else if (PreInfinityExtrap == RCCE_Oscillate)
+			{
+				if (CycleCount % 2 == 1)
+				{
+					InTime = MinTime + (MaxTime - InTime);
+				}
+			}
+		}
+	}
+	else if (InTime >= Keys[NumKeys - 1].Time)
+	{
+		if (PostInfinityExtrap != RCCE_Linear && PostInfinityExtrap != RCCE_Constant)
+		{
+			float MinTime = Keys[0].Time;
+			float MaxTime = Keys[NumKeys - 1].Time;
+
+			int CycleCount = 0; 
+			CycleTime(MinTime, MaxTime, InTime, CycleCount);
+
+			if (PostInfinityExtrap == RCCE_CycleWithOffset)
+			{
+				float DV = Keys[NumKeys - 1].Value - Keys[0].Value;
+				CycleValueOffset = DV * CycleCount;
+			}
+			else if (PostInfinityExtrap == RCCE_Oscillate)
+			{
+				if (CycleCount % 2 == 1)
+				{
+					InTime = MinTime + (MaxTime - InTime);
+				}
+			}
+		}
+	}
+}
+
+float FRichCurve::Eval(float InTime, float DefaultValue) const
+{
+	// Remap time if extrapolation is present and compute offset value to use if cycling 
+	float CycleValueOffset = 0;
+	RemapTimeValue(InTime, CycleValueOffset);
+
 	const int32 NumKeys = Keys.Num();
 	float InterpVal = DefaultValue;
 
@@ -762,8 +852,26 @@ float FRichCurve::Eval(const float InTime, float DefaultValue) const
 	} 
 	else if (NumKeys < 2 || (InTime <= Keys[0].Time))
 	{
-		// If only one point, or before the first point in the curve, return the first points value.
-		InterpVal = Keys[0].Value;
+		if (PreInfinityExtrap == RCCE_Linear && NumKeys > 1)
+		{
+			float DT = Keys[1].Time - Keys[0].Time;
+			
+			if (FMath::IsNearlyZero(DT))
+			{
+				InterpVal = Keys[0].Value;
+			}
+			else
+			{
+				float DV = Keys[1].Value - Keys[0].Value;
+				float Slope = DV / DT;
+				InterpVal = Slope * (InTime - Keys[0].Time) + Keys[0].Value;
+			}
+		}
+		else
+		{
+			// Otherwise if constant or in a cycle or oscillate, always use the first key value
+			InterpVal = Keys[0].Value;
+		}
 	}
 	else if (InTime < Keys[NumKeys - 1].Time)
 	{
@@ -817,11 +925,29 @@ float FRichCurve::Eval(const float InTime, float DefaultValue) const
 	}
 	else
 	{
-		// If beyond the last point in the curve, return its value.
-		InterpVal = Keys[NumKeys - 1].Value;
+		if (PostInfinityExtrap == RCCE_Linear)
+		{
+			float DT = Keys[NumKeys - 2].Time - Keys[NumKeys - 1].Time;
+			
+			if (FMath::IsNearlyZero(DT))
+			{
+				InterpVal = Keys[NumKeys - 1].Value;
+			}
+			else
+			{
+				float DV = Keys[NumKeys - 2].Value - Keys[NumKeys - 1].Value;
+				float Slope = DV / DT;
+				InterpVal = Slope * (InTime - Keys[NumKeys - 1].Time) + Keys[NumKeys - 1].Value;
+			}
+		}
+		else
+		{
+			// Otherwise if constant or in a cycle or oscillate, always use the last key value
+			InterpVal = Keys[NumKeys - 1].Value;
+		}
 	}
 
-	return InterpVal;
+	return InterpVal+CycleValueOffset;
 }
 
 
@@ -838,6 +964,12 @@ bool FRichCurve::operator==(const FRichCurve& Curve) const
 			return false;
 		}
 	}
+
+	if (PreInfinityExtrap != Curve.PreInfinityExtrap || PostInfinityExtrap != Curve.PostInfinityExtrap)
+	{
+		return false;
+	}
+
 	return true;
 }
 

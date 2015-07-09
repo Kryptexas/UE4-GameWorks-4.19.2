@@ -4,21 +4,6 @@
 
 #include "SequencerSettings.generated.h"
 
-/** Defines visibility states for the curves in the curve editor. */
-UENUM()
-namespace ESequencerCurveVisibility
-{
-	enum Type
-	{
-		/** All curves should be visible. */
-		AllCurves,
-		/** Only curves from selected nodes should be visible. */
-		SelectedCurves,
-		/** Only curves which have keyframes should be visible. */
-		AnimatedCurves
-	};
-}
-
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
 class USequencerSettingsContainer : public UObject
@@ -36,9 +21,6 @@ class USequencerSettings : public UObject
 {
 public:
 	GENERATED_UCLASS_BODY()
-
-	DECLARE_MULTICAST_DELEGATE( FOnCurveVisibilityChanged );
-	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
@@ -110,19 +92,8 @@ public:
 	/** Sets whether or not to show curve tool tips in the curve editor. */
 	void SetShowCurveEditorCurveToolTips(bool InbShowCurveEditorCurveToolTips);
 
-	/** Gets the current curve visibility. */
-	ESequencerCurveVisibility::Type GetCurveVisibility() const;
-	/** Sets the current curve visibility. */
-	void SetCurveVisibility(ESequencerCurveVisibility::Type InCurveVisibility);
-
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
-
-	/** Gets the multicast delegate which is run whenever the CurveVisibility value changes. */
-	FOnCurveVisibilityChanged& GetOnCurveVisibilityChanged();
-
-	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
-	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
 protected:
 	UPROPERTY( config )
@@ -166,10 +137,4 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowCurveEditorCurveToolTips;
-
-	UPROPERTY( config )
-	TEnumAsByte<ESequencerCurveVisibility::Type> CurveVisibility;
-
-	FOnCurveVisibilityChanged OnCurveVisibilityChanged;
-	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

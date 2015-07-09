@@ -40,7 +40,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoScrollEnabled = true;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
-	CurveVisibility = ESequencerCurveVisibility::AllCurves;
 }
 
 bool USequencerSettings::GetIsSnapEnabled() const
@@ -222,7 +221,6 @@ void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
 	if (bShowCurveEditor != InbShowCurveEditor)
 	{
 		bShowCurveEditor = InbShowCurveEditor;
-		OnShowCurveEditorChanged.Broadcast();
 		SaveConfig();
 	}
 }
@@ -241,34 +239,9 @@ void USequencerSettings::SetShowCurveEditorCurveToolTips(bool InbShowCurveEditor
 	}
 }
 
-ESequencerCurveVisibility::Type USequencerSettings::GetCurveVisibility() const
-{
-	return CurveVisibility;
-}
-
-void USequencerSettings::SetCurveVisibility(ESequencerCurveVisibility::Type InCurveVisibility)
-{
-	if (CurveVisibility != InCurveVisibility)
-	{
-		CurveVisibility = InCurveVisibility;
-		OnCurveVisibilityChanged.Broadcast();
-		SaveConfig();
-	}
-}
-
 float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 {
 	return TimeSnapInterval > 0
 		? FMath::RoundToInt( InTimeValue / TimeSnapInterval ) * TimeSnapInterval
 		: InTimeValue;
-}
-
-USequencerSettings::FOnCurveVisibilityChanged& USequencerSettings::GetOnCurveVisibilityChanged()
-{
-	return OnCurveVisibilityChanged;
-}
-
-USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
-{
-	return OnShowCurveEditorChanged;
 }

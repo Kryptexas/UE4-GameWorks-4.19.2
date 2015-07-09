@@ -2,11 +2,13 @@
 
 #pragma once
 
+#include "CurveEditorSettings.h"
+
 /** A curve owner interface for displaying animation curves in sequencer. */
 class FSequencerCurveOwner : public FCurveOwnerInterface
 {
 public:
-	FSequencerCurveOwner(TSharedPtr<FSequencerNodeTree> InSequencerNodeTree);
+	FSequencerCurveOwner(TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, ECurveEditorCurveVisibility::Type CurveVisibility);
 
 	/** FCurveOwnerInterface */
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;

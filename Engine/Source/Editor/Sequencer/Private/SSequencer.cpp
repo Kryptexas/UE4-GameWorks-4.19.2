@@ -193,8 +193,6 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	USelection::SelectionChangedEvent.AddSP(this, &SSequencer::OnActorSelectionChanged);
 	Settings = InSequencer->GetSettings();
 
-	Settings->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
-
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
 
@@ -587,13 +585,6 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 		ToolBarBuilder.SetLabelVisibility( EVisibility::Visible );
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleShowCurveEditor );
 		ToolBarBuilder.SetLabelVisibility( EVisibility::Collapsed );
-		ToolBarBuilder.AddComboButton(
-			FUIAction(),
-			FOnGetContent::CreateSP( this, &SSequencer::MakeCurveEditorMenu ),
-			LOCTEXT( "CurveEditorOptions", "Options" ),
-			LOCTEXT( "CurveEditorOptionsToolTip", "Curve Editor Options" ),
-			TAttribute<FSlateIcon>(),
-			true );
 	}
 
 	return ToolBarBuilder.MakeWidget();
@@ -638,27 +629,6 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 	return MenuBuilder.MakeWidget();
 }
 
-TSharedRef<SWidget> SSequencer::MakeCurveEditorMenu()
-{
-	FMenuBuilder MenuBuilder( true, Sequencer.Pin()->GetCommandBindings() );
-
-	MenuBuilder.BeginSection( "CurveVisibility", LOCTEXT( "CurveEditorMenuCurveVisibilityHeader", "Curve Visibility" ) );
-	{
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().SetAllCurveVisibility );
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().SetSelectedCurveVisibility );
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().SetAnimatedCurveVisibility );
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection( "Options", LOCTEXT( "CurveEditorMenuOptionsHeader", "Editor Options" ) );
-	{
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowCurveEditorCurveToolTips );
-	}
-	MenuBuilder.EndSection();
-
-	return MenuBuilder.MakeWidget();
-}
-
 TSharedRef<SWidget> SSequencer::MakeTransportControls()
 {
 	FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::Get().LoadModuleChecked<FEditorWidgetsModule>( "EditorWidgets" );
@@ -680,7 +650,6 @@ TSharedRef<SWidget> SSequencer::MakeTransportControls()
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	Settings->GetOnShowCurveEditorChanged().RemoveAll(this);
 }
 
 void SSequencer::RegisterActiveTimerForPlayback()
@@ -740,9 +709,7 @@ void SSequencer::UpdateLayoutTree()
 	CurveEditor->SetSequencerNodeTree(SequencerNodeTree);
 
 	// Restore the selection state.
-	RestoreSelectionState(SequencerNodeTree->GetRootNodes(), SelectedPathNames, Sequencer.Pin()->GetSelection());
-
-	// Update to actor selection.
+	RestoreSelectionState(SequencerNodeTree->GetRootNodes(), SelectedPathNames, Sequencer.Pin()->GetSelection());	// Update to actor selection.
 	OnActorSelectionChanged(NULL);
 
 	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
@@ -1245,15 +1212,6 @@ EVisibility SSequencer::GetTrackAreaVisibility() const
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
 	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-void SSequencer::OnCurveEditorVisibilityChanged()
-{
-	if (CurveEditor.IsValid())
-	{
-		// Only zoom horizontally if the editor is visible
-		CurveEditor->SetZoomToFit(true, Settings->GetShowCurveEditor());
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

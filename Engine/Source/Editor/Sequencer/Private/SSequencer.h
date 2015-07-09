@@ -120,9 +120,6 @@ private:
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
 
-	/** Makes the curve editor menu for the toolbar. */
-	TSharedRef<SWidget> MakeCurveEditorMenu();
-
 	/** Makes and configures a set of the standard UE transport controls. */
 	TSharedRef<SWidget> MakeTransportControls();
 
@@ -228,9 +225,6 @@ private:
 
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
-
-	/** Called when the curve editor is shown or hidden */
-	void OnCurveEditorVisibilityChanged();
 
 private:
 

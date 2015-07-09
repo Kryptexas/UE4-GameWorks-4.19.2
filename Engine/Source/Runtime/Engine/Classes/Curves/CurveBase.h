@@ -156,6 +156,17 @@ enum ERichCurveTangentWeightMode
 	RCTWM_WeightedBoth
 };
 
+/** Enum to indicate extrapolation option. */
+UENUM()
+enum ERichCurveExtrapolation
+{
+	RCCE_Cycle,
+	RCCE_CycleWithOffset,
+	RCCE_Oscillate,
+	RCCE_Linear,
+	RCCE_Constant
+};
+
 /** One key in a rich, editable float curve */
 USTRUCT()
 struct ENGINE_API FRichCurveKey
@@ -271,6 +282,13 @@ struct ENGINE_API FRichCurve : public FIndexedCurve
 	GENERATED_USTRUCT_BODY()
 
 public:
+	FRichCurve() 
+	: FIndexedCurve()
+	, PreInfinityExtrap(RCCE_Constant)
+	, PostInfinityExtrap(RCCE_Constant)
+	{
+	}
+
 	virtual ~FRichCurve()
 	{
 	}
@@ -356,6 +374,9 @@ public:
 	/** Clear all keys. */
 	void Reset();
 
+	/** Remap InTime based on pre and post infinity extrapolation values */
+	void RemapTimeValue(float& InTime, float& CycleValueOffset) const;
+
 	/** Evaluate this rich curve at the specified time */
 	float Eval(float InTime, float DefaultValue = 0.0f) const;
 
@@ -367,6 +388,15 @@ public:
 
 	/** Determine if two RichCurves are the same */
 	bool operator == (const FRichCurve& Curve) const;
+
+	/** Pre-infinity extrapolation state */
+	UPROPERTY()
+	TEnumAsByte<ERichCurveExtrapolation> PreInfinityExtrap;
+
+	/** Post-infinity extrapolation state */
+	UPROPERTY()
+	TEnumAsByte<ERichCurveExtrapolation> PostInfinityExtrap;
+
 private:
 	/** Sorted array of keys */
 	UPROPERTY()

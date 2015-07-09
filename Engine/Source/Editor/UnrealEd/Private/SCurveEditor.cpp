@@ -8,6 +8,7 @@
 #include "SColorGradientEditor.h"
 #include "GenericCommands.h"
 #include "SNumericEntryBox.h"
+#include "CurveEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 
@@ -29,7 +30,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	CurveFactory = NULL;
 	Commands = TSharedPtr< FUICommandList >(new FUICommandList);
 	CurveOwner = NULL;
-
+	
 	// view input
 	ViewMinInput = InArgs._ViewMinInput;
 	ViewMaxInput = InArgs._ViewMaxInput;
@@ -69,12 +70,13 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	bShowCurveSelector = InArgs._ShowCurveSelector;
 	bDrawInputGridNumbers = InArgs._ShowInputGridNumbers;
 	bDrawOutputGridNumbers = InArgs._ShowOutputGridNumbers;
-	bShowCurveToolTips = InArgs._ShowCurveToolTips;
 
 	OnCreateAsset = InArgs._OnCreateAsset;
 
 	DragState = EDragState::None;
 	DragThreshold = 4;
+
+	MovementAxisLock = EMovementAxisLock::None;
 
 	//Simple r/g/b for now
 	CurveColors.Add(FLinearColor(1.0f, 0.0f, 0.0f));
@@ -82,6 +84,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	CurveColors.Add(FLinearColor(0.05f, 0.05f, 1.0f));
 
 	TransactionIndex = -1;
+
+	Settings = GetMutableDefault<UCurveEditorSettings>();
 
 	Commands->MapAction(FGenericCommands::Get().Undo,
 		FExecuteAction::CreateSP(this, &SCurveEditor::UndoAction));
@@ -103,6 +107,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SCurveEditor::IsSnappingEnabled));
 
+	// Interpolation
 	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationConstant,
 		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Constant, RCTM_Auto),
 		FCanExecuteAction(),
@@ -127,6 +132,107 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Break),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_Break));
+
+	// Tangents
+	Commands->MapAction(FRichCurveEditorCommands::Get().FlattenTangents,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnFlattenOrStraightenTangents, true));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().StraightenTangents,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnFlattenOrStraightenTangents, false));
+
+	// Pre infinity extrapolation
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapCycle,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPreInfinityExtrap, RCCE_Cycle),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPreInfinityExtrapSelected, RCCE_Cycle));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapCycleWithOffset,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPreInfinityExtrap, RCCE_CycleWithOffset),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPreInfinityExtrapSelected, RCCE_CycleWithOffset));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapOscillate,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPreInfinityExtrap, RCCE_Oscillate),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPreInfinityExtrapSelected, RCCE_Oscillate));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapLinear,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPreInfinityExtrap, RCCE_Linear),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPreInfinityExtrapSelected, RCCE_Linear));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapConstant,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPreInfinityExtrap, RCCE_Constant),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPreInfinityExtrapSelected, RCCE_Constant));
+
+	// Post infinity extrapolation
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPostInfinityExtrapCycle,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPostInfinityExtrap, RCCE_Cycle),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPostInfinityExtrapSelected, RCCE_Cycle));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPostInfinityExtrapCycleWithOffset,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPostInfinityExtrap, RCCE_CycleWithOffset),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPostInfinityExtrapSelected, RCCE_CycleWithOffset));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPostInfinityExtrapOscillate,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPostInfinityExtrap, RCCE_Oscillate),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPostInfinityExtrapSelected, RCCE_Oscillate));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPostInfinityExtrapLinear,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPostInfinityExtrap, RCCE_Linear),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPostInfinityExtrapSelected, RCCE_Linear));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetPostInfinityExtrapConstant,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectPostInfinityExtrap, RCCE_Constant),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsPostInfinityExtrapSelected, RCCE_Constant));
+
+	// Curve Visibility
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetAllCurveVisibility,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetCurveVisibility( ECurveEditorCurveVisibility::AllCurves ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetCurveVisibility() == ECurveEditorCurveVisibility::AllCurves; } ) );
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetSelectedCurveVisibility,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetCurveVisibility( ECurveEditorCurveVisibility::SelectedCurves ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetCurveVisibility() == ECurveEditorCurveVisibility::SelectedCurves; } ) );
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetAnimatedCurveVisibility,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetCurveVisibility( ECurveEditorCurveVisibility::AnimatedCurves ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetCurveVisibility() == ECurveEditorCurveVisibility::AnimatedCurves; } ) );
+
+	// Tangent Visibility
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetAllTangentsVisibility,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetTangentVisibility( ECurveEditorTangentVisibility::AllTangents ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetTangentVisibility() == ECurveEditorTangentVisibility::AllTangents; } ) );
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetSelectedKeysTangentVisibility,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetTangentVisibility( ECurveEditorTangentVisibility::SelectedKeys ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetTangentVisibility() == ECurveEditorTangentVisibility::SelectedKeys; } ) );
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().SetNoTangentsVisibility,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetTangentVisibility( ECurveEditorTangentVisibility::NoTangents ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetTangentVisibility() == ECurveEditorTangentVisibility::NoTangents; } ) );
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleAutoFrameCurveEditor,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetAutoFrameCurveEditor( !Settings->GetAutoFrameCurveEditor() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetAutoFrameCurveEditor(); } ) );
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleShowCurveEditorCurveToolTips,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetShowCurveEditorCurveToolTips( !Settings->GetShowCurveEditorCurveToolTips() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditorCurveToolTips(); } ) );
 
 	SAssignNew(WarningMessageText, SErrorText);
 
@@ -362,7 +468,7 @@ void SCurveEditor::RemoveCurveKeysFromSelection(TSharedPtr<FCurveViewModel> Curv
 	}
 	for (auto KeyToDeselect : SelectedKeysForLockedCurve)
 	{
-		RemoveFromSelection(KeyToDeselect);
+		RemoveFromKeySelection(KeyToDeselect);
 	}
 }
 
@@ -485,6 +591,13 @@ void SCurveEditor::PushKeyMenu(const FGeometry& InMyGeometry, const FPointerEven
 	}
 	MenuBuilder.EndSection(); //CurveEditorInterpolation
 
+	MenuBuilder.BeginSection("CurveEditorTangents", LOCTEXT("Tangents", "Tangents"));
+	{
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().FlattenTangents);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().StraightenTangents);
+	}
+	MenuBuilder.EndSection(); //CurveEditorTangents
+
 	FWidgetPath WidgetPath = InMouseEvent.GetEventPath() != nullptr ? *InMouseEvent.GetEventPath() : FWidgetPath();
 	FVector2D Position = InMouseEvent.GetScreenSpacePosition();
 	FSlateApplication::Get().PushMenu(
@@ -543,6 +656,11 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 	// Positioning info
 	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), CurveAreaGeometry.Size);
+
+	if (FMath::IsNearlyEqual(ViewMinInput.Get(), ViewMaxInput.Get()) || FMath::IsNearlyEqual(ViewMinOutput.Get(), ViewMaxOutput.Get()))
+	{
+		return 0;
+	}
 
 	// Draw background to indicate valid timeline area
 	float ZeroInputX = ScaleInfo.InputToLocalX(0.f);
@@ -608,16 +726,16 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		for ( auto CurveViewModel : CurveViewModels )
 		{
 			if (CurveViewModel->bIsVisible)
-				{
+			{
 				PaintCurve(CurveViewModel, CurveAreaGeometry, ScaleInfo, OutDrawElements, CurveViewModel->bIsLocked ? LockedCurveLayerID : CurveLayerId, MyClippingRect, DrawEffects, InWidgetStyle);
-				}
 			}
+		}
 
 		//Paint the keys on top of the curve
 		for (auto CurveViewModel : CurveViewModels)
 		{
 			if (CurveViewModel->bIsVisible)
-		{
+			{
 				PaintKeys(CurveViewModel, ScaleInfo, OutDrawElements, KeyLayerId, SelectedKeyLayerId, CurveAreaGeometry, MyClippingRect, DrawEffects, InWidgetStyle);
 			}
 		}
@@ -784,9 +902,12 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 			);
 
 		//Handle drawing the tangent controls for curve
-		if(IsSelected && (Curve->GetKeyInterpMode(KeyHandle) == RCIM_Cubic || LastInterpMode == RCIM_Cubic))
+		bool bIsTangentSelected = false;
+		bool bIsArrivalSelected = false;
+		bool bIsLeaveSelected = false;
+		if(IsTangentVisible(Curve, KeyHandle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected) && (Curve->GetKeyInterpMode(KeyHandle) == RCIM_Cubic || LastInterpMode == RCIM_Cubic))
 		{
-			PaintTangent(ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle);
+			PaintTangent(ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected);
 		}
 
 		LastInterpMode = Curve->GetKeyInterpMode(KeyHandle);
@@ -794,7 +915,7 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 }
 
 
-void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle ) const
+void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle, bool bTangentSelected, bool bIsArrivalSelected, bool bIsLeaveSelected ) const
 {
 	FVector2D ArriveTangentLocation, LeaveTangentLocation;
 	GetTangentPoints(ScaleInfo, FSelectedCurveKey(Curve,KeyHandle), ArriveTangentLocation, LeaveTangentLocation);
@@ -803,7 +924,12 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 	FVector2D LeaveTangentIconLocation = LeaveTangentLocation - (CONST_TangentSize / 2);
 
 	const FSlateBrush* TangentBrush = FEditorStyle::GetBrush("CurveEd.Tangent");
+	const FSlateBrush* TangentBrushSelected = FEditorStyle::GetBrush("CurveEd.TangentSelected");
 	const FLinearColor TangentColor = FEditorStyle::GetColor("CurveEd.TangentColor");
+	const FLinearColor TangentColorSelected = FEditorStyle::GetColor("CurveEd.TangentColorSelected");
+
+	bool LeaveTangentSelected = bTangentSelected && bIsLeaveSelected;
+	bool ArriveTangentSelected = bTangentSelected && bIsArrivalSelected;
 
 	//Add lines from tangent control point to 'key'
 	TArray<FVector2D> LinePoints;
@@ -816,7 +942,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LinePoints,
 		MyClippingRect,
 		DrawEffects,
-		TangentColor
+		ArriveTangentSelected ? TangentColorSelected : TangentColor
 		);
 
 	LinePoints.Empty();
@@ -829,7 +955,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LinePoints,
 		MyClippingRect,
 		DrawEffects,
-		TangentColor
+		LeaveTangentSelected ? TangentColorSelected : TangentColor
 		);
 
 	//Arrive tangent control
@@ -837,20 +963,20 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		OutDrawElements,
 		LayerToUse,
 		AllottedGeometry.ToPaintGeometry(ArriveTangentIconLocation, CONST_TangentSize ),
-		TangentBrush,
+		ArriveTangentSelected ? TangentBrushSelected : TangentBrush,
 		MyClippingRect,
 		DrawEffects,
-		TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
+		ArriveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
 	//Leave tangent control
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerToUse,
 		AllottedGeometry.ToPaintGeometry(LeaveTangentIconLocation, CONST_TangentSize ),
-		TangentBrush,
+		LeaveTangentSelected ? TangentBrushSelected : TangentBrush,
 		MyClippingRect,
 		DrawEffects,
-		TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
+		LeaveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
 }
 
@@ -1006,7 +1132,7 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 {
 	if(InCurveOwner != CurveOwner)
 	{
-		EmptySelection();
+		EmptyAllSelection();
 	}
 
 	GradientViewer->SetCurveOwner(InCurveOwner);
@@ -1030,16 +1156,19 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 		CurveOwner->MakeTransactional();
 	}
 
-	SelectedKeys.Empty();
+	ValidateSelection();
 
-	if( bZoomToFitVertical )
+	if (Settings->GetAutoFrameCurveEditor())
 	{
-		ZoomToFitVertical();
-	}
+		if( bZoomToFitVertical )
+		{
+			ZoomToFitVertical();
+		}
 
-	if ( bZoomToFitHorizontal )
-	{
-		ZoomToFitHorizontal();
+		if ( bZoomToFitHorizontal )
+		{
+			ZoomToFitHorizontal();
+		}
 	}
 
 	CurveSelectionWidget.Pin()->SetContent(CreateCurveSelectionWidget());
@@ -1099,10 +1228,13 @@ void SCurveEditor::DeleteSelectedKeys()
 FReply SCurveEditor::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
 	const bool bLeftMouseButton = InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
+	const bool bMiddleMouseButton = InMouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton;
 	const bool bRightMouseButton = InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
 
 	DragState = EDragState::PreDrag;
-	if (bLeftMouseButton || bRightMouseButton)
+	MovementAxisLock = EMovementAxisLock::None;
+
+	if (bLeftMouseButton || bMiddleMouseButton || bRightMouseButton)
 	{
 		MouseDownLocation = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 
@@ -1148,8 +1280,8 @@ void SCurveEditor::AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition, T
 				FVector2D NewKeyLocation = SnapLocation(FVector2D(Input, Output));
 				FKeyHandle NewKeyHandle = SelectedCurve->AddKey(NewKeyLocation.X, NewKeyLocation.Y);
 
-				EmptySelection();
-				AddToSelection(FSelectedCurveKey(SelectedCurve, NewKeyHandle));
+				EmptyAllSelection();
+				AddToKeySelection(FSelectedCurveKey(SelectedCurve, NewKeyHandle));
 				ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
 			}
 		}
@@ -1164,7 +1296,7 @@ void SCurveEditor::AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition, T
 void SCurveEditor::OnMouseCaptureLost()
 {
 	// if we began a drag transaction we need to finish it to make sure undo doesn't get out of sync
-	if (DragState == EDragState::DragKey || DragState == EDragState::DragTangent)
+	if (DragState == EDragState::DragKey || DragState == EDragState::FreeDrag || DragState == EDragState::DragTangent)
 	{
 		EndDragTransaction();
 	}
@@ -1231,7 +1363,7 @@ FReply SCurveEditor::OnMouseMove( const FGeometry& InMyGeometry, const FPointerE
 
 void SCurveEditor::UpdateCurveToolTip(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (bShowCurveToolTips.Get())
+	if (Settings->GetShowCurveEditorCurveToolTips())
 	{
 		TSharedPtr<FCurveViewModel> HoveredCurve = HitTestCurves(InMyGeometry, InMouseEvent);
 		if (HoveredCurve.IsValid())
@@ -1288,12 +1420,18 @@ void SCurveEditor::UpdateCurveToolTip(const FGeometry& InMyGeometry, const FPoin
 
 FReply SCurveEditor::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
+	ZoomView(FVector2D(MouseEvent.GetWheelDelta(), MouseEvent.GetWheelDelta()));
+	return FReply::Handled();
+}
+
+void SCurveEditor::ZoomView(FVector2D Delta)
+{
+	const FVector2D ZoomDelta = -0.1f * Delta;
 
 	if (bAllowZoomOutput)
 	{
 		const float OutputViewSize = ViewMaxOutput.Get() - ViewMinOutput.Get();
-		const float OutputChange = OutputViewSize * ZoomDelta;
+		const float OutputChange = OutputViewSize * ZoomDelta.Y;
 
 		const float NewMinOutput = (ViewMinOutput.Get() - (OutputChange * 0.5f));
 		const float NewMaxOutput = (ViewMaxOutput.Get() + (OutputChange * 0.5f));
@@ -1303,15 +1441,13 @@ FReply SCurveEditor::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEve
 
 	{
 		const float InputViewSize = ViewMaxInput.Get() - ViewMinInput.Get();
-		const float InputChange = InputViewSize * ZoomDelta;
+		const float InputChange = InputViewSize * ZoomDelta.X;
 
 		const float NewMinInput = ViewMinInput.Get() - (InputChange * 0.5f);
 		const float NewMaxInput = ViewMaxInput.Get() + (InputChange * 0.5f);
 
 		SetInputMinMax(NewMinInput, NewMaxInput);
 	}
-
-	return FReply::Handled();
 }
 
 FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
@@ -1334,25 +1470,43 @@ FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& In
 void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
 	const bool bLeftMouseButton = InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton);
+	const bool bMiddleMouseButton = InMouseEvent.IsMouseButtonDown(EKeys::MiddleMouseButton);
 	const bool bRightMouseButton = InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton);
 	const bool bControlDown = InMouseEvent.IsControlDown();
+	const bool bShiftDown = InMouseEvent.IsShiftDown();
+	const bool bAltDown = InMouseEvent.IsAltDown();
 
-	FVector2D DragVector = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()) - MouseDownLocation;
+	FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	FVector2D DragVector = MousePosition - MouseDownLocation;
 	if (DragVector.Size() >= DragThreshold)
 	{
+		if (bShiftDown)
+		{
+			if(FMath::Abs(MousePosition.X - MouseDownLocation.X) > FMath::Abs(MousePosition.Y - MouseDownLocation.Y))
+			{
+				MovementAxisLock = EMovementAxisLock::AxisLock_Horizontal;
+			}
+			else
+			{
+				MovementAxisLock = EMovementAxisLock::AxisLock_Vertical;
+			}
+		}
+
 		if (bLeftMouseButton)
 		{
 			// Check if we should start dragging keys.
 			FSelectedCurveKey HitKey = HitTestKeys(InMyGeometry, InMyGeometry.LocalToAbsolute(MouseDownLocation));
 			if (HitKey.IsValid())
 			{
-				if (IsKeySelected(HitKey) == false)
+				EmptyTangentSelection();
+
+				if (!IsKeySelected(HitKey))
 				{
 					if (!bControlDown)
 					{
-						EmptySelection();
+						EmptyKeySelection();
 					}
-					AddToSelection(HitKey);
+					AddToKeySelection(HitKey);
 				}
 
 				BeginDragTransaction();
@@ -1374,9 +1528,30 @@ void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEve
 				FSelectedTangent Tangent = HitTestCubicTangents(InMyGeometry, InMyGeometry.LocalToAbsolute(MouseDownLocation));
 				if (Tangent.IsValid())
 				{
+					EmptyKeySelection();
+
+					if (!IsTangentSelected(Tangent))
+					{
+						if (!bControlDown)
+						{
+							EmptyTangentSelection();
+						}
+						AddToTangentSelection(Tangent);
+					}
+
 					BeginDragTransaction();
-					SelectedTangent = Tangent;
 					DragState = EDragState::DragTangent;
+					PreDragTangents.Empty();
+					for (auto SelectedTangent : SelectedTangents)
+					{
+						FRichCurve* Curve = SelectedTangent.Key.Curve;
+						FKeyHandle KeyHandle = SelectedTangent.Key.KeyHandle;
+
+						float ArriveTangent = Curve->GetKey(KeyHandle).ArriveTangent;
+						float LeaveTangent = Curve->GetKey(KeyHandle).LeaveTangent;
+
+						PreDragTangents.Add(KeyHandle, FVector2D(ArriveTangent, LeaveTangent));
+					}
 				}
 				else
 				{
@@ -1385,15 +1560,74 @@ void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEve
 				}
 			}
 		}
+		else if (bMiddleMouseButton)
+		{
+			if (bAltDown)
+			{
+				DragState = EDragState::Pan;
+			}
+			else if (SelectedTangents.Num())
+			{
+				BeginDragTransaction();
+				DragState = EDragState::DragTangent;
+				PreDragTangents.Empty();
+				for (auto SelectedTangent : SelectedTangents)
+				{
+					FRichCurve* Curve = SelectedTangent.Key.Curve;
+					FKeyHandle KeyHandle = SelectedTangent.Key.KeyHandle;
+
+					float ArriveTangent = Curve->GetKey(KeyHandle).ArriveTangent;
+					float LeaveTangent = Curve->GetKey(KeyHandle).LeaveTangent;
+
+					PreDragTangents.Add(KeyHandle, FVector2D(ArriveTangent, LeaveTangent));
+				}
+			}
+			else if (SelectedKeys.Num())
+			{
+				BeginDragTransaction();
+				DragState = EDragState::FreeDrag;
+				PreDragKeyLocations.Empty();
+				for (auto selectedKey : SelectedKeys)
+				{
+					PreDragKeyLocations.Add(selectedKey.KeyHandle, FVector2D
+					(
+						selectedKey.Curve->GetKeyTime(selectedKey.KeyHandle),
+						selectedKey.Curve->GetKeyValue(selectedKey.KeyHandle)
+					));
+				}
+			}
+		}
 		else if (bRightMouseButton)
 		{
-			DragState = EDragState::Pan;
+			if (bAltDown)
+			{
+				DragState = EDragState::Zoom;
+			}
+			else
+			{
+				DragState = EDragState::Pan;
+			}
 		}
 		else
 		{
 			DragState = EDragState::None;
 		}
 	}
+}
+
+/* Given a tangent value for a key, calculates the 2D delta vector from that key in curve space */
+static inline FVector2D CalcTangentDir(float Tangent)
+{
+	const float Angle = FMath::Atan(Tangent);
+	return FVector2D( FMath::Cos(Angle), -FMath::Sin(Angle) );
+}
+
+/*Given a 2d delta vector in curve space, calculates a tangent value */
+static inline float CalcTangent(const FVector2D& HandleDelta)
+{
+	// Ensure X is positive and non-zero.
+	// Tangent is gradient of handle.
+	return HandleDelta.Y / FMath::Max<double>(HandleDelta.X, KINDA_SMALL_NUMBER);
 }
 
 void SCurveEditor::ProcessDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
@@ -1408,17 +1642,39 @@ void SCurveEditor::ProcessDrag(const FGeometry& InMyGeometry, const FPointerEven
 	if (DragState == EDragState::DragKey)
 	{
 		FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-		MoveSelectedKeys(FVector2D(ScaleInfo.LocalXToInput(MousePosition.X), ScaleInfo.LocalYToOutput(MousePosition.Y)));
+		FVector2D NewLocation = FVector2D(ScaleInfo.LocalXToInput(MousePosition.X), ScaleInfo.LocalYToOutput(MousePosition.Y));
+		FVector2D SnappedNewLocation = SnapLocation(NewLocation);
+		FVector2D Delta = SnappedNewLocation - PreDragKeyLocations[DraggedKeyHandle];
+
+		MoveSelectedKeys(Delta);
+	}
+	else if (DragState == EDragState::FreeDrag)
+	{
+		FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		FVector2D NewLocation = FVector2D(ScaleInfo.LocalXToInput(MousePosition.X), ScaleInfo.LocalYToOutput(MousePosition.Y));
+		FVector2D Delta = NewLocation - FVector2D(ScaleInfo.LocalXToInput(MouseDownLocation.X), ScaleInfo.LocalYToOutput(MouseDownLocation.Y));
+
+		MoveSelectedKeys(Delta);
 	}
 	else if (DragState == EDragState::DragTangent)
 	{
 		FVector2D MousePositionScreen = InMouseEvent.GetScreenSpacePosition();
 		MousePositionScreen -= InMyGeometry.AbsolutePosition;
 		FVector2D MousePositionCurve(ScaleInfo.LocalXToInput(MousePositionScreen.X), ScaleInfo.LocalYToOutput(MousePositionScreen.Y));
-		OnMoveTangent(MousePositionCurve);
+		FVector2D Delta = MousePositionCurve;
+		MoveTangents(ScaleInfo, Delta);
 	}
 	else if (DragState == EDragState::Pan)
 	{
+		if (MovementAxisLock == EMovementAxisLock::AxisLock_Horizontal)
+		{
+			InputDelta.Y = 0;
+		}
+		else if (MovementAxisLock == EMovementAxisLock::AxisLock_Vertical)
+		{
+			InputDelta.X = 0;
+		}
+
 		// Output is not clamped.
 		const float NewMinOutput = (ViewMinOutput.Get() - InputDelta.Y);
 		const float NewMaxOutput = (ViewMaxOutput.Get() - InputDelta.Y);
@@ -1432,16 +1688,33 @@ void SCurveEditor::ProcessDrag(const FGeometry& InMyGeometry, const FPointerEven
 
 		SetInputMinMax(NewMinInput, NewMaxInput);
 	}
+	else if (DragState == EDragState::Zoom)
+	{
+		FVector2D Delta = FVector2D(ScreenDelta.X * 0.05f, ScreenDelta.X * 0.05f);
+
+		if (MovementAxisLock == EMovementAxisLock::AxisLock_Horizontal)
+		{
+			Delta.Y = 0;
+		}
+		else if (MovementAxisLock == EMovementAxisLock::AxisLock_Vertical)
+		{
+			Delta.X = 0;
+			Delta.Y = -ScreenDelta.Y * 0.1f;
+		}
+
+		ZoomView(Delta);
+	}
 }
 
 void SCurveEditor::EndDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
 	const bool bControlDown = InMouseEvent.IsControlDown();
+	const bool bShiftDown = InMouseEvent.IsShiftDown();
 
-	if (DragState == EDragState::DragKey || DragState == EDragState::DragTangent)
+	if (DragState == EDragState::DragKey || DragState == EDragState::FreeDrag || DragState == EDragState::DragTangent)
 	{
-			EndDragTransaction();
-		}
+		EndDragTransaction();
+	}
 	else if (DragState == EDragState::MarqueeSelect)
 	{
 		FVector2D MarqueTopLeft
@@ -1456,27 +1729,51 @@ void SCurveEditor::EndDrag(const FGeometry& InMyGeometry, const FPointerEvent& I
 			FMath::Max(MouseDownLocation.Y, MouseMoveLocation.Y)
 			);
 
+		TArray<FSelectedTangent> SelectedCurveTangents = GetEditableTangentsWithinMarquee(InMyGeometry, MarqueTopLeft, MarqueBottomRight);
+
 		TArray<FSelectedCurveKey> SelectedCurveKeys = GetEditableKeysWithinMarquee(InMyGeometry, MarqueTopLeft, MarqueBottomRight);
 
-		if (!bControlDown)
+		if (!bControlDown && !bShiftDown)
 		{
-			EmptySelection();
+			EmptyAllSelection();
 		}
 
-		for (auto SelectedCurveKey : SelectedCurveKeys)
+		if (SelectedCurveKeys.Num())
 		{
-			
-			if (IsKeySelected(SelectedCurveKey))
-			{
-				RemoveFromSelection(SelectedCurveKey);
+			EmptyTangentSelection();
+
+			for (auto SelectedCurveKey : SelectedCurveKeys)
+			{			
+				if (IsKeySelected(SelectedCurveKey))
+				{
+					RemoveFromKeySelection(SelectedCurveKey);
+				}
+				else
+				{
+					AddToKeySelection(SelectedCurveKey);
+				}
 			}
-			else
-			{
-				AddToSelection(SelectedCurveKey);
+		}
+
+		if (!SelectedCurveKeys.Num())
+		{
+			EmptyKeySelection();
+
+			for (auto SelectedCurveTangent : SelectedCurveTangents)
+			{			
+				if (IsTangentSelected(SelectedCurveTangent))
+				{
+					RemoveFromTangentSelection(SelectedCurveTangent);
+				}
+				else
+				{
+					AddToTangentSelection(SelectedCurveTangent);
+				}
 			}
 		}
 	}
 	DragState = EDragState::None;
+	MovementAxisLock = EMovementAxisLock::None;
 }
 
 void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
@@ -1487,23 +1784,43 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 	const bool bShiftDown = InMouseEvent.IsShiftDown();
 
 	FSelectedCurveKey HitKey = HitTestKeys(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
+	FSelectedTangent HitTangent = HitTestCubicTangents(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
 
 	if (bLeftMouseButton)
 	{
 		// If the user left clicked a key, update selection based on modifier key state.
 		if (HitKey.IsValid())
 		{
+			EmptyTangentSelection();
+
 			if (!IsKeySelected(HitKey))
 			{
-				if (!bControlDown)
+				if (!bControlDown && !bShiftDown)
 				{
-					EmptySelection();
+					EmptyAllSelection();
 				}
-				AddToSelection(HitKey);
+				AddToKeySelection(HitKey);
 			}
 			else if (bControlDown)
 			{
-				RemoveFromSelection(HitKey);
+				RemoveFromKeySelection(HitKey);
+			}
+		}
+		else if (HitTangent.IsValid())
+		{
+			EmptyKeySelection();
+
+			if (!IsTangentSelected(HitTangent))
+			{
+				if (!bControlDown && !bShiftDown)
+				{
+					EmptyAllSelection();
+				}
+				AddToTangentSelection(HitTangent);
+			}
+			else if (bControlDown)
+			{
+				RemoveFromTangentSelection(HitTangent);
 			}
 		}
 		else
@@ -1536,8 +1853,8 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 			}
 			else
 			{
-				// clicking on background clears key selection
-				EmptySelection();
+				// clicking on background clears all selection
+				EmptyAllSelection();
 			}
 		}
 	}
@@ -1547,23 +1864,30 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 		if (HitKey.IsValid())
 		{
 			// Make sure key is selected in readiness for context menu
+			EmptyTangentSelection();
+
 			if (!IsKeySelected(HitKey))
 			{
-				EmptySelection();
-				AddToSelection(HitKey);
+				EmptyAllSelection();
+				AddToKeySelection(HitKey);
+			}
+			PushKeyMenu(InMyGeometry, InMouseEvent);
+		}
+		else if (HitTangent.IsValid())
+		{
+			// Make sure key is selected in readiness for context menu
+			EmptyKeySelection();
+
+			if (!IsTangentSelected(HitTangent))
+			{
+				EmptyAllSelection();
+				AddToTangentSelection(HitTangent);
 			}
 			PushKeyMenu(InMyGeometry, InMouseEvent);
 		}
 		else
 		{
-			if (!HitTestCubicTangents(InMyGeometry, InMouseEvent.GetScreenSpacePosition()).IsValid())
-			{
-				CreateContextMenu(InMyGeometry, InMouseEvent);
-			}
-			else
-			{
-				EmptySelection();
-			}
+			CreateContextMenu(InMyGeometry, InMouseEvent);
 		}
 	}
 }
@@ -1766,7 +2090,7 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 	return SelectedKey;
 }
 
-void SCurveEditor::MoveSelectedKeys(FVector2D InNewLocation)
+void SCurveEditor::MoveSelectedKeys(FVector2D Delta)
 {
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
 	CurveOwner->ModifyOwner();
@@ -1774,11 +2098,11 @@ void SCurveEditor::MoveSelectedKeys(FVector2D InNewLocation)
 	// track all unique curves encountered so their tangents can be updated later
 	TSet<FRichCurve*> UniqueCurves;
 
-	FVector2D SnappedNewLocation = SnapLocation(InNewLocation);
 
 	// The total move distance for all keys is the difference between the current snapped location
 	// and the start location of the key which was actually dragged.
-	FVector2D TotalMoveDistance = SnappedNewLocation - PreDragKeyLocations[DraggedKeyHandle];
+
+	FVector2D TotalMoveDistance = Delta;
 
 	for (int32 i = 0; i < SelectedKeys.Num(); i++)
 	{
@@ -1796,13 +2120,19 @@ void SCurveEditor::MoveSelectedKeys(FVector2D InNewLocation)
 		FVector2D NewLocation = PreDragLocation + TotalMoveDistance;
 
 		// Update the key's value without updating the tangents.
-		Curve->SetKeyValue(OldKeyHandle, NewLocation.Y, false);
+		if (MovementAxisLock != EMovementAxisLock::AxisLock_Horizontal)
+		{
+			Curve->SetKeyValue(OldKeyHandle, NewLocation.Y, false);
+		}
 
 		// Changing the time of a key returns a new handle, so make sure to update existing references.
-		FKeyHandle KeyHandle = Curve->SetKeyTime(OldKeyHandle, NewLocation.X);
-		SelectedKeys[i] = FSelectedCurveKey(Curve, KeyHandle);
-		PreDragKeyLocations.Remove(OldKeyHandle);
-		PreDragKeyLocations.Add(KeyHandle, PreDragLocation);
+		if (MovementAxisLock != EMovementAxisLock::AxisLock_Vertical)
+		{
+			FKeyHandle KeyHandle = Curve->SetKeyTime(OldKeyHandle, NewLocation.X);
+			SelectedKeys[i] = FSelectedCurveKey(Curve, KeyHandle);
+			PreDragKeyLocations.Remove(OldKeyHandle);
+			PreDragKeyLocations.Add(KeyHandle, PreDragLocation);
+		}
 
 		UniqueCurves.Add(Curve);
 	}
@@ -1834,17 +2164,17 @@ TOptional<float> SCurveEditor::GetKeyTime(FSelectedCurveKey Key) const
 	return TOptional<float>();
 }
 
-void SCurveEditor::EmptySelection()
+void SCurveEditor::EmptyKeySelection()
 {
 	SelectedKeys.Empty();
 }
 
-void SCurveEditor::AddToSelection(FSelectedCurveKey Key)
+void SCurveEditor::AddToKeySelection(FSelectedCurveKey Key)
 {
 	SelectedKeys.AddUnique(Key);
 }
 
-void SCurveEditor::RemoveFromSelection(FSelectedCurveKey Key)
+void SCurveEditor::RemoveFromKeySelection(FSelectedCurveKey Key)
 {
 	SelectedKeys.Remove(Key);
 }
@@ -1859,6 +2189,83 @@ bool SCurveEditor::AreKeysSelected() const
 	return SelectedKeys.Num() > 0;
 }
 
+void SCurveEditor::EmptyTangentSelection()
+{
+	SelectedTangents.Empty();
+}
+
+void SCurveEditor::AddToTangentSelection(FSelectedTangent Tangent)
+{
+	SelectedTangents.Add(Tangent);
+}
+
+void SCurveEditor::RemoveFromTangentSelection(FSelectedTangent Tangent)
+{
+	SelectedTangents.Remove(Tangent);
+}
+
+bool SCurveEditor::IsTangentSelected(FSelectedTangent Tangent) const
+{
+	return SelectedTangents.Contains(Tangent);
+}
+
+bool SCurveEditor::AreTangentsSelected() const
+{
+	return SelectedTangents.Num() > 0;
+}
+
+bool SCurveEditor::IsTangentVisible(FRichCurve* Curve, FKeyHandle KeyHandle, bool& bIsTangentSelected, bool& bIsArrivalSelected, bool& bIsLeaveSelected) const
+{
+	bIsTangentSelected = false;
+	bIsArrivalSelected = false;
+	bIsLeaveSelected = false;
+
+	bool IsSelected = IsKeySelected(FSelectedCurveKey(Curve,KeyHandle));
+	for (auto SelectedTangent : SelectedTangents)
+	{
+		if (SelectedTangent.Key.KeyHandle == KeyHandle)
+		{
+			if (SelectedTangent.bIsArrival)
+				bIsArrivalSelected = true;
+			else
+				bIsLeaveSelected = true;
+			bIsTangentSelected = true;
+		}
+	}
+
+	return (IsSelected || bIsTangentSelected || Settings->GetTangentVisibility() == ECurveEditorTangentVisibility::AllTangents) && Settings->GetTangentVisibility() != ECurveEditorTangentVisibility::NoTangents;
+}
+
+void SCurveEditor::EmptyAllSelection()
+{
+	EmptyKeySelection();
+	EmptyTangentSelection();
+}
+
+void SCurveEditor::ValidateSelection()
+{
+	//remove any invalid keys
+	for(int32 i = 0;i<SelectedKeys.Num();++i)
+	{
+		auto Key = SelectedKeys[i];
+		if(!IsValidCurve(Key.Curve) || !Key.IsValid())
+		{
+			SelectedKeys.RemoveAt(i);
+			i--;
+		}
+	}
+
+	// remove any invalid tangents
+	for (int32 i = 0;i<SelectedTangents.Num();++i)
+	{
+		auto Tangent = SelectedTangents[i];
+		if (!IsValidCurve(Tangent.Key.Curve) || !Tangent.Key.IsValid())
+		{
+			SelectedTangents.RemoveAt(i);
+			i--;
+		}
+	}
+}
 
 TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 {
@@ -2261,34 +2668,54 @@ SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeomet
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition);
 
-		for(auto It = SelectedKeys.CreateConstIterator();It;++It)
+		for (auto CurveViewModel : CurveViewModels)
 		{
-			FSelectedCurveKey Key = *It;
-			if(Key.IsValid())
+			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
 			{
-				float Time		 = ScaleInfo.LocalXToInput(HitPosition.X);
-				float KeyScreenY = ScaleInfo.OutputToLocalY(Key.Curve->Eval(Time));
-
-				FVector2D Arrive, Leave;
-				GetTangentPoints(ScaleInfo, Key, Arrive, Leave);
-
-				if( HitPosition.Y > (Arrive.Y - (0.5f * CONST_CurveSize.Y)) &&
-					HitPosition.Y < (Arrive.Y + (0.5f * CONST_CurveSize.Y)) &&
-					HitPosition.X > (Arrive.X - (0.5f * CONST_TangentSize.X)) && 
-					HitPosition.X < (Arrive.X + (0.5f * CONST_TangentSize.X)))
+				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
+				if (Curve != NULL)
 				{
-					Tangent.Key = Key;
-					Tangent.bIsArrival = true;
-					break;
-				}
-				if( HitPosition.Y > (Leave.Y - (0.5f * CONST_CurveSize.Y)) &&
-					HitPosition.Y < (Leave.Y  + (0.5f * CONST_CurveSize.Y)) &&
-					HitPosition.X > (Leave.X - (0.5f * CONST_TangentSize.X)) && 
-					HitPosition.X < (Leave.X + (0.5f * CONST_TangentSize.X)))
-				{
-					Tangent.Key = Key;
-					Tangent.bIsArrival = false;
-					break;
+					for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+					{
+						FKeyHandle KeyHandle = It.Key();
+						FSelectedCurveKey SelectedCurveKey(Curve, KeyHandle);
+
+						if(SelectedCurveKey.IsValid())
+						{
+							bool bIsTangentSelected = false;
+							bool bIsArrivalSelected = false;
+							bool bIsLeaveSelected = false;
+							bool bIsTangentVisible = IsTangentVisible(Curve, KeyHandle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected);
+
+							if (bIsTangentVisible)
+							{
+								float Time		 = ScaleInfo.LocalXToInput(HitPosition.X);
+								float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->Eval(Time));
+
+								FVector2D Arrive, Leave;
+								GetTangentPoints(ScaleInfo, SelectedCurveKey, Arrive, Leave);
+
+								if( HitPosition.Y > (Arrive.Y - (0.5f * CONST_CurveSize.Y)) &&
+									HitPosition.Y < (Arrive.Y + (0.5f * CONST_CurveSize.Y)) &&
+									HitPosition.X > (Arrive.X - (0.5f * CONST_TangentSize.X)) && 
+									HitPosition.X < (Arrive.X + (0.5f * CONST_TangentSize.X)))
+								{
+									Tangent.Key = SelectedCurveKey;
+									Tangent.bIsArrival = true;
+									break;
+								}
+								if( HitPosition.Y > (Leave.Y - (0.5f * CONST_CurveSize.Y)) &&
+									HitPosition.Y < (Leave.Y  + (0.5f * CONST_CurveSize.Y)) &&
+									HitPosition.X > (Leave.X - (0.5f * CONST_TangentSize.X)) && 
+									HitPosition.X < (Leave.X + (0.5f * CONST_TangentSize.X)))
+								{
+									Tangent.Key = SelectedCurveKey;
+									Tangent.bIsArrival = false;
+									break;
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -2299,7 +2726,7 @@ SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeomet
 
 void SCurveEditor::OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode)
 {
-	if(SelectedKeys.Num() > 0)
+	if(SelectedKeys.Num() > 0 || SelectedTangents.Num() > 0)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetInterpolationMode", "Select Interpolation Mode"));
 		CurveOwner->ModifyOwner();
@@ -2311,6 +2738,14 @@ void SCurveEditor::OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ER
 			check(IsValidCurve(Key.Curve));
 			Key.Curve->SetKeyInterpMode(Key.KeyHandle,InterpMode );
 			Key.Curve->SetKeyTangentMode(Key.KeyHandle,TangentMode );
+		}
+
+		for(auto It = SelectedTangents.CreateIterator();It;++It)
+		{
+			FSelectedTangent& Tangent = *It;
+			check(IsValidCurve(Tangent.Key.Curve));
+			Tangent.Key.Curve->SetKeyInterpMode(Tangent.Key.KeyHandle,InterpMode );
+			Tangent.Key.Curve->SetKeyTangentMode(Tangent.Key.KeyHandle,TangentMode );
 		}
 
 		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
@@ -2338,62 +2773,193 @@ bool SCurveEditor::IsInterpolationModeSelected(ERichCurveInterpMode InterpMode, 
 		}
 		return true;
 	}
+	else if (SelectedTangents.Num() > 0)
+	{
+		for (auto SelectedTangent : SelectedTangents)
+		{
+			if (SelectedTangent.Key.Curve->GetKeyInterpMode(SelectedTangent.Key.KeyHandle) != InterpMode || SelectedTangent.Key.Curve->GetKeyTangentMode(SelectedTangent.Key.KeyHandle) != TangentMode)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 	else
 	{
-					return false;
-				}
+		return false;
+	}
+}
+
+void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
+{
+	if(SelectedKeys.Num() > 0 || SelectedTangents.Num() > 0)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_FlattenTangents", "Flatten Tangents"));
+		CurveOwner->ModifyOwner();
+		TSet<FRichCurve*> ChangedCurves;
+
+		for(auto It = SelectedKeys.CreateIterator();It;++It)
+		{
+			FSelectedCurveKey& Key = *It;
+			check(IsValidCurve(Key.Curve));
+
+			float LeaveTangent = Key.Curve->GetKey(Key.KeyHandle).LeaveTangent;
+			float ArriveTangent = Key.Curve->GetKey(Key.KeyHandle).ArriveTangent;
+
+			if (bFlattenTangents)
+			{
+				LeaveTangent = 0;
+				ArriveTangent = 0;
+			}
+			else
+			{
+				LeaveTangent = (LeaveTangent + ArriveTangent) * 0.5f;
+				ArriveTangent = LeaveTangent;
 			}
 
-/* Given a tangent value for a key, calculates the 2D delta vector from that key in curve space */
-static inline FVector2D CalcTangentDir(float Tangent)
-{
-	const float Angle = FMath::Atan(Tangent);
-	return FVector2D( FMath::Cos(Angle), -FMath::Sin(Angle) );
+			Key.Curve->GetKey(Key.KeyHandle).LeaveTangent = LeaveTangent;
+			Key.Curve->GetKey(Key.KeyHandle).ArriveTangent = ArriveTangent;
+		}
+				
+		for(auto It = SelectedTangents.CreateIterator();It;++It)
+		{
+			FSelectedTangent& Tangent = *It;
+			check(IsValidCurve(Tangent.Key.Curve));
+
+			float LeaveTangent = Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).LeaveTangent;
+			float ArriveTangent = Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).ArriveTangent;
+
+			if (bFlattenTangents)
+			{
+				LeaveTangent = 0;
+				ArriveTangent = 0;
+			}
+			else
+			{
+				LeaveTangent = (LeaveTangent + ArriveTangent) * 0.5f;
+				ArriveTangent = LeaveTangent;
+			}
+
+			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).LeaveTangent = LeaveTangent;
+			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).ArriveTangent = ArriveTangent;
+		}
+
+		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+		for (auto CurveViewModel : CurveViewModels)
+		{
+			if (ChangedCurves.Contains(CurveViewModel->CurveInfo.CurveToEdit))
+			{
+				ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+			}
+		}
+		CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+	}
 }
 
-/*Given a 2d delta vector in curve space, calculates a tangent value */
-static inline float CalcTangent(const FVector2D& HandleDelta)
+void SCurveEditor::OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolation)
 {
-	// Ensure X is positive and non-zero.
-	// Tangent is gradient of handle.
-	return HandleDelta.Y / FMath::Max<double>(HandleDelta.X, KINDA_SMALL_NUMBER);
+	const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetPreInfinityExtrapolation", "Set Pre-Infinity Extrapolation"));
+	CurveOwner->ModifyOwner();
+
+	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+	for (auto CurveViewModel : CurveViewModels)
+	{
+		if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+		{
+			CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap = Extrapolation;
+			ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+		}
+	}
+
+	if (ChangedCurveEditInfos.Num())
+	{
+		CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+	}
 }
 
-void SCurveEditor::OnMoveTangent(FVector2D MouseCurvePosition)
+bool SCurveEditor::IsPreInfinityExtrapSelected(ERichCurveExtrapolation Extrapolation)
 {
-	auto& RichKey = SelectedTangent.Key.Curve->GetKey(SelectedTangent.Key.KeyHandle);
-
-	const FSelectedCurveKey &Key = SelectedTangent.Key;
-
-	FVector2D KeyPosition( Key.Curve->GetKeyTime(Key.KeyHandle),Key.Curve->GetKeyValue(Key.KeyHandle) );
-
-	FVector2D Movement = MouseCurvePosition - KeyPosition;
-	if(SelectedTangent.bIsArrival)
+	for (auto CurveViewModel : CurveViewModels)
 	{
-		Movement *= -1.0f;
+		if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+		{
+			return false;
+		}
 	}
-	float Tangent = CalcTangent(Movement);
+	return CurveViewModels.Num() > 0;
+}
 
-	if(RichKey.TangentMode  != RCTM_Break)
+void SCurveEditor::OnSelectPostInfinityExtrap(ERichCurveExtrapolation Extrapolation)
+{
+	const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetPostInfinityExtrapolation", "Set Post-Infinity Extrapolation"));
+	CurveOwner->ModifyOwner();
+
+	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+	for (auto CurveViewModel : CurveViewModels)
 	{
-		RichKey.ArriveTangent = Tangent;
-		RichKey.LeaveTangent  = Tangent;
-		
-		RichKey.TangentMode = RCTM_User;
+		if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+		{
+			CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap = Extrapolation;
+			ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+		}
 	}
-	else
+
+	if (ChangedCurveEditInfos.Num())
 	{
+		CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+	}
+}
+
+bool SCurveEditor::IsPostInfinityExtrapSelected(ERichCurveExtrapolation Extrapolation)
+{
+	for (auto CurveViewModel : CurveViewModels)
+	{
+		if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+		{
+			return false;
+		}
+	}
+	return CurveViewModels.Num() > 0;
+}
+
+void SCurveEditor::MoveTangents(FTrackScaleInfo ScaleInfo, FVector2D Delta)
+{
+	for (auto SelectedTangent : SelectedTangents)
+	{
+		auto& RichKey = SelectedTangent.Key.Curve->GetKey(SelectedTangent.Key.KeyHandle);
+
+		const FSelectedCurveKey &Key = SelectedTangent.Key;
+
+		FVector2D KeyPosition( Key.Curve->GetKeyTime(Key.KeyHandle),Key.Curve->GetKeyValue(Key.KeyHandle) );
+
+		FVector2D Movement = Delta - KeyPosition;
 		if(SelectedTangent.bIsArrival)
 		{
+			Movement *= -1.0f;
+		}
+		float Tangent = CalcTangent(Movement);
+
+		if(RichKey.TangentMode  != RCTM_Break)
+		{
 			RichKey.ArriveTangent = Tangent;
+			RichKey.LeaveTangent  = Tangent;
+		
+			RichKey.TangentMode = RCTM_User;
 		}
 		else
 		{
-			RichKey.LeaveTangent = Tangent;
-		}
-	}	
-
+			if(SelectedTangent.bIsArrival)
+			{
+				RichKey.ArriveTangent = Tangent;
+			}
+			else
+			{
+				RichKey.LeaveTangent = Tangent;
+			}
+		}	
+	}
 }
+
 void SCurveEditor::GetTangentPoints(  FTrackScaleInfo &ScaleInfo, const FSelectedCurveKey &Key, FVector2D& Arrive, FVector2D& Leave ) const
 {
 	FVector2D ArriveTangentDir = CalcTangentDir( Key.Curve->GetKey(Key.KeyHandle).ArriveTangent);
@@ -2457,6 +3023,59 @@ TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarqu
 	return KeysWithinMarquee;
 }
 
+TArray<SCurveEditor::FSelectedTangent> SCurveEditor::GetEditableTangentsWithinMarquee(const FGeometry& InMyGeometry, FVector2D MarqueeTopLeft, FVector2D MarqueeBottomRight) const
+{
+	FBox MarqueeBox;
+	MarqueeBox.Min = FVector(MarqueeTopLeft.X, MarqueeTopLeft.Y, 0);
+	MarqueeBox.Max = FVector(MarqueeBottomRight.X, MarqueeBottomRight.Y, 0);
+
+	TArray<FSelectedTangent> TangentsWithinMarquee;
+	if (AreCurvesVisible())
+	{
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+		for (auto CurveViewModel : CurveViewModels)
+		{
+			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			{
+				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
+				if (Curve != NULL)
+				{
+					for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+					{
+						FKeyHandle KeyHandle = It.Key();
+						FSelectedCurveKey SelectedCurveKey(Curve, KeyHandle);
+
+						if(SelectedCurveKey.IsValid())
+						{
+							bool bIsTangentSelected = false;
+							bool bIsArrivalSelected = false;
+							bool bIsLeaveSelected = false;
+							bool bIsTangentVisible = IsTangentVisible(Curve, KeyHandle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected);
+
+							if (bIsTangentVisible)
+							{
+								FVector2D Arrive, Leave;
+								GetTangentPoints(ScaleInfo, SelectedCurveKey, Arrive, Leave);
+
+								bool bArriveInside = MarqueeBox.IsInsideOrOn(FVector(Arrive.X, Arrive.Y, 0));
+								bool bLeaveInside = MarqueeBox.IsInsideOrOn(FVector(Leave.X, Leave.Y, 0));
+
+								if (bArriveInside || bLeaveInside)
+								{
+									FSelectedTangent SelectedTangent(SelectedCurveKey);
+									SelectedTangent.bIsArrival = bArriveInside;
+									TangentsWithinMarquee.Add(SelectedTangent);
+								}	
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return TangentsWithinMarquee;
+}
+
 void SCurveEditor::BeginDragTransaction()
 {
 	TransactionIndex = GEditor->BeginTransaction( LOCTEXT("CurveEditor_Drag", "Mouse Drag") );
@@ -2495,16 +3114,7 @@ void SCurveEditor::RedoAction()
 
 void SCurveEditor::PostUndo(bool bSuccess)
 {
-	//remove any invalid keys
-	for(int32 i = 0;i<SelectedKeys.Num();++i)
-	{
-		auto Key = SelectedKeys[i];
-		if(!IsValidCurve(Key.Curve) || !Key.IsValid())
-		{
-			SelectedKeys.RemoveAt(i);
-			i--;
-		}
-	}
+	ValidateSelection();
 }
 
 bool SCurveEditor::IsLinearColorCurve() const 

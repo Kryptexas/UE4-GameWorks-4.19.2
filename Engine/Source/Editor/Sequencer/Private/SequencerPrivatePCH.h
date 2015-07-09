@@ -26,6 +26,7 @@
 #include "SequencerCurveOwner.h"
 #include "SSequencerCurveEditor.h"
 #include "SSequencerCurveEditorToolBar.h"
+#include "CurveEditorSettings.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSequencer, Log, All);
 

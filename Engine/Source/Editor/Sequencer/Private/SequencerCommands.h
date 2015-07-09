@@ -75,18 +75,6 @@ public:
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
 
-	/** Toggles whether or not to show tool tips for the curves in the curve editor. */
-	TSharedPtr< FUICommandInfo > ToggleShowCurveEditorCurveToolTips;
-
-	/** Sets the curve visibility to all curves. */
-	TSharedPtr< FUICommandInfo > SetAllCurveVisibility;
-
-	/** Sets the curve visibility to the selected curves. */
-	TSharedPtr< FUICommandInfo > SetSelectedCurveVisibility;
-
-	/** Sets the curve visibility to the animated curves. */
-	TSharedPtr< FUICommandInfo > SetAnimatedCurveVisibility;
-
 	/**
 	 * Initialize commands
 	 */
