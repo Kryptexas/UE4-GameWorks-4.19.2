@@ -393,6 +393,11 @@ void VisualizeDOFPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : 
 	CommonDOFSetup(UVAndScreenPos.xy, bFrontLayer, Mask);
 
 	OutColor = (bFrontLayer ? VisualizeColors[0] : VisualizeColors[1]) * dot(Mask, 1);
+	
+	half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVAndScreenPos.xy).rgb;
+
+	// blend in a bit of the scene color to make navigation easier
+	OutColor.rgb = lerp(saturate(OutColor.rgb), Luminance(SceneColor), 0.1f);
 }
 
 

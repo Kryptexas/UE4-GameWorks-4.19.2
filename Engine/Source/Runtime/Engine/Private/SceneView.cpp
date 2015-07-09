@@ -1372,7 +1372,8 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
 			|| (SceneViewFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
 			|| (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1))
-			|| Family->EngineShowFlags.VisualizeBloom)
+			|| Family->EngineShowFlags.VisualizeBloom
+			|| Family->EngineShowFlags.VisualizeDOF)
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
