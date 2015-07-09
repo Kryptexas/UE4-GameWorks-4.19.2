@@ -35,6 +35,8 @@ namespace UnrealBuildTool
 			// set some environment variable we'll need.
 			// Forces emcc to use our generated .emscripten config, not the one in the users home directory.
 			Environment.SetEnvironmentVariable("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN);
+			Environment.SetEnvironmentVariable("EM_CACHE", HTML5SDKInfo.EMSCRIPTEN_CACHE); 
+
 		}
 	
 		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
