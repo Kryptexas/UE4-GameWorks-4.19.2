@@ -129,3 +129,5 @@ TSharedRef<SWidget> SSequencerCurveEditorToolBar::MakeCurveEditorCurveOptionsMen
 	
 	return MenuBuilder.MakeWidget();
 }
+
+#undef LOCTEXT_NAMESPACE
