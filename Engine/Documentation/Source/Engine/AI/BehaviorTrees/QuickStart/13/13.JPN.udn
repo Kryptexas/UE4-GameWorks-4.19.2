@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:2590930
 Availability:Public
-Title:13.デコレーターの作成
+Title: 13.デコレーターの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:13.デコレーターの作成
+Description:13. デコレーターの作成
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -68,6 +68,7 @@ AI のポーンがターゲットに十分近づくと、**Decorator** はビヘ
 
 
 
+[VAR:varTable1]
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
