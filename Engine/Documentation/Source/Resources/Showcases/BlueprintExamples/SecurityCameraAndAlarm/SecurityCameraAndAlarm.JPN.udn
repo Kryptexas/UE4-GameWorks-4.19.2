@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572509
+﻿INTSourceChangelist:2613974
 Availability:Public
 Title:セキュリティ カメラの切り替えボタン
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -19,7 +19,7 @@ Related:Engine/Blueprints/UserGuide/Components
 ![](ScreenBlueprint.png)(w:600)
 
 
-本来の Screen ブループリントは、異なる Scene Capture アクタ間を切り替えるための最適化メカニズムです。セキュリティ カメラのエフェクトは、それぞれの [Camera ブループリント]  (Resources\Showcases\BlueprintExamples\SecurityDoor) 内に配置されている Scene Capture アクタで作成されます。Scene Capture アクタの目的は、カメラのように機能し、捉えた画像の解像度をキャプチャすることです。画像の解像度は、後に内部ビデオスクリーンのような機能を持つ Render Target テクスチャへ送信されます。Render Target テクスチャをマテリアルに適用することにより、カメラが捉えた映像を表示するマテリアルを効果的に作成できます。
+本来の Screen ブループリントは、異なる Scene Capture アクタ間を切り替えるための最適化メカニズムです。セキュリティ カメラのエフェクトは、それぞれの [Camera ブループリント](Resources\Showcases\BlueprintExamples\SecurityDoor) 内に配置されている Scene Capture アクタで作成されます。Scene Capture アクタの目的は、カメラのように機能し、捉えた画像の解像度をキャプチャすることです。画像の解像度は、後に内部ビデオスクリーンのような機能を持つ Render Target テクスチャへ送信されます。Render Target テクスチャをマテリアルに適用することにより、カメラが捉えた映像を表示するマテリアルを効果的に作成できます。
 
 問題点？多数のカメラを同時に実行すると、全てのカメラが現在のビューをキャプチャおよび送信しなくてはいけないため、パフォーマンス問題が発生する可能性があります。問題を軽減するには、スクリーン ブループリントは一度に 1 つの Scene Capture を立ち上げて、前回使用した Scene Capture を無効にします。
 
@@ -29,7 +29,7 @@ Related:Engine/Blueprints/UserGuide/Components
 
 ### ブループリントの設定
 
-このブループリントのコンポーネントリスト、コンストラクションスクリプト、そしてイベントグラフで実行されるタスクは以下の通りです。
+このブループリントの コンポーネント リスト、 コンストラクション スクリプト 、そして イベント グラフ で実行されるタスクは以下の通りです。
 
 
 |ブループリントの特徴 |目的 |
@@ -67,13 +67,13 @@ Button ブループリントは、トリガーボリュームとして使用す�
 ![](EToInteract.png)(w:600)
 
 [REGION:lightbox]
-[「Infiltrator」デモのロボット工場をシャットダウンするために使用するボタンとコンソールであることに気付いたらボーナス ポイント](InfiltratorDesk.png)
+[Infiltrator デモのロボット工場をシャットダウンするために使用するボタンとコンソールであることに気付いたらボーナス ポイント](InfiltratorDesk.png)
 [/REGION]
 
 
 ### ブループリントの設定
 
-このブループリントのコンポーネントリスト、コンストラクションスクリプト、そしてイベントグラフで実行されるタスクは以下の通りです。
+このブループリントの コンポーネント リスト、 コンストラクション スクリプト 、そして イベント グラフ で実行されるタスクは以下の通りです。
 
 
 |ブループリントの特徴 |目的 |
@@ -107,19 +107,19 @@ Button ブループリントは、トリガーボリュームとして使用す�
 
 
 [EXCERPT:ScreenCL]
-スクリーンの **コンポーネントリスト** は、とても単純です。スクリーン自体の単一スタティックメッシュのみを格納します。
+スクリーンの コンポーネントリスト は、とても単純です。スクリーン自体の単一スタティックメッシュのみを格納します。
 [/EXCERPT:ScreenCL]
 
 
 [EXCERPT:ScreenCS]
-コンストラクション スクリプトは以下のタスクを実行します。
+コンストラクション スクリプト は以下のタスクを実行します。
 * スクリーンメッシュに [Material Instance Dynamic (MID)](Engine/Rendering/Materials/MaterialInstances) を作成して適用します。
 [/EXCERPT:ScreenCS]
 
 
 
 [EXCERPT:ScreenEG]
-イベント グラフは以下のタスクを実行します。
+イベント グラフ は以下のタスクを実行します。
 アラーム インターフェースから「Camera Swap (カメラの切り替え)」シグナルを受信すると以下が行われます。
 * 前回のキャプチャ アクタをオフにします。
 * スクリーン マテリアルのノイズを操作するタイムラインを再生します。
@@ -130,20 +130,20 @@ Button ブループリントは、トリガーボリュームとして使用す�
 
 
 [EXCERPT:ButtonCL]
-ボタンの **コンポーネント リスト** は以下のように設定します。
+ボタンの コンポーネント リスト は以下のように設定します。
 ![](ButtonComponents.png)
 
 [/EXCERPT:ButtonCL]
 
 
 [EXCERPT:ButtonCS]
-**コンストラクション スクリプト** は機能しません。
+コンストラクション スクリプト は機能しません。
 [/EXCERPT:ButtonCS]
 
 
 
 [EXCERPT:ButtonEG]
-イベント グラフは以下のタスクを実行します。
+イベント グラフ は以下のタスクを実行します。
 * プレイヤーがボックス コンポーネントへ立ち入ったタイミングを確かめます。
 * プレイヤーが一度コンポーネント内に立ち入ると、ヘルプテキストを作成します。
 * 作成したヘルプテキストを、プレイヤーに向けて回転します。
