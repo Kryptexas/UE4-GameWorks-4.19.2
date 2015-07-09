@@ -12,13 +12,153 @@
 // FFrontendFilter_Text
 /////////////////////////////////////////
 
+/** Expression context which gathers up the names of any dynamic collections being referenced by the current query */
+class FFrontendFilter_GatherDynamicCollectionsExpressionContext : public ITextFilterExpressionContext
+{
+public:
+	FFrontendFilter_GatherDynamicCollectionsExpressionContext(TArray<FCollectionNameType>& OutReferencedDynamicCollections)
+		: AvailableDynamicCollections()
+		, ReferencedDynamicCollections(OutReferencedDynamicCollections)
+		, CurrentRecursionDepth(0)
+		, CollectionKeyName("Collection")
+		, TagKeyName("Tag")
+	{
+		if (FCollectionManagerModule::IsModuleAvailable())
+		{
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+			TArray<FCollectionNameType> AvailableCollections;
+			CollectionManagerModule.Get().GetCollections(AvailableCollections);
+
+			for (const FCollectionNameType& AvailableCollection : AvailableCollections)
+			{
+				// Only care about dynamic collections
+				ECollectionStorageMode::Type StorageMode = ECollectionStorageMode::Static;
+				CollectionManagerModule.Get().GetCollectionStorageMode(AvailableCollection.Name, AvailableCollection.Type, StorageMode);
+				if (StorageMode != ECollectionStorageMode::Dynamic)
+				{
+					continue;
+				}
+
+				AvailableDynamicCollections.Add(AvailableCollection);
+			}
+		}
+	}
+
+	~FFrontendFilter_GatherDynamicCollectionsExpressionContext()
+	{
+		// Sort and populate the final list of referenced dynamic collections
+		FoundDynamicCollections.Sort([](const FDynamicCollectionNameAndDepth& A, const FDynamicCollectionNameAndDepth& B)
+		{
+			return A.RecursionDepth > B.RecursionDepth;
+		});
+
+		ReferencedDynamicCollections.Reset();
+		ReferencedDynamicCollections.Reserve(FoundDynamicCollections.Num());
+		for (const auto& FoundDynamicCollection : FoundDynamicCollections)
+		{
+			ReferencedDynamicCollections.Add(FoundDynamicCollection.Collection);
+		}
+	}
+
+	virtual bool TestBasicStringExpression(const FTextFilterString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+	{
+		TestAgainstAvailableCollections(InValue, InTextComparisonMode);
+		return false;
+	}
+
+	virtual bool TestComplexExpression(const FName& InKey, const FTextFilterString& InValue, const ETextFilterComparisonOperation InComparisonOperation, const ETextFilterTextComparisonMode InTextComparisonMode) const override
+	{
+		// Special case for collections, as these aren't contained within the asset registry meta-data
+		if (InKey == CollectionKeyName || InKey == TagKeyName)
+		{
+			// Collections can only work with Equal or NotEqual type tests
+			if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+			{
+				return false;
+			}
+
+			TestAgainstAvailableCollections(InValue, InTextComparisonMode);
+		}
+
+		return false;
+	}
+
+private:
+	bool TestAgainstAvailableCollections(const FTextFilterString& InValue, const ETextFilterTextComparisonMode InTextComparisonMode) const
+	{
+		for (const FCollectionNameType& DynamicCollection : AvailableDynamicCollections)
+		{
+			const FString DynamicCollectionNameStr = DynamicCollection.Name.ToString();
+			if (TextFilterUtils::TestBasicStringExpression(DynamicCollectionNameStr, InValue, InTextComparisonMode))
+			{
+				const bool bCollectionAlreadyProcessed = FoundDynamicCollections.ContainsByPredicate([&](const FDynamicCollectionNameAndDepth& Other)
+				{
+					return DynamicCollection == Other.Collection;
+				});
+
+				if (!bCollectionAlreadyProcessed)
+				{
+					FoundDynamicCollections.Add(FDynamicCollectionNameAndDepth(DynamicCollection, CurrentRecursionDepth));
+
+					if (FCollectionManagerModule::IsModuleAvailable())
+					{
+						FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+						
+						// Also need to gather any collections referenced by this dynamic collection
+						++CurrentRecursionDepth;
+						bool bUnused = false;
+						CollectionManagerModule.Get().TestDynamicQuery(DynamicCollection.Name, DynamicCollection.Type, *this, bUnused);
+						--CurrentRecursionDepth;
+					}
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/** Contains a collection name along with its recursion depth in the dynamic query - used so we can test them depth first */
+	struct FDynamicCollectionNameAndDepth
+	{
+		FDynamicCollectionNameAndDepth(FCollectionNameType InCollection, const int32 InRecursionDepth)
+			: Collection(InCollection)
+			, RecursionDepth(InRecursionDepth)
+		{
+		}
+
+		FCollectionNameType Collection;
+		int32 RecursionDepth;
+	};
+
+	/** The currently available dynamic collections */
+	TArray<FCollectionNameType> AvailableDynamicCollections;
+
+	/** This will be populated with any dynamic collections that are being referenced by the current query - these collections may not all match when tested against the actual asset data */
+	TArray<FCollectionNameType>& ReferencedDynamicCollections;
+
+	/** Dynamic collections that have currently be found as part of the query (or recursive sub-query) */
+	mutable TArray<FDynamicCollectionNameAndDepth> FoundDynamicCollections;
+
+	/** Incremented when we test a sub-query, decremented once we're done */
+	mutable int32 CurrentRecursionDepth;
+
+	/** Keys used by TestComplexExpression */
+	const FName CollectionKeyName;
+	const FName TagKeyName;
+};
+
+/** Expression context to test the given asset data against the current text filter */
 class FFrontendFilter_TextFilterExpressionContext : public ITextFilterExpressionContext
 {
 public:
 	typedef TRemoveReference<FAssetFilterType>::Type* FAssetFilterTypePtr;
 
-	FFrontendFilter_TextFilterExpressionContext()
-		: AssetPtr(nullptr)
+	FFrontendFilter_TextFilterExpressionContext(const TArray<FCollectionNameType>& InReferencedDynamicCollections)
+		: ReferencedDynamicCollections(InReferencedDynamicCollections)
+		, AssetPtr(nullptr)
 		, bIncludeClassName(true)
 		, NameKeyName("Name")
 		, PathKeyName("Path")
@@ -73,6 +213,18 @@ public:
 		{
 			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 			CollectionManagerModule.Get().GetCollectionsContainingObject(AssetPtr->ObjectPath, ECollectionShareType::CST_All, AssetCollectionNames, ECollectionRecursionFlags::SelfAndChildren);
+
+			// Test the dynamic collections from the active query against the current asset
+			// We can do this as a flat list since FFrontendFilter_GatherDynamicCollectionsExpressionContext has already taken care of processing the recursion
+			for (const FCollectionNameType& DynamicCollection : ReferencedDynamicCollections)
+			{
+				bool bPassesCollectionFilter = false;
+				CollectionManagerModule.Get().TestDynamicQuery(DynamicCollection.Name, DynamicCollection.Type, *this, bPassesCollectionFilter);
+				if (bPassesCollectionFilter)
+				{
+					AssetCollectionNames.AddUnique(DynamicCollection.Name);
+				}
+			}
 		}
 	}
 
@@ -215,6 +367,9 @@ public:
 	}
 
 private:
+	/** An array of dynamic collections that are being referenced by the current query. These should be tested against each asset when it's looking for collections that contain it */
+	const TArray<FCollectionNameType>& ReferencedDynamicCollections;
+
 	/** Pointer to the asset we're currently filtering */
 	FAssetFilterTypePtr AssetPtr;
 
@@ -244,13 +399,31 @@ private:
 
 FFrontendFilter_Text::FFrontendFilter_Text()
 	: FFrontendFilter(nullptr)
-	, TextFilterExpressionContext(MakeShareable(new FFrontendFilter_TextFilterExpressionContext()))
+	, ReferencedDynamicCollections()
+	, TextFilterExpressionContext(MakeShareable(new FFrontendFilter_TextFilterExpressionContext(ReferencedDynamicCollections)))
 	, TextFilterExpressionEvaluator(ETextFilterExpressionEvaluatorMode::Complex)
 {
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	// We need to watch for collection changes so that we can keep ReferencedDynamicCollections up-to-date
+	OnCollectionCreatedHandle = CollectionManagerModule.Get().OnCollectionCreated().AddRaw(this, &FFrontendFilter_Text::HandleCollectionCreated);
+	OnCollectionDestroyedHandle = CollectionManagerModule.Get().OnCollectionDestroyed().AddRaw(this, &FFrontendFilter_Text::HandleCollectionDestroyed);
+	OnCollectionRenamedHandle = CollectionManagerModule.Get().OnCollectionRenamed().AddRaw(this, &FFrontendFilter_Text::HandleCollectionRenamed);
+	OnCollectionUpdatedHandle = CollectionManagerModule.Get().OnCollectionUpdated().AddRaw(this, &FFrontendFilter_Text::HandleCollectionUpdated);
 }
 
 FFrontendFilter_Text::~FFrontendFilter_Text()
 {
+	// Check IsModuleAvailable as we might be in the process of shutting down...
+	if (FCollectionManagerModule::IsModuleAvailable())
+	{
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		CollectionManagerModule.Get().OnCollectionCreated().Remove(OnCollectionCreatedHandle);
+		CollectionManagerModule.Get().OnCollectionDestroyed().Remove(OnCollectionDestroyedHandle);
+		CollectionManagerModule.Get().OnCollectionRenamed().Remove(OnCollectionRenamedHandle);
+		CollectionManagerModule.Get().OnCollectionUpdated().Remove(OnCollectionUpdatedHandle);
+	}
 }
 
 bool FFrontendFilter_Text::PassesFilter(FAssetFilterType InItem) const
@@ -270,6 +443,8 @@ void FFrontendFilter_Text::SetRawFilterText(const FText& InFilterText)
 {
 	if (TextFilterExpressionEvaluator.SetFilterText(InFilterText))
 	{
+		RebuildReferencedDynamicCollections();
+
 		// Will trigger a re-filter with the new text
 		BroadcastChangedEvent();
 	}
@@ -289,6 +464,47 @@ void FFrontendFilter_Text::SetIncludeClassName(const bool InIncludeClassName)
 		// Will trigger a re-filter with the new setting
 		BroadcastChangedEvent();
 	}
+}
+
+void FFrontendFilter_Text::HandleCollectionCreated(const FCollectionNameType& Collection)
+{
+	RebuildReferencedDynamicCollections();
+
+	// Will trigger a re-filter with the new collections
+	BroadcastChangedEvent();
+}
+
+void FFrontendFilter_Text::HandleCollectionDestroyed(const FCollectionNameType& Collection)
+{
+	if (ReferencedDynamicCollections.Contains(Collection))
+	{
+		RebuildReferencedDynamicCollections();
+
+		// Will trigger a re-filter with the new collections
+		BroadcastChangedEvent();
+	}
+}
+
+void FFrontendFilter_Text::HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection)
+{
+	int32 FoundIndex = INDEX_NONE;
+	if (ReferencedDynamicCollections.Find(OriginalCollection, FoundIndex))
+	{
+		ReferencedDynamicCollections[FoundIndex] = NewCollection;
+	}
+}
+
+void FFrontendFilter_Text::HandleCollectionUpdated(const FCollectionNameType& Collection)
+{
+	RebuildReferencedDynamicCollections();
+
+	// Will trigger a re-filter with the new collections
+	BroadcastChangedEvent();
+}
+
+void FFrontendFilter_Text::RebuildReferencedDynamicCollections()
+{
+	TextFilterExpressionEvaluator.TestTextFilter(FFrontendFilter_GatherDynamicCollectionsExpressionContext(ReferencedDynamicCollections));
 }
 
 

@@ -36,11 +36,35 @@ public:
 	void SetIncludeClassName(const bool InIncludeClassName);
 
 private:
+	/** Handles an on collection created event */
+	void HandleCollectionCreated(const FCollectionNameType& Collection);
+
+	/** Handles an on collection destroyed event */
+	void HandleCollectionDestroyed(const FCollectionNameType& Collection);
+
+	/** Handles an on collection renamed event */
+	void HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection);
+
+	/** Handles an on collection updated event */
+	void HandleCollectionUpdated(const FCollectionNameType& Collection);
+
+	/** Rebuild the array of dynamic collections that are being referenced by the current query */
+	void RebuildReferencedDynamicCollections();
+
+	/** An array of dynamic collections that are being referenced by the current query. These should be tested against each asset when it's looking for collections that contain it */
+	TArray<FCollectionNameType> ReferencedDynamicCollections;
+
 	/** Transient context data, used when calling PassesFilter. Kept around to minimize re-allocations between multiple calls to PassesFilter */
 	TSharedRef<class FFrontendFilter_TextFilterExpressionContext> TextFilterExpressionContext;
 
 	/** Expression evaluator that can be used to perform complex text filter queries */
 	FTextFilterExpressionEvaluator TextFilterExpressionEvaluator;
+
+	/** Delegate handles */
+	FDelegateHandle OnCollectionCreatedHandle;
+	FDelegateHandle OnCollectionDestroyedHandle;
+	FDelegateHandle OnCollectionRenamedHandle;
+	FDelegateHandle OnCollectionUpdatedHandle;
 };
 
 /** A filter that displays only checked out assets */

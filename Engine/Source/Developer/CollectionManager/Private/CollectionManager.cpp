@@ -1139,6 +1139,34 @@ bool FCollectionManager::GetDynamicQueryText(FName CollectionName, ECollectionSh
 	return true;
 }
 
+bool FCollectionManager::TestDynamicQuery(FName CollectionName, ECollectionShareType::Type ShareType, const ITextFilterExpressionContext& InContext, bool& OutResult) const
+{
+	if (!ensure(ShareType < ECollectionShareType::CST_All))
+	{
+		// Bad share type
+		LastError = LOCTEXT("Error_Internal", "There was an internal error.");
+		return false;
+	}
+
+	const FCollectionNameType CollectionKey(CollectionName, ShareType);
+	const TSharedRef<FCollection>* const CollectionRefPtr = AvailableCollections.Find(CollectionKey);
+	if (!CollectionRefPtr)
+	{
+		// Collection doesn't exist
+		LastError = LOCTEXT("Error_DoesntExist", "The collection doesn't exist.");
+		return false;
+	}
+
+	if ((*CollectionRefPtr)->GetStorageMode() != ECollectionStorageMode::Dynamic)
+	{
+		LastError = LOCTEXT("Error_TestNeedsDynamicCollection", "Search queries can only be tested on dynamic collections.");
+		return false;
+	}
+
+	OutResult = (*CollectionRefPtr)->TestDynamicQuery(InContext);
+	return true;
+}
+
 bool FCollectionManager::EmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType)
 {
 	if (!ensure(ShareType < ECollectionShareType::CST_All))
@@ -1148,20 +1176,33 @@ bool FCollectionManager::EmptyCollection(FName CollectionName, ECollectionShareT
 		return false;
 	}
 
-	TArray<FName> ObjectPaths;
-	if (!GetObjectsInCollection(CollectionName, ShareType, ObjectPaths))
+	const FCollectionNameType CollectionKey(CollectionName, ShareType);
+	const TSharedRef<FCollection>* const CollectionRefPtr = AvailableCollections.Find(CollectionKey);
+	if (!CollectionRefPtr)
 	{
-		// Failed to load collection
+		// Collection doesn't exist
+		LastError = LOCTEXT("Error_DoesntExist", "The collection doesn't exist.");
 		return false;
 	}
-	
-	if (ObjectPaths.Num() == 0)
+
+	if ((*CollectionRefPtr)->IsEmpty())
 	{
-		// Collection already empty
+		// Already empty - nothing to do
 		return true;
 	}
+
+	(*CollectionRefPtr)->Empty();
 	
-	return RemoveFromCollection(CollectionName, ShareType, ObjectPaths);
+	if ((*CollectionRefPtr)->Save(LastError))
+	{
+		CollectionFileCaches[ShareType]->IgnoreFileModification((*CollectionRefPtr)->GetSourceFilename());
+
+		CollectionCache.HandleCollectionChanged();
+		CollectionUpdatedEvent.Broadcast(CollectionKey);
+		return true;
+	}
+
+	return false;
 }
 
 bool FCollectionManager::SaveCollection(FName CollectionName, ECollectionShareType::Type ShareType)

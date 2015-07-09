@@ -4,6 +4,8 @@
 
 #include "CollectionManagerTypes.h"
 
+class ITextFilterExpressionContext;
+
 class ICollectionManager
 {
 public:
@@ -148,6 +150,17 @@ public:
 	 * @return true if the get was successful. If false, GetLastError will return a human readable string description of the error.
 	 */
 	virtual bool GetDynamicQueryText(FName CollectionName, ECollectionShareType::Type ShareType, FString& OutQueryText) const = 0;
+
+	/**
+	 * Tests the dynamic query for the specified collection against the context provided.
+	 *
+	 * @param CollectionName The collection to get the query from.
+	 * @param ShareType The way the collection is shared.
+	 * @param InContext The context to test against.
+	 * @param OutResult Filled with the result of the query.
+	 * @return true if the get was successful. If false, GetLastError will return a human readable string description of the error.
+	 */
+	virtual bool TestDynamicQuery(FName CollectionName, ECollectionShareType::Type ShareType, const ITextFilterExpressionContext& InContext, bool& OutResult) const = 0;
 
 	/**
 	  * Removes all assets from the specified collection.

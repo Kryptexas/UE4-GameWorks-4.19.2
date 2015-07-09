@@ -2,6 +2,7 @@
 
 #include "CollectionManagerPrivatePCH.h"
 #include "ISourceControlModule.h"
+#include "TextFilterExpressionEvaluator.h"
 
 #define LOCTEXT_NAMESPACE "CollectionManager"
 
@@ -55,8 +56,7 @@ TSharedRef<FCollection> FCollection::Clone(const FString& InFilename, bool InUse
 
 bool FCollection::Load(FText& OutError)
 {
-	ObjectSet.Empty();
-	DiskSnapshot = FCollectionSnapshot();
+	Empty();
 
 	FString FullFileContentsString;
 	if (!FFileHelper::LoadFileToString(FullFileContentsString, *SourceFilename))
@@ -377,6 +377,15 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 	return bSuccessfullyDeleted;
 }
 
+void FCollection::Empty()
+{
+	ObjectSet.Reset();
+	DynamicQueryText.Reset();
+	DynamicQueryExpressionEvaluatorPtr.Reset();
+
+	DiskSnapshot.TakeSnapshot(*this);
+}
+
 bool FCollection::AddObjectToCollection(FName ObjectPath)
 {
 	if (StorageMode == ECollectionStorageMode::Static && !ObjectSet.Contains(ObjectPath))
@@ -470,6 +479,26 @@ bool FCollection::SetDynamicQueryText(const FString& InQueryText)
 FString FCollection::GetDynamicQueryText() const
 {
 	return (StorageMode == ECollectionStorageMode::Dynamic) ? DynamicQueryText : FString();
+}
+
+bool FCollection::TestDynamicQuery(const ITextFilterExpressionContext& InContext) const
+{
+	if (StorageMode == ECollectionStorageMode::Dynamic)
+	{
+		if (!DynamicQueryExpressionEvaluatorPtr.IsValid())
+		{
+			DynamicQueryExpressionEvaluatorPtr = MakeShareable(new FTextFilterExpressionEvaluator(ETextFilterExpressionEvaluatorMode::Complex));
+		}
+
+		if (!DynamicQueryExpressionEvaluatorPtr->GetFilterText().ToString().Equals(DynamicQueryText, ESearchCase::CaseSensitive))
+		{
+			DynamicQueryExpressionEvaluatorPtr->SetFilterText(FText::FromString(DynamicQueryText));
+		}
+
+		return DynamicQueryExpressionEvaluatorPtr->TestTextFilter(InContext);
+	}
+
+	return false;
 }
 
 FCollectionStatusInfo FCollection::GetStatusInfo() const
@@ -617,11 +646,8 @@ bool FCollection::MergeWithCollection(const FCollection& Other)
 		bHasChanges = true;
 		StorageMode = Other.StorageMode;
 
-		// Storage mode has changed!
-		// Reset the static and dynamic parts of the collection so we just copy over the new data verbatim
-		ObjectSet.Reset();
-		DynamicQueryText.Reset();
-		DiskSnapshot.TakeSnapshot(*this);
+		// Storage mode has changed! Empty the collection so we just copy over the new data verbatim
+		Empty();
 	}
 
 	if (StorageMode == ECollectionStorageMode::Static)

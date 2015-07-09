@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FTextFilterExpressionEvaluator;
+
 struct ECollectionVersion
 {
 	enum Type
@@ -50,6 +52,8 @@ public:
 	bool Merge(const FCollection& NewCollection);
 	/** Deletes the source file for this collection. If false, OutError is a human readable warning depicting the error. */
 	bool DeleteSourceFile(FText& OutError);
+	/** Empty this collection */
+	void Empty();
 
 	/** Adds a single object to the collection. Static collections only. */
 	bool AddObjectToCollection(FName ObjectPath);
@@ -70,6 +74,8 @@ public:
 	bool SetDynamicQueryText(const FString& InQueryText);
 	/** Get the dynamic query text for this collection. Dynamic collections only. */
 	FString GetDynamicQueryText() const;
+	/** Tests the dynamic query for against the context provided. Dynamic collections only. */
+	bool TestDynamicQuery(const ITextFilterExpressionContext& InContext) const;
 
 	/** Get the status info for this collection */
 	FCollectionStatusInfo GetStatusInfo() const;
@@ -172,6 +178,9 @@ private:
 
 	/** The dynamic query string for this collection. Dynamic collections only. */
 	FString DynamicQueryText;
+
+	/** Expression evaluator that can be used test against the compiled DynamicQueryText */
+	mutable TSharedPtr<FTextFilterExpressionEvaluator> DynamicQueryExpressionEvaluatorPtr;
 
 	/** The file version for this collection */
 	ECollectionVersion::Type FileVersion;
