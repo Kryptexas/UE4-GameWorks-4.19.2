@@ -210,6 +210,7 @@ public:
 	
 	/** Executes pending commands and clears buffer **/
 	void ENGINE_API Flush();
+	bool ENGINE_API HasPendingCommands();
 
 #if WITH_APEX
 	/** enqueues a command to release destructible actor once apex has finished simulating */
@@ -252,6 +253,7 @@ private:
 	/** Array of commands waiting to execute once simulation is done */
 	TArray<FPhysPendingCommand> PendingCommands;
 };
+
 namespace SleepEvent
 {
 	enum Type
