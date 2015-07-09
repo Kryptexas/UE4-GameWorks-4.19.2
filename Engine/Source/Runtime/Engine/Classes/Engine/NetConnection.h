@@ -10,6 +10,7 @@
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
 #include "Engine/NetDriver.h"
+#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "NetConnection.generated.h"
 
@@ -203,6 +204,9 @@ public:
 	EConnectionState	State;					// State this connection is in.
 	
 	uint32 bPendingDestroy:1;    // when true, playercontroller is being destroyed
+
+	// Packet Handler
+	TUniquePtr<PacketHandler> Handler;
 
 	/** Whether this channel needs to byte swap all data or not */
 	bool			bNeedsByteSwapping;

@@ -13,6 +13,7 @@ Notes:
 #include "Sockets.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
+#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 /*-----------------------------------------------------------------------------
 	Declarations.
@@ -41,6 +42,14 @@ void UIpConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, cons
 
 	Socket = InSocket;
 	ResolveInfo = NULL;
+
+	// Reset Handler
+	Handler.Reset(nullptr);
+	if(Handler.IsValid())
+	{
+		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
+		Handler->Initialize(Mode);
+	}
 }
 
 void UIpConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
@@ -99,6 +108,8 @@ void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* In
 
 void UIpConnection::LowLevelSend( void* Data, int32 Count )
 {
+	const uint8* DataToSend = reinterpret_cast<uint8*>(Data);
+
 	if( ResolveInfo )
 	{
 		// If destination address isn't resolved yet, send nowhere.
@@ -127,10 +138,19 @@ void UIpConnection::LowLevelSend( void* Data, int32 Count )
 			ResolveInfo = NULL;
 		}
 	}
+	 
+	// Process any packet modifiers
+	if(Handler.IsValid())
+	{
+		const ProcessedPacket ProcessedData = Handler->Outgoing(reinterpret_cast<uint8*>(Data), Count);
+		DataToSend = ProcessedData.Data;
+		Count = ProcessedData.Count;
+	}
+
 	// Send to remote.
 	int32 BytesSent = 0;
 	CLOCK_CYCLES(Driver->SendCycles);
-	Socket->SendTo((uint8*)Data, Count, BytesSent, *RemoteAddr);
+	Socket->SendTo(DataToSend, Count, BytesSent, *RemoteAddr);
 	UNCLOCK_CYCLES(Driver->SendCycles);
 	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
 	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),Data,BytesSent,NumPacketIdBits,NumBunchBits,NumAckBits,NumPaddingBits,*RemoteAddr));

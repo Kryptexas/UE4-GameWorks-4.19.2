@@ -9,7 +9,7 @@ public class Engine : ModuleRules
 	{
 		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
 
-		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer" });
+		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler" });
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -69,7 +69,8 @@ public class Engine : ModuleRules
                 "UMG",
 				"Projects",
 				"Niagara",
-                "Internationalization"
+                "Internationalization",
+                "PacketHandler"
 			}
         );
 

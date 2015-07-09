@@ -12,6 +12,7 @@
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/GameMode.h"
+#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -454,6 +455,24 @@ void UNetConnection::InitSendBuffer()
 void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 {
 	uint8* Data = (uint8*)InData;
+
+	// UnProcess the packet
+	if(Handler.IsValid())
+	{
+		const ProcessedPacket UnProcessedPacket = Handler->Incoming(Data, Count);
+
+		Count = UnProcessedPacket.Count;
+
+		if (Count > 0)
+		{
+			Data = UnProcessedPacket.Data;
+		}
+		// This packed has been consumed
+		else
+		{
+			return;
+		}
+	}
 
 	// Handle an incoming raw packet from the driver.
 	UE_LOG(LogNetTraffic, Verbose, TEXT("%6.3f: Received %i"), FPlatformTime::Seconds() - GStartTime, Count );
@@ -1504,6 +1523,21 @@ void UNetConnection::Tick()
 	if( TimeSensitive || Driver->Time-LastSendTime>Driver->KeepAliveTime )
 	{
 		FlushNet();
+	}
+
+	// Tick Handler
+	if(Handler.IsValid())
+	{
+		Handler->Tick(FrameTime);
+		BufferedPacket* QueuedPacket = Handler->GetQueuedPacket();
+
+		/* Send all queued packets */
+		while(QueuedPacket != nullptr)
+		{
+			LowLevelSend(QueuedPacket->Data, QueuedPacket->BytesCount);
+			delete QueuedPacket;
+			QueuedPacket = Handler->GetQueuedPacket();
+		}
 	}
 
 	// Update queued byte count.
