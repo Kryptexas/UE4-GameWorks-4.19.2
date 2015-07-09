@@ -151,7 +151,7 @@ namespace UnrealBuildTool
 						string UserFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 						string ConfigFile = Path.Combine(UserFolder, ".emscripten");
 
-						string CompletePath = Path.Combine(SDKPath, GetRequiredSDKString());
+						string CompletePath = Path.Combine(SDKPath, ExpectedSDKVersion);
 						// (re)create .emscripten config file. 
 						{
 							var ConfigString = String.Join(
@@ -167,13 +167,6 @@ namespace UnrealBuildTool
 								"COMPILER_ENGINE = NODE_JS"
 								);
 							File.WriteAllText(ConfigFile, ConfigString.Replace("\\", "/"));
-						}
-
-						// clean up cache. 
-						string CacheDir = Path.Combine(UserFolder, ".emscripten_cache");
-						if (Directory.Exists(CacheDir))
-						{
-							Directory.Delete(CacheDir);
 						}
 	                }
 				}
