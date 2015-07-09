@@ -83,7 +83,7 @@ struct FGlslCodeBackend : public FCodeBackend
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override
 	{
-		IRDump(ir);
+		IRDump(ir, ParseState);
 		return 0;
 	}
 };
@@ -123,6 +123,7 @@ struct SCmdOptions
 	bool bExpandExpressions;
 	bool bCSE;
 	bool bSeparateShaderObjects;
+	bool bPackGlobalsToUBs;
 	const char* OutFile;
 
 	SCmdOptions() 
@@ -140,6 +141,7 @@ struct SCmdOptions
 		bExpandExpressions = false;
 		bCSE = false;
 		bSeparateShaderObjects = false;
+		bPackGlobalsToUBs = false;
 		OutFile = nullptr;
 	}
 };
@@ -232,6 +234,10 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			else if (!strcmp( *argv, "-separateshaders"))
 			{
 				OutOptions.bSeparateShaderObjects = true;
+			}
+			else if (!strcmp(*argv, "-packglobalsintoub"))
+			{
+				OutOptions.bPackGlobalsToUBs = true;
 			}
 			else
 			{
@@ -349,6 +355,7 @@ int main( int argc, char** argv)
 	Flags |= Options.bCSE ? HLSLCC_ApplyCommonSubexpressionElimination : 0;
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 	Flags |= Options.bSeparateShaderObjects ? HLSLCC_SeparateShaderObjects : 0;
+	Flags |= Options.bPackGlobalsToUBs ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
 
 	FGlslCodeBackend GlslCodeBackend(Flags, Options.Target);
 	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);

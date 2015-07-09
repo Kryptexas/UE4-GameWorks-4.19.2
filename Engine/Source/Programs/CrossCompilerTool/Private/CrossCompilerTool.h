@@ -28,6 +28,7 @@ namespace CCT
 		bool bList;
 		bool bPreprocessOnly;
 		bool bForcePackedUBs;
+		bool bPackGlobalsIntoUB;
 
 		FRunInfo();
 		bool Setup(const FString& InOptions, const TArray<FString>& InSwitches);

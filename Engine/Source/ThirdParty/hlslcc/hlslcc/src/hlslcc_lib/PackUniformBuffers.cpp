@@ -587,7 +587,7 @@ done:
 	return;
 }
 
-static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables, SPackedUniformsInfo& PUInfo, bool bFlattenStructure, bool bGroupFlattenedUBs, TVarVarMap& OutUniformMap)
+static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables, SPackedUniformsInfo& PUInfo, bool bFlattenStructure, bool bGroupFlattenedUBs, bool bPackGlobalArraysIntoUniformBuffers, TVarVarMap& OutUniformMap)
 {
 	// First organize all uniforms by location (CB or Global) and Precision
 	int UniformIndex = 0;
@@ -616,12 +616,12 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 	std::map<std::string, int> CBIndices;
 	int CBIndex = 0;
 	CBIndices[""] = -1;
-	for (auto Iter = ParseState->CBuffersOriginal.begin(); Iter != ParseState->CBuffersOriginal.end(); ++Iter)
+	for (auto& Current : ParseState->CBuffersOriginal)
 	{
-		auto IterFound = OrganizedVars.find(Iter->Name);
+		auto IterFound = OrganizedVars.find(Current.Name);
 		if (IterFound != OrganizedVars.end())
 		{
-			CBIndices[Iter->Name] = CBIndex;
+			CBIndices[Current.Name] = CBIndex;
 			++CBIndex;
 		}
 	}
@@ -779,6 +779,35 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 				NumElements = (NumElements + 3) & ~3;
 				UniformArrayVar->type = glsl_type::get_array_instance(UniformArrayVar->type->fields.array, NumElements / 4);
 			}
+		}
+	}
+
+	if (bPackGlobalArraysIntoUniformBuffers)
+	{
+		for (auto& Pair : UniformArrayVarMap)
+		{
+			auto* Var = Pair.second;
+
+			SCBuffer CBuffer;
+			CBuffer.Name = Pair.first;
+			CBuffer.AddMember(Var->type, Var);
+
+			glsl_uniform_block* block = glsl_uniform_block::alloc(ParseState, 1);
+			block->name = ralloc_strdup(ParseState, Var->name);
+			block->vars[0] = Var;
+
+			const glsl_uniform_block** blocks = reralloc(ParseState, ParseState->uniform_blocks,
+				const glsl_uniform_block *,
+				ParseState->num_uniform_blocks + 1);
+			if (blocks != NULL)
+			{
+				blocks[ParseState->num_uniform_blocks] = block;
+				ParseState->uniform_blocks = blocks;
+				ParseState->num_uniform_blocks++;
+			}
+			Var->remove();
+			Var->semantic = ralloc_strdup(ParseState, CBuffer.Name.c_str());
+			ParseState->CBuffersOriginal.push_back(CBuffer);
 		}
 	}
 
@@ -1177,7 +1206,7 @@ namespace DebugPackUniforms
 * @param Instructions - The IR for which to pack uniforms.
 * @param ParseState - Parse state.
 */
-void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, bool bFlattenStructure, bool bGroupFlattenedUBs, TVarVarMap& OutUniformMap)
+void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, bool bFlattenStructure, bool bGroupFlattenedUBs, bool bPackGlobalArraysIntoUniformBuffers, TVarVarMap& OutUniformMap)
 {
 	//IRDump(Instructions);
 	void* ctx = ParseState;
@@ -1191,7 +1220,7 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 	if (MainSig && UniformVariables.Num())
 	{
 		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate());
-		int UniformIndex = ProcessPackedUniformArrays(Instructions, ctx, ParseState, UniformVariables, PUInfo, bFlattenStructure, bGroupFlattenedUBs, OutUniformMap);
+		int UniformIndex = ProcessPackedUniformArrays(Instructions, ctx, ParseState, UniformVariables, PUInfo, bFlattenStructure, bGroupFlattenedUBs, bPackGlobalArraysIntoUniformBuffers, OutUniformMap);
 		if (UniformIndex == -1)
 		{
 			goto done;

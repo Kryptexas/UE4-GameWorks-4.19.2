@@ -16,7 +16,8 @@ namespace CCT
 		bUseNew(false),
 		bList(false),
 		bPreprocessOnly(false),
-		bForcePackedUBs(false)
+		bForcePackedUBs(false),
+		bPackGlobalsIntoUB(false)
 	{
 	}
 
@@ -43,6 +44,7 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-es31ext\tCompile for OpenGL ES 3.1 with AEP"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl3\tCompile for OpenGL 3.2"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl4\tCompile for OpenGL 4.3"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-packglobalsintoub"));
 	}
 
 	EHlslShaderFrequency FRunInfo::ParseFrequency(TArray<FString>& InOutSwitches)
@@ -276,6 +278,10 @@ namespace CCT
 			else if (Switch.StartsWith(TEXT("flattenub")))
 			{
 				bForcePackedUBs = true;
+			}
+			else if (Switch.StartsWith(TEXT("packglobalsintoub")))
+			{
+				bPackGlobalsIntoUB = true;
 			}
 		}
 

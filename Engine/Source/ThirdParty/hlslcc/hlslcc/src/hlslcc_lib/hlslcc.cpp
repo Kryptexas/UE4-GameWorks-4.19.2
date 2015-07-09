@@ -322,8 +322,9 @@ bool FHlslCrossCompilerContext::RunBackend(
 	const bool bGroupFlattenedUBs = ((Flags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
 	if (bPackUniforms)
 	{
+		const bool bPackGlobalArraysIntoUniformBuffers = ((Flags & HLSLCC_PackUniformsIntoUniformBuffers) == HLSLCC_PackUniformsIntoUniformBuffers);
 		TVarVarMap UniformMap;
-		PackUniforms(ir, ParseState, bFlattenUBStructures, bGroupFlattenedUBs, UniformMap);
+		PackUniforms(ir, ParseState, bFlattenUBStructures, bGroupFlattenedUBs, bPackGlobalArraysIntoUniformBuffers, UniformMap);
 		//TIMER(pack_uniforms);
 
 		RemovePackedUniformBufferReferences(ir, ParseState, UniformMap);

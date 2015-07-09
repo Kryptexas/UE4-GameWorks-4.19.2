@@ -37,6 +37,7 @@ namespace CCT
 
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
 		Flags |= RunInfo.bForcePackedUBs ? (HLSLCC_PackUniforms | HLSLCC_FlattenUniformBufferStructures | HLSLCC_FlattenUniformBuffers) : 0;
+		Flags |= RunInfo.bPackGlobalsIntoUB ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);

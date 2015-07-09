@@ -56,6 +56,8 @@ enum EHlslCompileFlag
 	HLSLCC_SeparateShaderObjects = 0x400,
 	// Finds variables being used as atomics and changes all references to use atomic reads/writes
 	HLSLCC_FixAtomicReferences = 0x800,
+	// Packs global uniforms & flattens structures, and makes each packed array its own uniform buffer
+	HLSLCC_PackUniformsIntoUniformBuffers = 0x1000 | HLSLCC_PackUniforms,
 };
 
 /**
