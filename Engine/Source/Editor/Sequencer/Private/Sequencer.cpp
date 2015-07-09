@@ -166,7 +166,6 @@ FSequencer::FSequencer()
 	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, ScrubPosition( 0.0f )
 	, bLoopingEnabled( false )
-	, bAllowAutoKey( false )
 	, bPerspectiveViewportPossessionEnabled( true )
 	, bIsEditingWithinLevelEditor( false )
 	, bNeedTreeRefresh( false )
@@ -527,12 +526,12 @@ FAnimatedRange FSequencer::GetViewRange() const
 
 bool FSequencer::GetAutoKeyEnabled() const 
 {
-	return bAllowAutoKey;
+	return Settings->GetAutoKeyEnabled();
 }
 
 void FSequencer::SetAutoKeyEnabled(bool bAutoKeyEnabled)
 {
-	bAllowAutoKey = bAutoKeyEnabled;
+	Settings->SetAutoKeyEnabled(bAutoKeyEnabled);
 }
 
 bool FSequencer::IsRecordingLive() const 
@@ -1004,11 +1003,6 @@ void FSequencer::OnEndScrubbing()
 {
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
 	AutoscrollOffset.Reset();
-}
-
-void FSequencer::OnToggleAutoKey()
-{
-	bAllowAutoKey = !bAllowAutoKey;
 }
 
 void FSequencer::OnToggleAutoScroll()
@@ -1638,9 +1632,9 @@ void FSequencer::BindSequencerCommands()
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleAutoKeyEnabled,
-		FExecuteAction::CreateSP( this, &FSequencer::OnToggleAutoKey ),
+		FExecuteAction::CreateLambda( [this]{ Settings->SetAutoKeyEnabled( !Settings->GetAutoKeyEnabled() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateSP( this, &FSequencer::OnGetAllowAutoKey ) );
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetAutoKeyEnabled(); } ) );
 
 	bAutoScrollEnabled = Settings->GetAutoScrollEnabled();
 	SequencerCommandBindings->MapAction(

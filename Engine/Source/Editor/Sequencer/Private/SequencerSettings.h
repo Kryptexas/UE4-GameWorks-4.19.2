@@ -22,6 +22,11 @@ class USequencerSettings : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
+	/** Gets whether or not auto key is enabled. */
+	bool GetAutoKeyEnabled() const;
+	/** Sets whether or not auto key is enabled. */
+	void SetAutoKeyEnabled(bool InbAutoKeyEnabled);
+
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
 	/** Sets whether or not snapping is enabled. */
@@ -96,6 +101,9 @@ public:
 	float SnapTimeToInterval(float InTimeValue) const;
 
 protected:
+	UPROPERTY( config )
+	bool bAutoKeyEnabled;
+
 	UPROPERTY( config )
 	bool bIsSnapEnabled;
 

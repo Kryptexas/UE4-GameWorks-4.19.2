@@ -26,6 +26,7 @@ USequencerSettings* USequencerSettingsContainer::GetOrCreate(const TCHAR* InName
 USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
+	bAutoKeyEnabled = false;
 	bIsSnapEnabled = true;
 	TimeSnapInterval = .05f;
 	bSnapKeyTimesToInterval = true;
@@ -40,6 +41,20 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoScrollEnabled = true;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
+}
+
+bool USequencerSettings::GetAutoKeyEnabled() const
+{
+	return bAutoKeyEnabled;
+}
+
+void USequencerSettings::SetAutoKeyEnabled(bool InbAutoKeyEnabled)
+{
+	if ( bAutoKeyEnabled != InbAutoKeyEnabled )
+	{
+		bAutoKeyEnabled = InbAutoKeyEnabled;
+		SaveConfig();
+	}
 }
 
 bool USequencerSettings::GetIsSnapEnabled() const
