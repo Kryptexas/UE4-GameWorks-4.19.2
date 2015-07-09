@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613960
 Availability:Public
 Title:ランダムに生成されたフォーリッジ
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
 Description:Foliage ブループリントの概要
 Related:Engine/Blueprints/Overview
-Related: Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/Variables
 Related:Engine/Animation/AnimBlueprints/EventGraph
 Related:Engine/Blueprints/UserGuide/UserConstructionScript
 
@@ -12,8 +12,6 @@ Related:Engine/Blueprints/UserGuide/UserConstructionScript
 [REGION:fullwidth]
 ![](Foliage.png)
 [/REGION]
-
-## 概要
 
 [EXCERPT:Overview]
 Foliage ブループリントは、ランダムに生成されるフォーリッジ (もしくは潜在的にその他の構造) の作成にブループリントを使用する方法を示します。フォーリッジは表面に同化させて自動的に配置されます。ユーザーは、影響の及ぶ範囲とシステムによるスポーンの試行回数を制御することができます。ブループリントが移動すると、新しい背景に再適合させるためにメッシュが更新されます。
@@ -24,7 +22,7 @@ Foliage ブループリントは、ランダムに生成されるフォーリッ
 
 ## ブループリントの設定
 
-このブループリントの **コンポーネント リスト**、 **コンストラクション スクリプト** 、そして **イベント グラフ** で実行されるタスクは以下の通りです。
+このブループリントの コンポーネント リスト、 コンストラクション スクリプト 、そして イベント グラフ で実行されるタスクは以下の通りです。
 
 
 |ブループリントの特徴 |目的 |
