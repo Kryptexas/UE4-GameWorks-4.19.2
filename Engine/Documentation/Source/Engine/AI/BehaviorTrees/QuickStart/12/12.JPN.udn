@@ -61,6 +61,7 @@ Tasks ノードは、AI を移動するなどのように何かを "実行する
 
 
 
+[VAR:varTable1]
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
