@@ -371,6 +371,7 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusionSetup::ComputeOutputDe
 
 	Ret.Reset();
 	Ret.Format = PF_FloatRGBA;
+	Ret.ClearValue = FClearValueBinding::None;
 	Ret.TargetableFlags &= ~TexCreate_DepthStencilTargetable;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 	Ret.Extent = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);

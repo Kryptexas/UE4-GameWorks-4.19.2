@@ -141,7 +141,8 @@ FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI, EPixelFormat Pixe
 		PixelFormat,
 		false,
 		false,
-		false
+		false,
+		FClearValueBinding()
 		);
 
 	D3D11TextureAllocated2D(*NewTexture);

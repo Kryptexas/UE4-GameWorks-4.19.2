@@ -534,6 +534,7 @@ void AllocateClipmapTexture(int32 ClipmapIndex, TRefCountPtr<IPooledRenderTarget
 			GAOGlobalDFResolution,
 			GAOGlobalDFResolution,
 			PF_R16F,
+			FClearValueBinding::None,
 			0,
 			TexCreate_ShaderResource | TexCreate_RenderTargetable | TexCreate_UAV,
 			false)),

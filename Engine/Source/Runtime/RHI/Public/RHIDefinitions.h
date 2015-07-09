@@ -589,11 +589,8 @@ enum class ESimpleRenderTargetMode
 	EUninitializedColorAndDepth,					// Color = ????, Depth = ????
 	EUninitializedColorExistingDepth,				// Color = ????, Depth = Existing
 	EUninitializedColorClearDepth,					// Color = ????, Depth = Default
-	EClearToDefault,								// Default Color = (0,0,0,0), Default Depth = 0.0f
-	EClearColorToBlack,								// Color = (0,0,0,0), Depth = Existing
-	EClearColorToBlackWithFullAlpha,				// Color = (0,0,0,1), Depth = Existing
-	EClearColorToWhite,								// Color = (1,1,1,1), Depth = Existing
-	EClearDepthToOne,								// Color = Existing, Depth = 1.0
+	EClearColorExistingDepth,						// Clear Color = whatever was bound to the rendertarget at creation time. Depth = Existing
+	EClearColorAndDepth,							// Clear color and depth to bound clear values.
 	EExistingContents_NoDepthStore,					// Load existing contents, but don't store depth out.  depth can be written.
 
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!

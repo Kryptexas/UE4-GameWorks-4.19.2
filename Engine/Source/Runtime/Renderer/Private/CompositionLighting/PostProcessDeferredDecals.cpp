@@ -570,18 +570,21 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		// DBuffer: Decal buffer
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GBufferA->GetDesc().Extent, 
-			PF_B8G8R8A8, 
+			PF_B8G8R8A8,
+			FClearValueBinding::None,
 			TexCreate_None, 
 			TexCreate_ShaderResource | TexCreate_RenderTargetable,
 			false));
 
 		if(!SceneContext.DBufferA)
 		{
+			Desc.ClearValue = FClearValueBinding::Black;
 			GRenderTargetPool.FindFreeElement(Desc, SceneContext.DBufferA, TEXT("DBufferA"));
 		}
 
 		if(!SceneContext.DBufferB)
 		{
+			Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
 			GRenderTargetPool.FindFreeElement(Desc, SceneContext.DBufferB, TEXT("DBufferB"));
 		}
 
@@ -589,6 +592,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		if(!SceneContext.DBufferC)
 		{
+			Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
 			GRenderTargetPool.FindFreeElement(Desc, SceneContext.DBufferC, TEXT("DBufferC"));
 		}
 
@@ -609,10 +613,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthSurface(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
 
 			FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
-			Info.ClearColors[0] = FLinearColor(0, 0, 0, 1);
-			Info.ClearColors[1] = FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1);
-			Info.ClearColors[2] = FLinearColor(0, 1, 0, 1);
-
 			RHICmdList.SetRenderTargetsAndClear(Info);
 
 			TargetsToResolve[DBufferAIndex] = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;

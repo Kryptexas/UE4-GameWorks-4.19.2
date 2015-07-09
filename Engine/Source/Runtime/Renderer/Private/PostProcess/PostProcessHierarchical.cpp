@@ -258,7 +258,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBuildHCB::ComputeOutputDesc(EPassOutpu
 	FIntPoint HCBSize;
 	uint32 HCBMipCount;
 	HierarchycalSizeAndMips(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), 1, HCBMipCount, HCBSize);
-	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(HCBSize, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, HCBMipCount));
+	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(HCBSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, HCBMipCount));
 	
 	Ret.DebugName = TEXT("HCB");
 

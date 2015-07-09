@@ -59,7 +59,8 @@ public:
 		InFormat,
 		bInCubemap,
 		InFlags,
-		bInPooled
+		bInPooled,
+		FClearValueBinding::None
 		)
 	{
 		TextureSet = nullptr;
@@ -315,7 +316,8 @@ static FD3D11Texture2D* D3D11CreateTexture2DAlias(
 		InFormat,
 		/*bInCubemap=*/ false,
 		InFlags,
-		/*bPooledTexture=*/ false
+		/*bPooledTexture=*/ false,
+		FClearValueBinding::None
 		);
 
 	return NewTexture;

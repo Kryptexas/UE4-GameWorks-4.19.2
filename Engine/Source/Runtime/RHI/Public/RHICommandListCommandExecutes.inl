@@ -165,12 +165,8 @@ void FRHICommandBindClearMRTValues::Execute(FRHICommandListBase& CmdList)
 	RHISTAT(BindClearMRTValues);
 	INTERNAL_DECORATOR(BindClearMRTValues)(
 		bClearColor,
-		NumClearColors,
-		ColorArray,
 		bClearDepth,
-		Depth,
-		bClearStencil,
-		Stencil	
+		bClearStencil		
 		);
 }
 

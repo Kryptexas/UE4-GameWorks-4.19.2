@@ -162,7 +162,7 @@ FPooledRenderTargetDesc FRCPassPostProcessHistogramReduce::ComputeOutputDesc(EPa
 	FIntPoint NewSize = FIntPoint(FRCPassPostProcessHistogram::HistogramTexelCount, 2);
 
 	// for quality float4 to get best quality for smooth eye adaptation transitions
-	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_A32B32G32R32F, TexCreate_None, TexCreate_RenderTargetable, false));
+	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_A32B32G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 	
 	Ret.DebugName = TEXT("HistogramReduce");
 	

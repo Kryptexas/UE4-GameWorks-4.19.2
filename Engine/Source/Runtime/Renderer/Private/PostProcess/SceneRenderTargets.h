@@ -697,12 +697,11 @@ private:
 	bool bAllocateVelocityGBuffer;
 
 	/** Helpers to track gbuffer state on platforms that need to propagate clear information across parallel rendering boundaries. */
-	bool bGBuffersCleared;
-	FLinearColor GBufferClearColor;
+	bool bGBuffersFastCleared;	
 
 	/** Helpers to track scenedepth state on platforms that need to propagate clear information across parallel rendering boundaries. */
 	bool bSceneDepthCleared;
-	float SceneDepthClearValue;
+	
 	/** true is this is a snapshot on the scene allocator */
 	bool bSnapshot;
 	/** All outstanding snapshots */

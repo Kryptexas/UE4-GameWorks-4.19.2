@@ -396,7 +396,7 @@ void FEmptyDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 }
 
-void FEmptyDynamicRHI::RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+void FEmptyDynamicRHI::RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil)
 {
 }
 

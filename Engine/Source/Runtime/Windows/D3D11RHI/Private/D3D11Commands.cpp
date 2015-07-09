@@ -966,7 +966,27 @@ void FD3D11DynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 		nullptr);
 	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
 	{
-		this->RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, RenderTargetsInfo.ClearColors, RenderTargetsInfo.bClearDepth, RenderTargetsInfo.DepthClearValue, RenderTargetsInfo.bClearStencil, RenderTargetsInfo.StencilClearValue, FIntRect());
+		FLinearColor ClearColors[MaxSimultaneousRenderTargets];
+		float DepthClear = 0.0;
+		uint32 StencilClear = 0;
+
+		if (RenderTargetsInfo.bClearColor)
+		{
+			for (int32 i = 0; i < RenderTargetsInfo.NumColorRenderTargets; ++i)
+			{
+				const FClearValueBinding& ClearValue = RenderTargetsInfo.ColorRenderTarget[i].Texture->GetClearBinding();
+				checkf(ClearValue.ColorBinding == EClearBinding::EColorBound, TEXT("Texture: %s does not have a color bound for fast clears"), *RenderTargetsInfo.ColorRenderTarget[i].Texture->GetName().GetPlainNameString());
+				ClearColors[i] = ClearValue.GetClearColor();
+			}
+		}
+		if (RenderTargetsInfo.bClearDepth || RenderTargetsInfo.bClearStencil)
+		{
+			const FClearValueBinding& ClearValue = RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetClearBinding();
+			checkf(ClearValue.ColorBinding == EClearBinding::EDepthStencilBound, TEXT("Texture: %s does not have a DS value bound for fast clears"), *RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetName().GetPlainNameString());
+			ClearValue.GetDepthStencil(DepthClear, StencilClear);
+		}
+
+		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect(), false);
 	}
 }
 
@@ -1470,11 +1490,22 @@ void FD3D11DynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 // Raster operations.
 void FD3D11DynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
-	FD3D11DynamicRHI::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	FD3D11DynamicRHI::RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
 }
 
-void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
+	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
+}
+
+bool gNoShaderClears = true;
+void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear)
+{	
+	if (gNoShaderClears)
+	{
+		bForceShaderClear = false;
+	}
+
 	// Helper struct to record and restore device states RHIClearMRT modifies.
 	class FDeviceStateHelper
 	{
@@ -1484,17 +1515,24 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		TRefCountPtr<FD3D11DeviceContext> Direct3DDeviceIMContext;
 
 		enum { ResourceCount = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT };
+		enum { ConstantBufferCount = D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT };
+
 		//////////////////////////////////////////////////////////////////////////
 		// Relevant recorded states:
 		ID3D11ShaderResourceView* VertResources[ResourceCount];
+		ID3D11Buffer* VertexConstantBuffers[ConstantBufferCount];
+		ID3D11Buffer* PixelConstantBuffers[ConstantBufferCount];
 		ID3D11VertexShader* VSOld;
 		ID3D11PixelShader* PSOld;
 		ID3D11DepthStencilState* OldDepthStencilState;
 		ID3D11RasterizerState* OldRasterizerState;
 		ID3D11BlendState* OldBlendState;
+		ID3D11InputLayout* OldInputLayout;
 		uint32 StencilRef;
 		float BlendFactor[4];
 		uint32 SampleMask;
+		FBoundShaderStateRHIParamRef LastBoundShaderStateRHI;
+
 		//////////////////////////////////////////////////////////////////////////
 		void ReleaseResources()
 		{
@@ -1506,23 +1544,33 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 			{
 				SAFE_RELEASE(*Resources);
 			}
+			for (int32 i = 0; i < ConstantBufferCount; ++i)
+			{
+				SAFE_RELEASE(VertexConstantBuffers[i]);
+				SAFE_RELEASE(PixelConstantBuffers[i]);
+			}
 
 			SAFE_RELEASE(OldDepthStencilState);
 			SAFE_RELEASE(OldBlendState);
 			SAFE_RELEASE(OldRasterizerState);
+			SAFE_RELEASE(OldInputLayout);
 		}
 	public:
 		/** The global D3D device's immediate context */
 		FDeviceStateHelper(TRefCountPtr<FD3D11DeviceContext> InDirect3DDeviceIMContext) : Direct3DDeviceIMContext(InDirect3DDeviceIMContext) {}
 
-		void CaptureDeviceState(FD3D11StateCache& StateCacheRef)
-		{
+		void CaptureDeviceState(FD3D11StateCache& StateCacheRef, TGlobalResource< TBoundShaderStateHistory<10000> >& BSSHistory)
+		{			
 			StateCacheRef.GetVertexShader(&VSOld);
 			StateCacheRef.GetPixelShader(&PSOld);
 			StateCacheRef.GetShaderResourceViews<SF_Vertex>(0, ResourceCount, &VertResources[0]);
+			StateCacheRef.GetConstantBuffers<SF_Pixel>(0, ConstantBufferCount, &(PixelConstantBuffers[0]));
+			StateCacheRef.GetConstantBuffers<SF_Vertex>(0, ConstantBufferCount, &(VertexConstantBuffers[0]));
 			StateCacheRef.GetDepthStencilState(&OldDepthStencilState, &StencilRef);
 			StateCacheRef.GetBlendState(&OldBlendState, BlendFactor, &SampleMask);
 			StateCacheRef.GetRasterizerState(&OldRasterizerState);
+			StateCacheRef.GetInputLayout(&OldInputLayout);
+			LastBoundShaderStateRHI = BSSHistory.GetLast();
 		}
 
 		void ClearCurrentVertexResources(FD3D11StateCache& StateCacheRef)
@@ -1534,18 +1582,28 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 			}
 		}
 
-		void RestoreDeviceState(FD3D11StateCache& StateCacheRef) 
+		void RestoreDeviceState(FD3D11StateCache& StateCacheRef, TGlobalResource< TBoundShaderStateHistory<10000> >& BSSHistory)
 		{
 
 			// Restore the old shaders
 			StateCacheRef.SetVertexShader(VSOld);
 			StateCacheRef.SetPixelShader(PSOld);
-			for (int ResourceLoop = 0 ; ResourceLoop < ResourceCount; ResourceLoop++)
-				StateCacheRef.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop],ResourceLoop);
+			for (int ResourceLoop = 0; ResourceLoop < ResourceCount; ResourceLoop++)
+			{
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop], ResourceLoop);
+			}
+			for (int BufferIndex = 0; BufferIndex < ConstantBufferCount; ++BufferIndex)
+			{
+				StateCacheRef.SetConstantBuffer<SF_Pixel>(PixelConstantBuffers[BufferIndex], BufferIndex);
+				StateCacheRef.SetConstantBuffer<SF_Vertex>(VertexConstantBuffers[BufferIndex], BufferIndex);
+			}
+
 			StateCacheRef.SetDepthStencilState(OldDepthStencilState, StencilRef);
 			StateCacheRef.SetBlendState(OldBlendState, BlendFactor, SampleMask);
 			StateCacheRef.SetRasterizerState(OldRasterizerState);
+			StateCacheRef.SetInputLayout(OldInputLayout);
 
+			BSSHistory.Add(LastBoundShaderStateRHI);
 			ReleaseResources();
 		}
 	};
@@ -1596,7 +1654,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 	ID3D11DepthStencilView* DepthStencilView = BoundRenderTargets.GetDepthStencilView();
 
 	// Determine if we're trying to clear a subrect of the screen
-	bool UseDrawClear = false;
+	bool UseDrawClear = bForceShaderClear;
 	uint32 NumViews = 1;
 	D3D11_VIEWPORT Viewport;
 	StateCache.GetViewports(&NumViews,&Viewport);
@@ -1734,7 +1792,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 		// Store the current device state
 		FDeviceStateHelper OriginalResourceState(Direct3DDeviceIMContext);
-		OriginalResourceState.CaptureDeviceState(StateCache);
+		OriginalResourceState.CaptureDeviceState(StateCache, BoundShaderStateHistory);
 
 		// Set the cached state objects
 		StateCache.SetBlendState(BlendState->Resource, BF, 0xffffffff);
@@ -1794,15 +1852,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		{
 			FRHICommandList_RecursiveHazardous RHICmdList(this);
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
-			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-			FMemory::Memzero(ShaderClearColors);
-
-			for (int32 i = 0; i < NumClearColors; i++)
-			{
-				ShaderClearColors[i] = ClearColorArray[i];
-			}
-
-			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumClearColors);
+			PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
 
 			{
 				// Draw a fullscreen quad
@@ -1854,14 +1904,14 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		}
 
 		// Restore the original device state
-		OriginalResourceState.RestoreDeviceState(StateCache); 
+		OriginalResourceState.RestoreDeviceState(StateCache, BoundShaderStateHistory);
 	}
 	else
 	{
 		if (bClearColor && BoundRenderTargets.GetNumActiveTargets() > 0)
 		{
 			for (int32 TargetIndex = 0; TargetIndex < BoundRenderTargets.GetNumActiveTargets(); TargetIndex++)
-			{
+			{				
 				Direct3DDeviceIMContext->ClearRenderTargetView(BoundRenderTargets.GetRenderTargetView(TargetIndex),(float*)&ClearColorArray[TargetIndex]);
 			}
 		}
@@ -1884,7 +1934,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 	GPUProfilingData.RegisterGPUWork(0);
 }
 
-void FD3D11DynamicRHI::RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+void FD3D11DynamicRHI::RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil)
 {
 	// Not necessary for d3d.
 }

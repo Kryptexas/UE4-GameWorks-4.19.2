@@ -295,12 +295,13 @@ class RHI_API FRHITexture : public FRHIResource
 public:
 	
 	/** Initialization constructor. */
-	FRHITexture(uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags,FLastRenderTimeContainer* InLastRenderTime)
-	: NumMips(InNumMips)
+	FRHITexture(uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, FLastRenderTimeContainer* InLastRenderTime, const FClearValueBinding& InClearValue)
+	: ClearValue(InClearValue)
+	, NumMips(InNumMips)
 	, NumSamples(InNumSamples)
 	, Format(InFormat)
 	, Flags(InFlags)
-	, LastRenderTime(InLastRenderTime ? *InLastRenderTime : DefaultLastRenderTime)
+	, LastRenderTime(InLastRenderTime ? *InLastRenderTime : DefaultLastRenderTime)	
 	{}
 
 	// Dynamic cast methods.
@@ -377,13 +378,50 @@ public:
 		return TextureName;
 	}
 
+	bool HasClearValue() const
+	{
+		return ClearValue.ColorBinding != EClearBinding::ENoneBound;
+	}
+
+	FLinearColor GetClearColor() const
+	{
+		return ClearValue.GetClearColor();
+	}
+
+	void GetDepthStencilClearValue(float& OutDepth, uint32& OutStencil) const
+	{
+		return ClearValue.GetDepthStencil(OutDepth, OutStencil);
+	}
+
+	float GetDepthClearValue() const
+	{
+		float Depth;
+		uint32 Stencil;
+		ClearValue.GetDepthStencil(Depth, Stencil);
+		return Depth;
+	}
+
+	uint32 GetStencilClearValue() const
+	{
+		float Depth;
+		uint32 Stencil;
+		ClearValue.GetDepthStencil(Depth, Stencil);
+		return Stencil;
+	}
+
+	const FClearValueBinding GetClearBinding() const
+	{
+		return ClearValue;
+	}
+
 private:
+	FClearValueBinding ClearValue;
 	uint32 NumMips;
 	uint32 NumSamples;
 	EPixelFormat Format;
 	uint32 Flags;
 	FLastRenderTimeContainer& LastRenderTime;
-	FLastRenderTimeContainer DefaultLastRenderTime;
+	FLastRenderTimeContainer DefaultLastRenderTime;	
 	FName TextureName;
 };
 
@@ -392,8 +430,8 @@ class RHI_API FRHITexture2D : public FRHITexture
 public:
 	
 	/** Initialization constructor. */
-	FRHITexture2D(uint32 InSizeX,uint32 InSizeY,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,InNumSamples,InFormat,InFlags,NULL)
+	FRHITexture2D(uint32 InSizeX,uint32 InSizeY,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITexture(InNumMips, InNumSamples, InFormat, InFlags, NULL, InClearValue)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	{}
@@ -418,8 +456,8 @@ class RHI_API FRHITexture2DArray : public FRHITexture
 public:
 	
 	/** Initialization constructor. */
-	FRHITexture2DArray(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
+	FRHITexture2DArray(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL, InClearValue)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -449,8 +487,8 @@ class RHI_API FRHITexture3D : public FRHITexture
 public:
 	
 	/** Initialization constructor. */
-	FRHITexture3D(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
+	FRHITexture3D(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL, InClearValue)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -480,8 +518,8 @@ class RHI_API FRHITextureCube : public FRHITexture
 public:
 	
 	/** Initialization constructor. */
-	FRHITextureCube(uint32 InSize,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
+	FRHITextureCube(uint32 InSize,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL, InClearValue)
 	, Size(InSize)
 	{}
 	
@@ -500,7 +538,7 @@ class RHI_API FRHITextureReference : public FRHITexture
 {
 public:
 	explicit FRHITextureReference(FLastRenderTimeContainer* InLastRenderTime)
-		: FRHITexture(0,0,PF_Unknown,0,InLastRenderTime)
+		: FRHITexture(0,0,PF_Unknown,0,InLastRenderTime, FClearValueBinding())
 	{}
 
 	virtual FRHITextureReference* GetTextureReference() override { return this; }
@@ -980,23 +1018,18 @@ class FRHISetRenderTargetsInfo
 {
 public:
 	// Color Render Targets Info
-	FRHIRenderTargetView ColorRenderTarget[MaxSimultaneousRenderTargets];
-	FLinearColor ClearColors[MaxSimultaneousRenderTargets];
+	FRHIRenderTargetView ColorRenderTarget[MaxSimultaneousRenderTargets];	
 	int32 NumColorRenderTargets;
 	bool bClearColor;
 
 	// Depth/Stencil Render Target Info
-	FRHIDepthRenderTargetView DepthStencilRenderTarget;
-	float DepthClearValue;
-	uint32 StencilClearValue;
+	FRHIDepthRenderTargetView DepthStencilRenderTarget;	
 	bool bClearDepth;
 	bool bClearStencil;
 
 	FRHISetRenderTargetsInfo() :
 		NumColorRenderTargets(0),
-		bClearColor(false),
-		DepthClearValue((float)ERHIZBuffer::FarPlane),
-		StencilClearValue(0),
+		bClearColor(false),		
 		bClearDepth(false),
 		bClearStencil(false)
 	{}
@@ -1004,21 +1037,18 @@ public:
 	FRHISetRenderTargetsInfo(int32 InNumColorRenderTargets, const FRHIRenderTargetView* InColorRenderTargets, const FRHIDepthRenderTargetView& InDepthStencilRenderTarget) :
 		NumColorRenderTargets(InNumColorRenderTargets),
 		bClearColor(InNumColorRenderTargets > 0 && InColorRenderTargets[0].LoadAction == ERenderTargetLoadAction::EClear),
-		DepthStencilRenderTarget(InDepthStencilRenderTarget),
-		DepthClearValue((float)ERHIZBuffer::FarPlane),
-		StencilClearValue(0),
+		DepthStencilRenderTarget(InDepthStencilRenderTarget),		
 		bClearDepth(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear),
 		bClearStencil(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)
 	{
 		check(InNumColorRenderTargets <= 0 || InColorRenderTargets);
 		for (int32 Index = 0; Index < InNumColorRenderTargets; ++Index)
 		{
-			ColorRenderTarget[Index] = InColorRenderTargets[Index];
-			ClearColors[Index] = FLinearColor(0, 0, 0, 1);
+			ColorRenderTarget[Index] = InColorRenderTargets[Index];			
 		}
 	}
 	// @todo metal mrt: This can go away after all the cleanup is done
-	void SetClearDepthStencil(bool bInClearDepth, float InDepthClear, bool bInClearStencil = false, uint32 InClearStencil = 0)
+	void SetClearDepthStencil(bool bInClearDepth, bool bInClearStencil = false)
 	{
 		if (bInClearDepth)
 		{
@@ -1028,10 +1058,8 @@ public:
 		{
 			DepthStencilRenderTarget.StencilLoadAction = ERenderTargetLoadAction::EClear;
 		}
-		bClearDepth = bInClearDepth;
-		DepthClearValue = InDepthClear;
-		bClearStencil = bInClearStencil;
-		StencilClearValue = InClearStencil;
+		bClearDepth = bInClearDepth;		
+		bClearStencil = bInClearStencil;		
 	}
 };
 

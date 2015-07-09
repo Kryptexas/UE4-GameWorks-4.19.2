@@ -34,7 +34,8 @@ public:
 
 	/** Default constructor, use one of the factory functions below to make a valid description */
 	FPooledRenderTargetDesc()
-		: Extent(0, 0)
+		: ClearValue(FClearValueBinding())
+		, Extent(0, 0)
 		, Depth(0)
 		, ArraySize(1)
 		, bIsArray(false)
@@ -56,6 +57,7 @@ public:
 	static FPooledRenderTargetDesc Create2DDesc(
 		FIntPoint InExtent,
 		EPixelFormat InFormat,
+		const FClearValueBinding& InClearValue,
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
@@ -65,6 +67,7 @@ public:
 		check(InExtent.Y);
 
 		FPooledRenderTargetDesc NewDesc;
+		NewDesc.ClearValue = InClearValue;
 		NewDesc.Extent = InExtent;
 		NewDesc.Depth = 0;
 		NewDesc.ArraySize = 1;
@@ -89,6 +92,7 @@ public:
 		uint32 InSizeY,
 		uint32 InSizeZ,
 		EPixelFormat InFormat,
+		const FClearValueBinding& InClearValue,
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
@@ -98,6 +102,7 @@ public:
 		check(InSizeY);
 
 		FPooledRenderTargetDesc NewDesc;
+		NewDesc.ClearValue = InClearValue;
 		NewDesc.Extent = FIntPoint(InSizeX,InSizeY);
 		NewDesc.Depth = InSizeZ;
 		NewDesc.ArraySize = 1;
@@ -120,6 +125,7 @@ public:
 	static FPooledRenderTargetDesc CreateCubemapDesc(
 		uint32 InExtent,
 		EPixelFormat InFormat,
+		const FClearValueBinding& InClearValue,
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
@@ -129,6 +135,7 @@ public:
 		check(InExtent);
 
 		FPooledRenderTargetDesc NewDesc;
+		NewDesc.ClearValue = InClearValue;
 		NewDesc.Extent = FIntPoint(InExtent, 0);
 		NewDesc.Depth = 0;
 		NewDesc.ArraySize = InArraySize;
@@ -167,7 +174,8 @@ public:
 			&& Format == rhs.Format
 			&& LhsFlags == RhsFlags
 			&& TargetableFlags == rhs.TargetableFlags
-			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource;
+			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource
+			&& ClearValue == rhs.ClearValue;
 	}
 
 	bool IsCubemap() const
@@ -281,6 +289,9 @@ public:
 		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
 		TargetableFlags &= (~TexCreate_UAV);
 	}
+
+	/** Value allowed for fast clears for this target. */
+	FClearValueBinding ClearValue;
 
 	/** In pixels, (0,0) if not set, (x,0) for cube maps, todo: make 3d int vector for volume textures */
 	FIntPoint Extent;

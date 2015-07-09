@@ -55,7 +55,8 @@ public:
 		bInCubemap,
 		bInAllocatedStorage,
 		InFlags,
-		InTextureRange
+		InTextureRange,
+		FClearValueBinding::None
 		)
 	{
 		TextureSet = nullptr;
@@ -215,7 +216,7 @@ static FOpenGLTexture2D* OpenGLCreateTexture2DAlias(
 		InGLRHI,
 		InResource,
 		Target,
-		Attachment, InSizeX, InSizeY, 0, InNumMips, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
+		Attachment, InSizeX, InSizeY, 0, InNumMips, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange, FClearValueBinding::None);
 
 	OpenGLTextureAllocated(NewTexture, InFlags);
 	return NewTexture;

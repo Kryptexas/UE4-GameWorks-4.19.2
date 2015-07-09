@@ -836,7 +836,8 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		(EPixelFormat)Format,
 		bCubeTexture,
 		Flags,
-		bPooledTexture
+		bPooledTexture,
+		CreateInfo.ClearValueBinding
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
 		, RawTextureMemory
 #endif
@@ -962,7 +963,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
 	RenderTargetViews.Add(RenderTargetView);
-	FD3D11Texture3D* Texture3D = new FD3D11Texture3D(this,TextureResource,ShaderResourceView,RenderTargetViews,SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags);
+	FD3D11Texture3D* Texture3D = new FD3D11Texture3D(this,TextureResource,ShaderResourceView,RenderTargetViews,SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags, CreateInfo.ClearValueBinding);
 
 	Texture3D->ResourceInfo.VRamAllocation = VRamAllocation;
 
@@ -1079,7 +1080,8 @@ FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 S
 		(EPixelFormat)Format,
 		/*bInCubemap=*/ false,
 		Flags,
-		/*bPooledTexture=*/ false
+		/*bPooledTexture=*/ false,
+		FClearValueBinding()
 		);
 
 	D3D11TextureAllocated(*NewTexture);

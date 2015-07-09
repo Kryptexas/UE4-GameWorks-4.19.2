@@ -230,7 +230,7 @@ bool FOpenGLDynamicRHI::RHIGetTextureMemoryVisualizeData( FColor* /*TextureData*
 
 
 
-FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bool bCubeTexture, bool bArrayTexture, uint8 Format,uint32 NumMips,uint32 NumSamples, uint32 ArraySize, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, bool bCubeTexture, bool bArrayTexture, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 ArraySize, uint32 Flags, const FClearValueBinding& InClearValue, FResourceBulkDataInterface* BulkData)
 {
 	VERIFY_GL_SCOPE();
 
@@ -558,12 +558,12 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bo
 	FRHITexture* Texture;
 	if (bCubeTexture)
 	{
-		FOpenGLTextureCube* TextureCube = new FOpenGLTextureCube(this,TextureID,Target,Attachment,SizeX,SizeY,0,NumMips,1, ArraySize, (EPixelFormat)Format,true,bAllocatedStorage,Flags,TextureRange);
+		FOpenGLTextureCube* TextureCube = new FOpenGLTextureCube(this, TextureID, Target, Attachment, SizeX, SizeY, 0, NumMips, 1, ArraySize, (EPixelFormat)Format, true, bAllocatedStorage, Flags, TextureRange, InClearValue);
 		Texture = TextureCube;
 	}
 	else
 	{
-		FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(this,TextureID,Target,Attachment,SizeX,SizeY,0,NumMips,NumSamples, 1, (EPixelFormat)Format,false,bAllocatedStorage,Flags,TextureRange);
+		FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(this,TextureID,Target,Attachment,SizeX,SizeY,0,NumMips,NumSamples, 1, (EPixelFormat)Format,false,bAllocatedStorage,Flags,TextureRange, InClearValue);
 		Texture = Texture2D;
 	}
 	OpenGLTextureAllocated( Texture, Flags );
@@ -1412,10 +1412,10 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 */
 FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FRHIResourceCreateInfo& Info)
 {
-	return (FRHITexture2D*)CreateOpenGLTexture(SizeX,SizeY,false,false,Format,NumMips,NumSamples,1,Flags,Info.BulkData);
+	return (FRHITexture2D*)CreateOpenGLTexture(SizeX,SizeY,false,false,Format,NumMips,NumSamples,1,Flags,Info.ClearValueBinding,Info.BulkData);
 }
 
-FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 Flags,void** InitialMipData,uint32 NumInitialMips)
+FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips)
 {
 	check(0);
 	return FTexture2DRHIRef();
@@ -1525,7 +1525,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 			: GL_COLOR_ATTACHMENT0);
 	}
 
-	FOpenGLTexture2DArray* Texture = new FOpenGLTexture2DArray(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1, SizeZ, (EPixelFormat)Format,false,true,Flags,nullptr);
+	FOpenGLTexture2DArray* Texture = new FOpenGLTexture2DArray(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1, SizeZ, (EPixelFormat)Format,false,true,Flags,nullptr,Info.ClearValueBinding);
 	OpenGLTextureAllocated( Texture, Flags );
 
 	// No need to restore texture stage; leave it like this,
@@ -1633,7 +1633,7 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 			: GL_COLOR_ATTACHMENT0);
 	}
 
-	FOpenGLTexture3D* Texture = new FOpenGLTexture3D(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1,1, (EPixelFormat)Format,false,true,Flags,nullptr);
+	FOpenGLTexture3D* Texture = new FOpenGLTexture3D(this,TextureID,Target,Attachment,SizeX,SizeY,SizeZ,NumMips,1,1, (EPixelFormat)Format,false,true,Flags,nullptr,CreateInfo.ClearValueBinding);
 	OpenGLTextureAllocated( Texture, Flags );
 
 	// No need to restore texture stage; leave it like this,
@@ -1886,7 +1886,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPar
 	FOpenGLTexture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	// Allocate a new texture.
-	FOpenGLTexture2D* NewTexture2D = (FOpenGLTexture2D*)CreateOpenGLTexture(NewSizeX,NewSizeY,false,false, Texture2D->GetFormat(),NewMipCount,1,1, Texture2D->GetFlags());
+	FOpenGLTexture2D* NewTexture2D = (FOpenGLTexture2D*)CreateOpenGLTexture(NewSizeX,NewSizeY,false,false, Texture2D->GetFormat(),NewMipCount,1,1, Texture2D->GetFlags(), Texture2DRHI->GetClearBinding());
 	
 	const uint32 BlockSizeX = GPixelFormats[Texture2D->GetFormat()].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[Texture2D->GetFormat()].BlockSizeY;
@@ -2115,7 +2115,7 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCube( uint32 Size, uint8 F
 	// not yet supported
 	check(!CreateInfo.BulkData);
 
-	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, false, Format, NumMips, 1, 1, Flags);
+	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, false, Format, NumMips, 1, 1, Flags, CreateInfo.ClearValueBinding);
 }
 
 FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo )
@@ -2123,7 +2123,7 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, ui
 	// not yet supported
 	check(!CreateInfo.BulkData);
 
-	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, true, Format, NumMips, 1, 6 * ArraySize, Flags);
+	return (FRHITextureCube*)CreateOpenGLTexture(Size, Size, true, true, Format, NumMips, 1, 6 * ArraySize, Flags, CreateInfo.ClearValueBinding);
 }
 
 void* FOpenGLDynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)

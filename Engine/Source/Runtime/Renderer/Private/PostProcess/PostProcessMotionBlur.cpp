@@ -836,7 +836,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		// Flattened velocity
 		FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 		Ret.Reset();
-
+		Ret.ClearValue = FClearValueBinding::None;
 		Ret.Format = PF_FloatR11G11B10;
 		Ret.TargetableFlags |= TexCreate_UAV;
 		Ret.TargetableFlags |= TexCreate_RenderTargetable;
@@ -853,7 +853,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		FIntPoint PixelExtent = UnmodifiedRet.Extent;
 		FIntPoint TileCount = GetNumTiles16x16(PixelExtent);
 
-		FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(TileCount, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+		FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(TileCount, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 
 		Ret.DebugName = TEXT("MaxVelocity");
 
@@ -1019,24 +1019,22 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	TRefCountPtr<IPooledRenderTarget> DepthTarget;
-	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( DestSize, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable | TexCreate_NoFastClear, false ) );
+	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( DestSize, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false ) );
 	GRenderTargetPool.FindFreeElement( Desc, DepthTarget, TEXT("VelocityScatterDepth") );
 
 	// Set the view family's render target/viewport.
-	SetRenderTarget( Context.RHICmdList, DestRenderTarget.TargetableTexture, DepthTarget->GetRenderTargetItem().TargetableTexture );
-	
-	Context.SetViewportAndCallRHI( 0, 0, 0.0f, TileCount.X, TileCount.Y, 1.0f );
+	FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+	FRHIDepthRenderTargetView DepthView(DepthTarget->GetRenderTargetItem().TargetableTexture, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+	FRHISetRenderTargetsInfo RTInfo(1, &ColorView, DepthView);
+
+	// clear depth
+	// Max >= Min so no need to clear on second pass
+	Context.SetViewportAndCallRHI(0, 0, 0.0f, TileCount.X, TileCount.Y, 1.0f);
+	Context.RHICmdList.SetRenderTargetsAndClear(RTInfo);			
 	
 	// Min,Max
 	for( int i = 0; i < 2; i++ )
 	{
-		if( i == 0 )
-		{
-			// clear depth
-			// Max >= Min so no need to clear on second pass
-			Context.RHICmdList.Clear( false, FLinearColor::Black, true, 1.0f, false, 0, FIntRect() );
-		}
-
 		if( i == 0 )
 		{
 			// min

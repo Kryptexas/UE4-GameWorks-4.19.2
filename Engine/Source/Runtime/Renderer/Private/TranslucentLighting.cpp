@@ -1106,17 +1106,8 @@ void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Fea
 		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, VolumeClearBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-		GeometryShader->SetParameters(RHICmdList, VolumeBounds);
-
-		FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-		FMemory::Memzero(ShaderClearColors);
-
-		for (int32 i = 0; i < NumRenderTargets; i++)
-		{
-			ShaderClearColors[i] = ClearColors[i];
-		}
-
-		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumRenderTargets);
+		GeometryShader->SetParameters(RHICmdList, VolumeBounds);		
+		PixelShader->SetColors(RHICmdList, ClearColors, NumRenderTargets);
 
 		RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
 	}

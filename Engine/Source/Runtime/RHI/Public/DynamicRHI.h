@@ -233,7 +233,7 @@ public:
 	/**
 	 * Thread-safe function that can be used to create a texture outside of the
 	 * rendering thread. This function can ONLY be called if GRHISupportsAsyncTextureCreation
-	 * is true.
+	 * is true.  Cannot create rendertargets with this method.
 	 * @param SizeX - width of the texture to create
 	 * @param SizeY - height of the texture to create
 	 * @param Format - EPixelFormat texture format
@@ -876,10 +876,10 @@ public:
 
 	virtual void RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo) = 0;
 
-	// Bind a clear values to currently bound rendertargets.  This is used by platforms which
-	// need the color when transitioning a target that supports hardware clears from a rendertarget to a shader resource.
-	// The explicit bind is needed to support parallel rendering.
-	virtual void RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil) = 0;
+	// Bind the clear state of the currently set rendertargets.  This is used by platforms which
+	// need the state of the target when finalizing a hardware clear or a resource transition to SRV
+	// The explicit bind is needed to support parallel rendering (propagate state between contexts).
+	virtual void RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil){}
 
 	virtual void RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances) = 0;
 

@@ -69,7 +69,8 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
-			PF_G16, 
+			PF_G16,
+			FClearValueBinding::Transparent,
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
@@ -78,7 +79,8 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 
 		FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
-			PF_R8G8, 
+			PF_R8G8,
+			FClearValueBinding::Transparent,
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
@@ -88,6 +90,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 		FPooledRenderTargetDesc Desc3(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
 			PF_R8G8B8A8, 
+			FClearValueBinding::Transparent,
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
@@ -96,7 +99,8 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 
 		FPooledRenderTargetDesc Desc4(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
-			PF_G8, 
+			PF_G8,			
+			FClearValueBinding::White,
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
@@ -105,7 +109,8 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 
 		FPooledRenderTargetDesc Desc5(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
-			PF_FloatR11G11B10, 
+			PF_FloatR11G11B10,
+			FClearValueBinding::Black,
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
@@ -507,12 +512,9 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 						ExistingAtlas->DiffuseColor->GetRenderTargetItem().TargetableTexture
 					};
 
-					SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), 0, NULL);
-
-					FLinearColor ClearColors[3] = {FLinearColor(0, 0, 0, 0), FLinearColor(0, 0, 0, 0), FLinearColor(0, 0, 0, 0)};
-					RHICmdList.ClearMRT(true, ARRAY_COUNT(ClearColors), ClearColors, false, 0, false, 0, FIntRect());
-
 					RHICmdList.SetViewport(0, 0, 0.0f, LightingAtlasSize.X, LightingAtlasSize.Y, 1.0f);
+					SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
+					
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 					RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -824,8 +826,7 @@ void FHeightfieldLightingViewInfo::ClearShadowing(const FViewInfo& View, FRHICom
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
 		const FHeightfieldLightingAtlas& Atlas = *ViewState->HeightfieldLightingAtlas;
-		SetRenderTarget(RHICmdList, Atlas.DirectionalLightShadowing->GetRenderTargetItem().TargetableTexture, NULL);
-		RHICmdList.Clear(true, FLinearColor(1, 1, 1), false, 0, false, 0, FIntRect());
+		SetRenderTarget(RHICmdList, Atlas.DirectionalLightShadowing->GetRenderTargetItem().TargetableTexture, NULL, ESimpleRenderTargetMode::EClearColorExistingDepth);		
 	}
 }
 
@@ -1159,10 +1160,7 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 		const FIntPoint LightingAtlasSize = Atlas.GetAtlasSize();
 		const FVector2D InvLightingAtlasSize(1.0f / LightingAtlasSize.X, 1.0f / LightingAtlasSize.Y);
 
-		SetRenderTarget(RHICmdList, Atlas.Lighting->GetRenderTargetItem().TargetableTexture, NULL);
-
-		// We will read outside the valid area later during light transfer
-		RHICmdList.Clear(true, FLinearColor(0, 0, 0), false, 0, false, 0, FIntRect());
+		SetRenderTarget(RHICmdList, Atlas.Lighting->GetRenderTargetItem().TargetableTexture, NULL, ESimpleRenderTargetMode::EClearColorExistingDepth);		
 
 		const bool bApplyLightFunction = (View.Family->EngineShowFlags.LightFunctions &&
 			LightSceneInfo.Proxy->GetLightFunctionMaterial() && 

@@ -573,36 +573,20 @@ struct FRHICommandSetRenderTargetsAndClear : public FRHICommand<FRHICommandSetRe
 };
 
 struct FRHICommandBindClearMRTValues : public FRHICommand<FRHICommandBindClearMRTValues>
-{
-	FLinearColor ColorArray[MaxSimultaneousRenderTargets];	
-	float Depth;
-	uint32 Stencil;
-	int32 NumClearColors;
+{	
 	bool bClearColor;
 	bool bClearDepth;
 	bool bClearStencil;
 
 	FORCEINLINE_DEBUGGABLE FRHICommandBindClearMRTValues(
-		bool InbClearColor,
-		int32 InNumClearColors,
-		const FLinearColor* InColorArray,
-		bool InbClearDepth,
-		float InDepth,
-		bool InbClearStencil,
-		uint32 InStencil		
+		bool InbClearColor,		
+		bool InbClearDepth,		
+		bool InbClearStencil
 		) 
-		: Depth(InDepth)
-		, Stencil(InStencil)
-		, NumClearColors(InNumClearColors)
-		, bClearColor(InbClearColor)
+		: bClearColor(InbClearColor)
 		, bClearDepth(InbClearDepth)
 		, bClearStencil(InbClearStencil)
-	{
-		check(InNumClearColors < MaxSimultaneousRenderTargets);
-		for (int32 Index = 0; Index < InNumClearColors; Index++)
-		{
-			ColorArray[Index] = InColorArray[Index];
-		}
+	{		
 	}	
 
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -1552,14 +1536,14 @@ public:
 		new (AllocCommand<FRHICommandSetRenderTargetsAndClear>()) FRHICommandSetRenderTargetsAndClear(RenderTargetsInfo);
 	}	
 
-	FORCEINLINE_DEBUGGABLE void BindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+	FORCEINLINE_DEBUGGABLE void BindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(BindClearMRTValues)(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil);
+			CMD_CONTEXT(BindClearMRTValues)(bClearColor, bClearDepth, bClearStencil);
 			return;
 		}
-		new (AllocCommand<FRHICommandBindClearMRTValues>()) FRHICommandBindClearMRTValues(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil);
+		new (AllocCommand<FRHICommandBindClearMRTValues>()) FRHICommandBindClearMRTValues(bClearColor, bClearDepth, bClearStencil);
 	}	
 
 	FORCEINLINE_DEBUGGABLE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
@@ -2645,7 +2629,7 @@ class RHI_API FRHICommandListExecutor
 public:
 	enum
 	{
-		DefaultBypass = PLATFORM_RHITHREAD_DEFAULT_BYPASS
+		DefaultBypass = 1 //PLATFORM_RHITHREAD_DEFAULT_BYPASS
 	};
 	FRHICommandListExecutor()
 		: bLatchedBypass(!!DefaultBypass)

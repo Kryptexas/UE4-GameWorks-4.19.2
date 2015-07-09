@@ -96,6 +96,7 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 		GReflectionCaptureSize,
 		//@todo - get rid of the alpha channel (currently stores brightness which is a constant), could use PF_FloatRGB for half memory, would need to implement RHIReadSurface support
 		PF_FloatRGBA, 
+		FClearValueBinding::None,
 		TexCreate_None,
 		TexCreate_None,
 		false, 
@@ -848,6 +849,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 		Desc.TargetableFlags |= TexCreate_UAV;
 		Desc.TargetableFlags |= TexCreate_NoFastClear;
+		Desc.ClearValue = FClearValueBinding::None;
 
 		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
 		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
@@ -1023,7 +1025,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 				// If Reflection Environment is mixed with indirect lighting (Ambient + LPV), skip clear!
 				if (!bMixing)
 				{
-					SimpleRenderTargetMode = ESimpleRenderTargetMode::EClearColorToBlackWithFullAlpha;
+					SimpleRenderTargetMode = ESimpleRenderTargetMode::EClearColorExistingDepth;
 				}
 				SetRenderTarget(RHICmdList, LightAccumulation->GetRenderTargetItem().TargetableTexture, NULL, SimpleRenderTargetMode);
 			}

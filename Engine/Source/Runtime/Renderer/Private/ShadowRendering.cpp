@@ -1264,7 +1264,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShad
 	}
 	else
 	{
-		RHICmdList.BindClearMRTValues(bClearColor, NumClearColors, Colors, bClearDepth, Depth, bClearStencil, Stencil);
+		RHICmdList.BindClearMRTValues(bClearColor, bClearDepth, bClearStencil);
 	}
 }
 

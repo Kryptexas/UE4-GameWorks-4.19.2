@@ -315,11 +315,12 @@ void FTextureRenderTarget2DResource::InitDynamicRHI()
 
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
 		uint32 TexCreateFlags = bSRGB ? TexCreate_SRGB : 0;
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo = FRHIResourceCreateInfo(FClearValueBinding(ClearColor));
+
 		RHICreateTargetableShaderResource2D(
 			Owner->SizeX, 
 			Owner->SizeY, 
-			Format, 
+			Format,
 			1,
 			TexCreateFlags,
 			TexCreate_RenderTargetable,
@@ -375,9 +376,9 @@ void FTextureRenderTarget2DResource::UpdateDeferredResource( FRHICommandListImme
  	// clear the target surface to green
 	if (bClearRenderTarget)
 	{
-		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef());
 		RHICmdList.SetViewport(0, 0, 0.0f, TargetSizeX, TargetSizeY, 1.0f);
-		RHICmdList.Clear(true, ClearColor, false, 0.f, false, 0, FIntRect());
+		ensure(RenderTargetTextureRHI->GetClearColor() == ClearColor);
+		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
 	}
  
  	// copy surface to the texture for use

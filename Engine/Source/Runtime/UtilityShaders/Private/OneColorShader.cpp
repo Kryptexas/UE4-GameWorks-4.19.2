@@ -4,6 +4,39 @@
 #include "UtilityShadersPrivatePCH.h"
 #include "OneColorShader.h"
 
+BEGIN_UNIFORM_BUFFER_STRUCT(FClearShaderUB, )
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, DrawColorMRT, [8] )
+END_UNIFORM_BUFFER_STRUCT(FClearShaderUB)
+
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FClearShaderUB, TEXT("ClearShaderUB"));
+
+void FOneColorPS::SetColors(FRHICommandList& RHICmdList, const FLinearColor* Colors, int32 NumColors)
+{
+	check(NumColors <= MaxSimultaneousRenderTargets);
+
+	const FShaderUniformBufferParameter& ClearUBParam = GetUniformBufferParameter<FClearShaderUB>();
+	if (ClearUBParam.IsInitialized())
+	{
+		if (ClearUBParam.IsBound())
+		{
+			FClearShaderUB ClearData;
+			FMemory::Memzero(ClearData.DrawColorMRT);			
+			for (int32 i = 0; i < NumColors; ++i)
+			{
+				ClearData.DrawColorMRT[i].X = Colors[i].R;
+				ClearData.DrawColorMRT[i].Y = Colors[i].G;
+				ClearData.DrawColorMRT[i].Z = Colors[i].B;
+				ClearData.DrawColorMRT[i].W = Colors[i].A;
+			}
+
+			TUniformBufferRef<FClearShaderUB> Data = TUniformBufferRef<FClearShaderUB>::CreateUniformBufferImmediate(ClearData, UniformBuffer_SingleFrame);			
+			SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FClearShaderUB>(), Data);
+		}
+	}
+
+	
+}
+
 IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API, TOneColorVS<true>,TEXT("OneColorShader"),TEXT("MainVertexShader"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API, TOneColorVS<false>,TEXT("OneColorShader"),TEXT("MainVertexShader"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(,FOneColorPS,TEXT("OneColorShader"),TEXT("MainPixelShader"),SF_Pixel);

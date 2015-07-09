@@ -419,7 +419,7 @@ public:
 
 		RenderTargetTexture = NewObject<UTextureRenderTarget2D>();
 		check(RenderTargetTexture);
-		RenderTargetTexture->ClearColor = FLinearColor::Transparent;
+		RenderTargetTexture->ClearColor = FLinearColor::White;
 		RenderTargetTexture->TargetGamma = 1.f;
 		RenderTargetTexture->InitCustomFormat(TargetSize.X, TargetSize.Y, PF_B8G8R8A8, false);
 		RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource()->GetTextureRenderTarget2DResource();
