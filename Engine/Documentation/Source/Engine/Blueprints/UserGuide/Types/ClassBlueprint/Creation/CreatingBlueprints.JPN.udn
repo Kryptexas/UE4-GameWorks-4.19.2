@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2590930
-Availability:Public
+﻿Availability:Public
 Title:ブループリントのクラスを作成する
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
 Description:ブループリントの新規作成ガイド
@@ -29,12 +28,12 @@ Related:Engine/Blueprints/Editor
 	さらに _Create Advanced Asset_ (詳細なアセットの作成) の **[ブループリント]** オプションで、[](Engine/Blueprints/UserGuide/Types) を作成することができます。 
 	[/REGION]
 
-1. ブループリントに対する **親クラス** を選択します。
+1. ブループリントに対する **Parent クラス** を選択します。
 
 	![Choose a Parent Class](new_asset_parent_class.png)
 
 	[REGION:note]
-	親クラスの選択に関する情報は [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
+	Parent クラスの選択に関する情報は [Parent クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#Parentクラス) をご覧ください。 
 	[/REGION]
 
 [/EXCERPT:CreateBP1]
@@ -46,7 +45,7 @@ Related:Engine/Blueprints/Editor
 
 [EXCERPT:CreateBP2]
 
-1. **コンテンツ ブラウザ** の **[Asset View (アセット ビュー)]** (右側のパネル)で **右クリック** します。 
+1. **コンテンツ ブラウザ** の **[Asset View]**  (アセット ビュー) (右側のパネル)で **右クリック** します。 
 
 1. 表示されるメニューから _Create Basic Asset_ (基本アセットの作成) セクションで **[ブループリント]** を選択します。
 
@@ -54,17 +53,17 @@ Related:Engine/Blueprints/Editor
 	![New Asset menu](new_asset_blueprint_menu.png)
 	[/REGION]
 
-1. ブループリントに対する **親クラス** を選択します。
+1. ブループリントに対する **Parent クラス** を選択します。
 
 	![Choose a Parent Class](new_asset_parent_class.png)
 
 	[REGION:note]
-	親クラスの選択に関する情報は [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
+	Parent クラスの選択に関する情報は [Parent クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#Parentクラス) をご覧ください。 
 	[/REGION]
 
 [/EXCERPT:CreateBP2]
 
-あるいは、以下の方法もあります：
+あるいは、以下の方法もあります。
 
 [EXCERPT:CreateBP3]
 
@@ -76,12 +75,12 @@ Related:Engine/Blueprints/Editor
 	![](rtclick_content_browser_asset_tree.png)
 	[/REGION]
 
-1. ブループリントに対する **親クラス** を選択します。
+1. ブループリントに対する **Parent クラス** を選択します。
 
 	![Choose a Parent Class](new_asset_parent_class.png)
 
 	[REGION:note]
-	親クラスの選択に関する情報は [親クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#親クラス) をご覧ください。 
+	Parent クラスの選択に関する情報は [Parent クラス](Engine\Blueprints\UserGuide\Types\ClassBlueprint#Parentクラス) をご覧ください。 
 	[/REGION]
 
 [/EXCERPT:CreateBP3]
