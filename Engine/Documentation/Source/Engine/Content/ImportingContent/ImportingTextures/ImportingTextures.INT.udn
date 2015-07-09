@@ -2,7 +2,9 @@ Availability:Docs
 Title:Importing Textures
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import textures from an external program.
-prereq:Engine/Basics/Projects/Browser
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
 Related: GettingStarted
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
