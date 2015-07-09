@@ -788,13 +788,13 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 		{
 			auto* Var = Pair.second;
 
-			SCBuffer CBuffer;
-			CBuffer.Name = Pair.first;
-			CBuffer.AddMember(Var->type, Var);
-
 			glsl_uniform_block* block = glsl_uniform_block::alloc(ParseState, 1);
-			block->name = ralloc_strdup(ParseState, Var->name);
+			block->name = ralloc_asprintf(ParseState, "HLSLCC_CB%c", Var->name[3]);
 			block->vars[0] = Var;
+
+			SCBuffer CBuffer;
+			CBuffer.Name = block->name;
+			CBuffer.AddMember(Var->type, Var);
 
 			const glsl_uniform_block** blocks = reralloc(ParseState, ParseState->uniform_blocks,
 				const glsl_uniform_block *,
