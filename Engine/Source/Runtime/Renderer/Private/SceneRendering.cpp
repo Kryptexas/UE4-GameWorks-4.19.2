@@ -523,6 +523,12 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 		FPlane(0,0,ProjectionMatrixUnadjustedForRHI.M[3][2],0))
 		* PrevViewMatrices.InvTranslatedViewProjectionMatrix;
 
+	FVector DeltaTranslation = PrevViewMatrices.PreViewTranslation - ViewMatrices.PreViewTranslation;
+	FMatrix InvViewProj = ViewMatrices.GetInvProjNoAAMatrix() * ViewMatrices.TranslatedViewMatrix.GetTransposed();
+	FMatrix PrevViewProj = FTranslationMatrix( DeltaTranslation ) * PrevViewMatrices.TranslatedViewMatrix * PrevViewMatrices.GetProjNoAAMatrix();
+
+	ViewUniformShaderParameters.ClipToPrevClip = InvViewProj * PrevViewProj;
+
 	// is getting clamped in the shader to a value larger than 0 (we don't want the triangles to disappear)
 	ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.0f;
 

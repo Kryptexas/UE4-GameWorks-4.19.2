@@ -311,9 +311,11 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// Compute the view projection matrix and its inverse.
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 
+	FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
+
 	// For precision reasons the view matrix inverse is calculated independently.
-	InvViewMatrix = ViewMatrices.ViewMatrix.Inverse();
-	InvViewProjectionMatrix = ViewMatrices.GetInvProjMatrix() * InvViewMatrix;
+	InvViewMatrix = InitOptions.ViewRotationMatrix.GetTransposed() * FTranslationMatrix(InitOptions.ViewOrigin);
+	InvViewProjectionMatrix = InvProjectionMatrix * InvViewMatrix;
 
 	bool bApplyPreViewTranslation = true;
 	bool bViewOriginIsFudged = false;
@@ -340,6 +342,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	/** The view transform, starting from world-space points translated by -ViewOrigin. */
 	FMatrix TranslatedViewMatrix = InitOptions.ViewRotationMatrix;
+	FMatrix InvTranslatedViewMatrix = TranslatedViewMatrix.GetTransposed();
 
 	// Translate world-space so its origin is at ViewOrigin for improved precision.
 	// Note that this isn't exactly right for orthogonal projections (See the above special case), but we still use ViewOrigin
@@ -371,6 +374,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	{
 		// If not applying PreViewTranslation then we need to use the view matrix directly.
 		TranslatedViewMatrix = ViewMatrices.ViewMatrix;
+		InvTranslatedViewMatrix = InvViewMatrix;
 	}
 
 	// When the view origin is fudged for faux ortho view position the translations don't cancel out.
@@ -383,7 +387,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// Compute a transform from view origin centered world-space to clip space.
 	ViewMatrices.TranslatedViewMatrix = TranslatedViewMatrix;
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+	ViewMatrices.InvTranslatedViewProjectionMatrix = InvProjectionMatrix * InvTranslatedViewMatrix;
 
 	// Compute screen scale factors.
 	// Stereo renders at half horizontal resolution, but compute shadow resolution based on full resolution.

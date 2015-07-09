@@ -54,23 +54,6 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_FILTERED 1
 #endif
 
-// 1 = Improve quality on converged edges.
-// 0 = Default.
-#ifndef AA_GRAIN
-	#define AA_GRAIN 0
-#endif
-
-// 1 = Use higher quality HDR weighted filtering.
-// 0 = Don't use.
-#ifndef AA_HDR
-	#define AA_HDR 1
-#endif
-
-// 1 = Use manual HDR weighted bilinear filtering for history.
-#if AA_HDR_HISTORY
-	#define AA_HDR_HISTORY 1
-#endif
-
 // 0 = Dynamic motion based lerp value (default).
 // non-zero = Use 1/LERP fixed lerp value (used for reflections).
 #ifndef AA_LERP
@@ -105,11 +88,6 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_FORCE_ALPHA_CLAMP 0
 #endif
 
-// Use velocity weighting.
-#ifndef AA_VELOCITY_WEIGHTING
-	#define AA_VELOCITY_WEIGHTING 0
-#endif
-
 // Use YCoCg path.
 #ifndef AA_YCOCG
 	#define AA_YCOCG 0
@@ -120,21 +98,21 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_GREEN_AS_LUMA AA_YCOCG
 #endif
 
+// Bicubic filter history
+#ifndef AA_BICUBIC
+	#define AA_BICUBIC 0
+#endif
+
 // Special adjustments for DOF.
 #ifndef AA_DOF
 	#define AA_DOF 0
-#endif
-
-// Completely non-optimized prototype for solving noise problem.
-#ifndef AA_TEST
-	#define AA_TEST 0
 #endif
 
 
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
     // ------------------------------------------------
 	float3 PosN; // Position of this pixel, possibly later nearest pixel in neighborhood.
-	PosN.xy = UVAndScreenPos.zw * float2(0.5, -0.5) + 0.5; // View position [0 to 1] flipped in Y.
+	PosN.xy = UVAndScreenPos.zw;
 	PosN.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0).r;
 	// Screen position of minimum depth.
 	float2 VelocityOffset = float2(0.0, 0.0);
@@ -143,18 +121,14 @@ which can be configured via defines for various temporal AA passes.
 		// This enables better quality outline on foreground against different motion background.
 		// Larger 2 pixel distance "x" works best (because AA dilates surface).
 		float4 Depths;
-		#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-			Depths = SceneDepthTexture.GatherRed(SceneDepthTextureSampler, UVAndScreenPos.xy, int2(-AA_CROSS, -AA_CROSS), int2(AA_CROSS, -AA_CROSS), int2(-AA_CROSS, AA_CROSS), int2(AA_CROSS, AA_CROSS));
-		#else
-			Depths.x = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2(-AA_CROSS, -AA_CROSS)).r;
-			Depths.y = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2( AA_CROSS, -AA_CROSS)).r;
-			Depths.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2(-AA_CROSS,  AA_CROSS)).r;
-			Depths.w = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2( AA_CROSS,  AA_CROSS)).r;
-		#endif
+		Depths.x = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2(-AA_CROSS, -AA_CROSS)).r;
+		Depths.y = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2( AA_CROSS, -AA_CROSS)).r;
+		Depths.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2(-AA_CROSS,  AA_CROSS)).r;
+		Depths.w = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0, int2( AA_CROSS,  AA_CROSS)).r;
+
 		float2 DepthOffset = float2(AA_CROSS, AA_CROSS);
 		float DepthOffsetXx = float(AA_CROSS);
 #if HAS_INVERTED_Z_BUFFER
-		//@todo-briank
 		// Nearest depth is the largest depth (depth surface 0=far, 1=near).
 		if(Depths.x > Depths.y) 
 		{
@@ -179,34 +153,19 @@ which can be configured via defines for various temporal AA passes.
 			// With the assumption that UV position scales between velocity and color.
 			VelocityOffset = DepthOffset * PostprocessInput0Size.zw;
 			// This is [0 to 1] flipped in Y.
-			PosN.xy = (UVAndScreenPos.zw + DepthOffset * ViewportSize.zw * 2.0) * float2(0.5, -0.5) + 0.5;
+			//PosN.xy = UVAndScreenPos.zw + DepthOffset * ViewportSize.zw * 2.0;
 			PosN.z = DepthsXYZW;
 		}
 #else
 #error Fix me!
 #endif // HAS_INVERTED_Z_BUFFER
 	#endif	// AA_CROSS
+
 	// Camera motion for pixel or nearest pixel (in ScreenPos space).
-	float ScaleM = 1.0 / (dot(PosN, CameraMotion.Value[0].xyz) + CameraMotion.Value[0].w);
-	float2 BackN;
-	BackN.x = -2.0 * ((PosN.x * ((CameraMotion.Value[1].x * PosN.y) + (CameraMotion.Value[1].y * PosN.z) + CameraMotion.Value[1].z)) + (CameraMotion.Value[1].w * PosN.y) + (CameraMotion.Value[2].x * PosN.x * PosN.x) + (CameraMotion.Value[2].y * PosN.z) + CameraMotion.Value[2].z) * ScaleM;
-	BackN.y =  2.0 * ((PosN.y * ((CameraMotion.Value[3].x * PosN.x) + (CameraMotion.Value[3].y * PosN.z) + CameraMotion.Value[3].z)) + (CameraMotion.Value[3].w * PosN.x) + (CameraMotion.Value[4].x * PosN.y * PosN.y) + (CameraMotion.Value[4].y * PosN.z) + CameraMotion.Value[4].z) * ScaleM;
-
-#if 0
-	//Fix for VR 'wobble' Imprecision in this method makes it not good enough to have on by default.  A proper fix is coming soon, but in the meantime, VR users can put this in locally.
-	{
-		float4 ThisClip = float4( (UVAndScreenPos.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, PosN.z, 1 );
-		float4 ThisTranslatedWorld = mul( ThisClip, View.ClipToTranslatedWorld );
-		ThisTranslatedWorld /= ThisTranslatedWorld.w;
-		
-		float3 PrevTranslatedWorld = ThisTranslatedWorld.xyz + (View.PrevPreViewTranslation - View.PreViewTranslation);
-		float4 PrevClip = mul( float4( PrevTranslatedWorld, 1 ), View.PrevTranslatedWorldToClip );
-		float2 PrevScreen = PrevClip.xy / PrevClip.w;
-		//float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-
-		BackN = UVAndScreenPos.zw - PrevScreen - ( View.ViewToClip[2].xy - View.PrevProjection[2].xy );
-	}
-#endif
+	float4 ThisClip = float4( PosN.xy, PosN.z, 1 );
+	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
+	float2 PrevScreen = PrevClip.xy / PrevClip.w;
+	float2 BackN = PosN.xy - PrevScreen;
 
 	float2 BackTemp = BackN * ViewportSize.xy;
 	#if AA_DYNAMIC
@@ -223,10 +182,12 @@ which can be configured via defines for various temporal AA passes.
 		}
 		BackTemp = BackN * ViewportSize.xy;
 	#endif
-	// Save the amount of pixel offset of just camera motion, used later as the amount of blur introduced by history.
-	float HistoryBlurAmp = 2.0;
-	float HistoryBlur = saturate(abs(BackTemp.x) * HistoryBlurAmp + abs(BackTemp.y) * HistoryBlurAmp);
-	float Velocity = sqrt(dot(BackTemp, BackTemp));
+	#if !AA_BICUBIC
+		// Save the amount of pixel offset of just camera motion, used later as the amount of blur introduced by history.
+		float HistoryBlurAmp = 2.0;
+		float HistoryBlur = saturate(abs(BackTemp.x) * HistoryBlurAmp + abs(BackTemp.y) * HistoryBlurAmp);
+		float Velocity = sqrt(dot(BackTemp, BackTemp));
+	#endif
 	// Easier to do off screen check before conversion.
 	// BackN is in units of 2pixels/viewportWidthInPixels
 	// This converts back projection vector to [-1 to 1] offset in viewport.
@@ -256,19 +217,12 @@ which can be configured via defines for various temporal AA passes.
 		float4 Neighbor4 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
 		float4 Neighbor5 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 1,  0));
 		float4 Neighbor7 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 0,  1));
-		#if 1
-			Neighbor1.rgb *= HdrWeightG(Neighbor1.rgb, InExposureScale);
-			Neighbor3.rgb *= HdrWeightG(Neighbor3.rgb, InExposureScale);
-			Neighbor4.rgb *= HdrWeightG(Neighbor4.rgb, InExposureScale);
-			Neighbor5.rgb *= HdrWeightG(Neighbor5.rgb, InExposureScale);
-			Neighbor7.rgb *= HdrWeightG(Neighbor7.rgb, InExposureScale);
-		#endif
 		Neighbor1.rgb = RGBToYCoCg(Neighbor1.rgb);
 		Neighbor3.rgb = RGBToYCoCg(Neighbor3.rgb);
 		Neighbor4.rgb = RGBToYCoCg(Neighbor4.rgb);
 		Neighbor5.rgb = RGBToYCoCg(Neighbor5.rgb);
 		Neighbor7.rgb = RGBToYCoCg(Neighbor7.rgb);
-		#if 0
+		#if 1
 			Neighbor1.xyz *= HdrWeightY(Neighbor1.x, InExposureScale);
 			Neighbor3.xyz *= HdrWeightY(Neighbor3.x, InExposureScale);
 			Neighbor4.xyz *= HdrWeightY(Neighbor4.x, InExposureScale);
@@ -393,11 +347,28 @@ which can be configured via defines for various temporal AA passes.
 		#endif
 	#endif
 
-
-
 	// FETCH HISTORY
 	// -------------
-	OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0);
+	#if AA_BICUBIC
+		float2 Weight[3];
+		float2 Sample[3];
+		Bicubic2DCatmullRom( BackN.xy, PostprocessInput1Size.xy, Sample, Weight );
+
+		OutColor  = PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[0].x, Sample[0].y ), 0 ) * Weight[0].x * Weight[0].y;
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[1].x, Sample[0].y ), 0 ) * Weight[1].x * Weight[0].y;
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[2].x, Sample[0].y ), 0 ) * Weight[2].x * Weight[0].y;
+
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[0].x, Sample[1].y ), 0 ) * Weight[0].x * Weight[1].y;
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[1].x, Sample[1].y ), 0 ) * Weight[1].x * Weight[1].y;
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[2].x, Sample[1].y ), 0 ) * Weight[2].x * Weight[1].y;
+
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[0].x, Sample[2].y ), 0 ) * Weight[0].x * Weight[2].y;
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[1].x, Sample[2].y ), 0 ) * Weight[1].x * Weight[2].y;
+		OutColor += PostprocessInput1.SampleLevel( PostprocessInput1Sampler, float2( Sample[2].x, Sample[2].y ), 0 ) * Weight[2].x * Weight[2].y;
+	#else
+		OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0);
+	#endif
+
 	#if AA_DEBUG
 		Neighbor4.rg = float2(0.0, 0.0);
 		NeighborMin.rg = float2(0.0, 0.0);
@@ -407,11 +378,8 @@ which can be configured via defines for various temporal AA passes.
 		float DebugDiffCurrent = Filtered.b;
 	#endif
 	#if AA_YCOCG
-		#if 1
-			OutColor.rgb *= HdrWeightG(OutColor.rgb, InExposureScale);
-		#endif
 		OutColor.rgb = RGBToYCoCg(OutColor.rgb);
-		#if 0
+		#if 1
 			OutColor.xyz *= HdrWeightY(OutColor.x, InExposureScale);
 		#endif
 	#else
@@ -425,10 +393,6 @@ which can be configured via defines for various temporal AA passes.
 		OutColor.rg = float2(0.0, 0.0);
 		float DebugDiffPrior = OutColor.b;
 	#endif
-
-
-
-
 
 
 	// FIND LUMA OF CLAMPED HISTORY
@@ -475,7 +439,7 @@ which can be configured via defines for various temporal AA passes.
 
 	// ADD BACK IN ALIASING TO SHARPEN
     // -------------------------------
-	#if AA_FILTERED
+	#if AA_FILTERED && !AA_BICUBIC
 		// Blend in non-filtered based on the amount of sub-pixel motion.
 		float AddAliasing = saturate(HistoryBlur) * 0.5;
 		float LumaContrastFactor = 32.0;
@@ -498,26 +462,20 @@ which can be configured via defines for various temporal AA passes.
 		
 	// COMPUTE BLEND AMOUNT 
     // --------------------
-	// Replace history with minimum difference of history from min or max neighborhood.
-	LumaHistory = min(abs(LumaMin-LumaHistory), abs(LumaMax-LumaHistory));
-	float HistoryAmount = (1.0/8.0) + HistoryBlur * (1.0/8.0);
-	float HistoryFactor = LumaHistory * HistoryAmount * (1.0 + HistoryBlur * HistoryAmount * 8.0);
-	float BlendFinal = saturate(HistoryFactor * rcp(LumaHistory + LumaContrast));
+	float DistToClamp = min(abs(LumaMin-LumaHistory), abs(LumaMax-LumaHistory));
+	#if AA_BICUBIC
+		float HistoryFactor = 0.125 * DistToClamp;
+	#else
+		float HistoryAmount = (1.0/8.0) + HistoryBlur * (1.0/8.0);
+		float HistoryFactor = DistToClamp * HistoryAmount * (1.0 + HistoryBlur * HistoryAmount * 8.0);
+	#endif
+	float BlendFinal = saturate(HistoryFactor / (DistToClamp + LumaMax - LumaMin));
 	#if RESPONSIVE
 		// Responsive forces 1/4 of new frame.
 		BlendFinal = 1.0/4.0;
 	#endif
 
-   	#if (AA_ALPHA == 1) && (AA_VELOCITY_WEIGHTING == 1)
-		// Velocity weighting.
-		// Decay prior value.
-		float PriorVelocity = OutColor.a;
-		float VelocityDecay = 0.5;
-		OutColor.a = max(OutColor.a * VelocityDecay, Velocity * rcp(VelocityDecay));
-		float VelocityDiff = abs(PriorVelocity - Velocity) / max(1.0, max(PriorVelocity, Velocity));
-		BlendFinal = max(BlendFinal, VelocityDiff * (1.0/8.0));
-		BlendFinal = min(1.0/2.0, BlendFinal);
-	#endif
+	BlendFinal = 0.04;
 
 	// Offscreen feedback resets.
 	#if AA_LERP 
@@ -553,13 +511,10 @@ which can be configured via defines for various temporal AA passes.
 		OutColor = lerp(OutColor, Filtered, FixedLerp);
 	#endif
 	#if AA_YCOCG
-		#if 0
+		#if 1
 			OutColor.xyz *= HdrWeightInvY(OutColor.x, InExposureScale);
 		#endif
 		OutColor.rgb = YCoCgToRGB(OutColor.rgb);
-		#if 1
-			OutColor.rgb *= HdrWeightInvG(OutColor.rgb, InExposureScale);
-		#endif
 	#else
 		// Convert back into linear.
 		#if AA_GREEN_AS_LUMA
@@ -586,9 +541,6 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_DILATE
 #undef AA_DYNAMIC
 #undef AA_FILTERED
-#undef AA_GRAIN
-#undef AA_HDR
-#undef AA_HDR_HISTORY
 #undef AA_LERP
 #undef AA_LOWPASS
 #undef AA_ROUND
@@ -596,7 +548,6 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_BORDER
 #undef AA_FORCE_ALPHA_CLAMP
 #undef AA_GREEN_AS_LUMA
-#undef AA_VELOCITY_WEIGHTING
 #undef AA_YCOCG
+#undef AA_BICUBIC
 #undef AA_DOF
-#undef AA_TEST

@@ -231,18 +231,17 @@ struct FViewMatrices
 
 	FMatrix GetInvProjMatrix() const
 	{
-		return ProjMatrix.Inverse();
+		return InvertProjMatrix( ProjMatrix );
 	}
 	
 	FMatrix GetInvProjNoAAMatrix() const
 	{
-		return GetProjNoAAMatrix().Inverse();
+		return InvertProjMatrix( GetProjNoAAMatrix() );
 	}
 
 	FMatrix GetInvViewMatrix() const
 	{
-		// can be optimized: it's not a perspective matrix so transpose would be enough
-		return ViewMatrix.Inverse();
+		return ViewMatrix.RemoveTranslation().GetTransposed() * FTranslationMatrix( ViewMatrix.GetOrigin() );
 	}
 
 	FMatrix GetInvViewProjMatrix() const
@@ -264,6 +263,49 @@ struct FViewMatrices
 		VRight.Normalize();
 
 		return FVector2D(FMath::Acos(VCenter | VRight), FMath::Acos(VCenter | VUp));
+	}
+
+private:
+	static FMatrix InvertProjMatrix( const FMatrix& M )
+	{
+		if( M.M[1][0] == 0.0f &&
+			M.M[3][0] == 0.0f &&
+			M.M[0][1] == 0.0f &&
+			M.M[3][1] == 0.0f &&
+			M.M[0][2] == 0.0f &&
+			M.M[1][2] == 0.0f &&
+			M.M[0][3] == 0.0f &&
+			M.M[1][3] == 0.0f &&
+			M.M[2][3] == 1.0f &&
+			M.M[3][3] == 0.0f )
+		{
+			// Solve the common case directly with very high precision.
+			/*
+			M = 
+			| a | 0 | 0 | 0 |
+			| 0 | b | 0 | 0 |
+			| s | t | c | 1 |
+			| 0 | 0 | d | 0 |
+			*/
+
+			double a = M.M[0][0];
+			double b = M.M[1][1];
+			double c = M.M[2][2];
+			double d = M.M[3][2];
+			double s = M.M[2][0];
+			double t = M.M[2][1];
+
+			return FMatrix(
+				FPlane( 1.0 / a, 0.0f, 0.0f, 0.0f ),
+				FPlane( 0.0f, 1.0 / b, 0.0f, 0.0f ),
+				FPlane( 0.0f, 0.0f, 0.0f, 1.0 / d ),
+				FPlane( -s/a, -t/b, 1.0f, -c/d )
+			);
+		}
+		else
+		{
+			return M.Inverse();
+		}
 	}
 };
 
@@ -383,6 +425,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,PrevPreViewTranslation)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevInvViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevScreenToTranslatedWorld)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ClipToPrevClip)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,IndirectLightingColorScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,HdrMosaic, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,AtmosphericFogSunDirection)
