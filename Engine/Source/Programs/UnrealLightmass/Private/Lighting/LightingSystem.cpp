@@ -208,7 +208,9 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 ,	PhotonMappingSettings(InScene.PhotonMappingSettings)
 ,	IrradianceCachingSettings(InScene.IrradianceCachingSettings)
 ,	MappingTasksInProgressThatWillNeedHelp(0)
-,	bVolumeLightingSamplesComplete(false)
+,	NextVolumeSampleTaskIndex(-1)
+,	NumVolumeSampleTasksOutstanding(0)
+,	bShouldExportVolumeSampleData(false)
 ,	VolumeLightingInterpolationOctree(FVector4(0,0,0), HALF_WORLD_MAX)
 ,	bShouldExportMeshAreaLightData(false)
 ,	bShouldExportVolumeDistanceField(false)
@@ -538,7 +540,7 @@ void FStaticLightingSystem::MultithreadProcess()
 	{
 		// Calculate volume samples now if they will be needed by the lighting threads for shading,
 		// Otherwise the volume samples will be calculated when the task is received from swarm.
-		CalculateVolumeSamples();
+		BeginCalculateVolumeSamples();
 	}
 
 	SetupPrecomputedVisibility();
@@ -645,8 +647,10 @@ void FStaticLightingSystem::MultithreadProcess()
 void FStaticLightingSystem::ExportNonMappingTasks()
 {
 	// Export volume lighting samples to Swarm if they are complete
-	if (bVolumeLightingSamplesComplete)
+	if (bShouldExportVolumeSampleData)
 	{
+		bShouldExportVolumeSampleData = false;
+
 		Exporter.ExportVolumeLightingSamples(
 			DynamicObjectSettings.bVisualizeVolumeLightSamples,
 			VolumeLightingDebugOutput,
@@ -666,7 +670,6 @@ void FStaticLightingSystem::ExportNonMappingTasks()
 			FLightmassSwarm* Swarm = GetExporter().GetSwarm();
 			Swarm->TaskCompleted( PrecomputedVolumeLightingGuid );
 		}
-		bVolumeLightingSamplesComplete = 0;
 	}
 
 	CompleteVisibilityTaskList.ApplyAndClear(*this);
@@ -908,7 +911,7 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 		}
 	}
 
-	if (Stats.PrecomputedVisibilitySetupTime > 0)
+	if (Stats.PrecomputedVisibilitySetupTime / TotalStaticLightingTime > .02f)
 	{
 		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    sPVS setup\n"), 100.0f * Stats.PrecomputedVisibilitySetupTime / TotalStaticLightingTime, Stats.PrecomputedVisibilitySetupTime);
 	}
@@ -1026,9 +1029,9 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 	}
 	if (Stats.NumDynamicObjectSurfaceSamples + Stats.NumDynamicObjectVolumeSamples > 0)
 	{
-		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Volume Samples\n"), 100.0f * Stats.VolumeSampleThreadTime / TotalLightingBusyThreadTime, Stats.VolumeSampleThreadTime);
+		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Volume Sample placement\n"), 100.0f * Stats.VolumeSamplePlacementThreadTime / TotalLightingBusyThreadTime, Stats.VolumeSamplePlacementThreadTime);
 	}
-	const float UnaccountedLightingThreadTime = FMath::Max(TotalLightingBusyThreadTime - (SampleSetupTime + Stats.DirectLightingTime + Stats.BlockOnIndirectLightingCacheTasksTime + Stats.BlockOnIndirectLightingInterpolateTasksTime + Stats.SecondPassIrradianceCacheInterpolationTime + Stats.VolumeSampleThreadTime + Stats.StaticShadowDepthMapThreadTime + Stats.VolumeDistanceFieldThreadTime + PrecomputedVisibilityThreadTime), 0.0f);
+	const float UnaccountedLightingThreadTime = FMath::Max(TotalLightingBusyThreadTime - (SampleSetupTime + Stats.DirectLightingTime + Stats.BlockOnIndirectLightingCacheTasksTime + Stats.BlockOnIndirectLightingInterpolateTasksTime + Stats.SecondPassIrradianceCacheInterpolationTime + Stats.VolumeSamplePlacementThreadTime + Stats.StaticShadowDepthMapThreadTime + Stats.VolumeDistanceFieldThreadTime + PrecomputedVisibilityThreadTime), 0.0f);
 	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Unaccounted\n"), 100.0f * UnaccountedLightingThreadTime / TotalLightingBusyThreadTime, UnaccountedLightingThreadTime);
 	// Send the message in multiple parts since it cuts off in the middle otherwise
 	LogSolverMessage(SolverStats);
@@ -1073,7 +1076,7 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 	const int32 TotalVolumeLightingSamples = Stats.NumDynamicObjectSurfaceSamples + Stats.NumDynamicObjectVolumeSamples;
 	if (TotalVolumeLightingSamples > 0)
 	{
-		SolverStats += FString::Printf( TEXT("%u Volume lighting samples, %.1f%% placed on surfaces, %.1f%% placed in the volume\n"), TotalVolumeLightingSamples, 100.0f * Stats.NumDynamicObjectSurfaceSamples / (float)TotalVolumeLightingSamples, 100.0f * Stats.NumDynamicObjectVolumeSamples / (float)TotalVolumeLightingSamples);
+		SolverStats += FString::Printf( TEXT("%u Volume lighting samples, %.1f%% placed on surfaces, %.1f%% placed in the volume, %.1f thread seconds\n"), TotalVolumeLightingSamples, 100.0f * Stats.NumDynamicObjectSurfaceSamples / (float)TotalVolumeLightingSamples, 100.0f * Stats.NumDynamicObjectVolumeSamples / (float)TotalVolumeLightingSamples, Stats.TotalVolumeSampleLightingThreadTime);
 	}
 
 	if (Stats.NumPrecomputedVisibilityQueries > 0)
@@ -1548,8 +1551,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 		}
 		else if (bDynamicObjectTask)
 		{
-			CalculateVolumeSamples();
-			FPlatformAtomics::InterlockedExchange(&bVolumeLightingSamplesComplete, true);
+			BeginCalculateVolumeSamples();
 		}
 		else if (PrecomputedVisibilityTaskIndex >= 0)
 		{
@@ -1593,9 +1595,26 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 				NextInterpolateTask->TextureMapping->CompletedInterpolationTasks.Push(NextInterpolateTask);
 				FPlatformAtomics::InterlockedDecrement(&NextInterpolateTask->TextureMapping->NumOutstandingInterpolationTasks);
 			}
+			
+			if (NumVolumeSampleTasksOutstanding > 0)
+			{
+				const int32 TaskIndex = FPlatformAtomics::InterlockedIncrement(&NextVolumeSampleTaskIndex);
+
+				if (TaskIndex < VolumeSampleTasks.Num())
+				{
+					ProcessVolumeSamplesTask(VolumeSampleTasks[TaskIndex]);
+					const int32 NumTasksRemaining = FPlatformAtomics::InterlockedDecrement(&NumVolumeSampleTasksOutstanding);
+
+					if (NumTasksRemaining == 0)
+					{
+						FPlatformAtomics::InterlockedExchange(&bShouldExportVolumeSampleData, true);
+					}
+				}
+			}
 
 			if (!NextCacheTask 
 				&& !NextInterpolateTask
+				&& NumVolumeSampleTasksOutstanding <= 0
 				&& NumOutstandingVolumeDataLayers <= 0)
 			{
 				if (MappingTasksInProgressThatWillNeedHelp <= 0 && !bRequestForTaskTimedOut)

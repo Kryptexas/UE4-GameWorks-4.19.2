@@ -1181,7 +1181,7 @@ public:
 	float BooleanRayTraceThreadTime;
 
 	/** Thread seconds spent placing volume lighting samples and then calculating their lighting. */
-	float VolumeSampleThreadTime;
+	float VolumeSamplePlacementThreadTime;
 
 	/** Irradiance cache stats */
 	FIrradianceCacheStats Cache[NumTrackedBounces];
@@ -1244,7 +1244,7 @@ public:
 		NumBooleanRaysTraced(0),
 		FirstHitRayTraceThreadTime(0),
 		BooleanRayTraceThreadTime(0),
-		VolumeSampleThreadTime(0)
+		VolumeSamplePlacementThreadTime(0)
 	{
 		for (int32 i = 0; i < NumTrackedBounces; i++)
 		{
@@ -1891,6 +1891,21 @@ public:
 	{}
 };
 
+/**  */
+class FVolumeSamplesTaskDescription
+{
+public:
+	FGuid LevelId;
+	int32 StartIndex;
+	int32 NumSamples;
+	
+	FVolumeSamplesTaskDescription(FGuid InLevelId, int32 InStartIndex, INT32 InNumSamples) :
+		LevelId(InLevelId),
+		StartIndex(InStartIndex),
+		NumSamples(InNumSamples)
+	{}
+};
+
 class FVisibilityMeshGroup
 {
 public:
@@ -1972,6 +1987,11 @@ public:
 		bool bDebugThisMapping, 
 		FVector2D UVBias, 
 		FVector2D UVScale) const;
+
+	FStaticLightingAggregateMesh& GetAggregateMesh()
+	{
+		return AggregateMesh;
+	}
 
 private:
 
@@ -2156,7 +2176,7 @@ private:
 		bool bDebugThisDensityEstimation) const;
 
 	/** Places volume lighting samples and calculates lighting for them. */
-	void CalculateVolumeSamples();
+	void BeginCalculateVolumeSamples();
 
 	/** 
 	 * Interpolates lighting from the volume lighting samples to a vertex. 
@@ -2469,6 +2489,8 @@ private:
 	 */
 	void ProcessInterpolateTask(FInterpolateIndirectTaskDescription* Task, bool bProcessedByMappingThread);
 
+	void ProcessVolumeSamplesTask(const FVolumeSamplesTaskDescription& Task);
+
 	/** Handles indirect lighting calculations for a single texture mapping. */
 	void CalculateIndirectLightingTextureMapping(
 		FStaticLightingTextureMapping* TextureMapping,
@@ -2572,8 +2594,12 @@ private:
 	/** List of tasks to interpolate indirect lighting, used by all mapping threads. */
 	TLockFreePointerList<FInterpolateIndirectTaskDescription> InterpolateIndirectLightingTasks;
 
-	/* Positive if the lighting threads are done writing to VolumeLightingSamples, and the samples can be exported. */
-	volatile int32 bVolumeLightingSamplesComplete;
+	TArray<FVolumeSamplesTaskDescription> VolumeSampleTasks;
+
+	volatile int32 bHasVolumeSampleTasks;
+	volatile int32 NextVolumeSampleTaskIndex;
+	volatile int32 NumVolumeSampleTasksOutstanding;
+	volatile int32 bShouldExportVolumeSampleData;
 	/** Bounds that VolumeLightingSamples were generated in. */
 	FBoxSphereBounds VolumeBounds;
 	/** Octree used for interpolating the volume lighting samples if DynamicObjectSettings.bVisualizeVolumeLightInterpolation is true. */
