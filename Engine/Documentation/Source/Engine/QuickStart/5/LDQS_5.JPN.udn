@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:2521087
+﻿INTSourceChangelist:2610045
 Availability:Public
-Title:5.ビルド プロセスを実行する
+Title:5 - 配置したアクタの編集
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:多数のアクタを配置したカスタマイズ状態でレベルを作成する最終ステップの 1 つは、ビルド プロセスです。
-
-
+Description:配置したアクタを使ってプロパティを編集し、レベルの外見をさらにカスタマイズしていきます。 
+SkillLevel:初心者
+Version:4.8
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/LightingAndShadows/LightTypes
+Related:Engine/Content/FBX/ImportOptions
+Related:
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -14,7 +18,7 @@ Description:多数のアクタを配置したカスタマイズ状態でレベ�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/QuickStart)
+		[クイックスタート ホーム](Engine/QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[次のステップ](Engine/QuickStart/6 "%Engine/QuickStart/6:title%")
@@ -24,34 +28,47 @@ Description:多数のアクタを配置したカスタマイズ状態でレベ�
 
 %Steps%
 
-![](Engine\QuickStart\5\beforeBake.png)(w:940)
+異なる **アクタ** を幾つかレベル内に配置したら、次のステップは [**アクタのプロパティの編集**](GettingStarted/HowTo/DetailsPanel) です。レベル内でのアクタの見かけや機能を変更することで、レベルを自分の好みに近づけることができます。 
+まず最初に **Directional Light アクタ** の編集方法から説明し、次に [**Materials**](Engine/Rendering/Materials) をレベル内に配置した [**Static Mesh アクタ**](Engine/Actors/StaticMeshActor) の幾つかへ適用する方法へ進みます。 
 
-シャドウに「Preview」というラベルが見え、ライトが壁の下から漏れていることが分かります。これは、シーン内のすべてのライトは静的で、事前計算、すなわちベイクされた光源処理を使用しているものの、この光源処理がまだ計算されていないためです。この「Preview」というテキストは、現在ビューポートで見ているものはゲーム内で見えるものとは異なることを気付かせるためのものです。シーンの見栄えをよくするためには、 **[Build]** プロセスを実行する必要があります。
+このステップを完了すると、アクタのプロパティのアクセスおよび修正方法を理解するので、レベル内のいろいろな設定で編集したり試してみることができます。 
 
-アンリアル エディタでの **ビルド作業** は非常に簡単です。使用するクオリティ設定を選択し、 ![**Build**](Engine\QuickStart\6\build_button.png) ボタンをクリックします。
+## ステップ
 
+1. ビューポートの **Directional Light アクタ** を **左クリック** して選択します。
 
+	![](selectDL.png)
 
-1. クオリティレベルを選択するには、 [**Build**](Engine\QuickStart\6\build_button.png) ボタンの隣にある ![**Down Arrow**](Engine\QuickStart\6\downArrow_button.png) をクリックします。 **[Build Options]** を展開し、次に **[Lighting Quality]** メニューを展開します。
+1. **Light** カテゴリの **[Details] パネル** で、 **[Used as Atmosphere Sun Light]** を有効にします。
 
-	![](Engine\QuickStart\6\buildSettings.png)
+	![](enableSun.png)
 
-1. **[Quality Level]** を **[Production]** に設定します。
+	**Directional Light アクタ** の回転に応じて空の色が変わります。ビューポートを回転させると太陽が Directional Light アクタ の位置に合わせされるのがわかります。 
+	これはリアルタイム プロセスです。そのため、(E を押して **Rotation モード** に切り替えて) **Directional Light アクタ** を回転させると、空の色が夜、日の出、日中、日没と変化するのがわかります。
 
-	[REGION:note]
-	**ビルド** を開始する前に、大きなレベルでは長時間かかるということを覚えておいてください。この例の小部屋では、あまり時間はかからないでしょう。しかし、平方キロメートル単位の広い範囲をカバーする数百のライトがあるシーンでは、相当長い時間がかかるでしょう。
-	[/REGION]
+では次に、配置した **Static Mesh アクタ** のどれかの上にある **マテリアル** を最初に選択して、変えてみましょう。  
 
-1. ![**Build**](Engine\QuickStart\6\build_button.png) ボタンをクリックします。
-1. **ビルド** が完了するまでお待ちください。
+1. レベル内でアクタを選択し、**[Materials]** の **[Details]** パネルで **Element 0** の下にあるドロップダウン ボックスをクリックします。 
 
-	![](Engine\QuickStart\6\wait.png)
+	![](material_1.png)(w:900)
 
-1. 光源処理が完了すると、自動的に更新されます。
+1. 表示されるポップアップ ウィンドウで **[M_Brick_Clay_New]** マテリアルを選択します。 
 
-![](Engine\QuickStart\6\built.png)(w:940)
+	![](material_2.png)(w:900)
 
+1.	レベル内のすべての **アクタ** には、調整可能なプロパティが数多く **[Details]** パネルに付いています。設定をいろいろ変更してみてください！
 
-最後に、配置した **Player Start** を覚えていますか？![**Play**](Engine\QuickStart\6\play_button.png) ボタンを押すと、 **マウス** と **WASD** キーを使用してレベルを飛び回ることができます。Play モードでは、実際にゲームが実行し、スタンドアロンのクライアントで見るものと全く同じレンダラーになります。
+	![](beforeBake.png)(w:900)
+
+	レベル内に **マテリアル** をもう少し適用したり、アクタの **Scale** を変更したりしてライトの **ライトカラー** を変えてみましょう。 
+
+## 結果
+
+**マテリアル** をレベル内の **Static Mesh アクタ** に適用する方法および **Actor** の **プロパティ** へアクセスする方法を学習しました。 
+各種プロパティを試してみると、始めは上図のようだったサンプル レベルはより完成度が高くなっていると思います。 
+レベル内のそれぞれのアクタについているプロパティを試してみてください。  
+
+準備ができたら次のステップへ進みます。次は、レベルで設定を更新する **ビルド** プロセスを説明します。 
 
 %Steps%
+
