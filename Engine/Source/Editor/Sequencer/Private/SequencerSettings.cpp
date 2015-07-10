@@ -236,6 +236,7 @@ void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
 	if (bShowCurveEditor != InbShowCurveEditor)
 	{
 		bShowCurveEditor = InbShowCurveEditor;
+		OnShowCurveEditorChanged.Broadcast();
 		SaveConfig();
 	}
 }
@@ -260,3 +261,9 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 		? FMath::RoundToInt( InTimeValue / TimeSnapInterval ) * TimeSnapInterval
 		: InTimeValue;
 }
+
+USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
+{
+	return OnShowCurveEditorChanged;
+}
+

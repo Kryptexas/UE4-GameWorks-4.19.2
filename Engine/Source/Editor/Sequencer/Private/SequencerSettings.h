@@ -22,6 +22,8 @@ class USequencerSettings : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
+	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
+
 	/** Gets whether or not auto key is enabled. */
 	bool GetAutoKeyEnabled() const;
 	/** Sets whether or not auto key is enabled. */
@@ -100,6 +102,9 @@ public:
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
+	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
+	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
+
 protected:
 	UPROPERTY( config )
 	bool bAutoKeyEnabled;
@@ -145,4 +150,6 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowCurveEditorCurveToolTips;
+
+	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

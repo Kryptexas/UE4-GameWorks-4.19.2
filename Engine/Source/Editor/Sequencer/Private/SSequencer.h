@@ -226,6 +226,9 @@ private:
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
 
+	/** Called when the curve editor is shown or hidden */
+	void OnCurveEditorVisibilityChanged();
+
 private:
 
 	/** Section area widget */

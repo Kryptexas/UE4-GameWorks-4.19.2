@@ -233,6 +233,10 @@ public:
 	/** Gets a list of the commands handled by this control */
 	UNREALED_API TSharedPtr<FUICommandList> GetCommands();
 
+	/** Gets or sets whether autoframing is allowed */
+	UNREALED_API bool GetAllowAutoFrame() { return bAllowAutoFrame; }
+	UNREALED_API void SetAllowAutoFrame(bool bInAllowAutoFrame) { bAllowAutoFrame = bInAllowAutoFrame; }
+
 private:
 	/** Used to track a key and the curve that owns it */
 	struct FSelectedCurveKey
@@ -628,6 +632,9 @@ private:
 
 	/** Gradient editor */
 	TSharedPtr<class SColorGradientEditor> GradientViewer;
+
+	/** Flag to allow auto framing */
+	bool bAllowAutoFrame;
 
 protected:
 	/** Minimum input of view range  */

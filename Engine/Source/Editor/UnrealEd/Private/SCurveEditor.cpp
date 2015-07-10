@@ -52,6 +52,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	GridColor = InArgs._GridColor;
 
 	bIsUsingSlider = false;
+	bAllowAutoFrame = true;
 
 	// if editor size is set, use it, otherwise, use default value
 	if (DesiredSize.Get().IsZero())
@@ -1158,7 +1159,7 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 
 	ValidateSelection();
 
-	if (Settings->GetAutoFrameCurveEditor())
+	if (Settings->GetAutoFrameCurveEditor() && GetAllowAutoFrame())
 	{
 		if( bZoomToFitVertical )
 		{
