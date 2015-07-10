@@ -223,7 +223,7 @@ protected:
 	void InternalRun();
 
 	/** Basic memory profiling, only for debugging purpose. */
-	void ProcessMemoryOperations( const FStatsReadFile& File );
+	void ProcessMemoryOperations( FStatsReadFile* InFile );
 
 	/** Generates a basic memory usage report and prints it to the log. */
 	void GenerateMemoryUsageReport( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames );

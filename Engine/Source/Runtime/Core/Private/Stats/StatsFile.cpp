@@ -10,6 +10,7 @@
 
 #include "StatsData.h"
 #include "StatsFile.h"
+#include "ScopeExit.h"
 
 DECLARE_CYCLE_STAT( TEXT( "Stream File" ), STAT_StreamFile, STATGROUP_StatSystem );
 DECLARE_CYCLE_STAT( TEXT( "Wait For Write" ), STAT_StreamFileWaitForWrite, STATGROUP_StatSystem );
@@ -523,6 +524,28 @@ void FRawStatsWriteFile::WriteStatPacket( FArchive& Ar, FStatPacket& StatPacket 
 	}
 }
 
+/*-----------------------------------------------------------------------------
+	FAsyncRawStatsReadFile
+-----------------------------------------------------------------------------*/
+
+FAsyncRawStatsFile::FAsyncRawStatsFile( FStatsReadFile* InOwner )
+	: Owner( InOwner )
+{}
+
+void FAsyncRawStatsFile::DoWork()
+{
+	Owner->ReadAndProcessSynchronously();
+}
+
+void FAsyncRawStatsFile::Abandon()
+{
+	Owner->RequestStop();
+}
+
+/*-----------------------------------------------------------------------------
+	FStatsReadFile
+-----------------------------------------------------------------------------*/
+
 const double FStatsReadFile::NumSecondsBetweenUpdates = 5.0;
 
 FStatsReadFile* FStatsReadFile::CreateReaderForRegularStats( const TCHAR* Filename, FOnNewStatPacket InNewStatPacket )
@@ -533,28 +556,54 @@ FStatsReadFile* FStatsReadFile::CreateReaderForRegularStats( const TCHAR* Filena
 	{
 		StatsReadFile->NewStatPacket = InNewStatPacket;
 	}
+	else
+	{
+		delete StatsReadFile;
+	}
 	return bValid ? StatsReadFile : nullptr;
 }
 
 
-FStatsReadFile* FStatsReadFile::CreateReaderForRawStats( const TCHAR* Filename, FOnNewRawStatPacket InNewRawStatPacket )
+FStatsReadFile* FStatsReadFile::CreateReaderForRawStats( const TCHAR* Filename, FOnNewCombinedHistory InNewCombinedHistory )
 {
 	FStatsReadFile* StatsReadFile = new FStatsReadFile( Filename, true );
 	const bool bValid = StatsReadFile->PrepareLoading();
 	if (bValid)
 	{
-		StatsReadFile->NewRawStatPacket = InNewRawStatPacket;
+		StatsReadFile->NewCombinedHistory = InNewCombinedHistory;
+	}
+	else
+	{
+		delete StatsReadFile;
 	}
 	return bValid ? StatsReadFile : nullptr;
 }
 
-void FStatsReadFile::ReadSynchronously()
+void FStatsReadFile::ReadAndProcessSynchronously()
 {
-	const double StartTime = FPlatformTime::Seconds();
+	ReadStats();
+	ProcessStats();
 
+	if (GetProcessingStage() == EStatsProcessingStage::RS_Stopped)
+	{
+		SetProcessingStage( EStatsProcessingStage::RS_Invalid );
+	}
+}
+
+void FStatsReadFile::ReadAndProcessAsynchronously()
+{
 	if (bRawStatsFile)
 	{
-		const int64 FileSize = Reader->TotalSize();
+		AsyncWork = new FAsyncTask<FAsyncRawStatsFile>( this );
+		AsyncWork->StartBackgroundTask();
+	}
+}
+
+void FStatsReadFile::ReadStats()
+{
+	if (bRawStatsFile)
+	{
+		const double StartTime = FPlatformTime::Seconds();
 
 		// Buffer used to store the compressed and decompressed data.
 		TArray<uint8> SrcArray;
@@ -567,9 +616,9 @@ void FStatsReadFile::ReadSynchronously()
 
 		// Update stage progress once per NumSecondsBetweenUpdates(5) seconds to avoid spamming.
 		double PreviousSeconds = FPlatformTime::Seconds();
-		ReadingStage.Set( int32( ERawStatsReadingStage::RS_ReadingAndCombiningPackets ) );
+		SetProcessingStage( EStatsProcessingStage::RS_ReadAndCombinePackets );
 
-		while (Reader->Tell() < FileSize)
+		while (Reader->Tell() < Reader->TotalSize())
 		{
 			// Read the compressed data.
 			FCompressedStatsData UncompressedData( SrcArray, DestArray );
@@ -594,55 +643,70 @@ void FStatsReadFile::ReadSynchronously()
 				return Item->ThreadId == StatPacket->ThreadId;
 			} );
 
-			const int64 PacketSize = StatPacket->StatMessages.GetAllocatedSize();
-			FileInfo.TotalStatMessagesNum += StatPacket->StatMessages.Num();
-
+			
 			if (CombinedPacket)
 			{
-				FileInfo.TotalPacketsSize -= (*CombinedPacket)->StatMessages.GetAllocatedSize();
 				(*CombinedPacket)->StatMessages += StatPacket->StatMessages;
-				FileInfo.TotalPacketsSize += (*CombinedPacket)->StatMessages.GetAllocatedSize();
-
 				delete StatPacket;
 			}
 			else
 			{
 				Frame.Packets.Add( StatPacket );
-				FileInfo.TotalPacketsSize += PacketSize;
-				FileInfo.MaximumPacketSize = FMath::Max( FileInfo.MaximumPacketSize, PacketSize );
+				FileInfo.MaximumPacketSize = FMath::Max<int64>( FileInfo.MaximumPacketSize, StatPacket->StatMessages.GetAllocatedSize() );
 			}
 
-			const double CurrentSeconds = FPlatformTime::Seconds(); 			
-			if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
+			UpdateReadStageProgress();
+
+			if (bShouldStopProcessing == true)
 			{
-				const int32 PercentagePos = int32( 100.0*Reader->Tell() / FileSize );
-				StageProgress.Set( PercentagePos );
-				UE_LOG( LogStats, Verbose, TEXT( "%3i%% %10llu (%6.1f MB) read messages, last read frame %4i" ), PercentagePos, FileInfo.TotalStatMessagesNum, FileInfo.TotalPacketsSize / 1024.0f / 1024.0f, StatPacketFrameNum );
-				LastUpdateTime = CurrentSeconds;
+				SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+				break;
 			}
-			
+
 			FileInfo.TotalPacketsNum++;
 		}
 
-		const double TotalTime = FPlatformTime::Seconds() - StartTime;
-		UE_LOG( LogStats, Log, TEXT( "Read took %.2f sec(s)" ), TotalTime );
+		if (GetProcessingStage() != EStatsProcessingStage::RS_Stopped)
+		{
+			const double TotalTime = FPlatformTime::Seconds() - StartTime;
+			UE_LOG( LogStats, Log, TEXT( "Reading took %.2f sec(s)" ), TotalTime );
 
-		DumpCombinedHistoryStats();	
-
-		//system( "pause" );
-
-		ReadingStage.Set( int32( ERawStatsReadingStage::RS_DecodingStatMessages ) );
+			UpdateCombinedHistoryStats();
+		}
+		else
+		{
+			UE_LOG( LogStats, Warning, TEXT( "Reading stopped, abandoning" ) );
+			// Clear all data.
+			CombinedHistory.Empty();
+		}
 	}
 }
 
-void FStatsReadFile::ReadAsynchronously()
+void FStatsReadFile::ProcessStats()
 {
+	if (bRawStatsFile)
+	{
+		if (GetProcessingStage() != EStatsProcessingStage::RS_Stopped)
+		{
+			SetProcessingStage( EStatsProcessingStage::RS_ProcessStatMessages );
+			NewCombinedHistory.ExecuteIfBound( this );
 
+			if (GetProcessingStage() == EStatsProcessingStage::RS_Stopped)
+			{
+				UE_LOG( LogStats, Warning, TEXT( "Processing stopped, abandoning" ) );
+			}
+
+			// Clear all data.
+			CombinedHistory.Empty();
+		}
+	}
 }
+
 
 FStatsReadFile::FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile )
 	: Header( Stream.Header )
 	, Reader( nullptr )
+	, AsyncWork( nullptr )
 	, LastUpdateTime( 0.0 )
 	, Filename( InFilename )
 	, bRawStatsFile( bInRawStatsFile )
@@ -652,58 +716,82 @@ FStatsReadFile::FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile )
 
 FStatsReadFile::~FStatsReadFile()
 {
+	RequestStop();
 
+	FPlatformProcess::ConditionalSleep( [&]()
+	{
+		return IsBusy();
+	}, 1.0f );
+
+	if (AsyncWork)
+	{
+		check( AsyncWork->IsDone() );
+
+		delete AsyncWork;
+		AsyncWork = nullptr;
+	}
+
+	delete Reader;
+	Reader = nullptr;
 }
 
 bool FStatsReadFile::PrepareLoading()
 {
 	const double StartTime = FPlatformTime::Seconds();
 
-	const int64 Size = IFileManager::Get().FileSize( *Filename );
-	if (Size < 4)
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filename );
-		return false;
-	}
+	SetProcessingStage( EStatsProcessingStage::RS_Started );
 
-	Reader = IFileManager::Get().CreateFileReader( *Filename );
-	if (!Reader)
 	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filename );
-		return false;
-	}
+		ON_SCOPE_EXIT
+		{
+			SetProcessingStage( EStatsProcessingStage::RS_Invalid );
+		};
 
-	if (!Stream.ReadHeader( *Reader ))
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not read, header is invalid: %s" ), *Filename );
-		return false;
-	}
+		const int64 Size = IFileManager::Get().FileSize( *Filename );
+		if (Size < 4)
+		{
+			UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filename );
+			return false;
+		}
 
-	//UE_LOG( LogStats, Warning, TEXT( "Reading a raw stats file for memory profiling: %s" ), *Filename );
+		Reader = IFileManager::Get().CreateFileReader( *Filename );
+		if (!Reader)
+		{
+			UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filename );
+			return false;
+		}
 
-	const bool bIsFinalized = Stream.Header.IsFinalized();
-	if (!bIsFinalized)
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not read, file is not finalized: %s" ), *Filename );
-		return false;
-	}
+		if (!Stream.ReadHeader( *Reader ))
+		{
+			UE_LOG( LogStats, Error, TEXT( "Could not read, header is invalid: %s" ), *Filename );
+			return false;
+		}
 
-	if( Stream.Header.Version < EStatMagicWithHeader::VERSION_6 )
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not read, invalid version: %s, expected %u, was %u" ), *Filename, (uint32)EStatMagicWithHeader::VERSION_6, Stream.Header.Version );
-		return false;
-	}
+		//UE_LOG( LogStats, Warning, TEXT( "Reading a raw stats file for memory profiling: %s" ), *Filename );
 
-	const bool bHasCompressedData = Stream.Header.HasCompressedData();
-	if( !bHasCompressedData )
-	{
-		UE_LOG( LogStats, Error, TEXT( "Could not read, required compressed data: %s" ), *Filename );
-		return false;
+		const bool bIsFinalized = Stream.Header.IsFinalized();
+		if (!bIsFinalized)
+		{
+			UE_LOG( LogStats, Error, TEXT( "Could not read, file is not finalized: %s" ), *Filename );
+			return false;
+		}
+
+		if (Stream.Header.Version < EStatMagicWithHeader::VERSION_6)
+		{
+			UE_LOG( LogStats, Error, TEXT( "Could not read, invalid version: %s, expected %u, was %u" ), *Filename, (uint32)EStatMagicWithHeader::VERSION_6, Stream.Header.Version );
+			return false;
+		}
+
+		const bool bHasCompressedData = Stream.Header.HasCompressedData();
+		if (!bHasCompressedData)
+		{
+			UE_LOG( LogStats, Error, TEXT( "Could not read, required compressed data: %s" ), *Filename );
+			return false;
+		}
 	}
 
 	State.MarkAsLoaded();
 
-	
 	// Read metadata.
 	TArray<FStatMessage> MetadataMessages;
 	Stream.ReadFNamesAndMetadataMessages( *Reader, MetadataMessages );
@@ -728,7 +816,6 @@ bool FStatsReadFile::PrepareLoading()
 	// Move file pointer to the first frame or first stat packet.
 	const int64 FrameOffset0 = Stream.FramesInfo[0].FrameFileOffset;
 	Reader->Seek( FrameOffset0 );
-	const int64 FileSize = Reader->TotalSize();
 
 	const double TotalTime = FPlatformTime::Seconds() - StartTime;
 	UE_LOG( LogStats, Log, TEXT( "Prepare loading took %.2f sec(s)" ), TotalTime );
@@ -736,7 +823,19 @@ bool FStatsReadFile::PrepareLoading()
 	return true;
 }
 
-void FStatsReadFile::DumpCombinedHistoryStats()
+void FStatsReadFile::UpdateReadStageProgress()
+{
+	const double CurrentSeconds = FPlatformTime::Seconds();
+	if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
+	{
+		const int32 PercentagePos = int32( 100.0*Reader->Tell() / Reader->TotalSize() );
+		StageProgress.Set( PercentagePos );
+		UE_LOG( LogStats, Verbose, TEXT( "%3i%%, current num frames %4i" ), PercentagePos, CombinedHistory.Num() );
+		LastUpdateTime = CurrentSeconds;
+	}
+}
+
+void FStatsReadFile::UpdateCombinedHistoryStats()
 {
 	// Dump frame stats
 	int64 LastFrameNum = 0;
@@ -759,12 +858,16 @@ void FStatsReadFile::DumpCombinedHistoryStats()
 				FrameStatMessages );
 
 		LastFrameNum = FMath::Max( LastFrameNum, FrameNum );
+
+		FileInfo.TotalStatMessagesNum += FrameStatMessages;
+		FileInfo.TotalPacketsSize += FramePacketsSize;
 	}
 
-	UE_LOG( LogStats, Warning, TEXT( "TotalPacketSize: %6.1f MB, Max: %2f MB, TotalPacketsNum: %lli, Frames: %i" ),
+	UE_LOG( LogStats, Warning, TEXT( "Total PacketSize: %6.1f MB, Max: %2f MB, PacketsNum: %lli, StatMessagesNum: %lli, Frames: %i" ),
 			FileInfo.TotalPacketsSize / 1024.0f / 1024.0f,
 			FileInfo.MaximumPacketSize / 1024.0f / 1024.0f,
 			FileInfo.TotalPacketsNum,
+			FileInfo.TotalStatMessagesNum,
 			CombinedHistory.Num() );
 
 	TArray<int64> Frames;

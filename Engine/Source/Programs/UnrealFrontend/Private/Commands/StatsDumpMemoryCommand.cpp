@@ -221,19 +221,21 @@ void FStatsMemoryDumpCommand::InternalRun()
 	FString SourceFilepath;
 	FParse::Value( FCommandLine::Get(), TEXT( "-INFILE=" ), SourceFilepath );
 
-	FStatsReadFile* NewReader = FStatsReadFile::CreateReaderForRawStats( *SourceFilepath, nullptr );
+	FStatsReadFile* NewReader = FStatsReadFile::CreateReaderForRawStats( *SourceFilepath, FStatsReadFile::FOnNewCombinedHistory::CreateRaw( this, &FStatsMemoryDumpCommand::ProcessMemoryOperations ) );
 	if (NewReader)
 	{
-		NewReader->ReadSynchronously();
 		PlatformName = NewReader->Header.PlatformName;
-		ProcessMemoryOperations( *NewReader );
+		NewReader->ReadAndProcessSynchronously();
 		delete NewReader;
+
+
 	}
 }
 
 
-void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& File )
+void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 {
+	const FStatsReadFile& File = *InFile;
 	const TMap<int64, FStatPacketArray>& CombinedHistory = File.CombinedHistory;
 
 	// This is only example code, no fully implemented, may sometimes crash.
@@ -264,6 +266,9 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 	uint32 LastSequenceTagForNamedMarker = 0;
 	Snapshots.Add( TPairInitializer<uint32, FName>( LastSequenceTagForNamedMarker, TEXT( "BeginSnapshot" ) ) );
 
+	const int32 OnerPercent = FMath::Max( int32(InFile->FileInfo.TotalStatMessagesNum / 100), 65536 );
+
+	// #YRX_Stats: 2015-07-10 This still should be generic
 	for( int32 FrameIndex = 0; FrameIndex < Frames.Num(); ++FrameIndex )
 	{
 		const int64 TargetFrame = Frames[FrameIndex];
@@ -287,19 +292,26 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 			const FStatMessagesArray& Data = StatPacket.StatMessages;
 
 			const int32 NumStatMessages = Data.Num();
-			const int32 OnerPercent = FMath::Max( NumStatMessages / 100, 1024 );
 			for( int32 Index = 0; Index < NumStatMessages; Index++ )
 			{
 				CurrentStatMessageIndex++;
 
-				if( Index % OnerPercent )
+				if (CurrentStatMessageIndex % OnerPercent == 0)
 				{
 					const double CurrentSeconds = FPlatformTime::Seconds();
 					if( CurrentSeconds > PreviousSeconds + NumSecondsBetweenLogs )
 					{
-						const int32 CurrentPct = int32( 100.0*CurrentStatMessageIndex / NumStatMessages );
-						UE_LOG( LogStats, Log, TEXT( "Processing %3i%% (%i/%i) stat messages [Frame: %3i, Packet: %2i]" ), CurrentPct, Index, NumStatMessages, FrameIndex, PacketIndex );
+						const int32 PercentagePos = int32( 100.0*CurrentStatMessageIndex / InFile->FileInfo.TotalStatMessagesNum );
+						InFile->StageProgress.Set( PercentagePos );
+						UE_LOG( LogStats, Verbose, TEXT( "Processing %3i%% (%10i/%10i) stat messages [Frame: %3i, Packet: %2i]" ), PercentagePos, CurrentStatMessageIndex, InFile->FileInfo.TotalStatMessagesNum, FrameIndex, PacketIndex );
 						PreviousSeconds = CurrentSeconds;
+
+						// Abandon support, simply return for now.
+						if (InFile->bShouldStopProcessing == true)
+						{
+							InFile->SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+							return;
+						}
 					}
 				}
 
@@ -326,12 +338,12 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 							NumMemoryOperations++;
 							// @see FStatsMallocProfilerProxy::TrackAlloc
 							// After AllocPtr message there is always alloc size message and the sequence tag.
-							Index++;
+							Index++; CurrentStatMessageIndex++;
 							const FStatMessage& AllocSizeMessage = Data[Index];
 							const int64 AllocSize = AllocSizeMessage.GetValue_int64();
 
 							// Read OperationSequenceTag.
-							Index++;
+							Index++; CurrentStatMessageIndex++;
 							const FStatMessage& SequenceTagMessage = Data[Index];
 							const uint32 SequenceTag = SequenceTagMessage.GetValue_int64();
 
@@ -351,6 +363,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 								StackState->bIsBrokenCallstack
 								) );
 							LastSequenceTagForNamedMarker = SequenceTag;
+
 						}
 						else if (MemOp == EMemoryOperation::Realloc)
 						{
@@ -358,17 +371,17 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 							const uint64 OldPtr = Ptr;
 
 							// Read NewPtr
-							Index++;
+							Index++; CurrentStatMessageIndex++;
 							const FStatMessage& AllocPtrMessage = Data[Index];
 							const uint64 NewPtr = AllocPtrMessage.GetValue_Ptr() & ~(uint64)EMemoryOperation::Mask;
 
 							// After AllocPtr message there is always alloc size message and the sequence tag.
-							Index++;
+							Index++; CurrentStatMessageIndex++;
 							const FStatMessage& ReallocSizeMessage = Data[Index];
 							const int64 ReallocSize = ReallocSizeMessage.GetValue_int64();
 
 							// Read OperationSequenceTag.
-							Index++;
+							Index++; CurrentStatMessageIndex++;
 							const FStatMessage& SequenceTagMessage = Data[Index];
 							const uint32 SequenceTag = SequenceTagMessage.GetValue_int64();
 
@@ -394,7 +407,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 						{
 							NumMemoryOperations++;
 							// Read OperationSequenceTag.
-							Index++;
+							Index++; CurrentStatMessageIndex++;
 							const FStatMessage& SequenceTagMessage = Data[Index];
 							const uint32 SequenceTag = SequenceTagMessage.GetValue_int64();
 
@@ -463,6 +476,8 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 		}
 	}
 
+	InFile->StageProgress.Set( 100 );
+
 	// End marker.
 	Snapshots.Add( TPairInitializer<uint32, FName>( TNumericLimits<uint32>::Max(), TEXT( "EndSnapshot" ) ) );
 
@@ -492,8 +507,17 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 	}
 	*/
 
+	InFile->SetProcessingStage( EStatsProcessingStage::RS_SortSequence );
+
 	// Sort all memory operation by the sequence tag, iterate through all operation and generate memory usage.
 	SequenceAllocationArray.Sort( FAllocationInfoSequenceTagLess() );
+
+	// Abandon support, simply return for now.
+	if (InFile->bShouldStopProcessing == true)
+	{
+		InFile->SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+		return;
+	}
 
 	// Named markers/snapshots
 
@@ -526,6 +550,13 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 				const int32 CurrentPct = int32( 100.0*(Index + 1) / NumSequenceAllocations );
 				UE_LOG( LogStats, Log, TEXT( "Processing allocations %3i%% (%10i/%10i)" ), CurrentPct, Index + 1, NumSequenceAllocations );
 				PreviousSeconds = CurrentSeconds;
+
+				// Abandon support, simply return for now.
+				if (InFile->bShouldStopProcessing == true)
+				{
+					InFile->SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+					return;
+				}
 			}
 		}
 
@@ -613,7 +644,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 
 #if	UE_BUILD_DEBUG
 				const FString ReallocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
-				UE_LOG( LogStats, Warning, TEXT( "ReallocWithoutAlloc: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
+				//UE_LOG( LogStats, Warning, TEXT( "ReallocWithoutAlloc: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
 #endif // UE_BUILD_DEBUG
 
 				AllocationMap.Add( Alloc.Ptr, Alloc );
@@ -639,7 +670,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 
 #if	UE_BUILD_DEBUG
 				const FString FWACallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
-				UE_LOG( LogStats, Warning, TEXT( "FreeWithoutAllocCallstack: %s %i" ), *FWACallstack, Alloc.Ptr );
+				//UE_LOG( LogStats, Warning, TEXT( "FreeWithoutAllocCallstack: %s %i" ), *FWACallstack, Alloc.Ptr );
 #endif // UE_BUILD_DEBUG
 			}
 		}
@@ -681,6 +712,8 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const FStatsReadFile& Fil
 			break;
 		}
 	}
+
+	InFile->SetProcessingStage( EStatsProcessingStage::RS_Finished );
 
 	// Frame-240 Frame-120 Frame-060
 	TMap<FString, FCombinedAllocationInfo> FrameBegin_Exit;

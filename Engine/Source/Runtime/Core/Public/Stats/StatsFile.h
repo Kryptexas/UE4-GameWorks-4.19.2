@@ -767,14 +767,52 @@ struct FRawStatsFileInfo
 	int64 TotalPacketsNum;
 };
 
-/** Enumerates raw stats reading stages. */
-enum ERawStatsReadingStage
+/** Enumerates stats processing stages. */
+enum EStatsProcessingStage
 {
-	RS_ReadingAndCombiningPackets = 0,
-	RS_DecodingStatMessages,
+	RS_Started = 0,
+	RS_ReadAndCombinePackets,
+	RS_ProcessStatMessages,
 	/** Memory profiler only. */
-	RS_SortingSequence,
+	RS_SortSequence,
+	RS_Finished,
+	RS_Stopped,
 
+	/** Last stage, at this moment all data is read and processed or process has been stopped, we can now remove the instance. */
+	RS_Invalid,
+
+};
+
+struct FStatsReadFile;
+
+/**
+ *	Helper class used to read and process raw stats file on the async task.
+ */
+class FAsyncRawStatsFile
+{
+	/** Pointer to FStatsReadFile to call for async work. */
+	FStatsReadFile* Owner;
+
+public:
+	/** Initialization constructor. */
+	FAsyncRawStatsFile( FStatsReadFile* InOwner );
+
+	/** Call DoWork on the parent */
+	void DoWork();
+
+	TStatId GetStatId() const
+	{
+		return TStatId();
+	}
+
+	/** This task is abandonable. */
+	bool CanAbandon()
+	{
+		return true;
+	}
+
+	/** Abandon this task. */
+	void Abandon();
 };
 
 /** Struct used to read from ue4stats/ue4statsraw files, initializes all metadata and starts a process of reading the file asynchronously. */
@@ -786,40 +824,67 @@ protected:
 	/** Number of seconds between updating the current stage. */
 	static const double NumSecondsBetweenUpdates;
 
+public:
 	/** Delegate that FStatsReadFile calls on the instance whenever we have a new frame. */
 	DECLARE_DELEGATE_OneParam( FOnNewStatPacket, TArray<FStatMessage>* );
 
 	/** Delegate that FStatsReadFile calls on the instance whenever we have a new raw stats packet. */
-	DECLARE_DELEGATE_OneParam( FOnNewRawStatPacket, FStatPacket* );
+	//DECLARE_DELEGATE_OneParam( FOnNewRawStatPacket, FStatPacket* );
+
+	/** Delegate that FStatsReadFile calls on the instance whenever we have a whole combined history read. */
+	DECLARE_DELEGATE_OneParam( FOnNewCombinedHistory, FStatsReadFile* );
 
 public:
 	/** Creates a new reader for regular stats file. Will be nullptr for invalid files. */
 	static FStatsReadFile* CreateReaderForRegularStats( const TCHAR* Filename, FOnNewStatPacket InNewStatPacket );
 
 	/** Creates a new reader for raw stats file. Will be nullptr for invalid files. */
-	static FStatsReadFile* CreateReaderForRawStats( const TCHAR* Filename, FOnNewRawStatPacket InNewRawStatPacket );
+	static FStatsReadFile* CreateReaderForRawStats( const TCHAR* Filename, FOnNewCombinedHistory InNewCombinedHistory );
 
-	/** Read the file on the current thread. This is a blocking operation. */
-	void ReadSynchronously();
+	/** Reads and processes the file on the current thread. This is a blocking operation. */
+	void ReadAndProcessSynchronously();
 
-	/** Read the file using the async tasks on the pool thread. The read data is sent to the game thread using the task graph. This is a non-blocking operation. */
-	void ReadAsynchronously();
+	/** Reads and processes the file using the async tasks on the pool thread. The read data is sent to the game thread using the task graph. This is a non-blocking operation. */
+	void ReadAndProcessAsynchronously();
+
+	void ReadStats();
+
+	void ProcessStats();
+
+	/** Sets a new processing stage for this file. */
+	void SetProcessingStage( EStatsProcessingStage NewStage )
+	{
+		ProcessingStage.Set( int32( NewStage ) );
+	}
+
+	/**
+	 * @return current processing stage.
+	 */
+	const EStatsProcessingStage GetProcessingStage() const
+	{
+		return EStatsProcessingStage( ProcessingStage.GetValue() );
+	}
 
 	/**	 
 	 * @return true, if any asynchronous operation is being processed
 	 */
 	bool IsBusy()
 	{
-		// #YRX_STATS: 2015-07-09 
-		return false;
+		return AsyncWork != nullptr ? !AsyncWork->IsDone() : false;
+	}
+
+	/** Requests stopping the processing of the data. */
+	void RequestStop()
+	{
+		bShouldStopProcessing = true;
 	}
 	
 	/**
 	 * @return current stage of reading.
 	 */
-	const ERawStatsReadingStage GetReadingStage() const
+	const EStatsProcessingStage GetReadingStage() const
 	{
-		return (ERawStatsReadingStage)ReadingStage.GetValue();
+		return (EStatsProcessingStage)ProcessingStage.GetValue();
 	}
 
 protected:
@@ -837,8 +902,11 @@ protected:
 	 */
 	bool PrepareLoading();
 
+	/** Updates stage progress periodically, does debug logging if enabled. */
+	void UpdateReadStageProgress();
+
 	/** Dumps combined history stats. Only for raw stats. */
-	void DumpCombinedHistoryStats();
+	void UpdateCombinedHistoryStats();
 
 //protected:
 public:
@@ -854,11 +922,20 @@ public:
 	/** File reader. */
 	FArchive* Reader;
 
+	/** Async task. */
+	FAsyncTask<FAsyncRawStatsFile>* AsyncWork;
+
 	/** Delegate we fire every time we read one frame of data. The data must be freed after processing. */
-	mutable FOnNewStatPacket NewStatPacket;
+	FOnNewStatPacket NewStatPacket;
 
 	/** Delegate we fire every time we read one raw stats packet. The data must be freed after processing. */
-	mutable FOnNewRawStatPacket NewRawStatPacket;
+	//FOnNewRawStatPacket NewRawStatPacket;
+	
+	/**
+	 *	Delegate we fire after reading all raw stats packets and combining them into one history. 
+	 *	The combined history will be freed after processing.
+	 */
+	FOnNewCombinedHistory NewCombinedHistory;
 
 	/** Basic information about the stats file. */
 	FRawStatsFileInfo FileInfo;
@@ -869,11 +946,14 @@ public:
 	/** All raw names that contains a path to an UObject. */
 	TSet<FName> UObjectRawNames;
 
-	/** Current stage of reading. Thread safe. */
-	FThreadSafeCounter ReadingStage;
+	/** Current stage of processing. */
+	FThreadSafeCounter ProcessingStage;
 
 	/** Percentage progress of the current stage. */
 	FThreadSafeCounter StageProgress;
+
+	/** If true, we should break the processing loop. */
+	FThreadSafeBool bShouldStopProcessing;
 
 	/** Time of the last stage update. */
 	double LastUpdateTime;
