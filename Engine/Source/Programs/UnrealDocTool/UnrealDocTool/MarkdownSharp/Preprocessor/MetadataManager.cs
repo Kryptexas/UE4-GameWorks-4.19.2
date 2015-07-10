@@ -107,7 +107,7 @@ namespace MarkdownSharp.Preprocessor
 
                 if (metaDataCategoryLowerCase == "skilllevel")
                 {
-                    SkillLevels.Add(metaValue);
+                    SkillLevels.Add(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(metaValue));
                 }
 
                 if (metaDataCategoryLowerCase == "tags")

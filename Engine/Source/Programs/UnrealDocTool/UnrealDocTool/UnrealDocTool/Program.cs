@@ -51,6 +51,8 @@ namespace UnrealDocTool
         private static string DefaultTemplate;
 
         private static string[] SupportedLanguages;
+        private static string[] SupportedLanguageLabels;
+        private static Dictionary<string, string> SupportedLanguageMap = new Dictionary<string,string>();
         private static string[] MetadataErrorIfMissing;
         private static string[] MetadataInfoIfMissing;
         private static string[] MetadataCleanKeepThese;
@@ -223,6 +225,11 @@ namespace UnrealDocTool
             }
 
             SupportedLanguages = Settings.Default.SupportedLanguages.ToUpper().Split(',');
+            SupportedLanguageLabels = Settings.Default.SupportedLanguageLabels.Split(',');
+            for (int i = 0; i < SupportedLanguages.Length; i++)
+            {
+                SupportedLanguageMap.Add(SupportedLanguages[i], SupportedLanguageLabels[i]);
+            }
 
             MetadataErrorIfMissing = Settings.Default.MetadataErrorIfMissing.Split(',');
             MetadataInfoIfMissing = Settings.Default.MetadataInfoIfMissing.Split(',');
@@ -660,6 +667,14 @@ namespace UnrealDocTool
             }
 
             markdownToHtml.SupportedLanguages = SupportedLanguages;
+            markdownToHtml.SupportedLanguageLabels = SupportedLanguageLabels;
+            for (int i = 0; i < markdownToHtml.SupportedLanguages.Length; i++)
+            {
+                if(!markdownToHtml.SupportedLanguageMap.ContainsKey(SupportedLanguages[i]))
+                {
+                    markdownToHtml.SupportedLanguageMap.Add(markdownToHtml.SupportedLanguages[i], markdownToHtml.SupportedLanguageLabels[i]);
+                }
+            }
 
             //Pass the default conversion settings to Markdown for use in the image details creation.
             markdownToHtml.DefaultImageDoCompress = DoCompressImages;

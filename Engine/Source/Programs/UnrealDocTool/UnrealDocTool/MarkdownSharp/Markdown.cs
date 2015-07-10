@@ -377,6 +377,7 @@ namespace MarkdownSharp
         /// </summary>
         public Markdown(bool loadOptionsFromConfigFile)
         {
+            SupportedLanguageMap = new Dictionary<string, string>();
             JustReadVariableDefinitionsRun = false;
 
             Preprocessor = new Preprocessor.Preprocessor(this);
@@ -415,6 +416,7 @@ namespace MarkdownSharp
         /// </summary>
         public Markdown(MarkdownOptions options)
         {
+            SupportedLanguageMap = new Dictionary<string, string>();
             _autoHyperlink = options.AutoHyperlink;
             _autoNewlines = options.AutoNewlines;
             _emptyElementSuffix = options.EmptyElementSuffix;
@@ -544,7 +546,13 @@ namespace MarkdownSharp
         private int ListLevel { get; set; }
 
         // What languages are supported
+        public Dictionary<string, string> SupportedLanguageMap { get; set; }
+
+        // What languages are supported
         public string[] SupportedLanguages { get; set; }
+
+        // What languages are supported
+        public string[] SupportedLanguageLabels { get; set; }
 
         // Error if this metadata value is missing from a file
         public static string[] MetadataErrorIfMissing { get; set; }
@@ -1088,6 +1096,7 @@ namespace MarkdownSharp
             }
 
             var translatedPageLinks = "";
+            var translatedPageSelect = "";
 
             //Generate links to other languages for this page
             foreach (var translatedLanguage in data.LanguagesLinksToGenerate)
@@ -1102,6 +1111,7 @@ namespace MarkdownSharp
                                         ? ""
                                         : data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf.Replace("\\", "/"),
                                 otherLanguage = translatedLanguage,
+                                otherLanguageLabel = SupportedLanguageMap[translatedLanguage],
                                 relativeHTMLPath = data.CurrentFolderDetails.RelativeHTMLPath
                             });
 
@@ -1119,8 +1129,15 @@ namespace MarkdownSharp
                 }
 
                 // Cope with top level folders having blank current folder.
-                translatedPageLinks += 
+                translatedPageLinks +=
                     Templates.TranslatedPageLink.Render(linkParams);
+                var linkPageParams =
+                    Hash.FromAnonymousObject(
+                        new
+                        {
+                            languageLinks = translatedPageLinks
+                        });
+                translatedPageSelect = Templates.TranslatedPages.Render(linkPageParams);
             }
 
             //add a warning if crumbs for the document have not been updated to new format
@@ -1148,7 +1165,7 @@ namespace MarkdownSharp
                         title = data.ProcessedDocumentCache.CurrentFileDocument.Metadata.DocumentTitle,
                         seotitle = (data.ProcessedDocumentCache.CurrentFileDocument.Metadata.SEOTitle != null) ? data.ProcessedDocumentCache.CurrentFileDocument.Metadata.SEOTitle : data.ProcessedDocumentCache.CurrentFileDocument.Metadata.DocumentTitle,
                         metadata = metadata,
-                        translatedPages = translatedPageLinks,
+                        translatedPages = translatedPageSelect,
                         relatedPagesMenu = Templates.RelatedPages.Render(Hash.FromAnonymousObject(
                             new {
                                 relatedPages = data.ProcessedDocumentCache.Metadata.RelatedLinks,

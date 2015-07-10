@@ -235,6 +235,11 @@ namespace MarkdownSharp
             get { return GetCached("link.html"); }
         }
 
+        public static TemplateFile FancyLink
+        {
+            get { return GetCached("fancyLink.html"); }
+        }
+
         public static TemplateFile Header
         {
             get { return GetCached("header.html"); }
@@ -338,6 +343,11 @@ namespace MarkdownSharp
         public static TemplateFile TranslatedPageLink
         {
             get { return GetCached("translatedPageLink.html"); }
+        }
+
+        public static TemplateFile TranslatedPages
+        {
+            get { return GetCached("translatedPages.html"); }
         }
 
         public static TemplateFile RelatedPages
