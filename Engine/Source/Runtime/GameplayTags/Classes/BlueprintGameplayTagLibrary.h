@@ -105,6 +105,17 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "GameplayTags")
 	static FGameplayTag MakeLiteralGameplayTag(FGameplayTag Value);
 
+
+	/**
+	 * Creates a literal FGameplayTagQuery
+	 *
+	 * @param	Value	value to set the FGameplayTagQuery to
+	 *
+	 * @return	The literal FGameplayTagQuery
+	 */
+	UFUNCTION(BlueprintPure, Category = "GameplayTags")
+	static FGameplayTagQuery MakeGameplayTagQuery(FGameplayTagQuery TagQuery);
+
 	/**
 	 * Check Gameplay tags in the interface has all of the specified tags in the tag container (expands to include parents of asset tags)
 	 *

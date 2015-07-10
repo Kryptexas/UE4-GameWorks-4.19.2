@@ -396,7 +396,7 @@ namespace EGameplayTagQueryStreamVersion
  * Queries are internally represented as a byte stream that is memory-efficient and can be evaluated quickly at runtime.
  * Note: these have an extensive details and graph pin customization for editing, so there is no need to expose the internals to Blueprints.
  */
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(HasNativeMake="GameplayTags.UBlueprintGameplayTagLibrary.MakeGameplayTagQuery"))
 struct GAMEPLAYTAGS_API FGameplayTagQuery
 {
 	GENERATED_BODY();
