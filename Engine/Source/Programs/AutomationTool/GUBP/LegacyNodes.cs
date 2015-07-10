@@ -2072,6 +2072,7 @@ partial class GUBP
 							!Product.Replace('\\', '/').Contains("/Intermediate/") &&
 							!Product.Replace('\\', '/').Contains("/Engine/Saved/") &&
 							!Product.Replace('\\', '/').Contains("/DerivedDataCache/") &&
+							!Product.EndsWith("build.version", StringComparison.InvariantCultureIgnoreCase) && 
 							!Product.EndsWith(".lib") &&
 							!Product.EndsWith(".a") && 
 							!Product.EndsWith(".bc")
