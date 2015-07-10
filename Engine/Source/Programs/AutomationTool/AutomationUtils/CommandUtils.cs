@@ -2568,6 +2568,7 @@ namespace AutomationTool
 					FilesToSignBuilder.Clear();
 				}
 			}
+			FinalListSignStrings.Add(FilesToSignBuilder.ToString());
 			foreach(string FilesToSign in FinalListSignStrings)
 			{
 				SignListFilesIfEXEOrDLL(FilesToSign);

@@ -1609,6 +1609,11 @@ public partial class Project : CommandUtils
 							WriteDeltaManifest(Params, SC, DeployedNonUFSFiles, StagedNonUFSFiles, DeploymentContext.NonUFSDeployDeltaFileName);
 						}
 					}
+
+					if (Params.bCodeSign)
+					{
+						SC.StageTargetPlatform.SignExecutables(SC, Params);
+					}
 				}
 			}
 

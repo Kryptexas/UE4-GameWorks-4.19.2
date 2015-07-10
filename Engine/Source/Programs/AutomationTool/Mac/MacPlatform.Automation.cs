@@ -418,8 +418,21 @@ public class MacPlatform : Platform
 		}
 		return false;
 	}
+
 	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
 	{
 		return false; // !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
+	}
+
+	public override bool SignExecutables(DeploymentContext SC, ProjectParams Params)
+	{
+		// Sign everything we built
+		List<string> FilesToSign = GetExecutableNames(SC);
+		foreach (var File in FilesToSign)
+		{
+			CodeSign.SignMacFileOrFolder(File);
+		}
+
+		return true;
 	}
 }

@@ -361,14 +361,6 @@ partial class GUBP
                     AddBuildProduct(Product);
                 }
                 RemoveOveralppingBuildProducts();
-                if (CommandUtils.IsBuildMachine)
-                {
-                    // Sign everything we built
-					using(TelemetryStopwatch SignStopwatch = new TelemetryStopwatch("SignBuildProducts"))
-					{
-						CodeSign.SignMultipleIfEXEOrDLL(bp, BuildProducts);
-					}
-                }
                 PostBuildProducts(bp);
             }
 			if (Agenda == null || (BuildProducts.Count == 0 && BranchConfig.bForceIncrementalCompile))

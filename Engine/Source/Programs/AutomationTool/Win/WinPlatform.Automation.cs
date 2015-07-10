@@ -243,6 +243,15 @@ public abstract class BaseWinPlatform : Platform
 	{
 		return new List<string> { ".pdb", ".map" };
 	}
+
+	public override bool SignExecutables(DeploymentContext SC, ProjectParams Params)
+	{
+		// Sign everything we built
+		List<string> FilesToSign = GetExecutableNames(SC);
+		CodeSign.SignMultipleFilesIfEXEOrDLL(FilesToSign);
+
+		return true;
+	}
 }
 
 public class Win64Platform : BaseWinPlatform
