@@ -198,8 +198,8 @@ struct FbxSceneInfo
 	
 	TArray<FbxMeshInfo> MeshInfo;
 	
-	// only one take supported currently
-	char* TakeName;
+	/* true if it has animation */
+	bool bHasAnimation;
 	double FrameRate;
 	double TotalTime;
 

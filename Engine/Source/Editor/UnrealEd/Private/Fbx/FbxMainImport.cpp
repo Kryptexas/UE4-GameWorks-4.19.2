@@ -411,10 +411,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 				Result = 0;
 			}
 
-			if (SceneInfo.TakeName != nullptr)
-			{
-				bHasAnimation = true;
-			}
+			bHasAnimation = SceneInfo.bHasAnimation;
 		}
 		else
 		{
@@ -586,17 +583,17 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 			}
 		}
 		
-		// TODO: display multiple anim stack
-		SceneInfo.TakeName = NULL;
-		for (int32 AnimStackIndex = 0; AnimStackIndex < Scene->GetSrcObjectCount<FbxAnimStack>(); AnimStackIndex++)
+		SceneInfo.bHasAnimation = false;
+		for (int32 AnimCurveNodeIndex = 0; AnimCurveNodeIndex < Scene->GetSrcObjectCount<FbxAnimCurveNode>(); AnimCurveNodeIndex++)
 		{
-			FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
-			// TODO: skip empty anim stack
-			const char* AnimStackName = CurAnimStack->GetName();
-			SceneInfo.TakeName = new char[FCStringAnsi::Strlen(AnimStackName) + 1];
-
-			FCStringAnsi::Strcpy(SceneInfo.TakeName, FCStringAnsi::Strlen(AnimStackName) + 1, AnimStackName);
+			FbxAnimCurveNode* CurAnimCruveNode = Scene->GetSrcObject<FbxAnimCurveNode>(AnimCurveNodeIndex);
+			if (CurAnimCruveNode->IsAnimated(true))
+			{
+				SceneInfo.bHasAnimation = true;
+				break;
+			}
 		}
+
 		SceneInfo.FrameRate = FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode());
 		
 		if ( GlobalTimeSpan.GetDirection() == FBXSDK_TIME_FORWARD)
