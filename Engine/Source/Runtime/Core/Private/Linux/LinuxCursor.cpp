@@ -192,6 +192,13 @@ void FLinuxCursor::InvalidateCaches()
 	bPositionCacheIsValid = false;
 }
 
+void FLinuxCursor::SetCachedPosition( const int32 X, const int32 Y )
+{
+	CachedGlobalXPosition = X;
+	CachedGlobalYPosition = Y;
+	bPositionCacheIsValid = true;
+}
+
 void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 {
 	int WndX, WndY;
@@ -201,7 +208,7 @@ void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 	SDL_GetWindowPosition( WndFocus, &WndX, &WndY );	//	get top left
 	SDL_WarpMouseInWindow( NULL, X - WndX, Y - WndY );
 
-	InvalidateCaches();
+	SetCachedPosition(X, Y);
 }
 
 void FLinuxCursor::AddOffset(const int32 DX, const int32 DY)

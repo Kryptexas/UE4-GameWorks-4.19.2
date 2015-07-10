@@ -303,6 +303,10 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 			else
 			{
+				int xOffset, yOffset;
+				SDL_GetWindowPosition( NativeWindow, &xOffset, &yOffset );
+				LinuxCursor->SetCachedPosition( motionEvent.x + xOffset, motionEvent.y + yOffset );
+
 				FVector2D CurrentPosition = LinuxCursor->GetPosition();
 				if( LinuxCursor->UpdateCursorClipping( CurrentPosition ) )
 				{
@@ -312,8 +316,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				{
 					if ( CurrentEventWindow->IsRegularWindow() )
 					{
-						int xOffset, yOffset;
-						SDL_GetWindowPosition( NativeWindow, &xOffset, &yOffset );
 						MessageHandler->GetWindowZoneForPoint( CurrentEventWindow.ToSharedRef(), CurrentPosition.X - xOffset, CurrentPosition.Y - yOffset );
 						MessageHandler->OnCursorSet();
 					}

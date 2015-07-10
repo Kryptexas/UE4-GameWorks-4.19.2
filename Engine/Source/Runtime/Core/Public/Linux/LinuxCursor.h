@@ -59,6 +59,9 @@ public:
 	 */
 	void InvalidateCaches();
 
+	/** Set the internal cached position, setting the cache to valid */
+	void SetCachedPosition( const int32 X, const int32 Y );
+
 private:
 
 	EMouseCursor::Type CurrentType;
