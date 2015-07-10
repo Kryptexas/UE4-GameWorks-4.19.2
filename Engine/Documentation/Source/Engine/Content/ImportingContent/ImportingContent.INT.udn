@@ -1,5 +1,5 @@
 Availability:Docs
-Title:Importing Content - How To's
+Title:Import Content - How To's
 Crumbs:%ROOT%, Engine, Engine/Content
 Description:Learn how to import content to your UE4 project.
 SkillLevel: Beginner
@@ -17,17 +17,19 @@ Reference the following pages to learn more about importing content into your UE
 
 ## Beginner
 
-|How To...                                                 | Description                                                        |
-| -------                                                  | ------------                                                       |
-| [](Engine/Content/ImportingContent/ContentBrowserImport) | %Engine/Content/ImportingContent/ContentBrowserImport:description% |
-| [](Engine/Content/ImportingContent/DragAndDropImport)    | %Engine/Content/ImportingContent/DragAndDropImport:description%    |
-| [](Engine/Content/ImportingContent/RightClickImport)     | %Engine/Content/ImportingContent/RightClickImport:description%     |
+|How To...                                                         | Description                                                                |
+| -------                                                          | ------------                                                               |
+| [](Engine/Content/ImportingContent/ContentBrowserImport)         | %Engine/Content/ImportingContent/ContentBrowserImport:description%         |
+| [](Engine/Content/ImportingContent/DragAndDropImport)            | %Engine/Content/ImportingContent/DragAndDropImport:description%            |
+| [](Engine/Content/ImportingContent/RightClickImport)             | %Engine/Content/ImportingContent/RightClickImport:description%             |
 
 ## Intermediate
 
-|How To...                                                 | Description                                                        |
-| -------                                                  | ------------                                                       |
-| [](Engine/Content/ImportingContent/ImportingAudio)       | %Engine/Content/ImportingContent/ImportingAudio:description%       |
-| [](Engine/Content/ImportingContent/ImportingLODs)        | %Engine/Content/ImportingContent/ImportingLODs:description%        |
-| [](Engine/Content/ImportingContent/ImportingMeshes)      | %Engine/Content/ImportingContent/ImportingMeshes:description%      |
-| [](Engine/Content/ImportingContent/ImportingTextures)    | %Engine/Content/ImportingContent/ImportingTextures:description%    |
+|How To...                                                         | Description                                                                |
+| -------                                                          | ------------                                                               |
+| [](Engine/Content/ImportingContent/ImportingAudio)               | %Engine/Content/ImportingContent/ImportingAudio:description%               |
+| [](Engine/Content/ImportingContent/ImportingLODs)                | %Engine/Content/ImportingContent/ImportingLODs:description%                |
+| [](Engine/Content/ImportingContent/ImportingMeshes)              | %Engine/Content/ImportingContent/ImportingMeshes:description%              |
+| [](Engine/Content/ImportingContent/ImportingSkeletalMeshes)      | %Engine/Content/ImportingContent/ImportingSkeletalMeshes:description%      |
+| [](Engine/Content/ImportingContent/ImportingSkeletalLODs)        | %Engine/Content/ImportingContent/ImportingSkeletalLODs:description%        |
+| [](Engine/Content/ImportingContent/ImportingTextures)            | %Engine/Content/ImportingContent/ImportingTextures:description%            |
