@@ -15,6 +15,7 @@ namespace Internal
 			case FReferenceChainSearch::EReferenceType::ArrayProperty: return TEXT("Array");
 			case FReferenceChainSearch::EReferenceType::StructARO: return TEXT("StructARO");
 			case FReferenceChainSearch::EReferenceType::ARO: return TEXT("ARO");
+			case FReferenceChainSearch::EReferenceType::MapProperty: return TEXT("Map");
 			default: return TEXT("Invalid");
 		}
 	}
@@ -621,6 +622,20 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 			for (int32 i=0; i < ReferenceCollector.References.Num(); ++i)
 			{
 				AddToReferenceList(ReferenceList, ReferenceCollector.References[i]);
+			}
+		}
+		else if( REFERENCE_INFO.Type == GCRT_AddTMapReferencedObjects )
+		{
+			void*         Map         = StackEntryData + REFERENCE_INFO.Offset;
+			UMapProperty* MapProperty = (UMapProperty*)TokenStream->ReadPointer( TokenStreamIndex );
+			TokenReturnCount = REFERENCE_INFO.ReturnCount;
+			FFindReferencerCollector ReferenceCollector(this, EReferenceType::MapProperty, (void*)MapProperty, CurrentObject);
+			FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
+			MapProperty->SerializeItem(CollectorArchive, Map, nullptr);
+
+			for (const FReferenceChainLink& Ref : ReferenceCollector.References)
+			{
+				AddToReferenceList(ReferenceList, Ref);
 			}
 		}
 		else if( REFERENCE_INFO.Type == GCRT_EndOfStream )
