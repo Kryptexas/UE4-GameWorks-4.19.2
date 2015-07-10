@@ -55,54 +55,85 @@ static FString DetectSubversionPath()
 	auto& Settings = FModuleManager::GetModulePtr<FSubversionSourceControlModule>("SubversionSourceControl")->AccessSettings();
 
 	FString SVNPath = Settings.GetExecutableOverride();
-	if (!SVNPath.IsEmpty() && !FPaths::FileExists(SVNPath))
+	if (!SVNPath.IsEmpty())
 	{
+		if (FPaths::FileExists(SVNPath))
+		{
+			UE_LOG(LogSourceControl, Log, TEXT("Using user-supplied path %s for svn operations"), *FPaths::ConvertRelativePathToFull(SVNPath));
+			return SVNPath;
+		}
+		
 		UE_LOG(LogSourceControl, Log, TEXT("Specified svn executable (%s) does not exist. Falling back to default behaviour."), *SVNPath);
 	}
-	else
-	{
-		return SVNPath;
-	}
-
-	// Attmpt to detect a system wide version of the svn command line tools
-	void* ReadPipe = nullptr, *WritePipe = nullptr;
-	FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
 
 	const bool bLaunchDetached = false;
 	const bool bLaunchHidden = true;
-	const bool bLaunchReallyHidden = bLaunchHidden;
+
 #if PLATFORM_WINDOWS
-	FProcHandle ProcHandle = FPlatformProcess::CreateProc(TEXT("where"), TEXT("svn.exe"), bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, WritePipe);
-	const FString Default = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/svn") / FPlatformProcess::GetBinariesSubdirectory() / TEXT("svn.exe");
+	const TCHAR* Command[] = { TEXT("where"), TEXT("svn.exe") };
+	const FString DefaultPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/svn") / FPlatformProcess::GetBinariesSubdirectory() / TEXT("svn.exe");
 #elif PLATFORM_MAC
-	FProcHandle ProcHandle = FPlatformProcess::CreateProc(TEXT("/usr/bin/which"), TEXT("svn"), bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, WritePipe);
-	const FString Default = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/svn") / FPlatformProcess::GetBinariesSubdirectory() / TEXT("bin/svn");
+	const TCHAR* Command[] = { TEXT("/usr/bin/which"), TEXT("svn") };
+	const FString DefaultPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/svn") / FPlatformProcess::GetBinariesSubdirectory() / TEXT("bin/svn");
 #else
-	FProcHandle ProcHandle = FPlatformProcess::CreateProc(TEXT("/usr/bin/which"), TEXT("svn"), bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, WritePipe);
-	const FString Default = TEXT("/usr/bin/svn");
+	const TCHAR* Command[] = { TEXT("/usr/bin/which"), TEXT("svn") };
+	const FString DefaultPath = TEXT("/usr/bin/svn");
 #endif
 
-	
-	if (ProcHandle.IsValid())
 	{
-		FPlatformProcess::WaitForProc(ProcHandle);
-		SVNPath = FPlatformProcess::ReadPipe(ReadPipe);
+		// Attmpt to detect a system wide version of the svn command line tools
+		void* ReadPipe = nullptr, *WritePipe = nullptr;
+		FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
 
-		// Trim at the first \n
-		int32 NewLine = INDEX_NONE;
-		if (SVNPath.FindChar('\n', NewLine))
+		FProcHandle ProcHandle = FPlatformProcess::CreateProc(Command[0], Command[1], bLaunchDetached, bLaunchHidden, bLaunchHidden, NULL, 0, NULL, WritePipe);
+		if (ProcHandle.IsValid())
 		{
-			SVNPath = SVNPath.Left(NewLine);
+			FPlatformProcess::WaitForProc(ProcHandle);
+			SVNPath = FPlatformProcess::ReadPipe(ReadPipe);
+
+			// Trim at the first \n
+			int32 NewLine = INDEX_NONE;
+			if (SVNPath.FindChar('\n', NewLine))
+			{
+				SVNPath = SVNPath.Left(NewLine);
+			}
 		}
+		FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+		FPlatformProcess::CloseProc(ProcHandle);
 	}
-	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
 
-	if (SVNPath.IsEmpty() || !FPaths::FileExists(SVNPath))
+	bool bPathIsValid = !SVNPath.IsEmpty() && FPaths::FileExists(SVNPath);
+
+#if PLATFORM_MAC
+	// On mac we need to check that the developer tools are installed if the svn path is /usr/bin/svn
+	if (SVNPath == TEXT("/usr/bin/svn"))
 	{
-		UE_LOG(LogSourceControl, Log, TEXT("Unable to detect svn binary. Using fallback binary (%s)"), *FPaths::ConvertRelativePathToFull(Default));
-		SVNPath = Default;
+		void* ReadPipe = nullptr, *WritePipe = nullptr;
+		FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
+
+		FProcHandle DevToolsProc = FPlatformProcess::CreateProc(TEXT("/usr/bin/xcode-select"), TEXT("-p"), bLaunchDetached, bLaunchHidden, bLaunchHidden, NULL, 0, NULL, WritePipe);
+		if (DevToolsProc.IsValid())
+		{
+			FPlatformProcess::WaitForProc(DevToolsProc);
+
+			int32 ReturnCode = 0;
+			if (!FPlatformProcess::GetProcReturnCode(DevToolsProc, &ReturnCode) || ReturnCode != 0)
+			{
+				bPathIsValid = false;
+			}
+		}
+		FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+		FPlatformProcess::CloseProc(DevToolsProc);
+	}
+#endif
+
+	if (!bPathIsValid)
+	{
+		UE_LOG(LogSourceControl, Log, TEXT("Unable to detect system-level svn binary."));
+		SVNPath = DefaultPath;
 	}
 
+	UE_LOG(LogSourceControl, Log, TEXT("Using path %s for svn operations"), *FPaths::ConvertRelativePathToFull(SVNPath));
 	return SVNPath;
 }
 
