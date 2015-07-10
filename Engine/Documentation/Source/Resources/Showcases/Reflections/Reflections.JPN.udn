@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465567
+﻿INTSourceChangelist:2614993
 Availability:Public
 Title:リフレクション 
 Crumbs:%ROOT%, Resources
@@ -61,10 +61,6 @@ Related:Resources/ContentExamples/Reflections/1_3
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-
-
-## 概要
 
 この例は、アンリアル エンジン 4 が提供するリアルタイムなリフレクション機能を紹介します。シーンは、荒れ果てた地下鉄のターミナルです。あちらこちらで水が漏れ、セラミックタイルは埃にまみれ、配管は老朽化し、ボロボロになっている環境の詳細を表しています。このページでは、このエフェクトを出すために使用した技術と機能の概要を一緒に説明します。
 
