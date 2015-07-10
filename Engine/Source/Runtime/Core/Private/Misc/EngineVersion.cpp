@@ -81,6 +81,11 @@ EVersionComparison FEngineVersionBase::GetNewest(const FEngineVersionBase &First
 	return EVersionComparison::Neither;
 }
 
+uint32 FEngineVersionBase::EncodeLicenseeChangelist(uint32 Changelist)
+{
+	return Changelist | 0x80000000;
+}
+
 
 FEngineVersion::FEngineVersion()
 {

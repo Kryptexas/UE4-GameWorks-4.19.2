@@ -191,6 +191,159 @@ bool FDesktopPlatformBase::IsPreferredEngineIdentifier(const FString &Identifier
 	}
 }
 
+bool FDesktopPlatformBase::TryGetEngineVersion(const FString& RootDir, FEngineVersion& OutVersion)
+{
+	// Read the file to a string
+	FString VersionText;
+	if(FFileHelper::LoadFileToString(VersionText, *(RootDir / TEXT("Engine/Build/Build.version"))))
+	{
+		// Deserialize a JSON object from the string
+		TSharedPtr< FJsonObject > Object;
+		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(VersionText);
+		if(FJsonSerializer::Deserialize(Reader, Object) && Object.IsValid())
+		{
+			int32 MajorVersion = 0;
+			int32 MinorVersion = 0;
+			int32 PatchVersion = 0;
+			if(Object->TryGetNumberField(TEXT("MajorVersion"), MajorVersion) && Object->TryGetNumberField(TEXT("MinorVersion"), MinorVersion) && Object->TryGetNumberField(TEXT("PatchVersion"), PatchVersion))
+			{
+				int32 Changelist = 0;
+				if(!Object->TryGetNumberField(TEXT("Changelist"), Changelist))
+				{
+					Changelist = 0;
+				}
+
+				int32 IsLicenseeVersion = 0;
+				if(!Object->TryGetNumberField(TEXT("IsLicenseeVersion"), IsLicenseeVersion))
+				{
+					IsLicenseeVersion = 0;
+				}
+
+				FString BranchName;
+				if(!Object->TryGetStringField(TEXT("BranchName"), BranchName))
+				{
+					BranchName = FString();
+				}
+
+				int EncodedChangelist = (IsLicenseeVersion == 0)? Changelist : FEngineVersionBase::EncodeLicenseeChangelist(Changelist);
+				OutVersion = FEngineVersion(MajorVersion, MinorVersion, PatchVersion, EncodedChangelist, BranchName);
+				return true;
+			}
+		}
+	}
+
+	// Try to read the version file
+	FString VersionHeader;
+	if(FFileHelper::LoadFileToString(VersionHeader, *(RootDir / TEXT("Engine/Source/Runtime/Launch/Resources/Version.h"))))
+	{
+		int32 MajorVersion = -1;
+		int32 MinorVersion = -1;
+		int32 PatchVersion = -1;
+		int32 Changelist = 0;
+		int32 IsLicenseeVersion = 0;
+		FString BranchName;
+
+		// Scan the file for version defines
+		const TCHAR* TextPos = *VersionHeader;
+		while(*TextPos)
+		{
+			// Skip over any newlines
+			while(FChar::IsWhitespace(*TextPos))
+			{
+				TextPos++;
+			}
+
+			// Buffer up a line of tokens
+			TArray<FString> Tokens;
+			while(*TextPos != '\n' && *TextPos != 0)
+			{
+				if(*TextPos == ' ' || *TextPos == '\t' || *TextPos == '\r')
+				{
+					// Skip over whitespace
+					TextPos++;
+				}
+				else if(FChar::IsIdentifier(*TextPos))
+				{
+					// Parse an identifier. Exact C rules for an identifier don't really matter; we just need alphanumeric sequences.
+					const TCHAR* TokenStart = TextPos++;
+					while(FChar::IsIdentifier(*TextPos)) TextPos++;
+					Tokens.Add(FString(TextPos - TokenStart, TokenStart));
+				}
+				else if(*TextPos == '\"')
+				{
+					// Parse a string
+					const TCHAR* TokenStart = TextPos++;
+					while(*TextPos != 0 && (TextPos == TokenStart + 1 || *(TextPos - 1) != '\"')) TextPos++;
+					Tokens.Add(FString(TextPos - TokenStart, TokenStart));
+				}
+				else if(*TextPos == '/' && *(TextPos + 1) == '/')
+				{
+					// Skip a C++ style comment
+					TextPos += 2;
+					while(*TextPos != '\n' && *TextPos != 0) TextPos++;
+				}
+				else if(*TextPos == '/' && *(TextPos + 1) == '*' && *(TextPos + 2) != 0 && *(TextPos + 3) != 0)
+				{
+					// Skip a C-style comment
+					TextPos += 4;
+					while(*TextPos != 0 && (*(TextPos - 2) != '*' || *(TextPos - 1) != '/')) TextPos++;
+				}
+				else
+				{
+					// Take a single symbol character
+					Tokens.Add(FString(1, TextPos));
+					TextPos++;
+				}
+			}
+
+			// Check if it matches any version defines
+			if(Tokens.Num() >= 4 && Tokens[0] == "#" && Tokens[1] == "define")
+			{
+				if(FChar::IsDigit(Tokens[3][0]))
+				{
+					if(Tokens[2] == "ENGINE_MAJOR_VERSION")
+					{
+						MajorVersion = FCString::Atoi(*Tokens[3]);
+					}
+					else if(Tokens[2] == "ENGINE_MINOR_VERSION")
+					{
+						MinorVersion = FCString::Atoi(*Tokens[3]);
+					}
+					else if(Tokens[2] == "ENGINE_PATCH_VERSION")
+					{
+						PatchVersion = FCString::Atoi(*Tokens[3]);
+					}
+					else if(Tokens[2] == "ENGINE_VERSION")
+					{
+						Changelist = FCString::Atoi(*Tokens[3]);
+					}
+					else if(Tokens[2] == "ENGINE_IS_LICENSEE_VERSION")
+					{
+						IsLicenseeVersion = FCString::Atoi(*Tokens[3]);
+					}
+				}
+				else if(Tokens[3].StartsWith("\"") && Tokens[3].EndsWith("\""))
+				{
+					if(Tokens[2] == "BRANCH_NAME")
+					{
+						BranchName = Tokens[3].TrimQuotes();
+					}
+				}
+			}
+		}
+
+		// If we have everything we need, fill in the version struct
+		if(MajorVersion != -1 && MinorVersion != -1 && PatchVersion != -1)
+		{
+			int EncodedChangelist = (IsLicenseeVersion == 0)? Changelist : FEngineVersionBase::EncodeLicenseeChangelist(Changelist);
+			OutVersion = FEngineVersion(MajorVersion, MinorVersion, PatchVersion, EncodedChangelist, BranchName);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FDesktopPlatformBase::IsStockEngineRelease(const FString &Identifier)
 {
 	FGuid Guid;

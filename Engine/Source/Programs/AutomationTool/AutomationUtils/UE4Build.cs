@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Xml;
 using System.Diagnostics;
+using System.Web.Script.Serialization;
 
 namespace AutomationTool
 {
@@ -483,7 +484,37 @@ namespace AutomationTool
 				}
 				Result.Add(VerFile);
 			}
+			{
+				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "build.version");
+				if (bDoUpdateVersionFiles)
+				{
+					Log("Updating {0} with:", VerFile);
+					Log("  Changelist={0}", ChangelistNumber);
+					Log("  IsLicenseeVersion={0}", bIsLicenseeVersion? 1 : 0);
+					Log("  BranchName={0}", Branch);
 
+					string VerText = CommandUtils.ReadAllText(VerFile);
+
+					JavaScriptSerializer Serializer = new JavaScriptSerializer();
+					Dictionary<string, object> Pairs = Serializer.Deserialize<Dictionary<string, object>>(VerText);
+					Pairs["Changelist"] = ChangelistNumber;
+					Pairs["IsLicenseeVersion"] = bIsLicenseeVersion? 1 : 0;
+					Pairs["BranchName"] = Branch;
+					VerText = Serializer.Serialize(Pairs).Replace("{\"", "{\n\t\"").Replace(",\"", ",\n\t\"").Replace("\":", "\": ").Replace("\"}", "\"\n}");
+
+					CommandUtils.WriteAllText(VerFile, VerText);
+				}
+				else
+				{
+					Log("{0} will not be updated because P4 is not enabled.", VerFile);
+				}
+				if (IsBuildMachine)
+				{
+					// Only BuildMachines can check this file in
+					AddBuildProduct(VerFile);
+				}
+				Result.Add(VerFile);
+			}
 			{
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Core", "Private", "UObject", "ObjectVersion.cpp");
 				if (bDoUpdateVersionFiles)

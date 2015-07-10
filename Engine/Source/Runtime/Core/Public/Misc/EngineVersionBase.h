@@ -66,6 +66,9 @@ public:
 	/** Returns the newest of two versions, and the component at which they differ */
 	static EVersionComparison GetNewest(const FEngineVersionBase &First, const FEngineVersionBase &Second, EVersionComponent *OutComponent);
 
+	/** Encodes a licensee changelist number (by setting the top bit) */
+	static uint32 EncodeLicenseeChangelist(uint32 Changelist);
+
 protected:
 
 	/** Major version number. */

@@ -244,6 +244,17 @@ public:
 	virtual FString GetEngineSavedConfigDirectory(const FString& Identifier) = 0;
 
 	/**
+	 * Attempt to get the engine version from the supplied engine root directory.
+	 * Tries to read the contents of Engine/Build/Build.version, but scrapes information 
+	 * from the Engine/Source/Launch/Resources/Version.h if it fails.
+	 *
+	 * @param	RootDir				Root directory for the engine to check
+	 * @param	OutVersion			Engine version obtained from identifier
+	 * @return	true if the engine version was successfully obtained
+	 */
+	virtual bool TryGetEngineVersion(const FString& RootDir, FEngineVersion& OutVersion) = 0;
+
+	/**
 	* Checks if the given engine identifier is for an stock engine release.
 	*
 	* @param	Identifier			Engine identifier to check
