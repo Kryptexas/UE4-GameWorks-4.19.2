@@ -176,6 +176,10 @@ public:
 public:
 	// INSTANCE SETTINGS
 
+	/** Mobility property to apply to foliage components */
+	UPROPERTY(Category = InstanceSettings, EditAnywhere, BlueprintReadOnly)
+	TEnumAsByte<EComponentMobility::Type> Mobility;
+
 	/**
 	 * The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables.
 	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
@@ -183,9 +187,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(UIMin=0))
 	FInt32Interval CullDistance;
 
-	/** Controls whether the foliage should take part in static lighting/shadowing. If false, mesh will not receive or cast static lighting or shadows, regardless of other settings. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
-	uint32 bEnableStaticLighting : 1;
+	/** Deprecated. Now use the Mobility setting to control static/dynamic lighting */
+	UPROPERTY()
+	uint32 bEnableStaticLighting_DEPRECATED : 1;
 
 	/** Controls whether the foliage should cast a shadow or not. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)

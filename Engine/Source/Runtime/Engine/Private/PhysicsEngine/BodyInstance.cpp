@@ -1157,6 +1157,10 @@ struct FInitBodiesHelper
 		for (int32 BodyIdx = 0; BodyIdx < NumBodies; ++BodyIdx)
 		{
 			FBodyInstance* Instance = Bodies[BodyIdx];
+			if (!Instance)
+			{
+				continue;
+			}
 			const FTransform& Transform = Transforms[BodyIdx];
 
 			FBodyInstance::ValidateTransform(Transform, DebugName, BodySetup);
@@ -1355,7 +1359,10 @@ struct FInitBodiesHelper
 			for (int32 BodyIdx = 0, NumBodies = Bodies.Num(); BodyIdx < NumBodies; ++BodyIdx)
 			{
 				FBodyInstance* Instance = Bodies[BodyIdx];
-				Instance->InitDynamicProperties_AssumesLocked();
+				if (Instance)
+				{
+					Instance->InitDynamicProperties_AssumesLocked();
+				}
 			}
 		}
 	}
@@ -1404,6 +1411,11 @@ struct FInitBodiesHelper
 				for (int32 BodyIdx = 0; BodyIdx < NumBodies; ++BodyIdx)
 				{
 					FBodyInstance* Instance = Bodies[BodyIdx];
+					if (!Instance)
+					{
+						continue;
+					}
+
 					const FTransform& Transform = Transforms[BodyIdx];
 
 					const b2Vec2 Scale2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Instance->Scale3D);
@@ -4048,10 +4060,13 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 			{
 				for (const FBodyInstance* BodyInstance : Bodies)
 				{
-					bHaveOverlap = BodyInstance->OverlapPhysX_AssumesLocked(*PGeom, PShapeGlobalPose);
-					if (bHaveOverlap)
+					if (BodyInstance)
 					{
-						return;
+						bHaveOverlap = BodyInstance->OverlapPhysX_AssumesLocked(*PGeom, PShapeGlobalPose);
+						if (bHaveOverlap)
+						{
+							return;
+						}
 					}
 				}
 			}

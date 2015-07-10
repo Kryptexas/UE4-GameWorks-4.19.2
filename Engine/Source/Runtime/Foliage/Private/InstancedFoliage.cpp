@@ -50,6 +50,8 @@ struct FFoliageCustomVersion
 		FoliageTypeProceduralScaleAndShade = 8,
 		// Added FoliageHISMC and blueprint support
 		FoliageHISMCBlueprints = 9,
+		// Added Mobility setting to UFoliageType
+		AddedMobility = 10,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -290,7 +292,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
 	VertexColorMaskThreshold = 0.5f;
 
-	bEnableStaticLighting = true;
+	Mobility = EComponentMobility::Static;
 	CastShadow = true;
 	bCastDynamicShadow = true;
 	bCastStaticShadow = true;
@@ -359,6 +361,11 @@ void UFoliageType::Serialize(FArchive& Ar)
 	{
 		LandscapeLayers.Add(LandscapeLayer_DEPRECATED);
 		LandscapeLayer_DEPRECATED = NAME_None;
+	}
+
+	if (Ar.IsLoading() && GetLinkerCustomVersion(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::AddedMobility)
+	{
+		Mobility = bEnableStaticLighting_DEPRECATED ? EComponentMobility::Static : EComponentMobility::Movable;
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -703,10 +710,9 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 		}
 
-		EComponentMobility::Type NewMobility = FoliageType->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
-		if (Component->Mobility != NewMobility)
+		if (Component->Mobility != FoliageType->Mobility)
 		{
-			Component->Mobility = NewMobility;
+			Component->SetMobility(FoliageType->Mobility);
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
