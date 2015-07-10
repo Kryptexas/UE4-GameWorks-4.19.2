@@ -153,10 +153,10 @@ PxsAABBManager::PxsAABBManager(Cm::EventProfiler& eventProfiler, PxcScratchAlloc
 	{
 		mBitmasks[i] = PxU32(1<<i);
 	}
-	mBitmasks[28] = PxU32(0x100000000);
-	mBitmasks[29] = PxU32(0x200000000);
-	mBitmasks[30] = PxU32(0x400000000);
-	mBitmasks[31] = PxU32(0x800000000);
+	mBitmasks[28] = PxU32(0x10000000);
+	mBitmasks[29] = PxU32(0x20000000);
+	mBitmasks[30] = PxU32(0x40000000);
+	mBitmasks[31] = PxU32(0x80000000);
 #else
 	for(PxU32 i=0;i<32;i++)
 	{

@@ -119,7 +119,7 @@ public:
 class DestructibleUserNotify : public NxUserNotify
 {
 public:
-	DestructibleUserNotify(ModuleDestructible& module);
+	DestructibleUserNotify(ModuleDestructible& module, DestructibleScene* destructibleScene);
 
 private:
 	virtual bool onJointBreak(physx::PxF32 breakingImpulse, NxJoint& brokenJoint);
@@ -129,6 +129,7 @@ private:
 	void operator=(const DestructibleUserNotify&) {}
 
 private:
+	DestructibleScene*	mDestructibleScene;
 	ModuleDestructible& mModule;
 };
 #elif NX_SDK_VERSION_MAJOR == 3
@@ -689,10 +690,14 @@ public:
 	// Bank of dormant (kinematic dynamic) actors
 	NxBank<DormantActorEntry, physx::PxU32>	mDormantActors;
 
-	// list of awake destructible actors.
-	// with ActiveTransforms, only used as WakeForEvent and for updating in fetchResults
-	physx::shdfnd::HashSet<DestructibleActor*> mAwakeActors;
+	// list of awake destructible actor IDs (mDestructibles bank)
+	physx::NxIndexBank<physx::PxU32> mAwakeActors; 
 	bool							mUsingActiveTransforms;
+
+	// Wake/sleep event actors
+	physx::Array<physx::NxDestructibleActor*>	mOnWakeActors;
+	physx::Array<physx::NxDestructibleActor*>	mOnSleepActors;
+
 #if NX_SDK_VERSION_MAJOR == 3
 	physx::Array<PxClientID>		mSceneClientIDs;
 #endif

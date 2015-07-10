@@ -406,6 +406,29 @@ public:
 	virtual bool					isHardSleepingEnabled() const = 0;
 
 	/**
+		Puts the PxActor associated with the given chunk to sleep, or wakes it up, depending upon the value of the 'sleep' bool.
+			
+		\param chunkIndex	the chunk index within the actor
+		\param awake		if true, wakes the actor, otherwise puts the actor to sleep
+
+		Returns true iff successful.
+	*/
+	virtual	bool					setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake) = 0;
+
+	/**
+		Apply force to chunk's actor
+
+		\param chunkIndex	the chunk index within the actor
+		\param force		force, impulse, velocity change, or acceleration (depending on value of mode)
+		\param mode			PhysX force mode (PxForceMode::Enum)
+		\param position		if not null, applies force at position.  Otherwise applies force at center of mass
+		\param wakeup		if true, the actor is awakened
+
+		Returns true iff successful.
+	*/
+	virtual bool					addForce(PxU32 chunkIndex, const PxVec3& force, physx::PxForceMode::Enum mode, const PxVec3* position = NULL, bool wakeup = true) = 0;
+
+	/**
 		Sets the override material.
 	*/
 	virtual void					setSkinnedOverrideMaterial(PxU32 submeshIndex, const char* overrideMaterialName) = 0;

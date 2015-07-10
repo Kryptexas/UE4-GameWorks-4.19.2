@@ -624,6 +624,8 @@ public:
 	virtual void	onDamageNotify(const NxApexDamageEventReportData& damageEvent) override;
 	virtual void	onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent) override;
 	virtual bool	releaseOnNoChunksVisible(const NxDestructibleActor* destructible) override;
+	virtual void	onDestructibleWake(physx::NxDestructibleActor** destructibles, physx::PxU32 count) override;
+	virtual void	onDestructibleSleep(physx::NxDestructibleActor** destructibles, physx::PxU32 count) override;
 };
 extern FApexChunkReport GApexChunkReport;
 #endif // #if WITH_APEX

@@ -734,6 +734,14 @@ bool FApexChunkReport::releaseOnNoChunksVisible(const NxDestructibleActor* destr
 	return false;
 }
 
+void FApexChunkReport::onDestructibleWake(physx::NxDestructibleActor** destructibles, physx::PxU32 count)
+{
+}
+
+void FApexChunkReport::onDestructibleSleep(physx::NxDestructibleActor** destructibles, physx::PxU32 count)
+{
+}
+
 ///////// FApexPhysX3Interface //////////////////////////////////
 void FApexPhysX3Interface::setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, NxDestructibleActor* actor, PxU16 actorChunkIndex)
 {

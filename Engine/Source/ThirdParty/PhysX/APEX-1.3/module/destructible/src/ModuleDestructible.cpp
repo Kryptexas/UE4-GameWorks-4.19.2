@@ -1004,7 +1004,7 @@ physx::PxFileBuf& DestructibleModuleCachedData::deserialize(physx::PxFileBuf& st
 	for (physx::PxU32 i = 0; i < dataSetCount; ++i)
 	{
 		DestructibleAssetCollision* collisionSet = PX_NEW(DestructibleAssetCollision);
-		collisionSet->deserialize(stream);
+		collisionSet->deserialize(stream, NULL);
 		// See if we already have a set for the asset
 		DestructibleAssetCollision* destinationSet = NULL;
 		for (physx::PxU32 j = 0; j < mAssetCollisionSets.size(); ++j)
@@ -1051,7 +1051,7 @@ physx::PxFileBuf& DestructibleModuleCachedData::deserializeSingleAsset(NxApexAss
 		collisionSet = PX_NEW(DestructibleAssetCollision);
 		mAssetCollisionSets.pushBack(collisionSet);
 	}
-	collisionSet->deserialize(stream);
+	collisionSet->deserialize(stream, asset.getName());
 
 	return stream;
 }
