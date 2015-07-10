@@ -122,15 +122,10 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 					RetargetAssets(AnimBlueprints, bDuplicateAssets);
 				}
 			}
-
-			if(AnimBlueprint->TargetSkeleton)
+			else
 			{
 				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 				PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, NULL, AnimBlueprint, NULL, NULL);
-			}
-			else
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("FailedToLoadSkeletonlessAnimBlueprint", "The Anim Blueprint could not be loaded because it's skeleton is missing."));
 			}
 		}
 		else
@@ -164,7 +159,7 @@ void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<
 
 void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, bool bDuplicateAssets, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
 {
-	if((!OldSkeleton || OldSkeleton->GetPreviewMesh(true)) && (!NewSkeleton || NewSkeleton->GetPreviewMesh(true)))
+	if(!OldSkeleton || OldSkeleton->GetPreviewMesh(true))
 	{
 		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, AnimBlueprints, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 	}

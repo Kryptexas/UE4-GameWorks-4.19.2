@@ -154,7 +154,7 @@ void FAssetTypeActions_AnimationAsset::ExecuteFindSkeleton(TArray<TWeakObjectPtr
 
 void FAssetTypeActions_AnimationAsset::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, bool bDuplicateAssets,  TArray<TWeakObjectPtr<UObject>> InAnimAssets)
 {
-	if((!OldSkeleton || OldSkeleton->GetPreviewMesh(false)) && (!NewSkeleton || NewSkeleton->GetPreviewMesh(false)))
+	if((!OldSkeleton || OldSkeleton->GetPreviewMesh(false)))
 	{
 		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimAssets, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 	}
