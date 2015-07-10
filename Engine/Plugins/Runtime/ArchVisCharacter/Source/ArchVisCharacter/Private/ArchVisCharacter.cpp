@@ -16,8 +16,8 @@ AArchVisCharacter::AArchVisCharacter(const FObjectInitializer& ObjectInitializer
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	MouseSensitivityScale_Pitch = 0.2f;
-	MouseSensitivityScale_Yaw = 0.2f;
+	MouseSensitivityScale_Pitch = 0.025f;
+	MouseSensitivityScale_Yaw = 0.025f;
 }
 
 UArchVisCharMovementComponent* AArchVisCharacter::GetArchVisCharMoveComponent() const
@@ -46,7 +46,10 @@ void AArchVisCharacter::Turn(float Val)
 		UArchVisCharMovementComponent* const MoveComp = GetArchVisCharMoveComponent();
 		if (MoveComp)
 		{
-			float const ClampedVal = FMath::Clamp(MouseSensitivityScale_Yaw * Val, -1.f, 1.f);
+			// so direct inputs like mouse movements are framerate-independent
+			float const InputVelocity = Val / GetWorld()->GetDeltaSeconds();
+
+			float const ClampedVal = FMath::Clamp(MouseSensitivityScale_Yaw * InputVelocity, -1.f, 1.f);
 			MoveComp->AddRotInput(0.f, ClampedVal, 0.f);
 		}
 	}
@@ -72,8 +75,11 @@ void AArchVisCharacter::LookUp(float Val)
 		UArchVisCharMovementComponent* const MoveComp = GetArchVisCharMoveComponent();
 		if (MoveComp)
 		{
-			float const ClampedVal = FMath::Clamp(MouseSensitivityScale_Pitch * Val, -1.f, 1.f);
-			MoveComp->AddRotInput(ClampedVal, 0.f, 0.f);
+			// so direct inputs like mouse movements are framerate-independent
+			float const InputVelocity = Val / GetWorld()->GetDeltaSeconds();
+				
+			float const ClampedVal = FMath::Clamp(MouseSensitivityScale_Pitch * InputVelocity, -1.f, 1.f);
+			MoveComp->AddRotInput(-ClampedVal, 0.f, 0.f);
 		}
 	}
 }
@@ -85,7 +91,7 @@ void AArchVisCharacter::LookUpAtRate(float Val)
 		UArchVisCharMovementComponent* const MoveComp = GetArchVisCharMoveComponent();
 		if (MoveComp)
 		{
-			MoveComp->AddRotInput(Val, 0.f, 0.f);
+			MoveComp->AddRotInput(-Val, 0.f, 0.f);
 		}
 	}
 }
