@@ -14,13 +14,13 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CopyBone : public FAnimNode_SkeletalContro
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Source Bone Name to get transform from */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy)
+	FBoneReference SourceBone;
+
 	/** Name of bone to control. This is the main bone chain to modify from. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy) 
 	FBoneReference TargetBone;
-
-	/** Source Bone Name to get transform from */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy)
-	FBoneReference SourceBone;
 
 	/** If Translation should be copied */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy, meta=(PinShownByDefault))
