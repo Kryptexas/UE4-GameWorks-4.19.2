@@ -185,6 +185,7 @@ void FEdModeInterpEdit::ActorSelectionChangeNotify()
 bool FEdModeInterpEdit::IsCompatibleWith(FEditorModeID OtherModeID) const
 {
 	return
+		OtherModeID == FBuiltinEditorModes::EM_Placement	||
 		OtherModeID == FBuiltinEditorModes::EM_MeshPaint	||
 		OtherModeID == FBuiltinEditorModes::EM_Geometry		||
 		OtherModeID == FBuiltinEditorModes::EM_Bsp;

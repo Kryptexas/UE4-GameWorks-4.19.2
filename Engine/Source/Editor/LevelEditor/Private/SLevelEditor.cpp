@@ -1182,6 +1182,24 @@ FName SLevelEditor::GetEditorModeTabId( FEditorModeID ModeID )
 
 void SLevelEditor::ToggleEditorMode( FEditorModeID ModeID )
 {
+	// Prompt the user if Matinee must be closed before activating new mode
+	if (ModeID != FBuiltinEditorModes::EM_InterpEdit)
+	{
+		FEdMode* MatineeMode = GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+		if (MatineeMode && !MatineeMode->IsCompatibleWith(ModeID))
+		{
+			FEditorModeInfo MatineeModeInfo = FEditorModeRegistry::Get().GetModeInfo(ModeID);
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ModeName"), MatineeModeInfo.Name);
+			FText Msg = FText::Format(NSLOCTEXT("LevelEditor", "ModeSwitchCloseMatineeQ", "Activating '{ModeName}' editor mode will close UnrealMatinee.  Continue?"), Args);
+			
+			if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, Msg))
+			{
+				return;
+			}
+		}
+	}
+		
 	// *Important* - activate the mode first since FEditorModeTools::DeactivateMode will
 	// activate the default mode when the stack becomes empty, resulting in multiple active visible modes.
 	GLevelEditorModeTools().ActivateMode( ModeID );
