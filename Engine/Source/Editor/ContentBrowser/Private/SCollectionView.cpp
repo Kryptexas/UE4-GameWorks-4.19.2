@@ -301,55 +301,59 @@ void SCollectionView::HandleSourceControlStateChanged()
 
 void SCollectionView::UpdateCollectionItemStatus( const TSharedRef<FCollectionItem>& CollectionItem )
 {
-	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-
 	TOptional<ECollectionItemStatus> NewStatus;
 
-	FCollectionStatusInfo StatusInfo;
-	if (CollectionManagerModule.Get().GetCollectionStatusInfo(CollectionItem->CollectionName, CollectionItem->CollectionType, StatusInfo))
+	// Check IsModuleAvailable as we might be in the process of shutting down, and were notified due to the SCC provider being nulled out...
+	if (FCollectionManagerModule::IsModuleAvailable())
 	{
-		// Test the SCC state first as this should take priority when reporting the status back to the user
-		if (StatusInfo.bUseSCC)
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		FCollectionStatusInfo StatusInfo;
+		if (CollectionManagerModule.Get().GetCollectionStatusInfo(CollectionItem->CollectionName, CollectionItem->CollectionType, StatusInfo))
 		{
-			if (StatusInfo.SCCState.IsValid() && StatusInfo.SCCState->IsSourceControlled())
+			// Test the SCC state first as this should take priority when reporting the status back to the user
+			if (StatusInfo.bUseSCC)
 			{
-				if (StatusInfo.SCCState->IsCheckedOutOther())
+				if (StatusInfo.SCCState.IsValid() && StatusInfo.SCCState->IsSourceControlled())
 				{
-					NewStatus = ECollectionItemStatus::IsCheckedOutByAnotherUser;
+					if (StatusInfo.SCCState->IsCheckedOutOther())
+					{
+						NewStatus = ECollectionItemStatus::IsCheckedOutByAnotherUser;
+					}
+					else if (StatusInfo.SCCState->IsConflicted())
+					{
+						NewStatus = ECollectionItemStatus::IsConflicted;
+					}
+					else if (!StatusInfo.SCCState->IsCurrent())
+					{
+						NewStatus = ECollectionItemStatus::IsOutOfDate;
+					}
+					else if (StatusInfo.SCCState->IsModified())
+					{
+						NewStatus = ECollectionItemStatus::HasLocalChanges;
+					}
 				}
-				else if (StatusInfo.SCCState->IsConflicted())
+				else
 				{
-					NewStatus = ECollectionItemStatus::IsConflicted;
+					NewStatus = ECollectionItemStatus::IsMissingSCCProvider;
 				}
-				else if (!StatusInfo.SCCState->IsCurrent())
-				{
-					NewStatus = ECollectionItemStatus::IsOutOfDate;
-				}
-				else if (StatusInfo.SCCState->IsModified())
+			}
+
+			// Not set by the SCC status, so check just use the local state
+			if (!NewStatus.IsSet())
+			{
+				if (StatusInfo.bIsDirty)
 				{
 					NewStatus = ECollectionItemStatus::HasLocalChanges;
 				}
-			}
-			else
-			{
-				NewStatus = ECollectionItemStatus::IsMissingSCCProvider;
-			}
-		}
-
-		// Not set by the SCC status, so check just use the local state
-		if (!NewStatus.IsSet())
-		{
-			if (StatusInfo.bIsDirty)
-			{
-				NewStatus = ECollectionItemStatus::HasLocalChanges;
-			}
-			else if (StatusInfo.bIsEmpty)
-			{
-				NewStatus = ECollectionItemStatus::IsUpToDateAndEmpty;
-			}
-			else
-			{
-				NewStatus = ECollectionItemStatus::IsUpToDateAndPopulated;
+				else if (StatusInfo.bIsEmpty)
+				{
+					NewStatus = ECollectionItemStatus::IsUpToDateAndEmpty;
+				}
+				else
+				{
+					NewStatus = ECollectionItemStatus::IsUpToDateAndPopulated;
+				}
 			}
 		}
 	}
@@ -720,7 +724,7 @@ void SCollectionView::Tick( const FGeometry& AllottedGeometry, const double InCu
 		UpdateCollectionItems();
 	}
 
-	if (bQueueSCCRefresh && ISourceControlModule::Get().IsEnabled())
+	if (bQueueSCCRefresh && FCollectionManagerModule::IsModuleAvailable() && ISourceControlModule::Get().IsEnabled())
 	{
 		bQueueSCCRefresh = false;
 
