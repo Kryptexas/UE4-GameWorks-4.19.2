@@ -38,9 +38,9 @@ struct FMaterialInputInfo
 		return *Ret;
 	}
 
-	bool IsVisiblePin(const UMaterial* Material) const
+	bool IsVisiblePin(const UMaterial* Material, bool bIgnoreMaterialAttriubtes = false) const
 	{
-		if(Material->bUseMaterialAttributes)
+		if(Material->bUseMaterialAttributes && !bIgnoreMaterialAttriubtes)
 		{
 			return Property == MP_MaterialAttributes;
 		}
