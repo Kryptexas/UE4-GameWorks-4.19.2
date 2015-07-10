@@ -210,19 +210,14 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	const uint32 MSAASampleCount = SceneContext.EditorPrimitivesColor->GetDesc().NumSamples;
 
 	{
+		SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget);
 		Context.SetViewportAndCallRHI(DestRect);
-		
+
 		if (bClearIsNeeded)
 		{
-			check(DepthTarget->GetDepthClearValue() == (float)ERHIZBuffer::FarPlane);
-			check(ColorTarget->GetClearColor() == FLinearColor(0, 0, 0, 0));			
-
 			SCOPED_DRAW_EVENT(Context.RHICmdList, ClearViewEditorPrimitives);
-			SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget, ESimpleRenderTargetMode::EClearColorAndDepth);
-		}
-		else
-		{
-			SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget, ESimpleRenderTargetMode::EExistingColorAndDepth);
+			// Clear color and depth
+			Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 		}
 
 		SCOPED_DRAW_EVENT(Context.RHICmdList, RenderEditorPrimitives);

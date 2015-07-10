@@ -1498,14 +1498,8 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor, int32 NumClearColors, const
 	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
 }
 
-bool gNoShaderClears = true;
 void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear)
 {	
-	if (gNoShaderClears)
-	{
-		bForceShaderClear = false;
-	}
-
 	// Helper struct to record and restore device states RHIClearMRT modifies.
 	class FDeviceStateHelper
 	{
@@ -1554,6 +1548,7 @@ void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, c
 			SAFE_RELEASE(OldBlendState);
 			SAFE_RELEASE(OldRasterizerState);
 			SAFE_RELEASE(OldInputLayout);
+			LastBoundShaderStateRHI = nullptr;
 		}
 	public:
 		/** The global D3D device's immediate context */
