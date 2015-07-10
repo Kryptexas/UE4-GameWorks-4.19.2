@@ -1614,10 +1614,10 @@ static void RemoveTestTickFunctions(const TArray<FString>& Args)
 	}
 }
 
-static void AddTestTickFunctions(const TArray<FString>& Args)
+static void AddTestTickFunctions(const TArray<FString>& Args, UWorld* InWorld)
 {
 	RemoveTestTickFunctions(Args);
-	ULevel* Level = GWorld->GetCurrentLevel();
+	ULevel* Level = InWorld->GetCurrentLevel();
 	UE_LOG(LogConsoleResponse, Display, TEXT("Adding 1000 ticks in a cache coherent fashion."));
 
 
@@ -1628,10 +1628,10 @@ static void AddTestTickFunctions(const TArray<FString>& Args)
 	}
 }
 
-static void AddIndirectTestTickFunctions(const TArray<FString>& Args)
+static void AddIndirectTestTickFunctions(const TArray<FString>& Args, UWorld* InWorld)
 {
 	RemoveTestTickFunctions(Args);
-	ULevel* Level = GWorld->GetCurrentLevel();
+	ULevel* Level = InWorld->GetCurrentLevel();
 	UE_LOG(LogConsoleResponse, Display, TEXT("Adding 1000 ticks in a cache coherent fashion."));
 	TArray<FTestTickFunction*> Junk;
 	for (int32 Index = 0; Index < NumTestTickFunctions; Index++)
@@ -1656,16 +1656,16 @@ static FAutoConsoleCommand RemoveTestTickFunctionsCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(&RemoveTestTickFunctions)
 	);
 
-static FAutoConsoleCommand AddTestTickFunctionsCmd(
+static FAutoConsoleCommandWithWorldAndArgs AddTestTickFunctionsCmd(
 	TEXT("tick.AddTestTickFunctions"),
 	TEXT("Add no-op ticks to test performance of ticking infrastructure."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(&AddTestTickFunctions)
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&AddTestTickFunctions)
 	);
 
-static FAutoConsoleCommand AddIndirectTestTickFunctionsCmd(
+static FAutoConsoleCommandWithWorldAndArgs AddIndirectTestTickFunctionsCmd(
 	TEXT("tick.AddIndirectTestTickFunctions"),
 	TEXT("Add no-op ticks to test performance of ticking infrastructure."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(&AddIndirectTestTickFunctions)
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&AddIndirectTestTickFunctions)
 	);
 
 
