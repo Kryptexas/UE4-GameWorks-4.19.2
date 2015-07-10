@@ -309,11 +309,14 @@ protected:
 			{
 				if( Owner )
 				{
-					for( int32 i=0; i<Owner->Records.Num(); i++ )
+					if ( Owner->ObjectMap.Contains( InObject ) )
 					{
-						if( Owner->Records[i].Object.Get()==InObject )
+						for (int32 i = 0; i < Owner->Records.Num(); i++)
 						{
-							Owner->Records[i].Restore( Owner );
+							if (Owner->Records[i].Object.Get() == InObject)
+							{
+								Owner->Records[i].Restore(Owner);
+							}
 						}
 					}
 				}

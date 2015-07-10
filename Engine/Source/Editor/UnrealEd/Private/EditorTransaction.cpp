@@ -128,10 +128,13 @@ void FTransaction::RemoveRecords( int32 Count /* = 1  */ )
 {
 	if ( Count > 0 && Records.Num() >= Count )
 	{
-		Records.RemoveAt( Records.Num() - Count, Count );
+		// Remove anything from the ObjectMap which is about to be removed from the Records array
+		for (int32 Index = 0; Index < Count; Index++)
+		{
+			ObjectMap.Remove( Records[Records.Num() - Count + Index].Object.Get() );
+		}
 
-		// Kill our object maps that are used to track redundant saves
-		ObjectMap.Empty();
+		Records.RemoveAt( Records.Num() - Count, Count );
 	}
 }
 
