@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2456362
+﻿INTSourceChangelist:2607487
 Availability:Public
 Title:アンリアル エンジン ソースコードのダウンロード
 Crumbs:%ROOT%, Programming, Programming/Development
@@ -6,7 +6,6 @@ Description:ソースコード レポジトリへの接続およびアンリア�
 
 [TOC (start:2 end:3)]
 
-## 概要
 
 [EXCERPT:Main]
 [PUBLISH:Licensee]
