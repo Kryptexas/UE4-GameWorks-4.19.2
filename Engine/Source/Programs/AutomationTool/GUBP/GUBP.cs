@@ -556,7 +556,7 @@ public partial class GUBP : BuildCommand
 			{
 				Builder.Append(" - (TriggerNode)");
 			}
-			if(NodeToDo.Node.IsSticky())
+			if(NodeToDo.IsSticky)
 			{
 				Builder.Append(" - (Sticky)");
 			}
@@ -802,7 +802,7 @@ public partial class GUBP : BuildCommand
                         }
                     }
                 }
-                float Priority = NodeToDo.Node.Priority();
+                float Priority = NodeToDo.Priority;
 
                 if (bReady && BestNode != null)
                 {
@@ -812,11 +812,11 @@ public partial class GUBP : BuildCommand
                     }
                     else if (String.Compare(BestNode.ControllingTriggerDotName, NodeToDo.ControllingTriggerDotName) == 0) //sorted by controlling trigger
                     {
-                        if (BestNode.Node.IsSticky() && !NodeToDo.Node.IsSticky()) //sticky nodes first
+                        if (BestNode.IsSticky && !NodeToDo.IsSticky) //sticky nodes first
                         {
                             bReady = false;
                         }
-                        else if (BestNode.Node.IsSticky() == NodeToDo.Node.IsSticky())
+                        else if (BestNode.IsSticky == NodeToDo.IsSticky)
                         {
                             if (BestPseudoReady && !bPseudoReady)
                             {
@@ -1538,7 +1538,7 @@ public partial class GUBP : BuildCommand
 	{
 		foreach (BuildNode NodeToDo in OrdereredToDo)
 		{
-			if ((NodeToDo is TriggerNode) && (NodeToDo.Node.IsSticky() || NodeToDo.IsComplete)) // these sticky triggers are ok, everything is already completed anyway
+			if ((NodeToDo is TriggerNode) && (NodeToDo.IsSticky || NodeToDo.IsComplete)) // these sticky triggers are ok, everything is already completed anyway
 			{
 				continue;
 			}
@@ -1659,7 +1659,7 @@ public partial class GUBP : BuildCommand
 
             // this is kinda complicated
             bool SaveSuccessRecords = (IsBuildMachine || bFakeEC) && // no real reason to make these locally except for fakeEC tests
-                (!(NodeToDo is TriggerNode) || NodeToDo.Node.IsSticky()); // trigger nodes are run twice, one to start the new workflow and once when it is actually triggered, we will save reconds for the latter
+                (!(NodeToDo is TriggerNode) || NodeToDo.IsSticky); // trigger nodes are run twice, one to start the new workflow and once when it is actually triggered, we will save reconds for the latter
 
             Log("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, NodeStoreName);
             if (NodeToDo.IsComplete)

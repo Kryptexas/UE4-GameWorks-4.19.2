@@ -16,6 +16,8 @@ namespace AutomationTool
 			AgentMemoryRequirement = Node.AgentMemoryRequirement();
 			TimeoutInMinutes = Node.TimeoutInMinutes();
 			SendSuccessEmail = Node.SendSuccessEmail();
+			IsSticky = Node.IsSticky();
+			Priority = Node.Priority();
 		}
 	}
 }

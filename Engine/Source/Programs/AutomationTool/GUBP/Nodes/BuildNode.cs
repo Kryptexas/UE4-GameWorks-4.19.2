@@ -14,6 +14,8 @@ namespace AutomationTool
 		public int FrequencyShift;
 		public int AgentMemoryRequirement;
 		public int TimeoutInMinutes;
+		public bool IsSticky;
+		public float Priority;
 
 		public GUBP.GUBPNode Node;
 		public BuildNode[] Dependencies;

@@ -233,7 +233,7 @@ namespace AutomationTool
 				if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC
 				{
 					bHaveECNodes = true;
-					if (NodeToDo.Node.IsSticky())
+					if (NodeToDo.IsSticky)
 					{
 						LastSticky = NodeToDo;
 						if (HitNonSticky && !bSkipTriggers)
@@ -282,7 +282,7 @@ namespace AutomationTool
 							}
 						}
 					}
-					if (NodeToDo.Node.IsSticky())
+					if (NodeToDo.IsSticky)
 					{
 						if (!StickyChain.Contains(NodeToDo))
 						{
@@ -297,7 +297,7 @@ namespace AutomationTool
 						List<string> NodeProps = GetECPropsForNode(NodeToDo);
 						ECProps.AddRange(NodeProps);
 
-						bool Sticky = NodeToDo.Node.IsSticky();
+						bool Sticky = NodeToDo.IsSticky;
 						bool DoParallel = !Sticky;
 						if (NodeToDo.Node.ECProcedure() == "GUBP_UAT_Node_Parallel_AgentShare_Editor")
 						{
@@ -308,7 +308,7 @@ namespace AutomationTool
 							throw new AutomationException("Node {1} is sticky but has agent requirements.", NodeToDo.Name);
 						}
 						string Procedure = NodeToDo.Node.ECProcedure();
-						if (NodeToDo.Node.IsSticky() && NodeToDo == LastSticky)
+						if (NodeToDo.IsSticky && NodeToDo == LastSticky)
 						{
 							Procedure = Procedure + "_Release";
 						}
@@ -530,7 +530,7 @@ namespace AutomationTool
 					}
 				}
 			}
-			if (NodeToDo.Node.IsSticky())
+			if (NodeToDo.IsSticky)
 			{
 				List<BuildNode> MyChain = StickyChain;
 				int MyIndex = MyChain.IndexOf(NodeToDo);
