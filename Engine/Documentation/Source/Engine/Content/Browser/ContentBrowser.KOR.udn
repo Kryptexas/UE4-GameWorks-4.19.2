@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2509035
+﻿INTSourceChangelist:2600683
 Availability:Public
 Title:콘텐츠 브라우저
 Crumbs: %ROOT%, Engine, Engine/Content
@@ -50,8 +50,6 @@ Description:패키지 파일 관리는 물론 애셋을 정리하고 생성하�
 
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 [EXCERPT:Intro]
 [INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]

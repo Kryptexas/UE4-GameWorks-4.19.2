@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2518148
+﻿INTSourceChangelist:2600863
 Availability: Public
 Title:애셋 이주하기
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -22,8 +22,6 @@ Description:콘텐츠 브라우저에서 애셋을 다른 프로젝트로 이주
 [REGION:banner]
 ![](MigrateBanner.png)
 [/REGION]
-
-## 개요
 
 [INCLUDE:Shared/Glossary/M/#Glossary_Migrate_Tool]
 

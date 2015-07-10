@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2603910
 Availability:Public
 Title:EQS 테스팅 폰
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -54,7 +54,7 @@ Description:인바이언먼트 쿼리 시스템에는 에디터의 인바이언�
 [/REGION]
 
 1. 콘텐츠 브라우저에서 새 블루프린트를 생성합니다.
-1. **모든 클래스** 를 펼친 다음 `EQSTestingPawn` 를 검색합니다.
+1. **모든 클래스** 를 펼친 다음 **EQSTestingPawn** 을 검색합니다.
 1. **EQSTestingPawn** 를 선택합니다.
 1. 새로운 **EQSTestingPawn** 블루프린트 이름을 짓습니다.
 

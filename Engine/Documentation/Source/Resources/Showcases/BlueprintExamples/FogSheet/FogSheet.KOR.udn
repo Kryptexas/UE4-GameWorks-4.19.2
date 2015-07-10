@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572494
+﻿INTSourceChangelist:2613952
 Availability: Public
 Title:포그 시트 & 라이트 빔
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -13,8 +13,6 @@ Related: Engine/Rendering/Materials/MaterialInstances
 [REGION:fullwidth]
 ![](FogSheetLightBeams.png)
 [/REGION]
-
-## 개요
 
 [EXCERPT:Overview]
 포그 시트 & 라이트 레이 블루프린트는 레벨 디자인에서 사용할 수 있는 대기 효과를 만드는 데 블루프린트를 사용해 보는 예제로 만들어진 것입니다. 레벨을 장식할 때 포그 평면이나 빛줄기같은 반투명 메시를 배치하는 작업은 시간을 잡아먹는 경향이 있기에, 이 블루프린트의 목적은 그와 같은 프로세스를 편리하게 함은 물론 사용자가 메시의 외양을 더욱 세밀히 제어할 수 있도록 하기 위함입니다.

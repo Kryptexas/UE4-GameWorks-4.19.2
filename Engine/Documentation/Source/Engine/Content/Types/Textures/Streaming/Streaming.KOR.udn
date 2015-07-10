@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516030
+﻿INTSourceChangelist:2602695
 Availability: Public
 Title:텍스처 스트리밍
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
@@ -6,9 +6,6 @@ Description:플레이 도중 메모리 안팎으로 텍스처를 로드하고 �
 
 
 [TOC (start:2 end:3)]
-
-
-## 개요
 
 텍스처 스트리밍 시스템은 멀티-스레드에 우선권-기반입니다. (콘솔에서) 텍스처 풀을 사용할 때는, 우선권이 더 높은 텍스처가 메모리를 필요로 하기 전까지는 텍스처를 스트리밍 아웃하지 않습니다. 그래야 텍스처 퀄리티를 보다 안정적으로 유지하고 불필요한 디스크 액세스를 막는 것입니다.
 

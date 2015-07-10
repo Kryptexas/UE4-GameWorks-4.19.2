@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2489435
+﻿INTSourceChangelist:2614173
 Availability: Public
 Title:마티네
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -60,8 +60,6 @@ Related: Engine/Basics/Projects/CreatingTemplates
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 **Matinee Fight Scene** (마티네 격투 씬) 예제는 언리얼 엔진 4 의 **마티네 에디터** 를 사용하여 스타일이 살아있는 시네마틱 시퀀스를 제작하는 법을 보여줍니다. **마티네** 란, **트랙** 안에 **키프레임** 을 배치하고 레벨에 있는 액터의 특정 프로퍼티에 대한 값을 설정하여 시간에 따라 그 값을 조절할 수 있는 시스템을 말합니다.
 

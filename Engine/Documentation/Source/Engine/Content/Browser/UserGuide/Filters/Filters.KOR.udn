@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2215046
+﻿INTSourceChangelist:2600831
 Availability: Public
 Title:필터
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -19,8 +19,6 @@ Description:콘텐츠 브라우저의 필터에 대한 개념과 사용법을 �
 [/VAR]
 	
 [TOC(start:2 end:3)]
-
-## 개요
 
 ![FilterList.png](FilterList.png)
 

@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2557119
+﻿INTSourceChangelist:2612552
 Availability: Licensee
 Title:퍼포스 통합 FAQ
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:퍼포스 용어 관련 자주 묻는 질문에 대한 답변과 자세한 사용법입니다.
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 이 문서는 Perforce를 Unreal Engine 4와 함께 사용하는 많은 일반적인 방법에 대한 이해 및 관련 용어들을 제공합니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346413
+﻿INTSourceChangelist:2613799
 Availability: Public
 Title:1.1 - 리플렉션 메탈릭 머티리얼
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -51,8 +51,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_1_Header.png)
-
-## 개요
 
 **Reflection Capture** (리플렉션 캡처) 액터는, 박스든 구체든, 유효 볼륨 또는 반경 내 반사된 내용을 투사합니다. 메탈릭 머티리얼의 경우 **메탈릭** 프로퍼티가 클 수록 머티리얼이 더욱 크롬같아 보입니다. 이러한 머티리얼은 대부분의 색을 리플렉션 속성으로부터 얻는 반면, **베이스 컬러** 는 그 리플렉션에 색을 입힙니다.
 

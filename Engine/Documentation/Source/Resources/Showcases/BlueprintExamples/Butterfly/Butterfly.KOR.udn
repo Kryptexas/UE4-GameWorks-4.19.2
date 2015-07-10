@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2571249
+﻿INTSourceChangelist:2613941
 Availability: Public
 Title:나비
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -13,8 +13,6 @@ Related: Gameplay/AI
 [REGION:fullwidth]
 ![](ButterflyHeader.png)
 [/REGION]
-
-## 개요
 
 [EXCERPT:Overview]
 레벨 중앙에 있는 두 개의 기계 나비는 블루프린트를 이용해서 기본적인 AI 를 만드는 법을 보여주는 예제입니다. 나비는 지정된 중심점 주변을 날아다니면서, 잠깐동안 방향을 임의로 바꾸다가 중심점으로 돌아와서 쉬려고 합니다. 장애물을 만나면 부드럽게 그쪽으로 날아가 착지한 다음, 일정 기간 이후 다시 날아오릅니다. 나비의 비행 시간이 길 수록 쉬는 시간도 길어집니다.

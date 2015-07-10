@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613812
 Availability: Public
 Title:1.5 - 스크린 스페이스 리플렉션
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -51,8 +51,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_5_Header.png)
-## 개요
-
 
 **Screenspace Reflection** (스크린 스페이스 리플렉션)은 동적인 포스트 프로세스 이펙트입니다. 화면상에 있는 것만 반사할 수 있기 때문에, 완벽하게 반사성을 띄는 표면에는 약간 이상한 부작용이 생길 수 있습니다. 그러나 머티리얼에 약간의 러프니스를 더해 주는 정도로 이러한 부작용은 희석시켜 버릴 수 있습니다.
 

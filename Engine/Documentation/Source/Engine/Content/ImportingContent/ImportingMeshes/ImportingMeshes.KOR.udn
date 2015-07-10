@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2610008
+﻿INTSourceChangelist:2614195
 Availability:Docs
 Title:메시 임포트
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:외부 프로그램에서 메시를 임포트하는 법을 배워봅니다.
 prereq:Engine/Basics/Projects/Browser
 Related: GettingStarted
+Related: Engine/Content/FBX/ImportOptions
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
 SkillLevel: Beginner

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2600564
 Availability:Public
 Title: 내비게이션 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -30,3 +30,8 @@ Navigation 컴포넌트는 언리얼 엔진 4 의 **NavMesh** (내비메시, 길
 그러면 폰은 경로가 훨씬 길어지긴 해도 빨간 영역을 피해 갑니다.
 
 ---
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2571124
+﻿INTSourceChangelist:2613932
 Availability: Public
 Title:전략 게임
 Crumbs:%ROOT%, Resources
@@ -56,9 +56,6 @@ Related: Engine/Rendering/ParticleSystems
 
 
 [TOC(start:2 end:2)]
-
-
-## 개요
 
 Tower Defense 샘플은 RTS/타워 디펜스 게임 예제입니다.
 

@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2514684
+﻿INTSourceChangelist:2602424
 Availability: Public
-Title:스태틱 메시 - 콜리전 셋업 비법
+Title:스태틱 메시에 콜리전 구성
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: 콜리전 셋업 비법입니다.
 
@@ -43,8 +43,6 @@ Description: 콜리전 셋업 비법입니다.
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-## 개요
 
 UE4 에서는 스태틱 메시에 여러가지 일을 시킬 수 있는데, 게임플레이 도중 텍스처나 머티리얼을 바꾸거나, 마티네를 사용하여 레벨 여기저기로 이동시키는 것입니다. 레벨에 스태틱 메시가 무슨 일을 하든, 보통은 플레이어가 메시를 통과해 걸어가거나 총을 쏘지는 못하게 하고 싶을 것입니다. 그럴 때 스태틱 메시에 콜리전을 셋업해 두면 좋습니다.
 

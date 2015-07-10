@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590256
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:랜드스케이프 브러시
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -26,8 +26,6 @@ Description:랜드스케이프 편집에 사용할 수 있는 브러시 사용 �
 
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 랜드스케이프의 툴의 브러시는 조각이나 칠하기에 영향받는 랜드스케이프 영역의 크기와 모양을 정의합니다. 브러시는 다양한 모양, 크기, 감쇠값을 가질 수 있습니다. 브러시는 포토샵같은 이미지 편집 프로그램 사용 경험이 있는 분이라면 누구에게나 친숙한 개념일 것입니다.
 

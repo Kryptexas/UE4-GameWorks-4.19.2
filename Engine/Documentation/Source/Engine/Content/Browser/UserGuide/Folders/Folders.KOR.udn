@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2215050
+﻿INTSourceChangelist:2600850
 Availability: Public
 Title:폴더
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -27,8 +27,6 @@ Description:콘텐츠 브라우저에서 폴더의 개념과 그 사용법에 �
 [REGION:banner]
 ![](FoldersBanner.png)
 [/REGION]
-
-## 개요
 
 콘텐츠 브라우저의 폴더 구조는 프로젝트 셋업시의 폴더 구조를 반영합니다만, 원하는 대로 폴더 셋업이 가능합니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613810
 Availability: Public
 Title:1.4 - 구체 리플렉션 캡처 액터
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -52,7 +52,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_4_Header.png)
-## 개요
 
 주로 사용되는 리플렉션 캡처는 **Sphere Reflection Capture** (구체 리플렉션 캡처)입니다. 그 대부분은 실행시간 전에 계산되므로 퍼포먼스 영향 거의 없이 월드 곳곳에 놓을 수 있습니다. **구체 리플렉션 캡처** 는 씬에 부드럽게 녹아들기에 **박스 리플렉션 캡처** 에 비할 때 훨씬 유연하게 사용할 수 있습니다.
 

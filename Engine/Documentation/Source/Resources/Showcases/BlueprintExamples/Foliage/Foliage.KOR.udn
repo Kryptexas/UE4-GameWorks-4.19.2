@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613960
 Availability: Public
 Title:임의 생성 폴리지
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -12,8 +12,6 @@ Related: Engine/Blueprints/UserGuide/UserConstructionScript
 [REGION:fullwidth]
 ![](Foliage.png)
 [/REGION]
-
-##개요
 
 [EXCERPT:Overview]
 폴리지 블루프린트(Foliage Blueprint)는 블루프린트를 사용해서 표면에 어울리게 자동 배치되는 임의 생성 폴리지( 또는 기타 구조물)를 만드는 법을 선보입니다. 사용자는 이펙트의 정도나 시스템에서 스폰 시도할 메시의 갯수 등을 제어할 수 있습니다. 블루프린트의 이동에 따라 새로운 환경에 맞게 다시 어울리도록 메시가 업데이트됩니다.

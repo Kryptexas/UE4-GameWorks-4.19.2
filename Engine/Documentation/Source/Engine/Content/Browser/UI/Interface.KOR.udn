@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2273049
+﻿INTSourceChangelist:2600790
 Availability: Public
 Title:콘텐츠 브라우저 UI
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -20,9 +20,6 @@ Description:콘텐츠 브라우저의 유저 인터페이스에 대한 묘사와
 
 
 [TOC(start:2 end:2)]
-
-
-## 개요
 
 콘텐츠 브라우저 인터페이스의 주요 부분에 대한 간략한 묘사입니다.
 

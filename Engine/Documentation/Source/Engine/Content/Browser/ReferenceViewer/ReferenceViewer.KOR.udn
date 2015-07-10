@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2215003
+﻿INTSourceChangelist:2600790
 Availability: Public
 Title:레퍼런스 뷰어
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -23,8 +23,6 @@ Description:콘텐츠 브라우저의 폴더 레퍼런스 뷰어에 대한 설�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-## 개요
 
 _Reference Viewer_ (레퍼런스 뷰어)에는 현재 콘텐츠 브라우저에 선택된 애셋이 레퍼런싱하거나 그 애셋을 레퍼런싱하고 있는 애셋을 그래프로 표시해 줍니다.
 

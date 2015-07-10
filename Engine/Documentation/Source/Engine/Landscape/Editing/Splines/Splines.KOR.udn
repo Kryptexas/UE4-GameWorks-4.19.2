@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590217
+﻿INTSourceChangelist:2609228
 Availability:Public
 Title:랜드스케이프 스플라인
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -25,9 +25,6 @@ Description:랜드스케이프 조각, 블렌드마스크 변경, 메시를 길�
 [/VAR]
 
 [TOC(start:2)]
-
-
-## 개요
 
 스플라인 툴은 스플라인 액터를 만들어 그 주변의 터레인 메시를 변형시키는 툴로, 이를테면 산악 지형에 평평한 도로를 만들 때 쓸 수 있습니다.
 

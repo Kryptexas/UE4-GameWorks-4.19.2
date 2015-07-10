@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572603
+﻿INTSourceChangelist:2614107
 Availability: Public
 Title:파티클 이펙트
 Crumbs:%ROOT%, Resources,
@@ -59,10 +59,6 @@ Related: Engine/Rendering/ParticleSystems/Reference
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-
-
-## 개요
 
 파티클 이펙트 예제에서는 다양한 배경 및 엘리멘탈 이펙트에 대한 데모가 되는 여러가지 파티클 시스템을 선보입니다. 이 예제의 목표는 다양한 현실적 비주얼 이펙트를 만드는 것으로, [GPU 스프라이트](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) 파티클과 그 기능을 사용하는 것에 초점을 맞춥니다.
 

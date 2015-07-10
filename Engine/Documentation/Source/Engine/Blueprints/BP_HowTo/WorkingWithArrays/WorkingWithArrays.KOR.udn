@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2597114
+﻿INTSourceChangelist:2612738
 Availability: Public
 Title:배열 작업
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -176,7 +176,17 @@ _이 예제에서는 **시작용 콘텐츠를 포함** 한 **블루프린트 3�
 
 1.	블루프린트를 닫은 다음, **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
-	![](ExampleGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	r-zHq9feZr8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	에디터에서 플레이할 때, **F** 키를 누를 때마다 (배열에 추가했던 것 중) 임의의 블루프린트가 선택되어 타겟 포인트 배열 중 임의의 위치에 스폰됩니다. **F** Key Event 를 통해서 또는 이펙트 스폰 대신, 같은 로직을 사용하여 플레이어가 획득할 수 있는 생명력 또는 탄창 픽업같은 것을 임의 지점에 스폰하도록 구성하는 것도 가능합니다.
 

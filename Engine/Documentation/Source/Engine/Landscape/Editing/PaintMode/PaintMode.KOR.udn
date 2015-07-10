@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:페인트 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -25,8 +25,6 @@ Description:랜드스케이프 툴의 Paint, 페인트 모드 사용 안내서�
 [/VAR]
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 Paint (페인트) 모드의 툴로는 랜드스케이프 부분에 머티리얼 레이어를 선택 적용하여 랜드스케이프의 겉모습을 바꿀 수 있습니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2508900
+﻿INTSourceChangelist:2600622
 Availability:Public
 Title:컴포넌트 렌더링
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -148,6 +148,11 @@ Related: Engine/Blueprints/UserGuide/Components
 벡터 필드는 바람 돌풍 파티클 이펙트와 같은 소규모 이펙트에서 레벨의 블리자드같은 대규모 이펙트에 사용할 수 있습니다. 자세한 정보는 [](Resources/ContentExamples/EffectsGallery/2_A), [](Resources/ContentExamples/EffectsGallery/2_B) 문서를 참고하세요.
 
 ![](Resources/ContentExamples/EffectsGallery/2_B/image050.png)(w:640)
+
+
+
+
+
 
 
 

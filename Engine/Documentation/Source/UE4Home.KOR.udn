@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604022
+﻿INTSourceChangelist:2613760
 Availability:Public
 Title: 언리얼 엔진 4 문서
 Crumbs:
@@ -22,19 +22,28 @@ Navigation:home
 			빠른 검색어:
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
-			퀵 스타트
+			퀵스타트
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			비법
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			블루프린트
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			안드로이드
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			액터
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			컴포넌트
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			블루프린트
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			머티리얼
@@ -48,15 +57,6 @@ Navigation:home
 		[PARAMLITERAL:terms]
 			UMG UI
 		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			C++
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			iOS
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			안드로이드
-		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
@@ -69,11 +69,11 @@ Navigation:home
 	%GettingStarted:role%
 	%Engine/Editor:role%
 	%Engine:role%
-	%Gameplay:role%
-	%Engine/Blueprints:role%
 	%Programming:topicrole%
-	%Platforms:role%
+	%Engine/Blueprints:role%
+	%Gameplay:role%
 	%Resources:role%
+	%Platforms:role%
 	%Support/Builds:role%
 	[/REGION]
 [/REGION]

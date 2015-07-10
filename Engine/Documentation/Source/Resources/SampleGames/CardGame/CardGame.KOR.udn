@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613892
 Availability: Public
 Title:메모리 게임
 Crumbs:%ROOT%, Resources
@@ -60,11 +60,6 @@ Related: Engine/Content/Types/StaticMeshes
 [/REGION:fullwidth]
 
 [TOC(start:2)]
-
-
-
-
-## 개요
 
 Memory Game 샘플은 간단한 PC/모바일 로직 게임 예제입니다. 별도의 코드 지원 없이 _블루프린트_ 로만 만들어졌습니다.
 

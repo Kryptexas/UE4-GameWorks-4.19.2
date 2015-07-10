@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2409504
+﻿INTSourceChangelist:2600813
 Availability: Public
 Title:애셋 작업하기
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -38,8 +38,6 @@ Description:콘텐츠 브라우저에서 애셋 작업에 관련된 것을 다�
 [/VAR]
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 콘텐츠 브라우저는 애셋을 가급적 빠르고 쉽고 효율적으로 만들 수 있도록 디자인되어 있습니다. 언리얼에서 추가 정보가 필요할 때만 애셋 생성시 대화창이 생성됩니다. 그 외에는 그저 이름만 지정해 주면 됩니다.
 

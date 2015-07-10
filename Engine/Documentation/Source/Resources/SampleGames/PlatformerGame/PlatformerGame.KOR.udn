@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2256171
+﻿INTSourceChangelist:2613895
 Availability: Public
 Title:플랫포머 게임 샘플
 Crumbs:%ROOT%, Resources
@@ -52,8 +52,6 @@ Description:UE4 로 횡스크롤 플랫포머 게임을 제작해 보는 예제�
 [/REGION]
 
 [TOC(start:2)]
-
-## 개요
 
 PlatformerGame 샘플은 PC/모바일용 멀티플레이어 횡스크롤 게임 예제입니다. 여러가지 동작 유형에 대한 기본적인 구현과 함께 
 간단한 프론트 엔드 메뉴 시스템도 포함되어 있습니다.

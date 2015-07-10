@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516153
+﻿INTSourceChangelist:2602760
 Availability: Public
 Title:폴리지, 인스턴싱된 메시
 Crumbs:%ROOT%, Engine
@@ -49,8 +49,6 @@ Description:Foliage, 폴리지는 다른 지오메트리의 표면 위에 인스
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 [EXCERPT:Intro]
 

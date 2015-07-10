@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2465039
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:텍스처 임포트 튜토리얼
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
 Description:언리얼 엔진에 이미지 파일을 텍스처 애셋으로 가져오는 방법 안내서입니다.
 
 [TOC(start:2)]
-
-## 개요
 
 이 글에서는 언리얼 엔진 4 에 텍스처를 임포트하는 프로세스를 다루겠습니다. 
 

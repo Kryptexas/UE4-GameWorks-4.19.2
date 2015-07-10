@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613813
 Availability: Public
 Title:1.6 - 씬 캡처 큐브
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -52,7 +52,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_6_Header.png)
-## Overview
 
 **Scene Capture Cube** (씬 캡처 큐브)는 매 프레임마다 그 위치에서 완전히 동적인 큐브 맵 캡처를 합니다. 여기에는 실제 캡처를 저장할 Cubemap Render Target (큐브맵 렌더 타겟)이 필요하며, 저장하고나면 그 렌더 타겟은 어느 머티리얼에서도 텍스처로 사용할 수 있게 됩니다. 
 

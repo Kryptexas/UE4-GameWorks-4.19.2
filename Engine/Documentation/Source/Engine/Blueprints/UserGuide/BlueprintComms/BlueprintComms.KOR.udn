@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2550597
+﻿INTSourceChangelist:2599206
 Availability:Public
 Title:블루프린트 직접 통신
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -49,8 +49,6 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 
 [TOC(start:2)]
-
-## 개요
 
 블루프린트 작업을 할 때, 가끔은 다른 블루프린트에 있는 함수, 이벤트, 변수에 접근하고 싶을 때가 있습니다. 가장 간단한 방법은 공개적으로 노출된 오브젝트 변수를 통해 "타겟" 블루프린트를 레퍼런싱한 다음, 사용하고자 하는 블루프린트 인스턴스를 지정하는 것입니다.
 
@@ -177,6 +175,11 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 ## 문제해결 / 참고 링크
 
 흔히 발생하는 에러 한 가지는, 모든 변수에 아무 인스턴스도 지정되어 있지 않을 때입니다. 작업중인 블루프린트에서 스크립트를 호출하려는데 타겟 블루프린트에서 스크립트를 구해오는 데 문제가 있다면, 작업중인 블루프린트의 **디테일** 패널에서 사용하고자 하는 블루프린트 인스턴스를 무엇으로 지정했는지 확인하시기 바랍니다. 대신 함수 호출 결과에서 변수를 설정했다면, 변수에 "Access None" 예외가 생겼다는 경고가 로그에 찍힐 것입니다. 메시지 로그 창을 띄워 보면, 문제를 유발시킨 노드를 열어볼 수 있는 링크가 있을 것입니다.
+
+
+
+
+
 
 
 

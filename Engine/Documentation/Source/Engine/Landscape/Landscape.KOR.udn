@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2500071
+﻿INTSourceChangelist:2602775
 Availability: Public
 Title:랜드스케이프 야외 지형
 Crumbs:%ROOT%, Engine
@@ -121,9 +121,6 @@ Description:Landscape, 랜드스케이프는 드넓은 개방형 야외 환경�
 [/EXCERPT:landscape002]
 
 [TOC(start:2 end:3)]
-
-
-## 개요
 
 [EXCERPT:Intro]
 랜드스케이프 (Landscape) 시스템은 산악, 협곡, 울퉁불퉁 경사진 땅, 심지어 동굴 공간까지도, 월드의 지형을 만들어 주고, 다양한 툴을 사용해서 그 모양이나 겉모습까지도 쉽게 편집할 수 있습니다.

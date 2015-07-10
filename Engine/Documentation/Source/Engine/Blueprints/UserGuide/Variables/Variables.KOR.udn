@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2498835
+﻿INTSourceChangelist:2600539
 Availability:Public
 Title:블루프린트 사용 안내서: 변수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -44,8 +44,6 @@ Description: 월드의 오브젝트나 액터에 대한 값 또는 레퍼런스�
 
 
 [TOC (start:2)]
-
-## 개요
 
 [EXCERPT:Intro]
 **Variable** (변수)는 월드에 있는 Object 나 Actor 에 대한 값이나 주소(reference)를 담는 프로퍼티입니다.

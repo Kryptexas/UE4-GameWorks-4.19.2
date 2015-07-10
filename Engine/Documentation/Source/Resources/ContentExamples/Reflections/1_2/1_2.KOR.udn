@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613802
 Availability: Public
 Title:1.2 - 리플렉션 논메탈릭 머티리얼
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -52,7 +52,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_2_Header.png)
-## 개요
 
 **Reflection Capture** (리플렉션 캡처) 액터는, 박스든 구체든, 유효 볼륨 또는 반경 내에 반사된 모습을 투영하는 것입니다. 논메탈릭 머티리얼 (**메탈릭** 프로퍼티가 0.0 인 머티리얼)은 **러프니스** 와 **스페큘러** 값에 따라 리플렉션이 생깁니다. 러프니스가 높을 수록, 스페큘러가 낮을 수록 머티리얼의 리플렉션 속성이 감소됩니다. **러프니스** 와 **스페큘러** 는 표면의 리플렉션 속성에 다른 방식으로 영향을 끼치며, 원하는 효과가 날 때까지 잘 조절해 줘야 합니다.
 

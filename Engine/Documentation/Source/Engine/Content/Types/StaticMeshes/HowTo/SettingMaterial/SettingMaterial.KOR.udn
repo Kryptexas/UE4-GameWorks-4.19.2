@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2514715
+﻿INTSourceChangelist:2602518
 Availability: Public
-Title:스태틱 메시 - 머티리얼 설정 비법
+Title:스태틱 메시에 머티리얼 구성
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: 스태틱 메시 에디터에서 메시에 머티리얼을 설정하는 비법입니다.
 
@@ -43,9 +43,6 @@ Description: 스태틱 메시 에디터에서 메시에 머티리얼을 설정�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-
-## 개요
 
 레벨에 어떤 종류의 스태틱 메시를 넣든, 플레이어가 그 오브젝트를 볼 때 어떤 재질로 보였으면 할 때가 있습니다. 이 비법에서는 스태틱 메시에 머티리얼을 적용하는 방법을 둘 정도 알아보겠습니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445139
+﻿INTSourceChangelist:2601213
 Availability: Public
 Title:애니메이션 레이어 편집하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -24,7 +24,7 @@ Related: Engine\Animation\Overview
 
 여기서는 Idle 애니메이션 사본을 만들어 편집하여, 원본은 보존하도록 하겠습니다.
 
-1.  **콘텐츠 브라우저** 에서 **Game/FirstPersonBP/Animations** 폴더 아래 **FirstPerson_Idle** 애니메이션을 엽니다.
+1.  **콘텐츠 브라우저** 에서 **Game/FirstPersonBP/Animations** 폴더 아래 **Prone_Idle** 애니메이션을 엽니다.
 
 	![](AnimEdit1.png)
 
@@ -52,7 +52,7 @@ Related: Engine\Animation\Overview
 
 	![](AnimEdit5.png)
 
-1.	**스켈레톤 트리** 에서 **b_LeftArm** 본을 클릭하여 선택합니다.
+1.	**스켈레톤 트리** 에서 **upperarm_l** 본을 클릭하여 선택합니다.
 
 	![](AnimEdit6.png)
 
@@ -70,7 +70,7 @@ Related: Engine\Animation\Overview
 
 	![](AnimEdit8.png)(w:520)
 
-	위에서 **b_LeftArm** 본에 세 개의 트랙이 추가되었습니다: **Translation** 트랙 (1), **Rotation** 트랙 (2), **Scale** 트랙 (3) 입니다.
+	위에서 **upperarm_l** 본에 세 개의 트랙이 추가되었습니다: **Translation** 트랙 (1), **Rotation** 트랙 (2), **Scale** 트랙 (3) 입니다.
 
 1.	**ToNext** 버튼을 클릭하여 30 프레임으로 진행합니다.
 
@@ -177,6 +177,11 @@ Related: Engine\Animation\Overview
 	![](AnimEdit27.png)
 
 	위에서는 소스 / 구은 애니메이션 미리보기를 켰으며, 흰색 스켈레톤이 소스 애니메이션입니다.
+
+
+
+
+
 
 
 

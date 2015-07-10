@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2456362
+﻿INTSourceChangelist:2607487
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -6,7 +6,6 @@ Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌�
 
 [TOC (start:2 end:3)]
 
-## 개요
 
 [EXCERPT:Main]
 [PUBLISH:Licensee]

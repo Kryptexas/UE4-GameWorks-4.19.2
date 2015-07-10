@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2614050
 Availability: Public
 Title:보안 카메라, 알람, 문
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -12,8 +12,6 @@ Related: Engine/Blueprints/UserGuide/Timelines
 Related: Gameplay/Framework/Pawn
 
 ![](SecurityCameraAndDoorHeader.png)(w:600)
-
-## 개요
 
 [EXCERPT:Overview]
 레벨 곳곳에 보이는 보안 카메라 블루프린트는 플레이 모드에서 플레이어와 상호작용하도록 디자인된 것입니다. 플레이 도중 일정한 검색 패턴대로 전후 패닝합니다. 녹색의 검색 원뿔에 폰이 겹치면, 불빛이 빨강으로 변하면서 카메라가 플레이어 이동을 추적하기 시작합니다. 플레이어가 범위 밖으로 이동할 때까지 추적을 계속하다가, 몇 초 후에 원래 검색을 계속 합니다.

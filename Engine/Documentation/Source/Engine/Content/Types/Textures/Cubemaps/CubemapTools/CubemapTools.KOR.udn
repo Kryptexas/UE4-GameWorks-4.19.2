@@ -1,10 +1,8 @@
-INTSourceChangelist:2087454
+﻿INTSourceChangelist:2602634
 Availability:Public
 Title:큐브맵 툴
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
 Description:큐브맵 생성에 활용할 수 있는 Nvidia 와 AMD 툴에 대한 개요입니다.
-
-## 개요
 
 큐브맵 만들기는 제대로 된 툴만 있으면 매우 쉽습니다. 여기서는 큐브맵을 생성하는 데 사용되는 유용한 툴을 몇몇 다뤄보겠습니다.
 

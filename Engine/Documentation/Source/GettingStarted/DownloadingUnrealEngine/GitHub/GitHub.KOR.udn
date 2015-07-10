@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2616328
 Availability:NoPublish
 Title:GitHub 에서 언리얼 엔진 내려받기
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -85,17 +85,14 @@ release 에 대한 소스 코드 아카이브를 내려받을 수 있습니다.
 ## 종속성 설치하기
 
 엔진을 컴파일하고 실행하기 위해서는 소스 코드 이외에 추가적으로 설치해야 하는 종속성이 있습니다.
-이들은 대부분 바이너리 파일, 콘텐츠 애셋, 외부 라이브러리 입니다. [releases](https://github.com/EpicGames/UnrealEngine/releases) 
-페이지에서 .zip 파일 시리즈를 내려받을 수 있습니다.
+이들은 대부분 바이너리 파일, 콘텐츠 애셋, 외부 라이브러리 입니다. 
 
-최신 release 에 대한 필수 종속성 파일을 내려받습니다 (Unreal Engine %Globals:current_release_number%): 
-
-%Globals:current_release_dependencies%
-
-종속성 압축 파일을 UnrealEngine 폴더에 소스와 함께 풉니다. 폴더가 제대로 병합되도록 
-확인해 주시기 바랍니다.
+소스 코드 압축을 풀면 `Setup.bat` 이 있습니다. 이 파일을 실행시키면 필요한 종속성이 설치될 것입니다.
 
 [REGION:tip]
-맥에서는 압축을 푼 파일들을 **Option** 키를 누르고 UnrealEngine 폴더에 끌어 놓은 다음, 대화창이 뜨면 Keep Newer 를 
-선택할 것을 추천합니다.
+4.5.1 버전 이전에는 `Setup.bat` 가 존재하지 않아 종속성을 별도로 다운로드해야 합니다. [releases](https://github.com/EpicGames/UnrealEngine/releases) 페이지에 "Required_1of2", "Required_2of2" 로 올려져 있습니다. Unreal Engine 폴더에 압축을 풀어야 합니다.
 [/REGION]
+
+## 다음 단계
+
+종속성 설치 이후에는 [엔진 빌드](Programming/Development/BuildingUnrealEngine) 를 하면 됩니다.

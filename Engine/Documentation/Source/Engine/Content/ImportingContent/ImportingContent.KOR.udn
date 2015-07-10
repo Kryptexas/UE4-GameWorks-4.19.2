@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611656
+﻿INTSourceChangelist:2614203
 Availability:Docs
 Title:콘텐츠 임포트 - 비법
 Crumbs:%ROOT%, Engine, Engine/Content
@@ -22,6 +22,8 @@ UE4 프로젝트에 콘텐츠를 임포트하는 데 관련된 상세 내용은 
 | ------- | ------------ |
 | [](Engine/Content/ImportingContent/ContentBrowserImport) | %Engine/Content/ImportingContent/ContentBrowserImport:description% |
 | [](Engine/Content/ImportingContent/DragAndDropImport) | %Engine/Content/ImportingContent/DragAndDropImport:description% |
-| [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
+| [](Engine/Content/ImportingContent/ImportingAudio) | %Engine/Content/ImportingContent/ImportingAudio:description% |
 | [](Engine/Content/ImportingContent/ImportingMeshes) | %Engine/Content/ImportingContent/ImportingMeshes:description% |
-| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% || [](Engine/Content/ImportingContent/ImportingAudio) | %Engine/Content/ImportingContent/ImportingAudio:description% |
+| [](Engine/Content/ImportingContent/ImportingLODs) | %Engine/Content/ImportingContent/ImportingLODs:description% |
+| [](Engine/Content/ImportingContent/ImportingTextures) | %Engine/Content/ImportingContent/ImportingTextures:description% |
+| [](Engine/Content/ImportingContent/RightClickImport) | %Engine/Content/ImportingContent/RightClickImport:description% |

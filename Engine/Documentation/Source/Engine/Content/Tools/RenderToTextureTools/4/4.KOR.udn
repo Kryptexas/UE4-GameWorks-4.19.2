@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2513294
+﻿INTSourceChangelist:2602263
 Availability: Public
 Title:정규화된 뎁스 맵 렌더
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
 Description:
 
 [TOC(start:2)]
-
-## 개요
 
 이 함수는 스태틱 메시에 대한 로컬 뎁스 맵을 렌더링합니다. 이를 통해 완전히 라이팅 제외된 머티리얼을 사용하여 빠닥한 다이내믹 섀도우 모양을 흉내낼 수 있습니다.
  

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:조각 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -26,10 +26,6 @@ Description:랜드스케이프 툴의 Sculpt, 조각 모드 사용 안내서입�
 
 
 [TOC(start:2 end:3)]
-
-
-## 개요
-
 
 랜드스케이프 조각 과정에는, 하나 이상의 툴을 사용하여 내재된 하이트맵을 변경하는 작업이 포함됩니다. 이러한 툴에는 단순한 Sculpt (조각) 툴에서부터 erosion(침식)처럼 하이트맵에 재밌는 효과를 적용하는 복잡한 알고리즘을 사용하는 툴까지 다양합니다. 각 툴에는 랜드스케이프에 어떤 영향을 끼치는가 결정하는 프로퍼티 세트가 있습니다.
 

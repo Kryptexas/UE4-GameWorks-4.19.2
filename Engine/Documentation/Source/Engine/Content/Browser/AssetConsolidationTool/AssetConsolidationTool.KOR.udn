@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2273019
+﻿INTSourceChangelist:2600790
 Availability: Public
 Title:레퍼런스 대체 툴
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -44,10 +44,6 @@ Description:중복 애셋을 하나의 애셋으로 합친 다음 레퍼런스�
 [/VAR]
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 레퍼런스 대체(Replace Reference) 툴은 애디터 내에서 간단한 방법으로 여러 애셋을 하나의 애셋으로 합치는 툴입니다. 개발 도중에 여러번 복제된 텍스처를 예를 들어 봅시다. 완전히 똑같은 텍스처의 사본 수만큼 리소스가 낭비되게 됩니다. 레퍼런드 대체 툴로 사용자가 그런 것들을 전부 선택해서 텍스처 인스턴스 하나를 지정하여 가리키게끔 할 수 있습니다.
 

@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2550597
+﻿INTSourceChangelist:2599247
 Availability:Docs
 Title:블루프린트 통신 비법
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Description:블루프린트 통신의 사양한 메소드 셋업 및 사용법 예제입니다.
 
 [TOC(start:2 end:4)]
-
-## 개요
 
 여기서는 다양한 **블루프린트 통신** 메소드 셋업 방법을 단계별로 배워보도록 하겠습니다.
 

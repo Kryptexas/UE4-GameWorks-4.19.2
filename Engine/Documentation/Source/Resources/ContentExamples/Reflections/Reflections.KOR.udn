@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438606
+﻿INTSourceChangelist:2613796
 Availability: Public
 Title:리플렉션 콘텐츠 예제
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -47,9 +47,6 @@ Related: Engine/Rendering/PostProcessEffects
 [/VAR]
 
 [TOC(start:2 end:2)]
-
-
-## 개요
 
 **Reflections** 콘텐츠 예제 맵에는 (액터의 이펙트 볼륨 또는 반경 안에 리플렉션을 투사하는) **리플렉션 캡처 액터** 를 사용하여 레벨에 리플렉션이 나타나는 방식을 조정하는 법에 대한 예제가 제공됩니다.
 **머티리얼** 의 **러프니스**, **메탈릭**, **스페큘러** 프로퍼티를 사용하여 다양한 리플렉션 결과를 내는 법에 대한 예제 역시 제공됩니다.

@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2557083
+﻿INTSourceChangelist:2612430
 Availability: Licensee
 Title:퍼포스 자동 병합 툴
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:퍼포스를 사용한 통합 프로세스를 자동화시켜 주는 스크립트입니다.
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 Perforce의 AutoMerge 스크립트는 Perforce의 통합 (일명 병합)과 관련된 지루한 그리고/또는 오류가 발생하기 쉬운 단계들을 자동화하기 위해 존재합니다. 이것은 [Perforce 통합](GettingStarted/DownloadingUnrealEngine/Perforce/Integration) 페이지에서 설명한 것처럼 병합을 위한 여러 최상의 처리방법들을 합병하므로,  Unreal Engine Perforce 데이터베이스에서의 병합에 권장되는 수단입니다.
 

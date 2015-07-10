@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2392698
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:관리 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -26,8 +26,6 @@ Description:랜드스케이프 툴의 Manage, 관리 모드 사용 안내서입�
 
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 **Manage** (관리) 모드에서는 새 랜드스케이프를 만들고, 컴포넌트 툴을 사용하여 기존 랜드스케이프의 컴포넌트를 변경할 수 있습니다. 컴포넌트를 선택하고 레벨 에디터의 **디테일** 패널에서 그 프로퍼티를 변경할 수도 있습니다.
 

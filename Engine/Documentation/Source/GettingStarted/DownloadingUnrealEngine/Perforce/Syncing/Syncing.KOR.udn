@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2466682
+﻿INTSourceChangelist:2612588
 Availability: Licensee
 Title:퍼포스와 빌드 동기화하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:퍼포스를 사용하여 언리얼 엔진 4 빌드를 구하는 방법 안내서입니다.
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 파일 리비전 세트 식별을 위한 두 가지 주요 방법은, 라벨과 변경목록을 통하는 것입니다. 하이 레벨에서 라벨은 QA-approved build 식으로 엔진의 특정 빌드를 이루는 변경사항 전부를 가리키는 반면, 변경목록은 특정 변경사항 세트를 가리킵니다. 이 두 개념의 실제적인 차이점은 퍼포스 웹사이트의 [http://www.perforce.com/perforce/doc.current/manuals/p4guide/06_codemgmt.html](http://www.perforce.com/perforce/doc.current/manuals/p4guide/06_codemgmt.html) 페이지를 참고하시기 바랍니다. 에픽의 퍼포스 디포로 동기화하기 위해 알아둬야 할 점은 이와 같습니다:
 

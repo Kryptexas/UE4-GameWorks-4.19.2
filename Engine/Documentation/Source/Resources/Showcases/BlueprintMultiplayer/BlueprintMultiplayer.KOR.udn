@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492264
+﻿INTSourceChangelist:2614102
 Availability: Public
 Title:멀티플레이어 슈팅
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -56,8 +56,6 @@ Related: Resources/ContentExamples/Networking
 [/REGION]
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 **Simple Blueprint Multiplayer** (간단한 블루프린트 멀티플레이어) 쇼케이스는 **블루프린트** 와 **UMG UI** 로만 만들어진 게임으로, 블루프린트의 **Session** 노드를 사용하여 멀티플레이어 게임을 만드는 법에 대한 예제입니다. 메인 메뉴, 서버 리스트, HUD 에 점수판이 포함된 단순한 맵이 들어있습니다. 메인 메뉴에서 **Play** 를 클릭하면 세션을 호스팅하고 게임플레이 맵을 로드합니다. 그 후 다른 플레이어가 **Find games** 를 클릭하면 새로운 메뉴 화면에 호스팅되는 모든 게임 목록이 보이며, 그 중 하나를 클릭하면 참가 시도합니다. 오류가 있는 경우, 대화창이 표시되고 사용자는 메인 메뉴로 돌아갑니다.
 

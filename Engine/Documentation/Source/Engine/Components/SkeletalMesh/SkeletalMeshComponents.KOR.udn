@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2600648
 Availability:Public
 Title:스켈레탈 메시 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -18,3 +18,7 @@ Skeletal Mesh 컴포넌트는 애니메이션이 복잡하고 스켈레톤을 �
 ![](mesh_component.png)
 
 위에서, **SkeletalMeshComponent** 를 **캐릭터 블루프린트** 와 함께 사용하여 플레이 가능 캐릭터를 만들고 있습니다. 사용할 **스켈레탈 메시** 애셋을 지정하는 것에 추가로, 메시에 사용할 **애니메이션 모드** 를 ([애니메이션 블루프린트](Engine/Animation/AnimBlueprints) 또는 [애니메이션 애셋](Engine/Animation/Sequences) 중 하나로) 정의할 수도 있습니다.
+
+
+
+

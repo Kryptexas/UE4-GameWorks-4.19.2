@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2498962
+﻿INTSourceChangelist:2600667
 Availability:Public
 Title:위젯 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -33,5 +33,10 @@ _이 예제에서는 게임 월드에 나타나는 상호작용형 메뉴 표시
 [REGION:note]
 이 컴포넌트는 실험단계 기능으로, 앞으로의 릴리즈에서 크게 변경되거나 제거될 수 있습니다.
 [/REGION]
+
+
+
+
+
 
 

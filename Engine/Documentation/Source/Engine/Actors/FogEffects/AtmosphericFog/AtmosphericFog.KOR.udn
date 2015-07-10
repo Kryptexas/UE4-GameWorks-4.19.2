@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2427207
+﻿INTSourceChangelist:2601329
 Availability: Public
 Title:Atmospheric Fog 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
@@ -69,9 +69,6 @@ Atmospheric Fog (애트머스페릭 포그)는 행성 대기권을 통과하는 
 
 ![AtmoActor.png](AtmoActor.png)(w:420)
 
-클래스 뷰어에서 액터를 선택한 다음 우클릭 맥락 메뉴를 통해 추가할 수도 있습니다:
-
-![Atmo_Context.png](Atmo_Context.png)(w:420)
 
 ## Atmospheric Fog 프로퍼티
 
@@ -102,9 +99,9 @@ Atmospheric Fog 액터에 있는 프로퍼티는 다음과 같습니다:
 [REGION:imagetable]
 | ![Atmo0.5_4.png](Atmo0.5_4.png)(w:460) | ![Atmo0.35_4.png](Atmo0.35_4.png)(w:460) |
 | ------ | ------ |
-| Decay Height 0.5 (8 km) | Decay Height 0.35 (2.744 km) |
+| Density Decay Height of 0.5 (8 km) | Density Decay Height of 0.35 (2.744 km) |
 | ![Atmo1.0_4.png](Atmo1.0_4.png)(w:460) | ![Atmo1.0_1.png](Atmo1.0_1.png)(w:460) |
-| Decay Height 1.0 (64 km), Max Scattering 4 | Decay Height 1.0 (64 km), Max Scattering 1 |
+| Density Decay Height of 1.0 (64 km) and Max Scattering of 4 | Density Decay Height of 1.0 (64 km) and Max Scattering of 1 |
 [/REGION]
 [/EXCERPT:examples]
 <!---Includes
@@ -112,7 +109,7 @@ Atmospheric Fog 액터에 있는 프로퍼티는 다음과 같습니다:
 [REGION:simpletable]
 	|**프로퍼티** | **설명** |
 	| --- | --- |
-	| *Decay Height* | 감쇠 고도 - 안개 농도 감쇠 높이를 제어하는 값입니다. 값이 높을 수록 안개를 옅게 만드는 반면, 낮을 수록 안개의 농도가 짙어져 산란이 줄어듭니다. 값 범위는 [0..1] 입니다. |
+	| *Density Height* | 밀도 고도 - 안개 농도 감쇠 높이를 제어하는 값입니다. 값이 높을 수록 안개를 옅게 만드는 반면, 낮을 수록 안개의 농도가 짙어져 산란이 줄어듭니다. 값 범위는 [0..1] 입니다. |
 	| *Max Scattering Num* | 최대 산란 횟수 - 산란 계산 최대 횟수를 설정하며, 그 값은 1 (한 번 산란) 에서 4 (네 번 산란)까지 입니다. |
 	| *Inscatter Altitude Sample* | 인스캐터 고도 샘플 - 인스캐터 컬러 샘플링 채취를 위한 여러가지 고도의 수치입니다. (3D 텍스처 차원 크기로, 1-32 입니다). |
 [/REGION]

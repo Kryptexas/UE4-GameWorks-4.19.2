@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2449128
+﻿INTSourceChangelist:2600475
 Availability:Public
 Title: 타임라인 만들기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: 블루프린트의 Timeline 노드 생성 관련 개요서입니다.
-
-## 개요
 
 %Description%
 

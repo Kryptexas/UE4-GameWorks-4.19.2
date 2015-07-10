@@ -1,6 +1,5 @@
-﻿INTSourceChangelist:2514808
-Availability: Public
-Title:스태틱 메시 - 소켓 셋업 및 사용 비법
+﻿ㅍAvailability: Public
+Title:스태틱 메시에 소켓 구성 및 사용
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: 소켓 셋업 및 사용 비법입니다.
 
@@ -43,8 +42,6 @@ Description: 소켓 셋업 및 사용 비법입니다.
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-## 개요
 
 UE4 에서 레벨을 제작하는 도중, 스태틱 메시에 무언가를 붙이고 싶을 때가 있습니다. **월드 아웃라이너** 에서 스태틱 메시에 오브젝트를 부모화시킬 수도 있지만, 여전히 메시를 기준으로 정확한 위치를 잡아줘야 하기에 지루한 작업이 될 수 있습니다. 하지만 소켓을 통해 스켈레탈 메시에 오브젝트를 붙이듯이, 스태틱 메시에도 소켓을 사용하여 오브젝트를 붙일 수 있습니다. 스태틱 메시 에디터에서 소켓을 만든 다음 메시를 기준으로 위치를 잡고서, 라이트든 파티클 이펙트든 심지어 다른 스태틱 메시든, 오브젝트를 붙이면 됩니다. 이 비법에서는 스태틱 메시에 소켓을 만들고, 레벨에서 사용할 수 있는 방법을 보여드리도록 하겠습니다.
 

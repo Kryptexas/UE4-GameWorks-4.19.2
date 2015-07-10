@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2498852
+﻿INTSourceChangelist:2600554
 Availability:Public
 Title:카메라 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -27,4 +27,8 @@ Related: Engine/Blueprints/UserGuide/Components
 _위에서 CameraComponent (카메라)와 SpringArmComponent (빨간 선)을 사용해서 캐릭터의 삼인칭 시점을 만들고 있습니다._
 
 SpringArmComponent 에 조절할 수 있는 카메라 관련 프로퍼티가 여럿 있는데, **TargetArmLength** 는 콜리전이 없을 때의 평소 스프링 암 길이이고, **Probe Size** 는 콜리전 검사시의 프로브 구체 크기이며, **CameraLag** 은 카메라가 오브젝트 뒤를 약간의 시간차를 두고 따라다니게 할 때 좋습니다.
+
+
+
+
 

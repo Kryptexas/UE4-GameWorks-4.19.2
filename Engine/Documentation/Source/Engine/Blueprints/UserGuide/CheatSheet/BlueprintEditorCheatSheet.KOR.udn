@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2366678
+﻿INTSourceChangelist:2599318
 Availability:Public
 Title:블루프린트 에디터 단축키 일람
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,7 +6,6 @@ Description:블루프린트의 단축키와 유용한 꼼수에 대한 참고서
 
 [TOC(start:2 end:2)]
 
-## 개요
 블루프린트 에디터에는 생산성을 향상시킬 수 있는 단축키가 많이 내장되어 있으며, 그 중 다수는 에디터를 사용하면서 자연스럽게 접하게 되지만, 숨겨져 있는 것도 약간 있습니다. 여기서는 그러한 작업을 보다 효율적으로 하기 위해 흔히 사용되는 동작과 단축키에 대해 다루도록 하겠습니다. 아래에서 이 단축키 목록을 다운로드할 수도 있습니다.
 
 클릭하면 다운로드: [컬러 버전](BlueprintCheatSheet-1989117414.pdf) | [흑백 버전](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)

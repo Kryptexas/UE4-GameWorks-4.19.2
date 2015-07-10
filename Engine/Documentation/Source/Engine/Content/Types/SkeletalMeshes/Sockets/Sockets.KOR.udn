@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2219541
+﻿INTSourceChangelist:2602305
 Availability: Public
 Title:스켈레탈 메시 소켓
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/SkeletalMeshes
@@ -8,9 +8,6 @@ Description:스켈레탈 메시에 무기, 이펙트 등에 대한 접점으로 
 
 [TOC(start:2)]
 
-
-
-## 개요
 [INCLUDE:Shared/Glossary/S/#Glossary_socket]
 
 

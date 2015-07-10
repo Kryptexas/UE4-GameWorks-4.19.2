@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2518095
+﻿INTSourceChangelist:2600821
 Availability: Public
 Title:콜렉션
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -17,9 +17,6 @@ Description:콘텐츠 브라우저 내에서의 콜렉션 사용법에 대한 �
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-	
-
-## 개요
 
 ![CB_Collections.png](CB_Collections.png)
 

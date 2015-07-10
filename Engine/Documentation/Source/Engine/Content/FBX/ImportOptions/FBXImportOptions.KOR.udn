@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536028
+﻿INTSourceChangelist:2601259
 Availability:Public
 Title:FBX 임포트 옵션 참고서
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -25,8 +25,6 @@ Description:FBX 임포트 옵션 대화창에서 사용할 수 있는 옵션에 
 [/VAR]
 
 [TOC (start:2 end:3)]
-
-## 개요
 
 언리얼 엔진 4 에 FBX 파일을 임포트하는 작업은 상대적으로 간단한 절차이긴 하지만, 임포트되는 애셋의 미세조정을 위한 옵션이 몇 가지 있습니다. 이 문서에서는 그 옵션에 대해 다루겠습니다.
 

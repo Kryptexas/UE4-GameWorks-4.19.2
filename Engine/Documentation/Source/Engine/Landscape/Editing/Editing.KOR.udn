@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:랜드스케이프 편집하기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -25,9 +25,6 @@ Description:랜드스케이프 터레인 편집용 툴 사용 안내서입니다
 [/VAR]
 
 [TOC(start:2 end:2)]
-
-
-## 개요
 
 랜드스케이프를 생성한 이후에는, 다음과 같은 작업을 할 수 있습니다:
 

@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2390204
+﻿INTSourceChangelist:2602573
 Availability:Public
 Title:Simplygon LOD
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes
 Description:스태틱 메시의 레벨 오브 디테일 메시를 자동 생성하고 관리하는 툴과 파이프라인 입니다.
 
 [TOC(start:2)]
-
-## 개요
 
 [REGION:note]
  여기서는 Simplygon 을 사용하여 언리얼 엔진 4 의 **스태틱 메시** 에 대한 LOD 를 만드는 법을 다룹니다. Simplygon 라이선스가 없는 경우, 표준 FBX 파이프라인에 **스태틱 메시** 용 LOD 임포트 메소드가 있습니다. 자세한 내용은 [**FBX 스태틱 메시 파이프라인**](Engine/Content/FBX/StaticMeshes) 문서를 참고해 주시기 바랍니다.

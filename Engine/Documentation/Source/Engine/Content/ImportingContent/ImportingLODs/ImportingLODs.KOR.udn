@@ -1,0 +1,143 @@
+﻿INTSourceChangelist:2614210
+Availability:Docs
+Title:스켈레탈 메시 LOD 임포트
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:외부 프로그램에서 스켈레탈 메시 LOD 를 임포트하는 법을 배워봅니다.
+prereq:Engine/Basics/Projects/Browser
+Related: GettingStarted
+Related: Engine/Content/FBX/ImportOptions
+Related: Engine/Animation/Persona
+Related: GettingStarted/HowTo
+Related: Engine/Content/Packs
+SkillLevel: Beginner
+Version: 4.8
+
+[REGION:note]
+시작하기에 앞서, 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 이 가이드에서는 **3DS Max 와 Maya** 를 사용하기는 하지만, 저장 기능이 있는 3D 모델링 프로그램이면 무엇이든 언리얼 엔진에 **스켈레탈 메시 LOD** 임포트가 가능합니다.
+[/REGION]
+
+콘텐츠 제작자는 외부 3D 모델링 프로그램에서 스켈레탈 메시 레벨 오브 디테일 (**LOD**) 를 임포트할 수 있습니다.
+
+## 목적
+
+이 가이드에서는 외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 를 임포트하는 방법을 보여드리는 데 초점을 맞추고 있습니다.
+
+## 목표
+
+이 튜토리얼을 마치고 나면 배울 수 있는 것은 다음과 같습니다:
+
+*	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 구성 방법
+*	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 익스포트 방법
+*	외부 3D 모델링 프로그램에서 언리얼 에디터로 스켈레탈 메시 LOD 임포트 방법
+
+[REGION:warning]
+UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포트 도중 다른 버전을 사용하면 비호환 문제가 생길 수 있습니다.
+[/REGION]
+
+%Globals:DCCSelect%
+
+##	스켈레탈 메시 LOD 구성
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+**멀티 파트 스켈레탈 메시** 에 대한 LOD 구성은 LOD 가 들어있는 각 부분에 그에 대한 LOD 그룹이 들어있다는 점만 빼고는 통으로 된 메시에 대한 LOD 구성과 거의 같습니다. 그 LOD 그룹 구성 프로세스 역시도 위에 언급한 것과 동일합니다.
+[/REGION]
+
+##	스켈레탈 메시 LOD 익스포트
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODExport]
+	[/PARAM]
+[/OBJECT]
+
+##	스켈레탈 메시 LOD 임포트
+
+**스켈레탈 메시 LOD** 는 **페르소나** 의 **메시 디테일** 패널 **LOD Settings** 아래에서 임포트할 수 있습니다.
+
+[REGION:note]
+페르소나는 UE4 의 애니메이션 편집 툴세트입니다. 자세한 정보는 [](Engine/Animation/Persona) 문서를 참고하세요.
+[/REGION]
+
+1. 스켈레탈 메시에 LOD 를 적용하려면, **콘텐츠 브라우저** 에서 애니메이션 애셋을 **더블클릭** 하여 **페르소나** 를 엽니다 (예제 시퀀스는 아래 그림).
+
+	![](OpeningPersona.png)
+
+1.	**메시 디테일** 패널에서 스크롤을 내려 **LOD Settings** 섹션을 찾은 다음 **LOD Import** 옵션을 클릭합니다 (아래 그림).
+
+	![](LOD_Import.png)
+
+1.	파일 탐색기에서 임포트하고자 하는 FBX 파일을 찾아 선택합니다 (예제는 아래 그림).
+	
+	![](ImportFileBrowser.png)
+
+1.	임포트된 LOD 가 이제 **메시 디테일** 패널에 추가됩니다 (아래 그림).
+
+	![](LOD_Added.png)
+
+1.	각 LOD 아래 **Display Factor** 세팅은 LOD 를 언제 사용할지를 나타냅니다. 아래 예제 그림에서 LOD0 은 위치가 **스켈레탈 메시** 보다 가까울 때 사용되는 반면, LOD1 은 멀 때 사용됩니다.
+
+	![](LODs_Set.png)
+
+	[REGION:note]
+	**Display Factor** 에 작은 값을 사용하면 자신의 위치가 **스켈레탈 메시** 보다 멀리 있을 때 그 LOD 를 사용하라는 것이고, 큰 값을 사용하면 가까이 있을 때 사용하라는 것입니다.
+	[/REGION]
+
+1.	LOD 를 임포트하거나 추가할 때, **Reduction Settings** 역시도 LOD 에 대해 조정 가능합니다.
+
+	![](LOD_ReductionSettings.png)
+
+이 튜토리얼을 마칩니다. 배우신 내용은 다음과 같습니다:
+
+&#x2713;	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 구성 방법
+&#x2713;	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 익스포트 방법
+&#x2713;	외부 3D 모델링 프로그램에서 언리얼 에디터로 스켈레탈 메시 LOD 임포트 방법

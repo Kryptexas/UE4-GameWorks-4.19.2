@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2411776
+﻿INTSourceChangelist:2602715
 Availability:Public
 Title:인바이언먼트 쿼리 시스템 사용 안내서
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -276,3 +276,7 @@ Generator (생성기)는 **Item** (아이템)이라고도 하는 위치 또는 �
 [REGION:note]
 이 예제에서 해야 할 한 가지는, **Do Item Generation** 에서 전달받은 **Context Locations** 를 사용하여 원 생성 위치를 변경하는 것입니다. 이미지 크기 제한때문에 하지 못했을 뿐입니다.
 [/REGION]
+
+
+
+

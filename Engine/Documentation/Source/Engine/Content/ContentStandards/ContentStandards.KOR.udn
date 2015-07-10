@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2087154
+﻿INTSourceChangelist:2600894
 Availability:Public
 Title:외부 콘텐츠 개발 표준
 Crumbs: %ROOT%, Engine/Content
@@ -45,8 +45,6 @@ Description:HUD 의 화면상이나 표면에 적용할 머티리얼에 사용�
 
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 다음 목록은 언리얼 엔진 콘텐츠 제작에 있어서의 표준으로 간주되어야 할 것입니다. _개인_ 프로젝트라면 자신의 방법이 표준이겠지만, 대포하고자 하는 콘텐츠라면 다음과 같은 표준을 따라야 할 것입니다.
 

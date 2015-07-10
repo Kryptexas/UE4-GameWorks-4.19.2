@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2527081
+﻿INTSourceChangelist:2602379
 Availability: Public
-Title:스태틱 메시 - LOD 생성 및 사용 비법
+Title:LOD 생성 및 사용
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
 Description: LOD 생성 및 사용 비법입니다.
 
@@ -43,9 +43,6 @@ Description: LOD 생성 및 사용 비법입니다.
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-
-## 개요
 
 플레이어가 레벨에 배치된 스태틱 메시에 가까이 다가갈 때 메시에 디테일이 살아있으면 보기 좋을 것입니다. 하지만 플레이어가 메시에서 멀어진 이후에도 디테일이 살아있는 복잡한 모습일 필요는 없습니다. 화면상에 겨우 몇 픽셀 차지해서 잘 보이지도 않는데 매우 복잡하고 디테일한 메시가 있어봐야 소용이 없지요. 하지만 플레이어가 가까이 갔을 때는 디테일을 명확히 볼 수 있어야 할 것입니다. UE4 에서는 메시를 레벨에 배치한 뒤 플레이어가 그 메시에서 멀어지면 덜 복잡한 버전으로 바꾸어 레벨 퍼포먼스를 높이는 것이 가능합니다. 이는 **레벨 오브 디테일**, 줄여서 **LOD** 라는 것을 통해 가능합니다. 이 비법에서는 UE4 에 메시의 디테일이 덜한 버전을 임포트하여 플레이어와의 거리에 따라 필요한 대로 매끄럽게 바꾸는 방법을 보여드리도록 하겠습니다.
 
