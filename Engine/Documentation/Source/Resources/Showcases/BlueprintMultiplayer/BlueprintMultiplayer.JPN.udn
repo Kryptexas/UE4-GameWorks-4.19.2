@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492264
+﻿INTSourceChangelist:2614102
 Availability:Public
 Title:マルチプレイヤー シュートアウト
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -57,11 +57,9 @@ Related:Resources/ContentExamples/Networking
 
 [TOC(start:2 end:3)]
 
-## 概要
+**Simple Blueprint Multiplayer** ショーケースは、**ブループリント** と **UMG UI** のみでビルドされたゲームです。ブループリントの **Session Nodes** を使用して、ゲームでマルチプレイヤーを容易にするためのサンプルです。メインメニュー、サービスリスト、HUD 上にスコアボード付きの簡単なマップが付いています。メインメニューの **[Play]** (再生) をクリックすると、セッションをホストしゲームプレイ マップを取り込みます。その後、他のプレイヤーが **[Find games]** (ゲーム検索) をクリックすると、新規メニュー画面上にホストされている全てのゲームのリストが表示されます。その中の 1 つをクリックすると、そこへ参加しようとします。エラーがあると、ダイアログが表示され、ユーザーはメインメニューに戻ります。
 
-**Simple Blueprint Multiplayer** ショーケースは、 **ブループリント** と **UMG UI** の中に完全にビルドされたゲームです。ブループリントの **Session Nodes** を使用して、ゲームでマルチプレイヤーを容易にする方法のサンプルです。メインメニュー、サービスリスト、HUD 上にスコアボードがついたシンプルなマップが付いています。メインメニューの **Play** をクリックするとセッションをホストしゲームプレイ マップを取り込みます。その後、他のプレイヤーが **Find games** をクリックすると、新規メニュー画面上にホストされている全てのゲームのリストが表示されます。その中の 1 つをクリックすると、そこへ参加しようとします。エラーがあると、ダイアログが表示され、ユーザーはメインメニューに戻ります。
-
-このゲームは、 **GameInstance** ブループリントを使ったステート管理方法のサンプルでもあります。GameInstance は、マップ ロードの間を維持し、エラー イベントを受け取るオブジェクトでもあるので、ステート管理を行うのに便利です。このサンプル ゲームに含まれるセッション コールとメニュー遷移のほとんどは、GameInstance で処理されます。
+このゲームは、 **GameInstance** ブループリントを使ったステート管理方法のサンプルでもあります。GameInstance は、マップ ロードの間を維持し、エラー イベントを受け取るオブジェクトでもあるので、ステート管理を行うのに便利です。このサンプル ゲームでは、ほとんどのセッション コールとメニュー遷移が GameInstance で処理されます。
 
 [REGION:note]
 本ページでは [](Engine/Blueprints/UserGuide/OnlineNodes) 、およびマルチプレーイヤー ゲームのホスト、検出、参加、退出のための実装について説明します。本ページの内容は、他のプレイヤーを撃つ、ヒットする、死亡する / リスポーンする、そして得点が加算されるというゲームプレイの要素を反映するために、後日更新されます。 
@@ -77,21 +75,21 @@ Related:Resources/ContentExamples/Networking
 
 ゲームをロードするには、以下の手順を行います。 
 
-1.	**Game/Maps** フォルダと **MainMenu** マップを開きます。 
-1. MainMenu マップを開いて、 **[Play]** ボタンの横にある下向きの矢印をクリックし、 **Number of Players** を 2 に設定します。  
+1.	**Game/Maps** フォルダの **MainMenu** マップを開きます。 
+1. MainMenu マップを開いて、 **[Play]** (再生) ボタンの横にある下向きの矢印をクリックし、 **Number of Players** (プレイヤー数) を 2 に設定します。  
 
 	![](SettingNumberOfPlayers.png)
 
 	[REGION:warning]
-	**Run Dedicated Server** オプションを使うと、サーバーリストが正しく表示されない問題が生じることがあります。現在修正中です。
+	**[Run Dedicated Server]** (専用サーバーを実行) オプションを使うと、サーバーリストが正しく表示されない問題が生じることがあります。現在修正中です。
 	[/REGION]
+	1.	**[Play]** (再生) ボタンをクリックして、ゲームを起動します。 
 
-1.	**[Play]** ボタンをクリックして、ゲームを起動します。 
 1.	ゲームが開始すると、次の画面が表示されます。
  
 	![](twoWindows.png)
 
-	_上図は、それぞれが **640x480** に設定された **New Editor Windows** でプレイしています。 **[Advanced Settings...]** オプションで設定することができます。_
+	_上図は、それぞれが **640x480** に設定された **新規エディタ ウィンドウ** でプレイしています。 **[Advanced Settings...]** (詳細設定) オプションで設定することができます。_
 
 	[REGION:warning]
 	テスティングを上図のようにローカルのマルチプレイヤー ゲームではなくネットワーク上で行う場合は、 **Standalone Play Mode** を使用して、ゲームに参加、または自分がホストするゲームにプレイヤーを参加させます。現在のところ、PIE 経由でネットワーク ゲームを実行しようとすると不安定になります。この問題は対処中です。 
@@ -120,11 +118,11 @@ Related:Resources/ContentExamples/Networking
 上記のプレイヤー名は、LAN ゲームから取っています。**Steam** などのサービスを使う場合は、プレイヤーの Steam 名がここに表示されます。 
 [/REGION]
 
-ゲームをホストした場合は、2 人目のプレイヤーの **Find games** をクリックすれば、 **Server List** が表示されます。 
+ゲームをホストした場合は、2 人目のプレイヤーの **[Find games]** (ゲーム検索) をクリックすれば、 **Server List** (サーバーリスト) が表示されます。 
 
 ![](ServerListWindow.png)
 
-ゲームを検索すると、現在アクティブなゲームがリストにすぐに表示されます。このウィンドウには、右から、サーバー名、ゲームのプレイヤー番号、ゲーム セッションの現在の ping が表示されます。画面の左下隅にある **[Refresh]** ボタンをクリックするとリストが更新され、 **[Back]** ボタンを押すとメインメニューに戻ります。リストにある名前をクリックすると、サーバーに参加しゲーム内へのスポーンを試みます。 
+ゲームを検索すると、現在アクティブなゲームがリストにすぐに表示されます。このウィンドウには、右から、サーバー名、ゲームのプレイヤー番号、ゲーム セッションの現在の ping が表示されます。画面の左下隅にある **[Refresh]** (更新) ボタンをクリックするとリストが更新され、 **[Back]** (戻る) ボタンを押すとメインメニューに戻ります。リストにある名前をクリックすると、サーバーに参加しゲーム内へのスポーンを試みます。 
 
 ゲーム内に入ったら、 **マウスの左ボタン** をクリックして、準備が整った合図を出します。 
 
@@ -147,7 +145,7 @@ Related:Resources/ContentExamples/Networking
 
 ## プロジェクト設定 / コンフィギュレーション
 
-このセクションでは、 **コンテンツ ブラウザ** で作成 (あるいは修正) されたそれぞれのアセットの機能について説明します。ブループリントおよび UMG UI アセットの中には、お互いに通信しあうものがあるので、このプロジェクトをゼロから再生成する場合は、必要なアセットを作成してからエントリするのが良いでしょう。
+このセクションでは、 **コンテンツ ブラウザ** で作成 (あるいは修正) されたそれぞれのアセットの機能について説明します。ブループリントおよび UMG UI アセットの中には相互通信するものもあるので、このプロジェクトをゼロから再生成する場合は、必要なアセットを作成してからエントリするのが良いでしょう。
 
 アセットは、 **コンテンツ ブラウザ** の各フォルダに置かれています。
 
@@ -180,15 +178,15 @@ Related:Resources/ContentExamples/Networking
 | 名前 | 説明 |
 |---|---|
 | **Gunslinger_BP** | インゲームでプレイ可能なキャラクターです。 |
-| **GunslingerTTP** | **Gunslinger_BP** を使ったスケルタル メッシュです。 |
-| **Gunslinger_AnimBP** | **Gunslinger_BP** 用のアニメーション操作のために使います。. |
+| **GunslingerTTP** | Gunslinger_BP を使ったスケルタル メッシュです。 |
+| **Gunslinger_AnimBP** | Gunslinger_BP 用のアニメーション操作のために使います。. |
 
 **Game/Character**
 
 | 名前 | 説明 |
 |---|---|
-| **Character_Parent** | **Gunslinger_BP** に使用する (親) マテリアルです。 |
-| **Character_Instance** | **Gunslinger_BP** と一緒に使う (インスタンス化) マテリアルです。 |
+| **Character_Parent** | Gunslinger_BP に使用する (親) マテリアルです。 |
+| **Character_Instance** | Gunslinger_BP と一緒に使う (インスタンス化) マテリアルです。 |
 
 **Game/Fonts**
 
@@ -278,11 +276,11 @@ Stream を使用しない場合は、 [SDK および INI の追加設定](Progra
 [REGION:note]
 ##### TransitionToState Macro
 
-**TransitionToState** ではまず、 [IsCurrentState Macro](#iscurrentstatemacro) を実行して (1) **Current State** と **Desired State** を比べて、2 つが等しければ画面にエラーが印刷されます (2) 。2 つが等しくない場合、 **Switch on State** が実行され (3) **Current State** を取得します。そして、(表示中の UI ウィジェットを隠している) **Hide Widget** という関数 (該当する場合) を呼び出すか、(呼び出し元のプレイヤーのためにセッションを破棄する) **Destroy Session Caller** というカスタム イベントを実行します。 
+TransitionToState ではまず、 [IsCurrentState Macro](#iscurrentstatemacro) を実行して (1) **Current State** と **Desired State** を比べて、2 つが等しければ画面にエラーが印刷されます (2) 。2 つが等しくない場合、 **Switch on State** が実行され (3) **Current State** を取得します。そして、(表示中の UI ウィジェットを隠している) **Hide Widget** という関数 (該当する場合) を呼び出すか、(呼び出し元のプレイヤーのためにセッションを破棄する) **Destroy Session Caller** というカスタム イベントを実行します。 
 
 ![](Startup6.png)
 
-**Switch on State** が完了すると、指定された **Desired State** を反映するために **Current State** が更新されます。 
+Switch on State が完了すると、指定された Desired State を反映するために Current State が更新されます。 
 [/REGION]
 
 **TransitionToState** マクロを実行すれば、 **ShowMainMenuEvent** カスタム イベントで継続できます。 
@@ -293,15 +291,15 @@ Stream を使用しない場合は、 [SDK および INI の追加設定](Progra
 
 ![](Startup8.png)
 
-次に、ゲームをホストするために **Play** を押すと何が起こるのかを説明します。 
+次に、ゲームをホストするために Play を押すと何が起こるのかを説明します。 
 
 ### ゲームをホストする
 
-メインメニューがロードされたら **MainMenu** Widget ブループリントの **[Play]** ボタンをクリックすると、以下のスクリプトが実行されます。 
+メインメニューがロードされたら **MainMenu** Widget ブループリントの **[Play]** (再生) ボタンをクリックすると、以下のスクリプトが実行されます。 
 
 ![](Play1.png)
 
-**OnClicked** イベントは、 **MainMenu** Widget ブループリントの **[Designer]** タブ上に "Play" ボタンとして割り当てた **ボタン** と一致します。このイベントは、発行されるとゲーム インスタンスを取得し **MyGameInstance** ブループリントへ **キャスト** します。それにより、 **Host Game Event** というカスタム イベントを呼び出せるようになります。 
+**OnClicked** イベントは、 **MainMenu** Widget ブループリントの **[Designer]** (デザイナ) タブ上に "Play" ボタンとして割り当てた **ボタン** に相当します。このイベントは、発行されるとゲーム インスタンスを取得し **MyGameInstance** ブループリントへ **キャスト** します。それにより、 **Host Game Event** というカスタム イベントを呼び出せるようになります。 
 
 ![](Play2.png)
 
@@ -328,7 +326,7 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 [REGION:note]
 ##### DisplayErrorDialog Macro
 
-**DisplayErrorDialog** マクロは、呼び出されるとまず **Error Dialog** ステートに遷移するために (1) [TransitionToState Macro](#transitiontostatemacro) を実行します。新しいステートが適用されると、 **Destroy Session Caller** というカスタム イベントが実行され、現在のプレイヤーのセッションを破壊します (2) (イベント グラフ上に存在します)。セッションが破壊された後、エンジン マクロ **IsValid** が、(**Error Dialog** Widget ブループリントを指している) 変数 **Error Dialog** が本当に有効かチェックします。 
+DisplayErrorDialog マクロは、呼び出されるとまず **Error Dialog** ステートに遷移するために (1) [TransitionToState Macro](#transitiontostatemacro) を実行します。新しいステートが適用されると、 **Destroy Session Caller** というカスタム イベントが実行され、現在のプレイヤーのセッションを破壊します (2) (イベント グラフ上に存在します)。セッションが破壊された後、エンジン マクロ **IsValid** が、(Error Dialog Widget ブループリントを指している) 変数 Error Dialog が本当に有効かチェックします。 
 
 ![](Play7.png)
 
@@ -336,7 +334,7 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ![](Play8.png)
 
-ただし、最初の実行時に、 **Create Widget** ノードで **ErrorDialog** Widget ブループリントを作成した上記 (1) が実行されます。(2) で、 **ErrorDialog** Widget ブループリントが **Error Dialog** という変数に昇格されます (次回からはこのマクロを実行することができます)。(3) で、 **ErrorDialog** Widget ブループリント内の関数 **Set Message** が呼び出されます。マクロノード上で指定されたメッセージを取得し、それをメッセージとしてダイアログ ボックス (下図の黄色のボックス) に表示するように設定し、 **Add to Viewport** (4) は画面上に **Error Dialog** Widget ブループリントを表示して (5) が **Set Input Mode UIOnly** を使って入力モードを UI のみにする設定を行います。 
+ただし、最初の実行時に、 **Create Widget** ノードで ErrorDialog Widget ブループリントを作成した上記 (1) が実行されます。(2) で、 ErrorDialog Widget ブループリントが Error Dialog という変数に昇格されます (次回からはこのマクロを実行することができます)。(3) で、 **ErrorDialog** Widget ブループリント内の関数 Set Message が呼び出されます。マクロノード上で指定されたメッセージを取得し、それをメッセージとしてダイアログ ボックス (下図の黄色のボックス) に表示するように設定し、 **Add to Viewport** (4) は画面上に Error Dialog Widget ブループリントを表示して (5) が **Set Input Mode UIOnly** を使って入力モードを UI のみにする設定を行います。 
 
 ![](Play9.png)
 
@@ -350,32 +348,32 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ![](Findgames1.png)
 
-**OnClicked** Event は、 **MainMenu** Widget ブループリントの **[Designer]** タブ上の [Find games] ボタンとして割り当てた **ボタン** にここで結合されます。発行された時、ゲームインスタンスは **Cast to MyGameInstance** ブループリントとなることで、内部の **Show Server List Event** へのアクセスと呼び出しが可能になります。 
+ここでの **OnClicked** Event は、 **MainMenu** Widget ブループリントの **[Designer]** タブ上の [Find games] ボタンとして割り当てた **ボタン** に結合されます。発行された時、ゲームインスタンスは **Cast to MyGameInstance** ブループリントとなることで、内部の **Show Server List Event** へのアクセスと呼び出しが可能になります。 
 
 ![](Findgames2.png)
 
 **ShowServerListEvent** は、ゲーム ステートを **Sever List** に設定する [TransitionToState Macro](#transitiontostatemacro) (1) を実行して開始します。そして、 **Server List** Widget Blueprint 変数に対して Server List メニューを画面上に表示するために Is Valid が **Add to Viewport** (5) ノードを使っているか、 **IsValid** (2) が確認します。ただし、最初の実行時に、 **Create Widget** (3) ノードを使って Server List 画面を作成して、画面への表示前に変数 (4) に昇格する必要があります。画面を表示する設定にすると、 **Set Input Mode UIOnly** ノードは入力方法を UI のみに設定します。 
 
-上記 (5) の間で (6) の前の Server List メニューが表示されている間、Server List メニューをアクティブ状態のゲームでエントリするために使う **ServerList** Widget ブループリント内で追加スクリプトが実行されます。以下の **Server List** Widget ブループリント内に表示されているように、Widget ブループリントが構築 (作成) されるように呼び出されると、 **Event Construct** ノードが発行され **RefreshListMacro** というマクロを作成してすぐに実行します。 
+上記 (5) の間で (6) の前の Server List メニューが表示されている間、Server List メニューをアクティブ状態のゲームでエントリするために使う ServerList Widget ブループリント内で追加スクリプトが実行されます。以下の Server List Widget ブループリント内に表示されているように、Widget ブループリントが構築 (作成) されるように呼び出されると、 **Event Construct** ノードが発行され **RefreshListMacro** というマクロを作成してすぐに実行します。 
 
 ![](Findgames3.png)
 
 [REGION:note]
 ##### RefreshListMacro
 
-**RefreshListMacro** はかなりの数の多数を実行します。最初のセクションが下図になります。 
+RefreshListMacro はかなりの数の多数を実行します。最初のセクションが下図になります。 
 
 ![](Findgames4.png)
 
-**RefreshListMacro** が呼び出されると、まず最初に **Refresh Button Enabled** という **Boolean** 変数を **False** (1) が設定され、プレイヤーが **Refresh** ボタンを押せないように無効にします。次に、変数 **Status Text** を **Searching...** (2) に設定し、その **Visibility** を **Visible (3) に設定して Status Text を維持しているウィジェットがアップデートおよび表示されるようにします。 
+上図では、マクロが呼び出されると、まず **Refresh Button Enabled** という Boolean 変数を **False** (1) に設定することで **[Refresh]** ボタンが無効にされ、プレイヤーが押さないようにします。次に、変数 **Status Text** を **Searching...** (2) に設定し、その **Visibility** を **Visible (3) に設定して Status Text を維持しているウィジェットがアップデートおよび表示されるようにします。 
 
-(4) では、Server List のエントリ使用する **ServerRow** ウィジェットのコレクションである配列変数 **Found Session Widgets** が、 **Remove Child** (5) を使って 1 つずつ取り除かれます。これにより、表示された画面上にリストするサーバーを効率よく削除することができます。(6) では **Found Session Widgets** 変数が、これまでに保存されたセッションを削除してクリアされ、新規検索を実施する前にすべてきれいにワイプします。 
+(4) では、Server List のエントリ使用する **ServerRow** ウィジェットのコレクションである配列変数 Found Session Widgets が、 **Remove Child** (5) を使って 1 つずつ取り除かれます。これにより、表示された画面上にリストするサーバーを効率よく削除することができます。(6) では **Found Session Widgets** 変数が、これまでに保存されたセッションを削除してクリアされ、新規検索を実施する前にすべてきれいにワイプします。 
 
 次に、マクロがゲームインスタンスを取得し、 **Enable LAN** が true であってもなくても (セッション検索時に使用する) にアクセスするために **Cast To MyGameInstance** ノード (下図の 1) を使用します。 
 
 ![](Findgames5.png)
 
-**Find Sessions** ノード (2) を使って、(**Results** 値へ出力される) 存在するセッションをすべて見つけ出します。このノード上で **Max Results** (返す検索結果の数字) を設定することもできます。**Find Sessions** クエリからの結果は、配列変数 **Found Sessions** (3) 内に割り当てられ格納されます。そして **Results** を確認するために **Branch** が実行されて (4) 、0 の場合は **True** ピンが実行されます (そうでない場合、 **False** が実行されます)。理由は何であれ、 **Find Sessions** ノードを使ってエラーがあると、 **OnFailure** イベントが呼び出され、 **Search failed** (5) へ表示する **Status Text** を変更します。 
+**Find Sessions** ノード (2) を使って、(Results 値へ出力される) 存在するセッションをすべて見つけ出します。このノード上で **Max Results** (返す検索結果の数字) を設定することもできます。**Find Sessions** クエリからの結果は、配列変数 **Found Sessions** (3) 内に割り当てられ格納されます。そして **Results** を確認するために Branch が実行されて (4) 、0 の場合は **True** ピンが実行されます (そうでない場合、 **False** が実行されます)。理由は何であれ、 **Find Sessions** ノードを使ってエラーがあると、 **OnFailure** イベントが呼び出され、 **Search failed** (5) へ表示する **Status Text** を変更します。 
 
 **Branch** (前の画像の 4) を引き出し、 **True** の場合 (1 つもセッションが検索されなかった場合) **Status Text** を **No sessions found** (下図の 7) に設定し、**Refresh Button Enabled** 変数を **True** (8) に設定してプレイヤーが **[Refresh]** ボタンを押してセッションを再検索できるようにします。 
 
@@ -383,9 +381,9 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 セッションが検索された場合は、 **Status Text Visibility** を **Collapsed** (1) に設定してプレイヤーから見えないようにします。次に、 **ForEachLoop** ノード (2) による **Results** をそれぞれ受け取り、 **Create ServerRow** ノード (3) を使って、それぞれに対して Server Row ウィジェットを作成します。これらが、サーバーリストに存在するセッションの各行になります。 
 
-(4) で **Results** は **ServerRow** Widget ブループリント内で **Set Search Result** 関数を呼び出す前に **Found Session Widgets** 配列にも追加されます (サーバー名、プレイヤー数、Ping の表示に使われます)。**Set Search Result** ノードでコンテンツが **ServerRow** Widget ブループリントに表示される設定にしたら、 **Add Child** ノード (6) を使って作成した **ServerRow** Widget ブループリントをそれぞれ Server List メニューに表示されている **Scrolling Servers** スクロール ボックスに追加します。 
+(4) で **Results** は **ServerRow** Widget ブループリント内で Set Search Result 関数を呼び出す前に Found Session Widgets 配列にも追加されます (サーバー名、プレイヤー数、Ping の表示に使われます)。Set Search Result ノードでコンテンツが ServerRow Widget ブループリントに表示される設定にしたら、 **Add Child** ノード (6) を使って作成した ServerRow Widget ブループリントをそれぞれ Server List メニューに表示されている **Scrolling Servers** スクロール ボックスに追加します。 
 
-検索されたセッションのそれぞれに **ServerRow** ウィジェットが作成およびエントリされ、 **Scrolling Servers** ウィジェットに追加されると、 **ForEachLoop** が完了し、 **Referesh Button Enabled** 変数が **True** に設定されます (8)。 
+検索されたセッションのそれぞれに ServerRow ウィジェットが作成およびエントリされ、 **Scrolling Servers** ウィジェットに追加されると、 **ForEachLoop** が完了し、 **Referesh Button Enabled** 変数が **True** に設定されます (8)。 
 [/REGION]
 
 セッション検索のために **RefreshListMacro** を実行すると、検索されたセッションがすべて **Server List** メニューに表示されます。 
@@ -404,7 +402,7 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ![](Findgames9.png)
 
-ロード中の画面の表示中、 **Join Session** ノードは、プレイヤーが参加するためにクリックした **ServerRow** Widget ブループリントからの **Search Result** への参加を試みます。これが成功すると、プレイヤーは選択したサーバーへ参加して、ゲームでのスポーンが可能になります。エラーがあると、 [DisplayErrorDialog](#displayerrordialogmacro) が実行され、 **Failed to join session** という **エラーメッセージ** が表示されます。 
+ロード中の画面の表示中、 Join Session ノードは、プレイヤーが参加するためにクリックした ServerRow Widget ブループリントからの Search Result への参加を試みます。これが成功すると、プレイヤーは選択したサーバーへ参加して、ゲームでのスポーンが可能になります。エラーがあると、 [DisplayErrorDialog](#displayerrordialogmacro) が実行され、 **Failed to join session** という **エラーメッセージ** が表示されます。 
 
 ### Gameplay
 
@@ -426,13 +424,13 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ![](Gameplay3.png)
 
-**Graph** セクションの **Replicates** オプションを **Run on owning Client** に設定し、 **Reliable** にチェックを入れます。これらの 2 つのオプションを使って、このイベントに続くスクリプトがサーバーから呼び出されますが、実行は所有しているクライアント マシン上のみとなるように指定します。**Reliable** 設定は、このスクリプトが実行され、渋滞が原因で失われることがないことを保証します (見せ掛けの外観を処理するレプリケートされたコールのほとんどは、ネットワーク サチュレーションを避けるために **Unreliable (信頼できない)** ですが、このケースではそうなって欲しいので **Reliable** に設定します)。 
+**[Graph]** セクションの **Replicates** (レプリケート) オプションを **Run on owning Client** (所有しているクライアントで実行) に設定し、 **Reliable** (信頼できる) にチェックを入れます。これらの 2 つのオプションを使って、このイベントに続くスクリプトがサーバーから呼び出されますが、実行は所有しているクライアント マシン上のみとなるように指定します。**Reliable** 設定は、このスクリプトが実行され、渋滞が原因で失われることがないことを保証します (見せ掛けの外観を処理するレプリケートされたコールのほとんどは、ネットワーク サチュレーションを避けるために **Unreliable (信頼できない)** ですが、このケースではそうなって欲しいので **Reliable** に設定します)。 
 
 スクリプトの発生場所を特定すると、 **Setup Ingame UI** 関数が呼び出されます。 
 
 ![](Gameplay4.png)
 
-この関数は **Branch** (1) でターゲットとされているコントローラーが Local Player Controller かを確認し、そうであれば、 **Create Widget** (2) を使って **HUD** Widget ブループリントを作成します。次に **HUD** ウィジェットが **HUD Widget** (3) という変数に昇格し、 **Add to Viewport** (4) ノードがウィジェットをプレイヤーのビューポートに追加します。(5) で、もう 1つの **Create Widget** ノードは **InGame Menu** Widget ブループリントを作成するために使用します。それを開くためにプレイヤーがボタンを押した時に In Game Menu を表示するための呼び出しにも使用できます。 
+この関数は **Branch** (1) でターゲットとされているコントローラーが Local Player Controller かを確認し、そうであれば、 **Create Widget** (2) を使って HUD Widget ブループリントを作成します。次に HUD ウィジェットが **HUD Widget** (3) という変数に昇格し、 **Add to Viewport** (4) ノードがウィジェットをプレイヤーのビューポートに追加します。(5) で、もう 1つの **Create Widget** ノードは **InGame Menu** Widget ブループリントを作成するために使用します。それを開くためにプレイヤーがボタンを押した時に In Game Menu を表示するための呼び出しにも使用できます。 
 
 [REGION:note]
 この時点で、「ログイン」プロセスが完了し、キャラクターそのものの設定が **Character Animation ブループリント** 経由で行われます。キャラクターの移動ステートのそれぞれを定義し、アニメーションが設定されます。このページでは説明しませんが、 **Animation ブループリント** についての詳細は [](Engine/Animation/AnimBlueprints) ドキュメントを参照してください。
@@ -454,11 +452,11 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ゲームから切断するプロセスはとても分かりやすいです。ディスプレイから幾つか UMG ウィジェットをオンオフし、メインメニューに戻るために最初にゲームをロードする時に発生する同じ開始プロセスでメインメニューへ戻ることができます。 
 
-ゲームプレイ中に **Q** を押すと、インゲーム ポーズ メニューが表示され、 **[Leave Game]** オプションをクリックすると、 **InGameMenu** ウィジェット ブループリント内で以下のプロセスが発生します。 
+ゲームプレイ中に **Q** を押すと、インゲーム ポーズ メニューが表示され、 **[Leave Game (退出する)]** オプションをクリックすると、 **InGameMenu** ウィジェット ブループリント内で以下のプロセスが発生します。 
 
 ![](disconnectingGraph.png)
 
-上図は、 [Leave] ボタンそのものがクリックされたので (1) 、所有プレイヤーを取得することで **MyPlayerController** ブループリントへ **キャスト** するイベントが発行されます (2)。**MyPlayerController** 内では、関数 **Hide in Game Menu** が以下のように呼び出されます。 
+上図は、 [Leave (退出する)] ボタンそのものがクリックされたので (1) 、所有プレイヤーを取得することで **MyPlayerController** ブループリントへ **キャスト** するイベントが発行されます (2)。**MyPlayerController** 内では、関数 **Hide in Game Menu** が以下のように呼び出されます。 
 
 ![](hideingamemenu.png)
 
