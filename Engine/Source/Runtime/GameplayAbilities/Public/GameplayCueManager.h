@@ -225,6 +225,10 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	bool bAccelerationMapOutdated;
 
 	FOnGameplayCueNotifyChange	OnGameplayCueNotifyAddOrRemove;
+
+	static class USceneComponent* PreviewComponent;
+
+	static UWorld* PreviewWorld;
 #endif
 
 protected:
