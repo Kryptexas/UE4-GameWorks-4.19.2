@@ -247,6 +247,7 @@ FBodyInstance::FBodyInstance()
 , bOverrideWalkableSlopeOnInstance(false)
 , PhysMaterialOverride(NULL)
 , SleepFamily(ESleepFamily::Normal)
+, CustomSleepThresholdMultiplier(1.f)
 , PhysicsBlendWeight(0.f)
 , PositionSolverIterationCount(8)
 , VelocitySolverIterationCount(1)
@@ -1559,10 +1560,7 @@ struct FInitBodiesHelper
 #if 0
 						// Set the parameters for determining when to put the object to sleep.
 						float SleepEnergyThresh = PNewDynamic->getSleepThreshold();
-						if (SleepFamily == ESleepFamily::Sensitive)
-						{
-							SleepEnergyThresh /= 20.f;
-						}
+						SleepEnergyThresh *= GetSleepThresholdMultiplier();
 						PNewDynamic->setSleepThreshold(SleepEnergyThresh);
 						// set solver iteration count 
 						int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);
@@ -3302,6 +3300,20 @@ void FBodyInstance::PutInstanceToSleep()
 #endif
 }
 
+float FBodyInstance::GetSleepThresholdMultiplier()
+{
+	if (SleepFamily == ESleepFamily::Sensitive)
+	{
+		return 1 / 20.0f;
+	}
+	else if (SleepFamily == ESleepFamily::Custom)
+	{
+		return CustomSleepThresholdMultiplier;
+	}
+
+	return 1.f;
+}
+
 void FBodyInstance::SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent)
 {
 #if WITH_PHYSX
@@ -4508,10 +4520,7 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 		}
 
 		float SleepEnergyThresh = RigidActor->getSleepThreshold();
-		if (SleepFamily == ESleepFamily::Sensitive)
-		{
-			SleepEnergyThresh /= 20.f;
-		}
+		SleepEnergyThresh *= GetSleepThresholdMultiplier();
 		RigidActor->setSleepThreshold(SleepEnergyThresh);
 		// set solver iteration count 
 		int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);

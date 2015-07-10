@@ -361,6 +361,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
 	ESleepFamily SleepFamily;
 
+	/** If the SleepFamily is set to custom, multiply the natural sleep threshold by this amount. A higher number will cause the body to sleep sooner. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	float CustomSleepThresholdMultiplier;
+
 	/**	Influence of rigid body physics (blending) on the mesh's pose (0.0 == use only animation, 1.0 == use only physics) */
 	/** Provide appropriate interface for doing this instead of allowing BlueprintReadWrite **/
 	UPROPERTY()
@@ -701,6 +705,8 @@ public:
 	void WakeInstance();
 	/** Force this body to sleep */
 	void PutInstanceToSleep();
+	/** Gets the multiplier to the theshold where the body will go to sleep automatically. */
+	float GetSleepThresholdMultiplier();
 	/** Add custom forces and torques on the body. The callback will be called more than once, if substepping enabled, for every substep.  */
 	void AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics);
 	/** Add a force to this body */

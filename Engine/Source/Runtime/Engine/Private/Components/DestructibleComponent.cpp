@@ -332,11 +332,9 @@ void UDestructibleComponent::CreatePhysicsState()
 	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.angularDamping", BodyInstance.AngularDamping ) );
 	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.linearDamping", BodyInstance.LinearDamping ) );
 	const PxTolerancesScale& PScale = GPhysXSDK->getTolerancesScale();
+	
 	PxF32 SleepEnergyThreshold = 0.00005f*PScale.speed*PScale.speed;	// 1/1000 Default, since the speed scale is quite high
-	if (BodyInstance.SleepFamily == ESleepFamily::Sensitive)
-	{
-		SleepEnergyThreshold /= 20.0f;
-	}
+	SleepEnergyThreshold *= BodyInstance.GetSleepThresholdMultiplier();
 	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.sleepThreshold", SleepEnergyThreshold) );
 //	NxParameterized::setParamF32(*ActorParams,"bodyDescTemplate.sleepDamping", SleepDamping );
 	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.density", 0.001f*PhysMat->Density) );	// Convert from g/cm^3 to kg/cm^3

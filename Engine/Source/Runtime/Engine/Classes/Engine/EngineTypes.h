@@ -814,6 +814,8 @@ enum class ESleepFamily : uint8
 	Normal,
 	/** A family of values with a lower sleep threshold; good for slower pendulum-like physics. */
 	Sensitive,
+	/** Specify your own sleep threshold multiplier */
+	Custom,
 };
 
 
