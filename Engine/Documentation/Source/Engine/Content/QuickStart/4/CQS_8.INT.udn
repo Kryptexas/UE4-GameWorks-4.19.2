@@ -36,7 +36,7 @@ The objective of this step is to apply our **Material** to the Static Mesh we im
 
 This section will show you how to set a **Static Mesh Actor's** default material. The default material will be used whenever an **Actor** is placed in the level.
 
-1.	From the **Content Browser**, double-click the asset you imported earlier in this guide.
+1.	Inside the **Content Browser**, double-click the asset you imported earlier in this guide.
 
 	![](newBrowserContenAsset.png)
 
@@ -44,7 +44,7 @@ This section will show you how to set a **Static Mesh Actor's** default material
 
 	![](StaticMeshEditor.jpg)
 
-1.	In the **Details** panel under **LOD0**, left-click the material's drop-down menu (pictured below).
+1.	Inside the **Details** panel under **LOD0**, left-click the material's drop-down menu (pictured below).
 
 	![](LOD0.png)
 
@@ -58,7 +58,7 @@ This section will show you how to set a **Static Mesh Actor's** default material
 
 1.	Clicking the **Save** button first, close the **Material Editor**.
 
-1.	From the **Content Browser**, drag-and-drop the newly textured **Static Mesh Actor** into your level.
+1.	Inside the **Content Browser**, drag-and-drop the newly textured **Static Mesh Actor** into your level.
 
 	![](newMaterialInLevel.png)
 
@@ -76,11 +76,11 @@ Here's how you change a **Static Mesh Actor's** Material.
 
 	![](newStatisMeshSelected.png)
 
-1.	From the **Details** panel, locate the **Materials** section and click the **Materials** dropdown menu.
+1.	Inside the **Details** panel, locate the **Materials** section and click the **Materials** dropdown menu.
 
 	![](materialDropDown.png)
 
-1.	From the pop-up menu, select a different Material.
+1.	Inside the pop-up menu, select a different Material.
 
 	![](selectTutorialAssetMat.png)
 

@@ -39,7 +39,7 @@ You can define a material's color, shininess, transparency, and much more in the
 
 	_It is the only node in the graph (named after your material)._
 
-1.	In the **Details Panel**, change the **Shading Model** from **Default Lit** to **Subsurface**.
+1.	Inside the **Details Panel**, change the **Shading Model** from **Default Lit** to **Subsurface**.
 	
 	![](selectSubsurface.png)
 
