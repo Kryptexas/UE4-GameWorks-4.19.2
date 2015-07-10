@@ -27,8 +27,8 @@
 #include "SNumericDropDown.h"
 #include "EditorWidgetsModule.h"
 #include "SequencerTrackLaneFactory.h"
-
 #include "SSequencerSplitterOverlay.h"
+#include "IKeyArea.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
