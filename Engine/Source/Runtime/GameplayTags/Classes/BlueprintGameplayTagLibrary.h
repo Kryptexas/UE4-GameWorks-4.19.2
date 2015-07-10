@@ -76,6 +76,17 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	static bool DoesContainerMatchAllTagsInContainer(const FGameplayTagContainer& TagContainer, const FGameplayTagContainer& OtherContainer, bool bCountEmptyAsMatch);
 
 	/**
+	 * Check if the specified tag container matches the given Tag Query.
+	 * 
+	 * @param TagContainer			Container to check if it matches all of the tags in the other container
+	 * @param TagQuery				Query to match against
+	 * 
+	 * @return True if the container matches the query, false otherwise.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GameplayTags|Tag Container")
+	static bool DoesContainerMatchTagQuery(const FGameplayTagContainer& TagContainer, const FGameplayTagQuery& TagQuery);
+
+	/**
 	* Takes 2 Gameplay Tag Containers Appends the In Container to the In/Out Container
 	*
 	* @param InTagContainer			The container to append.
