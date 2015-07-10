@@ -338,6 +338,10 @@ protected:
 	void Rewind();
 	void StepForward();
 	void StepBackward();
+	void StepToNextKey();
+	void StepToPreviousKey();
+	void StepToNextCameraKey();
+	void StepToPreviousCameraKey();
 
 	/** Expand or collapse selected nodes */
 	void ToggleExpandCollapseNodes();

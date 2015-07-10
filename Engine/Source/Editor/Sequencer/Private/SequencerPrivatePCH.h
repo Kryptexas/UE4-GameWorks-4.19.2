@@ -23,6 +23,7 @@
 #include "SAnimationOutlinerView.h"
 #include "MovieSceneInstance.h"
 #include "SequencerSettings.h"
+#include "SequencerCommonHelpers.h"
 #include "SequencerCurveOwner.h"
 #include "SSequencerCurveEditor.h"
 #include "SSequencerCurveEditorToolBar.h"

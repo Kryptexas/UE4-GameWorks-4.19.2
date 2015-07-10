@@ -144,45 +144,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 	SetVisibility( TAttribute<EVisibility>( this, &SAnimationOutlinerTreeNode::GetNodeVisibility ) );
 }
 
-void GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayNode, TSet<TSharedPtr<IKeyArea>>& KeyAreas)
-{
-	TArray<TSharedPtr<FSequencerDisplayNode>> NodesToCheck;
-	NodesToCheck.Add(DisplayNode);
-	while (NodesToCheck.Num() > 0)
-	{
-		TSharedPtr<FSequencerDisplayNode> NodeToCheck = NodesToCheck[0];
-		NodesToCheck.RemoveAt(0);
 
-		if (NodeToCheck->GetType() == ESequencerNode::Track)
-		{
-			TSharedPtr<FTrackNode> TrackNode = StaticCastSharedPtr<FTrackNode>(NodeToCheck);
-			TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
-			TrackNode->GetChildKeyAreaNodesRecursively(KeyAreaNodes);
-			for (TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes)
-			{
-				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
-				{
-					KeyAreas.Add(KeyArea);
-				}
-			}
-		}
-		else
-		{
-			if (NodeToCheck->GetType() == ESequencerNode::KeyArea)
-			{
-				TSharedPtr<FSectionKeyAreaNode> KeyAreaNode = StaticCastSharedPtr<FSectionKeyAreaNode>(NodeToCheck);
-				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
-				{
-					KeyAreas.Add(KeyArea);
-				}
-			}
-			for (TSharedRef<FSequencerDisplayNode> ChildNode : NodeToCheck->GetChildNodes())
-			{
-				NodesToCheck.Add(ChildNode);
-			}
-		}
-	}
-}
 
 FReply SAnimationOutlinerTreeNode::OnPreviousKeyClicked()
 {
@@ -193,7 +155,7 @@ FReply SAnimationOutlinerTreeNode::OnPreviousKeyClicked()
 	bool PreviousKeyFound = false;
 
 	TSet<TSharedPtr<IKeyArea>> KeyAreas;
-	GetAllKeyAreas(DisplayNode, KeyAreas);
+	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
 	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
 	{
 		for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
@@ -224,7 +186,7 @@ FReply SAnimationOutlinerTreeNode::OnNextKeyClicked()
 	bool NextKeyFound = false;
 
 	TSet<TSharedPtr<IKeyArea>> KeyAreas;
-	GetAllKeyAreas(DisplayNode, KeyAreas);
+	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
 	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
 	{
 		for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
@@ -252,7 +214,7 @@ FReply SAnimationOutlinerTreeNode::OnAddKeyClicked()
 	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
 
 	TSet<TSharedPtr<IKeyArea>> KeyAreas;
-	GetAllKeyAreas(DisplayNode, KeyAreas);
+	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
 
 	TArray<UMovieSceneSection*> KeyAreaSections;
 	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)

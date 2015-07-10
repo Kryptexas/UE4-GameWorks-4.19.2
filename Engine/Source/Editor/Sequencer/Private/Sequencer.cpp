@@ -1559,6 +1559,26 @@ void FSequencer::StepBackward()
 	OnStepBackward();
 }
 
+void FSequencer::StepToNextKey()
+{
+	SequencerWidget->StepToNextKey();
+}
+
+void FSequencer::StepToPreviousKey()
+{
+	SequencerWidget->StepToPreviousKey();
+}
+
+void FSequencer::StepToNextCameraKey()
+{
+	SequencerWidget->StepToNextCameraKey();
+}
+
+void FSequencer::StepToPreviousCameraKey()
+{
+	SequencerWidget->StepToPreviousCameraKey();
+}
+
 void FSequencer::ToggleExpandCollapseNodes()
 {
 	SequencerWidget->ToggleExpandCollapseSelectedNodes();
@@ -1617,6 +1637,22 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.StepBackward,
 		FExecuteAction::CreateSP( this, &FSequencer::StepBackward ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.StepToNextKey,
+		FExecuteAction::CreateSP( this, &FSequencer::StepToNextKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.StepToPreviousKey,
+		FExecuteAction::CreateSP( this, &FSequencer::StepToPreviousKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.StepToNextCameraKey,
+		FExecuteAction::CreateSP( this, &FSequencer::StepToNextCameraKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.StepToPreviousCameraKey,
+		FExecuteAction::CreateSP( this, &FSequencer::StepToPreviousCameraKey ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleExpandCollapseNodes,

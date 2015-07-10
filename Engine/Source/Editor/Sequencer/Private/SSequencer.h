@@ -97,6 +97,13 @@ public:
 	/** Deletes selected nodes out of the sequencer node tree */
 	void DeleteSelectedNodes();
 
+	/** Step to next and previous keyframes */
+	void StepToNextKey();
+	void StepToPreviousKey();
+	void StepToNextCameraKey();
+	void StepToPreviousCameraKey();
+	void StepToKey(bool bStepToNextKey, bool bCameraOnly);
+
 	/** Expand or collapse selected nodes out of the sequencer node tree */
 	void ToggleExpandCollapseSelectedNodes(bool bDescendants = false);
 	void ExpandCollapseNode(TSharedRef<FSequencerDisplayNode> SelectedNode, bool bDescendants, bool bExpand);

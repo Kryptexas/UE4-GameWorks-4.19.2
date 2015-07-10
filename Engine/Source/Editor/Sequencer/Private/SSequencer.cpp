@@ -1162,6 +1162,130 @@ FReply SSequencer::OnSaveMovieSceneClicked()
 	return FReply::Unhandled();
 }
 
+void SSequencer::StepToNextKey()
+{
+	StepToKey(true, false);
+}
+
+void SSequencer::StepToPreviousKey()
+{
+	StepToKey(false, false);
+}
+
+void SSequencer::StepToNextCameraKey()
+{
+	StepToKey(true, true);
+}
+
+void SSequencer::StepToPreviousCameraKey()
+{
+	StepToKey(false, true);
+}
+
+void SSequencer::StepToKey(bool bStepToNextKey, bool bCameraOnly)
+{
+	TSet< TSharedRef<FSequencerDisplayNode> > Nodes;
+
+	if (bCameraOnly)
+	{
+		TSet<TSharedRef<FSequencerDisplayNode>> RootNodes(SequencerNodeTree->GetRootNodes());
+
+		TSet<TWeakObjectPtr<AActor> > LockedActors;
+		for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); ++i)
+		{		
+			FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[i];
+			if (LevelVC && LevelVC->IsPerspective() && LevelVC->GetViewMode() != VMI_Unknown)
+			{
+				TWeakObjectPtr<AActor> ActorLock = LevelVC->GetActiveActorLock();
+				if (ActorLock.IsValid())
+				{
+					LockedActors.Add(ActorLock);
+				}
+			}
+		}
+
+		for (auto RootNode : RootNodes)
+		{
+			TSharedRef<FObjectBindingNode> ObjectBindingNode = StaticCastSharedRef<FObjectBindingNode>(RootNode);
+			TArray<UObject*> RuntimeObjects;
+			Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetFocusedMovieSceneInstance(), ObjectBindingNode->GetObjectBinding(), RuntimeObjects );
+		
+			for (int32 RuntimeIndex = 0; RuntimeIndex < RuntimeObjects.Num(); ++RuntimeIndex )
+			{
+				AActor* RuntimeActor = Cast<AActor>(RuntimeObjects[RuntimeIndex]);
+				if (RuntimeActor != NULL && LockedActors.Contains(RuntimeActor))
+				{
+					Nodes.Add(RootNode);
+				}
+			}
+		}
+	}
+	else
+	{
+		const TSet< TSharedRef<FSequencerDisplayNode> >& SelectedNodes = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
+		Nodes = SelectedNodes;
+
+		if (Nodes.Num() == 0)
+		{
+			TSet<TSharedRef<FSequencerDisplayNode>> RootNodes(SequencerNodeTree->GetRootNodes());
+			for (auto RootNode : RootNodes)
+			{
+				Nodes.Add(RootNode);
+
+				SequencerHelpers::GetDescendantNodes(RootNode, Nodes);
+			}
+		}
+	}
+		
+	if (Nodes.Num() > 0)
+	{
+		float ClosestKeyDistance = MAX_FLT;
+		float CurrentTime = Sequencer.Pin()->GetCurrentLocalTime(*Sequencer.Pin()->GetFocusedMovieScene());
+		float StepToTime = 0;
+		bool StepToKeyFound = false;
+
+		auto It = Nodes.CreateConstIterator();
+		bool bExpand = !(*It).Get().IsExpanded();
+
+		for (auto Node : Nodes)
+		{
+			TSet<TSharedPtr<IKeyArea>> KeyAreas;
+			SequencerHelpers::GetAllKeyAreas(Node, KeyAreas);
+
+			for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
+			{
+				for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
+				{
+					float KeyTime = KeyArea->GetKeyTime(KeyHandle);
+					if (bStepToNextKey)
+					{
+						if (KeyTime > CurrentTime && KeyTime - CurrentTime < ClosestKeyDistance)
+						{
+							StepToTime = KeyTime;
+							ClosestKeyDistance = KeyTime - CurrentTime;
+							StepToKeyFound = true;
+						}
+					}
+					else
+					{
+						if (KeyTime < CurrentTime && CurrentTime - KeyTime < ClosestKeyDistance)
+						{
+							StepToTime = KeyTime;
+							ClosestKeyDistance = CurrentTime - KeyTime;
+							StepToKeyFound = true;
+						}
+					}
+				}
+			}
+		}
+
+		if (StepToKeyFound)
+		{
+			Sequencer.Pin()->SetGlobalTime(StepToTime);
+		}
+	}
+}
+
 void SSequencer::ToggleExpandCollapseSelectedNodes(bool bDescendants)
 {
 	const TSet< TSharedRef<FSequencerDisplayNode> >& SelectedNodes = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
