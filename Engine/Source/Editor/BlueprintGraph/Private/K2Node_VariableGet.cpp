@@ -316,7 +316,7 @@ void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuild
 			if (bIsPureGet)
 			{
 				MenuEntryTitle   = LOCTEXT("ConvertToImpureGetTitle",   "Convert to Validated Get");
-				MenuEntryTooltip = LOCTEXT("ConvertToImpureGetTooltip", "Adds in branching execution pins so that you can separatly handle when the returned value is valid/invalid.");
+				MenuEntryTooltip = LOCTEXT("ConvertToImpureGetTooltip", "Adds in branching execution pins so that you can separately handle when the returned value is valid/invalid.");
 
 				const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
 				check(K2Schema != nullptr);
@@ -330,7 +330,7 @@ void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuild
 			else
 			{
 				MenuEntryTitle   = LOCTEXT("ConvertToPureGetTitle",   "Convert to pure Get");
-				MenuEntryTooltip = LOCTEXT("ConvertToPureGetTooltip", "Removes the execution pins to make the node more versitile.");
+				MenuEntryTooltip = LOCTEXT("ConvertToPureGetTooltip", "Removes the execution pins to make the node more versatile.");
 			}
 
 			Context.MenuBuilder->AddMenuEntry(
