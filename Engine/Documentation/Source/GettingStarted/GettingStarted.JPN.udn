@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604026
+﻿INTSourceChangelist:2612412
 Availability:Public
 Title:まずはここから
 Crumbs:%ROOT%
@@ -360,8 +360,8 @@ gettingstarted
 	[/PARAM]
 	[PARAM:description]
 		アンリアル エンジンのビルトイン機能を使用してレベルとゲームプレイをテストし、デバッグします。Play In Editor モードを使用してリアルタイムのフィードバックを直接エディタから得ます。 
-		Simulate In Editor モードを使用して 
-		ゲームの実行中にオブジェクトを調べたり、操作したりすることもします。Hot Reload を使用して 
+		Simulate In Editor (エディタでシミュレーション) モードを使用して 
+		ゲームの実行中にオブジェクトを調べたり、操作したりすることもします。Hot Reload (ホットリロード) を使用して 
 		プレイ中にゲームプレイ コードを変更、ゲームをリコンパイル、更新します。
 	[/PARAM]
 	[PARAM:links]
