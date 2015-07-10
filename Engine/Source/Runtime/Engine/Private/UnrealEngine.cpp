@@ -4711,6 +4711,14 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			return true;
 		}
 	}
+	else if( FParse::Command( &Cmd, TEXT("ENSUREALWAYS") ) )
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
+		if( !ensureAlways( 0 ) )
+		{
+			return true;
+		}
+	}
 	else if( FParse::Command( &Cmd, TEXT( "FATAL" ) ) )
 	{
 		UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );

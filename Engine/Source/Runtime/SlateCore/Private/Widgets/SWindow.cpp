@@ -1002,7 +1002,7 @@ SOverlay::FOverlaySlot& SWindow::AddOverlaySlot( const int32 ZOrder )
 {
 	if(!WindowOverlay.IsValid())
 	{
-		ensureMsg( false, TEXT("This window does not support overlays. The added slot will not be visible!") );
+		ensureMsgf( false, TEXT("This window does not support overlays. The added slot will not be visible!") );
 		WindowOverlay = SNew(SOverlay).Visibility( EVisibility::HitTestInvisible );
 	}
 

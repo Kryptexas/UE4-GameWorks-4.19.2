@@ -710,7 +710,7 @@ bool UWidget::IsChildOf(UWidget* PossibleParent)
 
 TSharedRef<SWidget> UWidget::RebuildWidget()
 {
-	ensureMsg(false, TEXT("You must implement RebuildWidget() in your child class"));
+	ensureMsgf(false, TEXT("You must implement RebuildWidget() in your child class"));
 	return SNew(SSpacer);
 }
 

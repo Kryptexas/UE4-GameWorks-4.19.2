@@ -348,7 +348,7 @@ EReimportResult::Type UPaperTiledImporterFactory::Reimport(UObject* Obj)
 	if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Obj))
 	{
 		//@TODO: Not implemented yet
-		ensureMsg(false, TEXT("Tile map reimport is not implemented yet"));
+		ensureMsgf(false, TEXT("Tile map reimport is not implemented yet"));
 	}
 	return EReimportResult::Failed;
 }
@@ -1130,7 +1130,7 @@ void FTiledObject::AddToSpriteGeometryCollection(const FVector2D& Offset, const 
 			UE_LOG(LogPaperTiledImporter, Warning, TEXT("Ignoring Tiled Object of type Polyline"));
 			break;
 		default:
-			ensureMsg(false, TEXT("Unknown enumerant in ETiledObjectType"));
+			ensureMsgf(false, TEXT("Unknown enumerant in ETiledObjectType"));
 			break;
 		}
 

@@ -283,7 +283,7 @@ bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
 	#endif
 
 	#if (UCLASS_FAST_ISA_IMPL & 1) && (UCLASS_FAST_ISA_IMPL & 2)
-		ensureOnceMsgf(bOldResult == bNewResult, TEXT("New cast code failed"));
+		ensureMsgf(bOldResult == bNewResult, TEXT("New cast code failed"));
 	#endif
 
 	#if UCLASS_FAST_ISA_IMPL & 1

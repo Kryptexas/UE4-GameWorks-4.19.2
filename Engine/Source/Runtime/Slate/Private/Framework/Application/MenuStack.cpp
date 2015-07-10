@@ -146,7 +146,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 {
 	// Deprecated method that is no longer called by its deprecated counterpart in FSlateApplication so it will only create a dummy message warning the caller not to use this method
 	// Backwards compatibility of the API is taken care of by FSlateApplication.
-	ensureMsg(false, TEXT("PushMenu() returning an SWindow is deprecated. Use Push() that returns an IMenu instead."));
+	ensureMsgf(false, TEXT("PushMenu() returning an SWindow is deprecated. Use Push() that returns an IMenu instead."));
 
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 	FVector2D ExpectedSize(300, 200);

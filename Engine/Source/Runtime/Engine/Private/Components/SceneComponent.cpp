@@ -344,7 +344,7 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	FTransform NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	ensureOnce(NewTransform.IsValid());
+	ensure(NewTransform.IsValid());
 #endif
 
 	// If transform has changed..

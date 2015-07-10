@@ -354,7 +354,7 @@ void UAnimSequenceBase::UpdateAnimNotifyTrackCache()
 		{
 			// this notifyindex isn't valid, delete
 			// this should not happen, but if it doesn, find best place to add
-			ensureMsg(0, TEXT("AnimNotifyTrack: Wrong indices found"));
+			ensureMsgf(0, TEXT("AnimNotifyTrack: Wrong indices found"));
 			AnimNotifyTracks[0].Notifies.Add(&Notifies[NotifyIndex]);
 		}
 	}

@@ -1282,7 +1282,7 @@ public:
 		if (!bTriggered)
 		{
 			bTriggered = true;
-			ensureMsg(false, TEXT("FSimpleElementCollector::DrawMesh called"));
+			ensureMsgf(false, TEXT("FSimpleElementCollector::DrawMesh called"));
 		}
 
 		return false; 
@@ -1296,7 +1296,7 @@ public:
 		if (!bTriggered)
 		{
 			bTriggered = true;
-			ensureMsg(false, TEXT("FSimpleElementCollector::DrawMesh called"));
+			ensureMsgf(false, TEXT("FSimpleElementCollector::DrawMesh called"));
 		}
 
 		return 0;

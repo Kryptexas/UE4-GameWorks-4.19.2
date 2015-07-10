@@ -1385,7 +1385,7 @@ static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActio
 				}
 				else
 				{
-					ensureMsg(false, TEXT("Unhandled property/node pair, we've probably made some bad assuptions."));
+					ensureMsgf(false, TEXT("Unhandled property/node pair, we've probably made some bad assuptions."));
 				}
 			}
 		}

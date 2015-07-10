@@ -221,7 +221,7 @@ TOptional<FDirectoryState> FAsyncDirectoryReader::GetLiveState()
 {
 	TOptional<FDirectoryState> OldState;
 
-	if (ensureMsg(IsComplete(), TEXT("Invalid property access from thread before task completion")))
+	if (ensureMsgf(IsComplete(), TEXT("Invalid property access from thread before task completion")))
 	{
 		Swap(OldState, LiveState);
 	}
@@ -234,7 +234,7 @@ TOptional<FDirectoryState> FAsyncDirectoryReader::GetCachedState()
 {
 	TOptional<FDirectoryState> OldState;
 
-	if (ensureMsg(IsComplete(), TEXT("Invalid property access from thread before task completion")))
+	if (ensureMsgf(IsComplete(), TEXT("Invalid property access from thread before task completion")))
 	{
 		Swap(OldState, CachedState);
 	}

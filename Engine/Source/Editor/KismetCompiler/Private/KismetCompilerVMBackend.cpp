@@ -456,7 +456,7 @@ public:
 			}
 			//else if (UClassProperty* ClassProperty = Cast<UClassProperty>(CoerceProperty))
 			//{
-			//	ensureMsg(false, TEXT("Class property literals are not supported yet!"));
+			//	ensureMsgf(false, TEXT("Class property literals are not supported yet!"));
 			//}
 			else if (UStructProperty* StructProperty = Cast<UStructProperty>(CoerceProperty))
 			{
@@ -563,7 +563,7 @@ public:
 			{
 				if (Term->Name == TEXT(""))
 				{
-					ensureMsg(false, TEXT("Cannot use an empty literal expression for a delegate property"));
+					ensureMsgf(false, TEXT("Cannot use an empty literal expression for a delegate property"));
 				}
 				else
 				{
@@ -1220,7 +1220,7 @@ public:
 		}
 		else
 		{
-			ensureMsg(false, TEXT("FScriptBuilderBase::EmitGoto unknown type"));
+			ensureMsgf(false, TEXT("FScriptBuilderBase::EmitGoto unknown type"));
 		}
 	}
 

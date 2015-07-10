@@ -58,7 +58,7 @@ FActiveSound::FActiveSound()
 
 FActiveSound::~FActiveSound()
 {
-	ensureMsg(WaveInstances.Num() == 0, TEXT("Destroyed an active sound that had active wave instances."));
+	ensureMsgf(WaveInstances.Num() == 0, TEXT("Destroyed an active sound that had active wave instances."));
 }
 
 FArchive& operator<<( FArchive& Ar, FActiveSound* ActiveSound )

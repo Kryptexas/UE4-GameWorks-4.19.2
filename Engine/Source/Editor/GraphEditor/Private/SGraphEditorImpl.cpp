@@ -138,7 +138,7 @@ void SGraphEditorImpl::SelectAllNodes()
 		UEdGraphNode* Node = EdGraphObj->Nodes[NodeIndex];
 		if (Node)
 		{
-			ensureMsg(Node->IsValidLowLevel(), TEXT("Node is invalid"));
+			ensureMsgf(Node->IsValidLowLevel(), TEXT("Node is invalid"));
 			NewSet.Add(Node);
 		}
 	}

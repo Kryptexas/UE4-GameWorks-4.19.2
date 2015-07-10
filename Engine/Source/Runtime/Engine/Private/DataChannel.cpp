@@ -2052,7 +2052,7 @@ bool UActorChannel::ReplicateActor()
 	{
 		FString Error(FString::Printf(TEXT("Attempt to replicate '%s' while already replicating that Actor!"), *Actor->GetName()));
 		UE_LOG(LogNet, Log, TEXT("%s"), *Error);
-		ensureMsg(false,*Error);
+		ensureMsgf(false,*Error);
 		return false;
 	}
 

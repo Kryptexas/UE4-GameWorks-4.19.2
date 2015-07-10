@@ -1533,7 +1533,7 @@ void UWorld::TransferBlueprintDebugReferences(UWorld* NewWorld)
 							UE_LOG(LogWorld, Warning, TEXT("  OldObject path is %s"), *OldTargetObject->GetPathName());
 							UE_LOG(LogWorld, Warning, TEXT("  OldObject class path is %s"), *OldTargetObject->GetClass()->GetPathName());
 
-							ensureMsg(false, TEXT("Failed to find an appropriate object to debug back in the editor world"));
+							ensureMsgf(false, TEXT("Failed to find an appropriate object to debug back in the editor world"));
 						}
 
 						NewTargetObject = NULL;

@@ -210,7 +210,7 @@ public:
 			checkSlow(Stack.Num() != 0 && Stack.Last() == this);
 
 			auto* Task = Stack.Last();
-			if (ensureMsg(Task == this, TEXT("Out-of-order scoped task construction/destruction")))
+			if (ensureMsgf(Task == this, TEXT("Out-of-order scoped task construction/destruction")))
 			{
 				Stack.Pop(false);
 			}

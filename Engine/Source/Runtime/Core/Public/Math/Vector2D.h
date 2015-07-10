@@ -471,7 +471,7 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		ensureOnceMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}

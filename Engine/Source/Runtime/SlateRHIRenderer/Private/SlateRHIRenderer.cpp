@@ -699,7 +699,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
 
 #if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
-	ensureMsg(0, TEXT("This functionality is not valid for this platform"));	
+	ensureMsgf(0, TEXT("This functionality is not valid for this platform"));	
 	return FIntRect(FIntPoint(0, 0), FIntPoint(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight));
 #endif	
 
@@ -768,7 +768,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer)
 {
 #if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
-	ensureMsg(0, TEXT("This functionality is not valid for this platform"));
+	ensureMsgf(0, TEXT("This functionality is not valid for this platform"));
 	return;
 #endif
 

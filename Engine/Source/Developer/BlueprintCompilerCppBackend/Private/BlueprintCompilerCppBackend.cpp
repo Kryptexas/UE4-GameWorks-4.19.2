@@ -147,7 +147,7 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 			}
 			else
 			{
-				ensureMsg(false, TEXT("It is not possible to express this interface property as a literal value!"));
+				ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value!"));
 				return Term->Name;
 			}
 		}
@@ -155,7 +155,7 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 			// else if (CoerceProperty->IsA(UMulticastDelegateProperty::StaticClass()))
 			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
 		{
-			ensureMsg(false, TEXT("It is not possible to express this type as a literal value!"));
+			ensureMsgf(false, TEXT("It is not possible to express this type as a literal value!"));
 			return Term->Name;
 		}
 	}

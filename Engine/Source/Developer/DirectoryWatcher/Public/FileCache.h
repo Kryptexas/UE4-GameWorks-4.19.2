@@ -348,7 +348,7 @@ struct FFileCacheConfig
 	/** Set up this cache to generate MD5 hashes for its constituent files */
 	FFileCacheConfig& RequireFileHashes(bool bInRequireFileHashes)
 	{
-		if (ensureMsg(bInRequireFileHashes || !bDetectMoves, TEXT("Unable to disable file hashing when move detection is enabled")))
+		if (ensureMsgf(bInRequireFileHashes || !bDetectMoves, TEXT("Unable to disable file hashing when move detection is enabled")))
 		{
 			bRequireFileHashes = bInRequireFileHashes;
 		}

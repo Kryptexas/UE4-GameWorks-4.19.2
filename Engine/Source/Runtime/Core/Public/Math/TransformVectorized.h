@@ -43,17 +43,17 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
-		ensureOnceMsgf(!VectorContainsNaNOrInfinite(Scale3D), TEXT("FTransform Vectorized Scale3D contains NaN"));
+		ensureMsgf(!VectorContainsNaNOrInfinite(Scale3D), TEXT("FTransform Vectorized Scale3D contains NaN"));
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Translate() const
 	{
-		ensureOnceMsgf(!VectorContainsNaNOrInfinite(Translation), TEXT("FTransform Vectorized Translation contains NaN"));
+		ensureMsgf(!VectorContainsNaNOrInfinite(Translation), TEXT("FTransform Vectorized Translation contains NaN"));
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const
 	{
-		ensureOnceMsgf(!VectorContainsNaNOrInfinite(Rotation), TEXT("FTransform Vectorized Rotation contains NaN"));
+		ensureMsgf(!VectorContainsNaNOrInfinite(Rotation), TEXT("FTransform Vectorized Rotation contains NaN"));
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_All() const

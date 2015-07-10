@@ -6608,7 +6608,7 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 	}
 	else
 	{
-		ensureMsg(false, TEXT("GraphType is invalid") );
+		ensureMsgf(false, TEXT("GraphType is invalid") );
 	}
 
 	// Now open the new graph

@@ -200,7 +200,7 @@ void FModuleManager::AddModuleToModulesList(const FName InModuleName, TSharedRef
 void FModuleManager::AddModule(const FName InModuleName)
 {
 	// Do we already know about this module?  If not, we'll create information for this module now.
-	if (!((ensureMsg(InModuleName != NAME_None, TEXT("FModuleManager::AddModule() was called with an invalid module name (empty string or 'None'.)  This is not allowed.")) &&
+	if (!((ensureMsgf(InModuleName != NAME_None, TEXT("FModuleManager::AddModule() was called with an invalid module name (empty string or 'None'.)  This is not allowed.")) &&
 		!Modules.Contains(InModuleName))))
 	{
 		return;
@@ -1131,7 +1131,7 @@ bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 TSharedRef<FModuleManager::FModuleInfo> FModuleManager::GetOrCreateModule(FName InModuleName)
 {
 	check(IsInGameThread());
-	ensureMsg(InModuleName != NAME_None, TEXT("FModuleManager::AddModule() was called with an invalid module name (empty string or 'None'.)  This is not allowed."));
+	ensureMsgf(InModuleName != NAME_None, TEXT("FModuleManager::AddModule() was called with an invalid module name (empty string or 'None'.)  This is not allowed."));
 
 	if (Modules.Contains(InModuleName))
 	{

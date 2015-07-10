@@ -157,7 +157,7 @@ void FWindowsPlatformProcess::PushDllDirectory(const TCHAR* Directory)
 void FWindowsPlatformProcess::PopDllDirectory(const TCHAR* Directory)
 {
 	// don't allow too many pops (indicates bad code that should be fixed, but won't kill anything, so using ensure)
-	ensureMsg(DllDirectoryStack.Num() > 0, TEXT("Tried to PopDllDirectory too many times"));
+	ensureMsgf(DllDirectoryStack.Num() > 0, TEXT("Tried to PopDllDirectory too many times"));
 	// verify we are popping the top
 	checkf(DllDirectoryStack.Top() == Directory, TEXT("There was a PushDllDirectory/PopDllDirectory mismatch (Popped %s, which didn't match %s)"), *DllDirectoryStack.Top(), Directory);
 	// pop it off

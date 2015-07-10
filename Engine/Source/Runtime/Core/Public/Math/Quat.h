@@ -380,7 +380,7 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		ensureOnceMsgf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
+		ensureMsgf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}

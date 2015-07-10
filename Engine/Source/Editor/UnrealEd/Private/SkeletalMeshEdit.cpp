@@ -957,7 +957,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 			else
 			{
 				// this should not happen, we already checked before adding
-				ensureMsg(0, TEXT("FBX Import: Critical error: no memory?"));
+				ensureMsgf(0, TEXT("FBX Import: Critical error: no memory?"));
 			}
 		}
 		else

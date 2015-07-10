@@ -1229,7 +1229,7 @@ struct FEditoronlyBlueprintHelper
 								}
 								else
 								{
-									ensureMsg(false, TEXT("Can not describe why the blueprint should be fixed."));
+									ensureMsgf(false, TEXT("Can not describe why the blueprint should be fixed."));
 									UE_LOG(LogBlueprint, Warning, TEXT("%s Unknown reason. Pin '%s' on node '%s'"), *ReasonPrefix, *PinName, *PinNodeName);
 								}
 							}

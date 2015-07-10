@@ -779,7 +779,7 @@ void UNetDriver::InternalProcessRemoteFunction
 		{
 			FString Error(FString::Printf(TEXT("Attempt to replicate function '%s' on Actor '%s' while it is in the middle of variable replication!"), *Function->GetName(), *Actor->GetName()));
 			UE_LOG(LogScript, Error, TEXT("%s"), *Error);
-			ensureMsg(false, *Error);
+			ensureMsgf(false, *Error);
 			return;
 		}
 
