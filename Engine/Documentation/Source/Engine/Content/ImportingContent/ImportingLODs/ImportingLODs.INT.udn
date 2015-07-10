@@ -1,5 +1,5 @@
 Availability:Docs
-Title:Importing Static Mesh LODs
+Title:Import Static Mesh LODs
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import Static Mesh LODs from an external program.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
@@ -96,7 +96,41 @@ The UE4 FBX import pipeline uses **FBX 2014**. Using a different version during 
 
 ##	Importing Static Mesh LODs
 
-STILL NEED TO ADD IMPORT INFORMATION HERE.
+1.	Inside the editor, **click** the **Import** button (pictured below).
+
+	![](ImportButton_UI.png)
+
+1.	Locate and **select** the FBX file you want to import (example pictured below).
+
+	![](ImportDialogBox.png)
+
+1.	**Click Open** to begin importing the mesh file to your project (pictured above).
+
+1.	Inside the **FBX Import Options** dialog box, choose the appropriate settings. (example pictured below).
+
+	![](ImportMeshLODs_Option.png)
+
+	[REGION:warning]
+	Default settings should be sufficient; however, make sure that **Import LODs** is enabled (pictured above).
+	[/REGION]
+
+1.	**Click Import** or **Import All** to import the mesh to your project.
+
+	![](FBX_DialogBox.png)
+
+	[REGION:note]
+	When importing LODs, the name of the imported mesh will follow default [Naming Conventions](Engine/Content/FBX/ImportOptions#NamingConventions). Refer to our  [FBX Import Dialog](Engine/Content/FBX/ImportOptions) documentation for additional information about all of the settings.
+	[/REGION]
+
+1.	The resulting mesh is displayed in the **Content Browser** if the process was successful (example pictured below).
+
+	![](ImportedStaticMesh.png)
+
+1.	**Double-click** the static mesh to open the **Static Mesh Editor**. By viewing the imported mesh in the **Static Mesh Editor**, you can cycle through its LODs using the **Auto LOD** dropdown (click the image pictured below).
+
+	[REGION:lightbox]
+		[![](AutoLOD.png)(w:925)](AutoLOD.png)
+	[/REGION]
 
 Now that we've reached the end of this tutorial, you've learned how to:
 
