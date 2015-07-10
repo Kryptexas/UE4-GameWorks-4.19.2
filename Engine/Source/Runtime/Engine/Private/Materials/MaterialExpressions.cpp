@@ -1211,7 +1211,12 @@ FExpressionInput* UMaterialExpressionTextureSample::GetInput(int32 InputIndex)
 		IF_INPUT_RETURN(TextureObject);
 	}
 
-	if(MipValueMode != TMVM_None)
+	if(MipValueMode == TMVM_Derivative)
+	{
+		IF_INPUT_RETURN(CoordinatesDX);
+		IF_INPUT_RETURN(CoordinatesDY);
+	}
+	else if(MipValueMode != TMVM_None)
 	{
 		IF_INPUT_RETURN(MipValue);
 	}
@@ -1239,6 +1244,11 @@ FString UMaterialExpressionTextureSample::GetInputName(int32 InputIndex) const
 	else if(MipValueMode == TMVM_MipBias)
 	{
 		IF_INPUT_RETURN(MipValue, TEXT("MipBias"));
+	}
+	else if(MipValueMode == TMVM_Derivative)
+	{
+		IF_INPUT_RETURN(CoordinatesDX, TEXT("DDX(UVs)"));
+		IF_INPUT_RETURN(CoordinatesDY, TEXT("DDY(UVs)"));
 	}
 
 	return TEXT("");
@@ -1341,7 +1351,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				TextureCodeIndex,
 				Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 				(EMaterialSamplerType)EffectiveSamplerType,
-				MipValue.Expression ? MipValue.Compile(Compiler) : Compiler->Constant(ConstMipValue),
+				CompileMipValue0(Compiler),
+				CompileMipValue1(Compiler),
 				MipValueMode,
 				SamplerSource
 				);
@@ -1403,6 +1414,11 @@ uint32 UMaterialExpressionTextureSample::GetInputType(int32 InputIndex)
 	{
 		IF_INPUT_RETURN(MipValue, MCT_Float);
 	}
+	else if(MipValueMode == TMVM_Derivative)
+	{
+		IF_INPUT_RETURN(CoordinatesDX, MCT_Float);
+		IF_INPUT_RETURN(CoordinatesDY, MCT_Float);
+	}
 
 	return MCT_Unknown;
 }
@@ -1420,6 +1436,36 @@ void UMaterialExpressionTextureSample::GetConnectorToolTip(int32 InputIndex, int
 }
 #endif
 
+int32 UMaterialExpressionTextureSample::CompileMipValue0(class FMaterialCompiler* Compiler)
+{
+	if (MipValueMode == TMVM_Derivative)
+	{
+		if (CoordinatesDX.Expression)
+		{
+			return CoordinatesDX.Compile(Compiler);
+		}
+	}
+	else if (MipValue.Expression)
+	{
+		return MipValue.Compile(Compiler);
+	}
+	else
+	{
+		return Compiler->Constant(ConstMipValue);
+	}
+
+	return INDEX_NONE;
+}
+
+int32 UMaterialExpressionTextureSample::CompileMipValue1(class FMaterialCompiler* Compiler)
+{
+	if (MipValueMode == TMVM_Derivative && CoordinatesDY.Expression)
+	{
+		return CoordinatesDY.Compile(Compiler);
+	}
+
+	return INDEX_NONE;
+}
 
 
 UMaterialExpressionAdd::UMaterialExpressionAdd(const FObjectInitializer& ObjectInitializer)
@@ -1490,11 +1536,15 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		return UMaterialExpressionTextureSample::Compile(Compiler, OutputIndex, MultiplexIndex);
 	}
 
+	int32 MipValue0Index = CompileMipValue0(Compiler);
+	int32 MipValue1Index = CompileMipValue1(Compiler);
+
 	return Compiler->TextureSample(
 					Compiler->TextureParameter(ParameterName, Texture, SamplerSource),
 					Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 					(EMaterialSamplerType)SamplerType,
-					MipValue.Expression ? MipValue.Compile(Compiler) : Compiler->Constant(ConstMipValue),
+					MipValue0Index,
+					MipValue1Index,
 					MipValueMode,
 					SamplerSource
 					);

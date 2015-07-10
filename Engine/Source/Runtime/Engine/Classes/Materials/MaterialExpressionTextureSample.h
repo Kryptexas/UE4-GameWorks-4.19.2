@@ -10,9 +10,18 @@
 UENUM()
 enum ETextureMipValueMode
 {
+	/* Use hardware computed sample's mip level with automatic anisotropic filtering support. */
 	TMVM_None UMETA(DisplayName="None (use computed mip level)"),
+
+	/* Explicitly compute the sample's mip level. Disables anisotropic filtering. */
 	TMVM_MipLevel UMETA(DisplayName="MipLevel (absolute, 0 is full resolution)"),
+	
+	/* Bias the hardware computed sample's mip level. Disables anisotropic filtering. */
 	TMVM_MipBias UMETA(DisplayName="MipBias (relative to the computed mip level)"),
+	
+	/* Explicitly compute the sample's DDX and DDY for anisotropic filtering. */
+	TMVM_Derivative UMETA(DisplayName="Derivative (explicit derivative to compute mip level)"),
+
 	TMVM_MAX,
 };
 
@@ -34,6 +43,14 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	/** Meaning depends on MipValueMode, a single unit is one mip level  */
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstMipValue' if not specified"))
 	FExpressionInput MipValue;
+	
+	/** Enabled only if MipValueMode == TMVM_Derivative */
+	UPROPERTY(meta = (RequiredInput = "true", ToolTip = "Coordinates derivative over the X axis"))
+	FExpressionInput CoordinatesDX;
+	
+	/** Enabled only if MipValueMode == TMVM_Derivative */
+	UPROPERTY(meta = (RequiredInput = "true", ToolTip = "Coordinates derivative over the Y axis"))
+	FExpressionInput CoordinatesDY;
 
 	/** Defines how the MipValue property is applied to the texture lookup */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSample, meta=(DisplayName = "MipValueMode"))
@@ -79,4 +96,10 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	// End UMaterialExpression Interface
 
 	void UpdateTextureResource(class UTexture* InTexture);
+	
+	int32 CompileMipValue0(class FMaterialCompiler* Compiler);
+	int32 CompileMipValue1(class FMaterialCompiler* Compiler);
 };
+
+
+

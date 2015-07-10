@@ -2288,7 +2288,8 @@ protected:
 		int32 TextureIndex,
 		int32 CoordinateIndex,
 		EMaterialSamplerType SamplerType,
-		int32 MipValueIndex=INDEX_NONE,
+		int32 MipValue0Index=INDEX_NONE,
+		int32 MipValue1Index=INDEX_NONE,
 		ETextureMipValueMode MipValueMode=TMVM_None,
 		ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
 		) override
@@ -2318,10 +2319,13 @@ protected:
 			return INDEX_NONE;
 		}
 
-		FString MipValueCode =
-			(MipValueIndex != INDEX_NONE && MipValueMode != TMVM_None)
-			? CoerceParameter(MipValueIndex, MCT_Float1)
-			: TEXT("0.0f");
+		FString MipValue0Code = TEXT("0.0f");
+		FString MipValue1Code = TEXT("0.0f");
+
+		if (MipValue0Index != INDEX_NONE && (MipValueMode == TMVM_MipBias || MipValueMode == TMVM_MipLevel))
+		{
+			MipValue0Code = CoerceParameter(MipValue0Index, MCT_Float1);
+		}
 
 		// if we are not in the PS we need a mip level
 		if(ShaderFrequency != SF_Pixel)
@@ -2350,6 +2354,8 @@ protected:
 			(TextureType == MCT_TextureCube)
 			? TEXT("TextureCubeSample")
 			: TEXT("Texture2DSample");
+		
+		EMaterialValueType UVsType = (TextureType == MCT_TextureCube) ? MCT_Float3 : MCT_Float2;
 	
 		if(MipValueMode == TMVM_None)
 		{
@@ -2370,6 +2376,26 @@ protected:
 		else if(MipValueMode == TMVM_MipBias)
 		{
 			SampleCode += TEXT("Bias(%s,%sSampler,%s,%s)");
+		}
+		else if(MipValueMode == TMVM_Derivative)
+		{
+			if (MipValue0Index == INDEX_NONE)
+			{
+				return Errorf(TEXT("Missing DDX(UVs) parameter"));
+			}
+			else if (MipValue1Index == INDEX_NONE)
+			{
+				return Errorf(TEXT("Missing DDY(UVs) parameter"));
+			}
+
+			SampleCode += TEXT("Grad(%s,%sSampler,%s,%s,%s)");
+
+			MipValue0Code = CoerceParameter(MipValue0Index, UVsType);
+			MipValue1Code = CoerceParameter(MipValue1Index, UVsType);
+		}
+		else
+		{
+			check(0);
 		}
 
 		switch( SamplerType )
@@ -2417,10 +2443,7 @@ protected:
 			? CoerceParameter(TextureIndex, MCT_TextureCube)
 			: CoerceParameter(TextureIndex, MCT_Texture2D);
 
-		FString UVs =
-			(TextureType == MCT_TextureCube)
-			? CoerceParameter(CoordinateIndex, MCT_Float3)
-			: CoerceParameter(CoordinateIndex, MCT_Float2);
+		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
 		return AddCodeChunk(
 			MCT_Float4,
@@ -2428,7 +2451,8 @@ protected:
 			*TextureName,
 			*TextureName,
 			*UVs,
-			*MipValueCode
+			*MipValue0Code,
+			*MipValue1Code
 			);
 	}
 

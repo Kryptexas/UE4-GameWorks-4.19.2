@@ -2146,6 +2146,8 @@ void FMaterialEditor::OnConvertObjects()
 							NewTextureExpr->IsDefaultMeshpaintTexture = TextureSampleExpression->IsDefaultMeshpaintTexture;
 							NewTextureExpr->TextureObject = TextureSampleExpression->TextureObject;
 							NewTextureExpr->MipValue = TextureSampleExpression->MipValue;
+							NewTextureExpr->CoordinatesDX = TextureSampleExpression->CoordinatesDX;
+							NewTextureExpr->CoordinatesDY = TextureSampleExpression->CoordinatesDY;
 							NewTextureExpr->MipValueMode = TextureSampleExpression->MipValueMode;
 							NewGraphNode->ReconstructNode();
 						}
