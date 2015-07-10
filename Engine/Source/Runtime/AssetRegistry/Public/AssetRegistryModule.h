@@ -67,9 +67,9 @@ public:
 	}
 
 	/** Access the dependent package names for a given source package */
-	void GetDependencies(FName InPackageName, TArray<FName>& OutDependencies) override
+	void GetDependencies(FName InPackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) override
 	{
-		Get().GetDependencies(InPackageName, OutDependencies);
+		Get().GetDependencies(InPackageName, OutDependencies, InDependencyType);
 	}
 
 private:

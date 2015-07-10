@@ -5,6 +5,20 @@
 #include "ModuleManager.h"
 #include "CoreUObject.h"
 
+namespace EAssetRegistryDependencyType
+{
+	enum Type
+	{
+		// Dependencies which don't need to be loaded for the object to be used (i.e. string asset references)
+		Soft = 1,
+
+		// Dependencies which are required for correct usage of the source asset, and must be loaded at the same time
+		Hard = 2
+	};
+
+	static const Type All = (Type)(Soft | Hard);
+};
+
 /**
 * HotReload module interface
 */
@@ -28,6 +42,6 @@ public:
 	/**
 	* Lookup dependencies for the given package name and fill OutDependencies with direct dependencies
 	*/
-	virtual void GetDependencies(FName InPackageName, TArray<FName>& OutDependencies) = 0;
+	virtual void GetDependencies(FName InPackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) = 0;
 };
 

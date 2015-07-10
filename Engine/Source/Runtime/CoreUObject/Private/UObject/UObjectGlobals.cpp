@@ -975,7 +975,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 				TArray<FName> PackageDependencies;
 				FName PackageName(InLongPackageName);
 
-				AssetRegistry->GetDependencies(PackageName, PackageDependencies);
+				AssetRegistry->GetDependencies(PackageName, PackageDependencies, EAssetRegistryDependencyType::Hard);
 
 				Result->PackageFlags |= PKG_ProcessingDependencies;
 				for (auto Dependency : PackageDependencies)

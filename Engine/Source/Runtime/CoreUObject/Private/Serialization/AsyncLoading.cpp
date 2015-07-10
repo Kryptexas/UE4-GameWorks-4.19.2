@@ -449,12 +449,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 			if (AssetRegistry)
 			{
 				TArray<FName> Dependencies;
-				AssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies);
-
-				int32 PIEInstanceID = INDEX_NONE;
-#if WITH_EDITOR
-				PIEInstanceID = InRequest->PIEInstanceID;
-#endif
+				AssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
 
 				if (InRootPackage == nullptr)
 				{
@@ -468,7 +463,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 						QueuedPackagesCounter.Increment();
 						const int32 RequestID = GPackageRequestID.Increment();
 						FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
-						FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, PIEInstanceID, InRequest->Priority);
+						FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
 						InDependencyTracker.Add(InRequest->Name);
 						ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker);
 					}

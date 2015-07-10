@@ -11,6 +11,20 @@
 
 DEFINE_LOG_CATEGORY(LogAssetRegistry);
 
+/** Enum for tracking versions of the "mini" runtime asset registry that gets used by iterative cooking and the runtime
+	dependency preloading system */
+enum class ERuntimeRegistryVersion
+{
+	PreVersioning,					// From before file versioning was implemented
+	HardSoftDependencies,			// The first version of the runtime asset registry to include file versioning. 
+
+	LatestPlusOne,
+	Latest = (LatestPlusOne - 1),
+};
+
+/** Guid for the "mini" runtime asset registry file format, used for identification purposes */
+static const FGuid GRuntimeRegistryGuid(0x717F9EE7, 0xE9B0493A, 0x88B39132, 0x1B388107);
+
 /** Returns the appropriate ChunkProgressReportingType for the given Asset enum */
 EChunkProgressReportingType::Type GetChunkAvailabilityProgressType(EAssetAvailabilityProgressReportingType::Type ReportType)
 {
@@ -29,6 +43,31 @@ EChunkProgressReportingType::Type GetChunkAvailabilityProgressType(EAssetAvailab
 		break;
 	}
 	return ChunkReportType;
+}
+
+/** Helper function for reading the header of the "mini" runtime asset registry. It deals with the header not
+    existing for old formats of the file */
+inline ERuntimeRegistryVersion ReadRuntimeRegistryVersion(FArchive& Ar)
+{
+	auto InitialLocation = Ar.Tell();
+	FGuid Guid;
+	Ar << Guid;
+
+	ERuntimeRegistryVersion Version = ERuntimeRegistryVersion::PreVersioning;
+
+	if (Guid == GRuntimeRegistryGuid)
+	{
+		int32 VersionInt;
+		Ar << VersionInt;
+		Version = (ERuntimeRegistryVersion)VersionInt;
+	}
+	else
+	{
+		// This is an old format file, so skip back to where we started
+		Ar.Seek(InitialLocation);
+	}
+
+	return Version;
 }
 
 FAssetRegistry::FAssetRegistry()
@@ -693,7 +732,7 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData) const
 	return true;
 }
 
-bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDependencies) const
+bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
 {
 	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(PackageName);
 	const FDependsNode* Node = NULL;
@@ -704,14 +743,7 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 
 	if (Node != NULL)
 	{
-		TArray<FDependsNode*> DependencyNodes;
-		Node->GetDependencies(DependencyNodes);
-
-		for ( auto NodeIt = DependencyNodes.CreateConstIterator(); NodeIt; ++NodeIt )
-		{
-			OutDependencies.Add((*NodeIt)->PackageName);
-		}
-
+		Node->GetDependencies(OutDependencies, InDependencyType);
 		return true;
 	}
 	else
@@ -736,7 +768,7 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 
 		for ( auto NodeIt = DependencyNodes.CreateConstIterator(); NodeIt; ++NodeIt )
 		{
-			OutReferencers.Add((*NodeIt)->PackageName);
+			OutReferencers.Add((*NodeIt)->GetPackageName());
 		}
 
 		return true;
@@ -1312,6 +1344,8 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 	// load in by building the TMap
 	else
 	{
+		auto Version = ReadRuntimeRegistryVersion(Ar);
+
 		// serialize number of objects
 		int32 LocalNumAssets = 0;
 		Ar << LocalNumAssets;
@@ -1332,41 +1366,59 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 			AddAssetPath(NewAssetData->PackagePath.ToString());
 		}
 
-		int32 LocalNumDependsNodes = 0;
-		Ar << LocalNumDependsNodes;
+		int32 LocalNumDependsNodes = LocalNumAssets;
+		if (Version == ERuntimeRegistryVersion::PreVersioning)
+		{
+			Ar << LocalNumDependsNodes;
+		}
 
 		PreallocatedDependsNodeDataBuffer = new FDependsNode[LocalNumDependsNodes];
 
 		for (int32 DependsNodeIndex = 0; DependsNodeIndex < LocalNumDependsNodes; DependsNodeIndex++)
 		{
 			auto NewDependsNodeData = &PreallocatedDependsNodeDataBuffer[DependsNodeIndex];
-			int32 AssetIndex = 0;
-			Ar << AssetIndex;
-			NewDependsNodeData->PackageName = PreallocatedAssetDataBuffer[AssetIndex].PackageName;
+			int32 AssetIndex = DependsNodeIndex;
+			if (Version == ERuntimeRegistryVersion::PreVersioning)
+			{
+				Ar << AssetIndex;
+			}
+			NewDependsNodeData->SetPackageName(PreallocatedAssetDataBuffer[AssetIndex].PackageName);
 
-			CachedDependsNodes.Add(NewDependsNodeData->PackageName, NewDependsNodeData);
+			CachedDependsNodes.Add(NewDependsNodeData->GetPackageName(), NewDependsNodeData);
 		}
 
 		for (int32 DependsNodeIndex = 0; DependsNodeIndex < LocalNumDependsNodes; DependsNodeIndex++)
 		{
 			auto NewDependsNodeData = &PreallocatedDependsNodeDataBuffer[DependsNodeIndex];
-			int32 LocalNumDependencies = 0;
+			int32 LocalNumHardDependencies = 0;
+			int32 LocalNumSoftDependencies = 0;
 			int32 LocalNumReferencers = 0;
-			Ar << LocalNumDependencies;
+			Ar << LocalNumHardDependencies;
+			if (Version >= ERuntimeRegistryVersion::HardSoftDependencies)
+			{
+				Ar << LocalNumSoftDependencies;
+			}
 			Ar << LocalNumReferencers;
 
-			for (int32 DependencyIndex = 0; DependencyIndex < LocalNumDependencies; ++DependencyIndex)
+			for (int32 DependencyIndex = 0; DependencyIndex < LocalNumHardDependencies; ++DependencyIndex)
 			{
 				int32 Index = 0;
 				Ar << Index;
-				NewDependsNodeData->Dependencies.Add(&PreallocatedDependsNodeDataBuffer[Index]);
+				NewDependsNodeData->AddDependency(&PreallocatedDependsNodeDataBuffer[Index], EAssetRegistryDependencyType::Hard);
+			}
+
+			for (int32 DependencyIndex = 0; DependencyIndex < LocalNumSoftDependencies; ++DependencyIndex)
+			{
+				int32 Index = 0;
+				Ar << Index;
+				NewDependsNodeData->AddDependency(&PreallocatedDependsNodeDataBuffer[Index], EAssetRegistryDependencyType::Soft);
 			}
 
 			for (int32 ReferencerIndex = 0; ReferencerIndex < LocalNumReferencers; ++ReferencerIndex)
 			{
 				int32 Index = 0;
 				Ar << Index;
-				NewDependsNodeData->Referencers.Add(&PreallocatedDependsNodeDataBuffer[Index]);
+				NewDependsNodeData->AddReferencer(&PreallocatedDependsNodeDataBuffer[Index]);
 			}
 		}
 	}
@@ -1376,25 +1428,24 @@ void AddDependsNodesRecursive(FDependsNode* InDependsNode, TArray<FDependsNode*>
 {
 	if (!OutArray.Contains(InDependsNode))
 	{
-		if (InAssets.Contains(InDependsNode->PackageName))
+		if (InAssets.Contains(InDependsNode->GetPackageName()))
 		{
 			OutArray.Add(InDependsNode);
 
-			for (auto Dependency : InDependsNode->Dependencies)
-			{
-				AddDependsNodesRecursive(Dependency, OutArray, InAssets);
-			}
-
-			for (auto Referencer : InDependsNode->Referencers)
-			{
-				AddDependsNodesRecursive(Referencer, OutArray, InAssets);
-			}
+			InDependsNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType){AddDependsNodesRecursive(InDependency, OutArray, InAssets); });
+			InDependsNode->IterateOverReferencers([&](FDependsNode* InReferencer){AddDependsNodesRecursive(InReferencer, OutArray, InAssets); });
 		}
 	}
 }
 
 void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps /* = nullptr */)
 {
+	// Write mini asset registry header
+	FGuid LocalGuid = GRuntimeRegistryGuid;
+	LocalGuid.Serialize(Ar);
+	int32 VersionInt = (int32)ERuntimeRegistryVersion::Latest;
+	Ar << VersionInt;
+
 	// serialize number of objects
 	int32 AssetCount = Data.Num();
 	Ar << AssetCount;
@@ -1409,73 +1460,83 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	{
 		Ar << *It.Value();
 		AssetIndexMap.Add(It.Value()->PackageName, AssetIndexMap.Num());
-
-		AddDependsNodesRecursive(FindDependsNode(It.Value()->PackageName), Dependencies, Data);
-	}
-
-	int32 DependsNodeCount = Dependencies.Num();
-	Ar << DependsNodeCount;
-
-	TMap<FDependsNode*, int32> DependencyIndexMap;
-	DependencyIndexMap.Reserve(DependsNodeCount);
-
-	for (auto DependentNode : Dependencies)
-	{
-		int32 AssetIndex = AssetIndexMap[DependentNode->PackageName];
-		Ar << AssetIndex;
-		DependencyIndexMap.Add(DependentNode, DependencyIndexMap.Num());
+		Dependencies.Add(FindDependsNode(It.Value()->PackageName));
 	}
 
 	for (auto DependentNode : Dependencies)
 	{
-		auto DependencyCount = 0;
+		auto HardDependencyCount = 0;
+		auto SoftDependencyCount = 0;
 		auto ReferencerCount = 0;
 
-		for (auto Dependency : DependentNode->Dependencies)
+		DependentNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
 		{
-			bool bIsMap = InMaps && InMaps->Contains(Dependency->PackageName);
-		
-			if (!bIsMap && DependencyIndexMap.Contains(Dependency))
-			{
-				DependencyCount++;
-			}
-		}
+			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
 
-		for (auto Referencer : DependentNode->Referencers)
+			if (!bIsMap && AssetIndexMap.Contains(InDependency->GetPackageName()))
+			{
+				if (InDependencyType == EAssetRegistryDependencyType::Hard)
+				{
+					HardDependencyCount++;
+				}
+				else
+				{
+					SoftDependencyCount++;
+				}
+			}
+		});
+
+		DependentNode->IterateOverReferencers([&](FDependsNode* InReferencer)
 		{
-			if (DependencyIndexMap.Contains(Referencer))
+			if (AssetIndexMap.Contains(InReferencer->GetPackageName()))
 			{
 				ReferencerCount++;
 			}
-		}
+		});
 
-		Ar << DependencyCount;
+		Ar << HardDependencyCount;
+		Ar << SoftDependencyCount;
 		Ar << ReferencerCount;
 
-		for (auto Dependency : DependentNode->Dependencies)
+		DependentNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
 		{
-			bool bIsMap = InMaps && InMaps->Contains(Dependency->PackageName);
+			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
 
-			if (!bIsMap && DependencyIndexMap.Contains(Dependency))
+			if (!bIsMap && AssetIndexMap.Contains(InDependency->GetPackageName()))
 			{
-				int32 Index = DependencyIndexMap[Dependency];
+				int32 Index = AssetIndexMap[InDependency->GetPackageName()];
 				Ar << Index;
 			}
-		}
+		},
+		EAssetRegistryDependencyType::Hard);
 
-		for (auto Referencer : DependentNode->Referencers)
+		DependentNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
 		{
-			if (DependencyIndexMap.Contains(Referencer))
+			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
+
+			if (!bIsMap && AssetIndexMap.Contains(InDependency->GetPackageName()))
 			{
-				int32 Index = DependencyIndexMap[Referencer];
+				int32 Index = AssetIndexMap[InDependency->GetPackageName()];
 				Ar << Index;
 			}
-		}
+		},
+		EAssetRegistryDependencyType::Soft);
+
+		DependentNode->IterateOverReferencers([&](FDependsNode* InReferencer)
+		{
+			if (AssetIndexMap.Contains(InReferencer->GetPackageName()))
+			{
+				int32 Index = AssetIndexMap[InReferencer->GetPackageName()];
+				Ar << Index;
+			}
+		});
 	}
 }
 
 void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FDependsNode*>& OutDependencyData)
 {
+	auto Version = ReadRuntimeRegistryVersion(Ar);
+
 	check(Ar.IsLoading());
 	// serialize number of objects
 	int AssetCount = 0;
@@ -1498,15 +1559,27 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 
 	if (Ar.TotalSize() > Ar.Tell())
 	{
-		int DependsNodeCount = 0;
-		Ar << DependsNodeCount;
+		int DependsNodeCount = AssetCount;
+
+		if (Version == ERuntimeRegistryVersion::PreVersioning)
+		{
+			Ar << DependsNodeCount;
+		}
 
 		OutDependencyData.Reserve(DependsNodeCount);
 
 		for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
 		{
-			int32 AssetIndex;
-			Ar << AssetIndex;
+			int32 AssetIndex = 0;
+
+			if (Version == ERuntimeRegistryVersion::PreVersioning)
+			{
+				Ar << AssetIndex;
+			}
+			else
+			{
+				AssetIndex = OutDependencyData.Num();
+			}
 
 			auto PackageName = AssetIndexMap[AssetIndex];
 			auto NewNode = new FDependsNode(PackageName);
@@ -1515,22 +1588,34 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 
 		for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
 		{
-			int32 NumDependencies = 0;
-			Ar << NumDependencies;
+			int32 NumHardDependencies = 0;
+			Ar << NumHardDependencies;
+
+			int32 NumSoftDependencies = 0;
+			if (Version >= ERuntimeRegistryVersion::HardSoftDependencies)
+			{
+				Ar << NumSoftDependencies;
+			}
 
 			int32 NumReferencers = 0;
 			Ar << NumReferencers;
 
 			auto DependsNode = OutDependencyData[DependsNodeIndex];
-			DependsNode->Dependencies.Reserve(NumDependencies);
-			DependsNode->Referencers.Reserve(NumReferencers);
 
-			for (int32 i = 0; i < NumDependencies; ++i)
+			for (int32 i = 0; i < NumHardDependencies; ++i)
 			{
 				int32 DependencyIndex = 0;
 				Ar << DependencyIndex;
 
-				DependsNode->Dependencies.Add(OutDependencyData[DependencyIndex]);
+				DependsNode->AddDependency(OutDependencyData[DependencyIndex], EAssetRegistryDependencyType::Hard);
+			}
+
+			for (int32 i = 0; i < NumSoftDependencies; ++i)
+			{
+				int32 DependencyIndex = 0;
+				Ar << DependencyIndex;
+
+				DependsNode->AddDependency(OutDependencyData[DependencyIndex], EAssetRegistryDependencyType::Soft);
 			}
 
 			for (int32 i = 0; i < NumReferencers; ++i)
@@ -1538,7 +1623,7 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 				int32 Index = 0;
 				Ar << Index;
 
-				DependsNode->Referencers.Add(OutDependencyData[Index]);
+				DependsNode->AddReferencer(OutDependencyData[Index]);
 			}
 		}
 	}
@@ -1684,35 +1769,41 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 
 		// We will populate the node dependencies below. Empty the set here in case this file was already read
 		// Also remove references to all existing dependencies, those will be also repopulated below
-		for (auto OldDependsIt = Node->Dependencies.CreateConstIterator(); OldDependsIt; ++OldDependsIt)
+		Node->IterateOverDependencies([Node](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
 		{
-			(*OldDependsIt)->Referencers.Remove(Node);
-		}
-		Node->Dependencies.Empty();
+			InDependency->RemoveReferencer(Node);
+		});
+
+		Node->ClearDependencies();
 
 		// Determine the new package dependencies
-		TSet<FName> PackageDependencies;
+		TMap<FName, EAssetRegistryDependencyType::Type> PackageDependencies;
 		for (int32 ImportIdx = 0; ImportIdx < Result.ImportMap.Num(); ++ImportIdx)
 		{
-			PackageDependencies.Add( Result.GetImportPackageName(ImportIdx) );
+			PackageDependencies.Add(Result.GetImportPackageName(ImportIdx), EAssetRegistryDependencyType::Hard);
 		}
+
 		for (int32 StringAssetRefIdx = 0; StringAssetRefIdx < Result.StringAssetReferencesMap.Num(); ++StringAssetRefIdx)
 		{
 			FString PackageName, ObjName;
 			Result.StringAssetReferencesMap[StringAssetRefIdx].Split(".", &PackageName, &ObjName, ESearchCase::CaseSensitive);
-			PackageDependencies.Add(*PackageName);
+
+			if (!PackageDependencies.Contains(*PackageName))
+			{
+				PackageDependencies.Add(*PackageName, EAssetRegistryDependencyType::Soft);
+			}
 		}
 
 
 		// Doubly-link all new dependencies for this package
-		for (auto NewDependsIt = PackageDependencies.CreateConstIterator(); NewDependsIt; ++NewDependsIt)
+		for (auto NewDependsIt : PackageDependencies)
 		{
-			FDependsNode* DependsNode = CreateOrFindDependsNode(*NewDependsIt);
+			FDependsNode* DependsNode = CreateOrFindDependsNode(NewDependsIt.Key);
 			
 			if (DependsNode != NULL)
 			{
-				Node->Dependencies.Add(DependsNode);
-				DependsNode->Referencers.Add(Node);
+				Node->AddDependency(DependsNode, NewDependsIt.Value);
+				DependsNode->AddReferencer(Node);
 			}
 		}
 
@@ -1772,7 +1863,7 @@ bool FAssetRegistry::RemoveDependsNode( FName PackageName )
 			// Remove the reference to this node from all dependencies
 			for ( FDependsNode* DependencyNode : DependencyNodes )
 			{
-				DependencyNode->Referencers.Remove( Node );
+				DependencyNode->RemoveReferencer( Node );
 			}
 
 			TArray<FDependsNode*> ReferencerNodes;
@@ -1781,7 +1872,7 @@ bool FAssetRegistry::RemoveDependsNode( FName PackageName )
 			// Remove the reference to this node from all referencers
 			for ( FDependsNode* ReferencerNode : ReferencerNodes )
 			{
-				ReferencerNode->Dependencies.Remove( Node );
+				ReferencerNode->RemoveDependency(Node);
 			}
 
 			// Remove the node and delete it
