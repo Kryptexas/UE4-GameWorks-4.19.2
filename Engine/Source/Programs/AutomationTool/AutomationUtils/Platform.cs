@@ -508,6 +508,11 @@ namespace AutomationTool
 			return false;
 		}
 
+		public virtual bool SignExecutables(DeploymentContext SC, ProjectParams Params)
+		{
+			return true;
+		}
+
 		public virtual UnrealTargetPlatform[] GetStagePlatforms()
 		{
 			return new UnrealTargetPlatform[] { PlatformType };
