@@ -482,6 +482,9 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 			bool bGlobalUniformBufferUsed = false;
 			uint32 NumSamplers = 0;
+			uint32 NumSRVs = 0;
+			uint32 NumCBs = 0;
+			uint32 NumUAVs = 0;
 
 			TBitArray<> UsedUniformBufferSlots;
 			UsedUniformBufferSlots.Init(false,32);
@@ -547,6 +550,8 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 							);
 						UsedUniformBufferSlots[CBIndex] = true;
 					}
+
+					NumCBs = FMath::Max(NumCBs, BindDesc.BindPoint + BindDesc.BindCount);
 				}
 				else if (BindDesc.Type == D3D10_SIT_TEXTURE || BindDesc.Type == D3D10_SIT_SAMPLER)
 				{
@@ -592,7 +597,11 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 					if (BindDesc.Type == D3D10_SIT_SAMPLER)
 					{
-						NumSamplers += BindCount;
+						NumSamplers = FMath::Max(NumSamplers, BindDesc.BindPoint + BindDesc.BindCount);
+					}
+					else if (BindDesc.Type == D3D10_SIT_TEXTURE)
+					{
+						NumSRVs = FMath::Max(NumSRVs, BindDesc.BindPoint + BindDesc.BindCount);
 					}
 
 					// Add a parameter for the texture only, the sampler index will be invalid
@@ -616,6 +625,8 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 							BindDesc.BindPoint,
 							1
 							);
+
+						NumUAVs = FMath::Max(NumUAVs, BindDesc.BindPoint + BindDesc.BindCount);
 					}
 				else if (BindDesc.Type == D3D11_SIT_STRUCTURED || BindDesc.Type == D3D11_SIT_BYTEADDRESS)
 				{
@@ -628,6 +639,8 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 						BindDesc.BindPoint,
 						1
 						);
+
+					NumSRVs = FMath::Max(NumSRVs, BindDesc.BindPoint + BindDesc.BindCount);
 				}
 			}
 
@@ -680,8 +693,12 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			Ar << SRT;
 			Ar.Serialize( CompressedData->GetBufferPointer(), CompressedData->GetBufferSize() );
 
-			// Pack bGlobalUniformBufferUsed in the last byte
-			Output.Code.Add( bGlobalUniformBufferUsed );
+			// Pack bGlobalUniformBufferUsed and resource counts in the last few bytes
+			Output.Code.Add(bGlobalUniformBufferUsed);
+			Output.Code.Add(NumSamplers);
+			Output.Code.Add(NumSRVs);
+			Output.Code.Add(NumCBs);
+			Output.Code.Add(NumUAVs);
 
 			// Set the number of instructions.
 			Output.NumInstructions = ShaderDesc.InstructionCount;
