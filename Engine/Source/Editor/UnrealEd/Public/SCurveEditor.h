@@ -469,7 +469,7 @@ private:
 	TSharedPtr<FCurveViewModel> HitTestCurves(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	/* user is moving the tangents */
-	void MoveTangents(FTrackScaleInfo ScaleInfo, FVector2D Delta);
+	void MoveTangents(FTrackScaleInfo& ScaleInfo, FVector2D Delta);
 
 	//Curve Selection interface 
 

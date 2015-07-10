@@ -2920,7 +2920,7 @@ bool SCurveEditor::IsPostInfinityExtrapSelected(ERichCurveExtrapolation Extrapol
 	return CurveViewModels.Num() > 0;
 }
 
-void SCurveEditor::MoveTangents(FTrackScaleInfo ScaleInfo, FVector2D Delta)
+void SCurveEditor::MoveTangents(FTrackScaleInfo& ScaleInfo, FVector2D Delta)
 {
 	for (auto SelectedTangent : SelectedTangents)
 	{
