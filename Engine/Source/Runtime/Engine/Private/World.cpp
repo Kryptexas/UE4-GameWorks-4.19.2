@@ -4027,6 +4027,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 bool UWorld::Listen( FURL& InURL )
 {
+#if WITH_SERVER_CODE
 	if( NetDriver )
 	{
 		GEngine->BroadcastNetworkFailure(this, NetDriver, ENetworkFailure::NetDriverAlreadyExists);
@@ -4063,6 +4064,9 @@ bool UWorld::Listen( FURL& InURL )
 
 	NextSwitchCountdown = NetDriver->ServerTravelPause;
 	return true;
+#else
+	return false;
+#endif // WITH_SERVER_CODE
 }
 
 bool UWorld::IsClient()
