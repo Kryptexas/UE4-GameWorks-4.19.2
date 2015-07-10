@@ -648,7 +648,7 @@ public:
 	 * @param bTeleport		Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *						If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *						If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *						If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *						If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param SweepHitResult	The hit result from the move if swept.
 	 * @return	Whether the location was successfully set (if not swept), or whether movement occurred at all (if swept).
 	 */
@@ -695,7 +695,7 @@ public:
 	 * @param bTeleport		Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *						If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *						If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *						If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *						If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param OutSweepHitResult The hit result from the move if swept.
 	 * @return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
 	 */
@@ -721,7 +721,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param SweepHitResult	The hit result from the move if swept.
 	 * @return	Whether the rotation was successfully set.
 	 */
@@ -738,7 +738,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param OutSweepHitResult	The hit result from the move if swept.
 	 * @return	Whether the rotation was successfully set.
 	 */
@@ -782,7 +782,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param SweepHitResult	The hit result from the move if swept.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorWorldOffset", Keywords="location position"))
@@ -797,7 +797,7 @@ public:
 	 * @param Teleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If TeleportPhysics, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If None, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param SweepHitResult	The hit result from the move if swept.
 	 */
 	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
@@ -811,7 +811,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param SweepHitResult	The hit result from the move if swept.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorWorldRotation", AdvancedDisplay="bSweep,SweepHitResult,bTeleport"))
@@ -834,7 +834,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorTransform"))
 	bool K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
@@ -849,7 +849,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalOffset", Keywords="location position"))
 	void K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
@@ -864,7 +864,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalRotation", AdvancedDisplay="bSweep,SweepHitResult,bTeleport"))
 	void K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
@@ -880,7 +880,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalTransform"))
 	void K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
@@ -895,7 +895,7 @@ public:
 	 * @param bTeleport				Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *								If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *								If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *								If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *								If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeLocation"))
 	void K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
@@ -909,7 +909,7 @@ public:
 	 * @param bTeleport				Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *								If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *								If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *								If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *								If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult,bTeleport"))
 	void K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
@@ -924,7 +924,7 @@ public:
 	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
 	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
 	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
-	 *							If CCD is on and not teleporting, this will affect objects along the entire sweep volume.
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeTransform"))
 	void K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
