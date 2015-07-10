@@ -573,20 +573,20 @@ struct FRHICommandSetRenderTargetsAndClear : public FRHICommand<FRHICommandSetRe
 };
 
 struct FRHICommandBindClearMRTValues : public FRHICommand<FRHICommandBindClearMRTValues>
-{	
+{
 	bool bClearColor;
 	bool bClearDepth;
 	bool bClearStencil;
 
 	FORCEINLINE_DEBUGGABLE FRHICommandBindClearMRTValues(
-		bool InbClearColor,		
-		bool InbClearDepth,		
+		bool InbClearColor,
+		bool InbClearDepth,
 		bool InbClearStencil
 		) 
 		: bClearColor(InbClearColor)
 		, bClearDepth(InbClearDepth)
 		, bClearStencil(InbClearStencil)
-	{		
+	{
 	}	
 
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -2114,14 +2114,14 @@ public:
 		return GDynamicRHI->RHICreateUnorderedAccessView(StructuredBuffer, bUseUAVCounter, bAppendBuffer);
 	}
 	
-	FORCEINLINE FUnorderedAccessViewRHIRef CreateUnorderedAccessView(FTextureRHIParamRef Texture)
+	FORCEINLINE FUnorderedAccessViewRHIRef CreateUnorderedAccessView(FTextureRHIParamRef Texture, uint32 MipLevel)
 	{
 		if(GRHIThread)
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateUnorderedAccessView_WaitRHI);
 			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
 		}
-		return GDynamicRHI->RHICreateUnorderedAccessView(Texture);
+		return GDynamicRHI->RHICreateUnorderedAccessView(Texture, MipLevel);
 	}
 	
 	FORCEINLINE FUnorderedAccessViewRHIRef CreateUnorderedAccessView(FVertexBufferRHIParamRef VertexBuffer, uint8 Format)
@@ -2799,9 +2799,9 @@ FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FStructuredB
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateUnorderedAccessView(StructuredBuffer, bUseUAVCounter, bAppendBuffer);
 }
 
-FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FTextureRHIParamRef Texture)
+FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FTextureRHIParamRef Texture, uint32 MipLevel = 0)
 {
-	return FRHICommandListExecutor::GetImmediateCommandList().CreateUnorderedAccessView(Texture);
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateUnorderedAccessView(Texture, MipLevel);
 }
 
 FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FVertexBufferRHIParamRef VertexBuffer, uint8 Format)
