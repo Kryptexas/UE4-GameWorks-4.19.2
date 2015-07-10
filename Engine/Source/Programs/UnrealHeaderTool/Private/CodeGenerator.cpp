@@ -4065,6 +4065,8 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		FString EvalParameterText;				// e.g. (UObject*,NULL)
 
 		FString TypeText;
+		bool bPassAsNoPtr = false;
+
 		if (Param->ArrayDim > 1)
 		{
 			EvalBaseText += TEXT("ARRAY");
@@ -4074,8 +4076,17 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		{
 			EvalBaseText += Param->GetCPPMacroType(TypeText);
 		}
+
+		if (Param->HasAllPropertyFlags(CPF_UObjectWrapper | CPF_OutParm) 
+			&& Param->IsA(UClassProperty::StaticClass()))
+		{
+			TypeText = Param->GetCPPType();
+			bPassAsNoPtr = true;
+		}
+
 		FUHTStringBuilder ReplacementText;
 		ReplacementText += TypeText;
+		
 		ApplyAlternatePropertyExportText(Param, ReplacementText);
 		TypeText = ReplacementText;
 
@@ -4085,7 +4096,16 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		// if this property is an out parm, add the REF tag
 		if (Param->PropertyFlags & CPF_OutParm)
 		{
+			if (!bPassAsNoPtr)
+			{
 			EvalModifierText += TEXT("_REF");
+			}
+			else
+			{
+				// Parameters passed as TSubclassOf<Class>& shouldn't have asterisk added.
+				EvalModifierText += TEXT("_REF_NO_PTR");	
+			}
+
 			ParamPrefix += TEXT("Out_");
 		}
 
