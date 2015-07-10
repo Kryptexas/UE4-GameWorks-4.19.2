@@ -1,5 +1,5 @@
 Availability:Docs
-Title:Importing Audio
+Title:Import Audio
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import audio content into Unreal Editor.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
@@ -106,7 +106,7 @@ The following steps demonstrate a specific use-case for importing a 4.0 surround
 Exporting a multi-channel sound asset will create a mono ** .WAV ** file for each channel with the above speaker extension naming convention.
 [/REGION]
 
-1.	From inside the editor, **click** the **Import** button (pictured below).
+1.	Inside the editor, **click** the **Import** button (pictured below).
 
 	![](ImportButtonUI_Multi.png)
 
@@ -146,7 +146,7 @@ Exporting a multi-channel sound asset will create a mono ** .WAV ** file for eac
 
 It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
 
-1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+1.	Inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
 
 	![](FolderDialogBox_UI.png)
 
