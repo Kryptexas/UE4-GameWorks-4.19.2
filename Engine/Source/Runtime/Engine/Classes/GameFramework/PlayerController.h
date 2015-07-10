@@ -1499,7 +1499,7 @@ public:
 	class APawn* GetPawnOrSpectator() const;
 
 	/** Called to notify the controller that the spectator class has been received. */
-	virtual void ReceivedSpectatorClass(TSubclassOf<class AGameMode> SpectatorClass);
+	virtual void ReceivedSpectatorClass(TSubclassOf<class ASpectatorPawn> SpectatorClass);
 
 	/** Returns the location the PlayerController is focused on.
 	 *  If there is a possessed Pawn, returns the Pawn's location.

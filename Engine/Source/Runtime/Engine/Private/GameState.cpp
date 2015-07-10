@@ -113,7 +113,7 @@ void AGameState::ReceivedSpectatorClass()
 	{
 		if (It->PlayerController)
 		{
-			It->PlayerController->ReceivedSpectatorClass(GameModeClass);
+			It->PlayerController->ReceivedSpectatorClass(SpectatorClass);
 		}
 	}
 }

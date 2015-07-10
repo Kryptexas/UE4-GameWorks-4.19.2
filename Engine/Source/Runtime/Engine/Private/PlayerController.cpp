@@ -3564,7 +3564,7 @@ void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameMode> GameModeCla
 {
 }
 
-void APlayerController::ReceivedSpectatorClass(TSubclassOf<AGameMode> SpectatorClass)
+void APlayerController::ReceivedSpectatorClass(TSubclassOf<ASpectatorPawn> SpectatorClass)
 {
 	if (IsInState(NAME_Spectating))
 	{
