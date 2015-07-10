@@ -346,6 +346,8 @@ void UK2Node_Select::AllocateDefaultPins()
 		NumOptionPins = EnumEntries.Num();
 	}
 
+	static const FBoolConfigValueHelper UseSelectRef(TEXT("Kismet"), TEXT("bUseSelectRef"), GEngineIni);
+
 	// Create the option pins
 	for (int32 Idx = 0; Idx < NumOptionPins; Idx++)
 	{
@@ -368,6 +370,7 @@ void UK2Node_Select::AllocateDefaultPins()
 
 		if (NewPin)
 		{
+			NewPin->bDisplayAsMutableRef = UseSelectRef;
 			if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 			{
 				NewPin->PinFriendlyName = (Idx == 0 ? GFalse : GTrue);
@@ -383,7 +386,8 @@ void UK2Node_Select::AllocateDefaultPins()
 	CreatePin(EGPD_Input, IndexPinType.PinCategory, IndexPinType.PinSubCategory, IndexPinType.PinSubCategoryObject.Get(), false, false, "Index");
 
 	// Create the return value
-	CreatePin(EGPD_Output, Schema->PC_Wildcard, TEXT(""), NULL, false, false, Schema->PN_ReturnValue);
+	auto ReturnPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, TEXT(""), NULL, false, false, Schema->PN_ReturnValue);
+	ReturnPin->bDisplayAsMutableRef = UseSelectRef;
 
 	Super::AllocateDefaultPins();
 }

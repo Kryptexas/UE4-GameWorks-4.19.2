@@ -844,7 +844,7 @@ const FSlateBrush* SGraphPin::GetPinIcon() const
 			return IsHovered() ? CachedImg_DelegatePin_DisconnectedHovered : CachedImg_DelegatePin_Disconnected;
 		}
 	}
-	else if ( IsByMutableRef() )
+	else if (GraphPinObj->bDisplayAsMutableRef || IsByMutableRef())
 	{
 		if (IsConnected())
 		{

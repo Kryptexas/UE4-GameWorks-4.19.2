@@ -243,6 +243,10 @@ class UEdGraphPin : public UObject
 	UPROPERTY()
 	uint32 bAdvancedView:1;
 
+	/** If true, the pin is displayed as ref */
+	UPROPERTY(transient)
+	uint32 bDisplayAsMutableRef : 1;
+
 	/** Pin name could be changed, so whenever possible it's good to have a persistent GUID identifying Pin to reconstruct Node seamlessly */
 	UPROPERTY()
 	FGuid PersistentGuid;
