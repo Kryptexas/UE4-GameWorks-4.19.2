@@ -432,6 +432,7 @@ void UAnimStateTransitionNode::CreateCustomTransitionGraph()
 	Schema->CreateDefaultNodesForGraph(*CustomTransitionGraph);
 
 	// Add the new graph as a child of our parent graph
+	GetGraph()->Modify();
 	GetGraph()->SubGraphs.Add(CustomTransitionGraph);
 }
 
