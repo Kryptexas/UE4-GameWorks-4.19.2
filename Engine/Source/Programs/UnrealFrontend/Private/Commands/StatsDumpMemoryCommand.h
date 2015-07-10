@@ -206,6 +206,7 @@ protected:
 	}
 };
 
+// #YRX_Profiler: 2015-07-10 Should be moved to the profiler module, and added as export or something?
 /** An example command loading a raw stats file and dumping memory usage. */
 class FStatsMemoryDumpCommand
 {

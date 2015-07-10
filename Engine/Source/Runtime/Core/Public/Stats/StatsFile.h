@@ -770,16 +770,18 @@ struct FRawStatsFileInfo
 /** Enumerates stats processing stages. */
 enum EStatsProcessingStage
 {
-	RS_Started = 0,
-	RS_ReadAndCombinePackets,
-	RS_ProcessStatMessages,
+	SPS_Started = 0,
+	SPS_ReadAndCombinePackets,
+	SPS_ProcessStatMessages,
 	/** Memory profiler only. */
-	RS_SortSequence,
-	RS_Finished,
-	RS_Stopped,
+	SPS_SortSequence,
+	/** Memory profiler only. */
+	SPS_ProcessAllocations,
+	SPS_Finished,
+	SPS_Stopped,
 
 	/** Last stage, at this moment all data is read and processed or process has been stopped, we can now remove the instance. */
-	RS_Invalid,
+	SPS_Invalid,
 
 };
 
@@ -865,6 +867,57 @@ public:
 		return EStatsProcessingStage( ProcessingStage.GetValue() );
 	}
 
+	/**
+	 * @return current processing stage as string key.
+	 */
+	FString GetProcessingStageAsString() const
+	{
+		const EStatsProcessingStage Stage = GetProcessingStage();
+		FString Result;
+		if (Stage== EStatsProcessingStage::SPS_Started)
+		{
+			Result = TEXT( "SPS_Started" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_ReadAndCombinePackets)
+		{
+			Result = TEXT( "SPS_ReadAndCombinePackets" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_ProcessStatMessages)
+		{
+			Result = TEXT( "SPS_ProcessStatMessages" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_SortSequence)
+		{
+			Result = TEXT( "SPS_SortSequence" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_ProcessAllocations)
+		{
+			Result = TEXT( "SPS_ProcessAllocations" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_Finished)
+		{
+			Result = TEXT( "SPS_Finished" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_Stopped)
+		{
+			Result = TEXT( "SPS_Stopped" );
+		}
+		else if (Stage == EStatsProcessingStage::SPS_Invalid)
+		{
+			Result = TEXT( "SPS_Invalid" );
+		}
+
+		return Result;
+	}
+
+	/**
+	 * @return current stage progress as percentage, between 0 and 100.
+	 */
+	int32 GetStageProgress() const
+	{
+		return StageProgress.GetValue();
+	}
+
 	/**	 
 	 * @return true, if any asynchronous operation is being processed
 	 */
@@ -877,14 +930,6 @@ public:
 	void RequestStop()
 	{
 		bShouldStopProcessing = true;
-	}
-	
-	/**
-	 * @return current stage of reading.
-	 */
-	const EStatsProcessingStage GetReadingStage() const
-	{
-		return (EStatsProcessingStage)ProcessingStage.GetValue();
 	}
 
 protected:

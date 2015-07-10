@@ -584,9 +584,9 @@ void FStatsReadFile::ReadAndProcessSynchronously()
 	ReadStats();
 	ProcessStats();
 
-	if (GetProcessingStage() == EStatsProcessingStage::RS_Stopped)
+	if (GetProcessingStage() == EStatsProcessingStage::SPS_Stopped)
 	{
-		SetProcessingStage( EStatsProcessingStage::RS_Invalid );
+		SetProcessingStage( EStatsProcessingStage::SPS_Invalid );
 	}
 }
 
@@ -616,7 +616,7 @@ void FStatsReadFile::ReadStats()
 
 		// Update stage progress once per NumSecondsBetweenUpdates(5) seconds to avoid spamming.
 		double PreviousSeconds = FPlatformTime::Seconds();
-		SetProcessingStage( EStatsProcessingStage::RS_ReadAndCombinePackets );
+		SetProcessingStage( EStatsProcessingStage::SPS_ReadAndCombinePackets );
 
 		while (Reader->Tell() < Reader->TotalSize())
 		{
@@ -659,14 +659,14 @@ void FStatsReadFile::ReadStats()
 
 			if (bShouldStopProcessing == true)
 			{
-				SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+				SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
 				break;
 			}
 
 			FileInfo.TotalPacketsNum++;
 		}
 
-		if (GetProcessingStage() != EStatsProcessingStage::RS_Stopped)
+		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
 		{
 			const double TotalTime = FPlatformTime::Seconds() - StartTime;
 			UE_LOG( LogStats, Log, TEXT( "Reading took %.2f sec(s)" ), TotalTime );
@@ -686,12 +686,12 @@ void FStatsReadFile::ProcessStats()
 {
 	if (bRawStatsFile)
 	{
-		if (GetProcessingStage() != EStatsProcessingStage::RS_Stopped)
+		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
 		{
-			SetProcessingStage( EStatsProcessingStage::RS_ProcessStatMessages );
+			SetProcessingStage( EStatsProcessingStage::SPS_ProcessStatMessages );
 			NewCombinedHistory.ExecuteIfBound( this );
 
-			if (GetProcessingStage() == EStatsProcessingStage::RS_Stopped)
+			if (GetProcessingStage() == EStatsProcessingStage::SPS_Stopped)
 			{
 				UE_LOG( LogStats, Warning, TEXT( "Processing stopped, abandoning" ) );
 			}
@@ -720,7 +720,7 @@ FStatsReadFile::~FStatsReadFile()
 
 	FPlatformProcess::ConditionalSleep( [&]()
 	{
-		return IsBusy();
+		return !IsBusy();
 	}, 1.0f );
 
 	if (AsyncWork)
@@ -739,12 +739,12 @@ bool FStatsReadFile::PrepareLoading()
 {
 	const double StartTime = FPlatformTime::Seconds();
 
-	SetProcessingStage( EStatsProcessingStage::RS_Started );
+	SetProcessingStage( EStatsProcessingStage::SPS_Started );
 
 	{
 		ON_SCOPE_EXIT
 		{
-			SetProcessingStage( EStatsProcessingStage::RS_Invalid );
+			SetProcessingStage( EStatsProcessingStage::SPS_Invalid );
 		};
 
 		const int64 Size = IFileManager::Get().FileSize( *Filename );

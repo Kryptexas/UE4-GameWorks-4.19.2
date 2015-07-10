@@ -225,10 +225,53 @@ void FStatsMemoryDumpCommand::InternalRun()
 	if (NewReader)
 	{
 		PlatformName = NewReader->Header.PlatformName;
-		NewReader->ReadAndProcessSynchronously();
+		NewReader->ReadAndProcessAsynchronously();
+
+		while( NewReader->IsBusy() )
+		{
+			FPlatformProcess::Sleep( 1.0f );
+
+			UE_LOG( LogStats, Log, TEXT( "Async: Stage: %s/%3i%%" ), *NewReader->GetProcessingStageAsString(), NewReader->GetStageProgress() );
+		}
+
 		delete NewReader;
 
+		// Frame-240 Frame-120 Frame-060
+		TMap<FString, FCombinedAllocationInfo> FrameBegin_Exit;
+		CompareSnapshots_FString( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit );
+		DumpScopedAllocations( TEXT( "Begin_Exit" ), FrameBegin_Exit );
 
+#if	UE_BUILD_DEBUG
+		TMap<FString, FCombinedAllocationInfo> Frame060_120;
+		CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-120" ), Frame060_120 );
+		DumpScopedAllocations( TEXT( "Frame060_120" ), Frame060_120 );
+
+		TMap<FString, FCombinedAllocationInfo> Frame060_240;
+		CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240 );
+		DumpScopedAllocations( TEXT( "Frame060_240" ), Frame060_240 );
+
+		// Generate scoped tree view.
+		{
+			TMap<FName, FCombinedAllocationInfo> FrameBegin_Exit_FName;
+			CompareSnapshots_FName( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit_FName );
+
+			FNodeAllocationInfo Root;
+			Root.EncodedCallstack = TEXT( "ThreadRoot" );
+			Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+			GenerateScopedTreeAllocations( FrameBegin_Exit_FName, Root );
+		}
+
+
+	{
+		TMap<FName, FCombinedAllocationInfo> Frame060_240_FName;
+		CompareSnapshots_FName( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240_FName );
+
+		FNodeAllocationInfo Root;
+		Root.EncodedCallstack = TEXT( "ThreadRoot" );
+		Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+		GenerateScopedTreeAllocations( Frame060_240_FName, Root );
+	}
+#endif // UE_BUILD_DEBUG
 	}
 }
 
@@ -309,7 +352,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 						// Abandon support, simply return for now.
 						if (InFile->bShouldStopProcessing == true)
 						{
-							InFile->SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+							InFile->SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
 							return;
 						}
 					}
@@ -507,7 +550,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 	}
 	*/
 
-	InFile->SetProcessingStage( EStatsProcessingStage::RS_SortSequence );
+	InFile->SetProcessingStage( EStatsProcessingStage::SPS_SortSequence );
 
 	// Sort all memory operation by the sequence tag, iterate through all operation and generate memory usage.
 	SequenceAllocationArray.Sort( FAllocationInfoSequenceTagLess() );
@@ -515,7 +558,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 	// Abandon support, simply return for now.
 	if (InFile->bShouldStopProcessing == true)
 	{
-		InFile->SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+		InFile->SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
 		return;
 	}
 
@@ -528,6 +571,8 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 	int32 NumDuplicatedMemoryOperations = 0;
 	int32 NumFWAMemoryOperations = 0; // FreeWithoutAlloc
 	int32 NumZeroAllocs = 0; // Malloc(0)
+
+	InFile->SetProcessingStage( EStatsProcessingStage::SPS_ProcessAllocations );
 
 	// Initialize the begin snapshot.
 	auto BeginSnapshot = SnapshotsToBeProcessed[0];
@@ -547,14 +592,15 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 			const double CurrentSeconds = FPlatformTime::Seconds();
 			if( CurrentSeconds > PreviousSeconds + NumSecondsBetweenLogs )
 			{
-				const int32 CurrentPct = int32( 100.0*(Index + 1) / NumSequenceAllocations );
-				UE_LOG( LogStats, Log, TEXT( "Processing allocations %3i%% (%10i/%10i)" ), CurrentPct, Index + 1, NumSequenceAllocations );
+				const int32 PercentagePos = int32( 100.0*(Index + 1) / NumSequenceAllocations );
+				InFile->StageProgress.Set( PercentagePos );
+				UE_LOG( LogStats, Verbose, TEXT( "Processing allocations %3i%% (%10i/%10i)" ), PercentagePos, Index + 1, NumSequenceAllocations );
 				PreviousSeconds = CurrentSeconds;
 
 				// Abandon support, simply return for now.
 				if (InFile->bShouldStopProcessing == true)
 				{
-					InFile->SetProcessingStage( EStatsProcessingStage::RS_Stopped );
+					InFile->SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
 					return;
 				}
 			}
@@ -675,6 +721,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 			}
 		}
 	}
+	InFile->StageProgress.Set( 100 );
 
 	auto EndSnapshot = SnapshotsToBeProcessed[0];
 	SnapshotsToBeProcessed.RemoveAt( 0 );
@@ -713,44 +760,7 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( FStatsReadFile* InFile )
 		}
 	}
 
-	InFile->SetProcessingStage( EStatsProcessingStage::RS_Finished );
-
-	// Frame-240 Frame-120 Frame-060
-	TMap<FString, FCombinedAllocationInfo> FrameBegin_Exit;
-	CompareSnapshots_FString( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit );
-	DumpScopedAllocations( TEXT( "Begin_Exit" ), FrameBegin_Exit );
-
-#if	UE_BUILD_DEBUG
-	TMap<FString, FCombinedAllocationInfo> Frame060_120;
-	CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-120" ), Frame060_120 );
-	DumpScopedAllocations( TEXT( "Frame060_120" ), Frame060_120 );
-
-	TMap<FString, FCombinedAllocationInfo> Frame060_240;
-	CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240 );
-	DumpScopedAllocations( TEXT( "Frame060_240" ), Frame060_240 );
-
-	// Generate scoped tree view.
-	{
-		TMap<FName, FCombinedAllocationInfo> FrameBegin_Exit_FName;
-		CompareSnapshots_FName( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit_FName );
-
-		FNodeAllocationInfo Root;
-		Root.EncodedCallstack = TEXT( "ThreadRoot" );
-		Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
-		GenerateScopedTreeAllocations( FrameBegin_Exit_FName, Root );
-	}
-
-
-	{
-		TMap<FName, FCombinedAllocationInfo> Frame060_240_FName;
-		CompareSnapshots_FName( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240_FName );
-
-		FNodeAllocationInfo Root;
-		Root.EncodedCallstack = TEXT( "ThreadRoot" );
-		Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
-		GenerateScopedTreeAllocations( Frame060_240_FName, Root );
-	}
-#endif // UE_BUILD_DEBUG
+	InFile->SetProcessingStage( EStatsProcessingStage::SPS_Finished );
 }
 
 void FStatsMemoryDumpCommand::GenerateScopedTreeAllocations( const TMap<FName, FCombinedAllocationInfo>& ScopedAllocations, FNodeAllocationInfo& out_Root )
