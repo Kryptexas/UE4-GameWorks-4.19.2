@@ -119,11 +119,11 @@ void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<FEnvQueryResult> Result)
 
 void UBTTask_RunEQSQuery::CollectKeyFilters()
 {
-	for (int32 TypeIndex = 0; TypeIndex < UEnvQueryManager::RegisteredItemTypes.Num(); TypeIndex++)
-	{
-		UEnvQueryItemType* ItemTypeCDO = (UEnvQueryItemType*)UEnvQueryManager::RegisteredItemTypes[TypeIndex]->GetDefaultObject();
-		ItemTypeCDO->AddBlackboardFilters(BlackboardKey, this);
-	}
+// 	for (int32 TypeIndex = 0; TypeIndex < UEnvQueryManager::RegisteredItemTypes.Num(); TypeIndex++)
+// 	{
+// 		UEnvQueryItemType* ItemTypeCDO = (UEnvQueryItemType*)UEnvQueryManager::RegisteredItemTypes[TypeIndex]->GetDefaultObject();
+// 		ItemTypeCDO->AddBlackboardFilters(BlackboardKey, this);
+// 	}
 }
 
 #if WITH_EDITOR
