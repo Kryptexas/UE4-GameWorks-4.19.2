@@ -2097,7 +2097,7 @@ namespace UnrealBuildTool
                 var AutomationToolDir = Path.Combine(EngineRelativePath, "Source", "Programs", "AutomationTool");
                 new XDocument(
                     new XElement(NS + "Project",
-                        new XAttribute("ToolsVersion", "12.0"),
+                        new XAttribute("ToolsVersion", "4.0"),
                         new XAttribute("DefaultTargets", "Build"),
                         new XElement(NS + "ItemGroup",
                             from AutomationProject in AutomationProjectFiles
