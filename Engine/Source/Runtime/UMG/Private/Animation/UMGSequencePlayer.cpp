@@ -159,7 +159,7 @@ void UUMGSequencePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> Movi
 	}
 	else
 	{
-		UE_LOG( LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation"), Animation ? *Animation->GetName() : TEXT("(none)") );
+		UE_LOG( LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation"), Animation ? *Animation->GetPathName() : TEXT("(none)") );
 	}
 }
 
