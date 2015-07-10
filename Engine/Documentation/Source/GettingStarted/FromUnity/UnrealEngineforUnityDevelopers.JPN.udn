@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2596934
+﻿INTSourceChangelist:2612674
 Availability:Public
 Title:Unity 引っ越しガイド
 Crumbs: %ROOT%, GettingStarted
@@ -8,9 +8,6 @@ Description:Unity の操作内容を UE4 の該当する部分と比較して説
 ![](image_0.png)
 
 [TOC(start:2 end:2)]
-
-
-## 概要
 
 このガイドでは、Unity ユーザーの視点に立って UE4 の概要を説明します。これまでの Unity でのご経験を UE4 ワールドに移行する支援をします。
 
@@ -306,7 +303,7 @@ UE4 では、以下のようにコンポーネントの階層をネストして�
 
 ## UE4 でコードを記述する方法
 
-### MonoDevelop� でプログラミングするのには慣れているのですが...
+### MonoDevelop でプログラミングするのには慣れているのですが...
 
 ブループリント スクリプティングでは、アンリアル エディタさえあれば大丈夫です。何もかもがビルトインされています。C++ でコードを記述するには、Windows の場合は [Visual Studio の無料バージョン](http://go.microsoft.com/fwlink/?LinkId=525621) を、Mac の場合は [Xcode のインストール](https://itunes.apple.com/us/app/xcode/id497799835?mt=12) をダウンロードしてください。初めて新規プロジェクトを作成する場合 (または既存プロジェクトにコードを追加する場合)、UE4 では **Visual Studio プロジェクト ファイルを自動的に作成** します。Visual Studio を開くには以下の手順に従います。**コンテンツ ブラウザ** 内で C++ クラスを **ダブルクリック** するか、メイン ファイル メニューで [Open Visual Studio] をクリックします。
 
@@ -318,7 +315,7 @@ UE4 でのひとつの重要な違い： Visual Studio **プロジェクト フ�
 
 ### イベント関数 (Start、Update、など) の記述
 
-MonoBehaviours での作業に馴染みのある場合、Start、Update、OnDestroy などのメソッドに慣れていることでしょう。以下は Unity の挙動とそれに相当する UE4 のアクタとコンポーネントを比較したものです。
+MonoBehaviors での作業に馴染みのある場合、Start、Update、OnDestroy などのメソッドに慣れていることでしょう。以下は Unity の挙動とそれに相当する UE4 のアクタとコンポーネントを比較したものです。
 
 Unity では、以下のような単純なコンポーネントがあるでしょう。
 
