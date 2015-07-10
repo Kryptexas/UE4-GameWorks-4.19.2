@@ -1,5 +1,5 @@
 Availability:Docs
-Title:Importing Skeletal Mesh LODs
+Title:Import Skeletal Mesh LODs
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import Skeletal Mesh LODs from an external program.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport

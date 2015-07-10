@@ -47,7 +47,7 @@ If you're creating a new project, use these project **settings** (also pictured 
 
 ## Using the Content Browser's Import Function
 
-1.	From inside the editor, **click** the **Import** button (pictured below).
+1.	Inside the editor, **click** the **Import** button (pictured below).
 
 	![](ImportButton_UI.png)
 
@@ -57,7 +57,7 @@ If you're creating a new project, use these project **settings** (also pictured 
 
 1.	**Click Open** to begin importing the content files to your project (pictured above).
 
-1.	Entering the Editor, the **FBX Import Options** dialog box appears. **Clicking Import** or **Import All** adds your meshes to the Project.
+1.	Inside the editor, the **FBX Import Options** dialog box appears. **Clicking Import** or **Import All** adds your meshes to the Project.
 
 	![](FBX_ImportOptionsDialogBox.png)
 
@@ -103,7 +103,7 @@ If you're creating a new project, use these project **settings** (also pictured 
 
 It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
 
-1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+1.	Inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
 
 	![](FolderDialogBox_UI.png)
 

@@ -1,5 +1,5 @@
 Availability:Docs
-Title:Importing Textures
+Title:Import Textures
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import textures from an external program.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
@@ -86,7 +86,7 @@ After going through this tutorial, developers will know the following:
 
 It's good practice to verify that ** *.uasset files ** were imported properly onto the hard disk.
 
-1.	From inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
+1.	Inside the editor, **right-click** the **'Content'** folder to open the **Folder Options** dialog box (pictured below).
 
 	![](FolderDialogBox_UI.png)
 
