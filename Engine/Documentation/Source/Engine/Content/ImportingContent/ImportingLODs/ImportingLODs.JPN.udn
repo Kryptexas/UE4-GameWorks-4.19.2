@@ -1,0 +1,106 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Importing Static Mesh LODs
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import Static Mesh LODs from an external program.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
+Related: Engine/Content/FBX/ImportOptions
+Related: Engine/Content/FBX/StaticMeshes
+SkillLevel: Intermediate
+Version: 4.8
+
+[REGION:note]
+Before getting started: Make sure you have access to a 3D modeling application. Although we're using **3DS Max and Maya** to illustrate this lesson's goal, you can import **Static Mesh LODs** into Unreal Engine from any 3D modeling application with a save feature.
+[/REGION]
+
+Content creators can import Static Mesh Levels of Detail (**LODs**) from external 3D modeling applications.
+
+## Goal
+
+The focus of this guide is to show developers how to import Static Mesh LODs from external 3D modeling programs.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	How to setup Static Mesh LODs from external 3D modeling applications.
+*	How to export Static Mesh LODs from external 3D modeling applications.
+*	How to import Static Mesh LODs into Unreal Editor from external 3D modeling applications.
+
+[REGION:warning]
+The UE4 FBX import pipeline uses **FBX 2014**. Using a different version during export may result in incompatibilities.
+[/REGION]
+
+%Globals:DCCSelect%
+
+##	Setting-up Static Mesh LODs
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+##	Exporting Static Mesh LODs
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODS]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODS]
+	[/PARAM]
+[/OBJECT]
+
+##	Importing Static Mesh LODs
+
+STILL NEED TO ADD IMPORT INFORMATION HERE.
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	Setup Static Mesh LODs from external 3D modeling applications.  
+&#x2713;	Export Static Mesh LODs from external 3D modeling applications.  
+&#x2713;	Import Static Mesh LODs into Unreal Editor from external 3D modeling applications.  

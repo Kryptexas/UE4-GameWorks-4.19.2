@@ -1,0 +1,122 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Importing Skeletal Meshes
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import skeletal meshes from an external program.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
+Related: Engine/Content/FBX/ImportOptions
+Related: Engine/Content/FBX/SkeletalMeshes
+Related: Engine/Content/FBX/ImportOptions
+Related: Shared/Editor/FbxErrors
+SkillLevel: Intermediate
+Version: 4.8
+
+[REGION:note]
+Before getting started: Make sure you have access to a 3D modeling application. Although we're using **3DS Max and Maya** to illustrate this lesson's goal, you can import **skeletal meshes** into Unreal Engine from any 3D modeling application with a save feature.
+[/REGION]
+
+Content creators can import skeletal meshes from external 3D modeling applications.
+
+## Goal
+
+The focus of this guide is to show developers how to import skeletal meshes from external 3D modeling applications.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	How to export skeletal meshes from external 3D modeling applications.
+*	How to import skeletal meshes into Unreal Editor.
+*	How to verify that skeletal meshes were imported properly.
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+%Globals:DCCSelect%
+
+## Exporting Skeletal Meshes from External 3D Modeling Applications
+
+Skeletal meshes can be exported individually or multiple meshes can be exported to a single FBX file. The import pipeline will separate multiple Skeletal Meshes into multiple assets within the destination package.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+## Importing Skeletal Meshes
+
+1.	From inside the editor, **click** the **Import** button (pictured below).
+
+	![](ImportButton_UI.png)
+
+1.	Locate and **select** the FBX file you want to import (example pictured below).
+
+	![](Import_DialogBox.png)
+
+1.	**Click Open** to begin importing the FBX file you want to import to your project (example pictured above).
+
+1.	Update the appropriate settings in the **FBX Import Options** dialog.
+
+	[REGION:note]
+	Default settings should be sufficient when importing a mesh that doesn't share an existing skeleton. Refer to our [](Engine/Content/FBX/ImportOptions) for detailed information on all of the settings.
+	[/REGION]
+
+	![](FBX_ImportOptions.png)
+
+1.	**Clicking Import** or **Import All** adds your meshes to the project (pictured above).
+
+	[REGION:note]
+	If the **Skeletal Mesh** being imported shares an existing skeleton, **click** the **Select Skeleton** dropdown menu and select the skeleton asset from the list (example pictured below).
+	
+	![](import_settings_skeletonbrowser.png)
+	[/REGION]
+
+	[REGION:warning]
+	If you encounter a warning (example warning pictured below), refer to our [](Shared/Editor/FbxErrors) documentation for detailed information on how to troubleshoot the warning.
+	
+	![](PotentialWarning.png)
+	[/REGION]
+
+1.	The imported mesh appears inside the **Content Browser** if the process succeeded (example pictured below).
+
+	![](ImportedSKMesh.png)
+	
+## Verifying Imported Skeletal Meshes
+
+1.	**Double-click** the imported mesh to view it in **Persona** (pictured below).
+
+	[REGION:lightbox]
+		[![](Verify_Persona.png)(w:925)](Verify_Persona.png)
+	[/REGION]
+
+	_Verify that the asset imported properly by viewing it in **Persona**._
+
+Now that we've reached the end of this tutorial, you've learned how to:
+
+&#x2713;	How to export skeletal meshed from external 3D modeling applications.  
+&#x2713;	Import skeletal meshes into Unreal Editor.  
+&#x2713;	Verify that skeletal meshes were imported properly.
