@@ -74,12 +74,6 @@ private:
 
 	uint32 CursorEvent;
 
-	/** Accumulated X offset (from relative mouse movement events) used for reconstructing global cursor position */
-	int32 AccumulatedOffsetX;
-
-	/** Accumulated Y offset (from relative mouse movement events) used for reconstructing global cursor position */
-	int32 AccumulatedOffsetY;
-
 	/** Cached global X position */
 	mutable int32 CachedGlobalXPosition;
 
