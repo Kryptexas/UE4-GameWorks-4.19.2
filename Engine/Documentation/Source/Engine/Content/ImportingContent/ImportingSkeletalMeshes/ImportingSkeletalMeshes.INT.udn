@@ -1,7 +1,7 @@
 Availability:Docs
-Title:Importing Skeletal Meshes
+Title:How To Import Skeletal Meshes
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:Learn how to import skeletal meshes from an external program.
+Description:Learn how to import skeletal meshes.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
 prereq:Engine/Content/ImportingContent/DragAndDropImport
 prereq:Engine/Content/ImportingContent/RightClickImport

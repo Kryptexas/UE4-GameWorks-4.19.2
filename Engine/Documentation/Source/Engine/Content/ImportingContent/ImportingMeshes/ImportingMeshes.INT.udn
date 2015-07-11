@@ -1,7 +1,7 @@
 Availability:Docs
-Title:Import Static Meshes
+Title:How To Import Static Meshes
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:Learn how to import static meshes from an external program.
+Description:Learn how to import static meshes.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
 prereq:Engine/Content/ImportingContent/DragAndDropImport
 prereq:Engine/Content/ImportingContent/RightClickImport

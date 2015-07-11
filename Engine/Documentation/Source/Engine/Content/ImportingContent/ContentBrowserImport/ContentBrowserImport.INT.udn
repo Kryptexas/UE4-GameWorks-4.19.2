@@ -1,7 +1,7 @@
 Availability:Docs
-Title:Content Browser Import
+Title:How To Import Using Import Button
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:Learn how to add content using the Content Browser's 'Import' function.
+Description:Learn how to add content using the Content Browser's Import function.
 prereq:Engine/Basics/Projects/Browser
 Related: GettingStarted
 Related: GettingStarted/HowTo
