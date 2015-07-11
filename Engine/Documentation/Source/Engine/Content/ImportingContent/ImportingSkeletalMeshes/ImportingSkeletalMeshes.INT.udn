@@ -5,6 +5,7 @@ Description:Learn how to import skeletal meshes.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
 prereq:Engine/Content/ImportingContent/DragAndDropImport
 prereq:Engine/Content/ImportingContent/RightClickImport
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/ImportOptions
 Related: Engine/Content/FBX/SkeletalMeshes
 Related: Engine/Content/FBX/ImportOptions

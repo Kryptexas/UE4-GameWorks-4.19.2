@@ -5,8 +5,10 @@ Description:Learn how to import static meshes.
 prereq:Engine/Content/ImportingContent/ContentBrowserImport
 prereq:Engine/Content/ImportingContent/DragAndDropImport
 prereq:Engine/Content/ImportingContent/RightClickImport
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/ImportOptions
 Related: Engine/Content/FBX/StaticMeshes
+Related: Shared/Editor/FbxErrors
 SkillLevel: Intermediate
 Version: 4.8
 

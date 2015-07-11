@@ -6,8 +6,10 @@ prereq:Engine/Content/ImportingContent/ContentBrowserImport
 prereq:Engine/Content/ImportingContent/DragAndDropImport
 prereq:Engine/Content/ImportingContent/RightClickImport
 prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/Materials
 Related: Engine/Content/ImportingContent/ImportingTextures
+Related: Shared/Editor/FbxErrors
 SkillLevel: Intermediate
 Version: 4.8
 

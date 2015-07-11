@@ -2,13 +2,15 @@ Availability:Docs
 Title:How To Import Skeletal Mesh LODs
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import Skeletal Mesh LODs.
-prereq:Engine/Content/ImportingContent/ContentBrowserImport
-prereq:Engine/Content/ImportingContent/DragAndDropImport
-prereq:Engine/Content/ImportingContent/RightClickImport
+prereq:Engine/Content/ImportingContent/ImportingSkeletalMeshes
+prereq:Engine/Content/ImportingContent/ImportingMaterials
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/ImportOptions
 Related: Engine/Content/FBX/SkeletalMeshes
 Related: Engine/Animation/Persona
-SkillLevel: Intermediate
+Related: Shared/Editor/FbxErrors
+SkillLevel: Advanced
 Version: 4.8
 
 [REGION:note]
@@ -25,7 +27,7 @@ The focus of this guide is to show developers how to import Skeletal Mesh LODs f
 
 After going through this tutorial, developers will know the following:
 
-*	How to setup Skeletal Mesh LODs from external 3D modeling applications.
+*	How to set-up Skeletal Mesh LODs from external 3D modeling applications.
 *	How to export Skeletal Mesh LODs from external 3D modeling applications.
 *	How to import Skeletal Mesh LODs into Unreal Editor from external 3D modeling applications.
 
@@ -137,6 +139,6 @@ Persona is the animation editing toolset within UE4. Refer to the [](Engine/Anim
 
 Now that we've reached the end of this tutorial, you've learned how to:
 
-&#x2713;	Setup Skeletal Mesh LODs from external 3D modeling applications.  
+&#x2713;	Set-up Skeletal Mesh LODs from external 3D modeling applications.  
 &#x2713;	Export Skeletal Mesh LODs from external 3D modeling applications.  
 &#x2713;	Import Skeletal Mesh LODs into Unreal Editor from external 3D modeling applications.  

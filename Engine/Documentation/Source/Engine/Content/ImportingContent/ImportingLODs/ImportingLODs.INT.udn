@@ -2,12 +2,14 @@ Availability:Docs
 Title:How To Import Static Mesh LODs
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:Learn how to import Static Mesh LODs.
-prereq:Engine/Content/ImportingContent/ContentBrowserImport
-prereq:Engine/Content/ImportingContent/DragAndDropImport
-prereq:Engine/Content/ImportingContent/RightClickImport
+prereq:Engine/Content/ImportingContent/ImportingMeshes
+prereq:Engine/Content/ImportingContent/ImportingMaterials
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/ImportOptions
 Related: Engine/Content/FBX/StaticMeshes
-SkillLevel: Intermediate
+Related: Shared/Editor/FbxErrors
+SkillLevel: Advanced
 Version: 4.8
 
 [REGION:note]
@@ -24,7 +26,7 @@ The focus of this guide is to show developers how to import Static Mesh LODs fro
 
 After going through this tutorial, developers will know the following:
 
-*	How to setup Static Mesh LODs from external 3D modeling applications.
+*	How to set-up Static Mesh LODs from external 3D modeling applications.
 *	How to export Static Mesh LODs from external 3D modeling applications.
 *	How to import Static Mesh LODs into Unreal Editor from external 3D modeling applications.
 
@@ -134,6 +136,6 @@ The UE4 FBX import pipeline uses **FBX 2014**. Using a different version during 
 
 Now that we've reached the end of this tutorial, you've learned how to:
 
-&#x2713;	Setup Static Mesh LODs from external 3D modeling applications.  
+&#x2713;	Set-up Static Mesh LODs from external 3D modeling applications.  
 &#x2713;	Export Static Mesh LODs from external 3D modeling applications.  
 &#x2713;	Import Static Mesh LODs into Unreal Editor from external 3D modeling applications.  
