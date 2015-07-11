@@ -50,24 +50,6 @@ public:
 	 *
 	 * @param	Directory to watch
 	 * @param	Delegate to add to our callback list
-	 */
-	DELEGATE_DEPRECATED("The RegisterDirectoryChangedCallback function is deprecated - please use the RegisterDirectoryChangedCallback_Handle function instead which returns a handle.") \
-	virtual bool RegisterDirectoryChangedCallback (const FString& Directory, const FDirectoryChanged& InDelegate) = 0;
-
-	/**
-	 * Unregisters a callback to fire when directories are changed
-	 *
-	 * @param	Directory to stop watching
-	 * @param	Delegate to remove from our callback list
-	 */
-	DELEGATE_DEPRECATED("The UnregisterDirectoryChangedCallback function is deprecated - please use the RegisterDirectoryChangedCallback_Handle function and pass its out parameter to UnregisterDirectoryChangedCallback_Handle instead.") \
-	virtual bool UnregisterDirectoryChangedCallback (const FString& Directory, const FDirectoryChanged& InDelegate) = 0;
-
-	/**
-	 * Register a callback to fire when directories are changed
-	 *
-	 * @param	Directory to watch
-	 * @param	Delegate to add to our callback list
 	 * @param	The handle to the registered delegate, if the registration was successful.
 	 * @param	Set of options to use when registering the delegates.
 	 */

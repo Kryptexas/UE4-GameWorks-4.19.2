@@ -103,18 +103,6 @@ FDelegateHandle FDirectoryWatchRequestMac::AddDelegate( const IDirectoryWatcher:
 	return Delegates.Last().GetHandle();
 }
 
-bool FDirectoryWatchRequestMac::RemoveDelegate( const IDirectoryWatcher::FDirectoryChanged& InDelegate )
-{
-	return DEPRECATED_RemoveDelegate(InDelegate);
-}
-
-bool FDirectoryWatchRequestMac::DEPRECATED_RemoveDelegate( const IDirectoryWatcher::FDirectoryChanged& InDelegate )
-{
-	return Delegates.RemoveAll([&](const IDirectoryWatcher::FDirectoryChanged& Delegate) {
-		return Delegate.DEPRECATED_Compare(InDelegate);
-	}) != 0;
-}
-
 bool FDirectoryWatchRequestMac::RemoveDelegate( FDelegateHandle InHandle )
 {
 	return Delegates.RemoveAll([=](const IDirectoryWatcher::FDirectoryChanged& Delegate) {

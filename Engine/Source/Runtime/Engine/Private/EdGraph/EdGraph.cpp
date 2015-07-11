@@ -111,11 +111,6 @@ FDelegateHandle UEdGraph::AddOnGraphChangedHandler( const FOnGraphChanged::FDele
 	return OnGraphChanged.Add( InHandler );
 }
 
-void UEdGraph::RemoveOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler )
-{
-	OnGraphChanged.DEPRECATED_Remove( InHandler );
-}
-
 void UEdGraph::RemoveOnGraphChangedHandler( FDelegateHandle Handle )
 {
 	OnGraphChanged.Remove( Handle );
@@ -282,13 +277,6 @@ FDelegateHandle UEdGraph::AddPropertyChangedNotifier(const FOnPropertyChanged::F
 	return PropertyChangedNotifiers.Add(InDelegate);
 #else
 	return FDelegateHandle();
-#endif
-}
-
-void UEdGraph::RemovePropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate )
-{
-#if WITH_EDITORONLY_DATA
-	PropertyChangedNotifiers.DEPRECATED_Remove(InDelegate);
 #endif
 }
 

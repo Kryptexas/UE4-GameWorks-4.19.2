@@ -1093,12 +1093,8 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 
 					if (GEngine != NULL)
 					{
-#ifdef DELEGATE_DEPRECATED
 						InternalNotifyNetworkFailureDelegateHandle = GEngine->OnNetworkFailure().AddUObject(this,
 																		&UClientUnitTest::InternalNotifyNetworkFailure);
-#else
-						GEngine->OnNetworkFailure().AddUObject(this, &UClientUnitTest::InternalNotifyNetworkFailure);
-#endif
 					}
 
 
@@ -1217,11 +1213,7 @@ void UClientUnitTest::CleanupFakeClient()
 
 	if (GEngine != NULL)
 	{
-#ifdef DELEGATE_DEPRECATED
 		GEngine->OnNetworkFailure().Remove(InternalNotifyNetworkFailureDelegateHandle);
-#else
-		GEngine->OnNetworkFailure().RemoveUObject(this, &UClientUnitTest::InternalNotifyNetworkFailure);
-#endif
 	}
 
 	// Immediately cleanup (or rather, start of next tick, as that's earliest possible time) after sending the RPC

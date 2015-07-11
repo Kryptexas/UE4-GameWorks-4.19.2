@@ -208,7 +208,7 @@ void SGitSourceControlSettings::Construct(const FArguments& InArgs)
 					[
 						SNew(SCheckBox)
 						.ToolTipText(LOCTEXT("CreateGitIgnore_Tooltip", "Create and add a standard '.gitignore' file"))
-						.IsChecked(true)
+						.IsChecked(ECheckBoxState::Checked)
 						.OnCheckStateChanged(this, &SGitSourceControlSettings::OnCheckedCreateGitIgnore)
 					]
 				]

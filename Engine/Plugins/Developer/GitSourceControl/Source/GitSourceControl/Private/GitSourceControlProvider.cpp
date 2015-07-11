@@ -143,16 +143,6 @@ TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredic
 	return Result;
 }
 
-void FGitSourceControlProvider::RegisterSourceControlStateChanged(const FSourceControlStateChanged::FDelegate& SourceControlStateChanged)
-{
-	OnSourceControlStateChanged.Add( SourceControlStateChanged );
-}
-
-void FGitSourceControlProvider::UnregisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-	OnSourceControlStateChanged.DEPRECATED_Remove( SourceControlStateChanged );
-}
-
 FDelegateHandle FGitSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
 {
 	return OnSourceControlStateChanged.Add( SourceControlStateChanged );

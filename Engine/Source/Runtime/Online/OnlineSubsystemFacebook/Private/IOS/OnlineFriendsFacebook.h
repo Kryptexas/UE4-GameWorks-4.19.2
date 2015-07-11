@@ -141,8 +141,8 @@ private:
 	 */
 	void ReadFriendsUsingGraphPath(int32 LocalUserNum, const FString& ListName);
 
-	/** Delegate used to notify this interface that permissions are updated, and that we can now read the friends list */
-	FOnRequestNewReadPermissionsCompleteDelegate RequestFriendsReadPermissionsDelegate;
+	/** Handle to delegate used to notify this interface that permissions are updated, and that we can now read the friends list */
+	FDelegateHandle RequestFriendsReadPermissionsDelegateHandle;
 
 	/** Delegate called when reading the friends list is completed */
 	FOnReadFriendsListComplete OnReadFriendsListCompleteDelegate;

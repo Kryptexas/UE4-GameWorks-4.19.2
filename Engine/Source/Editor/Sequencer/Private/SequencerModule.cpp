@@ -52,19 +52,6 @@ class FSequencerModule : public ISequencerModule
 		return SequencerAssetEditor->GetSequencerInterface();
 	}
 
-	virtual void RegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) override
-	{
-		if (!TrackEditorDelegates.ContainsByPredicate([&](const FOnCreateTrackEditor& Delegate){ return Delegate.DEPRECATED_Compare(InOnCreateTrackEditor); }))
-		{
-			TrackEditorDelegates.Add(InOnCreateTrackEditor);
-		}
-	}
-
-	virtual void UnRegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) override
-	{
-		TrackEditorDelegates.RemoveAll( [&](const FOnCreateTrackEditor& Delegate){ return Delegate.DEPRECATED_Compare(InOnCreateTrackEditor); } );
-	}
-
 	virtual FDelegateHandle RegisterTrackEditor_Handle( FOnCreateTrackEditor InOnCreateTrackEditor ) override
 	{
 		TrackEditorDelegates.Add( InOnCreateTrackEditor );

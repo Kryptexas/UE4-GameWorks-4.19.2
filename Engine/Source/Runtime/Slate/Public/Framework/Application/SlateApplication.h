@@ -54,15 +54,6 @@ class SLATE_API FPopupSupport
 	*
 	* Unregister the notification because it is no longer desired.
 	*/
-	DELEGATE_DEPRECATED("This overload of UnregisterClickNotification is deprecated, instead pass the result of RegisterClickNotification.")
-	void UnregisterClickNotification(const FOnClickedOutside& InNotification);
-
-	/**
-	* NOTE: Only necessary if notification no longer desired.
-	*       Stale notifications are cleaned up automatically.
-	*
-	* Unregister the notification because it is no longer desired.
-	*/
 	void UnregisterClickNotification(FDelegateHandle InHandle);
 
 	private:

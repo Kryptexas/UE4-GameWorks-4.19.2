@@ -20,63 +20,9 @@ void FTimerHandle::MakeValid()
 }
 
 
-inline bool DEPRECATED_CompareUnifiedDelegates(const FTimerUnifiedDelegate& Lhs, const FTimerUnifiedDelegate& Rhs)
-{
-	return ( Lhs.FuncDelegate.IsBound() && (Lhs.FuncDelegate.DEPRECATED_Compare(Rhs.FuncDelegate)) ) || ( Lhs.FuncDynDelegate.IsBound() && (Lhs.FuncDynDelegate == Rhs.FuncDynDelegate) );
-}
-
 // ---------------------------------
 // Private members
 // ---------------------------------
-
-/** Will find and return a timer if it exists, regardless whether it is paused. */ 
-FTimerData const* FTimerManager::DEPRECATED_FindTimer(FTimerUnifiedDelegate const& InDelegate, int32* OutTimerIndex) const
-{
-	if (!CurrentlyExecutingTimer.TimerHandle.IsValid() && DEPRECATED_CompareUnifiedDelegates(InDelegate, CurrentlyExecutingTimer.TimerDelegate))
-	{
-		// found it currently executing
-		if (OutTimerIndex)
-		{
-			*OutTimerIndex = -1;
-		}
-		return &CurrentlyExecutingTimer;
-	}
-
-	int32 ActiveTimerIdx = DEPRECATED_FindTimerInList(ActiveTimerHeap, InDelegate);
-	if (ActiveTimerIdx != INDEX_NONE)
-	{
-		// found it in the active heap
-		if (OutTimerIndex)
-		{
-			*OutTimerIndex = ActiveTimerIdx;
-		}
-		return &ActiveTimerHeap[ActiveTimerIdx];
-	}
-
-	int32 PausedTimerIdx = DEPRECATED_FindTimerInList(PausedTimerList, InDelegate);
-	if (PausedTimerIdx != INDEX_NONE)
-	{
-		// found it in the paused list
-		if (OutTimerIndex)
-		{
-			*OutTimerIndex = PausedTimerIdx;
-		}
-		return &PausedTimerList[PausedTimerIdx];
-	}
-
-	int32 PendingTimerIdx = DEPRECATED_FindTimerInList(PendingTimerList, InDelegate);
-	if (PendingTimerIdx != INDEX_NONE)
-	{
-		// found it in the pending list
-		if (OutTimerIndex)
-		{
-			*OutTimerIndex = PendingTimerIdx;
-		}
-		return &PendingTimerList[PendingTimerIdx];
-	}
-
-	return nullptr;
-}
 
 FTimerData const* FTimerManager::FindTimer(FTimerHandle const& InHandle, int32* OutTimerIndex) const
 {
@@ -129,21 +75,6 @@ FTimerData const* FTimerManager::FindTimer(FTimerHandle const& InHandle, int32* 
 	return nullptr;
 }
 
-
-/** Will find the given timer in the given TArray and return its index. */ 
-int32 FTimerManager::DEPRECATED_FindTimerInList(const TArray<FTimerData> &SearchArray, FTimerUnifiedDelegate const& InDelegate) const
-{
-	for (int32 Idx=0; Idx<SearchArray.Num(); ++Idx)
-	{
-		if (!SearchArray[Idx].TimerHandle.IsValid() && DEPRECATED_CompareUnifiedDelegates(SearchArray[Idx].TimerDelegate, InDelegate))
-		{
-			return Idx;
-		}
-	}
-
-	return INDEX_NONE;
-}
-
 /** Will find the given timer in the given TArray and return its index. */
 int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTimerHandle const& InHandle) const
 {
@@ -185,26 +116,6 @@ FTimerHandle FTimerManager::K2_FindDynamicTimerHandle(FTimerDynamicDelegate InDy
 	}
 
 	return FTimerHandle();
-}
-
-
-void FTimerManager::DEPRECATED_InternalSetTimer(FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay)
-{
-	// not currently threadsafe
-	check(IsInGameThread());
-
-	// if the timer is already set, just clear it and we'll re-add it, since 
-	// there's no data to maintain.
-	DEPRECATED_InternalClearTimer(InDelegate);
-
-	if (InRate > 0.f)
-	{
-		// set up the new timer
-		FTimerData NewTimerData;
-		NewTimerData.TimerDelegate = InDelegate;
-
-		InternalSetTimer(NewTimerData, InRate, InbLoop, InFirstDelay);
-	}
 }
 
 void FTimerManager::InternalSetTimer(FTimerHandle& InOutHandle, FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay)
@@ -271,19 +182,6 @@ void FTimerManager::InternalSetTimerForNextTick(FTimerUnifiedDelegate const& InD
 	NewTimerData.ExpireTime = InternalTime;
 	NewTimerData.Status = ETimerStatus::Active;
 	ActiveTimerHeap.HeapPush(NewTimerData);
-}
-
-void FTimerManager::DEPRECATED_InternalClearTimer(FTimerUnifiedDelegate const& InDelegate)
-{
-	// not currently threadsafe
-	check(IsInGameThread());
-
-	int32 TimerIdx;
-	FTimerData const* const TimerData = DEPRECATED_FindTimer(InDelegate, &TimerIdx);
-	if (TimerData)
-	{
-		InternalClearTimer(TimerIdx, TimerData->Status);
-	}
 }
 
 void FTimerManager::InternalClearTimer(FTimerHandle const& InHandle)

@@ -107,13 +107,8 @@ public:
 	{
 		if (AttachedWorld != NULL)
 		{
-#ifdef DELEGATE_DEPRECATED
 			TickDispatchDelegateHandle  = AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
 			PostTickFlushDelegateHandle = AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
-#else
-			AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
-			AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
-#endif
 		}
 	}
 
@@ -121,13 +116,8 @@ public:
 	{
 		if (AttachedWorld != NULL)
 		{
-#ifdef DELEGATE_DEPRECATED
 			AttachedWorld->OnPostTickFlush().Remove(PostTickFlushDelegateHandle);
 			AttachedWorld->OnTickDispatch().Remove(TickDispatchDelegateHandle);
-#else
-			AttachedWorld->OnPostTickFlush().RemoveRaw(this, &FWorldTickHook::PostTickFlush);
-			AttachedWorld->OnTickDispatch().RemoveRaw(this, &FWorldTickHook::TickDispatch);
-#endif
 		}
 
 		AttachedWorld = NULL;
@@ -148,14 +138,12 @@ public:
 	/** The world this is attached to */
 	UWorld* AttachedWorld;
 
-#ifdef DELEGATE_DEPRECATED
 private:
 	/** Handle for Tick dispatch delegate */
 	FDelegateHandle TickDispatchDelegateHandle;
 
 	/** Handle for PostTick dispatch delegate */
 	FDelegateHandle PostTickFlushDelegateHandle;
-#endif
 };
 
 /**

@@ -364,11 +364,9 @@ public:
 	FOnSuspendStateChange OnServerSuspendState;
 
 
-#ifdef DELEGATE_DEPRECATED
 private:
 	/** Handle to the registered InternalNotifyNetworkFailure delegate */
 	FDelegateHandle InternalNotifyNetworkFailureDelegateHandle;
-#endif
 
 
 	/**

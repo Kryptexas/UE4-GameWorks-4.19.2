@@ -50,16 +50,6 @@ TArray<FSourceControlStateRef> FDefaultSourceControlProvider::GetCachedStateByPr
 	return TArray<FSourceControlStateRef>();
 }
 
-void FDefaultSourceControlProvider::RegisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-
-}
-
-void FDefaultSourceControlProvider::UnregisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-
-}
-
 FDelegateHandle FDefaultSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
 {
 	return FDelegateHandle();

@@ -536,16 +536,6 @@ void FConsoleManager::CallAllConsoleVariableSinks()
 	}
 }
 
-void FConsoleManager::RegisterConsoleVariableSink(const FConsoleCommandDelegate& Command)
-{
-	ConsoleVariableChangeSinks.Add(Command);
-}
-
-void FConsoleManager::UnregisterConsoleVariableSink(const FConsoleCommandDelegate& Command)
-{
-	ConsoleVariableChangeSinks.RemoveAll([&](const FConsoleCommandDelegate& Element){ return Command.DEPRECATED_Compare(Element); });
-}
-
 FConsoleVariableSinkHandle FConsoleManager::RegisterConsoleVariableSink_Handle(const FConsoleCommandDelegate& Command)
 {
 	ConsoleVariableChangeSinks.Add(Command);

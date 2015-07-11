@@ -70,18 +70,6 @@ FDelegateHandle FDirectoryWatchRequestLinux::AddDelegate(const IDirectoryWatcher
 	return Delegates.Last().GetHandle();
 }
 
-bool FDirectoryWatchRequestLinux::RemoveDelegate(const IDirectoryWatcher::FDirectoryChanged& InDelegate)
-{
-	return DEPRECATED_RemoveDelegate(InDelegate);
-}
-
-bool FDirectoryWatchRequestLinux::DEPRECATED_RemoveDelegate(const IDirectoryWatcher::FDirectoryChanged& InDelegate)
-{
-	return Delegates.RemoveAll([&](const IDirectoryWatcher::FDirectoryChanged& Delegate) {
-		return Delegate.DEPRECATED_Compare(InDelegate);
-	}) != 0;
-}
-
 bool FDirectoryWatchRequestLinux::RemoveDelegate(FDelegateHandle InHandle)
 {
 	return Delegates.RemoveAll([=](const IDirectoryWatcher::FDirectoryChanged& Delegate) {

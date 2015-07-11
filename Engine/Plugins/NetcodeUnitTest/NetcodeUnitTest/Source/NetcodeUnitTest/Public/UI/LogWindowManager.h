@@ -137,11 +137,8 @@ protected:
 	int									LogWidth;
 	int									LogHeight;
 
-
-#ifdef DELEGATE_DEPRECATED
 	/** Handles to registered OnWindowClosed delegates for particular windows */
 	TMap<SLogWindow*, FDelegateHandle> OnWindowClosedDelegateHandles;
-#endif
 };
 
 

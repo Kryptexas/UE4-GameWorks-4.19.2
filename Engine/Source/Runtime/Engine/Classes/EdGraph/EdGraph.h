@@ -101,10 +101,6 @@ public:
 	FDelegateHandle AddOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );
 
 	/** Remove a listener for OnGraphChanged events */
-	DELEGATE_DEPRECATED("This overload of RemoveOnGraphChangedHandler is deprecated, instead pass the result of AddOnGraphChangedHandler.")
-	void RemoveOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );
-
-	/** Remove a listener for OnGraphChanged events */
 	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
 #if WITH_EDITORONLY_DATA
@@ -191,10 +187,6 @@ public:
 
 	/** Add a delegate listening for property change notifications */
 	FDelegateHandle AddPropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );
-
-	/** Remove a delegate listening for property changed notifications */
-	DELEGATE_DEPRECATED("This overload of RemovePropertyChangedNotifier is deprecated, instead pass the result of AddPropertyChangedNotifier.")
-	void RemovePropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );
 
 	/** Remove a delegate listening for property changed notifications */
 	void RemovePropertyChangedNotifier(FDelegateHandle InHandle );

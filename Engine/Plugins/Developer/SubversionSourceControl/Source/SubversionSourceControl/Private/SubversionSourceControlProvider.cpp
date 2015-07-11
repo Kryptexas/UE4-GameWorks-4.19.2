@@ -121,16 +121,6 @@ TArray<FSourceControlStateRef> FSubversionSourceControlProvider::GetCachedStateB
 	return Result;
 }
 
-void FSubversionSourceControlProvider::RegisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-	OnSourceControlStateChanged.Add( SourceControlStateChanged );
-}
-
-void FSubversionSourceControlProvider::UnregisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-	OnSourceControlStateChanged.DEPRECATED_Remove( SourceControlStateChanged );
-}
-
 FDelegateHandle FSubversionSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
 {
 	return OnSourceControlStateChanged.Add( SourceControlStateChanged );

@@ -23,11 +23,7 @@ void FFrameProfiler::Start()
 
 		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 
-#ifdef DELEGATE_DEPRECATED
 		OnNewFrameDelegateHandle = Stats.NewFrameDelegate.AddRaw(this, &FFrameProfiler::OnNewFrame);
-#else
-		Stats.NewFrameDelegate.AddRaw(this, &FFrameProfiler::OnNewFrame);
-#endif
 	}
 }
 
@@ -37,12 +33,7 @@ void FFrameProfiler::Stop()
 	{
 		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 
-#ifdef DELEGATE_DEPRECATED
 		Stats.NewFrameDelegate.Remove(OnNewFrameDelegateHandle);
-#else
-		Stats.NewFrameDelegate.RemoveRaw(this, &FFrameProfiler::OnNewFrame);
-#endif
-
 
 		StatsMasterEnableSubtract();
 		bActive = false;

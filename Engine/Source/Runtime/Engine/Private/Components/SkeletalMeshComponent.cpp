@@ -2101,11 +2101,6 @@ FDelegateHandle USkeletalMeshComponent::RegisterOnSkeletalMeshPropertyChanged( c
 	return OnSkeletalMeshPropertyChanged.Add(Delegate);
 }
 
-void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
-{
-	OnSkeletalMeshPropertyChanged.DEPRECATED_Remove(Delegate);
-}
-
 void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( FDelegateHandle Handle )
 {
 	OnSkeletalMeshPropertyChanged.Remove(Handle);

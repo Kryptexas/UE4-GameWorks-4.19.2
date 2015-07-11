@@ -1568,11 +1568,6 @@ FDelegateHandle FGlobalTabmanager::OnActiveTabChanged_Subscribe( const FOnActive
 	return OnActiveTabChanged.Add( InDelegate );
 }
 
-void FGlobalTabmanager::OnActiveTabChanged_Unsubscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
-{
-	OnActiveTabChanged.DEPRECATED_Remove( InDelegate );
-}
-
 void FGlobalTabmanager::OnActiveTabChanged_Unsubscribe( FDelegateHandle Handle )
 {
 	OnActiveTabChanged.Remove( Handle );

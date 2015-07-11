@@ -81,8 +81,8 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 	{
 		bRequestTriggered = true;
 
-		RequestFriendsReadPermissionsDelegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated);
-		SharingInterface->AddOnRequestNewReadPermissionsCompleteDelegate(LocalUserNum, RequestFriendsReadPermissionsDelegate);
+		auto RequestFriendsReadPermissionsDelegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated);
+		RequestFriendsReadPermissionsDelegateHandle = SharingInterface->AddOnRequestNewReadPermissionsCompleteDelegate_Handle(LocalUserNum, RequestFriendsReadPermissionsDelegate);
 		SharingInterface->RequestNewReadPermissions(LocalUserNum, EOnlineSharingReadCategory::Friends);
 		OnReadFriendsListCompleteDelegate = Delegate;
 	}
@@ -187,7 +187,7 @@ bool FOnlineFriendsFacebook::GetRecentPlayers(const FUniqueNetId& UserId, const 
 void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::OnReadPermissionsUpdated() - %d"), bWasSuccessful);
-	SharingInterface->ClearOnRequestNewReadPermissionsCompleteDelegate(LocalUserNum, RequestFriendsReadPermissionsDelegate);
+	SharingInterface->ClearOnRequestNewReadPermissionsCompleteDelegate_Handle(LocalUserNum, RequestFriendsReadPermissionsDelegateHandle);
 
 	if( bWasSuccessful )
 	{

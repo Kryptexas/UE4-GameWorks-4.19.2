@@ -588,21 +588,6 @@ FDelegateHandle FPopupSupport::RegisterClickNotification( const TSharedRef<SWidg
 	return ClickZoneNotifications.Last().Notification.GetHandle();
 }
 
-void FPopupSupport::UnregisterClickNotification( const FOnClickedOutside& InNotification )
-{
-	for (int32 SubscriptionIndex=0; SubscriptionIndex < ClickZoneNotifications.Num();)
-	{
-		if (ClickZoneNotifications[SubscriptionIndex].Notification.DEPRECATED_Compare(InNotification))
-		{
-			ClickZoneNotifications.RemoveAtSwap(SubscriptionIndex);
-		}
-		else
-		{
-			SubscriptionIndex++;
-		}
-	}	
-}
-
 void FPopupSupport::UnregisterClickNotification( FDelegateHandle Handle )
 {
 	for (int32 SubscriptionIndex=0; SubscriptionIndex < ClickZoneNotifications.Num();)

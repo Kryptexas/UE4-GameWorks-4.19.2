@@ -3284,11 +3284,6 @@ FDelegateHandle UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelega
 	return OnActorSpawned.Add(InHandler);
 }
 
-void UWorld::RemoveOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )
-{
-	OnActorSpawned.DEPRECATED_Remove(InHandler);
-}
-
 void UWorld::RemoveOnActorSpawnedHandler( FDelegateHandle InHandle )
 {
 	OnActorSpawned.Remove(InHandle);

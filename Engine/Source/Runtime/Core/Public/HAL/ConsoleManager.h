@@ -7,13 +7,6 @@
 
 class FConsoleVariableBase;
 
-// We disable the deprecation warnings here because otherwise it'll complain about us
-// implementing RegisterConsoleVariableSink and UnregisterConsoleVariableSink.  We know
-// that, but we only want it to complain if *others* implement or call these functions.
-//
-// These macros should be removed when those functions are removed.
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-
 class CORE_API FConsoleManager :public IConsoleManager
 {
 public:
@@ -60,12 +53,6 @@ public:
 	virtual IConsoleVariable* RegisterConsoleVariableBitRef(const TCHAR* CVarName, const TCHAR* FlagName, uint32 BitNumber, uint8* Force0MaskPtr, uint8* Force1MaskPtr, const TCHAR* Help, uint32 Flags) override;
 	
 	virtual void CallAllConsoleVariableSinks() override;
-
-	DELEGATE_DEPRECATED("This function is deprecated - please replace any usage with RegisterConsoleVariableSink_Handle.")
-	virtual void RegisterConsoleVariableSink(const FConsoleCommandDelegate& Command) override;
-
-	DELEGATE_DEPRECATED("Delegate comparison is deprecated - please replace any usage with UnregisterConsoleVariableSink_Handle, passing the result of RegisterConsoleVariableSink_Handle.")
-	virtual void UnregisterConsoleVariableSink(const FConsoleCommandDelegate& Command) override;
 
 	virtual FConsoleVariableSinkHandle RegisterConsoleVariableSink_Handle(const FConsoleCommandDelegate& Command) override;
 	virtual void UnregisterConsoleVariableSink_Handle(FConsoleVariableSinkHandle Handle) override;
@@ -145,5 +132,3 @@ private: // ----------------------------------------------------
 	// clears HistoryEntries and writes it the .ini file
 	void SaveHistory();
 };
-
-PRAGMA_ENABLE_DEPRECATION_WARNINGS

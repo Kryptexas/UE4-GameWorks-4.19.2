@@ -363,13 +363,6 @@ public:
 	}
 
 	/** Unregisters a delegate to be called after the preview animation has been changed */
-	DELEGATE_DEPRECATED("This UnregisterOnRetargetSourceChanged overload has been deprecated - please pass the handle returned from RegisterOnRetargetSourceChanged instead.")
-	void UnregisterOnRetargetSourceChanged(const FOnRetargetSourceChanged& Delegate)
-	{
-		OnRetargetSourceChanged.DEPRECATED_Remove(Delegate);
-	}
-
-	/** Unregisters a delegate to be called after the preview animation has been changed */
 	void UnregisterOnRetargetSourceChanged(FDelegateHandle Handle)
 	{
 		OnRetargetSourceChanged.Remove(Handle);

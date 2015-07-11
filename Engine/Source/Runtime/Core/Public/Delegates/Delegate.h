@@ -316,8 +316,6 @@ namespace UE4Delegates_Private
 
 /*********************************************************************************************************************/
 
-#define DELEGATE_DEPRECATED(message) DEPRECATED(4.7, message)
-
 // We define this as a guard to prevent DelegateSignatureImpl.inl being included outside of this file
 #define __Delegate_h__
 #define FUNC_INCLUDING_INLINE_IMPL

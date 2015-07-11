@@ -21,11 +21,7 @@ FLogWindowManager::~FLogWindowManager()
 
 		if (CurEntry->LogWindow.IsValid())
 		{
-#ifdef DELEGATE_DEPRECATED
 			CurEntry->LogWindow->MultiOnWindowClosed.Remove(OnWindowClosedDelegateHandles.FindRef(CurEntry->LogWindow.Get()));
-#else
-			CurEntry->LogWindow->MultiOnWindowClosed.RemoveRaw(this, &FLogWindowManager::OnWindowClosed);
-#endif
 		}
 	}
 
@@ -33,11 +29,7 @@ FLogWindowManager::~FLogWindowManager()
 	{
 		if (OverflowWindows[i].IsValid())
 		{
-#ifdef DELEGATE_DEPRECATED
 			OverflowWindows[i]->MultiOnWindowClosed.Remove(OnWindowClosedDelegateHandles.FindRef(OverflowWindows[i].Get()));
-#else
-			OverflowWindows[i]->MultiOnWindowClosed.RemoveRaw(this, &FLogWindowManager::OnWindowClosed);
-#endif
 		}
 	}
 }
@@ -136,12 +128,8 @@ TSharedPtr<SLogWindow> FLogWindowManager::CreateLogWindow(FString Title, ELogTyp
 
 	if (ReturnVal.IsValid())
 	{
-#ifdef DELEGATE_DEPRECATED
 		OnWindowClosedDelegateHandles.Add(ReturnVal.Get(),
 											ReturnVal->MultiOnWindowClosed.AddRaw(this, &FLogWindowManager::OnWindowClosed));
-#else
-		ReturnVal->MultiOnWindowClosed.AddRaw(this, &FLogWindowManager::OnWindowClosed);
-#endif
 
 		FSlateApplication::Get().AddWindow(ReturnVal.ToSharedRef());
 
