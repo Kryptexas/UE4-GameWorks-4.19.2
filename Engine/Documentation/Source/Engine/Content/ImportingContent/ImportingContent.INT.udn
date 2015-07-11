@@ -27,9 +27,15 @@ Reference the following pages to learn more about importing content into your UE
 |How To...                                                         | Description                                                                |
 | -------                                                          | ------------                                                               |
 | [](Engine/Content/ImportingContent/ImportingAudio)               | %Engine/Content/ImportingContent/ImportingAudio:description%               |
-| [](Engine/Content/ImportingContent/ImportingLODs)                | %Engine/Content/ImportingContent/ImportingLODs:description%                |
 | [](Engine/Content/ImportingContent/ImportingMeshes)              | %Engine/Content/ImportingContent/ImportingMeshes:description%              |
 | [](Engine/Content/ImportingContent/ImportingSkeletalMeshes)      | %Engine/Content/ImportingContent/ImportingSkeletalMeshes:description%      |
-| [](Engine/Content/ImportingContent/ImportingSkeletalLODs)        | %Engine/Content/ImportingContent/ImportingSkeletalLODs:description%        |
+| [](Engine/Content/ImportingContent/ImportingMaterials)           | %Engine/Content/ImportingContent/ImportingMaterials:description%           |
 | [](Engine/Content/ImportingContent/ImportingTextures)            | %Engine/Content/ImportingContent/ImportingTextures:description%            |
-| [](Engine/Content/ImportingContent/ImportingMaterials)            | %Engine/Content/ImportingContent/ImportingMaterials:description%            |
+
+## Advanced
+
+|How To...                                                         | Description                                                                |
+| -------                                                          | ------------                                                               |
+| [](Engine/Content/ImportingContent/ImportingLODs)                | %Engine/Content/ImportingContent/ImportingLODs:description%                |
+| [](Engine/Content/ImportingContent/ImportingSkeletalLODs)        | %Engine/Content/ImportingContent/ImportingSkeletalLODs:description%        |
+| [](Engine/Content/ImportingContent/ImportingMorphTargets)        | %Engine/Content/ImportingContent/ImportingMorphTargets:description%        |
