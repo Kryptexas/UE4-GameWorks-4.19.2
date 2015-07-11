@@ -280,6 +280,13 @@ void UEdGraphNode::PostLoad()
 	}
 }
 
+void UEdGraphNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	GetSchema()->ForceVisualizationCacheClear();
+}
+
 void UEdGraphNode::CreateNewGuid()
 {
 	NodeGuid = FGuid::NewGuid();

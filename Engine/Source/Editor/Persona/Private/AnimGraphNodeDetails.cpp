@@ -479,19 +479,14 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-	// No child customisations as the properties are shown in the header
+	// No child customizations as the properties are shown in the header
 }
 
 void FBoneReferenceCustomization::OnBoneSelectionChanged(FName Name)
 {
 	BoneRefProperty->SetValue(Name);
-
-	// Force a refresh of cached node titles, K2Schema is no different than the AnimSchema for this purpose
-	if (const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>())
-	{
-		K2Schema->ForceVisualizationCacheClear();
-	}
 }
+
 FName FBoneReferenceCustomization::GetSelectedBone() const
 {
 	FString OutText;
