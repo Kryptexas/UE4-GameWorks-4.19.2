@@ -144,4 +144,20 @@ private:
 	UEnum* Enum;
 };
 
+/** A key area for displaying and editing integral curves representing bools. */
+class FBoolKeyArea : public FIntegralKeyArea
+{
+public:
+	FBoolKeyArea(FIntegralCurve& InCurve, UMovieSceneSection* InOwningSection)
+		: FIntegralKeyArea(InCurve, InOwningSection)
+	{}
+
+	virtual bool CanCreateKeyEditor() override 
+	{
+		return true;
+	}
+
+	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
+};
+
 

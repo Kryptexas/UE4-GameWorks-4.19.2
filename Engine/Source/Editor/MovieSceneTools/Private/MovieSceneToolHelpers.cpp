@@ -14,6 +14,7 @@
 #include "SFloatCurveKeyEditor.h"
 #include "SIntegralCurveKeyEditor.h"
 #include "SEnumCurveKeyEditor.h"
+#include "SBoolCurveKeyEditor.h"
 
 void FFloatCurveKeyArea::AddKeyUnique(float Time)
 {
@@ -72,5 +73,13 @@ TSharedRef<SWidget> FEnumKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(&Curve)
 		.Enum(Enum);
+};
+
+TSharedRef<SWidget> FBoolKeyArea::CreateKeyEditor(ISequencer* Sequencer)
+{
+	return SNew(SBoolCurveKeyEditor)
+		.Sequencer(Sequencer)
+		.OwningSection(OwningSection)
+		.Curve(&Curve);
 };
 
