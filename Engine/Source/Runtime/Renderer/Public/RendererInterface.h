@@ -469,6 +469,12 @@ public:
 
 	/** test primitive visiblity */
 	virtual bool IsVisible(int32 VisibilityId, const FBoxSphereBounds& Bounds) = 0;
+
+	/** return true if we can call IsVisible from a ParallelFor */
+	virtual bool IsThreadsafe()
+	{
+		return false;
+	}
 };
 
 class ICustomCulling
