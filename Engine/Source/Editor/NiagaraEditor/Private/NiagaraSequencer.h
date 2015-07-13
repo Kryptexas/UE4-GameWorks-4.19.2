@@ -88,7 +88,7 @@ public:
 				);
 		}
 
-		return 0;
+		return LayerId;
 	}
 
 	FText GetDisplayName(void) const	{ return EmitterSection->GetEmitterName(); }
