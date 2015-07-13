@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2593693
+﻿INTSourceChangelist:2613760
 Availability:Public
-Title:アンリアル エンジン 4 のドキュメント
+Title: アンリアル エンジン 4 のドキュメント
 Crumbs:
-Description:UE4 トップレベル リンク ドキュメント
+Description: UE4 トップレベル リンク ドキュメント
 Navigation:home
 
 [PUBLISH:Rocket]
@@ -28,13 +28,22 @@ Navigation:home
 			方法
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			ブループリント
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Android
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
 			アクタ
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			コンポーネント
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			ブループリント
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			マテリアル
@@ -48,15 +57,6 @@ Navigation:home
 		[PARAMLITERAL:terms]
 			UMG UI
 		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			C++
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			iOS
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			Android
-		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
@@ -69,10 +69,11 @@ Navigation:home
 	%GettingStarted:role%
 	%Engine/UI:role%
 	%Engine:role%
-	%Gameplay:role%
-	%Engine/Blueprints:role%
 	%Programming:topicrole%
-	%Platforms:role%
+	%Engine/Blueprints:role%
+	%Gameplay:role%
 	%Resources:role%
+	%Platforms:role%
+	%Support/Builds:role%
 	[/REGION]
 [/REGION]
