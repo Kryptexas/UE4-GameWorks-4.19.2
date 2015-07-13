@@ -58,5 +58,5 @@ Related: Engine/Actors/DecalActor
 
 **Materials** can get very complicated, very fast. **Groups** lets you manage how **Parameters** are listed in the **Material Instance** editor.
 
-Grouping parameters has no effect on how the **Material** is rendered, they are just used to optimize your workflow.
+Grouping parameters has no effect on how the Material is rendered, they are just used to optimize your workflow.
 
