@@ -768,7 +768,7 @@ struct FRawStatsFileInfo
 };
 
 /** Enumerates stats processing stages. */
-enum EStatsProcessingStage
+enum class EStatsProcessingStage : int32
 {
 	SPS_Started = 0,
 	SPS_ReadAndCombinePackets,
@@ -926,7 +926,7 @@ public:
 		return AsyncWork != nullptr ? !AsyncWork->IsDone() : false;
 	}
 
-	/** Requests stopping the processing of the data. */
+	/** Requests stopping the processing of the data. May take a few seconds to finish. */
 	void RequestStop()
 	{
 		bShouldStopProcessing = true;

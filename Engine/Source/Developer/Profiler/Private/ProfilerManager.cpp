@@ -27,7 +27,6 @@ DEFINE_STAT(STAT_PM_MemoryUsage);
 -----------------------------------------------------------------------------*/
 
 TSharedPtr<FProfilerManager> FProfilerManager::Instance = nullptr;
-FThreadSafeCounter FProfilerManager::ProcessingLock;
 
 struct FEventGraphSampleLess
 {

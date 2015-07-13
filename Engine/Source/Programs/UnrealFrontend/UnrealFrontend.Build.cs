@@ -24,6 +24,7 @@ public class UnrealFrontend : ModuleRules
 				"DeviceManager",
 				"LauncherServices",
 				"Messaging",
+				"Profiler",
 				"ProfilerClient",
                 "ProjectLauncher",
 				"Projects",

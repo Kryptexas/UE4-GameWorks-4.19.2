@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealFrontendPrivatePCH.h"
+#include "Profiler.h"
 #include "StatsDumpMemoryCommand.h"
 #include "DiagnosticTable.h"
 
@@ -221,6 +222,21 @@ void FStatsMemoryDumpCommand::InternalRun()
 	FString SourceFilepath;
 	FParse::Value( FCommandLine::Get(), TEXT( "-INFILE=" ), SourceFilepath );
 
+	{
+		const FName NAME_ProfilerModule = TEXT( "Profiler" );
+		IProfilerModule& ProfilerModule = FModuleManager::LoadModuleChecked<IProfilerModule>( NAME_ProfilerModule );
+		ProfilerModule.StatsMemoryDumpCommand( *SourceFilepath );
+		//FModuleManager::Get().UnloadModule( NAME_ProfilerModule );
+	}
+
+	{
+		const FName NAME_ProfilerModule = TEXT( "Profiler" );
+		IProfilerModule& ProfilerModule = FModuleManager::LoadModuleChecked<IProfilerModule>( NAME_ProfilerModule );
+		ProfilerModule.StatsMemoryDumpCommand( *SourceFilepath );
+		//FModuleManager::Get().UnloadModule( NAME_ProfilerModule );
+	}
+
+
 	FStatsReadFile* NewReader = FStatsReadFile::CreateReaderForRawStats( *SourceFilepath, FStatsReadFile::FOnNewCombinedHistory::CreateRaw( this, &FStatsMemoryDumpCommand::ProcessMemoryOperations ) );
 	if (NewReader)
 	{
@@ -231,9 +247,11 @@ void FStatsMemoryDumpCommand::InternalRun()
 		{
 			FPlatformProcess::Sleep( 1.0f );
 
-			UE_LOG( LogStats, Log, TEXT( "Async: Stage: %s/%3i%%" ), *NewReader->GetProcessingStageAsString(), NewReader->GetStageProgress() );
+			UE_LOG( LogStats, Log, TEXT( "Async: Stage: %s / %3i%%" ), *NewReader->GetProcessingStageAsString(), NewReader->GetStageProgress() );
 		}
+		//NewReader->RequestStop();
 
+		// Delete reader, we don't need the data anymore.
 		delete NewReader;
 
 		// Frame-240 Frame-120 Frame-060
@@ -262,15 +280,15 @@ void FStatsMemoryDumpCommand::InternalRun()
 		}
 
 
-	{
-		TMap<FName, FCombinedAllocationInfo> Frame060_240_FName;
-		CompareSnapshots_FName( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240_FName );
+		{
+			TMap<FName, FCombinedAllocationInfo> Frame060_240_FName;
+			CompareSnapshots_FName( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240_FName );
 
-		FNodeAllocationInfo Root;
-		Root.EncodedCallstack = TEXT( "ThreadRoot" );
-		Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
-		GenerateScopedTreeAllocations( Frame060_240_FName, Root );
-	}
+			FNodeAllocationInfo Root;
+			Root.EncodedCallstack = TEXT( "ThreadRoot" );
+			Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+			GenerateScopedTreeAllocations( Frame060_240_FName, Root );
+		}
 #endif // UE_BUILD_DEBUG
 	}
 }
@@ -1099,13 +1117,21 @@ void FStatsMemoryDumpCommand::PrepareSnapshot( const FName SnapshotName, const T
 {
 	FScopeLogTime SLT( TEXT( "PrepareSnapshot" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
 
-	SnapshotsWithAllocationMap.Add( SnapshotName, AllocationMap );
+	// Make sure the snapshot name is unique.
+	FName UniqueSnapshotName = SnapshotName;
+	while (SnapshotNames.Contains( UniqueSnapshotName ))
+	{
+		UniqueSnapshotName = FName( UniqueSnapshotName, UniqueSnapshotName.GetNumber() + 1 );
+	}
+	SnapshotNames.Add( UniqueSnapshotName );
+
+	SnapshotsWithAllocationMap.Add( UniqueSnapshotName, AllocationMap );
 
 	TMap<FName, FCombinedAllocationInfo> SnapshotCombinedAllocations;
 	uint64 TotalAllocatedMemory = 0;
 	uint64 NumAllocations = 0;
 	GenerateScopedAllocations( AllocationMap, SnapshotCombinedAllocations, TotalAllocatedMemory, NumAllocations );
-	SnapshotsWithScopedAllocations.Add( SnapshotName, SnapshotCombinedAllocations );
+	SnapshotsWithScopedAllocations.Add( UniqueSnapshotName, SnapshotCombinedAllocations );
 
 	// Decode callstacks.
 	// Replace encoded callstacks with human readable name. For easier debugging.
@@ -1115,9 +1141,9 @@ void FStatsMemoryDumpCommand::PrepareSnapshot( const FName SnapshotName, const T
 		const FString HumanReadableCallstack = FStatsCallstack::GetHumanReadable( It.Key );
 		SnapshotDecodedCombinedAllocations.Add( HumanReadableCallstack, It.Value );
 	}
-	SnapshotsWithDecodedScopedAllocations.Add( SnapshotName, SnapshotDecodedCombinedAllocations );
+	SnapshotsWithDecodedScopedAllocations.Add( UniqueSnapshotName, SnapshotDecodedCombinedAllocations );
 
-	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Alloc: %i Scoped: %i Total: %.2f MB" ), *SnapshotName.GetPlainNameString(), AllocationMap.Num(), SnapshotCombinedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f );
+	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Alloc: %i Scoped: %i Total: %.2f MB" ), *UniqueSnapshotName.ToString(), AllocationMap.Num(), SnapshotCombinedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f );
 }
 
 void FStatsMemoryDumpCommand::CompareSnapshots_FName( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result )

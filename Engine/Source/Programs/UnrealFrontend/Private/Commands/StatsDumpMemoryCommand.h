@@ -260,6 +260,9 @@ protected:
 	/** The sequence tag mapping to the named markers. */
 	TArray<TPair<uint32, FName>> Snapshots;
 
+	/** Unique snapshot names. */
+	TSet<FName> SnapshotNames;
+
 	/** The sequence tag mapping to the named markers that need to processed. */
 	TArray<TPair<uint32, FName>> SnapshotsToBeProcessed;
 

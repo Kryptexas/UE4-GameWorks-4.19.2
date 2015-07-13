@@ -2,11 +2,7 @@
 
 #pragma once
 
-
-// forward declarations
-class IProfilerManager;
-class ISessionManager;
-
+class FRawStatsMemoryProfiler;
 
 /**
  * Interface for the profiler module.
@@ -25,8 +21,9 @@ public:
 	 */
 	virtual TSharedRef<SWidget> CreateProfilerWindow( const TSharedRef<ISessionManager>& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab ) = 0;
 
-	/**
-	 * @return a weak pointer to the global instance of the profiler manager.
-	 */
-	virtual TWeakPtr<IProfilerManager> GetProfilerManager() = 0;
+	/** Implements stats memory dump command. */
+	virtual void StatsMemoryDumpCommand( const TCHAR* Filename ) = 0;
+
+	/** Creates a new instance of the memory profiler based the raw stats. */
+	virtual FRawStatsMemoryProfiler* OpenRawStatForMemoryProfiling( const TCHAR* Filename ) = 0;
 };
