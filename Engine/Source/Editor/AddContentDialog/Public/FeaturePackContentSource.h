@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Private/IContentSource.h"
+#include "IContentSource.h"
 #include "FeaturePackContentSource.generated.h"
 
 class UObject;
@@ -106,14 +106,33 @@ struct FFeaturePackLevelSet
 	}
 };
 
+/* Structure that defines a shared feature pack resource. */
+USTRUCT()
+struct FFeatureAdditionalFiles
+{
+	GENERATED_BODY()
+
+	FFeatureAdditionalFiles(){};
+	
+	/* Name of the folder to insert the files to */
+	UPROPERTY()
+	FString DestinationFilesFolder;
+
+	/* List of files to insert */
+	UPROPERTY()
+	TArray<FString> AdditionalFilesList;
+};
+
 class FPakPlatformFile;
 struct FSearchEntry;
 
 /** A content source which represents a content upack. */
-class FFeaturePackContentSource : public IContentSource
+class ADDCONTENTDIALOG_API FFeaturePackContentSource : public IContentSource
 {
 public:
-	ADDCONTENTDIALOG_API FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegister = false);
+	FFeaturePackContentSource();
+	FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegister = false);
+
 	virtual ~FFeaturePackContentSource();
 
 	virtual TArray<FLocalizedText> GetLocalizedNames() const override;
@@ -126,10 +145,12 @@ public:
 	
 	virtual TSharedPtr<FImageData> GetIconData() const override;
 	virtual TArray<TSharedPtr<FImageData>> GetScreenshotData() const override;
+	FString GetFocusAssetName() const;
 
 	virtual bool InstallToProject(FString InstallPath) override;
 
 	void InsertAdditionalFeaturePacks();
+	bool InsertAdditionalResources(TArray<FFeaturePackLevelSet> InAdditionalFeaturePacks,EFeaturePackDetailLevel RequiredLevel, const FString& InDestinationFolder,TArray<FString>& InFilesCopied);
 
 	virtual bool IsDataValid() const override;
 	
@@ -145,7 +166,7 @@ public:
 	 * @param bContainsSource 	Set to true if the file list contains any source files
 	 * @returns true if config file was read and parsed successfully
 	 */
-	ADDCONTENTDIALOG_API void CopyAdditionalFilesToFolder( const FString& DestinationFolder, TArray<FString>& FilesCopied, bool &bHasSourceFiles );
+	void CopyAdditionalFilesToFolder( const FString& DestinationFolder, TArray<FString>& FilesCopied, bool &bHasSourceFiles, FString InGameFolder = FString() );
 
 	/*
 	 * Returns a list of additional files (including the path) as specified in the config file if one exists in the pack file.
@@ -154,16 +175,22 @@ public:
 	 * @param bContainsSource did the file list contain any source files
 	 * @returns true if config file was read and parsed successfully
 	 */
-	ADDCONTENTDIALOG_API bool GetAdditionalFilesForPack(TArray<FString>& FileList, bool& bContainsSource);
+	bool GetAdditionalFilesForPack(TArray<FString>& FileList, bool& bContainsSource);
 
-	static ADDCONTENTDIALOG_API void ImportPendingPacks();
+	static void ImportPendingPacks();
 	
+	/* Errors found when parsing manifest (if any) */
 	TArray<FString>	ParseErrors;
 	
+	void BuildListOfAdditionalFiles(TArray<FString>& AdditionalFileSourceList,TArray<FString>& FileList, bool& bContainsSourceFiles);
+
+	/* Get the identifier of the pack. */
+	virtual FString GetIdent() const;
+
 private:
 	static void ParseAndImportPacks();
 	bool LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);
-	FString GetFocusAssetName() const;
+	
 	
 	/*
 	 * Extract the list of additional files defined in config file to an array
@@ -172,27 +199,84 @@ private:
 	 * @param FileList		  array to receive list of files
 	 * @param bContainsSource did the file list contain any source files
 	 */
-	bool ExtractListOfAdditionalFiles(const FString& ConfigFile, TArray<FString>& FileList,bool& bContainsSource) const;
+	bool ExtractListOfAdditionalFiles(const FString& ConfigFile, TArray<FString>& FileList,bool& bContainsSource);
 
 	void RecordAndLogError(const FString& ErrorString);
+
+	/* Load the images for the icon and screen shots directly from disk */
+	bool LoadFeaturePackImageData();
+	
+	/* extract the images for the icon and screen shots from a pak file */
+	bool LoadFeaturePackImageDataFromPackFile(FPakPlatformFile& PakPlatformFile);
+	
+	/* Parse the manifest string describing this pack file */
+	bool ParseManifestString(const FString& ManifestString);
+
 	/** Selects an FLocalizedText from an array which matches either the supplied language code, or the default language code. */
 	FLocalizedTextArray ChooseLocalizedTextArray(TArray<FLocalizedTextArray> Choices, FString LanguageCode);
 	FLocalizedText ChooseLocalizedText(TArray<FLocalizedText> Choices, FString LanguageCode);
 	void TryAddFeaturePackCategory(FString CategoryTitle, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
 
+	/* The path of the file we used to create this feature pack instance */
 	FString FeaturePackPath;
+	
+	/* Array of localised names */
 	TArray<FLocalizedText> LocalizedNames;
+	
+	/* Array of localised descriptions */
 	TArray<FLocalizedText> LocalizedDescriptions;
+	
+	/* Defines the type of feature pack this is */
 	EContentSourceCategory Category;
+	
+	/* Filename of the icon */
+	FString IconFilename;
+	
+	/* Image data for the icon */
 	TSharedPtr<FImageData> IconData;
+	
+	/* Filenames of the preview screenshots */
+	TArray<TSharedPtr<FJsonValue>> ScreenshotFilenameArray;
+	
+	/* Image data of the preview screenshots */
 	TArray<TSharedPtr<FImageData>> ScreenshotData;
+	
+	/* Array of localised assset type names */
 	TArray<FLocalizedText> LocalizedAssetTypesList;
+	
+	/* Comma delimited string listing the class types */
 	FString ClassTypes;
+	
+	/* true if the pack is valid */
 	bool bPackValid;
+	
+	/* Asset to focus after loading the pack */
 	FString FocusAssetIdent;
+	
+	/* Key used when sorting in the add dialog */
 	FString SortKey;
+	
+	/* Tags searched when typing in the super search box */
 	TArray<FLocalizedTextArray> LocalizedSearchTags;
+	
+	/* Other feature packs this pack needs (shared assets) */
 	TArray<FFeaturePackLevelSet> AdditionalFeaturePacks;
+	
+	/* Handle for the search clicked delegate handler */
 	FDelegateHandle SearchClickedHandle;
+	
+	/* Handle for the search changed delegate handler */
 	FDelegateHandle SearchChangedHandle;
+	
+	/* Additional files to copy when installing this pack */
+	FFeatureAdditionalFiles AdditionalFilesForPack;
+	
+	/* Are the contents in a pack file or did we just read a manifest for the pack */
+	bool bContentsInPakFile;
+
+	/* Feature pack mount point */
+	FString MountPoint;
+
+	FString Identity;
+	FString VersionNumber;
 };

@@ -3493,60 +3493,16 @@ bool GameProjectUtils::AddSharedContentToProject(const FProjectInformation &InPr
 		{
 			RequiredDetail = EFeaturePackDetailLevel::Standard;
 		}
-		
-		for (int32 iPack = 0; iPack < TemplateDefs->SharedContentPacks.Num(); ++iPack)
-		{
-			FFeaturePackLevelSet EachPack = TemplateDefs->SharedContentPacks[iPack];
-			EFeaturePackDetailLevel EachRequiredDetail = RequiredDetail;
-			
-			if (EachPack.DetailLevels.Num() == 1)
-			{
-				// If theres only only detail level override the requirement with that
-				EachRequiredDetail = EachPack.DetailLevels[0];
-			}
-			else if (EachPack.DetailLevels.Num() == 0) 
-			{
-				// We need at least one level !
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("FullPackFilename"), FText::FromString(EachPack.MountName));
-				OutFailReason = FText::Format(LOCTEXT("NoLevelsDefined", "No detail levels defined in template pack '{FullPackFilename}'."), Args);
-				return false;
-			}
 
-			for (int32 iDetail = 0; iDetail < EachPack.DetailLevels.Num() ; iDetail++)
-			{
-				if (EachPack.DetailLevels[iDetail] == EachRequiredDetail)
-				{
-					// Build the Packname from the mount and detail
-					FString DetailString;
-					UEnum::GetValueAsString(TEXT("/Script/AddContentDialog.EFeaturePackDetailLevel"), EachRequiredDetail, DetailString);
-					
-					FString FullPackFilename = FPaths::FeaturePackDir() + EachPack.MountName +  DetailString + DefaultFeaturePackExtension;
-					if (FPaths::FileExists(FullPackFilename) == false)
-					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("FullPackFilename"), FText::FromString(FullPackFilename));
-						OutFailReason = FText::Format(LOCTEXT("CantFindPack", "Cannot find template pack '{FullPackFilename}'."), Args);
-						return false;
-					}
-					TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPackFilename, true);
-					if (NewContentSource->IsDataValid() == true)
-					{						
-						FString DestinationFolder = DestFolder;
-						FPaths::NormalizeDirectoryName(DestinationFolder);
-						bool bHasSourceFiles = false;
-						TArray<FString> FilesCopied;
-						NewContentSource->CopyAdditionalFilesToFolder(DestinationFolder, FilesCopied, bHasSourceFiles);						
-					}
-					else
-					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("PackName"), FText::FromString(FullPackFilename));
-						OutFailReason = FText::Format(LOCTEXT("PackParseError", "Error parsing template pack '{PackName}'."), Args);
-						return false;
-					}
-				}
-			}
+
+		TUniquePtr<FFeaturePackContentSource> TempFeaturePack = MakeUnique<FFeaturePackContentSource>();
+		bool bCopied = TempFeaturePack->InsertAdditionalResources(TemplateDefs->SharedContentPacks,RequiredDetail, DestFolder,CreatedFiles);
+		if( bCopied == false )
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("TemplateName"), FText::FromString(SrcFolder));
+			OutFailReason = FText::Format(LOCTEXT("SharedResourceError", "Error adding shared resources for '{TemplateName}'."), Args);
+			return false;		
 		}
 	}
 	return true;
