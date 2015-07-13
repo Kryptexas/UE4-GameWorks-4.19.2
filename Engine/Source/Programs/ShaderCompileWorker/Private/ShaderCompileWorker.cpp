@@ -13,19 +13,21 @@
 
 #define DEBUG_USING_CONSOLE	0
 
-const int32 ShaderCompileWorkerInputVersion = 2;
+const int32 ShaderCompileWorkerInputVersion = 3;
 const int32 ShaderCompileWorkerOutputVersion = 1;
 
 double LastCompileTime = 0.0;
 
 static bool GShaderCompileUseXGE = false;
+static bool GFailedDueToShaderFormatVersion = false;
+
 static void WriteXGESuccessFile(const TCHAR* WorkingDirectory)
 {
 	// To signal compilation completion, create a zero length file in the working directory.
 	delete IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/Success"), WorkingDirectory), FILEWRITE_EvenIfReadOnly);
 }
 
-const TArray<const IShaderFormat*>& GetShaderFormats()
+static const TArray<const IShaderFormat*>& GetShaderFormats()
 {
 	static bool bInitialized = false;
 	static TArray<const IShaderFormat*> Results;
@@ -55,7 +57,7 @@ const TArray<const IShaderFormat*>& GetShaderFormats()
 	return Results;
 }
 
-const IShaderFormat* FindShaderFormat(FName Name)
+static const IShaderFormat* FindShaderFormat(FName Name)
 {
 	const TArray<const IShaderFormat*>& ShaderFormats = GetShaderFormats();	
 
@@ -88,6 +90,7 @@ static void ProcessCompilationJob(const FShaderCompilerInput& Input,FShaderCompi
 	Compiler->CompileShader(Input.ShaderFormat, Input, Output, WorkingDirectory);
 }
 
+
 class FWorkLoop
 {
 public:
@@ -95,7 +98,7 @@ public:
 	{
 		ThroughFile,
 	};
-	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, ECommunicationMode InCommunicationMode)
+	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, ECommunicationMode InCommunicationMode, TMap<FString, uint16>& InFormatVersionMap)
 	:	ParentProcessId(FCString::Atoi(ParentProcessIdText))
 	,	WorkingDirectory(InWorkingDirectory)
 	,	InputFilename(InInputFilename)
@@ -103,6 +106,7 @@ public:
 	,	CommunicationMode(InCommunicationMode)
 	,	InputFilePath(InCommunicationMode == ThroughFile ? (FString(InWorkingDirectory) + InInputFilename) : InInputFilename)
 	,	OutputFilePath(InCommunicationMode == ThroughFile ? (FString(InWorkingDirectory) + InOutputFilename) : InOutputFilename)
+	,	FormatVersionMap(InFormatVersionMap)
 	{
 	}
 
@@ -170,6 +174,7 @@ private:
 
 	const FString InputFilePath;
 	const FString OutputFilePath;
+	TMap<FString, uint16> FormatVersionMap;
 	FString TempFilePath;
 
 	/** Opens an input file, trying multiple times if necessary. */
@@ -196,6 +201,21 @@ private:
 		return InputFile;
 	}
 
+	void VerifyFormatVersions(TMap<FString, uint16>& ReceivedFormatVersionMap)
+	{
+		for (auto Pair : ReceivedFormatVersionMap)
+		{
+			auto* Found = FormatVersionMap.Find(Pair.Key);
+			if (Found)
+			{
+				GFailedDueToShaderFormatVersion = true;
+				FCString::Snprintf(GErrorExceptionDescription, sizeof(GErrorExceptionDescription), TEXT("Mismatched shader version for format %s; did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value);
+
+				checkf(Pair.Value == *Found, TEXT("Exiting due to mismatched shader version for format %s, version %d from ShaderCompilerWorker, received %d! Did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value);
+			}
+		}
+	}
+
 	void ProcessInputFromArchive(FArchive* InputFilePtr, TArray<FJobResult>& OutJobResults)
 	{
 		int32 NumBatches = 0;
@@ -203,7 +223,12 @@ private:
 		FArchive& InputFile = *InputFilePtr;
 		int32 InputVersion;
 		InputFile << InputVersion;
-		checkf(ShaderCompileWorkerInputVersion == InputVersion, TEXT("ShaderCompilerWorker expecting input version %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerInputVersion, InputVersion);
+		checkf(ShaderCompileWorkerInputVersion == InputVersion, TEXT("Exiting due to ShaderCompilerWorker expecting input version %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerInputVersion, InputVersion);
+
+		TMap<FString, uint16> ReceivedFormatVersionMap;
+		InputFile << ReceivedFormatVersionMap;
+
+		VerifyFormatVersions(ReceivedFormatVersionMap);
 
 		InputFile << NumBatches;
 
@@ -408,6 +433,7 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 	// We just enumerate the shader formats here for debugging.
 	const TArray<const class IShaderFormat*>& ShaderFormats = GetShaderFormats();
 	check(ShaderFormats.Num());
+	TMap<FString, uint16> FormatVersionMap;
 	for (int32 Index = 0; Index < ShaderFormats.Num(); Index++)
 	{
 		TArray<FName> OutFormats;
@@ -416,13 +442,15 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 		for (int32 InnerIndex = 0; InnerIndex < OutFormats.Num(); InnerIndex++)
 		{
 			UE_LOG(LogShaders, Display, TEXT("Available Shader Format %s"), *OutFormats[InnerIndex].ToString());
+			uint16 Version = ShaderFormats[Index]->GetVersion(OutFormats[InnerIndex]);
+			FormatVersionMap.Add(OutFormats[InnerIndex].ToString(), Version);
 		}
 	}
 
 	LastCompileTime = FPlatformTime::Seconds();
 
 	FWorkLoop::ECommunicationMode Mode = FWorkLoop::ThroughFile;
-	FWorkLoop WorkLoop(argv[2], argv[1], argv[4], argv[5], Mode);
+	FWorkLoop WorkLoop(argv[2], argv[1], argv[4], argv[5], Mode, FormatVersionMap);
 
 	WorkLoop.Loop();
 
@@ -445,6 +473,8 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile
 #if PLATFORM_WINDOWS
 	else
 	{
+		// Don't want 32 dialogs popping up when SCW fails
+		GUseCrashReportClient = false;
 		__try
 		{
 			GIsGuarded = 1;
@@ -458,7 +488,7 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile
 			int32 OutputVersion = ShaderCompileWorkerOutputVersion;
 			OutputFile << OutputVersion;
 
-			int32 ErrorCode = 1;
+			int32 ErrorCode = GFailedDueToShaderFormatVersion ? 2 : 1;
 			OutputFile << ErrorCode;
 
 			// Note: Can't use FStrings here as SEH can't be used with destructors

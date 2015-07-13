@@ -18,6 +18,7 @@ DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
 // Set to 1 to debug ShaderCompilerWorker.exe. Set a breakpoint in LaunchWorker() to get the cmd-line.
 #define DEBUG_SHADERCOMPILEWORKER 0
+
 // Default value comes from bPromptToRetryFailedShaderCompiles in BaseEngine.ini
 // This is set as a global variable to allow changing in the debugger even in release
 // For example if there are a lot of content shader compile errors you want to skip over without relaunching
@@ -108,11 +109,67 @@ namespace XGEConsoleVariables
 		ECVF_Default);
 }
 
+static const TArray<const IShaderFormat*>& GetShaderFormats()
+{
+	static bool bInitialized = false;
+	static TArray<const IShaderFormat*> Results;
+
+	if (!bInitialized)
+	{
+		bInitialized = true;
+		Results.Empty(Results.Num());
+
+		TArray<FName> Modules;
+		FModuleManager::Get().FindModules(SHADERFORMAT_MODULE_WILDCARD, Modules);
+
+		if (!Modules.Num())
+		{
+			UE_LOG(LogShaders, Error, TEXT("No target shader formats found!"));
+		}
+
+		for (int32 Index = 0; Index < Modules.Num(); Index++)
+		{
+			IShaderFormat* Format = FModuleManager::LoadModuleChecked<IShaderFormatModule>(Modules[Index]).GetShaderFormat();
+			if (Format != nullptr)
+			{
+				Results.Add(Format);
+			}
+		}
+	}
+	return Results;
+}
+
+static inline void GetFormatVersionMap(TMap<FString, uint16>& OutFormatVersionMap)
+{
+	if (OutFormatVersionMap.Num() == 0)
+	{
+		const TArray<const class IShaderFormat*>& ShaderFormats = GetShaderFormats();
+		check(ShaderFormats.Num());
+		for (int32 Index = 0; Index < ShaderFormats.Num(); Index++)
+		{
+			TArray<FName> OutFormats;
+			ShaderFormats[Index]->GetSupportedFormats(OutFormats);
+			check(OutFormats.Num());
+			for (int32 InnerIndex = 0; InnerIndex < OutFormats.Num(); InnerIndex++)
+			{
+				uint16 Version = ShaderFormats[Index]->GetVersion(OutFormats[InnerIndex]);
+				OutFormatVersionMap.Add(OutFormats[InnerIndex].ToString(), Version);
+			}
+		}
+	}
+}
+
 // Serialize Queued Job information
 static bool DoWriteTasks(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
-	int32 ShaderCompileWorkerInputVersion = 2;
+	int32 ShaderCompileWorkerInputVersion = 3;
 	TransferFile << ShaderCompileWorkerInputVersion;
+
+	static TMap<FString, uint16> FormatVersionMap;
+	GetFormatVersionMap(FormatVersionMap);
+
+	TransferFile << FormatVersionMap;
+
 	int32 NumBatches = QueuedJobs.Num();
 	TransferFile << NumBatches;
 
@@ -131,7 +188,22 @@ static void DoReadTaskResults(const TArray<FShaderCompileJob*>& QueuedJobs, FArc
 	const int32 OutputVersion = 1;
 	int32 ShaderCompileWorkerOutputVersion;
 	OutputFile << ShaderCompileWorkerOutputVersion;
-	checkf(ShaderCompileWorkerOutputVersion == OutputVersion, TEXT("Expecting ShaderCompilerWorker output version %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerOutputVersion, OutputVersion);
+
+	if (ShaderCompileWorkerOutputVersion != OutputVersion)
+	{
+		FString Text = FString::Printf(TEXT("Expecting ShaderCompilerWorker output version %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerOutputVersion, OutputVersion);
+		if (FPlatformProperties::SupportsWindowedMode())
+		{
+			UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
+			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
+			FPlatformMisc::RequestExit(false);
+			return;
+		}
+		else
+		{
+			UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
+		}
+	}
 
 	int32 ErrorCode;
 	OutputFile << ErrorCode;
@@ -143,20 +215,33 @@ static void DoReadTaskResults(const TArray<FShaderCompileJob*>& QueuedJobs, FArc
 	OutputFile << ExceptionInfoLength;
 
 	// Worker crashed
-	if (ErrorCode == 1)
+	if (ErrorCode == 1 || ErrorCode == 2)
 	{
-		TCHAR* Callstack = new TCHAR[CallstackLength + 1];
-		OutputFile.Serialize(Callstack, CallstackLength * sizeof(TCHAR));
+		TArray<TCHAR> Callstack;
+		Callstack.AddUninitialized(CallstackLength + 1);
+		OutputFile.Serialize(Callstack.GetData(), CallstackLength * sizeof(TCHAR));
 		Callstack[CallstackLength] = 0;
 
-		TCHAR* ExceptionInfo = new TCHAR[ExceptionInfoLength + 1];
-		OutputFile.Serialize(ExceptionInfo, ExceptionInfoLength * sizeof(TCHAR));
+		TArray<TCHAR> ExceptionInfo;
+		ExceptionInfo.AddUninitialized(ExceptionInfoLength + 1);
+		OutputFile.Serialize(ExceptionInfo.GetData(), ExceptionInfoLength * sizeof(TCHAR));
 		ExceptionInfo[ExceptionInfoLength] = 0;
 
-		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed! \n %s \n %s"), ExceptionInfo, Callstack);
+		if (ErrorCode == 2)
+		{
+			if (FPlatformProperties::SupportsWindowedMode())
+			{
+				UE_LOG(LogShaderCompilers, Error, TEXT("%s\n%s"), ExceptionInfo.GetData(), Callstack.GetData());
+				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(ExceptionInfo.GetData()));
+				FPlatformMisc::RequestExit(false);
+			}
+			else
+			{
+				UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), Callstack.GetData());
+			}
+		}
 
-		delete [] Callstack;
-		delete [] ExceptionInfo;
+		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed! \n %s \n %s"), ExceptionInfo.GetData(), Callstack.GetData());
 	}
 
 	int32 NumJobs;
@@ -872,7 +957,7 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	// Note: Set breakpoint here and launch the shadercompileworker with WorkerParameters a cmd-line
 	const TCHAR* WorkerParametersText = *WorkerParameters;
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
-	return FProcHandle(17);
+	return FProcHandle();
 #else
 #if UE_BUILD_DEBUG && PLATFORM_LINUX
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
