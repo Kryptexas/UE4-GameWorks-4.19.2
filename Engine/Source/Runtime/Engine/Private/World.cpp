@@ -517,10 +517,12 @@ void UWorld::FinishDestroy()
 		delete TimerManager;
 	}
 
+#if WITH_EDITOR
 	if (HierarchicalLODBuilder)
 	{
 		delete HierarchicalLODBuilder;
 	}
+#endif // WITH_EDITOR
 
 	// Remove the PKG_ContainsMap flag from packages that no longer contain a world
 	{

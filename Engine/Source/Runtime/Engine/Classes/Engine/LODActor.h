@@ -77,6 +77,8 @@ public:
 	/** Returns StaticMeshComponent subobject **/
 	class UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
 
+#if WITH_EDITORONLY_DATA
 	/** Returns StaticMeshComponent subobject **/
 	class UDrawSphereComponent* GetDrawSphereComponent() const { return DrawSphereComponent; }
+#endif // WITH_EDITORONLY_DATA
 }; 
