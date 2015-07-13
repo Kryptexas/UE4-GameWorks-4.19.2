@@ -52,9 +52,10 @@ public:
 	/**
 	 * Gets interface to the texture representation of the browser
 	 *
+	 * @param bISpopup Whether to return the popup menu texture instead of the main browser window.
 	 * @return A slate shader resource that can be rendered
 	 */
-	virtual FSlateShaderResource* GetTexture() = 0;
+	virtual FSlateShaderResource* GetTexture(bool bIsPopup = false) = 0;
 
 	/**
 	 * Checks whether the web browser is valid and ready for use
@@ -112,50 +113,55 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the browser
 	 * @param MouseEvent Information about the input event
-	 * 
+	 * @param bIsPopup True if the coordinates are relative to a popup menu window, otherwise false.
+	 *
 	 * @return FReply::Handled() if the mouse event was handled, FReply::Unhandled() oterwise
 	 */
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) = 0;
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
 
 	/**
 	 * Notify the browser that a mouse button was released within it
 	 *
 	 * @param MyGeometry The Geometry of the browser
 	 * @param MouseEvent Information about the input event
-	 * 
+	 * @param bIsPopup True if the coordinates are relative to a popup menu window, otherwise false.
+	 *
 	 * @return FReply::Handled() if the mouse event was handled, FReply::Unhandled() oterwise
 	 */
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) = 0;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
 
 	/**
 	 * Notify the browser of a double click event
 	 *
 	 * @param MyGeometry The Geometry of the browser
 	 * @param MouseEvent Information about the input event
-	 * 
+	 * @param bIsPopup True if the coordinates are relative to a popup menu window, otherwise false.
+	 *
 	 * @return FReply::Handled() if the mouse event was handled, FReply::Unhandled() oterwise
 	 */
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) = 0;
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
 
 	/**
 	 * Notify the browser that a mouse moved within it
 	 *
 	 * @param MyGeometry The Geometry of the browser
 	 * @param MouseEvent Information about the input event
-	 * 
+	 * @param bIsPopup True if the coordinates are relative to a popup menu window, otherwise false.
+	 *
 	 * @return FReply::Handled() if the mouse event was handled, FReply::Unhandled() oterwise
 	 */
-	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) = 0;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
 
 	/**
 	 * Called when the mouse wheel is spun
 	 *
 	 * @param MyGeometry The Geometry of the browser
 	 * @param MouseEvent Information about the input event
-	 * 
+	 * @param bIsPopup True if the coordinates are relative to a popup menu window, otherwise false.
+	 *
 	 * @return FReply::Handled() if the mouse event was handled, FReply::Unhandled() oterwise
 	 */
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) = 0;
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
 
 	/**
 	 * The system asks each widget under the mouse to provide a cursor. This event is bubbled.
@@ -166,8 +172,10 @@ public:
 
 	/**
 	 * Called when browser receives/loses focus
+	 * @param SetFocus Whether the window gained or lost focus.
+	 * @param bIsPopup True if the coordinates are relative to a popup menu window, otherwise false.
 	 */
-	virtual void OnFocus(bool SetFocus) = 0;
+	virtual void OnFocus(bool SetFocus, bool bIsPopup) = 0;
 
 	/** Called when Capture lost */
 	virtual void OnCaptureLost() = 0;
@@ -270,6 +278,14 @@ public:
 	/** A delegate that is invoked when closing created popup windows. */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCloseWindow, const TWeakPtr<IWebBrowserWindow>& /*BrowserWindow*/)
 	virtual FOnCloseWindow& OnCloseWindow() = 0;
+
+	/** A delegate that is invoked when the browser needs to show a popup menu. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnShowPopup, const FIntRect& /*PopupSize*/)
+	virtual FOnShowPopup& OnShowPopup() = 0;
+
+	/** A delegate that is invoked when the browser no longer wants to show the popup menu. */
+	DECLARE_EVENT(IWebBrowserWindow, FOnDismissPopup)
+	virtual FOnDismissPopup& OnDismissPopup() = 0;
 
 protected:
 

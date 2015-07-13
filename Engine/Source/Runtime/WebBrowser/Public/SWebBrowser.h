@@ -249,6 +249,12 @@ private:
 	/** Callback for popup window permission */
 	bool HandleBeforePopup(FString URL, FString Target);
 
+	/** Callback for showing a popup menu */
+	void HandleShowPopup(const FIntRect& PopupSize);
+
+	/** Callback for hiding the popup menu */
+	void HandleDismissPopup();
+
 private:
 
 	/** Interface for dealing with a web browser window. */
@@ -256,9 +262,17 @@ private:
 
 	/** Viewport interface for rendering the web page. */
 	TSharedPtr<FWebBrowserViewport> BrowserViewport;
+	/** Viewport interface for rendering popup menus. */
+	TSharedPtr<FWebBrowserViewport>	MenuViewport;
 
 	/** The actual viewport widget. Required to update its tool tip property. */
 	TSharedPtr<SViewport> ViewportWidget;
+
+	/**
+	 * An interface pointer to a menu object presenting a popup.
+	 * Pointer is null when a popup is not visible.
+	 */
+	TWeakPtr<IMenu> PopupMenuPtr;
 
 	/** The url that appears in the address bar which can differ from the url of the loaded page */
 	FText AddressBarUrl;

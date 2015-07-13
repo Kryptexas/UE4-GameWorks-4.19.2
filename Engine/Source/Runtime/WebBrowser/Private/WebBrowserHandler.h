@@ -169,6 +169,8 @@ public:
 		CefCursorHandle Cursor,
 		CefRenderHandler::CursorType Type,
 		const CefCursorInfo& CustomCursorInfo) override;
+	virtual void OnPopupShow(CefRefPtr<CefBrowser> Browser, bool bShow) override;
+	virtual void OnPopupSize(CefRefPtr<CefBrowser> Browser, const CefRect& Rect) override;
 
 public:
 
@@ -203,6 +205,12 @@ private:
 
 	/** Whether to show an error message in case of loading errors. */
 	bool ShowErrorMessage;
+
+	/** Size and position of the popup widget. */
+	CefRect PopupRect;
+
+	/** Set to true to show the popup widget on next popup size change. */
+	bool bShowPopupRequested;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(FWebBrowserHandler);

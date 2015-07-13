@@ -12,6 +12,7 @@
 #if WITH_CEF3
 FWebBrowserHandler::FWebBrowserHandler()
 	: ShowErrorMessage(true)
+	, bShowPopupRequested(false)
 {
 }
 
@@ -250,6 +251,34 @@ void FWebBrowserHandler::OnCursorChange(CefRefPtr<CefBrowser> Browser, CefCursor
 	
 }
 
+void FWebBrowserHandler::OnPopupShow(CefRefPtr<CefBrowser> Browser, bool bShow)
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	bShowPopupRequested = bShow;
+
+	if (BrowserWindow.IsValid())
+	{
+		if (!bShow)
+		{
+			BrowserWindow->HidePopup();
+		}
+	}
+
+}
+
+void FWebBrowserHandler::OnPopupSize(CefRefPtr<CefBrowser> Browser, const CefRect& Rect)
+{
+	if (Rect.width > 0 && Rect.height > 0)
+	{
+		PopupRect = Rect;
+		TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+		if (BrowserWindow.IsValid() && bShowPopupRequested)
+		{
+			BrowserWindow->ShowPopup(PopupRect);
+			bShowPopupRequested = false;
+		}
+	}
+}
 
 bool FWebBrowserHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefRequest> Request)
 {

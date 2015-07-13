@@ -90,7 +90,7 @@ public:
 	virtual void LoadURL(FString NewURL) override;
 	virtual void LoadString(FString Contents, FString DummyURL) override;
 	virtual void SetViewportSize(FIntPoint WindowSize) override;
-	virtual FSlateShaderResource* GetTexture() override;
+	virtual FSlateShaderResource* GetTexture(bool bIsPopup = false) override;
 	virtual bool IsValid() const override;
 	virtual bool IsInitialized() const override;
 	virtual bool IsClosing() const override;
@@ -100,12 +100,12 @@ public:
 	virtual bool OnKeyDown(const FKeyEvent& InKeyEvent) override;
 	virtual bool OnKeyUp(const FKeyEvent& InKeyEvent) override;
 	virtual bool OnKeyChar(const FCharacterEvent& InCharacterEvent) override;
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual void OnFocus(bool SetFocus) override;
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual void OnFocus(bool SetFocus, bool bIsPopup) override;
 	virtual void OnCaptureLost() override;
 	virtual bool CanGoBack() const override;
 	virtual void GoBack() override;
@@ -177,6 +177,18 @@ public:
 	virtual FOnBeforePopupDelegate& OnBeforePopup() override
 	{
 		return BeforePopupDelegate;
+	}
+
+	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnShowPopup, FOnShowPopup);
+	virtual FOnShowPopup& OnShowPopup() override
+	{
+		return ShowPopupEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnDismissPopup, FOnDismissPopup);
+	virtual FOnDismissPopup& OnDismissPopup() override
+	{
+		return DismissPopupEvent;
 	}
 
 private:
@@ -305,6 +317,18 @@ private:
 	 */
 	void OnBrowserClosed();
 
+	/**
+	 * Called to show the popup widget
+	 *
+ 	 * @param PopupSize The size and location of the popup widget.
+	 */
+	void ShowPopup(CefRect PopupSize);
+
+	/**
+	 * Called to hide the popup widget again
+	 */
+	void HidePopup();
+
 public:
 
 	// Trigger an OnBeforePopup event chain
@@ -354,13 +378,16 @@ private:
 	/** Used by the key down and up handlers to convert Slate key events to the CEF equivalent. */
 	void PopulateCefKeyEvent(const FKeyEvent& InKeyEvent, CefKeyEvent& OutKeyEvent);
 
+	/** Used to convert a FPointerEvent to a CefMouseEvent */
+	CefMouseEvent GetCefMouseEvent(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup);
+
 private:
 
 	/** Current state of the document being loaded. */
 	EWebBrowserDocumentState DocumentState;
 
 	/** Interface to the texture we are rendering to. */
-	FSlateUpdatableTexture* UpdatableTexture;
+	FSlateUpdatableTexture* UpdatableTextures[2];
 
 	/** Pointer to the CEF Handler for this window. */
 	CefRefPtr<FWebBrowserHandler> Handler;
@@ -428,6 +455,12 @@ private:
 	/** Delegate for handaling requests to close new windows that were created. */
 	FOnCloseWindow CloseWindowDelegate;
 
+	/** Delegate for handaling requests to show the popup menu. */
+	FOnShowPopup ShowPopupEvent;
+
+	/** Delegate for handaling requests to close new windows that were created. */
+	FOnDismissPopup DismissPopupEvent;
+
 	/** Tracks the current mouse cursor */
 	EMouseCursor::Type Cursor;
 
@@ -444,6 +477,12 @@ private:
 	bool bIgnoreKeyDownEvent;
 	bool bIgnoreKeyUpEvent;
 	bool bIgnoreCharacterEvent;
+
+	/** Used to ignore any popup menus when forwarding focus gained/lost events*/
+	bool bMainHasFocus;
+	bool bPopupHasFocus;
+
+	FIntRect PopupRect;
 
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FWebJSScripting> Scripting;

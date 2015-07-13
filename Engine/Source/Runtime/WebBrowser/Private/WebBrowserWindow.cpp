@@ -26,7 +26,6 @@ typedef FMacCursor FPlatformCursor;
 
 FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
-	, UpdatableTexture(nullptr)
 	, CurrentUrl(InUrl)
 	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
@@ -44,19 +43,29 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TO
 	, bIgnoreKeyDownEvent(false)
 	, bIgnoreKeyUpEvent(false)
 	, bIgnoreCharacterEvent(false)
+	, bMainHasFocus(false)
+	, bPopupHasFocus(false)
 	, Scripting(new FWebJSScripting)
 {
+	UpdatableTextures[0] = nullptr;
+	UpdatableTextures[1] = nullptr;
 }
 
 FWebBrowserWindow::~FWebBrowserWindow()
 {
 	CloseBrowser(true);
-
-	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid() && UpdatableTexture != nullptr)
+	if(FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
 	{
-		FSlateApplication::Get().GetRenderer()->ReleaseUpdatableTexture(UpdatableTexture);
+		for (int I = 0; I < 1; ++I)
+		{
+			if (UpdatableTextures[I] != nullptr)
+			{
+				FSlateApplication::Get().GetRenderer()->ReleaseUpdatableTexture(UpdatableTextures[I]);
+			}
+		}
 	}
-	UpdatableTexture = nullptr;
+	UpdatableTextures[0] = nullptr;
+	UpdatableTextures[1] = nullptr;
 }
 
 void FWebBrowserWindow::LoadURL(FString NewURL)
@@ -104,11 +113,11 @@ void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 	}
 }
 
-FSlateShaderResource* FWebBrowserWindow::GetTexture()
+FSlateShaderResource* FWebBrowserWindow::GetTexture(bool bIsPopup)
 {
-	if (UpdatableTexture != nullptr && IsInitialized())
+	if (UpdatableTextures[bIsPopup?1:0] != nullptr && IsInitialized())
 	{
-		return UpdatableTexture->GetSlateResource();
+		return UpdatableTextures[bIsPopup?1:0]->GetSlateResource();
 	}
 	return nullptr;
 }
@@ -444,7 +453,7 @@ bool FWebBrowserWindow::RequestCreateWindow( const TSharedRef<IWebBrowserWindow>
 	return false;
 }
 
-FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
 	if (IsValid())
@@ -459,12 +468,7 @@ FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const F
 			(Button == EKeys::LeftMouseButton ? MBT_LEFT : (
 			Button == EKeys::RightMouseButton ? MBT_RIGHT : MBT_MIDDLE));
 
-		CefMouseEvent Event;
-		FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-		Event.x = LocalPos.X;
-		Event.y = LocalPos.Y;
-		Event.modifiers = GetCefMouseModifiers(MouseEvent);
-
+		CefMouseEvent Event = GetCefMouseEvent(MyGeometry, MouseEvent, bIsPopup);
 		InternalCefBrowser->GetHost()->SendMouseClickEvent(Event, Type, false,1);
 			Reply = FReply::Handled();
 		}
@@ -472,7 +476,7 @@ FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const F
 	return Reply;
 }
 
-FReply FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
 	if (IsValid())
@@ -487,12 +491,7 @@ FReply FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPo
 			(Button == EKeys::LeftMouseButton ? MBT_LEFT : (
 			Button == EKeys::RightMouseButton ? MBT_RIGHT : MBT_MIDDLE));
 
-		CefMouseEvent Event;
-		FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-		Event.x = LocalPos.X;
-		Event.y = LocalPos.Y;
-		Event.modifiers = GetCefMouseModifiers(MouseEvent);
-
+		CefMouseEvent Event = GetCefMouseEvent(MyGeometry, MouseEvent, bIsPopup);
 		InternalCefBrowser->GetHost()->SendMouseClickEvent(Event, Type, true, 1);
 			Reply = FReply::Handled();
 		}
@@ -518,7 +517,7 @@ FReply FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPo
 	return Reply;
 }
 
-FReply FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
 	if (IsValid())
@@ -533,12 +532,7 @@ FReply FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, 
 			(Button == EKeys::LeftMouseButton ? MBT_LEFT : (
 			Button == EKeys::RightMouseButton ? MBT_RIGHT : MBT_MIDDLE));
 
-		CefMouseEvent Event;
-		FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-		Event.x = LocalPos.X;
-		Event.y = LocalPos.Y;
-		Event.modifiers = GetCefMouseModifiers(MouseEvent);
-
+		CefMouseEvent Event = GetCefMouseEvent(MyGeometry, MouseEvent, bIsPopup);
 		InternalCefBrowser->GetHost()->SendMouseClickEvent(Event, Type, false, 2);
 			Reply = FReply::Handled();
 	}
@@ -546,24 +540,19 @@ FReply FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, 
 	return Reply;
 }
 
-FReply FWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
 	if (IsValid())
 	{
-		CefMouseEvent Event;
-		FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-		Event.x = LocalPos.X;
-		Event.y = LocalPos.Y;
-		Event.modifiers = GetCefMouseModifiers(MouseEvent);
-
+		CefMouseEvent Event = GetCefMouseEvent(MyGeometry, MouseEvent, bIsPopup);
 		InternalCefBrowser->GetHost()->SendMouseMoveEvent(Event, false);
 		Reply = FReply::Handled();
 	}
 	return Reply;
 }
 
-FReply FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
 	if(IsValid())
@@ -571,12 +560,7 @@ FReply FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPoint
 		// The original delta is reduced so this should bring it back to what CEF expects
 		const float SpinFactor = 50.0f;
 		const float TrueDelta = MouseEvent.GetWheelDelta() * SpinFactor;
-		CefMouseEvent Event;
-		FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-		Event.x = LocalPos.X;
-		Event.y = LocalPos.Y;
-		Event.modifiers = GetCefMouseModifiers(MouseEvent);
-		
+		CefMouseEvent Event = GetCefMouseEvent(MyGeometry, MouseEvent, bIsPopup);
 		InternalCefBrowser->GetHost()->SendMouseWheelEvent(Event,
 															MouseEvent.IsShiftDown() ? TrueDelta : 0,
 															!MouseEvent.IsShiftDown() ? TrueDelta : 0);
@@ -585,11 +569,21 @@ FReply FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPoint
 	return Reply;
 }
 
-void FWebBrowserWindow::OnFocus(bool SetFocus)
+void FWebBrowserWindow::OnFocus(bool SetFocus, bool bIsPopup)
 {
-	if (IsValid())
+	if (bIsPopup)
 	{
-		InternalCefBrowser->GetHost()->SendFocusEvent(SetFocus);
+		bPopupHasFocus = SetFocus;
+	}
+	else
+	{
+		bMainHasFocus = SetFocus;
+	}
+
+	// Only notify focus if there is no popup menu with focus, as SendFocusEvent will dismiss any popup menus.
+	if (IsValid() && !bPopupHasFocus)
+	{
+		InternalCefBrowser->GetHost()->SendFocusEvent(bMainHasFocus);
 	}
 }
 
@@ -764,19 +758,18 @@ void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
-	if (UpdatableTexture == nullptr && FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
+
+	if (UpdatableTextures[Type] == nullptr && FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
 	{
-		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(Width,Height);
+		UpdatableTextures[Type] = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(Width,Height);
 	}
 
-	if (UpdatableTexture != nullptr)
+	if (UpdatableTextures[Type] != nullptr)
 	{
-		int32 FirstRow = 0;
-		int32 LastRow = Height;
 		// Note that with more recent versions of CEF, the DirtyRects will always contain a single element, as it merges all dirty areas into a single rectangle before calling OnPaint
 		// In case that should change in the future, we'll simply update the entire area if DirtyRects is not a single element.
 		FIntRect Dirty = (DirtyRects.size() == 1)?FIntRect(DirtyRects[0].x, DirtyRects[0].y, DirtyRects[0].x + DirtyRects[0].width, DirtyRects[0].y + DirtyRects[0].height):FIntRect();
-		UpdatableTexture->UpdateTextureThreadSafeRaw(Width, Height, Buffer, Dirty);
+		UpdatableTextures[Type]->UpdateTextureThreadSafeRaw(Width, Height, Buffer, Dirty);
 	}
 
 	bIsInitialized = true;
@@ -968,6 +961,21 @@ int32 FWebBrowserWindow::GetCefMouseModifiers(const FPointerEvent& InMouseEvent)
 	return Modifiers;
 }
 
+CefMouseEvent FWebBrowserWindow::GetCefMouseEvent(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
+{
+	CefMouseEvent Event;
+	FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	Event.x = LocalPos.X;
+	Event.y = LocalPos.Y;
+	if (bIsPopup)
+	{
+		Event.x += PopupRect.Min.X;
+		Event.y += PopupRect.Min.Y;
+	}
+	Event.modifiers = GetCefMouseModifiers(MouseEvent);
+	return Event;
+}
+
 int32 FWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 {
 	int32 Modifiers = 0;
@@ -1098,5 +1106,19 @@ void FWebBrowserWindow::OnBrowserClosed()
 	InternalCefBrowser = nullptr;
 	Handler = nullptr;
 }
+
+void FWebBrowserWindow::ShowPopup(CefRect CefPopupSize)
+{
+	PopupRect = FIntRect(CefPopupSize.x, CefPopupSize.y, CefPopupSize.x+CefPopupSize.width, CefPopupSize.y+CefPopupSize.height);
+	bPopupHasFocus = true;
+	OnShowPopup().Broadcast(PopupRect);
+}
+
+void FWebBrowserWindow::HidePopup()
+{
+	bPopupHasFocus = false;
+	OnDismissPopup().Broadcast();
+}
+
 
 #endif

@@ -25,6 +25,8 @@ SWebBrowser::~SWebBrowser()
 		BrowserWindow->OnTitleChanged().RemoveAll(this);
 		BrowserWindow->OnUrlChanged().RemoveAll(this);
 		BrowserWindow->OnToolTip().RemoveAll(this);
+		BrowserWindow->OnShowPopup().RemoveAll(this);
+		BrowserWindow->OnDismissPopup().RemoveAll(this);
 		BrowserWindow->OnBeforeBrowse().Unbind();
 		BrowserWindow->OnLoadUrl().Unbind();
 		BrowserWindow->OnBeforePopup().Unbind();
@@ -185,6 +187,8 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow->OnBeforeBrowse().BindSP(this, &SWebBrowser::HandleBeforeNavigation);
 		BrowserWindow->OnLoadUrl().BindSP(this, &SWebBrowser::HandleLoadUrl);
 		BrowserWindow->OnBeforePopup().BindSP(this, &SWebBrowser::HandleBeforePopup);
+		BrowserWindow->OnShowPopup().AddSP(this, &SWebBrowser::HandleShowPopup);
+		BrowserWindow->OnDismissPopup().AddSP(this, &SWebBrowser::HandleDismissPopup);
 		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, ViewportWidget));
 		ViewportWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
 	}
@@ -493,6 +497,42 @@ void SWebBrowser::UnbindUObject(const FString& Name, UObject* Object, bool bIsPe
 		BrowserWindow->UnbindUObject(Name, Object, bIsPermanent);
 	}
 }
+
+void SWebBrowser::HandleShowPopup(const FIntRect& PopupSize)
+{
+	TSharedPtr<SViewport> MenuContent;
+	SAssignNew(MenuContent, SViewport)
+				.ViewportSize(PopupSize.Size())
+				.EnableGammaCorrection(false)
+				.EnableBlending(false)
+				.IgnoreTextureAlpha(true)
+				.Visibility(EVisibility::Visible);
+	MenuViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, MenuContent, true));
+	MenuContent->SetViewportInterface(MenuViewport.ToSharedRef());
+	FWidgetPath WidgetPath;
+	FSlateApplication::Get().GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), WidgetPath);
+	if (WidgetPath.IsValid())
+	{
+		TSharedRef< SWidget > MenuContentRef = MenuContent.ToSharedRef();
+		const FGeometry& BrowserGeometry = WidgetPath.Widgets.Last().Geometry;
+		const FVector2D NewPosition = BrowserGeometry.LocalToAbsolute(PopupSize.Min);
+
+		// Open the pop-up
+		TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(ViewportWidget.ToSharedRef(), WidgetPath, MenuContentRef, NewPosition, FPopupTransitionEffect( FPopupTransitionEffect::ComboButton ), false);
+		PopupMenuPtr = NewMenu;
+		check(NewMenu.IsValid() && NewMenu->GetOwnedWindow().IsValid());
+	}
+
+}
+
+void SWebBrowser::HandleDismissPopup()
+{
+	if (PopupMenuPtr.IsValid())
+	{
+		PopupMenuPtr.Pin()->Dismiss();
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

@@ -18,10 +18,12 @@ public:
 	 * 
 	 * @param InWebBrowserWindow The Web Browser Window this viewport will display
 	 * @param InViewportWidget The Widget displaying this viewport (needed to capture mouse)
+	 * @param InIsPopup Used to initialize a viewport for showing browser popup menus instead of the main window.
 	 */
-	FWebBrowserViewport(TSharedPtr<IWebBrowserWindow> InWebBrowserWindow, TSharedPtr<SWidget> InViewportWidget)
+	FWebBrowserViewport(TSharedPtr<IWebBrowserWindow> InWebBrowserWindow, TSharedPtr<SWidget> InViewportWidget, bool InIsPopup = false)
 		: WebBrowserWindow(InWebBrowserWindow)
 		, ViewportWidget(InViewportWidget)
+		, bIsPopup(InIsPopup)
 	{ }
 
 	/**
@@ -56,4 +58,6 @@ private:
 	TSharedPtr<IWebBrowserWindow>	WebBrowserWindow;
 	/** The viewport widget using this interface */
 	TWeakPtr<SWidget>				ViewportWidget;
+	/** Whether this viewport is showing the browser window or a popup menu widget */
+	bool const						bIsPopup;
 };
