@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2571124
+﻿INTSourceChangelist:2613932
 Availability:Public
 Title:戦略ゲームのサンプル
 Crumbs:%ROOT%, Resources
@@ -57,9 +57,6 @@ Related:Engine/Rendering/ParticleSystems
 
 [TOC(start:2 end:2)]
 
-
-## 概要
-
 タワー ディフェンスのサンプルはリアルタイム ストラテジー (RTS) / Tower Defense ゲームを例に使用しています。 
 
 紹介するゲームコンセプトの一覧表は以下の通りです。
@@ -88,7 +85,7 @@ Related:Engine/Rendering/ParticleSystems
 スポーンするために新しいユニット (部隊) を購入することができます。  
 
 _ブループリント_ はミニオンポーンにロジックを追加するためにも使用します。味方のポーンと敵のポーンは両方ともシールドを装備しています。味方のポーンは、醸造所の武器工場がアップグレードされるとシールドを受け取ります。
-敵のポーンは _Level ブループリント_ で **SpawnHeavyFunction** または **SpawnEndBossFunction** が呼ばれると、結果としてスポーンされてシールドを受け取ります。ポーンがシールドを装備している場合、自動石弓からの発射物は破壊されてダメージを受けません。このロジックは _ブループリントインターフェース_ で実行します。**Minion** _ブループリント_ には、
+敵のポーンは _Level ブループリント_ で SpawnHeavyFunction または SpawnEndBossFunction が呼ばれると、結果としてスポーンされてシールドを受け取ります。ポーンがシールドを装備している場合、自動石弓からの発射物は破壊されてダメージを受けません。このロジックは _ブループリントインターフェース_ で実行します。**Minion** _ブループリント_ には、
 チャージされた砲塔からの発砲がヒットした時に敵のポーンを減速させるネットワークも格納しています。  
 
 ## ビル建築
@@ -102,24 +99,24 @@ StrategyBuilding を親クラスとして _ブループリント_ でデザイ�
 
 ### Brewery (醸造所)
 
- **Brewery** _ブループリント_ には `StrategyBuilding_Brewery` と呼ばれる親クラスがあり、 **AIDirector** コンポーネントも格納しています。TowerDefenseMap には 2 つの醸造所が配置されています。
+ **Brewery** _ブループリント_ には `StrategyBuilding_Brewery` と呼ばれる親クラスがあり、AIDirector コンポーネントも格納しています。TowerDefenseMap には 2 つの醸造所が配置されています。
 1 つは敵のポーンがスポーンされる敵専用の醸造所で、もう一つは武器工場と鍛冶工場のアップグレードをビルドして、味方のポーンがスポーンされる醸造所です。**Brewery** _ブループリント_ にはグラフ ロジックは存在せず、 
-building プロパティの **デフォルト** 設定と、 **AIDirector**、 **TriggerBox** 、そして _スタティックメッシュ_ を含んだ **コンポーネント** リストのみが格納されています。 
+building プロパティのデフォルト設定と、AIDirector、TriggerBox、そして _スタティックメッシュ_ を含んだコンポーネント リストのみが格納されています。 
 
 #### アップグレード
 
 ![](upgraded_brewery.png)
 
-味方の醸造所には 2 つのアップグレード スロットがアタッチされています。この 2 つのスロットも StrategyBuilding クラスから派生する _ブループリント クラス_ です。 **[Brewery]** メニューからアップグレードが選択されると、
+味方の醸造所には 2 つのアップグレード スロットがアタッチされています。この 2 つのスロットも StrategyBuilding クラスから派生する _ブループリント クラス_ です。[Brewery] メニューからアップグレードが選択されると、
 1 つのスロットがこのアップグレードと置き換えられます。1 つの鍛冶場のアップグレード、そして武器工場のアップグレードのみを購入することができます。 
 
-一度鍛冶場のアップグレードが購入されると、ビルドが開始して **Wall_Smithy** _ブループリント_ で **OnBuildStarted** イベントを発行します。この _ブループリント_ は、一度ビルドが完了すると、
+一度鍛冶場のアップグレードが購入されると、ビルドが開始して **Wall_Smithy** _ブループリント_ で OnBuildStarted イベントを発行します。この _ブループリント_ は、一度ビルドが完了すると、
 アップグレードのビルドをシステムに伝えます。この後スポーンされた味方のポーンは、StrategyAttachment クラスから派生した _ブループリント_ のシールドアタッチメントを装備します。武器工場からのレポート後に「シールドをアタッチする」挙動を代入するネットワークです。 
 この建築は、TowerDefenseMap _Level Blueprint_ の **PlayerBaseUpgrades** 折りたたみグラフに存在します。StrategyAttachment クラスは 
-単に SkeletalMeshComponent のみを格納します。アタッチメントのメッシュとアタッチメント点は、**Attachment_Armorer** _ブループリント_ の **デフォルト** に設定されます。
+StrategyAttachment クラスは単に SkeletalMeshComponent のみを格納します。アタッチメントのメッシュとアタッチメント点は、**Attachment_Armorer** _ブループリント_ のデフォルトに設定されます。
 
-armory _ブループリント_ は、**OnBuildStarted** および **OnBuildFinished** イベントと同じロジック設定が格納されています。武器工場を建築後、スポーンされた味方のポーンは 
-StrategyAttachment クラスから派生したハンマーを装備します。鍛冶場の構築を告げるレポート後に「ハンマーをアタッチする」挙動を代入するネットワークも、TowerDefenseMap _Level ブループリント_ の **PlayerBaseUpgrades** 折りたたみグラフに存在します。
+armory _ブループリント_ は、OnBuildStarted および OnBuildFinished イベントと同じロジック設定が格納されています。武器工場を建築後、スポーンされた味方のポーンは 
+StrategyAttachment クラスから派生したハンマーを装備します。鍛冶場の構築を告げるレポート後に「ハンマーをアタッチする」挙動を代入するネットワークも、TowerDefenseMap _Level ブループリント_ の PlayerBaseUpgrades 折りたたみグラフに存在します。
 
 ### 砲塔
 
@@ -127,10 +124,10 @@ StrategyAttachment クラスから派生したハンマーを装備します。�
 
 ![](building_empty_slot.png)
 
-空のスロットもまた StrategyBuilding 親クラスの **Wall_EmptySlot** がある _ブループリント_ です。_ブループリント_ グラフにロジックは存在しません。これは building プロパティとスタティックメッシュの **Defaults** 設定と、 
-**コンポーネント** として設定されたトリガーボックスを備えた _ブループリント クラス_ です。
+空のスロットもまた StrategyBuilding 親クラスの Wall_EmptySlot がある _ブループリント_ です。_ブループリント_ グラフにロジックは存在しません。これは building プロパティとスタティックメッシュの Defaults 設定と、 
+コンポーネントとして設定されたトリガーボックスを備えた _ブループリント クラス_ です。
 
-実行できる砲塔アップグレードは、 **Building** カテゴリの **Upgrades** セクションに **Wall_EmptySlot** _ブループリント_ の **Defaults** として全て設定されています。  
+実行できる砲塔アップグレードは、 **Building** カテゴリの **Upgrades** セクションに Wall_EmptySlot _Blueprint_ の Defaults として全て設定されています。  
 
 
 #### 石弓
@@ -141,7 +138,7 @@ StrategyAttachment クラスから派生したハンマーを装備します。�
 石弓をクリックして、発射方向へこれをドラッグすることにより、自動的に弓を発射することもできます。マウスによるドラッグ操作が長ければ長いほど、射撃の強度が増します。  
 
 
-弓の発射物は別の _ブループリント_、**Projectile_arbalest** に格納されます。これは `StrategyProjectile` を格納する _ブループリント_ **TestProjectile** から派生します。 **Wall_arbalest** _ブループリント_ には多数のサブネットワークがあり、これらは全て **イベントグラフ** 内に収容されています。**ConstructionScript** に _ブループリント_ ロジックは存在しません。   
+弓の発射物は別の _ブループリント_、Projectile_arbalest に格納されます。これは `StrategyProjectile` を格納する _ブループリント_ TestProjectile から派生します。Wall_arbalest _ブループリント_ には多数のサブネットワークがあり、これらは全て EventGraph 内に収容されています。ConstructionScript に _ブループリント_ ロジックは存在しません。   
 
 
 
@@ -153,8 +150,8 @@ StrategyAttachment クラスから派生したハンマーを装備します。�
 少量のダメージを与えます。自動弓から放たれる矢は、壁に衝突またはシールドを装備した敵に当たらない限り破壊されません。自動弓を自身の設定方向へ向けるために、これをクリックしてドラッグさせて照準を合わせることも可能です。
 マウスボタンが押されている間、自動弓は照準が合わせられた方向へ発射し続け、ボタンが解放されるとデフォルトの発射位置へ戻ります。 
 
-石弓同様に 砲塔は別の _ブループリント_ に格納された弓を発射します。**Projectile_arbalest_auto** 自動弓は、壁に衝突またはシールドを装備した敵に当たらない限り破壊されません。
-この挙動は _ブループリント インターフェース_、 **Interface_Auto_Arbalest** そして **Interface_Auto_Projectile** を活用して実行します。 
+石弓同様に砲塔は別の _ブループリント_ に格納された弓を発射します。Projectile_arbalest_auto 自動弓は、壁に衝突またはシールドを装備した敵に当たらない限り破壊されません。
+この挙動 _ブループリントインターフェース_、Interface_Auto_Arbalest そして Interface_Auto_Projectile を活用して実行します。 
 
 #### フレームスロワー (火災放射器)
 
@@ -179,7 +176,7 @@ Spectator (観戦) ポーンは、可視的なポーン無しでプレイヤー�
 
 画面の左上隅に、SStrategySlateHUDWidget クラスの GetGameTime 関数を使用したゲームタイマーがゲームのウォームアップ時間をカウントダウンします。ゲーム開始後にカウントダウンは非表示になります。 
 そして残りのライフ数が表示されます。「ライフ残数」表示のプロパティは AStrategyHUD クラスの DrawLives 関数に設定されます。 
-デフォルトライフ数は、**TowerDefenseMap** _Level ブループリント_ の **PlayerBaseUpgrades** サブグラフに設定されています。  
+デフォルトライフ数は、TowerDefenseMap _Level ブループリント_ の PlayerBaseUpgrades サブグラフに設定されています。  
 
 現在のゴールド数はスクリーン上部に表示されます (2)。ゲームタイマーとゴールド数表示は両方とも SStrategySlateHUDWidget の基本ウィジェットで定義されます。同クラスは
 最上位のレベルウィジェットの作成に使用しますが、デフォルトで表示される全てのウィジェットではありません。
@@ -241,17 +238,17 @@ HUD の右下隅には、ゲームの一時停止とゲーム内のメニュー�
 敵の波は、「spawn fast」、「spawn normal」、「spawn heavy」の 3 つの _ブループリント マクロ_ を使用して構成されます。それぞれのマクロは設定ユニット (部隊) のパラメータとアタッチメントを設定してから、
 発砲のために StrategyAIDirectorでSpawnMinions 関数を待機します。マクロは敵の波がスポーンされたことを報告するために敵の醸造所の `StrategyAIDirector` を待って、実行によってサブネットワークから去ることができます。
 
-各スポーンマクロは、マクロの開始と **OnWaveSpawned** イベント発行後に、 **ゲート** を開くための 2 つの実行入力値と、スポーンするポーンの数を示す整数入力値を受け取ります。  
+各スポーンマクロは、マクロの開始と OnWaveSpawned event 発行後に、ゲートを開くための 2 つの実行入力値と、スポーンするポーンの数を示す整数入力値を受け取ります。  
 ポーンの波のタイプ別に固有の入力値と一緒にクラス StrategyAIDirector から関数が呼ばれます。3 つの関数は、SetDefaultWeapon、SetDefaultArmor、そしてSetBuffModifier 関数です。  
-SetDefaultWeapon と SetDefaultArmor は _ブループリント_ を入力値として受け取り、これらの _ブループリント_ を新規デフォルトの武器、またはスポーンのデフォルトのアーマーとして代入します。例えば **SpawnFastMacro** にスポーンされた敵ポーンは、 
-デフォルトの武器に **Attachment_Smithy** hammer _ブループリント_ 、そして **SpawnHeavyMacro** にスポーンされた敵ポーンは全てデフォルトアーマーに **Attachment_Armorer** shield _ブループリント_ を代入します。 
+SetDefaultWeapon と SetDefaultArmor は _ブループリント_ を入力値として受け取り、これらの _ブループリント_ を新規デフォルトの武器、またはスポーンのデフォルトのアーマーとして代入します。例えば SpawnFastMacro にスポーンされた敵ポーンは、 
+デフォルトの武器に Attachment_Smithy hammer _ブループリント_ 、そして SpawnHeavyMacro にスポーンされた敵ポーンは全てデフォルトアーマーに Attachment_Armorer shield _ブループリント_ を代入します。 
 
 スポーンする _Blueprint_ 関数によって呼ばれる最後の StrategyAIDirector 関数は、SetBuffModifier です。この関数には攻撃能力、ヘルスボーナス、速度、そしてポーンの速度などを含めた
 たくさんのデータ入力値が格納されています。これらの入力値は全て _ブループリント_ へ公開されるため、レベルデザイナーはスポーンする敵ポーンの新規クラスの作成を容易に行うことができます。最後に、スポーンするそれぞれの _Blueprint_ 関数は、
 敵の醸造所の StrategyAIDirectorのWaveSize プロパティを設定します。   
 
-敵の波は 5 回発生し、それぞれの波は速い、普通、そして大量の敵ポーンの組み合わせがあります。敵の波が開始すると、 **Show Wave Title** ノードは波の回数を表示します。その後最初の敵の 
-スポーンの波が呼び出されます。スポーン後に、**Delay** ノードで設定したタイマー遅延、または **WaitForWaveMacro** マクロで設定したポーンベースの遅延どちらかが発生します。 **WaitForWaveMacro** マクロはまだ生き残っている敵ポーンの数を継続的にチェックして、
+敵の波は 5 回発生し、それぞれの波は速い、普通、そして大量の敵ポーンの組み合わせがあります。敵の波が開始すると、Show Wave Title ノードは波の回数を表示します。その後最初の敵の 
+スポーンの波が呼び出されます。スポーン後に、Delay ノードで設定したタイマー遅延、または WaitForWaveMacro マクロで設定したポーンベースの遅延どちらかが発生します。WaitForWaveMacro マクロはまだ生き残っている敵ポーンの数を継続的にチェックして、
 遅延時間が終了、もしくは敵ポーンが全て死なない限り、マクロ実行を終了しません。敵の波全てのスポーンが終了、そして波の敵ポーンが全て死んでしまったら (もしくは 2 分経過後)、 
 次の波で _Custom Event_ を呼ぶために _Remote Event_ ノードを使用します。
 
@@ -262,14 +259,14 @@ SetDefaultWeapon と SetDefaultArmor は _ブループリント_ を入力値と
 ゲームに負けとなります。ゲームに勝つには、自分のライフが全てなくなる前に、5 つの敵の波全てに勝たなくてはいけません。勝敗条件両方を設定しているネットワークは **TowerDefenseMap** の _Level ブループリント_ にあり、
 クラス `StrategyGameMode` で設定された関数を呼びます。このクラスは `AGameMode` クラスから派生しました。`StrategyGameMode` クラスには、InitGame 関数も格納されています。この関数はゲームを初期化して、アクタの PreInitializeComponents、SetGamePaused、SetGameDifficulty 前に呼ばれます。
 
-5 番目の波でスポーンされた最後のボスが殺された後に、 **Winning** _Custom Event_ を呼び出すために _Remote Event_ ノードを使用します。 **Win Condition** コメント欄に位置する _Custom Event_ は、その後サブネットワーク **WaitForWin** の実行を発行してトリガーします。
-このサブネットワークは、敵ポーンの生き残りがいないことをチェックします。_true_ の場合、「Player」に設定し **WinningTeam** 入力値と一緒に Finish Game 関数が呼ばれます。  
+5 番目の波でスポーンされた最後のボスが殺された後に、Winning _Custom Event_ を呼び出すために _Remote Event_ ノードを使用します。**Win Condition** コメント欄に位置する _Custom Event_ は、その後サブネットワーク WaitForWin の実行を発行してトリガーします。
+このサブネットワークは、敵ポーンの生き残りがいないことをチェックします。_true_ の場合、「Player」に設定し WinningTeam 入力値と一緒に Finish Game 関数が呼ばれます。  
 
- **Lose Condition** コメント欄には 2 つのノードがあります。ノードは「Enemy」に設定した **WinningTeam** 入力値と一緒に Finish Game 関数を呼び出して、プレイヤーがゲームに敗れたことを告げます。3 つのライフが無くなった時、敵ポーンが味方の醸造所へ到達するため、 
-最初のノードがトリガーされます。敵ポーンが味方の醸造所へ到達するたびに、 **MultiGate** ノードがトリガーされます。 **MultiGate** ノードの1、2番目の出力実行ピンは、それぞれ味方の醸造所の NumberOfLives を更新するノードと接続されて、 
-値を 1 つずつ減算します。最後の出力実行ピンは味方の醸造所のライフ数を 0 に設定します。その後「Enemy」に設定した **WinningTeam** と一緒に Finish Game 関数を
-トリガーします。   敵ボスがスポーンされたら、**BossSpawned** _Custom Event_ が **Gate** ノードを閉じて、「3 ライフバージョン」の **MultiGate** と接続します。そして「Enemy」に設定した **WinningTeam** と一緒に2番目の `Finish Game` 関数と接続する
-別の **GateNode** を開きます。最終ボスが味方の醸造所へ到達した場合、 **FinishGame** 関数がアクティベートされてプレイヤーの負けが決定するため、オープンネットワークを作成します。  
+**Lose Condition** コメント欄には 2 つのノードがあります。ノードは「Enemy」に設定した WinningTeam 入力値と一緒に Finish Game 関数を呼び出して、プレイヤーがゲームに敗れたことを告げます。3 つのライフが無くなった時、敵ポーンが味方の醸造所へ到達するため、 
+最初のノードがトリガーされます。敵ポーンが味方の醸造所へ到達するたびに、 **MultiGate** ノードがトリガーされます。MultiGate ノードの1、2番目の出力実行ピンは、それぞれフレンドの醸造所の NumberOfLives を更新するノードと接続されて、 
+値を 1 つずつ減算します。最後の出力実行ピンはフレンドの醸造所のライフ数を 0 に設定します。その後「Enemy」に設定した WinningTeam と一緒に Finish Game 関数を
+トリガーします。   敵ボスがスポーンされたら、BossSpawned _Custom Event_ が Gate ノードを閉じて、「3 ライフバージョン」の MultiGate と接続します。そして「Enemy」に設定した WinningTeam と一緒に2番目の `Finish Game` 関数と接続する
+トリガーします。最終ボスが味方の醸造所へ到達した場合、FinishGame 関数がアクティベートされてプレイヤーの負けが決定するため、オープンネットワークを作成します。  
  
 
   
@@ -280,7 +277,7 @@ gold ノードは親クラスが StrategyResourceNode の _ブループリント
 リソースが使い果たされて、protected プロパティの NumResources がノードに存在するリソース量を設定したら、BlueprintImplementableEvent がこれをレポートします。  
 
 gold ノードの _ブループリント_ は、ノードをタイマーに表示または非表示にするためにサブネットワークを格納します。 _ブループリント_ の **ConstructionScript** は、ノードがレベルに配置された時、自動的に非表示となるノードとして設定します。
-gold ノードが出現すると、出現ノイズと共に **AppearFX** パーティクル エフェクトが再生されます。ノードがうまく収集された結果として **OnDepleted** イベントが発行された場合、ノードにある現在のゴールの数が
-プレイヤーの合計ゴールド数に加算されます。 **CollectFX** パーティクルエフェクトと **CoinSound** の再生後に、ノードは再び非表示になります。プレイヤーがノードをクリックして、時間内にノードの収集に失敗すると、
-**FadeFX** パーティクルエフェクトと適切なサウンドが再生されます。  
+gold ノードが出現すると、出現ノイズと共に AppearFX パーティクル エフェクトが再生されます。ノードがうまく収集された結果として OnDepleted イベントが発行された場合、ノードにある現在のゴールの数が
+プレイヤーの合計ゴールド数に加算されます。CollectFX パーティクルエフェクトと CoinSound の再生後に、ノードは再び非表示になります。プレイヤーがノードをクリックして、時間内にノードの収集に失敗すると、
+FadeFX パーティクルエフェクトと適切なサウンドが再生されます。  
 
