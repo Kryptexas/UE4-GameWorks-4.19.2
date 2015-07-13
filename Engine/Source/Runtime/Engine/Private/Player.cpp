@@ -103,10 +103,6 @@ bool UPlayer::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 		{
 			return true;
 		}
-		else if( World->GetGameInstance() && World->GetGameInstance()->ProcessConsoleExec(Cmd, Ar, PCPawn) )
-		{
-			return true;
-		}
 		else if( World->GetAuthGameMode() && World->GetAuthGameMode()->ProcessConsoleExec(Cmd,Ar,PCPawn) )
 		{
 			return true;

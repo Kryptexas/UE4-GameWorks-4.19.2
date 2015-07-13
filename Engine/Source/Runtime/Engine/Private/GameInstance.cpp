@@ -540,6 +540,7 @@ void UGameInstance::DebugCreatePlayer(int32 ControllerId)
 void UGameInstance::DebugRemovePlayer(int32 ControllerId)
 {
 #if !UE_BUILD_SHIPPING
+
 	ULocalPlayer* const ExistingPlayer = FindLocalPlayerFromControllerId(ControllerId);
 	if (ExistingPlayer != NULL)
 	{
