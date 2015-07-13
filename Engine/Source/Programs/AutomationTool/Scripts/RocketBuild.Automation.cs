@@ -898,7 +898,6 @@ namespace Rocket
 			BranchConfig = InBranchConfig;
 			SymbolsOutputDir = InSymbolsOutputDir;
 
-			AddDependency(GUBP.WaitForSharedPromotionUserInput.StaticGetFullName(false));
 			AddDependency(GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.RootEditorNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.ToolsNode.StaticGetFullName(HostPlatform));
