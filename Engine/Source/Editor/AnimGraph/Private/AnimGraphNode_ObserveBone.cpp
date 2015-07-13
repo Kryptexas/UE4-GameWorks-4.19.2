@@ -37,10 +37,10 @@ public:
 		SGraphNode::UpdateGraphNode();
 
 		// Prevent the comment bubble from being displayed
-		GetOrAddSlot(ENodeZone::TopCenter)
-		[
-			SNullWidget::NullWidget
-		];
+// 		GetOrAddSlot(ENodeZone::TopCenter)
+// 		[
+// 			SNullWidget::NullWidget
+// 		];
 	}
 	// End of SGraphNode interface
 
