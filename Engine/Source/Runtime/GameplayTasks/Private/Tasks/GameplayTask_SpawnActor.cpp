@@ -41,7 +41,7 @@ UGameplayTask_SpawnActor* UGameplayTask_SpawnActor::SpawnActor(TScriptInterface<
 bool UGameplayTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, AActor*& SpawnedActor)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	SpawnedActor = World->SpawnActorDeferred<AActor>(ClassToSpawn, CachedSpawnLocation, CachedSpawnRotation, NULL, NULL, true);
+	SpawnedActor = World->SpawnActorDeferred<AActor>(ClassToSpawn, FTransform(CachedSpawnRotation, CachedSpawnLocation), NULL, NULL, true);
 	
 	if (SpawnedActor == nullptr)
 	{

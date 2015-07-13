@@ -229,6 +229,21 @@ void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Ext
 
 AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator const* Rotation, const FActorSpawnParameters& SpawnParameters )
 {
+	FTransform Transform;
+	if (Location)
+	{
+		Transform.SetLocation(*Location);
+	}
+	if (Rotation)
+	{
+		Transform.SetRotation(FQuat(*Rotation));
+	}
+
+	return SpawnActor(Class, &Transform, SpawnParameters);
+}
+
+AActor* UWorld::SpawnActor( UClass* Class, FTransform const* Transform, const FActorSpawnParameters& SpawnParameters )
+{
 	SCOPE_CYCLE_COUNTER(STAT_SpawnActorTime);
 	check( CurrentLevel ); 	
 	check(GIsEditor || (CurrentLevel == PersistentLevel));
@@ -272,16 +287,10 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because we are in the process of tearing down the world"));
 		return NULL;
 	}
-	else if (Location && Location->ContainsNaN())
+	else if (Transform && Transform->ContainsNaN())
 	{
-		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because the given location (%s) is invalid"), *Location->ToString());
+		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because the given transform (%s) is invalid"), *Transform->ToString());
 		return NULL;
-	}
-	else if (Rotation && Rotation->ContainsNaN())
-	{
-		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because the given rotation (%s) is invalid"), *Rotation->ToString());
-		return NULL;
-		
 	}
 
 	ULevel* LevelToSpawnIn = SpawnParameters.OverrideLevel;
@@ -311,8 +320,9 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 		return NULL;
 	}
 
-	FVector NewLocation = Location ? *Location : (Template->GetRootComponent() ? Template->GetRootComponent()->RelativeLocation : FVector::ZeroVector);
-	FRotator NewRotation = Rotation ? *Rotation :	(Template->GetRootComponent() ? Template->GetRootComponent()->RelativeRotation : FRotator::ZeroRotator);
+	FVector NewLocation = Transform ? Transform->GetLocation() : (Template->GetRootComponent() ? Template->GetRootComponent()->RelativeLocation : FVector::ZeroVector);
+	FRotator NewRotation = Transform ? Transform->GetRotation().Rotator() :	(Template->GetRootComponent() ? Template->GetRootComponent()->RelativeRotation : FRotator::ZeroRotator);
+	FVector NewScale = Transform ? Transform->GetScale3D() :	(Template->GetRootComponent() ? Template->GetRootComponent()->RelativeScale3D : FVector(1.f) );
 
 	// If we can fail, and we have a root component, and either the component should collide or bCollideWhenPlacing is true, test
 	if( !SpawnParameters.bNoCollisionFail && Template->GetRootComponent() && Template->bCollideWhenPlacing && Template->GetRootComponent()->ShouldCollideWhenPlacing() )
@@ -349,7 +359,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	}
 #endif
 
-	Actor->PostSpawnInitialize(NewLocation, NewRotation, SpawnParameters.Owner, SpawnParameters.Instigator, SpawnParameters.bRemoteOwned, SpawnParameters.bNoFail, SpawnParameters.bDeferConstruction);
+	Actor->PostSpawnInitialize(FTransform(NewRotation, NewLocation, NewScale), SpawnParameters.Owner, SpawnParameters.Instigator, SpawnParameters.bRemoteOwned, SpawnParameters.bNoFail, SpawnParameters.bDeferConstruction);
 
 	if (Actor->IsPendingKill() && !SpawnParameters.bNoFail)
 	{

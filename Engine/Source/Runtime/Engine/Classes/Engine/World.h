@@ -2779,7 +2779,27 @@ public:
 	 */
 	void RemoveActor( AActor* Actor, bool bShouldModifyLevel );
 
+	/**
+	 * Spawn Actors with given transform and SpawnParameters
+	 * 
+	 * @param	Class					Class to Spawn
+	 * @param	Location				Location To Spawn
+	 * @param	Rotation				Rotation To Spawn
+	 * @param	SpawmParameters			Spawn Parameters
+	 *
+	 * @return	Actor that just spawned
+	 */
 	AActor* SpawnActor( UClass* InClass, FVector const* Location=NULL, FRotator const* Rotation=NULL, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() );
+	/**
+	 * Spawn Actors with given transform and SpawnParameters
+	 * 
+	 * @param	Class					Class to Spawn
+	 * @param	Transform				World Transform to spawn on
+	 * @param	SpawmParameters			Spawm Parameters
+	 *
+	 * @return	Actor that just spawned
+	 */
+	AActor* SpawnActor( UClass* Class, FTransform const* Transform, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters());
 
 	/** Templated version of SpawnActor that allows you to specify a class type via the template type */
 	template< class T >
@@ -2811,6 +2831,16 @@ public:
 	{
 		return CastChecked<T>(SpawnActor(Class, &Location, &Rotation, SpawnParameters),ECastCheckedType::NullAllowed);
 	}
+	/** 
+	
+	 *  Templated version of SpawnActor that allows you to specify whole Transform
+	 *  class type via parameter while the return type is a parent class of that type 
+	 */
+	template< class T >
+	T* SpawnActor(UClass* Class, FTransform const& Transform,const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters())
+	{
+		return CastChecked<T>(SpawnActor(Class, &Transform, SpawnParameters), ECastCheckedType::NullAllowed);
+	}
 	
 	/**
 	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
@@ -2820,8 +2850,7 @@ public:
 	template< class T >
 	T* SpawnActorDeferred(
 		UClass* Class,
-		FVector const& Location,
-		FRotator const& Rotation,
+		FTransform const& Transform,
 		AActor* Owner=NULL,
 		APawn* Instigator=NULL,
 		bool bNoCollisionFail=false
@@ -2836,7 +2865,7 @@ public:
 		SpawnInfo.Owner = Owner;
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bDeferConstruction = true;
-		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Location, &Rotation, SpawnInfo )) : NULL;
+		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Transform, SpawnInfo )) : NULL;
 	}
 
 	/** 

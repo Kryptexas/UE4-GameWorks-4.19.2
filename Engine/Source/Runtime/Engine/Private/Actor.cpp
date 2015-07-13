@@ -2389,7 +2389,7 @@ static USceneComponent* FixupNativeActorComponents(AActor* Actor)
 	return SceneRootComponent;
 }
 
-void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction)
+void AActor::PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction)
 {
 	// General flow here is like so
 	// - Actor sets up the basics.
@@ -2415,7 +2415,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// Set the actor's location and rotation.
 	if (SceneRootComponent != NULL)
 	{
-		SceneRootComponent->SetWorldLocationAndRotation(SpawnLocation, SpawnRotation);
+		SceneRootComponent->SetWorldTransform(SpawnTransform);
 	}
 
 	// Call OnComponentCreated on all default (native) components
@@ -2452,8 +2452,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	if (!bDeferConstruction)
 	{
 		// Preserve original root component scale
-		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
-		FinishSpawning(FTransform(SpawnRotation, SpawnLocation, SpawnScale), true);
+		FinishSpawning(SpawnTransform, true);
 	}
 }
 
