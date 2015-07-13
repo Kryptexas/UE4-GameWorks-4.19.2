@@ -1311,7 +1311,36 @@ void UDestructibleComponent::WakeRigidBody(FName BoneName /* = NAME_None */)
 	ExecuteOnPhysicsReadWrite([&]
 	{
 		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
-		//ApexDestructibleActor->setChunkPhysXActorAwakeState(ChunkIdx, true); //TODO: broke during bad integration of apex. Will turn on once new libs are in
+		ApexDestructibleActor->setChunkPhysXActorAwakeState(ChunkIdx, true);
+	});
+#endif
+}
+
+void UDestructibleComponent::SetSimulatePhysics(bool bSimulate)
+{
+#if WITH_APEX
+	ExecuteOnPhysicsReadWrite([&]
+	{
+		if(bSimulate)
+		{
+			ApexDestructibleActor->setDynamic();
+		}else
+		{
+			PxRigidDynamic** PActorBuffer = NULL;
+			PxU32 PActorCount = 0;
+			if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount))
+			{
+				for(uint32 ActorIdx = 0; ActorIdx < PActorCount; ++ActorIdx)
+				{
+					PxRigidDynamic* PActor = PActorBuffer[ActorIdx];
+					if(FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData))
+					{
+						ApexDestructibleActor->setChunkPhysXActorAwakeState(ChunkInfo->ChunkIndex, false);
+					}
+				}
+			}
+		}
+		
 	});
 #endif
 }

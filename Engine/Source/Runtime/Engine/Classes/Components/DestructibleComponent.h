@@ -136,6 +136,7 @@ public:
 	virtual void SetEnableGravity(bool bGravityEnabled) override;
 
 	virtual void WakeRigidBody(FName BoneName /* = NAME_None */) override;
+	virtual void SetSimulatePhysics(bool bSimulate) override;
 
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	// End UPrimitiveComponent interface.
