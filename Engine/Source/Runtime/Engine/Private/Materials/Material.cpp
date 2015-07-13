@@ -1128,7 +1128,7 @@ extern FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPos
 
 void UMaterialInterface::OverrideBlendableSettings(class FSceneView& View, float Weight) const
 {
-	check(Weight >= 0.0f && Weight <= 1.0f);
+	check(Weight > 0.0f && Weight <= 1.0f);
 
 	FFinalPostProcessSettings& Dest = View.FinalPostProcessSettings;
 
