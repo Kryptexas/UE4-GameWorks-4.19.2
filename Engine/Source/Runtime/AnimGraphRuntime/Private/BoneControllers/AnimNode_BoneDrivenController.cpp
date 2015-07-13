@@ -12,6 +12,8 @@ FAnimNode_BoneDrivenController::FAnimNode_BoneDrivenController()
 	, bUseRange(false)
 	, RangeMin(-1.0f)
 	, RangeMax(1.0f)
+	, RemappedMin(0.0f)
+	, RemappedMax(1.0f)
 	, TargetComponent_DEPRECATED(EComponentType::None)
 	, bAffectTargetTranslationX(false)
 	, bAffectTargetTranslationY(false)
@@ -89,7 +91,8 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 		// Apply the fixed function remapping/clamping
 		if (bUseRange)
 		{
-			FinalDriverValue = FMath::Clamp(FinalDriverValue, RangeMin, RangeMax);
+			const float Alpha = FMath::Clamp(FMath::GetRangePct(RangeMin, RangeMax, FinalDriverValue), 0.0f, 1.0f);
+			FinalDriverValue = FMath::Lerp(RemappedMin, RemappedMax, Alpha);
 		}
 
 		FinalDriverValue *= Multiplier;

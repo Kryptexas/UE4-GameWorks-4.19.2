@@ -20,19 +20,27 @@ void UAnimGraphNode_BoneDrivenController::Serialize(FArchive& Ar)
 
 	Ar.UsingCustomVersion(FAnimationCustomVersion::GUID);
 
-	if (Ar.CustomVer(FAnimationCustomVersion::GUID) < FAnimationCustomVersion::BoneDrivenControllerMatchingMaya)
-	{
-		// The node used to be able to only drive a single component rather than a selection of components
-		Node.ConvertTargetComponentToBits();
+	const int32 AnimVersion = Ar.CustomVer(FAnimationCustomVersion::GUID);
 
-		// The old definition of range was clamping the output, rather than the input
-		if (Node.bUseRange && !FMath::IsNearlyZero(Node.Multiplier))
+	if (AnimVersion < FAnimationCustomVersion::BoneDrivenControllerRemapping)
+	{
+		if (AnimVersion < FAnimationCustomVersion::BoneDrivenControllerMatchingMaya)
 		{
-			// Before: Output = clamp(Input * Multipler)
-			// After: Output = clamp(Input) * Multiplier
-			Node.RangeMin /= Node.Multiplier;
-			Node.RangeMax /= Node.Multiplier;
+			// The node used to be able to only drive a single component rather than a selection of components
+			Node.ConvertTargetComponentToBits();
+
+			// The old definition of range was clamping the output, rather than the input
+			if (Node.bUseRange && !FMath::IsNearlyZero(Node.Multiplier))
+			{
+				// Before: Output = clamp(Input * Multipler)
+				// After: Output = clamp(Input) * Multiplier
+				Node.RangeMin /= Node.Multiplier;
+				Node.RangeMax /= Node.Multiplier;
+			}
 		}
+
+		Node.RemappedMin = Node.RangeMin;
+		Node.RemappedMax = Node.RangeMax;
 	}
 }
 
@@ -62,14 +70,29 @@ FText UAnimGraphNode_BoneDrivenController::GetNodeTitle(ENodeTitleType::Type Tit
 			}
 			else
 			{
-				if (Node.Multiplier == 1.0f)
+				if (Node.bUseRange)
 				{
-					FinalSourceExpression = LOCTEXT("BoneMultiplierIs1", "{SourceBone}.{SourceComponent}");
+					if (Node.Multiplier == 1.0f)
+					{
+						FinalSourceExpression = LOCTEXT("WithRangeBoneMultiplierIs1", "remap({SourceBone}.{SourceComponent})");
+					}
+					else
+					{
+						SourceArgs.Add(TEXT("Multiplier"), FText::AsNumber(Node.Multiplier));
+						FinalSourceExpression = LOCTEXT("WithRangeNonUnityMultiplier", "remap({SourceBone}.{SourceComponent}) * {Multiplier}");
+					}
 				}
 				else
 				{
-					SourceArgs.Add(TEXT("Multiplier"), FText::AsNumber(Node.Multiplier));
-					FinalSourceExpression = LOCTEXT("BoneMultiplierIs1", "{SourceBone}.{SourceComponent} * {Multiplier}");
+					if (Node.Multiplier == 1.0f)
+					{
+						FinalSourceExpression = LOCTEXT("BoneMultiplierIs1", "{SourceBone}.{SourceComponent}");
+					}
+					else
+					{
+						SourceArgs.Add(TEXT("Multiplier"), FText::AsNumber(Node.Multiplier));
+						FinalSourceExpression = LOCTEXT("NonUnityMultiplier", "{SourceBone}.{SourceComponent} * {Multiplier}");
+					}
 				}
 			}
 
@@ -252,12 +275,63 @@ void UAnimGraphNode_BoneDrivenController::AddTripletPropertyRow(const FText& Nam
 	];
 }
 
+void UAnimGraphNode_BoneDrivenController::AddRangePropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName MinPropertyName, const FName MaxPropertyName, TAttribute<EVisibility> VisibilityAttribute)
+{
+	const float MiddlePadding = 4.0f;
+
+	TSharedPtr<IPropertyHandle> MinProperty = PropertyHandle->GetChildHandle(MinPropertyName);
+	Category.GetParentLayout().HideProperty(MinProperty);
+
+	TSharedPtr<IPropertyHandle> MaxProperty = PropertyHandle->GetChildHandle(MaxPropertyName);
+	Category.GetParentLayout().HideProperty(MaxProperty);
+
+	Category.AddCustomRow(Name)
+	.Visibility(VisibilityAttribute)
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(Name)
+		.ToolTipText(Tooltip)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(100.0f * 2.0f)
+	.MaxDesiredWidth(100.0f * 2.0f)
+	[
+		SNew(SHorizontalBox)
+
+		+SHorizontalBox::Slot()
+		.FillWidth(1)
+		.Padding(0.0f, 0.0f, MiddlePadding, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			MinProperty->CreatePropertyValueWidget()
+		]
+
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("MinMaxSpacer", ".."))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+
+		+SHorizontalBox::Slot()
+		.FillWidth(1)
+		.Padding(MiddlePadding, 0.0f, 0.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			MaxProperty->CreatePropertyValueWidget()
+		]
+	];
+}
+
 void UAnimGraphNode_BoneDrivenController::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	TSharedRef<IPropertyHandle> NodeHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAnimGraphNode_BoneDrivenController, Node), GetClass());
 
 	TAttribute<EVisibility> NotUsingCurveVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UAnimGraphNode_BoneDrivenController::AreNonCurveMappingValuesVisible));
-
+	TAttribute<EVisibility> MapRangeVisiblity = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UAnimGraphNode_BoneDrivenController::AreRemappingValuesVisible));
 
 	// Source (Driver) category
 	IDetailCategoryBuilder& SourceCategory = DetailBuilder.EditCategory(TEXT("Source (Driver)"));
@@ -266,14 +340,46 @@ void UAnimGraphNode_BoneDrivenController::CustomizeDetails(IDetailLayoutBuilder&
 	IDetailCategoryBuilder& MappingCategory = DetailBuilder.EditCategory(TEXT("Mapping"));
 	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, DrivingCurve)));
 
-	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, Multiplier))).Visibility(NotUsingCurveVisibility);
 	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, bUseRange))).Visibility(NotUsingCurveVisibility);
-	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, RangeMin))).Visibility(NotUsingCurveVisibility);
-	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, RangeMax))).Visibility(NotUsingCurveVisibility);
+
+	AddRangePropertyRow(
+		/*Name=*/ LOCTEXT("InputRangeLabel", "Source Range"),
+		/*Tooltip=*/ LOCTEXT("InputRangeTooltip", "The range (relative to the reference pose) over which to limit the effect of the input component on the output component"),
+		/*Category=*/ MappingCategory,
+		/*PropertyHandle=*/ NodeHandle,
+		/*X=*/ GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, RangeMin),
+		/*Y=*/ GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, RangeMax),
+		MapRangeVisiblity);
+	AddRangePropertyRow(
+		/*Name=*/ LOCTEXT("MappedRangeLabel", "Mapped Range"),
+		/*Tooltip=*/ LOCTEXT("MappedRangeTooltip", "The range of mapped values that correspond to the input range"),
+		/*Category=*/ MappingCategory,
+		/*PropertyHandle=*/ NodeHandle,
+		/*X=*/ GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, RemappedMin),
+		/*Y=*/ GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, RemappedMax),
+		MapRangeVisiblity);
+
+	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, Multiplier))).Visibility(NotUsingCurveVisibility);
 
 	// Destination (Driven) category
 	IDetailCategoryBuilder& TargetCategory = DetailBuilder.EditCategory(TEXT("Destination (Driven)"));
 	TargetCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, TargetBone)));
+
+	// Add a note about the space (it is not configurable, and this helps set expectations)
+	const FText TargetBoneSpaceName = LOCTEXT("TargetComponentSpace", "Target Component Space");
+	TargetCategory.AddCustomRow(TargetBoneSpaceName)
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(TargetBoneSpaceName)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("TargetComponentSpaceIsAlwaysParentBoneSpace", "Parent Bone Space"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
 
 	AddTripletPropertyRow(
 		/*Name=*/ LOCTEXT("DrivenTranslationLabel", "Translation"),
@@ -335,6 +441,11 @@ FText UAnimGraphNode_BoneDrivenController::ComponentTypeToText(EComponentType::T
 EVisibility UAnimGraphNode_BoneDrivenController::AreNonCurveMappingValuesVisible() const
 {
 	return (Node.DrivingCurve != nullptr) ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+EVisibility UAnimGraphNode_BoneDrivenController::AreRemappingValuesVisible() const
+{
+	return ((Node.DrivingCurve == nullptr) && Node.bUseRange) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -46,10 +46,11 @@ protected:
 	virtual FText GetControllerDescription() const override;
 	// End of UAnimGraphNode_SkeletalControlBase protected interface
 
-	// Should non-curve mapping values be shown (multipler, range)?
+	// Should non-curve mapping values be shown (multiplier, range)?
 	EVisibility AreNonCurveMappingValuesVisible() const;
+	EVisibility AreRemappingValuesVisible() const;
 
 	static void AddTripletPropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName XPropertyName, const FName YPropertyName, const FName ZPropertyName);
-
+	static void AddRangePropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName MinPropertyName, const FName MaxPropertyName, TAttribute<EVisibility> VisibilityAttribute);
 	static FText ComponentTypeToText(EComponentType::Type Component);
 };

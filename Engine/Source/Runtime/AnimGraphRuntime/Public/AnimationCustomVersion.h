@@ -14,6 +14,9 @@ struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 		// changed the range to apply to the input, and added a configurable method for updating the components
 		BoneDrivenControllerMatchingMaya = 1,
 
+		// Converted the range clamp into a remap function, rather than just clamping
+		BoneDrivenControllerRemapping = 2,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

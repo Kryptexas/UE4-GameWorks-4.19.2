@@ -66,17 +66,25 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_BoneDrivenController : public FAnimNode_Sk
 	UPROPERTY(EditAnywhere, Category=Mapping)
 	float Multiplier;
 
-	// Whether or not to clamp the driver value before scaling it (Note: Ignored when a curve is used)
-	UPROPERTY(EditAnywhere, Category="Source (Driver)", meta=(DisplayName="Limit Source Range"))
+	// Whether or not to clamp the driver value and remap it before scaling it
+	UPROPERTY(EditAnywhere, Category=Mapping, meta=(DisplayName="Remap Source"))
 	bool bUseRange;
 
-	// Minimum limit of the input value
-	UPROPERTY(EditAnywhere, Category="Source (Driver)", meta=(EditCondition=bUseRange, DisplayName="Source Range Min"))
+	// Minimum limit of the input value (mapped to RemappedMin, only used when limiting the source range)
+	UPROPERTY(EditAnywhere, Category=Mapping, meta=(EditCondition=bUseRange, DisplayName="Source Range Min"))
 	float RangeMin;
 
-	// Maximum limit of the input value
-	UPROPERTY(EditAnywhere, Category="Source (Driver)", meta=(EditCondition=bUseRange, DisplayName="Source Range Max"))
+	// Maximum limit of the input value (mapped to RemappedMax, only used when limiting the source range)
+	UPROPERTY(EditAnywhere, Category=Mapping, meta=(EditCondition=bUseRange, DisplayName="Source Range Max"))
 	float RangeMax;
+
+	// Minimum value to apply to the destination (remapped from the input range)
+	UPROPERTY(EditAnywhere, Category=Mapping, meta=(EditCondition=bUseRange, DisplayName="Mapped Range Min"))
+	float RemappedMin;
+
+	// Maximum value to apply to the destination (remapped from the input range)
+	UPROPERTY(EditAnywhere, Category = Mapping, meta = (EditCondition = bUseRange, DisplayName="Mapped Range Max"))
+	float RemappedMax;
 
 	// Bone to drive using controller input
 	UPROPERTY(EditAnywhere, Category="Destination (driven)")
