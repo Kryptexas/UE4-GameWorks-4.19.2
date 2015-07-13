@@ -2710,17 +2710,17 @@ void UFoliageInstancedStaticMeshComponent::ReceiveComponentDamage(float DamageAm
 				FVector LocalOrigin = GetComponentToWorld().Inverse().TransformPosition(RadialDamageEvent->Origin);
 				float Scale = GetComponentScale().X; // assume component (not instances) is uniformly scaled
 				
-				TArray<FFoliageInstanceDamage> DamageInstances;
-				DamageInstances.Empty(Instances.Num());
+				TArray<float> Damages;
+				Damages.Empty(Instances.Num());
 				
 				for (int32 InstanceIndex : Instances)
 				{
 					// Find distance in local space and then scale; quicker than transforming each instance to world space.
 					float DistanceFromOrigin = (PerInstanceSMData[InstanceIndex].Transform.GetOrigin() - LocalOrigin).Size() * Scale;
-					new(DamageInstances) FFoliageInstanceDamage(InstanceIndex, RadialDamageEvent->Params.GetDamageScale(DistanceFromOrigin));
+					Damages.Add(RadialDamageEvent->Params.GetDamageScale(DistanceFromOrigin));
 				}
 
-				OnInstanceTakeRadialDamage.Broadcast(DamageInstances, EventInstigator, RadialDamageEvent->Origin, MaxRadius, DamageTypeCDO, DamageCauser);
+				OnInstanceTakeRadialDamage.Broadcast(Instances, Damages, EventInstigator, RadialDamageEvent->Origin, MaxRadius, DamageTypeCDO, DamageCauser);
 			}
 		}
 	}

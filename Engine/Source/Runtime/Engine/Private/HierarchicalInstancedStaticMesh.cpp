@@ -1597,18 +1597,13 @@ SIZE_T UHierarchicalInstancedStaticMeshComponent::GetResourceSize( EResourceSize
 	return ResSize;
 }
 
-bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex)
 {
-	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
-	{
-		return false;
-	}
-
 	PartialNavigationUpdate(InstanceIndex);
 
 	// Save the render index
 	RemovedInstances.Add(InstanceReorderTable[InstanceIndex]);
-	
+
 	// Remove the instance
 	PerInstanceSMData.RemoveAtSwap(InstanceIndex);
 	InstanceReorderTable.RemoveAtSwap(InstanceIndex);
@@ -1619,6 +1614,75 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 	}
 #endif
 
+	// update the physics state
+	if (bPhysicsStateCreated)
+	{
+		// Clean up physics for removed instance
+		if (InstanceBodies[InstanceIndex])
+		{
+			InstanceBodies[InstanceIndex]->TermBody();
+			delete InstanceBodies[InstanceIndex];
+		}
+
+		int32 LastInstanceIndex = PerInstanceSMData.Num();
+
+		if (InstanceIndex == LastInstanceIndex)
+		{
+			// If we removed the last instance in the array we just need to remove it from the InstanceBodies array too.
+			InstanceBodies.RemoveAt(InstanceIndex);
+		}
+		else
+		{
+			if (InstanceBodies[LastInstanceIndex])
+			{
+				// term physics for swapped instance
+				InstanceBodies[LastInstanceIndex]->TermBody();
+			}
+
+			// swap in the last instance body if we have one
+			InstanceBodies.RemoveAtSwap(InstanceIndex);
+
+			// recreate physics for the instance we swapped in the removed item's place
+			if (InstanceBodies[InstanceIndex])
+			{
+				InitInstanceBody(InstanceIndex, InstanceBodies[InstanceIndex]);
+			}
+		}
+	}
+}
+
+bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int32>& InstancesToRemove)
+{
+	TArray<int32> SortedInstancesToRemove = InstancesToRemove;
+
+	// Sort so RemoveAtSwaps don't alter the indices of items still to remove
+	SortedInstancesToRemove.Sort(TGreater<int32>());
+
+	if (!PerInstanceSMData.IsValidIndex(SortedInstancesToRemove[0]) || !PerInstanceSMData.IsValidIndex(SortedInstancesToRemove.Last()))
+	{
+		return false;
+	}
+
+	for (int32 Index : SortedInstancesToRemove)
+	{
+		RemoveInstanceInternal(Index);
+	}
+
+	ReleasePerInstanceRenderData();
+	MarkRenderStateDirty();
+
+	return true;
+}
+
+bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+{
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		return false;
+	}
+
+	RemoveInstanceInternal(InstanceIndex);
+
 	if (IsAsyncBuilding())
 	{
 		// invalidate the results of the current async build as it's too slow to fix up deletes
@@ -1627,23 +1691,6 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 	else
 	{
 		BuildTreeAsync();
-	}
-
-
-	// update the physics state
-	if (bPhysicsStateCreated)
-	{
-		int32 OldLastIndex = PerInstanceSMData.Num();
-
-		// always shut down physics for the last instance
-		InstanceBodies[OldLastIndex]->TermBody();
-
-		// recreate physics for the instance we swapped in the removed item's place
-		if (InstanceIndex != PerInstanceSMData.Num() && PerInstanceSMData.Num())
-		{
-			InstanceBodies[InstanceIndex]->TermBody();
-			InitInstanceBody(InstanceIndex, InstanceBodies[InstanceIndex]);
-		}
 	}
 
 	ReleasePerInstanceRenderData();
