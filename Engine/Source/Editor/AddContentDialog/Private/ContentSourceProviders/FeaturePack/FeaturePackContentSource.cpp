@@ -270,7 +270,6 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
  		if (AdditionalFilesForPack.AdditionalFilesList.Num() != 0)
  		{
  			bool bHasSourceFiles = false;
- 			TArray<FString> FilesCopied;
  			CopyAdditionalFilesToFolder( FPaths::GameDir(), FilesCopied, bHasSourceFiles/*,AdditionalFilesFolder*/);
  		}
 
@@ -280,7 +279,6 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 			TArray<FString> AssetPaths;
 			AssetPaths.Add(FeaturePackPath);
 			TArray<UObject*> ImportedObjects = AssetToolsModule.Get().ImportAssets(AssetPaths, InstallPath);
-
 
 			if (ImportedObjects.Num() == 0)
 			{
