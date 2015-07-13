@@ -886,6 +886,11 @@ FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHa
 	return FMath::VRandCone(ConeDir, ConeHalfAngle);
 }
 
+FVector UKismetMathLibrary::RandomUnitVectorInConeWithYawAndPitch(FVector ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees)
+{
+	return FMath::VRandCone(ConeDir, DegreesToRadians(MaxYawInDegrees), DegreesToRadians(MaxPitchInDegrees));
+}
+
 FVector UKismetMathLibrary::MirrorVectorByNormal(FVector A, FVector B)
 {
 	return FMath::GetReflectionVector(A, B);
@@ -1802,6 +1807,27 @@ FVector UKismetMathLibrary::GetRightVector(FRotator InRot)
 FVector UKismetMathLibrary::GetUpVector(FRotator InRot)
 {
 	return FRotationMatrix(InRot).GetScaledAxis( EAxis::Z );
+}
+
+FVector UKismetMathLibrary::CreateVectorFromYawPitch(float Yaw, float Pitch, float Length /*= 1.0f */)
+{
+	// FRotator::Vector() behaviour 
+	float CP, SP, CY, SY;
+	FMath::SinCos(&SP, &CP, FMath::DegreesToRadians(Pitch));
+	FMath::SinCos(&SY, &CY, FMath::DegreesToRadians(Yaw));
+	FVector V = FVector(CP*CY, CP*SY, SP) * Length;
+		
+	return V;
+}
+
+void UKismetMathLibrary::GetYawPitchFromVector(FVector InVec, float& Yaw, float& Pitch)
+{
+	FVector NormalizedVector = InVec.GetSafeNormal();
+	// Find yaw.
+	Yaw = FMath::Atan2(NormalizedVector.Y, NormalizedVector.X) * 180.f / PI;
+
+	// Find pitch.
+	Pitch = FMath::Atan2(NormalizedVector.Z, FMath::Sqrt(NormalizedVector.X*NormalizedVector.X + NormalizedVector.Y*NormalizedVector.Y)) * 180.f / PI;	
 }
 
 FRotator UKismetMathLibrary::MakeRotator(float Roll, float Pitch, float Yaw)

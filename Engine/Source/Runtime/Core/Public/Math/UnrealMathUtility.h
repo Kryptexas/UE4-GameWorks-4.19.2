@@ -138,7 +138,7 @@ struct FMath : public FPlatformMath
 	 * Given a direction vector and a surface normal, returns the vector reflected across the surface normal.
 	 * Produces a result like shining a laser at a mirror!
 	 *
-	 * @param Direction Direction vector the ray is comming from.
+	 * @param Direction Direction vector the ray is coming from.
 	 * @param SurfaceNormal A normal of the surface the ray should be reflected on.
 	 *
 	 * @returns Reflected vector.
@@ -151,7 +151,7 @@ struct FMath : public FPlatformMath
 	template< class U > 
 	static FORCEINLINE bool IsWithin(const U& TestValue, const U& MinValue, const U& MaxValue)
 	{
-		return ((TestValue>=MinValue) && (TestValue < MaxValue));
+		return ((TestValue >= MinValue) && (TestValue < MaxValue));
 	}
 
 	/** Checks if value is within a range, inclusive on MaxValue) */
