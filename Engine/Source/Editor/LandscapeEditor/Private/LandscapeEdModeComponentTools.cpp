@@ -676,15 +676,15 @@ public:
 				{
 					// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
 
-					// Move any foliage associated
-					AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(Component);
-
 					Component->GetLandscapeProxy()->CollisionComponents.Remove(Component);
 					Component->UnregisterComponent();
 					Component->DetachFromParent(true);
 					Component->Rename(nullptr, LandscapeProxy);
 					LandscapeProxy->CollisionComponents.Add(Component);
 					Component->AttachTo(LandscapeProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
+
+					// Move any foliage associated
+					AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(Component);
 
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("ComponentName"), FText::FromString(Component->GetName()));
