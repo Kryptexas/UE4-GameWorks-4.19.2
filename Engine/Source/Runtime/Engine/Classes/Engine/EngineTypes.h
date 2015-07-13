@@ -1572,6 +1572,10 @@ struct ENGINE_API FHitResult
 	 */
 	UPROPERTY()
 	float Time;
+	 
+	/** The distance from the TraceStart to the ImpactPoint in world space. This value is 0 if there was an initial overlap (trace started inside another colliding object). */
+	UPROPERTY()
+	float Distance; 
 	
 	/**
 	 * The location in world space where the moving shape would end up against the impacted object, if there is a hit. Equal to the point of impact for line tests.
@@ -1674,7 +1678,7 @@ struct ENGINE_API FHitResult
 
 	/** Ctor for easily creating "fake" hits from limited data. */
 	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm);
-
+ 
 	void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
 	{
 		const FVector SavedTraceStart = TraceStart;

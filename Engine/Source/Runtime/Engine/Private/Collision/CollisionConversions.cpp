@@ -425,6 +425,7 @@ void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitR
 	// calculate the hit time
 	const float HitTime = PHit.distance/CheckLength;
 	OutResult.Time = HitTime;
+	OutResult.Distance = PHit.distance;
 
 	// figure out where the the "safe" location for this shape is by moving from the startLoc toward the ImpactPoint
 	const FVector TraceStartToEnd = EndLoc - StartLoc;
@@ -812,6 +813,7 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 	// Time of zero because initially overlapping
 	OutResult.bStartPenetrating = true;
 	OutResult.Time = 0.f;
+	OutResult.Distance = 0.f;
 
 	// Return start location as 'safe location'
 	OutResult.Location = P2UVector(QueryTM.p);
