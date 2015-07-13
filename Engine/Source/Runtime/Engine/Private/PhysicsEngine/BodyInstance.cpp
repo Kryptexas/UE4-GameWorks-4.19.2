@@ -3231,21 +3231,22 @@ void FBodyInstance::UpdateDampingProperties()
 
 bool FBodyInstance::IsInstanceAwake() const
 {
+	bool bIsSleeping = false;
 #if WITH_PHYSX
 	ExecuteOnPxRigidDynamicReadOnly(this, [&](const PxRigidDynamic* PRigidDynamic)
 	{
-		return !PRigidDynamic->isSleeping();
+		bIsSleeping = PRigidDynamic->isSleeping();
 	});
 #endif
 
 #if WITH_BOX2D
 	if (BodyInstancePtr)
 	{
-		return BodyInstancePtr->IsAwake();
+		bIsSleeping = !BodyInstancePtr->IsAwake();
 	}
 #endif
 
-	return false;
+	return !bIsSleeping;
 }
 
 void FBodyInstance::WakeInstance()
