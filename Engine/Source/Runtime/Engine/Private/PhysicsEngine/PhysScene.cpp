@@ -627,34 +627,36 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 #if !WITH_APEX
 	PxScene* PScene = GetPhysXScene(SceneType);
 	if (PScene && (UseDelta > 0.f))
-	{
-		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, PScene->getTaskManager());
-		PScene->lockWrite();
-		PScene->simulate(AveragedFrameTime[SceneType], Task);
-		PScene->unlockWrite();
-		Task->removeReference();
-		bTaskOutstanding = true;
-	}
-#else	//	#if !WITH_APEX
-	// The APEX scene calls the simulate function for the PhysX scene, so we only call ApexScene->simulate().
+#else
 	NxApexScene* ApexScene = GetApexScene(SceneType);
-	if(ApexScene && UseDelta > 0.f)
+	if (ApexScene && UseDelta > 0.f)
+#endif
 	{
 #if WITH_SUBSTEPPING
 		if (IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
-		}else
+		}
+		else
 #endif
 		{
+#if !WITH_APEX
+			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, PScene->getTaskManager());
+			PScene->lockWrite();
+			PScene->simulate(AveragedFrameTime[SceneType], Task);
+			PScene->unlockWrite();
+			Task->removeReference();
+			bTaskOutstanding = true;
+#else
 			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, ApexScene->getTaskManager());
 			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task);
 			Task->removeReference();
 			bTaskOutstanding = true;
+#endif
 		}
 	}
-#endif	//	#if !WITH_APEX
-#endif // WITH_PHYSX
+#endif
+
 	if (!bTaskOutstanding)
 	{
 		InOutCompletionEvent->DispatchSubsequents(); // nothing to do, so nothing to wait for
