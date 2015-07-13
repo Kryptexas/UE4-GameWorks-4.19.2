@@ -909,7 +909,6 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 				{
 					Pin->bHidden = true;
 					Pin->bNotConnectable = InternalPins.Contains(Pin->PinName);
-					K2Schema->SetPinDefaultValueBasedOnType(Pin);
 				}
 			}
 
