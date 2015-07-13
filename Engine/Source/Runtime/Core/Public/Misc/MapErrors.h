@@ -211,6 +211,9 @@ struct CORE_API FMapErrors
 
 	/** {LODActor} : NoActor is assigned. We recommend to delete this actor. */
 	static FName LODActorNoActorFound;
+
+	/** Hierarchical LOD System is disabled, unable to build LOD actors */
+	static FName HLODSystemNotEnabled;
 };
 
 /**

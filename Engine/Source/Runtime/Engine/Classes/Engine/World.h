@@ -14,10 +14,6 @@
 #include "GameFramework/Actor.h"
 #include "GameInstance.h"
 
-#if WITH_EDITOR
-	#include "Editor/UnrealEd/Public/HierarchicalLOD.h"
-#endif // WITH_EDITOR
-
 #include "World.generated.h"
 
 class FPhysScene;
@@ -678,7 +674,7 @@ public:
 
 #if WITH_EDITOR
 	/** Hierarchical LOD System. Used when WorldSetting.bEnableHierarchicalLODSystem is true */
-	FHierarchicalLODBuilder						HierarchicalLODBuilder;
+	struct FHierarchicalLODBuilder*						HierarchicalLODBuilder;
 #endif // WITH_EDITOR
 
 private:

@@ -52,6 +52,7 @@
 	#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 	#include "Editor/UnrealEd/Classes/Editor/UnrealEdTypes.h"
 	#include "Editor/UnrealEd/Classes/Settings/LevelEditorPlaySettings.h"
+	#include "Editor/UnrealEd/Public/HierarchicalLOD.h"
 #endif
 
 #include "MallocProfiler.h"
@@ -114,9 +115,9 @@ FWorldDelegates::FRefreshLevelScriptActionsEvent FWorldDelegates::RefreshLevelSc
 #endif // WITH_EDITOR
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
-:	UObject(ObjectInitializer)
+: UObject(ObjectInitializer)
 #if WITH_EDITOR
-,	HierarchicalLODBuilder(this)
+, HierarchicalLODBuilder(new FHierarchicalLODBuilder(this))
 #endif
 ,	FeatureLevel(GMaxRHIFeatureLevel)
 , URL(FURL(NULL))
@@ -141,7 +142,7 @@ UWorld::~UWorld()
 	while (AsyncPreRegisterLevelStreamingTasks.GetValue())
 	{
 		FPlatformProcess::Sleep(0.0f);
-	}
+	}	
 }
 
 void UWorld::Serialize( FArchive& Ar )
@@ -514,6 +515,11 @@ void UWorld::FinishDestroy()
 	if (TimerManager)
 	{
 		delete TimerManager;
+	}
+
+	if (HierarchicalLODBuilder)
+	{
+		delete HierarchicalLODBuilder;
 	}
 
 	// Remove the PKG_ContainsMap flag from packages that no longer contain a world

@@ -29,6 +29,8 @@ namespace EBuildOptions
 		BuildAllOnlySelectedPaths,
 		/** Build Hierarchical LOD system - need WorldSetting setup*/
 		BuildHierarchicalLOD, 
+		/** Preview Hierarchical LOD system clusters - need WorldSetting setup*/
+		PreviewHierarchicalLOD,
 	};
 }
 

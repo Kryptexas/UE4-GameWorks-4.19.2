@@ -189,6 +189,34 @@ public:
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation, 
 		bool bSilent=false) const = 0;
+
+	/**
+	* MergeStaticMeshComponents
+	*
+	* @param ComponentsToMerge - Components to merge
+	* @param World - World in which the component reside
+	* @param InSettings	- Settings to use
+	* @param InOuter - Outer if required
+	* @param InBasePackageName - Destination package name for a generated assets. Used if Outer is null.
+	* @param UseLOD	-1 if you'd like to build for all LODs. If you specify, that LOD mesh for source meshes will be used to merge the mesh
+	*									This is used by hierarchical building LODs
+	* @param OutAssetsToSync Merged mesh assets
+	* @param OutMergedActorLocation	World position of merged mesh
+	* @param ViewDistance Distance for LOD determination
+	* @param bSilent Non-verbose flag
+	* @return void
+	*/
+	virtual void MergeStaticMeshComponents(
+		const TArray<UStaticMeshComponent*>& ComponentsToMerge,
+		UWorld* World,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,
+		const FString& InBasePackageName,
+		int32 UseLOD, /* does not build all LODs but only use this LOD to create base mesh */
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		float ViewDistance,
+		bool bSilent /*= false*/) const = 0;
 	
 	/**
 	 *	Merges list of actors into single proxy mesh

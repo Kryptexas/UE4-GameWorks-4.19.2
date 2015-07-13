@@ -105,6 +105,13 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 					const FMatrix& LocalToWorld = GetLocalToWorld();
 					const FLinearColor DrawSphereColor = GetViewSelectionColor(SphereColor, *View, IsSelected(), IsHovered(), false, IsIndividuallySelected() );
 
+					// Taking into account the min and maximum drawing distance
+					const float Distance = (View->ViewMatrices.ViewOrigin - LocalToWorld.GetOrigin()).Size();
+					if (Distance < GetMinDrawDistance() || Distance > GetMaxDrawDistance() )
+					{
+						continue;
+					}
+					
 					float AbsScaleX = LocalToWorld.GetScaledAxis(EAxis::X).Size();
 					float AbsScaleY = LocalToWorld.GetScaledAxis(EAxis::Y).Size();
 					float AbsScaleZ = LocalToWorld.GetScaledAxis(EAxis::Z).Size();

@@ -20,6 +20,7 @@
 #include "Engine/LevelStreaming.h"
 #include "GameFramework/WorldSettings.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "HierarchicalLOD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 
@@ -216,6 +217,7 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 		BuildType = SBuildProgressWidget::BUILDTYPE_Paths;
 		break;
 	case EBuildOptions::BuildHierarchicalLOD:
+	case EBuildOptions::PreviewHierarchicalLOD:
 		BuildType = SBuildProgressWidget::BUILDTYPE_LODs;
 		break;
 	default:
@@ -306,6 +308,23 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 			if ( bDoBuild )
 			{
 				GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "RebuildLOD", "Rebuilding HierarchicalLOD") );
+
+				// We can't set the busy cursor for all windows, because lighting
+				// needs a cursor for the lighting options dialog.
+				const FScopedBusyCursor BusyCursor;
+
+				TriggerHierarchicalLODBuilder(InWorld, Id);
+			}
+
+			break;
+		}
+
+	case  EBuildOptions::PreviewHierarchicalLOD:
+		{
+			bDoBuild = GEditor->WarnAboutHiddenLevels(InWorld, false);
+			if (bDoBuild)
+			{
+				GEditor->ResetTransaction(NSLOCTEXT("UnrealEd", "RebuildLOD", "Rebuilding HierarchicalLOD"));
 
 				// We can't set the busy cursor for all windows, because lighting
 				// needs a cursor for the lighting options dialog.
@@ -798,7 +817,15 @@ void FEditorBuildUtils::TriggerNavigationBuilder(UWorld* InWorld, EBuildOptions:
 
 void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, EBuildOptions::Type Id)
 {
-	// Invoke HLOD generator
-	InWorld->HierarchicalLODBuilder.Build();
+	// Invoke HLOD generator, with either preview or full build
+	if (Id == EBuildOptions::PreviewHierarchicalLOD)
+	{
+		InWorld->HierarchicalLODBuilder->PreviewBuild();
+	}
+	else
+	{
+		InWorld->HierarchicalLODBuilder->Build();
+	}
 }
+
 #undef LOCTEXT_NAMESPACE
