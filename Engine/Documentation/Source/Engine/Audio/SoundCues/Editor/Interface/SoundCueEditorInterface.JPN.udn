@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2187501
-Availability:Public
+﻿Availability:Public
 Title:サウンド キュー エディタ UI
 Crumbs: %ROOT%, Engine, Engine/Audio, Engine/Audio/SoundCues/Editor
 Description:サウンドのインポートから SoundCues の生成まで、 アウンリアル サウンドキュー エディタの利用法の概要。
@@ -14,8 +13,8 @@ Description:サウンドのインポートから SoundCues の生成まで、 �
 
 ![soundcueeditor.png](soundcueeditor.png)(w:900)
 
-1. [メニューバー](#メニューバー)
-1. [ツールバー](#ツールバー)
+1. [メニュー バー](#メニューバー)
+1. [ツール バー](#ツールバー)
 1. [詳細パネル](#[詳細]パネル)
 1. [オーディオノードグラフ](#オーディオノードグラフ)
 1. [パレット](#パレット)
@@ -71,9 +70,9 @@ Description:サウンドのインポートから SoundCues の生成まで、 �
 
 **[詳細]** パネルには、現在選択しているノードのプロパティが表示されます。複数のノードを選択している場合は、そうしたノードが共通に持っているプロパティだけが表示されます。
 
-このパネルの基本的な操作に関する詳細は、 [Editor Details Panel](Engine/UI/LevelEditor\Details) ドキュメントを参照してください。
+このパネルの基本的な操作に関する詳細は、 [エディタの詳細パネル](Engine/UI/LevelEditor\Details) ドキュメントを参照してください。
 
-## オーディオノード グラフ
+## オーディオ ノード グラフ
 
 ![Audio Node Graph](Engine/Audio/SoundCues/Editor/SoundCueEditor_Viewport.png)
 
@@ -83,7 +82,7 @@ Description:サウンドのインポートから SoundCues の生成まで、 �
 
 ![Sound node list](Engine/Audio\SoundCues\NodeReference\SoundCueEditor_NodeList.png)
 
-**[パレット]** には、オーディオ ノード グラフで利用可能なすべてのノードが表示されます。オーディオ ノードは **[パレット]** からグラフにドラッグして追加することができます。オーディオ ノードを追加する上記以外の方法については以下を参照してください。[オーディオノードグラフ](Engine/Audio\SoundCues\Editor#オーディオノードグラフ)
+**[パレット]** には、オーディオ ノード グラフで利用可能なすべてのノードが表示されます。オーディオ ノードは **[パレット]** からグラフにドラッグして追加することができます。オーディオ ノードを追加する上記以外の方法については以下を参照してください。[オーディオノードグラフ](Engine/Audio\SoundCues\Editor#AudioNodeGraph（オーディオノードグラフ）)
 
 [REGION:tip]
 以下の方法でオーディオ ノード グラフにコメントを追加することができます。**Add Comment** をグラフにドラッグするか、または **左マウスボタン** でノードの周囲でボックスをドラッグし、選択したノードを **右クリック** し、表示されるコンテキスト メニュー上で **Create Comment from Selection** をクリックします。
