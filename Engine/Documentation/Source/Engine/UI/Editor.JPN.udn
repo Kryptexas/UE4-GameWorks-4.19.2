@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2466035
+﻿INTSourceChangelist:2604022
 Availability:Public
 Title:アンリアル エディタのインターフェイス
 Crumbs:%ROOT%, Engine
-Description:インターフェースの基本原理とアンリアル エディタ ユーザーインターフェース各部の概要
+Description:エディタの基本原理とアンリアル エディタ ユーザーインターフェース各部の概要
 Navigation:topic
 
 [EXCERPT:LevelEditor]
@@ -33,7 +33,7 @@ Navigation:topic
 	![](%ROOT%/editor_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	エディタのリファレンス
+	%Engine/UI:title%
 [/PARAM]
 [PARAM:description]
 	%Engine/UI:description%
@@ -62,7 +62,7 @@ Navigation:topic
 [/VAR]
 
 
-## エディタUIの基礎
+## エディタ UI の基礎
 
 
 アンリアル・エディタに馴染みのないユーザーは、ユーザーインターフェースと一般的なワークフローに関するいくつかの基本コンセプトの習熟がエディタを使用する上で役立ちます。アンリアルエディタの使用を開始したばかりのユーザーは、作業を始める前に以下の主要トピックをご覧ください。 
@@ -100,8 +100,8 @@ Navigation:topic
 	[/PARAM]
 	[PARAM:links]
 		* [プロジェクト ブラウザ](Engine/Basics/Projects/Browser "アンリアルエンジンの全ゲームプロジェクトへのアクセスに加え、新規プロジェクトを作成出来るブラウザです。")
-		* [コンテンツ ブラウザ](Engine/Content/Browser "ユーザープロジェクトの全アセットを素早く検索し、アクセスを可能にする使用頻度の高いパネルです。")
-		* [クラスビューア](Engine/UI/ClassViewer "ゲームで利用可能な全オブジェクトクラスの階層リストです。")
+		* [コンテンツ ブラウザ](Engine/Content/Browser "ユーザー プロジェクトの全アセットを素早く検索し、アクセスを可能にする使用頻度の高いパネルです。")
+		* [クラス ビューア](Engine/UI/ClassViewer "ゲームで利用可能な全オブジェク クラスの階層リストです。")
 		* [グローバルアセット ピッカー](Engine/UI/GlobalAssetPicker "ビューポートへ直接ゲームアセットを配置およびアセットの編集を可能にする高速アクセスツールです。")
 	[/PARAM]
 [/OBJECT]
@@ -151,7 +151,7 @@ Navigation:topic
 		[REGION:simplegallery]
 		[OBJECT:VideoLink]
 			[PARAMLITERAL:videoid]
-			QMsFxzYzFJ8
+			w4XlBKeE46E
 			[/PARAMLITERAL]
 			[PARAMLITERAL:playlistid]
 			PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
@@ -169,3 +169,7 @@ Navigation:topic
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:LevelEditor]
+
+
+
+
