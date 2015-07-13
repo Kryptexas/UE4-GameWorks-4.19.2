@@ -205,3 +205,14 @@ protected:
 		ChildNodes.Empty();
 	}
 };
+
+/*-----------------------------------------------------------------------------
+	FRawStatsMemoryProfiler
+-----------------------------------------------------------------------------*/
+
+/** Class for managing the raw stats in the context of memory profiling. */
+class FRawStatsMemoryProfiler
+{
+
+};
+
