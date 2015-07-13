@@ -379,6 +379,9 @@ protected:
 	/** if set, movement will be stopped on finishing path */
 	uint32 bStopMovementOnFinish : 1;
 
+	/** timeout for Waiting state, negative value = infinite */
+	float WaitingTimeout;
+
 	/** detect blocked movement when distance between center of location samples and furthest one (centroid radius) is below threshold */
 	float BlockDetectionDistance;
 
@@ -474,6 +477,9 @@ protected:
 	 *	@param bForce results in looking for owner's movement component even if pointer to one is already cached */
 	virtual bool UpdateMovementComponent(bool bForce = false);
 
+	/** called from timer if component spends too much time in Waiting state */
+	virtual void OnWaitingPathTimeout();
+
 	/** clears Block Detection stored data effectively resetting the mechanism */
 	void ResetBlockDetectionData();
 
@@ -500,6 +506,9 @@ private:
 	 *	Since it makes conceptual sense for GetCurrentNavLocation() to be const but we may 
 	 *	need to update the cached value, CurrentNavLocation is mutable. */
 	mutable FNavLocation CurrentNavLocation;
+
+	/** timer handle for OnWaitingPathTimeout function */
+	FTimerHandle WaitingForPathTimer;
 
 	/** empty delegate for RequestMove */
 	static FRequestCompletedSignature UnboundRequestDelegate;

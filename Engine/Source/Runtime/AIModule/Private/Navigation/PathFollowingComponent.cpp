@@ -35,6 +35,7 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	BlockDetectionDistance = 10.0f;
 	BlockDetectionInterval = 0.5f;
 	BlockDetectionSampleCount = 10;
+	WaitingTimeout = 1.0f;
 	LastSampleTime = 0.0f;
 	NextSampleIdx = 0;
 	bUseBlockDetection = true;
@@ -232,6 +233,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 		else
 		{
 			Status = EPathFollowingStatus::Waiting;
+			GetWorld()->GetTimerManager().SetTimer(WaitingForPathTimer, this, &UPathFollowingComponent::OnWaitingPathTimeout, WaitingTimeout);
 		}
 	}
 
@@ -246,6 +248,14 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 
 	LogPathHelper(GetOwner(), InPath, DestinationActor.Get());
 
+	if (Status == EPathFollowingStatus::Waiting && InPath.IsValid() && !InPath->IsValid())
+	{
+		UE_VLOG(GetOwner(), LogPathFollowing, Error, TEXT("Received unusable path in Waiting state! (ready:%d upToDate:%d pathPoints:%d)"),
+			InPath->IsReady() ? 1 : 0,
+			InPath->IsUpToDate() ? 1 : 0,
+			InPath->GetPathPoints().Num());
+	}
+
 	if (!InPath.IsValid() || !InPath->IsValid() || Status == EPathFollowingStatus::Idle 
 		|| RequestID.IsEquivalent(GetCurrentRequestId()) == false)
 	{
@@ -255,6 +265,7 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 
 	Path = InPath;
 	OnPathUpdated();
+	GetWorld()->GetTimerManager().ClearTimer(WaitingForPathTimer);
 
 	if (Status == EPathFollowingStatus::Waiting || Status == EPathFollowingStatus::Moving)
 	{
@@ -289,6 +300,7 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 		bLastMoveReachedGoal = false;
 		UpdateMoveFocus();
 
+		GetWorld()->GetTimerManager().ClearTimer(WaitingForPathTimer);
 		if (bResetVelocity && MovementComp && MovementComp->CanStopPathFollowing())
 		{
 			MovementComp->StopMovementKeepPathing();
@@ -1525,4 +1537,13 @@ bool UPathFollowingComponent::IsResourceLocked() const
 void UPathFollowingComponent::SetLastMoveAtGoal(bool bFinishedAtGoal)
 {
 	bLastMoveReachedGoal = bFinishedAtGoal;
+}
+
+void UPathFollowingComponent::OnWaitingPathTimeout()
+{
+	if (Status == EPathFollowingStatus::Waiting)
+	{
+		UE_VLOG(GetOwner(), LogPathFollowing, Warning, TEXT("Waiting for path timeout! Aborting current move"));
+		AbortMove(TEXT("waiting timeout"), CurrentRequestId);
+	}
 }
