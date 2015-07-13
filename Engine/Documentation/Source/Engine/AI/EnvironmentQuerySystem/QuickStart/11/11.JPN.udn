@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2605611
-Availability:Public
+﻿Availability:Public
 Title:11.FindPlayer EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:レベル内でプレイヤーの TopDownCharacter のすべてのインスタンスを見つける Environment Query (環境クエリ) を作成します。
