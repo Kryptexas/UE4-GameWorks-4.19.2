@@ -177,7 +177,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 	return NewMenuWindow;
 }
 
-TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> InMethod)
+TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> InMethod, const bool bIsCollapsedByParent)
 {
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 	TSharedPtr<IMenu> ParentMenu;
@@ -200,20 +200,20 @@ TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TShared
 		SetHostWindow(InOwnerPath.GetWindow());
 	}
 
-	return PushInternal(ParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately);
+	return PushInternal(ParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, bIsCollapsedByParent);
 }
 
-TSharedRef<IMenu> FMenuStack::Push(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize)
+TSharedRef<IMenu> FMenuStack::Push(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, const bool bIsCollapsedByParent)
 {
 	check(Stack.Contains(InParentMenu));
 	check(HostWindow.IsValid());
 
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 
-	return PushInternal(InParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately);
+	return PushInternal(InParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, bIsCollapsedByParent);
 }
 
-TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect)
+TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent)
 {
 	TSharedPtr<IMenu> ParentMenu;
 
@@ -238,13 +238,13 @@ TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const T
 	return PushHosted(ParentMenu, InMenuHost, InContent, OutWrappedContent, TransitionEffect);
 }
 
-TSharedRef<IMenu> FMenuStack::PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect)
+TSharedRef<IMenu> FMenuStack::PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent)
 {
 	check(HostWindow.IsValid());
 
 	// Create a FMenuInHostWidget
 	TSharedRef<SWidget> WrappedContent = WrapContent(InContent);
-	TSharedRef<FMenuInHostWidget> OutMenu = MakeShareable(new FMenuInHostWidget(InMenuHost, WrappedContent));
+	TSharedRef<FMenuInHostWidget> OutMenu = MakeShareable(new FMenuInHostWidget(InMenuHost, WrappedContent, bIsCollapsedByParent));
 	PendingNewMenu = OutMenu;
 
 	// Set the returned content - this must be drawn by the hosting widget until the menu gets dismissed and calls IMenuHost::OnMenuDismissed on its host
@@ -260,13 +260,14 @@ TSharedRef<IMenu> FMenuStack::PushHosted(const TSharedPtr<IMenu>& InParentMenu, 
 	return OutMenu;
 }
 
-TSharedRef<IMenu> FMenuStack::PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately)
+TSharedRef<IMenu> FMenuStack::PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bIsCollapsedByParent)
 {
 	FPrePushArgs PrePushArgs;
 	PrePushArgs.Content = InContent;
 	PrePushArgs.Anchor = Anchor;
 	PrePushArgs.TransitionEffect = TransitionEffect;
 	PrePushArgs.bFocusImmediately = bFocusImmediately;
+	PrePushArgs.bIsCollapsedByParent = bIsCollapsedByParent;
 
 	// Pre-push stage
 	//   Determines correct layout
@@ -291,6 +292,7 @@ TSharedRef<IMenu> FMenuStack::PushInternal(const TSharedPtr<IMenu>& InParentMenu
 FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 {
 	FPrePushResults OutResults;
+	OutResults.bIsCollapsedByParent = InArgs.bIsCollapsedByParent;
 	OutResults.bFocusImmediately = InArgs.bFocusImmediately;
 	if (InArgs.bFocusImmediately)
 	{
@@ -426,7 +428,7 @@ TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, 
 		NewMenuWindow->SetWidgetToFocusOnActivate(InPrePushResults.WidgetToFocus);
 	}
 
-	TSharedRef<FMenuInWindow> Menu = MakeShareable(new FMenuInWindow(NewMenuWindow, InPrePushResults.WrappedContent.ToSharedRef()));
+	TSharedRef<FMenuInWindow> Menu = MakeShareable(new FMenuInWindow(NewMenuWindow, InPrePushResults.WrappedContent.ToSharedRef(), InPrePushResults.bIsCollapsedByParent));
 	PendingNewMenu = Menu;
 
 	TSharedPtr<SWindow> ParentWindow;
@@ -461,7 +463,7 @@ TSharedRef<FMenuBase> FMenuStack::PushPopup(TSharedPtr<IMenu> InParentMenu, cons
 
 	// Create a FMenuInPopup
 	check(InPrePushResults.WrappedContent.IsValid());
-	TSharedRef<FMenuInPopup> Menu = MakeShareable(new FMenuInPopup(InPrePushResults.WrappedContent.ToSharedRef()));
+	TSharedRef<FMenuInPopup> Menu = MakeShareable(new FMenuInPopup(InPrePushResults.WrappedContent.ToSharedRef(), InPrePushResults.bIsCollapsedByParent));
 	PendingNewMenu = Menu;
 
 	// Register to get callback when it's dismissed - to fixup stack
@@ -630,9 +632,13 @@ void FMenuStack::OnMenuContentLostFocus(const FWidgetPath& InFocussedPath)
 			int32 FocussedIndex = Stack.IndexOfByKey(FocussedMenu);
 			check(FocussedIndex != INDEX_NONE);
 
-			if (Stack.Num() > FocussedIndex + 1)
+			for (int32 DismissIndex = FocussedIndex + 1; DismissIndex < Stack.Num(); DismissIndex++)
 			{
-				DismissFrom(Stack[FocussedIndex + 1]);
+				if (Stack[DismissIndex]->IsCollapsedByParent())
+				{
+					DismissFrom(Stack[DismissIndex]);
+					break;
+				}
 			}
 		}
 		else
@@ -716,9 +722,13 @@ void FMenuStack::OnWindowActivated( TSharedRef<SWindow> ActivatedWindow )
 			int32 ActivatedIndex = Stack.IndexOfByKey(ActivatedMenu);
 			check(ActivatedIndex != INDEX_NONE);
 
-			if (Stack.Num() > ActivatedIndex + 1)
+			for (int32 DismissIndex = ActivatedIndex + 1; DismissIndex < Stack.Num(); DismissIndex++)
 			{
-				DismissFrom(Stack[ActivatedIndex + 1]);
+				if (Stack[DismissIndex]->IsCollapsedByParent())
+				{
+					DismissFrom(Stack[DismissIndex]);
+					break;
+				}
 			}
 		}
 		else

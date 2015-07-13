@@ -3,14 +3,15 @@
 #include "SlatePrivatePCH.h"
 #include "Menu.h"
 
-FMenuBase::FMenuBase(TSharedRef<SWidget> InContent)
+FMenuBase::FMenuBase(TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent)
 	: Content(InContent)
 	, bDismissing(false)
+	, bIsCollapsedByParent(bIsCollapsedByParent)
 {
 }
 
-FMenuInWindow::FMenuInWindow(TSharedRef<SWindow> InWindow, TSharedRef<SWidget> InContent)
-	: FMenuBase(InContent)
+FMenuInWindow::FMenuInWindow(TSharedRef<SWindow> InWindow, TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent)
+	: FMenuBase(InContent, bIsCollapsedByParent)
 	, Window(InWindow)
 {
 }
@@ -39,8 +40,8 @@ void FMenuInWindow::Dismiss()
 }
 
 
-FMenuInPopup::FMenuInPopup(TSharedRef<SWidget> InContent)
-	: FMenuBase(InContent)
+FMenuInPopup::FMenuInPopup(TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent)
+	: FMenuBase(InContent, bIsCollapsedByParent)
 {
 }
 
@@ -60,8 +61,8 @@ void FMenuInPopup::Dismiss()
 }
 
 
-FMenuInHostWidget::FMenuInHostWidget(TSharedRef<IMenuHost> InHost, const TSharedRef<SWidget>& InContent)
-	: FMenuBase(InContent)
+FMenuInHostWidget::FMenuInHostWidget(TSharedRef<IMenuHost> InHost, const TSharedRef<SWidget>& InContent, const bool bIsCollapsedByParent)
+	: FMenuBase(InContent, bIsCollapsedByParent)
 	, MenuHost(InHost)
 {
 }

@@ -12,13 +12,15 @@ class FMenuBase : public IMenu, public TSharedFromThis<FMenuBase>
 public:
 	virtual FOnMenuDismissed& GetOnMenuDismissed() override { return OnMenuDismissed; }
 	virtual TSharedPtr<SWidget> GetContent() const override { return Content; }
+	bool IsCollapsedByParent() const { return bIsCollapsedByParent; }
 
 protected:
-	FMenuBase(TSharedRef<SWidget> InContent);
+	FMenuBase(TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent);
 
 	FOnMenuDismissed OnMenuDismissed;
 	TSharedRef<SWidget> Content;
 	bool bDismissing;
+	bool bIsCollapsedByParent;
 };
 
 /**
@@ -27,7 +29,7 @@ protected:
 class FMenuInWindow : public FMenuBase
 {
 public:
-	FMenuInWindow(TSharedRef<SWindow> InWindow, TSharedRef<SWidget> InContent);
+	FMenuInWindow(TSharedRef<SWindow> InWindow, TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent);
 	virtual ~FMenuInWindow() {}
 
 	virtual EPopupMethod GetPopupMethod() const override { return EPopupMethod::CreateNewWindow; }
@@ -45,7 +47,7 @@ private:
 class FMenuInPopup : public FMenuBase
 {
 public:
-	FMenuInPopup(TSharedRef<SWidget> InContent);
+	FMenuInPopup(TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent);
 	virtual ~FMenuInPopup() {}
 
 	virtual EPopupMethod GetPopupMethod() const { return EPopupMethod::UseCurrentWindow; }
@@ -60,7 +62,7 @@ public:
 class FMenuInHostWidget : public FMenuBase
 {
 public:
-	FMenuInHostWidget(TSharedRef<IMenuHost> InHost, const TSharedRef<SWidget>& InContent);
+	FMenuInHostWidget(TSharedRef<IMenuHost> InHost, const TSharedRef<SWidget>& InContent, const bool bIsCollapsedByParent);
 	virtual ~FMenuInHostWidget() {}
 
 	virtual EPopupMethod GetPopupMethod() const { return EPopupMethod::UseCurrentWindow; }
