@@ -5287,7 +5287,7 @@ void UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 {
 	if (FURL.Contains(TEXT("%")) )
 	{
-		UE_LOG(LogWorld, Log, TEXT("FURL %s Contains illegal character '%'."), *FURL);
+		UE_LOG(LogWorld, Log, TEXT("FURL %s Contains illegal character '%%'."), *FURL);
 		return;
 	}
 
