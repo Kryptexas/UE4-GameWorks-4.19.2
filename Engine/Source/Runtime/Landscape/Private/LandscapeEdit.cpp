@@ -2977,7 +2977,7 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 		else if (PropertyName == NAME_PhysMaterial)
 		{
 			// Only care current world object
-			for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
+			for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
 			{
 				ALandscapeProxy* Proxy = *It;
 				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);

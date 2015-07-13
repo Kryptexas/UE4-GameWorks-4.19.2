@@ -778,7 +778,7 @@ void ULandscapeGrassType::PostEditChangeProperty(FPropertyChangedEvent& Property
 	if (GIsEditor)
 	{
 		// Only care current world object
-		for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
+		for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
 		{
 			ALandscapeProxy* Proxy = *It;
 			const UMaterialInterface* MaterialInterface = Proxy->LandscapeMaterial;
