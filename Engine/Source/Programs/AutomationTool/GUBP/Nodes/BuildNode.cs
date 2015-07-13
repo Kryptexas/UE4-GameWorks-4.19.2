@@ -14,7 +14,6 @@ namespace AutomationTool
 		public int FrequencyShift;
 		public int AgentMemoryRequirement;
 		public int TimeoutInMinutes;
-		public bool IsSticky;
 		public float Priority;
 
 		public GUBP.GUBPNode Node;
@@ -27,6 +26,11 @@ namespace AutomationTool
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;
 		public bool SendSuccessEmail;
+
+		public abstract bool IsSticky
+		{
+			get;
+		}
 
 		public string ControllingTriggerDotName
 		{
