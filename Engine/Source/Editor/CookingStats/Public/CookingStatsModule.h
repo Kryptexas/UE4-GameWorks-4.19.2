@@ -5,7 +5,7 @@
 
 #include "ModuleInterface.h"
 #include "ICookingStats.h"
-//#include "CookingStatsInterface.h"
+#include "CookingStatsInterface.h"
 
 namespace CookingStatsConstants
 {
@@ -16,8 +16,8 @@ namespace CookingStatsConstants
 * Asset registry module
 */
 class FCookingStatsModule
-	: public IModuleInterface
-	//: public ICookingStatsModule
+	//: public IModuleInterface
+	: public ICookingStatsModule
 {
 
 public:

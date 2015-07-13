@@ -85,7 +85,8 @@ public:
 	{
 		const static FName NAME_GetCachedData = FName(TEXT("GetCachedData"));
 		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
-		const static FName NAME_DataSize = FName(TEXT("DataSize"));
+		const static FName NAME_DataSize = FName(TEXT("DataSize")); 
+		static FName NAME_Retrieved(TEXT("Retrieved"));
 
 		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
 		Stat.AddTag(NAME_HierarchicalDDC, FString());
@@ -130,9 +131,11 @@ public:
 					}
 				}
 				Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), OutData.Num()));
+				Stat.AddTag(NAME_Retrieved, TEXT("true"));
 				return true;
 			}
 		}
+		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;
 	}
 	/**

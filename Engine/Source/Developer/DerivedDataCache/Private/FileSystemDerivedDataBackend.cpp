@@ -164,6 +164,7 @@ public:
 		static FName NAME_GetCachedData(TEXT("GetCachedData"));
 		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
 		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		static FName NAME_Retrieved(TEXT("Retrieved"));
 		Stat.AddTag(NAME_FileDDCPath, CachePath);
 		
 		check(!bFailed);
@@ -178,10 +179,12 @@ public:
 			UE_CLOG(ReadSpeed < 0.5, LogDerivedDataCache, Warning, TEXT("%s access is very slow (%.2lfMB/s), consider disabling it."), *CachePath, ReadSpeed);
 
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
+			Stat.AddTag(NAME_Retrieved, TEXT("true"));
 			return true;
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
+		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;	
 	}
 	/**

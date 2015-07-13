@@ -8,21 +8,21 @@
 /**
 * CookingStats module interface
 */
-class ICookingStatsInterface : public IModuleInterface
+class ICookingStatsModule : public IModuleInterface
 {
 public:
 	/**
 	 * Tries to gets a pointer to the active AssetRegistryInterface implementation. 
 	 */
-	static inline ICookingStatsInterface * GetPtr()
+	static inline ICookingStatsModule * GetPtr()
 	{
 		static FName CookingStats("CookingStats");
-		auto Module = FModuleManager::GetModulePtr<ICookingStatsInterface>(CookingStats);
+		auto Module = FModuleManager::GetModulePtr<ICookingStatsModule>(CookingStats);
 		if (Module == nullptr)
 		{
-			Module = &FModuleManager::LoadModuleChecked<ICookingStatsInterface>(CookingStats);
+			Module = &FModuleManager::LoadModuleChecked<ICookingStatsModule>(CookingStats);
 		}
-		return reinterpret_cast<ICookingStatsInterface*>(Module);
+		return reinterpret_cast<ICookingStatsModule*>(Module);
 	}
 
 };
