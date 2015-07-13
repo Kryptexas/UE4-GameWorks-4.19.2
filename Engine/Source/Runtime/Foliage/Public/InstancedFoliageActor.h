@@ -174,6 +174,8 @@ public:
 	DECLARE_EVENT_OneParam(AInstancedFoliageActor, FOnFoliageTypeMeshChanged, UFoliageType*);
 	FOnFoliageTypeMeshChanged& OnFoliageTypeMeshChanged() { return OnFoliageTypeMeshChangedEvent; }
 
+	/* Fix up a duplicate IFA */
+	void RepairDuplicateIFA(AInstancedFoliageActor* InDuplicateIFA);
 #endif	//WITH_EDITOR
 
 private:
