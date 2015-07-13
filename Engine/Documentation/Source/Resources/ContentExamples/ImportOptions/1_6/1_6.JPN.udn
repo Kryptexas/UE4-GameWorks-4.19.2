@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2615681
 Availability:Public
 Title:1.6 - ドラッグ アンド ドロップ アニメーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
@@ -60,7 +60,7 @@ Related: Engine/Content/FBX/Materials
 
 <!-- This information isn't represented anywhere but in this document, it needs to be moved to the content pipeline docs -->
 
-ワールドの同位置にとどまる間アニメーションを単にループさせる **スケルタル メッシュ** は必要ですか？**スケルタルメッシュ** をワールドへドラッグしてから、プレイしたいアニメーションをこの **スケルタルメッシュ** 上へドラッグするだけでこれを実行できます。
+ワールドの同位置にとどまる間アニメーションを単にループさせる **スケルタル メッシュ** は必要ですか？スケルタルメッシュをワールドへドラッグしてから、プレイしたいアニメーションをこのスケルタルメッシュ上へドラッグするだけでこれを実行できます。
 
 
 
