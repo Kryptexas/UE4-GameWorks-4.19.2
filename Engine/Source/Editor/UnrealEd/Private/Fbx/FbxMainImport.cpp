@@ -370,6 +370,7 @@ void FFbxImporter::ReleaseScene()
 	CollisionModels.Clear();
 	CurPhase = NOTSTARTED;
 	bFirstMesh = true;
+	LastMergeBonesChoice = EAppReturnType::Ok;
 }
 
 FBXImportOptions* UnFbx::FFbxImporter::GetImportOptions() const

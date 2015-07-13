@@ -392,7 +392,7 @@ public:
 	 *
 	 * @return The USkeletalMesh object created
 	 */
-	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray=NULL, FSkeletalMeshImportData* OutData=NULL, bool bCreateRenderData = true );
+	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, bool* bCancelOperation = nullptr, TArray<FbxShape*> *FbxShapeArray = nullptr, FSkeletalMeshImportData* OutData = nullptr, bool bCreateRenderData = true );
 
 	/**
 	 * Add to the animation set, the animations contained within the FBX scene, for the given skeletal mesh
@@ -680,6 +680,10 @@ protected:
 	// Initialized as true when start to import a FBX scene
 	bool bFirstMesh;
 	
+	// Set when importing skeletal meshes if the merge bones step fails. Used to track
+	// YesToAll and NoToAll for an entire scene
+	EAppReturnType::Type LastMergeBonesChoice;
+
 	/**
 	 * Collision model list. The key is fbx node name
 	 * If there is an collision model with old name format, the key is empty string("").

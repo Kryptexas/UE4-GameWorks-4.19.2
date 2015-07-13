@@ -358,6 +358,12 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 	NewMeshLinkup.MeshToSkeletonTable.Empty(NumMeshBones);
 	NewMeshLinkup.MeshToSkeletonTable.AddUninitialized(NumMeshBones);
 
+#if WITH_EDITOR
+	// The message below can potentially fire many times if the skeleton has been put into a state where it is no longer
+	// fully compatible with the mesh we're trying to merge into the bone tree. We use this flag to only show it once per mesh
+	bool bDismissedMessage = false;
+#endif
+
 	for (int32 MeshBoneIndex = 0; MeshBoneIndex < NumMeshBones; MeshBoneIndex++)
 	{
 		const FName MeshBoneName = MeshRefSkel.GetBoneName(MeshBoneIndex);
@@ -368,7 +374,11 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 		// not currently supported in-game.
 		if (SkeletonBoneIndex == INDEX_NONE)
 		{
-			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("SkeletonBuildLinkupMissingBones", "The Skeleton {0}, is missing bones that SkeletalMesh {1} needs. They will be added now. Please save the Skeleton!"), FText::FromString(GetNameSafe(this)), FText::FromString(GetNameSafe(InSkelMesh))));
+			if(!bDismissedMessage)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("SkeletonBuildLinkupMissingBones", "The Skeleton {0}, is missing bones that SkeletalMesh {1} needs. They will be added now. Please save the Skeleton!"), FText::FromString(GetNameSafe(this)), FText::FromString(GetNameSafe(InSkelMesh))));
+				bDismissedMessage = true;
+			}
 
 			// Re-add all SkelMesh bones to the Skeleton.
 			MergeAllBonesToBoneTree(InSkelMesh);
