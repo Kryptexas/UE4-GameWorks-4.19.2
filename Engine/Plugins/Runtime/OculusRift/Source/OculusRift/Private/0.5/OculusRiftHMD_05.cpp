@@ -732,6 +732,9 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 		return Settings->Flags.bStereoEnabled;
 	}
 
+	// Uncap fps to enable FPS higher than 62
+	GEngine->bForceDisableFrameRateSmoothing = bStereo;
+
 	TSharedPtr<SWindow> Window;
 	if (SceneVP)
 	{
@@ -1245,9 +1248,6 @@ void FOculusRiftHMD::Startup()
 		Settings->Flags.InitStatus = 0;
 		return;
 	}
-
-	// Uncap fps to enable FPS higher than 62
-	GEngine->bSmoothFrameRate = false;
 
 	SaveSystemValues();
 

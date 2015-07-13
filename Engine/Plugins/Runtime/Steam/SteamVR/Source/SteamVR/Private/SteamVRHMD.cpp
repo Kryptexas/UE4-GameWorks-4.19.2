@@ -510,7 +510,7 @@ bool FSteamVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if (FParse::Command(&Cmd, TEXT("UNCAPFPS")))
 	{
-		GEngine->bSmoothFrameRate = false;
+		GEngine->bForceDisableFrameRateSmoothing = true;
 		return true;
 	}
 
@@ -602,12 +602,15 @@ bool FSteamVRHMD::IsStereoEnabled() const
 	return bStereoEnabled && bHmdEnabled;
 }
 
-bool FSteamVRHMD::EnableStereo(bool stereo)
+bool FSteamVRHMD::EnableStereo(bool bStereo)
 {
-	bStereoEnabled = (IsHMDEnabled()) ? stereo : false;
+	bStereoEnabled = (IsHMDEnabled()) ? bStereo : false;
 
-	FSystemResolution::RequestResolutionChange(1280, 720, (stereo) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
+	FSystemResolution::RequestResolutionChange(1280, 720, (bStereo) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
 
+	// Uncap fps to enable FPS higher than 62
+	GEngine->bForceDisableFrameRateSmoothing = bStereo;
+	
 	return bStereoEnabled;
 }
 
@@ -934,9 +937,6 @@ void FSteamVRHMD::Startup()
 		// enforce finishcurrentframe
 		static IConsoleVariable* CFCFVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.finishcurrentframe"));
 		CFCFVar->Set(false);
-
-		// Uncap fps to enable FPS higher than 62
-		GEngine->bSmoothFrameRate = false;
 
 		// Grab the chaperone
 		vr::HmdError ChaperoneErr = vr::HmdError_None;

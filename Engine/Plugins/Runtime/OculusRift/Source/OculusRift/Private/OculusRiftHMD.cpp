@@ -711,6 +711,9 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 		}
 	}
 
+	// Uncap fps to enable FPS higher than 62
+	GEngine->bForceDisableFrameRateSmoothing = bStereo;
+
 	bool wasFullscreenAllowed = IsFullscreenAllowed();
 	if (OnOculusStateChange(stereoToBeEnabled))
 	{
@@ -1136,9 +1139,6 @@ void FOculusRiftHMD::Startup()
 		Settings->Flags.InitStatus = 0;
 		return;
 	}
-
-	// Uncap fps to enable FPS higher than 62
-	GEngine->bSmoothFrameRate = false;
 
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 	if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))

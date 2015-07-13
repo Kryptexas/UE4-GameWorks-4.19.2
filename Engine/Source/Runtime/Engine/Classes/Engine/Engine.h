@@ -1148,17 +1148,20 @@ public:
 	UPROPERTY(config)
 	uint32 bEnableEditorPSysRealtimeLOD:1;
 
+	/** Hook for external systems to transiently and forcibly disable framerate smoothing without stomping the original setting. */
+	uint32 bForceDisableFrameRateSmoothing : 1;
+
+	/** Whether to enable framerate smoothing. */
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(EditCondition="!bUseFixedFrameRate"))
+	uint32 bSmoothFrameRate:1;
+
 	/** Whether to use a fixed framerate. */
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	uint32 bUseFixedFrameRate : 1;
-	
-	/** The fixed framerate to use. */
-	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate"))
-	float FixedFrameRate;
 
-	/** Whether to enable framerate smoothing.																		*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(EditCondition="!bUseFixedFrameRate"))
-	uint32 bSmoothFrameRate:1;
+	/** The fixed framerate to use. */
+	UPROPERTY(config, EditAnywhere, Category = Framerate, meta = (EditCondition = "bUseFixedFrameRate"))
+	float FixedFrameRate;
 
 	/** Range of framerates in which smoothing will kick in */
 	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, UIMax=200, EditCondition="!bUseFixedFrameRate"))
@@ -1733,7 +1736,7 @@ public:
 	virtual void UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing = true);
 
 	/** Whether we're allowed to do frame rate smoothing */
-	bool IsAllowedFramerateSmoothing(bool bAllowFrameRateSmoothing) const;
+	virtual bool IsAllowedFramerateSmoothing() const;
 
 	/**
 	 * Pauses / un-pauses the game-play when focus of the game's window gets lost / gained.

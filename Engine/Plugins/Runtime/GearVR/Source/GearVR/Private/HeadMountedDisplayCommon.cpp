@@ -839,7 +839,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 	}
 	else if (FParse::Command(&Cmd, TEXT("UNCAPFPS")))
 	{
-		GEngine->bSmoothFrameRate = false;
+		GEngine->bForceDisableFrameRateSmoothing = true;
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMDVERSION")))

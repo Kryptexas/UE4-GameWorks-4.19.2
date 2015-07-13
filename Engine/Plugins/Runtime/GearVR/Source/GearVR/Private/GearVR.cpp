@@ -390,6 +390,8 @@ bool FGearVR::EnablePositionalTracking(bool enable)
 
 bool FGearVR::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 {
+	// Uncap fps to enable FPS higher than 62
+	GEngine->bForceDisableFrameRateSmoothing = bStereo;
 	return true;
 }
 
@@ -669,9 +671,6 @@ void FGearVR::Startup()
 
 	UpdateHmdRenderInfo();
 	UpdateStereoRenderingParams();
-
-	// Uncap fps to enable FPS higher than 62
-	GEngine->bSmoothFrameRate = false;
 
 	pGearVRBridge = new FGearVRCustomPresent(MinimumVsyncs);
 
