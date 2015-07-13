@@ -1,9 +1,75 @@
-﻿INTSourceChangelist:2582973
+﻿INTSourceChangelist:2604022
 Availability:Public
-Title:ビルド
+Title:リリース ノート
 Crumbs:%ROOT%
 Description:アンリアル エンジン ビルドのリリースノート
 
+[VAR:Params]
+[PARAM:image]
+	![%Support/Builds:title%](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/outline_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Support/Builds:title%
+[/PARAM]
+[PARAM:description]
+	%Support/Builds:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Support/Builds]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Support/Builds:title%](%ROOT%/placeholder_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/outline_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Support/Builds:title%
+	[/PARAM]
+	[PARAM:description]
+		%Support/Builds:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Support/Builds]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Support/Builds:title%](%ROOT%/placeholder_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/outline_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Support/Builds:title%
+	[/PARAM]
+	[PARAM:description]
+		%Support/Builds:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Support/Builds]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+engine
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
