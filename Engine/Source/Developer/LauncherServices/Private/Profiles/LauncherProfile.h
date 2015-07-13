@@ -760,7 +760,7 @@ public:
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
 		CookedPlatforms.Reset();
-		bSkipCookingEditorContent = true;
+		bSkipCookingEditorContent = false;
         ForceClose = true;
         Timeout = 60;
 		NumCookersToSpawn = 0;
