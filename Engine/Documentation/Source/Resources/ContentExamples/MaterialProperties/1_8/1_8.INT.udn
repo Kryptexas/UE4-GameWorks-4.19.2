@@ -62,6 +62,6 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 The **Flat** setting simply splits up the triangles. While this would not be of much use by itself, adjusting the world position of the new vertices using the normal map and displacement map, can create new surface details.
 
-**PN Triangles** smoothes the object. It does require the mesh to have at least one smoothing group to make the smoothing work. As with the **Flat** setting, textures can be used to displace the tessellated vertices giving it a very detailed look.
+**PN Triangles** smoothes the object. It does require the mesh to have at least one smoothing group to make the smoothing work. As with the Flat setting, textures can be used to displace the tessellated vertices giving it a very detailed look.
 
 
