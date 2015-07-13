@@ -1,0 +1,172 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:How To Import Materials
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import materials.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
+Related: Engine/Content/FBX/Materials
+Related: Engine/Content/ImportingContent/ImportingTextures
+Related: Shared/Editor/FbxErrors
+SkillLevel: Intermediate
+Version: 4.8
+
+[REGION:note]
+Before getting started: Make sure you have access to a 3D modeling application. We are using **3DS Max and Maya** to illustrate this lesson's goal.
+[/REGION]
+
+Content creators can import materials into Unreal Engine from external 3D modeling applications.
+
+## Goal
+
+The focus of this guide is to show developers how to import materials from external 3D modeling applications.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	What materials are supported by Unreal's FBX pipeline.
+*	How Unreal's FBX pipeline names materials.
+*	How to order materials in Unreal Editor.
+*	How Unreal's FBX pipeline imports meshes with multiple materials.
+*	How Unreal's FBX pipeline imports textures.
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+%Globals:DCCSelect%
+
+## Supported Materials
+
+Unreal's FBX pipeline supports the following materials:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Surface
+    * Anisotropic
+    * Blinn
+    * Lambert
+    * Phong
+    * Phone E
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Standard
+	* Multi/Sub-Object
+	[/PARAM]
+[/OBJECT]
+
+[REGION:warning]
+Only basic materials are supported by Unreal's FBX pipeline. Uncommon map (texture) types will not be imported.
+[/REGION]
+
+## Material Naming
+
+Unreal names materials in correlation with the originating application.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	For Maya, the material name in Unreal Editor is transferred from the name of the shading engine applied to the mesh in Maya.
+
+	![mat_name_maya.jpg](mat_name_maya.jpg)(w:423 h:448)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	For 3dsMax, the material name in Unreal Editor is transferred directly from the name of the material applied to the mesh in 3dsMax.
+
+	![mat_name_max.jpg](mat_name_max.jpg)(w:359 h:438)
+	[/PARAM]
+[/OBJECT]
+
+## Material Ordering
+
+If material order is important, content creators can specify imported material order by using the **\*_skin##** naming convention.
+
+For example, order can be established by naming materials accordingly (example pictured below):
+
+![](mat_order_max.jpg)
+
+*	`M_ExampleMesh_skin00`
+*	`M_ExampleMesh_skin01`
+
+## Importing Meshes with Multiple Materials
+
+Unreal's FBX pipeline can import meshes with multiple materials.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#mayaMultiMat]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#maxMultiMat]
+	[/PARAM]
+[/OBJECT]
+
+## Importing Textures
+
+If the material has a texture assigned as either a diffuse or normal map in the 3D application, those textures will be imported into Unreal as long as the **Import Textures** setting is enabled. Refer to our [](Engine/Content/FBX/ImportOptions), [](Engine/Content/ImportingContent/ImportingTextures), and [](Engine/Content/QuickStart) documentation for more information on how to import and set textures in Unreal.
+
+Now that we've reached the end of this tutorial, you've learned:
+
+&#x2713;	What materials are supported by Unreal's FBX pipeline.  
+&#x2713;	How Unreal's FBX pipeline names materials.  
+&#x2713;	How to order materials in Unreal Editor.  
+&#x2713;	How Unreal's FBX pipeline imports meshes with multiple materials.  
+&#x2713;	How Unreal's FBX pipeline imports textures.  

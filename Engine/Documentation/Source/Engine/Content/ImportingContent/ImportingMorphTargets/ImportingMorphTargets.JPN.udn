@@ -1,0 +1,184 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:How To Import Morph Targets
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:Learn how to import morph targets.
+prereq:Engine/Content/ImportingContent/ImportingSkeletalMeshes
+prereq:Engine/Content/ImportingContent/ImportingMaterials
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
+Related: Engine/Content/FBX/MorphTargets
+Related: Shared/Editor/FbxErrors
+SkillLevel: Advanced
+Version: 4.8
+
+[REGION:note]
+Before getting started: Make sure you have access to a 3D modeling application. We are using **3DS Max and Maya** to illustrate this lesson's goal.
+[/REGION]
+
+Content creators can import morph targets into Unreal Engine from external 3D modeling applications.
+
+## Goal
+
+The focus of this guide is to show developers how to import morph targets from external 3D modeling applications.
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	How Unreal's FBX pipeline names morph targets.
+*	How to set-up morph targets.
+*	How to export morph targets.
+*	How to import morph targets.
+*	How to verify that morph targets were imported properly.
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+%Globals:DCCSelect%
+
+## Morph Target Naming
+
+Unreal names morph targets in correlation with the originating application.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	The name will be the name of the blendshape added to the name of the blendshape node, i.e. `[BlendShapeNode]_[BlendShape]`.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	The name will be the name of the channel in the Morpher modifier.
+	[/PARAM]
+[/OBJECT]
+
+## Setting-Up Morph Targets
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxSetup]
+	[/PARAM]
+[/OBJECT]
+
+## Exporting Morph Targets
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+## Importing Morph Targets
+[REGION:note]
+This guide teaches developers how to import morph targets with skeletal meshes. Refer to our [](Engine/Content/FBX/MorphTargets) documentation to learn more about importing morph targets independently from skeletal meshes.
+[/REGION]
+
+1.	Inside the editor, **click** the **Import** button (pictured below).
+
+	![](ImportButton_UI.png)
+
+1.	Locate and **select** the FBX file you want to import (example pictured below).
+
+	![](ImportDialogBox.png)
+
+1.	**Click Open** to begin importing the FBX file to your project (pictured above).
+
+1.	Inside the **FBX Import Options** dialog box, choose the appropriate settings. (example pictured below).
+
+	![](ImportMorphTargetsOption.png)
+
+	[REGION:warning]
+	Default settings should be sufficient; however, make sure that **Import Morph Targets** is enabled (pictured above).
+	[/REGION]
+
+1.	**Click Import** or **Import All** to import the mesh to your project.
+
+	![](FBX_DialogBox.png)
+	
+	[REGION:warning]
+	If you encounter a warning (example warning pictured below), refer to our [](Shared/Editor/FbxErrors) documentation for detailed information on how to troubleshoot the warning.
+	
+	![](PotentialWarning.png)
+	[/REGION]
+
+1.	The imported mesh appears inside the **Content Browser** if the process succeeded (example pictured below).
+
+	![](ImportedSKMesh.png)
+
+## Verifying Morph Targets
+
+1.	**Double-click** the imported mesh to view it in **Persona** (pictured below).
+
+	[REGION:lightbox]
+		[![](InfSkelMesh_Morph1.png)(w:375)](InfSkelMesh_Morph1.png) [![](InfSkelMesh_Morph2.png)(w:375)](InfSkelMesh_Morph2.png)
+	[/REGION]
+
+	Using the **Morph Target Previewer** tab, adjust the strength of the imported morph target to confirm that it's working properly.
+
+Now that we've reached the end of this tutorial, you've learned:
+
+&#x2713;	How Unreal's FBX pipeline names morph targets.  
+&#x2713;	How to set-up morph targets.  
+&#x2713;	How to export morph targets.  
+&#x2713;	How to import morph targets.  
+&#x2713;	How to verify that morph targets were imported properly.
