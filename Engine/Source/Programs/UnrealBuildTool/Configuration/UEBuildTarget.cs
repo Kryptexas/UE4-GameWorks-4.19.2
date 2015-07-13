@@ -405,9 +405,6 @@ namespace UnrealBuildTool
 
 					    case "-CMAKEFILE":
 						    {
-							    // Force platform to Linux for building IntelliSense files
-							    Platform = UnrealTargetPlatform.Linux;
-
 							    // Force configuration to Development for IntelliSense
 							    Configuration = UnrealTargetConfiguration.Development;
 						    }
@@ -612,8 +609,6 @@ namespace UnrealBuildTool
                             break;
 
 						case "-CMAKEFILE":
-							// Force platform to Linux and configuration to Development for building IntelliSense files
-							Platform = UnrealTargetPlatform.Linux;
 							Configuration = UnrealTargetConfiguration.Development;
 							break;
 

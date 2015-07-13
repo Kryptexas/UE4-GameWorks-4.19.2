@@ -289,7 +289,7 @@ namespace UnrealBuildTool
 
 					}
 
-					if (!IncludeDirectories.Contains (FullPath) && !FullPath.Contains ("FortniteGame/") && !FullPath.Contains ("Intermediate/") && Directory.Exists (FullPath))
+					if (!IncludeDirectories.Contains (FullPath) && !FullPath.Contains ("FortniteGame/") && Directory.Exists (FullPath))
 					{
 						SystemIncludeDirectories.Add (String.Format ("{0}", FullPath)); 
 						IncludeIndex++;

@@ -68,6 +68,8 @@ namespace UnrealBuildTool
 			var CMakeSourceFilesList = "set(SOURCE_FILES \n";
 			var CMakeHeaderFilesList = "set(HEADER_FILES \n";
 			var CMakeConfigFilesList = "set(CONFIG_FILES \n";
+			var IncludeDirectoriesList = "include_directories( \n";
+			var PreprocessorDefinitionsList = "add_definitions( \n";
 
 			var CMakeGameRootPath = "";
 			var CMakeUE4RootPath = "set(UE4_ROOT_PATH " + Path.GetFullPath(ProjectFileGenerator.RootRelativePath) + ")\n";
@@ -76,6 +78,28 @@ namespace UnrealBuildTool
 			string GameProjectFile = "";
 
 			string CMakeGameProjectFile = "";
+
+			bool bIsMac = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac;
+			bool bIsLinux = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux;
+			bool bIsWin64 = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64;
+
+			String HostArchitecture = null;
+			if (bIsLinux)
+			{
+				HostArchitecture = "Linux";
+			}
+			else if (bIsMac)
+			{
+				HostArchitecture = "Mac";
+			}
+			else if (bIsWin64)
+			{
+				HostArchitecture = "Win64";
+			}
+			else
+			{
+				throw new BuildException("ERROR: CMakefileGenerator does not support this platform");
+			}
 
 			if (!String.IsNullOrEmpty (GameProjectName)) 
 			{
@@ -86,11 +110,15 @@ namespace UnrealBuildTool
 
 				CMakeGameProjectFile = "set(GAME_PROJECT_FILE \"" + GameProjectFile + "\")\n";
 
-				BuildCommand = "set(BUILD mono ${UE4_ROOT_PATH}/Engine/Binaries/DotNET/UnrealBuildTool.exe )\n"; // -project=\"\\\"" + UnrealBuildTool.GetUProjectPath () + "/" + GameProjectName + ".uproject\\\"\")\n";
+				BuildCommand = "set(BUILD mono ${UE4_ROOT_PATH}/Engine/Binaries/DotNET/UnrealBuildTool.exe )\n";
 			}
-			else
+			else if (bIsLinux || bIsMac)
 			{
-				BuildCommand = "set(BUILD bash ${UE4_ROOT_PATH}/Engine/Build/BatchFiles/Linux/Build.sh)\n";
+				BuildCommand = String.Format("set(BUILD cd ${{UE4_ROOT_PATH}} && bash ${{UE4_ROOT_PATH}}/Engine/Build/BatchFiles/{0}/Build.sh)\n", HostArchitecture);
+			}
+			else if (bIsWin64)
+			{
+				BuildCommand = "set(BUILD bash ${{UE4_ROOT_PATH}}/Engine/Build/BatchFiles/Build.bat)\n";
 			}
 
 			CMakefileContent.Append(
@@ -104,6 +132,35 @@ namespace UnrealBuildTool
 				CMakeGameRootPath + "\n"
 			);
 
+			List<String> IncludeDirectories = new List<String>();
+			List<String> PreprocessorDefinitions = new List<String>();
+
+			foreach (var CurProject in GeneratedProjectFiles) 
+			{
+				foreach (var CurPath in CurProject.IntelliSenseIncludeSearchPaths)
+				{
+					string IncludeDirectory = GetIncludeDirectory(CurPath, Path.GetDirectoryName(CurProject.ProjectFilePath));
+					if (IncludeDirectory != null && !IncludeDirectories.Contains(IncludeDirectory)) 
+					{
+						IncludeDirectories.Add(IncludeDirectory);
+					}
+				}
+
+				foreach (var CurDefinition in CurProject.IntelliSensePreprocessorDefinitions)
+				{
+					string Definition = CurDefinition;
+					string AlternateDefinition = Definition.Contains("=0") ? Definition.Replace("=0", "=1") : Definition.Replace("=1", "=0");
+					if (Definition.Equals("WITH_EDITORONLY_DATA=0") || Definition.Equals("WITH_DATABASE_SUPPORT=1"))
+					{
+						Definition = AlternateDefinition;
+					}
+					if (!PreprocessorDefinitions.Contains(Definition) && !PreprocessorDefinitions.Contains(AlternateDefinition) && !Definition.StartsWith("UE_ENGINE_DIRECTORY") && !Definition.StartsWith("ORIGINAL_FILE_NAME"))
+					{
+						PreprocessorDefinitions.Add(Definition);
+					}
+				}
+			}
+
 			// Create SourceFiles, HeaderFiles, and ConfigFiles sections.
 			var AllModuleFiles = DiscoverModules();
 			foreach (string CurModuleFile in AllModuleFiles)
@@ -113,23 +170,9 @@ namespace UnrealBuildTool
 				{
 
 					string SourceFileRelativeToRoot = Utils.MakePathRelativeTo(CurSourceFile, Path.Combine(EngineRelativePath));
-					// Exclude Windows, Mac, and iOS only files/folders.
-					// This got ugly quick.
-					if (!SourceFileRelativeToRoot.Contains ("Source/ThirdParty/") && 
-						!SourceFileRelativeToRoot.Contains ("/Windows/") && 
-						!SourceFileRelativeToRoot.Contains ("/Mac/") &&
-						!SourceFileRelativeToRoot.Contains ("/IOS/") &&
-						!SourceFileRelativeToRoot.Contains ("/iOS/") &&
-						!SourceFileRelativeToRoot.Contains ("/VisualStudioSourceCodeAccess/") &&
-						!SourceFileRelativeToRoot.Contains ("/XCodeSourceCodeAccess/") &&
-						!SourceFileRelativeToRoot.Contains ("/WmfMedia/") &&
-						!SourceFileRelativeToRoot.Contains ("/IOSDeviceProfileSelector/") &&
-						!SourceFileRelativeToRoot.Contains ("/WindowsDeviceProfileSelector/") &&
-						!SourceFileRelativeToRoot.Contains ("/WindowsMoviePlayer/") &&
-						!SourceFileRelativeToRoot.Contains ("/AppleMoviePlayer/") &&
-						!SourceFileRelativeToRoot.Contains ("/MacGraphicsSwitching/") &&
-						!SourceFileRelativeToRoot.Contains ("/Apple/") &&
-						!SourceFileRelativeToRoot.Contains ("/WinRT/")
+					// Exclude files/folders on a per-platform basis.
+					if ((bIsLinux && IsLinuxFiltered(SourceFileRelativeToRoot)) || (bIsMac && IsMacFiltered(SourceFileRelativeToRoot))
+						||  (bIsWin64 && IsWinFiltered(SourceFileRelativeToRoot))
 					) 
 					{
 						if (SourceFileRelativeToRoot.EndsWith (".cpp"))
@@ -198,15 +241,29 @@ namespace UnrealBuildTool
 
 			}
 
+			foreach (string IncludeDirectory in IncludeDirectories) 
+			{
+				IncludeDirectoriesList += ("\t\"" + IncludeDirectory + "\"\n");
+			}
+
+			foreach (string PreprocessorDefinition in PreprocessorDefinitions) 
+			{
+				PreprocessorDefinitionsList += ("\t-D" + PreprocessorDefinition + "\n");
+			}
+
 			// Add section end to section strings;
 			CMakeSourceFilesList += CMakeSectionEnd;
 			CMakeHeaderFilesList += CMakeSectionEnd;
 			CMakeConfigFilesList += CMakeSectionEnd;
+			IncludeDirectoriesList += CMakeSectionEnd;
+			PreprocessorDefinitionsList += CMakeSectionEnd;
 
 			// Append sections to the CMakeLists.txt file
 			CMakefileContent.Append (CMakeSourceFilesList);
 			CMakefileContent.Append (CMakeHeaderFilesList);
 			CMakefileContent.Append (CMakeConfigFilesList);
+			CMakefileContent.Append (IncludeDirectoriesList);
+			CMakefileContent.Append (PreprocessorDefinitionsList);
 
 			string CMakeProjectCmdArg = "";
 
@@ -225,7 +282,7 @@ namespace UnrealBuildTool
 								CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
 							}
 							var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-							CMakefileContent.Append(String.Format("add_custom_target({0}-Linux-{1} ${{BUILD}} {2} {0} Linux {1} $(ARGS))\n", TargetName, ConfName, CMakeProjectCmdArg));
+							CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} ${{BUILD}} {2} {0} {3} {1} $(ARGS))\n", TargetName, ConfName, CMakeProjectCmdArg, HostArchitecture));
 						}
 					}
 				}
@@ -234,14 +291,58 @@ namespace UnrealBuildTool
 				{
 					CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
 				}
-				CMakefileContent.Append(String.Format("add_custom_target({0} ${{BUILD}} {1} {0} Linux Development $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg));
+				if (HostArchitecture != null) 
+				{
+					CMakefileContent.Append (String.Format ("add_custom_target({0} ${{BUILD}} {1} {0} {2} Development $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture));
+				}
 			}
 
 			var FullFileName = Path.Combine(MasterProjectRelativePath, FileName);
 			return WriteFileIfChanged(FullFileName, CMakefileContent.ToString());
 		}
 
-		
+		private bool IsLinuxFiltered( String SourceFileRelativeToRoot ) 
+		{
+			// minimal filtering as it is helpful to be able to look up symbols from other platforms
+			return !SourceFileRelativeToRoot.Contains("Source/ThirdParty/");
+		}
+
+		private bool IsMacFiltered( String SourceFileRelativeToRoot ) 
+		{
+			return !SourceFileRelativeToRoot.Contains ("Source/ThirdParty/") &&
+				!SourceFileRelativeToRoot.Contains ("/Windows/") &&
+				!SourceFileRelativeToRoot.Contains ("/Linux/") &&
+				!SourceFileRelativeToRoot.Contains ("/VisualStudioSourceCodeAccess/") &&
+				!SourceFileRelativeToRoot.Contains ("/WmfMedia/") &&
+				!SourceFileRelativeToRoot.Contains ("/WindowsDeviceProfileSelector/") &&
+				!SourceFileRelativeToRoot.Contains ("/WindowsMoviePlayer/") &&
+				!SourceFileRelativeToRoot.Contains ("/WinRT/");
+		}
+
+		private bool IsWinFiltered( String SourceFileRelativeToRoot ) 
+		{
+			return false;
+		}
+
+		/// Adds the include directory to the list, after converting it to relative to UE4 root
+		private string GetIncludeDirectory(string IncludeDir, string ProjectDir)
+		{
+			string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+			string FullPath = "";
+			if (IncludeDir.StartsWith("/") && !IncludeDir.StartsWith(FullProjectPath))
+			{
+				// Full path to a fulder outside of project
+				FullPath = IncludeDir;
+			}
+			else
+			{
+				FullPath = Path.GetFullPath(Path.Combine(ProjectDir, IncludeDir));
+				FullPath = Utils.MakePathRelativeTo(FullPath, FullProjectPath);
+				FullPath = FullPath.TrimEnd('/');
+			}
+			return FullPath;
+		}
+
 		/// ProjectFileGenerator interface
 		//protected override bool WriteMasterProjectFile( ProjectFile UBTProject )
 		protected override bool WriteProjectFiles ()
