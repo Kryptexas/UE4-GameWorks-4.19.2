@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2436032
+﻿INTSourceChangelist:2615713
 Availability:Public
 Title:インポート オプションのコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
-Description:FBX インポート オプションのコンテンツ例で提供されるサンプルの概要
+Description:FBX インポート オプションのコンテンツ サンプルで提供されるサンプルの概要
 Related: Engine/Content/FBX/ImportOptions
 Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/StaticMeshes
@@ -53,14 +53,15 @@ Related: Engine/Content/FBX/Materials
 [TOC(start:2 end:2)]
 
 
-## 概要
+
 **FBX_Import_Options** マップには、いくつかのオプションが表示されます。こうしたオプションは、FBX アセットをアンリアル エンジン 4 にインポートする際に設定することができます。 
 
-**スタティックメッシュ**、 **スケルタルメッシュ**、または **アニメーション** のアセットを FBX フォーマットにインポートする場合、次のような **[インポート オプション]** ダイアログ ボックスが表示されます。 
+**スタティックメッシュ**、 **スケルタルメッシュ**、または **アニメーション** のアセットを FBX フォーマットでインポートする場合、次のような **[インポート オプション]** ダイアログ ボックスが表示されます。 
 
 ![](Import_DialogBox.png)
 
-インポートしているアセットのタイプに応じて、追加のオプションが利用できるようになります。例えば、こうしたオプションには、アセットとそのマテリアル / テクスチャを合わせてインポート、LOD (Level of Detail) オプション、アニメーションとモーフ ターゲットのオプションがあります。
+インポートしているアセットのタイプに応じて、追加のオプションが利用できるようになります。例えば、こうしたオプションには、アセットとそのマテリアル / テクスチャを合わせてインポート 
+、LOD (Level of Detail) オプション、アニメーションとモーフ ターゲットのオプションがあります。
 
 [region:note]
 それぞれのサンプル別にさらにリソースを見る場合は、サンプル名をクリックしてください。
@@ -75,13 +76,13 @@ Related: Engine/Content/FBX/Materials
 
 | 例 | 実演内容 |
 | ------- | ------------|
-| **[1.1 Static Mesh](Resources\ContentExamples\ImportOptions\1_1)** | デフォルト設定でインポートされる単純な 200 x 200 ボックスで、**マテリアル** と **テクスチャ** と共に作成元のモデリング プログラムからインポートされ、自動的に適用されます。 |
-| **[1.2 Import Mesh LODs](Resources\ContentExamples\ImportOptions\1_2)** | ベース LOD (level of detail) としてキューブを持ち、LOD1 として球体が設定されるアセットです。このアセットは、距離に応じてキューブと球体との間で変化します。 |
-| **[1.3 Import Normals](Resources\ContentExamples\ImportOptions\1_3)** |1 つのスムージング グループとカスタム仕様の頂点法線を持つキューブが 2 回インポートされます。1 回は **Calculate Normals** オプションを使用し、もう 1 回は **Import Normals** オプションを使用します。 |
-| **[1.4 Skeletal Mesh](Resources\ContentExamples\ImportOptions\1_4)** | インポートされた 3 つのボーンを持つ単純な **スケルタルメッシュ** であり、メッシュ アセットと **Skeleton** アセットを作成します。  |
-| **[1.5 Animation](Resources\ContentExamples\ImportOptions\1_5)** | **アニメーション** をインポートし、アニメーションに対応する **スケルトン** アセットを割り当てるプロセスです。 |
-| **[1.6 Drag and drop animation](Resources\ContentExamples\ImportOptions\1_6)** | レベル内の対応する **スケルトン** アセットに **アニメーション シーケンス** をドラッグ & ドロップして適用させ、アセット上でプレイするようにします。 |
-| **[1.7 Morph Target](Resources\ContentExamples\ImportOptions\1_7)** | **モーフターゲット** と一緒にインポートされたメッシュ、およびキューブ メッシュと円形メッシュとの間でのメッシュのモーフィングを表す単純なアニメーションです。  |
+| **[1.1 StaticMesh (スタティックメッシュ)](Resources\ContentExamples\ImportOptions\1_1)** | デフォルト設定でインポートされる単純な 200 x 200 ボックスで、作成元のモデリング プログラムから **マテリアル** と **テクスチャ** がインポートされ自動的に適用されます。 |
+| **[1.2 ImportMesh LODsl (メッシュの LODをインポート)](Resources\ContentExamples\ImportOptions\1_2)** | ベース LOD (level of detail) としてキューブを持ち、LOD1 として球体が設定されるアセットです。このアセットは、距離に応じてキューブと球体との間で変化します。 |
+| **[1.3 Import Normals (法線のインポート)](Resources\ContentExamples\ImportOptions\1_3)** | 1 つのスムージング グループとカスタム仕様の頂点法線を持つキューブが 2 回インポートされます。1 回は **Calculate Normals** オプションを使用し、もう 1 回は **Import Normals** オプションを使用します。 |
+| **[1.4 SkeltalMesh (スケルタルメッシュ)](Resources\ContentExamples\ImportOptions\1_4)** | インポートされた 3 つのボーンを持つ単純な スケルタルメッシュ であり、メッシュ アセットと **スケルトン** アセットを作成します。  |
+| **[1.5 Animation (アニメーション)](Resources\ContentExamples\ImportOptions\1_5)** | アニメーションをインポートし、アニメーションに対応するスケルトン アセットを割り当てるプロセスです。 |
+| **[1.6 Drag and drop animation (アニメーションのドラッグ & ドロップ)](Resources\ContentExamples\ImportOptions\1_6)** | レベル内の対応する **スケルトン** アセットに **アニメーション シーケンス** をドラッグ & ドロップして適用させ、アセット上でプレイするようにします。 |
+| **[1.7 Morph Target (モーフターゲット)](Resources\ContentExamples\ImportOptions\1_7)** | **モーフターゲット** と一緒にインポートされたメッシュ、およびキューブ メッシュと円形メッシュとの間でのメッシュのモーフィングを表す単純なアニメーションです。  |
 
 
 
