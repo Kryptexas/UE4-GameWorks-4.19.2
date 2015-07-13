@@ -1500,6 +1500,10 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor, int32 NumClearColors, const
 
 void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear)
 {	
+	//don't force shaders clears for the moment.  There are bugs with the state cache/restore behavior.
+	//will either fix this soon, or move clear out of the RHI entirely.
+	bForceShaderClear = false;
+
 	// Helper struct to record and restore device states RHIClearMRT modifies.
 	class FDeviceStateHelper
 	{
