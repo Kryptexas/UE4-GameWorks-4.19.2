@@ -48,7 +48,7 @@ public:
 	 */
 	void SendProcessMessage(CefRefPtr<CefProcessMessage> Message);
 
-	CefRefPtr<CefDictionaryValue> ConvertStruct(UStruct* TypeInfo, void* StructPtr);
+	CefRefPtr<CefDictionaryValue> ConvertStruct(UStruct* TypeInfo, const void* StructPtr);
 	CefRefPtr<CefDictionaryValue> ConvertObject(UObject* Object);
 	CefRefPtr<CefDictionaryValue> ConvertObject(const FGuid& Key);
 
@@ -73,8 +73,15 @@ public:
 			}
 			case FWebJSParam::PTYPE_OBJECT:
 			{
-				CefRefPtr<CefDictionaryValue> ConvertedObject = ConvertObject(Param.ObjectValue);
-				return Container->SetDictionary(Key, ConvertedObject);
+				if (Param.ObjectValue == nullptr)
+				{
+					return Container->SetNull(Key);
+				}
+				else
+				{
+					CefRefPtr<CefDictionaryValue> ConvertedObject = ConvertObject(Param.ObjectValue);
+					return Container->SetDictionary(Key, ConvertedObject);
+				}
 			}
 			case FWebJSParam::PTYPE_STRUCT:
 			{

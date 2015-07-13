@@ -142,7 +142,7 @@ FWebJSParam FWebJSScripting::ConvertResult(UProperty* Property, uint8* Data)
 }
 
 
-CefRefPtr<CefDictionaryValue> FWebJSScripting::ConvertStruct(UStruct* TypeInfo, void* StructPtr)
+CefRefPtr<CefDictionaryValue> FWebJSScripting::ConvertStruct(UStruct* TypeInfo, const void* StructPtr)
 {
 	FWebJSStructSerializerBackend Backend (SharedThis(this));
 	FStructSerializer::Serialize(StructPtr, *TypeInfo, Backend);

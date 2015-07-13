@@ -15,32 +15,34 @@ struct WEBBROWSER_API FWebJSParam
 		double DoubleValue;
 		int32 IntValue;
 		UObject* ObjectValue;
-		FString* StringValue;
+		const FString* StringValue;
 		struct {
 			UStruct* TypeInfo;
-			void* StructPtr;
+			const void* StructPtr;
 		} StructValue;
 	};
 
 	FWebJSParam() : Tag(PTYPE_NULL) {}
 	FWebJSParam(bool Value) : Tag(PTYPE_BOOL), BoolValue(Value) {}
+	FWebJSParam(int8 Value) : Tag(PTYPE_INT), IntValue(Value) {}
+	FWebJSParam(int16 Value) : Tag(PTYPE_INT), IntValue(Value) {}
 	FWebJSParam(int32 Value) : Tag(PTYPE_INT), IntValue(Value) {}
+	FWebJSParam(uint8 Value) : Tag(PTYPE_INT), IntValue(Value) {}
+	FWebJSParam(uint16 Value) : Tag(PTYPE_INT), IntValue(Value) {}
+	FWebJSParam(uint32 Value) : Tag(PTYPE_DOUBLE), DoubleValue(Value) {}
+	FWebJSParam(int64 Value) : Tag(PTYPE_DOUBLE), DoubleValue(Value) {}
+	FWebJSParam(uint64 Value) : Tag(PTYPE_DOUBLE), DoubleValue(Value) {}
 	FWebJSParam(double Value) : Tag(PTYPE_DOUBLE), DoubleValue(Value) {}
+	FWebJSParam(float Value) : Tag(PTYPE_DOUBLE), DoubleValue(Value) {}
 	FWebJSParam(const FString& Value) : Tag(PTYPE_STRING), StringValue(new FString(Value)) {}
 	FWebJSParam(const TCHAR* Value) : Tag(PTYPE_STRING), StringValue(new FString(Value)) {}
 	FWebJSParam(UObject* Value) : Tag(PTYPE_OBJECT), ObjectValue(Value) {}
-	FWebJSParam(UStruct* Struct, void* Value) : Tag(PTYPE_STRUCT), StructValue({Struct, Value}) {}
+	FWebJSParam(UStruct* Struct, const void* Value) : Tag(PTYPE_STRUCT), StructValue({Struct, Value}) {}
+	template <typename T> FWebJSParam(const T& Value) : Tag(PTYPE_STRUCT), StructValue({T::StaticStruct(), &Value}) {}
 	FWebJSParam(const FWebJSParam& Other);
 	~FWebJSParam();
 
 };
-
-/** Add this macro to a USTRUCT definition to be able to pass instances to FWebJSFunctions */
-#define DECLARE_JSPARAM_STRUCT() \
-	explicit operator FWebJSParam() \
-	{ \
-		return FWebJSParam(StaticStruct(), (void*)this);\
-	}
 
 USTRUCT()
 struct WEBBROWSER_API FWebJSFunction
