@@ -70,16 +70,14 @@ namespace DoxygenLib
 
 				// Input filter program
 				Output.WriteLine();
-				//FormatSetting(Output, "INPUT_FILTER", Path.GetDirectoryName(ExecutePath) + "/../../../../../DoxygenInputFilter/CommentFixup.py");
 				string FilterPath = Path.GetDirectoryName(ExecutePath).Replace("\\", "/");
-				// Back up by five levels, then tack on the relative path to the filter script.
 				for (int PathRemovalCoiunt = 0; PathRemovalCoiunt < 5; ++PathRemovalCoiunt)
 				{
+					// Back up five levels.
 					FilterPath = FilterPath.Remove(FilterPath.LastIndexOf('/'));
 				}
-				FilterPath += "/Source/Programs/UnrealDocTool/DoxygenInputFilter/CommentFixup.py";
+				FilterPath += "/Source/Programs/UnrealDocTool/DoxygenInputFilter/bin/Release/DoxygenInputFilter.exe";
 				FormatSetting(Output, "INPUT_FILTER", FilterPath);
-				//FormatSetting(Output, "INPUT_FILTER", "D:/Builds_ArtistSync/UE4/Engine/Source/Programs/UnrealDocTool/DoxygenInputFilter/CommentFixup.py");
 
 				// List of predefined macros
 				Output.WriteLine();
