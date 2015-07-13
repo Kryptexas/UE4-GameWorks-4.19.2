@@ -206,13 +206,12 @@ FReply STranslationPickerEditWindow::Close()
 
 FReply STranslationPickerEditWindow::SaveAllAndClose()
 {
-	
 	TArray<UTranslationUnit*> TempArray;
 
 	for (TSharedRef<STranslationPickerEditWidget> EditWidget : EditWidgets)
 	{
 		UTranslationUnit* TranslationUnit = EditWidget->GetTranslationUnitWithAnyChanges();
-		if (TranslationUnit != nullptr)
+		if (TranslationUnit != nullptr && EditWidget->CanSave())
 		{
 			TempArray.Add(TranslationUnit);
 		}
@@ -264,7 +263,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 	FString CurrentCultureName = I18N.GetCurrentCulture()->GetName();
 
 	// Make sure locres path matches the current culture (can change if using the culture=__ console command)
-	if (CurrentCultureName != LocResCultureName)
+	if (!LocResCultureName.IsEmpty() && CurrentCultureName != LocResCultureName)
 	{
 		FString BasePath = FPaths::GetPath(ArchiveFilePath);
 		LocresFullPath = BasePath / CurrentCultureName / ManifestAndArchiveNameString + ".locres";
@@ -289,7 +288,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 	TranslationUnit->LocresPath = LocresFullPath;
 
 	// Can only save if we have all the required information
-	bool bHasRequiredLocalizationInfo = NamespaceString.IsSet() && SourceString != nullptr && LocresFullPath.Len() > 0;
+	bHasRequiredLocalizationInfoForSaving = NamespaceString.IsSet() && SourceString != nullptr && LocresFullPath.Len() > 0;
 
 	TSharedPtr<SGridPanel> GridPanel;
 	TSharedRef<SGridPanel> LocalizationInfoAndSaveButtonSlot = SNew(SGridPanel).FillColumn(2,1);
@@ -320,7 +319,8 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 					.HAlign(HAlign_Right)
 				[
 					SNew(SVerticalBox)
-					.Visibility(!bHasRequiredLocalizationInfo && SourceString->Equals(TranslationString) ? EVisibility::Collapsed : EVisibility::Visible)
+					// Hide translation if we don't have necessary information to modify, and is same as source
+					.Visibility(!bHasRequiredLocalizationInfoForSaving && SourceString->Equals(TranslationString) ? EVisibility::Collapsed : EVisibility::Visible)
 					+ SVerticalBox::Slot()
 					[
 						SNew(STextBlock)
@@ -341,11 +341,12 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 					.Padding(FMargin(5))
 					[
 						SNew(SVerticalBox)
-						.Visibility(!bHasRequiredLocalizationInfo && SourceString->Equals(TranslationString) ? EVisibility::Collapsed : EVisibility::Visible)
+						// Hide translation if we don't have necessary information to modify, and is same as source
+						.Visibility(!bHasRequiredLocalizationInfoForSaving && SourceString->Equals(TranslationString) ? EVisibility::Collapsed : EVisibility::Visible)
 						+ SVerticalBox::Slot()
 						[
 							SAssignNew(TextBox, SMultiLineEditableTextBox)
-							.IsEnabled(bAllowEditing && bHasRequiredLocalizationInfo)
+							.IsEnabled(bAllowEditing && bHasRequiredLocalizationInfoForSaving)
 							.Text(Translation)
 							.HintText(LOCTEXT("TranslationEditTextBox_HintText", "Enter/edit translation here."))
 						]
@@ -382,14 +383,14 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 				.Justification(ETextJustify::Center)
 			];
 	}
-	else if (!bHasRequiredLocalizationInfo)
+	else if (!bHasRequiredLocalizationInfoForSaving)
 	{
 		LocalizationInfoAndSaveButtonSlot->AddSlot(0, 0)
 			.Padding(FMargin(5))
 			.ColumnSpan(2)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("RequiredLocalizationInfoNotFound", "The required localization info for this text was not found."))
+				.Text(LOCTEXT("RequiredLocalizationInfoNotFound", "This text is not ready to be localized."))
 				.Justification(ETextJustify::Center)
 			];
 	}
@@ -444,7 +445,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 				.HAlign(HAlign_Center)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 				.OnClicked(this, &STranslationPickerEditWidget::SaveAndPreview)
-				.IsEnabled(bHasRequiredLocalizationInfo)
+				.IsEnabled(bHasRequiredLocalizationInfoForSaving)
 				.Visibility(bAllowEditing ? EVisibility::Visible : EVisibility::Collapsed)
 				[
 					SNew(SHorizontalBox)
@@ -454,7 +455,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					[
 						SNew(STextBlock)
-						.Text(bHasRequiredLocalizationInfo ? LOCTEXT("SaveAndPreviewButtonText", "Save and preview") : LOCTEXT("SaveAndPreviewButtonDisabledText", "Cannot Save"))
+						.Text(bHasRequiredLocalizationInfoForSaving ? LOCTEXT("SaveAndPreviewButtonText", "Save and preview") : LOCTEXT("SaveAndPreviewButtonDisabledText", "Cannot Save"))
 					]
 				]
 			];

@@ -420,7 +420,7 @@ bool FTextLocalizationManager::GetLocResID(const FString& Namespace, const FStri
 	const FDisplayStringLookupTable::FDisplayStringEntry* LiveEntry = nullptr;
 	DisplayStringLookupTable.Find(Namespace, LiveKeyTable, Key, LiveEntry);
 
-	if (LiveEntry != nullptr)
+	if (LiveEntry != nullptr && !LiveEntry->LocResID.IsEmpty())
 	{
 		OutLocResId = LiveEntry->LocResID;
 		return true;

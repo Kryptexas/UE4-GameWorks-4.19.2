@@ -80,6 +80,12 @@ class STranslationPickerEditWidget : public SCompoundWidget
 	/** Return the translation unit for this text, with any modifications */
 	UTranslationUnit* GetTranslationUnitWithAnyChanges();
 
+	/** Whether or not we can save */
+	bool CanSave()
+	{
+		return bAllowEditing && bHasRequiredLocalizationInfoForSaving;
+	}
+
 private:
 
 	virtual bool SupportsKeyboardFocus() const override
@@ -100,6 +106,9 @@ private:
 
 	/** Whether or not to show the save button*/
 	bool bAllowEditing;
+
+	/** Whether or not we were able to find the necessary info for saving */
+	bool bHasRequiredLocalizationInfoForSaving;
 };
 
 /** Translation picker edit window to allow you to translate selected FTexts in place */
