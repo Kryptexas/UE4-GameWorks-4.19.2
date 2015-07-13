@@ -2274,35 +2274,73 @@ GameProjectUtils::EProjectDuplicateResult GameProjectUtils::DuplicateProjectForU
 		NewDirectoryName = FString::Printf(TEXT("%s - %d"), *BaseDirectoryName, Idx);
 	}
 
-	// Find all the root directory names
-	TArray<FString> RootDirectoryNames;
-	IFileManager::Get().FindFiles(RootDirectoryNames, *(OldDirectoryName / TEXT("*")), false, true);
+	// Recursively find all the files we need to copy, excluding those that are within the directories listed in SourceDirectoriesToSkip
+	struct FGatherFilesToCopyHelper
+	{
+	public:
+		FGatherFilesToCopyHelper(FString InRootSourceDirectory)
+			: RootSourceDirectory(MoveTemp(InRootSourceDirectory))
+		{
+			static const FString RelativeDirectoriesToSkip[] = {
+				TEXT("Binaries"),
+				TEXT("DerivedDataCache"),
+				TEXT("Intermediate"),
+				TEXT("Saved/Autosaves"),
+				TEXT("Saved/Backup"),
+				TEXT("Saved/Cooked"),
+				TEXT("Saved/HardwareSurvey"),
+				TEXT("Saved/Logs"),
+				TEXT("Saved/StagedBuilds"),
+			};
 
-	// Find all the source directories
+			SourceDirectoriesToSkip.Reserve(ARRAY_COUNT(RelativeDirectoriesToSkip));
+			for (const FString& RelativeDirectoryToSkip : RelativeDirectoriesToSkip)
+			{
+				SourceDirectoriesToSkip.Emplace(RootSourceDirectory / RelativeDirectoryToSkip);
+			}
+		}
+
+		void GatherFilesToCopy(TArray<FString>& OutSourceDirectories, TArray<FString>& OutSourceFiles)
+		{
+			GatherFilesToCopy(RootSourceDirectory, OutSourceDirectories, OutSourceFiles);
+		}
+
+	private:
+		void GatherFilesToCopy(const FString& InSourceDirectoryPath, TArray<FString>& OutSourceDirectories, TArray<FString>& OutSourceFiles)
+		{
+			const FString SourceDirectorySearchWildcard = InSourceDirectoryPath / TEXT("*");
+
+			OutSourceDirectories.Emplace(InSourceDirectoryPath);
+
+			TArray<FString> SourceFilenames;
+			IFileManager::Get().FindFiles(SourceFilenames, *SourceDirectorySearchWildcard, true, false);
+
+			OutSourceFiles.Reserve(OutSourceFiles.Num() + SourceFilenames.Num());
+			for (const FString& SourceFilename : SourceFilenames)
+			{
+				OutSourceFiles.Emplace(InSourceDirectoryPath / SourceFilename);
+			}
+
+			TArray<FString> SourceSubDirectoryNames;
+			IFileManager::Get().FindFiles(SourceSubDirectoryNames, *SourceDirectorySearchWildcard, false, true);
+
+			for (const FString& SourceSubDirectoryName : SourceSubDirectoryNames)
+			{
+				const FString SourceSubDirectoryPath = InSourceDirectoryPath / SourceSubDirectoryName;
+				if (!SourceDirectoriesToSkip.Contains(SourceSubDirectoryPath))
+				{
+					GatherFilesToCopy(SourceSubDirectoryPath, OutSourceDirectories, OutSourceFiles);
+				}
+			}
+		}
+
+		FString RootSourceDirectory;
+		TArray<FString> SourceDirectoriesToSkip;
+	};
+
 	TArray<FString> SourceDirectories;
-	SourceDirectories.Add(OldDirectoryName);
-	for(int32 Idx = 0; Idx < RootDirectoryNames.Num(); Idx++)
-	{
-		if(RootDirectoryNames[Idx] != TEXT("Binaries") && RootDirectoryNames[Idx] != TEXT("Intermediate") && RootDirectoryNames[Idx] != TEXT("Saved"))
-		{
-			FString SourceDirectory = OldDirectoryName / RootDirectoryNames[Idx];
-			SourceDirectories.Add(SourceDirectory);
-			IFileManager::Get().FindFilesRecursive(SourceDirectories, *SourceDirectory, TEXT("*"), false, true, false);
-		}
-	}
-
-	// Find all the source files
 	TArray<FString> SourceFiles;
-	for(int32 Idx = 0; Idx < SourceDirectories.Num(); Idx++)
-	{
-		TArray<FString> SourceNames;
-		IFileManager::Get().FindFiles(SourceNames, *(SourceDirectories[Idx] / TEXT("*")), true, false);
-
-		for(int32 NameIdx = 0; NameIdx < SourceNames.Num(); NameIdx++)
-		{
-			SourceFiles.Add(SourceDirectories[Idx] / SourceNames[NameIdx]);
-		}
-	}
+	FGatherFilesToCopyHelper(OldDirectoryName).GatherFilesToCopy(SourceDirectories, SourceFiles);
 
 	// Copy everything
 	bool bCopySucceeded = true;
