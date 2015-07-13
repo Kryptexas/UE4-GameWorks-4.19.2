@@ -984,8 +984,12 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 	    const int32 NumBodies = PerInstanceSMData.Num();
 		check(InstanceBodies.Num() == 0);
 		InstanceBodies.SetNumUninitialized(NumBodies);
-    
-	    TArray<FTransform> Transforms;
+
+		// Sanitized array does not contain any nulls
+		TArray<FBodyInstance*> InstanceBodiesSanitized;
+		InstanceBodiesSanitized.Reserve(NumBodies);
+
+		TArray<FTransform> Transforms;
 	    Transforms.Reserve(NumBodies);
     
 	    for (int32 i = 0; i < NumBodies; ++i)
@@ -997,8 +1001,10 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			}
 			else
 			{
-				InstanceBodies[i] = new FBodyInstance;
-				FBodyInstance* Instance = InstanceBodies[i];
+				FBodyInstance* Instance = new FBodyInstance;
+
+				InstanceBodiesSanitized.Add(Instance);
+				InstanceBodies[i] = Instance;
 				Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
 				Instance->InstanceBodyIndex = i; // Set body index 
 				Instance->bAutoWeld = false;
@@ -1025,7 +1031,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			}
 	    }
 
-		if (NumBodies > 0 && Mobility == EComponentMobility::Static)
+		if (InstanceBodiesSanitized.Num() > 0 && Mobility == EComponentMobility::Static)
 		{
 			TArray<UBodySetup*> BodySetups;
 			TArray<UPhysicalMaterial*> PhysicalMaterials;
@@ -1036,10 +1042,10 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			PhysicalMaterials.Add(FBodyInstance::GetSimplePhysicalMaterial(&BodyInstance, WeakSelfPtr, TWeakObjectPtr<UBodySetup>(BodySetup)));
 
 			PhysicsSerializer->CreatePhysicsData(BodySetups, PhysicalMaterials);
-			FBodyInstance::InitStaticBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), PhysicsSerializer);
+			FBodyInstance::InitStaticBodies(InstanceBodiesSanitized, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), PhysicsSerializer);
 
-			//Serialize physics data for fast path cooking
-			PhysicsSerializer->SerializePhysics(InstanceBodies, BodySetups, PhysicalMaterials);
+			// Serialize physics data for fast path cooking
+			PhysicsSerializer->SerializePhysics(InstanceBodiesSanitized, BodySetups, PhysicalMaterials);
 		}
 	}
 }
