@@ -58,6 +58,6 @@ Related: Engine/Rendering/Materials/MaterialProperties
 ![](MP_1_7_001.png)
 [/REGION]
 
-If the Translucent Material is set Volumetric Directional Light mode, you can set the intensity of the shading.
+If the _Translucent_ Material is set **Volumetric Directional Light** mode, you can set the intensity of the shading.
 
 
