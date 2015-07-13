@@ -9,6 +9,7 @@
 
 FAnimNode_ObserveBone::FAnimNode_ObserveBone()
 	: DisplaySpace(BCS_ComponentSpace)
+	, bRelativeToRefPose(false)
 	, Translation(FVector::ZeroVector)
 	, Rotation(FRotator::ZeroRotator)
 	, Scale(FVector(1.0f))
@@ -34,6 +35,14 @@ void FAnimNode_ObserveBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelC
 	// Convert to the specific display space if necessary
 	FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, BoneTM, BoneIndex, DisplaySpace);
 
+	// Convert to be relative to the ref pose if necessary
+	if (bRelativeToRefPose)
+	{
+		const FTransform& SourceOrigRef = BoneContainer.GetRefPoseArray()[BoneToObserve.BoneIndex];
+		BoneTM = BoneTM.GetRelativeTransform(SourceOrigRef);
+	}
+
+	// Cache off the values for display
 	Translation = BoneTM.GetTranslation();
 	Rotation = BoneTM.GetRotation().Rotator();
 	Scale = BoneTM.GetScale3D();

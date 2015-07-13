@@ -14,12 +14,16 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_ObserveBone : public FAnimNode_SkeletalCon
 	GENERATED_USTRUCT_BODY()
 
 	/** Name of bone to observe. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 
+	UPROPERTY(EditAnywhere, Category=SkeletalControl)
 	FBoneReference BoneToObserve;
 
 	/** Reference frame to display the bone transform in. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
+	UPROPERTY(EditAnywhere, Category=SkeletalControl)
 	TEnumAsByte<EBoneControlSpace> DisplaySpace;
+
+	/** Show the difference from the reference pose? */
+	UPROPERTY(EditAnywhere, Category=SkeletalControl)
+	bool bRelativeToRefPose;
 
 	/** Translation of the bone being observed. */
 	UPROPERTY()
