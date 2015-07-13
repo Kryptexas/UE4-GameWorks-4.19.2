@@ -35,7 +35,10 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	
 #if WITH_EDITORONLY_DATA	
 	DrawSphereComponent = CreateEditorOnlyDefaultSubobject<UDrawSphereComponent>(TEXT("VisualizeComponent0"));
-	DrawSphereComponent->SetSphereRadius(0.0f);
+	if (DrawSphereComponent)
+	{
+		DrawSphereComponent->SetSphereRadius(0.0f);
+	}
 #endif // WITH_EDITORONLY_DATA
 }
 
