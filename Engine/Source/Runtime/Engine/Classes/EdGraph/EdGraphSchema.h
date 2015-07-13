@@ -82,15 +82,15 @@ struct ENGINE_API FEdGraphSchemaAction
 
 	/** Search title for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty). */
 	UPROPERTY()
-	FText CachedSearchTitle;
+	FString CachedSearchTitle;
 
 	/** Search keywords for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty). */
 	UPROPERTY()
-	FText CachedSearchKeywords;
+	FString CachedSearchKeywords;
 
 	/** Search categories for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty). */
 	UPROPERTY()
-	FText CachedSearchCategories;
+	FString CachedSearchCategories;
 
 	FEdGraphSchemaAction() 
 		: Grouping(0)
@@ -131,40 +131,40 @@ struct ENGINE_API FEdGraphSchemaAction
 	}
 
 	/** Retrieves the full searchable title for this action. */
-	FText GetSearchTitle()
+	const FString& GetSearchTitle()
 	{
 		if(CachedSearchTitle.IsEmpty())
 		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("LocalizedTitle"), MenuDescription);
-			Args.Add(TEXT("SourceTitle"), FText::FromString(MenuDescription.BuildSourceString()));
-			CachedSearchTitle = FText::Format(FText::FromString("{LocalizedTitle} {SourceTitle}"), Args);
+			CachedSearchTitle = MenuDescription.ToString();
+			CachedSearchTitle.AppendChar(TEXT(' '));
+			CachedSearchTitle.Append(MenuDescription.BuildSourceString());
+			CachedSearchTitle = CachedSearchTitle.ToLower();
 		}
 		return CachedSearchTitle;
 	}
 
 	/** Retrieves the full searchable keywords for this action. */
-	FText GetSearchKeywords()
+	const FString& GetSearchKeywords()
 	{
 		if(CachedSearchKeywords.IsEmpty())
 		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("LocalizedKeywords"), Keywords);
-			Args.Add(TEXT("SourceKeywords"), FText::FromString(Keywords.BuildSourceString()));
-			CachedSearchKeywords = FText::Format(FText::FromString("{LocalizedKeywords} {SourceKeywords}"), Args);
+			CachedSearchKeywords = Keywords.ToString();
+			CachedSearchKeywords.AppendChar(TEXT(' '));
+			CachedSearchKeywords.Append(Keywords.BuildSourceString());
+			CachedSearchKeywords = CachedSearchKeywords.ToLower();
 		}
 		return CachedSearchKeywords;
 	}
 
 	/** Retrieves the full searchable categories for this action. */
-	FText GetSearchCategory()
+	const FString& GetSearchCategory()
 	{
 		if(CachedSearchCategories.IsEmpty())
 		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("LocalizedCategories"), Category);
-			Args.Add(TEXT("SourceCategories"), FText::FromString(Category.BuildSourceString()));
-			CachedSearchCategories = FText::Format(FText::FromString("{LocalizedCategories} {SourceCategories}"), Args);
+			CachedSearchCategories = Category.ToString();
+			CachedSearchCategories.AppendChar(TEXT(' '));
+			CachedSearchCategories.Append(Category.BuildSourceString());
+			CachedSearchCategories = CachedSearchCategories.ToLower();
 		}
 		return CachedSearchCategories;
 	}
@@ -297,6 +297,15 @@ public:
 		/** Constructor accepting multiple actions */
 		ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& RootCategory = TEXT("") );
 
+		/** Move constructor and move assignment operator */
+		ENGINE_API ActionGroup(ActionGroup && Other);
+		ENGINE_API ActionGroup& operator=(ActionGroup && Other);
+
+		/** Copy constructor and assignment operator */
+		ENGINE_API ActionGroup(const ActionGroup&);
+		ENGINE_API ActionGroup& operator=(const ActionGroup&);
+
+		ENGINE_API ~ActionGroup();
 		/**
 		 * 
 		 * @param  HierarchyOut	A list of the category tiers that this action should be listed under.
@@ -311,21 +320,54 @@ public:
 		 */
 		ENGINE_API void PerformAction( class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location );
 		
+		/**
+		 * Returns a the string that should be used when searching for matching actions. Looks only at the first action.
+		 */
+		ENGINE_API const FString& GetSearchTextForFirstAction() const { return SearchText; }
+
+		/** Returns the SearchKeywordsArray */
+		ENGINE_API const TArray<FString>& GetSearchKeywordsArrayForFirstAction() const { return SearchKeywordsArray; }
+		/** Returns the MenuDescriptionArray */
+		ENGINE_API const TArray<FString>& GetMenuDescriptionArrayForFirstAction() const { return MenuDescriptionArray; }
+		/** Returns the SearchTitleArray */
+		ENGINE_API const TArray<FString>& GetSearchTitleArrayForFirstAction() const { return SearchTitleArray; }
+		/** Returns the SearchCategoryArray */
+		ENGINE_API const TArray<FString>& GetSearchCategoryArrayForFirstAction() const { return SearchCategoryArray; }
+
 		/** All of the actions this entry contains */
 		TArray< TSharedPtr<FEdGraphSchemaAction> > Actions;
 
 	private:
+		void Move(ActionGroup& Other);
+		void Copy(const ActionGroup& Other);
+
 		/**
-		 *Concatenates RootCategory with the first action's category (RootCategory
+		 * Concatenates RootCategory with the first action's category (RootCategory
 		 * coming first, as a prefix, and the splits the category hierarchy apart
 		 * into separate entries.
 		 */
 		void InitCategoryChain();
 
+		/**
+		 * Initializes the search text.
+		 */
+		void InitSearchText();
+
+		void InitScoringData();
+
 		/** The category to list this entry under (could be left empty, as it gets concatenated with the first sub-action's category) */
 		FString RootCategory;
 		/** The chain of categories */
 		TArray<FString> CategoryChain;
+
+		/** Scoring data */
+		TArray<FString> SearchKeywordsArray;
+		TArray<FString> MenuDescriptionArray;
+		TArray<FString> SearchTitleArray;
+		TArray<FString> SearchCategoryArray;
+
+		/** The text that can be used to find this entry */
+		FString SearchText;
 	};
 private:
 

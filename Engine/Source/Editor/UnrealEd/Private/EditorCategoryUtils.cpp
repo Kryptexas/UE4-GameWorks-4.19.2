@@ -298,7 +298,7 @@ void FEditorCategoryUtils::GetClassHideCategories(UClass const* Class, TArray<FS
 		
 		for (FString& Category : CategoriesOut)
 		{
-			Category = GetCategoryDisplayString(FText::FromString(Category)).ToString();
+			Category = GetCategoryDisplayString(Category);
 		}
 	}
 }

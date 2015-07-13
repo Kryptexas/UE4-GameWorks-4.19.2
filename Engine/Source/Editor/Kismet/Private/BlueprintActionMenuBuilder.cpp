@@ -110,7 +110,7 @@ TSharedPtr<FBlueprintActionMenuItem> FBlueprintActionMenuItemFactory::MakeAction
 	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, UiSignature);
 
 	NewMenuItem->Grouping = MenuGrouping;
-	NewMenuItem->Category = FText::Format(FText::FromString(TEXT("{0}|{1}")), RootCategory, NewMenuItem->Category);
+	NewMenuItem->Category = FText::FromString(RootCategory.ToString() + TEXT('|') + NewMenuItem->Category.ToString());
 
 	return MakeShareable(NewMenuItem);
 }
@@ -121,7 +121,7 @@ TSharedPtr<FBlueprintDragDropMenuItem> FBlueprintActionMenuItemFactory::MakeDrag
 	// FBlueprintDragDropMenuItem takes care of its own menu MenuDescription, etc.
 	FBlueprintDragDropMenuItem* NewMenuItem = new FBlueprintDragDropMenuItem(Context, SampleAction, MenuGrouping);
 
-	NewMenuItem->Category = FText::Format(FText::FromString(TEXT("{0}|{1}")), RootCategory, NewMenuItem->Category);
+	NewMenuItem->Category = FText::FromString(RootCategory.ToString() + TEXT('|') + NewMenuItem->Category.ToString());
 	return MakeShareable(NewMenuItem);
 }
 
@@ -134,7 +134,7 @@ TSharedPtr<FBlueprintActionMenuItem> FBlueprintActionMenuItemFactory::MakeBoundM
 	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, UiSignature, ActionInfo.GetBindings());
 
 	NewMenuItem->Grouping = MenuGrouping;
-	NewMenuItem->Category = FText::Format(FText::FromString(TEXT("{0}|{1}")), RootCategory, NewMenuItem->Category);
+	NewMenuItem->Category = FText::FromString( RootCategory.ToString() + TEXT('|') + NewMenuItem->Category.ToString());
 
 	return MakeShareable(NewMenuItem);
 }

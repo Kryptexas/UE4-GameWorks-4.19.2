@@ -450,44 +450,46 @@ TSharedPtr<FGraphActionNode> FGraphActionNode::NewGroupDividerNode(TWeakPtr<FGra
 //------------------------------------------------------------------------------
 void FGraphActionNode::AddChildRecursively(TArray<FString>& CategoryStack, TSharedPtr<FGraphActionNode> NodeToAdd)
 {
-	TSharedPtr<FGraphActionNode> FoundSectionNode;
-	for ( TSharedPtr<FGraphActionNode> const& ChildNode : Children )
+	if (NodeToAdd->SectionID != INVALID_SECTION_ID)
 	{
-		if ( NodeToAdd->SectionID == ChildNode->SectionID && ChildNode->IsSectionHeadingNode() )
+		TSharedPtr<FGraphActionNode> FoundSectionNode;
+		for ( TSharedPtr<FGraphActionNode> const& ChildNode : Children )
 		{
-			FoundSectionNode = ChildNode;
-			break;
+			if ( NodeToAdd->SectionID == ChildNode->SectionID && ChildNode->IsSectionHeadingNode() )
+			{
+				FoundSectionNode = ChildNode;
+				break;
+			}
+		}
+
+		if ( FoundSectionNode.IsValid() )
+		{
+			FoundSectionNode->AddChildRecursively(CategoryStack, NodeToAdd);
+			return;
 		}
 	}
 
-	if ( FoundSectionNode.IsValid() )
+	if ( CategoryStack.Num() > 0 )
 	{
-		FoundSectionNode->AddChildRecursively(CategoryStack, NodeToAdd);
-	}
-	else
-	{
-		if ( CategoryStack.Num() > 0 )
-		{
-			FString CategorySection = CategoryStack[0];
-			CategoryStack.RemoveAt(0, 1);
+		FString CategorySection = CategoryStack[0];
+		CategoryStack.RemoveAt(0, 1);
 
-			// make sure we don't already have a child that this can nest under
-			TSharedPtr<FGraphActionNode> ExistingNode = FindMatchingParent(CategorySection, NodeToAdd);
-			if ( ExistingNode.IsValid() )
-			{
-				ExistingNode->AddChildRecursively(CategoryStack, NodeToAdd);
-			}
-			else
-			{
-				TSharedPtr<FGraphActionNode> CategoryNode = NewCategoryNode(CategorySection, NodeToAdd->Grouping, NodeToAdd->SectionID);
-				InsertChild(CategoryNode);
-				CategoryNode->AddChildRecursively(CategoryStack, NodeToAdd);
-			}
+		// make sure we don't already have a child that this can nest under
+		TSharedPtr<FGraphActionNode> ExistingNode = FindMatchingParent(CategorySection, NodeToAdd);
+		if ( ExistingNode.IsValid() )
+		{
+			ExistingNode->AddChildRecursively(CategoryStack, NodeToAdd);
 		}
 		else
 		{
-			InsertChild(NodeToAdd);
+			TSharedPtr<FGraphActionNode> CategoryNode = NewCategoryNode(CategorySection, NodeToAdd->Grouping, NodeToAdd->SectionID);
+			InsertChild(CategoryNode);
+			CategoryNode->AddChildRecursively(CategoryStack, NodeToAdd);
 		}
+	}
+	else
+	{
+		InsertChild(NodeToAdd);
 	}
 }
 

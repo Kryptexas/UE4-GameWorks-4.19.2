@@ -652,7 +652,11 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 	// Tokenize the search box text into a set of terms; all of them must be present to pass the filter
 	TArray<FString> FilterTerms;
 	TrimmedFilterString.ParseIntoArray(FilterTerms, TEXT(" "), true);
-	
+	for (auto& String : FilterTerms)
+	{
+		String = String.ToLower();
+	}
+
 	// Generate a list of sanitized versions of the strings
 	TArray<FString> SanitizedFilterTerms;
 	for (int32 iFilters = 0; iFilters < FilterTerms.Num() ; iFilters++)
@@ -678,13 +682,12 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 			// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 			// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 			// and keywords, so we only need to use the first one for filtering.
-			FString SearchText = CurrentAction.Actions[0]->GetSearchTitle().ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->GetSearchKeywords().ToString() + LINE_TERMINATOR +CurrentAction.Actions[0]->GetSearchCategory().ToString();
-			SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
+			const FString& SearchText = CurrentAction.GetSearchTextForFirstAction();
 
 			FString EachTermSanitized;
 			for (int32 FilterIndex = 0; (FilterIndex < FilterTerms.Num()) && bShowAction; ++FilterIndex)
 			{
-				const bool bMatchesTerm = ( SearchText.Contains( FilterTerms[FilterIndex] ) || ( SearchText.Contains( SanitizedFilterTerms[FilterIndex] ) == true ) );
+				const bool bMatchesTerm = (SearchText.Contains(FilterTerms[FilterIndex], ESearchCase::CaseSensitive) || (SearchText.Contains(SanitizedFilterTerms[FilterIndex], ESearchCase::CaseSensitive) == true));
 				bShowAction = bShowAction && bMatchesTerm;
 			}
 
@@ -774,42 +777,38 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 	// Helper array
 	struct FArrayWithWeight
 	{
-		TArray< FString > Array;
+		FArrayWithWeight(const TArray< FString >* InArray, int32 InWeight)
+			: Array(InArray)
+			, Weight(InWeight)
+		{
+		}
+
+		const TArray< FString >* Array;
 		int32			  Weight;
 	};
 
 	// Setup an array of arrays so we can do a weighted search			
 	TArray< FArrayWithWeight > WeightedArrayList;
-	FArrayWithWeight EachEntry;
-
+	
 	int32 Action = 0;
 	if( InCurrentAction.Actions[Action].IsValid() == true )
 	{
 		// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 		// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 		// and keywords, so we only need to use the first one for filtering.
-		FString SearchText = InCurrentAction.Actions[Action]->GetSearchTitle().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchKeywords().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchCategory().ToString();
-		SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
+		const FString& SearchText = InCurrentAction.GetSearchTextForFirstAction();
 
 		// First the keywords
-		InCurrentAction.Actions[Action]->GetSearchKeywords().ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
-		EachEntry.Weight = 10;
-		WeightedArrayList.Add( EachEntry );
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetSearchKeywordsArrayForFirstAction(), 10));
 
 		// The description
-		InCurrentAction.Actions[Action]->MenuDescription.ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
-		EachEntry.Weight = DescriptionWeight;
-		WeightedArrayList.Add( EachEntry );
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetMenuDescriptionArrayForFirstAction(), DescriptionWeight));
 
 		// The node search title weight
-		InCurrentAction.Actions[Action]->GetSearchTitle().ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
-		EachEntry.Weight = NodeTitleWeight;
-		WeightedArrayList.Add( EachEntry );
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetSearchTitleArrayForFirstAction(), NodeTitleWeight));
 
 		// The category
-		InCurrentAction.Actions[Action]->GetSearchCategory().ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
-		EachEntry.Weight = CategoryWeight;
-		WeightedArrayList.Add( EachEntry );
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetSearchCategoryArrayForFirstAction(), CategoryWeight));
 
 		// Now iterate through all the filter terms and calculate a 'weight' using the values and multipliers
 		FString EachTerm;
@@ -818,11 +817,11 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		{
 			EachTerm = InFilterTerms[FilterIndex];
 			EachTermSanitized = InSanitizedFilterTerms[FilterIndex];
-			if( SearchText.Contains( EachTerm ) )
+			if( SearchText.Contains( EachTerm, ESearchCase::CaseSensitive ) )
 			{
 				TotalWeight += 2;
 			}
-			else if( SearchText.Contains( EachTermSanitized ) )
+			else if (SearchText.Contains(EachTermSanitized, ESearchCase::CaseSensitive))
 			{
 				TotalWeight++;
 			}		
@@ -830,27 +829,27 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 			for (int32 iFindCount = 0; iFindCount < WeightedArrayList.Num() ; iFindCount++)
 			{
 				int32 WeightPerList = 0;
-				TArray<FString>& KeywordArray = WeightedArrayList[iFindCount].Array;
+				const TArray<FString>& KeywordArray = *WeightedArrayList[iFindCount].Array;
 				int32 EachWeight = WeightedArrayList[iFindCount].Weight;
 				int32 WholeMatchCount = 0;
 				for (int32 iEachWord = 0; iEachWord < KeywordArray.Num() ; iEachWord++)
 				{
 					// If we get an exact match weight the find count to get exact matches higher priority
-					if( KeywordArray[ iEachWord ] == EachTerm )
+					if (KeywordArray[iEachWord] == EachTerm)
 					{
 						WeightPerList += EachWeight * WholeMatchWeightMultiplier;
 						WholeMatchCount++;
 					}
-					else if( KeywordArray[ iEachWord ].Contains( EachTerm ) )
+					else if (KeywordArray[iEachWord].Contains(EachTerm, ESearchCase::CaseSensitive))
 					{
 						WeightPerList += EachWeight;
 					}
-					else if( KeywordArray[ iEachWord ] == EachTermSanitized )
+					else if (KeywordArray[iEachWord] == EachTermSanitized)
 					{
 						WeightPerList += ( EachWeight * WholeMatchWeightMultiplier ) / 2;
 						WholeMatchCount++;
 					}
-					else if( KeywordArray[ iEachWord ].Contains( EachTermSanitized ) )
+					else if (KeywordArray[iEachWord].Contains(EachTermSanitized, ESearchCase::CaseSensitive))
 					{
 						WeightPerList += EachWeight / 2;
 					}

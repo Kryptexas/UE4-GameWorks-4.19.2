@@ -30,7 +30,7 @@ void FGraphActionListBuilderBase::AddActionList( const TArray<TSharedPtr<FEdGrap
 
 void FGraphActionListBuilderBase::Append( FGraphActionListBuilderBase& Other )
 {
-	Entries.Append( Other.Entries );
+	Entries.Append( MoveTemp(Other.Entries) );
 }
 
 int32 FGraphActionListBuilderBase::GetNumActions() const
@@ -56,6 +56,7 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( TSharedPtr<FEdGraphSchema
 {
 	Actions.Add( InAction );
 	InitCategoryChain();
+	InitScoringData();
 }
 
 FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& CategoryPrefix/* = TEXT("") */ )
@@ -63,6 +64,39 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<
 {
 	Actions = InActions;
 	InitCategoryChain();
+	InitScoringData();
+}
+
+FGraphActionListBuilderBase::ActionGroup::ActionGroup(FGraphActionListBuilderBase::ActionGroup && Other)
+{
+	Move(Other);
+}
+
+FGraphActionListBuilderBase::ActionGroup& FGraphActionListBuilderBase::ActionGroup::operator=(FGraphActionListBuilderBase::ActionGroup && Other)
+{
+	if (&Other != this)
+	{
+		Move(Other);
+	}
+	return *this;
+}
+
+FGraphActionListBuilderBase::ActionGroup::ActionGroup(const FGraphActionListBuilderBase::ActionGroup& Other)
+{
+	Copy(Other);
+}
+
+FGraphActionListBuilderBase::ActionGroup& FGraphActionListBuilderBase::ActionGroup::operator=(const FGraphActionListBuilderBase::ActionGroup& Other)
+{
+	if (&Other != this)
+	{
+		Copy(Other);
+	}
+	return *this;
+}
+
+FGraphActionListBuilderBase::ActionGroup::~ActionGroup()
+{
 }
 
 void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>& HierarchyOut) const
@@ -82,6 +116,28 @@ void FGraphActionListBuilderBase::ActionGroup::PerformAction( class UEdGraph* Pa
 			CurrentAction->PerformAction( ParentGraph, FromPins, Location );
 		}
 	}
+}
+
+void FGraphActionListBuilderBase::ActionGroup::Move(FGraphActionListBuilderBase::ActionGroup& Other)
+{
+	Actions = MoveTemp(Other.Actions);
+	RootCategory = MoveTemp(Other.RootCategory);
+	CategoryChain = MoveTemp(Other.CategoryChain);
+	SearchKeywordsArray = MoveTemp(Other.SearchKeywordsArray);
+	MenuDescriptionArray = MoveTemp(Other.MenuDescriptionArray);
+	SearchCategoryArray = MoveTemp(Other.SearchCategoryArray);
+	SearchText = MoveTemp(Other.SearchText);
+}
+
+void FGraphActionListBuilderBase::ActionGroup::Copy(const ActionGroup& Other)
+{
+	Actions = Other.Actions;
+	RootCategory = Other.RootCategory;
+	CategoryChain = Other.CategoryChain;
+	SearchKeywordsArray = Other.SearchKeywordsArray;
+	MenuDescriptionArray = Other.MenuDescriptionArray;
+	SearchCategoryArray = Other.SearchCategoryArray;
+	SearchText = Other.SearchText;
 }
 
 void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
@@ -105,6 +161,39 @@ void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 		Category.Trim();
 	}
 #endif
+}
+
+void FGraphActionListBuilderBase::ActionGroup::InitScoringData()
+{
+	if (Actions.Num() > 0)
+	{
+		FEdGraphSchemaAction& FirstAction = *Actions[0];
+		const FString& Keywords = FirstAction.GetSearchKeywords();
+		const FString& Title = FirstAction.GetSearchTitle();
+		const FString& Category = FirstAction.GetSearchCategory();
+
+		// We keep these individual arrays so that they can be weighted differently by the scoring algorithm in SGraphActionMenu::GetActionFilteredWeight
+		Keywords.ParseIntoArray(SearchKeywordsArray, TEXT(" "), true);
+		FirstAction.MenuDescription.ToString().ToLower().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
+		Title.ParseIntoArray(SearchTitleArray, TEXT(" "), true);
+		Category.ParseIntoArray(SearchCategoryArray, TEXT(" "), true);
+
+		// Glob search text together, we use the SearchText string for basic filtering:
+		for (const auto& Entry : SearchTitleArray)
+		{
+			SearchText += Entry;
+		}
+		SearchText.Append(LINE_TERMINATOR);
+		for (const auto& Entry : SearchKeywordsArray)
+		{
+			SearchText += Entry;
+		}
+		SearchText.Append(LINE_TERMINATOR);
+		for (const auto& Entry : SearchCategoryArray)
+		{
+			SearchText += Entry;
+		}
+	}
 }
 
 /////////////////////////////////////////////////////
