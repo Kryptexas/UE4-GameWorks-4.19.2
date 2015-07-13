@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2618124
 Availability:Public
 Title:디스트럭터블 프로퍼티 매트릭스
 Crumbs: %ROOT%, Engine
@@ -30,14 +30,16 @@ Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터�
 
 ## 디스트럭터블 메시 카테고리
 
-### 기본 디스트럭터블 파라미터의 서브 카테고리
+### 디폴트 디스트럭터블 파라미터의 서브 카테고리
 
 | 프로퍼티 | 설명 |
 | -------- | --------- |
 | [REGION:tablesection] _Damage Parameters_ [/REGION] (대미지 파라미터) ||
-| **Damage Threshold** | 대미지 한계치 - 청크의 파열을 유발시킬 대미지 양입니다. |
+| **Damage Threshold** | 대미지 한계치 - 청크 파괴를 유발시킬 (자유롭게 돌아다니도록 만들) 대미지 양입니다. |
 | **Damage Spread** | 대미지 전파 - 디스트럭터블 액터 속으로 대미지를 전파시킬 거리를 조절합니다. 청크에 적용된 대미지에 **Damage Spread** 를 곱하여 전파 거리를 구합니다. |
+| **Enable Impact Damage** | 임팩트 대미지 켜기 - 디스트럭터블이 오브젝트와 충돌할 때 대미지를 적용할 것인지입니다. |
 | **Impact Damage** | 임팩트 대미지 - 임팩트 대미지가 설정된 깊이에 있는 청크는, (양쪽 오브젝트에 **Report Rigid Collisions** 가 켜져있다 가정하고) **Impact Damage** 에다 다른 오브젝트와 충돌시의 임팩트 포스를 곱한 양만큼의 대미지를 입습니다. |
+| **Custom Impact Resistance** | 커스텀 임팩트 저항 - 기본적으로 디스트럭터블과 충돌하는 오브젝트는 탄성이 있습니다. 커스텀 저항을 통해 디스트럭터블이 충돌한 오브젝트를 얼마만큼 "밀어낼 것인지" 조금 더 미세한 조정이 가능합니다. |
 | **Impact Resistance** | 임팩트 저항 - 청크가 물리적 접촉에 의해 임팩트 대미지를 입을 때, 그 접촉으로 인해 생성되는 최대 임펄스는 이 파라미터까지입니다. 약한 재질에는 이 옵션을 낮게 설정해야, 프랙처 도중 무거운 오브젝트가 관통해 지나갈 수 있습니다. 0.0 은 무한입니다. |
 | **Default Impact Damage** | 디폴트 임팩트 대미지 - 임팩트 대미지를 이 깊이에 입힙니다. 음수인 경우, 임팩트 대미지는 비활성화됩니다. |
 | [REGION:tablesection] _Debris Parameters_ (잔해 파라미터) [/REGION] ||
@@ -71,10 +73,7 @@ Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터�
 | [REGION:tablesection] _Fracture Effects - Per Depth Level_ (프랙처 이펙트 - 깊이 레벨별) [/REGION] ||
 | **Particle System** | 파티클 시스템 - 청크가 깨질 때 스폰시킬 파티클 시스템입니다. |
 | **Sound** | 사운드 - 청크가 깨질 때 재생할 사운드 또는 사운드 큐 입니다. |
-| **Body Setup (Parameter)** 바디 셋업 (파라미터) ||
-| [REGION:tablesection] _Body Setup_ (바디 셋업) [/REGION] ||
-| **Bone Name** | 본 이름 - 피직스 애셋이 사용되었을 때만 사용되며, 디스트럭터블 액터용은 아닙니다. |
-| **Consider for Bounds** | 바운드 고려 - 켜면 바운드 고려에 바디 셋업이 사용됩니다. |
+
 
 프로퍼티의 Physics 및 Collision 섹션에 대해서는 [콜리전](Engine/Physics/Collision) 문서를 참고하시기 바랍니다.
 
@@ -92,6 +91,17 @@ Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터�
 | **프로퍼티** | **설명** |
 | -------- | --------- |
 | **Streaming Distance Multiplier** | 스트리밍 거리 배수 - UV 0 사용 텍스처의 스트림 인/아웃 거리를 아티스트가 조절할 수 있습니다. 기본값은 1.0 이고, 값이 클 수록 스트림 인 해상도가 커집니다. |
+
+## 청크 파라미터 카테고리
+
+### 청크 서브 카테고리
+| **프로퍼티** | **설명** |
+| -------- | --------- |
+| **Is Support Chunk** | 서포트 청크인지 - NxDestructibleParameters 에 적합한 NxDestructibleParametersFlag 가 설정된 경우 청크가 환경적으로 지지되는 청크임을 정의합니다. |
+| **Do Not Fracture** | 프랙처 안됨 - 청크가 프랙처되지 않도록 않도록 합니다. True 면 그 자손도 프랙처되지 않습니다. |
+| **Do Not Damage** | 대미지 입지 않음 - 청크가 대미지를 입지 않는 것으로 정의합니다. 이 청크는 프랙처되지 않지만, 자손은 부서질 수도 있습니다. |
+| **Do not Crumble** | 바스러지지 않음 - 청크가 바스러지지 않는 것으로 정의합니다. 이 청크는 얼마의 대미지를 받든 유체 메시 파티클로 분해되지 않는다는 뜻입니다. 주: 자손이 없는 청크에만 적용됩니다. 자손이 있는 청크의 경우: 1) 자손에 doNotCrumble 플래그가 설정되지 않는 경우, 이 청크는 그 자손으로 분해된 뒤, 그 자손이 바스러질 수 있습니다. 2) 자손 모듈의 청크 뎁스 오프셋 LOD 가 실질적으로 이 청크에 자손이 없는 것처럼 설정되어 있을 수가 있습니다. 그러한 경우, doNotCrumble 플래그가 적용됩니다. |
+
 	
 ## 프랙처 세팅 카테고리
 

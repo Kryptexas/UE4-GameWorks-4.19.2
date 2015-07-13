@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2599055
+﻿INTSourceChangelist:2615876
 Availability: Public
 Title:4. 시작점 만들기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:액터 배치와 조작은 레벨 제작의 토대입니다.
+Description:발구름판은 캐릭터가 겹치면 도약시키는 것이므로, Begin Overlap 생성부터 시작합니다.
 
 [VAR:Steps]
 [OBJECT:Navigation]

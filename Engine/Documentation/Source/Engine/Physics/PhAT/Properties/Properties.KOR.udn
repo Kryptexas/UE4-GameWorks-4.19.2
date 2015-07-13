@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2609596
 Availability: Public
 Title:피직스 애셋 프로퍼티 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
@@ -45,7 +45,7 @@ Description:피직스 애셋 툴에서 열 수 있는 피직스 바디, 피직�
 
 [TOC(start:2)]
 
-## 개요
+
 
 ## 피직스 애셋 툴 프로퍼티
 
@@ -58,6 +58,8 @@ Description:피직스 애셋 툴에서 열 수 있는 피직스 바디, 피직�
 |[REGION:tablesection]Simulation[/REGION]||
 |**Floor Gap** | %doxygen:UPhATSimOptions::FloorGap% |
 |**Grav Scale** | %doxygen:UPhATSimOptions::GravScale% |
+|**Max FPS** | |
+|**Time Dilation** |  |
 |[REGION:tablesection]Mouse Spring[/REGION]||
 |**Handle Linear Damping** | %doxygen:UPhATSimOptions::HandleLinearDamping% |
 |**Handle Linear Stiffness** | %doxygen:UPhATSimOptions::HandleLinearStiffness% |
@@ -82,26 +84,31 @@ Description:피직스 애셋 툴에서 열 수 있는 피직스 바디, 피직�
 | **Consider for Bounds** | %doxygen:UBodySetup::bConsiderForBounds% |
 |[REGION:tablesection]Physics[/REGION]||
 | **Mass in KG** | Mass of the body in KG. |
-| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
-| **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
-| **Simple Collision Physical Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
+| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
 | **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
+| **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
+| **Double Sided Geometry** |  |
+| **Simple Collision Physical Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
+| **Center of Mass Offset** | %doxygen:FBodyInstance::COMNudge% |
+| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
+| **Max Angular Velocity** |  |
 | **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Override Max Depenetration Velocity** |  |
+| **Max Depenetration Velocity** |  |
+| **Override Walkable Slope on Instance** |  |
 | **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
 | **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
 | **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
-| **Cente of Mass Offset** | %doxygen:FBodyInstance::COMNudge% |
 | **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
-| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
-| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
-| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
 | **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
 | **Velocity Solver Iteration Count** | %doxygen:FBodyInstance::VelocitySolverIterationCount% |
 |[REGION:tablesection]Collision[/REGION]||
 | **Simulation Generates Hit Events** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
 | **Collision Response** | %doxygen:UBodySetup::CollisionReponse% |
 | **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
-| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
 
 ## Physics Constraint 프로퍼티
 

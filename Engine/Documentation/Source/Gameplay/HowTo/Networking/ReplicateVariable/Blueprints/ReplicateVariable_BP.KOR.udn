@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2605745
 Availability: Public
-Title:블루프린트에서 변수 리플리케이트 비법
+Title:블루프린트에서 변수 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
 Description:블루프린트에서 Replicated 및 RepNotify 변수 사용법 안내입니다.
 Related: Engine/Blueprints
@@ -8,8 +8,6 @@ Related: Resources/ContentExamples/Networking
 
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 [INCLUDE:Gameplay/HowTo/Networking/ReplicateVariable#overview]
 

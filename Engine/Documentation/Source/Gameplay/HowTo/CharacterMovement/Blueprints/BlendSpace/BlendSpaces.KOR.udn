@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2611558
 Availability: Public
 Title:4. 블렌드 스페이스 만들기
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -34,7 +34,7 @@ Description:이번 단계에서는 다양한 방향 이동시의 애니메이션
 
 	![](Blendspace_1.png)
 
-1.	**스켈레톤 선택** 창에서 스켈레톤 (**HeroTPP_Skeleton**) 을 선택한 다음 애셋 이름을 **Walk_BS** 식으로 짓습니다. 
+1.	**스켈레톤 선택** 창에서 스켈레톤 (**UE4_Mannequin_Skeleton**) 을 선택한 다음 애셋 이름을 **Walk_BS** 식으로 짓습니다. 
 
 1.	**Walk_BS** 블렌드 스페이스를 연 다음 중앙 창의 **Parameters** 아래 **X Axis Label** 을 **Direction** 으로, **Y Axis Label** 은 **Speed** 로 설정합니다. 
 

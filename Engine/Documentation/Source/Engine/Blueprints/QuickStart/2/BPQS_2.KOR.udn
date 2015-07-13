@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2599120
+﻿INTSourceChangelist:2615876
 Availability: Public
 Title:2. 발구름판 만들기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:자주 쓰이는 뷰 포트 조작법에 관한 개요입니다.
+Description:레벨에 처음 발구름판을 만듭니다.
 
 
 [VAR:Steps]
@@ -59,7 +59,7 @@ Description:자주 쓰이는 뷰 포트 조작법에 관한 개요입니다.
 
 ![](LaunchPadActor.png)
 
-여러분이 원하는 상태의 액터를 만드셨으므로, 이를 블루프린트로 변환하겠습니다.. 여러분은 블루프린트 에디터 안에서 원하는 컴포넌트를 더 추가하고, 레벨에서처럼 설정을 변경할 수 있습니다.
+여러분이 원하는 상태의 액터를 만드셨으므로, 이를 블루프린트 클래스로 변환하겠습니다.. 여러분은 블루프린트 에디터 안에서 원하는 컴포넌트를 더 추가하고, 레벨에서처럼 설정을 변경할 수 있습니다.
 
 
 ---

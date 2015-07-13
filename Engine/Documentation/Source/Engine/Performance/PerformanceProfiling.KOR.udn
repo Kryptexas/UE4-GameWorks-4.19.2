@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2607480
 Availability:Public
 Title: 퍼포먼스와 프로파일링
 Crumbs: %ROOT%, Engine
@@ -123,7 +123,7 @@ Navigation:topic
 
 [REGION:note]
 일부 기능은 아무것도 렌더링하지 않아도 퍼포먼스를 잡아먹는 것이 있습니다. 예로 **show particles** 는 파티클을 감추지만 나중에 다시 켤 때를 대비해 시뮬레이션 시간은 
-여전히 필요합니다. **fx.freezeparticlesimulation** 콘솔 변수르 업데이트 부분을 끌 수 있기는 합니다 (에디터 UI 에도 존재합니다).
+여전히 필요합니다. **fx.freezeparticlesimulation** 콘솔 변수로 업데이트 부분을 끌 수 있기는 합니다 (에디터 UI 에도 존재합니다).
 또다른 예로 **show tesselation** 은 트라이앵글 증폭 기능을 끄지만 여전히 테셀레이션 셰이더를 사용합니다.
 [/REGION:note]
 

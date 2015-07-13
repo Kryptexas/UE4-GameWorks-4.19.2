@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2561549
+﻿INTSourceChangelist:2607599
 Availability: Public
-Title:블루프린트에서 타이머 사용 비법
+Title:블루프린트에서 타이머 사용법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
 Description:블루프린트에서 타이머를 사용하는 비법 안내입니다.
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 블루프린트의 게임플레이 용도의 **Timer** 및 타이머 관련 노드 사용법을 다룹니다.
  

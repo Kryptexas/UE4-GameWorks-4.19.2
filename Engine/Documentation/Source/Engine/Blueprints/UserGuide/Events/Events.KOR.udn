@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2599455
+﻿INTSourceChangelist:2615425
 Availability:Public
 Title:이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -154,7 +154,7 @@ _이 블루프린트 액터가 Player Actor 변수에 저장된 액터를 제외
 | **My Comp** | **PrimitiveComponent** - 걸렸던 실행 액터 상의 컴포넌트입니다. |
 | **Other** | **Actor** - 콜리전에 관계된 다른 액터입니다. |
 | **Other Comp** | **PrimitiveComponent** - 걸렸던 콜리전에 관계된 다른 액터상의 컴포넌트입니다. |
-| **Self Moved** | **Boolean** - |
+| **Self Moved** | **Boolean** - (false 인 경우) 다른 오브젝트의 운동에서의 적중을 받는 데 사용됩니다. Hit Normal 와 Hit Impact Normal 의 방향은 다른 오브젝트에서 적중된 오브젝트에 대한 힘을 가리키도록 조정됩니다. |
 | **Hit Location** | **Vector** - 두 충돌 액터 사이의 접촉 위치입니다. |
 | **Hit Normal** | **Vector** - 충돌의 방향입니다. |
 | **Normal Impulse** | **Vector** - 액터 충돌시의 힘입니다. |

@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2614192
+﻿INTSourceChangelist:2617573
 Availability:Docs
-Title:오디오 임포트
+Title:오디오 임포트 방법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:언리얼 에디터에 오디오 콘텐츠를 임포트하는 법을 배워봅니다.
-prereq:Engine/Basics/Projects/Browser
-Related: GettingStarted
-Related: GettingStarted/HowTo
+Description:오디오 콘텐츠 임포트 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
 Related: Engine/Audio
-Related: Engine/Content/Packs
-SkillLevel: Beginner
+SkillLevel: Intermediate
 Version: 4.8
 
 [REGION:note]

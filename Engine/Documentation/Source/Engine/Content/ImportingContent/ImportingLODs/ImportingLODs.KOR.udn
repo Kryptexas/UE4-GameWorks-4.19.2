@@ -1,34 +1,35 @@
-﻿INTSourceChangelist:2614210
+﻿INTSourceChangelist:2617595
 Availability:Docs
-Title:스켈레탈 메시 LOD 임포트
+Title:스태틱 메시 LOD 임포트 방법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:외부 프로그램에서 스켈레탈 메시 LOD 를 임포트하는 법을 배워봅니다.
-prereq:Engine/Basics/Projects/Browser
-Related: GettingStarted
+Description:스태틱 메시 LOD 임포트 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ImportingMeshes
+prereq:Engine/Content/ImportingContent/ImportingMaterials
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/ImportOptions
-Related: Engine/Animation/Persona
-Related: GettingStarted/HowTo
-Related: Engine/Content/Packs
-SkillLevel: Beginner
+Related: Engine/Content/FBX/StaticMeshes
+Related: Shared/Editor/FbxErrors
+SkillLevel: Advanced
 Version: 4.8
 
 [REGION:note]
-시작하기에 앞서, 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 이 가이드에서는 **3DS Max 와 Maya** 를 사용하기는 하지만, 저장 기능이 있는 3D 모델링 프로그램이면 무엇이든 언리얼 엔진에 **스켈레탈 메시 LOD** 임포트가 가능합니다.
+시작하기에 앞서, 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 이 가이드에서는 **3DS Max 와 Maya** 를 사용하기는 하지만, 저장 기능이 있는 3D 모델링 프로그램이면 무엇이든 언리얼 엔진에 **스태틱 메시 LOD** 임포트가 가능합니다.
 [/REGION]
 
-콘텐츠 제작자는 외부 3D 모델링 프로그램에서 스켈레탈 메시 레벨 오브 디테일 (**LOD**) 를 임포트할 수 있습니다.
+콘텐츠 제작자는 외부 3D 모델링 프로그램에서 스태틱 메시 레벨 오브 디테일 (**LOD**) 임포트가 가능합니다.
 
 ## 목적
 
-이 가이드에서는 외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 를 임포트하는 방법을 보여드리는 데 초점을 맞추고 있습니다.
+이 가이드에서는 외부 3D 모델링 프로그램에서 스태틱 메시 LOD 를 임포트하는 방법을 보여드리는 데 초점을 맞추고 있습니다.
 
 ## 목표
 
 이 튜토리얼을 마치고 나면 배울 수 있는 것은 다음과 같습니다:
 
-*	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 구성 방법
-*	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 익스포트 방법
-*	외부 3D 모델링 프로그램에서 언리얼 에디터로 스켈레탈 메시 LOD 임포트 방법
+*	외부 3D 모델링 프로그램에서 스태틱 메시 LOD 구성 방법
+*	외부 3D 모델링 프로그램에서 스태틱 메시 LOD 익스포트 방법
+*	외부 3D 모델링 프로그램에서 언리얼 에디터로 스태틱 메시 LOD 임포트 방법
 
 [REGION:warning]
 UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포트 도중 다른 버전을 사용하면 비호환 문제가 생길 수 있습니다.
@@ -36,7 +37,7 @@ UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포
 
 %Globals:DCCSelect%
 
-##	스켈레탈 메시 LOD 구성
+##	스태틱 메시 LOD 구성
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -49,7 +50,7 @@ UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODSetup]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODSetup]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -62,15 +63,11 @@ UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODSetup]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODSetup]
 	[/PARAM]
 [/OBJECT]
 
-[REGION:note]
-**멀티 파트 스켈레탈 메시** 에 대한 LOD 구성은 LOD 가 들어있는 각 부분에 그에 대한 LOD 그룹이 들어있다는 점만 빼고는 통으로 된 메시에 대한 LOD 구성과 거의 같습니다. 그 LOD 그룹 구성 프로세스 역시도 위에 언급한 것과 동일합니다.
-[/REGION]
-
-##	스켈레탈 메시 LOD 익스포트
+##	스태틱 메시 LOD 익스포트
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -83,7 +80,7 @@ UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODExport]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODS]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -96,48 +93,50 @@ UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 익스포
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODExport]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODS]
 	[/PARAM]
 [/OBJECT]
 
-##	스켈레탈 메시 LOD 임포트
+##	스태틱 메시 LOD 임포트
 
-**스켈레탈 메시 LOD** 는 **페르소나** 의 **메시 디테일** 패널 **LOD Settings** 아래에서 임포트할 수 있습니다.
+1.	에디터 안에서 **임포트** 버튼을 **클릭** 합니다 (아래 그림).
 
-[REGION:note]
-페르소나는 UE4 의 애니메이션 편집 툴세트입니다. 자세한 정보는 [](Engine/Animation/Persona) 문서를 참고하세요.
-[/REGION]
+	![](ImportButton_UI.png)
 
-1. 스켈레탈 메시에 LOD 를 적용하려면, **콘텐츠 브라우저** 에서 애니메이션 애셋을 **더블클릭** 하여 **페르소나** 를 엽니다 (예제 시퀀스는 아래 그림).
+1.	임포트하고자 하는 FBX 파일을 찾아 선택합니다 (아래 그림 예제).
 
-	![](OpeningPersona.png)
+	![](ImportDialogBox.png)
 
-1.	**메시 디테일** 패널에서 스크롤을 내려 **LOD Settings** 섹션을 찾은 다음 **LOD Import** 옵션을 클릭합니다 (아래 그림).
+1.	**열기** 를 클릭하여 프로젝트로 메시 임포트를 시작합니다 (위 그림).
 
-	![](LOD_Import.png)
+1.	**FBX 임포트 옵션** 대화창에서 알맞은 세팅을 선택합니다 (아래 그림 예제).
 
-1.	파일 탐색기에서 임포트하고자 하는 FBX 파일을 찾아 선택합니다 (예제는 아래 그림).
-	
-	![](ImportFileBrowser.png)
+	![](ImportMeshLODs_Option.png)
 
-1.	임포트된 LOD 가 이제 **메시 디테일** 패널에 추가됩니다 (아래 그림).
-
-	![](LOD_Added.png)
-
-1.	각 LOD 아래 **Display Factor** 세팅은 LOD 를 언제 사용할지를 나타냅니다. 아래 예제 그림에서 LOD0 은 위치가 **스켈레탈 메시** 보다 가까울 때 사용되는 반면, LOD1 은 멀 때 사용됩니다.
-
-	![](LODs_Set.png)
-
-	[REGION:note]
-	**Display Factor** 에 작은 값을 사용하면 자신의 위치가 **스켈레탈 메시** 보다 멀리 있을 때 그 LOD 를 사용하라는 것이고, 큰 값을 사용하면 가까이 있을 때 사용하라는 것입니다.
+	[REGION:warning]
+	기본 세팅으로 충분할테지만, **Import LODs** (LOD 임포트) 옵션이 켜졌는지 확인합니다 (위 그림).
 	[/REGION]
 
-1.	LOD 를 임포트하거나 추가할 때, **Reduction Settings** 역시도 LOD 에 대해 조정 가능합니다.
+1.	**임포트** 또는 **모두 임포트** 를 클릭하여 프로젝트에 메시를 임포트합니다.
 
-	![](LOD_ReductionSettings.png)
+	![](FBX_DialogBox.png)
 
-이 튜토리얼을 마칩니다. 배우신 내용은 다음과 같습니다:
+	[REGION:note]
+	LOD 를 임포트할 때 임포트된 메시의 이름은 기본 [작명 규칙](Engine/Content/FBX/ImportOptions#작명규칙) 을 따릅니다. 모든 세팅 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions) 문서를 참고하세요.
+	[/REGION]
 
-&#x2713;	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 구성 방법
-&#x2713;	외부 3D 모델링 프로그램에서 스켈레탈 메시 LOD 익스포트 방법
-&#x2713;	외부 3D 모델링 프로그램에서 언리얼 에디터로 스켈레탈 메시 LOD 임포트 방법
+1.	프로세스가 성공한 경우 결과 메시가 **콘텐츠 브라우저** 에 표시됩니다 (아래 그림 예제).
+
+	![](ImportedStaticMesh.png)
+
+1.	스태틱 메시를 **더블클릭** 하여 **스태틱 메시 에디터** 에서 엽니다. **스태틱 메시 에디터** 에서 임포트된 메시를 연 뒤 **자동 LOD** 드롭다운을 클릭하여 LOD 를 순환시켜 볼 수 있습니다 (아래 그림 클릭).
+
+	[REGION:lightbox]
+		[![](AutoLOD.png)(w:925)](AutoLOD.png)
+	[/REGION]
+
+이 튜토리얼을 마칩니다. 지금까지 배운 내용은 다음과 같습니다:
+
+&#x2713;	외부 3D 모델링 프로그램에서 스태틱 메시 LOD 구성 방법
+&#x2713;	외부 3D 모델링 프로그램에서 스태틱 메시 LOD 익스포트 방법
+&#x2713;	외부 3D 모델링 프로그램에서 언리얼 에디터로 스태틱 메시 LOD 임포트 방법

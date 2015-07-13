@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2607737
 Availability:Public
 Title: GPU 프로파일링
 Crumbs: %ROOT%, Engine
@@ -19,7 +19,7 @@ GPU 에는 많은 유닛들이 병렬 작업중이어서 프레임의 각기 다
 | ![](ProfileGPU.png)(w:474) |
 | :----: | 
 | 콘솔: ProfileGPU |
-| 단축키: Ctrl Shift , |
+| 단축키: Ctrl+Shift+, |
 [/REGION]
 
     ...

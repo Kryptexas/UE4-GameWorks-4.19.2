@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2615847
 Availability: Public
 Title:레벨 디자인 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -48,7 +48,7 @@ Related: Engine/Actors/Volumes
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 **Leveldesign_Workflow** 맵은 레벨 디자이너의 반복 레벨 디자인 프로세스에 있어 좋은 참고가 될 수 있는데, 이 예제에서는 **Prototype** 프로토타입, **Meshing** 메싱, **Lighting** 라이팅, **Polish** 폴리시의 네 단계로 나뉘어 있습니다.
 
 각 단계마다 각기 다른 목표가 설정되어 초기 단계는 토대를 닦는 (대충 생각해서 플레이가능한 레벨을 만드는) 것에 집중하고, 후반 단계에서는 그 토대를 기반으로 (이미 배치된 것을 개선시키고 디테일을 미세 조정하여) 쌓아나갑니다.

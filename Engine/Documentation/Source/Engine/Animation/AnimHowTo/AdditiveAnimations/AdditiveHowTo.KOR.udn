@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2601030
+﻿INTSourceChangelist:2615721
 Availability: Public
 Title:애디티브 애니메이션 사용하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -192,7 +192,17 @@ Related: Engine/Animation/AnimationBlending
 
 1.	**컴파일**, **저장** 후 **블루프린트** 를 닫고 에디터에서 플레이합니다.
 
-	![](AdditiveGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	N96shYlF0Aw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 이제 **왼쪽 마우스 버튼** 을 누르면 캐릭터에 발사 애님 몽타주가 재생되는 것이 보일 것입니다. 발사하면서 돌아다닐 수도 있고, 심지어 발사하면서 (**C** 키를 눌러) 웅크리는 것도 가능합니다.
 

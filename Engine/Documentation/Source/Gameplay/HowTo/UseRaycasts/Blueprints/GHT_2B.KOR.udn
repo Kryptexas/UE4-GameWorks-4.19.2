@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2561449
+﻿INTSourceChangelist:2607491
 Availability: Public
-Title:블루프린트에서 레이캐스트 (트레이싱) 사용 비법
+Title:블루프린트에서 레이캐스트 (트레이싱) 사용법
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
 Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 사용 비법 안내입니다.
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 **싱글** 및 **멀티** 레이캐스트 사이의 차이점은 물론, 콜리전 정보 수집을 위한 각각의 구성 방법을 배워보도록 하겠습니다.
 

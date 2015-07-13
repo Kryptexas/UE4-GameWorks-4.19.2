@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2612738
+﻿INTSourceChangelist:2615780
 Availability: Public
 Title:배열 작업
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -161,12 +161,6 @@ _이 예제에서는 **시작용 콘텐츠를 포함** 한 **블루프린트 3�
 1.	**Get** 핀을 끌어 놓은 다음 **Get Actor Transform** 노드를 검색 추가합니다.
 
 	![](HT24.png)
-
-	**Get Actor Transform** 노드는 **선택된 액터** 섹션이 아닌 **Utilities** 섹션 아래 있는 것입니다.
-
-	![](HT25b.png)
-
-	레벨에 아직 액터를 선택해 두었기 때문에, 위에는 **Get Actor Transform** 옵션이 둘 있습니다. 빨강 박스의 노드는 레벨에 선택된 모든 액터에 대한 트랜스폼을 구해오는데, 원하는 동작이 아닙니다. 월드 아웃라이너로 돌아가서 액터 선택을 해제하거나, 위에서 노랑 박스의 단수용을 선택하면 됩니다.
 
 1.	**Get Actor Transform** 의 **Return Value** 를 **Spawn Actor** 노드의 **Spawn Transform** 핀에 연결합니다.
 

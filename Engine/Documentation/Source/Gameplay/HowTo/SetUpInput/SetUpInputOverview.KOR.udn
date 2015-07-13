@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2543502
+﻿INTSourceChangelist:2606313
 Availability: Public
-Title:입력 구성 비법
+Title:입력 구성
 Crumbs: %ROOT%, Gameplay
 Description:언리얼 엔진 4 에서 입력을 구성하는 비법 안내서입니다.
 
-
-##개요
 
 캐릭터, 비히클, 비행선 애셋같은 것을 임포트하거나 만든 이후에는, 플레이어 **입력** 에 어떻게 반응하는지를 정의해야 합니다. 입력 정의는 기본적으로 (키 누름이나 뗌과 같은) **액션 매핑** 및 (연속된 범위의 입력인) **축 매핑** 에 대한 사용자 정의 **바인딩** 을 통해 이루어집니다.
 

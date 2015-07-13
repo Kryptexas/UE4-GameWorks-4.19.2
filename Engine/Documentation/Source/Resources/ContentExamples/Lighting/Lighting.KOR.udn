@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2615877
 Availability: Public
 Title:라이팅 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -50,8 +50,6 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 
 [TOC(start:2 end:2)]
 
-
-## 개요
 
 Content Examples (콘텐츠 예제) 프로젝트 안의 **Lighting** 맵에는 언리얼 엔진 4 에서 사용할 수 있는 여러가지 유형의 라이트뿐만 아니라 좀 더 사실적으로 라이팅된 환경을 조성하는 데 도움이 될 수 있도록 조절할 수 있는 세팅도 확인할 수 있습니다.
 맵은 여러 부분으로 나뉘어 있으며, 첫 번째와 두 번째 섹션에서는 라이트 유형과 라이트 모빌리티를, 나머지에서는 섀도잉, 감쇠, 고급 테크닉을 다룹니다.

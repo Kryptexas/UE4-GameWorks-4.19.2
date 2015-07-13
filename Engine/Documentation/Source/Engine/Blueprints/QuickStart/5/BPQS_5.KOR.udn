@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2615876
 Availability: Public
 Title:5. 액터가 겹치는지 확인하기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:레벨에 있는 소수의 액터에 변종을 추가해 볼 차례입니다.
+Description:캐릭터만 도약시킬 수 있도록, 발구름판과 겹친 것이 캐릭터인지 확인합니다.
 
 [VAR:Steps]
 [OBJECT:Navigation]

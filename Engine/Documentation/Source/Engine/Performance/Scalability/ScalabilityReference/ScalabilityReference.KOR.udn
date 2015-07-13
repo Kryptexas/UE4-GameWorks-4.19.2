@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539492
+﻿INTSourceChangelist:2607733
 Availability:Public
 Title: Scalability, 엔진 퀄리티 참고서
 Crumbs: %ROOT%, Engine, Engine/Performance/Scalability
@@ -49,7 +49,6 @@ Description:Scalability, 엔진 퀄리티 옵션, 프로퍼티, 콘솔 변수입
 
 [TOC(start:2)]
 
-## 개요
 
 엔진 퀄리티(Scalability) 세팅은 다양한 플랫폼과 하드웨어에서 게임에 최적의 퍼포먼스를 유지하기 위한 여러가지 퀄리티 세팅을 조절할 수 있는 기능입니다.
 
@@ -66,9 +65,11 @@ Description:Scalability, 엔진 퀄리티 옵션, 프로퍼티, 콘솔 변수입
 
 언리얼 엔진 4 는 씬을 저해상도로 렌더링한 다음 이미지 스케일을 키워 목표 해상도에 맞출 수 있습니다. 2D 유저 인터페이스는 보통 퍼포먼스가 적게 들고 저해상도로 인한 피해가 크기 때문에, UI 에는 이 기법을 적용하지 않습니다. 샘플링을 키우는 데 미미한 비용이 있기는 하지만, 들일만한 가치는 있습니다.
 
-![](SC_00007.png)(w:920)
 
+![](SC_00007.png)(w:920)
+[REGION:caption]
 _왼쪽: AA 없이 50%, 가운데: AA 켜고 50%, 오른쪽: AA 켜고 100% (해상도 스케일 없음)_
+[/REGION]
 
 [REGION:note]
 입력 이미지를 부드럽게 하면 샘플링을 키우는 단계에 도움이 됩니다. 즉 이 엔진 퀄리티 옵션은 다른 퀄리티 옵션: 안티앨리어싱 퀄리티의 수혜를 받는다는 뜻입니다.
@@ -82,8 +83,9 @@ _왼쪽: AA 없이 50%, 가운데: AA 켜고 50%, 오른쪽: AA 켜고 100% (해
 오브젝트는 뷰어와의 거리에 따라 컬링 가능합니다. 기본적으로 모든 오브젝트는 거리 컬링되지 않습니다 (Desired max draw distance 가 0 입니다). 디자이너가 지정하는 값 위에 배수처럼 작동하는 글로벌 엔진 퀄리티 세팅이 있습니다 (r.ViewDistanceScale). 여기서는 약간의 풀 오브젝트가 보입니다 (Desired max draw distance 1000):
 
 ![](SC_00006.png)(w:920)
-
+[REGION:caption]
 _왼쪽: `r.ViewDistanceScale 0.4`, 가운데: `r.ViewDistanceScale 0.7`, 오른쪽: `r.ViewDistanceScale 1.0` (default)_
+[/REGION]
 
 
 ## 안티앨리어싱
@@ -91,10 +93,10 @@ _왼쪽: `r.ViewDistanceScale 0.4`, 가운데: `r.ViewDistanceScale 0.7`, 오른
 [REGION:lightbox]
 [![](ScaleR_AA_small.png)(w:920)](ScaleR_AA.png)
 [/REGION]
-
-_왼쪽에서부터:_ `r.PostProcessAAQuality` _0 부터 6 까지. 처음 셋은 **뷰 -> 엔진 퀄리티 옵션 -> AA** 를 **낮음**, **중간**, **높음/에픽** 으로 설정한 것입니다._
-
-`r.PostProcessAAQuality` 콘솔 명령으로 안티앨리어싱 퀄리티 레벨을 조절하면, (FXAA 든 템포럴 AA 든) 사용중인 안티앨리어싱 메소드의 퀄리티가 조정됩니다. 어느 안티앨리어싱 메소드든, `r.PostProcessAAQuality` 에 0 값이 사용되면 이펙트를 끕니다. FXAA 의 경우 값이 2, 4, 6 인 경우 그 이펙트를 위 이미지에서 볼 수 있는데, 각진 변의 부드러운 정도가 나아지고 있습니다. 6 이상의 값은 효과가 없습니다.
+[REGION:caption]
+왼쪽에서부터: r.PostProcessAAQuality 0 부터 6 까지. 처음 셋은 **뷰 -> 엔진 퀄리티 옵션 -> AA** 를 **낮음**, **중간**, **높음/에픽** 으로 설정한 것입니다.
+[/REGION]
+r.PostProcessAAQuality 콘솔 명령으로 안티앨리어싱 퀄리티 레벨을 조절하면, (FXAA 든 템포럴 AA 든) 사용중인 안티앨리어싱 메소드의 퀄리티가 조정됩니다. 어느 안티앨리어싱 메소드든, `r.PostProcessAAQuality` 에 0 값이 사용되면 이펙트를 끕니다. FXAA 의 경우 값이 2, 4, 6 인 경우 그 이펙트를 위 이미지에서 볼 수 있는데, 각진 변의 부드러운 정도가 나아지고 있습니다. 6 이상의 값은 효과가 없습니다.
 
 템포럴 AA 의 경우, 높은 값을 사용할 수록 이펙트의 채우기 속도와 퀄리티에 반비례 관계가 있습니다. 템포럴 AA 로 `r.PostProcessAAQuality 2` 정도면 정착 속도가 빠르지만 이펙트로 생기는 지터링이 더욱 도드라집니다. `r.PostProcessAAQuality 4` 는 정착 속도가 느리지만 지터링은 없습니다.
 
@@ -104,8 +106,9 @@ _왼쪽에서부터:_ `r.PostProcessAAQuality` _0 부터 6 까지. 처음 셋은
 [REGION:lightbox]
 [![](SC_PostProcessComp.png)(w:900)](SC_PostProcessComp.png)
 [/REGION]
-
-`sg.PostProcessQuality` _0 은 왼쪽, 3 은 오른쪽._
+[REGION:caption]
+sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
+[/REGION]
 
 **뷰** -> **엔진 퀄리티 세팅** -> **포스트 프로세싱** 옵션은 `[UE4_InstallPath]/Engine/Config` 폴더에 위치한 `BaseScalaiblity.ini` 파일에서 찾을 수 있는 세팅에 맞춰 포스트 프로세싱 이펙트의 퀄리티를 조절합니다. _낮음_ 세팅은 `sg.PostProcessQuality 0` 에, _에픽_ 세팅은 `sg.PostProcessQuality 3` 에 해당합니다.
 
@@ -194,8 +197,9 @@ _왼쪽에서부터:_ `r.PostProcessAAQuality` _0 부터 6 까지. 처음 셋은
 [REGION:lightbox]
 [![](SC_ShadowQualLevels.png)(w:900)](SC_ShadowQualLevels.png)
 [/REGION]
-
-`sg.ShadowQuality` _0 은 왼쪽, 3 은 오른쪽._
+[REGION:caption]
+sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
+[/REGION]
 
 **뷰** -> **엔진 퀄리티 세팅** -> **섀도우** 옵션으로 `[UE4_InstallPath]/Engine/Config` 폴더에 위치한 `BaseScalaiblity.ini` 파일에서 찾을 수 있는 세팅에 맞게 다이내믹 섀도우 퀄리티를 조절합니다. _낮음_ 세팅은 `sg.ShadowQuality 0` 에, _에픽_ 은 `sg.ShadowQuality 3` 에 해당합니다.
 

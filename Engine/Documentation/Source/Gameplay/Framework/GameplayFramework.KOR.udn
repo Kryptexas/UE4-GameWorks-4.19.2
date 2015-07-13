@@ -1,11 +1,8 @@
-INTSourceChangelist:2118574
+﻿INTSourceChangelist:2611047
 Availability:Public
 Title:게임플레이 프레임워크
 Crumbs:%ROOT%, Gameplay
 Description:게임의 틀을 이루는 게임 규칙, 플레이어 입력과 콘트롤, 카메라, 유저 인터페이스 등의 코어 시스템입니다.
-
-
-## 개요
 
 다양한 게임 프레임웍 부분이 어떻게 서로 조합되는지를 보이기 위한 간단한 예제는 이렇습니다. 토끼와 달팽이가 경주를 하는 
 게임의 개념을 간단히 그려 봅시다. 게임 프레임웍의 바탕은 **GameMode** 입니다. **GameMode** 에서는 게임의 규칙을 설정,

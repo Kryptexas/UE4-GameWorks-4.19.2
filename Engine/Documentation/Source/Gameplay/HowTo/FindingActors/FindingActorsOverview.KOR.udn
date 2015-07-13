@@ -1,11 +1,8 @@
-﻿INTSourceChangelist:2474155
+﻿INTSourceChangelist:2612381
 Availability: Public
-Title:액터 검색 비법
+Title:액터 검색
 Crumbs: %ROOT%, Gameplay
 Description:언리얼 엔진 4 에서 씬에 있는 액터를 검색하는 비법 안내입니다.
-
-
-##개요
 
 게임 제작을 시작하고 레벨을 만들다 보면, 씬에 있는 액터를 검색하기가 까다롭게 느껴질 때가 옵니다. 레벨 세트 조각이나 지오메트리에서부터 NPC 와 적, 조작 가능한 오브젝트나 픽업에 이르기까지 씬에 있는 액터가 수백개에 달하여 그 중 하나를 찾다 보면 "모래사장에서 바늘찾기" 같은 옛말이 떠오르게 마련입니다.
 

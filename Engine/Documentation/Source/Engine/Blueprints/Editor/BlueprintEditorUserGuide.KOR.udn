@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2615611
 Availability:Public
 Title:블루프린트 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -73,10 +73,10 @@ Blueprint (블루프린트) 비주얼 스크립팅 시스템은 UE4 전반에 �
 		애니메이션 블루프린트 UI
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Animation/Persona:description%
+		%Engine/Animation/AnimBlueprints/Interface:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona]
+		[RELATIVE:Engine/Animation/AnimBlueprints/Interface]
 	[/PARAM]
 [/OBJECT]
 [/REGION]

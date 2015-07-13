@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614173
+﻿INTSourceChangelist:2617094
 Availability: Public
 Title:마티네
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -290,7 +290,17 @@ Troopers 1, 2, 3 에 할당된 **Visibility** 트랙은 단순히 씬에 캐릭�
 
 씬에는 두 개의 **스포트 라이트** 가 추가되어 각 샷마다 추가적인 캐릭터 라이팅을 주고 있습니다. 이 **스포트 라이트** 각각은 **무버블** 설정되어 있어 **Movement** 트랙을 사용하여 위치를 잡고 있습니다. 추가적으로 각 라이트의 **Intensity** (명도), **LightColor** (라이트 컬러), **Radius** (반경)은 샷에 따라 씬 도중 조절됩니다. 무엇이 벌어지는지 더욱 명쾌한 설명은 아래 그림을 살펴보세요.
 
-![](ShowingLightsGif.gif)(w:480 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kfJeFFGuEPQ
+[/PARAMLITERAL]
+[/OBJECT]
 
 **마티네 미리보기** 가 아니라 에디터 뷰에서 씬을 바라볼 때는, 샷의 필요에 따라 라이트가 켜졌다/꺼지고 위치도 조정되는 것을 볼 수 있습니다.
 
@@ -610,10 +620,26 @@ _이미지를 클릭하면 크게 볼 수 있습니다._
 샷에 삼등분 법칙(Rule of Thirds)을 활용해 보도록 하세요. 프레임의 상하, 좌우를 가상의 선으로 삼등분한 뒤 피사체를 가상선상이나 화면의 인상적인 포인트를 세 개의 가상선이 만나는 네 개의 꼭지점 위에 위치시키는 사진 촬영 기법입니다.
 
 [REGION:imagetable]
-| ![](RuleOfThirds-SideBySide.gif)(w:480 convert:false) |![](RuleofThirdsMatinee.png)(w:320)|
+| [INCLUDE:#v11] |![](RuleofThirdsMatinee.png)(h:240)|
 | :---: | :---: |
 | 센터 샷 vs 삼등분 법칙 샷 | 마티네 예제 |
 [/REGION]
+
+<!--
+[EXCERPT:v11]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+460
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+240
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+xnuP2mepDjs
+[/PARAMLITERAL]
+[/OBJECT]
+[/EXCERPT]
+-->
 
 #### 샷 프레임 잡기
 

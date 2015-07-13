@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2607967
 Availability:Public
 Title: 게임 저장하기
 Crumbs:%ROOT%, Gameplay
 Description:게임 저장 및 로드 방법에 대한 개요입니다.
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 게임 저장 및 로드 구성을 위한 가장 간단한 방법은 SaveGame 오브젝트를 사용하는 것입니다.
 

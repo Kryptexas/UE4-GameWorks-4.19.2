@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2606008
 Availability:Public
 Title:플립북 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks
@@ -11,7 +11,6 @@ Related: Engine/Content/Types/Textures
 
 [TOC (start:2 end:2)]
 
-## 플립북 에디터 개요
 
 **Flipbook Editor**, 플립북 에디터에서는 개별 플립북 애셋을 구성 및 편집하고, 스프라이트의 시퀀스 플레이를 편집하며, 스프라이트가 표시되는 기간을 미세조정하거나, **Frames Per Second** (초당 프레임) 옵션을 통해 플립북 애니메이션의 전체 재생 속도를 결정할 수 있습니다.
 
@@ -132,7 +131,7 @@ Related: Engine/Content/Types/Textures
 
 스프라이트 (또는 플립북) 애셋을 **콘텐츠 브라우저** 에서 끌어 타임라인 위에 놓습니다.
 
-![](Adding1.png)
+![](Timeline6.png)
 
 그러면 스프라이트가 타임라인에 추가될 뿐만 아니라 **디테일** 패널 안에 **키 프레임** 섹션이 업데이트됩니다.
 
@@ -163,6 +162,7 @@ Related: Engine/Content/Types/Textures
 ### 디폴트 머티리얼
 
 **Default Material** (디폴트 머티리얼)은 플립북 플레이어에 사용할 머티리얼을 결정합니다 (디폴트 머티리얼이 자동 할당됩니다).
+
 
 
 

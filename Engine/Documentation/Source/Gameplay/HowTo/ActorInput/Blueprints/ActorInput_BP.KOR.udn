@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2545631
+﻿INTSourceChangelist:2611123
 Availability: Public
-Title:블루프린트로 액터에 입력 구성 비법
+Title:블루프린트로 액터에 입력 구성
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
 Description:블루프린트로 액터에 입력을 구성하는 비법 안내서입니다.
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 액터에 대한 **입력 활성화** 및 **입력 비활성화** 의 기본적인 방법에 대해 다룹니다. 액터에 입력을 활성화시키면, 플레이어가 버튼이나 키를 눌렀을 때 액터에 어떤 식으로든 (라이트를 켜고 끈다든가, 문을 열고 닫는다든가, 무언가를 활성화시키는 등) 영향을 끼치는 이벤트를 실행시킵니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2611424
 Availability: Public
 Title:피지컬 머티리얼 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
@@ -46,7 +46,6 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 
 [TOC(start:2)]
 
-## 개요
 
 이 글에서는 **Physical Materials** (피지컬 머티리얼)을 생성하고 사용하는 법 뿐만 아니라 프로젝트에 대한 **SurfaceTypes** (서피스 타입)을 활성화시키고 편집하는 법에 대해 알아보겠습니다.
 
@@ -70,17 +69,10 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 
 ### 서피스 타입
 
-기본적으로 언리얼 엔진 4 는 30 개 까지의 Surface Types (서피스 타입)을 지원합니다. 이름은 원하는 대로 붙일 수 있으며, `프로젝트 루트 디렉토리\Config\DefaultEngine.ini` 파일에 저장됩니다. 대부분의 프로젝트 템플릿에는 `\[PhysicalMaterial.SurfaceTypes\]` 카테고리가 포함되지도 않고, 서피스 타입에 대한 정의가 포함되지도 않지만, DefaultEngine.ini 에 다음과 같은 줄을 추가하여 쉽게 활성화시킬 수 있습니다:
+기본적으로 언리얼 엔진 4 는 62 개 까지의 Surface Types (서피스 타입)을 지원합니다. 이름은 원하는 대로 붙일 수 있으며, `프로젝트 루트 디렉토리\Config\DefaultEngine.ini` 파일에 저장됩니다.
 
-	[PhysicalMaterial.SurfaceTypes]
-	SurfaceType1=Glass
-	SurfaceType2=Metal
-	SurfaceType3=Wood
-	SurfaceType4=Concrete
-	...
-	SurfaceType30=CollapsedStar
 
-추가한 후 DefaultEngine.ini 파일을 저장합니다. 서피스 타입이 피지컬 머티리얼이나 블루프린트의 열거형에 나타나도록 하려면, 프로젝트를 다시 로드해 줘야 합니다.
+
 
 ## 사용법
 
@@ -143,10 +135,12 @@ Description:피지컬 머티리얼 생성 및 응용 방법 안내서입니다.
 ![](PhysMat_PhAT_04.png)(w:920)
 [/REGION]
 
-스켈레탈 메시와의 물리 상호작용에 대한 기본 동작은 연관된 피직스 애셋하고만 상호작용하는 것이므로, 스켈레탈 메시의 머티리얼에 있는 피지컬 머티리얼은 사용되지 않습니다.
+스켈레탈 메시와의 물리 상호작용에 대한 기본 동작은 연관된 피직스 애셋하고만 상호작용하는 것이므로, 스켈레탈 메시의 머티리얼에 있는 피지컬 머티리얼은 
+사용되지 않습니다.
 
 [REGION:note]
-피직스 애셋을 가지고 '단순 콜리전 피지컬 머티리얼'을 설정하고 있기는 하지만, 피직스 애셋에 대해 트레이스를 할 때는 복합 트레이스를 해 줘야 하며, 거기서 걸린 피직스 바디의 **Simple Collision Physical Material** 프로퍼티에 나열된 피지컬 머티리얼을 반환해 줍니다.
+피직스 애셋을 가지고 '단순 콜리전 피지컬 머티리얼'을 설정하고 있기는 하지만, 피직스 애셋에 대해 트레이스를 할 때는 복합 트레이스를 해 줘야 하며, 
+거기서 걸린 피직스 바디의 **Simple Collision Physical Material** 프로퍼티에 나열된 피지컬 머티리얼을 반환해 줍니다.
 [/REGION]
 
 ### 스태틱 메시

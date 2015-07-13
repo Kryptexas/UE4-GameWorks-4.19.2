@@ -1,38 +1,40 @@
-﻿INTSourceChangelist:2614195
+﻿INTSourceChangelist:2617595
 Availability:Docs
-Title:메시 임포트
+Title:스태틱 메시 임포트 방법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
-Description:외부 프로그램에서 메시를 임포트하는 법을 배워봅니다.
-prereq:Engine/Basics/Projects/Browser
-Related: GettingStarted
+Description:스태틱 메시 임포트 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
+Related: Engine/Content/FBX/BestPractices
 Related: Engine/Content/FBX/ImportOptions
-Related: GettingStarted/HowTo
-Related: Engine/Content/Packs
-SkillLevel: Beginner
+Related: Engine/Content/FBX/StaticMeshes
+Related: Shared/Editor/FbxErrors
+SkillLevel: Intermediate
 Version: 4.8
 
 [REGION:note]
-시작하기 전에: 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 여기서는 **3DS MAX** 와 **Maya** 를 사용합니다만, 저장 기능이 있는 3D 모델링 프로그램이면 무엇이든 언리얼 엔진에 메시를 임포트할 수 있습니다.
+시작하기 전에: 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 여기서는 **3DS MAX** 와 **Maya** 를 사용합니다만, 저장 기능이 있는 3D 모델링 프로그램이면 무엇이든 언리얼 엔진에 **스태틱 메시** 를 임포트할 수 있습니다.
 [/REGION]
 
-콘텐츠 제작자는 외부 3D 모델링 어플리케이션에서 언리얼 엔진으로 메시를 임포트할 수 있습니다.
+콘텐츠 제작자는 외부 3D 모델링 어플리케이션에서 언리얼 엔진으로 스태틱 메시를 임포트할 수 있습니다.
 
 ## 목적
 
-이 가이드에서는 외부 3D 모델링 프로그램에서 메시를 임포트하는 법을 보여드리는 데 초점을 맞춥니다.
+이 가이드에서는 외부 3D 모델링 프로그램에서 스태틱 메시를 임포트하는 법을 보여드리는 데 초점을 맞춥니다.
 
 ## 목표
 
 이 튜토리얼에서 배울 수 있는 내용은 다음과 같습니다:
 
-*	외부 3D 모델링 프로그램에서 언리얼 에디터로 메시를 임포트하는 방법
-*	프로젝트 폴더에 애셋이 제대로 임포트되었는지 확인하는 방법
+*	외부 3D 모델링 프로그램에서 언리얼 에디터로 스태틱 메시를 임포트하는 방법
+*	프로젝트 폴더에 스태틱 메시가 제대로 임포트되었는지 확인하는 방법
 
-## 3D 모델링 프로그램에서 임포트
+[INCLUDE:Engine/Content/FBX#versionwarning]
 
 %Globals:DCCSelect%
 
-[INCLUDE:Engine/Content/FBX#versionwarning]
+## 외부 3D 모델링 프로그램에서 스태틱 메시 임포트
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -62,17 +64,17 @@ Version: 4.8
 	[/PARAM]
 [/OBJECT]
 
-## 임포트된 애셋 확인
+## 임포트된 스태틱 메시 확인
 
-하드 디스크에 ** *.uasset ** 파일이 제대로 임포트되었는지 확인하는 습관을 들이는 것이 좋습니다.
+1. 임포트된 메시를 **더블클릭** 하여 **스태틱 메시 에디터** 에서 확인합니다 (아래 그림).
 
-1.	에디터에서 **콘텐츠** 폴더에 **우클릭** 하여 **폴더 옵션** 대화창을 엽니다 (아래 그림).
+	[REGION:lightbox]
+		[![](Verify_StaticMeshEditor.png)(w:925)](Verify_StaticMeshEditor.png)
+	[/REGION]
 
-	![](FolderDialogBox_UI.png)
+	_**스태틱 메시 에디터** 에서 임포트된 메시를 열어 애셋이 제대로 임포트되었나 확인합니다._
 
-1.	**폴더 옵션** 아래 **탐색기에서 표시** 를 클릭합니다 (아래 그림).
+이 튜토리얼을 마칩니다. 지금까지 배운 내용은 다음과 같습니다:
 
-	![](ShowInExplorer_Selection.png)
-
-1.	탐색기가 열렸으면, 프로젝트에 알맞은 ** *.uasset ** 파일이 생성되어 있는지 확인합니다 (아래 그림).
-
+&#x2713;	외부 3D 모델링 프로그램에서 언리얼 에디터로 스태틱 메시를 임포트하는 방법
+&#x2713;	프로젝트 폴더에 스태틱 메시가 제대로 임포트되었는지 확인하는 방법

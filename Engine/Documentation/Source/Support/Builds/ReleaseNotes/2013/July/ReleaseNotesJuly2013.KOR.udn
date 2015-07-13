@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2615122
 Title: 2013년 7월 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:2013년 7월 QA 빌드 릴리즈 노트입니다.
@@ -29,16 +29,16 @@ Template:ReleaseNotes.html
 
 ## 주요 신기능
 
-####에디터 툴
-* **플러그인 에디터**
-	* 내장된 것은 물론 게임 프로젝트에 설치된 것까지, 플러그인을 확인하고 둘러보고 관리할 수 있는 새로운 인터페이스가 생겼습니다.
+####Editor Tools
+* **Plugins Editor**
+	* There is now a new interface that lets you see, browse and maintain Plugins -  both built-in plugins as well as plugins installed into your game project     
 		![](pluginsEd.png)
 	* 카테고리를 둘러보고 검색/필터를 적용하거나 플러그인 켜고/끄기나 설치해제까지, 모두 이 인터페이스에서 가능합니다.
 * **신규 PlayerController 및 마우스 인터페이스 이벤트**
 	* PlayerController 를 통한 새로운 마우스 인터페이스 / 커서 시스템이 구현되었습니다.  
 		![](nc1.png)
-	* ShowMouseCursor 로 시스템이 활성화되면 게임내 기본 마우스 커서가 표시되기 시작합니다.  주: 이 기능은 Play in Viewport 에서는 작동하지 않으며, Play in New Window 를 사용해야 합니다.
-	* 인터페이스는 매우 간단한 인풋 터치 이벤트와 인덱스 세트를 사용하여 오브젝트를 '터치' 합니다:  
+	* ShowMouseCursor enables the system and will begin displaying the default mouse cursor when in-game.  NOTE: this does not work with Play in Viewport, you must use Play in New Window
+	* The interface uses a very simple set of input touch events and index in order to "touch" an object:  
 		![](mc2bpnode.png) ![](mc2bpnode2.png) ![](mc2bpnode3.png)
 * **배치 브라우저를 통한 볼륨 추가**
 	* 이제 여러가지 유형의 볼륨을 배치 브라우저를 통해 놓을 수 있습니다!  

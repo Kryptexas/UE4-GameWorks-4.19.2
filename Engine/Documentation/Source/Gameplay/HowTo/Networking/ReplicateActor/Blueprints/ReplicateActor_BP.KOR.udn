@@ -1,14 +1,12 @@
-﻿INTSourceChangelist:2552957
+﻿INTSourceChangelist:2605612
 Availability: Public
-Title:블루프린트에서 액터 리플리케이트 비법
+Title:블루프린트에서 액터 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking/ReplicateActor
 Description:블루프린트에서 액터의 Replicates, 리플리케이트 체크박스를 사용하는 방법 안내입니다.
 Related: Engine/Blueprints
 Related: Resources/ContentExamples/Networking
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 서버와 클라이언트 머신 사이에서 액터의 **Replicates**, 리플리케이트 옵션을 사용하여 액터가 나타나도록 (또는 나타나지 않도록) 하는 법을 보여드립니다. 인용된 두 가지 예제 중, **Replicating Actors** 예제는 액터에 리플리케이트 설정을 하는 법과, 그렇게 설정한 액터와 안한 액터 사이의 차이점을 보여드립니다. 두 번째 예제는 **Switch Has Authority** (스크립트를 실행하는 것이 서버인지 클라이언트인지 검사하는) 노드를 사용하여 액터가 나타나는 위치를 조절하고 동적으로 스폰하는 법을 보여줍니다.
 

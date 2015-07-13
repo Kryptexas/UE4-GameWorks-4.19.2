@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2552957
+﻿INTSourceChangelist:2615757
 Availability: Public
-Title:블루프린트에서 함수 리플리케이트 비법
+Title:블루프린트에서 함수 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
 Description:블루프린트로 멀티플레이 게임에서 함수를 리플리케이트시키는 방법 안내입니다.
 Related: Engine/Blueprints
@@ -8,8 +8,6 @@ Related: Resources/ContentExamples/Networking
 
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 여러가지 형태의 **리플리케이티드 함수** 구성 및 사용 방법을 보여드리겠습니다.
 
@@ -215,9 +213,17 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
 1.	**컴파일**, **저장** 후 **레벨 블루프린트** 를 닫고 에디터에서 플레이합니다.
 
-	[![](ExampleImage.png)](MultiplayerExampleVideo.mp4)
-
-	_클릭하면 비디오 예제를 재생합니다._
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	KiBrcLbXbYQ
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	위 비디오에서 게임이 시작되면, **P** 를 눌러 텍스트 변수를 화면에 출력하여 각 캐릭터에 대해 "empty" 라 표시합니다. 하지만 캐릭터 중 하나가 트리거 박스에 들어서면, "Item Added" 텍스트가 표시됩니다. 캐릭터가 **P** 를 누르면 텍스트가 **Has the Item** 으로 바뀌는 반면 다른 캐릭터 각각은 여전히 "empty" 로 표시됩니다. 캐릭터가 박스를 떠나면, "Item Removed" 텍스트가 표시되고, **P** 를 다시 누르면 텍스트가 다시 **empty** 로 변경됩니다.
 

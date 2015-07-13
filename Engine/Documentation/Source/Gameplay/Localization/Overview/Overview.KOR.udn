@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2607767
 Availability:Public
-Title: 개요
+Title: 현지화 시스템 개요
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:프로젝트 현지화에 관련된 요소에 대한 개요입니다.
 
-
-## 개요
 프로젝트 현지화에는 몇 가지 핵심 개념이 있습니다:
 
 * [텍스트](#텍스트)

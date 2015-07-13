@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:2613047
+﻿INTSourceChangelist:2617595
 Availability:Docs
-Title:텍스처 임포트
+Title:텍스처 임포트 방법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:외부 프로그램에서 텍스처를 임포트하는 법을 배워봅니다.
-prereq:Engine/Basics/Projects/Browser
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
 Related: GettingStarted
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
+Related: Shared/Editor/FbxErrors
 SkillLevel: Beginner
 Version: 4.8
 

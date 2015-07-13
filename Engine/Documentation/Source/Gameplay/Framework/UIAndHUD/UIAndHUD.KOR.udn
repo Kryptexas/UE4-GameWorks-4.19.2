@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2100980
+﻿INTSourceChangelist:2611078
 Availability: Public
 Title:유저 인터페이스와 HUD
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -45,7 +45,7 @@ UI 의 가장 명확한 예는 게임 시작시 표시되는 메인 메뉴나,
 이를 통해 게임 내 캐릭터간의 대화를 표시할 수도 있고, RTS 나 RPG 처럼 좀 더 복잡한 상황에서는 
 플레이어의 무기, 갑옷, 빌드할 유닛 등의 선택을 위한 게임플레이 핵심 요소가 될 수도 있습니다.
 
-**HUD**
+## HUD
 
 **HUD** 는 화면에 겹쳐놓이는 요소를 표시하는 데 있어서의 기반 오브젝트입니다. 게임에서 사람이 제어하는 플레이어는 
 자체적인 `AHUD` 클래스를 가지고 있어, 독자적인 뷰포트를 그립니다. 분할화면 멀티플레이어 게임의 경우,

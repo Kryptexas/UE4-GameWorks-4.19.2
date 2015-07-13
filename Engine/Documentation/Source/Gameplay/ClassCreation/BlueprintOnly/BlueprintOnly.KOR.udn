@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2541616
+﻿INTSourceChangelist:2611007
 Availability:Public
 Title:블루프린트 전용
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
 Description:언리얼 엔진 작업을 시작하는 게임플레이 프로그래머를 위한 입문 정보입니다.
-
-## 개요
 
 [블루프린트 클래스](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 는 [](Engine/Blueprints) 비주얼 스크립팅 시스템을 사용해서 새로운 클래스를 구성할 수 있습니다. [새 블루프린트 클래스 생성](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) 이후에는,
 컴포넌트를 추가하고, 비주얼 스크립팅으로 함수나 기타 게임플레이 또는 디자인 방식을 구성하고, 클래스 변수의 기본값을 설정합니다. LightSwitch 클래스는 **LightSwitch_BPOnly** 라는 이름의 

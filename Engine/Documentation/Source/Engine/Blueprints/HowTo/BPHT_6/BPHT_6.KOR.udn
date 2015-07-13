@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2501115
+﻿INTSourceChangelist:2616790
 Availability: Public
 Title:6. HUD 와의 통신
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -77,7 +77,17 @@ Description:이번 단계에서는 캐릭터 블루프린트제 저장된 값에
 
 1. 메인 에디터 뷰에서 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
-	![](GameplayGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	tbwor-dRyEs
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 다 됐습니다. 간단한 슈팅 갤러리 게임이 완성되었습니다. 이 가이드 전반에 걸쳐 **이벤트 디스패처**, **Cast** 노드, **바인딩** 을 사용하여 세 가지 각기 다른 유형의 블루프린트간의 통신 방법을 배웠습니다. 레벨에서 캐릭터 블루프린트로 정보를 전달하는 방법은 물론 캐릭터에서 HUD 로 변수를 통신하는 방법도 배웠습니다.

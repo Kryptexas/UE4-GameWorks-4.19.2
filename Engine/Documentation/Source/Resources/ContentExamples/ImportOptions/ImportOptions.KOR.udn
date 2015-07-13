@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2436032
+﻿INTSourceChangelist:2615713
 Availability: Public
 Title:임포트 옵션 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -53,14 +53,14 @@ Related: Engine/Content/FBX/Materials
 [TOC(start:2 end:2)]
 
 
-## 개요
 **FBX_Import_Options** 맵은 FBX 애셋을 언리얼 엔진 4 에 임포트할 때 설정할 수 있는 몇 가지 옵션을 보여줍니다.
 
 **스태틱 메시**, **스켈레탈 메시**, **애니메이션** 애셋을 FBX 포맷으로 임포트할 때, 아래와 같은 **임포트 옵션** 대화창이 뜨게 됩니다.
 
 ![](Import_DialogBox.png)
 
-임포트하려는 애셋의 유형에 따라 머티리얼과 텍스처도 같이 임포트, LOD 옵션, 애니메이션 및 모프 타겟 옵션 등과 같은 추가적인 옵션이 뜹니다.
+임포트하려는 애셋의 유형에 따라 머티리얼과 텍스처도 같이 임포트, LOD 옵션, 애니메이션 및 모프 타겟 옵션 등과 같은 
+추가적인 옵션이 뜹니다.
 
 [region:note]
 예제의 이름을 클릭하면 각 예제에 대한 추가 자료를 찾을 수 있습니다.

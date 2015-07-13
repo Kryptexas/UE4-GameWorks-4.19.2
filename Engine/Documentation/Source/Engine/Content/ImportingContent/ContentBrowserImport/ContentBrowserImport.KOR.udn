@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2610008
+﻿INTSourceChangelist:2617642
 Availability:Docs
-Title:콘텐츠 브라우저 임포트
+Title:임포트 버튼을 사용한 임포트 방법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
 Description:콘텐츠 브라우저의 임포트 기능을 사용해서 콘텐츠를 추가하는 법을 배워봅니다.
 prereq:Engine/Basics/Projects/Browser

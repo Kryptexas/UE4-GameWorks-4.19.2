@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2573120
+﻿INTSourceChangelist:2615003
 Availability:Public
 Title:FBX 임포트 오류
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -6,13 +6,10 @@ Description:FBX 파일 임포트 도중 생성되는 오류에 대한 설명입�
 
 [TOC(start:2 end:3)]
 
-
-## 개요
-
 FBX 파일 임포트 도중 맞닥뜨릴 수 있는 오류 목록입니다.
 
 
-### 일반
+## 일반
 
 (#Generic_ImportingNewObjectFailed)
 [EXCERPT:Generic_ImportingNewObjectFailed]

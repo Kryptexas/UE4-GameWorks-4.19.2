@@ -1,273 +1,98 @@
-﻿INTSourceChangelist:2553123
+﻿INTSourceChangelist:2605821
 Availability: Public
-Title:블루프린트로 폰 빙의 비법
+Title:블루프린트로 폰 빙의
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
-Description:블루프린트로 캐릭터와 다양한 유형의 폰 사이를 전환하는 비법 안내입니다.
+Description:블루프린트로 Possess 노드를 사용하여 다수의 캐릭터를 제어하고 전환하는 법에 대한 설명입니다.
+Version: 4.8
+SkillLevel: Beginner
+Related: Engine/Blueprints
+Related: Gameplay/Framework/Pawn
+Related: Gameplay/Framework/Pawn/Character
+Related: Engine/Basics/Projects/Browser
+Related: Gameplay/Framework/Controller/PlayerController
 
-[TOC (start:2)]
+프로젝트에서 **Possess** (빙의)와 **UnPossess** [블루프린트](Engine/Blueprints) 노드를 사용하여 [Pawn](Gameplay/Framework/Pawn) 또는 [Character](Gameplay/Framework/Pawn/Character) 의 제어권을 취해 입력을 전해주는 법을 배워봅니다.
 
-## 개요
-
-여기서는 **폰 빙의** (Pawn Possessing) 및 레벨의 여러 캐릭터 사이를 전환하는 법에 대해 배워봅니다. **블루프린트** 를 통해 삼인칭 캐릭터와 조종 가능 비히클에 타고/내리는 것을 전환하는 방법도 알아봅니다.
+[REGION:note]
+이 가이드에서는 **블루프린트 횡스크롤** 템플릿을 사용하나, 원한다면 별도의 프로젝트를 사용하셔도 됩니다. 프로젝트 생성법이나 템플릿 사용법을 모르시는 경우, [프로젝트 브라우저](Engine/Basics/Projects/Browser) 페이지에서 자세한 정보를 확인하시기 바랍니다.
+[/REGION]
  
-## 여러 캐릭터 전환
+## 단계
 
-**레벨 블루프린트** 를 사용하여 여러 캐릭터 사이를 전환하는 방법은 다음과 같습니다.
+1. **콘텐츠 브라우저** 에서 추가로 제어하고자 하는 캐릭터를 레벨에 끌어놓습니다.
 
-_여기서는 **블루프린트 횡스크롤 템플릿** 프로젝트를 사용했지만, 아무 프로젝트나 사용하셔도 됩니다._
+	![](Pawns1b.png)(w:860)
 
-1.	프로젝트 안에서 제어하고자 하는 캐릭터를 추가로 레벨에 끌어 놓습니다.
-
-	![](GHT4B_1.png)
-
-	여기서는 **SideScrollerCharacter** 블루프린트를 레벨에 두 개 추가합니다.
-
-1.	레벨에 (추가했던 두 개의) 캐릭터 각각을 선택합니다.
-
-	![](GHT4B_3.png)
-
-1.	메인 툴바에서 **블루프린트** - **레벨 블루프린트 열기** 를 클릭합니다.
-
-	![](GHT4B_2.png)
-
-1.	그래프 영역에 **우클릭** 한 다음 **선택된 액터로의 레퍼런스 추가** 옵션을 선택합니다.
-
-	![](GHT4B_4.png)
-
-	이렇게 하면 버튼을 눌렀을 때, 캐릭터를 레퍼런싱하여 빙의하는 것이 가능합니다.
-
-1.	그래프에 **우클릭** 한 다음 **Event Begin Play** 노드를 추가하고, 다시 **우클릭** 한 다음 **Get Player Character** 노드를 추가합니다.
-
-1.	**Get Player Character** 의 **Return Value** 를 끌어 놓은 다음, **SideScrollerCharacter 에 형변환** 노드를 추가합니다.
-
-	![](GHT4B_5.png)
-
-	버튼을 누르면 기본 캐릭터로 되돌아갈 수 있게끔 기본 캐릭터로의 레퍼런스를 저장하겠습니다.
-
-1.	**As SideScrollerCharacter** 핀을 끌어놓은 다음 **변수로 승격** 시키고 **DefaultCharacter** 라 합니다. 
-
-	![](GHT4B_6.png)
-
-1.	그래프에 **우클릭** 한 다음 **1** Key Event, **2** Key Event, **3** Key Event 노드를 검색 추가합니다.
-
-1.	**Ctrl** 키를 누른 상태에서 앞서 만든 **DefaultCharacter** 변수를 끌어 놓습니다.
-
-	![](GHT4B_7.png)
-
-	1 을 누르면 기본, 2 를 누르면 두 번째, 3 을 누르면 세 번째 캐릭터로 전환합니다.
-
-1.	그래프에 **우클릭** 하고 **Possess** 노드를 검색 추가합니다.
-
-	![](GHT4B_8.png)
-
-	**맥락 의존적** 옵션 체크를 해제해야 목록에 노드가 나타날 수 있습니다.
-
-1.	캐릭터 각각을 **In Pawn** 핀에, **Key Event** 를 **Possess** 노드 각각에 연결합니다.
-
-	![](GHT4B_9.png)
-
-1.	그래프에 **우클릭** 한 다음 **Get Player Controller** 노드를 추가하고 각각의 **Target** 핀에 연결합니다.
-
-	![](GHT4B_10.png)(w:760)
-
-	**Possess** 노드는 **Player Controller** 를 타겟으로 하고, 디폴트 플레이어 콘트롤러를 타겟으로 할당하고 있습니다 (플레이어 콘트롤러 블루프린트가 있는 경우, 그리로 **Cast To** 한 다음 타겟에 걸어줍니다. 이 예제에서는 디폴트 콘트롤러를 사용하고 있습니다).
-
-1.	**컴파일** 버튼을 눌러 블루프린트를 컴파일하고, 메인 툴바에서 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
-
-	![](GHT4B_11.png)
-
-에디터에서 플레이할 때, 1, 2, 3 키를 눌러 레벨의 세 캐릭터를 돌아가며 전환할 수 있을 것입니다.
-
-
-
-
-## 비히클 타고/내리기
-
-삼인칭 캐릭터가 조종 가능 비히클을 타고/내리도록 하는 방법은 아래와 같습니다.
-
-_이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝트를 기반으로 하나, 원하는 프로젝트 아무거나 사용하여도 됩니다._
-
-1.	**블루프린트 비히클 템플릿** 및 **블루프린트 삼인칭 템플릿** 프로젝트를 만듭니다.
-
-1.	**블루프린트 삼인칭** 프로젝트 안에서 **Game/Blueprints** 아래 **ThirdPersonCharacter** 블루프린트에 우클릭한 다음 (**애셋 동작** 아래) **이주** 를 선택합니다.
-
-	![](GHT4B_12.png)
-
-	이 블루프린트를 **비히클** 프로젝트의 **MyDocuments/Unreal Projects/ProjectName/Content** 폴더로 이주시킵니다.
-
-1.	**비히클 프로젝트** 안에서 메인 툴바의 **월드 세팅** 옵션을 엽니다.
-
-1.	**Game Mode** 아래 **Default Pawn Class** 를 **ThirdPersonCharacter** 블루프린트로 설정합니다.
-
-	![](GHT4B_13.png)
-
-	디폴트 플레이어 캐릭터가 비히클 대신 삼인칭 캐릭터를 사용함을 나타냅니다.
-
-1.	**프로젝트 세팅** 아래 **입력** 섹션을 찾아 아래에 강조된 바인딩을 추가합니다.
-
-	![](Bindings.png)
-
-	삼인칭 캐릭터의 제어를 위해 필요한 바인딩입니다. **Scale** 값이 표시된 대로 설정되었는지도 확인합니다 (이 부분은 나중에 선호하는 조종 방식에 맞게끔 변경해도 됩니다).
+	**Content > SideScrollerBP > Blueprints** 폴더에서 레벨에 **SideScrollerCharacter** 블루프린트를 두 개 추가하여, 총 세 개가 되도록 합니다. 이 템플릿 프로젝트에는 기본적으로 캐릭터가 이미 레벨 안에 배치되어 있습니다.
 	
-1.	**콘텐츠 브라우저** 에서 **Game/Sedan** 아래 **Sedan** 블루프린트를 엽니다.
+1.	**월드 아웃라이너** 에서 제어하고자 하는 캐릭터 각각을 선택합니다.
 
-1.	**컴포넌트** 탭을 클릭하고 **컴포넌트** 창에서 **컴포넌트 추가** 를 클릭한 뒤 **Arrow** 와 **Box** 를 추가합니다.
-
-1.	화살표 이름은 **SpawnLocation**, 박스 이름은 **Trigger** 라 한 뒤 운전석 옆문으로 이동시킵니다.
-
-	![](GHT4B_15.png)
-
-	화살표는 비히클을 나올 때 캐릭터의 위치를 정의하며, 박스는 캐릭터가 비히클 탑승을 위해 충분히 가까이 있는지를 결정하는 트리거 역할을 합니다. 트리거 안에서 플레이어는 버튼을 눌러 비히클에 탑승할 수 있는 반면, 트리거 밖에서는 탑승할 수 없을 것입니다.
-
-	![](GHT4B_16.png)
-
-	박스 트리거는 운전석 옆문, 화살표는 박스 바로 바깥으로 옮겼습니다.
-
-1.	**SpawnLocation** (화살표)에 대한 **디테일** 패널에서 **위치** 아래 **Z** 를 **131.0** 으로 설정합니다.
-
-1.	**콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **ThirdPersonCharacter** 블루프린트를 엽니다.
-
-1.	**WheeledVehicle** 유형 변수 **Car**, **Bool** 변수 **NearCar** 를 추가합니다.
-
-	![](GHT4B_17.png)
-
-	여기서는 차에 대한 레퍼런스를 구해 **Car** 변수에 할당해 주겠습니다. 플레이어가 버튼을 눌러 차에 탈 수 있는지 확인하는 **Sedan** 블루프린트의 **Trigger** 에 플레이어가 들어서면 **NearCar** 를 _true_ 로 설정해 주기도 하겠습니다.
-
-1.	**Sedan** 블루프린트로 돌아와 **Player** 라는 **Character** 변수를 추가합니다.
-
-	![](GHT4B_18.png)
-
-1.	**Trigger** 박스에 **우클릭** 하고 **OnComponentBeginOverlap** 및 **OnComponentEndOverlap** 이벤트 둘 다 추가합니다.
-
-	![](GHT4B_19.png)
-
-1.	그래프에서 **OnComponentBeginOverlap** 노드의 **Other Actor** 핀을 끌어놓고 **Cast To ThirdPersonCharacter** 노드를 추가합니다.
-
-1.	**As My Character C** 핀을 끌어놓고, **Set Near Car** 변수를 추가한 다음 박스를 체크하여 **True** 로 설정합니다.
-
-	![](GHT4B_20.png)(w:780)
-
-	**Cast To** 노드를 사용하여 **ThirdPersonCharacter** 블루프린트의 변수에 접근하고 업데이트할 수 있습니다.
-
-1.	**As My Character C** 핀을 다시 끌어놓고 **Set Car** 노드를 추가한 다음, **Car** 핀을 끌어놓고 **Get Reference To Self** 노드를 추가합니다.
-
-	[REGION:lightbox]
-	[![](GHT4B_21.png)(w:780)](GHT4B_21.png)
-	[/REGION]
-
-	_이미지를 클릭하면 원래 크기로 봅니다._
-
-	여기서는 **Sedan** 블루프린트로의 레퍼런스를 만들어 **ThirdPersonCharacter** 블루프린트의 변수에 할당했습니다. 마지막에 **Print String** 노드에다 약간의 텍스트를 추가하여 **Trigger** 박스 안에 들어왔음을 알릴 수도 있습니다 (여기서는 **Enter Car** 라고 설정했습니다).
-
-1.	**OnComponentEndOverlap** 노드의 **Other Actor** 핀을 끌어놓은 다음 **Cast To ThirdPersonCharacter** 합니다.
-
-1.	**As My Character C** 핀을 끌어놓고 **Set Near Car** 노드를 추가한 다음, 박스는 체크하지 말고 **False** 로 놔둡니다.
-
-	![](GHT4B_22.png)
-
-1.	**MyBlueprint** 창에서 **Ctrl** 키를 누른 채 **SpawnLocation** 변수와 **Player** 변수를 끌어놓습니다.
-
-	![](GHT4B_29.png)
-
-1.	그래프에 **우클릭** 한 다음 **E** Key Event 를 추가하고 **Set Actor Transform** 노드에 연결합니다.
-
-1.	**SpawnLocation** 변수를 끌어놓고 **맥락 의존적** 옵션 체크를 해제한 다음, **Get World Transform** 노드를 추가합니다.
-
-1.	**Get World Transform** 을 **Set Actor Transform** 노드에 연결합니다.
-
-1.	**Player** 변수를 **Set Actor Transform** 노드의 **Target** 에 연결합니다.
-
-	![](GHT4B_23.png)
-
-	마지막 단계의 결과는 위와 같을 것입니다 (Player 노드의 남는 선은 아직 걱정하지 마세요).
-
-1.	**Player** 변수를 끌어놓고 **Set Actor Hidden in Game** 노드를 추가합니다 (박스는 체크하지 말고 놔둡니다).
-
-1.	**플레이어** 변수를 다시 끌어놓고 **Set Actor Enable Collision** 노드를 추가합니다 (콜리전을 켜려면 박스를 체크합니다).
-
-1.	그래프에 **우클릭** 한 다음 **Possess** 노드를 추가합니다.
-
-	![](GHT4B_30.png)
-
-	**Possess** 노드에 접근하려면, **맥락 의존적** 옵션 체크를 해제해야 목록에 나타날 것입니다.
-
-1.	**Player** 변수를 **Possess** 노드의 **In Pawn** 에 연결한 다음, **Target** 을 끌어놓고 **Get Player Controller** 노드를 추가합니다.
-
-1.	나머지 모든 선을 아래와 같이 연결합니다.
-
-	[REGION:lightbox]
-	[![](GHT4B_24.png)(w:780)](GHT4B_24.png)
-	[/REGION]
-
-	_이미지를 클릭하면 원래 크기로 봅니다._
-		
-1.	**ThirdPersonCharacter** 블루프린트를 열고, 그래프에서 **E** Key Event 를 추가한 다음 **Branch** (분기) 노드를 추가합니다.
-
-1.	**Crl** 키를 누르고 **NearCar** 변수를 끌어놓은 다음 **분기** 조건에 연결합니다.
-
-1.	그래프에 **우클릭** 하고 **Possess** 노드를 추가합니다 (목록에 나타나지 않으면 **맥락 의존적** 옵션 체크를 해제합니다).
-
-1.	**Ctrl** 키를 누르고 **Car** 변수를 끌어 놓은 다음 **Possess** 노드의 **In Pawn** 핀에 연결합니다.
-
-1.	**Possess** 노드의 **Target** 을 끌어놓고 **Get Player Controller** 노드를 추가하면 그래프가 아래와 비슷할 것입니다.
-
-	![](GHT4B_25.png)
-
-1.	**Possess** 노드 뒤에 **Set Actor Hidden in Game** (_True_ 로 설정된) 노드를 추가하고, **Set Actor Enable Collision** (_False_ 로 설정된) 노드를 추가합니다.
-
-1.	**Car** 변수를 끌어놓고, **맥락 의존적** 옵션을 다시 체크합니다.
-
-1.	**Set Actor Enable Collision** 노드 뒤에 **Cast To Sedan** 노드를 검색 추가합니다.
-
-1.	**As Sedan C** 핀을 끌어놓고 **Set Player** 노드를 추가한 다음 **Player** 를 끌어놓고 **Get Reference To Self** 노드를 추가합니다.
-
-1.	**ThirdPersonCharacter** 의 전체 시퀀스는 아래와 같을 것입니다.
-
-	[REGION:lightbox]
-	[![](GHT4B_26.png)(w:780)](GHT4B_26.png)
-	[/REGION]
-
-	_이미지를 클릭하면 원래 크기로 봅니다._
-
-	여기서는 **E** 키가 눌리면, (**Sedan** 블루프린트의 트리거 박스에 들어서면 설정되는 **NearCar** 가 _True_ 인 경우) 차를 빙의한 뒤, **ThirdPersonCharacter** 액터를 게임에서 숨기도록 설정하고 그 콜리전을 제거합니다. 그런 다음 **Sedan** 블루프린트더러, 비히클을 나설 때 **ThirdPersonCharacter** 에 돌아갈 수 있도록 블루프린트의 **Player** 변수가 **ThirdPersonCharacter** 블루프린트를 가리키도록 합니다.
-
-1. 레벨에 세단이 이미 배지된 경우 지웁니다. 그리고 **콘텐츠 브라우저** 에서 **Sedan** 블루프린트를 끌어 레벨에 놓습니다.
-
-1.	**컴파일** 을 클릭한 다음 메인 툴바에서 **플레이** 를 눌러 에디터에서 플레이합니다. 결과가 아래와 같을 것입니다.
-
-	![](GIF1.gif)(convert:false)
-
-	[REGION:note]
-	이 예제는 비히클을 타고/내리는 접근법에 대한 데모 시작점 역할을 염두에 두고 제작되었습니다. 이 구현으로는 각진 표면에서 비히클을 내릴 때나 비히클 점프중에 내릴 때 문제가 생길 수 있습니다.
-	[/REGION]
-
-	**Sedan** 블루프린트 안에서 **Break Transform** (트랜스폼 분해) 후 **Spawn Location** 마커의 **Pitch** 와 **Roll** 을 0 으로 만드는 스크립트 섹션을 추가하면, 비히클이 각진 곳이나 공중에 있을 때 내려도 캐릭터의 방향을 잡는데 도움이 될 것입니다.
+	![](Pawns2b.png)
 	
-	[REGION:lightbox]
-	[![](GHT4B_Add.png)(w:780)](GHT4B_Add.png)
-	[/REGION]
+1. 메인 툴바에서 **블루프린트** 버튼을 클릭하고 **레벨 블루프린트 열기** 를 선택합니다.
 
-	_이미지를 클릭하면 원래 크기로 봅니다._
+	![](Pawns3b.png)
 
+1. 그래프 영역에 **우클릭** 한 다음 맥락 메뉴에서 **선택된 액터로의 레퍼런스 생성** 옵션을 선택합니다.
+
+	![](Pawns4b.png)(w:640)
+
+	그러면 레벨에 선택한 캐릭터 각각에 대한 레퍼런싱이 가능합니다.
+
+1. 그래프 영역에 **우클릭** 한 다음 **1** 키보드 이벤트를 검색한 다음 선택합니다.
+
+	![](Pawns5b.png)(w:640)
+
+	1 키를 누르거나 뗄 때마다 이벤트를 발동시키는 것이 가능해집니다.
+
+1. 그래프에 **2** 와 **3** 키보드 이벤트를 추가합니다.
+
+1. 그래프에 우클릭한 다음 **Get Player Controller** 노드를 검색 추가합니다.
+
+	![](Pawns6b.png)(w:640)
+
+	[Player Controller](Gameplay/Framework/Controller/PlayerController) 를 사용해서 사람 플레이어의 입력을 받은 다음 폰에 대한 동작으로 변환합니다.
+
+1. Get Player Controller 노드의 **Return Value** 를 **좌클릭** 으로 끌어놓고 **Possess** 노드를 검색 추가합니다.
+
+	![](Pawns7b.png)(w:640)
+
+	Player Controller 더러 어떤 폰에 빙의하여 조종할 것인지 알려줍니다. **Possess** 함수가 호출되면, 폰이 현재 제어되고 있는지 자동으로 검사한 다음 새 폰 빙의 시도 전 **Unpossess** (빙의해제)합니다.
 	
+	플레이어가 폰의 제어권을 놓고서, 예를 들어 플레이 가능 캐릭터를 직접 조종하지 않는 관람자 모드로 들어가도록 하려는 경우에 UnPossess 함수를 사용하면 됩니다.
 
+1. **Possess** 노드를 두 개 더 만든 다음 아래와 같이 **1**, **2**, **3** 키보드 이벤트에 연결합니다.
 
-
-
-
-
-
-
-
-
-
+	![](Pawns8.png)(w:640)
 	
+	이제 1, 2, 또는 3 키가 눌리면 폰을 빙의하도록 구성했습니다. 다음으로 우리 레퍼런스에서 어떤 폰을 빙의할지 정의해야 합니다.
 
+1. 아래와 같이 **In Pawn** 핀 각각에 대해 **SideScrollerCharacter** 레퍼런스 각각을 연결합니다.
 
+	![](Pawns9.png)(w:640)
 
+	함수성 스크립팅이 완료되었으니 이제 테스트해 봅시다.
 
+1. 툴바에서 **컴파일** 을 클릭하여 스크립트를 업데이트합니다.
 
+	![](Pawns10b.png)
 
+1. 툴바에서 **플레이** 를 클릭하여 에디터에서 게임을 플레이합니다.
 
+	![](Pawns11b.png)
+	
+## 최종 결과
 
+키보드의 1, 2, 3 키를 누르면 레벨의 각 캐릭터가 전환됩니다.
 
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+RFgeogZOnvQ
+[/PARAMLITERAL]
+[/OBJECT]

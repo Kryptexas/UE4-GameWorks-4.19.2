@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2617291
 Availability:Public
 Title:블루프린트에서의 플립북 컴포넌트
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks, Engine\Paper2D\Flipbooks\Components
@@ -128,7 +128,17 @@ Related: Engine/Blueprints
 
 그 결과 아래와 같은 플립북 애니메이션 전환이 일어납니다.
 
-![](Example1GIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+o_8NIonUIEk
+[/PARAMLITERAL]
+[/OBJECT]
 
 [REGION:note]
 [프로젝트 브라우저](Engine/Basics/Projects/Browser) 의 **새 프로젝트** 아래 **2D 횡스크롤** 프로젝트 템플릿 안에서 이 부분을 직접 확인하실 수도 있습니다.
@@ -144,7 +154,22 @@ Related: Engine/Blueprints
 
 그 결과 Shift 가 눌린 상태에서는 캐릭터가 (플립북의 속도도 같이) 빨라집니다.
 
-![](Example2GIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+I9Cg9agS12o
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+
 
 
 

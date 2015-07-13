@@ -1,13 +1,11 @@
-﻿INTSourceChangelist:2552957
+﻿INTSourceChangelist:2605777
 Availability: Public
-Title:멀티플레이어 테스트 비법
+Title:멀티플레이어 테스트
 Crumbs: %ROOT%, Gameplay
 Description:멀티플레이어 게임 테스트용으로 언리얼 에디터를 구성하는 방법을 보여줍니다.
 Related: Resources/ContentExamples/Networking
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 다양한 멀티플레이어 상황 테스트용으로 에디터에 대한 몇몇 세팅을 변경하는 법에 대해 보여드립니다.
 

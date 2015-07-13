@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2561154
+﻿INTSourceChangelist:2606309
 Availability: Public
-Title:블루프린트로 플레이어 리스폰 비법
+Title:블루프린트로 플레이어 리스폰
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
 Description:언리얼 엔진 4 에서 블루프린트를 통해 플레이어 캐릭터를 리스폰하는 비법 안내서입니다.
 
 [TOC (start:2)]
-
-## 개요
 
  여기서는 **블루프린트** 로 싱글 플레이어 게임의 플레이어 캐릭터를 리스폰하는 법을 배워보겠습니다.
 
