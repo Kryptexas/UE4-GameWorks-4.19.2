@@ -194,10 +194,6 @@ public:
 		{
 			UE_LOG_ONLINE(Warning, TEXT("Failed to obtain steam user stats, user: %s error: unknown"), *UserId.ToDebugString());
 		}
-
-		// Add given user's stats to the cached list
-		FOnlineLeaderboardsSteamPtr Leaderboards = StaticCastSharedPtr<FOnlineLeaderboardsSteam>(Subsystem->GetLeaderboardsInterface());
-		Leaderboards->SetUserStatsState(UserId, bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed);
 	}
 };
 
@@ -1143,34 +1139,31 @@ public:
 		if (!bInit)
 		{
 			OperationStarted();
+			bInit = true;
+			Leaderboards->UserStatsStoreStatsFinishedDelegate.BindRaw(this, &FOnlineAsyncTaskSteamStoreStats::OnUserStatsStoreStatsFinished);
 			if (!SteamUserStats()->StoreStats())
 			{
-				bIsComplete = true;
-				bWasSuccessful = false;
-				Leaderboards->SetUserStatsStoreState(UserId, EOnlineAsyncTaskState::Failed);
-				OperationFailed();
+				OnUserStatsStoreStatsFinished(EOnlineAsyncTaskState::Failed);
+				return;
 			}
-			bInit = true;
 		}
+	}
 
-		if (bInit)
+	void OnUserStatsStoreStatsFinished(EOnlineAsyncTaskState::Type State)
+	{
+		FOnlineLeaderboardsSteamPtr Leaderboards = StaticCastSharedPtr<FOnlineLeaderboardsSteam>(Subsystem->GetLeaderboardsInterface());
+		Leaderboards->UserStatsStoreStatsFinishedDelegate.Unbind();
+
+		bIsComplete = true;
+		bWasSuccessful = State == EOnlineAsyncTaskState::Done;
+
+		if (bWasSuccessful)
 		{
-			EOnlineAsyncTaskState::Type AsyncState = Leaderboards->GetUserStatsStoreState(UserId);
-			if (AsyncState != EOnlineAsyncTaskState::InProgress)
-			{
-				bIsComplete = true;
-				bWasSuccessful = (AsyncState == EOnlineAsyncTaskState::Done) ? true : false;
-				Leaderboards->SetUserStatsStoreState(UserId, EOnlineAsyncTaskState::NotStarted);
-
-				if (bWasSuccessful)
-				{
-					OperationSucceeded();
-				}
-				else
-				{
-					OperationFailed();
-				}
-			}
+			OperationSucceeded();
+		}
+		else
+		{
+			OperationFailed();
 		}
 	}
 };
@@ -1372,7 +1365,6 @@ bool FOnlineLeaderboardsSteam::WriteLeaderboards(const FName& SessionName, const
 
 void FOnlineLeaderboardsSteam::WriteAchievementsInternal(const FUniqueNetIdSteam& UserId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& OnWriteFinishedDelegate)
 {
-	SetUserStatsStoreState(UserId, EOnlineAsyncTaskState::InProgress);
 	FOnlineAsyncTaskSteamWriteAchievements* NewTask = new FOnlineAsyncTaskSteamWriteAchievements(SteamSubsystem, UserId, WriteObject, OnWriteFinishedDelegate);
 	SteamSubsystem->QueueAsyncTask(NewTask);
 }
@@ -1380,7 +1372,6 @@ void FOnlineLeaderboardsSteam::WriteAchievementsInternal(const FUniqueNetIdSteam
 bool FOnlineLeaderboardsSteam::FlushLeaderboards(const FName& SessionName)
 {
 	FUniqueNetIdSteam UserId(SteamUser()->GetSteamID());
-	SetUserStatsStoreState(UserId, EOnlineAsyncTaskState::InProgress);
 	FOnlineAsyncTaskSteamFlushLeaderboards* NewTask = new FOnlineAsyncTaskSteamFlushLeaderboards(SteamSubsystem, SessionName, UserId);
 	SteamSubsystem->QueueAsyncTask(NewTask);
 	return true;
@@ -1447,82 +1438,8 @@ void FOnlineLeaderboardsSteam::FindLeaderboard(const FName& LeaderboardName)
 
 void FOnlineLeaderboardsSteam::CacheCurrentUsersStats()
 {
-	ISteamUser* SteamUserPtr = SteamUser();
-	if (SteamUserPtr != NULL &&
-		SteamUserPtr->BLoggedOn())
-	{
-		FUniqueNetIdSteam UserId(SteamUserPtr->GetSteamID());
-		SetUserStatsState(UserId, EOnlineAsyncTaskState::InProgress);
+	// Triggers a Steam event async to let us know when the stats are available
+	SteamUserStats()->RequestCurrentStats();
 
-		// Triggers a Steam event async to let us know when the stats are available
-		SteamUserStats()->RequestCurrentStats();
-	}
 	// TODO ONLINE - Need to validate this on user login and invalidate on user logout
 }
-
-EOnlineAsyncTaskState::Type FOnlineLeaderboardsSteam::GetUserStatsState(const FUniqueNetIdSteam& UserId)
-{
-	for (int32 UserIdx = 0; UserIdx < UserStatsReceivedState.Num(); UserIdx++)
-	{
-		if (UserStatsReceivedState[UserIdx].UserId == UserId)
-		{
-			return UserStatsReceivedState[UserIdx].StatsState;
-		}
-	}
-
-	// Default to not started when not found
-	return EOnlineAsyncTaskState::NotStarted;
-}
-
-void FOnlineLeaderboardsSteam::SetUserStatsState(const FUniqueNetIdSteam& UserId, EOnlineAsyncTaskState::Type NewState)
-{
-	// Try to update an existing user
-	for (int32 UserIdx = 0; UserIdx < UserStatsReceivedState.Num(); UserIdx++)
-	{
-		if (UserStatsReceivedState[UserIdx].UserId == UserId)
-		{
-			UserStatsReceivedState[UserIdx].StatsState = NewState;
-			return;
-		}
-	}
-
-	// Create a new user entry
-	new (UserStatsReceivedState) FUserStatsStateSteam(UserId, NewState);
-}
-
-EOnlineAsyncTaskState::Type FOnlineLeaderboardsSteam::GetUserStatsStoreState(const FUniqueNetIdSteam& UserId)
-{
-	FScopeLock ScopeLock(&UserStatsStoredLock);
-	for (int32 UserIdx = 0; UserIdx < UserStatsStoredState.Num(); UserIdx++)
-	{
-		if (UserStatsStoredState[UserIdx].UserId == UserId)
-		{
-			return UserStatsStoredState[UserIdx].StatsState;
-		}
-	}
-
-	// Default to not started when not found
-	return EOnlineAsyncTaskState::NotStarted;
-}
-
-void FOnlineLeaderboardsSteam::SetUserStatsStoreState(const FUniqueNetIdSteam& UserId, EOnlineAsyncTaskState::Type NewState)
-{
-	FScopeLock ScopeLock(&UserStatsStoredLock);
-
-	// Try to update an existing user
-	for (int32 UserIdx = 0; UserIdx < UserStatsStoredState.Num(); UserIdx++)
-	{
-		if (UserStatsStoredState[UserIdx].UserId == UserId)
-		{
-			UserStatsStoredState[UserIdx].StatsState = NewState;
-			return;
-		}
-	}
-
-	// Create a new user entry
-	new (UserStatsStoredState) FUserStatsStateSteam(UserId, NewState);
-}
-
-
-
-
