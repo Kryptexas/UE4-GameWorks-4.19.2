@@ -859,7 +859,7 @@ bool SPropertyEditorAsset::CanEdit() const
 bool SPropertyEditorAsset::CanSetBasedOnCustomClasses( const FAssetData& InAssetData ) const
 {
 	bool bAllowedToSetBasedOnFilter = true;
-	if( CustomClassFilters.Num() > 0 )
+	if( InAssetData.IsValid() && CustomClassFilters.Num() > 0 )
 	{
 		bAllowedToSetBasedOnFilter = false;
 		UClass* AssetClass = InAssetData.GetClass();
