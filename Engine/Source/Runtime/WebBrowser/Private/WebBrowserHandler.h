@@ -194,6 +194,8 @@ public:
 
 private:
 
+	bool ShowDevTools(const CefRefPtr<CefBrowser>& Browser);
+
 	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid*/
 	TWeakPtr<FWebBrowserWindow> BrowserWindowPtr;
 	
