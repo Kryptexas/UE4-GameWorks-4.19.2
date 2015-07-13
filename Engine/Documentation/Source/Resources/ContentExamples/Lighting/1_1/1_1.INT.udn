@@ -38,7 +38,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\1_1:title%](Resources\ContentExamples\Lighting\Lighting_1_1.png)
 [/REGION]
 
-This display shows a Point Light, which is the most basic type of light available in UE4. A Point Light emits light from a single point in all directions, spherically. This is most obviously seen by looking at the light's radius, which is visible when the light is selected:
+This display shows a **Point Light**, which is the most basic type of light available in UE4. A Point Light emits light from a single point in all directions, spherically. This is most obviously seen by looking at the light's radius, which is visible when the light is selected:
 
 
 ![](LightRadius_PointLight.png)(w:500)
