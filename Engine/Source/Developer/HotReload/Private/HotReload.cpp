@@ -152,6 +152,13 @@ private:
 	ECompilationResult::Type DoHotReloadInternal(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
 
 	/**
+	 * Finds all references to old CDOs and replaces them with the new ones.
+	 * Skipping UBlueprintGeneratedClass::OverridenArchetypeForCDO as it's the
+	 * only one needed.
+	 */
+	void ReplaceReferencesToReconstructedCDOs();
+
+	/**
 	* Callback for async ompilation
 	*/
 	void DoHotReloadCallback(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
@@ -350,6 +357,9 @@ private:
 
 	/** True if the directory watcher has been successfully initialized */
 	bool bDirectoryWatcherInitialized;
+
+	/** Reconstructed CDOs map during hot-reload. */
+	TMap<UObject*, UObject*> ReconstructedCDOsMap;
 };
 
 namespace HotReloadDefs
@@ -756,6 +766,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 			HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), Count, ScriptStructs.Num());
 
 			HotReloadFunctionRemap.Empty();
+
+			ReplaceReferencesToReconstructedCDOs();
+
 			Result = ECompilationResult::Succeeded;
 		}
 
@@ -776,6 +789,45 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 #endif
 	bIsHotReloadingFromEditor = false;
 	return Result;
+}
+
+void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
+{
+	if (ReconstructedCDOsMap.Num() == 0)
+	{
+		return;
+	}
+
+	TArray<UObject*> OldCDOs;
+	ReconstructedCDOsMap.GetKeys(OldCDOs);
+
+	for (FObjectIterator ObjIter; ObjIter; ++ObjIter)
+	{
+		UObject* CurObject = *ObjIter;
+
+		FFindReferencersArchive FindRefsArchive(CurObject, OldCDOs);
+
+		TMap<UObject*, int32> ReferenceCounts;
+		TMultiMap<UObject*, UProperty*> ReferencingProperties;
+
+		FindRefsArchive.GetReferenceCounts(ReferenceCounts, ReferencingProperties);
+
+		for (auto& ReferencingProperty : ReferencingProperties)
+		{
+			static const UProperty* PropertyToSkip = UBlueprintGeneratedClass::StaticClass()->FindPropertyByName(TEXT("OverridenArchetypeForCDO"));
+			if (!ReferencingProperty.Value->IsA<UObjectProperty>() || ReferencingProperty.Value == PropertyToSkip)
+			{
+				continue;
+			}
+
+			UObject* OldCDO = ReferencingProperty.Key;
+			UObjectProperty* Prop = (UObjectProperty*)ReferencingProperty.Value;
+
+			Prop->SetObjectPropertyValue((uint8*)CurObject + Prop->GetOffset_ForInternal(), ReconstructedCDOsMap[OldCDO]);
+		}
+	}
+
+	ReconstructedCDOsMap.Empty();
 }
 
 ECompilationResult::Type FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
@@ -877,7 +929,7 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 #if WITH_ENGINE
 void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass)
 {	
-	auto ReinstanceHelper = FHotReloadClassReinstancer::Create(NewClass, OldClass);
+	auto ReinstanceHelper = FHotReloadClassReinstancer::Create(NewClass, OldClass, ReconstructedCDOsMap);
 	if (ReinstanceHelper->ClassNeedsReinstancing())
 	{
 		UE_LOG(LogHotReload, Log, TEXT("Re-instancing %s after hot-reload."), NewClass ? *NewClass->GetName() : *OldClass->GetName());

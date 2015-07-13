@@ -94,7 +94,7 @@ class FHotReloadClassReinstancer : public FBlueprintCompileReinstancer
 public:
 
 	/** Sets the re-instancer up to re-instance native classes */
-	FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass);
+	FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass, TMap<UObject*, UObject*>& OutReconstructedCDOsMap);
 	
 	/** Destructor */
 	virtual ~FHotReloadClassReinstancer();
@@ -109,9 +109,9 @@ public:
 	void ReinstanceObjectsAndUpdateDefaults();
 
 	/** Creates the reinstancer as a sharable object */
-	static TSharedPtr<FHotReloadClassReinstancer> Create(UClass* InNewClass, UClass* InOldClass)
+	static TSharedPtr<FHotReloadClassReinstancer> Create(UClass* InNewClass, UClass* InOldClass, TMap<UObject*, UObject*>& OutReconstructedCDOsMap)
 	{
-		return MakeShareable(new FHotReloadClassReinstancer(InNewClass, InOldClass));
+		return MakeShareable(new FHotReloadClassReinstancer(InNewClass, InOldClass, OutReconstructedCDOsMap));
 	}
 
 	// FSerializableObject interface
@@ -125,6 +125,10 @@ protected:
 	// FBlueprintCompileReinstancer interface
 	virtual bool ShouldPreserveRootComponentOfReinstancedActor() const override { return false; }
 	// End of FBlueprintCompileReinstancer interface
+
+private:
+	/** Reference to reconstructed CDOs map in this hot-reload session. */
+	TMap<UObject*, UObject*>& ReconstructedCDOsMap;
 };
 
 #endif // WITH_ENGINE

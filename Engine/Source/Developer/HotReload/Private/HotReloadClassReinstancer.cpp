@@ -228,6 +228,8 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	// Re-create the CDO, re-running its constructor
 	ReconstructClassDefaultObject(InOldClass, CDOOuter, CDOName, CDOFlags);
 
+	ReconstructedCDOsMap.Add(OriginalCDO, InOldClass->GetDefaultObject());
+
 	// Collect the property values after re-constructing the CDO
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), ReconstructedCDOProperties);
 
@@ -260,10 +262,11 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	}
 }
 
-FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass)
+FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass, TMap<UObject*, UObject*>& OutReconstructedCDOsMap)
 	: NewClass(nullptr)
 	, bNeedsReinstancing(false)
 	, CopyOfPreviousCDO(nullptr)
+	, ReconstructedCDOsMap(OutReconstructedCDOsMap)
 {
 	ensure(InOldClass);
 	ensure(!HotReloadedOldClass && !HotReloadedNewClass);
