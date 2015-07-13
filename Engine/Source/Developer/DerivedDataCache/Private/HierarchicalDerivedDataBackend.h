@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "DDCStatsHelper.h"
+
+
 /** 
  * A backend wrapper that implements a cache hierarchy of backends. 
 **/
@@ -80,6 +83,13 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+		const static FName NAME_GetCachedData = FName(TEXT("GetCachedData"));
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		const static FName NAME_DataSize = FName(TEXT("DataSize"));
+
+		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData))
@@ -119,6 +129,7 @@ public:
 						}
 					}
 				}
+				Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), OutData.Num()));
 				return true;
 			}
 		}

@@ -6,7 +6,6 @@
 #include "TargetPlatform.h"
 #include "UObject/UObjectThreadContext.h"
 
-
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
 static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
@@ -16,25 +15,59 @@ static const FName WorldClassName = FName("World");
 #define VALIDATE_INITIALIZECORECLASSES 0
 #define EXPORT_SORTING_DETAILED_LOGGING 0
 
-#define UE_PROFILE_COOKSAVE 0
+#define UE_PROFILE_COOKSAVE 1
 #if UE_PROFILE_COOKSAVE
 
-#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); \
-	UE_LOG(LogSavePackage, Log, TEXT("Starting save package for %s"), InFilename);
+#include "CookingStatsModule.h"
+
+#define UE_OUTPUTSTATSTOLOG 0
+
+static const FName CookingStatsName("CookingStats");
+static const FName GSavePackageTransactionId(*FString::Printf(TEXT("SavePackageTransactionId%s"), *FGuid::NewGuid().ToString()));
+static uint32 GSavePackageTransactionNumber = 0;
+void CookStatsStartStat(const FName& Key, const TCHAR *Filename)
+{
+#if UE_OUTPUTSTATSTOLOG
+	UE_LOG(LogSavePackage, Log, TEXT("Starting save package for %s"), Filename);
+#endif
+
+	
+	static FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
+	static ICookingStats& CookingStats = CookingStatsModule.Get();
+
+	CookingStats.AddTagValue(Key, TEXT("Filename"), FString(Filename));
+
+}
+
+void CookStatsAddStat(const FName& Key, const FName& Tag, const float TimeMilliseconds )
+{
+#if UE_OUTPUTSTATSTOLOG
+	UE_LOG(LogSavePackage, Log, TEXT("TIMING: %s took %fms"), Tag, TimeMilliseconds);
+#endif
+	static FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
+	static ICookingStats& CookingStats = CookingStatsModule.Get();
+
+	CookingStats.AddTagValue(Key, Tag, FString::Printf(TEXT("%fms"), TimeMilliseconds));
+}
+
+
+#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); const FName CookStatsKey = FName(GSavePackageTransactionId,++GSavePackageTransactionNumber); \
+	CookStatsStartStat(CookStatsKey, InFilename);
 
 #define UE_LOG_COOK_TIME(TimeType) \
-{\
-	double CurrentTime = FPlatformTime::Seconds(); \
-	UE_LOG(LogSavePackage, Log, TEXT("TIMING: %s took %fms"), TimeType, (CurrentTime - PreviousTime) * 1000.0f); \
-	PreviousTime = CurrentTime; \
-}
+	{\
+		double CurrentTime = FPlatformTime::Seconds(); \
+		const FName Tag = FName(TimeType);\
+		CookStatsAddStat(CookStatsKey, Tag, (CurrentTime - PreviousTime) * 1000.0f);\
+		PreviousTime = CurrentTime; \
+	}
 
 #define UE_FINISH_LOG_COOK_TIME()\
-	UE_LOG_COOK_TIME(TEXT("Unaccounted time")); \
-{\
-	double CurrentTime = FPlatformTime::Seconds(); \
-	UE_LOG(LogSavePackage, Log, TEXT("Total save time: %fms"), (CurrentTime - StartTime) * 1000.0f); \
-}
+	UE_LOG_COOK_TIME(TEXT("UnaccountedTime")); \
+	{\
+		double CurrentTime = FPlatformTime::Seconds(); \
+		UE_LOG(LogSavePackage, Log, TEXT("Total save time: %fms"), (CurrentTime - StartTime) * 1000.0f); \
+	}
 
 #else
 // don't do anything
@@ -2938,7 +2971,6 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			ensureMsgf(false, TEXT("Recursive SavePackage() is not supported"));
 			return false;
 		}
-		UE_LOG_COOK_TIME(TEXT("First"));
 
 
 		
@@ -2974,12 +3006,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		FlushAsyncLoading();
 
-		UE_LOG_COOK_TIME(TEXT("Flush Async loading"));
+		UE_LOG_COOK_TIME(TEXT("FlushAsyncLoading"));
 		(*GFlushStreamingFunc)();
-		UE_LOG_COOK_TIME(TEXT("Flush streaming func"));
+		UE_LOG_COOK_TIME(TEXT("FlushStreamingFunc"));
 		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 
-		UE_LOG_COOK_TIME(TEXT("Block till all requests finished and flush handles"));
+		UE_LOG_COOK_TIME(TEXT("BlockTillAllRequestsFinished"));
 
 		check(InOuter);
 		check(Filename);
@@ -3102,7 +3134,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		UnMarkAllObjects();
 
 
-		UE_LOG_COOK_TIME(TEXT("ResetLoadersForSave UnMarkAllObjects"));
+		UE_LOG_COOK_TIME(TEXT("ResetLoadersForSaveUnMarkAllObjects"));
 
 		// Size of serialized out package in bytes. This is before compression.
 		int32 PackageSize = INDEX_NONE;
@@ -3317,7 +3349,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				TMap<UObject*, UObject*> DuplicateRedirects = UnmarkExportTagFromDuplicates();
 #endif // WITH_EDITOR
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Imports"));
+				UE_LOG_COOK_TIME(TEXT("SerializeImports"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3344,7 +3376,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Gather Localizable Text Data"));
+				UE_LOG_COOK_TIME(TEXT("GatherLocalizableTextData"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3421,7 +3453,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Mark Names"));
+				UE_LOG_COOK_TIME(TEXT("MarkNames"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3609,7 +3641,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 #endif
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Summary"));
+				UE_LOG_COOK_TIME(TEXT("SerializeSummary"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3629,7 +3661,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->NameIndices.Add(Linker->NameMap[i], i);
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Names"));
+				UE_LOG_COOK_TIME(TEXT("SerializeNames"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3648,7 +3680,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Gatherable Text Data"));
+				UE_LOG_COOK_TIME(TEXT("SerializeGatherableTextData"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3710,7 +3742,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 #endif
 
 
-				UE_LOG_COOK_TIME(TEXT("Build Export Map"));
+				UE_LOG_COOK_TIME(TEXT("BuildExportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3719,19 +3751,19 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				FObjectExportSortHelper ExportSortHelper;
 				ExportSortHelper.SortExports( Linker, Conform );
 				
-				UE_LOG_COOK_TIME(TEXT("Sort Exports nonseekfree"));
+				UE_LOG_COOK_TIME(TEXT("SortExportsNonSeekfree"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
 
 				// Sort exports for seek-free loading.
 				FObjectExportSeekFreeSorter SeekFreeSorter;
-				UE_LOG_COOK_TIME(TEXT("Sort Exports seekfree constructor"));
+				UE_LOG_COOK_TIME(TEXT("SortExportsSeekfreeConstructor"));
 				SeekFreeSorter.SortExports( Linker, Conform );
-				UE_LOG_COOK_TIME(TEXT("Sort Exports seekfree inner"));
+				UE_LOG_COOK_TIME(TEXT("SortExportsSeekfreeInner"));
 				Linker->Summary.ExportCount = Linker->ExportMap.Num();
 				
-				UE_LOG_COOK_TIME(TEXT("Sort Exports seekfree"));
+				UE_LOG_COOK_TIME(TEXT("SortExportsSeekfree"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3873,7 +3905,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
-				UE_LOG_COOK_TIME(TEXT("Build Dependency Map"));
+				UE_LOG_COOK_TIME(TEXT("BuildDependencyMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3912,7 +3944,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeImportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3927,7 +3959,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				int32 OffsetAfterExportMap = Linker->Tell();
 
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeExportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3942,7 +3974,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Dependency Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeDependencyMap"));
 
 				if (EndSavingIfCancelled(Linker, TempFilename)) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3955,7 +3987,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					*Linker << StringAssetReferencesMap[i];
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Serialize StringAssetReference Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeStringAssetReferenceMap"));
 	
 				// Save thumbnails
 				UPackage::SaveThumbnails( InOuter, Linker );
@@ -3981,7 +4013,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->StartScriptSHAGeneration();
 				}
 
-				UE_LOG_COOK_TIME(TEXT("SaveThumbNails Save AssetRegistryData SaveWorldLevelInfo"));
+				UE_LOG_COOK_TIME(TEXT("SaveThumbNailsAssetRegistryDataWorldLevelInfo"));
 				
 				{
 					FScopedSlowTask ExportScope(Linker->ExportMap.Num());
@@ -4066,7 +4098,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Exports"));
+				UE_LOG_COOK_TIME(TEXT("SerializeExports"));
 
 				// if we want to generate the SHA key, get it out now that the package has finished saving
 				if (ScriptSHABytes && Linker->ContainsCode())
@@ -4131,7 +4163,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				uint32 Tag = PACKAGE_FILE_TAG;
 				*Linker << Tag;
 
-				UE_LOG_COOK_TIME(TEXT("Serialize BulkData"));
+				UE_LOG_COOK_TIME(TEXT("SerializeBulkData"));
 
 				// We capture the package size before the first seek to work with archives that don't report the file
 				// size correctly while the file is still being written to.
@@ -4176,7 +4208,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 				
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeImportMap"));
 
 				check( Linker->Tell() == OffsetAfterImportMap );
 
@@ -4188,7 +4220,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 				check( Linker->Tell() == OffsetAfterExportMap );
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeExportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -4250,7 +4282,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							AsyncWriteCompressedFile(*(FBufferArchive*)(Linker->Saver), *NewPath, FinalTimeStamp, Linker->ForceByteSwapping(), Linker->Summary.TotalHeaderSize, ExportSizes);
 							Linker->Detach();
 						}
-						UE_LOG_COOK_TIME(TEXT("Async write"));
+						UE_LOG_COOK_TIME(TEXT("AsyncWrite"));
 					}
 					else if( bCompressFromMemory )
 					{
@@ -4262,7 +4294,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						{
 							Linker->Detach();
 						}
-						UE_LOG_COOK_TIME(TEXT("Compress from memory"));
+						UE_LOG_COOK_TIME(TEXT("CompressFromMemory"));
 					}
 					// Compress the temporarily file to destination.
 					else if( InOuter->PackageFlags & PKG_StoreCompressed )
@@ -4271,7 +4303,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						FFileCompressionHelper CompressionHelper;
 						Success = CompressionHelper.CompressFile( *TempFilename, *NewPath, Linker );
 
-						UE_LOG_COOK_TIME(TEXT("Compress from temp file"));
+						UE_LOG_COOK_TIME(TEXT("CompressFromTempFile"));
 					}
 					// Fully compress package in one "block".
 					else if( InOuter->PackageFlags & PKG_StoreFullyCompressed )
@@ -4280,7 +4312,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						FFileCompressionHelper CompressionHelper;
 						Success = CompressionHelper.FullyCompressFile( *TempFilename, *NewPath, Linker->ForceByteSwapping() );
 
-						UE_LOG_COOK_TIME(TEXT("Fully compress from temp file"));
+						UE_LOG_COOK_TIME(TEXT("FullyCompressFromTempFile"));
 					}
 					else if (bSaveAsync)
 					{
@@ -4292,7 +4324,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							AsyncWriteFile(*(FBufferArchive*)(Linker->Saver), *NewPath, FinalTimeStamp);
 							Linker->Detach();
 						}
-						UE_LOG_COOK_TIME(TEXT("Async write"));
+						UE_LOG_COOK_TIME(TEXT("AsyncWrite"));
 					}
 					// Move the temporary file.
 					else
@@ -4304,7 +4336,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							IFileManager::Get().SetTimeStamp(*NewPath, FinalTimeStamp);
 						}
 
-						UE_LOG_COOK_TIME(TEXT("Move file"));
+						UE_LOG_COOK_TIME(TEXT("MoveFile"));
 					}
 
 					// Make sure to clean up any stale .uncompressed_size files.

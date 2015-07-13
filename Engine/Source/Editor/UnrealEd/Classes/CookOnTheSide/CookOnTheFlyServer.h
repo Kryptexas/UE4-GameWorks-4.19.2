@@ -607,9 +607,10 @@ private:
 	FString OutputDirectoryOverride;
 	//////////////////////////////////////////////////////////////////////////
 	// Cook by the book options
+public:
 	struct FChildCooker
 	{
-		FChildCooker() : ReadPipe(nullptr), ReturnCode(-1), bFinished(false) { }
+		FChildCooker() : ReadPipe(nullptr), ReturnCode(-1), bFinished(false),  Thread(nullptr) { }
 
 		FProcHandle ProcessHandle;
 		FString ResponseFileName;
@@ -617,7 +618,9 @@ private:
 		void* ReadPipe;
 		int32 ReturnCode;
 		bool bFinished;
+		FRunnableThread* Thread;
 	};
+private:
 	struct FCookByTheBookOptions
 	{
 	public:
@@ -866,6 +869,15 @@ public:
 
 
 	/**
+	 * Recompile any global shader changes 
+	 * if any are detected then clear the cooked platform data so that they can be rebuilt
+	 * 
+	 * @return return true if shaders were recompiled
+	 */
+	bool RecompileChangedShaders(const TArray<FName>& TargetPlatforms);
+
+
+	/**
 	 * Force stop whatever pending cook requests are going on and clear all the cooked data
 	 * Note cook on the side / cook on the fly clients may not be able to recover from this if they are waiting on a cook request to complete
 	 */
@@ -929,6 +941,25 @@ public:
 	uint64 GetMaxMemoryAllowance() const;
 
 	/**
+	* RequestPackage to be cooked
+	*
+	* @param StandardPackageFName name of the package in standard format as returned by FPaths::MakeStandardFilename
+	* @param TargetPlatforms name of the targetplatforms we want this package cooked for
+	* @param bForceFrontOfQueue should we put this package in the front of the cook queue (next to be processed) or at the end
+	*/
+	bool RequestPackage(const FName& StandardPackageFName, const TArray<FName>& TargetPlatforms, const bool bForceFrontOfQueue);
+
+	/**
+	* RequestPackage to be cooked
+	* This function can only be called while the cooker is in cook by the book mode
+	*
+	* @param StandardPackageFName name of the package in standard format as returned by FPaths::MakeStandardFilename
+	* @param bForceFrontOfQueue should we put this package in the front of the cook queue (next to be processed) or at the end
+	*/
+	bool RequestPackage(const FName& StandardPackageFName, const bool bForceFrontOfQueue);
+
+
+	/**
 	 * Callbacks from editor 
 	 */
 
@@ -988,7 +1019,13 @@ private:
 	 * 
 	 * @return return true if all child cookers are finished
 	 */
-	bool TickChildCookers( const bool bCheckIfFinished );
+	bool TickChildCookers();
+
+	/**
+	 * CleanUPChildCookers
+	 * can only be called after TickChildCookers returns true
+	 */
+	void CleanUpChildCookers();
 
 	/**
 	 * Get all the packages which are listed in asset registry passed in.  
@@ -1150,8 +1187,6 @@ private:
 	 */
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite = false ) const;
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite, const FString& PlatformName ) const;
-
-
 
 	/**
 	 * GetSandboxAssetRegistryFilename

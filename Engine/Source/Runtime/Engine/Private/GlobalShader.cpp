@@ -508,6 +508,64 @@ void RecompileGlobalShaders()
 	}
 }
 
+bool RecompileChangedShadersForPlatform( const FString& PlatformName )
+{
+	// figure out what shader platforms to recompile
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	ITargetPlatform* TargetPlatform = TPM->FindTargetPlatform(PlatformName);
+	if (TargetPlatform == NULL)
+	{
+		UE_LOG(LogShaders, Display, TEXT("Failed to find target platform module for %s"), *PlatformName);
+		return false;
+	}
+
+	TArray<FName> DesiredShaderFormats;
+	TargetPlatform->GetAllTargetedShaderFormats(DesiredShaderFormats);
+
+
+
+	// figure out which shaders are out of date
+	TArray<FShaderType*> OutdatedShaderTypes;
+	TArray<const FVertexFactoryType*> OutdatedFactoryTypes;
+
+	// Pick up new changes to shader files
+	FlushShaderFileCache();
+
+	FShaderType::GetOutdatedTypes(OutdatedShaderTypes, OutdatedFactoryTypes);
+	UE_LOG(LogShaders, Display, TEXT("We found %d out of date shader types, and %d out of date VF types!"), OutdatedShaderTypes.Num(), OutdatedFactoryTypes.Num());
+
+	for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
+	{
+		// get the shader platform enum
+		const EShaderPlatform ShaderPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+
+		// Only compile for the desired platform if requested
+		// Kick off global shader recompiles
+		BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
+		
+		// Block on global shaders
+		FinishRecompileGlobalShaders();
+#if WITH_EDITOR
+		// we only want to actually compile mesh shaders if we have out of date ones
+		if (OutdatedShaderTypes.Num() || OutdatedFactoryTypes.Num())
+		{
+			for (TObjectIterator<UMaterialInterface> It; It; ++It)
+			{
+				(*It)->ClearCachedCookedPlatformData(TargetPlatform);
+			}
+		}
+#endif
+	}
+
+	if (OutdatedFactoryTypes.Num() || OutdatedShaderTypes.Num())
+	{
+		return true;
+	}
+	return false;
+}
+
+
+
 void RecompileShadersForRemote( 
 	const FString& PlatformName,
 	EShaderPlatform ShaderPlatformToCompile,

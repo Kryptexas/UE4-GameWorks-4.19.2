@@ -224,6 +224,15 @@ extern ENGINE_API FString GetGlobalShaderMapDDCKey();
 extern ENGINE_API FString GetMaterialShaderMapDDCKey();
 
 
+/**
+ * Recompiles global shaders and material shaders
+ * rebuilds global shaders and also 
+ * clears the cooked platform data for all materials if there is a global shader change detected
+ * can be slow
+ */
+extern ENGINE_API bool RecompileChangedShadersForPlatform(const FString& PlatformName);
+
+
 /** 
  * Recompiles global shaders
  *

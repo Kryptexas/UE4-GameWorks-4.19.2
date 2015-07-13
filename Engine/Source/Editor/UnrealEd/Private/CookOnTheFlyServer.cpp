@@ -24,6 +24,9 @@
 #include "PhysicsPublic.h"
 #include "AutoSaveUtils.h"
 
+// cooking stats
+#include "CookingStatsModule.h"
+
 // cook by the book requirements
 #include "Commandlets/ChunkManifestGenerator.h"
 #include "Engine/WorldComposition.h"
@@ -430,6 +433,18 @@ const FString& GetAssetRegistryPath()
 	return AssetRegistryPath;
 }
 
+const FString GetStatsFilename(const FString& ResponseFilename)
+{
+	if (ResponseFilename.Len())
+	{
+		return ResponseFilename + TEXT("Stats.csv");
+	}
+	else
+	{
+		static FString StatsPath = FPaths::GameSavedDir() / FString::Printf(TEXT("Stats/%sStats.csv"), *FDateTime::Now().ToString());
+		return StatsPath;
+	}
+}
 
 FString GetChildCookerResultFilename(const FString& ResponseFilename)
 {
@@ -591,6 +606,7 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitial
 
 UCookOnTheFlyServer::~UCookOnTheFlyServer()
 {
+	check(TickChildCookers() == true);
 	if ( CookByTheBookOptions )
 	{		
 		delete CookByTheBookOptions;
@@ -1137,83 +1153,70 @@ FString UCookOnTheFlyServer::GetDLCContentPath()
 COREUOBJECT_API extern bool GOutputCookingWarnings;
 
 
-
-bool UCookOnTheFlyServer::TickChildCookers(const bool bCheckIfFinished)
+bool UCookOnTheFlyServer::RequestPackage(const FName& StandardPackageFName, const TArray<FName>& TargetPlatforms, const bool bForceFrontOfQueue)
 {
-	SCOPE_TIMER(TickChildCookers);
-	bool bChildCookersFinished = true;
+	FFilePlatformRequest FileRequest(StandardPackageFName, TargetPlatforms);
+	CookRequests.EnqueueUnique(FileRequest, bForceFrontOfQueue);
+	return true;
+}
+
+
+bool UCookOnTheFlyServer::RequestPackage(const FName& StandardPackageFName, const bool bForceFrontOfQueue)
+{
+	check(IsCookByTheBookMode());
+	// need target platforms if we are not in cook by the book mode
+	FFilePlatformRequest FileRequest(StandardPackageFName, CookByTheBookOptions->TargetPlatformNames);
+	CookRequests.EnqueueUnique(FileRequest, bForceFrontOfQueue);
+	return true;
+}
+
+// should only call this after tickchildcookers returns false
+void UCookOnTheFlyServer::CleanUpChildCookers()
+{
+	if (IsCookByTheBookMode())
+	{
+		const FString MasterCookerStatsFilename = GetStatsFilename(FString());
+
+		FString AllStats;
+		ensure(FFileHelper::LoadFileToString(AllStats, *MasterCookerStatsFilename));
+		
+		for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
+		{
+			check(ChildCooker.bFinished == true);
+			const FString ChildCookerStatsFilename = GetStatsFilename(ChildCooker.ResponseFileName);
+
+			FString ChildStats;
+			ensure(FFileHelper::LoadFileToString(ChildStats, *ChildCookerStatsFilename));
+
+			AllStats += ChildStats;
+
+			if (ChildCooker.Thread != nullptr)
+			{
+				ChildCooker.Thread->WaitForCompletion();
+				delete ChildCooker.Thread;
+				ChildCooker.Thread = nullptr;
+			}
+		}
+
+		ensure(FFileHelper::SaveStringToFile(AllStats, *MasterCookerStatsFilename));
+	}
+}
+
+
+bool UCookOnTheFlyServer::TickChildCookers()
+{
 	if (IsCookByTheBookMode())
 	{
 		for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
 		{
 			if (ChildCooker.bFinished == false)
 			{
-				bool bIsCookerFinished = false;
-				int32 ReturnCode = 0;
-				if (bCheckIfFinished == true)
-				{
-					SCOPE_TIMER(CheckIfChildCookerIsFinished);
-					if (FPlatformProcess::GetProcReturnCode(ChildCooker.ProcessHandle, &ReturnCode))
-					{
-						UE_LOG(LogCook, Display, TEXT("Child cooker %s returned error code %d"), *ChildCooker.BaseResponseFileName, ReturnCode);
-						ChildCooker.ReturnCode = ReturnCode;
-						ChildCooker.bFinished = true;
-
-						if (ReturnCode != 0)
-						{
-							UE_LOG(LogCook, Error, TEXT("Child cooker %s returned error code %d"), *ChildCooker.BaseResponseFileName, ReturnCode);
-						}
-
-
-						// if the child cooker completed successfully then it would have output a list of files which the main cooker needs to process
-						const FString AdditionalPackagesFileName = GetChildCookerResultFilename(ChildCooker.ResponseFileName);
-
-						FString AdditionalPackages;
-						if (FFileHelper::LoadFileToString(AdditionalPackages, *AdditionalPackagesFileName) == false)
-						{
-							UE_LOG(LogCook, Fatal, TEXT("ChildCooker failed to write out additional packages file to location %s"), *AdditionalPackagesFileName);
-						}
-						TArray<FString> AdditionalPackageList;
-						AdditionalPackages.ParseIntoArrayLines(AdditionalPackageList);
-
-						for (const auto& AdditionalPackage : AdditionalPackageList)
-						{
-							FName Filename = FName(*AdditionalPackage);
-							FFilePlatformRequest CheckCooked = FFilePlatformRequest(Filename, CookByTheBookOptions->TargetPlatformNames);
-							if (CookedPackages.Exists(CheckCooked) == false)
-							{
-								CookRequests.EnqueueUnique(CheckCooked);
-							}
-						}
-					}
-					else
-					{
-						bChildCookersFinished = false;
-					}
-				}
-				else
-				{
-					bChildCookersFinished = false;
-				}
-
-				SCOPE_TIMER(ProcessLogOutput);
-				// process the log output from the child cooker even if we just finished to ensure that we get the end of the log
-				FString PipeContents = FPlatformProcess::ReadPipe(ChildCooker.ReadPipe);
-				if (PipeContents.Len())
-				{
-					TArray<FString> PipeLines;
-					PipeContents.ParseIntoArrayLines(PipeLines);
-
-					for (const auto& Line : PipeLines)
-					{
-						UE_LOG(LogCook, Display, TEXT("Cooker output %s: %s"), *ChildCooker.BaseResponseFileName, *Line);
-					}
-				}
+				return false;
 			}
-
 		}
 	}
-	return bChildCookersFinished;
+	return true;
+
 }
 
 
@@ -1283,7 +1286,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		{
 			SCOPE_TIMER(WaitingForChildCookers);
 			// we have nothing left to cook so we are now waiting for child cookers to finish
-			if (TickChildCookers(true) == false)
+			if (TickChildCookers() == false)
 			{
 				Result |= COSR_WaitingOnChildCookers;
 			}
@@ -1291,7 +1294,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 		else
 		{
-			if (TickChildCookers(false) == false)
+			if (TickChildCookers() == false)
 			{
 				Result |= COSR_WaitingOnChildCookers;
 			}
@@ -1486,11 +1489,21 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							FString Filename;
 							if ( FPackageName::DoesPackageExist(PackageName, NULL, &Filename) )
 							{
-								check(IsChildCooker() == false);
+
 
 								FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
 								FPaths::MakeStandardFilename(StandardFilename);
-								CookRequests.EnqueueUnique(FFilePlatformRequest(MoveTemp(FName(*StandardFilename)), MoveTemp(TargetPlatformNames)));
+								FName StandardPackageFName = FName(*StandardFilename);
+								if (IsChildCooker())
+								{
+									check(IsCookByTheBookMode());
+									// notify the main cooker that it should make sure this package gets cooked
+									CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
+								}
+								else
+								{
+									CookRequests.EnqueueUnique(FFilePlatformRequest(MoveTemp(StandardPackageFName), MoveTemp(TargetPlatformNames)));
+								}
 							}
 						}
 
@@ -3428,6 +3441,8 @@ const FString UCookOnTheFlyServer::GetCookedAssetRegistryFilename(const FString&
 	return CookedAssetRegistryFilename;
 }
 
+
+
 void UCookOnTheFlyServer::CookByTheBookFinished()
 {
 	check( IsInGameThread() );
@@ -3438,6 +3453,12 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 	
+	static const FName CookingStatsName("CookingStats");
+	FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
+	ICookingStats& CookingStats = CookingStatsModule.Get();
+
+	const FString StatsFilename = GetStatsFilename(CookByTheBookOptions->ChildCookFilename);
+	CookingStats.SaveStatsAsCSV(StatsFilename);
 
 	if (IsChildCooker())
 	{
@@ -3448,14 +3469,16 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 			UncookedPackageList.Append(UncookedPackage.ToString() + TEXT("\n\r"));
 		}
 		FFileHelper::SaveStringToFile(UncookedPackageList, *GetChildCookerResultFilename(CookByTheBookOptions->ChildCookFilename));
+
+		
+		
 	}
 	else
 	{
-		check(CookByTheBookOptions->ChildUnsolicitedPackages.Num() == 0);
-	}
+		CleanUpChildCookers();
 
-	if (IsChildCooker() == false)
-	{
+		check(CookByTheBookOptions->ChildUnsolicitedPackages.Num() == 0);
+
 		SCOPE_TIMER(SavingAssetRegistry);
 		// Save modified asset registry with all streaming chunk info generated during cook
 		const FString& SandboxRegistryFilename = GetSandboxAssetRegistryFilename();
@@ -3783,6 +3806,13 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	InitializeSandbox();
 
 
+	// need to test this out
+	/*if (RecompileChangedShaders(TargetPlatformNames))
+	{
+		// clean everything :(
+		CleanSandbox(false);
+	}*/
+
 	CookByTheBookOptions->bLeakTest = (CookOptions & ECookByTheBookOptions::LeakTest) != ECookByTheBookOptions::None; // this won't work from the editor this needs to be standalone
 	check(!CookByTheBookOptions->bLeakTest || CurrentCookMode == ECookMode::CookByTheBook);
 
@@ -3959,7 +3989,99 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 }
 
 
+bool UCookOnTheFlyServer::RecompileChangedShaders(const TArray<FName>& TargetPlatforms)
+{
+	bool bShadersRecompiled = false;
+	for (const auto& TargetPlatform : TargetPlatforms)
+	{
+		bShadersRecompiled |= RecompileChangedShadersForPlatform(TargetPlatform.ToString());
+	}
+	return bShadersRecompiled;
+}
 
+
+
+
+class FChildCookerRunnable : public FRunnable
+{
+private:
+	UCookOnTheFlyServer* CookServer;
+	UCookOnTheFlyServer::FChildCooker* ChildCooker;
+
+	void ProcessChildLogOutput()
+	{
+		// process the log output from the child cooker even if we just finished to ensure that we get the end of the log
+		FString PipeContents = FPlatformProcess::ReadPipe(ChildCooker->ReadPipe);
+		if (PipeContents.Len())
+		{
+			TArray<FString> PipeLines;
+			PipeContents.ParseIntoArrayLines(PipeLines);
+
+			for (const auto& Line : PipeLines)
+			{
+				UE_LOG(LogCook, Display, TEXT("Cooker output %s: %s"), *ChildCooker->BaseResponseFileName, *Line);
+			}
+		}
+	}
+
+public:
+	FChildCookerRunnable(UCookOnTheFlyServer::FChildCooker* InChildCooker, UCookOnTheFlyServer* InCookServer) : FRunnable(), CookServer(InCookServer), ChildCooker(InChildCooker)
+	{ }
+
+	
+	virtual uint32 Run() override
+	{
+		while (true)
+		{
+			check(ChildCooker != nullptr);
+			check(ChildCooker->bFinished == false); 
+
+			int32 ReturnCode;
+			if (FPlatformProcess::GetProcReturnCode(ChildCooker->ProcessHandle, &ReturnCode))
+			{
+				if (ReturnCode != 0)
+				{
+					UE_LOG(LogCook, Error, TEXT("Child cooker %s returned error code %d"), *ChildCooker->BaseResponseFileName, ReturnCode);
+				}
+				else
+				{
+					UE_LOG(LogCook, Display, TEXT("Child cooker %s returned %d"), *ChildCooker->BaseResponseFileName, ReturnCode);
+				}
+
+
+				// if the child cooker completed successfully then it would have output a list of files which the main cooker needs to process
+				const FString AdditionalPackagesFileName = GetChildCookerResultFilename(ChildCooker->ResponseFileName);
+
+				FString AdditionalPackages;
+				if (FFileHelper::LoadFileToString(AdditionalPackages, *AdditionalPackagesFileName) == false)
+				{
+					UE_LOG(LogCook, Fatal, TEXT("ChildCooker failed to write out additional packages file to location %s"), *AdditionalPackagesFileName);
+				}
+				TArray<FString> AdditionalPackageList;
+				AdditionalPackages.ParseIntoArrayLines(AdditionalPackageList);
+
+				for (const auto& AdditionalPackage : AdditionalPackageList)
+				{
+					UE_LOG(LogCook, Display, TEXT("Child cooker %s requested additional package %s to be cooked"), *ChildCooker->BaseResponseFileName, *AdditionalPackage);
+					FName Filename = FName(*AdditionalPackage);
+					CookServer->RequestPackage(Filename, false);
+				}
+				ProcessChildLogOutput();
+
+				ChildCooker->ReturnCode = ReturnCode;
+				ChildCooker->bFinished = true;
+				ChildCooker = nullptr;
+				return 1;
+			}
+
+			ProcessChildLogOutput();
+
+			FPlatformProcess::Sleep(0.05f);
+		}
+		return 1;
+	}
+
+};
 
 // sue chefs away!!
 void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArray<FName>& TargetPlatformNames)
@@ -4048,6 +4170,9 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 		}
 		TargetPlatformString += TargetPlatformName.ToString();
 	}
+
+	// allocate the memory here, this can't change while we are running the child threads which are handling input because they have a ptr to the childcookers array
+	CookByTheBookOptions->ChildCookers.Empty(NumCookersToSpawn);
 
 	// start the child cookers and give them each some distribution candidates
 	for (int32 CookerCounter = 0; CookerCounter < NumCookersToSpawn; ++CookerCounter )
@@ -4154,11 +4279,12 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 
 		ChildCooker.ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *CommandLine, false, true, true, NULL, 0, NULL, WritePipe);
 		ChildCooker.ReadPipe = ReadPipe;
+
+		// start threads to monitor output and finished state
+		ChildCooker.Thread = FRunnableThread::Create(new FChildCookerRunnable(&ChildCooker, this), *FString::Printf(TEXT("ChildCookerInputHandleThreadFor:%s"), *ChildCooker.BaseResponseFileName));
 	}
 
 }
-
-
 
 
 

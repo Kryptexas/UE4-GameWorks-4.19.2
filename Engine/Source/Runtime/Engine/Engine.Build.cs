@@ -51,6 +51,7 @@ public class Engine : ModuleRules
 				"RHI",
 				"ShaderCore",
 				"AssetRegistry", // Here until FAssetData is moved to engine
+                "CookingStats",
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",
