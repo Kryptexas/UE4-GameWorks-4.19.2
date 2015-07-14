@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2618157
 Title:Unreal Engine 4.1 リリース ノート
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -38,8 +38,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 ##### PlayStation 4 と Xbox One をサポート
 
 * PlayStation 4 と Xbox One に完全に対応しました。
-
 	![](xboxone_ps4.png)
+
 
 * Microsoft または SCE で開発者登録しているデベロッパーは、Xbox One または PlayStation 4 のためのエンジン ソースをそれぞれ利用できるようになりました。
 * 現在のところ、PlayStation 4 または Xbox One にプロジェクトをデプロイするには、Windows コンピュータを使って GitHub から得たソースをコンパイルする必要があります。 
@@ -89,8 +89,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 ##### 新たな内蔵型エディタ チュートリアル
 
 * エディタ内にチュートリアルが新たに内蔵されました。チュートリアルは、次のような機能を初めて使用する場合に自動的に表示されます。
-
 	[REGION:raw]
+
 	![](editor_tutorials.png)
 	[/REGION]
 
@@ -146,6 +146,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	![](UndoHistory02.png)
 
 * Window メニューから Undo History (元に戻す履歴) ウィンドウを開くことができます。(Window > Undo History)。     
+
 ##### New:ビューポート操作のリマップ 
 
 * ビューポートのための WASD 操作をユーザーがリマップできるようになりました。 
@@ -255,7 +256,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * **DiCoJamesTan (James Tan)**
     * ChildActorComponent に関する添付バグを修正。 [Fix attachment bug with ChildActorComponent ](https://github.com/EpicGames/UnrealEngine/pull/20)
 
-* **fxtentacle (Hajo Nils Krabbenh�ft)**
+* **fxtentacle (Hajo Nils Krabbenh.ft)**
     * Mac における Azimuth & Elevation の計算を修正。 [Fix Azimuth & Elevation calculation on Mac](https://github.com/EpicGames/UnrealEngine/pull/9)
 
 * **Kamayuq**
@@ -308,10 +309,10 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* New:Particle System Tutorials: (パーティクル システム チュートリアル)VFX [Lesson 1](https://wiki.unrealengine.com/Visual_Effects:_Lesson_01:_Material_Particle_Color), [Lesson 2](https://wiki.unrealengine.com/Visual_Effects:_Lesson_02:_Using_Depth_Fade) Tim Elek 著
 	* New: [Matinee Tutorial](https://wiki.unrealengine.com/Matinee_Basics:_Creating_Your_First_Matinee_Sequence) (マチネ チュートリアル)  Greg Mitchell 著
 * **ドキュメンテーション**
-	**アンリアル エディタのマニュアル**
+	* **アンリアル エディタのマニュアル**
 		* New:[Blueprint Cheat Sheet](Engine/Blueprints/UserGuide/CheatSheet)
 		* New:[Light Propagation Volumes](Engine/Rendering/LightingAndShadows/LightPropagationVolumes)
-		* New:[Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows#previewshadows)
+		* New:[Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows#シャドウのプレビュー)
 		* New:[Pivot Painter](Engine/Content/Tools/PivotPainter)
 		* New:[Mac Viewport Controls クイック リファレンス](Engine/UI/LevelEditor/Viewports/ViewportControls) 
 	* **プログラミングのガイド** 
