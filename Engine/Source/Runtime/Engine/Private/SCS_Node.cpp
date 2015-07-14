@@ -239,6 +239,12 @@ FName USCS_Node::GetVariableName() const
 
 void USCS_Node::NameWasModified()
 {
+	if(ComponentTemplate != nullptr)
+	{
+		// Ensure that the template name stays in sync with the variable name; otherwise, new SCS nodes for the same component type will recycle the subobject rather than create a new instance.
+		ComponentTemplate->Rename(*(VariableName.ToString() + TEXT("_GEN_VARIABLE")), nullptr, REN_DontCreateRedirectors);
+	}
+
 	OnNameChangedExternal.ExecuteIfBound(VariableName);
 }
 
@@ -400,6 +406,16 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 void USCS_Node::PostLoad()
 {
 	Super::PostLoad();
+
+	if(ComponentTemplate != nullptr)
+	{
+		// Fix up component templates not in sync w/ the variable name on load; if not, duplicate it to a new instance w/ a corrected name in order to ensure that it is uniquely bound to this node only.
+		const FString ComponentTemplateName = VariableName.ToString() + TEXT("_GEN_VARIABLE");
+		if(ComponentTemplateName != ComponentTemplate->GetName())
+		{
+			ComponentTemplate = static_cast<UActorComponent*>(StaticDuplicateObject(ComponentTemplate, ComponentTemplate->GetOuter(), *ComponentTemplateName));
+		}
+	}
 
 	ValidateGuid();
 }
