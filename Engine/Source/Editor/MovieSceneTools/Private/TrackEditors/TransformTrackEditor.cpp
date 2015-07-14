@@ -426,7 +426,9 @@ void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject
 	
 		if (!TransformPair.LastTransformData.IsValid())
 		{
-			bool bHasTranslationKeys = false, bHasRotationKeys = false, bHasScaleKeys = false;
+			TArray<bool> bHasTranslationKeys;
+			TArray<bool> bHasRotationKeys;
+			TArray<bool> bHasScaleKeys;			
 			TransformPair.LastTransformData.bValid = TransformTrack->Eval(KeyTime, KeyTime, TransformPair.LastTransformData.Translation, TransformPair.LastTransformData.Rotation, TransformPair.LastTransformData.Scale, bHasTranslationKeys, bHasRotationKeys, bHasScaleKeys);
 		}
 

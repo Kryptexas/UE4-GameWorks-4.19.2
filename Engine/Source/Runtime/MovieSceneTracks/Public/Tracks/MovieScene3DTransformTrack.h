@@ -170,5 +170,5 @@ public:
 	 * @param OutHasScaleKeys 	true if a scale key was evaluated
 	 * @return true if anything was evaluated. Note: if false is returned OutBool remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, bool& OutHasTranslationKeys, bool& OutHasRotationKeys, bool& OutHasScaleKeys ) const;
+	virtual bool Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, TArray<bool>& OutHasTranslationKeys, TArray<bool>& OutHasRotationKeys, TArray<bool>& OutHasScaleKeys ) const;
 };

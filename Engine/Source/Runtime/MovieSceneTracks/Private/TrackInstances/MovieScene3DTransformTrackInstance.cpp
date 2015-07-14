@@ -49,9 +49,9 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 	FVector Translation;
 	FRotator Rotation;
 	FVector Scale;
-	bool bHasTranslationKeys = false;
-	bool bHasRotationKeys = false;
-	bool bHasScaleKeys = false;
+	TArray<bool> bHasTranslationKeys;
+	TArray<bool> bHasRotationKeys;
+	TArray<bool> bHasScaleKeys;
 
 	if( TransformTrack->Eval( Position, LastPosition, Translation, Rotation, Scale, bHasTranslationKeys, bHasRotationKeys, bHasScaleKeys ) )
 	{
@@ -62,14 +62,24 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 			if (SceneComponent != NULL)
 			{
 				// Set the relative translation and rotation.  Note they are set once instead of individually to avoid a redundant component transform update.
-				SceneComponent->SetRelativeLocationAndRotation(
-					bHasTranslationKeys ? Translation : SceneComponent->RelativeLocation,
-					bHasRotationKeys ? Rotation : SceneComponent->RelativeRotation );
+				FVector NewTranslation;
+				NewTranslation[0] = bHasTranslationKeys[0] ? Translation[0] : SceneComponent->RelativeLocation[0];
+				NewTranslation[1] = bHasTranslationKeys[1] ? Translation[1] : SceneComponent->RelativeLocation[1];
+				NewTranslation[2] = bHasTranslationKeys[2] ? Translation[2] : SceneComponent->RelativeLocation[2];
 
-				if( bHasScaleKeys )
-				{
-					SceneComponent->SetRelativeScale3D( Scale );
-				}
+				FRotator NewRotation;
+				NewRotation.Roll = bHasRotationKeys[0] ? Rotation.Roll : SceneComponent->RelativeRotation.Roll;
+				NewRotation.Pitch = bHasRotationKeys[1] ? Rotation.Pitch : SceneComponent->RelativeRotation.Pitch;
+				NewRotation.Yaw = bHasRotationKeys[2] ? Rotation.Yaw : SceneComponent->RelativeRotation.Yaw;
+
+				SceneComponent->SetRelativeLocationAndRotation(NewTranslation, NewRotation);
+
+				FVector NewScale;
+				NewScale[0] = bHasScaleKeys[0] ? Scale[0] : SceneComponent->RelativeScale3D[0];
+				NewScale[1] = bHasScaleKeys[1] ? Scale[1] : SceneComponent->RelativeScale3D[1];
+				NewScale[2] = bHasScaleKeys[2] ? Scale[2] : SceneComponent->RelativeScale3D[2];
+
+				SceneComponent->SetRelativeScale3D(NewScale);
 			}
 		}
 	}

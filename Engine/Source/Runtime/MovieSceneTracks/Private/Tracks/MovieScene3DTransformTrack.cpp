@@ -95,7 +95,7 @@ bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, co
 }
 
 
-bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, bool& OutHasTranslationKeys, bool& OutHasRotationKeys, bool& OutHasScaleKeys ) const
+bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, TArray<bool>& OutHasTranslationKeys, TArray<bool>& OutHasRotationKeys, TArray<bool>& OutHasScaleKeys ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
 
@@ -104,9 +104,9 @@ bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVec
 		const UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>( Section );
 
 		// Evalulate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
-		OutHasTranslationKeys = TransformSection->EvalTranslation( Position, OutTranslation );
-		OutHasRotationKeys = TransformSection->EvalRotation( Position, OutRotation );
-		OutHasScaleKeys = TransformSection->EvalScale( Position, OutScale );
+		TransformSection->EvalTranslation( Position, OutTranslation, OutHasTranslationKeys );
+		TransformSection->EvalRotation( Position, OutRotation, OutHasRotationKeys );
+		TransformSection->EvalScale( Position, OutScale, OutHasScaleKeys );
 	}
 
 	return Section != NULL;

@@ -66,51 +66,70 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 	}
 }	
 
-bool UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
+void UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation, TArray<bool>& OutHasTranslationKeys ) const
 {
-	bool bHasTranslationKeys = Translation[0].GetNumKeys() > 0 || Translation[1].GetNumKeys() > 0 || Translation[2].GetNumKeys() > 0;
+	OutHasTranslationKeys.Add(Translation[0].GetNumKeys() > 0);
+	OutHasTranslationKeys.Add(Translation[1].GetNumKeys() > 0);
+	OutHasTranslationKeys.Add(Translation[2].GetNumKeys() > 0);
 
-	if( bHasTranslationKeys )
+	// Evaluate each component of translation if there are any keys
+
+	if (OutHasTranslationKeys[0])
 	{
-		// Evaluate each component of translation if there are any keys
 		OutTranslation.X = Translation[0].Eval( Time );
+	}
+	if (OutHasTranslationKeys[1])
+	{
 		OutTranslation.Y = Translation[1].Eval( Time );
+	}
+	if (OutHasTranslationKeys[2])
+	{
 		OutTranslation.Z = Translation[2].Eval( Time );
 	}
-
-	return bHasTranslationKeys;
 }
 
-bool UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotation ) const
+void UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotation, TArray<bool>& OutHasRotationKeys ) const
 {
-	bool bHasRotationKeys = Rotation[0].GetNumKeys() > 0 || Rotation[1].GetNumKeys() > 0 || Rotation[2].GetNumKeys() > 0;
+	OutHasRotationKeys.Add(Rotation[0].GetNumKeys() > 0);
+	OutHasRotationKeys.Add(Rotation[1].GetNumKeys() > 0);
+	OutHasRotationKeys.Add(Rotation[2].GetNumKeys() > 0);
 
-	if( bHasRotationKeys )
+	// Evaluate each component of rotation if there are any keys
+
+	if (OutHasRotationKeys[0])
 	{
-		// Evaluate each component of rotation if there are any keys
 		OutRotation.Roll = Rotation[0].Eval( Time );
+	}
+	if (OutHasRotationKeys[1])
+	{
 		OutRotation.Pitch = Rotation[1].Eval( Time );
+	}
+	if (OutHasRotationKeys[2])
+	{
 		OutRotation.Yaw = Rotation[2].Eval( Time );
 	}
-
-	return bHasRotationKeys;
-
 }
 
-bool UMovieScene3DTransformSection::EvalScale( float Time, FVector& OutScale ) const
+void UMovieScene3DTransformSection::EvalScale( float Time, FVector& OutScale, TArray<bool>& OutHasScaleKeys ) const
 {
-	bool bHasScaleKeys = Scale[0].GetNumKeys() > 0 || Scale[1].GetNumKeys() > 0 || Scale[2].GetNumKeys() > 0;
-	
-	if( bHasScaleKeys )
+	OutHasScaleKeys.Add(Scale[0].GetNumKeys() > 0);
+	OutHasScaleKeys.Add(Scale[1].GetNumKeys() > 0);
+	OutHasScaleKeys.Add(Scale[2].GetNumKeys() > 0);
+
+	// Evaluate each component of scale if there are any keys
+
+	if (OutHasScaleKeys[0])
 	{
-		// Evaluate each component of scale if there are any keys
 		OutScale.X = Scale[0].Eval( Time );
+	}
+	if (OutHasScaleKeys[1])
+	{
 		OutScale.Y = Scale[1].Eval( Time );
+	}
+	if (OutHasScaleKeys[2])
+	{
 		OutScale.Z = Scale[2].Eval( Time );
 	}
-
-	return bHasScaleKeys;
-
 }
 
 /**
