@@ -166,6 +166,12 @@ public:
 		return SpriteCollisionDomain;
 	}
 
+	// Sets the collision thickness
+	void SetCollisionThickness(float Thickness = 50.0f);
+
+	// Sets the collision domain
+	void SetCollisionDomain(ESpriteCollisionMode::Type Domain);
+
 	FBoxSphereBounds GetRenderBounds() const;
 
 	// Creates and adds a new layer and returns it

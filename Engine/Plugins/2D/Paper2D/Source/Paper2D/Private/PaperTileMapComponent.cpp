@@ -697,6 +697,51 @@ void UPaperTileMapComponent::GetTilePolygon(int32 TileX, int32 TileY, TArray<FVe
 	}
 }
 
+void UPaperTileMapComponent::SetDefaultCollisionThickness(float Thickness, bool bRebuildCollision)
+{
+	if (OwnsTileMap())
+	{
+		TileMap->SetCollisionThickness(Thickness);
+
+		if (bRebuildCollision)
+		{
+			RecreatePhysicsState();
+			UpdateBounds();
+		}
+	}
+}
+
+void UPaperTileMapComponent::SetLayerCollision(int32 Layer, bool bHasCollision, bool bOverrideThickness, float CustomThickness, bool bOverrideOffset, float CustomOffset, bool bRebuildCollision)
+{
+	if (OwnsTileMap())
+	{
+		if (TileMap->TileLayers.IsValidIndex(Layer))
+		{
+			UPaperTileLayer* TileLayer = TileMap->TileLayers[Layer];
+
+			TileLayer->SetLayerCollides(bHasCollision);
+			TileLayer->SetLayerCollisionThickness(bOverrideThickness, CustomThickness);
+			TileLayer->SetLayerCollisionOffset(bOverrideOffset, CustomThickness);
+
+			if (bRebuildCollision)
+			{
+				RecreatePhysicsState();
+				UpdateBounds();
+			}
+		}
+		else
+		{
+			UE_LOG(LogPaper2D, Warning, TEXT("Invalid layer index %d for %s"), Layer, *TileMap->GetPathName());
+		}
+	}
+}
+
+void UPaperTileMapComponent::RebuildCollision()
+{
+	RecreatePhysicsState();
+	UpdateBounds();
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

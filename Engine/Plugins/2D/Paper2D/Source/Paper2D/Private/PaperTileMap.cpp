@@ -515,6 +515,16 @@ FVector UPaperTileMap::GetTileCenterInLocalSpace(float TileX, float TileY, int32
 	}
 }
 
+void UPaperTileMap::SetCollisionThickness(float Thickness)
+{
+	CollisionThickness = Thickness;
+}
+
+void UPaperTileMap::SetCollisionDomain(ESpriteCollisionMode::Type Domain)
+{
+	SpriteCollisionDomain = Domain;
+}
+
 FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
 {
 	const float Depth = SeparationPerLayer * (TileLayers.Num() - 1);
