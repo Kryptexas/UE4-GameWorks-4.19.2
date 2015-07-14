@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537894
+﻿INTSourceChangelist:2604306
 Availability:Public
 Title:레벨 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -99,9 +99,6 @@ Description:게임 레벨과 배경 디자인 및 조성에 대한 개요서입�
 
 
 [TOC(start:2)]
-
-
-## 개요
 
 [EXCERPT:Intro]
 **레벨 에디터** (Level Editor) 는 언리얼 에디터의 핵심 레벨 제작 기능을 제공합니다. 여기서 주로 [**액터**](Engine/Actors) 를 놓고 트랜스폼 작업을 하며 그 프로퍼티를 수정하는 식으로 레벨을 만들어 확인하고 변경하게 됩니다.

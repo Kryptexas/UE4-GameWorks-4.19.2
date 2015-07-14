@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537897
+﻿INTSourceChangelist:2604286
 Availability:Public
 Title: 레이아웃 커스터마이징
 Crumbs: %ROOT%, Engine, Engine/UI
@@ -149,5 +149,9 @@ Navigation:topic
 [REGION:tip]
 레이아웃을 수동 저장하려면 **창** 메뉴에서 **레아이웃 저장** 명령을 사용하면 됩니다.
 [/REGION]
+
+
+
+
 
 

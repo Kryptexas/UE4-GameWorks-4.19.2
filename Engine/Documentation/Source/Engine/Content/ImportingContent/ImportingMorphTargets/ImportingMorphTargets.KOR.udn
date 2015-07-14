@@ -1,0 +1,184 @@
+﻿INTSourceChangelist:2617591
+Availability:Docs
+Title:모프 타겟 임포트 방법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:모프 타겟 임포트 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ImportingSkeletalMeshes
+prereq:Engine/Content/ImportingContent/ImportingMaterials
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
+Related: Engine/Content/FBX/MorphTargets
+Related: Shared/Editor/FbxErrors
+SkillLevel: Advanced
+Version: 4.8
+
+[REGION:note]
+시작하기에 앞서, 3D 모델링 프로그램을 사용할 수 있는 것이 있는지 확인하세요. 여기서는 **3DS Max** 와 **Maya** 를 사용합니다.
+[/REGION]
+
+콘텐츠 제작자는 외부 3D 모델링 프로그램에서 언리얼 엔진으로 모프 타겟을 임포트할 수 있습니다.
+
+## 목적
+
+이 가이드에서는 외부 3D 모델링 프로그램에서 모프 타겟을 임포트하는 방법을 보여드리는 데 초점을 맞춥니다.
+
+## 목표
+
+이 튜토리얼에서 알려드리고자 하는 것은 다음과 같습니다:
+
+*	언리얼 FBX 파이프라인의 모프 타겟 작명규칙.
+*	모프 타겟 구성 방법.
+*	모프 타겟 익스포트 방법.
+*	모프 타겟 임포트 방법.
+*	모프 타겟이 제대로 임포트되었는지 확인하는 방법.
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+%Globals:DCCSelect%
+
+## 모프 타겟 작명규칙
+
+언리얼에서 모프 타겟 이름을 짓는 방식은 원래 프로그램에 따라 다릅니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	이름은 블렌드셰이프 노드의 이름에 블렌드셰이프의 이름을 추가한 것이 됩니다. 예: `[BlendShapeNode]_[BlendShape]`.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	이름은 Morpher 모디파이어의 채널 이름이 됩니다.
+	[/PARAM]
+[/OBJECT]
+
+## 모프 타겟 구성
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxSetup]
+	[/PARAM]
+[/OBJECT]
+
+## 모프 타겟 익스포트
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+## 모프 타겟 임포트
+[REGION:note]
+이 가이드는 스켈레탈 메시와 함꼐 모프 타겟 임포트 방법을 알려드립니다. 스켈레탈 메시에서 모프 타겟을 개별적으로 임포트하는 법에 대해서는 [](Engine/Content/FBX/MorphTargets) 문서를 참고하시기 바랍니다.
+[/REGION]
+
+1.	에디터 안에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+
+	![](ImportButton_UI.png)
+
+1.	임포트하고자 하는 FBX 파일을 찾아 선택합니다 (아래 예제 그림).
+
+	![](ImportDialogBox.png)
+
+1.	**열기** 를 클릭하여 프로젝트에 FBX 파일 임포트를 시작합니다 (위 그림).
+
+1.	**FBX 임포트 옵션** 대화창 안에서 세팅을 적절히 선택합니다 (아래 예제 그림).
+
+	![](ImportMorphTargetsOption.png)
+
+	[REGION:warning]
+	기본 세팅으로 충분할테지만, **Import Morph Targets** (모프 타겟 임포트)가 켜져있는지는 확인해 주세요 (위 그림).
+	[/REGION]
+
+1.	**임포트** 또는 **모두 임포트** 를 클릭하여 프로젝트에 메시를 임포트합니다.
+
+	![](FBX_DialogBox.png)
+	
+	[REGION:warning]
+	경고가 (아래 그림처럼) 뜬다면, [](Shared/Editor/FbxErrors) 문서에서 해결책을 참고해 보시기 바랍니다.
+	
+	![](PotentialWarning.png)
+	[/REGION]
+
+1.	프로세스가 성공한 경우 임포트된 메시는 **콘텐츠 브라우저** 안에 나타납니다 (아래 예제 그림).
+
+	![](ImportedSKMesh.png)
+
+## 모프 타겟 확인
+
+1.	임포트된 메시를 **더블클릭** 하여 **페르소나** 에서 엽니다 (아래 그림).
+
+	[REGION:lightbox]
+		[![](InfSkelMesh_Morph1.png)(w:375)](InfSkelMesh_Morph1.png) [![](InfSkelMesh_Morph2.png)(w:375)](InfSkelMesh_Morph2.png)
+	[/REGION]
+
+	**모프 타겟 프리뷰어** 탭을 사용하여, 임포트된 모프 타겟의 세기를 조절하면서 정상 작동하는지 확인합니다.
+
+이 튜토리얼을 마칩니다. 지금까지 배운 내용은 다음과 같습니다:
+
+&#x2713;	언리얼 FBX 파이프라인의 모프 타겟 작명규칙.
+&#x2713;	모프 타겟 구성 방법.
+&#x2713;	모프 타겟 익스포트 방법.
+&#x2713;	모프 타겟 임포트 방법.
+&#x2713;	모프 타겟이 제대로 임포트되었는지 확인하는 방법.

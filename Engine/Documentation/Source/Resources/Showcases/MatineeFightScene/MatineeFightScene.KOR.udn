@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2617094
+﻿INTSourceChangelist:2618905
 Availability: Public
 Title:마티네
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -72,7 +72,17 @@ Related: Engine/Basics/Projects/CreatingTemplates
 
 씬을 분석해 보기 전, 최종 결과는 아래와 같습니다:
 
-[![](OriginalMovieThumbnail.png)(w:640)](FightSceneOriginal.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+E0L7pBBhwUo
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 * 68 초 시퀀스 기간에 걸쳐 서로 상호작용하는 다섯 개의 캐릭터로 씬이 구성되어 있습니다.
@@ -692,7 +702,17 @@ xnuP2mepDjs
 
 아래는 원래 시퀀스의 리믹스 예제입니다:
 
-[![](Remix_Thumbnail.png)(w:640)](FightSceneRemix.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kzXg1NY4Aag
+[/PARAMLITERAL]
+[/OBJECT]
 
 비디오에서 확인할 수 있듯이, 씬 변경을 위해 할 수 있는 작업이 여러가지 많습니다. 위 비디오에서 가해진 변경사항은 다음과 같습니다:
 

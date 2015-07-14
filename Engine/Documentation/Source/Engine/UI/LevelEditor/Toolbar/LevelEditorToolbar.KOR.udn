@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539074
+﻿INTSourceChangelist:2615149
 Availability:Public
 Title:레벨 에디터 툴바
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -33,6 +33,7 @@ Description:흔히 사용되는 툴과 기능을 빠르게 사용할 수 있는 
 | 명령 | 설명 |
 | ------- | ----------- |
 | ![](button_Toolbar_Save.png)| 현재 레벨을 저장합니다. |
+| ![](SourceControl.png)| [소스 콘트롤](Engine/UI/SourceControl) 솔루션을 할당하거나 접속할 수 있습니다. |
 | ![](button_Toolbar_Content.png)| 게임에 포함된 모든 콘텐츠 애셋이 표시되는 [콘텐츠 브라우저](Engine/Content/Browser) 를 엽니다. 모든 콘텐츠를 생성, 임포트, 편집하는 곳입니다. |
 | ![](button_Toolbar_marketplace.png) | 언리얼 엔진 런처의 마켓플레이스 섹션을 엽니다. |
 | ![](button_Toolbar_View.png) | 레벨 에디터의 선택, 편집, 미리보기 관련된 부분을 제어하는 데 자주 쓰이는 옵션을 모아놓은 [퀵 세팅](Engine/UI/LevelEditor/QuickSettings) 메뉴를 엽니다. |

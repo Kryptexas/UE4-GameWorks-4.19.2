@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603977
+﻿INTSourceChangelist:2617399
 Availability: Public
 Title:Location 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -10,7 +10,17 @@ Location 은 파티클 수명상의 여러 시점에서 파티클의 위치에 �
 
 ## Initial Location
 
-![psys_initial_location.gif](psys_initial_location.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+LAd89U2b-YY
+[/PARAMLITERAL]
+[/OBJECT]
 
 Initial Location(초기 위치)는 파티클의 스폰시 초기 위치를 설정하는 데 사용되는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -173,7 +183,17 @@ Emitter DirectLoc(이미터 직접위치)는 파티클의 전체 시간 동안 �
 
 ## Cylinder
 
-![psys_cylinder.gif](psys_cylinder.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+sefKMZtdGR0
+[/PARAMLITERAL]
+[/OBJECT]
 
 Cylinder(실린더)는 원통형 모양 내에서 파티클의 초기 위치를 설정하는 데 사용되는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -232,7 +252,17 @@ Cylinder (Seeded) (실린더 (시드))는 원통형 내에 파티클의 초기 �
 
 ## Sphere
 
-![psys_sphere.gif](psys_sphere.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+ZM6GkFxO-b0
+[/PARAMLITERAL]
+[/OBJECT]
 
 Sphere(구체)는 구체형 내에다 파티클의 초기 위치를 설정하는 데 사용되는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 

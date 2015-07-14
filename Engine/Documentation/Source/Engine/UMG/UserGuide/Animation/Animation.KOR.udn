@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2337789
+﻿INTSourceChangelist:2617196
 Availability:Public
 Title: 애니메이션
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -10,9 +10,6 @@ Description:UMG 에서 애니메이팅되는 UI 요소 제작법입니다.
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-
-## 개요
 
 **위젯 블루프린트 에디터** 하단에 위치한 두 창을 통해 UI 위젯의 애니메이션 구현 및 제어가 가능합니다. 우선 **애니메이션** 창에서는, 본질적으로 위젯 애니메이션을 구동시키는 데 사용되는 애니메이션 트랙을 생성할 수 있습니다. 다음, **타임라인** 창은 시간에 따라 위젯에 애니메이션이 적용되는 방식을 나타내는데, 특정 시간에 **키프레임** 을 배치한 다음 그 키프레임에서 붙은 애셋이 어떻게 나타나게 할지를 정의하는 것으로 이루어집니다 (크기, 모양, 위치, 심지어 색 옵션까지도 조정 가능합니다).
 
@@ -75,7 +72,17 @@ UMG 에서 애니메이션 작업을 시작하기 위해서는 먼저 애니메�
 이 예제는 UMG 에서만 애니메이션을 셋업하는 법에 대한 데모로, 버튼을 클릭해도 별 일이 벌어지지 않습니다.
 [/REGION]
 
-![](UMGMenuGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+R_8nsjHZ9ak
+[/PARAMLITERAL]
+[/OBJECT]
 
 1.	메인 메뉴를 원하는 대로 적당히 구성한 다음 화면에 **Button** 이 들어있는 **Vertical Box** 를 포함시킵니다.
 

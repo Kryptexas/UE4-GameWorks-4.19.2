@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603956
+﻿INTSourceChangelist:2618972
 Availability: Public
 Title:Collision 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -12,7 +12,17 @@ Description:파티클과 액터의 충돌 처리를 담당하는 모듈입니다
 
 ### Collision
 
-![psys_collision.gif](psys_collision.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+uD7MQf6sZZU
+[/PARAMLITERAL]
+[/OBJECT]
 
 이미터가 파티클의 충돌을 처리할 수 있도록 하는 파라미터입니다. 속한 멤버는 다음과 같습니다:
 

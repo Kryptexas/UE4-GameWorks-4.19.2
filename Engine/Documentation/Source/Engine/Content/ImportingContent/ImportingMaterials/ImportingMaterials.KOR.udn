@@ -1,0 +1,172 @@
+﻿INTSourceChangelist:2617595
+Availability:Docs
+Title:머티리얼 임포트 방법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:머티리얼 임포트 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
+Related: Engine/Content/FBX/Materials
+Related: Engine/Content/ImportingContent/ImportingTextures
+Related: Shared/Editor/FbxErrors
+SkillLevel: Intermediate
+Version: 4.8
+
+[REGION:note]
+시작하기에 앞서, 3D 모델링 프로그램을 사용할 수 있는 것이 있는지 확인해 주세요. 여기서는 **3DS Max** 와 **Maya** 를 사용합니다.
+[/REGION]
+
+콘텐츠 제작자는 외부 3D 모델링 프로그램에서 언리얼 엔진으로 머티리얼을 임포트할 수 있습니다.
+
+## 목적
+
+이 가이드에서는 외부 3D 모델링 프로그램에서 머티리얼을 임포트하는 법을 보여드리는 데 초점을 맞춥니다.
+
+## 목표
+
+이 튜토리얼에서 배워볼 내용은 다음과 같습니다:
+
+*	언리얼 FBX 파이프라인에 지원되는 머티리얼.
+*	언리얼 FBX 파이프라인의 머티리얼 작명규칙.
+*	언리얼 에디터에서의 머티리얼 순서.
+*	언리얼 FBX 파이프라인에서 머티리얼이 여럿인 메시 임포트 방법.
+*	언리얼 FBX 파이프라인에서 텍스처 임포트 방법.
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+%Globals:DCCSelect%
+
+## 지원 머티리얼
+
+언리얼 FBX 파이프라인에서 지원하는 머티리얼은 다음과 같습니다:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Surface 표면
+    * Anisotropic 이방성
+    * Blinn 블린
+    * Lambert 램버트
+    * Phong 퐁
+    * Phone E 퐁 E
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Standard 표준
+	* Multi/Sub-Object 멀티/서브 오브젝트
+	[/PARAM]
+[/OBJECT]
+
+[REGION:warning]
+언리얼 FBX 파이프라인에는 기본 머티리얼만 지원됩니다. 일반적이지 않은 맵 (텍스처) 유형은 임포트되지 않습니다.
+[/REGION]
+
+## 머티리얼 작명규칙
+
+언리얼은 원래 프로그램에 따라 머티리얼 이름을 짓습니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	Maya 의 경우, 언리얼 에디터에서의 머티리얼 이름은 마야의 메시에 적용되는 셰이딩 엔진 이름에서 옵니다.
+
+	![mat_name_maya.jpg](mat_name_maya.jpg)(w:423 h:448)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	3dsMax 의 경우, 언리얼 에디터에서의 머티리얼 이름은 3dsMax 의 메시에 적용된 머티리얼 이름에서 바로 옵니다.
+
+	![mat_name_max.jpg](mat_name_max.jpg)(w:359 h:438)
+	[/PARAM]
+[/OBJECT]
+
+## 머티리얼 순서
+
+머티리얼 순서가 중요한 경우, 콘텐츠 제작자는 **\*_skin##** 작명 규칙을 사용하여 임포트되는 머티리얼 순서를 지정할 수 있습니다.
+
+예를 들어 다음과 같은 규칙으로 이름을 지어 순서를 정할 수 있습니다 (아래 예제 그림):
+
+![](mat_order_max.jpg)
+
+*	`M_ExampleMesh_skin00`
+*	`M_ExampleMesh_skin01`
+
+## 머티리얼이 여럿인 메시 임포트
+
+언리얼 FBX 파이프라인은 머티리얼이 여럿인 메시 임포트가 가능합니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#mayaMultiMat]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#maxMultiMat]
+	[/PARAM]
+[/OBJECT]
+
+## 텍스처 임포트
+
+머티리얼에 3D 프로그램에서 디퓨즈나 노멀맵으로 할당된 텍스처가 있는 경우, 언리얼에 **텍스처 임포트** 세팅이 켜진 경우 그 텍스처 모두 임포트됩니다. 언리얼에서 텍스처 임포트 및 설정 방법 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions), [](Engine/Content/ImportingContent/ImportingTextures), [](Engine/Content/QuickStart) 문서를 참고하시기 바랍니다.
+
+이 튜토리얼을 마칩니다. 지금까지 배운 내용은 다음과 같습니다:
+
+&#x2713;	언리얼 FBX 파이프라인에 지원되는 머티리얼.
+&#x2713;	언리얼 FBX 파이프라인의 머티리얼 작명규칙.
+&#x2713;	언리얼 에디터에서의 머티리얼 순서.
+&#x2713;	언리얼 FBX 파이프라인에서 머티리얼이 여럿인 메시 임포트 방법.
+&#x2713;	언리얼 FBX 파이프라인에서 텍스처 임포트 방법.

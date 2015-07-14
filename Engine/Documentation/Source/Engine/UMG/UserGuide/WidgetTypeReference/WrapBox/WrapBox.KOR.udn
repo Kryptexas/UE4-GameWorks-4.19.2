@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2617159
 Availability:Public
 Title: 랩 박스
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -42,15 +42,45 @@ Related: Engine/UMG/UserGuide/Slots
 
 예로, "구매" 및 아이템 제거로 창을 자동 업데이트합니다:
 
-![](Gif1.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+50iC91BMqr0
+[/PARAMLITERAL]
+[/OBJECT]
 
 "판매" 및 아이템 추가도 마찬가지입니다 (창 최대 폭에 도달하면 줄이 자동으로 바뀝니다):
 
-![](GIF2.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+IN6MhFKqyiI
+[/PARAMLITERAL]
+[/OBJECT]
 
 창 크기 조절시 그 내용물의 정렬 상태를 유지하는 데도 사용 가능합니다:
 
-![](GIF3.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+8zKkdb4hees
+[/PARAMLITERAL]
+[/OBJECT]
 
 **Wrap Box** 는 폭만 검사하여 그 안의 위젯 배치 시기를 결정할 때 폭만 검사하는 반면, 여기에 **Scroll Box** 를 조합해 사용하면 창 안의 위젯 갯수 제한이 넘는 경우 사용자가 화면을 내려 나머지 위젯을 볼 수 있도록 해 주는 스크롤 바가 추가됩니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2534053
+﻿INTSourceChangelist:2615175
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 미리보기 및 적용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -11,7 +11,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 머티리얼 미리보기와 적용하기는 정확히 원하는 결과를 얻어내기 위해 꽤 자주 필요한 작업입니다. 
 언리얼 엔진 4 (UE4) 는 머티리얼 미리보기와 적용하기 둘 다 매우 단순한 프로세스로 작동됩니다.
@@ -52,7 +52,17 @@ Related: Engine/Rendering/Materials/MaterialProperties
 머티리얼 에디터에서 머티리얼 제작 도중에는, 실시간 옵션이 켜진 경우 (기본값입니다) 변경사항이 **뷰포트** 창에 실시간으로 업데이트됩니다. 
 실제 변경을 확인하려면, 다음 예제와 같이 메인 머티리얼 노드에 현재 연결된 파라미터를 조절하기만 하면 됩니다.
 
-![](Previewing_Applying_Changing_Color_Realtime.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TDn_9Dg1s-Q
+[/PARAMLITERAL]
+[/OBJECT]
 
 [region:note]
  머티리얼 망에 변경을 가할 때는, 제대로 렌더링되는 데 시간이 약간 걸릴 수 있습니다. 머티리얼이 보다 복잡해질수록 미리보기 창의 업데이트에 걸리는 시간도 길어집니다. 업데이트 시간을 단축시킬 필요가 있는 경우, 머티리얼을 [머티리얼 인스턴스](Engine/Rendering/Materials/MaterialInstances) 로 만드는 법을 살펴보시기 바랍니다. 
@@ -70,13 +80,33 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 1. 먼저 미리보려는 머티리얼이 레벨의 무언가에 적용되었는지 확인합니다.
 
-	![](MMN_Applying_Material.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+SvCjqU1XDzY
+[/PARAMLITERAL]
+[/OBJECT]
 
 1. 머티리얼 안에서 변경하고자 하는 프로퍼티에 대한 입력으로 **Scalar** 또는 **Vector Parameter** 를 사용중인지 확인합니다.
 	이러한 미리보기는 **Constant** 머티리얼 표현식 노드에는 작동하지 않으며, 조정하고자 하는 머티리얼 표현식 노드를 **Parameter** 노드로 변환하여 사용해야 합니다.
 	미리보기 위해 변환하는 머티리얼 표현식 입력의 이름이 고유해야 한다는 점이 매우 중요한데, 그렇지 않으면 작동하지 않습니다.
 
-	![](MMN_Converting_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mnlMbWkxz9w
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1.   레벨 뷰포트에 변화가 실시간으로 일어나는 것을 확인하려면, 머티리얼 안에서 Scalar 또는 Vector 파라미터 값을 조절합니다.
 	방금 가한 조정이 레벨 뷰포트에 실시간으로 표시될 것입니다.
@@ -97,10 +127,30 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 머티리얼을 UE4 의 머티리얼에 적용하는 방법은 크게 두 가지입니다.
 * **드래그 앤 드롭** - **콘텐츠 브라우저** 에서 아무 머티리얼이나 끌어서 레벨에 있는 오브젝트 위에 놓으면 그 머티리얼이 바뀝니다. 예제는 다음과 같습니다.
-![](Previewing_Applying_Drag_&_Drop.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+57tC0KaB2BU
+[/PARAMLITERAL]
+[/OBJECT]
 
 * **오브젝트의 디테일 패널을 통해 적용** - 오브젝트의 **디테일** 패널에서 **콘텐츠 브라우저에 선택된 애셋 사용** 버튼을 통해 머티리얼을 적용할 수도 있습니다. 예제는 다음과 같습니다.
-![](Previewing_Applying_Assing_From_CB.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+fSLRV947n7A
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 결론
@@ -110,3 +160,6 @@ Related: Engine/Rendering/Materials/MaterialProperties
 기억하실 것은 무언가를 미리볼 때, **적용** 및 **저장** 버튼을 눌르지 않으면 작업물을 잃거나 보이지 않게 될 수가 있습니다.
 
 ![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
+
+
+

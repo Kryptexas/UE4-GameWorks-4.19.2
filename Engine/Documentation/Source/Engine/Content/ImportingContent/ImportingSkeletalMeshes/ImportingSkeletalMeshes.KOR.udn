@@ -1,0 +1,123 @@
+﻿INTSourceChangelist:2617595
+Availability:Docs
+Title:스켈레탈 메시 임포트 방법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:스켈레탈 메시를 임포트하는 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ContentBrowserImport
+prereq:Engine/Content/ImportingContent/DragAndDropImport
+prereq:Engine/Content/ImportingContent/RightClickImport
+Related: Engine/Content/FBX/BestPractices
+Related: Engine/Content/FBX/ImportOptions
+Related: Engine/Content/FBX/SkeletalMeshes
+Related: Engine/Content/FBX/ImportOptions
+Related: Shared/Editor/FbxErrors
+SkillLevel: Intermediate
+Version: 4.8
+
+[REGION:note]
+시작하기에 앞서, 3D 모델링 프로그램을 사용할 수 있는 것이 있는지 확인하세요. 이 강의에서는 **3DS Max** 와 **Maya** 를 사용합니다만, 저장 기능이 있는 3D 모델링 프로그램이면 어떤 것이든 언리얼 엔진에 **스켈레탈 메시** 임포트가 가능합니다.
+[/REGION]
+
+콘텐츠 제작자는 외부 3D 모델링 프로그램에서 스켈레탈 메시를 임포트할 수 있습니다.
+
+## 목적
+
+이 가이드에서는 외부 3D 모델링 프로그램에서 스켈레탈 메시를 임포트하는 법을 보여드리는 데 초점을 맞춥니다.
+
+## 목표
+
+이 튜토리얼을 통해 다음과 같은 지식 습득이 가능할 것입니다:
+
+*	외부 3D 모델링 프로그램에서 스켈레탈 메시 익스포트 방법.
+*	언리얼 에디터에 스켈레탈 메시 임포트 방법.
+*	스켈레탈 메시가 제대로 임포트되었는지 확인하는 방법.
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+%Globals:DCCSelect%
+
+## 외부 3D 모델링 프로그램에서 스켈레탈 메시 익스포트
+
+스켈레탈 메시는 개별적으로 익스포트 가능하고, 다수의 메시를 하나의 FBX 파일에 익스포트하는 것도 가능합니다. 임포트 파이프라인에서 다수의 스켈레탈 메시를 대상 패키지 내 다수의 애셋으로 분리해 줍니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+## 스켈레탈 메시 임포트
+
+1.	에디터 안에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+
+	![](ImportButton_UI.png)
+
+1.	임포트하고자 하는 FBX 파일을 찾아 선택합니다 (아래 그림 예제).
+
+	![](Import_DialogBox.png)
+
+1.	**열기** 를 클릭하여 임포트하고자 하는 FBX 파일을 프로젝트에 임포트 시작합니다 (위 그림 예제).
+
+1.	**FBX 임포트 옵션** 대화창에서 세팅을 적절히 업데이트합니다.
+
+	[REGION:note]
+	기존 스켈레톤을 공유하지 않는 메시 임포트시에는 기본 설정으로 충분할 것입니다. 모든 세팅 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions) 문서를 참고하세요.
+	[/REGION]
+
+	![](FBX_ImportOptions.png)
+
+1.	**임포트** 또는 **모두 임포트** 에 클릭하면 프로젝트에 메시가 추가됩니다 (위 그림).
+
+	[REGION:note]
+	임포트되는 **스켈레탈 메시** 가 기존 스켈레톤을 공유한다면, **스켈레톤 선택** 드롭다운을 클릭한 다음 목록에서 스켈레톤 애셋을 선택합니다 (아래 그림 예제).
+	
+	![](import_settings_skeletonbrowser.png)
+	[/REGION]
+
+	[REGION:warning]
+	경고가 (아래 그림처럼) 뜬다면, [](Shared/Editor/FbxErrors) 문서에서 문제 해결을 위한 상세 정보를 참고하시기 바랍니다.
+	
+	![](PotentialWarning.png)
+	[/REGION]
+
+1.	프로세스가 성공하면 임포트된 메시는 **콘텐츠 브라우저** 안에 나타납니다 (아래 그림 예제).
+
+	![](ImportedSKMesh.png)
+	
+## 임포트된 스켈레탈 메시 확인
+
+1.	임포트된 메시를 **더블클릭** 하여 **페르소나** 에서 엽니다 (아래 그림)
+
+	[REGION:lightbox]
+		[![](Verify_Persona.png)(w:925)](Verify_Persona.png)
+	[/REGION]
+
+	_**페르소나** 에서 애셋이 제대로 임포트되었는지 확인합니다._
+
+이 튜토리얼을 마칩니다. 지금까지 배운 내용은 다음과 같습니다:
+
+&#x2713;	외부 3D 모델링 프로그램에서 스켈레탈 메시 익스포트 방법.
+&#x2713;	언리얼 에디터에 스켈레탈 메시 임포트 방법.
+&#x2713;	스켈레탈 메시가 제대로 임포트되었는지 확인하는 방법.

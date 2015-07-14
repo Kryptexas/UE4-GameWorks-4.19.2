@@ -1,0 +1,156 @@
+﻿INTSourceChangelist:2617641
+Availability:Docs
+Title:애니메이션 임포트 방법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/ImportingContent
+Description:애니메이션을 임포트하는 방법을 배워봅니다.
+prereq:Engine/Content/ImportingContent/ImportingSkeletalMeshes
+prereq:Engine/Content/ImportingContent/ImportingMaterials
+prereq:Engine/Content/ImportingContent/ImportingTextures
+Related: Engine/Content/FBX/BestPractices
+Related: Engine/Content/FBX/Animations
+Related: Engine/Animation/NonUniformScale
+Related: Shared/Editor/FbxErrors
+SkillLevel: Advanced
+Version: 4.8
+
+[REGION:note]
+시작하기에 앞서, 사용할 수 있는 3D 모델링 프로그램이 있는지 확인해 주세요. 여기서는 **3DS Max** 와 **Maya** 를 사용하고 있습니다.
+[/REGION]
+
+콘텐츠 제작자는 외부 3D 모델링 프로그램에서 언리얼 엔진으로 애니메이션을 임포트할 수 있습니다.
+
+## 목적
+
+이 가이드에서는 외부 3D 모델링 프로그램에서 애니메이션을 임포트하는 방법을 보여드리는 데 초점을 맞춥니다.
+
+## 목표
+
+이 튜토리얼에서 알려드리고자 하는 내용은 다음과 같습니다:
+
+*	외부 3D 모델링 프로그램에서 애니메이션 익스포트 방법.
+*	외부 3D 모델링 프로그램에서 언리얼 에디터로 애니메이션 임포트 방법.
+
+[REGION:warning]
+UE4 FBX 임포트 파이프라인은 **FBX 2014** 를 사용합니다. 다른 버전을 사용하면 호환되지 않을 수 있습니다.
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 애니메이션 익스포트
+
+애니메이션은 반드시 하나의 파일에 스켈레탈 메시 하나당 하나의 애니메이션 개별적으로 익스포트해야 합니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+## 애니메이션 임포트
+
+언리얼 FBX 애니메이션 임포트 파이프라인은 스켈레탈 메시가 있든 없든 애니메이션 임포트가 가능합니다.
+
+### 스켈레탈 메시가 있는 애니메이션 임포트
+
+1.	에디터 안에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+
+	![](ImportButton_UI.png)
+
+1.	임포트하고자 하는 FBX 파일을 찾아 선택합니다 (아래 예제 그림).
+
+	![](ImportDialogBox.png)
+
+1.	**열기** 를 클릭하여 프로젝트에 임포트하고자 하는 파일 임포트를 시작합니다 (위 예제 그림).
+
+1.	**FBX 임포트 옵션** 대화창에서 세팅을 적절히 업데이트합니다.
+
+	[REGION:note]
+	기존 스켈레톤을 공유하지 않는 메시 임포트시에는 기본 설정으로 충분할 것입니다. LOD 를 임포트할 때, 임포트되는 메시의 이름은 기본 [작명 규칙](Engine/Content/FBX/ImportOptions#작명규칙) 을 따릅니다. 모든 세팅 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions) 문서를 참고하세요.
+	[/REGION]
+
+	![](FBXImportOptions.png)
+
+1.	**임포트** 또는 *모두 임포트** 를 클릭하면 프로젝트에 메시가 추가됩니다 (위 그림).
+
+	[REGION:warning]
+	경고창이 (아래 그림처럼) 뜨면, [](Shared/Editor/FbxErrors) 문서를 통해 해결책을 참고하시기 바랍니다.
+	
+	![](PotentialWarning.png)
+	[/REGION]
+
+1.	프로세스가 성공한 경우 임포트된 스켈레탈 메시와 애니메이션이 **콘텐츠 브라우저** 안에 나타납니다 (아래 예제 그림).
+
+	![](ImportedAnimations.png)
+
+	[REGION:note]
+	기본적으로 임포트된 애니메이션을 담기 위해 생성된 애니메이션 시퀀스는 스켈레톤의 루트 본 이름을 땁니다.
+	[/REGION]
+
+### 스켈레탈 메시가 없는 애니메이션 임포트
+
+[REGION:note]
+언리얼은 하나의 FBX 파일에 다수의 애니메이션 임포트가 가능하지만, (3ds Max 나 Maya 같은) 디지털 콘텐츠 제작 툴 다수는 여러 애니메이션을 하나의 파일에 저장하는 기능을 지원하지 않습니다. (Motion Builder 같은) 지원 프로그램에서 익스포트하는 경우, 언리얼은 그 파일에 들어있는 애니메이션을 전부 임포트할 것입니다.
+[/REGION]
+
+이 부분을 시작하기 전, 애니메이션을 임포트해 넣을 **애니메이션 시퀀스** 가 필요합니다. 애니메이션 시퀀스는 **콘텐츠 브라우저** 에서 생성할 수도 있고, **애니메이션 시퀀스 에디터** 에서 바로 생성할 수도 있습니다.
+
+1.	에디터 안에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+
+	![](ImportButton_UI.png)
+
+1.	임포트하고자 하는 FBX 파일을 찾아 선택합니다 (아래 예제 그림).
+
+	![](ImportDialogBox.png)
+
+1.	**열기** 를 클릭하여 프로젝트에 임포트하고자 하는 FBX 파일 임포트를 시작합니다 (위 예제 그림).
+
+1.	**FBX 임포트 옵션** 대화창의 세팅을 적절히 업데이트합니다.
+
+	[REGION:note]
+	기존 스켈레톤을 공유하지 않는 메시를 임포트할 때는 기본 세팅으로 충분할 것입니다. LOD 임포트시, 임포트되는 메시의 이름은 기본 [작명 규칙](Engine/Content/FBX/ImportOptions#작명규칙) 을 따릅니다. 모든 세팅 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions) 문서를 참고하세요.
+	[/REGION]
+
+	![](AnimationImportOptions.jpg)
+
+	[REGION:warning]
+	애니메이션을 개별적으로 임포트할 때는 기존 스켈레톤을 지정해 줘야 합니다.
+	[/REGION]
+
+1.	프로세스가 성공한 경우 임포트된 스켈레탈 메시와 애니메이션이 **콘텐츠 브라우저** 안에 나타납니다 (아래 예제 그림).
+
+	![](ImportedAnimations.png)
+
+	[REGION:note]
+	기본적으로 임포트되는 애니메이션을 담기 위해 생성되는 애니메이션 시퀀스 이름은 스켈레톤의 루트 본 이름을 땁니다.
+	[/REGION]
+
+[REGION:tip]
+언리얼에서의 비균등 스케일 애니메이션 지원 방식 관련해서는 [](Engine/Animation/NonUniformScale) 문서를 참고하세요.
+[/REGION]
+
+이 튜토리얼을 마칩니다. 지금까지 배운 내용은 다음과 같습니다:
+
+&#x2713;	외부 3D 모델링 프로그램에서 애니메이션 익스포트 방법.
+&#x2713;	외부 3D 모델링 프로그램에서 언리얼 에디터로 애니메이션 임포트 방법.

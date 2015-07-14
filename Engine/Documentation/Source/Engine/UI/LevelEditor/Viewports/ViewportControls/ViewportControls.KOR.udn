@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539144
+﻿INTSourceChangelist:2606155
 Availability:Public
 Title:뷰포트 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -46,7 +46,7 @@ Description:에디터 뷰포트의 다양한 콘트롤 방법을 배워봅니다
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 뷰포트 작업 도중 씬 이동, 액터 선택 및 조작, 표시 옵션 변경을 할 수 있는 방법은 
 여러가지 있습니다.

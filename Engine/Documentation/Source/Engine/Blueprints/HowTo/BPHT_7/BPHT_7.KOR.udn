@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615642
+﻿INTSourceChangelist:2618857
 Availability: Public
 Title:7. 직접 해보기!
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -24,7 +24,17 @@ Description:이번 최종 단계에서는, 예제를 통해 이 프로젝트의 
 
 이 프로젝트에서 배운 내용을 토대로, 다음과 같은 작업을 해 봅니다:
 
-[![](UpdatedImage.png)(w:720)](UpdatedExample.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yut5Feu1KxI
+[/PARAMLITERAL]
+[/OBJECT]
 
 * **FirstPersonCharacter** 블루프린트에서, 바위를 두 발째나 세 발째 맞췄을 때보다 첫 발째 맞췄을 때 높은 점수를 주도록 합니다.
 * 마찬가지로 **FirstPersonCharacter** 블루프린트에서, 바위가 스폰되기 전에는 플레이어가 쏠 수 없도록 합니다.

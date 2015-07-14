@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2609618
 Availability:Public
 Title: 위젯 유형 참고서
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 위젯 블루프린트에서 사용할 수 있는 다양한 위젯 유형에 대한 참고서입니다.
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 **위젯 블루프린트 에디터** 안에서, **팔레트** 창 아래에는 **위젯** 카테고리가 넷 있으며, 그 각각에는 다양한 **위젯 유형** 이 들어있어, **비주얼 디자이너** 안에 끌어 놓을 수 있습니다. 이러한 위젯 유형을 섞어 맞춰 쓰는 방식으로 **디자이너** 탭에서 UI 모양을 배치하고, **그래프** 탭을 통해 각 위젯의 **디테일** 패널 내 세팅을 통해 위젯 배후의 함수성을 추가할 수 있습니다.
 

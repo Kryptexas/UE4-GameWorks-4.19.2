@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536219
+﻿INTSourceChangelist:2613566
 Availability: Public
 Title:머티리얼 에디터 - 투명도 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -9,7 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 물이나 유리같은 표면을 만들 때는, 표면을 통과해 볼 수 있을 뿐만 아니라, 표면에 깊이나 색감을 더해주기도 해야 합니다.
 현실에서 이러한 속성을 일컬어 종종 **Transparency** (투명도) 또는 **Opacity** (오파시티)라 하며, 서로 같은 것을 가리킵니다.
@@ -86,7 +86,17 @@ UE4 에서 투명도를 다룰 때는 **Opacity** (오파시티)라는 용어도
 
 1. **콘텐츠 브라우저** 에서 **Transparency_Material** 을 찾아 **우클릭** 하여 메뉴에서 **머티리얼 인스턴스 생성** 옵션을 선택합니다.
 
-	![](Tras_Creat_New_MI.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	PhhorP5ae28
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 이제 머티리얼의 실제 적용 모습을 확인할 수 있도록 머티리얼 인스턴스를 적용할 오브젝트를 찾아야 합니다. **콘텐츠 브라우저** 안에서 시작용 콘텐츠 폴더에 보면 **Shapes** 폴더가 있습니다.
 **Shape_Sphere** 를 찾은 다음 **좌클릭** 후 현재 레벨에 끌어옵니다. 원하는 위치에서 **마우스 왼쪽 버튼** 을 놓으면 레벨에 메시가 배치됩니다.
@@ -96,7 +106,17 @@ UE4 에서 투명도를 다룰 때는 **Opacity** (오파시티)라는 용어도
 1. 레벨에 테스트할 것이 생겼으니, **콘텐츠 브라우저** 에서 아까 만든 **Transparency_Material_Inst** 를 찾습니다. 찾았으면 **좌클릭** 으로 선택 후 **콘텐츠 브라우저** 에서 **Shape_Sphere** 위로 끌어옵니다.
 **Shape_Sphere** 위에서 **마우스 왼쪽 버튼** 을 놓으면 메시에 머티리얼 인스턴스가 적용됩니다.
 
-	![](Tras_Apply_Trans_Material.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	zJP1NO1DdB8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 메시에 머티리얼 인스턴스가 적용되었으면, **콘텐츠 브라우저** 에서 머티리얼 인스턴스에 **더블클릭** 하여 엽니다. 열렸으면 **Transparency_Amount** 옆에 회색으로 탈색된 체크박스를 **좌클릭** 하여 활성화시킵니다. 그러면 **Transparency_Amount** 값을 조정하여 오브젝트의 투명도를 조정할 수 있게 됩니다.
 
@@ -192,7 +212,17 @@ UE4 에서 투명도를 많이 사용하는 경우는 아래와 같습니다.
 씬에 붙어있는 반투명 오브젝트가 여럿 있을 때, 가끔은 다른 투명 오브젝트 앞 또는 뒤에 어떤 오브젝트를 렌더링할지 알아내는 데 문제가 있는 경우가 있습니다.
 다음 예제는 위에서 만든 머티리얼과 시작용 콘텐츠의 라이팅된 연기 VFX 를 사용하여 만든 데모입니다.
 
-![](Tras_Sort_Issue_Example.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+BipY-HUpClk
+[/PARAMLITERAL]
+[/OBJECT]
 
 연기가 메시 앞에 있다가 갑자기 메시 뒤에 나타나는 것을 보세요.
 이러한 현상을 방지하기 위해 씬에서 연기 VFX 가 항상 다른 반투명 위에 렌더링되도록 **Translucency Sort Priority** (반투명 소트 우선권) 설정을 해 줘야 합니다.
@@ -204,7 +234,17 @@ VFX 의 **반투명 소트 우선권** 변경 방법은 다음과 같습니다.
 
 1. **디테일** 패널에서 **Rendering** 섹션 아래 **하양 트라이앵글** 을 클릭하여 부가 프로퍼티를 노출시킵니다.
 
-	![](Tras_Rendering_Advanced.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	78ZOswFZbj8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 새로운 옵션 목록에서 **Translucency Sort Priority** 를 찾은 다음 100 값을 입력합니다.
 
@@ -216,11 +256,31 @@ VFX 의 **반투명 소트 우선권** 변경 방법은 다음과 같습니다.
 
 1. 이제 씬에 연기 VFX 가 잘 돌아가나 확인합니다. **Translucency Sort Priority** 가 100 으로 설정되었으니, 연기가 항상 다른 반투명 오브젝트 위에 그려질 것입니다.
 
-	![](Tras_New_Trans_Order_Front.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	A4OcPB_wSoc
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. **Translucency Sort Priority** 를 -100 으로 설정하면 연기가 항당 다른 반투명 오브젝트 뒤에 그려집니다.
 
-	![](Tras_New_Trans_Order_Behind.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	MBjshrSST4Q
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 **Translucency Sort Priority** 를 조절하는 것으로 레벨의 소팅 문제를 고칠 수는 있지만, 게임플레이 도중 이펙트나 오브젝트 스폰시 새로운 소팅 문제가 생길 수 있습니다.
 이때문에 **Translucency Sort Priority** 수치를 얼마나 어디에 할 것인지 정의하는 것이 좋습니다.
@@ -234,3 +294,6 @@ VFX 의 **반투명 소트 우선권** 변경 방법은 다음과 같습니다.
 하지만 강력한 도구가 그렇듯이, 최대한의 위력을 발휘하도록 하기 위해서는 주의가 필요합니다.
 리플렉션을 사용하는 투명 오브젝트의 수를 가급적 최소한으로 유지시키는 것 기억하시구요.
 에디터에서나 게임 도중에서도 지속적으로 셰이더 복잡도 모드를 확인하여 투명도 오버드로가 최소한으로 유지되는지 확인합니다.
+
+
+

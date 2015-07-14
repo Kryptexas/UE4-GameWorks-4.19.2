@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539393
+﻿INTSourceChangelist:2617227
 Availability: Public
 Title:2. 생명력, 에너지, 탄창 표시하기
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -163,7 +163,17 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 
 1.	**컴파일**, **저장** 후 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
-	![](Example_GIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	-v8nzlvknlE
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	이제 HUD 에 Health, Energy, Ammo 값이 표시되며, 캐릭터 블루프린트의 현재 값이 반영됩니다. **Space** 를 누르면 캐릭터가 점프하면서 에너지가 소모되고, **좌클릭** 은 무기를 발사하며 탄창이 줄고, **F** 키를 누르면 생명력을 잃게 됩니다 (나중에 여기에 대미지 시스템을 연결해 주면 됩니다).
 	

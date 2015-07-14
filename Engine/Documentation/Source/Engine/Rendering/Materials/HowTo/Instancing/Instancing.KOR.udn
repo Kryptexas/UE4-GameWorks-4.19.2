@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533923
+﻿INTSourceChangelist:2614967
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 인스턴스 생성 및 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -12,7 +12,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 표준 머티리얼 생성, 셋업, 트윅 작업은 UE4 에서 시간을 매우 많이 잡아먹는 프로세스가 될 수 있습니다.
 이 프로세스 효율을 높이고 속도를 올리기 위해, 언리얼 엔진 4 에는 **머티리얼 인스턴스** 라는 특수 유형 머티리얼이 제공됩니다.
@@ -51,7 +51,17 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 * **노드 변환하기** - **머티리얼 그래프** 안에서 노드에 **우클릭** 한 다음 **파라미터로 변환** 옵션을 선택하면 됩니다.
 
-	![](Materails_Instances_Convert_A_Node.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	ICjxcEzGAno
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 [region:note]
 참고로 모든 머티리얼 노드를 파라미터 노드로 변환할 수 있는 것은 아닙니다. 노드에 우클릭해서 **파라미터로 변환** 옵션이 보이지 않는다면, 그 노드는 파라미터 노드로 변환이 안되는 것입니다.
@@ -75,7 +85,17 @@ Related: Engine/Rendering/Materials/MaterialProperties
 	*  **Constant Node** x 1
 	*  **Scalar Parameter** x 1
 	
-	![](Materials_Instances_Adding_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	COw7Q7o1sHo
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 머티리얼 노드 배치가 완료되었으니, 메인 머티리얼 노드의 각 슬롯에 연결해 줄 차례입니다. 이 예제에서는 다음 슬롯을 사용하겠습니다.
 	
@@ -83,11 +103,31 @@ Related: Engine/Rendering/Materials/MaterialProperties
 	* **메탈릭**
 	* **러프니스**
 
-	![](Materials_Instances_Connecting_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	aN3QPYokHf4
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 모두 연결해주고나면, 일부 머티리얼 노드를 [머티리얼 인스턴스](Resources/ContentExamples/MaterialInstances/1_2) 에서 사용할 수 있도록 **파라미터** 노드로 변환해 줄 차례입니다. 그러기 위해서는 변환하려는 머티리얼 노드에 **우클릭** 한 다음 **파라미터로 변환** 옵션을 선택해 주면 됩니다.
 	
-	![](Materails_Instances_Convert_Nodes_To_Prams.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	-tIO2lmJhVw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 노드가 파라미터 노드로 변환되었으니, 머티리얼 인스턴스에서 사용할 수 있도록 라벨을 붙여서 각 노드가 하는 일을 알수 있도록 해 줄 차례입니다. 파라미터 노드에 이름을 지으려면 머티리얼 그래프에서 파라미터 노드를 **좌클릭** 선택한 다음 **Parameter Name** 섹션 아래 파라미터 이름으로 사용할 이름을 입력해 줍니다. 이 예제에서는 다음과 같은 이름을 사용할 것입니다.
 	
@@ -97,7 +137,17 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 	* **Roughness **
 
-	![](Materails_Instances_Name_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	tE8_Dju0ee0
+	[/PARAMLITERAL]
+	[/OBJECT]
 	
 	[region:tip]
 	노드에 선택한 이름이 실제 하는 일에 매우 근접하도록 해 줍니다. 그렇게 해 두면 머티리얼과 머티리얼 인스턴스를 왔다갔다 하면서 노드가 실제 하는 역할을 일일히 확인할 필요가 없습니다.
@@ -109,7 +159,17 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 1. 머티리얼 컴파일이 완료되었으니, 거기서 머티리얼 인스턴스를 만들 차례입니다. 그러기 위해서는 **콘텐츠 브라우저** 에서 그 머티리얼에 **우클릭** 한 다음 **머티리얼 인스턴스 생성** 옵션을 선택하면 됩니다.
 	
-	![](Materials_Instances_Creat_Instance.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	PwsuXdGpe7M
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	[region:tip]
 	머티리얼 인스턴스의 이름이 원본 머티리얼의 이름을 따옵니다. 머티리얼 인스턴스 이름변경은 생성 도중이나, 머티리얼을 선택한 다음 **F2** 키를 누르고서 원하는 이름을 입력하면 됩니다.
@@ -121,11 +181,31 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 1. **머티리얼 인스턴스 에디터** 가 열리면, 원하는 대로 파라미터 조정을 시작하면 됩니다. 파라미터를 조정하려면 먼저 파라미터 왼쪽에 있는 박스를 클릭하여 활성화시켜 줘야 합니다. 파라미터가 활성화되면 그 이름이 회색에서 변하고, 그 왼쪽의 박스에 체크 표시가 나타날 것입니다.
 	
-	![](Materails_Instances_Enable_Prams.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	aJ4fJ2buAVo
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 파라미터가 활성화되었으니, 이제 원하는 대로 조정하면 머티리얼을 다시 컴파일하지 않아도 실시간으로 그 결과를 확인할 수 있습니다.
 	
-	![](Materails_Instances_Change_Parms.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	OKvC9e4FddU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 [region:note]
 머티리얼 안에서 파라미터에 설정한 이름은 머티리얼 인스턴스 안에 보이는 이름에 반영됩니다. 그래서 이름을 지을 때 파라미터의 실제 역할에 일치하도록 하는 것이 중요하다는 것입니다.
@@ -198,6 +278,10 @@ Related: Engine/Rendering/Materials/MaterialProperties
 머티리얼 인스턴싱은 프로젝트 전 부분에 걸쳐 사용할 수 있는 강력한 도구입니다.
 무기나 소품에 약간의 개성을 추가하는 것에서부터 아티스트의 머티리얼 활용을 돕는 것까지,
 머티리얼 인스턴스는 프로젝트에서의 머티리얼 생성 및 사용법을 효율적으로 통합시키는 데 큰 도움이 될 수 있습니다.
+
+
+
+
 
 
 

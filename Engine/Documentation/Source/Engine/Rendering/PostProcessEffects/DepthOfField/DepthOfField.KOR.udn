@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536392
+﻿INTSourceChangelist:2615582
 Availability:Public
 Title:뎁스 오브 필드
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
@@ -15,12 +15,12 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 ## 뎁스 오브 필드 유형
 
-언리얼 엔진 4 에서 뎁스 오브 필드 이펙트를 내는 방법은 두 가지, 보케(Bokeh) 와 가우시안(Gaussian) 입니다.
+언리얼 엔진 4 에서 뎁스 오브 필드 이펙트를 내는 방법은 세 가지, 보케(Bokeh)와 가우시안(Gaussian)과 원형(Circle) 입니다.
 
 [REGION:imagetable]
-| ![Bokeh DoF](bokeh.png)(w:455) | ![Gaussian DoF](gaussian.png)(w:455) |
-| :----: | :----: |
-| 보케 DoF | 가우시안 DoF |
+| ![Bokeh DoF](bokeh.png)(w:300) | ![Gaussian DoF](gaussian.png)(w:300) | ![Circle DoF](Circle.png)(w:300) |
+| :----: | :----: | :----: |
+| 보케 DoF | 가우시안 DoF | 원형 DoF |
 [/REGION]
 
 
@@ -38,6 +38,14 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 보케 기법은 퍼포먼스 측면에서 비용이 훨씬 많이 들기에, 시각적인 면이 퍼포먼스 측면보다 훨씬 중요한 시네마틱이나 쇼케이스 제작시 우선적으로 고려해 볼 수 있는 기법입니다.
 [/EXCERPT:DepthOfField_Bokeh]
+
+### 원형
+
+[EXCERPT:DepthOfField_Circle]
+새로 추가된 원형 뎁스 오브 필드는 현실의 카메라에 보다 가까이 일치시키기 위해 추가된 것입니다. 보케와 마찬가지로 선명한 HDR 콘텐츠와 물방울 모양 보케를 볼 수 있습니다. 이 알고리즘의 약점은 매우 큰 보케의 경우인데,
+보케보다 노이즈와 선명도가 떨어져 보이기 때문입니다.
+하지만 특히 전환되는 영역에서 퍼포먼스가 (보케보다 꽤나) 좋고 퀄리티도 나쁘지 않습니다.
+[/EXCERPT:DepthOfField_Circle]
 
 ## 구현
 
@@ -60,7 +68,10 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 | 프로퍼티 | 설명 |
 | -------- | ---- |
-| **Method** | DOF 메서드 - 씬을 흐리는 데 사용되는 기법을 보케와 가우시안 중에서 선택합니다. |
+| **Method** | 메소드 - 보케, 가우시안, 원형 중에서 씬을 흐리게 만드는 방법을 선택합니다. |
+| **Depth Blur km for 50%** | 50% 에 대한 뎁스 블러 km - todo |
+| **Depth Blur Radius** | 뎁스 블러 반경 - 1920 해상도에서 픽셀 단위 뎁스 블러 반경입니다. |
+| **Aperture** | 조리개 - todo |
 | **Focal Distance** | DOF 초점 거리 - 카메라에서 이 언리얼 유닛 거리까지는 씬의 초점이 완벽하게 잡혀 흐려지지 않는 구역의 중심 역할을 합니다. [INCLUDE:#FocalDistance] |
 | **Focal Region** | DOF 초점 구역 - 초점 거리 너머 이 언리얼 유닛 거리까지는 씬의 초점이 완벽하게 잡혀 흐려지지 않습니다. [INCLUDE:#FocalRegion] |
 | **Near Transition Range** | DOF 근경 이행 범위 - 가우시안 기반 DoF 사용시, 초점구역에서 이 언리얼 유닛 거리만큼 카메라에 가까이 있는 부분은 초점이 잡힌 상태에서 흐려지는 상태로 씬 이행이 발생합니다. [INCLUDE:#NearTransitionRange] |

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2615187
 Availability: Public
 Title:2. 애트머스페릭 & 디렉셔널 라이팅
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -51,7 +51,17 @@ Description:이번 단계에서는 애트머스페릭 포그와 디렉셔널 라
 
 	**Atmosphere Sun Light** (대기성 태양광) 옵션이 체크되면, **회전** 모드 (**E**) 로 라이트를 회전시켜 태양 위치를 조절할 수 있습니다.
 
-	![](SunControlGif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	d5PdhSHwpWs
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	레벨의 라이팅이 태양 위치에 따라 변하여 다양한 하루 시간대를 쉽게 전환할 수 있습니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2617178
 Availability:Public
 Title: 메뉴 앵커
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -48,7 +48,17 @@ Menu Anchor, 메뉴 앵커는 팝업 메뉴의 기준이 되어 띄울 위치를
 
 아래 그림에서처럼 플레이어가 아이템을 클릭하면 인벤토리 메뉴를 만들어 팝업이 나타나도록 하고 싶다 해 봅시다.
 
-![](PopUpGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+t0yMkviWKUk
+[/PARAMLITERAL]
+[/OBJECT]
 
 먼저 해야 할 작업은, 팝업 메뉴가 어때 보이는지 만드는 것입니다.
 

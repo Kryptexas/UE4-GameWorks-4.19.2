@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2407771
+﻿INTSourceChangelist:2617373
 Availability:Public
 Title:에디터 개인설정
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -74,7 +74,22 @@ Description:에디터의 조작법, 뷰포트, 소스 콘트롤 등 여러가지
 
 | 옵션 | 설명 |
 | ------ | ----------- |
-| **Highlight Objects Under Mouse Cursor** | 마우스 커서 아래 오브젝트 강조 - 켜면 뷰포트 마우스 커서 아래 있는 오브젝트는 투명한 오버레이로 강조 표시합니다. [REGION:none]![](selection_hover.gif)(convert:false)[/REGION] |
+| **Highlight Objects Under Mouse Cursor** | 마우스 커서 아래 오브젝트 강조 - 켜면 뷰포트 마우스 커서 아래 있는 오브젝트는 투명한 오버레이로 강조 표시합니다. 
+[REGION:none]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+420
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+200
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yvwZUtmW12I
+[/PARAMLITERAL]
+[/OBJECT]
+[/REGION] 
+
+|
 | **Highlight Selected Objects with Brackets** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#bhighlightwithbrackets] |
 | **Use Selection Outline** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#buseselectionoutline] |
 | **Selection Highlight Intensity** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#selectionhighlightintensity] |

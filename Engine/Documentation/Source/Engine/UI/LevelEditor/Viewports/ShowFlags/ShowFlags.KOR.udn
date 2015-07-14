@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539111
+﻿INTSourceChangelist:2605750
 Availability:Public
 Title:뷰포트 표시 플래그
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -52,7 +52,7 @@ Description:뷰포트에 사용할 수 있는 표시 플래그 전부에 대한 
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 
 Show Flag (표시 플래그)는 뷰포트 **표시** 메뉴 아래에서 찾을 수 있는 것으로, 뷰포트 안에서 보이는 여러가지 애셋을 표시하거나 숨길 수 있습니다. 예를 들어 모든 파티클, 모든 랜드스케이프 오브젝트를 숨기거나, 모든 빌보드 아이콘을 끈다든가 조금 더 고급 동작도 가능합니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2617239
 Availability: Public
 Title:3D 위젯 생성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -14,7 +14,17 @@ Related: Engine/Blueprints
 ---
 여기서는 게임 월드에 나타나 애라와 같이 상호작용 가능한 메뉴를 만들어 보겠습니다.
 
-![](MenuGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+lCJkWsMsK84
+[/PARAMLITERAL]
+[/OBJECT]
 
 [EXCERPT:ProjectStart]
 [OBJECT:TopicList]

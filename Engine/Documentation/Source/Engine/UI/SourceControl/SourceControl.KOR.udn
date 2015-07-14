@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2286327
+﻿INTSourceChangelist:2606496
 Availability: Public
 Title:소스 콘트롤
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -20,7 +20,7 @@ Description:소스 콘트롤 기능에 대한 개요서입니다.
 
 [TOC(start:2)]
 
-## 개요
+
 
 언리얼 에디터는 소스 콘트롤을 지원, 팀의 조직적인 게임 개발 및 디자인 작업을 지원함은 물론, 버전 관리도 해 줍니다.
 

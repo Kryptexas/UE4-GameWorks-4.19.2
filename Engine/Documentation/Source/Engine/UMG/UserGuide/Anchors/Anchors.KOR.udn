@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609339
+﻿INTSourceChangelist:2617206
 Availability:Public
 Title: 앵커
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -148,7 +148,17 @@ Related: Engine/Blueprints
 
 이제 캔버스 패널 크기를 어느 방향으로 조절해도, 이미지의 크기와 위치가 마찬가지로 늘어나는 진행상황 바를 기준으로 잘 유지됩니다.
 
-![](AnchorGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+zdKgobaHDhs
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 

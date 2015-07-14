@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2077590
+﻿INTSourceChangelist:2614238
 Availability: Public
 Title:Size 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,13 +6,21 @@ Description:파티클 수명상의 여러 지점에서 그 크기에 영향을 �
 
 [TOC(start:2 end:3)]
 
-## Size 모듈
-
 파티클 수명상의 여러 지점에서 그 크기에 영향을 끼치는 모듈입니다.
 
-### Initial Size
+## Initial Size
 
-![psys_initial_size.gif](psys_initial_size.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+e72tK-OB9oE
+[/PARAMLITERAL]
+[/OBJECT]
 
 Initial Size(초기 크기)는 파티클의 스폰시 초기 크기를 설정하는 데 사용되는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -23,7 +31,7 @@ Initial Size(초기 크기)는 파티클의 스폰시 초기 크기를 설정하
 
 
 
-### Initial Size (Seeded)
+## Initial Size (Seeded)
 
 Initial Size (Seeded) (초기 크기 (시드))는 파티클이 방출될 대 그 크기를 설정한다는 점에서는 [Initial Size](#InitialSize) 모듈과 동일하지만, 이미터가 사용될 때마다 모듈로부터의 효과를 좀 더 일관되게 하기 위해, 분포 값을 선택할 때 사용되는 시드 정보를 지정할 수 있는 모듈이라는 점이 다릅니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -36,9 +44,19 @@ Initial Size (Seeded) (초기 크기 (시드))는 파티클이 방출될 대 그
 
 
 
-### Size By Life
+## Size By Life
 
-![](SizeByLife.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+UPWGbVD8ync
+[/PARAMLITERAL]
+[/OBJECT]
 
 Size By Life(수명에 따른 크기)는 파티클에 지정된 수명 값에 따라 크기를 스케일 조절하는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -52,7 +70,7 @@ Size By Life(수명에 따른 크기)는 파티클에 지정된 수명 값에 �
 스폰 및 업데이트 도중 Particle.Size 값에다 구한 스케일 값을 곱합니다.
 
 
-### Size Scale
+## Size Scale
 
 Size Scale(크기 스케일)은 파티클의 Size(크기)를 BaseSize(기본 크기)에다 지정된 스케일 인수를 곱한 값으로 설정하는 모듈입니다. *주의할 점은* 해당 프레임에서 이 모듈 이전의 모든 크기 조절을 덮어쓰는 모듈이라는 겁니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -63,9 +81,19 @@ Size Scale(크기 스케일)은 파티클의 Size(크기)를 BaseSize(기본 크
 |**Enable X, Enable Y, Enable Z** | 무시됩니다.|
 
 
-### Size By Speed
+## Size By Speed
 
-![](SizeBySpeed.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+LeUTwLRnh6M
+[/PARAMLITERAL]
+[/OBJECT]
 
 이 파티클은 멀리 사라지기 보다는 느려짐에 따라 크기가 실제로 작아집니다.
 
@@ -79,6 +107,7 @@ Size Scale(크기 스케일)은 파티클의 Size(크기)를 BaseSize(기본 크
 
 
 스폰 및 업데이트 도중에 Particle.Size 값에다 구한 스케일 값 곱하기 해당 시간의 파티클 속도를 곱합니다.
+
 
 
 

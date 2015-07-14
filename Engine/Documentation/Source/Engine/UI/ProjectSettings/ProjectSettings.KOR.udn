@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539213
+﻿INTSourceChangelist:2606496
 Availability:Public
 Title:프로젝트 세팅
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -55,9 +55,7 @@ Description:현재 프로젝트에 관련된 환경설정 옵션 대화창입니
 제목으로 표시되는 반면, 이들 각각의 세션은 에디터에서 해당 섹션에 대한 옵션을 열어주는 
 하이퍼링크로 표시됩니다.
 
-특정 섹션을 보고있는 동안 왼쪽 사이드바 상단의 **< 뒤로** 링크를 사용하여 메인 뷰로 돌아갈 수 있습니다:
 
-![](back_nav.png)
 
 ### 콘트롤
 

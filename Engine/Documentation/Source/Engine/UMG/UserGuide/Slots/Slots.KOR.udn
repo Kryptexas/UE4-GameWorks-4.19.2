@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2539627
+﻿INTSourceChangelist:2609568
 Availability:Public
 Title: 슬롯
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 의 슬롯 사용법 개요입니다.
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 **Slot** (슬롯)은 위젯끼리 붙여주는 보이지 않는 풀입니다. 슬레이트는 먼저 슬롯을 만든 다음 그 안에 넣을 콘트롤을 선택한다는 점에서 좀 더 명시적입니다.
 하지만 **UMG** 의 경우, 자손 위젯을 추가할 때 올바른 종류의 **슬롯** 을 자동으로 사용하는 **패널** 위젯이 있습니다.

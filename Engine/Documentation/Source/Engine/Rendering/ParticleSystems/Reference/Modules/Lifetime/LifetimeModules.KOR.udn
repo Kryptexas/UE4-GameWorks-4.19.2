@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603977
+﻿INTSourceChangelist:2617391
 Availability: Public
 Title:Lifetime 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -9,7 +9,17 @@ Description:Lifetime 은 파티클 스폰시의 초기 수명을 설정하는 �
 (#Lifetime)
 ## Lifetime
 
-![psys_lifetime.gif](psys_lifetime.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nnFIgdgObvU
+[/PARAMLITERAL]
+[/OBJECT]
 
 Lifetime(수명)은 스폰시 파티클의 초기 수명을 설정하는 데 사용되는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 

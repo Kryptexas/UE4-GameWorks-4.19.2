@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2436929
+﻿INTSourceChangelist:2604329
 Availability:Public
 Title:디테일 패널
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -25,8 +25,6 @@ Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화�
 %playlistnav%
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 [EXCERPT:DetailsOverview]
 **디테일** 패널에는 뷰포트의 현재 선택된 것에 대한 정보, 유틸리티, 함수가 들어있습니다. 

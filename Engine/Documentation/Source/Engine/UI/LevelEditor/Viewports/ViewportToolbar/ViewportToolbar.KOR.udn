@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2606154
 Availability:Public
 Title:뷰포트 툴바
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -47,7 +47,7 @@ Description:뷰포트 통합 툴바에 사용가능한 여러가지 툴에 대�
 
 [TOC(start:2)]
 
-## 개요
+
 
 뷰포트 툴바에는 레벨 디자인 과정 전반적으로 사용하게 될 트랜스폼 툴은 물론, 그 툴에 대한 스내핑 콘트롤도 포함되어 있습니다. 카메라 속도 제어는 물론 뷰포트를 4 개의 창으로 나눌 수 있는 기능도 찾을 수 있습니다.
 

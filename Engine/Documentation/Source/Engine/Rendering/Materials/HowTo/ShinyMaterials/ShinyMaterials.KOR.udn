@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2534146
+﻿INTSourceChangelist:2615095
 Availability: Public
 Title:머티리얼 에디터 - 광택 머티리얼 제작 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -113,7 +113,17 @@ Shininess, 광택이란 단순히 표면의 빛 반사 능력을 말합니다.
 	![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
 
 1. **콘텐츠 브라우저** 에서 **Shiny_Material** 을 찾은 다음 **우클릭** 하고 메뉴에서 **머티리얼 인스턴스 생성** 옵션을 선택합니다.
-	![](Tras_Create_MI.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	115AqnPtp9s
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. **콘텐츠 브라우저** 에서 머티리얼 인스턴스에 **더블클릭** 하여 엽니다. 열리면 **Scalar Parameter Values** 옆에 회색으로 탈색된 체크박스를 전부 **좌클릭** 하여 활성화시킵니다.
 	![](Shiny_Enabled_MI_Properties.png)
@@ -142,6 +152,10 @@ Shininess, 광택이란 단순히 표면의 빛 반사 능력을 말합니다.
 하지만 3D 의 모든 것이 그렇듯, 광택 머티리얼에도 비용이 듭니다.
 서로를 반사해 대는 메탈릭 오브젝트가 여럿 있을 경우 비용이 크게 늘어날 수 있다는 점 유념하시기 바랍니다.
 또한 모든 머티리얼에는 일정 정도 광택이 있으니 완전히 비활성화시키지는 않도록 하시기 바랍니다.
+
+
+
+
 
 
 

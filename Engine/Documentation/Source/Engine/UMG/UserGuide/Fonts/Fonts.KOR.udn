@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2609472
 Availability:Public
 Title: 폰트
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -8,8 +8,6 @@ Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/UMG/UserGuide/WidgetTypeReference
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 여기서는 별도의 폰트 임포트 방법, **폰트 에디터** 사용법, **언리얼 모션 그래픽 (UMG) UI 디자이너** 에서 폰트 사용법을 다룹니다.
 

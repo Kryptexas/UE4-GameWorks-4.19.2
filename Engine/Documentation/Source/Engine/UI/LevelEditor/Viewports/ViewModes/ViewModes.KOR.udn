@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539135
+﻿INTSourceChangelist:2617278
 Availability:Public
 Title:뷰 모드
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -504,7 +504,17 @@ TODO
 ## 노출
 
 [REGION:fullwidth]
-![](Exposure.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yhjRn9xZUTs
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
 Exposure (노출)은 씬의 전체적인 밝기를 조절하는 포스트 프로세싱 이펙트입니다. 고정된 값으로 설정하거나, 자동 설정되도록 놔둘 수 있습니다.
