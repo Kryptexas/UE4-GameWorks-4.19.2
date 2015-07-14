@@ -11,8 +11,8 @@ class SLATE_API SRotatorInputBox : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SRotatorInputBox )
 		: _bColorAxisLabels(false)
-		, _Font( FCoreStyle::Get().GetFontStyle("NormalFont") )
 		, _AllowResponsiveLayout(false)
+		, _Font(FCoreStyle::Get().GetFontStyle("NormalFont"))
 		, _AllowSpin(true)
 		{}
 
