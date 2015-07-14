@@ -24,19 +24,11 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 private:
+	void UpdateInternalStateFromSettingsModel();
 
 	void OnSettingsChanged();
 
-	/** Prompt the user to restart the editor */
-	void PromptForRestart() const;
-
-	/** Look for available cultures */
-	void RefreshAvailableEditorCultures();
-
-	/** Look for available languages */
-	void RefreshAvailableEditorLanguages();
-
-	/** Look for available regions */
+	/** Look for available editor culture regions */
 	void RefreshAvailableEditorRegions();
 
 	/** Delegate called to display the current editor language */
@@ -54,25 +46,19 @@ private:
 	/** Delegate called to see if we're allowed to change the region */
 	bool IsEditorRegionSelectionAllowed() const;
 
-	/** Look for available cultures */
-	void RefreshAvailableNativeGameCultures();
-
-	/** Look for available languages */
-	void RefreshAvailableNativeGameLanguages();
-
-	/** Look for available regions */
+	/** Look for available game culture regions */
 	void RefreshAvailableNativeGameRegions();
 
-	/** Delegate called to display the current NativeGame language */
+	/** Delegate called to display the current native game language */
 	FText GetNativeGameCurrentLanguageText() const;
 
-	/** Delegate called when the NativeGame language selection has changed */
+	/** Delegate called when the native game language selection has changed */
 	void OnNativeGameLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
 
-	/** Delegate called to display the current NativeGame region */
+	/** Delegate called to display the current native game region */
 	FText GetCurrentNativeGameRegionText() const;
 
-	/** Delegate called when the NativeGame region selection has changed */
+	/** Delegate called when the native game region selection has changed */
 	void OnNativeGameRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
 
 	/** Delegate called to see if we're allowed to change the region */
@@ -89,9 +75,6 @@ private:
 
 	/** Delegate called when the the checked state of whether or not field names should be localized has changed. */
 	void ShouldLoadLocalizedFieldNamesCheckChanged(ECheckBoxState CheckState);
-
-	/** Write to config now the Editor is shutting down (all packages are saved) */
-	void HandleShutdownPostPackagesSaved();
 
 	/** Delegate called when the the checked state of whether or not nodes and pins in graph editors should be localized has changed. */
 	void ShouldShowNodesAndPinsUnlocalized(ECheckBoxState CheckState);
