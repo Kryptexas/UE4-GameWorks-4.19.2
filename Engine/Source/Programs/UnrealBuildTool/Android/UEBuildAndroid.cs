@@ -349,6 +349,12 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
+		{
+			// Disable for now
+			return false;
+		}
+
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
 			// we want gcc toolchain 4.9, but fall back to 4.8 or 4.6 for now if it doesn't exist
@@ -403,9 +409,13 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x64");
 
-			//@TODO: Tegra Gfx Debugger
-//			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
-//			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Tegra_gfx_debugger");
+			//@TODO: Tegra Gfx Debugger - standardize locations - for now, change the hardcoded paths and force this to return true to test
+			if (UseTegraGraphicsDebugger(InBuildTarget))
+			{
+				//InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
+				//InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("F:/NVPACK/android-kk-egl-t124-a32/stub");
+				//InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Nvidia_gfx_debugger_stub");
+			}
 
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
@@ -414,8 +424,11 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("m");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("log");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("dl");
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("GLESv2");
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("EGL");
+			if (!UseTegraGraphicsDebugger(InBuildTarget))
+			{
+				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("GLESv2");
+				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("EGL");
+			}
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("OpenSLES");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("android");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("cxa_demangle");
