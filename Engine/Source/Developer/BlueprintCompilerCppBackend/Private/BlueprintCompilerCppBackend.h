@@ -36,40 +36,19 @@ protected:
 
 	FString CppClassName;
 
-	// Pointers to commonly used structures (found in constructor)
-	UScriptStruct* VectorStruct;
-	UScriptStruct* RotatorStruct;
-	UScriptStruct* TransformStruct;
-	UScriptStruct* LatentInfoStruct;
-	UScriptStruct* LinearColorStruct;
 public:
 	FStringOutputDevice Header;
 	FStringOutputDevice Body;
-	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = NULL);
 
 	const FString& GetBody()	const override { return Body; }
 	const FString& GetHeader()	const override { return Header; }
 
-protected:
-	FString LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel);
-
-	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
-	{
-		int32 Index = FunctionIndexMap.FindChecked(&FunctionContext);
-		return StateMapPerFunction[Index].StatementToStateIndex(Statement);
-	}
 public:
 
 	FBlueprintCompilerCppBackend(FKismetCompilerContext& InContext)
 		: MessageLog(InContext.MessageLog)
 		, CompilerContext(InContext)
 	{
-		extern UScriptStruct* Z_Construct_UScriptStruct_FVector();
-		VectorStruct = Z_Construct_UScriptStruct_FVector();
-		RotatorStruct = TBaseStructure<FRotator>::Get();
-		TransformStruct = TBaseStructure<FTransform>::Get();
-		LinearColorStruct = TBaseStructure<FLinearColor>::Get();
-		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
 
 	void Emit(FStringOutputDevice& Target, const TCHAR* Message)
@@ -109,4 +88,22 @@ public:
 
 	/** Builds both the header declaration and body implementation of a function */
 	void ConstructFunction(FKismetFunctionContext& FunctionContext, bool bGenerateStubOnly);
+
+	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = nullptr);
+
+protected:
+
+	FString LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel);
+
+	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
+	{
+		int32 Index = FunctionIndexMap.FindChecked(&FunctionContext);
+		return StateMapPerFunction[Index].StatementToStateIndex(Statement);
+	}
+
+	FString EmitMethodInputParameterList(FBlueprintCompiledStatement& Statement);
+
+	FString EmitSwitchValueStatmentInner(FBlueprintCompiledStatement& Statement);
+
+	FString EmitCallStatmentInner(FBlueprintCompiledStatement& Statement, bool bInline);
 };

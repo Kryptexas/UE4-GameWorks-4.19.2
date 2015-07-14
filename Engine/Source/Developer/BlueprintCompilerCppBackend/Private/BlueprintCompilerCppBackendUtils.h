@@ -4,7 +4,7 @@
 struct FSafeContextScopedEmmitter
 {
 private:
-	FStringOutputDevice& Body;
+	FString& Body;
 	bool bSafeContextUsed;
 	const TCHAR* CurrentIndent;
 public:
@@ -18,7 +18,7 @@ public:
 		return bSafeContextUsed;
 	}
 
-	FSafeContextScopedEmmitter(FStringOutputDevice& InBody, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend, const TCHAR* InCurrentIndent)
+	FSafeContextScopedEmmitter(FString& InBody, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend, const TCHAR* InCurrentIndent)
 		: Body(InBody), bSafeContextUsed(false), CurrentIndent(InCurrentIndent)
 	{
 		TArray<FString> SafetyConditions;
@@ -127,7 +127,7 @@ struct FEmitHelper
 				if (!Pair.Value.IsEmpty())
 				{
 					FString Value = Pair.Value.Replace(TEXT("\n"), TEXT(""));
-					MetaDataStrings.Emplace(FString::Printf(TEXT("%s=\"%s\""), *Pair.Key.ToString(), *Pair.Value));
+					MetaDataStrings.Emplace(FString::Printf(TEXT("%s=\"%s\""), *Pair.Key.ToString(), *Value));
 				}
 				else
 				{

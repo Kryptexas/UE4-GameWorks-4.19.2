@@ -111,9 +111,8 @@ struct FCustomThunkTemplates
 	template<typename T>
 	static void Array_Set(TArray<T>& TargetArray, int32 Index, const T& Item, bool bSizeToFit)
 	{
-		if (ensure(Index > 0))
+		if (ensure(Index >= 0))
 		{
-			const bool bIsValidIndex = ;
 			if (!TargetArray.IsValidIndex(Index) && bSizeToFit)
 			{
 				TargetArray.SetNum(Index + 1);
@@ -154,3 +153,56 @@ struct FCustomThunkTemplates
 		return UKismetSystemLibrary::Generic_SetStructurePropertyByName(Object, PropertyName, &Value);
 	}
 };
+
+template<typename IndexType, typename ValueType>
+struct TSwitchPair
+{
+	const IndexType& IndexRef;
+	ValueType& ValueRef;
+
+	TSwitchPair(const IndexType& InIndexRef, ValueType& InValueRef)
+		: IndexRef(InIndexRef)
+		, ValueRef(InValueRef)
+	{}
+};
+
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+template<typename IndexType, typename ValueType>
+ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum)
+{
+	return DefaultValue;
+}
+
+template<typename IndexType, typename ValueType, typename Head, typename... Tail>
+ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum, Head HeadOption, Tail... TailOptions)
+{
+	if (CurrentIndex == HeadOption.IndexRef)
+	{
+		return HeadOption.ValueRef;
+	}
+	return TSwitchValue<IndexType, ValueType, Tail...>(CurrentIndex, DefaultValue, OptionsNum, TailOptions...);
+}
+#else //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+template<typename IndexType, typename ValueType>
+ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, int OptionsNum, ...)
+{
+	typedef TSwitchPair < IndexType, ValueType > OptionType;
+
+	ValueType* SelectedValuePtr = nullptr;
+
+	va_list Options;
+	va_start(Options, OptionsNum);
+	for (int OptionIt = 0; OptionIt < OptionsNum; ++OptionIt)
+	{
+		OptionType Option = va_arg(Options, OptionType);
+		if (Option.IndexRef == CurrentIndex)
+		{
+			SelectedValuePtr = &Option.ValueRef;
+			break;
+		}
+	}
+	va_end(Options);
+
+	return SelectedValuePtr ? *SelectedValuePtr : DefaultValue;
+}
+#endif //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES

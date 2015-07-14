@@ -24,9 +24,13 @@ enum EPropertyExportCPPFlags
 	/** Indicates that we are exporting this property's CPP text for an argument or return value */
 	CPPF_ArgumentOrReturnValue		=	0x00000002,
 	/** Indicates thet we are exporting this property's CPP text for C++ definition of a function. */
-	CPPF_Implementation = 0x00000004,
+	CPPF_Implementation				=	0x00000004,
 	/** Indicates thet we are exporting this property's CPP text with an custom type name */
 	CPPF_CustomTypeName				=	0x00000008,
+	/** No 'const' keyword */
+	CPPF_NoConst					=	0x00000010,
+	/** No reference '&' sign */
+	CPPF_NoRef						=	0x00000020,
 };
 
 namespace EExportedDeclaration

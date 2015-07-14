@@ -56,21 +56,21 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 		}
 		else if (auto StructProperty = Cast<const UStructProperty>(CoerceProperty))
 		{
-			if (StructProperty->Struct == VectorStruct)
+			if (StructProperty->Struct == TBaseStructure<FVector>::Get())
 			{
 				FVector Vect = FVector::ZeroVector;
 				FDefaultValueHelper::ParseVector(Term->Name, /*out*/ Vect);
 
 				return FString::Printf(TEXT("FVector(%f,%f,%f)"), Vect.X, Vect.Y, Vect.Z);
 			}
-			else if (StructProperty->Struct == RotatorStruct)
+			else if (StructProperty->Struct == TBaseStructure<FRotator>::Get())
 			{
 				FRotator Rot = FRotator::ZeroRotator;
 				FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ Rot);
 
 				return FString::Printf(TEXT("FRotator(%f,%f,%f)"), Rot.Pitch, Rot.Yaw, Rot.Roll);
 			}
-			else if (StructProperty->Struct == TransformStruct)
+			else if (StructProperty->Struct == TBaseStructure<FTransform>::Get())
 			{
 				FTransform Trans = FTransform::Identity;
 				Trans.InitFromString(Term->Name);
@@ -82,7 +82,7 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 				return FString::Printf(TEXT("FTransform( FQuat(%f,%f,%f,%f), FVector(%f,%f,%f), FVector(%f,%f,%f) )"),
 					Rot.X, Rot.Y, Rot.Z, Rot.W, Translation.X, Translation.Y, Translation.Z, Scale.X, Scale.Y, Scale.Z);
 			}
-			else if (StructProperty->Struct == LinearColorStruct)
+			else if (StructProperty->Struct == TBaseStructure<FLinearColor>::Get())
 			{
 				FLinearColor LinearColor;
 				LinearColor.InitFromString(Term->Name);
@@ -101,18 +101,6 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 				return FString::Printf(TEXT("%s%s::StaticClass()"), FoundClass->GetPrefixCPP(), *FoundClass->GetName());
 			}
 			return FString(TEXT("NULL"));
-		}
-		else if (CoerceProperty->IsA(UDelegateProperty::StaticClass()))
-		{
-			//@TODO: K2 Delegate Support: Won't compile, there isn't an operator= that does what we want here, it should be a proper call to BindDynamic instead!
-			if (Term->Name == TEXT(""))
-			{
-				return TEXT("NULL");
-			}
-			else
-			{
-				return FString::Printf(TEXT("BindDynamic(this, &%s::%s)"), *CppClassName, *(Term->Name));
-			}
 		}
 		else if (CoerceProperty->IsA(UObjectPropertyBase::StaticClass()))
 		{
@@ -159,6 +147,22 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 			return Term->Name;
 		}
 	}
+	else if (Term->InlineGeneratedParameter)
+	{
+		if (KCST_SwitchValue == Term->InlineGeneratedParameter->Type)
+		{
+			return EmitSwitchValueStatmentInner(*Term->InlineGeneratedParameter);
+		}
+		else if (KCST_CallFunction == Term->InlineGeneratedParameter->Type)
+		{
+			return EmitCallStatmentInner(*Term->InlineGeneratedParameter, true);
+		}
+		else
+		{
+			ensureMsgf(false, TEXT("KCST %d is not accepted as inline statement."), Term->InlineGeneratedParameter->Type);
+			return FString();
+		}
+	}
 	else
 	{
 		FString Prefix(TEXT(""));
@@ -183,7 +187,7 @@ FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const 
 
 FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel)
 {
-	check(LatentInfoStruct);
+	auto LatentInfoStruct = FLatentActionInfo::StaticStruct();
 
 	// Find the term name we need to fixup
 	FString FixupTermName;
@@ -339,7 +343,12 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionConte
 
 	Emit(Body, TEXT("\t\t\t"));
 	Emit(Body, *SafeContextScope.GetAdditionalIndent());
-	Emit(Body, *FString::Printf(TEXT("%s.Broadcast("), *TermToText(Statement.FunctionContext)));
+	Emit(Body, *FString::Printf(TEXT("%s.Broadcast(%s)"), *TermToText(Statement.FunctionContext), *EmitMethodInputParameterList(Statement)));
+}
+
+FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FBlueprintCompiledStatement& Statement)
+{
+	FString Result;
 	int32 NumParams = 0;
 	for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
@@ -349,7 +358,7 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionConte
 		{
 			if (NumParams > 0)
 			{
-				Emit(Body, TEXT(", "));
+				Result += TEXT(", ");
 			}
 
 			FString VarName;
@@ -362,7 +371,7 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionConte
 				// The target label will only ever be set on a call function when calling into the Ubergraph or
 				// on a latent function that will later call into the ubergraph, either of which requires a patchup
 				UStructProperty* StructProp = Cast<UStructProperty>(FuncParamProperty);
-				if (StructProp && StructProp->Struct == LatentInfoStruct)
+				if (StructProp && (StructProp->Struct == FLatentActionInfo::StaticStruct()))
 				{
 					// Latent function info case
 					VarName = LatentFunctionInfoTermToText(Term, Statement.TargetLabel);
@@ -381,118 +390,111 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionConte
 
 			if (FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm))
 			{
-				Emit(Body, TEXT("/*out*/ "));
+				Result += TEXT("/*out*/ ");
 			}
-			Emit(Body, *VarName);
+			Result += *VarName;
 
 			NumParams++;
 		}
 	}
-	Emit(Body, TEXT(");\n"));
+
+	return Result;
+}
+
+FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FBlueprintCompiledStatement& Statement, bool bInline)
+{
+	FString Result;
+
+	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
+	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
+	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
+	FSafeContextScopedEmmitter SafeContextScope(Result, bUseSafeContext ? Statement.FunctionContext : nullptr, *this, TEXT("\t\t\t"));
+	ensure(!bInline || !SafeContextScope.IsSafeContextUsed());
+
+	if (!bInline)
+	{
+		Result += TEXT("\t\t\t");
+		Result += SafeContextScope.GetAdditionalIndent();
+
+		// Handle the return value of the function being called
+		UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
+		if (FuncToCallReturnProperty && ensure(Statement.LHS))
+		{
+			Result += FString::Printf(TEXT("%s = "), *TermToText(Statement.LHS));
+		}
+	}
+
+	// Emit object to call the method on
+	if (bStaticCall)
+	{
+		const bool bIsCustomThunk = Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) || Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
+		auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
+		Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s%s::"), OwnerClass->GetPrefixCPP(), *OwnerClass->GetName());
+	}
+	else if(bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
+	{
+		Result += FString::Printf(TEXT("%s->"), *TermToText(Statement.FunctionContext, (UProperty*)(GetDefault<UObjectProperty>())));
+	}
+
+	// Emit method name
+	Result += FString::Printf(TEXT("%s%s"), Statement.bIsParentContext ? TEXT("Super::") : TEXT(""), *Statement.FunctionToCall->GetName());
+
+	// Emit method parameter list
+	Result += TEXT("(");
+	Result += EmitMethodInputParameterList(Statement);
+	Result += TEXT(")");
+
+	if (!bInline)
+	{
+		Result += TEXT(";\n");
+	}
+
+	return Result;
 }
 
 void FBlueprintCompilerCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	const bool bCallOnDifferentObject = (Statement.FunctionContext != NULL) && (Statement.FunctionContext->Name != TEXT("self"));
-	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
+	Emit(Body, *EmitCallStatmentInner(Statement, false));
+}
 
-	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
-	FSafeContextScopedEmmitter SafeContextScope(Body, bUseSafeContext ? Statement.FunctionContext : NULL, *this, TEXT("\t\t\t"));
+FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FBlueprintCompiledStatement& Statement)
+{
+	check(Statement.RHS.Num() >= 2);
+	const int32 TermsBeforeCases = 1;
+	const int32 TermsPerCase = 2;
+	const int32 NumCases = ((Statement.RHS.Num() - 2) / TermsPerCase);
+	auto IndexTerm = Statement.RHS[0];
+	auto DefaultValueTerm = Statement.RHS.Last();
 
-	Emit(Body, TEXT("\t\t\t"));
-	Emit(Body, *SafeContextScope.GetAdditionalIndent());
+	FString Result = FString::Printf(TEXT("TSwitchValue(%s, %s, %d")
+		, *TermToText(IndexTerm, nullptr) //index
+		, *TermToText(DefaultValueTerm, nullptr) // default
+		, NumCases);
+	
+	UProperty* VirtualIndexProperty = IndexTerm ? IndexTerm->AssociatedVarProperty : nullptr;
+	check(VirtualIndexProperty);
+	FStringOutputDevice IndexDeclaration;
+	VirtualIndexProperty->ExportCppDeclaration(IndexDeclaration, EExportedDeclaration::Parameter, NULL
+		, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef, true);
 
-	// Handle the return value of the function being called
-	UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
-	if (FuncToCallReturnProperty != NULL)
+	UProperty* VirtualValueProperty = DefaultValueTerm ? DefaultValueTerm->AssociatedVarProperty : nullptr;
+	check(VirtualValueProperty);
+	FStringOutputDevice ValueDeclaration;
+	VirtualValueProperty->ExportCppDeclaration(ValueDeclaration, EExportedDeclaration::Parameter, NULL
+		, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef, true);
+
+	for (int32 TermIndex = TermsBeforeCases; TermIndex < (NumCases * TermsPerCase); TermIndex += TermsPerCase)
 	{
-		FBPTerminal* Term = Statement.LHS;
-		ensure(Term != NULL);
-
-		FString ReturnVarName = TermToText(Term);
-		Emit(Body, *FString::Printf(TEXT("%s = "), *ReturnVarName));
+		Result += FString::Printf(TEXT(", TSwitchPair<%s, %s>(%s, %s)")
+			, *IndexDeclaration
+			, *ValueDeclaration
+			, *TermToText(Statement.RHS[TermIndex], VirtualIndexProperty)
+			, *TermToText(Statement.RHS[TermIndex + 1], VirtualValueProperty));
 	}
 
-	// Emit object to call the method on
-	if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
-	{
-		if (bStaticCall)
-		{
-			const bool bIsCustomThunk = Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) || Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
-			FString FullFunctionNamePrefix = bIsCustomThunk
-				? TEXT("FCustomThunkTemplates::")
-				: FString::Printf(TEXT("U%s::"), *Statement.FunctionToCall->GetOuter()->GetName());
-			Emit(Body, *FullFunctionNamePrefix); //@TODO: Assuming U prefix but could be A
-		}
-		else
-		{
-			Emit(Body, *FString::Printf(TEXT("%s->"), *TermToText(Statement.FunctionContext, (UProperty*)(GetDefault<UObjectProperty>()))));
-		}
-	}
+	Result += TEXT(")");
 
-	// Emit method name
-	FString FunctionNameToCall;
-	Statement.FunctionToCall->GetName(FunctionNameToCall);
-	if (Statement.bIsParentContext)
-	{
-		FunctionNameToCall = TEXT("Super::") + FunctionNameToCall;
-	}
-	Emit(Body, *FString::Printf(TEXT("%s"), *FunctionNameToCall));
-
-	// Emit method parameter list
-	Emit(Body, TEXT("("));
-	{
-		int32 NumParams = 0;
-
-		for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
-		{
-			UProperty* FuncParamProperty = *PropIt;
-
-			if (!FuncParamProperty->HasAnyPropertyFlags(CPF_ReturnParm))
-			{
-				if (NumParams > 0)
-				{
-					Emit(Body, TEXT(", "));
-				}
-
-				FString VarName;
-
-				FBPTerminal* Term = Statement.RHS[NumParams];
-				ensure(Term != NULL);
-
-				if ((Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams))
-				{
-					// The target label will only ever be set on a call function when calling into the Ubergraph or
-					// on a latent function that will later call into the ubergraph, either of which requires a patchup
-					UStructProperty* StructProp = Cast<UStructProperty>(FuncParamProperty);
-					if (StructProp && StructProp->Struct == LatentInfoStruct)
-					{
-						// Latent function info case
-						VarName = LatentFunctionInfoTermToText(Term, Statement.TargetLabel);
-					}
-					else
-					{
-						// Ubergraph entry point case
-						VarName = FString::FromInt(StateMapPerFunction[0].StatementToStateIndex(Statement.TargetLabel));
-					}
-				}
-				else
-				{
-					// Emit a normal parameter term
-					VarName = TermToText(Term, FuncParamProperty);
-				}
-
-				if (FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm))
-				{
-					Emit(Body, TEXT("/*out*/ "));
-				}
-				Emit(Body, *VarName);
-
-				NumParams++;
-			}
-		}
-	}
-	Emit(Body, TEXT(");\n"));
+	return Result;
 }
 
 void FBlueprintCompilerCppBackend::EmitAssignmentStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -953,29 +955,33 @@ void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& Fun
 					case KCST_Nop:
 						Emit(Body, TEXT("\t\t\t//No operation.\n"));
 						break;
-					case KCST_WireTraceSite:
-						Emit(Body, TEXT("\t\t\t// Wire debug site.\n"));
-						break;
-					case KCST_DebugSite:
-						Emit(Body, TEXT("\t\t\t// Debug site.\n"));
-						break;
 					case KCST_CallFunction:
 						EmitCallStatment(FunctionContext, Statement);
-						break;
-					case KCST_CallDelegate:
-						EmitCallDelegateStatment(FunctionContext, Statement);
 						break;
 					case KCST_Assignment:
 						EmitAssignmentStatment(FunctionContext, Statement);
 						break;
+					case KCST_CompileError:
+						UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered KCST_CompileError"));
+						Emit(Body, TEXT("\t\t\tstatic_assert(false); // KCST_CompileError"));
+						break;
+					case KCST_PushState:
+						EmitPushStateStatement(FunctionContext, Statement);
+						break;
+					case KCST_Return:
+						Emit(Body, TEXT("\t\t\t// Return statement.\n"));
+						break;
+					case KCST_EndOfThread:
+						EmitEndOfThreadStatement(FunctionContext, ReturnValueString);
+						break;
+					case KCST_Comment:
+						Emit(Body, *FString::Printf(TEXT("\t\t\t// %s\n"), *Statement.Comment));
+						break;
+					case KCST_DebugSite:
+						Emit(Body, TEXT("\t\t\t// Debug site.\n"));
+						break;
 					case KCST_CastObjToInterface:
 						EmitCastObjToInterfaceStatement(FunctionContext, Statement);
-						break;
-					case KCST_CrossInterfaceCast:
-						EmitCastBetweenInterfacesStatement(FunctionContext, Statement);
-						break;
-					case KCST_CastInterfaceToObj:
-						EmitCastInterfaceToObjStatement(FunctionContext, Statement);
 						break;
 					case KCST_DynamicCast:
 						EmitDynamicCastStatement(FunctionContext, Statement);
@@ -986,17 +992,32 @@ void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& Fun
 					case KCST_AddMulticastDelegate:
 						EmitAddMulticastDelegateStatement(FunctionContext, Statement);
 						break;
-					case KCST_RemoveMulticastDelegate:
-						EmitRemoveMulticastDelegateStatement(FunctionContext, Statement);
+					case KCST_ClearMulticastDelegate:
+						EmitClearMulticastDelegateStatement(FunctionContext, Statement);
+						break;
+					case KCST_WireTraceSite:
+						Emit(Body, TEXT("\t\t\t// Wire debug site.\n"));
 						break;
 					case KCST_BindDelegate:
 						EmitBindDelegateStatement(FunctionContext, Statement);
 						break;
-					case KCST_ClearMulticastDelegate:
-						EmitClearMulticastDelegateStatement(FunctionContext, Statement);
+					case KCST_RemoveMulticastDelegate:
+						EmitRemoveMulticastDelegateStatement(FunctionContext, Statement);
+						break;
+					case KCST_CallDelegate:
+						EmitCallDelegateStatment(FunctionContext, Statement);
 						break;
 					case KCST_CreateArray:
 						EmitCreateArrayStatement(FunctionContext, Statement);
+						break;
+					case KCST_CrossInterfaceCast:
+						EmitCastBetweenInterfacesStatement(FunctionContext, Statement);
+						break;
+					case KCST_MetaCast:
+						EmitMetaCastStatement(FunctionContext, Statement);
+						break;
+					case KCST_CastInterfaceToObj:
+						EmitCastInterfaceToObjStatement(FunctionContext, Statement);
 						break;
 					case KCST_ComputedGoto:
 					case KCST_UnconditionalGoto:
@@ -1006,24 +1027,12 @@ void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& Fun
 					case KCST_GotoReturnIfNot:
 						EmitGotoStatement(FunctionContext, Statement);
 						break;
-					case KCST_PushState:
-						EmitPushStateStatement(FunctionContext, Statement);
-						break;
-					case KCST_EndOfThread:
-						EmitEndOfThreadStatement(FunctionContext, ReturnValueString);
-						break;
-					case KCST_Comment:
-						Emit(Body, *FString::Printf(TEXT("\t\t\t// %s\n"), *Statement.Comment));
-						break;
-					case KCST_MetaCast:
-						EmitMetaCastStatement(FunctionContext, Statement);
-						break;
-					case KCST_Return:
-						Emit(Body, TEXT("\t\t\t// Return statement.\n"));
-						break;
+					case KCST_SwitchValue:
+						// Switch Value should be always an "inline" statement, so there is no point to handle it here
+					// case: KCST_AssignmentOnPersistentFrame
 					default:
 						Emit(Body, TEXT("\t// Warning: Ignoring unsupported statement\n"));
-						UE_LOG(LogK2Compiler, Warning, TEXT("C++ backend encountered unsupported statement type %d"), (int32)Statement.Type);
+						UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered unsupported statement type %d"), (int32)Statement.Type);
 						break;
 					};
 				}
