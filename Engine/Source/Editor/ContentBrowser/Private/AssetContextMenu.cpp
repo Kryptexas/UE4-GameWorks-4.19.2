@@ -11,6 +11,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "Toolkits/ToolkitManager.h"
+#include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ConsolidateWindow.h"
 #include "ReferenceViewer.h"
 #include "ISizeMapModule.h"
@@ -61,6 +62,11 @@ void FAssetContextMenu::BindCommands(TSharedPtr< FUICommandList >& Commands)
 		FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteDuplicate),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FAssetContextMenu::CanExecuteDuplicate)
+		));
+
+	Commands->MapAction(FGlobalEditorCommonCommands::Get().FindInContentBrowser, FUIAction(
+		FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteSyncToAssetTree),
+		FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteSyncToAssetTree)
 		));
 }
 
@@ -278,23 +284,19 @@ void FAssetContextMenu::AddExploreMenuOptions(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.BeginSection("AssetContextExploreMenuOptions", LOCTEXT("AssetContextExploreMenuOptionsHeading", "Explore"));
 	{
-		// Open Containing Folder
+		// Find in Content Browser
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SyncToAssetTree", "Show in Folder View"),
-			LOCTEXT("SyncToAssetTreeTooltip", "Selects the folder that contains this asset in the Content Browser Sources Panel."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteSyncToAssetTree),
-				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteSyncToAssetTree)
-				)
+			FGlobalEditorCommonCommands::Get().FindInContentBrowser, 
+			NAME_None, 
+			LOCTEXT("ShowInFolderView", "Show in Folder View"),
+			LOCTEXT("ShowInFolderViewTooltip", "Selects the folder that contains this asset in the Content Browser Sources Panel.")
 			);
-
 
 		// Find in Explorer
 		MenuBuilder.AddMenuEntry(
 			ContentBrowserUtils::GetExploreFolderText(),
 			LOCTEXT("FindInExplorerTooltip", "Finds this asset on disk"),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteFindInExplorer ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteFindInExplorer )
@@ -1069,7 +1071,9 @@ void FAssetContextMenu::GetSelectedAssetSourceFilePaths(TArray<FString>& OutFile
 
 void FAssetContextMenu::ExecuteSyncToAssetTree()
 {
-	OnFindInAssetTreeRequested.ExecuteIfBound(SelectedAssets);
+	// Copy this as the sync may adjust our selected assets array
+	const TArray<FAssetData> SelectedAssetsCopy = SelectedAssets;
+	OnFindInAssetTreeRequested.ExecuteIfBound(SelectedAssetsCopy);
 }
 
 void FAssetContextMenu::ExecuteFindInExplorer()

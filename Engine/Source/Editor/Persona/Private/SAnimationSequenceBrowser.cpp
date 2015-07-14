@@ -11,6 +11,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "FeedbackContextEditor.h"
 #include "EditorAnimUtils.h"
+#include "Toolkits/GlobalEditorCommonCommands.h"
 #include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SceneViewport.h"
@@ -98,8 +99,6 @@ void SAnimationSequenceBrowser::OnRequestOpenAsset(const FAssetData& AssetData, 
 
 TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets)
 {
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/ true, NULL);
-
 	bool bHasSelectedAnimSequence = false;
 	if ( SelectedAssets.Num() )
 	{
@@ -113,6 +112,8 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 			}
 		}
 	}
+
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/ true, Commands);
 
 	if(bHasSelectedAnimSequence)
 	{
@@ -174,24 +175,16 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 	MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabOptionsHeading", "Options") );
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("GoToInContentBrowser", "Go To Content Browser"),
-			LOCTEXT("GoToInContentBrowser_ToolTip", "Select the asset in the content browser"),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnGoToInContentBrowser, SelectedAssets ),
-			FCanExecuteAction()
-			)
-			);
-
-		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SaveSelectedAssets", "Save"),
 			LOCTEXT("SaveSelectedAssets_ToolTip", "Save the selected assets"),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::SaveSelectedAssets, SelectedAssets),
 				FCanExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::CanSaveSelectedAssets, SelectedAssets)
 				)
 			);
+
+		MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser);
 	}
 	MenuBuilder.EndSection();
 
@@ -211,13 +204,20 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 	return MenuBuilder.MakeWidget();
 }
 
-void SAnimationSequenceBrowser::OnGoToInContentBrowser(TArray<FAssetData> ObjectsToSync)
+void SAnimationSequenceBrowser::FindInContentBrowser()
 {
-	if ( ObjectsToSync.Num() > 0 )
+	TArray<FAssetData> CurrentSelection = GetCurrentSelectionDelegate.Execute();
+	if (CurrentSelection.Num() > 0)
 	{
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		ContentBrowserModule.Get().SyncBrowserToAssets( ObjectsToSync );
+		ContentBrowserModule.Get().SyncBrowserToAssets(CurrentSelection);
 	}
+}
+
+bool SAnimationSequenceBrowser::CanFindInContentBrowser() const
+{
+	TArray<FAssetData> CurrentSelection = GetCurrentSelectionDelegate.Execute();
+	return CurrentSelection.Num() > 0;
 }
 
 void SAnimationSequenceBrowser::GetSelectedPackages(const TArray<FAssetData>& Assets, TArray<UPackage*>& OutPackages) const
@@ -398,6 +398,12 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 		PersonaPtr.Pin()->SetSequenceBrowser(this);
 	}
 
+	Commands = MakeShareable(new FUICommandList());
+	Commands->MapAction(FGlobalEditorCommonCommands::Get().FindInContentBrowser, FUIAction(
+		FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::FindInContentBrowser),
+		FCanExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::CanFindInContentBrowser)
+		));
+
 	CurrentAssetHistoryIndex = INDEX_NONE;
 	bTriedToCacheOrginalAsset = false;
 
@@ -523,6 +529,16 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	AssetRegistryTagsToIgnore.Add(TEXT("Skeleton"));
 	AssetRegistryTagsToIgnore.Add(GET_MEMBER_NAME_CHECKED(UAnimSequenceBase, SequenceLength));
 	AssetRegistryTagsToIgnore.Add(GET_MEMBER_NAME_CHECKED(UAnimSequenceBase, RateScale));
+}
+
+FReply SAnimationSequenceBrowser::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (Commands->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }
 
 void SAnimationSequenceBrowser::AddAssetToHistory(const FAssetData& AssetData)

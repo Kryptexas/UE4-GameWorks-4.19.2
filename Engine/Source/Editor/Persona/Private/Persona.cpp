@@ -2576,7 +2576,10 @@ void FPersona::FindInContentBrowser_Execute()
 {
 	FName CurrentMode = GetCurrentMode();
 	TArray<UObject*> ObjectsToSyncTo = GetEditorObjectsForMode(CurrentMode);
-	GEditor->SyncBrowserToObjects( ObjectsToSyncTo );
+	if (ObjectsToSyncTo.Num() > 0)
+	{
+		GEditor->SyncBrowserToObjects( ObjectsToSyncTo );
+	}
 }
 
 void FPersona::OnCommandGenericDelete()
