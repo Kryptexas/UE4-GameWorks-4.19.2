@@ -69,6 +69,10 @@ class UEditorPerProjectUserSettings : public UObject
 	UPROPERTY(config)
 	bool bSCSEditorShowFloor;
 
+	/** How fast the SCS viewport camera moves */
+	UPROPERTY(config, meta=(UIMin = "1", UIMax = "8", ClampMin="1", ClampMax="8"))
+	int32 SCSViewportCameraSpeed;
+
 	// Color curve:
 	//   Release->Attack happens instantly
 	//   Attack holds for AttackHoldPeriod, then

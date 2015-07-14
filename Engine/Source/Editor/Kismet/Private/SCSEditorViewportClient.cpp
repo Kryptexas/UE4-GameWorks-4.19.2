@@ -633,6 +633,16 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 	return Matrix;
 }
 
+int32 FSCSEditorViewportClient::GetCameraSpeedSetting() const
+{
+	return GetDefault<UEditorPerProjectUserSettings>()->SCSViewportCameraSpeed;
+}
+
+void FSCSEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
+{
+	GetMutableDefault<UEditorPerProjectUserSettings>()->SCSViewportCameraSpeed = SpeedSetting;
+}
+
 void FSCSEditorViewportClient::InvalidatePreview(bool bResetCamera)
 {
 	// Ensure that the editor is valid before continuing

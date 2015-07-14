@@ -13,6 +13,7 @@ UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitia
 	MaterialQualityLevel = 1;
 	bMonitorEditorPerformance = true;
 	BlueprintFavorites = CreateDefaultSubobject<UBlueprintPaletteFavorites>(TEXT("BlueprintFavorites"));
+	SCSViewportCameraSpeed = 4;
 }
 
 void UEditorPerProjectUserSettings::PostInitProperties()
