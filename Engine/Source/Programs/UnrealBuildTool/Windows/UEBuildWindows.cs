@@ -521,7 +521,13 @@ namespace UnrealBuildTool
                     // To enable platform specific D3D11 RHI Types
                     InModule.AddPrivateIncludePath("Runtime/Windows/D3D11RHI/Private/Windows");
                 }
-            }
+
+				if (InModule.ToString() == "D3D12RHI")
+				{
+					// To enable platform specific D3D12 RHI Types
+					InModule.AddPrivateIncludePath("Runtime/Windows/D3D12RHI/Private/Windows");
+				}
+			}
         }
 
         /**
