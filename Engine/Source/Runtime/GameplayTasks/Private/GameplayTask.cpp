@@ -252,6 +252,14 @@ void UGameplayTask::AddClaimedResourceSet(FGameplayResourceSet AdditionalResourc
 
 void UGameplayTask::PerformActivation()
 {
+	if (TaskState == EGameplayTaskState::Active)
+	{
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Warning
+			, TEXT("%s PerformActivation called while TaskState is already Active. Bailing out.")
+			, *GetName());
+		return;
+	}
+
 	TaskState = EGameplayTaskState::Active;
 
 	Activate();
