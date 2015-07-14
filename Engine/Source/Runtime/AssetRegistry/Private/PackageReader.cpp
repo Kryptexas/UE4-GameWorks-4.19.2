@@ -140,9 +140,8 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		const bool bNoMapAsset = (ObjectCount == 0);
 		if (bLegacyPackage || bNoMapAsset)
 		{
-			const FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
-			TMap<FString, FString> TagsAndValues;
-			AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, TEXT(""), AssetName, TEXT("World"), TagsAndValues, PackageFileSummary.ChunkIDs));
+			FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
+			AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, FString(), MoveTemp(AssetName), TEXT("World"), TMap<FString, FString>(), PackageFileSummary.ChunkIDs));
 		}
 	}
 
@@ -191,7 +190,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		}
 
 		// Create a new FBackgroundAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, GroupNames, AssetName, ObjectClassName, TagsAndValues, PackageFileSummary.ChunkIDs));
+		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, MoveTemp(GroupNames), MoveTemp(AssetName), MoveTemp(ObjectClassName), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs));
 	}
 
 	return true;
@@ -246,8 +245,7 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FBackgroundAssetData
 		}
 
 		// Create a new FBackgroundAssetData for this asset and update it with the gathered data
-		TMap<FString, FString> TagsAndValues;
-		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, GroupNames, AssetName, AssetClassName, TagsAndValues, PackageFileSummary.ChunkIDs));
+		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, MoveTemp(GroupNames), MoveTemp(AssetName), MoveTemp(AssetClassName), TMap<FString, FString>(), PackageFileSummary.ChunkIDs));
 	}
 
 	return true;

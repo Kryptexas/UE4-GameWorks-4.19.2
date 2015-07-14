@@ -2,51 +2,31 @@
 
 #include "AssetRegistryPCH.h"
 
-FBackgroundAssetData::FBackgroundAssetData(const FString& InPackageName, const FString& InPackagePath, const FString& InGroupNames, const FString& InAssetName, const FString& InAssetClass, const TMap<FString, FString>& InTags, const TArray<int32>& InChunkIDs)
+FBackgroundAssetData::FBackgroundAssetData(FString InPackageName, FString InPackagePath, FString InGroupNames, FString InAssetName, FString InAssetClass, TMap<FString, FString> InTags, TArray<int32> InChunkIDs)
+	: PackageName(MoveTemp(InPackageName))
+	, PackagePath(MoveTemp(InPackagePath))
+	, GroupNames(MoveTemp(InGroupNames))
+	, AssetName(MoveTemp(InAssetName))
+	, AssetClass(MoveTemp(InAssetClass))
+	, TagsAndValues(MakeSharedMapView(MoveTemp(InTags)))
+	, ChunkIDs(MoveTemp(InChunkIDs))
 {
-	PackageName = InPackageName;
-	PackagePath = InPackagePath;
-	GroupNames = InGroupNames;
-	AssetName = InAssetName;
-	AssetClass = InAssetClass;
-	TagsAndValues = InTags;
-
 	ObjectPath = PackageName + TEXT(".");
 
-	if ( GroupNames.Len() )
+	if (GroupNames.Len())
 	{
 		ObjectPath += GroupNames + TEXT(".");
 	}
 
 	ObjectPath += AssetName;
-
-	ChunkIDs = InChunkIDs;
-}
-
-FBackgroundAssetData::FBackgroundAssetData(const FAssetData& InAssetData)
-{
-	PackageName = InAssetData.PackageName.ToString();
-	PackagePath = InAssetData.PackagePath.ToString();
-	GroupNames = InAssetData.GroupNames.ToString();
-	AssetName = InAssetData.AssetName.ToString();
-	AssetClass = InAssetData.AssetClass.ToString();
-
-	for ( auto TagIt = InAssetData.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt )
-	{
-		TagsAndValues.Add(TagIt.Key().ToString(), TagIt.Value());
-	}
-
-	ObjectPath = InAssetData.ObjectPath.ToString();
-
-	ChunkIDs = InAssetData.ChunkIDs;
 }
 
 FAssetData FBackgroundAssetData::ToAssetData() const
 {
 	TMap<FName, FString> CopiedTagsAndValues;
-	for (TMap<FString,FString>::TConstIterator TagIt(TagsAndValues); TagIt; ++TagIt)
+	for (const auto& TagsAndValuesEntry : TagsAndValues)
 	{
-		CopiedTagsAndValues.Add(FName(*TagIt.Key()), TagIt.Value());
+		CopiedTagsAndValues.Add(FName(*TagsAndValuesEntry.Key), TagsAndValuesEntry.Value);
 	}
 
 	return FAssetData(
@@ -55,7 +35,28 @@ FAssetData FBackgroundAssetData::ToAssetData() const
 		FName(*GroupNames),
 		FName(*AssetName),
 		FName(*AssetClass),
-		CopiedTagsAndValues,
+		MoveTemp(CopiedTagsAndValues),
 		ChunkIDs
 		);
+}
+
+bool FBackgroundAssetData::IsWithinSearchPath(const FString& InSearchPath) const
+{
+	return PackagePath.StartsWith(InSearchPath);
+}
+
+FAssetDataWrapper::FAssetDataWrapper(FAssetData InAssetData)
+	: WrappedAssetData(MoveTemp(InAssetData))
+	, PackagePathStr(WrappedAssetData.PackagePath.ToString())
+{
+}
+
+FAssetData FAssetDataWrapper::ToAssetData() const
+{
+	return WrappedAssetData;
+}
+
+bool FAssetDataWrapper::IsWithinSearchPath(const FString& InSearchPath) const
+{
+	return PackagePathStr.StartsWith(InSearchPath);
 }

@@ -33,15 +33,15 @@ public:
 	{}
 
 	/** Constructor */
-	FAssetData(FName InPackageName, FName InPackagePath, FName InGroupNames, FName InAssetName, FName InAssetClass, TMap<FName, FString> InTags, const TArray<int32>& InChunkIDs)
+	FAssetData(FName InPackageName, FName InPackagePath, FName InGroupNames, FName InAssetName, FName InAssetClass, TMap<FName, FString> InTags, TArray<int32> InChunkIDs)
+		: PackageName(InPackageName)
+		, PackagePath(InPackagePath)
+		, GroupNames(InGroupNames)
+		, AssetName(InAssetName)
+		, AssetClass(InAssetClass)
+		, TagsAndValues(MakeSharedMapView(MoveTemp(InTags)))
+		, ChunkIDs(MoveTemp(InChunkIDs))
 	{
-		PackageName = InPackageName;
-		PackagePath = InPackagePath;
-		GroupNames = InGroupNames;
-		AssetName = InAssetName;
-		AssetClass = InAssetClass;
-		TagsAndValues = MakeSharedMapView(MoveTemp(InTags));
-
 		FString ObjectPathStr = PackageName.ToString() + TEXT(".");
 
 		if ( GroupNames != NAME_None )
@@ -52,7 +52,6 @@ public:
 		ObjectPathStr += AssetName.ToString();
 
 		ObjectPath = FName(*ObjectPathStr);
-		ChunkIDs = InChunkIDs;
 	}
 
 	/** Constructor taking a UObject */
