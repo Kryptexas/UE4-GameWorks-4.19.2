@@ -4,7 +4,7 @@
 
 // Only enable unreal audio on windows or mac
 #if PLATFORM_WINDOWS
-#define ENABLE_UNREAL_AUDIO 0
+#define ENABLE_UNREAL_AUDIO 1
 #else
 #define ENABLE_UNREAL_AUDIO 0
 #endif
