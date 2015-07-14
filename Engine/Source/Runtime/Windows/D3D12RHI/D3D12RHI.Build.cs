@@ -6,7 +6,6 @@ public class D3D12RHI : ModuleRules
 {
 	public D3D12RHI(TargetInfo Target)
 	{
-		BinariesSubFolder = "NotForLicensees";
 		PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private");
 
 		PrivateDependencyModuleNames.AddRange(
