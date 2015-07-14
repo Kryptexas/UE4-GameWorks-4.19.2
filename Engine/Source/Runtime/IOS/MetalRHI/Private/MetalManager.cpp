@@ -183,6 +183,7 @@ FMetalManager::FMetalManager()
 	, SceneFrameCounter(0)
 	, ResourceTableFrameCounter(INDEX_NONE)
 {
+    bPreviousSurfaceWasBackBuffer = false;
 	for (int32 Index = 0; Index < ARRAY_COUNT(CurrentColorRenderTextures); Index++)
 	{
 		CurrentColorRenderTextures[Index] = nil;
@@ -609,12 +610,9 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		//		}
 #endif
         
-		// Check if CurrentCommandBuffer was rendering to the BackBuffer.
 		if( PreviousRenderTargetsInfo.NumColorRenderTargets == 1 )
 		{
-			const FRHIRenderTargetView& RenderTargetView = PreviousRenderTargetsInfo.ColorRenderTarget[0];
-			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
-			if(&Surface == &BackBuffer->Surface && CurrentDrawable != nil)
+			if(bPreviousSurfaceWasBackBuffer && CurrentDrawable != nil)
 			{
                 // release our record of it to ensure we are allocated a new drawable.
 				CurrentDrawable = nil;
@@ -625,6 +623,13 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	
 	// back this up for next frame
 	PreviousRenderTargetsInfo = RenderTargetsInfo;
+    // Check if CurrentCommandBuffer was rendering to the BackBuffer.
+    if( RenderTargetsInfo.NumColorRenderTargets == 1 )
+    {
+        const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
+        FMetalSurface* PreviousSurface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+        bPreviousSurfaceWasBackBuffer = PreviousSurface == &BackBuffer->Surface;
+    }
 
 	FIntPoint MaxDimensions(TNumericLimits<decltype(FIntPoint::X)>::Max(),TNumericLimits<decltype(FIntPoint::Y)>::Max());
 	// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
