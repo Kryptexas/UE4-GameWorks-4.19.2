@@ -489,6 +489,9 @@ struct FClothingAssetData
 
 	// serialization
 	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData& A);
+
+	// get resource size
+	SIZE_T GetResourceSize() const;
 };
 
 // Material interface for USkeletalMesh - contains a material and a shadow casting flag
@@ -649,7 +652,7 @@ public:
 	TMap<FName, UMorphTarget*> MorphTargetIndexMap;
 
 	/** Reference skeleton precomputed bases. */
-	TArray<FMatrix> RefBasesInvMatrix;    // @todo: wasteful ?!
+	TArray<FMatrix> RefBasesInvMatrix;    
 
 #if WITH_EDITORONLY_DATA
 	/** The section currently selected in the Editor. */

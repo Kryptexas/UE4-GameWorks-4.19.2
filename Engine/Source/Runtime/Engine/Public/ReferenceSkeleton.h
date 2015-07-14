@@ -255,6 +255,7 @@ public:
 
 	void RebuildNameToIndexMap();
 
+	SIZE_T GetDataSize() const;
 
 	friend FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F);
 };

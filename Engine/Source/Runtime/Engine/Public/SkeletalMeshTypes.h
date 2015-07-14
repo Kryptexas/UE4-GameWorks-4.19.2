@@ -1662,6 +1662,11 @@ public:
 
 		return false;
 	}
+
+	/**
+	 * Get Resource Size
+	 */
+	SIZE_T GetResourceSize() const;
 };
 
 /**
@@ -1695,6 +1700,11 @@ public:
 
 	/** Returns true if there are more than MAX_INFLUENCES_PER_STREAM influences per vertex. */
 	bool HasExtraBoneInfluences() const;
+
+	/** 
+	 *	Return the resource size
+	 */
+	SIZE_T GetResourceSize();
 
 private:
 	/** True if the resource has been initialized. */

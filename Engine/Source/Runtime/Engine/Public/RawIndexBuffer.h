@@ -211,7 +211,7 @@ public:
 	virtual void Insert(int32 Idx, int32 Num = 1) = 0;
 	virtual void Remove(int32 Idx, int32 Num = 1) = 0;
 	virtual void Empty(int32 Slack = 0) = 0;
-	virtual int32 GetResourceDataSize() = 0;
+	virtual int32 GetResourceDataSize() const = 0;
 };
 
 template <typename INDEX_TYPE>
@@ -301,7 +301,7 @@ public:
 		Indices.Empty(Slack);
 	}
 
-	virtual int32 GetResourceDataSize() override
+	virtual int32 GetResourceDataSize() const override
 	{
 		return Indices.GetResourceDataSize();
 	}

@@ -117,6 +117,39 @@ static bool SaveApexClothingAssetToBlob(const NxClothingAsset *InAsset, TArray<u
 }
 
 #endif//#if WITH_APEX_CLOTHING
+
+////////////////////////////////////////////////
+SIZE_T FClothingAssetData::GetResourceSize() const
+{
+#if WITH_APEX_CLOTHING
+	SIZE_T ResourceSize = 0;
+
+	if (ApexClothingAsset)
+	{
+		physx::PxU32 LODLevel = ApexClothingAsset->getNumGraphicalLodLevels();
+		for(physx::PxU32 LODId=0; LODId < LODLevel; ++LODId)
+		{
+			if(const NxRenderMeshAsset* RenderAsset = ApexClothingAsset->getRenderMeshAsset(LODId))
+			{
+				NxRenderMeshAssetStats AssetStats;
+				RenderAsset->getStats(AssetStats);
+
+				ResourceSize += AssetStats.totalBytes;
+			}
+		}
+	}
+
+	ResourceSize += ClothCollisionVolumes.GetAllocatedSize();
+	ResourceSize += ClothCollisionConvexPlaneIndices.GetAllocatedSize();
+	ResourceSize += ClothCollisionVolumePlanes.GetAllocatedSize();
+	ResourceSize += ClothBoneSpheres.GetAllocatedSize();
+	ResourceSize += BoneSphereConnections.GetAllocatedSize();
+	ResourceSize += ClothVisualizationInfos.GetAllocatedSize();
+#endif // #if WITH_APEX_CLOTHING
+
+	return ResourceSize;
+}
+
 /*-----------------------------------------------------------------------------
 	FSkeletalMeshVertexBuffer
 -----------------------------------------------------------------------------*/
@@ -1595,6 +1628,40 @@ void FStaticLODModel::ReleaseCPUResources()
 	}
 }
 
+SIZE_T FStaticLODModel::GetResourceSize() const
+{
+	SIZE_T ResourceSize = 0;
+
+	ResourceSize += Sections.GetAllocatedSize();
+	ResourceSize += Chunks.GetAllocatedSize();
+	ResourceSize += ActiveBoneIndices.GetAllocatedSize();  
+	ResourceSize += RequiredBones.GetAllocatedSize();
+
+	const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
+	if (IndexBuffer)
+	{
+		ResourceSize += IndexBuffer->GetResourceDataSize(); 
+	}
+
+	const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+	if (AdjacentIndexBuffer)
+	{
+		ResourceSize += AdjacentIndexBuffer->GetResourceDataSize();
+	}
+
+	ResourceSize += VertexBufferGPUSkin.GetVertexDataSize();
+	ResourceSize += ColorVertexBuffer.GetVertexDataSize();
+	ResourceSize += APEXClothVertexBuffer.GetVertexDataSize();
+
+	ResourceSize += RawPointIndices.GetBulkDataSize();
+	ResourceSize += LegacyRawPointIndices.GetBulkDataSize();
+	ResourceSize += MeshToImportVertexMap.GetAllocatedSize();
+
+	// I suppose we add everything we could
+	ResourceSize += sizeof(int32);
+
+	return ResourceSize;
+}
 /*-----------------------------------------------------------------------------
 FStaticMeshSourceData
 -----------------------------------------------------------------------------*/
@@ -1906,6 +1973,19 @@ bool FSkeletalMeshResource::RequiresCPUSkinning(ERHIFeatureLevel::Type FeatureLe
 	return (MaxBonesPerChunk > MaxGPUSkinBones) || (HasExtraBoneInfluences() && FeatureLevel < ERHIFeatureLevel::ES3_1);
 }
 
+SIZE_T FSkeletalMeshResource::GetResourceSize()
+{
+	SIZE_T ResourceSize = 0;
+	for(int32 LODIndex = 0; LODIndex < LODModels.Num(); ++LODIndex)
+	{
+		const FStaticLODModel& Model = LODModels[LODIndex];
+
+		ResourceSize += Model.GetResourceSize();
+	}
+
+	return ResourceSize;
+}
+
 /*-----------------------------------------------------------------------------
 	USkeletalMesh
 -----------------------------------------------------------------------------*/
@@ -2061,7 +2141,55 @@ float USkeletalMesh::GetStreamingTextureFactor( int32 RequestedUVIndex )
 
 SIZE_T USkeletalMesh::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	return 0;
+	SIZE_T ResourceSize = 0;
+	if(ImportedResource.IsValid())
+	{
+		ResourceSize += ImportedResource->GetResourceSize();
+	}
+
+	for (const auto& MorphTarget : MorphTargets)
+	{
+		ResourceSize += MorphTarget->GetResourceSize(Mode);
+	}
+
+	for (const auto& ClothingAsset : ClothingAssets)
+	{
+		ResourceSize += ClothingAsset.GetResourceSize();
+	}
+
+	if(Mode == EResourceSizeMode::Inclusive)
+	{
+		TSet<UMaterialInterface*> UniqueMaterials;
+		for(int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
+		{
+			UMaterialInterface* Material = Materials[MaterialIndex].MaterialInterface;
+			bool bAlreadyCounted = false;
+			UniqueMaterials.Add(Material, &bAlreadyCounted);
+			if(!bAlreadyCounted && Material)
+			{
+				ResourceSize += Material->GetResourceSize(Mode);
+			}
+		}
+
+#if WITH_EDITORONLY_DATA
+		ResourceSize += RetargetBasePose.GetAllocatedSize();
+#endif
+
+		ResourceSize += RefBasesInvMatrix.GetAllocatedSize();
+		ResourceSize += RefSkeleton.GetDataSize();
+
+		if(BodySetup)
+		{
+			ResourceSize += BodySetup->GetResourceSize(Mode);
+		}
+
+		if (PhysicsAsset)
+		{
+			ResourceSize += PhysicsAsset->GetResourceSize(Mode);
+		}
+	}
+
+	return ResourceSize;
 }
 
 /**
@@ -4880,3 +5008,4 @@ void USkeletalMeshSocket::PostEditChangeProperty(FPropertyChangedEvent& Property
 	}
 }
 #endif
+
