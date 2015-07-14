@@ -252,7 +252,7 @@ void CompositeObjectDistanceFieldsCS(
 
 	GroupMemoryBarrierWithGroupSync();
 
-	NumCulledObjects = NumTileCulledObjects;
+	NumCulledObjects = min(NumTileCulledObjects, MAX_CULLED_DF_OBJECTS);
 
 #endif
 

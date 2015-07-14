@@ -255,8 +255,6 @@ public:
 	{
 		if (MaxObjects > 0)
 		{
-			const uint32 BufferFlags = BUF_ShaderResource;
-
 			ObjectIndirectArguments.Initialize(sizeof(uint32), 5, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			ObjectIndirectDispatch.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			Bounds.Initialize(sizeof(FVector4), MaxObjects, PF_A32B32G32R32F);

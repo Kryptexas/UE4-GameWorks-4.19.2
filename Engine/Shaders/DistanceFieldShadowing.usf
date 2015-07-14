@@ -468,7 +468,7 @@ void CullObjectsToTileWithGather(
 	GroupMemoryBarrierWithGroupSync();
 
 	GroupIndex = SceneDepth > MaxTileZ2 ? 1 : 0;
-	NumIntersectingObjects = GroupIndex == 0 ? TileNumObjects0 : TileNumObjects1;
+	NumIntersectingObjects = min(GroupIndex == 0 ? TileNumObjects0 : TileNumObjects1, MAX_INTERSECTING_OBJECTS);
 }
 
 uint DownsampleFactor;
