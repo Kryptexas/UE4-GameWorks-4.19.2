@@ -51,6 +51,12 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 			case EStretch::ScaleToFit:
 				FinalScale = FMath::Min(AreaSize.X / SlotWidgetDesiredSize.X, AreaSize.Y / SlotWidgetDesiredSize.Y);
 				break;
+			case EStretch::ScaleToFitX:
+				FinalScale = AreaSize.X / SlotWidgetDesiredSize.X;
+				break;
+			case EStretch::ScaleToFitY:
+				FinalScale = AreaSize.Y / SlotWidgetDesiredSize.Y;
+				break;
 			case EStretch::ScaleToFill:
 				FinalScale = FMath::Max(AreaSize.X / SlotWidgetDesiredSize.X, AreaSize.Y / SlotWidgetDesiredSize.Y);
 				break;

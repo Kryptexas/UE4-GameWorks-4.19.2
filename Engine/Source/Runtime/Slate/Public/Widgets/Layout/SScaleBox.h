@@ -27,9 +27,27 @@ namespace EStretch
 		None,
 		/** Scales the content non-uniformly filling the entire space of the area. */
 		Fill,
-		/** Scales the content uniformly (preserving aspect ratio) until it can no longer scale the content without clipping it. */
+		/**
+		 * Scales the content uniformly (preserving aspect ratio) 
+		 * until it can no longer scale the content without clipping it.
+		 */
 		ScaleToFit,
-		/** Scales the content uniformly (preserving aspect ratio), until all sides meet or exceed the size of the area.  Will result in clipping longer sides. */
+		/**
+		 * Scales the content uniformly (preserving aspect ratio) 
+		 * until it can no longer scale the content without clipping it along the x-axis, 
+		 * the y-axis can/will be clipped.
+		 */
+		ScaleToFitX,
+		/**
+		 * Scales the content uniformly (preserving aspect ratio) 
+		 * until it can no longer scale the content without clipping it along the y-axis, 
+		 * the x-axis can/will be clipped.
+		 */
+		ScaleToFitY,
+		/**
+		 * Scales the content uniformly (preserving aspect ratio), until all sides meet 
+		 * or exceed the size of the area.  Will result in clipping the longer side.
+		 */
 		ScaleToFill,
 		/** Scales the content by the scale specified by the user. */
 		UserSpecified
