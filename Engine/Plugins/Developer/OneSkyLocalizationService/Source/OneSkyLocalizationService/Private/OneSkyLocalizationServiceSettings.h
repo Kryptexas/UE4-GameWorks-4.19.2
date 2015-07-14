@@ -45,7 +45,7 @@ public:
 	* The array of settings for each target of this project 
 	*/
 	UPROPERTY(config)
-		TArray<struct FOneSkyLocalizationTargetSetting> TargetSettings;
+	TArray<struct FOneSkyLocalizationTargetSetting> TargetSettings;
 
 };
 
@@ -87,12 +87,14 @@ public:
 	/** Set whether or not to save the secret API key (WARNING: saved unencrypted) */
 	void SetSaveSecretKey(bool InSaveSecretKey)
 	{
+		check(IsInGameThread());
 		bSaveSecretKey = InSaveSecretKey;
 	}
 
 	/** Get whether or not to save the secret API Key */
 	bool GetSaveSecretKey()
 	{
+		check(IsInGameThread());
 		return bSaveSecretKey;
 	}
 

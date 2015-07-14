@@ -160,6 +160,7 @@ FOneSkyConnectionInfo FOneSkyLocalizationServiceSettings::GetConnectionInfo() co
 
 FOneSkyLocalizationTargetSetting* FOneSkyLocalizationServiceSettings::GetSettingsForTarget(FGuid TargetGuid, bool bCreateIfNotFound /* = false */)
 {
+	FScopeLock ScopeLock(&CriticalSection);
 	TargetSettingsObject->LoadConfig();
 
 	FOneSkyLocalizationTargetSetting* Settings = TargetSettingsObject->TargetSettings.FindByPredicate([&](const FOneSkyLocalizationTargetSetting& Setting)
@@ -180,6 +181,7 @@ FOneSkyLocalizationTargetSetting* FOneSkyLocalizationServiceSettings::GetSetting
 
 void FOneSkyLocalizationServiceSettings::SetSettingsForTarget(FGuid TargetGuid, int32 ProjectId, FString FileName)
 {
+	FScopeLock ScopeLock(&CriticalSection);
 	FOneSkyLocalizationTargetSetting* Settings = TargetSettingsObject->TargetSettings.FindByPredicate([&](const FOneSkyLocalizationTargetSetting& Setting)
 	{
 		return Setting.TargetGuid == TargetGuid;
