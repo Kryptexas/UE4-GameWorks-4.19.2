@@ -16,7 +16,24 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	Test Windows
+	1.	**Install** [GitHub for Windows](https://windows.github.com/).
+	1.	**Fork** and **Clone** our [repository](https://github.com/EpicGames/UnrealEngine) (pictured below).
+		![](UnrealRepo.png)
+		[REGION:tip]
+		*	Refer to GitHub's [Forking Projects Guide](https://guides.github.com/activities/forking/) to learn how to fork and clone our repository.
+		*	To use Git from the command line, refer to GitHub's articles on [Setting-up Git](https://help.github.com/articles/set-up-git/) and [Forking a Repository](https://help.github.com/articles/fork-a-repo/).
+		[/REGION]
+	1.	If you already haven't done so, **install** Visual Studio 2013. Although MFC libraries are included in Visual Studio's default installation settings, make sure that MFC libraries are included for ATL support.
+		[REGION:note]
+		Developers build UE4 with all desktop editions of Visual Studio, including Microsoft's free version ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)).
+		[/REGION]
+	1.	**Open** your source folder in Explorer and **run Setup.bat**.
+		[REGION:note]
+		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they are currently take up three to four gigabytes of memory. Subsequent checkouts take less time to download.
+		[/REGION]
+		[REGION:warning]
+		A warning from SmartScreen may appear in Windows 8. **Click "More Info"**, then **"Run Anyway"** to continue running our Setup batch file.
+		[/REGION]
 	[/PARAM]
 [/OBJECT]
 
@@ -31,7 +48,18 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	Test Macintosh
+	1.	**Install** [GitHub for Mac](https://mac.github.com/).
+	1.	**Fork** and **Clone** our [repository](https://github.com/EpicGames/UnrealEngine) (pictured below).
+		![](UnrealRepo.png)
+		[REGION:tip]
+		*	Refer to GitHub's [Forking Projects Guide](https://guides.github.com/activities/forking/) to learn how to fork and clone our repository.
+		*	To use Git from the command line, refer to GitHub's articles on [Setting-up Git](https://help.github.com/articles/set-up-git/) and [Forking a Repository](https://help.github.com/articles/fork-a-repo/).
+		[/REGION]
+	1.	If you haven't already done so, **install** the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
+	1.	**Open** your source folder in Finder and **run Setup.command**.
+		[REGION:note]
+		**Close** the Terminal window after Setup.command downloads binary content for the engine, installs prequisites, and sets up Unreal file associations.
+		[/REGION]
 	[/PARAM]
 [/OBJECT]
 
@@ -46,9 +74,16 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	Test Linux
+	1.	**Set up** [Git](https://help.github.com/articles/set-up-git/).
+	1.	**Fork** and **Clone** our [repository](https://help.github.com/articles/fork-a-repo/) (pictured below).
+		![](UnrealRepo.png)
+	1.	**Open** your source folder and **run Setup.sh** to **download** the engine's binary content.
 	[/PARAM]
 [/OBJECT]
+
+## Next Steps
+
+Now that you've downloaded and set-up Unreal Engine, you're ready to [build the engine from source](Programming/Development/BuildingUnrealEngine).
 
 <!--
 

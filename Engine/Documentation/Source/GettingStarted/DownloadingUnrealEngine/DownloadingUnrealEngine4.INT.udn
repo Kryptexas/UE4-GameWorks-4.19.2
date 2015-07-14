@@ -28,15 +28,15 @@ Once you've accessed the repository, you'll notice that we've published UE4's so
 
 ### Release Branch
 
-The [release branch](https://github.com/EpicGames/UnrealEngine/tree/release) (pictured below) is extensively tested by our QA team and makes a great starting point for learning UE4 or making Unreal games. We work hard to stabilize this branch with the goal of releasing new builds every one to two months.
+![](ReleaseBranch.png)
 
-
+The [release branch](https://github.com/EpicGames/UnrealEngine/tree/release) (pictured above) is extensively tested by our QA team and makes a great starting point for learning UE4 or making Unreal games. We work hard to stabilize this branch with the goal of releasing new builds every one to two months.
 
 ### Promoted Branch
 
-The [promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted) (pictured below) is updated with builds for use by our designers and artists. We try to update this branch daily so that our subscribers have access to UE4's latest stable features. This branch is a great place to learn how feature development works in UE4.
+![](PromotedBranch.png)
 
-
+The [promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted) (pictured above) is updated with builds for use by our designers and artists. We try to update this branch daily so that our subscribers have access to UE4's latest stable features. This branch is a great place to learn how feature development works in UE4.
 
 ### Master Branch
 
@@ -44,9 +44,11 @@ The [promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted) (
 Because the master branch contains cutting-edge technology, UE4 isn't guaranteed to compile from source.
 [/REGION]
 
-The [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) (pictured below) tracks [live changes](https://github.com/EpicGames/UnrealEngine/commits/master) being made by our engine team. Our experienced subscribers typically work from this branch when they want to work in tandem with UE4's developers.
+![](MasterBranch.png)
 
+The [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) (pictured above) tracks [live changes](https://github.com/EpicGames/UnrealEngine/commits/master) (pictured below) being made by our engine team. Our experienced subscribers typically work from this branch when they want to work in tandem with UE4's developers.
 
+![](LiveChanges.png)
 
 [REGION:note]
 Other branches may appear from time-to-time as we work to stabilize new releases or hotfixes.
@@ -60,7 +62,14 @@ Other branches may appear from time-to-time as we work to stabilize new releases
 
 [PUBLISH:Rocket]
 
-## Getting Up and Running
+## Downloading Unreal Engine
+
+Subscribers can download Unreal Engine's source code by:
+
+*	Downloading Unreal Engine from GitHub
+*	Downloading Unreal Engine as a Compressed File
+
+### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
 [/PUBLISH:Rocket]
