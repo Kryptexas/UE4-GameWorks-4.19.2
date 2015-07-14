@@ -428,10 +428,11 @@ bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters,
 	return false;
 }
 
-/** FComponentReregisterContexts for components which have had PreEditChange called but not PostEditChange. */
-static TMap<UActorComponent*,FComponentReregisterContext*> EditReregisterContexts;
-
 #if WITH_EDITOR
+
+/** FComponentReregisterContexts for components which have had PreEditChange called but not PostEditChange. */
+static TMap<TWeakObjectPtr<UActorComponent>,FComponentReregisterContext*> EditReregisterContexts;
+
 bool UActorComponent::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
 	// If this is a construction script component we don't store them in the transaction buffer.  Instead, mark
@@ -461,7 +462,7 @@ void UActorComponent::PreEditChange(UProperty* PropertyThatWillChange)
 		else
 		{
 			ExecuteUnregisterEvents();
-			World = NULL;
+			World = nullptr;
 		}
 	}
 
@@ -484,11 +485,21 @@ void UActorComponent::PostEditUndo()
 	if( IsPendingKill() )
 	{
 		// The reregister context won't bother attaching components that are 'pending kill'. 
-		FComponentReregisterContext* ReregisterContext = EditReregisterContexts.FindRef(this);
-		if(ReregisterContext)
+		FComponentReregisterContext* ReregisterContext = nullptr;
+		if (EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
 		{
 			delete ReregisterContext;
-			EditReregisterContexts.Remove(this);
+		}
+		else
+		{
+			// This means there are likely some stale elements left in there now, strip them out
+			for (auto It(EditReregisterContexts.CreateIterator()); It; ++It)
+			{
+				if (!It.Key().IsValid())
+				{
+					It.RemoveCurrent();
+				}
+			}
 		}
 	}
 	else
@@ -531,16 +542,26 @@ void UActorComponent::PostEditUndo()
 
 void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FComponentReregisterContext* ReregisterContext = EditReregisterContexts.FindRef(this);
-	if(ReregisterContext)
+	FComponentReregisterContext* ReregisterContext = nullptr;
+	if(EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
 	{
 		delete ReregisterContext;
-		EditReregisterContexts.Remove(this);
 
 		AActor* MyOwner = GetOwner();
 		if ( MyOwner && !MyOwner->IsTemplate() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 		{
 			MyOwner->RerunConstructionScripts();
+		}
+	}
+	else
+	{
+		// This means there are likely some stale elements left in there now, strip them out
+		for (auto It(EditReregisterContexts.CreateIterator()); It; ++It)
+		{
+			if (!It.Key().IsValid())
+			{
+				It.RemoveCurrent();
+			}
 		}
 	}
 
