@@ -559,6 +559,7 @@ public:
 
 	FRHITexture* CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, bool CubeTexture, bool ArrayTexture, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 ArraySize, uint32 Flags, const FClearValueBinding& InClearValue, FResourceBulkDataInterface* BulkData = NULL);
 
+	void SetCustomPresent(class FRHICustomPresent* InCustomPresent);
 private:
 
 	/** Counter incremented each time RHIBeginScene is called. */
@@ -605,6 +606,9 @@ private:
 	FOpenGLGPUProfiler GPUProfilingData;
 	friend FOpenGLGPUProfiler;
 //	FOpenGLEventQuery FrameSyncEvent;
+
+	FCriticalSection CustomPresentSection;
+	TRefCountPtr<class FRHICustomPresent> CustomPresent;
 
 	GLuint GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTargets, FOpenGLTextureBase** RenderTargets, uint32* ArrayIndices, uint32* MipmapLevels, FOpenGLTextureBase* DepthStencilTarget);
 

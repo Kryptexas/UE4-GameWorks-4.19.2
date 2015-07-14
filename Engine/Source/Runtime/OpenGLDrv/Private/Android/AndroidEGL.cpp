@@ -504,6 +504,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface)
 void AndroidEGL::ReInit()
 {
 	InitSurface(false);
+	SetCurrentSharedContext();
 }
 
 void AndroidEGL::Init(APIVariant API, uint32 MajorVersion, uint32 MinorVersion, bool bDebug)

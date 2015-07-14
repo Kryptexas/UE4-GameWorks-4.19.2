@@ -38,6 +38,9 @@ public:
 			/** Whether stereo is currently on or off. */
 			uint64 bStereoEnabled : 1;
 
+			/** Whether stereo was enforced by the console command. Doesn't make sense w/o bStereoEnabled == true. */
+			uint64 bStereoEnforced : 1;
+
 			/** Whether or not switching to stereo is allowed */
 			uint64 bHMDEnabled : 1;
 

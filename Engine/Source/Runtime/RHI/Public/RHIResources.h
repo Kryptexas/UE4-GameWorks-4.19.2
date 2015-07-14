@@ -1082,6 +1082,11 @@ public:
 	// true, then InOutSyncInterval could be modified to switch between VSync/NoVSync for the normal Present.
 	virtual bool Present(int32& InOutSyncInterval) = 0;
 
+	// Called when rendering thread is acquired
+	virtual void OnAcquireThreadOwnership() {}
+	// Called when rendering thread is released
+	virtual void OnReleaseThreadOwnership() {}
+
 protected:
 	// Weak reference, don't create a circular dependency that would prevent the viewport from being destroyed.
 	FRHIViewport* ViewportRHI;

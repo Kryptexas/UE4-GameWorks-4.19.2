@@ -509,7 +509,10 @@ void FOculusRiftHMD::D3D11Bridge::FinishRendering()
 
 			ovrHmd_SubmitFrame(RenderContext->Hmd, RenderContext->RenderFrame->FrameNumber, &viewScaleDesc, LayerList, 1);
 
-			ColorTextureSet->SwitchToNextElement();
+			if (RenderContext->ShowFlags.Rendering)
+			{
+				ColorTextureSet->SwitchToNextElement();
+			}
 		}
 	}
 	else

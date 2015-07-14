@@ -29,6 +29,14 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 
+			PrivateDependencyModuleNames.AddRange(new string[] { "OpenGLDrv" });
+			AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+            PrivateIncludePaths.AddRange(
+				new string[] {
+					"../../../../Source/Runtime/OpenGLDrv/Private",
+					// ... add other private include paths required here ...
+					}
+				);
 			if (Target.Platform == UnrealTargetPlatform.Android)
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVRMobile" });

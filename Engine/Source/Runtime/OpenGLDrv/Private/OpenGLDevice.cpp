@@ -1346,10 +1346,24 @@ void FOpenGLDynamicRHI::RHIAcquireThreadOwnership()
 	PlatformRebindResources(PlatformDevice);
 	bIsRenderingContextAcquired = true;
 	VERIFY_GL(RHIAcquireThreadOwnership);
+	{
+		FScopeLock lock(&CustomPresentSection);
+		if (CustomPresent)
+		{
+			CustomPresent->OnAcquireThreadOwnership();
+		}
+	}
 }
 
 void FOpenGLDynamicRHI::RHIReleaseThreadOwnership()
 {
+	{
+		FScopeLock lock(&CustomPresentSection);
+		if (CustomPresent)
+		{
+			CustomPresent->OnReleaseThreadOwnership();
+		}
+	}
 	VERIFY_GL(RHIReleaseThreadOwnership);
 	bIsRenderingContextAcquired = false;
 	PlatformNULLContextSetup();
@@ -1403,6 +1417,12 @@ void FOpenGLDynamicRHI::InvalidateQueries( void )
 			TimerQueries[Index]->bInvalidResource = true;
 		}
 	}
+}
+
+void FOpenGLDynamicRHI::SetCustomPresent(FRHICustomPresent* InCustomPresent)
+{
+	FScopeLock lock(&CustomPresentSection);
+	CustomPresent = InCustomPresent;
 }
 
 bool FOpenGLDynamicRHIModule::IsSupported()

@@ -176,7 +176,7 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 	FViewExtension& RenderContext = *this;
 	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
 
-	if (!RenderContext.ShowFlags.Rendering || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
+	if (!CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
 	{
 		return;
 	}
@@ -234,7 +234,14 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 
 	FSettings* FrameSettings = CurrentFrame->GetSettings();
 	check(FrameSettings);
-	FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = RenderContext.CurEyeRenderPose[eyeIdx];
+	if (RenderContext.ShowFlags.Rendering)
+	{
+		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = RenderContext.CurEyeRenderPose[eyeIdx];
+	}
+	else
+	{
+		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = ovrPosef(OVR::Posef());
+	}
 }
 
 void FOculusRiftHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
