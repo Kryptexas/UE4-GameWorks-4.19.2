@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618983
 Availability:Public
 Title:1.7 - ボリュメトリック指向性ライト強度
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -59,6 +59,6 @@ Related: Engine/Rendering/Materials/MaterialProperties
 ![](MP_1_7_001.png)
 [/REGION]
 
-半透明マテリアルが Volumetric Directional Light モードに設定されている場合、シェーディングの強度も設定可能です。
+_半透明_ マテリアルが **Volumetric Directional Light (ボリュメトリック指向性ライト)** モードに設定されている場合、シェーディングの強度も設定可能です。
 
 
