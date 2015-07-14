@@ -514,6 +514,7 @@ bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const 
 {
 	// see if it needs all animation data to remap - only happens when bone structure CHANGED - added
 	bool bSuccess = false;
+	bool bShouldHandleHierarchyChange = false;
 	// clear cache data since it won't work anymore once this is done
 	ClearCacheData();
 
@@ -521,6 +522,7 @@ bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const 
 	if( BoneTree.Num() == 0 )
 	{
 		bSuccess = CreateReferenceSkeletonFromMesh(InSkeletalMesh, RequiredRefBones);
+		bShouldHandleHierarchyChange = true;
 	}
 	else
 	{
@@ -552,6 +554,7 @@ bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const 
 
 					ReferenceSkeleton.Add(NewMeshBoneInfo, InSkeletalMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
 					BoneTree.AddZeroed(1);
+					bShouldHandleHierarchyChange = true;
 				}
 			}
 
@@ -560,7 +563,7 @@ bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const 
 	}
 
 	// if succeed
-	if (bSuccess)
+	if (bShouldHandleHierarchyChange)
 	{
 #if WITH_EDITOR
 		HandleSkeletonHierarchyChange();
