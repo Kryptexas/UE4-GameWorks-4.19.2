@@ -15,7 +15,7 @@ public:
 	bool IsCollapsedByParent() const { return bIsCollapsedByParent; }
 
 protected:
-	FMenuBase(TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent);
+	FMenuBase(TSharedRef<SWidget> InContent, const bool bCollapsedByParent);
 
 	FOnMenuDismissed OnMenuDismissed;
 	TSharedRef<SWidget> Content;

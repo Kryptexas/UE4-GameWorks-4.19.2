@@ -3,10 +3,10 @@
 #include "SlatePrivatePCH.h"
 #include "Menu.h"
 
-FMenuBase::FMenuBase(TSharedRef<SWidget> InContent, const bool bIsCollapsedByParent)
+FMenuBase::FMenuBase(TSharedRef<SWidget> InContent, const bool bCollapsedByParent)
 	: Content(InContent)
 	, bDismissing(false)
-	, bIsCollapsedByParent(bIsCollapsedByParent)
+	, bIsCollapsedByParent(bCollapsedByParent)
 {
 }
 
