@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2601030
+﻿INTSourceChangelist:2615721
 Availability:Public
 Title:加算アニメーションを使用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -22,7 +22,7 @@ Related:Engine/Animation/AnimationBlending
 
 ![](AnimationAssetPack.png)
 
-Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project]** （プロジェクトに追加する）ボタンで自分のプロジェクトに追加することができます。
+Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project（プロジェクトに追加する）]** ボタンで自分のプロジェクトに追加することができます。
 [/REGION]
 [/EXCERPT:Intro]
 
@@ -32,7 +32,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **ThirdPersonGameMode** ブループリントを開きます。 
 
-1.	**Default Pawn Class** （デフォルトのポーン クラス）でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
+1.	**Default Pawn Class（デフォルトのポーン クラス）** でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
 
 	![](Animations1.png)
 
@@ -52,7 +52,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 	**Anim Slot Manager** が開きます。これはスロットを名前で呼び出す場合にブレンド対象として使用可能な **スロット** を作成するために使用します。 
 
-1.	**[Add Slot]**（スロット追加） ボタンをクリックし、スロットに **UpperBody** と名前を付け、**Save** してウィンドウを閉じます。 
+1.	**[Add Slot (スロット追加)]** ボタンをクリックし、スロットに **UpperBody** と名前を付け、**Save** してウィンドウを閉じます。 
 
 	![](Animations4.png)
 
@@ -80,7 +80,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 	これで crouch を **C** キー押下に関連付けました。この入力は必要に応じて何にでも変更できます。 
 
-1.	**[MyBlueprint]** ウィンドウで、 **[変数を追加]** ボタンをクリックし、 **Boolean** 変数を作成します。 
+1.	**[MyBlueprint]** ウィンドウで、 **[Add Variable (変数を追加)]** ボタンをクリックし、 **Boolean** 変数を作成します。 
 
 1.	変数に **Fire Button Down** と名前を付けて、目の形のアイコンをクリックして変数を公開します。 
 
@@ -192,7 +192,17 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 1.	**コンパイル** し **保存** してから、**ブループリント** を閉じてエディタで再生します。 
 
-	![](AdditiveGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	N96shYlF0Aw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 左マウスボタンを押したままにすると、キャラクターが射撃する AnimMontage を再生します。射撃中に歩き回ったり、しゃがんで射撃することもできます ( **C** を押した状態で)。 
 
