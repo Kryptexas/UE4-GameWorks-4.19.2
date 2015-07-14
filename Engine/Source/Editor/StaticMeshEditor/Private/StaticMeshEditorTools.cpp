@@ -515,6 +515,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.Y(this, &FMeshBuildSettingsLayout::GetBuildScaleY)
 			.Z(this, &FMeshBuildSettingsLayout::GetBuildScaleZ)
 			.bColorAxisLabels(false)
+			.AllowResponsiveLayout(true)
 			.OnXCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
 			.OnYCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleYChanged)
 			.OnZCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleZChanged)

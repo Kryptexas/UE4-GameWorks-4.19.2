@@ -168,6 +168,7 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 				[
 					SNew( SVectorInputBox )
 					.bColorAxisLabels( true )
+					.AllowResponsiveLayout( true )
 					.X( this, &STiledLandcapeImportDlg::GetScaleX )
 					.Y( this, &STiledLandcapeImportDlg::GetScaleY )
 					.Z( this, &STiledLandcapeImportDlg::GetScaleZ )
