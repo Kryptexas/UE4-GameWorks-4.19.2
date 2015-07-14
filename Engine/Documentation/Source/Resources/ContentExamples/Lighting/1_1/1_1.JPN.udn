@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618576
 Availability:Public
 Title:1.1 - ポイントライト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 1.1：ポイントライト
+Description:ライティングのサンプル レベル、1.1：ポイントライト
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -39,7 +39,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\1_1:title%](Resources\ContentExamples\Lighting\Lighting_1_1.png)
 [/REGION]
 
-UE4 で利用可能な最も基本タイプのライティング、ポイントライトを紹介します。ポイントライトは一点からあらゆる方向へライトを球状に放射します。これはライトの選択時に明らかで、ライトの半径に顕著に表れます。
+UE4 で利用可能な最も基本タイプのライティング **ポイントライト** を紹介します。ポイントライトは一点からあらゆる方向へライトを球状に放射します。これはライトの選択時に明らかで、ライトの半径に顕著に表れます。
 
 
 ![](LightRadius_PointLight.png)(w:500)
