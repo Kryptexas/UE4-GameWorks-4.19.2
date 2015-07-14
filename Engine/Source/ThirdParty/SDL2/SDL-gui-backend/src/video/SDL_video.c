@@ -2296,6 +2296,22 @@ SDL_SetWindowGrab(SDL_Window * window, SDL_bool grabbed)
     SDL_UpdateWindowGrab(window);
 }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+int
+SDL_SetKeyboardGrab(SDL_Window * window, SDL_bool enable)
+{
+    CHECK_WINDOW_MAGIC(window, -1);
+
+    if (!_this->SetKeyboardGrab) {
+        return SDL_Unsupported();
+    }
+    
+    return _this->SetKeyboardGrab(_this, window, enable);
+}
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
 SDL_bool
 SDL_GetWindowGrab(SDL_Window * window)
 {

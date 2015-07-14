@@ -81,7 +81,6 @@ FLinuxApplication::FLinuxApplication()
 	,	bActivateApp(false)
 	,	bLockToCurrentMouseType(false)
 	,	LastTimeCachedDisplays(-1.0)
-	,	bEscapeKeyPressed(false)
 {
 	bUsingHighPrecisionMouseInput = false;
 	bAllowedToDeferMessageProcessing = true;
@@ -132,7 +131,7 @@ void FLinuxApplication::InitializeWindow(	const TSharedRef< FGenericWindow >& In
 	Windows.Add(Window);
 
 	// Add the windows into the focus stack.
-	if (!Window->IsTooltipWindow() || Window->IsActivateWhenFirstShown())
+	if (Window->IsFocusWhenFirstShown())
 	{
 		RevertFocusStack.Add(Window);
 	}
@@ -230,17 +229,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			const SDL_Keycode KeyCode = KeyEvent.keysym.scancode;
 			const bool bIsRepeated = KeyEvent.repeat != 0;
 
-			/*
-				The variable bEscapeKeyPressed is used to figure out if the user tried to close a open 
-				Popup Menu Window. We have to set this before OnKeyDown because Slate will destroy the 
-				window before we can actually use that flag correctly in the RemoveRevertFocusWindow member 
-				function.
-			*/
-			if (KeyCode == SDL_SCANCODE_ESCAPE)
-			{
-				bEscapeKeyPressed = true;
-			}
-			
 			// Text input is now handled in SDL_TEXTINPUT: see below
 			MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
 
@@ -257,11 +245,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			SDL_KeyboardEvent keyEvent = Event.key;
 			const SDL_Keycode KeyCode = keyEvent.keysym.scancode;
 			const bool IsRepeat = keyEvent.repeat != 0;
-
-			if (KeyCode == SDL_SCANCODE_ESCAPE)
-			{
-				bEscapeKeyPressed = false;
-			}
 
 			MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
 		}
@@ -288,6 +271,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				if (bLockToCurrentMouseType == false)
 				{
 					int width, height;
+					if(bIsMouseCursorLocked && CurrentClipWindow.IsValid())
+					{
+						NativeWindow =  CurrentClipWindow->GetHWnd();
+					}
+					
 					SDL_GetWindowSize(NativeWindow, &width, &height);
 					if (motionEvent.x != (width / 2) || motionEvent.y != (height / 2))
 					{
@@ -330,7 +318,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			{
 				MessageHandler->OnMouseMove();
 			}
-
 		}
 		break;
 	case SDL_MOUSEBUTTONDOWN:
@@ -375,14 +362,20 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 			else
 			{
+				// User clicked any button. Is the application active? If not activate it.
+				if (!bActivateApp)
+				{
+					ActivateApplication();
+				}
+
 				if (buttonEvent.button == SDL_BUTTON_LEFT)
 				{
 					// The user clicked an object and wants to drag maybe. We can use that to disable 
 					// the resetting of the cursor. Before the user can drag objects, the pointer will change.
 					// Usually it will be EMouseCursor::CardinalCross (Default added after IRC discussion how to fix selection in Front/Top/Side views). 
-                    // If that happends and the user clicks the left mouse button, we know they want to move something.
+					// If that happends and the user clicks the left mouse button, we know they want to move something.
 					// TODO Is this always true? Need more checks.
-					if (((FLinuxCursor*)Cursor.Get())->GetType() == EMouseCursor::CardinalCross || ((FLinuxCursor*)Cursor.Get())->GetType() == EMouseCursor::Default)
+					if (((FLinuxCursor*)Cursor.Get())->GetType() != EMouseCursor::None)
 					{
 						bLockToCurrentMouseType = true;
 					}
@@ -396,17 +389,32 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				}
 				else
 				{
-					if(CurrentlyActiveWindow != CurrentEventWindow)
+					// Check if we have to activate the window.
+					if (CurrentlyActiveWindow != CurrentEventWindow)
 					{
-						SDL_RaiseWindow( CurrentEventWindow->GetHWnd() );
-						SDL_SetWindowInputFocus( CurrentEventWindow->GetHWnd() );
+						ActivateWindow(CurrentEventWindow);
+						
+						if(NotificationWindows.Num() > 0)
+						{
+							RaiseNotificationWindows(CurrentEventWindow);
+						}
+					}
 
-						SDL_PushEvent(&Event);
-					}
-					else
+					// Check if we have to set the focus.
+					if(CurrentFocusWindow != CurrentEventWindow)
 					{
-						MessageHandler->OnMouseDown(CurrentEventWindow, button);
+						SDL_RaiseWindow(CurrentEventWindow->GetHWnd());
+						if(CurrentEventWindow->IsPopupMenuWindow())
+						{
+							SDL_SetKeyboardGrab(CurrentEventWindow->GetHWnd(), SDL_TRUE);
+						}
+						else
+						{
+							SDL_SetWindowInputFocus(CurrentEventWindow->GetHWnd());
+						}
 					}
+
+					MessageHandler->OnMouseDown(CurrentEventWindow, button);
 				}
 			}
 		}
@@ -717,10 +725,34 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						// (re)cache native properties
 						CurrentEventWindow->CacheNativeProperties();
 
-						if (CurrentEventWindow->IsRegularWindow() && CurrentEventWindow->IsActivateWhenFirstShown())
+						// A window did show up. Is the whole Application active? If not first activate it (ignore tooltips).
+						if (!bActivateApp && !CurrentEventWindow->IsTooltipWindow())
 						{
-							SDL_SetWindowInputFocus(CurrentEventWindow->GetHWnd());
+							ActivateApplication();
 						}
+
+						// Check if this window is different then the currently active one. If it is another one
+						// activate that window and if neccessary deactivate the one which was active.
+						if (CurrentlyActiveWindow != CurrentEventWindow && CurrentEventWindow->IsActivateWhenFirstShown())
+						{
+							ActivateWindow(CurrentEventWindow);
+						}
+
+						// Set focus if the window wants to have a focus when first shown.
+						if (CurrentEventWindow->IsFocusWhenFirstShown())
+						{
+							if (CurrentEventWindow->IsPopupMenuWindow())
+							{
+								// We use grab here because this seems to be a proper way to set focus to an override-redirect window.
+								// This prevents additional window changed highlighting in some WMs.
+								SDL_SetKeyboardGrab(CurrentEventWindow->GetHWnd(), SDL_TRUE);
+							}
+							else
+							{
+								SDL_SetWindowInputFocus(CurrentEventWindow->GetHWnd());
+							}
+						}
+
 						int Width, Height;
 
 						SDL_GetWindowSize(NativeWindow, &Width, &Height);
@@ -766,8 +798,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						if (CurrentEventWindow.IsValid())
 						{
-							CurrentEventWindow->OnPointerEnteredWindow(true);
-							
 							MessageHandler->OnCursorSet();
 
 							bInsideOwnWindow = true;
@@ -780,8 +810,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						if (CurrentEventWindow.IsValid())
 						{
-							CurrentEventWindow->OnPointerEnteredWindow(false);
-							
 							if (GetCapture() != nullptr)
 							{
 								UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
@@ -795,13 +823,27 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_HIT_TEST:
 					{
-						if( CurrentEventWindow.IsValid())
+						// The user clicked into the hit test area (Titlebar for example). Is the whole Application active?
+						// If not, first activate (ignore tooltips).
+						if (!bActivateApp && !CurrentEventWindow->IsTooltipWindow())
+						{
+							ActivateApplication();
+						}
+
+						// Check if this window is different then the currently active one. If it is another one activate this 
+						// window and deactivate the other one.
+						if (CurrentlyActiveWindow != CurrentEventWindow)
+						{
+							ActivateWindow(CurrentEventWindow);
+						}
+
+						// Set the input focus.
+						if (CurrentEventWindow.IsValid())
 						{
 							SDL_SetWindowInputFocus(CurrentEventWindow->GetHWnd());
 						}
 
-						// Raise notification windows if we have some.
-						if(NotificationWindows.Num() > 0)
+						if (NotificationWindows.Num() > 0)
 						{
 							RaiseNotificationWindows(CurrentEventWindow);
 						}
@@ -810,45 +852,35 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_TAKE_FOCUS:
 					{
-						// Check if we have an active (focused) window at all. If not we activate the applicaton.
-						if (!CurrentlyActiveWindow.IsValid() && !bActivateApp)
+						if (!bActivateApp)
 						{
-							MessageHandler->OnApplicationActivationChanged(true);
-							UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATEAPP(TF), wParam = 1"));
-							bActivateApp = true;
+							ActivateApplication();
 						}
 
-						// Raise notification windows if we have some.
-						if(NotificationWindows.Num() > 0)
+						if(CurrentFocusWindow != CurrentEventWindow)
 						{
-							RaiseNotificationWindows(CurrentEventWindow);
+							SDL_SetWindowInputFocus(CurrentEventWindow->GetHWnd());
 						}
 					}
 					break;
 
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 					{
-						PreviousActiveWindow = CurrentlyActiveWindow;
-						
-						MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Activate);
-						UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATE(FG),    wParam = WA_ACTIVE       : %d"), CurrentEventWindow->GetID());
-						CurrentlyActiveWindow = CurrentEventWindow;
+						UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_SETFOCUS                                 : %d"), CurrentEventWindow->GetID());
 
-						// Raise notification windows if we have some.
-						if(NotificationWindows.Num() > 0)
-						{
-							RaiseNotificationWindows(CurrentEventWindow);
-						}
+						CurrentFocusWindow = CurrentEventWindow;
 					}
 					break;
 
 				case SDL_WINDOWEVENT_FOCUS_LOST:
 					{
+						UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_KILLFOCUS                                : %d"), CurrentEventWindow->GetID());
+
 						// OK, the active window lost focus. This could mean the app went completely out of
 						// focus. That means the app must be deactivated. To make sure that the user did
 						// not click to another window we delay the deactivation.
 						// TODO Figure out if the delay time may cause problems.
-						if(CurrentlyActiveWindow == CurrentEventWindow)
+						if(CurrentFocusWindow == CurrentEventWindow)
 						{
 							// Only do if the application is active.
 							if(bActivateApp)
@@ -858,16 +890,13 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 								event.user.code = CheckForDeactivation;
 								SDL_PushEvent(&event);
 							}
-
-							CurrentlyActiveWindow = nullptr;
 						}
-						MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Deactivate);
-						UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATE(FL),    wParam = WA_INACTIVE     : %d"), CurrentEventWindow->GetID());
+						CurrentFocusWindow = nullptr;
 					}
 					break;
-				case SDL_WINDOWEVENT_HIDDEN:		// intended fall-through
-				case SDL_WINDOWEVENT_EXPOSED:		// intended fall-through
-				case SDL_WINDOWEVENT_MINIMIZED:		// intended fall-through
+				case SDL_WINDOWEVENT_HIDDEN:	// intended fall-through
+				case SDL_WINDOWEVENT_EXPOSED:	// intended fall-through
+				case SDL_WINDOWEVENT_MINIMIZED:	// intended fall-through
 				default:
 					break;
 			}
@@ -927,13 +956,9 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			{
 				// If we don't use bIsDragWindowButtonPressed the draged window will be destroyed because we
 				// deactivate the whole appliacton. TODO Is that a bug? Do we have to do something?
-				if (!CurrentlyActiveWindow.IsValid() && !bIsDragWindowButtonPressed)
+				if (!CurrentFocusWindow.IsValid() && !bIsDragWindowButtonPressed)
 				{
-					MessageHandler->OnApplicationActivationChanged( false );
-					UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATEAPP(UE), wParam = 0"));
-
-					CurrentlyActiveWindow = nullptr;
-					bActivateApp = false;
+					DeactivateApplication();
 				}
 			}
 		}
@@ -1302,6 +1327,14 @@ void FLinuxApplication::OnMouseCursorLock( bool bLockEnabled )
 {
 	bIsMouseCursorLocked = bLockEnabled;
 	UpdateMouseCaptureWindow( NULL );
+	if(bLockEnabled)
+	{
+		CurrentClipWindow = CurrentlyActiveWindow;
+	}
+	else
+	{
+		CurrentClipWindow = nullptr;
+	}
 }
 
 
@@ -1381,82 +1414,6 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	}
 }
 
-void FLinuxApplication::RemoveRevertFocusWindow(SDL_HWindow HWnd)
-{
-	for (int32 WindowIndex=0; WindowIndex < RevertFocusStack.Num(); ++WindowIndex)
-	{
-		TSharedRef< FLinuxWindow > Window = RevertFocusStack[ WindowIndex ];
-
-		if (Window->GetHWnd() == HWnd)
-		{
-			RevertFocusStack.RemoveAt(WindowIndex);
-
-			// Was the deleted window a Blueprint, Cascade, Matinee etc. window?
-			if(Window->IsUtilityWindow() || Window->IsDialogWindow())
-			{
-				// OK, then raise its parent window.
-				SDL_RaiseWindow( Window->GetParent()->GetHWnd() );
-				SDL_SetWindowInputFocus( Window->GetParent()->GetHWnd() );
-				
-				// We reset this here because the user might have clicked the Escape key to close
-				// a dialog window.
-				bEscapeKeyPressed = false;
-			}
-			// Was the deleted window a top level window and we have still at least one other window in the stack?
-			else if(Window->IsTopLevelWindow() && (RevertFocusStack.Num() > 0))
-			{
-				// OK, give focus to the one on top of the stack.
-				TSharedPtr< FLinuxWindow > TopmostWindow = RevertFocusStack.Top();
-				if (TopmostWindow.IsValid())
-				{
-					SDL_RaiseWindow( TopmostWindow->GetHWnd() );
-					SDL_SetWindowInputFocus( TopmostWindow->GetHWnd() );
-
-					// We reset this here because the user might have clicked the Escape key to close
-					// a external window that runs the game.
-					bEscapeKeyPressed = false;
-				}
-			}
-			// Was it a popup menu?
-			else if (Window->IsPopupMenuWindow() && bActivateApp )
-			{
-				// Did the user click an item and the popup menu got closed?
-				if ( bIsDragWindowButtonPressed && Window->IsPointerInsideWindow() )
-				{
-					SDL_RaiseWindow(Window->GetParent()->GetHWnd() );
-					SDL_SetWindowInputFocus(Window->GetParent()->GetHWnd() );
-
-					// TODO If we have a popup menu and a sub popup menu open, we have
-					// to fake the following. After getting destructed the condition above
-					// 'Window->IsPointerInsideWindow()' will be false for the parent popup window
-					// and the focus will be not reset. This is rather hackery and should be
-					// removed later if possible.
-					Window->GetParent()->OnPointerEnteredWindow(true);
-				}
-				// Did the user hit the Escape Key to close popup menu window with all its submenus?
-				else if(bEscapeKeyPressed && bInsideOwnWindow)
-				{
-					/* 
-						We have to revert back the focus to the previous submenu until we reach
-						the one its parent is the top level window.
-					*/
-					SDL_RaiseWindow(Window->GetParent()->GetHWnd() );
- 					SDL_SetWindowInputFocus(Window->GetParent()->GetHWnd() );
-
-					// We reached to point where the parent of this destroyed popup menu window
-					// is the top level window. Because we set already the focus we reset the
-					// flag because all submenu of the popup menu window got closed.
-					if(!Window->GetParent()->IsPopupMenuWindow())
-					{
-						bEscapeKeyPressed = false;
-					}
-				}
-			}
-			break;
-		}
-	}
-}
-
 void FLinuxApplication::RemoveNotificationWindow(SDL_HWindow HWnd)
 {
 	for (int32 WindowIndex=0; WindowIndex < NotificationWindows.Num(); ++WindowIndex)
@@ -1471,7 +1428,7 @@ void FLinuxApplication::RemoveNotificationWindow(SDL_HWindow HWnd)
 	}
 }
 
-void FLinuxApplication::RaiseNotificationWindows( const TSharedPtr< FLinuxWindow >& ParentWindow)
+void FLinuxApplication::RaiseNotificationWindows(const TSharedPtr< FLinuxWindow >& ParentWindow)
 {
 	// Raise notification window only for the correct parent window.
 	// TODO Do we have to make this restriction?
@@ -1483,4 +1440,129 @@ void FLinuxApplication::RaiseNotificationWindows( const TSharedPtr< FLinuxWindow
 			SDL_RaiseWindow(NotificationWindow->GetHWnd());
 		}
 	}
+}
+
+void FLinuxApplication::RemoveRevertFocusWindow(SDL_HWindow HWnd)
+{
+	for (int32 WindowIndex=0; WindowIndex < RevertFocusStack.Num(); ++WindowIndex)
+	{
+		TSharedRef< FLinuxWindow > Window = RevertFocusStack[ WindowIndex ];
+
+		if (Window->GetHWnd() == HWnd)
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("Found Window that is going to be destroyed. Going to revert focus ..."), Window->GetID());
+			RevertFocusStack.RemoveAt(WindowIndex);
+
+			if(Window->IsUtilityWindow() || Window->IsDialogWindow())
+			{
+				ActivateWindow(Window->GetParent());
+
+				SDL_RaiseWindow(Window->GetParent()->GetHWnd() );
+				SDL_SetWindowInputFocus(Window->GetParent()->GetHWnd() );
+			}
+			// Was the deleted window a Blueprint, Cascade, Matinee etc. window?
+			else if (Window->IsNotificationWindow())
+			{
+				// Do not revert focus if the root window of the destroyed window is another one.
+				TSharedPtr<FLinuxWindow> RevertFocusToWindow = Window->GetParent(); 
+				TSharedPtr<FLinuxWindow> RootWindow = GetRootWindow(Window);
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("CurrentlyActiveWindow: %d, RootParentWindow: %d "), 	CurrentlyActiveWindow.IsValid() ? CurrentlyActiveWindow->GetID() : -1,
+																											RootWindow.IsValid() ? RootWindow->GetID() : -1);
+
+				// Only do this if the destroyed window had a root and the currently active is neither itself nor the root window.
+				// If the currently active window is not the root another window got active before we could destroy it. So we give the focus to the
+				// currently active one and the currently active window shouldn't be the destructed one, if yes that means that no other window got active
+				// so we can process normally.
+				if(CurrentlyActiveWindow.IsValid() && RootWindow.IsValid() && (CurrentlyActiveWindow != RootWindow) && (CurrentlyActiveWindow != Window) )
+				{
+					UE_LOG(LogLinuxWindow, Verbose, TEXT("Root Parent is different, going to set focus to CurrentlyActiveWindow: %d"), CurrentlyActiveWindow.IsValid() ? CurrentlyActiveWindow->GetID() : -1);
+					RevertFocusToWindow = CurrentlyActiveWindow;
+				}
+
+				ActivateWindow(RevertFocusToWindow);
+
+				SDL_RaiseWindow(RevertFocusToWindow->GetHWnd());
+				SDL_SetWindowInputFocus(RevertFocusToWindow->GetHWnd());
+			}
+			// Was the deleted window a top level window and we have still at least one other window in the stack?
+			else if (Window->IsTopLevelWindow() && (RevertFocusStack.Num() > 0))
+			{
+				// OK, give focus to the one on top of the stack.
+				TSharedPtr< FLinuxWindow > TopmostWindow = RevertFocusStack.Top();
+				if (TopmostWindow.IsValid())
+				{
+					ActivateWindow(TopmostWindow);
+
+					SDL_RaiseWindow(TopmostWindow->GetHWnd());
+					SDL_SetWindowInputFocus(TopmostWindow->GetHWnd());
+				}
+			}
+			// Was it a popup menu?
+			else if (Window->IsPopupMenuWindow() && bActivateApp)
+			{
+				ActivateWindow(Window->GetParent());
+
+				SDL_RaiseWindow(Window->GetParent()->GetHWnd());
+				if(Window->GetParent()->IsPopupMenuWindow())
+				{
+					SDL_SetKeyboardGrab(Window->GetParent()->GetHWnd(), SDL_TRUE);
+				}
+				else
+				{
+					SDL_SetWindowInputFocus(Window->GetParent()->GetHWnd());
+				}
+				UE_LOG(LogLinuxWindowType, Verbose, TEXT("FLinuxWindow::Destroy: Going to revert focus to %d"), Window->GetParent()->GetID());
+			}
+			break;
+		}
+	}
+}
+
+void FLinuxApplication::ActivateApplication()
+{
+	MessageHandler->OnApplicationActivationChanged( true );
+	bActivateApp = true;
+	UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATEAPP, wParam = 1"));
+}
+
+void FLinuxApplication::DeactivateApplication()
+{
+	MessageHandler->OnApplicationActivationChanged( false );
+	CurrentlyActiveWindow = nullptr;
+	CurrentFocusWindow = nullptr;
+	bActivateApp = false;
+	UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATEAPP, wParam = 0"));
+}
+
+void FLinuxApplication::ActivateWindow(const TSharedPtr< FLinuxWindow >& Window) 
+{
+	PreviousActiveWindow = CurrentlyActiveWindow;
+	CurrentlyActiveWindow = Window;
+	if(PreviousActiveWindow.IsValid())
+	{
+		MessageHandler->OnWindowActivationChanged(PreviousActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
+		UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATE,    wParam = WA_INACTIVE     : %d"), PreviousActiveWindow->GetID());
+	}
+	MessageHandler->OnWindowActivationChanged(CurrentlyActiveWindow.ToSharedRef(), EWindowActivation::Activate);
+	UE_LOG(LogLinuxWindowEvent, Verbose, TEXT("WM_ACTIVATE,    wParam = WA_ACTIVE       : %d"), CurrentlyActiveWindow->GetID());
+}
+
+void FLinuxApplication::ActivateRootWindow(const TSharedPtr< FLinuxWindow >& Window)
+{
+	TSharedPtr< FLinuxWindow > ParentWindow = Window;
+	while(ParentWindow.IsValid() && ParentWindow->GetParent().IsValid())
+	{
+		ParentWindow = ParentWindow->GetParent();
+	}
+	ActivateWindow(ParentWindow);
+}
+
+TSharedPtr< FLinuxWindow > FLinuxApplication::GetRootWindow(const TSharedPtr< FLinuxWindow >& Window)
+{
+	TSharedPtr< FLinuxWindow > ParentWindow = Window;
+	while(ParentWindow->GetParent().IsValid())
+	{
+		ParentWindow = ParentWindow->GetParent();
+	}
+	return ParentWindow;
 }

@@ -46,11 +46,11 @@ public:
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) override;
 
 	virtual bool IsUsingHighPrecisionMouseMode() const override { return bUsingHighPrecisionMouseInput; }
-	//	
+
 	virtual FModifierKeysState GetModifierKeys() const override;
-	//	
+
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
-	//	X
+
 	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const override;
 
 	virtual EWindowTransparency GetWindowTransparencySupport() const override
@@ -112,6 +112,22 @@ private:
 	 */
 	static bool GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDownEvent);
 
+	/** Activate this Slate application */
+	void ActivateApplication();
+
+	/** Deactivate this Slate application */
+	void DeactivateApplication();
+
+	/** 
+	 * Acivate the specified Window. That includes the deactivation of the previous window
+	 * if one was active.
+	 */
+	void ActivateWindow(const TSharedPtr< FLinuxWindow >& Window);
+
+	void ActivateRootWindow(const TSharedPtr< FLinuxWindow >& Window);
+
+	TSharedPtr< FLinuxWindow > GetRootWindow(const TSharedPtr< FLinuxWindow >& Window);
+
 private:
 
 	void RefreshDisplayCache();
@@ -157,6 +173,8 @@ private:
 
 	/** Window that we think has been activated last. */
 	TSharedPtr< FLinuxWindow > CurrentlyActiveWindow;
+	TSharedPtr< FLinuxWindow > CurrentFocusWindow;
+	TSharedPtr< FLinuxWindow > CurrentClipWindow;
 
 	/** Stores (unescaped) file URIs received during current drag-n-drop operation. */
 	TArray<FString> DragAndDropQueue;
@@ -196,9 +214,6 @@ private:
 
 	/** Last time we asked about work area (this is a hack. What we need is a callback when screen config changes). */
 	mutable double			LastTimeCachedDisplays;
-
-	/** Somewhat hacky way to know whether a window was deleted because the user pressed Escape. */
-	bool bEscapeKeyPressed;
 };
 
 extern FLinuxApplication* LinuxApplication;
