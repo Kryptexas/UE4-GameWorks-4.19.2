@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2601378
+﻿INTSourceChangelist:2612791
 Availability:Public
-Title:
+Title:Player Start
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Player Start 使用のガイド
 
@@ -11,9 +11,19 @@ Description:Player Start 使用のガイド
 
 ## Player Start アクタを配置する
 
-Player Start アクタは、[Mode] パネルの [Basic] カテゴリにあります。Player Start アクタをワールドに配置するには、**[Mode]** パネルからゲームワールドにドラッグするだけです。
+Player Start アクタは、[Mode (モード)] パネルの [Basic (基本)] カテゴリにあります。Player Start アクタをワールドに配置するには、**[Mode]** パネルからゲームワールドにドラッグするだけです。
 
-![](Place_A_Player_Start.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+DeMIl0BgRtw
+[/PARAMLITERAL]
+[/OBJECT]
 
 ## Player Start アクタを使用する
 
@@ -35,4 +45,14 @@ Player Start の使用は非常に単純ですが、開発中に役立ついく�
 
 ** Bad Size:** Player Start が、コントローラのアイコンから Bad Size というアイコンに変わる場合があります。その場合、Player Start をワールド内で移動し、シーン内にあるものと交差しないようにします。
 
-![](Player_Start_Bad_Size.gif)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+9wolC00NWzo
+[/PARAMLITERAL]
+[/OBJECT]
