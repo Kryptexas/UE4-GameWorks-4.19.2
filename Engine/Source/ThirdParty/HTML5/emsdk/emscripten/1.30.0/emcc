@@ -353,13 +353,8 @@ else:
 
 if TEMP_DIR:
   temp_dir = TEMP_DIR
-  if os.path.exists(temp_dir):
-    shutil.rmtree(temp_dir) # clear it
-  os.makedirs(temp_dir)
 else:
   temp_root = shared.TEMP_DIR
-  if not os.path.exists(temp_root):
-    os.makedirs(temp_root)
   temp_dir = tempfile.mkdtemp(dir=temp_root)
 
 def in_temp(name):
