@@ -6,8 +6,6 @@
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"
 
-bool FLauncherUATTask::FirstTimeCompile = true;
-
 /* FLauncherWorker structors
  *****************************************************************************/
 
@@ -615,8 +613,6 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 	{
 		Platforms = InProfile->GetCookedPlatforms();
 	}
-
-	FLauncherUATTask::FirstTimeCompile = true;
 
 	// determine deployment platforms
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
