@@ -121,9 +121,8 @@ static bool SaveApexClothingAssetToBlob(const NxClothingAsset *InAsset, TArray<u
 ////////////////////////////////////////////////
 SIZE_T FClothingAssetData::GetResourceSize() const
 {
-#if WITH_APEX_CLOTHING
 	SIZE_T ResourceSize = 0;
-
+#if WITH_APEX_CLOTHING
 	if (ApexClothingAsset)
 	{
 		physx::PxU32 LODLevel = ApexClothingAsset->getNumGraphicalLodLevels();
