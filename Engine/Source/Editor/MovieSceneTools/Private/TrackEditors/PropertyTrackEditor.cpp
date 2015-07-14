@@ -291,6 +291,19 @@ private:
 };
 
 /**
+ * An implementation of visibility property sections
+ */
+class FVisibilityPropertySection : public FBoolPropertySection
+{
+public:
+	FVisibilityPropertySection( UMovieSceneSection& InSectionObject, FName SectionName, ISequencer* InSequencer )
+		: FBoolPropertySection(InSectionObject, SectionName, InSequencer) 
+	{ 
+		DisplayName = FText::FromString(TEXT("Visible"));
+	}
+};
+
+/**
 * An implementation of byte property sections
 */
 class FBytePropertySection : public FPropertySection
@@ -382,7 +395,7 @@ TSharedRef<ISequencerSection> FPropertyTrackEditor::MakeSectionInterface( UMovie
 		SectionClass == UMovieSceneByteTrack::StaticClass() ? new FBytePropertySection(SectionObject, Track->GetTrackName(), Cast<UMovieSceneByteTrack>(SectionObject.GetOuter())->GetEnum()) :
 		SectionClass == UMovieSceneVectorTrack::StaticClass() ? new FVectorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneFloatTrack::StaticClass() ? new FFloatPropertySection( SectionObject, Track->GetTrackName() ) :
-		SectionClass == UMovieSceneVisibilityTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get() ) :
+		SectionClass == UMovieSceneVisibilityTrack::StaticClass() ? new FVisibilityPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get() ) :
 		new FPropertySection( SectionObject, Track->GetTrackName() )
 		);
 
