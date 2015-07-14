@@ -15,7 +15,7 @@ FGuid FUnrealCEFSubProcessCallbackRegistry::FindOrAdd(CefRefPtr<CefV8Context> Co
 			if (! Value.bOneShot
 				&& Context->IsSame(Value.Context)
 				&& Function->IsSame(Value.Function)
-				&& Object->IsSame(Value.Object)
+				&& (Object == nullptr && Value.Object == nullptr || Object->IsSame(Value.Object))
 				&& (OnError == nullptr && Value.OnError == nullptr || OnError->IsSame(Value.OnError)))
 			{
 				return Iter.Key();
