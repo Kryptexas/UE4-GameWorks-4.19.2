@@ -1,5 +1,5 @@
 Availability: Public
-Title:2. Configuring input and creating a Pawn Movement Component
+Title:2. Configuring Input and Creating a Pawn Movement Component
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:Setting up input and building a custom Pawn Movement Component to define how our Pawn will move.
 version:4.9

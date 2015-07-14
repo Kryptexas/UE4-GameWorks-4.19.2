@@ -1,5 +1,5 @@
 Availability: Public
-Title:3. Coding our Pawn Movement Component's behavior
+Title:3. Coding Our Pawn Movement Component's Behavior
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:Writing the code that will define how our Pawn Movement Component will determine where the Pawn it controls will go each frame.
 version:4.9
