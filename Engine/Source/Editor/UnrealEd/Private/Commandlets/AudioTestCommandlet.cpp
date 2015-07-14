@@ -84,38 +84,44 @@ static bool TestAudioDeviceOutputPan(const TArray<FString>& Args)
 	return UAudio::TestDeviceOutputNoisePan(-1);
 }
 
-static bool TestAudioSourceImport(const TArray<FString>& Args)
-{
-	if (Args.Num() != 1)
+static bool TestAudioSourceConvert(const TArray<FString>& Args)
+{	if (Args.Num() != 1)
 	{
 		return false;
 	}
 
-	UAudio::FSoundFileImportSettings SoundFileImportSettings;
-	SoundFileImportSettings.SoundFilePath = Args[0];
-	SoundFileImportSettings.Format = UAudio::ESoundFileFormat::OGG | UAudio::ESoundFileFormat::VORBIS;
-	SoundFileImportSettings.SampleRate = 48000;
-	SoundFileImportSettings.EncodingQuality = 0.5;
-	SoundFileImportSettings.bPerformPeakNormalization = true;
+	UAudio::FSoundFileConvertFormat SoundFileLoadSettings;
+	SoundFileLoadSettings.Format = UAudio::ESoundFileFormat::OGG | UAudio::ESoundFileFormat::VORBIS;
+	SoundFileLoadSettings.SampleRate = 48000;
+	SoundFileLoadSettings.EncodingQuality = 0.5;
+	SoundFileLoadSettings.bPerformPeakNormalization = false;
 
-	return UAudio::TestSourceImport(SoundFileImportSettings);
+	return UAudio::TestSourceConvert(Args[0], SoundFileLoadSettings);
 }
 
-static bool TestAudioSourceImportExport(const TArray<FString>& Args)
+static bool TestAudioSystemEmitterManager(const TArray<FString>& Args)
+{
+	return UAudio::TestEmitterManager();
+}
+
+static bool TestAudioSystemVoiceManager(const TArray<FString>& Args)
 {
 	if (Args.Num() != 1)
 	{
 		return false;
 	}
 
-	UAudio::FSoundFileImportSettings SoundFileImportSettings;
-	SoundFileImportSettings.SoundFilePath = Args[0];
-	SoundFileImportSettings.Format = UAudio::ESoundFileFormat::OGG | UAudio::ESoundFileFormat::VORBIS;
-	SoundFileImportSettings.SampleRate = 48000;
-	SoundFileImportSettings.EncodingQuality = 0.5;
-	SoundFileImportSettings.bPerformPeakNormalization = false;
+	return UAudio::TestVoiceManager(Args[0]);
+}
 
-	return UAudio::TestSourceImportExport(SoundFileImportSettings);
+static bool TestAudioSystemSoundFileManager(const TArray<FString>& Args)
+{
+	if (Args.Num() != 1)
+	{
+		return false;
+	}
+
+	return UAudio::TestSoundFileManager(Args[0]);
 }
 
 /**
@@ -135,25 +141,29 @@ struct AudioTestInfo
 
 enum EAudioTests
 {
-	AUDIO_TEST_DEVICE_ALL,
+	AUDIO_TEST_DEVICE_ALL = 0,
 	AUDIO_TEST_DEVICE_QUERY,
 	AUDIO_TEST_DEVICE_OUTPUT_SIMPLE,
 	AUDIO_TEST_DEVICE_OUTPUT_FM,
 	AUDIO_TEST_DEVICE_OUTPUT_PAN,
-	AUDIO_TEST_SOURCE_IMPORT,
-	AUDIO_TEST_SOURCE_IMPORT_EXPORT,
+	AUDIO_TEST_SOURCE_CONVERT,
+	AUDIO_TEST_SYSTEM_EMITTER_MANAGER,
+	AUDIO_TEST_SYSTEM_VOICE_MANAGER,
+	AUDIO_TEST_SYSTEM_SOUNDFILE_MANAGER,
 	AUDIO_TESTS
 };
 
 static AudioTestInfo AudioTestInfoList[] =
 {
-	{ "device", "all",		"None",						0, TestAudioDeviceAll			}, // AUDIO_TEST_DEVICE_ALL
-	{ "device", "query",	"None",						0, TestAudioDeviceQuery			}, // AUDIO_TEST_DEVICE_QUERY
-	{ "device", "out",		"None",						0, TestAudioDeviceOutputSimple	}, // AUDIO_TEST_DEVICE_OUTPUT_SIMPLE
-	{ "device", "out_fm",	"None",						0, TestAudioDeviceOutputFm		}, // AUDIO_TEST_DEVICE_OUTPUT_FM
-	{ "device", "out_pan",	"None",						0, TestAudioDeviceOutputPan		}, // AUDIO_TEST_DEVICE_OUTPUT_PAN
-	{ "source", "import",	"SourcePath",				1, TestAudioSourceImport		}, // AUDIO_TEST_SOURCE_IMPORT
-	{ "source", "export",	"SourcePath or Directory",	1, TestAudioSourceImportExport	}, // AUDIO_TEST_SOURCE_IMPORT_EXPORT
+	{ "device", "all",				"None",						0, TestAudioDeviceAll				}, // AUDIO_TEST_DEVICE_ALL
+	{ "device", "query",			"None",						0, TestAudioDeviceQuery				}, // AUDIO_TEST_DEVICE_QUERY
+	{ "device", "out",				"None",						0, TestAudioDeviceOutputSimple		}, // AUDIO_TEST_DEVICE_OUTPUT_SIMPLE
+	{ "device", "out_fm",			"None",						0, TestAudioDeviceOutputFm			}, // AUDIO_TEST_DEVICE_OUTPUT_FM
+	{ "device", "out_pan",			"None",						0, TestAudioDeviceOutputPan			}, // AUDIO_TEST_DEVICE_OUTPUT_PAN
+	{ "source", "convert",			"SourcePath",				1, TestAudioSourceConvert			}, // AUDIO_TEST_SOURCE_CONVERT
+	{ "system", "emitter_manager",	"None",						0, TestAudioSystemEmitterManager	}, // AUDIO_TEST_SYSTEM_EMITTER_MANAGER
+	{ "system", "voice_manager",	"SourcePath or Directory",	1, TestAudioSystemVoiceManager		}, // AUDIO_TEST_SYSTEM_VOICE_MANAGER
+	{ "system", "soundfile_manager", "None",					1, TestAudioSystemSoundFileManager  }, // AUDIO_TEST_SYSTEM_SOUND_MANAGER
 };
 static_assert(ARRAY_COUNT(AudioTestInfoList) == AUDIO_TESTS, "Mismatched info list and test enumeration");
 

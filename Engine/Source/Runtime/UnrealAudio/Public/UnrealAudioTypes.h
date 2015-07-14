@@ -4,21 +4,47 @@
 
 // Only enable unreal audio on windows or mac
 #if PLATFORM_WINDOWS
-#define ENABLE_UNREAL_AUDIO 1
+#define ENABLE_UNREAL_AUDIO 0
 #else
 #define ENABLE_UNREAL_AUDIO 0
 #endif
 
 #include "UnrealAudioModule.h"
 
-#if ENABLE_UNREAL_AUDIO
+// Turns on extra checks and asserts for debugging threading code
+#define ENABLE_UNREAL_AUDIO_THREAD_DEBUGGING		1
+#define ENABLE_UNREAL_AUDIO_EXTRA_DEBUG_CHECKS		1
 
 namespace UAudio
 {
-	/**
-	* EDeviceError
-	* The types of errors that can occur in IUnrealAudioDevice implementations.
-	*/
+	namespace ESystemError
+	{
+		enum Type
+		{
+			NONE,
+			INVALID_HANDLE,
+			COMMAND_QUEUE_FULL,
+			ALREADY_INITIALIZED,
+			NOT_INITIALIZED,
+			INVALID_ARGUMENTS,
+		};
+
+		static inline const TCHAR* ToString(ESystemError::Type SystemError)
+		{
+			switch (SystemError)
+			{
+				case NONE:						return TEXT("NONE");
+				case INVALID_HANDLE:			return TEXT("INVALID_HANDLE");
+				case COMMAND_QUEUE_FULL:		return TEXT("COMMAND_QUEUE_FULL");
+				case ALREADY_INITIALIZED:		return TEXT("ALREADY_INITIALIZED");
+				case NOT_INITIALIZED:			return TEXT("NOT_INITIALIZED");
+				case INVALID_ARGUMENTS:			return TEXT("INVALID_ARGUMENTS");
+				default:						check(false);
+			}
+			return TEXT("");
+		}
+	}
+
 	namespace EDeviceError
 	{
 		enum Type
@@ -31,7 +57,6 @@ namespace UAudio
 			THREAD,
 		};
 
-		/** @return the stringified version of the enum passed in */
 		static inline const TCHAR* ToString(EDeviceError::Type DeviceError)
 		{
 			switch (DeviceError)
@@ -48,49 +73,41 @@ namespace UAudio
 		}
 	}
 
-	/**
-	* EDeviceApi
-	* Implemented platform-Specific audio device APIs.
-	*/
 	namespace EDeviceApi
 	{
 		enum Type
 		{
-			WASAPI,				// Windows
-			XAUDIO2,			// Windows/XBox
-			NGS2,				// PS4
-			ALSA,				// Linux
-			CORE_AUDIO,			// Mac/IOS
-			OPENAL,				// Linux
-			HTML5,				// Web
-			DUMMY,				// DUMMY (no device api)
+			WASAPI,
+			XAUDIO2,
+			NGS2,
+			ALSA,
+			CORE_AUDIO,
+			OPENAL,
+			HTML5,
+			DUMMY,
 		};
 
-		/** @return the stringified version of the enum passed in */
 		static inline const TCHAR* ToString(EDeviceApi::Type DeviceApi)
 		{
 			switch (DeviceApi)
 			{
-			case WASAPI:		return TEXT("WASAPI");
-			case XAUDIO2:		return TEXT("XAUDIO2");
-			case NGS2:			return TEXT("NGS2");
-			case ALSA:			return TEXT("ALSA");
-			case CORE_AUDIO:	return TEXT("CORE_AUDIO");
-			case OPENAL:		return TEXT("OPENAL");
-			case HTML5:			return TEXT("HTML5");
-			case DUMMY:			return TEXT("DUMMY");
-			default:			check(false);
+				case WASAPI:		return TEXT("WASAPI");
+				case XAUDIO2:		return TEXT("XAUDIO2");
+				case NGS2:			return TEXT("NGS2");
+				case ALSA:			return TEXT("ALSA");
+				case CORE_AUDIO:	return TEXT("CORE_AUDIO");
+				case OPENAL:		return TEXT("OPENAL");
+				case HTML5:			return TEXT("HTML5");
+				case DUMMY:			return TEXT("DUMMY");
+				default:			check(false);
 			}
 			return TEXT("");
 		}
 	};
 
-	/**
-	* ESpeaker
-	* An enumeration to specify speaker types
-	*/
 	namespace ESpeaker
 	{
+		/** Values that represent speaker types. */
 		enum Type
 		{
 			FRONT_LEFT,
@@ -115,31 +132,30 @@ namespace UAudio
 			SPEAKER_TYPE_COUNT
 		};
 
-		/** @return the stringified version of the enum passed in */
 		static inline const TCHAR* ToString(ESpeaker::Type Speaker)
 		{
 			switch (Speaker)
 			{
-			case FRONT_LEFT:				return TEXT("FRONT_LEFT");
-			case FRONT_RIGHT:				return TEXT("FRONT_RIGHT");
-			case FRONT_CENTER:				return TEXT("FRONT_CENTER");
-			case LOW_FREQUENCY:				return TEXT("LOW_FREQUENCY");
-			case BACK_LEFT:					return TEXT("BACK_LEFT");
-			case BACK_RIGHT:				return TEXT("BACK_RIGHT");
-			case FRONT_LEFT_OF_CENTER:		return TEXT("FRONT_LEFT_OF_CENTER");
-			case FRONT_RIGHT_OF_CENTER:		return TEXT("FRONT_RIGHT_OF_CENTER");
-			case BACK_CENTER:				return TEXT("BACK_CENTER");
-			case SIDE_LEFT:					return TEXT("SIDE_LEFT");
-			case SIDE_RIGHT:				return TEXT("SIDE_RIGHT");
-			case TOP_CENTER:				return TEXT("TOP_CENTER");
-			case TOP_FRONT_LEFT:			return TEXT("TOP_FRONT_LEFT");
-			case TOP_FRONT_CENTER:			return TEXT("TOP_FRONT_CENTER");
-			case TOP_FRONT_RIGHT:			return TEXT("TOP_FRONT_RIGHT");
-			case TOP_BACK_LEFT:				return TEXT("TOP_BACK_LEFT");
-			case TOP_BACK_CENTER:			return TEXT("TOP_BACK_CENTER");
-			case TOP_BACK_RIGHT:			return TEXT("TOP_BACK_RIGHT");
-			case UNUSED:					return TEXT("UNUSED");
-			default:						return TEXT("UKNOWN");
+				case FRONT_LEFT:				return TEXT("FRONT_LEFT");
+				case FRONT_RIGHT:				return TEXT("FRONT_RIGHT");
+				case FRONT_CENTER:				return TEXT("FRONT_CENTER");
+				case LOW_FREQUENCY:				return TEXT("LOW_FREQUENCY");
+				case BACK_LEFT:					return TEXT("BACK_LEFT");
+				case BACK_RIGHT:				return TEXT("BACK_RIGHT");
+				case FRONT_LEFT_OF_CENTER:		return TEXT("FRONT_LEFT_OF_CENTER");
+				case FRONT_RIGHT_OF_CENTER:		return TEXT("FRONT_RIGHT_OF_CENTER");
+				case BACK_CENTER:				return TEXT("BACK_CENTER");
+				case SIDE_LEFT:					return TEXT("SIDE_LEFT");
+				case SIDE_RIGHT:				return TEXT("SIDE_RIGHT");
+				case TOP_CENTER:				return TEXT("TOP_CENTER");
+				case TOP_FRONT_LEFT:			return TEXT("TOP_FRONT_LEFT");
+				case TOP_FRONT_CENTER:			return TEXT("TOP_FRONT_CENTER");
+				case TOP_FRONT_RIGHT:			return TEXT("TOP_FRONT_RIGHT");
+				case TOP_BACK_LEFT:				return TEXT("TOP_BACK_LEFT");
+				case TOP_BACK_CENTER:			return TEXT("TOP_BACK_CENTER");
+				case TOP_BACK_RIGHT:			return TEXT("TOP_BACK_RIGHT");
+				case UNUSED:					return TEXT("UNUSED");
+				default:						return TEXT("UKNOWN");
 			}
 			return TEXT("");
 		}
@@ -147,6 +163,4 @@ namespace UAudio
 
 }
 
-
-#endif // #if ENABLE_UNREAL_AUDIO
 

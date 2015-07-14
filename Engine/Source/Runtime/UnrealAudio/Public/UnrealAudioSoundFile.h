@@ -7,16 +7,15 @@
 
 namespace UAudio
 {
-	/*
-	* ESoundFileError
-	**/
 	namespace ESoundFileError
 	{
 		enum Type
 		{
-			NONE,
+			NONE = 0,
 			INVALID_SOUND_FILE,
+			INVALID_SOUND_FILE_HANDLE,
 			BAD_ENCODING_QUALITY,
+			FAILED_TO_LOAD_BYTE_DATA,
 			ALREADY_OPENED,
 			ALREADY_HAS_DATA,
 			INVALID_DATA,
@@ -27,42 +26,42 @@ namespace UAudio
 			FAILED_TO_SEEK,
 			ALREADY_INTIALIZED,
 			LOADING,
+			INVALID_STATE,
 			UNKNOWN
 		};
 
-		/** @return the stringified version of the enum passed in */
 		inline const TCHAR* ToString(ESoundFileError::Type SoundFileError)
 		{
 			switch (SoundFileError)
 			{
-				case NONE:					return TEXT("NONE");
-				case INVALID_SOUND_FILE:	return TEXT("INVALID_SOUND_FILE");
-				case BAD_ENCODING_QUALITY:	return TEXT("BAD_ENCODING_QUALITY");
-				case ALREADY_OPENED:		return TEXT("ALREADY_OPENED");
-				case ALREADY_HAS_DATA:		return TEXT("ALREADY_HAS_DATA");
-				case INVALID_DATA:			return TEXT("INVALID_DATA");
-				case FILE_DOESNT_EXIST:		return TEXT("FILE_DOESNT_EXIST");
-				case INVALID_INPUT_FORMAT:	return TEXT("INVALID_INPUT_FORMAT");
-				case INVALID_CHANNEL_MAP:	return TEXT("INVALID_CHANNEL_MAP");
-				case FAILED_TO_OPEN:		return TEXT("FAILED_TO_OPEN");
-				case FAILED_TO_SEEK:		return TEXT("FAILED_TO_SEEK");
-				case ALREADY_INTIALIZED:	return TEXT("ALREADY_INTIALIZED");
-				case LOADING:				return TEXT("LOADING");
-
-				default:
-				case UNKNOWN:				return TEXT("UNKNOWN");
+				case NONE:						return TEXT("NONE");
+				case INVALID_SOUND_FILE:		return TEXT("INVALID_SOUND_FILE");
+				case INVALID_SOUND_FILE_HANDLE: return TEXT("INVALID_SOUND_FILE_HANDLE");
+				case BAD_ENCODING_QUALITY:		return TEXT("BAD_ENCODING_QUALITY");
+				case FAILED_TO_LOAD_BYTE_DATA:	return TEXT("FAILED_TO_LOAD_BYTE_DATA");
+				case ALREADY_OPENED:			return TEXT("ALREADY_OPENED");
+				case ALREADY_HAS_DATA:			return TEXT("ALREADY_HAS_DATA");
+				case INVALID_DATA:				return TEXT("INVALID_DATA");
+				case FILE_DOESNT_EXIST:			return TEXT("FILE_DOESNT_EXIST");
+				case INVALID_INPUT_FORMAT:		return TEXT("INVALID_INPUT_FORMAT");
+				case INVALID_CHANNEL_MAP:		return TEXT("INVALID_CHANNEL_MAP");
+				case FAILED_TO_OPEN:			return TEXT("FAILED_TO_OPEN");
+				case FAILED_TO_SEEK:			return TEXT("FAILED_TO_SEEK");
+				case ALREADY_INTIALIZED:		return TEXT("ALREADY_INTIALIZED");
+				case LOADING:					return TEXT("LOADING");
+				case INVALID_STATE:				return TEXT("INVALID_STATE");
+				default: case UNKNOWN:			return TEXT("UNKNOWN");
 			}
 		}
 	}
 
-	/*
-	* ESoundFileFormatFlags
-	* Specifies the major format type of the sound source.
-	* File formats are fully specified by a major/minor format.
-	*
-	* For example, a Ogg-Vorbis encoding would use:
-	* uint32 FormatFlags = ESoundFormatFlags::OGG | ESoundFormatFlags::VORBIS;
-	**/
+	/**
+	 * Specifies the major format type of the sound source.
+	 * File formats are fully specified by a major/minor format.
+	 *
+	 * For example, a Ogg-Vorbis encoding would use:
+	 * uint32 FormatFlags = ESoundFormatFlags::OGG | ESoundFormatFlags::VORBIS;
+	 */
 	namespace ESoundFileFormat
 	{
 		enum Flags
@@ -151,10 +150,10 @@ namespace UAudio
 	};
 
 	/*
-	* ESoundFileChannelMap
-	* These are separated from the device channel mappings purposefully since
-	* the enumeration may not exactly be the same as the output speaker mapping.
-	**/
+	 * Enumeration to specify a sound files intended output channel mapping.
+	 * @note These are separated from the device channel mappings purposefully since
+	 * the enumeration may not exactly be the same as the output speaker mapping.
+	 */
 	namespace ESoundFileChannelMap
 	{
 		enum Type
@@ -184,7 +183,6 @@ namespace UAudio
 			TOP_BACK_CENTER,
 		};
 
-		/** @return the stringified version of the enum passed in */
 		inline const TCHAR* ToString(ESoundFileChannelMap::Type ChannelMap)
 		{
 			switch (ChannelMap)
@@ -217,166 +215,84 @@ namespace UAudio
 		}
 	}
 
-	/*
-	* FSoundFileDescription
-	* Struct specifying a sound file description.
-	**/
+	/**
+	 * Specifes a sound file description.
+	 */
+
 	struct FSoundFileDescription
 	{
-		// The number of frames (interleaved samples) in the sound file.
+		/** The number of frames (interleaved samples) in the sound file. */
 		int64 NumFrames;
 
-		// The sample rate of the sound file.
+		/** The sample rate of the sound file. */
 		int32 SampleRate;
 
-		// The number of channels of the sound file.
+		/** The number of channels of the sound file. */
 		int32 NumChannels;
 
-		// The format flags of the sound file.
+		/** The format flags of the sound file. */
 		int32 FormatFlags;
 
-		// The number of sections of the sound file.
+		/** The number of sections of the sound file. */
 		int32 NumSections;
 
-		// Whether or not the sound file is seekable.
+		/** Whether or not the sound file is seekable. */
 		int32 bIsSeekable;
 	};
 
-	/**
-	* FSoundFileImportSettings
-	* Struct defining sound file import settings.
-	*/
-	struct UNREALAUDIO_API FSoundFileImportSettings
+	struct FSoundFileConvertFormat
 	{
-		// Full path to the sound file on disk.
-		FString SoundFilePath;
-
-		// Desired import format.
+		/** Desired convert format. */
 		int32 Format;
 
-		// Desired import sample rate.
+		/** Desired convert sample rate. */
 		uint32 SampleRate;
 
-		// For compression-type target formats that used an encoding quality (0.0 = low, 1.0 = high).
+		/** For compression-type target formats that used an encoding quality (0.0 = low, 1.0 = high). */
 		double EncodingQuality;
 
-		// Whether or not to peak-normalize the audio file during import.
+		/** Whether or not to peak-normalize the audio file during import. */
 		bool bPerformPeakNormalization;
 	};
 
-	/*
-	* ESoundFileState
-	**/
 	namespace ESoundFileState
 	{
 		enum Type
 		{
-			// Sound file hasn't begun loading and was just created.
-			UNINITIALIZED,
-
-			// Sound file has been initialized with data and is ready for playback
+			UNINITIALIZED = 0,
 			INITIALIZED,
-
-			// Sound file is importing.
-			IMPORTING,
-
-			// Sound file has finished importing.
-			IMPORTED,
-
-			// Sound file has an error. Called GetError() on ISoundFile to get error.
+			LOADING,
+			LOADED,
+			STREAMING,
+			WRITING,
 			HAS_ERROR,
 		};
 	}
 
 	/**
-	* FSoundFileData
-	* Data structure containing data for a sound file. Can be stored within a UAsset or loaded with a sound file.
-	*/
-	class UNREALAUDIO_API ISoundFileData
-	{
-	public:
-		virtual ~ISoundFileData() {}
-
-		/** Sets and gets the sound file path */
-		virtual const FString& GetFilePath() const = 0;
-		virtual void SetFilePath(const FString& InPath) = 0;
-		
-		/** Sets and gets the file description */
-		virtual const FSoundFileDescription& GetDescription() const = 0;
-		virtual void SetDescription(const FSoundFileDescription& InDescription) = 0;
-
-		/** Sets and gets the original file description */
-		virtual const FSoundFileDescription& GetOriginalDescription() const = 0;
-		virtual void SetOriginalDescription(const FSoundFileDescription& InDescription) = 0;
-
-		/** Sets and gets the channel map */
-		virtual const TArray<ESoundFileChannelMap::Type>& GetChannelMap() const = 0;
-		virtual void SetChannelMap(const TArray<ESoundFileChannelMap::Type>& InChannelMap) = 0;
-
-		/** Gets a const pointer to the internal buffer of data. */
-		virtual const uint8* GetData() const = 0;
-
-		/** Gets the size of the data */
-		virtual int64 GetDataSize() const = 0;
-
-		/** Sets the data buffer pointer and the size of the data buffer */
-		virtual void SetData(uint8* InDataPtr, int64 InDataSize) = 0;
-	};
-
-	/**
-	* ISoundFile
-	* Interface for sound file reading/writing.
-	*/
+	 * ISoundFile
+	 */
 	class UNREALAUDIO_API ISoundFile
 	{
 	public:
-		/** Virtual Destructor */
 		virtual ~ISoundFile() {}
-
-		/** Initializes the sound file with the given sound file data. */
-		virtual ESoundFileError::Type Initialize(TSharedPtr<ISoundFileData> InSoundFileData) = 0;
-
-		/** Returns the name of the sound file */
-		virtual ESoundFileError::Type GetName(FString& Name) = 0;
-
-		/** Gets the sound file data associated with this ISoundFile. */
-		virtual ESoundFileError::Type GetSoundFileData(TSharedPtr<ISoundFileData>& OutSoundFileData) = 0;
-
-		/** @return Returns the state of the sound file. */
-		virtual  ESoundFileState::Type GetState() const = 0;
-
-		/** @return Returns the last sound file error. */
+		virtual ESoundFileError::Type GetState(ESoundFileState::Type& OutState) const = 0;
 		virtual ESoundFileError::Type GetError() const = 0;
+		virtual ESoundFileError::Type GetId(uint32& OutId) const = 0;
+		virtual ESoundFileError::Type GetPath(FName& OutPath) const = 0;
+		virtual ESoundFileError::Type GetBulkData(TArray<uint8>** OutData) const = 0;
+		virtual ESoundFileError::Type GetDataSize(int32& DataSize) const = 0;
+		virtual ESoundFileError::Type GetDescription(FSoundFileDescription& OutDescription) const = 0;
+		virtual ESoundFileError::Type GetChannelMap(TArray<ESoundFileChannelMap::Type>& OutChannelMap) const = 0;
+		virtual ESoundFileError::Type IsStreamed(bool& bOutIsStreamed) const = 0;
 	};
 
-	/**
-	* Creates an empty sound file data object
-	* Creates an empty sound file (with no sound file data)
-	*/
-	UNREALAUDIO_API TSharedPtr<ISoundFileData> CreateSoundFileData();
+	UNREALAUDIO_API bool GetSoundFileDescription(const FString& FilePath, FSoundFileDescription& OutputDescription, TArray<ESoundFileChannelMap::Type>& OutChannelMap);
 
-	/**
-	* CreateSoundFile
-	* Creates an empty sound file (with no sound file data)
-	*/
-	UNREALAUDIO_API TSharedPtr<ISoundFile> CreateSoundFile();
+	UNREALAUDIO_API bool GetSoundFileDescription(const FString& FilePath, FSoundFileDescription& OutputDescription);
 
-	/**
-	* ImportSound
-	* Imports a sound given the import settings.
-	* The function immediately returns a ISoundFile reference, but that sound file will
-	* be in a loading state. If the sound file succeeds in importing, the sound file state
-	* will become Loaded, otherwise it will have an error that can be retrieved.
-	*/
-	UNREALAUDIO_API TSharedPtr<ISoundFile> ImportSound(const FSoundFileImportSettings& ImportSettings);
+	UNREALAUDIO_API bool GetFileExtensionForFormatFlags(int32 FormatFlags, FString& OutExtension);
 
-	/**
-	* ExportSound
-	* Exports a sound to the given path.
-	* The function immediately returns a ISoundFile reference, but that sound file will
-	* be in a loading state. If the sound file succeeds in importing, the sound file state
-	* will become Loaded, otherwise it will have an error that can be retrieved.
-	*/
-	UNREALAUDIO_API void ExportSound(TSharedPtr<ISoundFileData> SoundFileData, const FString& ExportPath);
+	UNREALAUDIO_API void GetSoundFileListInDirectory(FString& Directory, TArray<FString>& SoundFiles, bool bRecursive = true);
 
 }
