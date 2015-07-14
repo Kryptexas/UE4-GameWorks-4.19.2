@@ -3,6 +3,7 @@
 #include "SceneOutlinerPrivatePCH.h"
 #include "SSceneOutliner.h"
 
+#include "ActorEditorUtils.h"
 #include "SceneOutlinerFilters.h"
 
 #include "EditorActorFolders.h"
