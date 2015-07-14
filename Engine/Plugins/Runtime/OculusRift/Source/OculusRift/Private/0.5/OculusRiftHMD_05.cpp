@@ -138,9 +138,9 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FOculusRiftHMD::CreateNewSettings(
 	return Result;
 }
 
-bool FOculusRiftHMD::OnStartGameFrame()
+bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 {
-	bool rv = FHeadMountedDisplay::OnStartGameFrame();
+	bool rv = FHeadMountedDisplay::OnStartGameFrame( WorldContext );
 	if (!rv)
 	{
 		return false;

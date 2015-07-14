@@ -270,7 +270,7 @@ class FOculusRiftHMD : public FHeadMountedDisplay
 	friend class UOculusFunctionLibrary;
 public:
 	/** IHeadMountedDisplay interface */
-	virtual bool OnStartGameFrame() override;
+	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual bool IsHMDConnected() override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;

@@ -295,12 +295,12 @@ public:
 	/**
 	 * This method is called when new game frame begins (called on a game thread).
 	 */
-	virtual bool OnStartGameFrame() override;
+	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	/**
 	 * This method is called when game frame ends (called on a game thread).
 	 */
-	virtual bool OnEndGameFrame() override;
+	virtual bool OnEndGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual void SetupViewFamily(class FSceneViewFamily& InViewFamily) {}
 	virtual void SetupView(class FSceneViewFamily& InViewFamily, FSceneView& InView) {}

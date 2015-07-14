@@ -197,11 +197,11 @@ FHMDGameFrame* FHeadMountedDisplay::GetCurrentFrame() const
 	return nullptr;
 }
 
-bool FHeadMountedDisplay::OnStartGameFrame()
+bool FHeadMountedDisplay::OnStartGameFrame( FWorldContext& WorldContext )
 {
 	check(IsInGameThread());
 
-	if (!GWorld || !GWorld->IsGameWorld())
+	if (!WorldContext.World() || !WorldContext.World()->IsGameWorld())
 	{
 		// ignore all non-game worlds
 		return false;
@@ -253,20 +253,18 @@ bool FHeadMountedDisplay::OnStartGameFrame()
 	CurrentFrame->FrameNumber = GFrameCounter;
 	CurrentFrame->Flags.bOutOfFrame = false;
 
-	check(GWorld);
-
 	if (Settings->Flags.bWorldToMetersOverride)
 	{
 		CurrentFrame->WorldToMetersScale = Settings->WorldToMetersScale;
 	}
 	else
 	{
-		CurrentFrame->WorldToMetersScale = GWorld->GetWorldSettings()->WorldToMeters;
+		CurrentFrame->WorldToMetersScale = WorldContext.World()->GetWorldSettings()->WorldToMeters;
 	}
 	return true;
 }
 
-bool FHeadMountedDisplay::OnEndGameFrame()
+bool FHeadMountedDisplay::OnEndGameFrame( FWorldContext& WorldContext )
 {
 	check(IsInGameThread());
 
@@ -274,7 +272,7 @@ bool FHeadMountedDisplay::OnEndGameFrame()
 
 	FHMDGameFrame* const CurrentGameFrame = Frame.Get();
 
-		if (!GWorld || !GWorld->IsGameWorld() || !CurrentGameFrame)
+	if (!WorldContext.World() || !WorldContext.World()->IsGameWorld() || !CurrentGameFrame)
 	{
 		// ignore all non-game worlds
 		return false;

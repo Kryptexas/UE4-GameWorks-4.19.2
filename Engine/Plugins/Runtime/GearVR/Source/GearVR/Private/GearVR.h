@@ -237,7 +237,7 @@ public:
 	static void PreInit();
 
 	/** IHeadMountedDisplay interface */
-	virtual bool OnStartGameFrame() override;
+	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 	virtual bool IsHMDConnected() override { return true; }
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;

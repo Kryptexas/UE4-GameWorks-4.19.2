@@ -1035,7 +1035,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	if (GEngine->HMDDevice.IsValid())
 	{
-		GEngine->HMDDevice->OnStartGameFrame();
+		GEngine->HMDDevice->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
 
 #if ENABLE_COLLISION_ANALYZER
@@ -1442,7 +1442,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	if (GEngine->HMDDevice.IsValid())
 	{
-		GEngine->HMDDevice->OnEndGameFrame();
+		GEngine->HMDDevice->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
 }
 

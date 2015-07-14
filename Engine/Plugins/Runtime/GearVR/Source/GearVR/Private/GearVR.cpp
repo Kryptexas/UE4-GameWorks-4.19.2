@@ -165,9 +165,9 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FGearVR::CreateNewSettings() const
 	return Result;
 }
 
-bool FGearVR::OnStartGameFrame()
+bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 {
-	bool rv = FHeadMountedDisplay::OnStartGameFrame();
+	bool rv = FHeadMountedDisplay::OnStartGameFrame( WorldContext );
 	if (!rv)
 	{
 		return false;
