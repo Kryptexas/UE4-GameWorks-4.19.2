@@ -543,154 +543,163 @@ void UpdateGlobalDistanceFieldObjectRemoves(FRHICommandListImmediate& RHICmdList
 			DistanceFieldSceneData.SurfelAllocations.RemovePrimitive(Primitive);
 			DistanceFieldSceneData.InstancedSurfelAllocations.RemovePrimitive(Primitive);
 			const TArray<int32, TInlineAllocator<1>>& DistanceFieldInstanceIndices = DistanceFieldSceneData.PendingRemoveOperations[RemoveIndex].DistanceFieldInstanceIndices;
-			PendingRemoveOperations.Append(DistanceFieldInstanceIndices);
 
 			for (int32 RemoveInstanceIndex = 0; RemoveInstanceIndex < DistanceFieldInstanceIndices.Num(); RemoveInstanceIndex++)
 			{
 				const int32 InstanceIndex = DistanceFieldInstanceIndices[RemoveInstanceIndex];
-				DistanceFieldSceneData.PrimitiveModifiedBounds.Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
-			}
-		}
 
-		check(DistanceFieldSceneData.NumObjectsInBuffer >= PendingRemoveOperations.Num());
-
-		// Sort from smallest to largest
-		PendingRemoveOperations.Sort();
-
-		// We have multiple remove requests enqueued in PendingRemoveOperations, can only use the RemoveAtSwap version when there won't be collisions
-		const bool bUseRemoveAtSwap = PendingRemoveOperations.Last() < DistanceFieldSceneData.NumObjectsInBuffer - PendingRemoveOperations.Num();
-
-		if (bUseRemoveAtSwap)
-		{
-			// Remove everything in parallel in the same buffer with a RemoveAtSwap algorithm
-			for (int32 RemovePrimitiveIndex = 0; RemovePrimitiveIndex < PendingRemoveOperations.Num(); RemovePrimitiveIndex++)
-			{
-				DistanceFieldSceneData.NumObjectsInBuffer--;
-				const int32 RemoveIndex = PendingRemoveOperations[RemovePrimitiveIndex];
-				const int32 MoveFromIndex = DistanceFieldSceneData.NumObjectsInBuffer;
-
-				check(RemoveIndex != MoveFromIndex);
-				// Queue a compute shader move
-				RemoveObjectIndices.Add(FIntRect(RemoveIndex, MoveFromIndex, 0, 0));
-
-				// Fixup indices of the primitive that is being moved
-				FPrimitiveAndInstance& PrimitiveAndInstanceBeingMoved = DistanceFieldSceneData.PrimitiveInstanceMapping[MoveFromIndex];
-				check(PrimitiveAndInstanceBeingMoved.Primitive && PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices.Num() > 0);
-				PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstanceBeingMoved.InstanceIndex] = RemoveIndex;
-
-				DistanceFieldSceneData.PrimitiveInstanceMapping.RemoveAtSwap(RemoveIndex);
-			}
-		}
-		else
-		{
-			const double StartTime = FPlatformTime::Seconds();
-
-			// Have to copy the object data to allow parallel removing
-			TemporaryCopySourceBuffers = DistanceFieldSceneData.ObjectBuffers;
-			DistanceFieldSceneData.ObjectBuffers = new FDistanceFieldObjectBuffers();
-			DistanceFieldSceneData.ObjectBuffers->MaxObjects = TemporaryCopySourceBuffers->MaxObjects;
-			DistanceFieldSceneData.ObjectBuffers->Initialize();
-
-			TArray<FPrimitiveAndInstance> OriginalPrimitiveInstanceMapping = DistanceFieldSceneData.PrimitiveInstanceMapping;
-			DistanceFieldSceneData.PrimitiveInstanceMapping.Reset();
-
-			const int32 NumDestObjects = DistanceFieldSceneData.NumObjectsInBuffer - PendingRemoveOperations.Num();
-			int32 SourceIndex = 0;
-			int32 NextPendingRemoveIndex = 0;
-
-			for (int32 DestinationIndex = 0; DestinationIndex < NumDestObjects; DestinationIndex++)
-			{
-				while (NextPendingRemoveIndex < PendingRemoveOperations.Num()
-					&& PendingRemoveOperations[NextPendingRemoveIndex] == SourceIndex)
+				// InstanceIndex will be -1 with zero scale meshes
+				if (InstanceIndex >= 0)
 				{
-					NextPendingRemoveIndex++;
-					SourceIndex++;
+					DistanceFieldSceneData.PrimitiveModifiedBounds.Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
+					PendingRemoveOperations.Add(InstanceIndex);
 				}
-
-				// Queue a compute shader move
-				RemoveObjectIndices.Add(FIntRect(DestinationIndex, SourceIndex, 0, 0));
-
-				// Fixup indices of the primitive that is being moved
-				FPrimitiveAndInstance& PrimitiveAndInstanceBeingMoved = OriginalPrimitiveInstanceMapping[SourceIndex];
-				check(PrimitiveAndInstanceBeingMoved.Primitive && PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices.Num() > 0);
-				PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstanceBeingMoved.InstanceIndex] = DestinationIndex;
-
-				check(DistanceFieldSceneData.PrimitiveInstanceMapping.Num() == DestinationIndex);
-				DistanceFieldSceneData.PrimitiveInstanceMapping.Add(PrimitiveAndInstanceBeingMoved);
-
-				SourceIndex++;
 			}
-
-			DistanceFieldSceneData.NumObjectsInBuffer = NumDestObjects;
-
-			if (GAOLogObjectBufferReallocation)
-			{
-				const float ElapsedTime = (float)(FPlatformTime::Seconds() - StartTime);
-				UE_LOG(LogDistanceField,Warning,TEXT("Global object buffer realloc %.3fs"), ElapsedTime);
-			}
-
-			/*
-			// Have to remove one at a time while any entries to remove are at the end of the buffer
-			DistanceFieldSceneData.NumObjectsInBuffer--;
-			const int32 RemoveIndex = DistanceFieldSceneData.PendingRemoveOperations[ParallelConflictIndex];
-			const int32 MoveFromIndex = DistanceFieldSceneData.NumObjectsInBuffer;
-
-			if (RemoveIndex != MoveFromIndex)
-			{
-				// Queue a compute shader move
-				RemoveObjectIndices.Add(FIntRect(RemoveIndex, MoveFromIndex, 0, 0));
-
-				// Fixup indices of the primitive that is being moved
-				FPrimitiveAndInstance& PrimitiveAndInstanceBeingMoved = DistanceFieldSceneData.PrimitiveInstanceMapping[MoveFromIndex];
-				check(PrimitiveAndInstanceBeingMoved.Primitive && PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices.Num() > 0);
-				PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstanceBeingMoved.InstanceIndex] = RemoveIndex;
-			}
-
-			DistanceFieldSceneData.PrimitiveInstanceMapping.RemoveAtSwap(RemoveIndex);
-			DistanceFieldSceneData.PendingRemoveOperations.RemoveAtSwap(ParallelConflictIndex);
-			*/
 		}
 
-		PendingRemoveOperations.Reset();
 		DistanceFieldSceneData.PendingRemoveOperations.Reset();
 
-		if (RemoveObjectIndices.Num() > 0)
+		if (PendingRemoveOperations.Num() > 0)
 		{
-			if (RemoveObjectIndices.Num() > GDistanceFieldRemoveIndices.RemoveIndices.MaxElements)
-			{
-				GDistanceFieldRemoveIndices.RemoveIndices.MaxElements = RemoveObjectIndices.Num() * 5 / 4;
-				GDistanceFieldRemoveIndices.RemoveIndices.Release();
-				GDistanceFieldRemoveIndices.RemoveIndices.Initialize();
-			}
+			check(DistanceFieldSceneData.NumObjectsInBuffer >= PendingRemoveOperations.Num());
 
-			void* LockedBuffer = RHILockVertexBuffer(GDistanceFieldRemoveIndices.RemoveIndices.Buffer, 0, GDistanceFieldRemoveIndices.RemoveIndices.Buffer->GetSize(), RLM_WriteOnly);
-			const uint32 MemcpySize = RemoveObjectIndices.GetTypeSize() * RemoveObjectIndices.Num();
-			check(GDistanceFieldRemoveIndices.RemoveIndices.Buffer->GetSize() >= MemcpySize);
-			FPlatformMemory::Memcpy(LockedBuffer, RemoveObjectIndices.GetData(), MemcpySize);
-			RHIUnlockVertexBuffer(GDistanceFieldRemoveIndices.RemoveIndices.Buffer);
+			// Sort from smallest to largest
+			PendingRemoveOperations.Sort();
+
+			// We have multiple remove requests enqueued in PendingRemoveOperations, can only use the RemoveAtSwap version when there won't be collisions
+			const bool bUseRemoveAtSwap = PendingRemoveOperations.Last() < DistanceFieldSceneData.NumObjectsInBuffer - PendingRemoveOperations.Num();
 
 			if (bUseRemoveAtSwap)
 			{
-				check(!TemporaryCopySourceBuffers);
-				TShaderMapRef<TRemoveObjectsFromBufferCS<true> > ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
-				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-				ComputeShader->SetParameters(RHICmdList, Scene, RemoveObjectIndices.Num(), GDistanceFieldRemoveIndices.RemoveIndices.BufferSRV, NULL, NULL);
+				// Remove everything in parallel in the same buffer with a RemoveAtSwap algorithm
+				for (int32 RemovePrimitiveIndex = 0; RemovePrimitiveIndex < PendingRemoveOperations.Num(); RemovePrimitiveIndex++)
+				{
+					DistanceFieldSceneData.NumObjectsInBuffer--;
+					const int32 RemoveIndex = PendingRemoveOperations[RemovePrimitiveIndex];
+					const int32 MoveFromIndex = DistanceFieldSceneData.NumObjectsInBuffer;
 
-				DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(RemoveObjectIndices.Num(), UpdateObjectsGroupSize), 1, 1);
-				ComputeShader->UnsetParameters(RHICmdList);
+					check(RemoveIndex != MoveFromIndex);
+					// Queue a compute shader move
+					RemoveObjectIndices.Add(FIntRect(RemoveIndex, MoveFromIndex, 0, 0));
+
+					// Fixup indices of the primitive that is being moved
+					FPrimitiveAndInstance& PrimitiveAndInstanceBeingMoved = DistanceFieldSceneData.PrimitiveInstanceMapping[MoveFromIndex];
+					check(PrimitiveAndInstanceBeingMoved.Primitive && PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices.Num() > 0);
+					PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstanceBeingMoved.InstanceIndex] = RemoveIndex;
+
+					DistanceFieldSceneData.PrimitiveInstanceMapping.RemoveAtSwap(RemoveIndex);
+				}
 			}
 			else
 			{
-				check(TemporaryCopySourceBuffers);
-				TShaderMapRef<TRemoveObjectsFromBufferCS<false> > ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
-				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-				ComputeShader->SetParameters(RHICmdList, Scene, RemoveObjectIndices.Num(), GDistanceFieldRemoveIndices.RemoveIndices.BufferSRV, TemporaryCopySourceBuffers->Bounds.SRV, TemporaryCopySourceBuffers->Data.SRV);
+				const double StartTime = FPlatformTime::Seconds();
 
-				DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(RemoveObjectIndices.Num(), UpdateObjectsGroupSize), 1, 1);
-				ComputeShader->UnsetParameters(RHICmdList);
+				// Have to copy the object data to allow parallel removing
+				TemporaryCopySourceBuffers = DistanceFieldSceneData.ObjectBuffers;
+				DistanceFieldSceneData.ObjectBuffers = new FDistanceFieldObjectBuffers();
+				DistanceFieldSceneData.ObjectBuffers->MaxObjects = TemporaryCopySourceBuffers->MaxObjects;
+				DistanceFieldSceneData.ObjectBuffers->Initialize();
 
-				TemporaryCopySourceBuffers->Release();
-				delete TemporaryCopySourceBuffers;
+				TArray<FPrimitiveAndInstance> OriginalPrimitiveInstanceMapping = DistanceFieldSceneData.PrimitiveInstanceMapping;
+				DistanceFieldSceneData.PrimitiveInstanceMapping.Reset();
+
+				const int32 NumDestObjects = DistanceFieldSceneData.NumObjectsInBuffer - PendingRemoveOperations.Num();
+				int32 SourceIndex = 0;
+				int32 NextPendingRemoveIndex = 0;
+
+				for (int32 DestinationIndex = 0; DestinationIndex < NumDestObjects; DestinationIndex++)
+				{
+					while (NextPendingRemoveIndex < PendingRemoveOperations.Num()
+						&& PendingRemoveOperations[NextPendingRemoveIndex] == SourceIndex)
+					{
+						NextPendingRemoveIndex++;
+						SourceIndex++;
+					}
+
+					// Queue a compute shader move
+					RemoveObjectIndices.Add(FIntRect(DestinationIndex, SourceIndex, 0, 0));
+
+					// Fixup indices of the primitive that is being moved
+					FPrimitiveAndInstance& PrimitiveAndInstanceBeingMoved = OriginalPrimitiveInstanceMapping[SourceIndex];
+					check(PrimitiveAndInstanceBeingMoved.Primitive && PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices.Num() > 0);
+					PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstanceBeingMoved.InstanceIndex] = DestinationIndex;
+
+					check(DistanceFieldSceneData.PrimitiveInstanceMapping.Num() == DestinationIndex);
+					DistanceFieldSceneData.PrimitiveInstanceMapping.Add(PrimitiveAndInstanceBeingMoved);
+
+					SourceIndex++;
+				}
+
+				DistanceFieldSceneData.NumObjectsInBuffer = NumDestObjects;
+
+				if (GAOLogObjectBufferReallocation)
+				{
+					const float ElapsedTime = (float)(FPlatformTime::Seconds() - StartTime);
+					UE_LOG(LogDistanceField,Warning,TEXT("Global object buffer realloc %.3fs"), ElapsedTime);
+				}
+
+				/*
+				// Have to remove one at a time while any entries to remove are at the end of the buffer
+				DistanceFieldSceneData.NumObjectsInBuffer--;
+				const int32 RemoveIndex = DistanceFieldSceneData.PendingRemoveOperations[ParallelConflictIndex];
+				const int32 MoveFromIndex = DistanceFieldSceneData.NumObjectsInBuffer;
+
+				if (RemoveIndex != MoveFromIndex)
+				{
+					// Queue a compute shader move
+					RemoveObjectIndices.Add(FIntRect(RemoveIndex, MoveFromIndex, 0, 0));
+
+					// Fixup indices of the primitive that is being moved
+					FPrimitiveAndInstance& PrimitiveAndInstanceBeingMoved = DistanceFieldSceneData.PrimitiveInstanceMapping[MoveFromIndex];
+					check(PrimitiveAndInstanceBeingMoved.Primitive && PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices.Num() > 0);
+					PrimitiveAndInstanceBeingMoved.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstanceBeingMoved.InstanceIndex] = RemoveIndex;
+				}
+
+				DistanceFieldSceneData.PrimitiveInstanceMapping.RemoveAtSwap(RemoveIndex);
+				DistanceFieldSceneData.PendingRemoveOperations.RemoveAtSwap(ParallelConflictIndex);
+				*/
+			}
+
+			PendingRemoveOperations.Reset();
+
+			if (RemoveObjectIndices.Num() > 0)
+			{
+				if (RemoveObjectIndices.Num() > GDistanceFieldRemoveIndices.RemoveIndices.MaxElements)
+				{
+					GDistanceFieldRemoveIndices.RemoveIndices.MaxElements = RemoveObjectIndices.Num() * 5 / 4;
+					GDistanceFieldRemoveIndices.RemoveIndices.Release();
+					GDistanceFieldRemoveIndices.RemoveIndices.Initialize();
+				}
+
+				void* LockedBuffer = RHILockVertexBuffer(GDistanceFieldRemoveIndices.RemoveIndices.Buffer, 0, GDistanceFieldRemoveIndices.RemoveIndices.Buffer->GetSize(), RLM_WriteOnly);
+				const uint32 MemcpySize = RemoveObjectIndices.GetTypeSize() * RemoveObjectIndices.Num();
+				check(GDistanceFieldRemoveIndices.RemoveIndices.Buffer->GetSize() >= MemcpySize);
+				FPlatformMemory::Memcpy(LockedBuffer, RemoveObjectIndices.GetData(), MemcpySize);
+				RHIUnlockVertexBuffer(GDistanceFieldRemoveIndices.RemoveIndices.Buffer);
+
+				if (bUseRemoveAtSwap)
+				{
+					check(!TemporaryCopySourceBuffers);
+					TShaderMapRef<TRemoveObjectsFromBufferCS<true> > ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
+					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+					ComputeShader->SetParameters(RHICmdList, Scene, RemoveObjectIndices.Num(), GDistanceFieldRemoveIndices.RemoveIndices.BufferSRV, NULL, NULL);
+
+					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(RemoveObjectIndices.Num(), UpdateObjectsGroupSize), 1, 1);
+					ComputeShader->UnsetParameters(RHICmdList);
+				}
+				else
+				{
+					check(TemporaryCopySourceBuffers);
+					TShaderMapRef<TRemoveObjectsFromBufferCS<false> > ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
+					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+					ComputeShader->SetParameters(RHICmdList, Scene, RemoveObjectIndices.Num(), GDistanceFieldRemoveIndices.RemoveIndices.BufferSRV, TemporaryCopySourceBuffers->Bounds.SRV, TemporaryCopySourceBuffers->Data.SRV);
+
+					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(RemoveObjectIndices.Num(), UpdateObjectsGroupSize), 1, 1);
+					ComputeShader->UnsetParameters(RHICmdList);
+
+					TemporaryCopySourceBuffers->Release();
+					delete TemporaryCopySourceBuffers;
+				}
 			}
 		}
 	}
@@ -760,96 +769,116 @@ void ProcessPrimitiveUpdate(
 
 			if (bIsAddOperation)
 			{
-				DistanceFieldSceneData.NumObjectsInBuffer += ObjectLocalToWorldTransforms.Num();
 				PrimitiveSceneInfo->DistanceFieldInstanceIndices.Empty(ObjectLocalToWorldTransforms.Num());
+				PrimitiveSceneInfo->DistanceFieldInstanceIndices.AddZeroed(ObjectLocalToWorldTransforms.Num());
 			}
 
 			for (int32 TransformIndex = 0; TransformIndex < ObjectLocalToWorldTransforms.Num(); TransformIndex++)
 			{
-				const uint32 UploadIndex = bIsAddOperation ? OriginalNumObjects + UploadObjectIndices.Num() : PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex];
-
-				UploadObjectIndices.Add(UploadIndex);
-
 				FMatrix LocalToWorld = ObjectLocalToWorldTransforms[TransformIndex];
+				const float MaxScale = LocalToWorld.GetMaximumAxisScale();
 
-				if (bMeshWasPlane)
+				// Skip degenerate primitives
+				if (MaxScale > 0)
 				{
-					FVector LocalScales = LocalToWorld.GetScaleVector();
-					FVector AbsLocalScales(FMath::Abs(LocalScales.X), FMath::Abs(LocalScales.Y), FMath::Abs(LocalScales.Z));
-					float MidScale = FMath::Min(AbsLocalScales.X, AbsLocalScales.Y);
-					float ScaleAdjust = FMath::Sign(LocalScales.Z) * MidScale / AbsLocalScales.Z;
-					// The mesh was determined to be a plane flat in Z during the build process, so we can change the Z scale
-					// Helps in cases with modular ground pieces with scales of (10, 10, 1) and some triangles just above Z=0
-					LocalToWorld.SetAxis(2, LocalToWorld.GetScaledAxis(EAxis::Z) * ScaleAdjust);
+					uint32 UploadIndex;
+
+					if (bIsAddOperation)
+					{
+						UploadIndex = OriginalNumObjects + UploadObjectIndices.Num();
+						DistanceFieldSceneData.NumObjectsInBuffer++;
+					}
+					else
+					{
+						UploadIndex = PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex];
+					}
+
+					UploadObjectIndices.Add(UploadIndex);
+
+					if (bMeshWasPlane)
+					{
+						FVector LocalScales = LocalToWorld.GetScaleVector();
+						FVector AbsLocalScales(FMath::Abs(LocalScales.X), FMath::Abs(LocalScales.Y), FMath::Abs(LocalScales.Z));
+						float MidScale = FMath::Min(AbsLocalScales.X, AbsLocalScales.Y);
+						float ScaleAdjust = FMath::Sign(LocalScales.Z) * MidScale / AbsLocalScales.Z;
+						// The mesh was determined to be a plane flat in Z during the build process, so we can change the Z scale
+						// Helps in cases with modular ground pieces with scales of (10, 10, 1) and some triangles just above Z=0
+						LocalToWorld.SetAxis(2, LocalToWorld.GetScaledAxis(EAxis::Z) * ScaleAdjust);
+					}
+
+					const FMatrix VolumeToWorld = FScaleMatrix(LocalVolumeBounds.GetExtent()) 
+						* FTranslationMatrix(LocalVolumeBounds.GetCenter())
+						* LocalToWorld;
+
+					const FVector4 ObjectBoundingSphere(VolumeToWorld.GetOrigin(), VolumeToWorld.GetScaleVector().Size());
+
+					UploadObjectData.Add(ObjectBoundingSphere);
+
+					const float MaxExtent = LocalVolumeBounds.GetExtent().GetMax();
+
+					const FMatrix UniformScaleVolumeToWorld = FScaleMatrix(MaxExtent) 
+						* FTranslationMatrix(LocalVolumeBounds.GetCenter())
+						* LocalToWorld;
+
+					const FVector InvBlockSize(1.0f / BlockSize.X, 1.0f / BlockSize.Y, 1.0f / BlockSize.Z);
+
+					//float3 VolumeUV = (VolumePosition / LocalPositionExtent * .5f * UVScale + .5f * UVScale + UVAdd;
+					const FVector LocalPositionExtent = LocalVolumeBounds.GetExtent() / FVector(MaxExtent);
+					const FVector UVScale = FVector(BlockSize) * InvTextureDim;
+					const float VolumeScale = UniformScaleVolumeToWorld.GetMaximumAxisScale();
+
+					const FMatrix WorldToVolume = UniformScaleVolumeToWorld.Inverse();
+					// WorldToVolume
+					UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[0]);
+					UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[1]);
+					UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[2]);
+					UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[3]);
+
+					// Clamp to texel center by subtracting a half texel in the [-1,1] position space
+					// LocalPositionExtent
+					UploadObjectData.Add(FVector4(LocalPositionExtent - InvBlockSize, LocalVolumeBounds.Min.X));
+
+					// UVScale, VolumeScale and sign gives bGeneratedAsTwoSided
+					const float WSign = bBuiltAsIfTwoSided ? -1 : 1;
+					UploadObjectData.Add(FVector4(FVector(BlockSize) * InvTextureDim * .5f / LocalPositionExtent, WSign * VolumeScale));
+
+					// UVAdd
+					UploadObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, LocalVolumeBounds.Min.Y));
+
+					// Box bounds
+					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, LocalVolumeBounds.Min.Z));
+
+					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[0]);
+					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[1]);
+					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[2]);
+
+					UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[0]);
+					UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[1]);
+					UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[2]);
+					UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[3]);
+
+					UploadObjectData.Add(FVector4(Allocation.Offset, Allocation.NumLOD0, Allocation.NumSurfels, InstancedAllocation.Offset + InstancedAllocation.NumSurfels * TransformIndex));
+
+					checkSlow(UploadObjectData.Num() % UploadObjectDataStride == 0);
+
+					if (bIsAddOperation)
+					{
+						const int32 AddIndex = UploadIndex;
+						DistanceFieldSceneData.PrimitiveInstanceMapping.Add(FPrimitiveAndInstance(ObjectBoundingSphere, PrimitiveSceneInfo, TransformIndex));
+						PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex] = AddIndex;
+					}
+					else 
+					{
+						DistanceFieldSceneData.PrimitiveInstanceMapping[PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex]].BoundingSphere = ObjectBoundingSphere;
+					}
+
+					DistanceFieldSceneData.PrimitiveModifiedBounds.Add(ObjectBoundingSphere);
 				}
-
-				const FMatrix VolumeToWorld = FScaleMatrix(LocalVolumeBounds.GetExtent()) 
-					* FTranslationMatrix(LocalVolumeBounds.GetCenter())
-					* LocalToWorld;
-
-				const FVector4 ObjectBoundingSphere(VolumeToWorld.GetOrigin(), VolumeToWorld.GetScaleVector().Size());
-
-				UploadObjectData.Add(ObjectBoundingSphere);
-
-				const float MaxExtent = LocalVolumeBounds.GetExtent().GetMax();
-
-				const FMatrix UniformScaleVolumeToWorld = FScaleMatrix(MaxExtent) 
-					* FTranslationMatrix(LocalVolumeBounds.GetCenter())
-					* LocalToWorld;
-
-				const FVector InvBlockSize(1.0f / BlockSize.X, 1.0f / BlockSize.Y, 1.0f / BlockSize.Z);
-
-				//float3 VolumeUV = (VolumePosition / LocalPositionExtent * .5f * UVScale + .5f * UVScale + UVAdd;
-				const FVector LocalPositionExtent = LocalVolumeBounds.GetExtent() / FVector(MaxExtent);
-				const FVector UVScale = FVector(BlockSize) * InvTextureDim;
-				const float VolumeScale = UniformScaleVolumeToWorld.GetMaximumAxisScale();
-
-				const FMatrix WorldToVolume = UniformScaleVolumeToWorld.Inverse();
-				// WorldToVolume
-				UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[0]);
-				UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[1]);
-				UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[2]);
-				UploadObjectData.Add(*(FVector4*)&WorldToVolume.M[3]);
-
-				// Clamp to texel center by subtracting a half texel in the [-1,1] position space
-				// LocalPositionExtent
-				UploadObjectData.Add(FVector4(LocalPositionExtent - InvBlockSize, LocalVolumeBounds.Min.X));
-
-				// UVScale, VolumeScale and sign gives bGeneratedAsTwoSided
-				const float WSign = bBuiltAsIfTwoSided ? -1 : 1;
-				UploadObjectData.Add(FVector4(FVector(BlockSize) * InvTextureDim * .5f / LocalPositionExtent, WSign * VolumeScale));
-
-				// UVAdd
-				UploadObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, LocalVolumeBounds.Min.Y));
-
-				// Box bounds
-				UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, LocalVolumeBounds.Min.Z));
-
-				UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[0]);
-				UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[1]);
-				UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[2]);
-
-				UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[0]);
-				UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[1]);
-				UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[2]);
-				UploadObjectData.Add(*(FVector4*)&LocalToWorld.M[3]);
-
-				UploadObjectData.Add(FVector4(Allocation.Offset, Allocation.NumLOD0, Allocation.NumSurfels, InstancedAllocation.Offset + InstancedAllocation.NumSurfels * TransformIndex));
-
-				checkSlow(UploadObjectData.Num() % UploadObjectDataStride == 0);
-
-				if (bIsAddOperation)
+				else if (bIsAddOperation)
 				{
-					const int32 AddIndex = UploadIndex;
-					DistanceFieldSceneData.PrimitiveInstanceMapping.Add(FPrimitiveAndInstance(ObjectBoundingSphere, PrimitiveSceneInfo, TransformIndex));
-					PrimitiveSceneInfo->DistanceFieldInstanceIndices.Add(AddIndex);
+					// Set to -1 for zero scale meshes
+					PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex] = -1;
 				}
-				else 
-				{
-					DistanceFieldSceneData.PrimitiveInstanceMapping[PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex]].BoundingSphere = ObjectBoundingSphere;
-				}
-
-				DistanceFieldSceneData.PrimitiveModifiedBounds.Add(ObjectBoundingSphere);
 			}
 		}
 		else
