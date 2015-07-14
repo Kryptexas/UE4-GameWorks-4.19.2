@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2617256
+Availability:Public
 Title:13.Play in Editor とテスト
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:最後に Play in Editor を使用して Runner AI をテストします。
@@ -21,7 +22,7 @@ Description:最後に Play in Editor を使用して Runner AI をテストし�
 
 %Steps%
 
-**ビヘイビア ツリー** を [前の 9で](Engine/AI/EnvironmentQuerySystem/QuickStart/9) セットアップし、[AI コントローラに対して実行を指示](Engine/AI/EnvironmentQuerySystem/QuickStart/7) したのでテストを行う準備が整いました！ 
+**ビヘイビア ツリー** を [前のステップ 9で](Engine/AI/EnvironmentQuerySystem/QuickStart/9) セットアップし、[AI コントローラに対して実行を指示](Engine/AI/EnvironmentQuerySystem/QuickStart/7) したのでテストを行う準備が整いました！ 
 
 
 ## ステップ
@@ -30,7 +31,17 @@ Description:最後に Play in Editor を使用して Runner AI をテストし�
 
 ![](play.png)
 
-![](running.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+BWhnjDIhYwU
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 %Steps%
