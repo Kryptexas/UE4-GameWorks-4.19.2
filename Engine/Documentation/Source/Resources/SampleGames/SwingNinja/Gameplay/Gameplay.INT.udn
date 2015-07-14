@@ -7,8 +7,6 @@ Description:Documentation covering the gameplay setup for the Swing Ninja Game.
 
 [REGION:fullwidth]
 
-## Overview
-
 Swing Ninja is a side-scrolling physics-based game. As such, there were two key elements to making it work properly:
 
 * Side-scrolling game behavior

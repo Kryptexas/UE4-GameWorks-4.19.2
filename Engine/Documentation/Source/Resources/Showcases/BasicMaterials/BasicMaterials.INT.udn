@@ -54,9 +54,6 @@ Description:An overview of the Basic Materials example included with UE4.
 
 [TOC(start:2)]
 
-
-## Overview
-
 This example overviews some of the most elementary and critical concepts required to make use of Unreal Engine 4's powerful Materials system. Included in the showcase are the following features:
 
 * [Basic Lit Materials](#SimpleMaterials)
