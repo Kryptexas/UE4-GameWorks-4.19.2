@@ -168,15 +168,12 @@ void FGraphActionListBuilderBase::ActionGroup::InitScoringData()
 	if (Actions.Num() > 0)
 	{
 		FEdGraphSchemaAction& FirstAction = *Actions[0];
-		const FString& Keywords = FirstAction.GetSearchKeywords();
-		const FString& Title = FirstAction.GetSearchTitle();
-		const FString& Category = FirstAction.GetSearchCategory();
 
 		// We keep these individual arrays so that they can be weighted differently by the scoring algorithm in SGraphActionMenu::GetActionFilteredWeight
-		Keywords.ParseIntoArray(SearchKeywordsArray, TEXT(" "), true);
+		FirstAction.GetSearchKeywords().ParseIntoArray(SearchKeywordsArray, TEXT(" "), true);
 		FirstAction.MenuDescription.ToString().ToLower().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
-		Title.ParseIntoArray(SearchTitleArray, TEXT(" "), true);
-		Category.ParseIntoArray(SearchCategoryArray, TEXT(" "), true);
+		FirstAction.GetSearchTitle().ParseIntoArray(SearchTitleArray, TEXT(" "), true);
+		FirstAction.GetSearchCategory().ParseIntoArray(SearchCategoryArray, TEXT(" "), true);
 
 		// Glob search text together, we use the SearchText string for basic filtering:
 		for (const auto& Entry : SearchTitleArray)
