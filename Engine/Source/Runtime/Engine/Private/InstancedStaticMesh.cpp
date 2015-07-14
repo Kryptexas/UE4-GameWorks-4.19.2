@@ -1612,7 +1612,9 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 				auto* Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
 				const int32 AddedIndex = Aggregates.Add(Aggregate);
 				check(AddedIndex == AggregateIndex);
-				PhysScene->GetPhysXScene(SceneType)->addAggregate(*Aggregate);
+				PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+				SCOPED_SCENE_WRITE_LOCK(PScene);
+				PScene->addAggregate(*Aggregate);
 			}
 		}
 

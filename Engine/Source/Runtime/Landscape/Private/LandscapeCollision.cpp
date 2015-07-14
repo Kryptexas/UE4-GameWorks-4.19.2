@@ -923,7 +923,9 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 				}
 
 				// Add to scenes
-				PhysScene->GetPhysXScene(PST_Sync)->addActor(*MeshActorSync);
+				PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
+				SCOPED_SCENE_WRITE_LOCK(SyncScene);
+				SyncScene->addActor(*MeshActorSync);
 
 				if (PhysScene->HasAsyncScene())
 				{

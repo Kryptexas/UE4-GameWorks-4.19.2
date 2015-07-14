@@ -1883,7 +1883,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 		if (PxRigidActor* MyBody = RigidActorAsync)
 		{
-			TheirBody->BodySetup->AddShapesToRigidActor_AssumesLocked(this, MyBody, PST_Sync, Scale3D, PSimpleMat, ComplexPhysMats, ShapeData, RelativeTM, &PNewShapes);
+			TheirBody->BodySetup->AddShapesToRigidActor_AssumesLocked(this, MyBody, PST_Async, Scale3D, PSimpleMat, ComplexPhysMats, ShapeData, RelativeTM, &PNewShapes);
 			if (TheirBody->bGenerateWakeEvents)
 			{
 				MyBody->setActorFlag(PxActorFlag::eSEND_SLEEP_NOTIFIES, true);
