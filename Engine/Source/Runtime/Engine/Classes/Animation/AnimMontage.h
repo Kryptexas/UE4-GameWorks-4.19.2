@@ -449,6 +449,10 @@ public:
 	 */
 	ENGINE_API void UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx);
 #endif
+	/*
+	 * Check if this slot has valid animation data
+	 */
+	bool IsValidAdditiveSlot(const FName& SlotNodeName) const;
 
 	/** Get FCompositeSection with InSectionName */
 	FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);

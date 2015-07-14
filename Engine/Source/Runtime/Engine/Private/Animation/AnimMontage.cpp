@@ -678,6 +678,23 @@ bool UAnimMontage::IsValidAdditive() const
 	return false;
 }
 
+bool UAnimMontage::IsValidAdditiveSlot(const FName& SlotNodeName) const
+{
+	// if first one is additive, this is additive
+	if ( SlotAnimTracks.Num() > 0 )
+	{
+		for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
+		{
+			if (SlotAnimTracks[I].SlotName == SlotNodeName)
+			{
+				return SlotAnimTracks[I].AnimTrack.IsAdditive();
+			}
+		}
+	}
+
+	return false;
+}
+
 EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetFromSections(float Time) const
 {
 	for(auto Iter = CompositeSections.CreateConstIterator(); Iter; ++Iter)

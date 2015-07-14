@@ -1297,7 +1297,7 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 		{
 			NodeTotalWeight += MontageInstance->Weight;
 
-			if( !MontageInstance->Montage->IsValidAdditive() )
+			if( !MontageInstance->Montage->IsValidAdditiveSlot(SlotNodeName) )
 			{
 				NonAdditiveTotalWeight += MontageInstance->Weight;
 			}
