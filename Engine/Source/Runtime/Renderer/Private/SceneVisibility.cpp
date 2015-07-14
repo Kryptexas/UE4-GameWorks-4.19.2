@@ -1808,7 +1808,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 				}
 				else
 				{
-					NumCulledPrimitivesForView = FrustumCull<true, true>(Scene, View);
+					NumCulledPrimitivesForView = FrustumCull<true, false>(Scene, View);
 				}
 			}
 			else
