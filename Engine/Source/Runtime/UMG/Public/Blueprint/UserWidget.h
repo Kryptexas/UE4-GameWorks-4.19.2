@@ -154,7 +154,7 @@ public:
 	virtual void PostLoad() override;
 	// End of UObject interface
 
-	void Initialize();
+	virtual bool Initialize();
 
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;

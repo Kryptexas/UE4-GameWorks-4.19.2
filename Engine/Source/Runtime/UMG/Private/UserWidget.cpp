@@ -34,7 +34,7 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-void UUserWidget::Initialize()
+bool UUserWidget::Initialize()
 {
 	// If it's not initialized initialize it, as long as it's not the CDO, we never initialize the CDO.
 	if ( !bInitialized && !HasAnyFlags(RF_ClassDefaultObject) )
@@ -68,7 +68,10 @@ void UUserWidget::Initialize()
 				}
 			}
 		});
+
+		return true;
 	}
+	return false;
 }
 
 void UUserWidget::BeginDestroy()
