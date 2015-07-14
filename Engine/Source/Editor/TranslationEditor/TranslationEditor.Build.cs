@@ -37,7 +37,6 @@ public class TranslationEditor : ModuleRules
                 "Documentation",
                 "Localization",
                 "LocalizationService",
-                "LocalizationDashboard",
 			}
 		);
 

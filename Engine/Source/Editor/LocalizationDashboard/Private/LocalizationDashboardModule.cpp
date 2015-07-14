@@ -153,35 +153,6 @@ public:
 		return LSP ? *LSP : nullptr;
 	}
 
-	ULocalizationTarget* GetLocalizationTargetByName(FString TargetName, bool bIsEngineTarget) override
-	{
-		if (bIsEngineTarget)
-		{
-			ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
-			for (ULocalizationTarget* Target : EngineTargetSet->TargetObjects)
-			{
-				if (Target->Settings.Name == TargetName)
-				{
-					return Target;
-				}
-			}
-		}
-		else
-		{
-			ULocalizationTargetSet* EngineTargetSet = ULocalizationSettings::GetEngineTargetSet();
-			for (ULocalizationTarget* Target : EngineTargetSet->TargetObjects)
-			{
-				if (Target->Settings.Name == TargetName)
-				{
-					return Target;
-				}
-			}
-		}
-
-		return nullptr;
-	}
-
-
 private:
 	TArray<ILocalizationServiceProvider*> ServiceProviders;
 	FName CurrentServiceProviderName;

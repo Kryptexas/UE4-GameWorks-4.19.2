@@ -13,7 +13,7 @@
 #include "NotificationManager.h"
 #include "PortableObjectFormatDOM.h"
 #include "ILocalizationServiceModule.h"
-#include "ILocalizationDashboardModule.h"
+#include "LocalizationModule.h"
 #include "LocalizationTargetTypes.h"
 #include "LocalizationConfigurationScript.h"
 
@@ -929,7 +929,7 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 					FString UploadFilePath = FPaths::GameSavedDir() / "Temp" / CultureName / ManifestAndArchiveName + ".po";
 					FFileHelper::SaveStringToFile(PortableObjectDom.ToString(), *UploadFilePath);
 
-					ULocalizationTarget* Target = ILocalizationDashboardModule::Get().GetLocalizationTargetByName(ManifestAndArchiveName, IsEngineManifest);
+					ULocalizationTarget* Target = FLocalizationModule::Get().GetLocalizationTargetByName(ManifestAndArchiveName, IsEngineManifest);
 					FGuid LocalizationTargetGuid;
 					if (Target)
 					{
