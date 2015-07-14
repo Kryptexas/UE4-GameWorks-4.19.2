@@ -1302,12 +1302,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
-		Commands.SaveBrushAsCollision,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnSaveBrushAsCollision )
-		);
-
-
-	ActionList.MapAction(
 		Commands.KeepSimulationChanges,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnKeepSimulationChanges ),
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanExecuteKeepSimulationChanges )

@@ -2728,128 +2728,6 @@ void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool
 	GEditor->RedrawLevelEditingViewports();
 }
 
-void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
-{
-	// First, find the currently selected actor with a static mesh.
-	// Fail if more than one actor with staticmesh is selected.
-	UStaticMesh* StaticMesh = NULL;
-	FMatrix MeshToWorld;
-
-	// Pointer to the world
-	UWorld* World = NULL;
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-	{
-		AActor* Actor = Cast<AActor>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		UStaticMeshComponent* FoundStaticMeshComponent = NULL;
-		if( Actor->IsA(AStaticMeshActor::StaticClass()) )
-		{
-			FoundStaticMeshComponent = CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent();
-		}
-
-		UStaticMesh* FoundMesh = FoundStaticMeshComponent ? FoundStaticMeshComponent->StaticMesh : NULL;
-		if( FoundMesh )
-		{
-			// If we find multiple actors with static meshes, warn and do nothing.
-			if( StaticMesh )
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_SelectOneActor", "Please select just one Actor with a StaticMesh.") );
-				return;
-			}
-			StaticMesh = FoundMesh;
-			MeshToWorld = FoundStaticMeshComponent->ComponentToWorld.ToMatrixWithScale();
-			// Store the pointer to the world
-			World = Actor->GetWorld();
-		}
-	}
-
-	// If no static-mesh-toting actor found, warn and do nothing.
-	if(!StaticMesh)
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_NoActorWithStaticMesh", "No Actor found with a StaticMesh.") );
-		return;
-	}
-
-	// If we already have a collision model for this staticmesh, ask if we want to replace it.
-	if( StaticMesh->BodySetup )
-	{
-		const bool bDoReplace = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Prompt_24", "Static Mesh already has a collision model. \nDo you want to replace it with Builder Brush?") );
-		if( !bDoReplace )
-		{
-			return;
-		}
-	}
-	
-	check(World)
-	ABrush* BuildBrush = World->GetDefaultBrush();
-	if(BuildBrush != nullptr)
-	{
-		// Now get the builder brush.
-		UModel* BuilderModel = BuildBrush->Brush;
-
-		// Need the transform between builder brush space and static mesh actor space.
-		const FMatrix BrushL2W = BuildBrush->ActorToWorld().ToMatrixWithScale();
-		const FMatrix MeshW2L = MeshToWorld.InverseFast();
-		const FMatrix SMToBB = BrushL2W * MeshW2L;
-		const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
-
-		// Copy the current builder brush into a temp model.
-		// We keep no reference to this, so it will be GC'd at some point.
-		UModel* TempModel = NewObject<UModel>();
-		TempModel->Initialize(nullptr, 1);
-		TempModel->Polys->Element = BuilderModel->Polys->Element;
-
-		// Now transform each poly into local space for the selected static mesh.
-		for (int32 i = 0; i < TempModel->Polys->Element.Num(); i++)
-		{
-			FPoly* Poly = &TempModel->Polys->Element[i];
-
-			for (int32 j = 0; j < Poly->Vertices.Num(); j++)
-			{
-				Poly->Vertices[j] = SMToBB.TransformPosition(Poly->Vertices[j]);
-			}
-
-			Poly->Normal = SMToBB_AT.TransformVector(Poly->Normal);
-			Poly->Normal.Normalize(); // SmToBB might have scaling in it.
-		}
-
-		// Build bounding box.
-		TempModel->BuildBound();
-
-		// Build BSP for the brush.
-		FBSPOps::bspBuild(TempModel, FBSPOps::BSP_Good, 15, 70, 1, 0);
-		FBSPOps::bspRefresh(TempModel, 1);
-		FBSPOps::bspBuildBounds(TempModel);
-
-
-		// Now - use this as the Rigid Body collision for this static mesh as well.
-
-		// Make sure rendering is done - so we are not changing data being used by collision drawing.
-		FlushRenderingCommands();
-
-		// If we already have a BodySetup - clear it.
-		if (StaticMesh->BodySetup)
-		{
-			StaticMesh->BodySetup->RemoveSimpleCollision();
-		}
-		// If we don't already have physics props, construct them here.
-		else
-		{
-			StaticMesh->CreateBodySetup();
-		}
-
-		// Convert collision model into a collection of convex hulls.
-		// NB: This removes any convex hulls that were already part of the collision data.
-		StaticMesh->BodySetup->CreateFromModel(TempModel, true);
-	}
-	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
-
-	// Finally mark the parent package as 'dirty', so user will be prompted if they want to save it etc.
-	StaticMesh->MarkPackageDirty();
-}
-
 bool FLevelEditorActionCallbacks::ActorSelected_CanExecute()
 {
 	// Had to have something selected
@@ -3069,8 +2947,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( CreateNormalConvexVolume, "Normal Convex Blocking Volume From Mesh", "Creates a normal convex blocking volume from the static mesh", EUserInterfaceActionType::Button, FInputChord() ); 
 	UI_COMMAND( CreateLightConvexVolume, "Light Convex Blocking Volume From Mesh", "Creates a light convex blocking volume from the static mesh", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( CreateRoughConvexVolume, "Rought Convex Blocking Volume From Mesh", "Creates a rough convex blocking volume from the static mesh", EUserInterfaceActionType::Button, FInputChord() );
-
-	UI_COMMAND( SaveBrushAsCollision, "Save Collision from Builder Brush", "Creates a collision primitive on the selected static meshes based on the shape of the builder brush", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputChord( EKeys::K ) );
 

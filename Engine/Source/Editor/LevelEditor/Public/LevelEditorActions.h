@@ -461,9 +461,6 @@ public:
 	/** Create a blocking volume from the meshes using a rough convex shape */
 	TSharedPtr< FUICommandInfo > CreateRoughConvexVolume;
 
-	/** Set the collision model on the static meshes to be the same shape as the builder brush */
-	TSharedPtr< FUICommandInfo > SaveBrushAsCollision;
-
 	/** Set the actors collision to block all */
 	TSharedPtr< FUICommandInfo > SetCollisionBlockAll;
 
@@ -1042,11 +1039,6 @@ public:
 	 * Finds references to the currently selected actor(s) in level scripts
 	 */
 	static void OnFindActorInLevelScript();
-
-	/**
-	* Take the currently selected static mesh, and save the builder brush as its low poly collision model.
-	*/
-	static void OnSaveBrushAsCollision();
 
 	/** Select the world info actor and show the properties */
 	static void OnShowWorldProperties( TWeakPtr< SLevelEditor > LevelEditor );
