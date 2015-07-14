@@ -132,7 +132,7 @@ void FWindowsPlatformStackWalkExt::GetExeFileVersionAndModuleList( FCrashModuleI
 		// Get the full path of the module name
 		TCHAR ModuleName[MAX_PATH] = {0};
 		Symbol->GetModuleNameStringWide( DEBUG_MODNAME_IMAGE, ModuleIndex, ModuleBase, ModuleName, MAX_PATH, NULL );
-		
+
 		const FString RelativeModuleName = ExtractRelativePath( TEXT( "binaries" ), ModuleName );
 		// Get the exe, which we extract the version number, so we know what label to sync to
 		if (RelativeModuleName.Len() > 0 && RelativeModuleName.EndsWith( TEXT( ".exe" ) ))
@@ -442,7 +442,7 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 	}
 
 	// Get the entire stack trace
-	const uint32 MaxFrames = 128;
+	const uint32 MaxFrames = 8192;
 	const uint32 MaxFramesSize = MaxFrames * ContextUsed;
 
 	DEBUG_STACK_FRAME* StackFrames = new(FMemStack::Get()) DEBUG_STACK_FRAME[MaxFrames];
@@ -451,6 +451,8 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 	void* ContextData = FMemStack::Get().PushBytes( MaxFramesSize, 0 );
 	FMemory::Memzero( ContextData, MaxFramesSize );
 	HRESULT HR = Control->GetContextStackTrace( Context, ContextUsed, StackFrames, MaxFrames, ContextData, MaxFramesSize, ContextUsed, &Count );
+
+	int32 AssertOrEnsureIndex = -1;
 
 	for( uint32 StackIndex = 0; StackIndex < Count; StackIndex++ )
 	{	
@@ -465,7 +467,7 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 			FString ModuleAndFunction = NameByOffset;
 
 			// Don't care about any more entries higher than this
-			if( ModuleAndFunction.Contains( TEXT( "tmainCRTStartup" ) ) )
+			if (ModuleAndFunction.Contains( TEXT( "tmainCRTStartup" ) ) || ModuleAndFunction.Contains( TEXT( "FRunnableThreadWin::GuardedRun" ) ))
 			{
 				break;
 			}
@@ -503,11 +505,11 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 			// If we find an assert, the actual source file we're interested in is the next one up, so reset the source file found flag
 			if( FunctionName.Len() > 0 )
 			{
-				if( FunctionName.Contains( TEXT( "FDebug::AssertFailed" ), ESearchCase::CaseSensitive )
-					|| FunctionName.Contains( TEXT( "FDebug::EnsureNotFalse" ), ESearchCase::CaseSensitive )
-					|| FunctionName.Contains( TEXT( "FDebug::EnsureFailed" ), ESearchCase::CaseSensitive ) )
+				if( FunctionName.Contains( TEXT( "FDebug::" ), ESearchCase::CaseSensitive )
+					|| FunctionName.Contains( TEXT( "NewReportEnsure" ), ESearchCase::CaseSensitive ) )
 				{
 					bFoundSourceFile = false;
+					AssertOrEnsureIndex = FMath::Max( AssertOrEnsureIndex, (int32)StackIndex );
 				}
 			}
 
@@ -519,6 +521,13 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 
 			UE_LOG( LogCrashDebugHelper, Log, TEXT( "%3u: %s" ), StackIndex, *GenericFormattedCallstackLine );
 		}
+	}
+
+	// Remove callstack entries below FDebug, we don't need them.
+	if (AssertOrEnsureIndex > 0)
+	{	
+		Exception.CallStackString.RemoveAt( 0, AssertOrEnsureIndex );
+		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Callstack trimmed to %i entries" ), Exception.CallStackString.Num() );
 	}
 
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Callstack generated with %i valid function names" ), NumValidFunctionNames );

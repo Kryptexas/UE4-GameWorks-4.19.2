@@ -63,13 +63,16 @@ bool UGatherTextCommandletBase::WriteJSONToTextFile(TSharedPtr<FJsonObject> Outp
 	// If the user specified a reference file - write the entries read from code to a ref file
 	if ( !Filename.IsEmpty() && Output.IsValid() )
 	{
-		if( SourceControl.IsValid() )
+		const bool DidFileExist = FPaths::FileExists(Filename);
+		if (DidFileExist)
 		{
-			FText SCCErrorText;
-			if (!SourceControl->CheckOutFile(Filename, SCCErrorText))
+			if( SourceControl.IsValid() )
 			{
-				UE_LOG(LogGatherTextCommandletBase, Error, TEXT("Check out of file %s failed: %s"), *Filename, *SCCErrorText.ToString());
-				WasSuccessful = false;
+				FText SCCErrorText;
+				if (!SourceControl->CheckOutFile(Filename, SCCErrorText))
+				{
+					UE_LOG(LogGatherTextCommandletBase, Error, TEXT("Check out of file %s failed: %s"), *Filename, *SCCErrorText.ToString());
+				}
 			}
 		}
 
@@ -84,6 +87,18 @@ bool UGatherTextCommandletBase::WriteJSONToTextFile(TSharedPtr<FJsonObject> Outp
 			{
 				UE_LOG(LogGatherTextCommandletBase, Error, TEXT("Failed to write localization entries to file %s"), *Filename);
 				WasSuccessful = false;
+			}
+		}
+
+		if (!DidFileExist)
+		{
+			if( SourceControl.IsValid() )
+			{
+				FText SCCErrorText;
+				if (!SourceControl->CheckOutFile(Filename, SCCErrorText))
+				{
+					UE_LOG(LogGatherTextCommandletBase, Error, TEXT("Check out of file %s failed: %s"), *Filename, *SCCErrorText.ToString());
+				}
 			}
 		}
 	}

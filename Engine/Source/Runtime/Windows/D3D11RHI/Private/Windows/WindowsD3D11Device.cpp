@@ -368,6 +368,7 @@ void FD3D11DynamicRHI::Init()
 
 void FD3D11DynamicRHI::InitD3DDevice()
 {
+	UE_LOG(LogD3D11RHI, Log, TEXT("InitD3DDevice"));
 	check( IsInGameThread() );
 
 	// Wait for the rendering thread to go idle.
@@ -376,6 +377,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 	// If the device we were using has been removed, release it and the resources we created for it.
 	if(bDeviceRemoved)
 	{
+		UE_LOG(LogD3D11RHI, Log, TEXT("bDeviceRemoved"));
 		check(Direct3DDevice);
 
 		HRESULT hRes = Direct3DDevice->GetDeviceRemovedReason();
@@ -403,6 +405,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 	// If we don't have a device yet, either because this is the first viewport, or the old device was removed, create a device.
 	if(!Direct3DDevice)
 	{
+		UE_LOG(LogD3D11RHI, Log, TEXT("!Direct3DDevice"));
 		check(!GIsRHIInitialized);
 
 		// Clear shadowed shader resources.
@@ -472,11 +475,13 @@ void FD3D11DynamicRHI::InitD3DDevice()
 					{
 						// Use dedicated video memory, if it's more than 200 MB
 						GTotalGraphicsMemory = GDedicatedVideoMemory;
-					} else if ( GDedicatedSystemMemory >= 200*1024*1024 )
+					}
+					else if ( GDedicatedSystemMemory >= 200*1024*1024 )
 					{
 						// Use dedicated system memory, if it's more than 200 MB
 						GTotalGraphicsMemory = GDedicatedSystemMemory;
-					} else if ( GSharedSystemMemory >= 400*1024*1024 )
+					}
+					else if ( GSharedSystemMemory >= 400*1024*1024 )
 					{
 						// Use some shared system memory, if it's more than 400 MB
 						GTotalGraphicsMemory = ConsideredSharedSystemMemory;

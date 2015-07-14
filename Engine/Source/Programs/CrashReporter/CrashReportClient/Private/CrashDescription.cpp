@@ -7,8 +7,10 @@
 #include "XmlFile.h"
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
+#include "CrashReportUtil.h"
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineBuildSettings.h"
 
 FCrashDescription::FCrashDescription() :
 	CrashDescriptionVersion( ECrashDescVersions::VER_1_NewCrashFormat ),
@@ -19,7 +21,7 @@ FCrashDescription::FCrashDescription() :
 	bHasVideoFile( false ),
 	bHasCompleteData( false )
 {
-	InitializeIDs();
+	UpdateIDs();
 }
 
 /** Unescapes a specified XML string, naive implementation. */
@@ -43,7 +45,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 	bHasVideoFile( false ),
 	bHasCompleteData( false )
 {
-	InitializeIDs();
+	UpdateIDs();
 
 	// This is for the current system that uses files from Windows Error Reporting.
 	// Will be replaced with the unified version soon.
@@ -208,16 +210,33 @@ void FCrashDescription::InitializeEngineVersion()
 	EngineVersion = FEngineVersion( Major, Minor, Patch, BuiltFromCL, BranchName );
 }
 
-void FCrashDescription::InitializeIDs()
+void FCrashDescription::UpdateIDs()
 {
+	const bool bAddPersonalData = FCrashReportClientConfig::Get().GetAllowToBeContacted();
+	if (bAddPersonalData)
+	{
+		// The Epic ID can be looked up from this ID.
+		EpicAccountId = FPlatformMisc::GetEpicAccountId();
+	}
+	else
+	{
+		EpicAccountId.Empty();
+	}
+
+	// Add real user name only for internal builds.
+	const bool bSendUserName = FEngineBuildSettings::IsInternalBuild();
+	if (bSendUserName)
+	{
+		// Remove periods from user names to match AutoReporter user names
+		// The name prefix is read by CrashRepository.AddNewCrash in the website code
+		UserName = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
+	}
+	else
+	{
+		UserName.Empty();
+	}
+
 	MachineId = FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits );
-
-	// The Epic ID can be looked up from this ID.
-	EpicAccountId = FPlatformMisc::GetEpicAccountId();
-
-	// Remove periods from user names to match AutoReporter user names
-	// The name prefix is read by CrashRepository.AddNewCrash in the website code
-	UserName = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
 }
 
 void FCrashDescription::SendAnalytics()
@@ -226,7 +245,6 @@ void FCrashDescription::SendAnalytics()
 	FCrashReportAnalytics::Initialize();
 
 	IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
-	//Analytics.SetUserID( MachineId );
 
 	TArray<FAnalyticsEventAttribute> CrashAttributes;
 
@@ -243,6 +261,7 @@ void FCrashDescription::SendAnalytics()
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BuiltFromCL" ), BuiltFromCL ) );
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BranchName" ), BranchName ) );
 
+	// @see UpdateIDs()
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "MachineID" ), MachineId ) );
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserName" ), UserName ) );
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EpicAccountId" ), EpicAccountId ) );

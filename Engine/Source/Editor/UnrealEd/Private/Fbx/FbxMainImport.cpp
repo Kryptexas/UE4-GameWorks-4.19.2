@@ -415,7 +415,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 				Result = 0;
 			}
 			// Check for animation data. It can be overwritten by Geometry or Deformer
-			else if ( (ItemName == "AnimationStack" || ItemName == "AnimationLayer" || ItemName == "AnimationCurve" || ItemName == "AnimationCurveNode") && ItemCount > 0 )
+			else if ( (ItemName == "AnimationCurve" || ItemName == "AnimationCurveNode") && ItemCount > 0 )
 			{
 				bHasAnimation = true;
 			}
@@ -429,6 +429,10 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 		{
 			// If animation data is found, set the result to 2, otherwise default to static mesh
 			Result = bHasAnimation ? 2 : 0;
+		}
+		else if ( Result == 0 && bHasAnimation )
+		{
+			Result = 1;
 		}
 	}
 	

@@ -1956,14 +1956,14 @@ private:
 	void ResolveDeferredExports(UClass* LoadClass);
 
 	/**
-	 * Query method to help handle recursive behavior. When this returns true, 
-	 * this linker is in the middle of, or is about to call FinalizeBlueprint()
-	 * (for a blueprint class somewhere in the current callstack). Needed when 
-	 * we get to finalizing a sub-class before we've finished finalizing its 
-	 * super (so we know we need to finish finalizing the super first).
-	 * 
-	 * @return True if FinalizeBlueprint() is currently being ran (or about to be ran) for an export (Blueprint) class.
-	 */
+	* Query method to help handle recursive behavior. When this returns true,
+	* this linker is in the middle of, or is about to call FinalizeBlueprint()
+	* (for a blueprint class somewhere in the current callstack). Needed when
+	* we get to finalizing a sub-class before we've finished finalizing its
+	* super (so we know we need to finish finalizing the super first).
+	*
+	* @return True if FinalizeBlueprint() is currently being ran (or about to be ran) for an export (Blueprint) class.
+	*/
 	bool IsBlueprintFinalizationPending() const;
 
 	/**
@@ -1995,8 +1995,9 @@ private:
 	 */
 	bool IsExportBeingResolved(int32 ExportIndex);
 
-
 	void ResetDeferredLoadingState();
+
+	friend class FObjectInitializer;
 public:
 	bool HasPerformedFullExportResolvePass();
 

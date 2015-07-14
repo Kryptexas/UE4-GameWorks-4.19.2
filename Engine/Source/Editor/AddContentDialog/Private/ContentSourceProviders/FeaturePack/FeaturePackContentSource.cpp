@@ -14,6 +14,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogFeaturePack, Log, All);
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
 bool TryValidateTranslatedValue(TSharedPtr<FJsonValue> TranslatedValue, TSharedPtr<FString>& ErrorMessage)
 {
 	if (TranslatedValue.IsValid() == false)
@@ -241,6 +243,9 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	}
 
 	FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+	// Remove any existing delegates for this pack
+	SuperSearchModule.GetActOnSearchTextClicked().RemoveRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
+	SuperSearchModule.GetSearchTextChanged().RemoveRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
 	SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);	
 	SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
 	bPackValid = true;
@@ -342,6 +347,13 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 
 FFeaturePackContentSource::~FFeaturePackContentSource()
 {
+	// Remove any search handler delegates for this pack
+	if (FModuleManager::Get().IsModuleLoaded("SuperSearch"))
+	{
+		FSuperSearchModule& SuperSearchModule = FModuleManager::GetModuleChecked<FSuperSearchModule>("SuperSearch");
+		SuperSearchModule.GetActOnSearchTextClicked().RemoveRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
+		SuperSearchModule.GetSearchTextChanged().RemoveRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
+	}
 }
 
 bool FFeaturePackContentSource::IsDataValid() const
@@ -460,5 +472,7 @@ FLocalizedTextArray FFeaturePackContentSource::ChooseLocalizedTextArray(TArray<F
 	}
 	return Default;
 }
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 #undef LOCTEXT_NAMESPACE 

@@ -1210,6 +1210,8 @@ private:
 	/** Tracks used sections of the volume texture atlas. */
 	FTextureLayout3d BlockAllocator;
 
+	int32 NextPointId;
+
 	/** Tracks primitive allocations by component, so that they persist across re-registers. */
 	TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*> PrimitiveAllocations;
 };

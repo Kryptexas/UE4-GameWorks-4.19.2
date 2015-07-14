@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "GenericPlatform/GenericPlatformContext.h"
 #include "Misc/App.h"
-#include "Runtime/Launch/Resources/Version.h"
+#include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";
@@ -12,6 +12,10 @@ bool FGenericCrashContext::bIsInitialized = false;
 
 namespace NCachedCrashContextProperties
 {
+	static bool bIsInternalBuild;
+	static bool bIsPerforceBuild;
+	static bool bIsSourceDistribution;
+	static bool bIsUE4Release;
 	static FString ExecutableName;
 	static FString PlatformName;
 	static FString PlatformNameIni;
@@ -31,29 +35,33 @@ namespace NCachedCrashContextProperties
 
 	static FString CrashGUID;
 }
-using namespace NCachedCrashContextProperties;
 
 void FGenericCrashContext::Initialize()
 {
-	ExecutableName = FPlatformProcess::ExecutableName();
-	PlatformName = FPlatformProperties::PlatformName();
-	PlatformNameIni = FPlatformProperties::IniPlatformName();
-	BaseDir = FPlatformProcess::BaseDir();
-	RootDir = FPlatformMisc::RootDir();
-	EpicAccountId = FPlatformMisc::GetEpicAccountId();
-	MachineIdStr = FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits );
-	FPlatformMisc::GetOSVersions(OsVersion,OsSubVersion);
-	NumberOfCores = FPlatformMisc::NumberOfCores();
-	NumberOfCoresIncludingHyperthreads = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
+	NCachedCrashContextProperties::bIsInternalBuild = FEngineBuildSettings::IsInternalBuild();
+	NCachedCrashContextProperties::bIsPerforceBuild = FEngineBuildSettings::IsPerforceBuild();
+	NCachedCrashContextProperties::bIsSourceDistribution = FEngineBuildSettings::IsSourceDistribution();
+	NCachedCrashContextProperties::bIsUE4Release = FApp::IsEngineInstalled();
 
-	CPUVendor = FPlatformMisc::GetCPUVendor();
-	CPUBrand = FPlatformMisc::GetCPUBrand();
-	PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
-	UserName = FPlatformProcess::UserName();
-	DefaultLocale = FPlatformMisc::GetDefaultLocale();
+	NCachedCrashContextProperties::ExecutableName = FPlatformProcess::ExecutableName();
+	NCachedCrashContextProperties::PlatformName = FPlatformProperties::PlatformName();
+	NCachedCrashContextProperties::PlatformNameIni = FPlatformProperties::IniPlatformName();
+	NCachedCrashContextProperties::BaseDir = FPlatformProcess::BaseDir();
+	NCachedCrashContextProperties::RootDir = FPlatformMisc::RootDir();
+	NCachedCrashContextProperties::EpicAccountId = FPlatformMisc::GetEpicAccountId();
+	NCachedCrashContextProperties::MachineIdStr = FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits);
+	FPlatformMisc::GetOSVersions(NCachedCrashContextProperties::OsVersion, NCachedCrashContextProperties::OsSubVersion);
+	NCachedCrashContextProperties::NumberOfCores = FPlatformMisc::NumberOfCores();
+	NCachedCrashContextProperties::NumberOfCoresIncludingHyperthreads = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
+
+	NCachedCrashContextProperties::CPUVendor = FPlatformMisc::GetCPUVendor();
+	NCachedCrashContextProperties::CPUBrand = FPlatformMisc::GetCPUBrand();
+	NCachedCrashContextProperties::PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
+	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
+	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
 
 	const FGuid Guid = FGuid::NewGuid();
-	CrashGUID = FString::Printf( TEXT( "UE4CC-%s-%s" ), *PlatformNameIni, *Guid.ToString( EGuidFormats::Digits ) );
+	NCachedCrashContextProperties::CrashGUID = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
 
 	bIsInitialized = true;
 }
@@ -76,57 +84,52 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	// It means that the crashed process needs to be alive as long as the crash report client is working on the process.
 	// Proposal, not implemented yet.
 	AddCrashProperty( TEXT( "ProcessId" ), FPlatformProcess::GetCurrentProcessId() );
+	AddCrashProperty( TEXT( "IsInternalBuild" ), (int32)NCachedCrashContextProperties::bIsInternalBuild );
+	AddCrashProperty( TEXT( "IsPerforceBuild" ), (int32)NCachedCrashContextProperties::bIsPerforceBuild );
+	AddCrashProperty( TEXT( "IsSourceDistribution" ), (int32)NCachedCrashContextProperties::bIsSourceDistribution );
 
-	AddCrashProperty( TEXT( "IsInternalBuild" ), (int32)FEngineBuildSettings::IsInternalBuild() );
-	AddCrashProperty( TEXT( "IsPerforceBuild" ), (int32)FEngineBuildSettings::IsPerforceBuild() );
-	AddCrashProperty( TEXT( "IsSourceDistribution" ), (int32)FEngineBuildSettings::IsSourceDistribution() );
+	// Added 'editor/game open time till crash' 
 
 	// Add common crash properties.
 	AddCrashProperty( TEXT( "GameName" ), FApp::GetGameName() );
-	AddCrashProperty( TEXT( "ExecutableName" ), *ExecutableName );
+	AddCrashProperty(TEXT("ExecutableName"), *NCachedCrashContextProperties::ExecutableName);
 	AddCrashProperty( TEXT( "BuildConfiguration" ), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ) );
 
-	AddCrashProperty( TEXT( "PlatformName" ), *PlatformName );
-	AddCrashProperty( TEXT( "PlatformNameIni" ), *PlatformNameIni );
+	AddCrashProperty(TEXT("PlatformName"), *NCachedCrashContextProperties::PlatformName);
+	AddCrashProperty(TEXT("PlatformNameIni"), *NCachedCrashContextProperties::PlatformNameIni);
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
-	AddCrashProperty( TEXT( "EngineVersion" ), ENGINE_VERSION_STRING );
+	AddCrashProperty( TEXT( "EngineVersion" ), *GEngineVersion.ToString() );
 	AddCrashProperty( TEXT( "CommandLine" ), FCommandLine::IsInitialized() ? FCommandLine::Get() : TEXT("") );
 	AddCrashProperty( TEXT( "LanguageLCID" ), FInternationalization::Get().GetCurrentCulture()->GetLCID() );
-	AddCrashProperty( TEXT( "DefaultLocale" ), *DefaultLocale );
+	AddCrashProperty(TEXT("DefaultLocale"), *NCachedCrashContextProperties::DefaultLocale);
 
-	AddCrashProperty( TEXT( "IsUE4Release" ), (int32)FApp::IsEngineInstalled() );
+	AddCrashProperty( TEXT( "IsUE4Release" ), (int32)NCachedCrashContextProperties::bIsUE4Release);
 
 	// Remove periods from user names to match AutoReporter user names
 	// The name prefix is read by CrashRepository.AddNewCrash in the website code
-	AddCrashProperty( TEXT( "UserName" ), *UserName.Replace( TEXT( "." ), TEXT( "" ) ) );
+	const bool bSendUserName = NCachedCrashContextProperties::bIsInternalBuild;
+	AddCrashProperty( TEXT( "UserName" ), bSendUserName ? *NCachedCrashContextProperties::UserName.Replace( TEXT( "." ), TEXT( "" ) ) : TEXT( "" ) );
 
-	AddCrashProperty( TEXT( "BaseDir" ), *BaseDir );
-	AddCrashProperty( TEXT( "RootDir" ), *RootDir );
-	AddCrashProperty( TEXT( "MachineId" ), *MachineIdStr );
-	AddCrashProperty( TEXT( "EpicAccountId" ), *EpicAccountId );
+	AddCrashProperty(TEXT("BaseDir"), *NCachedCrashContextProperties::BaseDir);
+	AddCrashProperty(TEXT("RootDir"), *NCachedCrashContextProperties::RootDir);
+	AddCrashProperty(TEXT("MachineId"), *NCachedCrashContextProperties::MachineIdStr);
+	AddCrashProperty(TEXT("EpicAccountId"), *NCachedCrashContextProperties::EpicAccountId);
 
 	AddCrashProperty( TEXT( "CallStack" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "SourceContext" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "UserDescription" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "ErrorMessage" ), (const TCHAR*)GErrorMessage ); // GErrorMessage may be broken.
 
-	// @TODO yrx 2014-10-08 Move to the crash report client.
-	/*if( CanUseUnsafeAPI() )
-	{
-		AddCrashProperty( TEXT( "TimeOfCrash" ), FDateTime::UtcNow().GetTicks() );
-	}
-	*/
-
 	// Add misc stats.
-	AddCrashProperty( TEXT( "MiscNumberOfCores" ), NumberOfCores );
-	AddCrashProperty( TEXT( "MiscNumberOfCoresIncludingHyperthreads" ), NumberOfCoresIncludingHyperthreads );
+	AddCrashProperty(TEXT("MiscNumberOfCores"), NCachedCrashContextProperties::NumberOfCores);
+	AddCrashProperty(TEXT("MiscNumberOfCoresIncludingHyperthreads"), NCachedCrashContextProperties::NumberOfCoresIncludingHyperthreads);
 	AddCrashProperty( TEXT( "MiscIs64bitOperatingSystem" ), (int32)FPlatformMisc::Is64bitOperatingSystem() );
 
-	AddCrashProperty( TEXT( "MiscCPUVendor" ), *CPUVendor );
-	AddCrashProperty( TEXT( "MiscCPUBrand" ), *CPUBrand );
-	AddCrashProperty( TEXT( "MiscPrimaryGPUBrand" ), *PrimaryGPUBrand );
-	AddCrashProperty( TEXT( "MiscOSVersionMajor" ), *OsVersion );
-	AddCrashProperty( TEXT( "MiscOSVersionMinor" ), *OsSubVersion );
+	AddCrashProperty(TEXT("MiscCPUVendor"), *NCachedCrashContextProperties::CPUVendor);
+	AddCrashProperty(TEXT("MiscCPUBrand"), *NCachedCrashContextProperties::CPUBrand);
+	AddCrashProperty(TEXT("MiscPrimaryGPUBrand"), *NCachedCrashContextProperties::PrimaryGPUBrand);
+	AddCrashProperty(TEXT("MiscOSVersionMajor"), *NCachedCrashContextProperties::OsVersion);
+	AddCrashProperty(TEXT("MiscOSVersionMinor"), *NCachedCrashContextProperties::OsSubVersion);
 
 
 	// @TODO yrx 2014-10-08 Move to the crash report client.
@@ -178,7 +181,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 
 const FString& FGenericCrashContext::GetUniqueCrashName()
 {
-	return CrashGUID;
+	return NCachedCrashContextProperties::CrashGUID;
 }
 
 void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )

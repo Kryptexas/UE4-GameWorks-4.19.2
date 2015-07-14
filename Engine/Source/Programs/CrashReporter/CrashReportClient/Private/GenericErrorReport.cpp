@@ -43,6 +43,51 @@ FGenericErrorReport::FGenericErrorReport(const FString& Directory)
 
 bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowToBeContacted)
 {
+	const FString UserName1 = FPlatformProcess::UserName( false );
+	const FString UserName2 = FPlatformProcess::UserName( true );
+	const TCHAR* Anonymous = TEXT( "Anonymous" );
+
+	// Load the file and remove all PII if bAllowToBeContacted is set to false.
+	const bool bRemovePersonalData = !bAllowToBeContacted;
+	if( bRemovePersonalData )
+	{
+		FString CrashContextFilename;
+		const bool bFound = FindFirstReportFileWithExtension( CrashContextFilename, TEXT( ".runtime-xml" ) );
+		if (bFound)
+		{
+			const FString CrashContextPath = GetReportDirectory() / CrashContextFilename;
+
+			// Cannot use FXMLFile because runtime-xml may contain multi line elements.
+			FString CrashContextString;
+			FFileHelper::LoadFileToString( CrashContextString, *CrashContextPath );
+
+			// Remove UserName and EpicAccountId;
+			TArray<FString> Lines;
+			CrashContextString.ParseIntoArrayLines( Lines, true );
+
+			for( auto& It : Lines )
+			{
+				// Replace user name in assert message, command line etc.
+				It = It.Replace( *UserName1, Anonymous );
+				It = It.Replace( *UserName2, Anonymous );
+
+				if (It.Contains( TEXT( "<UserName>" ) ))
+				{
+					It = TEXT( "<UserName></UserName>" );
+				}
+				else if (It.Contains( TEXT( "<EpicAccountId>" ) ))
+				{
+					It = TEXT( "<EpicAccountId></EpicAccountId>" );
+				}
+			}
+
+			const FString FixedCrashContextString = FString::Join( Lines, TEXT( "\n" ) );
+			FFileHelper::SaveStringToFile( FixedCrashContextString, *CrashContextPath );
+		}
+
+		// #YRX_Crash: 2015-07-01 Move to FGenericCrashContext
+	}
+
 	// Find .xml file
 	FString XmlFilename;
 	if (!FindFirstReportFileWithExtension(XmlFilename, TEXT(".xml")))
@@ -50,7 +95,7 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 		return false;
 	}
 
-	FString XmlFilePath = ReportDirectory / XmlFilename;
+	FString XmlFilePath = GetReportDirectory() / XmlFilename;
 	// FXmlFile's constructor loads the file to memory, closes the file and parses the data
 	FXmlFile XmlFile(XmlFilePath);
 	FXmlNode* DynamicSignaturesNode = XmlFile.IsValid() ?
@@ -60,6 +105,43 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 	if (!DynamicSignaturesNode)
 	{
 		return false;
+	}
+
+	if (bRemovePersonalData)
+	{
+		FXmlNode* ProblemNode = XmlFile.GetRootNode()->FindChildNode( TEXT( "ProblemSignatures" ) );
+		if (ProblemNode)
+		{
+			FXmlNode* Parameter8Node = ProblemNode->FindChildNode( TEXT( "Parameter8" ) );
+			if (Parameter8Node)
+			{
+				// Replace user name in assert message, command line etc.
+				FString Content = Parameter8Node->GetContent();
+				Content = Content.Replace( *UserName1, Anonymous );
+				Content = Content.Replace( *UserName2, Anonymous );
+
+				// Remove the command line. Command line is between first and second !
+				TArray<FString> ParsedParameters8;
+				Content.ParseIntoArray( ParsedParameters8, TEXT( "!" ), false );
+				if (ParsedParameters8.Num() > 1)
+				{
+					ParsedParameters8[1] = TEXT( "CommandLineRemoved" );
+				}
+
+				Content = FString::Join( ParsedParameters8, TEXT( "!" ) );
+
+				Parameter8Node->SetContent( Content );
+			}
+			FXmlNode* Parameter9Node = ProblemNode->FindChildNode( TEXT( "Parameter9" ) );
+			if (Parameter9Node)
+			{
+				// Replace user name in assert message, command line etc.
+				FString Content = Parameter9Node->GetContent();
+				Content = Content.Replace( *UserName1, Anonymous );
+				Content = Content.Replace( *UserName2, Anonymous );
+				Parameter9Node->SetContent( Content );
+			}
+		}
 	}
 
 	// Add or update the user comment.
@@ -73,27 +155,22 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter3"), UserComment.ToString());
 	}
 	
-	FString MachineIDandUserID;
+
 	// Set global user name ID: will be added to the report
 	extern FCrashDescription& GetCrashDescription();
 
-	MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId );
-
-	const bool bSendName = FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
-	if (bSendName)
-	{
-		MachineIDandUserID += FString::Printf( TEXT( "!Name:%s" ), *GetCrashDescription().UserName );
-	}
+	// @see FCrashDescription::UpdateIDs
+	const FString EpicMachindAndUserNameIDs = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s!Name:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId, *GetCrashDescription().UserName );
 
 	// Add or update a user ID.
 	FXmlNode* Parameter4Node = DynamicSignaturesNode->FindChildNode(TEXT("Parameter4"));
 	if( Parameter4Node )
 	{
-		Parameter4Node->SetContent(MachineIDandUserID);
+		Parameter4Node->SetContent(EpicMachindAndUserNameIDs);
 	}
 	else
 	{
-		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), MachineIDandUserID);
+		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), EpicMachindAndUserNameIDs);
 	}
 
 	// Add or update bAllowToBeContacted

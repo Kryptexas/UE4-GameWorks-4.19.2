@@ -58,6 +58,9 @@ public:
 	/** Destructor. */
 	virtual ~FCrashReportClient();
 
+	/** Closes the crash report client without sending any data. Except the startup analytics. */
+	FReply CloseWithoutSending();
+
 	/**
 	 * Respond to the user pressing Submit
 	 * @return Whether the request was handled
@@ -88,6 +91,12 @@ public:
 	 */
 	FString GetCrashedAppName() const;
 
+
+	/**
+	 * @return the full path of the crash directory.
+	 */
+	FString GetCrashDirectory() const;
+
 	/**
 	 * Handle the user updating the user comment text
 	 * @param Comment Text provided by the user
@@ -113,7 +122,8 @@ public:
 	/** Whether the throbber should be visible while processing the callstack. */
 	EVisibility IsThrobberVisible() const;
 
-	void SCrashReportClient_OnCheckStateChanged( ECheckBoxState NewRadioState );
+	void AllowToBeContacted_OnCheckStateChanged( ECheckBoxState NewRadioState );
+	void SendLogFile_OnCheckStateChanged( ECheckBoxState NewRadioState );
 
 private:
 	/**
@@ -147,6 +157,9 @@ private:
 	/** Exception and call-stack to show, valid once diagnosis task is complete */
 	FText DiagnosticText;
 
+	/** Formatted diagnostics crash reporter data. */
+	FText FormattedDiagnosticText;
+
 	/** Background worker to get a callstack from the report */
 	FAsyncTask<FDiagnoseReportWorker>* DiagnoseReportTask;
 
@@ -161,9 +174,6 @@ private:
 
 	/** Whether the main window should be hidden. */
 	bool bShouldWindowBeHidden;
-
-	/** Whether the user allowed us to be contacted. */
-	bool bAllowToBeContacted;
 
 	/** Whether we send the data. */
 	bool bSendData;
