@@ -4,22 +4,6 @@
 #include "MovieScene.h"
 
 
-FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject )
-{
-	Guid = FGuid::NewGuid();
-	Name = InitName;
-	GeneratedClass = InitClass;
-	CounterpartGamePreviewObject = InitCounterpartGamePreviewObject;
-}
-
-
-FMovieScenePossessable::FMovieScenePossessable( const FString& InitName, UClass* InitPossessedObjectClass )
-{
-	Guid = FGuid::NewGuid();
-	Name = InitName;
-	PossessedObjectClass = InitPossessedObjectClass;
-}
-
 
 UMovieScene::UMovieScene( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
