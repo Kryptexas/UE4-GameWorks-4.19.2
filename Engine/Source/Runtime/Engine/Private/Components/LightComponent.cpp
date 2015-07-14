@@ -642,7 +642,7 @@ void ULightComponent::CreateRenderState_Concurrent()
 
 	bool bHidden = false;
 #if WITH_EDITORONLY_DATA
-	bHidden = GetOwner() ? GetOwner()->bHiddenEdLevel : false;
+	bHidden = GetOwner() ? GetOwner()->IsHiddenEd() : false;
 #endif // WITH_EDITORONLY_DATA
 
 	if(!ShouldComponentAddToScene())
