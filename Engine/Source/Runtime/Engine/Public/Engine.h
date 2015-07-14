@@ -257,7 +257,6 @@
 #include "PhysicalMaterials/PhysicalMaterialPropertyBase.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
-#include "PhysicsEngine/PhysicsSettings.h"
 #include "Engine/PlatformInterfaceBase.h"
 #include "Engine/CloudStorageBase.h"
 #include "Engine/InGameAdManager.h"
