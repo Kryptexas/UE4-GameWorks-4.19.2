@@ -604,7 +604,7 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 #if PLATFORM_MAC
 	FString Arguments = TEXT(" -xcodeprojectfile");
 #elif PLATFORM_LINUX
-	FString Arguments = TEXT(" -makefile -kdevelopfile -qmakefile -cmakefile ");
+	FString Arguments = TEXT(" -makefile -kdevelopfile -qmakefile -cmakefile -codelitefile ");
 #else
 	FString Arguments = TEXT(" -projectfiles");
 #endif
@@ -815,7 +815,7 @@ bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 #if PLATFORM_MAC
 	const TCHAR* Suffix = TEXT(".xcodeproj/project.pbxproj");
 #elif PLATFORM_LINUX
-	const TCHAR* Suffix = TEXT(".kdev4");	// FIXME: inconsistent with GameProjectUtils where we use .pro. Should depend on PreferredAccessor setting
+	const TCHAR* Suffix = TEXT(".workspace");	// FIXME: Should depend on PreferredAccessor setting
 #else
 	const TCHAR* Suffix = TEXT(".sln");
 #endif

@@ -194,6 +194,8 @@
     <Compile Include="System\BuildReceipt.cs" />
     <Compile Include="System\FlatCPPIncludeDepencencyCache.cs" />
     <Compile Include="System\Distcc.cs" />
+    <Compile Include="System\CodeLiteGenerator.cs" />
+    <Compile Include="System\CodeLiteProject.cs" />
     <Compile Include="System\KDevelopGenerator.cs" />
     <Compile Include="System\CMakefileGenerator.cs" />
     <Compile Include="System\ModuleDescriptor.cs" />

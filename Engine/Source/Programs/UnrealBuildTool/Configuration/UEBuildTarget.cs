@@ -394,31 +394,33 @@ namespace UnrealBuildTool
 							break;
 
                         case "-MAKEFILE":
-                        {
-                            // Force platform to Linux for building IntelliSense files
-                            Platform = UnrealTargetPlatform.Linux;
+							{
+								// Force platform to Linux for building IntelliSense files
+								Platform = UnrealTargetPlatform.Linux;
 
-                            // Force configuration to Development for IntelliSense
-                            Configuration = UnrealTargetConfiguration.Development;
-                        }
-                        break;
+								// Force configuration to Development for IntelliSense
+								Configuration = UnrealTargetConfiguration.Development;
+							}
+							break;
 
-					    case "-CMAKEFILE":
-						    {
-							    // Force configuration to Development for IntelliSense
-							    Configuration = UnrealTargetConfiguration.Development;
-						    }
-						    break;
+						case "-CMAKEFILE":
+							{
+								Platform = BuildHostPlatform.Current.Platform;
 
-					    case "-QMAKEFILE":
-						    {
-							    // Force platform to Linux for building IntelliSense files
-							    Platform = UnrealTargetPlatform.Linux;
+								// Force configuration to Development for IntelliSense
+								Configuration = UnrealTargetConfiguration.Development;
+							}
+							break;
 
-							    // Force configuration to Development for IntelliSense
-							    Configuration = UnrealTargetConfiguration.Development;
-						    }
-						    break;
+						case "-QMAKEFILE":
+							{
+								// Force platform to Linux for building IntelliSense files
+								Platform = UnrealTargetPlatform.Linux;
+
+								// Force configuration to Development for IntelliSense
+								Configuration = UnrealTargetConfiguration.Development;
+							}
+							break;
 
 						case "-KDEVELOPFILE":
 							{
@@ -428,7 +430,16 @@ namespace UnrealBuildTool
 								// Force configuration to Development for IntelliSense
 								Configuration = UnrealTargetConfiguration.Development;
 							}
-						break;
+							break;
+
+						case "-CODELITEFILE":
+							{
+								Platform = BuildHostPlatform.Current.Platform;
+
+								// Force configuration to Development for IntelliSense
+								Configuration = UnrealTargetConfiguration.Development;
+							}
+							break;
 
                         case "-EDITORRECOMPILE":
 							{
@@ -609,6 +620,7 @@ namespace UnrealBuildTool
                             break;
 
 						case "-CMAKEFILE":
+							Platform = BuildHostPlatform.Current.Platform;
 							Configuration = UnrealTargetConfiguration.Development;
 							break;
 
@@ -621,6 +633,12 @@ namespace UnrealBuildTool
 						case "-KDEVELOPFILE":
 							// Force platform to Linux and configuration to Development for building IntelliSense files
 							Platform = UnrealTargetPlatform.Linux;
+							Configuration = UnrealTargetConfiguration.Development;
+							break;
+
+						case "-CODELITEFILE":
+							Platform = BuildHostPlatform.Current.Platform;
+							// Force configuration to Development for IntelliSense
 							Configuration = UnrealTargetConfiguration.Development;
 							break;
                     }

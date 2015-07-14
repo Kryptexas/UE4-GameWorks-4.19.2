@@ -967,9 +967,10 @@ namespace UnrealBuildTool
                     var bGenerateVCProjectFiles = false;
                     var bGenerateXcodeProjectFiles = false;
                     var bGenerateMakefiles = false;
-					var bGenerateCMakefiles = false;
-					var bGenerateQMakefiles = false;
-					var bGenerateKDevelopFiles = false;
+                    var bGenerateCMakefiles = false;
+                    var bGenerateQMakefiles = false;
+                    var bGenerateKDevelopFiles = false;
+                    var bGenerateCodeLiteFiles = false;
                     var bValidPlatformsOnly = false;
                     var bSpecificModulesOnly = false;
 
@@ -1038,6 +1039,11 @@ namespace UnrealBuildTool
 						else if (LowercaseArg.StartsWith("-kdevelopfile"))
 						{
 							bGenerateKDevelopFiles = true;
+							ProjectFileGenerator.bGenerateProjectFiles = true;
+						}
+						else if (LowercaseArg.StartsWith("-codelitefile"))
+						{
+							bGenerateCodeLiteFiles = true;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
                         else if (LowercaseArg.StartsWith("-projectfile"))
@@ -1162,20 +1168,22 @@ namespace UnrealBuildTool
                         "UBT Action", bGenerateVCProjectFiles 
                             ? "GenerateVCProjectFiles" 
                             : bGenerateXcodeProjectFiles 
-                                ? "GenerateXcodeProjectFiles" 
-                                : bRunCopyrightVerification
-                                    ? "RunCopyrightVerification"
-                                    : bGenerateMakefiles
-                                        ? "GenerateMakefiles"
-										: bGenerateCMakefiles
-										    ? "GenerateCMakeFiles"
-											: bGenerateQMakefiles
-											    ? "GenerateQMakefiles"
-												: bGenerateKDevelopFiles
-													? "GenerateKDevelopFiles"
-													: bValidatePlatforms 
-                                                   		? "ValidatePlatforms"
-                                                		: "Build",
+                            ? "GenerateXcodeProjectFiles" 
+                            : bRunCopyrightVerification
+                            ? "RunCopyrightVerification"
+                            : bGenerateMakefiles
+                            ? "GenerateMakefiles"
+                            : bGenerateCMakefiles
+                            ? "GenerateCMakeFiles"
+                            : bGenerateQMakefiles
+                            ? "GenerateQMakefiles"
+                            : bGenerateKDevelopFiles
+                            ? "GenerateKDevelopFiles"
+                            : bGenerateCodeLiteFiles
+                            ? "GenerateCodeLiteFiles"
+                            : bValidatePlatforms 
+                            ? "ValidatePlatforms"
+                            : "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
                         "EngineVersion", Utils.GetEngineVersionFromObjVersionCPP().ToString()
@@ -1207,7 +1215,7 @@ namespace UnrealBuildTool
                         JunkDeleter.DeleteJunk();
                     }
 
-					if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles || bGenerateKDevelopFiles)
+					if (bGenerateCodeLiteFiles || bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles || bGenerateKDevelopFiles)
                     {
                         bool bGenerationSuccess = true;
                         if (bGenerateVCProjectFiles)
@@ -1234,7 +1242,10 @@ namespace UnrealBuildTool
 						{
 							bGenerationSuccess &= GenerateProjectFiles(new KDevelopGenerator(), Arguments);
 						}
-
+						if (bGenerateCodeLiteFiles)
+						{
+							bGenerationSuccess &= GenerateProjectFiles(new CodeLiteGenerator(), Arguments);
+						}
                         if(!bGenerationSuccess)
                         {
                             Result = ECompilationResult.OtherCompilationError;
