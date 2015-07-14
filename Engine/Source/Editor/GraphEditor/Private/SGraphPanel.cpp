@@ -229,8 +229,8 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 				// Draw the comments and information popups for this node, if it has any.
 				{
-					const SNodePanel::SNode::FNodeSlot& CommentSlot = ChildNode->GetOrAddSlot( ENodeZone::TopCenter );
-					float CommentBubbleY = -CommentSlot.Offset.Get().Y;
+					const SNodePanel::SNode::FNodeSlot* CommentSlot = ChildNode->GetSlot( ENodeZone::TopCenter );
+					float CommentBubbleY = CommentSlot ? -CommentSlot->Offset.Get().Y : 0.f;
 					Context.bSelected = bSelected;
 					TArray<FGraphInformationPopupInfo> Popups;
 

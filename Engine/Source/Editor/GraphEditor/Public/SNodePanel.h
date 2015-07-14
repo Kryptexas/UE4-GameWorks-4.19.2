@@ -421,6 +421,33 @@ public:
 			return NewSlot;
 		}
 
+		FNodeSlot* GetSlot( const ENodeZone::Type SlotId )
+		{
+			FNodeSlot* Result = nullptr;
+			// Return existing
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				if( Children[ ChildIndex ].Zone == SlotId )
+				{
+					Result = &Children[ ChildIndex ];
+					break;
+				}
+			}
+			return Result;
+		}
+
+		void RemoveSlot( const ENodeZone::Type SlotId )
+		{
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				if( Children[ ChildIndex ].Zone == SlotId )
+				{
+					Children.RemoveAt( ChildIndex );
+					break;
+				}
+			}
+		}
+
 		/**
 		* @param NewPosition	The Node should be relocated to this position in the graph panel
 		* @param NodeFilter		Set of nodes to prevent movement on, after moving successfully a node is added to this set.
