@@ -9,7 +9,6 @@
 
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE				1
 
-#include "D3D12RHI.h"
 
 // Dependencies.
 #include "Core.h"
@@ -20,6 +19,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 
+#include "D3D12RHI.h"
 #include "D3D12RHIBasePrivate.h"
 #include "StaticArray.h"
 
