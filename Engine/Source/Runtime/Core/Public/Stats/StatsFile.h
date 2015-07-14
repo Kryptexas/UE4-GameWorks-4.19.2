@@ -755,29 +755,40 @@ struct FRawStatsFileInfo
 	{}
 
 	/** Size of all packets. */
-	int64 TotalPacketsSize;
+	int32 TotalPacketsSize;
 
 	/** Number of all stat messages. */
-	int64 TotalStatMessagesNum;
+	int32 TotalStatMessagesNum;
 
 	/** Maximum packet size. */
-	int64 MaximumPacketSize;
+	int32 MaximumPacketSize;
 
 	/** Number of all packets. */
-	int64 TotalPacketsNum;
+	int32 TotalPacketsNum;
 };
 
 /** Enumerates stats processing stages. */
 enum class EStatsProcessingStage : int32
 {
+	/** Started loading. */
 	SPS_Started = 0,
-	SPS_ReadAndCombinePackets,
-	SPS_ProcessStatMessages,
-	/** Memory profiler only. */
-	SPS_SortSequence,
-	/** Memory profiler only. */
-	SPS_ProcessAllocations,
+
+	/** Read and combine packets. */
+	SPS_ReadStats,
+
+	/** Pre process stats, prepare. */
+	SPS_PreProcessStats,
+
+	/** Process combine history. */
+	SPS_ProcessStats,
+
+	/** Post process stats, finalize. */
+	SPS_PostProcessStats,
+
+	/** Finished processing. */
 	SPS_Finished,
+
+	/** Stopped processing. */
 	SPS_Stopped,
 
 	/** Last stage, at this moment all data is read and processed or process has been stopped, we can now remove the instance. */
@@ -817,31 +828,60 @@ public:
 	void Abandon();
 };
 
+/*-----------------------------------------------------------------------------
+	Stats stack helpers
+-----------------------------------------------------------------------------*/
+
+/** Holds stats stack state, used to preserve continuity when the game frame has changed. For raw stats. */
+struct FStackState
+{
+	/** Default constructor. */
+	FStackState()
+		: bIsBrokenCallstack( false )
+	{}
+
+	/** Call stack. */
+	TArray<FName> Stack;
+
+	/** Current function name. */
+	FName Current;
+
+	/** Whether this callstack is marked as broken due to mismatched start and end scope cycles. */
+	bool bIsBrokenCallstack;
+};
+
+/*-----------------------------------------------------------------------------
+	FStatsReadFile
+-----------------------------------------------------------------------------*/
+
+template<typename T>
+struct FCreateStatsReader
+{
+	/** Creates a new reader for raw stats file. Will be nullptr for invalid files. */	
+	static T* ForRawStats( const TCHAR* Filename )
+	{
+		T* StatsReadFile = new T( Filename );
+		const bool bValid = StatsReadFile->PrepareLoading();
+		if (!bValid)
+		{
+			delete StatsReadFile;
+		}
+		return bValid ? StatsReadFile : nullptr;
+	}
+};
+
 /** Struct used to read from ue4stats/ue4statsraw files, initializes all metadata and starts a process of reading the file asynchronously. */
-// #YRX_Stats: 2015-07-08 Maybe add IStatsReadFile -> FStatsReadFile, FRawStatsReadFile
 // #YRX_Stats: 2015-07-09 Remove CORE_API
 struct CORE_API FStatsReadFile
 {
-protected:
+	friend class FAsyncRawStatsFile;
+
 	/** Number of seconds between updating the current stage. */
 	static const double NumSecondsBetweenUpdates;
 
 public:
-	/** Delegate that FStatsReadFile calls on the instance whenever we have a new frame. */
-	DECLARE_DELEGATE_OneParam( FOnNewStatPacket, TArray<FStatMessage>* );
-
-	/** Delegate that FStatsReadFile calls on the instance whenever we have a new raw stats packet. */
-	//DECLARE_DELEGATE_OneParam( FOnNewRawStatPacket, FStatPacket* );
-
-	/** Delegate that FStatsReadFile calls on the instance whenever we have a whole combined history read. */
-	DECLARE_DELEGATE_OneParam( FOnNewCombinedHistory, FStatsReadFile* );
-
-public:
 	/** Creates a new reader for regular stats file. Will be nullptr for invalid files. */
-	static FStatsReadFile* CreateReaderForRegularStats( const TCHAR* Filename, FOnNewStatPacket InNewStatPacket );
-
-	/** Creates a new reader for raw stats file. Will be nullptr for invalid files. */
-	static FStatsReadFile* CreateReaderForRawStats( const TCHAR* Filename, FOnNewCombinedHistory InNewCombinedHistory );
+	static FStatsReadFile* CreateReaderForRegularStats( const TCHAR* Filename );
 
 	/** Reads and processes the file on the current thread. This is a blocking operation. */
 	void ReadAndProcessSynchronously();
@@ -849,9 +889,72 @@ public:
 	/** Reads and processes the file using the async tasks on the pool thread. The read data is sent to the game thread using the task graph. This is a non-blocking operation. */
 	void ReadAndProcessAsynchronously();
 
+	/** Initialization constructor. */
+	FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile );
+
+public:
+	/** Destructor. */
+	virtual ~FStatsReadFile();
+
+protected:
+	/**
+	 * Prepares file to be loaded, makes sanity checks, reads and initializes metadata
+	 * @return true, if the process was completed successfully
+	 */
+	bool PrepareLoading();
+
+	/** Reads stats from the file into combined history. */
 	void ReadStats();
 
+	/** Called before started processing combined history. */
+	virtual void PreProcessStats();
+
+	/** Processes combined history using the internal functionality and provided overloaded Process*Operation methods. */
 	void ProcessStats();
+
+	/** Called after finished processing combined history. */
+	virtual void PostProcessStats();
+
+	/** Processes special message for advancing the stats frame from the game thread. */
+	virtual void ProcessAdvanceFrameEventGameThreadOperation( const FStatMessage& Message, const FStackState& StackState )
+	{}
+
+	/** Processes special message for advancing the stats frame from the render thread. */
+	virtual void ProcessAdvanceFrameEventRenderThreadOperation( const FStatMessage& Message, const FStackState& StackState )
+	{}
+
+	/** ProcessesIndicates begin of the cycle scope. */
+	virtual void ProcessCycleScopeStartOperation( const FStatMessage& Message, const FStackState& StackState )
+	{}
+
+	/** Indicates end of the cycle scope. */
+	virtual void ProcessCycleScopeEndOperation( const FStatMessage& Message, const FStackState& StackState )
+	{}
+
+	/** Processes special message marker used determine that we encountered a special data in the stat file. */
+	virtual void ProcessSpecialMessageMarkerOperation( const FStatMessage& Message, const FStackState& StackState )
+	{}
+
+	// #YRX_Stats: 2015-07-13 Not implemented yet.
+// 	/** Processes set operation. */
+// 	virtual void ProcessSetOperation( const FStatMessage& Message, const FStackState& StackState )
+// 	{}
+// 
+// 	/** Processes clear operation. */
+// 	virtual void ProcessClearOperation( const FStatMessage& Message, const FStackState& StackState )
+// 	{}
+// 
+// 	/** Processes add operation. */
+// 	virtual void ProcessAddOperation( const FStatMessage& Message, const FStackState& StackState )
+// 	{}
+// 
+// 	/** Processes subtract operation. */
+// 	virtual void ProcessSubtractOperation( const FStatMessage& Message, const FStackState& StackState )
+// 	{}
+
+	/** Processes memory operation. @see EMemoryOperation. */
+	virtual void ProcessMemoryOperation( EMemoryOperation MemOp, uint64 Ptr, uint64 NewPtr, int64 Size, uint32 SequenceTag, const FStackState& StackState )
+	{}
 
 	/** Sets a new processing stage for this file. */
 	void SetProcessingStage( EStatsProcessingStage NewStage )
@@ -859,6 +962,7 @@ public:
 		ProcessingStage.Set( int32( NewStage ) );
 	}
 
+public:
 	/**
 	 * @return current processing stage.
 	 */
@@ -878,21 +982,21 @@ public:
 		{
 			Result = TEXT( "SPS_Started" );
 		}
-		else if (Stage == EStatsProcessingStage::SPS_ReadAndCombinePackets)
+		else if (Stage == EStatsProcessingStage::SPS_ReadStats)
 		{
-			Result = TEXT( "SPS_ReadAndCombinePackets" );
+			Result = TEXT( "SPS_ReadStats" );
 		}
-		else if (Stage == EStatsProcessingStage::SPS_ProcessStatMessages)
+		else if (Stage == EStatsProcessingStage::SPS_PreProcessStats)
 		{
-			Result = TEXT( "SPS_ProcessStatMessages" );
+			Result = TEXT( "SPS_PreProcessStats" );
 		}
-		else if (Stage == EStatsProcessingStage::SPS_SortSequence)
+		else if (Stage == EStatsProcessingStage::SPS_ProcessStats)
 		{
-			Result = TEXT( "SPS_SortSequence" );
+			Result = TEXT( "SPS_ProcessStats" );
 		}
-		else if (Stage == EStatsProcessingStage::SPS_ProcessAllocations)
+		else if (Stage == EStatsProcessingStage::SPS_PostProcessStats)
 		{
-			Result = TEXT( "SPS_ProcessAllocations" );
+			Result = TEXT( "SPS_PostProcessStats" );
 		}
 		else if (Stage == EStatsProcessingStage::SPS_Finished)
 		{
@@ -933,28 +1037,24 @@ public:
 	}
 
 protected:
-	/** Initialization constructor. */
-	FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile );
-
-public:
-	/** Destructor. */
-	~FStatsReadFile();
-
-protected:
 	/**
-	 * Prepares file to be loaded, makes sanity checks, reads and initializes metadata
-	 * @return true, if the process was completed successfully
+	 * Updates read stage progress periodically, does debug logging if enabled.
+	 *
+	 * @return true, if finished, false otherwise like stopped.
 	 */
-	bool PrepareLoading();
-
-	/** Updates stage progress periodically, does debug logging if enabled. */
-	void UpdateReadStageProgress();
+	bool UpdateReadStageProgress();
 
 	/** Dumps combined history stats. Only for raw stats. */
 	void UpdateCombinedHistoryStats();
 
-//protected:
-public:
+	/**
+	 * Updates process stage progress periodically, does debug logging if enabled.
+	 *
+	 * @return true, if finished, false otherwise like stopped.
+	 */
+	bool UpdateProcessStageProgress( const int32 CurrentStatMessageIndex, const int32 FrameIndex, const int32 PacketIndex );
+
+protected:
 	/** Current state of the stats. Mostly for metadata. */
 	FStatsThreadState State;
 
@@ -970,23 +1070,14 @@ public:
 	/** Async task. */
 	FAsyncTask<FAsyncRawStatsFile>* AsyncWork;
 
-	/** Delegate we fire every time we read one frame of data. The data must be freed after processing. */
-	FOnNewStatPacket NewStatPacket;
-
-	/** Delegate we fire every time we read one raw stats packet. The data must be freed after processing. */
-	//FOnNewRawStatPacket NewRawStatPacket;
-	
-	/**
-	 *	Delegate we fire after reading all raw stats packets and combining them into one history. 
-	 *	The combined history will be freed after processing.
-	 */
-	FOnNewCombinedHistory NewCombinedHistory;
-
 	/** Basic information about the stats file. */
 	FRawStatsFileInfo FileInfo;
 
 	/** Combined history for raw packets, indexed by a frame number. */
-	TMap<int64, FStatPacketArray> CombinedHistory;
+	TMap<int32, FStatPacketArray> CombinedHistory;
+
+	/** Frames computed from the combined history. */
+	TArray<int32> Frames;
 
 	/** All raw names that contains a path to an UObject. */
 	TSet<FName> UObjectRawNames;

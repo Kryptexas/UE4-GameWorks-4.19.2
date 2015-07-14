@@ -548,45 +548,35 @@ void FAsyncRawStatsFile::Abandon()
 
 const double FStatsReadFile::NumSecondsBetweenUpdates = 5.0;
 
-FStatsReadFile* FStatsReadFile::CreateReaderForRegularStats( const TCHAR* Filename, FOnNewStatPacket InNewStatPacket )
+FStatsReadFile* FStatsReadFile::CreateReaderForRegularStats( const TCHAR* Filename )
 {
 	FStatsReadFile* StatsReadFile = new FStatsReadFile( Filename, false );
 	const bool bValid = StatsReadFile->PrepareLoading();
-	if (bValid)
-	{
-		StatsReadFile->NewStatPacket = InNewStatPacket;
-	}
-	else
+	if (!bValid)
 	{
 		delete StatsReadFile;
 	}
 	return bValid ? StatsReadFile : nullptr;
 }
 
-
-FStatsReadFile* FStatsReadFile::CreateReaderForRawStats( const TCHAR* Filename, FOnNewCombinedHistory InNewCombinedHistory )
-{
-	FStatsReadFile* StatsReadFile = new FStatsReadFile( Filename, true );
-	const bool bValid = StatsReadFile->PrepareLoading();
-	if (bValid)
-	{
-		StatsReadFile->NewCombinedHistory = InNewCombinedHistory;
-	}
-	else
-	{
-		delete StatsReadFile;
-	}
-	return bValid ? StatsReadFile : nullptr;
-}
 
 void FStatsReadFile::ReadAndProcessSynchronously()
 {
+	// Read.
 	ReadStats();
+
+	// Process.
+	PreProcessStats();
 	ProcessStats();
+	PostProcessStats();
 
 	if (GetProcessingStage() == EStatsProcessingStage::SPS_Stopped)
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_Invalid );
+	}
+	else
+	{
+		SetProcessingStage( EStatsProcessingStage::SPS_Finished );
 	}
 }
 
@@ -599,110 +589,6 @@ void FStatsReadFile::ReadAndProcessAsynchronously()
 	}
 }
 
-void FStatsReadFile::ReadStats()
-{
-	if (bRawStatsFile)
-	{
-		const double StartTime = FPlatformTime::Seconds();
-
-		// Buffer used to store the compressed and decompressed data.
-		TArray<uint8> SrcArray;
-		TArray<uint8> DestArray;
-
-		// Read all packets sequentially, forced by the memory profiler which is now a part of the raw stats.
-		// !!CAUTION!! Frame number in the raw stats is pointless, because it is time/cycles based, not frame based.
-		// Background threads usually execute time consuming operations, so the frame number won't be valid.
-		// Needs to be combined by the thread and the time, not by the frame number.
-
-		// Update stage progress once per NumSecondsBetweenUpdates(5) seconds to avoid spamming.
-		double PreviousSeconds = FPlatformTime::Seconds();
-		SetProcessingStage( EStatsProcessingStage::SPS_ReadAndCombinePackets );
-
-		while (Reader->Tell() < Reader->TotalSize())
-		{
-			// Read the compressed data.
-			FCompressedStatsData UncompressedData( SrcArray, DestArray );
-			*Reader << UncompressedData;
-			if (UncompressedData.HasReachedEndOfCompressedData())
-			{
-				StageProgress.Set( 100 );
-				break;
-			}
-
-			FMemoryReader MemoryReader( DestArray, true );
-
-			FStatPacket* StatPacket = new FStatPacket();
-			Stream.ReadStatPacket( MemoryReader, *StatPacket );
-
-			const int64 StatPacketFrameNum = StatPacket->Frame;
-			FStatPacketArray& Frame = CombinedHistory.FindOrAdd( StatPacketFrameNum );
-
-			// Check if we need to combine packets from the same thread.
-			FStatPacket** CombinedPacket = Frame.Packets.FindByPredicate( [&]( FStatPacket* Item ) -> bool
-			{
-				return Item->ThreadId == StatPacket->ThreadId;
-			} );
-
-			
-			if (CombinedPacket)
-			{
-				(*CombinedPacket)->StatMessages += StatPacket->StatMessages;
-				delete StatPacket;
-			}
-			else
-			{
-				Frame.Packets.Add( StatPacket );
-				FileInfo.MaximumPacketSize = FMath::Max<int64>( FileInfo.MaximumPacketSize, StatPacket->StatMessages.GetAllocatedSize() );
-			}
-
-			UpdateReadStageProgress();
-
-			if (bShouldStopProcessing == true)
-			{
-				SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
-				break;
-			}
-
-			FileInfo.TotalPacketsNum++;
-		}
-
-		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
-		{
-			const double TotalTime = FPlatformTime::Seconds() - StartTime;
-			UE_LOG( LogStats, Log, TEXT( "Reading took %.2f sec(s)" ), TotalTime );
-
-			UpdateCombinedHistoryStats();
-		}
-		else
-		{
-			UE_LOG( LogStats, Warning, TEXT( "Reading stopped, abandoning" ) );
-			// Clear all data.
-			CombinedHistory.Empty();
-		}
-	}
-}
-
-void FStatsReadFile::ProcessStats()
-{
-	if (bRawStatsFile)
-	{
-		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
-		{
-			SetProcessingStage( EStatsProcessingStage::SPS_ProcessStatMessages );
-			NewCombinedHistory.ExecuteIfBound( this );
-
-			if (GetProcessingStage() == EStatsProcessingStage::SPS_Stopped)
-			{
-				UE_LOG( LogStats, Warning, TEXT( "Processing stopped, abandoning" ) );
-			}
-
-			// Clear all data.
-			CombinedHistory.Empty();
-		}
-	}
-}
-
-
 FStatsReadFile::FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile )
 	: Header( Stream.Header )
 	, Reader( nullptr )
@@ -711,28 +597,7 @@ FStatsReadFile::FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile )
 	, Filename( InFilename )
 	, bRawStatsFile( bInRawStatsFile )
 {
-	
-}
 
-FStatsReadFile::~FStatsReadFile()
-{
-	RequestStop();
-
-	FPlatformProcess::ConditionalSleep( [&]()
-	{
-		return !IsBusy();
-	}, 1.0f );
-
-	if (AsyncWork)
-	{
-		check( AsyncWork->IsDone() );
-
-		delete AsyncWork;
-		AsyncWork = nullptr;
-	}
-
-	delete Reader;
-	Reader = nullptr;
 }
 
 bool FStatsReadFile::PrepareLoading()
@@ -823,7 +688,321 @@ bool FStatsReadFile::PrepareLoading()
 	return true;
 }
 
-void FStatsReadFile::UpdateReadStageProgress()
+FStatsReadFile::~FStatsReadFile()
+{
+	RequestStop();
+
+	FPlatformProcess::ConditionalSleep( [&]()
+	{
+		return !IsBusy();
+	}, 1.0f );
+
+	if (AsyncWork)
+	{
+		check( AsyncWork->IsDone() );
+
+		delete AsyncWork;
+		AsyncWork = nullptr;
+	}
+
+	delete Reader;
+	Reader = nullptr;
+}
+
+void FStatsReadFile::ReadStats()
+{
+	if (bRawStatsFile)
+	{
+		const double StartTime = FPlatformTime::Seconds();
+
+		// Buffer used to store the compressed and decompressed data.
+		TArray<uint8> SrcArray;
+		TArray<uint8> DestArray;
+
+		// Read all packets sequentially, forced by the memory profiler which is now a part of the raw stats.
+		// !!CAUTION!! Frame number in the raw stats is pointless, because it is time/cycles based, not frame based.
+		// Background threads usually execute time consuming operations, so the frame number won't be valid.
+		// Needs to be combined by the thread and the time, not by the frame number.
+
+		// Update stage progress once per NumSecondsBetweenUpdates(5) seconds to avoid spamming.
+		SetProcessingStage( EStatsProcessingStage::SPS_ReadStats );
+
+		while (Reader->Tell() < Reader->TotalSize())
+		{
+			// Read the compressed data.
+			FCompressedStatsData UncompressedData( SrcArray, DestArray );
+			*Reader << UncompressedData;
+			if (UncompressedData.HasReachedEndOfCompressedData())
+			{
+				StageProgress.Set( 100 );
+				break;
+			}
+
+			FMemoryReader MemoryReader( DestArray, true );
+
+			FStatPacket* StatPacket = new FStatPacket();
+			Stream.ReadStatPacket( MemoryReader, *StatPacket );
+
+			const int32 StatPacketFrameNum = int32(StatPacket->Frame);
+			FStatPacketArray& Frame = CombinedHistory.FindOrAdd( StatPacketFrameNum );
+
+			// Check if we need to combine packets from the same thread.
+			FStatPacket** CombinedPacket = Frame.Packets.FindByPredicate( [&]( FStatPacket* Item ) -> bool
+			{
+				return Item->ThreadId == StatPacket->ThreadId;
+			} );
+			
+			if (CombinedPacket)
+			{
+				(*CombinedPacket)->StatMessages += StatPacket->StatMessages;
+				delete StatPacket;
+			}
+			else
+			{
+				Frame.Packets.Add( StatPacket );
+				FileInfo.MaximumPacketSize = FMath::Max<int32>( FileInfo.MaximumPacketSize, StatPacket->StatMessages.GetAllocatedSize() );
+			}
+
+			if (!UpdateReadStageProgress())
+			{
+				break;
+			}
+			
+			FileInfo.TotalPacketsNum++;
+		}
+
+		// Generate frames array.
+		CombinedHistory.GenerateKeyArray( Frames );
+		Frames.Sort();
+		// Verify that frames are sequential.
+		check( Frames[Frames.Num() - 1] == Frames.Num() );
+
+		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+		{
+			const double TotalTime = FPlatformTime::Seconds() - StartTime;
+			UE_LOG( LogStats, Log, TEXT( "Reading took %.2f sec(s)" ), TotalTime );
+
+			UpdateCombinedHistoryStats();
+		}
+		else
+		{
+			UE_LOG( LogStats, Warning, TEXT( "Reading stopped, abandoning" ) );
+			// Clear all data.
+			CombinedHistory.Empty();
+		}
+	}
+}
+
+void FStatsReadFile::PreProcessStats()
+{
+	if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+	{
+		SetProcessingStage( EStatsProcessingStage::SPS_PreProcessStats );
+	}
+}
+
+void FStatsReadFile::ProcessStats()
+{
+	if (bRawStatsFile)
+	{
+		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+		{
+			SetProcessingStage( EStatsProcessingStage::SPS_ProcessStats );
+			const double StartTime = FPlatformTime::Seconds();
+
+			int32 CurrentStatMessageIndex = 0;
+
+			// Raw stats callstack for this file.
+			TMap<FName, FStackState> StackStates;
+
+			// Read all stats messages for all frames, decode callstacks.
+			const int32 FirstFrame = 0;
+			const int32 OnerPercent = FMath::Max( int32( FileInfo.TotalStatMessagesNum / 100 ), 65536 );
+
+			for (int32 FrameIndex = 0; FrameIndex < Frames.Num(); ++FrameIndex)
+			{
+				const int32 TargetFrame = Frames[FrameIndex];
+				const int32 Diff = TargetFrame - FirstFrame;
+				const FStatPacketArray& Frame = CombinedHistory.FindChecked( TargetFrame );
+
+				for (int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++)
+				{
+					const FStatPacket& StatPacket = *Frame.Packets[PacketIndex];
+					const FName& ThreadFName = State.Threads.FindChecked( StatPacket.ThreadId );
+
+					FStackState* StackState = StackStates.Find( ThreadFName );
+					if (!StackState)
+					{
+						StackState = &StackStates.Add( ThreadFName );
+						StackState->Stack.Add( ThreadFName );
+						StackState->Current = ThreadFName;
+					}
+
+					const FStatMessagesArray& Data = StatPacket.StatMessages;
+					const int32 NumStatMessages = Data.Num();
+					for (int32 Index = 0; Index < NumStatMessages; Index++)
+					{
+						CurrentStatMessageIndex++;
+						if (CurrentStatMessageIndex % OnerPercent == 0)
+						{
+							UpdateProcessStageProgress( CurrentStatMessageIndex, FrameIndex, PacketIndex );
+						}
+
+						const FStatMessage& Message = Data[Index];
+						const EStatOperation::Type Op = Message.NameAndInfo.GetField<EStatOperation>();
+						const FName RawName = Message.NameAndInfo.GetRawName();
+
+						if (Op == EStatOperation::CycleScopeStart || Op == EStatOperation::CycleScopeEnd || Op == EStatOperation::Memory || Op == EStatOperation::SpecialMessageMarker)
+						{
+							if (Op == EStatOperation::CycleScopeStart)
+							{
+								StackState->Stack.Add( RawName );
+								StackState->Current = RawName;
+								ProcessCycleScopeStartOperation( Message, *StackState );
+							}
+							else if (Op == EStatOperation::Memory)
+							{
+								// ProcessMemoryOperation
+
+								// Experimental code used only to test the implementation.
+								// First memory operation is Alloc or Free
+								const uint64 EncodedPtr = Message.GetValue_Ptr();
+								const EMemoryOperation MemOp = EMemoryOperation( EncodedPtr & (uint64)EMemoryOperation::Mask );
+								const uint64 Ptr = EncodedPtr & ~(uint64)EMemoryOperation::Mask;
+								if (MemOp == EMemoryOperation::Alloc)
+								{
+									// @see FStatsMallocProfilerProxy::TrackAlloc
+									// After AllocPtr message there is always alloc size message and the sequence tag.
+									Index++; CurrentStatMessageIndex++;
+									const FStatMessage& AllocSizeMessage = Data[Index];
+									const int64 AllocSize = AllocSizeMessage.GetValue_int64();
+
+									// Read OperationSequenceTag.
+									Index++; CurrentStatMessageIndex++;
+									const FStatMessage& SequenceTagMessage = Data[Index];
+									const uint32 SequenceTag = SequenceTagMessage.GetValue_int64();		
+
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_AllocPtr ), (uint64)(UPTRINT)Ptr | (uint64)EMemoryOperation::Alloc );
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_AllocSize ), Size );
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_OperationSequenceTag ), (int64)SequenceTag );
+									ProcessMemoryOperation( MemOp, Ptr, 0, AllocSize, SequenceTag, *StackState );
+								}
+								else if (MemOp == EMemoryOperation::Realloc)
+								{
+									const uint64 OldPtr = Ptr;
+
+									// Read NewPtr
+									Index++; CurrentStatMessageIndex++;
+									const FStatMessage& AllocPtrMessage = Data[Index];
+									const uint64 NewPtr = AllocPtrMessage.GetValue_Ptr() & ~(uint64)EMemoryOperation::Mask;
+
+									// After AllocPtr message there is always alloc size message and the sequence tag.
+									Index++; CurrentStatMessageIndex++;
+									const FStatMessage& ReallocSizeMessage = Data[Index];
+									const int64 ReallocSize = ReallocSizeMessage.GetValue_int64();
+
+									// Read OperationSequenceTag.
+									Index++; CurrentStatMessageIndex++;
+									const FStatMessage& SequenceTagMessage = Data[Index];
+									const uint32 SequenceTag = SequenceTagMessage.GetValue_int64();
+
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_FreePtr ), (uint64)(UPTRINT)OldPtr | (uint64)EMemoryOperation::Realloc );
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_AllocPtr ), (uint64)(UPTRINT)NewPtr | (uint64)EMemoryOperation::Realloc );
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_AllocSize ), NewSize );
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_OperationSequenceTag ), (int64)SequenceTag );
+									ProcessMemoryOperation( MemOp, OldPtr, NewPtr, ReallocSize, SequenceTag, *StackState );
+								}
+								else if (MemOp == EMemoryOperation::Free)
+								{
+									// Read OperationSequenceTag.
+									Index++; CurrentStatMessageIndex++;
+									const FStatMessage& SequenceTagMessage = Data[Index];
+									const uint32 SequenceTag = SequenceTagMessage.GetValue_int64();
+
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_FreePtr ), (uint64)(UPTRINT)Ptr | (uint64)EMemoryOperation::Free );	// 16 bytes total				
+									//ThreadStats->AddMemoryMessage( GET_STATFNAME( STAT_Memory_OperationSequenceTag ), (int64)SequenceTag );
+									ProcessMemoryOperation( MemOp, Ptr, 0, 0, SequenceTag, *StackState );
+								}
+								else
+								{
+									UE_LOG( LogStats, Warning, TEXT( "Pointer from a memory operation is invalid" ) );
+								}
+							}
+							// Set, Clear, Add, Subtract
+							else if (Op == EStatOperation::CycleScopeEnd)
+							{
+								if (StackState->Stack.Num() > 1)
+								{
+									const FName ScopeStart = StackState->Stack.Pop();
+									const FName ScopeEnd = Message.NameAndInfo.GetRawName();
+
+									check( ScopeStart == ScopeEnd );
+
+									StackState->Current = StackState->Stack.Last();
+
+									// The stack should be ok, but it may be partially broken.
+									// This will happen if memory profiling starts in the middle of executing a background thread.
+									StackState->bIsBrokenCallstack = false;
+
+									ProcessCycleScopeEndOperation( Message, *StackState );
+								}
+								else
+								{
+									const FName ShortName = Message.NameAndInfo.GetShortName();
+
+									UE_LOG( LogStats, Warning, TEXT( "Broken cycle scope end %s/%s, current %s" ),
+											*ThreadFName.ToString(),
+											*ShortName.ToString(),
+											*StackState->Current.ToString() );
+
+									// The stack is completely broken, only has the thread name and the last cycle scope.
+									// Rollback to the thread node.
+									StackState->bIsBrokenCallstack = true;
+									StackState->Stack.Empty();
+									StackState->Stack.Add( ThreadFName );
+									StackState->Current = ThreadFName;
+
+									//?ProcessCycleScopeEndOperation( Message, *StackState );
+								}
+							}
+							else if (Op == EStatOperation::SpecialMessageMarker)
+							{
+								ProcessSpecialMessageMarkerOperation( Message, *StackState );
+							}
+						}
+					}
+				}
+			}
+
+			if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+			{
+				StageProgress.Set( 100 );
+
+				const double TotalTime = FPlatformTime::Seconds() - StartTime;
+				UE_LOG( LogStats, Log, TEXT( "Processing took %.2f sec(s)" ), TotalTime );
+
+				//UpdateCombinedHistoryStats();
+			}
+			else
+			{
+				UE_LOG( LogStats, Warning, TEXT( "Processing stopped, abandoning" ) );
+			}
+
+			// Clear all data.
+			CombinedHistory.Empty();
+		}
+	}
+}
+
+void FStatsReadFile::PostProcessStats()
+{
+	if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+	{
+		SetProcessingStage( EStatsProcessingStage::SPS_PostProcessStats );
+	}
+}
+
+bool FStatsReadFile::UpdateReadStageProgress()
 {
 	const double CurrentSeconds = FPlatformTime::Seconds();
 	if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
@@ -833,48 +1012,73 @@ void FStatsReadFile::UpdateReadStageProgress()
 		UE_LOG( LogStats, Verbose, TEXT( "%3i%%, current num frames %4i" ), PercentagePos, CombinedHistory.Num() );
 		LastUpdateTime = CurrentSeconds;
 	}
+
+	// Abandon support.
+	if (bShouldStopProcessing == true)
+	{
+		SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 void FStatsReadFile::UpdateCombinedHistoryStats()
 {
 	// Dump frame stats
-	int64 LastFrameNum = 0;
 	for (const auto& It : CombinedHistory)
 	{
-		const int64 FrameNum = It.Key;
-		int64 FramePacketsSize = 0;
-		int64 FrameStatMessages = 0;
-		int64 FramePackets = It.Value.Packets.Num(); // Threads
+		const int32 FrameNum = It.Key;
+		int32 FramePacketsSize = 0;
+		int32 FrameStatMessages = 0;
+		int32 FramePackets = It.Value.Packets.Num(); // Threads
 		for (const auto& It2 : It.Value.Packets)
 		{
 			FramePacketsSize += It2->StatMessages.GetAllocatedSize();
 			FrameStatMessages += It2->StatMessages.Num();
 		}
 
-		UE_LOG( LogStats, Verbose, TEXT( "Frame: %4llu/%2lli Size: %5.1f MB / %10lli" ),
+		UE_LOG( LogStats, Verbose, TEXT( "Frame: %4i/%2i Size: %5.1f MB / %10i" ),
 				FrameNum,
 				FramePackets,
 				FramePacketsSize / 1024.0f / 1024.0f,
 				FrameStatMessages );
 
-		LastFrameNum = FMath::Max( LastFrameNum, FrameNum );
-
 		FileInfo.TotalStatMessagesNum += FrameStatMessages;
 		FileInfo.TotalPacketsSize += FramePacketsSize;
 	}
 
-	UE_LOG( LogStats, Warning, TEXT( "Total PacketSize: %6.1f MB, Max: %2f MB, PacketsNum: %lli, StatMessagesNum: %lli, Frames: %i" ),
+	UE_LOG( LogStats, Warning, TEXT( "Total PacketSize: %6.1f MB, Max: %2f MB, PacketsNum: %i, StatMessagesNum: %i, Frames: %i" ),
 			FileInfo.TotalPacketsSize / 1024.0f / 1024.0f,
 			FileInfo.MaximumPacketSize / 1024.0f / 1024.0f,
 			FileInfo.TotalPacketsNum,
 			FileInfo.TotalStatMessagesNum,
 			CombinedHistory.Num() );
+}
 
-	TArray<int64> Frames;
-	CombinedHistory.GenerateKeyArray( Frames );
-	Frames.Sort();
-	// Verify that frames are sequential.
-	check( Frames[Frames.Num() - 1] == LastFrameNum );
+bool FStatsReadFile::UpdateProcessStageProgress( const int32 CurrentStatMessageIndex, const int32 FrameIndex, const int32 PacketIndex )
+{	
+	const double CurrentSeconds = FPlatformTime::Seconds();
+	if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
+	{
+		const int32 PercentagePos = int32( 100.0*CurrentStatMessageIndex / FileInfo.TotalStatMessagesNum );
+		StageProgress.Set( PercentagePos );
+		UE_LOG( LogStats, Verbose, TEXT( "Processing %3i%% (%10i/%10i) stat messages [Frame: %3i, Packet: %2i]" ), PercentagePos, CurrentStatMessageIndex, FileInfo.TotalStatMessagesNum, FrameIndex, PacketIndex );
+		LastUpdateTime = CurrentSeconds;	
+	}	
+
+	// Abandon support.
+	if (bShouldStopProcessing == true)
+	{
+		SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 /*-----------------------------------------------------------------------------

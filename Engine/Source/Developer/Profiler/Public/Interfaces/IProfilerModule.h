@@ -25,5 +25,5 @@ public:
 	virtual void StatsMemoryDumpCommand( const TCHAR* Filename ) = 0;
 
 	/** Creates a new instance of the memory profiler based the raw stats. */
-	virtual FRawStatsMemoryProfiler* OpenRawStatForMemoryProfiling( const TCHAR* Filename ) = 0;
+	virtual FRawStatsMemoryProfiler* OpenRawStatsForMemoryProfiling( const TCHAR* Filename ) = 0;
 };

@@ -24,8 +24,7 @@ public:
 
 	void StatsMemoryDumpCommand( const TCHAR* Filename );
 
-	FRawStatsMemoryProfiler* OpenRawStatForMemoryProfiling( const TCHAR* Filename );
-
+	FRawStatsMemoryProfiler* OpenRawStatsForMemoryProfiling( const TCHAR* Filename );
 
 protected:
 	/** Shutdowns the profiler manager. */
@@ -70,16 +69,68 @@ void FProfilerModule::Shutdown( TSharedRef<SDockTab> TabBeingClosed )
 
 void FProfilerModule::StatsMemoryDumpCommand( const TCHAR* Filename )
 {
+	//FRawStatsMemoryProfiler* Instance = FCreateStatsReader<FRawStatsMemoryProfiler>::ForRawStats( Filename );
+	TUniquePtr<FRawStatsMemoryProfiler> Instance( FCreateStatsReader<FRawStatsMemoryProfiler>::ForRawStats( Filename ) );
+	if (Instance)
+	{
+		Instance->ReadAndProcessAsynchronously();
 
+		while (Instance->IsBusy())
+		{
+			FPlatformProcess::Sleep( 1.0f );
+
+			UE_LOG( LogStats, Log, TEXT( "Async: Stage: %s / %3i%%" ), *Instance->GetProcessingStageAsString(), Instance->GetStageProgress() );
+		}
+		//NewReader->RequestStop();
+
+		//Instance->
+
+		// Frame-240 Frame-120 Frame-060
+		TMap<FString, FCombinedAllocationInfo> FrameBegin_Exit;
+		Instance->CompareSnapshots_FString( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit );
+		Instance->DumpScopedAllocations( TEXT( "Begin_Exit" ), FrameBegin_Exit );
+
+#if	UE_BUILD_DEBUG
+		TMap<FString, FCombinedAllocationInfo> Frame060_120;
+		Instance->CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-120" ), Frame060_120 );
+		Instance->DumpScopedAllocations( TEXT( "Frame060_120" ), Frame060_120 );
+
+		TMap<FString, FCombinedAllocationInfo> Frame060_240;
+		Instance->CompareSnapshots_FString( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240 );
+		Instance->DumpScopedAllocations( TEXT( "Frame060_240" ), Frame060_240 );
+
+		// Generate scoped tree view.
+		{
+			TMap<FName, FCombinedAllocationInfo> FrameBegin_Exit_FName;
+			Instance->CompareSnapshots_FName( TEXT( "BeginSnapshot" ), TEXT( "EngineLoop.Exit" ), FrameBegin_Exit_FName );
+
+			FNodeAllocationInfo Root;
+			Root.EncodedCallstack = TEXT( "ThreadRoot" );
+			Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+			Instance->GenerateScopedTreeAllocations( FrameBegin_Exit_FName, Root );
+		}
+
+
+		{
+			TMap<FName, FCombinedAllocationInfo> Frame060_240_FName;
+			Instance->CompareSnapshots_FName( TEXT( "Frame-060" ), TEXT( "Frame-240" ), Frame060_240_FName );
+
+			FNodeAllocationInfo Root;
+			Root.EncodedCallstack = TEXT( "ThreadRoot" );
+			Root.HumanReadableCallstack = TEXT( "ThreadRoot" );
+			Instance->GenerateScopedTreeAllocations( Frame060_240_FName, Root );
+		}
+#endif // UE_BUILD_DEBUG
+	}
 }
 
 /*-----------------------------------------------------------------------------
 	FRawStatsMemoryProfiler
 -----------------------------------------------------------------------------*/
 
-FRawStatsMemoryProfiler* FProfilerModule::OpenRawStatForMemoryProfiling( const TCHAR* Filename )
+FRawStatsMemoryProfiler* FProfilerModule::OpenRawStatsForMemoryProfiling( const TCHAR* Filename )
 {
-	FRawStatsMemoryProfiler* Instance = new FRawStatsMemoryProfiler;
+	FRawStatsMemoryProfiler* Instance = 0;// new FRawStatsMemoryProfiler;
 
 	return Instance;
 }
