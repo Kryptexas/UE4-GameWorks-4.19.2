@@ -407,16 +407,6 @@ void USCS_Node::PostLoad()
 {
 	Super::PostLoad();
 
-	if(ComponentTemplate != nullptr)
-	{
-		// Fix up component templates not in sync w/ the variable name on load; if not, duplicate it to a new instance w/ a corrected name in order to ensure that it is uniquely bound to this node only.
-		const FString ComponentTemplateName = VariableName.ToString() + TEXT("_GEN_VARIABLE");
-		if(ComponentTemplateName != ComponentTemplate->GetName())
-		{
-			ComponentTemplate = static_cast<UActorComponent*>(StaticDuplicateObject(ComponentTemplate, ComponentTemplate->GetOuter(), *ComponentTemplateName));
-		}
-	}
-
 	ValidateGuid();
 }
 
