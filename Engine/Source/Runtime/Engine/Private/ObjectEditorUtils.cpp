@@ -85,17 +85,22 @@ namespace FObjectEditorUtils
 	{
 		FString SourceValue;
 
+		if (SourceObject == nullptr || DestinationObject == nullptr)
+		{
+			return false;
+		}
+
 		// Get the property addresses for the source and destination objects.
 		uint8* SourceAddr = SourceProperty->ContainerPtrToValuePtr<uint8>(SourceObject);
 		uint8* DestionationAddr = DestinationProperty->ContainerPtrToValuePtr<uint8>(DestinationObject);
 
-		if ( SourceAddr == NULL || DestionationAddr == NULL )
+		if (SourceAddr == nullptr || DestionationAddr == nullptr)
 		{
 			return false;
 		}
 
 		// Get the current value from the source object.
-		SourceProperty->ExportText_Direct(SourceValue, SourceAddr, SourceAddr, NULL, PPF_Localized);
+		SourceProperty->ExportText_Direct(SourceValue, SourceAddr, SourceAddr, nullptr, PPF_Localized);
 
 		if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) )
 		{

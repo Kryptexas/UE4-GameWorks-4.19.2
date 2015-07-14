@@ -371,9 +371,12 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 
 	if ( PropertyChainNode->GetNextNode() == nullptr )
 	{
-		if ( bIsModify )
+		if (bIsModify)
 		{
-			DestinationObject->Modify();
+			if (DestinationObject)
+			{
+				DestinationObject->Modify();
+			}
 			return true;
 		}
 		else
