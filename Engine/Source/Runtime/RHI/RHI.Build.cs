@@ -16,12 +16,17 @@ public class RHI : ModuleRules
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				DynamicallyLoadedModuleNames.Add("D3D11RHI");
-				DynamicallyLoadedModuleNames.Add("D3D12RHI");
-//#todo-rco: Remove when public
-				string VulkanSDKPath = Environment.GetEnvironmentVariable("VulkanSDK");
-				if (!String.IsNullOrEmpty(VulkanSDKPath))
+				if (!WindowsPlatform.IsWindowsXPSupported())
 				{
-					DynamicallyLoadedModuleNames.Add("VulkanRHI");
+					//#todo-rco: D3D12 requires different SDK headers not compatible with WinXP
+					DynamicallyLoadedModuleNames.Add("D3D12RHI");
+
+//#todo-rco: Remove when public
+					string VulkanSDKPath = Environment.GetEnvironmentVariable("VulkanSDK");
+					if (!String.IsNullOrEmpty(VulkanSDKPath))
+					{
+						DynamicallyLoadedModuleNames.Add("VulkanRHI");
+					}
 				}
 			}
 
