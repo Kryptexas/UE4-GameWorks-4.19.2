@@ -545,18 +545,18 @@
 	</ItemGroup>
 	<ItemGroup>
 		<CustomBuild Include="..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp">
-			<Command Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /FoD:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/debug/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
+			<Command Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /Fo../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/debug/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
 			<Message Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">Building %(Identity)</Message>
-			<Outputs Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">D:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/debug/avx/SwSolveConstraints.obj;</Outputs>
-			<Command Condition="'$(Configuration)|$(Platform)'=='checked|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /FoD:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/checked/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
+			<Outputs Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/debug/avx/SwSolveConstraints.obj;</Outputs>
+			<Command Condition="'$(Configuration)|$(Platform)'=='checked|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /Fo../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/checked/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
 			<Message Condition="'$(Configuration)|$(Platform)'=='checked|Win32'">Building %(Identity)</Message>
-			<Outputs Condition="'$(Configuration)|$(Platform)'=='checked|Win32'">D:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/checked/avx/SwSolveConstraints.obj;</Outputs>
-			<Command Condition="'$(Configuration)|$(Platform)'=='release|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /FoD:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/release/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
+			<Outputs Condition="'$(Configuration)|$(Platform)'=='checked|Win32'">../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/checked/avx/SwSolveConstraints.obj;</Outputs>
+			<Command Condition="'$(Configuration)|$(Platform)'=='release|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /Fo../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/release/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
 			<Message Condition="'$(Configuration)|$(Platform)'=='release|Win32'">Building %(Identity)</Message>
-			<Outputs Condition="'$(Configuration)|$(Platform)'=='release|Win32'">D:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/release/avx/SwSolveConstraints.obj;</Outputs>
-			<Command Condition="'$(Configuration)|$(Platform)'=='profile|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /FoD:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/profile/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
+			<Outputs Condition="'$(Configuration)|$(Platform)'=='release|Win32'">../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/release/avx/SwSolveConstraints.obj;</Outputs>
+			<Command Condition="'$(Configuration)|$(Platform)'=='profile|Win32'">cl.exe /c /Zi /Ox /MD /arch:AVX /Fd"$(TargetDir)\$(TargetName).pdb" /Fo../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/profile/avx/SwSolveConstraints.obj ..\..\module\clothing\embedded\LowLevelCloth\src\avx\SwSolveConstraints.cpp</Command>
 			<Message Condition="'$(Configuration)|$(Platform)'=='profile|Win32'">Building %(Identity)</Message>
-			<Outputs Condition="'$(Configuration)|$(Platform)'=='profile|Win32'">D:/Builds/UE4/Engine/Source/ThirdParty/PhysX/APEX-1.3/compiler/Win32/VS2013/build/Win32/APEX_Clothing/profile/avx/SwSolveConstraints.obj;</Outputs>
+			<Outputs Condition="'$(Configuration)|$(Platform)'=='profile|Win32'">../../compiler/Win32/VS2013/build/Win32/APEX_Clothing/profile/avx/SwSolveConstraints.obj;</Outputs>
 		</CustomBuild>
 	</ItemGroup>
 	<ItemGroup>
