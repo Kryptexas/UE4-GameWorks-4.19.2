@@ -141,7 +141,7 @@ bool FOnlineSubsystemIOS::Init()
 		FriendsInterface = MakeShareable(new FOnlineFriendsIOS(this));
 		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsIOS(this));
 		AchievementsInterface = MakeShareable(new FOnlineAchievementsIOS(this));
-		ExternalUIInterface = MakeShareable(new FOnlineExternalUIIOS());
+		ExternalUIInterface = MakeShareable(new FOnlineExternalUIIOS(this));
         TurnBasedInterface = MakeShareable(new FOnlineTurnBasedIOS());
         UserCloudInterface = MakeShareable(new FOnlineUserCloudInterfaceIOS());
         SharedCloudInterface = MakeShareable(new FOnlineSharedCloudInterfaceIOS());

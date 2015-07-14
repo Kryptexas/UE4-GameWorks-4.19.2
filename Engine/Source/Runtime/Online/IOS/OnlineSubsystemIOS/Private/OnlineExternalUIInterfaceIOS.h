@@ -5,11 +5,13 @@
 #include "OnlineExternalUIInterface.h"
 #include "OnlineSubsystemIOSTypes.h"
 
+class FOnlineSubsystemIOS;
+
 class FOnlineExternalUIIOS : public IOnlineExternalUI
 {
 PACKAGE_SCOPE:
 
-	FOnlineExternalUIIOS();
+	FOnlineExternalUIIOS(FOnlineSubsystemIOS* InSubsystem);
 
 public:
 
@@ -23,6 +25,9 @@ public:
 	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) override;
 	virtual bool ShowAccountUpgradeUI(const FUniqueNetId& UniqueId) override;
 	// End IOnlineExternalUI interface
+	
+private:
+	FOnlineSubsystemIOS* Subsystem;
 };
 
 typedef TSharedPtr<FOnlineExternalUIIOS, ESPMode::ThreadSafe> FOnlineExternalUIIOSPtr;

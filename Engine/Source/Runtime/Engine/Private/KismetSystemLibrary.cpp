@@ -14,6 +14,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "SlateCore.h"
 #include "Engine/StreamableManager.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineSubsystemUtils.h"
+#include "OnlineIdentityInterface.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -3073,6 +3076,26 @@ void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerC
 		}
 		ExternalUI->ShowAchievementsUI(LocalUserNum);
 	}
+}
+bool UKismetSystemLibrary::IsLoggedIn(APlayerController* SpecificPlayer)
+{
+	IOnlineIdentityPtr Identity = Online::GetIdentityInterface();
+	
+	if (!Identity.IsValid())
+	{
+		return false;
+	}
+	
+	int LocalUserNum = 0;
+	if (SpecificPlayer != nullptr)
+	{
+		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
+		if(LocalPlayer)
+		{
+			LocalUserNum = LocalPlayer->GetControllerId();
+		}
+	}
+	return Identity->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn;
 }
 
 void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)

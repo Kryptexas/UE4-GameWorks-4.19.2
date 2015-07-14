@@ -1396,6 +1396,14 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer);
 
 	/**
+	 * Returns whether the player is logged in to the currently active online subsystem.
+	 *
+	 * @param Player Specific player's login status to get. May not be supported on all platforms. If null, defaults to the player with ControllerId 0.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Online")
+	static bool IsLoggedIn(APlayerController* SpecificPlayer);
+
+	/**
 	 * Allows or inhibits screensaver
 	 * @param	bAllowScreenSaver		If false, don't allow screensaver if possible, otherwise allow default behavior
 	 */

@@ -5,7 +5,16 @@
 FOnlineIdentityIOS::FOnlineIdentityIOS() :
 	UniqueNetId( NULL )
 {
-	Login( 0, FOnlineAccountCredentials() );
+}
+
+TSharedPtr<FUniqueNetIdString> FOnlineIdentityIOS::GetLocalPlayerUniqueId() const
+{
+	return UniqueNetId;
+}
+
+void FOnlineIdentityIOS::SetLocalPlayerUniqueId(const TSharedPtr<FUniqueNetIdString>& UniqueId)
+{
+	UniqueNetId = UniqueId;
 }
 
 TSharedPtr<FUserOnlineAccount> FOnlineIdentityIOS::GetUserAccount(const FUniqueNetId& UserId) const
@@ -25,6 +34,10 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityIOS::GetAllUserAccounts()
 bool FOnlineIdentityIOS::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	bool bStartedLogin = false;
+
+	// Since the iOS login code may show a UI, ShowLoginUI is a better fit here. Also, note that the ConnectToService blueprint
+	// node that calls Login is deprecated (there's a new ShowExternalLoginUI node meant to replace it).
+	UE_LOG(LogOnline, Warning, TEXT("Using the IOnlineIdentity::Login function on iOS is not recommended. Please use IOnlineExternalUI::ShowLoginUI instead."));
 
 	// Was the login handled by Game Center
 	if( GetLocalGameCenterUser() && 
@@ -104,8 +117,8 @@ bool FOnlineIdentityIOS::Login(int32 LocalUserNum, const FOnlineAccountCredentia
 
 bool FOnlineIdentityIOS::Logout(int32 LocalUserNum)
 {
-	TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
-	return false;
+	TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
+	return true;
 }
 
 bool FOnlineIdentityIOS::AutoLogin(int32 LocalUserNum)

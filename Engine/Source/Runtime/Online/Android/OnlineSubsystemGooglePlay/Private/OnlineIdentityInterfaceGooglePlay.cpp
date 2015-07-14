@@ -14,6 +14,7 @@ FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay*
 
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::FOnlineIdentityAndroid()"));
+	check(MainSubsystem != nullptr);
 	PendingConnectRequest.ConnectionInterface = this;
 }
 
@@ -65,8 +66,8 @@ bool FOnlineIdentityGooglePlay::Login(int32 LocalUserNum, const FOnlineAccountCr
 
 bool FOnlineIdentityGooglePlay::Logout(int32 LocalUserNum)
 {
-	TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
-	return false;
+	MainSubsystem->StartLogoutTask(LocalUserNum);
+	return true;
 }
 
 
@@ -78,37 +79,23 @@ bool FOnlineIdentityGooglePlay::AutoLogin(int32 LocalUserNum)
 
 ELoginStatus::Type FOnlineIdentityGooglePlay::GetLoginStatus(int32 LocalUserNum) const
 {
-	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
-
-	if(LocalUserNum < MAX_LOCAL_PLAYERS && bLoggedIn)
+	if (LocalUserNum < MAX_LOCAL_PLAYERS && MainSubsystem->GetGameServices() != nullptr && MainSubsystem->GetGameServices()->IsAuthorized())
 	{
-		UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetLoginStatus - Logged in"));
-		LoginStatus = ELoginStatus::LoggedIn;
-	}
-	else
-	{
-		UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetLoginStatus - Not logged in"));
+		return ELoginStatus::LoggedIn;
 	}
 
-	return LoginStatus;
+	return ELoginStatus::NotLoggedIn;
 }
 
 
 ELoginStatus::Type FOnlineIdentityGooglePlay::GetLoginStatus(const FUniqueNetId& UserId) const
 {
-	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
-
-	if(bLoggedIn)
+	if (MainSubsystem->GetGameServices() != nullptr && MainSubsystem->GetGameServices()->IsAuthorized())
 	{
-		UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetLoginStatus - Logged in"));
-		LoginStatus = ELoginStatus::LoggedIn;
-	}
-	else
-	{
-		UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAndroid::GetLoginStatus - Not logged in"));
+		return ELoginStatus::LoggedIn;
 	}
 
-	return LoginStatus;
+	return ELoginStatus::NotLoggedIn;
 }
 
 

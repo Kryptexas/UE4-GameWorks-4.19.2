@@ -24,6 +24,9 @@ PACKAGE_SCOPE:
 	 */
 	FOnlineIdentityIOS();	
 
+	TSharedPtr<FUniqueNetIdString> GetLocalPlayerUniqueId() const;
+
+	void SetLocalPlayerUniqueId(const TSharedPtr<FUniqueNetIdString>& UniqueId);
 
 public:
 

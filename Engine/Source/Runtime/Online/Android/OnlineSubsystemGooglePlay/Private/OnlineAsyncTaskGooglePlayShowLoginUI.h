@@ -3,30 +3,27 @@
 #pragma once
 
 #include "OnlineAsyncTaskManager.h"
+#include "OnlineExternalUIInterface.h"
 #include "OnlineAsyncTaskGooglePlayAuthAction.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
 
-#include "gpg/status.h"
 #include "gpg/types.h"
 
 class FOnlineSubsystemGooglePlay;
 
-class FOnlineAsyncTaskGooglePlayLogin : public FOnlineAsyncTaskGooglePlayAuthAction
+class FOnlineAsyncTaskGooglePlayShowLoginUI : public FOnlineAsyncTaskGooglePlayAuthAction
 {
 public:
-	/** Delegate fired upon completion. */
-	DECLARE_DELEGATE(FOnCompletedDelegate);
-
 	/**
 	 * Constructor.
 	 *
-	 * @param InSubsystem a pointer to the owning subsysetm
+	 * @param InSubsystem a pointer to the owning subsystem
 	 * @param InPlayerId index of the player who's logging in
 	 */
-	FOnlineAsyncTaskGooglePlayLogin(FOnlineSubsystemGooglePlay* InSubsystem, int InPlayerId, const FOnCompletedDelegate& InDelegate);
+	FOnlineAsyncTaskGooglePlayShowLoginUI(FOnlineSubsystemGooglePlay* InSubsystem, int InPlayerId, const IOnlineExternalUI::FOnLoginUIClosedDelegate& InDelegate);
 
 	// FOnlineAsyncItem
-	virtual FString ToString() const override { return TEXT("Login"); }
+	virtual FString ToString() const override { return TEXT("ShowLoginUI"); }
 	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
@@ -39,6 +36,5 @@ private:
 	virtual void Start_OnTaskThread() override;
 
 	int PlayerId;
-	gpg::AuthStatus Status;
-	FOnCompletedDelegate Delegate;
+	IOnlineExternalUI::FOnLoginUIClosedDelegate Delegate;
 };
