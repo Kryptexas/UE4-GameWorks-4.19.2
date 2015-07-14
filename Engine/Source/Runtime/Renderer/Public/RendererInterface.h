@@ -461,6 +461,19 @@ enum EDrawRectangleFlags
 	EDRF_UseTesselatedIndexBuffer
 };
 
+class FPostOpaqueRenderParameters
+{
+	public:
+		FIntRect ViewportRect;
+		FMatrix ViewMatrix;
+		FMatrix ProjMatrix;
+		FRHITexture2D* DepthTexture;
+		FRHITexture2D* SmallDepthTexture;
+		FRHICommandListImmediate* RHICmdList;
+		void* Uid; // A unique identifier for the view.
+};
+DECLARE_DELEGATE_OneParam(FPostOpaqueRenderDelegate, class FPostOpaqueRenderParameters&);
+
 class ICustomVisibilityQuery: public IRefCountedObject
 {
 public:
@@ -583,6 +596,12 @@ public:
 	/** Register/unregister a custom occlusion culling implementation */
 	virtual void RegisterCustomCullingImpl(ICustomCulling* impl) = 0;
 	virtual void UnregisterCustomCullingImpl(ICustomCulling* impl) = 0;
+
+	virtual void RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& PostOpaqueRenderDelegate) = 0;
+	virtual void RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate) = 0;
+	virtual void RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
+	virtual void RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) = 0;
+	virtual bool HasPostOpaqueExtentions() const = 0;
 };
 
 

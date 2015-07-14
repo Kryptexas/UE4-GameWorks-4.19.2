@@ -1666,6 +1666,47 @@ TGlobalResource<FFilterVertexDeclaration>& FRendererModule::GetFilterVertexDecla
 	return GFilterVertexDeclaration;
 }
 
+void FRendererModule::RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& PostOpaqueRenderDelegate)
+{
+	this->PostOpaqueRenderDelegate = PostOpaqueRenderDelegate;
+}
+
+void FRendererModule::RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate)
+{
+	this->OverlayRenderDelegate = OverlayRenderDelegate;
+}
+
+void FRendererModule::RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext)
+{
+	check(IsInRenderingThread());
+	FPostOpaqueRenderParameters RenderParameters;
+	RenderParameters.ViewMatrix = View.ViewMatrices.ViewMatrix;
+	RenderParameters.ProjMatrix = View.ViewMatrices.ProjMatrix;
+	RenderParameters.DepthTexture = SceneContext.GetSceneDepthSurface()->GetTexture2D();
+	RenderParameters.SmallDepthTexture = SceneContext.GetSmallDepthSurface()->GetTexture2D();
+
+	RenderParameters.ViewportRect = View.ViewRect;
+	RenderParameters.RHICmdList = &RHICmdList;
+
+	RenderParameters.Uid = (void*)(&View);
+	PostOpaqueRenderDelegate.ExecuteIfBound(RenderParameters);
+}
+
+void FRendererModule::RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext)
+{
+	check(IsInRenderingThread());
+	FPostOpaqueRenderParameters RenderParameters;
+	RenderParameters.ViewMatrix = View.ViewMatrices.ViewMatrix;
+	RenderParameters.ProjMatrix = View.ViewMatrices.ProjMatrix;
+	RenderParameters.DepthTexture = SceneContext.GetSceneDepthSurface()->GetTexture2D();
+	RenderParameters.SmallDepthTexture = SceneContext.GetSmallDepthSurface()->GetTexture2D();
+
+	RenderParameters.ViewportRect = View.ViewRect;
+	RenderParameters.RHICmdList = &RHICmdList;
+
+	RenderParameters.Uid=(void*)(&View);
+	OverlayRenderDelegate.ExecuteIfBound(RenderParameters);
+}
 
 bool IsMobileHDR()
 {
