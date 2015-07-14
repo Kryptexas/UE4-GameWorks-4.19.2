@@ -1,5 +1,5 @@
 ﻿Availability:Docs
-Title: Reducing APK Packages size 
+Title: Reducing APK Package size 
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:How to reduce the size of your packaged Android game.
 Skilllevel: Intermediate
@@ -98,7 +98,17 @@ To disable a plug-in inside of UE4 you need to do the following.
 	![](T_Open_Plugins_Browser.png)
 
 1. From the Plug-in Browser select the different sections and disable any plug-in's you are not using by un-checking the check mark box next to **Enabled**.
-  When you have disabled all the Plug-ins you do not need make sure to re-package your project to see the results.
+  When you have disabled all the Plug-ins you will need to re-start the UE4 Editor and then make sure to re-package your project.
 
-	
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	xLJ01QEvV7Y
+	[/PARAMLITERAL]
+	[/OBJECT]
 

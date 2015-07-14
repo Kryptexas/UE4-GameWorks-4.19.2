@@ -19,5 +19,6 @@ Navigation:platform
 		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
 		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
 		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		* [](Platforms/Android/ReducingAPKSize "%Platforms/Android/ReducingAPKSize:description%")
 	[/PARAM]
 [/OBJECT]
