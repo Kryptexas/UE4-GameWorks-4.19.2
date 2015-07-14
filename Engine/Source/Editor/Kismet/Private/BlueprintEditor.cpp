@@ -3180,7 +3180,7 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 
 	if (const UEdGraphNode* Node = Cast<const UEdGraphNode>(ObjectReference))
 	{
-		if( bRequestRename )
+		if (bRequestRename)
 		{
 			IsNodeTitleVisible(Node, bRequestRename);
 		}
@@ -3195,15 +3195,51 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 	}
 	else if (const UEdGraph* Graph = Cast<const UEdGraph>(ObjectReference))
 	{
-		// Only ubergraphs should re-use the current tab
-		if(Graph->GetSchema()->GetGraphType(Graph) == GT_Ubergraph || Cast<UK2Node_Composite>(Graph->GetOuter()))
+		// Navigating into things should re-use the current tab when it makes sense
+		FDocumentTracker::EOpenDocumentCause OpenMode = FDocumentTracker::OpenNewDocument;
+		if ((Graph->GetSchema()->GetGraphType(Graph) == GT_Ubergraph) || Cast<UK2Node_Composite>(Graph->GetOuter()))
 		{
-			OpenDocument(const_cast<UEdGraph*>(Graph), FDocumentTracker::NavigatingCurrentDocument);
+			// Ubergraphs directly reuse the current graph
+			OpenMode = FDocumentTracker::NavigatingCurrentDocument;
 		}
 		else
 		{
-			OpenDocument(const_cast<UEdGraph*>(Graph), FDocumentTracker::OpenNewDocument);
+			// Walk up the outer chain to see if any tabs have a parent of this document open for edit, and if so
+			// we should reuse that one and drill in deeper instead
+			for (UObject* WalkPtr = const_cast<UEdGraph*>(Graph); WalkPtr != nullptr; WalkPtr = WalkPtr->GetOuter())
+			{
+				TArray< TSharedPtr<SDockTab> > TabResults;
+				if (FindOpenTabsContainingDocument(WalkPtr, /*out*/ TabResults))
+				{
+					// See if the parent was active
+					bool bIsActive = false;
+					for (TSharedPtr<SDockTab> Tab : TabResults)
+					{
+						if (Tab->IsActive())
+						{
+							bIsActive = true;
+							break;
+						}
+					}
+
+					if (bIsActive)
+					{
+						OpenMode = FDocumentTracker::NavigatingCurrentDocument;
+						break;
+					}
+				}
+			}
 		}
+
+		// Force it to open in a new document if shift is pressed
+		const bool bIsShiftPressed = FSlateApplication::Get().GetModifierKeys().IsShiftDown();
+		if (bIsShiftPressed)
+		{
+			OpenMode = FDocumentTracker::ForceOpenNewDocument;
+		}
+
+		// Open the document
+		OpenDocument(const_cast<UEdGraph*>(Graph), OpenMode);
 	}
 	else if (const AActor* ReferencedActor = Cast<const AActor>(ObjectReference))
 	{
@@ -3216,8 +3252,7 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 	}
 	else if(const UFunction* Function = Cast<const UFunction>(ObjectReference))
 	{
-		UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), Function);
-		if(FunctionGraph)
+		if (UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), Function))
 		{
 			OpenDocument(const_cast<UEdGraph*>(FunctionGraph), FDocumentTracker::OpenNewDocument);
 		}
