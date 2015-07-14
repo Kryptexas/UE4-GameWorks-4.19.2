@@ -96,7 +96,9 @@ FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const F
 
 			FVector2D LocalSpaceMousePosition = KeyAreaGeometry.AbsoluteToLocal( MousePosition );
 
-			FTimeToPixel TimeToPixelConverter( KeyAreaGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
+			FTimeToPixel TimeToPixelConverter = Section.IsInfinite() ? 			
+				FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+				FTimeToPixel( KeyAreaGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
 
 			// Check each key until we find one under the mouse (if any)
 			TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
@@ -292,7 +294,9 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 
 		FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, AllottedGeometry );
 
-		FTimeToPixel TimeToPixelConverter( KeyAreaGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
+		FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite() ? 			
+			FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+			FTimeToPixel( KeyAreaGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
 
 		// Draw a box for the key area 
 		// @todo Sequencer - Allow the IKeyArea to do this
@@ -634,7 +638,9 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 			else if( DragOperation.IsValid() )
 			{
 				// Already in a drag, tell all operations to perform their drag implementations
-				FTimeToPixel TimeToPixelConverter( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
+				FTimeToPixel TimeToPixelConverter = SectionInterface->GetSectionObject()->IsInfinite() ? 			
+					FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+					FTimeToPixel( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
 
 				DragOperation->OnDrag( MouseEvent, LocalMousePos, TimeToPixelConverter, ParentSectionArea );
 			}

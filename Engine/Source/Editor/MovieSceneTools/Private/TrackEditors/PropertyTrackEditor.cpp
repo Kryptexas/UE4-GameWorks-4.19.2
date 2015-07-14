@@ -209,8 +209,9 @@ public:
 class FBoolPropertySection : public FPropertySection
 {
 public:
-	FBoolPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
-		: FPropertySection(InSectionObject, SectionName) {}
+	FBoolPropertySection( UMovieSceneSection& InSectionObject, FName SectionName, ISequencer* InSequencer )
+		: FPropertySection(InSectionObject, SectionName)
+	, Sequencer(InSequencer) {}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
@@ -220,13 +221,21 @@ public:
 
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
-		FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
+		FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite() ? 
+			FTimeToPixel( AllottedGeometry, Sequencer->GetViewRange() ) : 
+			FTimeToPixel( AllottedGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
 
 		// custom drawing for bool curves
 		UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
 
 		TArray<float> SectionSwitchTimes;
+
+		if (SectionObject.IsInfinite() && Sequencer->GetViewRange().GetLowerBoundValue() < SectionObject.GetStartTime())
+		{
+			SectionSwitchTimes.Add(Sequencer->GetViewRange().GetLowerBoundValue());
+		}
 		SectionSwitchTimes.Add(SectionObject.GetStartTime());
+
 		FIntegralCurve& BoolCurve = BoolSection->GetCurve();
 		for (TArray<FIntegralKey>::TConstIterator It(BoolCurve.GetKeyIterator()); It; ++It)
 		{
@@ -235,6 +244,11 @@ public:
 			{
 				SectionSwitchTimes.Add(Time);
 			}
+		}
+
+		if (SectionObject.IsInfinite() && Sequencer->GetViewRange().GetUpperBoundValue() > SectionObject.GetEndTime())
+		{
+			SectionSwitchTimes.Add(Sequencer->GetViewRange().GetUpperBoundValue());
 		}
 		SectionSwitchTimes.Add(SectionObject.GetEndTime());
 
@@ -272,6 +286,8 @@ public:
 
 		return LayerId+1;
 	}
+private:
+	ISequencer* Sequencer;
 };
 
 /**
@@ -362,11 +378,11 @@ TSharedRef<ISequencerSection> FPropertyTrackEditor::MakeSectionInterface( UMovie
 
 	TSharedRef<ISequencerSection> NewSection = TSharedRef<ISequencerSection>(
 		SectionClass == UMovieSceneColorTrack::StaticClass() ? new FColorPropertySection( SectionObject, Track->GetTrackName() ) :
-		SectionClass == UMovieSceneBoolTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName() ) :
+		SectionClass == UMovieSceneBoolTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get() ) :
 		SectionClass == UMovieSceneByteTrack::StaticClass() ? new FBytePropertySection(SectionObject, Track->GetTrackName(), Cast<UMovieSceneByteTrack>(SectionObject.GetOuter())->GetEnum()) :
 		SectionClass == UMovieSceneVectorTrack::StaticClass() ? new FVectorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneFloatTrack::StaticClass() ? new FFloatPropertySection( SectionObject, Track->GetTrackName() ) :
-		SectionClass == UMovieSceneVisibilityTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName() ) :
+		SectionClass == UMovieSceneVisibilityTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get() ) :
 		new FPropertySection( SectionObject, Track->GetTrackName() )
 		);
 

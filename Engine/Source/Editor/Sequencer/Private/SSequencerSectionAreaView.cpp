@@ -31,11 +31,21 @@ namespace SequencerSectionUtils
 	FGeometry GetSectionGeometry( const FGeometry& AllottedGeometry, int32 RowIndex, int32 MaxTracks, float NodeHeight, TSharedPtr<ISequencerSection> SectionInterface, const FTimeToPixel& TimeToPixelConverter )
 	{
 		const UMovieSceneSection* Section = SectionInterface->GetSectionObject();
-		// Where to start drawing the section
-		float StartX =  TimeToPixelConverter.TimeToPixel( Section->GetStartTime() );
-		// Where to stop drawing the section
-		float EndX = TimeToPixelConverter.TimeToPixel( Section->GetEndTime() );
-		
+
+		float StartX, EndX = 0;
+
+		// If the section is infinite, occupy the entire width of the geometry where the section is located.
+		if (Section->IsInfinite())
+		{
+			StartX = AllottedGeometry.Position.X;
+			EndX = AllottedGeometry.Position.X + AllottedGeometry.Size.X;
+		}
+		else
+		{
+			StartX = TimeToPixelConverter.TimeToPixel( Section->GetStartTime() );
+			EndX = TimeToPixelConverter.TimeToPixel( Section->GetEndTime() );
+		}
+
 		// Actual section length without grips.
 		float SectionLengthActual = EndX-StartX;
 

@@ -293,8 +293,16 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 			MovieSceneSections.Add(Sections[i]->GetSectionObject());
 		}
 		
-
 		FVector2D TotalDelta = LocalMousePos - DragOffset;
+		
+		// When the section is not infinite, the local mouse pos is relative to the start time of the section which continually updates as the section is dragged. 
+		// When the section is infinite, the local mouse pos is relative to the track extents, which do not change. 
+		// Reset the drag offset so that the motion is relative to the last moved position.
+		if (Section.Get()->IsInfinite())
+		{
+			DragOffset = LocalMousePos;
+		}
+
 		float DistanceMoved = TotalDelta.X / TimeToPixelConverter.GetPixelsPerInput();
 		
 		float DeltaTime = DistanceMoved;

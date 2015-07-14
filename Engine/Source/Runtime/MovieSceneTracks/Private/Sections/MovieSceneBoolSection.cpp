@@ -7,6 +7,7 @@
 UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
+	SetIsInfinite(true);
 }
 
 bool UMovieSceneBoolSection::Eval( float Position ) const

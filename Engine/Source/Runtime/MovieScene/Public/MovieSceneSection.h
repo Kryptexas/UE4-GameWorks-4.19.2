@@ -166,6 +166,10 @@ public:
 	 */
 	virtual MOVIESCENE_API void InitialPlacement(const TArray<UMovieSceneSection*>& Sections, float InStartTime, float InEndTime, bool bAllowMultipleRows);
 
+	/** Whether or not this section is infinite. An infinite section will draw the entire width of the track. StartTime and EndTime will be ignored but not discarded. */
+	void SetIsInfinite(bool bInIsInfinite) { bIsInfinite = bInIsInfinite; }
+	bool IsInfinite() const { return bIsInfinite; }
+
 private:
 	/** The start time of the section */
 	UPROPERTY()
@@ -178,4 +182,8 @@ private:
 	/** The row index that this section sits on */
 	UPROPERTY()
 	int32 RowIndex;
+
+	/** Toggle to set this section to be infinite */
+	UPROPERTY()
+	uint32 bIsInfinite : 1;
 };
