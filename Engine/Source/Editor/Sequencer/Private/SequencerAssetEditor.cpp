@@ -14,14 +14,18 @@
 #include "SequencerObjectChangeListener.h"
 #include "SDockTab.h"
 
+
 #define LOCTEXT_NAMESPACE "Sequencer"
 
 const FName FSequencerAssetEditor::SequencerMainTabId( TEXT( "Sequencer_SequencerMain" ) );
+
 
 namespace SequencerDefs
 {
 	static const FName SequencerAppIdentifier( TEXT( "SequencerApp" ) );
 }
+
+
 void FSequencerAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
 	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
@@ -35,6 +39,7 @@ void FSequencerAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManag
 
 }
 
+
 void FSequencerAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
 	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
@@ -47,19 +52,20 @@ void FSequencerAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabMan
 	LevelEditorModule.AttachSequencer( SNullWidget::NullWidget, nullptr );
 }
 
+
 void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor )
 {
 	{
 		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Sequencer_Layout")
-		->AddArea
-		(
-			FTabManager::NewPrimaryArea()
-			->Split
+			->AddArea
 			(
-				FTabManager::NewStack()
-				->AddTab(SequencerMainTabId, ETabState::OpenedTab)
-			)
-		);
+				FTabManager::NewPrimaryArea()
+					->Split
+					(
+						FTabManager::NewStack()
+						->AddTab(SequencerMainTabId, ETabState::OpenedTab)
+					)
+			);
 
 		const bool bCreateDefaultStandaloneMenu = true;
 		const bool bCreateDefaultToolbar = false;
@@ -70,20 +76,18 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 	Sequencer = MakeShareable(new FSequencer);
 	
 	FSequencerInitParams SequencerInitParams;
-	SequencerInitParams.ViewParams = InViewParams;
-	SequencerInitParams.ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( Sequencer.ToSharedRef(), bEditWithinLevelEditor ) );
-	
-	SequencerInitParams.ObjectBindingManager = MakeShareable( new FSequencerActorBindingManager( SequencerInitParams.ObjectChangeListener.ToSharedRef(), Sequencer.ToSharedRef() ) );
+	{
+		SequencerInitParams.ViewParams = InViewParams;
+		SequencerInitParams.ObjectChangeListener = MakeShareable(new FSequencerObjectChangeListener(Sequencer.ToSharedRef(), bEditWithinLevelEditor));
+		SequencerInitParams.ObjectBindingManager = MakeShareable(new FSequencerActorBindingManager(SequencerInitParams.ObjectChangeListener.ToSharedRef(), Sequencer.ToSharedRef()));
+		SequencerInitParams.RootMovieScene = InRootMovieScene;
+		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
+		SequencerInitParams.ToolkitHost = InitToolkitHost;
+	}
 
-	SequencerInitParams.RootMovieScene = InRootMovieScene;
-	
-	SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
-	
-	SequencerInitParams.ToolkitHost = InitToolkitHost;
-	
 	Sequencer->InitSequencer( SequencerInitParams, TrackEditorDelegates );
 
-	if(bEditWithinLevelEditor)
+	if (bEditWithinLevelEditor)
 	{
 		// @todo remove when world-centric mode is added
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
@@ -96,15 +100,18 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 	}
 }
 
+
 TSharedRef<ISequencer> FSequencerAssetEditor::GetSequencerInterface() const
 { 
 	return Sequencer.ToSharedRef(); 
 }
 
+
 FSequencerAssetEditor::FSequencerAssetEditor()
 {
 
 }
+
 
 FSequencerAssetEditor::~FSequencerAssetEditor()
 {
@@ -138,6 +145,7 @@ FName FSequencerAssetEditor::GetToolkitFName() const
 	static FName SequencerName("Sequencer");
 	return SequencerName;
 }
+
 
 FText FSequencerAssetEditor::GetBaseToolkitName() const
 {

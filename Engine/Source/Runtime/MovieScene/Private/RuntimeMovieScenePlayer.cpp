@@ -1,17 +1,18 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieScenePrivatePCH.h"
-#include "RuntimeMovieScenePlayer.h"
+#include "MovieSceneBindings.h"
 #include "MovieSceneInstance.h"
+#include "RuntimeMovieScenePlayer.h"
 
 
-URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer( ULevel* Level, UMovieSceneBindings* MovieSceneBindings )
+/* URuntimeMovieScenePlayer static functions
+ *****************************************************************************/
+
+URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer(ULevel* Level, UMovieSceneBindings* MovieSceneBindings)
 {	
-	URuntimeMovieScenePlayer* NewRuntimeMovieScenePlayer = NewObject<URuntimeMovieScenePlayer>(
-		(UObject*)GetTransientPackage(), 
-		NAME_None, 
-		RF_Transient );
-	check( NewRuntimeMovieScenePlayer != nullptr );
+	URuntimeMovieScenePlayer* NewRuntimeMovieScenePlayer = NewObject<URuntimeMovieScenePlayer>((UObject*)GetTransientPackage(), NAME_None, RF_Transient);
+	check(NewRuntimeMovieScenePlayer != nullptr);
 
 	// Associate the player with its world
 	NewRuntimeMovieScenePlayer->World = Level->OwningWorld;
@@ -30,17 +31,55 @@ URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlaye
 }
 
 
-URuntimeMovieScenePlayer::URuntimeMovieScenePlayer( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{
+/* URuntimeMovieScenePlayer structors
+ *****************************************************************************/
 
-	MovieSceneBindings = nullptr;
-	TimeCursorPosition = 0.0f;
+URuntimeMovieScenePlayer::URuntimeMovieScenePlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bIsPlaying(false)
+	, MovieSceneBindings(nullptr)
+	, TimeCursorPosition(0.0f)
+{ }
+
+
+/* URuntimeMovieScenePlayer interface
+ *****************************************************************************/
+
+bool URuntimeMovieScenePlayer::IsPlaying() const
+{
+	return bIsPlaying;
+}
+
+
+void URuntimeMovieScenePlayer::Pause()
+{
 	bIsPlaying = false;
 }
 
 
-void URuntimeMovieScenePlayer::SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance  )
+void URuntimeMovieScenePlayer::Play()
+{
+	// Init the root movie scene instance
+	if (MovieSceneBindings != nullptr)
+	{
+		UMovieScene* MovieScene = MovieSceneBindings->GetRootMovieScene();
+	
+		// @todo Sequencer playback: Should we recreate the instance every time?
+		RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(*MovieScene));
+
+		// @odo Sequencer Should we spawn actors here?
+		SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
+		RootMovieSceneInstance->RefreshInstance(*this);
+	}
+	
+	bIsPlaying = true;
+}
+
+
+/* IMovieScenePlayer interface
+ *****************************************************************************/
+
+void URuntimeMovieScenePlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
 {
 	UWorld* WorldPtr = World.Get();
 	if( WorldPtr != nullptr && MovieSceneBindings != nullptr )
@@ -92,7 +131,7 @@ void URuntimeMovieScenePlayer::SpawnActorsForMovie( TSharedRef<FMovieSceneInstan
 }
 
 
-void URuntimeMovieScenePlayer::DestroyActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance )
+void URuntimeMovieScenePlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
 {
 	UWorld* WorldPtr = World.Get();
 	if( WorldPtr != nullptr && MovieSceneBindings != nullptr )
@@ -120,62 +159,13 @@ void URuntimeMovieScenePlayer::DestroyActorsForMovie( TSharedRef<FMovieSceneInst
 }
 
 
-bool URuntimeMovieScenePlayer::IsPlaying() const
-{
-	return bIsPlaying;
-}
-
-
-void URuntimeMovieScenePlayer::Play()
-{
-	// Init the root movie scene instance
-	if( MovieSceneBindings != nullptr )
-	{
-		UMovieScene* MovieScene = MovieSceneBindings->GetRootMovieScene();
-	
-		// @todo Sequencer playback: Should we recreate the instance every time?
-		RootMovieSceneInstance = MakeShareable( new FMovieSceneInstance( *MovieScene ) );
-
-		// @odo Sequencer Should we spawn actors here?
-		SpawnActorsForMovie( RootMovieSceneInstance.ToSharedRef() );
-
-		RootMovieSceneInstance->RefreshInstance( *this );
-	}
-	
-	bIsPlaying = true;
-}
-
-
-void URuntimeMovieScenePlayer::Pause()
-{
-	bIsPlaying = false;
-}
-
-
 void URuntimeMovieScenePlayer::SetMovieSceneBindings( UMovieSceneBindings* NewMovieSceneBindings )
 {
 	MovieSceneBindings = NewMovieSceneBindings;
 }
 
-
-void URuntimeMovieScenePlayer::Tick( const float DeltaSeconds )
-{
-	float LastTimePosition = TimeCursorPosition;
-
-	if( bIsPlaying )
-	{
-		TimeCursorPosition += DeltaSeconds;
-	}
-
-	// Update the movie scene!
-	if( MovieSceneBindings != nullptr && RootMovieSceneInstance.IsValid() )
-	{
-		RootMovieSceneInstance->Update( TimeCursorPosition, LastTimePosition, *this );
-	}
-}
-
 	
-void URuntimeMovieScenePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const
+void URuntimeMovieScenePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<UObject*>& OutObjects) const
 {
 	// @todo sequencer runtime: Add support for individually spawning actors on demand when first requested?
 	//    This may be important to reduce the up-front hitch when spawning actors for the entire movie, but
@@ -237,14 +227,39 @@ EMovieScenePlayerStatus::Type URuntimeMovieScenePlayer::GetPlaybackStatus() cons
 }
 
 
-void URuntimeMovieScenePlayer::AddOrUpdateMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd )
+void URuntimeMovieScenePlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd)
 {
 	SpawnActorsForMovie( InstanceToAdd );
 }
 
 
-void URuntimeMovieScenePlayer::RemoveMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove )
+void URuntimeMovieScenePlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove)
 {
 	const bool bDestroyAll = true;
 	DestroyActorsForMovie( InstanceToRemove );
+}
+
+
+TSharedRef<FMovieSceneInstance> URuntimeMovieScenePlayer::GetRootMovieSceneInstance() const
+{
+	return RootMovieSceneInstance.ToSharedRef();
+}
+
+
+/* IRuntimeMovieScenePlayerInterface interface
+ *****************************************************************************/
+
+void URuntimeMovieScenePlayer::Tick(const float DeltaSeconds)
+{
+	float LastTimePosition = TimeCursorPosition;
+
+	if (bIsPlaying)
+	{
+		TimeCursorPosition += DeltaSeconds;
+	}
+
+	if(RootMovieSceneInstance.IsValid())
+	{
+		RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
+	}
 }

@@ -8,7 +8,6 @@
 
 
 class UMovieScene;
-class UWidgetTree;
 
 
 UCLASS(BlueprintType, MinimalAPI)
@@ -20,12 +19,29 @@ class UWidgetAnimation
 public:
 
 #if WITH_EDITOR
+	/**
+	 * Get a placeholder animation.
+	 *
+	 * @return Placeholder animation.
+	 */
 	static UMG_API UWidgetAnimation* GetNullAnimation();
 #endif
 
+	/**
+	 * Get the start time of this animation.
+	 *
+	 * @return Start time in seconds.
+	 * @see GetEndTime
+	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	UMG_API float GetStartTime() const;
 
+	/**
+	 * Get the end time of this animation.
+	 *
+	 * @return End time in seconds.
+	 * @see GetStartTime
+	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	UMG_API float GetEndTime() const;
 

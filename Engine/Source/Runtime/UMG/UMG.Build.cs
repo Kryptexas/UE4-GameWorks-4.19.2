@@ -22,7 +22,6 @@ public class UMG : ModuleRules
 				"SlateCore",
                 "ShaderCore",
 				"RenderCore",
-				"MovieScene",
 				"RHI",
 			}
 		);
@@ -30,6 +29,7 @@ public class UMG : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[] {
 				"HTTP",
+				"MovieScene",
                 "MovieSceneTracks",
 			}
         );

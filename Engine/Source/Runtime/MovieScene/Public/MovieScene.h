@@ -38,7 +38,7 @@ UCLASS()
 class MOVIESCENE_API UMovieScene
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
 

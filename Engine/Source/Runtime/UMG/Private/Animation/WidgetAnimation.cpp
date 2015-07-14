@@ -10,6 +10,7 @@
 
 UWidgetAnimation::UWidgetAnimation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, MovieScene(nullptr)
 { }
 
 

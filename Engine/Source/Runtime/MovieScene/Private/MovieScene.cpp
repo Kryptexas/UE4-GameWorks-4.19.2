@@ -4,11 +4,8 @@
 #include "MovieScene.h"
 
 
-
-UMovieScene::UMovieScene( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{ }
-
+/* UMovieScene interface
+ *****************************************************************************/
 
 #if WITH_EDITOR
 
@@ -227,20 +224,6 @@ TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 }
 
 
-void UMovieScene::RemoveBinding( const FGuid& Guid )
-{
-	// Update each type
-	for( int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex )
-	{
-		if( ObjectBindings[BindingIndex].GetObjectGuid() == Guid )
-		{
-			ObjectBindings.RemoveAt( BindingIndex );
-			break;
-		}
-	}
-}
-
-
 UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTrackName ) const
 {
 	UMovieSceneTrack* FoundTrack = nullptr;
@@ -393,4 +376,21 @@ bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack* Track) const
 	}
 
 	return false;
+}
+
+
+/* UMovieScene implementation
+ *****************************************************************************/
+
+void UMovieScene::RemoveBinding(const FGuid& Guid)
+{
+	// update each type
+	for (int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex)
+	{
+		if (ObjectBindings[BindingIndex].GetObjectGuid() == Guid)
+		{
+			ObjectBindings.RemoveAt(BindingIndex);
+			break;
+		}
+	}
 }

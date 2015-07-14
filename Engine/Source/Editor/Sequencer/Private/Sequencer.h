@@ -6,10 +6,12 @@
 #include "SelectedKey.h"
 #include "EditorUndoClient.h"
 
+
 class UMovieScene;
 class IToolkitHost;
 class ISequencerObjectBindingManager;
 class ISequencerObjectChangeListener;
+
 
 /** Parameters for initializing a Sequencer */
 struct FSequencerInitParams
@@ -33,13 +35,18 @@ struct FSequencerInitParams
 	bool bEditWithinLevelEditor;
 };
 
-/**
- * Sequencer is the editing tool for MovieScene assets
- */
-class FSequencer : public ISequencer, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
-{ 
 
-public:	
+/**
+ * Sequencer is the editing tool for MovieScene assets.
+ */
+class FSequencer
+	: public ISequencer
+	, public FGCObject
+	, public FEditorUndoClient
+	, public FTickableEditorObject
+{
+public:
+
 	static bool IsSequencerEnabled();
 
 	/**
@@ -51,9 +58,7 @@ public:
 	 */
 	void InitSequencer( const FSequencerInitParams& InitParams, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates );
 
-	/** 
-	* Closes the sequencer
-	*/
+	/** Close the sequencer. */
 	void OnClose();
 
 	/** Constructor */
@@ -62,16 +67,24 @@ public:
 	/** Destructor */
 	virtual ~FSequencer();
 
-	/** FGCObject interface */
+public:
+
+	// FGCObject interface
+
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
+public:
+
 	// FTickableEditorObject interface
+
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSequencer, STATGROUP_Tickables); };
-	// End FTickableEditorObject interface
 
-	/** ISequencer interface */
+public:
+
+	// ISequencer interface
+
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
 	virtual UMovieScene* GetRootMovieScene() const override;
 	virtual UMovieScene* GetFocusedMovieScene() const override;
@@ -103,6 +116,8 @@ public:
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
+
+public:
 
 	/** Access the user-supplied settings object */
 	USequencerSettings* GetSettings() const { return Settings; }
@@ -253,6 +268,7 @@ public:
 	FReply OnStepToEnd();
 	FReply OnStepToBeginning();
 	FReply OnToggleLooping();
+
 	bool IsLooping() const;
 	EPlaybackMode::Type GetPlaybackMode() const;
 
@@ -264,12 +280,11 @@ public:
 
 	/** Called to save the current movie scene */
 	void SaveCurrentMovieScene();
-protected:
-	/**
-	 * Reset data about a movie scene when pushing or popping a movie scene
-	 */
-	void ResetPerMovieSceneData();
 
+protected:
+
+	/** Reset data about a movie scene when pushing or popping a movie scene. */
+	void ResetPerMovieSceneData();
 
 	/**
 	 * Destroys spawnables for all movie scenes in the stack
@@ -278,7 +293,6 @@ protected:
 
 	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
 	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
-
 
 	/**
 	 * Gets the far time boundaries of the currently edited movie scene
@@ -324,7 +338,16 @@ protected:
 
 	/** Called to toggle auto-scroll on and off */
 	void OnToggleAutoScroll();
-	bool GetAutoScrollEnabled() const { return bAutoScrollEnabled; }
+
+	/**
+	 * Whether auto-scroll is enabled.
+	 *
+	 * @return true if auto-scroll is enabled, false otherwise.
+	 */
+	bool GetAutoScrollEnabled() const
+	{
+		return bAutoScrollEnabled;
+	}
 
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const;
@@ -372,6 +395,7 @@ protected:
 	void UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const;
 
 private:
+
 	/** User-supplied settings object for this sequencer */
 	USequencerSettings* Settings;
 
@@ -416,18 +440,23 @@ private:
 
 	/** The time range target to be viewed */
 	TRange<float> TargetViewRange;
+
 	/** The last time range that was viewed */
 	TRange<float> LastViewRange;
+
 	/** The view range before zooming */
 	TRange<float> ViewRangeBeforeZoom;
+
 	/** The amount of autoscroll pan offset that is currently being applied */
 	TOptional<float> AutoscrollOffset;
+
 	/** Whether or not we are allowing autoscroll */
 	bool bAutoScrollEnabled;
 
 	/** Zoom smoothing curves */
 	FCurveSequence ZoomAnimation;
 	FCurveHandle ZoomCurve;
+
 	/** Overlay fading curves */
 	FCurveSequence OverlayAnimation;
 	FCurveHandle OverlayCurve;

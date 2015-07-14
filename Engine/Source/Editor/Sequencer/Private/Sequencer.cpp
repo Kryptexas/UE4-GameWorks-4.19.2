@@ -38,9 +38,11 @@
 #include "Engine/Selection.h"
 #include "IMenu.h"
 
+
 #define LOCTEXT_NAMESPACE "Sequencer"
 
 DEFINE_LOG_CATEGORY(LogSequencer);
+
 
 bool FSequencer::IsSequencerEnabled()
 {
@@ -169,9 +171,7 @@ FSequencer::FSequencer()
 	, bPerspectiveViewportPossessionEnabled( true )
 	, bIsEditingWithinLevelEditor( false )
 	, bNeedTreeRefresh( false )
-{
-	
-}
+{ }
 
 FSequencer::~FSequencer()
 {
@@ -440,8 +440,7 @@ void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> Mo
 {
 	if( ObjectBindingManager->AllowsSpawnableObjects() )
 	{
-		const bool bDestroyAll = false;
-		ObjectBindingManager->SpawnOrDestroyObjectsForInstance( MovieSceneInstance, bDestroyAll );
+		ObjectBindingManager->SpawnOrDestroyObjectsForInstance( MovieSceneInstance, false /*bDestroyAll*/ );
 	}
 }
 
@@ -468,7 +467,8 @@ void FSequencer::OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors 
 	for( TWeakObjectPtr<AActor> WeakActor : Actors )
 	{
 		AActor* Actor = WeakActor.Get();
-		if( Actor != NULL )
+
+		if (Actor != nullptr)
 		{
 			// Grab the MovieScene that is currently focused.  We'll add our Blueprint as an inner of the
 			// MovieScene asset.
@@ -616,53 +616,55 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 
 	// Check here for spawnable otherwise spawnables get recreated as possessables, which doesn't make sens
 	FMovieSceneSpawnable* Spawnable = FocusedMovieScene->FindSpawnable(ObjectGuid);
-	if( !Spawnable )
+
+	if (Spawnable)
 	{
-		if(ObjectGuid.IsValid())
+		return ObjectGuid;
+	}
+
+	if (ObjectGuid.IsValid())
+	{
+		// Make sure that the possessable is still valid, if it's not remove the binding so new one 
+		// can be created.  This can happen due to undo.
+		FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectGuid);
+		
+		if (Possessable == nullptr)
 		{
-			// Make sure that the possessable is still valid, if it's not remove the binding so new one 
-			// can be created.  This can happen due to undo.
-			FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectGuid);
-			if(Possessable == nullptr)
+			ObjectBindingManager->UnbindPossessableObjects(ObjectGuid);
+			ObjectGuid.Invalidate();
+		}
+	}
+
+	bool bPossessableAdded = false;
+
+	// If the object guid was not found attempt to add it
+	// Note: Only possessed actors can be added like this
+	if (!ObjectGuid.IsValid() && ObjectBindingManager->CanPossessObject(*Object))
+	{
+		// @todo sequencer: Undo doesn't seem to be working at all
+		const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene"));
+
+		// Possess the object!
+		{
+			// Create a new possessable
+			FocusedMovieScene->Modify();
+
+			ObjectGuid = FocusedMovieScene->AddPossessable(Object->GetName(), Object->GetClass());
+
+			if (IsShotFilteringOn())
 			{
-				ObjectBindingManager->UnbindPossessableObjects(ObjectGuid);
-				ObjectGuid.Invalidate();
+				AddUnfilterableObject(ObjectGuid);
 			}
+
+			ObjectBindingManager->BindPossessableObject(ObjectGuid, *Object);
+			bPossessableAdded = true;
 		}
+	}
 
-		bool bPossessableAdded = false;
-
-		// If the object guid was not found attempt to add it
-		// Note: Only possessed actors can be added like this
-		if(!ObjectGuid.IsValid() && ObjectBindingManager->CanPossessObject(*Object))
-		{
-			// @todo sequencer: Undo doesn't seem to be working at all
-			const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene"));
-
-			// Possess the object!
-			{
-				// Create a new possessable
-				FocusedMovieScene->Modify();
-
-				ObjectGuid = FocusedMovieScene->AddPossessable(Object->GetName(), Object->GetClass());
-
-				if(IsShotFilteringOn())
-				{
-					AddUnfilterableObject(ObjectGuid);
-				}
-
-				ObjectBindingManager->BindPossessableObject(ObjectGuid, *Object);
-
-				bPossessableAdded = true;
-			}
-		}
-
-		if(bPossessableAdded)
-		{
-			SpawnOrDestroyPuppetObjects(GetFocusedMovieSceneInstance());
-
-			NotifyMovieSceneDataChanged();
-		}
+	if (bPossessableAdded)
+	{
+		SpawnOrDestroyPuppetObjects(GetFocusedMovieSceneInstance());
+		NotifyMovieSceneDataChanged();
 	}
 	
 	return ObjectGuid;
@@ -687,7 +689,7 @@ void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneIn
 	{	
 		// First, try to find spawnable puppet objects for the specified Guid
 		UObject* FoundPuppetObject = ObjectSpawner->FindPuppetObjectForSpawnableGuid( MovieSceneInstance, ObjectHandle );
-		if( FoundPuppetObject != NULL )
+		if( FoundPuppetObject != nullptr )
 		{
 			// Found a puppet object!
 			OutObjects.Reset();
@@ -696,7 +698,7 @@ void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneIn
 		else
 		{
 			// No puppets were found for spawnables, so now we'll check for possessed actors
-			if( PlayMovieSceneNode != NULL )
+			if( PlayMovieSceneNode != nullptr )
 			{
 				// @todo Sequencer SubMovieScene: Figure out how to instance possessables
 				OutObjects = PlayMovieSceneNode->FindBoundObjects( ObjectHandle );
@@ -1015,7 +1017,7 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 {
 	FGuid NewSpawnableGuid;
 	
-	if( ObjectBindingManager->AllowsSpawnableObjects() )
+	if (ObjectBindingManager->AllowsSpawnableObjects())
 	{
 		// Grab the MovieScene that is currently focused.  We'll add our Blueprint as an inner of the
 		// MovieScene asset.
@@ -1036,10 +1038,10 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 		const FString NewSpawnableName = AssetName.ToString();		// @todo sequencer: Need UI to allow user to rename these slots
 
 		// Create our new blueprint!
-		UBlueprint* NewBlueprint = NULL;
+		UBlueprint* NewBlueprint = nullptr;
 		{
 			// @todo sequencer: Add support for forcing specific factories for an asset
-			UActorFactory* FactoryToUse = NULL;
+			UActorFactory* FactoryToUse = nullptr;
 			if( bIsActorClass )
 			{
 				// Placing an actor class directly::
@@ -1051,7 +1053,7 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 				FactoryToUse = FActorFactoryAssetProxy::GetFactoryForAssetObject( Object );
 			}
 
-			if( FactoryToUse != NULL )
+			if( FactoryToUse != nullptr )
 			{
 				// Create the blueprint
 				NewBlueprint = FactoryToUse->CreateBlueprint( Object, OwnerMovieScene, BlueprintName );
@@ -1063,9 +1065,9 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 			}
 		}
 
-		if( ensure( NewBlueprint != NULL ) )
+		if (ensure(NewBlueprint != nullptr))
 		{
-			if( NewBlueprint->GeneratedClass != NULL && FBlueprintEditorUtils::IsActorBased( NewBlueprint ) )
+			if ((NewBlueprint->GeneratedClass != nullptr) && FBlueprintEditorUtils::IsActorBased(NewBlueprint))
 			{
 				AActor* ActorCDO = CastChecked< AActor >( NewBlueprint->GeneratedClass->ClassDefaultObject );
 
@@ -1073,7 +1075,7 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 				// @todo sequencer livecapture: This isn't really good enough to handle complex actors.  The dynamically-spawned actor could have components that
 				// were created in its construction script or via straight-up C++ code.  Instead what we should probably do is duplicate the PIE actor and generate
 				// our CDO from that duplicate.  It could get pretty complex though.
-				if( CounterpartGamePreviewObject != NULL )
+				if (CounterpartGamePreviewObject != nullptr)
 				{
 					AActor* CounterpartGamePreviewActor = CastChecked< AActor >( CounterpartGamePreviewObject );
 					CopyActorProperties( CounterpartGamePreviewActor, ActorCDO );
@@ -1207,7 +1209,7 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& 
 void FSequencer::PlaceActorInFrontOfCamera( AActor* ActorCDO )
 {
 	// Place the actor in front of the active perspective camera if we have one
-	if( GCurrentLevelEditingViewportClient != NULL && GCurrentLevelEditingViewportClient->IsPerspective() )
+	if ((GCurrentLevelEditingViewportClient != nullptr) && GCurrentLevelEditingViewportClient->IsPerspective())
 	{
 		// Don't allow this when the active viewport is showing a simulation/PIE level
 		const bool bIsViewportShowingPIEWorld = ( GCurrentLevelEditingViewportClient->GetWorld()->GetOutermost()->PackageFlags & PKG_PlayInEditor ) != 0;
