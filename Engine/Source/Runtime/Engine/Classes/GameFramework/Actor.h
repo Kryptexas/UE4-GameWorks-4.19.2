@@ -1622,10 +1622,15 @@ public:
 
 	/**
 	 * Assigns a new folder to this actor. Actor folder paths are only available in development builds.
-	 * @param	NewFolderPath	   The new folder to assign to the actor.
-	 * @param   bDetachFromParent  whether to detach this actor from its parent when setting the folder path
+	 * @param	NewFolderPath		The new folder to assign to the actor.
 	 */
-	void SetFolderPath(const FName& NewFolderPath, bool bDetachFromParent = true);
+	void SetFolderPath(const FName& NewFolderPath);
+
+	/**
+	 * Assigns a new folder to this actor and any attached children. Actor folder paths are only available in development builds.
+	 * @param	NewFolderPath		The new folder to assign to the actors.
+	 */
+	void SetFolderPath_Recursively(const FName& NewFolderPath);
 
 	/**
 	 * Used by the "Sync to Content Browser" right-click menu option in the editor.

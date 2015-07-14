@@ -3494,7 +3494,7 @@ bool UEditorEngine::DetachSelectedActors()
 			OldParentActor->Modify();
 			RootComp->DetachFromParent(true);
 			bDetachOccurred = true;
-			Actor->SetFolderPath(OldParentActor->GetFolderPath());
+			Actor->SetFolderPath_Recursively(OldParentActor->GetFolderPath());
 		}
 	}
 	return bDetachOccurred;
