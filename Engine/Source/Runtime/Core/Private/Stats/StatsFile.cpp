@@ -570,7 +570,7 @@ void FStatsReadFile::ReadAndProcessSynchronously()
 	ProcessStats();
 	PostProcessStats();
 
-	if (GetProcessingStage() == EStatsProcessingStage::SPS_Stopped)
+	if (IsProcessingStopped())
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_Invalid );
 	}
@@ -774,7 +774,8 @@ void FStatsReadFile::ReadStats()
 				FileInfo.MaximumPacketSize = FMath::Max<int32>( FileInfo.MaximumPacketSize, StatPacket->StatMessages.GetAllocatedSize() );
 			}
 
-			if (!UpdateReadStageProgress())
+			UpdateReadStageProgress();
+			if (IsProcessingStopped())
 			{
 				break;
 			}
@@ -788,7 +789,7 @@ void FStatsReadFile::ReadStats()
 		// Verify that frames are sequential.
 		check( Frames[Frames.Num() - 1] == Frames.Num() );
 
-		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+		if (!IsProcessingStopped())
 		{
 			const double TotalTime = FPlatformTime::Seconds() - StartTime;
 			UE_LOG( LogStats, Log, TEXT( "Reading took %.2f sec(s)" ), TotalTime );
@@ -806,7 +807,7 @@ void FStatsReadFile::ReadStats()
 
 void FStatsReadFile::PreProcessStats()
 {
-	if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+	if (!IsProcessingStopped())
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_PreProcessStats );
 	}
@@ -816,7 +817,7 @@ void FStatsReadFile::ProcessStats()
 {
 	if (bRawStatsFile)
 	{
-		if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+		if (!IsProcessingStopped())
 		{
 			SetProcessingStage( EStatsProcessingStage::SPS_ProcessStats );
 			const double StartTime = FPlatformTime::Seconds();
@@ -828,7 +829,8 @@ void FStatsReadFile::ProcessStats()
 
 			// Read all stats messages for all frames, decode callstacks.
 			const int32 FirstFrame = 0;
-			const int32 OnerPercent = FMath::Max( int32( FileInfo.TotalStatMessagesNum / 100 ), 65536 );
+			const int32 OnePercent = FMath::Max( int32( FileInfo.TotalStatMessagesNum / 200 ), 65536 );
+			int32 MessageIndexForStageProgressUpdate = 0;
 
 			for (int32 FrameIndex = 0; FrameIndex < Frames.Num(); ++FrameIndex)
 			{
@@ -854,11 +856,7 @@ void FStatsReadFile::ProcessStats()
 					for (int32 Index = 0; Index < NumStatMessages; Index++)
 					{
 						CurrentStatMessageIndex++;
-						if (CurrentStatMessageIndex % OnerPercent == 0)
-						{
-							UpdateProcessStageProgress( CurrentStatMessageIndex, FrameIndex, PacketIndex );
-						}
-
+						
 						const FStatMessage& Message = Data[Index];
 						const EStatOperation::Type Op = Message.NameAndInfo.GetField<EStatOperation>();
 						const FName RawName = Message.NameAndInfo.GetRawName();
@@ -981,25 +979,35 @@ void FStatsReadFile::ProcessStats()
 								ProcessSpecialMessageMarkerOperation( Message, *StackState );
 							}
 						}
+
+						if (CurrentStatMessageIndex > MessageIndexForStageProgressUpdate)
+						{
+							UpdateProcessStageProgress( CurrentStatMessageIndex, FrameIndex, PacketIndex );
+							MessageIndexForStageProgressUpdate += OnePercent;
+							if (IsProcessingStopped())
+							{
+								Index = NumStatMessages + 1;
+								PacketIndex = Frame.Packets.Num() + 1;
+								FrameIndex = Frames.Num() + 1;
+							}
+						}
 					}
 				}
 			}
 
-			if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+			if (!IsProcessingStopped())
 			{
 				StageProgress.Set( 100 );
 
 				const double TotalTime = FPlatformTime::Seconds() - StartTime;
 				UE_LOG( LogStats, Log, TEXT( "Processing took %.2f sec(s)" ), TotalTime );
-
-				//UpdateCombinedHistoryStats();
 			}
 			else
 			{
 				UE_LOG( LogStats, Warning, TEXT( "Processing stopped, abandoning" ) );
 			}
 
-			// Clear all data.
+			// Clear all data. We shouldn't need raw stats data at this moment.
 			CombinedHistory.Empty();
 		}
 	}
@@ -1007,13 +1015,13 @@ void FStatsReadFile::ProcessStats()
 
 void FStatsReadFile::PostProcessStats()
 {
-	if (GetProcessingStage() != EStatsProcessingStage::SPS_Stopped)
+	if (!IsProcessingStopped())
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_PostProcessStats );
 	}
 }
 
-bool FStatsReadFile::UpdateReadStageProgress()
+void FStatsReadFile::UpdateReadStageProgress()
 {
 	const double CurrentSeconds = FPlatformTime::Seconds();
 	if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
@@ -1028,11 +1036,6 @@ bool FStatsReadFile::UpdateReadStageProgress()
 	if (bShouldStopProcessing == true)
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
-		return false;
-	}
-	else
-	{
-		return true;
 	}
 }
 
@@ -1069,7 +1072,7 @@ void FStatsReadFile::UpdateCombinedHistoryStats()
 			CombinedHistory.Num() );
 }
 
-bool FStatsReadFile::UpdateProcessStageProgress( const int32 CurrentStatMessageIndex, const int32 FrameIndex, const int32 PacketIndex )
+void FStatsReadFile::UpdateProcessStageProgress( const int32 CurrentStatMessageIndex, const int32 FrameIndex, const int32 PacketIndex )
 {	
 	const double CurrentSeconds = FPlatformTime::Seconds();
 	if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
@@ -1084,11 +1087,6 @@ bool FStatsReadFile::UpdateProcessStageProgress( const int32 CurrentStatMessageI
 	if (bShouldStopProcessing == true)
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
-		return false;
-	}
-	else
-	{
-		return true;
 	}
 }
 

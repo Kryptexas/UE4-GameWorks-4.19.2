@@ -191,6 +191,8 @@ void FNodeAllocationInfo::PrepareCallstackData( const TArray<FName>& InDecodedCa
 
 FRawStatsMemoryProfiler::FRawStatsMemoryProfiler( const TCHAR* InFilename )
 	: FStatsReadFile( InFilename, true )
+	, NumDuplicatedMemoryOperations( 0 )
+	, NumFWAMemoryOperations( 0 )
 	, NumMemoryOperations( 0 )
 	, LastSequenceTagForNamedMarker( 0 )
 {}
@@ -208,80 +210,107 @@ void FRawStatsMemoryProfiler::PostProcessStats()
 {
 	Super::PostProcessStats();
 
-	if (!SortSequenceAllocations())
+	const double StartTime = FPlatformTime::Seconds();
+
+	if (!IsProcessingStopped())
 	{
-		return;
+		SortSequenceAllocations();
+
+		// End marker.
+		Snapshots.Add( TPairInitializer<uint32, FName>( TNumericLimits<uint32>::Max(), TEXT( "EndSnapshot" ) ) );
+
+		// Copy snapshots.
+		SnapshotsToBeProcessed = Snapshots;
+
+		UE_LOG( LogStats, Log, TEXT( "NumMemoryOperations:   %i" ), NumMemoryOperations );
+		UE_LOG( LogStats, Log, TEXT( "SequenceAllocationNum: %i" ), SequenceAllocationArray.Num() );
+
+		GenerateAllocationMap();
+		DumpDebugAllocations();
 	}
 
-	// End marker.
-	Snapshots.Add( TPairInitializer<uint32, FName>( TNumericLimits<uint32>::Max(), TEXT( "EndSnapshot" ) ) );
+	// We don't need the allocation map. Each snapshot has its own copy.
+	AllocationMap.Empty();
 
-	// Copy snapshots.
-	SnapshotsToBeProcessed = Snapshots;
-
-	UE_LOG( LogStats, Warning, TEXT( "NumMemoryOperations:   %llu" ), NumMemoryOperations );
-	UE_LOG( LogStats, Warning, TEXT( "SequenceAllocationNum: %i" ), SequenceAllocationArray.Num() );
-
-	// Pass 2.
-	/*
-	TMap<uint32, FAllocationInfo> UniqueSeq;
-	TMultiMap<uint32, FAllocationInfo> OriginalAllocs;
-	TMultiMap<uint32, FAllocationInfo> BrokenAllocs;
-	for (const FAllocationInfo& Alloc : SequenceAllocationArray)
+	if (!IsProcessingStopped())
 	{
-		const FAllocationInfo* Found = UniqueSeq.Find( Alloc.SequenceTag );
-		if (!Found)
+		StageProgress.Set( 100 );
+
+		const double TotalTime = FPlatformTime::Seconds() - StartTime;
+		UE_LOG( LogStats, Log, TEXT( "Post-Processing took %.2f sec(s)" ), TotalTime );
+	}
+	else
+	{
+		UE_LOG( LogStats, Warning, TEXT( "Post-Processing stopped, abandoning" ) );
+	}
+}
+
+void FRawStatsMemoryProfiler::DumpDebugAllocations()
+{
+#if	UE_BUILD_DEBUG
+
+	// Dump problematic allocations
+	DuplicatedAllocMap.ValueSort( FAllocationInfoSizeGreater() );
+
+	uint64 TotalDuplicatedMemory = 0;
+	for (const auto& It : DuplicatedAllocMap)
+	{
+		const FAllocationInfo& Alloc = It.Value;
+		TotalDuplicatedMemory += Alloc.Size;
+	}
+
+	UE_LOG( LogStats, Warning, TEXT( "Dumping duplicated alloc map" ) );
+	const float MaxPctDisplayed = 0.80f;
+	uint64 DisplayedSoFar = 0;
+	for (const auto& It : DuplicatedAllocMap)
+	{
+		const FAllocationInfo& Alloc = It.Value;
+		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
+		UE_LOG( LogStats, Log, TEXT( "%lli (%.2f MB) %s" ), Alloc.Size, Alloc.Size / 1024.0f / 1024.0f, *AllocCallstack );
+
+		DisplayedSoFar += Alloc.Size;
+
+		const float CurrentPct = (float)DisplayedSoFar / (float)TotalDuplicatedMemory;
+		if (CurrentPct > MaxPctDisplayed)
 		{
-			UniqueSeq.Add( Alloc.SequenceTag, Alloc );
-		}
-		else
-		{
-			OriginalAllocs.Add( Alloc.SequenceTag, *Found );
-			BrokenAllocs.Add( Alloc.SequenceTag, Alloc );
+			break;
 		}
 	}
-	//*/
 
-	// Alive allocations.
-	TMap<uint64, FAllocationInfo> AllocationMap;
-	TMultiMap<uint64, FAllocationInfo> FreeWithoutAllocMap;
-	TMultiMap<uint64, FAllocationInfo> DuplicatedAllocMap;
-	int32 NumDuplicatedMemoryOperations = 0;
-	int32 NumFWAMemoryOperations = 0; // FreeWithoutAlloc
-	int32 NumZeroAllocs = 0; // Malloc(0)
+#endif // UE_BUILD_DEBUG
+}
 
+void FRawStatsMemoryProfiler::FreeDebugInformation()
+{
+	FreeWithoutAllocMap.Empty();
+	DuplicatedAllocMap.Empty();
+}
+
+void FRawStatsMemoryProfiler::GenerateAllocationMap()
+{
 	// Initialize the begin snapshot.
 	auto BeginSnapshot = SnapshotsToBeProcessed[0];
+
 	SnapshotsToBeProcessed.RemoveAt( 0 );
 	PrepareSnapshot( BeginSnapshot.Value, AllocationMap );
-
 	auto CurrentSnapshot = SnapshotsToBeProcessed[0];
 
-	UE_LOG( LogStats, Warning, TEXT( "Generating memory operations map" ) );
+	UE_LOG( LogStats, Log, TEXT( "Generating memory operations map" ) );
+
 	const int32 NumSequenceAllocations = SequenceAllocationArray.Num();
 	const int32 OnePercent = FMath::Max( NumSequenceAllocations / 100, 1024 );
-	for (int32 Index = 0; Index < NumSequenceAllocations; Index++)
+	for (int32 AllocationIndex = 0; AllocationIndex < NumSequenceAllocations; AllocationIndex++)
 	{
-		if (Index % OnePercent)
+		if (AllocationIndex % OnePercent == 0)
 		{
-			const double CurrentSeconds = FPlatformTime::Seconds();
-			if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
+			UpdateGenerateMemoryMapProgress( AllocationIndex );
+			if (IsProcessingStopped())
 			{
-				const int32 PercentagePos = int32( 100.0*(Index + 1) / NumSequenceAllocations );
-				StageProgress.Set( PercentagePos );
-				UE_LOG( LogStats, Verbose, TEXT( "Processing allocations %3i%% (%10i/%10i)" ), PercentagePos, Index + 1, NumSequenceAllocations );
-				LastUpdateTime = CurrentSeconds;
-
-				// Abandon support, simply return for now.
-				if (bShouldStopProcessing == true)
-				{
-					SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
-					return;
-				}
+				break;
 			}
 		}
 
-		const FAllocationInfo& Alloc = SequenceAllocationArray[Index];
+		const FAllocationInfo& Alloc = SequenceAllocationArray[AllocationIndex];
 
 		// Check named marker/snapshots
 		if (Alloc.SequenceTag > CurrentSnapshot.Key)
@@ -306,10 +335,10 @@ void FRawStatsMemoryProfiler::PostProcessStats()
 			}
 			else
 			{
+#if	UE_BUILD_DEBUG
 				const FAllocationInfo* FoundAndFreed = FreeWithoutAllocMap.Find( Found->Ptr );
 				const FAllocationInfo* FoundAndAllocated = FreeWithoutAllocMap.Find( Alloc.Ptr );
 
-#if	UE_BUILD_DEBUG
 				if (FoundAndFreed)
 				{
 					const FString FoundAndFreedCallstack = FStatsCallstack::GetHumanReadable( FoundAndFreed->EncodedCallstack );
@@ -365,7 +394,7 @@ void FRawStatsMemoryProfiler::PostProcessStats()
 
 #if	UE_BUILD_DEBUG
 				const FString ReallocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
-				//UE_LOG( LogStats, Warning, TEXT( "ReallocWithoutAlloc: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
+				UE_LOG( LogStats, VeryVerbose, TEXT( "ReallocWithoutAlloc: %s %i %i/%i [%i]" ), *ReallocCallstack, Alloc.Size, Alloc.OldPtr, Alloc.Ptr, Alloc.SequenceTag );
 #endif // UE_BUILD_DEBUG
 
 				AllocationMap.Add( Alloc.Ptr, Alloc );
@@ -391,48 +420,38 @@ void FRawStatsMemoryProfiler::PostProcessStats()
 
 #if	UE_BUILD_DEBUG
 				const FString FWACallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
-				//UE_LOG( LogStats, Warning, TEXT( "FreeWithoutAllocCallstack: %s %i" ), *FWACallstack, Alloc.Ptr );
+				UE_LOG( LogStats, VeryVerbose, TEXT( "FreeWithoutAllocCallstack: %s %i" ), *FWACallstack, Alloc.Ptr );
 #endif // UE_BUILD_DEBUG
 			}
 		}
 	}
-	StageProgress.Set( 100 );
 
 	auto EndSnapshot = SnapshotsToBeProcessed[0];
 	SnapshotsToBeProcessed.RemoveAt( 0 );
 	PrepareSnapshot( EndSnapshot.Value, AllocationMap );
 
-	UE_LOG( LogStats, Warning, TEXT( "NumDuplicatedMemoryOperations: %i" ), NumDuplicatedMemoryOperations );
-	UE_LOG( LogStats, Warning, TEXT( "NumFWAMemoryOperations:        %i" ), NumFWAMemoryOperations );
-	UE_LOG( LogStats, Warning, TEXT( "NumZeroAllocs:                 %i" ), NumZeroAllocs );
+	SnapshotNamesArray = SnapshotNamesSet.Array();
 
-	// Dump problematic allocations
-	DuplicatedAllocMap.ValueSort( FAllocationInfoSizeGreater() );
-	//FreeWithoutAllocMap
+	UE_LOG( LogStats, Verbose, TEXT( "NumDuplicatedMemoryOperations: %i" ), NumDuplicatedMemoryOperations );
+	UE_LOG( LogStats, Verbose, TEXT( "NumFWAMemoryOperations:        %i" ), NumFWAMemoryOperations );
+	UE_LOG( LogStats, Verbose, TEXT( "NumZeroAllocs:                 %i" ), NumZeroAllocs );
+}
 
-	uint64 TotalDuplicatedMemory = 0;
-	for (const auto& It : DuplicatedAllocMap)
+void FRawStatsMemoryProfiler::UpdateGenerateMemoryMapProgress( const int32 AllocationIndex )
+{
+	const double CurrentSeconds = FPlatformTime::Seconds();
+	if (CurrentSeconds > LastUpdateTime + NumSecondsBetweenUpdates)
 	{
-		const FAllocationInfo& Alloc = It.Value;
-		TotalDuplicatedMemory += Alloc.Size;
+		const int32 PercentagePos = int32( 100.0*AllocationIndex / SequenceAllocationArray.Num() );
+		StageProgress.Set( PercentagePos );
+		UE_LOG( LogStats, Verbose, TEXT( "Processing allocations %3i%% (%10i/%10i)" ), PercentagePos, AllocationIndex, SequenceAllocationArray.Num() );
+		LastUpdateTime = CurrentSeconds;
 	}
-
-	UE_LOG( LogStats, Warning, TEXT( "Dumping duplicated alloc map" ) );
-	const float MaxPctDisplayed = 0.80f;
-	uint64 DisplayedSoFar = 0;
-	for (const auto& It : DuplicatedAllocMap)
+	
+	// Abandon support.
+	if (bShouldStopProcessing == true)
 	{
-		const FAllocationInfo& Alloc = It.Value;
-		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( Alloc.EncodedCallstack );
-		UE_LOG( LogStats, Log, TEXT( "%lli (%.2f MB) %s" ), Alloc.Size, Alloc.Size / 1024.0f / 1024.0f, *AllocCallstack );
-
-		DisplayedSoFar += Alloc.Size;
-
-		const float CurrentPct = (float)DisplayedSoFar / (float)TotalDuplicatedMemory;
-		if (CurrentPct > MaxPctDisplayed)
-		{
-			break;
-		}
+		SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
 	}
 }
 
@@ -502,8 +521,10 @@ void FRawStatsMemoryProfiler::ProcessMemoryOperation( EMemoryOperation MemOp, ui
 	}
 }
 
-bool FRawStatsMemoryProfiler::SortSequenceAllocations()
+void FRawStatsMemoryProfiler::SortSequenceAllocations()
 {
+	FScopeLogTime SLT( TEXT( "SortSequenceAllocations" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
+
 	// Sort all memory operation by the sequence tag, iterate through all operation and generate memory usage.
 	SequenceAllocationArray.Sort( FAllocationInfoSequenceTagLess() );
 
@@ -511,20 +532,14 @@ bool FRawStatsMemoryProfiler::SortSequenceAllocations()
 	if (bShouldStopProcessing == true)
 	{
 		SetProcessingStage( EStatsProcessingStage::SPS_Stopped );
-		return false;
-	}
-	else
-	{
-		return true;
 	}
 }
 
 void FRawStatsMemoryProfiler::GenerateScopedTreeAllocations( const TMap<FName, FCombinedAllocationInfo>& ScopedAllocations, FNodeAllocationInfo& out_Root )
 {
-	// Experimental code, partially optimized.
-	// Decode all scoped allocations.
-	// Generate tree for allocations and combine them.
+	FScopeLogTime SLT( TEXT( "GenerateScopedTreeAllocations" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
 
+	// Decode all scoped allocations, generate tree for allocations and combine them.
 	for (const auto& It : ScopedAllocations)
 	{
 		const FName& EncodedCallstack = It.Key;
@@ -576,95 +591,16 @@ void FRawStatsMemoryProfiler::GenerateScopedTreeAllocations( const TMap<FName, F
 	out_Root.SortBySize();
 }
 
-
-void FRawStatsMemoryProfiler::GenerateMemoryUsageReport( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames )
+void FRawStatsMemoryProfiler::ProcessAndDumpUObjectAllocations( const FName SnapshotName )
 {
-	if (AllocationMap.Num() == 0)
+	if (!SnapshotsWithAllocationMap.Contains(SnapshotName))
 	{
-		UE_LOG( LogStats, Warning, TEXT( "There are no allocations, make sure memory profiler is enabled" ) );
-	}
-	else
-	{
-		//ProcessAndDumpUObjectAllocations( AllocationMap );
-		ProcessAndDumpScopedAllocations( AllocationMap );
-	}
-}
-
-void FRawStatsMemoryProfiler::ProcessAndDumpScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap )
-{
-	// This code is not optimized. 
-	FScopeLogTime SLT( TEXT( "ProcessingScopedAllocations" ), nullptr, FScopeLogTime::ScopeLog_Seconds );
-	UE_LOG( LogStats, Warning, TEXT( "Processing scoped allocations" ) );
-
-	const FString ReportName = FString::Printf( TEXT( "%s-Memory-Scoped" ), *GetPlatformName() );
-	FDiagnosticTableViewer MemoryReport( *FDiagnosticTableViewer::GetUniqueTemporaryFilePath( *ReportName ), true );
-
-	// Write a row of headings for the table's columns.
-	MemoryReport.AddColumn( TEXT( "Size (bytes)" ) );
-	MemoryReport.AddColumn( TEXT( "Size (MB)" ) );
-	MemoryReport.AddColumn( TEXT( "Count" ) );
-	MemoryReport.AddColumn( TEXT( "Callstack" ) );
-	MemoryReport.CycleRow();
-
-	TMap<FName, FCombinedAllocationInfo> CombinedAllocations;
-	uint64 TotalAllocatedMemory = 0;
-	uint64 NumAllocations = 0;
-	GenerateScopedAllocations( AllocationMap, CombinedAllocations, TotalAllocatedMemory, NumAllocations );
-
-	// Dump memory to the log.
-	CombinedAllocations.ValueSort( FCombinedAllocationInfoSizeGreater() );
-
-	const float MaxPctDisplayed = 0.90f;
-	int32 CurrentIndex = 0;
-	uint64 DisplayedSoFar = 0;
-	UE_LOG( LogStats, Warning, TEXT( "Index, Size (Size MB), Count, Stat desc" ) );
-	for (const auto& It : CombinedAllocations)
-	{
-		const FCombinedAllocationInfo& CombinedAllocation = It.Value;
-		const FName& EncodedCallstack = It.Key;
-
-		const FString AllocCallstack = FStatsCallstack::GetHumanReadable( EncodedCallstack );
-
-		UE_LOG( LogStats, Log, TEXT( "%2i, %llu (%.2f MB), %llu, %s" ),
-				CurrentIndex,
-				CombinedAllocation.Size,
-				CombinedAllocation.Size / 1024.0f / 1024.0f,
-				CombinedAllocation.Count,
-				*AllocCallstack );
-
-		// Dump stats
-		MemoryReport.AddColumn( TEXT( "%llu" ), CombinedAllocation.Size );
-		MemoryReport.AddColumn( TEXT( "%.2f MB" ), CombinedAllocation.Size / 1024.0f / 1024.0f );
-		MemoryReport.AddColumn( TEXT( "%llu" ), CombinedAllocation.Count );
-		MemoryReport.AddColumn( *AllocCallstack );
-		MemoryReport.CycleRow();
-
-		CurrentIndex++;
-		DisplayedSoFar += CombinedAllocation.Size;
-
-		const float CurrentPct = (float)DisplayedSoFar / (float)TotalAllocatedMemory;
-		if (CurrentPct > MaxPctDisplayed)
-		{
-			break;
-		}
+		UE_LOG( LogStats, Warning, TEXT( "Snapshot not found: %s" ), *SnapshotName.ToString() );
+		return;
 	}
 
-	UE_LOG( LogStats, Warning, TEXT( "Allocated memory: %llu bytes (%.2f MB)" ), TotalAllocatedMemory, TotalAllocatedMemory / 1024.0f / 1024.0f );
+	const TMap<uint64, FAllocationInfo>& AllocationMap = SnapshotsWithAllocationMap.FindChecked( SnapshotName );
 
-	// Add a total row.
-	MemoryReport.CycleRow();
-	MemoryReport.CycleRow();
-	MemoryReport.CycleRow();
-	MemoryReport.AddColumn( TEXT( "%llu" ), TotalAllocatedMemory );
-	MemoryReport.AddColumn( TEXT( "%.2f MB" ), TotalAllocatedMemory / 1024.0f / 1024.0f );
-	MemoryReport.AddColumn( TEXT( "%llu" ), NumAllocations );
-	MemoryReport.AddColumn( TEXT( "TOTAL" ) );
-	MemoryReport.CycleRow();
-}
-
-void FRawStatsMemoryProfiler::ProcessAndDumpUObjectAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames )
-{
-	// This code is not optimized. 
 	FScopeLogTime SLT( TEXT( "ProcessingUObjectAllocations" ), nullptr, FScopeLogTime::ScopeLog_Seconds );
 	UE_LOG( LogStats, Warning, TEXT( "Processing UObject allocations" ) );
 
@@ -725,13 +661,13 @@ void FRawStatsMemoryProfiler::ProcessAndDumpUObjectAllocations( const TMap<uint6
 	const float MaxPctDisplayed = 0.90f;
 	int32 CurrentIndex = 0;
 	uint64 DisplayedSoFar = 0;
-	UE_LOG( LogStats, Warning, TEXT( "Index, Size (Size MB), Count, UObject class" ) );
+	UE_LOG( LogStats, VeryVerbose, TEXT( "Index, Size (Size MB), Count, UObject class" ) );
 	for (const auto& It : UObjectAllocations)
 	{
 		const FCombinedAllocationInfo& CombinedAllocation = It.Value;
 		const FName& UObjectClass = It.Key;
 
-		UE_LOG( LogStats, Log, TEXT( "%2i, %llu (%.2f MB), %llu, %s" ),
+		UE_LOG( LogStats, VeryVerbose, TEXT( "%2i, %llu (%.2f MB), %llu, %s" ),
 				CurrentIndex,
 				CombinedAllocation.Size,
 				CombinedAllocation.Size / 1024.0f / 1024.0f,
@@ -755,7 +691,7 @@ void FRawStatsMemoryProfiler::ProcessAndDumpUObjectAllocations( const TMap<uint6
 		}
 	}
 
-	UE_LOG( LogStats, Warning, TEXT( "Allocated memory: %llu bytes (%.2f MB)" ), TotalAllocatedMemory, TotalAllocatedMemory / 1024.0f / 1024.0f );
+	UE_LOG( LogStats, VeryVerbose, TEXT( "Allocated memory: %llu bytes (%.2f MB)" ), TotalAllocatedMemory, TotalAllocatedMemory / 1024.0f / 1024.0f );
 
 	// Add a total row.
 	MemoryReport.CycleRow();
@@ -776,7 +712,6 @@ void FRawStatsMemoryProfiler::DumpScopedAllocations( const TCHAR* Name, const TM
 		return;
 	}
 
-	// This code is not optimized. 
 	FScopeLogTime SLT( TEXT( "ProcessingScopedAllocations" ), nullptr, FScopeLogTime::ScopeLog_Seconds );
 	UE_LOG( LogStats, Warning, TEXT( "Dumping scoped allocations: %s" ), Name );
 
@@ -790,19 +725,18 @@ void FRawStatsMemoryProfiler::DumpScopedAllocations( const TCHAR* Name, const TM
 	MemoryReport.AddColumn( TEXT( "Callstack" ) );
 	MemoryReport.CycleRow();
 
-
 	FCombinedAllocationInfo Total;
 
 	const float MaxPctDisplayed = 0.90f;
 	int32 CurrentIndex = 0;
-	UE_LOG( LogStats, Warning, TEXT( "Index, Size (Size MB), Count, Stat desc" ) );
+	UE_LOG( LogStats, VeryVerbose, TEXT( "Index, Size (Size MB), Count, Stat desc" ) );
 	for (const auto& It : CombinedAllocations)
 	{
 		const FCombinedAllocationInfo& CombinedAllocation = It.Value;
 		//const FName& EncodedCallstack = It.Key;
 		const FString AllocCallstack = It.Key;// GetCallstack( EncodedCallstack );
 
-		UE_LOG( LogStats, Log, TEXT( "%2i, %llu (%.2f MB), %llu, %s" ),
+		UE_LOG( LogStats, VeryVerbose, TEXT( "%2i, %llu (%.2f MB), %llu, %s" ),
 				CurrentIndex,
 				CombinedAllocation.Size,
 				CombinedAllocation.Size / 1024.0f / 1024.0f,
@@ -820,7 +754,7 @@ void FRawStatsMemoryProfiler::DumpScopedAllocations( const TCHAR* Name, const TM
 		Total += CombinedAllocation;
 	}
 
-	UE_LOG( LogStats, Warning, TEXT( "Allocated memory: %llu bytes (%.2f MB)" ), Total.Size, Total.SizeMB );
+	UE_LOG( LogStats, VeryVerbose, TEXT( "Allocated memory: %llu bytes (%.2f MB)" ), Total.Size, Total.SizeMB );
 
 	// Add a total row.
 	MemoryReport.CycleRow();
@@ -857,11 +791,11 @@ void FRawStatsMemoryProfiler::PrepareSnapshot( const FName SnapshotName, const T
 
 	// Make sure the snapshot name is unique.
 	FName UniqueSnapshotName = SnapshotName;
-	while (SnapshotNames.Contains( UniqueSnapshotName ))
+	while (SnapshotNamesSet.Contains( UniqueSnapshotName ))
 	{
 		UniqueSnapshotName = FName( UniqueSnapshotName, UniqueSnapshotName.GetNumber() + 1 );
 	}
-	SnapshotNames.Add( UniqueSnapshotName );
+	SnapshotNamesSet.Add( UniqueSnapshotName );
 
 	SnapshotsWithAllocationMap.Add( UniqueSnapshotName, AllocationMap );
 
@@ -884,8 +818,10 @@ void FRawStatsMemoryProfiler::PrepareSnapshot( const FName SnapshotName, const T
 	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Alloc: %i Scoped: %i Total: %.2f MB" ), *UniqueSnapshotName.ToString(), AllocationMap.Num(), SnapshotCombinedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f );
 }
 
-void FRawStatsMemoryProfiler::CompareSnapshots_FName( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result )
+void FRawStatsMemoryProfiler::CompareSnapshots( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result )
 {
+	FScopeLogTime SLT( TEXT( "CompareSnapshots" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
+
 	const auto BeginSnaphotPtr = SnapshotsWithScopedAllocations.Find( BeginSnaphotName );
 	const auto EndSnapshotPtr = SnapshotsWithScopedAllocations.Find( EndSnaphotName );
 	if (BeginSnaphotPtr && EndSnapshotPtr)
@@ -923,8 +859,10 @@ void FRawStatsMemoryProfiler::CompareSnapshots_FName( const FName BeginSnaphotNa
 	}
 }
 
-void FRawStatsMemoryProfiler::CompareSnapshots_FString( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FString, FCombinedAllocationInfo>& out_Result )
+void FRawStatsMemoryProfiler::CompareSnapshotsHumanReadable( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FString, FCombinedAllocationInfo>& out_Result )
 {
+	FScopeLogTime SLT( TEXT( "CompareSnapshotsHumanReadable" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
+
 	const auto BeginSnaphotPtr = SnapshotsWithDecodedScopedAllocations.Find( BeginSnaphotName );
 	const auto EndSnapshotPtr = SnapshotsWithDecodedScopedAllocations.Find( EndSnaphotName );
 	if (BeginSnaphotPtr && EndSnapshotPtr)

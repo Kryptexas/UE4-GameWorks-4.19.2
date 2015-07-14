@@ -878,16 +878,17 @@ struct CORE_API FStatsReadFile
 	/** Number of seconds between updating the current stage. */
 	static const double NumSecondsBetweenUpdates;
 
-public:
 	/** Creates a new reader for regular stats file. Will be nullptr for invalid files. */
 	static FStatsReadFile* CreateReaderForRegularStats( const TCHAR* Filename );
 
+public:
 	/** Reads and processes the file on the current thread. This is a blocking operation. */
 	void ReadAndProcessSynchronously();
 
 	/** Reads and processes the file using the async tasks on the pool thread. The read data is sent to the game thread using the task graph. This is a non-blocking operation. */
 	void ReadAndProcessAsynchronously();
 
+protected:
 	/** Initialization constructor. */
 	FStatsReadFile( const TCHAR* InFilename, bool bInRawStatsFile );
 
@@ -975,6 +976,14 @@ public:
 	}
 
 	/**
+	 * @return true, if a user stopped the processing, probably using the Cancel button in the UI.
+	 */
+	const bool IsProcessingStopped() const
+	{
+		return GetProcessingStage() == EStatsProcessingStage::SPS_Stopped;
+	}
+
+	/**
 	 * @return current processing stage as string key.
 	 */
 	FString GetProcessingStageAsString() const
@@ -1042,20 +1051,16 @@ public:
 protected:
 	/**
 	 * Updates read stage progress periodically, does debug logging if enabled.
-	 *
-	 * @return true, if finished, false otherwise like stopped.
 	 */
-	bool UpdateReadStageProgress();
+	void UpdateReadStageProgress();
 
 	/** Dumps combined history stats. Only for raw stats. */
 	void UpdateCombinedHistoryStats();
 
 	/**
 	 * Updates process stage progress periodically, does debug logging if enabled.
-	 *
-	 * @return true, if finished, false otherwise like stopped.
 	 */
-	bool UpdateProcessStageProgress( const int32 CurrentStatMessageIndex, const int32 FrameIndex, const int32 PacketIndex );
+	void UpdateProcessStageProgress( const int32 CurrentStatMessageIndex, const int32 FrameIndex, const int32 PacketIndex );
 
 protected:
 	/** Current state of the stats. Mostly for metadata. */

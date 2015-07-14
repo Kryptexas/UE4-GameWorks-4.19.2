@@ -266,21 +266,29 @@ protected:
 	virtual void ProcessMemoryOperation( EMemoryOperation MemOp, uint64 Ptr, uint64 NewPtr, int64 Size, uint32 SequenceTag, const FStackState& StackState ) override;
 
 	/**
-	 * Sorts sequence allocations.
-	 *
-	 * @return true, if finished, false otherwise like stopped.
+	 * Updates process stage progress periodically, does debug logging if enabled.
 	 */
-	bool SortSequenceAllocations();
+	void UpdateGenerateMemoryMapProgress( const int32 AllocationIndex );
+
+	/**
+	 * Sorts sequence allocations.
+	 */
+	void SortSequenceAllocations();
+
+	/**
+	 *	Generates allocation map and processes all memory snapshots .
+	 */
+	void GenerateAllocationMap();
+
+	/** Dumps debug allocations. */
+	void DumpDebugAllocations();
+
+	/** Frees memory used by the debug information. */
+	void FreeDebugInformation();
 
 public:
-	/** Generates a basic memory usage report and prints it to the log. */
-	void GenerateMemoryUsageReport( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames );
-
-	/** Generates scoped allocation statistics. */
-	void ProcessAndDumpScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap );
-
 	/** Generates UObject allocation statistics. */
-	void ProcessAndDumpUObjectAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, const TSet<FName>& UObjectRawNames );
+	void ProcessAndDumpUObjectAllocations( const FName SnapshotName );
 
 	void DumpScopedAllocations( const TCHAR* Name, const TMap<FString, FCombinedAllocationInfo>& CombinedAllocations );
 
@@ -292,34 +300,54 @@ public:
 	/** Prepares data for a snapshot. */
 	void PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& AllocationMap );
 
-	void CompareSnapshots_FName( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result );
+	/** Compare two snapshots and saves the result for further processing. */
+	void CompareSnapshots( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result );
 
-	void CompareSnapshots_FString( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FString, FCombinedAllocationInfo>& out_Result );
-
+	/** Compare two snapshots and saves the result in human readable format, results can be saved to a file. */
+	void CompareSnapshotsHumanReadable( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FString, FCombinedAllocationInfo>& out_Result );
 
 	/**
-	* @return Platform's name based on the loaded ue4statsraw file
-	*/
+	 * @return a set of all snapshot names.
+	 */
+	const TArray<FName> GetSnapshotNames() const
+	{
+		return SnapshotNamesArray;
+	}
+
+	/**
+	 * @return Platform's name based on the loaded ue4statsraw file.
+	 */
 	const FString& GetPlatformName() const
 	{
 		return Header.PlatformName;
 	}
 
+	/**
+	 * @return true, if the file contains any usable data.
+	 */
+	bool HasValidData() const
+	{
+		return SnapshotNamesArray.Num() >= 2;
+	}
+
 protected:
 	/**
-	 *	 All allocation ordered by the sequence tag.
+	 *	 All allocations ordered by the sequence tag.
 	 *	 There is an assumption that the sequence tag will not turn-around.
 	 */
 	TArray<FAllocationInfo> SequenceAllocationArray;
 
-	/** Allocation map. */
-	//TMap<uint64, FAllocationInfo>& AllocationMap;
+	/** Map of currently alive allocations. Ptr to AllocationInfo. */
+	TMap<uint64, FAllocationInfo> AllocationMap;
 
 	/** The sequence tag mapping to the named markers. */
 	TArray<TPair<uint32, FName>> Snapshots;
 
 	/** Unique snapshot names. */
-	TSet<FName> SnapshotNames;
+	TSet<FName> SnapshotNamesSet;
+
+	/** Unique snapshot names, the same as SnapshotNamesSet. */
+	TArray<FName> SnapshotNamesArray;
 
 	/** The sequence tag mapping to the named markers that need to processed. */
 	TArray<TPair<uint32, FName>> SnapshotsToBeProcessed;
@@ -332,10 +360,25 @@ protected:
 
 	TMap<FName, TMap<FString, FCombinedAllocationInfo> > SnapshotsWithDecodedScopedAllocations;
 
+	/** Free without allocation map. Debug only. */
+	TMultiMap<uint64, FAllocationInfo> FreeWithoutAllocMap;
+
+	/** Duplicated allocation map. Debug only. */
+	TMultiMap<uint64, FAllocationInfo> DuplicatedAllocMap;
+
+	/** Number of duplicated memory operations. */
+	int32 NumDuplicatedMemoryOperations;
+
+	/** Number of Free without Alloc. */
+	int32 NumFWAMemoryOperations;
+
+	/** Number of Malloc(0). */
+	int32 NumZeroAllocs = 0;
+
 	/** Number of memory operations. */
-	uint64 NumMemoryOperations;
+	int32 NumMemoryOperations;
 
 	/** Last sequence tag for named marker. */
-	uint32 LastSequenceTagForNamedMarker;
+	int32 LastSequenceTagForNamedMarker;
 };
 

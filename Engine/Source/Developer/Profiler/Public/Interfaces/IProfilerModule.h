@@ -24,6 +24,9 @@ public:
 	/** Implements stats memory dump command. */
 	virtual void StatsMemoryDumpCommand( const TCHAR* Filename ) = 0;
 
-	/** Creates a new instance of the memory profiler based the raw stats. */
+	/** 
+	 * Creates a new instance of the memory profiler based the raw stats. 
+	 * When no longer needed must be stopped via RequestStop() and deleted to avoid memory leaks.
+	 */
 	virtual FRawStatsMemoryProfiler* OpenRawStatsForMemoryProfiling( const TCHAR* Filename ) = 0;
 };
