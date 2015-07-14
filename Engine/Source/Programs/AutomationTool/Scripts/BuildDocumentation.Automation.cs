@@ -36,7 +36,8 @@ class ToolsForDocumentationNode : GUBP.CompileNode
         var Agenda = new UE4Build.BuildAgenda();
 		Agenda.DotNetSolutions.Add("Engine/Source/Programs/UnrealDocTool/APIDocTool/APIDocTool.sln");
 		Agenda.DotNetSolutions.Add("Engine/Source/Programs/UnrealDocTool/UnrealDocTool/UnrealDocTool.sln");
-        return Agenda;
+		Agenda.DotNetSolutions.Add("Engine/Source/Programs/UnrealDocTool/DoxygenInputFilter/DoxygenInputFilter.sln");
+		return Agenda;
     }
 }
 	
