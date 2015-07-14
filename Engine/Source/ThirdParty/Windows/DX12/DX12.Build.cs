@@ -23,7 +23,6 @@ public class DX12 : ModuleRules
 		PublicDelayLoadDLLs.AddRange( new string[] {
 			"d3d12.dll"
 			} );
-		}
 
 		PublicAdditionalLibraries.AddRange(
 			new string[] {
