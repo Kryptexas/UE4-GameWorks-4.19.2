@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2615877
 Availability:Public
 Title:ライティングのコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -50,8 +50,6 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 [TOC(start:2 end:2)]
 
-
-## 概要
 
 Content Examples プロジェクトの中にある **Lighting** マップでは、アンリアル エンジン 4 で使用できる様々なライトのタイプに加え lit 環境をより現実的に作成しやすく調整する設定も説明します。 
 マップは幾つかのセクションに分かれています。最初の 2 セクションではライトの種類と可動性、そして残りのセクションではシャドウイング、フォールオフ、高度なテクニックを紹介しています。 
@@ -110,7 +108,7 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 
 | 例 | 実演内容 |
 | ------- | ------------ |
-| **[5.1 Source Radius (Static Lights)](Resources\ContentExamples\Lighting\5_1)** | ソフトあるいはハード シャドウが **Static Light** の **Source Radius** の調整によりどのように作成されるかを説明します。 |
+| **[5.1 Source Radius (Static Lights)](Resources\ContentExamples\Lighting\5_1)** | ソフトあるいはハード シャドウが **Static Light** の Source Radius の調整によりどのように作成されるかを説明します。 |
 | **[5.2 Lightsource Radius](Resources\ContentExamples\Lighting\5_2)** | この例は **固定** または **可動** ライト上に及ぼす **Source Radius** の影響とスペキュラ反射に与える影響を紹介します。 |
 | **[5.3 Lightsource Length](Resources\ContentExamples\Lighting\5_3)** |  **Source Length** を使用してどのようにライトの反射形状が変更されるのかを説明します(蛍光照明器具からの反射)。 |
 | **[5.4 Min Roughness](Resources\ContentExamples\Lighting\5_4)** | 反射が強すぎるハイライトを **Min Roughness** 設定の調整でぼかす方法を実演します。 |
@@ -129,7 +127,7 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 [REGION:note]
 ライトの半径または形状のインジケーターを表示するには、ライトを選択しなくてはいけません。
 
-ライトの半径や形状を表すインジケーターが表示されない場合、ビューポートの **[Show]** (表示) メニューを必ずクリックして **[Use Defaults]** (デフォルトを使用) を選択してください。
+ライトの半径や形状を表すインジケーターが表示されない場合、ビューポートの **[Show (表示)]** メニューを必ずクリックして **[Use Defaults (デフォルトを使用)]** を選択してください。
 [/REGION]
 [/EXCERPT:RadiusNote]
 
@@ -139,7 +137,7 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 
 
 [EXCERPT:LightMobility]
-オブジェクトでは次の 3 種類の可動性、 **Static (静的)** 、 **Stationary (固定)** 、そして **Movable (可動)** が利用できます。可動性はオブジェクトの選択時に **[Details]** (詳細) パネルの上部で設定可能です。
+オブジェクトでは次の 3 種類の可動性、 Static (静的) 、 Stationary (固定) 、そして Movable** が利用できます。可動性はオブジェクトの選択時に **[Details (詳細)]** パネルの上部で設定可能です。
 
 ![](MobilitySetting.png)
 [/EXCERPT:LightMobility]
