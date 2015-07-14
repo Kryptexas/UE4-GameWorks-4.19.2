@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using UnrealBuildTool;
 
 namespace AutomationTool
 {
@@ -10,6 +11,8 @@ namespace AutomationTool
 	public abstract class BuildNode
 	{
 		public string Name;
+		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
+		public string AgentRequirements;
 		public string AgentSharingGroup;
 		public int FrequencyShift;
 		public int AgentMemoryRequirement;
@@ -26,6 +29,7 @@ namespace AutomationTool
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;
 		public bool SendSuccessEmail;
+		public bool IsParallelAgentShareEditor;
 
 		public abstract bool IsSticky
 		{

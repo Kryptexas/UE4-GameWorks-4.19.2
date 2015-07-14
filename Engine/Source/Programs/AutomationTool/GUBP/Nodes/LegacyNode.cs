@@ -12,6 +12,7 @@ namespace AutomationTool
 		{
 			Name = InNode.GetFullName();
 			Node = InNode;
+			AgentRequirements = Node.ECAgentString();
 			AgentSharingGroup = Node.AgentSharingGroup;
 			AgentMemoryRequirement = Node.AgentMemoryRequirement();
 			TimeoutInMinutes = Node.TimeoutInMinutes();

@@ -93,34 +93,9 @@ partial class GUBP
         {
             return 100.0f;
         }
-        public virtual void SetAsExplicitTrigger()
-        {
-
-        }
         public virtual string ECAgentString()
         {
             return "";
-        }
-        public virtual string ECProcedureInfix()
-        {
-            return "";
-        }
-        public virtual string ECProcedure()
-        {
-            if (IsSticky() && AgentSharingGroup != "")
-            {
-                throw new AutomationException("Node {0} is both agent sharing and sitcky.", GetFullName());
-            }
-            return String.Format("GUBP{0}_UAT_Node{1}{2}", ECProcedureInfix(), IsSticky() ? "" : "_Parallel", AgentSharingGroup != "" ? "_AgentShare" : "");
-        }
-        public virtual string ECProcedureParams()
-        {
-            var Result = String.Format(", {{actualParameterName => 'Sticky', value => '{0}'}}", IsSticky() ? 1 : 0);
-            if (AgentSharingGroup != "")
-            {
-                Result += String.Format(", {{actualParameterName => 'AgentSharingGroup', value => '{0}'}}", AgentSharingGroup);
-            }
-            return Result;
         }
         public static string MergeSpaceStrings(params string[] EmailLists)
         {
@@ -270,29 +245,15 @@ partial class GUBP
 			}
             return "";
         }
+		public override BuildNode GetBuildNode()
+		{
+			BuildNode Node = base.GetBuildNode();
+			Node.AgentPlatform = GetAgentPlatform();
+			return Node;
+		}
         public virtual UnrealTargetPlatform GetAgentPlatform()
         {
             return HostPlatform;
-        }
-        public override string ECProcedureInfix()
-        {
-            if (GetAgentPlatform() == UnrealTargetPlatform.Mac)
-            {
-                if (IsSticky())
-                {
-                    throw new AutomationException("Node {0} is sticky, but Mac hosted. Sticky nodes must be PC hosted.", GetFullName());
-                }
-                return "_Mac";
-            }
-			if(GetAgentPlatform() == UnrealTargetPlatform.Linux)
-			{
-				if(IsSticky())
-				{
-					throw new AutomationException("Node {0} is sticky, but Linux hosted. Sticky nodes must be PC hosted.", GetFullName());
-				}
-				return "_Linux";
-			}
-            return "";
         }
         public virtual string GetHostPlatformSuffix()
         {
@@ -404,14 +365,15 @@ partial class GUBP
             }
             return false;
         }
-        public override string ECProcedure()
-        {
-            if (HostPlatform == UnrealTargetPlatform.Win64)
-            {
-                return String.Format("GUBP_UAT_Node_Parallel_AgentShare_Editor");
-            }
-            return base.ECProcedure();
-        }
+		public override BuildNode GetBuildNode()
+		{
+			BuildNode Node = base.GetBuildNode();
+			if(HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				Node.IsParallelAgentShareEditor = true;
+			}
+			return Node;
+		}
         public override bool DeleteBuildProducts()
         {
             return true;
@@ -505,15 +467,16 @@ partial class GUBP
             }
             return false;
         }
-        public override string ECProcedure()
-        {
-            if (HostPlatform == UnrealTargetPlatform.Win64)
-            {
-                return String.Format("GUBP_UAT_Node_Parallel_AgentShare_Editor");
-            }
-            return base.ECProcedure();
-        }
-        public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
+		public override BuildNode GetBuildNode()
+		{
+			BuildNode Node = base.GetBuildNode();
+			if (HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				Node.IsParallelAgentShareEditor = true;
+			}
+			return Node;
+		}
+		public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
             var Agenda = new UE4Build.BuildAgenda();
 
@@ -1093,20 +1056,21 @@ partial class GUBP
         public override bool IsSticky()
         {
             if (HostPlatform == UnrealTargetPlatform.Win64)
-        {
+	        {
                 return true;
             }
             return false;
         }
-        public override string ECProcedure()
-        {
-            if (HostPlatform == UnrealTargetPlatform.Win64)
-            {
-                return String.Format("GUBP_UAT_Node_Parallel_AgentShare_Editor");
-            }
-            return base.ECProcedure();
-        }
-        public override string GameNameIfAnyForTempStorage()
+		public override BuildNode GetBuildNode()
+		{
+			BuildNode Node = base.GetBuildNode();
+			if (HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				Node.IsParallelAgentShareEditor = true;
+			}
+			return Node;
+		}
+		public override string GameNameIfAnyForTempStorage()
         {
             return GameProjects[0].Options(HostPlatform).GroupName ?? GameProjects[0].GameName;
             }                    
@@ -1798,10 +1762,8 @@ partial class GUBP
 
     public class WaitForUserInput : GUBPNode
     {
-        protected bool bTriggerWasTriggered;
         public WaitForUserInput()
         {
-            bTriggerWasTriggered = false;
         }
 
         public override void DoBuild(GUBP bp)
@@ -1812,14 +1774,6 @@ partial class GUBP
         public override BuildNode GetBuildNode()
         {
 			return new TriggerNode(this);
-        }
-        public override void SetAsExplicitTrigger()
-        {
-            bTriggerWasTriggered = true;
-        }
-        public override bool IsSticky()
-        {
-            return bTriggerWasTriggered;
         }
         public virtual string GetTriggerStateName()
         {
@@ -1836,28 +1790,6 @@ partial class GUBP
         public virtual bool TriggerRequiresRecursiveWorkflow()
         {
             return true;
-        }
-        public override string ECProcedure()
-        {
-            if (bTriggerWasTriggered)
-            {
-                return base.ECProcedure(); // after this user hits the trigger, we want to run this as an ordinary node
-            }
-            if (TriggerRequiresRecursiveWorkflow())
-            {
-                return String.Format("GUBP_UAT_Trigger"); //here we run a recursive workflow to wait for the trigger
-            }
-            return String.Format("GUBP_Hardcoded_Trigger"); //here we advance the state in the hardcoded workflow so folks can approve
-        }
-        public override string ECProcedureParams()
-        {
-            var Result = base.ECProcedureParams();
-            if (!bTriggerWasTriggered)
-            {
-                Result += String.Format(", {{actualParameterName => 'TriggerState', value => '{0}'}}, {{actualParameterName => 'ActionText', value =>\"{1}\"}}, {{actualParameterName => 'DescText', value =>\"{2}\"}}", GetTriggerStateName(), GetTriggerActionText(), GetTriggerDescText());
-                //Result += String.Format(" --actualParameter TriggerState={0} --actualParameter ActionText=\"{1}\" --actualParameter DescText=\"{2}\"", GetTriggerStateName(), GetTriggerActionText(), GetTriggerDescText());
-            }
-            return Result;
         }
         public override int TimeoutInMinutes()
         {

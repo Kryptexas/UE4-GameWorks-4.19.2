@@ -203,12 +203,11 @@ public partial class GUBP : BuildCommand
         {
             if (!String.IsNullOrEmpty(ExplicitTriggerName))
             {
-                foreach (TriggerNode Node in AllNodes.OfType<TriggerNode>())
+                foreach (TriggerNode Trigger in AllNodes.OfType<TriggerNode>())
                 {
-                    if (Node.Name.Equals(ExplicitTriggerName, StringComparison.InvariantCultureIgnoreCase))
+					if (Trigger.Name.Equals(ExplicitTriggerName, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        Node.Node.SetAsExplicitTrigger();
-						ExplicitTrigger = Node;
+						Trigger.Activate();
                         break;
                     }
                 }
@@ -221,9 +220,9 @@ public partial class GUBP : BuildCommand
             {
                 if (bSkipTriggers)
                 {
-                    foreach (TriggerNode Node in AllNodes.OfType<TriggerNode>())
+                    foreach (TriggerNode Trigger in AllNodes.OfType<TriggerNode>())
                     {
-                        Node.Node.SetAsExplicitTrigger();
+						Trigger.Activate();
                     }
                 }
             }
@@ -507,7 +506,6 @@ public partial class GUBP : BuildCommand
 
         bool bShowDependencies = bp.ParseParam("ShowDependencies");
         bool AddEmailProps = bp.ParseParam("ShowEmails");
-        bool ECProc = bp.ParseParam("ShowECProc");
         string LastControllingTrigger = "";
         string LastAgentGroup = "";
 
@@ -561,7 +559,7 @@ public partial class GUBP : BuildCommand
 				Builder.Append(" - (Sticky)");
 			}
 
-            string Agent = NodeToDo.Node.ECAgentString();
+            string Agent = NodeToDo.AgentRequirements;
 			if(ParseParamValue("AgentOverride") != "" && !NodeToDo.Node.GetFullName().Contains("Mac"))
 			{
 				Agent = ParseParamValue("AgentOverride");
@@ -578,10 +576,6 @@ public partial class GUBP : BuildCommand
             {
 				Builder.AppendFormat(" {0}", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
             }
-			if(ECProc)
-			{
-				Builder.AppendFormat("  {0}", NodeToDo.Node.ECProcedure());
-			}
 			Log(Builder.ToString());
 
             if (bShowDependencies)

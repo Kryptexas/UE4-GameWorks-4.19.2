@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using UnrealBuildTool;
 
 namespace AutomationTool
 {
@@ -70,7 +71,7 @@ namespace AutomationTool
 			List<string> ECProps = new List<string>();
 			ECProps.Add("FailEmails/" + NodeToDo.Name + "=" + String.Join(" ", NodeToDo.RecipientsForFailureEmails));
 	
-			string AgentReq = NodeToDo.Node.ECAgentString();
+			string AgentReq = NodeToDo.AgentRequirements;
 			if(Command.ParseParamValue("AgentOverride") != "" && !NodeToDo.Name.Contains("OnMac"))
 			{
 				AgentReq = Command.ParseParamValue("AgentOverride");
@@ -238,7 +239,6 @@ namespace AutomationTool
 				}
 			}
 
-			List<string> FakeECArgs = new List<string>();
 			using(CommandUtils.TelemetryStopwatch PerlOutputStopwatch = new CommandUtils.TelemetryStopwatch("PerlOutput"))
 			{
 				string ParentPath = Command.ParseParamValue("ParentPath");
@@ -288,34 +288,90 @@ namespace AutomationTool
 						ECProps.AddRange(NodeProps);
 
 						bool Sticky = NodeToDo.IsSticky;
-						bool DoParallel = !Sticky;
-						if (NodeToDo.Node.ECProcedure() == "GUBP_UAT_Node_Parallel_AgentShare_Editor")
+						if(NodeToDo.IsSticky)
 						{
-							DoParallel = true;
-						}
-						if (Sticky && NodeToDo.Node.ECAgentString() != "")
-						{
-							throw new AutomationException("Node {1} is sticky but has agent requirements.", NodeToDo.Name);
-						}
-						string Procedure = NodeToDo.Node.ECProcedure();
-						if (NodeToDo.IsSticky && NodeToDo == LastSticky)
-						{
-							Procedure = Procedure + "_Release";
-						}
-						string Args = String.Format("{0}, subprocedure => '{1}', parallel => '{2}', jobStepName => '{3}', actualParameter => [{{actualParameterName => 'NodeName', value =>'{4}'}}",
-							BaseArgs, Procedure, DoParallel ? 1 : 0, NodeToDo.Name, NodeToDo.Name);
-						string ProcedureParams = NodeToDo.Node.ECProcedureParams();
-						if (!String.IsNullOrEmpty(ProcedureParams))
-						{
-							Args = Args + ProcedureParams;
+							if(NodeToDo.AgentSharingGroup != "")
+							{
+								throw new AutomationException("Node {0} is both agent sharing and sitcky.", NodeToDo.Name);
+							}
+							if(NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
+							{
+								throw new AutomationException("Node {0} is sticky, but {1} hosted. Sticky nodes must be PC hosted.", NodeToDo.Name, NodeToDo.AgentPlatform);
+							}
+							if(NodeToDo.AgentRequirements != "")
+							{
+								throw new AutomationException("Node {0} is sticky but has agent requirements.", NodeToDo.Name);
+							}
 						}
 
-						if ((Procedure == "GUBP_UAT_Trigger" || Procedure == "GUBP_Hardcoded_Trigger") && NodeToDo.RecipientsForFailureEmails.Length > 0)
+						string ProcedureInfix = "";
+						if(NodeToDo.AgentPlatform != UnrealTargetPlatform.Unknown && NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
 						{
-							Args = Args + ", {actualParameterName => 'EmailsForTrigger', value => \'" + String.Join(" ", NodeToDo.RecipientsForFailureEmails) + "\'}";
+							ProcedureInfix = "_" + NodeToDo.AgentPlatform.ToString();
 						}
-						Args = Args + "]";
 
+						bool DoParallel = !Sticky || NodeToDo.IsParallelAgentShareEditor;
+						
+						TriggerNode TriggerNodeToDo = NodeToDo as TriggerNode;
+
+						List<Tuple<string, string>> Parameters = new List<Tuple<string,string>>();
+
+						Parameters.Add(new Tuple<string, string>("NodeName", NodeToDo.Name));
+						Parameters.Add(new Tuple<string, string>("Sticky", NodeToDo.IsSticky ? "1" : "0"));
+
+						if (NodeToDo.AgentSharingGroup != "")
+						{
+							Parameters.Add(new Tuple<string, string>("AgentSharingGroup", NodeToDo.AgentSharingGroup));
+						}
+
+						string Procedure;
+						if(TriggerNodeToDo == null || TriggerNodeToDo.IsTriggered)
+						{
+							if (NodeToDo.IsParallelAgentShareEditor)
+							{
+								Procedure = "GUBP_UAT_Node_Parallel_AgentShare_Editor";
+							}
+							else
+							{
+								Procedure = "GUBP" + ProcedureInfix + "_UAT_Node";
+								if (!NodeToDo.IsSticky)
+								{
+									Procedure += "_Parallel";
+								}
+								if (NodeToDo.AgentSharingGroup != "")
+								{
+									Procedure += "_AgentShare";
+								}
+							}
+							if (NodeToDo.IsSticky && NodeToDo == LastSticky)
+							{
+								Procedure += "_Release";
+							}
+						}
+						else
+						{
+							if(TriggerNodeToDo.RequiresRecursiveWorkflow)
+							{
+				                Procedure = "GUBP_UAT_Trigger"; //here we run a recursive workflow to wait for the trigger
+							}
+							else
+							{
+								Procedure = "GUBP_Hardcoded_Trigger"; //here we advance the state in the hardcoded workflow so folks can approve
+							}
+
+							Parameters.Add(new Tuple<string, string>("TriggerState", TriggerNodeToDo.StateName));
+							Parameters.Add(new Tuple<string, string>("ActionText", TriggerNodeToDo.ActionText));
+							Parameters.Add(new Tuple<string, string>("DescText", TriggerNodeToDo.DescriptionText));
+
+							if (NodeToDo.RecipientsForFailureEmails.Length > 0)
+							{
+								Parameters.Add(new Tuple<string, string>("EmailsForTrigger", String.Join(" ", NodeToDo.RecipientsForFailureEmails)));
+							}
+						}
+
+						string ActualParameterArgs = String.Join(", ", Parameters.Select(x => String.Format("{{actualParameterName => '{0}', value => '{1}'}}", x.Item1, x.Item2)));
+						string Args = String.Format("{0}, subprocedure => '{1}', parallel => '{2}', jobStepName => '{3}', actualParameter => [{4}]", BaseArgs, Procedure, DoParallel? 1 : 0, NodeToDo.Name, ActualParameterArgs);
+						
 						List<BuildNode> UncompletedEcDeps = new List<BuildNode>();
 						{
 							foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
@@ -368,7 +424,7 @@ namespace AutomationTool
 								}
 								{
 									string NestArgs = String.Format("$batch->createJobStep({{parentPath => '{0}/jobSteps[{1}]', jobStepName => '{2}_GetPool', subprocedure => 'GUBP{3}_AgentShare_GetPool', parallel => '1', actualParameter => [{{actualParameterName => 'AgentSharingGroup', value => '{4}'}}, {{actualParameterName => 'NodeName', value => '{5}'}}]",
-										ParentPath, MyAgentGroup, MyAgentGroup, NodeToDo.Node.ECProcedureInfix(), MyAgentGroup, NodeToDo.Name);
+										ParentPath, MyAgentGroup, MyAgentGroup, ProcedureInfix, MyAgentGroup, NodeToDo.Name);
 									if (!String.IsNullOrEmpty(PreCondition))
 									{
 										NestArgs = NestArgs + ", precondition => " + PreCondition;
@@ -378,7 +434,7 @@ namespace AutomationTool
 								}
 								{
 									string NestArgs = String.Format("$batch->createJobStep({{parentPath => '{0}/jobSteps[{1}]', jobStepName => '{2}_GetAgent', subprocedure => 'GUBP{3}_AgentShare_GetAgent', parallel => '1', exclusiveMode => 'call', resourceName => '{4}', actualParameter => [{{actualParameterName => 'AgentSharingGroup', value => '{5}'}}, {{actualParameterName => 'NodeName', value=> '{6}'}}]",
-										ParentPath, MyAgentGroup, MyAgentGroup, NodeToDo.Node.ECProcedureInfix(),
+										ParentPath, MyAgentGroup, MyAgentGroup, ProcedureInfix,
 										String.Format("$[/myJob/jobSteps[{0}]/ResourcePool]", MyAgentGroup),
 										MyAgentGroup, NodeToDo.Name);
 									{
@@ -421,31 +477,6 @@ namespace AutomationTool
 						}
 						Args = Args + "});";
 						StepList.Add(Args);
-						if (bFakeEC &&
-							!UnfinishedTriggers.Contains(NodeToDo) &&
-							(NodeToDo.Node.ECProcedure().StartsWith("GUBP_UAT_Node") || NodeToDo.Node.ECProcedure().StartsWith("GUBP_Mac_UAT_Node")) // other things we really can't test
-							) // unfinished triggers are never run directly by EC, rather it does another job setup
-						{
-							string Arg = String.Format("gubp -Node={0} -FakeEC {1} {2} {3} {4} {5}",
-								NodeToDo.Name,
-								bFake ? "-Fake" : "",
-								Command.ParseParam("AllPlatforms") ? "-AllPlatforms" : "",
-								Command.ParseParam("UnfinishedTriggersFirst") ? "-UnfinishedTriggersFirst" : "",
-								Command.ParseParam("UnfinishedTriggersParallel") ? "-UnfinishedTriggersParallel" : "",
-								Command.ParseParam("WithMac") ? "-WithMac" : ""
-								);
-
-							string Node = Command.ParseParamValue("-Node");
-							if (!String.IsNullOrEmpty(Node))
-							{
-								Arg = Arg + " -Node=" + Node;
-							}
-							if (!String.IsNullOrEmpty(FakeFail))
-							{
-								Arg = Arg + " -FakeFail=" + FakeFail;
-							}
-							FakeECArgs.Add(Arg);
-						}
 
 						if (MyAgentGroup != "" && !bDoNestedJobstep)
 						{
