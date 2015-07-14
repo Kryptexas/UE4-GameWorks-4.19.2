@@ -718,8 +718,8 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	CreateSignatures();
 
     PipelineStateCache = FD3D12PipelineStateCache(this);
-    FString GraphicsCacheFile = FPaths::GameContentDir() / TEXT("D3DGraphics.ushaderprecache");
-    FString ComputeCacheFile = FPaths::GameContentDir() / TEXT("D3DCompute.ushaderprecache");
+    FString GraphicsCacheFile = FPaths::GameSavedDir() / TEXT("D3DGraphics.ushaderprecache");
+    FString ComputeCacheFile = FPaths::GameSavedDir() / TEXT("D3DCompute.ushaderprecache");
 
 	PipelineStateCache.Init(GraphicsCacheFile, ComputeCacheFile);
 	PipelineStateCache.RebuildFromDiskCache(GraphicsRS, ComputeRS);
