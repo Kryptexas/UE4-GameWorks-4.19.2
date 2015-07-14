@@ -8,7 +8,7 @@
 #include "Abilities/Tasks/AbilityTask.h"
 #include "TickableAttributeSetInterface.h"
 #include "GameplayPrediction.h"
-
+#include "GameplayTagResponseTable.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -120,6 +120,11 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 				Spec.Ability->OnAvatarSet(AbilityActorInfo.Get(), Spec);
 			}
 		}
+	}
+
+	if (UGameplayTagReponseTable* TagTable = UAbilitySystemGlobals::Get().GetGameplayTagResponseTable())
+	{
+		TagTable->RegisterResponseForEvents(this);
 	}
 }
 

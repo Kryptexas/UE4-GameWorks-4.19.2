@@ -321,9 +321,34 @@ void FGameplayTagCountContainer::UpdateTagCount(const FGameplayTagContainer& Con
 	}
 }
 
-FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGameplayTagEvent(const FGameplayTag& Tag)
+void FGameplayTagCountContainer::Notify_StackCountChange(const FGameplayTag& Tag)
+{	
+	// The purpose of this function is to let anyone listening on the EGameplayTagEventType::AnyCountChange event know that the 
+	// stack count of a GE that was backing this GE has changed. We do not update our internal map/count with this info, since that
+	// map only counts the number of GE/sources that are giving that tag.
+	FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+	for (auto CompleteTagIt = TagAndParentsContainer.CreateConstIterator(); CompleteTagIt; ++CompleteTagIt)
+	{
+		const FGameplayTag& CurTag = *CompleteTagIt;
+		FDelegateInfo* DelegateInfo = GameplayTagEventMap.Find(CurTag);
+		if (DelegateInfo)
+		{
+			int32 TagCount = GameplayTagCountMap.FindOrAdd(CurTag);
+			DelegateInfo->OnAnyChange.Broadcast(CurTag, TagCount);
+		}
+	}
+}
+
+FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGameplayTagEvent(const FGameplayTag& Tag, EGameplayTagEventType::Type EventType)
 {
-	return GameplayTagEventMap.FindOrAdd(Tag);
+	FDelegateInfo& Info = GameplayTagEventMap.FindOrAdd(Tag);
+
+	if (EventType == EGameplayTagEventType::NewOrRemoved)
+	{
+		return Info.OnNewOrRemove;
+	}
+
+	return Info.OnAnyChange;
 }
 
 FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGenericGameplayEvent()
@@ -388,14 +413,19 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 		TagCount = FMath::Max(TagCount + CountDelta, 0);
 
 		// If a significant change (new addition or total removal) occurred, trigger related delegates
-		if (OldCount == 0 || TagCount == 0)
+		bool SignificantChange = (OldCount == 0 || TagCount == 0);
+		if (SignificantChange)
 		{
 			OnAnyTagChangeDelegate.Broadcast(CurTag, TagCount);
+		}
 
-			FOnGameplayEffectTagCountChanged* CountChangeDelegate = GameplayTagEventMap.Find(CurTag);
-			if (CountChangeDelegate)
+		FDelegateInfo* DelegateInfo = GameplayTagEventMap.Find(CurTag);
+		if (DelegateInfo)
+		{
+			DelegateInfo->OnAnyChange.Broadcast(CurTag, TagCount);
+			if (SignificantChange)
 			{
-				CountChangeDelegate->Broadcast(CurTag, TagCount);
+				DelegateInfo->OnNewOrRemove.Broadcast(CurTag, TagCount);
 			}
 		}
 	}

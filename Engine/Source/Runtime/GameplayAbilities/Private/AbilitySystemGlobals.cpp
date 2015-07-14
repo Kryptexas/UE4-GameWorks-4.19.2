@@ -36,6 +36,7 @@ void UAbilitySystemGlobals::InitGlobalData()
 	InitAttributeDefaults();
 
 	GetGameplayCueManager();
+	GetGameplayTagResponseTable();
 	InitGlobalTags();
 }
 
@@ -229,7 +230,7 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 {
 	if (GlobalGameplayCueManager == nullptr)
 	{
-		GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(NULL, *GlobalGameplayCueManagerName.ToString(), NULL, LOAD_None, NULL);
+		GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(nullptr, *GlobalGameplayCueManagerName.ToString(), nullptr, LOAD_None, nullptr);
 		if (GameplayCueNotifyPaths.Num() > 0)
 		{
 			GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
@@ -237,6 +238,16 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 	}
 
 	return GlobalGameplayCueManager;
+}
+
+UGameplayTagReponseTable* UAbilitySystemGlobals::GetGameplayTagResponseTable()
+{
+	if (GameplayTagResponseTable == nullptr && GameplayTagResponseTableName.IsValid())
+	{
+		GameplayTagResponseTable = LoadObject<UGameplayTagReponseTable>(nullptr, *GameplayTagResponseTableName.ToString(), nullptr, LOAD_None, nullptr);
+	}
+
+	return GameplayTagResponseTable;
 }
 
 void UAbilitySystemGlobals::GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent)

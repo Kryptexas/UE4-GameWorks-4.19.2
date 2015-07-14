@@ -1485,6 +1485,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
+	void SetActiveGameplayEffectLevel(FActiveGameplayEffectHandle ActiveHandle, int32 NewLevel);
+
 	void SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue);
 
 	/** Actually applies given mod to the attribute */

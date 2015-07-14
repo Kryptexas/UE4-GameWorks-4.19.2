@@ -151,6 +151,11 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 		return FString::Printf(TEXT("%d"), Handle);
 	}
 
+	void Invalidate()
+	{
+		Handle = INDEX_NONE;
+	}
+
 private:
 
 	UPROPERTY()
@@ -760,6 +765,20 @@ DECLARE_DELEGATE_RetVal_OneParam(FOnGameplayEffectTagCountChanged&, FRegisterGam
 
 // -----------------------------------------------------------
 
+
+UENUM(BlueprintType)
+namespace EGameplayTagEventType
+{
+	enum Type
+	{		
+		/** Event only happens when tag is branch new or removed */
+		NewOrRemoved,
+
+		/** Event happens any time tag "count" changes */
+		AnyCountChange		
+	};
+}
+
 /**
  * Struct that tracks the number/count of tag applications within it. Explicitly tracks the tags added or removed,
  * while simultaneously tracking the count of parent tags as well. Events/delegates are fired whenever the tag counts
@@ -817,13 +836,19 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	void UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta);
 
 	/**
+	 *	Broadcasts the AnyChange event for this tag. This is called when the stack count of the backing gameplay effect change.
+	 *	It is up to the receiver of the broadcasted delegate to decide what to do with this.
+	 */
+	void Notify_StackCountChange(const FGameplayTag& Tag);
+
+	/**
 	 * Return delegate that can be bound to for when the specific tag's count changes to or off of zero
 	 *
 	 * @param Tag	Tag to get a delegate for
 	 * 
 	 * @return Delegate for when the specified tag's count changes to or off of zero
 	 */
-	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(const FGameplayTag& Tag);
+	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(const FGameplayTag& Tag, EGameplayTagEventType::Type EventType=EGameplayTagEventType::NewOrRemoved);
 	
 	/**
 	 * Return delegate that can be bound to for when the any tag's count changes to or off of zero
@@ -837,8 +862,14 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 
 private:
 
+	struct FDelegateInfo
+	{
+		FOnGameplayEffectTagCountChanged	OnNewOrRemove;
+		FOnGameplayEffectTagCountChanged	OnAnyChange;
+	};
+
 	/** Map of tag to delegate that will be fired when the count for the key tag changes to or away from zero */
-	TMap<FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+	TMap<FGameplayTag, FDelegateInfo> GameplayTagEventMap;
 
 	/** Map of tag to active count of that tag */
 	TMap<FGameplayTag, int32> GameplayTagCountMap;
