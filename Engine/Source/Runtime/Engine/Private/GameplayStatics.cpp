@@ -765,7 +765,36 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 	}
 }
 
-void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime)
+{
+	if (!Sound || !GEngine || !GEngine->UseSound())
+	{
+		return nullptr;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
+	{
+		return nullptr;
+	}
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false);
+	if (AudioComponent)
+	{
+		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
+
+		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
+		AudioComponent->SetPitchMultiplier(PitchMultiplier);
+		AudioComponent->bAllowSpatialization	= false;
+		AudioComponent->bIsUISound				= true;
+		AudioComponent->bAutoDestroy			= true;
+		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->Play(StartTime);
+	}
+	return AudioComponent;
+}
+
+void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -795,6 +824,7 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 			NewActiveSound.bLocationDefined = true;
 			NewActiveSound.Transform.SetTranslation(Location);
+			NewActiveSound.Transform.SetRotation(FQuat(Rotation));
 
 			NewActiveSound.bIsUISound = !bIsInGameWorld;
 			NewActiveSound.bHandleSubtitles = true;
@@ -819,66 +849,39 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 	}
 }
 
-void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if (!Dialogue || !GEngine || !GEngine->UseSound())
+	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
-		return;
+		return nullptr;
 	}
 
 	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
 	{
-		return;
-	}
-	
-	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
-	if (!Sound)
-	{
-		return;
+		return nullptr;
 	}
 
-	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	const bool bIsInGameWorld = ThisWorld->IsGameWorld();
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false, false, &Location, AttenuationSettings);
+
+	if (AudioComponent)
 	{
-		if (Sound->IsAudibleSimple(AudioDevice, Location, AttenuationSettings))
-		{
-			const bool bIsInGameWorld = ThisWorld->IsGameWorld();
-			
-			FActiveSound NewActiveSound;
-			NewActiveSound.World = ThisWorld;
-			NewActiveSound.Sound = Sound;
-
-			NewActiveSound.VolumeMultiplier = VolumeMultiplier;
-			NewActiveSound.PitchMultiplier = PitchMultiplier;
-
-			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
-
-			NewActiveSound.bLocationDefined = true;
-			NewActiveSound.Transform.SetTranslation(Location);
-
-			NewActiveSound.bIsUISound = !bIsInGameWorld;
-			NewActiveSound.bHandleSubtitles = true;
-			NewActiveSound.SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-
-			const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
-
-			NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
-			if (NewActiveSound.bHasAttenuationSettings)
-			{
-				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-			}
-
-			AudioDevice->AddNewActiveSound(NewActiveSound);
-		}
-		else
-		{
-			// Don't play a sound for short sounds that start out of range of any listener
-			UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
-		}
+		AudioComponent->SetWorldLocationAndRotation(Location, Rotation);
+		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
+		AudioComponent->SetPitchMultiplier(PitchMultiplier);
+		AudioComponent->bAllowSpatialization	= bIsInGameWorld;
+		AudioComponent->bIsUISound				= !bIsInGameWorld;
+		AudioComponent->bAutoDestroy			= true;
+		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->Play(StartTime);
 	}
+
+	return AudioComponent;
 }
 
-class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound)
 	{
@@ -906,11 +909,11 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		AudioComponent->AttachTo(AttachToComponent, AttachPointName);
 		if (LocationType == EAttachLocation::KeepWorldPosition)
 		{
-			AudioComponent->SetWorldLocation(Location);
+			AudioComponent->SetWorldLocationAndRotation(Location, Rotation);
 		}
 		else
 		{
-			AudioComponent->SetRelativeLocation(Location);
+			AudioComponent->SetRelativeLocationAndRotation(Location, Rotation);
 		}
 		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
 		AudioComponent->SetPitchMultiplier(PitchMultiplier);
@@ -924,56 +927,47 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 	return AudioComponent;
 }
 
-class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWave* Dialogue, const FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+void UGameplayStatics::PlayDialogue2D(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, float VolumeMultiplier, float PitchMultiplier, float StartTime)
 {
-	if (!Dialogue)
+	if (Dialogue)
 	{
-		return nullptr;
+		PlaySound2D(WorldContextObject, Dialogue->GetWaveFromContext(Context), VolumeMultiplier, PitchMultiplier, StartTime);
 	}
+}
 
-	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
-	if (!Sound)
+UAudioComponent* UGameplayStatics::SpawnDialogue2D(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, float VolumeMultiplier, float PitchMultiplier, float StartTime)
+{
+	if (Dialogue)
 	{
-		return nullptr;
+		return SpawnSound2D(WorldContextObject, Dialogue->GetWaveFromContext(Context), VolumeMultiplier, PitchMultiplier, StartTime);
 	}
+	return nullptr;
+}
 
-	if (!AttachToComponent)
+void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+{
+	if (Dialogue)
 	{
-		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified!"));
-		return nullptr;
+		PlaySoundAtLocation(WorldContextObject, Dialogue->GetWaveFromContext(Context), Location, Rotation, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
+}
 
-	// Location used to check whether to create a component if out of range
-	FVector TestLocation = Location;
-	if (LocationType != EAttachLocation::KeepWorldPosition)
+UAudioComponent* UGameplayStatics::SpawnDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+{
+	if (Dialogue)
 	{
-		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+		return SpawnSoundAtLocation(WorldContextObject, Dialogue->GetWaveFromContext(Context), Location, Rotation, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
+	return nullptr;
+}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings);
-	if (AudioComponent)
+class UAudioComponent* UGameplayStatics::SpawnDialogueAttached(class UDialogueWave* Dialogue, const FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+{
+	if (Dialogue)
 	{
-		const bool bIsGameWorld = AudioComponent->GetWorld()->IsGameWorld();
-
-		AudioComponent->AttachTo(AttachToComponent, AttachPointName);
-		if (LocationType == EAttachLocation::KeepWorldPosition)
-		{
-			AudioComponent->SetWorldLocation(Location);
-		}
-		else
-		{
-			AudioComponent->SetRelativeLocation(Location);
-		}
-		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
-		AudioComponent->SetPitchMultiplier(PitchMultiplier);
-		AudioComponent->bAllowSpatialization	= bIsGameWorld;
-		AudioComponent->bIsUISound				= !bIsGameWorld;
-		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-		AudioComponent->Play(StartTime);
+		return SpawnSoundAttached(Dialogue->GetWaveFromContext(Context), AttachToComponent, AttachPointName, Location, Rotation, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
-
-	return AudioComponent;
+	return nullptr;
 }
 
 void UGameplayStatics::SetBaseSoundMix(UObject* WorldContextObject, USoundMix* InSoundMix)

@@ -300,59 +300,172 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Sound - Sound to play.
 	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
 	 * @param PitchMultiplier - Multiplies the pitch.
+	 * @param StartTime - How far in to the sound to begin playback at
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Audio", meta=( WorldContext="WorldContextObject", AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true" ))
 	static void PlaySound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f);
 
 	/**
+	 * Spawns a sound with no attenuation, perfect for UI sounds.
+	 *
+	 * ● Not Replicated.
+	 * @param Sound - Sound to play.
+	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
+	 * @param PitchMultiplier - Multiplies the pitch.
+	 * @param StartTime - How far in to the sound to begin playback at
+	 * @return An audio component to manipulate the spawned sound
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Audio", meta=( WorldContext="WorldContextObject", AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play" ))
+	static UAudioComponent* SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f);
+
+	/**
 	 * Plays a sound at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
 	 * @param Sound - sound to play
 	 * @param Location - World position to play sound at
+	 * @param Rotation - World rotation to play sound at
 	 * @param VolumeMultiplier - Volume multiplier 
 	 * @param PitchMultiplier - PitchMultiplier
+	 * @param StartTime - How far in to the sound to begin playback at
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
-	static void PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+	static void PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
-	/** Plays a dialogue at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
-	 * @param Dialogue - dialogue to play
+	static void PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL)
+	{
+		PlaySoundAtLocation(WorldContextObject, Sound, Location, FRotator::ZeroRotator, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
+	}
+
+	/**
+	 * Spawns a sound at the given location. This does not travel with any actor. Replication is also not handled at this point.
+	 * @param Sound - sound to play
 	 * @param Location - World position to play sound at
-	 * @param World - The World in which the sound is to be played
+	 * @param Rotation - World rotation to play sound at
 	 * @param VolumeMultiplier - Volume multiplier 
 	 * @param PitchMultiplier - PitchMultiplier
+	 * @param StartTime - How far in to the sound to begin playback at
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
+	 * @return An audio component to manipulate the spawned sound
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
-	static void PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	static UAudioComponent* SpawnSoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation = FRotator::ZeroRotator, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a sound attached to and following the specified component. This is a fire and forget sound. Replication is also not handled at this point.
 	 * @param Sound - sound to play
 	 * @param AttachComponent - Component to attach to.
 	 * @param AttachPointName - Optional named point within the AttachComponent to play the sound at
 	 * @param Location - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world position that will be translated to a relative offset
+	 * @param Rotation - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world rotation that will be translated to a relative offset
 	 * @param LocationType - Specifies whether Location is a relative offset or an absolute world position
 	 * @param bStopWhenAttachedToDestroyed - Specifies whether the sound should stop playing when the owner of the attach to component is destroyed.
 	 * @param VolumeMultiplier - Volume multiplier 
 	 * @param PitchMultiplier - PitchMultiplier	 
+	 * @param StartTime - How far in to the sound to begin playback at
+	 * @param AttenuationSettings - Override attenuation settings package to play sound with
+	 * @return An audio component to manipulate the spawned sound
+	 */
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	static class UAudioComponent* SpawnSoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), FRotator Rotation = FRotator::ZeroRotator, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+
+	DEPRECATED(4.9, "PlaySoundAttached has been renamed SpawnSoundAttached")
+	static class UAudioComponent* PlaySoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL)
+	{
+		return SpawnSoundAttached(Sound, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
+	}
+
+	static class UAudioComponent* SpawnSoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL)
+	{
+		return SpawnSoundAttached(Sound, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
+	}
+
+	/**
+	 * Plays a dialogue directly with no attenuation, perfect for UI.
+	 *
+	 * ● Fire and Forget.
+	 * ● Not Replicated.
+	 * @param Dialogue - dialogue to play
+	 * @param Context - context the dialogue is to play in
+	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
+	 * @param PitchMultiplier - Multiplies the pitch.
+	 * @param StartTime - How far in to the dialogue to begin playback at
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Audio", meta=( WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true" ))
+	static void PlayDialogue2D(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f);
+
+	/**
+	 * Spawns a dialogue with no attenuation, perfect for UI.
+	 *
+	 * ● Not Replicated.
+	 * @param Dialogue - dialogue to play
+	 * @param Context - context the dialogue is to play in
+	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
+	 * @param PitchMultiplier - Multiplies the pitch.
+	 * @param StartTime - How far in to the dialogue to begin playback at
+	 * @return An audio component to manipulate the spawned sound
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Audio", meta=( WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true", Keywords = "play" ))
+	static UAudioComponent* SpawnDialogue2D(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f);
+
+	/** Plays a dialogue at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
+	 * @param Dialogue - dialogue to play
+	 * @param Context - context the dialogue is to play in
+	 * @param Location - World position to play dialogue at
+	 * @param Rotation - World rotation to play dialogue at
+	 * @param VolumeMultiplier - Volume multiplier 
+	 * @param PitchMultiplier - Pitch multiplier
+	 * @param StartTime - How far in to the dialogue to begin playback at
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
-	static class UAudioComponent* PlaySoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true"))
+	static void PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, FVector Location, FRotator Rotation, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+
+	static void PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL)
+	{
+		PlayDialogueAtLocation(WorldContextObject, Dialogue, Context, Location, FRotator::ZeroRotator, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
+	}
+
+	/** Plays a dialogue at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
+	 * @param Dialogue - dialogue to play
+	 * @param Context - context the dialogue is to play in
+	 * @param Location - World position to play dialogue at
+	 * @param Rotation - World rotation to play dialogue at
+	 * @param VolumeMultiplier - Volume multiplier 
+	 * @param PitchMultiplier - PitchMultiplier
+	 * @param StartTime - How far in to the dialogue to begin playback at
+	 * @param AttenuationSettings - Override attenuation settings package to play sound with
+	 * @return Audio Component to manipulate the playing dialogue with
+	 */
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	static UAudioComponent* SpawnDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, FVector Location, FRotator Rotation = FRotator::ZeroRotator, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a dialogue attached to and following the specified component. This is a fire and forget sound. Replication is also not handled at this point.
 	 * @param Dialogue - dialogue to play
+	 * @param Context - context the dialogue is to play in
 	 * @param AttachComponent - Component to attach to.
 	 * @param AttachPointName - Optional named point within the AttachComponent to play the sound at
 	 * @param Location - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world position that will be translated to a relative offset
+	 * @param Rotation - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world rotation that will be translated to a relative offset
 	 * @param LocationType - Specifies whether Location is a relative offset or an absolute world position
 	 * @param bStopWhenAttachedToDestroyed - Specifies whether the sound should stop playing when the owner of the attach to component is destroyed.
 	 * @param VolumeMultiplier - Volume multiplier 
 	 * @param PitchMultiplier - PitchMultiplier	 
+	 * @param StartTime - How far in to the dialogue to begin playback at
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
+	 * @return Audio Component to manipulate the playing dialogue with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
-	static class UAudioComponent* PlayDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	static class UAudioComponent* SpawnDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), FRotator Rotation = FRotator::ZeroRotator, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
+
+	DEPRECATED(4.9, "PlayDialogueAttached has been renamed SpawnDialogueAttached")
+	static class UAudioComponent* PlayDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL)
+	{
+		return SpawnDialogueAttached(Dialogue, Context, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
+	}
+
+	static class UAudioComponent* SpawnDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL)
+	{
+		return SpawnDialogueAttached(Dialogue, Context, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
+	}
 
 	// --- Audio Functions ----------------------------
 	/** Set the sound mix of the audio system for special EQing **/
