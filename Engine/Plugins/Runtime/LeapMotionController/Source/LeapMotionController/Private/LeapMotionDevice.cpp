@@ -228,6 +228,25 @@ bool FLeapMotionDevice::SetHmdPolicy(bool UseHmdPolicy)
 	return false;
 }
 
+bool FLeapMotionDevice::SetImagePolicy(bool UseImagePolicy)
+{
+	if (IsConnected())
+	{
+		Leap::Controller::PolicyFlag PolicyFlags = LeapController.policyFlags();
+		if (UseImagePolicy)
+		{
+			PolicyFlags = (Leap::Controller::PolicyFlag)(PolicyFlags | Leap::Controller::PolicyFlag::POLICY_IMAGES);
+		}
+		else
+		{
+			PolicyFlags = (Leap::Controller::PolicyFlag)(PolicyFlags & ~Leap::Controller::PolicyFlag::POLICY_IMAGES);
+		}
+		LeapController.setPolicyFlags(PolicyFlags);
+		return true;
+	}
+	return false;
+}
+
 const Leap::Frame FLeapMotionDevice::Frame() const
 {
 	return ReferenceLeapFrame;

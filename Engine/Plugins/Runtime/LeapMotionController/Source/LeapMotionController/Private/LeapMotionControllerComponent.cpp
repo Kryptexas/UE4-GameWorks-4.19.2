@@ -8,6 +8,8 @@
 #include "LeapMotionHandActor.h"
 #include "LeapMotionTypes.h"
 
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplay.h"
+
 
 ULeapMotionControllerComponent::ULeapMotionControllerComponent(const class FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -28,10 +30,13 @@ ULeapMotionControllerComponent::ULeapMotionControllerComponent(const class FObje
 	bAutoActivate = true;
 
 	Scale = 5.0f;
+	ScaleForHmdMode = 1.6f;
 
 	bHmdMode = false;
 	bShowCollider = true;
 	bShowMesh = true;
+
+	OffsetFromHMDToLeapDevice = FVector(7.0f, 0.0f, 0.0f);
 }
 
 void ULeapMotionControllerComponent::GetAllHandIds(TArray<int32>& OutHandIds) const
@@ -89,6 +94,11 @@ void ULeapMotionControllerComponent::UseHmdMode(bool EnableOrDisable)
 void ULeapMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (bAutoAttachToPlayerCamera)
+	{
+		AttachControllerToPlayerCamera(0);
+	}
 
 	AddAndRemoveHands();
 	UdpateHandsPositions(DeltaTime);
@@ -163,6 +173,59 @@ void ULeapMotionControllerComponent::UdpateHandsPositions(float DeltaSeconds)
 	}
 }
 
+void ULeapMotionControllerComponent::AttachControllerToPlayerCamera(int PlayerIndex)
+{
+	APlayerCameraManager* PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(this, PlayerIndex);
+
+	// Handle attachment to player
+	if (PlayerCameraManager)
+	{
+		bool bJustAttached = false;
+		if (PlayerCameraManager->GetRootComponent() != GetAttachParent())
+		{
+			// attach
+			AttachTo(PlayerCameraManager->GetRootComponent(), NAME_None, EAttachLocation::KeepRelativeOffset, false);
+			bJustAttached = true;
+		}
+
+		const bool bUsingHmd = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed(); // didn't know how to resolve linking to UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled()
+
+		// Update just once for desktop mode
+		if (bJustAttached || bUsingHmd != bHmdMode)
+		{
+			bHmdMode = bUsingHmd;
+			UseHmdMode(bHmdMode);
+
+			if (!bHmdMode)
+			{
+				// Update relative position once for desktop use
+				FVector OffsetFromCameraToLeapDeviceForUnitScale(20.0f, 0.0f, -20.0f);
+				SetRelativeLocationAndRotation(OffsetFromCameraToLeapDeviceForUnitScale * Scale, FRotator::ZeroRotator);
+			}
+		}
+
+
+		// Update position: once for desktop mode, continuously for HMD
+		if (bHmdMode)
+		{
+			// Update position every frame when using HMD
+			SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
+
+			// Take into account HMD's positional tracking.
+			FQuat OrientationAsQuat;
+			FVector HmdPosition;
+			GEngine->HMDDevice->GetCurrentOrientationAndPosition(OrientationAsQuat, HmdPosition);
+
+			FRotator ControllerRotation = FRotator::ZeroRotator;
+			ControllerRotation.Yaw = PlayerCameraManager->GetRootComponent()->GetComponentRotation().Yaw - OrientationAsQuat.Rotator().Yaw;
+
+			AddWorldOffset(ControllerRotation.RotateVector(HmdPosition));
+
+			AddLocalOffset(OffsetFromHMDToLeapDevice);
+		}
+	}
+}
+
 void ULeapMotionControllerComponent::OnHandAddedImpl(int32 HandId)
 {
 	FVector SpawnLocation = GetComponentLocation();
@@ -195,7 +258,7 @@ void ULeapMotionControllerComponent::OnHandAddedImpl(int32 HandId)
 		handActor->bShowCollider = bShowCollider;
 		handActor->bShowMesh = bShowMesh;
 		handActor->bShowArm = bShowArm;
-		handActor->Scale = Scale;
+		handActor->Scale = bHmdMode ? ScaleForHmdMode : Scale;
 		handActor->Init(HandId, BoneBlueprint);
 
 	}

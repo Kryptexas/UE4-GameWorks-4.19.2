@@ -25,6 +25,10 @@ class LEAPMOTIONCONTROLLER_API ULeapMotionControllerComponent : public USceneCom
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
 	float Scale;
 
+	/** The scale of hands, when in HMD mode, relative to real-world size. This ignores actor's transform's scale */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
+	float ScaleForHmdMode;
+
 	/** Whether to render the hand's colliding shape in game */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
 	bool bShowCollider;
@@ -43,6 +47,16 @@ class LEAPMOTIONCONTROLLER_API ULeapMotionControllerComponent : public USceneCom
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
 	bool bHmdMode;
+
+	/** 
+	 * Whether to automatically attach this controller to player camera, both in desktop & VR modes. 
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
+	bool bAutoAttachToPlayerCamera;
+
+	/** Placement of Leap Device in relation to HMD position. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
+	FVector OffsetFromHMDToLeapDevice;
 
 	/** Optional blueprint used to spawn each hand. When none is specified ALeapMotionHandActor is created. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LeapMotion)
@@ -147,6 +161,9 @@ protected:
 
 	/** Updates the hands and calls the update delegate. */
 	void UdpateHandsPositions(float DeltaSeconds);
+
+	/** Attaches the Controller Component to player's camera. Works both for desktop & HMD-mounted use. */
+	void AttachControllerToPlayerCamera(int PlayerIndex);
 
 	/** Creates a hand. */
 	virtual void OnHandAddedImpl(int32 HandId);

@@ -22,6 +22,10 @@ class LEAPMOTIONCONTROLLER_API ALeapMotionControllerActor : public AActor
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LeapMotion)
 	class ULeapMotionControllerComponent* LeapMotionControllerComponent;
 
+	/** An Unreal Component instance. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LeapMotion)
+	class ULeapMotionImageComponent* LeapMotionImageComponent;
+
 #if WITH_EDITOR
 	/** Track changes to property applied in the editor */
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

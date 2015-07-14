@@ -16,9 +16,7 @@ namespace UnrealBuildTool.Rules
                 PublicDelayLoadDLLs.Add("Leap.dll");
             }
 
-			PublicDependencyModuleNames.AddRange( new string[] { "Core", "CoreUObject", "Engine", "InputCore" } ); 
-
-            PublicDependencyModuleNames.AddRange(new string[] { "Leap" }); 
+			PublicDependencyModuleNames.AddRange( new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "Leap" } ); 
 		}
 	}
 }

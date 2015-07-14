@@ -107,3 +107,13 @@ bool ULeapMotionFunctionLibrary::SetHmdPolicy(bool UseHmdPolicy)
 	}
 	return false;
 }
+
+bool ULeapMotionFunctionLibrary::SetImagePolicy(bool UseImagePolicy)
+{
+	FLeapMotionDevice* LeapDevice = FLeapMotionControllerPlugin::GetLeapDeviceSafe();
+	if (LeapDevice)
+	{
+		return LeapDevice->SetImagePolicy(UseImagePolicy);
+	}
+	return false;
+}

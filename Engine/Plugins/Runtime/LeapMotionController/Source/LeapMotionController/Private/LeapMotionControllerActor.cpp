@@ -8,6 +8,7 @@
 #include "LeapMotionDevice.h"
 #include "LeapMotionFunctionLibrary.h"
 #include "LeapMotionHandActor.h"
+#include "LeapMotionImageComponent.h"
 #include "LeapMotionTypes.h"
 
 
@@ -18,6 +19,11 @@ ALeapMotionControllerActor::ALeapMotionControllerActor(const class FObjectInitia
 	LeapMotionControllerComponent = ObjectInitializer.CreateDefaultSubobject<ULeapMotionControllerComponent>(this, TEXT("RootLeapMotionControllerComponent"));
 	RootComponent = LeapMotionControllerComponent;
 
+	LeapMotionImageComponent = ObjectInitializer.CreateDefaultSubobject<ULeapMotionImageComponent>(this, TEXT("LeapMotionImageComponent"));
+	LeapMotionImageComponent->bIsPaused = true;
+	LeapMotionImageComponent->bIsVisible = false;
+	LeapMotionImageComponent->DisplaySurfaceComponent->SetVisibility(false);
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 }
@@ -27,5 +33,6 @@ void ALeapMotionControllerActor::PostEditChangeProperty(FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	LeapMotionControllerComponent->PostEditChangeProperty(PropertyChangedEvent);
+	LeapMotionImageComponent->PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif
