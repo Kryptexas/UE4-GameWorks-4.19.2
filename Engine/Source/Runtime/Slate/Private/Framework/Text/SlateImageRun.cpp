@@ -80,6 +80,11 @@ FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< con
 	Image = DynamicBrush.Get();
 }
 
+FSlateImageRun::~FSlateImageRun()
+{
+	DynamicBrush->ReleaseResource();
+}
+
 const TArray< TSharedRef<SWidget> >& FSlateImageRun::GetChildren() 
 {
 	static TArray< TSharedRef<SWidget> > NoChildren;

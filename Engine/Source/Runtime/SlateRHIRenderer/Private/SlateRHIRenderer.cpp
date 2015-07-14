@@ -219,7 +219,7 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 		else
 		{
 			FlushCommands();
-			UE_LOG(LogSlate, Log, TEXT("Slate: Had to block on waiting for a draw buffer"));
+			UE_LOG(LogSlate, Warning, TEXT("Slate: Had to block on waiting for a draw buffer"));
 			FreeBufferIndex = (FreeBufferIndex + 1) % NumDrawBuffers;
 		}
 	
@@ -227,11 +227,13 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 		Buffer = &DrawBuffers[FreeBufferIndex];
 	}
 
+	// Safely remove brushes by emptying the array and releasing references
+	DynamicBrushesToRemove[FreeBufferIndex].Empty();
 
 	Buffer->ClearBuffer();
 	return *Buffer;
 #else
-	// With this method buffers are created on this thread and deleted on the rendering thead
+	// With this method buffers are created on this thread and deleted on the rendering thread
 	return *(new FSlateDrawBuffer);
 #endif
 }
@@ -1054,13 +1056,20 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
 {
 	check( IsInGameThread() );
 
-	
 	TSharedPtr<FSlateDynamicTextureResource> TextureResource = ResourceManager->GetDynamicTextureResourceByName( ResourceName );
 	if( !TextureResource.IsValid() )
 	{
 		TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
 	}
 	return TextureResource.IsValid();
+}
+
+void FSlateRHIRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
+{
+	if( BrushToRemove.IsValid() )
+	{
+		DynamicBrushesToRemove[FreeBufferIndex].Add( BrushToRemove );
+	}
 }
 
 /**

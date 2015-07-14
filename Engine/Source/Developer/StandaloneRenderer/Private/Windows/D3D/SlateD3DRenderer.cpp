@@ -235,14 +235,17 @@ void FSlateD3DRenderer::UpdateFullscreenState( const TSharedRef<SWindow> InWindo
 
 void FSlateD3DRenderer::ReleaseDynamicResource( const FSlateBrush& Brush )
 {
-	ensure( IsInGameThread() );
 	TextureManager->ReleaseDynamicTextureResource( Brush );
 }
 
 bool FSlateD3DRenderer::GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes)
 {
-	ensure( IsInGameThread() );
 	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
+}
+
+void FSlateD3DRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
+{
+	DynamicBrushesToRemove.Add( BrushToRemove );
 }
 
 void FSlateD3DRenderer::Private_ResizeViewport( const TSharedRef<SWindow> InWindow, uint32 Width, uint32 Height, bool bFullscreen )
@@ -399,6 +402,8 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 	// flush the cache if needed
 	FontCache->ConditionalFlushCache();
 
+	// Safely release the references now that we are finished rendering with the dynamic brushes
+	DynamicBrushesToRemove.Empty();
 }
 
 void FSlateD3DRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )

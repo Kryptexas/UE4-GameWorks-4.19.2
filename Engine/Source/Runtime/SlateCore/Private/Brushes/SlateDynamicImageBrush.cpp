@@ -29,21 +29,39 @@ TSharedPtr<FSlateDynamicImageBrush> FSlateDynamicImageBrush::CreateWithImageData
 	return Brush;
 }
 
-FSlateDynamicImageBrush::~FSlateDynamicImageBrush( )
+void FSlateDynamicImageBrush::ReleaseResource()
 {
-	if (FSlateApplicationBase::IsInitialized())
+	if( FSlateApplicationBase::IsInitialized() )
 	{
-		// Brush resource is no longer referenced by this object
-		if (ResourceObject && bRemoveResourceFromRootSet)
-		{
-			ResourceObject->RemoveFromRoot();
-		}
+		// Safely remove the brush we were using. 
+		FSlateApplicationBase::Get().GetRenderer()->RemoveDynamicBrushResource( AsShared() );
+	}	
+}
 
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
-
-		if (Renderer.IsValid())
+void FSlateDynamicImageBrush::ReleaseResourceInternal()
+{
+	if( bIsInitalized )
+	{
+		bIsInitalized = false;
+		if (FSlateApplicationBase::IsInitialized())
 		{
-			FSlateApplicationBase::Get().GetRenderer()->ReleaseDynamicResource(*this);
+			// Brush resource is no longer referenced by this object
+			if (ResourceObject && bRemoveResourceFromRootSet)
+			{
+				ResourceObject->RemoveFromRoot();
+			}
+
+			TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+
+			if (Renderer.IsValid())
+			{
+				FSlateApplicationBase::Get().GetRenderer()->ReleaseDynamicResource(*this);
+			}
 		}
 	}
+}
+
+FSlateDynamicImageBrush::~FSlateDynamicImageBrush( )
+{
+	ReleaseResourceInternal();
 }

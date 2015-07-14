@@ -79,7 +79,12 @@ public:
 	}
 
 	virtual ~FTutorialListEntry_Category()
-	{}
+	{
+		if( DynamicBrush.IsValid() )
+		{
+			DynamicBrush->ReleaseResource();
+		}
+	}
 
 	virtual TSharedRef<ITableRow> OnGenerateTutorialRow(const TSharedRef<STableViewBase>& OwnerTable) const override
 	{
@@ -296,7 +301,12 @@ public:
 	}
 
 	virtual ~FTutorialListEntry_Tutorial()
-	{}
+	{
+		if( DynamicBrush.IsValid() )
+		{
+			DynamicBrush->ReleaseResource();
+		}
+	}
 
 	virtual TSharedRef<ITableRow> OnGenerateTutorialRow(const TSharedRef<STableViewBase>& OwnerTable) const override
 	{

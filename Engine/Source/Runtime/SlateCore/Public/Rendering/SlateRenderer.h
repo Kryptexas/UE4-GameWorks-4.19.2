@@ -81,27 +81,6 @@ public:
 	 */
 	virtual void DrawWindows() {}
 	
-	/**
-	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
-	 * 
-	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
-	 * @param	ScreenScaling	How much to downscale the desktop size
-	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
-	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
-	 */
-	virtual FIntRect SetupVirtualScreenBuffer( const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) { return FIntRect(); }
-
-
-	/**
-	 * Copies all slate windows out to a buffer at half resolution with debug information
-	 * like the mouse cursor and any keypresses.
-	 */
-	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) {}
-	
-	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapVirtualScreenBuffer(void** OutImageData) {}
-	virtual void UnmapVirtualScreenBuffer() {}
-	
 	/** Callback that fires after Slate has rendered each window, each frame */
 	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnSlateWindowRendered, SWindow&, void* );
 	FOnSlateWindowRendered& OnSlateWindowRendered() { return SlateWindowRendered; }
@@ -129,6 +108,20 @@ public:
 	 * @return					true if the resource was successfully generated, otherwise false
 	 */
 	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) { return false; }
+
+	/**
+	 * Queues a dynamic brush for removal when it is safe.  The brush is not immediately released but you should consider the brush destroyed and no longer usable
+	 *
+	 * @param BrushToRemove	The brush to queue for removal which is no longer valid to use
+	 */
+	virtual void RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove ) = 0;
+
+	/** 
+	 * Releases a specific resource.  
+	 * It is unlikely that you want to call this directly.  Use RemoveDynamicBrushResource instead
+	 */
+	virtual void ReleaseDynamicResource( const FSlateBrush& Brush ) = 0;
+
 
 	/** Called when a window is destroyed to give the renderer a chance to free resources */
 	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) = 0;
@@ -175,9 +168,6 @@ public:
 	 * Loads all the resources used by the specified SlateStyle
 	 */
 	virtual void LoadStyleResources( const ISlateStyle& Style ) {}
-
-	/** Releases a specific resource */
-	virtual void ReleaseDynamicResource( const FSlateBrush& Brush ) = 0;
 
 	/**
 	 * Returns whether or not a viewport should be in  fullscreen
@@ -234,6 +224,28 @@ public:
 	 * Returns the way to access the font atlas information for this renderer
 	 */
 	virtual ISlateAtlasProvider* GetFontAtlasProvider();
+
+
+	/**
+	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
+	 * 
+	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
+	 * @param	ScreenScaling	How much to downscale the desktop size
+	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
+	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
+	 */
+	virtual FIntRect SetupVirtualScreenBuffer( const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) { return FIntRect(); }
+
+
+	/**
+	 * Copies all slate windows out to a buffer at half resolution with debug information
+	 * like the mouse cursor and any keypresses.
+	 */
+	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) {}
+	
+	/** Allows and disallows access to the crash tracker buffer data on the CPU */
+	virtual void MapVirtualScreenBuffer(void** OutImageData) {}
+	virtual void UnmapVirtualScreenBuffer() {}
 
 private:
 

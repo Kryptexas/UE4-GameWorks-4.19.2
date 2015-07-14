@@ -148,6 +148,9 @@ void FSlateOpenGLRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 	}
 
 	FontCache->ConditionalFlushCache();
+
+	// Safely release the references now that we are finished rendering with the dynamic brushes
+	DynamicBrushesToRemove.Empty();
 }
 
 
@@ -209,15 +212,18 @@ void FSlateOpenGLRenderer::UpdateFullscreenState( const TSharedRef<SWindow> InWi
 
 void FSlateOpenGLRenderer::ReleaseDynamicResource( const FSlateBrush& Brush )
 {
-	ensure( IsInGameThread() );
 	TextureManager->ReleaseDynamicTextureResource( Brush );
 }
 
 
 bool FSlateOpenGLRenderer::GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes)
 {
-	ensure( IsInGameThread() );
 	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
+}
+
+void FSlateOpenGLRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
+{
+	DynamicBrushesToRemove.Add( BrushToRemove );
 }
 
 
