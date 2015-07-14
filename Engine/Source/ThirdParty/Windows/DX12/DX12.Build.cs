@@ -19,11 +19,9 @@ public class DX12 : ModuleRules
 			PublicLibraryPaths.Add(DirectXSDKDir + "/Lib/x86");
 		}
 
-		// If we're targeting Windows XP, then always delay-load D3D12 as it won't exist on that architecture
-		if (WindowsPlatform.IsWindowsXPSupported())
-		{
-			PublicDelayLoadDLLs.AddRange( new string[] {
-				"d3d12.dll"
+		// Always delay-load D3D12
+		PublicDelayLoadDLLs.AddRange( new string[] {
+			"d3d12.dll"
 			} );
 		}
 
