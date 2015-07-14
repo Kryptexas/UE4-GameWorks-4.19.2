@@ -137,6 +137,12 @@ void DebugLeakTest()
 				(new FAutoDeleteAsyncTask<FAllocPool>())->StartBackgroundTask();
 			}
 		}
+
+		if (GIsRequestingExit)
+		{
+			// If we are writing stats data, stop it now.
+			DirectStatsCommand( TEXT( "stat stopfile" ), true );
+		}
 	}
 }
 
@@ -1282,9 +1288,6 @@ void FThreadStats::StopThread()
 			// Dump all the collected stats to the log, if any.
 			DirectStatsCommand( TEXT( "stat dumpsum -stop -ms=100" ), true );
 		}
-
-		// If we are writing stats data, stop it now.
-		DirectStatsCommand(TEXT("stat stopfile"), true);
 
 		FThreadStats::MasterDisableForever();
 
