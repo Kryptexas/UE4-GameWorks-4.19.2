@@ -11,7 +11,7 @@ public:
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
-	FText OnGetBodyMass() const;
+	TOptional<float> OnGetBodyMass() const;
 	bool IsBodyMassReadOnly() const;
 	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }
 	EVisibility IsMassVisible(bool bOverrideMass) const;
