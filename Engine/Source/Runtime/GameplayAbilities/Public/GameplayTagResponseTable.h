@@ -3,7 +3,9 @@
 #pragma once
 
 #include "GameplayTags.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayTagResponseTable.generated.h"
+
 
 class UGameplayEffect;
 

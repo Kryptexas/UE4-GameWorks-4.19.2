@@ -8,6 +8,7 @@
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
+#include "GameplayTagResponseTable.h"
 
 
 UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)

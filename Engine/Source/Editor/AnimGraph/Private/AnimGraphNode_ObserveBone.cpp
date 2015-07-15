@@ -6,6 +6,8 @@
 #include "SGraphNode.h"
 #include "KismetNodeInfoContext.h"
 #include "KismetDebugUtilities.h"
+#include "DetailLayoutBuilder.h"
+#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "ObserveBone"
 
