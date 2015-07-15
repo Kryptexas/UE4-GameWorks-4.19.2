@@ -1289,6 +1289,9 @@ void FThreadStats::StopThread()
 			DirectStatsCommand( TEXT( "stat dumpsum -stop -ms=100" ), true );
 		}
 
+		// If we are writing stats data, stop it now.
+		DirectStatsCommand( TEXT( "stat stopfile" ), true );
+
 		FThreadStats::MasterDisableForever();
 
 		WaitForStats();
