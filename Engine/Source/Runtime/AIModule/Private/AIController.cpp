@@ -500,7 +500,11 @@ void AAIController::UnPossess()
 		BrainComponent->Cleanup();
 	}
 
-	CachedGameplayTasksComponent = nullptr;
+	if (CachedGameplayTasksComponent)
+	{
+		CachedGameplayTasksComponent->OnClaimedResourcesChange.RemoveDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
+		CachedGameplayTasksComponent = nullptr;
+	}
 }
 
 void AAIController::SetPawn(APawn* InPawn)
