@@ -221,6 +221,7 @@ void AActor::GatherCurrentMovement()
 			ReplicatedMovement.Location = RootComponent->GetComponentLocation();
 			ReplicatedMovement.Rotation = RootComponent->GetComponentRotation();
 			ReplicatedMovement.LinearVelocity = GetVelocity();
+			ReplicatedMovement.AngularVelocity = FVector::ZeroVector;
 			ReplicatedMovement.bRepPhysics = false;
 		}
 	}
