@@ -86,6 +86,7 @@ void FLocalizationTargetSetDetailCustomization::CustomizeDetails(IDetailLayoutBu
 	}
 
 	{
+		const ILocalizationServiceProvider& LSP = ILocalizationServiceModule::Get().GetProvider();
 		TargetObjectsPropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULocalizationTargetSet,TargetObjects));
 		if (TargetObjectsPropertyHandle->IsValidHandle())
 		{
@@ -98,7 +99,15 @@ void FLocalizationTargetSetDetailCustomization::CustomizeDetails(IDetailLayoutBu
 
 			FLocalizationDashboardCommands::Register();
 			const TSharedRef< FUICommandList > CommandList = MakeShareable(new FUICommandList);
-			FToolBarBuilder ToolBarBuilder( CommandList, FMultiBoxCustomization::AllowCustomization("LocalizationDashboard") );
+
+			// Let the localization service extend this toolbar
+			TSharedRef<FExtender> LocalizationServiceExtender = MakeShareable(new FExtender);
+			if (TargetSet.IsValid() && ILocalizationServiceModule::Get().IsEnabled())
+			{
+				LSP.CustomizeTargetSetToolbar(LocalizationServiceExtender, TargetSet);
+			}
+
+			FToolBarBuilder ToolBarBuilder( CommandList, FMultiBoxCustomization::AllowCustomization("LocalizationDashboard"), LocalizationServiceExtender );
 
 			TAttribute<FText> GatherAllTargetsToolTipTextAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([this]() -> FText
 				{
@@ -118,6 +127,12 @@ void FLocalizationTargetSetDetailCustomization::CustomizeDetails(IDetailLayoutBu
 
 			CommandList->MapAction( FLocalizationDashboardCommands::Get().CompileAllTargets, FExecuteAction::CreateSP(this, &FLocalizationTargetSetDetailCustomization::CompileAllTargets), FCanExecuteAction::CreateSP(this, &FLocalizationTargetSetDetailCustomization::CanCompileAllTargets));
 			ToolBarBuilder.AddToolBarButton(FLocalizationDashboardCommands::Get().CompileAllTargets, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "LocalizationDashboard.CompileAllTargetsAllCultures"));
+
+			if (ILocalizationServiceModule::Get().IsEnabled())
+			{
+				ToolBarBuilder.BeginSection("LocalizationService");
+				ToolBarBuilder.EndSection();
+			}
 
 			BuildTargetsList();
 

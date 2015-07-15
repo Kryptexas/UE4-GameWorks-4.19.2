@@ -50,11 +50,11 @@ public class LocalizationDashboard : ModuleRules
 		);
 
         CircularlyReferencedDependentModules.AddRange(
-            new string[]
-			{
-                 "MainFrame",
-                 "TranslationEditor"
-			}
-            );
+           new string[] {
+                "LocalizationService",
+				"MainFrame",
+				"TranslationEditor"
+            }
+           );
 	}
 }

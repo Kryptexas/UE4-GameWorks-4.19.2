@@ -73,10 +73,21 @@ void FDefaultLocalizationServiceProvider::CustomizeSettingsDetails(IDetailCatego
 
 }
 
-void FDefaultLocalizationServiceProvider::CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const
+void FDefaultLocalizationServiceProvider::CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, TWeakObjectPtr<ULocalizationTarget> LocalizationTarget) const
 {
 
 }
+
+void FDefaultLocalizationServiceProvider::CustomizeTargetToolbar(TSharedRef<FExtender>& MenuExtender, TWeakObjectPtr<ULocalizationTarget> LocalizationTarget) const
+{
+
+}
+
+void FDefaultLocalizationServiceProvider::CustomizeTargetSetToolbar(TSharedRef<FExtender>& MenuExtender, TWeakObjectPtr<ULocalizationTargetSet> LocalizationTargetSet) const
+{
+
+}
+
 #endif //LOCALIZATION_SERVICES_WITH_SLATE
 
 #undef LOCTEXT_NAMESPACE

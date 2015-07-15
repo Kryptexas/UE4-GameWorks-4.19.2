@@ -80,7 +80,9 @@ public:
 	virtual void Tick() override;
 #if LOCALIZATION_SERVICES_WITH_SLATE
 	virtual void CustomizeSettingsDetails(IDetailCategoryBuilder& DetailCategoryBuilder) const override;
-	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const override;
+	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, TWeakObjectPtr<ULocalizationTarget> LocalizationTarget) const override;
+	virtual void CustomizeTargetToolbar(TSharedRef<FExtender>& MenuExtender, TWeakObjectPtr<ULocalizationTarget> LocalizationTarget) const override;
+	virtual void CustomizeTargetSetToolbar(TSharedRef<FExtender>& MenuExtender, TWeakObjectPtr<ULocalizationTargetSet> ULocalizationTargetSet) const override;
 #endif // LOCALIZATION_SERVICES_WITH_SLATE
 
 	/**
@@ -133,6 +135,30 @@ private:
 	 */
 	ELocalizationServiceOperationCommandResult::Type IssueCommand(class FOneSkyLocalizationServiceCommand& InCommand, const bool bSynchronous);
 
+	/** Add the buttons to the toolbar for this localization target */
+	void AddTargetToolbarButtons(FToolBarBuilder& ToolbarBuilder, TWeakObjectPtr<ULocalizationTarget> InLocalizationTarget, TSharedRef< FUICommandList > CommandList);
+
+	/** Add the buttons to the toolbar for this set of localization targets */
+	void AddTargetSetToolbarButtons(FToolBarBuilder& ToolbarBuilder, TWeakObjectPtr<ULocalizationTargetSet> InLocalizationTargetSet, TSharedRef< FUICommandList > CommandList);
+
+	/** Download and import all translations for all cultures for the specified target from OneSky */
+	void ImportAllCulturesForTargetFromOneSky(TWeakObjectPtr<ULocalizationTarget> LocalizationTarget, bool bIsTargetSet);
+
+	/** Called when done downloading localization data for culture for a target from OneSky */
+	void ImportCultureForTargetFromOneSky_Callback(const FLocalizationServiceOperationRef& Operation, ELocalizationServiceOperationCommandResult::Type Result, bool yes);
+
+	/** Export and upload all cultures for a localization target to OneSky */
+	void ExportAllCulturesForTargetToOneSky(TWeakObjectPtr<ULocalizationTarget> LocalizationTarget, bool bIsTargetSet);
+
+	/** Called when done uploading localization data for a culture for a target from OnSky*/
+	void ExportCultureForTargetToOneSky_Callback(const FLocalizationServiceOperationRef& Operation, ELocalizationServiceOperationCommandResult::Type Result, bool bIsTargetSet);
+
+	/** Download and import all translations for all cultures for all targets for the specified target set from OneSky */
+	void ImportAllTargetsForTargetSetFromOneSky(TWeakObjectPtr<ULocalizationTargetSet> LocalizationTargetSet);
+
+	/** Export and upload all cultures for all targets for a localization target set to OneSky */
+	void ExportAllTargetsForTargetSetToOneSky(TWeakObjectPtr<ULocalizationTargetSet> LocalizationTargetSet);
+
 private:
 
 	/** Indicates if Localization service integration is available or not. */
@@ -152,4 +178,10 @@ private:
 
 	/** Queue for import status tasks  */
 	TQueue < FShowImportTaskQueueItem, EQueueMode::Mpsc > ShowImportTaskQueue;
+
+	/** Array of file names being downloaded for import from OneSky */
+	TArray < FString > FilesDownloadingForImportFromOneSky;
+
+	/** Array of file names being uploaded for export into OneSky */
+	TArray < FString > FilesUploadingForExportToOneSky;
 };

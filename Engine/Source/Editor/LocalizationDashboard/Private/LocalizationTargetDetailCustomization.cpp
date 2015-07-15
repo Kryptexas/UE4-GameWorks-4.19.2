@@ -177,16 +177,25 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 		NativeCultureIndexPropertyHandle = MemberPropertyHandle;
 	});
 
+	const ILocalizationServiceProvider& LSP = ILocalizationServiceModule::Get().GetProvider();
 	PropertyCustomizationMap.Add(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics), [&](const TSharedRef<IPropertyHandle>& MemberPropertyHandle, IDetailCategoryBuilder& DetailCategoryBuilder)
 	{
+
 		SupportedCulturesStatisticsPropertyHandle = MemberPropertyHandle;
 
 		SupportedCulturesStatisticsPropertyHandle_OnNumElementsChanged = FSimpleDelegate::CreateSP(this, &FLocalizationTargetDetailCustomization::RebuildListedCulturesList);
 		SupportedCulturesStatisticsPropertyHandle->AsArray()->SetOnNumElementsChanged(SupportedCulturesStatisticsPropertyHandle_OnNumElementsChanged);
 
 		FLocalizationTargetEditorCommands::Register();
+		auto Commands = FLocalizationTargetEditorCommands::Get();
 		const TSharedRef< FUICommandList > CommandList = MakeShareable(new FUICommandList);
-		FToolBarBuilder ToolBarBuilder( CommandList, FMultiBoxCustomization::AllowCustomization("LocalizationTargetEditor") );
+		// Let the localization service extend this toolbar
+		TSharedRef<FExtender> LocalizationServiceExtender = MakeShareable(new FExtender);
+		if (LocalizationTarget.IsValid() && ILocalizationServiceModule::Get().IsEnabled())
+		{
+			LSP.CustomizeTargetToolbar(LocalizationServiceExtender, LocalizationTarget);
+		}
+		FToolBarBuilder ToolBarBuilder(CommandList, FMultiBoxCustomization::AllowCustomization("LocalizationTargetEditor"), LocalizationServiceExtender);
 
 		TAttribute<FText> GatherToolTipTextAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([this]() -> FText
 			{
@@ -206,6 +215,12 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 
 		CommandList->MapAction( FLocalizationTargetEditorCommands::Get().CompileAllCultures, FExecuteAction::CreateSP(this, &FLocalizationTargetDetailCustomization::CompileAllCultures), FCanExecuteAction::CreateSP(this, &FLocalizationTargetDetailCustomization::CanCompileAllCultures));
 		ToolBarBuilder.AddToolBarButton(FLocalizationTargetEditorCommands::Get().CompileAllCultures, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "LocalizationTargetEditor.CompileAllCultures"));
+		
+		if (ILocalizationServiceModule::Get().IsEnabled())
+		{
+			ToolBarBuilder.BeginSection("LocalizationService");
+			ToolBarBuilder.EndSection();
+		}
 
 		BuildListedCulturesList();
 
@@ -362,11 +377,9 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 	{
 		// Assign this to the "important" category to make it show up just under the "target" category
 		IDetailCategoryBuilder& ServiceProviderCategoryBuilder = DetailBuilder.EditCategory(FName("LocalizationServiceProvider"), LOCTEXT("LocalizationServiceProviderCategoryLabel","Localization Service Provider"), ECategoryPriority::Important);
-
-		const ILocalizationServiceProvider& LSP = ILocalizationServiceModule::Get().GetProvider();
 		if (LocalizationTarget.IsValid())
 		{
-			LSP.CustomizeTargetDetails(ServiceProviderCategoryBuilder, LocalizationTarget->Settings.Guid);
+			LSP.CustomizeTargetDetails(ServiceProviderCategoryBuilder, LocalizationTarget);
 		}
 	}
 }

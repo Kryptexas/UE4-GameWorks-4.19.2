@@ -8,6 +8,8 @@
 #include "ILocalizationServiceState.h"
 class IDetailCategoryBuilder;
 class ULocalizationTarget;
+class ULocalizationTargetSet;
+class FExtender;
 
 #define LOCALIZATION_SERVICES_WITH_SLATE	(!(PLATFORM_LINUX && IS_PROGRAM))
 
@@ -202,7 +204,20 @@ public:
 	* Create a settings widget for display in the localization target editor.
 	* @returns a widget used to edit target-specific localization service settings.
 	*/
-	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const = 0;
+	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, TWeakObjectPtr<ULocalizationTarget> LocalizationTarget) const = 0;
+
+	/**
+	* Create a settings widget for display in the localization target editor.
+	* @returns a widget used to edit target-specific localization service settings.
+	*/
+	virtual void CustomizeTargetToolbar(TSharedRef<FExtender>& MenuExtender, TWeakObjectPtr<ULocalizationTarget> LocalizationTarget) const = 0;
+
+	/**
+	* Create a settings widget for display in the localization target set editor.
+	* @returns a widget used to edit target set-specific localization service settings.
+	*/
+	virtual void CustomizeTargetSetToolbar(TSharedRef<FExtender>& MenuExtender, TWeakObjectPtr<ULocalizationTargetSet> LocalizationTargetSet) const = 0;
+
 #endif //LOCALIZATION_SERVICES_WITH_SLATE
 };
 

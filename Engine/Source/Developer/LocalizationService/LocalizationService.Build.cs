@@ -12,6 +12,7 @@ public class LocalizationService : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+                "Engine",
 				"InputCore",
 			}
 		);
@@ -31,11 +32,10 @@ public class LocalizationService : ModuleRules
         {
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {
-					"Engine",
 					"UnrealEd",
                     "PropertyEditor",
-				}
-			);
+            }
+            );
         }
 
 		if (UEBuildConfiguration.bBuildDeveloperTools)

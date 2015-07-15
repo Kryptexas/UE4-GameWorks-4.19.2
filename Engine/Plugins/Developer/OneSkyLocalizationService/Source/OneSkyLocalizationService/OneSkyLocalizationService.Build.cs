@@ -10,6 +10,7 @@ public class OneSkyLocalizationService : ModuleRules
             new string[] {
 				"Core",
 				"CoreUObject",
+                "Engine",
                 "InputCore",
 				"Slate",
 				"SlateCore",
@@ -19,6 +20,8 @@ public class OneSkyLocalizationService : ModuleRules
                 "Internationalization",
                 "HTTP",
                 "Serialization",
+				"Localization",
+				"MainFrame",
 			}
 		);
 
