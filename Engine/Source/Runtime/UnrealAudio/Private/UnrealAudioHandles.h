@@ -12,11 +12,7 @@ namespace UAudio
 	struct FSoundFileHandle : public FEntityHandle
 	{
 		FSoundFileHandle()
-			: FEntityHandle()
-		{}
-
-		FSoundFileHandle(const FSoundFileHandle& InEntityHandle)
-			: FEntityHandle(InEntityHandle)
+			: FEntityHandle(FEntityHandle::Create())
 		{}
 
 		FSoundFileHandle(const FEntityHandle& InEntityHandle)
@@ -27,11 +23,7 @@ namespace UAudio
 	struct FVoiceHandle : public FEntityHandle
 	{
 		FVoiceHandle()
-			: FEntityHandle()
-		{}
-
-		FVoiceHandle(const FVoiceHandle& InEntityHandle)
-			: FEntityHandle(InEntityHandle)
+			: FEntityHandle(FEntityHandle::Create())
 		{}
 
 		FVoiceHandle(const FEntityHandle& InEntityHandle)
@@ -42,7 +34,7 @@ namespace UAudio
 	struct FEmitterHandle : public FEntityHandle
 	{
 		FEmitterHandle()
-			: FEntityHandle()
+			: FEntityHandle(FEntityHandle::Create())
 		{}
 
 		FEmitterHandle(const FEntityHandle& InEntityHandle)

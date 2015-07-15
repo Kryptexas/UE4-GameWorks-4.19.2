@@ -70,7 +70,7 @@ namespace UAudio
 		check(Command.NumArguments == 1);
 		check(Command.Arguments[0].DataType == ECommandData::UINT32);
 
-		FEmitterHandle EmitterHandle = Command.Arguments[0].Data.UnsignedInt32;
+		FEmitterHandle EmitterHandle = FEmitterHandle::Create(Command.Arguments[0].Data.UnsignedInt32);
 		uint32 EmitterIndex = EmitterHandle.GetIndex();
 
 		if (EmitterIndex < (uint32)EmitterData.Num())
@@ -91,7 +91,7 @@ namespace UAudio
 		check(Command.NumArguments == 1);
 		check(Command.Arguments[0].DataType == ECommandData::UINT32);
 
-		FEmitterHandle EmitterHandle = Command.Arguments[0].Data.UnsignedInt32;
+		FEmitterHandle EmitterHandle = FEmitterHandle::Create(Command.Arguments[0].Data.UnsignedInt32);
 		uint32 EmitterIndex = EmitterHandle.GetIndex();
 		ValidateEmitterEntry(EmitterHandle, EmitterIndex);
 
@@ -106,7 +106,7 @@ namespace UAudio
 		check(Command.Arguments[2].DataType == ECommandData::FLOAT_32);
 		check(Command.Arguments[3].DataType == ECommandData::FLOAT_32);
 
-		FEmitterHandle EmitterHandle = Command.Arguments[0].Data.UnsignedInt32;
+		FEmitterHandle EmitterHandle = FEmitterHandle::Create(Command.Arguments[0].Data.UnsignedInt32);
 
 		FVector Position;
 		Position.X = Command.Arguments[1].Data.Float32Val;

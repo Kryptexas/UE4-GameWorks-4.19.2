@@ -755,8 +755,8 @@ namespace UAudio
 
 		if ((Description.FormatFlags & ESoundFileFormat::MAJOR_FORMAT_MASK) == ESoundFileFormat::OGG)
 		{
-			int32 Result = SoundFileCommand(FileHandle, SET_ENCODING_QUALITY, &EncodingQuality, sizeof(double));
-			if (Result != 1)
+			int32 Result2 = SoundFileCommand(FileHandle, SET_ENCODING_QUALITY, &EncodingQuality, sizeof(double));
+			if (Result2 != 1)
 			{
 				FString StrErr = SoundFileStrError(FileHandle);
 				UE_LOG(LogUnrealAudio, Error, TEXT("Failed to set encoding quality: %s"), *StrErr);

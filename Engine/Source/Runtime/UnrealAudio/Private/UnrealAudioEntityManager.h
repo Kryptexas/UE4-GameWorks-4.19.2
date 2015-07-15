@@ -20,31 +20,17 @@ namespace UAudio
 
 	public:
 
-		/** Default constructor. */
-
-		FEntityHandle()
-			: Id(INDEX_NONE)
-		{}
-
 		/**
-		 * Constructor.
+		 * Static constructor.
 		 *
 		 * @param	InId	Identifier for the in.
 		 */
 
-		FEntityHandle(uint32 InId)
-			: Id(InId)
-		{}
-
-		/**
-		 * Constructor.
-		 *
-		 * @param	Other	The other.
-		 */
-
-		FEntityHandle(const FEntityHandle& Other)
-			: Id(Other.Id)
-		{}
+		static FEntityHandle Create(uint32 InId = INDEX_NONE)
+		{
+			FEntityHandle Result;
+			Result.Id = InId;
+		}
 
 		/**
 		 * Query if this object is initialized.
@@ -179,7 +165,7 @@ namespace UAudio
 
 		FEntityHandle CreateHandle(uint32 EntityIndex, uint8 EntityGeneration) const
 		{
-			return (EntityIndex | (EntityGeneration << ENTITY_INDEX_BITS));
+			return FEntityHandle::Create(EntityIndex | (EntityGeneration << ENTITY_INDEX_BITS));
 		}
 
 		/** Number of free entities. */

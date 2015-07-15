@@ -255,10 +255,10 @@ namespace UAudio
 			uint64 UnsignedInt64;
 			int32 Int32Val;
 			int64 Int64Val;
-			struct
-			{
+//			struct
+//			{
 				FEntityHandle Handle;
-			};
+//			};
 		} Data;
 	};
 
