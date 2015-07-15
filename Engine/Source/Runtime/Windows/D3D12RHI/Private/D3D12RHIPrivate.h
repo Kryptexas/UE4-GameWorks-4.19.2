@@ -729,6 +729,9 @@ struct FD3D12Adapter
 
 class FD3D12DynamicRHI;
 
+bool operator==(const D3D12_SAMPLER_DESC& lhs, const D3D12_SAMPLER_DESC& rhs);
+uint32 GetTypeHash(const D3D12_SAMPLER_DESC& Desc);
+
 class FD3D12Device
 {
 
