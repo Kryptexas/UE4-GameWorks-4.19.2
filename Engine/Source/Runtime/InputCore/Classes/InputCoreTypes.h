@@ -164,6 +164,8 @@ namespace EConsoleForGamepadLabels
 }
 struct INPUTCORE_API EKeys
 {
+	static const FKey AnyKey;
+
 	static const FKey MouseX;
 	static const FKey MouseY;
 	static const FKey MouseScrollUp;
