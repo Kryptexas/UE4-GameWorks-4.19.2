@@ -2,7 +2,7 @@ Availability: Docs
 Title:Actor Ticking
 Crumbs:%ROOT%, Programming
 Description:Explanation of the ticking system used to update Actors each frame.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
