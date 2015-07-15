@@ -1677,14 +1677,14 @@ FVector GetInitialLinearVelocity(const AActor* OwningActor, bool& bComponentAwak
 const FBodyInstance* FBodyInstance::GetOriginalBodyInstance(const PxShape* PShape) const
 {
 	const FBodyInstance* BI = WeldParent ? WeldParent : this;
-	const FWeldInfo* Result = BI->ShapeToBodiesMap.Find(PShape);
+	const FWeldInfo* Result = BI->ShapeToBodiesMap.IsValid() ? BI->ShapeToBodiesMap->Find(PShape) : nullptr;
 	return Result ? Result->ChildBI : this;
 }
 
 const FTransform& FBodyInstance::GetRelativeBodyTransform(const physx::PxShape* PShape) const
 {
 	const FBodyInstance* BI = WeldParent ? WeldParent : this;
-	const FWeldInfo* Result = BI->ShapeToBodiesMap.Find(PShape);
+	const FWeldInfo* Result = BI->ShapeToBodiesMap.IsValid() ? BI->ShapeToBodiesMap->Find(PShape) : nullptr;
 	return Result ? Result->RelativeTM : FTransform::Identity;
 }
 
@@ -1732,7 +1732,7 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, 
 }
 
 //helper function for TermBody to avoid code duplication between scenes
-void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)
+void TermBodyHelper(int16& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)
 {
 	if (SceneIndex)
 	{
@@ -1890,13 +1890,19 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 			}
 		}
 
-		for (int32 ShapeIdx = 0; ShapeIdx < PNewShapes.Num(); ++ShapeIdx)
+		if(PNewShapes.Num())
 		{
-			PxShape* PShape = PNewShapes[ShapeIdx];
-			ShapeToBodiesMap.Add(PShape, FWeldInfo(TheirBody, RelativeTM));
+			if(!ShapeToBodiesMap.IsValid())
+			{
+				ShapeToBodiesMap = TSharedPtr<TMap<physx::PxShape*, FWeldInfo>> (new TMap<physx::PxShape*, FWeldInfo>());
+			}
+
+			for (int32 ShapeIdx = 0; ShapeIdx < PNewShapes.Num(); ++ShapeIdx)
+			{
+				PxShape* PShape = PNewShapes[ShapeIdx];
+				ShapeToBodiesMap->Add(PShape, FWeldInfo(TheirBody, RelativeTM));
+			}
 		}
-
-
 
 		PostShapeChange();
 
@@ -1925,25 +1931,25 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 		TArray<physx::PxShape *> PShapes;
 		const int32 NumSyncShapes = GetAllShapes_AssumesLocked(PShapes);
 
-	for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
-	{
-		PxShape* PShape = PShapes[ShapeIdx];
-			const FBodyInstance* BI = GetOriginalBodyInstance(PShape);
-			if (TheirBI == BI)
-			{
-				ShapeToBodiesMap.Remove(PShape);
-				RigidActorSync->detachShape(*PShape);
-				bShapesChanged = true;
-			}
+		for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
+		{
+			PxShape* PShape = PShapes[ShapeIdx];
+				const FBodyInstance* BI = GetOriginalBodyInstance(PShape);
+				if (TheirBI == BI)
+				{
+					ShapeToBodiesMap->Remove(PShape);
+					RigidActorSync->detachShape(*PShape);
+					bShapesChanged = true;
+				}
 		}
 
-	for (int32 ShapeIdx = NumSyncShapes; ShapeIdx <PShapes.Num(); ++ShapeIdx)
-	{
-		PxShape* PShape = PShapes[ShapeIdx];
+		for (int32 ShapeIdx = NumSyncShapes; ShapeIdx <PShapes.Num(); ++ShapeIdx)
+		{
+			PxShape* PShape = PShapes[ShapeIdx];
 			const FBodyInstance* BI = GetOriginalBodyInstance(PShape);
 			if (TheirBI == BI)
 			{
-				ShapeToBodiesMap.Remove(PShape);
+				ShapeToBodiesMap->Remove(PShape);
 				RigidActorAsync->detachShape(*PShape);
 				bShapesChanged = true;
 			}

@@ -142,20 +142,20 @@ struct ENGINE_API FBodyInstance
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
 	 *	Is INDEX_NONE if a single body component
 	 */
-	int32 InstanceBodyIndex;
+	int16 InstanceBodyIndex;
 
 	/** When we are a body within a SkeletalMeshComponent, we cache the index of the bone we represent, to speed up sync'ing physics to anim. */
-	int32 InstanceBoneIndex;
+	int16 InstanceBoneIndex;
 
 	/** Current scale of physics - used to know when and how physics must be rescaled to match current transform of OwnerComponent. */
 	UPROPERTY()
 	FVector Scale3D;
 
 	/** Physics scene index for the synchronous scene. */
-	int32 SceneIndexSync;
+	int16 SceneIndexSync;
 
 	/** Physics scene index for the asynchronous scene. */
-	int32 SceneIndexAsync;
+	int16 SceneIndexAsync;
 
 	/////////
 	// COLLISION SETTINGS
@@ -167,62 +167,35 @@ struct ENGINE_API FBodyInstance
 	struct FCollisionResponseContainer ResponseToChannels_DEPRECATED;
 
 private:
+
 	/** Collision Profile Name **/
 	UPROPERTY(EditAnywhere, Category=Custom)
 	FName CollisionProfileName;
 
-	/**
-	 * Type of collision enabled.
-	 * 
-	 *	No Collision      : No collision is performed against this body.
-	 *	Query Only        : This body is used only for collision queries (raycasts, sweeps, and overlaps).
-	 *	Physics Only      : This body is used only for physics collision.
-	 *	Collision Enabled : This body interacts with all collision (Query and Physics).
-	 */
-	UPROPERTY(EditAnywhere, Category=Custom)
-	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
-
-	/** Enum indicating what type of object this should be considered as when it moves */
-	UPROPERTY(EditAnywhere, Category=Custom)
-	TEnumAsByte<enum ECollisionChannel> ObjectType;
-
 	/** Custom Channels for Responses*/
-	UPROPERTY(EditAnywhere, Category=Custom) 
+	UPROPERTY(EditAnywhere, Category = Custom)
 	struct FCollisionResponse CollisionResponses;
 
 public:
 
 	/** If true Continuous Collision Detection (CCD) will be used for this component */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Collision)
-	uint32 bUseCCD:1;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Collision)
+	uint32 bUseCCD : 1;
 
 	/**	Should 'Hit' events fire when this object collides during physics simulation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(DisplayName="Simulation Generates Hit Events"))
-	uint32 bNotifyRigidBodyCollision:1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Collision, meta = (DisplayName = "Simulation Generates Hit Events"))
+	uint32 bNotifyRigidBodyCollision : 1;
 
 	/////////
 	// SIM SETTINGS
 
 	/** If true, this body will use simulation. If false, will be 'fixed' (ie kinematic) and move where it is told. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
-	uint32 bSimulatePhysics:1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
+	uint32 bSimulatePhysics : 1;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
-	UPROPERTY(meta=(DisplayName="Override"))
+	UPROPERTY(meta = (DisplayName = "Override"))
 	uint32 bOverrideMass : 1;
-
-	/**Mass of the body in KG. By default we compute this based on physical material and mass scale.
-	*@see bOverrideMass to set this directly */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
-	float MassInKg;
-
-	/** 'Drag' force added to reduce linear movement */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
-	float LinearDamping;
-
-	/** 'Drag' force added to reduce angular movement */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
-	float AngularDamping;
 
 	/** If object should have the force of gravity applied */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics)
@@ -283,9 +256,45 @@ public:
 	UPROPERTY(meta = (editcondition = "bSimulatePhysics"))
 	uint32 bOverrideMaxAngularVelocity : 1;
 
-	/** Locks physical movement along specified axis.*/
-	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
-	TEnumAsByte<EDOFMode::Type> DOFMode;
+	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
+	uint32 bWokenExternally : 1;
+protected:
+
+	/**
+	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
+	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
+	uint32 bUseAsyncScene:1;
+
+	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
+	UPROPERTY()
+	uint32 bOverrideMaxDepenetrationVelocity : 1;
+
+	/** Whether this instance of the object has its own custom walkable slope override setting. */
+	UPROPERTY()
+	uint32 bOverrideWalkableSlopeOnInstance : 1;
+
+	uint32 bHasSharedShapes : 1;
+
+	/** The maximum velocity used to depenetrate this object*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxDepenetrationVelocity", ClampMin = "0.0", UIMin = "0.0"))
+	float MaxDepenetrationVelocity;
+
+public:
+
+	/**Mass of the body in KG. By default we compute this based on physical material and mass scale.
+	*@see bOverrideMass to set this directly */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
+	float MassInKg;
+
+	/** 'Drag' force added to reduce linear movement */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
+	float LinearDamping;
+
+	/** 'Drag' force added to reduce angular movement */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
+	float AngularDamping;
 
 	/** Locks physical movement along a custom plane for a given normal.*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Plane Normal"))
@@ -298,11 +307,6 @@ public:
 	/** Per-instance scaling of mass */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
 	float MassScale;
-
-	/** The maximum angular velocity for this instance */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxAngularVelocity"))
-	float MaxAngularVelocity;
-
 
 	/** Locks physical movement along axis. */
 	void SetDOFLock(EDOFMode::Type NewDOFMode);
@@ -327,25 +331,6 @@ public:
 protected:
 
 	/**
-	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
-	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
-	uint32 bUseAsyncScene:1;
-
-	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
-	UPROPERTY()
-	uint32 bOverrideMaxDepenetrationVelocity : 1;
-
-	/** The maximum velocity used to depenetrate this object*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxDepenetrationVelocity", ClampMin = "0.0", UIMin = "0.0"))
-	float MaxDepenetrationVelocity;
-
-	/** Whether this instance of the object has its own custom walkable slope override setting. */
-	UPROPERTY()
-	uint32 bOverrideWalkableSlopeOnInstance : 1;
-
-	/**
 	* Custom walkable slope override setting for this instance.
 	* @see GetWalkableSlopeOverride(), SetWalkableSlopeOverride()
 	*/
@@ -357,9 +342,10 @@ protected:
 	class UPhysicalMaterial* PhysMaterialOverride;
 
 public:
-	/** The set of values used in considering when put this body to sleep. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
-	ESleepFamily SleepFamily;
+	/** The maximum angular velocity for this instance */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxAngularVelocity"))
+	float MaxAngularVelocity;
+
 
 	/** If the SleepFamily is set to custom, multiply the natural sleep threshold by this amount. A higher number will cause the body to sleep sooner. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
@@ -373,10 +359,6 @@ public:
 	/** This physics body's solver iteration count for position. Increasing this will be more CPU intensive, but better stabilized.  */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
 	int32 PositionSolverIterationCount;
-
-	/** This physics body's solver iteration count for velocity. Increasing this will be more CPU intensive, but better stabilized. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
-	int32 VelocitySolverIterationCount;
 
 public:
 
@@ -401,12 +383,13 @@ public:
 	UPROPERTY()
 	uint64 RigidActorAsyncId;
 
+	/** This physics body's solver iteration count for velocity. Increasing this will be more CPU intensive, but better stabilized. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
+	int32 VelocitySolverIterationCount;
+
 	/** Per instance data used to initialize dynamic instances */
 	/** Initial physx velocity to apply to dynamic instances */
 	FVector InitialLinearVelocity;
-
-	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
-	bool bWokenExternally;
 
 	/** PrimitiveComponent containing this body.   */
 	TWeakObjectPtr<class UPrimitiveComponent> OwnerComponent;
@@ -1011,9 +994,6 @@ public:
 public:
 	FPhysxUserData PhysxUserData;
 
-	// Current state of the physx body for tracking deferred addition and removal.
-	BodyInstanceSceneState CurrentSceneState;
-
 	/** Returns the original owning body instance. This is needed for welding */
 	const FBodyInstance* GetOriginalBodyInstance(const physx::PxShape* PShape) const;
 
@@ -1062,6 +1042,7 @@ private:
 	friend struct FInitBodiesHelper<true>;
 	friend struct FInitBodiesHelper<false>;
 	friend class FDerivedDataPhysXBinarySerializer;
+	friend class FBodyInstanceCustomizationHelper;
 
 #if WITH_BOX2D
 
@@ -1085,10 +1066,37 @@ private:
 
 #if WITH_PHYSX
 	/** Used to map between shapes and welded bodies. We do not create entries if the owning body instance is root*/
-	TMap<physx::PxShape*, FWeldInfo> ShapeToBodiesMap;
+	TSharedPtr<TMap<physx::PxShape*, FWeldInfo>> ShapeToBodiesMap;
 
 #endif
-	bool bHasSharedShapes;
+
+public:
+	// Current state of the physx body for tracking deferred addition and removal.
+	BodyInstanceSceneState CurrentSceneState;
+
+	/** The set of values used in considering when put this body to sleep. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	ESleepFamily SleepFamily;
+
+	/** Locks physical movement along specified axis.*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (DisplayName = "Mode"))
+	TEnumAsByte<EDOFMode::Type> DOFMode;
+
+private:
+	/**
+	 * Type of collision enabled.
+	 * 
+	 *	No Collision      : No collision is performed against this body.
+	 *	Query Only        : This body is used only for collision queries (raycasts, sweeps, and overlaps).
+	 *	Physics Only      : This body is used only for physics collision.
+	 *	Collision Enabled : This body interacts with all collision (Query and Physics).
+	 */
+	UPROPERTY(EditAnywhere, Category=Custom)
+	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
+
+	/** Enum indicating what type of object this should be considered as when it moves */
+	UPROPERTY(EditAnywhere, Category=Custom)
+	TEnumAsByte<enum ECollisionChannel> ObjectType;
 };
 
 template<>

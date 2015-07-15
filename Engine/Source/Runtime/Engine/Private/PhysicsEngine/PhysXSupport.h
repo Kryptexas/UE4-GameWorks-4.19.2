@@ -105,13 +105,13 @@ extern PxProfileZoneManager*	GPhysXProfileZoneManager;
  *	Map from SceneIndex to actual NxApexScene. This indirection allows us to set it to null when we kill the scene, 
  *	and therefore abort trying to destroy PhysX objects after the scene has been destroyed (eg. on game exit). 
  */
-extern TMap<int32, NxApexScene*>	GPhysXSceneMap;
+extern TMap<int16, NxApexScene*>	GPhysXSceneMap;
 #else // #if WITH_APEX
 /** 
  *	Map from SceneIndex to actual PxScene. This indirection allows us to set it to null when we kill the scene, 
  *	and therefore abort trying to destroy PhysX objects after the scene has been destroyed (eg. on game exit). 
  */
-extern TMap<int32, PxScene*>	GPhysXSceneMap;
+extern TMap<int16, PxScene*>	GPhysXSceneMap;
 #endif // #if WITH_APEX
 
 /** Total number of PhysX convex meshes around currently. */

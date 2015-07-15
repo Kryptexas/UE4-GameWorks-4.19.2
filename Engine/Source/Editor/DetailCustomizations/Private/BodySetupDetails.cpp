@@ -21,7 +21,10 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 	{
 		if ( DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance))->IsValidHandle() )
 		{
-			IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics");
+			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
+			BodyInstanceCustomizationHelper = MakeShareable(new FBodyInstanceCustomizationHelper(ObjectsCustomized));
+			BodyInstanceCustomizationHelper->CustomizeDetails(DetailBuilder, DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance)));
+
 			IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Collision");
 
 			TSharedPtr<IPropertyHandle> BodyInstanceHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
@@ -34,74 +37,14 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			uint32 NumChildren = 0;
 			BodyInstanceHandler->GetNumChildren(NumChildren);
 
-			// Get the objects being customized so we can enable/disable editing of 'Simulate Physics'
-			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
-
 			// add all properties of this now - after adding 
 			for (uint32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex)
 			{
 				TSharedPtr<IPropertyHandle> ChildProperty = BodyInstanceHandler->GetChildHandle(ChildIndex);
 				FString Category = FObjectEditorUtils::GetCategory(ChildProperty->GetProperty());
-				if (ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bSimulatePhysics)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bAutoWeld)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, DOFMode)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, CustomDOFPlaneNormal)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockTranslation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockXTranslation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockYTranslation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockZTranslation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockRotation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockXRotation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockYRotation)
-					|| ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bLockZRotation))
-				{
-					// skip bSimulatePhysics
-					// this is because we don't want bSimulatePhysics to show up 
-					// phat editor 
-					// staitc mesh already hides everything else not interested in
-					// so phat editor just should not show this option
-					//also hide bAutoWeld for phat
-					continue;
-				}
-				else if (ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKg))
-				{
-					PhysicsCategory.AddProperty(ChildProperty).CustomWidget()
-					.NameContent()
-					[
-						ChildProperty->CreatePropertyNameWidget()
-					]
-					.ValueContent()
-						[
-							SNew(SVerticalBox)
-							+ SVerticalBox::Slot()
-							.Padding(0.f, 0.f, 10.f, 0.f)
-							[
-								SNew(SNumericEntryBox<float>)
-								.IsEnabled(false)
-								.Font(IDetailLayoutBuilder::GetDetailFont())
-								.Value(this, &FBodySetupDetails::OnGetBodyMass)
-								.Visibility(this, &FBodySetupDetails::IsMassVisible, false)
-							]
 
-							+ SVerticalBox::Slot()
-								.Padding(0.f, 0.f, 10.f, 0.f)
-								[
-									SNew(SVerticalBox)
-									.Visibility(this, &FBodySetupDetails::IsMassVisible, true)
-									+ SVerticalBox::Slot()
-									.AutoHeight()
-									[
-										ChildProperty->CreatePropertyValueWidget()
-									]
-								]
-						];
-					continue;
-				}
-				if (Category == TEXT("Physics"))
-				{
-					PhysicsCategory.AddProperty(ChildProperty);
-				}
-				else if (Category == TEXT("Collision"))
+				
+				if (Category == TEXT("Collision"))
 				{
 					CollisionCategory.AddProperty(ChildProperty);
 				}
@@ -109,72 +52,6 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 		}
 	}
 }
-
-TOptional<float> FBodySetupDetails::OnGetBodyMass() const
-{
-	UBodySetup* BS = NULL;
-
-	float Mass = 0.0f;
-	bool bMultipleValue = false;
-
-	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
-	{
-		if(ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
-		{
-			BS = Cast<UBodySetup>(ObjectIt->Get());
-			
-			float BSMass = BS->CalculateMass();
-			if (Mass == 0.0f || FMath::Abs(Mass - BSMass) < 0.1f)
-			{
-				Mass = BSMass;
-			}
-			else
-			{
-				bMultipleValue = true;
-				break;
-			}
-		}
-	}
-
-	if (bMultipleValue)
-	{
-		return TOptional<float>();
-	}
-
-	return Mass;
-}
-
-EVisibility FBodySetupDetails::IsMassVisible(bool bOverrideMass) const
-{
-	bool bIsMassReadOnly = IsBodyMassReadOnly();
-	if (bOverrideMass)
-	{
-		return bIsMassReadOnly ? EVisibility::Collapsed : EVisibility::Visible;
-	}
-	else
-	{
-		return bIsMassReadOnly ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-}
-
-
-bool FBodySetupDetails::IsBodyMassReadOnly() const
-{
-	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
-	{
-		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
-		{
-			UBodySetup* BS = Cast<UBodySetup>(ObjectIt->Get());
-			if (BS->DefaultInstance.bOverrideMass == false)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 
 #undef LOCTEXT_NAMESPACE
 

@@ -289,7 +289,7 @@ public:
 	UWorld*							OwningWorld;
 
 	/** These indices are used to get the actual PxScene or NxApexScene from the GPhysXSceneMap. */
-	int32								PhysXSceneIndex[PST_MAX];
+	int16								PhysXSceneIndex[PST_MAX];
 
 	/** Whether or not the given scene is between its execute and sync point. */
 	bool							bPhysXSceneExecuting[PST_MAX];

@@ -24,7 +24,7 @@
 #define USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE			1
 #define USE_SPECIAL_FRICTION_MODEL_FOR_ASYNC_SCENE	0
 
-static int32 PhysXSceneCount = 1;
+static int16 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
 
 EPhysicsSceneType FPhysScene::SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const

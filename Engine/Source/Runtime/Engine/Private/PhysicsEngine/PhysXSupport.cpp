@@ -35,13 +35,13 @@ ENGINE_API NxModule*				GApexModuleLegacy = NULL;
 ENGINE_API NxModuleClothing*		GApexModuleClothing		= NULL;	
 #endif //WITH_APEX_CLOTHING
 
-TMap<int32, NxApexScene*>				GPhysXSceneMap;
+TMap<int16, NxApexScene*>				GPhysXSceneMap;
 FApexNullRenderResourceManager		GApexNullRenderResourceManager;
 FApexResourceCallback				GApexResourceCallback;
 FApexPhysX3Interface				GApexPhysX3Interface;
 FApexChunkReport					GApexChunkReport;
 #else	// #if WITH_APEX
-TMap<int32, PxScene*>		GPhysXSceneMap;
+TMap<int16, PxScene*>		GPhysXSceneMap;
 #endif	// #if WITH_APEX
 
 int32						GNumPhysXConvexMeshes = 0;
