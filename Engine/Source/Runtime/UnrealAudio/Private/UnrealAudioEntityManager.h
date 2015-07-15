@@ -30,6 +30,7 @@ namespace UAudio
 		{
 			FEntityHandle Result;
 			Result.Id = InId;
+			return Result;
 		}
 
 		/**
