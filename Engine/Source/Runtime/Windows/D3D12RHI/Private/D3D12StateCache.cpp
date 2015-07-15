@@ -744,6 +744,31 @@ void FD3D12StateCacheBase::ClearSRVs()
 	bSRVSCleared = true;
 }
 
+void FD3D12StateCacheBase::ClearSamplers()
+{
+	ZeroMemory(PipelineState.Common.CurrentSamplerStates, sizeof(PipelineState.Common.CurrentSamplerStates));
+	for (uint32 ShaderFrequency = 0; ShaderFrequency < _countof(bNeedSetSamplersPerShaderStage); ShaderFrequency++)
+	{
+		bNeedSetSamplersPerShaderStage[ShaderFrequency] = true;
+	}
+	bNeedSetSamplers = true;
+}
+
+void FD3D12StateCacheBase::FlushComputeShaderCache(bool bForce)
+{
+	if (bAutoFlushComputeShaderCache || bForce)
+	{
+		D3D12_RESOURCE_BARRIER desc = {};
+		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		desc.UAV.pResource = nullptr;
+
+		FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
+
+		CmdContext->numBarriers++;
+		CommandList->ResourceBarrier(1, &desc);
+	}
+}
+
 void FD3D12StateCacheBase::ClearState()
 {
 	// Shader Resource View State Cache
@@ -848,7 +873,7 @@ void FD3D12StateCacheBase::RestoreState()
 	}
 }
 
-D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetViewport(D3D12_VIEWPORT Viewport)
+void FD3D12StateCacheBase::SetViewport(D3D12_VIEWPORT Viewport)
 {
 	if ((PipelineState.Graphics.CurrentNumberOfViewports != 1 || FMemory::Memcmp(&PipelineState.Graphics.CurrentViewport[0], &Viewport, sizeof(D3D12_VIEWPORT))) || GD3D12SkipStateCaching)
 	{
@@ -859,7 +884,7 @@ D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetViewport(D3D12_VIEWPORT V
 	}
 }
 
-D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetViewports(uint32 Count, D3D12_VIEWPORT* Viewports)
+void FD3D12StateCacheBase::SetViewports(uint32 Count, D3D12_VIEWPORT* Viewports)
 {
 	if ((PipelineState.Graphics.CurrentNumberOfViewports != Count || FMemory::Memcmp(&PipelineState.Graphics.CurrentViewport[0], Viewports, sizeof(D3D12_VIEWPORT)* Count)) || GD3D12SkipStateCaching)
 	{
@@ -870,7 +895,24 @@ D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetViewports(uint32 Count, D
 	}
 }
 
-D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetScissorRect(D3D12_RECT ScissorRect)
+void FD3D12StateCacheBase::UpdateViewportScissorRects()
+{
+	for (uint32 i = 0; i < PipelineState.Graphics.CurrentNumberOfScissorRects; ++i)
+	{
+		D3D12_VIEWPORT& Viewport		    = PipelineState.Graphics.CurrentViewport[FMath::Min (i, PipelineState.Graphics.CurrentNumberOfViewports)];
+		D3D12_RECT&     ScissorRect         = PipelineState.Graphics.CurrentScissorRects[i];
+		D3D12_RECT&     ViewportScissorRect = PipelineState.Graphics.CurrentViewportScissorRects[i];
+
+		ViewportScissorRect.top    = FMath::Max(ScissorRect.top,    (LONG)Viewport.TopLeftY);
+		ViewportScissorRect.left   = FMath::Max(ScissorRect.left,   (LONG)Viewport.TopLeftX);
+		ViewportScissorRect.bottom = FMath::Min(ScissorRect.bottom, (LONG)Viewport.TopLeftY + (LONG)Viewport.Height);
+		ViewportScissorRect.right  = FMath::Min(ScissorRect.right,  (LONG)Viewport.TopLeftX + (LONG)Viewport.Width);
+	}
+
+	bNeedSetScissorRects = true;
+}
+
+void FD3D12StateCacheBase::SetScissorRect(D3D12_RECT ScissorRect)
 {
 	if ((PipelineState.Graphics.CurrentNumberOfScissorRects != 1 || FMemory::Memcmp(&PipelineState.Graphics.CurrentScissorRects[0], &ScissorRect, sizeof(D3D12_RECT))) || GD3D12SkipStateCaching)
 	{
@@ -880,7 +922,7 @@ D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetScissorRect(D3D12_RECT Sc
 	}
 }
 
-D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetScissorRects(uint32 Count, D3D12_RECT* ScissorRects)
+void FD3D12StateCacheBase::SetScissorRects(uint32 Count, D3D12_RECT* ScissorRects)
 {
 	if ((PipelineState.Graphics.CurrentNumberOfScissorRects != Count || FMemory::Memcmp(&PipelineState.Graphics.CurrentScissorRects[0], ScissorRects, sizeof(D3D12_RECT)* Count)) || GD3D12SkipStateCaching)
 	{
@@ -2319,7 +2361,7 @@ void FD3D12StateCacheBase::SetBlendState(D3D12_BLEND_DESC* State, const float Bl
 	}
 }
 
-D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State, uint32 RefStencil)
+void FD3D12StateCacheBase::SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State, uint32 RefStencil)
 {
 	if (PipelineState.Graphics.HighLevelDesc.DepthStencilState != State || GD3D12SkipStateCaching)
 	{
@@ -2401,102 +2443,6 @@ void FD3D12StateCacheBase::SetStreamOutTargets(uint32 NumSimultaneousStreamOutTa
 		FMemory::Memcpy(PipelineState.Graphics.CurrentSOOffsets, SOOffsets, sizeof(uint32*)* NumSimultaneousStreamOutTargets);
 
 		bNeedSetSOs = true;
-	}
-}
-
-template <EShaderFrequency ShaderFrequency>
-void FD3D12StateCacheBase::InternalSetShaderResourceView(FD3D12ShaderResourceView*& SRV, uint32 ResourceIndex, ESRV_Type SrvType, TSetSRVAlternate AlternatePathFunction)
-{
-	check(ResourceIndex < ARRAYSIZE(PipelineState.Common.CurrentShaderResourceViews[ShaderFrequency]));
-	auto& CurrentShaderResourceViews = PipelineState.Common.CurrentShaderResourceViews[ShaderFrequency];
-	if ((CurrentShaderResourceViews[ResourceIndex] != SRV) || GD3D12SkipStateCaching)
-	{
-		// Keep track of the highest bound resource
-		int32& MaxResourceIndex = PipelineState.Common.MaxBoundShaderResourcesIndex[ShaderFrequency];
-		if (SRV != nullptr)
-		{
-			// Mark the SRVs as not cleared
-			bSRVSCleared = false;
-
-			check(ResourceIndex < MAX_SRVS);
-			// Update the max resource index to the highest bound resource index.
-			MaxResourceIndex = FMath::Max(MaxResourceIndex, static_cast<int32>(ResourceIndex));
-		}
-		else
-		{
-			// If this was the highest bound resource...
-			if (MaxResourceIndex == ResourceIndex)
-			{
-				// Adjust the max resource index downwards until we
-				// hit the next non-null slot, or we've run out of slots.
-				do
-				{
-					MaxResourceIndex--;
-				} while (MaxResourceIndex >= 0 && CurrentShaderResourceViews[MaxResourceIndex] == nullptr);
-			}
-		}
-
-		CurrentShaderResourceViews[ResourceIndex] = SRV;
-		bNeedSetSRVsPerShaderStage[ShaderFrequency] = true;
-		bNeedSetSRVs = true;
-
-		if (FD3D12DynamicRHI::ResourceViewsIntersect(PipelineState.Graphics.CurrentDepthStencilTarget, SRV))
-		{
-			check(PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH);
-			if (!PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
-			{
-				PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = true;
-				PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount++;
-			}
-		}
-		else
-		{
-			if (PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
-			{
-				PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = false;
-				PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount--;
-			}
-		}
-
-		if (AlternatePathFunction != nullptr)
-		{
-			(*AlternatePathFunction)(this, SRV, ResourceIndex, SrvType);
-		}
-	}
-}
-
-template <EShaderFrequency ShaderFrequency>
-void FD3D12StateCacheBase::ClearShaderResourceViews(FD3D12ResourceLocation*& ResourceLocation)
-{
-	int32& MaxResourceIndex = PipelineState.Common.MaxBoundShaderResourcesIndex[ShaderFrequency];
-	auto& CurrentShaderResourceViews = PipelineState.Common.CurrentShaderResourceViews[ShaderFrequency];
-
-	const int32 OriginalMaxResourceIndex = MaxResourceIndex;
-	for (int32 i = 0; i <= OriginalMaxResourceIndex; ++i)
-	{
-		if (CurrentShaderResourceViews[i].GetReference() && CurrentShaderResourceViews[i]->GetResourceLocation() == ResourceLocation)
-		{
-			SetShaderResourceView<ShaderFrequency>(nullptr, i);
-		}
-	}
-
-	// Restore the max index to make sure we set null descriptors in the slots of any SRVs we unbind due to them overlapping with other
-	// resources like RTVs and DSVs.
-	MaxResourceIndex = OriginalMaxResourceIndex;
-}
-
-void FD3D12StateCacheBase::FlushComputeShaderCache(bool bForce)
-{
-	if (bAutoFlushComputeShaderCache || bForce)
-	{
-		D3D12_RESOURCE_BARRIER desc = {};
-		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-		desc.UAV.pResource = nullptr;
-
-		FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
-
-		CmdContext->numBarriers++;
-		CommandList->ResourceBarrier(1, &desc);
 	}
 }
 

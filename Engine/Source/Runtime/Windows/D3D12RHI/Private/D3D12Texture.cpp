@@ -9,17 +9,19 @@
 /*-----------------------------------------------------------------------------
 	Texture allocator support.
 	-----------------------------------------------------------------------------*/
+
+// in bytes, never change after RHI, needed to scale game features
+int64 GDedicatedVideoMemory = 0;
+// in bytes, never change after RHI, needed to scale game features
+int64 GDedicatedSystemMemory = 0;
+// in bytes, never change after RHI, needed to scale game features
+int64 GSharedSystemMemory = 0;
+// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
+int64 GTotalGraphicsMemory = 0;
+
+
 namespace D3D12RHI
 {
-	// in bytes, never change after RHI, needed to scale game features
-	int64 GDedicatedVideoMemory = 0;
-	// in bytes, never change after RHI, needed to scale game features
-	int64 GDedicatedSystemMemory = 0;
-	// in bytes, never change after RHI, needed to scale game features
-	int64 GSharedSystemMemory = 0;
-	// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
-	int64 GTotalGraphicsMemory = 0;
-
 	static bool ShouldCountAsTextureMemory(uint32 MiscFlags)
 	{
         // Shouldn't be used for DEPTH, RENDER TARGET, or UNORDERED ACCESS

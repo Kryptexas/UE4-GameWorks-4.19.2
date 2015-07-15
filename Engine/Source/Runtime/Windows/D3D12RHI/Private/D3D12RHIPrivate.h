@@ -431,12 +431,23 @@ public:
 	}
 
 	template <EShaderFrequency ShaderFrequency>
-	void ClearShaderResourceViews(FD3D12ResourceLocation* Resource);
+	void ClearShaderResourceViews(FD3D12ResourceLocation* Resource)
+	{
+		StateCache.ClearShaderResourceViews<ShaderFrequency>(Resource);
+	}
 
 	void CheckIfSRVIsResolved(FD3D12ShaderResourceView* SRV);
 
 	template <EShaderFrequency ShaderFrequency>
-	void InternalSetShaderResourceView(FD3D12ResourceLocation* Resource, FD3D12ShaderResourceView* SRV, int32 ResourceIndex, FD3D12StateCache::ESRV_Type SrvType = FD3D12StateCache::SRV_Unknown);
+	void InternalSetShaderResourceView(FD3D12ResourceLocation* Resource, FD3D12ShaderResourceView* SRV, int32 ResourceIndex, FD3D12StateCache::ESRV_Type SrvType = FD3D12StateCache::SRV_Unknown)
+	{
+		// Check either both are set, or both are null.
+		check((Resource && SRV) || (!Resource && !SRV));
+		CheckIfSRVIsResolved(SRV);
+
+		// Set the SRV we have been given (or null).
+		StateCache.SetShaderResourceView<ShaderFrequency>(SRV, ResourceIndex, SrvType);
+	}
 
 	void SetCurrentComputeShader(FComputeShaderRHIParamRef ComputeShader)
 	{

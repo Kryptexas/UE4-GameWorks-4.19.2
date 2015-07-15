@@ -217,23 +217,6 @@ void FD3D12CommandContext::CheckIfSRVIsResolved(FD3D12ShaderResourceView* SRV)
 #endif
 }
 
-template <EShaderFrequency ShaderFrequency>
-void FD3D12CommandContext::InternalSetShaderResourceView(FD3D12ResourceLocation* Resource, FD3D12ShaderResourceView* SRV, int32 ResourceIndex, FD3D12StateCache::ESRV_Type SrvType)
-{
-	// Check either both are set, or both are null.
-	check((Resource && SRV) || (!Resource && !SRV));
-	CheckIfSRVIsResolved(SRV);
-
-	// Set the SRV we have been given (or null).
-	StateCache.SetShaderResourceView<ShaderFrequency>(SRV, ResourceIndex, SrvType);
-}
-
-template <EShaderFrequency ShaderFrequency>
-void FD3D12CommandContext::ClearShaderResourceViews(FD3D12ResourceLocation* Resource)
-{
-	StateCache.ClearShaderResourceViews<ShaderFrequency>(Resource);
-}
-
 void FD3D12CommandContext::ConditionalClearShaderResource(FD3D12ResourceLocation* Resource)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12ClearShaderResourceTime);
@@ -739,7 +722,7 @@ void FD3D12ResourceLocation::UpdateStateCache(FD3D12StateCache& StateCache)
 	}
 }
 
-inline void FD3D12ResourceLocation::UpdateDefaultStateCache()
+void FD3D12ResourceLocation::UpdateDefaultStateCache()
 {
     UpdateStateCache(GetParentDevice()->GetDefaultCommandContext().StateCache);
 }

@@ -926,14 +926,72 @@ protected:
 	FD3D12DescriptorCache DescriptorCache;
 	bool bAlwaysSetIndexBuffers;
 
-	D3D12_STATE_CACHE_INLINE void InternalSetIndexBuffer(FD3D12ResourceLocation *IndexBufferLocation, DXGI_FORMAT Format, uint32 Offset);
+	void InternalSetIndexBuffer(FD3D12ResourceLocation *IndexBufferLocation, DXGI_FORMAT Format, uint32 Offset);
 
 	typedef void(*TSetSRVAlternate)(FD3D12StateCacheBase* StateCache, FD3D12ShaderResourceView* SRV, uint32 ResourceIndex, ESRV_Type SrvType);
 	template <EShaderFrequency ShaderFrequency>
-	void D3D12_STATE_CACHE_INLINE InternalSetShaderResourceView(FD3D12ShaderResourceView*& SRV, uint32 ResourceIndex, ESRV_Type SrvType, TSetSRVAlternate AlternatePathFunction);
+	void InternalSetShaderResourceView(FD3D12ShaderResourceView*& SRV, uint32 ResourceIndex, ESRV_Type SrvType, TSetSRVAlternate AlternatePathFunction)
+	{
+		check(ResourceIndex < ARRAYSIZE(PipelineState.Common.CurrentShaderResourceViews[ShaderFrequency]));
+		auto& CurrentShaderResourceViews = PipelineState.Common.CurrentShaderResourceViews[ShaderFrequency];
+		if ((CurrentShaderResourceViews[ResourceIndex] != SRV) || GD3D12SkipStateCaching)
+		{
+			// Keep track of the highest bound resource
+			int32& MaxResourceIndex = PipelineState.Common.MaxBoundShaderResourcesIndex[ShaderFrequency];
+			if (SRV != nullptr)
+			{
+				// Mark the SRVs as not cleared
+				bSRVSCleared = false;
+
+				check(ResourceIndex < MAX_SRVS);
+				// Update the max resource index to the highest bound resource index.
+				MaxResourceIndex = FMath::Max(MaxResourceIndex, static_cast<int32>(ResourceIndex));
+			}
+			else
+			{
+				// If this was the highest bound resource...
+				if (MaxResourceIndex == ResourceIndex)
+				{
+					// Adjust the max resource index downwards until we
+					// hit the next non-null slot, or we've run out of slots.
+					do
+					{
+						MaxResourceIndex--;
+					} while (MaxResourceIndex >= 0 && CurrentShaderResourceViews[MaxResourceIndex] == nullptr);
+				}
+			}
+
+			CurrentShaderResourceViews[ResourceIndex] = SRV;
+			bNeedSetSRVsPerShaderStage[ShaderFrequency] = true;
+			bNeedSetSRVs = true;
+
+			if (FD3D12DynamicRHI::ResourceViewsIntersect(PipelineState.Graphics.CurrentDepthStencilTarget, SRV))
+			{
+				check(PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH);
+				if (!PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
+				{
+					PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = true;
+					PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount++;
+				}
+			}
+			else
+			{
+				if (PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
+				{
+					PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = false;
+					PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount--;
+				}
+			}
+
+			if (AlternatePathFunction != nullptr)
+			{
+				(*AlternatePathFunction)(this, SRV, ResourceIndex, SrvType);
+			}
+		}
+	}
 
 	typedef void(*TSetStreamSourceAlternate)(FD3D12StateCacheBase* StateCache, FD3D12Resource* VertexBuffer, uint32 StreamIndex, uint32 Stride, uint32 Offset);
-	D3D12_STATE_CACHE_INLINE void InternalSetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Stride, uint32 Offset, TSetStreamSourceAlternate AlternatePathFunction);
+	void InternalSetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Stride, uint32 Offset, TSetStreamSourceAlternate AlternatePathFunction);
 
 	typedef void(*TSetSamplerStateAlternate)(FD3D12StateCacheBase* StateCache, FD3D12SamplerState* SamplerState, uint32 SamplerIndex);
 	template <EShaderFrequency ShaderFrequency>
@@ -998,27 +1056,40 @@ public:
 		RestoreState();
 	}
 
-	FD3D12DescriptorCache* GetDescriptorCache() { return &DescriptorCache; }
+	FD3D12DescriptorCache* GetDescriptorCache()
+	{
+		return &DescriptorCache;
+	}
 
 	ID3D12PipelineState* GetPipelineStateObject()
 	{
 		return PipelineState.Common.CurrentPipelineStateObject;
 	}
 
-	void ClearSamplers()
-	{
-		ZeroMemory(PipelineState.Common.CurrentSamplerStates, sizeof(PipelineState.Common.CurrentSamplerStates));
-		for (uint32 ShaderFrequency = 0; ShaderFrequency < _countof(bNeedSetSamplersPerShaderStage); ShaderFrequency++)
-		{
-			bNeedSetSamplersPerShaderStage[ShaderFrequency] = true;
-		}
-		bNeedSetSamplers = true;
-	}
-
+	void ClearSamplers();
 	void ClearSRVs();
 
 	template <EShaderFrequency ShaderFrequency>
-	void ClearShaderResourceViews(FD3D12ResourceLocation*& ResourceLocation);
+	void ClearShaderResourceViews(FD3D12ResourceLocation*& ResourceLocation)
+	{
+		int32& MaxResourceIndex = PipelineState.Common.MaxBoundShaderResourcesIndex[ShaderFrequency];
+		auto& CurrentShaderResourceViews = PipelineState.Common.CurrentShaderResourceViews[ShaderFrequency];
+
+		const int32 OriginalMaxResourceIndex = MaxResourceIndex;
+		for (int32 i = 0; i <= OriginalMaxResourceIndex; ++i)
+		{
+			if (CurrentShaderResourceViews[i].GetReference() && CurrentShaderResourceViews[i]->GetResourceLocation() == ResourceLocation)
+			{
+				SetShaderResourceView<ShaderFrequency>(nullptr, i);
+			}
+		}
+
+		// Restore the max index to make sure we set null descriptors in the slots of any SRVs we unbind due to them overlapping with other
+		// resources like RTVs and DSVs.
+		MaxResourceIndex = OriginalMaxResourceIndex;
+	}
+
+	void FD3D12StateCacheBase::FlushComputeShaderCache(bool bForce = false);
 
 	template <EShaderFrequency ShaderFrequency>
 	D3D12_STATE_CACHE_INLINE void SetShaderResourceView(FD3D12ShaderResourceView* SRV, uint32 ResourceIndex, ESRV_Type SrvType = SRV_Unknown)
@@ -1044,25 +1115,9 @@ public:
 		}
 	}
 
-	void UpdateViewportScissorRects()
-	{
-		for (uint32 i = 0; i < PipelineState.Graphics.CurrentNumberOfScissorRects; ++i)
-		{
-			D3D12_VIEWPORT& Viewport		    = PipelineState.Graphics.CurrentViewport[FMath::Min (i, PipelineState.Graphics.CurrentNumberOfViewports)];
-			D3D12_RECT&     ScissorRect         = PipelineState.Graphics.CurrentScissorRects[i];
-			D3D12_RECT&     ViewportScissorRect = PipelineState.Graphics.CurrentViewportScissorRects[i];
-
-			ViewportScissorRect.top    = FMath::Max(ScissorRect.top,    (LONG)Viewport.TopLeftY);
-			ViewportScissorRect.left   = FMath::Max(ScissorRect.left,   (LONG)Viewport.TopLeftX);
-			ViewportScissorRect.bottom = FMath::Min(ScissorRect.bottom, (LONG)Viewport.TopLeftY + (LONG)Viewport.Height);
-			ViewportScissorRect.right  = FMath::Min(ScissorRect.right,  (LONG)Viewport.TopLeftX + (LONG)Viewport.Width);
-		}
-
-		bNeedSetScissorRects = true;
-	}
-
-	D3D12_STATE_CACHE_INLINE void SetScissorRects(uint32 Count, D3D12_RECT* ScissorRects);
-	D3D12_STATE_CACHE_INLINE void SetScissorRect(D3D12_RECT ScissorRect);
+	void UpdateViewportScissorRects();
+	void SetScissorRects(uint32 Count, D3D12_RECT* ScissorRects);
+	void SetScissorRect(D3D12_RECT ScissorRect);
 
 	D3D12_STATE_CACHE_INLINE void GetScissorRect(D3D12_RECT *ScissorRect) const
 	{
@@ -1071,8 +1126,8 @@ public:
 	}
 
 
-	D3D12_STATE_CACHE_INLINE void SetViewport(D3D12_VIEWPORT Viewport);
-	D3D12_STATE_CACHE_INLINE void SetViewports(uint32 Count, D3D12_VIEWPORT* Viewports);
+	void SetViewport(D3D12_VIEWPORT Viewport);
+	void SetViewports(uint32 Count, D3D12_VIEWPORT* Viewports);
 
 	D3D12_STATE_CACHE_INLINE void GetViewport(D3D12_VIEWPORT *Viewport) const
 	{
@@ -1161,7 +1216,7 @@ public:
 		*RasterizerState = PipelineState.Graphics.HighLevelDesc.RasterizerState;
 	}
 
-	D3D12_STATE_CACHE_INLINE void SetBlendState(D3D12_BLEND_DESC* State, const float BlendFactor[4], uint32 SampleMask);
+	void SetBlendState(D3D12_BLEND_DESC* State, const float BlendFactor[4], uint32 SampleMask);
 
 	D3D12_STATE_CACHE_INLINE void GetBlendState(D3D12_BLEND_DESC** BlendState, float BlendFactor[4], uint32* SampleMask) const
 	{
@@ -1170,7 +1225,7 @@ public:
 		FMemory::Memcpy(BlendFactor, PipelineState.Graphics.CurrentBlendFactor, sizeof(PipelineState.Graphics.CurrentBlendFactor));
 	}
 
-	D3D12_STATE_CACHE_INLINE void SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State, uint32 RefStencil);
+	void SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State, uint32 RefStencil);
 
 	D3D12_STATE_CACHE_INLINE void GetDepthStencilState(D3D12_DEPTH_STENCIL_DESC** DepthStencilState, uint32* StencilRef) const
 	{
@@ -1337,7 +1392,7 @@ public:
 			&& PipelineState.Graphics.CurrentIndexBufferLocation->GetOffset() == ResourceLocation->GetOffset();
 	}
 
-	D3D12_STATE_CACHE_INLINE void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology);
+	void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology);
 
 
 	D3D12_STATE_CACHE_INLINE void GetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY* PrimitiveTopology) const
@@ -1360,13 +1415,13 @@ public:
 	{
 	}
 	void ApplyState(bool IsCompute = false);
-	void D3D12_STATE_CACHE_INLINE RestoreState();
+	void RestoreState();
 	bool VerifyResourceStates(const bool IsCompute);
 
 	template <class ViewT>
 	bool VerifyViewState(ID3D12DebugCommandList* pDebugCommandList, FD3D12View<ViewT> *pView, D3D12_RESOURCE_STATES State);
 
-	void D3D12_STATE_CACHE_INLINE SetRenderTargets(uint32 NumSimultaneousRenderTargets, FD3D12RenderTargetView** RTArray, FD3D12DepthStencilView* DSTarget);
+	void SetRenderTargets(uint32 NumSimultaneousRenderTargets, FD3D12RenderTargetView** RTArray, FD3D12DepthStencilView* DSTarget);
 	D3D12_STATE_CACHE_INLINE void GetRenderTargets(FD3D12RenderTargetView **RTArray, uint32* NumSimultaneousRTs, FD3D12DepthStencilView** DepthStencilTarget)
 	{
 		if (RTArray) //NULL is legal
@@ -1381,9 +1436,9 @@ public:
 		}
 	}
 
-	void D3D12_STATE_CACHE_INLINE SetStreamOutTargets(uint32 NumSimultaneousStreamOutTargets, FD3D12Resource** SOArray, const uint32* SOOffsets);
+	void SetStreamOutTargets(uint32 NumSimultaneousStreamOutTargets, FD3D12Resource** SOArray, const uint32* SOOffsets);
 
-	void D3D12_STATE_CACHE_INLINE SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, uint32 NumSimultaneousUAVs, FD3D12UnorderedAccessView** UAVArray, uint32 *UAVInitialCountArray);
+	void SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, uint32 NumSimultaneousUAVs, FD3D12UnorderedAccessView** UAVArray, uint32 *UAVInitialCountArray);
 
 	D3D12_STATE_CACHE_INLINE void GetUAVs(FD3D12UnorderedAccessView** UAVArray, uint32* UAVStartSlot, uint32* NumSimultaneousUAVs)
 	{
@@ -1405,8 +1460,6 @@ public:
 	{
 		bAutoFlushComputeShaderCache = bEnable;
 	}
-
-	void FlushComputeShaderCache(bool bForce = false);
 
 	/**
 	 * Clears all D3D11 State, setting all input/output resource slots, shaders, input layouts,
