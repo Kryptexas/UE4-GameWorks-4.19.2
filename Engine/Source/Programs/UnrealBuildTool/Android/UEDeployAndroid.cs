@@ -1631,7 +1631,7 @@ namespace UnrealBuildTool.Android
                 }
 				else
 				{
-					Console.WriteLine("Failed to find the GearVR library required for packaging: {0}, VRLibFile);
+					Console.WriteLine("Failed to find the GearVR library required for packaging: {0}", VRLibFile);
 				}
             }
 
