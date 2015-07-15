@@ -234,6 +234,7 @@ void FWebSocket::HandlePacket()
 
 void FWebSocket::Flush()
 {
+	auto PendingMesssages = OutgoingBuffer.Num();
 	while (OutgoingBuffer.Num() > 0 && !IsServerSide)
 	{
 #if !PLATFORM_HTML5
@@ -243,6 +244,11 @@ void FWebSocket::Flush()
 			libwebsocket_callback_on_writable(Context, Wsi);
 #endif
 		HandlePacket();
+		if (PendingMesssages >= OutgoingBuffer.Num()) 
+		{
+			UE_LOG(LogHTML5Networking, Warning, TEXT("Unable to flush all of OutgoingBuffer in FWebSocket."));
+			break;
+		}
 	};
 }
 

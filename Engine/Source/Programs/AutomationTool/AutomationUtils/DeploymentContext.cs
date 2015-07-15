@@ -196,6 +196,11 @@ public class DeploymentContext //: ProjectParams
 	public bool DedicatedServer;
 
 	/// <summary>
+	/// The dedicated server and client use
+	/// </summary>
+	public bool bUseWebsocketNetDriver;
+
+	/// <summary>
 	/// True if this build is staged
 	/// </summary>
 	public bool Stage;
@@ -238,7 +243,8 @@ public class DeploymentContext //: ProjectParams
 		bool InCookOnTheFly,
 		bool InArchive,
 		bool InProgram,
-		bool bHasDedicatedServerAndClient
+		bool bHasDedicatedServerAndClient,
+		bool bInUseWebsocketNetDriver = false
 		)
 	{
 		bStageCrashReporter = InStageCrashReporter;
@@ -254,6 +260,7 @@ public class DeploymentContext //: ProjectParams
 		ShortProjectName = ProjectUtils.GetShortProjectName(RawProjectPath);
 		Stage = InStage;
 		Archive = InArchive;
+		bUseWebsocketNetDriver = bInUseWebsocketNetDriver;
 
         if (CookSourcePlatform != null && InCooked)
         {
