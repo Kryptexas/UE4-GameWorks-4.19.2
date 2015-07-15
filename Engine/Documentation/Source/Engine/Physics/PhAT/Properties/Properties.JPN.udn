@@ -1,8 +1,6 @@
-﻿INTSourceChangelist:2119921
-Availability:Public
+﻿Availability:Public
 Title:物理アセットのプロパティのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
-Crumbs:%ROOT%, Engine
 Description:物理アセットツールでアクセスが可能な物体、物理コンストレイント、物理アセットのプロパティとその説明の一覧
 
 [VAR:Topic]
@@ -46,7 +44,7 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 
 [TOC(start:2)]
 
-## 概要
+
 
 ## Physics Asset Tool プロパティ
 
@@ -57,25 +55,26 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 | **Poke Pause Time** | %doxygen:UPhATSimOptions::PokePauseTime% |
 | **Poke Blend Time** | %doxygen:UPhATSimOptions::PokeBlendTime% |
 |[REGION:tablesection]Simulation[/REGION]||
-|**FloorGap** | %doxygen:UPhATSimOptions::FloorGap% |
-|**GravScale** | %doxygen:UPhATSimOptions::GravScale% |
+|**Floor Gap** | %doxygen:UPhATSimOptions::FloorGap% |
+|**Grav Scale** | %doxygen:UPhATSimOptions::GravScale% |
+|**Max FPS** | |
+|**Time Dilation** |  |
 |[REGION:tablesection]Mouse Spring[/REGION]||
-|**HandleLinearDamping** | %doxygen:UPhATSimOptions::HandleLinearDamping% |
-|**HandleLinearStiffness** | %doxygen:UPhATSimOptions::HandleLinearStiffness% |
-|**HandleAngularDamping** | %doxygen:UPhATSimOptions::HandleAngularDamping% |
-|**HandleAngularStiffness** | %doxygen:UPhATSimOptions::HandleAngularStiffness% |
-|**InterpolationSpeed** | %doxygen:UPhATSimOptions::InterpolationSpeed%|
+|**Handle Linear Damping** | %doxygen:UPhATSimOptions::HandleLinearDamping% |
+|**Handle Linear Stiffness** | %doxygen:UPhATSimOptions::HandleLinearStiffness% |
+|**Handle Angular Damping** | %doxygen:UPhATSimOptions::HandleAngularDamping% |
+|**Handle Angular Stiffness** | %doxygen:UPhATSimOptions::HandleAngularStiffness% |
+|**Interpolation Speed** | %doxygen:UPhATSimOptions::InterpolationSpeed%|
 |[REGION:tablesection]Poking[/REGION]||
-| **PokeStrength** | %doxygen:UPhATSimOptions::PokeStrength% |
+| **Poke Strength** | %doxygen:UPhATSimOptions::PokeStrength% |
 |[REGION:tablesection]Advanced[/REGION]||
-| **bPromptOnBoneDelete** | %doxygen:UPhATSimOptions::bPromptOnBoneDelete% |
-| **bShowConstraintsAsPoints** | %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
-| **bShowNamesInHierarchy** | %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
+| **Show Constraints as Points** | %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
+| **Show Names in Hierarchy** | %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
 |[REGION:tablesection]Drawing[/REGION]||
-| **ConstraintDrawSize** | %doxygen:UPhATSimOptions::ConstraintDrawSize% |
+| **Constraint Draw Size** | %doxygen:UPhATSimOptions::ConstraintDrawSize% |
 
 
-## Physics Bodyプロパティ
+## Physics Body Properties
 
 | プロパティ | 説明 |
 | --- | --- |
@@ -83,25 +82,30 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 | **Bone Name** | %doxygen:UBodySetup::BoneName% |
 | **Consider for Bounds** | %doxygen:UBodySetup::bConsiderForBounds% |
 |[REGION:tablesection]Physics[/REGION]||
-| **Mass in KG** | Kg単位のボディの質量です。 |
-| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
+| **Mass in KG** | KG 単位の質量。 |
+| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
+| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
+| **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
 | **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
-| **Phys Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Double Sided Geometry** |  |
+| **Simple Collision Physical Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
+| **Center of Mass Offset** | %doxygen:FBodyInstance::COMNudge% |
+| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
+| **Max Angular Velocity** |  |
+| **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Override Max Depenetration Velocity** |  |
+| **Max Depenetration Velocity** |  |
+| **Override Walkable Slope on Instance** |  |
 | **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
 | **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
 | **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
-| **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
-| **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
-| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
-| **COMNudge** | %doxygen:FBodyInstance::COMNudge% |
 | **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
-| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
-| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
-| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
 | **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
 | **Velocity Solver Iteration Count** | %doxygen:FBodyInstance::VelocitySolverIterationCount% |
 |[REGION:tablesection]Collision[/REGION]||
-| **Notify Rigid Body Collision** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Simulation Generates Hit Events** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
 | **Collision Response** | %doxygen:UBodySetup::CollisionReponse% |
 | **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
 
