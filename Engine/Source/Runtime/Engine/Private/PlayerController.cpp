@@ -3917,16 +3917,28 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 	{
 		RemovePawnTickDependency(SpectatorPawn);
 		SpectatorPawn = NewSpectatorPawn;
-		AttachToPawn(SpectatorPawn);
-		AddPawnTickDependency(SpectatorPawn);
 		
 		if (NewSpectatorPawn)
 		{
+			// setting to a new valid spectator pawn
+			AttachToPawn(NewSpectatorPawn);
+			AddPawnTickDependency(NewSpectatorPawn);
 			AutoManageActiveCameraTarget(NewSpectatorPawn);
 		}
 		else
 		{
-			AutoManageActiveCameraTarget(this);
+			// clearing the spectator pawn, try to attach to the regular pawn
+			APawn* const Pawn = GetPawn();
+			AttachToPawn(Pawn);
+			AddPawnTickDependency(Pawn);
+			if (Pawn)
+			{
+				AutoManageActiveCameraTarget(Pawn);
+			}
+			else
+			{
+				AutoManageActiveCameraTarget(this);
+			}
 		}
 	}
 }
