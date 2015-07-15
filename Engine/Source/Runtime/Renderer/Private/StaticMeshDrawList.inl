@@ -682,6 +682,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(E
 
 			if (Proxy)
 			{
+				check(!Proxy->IsDeleted());
 				FMaterial* MaterialResource = Proxy->GetMaterialNoFallback(FeatureLevel);
 
 				if (Materials.Contains(MaterialResource))
