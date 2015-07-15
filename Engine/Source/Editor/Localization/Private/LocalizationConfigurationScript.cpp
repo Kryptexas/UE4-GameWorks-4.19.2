@@ -198,6 +198,8 @@ namespace LocalizationConfigurationScript
 			{
 				ConfigSection.Add( TEXT("PackageFileNameFilters"), FString::Printf( TEXT("*.%s"), *FileExtension.Pattern) );
 			}
+
+			ConfigSection.Add( TEXT("ShouldGatherFromEditorOnlyData"), Target->Settings.GatherFromPackages.ShouldGatherFromEditorOnlyData ? TEXT("true") : TEXT("false") );
 		}
 
 		// GatherTextFromMetadata
@@ -227,6 +229,8 @@ namespace LocalizationConfigurationScript
 				ConfigSection.Add( TEXT("OutputNamespaces"), Specification.TextNamespace );
 				ConfigSection.Add( TEXT("OutputKeys"), FString::Printf(TEXT("\"%s\""), *Specification.TextKeyPattern.Pattern) );
 			}
+
+			ConfigSection.Add( TEXT("ShouldGatherFromEditorOnlyData"), Target->Settings.GatherFromMetaData.ShouldGatherFromEditorOnlyData ? TEXT("true") : TEXT("false") );
 		}
 
 		// GenerateGatherManifest

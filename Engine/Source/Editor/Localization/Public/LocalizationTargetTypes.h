@@ -103,6 +103,7 @@ struct FGatherTextFromPackagesConfiguration
 	FGatherTextFromPackagesConfiguration()
 		: IsEnabled(true)
 		, FileExtensions(GetDefaultPackageFileExtensions())
+		, ShouldGatherFromEditorOnlyData(false)
 	{
 	}
 
@@ -121,6 +122,10 @@ struct FGatherTextFromPackagesConfiguration
 	/* Packages whose names match these wildcard patterns may be processed for text to gather. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FGatherTextFileExtension> FileExtensions;
+
+	/* If enable, data that is specified as editor-only may be processed for gathering. */
+	UPROPERTY(config, EditAnywhere, Category = "Filter")
+	bool ShouldGatherFromEditorOnlyData;
 
 	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
@@ -179,6 +184,7 @@ struct FGatherTextFromMetaDataConfiguration
 
 	FGatherTextFromMetaDataConfiguration()
 		: IsEnabled(false)
+		, ShouldGatherFromEditorOnlyData(false)
 	{
 	}
 
@@ -197,6 +203,10 @@ struct FGatherTextFromMetaDataConfiguration
 	/* Specifications for how to gather text from specific metadata keys. */
 	UPROPERTY(config, EditAnywhere, Category = "MetaData")
 	TArray<FMetaDataKeyGatherSpecification> KeySpecifications;
+
+	/* If enable, data that is specified as editor-only may be processed for gathering. */
+	UPROPERTY(config, EditAnywhere, Category = "Filter")
+	bool ShouldGatherFromEditorOnlyData;
 
 	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
