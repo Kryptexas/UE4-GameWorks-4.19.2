@@ -376,6 +376,7 @@ protected:
 
 public:
 	const static uint32 CursorPointerIndex;
+	const static uint32 CursorUserIndex;
 
 	/**
 	 * Returns the current instance of the application. The application should have been initialized before

@@ -1133,6 +1133,35 @@ public:
 
 private:
 
+	/**
+	 * Directly routes a pointer down event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 * 
+	 * @return The reply returned by the widget that handled the event
+	 */
+	FReply RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
+
+	/**
+	 * Directly routes a pointer up event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 */
+	void RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
+
+	/**
+	 * Directly routes a pointer move event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 * @param bIsSynthetic		Whether or not the move event is synthetic.  Synthetic pointer moves used simulate an event without the pointer actually moving 
+	 */
+	bool RoutePointerMoveEvent( const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic );
+
+private:
+
 	TSharedRef< FGenericWindow > MakeWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately );
 
 	/**
@@ -1192,6 +1221,29 @@ private:
 	FSlateApplication();
 
 private:
+	/** Represents a single user and pointer index for a device 
+	 *  Used to uniquely track widget state per user and per device
+	 */
+	struct FUserAndPointer
+	{
+		uint32 UserIndex;
+		uint32 PointerIndex;
+		
+		FUserAndPointer( uint32 InUserIndex, uint32 InPointerIndex )
+			: UserIndex( InUserIndex )
+			, PointerIndex( InPointerIndex )
+		{}
+
+		bool operator==( const FUserAndPointer& Other ) const
+		{
+			return UserIndex == Other.UserIndex && PointerIndex == Other.PointerIndex;
+		}
+
+		friend uint32 GetTypeHash( const FUserAndPointer& UserAndPointer )
+		{
+			return UserAndPointer.UserIndex << 16 | UserAndPointer.PointerIndex;
+		}
+	};
 
 	/**
 	 * Creates a mouse move event for the last known cursor position.  This should be called every tick to make
@@ -1244,7 +1296,7 @@ private:
 	FMenuStack MenuStack;
 
 	/** A vertical slice through the tree of widgets on screen; it represents widgets that were under the cursor last time an event was processed */
-	FWeakWidgetPath WidgetsUnderCursorLastEvent;
+	TMap<FUserAndPointer, FWeakWidgetPath> WidgetsUnderCursorLastEvent;
 
 	/**
 	 * A helper class to wrap the weak path functionality. The advantage of using this
@@ -1263,7 +1315,7 @@ private:
 		/**
 		 * Returns whether or not the particular PointerIndex has capture.
 		 */
-		bool HasCaptureForPointerIndex(uint32 PointerIndex) const;
+		bool HasCaptureForPointerIndex(uint32 UserIndex, uint32 PointerIndex) const;
 
 		/**
 		 * Sets a new mouse captor widget for a specific pointer index, invalidating the previous one if any and calling
@@ -1273,13 +1325,13 @@ private:
 		 * @param EventPath		The path to the event.
 		 * @param Widget		The widget that wants to capture the mouse.
 		 */
-		void SetMouseCaptor(uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
+		void SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
 
 		/** Invalidates all current mouse captors. Calls OnMouseCaptureLost() on the current mouse captor if one exists */
 		void InvalidateCaptureForAllPointers();
 
 		/** Invalidates a specific mouse captor. Calls OnMouseCaptureLost() on the specific mouse captor if one exists */
-		void InvalidateCaptureForPointer(uint32 PointIndex);
+		void InvalidateCaptureForPointer(uint32 UserIndex, uint32 PointIndex);
 
 		/**
 		 * Retrieves a resolved FWidgetPath for a specific pointer index, if possible.
@@ -1289,7 +1341,7 @@ private:
 		 * @param PointerIndex				The index of the pointer which has capture.
 		 * @param InterruptedPathHandling	How to handled incomplete paths. "Truncate" will return a partial path, "ReturnInvalid" will return an empty path.
 		 */
-		FWidgetPath ToWidgetPath(uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
+		FWidgetPath ToWidgetPath(uint32 UserIndex, uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
 
 		FWidgetPath ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr );
 
@@ -1299,11 +1351,11 @@ private:
 		TArray<FWidgetPath> ToWidgetPaths();
 
 		/** Retrieves the weak path for a current mouse captor with a specific pointer index */
-		FWeakWidgetPath ToWeakPath(uint32 PointerIndex) const;
+		FWeakWidgetPath ToWeakPath(uint32 UserIndex, uint32 PointerIndex) const;
 		
 
 		/* Walks the weak path and retrieves the widget that is set as the current mouse captor with a specific pointer index */
-		TSharedPtr< SWidget > ToSharedWidget(uint32 PointerIndex) const;
+		TSharedPtr< SWidget > ToSharedWidget(uint32 UserIndex, uint32 PointerIndex) const;
 
 		/*
 		 * Retrieves an array of shared widget pointers for the active mouse captures.
@@ -1311,14 +1363,14 @@ private:
 		TArray<TSharedRef<SWidget>> ToSharedWidgets() const;
 
 		/* Walks the weak path and retrieves the window for the widget belonging to the mouse captor with the specified pointer index */
-		TSharedPtr< SWidget > ToSharedWindow(uint32 PointerIndex);
+		TSharedPtr< SWidget > ToSharedWindow(uint32 UserIndex, uint32 PointerIndex);
 
 	protected:
 		/** Call the OnMouseCaptureLost() handler for the widget captured by the specific pointer index */
-		void InformCurrentCaptorOfCaptureLoss(uint32 PointerIndex) const;
+		void InformCurrentCaptorOfCaptureLoss(uint32 UserIndex, uint32 PointerIndex) const;
 
 		/** A map of pointer indices to weak widget paths for the active mouse captures */
-		TMap<uint32, FWeakWidgetPath> PointerIndexToMouseCaptorWeakPathMap;
+		TMap<FUserAndPointer, FWeakWidgetPath> PointerIndexToMouseCaptorWeakPathMap;
 	};
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;

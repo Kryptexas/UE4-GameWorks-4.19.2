@@ -230,12 +230,12 @@ public:
 
 	static void ProcessReply( FSlateApplication* Application, const FWidgetPath& RoutingPath, const FReply& Reply, const FWidgetPath* WidgetsUnderCursor, const FInputEvent* PointerEvent )
 	{
-		Application->ProcessReply(RoutingPath, Reply, WidgetsUnderCursor, nullptr);
+		Application->ProcessReply(RoutingPath, Reply, WidgetsUnderCursor, nullptr, PointerEvent->GetUserIndex());
 	}
 
 	static void ProcessReply( FSlateApplication* Application, const FWidgetPath& RoutingPath, const FReply& Reply, const FWidgetPath* WidgetsUnderCursor, const FPointerEvent* PointerEvent )
 	{
-		Application->ProcessReply(RoutingPath, Reply, WidgetsUnderCursor, PointerEvent);
+		Application->ProcessReply(RoutingPath, Reply, WidgetsUnderCursor, PointerEvent, PointerEvent->GetUserIndex());
 	}
 
 	template<typename EventType>
@@ -384,17 +384,17 @@ bool FSlateApplication::MouseCaptorHelper::HasCapture() const
 	return false;
 }
 
-bool FSlateApplication::MouseCaptorHelper::HasCaptureForPointerIndex(uint32 PointerIndex) const
+bool FSlateApplication::MouseCaptorHelper::HasCaptureForPointerIndex(uint32 UserIndex, uint32 PointerIndex) const
 {
-	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(PointerIndex);
+	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find( FUserAndPointer(UserIndex,PointerIndex) );
 	return MouseCaptorWeakPath && MouseCaptorWeakPath->IsValid();
 }
 
-TSharedPtr< SWidget > FSlateApplication::MouseCaptorHelper::ToSharedWidget(uint32 PointerIndex) const
+TSharedPtr< SWidget > FSlateApplication::MouseCaptorHelper::ToSharedWidget(uint32 UserIndex, uint32 PointerIndex) const
 {
 	// If the path is valid then get the last widget, this is the current mouse captor
 	TSharedPtr< SWidget > SharedWidgetPtr;
-	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(PointerIndex);
+	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find( FUserAndPointer(UserIndex,PointerIndex) );
 	if (MouseCaptorWeakPath && MouseCaptorWeakPath->IsValid() )
 	{
 		TWeakPtr< SWidget > WeakWidgetPtr = MouseCaptorWeakPath->GetLastWidget();
@@ -418,10 +418,10 @@ TArray<TSharedRef<SWidget>> FSlateApplication::MouseCaptorHelper::ToSharedWidget
 	return Widgets;
 }
 
-TSharedPtr< SWidget > FSlateApplication::MouseCaptorHelper::ToSharedWindow(uint32 PointerIndex)
+TSharedPtr< SWidget > FSlateApplication::MouseCaptorHelper::ToSharedWindow(uint32 UserIndex, uint32 PointerIndex)
 {
 	// if the path is valid then we can get the window the current mouse captor belongs to
-	FWidgetPath MouseCaptorPath = ToWidgetPath(PointerIndex);
+	FWidgetPath MouseCaptorPath = ToWidgetPath( UserIndex, PointerIndex );
 	if ( MouseCaptorPath.IsValid() )
 	{
 		return MouseCaptorPath.GetWindow();
@@ -430,11 +430,11 @@ TSharedPtr< SWidget > FSlateApplication::MouseCaptorHelper::ToSharedWindow(uint3
 	return TSharedPtr< SWidget >();
 }
 
-void FSlateApplication::MouseCaptorHelper::SetMouseCaptor(uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget)
+void FSlateApplication::MouseCaptorHelper::SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget)
 {
 	// Caller is trying to set a new mouse captor, so invalidate the current one - when the function finishes
 	// it still may not have a valid captor widget, this is ok
-	InvalidateCaptureForPointer(PointerIndex);
+	InvalidateCaptureForPointer(UserIndex, PointerIndex);
 
 	if ( Widget.IsValid() )
 	{
@@ -468,76 +468,76 @@ void FSlateApplication::MouseCaptorHelper::SetMouseCaptor(uint32 PointerIndex, c
 
 		if (MouseCaptorWeakPath.IsValid())
 		{
-			PointerIndexToMouseCaptorWeakPathMap.Add(PointerIndex, MouseCaptorWeakPath);
+			PointerIndexToMouseCaptorWeakPathMap.Add(FUserAndPointer(UserIndex,PointerIndex), MouseCaptorWeakPath);
 		}
 	}
 }
 
 void FSlateApplication::MouseCaptorHelper::InvalidateCaptureForAllPointers()
 {
-	TArray<uint32> PointerIndices;
+	TArray<FUserAndPointer> PointerIndices;
 	PointerIndexToMouseCaptorWeakPathMap.GenerateKeyArray(PointerIndices);
-	for (auto Index : PointerIndices)
+	for (FUserAndPointer UserAndPointer : PointerIndices)
 	{
-		InvalidateCaptureForPointer(Index);
+		InvalidateCaptureForPointer(UserAndPointer.UserIndex, UserAndPointer.PointerIndex);
 	}
 }
 
 FWidgetPath FSlateApplication::MouseCaptorHelper::ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent )
 {
 	FWidgetPath WidgetPath;
-	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(PointerEvent->GetPointerIndex());
+	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(FUserAndPointer(PointerEvent->GetUserIndex(),PointerEvent->GetPointerIndex()));
 	if ( MouseCaptorWeakPath->IsValid() )
 	{
 		if ( MouseCaptorWeakPath->ToWidgetPath( WidgetPath, InterruptedPathHandling, PointerEvent ) == FWeakWidgetPath::EPathResolutionResult::Truncated )
 		{
 			// If the path was truncated then it means this widget is no longer part of the active set,
 			// so we make sure to invalidate its capture
-			InvalidateCaptureForPointer(PointerEvent->GetPointerIndex());
+			InvalidateCaptureForPointer(PointerEvent->GetUserIndex(), PointerEvent->GetPointerIndex());
 		}
 	}
 
 	return WidgetPath;
 }
 
-FWidgetPath FSlateApplication::MouseCaptorHelper::ToWidgetPath(uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling)
+FWidgetPath FSlateApplication::MouseCaptorHelper::ToWidgetPath(uint32 UserIndex, uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling)
 {
 	FWidgetPath WidgetPath;
-	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(PointerIndex);
+	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(FUserAndPointer(UserIndex,PointerIndex));
 	if (MouseCaptorWeakPath && MouseCaptorWeakPath->IsValid() )
 	{
 		if ( MouseCaptorWeakPath->ToWidgetPath( WidgetPath, InterruptedPathHandling ) == FWeakWidgetPath::EPathResolutionResult::Truncated )
 		{
 			// If the path was truncated then it means this widget is no longer part of the active set,
 			// so we make sure to invalidate its capture
-			InvalidateCaptureForPointer(PointerIndex);
+			InvalidateCaptureForPointer(UserIndex,PointerIndex);
 		}
 	}
 
 	return WidgetPath;
 }
 
-void FSlateApplication::MouseCaptorHelper::InvalidateCaptureForPointer(uint32 PointerIndex)
+void FSlateApplication::MouseCaptorHelper::InvalidateCaptureForPointer(uint32 UserIndex, uint32 PointerIndex)
 {
-	InformCurrentCaptorOfCaptureLoss(PointerIndex);
-	PointerIndexToMouseCaptorWeakPathMap.Remove(PointerIndex);
+	InformCurrentCaptorOfCaptureLoss(UserIndex, PointerIndex);
+	PointerIndexToMouseCaptorWeakPathMap.Remove( FUserAndPointer(UserIndex, PointerIndex) );
 }
 
 TArray<FWidgetPath> FSlateApplication::MouseCaptorHelper::ToWidgetPaths()
 {
 	TArray<FWidgetPath> WidgetPaths;
-	TArray<uint32> PointerIndices;
+	TArray<FUserAndPointer> PointerIndices;
 	PointerIndexToMouseCaptorWeakPathMap.GenerateKeyArray(PointerIndices);
 	for (auto Index : PointerIndices)
 	{
-		WidgetPaths.Add(ToWidgetPath(Index));
+		WidgetPaths.Add(ToWidgetPath(Index.UserIndex,Index.PointerIndex));
 	}
 	return WidgetPaths;
 }
 
-FWeakWidgetPath FSlateApplication::MouseCaptorHelper::ToWeakPath(uint32 PointerIndex) const
+FWeakWidgetPath FSlateApplication::MouseCaptorHelper::ToWeakPath(uint32 UserIndex, uint32 PointerIndex) const
 {
-	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(PointerIndex);
+	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(FUserAndPointer(UserIndex,PointerIndex));
 	if (MouseCaptorWeakPath)
 	{
 		return *MouseCaptorWeakPath;
@@ -545,10 +545,10 @@ FWeakWidgetPath FSlateApplication::MouseCaptorHelper::ToWeakPath(uint32 PointerI
 	return FWeakWidgetPath();
 }
 
-void FSlateApplication::MouseCaptorHelper::InformCurrentCaptorOfCaptureLoss(uint32 PointerIndex) const
+void FSlateApplication::MouseCaptorHelper::InformCurrentCaptorOfCaptureLoss(uint32 UserIndex,uint32 PointerIndex) const
 {
 	// if we have a path to a widget then it is the current mouse captor and needs to know it has lost capture
-	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(PointerIndex);
+	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(FUserAndPointer(UserIndex,PointerIndex));
 	if (MouseCaptorWeakPath && MouseCaptorWeakPath->IsValid() )
 	{
 		TWeakPtr< SWidget > WeakWidgetPtr = MouseCaptorWeakPath->GetLastWidget();
@@ -1132,7 +1132,7 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 #endif
 
 	FWidgetPath WidgetsUnderCursor = bVisualizeLayoutUnderCursor
-		? WidgetsUnderCursorLastEvent.ToWidgetPath()
+		? WidgetsUnderCursorLastEvent.FindRef(FUserAndPointer(CursorUserIndex,CursorPointerIndex)).ToWidgetPath()
 		: FWidgetPath();
 
 	if ( !SkipSecondPrepass.GetValueOnGameThread() )
@@ -1233,16 +1233,21 @@ void FSlateApplication::FinishedInputThisFrame()
 	}
 	else
 	{
-		for ( const TWeakPtr<SWidget>& WidgetPtr : WidgetsUnderCursorLastEvent.Widgets )
+		for( auto LastWidgetIterator = WidgetsUnderCursorLastEvent.CreateConstIterator(); LastWidgetIterator; ++LastWidgetIterator )
 		{
-			const TSharedPtr<SWidget>& Widget = WidgetPtr.Pin();
-			if (Widget.IsValid())
+			FWeakWidgetPath Path = LastWidgetIterator.Value();
+
+			for ( const TWeakPtr<SWidget>& WidgetPtr : Path.Widgets )
 			{
-				Widget->OnFinishedPointerInput();
-			}
-			else
-			{
-				break;
+				const TSharedPtr<SWidget>& Widget = WidgetPtr.Pin();
+				if (Widget.IsValid())
+				{
+					Widget->OnFinishedPointerInput();
+				}
+				else
+				{
+					break;
+				}
 			}
 		}
 	}
@@ -2479,10 +2484,11 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	// Release mouse capture if requested or if we are starting a drag and drop.
 	// Make sure to only clobber WidgetsUnderCursor if we actually had a mouse capture.
 	uint32 PointerIndex = InMouseEvent != nullptr ? InMouseEvent->GetPointerIndex() : CursorPointerIndex;
-	if (MouseCaptor.HasCaptureForPointerIndex(PointerIndex) && (TheReply.ShouldReleaseMouse() || bStartingDragDrop) )
+
+	if (MouseCaptor.HasCaptureForPointerIndex(UserIndex,PointerIndex) && (TheReply.ShouldReleaseMouse() || bStartingDragDrop) )
 	{
-		WidgetsUnderCursorLastEvent = MouseCaptor.ToWeakPath(PointerIndex);
-		MouseCaptor.InvalidateCaptureForPointer(PointerIndex);
+		WidgetsUnderCursorLastEvent.Add( FUserAndPointer(UserIndex,PointerIndex), MouseCaptor.ToWeakPath(UserIndex,PointerIndex) );
+		MouseCaptor.InvalidateCaptureForPointer(UserIndex,PointerIndex);
 	}
 
 	// Clear focus is requested.
@@ -2533,7 +2539,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	// Do not capture the mouse if we are also starting a drag and drop.
 	if( RequestedMouseCaptor.IsValid() && !bStartingDragDrop )
 	{
-		MouseCaptor.SetMouseCaptor(PointerIndex, CurrentEventPath, RequestedMouseCaptor );
+		MouseCaptor.SetMouseCaptor(UserIndex, PointerIndex, CurrentEventPath, RequestedMouseCaptor );
 	}
 	
 	if( CurrentEventPath.IsValid() && ( TheReply.ShouldReleaseMouse() || RequestedMouseCaptor.IsValid() ) )
@@ -2723,7 +2729,7 @@ void FSlateApplication::QueryCursor()
 				);
 
 			// Query widgets with mouse capture for the cursor
-			if (MouseCaptor.HasCaptureForPointerIndex(CursorPointerIndex))
+			if (MouseCaptor.HasCaptureForPointerIndex(CursorUserIndex, CursorPointerIndex))
 			{
 				FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &CursorEvent);
 				if ( MouseCaptorPath.IsValid() )
@@ -3164,17 +3170,21 @@ TSharedPtr<FDragDropOperation> FSlateApplication::GetDragDroppingContent() const
 
 void FSlateApplication::CancelDragDrop()
 {
-	FWidgetPath WidgetsToDragLeave = WidgetsUnderCursorLastEvent.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::Truncate);
-	if (WidgetsToDragLeave.IsValid())
+	for( auto LastWidgetIterator = WidgetsUnderCursorLastEvent.CreateConstIterator(); LastWidgetIterator; ++LastWidgetIterator)
 	{
-		const FDragDropEvent DragDropEvent(FPointerEvent(), DragDropContent);
-		for (int32 WidgetIndex = WidgetsToDragLeave.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
+		
+		FWidgetPath WidgetsToDragLeave = LastWidgetIterator.Value().ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::Truncate);
+		if(WidgetsToDragLeave.IsValid())
 		{
-			WidgetsToDragLeave.Widgets[WidgetIndex].Widget->OnDragLeave(DragDropEvent);
+			const FDragDropEvent DragDropEvent(FPointerEvent(), DragDropContent);
+			for(int32 WidgetIndex = WidgetsToDragLeave.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
+			{
+				WidgetsToDragLeave.Widgets[WidgetIndex].Widget->OnDragLeave(DragDropEvent);
+			}
 		}
 	}
 
-	WidgetsUnderCursorLastEvent = FWeakWidgetPath();
+	WidgetsUnderCursorLastEvent.Empty();
 	DragDropContent.Reset();
 }
 
@@ -3610,7 +3620,7 @@ TSharedPtr< SWidget > FSlateApplication::GetKeyboardFocusedWidget() const
 
 TSharedPtr<SWidget> FSlateApplication::GetMouseCaptorImpl() const
 {
-	return MouseCaptor.ToSharedWidget(CursorPointerIndex);
+	return MouseCaptor.ToSharedWidget(CursorUserIndex,CursorPointerIndex);
 }
 
 bool FSlateApplication::HasAnyMouseCaptor() const
@@ -3659,7 +3669,15 @@ TOptional<EFocusCause> FSlateApplication::HasAnyUserFocus(const TSharedPtr<const
 
 bool FSlateApplication::IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const
 {
-	return WidgetsUnderCursorLastEvent.IsValid() && Widget == WidgetsUnderCursorLastEvent.GetLastWidget().Pin();
+	for( auto LastWidgetIterator = WidgetsUnderCursorLastEvent.CreateConstIterator(); LastWidgetIterator; ++LastWidgetIterator )
+	{
+		const FWeakWidgetPath& WeakPath = LastWidgetIterator.Value();
+		if( WeakPath.IsValid() && Widget == WeakPath.GetLastWidget().Pin() )
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool FSlateApplication::ShowUserFocus(const TSharedPtr<const SWidget> Widget) const
@@ -4065,121 +4083,50 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 	if ( !IsDragDropping() )
 	{
 		FReply Reply = FReply::Unhandled();
-		if (MouseCaptor.HasCaptureForPointerIndex(MouseEvent.GetPointerIndex()))
+		if (MouseCaptor.HasCaptureForPointerIndex(MouseEvent.GetUserIndex(), MouseEvent.GetPointerIndex()))
 		{
 			FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &MouseEvent );
 			FArrangedWidget& MouseCaptorWidget = MouseCaptorPath.Widgets.Last();
 
 			// Switch worlds widgets in the current path
-			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
+			FScopedSwitchWorldHack SwitchWorld(MouseCaptorPath);
 			bInGame = FApp::IsGame();
 
-			Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, []( const FArrangedWidget& InMouseCaptorWidget, const FPointerEvent& Event )
+			FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [] (const FArrangedWidget& InMouseCaptorWidget, const FPointerEvent& Event)
 			{
-				return InMouseCaptorWidget.Widget->OnPreviewMouseButtonDown( InMouseCaptorWidget.Geometry, Event );
+				return InMouseCaptorWidget.Widget->OnPreviewMouseButtonDown(InMouseCaptorWidget.Geometry, Event);
 			});
-			
-			if (!Reply.IsEventHandled())
+
+			if ( !Reply.IsEventHandled() )
 			{
-				Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent,
-					[this]( const FArrangedWidget& InMouseCaptorWidget, const FPointerEvent& Event )
+				Reply = FEventRouter::Route<FReply>(this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent,
+					[this] (const FArrangedWidget& InMouseCaptorWidget, const FPointerEvent& Event)
+				{
+					FReply TempReply = FReply::Unhandled();
+					if ( Event.IsTouchEvent() )
 					{
-						FReply TempReply = FReply::Unhandled();
-						if ( Event.IsTouchEvent() )
-						{
-							TempReply = InMouseCaptorWidget.Widget->OnTouchStarted( InMouseCaptorWidget.Geometry, Event );
-						}
-						if ( !Event.IsTouchEvent() || ( !TempReply.IsEventHandled() && this->bTouchFallbackToMouse ) )
-						{
-							TempReply = InMouseCaptorWidget.Widget->OnMouseButtonDown( InMouseCaptorWidget.Geometry, Event );
-						}
-						return TempReply;
-					} );
+						TempReply = InMouseCaptorWidget.Widget->OnTouchStarted(InMouseCaptorWidget.Geometry, Event);
+					}
+					if ( !Event.IsTouchEvent() || ( !TempReply.IsEventHandled() && this->bTouchFallbackToMouse ) )
+					{
+						TempReply = InMouseCaptorWidget.Widget->OnMouseButtonDown(InMouseCaptorWidget.Geometry, Event);
+					}
+					return TempReply;
+				});
 			}
-			LOG_EVENT( EEventLog::MouseButtonDown, Reply );
+			LOG_EVENT(EEventLog::MouseButtonDown, Reply);
 		}
 		else
 		{
 			FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
 
-#if PLATFORM_MAC
-			NSWindow* ActiveWindow = [NSApp keyWindow];
-			const bool bNeedToActivateWindow = (ActiveWindow == nullptr);
-#else
-			const bool bNeedToActivateWindow = false;
-#endif
 			PopupSupport.SendNotifications( WidgetsUnderCursor );
 
 			// Switch worlds widgets in the current path
-			FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
+			FScopedSwitchWorldHack SwitchWorld(WidgetsUnderCursor);
 			bInGame = FApp::IsGame();
 
-			const TSharedPtr<SWidget> PreviouslyFocusedWidget = GetKeyboardFocusedWidget();
-
-			Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderCursor), MouseEvent, [](const FArrangedWidget TargetWidget, const FPointerEvent& Event)
-			{
-				return TargetWidget.Widget->OnPreviewMouseButtonDown(TargetWidget.Geometry, Event);
-			});
-
-			if ( !Reply.IsEventHandled() )
-			{
-				Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [this](const FArrangedWidget TargetWidget, const FPointerEvent& Event)
-				{
-					FReply ThisReply = FReply::Unhandled();
-					if (!ThisReply.IsEventHandled())
-					{
-						if (Event.IsTouchEvent())
-						{
-							ThisReply = TargetWidget.Widget->OnTouchStarted( TargetWidget.Geometry, Event );
-						}
-						if (!Event.IsTouchEvent() || (!ThisReply.IsEventHandled() && this->bTouchFallbackToMouse))
-						{
-							ThisReply = TargetWidget.Widget->OnMouseButtonDown( TargetWidget.Geometry, Event );
-						}
-					}
-					return ThisReply;
-				});
-			}
-			LOG_EVENT( EEventLog::MouseButtonDown, Reply );
-
-			// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
-			// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
-			const bool bFocusChangedByEventHandler = PreviouslyFocusedWidget != GetKeyboardFocusedWidget();
-			if ((!Reply.GetUserFocusRecepient().IsValid() || (PLATFORM_MAC && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid()))
-				&& (!bFocusChangedByEventHandler || bNeedToActivateWindow))
-			{
-				// The event handler for OnMouseButton down may have altered the widget hierarchy.
-				// Refresh the previously-cached widget path.
-				WidgetsUnderCursor = LocateWindowUnderMouse( MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
-
-				bool bFocusCandidateFound = false;
-				for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; !bFocusCandidateFound && WidgetIndex >= 0 ; --WidgetIndex )
-				{
-					FArrangedWidget& CurWidget = WidgetsUnderCursor.Widgets[WidgetIndex];
-					if (CurWidget.Widget->SupportsKeyboardFocus())
-					{
-						bFocusCandidateFound = true;
-						FWidgetPath NewFocusedWidgetPath = WidgetsUnderCursor.GetPathDownTo( CurWidget.Widget );
-						SetKeyboardFocus( NewFocusedWidgetPath, EFocusCause::Mouse );
-					}
-				}
-
-#if PLATFORM_MAC
-				if (bNeedToActivateWindow && WidgetsUnderCursor.TopLevelWindow.IsValid())
-				{
-					// Clicking on a context menu should not activate anything
-					// @todo: This needs to be updated when we have window type in SWindow and we no longer have to guess if WidgetsUnderCursor.TopLevelWindow is a menu
-					const bool bIsContextMenu = !WidgetsUnderCursor.TopLevelWindow->IsRegularWindow() && WidgetsUnderCursor.TopLevelWindow->HasMinimizeBox() && WidgetsUnderCursor.TopLevelWindow->HasMaximizeBox();
-					if (!bIsContextMenu && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid() && ActiveWindow == [NSApp keyWindow])
-					{
-						MouseCaptorHelper Captor = MouseCaptor;
-						FPlatformMisc::ActivateApplication();
-						WidgetsUnderCursor.TopLevelWindow->BringToFront(true);
-						MouseCaptor = Captor;
-					}
-				}
-#endif
-			}
+			Reply = RoutePointerDownEvent(WidgetsUnderCursor, MouseEvent);
 		}
 
 		// See if expensive tasks should be throttled.  By default on mouse down expensive tasks are throttled
@@ -4201,6 +4148,406 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 	PointerIndexLastPositionMap.Add(MouseEvent.GetPointerIndex(), MouseEvent.GetScreenSpacePosition());
 	return true;
+}
+
+FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
+{
+	const TSharedPtr<SWidget> PreviouslyFocusedWidget = GetKeyboardFocusedWidget();
+
+	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderPointer), PointerEvent, [] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
+	{
+		return TargetWidget.Widget->OnPreviewMouseButtonDown(TargetWidget.Geometry, Event);
+	});
+
+	if ( !Reply.IsEventHandled() )
+	{
+		Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), PointerEvent, [this] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
+		{
+			FReply ThisReply = FReply::Unhandled();
+			if ( !ThisReply.IsEventHandled() )
+			{
+				if ( Event.IsTouchEvent() )
+				{
+					ThisReply = TargetWidget.Widget->OnTouchStarted(TargetWidget.Geometry, Event);
+				}
+				if ( !Event.IsTouchEvent() || ( !ThisReply.IsEventHandled() && this->bTouchFallbackToMouse ) )
+				{
+					ThisReply = TargetWidget.Widget->OnMouseButtonDown(TargetWidget.Geometry, Event);
+				}
+			}
+			return ThisReply;
+		});
+	}
+	LOG_EVENT(EEventLog::MouseButtonDown, Reply);
+
+#if PLATFORM_MAC
+		NSWindow* ActiveWindow = [NSApp keyWindow];
+		const bool bNeedToActivateWindow = (ActiveWindow == nullptr);
+#else
+		const bool bNeedToActivateWindow = false;
+#endif
+
+	// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
+	// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
+	const bool bFocusChangedByEventHandler = PreviouslyFocusedWidget != GetKeyboardFocusedWidget();
+	if ((!Reply.GetUserFocusRecepient().IsValid() || (PLATFORM_MAC && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid()))
+		&& (!bFocusChangedByEventHandler || bNeedToActivateWindow))
+	{
+		// The event handler for OnMouseButton down may have altered the widget hierarchy.
+		// Refresh the previously-cached widget path.
+		WidgetsUnderPointer = LocateWindowUnderMouse(PointerEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows());
+
+		bool bFocusCandidateFound = false;
+		for ( int32 WidgetIndex = WidgetsUnderPointer.Widgets.Num() - 1; !bFocusCandidateFound && WidgetIndex >= 0; --WidgetIndex )
+		{
+			FArrangedWidget& CurWidget = WidgetsUnderPointer.Widgets[WidgetIndex];
+			if ( CurWidget.Widget->SupportsKeyboardFocus() )
+			{
+				bFocusCandidateFound = true;
+				FWidgetPath NewFocusedWidgetPath = WidgetsUnderPointer.GetPathDownTo(CurWidget.Widget);
+				SetKeyboardFocus(NewFocusedWidgetPath, EFocusCause::Mouse);
+			}
+		}
+
+#if PLATFORM_MAC
+		TSharedPtr<SWindow> TopLevelWindow = WidgetsUnderPointer.TopLevelWindow;
+		if ( TopLevelWindow.IsValid() )
+		{
+			// Clicking on a context menu should not activate anything
+			// @todo: This needs to be updated when we have window type in SWindow and we no longer have to guess if WidgetsUnderCursor.TopLevelWindow is a menu
+			const bool bIsContextMenu = !TopLevelWindow->IsRegularWindow() && TopLevelWindow->HasMinimizeBox() && TopLevelWindow->HasMaximizeBox();
+			if ( !bIsContextMenu && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid() && ActiveWindow == [NSApp keyWindow] )
+			{
+				MouseCaptorHelper Captor = MouseCaptor;
+				FPlatformMisc::ActivateApplication();
+				TopLevelWindow->BringToFront(true);
+				MouseCaptor = Captor;
+			}
+		}
+#endif
+	}
+
+	return Reply;
+}
+
+
+void FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
+{
+	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
+	{
+		//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex());
+		FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &PointerEvent );
+		if ( ensureMsgf(MouseCaptorPath.Widgets.Num() > 0, TEXT("A window had a widget with mouse capture. That entire window has been dismissed before the mouse up could be processed.")) )
+		{
+#if PLATFORM_MAC
+			NSWindow* ActiveNativeWindow = [NSApp keyWindow];
+#endif
+			// Switch worlds widgets in the current path
+			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
+
+			FReply Reply =
+				FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), PointerEvent, [this]( const FArrangedWidget& TargetWidget, const FPointerEvent& Event )
+				{
+					FReply TempReply = FReply::Unhandled();
+					if (Event.IsTouchEvent())
+					{
+						TempReply = TargetWidget.Widget->OnTouchEnded( TargetWidget.Geometry, Event );
+					}
+
+					if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && this->bTouchFallbackToMouse))
+					{
+						TempReply = TargetWidget.Widget->OnMouseButtonUp( TargetWidget.Geometry, Event );
+					}
+					return TempReply;
+				});
+
+#if PLATFORM_MAC
+			// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
+			TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
+			if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && MouseCaptorPath.TopLevelWindow.IsValid() && ActiveWindow != MouseCaptorPath.TopLevelWindow
+				&& ActiveNativeWindow == [NSApp keyWindow] && ![(Route)MouseCaptorPath.TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized])
+			{
+				MouseCaptorPath.TopLevelWindow->BringToFront(true);
+			}
+#endif
+			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
+		}
+	}
+	else
+	{
+		FWidgetPath LocalWidgetsUnderCursor = WidgetsUnderPointer.IsValid() ? WidgetsUnderPointer : LocateWindowUnderMouse( PointerEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
+
+		// Switch worlds widgets in the current path
+		FScopedSwitchWorldHack SwitchWorld( LocalWidgetsUnderCursor );
+		
+		// Cache the drag drop content and reset the pointer in case OnMouseButtonUpMessage re-enters as a result of OnDrop
+		const bool bIsDragDropping = IsDragDropping();
+		TSharedPtr< FDragDropOperation > LocalDragDropContent = DragDropContent;
+		DragDropContent.Reset();
+
+		FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(LocalWidgetsUnderCursor), PointerEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
+		{
+			FReply TempReply = FReply::Unhandled();
+			if (Event.IsTouchEvent())
+			{
+				TempReply = CurWidget.Widget->OnTouchEnded( CurWidget.Geometry, Event );
+			}
+			if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && bTouchFallbackToMouse))
+			{
+				TempReply = (bIsDragDropping)
+					? CurWidget.Widget->OnDrop( CurWidget.Geometry, FDragDropEvent( Event, LocalDragDropContent ) )
+					: CurWidget.Widget->OnMouseButtonUp( CurWidget.Geometry, Event );
+			}
+			return TempReply;		
+		});
+
+		LOG_EVENT( bIsDragDropping ? EEventLog::DragDrop : EEventLog::MouseButtonUp, Reply );
+
+		// If we were dragging, notify the content
+		if ( bIsDragDropping )
+		{
+			// @todo slate : depending on SetEventPath() is not ideal.
+			PointerEvent.SetEventPath( LocalWidgetsUnderCursor );
+			LocalDragDropContent->OnDrop( Reply.IsEventHandled(), PointerEvent );
+
+			WidgetsUnderCursorLastEvent.Remove( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ) );
+		}
+
+	}
+}
+
+bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic)
+{
+	bool bHandled = false;
+
+	FWeakWidgetPath LastWidgetsUnderCursor;
+
+	// User asked us to detect a drag.
+	bool bDragDetected = false;
+	if( DragDetector.DetectDragForWidget.IsValid() )
+	{	
+		const FVector2D DragDelta = (DragDetector.DetectDragStartLocation - PointerEvent.GetScreenSpacePosition());
+		bDragDetected = ( DragDelta.Size() > FSlateApplication::Get().GetDragTriggerDistance() );
+		if (bDragDetected)
+		{
+			FWidgetPath DragDetectPath = DragDetector.DetectDragForWidget.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
+			const TSharedPtr<SWidget> DragDetectRequestor = DragDetector.DetectDragForWidget.GetLastWidget().Pin();
+			if (DragDetectPath.IsValid() && DragDetectRequestor.IsValid())
+			{
+				FWidgetAndPointer DetectDragForMe = DragDetectPath.FindArrangedWidgetAndCursor(DragDetectRequestor.ToSharedRef()).Get(FWidgetAndPointer());
+
+				// A drag has been triggered. The cursor exited some widgets as a result.
+				// This assignment ensures that we will send OnLeave notifications to those widgets.
+				LastWidgetsUnderCursor = DragDetector.DetectDragForWidget;
+
+				// We're finished with the drag detect.
+				DragDetector = FDragDetector();
+
+				// Send an OnDragDetected to the widget that requested drag-detection.
+				
+				// Switch worlds widgets in the current path
+				FScopedSwitchWorldHack SwitchWorld( DragDetectPath );
+
+				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe,DragDetectPath), PointerEvent, []( const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent )
+				{
+					return InDetectDragForMe.Widget->OnDragDetected(InDetectDragForMe.Geometry, TranslatedMouseEvent );
+				});
+				
+				LOG_EVENT( EEventLog::DragDetected, Reply );
+			}
+			else
+			{
+				bDragDetected = false;
+			}
+		}		
+	}
+
+
+	if (bDragDetected)
+	{
+		// When a drag was detected, we pretend that the widgets under the mouse last time around.
+		// We have set LastWidgetsUnderCursor accordingly when the drag was detected above.
+	}
+	else
+	{
+		// No Drag Detection
+		LastWidgetsUnderCursor = WidgetsUnderCursorLastEvent.FindRef( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ) );
+	}
+
+	// Send out mouse leave events
+	// If we are doing a drag and drop, we will send this event instead.
+	{
+		FDragDropEvent DragDropEvent( PointerEvent, DragDropContent );
+		// Switch worlds widgets in the current path
+		FScopedSwitchWorldHack SwitchWorld( LastWidgetsUnderCursor.Window.Pin() );
+
+		for ( int32 WidgetIndex = LastWidgetsUnderCursor.Widgets.Num()-1; WidgetIndex >=0; --WidgetIndex )
+		{
+			// Guards for cases where WidgetIndex can become invalid due to MouseMove being re-entrant.
+			while ( WidgetIndex >= LastWidgetsUnderCursor.Widgets.Num() )
+			{
+				WidgetIndex--;
+			}
+
+			if ( WidgetIndex >= 0 )
+			{
+				const TSharedPtr<SWidget>& SomeWidgetPreviouslyUnderCursor = LastWidgetsUnderCursor.Widgets[WidgetIndex].Pin();
+				if( SomeWidgetPreviouslyUnderCursor.IsValid() )
+				{
+					TOptional<FArrangedWidget> FoundWidget = WidgetsUnderPointer.FindArrangedWidget( SomeWidgetPreviouslyUnderCursor.ToSharedRef() );
+					const bool bWidgetNoLongerUnderMouse = !FoundWidget.IsSet();
+					if ( bWidgetNoLongerUnderMouse )
+					{
+						// Widget is no longer under cursor, so send a MouseLeave.
+						// The widget might not even be in the hierarchy any more!
+						// Thus, we cannot translate the PointerPosition into the appropriate space for this event.
+						if ( IsDragDropping() )
+						{
+							// Note that the event's pointer position is not translated.
+							SomeWidgetPreviouslyUnderCursor->OnDragLeave( DragDropEvent );
+							LOG_EVENT( EEventLog::DragLeave, SomeWidgetPreviouslyUnderCursor );
+
+							// Reset the cursor override
+							DragDropEvent.GetOperation()->SetCursorOverride( TOptional<EMouseCursor::Type>() );
+						}
+						else
+						{
+							// Note that the event's pointer position is not translated.
+							SomeWidgetPreviouslyUnderCursor->OnMouseLeave( PointerEvent );
+							LOG_EVENT( EEventLog::MouseLeave, SomeWidgetPreviouslyUnderCursor );
+						}			
+					}
+				}
+			}
+		}
+	}
+
+
+	FWidgetPath MouseCaptorPath;
+	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
+	{
+		//MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex(), FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
+		MouseCaptorPath = MouseCaptor.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid, &PointerEvent );
+	}
+
+	if (MouseCaptorPath.IsValid())
+	{
+		if ( !bIsSynthetic )
+		{
+			// Switch worlds widgets in the current path
+			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
+			
+			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), PointerEvent, [this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
+			{
+				FReply TempReply = FReply::Unhandled();
+				if (Event.IsTouchEvent())
+				{
+					TempReply = MouseCaptorWidget.Widget->OnTouchMoved( MouseCaptorWidget.Geometry, Event );
+				}
+				if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && this->bTouchFallbackToMouse))
+				{
+					TempReply = MouseCaptorWidget.Widget->OnMouseMove( MouseCaptorWidget.Geometry, Event );
+				}
+				return TempReply;
+			} );
+			bHandled = Reply.IsEventHandled();
+		}
+	}
+	else
+	{	
+		// Switch worlds widgets in the current path
+		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderPointer );
+
+		// Send out mouse enter events.
+		if (IsDragDropping())
+		{
+			FDragDropEvent DragDropEvent( PointerEvent, DragDropContent );
+			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), DragDropEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FDragDropEvent& InDragDropEvent)
+			{
+				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
+				{
+					WidgetUnderCursor.Widget->OnDragEnter( WidgetUnderCursor.Geometry, InDragDropEvent );
+				}
+				return FNoReply();
+			} );
+		}
+		else
+		{
+			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), PointerEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FPointerEvent& PointerEvent)
+			{
+				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
+				{
+					WidgetUnderCursor.Widget->OnMouseEnter( WidgetUnderCursor.Geometry, PointerEvent );
+				}
+				return FNoReply();
+			} );
+		}
+		
+		// Bubble the MouseMove event.
+		FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), PointerEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
+		{
+			FReply TempReply = FReply::Unhandled();
+
+			if (Event.IsTouchEvent())
+			{
+				TempReply = CurWidget.Widget->OnTouchMoved( CurWidget.Geometry, Event );
+			}
+			if (!TempReply.IsEventHandled())
+			{
+				TempReply = (IsDragDropping())
+					? CurWidget.Widget->OnDragOver( CurWidget.Geometry, FDragDropEvent( Event, DragDropContent ) )
+					: CurWidget.Widget->OnMouseMove( CurWidget.Geometry, Event );
+			}
+
+			return TempReply;
+		});
+
+		LOG_EVENT( IsDragDropping() ? EEventLog::DragOver : EEventLog::MouseMove, Reply )
+
+			bHandled = Reply.IsEventHandled();
+	}
+
+	// Give the current drag drop operation a chance to do something
+	// custom (e.g. update the Drag/Drop preview based on content)
+	if (IsDragDropping())
+	{
+		FDragDropEvent DragDropEvent( PointerEvent, DragDropContent );
+		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderPointer );
+		DragDropContent->OnDragged( DragDropEvent );
+
+		// Update the window we're under for rendering the drag drop operation if
+		// it's a windowless drag drop operation.
+		if ( WidgetsUnderPointer.IsValid() )
+		{
+			DragDropWindowPtr = WidgetsUnderPointer.GetWindow();
+		}
+		else
+		{
+			DragDropWindowPtr = nullptr;
+		}
+
+		// Don't update the cursor for the platform if we don't have a valid cursor on this platform
+		if ( PlatformApplication->Cursor.IsValid() )
+		{
+			FCursorReply CursorReply = DragDropContent->OnCursorQuery();
+			if ( !CursorReply.IsEventHandled() )
+			{
+				// Set the default cursor when there isn't an active window under the cursor and the mouse isn't captured
+				CursorReply = FCursorReply::Cursor(EMouseCursor::Default);
+			}
+
+			ProcessCursorReply(CursorReply);
+		}
+	}
+	else
+	{
+		DragDropWindowPtr = nullptr;
+	}
+
+	WidgetsUnderCursorLastEvent.Add( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ), FWeakWidgetPath( WidgetsUnderPointer ) );
+
+	PointerIndexLastPositionMap.Add(PointerEvent.GetPointerIndex(), PointerEvent.GetScreenSpacePosition());
+	return bHandled;
 }
 
 bool FSlateApplication::OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button )
@@ -4290,83 +4637,10 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 		DragDetector = FDragDetector();
 	}
 
-	if (MouseCaptor.HasCaptureForPointerIndex(MouseEvent.GetPointerIndex()))
-	{
-		//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex());
-		FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &MouseEvent );
-		if ( ensureMsgf(MouseCaptorPath.Widgets.Num() > 0, TEXT("A window had a widget with mouse capture. That entire window has been dismissed before the mouse up could be processed.")) )
-		{
-#if PLATFORM_MAC
-			NSWindow* ActiveNativeWindow = [NSApp keyWindow];
-#endif
-			// Switch worlds widgets in the current path
-			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
-
-			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [this]( const FArrangedWidget& TargetWidget, const FPointerEvent& Event )
-			{
-				FReply TempReply = FReply::Unhandled();
-				if (Event.IsTouchEvent())
-			{
-					TempReply = TargetWidget.Widget->OnTouchEnded( TargetWidget.Geometry, Event );
-			}
-				if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && this->bTouchFallbackToMouse))
-			{
-					TempReply = TargetWidget.Widget->OnMouseButtonUp( TargetWidget.Geometry, Event );
-			}
-				return TempReply;
-			});
-
-#if PLATFORM_MAC
-			// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
-			TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
-			if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && MouseCaptorPath.TopLevelWindow.IsValid() && ActiveWindow != MouseCaptorPath.TopLevelWindow
-				&& ActiveNativeWindow == [NSApp keyWindow] && ![(NSWindow*)MouseCaptorPath.TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized])
-			{
-				MouseCaptorPath.TopLevelWindow->BringToFront(true);
-			}
-#endif
-			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
-		}
-	}
-	else
-	{
-		FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
-
-		// Cache the drag drop content and reset the pointer in case OnMouseButtonUpMessage re-enters as a result of OnDrop
-		const bool bIsDragDropping = IsDragDropping();
-		TSharedPtr< FDragDropOperation > LocalDragDropContent = DragDropContent;
-		DragDropContent.Reset();
-
-		// Switch worlds widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
-		
-		FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
-		{
-			FReply TempReply = FReply::Unhandled();
-			if (Event.IsTouchEvent())
-			{
-				TempReply = CurWidget.Widget->OnTouchEnded( CurWidget.Geometry, Event );
-			}
-			if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && bTouchFallbackToMouse))
-			{
-				TempReply = (bIsDragDropping)
-					? CurWidget.Widget->OnDrop( CurWidget.Geometry, FDragDropEvent( Event, LocalDragDropContent ) )
-					: CurWidget.Widget->OnMouseButtonUp( CurWidget.Geometry, Event );
-			}
-			return TempReply;		
-		});
-
-		LOG_EVENT( bIsDragDropping ? EEventLog::DragDrop : EEventLog::MouseButtonUp, Reply );
-
-		// If we were dragging, notify the content
-		if ( bIsDragDropping )
-		{
-			// @todo slate : depending on SetEventPath() is not ideal.
-			MouseEvent.SetEventPath( WidgetsUnderCursor );
-			LocalDragDropContent->OnDrop( Reply.IsEventHandled(), MouseEvent );
-			WidgetsUnderCursorLastEvent = FWeakWidgetPath();
-		}
-	}
+	// An empty widget path is passed in.  As an optimization, one will be generated only if a captured mouse event isnt routed
+	FWidgetPath EmptyPath;
+	RoutePointerUpEvent( EmptyPath, MouseEvent );
+	
 
 	// If in responsive mode throttle, leave it on mouse up.
 	if( MouseButtonDownResponsivnessThrottle.IsValid() )
@@ -4416,8 +4690,8 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 	
 	// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while scrolling
 
-	FWidgetPath EventPath = ( MouseCaptor.HasCaptureForPointerIndex(InWheelEvent.GetPointerIndex()) )
-		? MouseCaptor.ToWidgetPath(InWheelEvent.GetPointerIndex())
+	FWidgetPath EventPath = ( MouseCaptor.HasCaptureForPointerIndex(InWheelEvent.GetUserIndex(), InWheelEvent.GetPointerIndex()) )
+		? MouseCaptor.ToWidgetPath( InWheelEvent.GetUserIndex(), InWheelEvent.GetPointerIndex() )
 		: LocateWindowUnderMouse( InWheelEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
 
 	// Switch worlds widgets in the current path
@@ -4523,236 +4797,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		? LocateWindowUnderMouse(MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows())
 		: FWidgetPath();
 
-	bool bHandled = false;
-
-	FWeakWidgetPath LastWidgetsUnderCursor;
-
-	// User asked us to detect a drag.
-	bool bDragDetected = false;
-	if( DragDetector.DetectDragForWidget.IsValid() )
-	{	
-		const FVector2D DragDelta = (DragDetector.DetectDragStartLocation - MouseEvent.GetScreenSpacePosition());
-		bDragDetected = ( DragDelta.Size() > FSlateApplication::Get().GetDragTriggerDistance() );
-		if (bDragDetected)
-		{
-			FWidgetPath DragDetectPath = DragDetector.DetectDragForWidget.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
-			const TSharedPtr<SWidget> DragDetectRequestor = DragDetector.DetectDragForWidget.GetLastWidget().Pin();
-			if (DragDetectPath.IsValid() && DragDetectRequestor.IsValid())
-			{
-				FWidgetAndPointer DetectDragForMe = DragDetectPath.FindArrangedWidgetAndCursor(DragDetectRequestor.ToSharedRef()).Get(FWidgetAndPointer());
-
-				// A drag has been triggered. The cursor exited some widgets as a result.
-				// This assignment ensures that we will send OnLeave notifications to those widgets.
-				LastWidgetsUnderCursor = DragDetector.DetectDragForWidget;
-
-				// We're finished with the drag detect.
-				DragDetector = FDragDetector();
-
-				// Send an OnDragDetected to the widget that requested drag-detection.
-				
-				// Switch worlds widgets in the current path
-				FScopedSwitchWorldHack SwitchWorld( DragDetectPath );
-
-				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe,DragDetectPath), MouseEvent, []( const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent )
-				{
-					return InDetectDragForMe.Widget->OnDragDetected(InDetectDragForMe.Geometry, TranslatedMouseEvent );
-				});
-				
-				LOG_EVENT( EEventLog::DragDetected, Reply );
-			}
-			else
-			{
-				bDragDetected = false;
-			}
-		}		
-	}
-
-
-	if (bDragDetected)
-	{
-		// When a drag was detected, we pretend that the widgets under the mouse last time around.
-		// We have set LastWidgetsUnderCursor accordingly when the drag was detected above.
-	}
-	else
-	{
-		// No Drag Detection
-		LastWidgetsUnderCursor = WidgetsUnderCursorLastEvent;
-	}
-
-	// Send out mouse leave events
-	// If we are doing a drag and drop, we will send this event instead.
-	{
-		FDragDropEvent DragDropEvent( MouseEvent, DragDropContent );
-		// Switch worlds widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld( LastWidgetsUnderCursor.Window.Pin() );
-
-		for ( int32 WidgetIndex = LastWidgetsUnderCursor.Widgets.Num()-1; WidgetIndex >=0; --WidgetIndex )
-		{
-			// Guards for cases where WidgetIndex can become invalid due to MouseMove being re-entrant.
-			while ( WidgetIndex >= LastWidgetsUnderCursor.Widgets.Num() )
-			{
-				WidgetIndex--;
-			}
-
-			if ( WidgetIndex >= 0 )
-			{
-				const TSharedPtr<SWidget>& SomeWidgetPreviouslyUnderCursor = LastWidgetsUnderCursor.Widgets[WidgetIndex].Pin();
-				if( SomeWidgetPreviouslyUnderCursor.IsValid() )
-				{
-					TOptional<FArrangedWidget> FoundWidget = WidgetsUnderCursor.FindArrangedWidget( SomeWidgetPreviouslyUnderCursor.ToSharedRef() );
-					const bool bWidgetNoLongerUnderMouse = !FoundWidget.IsSet();
-					if ( bWidgetNoLongerUnderMouse )
-					{
-						// Widget is no longer under cursor, so send a MouseLeave.
-						// The widget might not even be in the hierarchy any more!
-						// Thus, we cannot translate the PointerPosition into the appropriate space for this event.
-						if ( IsDragDropping() )
-						{
-							// Note that the event's pointer position is not translated.
-							SomeWidgetPreviouslyUnderCursor->OnDragLeave( DragDropEvent );
-							LOG_EVENT( EEventLog::DragLeave, SomeWidgetPreviouslyUnderCursor );
-
-							// Reset the cursor override
-							DragDropEvent.GetOperation()->SetCursorOverride( TOptional<EMouseCursor::Type>() );
-						}
-						else
-						{
-							// Note that the event's pointer position is not translated.
-							SomeWidgetPreviouslyUnderCursor->OnMouseLeave( MouseEvent );
-							LOG_EVENT( EEventLog::MouseLeave, SomeWidgetPreviouslyUnderCursor );
-						}			
-					}
-				}
-			}
-		}
-	}
-
-
-	FWidgetPath MouseCaptorPath;
-	if (MouseCaptor.HasCaptureForPointerIndex(MouseEvent.GetPointerIndex()))
-	{
-		//MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex(), FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
-		MouseCaptorPath = MouseCaptor.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid, &MouseEvent );
-	}
-
-	if (MouseCaptorPath.IsValid())
-	{
-		if ( !bIsSynthetic )
-		{
-			// Switch worlds widgets in the current path
-			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
-			
-			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
-			{
-				FReply TempReply = FReply::Unhandled();
-				if (Event.IsTouchEvent())
-				{
-					TempReply = MouseCaptorWidget.Widget->OnTouchMoved( MouseCaptorWidget.Geometry, Event );
-				}
-				if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && this->bTouchFallbackToMouse))
-				{
-					TempReply = MouseCaptorWidget.Widget->OnMouseMove( MouseCaptorWidget.Geometry, Event );
-				}
-				return TempReply;
-			} );
-			bHandled = Reply.IsEventHandled();
-		}
-	}
-	else
-	{	
-		// Switch worlds widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
-
-		// Send out mouse enter events.
-		if (IsDragDropping())
-		{
-			FDragDropEvent DragDropEvent( MouseEvent, DragDropContent );
-			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), DragDropEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FDragDropEvent& InDragDropEvent)
-			{
-				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
-				{
-					WidgetUnderCursor.Widget->OnDragEnter( WidgetUnderCursor.Geometry, InDragDropEvent );
-				}
-				return FNoReply();
-			} );
-		}
-		else
-		{
-			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FPointerEvent& PointerEvent)
-			{
-				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
-				{
-					WidgetUnderCursor.Widget->OnMouseEnter( WidgetUnderCursor.Geometry, PointerEvent );
-				}
-				return FNoReply();
-			} );
-		}
-		
-		// Bubble the MouseMove event.
-		FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
-		{
-			FReply TempReply = FReply::Unhandled();
-
-			if (Event.IsTouchEvent())
-			{
-				TempReply = CurWidget.Widget->OnTouchMoved( CurWidget.Geometry, Event );
-			}
-			if (!TempReply.IsEventHandled())
-			{
-				TempReply = (IsDragDropping())
-					? CurWidget.Widget->OnDragOver( CurWidget.Geometry, FDragDropEvent( Event, DragDropContent ) )
-					: CurWidget.Widget->OnMouseMove( CurWidget.Geometry, Event );
-			}
-
-			return TempReply;
-		});
-
-		LOG_EVENT( IsDragDropping() ? EEventLog::DragOver : EEventLog::MouseMove, Reply )
-
-			bHandled = Reply.IsEventHandled();
-	}
-
-	// Give the current drag drop operation a chance to do something
-	// custom (e.g. update the Drag/Drop preview based on content)
-	if (IsDragDropping())
-	{
-		FDragDropEvent DragDropEvent( MouseEvent, DragDropContent );
-		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
-		DragDropContent->OnDragged( DragDropEvent );
-
-		// Update the window we're under for rendering the drag drop operation if
-		// it's a windowless drag drop operation.
-		if ( WidgetsUnderCursor.IsValid() )
-		{
-			DragDropWindowPtr = WidgetsUnderCursor.GetWindow();
-		}
-		else
-		{
-			DragDropWindowPtr = nullptr;
-		}
-
-		// Don't update the cursor for the platform if we don't have a valid cursor on this platform
-		if ( PlatformApplication->Cursor.IsValid() )
-		{
-			FCursorReply CursorReply = DragDropContent->OnCursorQuery();
-			if ( !CursorReply.IsEventHandled() )
-			{
-				// Set the default cursor when there isn't an active window under the cursor and the mouse isn't captured
-				CursorReply = FCursorReply::Cursor(EMouseCursor::Default);
-			}
-
-			ProcessCursorReply(CursorReply);
-		}
-	}
-	else
-	{
-		DragDropWindowPtr = nullptr;
-	}
-
-	WidgetsUnderCursorLastEvent = FWeakWidgetPath( WidgetsUnderCursor );
-
-	PointerIndexLastPositionMap.Add(MouseEvent.GetPointerIndex(), MouseEvent.GetScreenSpacePosition());
-	return bHandled;
+	return RoutePointerMoveEvent( WidgetsUnderCursor, MouseEvent, bIsSynthetic );
 }
 
 bool FSlateApplication::OnCursorSet()
