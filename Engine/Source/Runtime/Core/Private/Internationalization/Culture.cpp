@@ -65,15 +65,15 @@ TArray<FString> FCulture::GetPrioritizedParentCultureNames()
 	TArray<FString> LocaleTagCombinations;
 	if (!ScriptCode.IsEmpty() && !RegionCode.IsEmpty())
 	{
-		LocaleTagCombinations.Add(LanguageCode + TEXT("_") + ScriptCode + TEXT("_") + RegionCode);
+		LocaleTagCombinations.Add(LanguageCode + TEXT("-") + ScriptCode + TEXT("-") + RegionCode);
 	}
 	if (!RegionCode.IsEmpty())
 	{
-		LocaleTagCombinations.Add(LanguageCode + TEXT("_") + RegionCode);
+		LocaleTagCombinations.Add(LanguageCode + TEXT("-") + RegionCode);
 	}
 	if (!ScriptCode.IsEmpty())
 	{
-		LocaleTagCombinations.Add(LanguageCode + TEXT("_") + ScriptCode);
+		LocaleTagCombinations.Add(LanguageCode + TEXT("-") + ScriptCode);
 	}
 	LocaleTagCombinations.Add(LanguageCode);
 

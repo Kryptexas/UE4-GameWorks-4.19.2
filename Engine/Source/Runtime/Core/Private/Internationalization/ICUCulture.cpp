@@ -141,7 +141,9 @@ FString FCulture::FICUCultureImplementation::GetCanonicalName(const FString& Nam
 
 FString FCulture::FICUCultureImplementation::GetName() const
 {
-	return ICULocale.getName();
+	FString Result = ICULocale.getName();
+	Result.ReplaceInline(TEXT("_"), TEXT("-"));
+	return Result;
 }
 
 FString FCulture::FICUCultureImplementation::GetNativeName() const
