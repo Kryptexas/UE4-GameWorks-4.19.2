@@ -2,7 +2,15 @@
 Title:6.1 - 自投阴影准确度
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
 Description:光照示例关卡的概述,示例6.1: 自投阴影准确度
-
+Related: Engine/Rendering/LightingAndShadows/Basics
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related: Engine/Rendering/LightingAndShadows/Lightmass
+Related: Engine/Rendering/LightingAndShadows/Shadows
+Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related: Engine/Rendering/LightingAndShadows/LightMobility
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -38,4 +46,4 @@ Description:光照示例关卡的概述,示例6.1: 自投阴影准确度
 
 
 
-[INCLUDE:Resources\ContentExamples\Lighting#Examples]
+
