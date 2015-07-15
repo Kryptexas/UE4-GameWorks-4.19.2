@@ -81,6 +81,29 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 	}
 }
 
+TArray<FRichCurve*> FSequencerCurveOwner::GetSelectedCurves() const
+{
+	TArray<FRichCurve*> SelectedCurves;
+
+	TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
+	GetAllKeyAreaNodes( SequencerNodeTree, KeyAreaNodes );
+	for ( TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes )
+	{
+		for ( TSharedRef<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas() )
+		{
+			FRichCurve* RichCurve = KeyArea->GetRichCurve();
+			if ( RichCurve != nullptr )
+			{
+				if (KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode))
+				{
+					SelectedCurves.Add(RichCurve);
+				}
+			}
+		}
+	}
+	return SelectedCurves;
+}
+
 TArray<FRichCurveEditInfoConst> FSequencerCurveOwner::GetCurves() const
 {
 	return ConstCurves;

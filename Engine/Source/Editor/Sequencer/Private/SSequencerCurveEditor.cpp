@@ -143,11 +143,14 @@ void SSequencerCurveEditor::UpdateCurveOwner()
 
 	if (bAllFound)
 	{
+		UpdateCurveViewModelSelection();
 		return;
 	}
 
 	CurveOwner = MakeShareable( NewCurveOwner );
 	SetCurveOwner( CurveOwner.Get() );
+
+	UpdateCurveViewModelSelection();
 }
 
 bool SSequencerCurveEditor::GetCurveSnapEnabled() const
@@ -177,6 +180,17 @@ void SSequencerCurveEditor::NodeTreeSelectionChanged()
 		{
 			UpdateCurveOwner();
 		}
+
+		UpdateCurveViewModelSelection();
+	}
+}
+
+void SSequencerCurveEditor::UpdateCurveViewModelSelection()
+{
+	ClearSelectedCurveViewModels();
+	for (auto SelectedCurve : CurveOwner->GetSelectedCurves())
+	{
+		SetSelectedCurveViewModel(SelectedCurve);
 	}
 }
 

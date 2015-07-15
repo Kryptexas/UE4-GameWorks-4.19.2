@@ -721,6 +721,8 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	int32 KeyLayerId = CurveLayerId + 1;
 	int32 SelectedKeyLayerId = KeyLayerId + 1;
 
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 	if( AreCurvesVisible() )
 	{
 		//Paint the curves, unlocked curves will be on top
@@ -728,7 +730,7 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		{
 			if (CurveViewModel->bIsVisible)
 			{
-				PaintCurve(CurveViewModel, CurveAreaGeometry, ScaleInfo, OutDrawElements, CurveViewModel->bIsLocked ? LockedCurveLayerID : CurveLayerId, MyClippingRect, DrawEffects, InWidgetStyle);
+				PaintCurve(CurveViewModel, CurveAreaGeometry, ScaleInfo, OutDrawElements, CurveViewModel->bIsLocked ? LockedCurveLayerID : CurveLayerId, MyClippingRect, DrawEffects, InWidgetStyle, bAnyCurveViewModelsSelected);
 			}
 		}
 
@@ -737,7 +739,7 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		{
 			if (CurveViewModel->bIsVisible)
 			{
-				PaintKeys(CurveViewModel, ScaleInfo, OutDrawElements, KeyLayerId, SelectedKeyLayerId, CurveAreaGeometry, MyClippingRect, DrawEffects, InWidgetStyle);
+				PaintKeys(CurveViewModel, ScaleInfo, OutDrawElements, KeyLayerId, SelectedKeyLayerId, CurveAreaGeometry, MyClippingRect, DrawEffects, InWidgetStyle, bAnyCurveViewModelsSelected);
 			}
 		}
 	}
@@ -756,13 +758,19 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 }
 
 void SCurveEditor::PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements,
-	int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle )const
+	int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle, bool bAnyCurveViewModelsSelected )const
 {
 	if (CurveViewModel.IsValid())
 	{
 		if (bDrawCurve)
 		{
 			FLinearColor Color = InWidgetStyle.GetColorAndOpacityTint() * CurveViewModel->Color;
+
+			// Fade out curves that are not selected.
+			if (!CurveViewModel->bIsSelected && bAnyCurveViewModelsSelected)
+			{
+				Color *= FLinearColor(1.0f,1.0f,1.0f,0.5f); 
+			}
 
 			// Fade out curves which are locked.
 			if(CurveViewModel->bIsLocked)
@@ -870,7 +878,7 @@ void SCurveEditor::CreateLinesForSegment( FRichCurve* Curve, const FRichCurveKey
 	}
 }
 
-void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, int32 SelectedLayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle ) const
+void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, int32 SelectedLayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle, bool bAnyCurveViewModelsSelected ) const
 {
 	FLinearColor KeyColor = CurveViewModel->bIsLocked ? FLinearColor(0.1f,0.1f,0.1f,1.f) : InWidgetStyle.GetColorAndOpacityTint();
 
@@ -892,6 +900,9 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 		const FSlateBrush* KeyBrush = IsSelected ? FEditorStyle::GetBrush("CurveEd.CurveKeySelected") : FEditorStyle::GetBrush("CurveEd.CurveKey");
 		int32 LayerToUse = IsSelected ? SelectedLayerId: LayerId;
 
+		// Fade out keys that are not selected and whose curve is not selected as well.
+		FLinearColor SelectionTint = !CurveViewModel->bIsSelected && !IsSelected && bAnyCurveViewModelsSelected ? FLinearColor(1.0f,1.0f,1.0f,0.5f) : FLinearColor(1.0f,1.0f,1.0f,1.0f); 
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerToUse,
@@ -899,7 +910,7 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 			KeyBrush,
 			MyClippingRect,
 			DrawEffects,
-			KeyBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+			KeyBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor * SelectionTint
 			);
 
 		//Handle drawing the tangent controls for curve
@@ -908,7 +919,7 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 		bool bIsLeaveSelected = false;
 		if(IsTangentVisible(Curve, KeyHandle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected) && (Curve->GetKeyInterpMode(KeyHandle) == RCIM_Cubic || LastInterpMode == RCIM_Cubic))
 		{
-			PaintTangent(ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected);
+			PaintTangent(CurveViewModel, ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected, bAnyCurveViewModelsSelected);
 		}
 
 		LastInterpMode = Curve->GetKeyInterpMode(KeyHandle);
@@ -916,7 +927,7 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 }
 
 
-void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle, bool bTangentSelected, bool bIsArrivalSelected, bool bIsLeaveSelected ) const
+void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle, bool bTangentSelected, bool bIsArrivalSelected, bool bIsLeaveSelected, bool bAnyCurveViewModelsSelected ) const
 {
 	FVector2D ArriveTangentLocation, LeaveTangentLocation;
 	GetTangentPoints(ScaleInfo, FSelectedCurveKey(Curve,KeyHandle), ArriveTangentLocation, LeaveTangentLocation);
@@ -932,6 +943,9 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 	bool LeaveTangentSelected = bTangentSelected && bIsLeaveSelected;
 	bool ArriveTangentSelected = bTangentSelected && bIsArrivalSelected;
 
+	FLinearColor LeaveSelectionTint = !CurveViewModel->bIsSelected && !LeaveTangentSelected && bAnyCurveViewModelsSelected ? FLinearColor(1.0f,1.0f,1.0f,0.5f) : FLinearColor(1.0f,1.0f,1.0f,1.0f); 
+	FLinearColor ArriveSelectionTint = !CurveViewModel->bIsSelected && !ArriveTangentSelected && bAnyCurveViewModelsSelected ? FLinearColor(1.0f,1.0f,1.0f,0.5f) : FLinearColor(1.0f,1.0f,1.0f,1.0f); 
+
 	//Add lines from tangent control point to 'key'
 	TArray<FVector2D> LinePoints;
 	LinePoints.Add(KeyLocation);
@@ -943,7 +957,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LinePoints,
 		MyClippingRect,
 		DrawEffects,
-		ArriveTangentSelected ? TangentColorSelected : TangentColor
+		ArriveTangentSelected ? TangentColorSelected * ArriveSelectionTint : TangentColor * ArriveSelectionTint
 		);
 
 	LinePoints.Empty();
@@ -956,7 +970,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LinePoints,
 		MyClippingRect,
 		DrawEffects,
-		LeaveTangentSelected ? TangentColorSelected : TangentColor
+		LeaveTangentSelected ? TangentColorSelected * LeaveSelectionTint : TangentColor * LeaveSelectionTint
 		);
 
 	//Arrive tangent control
@@ -967,7 +981,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		ArriveTangentSelected ? TangentBrushSelected : TangentBrush,
 		MyClippingRect,
 		DrawEffects,
-		ArriveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
+		ArriveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) * ArriveSelectionTint : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * ArriveSelectionTint
 		);
 	//Leave tangent control
 	FSlateDrawElement::MakeBox(
@@ -977,7 +991,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LeaveTangentSelected ? TangentBrushSelected : TangentBrush,
 		MyClippingRect,
 		DrawEffects,
-		LeaveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
+		LeaveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) * LeaveSelectionTint : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * LeaveSelectionTint
 		);
 }
 
@@ -2626,6 +2640,35 @@ void SCurveEditor::SetOutputMinMax(float NewMin, float NewMax)
 	}
 }
 
+void SCurveEditor::ClearSelectedCurveViewModels()
+{
+	for(auto CurveViewModel : CurveViewModels)
+	{
+		CurveViewModel->bIsSelected = false;
+	}
+}
+
+void SCurveEditor::SetSelectedCurveViewModel(FRichCurve* CurveToSelect)
+{
+	TSharedPtr<FCurveViewModel> ViewModel = GetViewModelForCurve(CurveToSelect);
+	if (ViewModel.IsValid())
+	{
+		ViewModel.Get()->bIsSelected = true;
+	}
+}
+
+bool SCurveEditor::AnyCurveViewModelsSelected() const
+{
+	for (auto CurveViewModel : CurveViewModels)
+	{
+		if (CurveViewModel->bIsSelected)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 TSharedPtr<FCurveViewModel> SCurveEditor::HitTestCurves(  const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
 	if( AreCurvesVisible() )
@@ -2860,13 +2903,18 @@ void SCurveEditor::OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolati
 	const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetPreInfinityExtrapolation", "Set Pre-Infinity Extrapolation"));
 	CurveOwner->ModifyOwner();
 
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
 	for (auto CurveViewModel : CurveViewModels)
 	{
-		if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+		if (!bAnyCurveViewModelsSelected || CurveViewModel->bIsSelected)
 		{
-			CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap = Extrapolation;
-			ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+			if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+			{
+				CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap = Extrapolation;
+				ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+			}
 		}
 	}
 
@@ -2878,13 +2926,30 @@ void SCurveEditor::OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolati
 
 bool SCurveEditor::IsPreInfinityExtrapSelected(ERichCurveExtrapolation Extrapolation)
 {
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 	for (auto CurveViewModel : CurveViewModels)
 	{
-		if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+		// If there are any curves selected, the setting must match all of the selected curves
+		if (bAnyCurveViewModelsSelected)
 		{
-			return false;
+			if (CurveViewModel->bIsSelected)
+			{
+				if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+				{
+					return false;
+				}
+			}
+		}
+		else
+		{
+			if (CurveViewModel->CurveInfo.CurveToEdit->PreInfinityExtrap != Extrapolation)
+			{
+				return false;
+			}
 		}
 	}
+
 	return CurveViewModels.Num() > 0;
 }
 
@@ -2893,13 +2958,18 @@ void SCurveEditor::OnSelectPostInfinityExtrap(ERichCurveExtrapolation Extrapolat
 	const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetPostInfinityExtrapolation", "Set Post-Infinity Extrapolation"));
 	CurveOwner->ModifyOwner();
 
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
 	for (auto CurveViewModel : CurveViewModels)
 	{
-		if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+		if (!bAnyCurveViewModelsSelected || CurveViewModel->bIsSelected)
 		{
-			CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap = Extrapolation;
-			ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+			if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+			{
+				CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap = Extrapolation;
+				ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+			}
 		}
 	}
 
@@ -2911,13 +2981,30 @@ void SCurveEditor::OnSelectPostInfinityExtrap(ERichCurveExtrapolation Extrapolat
 
 bool SCurveEditor::IsPostInfinityExtrapSelected(ERichCurveExtrapolation Extrapolation)
 {
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 	for (auto CurveViewModel : CurveViewModels)
 	{
-		if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+		// If there are any curves selected, the setting must match all of the selected curves
+		if (bAnyCurveViewModelsSelected)
 		{
-			return false;
+			if (CurveViewModel->bIsSelected)
+			{
+				if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+				{
+					return false;
+				}
+			}
+		}
+		else
+		{
+			if (CurveViewModel->CurveInfo.CurveToEdit->PostInfinityExtrap != Extrapolation)
+			{
+				return false;
+			}
 		}
 	}
+
 	return CurveViewModels.Num() > 0;
 }
 

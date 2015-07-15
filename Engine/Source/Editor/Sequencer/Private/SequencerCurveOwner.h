@@ -10,6 +10,9 @@ class FSequencerCurveOwner : public FCurveOwnerInterface
 public:
 	FSequencerCurveOwner(TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, ECurveEditorCurveVisibility::Type CurveVisibility);
 
+	/** Return the set of selected curves */
+	TArray<FRichCurve*> GetSelectedCurves() const;
+
 	/** FCurveOwnerInterface */
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
 	virtual TArray<FRichCurveEditInfo> GetCurves() override;

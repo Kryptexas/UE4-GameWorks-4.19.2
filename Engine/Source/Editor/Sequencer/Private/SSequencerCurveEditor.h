@@ -53,6 +53,9 @@ private:
 	/** Run whenever the selected curve visibility changes. */
 	void OnCurveEditorCurveVisibilityChanged();
 
+	/** Update the curve view model selection */
+	void UpdateCurveViewModelSelection();
+
 private:
 
 	/** The sequencer which owns this widget. */
