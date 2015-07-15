@@ -88,6 +88,10 @@ public:
 
 	/** Gets a multicast delegate which is called when the outliner node selection changes. */
 	FOnSelectionChanged& GetOnOutlinerNodeSelectionChanged();
+
+	/** Suspend or resume broadcast of selection changing  */
+	void SuspendBroadcast() { bSuspendBroadcast = true; }
+	void ResumeBroadcast() { bSuspendBroadcast = false; }
 	
 private:
 	TSet<FSelectedKey> SelectedKeys;
@@ -99,4 +103,6 @@ private:
 	FOnSelectionChanged OnOutlinerNodeSelectionChanged;
 
 	EActiveSelection ActiveSelection;
+
+	bool bSuspendBroadcast;
 };

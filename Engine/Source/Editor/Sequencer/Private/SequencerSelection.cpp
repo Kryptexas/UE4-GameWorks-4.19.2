@@ -7,6 +7,7 @@
 FSequencerSelection::FSequencerSelection()
 {
 	ActiveSelection = EActiveSelection::None;
+	bSuspendBroadcast = false;
 }
 
 const TSet<FSelectedKey>& FSequencerSelection::GetSelectedKeys() const
@@ -48,42 +49,60 @@ void FSequencerSelection::AddToSelection(FSelectedKey Key)
 {
 	SelectedKeys.Add(Key);
 	ActiveSelection = EActiveSelection::KeyAndSection;
-	OnKeySelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnKeySelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::AddToSelection(UMovieSceneSection* Section)
 {
 	SelectedSections.Add(Section);
 	ActiveSelection = EActiveSelection::KeyAndSection;
-	OnSectionSelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnSectionSelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode)
 {
 	SelectedOutlinerNodes.Add(OutlinerNode);
 	ActiveSelection = EActiveSelection::OutlinerNode;
-	OnOutlinerNodeSelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnOutlinerNodeSelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::RemoveFromSelection(FSelectedKey Key)
 {
 	SelectedKeys.Remove(Key);
 	ActiveSelection = EActiveSelection::KeyAndSection;
-	OnKeySelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnKeySelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::RemoveFromSelection(UMovieSceneSection* Section)
 {
 	SelectedSections.Remove(Section);
 	ActiveSelection = EActiveSelection::KeyAndSection;
-	OnSectionSelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnSectionSelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::RemoveFromSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode)
 {
 	SelectedOutlinerNodes.Remove(OutlinerNode);
 	ActiveSelection = EActiveSelection::OutlinerNode;
-	OnOutlinerNodeSelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnOutlinerNodeSelectionChanged.Broadcast();
+	}
 }
 
 bool FSequencerSelection::IsSelected(FSelectedKey Key) const
@@ -111,17 +130,26 @@ void FSequencerSelection::Empty()
 void FSequencerSelection::EmptySelectedKeys()
 {
 	SelectedKeys.Empty();
-	OnKeySelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnKeySelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::EmptySelectedSections()
 {
 	SelectedSections.Empty();
-	OnSectionSelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnSectionSelectionChanged.Broadcast();
+	}
 }
 
 void FSequencerSelection::EmptySelectedOutlinerNodes()
 {
 	SelectedOutlinerNodes.Empty();
-	OnOutlinerNodeSelectionChanged.Broadcast();
+	if (!bSuspendBroadcast)
+	{
+		OnOutlinerNodeSelectionChanged.Broadcast();
+	}
 }

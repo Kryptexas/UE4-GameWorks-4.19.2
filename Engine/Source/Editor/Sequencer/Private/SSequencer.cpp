@@ -704,19 +704,26 @@ void SSequencer::UpdateLayoutTree()
 		SelectedPathNames.Add(SelectedDisplayNode->GetPathName());
 	}
 
+	// Suspend broadcasting selection changes because we don't want unnecessary rebuilds.
+	Sequencer.Pin()->GetSelection().SuspendBroadcast();
+
 	// Update the node tree
 	SequencerNodeTree->Update();
 
 	FSequencerTrackLaneFactory Factory(TrackOutliner.ToSharedRef(), TrackArea.ToSharedRef(), Sequencer.Pin().ToSharedRef() );
 	Factory.Repopulate( *SequencerNodeTree );
 
-	CurveEditor->SetSequencerNodeTree(SequencerNodeTree);
-
 	// Restore the selection state.
 	RestoreSelectionState(SequencerNodeTree->GetRootNodes(), SelectedPathNames, Sequencer.Pin()->GetSelection());	// Update to actor selection.
 	OnActorSelectionChanged(NULL);
 
+	// This must come after the selection state has been restored so that the curve editor is populated with the correctly selected nodes
+	CurveEditor->SetSequencerNodeTree(SequencerNodeTree);
+
 	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
+
+	// Continue broadcasting selection changes
+	Sequencer.Pin()->GetSelection().ResumeBroadcast();
 }
 
 void SSequencer::UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& FilteringShots)

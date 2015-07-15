@@ -110,7 +110,43 @@ void SSequencerCurveEditor::SetSequencerNodeTree( TSharedPtr<FSequencerNodeTree>
 
 void SSequencerCurveEditor::UpdateCurveOwner()
 {
-	CurveOwner = MakeShareable( new FSequencerCurveOwner( SequencerNodeTree, GetSettings()->GetCurveVisibility() ) );
+	FSequencerCurveOwner* NewCurveOwner = new FSequencerCurveOwner( SequencerNodeTree, GetSettings()->GetCurveVisibility() );
+
+	bool bAllFound = false;
+	if (NewCurveOwner != NULL && CurveOwner.IsValid())
+	{
+		TSet<FName> NewCurveOwnerCurveNames;
+		if (NewCurveOwner != NULL)
+		{
+			for (auto Curve : NewCurveOwner->GetCurves())
+			{
+				NewCurveOwnerCurveNames.Add(Curve.CurveName);
+			}
+		}
+
+		TSet<FName> CurveOwnerCurveNames;
+		if (CurveOwner.Get() != NULL)
+		{
+			if (CurveOwner.Get()->GetCurves().Num() == NewCurveOwner->GetCurves().Num())
+			{
+				bAllFound = true;
+				for (auto Curve : CurveOwner.Get()->GetCurves())
+				{
+					if (!NewCurveOwnerCurveNames.Contains(Curve.CurveName))
+					{
+						bAllFound = false;
+					}
+				}
+			}
+		}
+	}
+
+	if (bAllFound)
+	{
+		return;
+	}
+
+	CurveOwner = MakeShareable( NewCurveOwner );
 	SetCurveOwner( CurveOwner.Get() );
 }
 
