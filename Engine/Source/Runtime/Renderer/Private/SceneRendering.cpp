@@ -1437,7 +1437,7 @@ void FSceneRenderer::OnStartFrame()
 
 		if(State)
 		{
-			State->OnStartFrame(View);
+			State->OnStartFrame(View, ViewFamily);
 		}
 	}
 }

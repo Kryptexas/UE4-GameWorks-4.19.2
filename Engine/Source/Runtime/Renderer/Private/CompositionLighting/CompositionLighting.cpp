@@ -55,7 +55,10 @@ static bool IsLpvIndirectPassRequired(FPostprocessContext& Context)
 
 	if(ViewState)
 	{
-		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(Context.View.GetFeatureLevel());
+		// This check should be inclusive to stereo views
+		const bool bIncludeStereoViews = true;
+
+		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(Context.View.GetFeatureLevel(), bIncludeStereoViews);
 
 		if(LightPropagationVolume)
 		{

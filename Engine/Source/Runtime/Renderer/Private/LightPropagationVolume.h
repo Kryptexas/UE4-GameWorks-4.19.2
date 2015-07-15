@@ -131,7 +131,7 @@ struct FLpvBaseWriteShaderParams
 	FTextureRHIParamRef				AOVolumeTextureSRV;
 };
 
-class FLightPropagationVolume // @TODO: this should probably be derived from FRenderResource (with InitDynamicRHI etc)
+class FLightPropagationVolume : public FRefCountedObject
 {
 public:
 	FLightPropagationVolume();

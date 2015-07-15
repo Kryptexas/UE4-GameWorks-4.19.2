@@ -20,6 +20,7 @@
 
 // Forward declarations.
 class FLightSceneInfo;
+class FSceneViewState;
 class ULightComponent;
 class UDecalComponent;
 class HHitProxy;
@@ -125,12 +126,15 @@ public:
 		return NumChildren > 0;
 	}
 	
+	/** @return	the derived view state object */
+	virtual FSceneViewState* GetConcreteViewState () = 0;
+
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) = 0;
 
 	virtual SIZE_T GetSizeBytes() const { return 0; }
 
 	/** called in InitViews() */
-	virtual void OnStartFrame(FSceneView& CurrentView) = 0;
+	virtual void OnStartFrame(FSceneView& View, FSceneViewFamily& ViewFamily) = 0;
 
 	/** Resets pool for GetReusableMID() */
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;

@@ -90,6 +90,9 @@ FSceneViewState::FSceneViewState()
 	bBokehDOFHistory2 = true;
 
 	LightPropagationVolume = NULL; 
+
+	bIsStereoView = false;
+
 	HeightfieldLightingAtlas = NULL;
 
 	for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)

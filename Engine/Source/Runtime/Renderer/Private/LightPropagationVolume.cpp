@@ -768,11 +768,10 @@ FLightPropagationVolume::FLightPropagationVolume() :
 	, bEnabled( false )
 	, bGeometryVolumeNeeded( false )
 	, mWriteBufferIndex( 0 )
+	, bNeedsBufferClear( true )
 	, GeometryVolumeGenerated( false )
 	, AsyncJobFenceID(-1)
 {
-	bNeedsBufferClear = true;
-
 	// VPL List buffers
 	mVplListBuffer = new FRWBufferStructured();
 	int32 RSMResolution = FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution();
@@ -915,21 +914,16 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 		return;
 	}
 
-	float ClearMultiplier = 1.0f;
-
-	// Clear the LPV for the first 2 frames (so both buffers are cleared initially)
-	static int FrameCount = 0;
-	if ( FrameCount < 2 )
-	{
-		bNeedsBufferClear = true;
-	}
-	FrameCount++;
-
 	// Clear the UAVs if necessary
+	float ClearMultiplier = 1.0f;
 	if ( bNeedsBufferClear )
 	{
 		ClearMultiplier = 0.0f;
-		bNeedsBufferClear = false;
+		// Since this is double buffered, the clear flag should remain set for the first 2 frames so that all buffers get cleared.
+		if ( mWriteBufferIndex > 0 )
+		{
+			bNeedsBufferClear = false;
+		}
 	}
 
 	mInjectedLightCount = 0;
@@ -1443,7 +1437,7 @@ bool UseLightPropagationVolumeRT(ERHIFeatureLevel::Type InFeatureLevel)
 // ----------------------------------------------------------------------------
 // FSceneViewState
 // ----------------------------------------------------------------------------
-void FSceneViewState::CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Type InFeatureLevel)
+void FSceneViewState::SetupLightPropagationVolume(FSceneView& View, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 
@@ -1453,20 +1447,45 @@ void FSceneViewState::CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Typ
 		return;
 	}
 
-	bool bLPV = UseLightPropagationVolumeRT(InFeatureLevel);
+	const ERHIFeatureLevel::Type FeatureLevel = View.GetFeatureLevel();
 
-	//@todo-rco: Remove this when reenabling for OpenGL
-	if (bLPV && !IsOpenGLPlatform(GShaderPlatformForFeatureLevel[InFeatureLevel]))
+	if (View.StereoPass == eSSP_RIGHT_EYE)
 	{
-		LightPropagationVolume = new FLightPropagationVolume();
+		// The right eye will reference the left eye's LPV with the assumption that the left eye uses the primary view (index 0)
+		const FSceneView* PrimaryView = ViewFamily.Views[0];
+		if (PrimaryView->StereoPass == eSSP_LEFT_EYE && PrimaryView->State)
+		{
+			FSceneViewState* PrimaryViewState = PrimaryView->State->GetConcreteViewState();
+			if (PrimaryViewState)
+			{
+				LightPropagationVolume = PrimaryViewState->GetLightPropagationVolume(FeatureLevel);
+				if (LightPropagationVolume.IsValid())
+				{
+					bIsStereoView = true;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (UseLightPropagationVolumeRT(FeatureLevel) && !IsOpenGLPlatform(GShaderPlatformForFeatureLevel[FeatureLevel]))
+		{
+			LightPropagationVolume = new FLightPropagationVolume();
+		}
 	}
 }
 
-FLightPropagationVolume* FSceneViewState::GetLightPropagationVolume(ERHIFeatureLevel::Type InFeatureLevel) const
+FLightPropagationVolume* FSceneViewState::GetLightPropagationVolume(ERHIFeatureLevel::Type InFeatureLevel, bool bIncludeStereo) const
 {
 	if (InFeatureLevel < ERHIFeatureLevel::SM5)
 	{
 		// to prevent crash when starting in SM5 and the using the editor preview SM4
+		return 0;
+	}
+
+	if (bIsStereoView && !bIncludeStereo)
+	{
+		// return 0 on stereo views when they aren't explicitly included
 		return 0;
 	}
 
@@ -1481,9 +1500,9 @@ void FSceneViewState::DestroyLightPropagationVolume()
 			DeleteLPV,
 			FLightPropagationVolume*, LightPropagationVolume, LightPropagationVolume,
 		{
-			delete LightPropagationVolume;
+			LightPropagationVolume = nullptr;
 		}
 		);
+		bIsStereoView = false;
 	}
-	LightPropagationVolume = NULL;
 }
