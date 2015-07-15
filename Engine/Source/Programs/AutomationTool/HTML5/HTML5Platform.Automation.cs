@@ -26,7 +26,11 @@ public class HTML5Platform : Platform
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
 		Log("Package {0}", Params.RawProjectPath);
-		
+
+		Log("Setting Emscripten SDK for packaging..");
+		HTML5SDKInfo.SetupEmscriptenTemp();
+		HTML5SDKInfo.SetUpEmscriptenConfigFile();
+
 		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
 		if (!Directory.Exists(PackagePath))
 		{
