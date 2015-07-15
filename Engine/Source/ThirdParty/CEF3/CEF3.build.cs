@@ -39,7 +39,10 @@ public class CEF3 : ModuleRules
 
 			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 			{
-				PublicLibraryPaths.Add(LibraryPath);
+                string VSVersionFolderName = "/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+                LibraryPath += VSVersionFolderName;
+
+                PublicLibraryPaths.Add(LibraryPath);
 
 				//PublicAdditionalLibraries.Add("cef_sandbox.lib");
 				PublicAdditionalLibraries.Add("libcef.lib");
