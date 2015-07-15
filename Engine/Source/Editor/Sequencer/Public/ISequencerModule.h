@@ -10,6 +10,11 @@
 
 class ISequencerObjectBindingManager;
 
+namespace SequencerMenuExtensionPoints
+{
+	static const FName AddTrackMenu_PropertiesSection("AddTrackMenu_PropertiesSection");
+}
+
 /**
  * A delegate which will create an auto-key handler
  */
@@ -82,5 +87,11 @@ public:
 	 * @param InHandle	Handle to the delegate to unregister
 	 */
 	virtual void UnRegisterTrackEditor_Handle( FDelegateHandle InHandle ) = 0;
+
+	/** Gets the extensibility manager for menus */
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() const = 0;
+
+	/** Gets the extensibility manager for toolbars */
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() const = 0;
 };
 

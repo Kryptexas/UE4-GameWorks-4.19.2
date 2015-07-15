@@ -78,6 +78,9 @@ public:
 				FSlateIcon(),
 				false);
 		}
+
+		MenuExtensibilityManager = MakeShareable( new FExtensibilityManager );
+		ToolBarExtensibilityManager = MakeShareable( new FExtensibilityManager );
 	}
 
 	virtual void ShutdownModule() override
@@ -90,10 +93,16 @@ public:
 		}
 	}
 
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() const override { return MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() const override { return ToolBarExtensibilityManager; }
+
 private:
 
 	/** List of auto-key handler delegates sequencers will execute when they are created */
 	TArray< FOnCreateTrackEditor > TrackEditorDelegates;
+
+	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
+	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 };
 
 

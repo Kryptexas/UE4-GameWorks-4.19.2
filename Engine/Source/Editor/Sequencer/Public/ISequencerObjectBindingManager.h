@@ -64,4 +64,7 @@ public:
 	 * @returns true if DisplayName has been set to a valid display name, otherwise false.
 	 */
 	virtual bool TryGetObjectBindingDisplayName( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName ) const = 0;
+
+	/** Gets the logical parent object for the supplied object which is not necessarily it's outer.  If the object has no logical parent returns nullptr. */
+	virtual UObject* GetParentObject(UObject* Object) const = 0;
 };

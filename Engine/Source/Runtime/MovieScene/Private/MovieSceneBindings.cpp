@@ -43,6 +43,17 @@ FMovieSceneBoundObject& UMovieSceneBindings::AddBinding(const FGuid& PosessableG
 	return BoundObjects.Last();
 }
 
+void UMovieSceneBindings::RemoveBinding( const FGuid& PosessableGuid )
+{
+	for ( int32 i = 0; i < BoundObjects.Num(); i++ )
+	{
+		if ( BoundObjects[i].GetPossessableGuid() == PosessableGuid )
+		{
+			BoundObjects.RemoveAt( i );
+			break;
+		}
+	}
+}
 
 TArray< FMovieSceneBoundObjectInfo > UMovieSceneBindings::FindBoundObjects( const FGuid& Guid ) const
 {

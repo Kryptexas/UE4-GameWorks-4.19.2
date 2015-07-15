@@ -367,7 +367,10 @@ void FSequencerActorBindingManager::BindPossessableObject( const FGuid& Possessa
 
 void FSequencerActorBindingManager::UnbindPossessableObjects( const FGuid& PossessableGuid )
 {
-	// @todo Sequencer: Should we remove the pin and unlink?
+	if (PlayMovieSceneNode.IsValid())
+	{
+		PlayMovieSceneNode->UnbindPossessable(PossessableGuid);
+	}
 }
 
 void FSequencerActorBindingManager::GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const
@@ -428,6 +431,16 @@ bool FSequencerActorBindingManager::TryGetObjectBindingDisplayName(const TShared
 		}
 	}
 	return false;
+}
+
+UObject* FSequencerActorBindingManager::GetParentObject( UObject* Object ) const
+{
+	UActorComponent* Component = Cast<UActorComponent>(Object);
+	if (Component != nullptr)
+	{
+		return Component->GetOwner();
+	}
+	return nullptr;
 }
 
 UK2Node_PlayMovieScene* FSequencerActorBindingManager::FindPlayMovieSceneNodeInLevelScript( const UMovieScene* MovieScene ) const

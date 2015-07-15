@@ -474,7 +474,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 					[
 						SNew(STextBlock)
 						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
-						.Text(LOCTEXT("AddButton", "Track"))
+						.Text(LOCTEXT("AddButton", "Add"))
 					]
 
 					+ SHorizontalBox::Slot()

@@ -663,6 +663,13 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 			ObjectBindingManager->BindPossessableObject(ObjectGuid, *Object);
 			bPossessableAdded = true;
 		}
+
+		// If we're adding a possessable, generate handles to it's parent objects too.
+		UObject* ParentObject = ObjectBindingManager->GetParentObject(Object);
+		if ( ParentObject != nullptr )
+		{
+			GetHandleToObject(ParentObject);
+		}
 	}
 
 	if (bPossessableAdded)

@@ -6,6 +6,7 @@ class UMovieSceneSection;
 class FSequencerDisplayNode;
 class FObjectBindingNode;
 class UMovieSceneTrack;
+struct FMovieSceneBinding;
 
 /**
  * Represents a tree of sequencer display nodes, used to populate the Sequencer UI with MovieScene data
@@ -89,11 +90,9 @@ private:
 	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FTrackNode>& SectionAreaNode );
 
 	/**
-	 * Creates a new root object binding node
-	 * 
-	 * @param ObjectBinding	The object binding guid
+	 * Creates a new object binding node and any parent binding nodes.
 	 */
-	TSharedRef<FObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList );
+	TSharedRef<FObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList );
 private:
 	/** Tools for building movie scene section layouts.  One tool for each track */
 	TMap< class UMovieSceneTrack*, TSharedPtr<FMovieSceneTrackEditor> > EditorMap;

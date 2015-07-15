@@ -109,7 +109,11 @@ TSharedRef<ISequencer> FSequencerAssetEditor::GetSequencerInterface() const
 
 FSequencerAssetEditor::FSequencerAssetEditor()
 {
-
+	// Register sequencer menu extenders.
+	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
+	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
+		FAssetEditorExtender::CreateRaw( this, &FSequencerAssetEditor::GetContextSensitiveSequencerExtender ) );
+	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
 }
 
 
@@ -123,6 +127,13 @@ FSequencerAssetEditor::~FSequencerAssetEditor()
 		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
 		LevelEditorModule.OnMapChanged().RemoveAll( this );
 	}
+
+	// Un-Register sequencer menu extenders.
+	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
+	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll( [this]( const FAssetEditorExtender& Extender )
+	{
+		return SequencerExtenderHandle == Extender.GetHandle();
+	} );
 }
 
 
@@ -162,6 +173,44 @@ FLinearColor FSequencerAssetEditor::GetWorldCentricTabColorScale() const
 FString FSequencerAssetEditor::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("WorldCentricTabPrefix", "Sequencer ").ToString();
+}
+
+TSharedRef<FExtender> FSequencerAssetEditor::GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects )
+{
+	TSharedRef<FExtender> AddTrackMenuExtender( new FExtender() );
+	AddTrackMenuExtender->AddMenuExtension(
+		SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection,
+		EExtensionHook::Before,
+		CommandList,
+		FMenuExtensionDelegate::CreateRaw( this, &FSequencerAssetEditor::ExtendSequencerAddTrackMenu, ContextSensitiveObjects ) );
+	return AddTrackMenuExtender;
+}
+
+void FSequencerAssetEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
+{
+	if ( ContextObjects.Num() == 1 )
+	{
+		AActor* Actor = Cast<AActor>( ContextObjects[0] );
+		if ( Actor != nullptr )
+		{
+			AddTrackMenuBuilder.BeginSection( "Components", LOCTEXT( "ComponentsSection", "Components" ) );
+			{
+				for ( UActorComponent* Component : Actor->GetComponents() )
+				{
+					FUIAction AddComponentAction( FExecuteAction::CreateSP( this, &FSequencerAssetEditor::AddComponentTrack, Component ) );
+					FText AddComponentLabel = FText::FromString(Component->GetName());
+					FText AddComponentToolTip = FText::Format( LOCTEXT( "ComponentToolTipFormat", "Add {0} component" ), FText::FromString( Component->GetName() ) );
+					AddTrackMenuBuilder.AddMenuEntry( AddComponentLabel, AddComponentToolTip, FSlateIcon(), AddComponentAction );
+				}
+			}
+			AddTrackMenuBuilder.EndSection();
+		}
+	}
+}
+
+void FSequencerAssetEditor::AddComponentTrack( UActorComponent* Component )
+{
+	Sequencer->GetHandleToObject( Component );
 }
 
 

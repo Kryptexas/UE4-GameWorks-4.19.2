@@ -10,6 +10,7 @@
 #include "MovieSceneTrackEditor.h"
 #include "SectionLayoutBuilder.h"
 #include "ISequencerSection.h"
+#include "ISequencerObjectBindingManager.h"
 
 void FSequencerNodeTree::Empty()
 {
@@ -47,10 +48,17 @@ void FSequencerNodeTree::Update()
 
 	const TArray<FMovieSceneBinding>& Bindings = MovieScene->GetBindings();
 
+	TMap<FGuid, const FMovieSceneBinding*> GuidToBindingMap;
+	for (const FMovieSceneBinding& Binding : Bindings)
+	{
+		GuidToBindingMap.Add(Binding.GetObjectGuid(), &Binding);
+	}
+
 	// Make nodes for all object bindings
+	TArray< TSharedRef<FSequencerDisplayNode> > NewObjectNodes;
 	for( const FMovieSceneBinding& Binding : Bindings )
 	{
-		TSharedRef<FObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), NewRootNodes );
+		TSharedRef<FObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), GuidToBindingMap, NewObjectNodes );
 
 		const TArray<UMovieSceneTrack*>& Tracks = Binding.GetTracks();
 
@@ -64,41 +72,31 @@ void FSequencerNodeTree::Update()
 			TSharedRef<FTrackNode> SectionAreaNode = ObjectBindingNode->AddSectionAreaNode( SectionName, TrackRef );
 			MakeSectionInterfaces( TrackRef, SectionAreaNode );
 		}
-
 	}
 
-	struct FRootNodeSorter
+	struct FObjectNodeSorter
 	{
 		bool operator()( const TSharedRef<FSequencerDisplayNode>& A, const TSharedRef<FSequencerDisplayNode>& B ) const
 		{
-			if (A->GetType() == ESequencerNode::Object)
+			if (A->GetType() == ESequencerNode::Object && B->GetType() != ESequencerNode::Object)
 			{
-				if (B->GetType() == ESequencerNode::Object)
-				{
-					return A->GetDisplayName().ToString() < B->GetDisplayName().ToString();
-				}
-				else
-				{
-					return false; // ie. master tracks should be first in line
-				}
+				return true;
 			}
-			if (A->GetType() != ESequencerNode::Object)
+			if (A->GetType() != ESequencerNode::Object && B->GetType() == ESequencerNode::Object)
 			{
-				if (B->GetType() != ESequencerNode::Object)
-				{
-					return A->GetDisplayName().ToString() < B->GetDisplayName().ToString();
-				}
-				else
-				{
-					return true; // ie. master tracks should be first in line
-				}
+				return false;
 			}
-			return false;
+			return A->GetDisplayName().ToString() < B->GetDisplayName().ToString();
 		}
 	};
 
-	// Sort so that master tracks appear before object tracks
-	NewRootNodes.Sort( FRootNodeSorter() );
+	NewObjectNodes.Sort( FObjectNodeSorter() );
+	for (TSharedRef<FSequencerDisplayNode> NewObjectNode : NewObjectNodes)
+	{
+		NewObjectNode->SortChildNodes(FObjectNodeSorter());
+	}
+
+	NewRootNodes.Append(NewObjectNodes);
 
 	// Look for a shot track.  It will always come first if it exists
 	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
@@ -174,21 +172,62 @@ const TArray< TSharedRef<FSequencerDisplayNode> >& FSequencerNodeTree::GetRootNo
 }
 
 
-TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList )
+TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList)
 {
-	// The node name is the object guid
-	FName ObjectNodeName = *ObjectBinding.ToString();
-	TSharedPtr<FSequencerDisplayNode> ParentNode = NULL;
+	TSharedPtr<FObjectBindingNode> ObjectNode;
+	TSharedPtr<FObjectBindingNode>* FoundObjectNode = ObjectBindingMap.Find(ObjectBinding);
+	if (FoundObjectNode != nullptr)
+	{
+		ObjectNode = *FoundObjectNode;
+	}
+	else
+	{
+		// The node name is the object guid
+		FName ObjectNodeName = *ObjectBinding.ToString();
 
-	TSharedRef< FObjectBindingNode > ObjectNode = MakeShareable( new FObjectBindingNode( ObjectNodeName, ObjectName, ObjectBinding, ParentNode, *this ) );
+		// Try to get the parent object node if there is one.
+		TSharedPtr<FObjectBindingNode> ParentNode;
+		TArray<UObject*> RuntimeObjects;
+		TSharedRef<ISequencerObjectBindingManager> BindingManager(Sequencer.GetObjectBindingManager());
+		BindingManager->GetRuntimeObjects(Sequencer.GetFocusedMovieSceneInstance(), ObjectBinding, RuntimeObjects);
+		if ( RuntimeObjects.Num() == 1)
+		{
+			UObject* ParentObject = BindingManager->GetParentObject(RuntimeObjects[0]);
+			if (ParentObject != nullptr)
+			{
+				FGuid ParentBinding = BindingManager->FindGuidForObject(*Sequencer.GetFocusedMovieScene(), *ParentObject);
+				TSharedPtr<FObjectBindingNode>* FoundParentNode = ObjectBindingMap.Find( ParentBinding );
+				if ( FoundParentNode != nullptr )
+				{
+					ParentNode = *FoundParentNode;
+				}
+				else
+				{
+					const FMovieSceneBinding** FoundParentMovieSceneBinding = GuidToBindingMap.Find( ParentBinding );
+					if ( FoundParentMovieSceneBinding != nullptr )
+					{
+						ParentNode = AddObjectBinding( (*FoundParentMovieSceneBinding)->GetName(), ParentBinding, GuidToBindingMap, OutNodeList );
+					}
+				}
+			}
+		}
 
-	// Object binding nodes are always root nodes
-	OutNodeList.Add( ObjectNode );
+		// Create the node.
+		ObjectNode = MakeShareable( new FObjectBindingNode( ObjectNodeName, ObjectName, ObjectBinding, ParentNode, *this ) );
+		if (ParentNode.IsValid())
+		{
+			ParentNode->AddObjectBindingNode(ObjectNode.ToSharedRef());
+		}
+		else
+		{
+			OutNodeList.Add( ObjectNode.ToSharedRef() );
+		}
 
-	// Map the guid to the object binding node for fast lookup later
-	ObjectBindingMap.Add( ObjectBinding, ObjectNode );
+		// Map the guid to the object binding node for fast lookup later
+		ObjectBindingMap.Add( ObjectBinding, ObjectNode );
+	}
 
-	return ObjectNode;
+	return ObjectNode.ToSharedRef();
 }
 
 void FSequencerNodeTree::SaveExpansionState( const FSequencerDisplayNode& Node, bool bExpanded )

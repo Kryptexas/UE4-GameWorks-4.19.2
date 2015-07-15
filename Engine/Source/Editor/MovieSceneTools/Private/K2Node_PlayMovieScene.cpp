@@ -240,6 +240,11 @@ void UK2Node_PlayMovieScene::BindPossessableToObjects(const FGuid& PossessableGu
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( this->GetBlueprint() );
 }
 
+void UK2Node_PlayMovieScene::UnbindPossessable( const FGuid& PossessableGuid )
+{
+	// @todo Sequencer: Should we remove the pin and unlink?
+	MovieSceneBindings->RemoveBinding(PossessableGuid);
+}
 
 TArray< FMovieSceneBoundObjectInfo > UK2Node_PlayMovieScene::FindBoundObjectInfos( const FGuid& Guid )
 {

@@ -76,6 +76,9 @@ class UK2Node_PlayMovieScene : public UK2Node
 	 */
 	virtual void BindPossessableToObjects( const FGuid& PossessableGuid, const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos );
 
+	/** Unbinds all possessable objects for the specified guid */
+	virtual void UnbindPossessable(const FGuid& PossessableGuid);
+
 	/**
 	 * Given a guid for a possessable, attempts to find the object bound to that guid
 	 *

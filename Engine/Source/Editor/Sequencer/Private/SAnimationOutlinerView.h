@@ -54,9 +54,9 @@ private:
 	EVisibility GetExpanderVisibility() const;
 
 	/**
-	 * @return the visibility of the previous, next, and add key buttons. 
+	 * @return the color of the previous, next, and add key buttons. 
 	 */
-	EVisibility GetKeyButtonVisibility() const;
+	FSlateColor GetKeyButtonColorAndOpacity() const;
 
 	/**
 	 * @return The display name for this node.

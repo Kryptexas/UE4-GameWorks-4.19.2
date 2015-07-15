@@ -137,6 +137,13 @@ public:
 	virtual FMovieSceneBoundObject& AddBinding( const FGuid& PosessableGuid, const TArray< FMovieSceneBoundObjectInfo >& ObjectInfos );
 
 	/**
+	* Removes a binding between the specified possessable from a MovieScene asset, to the specified objects
+	*
+	* @param	PossessableGuid		The Guid of the possessable from the MovieScene asset to remove
+	*/
+	virtual void RemoveBinding( const FGuid& PosessableGuid );
+
+	/**
 	 * Given a guid for a possessable, attempts to find the object bound to that guid
 	 *
 	 * @param	Guid	The possessable guid to search for

@@ -246,6 +246,7 @@ public:
 	virtual void BindPossessableObject(const FGuid& PossessableGuid, UObject& PossessedObject) override	{};
 	virtual void UnbindPossessableObjects(const FGuid& PossessableGuid) override	{};
 	virtual void GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects) const override	{}
+	virtual UObject* GetParentObject( UObject* Object ) const override { return nullptr; }
 
 	virtual bool TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const override	{ return false; }
 private:

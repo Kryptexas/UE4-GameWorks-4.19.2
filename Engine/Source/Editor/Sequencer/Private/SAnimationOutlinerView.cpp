@@ -26,8 +26,8 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 	ExpandedBrush = FEditorStyle::GetBrush( "TreeArrow_Expanded" );
 	CollapsedBrush = FEditorStyle::GetBrush( "TreeArrow_Collapsed" );
 
-	// Choose the font.  If the node is a root node, we show a larger font for it.
-	FSlateFontInfo NodeFont = Node->GetParent().IsValid() ? 
+	// Choose the font.  If the node is a root node or an object node, we show a larger font for it.
+	FSlateFontInfo NodeFont = Node->GetParent().IsValid() && Node->GetType() != ESequencerNode::Object ? 
 		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont") :
 		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.BoldFont");
 
@@ -82,7 +82,6 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		[
 			SNew(SButton)
 			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-			.Visibility(this, &SAnimationOutlinerTreeNode::GetKeyButtonVisibility)
 			.ToolTipText(LOCTEXT("PreviousKeyButton", "Set the time to the previous key"))
 			.OnClicked(this, &SAnimationOutlinerTreeNode::OnPreviousKeyClicked)
 			.ContentPadding(0)
@@ -91,6 +90,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
 				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
 				.Text(FText::FromString(FString(TEXT("\xf060"))) /*fa-arrow-left*/)
+				.ColorAndOpacity(this, &SAnimationOutlinerTreeNode::GetKeyButtonColorAndOpacity)
 			]
 		]
 		// Add key slot
@@ -100,7 +100,6 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		[
 			SNew(SButton)
 			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-			.Visibility(this, &SAnimationOutlinerTreeNode::GetKeyButtonVisibility)
 			.ToolTipText(LOCTEXT("AddKeyButton", "Add a new key at the current time"))
 			.OnClicked(this, &SAnimationOutlinerTreeNode::OnAddKeyClicked)
 			.ContentPadding(0)
@@ -109,6 +108,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
 				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
 				.Text(FText::FromString(FString(TEXT("\xf055"))) /*fa-plus-circle*/)
+				.ColorAndOpacity(this, &SAnimationOutlinerTreeNode::GetKeyButtonColorAndOpacity)
 			]
 		]
 		// Next key slot
@@ -118,7 +118,6 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		[
 			SNew(SButton)
 			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-			.Visibility(this, &SAnimationOutlinerTreeNode::GetKeyButtonVisibility)
 			.ToolTipText(LOCTEXT("NextKeyButton", "Set the time to the next key"))
 			.OnClicked(this, &SAnimationOutlinerTreeNode::OnNextKeyClicked)
 			.ContentPadding(0)
@@ -127,6 +126,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
 				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
 				.Text(FText::FromString(FString(TEXT("\xf061"))) /*fa-arrow-right*/)
+				.ColorAndOpacity(this, &SAnimationOutlinerTreeNode::GetKeyButtonColorAndOpacity)
 			]
 		];
 
@@ -416,9 +416,11 @@ EVisibility SAnimationOutlinerTreeNode::GetExpanderVisibility() const
 	return DisplayNode->GetNumChildren() > 0 ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-EVisibility SAnimationOutlinerTreeNode::GetKeyButtonVisibility() const
+FSlateColor SAnimationOutlinerTreeNode::GetKeyButtonColorAndOpacity() const
 {
-	return DisplayNode->GetType() == ESequencerNode::Object ? EVisibility::Hidden : EVisibility::Visible;
+	return IsHovered()
+		? FLinearColor(1, 1, 1, 1)
+		: FLinearColor(.25f, .25f, .25f, 1);
 }
 
 FText SAnimationOutlinerTreeNode::GetDisplayName() const

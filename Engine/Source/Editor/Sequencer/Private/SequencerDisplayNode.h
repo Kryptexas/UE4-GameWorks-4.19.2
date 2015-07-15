@@ -37,6 +37,13 @@ public:
 	FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
 
 	/**
+	* Adds an object binding node to this node.
+	*
+	* @param ObjectBindingNode The node to add
+	*/
+	void AddObjectBindingNode( TSharedRef<FObjectBindingNode> ObjectBindingNode );
+
+	/**
 	 * Adds a category to this node
 	 * 
 	 * @param CategoryName	Name of the category
@@ -128,6 +135,19 @@ public:
 	 * @return A List of all Child nodes belonging to this node
 	 */
 	const TArray< TSharedRef<FSequencerDisplayNode> >& GetChildNodes() const { return ChildNodes; }
+
+	/**
+	 * Sorts the child nodes with the supplied predicate
+	 */
+	template <class PREDICATE_CLASS>
+	void SortChildNodes(const PREDICATE_CLASS& Predicate)
+	{
+		ChildNodes.StableSort(Predicate);
+		for (TSharedRef<FSequencerDisplayNode> ChildNode : ChildNodes)
+		{
+			ChildNode->SortChildNodes(Predicate);
+		}
+	}
 
 	/**
 	 * @return The parent of this node                                                              

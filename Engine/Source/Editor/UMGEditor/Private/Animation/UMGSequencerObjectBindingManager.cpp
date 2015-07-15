@@ -5,6 +5,7 @@
 #include "WidgetBlueprintEditor.h"
 #include "ISequencer.h"
 #include "MovieScene.h"
+#include "MovieSceneInstance.h"
 #include "WidgetBlueprintEditor.h"
 #include "Components/PanelSlot.h"
 #include "Components/Visual.h"
@@ -151,8 +152,8 @@ bool FUMGSequencerObjectBindingManager::TryGetObjectBindingDisplayName(const TSh
 	{
 		if (BindingObjects[0].IsValid())
 		{
-		DisplayName = FText::FromString(BindingObjects[0].Get()->GetName());
-	}
+			DisplayName = FText::FromString(BindingObjects[0].Get()->GetName());
+		}
 		else
 		{
 			DisplayName = LOCTEXT("InvalidObject", "Invalid Object");
@@ -162,19 +163,41 @@ bool FUMGSequencerObjectBindingManager::TryGetObjectBindingDisplayName(const TSh
 	{
 		if ( SlotContentBindingObjects[0].IsValid())
 		{
-		UWidget* SlotContent = Cast<UWidget>(SlotContentBindingObjects[0].Get());
-		FText PanelName = SlotContent->Slot != nullptr && SlotContent->Slot->Parent != nullptr
-			? FText::FromString(SlotContent->Slot->Parent->GetName())
-			: LOCTEXT("InvalidPanel", "Invalid Panel");
-		FText ContentName = FText::FromString(SlotContent->GetName());
-		DisplayName = FText::Format(LOCTEXT("SlotObject", "{0} ({1} Slot)"), ContentName, PanelName);
-	}
+			UWidget* SlotContent = Cast<UWidget>(SlotContentBindingObjects[0].Get());
+			if (FindGuidForObject(*MovieSceneInstance->GetMovieScene(), *SlotContent).IsValid())
+			{
+				DisplayName = SlotContent->GetParent() != nullptr
+					? FText::Format(LOCTEXT("SlotWithParentFormat", "{0} Slot"), FText::FromString(SlotContent->GetParent()->GetName()))
+					: FText::FromString(SlotContentBindingObjects[0]->GetClass()->GetName());
+			}
+			else
+			{
+				FText PanelName = SlotContent->Slot != nullptr && SlotContent->Slot->Parent != nullptr
+					? FText::FromString(SlotContent->Slot->Parent->GetName())
+					: LOCTEXT("InvalidPanel", "Invalid Panel");
+				FText ContentName = FText::FromString(SlotContent->GetName());
+				DisplayName = FText::Format(LOCTEXT("SlotObject", "{0} ({1} Slot)"), ContentName, PanelName);
+			}
+		}
 		else
 		{
 			DisplayName = LOCTEXT("InvalidSlotContent", "Invalid slot object");
 		}
 	}
 	return true;
+}
+
+UObject* FUMGSequencerObjectBindingManager::GetParentObject( UObject* Object ) const
+{
+	UPanelSlot* Slot = Cast<UPanelSlot>(Object);
+	if (Slot != nullptr)
+	{
+
+		// The slot is actually the child of the panel widget in the hierarchy, but we want it to show up as
+		// a sub-object of the widget it contains in the timeline so we return the content's GUID.
+		return Slot->Content;
+	}
+	return nullptr;
 }
 
 bool FUMGSequencerObjectBindingManager::HasValidWidgetAnimation() const

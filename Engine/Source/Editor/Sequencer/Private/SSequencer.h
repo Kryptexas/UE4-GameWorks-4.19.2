@@ -8,6 +8,8 @@ namespace SequencerLayoutConstants
 	const float IndentAmount = 25.0f;
 	/** Padding between each node */
 	const float NodePadding = 3.0f;
+	/** Padding between each node */
+	const float ObjectNodePadding = 5.0f;
 	/** Height of each object node */
 	const float ObjectNodeHeight = 20.0f;
 	/** Height of each section area if there are no sections (note: section areas may be larger than this if they have children. This is the height of a section area with no children or all children hidden) */

@@ -42,6 +42,10 @@ private:
 	EVisibility GetTransportControlVisibility(TWeakPtr<ILevelViewport> LevelViewport) const;
 	TSharedRef<SDockTab> SpawnTab_SequencerMain(const FSpawnTabArgs& Args);	
 
+	TSharedRef<FExtender> GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects );
+	void ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects );
+	void AddComponentTrack( UActorComponent* Component );
+
 private:
 	TSharedPtr<FSequencer> Sequencer;
 
@@ -50,4 +54,5 @@ private:
 	/**	The tab ids for all the tabs used */
 	static const FName SequencerMainTabId;
 
+	FDelegateHandle SequencerExtenderHandle;
 };

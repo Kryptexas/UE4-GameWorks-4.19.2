@@ -103,7 +103,9 @@ void FSequencerTrackLaneFactory::GenerateWidgetForNode( FSequencerDisplayNode& N
 	Link.Widgets.Add(TrackWidget);
 
 
-	FMargin Padding = Node.GetType() == ESequencerNode::Object ? FMargin( 0.0f, 5.0f, 0.0f, 0.0f ) : FMargin( 0 );
+	FMargin Padding = Node.GetType() == ESequencerNode::Object 
+		? FMargin( 0.0f, SequencerLayoutConstants::ObjectNodePadding, 0.0f, 0.0f )
+		: FMargin( 0.0f, SequencerLayoutConstants::NodePadding, 0.0f, 0.0f );
 
 	auto GetMaxSize = [=]() -> float {
 		return Link.GetMaxSize().Y;
@@ -142,8 +144,8 @@ void FSequencerTrackLaneFactory::GenerateLayoutNodeWidgetsRecursive( const TArra
 	{
 		FSequencerDisplayNode& Node = *SharedNode;
 
-		// The section area encompasses multiple logical child nodes so we do not generate children that arent section areas (they would not be top level nodes in that case)
-		if( Node.GetType() == ESequencerNode::Track )
+		// Sections generate their own child nodes, so only generate nodes for tracks and objects.
+		if( Node.GetType() == ESequencerNode::Track || Node.GetType() == ESequencerNode::Object)
 		{
 			GenerateWidgetForNode( Node );
 			GenerateLayoutNodeWidgetsRecursive( Node.GetChildNodes() );

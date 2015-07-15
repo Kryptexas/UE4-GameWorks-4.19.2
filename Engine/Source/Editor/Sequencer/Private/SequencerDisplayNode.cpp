@@ -140,6 +140,11 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	bExpanded = ParentTree.GetSavedExpansionState( *this );
 }
 
+void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FObjectBindingNode> ObjectBindingNode)
+{
+	ChildNodes.Add(ObjectBindingNode);
+}
+
 TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
 {
 	TSharedPtr<FSectionCategoryNode> CategoryNode;
@@ -541,7 +546,7 @@ TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
-				.Text(LOCTEXT("AddPropertyButton", "Property"))
+				.Text(LOCTEXT("AddTrackButton", "Track"))
 			]
 		]
 	];
@@ -614,17 +619,25 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 		return A.Num() < B.Num();
 	});
 
-	FMenuBuilder AddTrackMenuBuilder(true, NULL);
-	for (TArray<UProperty*>& KeyablePropertyPath : KeyablePropertyPaths)
+	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
+	TSharedRef<FUICommandList> CommandList(new FUICommandList);
+	FMenuBuilder AddTrackMenuBuilder(true, nullptr, SequencerModule.GetMenuExtensibilityManager()->GetAllExtenders(CommandList, BoundObjects));
+
+	AddTrackMenuBuilder.BeginSection( SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection, LOCTEXT("PropertiesMenuHeader" , "Properties"));
 	{
-		FUIAction AddTrackMenuAction(FExecuteAction::CreateSP(this, &FObjectBindingNode::AddTrackForProperty, KeyablePropertyPath));
-		TArray<FString> PropertyNames;
-		for (UProperty* Property : KeyablePropertyPath)
+		for ( TArray<UProperty*>& KeyablePropertyPath : KeyablePropertyPaths )
 		{
-			PropertyNames.Add(Property->GetName());
+			FUIAction AddTrackMenuAction( FExecuteAction::CreateSP( this, &FObjectBindingNode::AddTrackForProperty, KeyablePropertyPath ) );
+			TArray<FString> PropertyNames;
+			for ( UProperty* Property : KeyablePropertyPath )
+			{
+				PropertyNames.Add( Property->GetName() );
+			}
+			AddTrackMenuBuilder.AddMenuEntry( FText::FromString( FString::Join( PropertyNames, TEXT( "." ) ) ), FText(), FSlateIcon(), AddTrackMenuAction );
 		}
-		AddTrackMenuBuilder.AddMenuEntry(FText::FromString(FString::Join(PropertyNames, TEXT("."))), FText(), FSlateIcon(), AddTrackMenuAction);
 	}
+	AddTrackMenuBuilder.EndSection();
+
 	return AddTrackMenuBuilder.MakeWidget();
 }
 
@@ -633,7 +646,7 @@ void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 	FSequencer& Sequencer = GetSequencer();
 
 	TArray<UObject*> BoundObjects;
-	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetRootMovieSceneInstance(), ObjectBinding, BoundObjects);
+	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetFocusedMovieSceneInstance(), ObjectBinding, BoundObjects);
 
 	TArray<UObject*> KeyableBoundObjects;
 	for (UObject* BoundObject : BoundObjects)
