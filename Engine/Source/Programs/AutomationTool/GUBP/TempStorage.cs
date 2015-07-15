@@ -558,9 +558,16 @@ namespace AutomationTool
                     {
                         var NewFile = CommandUtils.CombinePaths(NewBaseDir, ThisFileInfo.Name);
 
-                        FileInfo Info = new FileInfo(NewFile);
-
-                        Result.Add(Info.FullName);
+						try
+						{
+							FileInfo Info = new FileInfo(NewFile);
+							Result.Add(Info.FullName);
+						}
+						catch (PathTooLongException)
+						{
+							CommandUtils.LogError("Path too long ... failed to create FileInfo for {0}", NewFile);
+							throw;
+						}
                     }
                 }
                 if (Result.Count < 1)
