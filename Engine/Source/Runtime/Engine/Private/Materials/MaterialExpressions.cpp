@@ -5403,7 +5403,7 @@ UMaterialExpressionTransform::UMaterialExpressionTransform(const FObjectInitiali
 
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
 	TransformSourceType = TRANSFORMSOURCE_Tangent;
-	TransformType = TRANSFORM_Local;
+	TransformType = TRANSFORM_World;
 }
 
 
@@ -5426,7 +5426,7 @@ UMaterialExpressionTransformPosition::UMaterialExpressionTransformPosition(const
 
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
 	TransformSourceType = TRANSFORMPOSSOURCE_Local;
-	TransformType = TRANSFORMPOSSOURCE_World;
+	TransformType = TRANSFORMPOSSOURCE_Local;
 }
 
 static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialPositionTransformSource X)
