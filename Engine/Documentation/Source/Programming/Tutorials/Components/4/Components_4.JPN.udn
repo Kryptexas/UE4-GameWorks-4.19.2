@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573829
+﻿INTSourceChangelist:2620109
 Availability:Public
 Title:4.ポーンとコンポーネントの併用
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:ポーンの機能、入力設定、コンポーネントの併用
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ][Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\Components\5 "%Programming\Tutorials\Components\5:title%")
@@ -22,41 +23,44 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 
 %Steps%
 
-1. カスタム仕様の **Pawn Movement Component** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の「 `CollidingPawn.h` 」ファイルのクラス定義下部に以下のコードを追加します：
+1. カスタム仕様の **Pawn Movement Component** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の、 「CollidingPawn.h」 ファイルのクラス定義の下に以下のコードを追加します。
 
 		class UCollidingPawnMovementComponent* OurMovementComponent;
 
-1. コンポーネントを追跡するクラスを配置したら、新規変数に格納する **Colliding Pawn Movement Component** を作成しなくてはいけません。 「 `CollidingPawn.cpp` 」ファイルを開いて、コードで新規クラスの参照が出来るようにファイル上にある "#include" 行の下に以下を追加します：
+1. コンポーネントを追跡するクラスを配置したら、新規変数に格納する **Colliding Pawn Movement Component** を作成しなくてはいけません。 「 `CollidingPawn.cpp` 」ファイルを開いて、コードで新規クラスの参照が出来るようにファイル上にある "#include "GameFramework/Pawn.h" 行の下に以下を追加します：
 
 		#include "CollidingPawnMovementComponent.h"
+[REGION:warning]
+コンパイラーエラーが生じるため、リストの最後の #include が 「generated.h」でなくてはいけません (この場合は #include "CollidingPawn.generated.h" ).
+[/REGION]
 
-	**Pawn Movement Component** の作成と、このコンポーネントと **Pawn** の関連付けはシンプルな作業です。**ACollidingPawn::ACollidingPawn** の下に以下のコードを追加します：
+	Pawn Movement Component の作成と、このコンポーネントと Pawn の関連付けはシンプルな作業です。**ACollidingPawn::ACollidingPawn** の下に以下のコードを追加します：
 
 		// Create an instance of our movement component, and tell it to update the root.（Movementコンポーネントのインスタンスを作成してこれでルートの更新を伝えます）
 		OurMovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
 		OurMovementComponent->UpdatedComponent = RootComponent;
 
-	[REGION:note]これまでの **コンポーネント** と違って、この **コンポーネント** を独自の **Component** 階層に親子付けする必要はありません。理由は、その他の **コンポーネント** は本質的に物理ロケーションを必要とするあらゆる種類の **Scene Components** だからです。しかし **Movement Controllers** は **Scene Components** ではないため物理オブジェクトを表現しません。そのためコントローラーには物理位置に存在したり、別の **コンポーネント** に親子付けするという概念があてはまりません。[/REGION]
+	[REGION:note]これまでの **コンポーネント** と違って、このコンポーネントを独自のコンポーネント階層に親子付けする必要はありません。理由は、その他のコンポーネントは本質的に物理ロケーションを必要とするあらゆる種類の **Scene Components** だからです。しかし **Movement Controllers** は Scene Components ではないため物理オブジェクトを表現しません。そのためコントローラーには物理位置に存在したり、別の **コンポーネント** に親子付けするという概念があてはまりません。[/REGION]
 
-1. **Pawns** には "GetMovementComponent" と言う関数があります。この関数は **Pawn** が現在使用中の **Pawn Movement Component** にアクセスするために、エンジン内のその他のクラスの有効化に使用します。カスタム **Pawn Movement Component** を返すようにこの関数をオーバーライドする必要があります。「`CollidingPawn.h`」ファイルのクラス定義に以下のコードを追加します：
+1. Pawn には **GetMovementComponent** と言う関数があります。この関数は **Pawn** が現在使用中の Pawn Movement Component にアクセスするために、エンジン内のその他のクラスの有効化に使用します。カスタム Pawn Movement Component を返すようにこの関数をオーバーライドする必要があります。「CollidingPawn.h」ファイルのクラス定義に以下のコードを追加します：
 
 		virtual UPawnMovementComponent* GetMovementComponent() const override;
 
-	そして「 `CollidingPawn.cpp` 」ファイルにオーバーライド関数の定義を以下のように追加します：
+	そして「CollidingPawn.cpp」ファイルにオーバーライド関数の定義を以下のように追加します：
 
 		UPawnMovementComponent* ACollidingPawn::GetMovementComponent() const
 		{
 			return OurMovementComponent;
 		}
 
-1. 新規 **Pawn Movement Component** を追加したので、 **Pawn** が受け取る入力を処理するコードを作成します。「 `CollidingPawn.h` 」ファイルのクラス定義にいくつかの関数を定義することからスタートします：
+1. 新規 Pawn Movement Component を追加したので、 Pawn が受け取る入力を処理するコードを作成します。「CollidingPawn.h」ファイルのクラス定義にいくつかの関数を定義することからスタートします：
 
 		void MoveForward(float AxisValue);
 		void MoveRight(float AxisValue);
 		void Turn(float AxisValue);
 		void ParticleToggle();
 
-	「 `CollidingPawn.cpp` 」ファイルでこれらの関数の定義を以下のように追加します：
+	「CollidingPawn.cpp」ファイルでこれらの関数の定義を以下のように追加します：
 
 			void ACollidingPawn::MoveForward(float AxisValue)
 			{
@@ -101,7 +105,7 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 
 ----
 
-プログラミング作業は終了です。これでカスタム **Pawn** をワールドに配置してあちこちへ移動させることができます。
+プログラミング作業は終了です。これでカスタム Pawn をワールドに配置してあちこちへ移動させることができます。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
