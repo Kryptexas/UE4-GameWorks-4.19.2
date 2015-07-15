@@ -4009,7 +4009,7 @@ void UEditorEngine::CloseEntryPopupWindow()
 
 EAppReturnType::Type UEditorEngine::OnModalMessageDialog(EAppMsgType::Type InMessage, const FText& InText, const FText& InTitle)
 {
-	if( FSlateApplication::IsInitialized() && FSlateApplication::Get().CanAddModalWindow() )
+	if( IsInGameThread() && FSlateApplication::IsInitialized() && FSlateApplication::Get().CanAddModalWindow() )
 	{
 		return OpenMsgDlgInt(InMessage, InText, InTitle);
 	}
