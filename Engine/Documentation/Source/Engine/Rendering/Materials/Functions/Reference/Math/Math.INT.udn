@@ -5,8 +5,6 @@ Description:Preconfigured mathematical functions such as calculation of pi, addi
 
 [TOC (start:2 end:3)]
 
-## Overview
-
 Math functions perform basic math equations on the values of pixels within a texture. 
 
 ## Math Functions
