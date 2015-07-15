@@ -402,21 +402,16 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
     GRHIAdapterName = AdapterDesc->Description;
     GRHIVendorId = AdapterDesc->VendorId;
 
-    extern int64 GDedicatedVideoMemory;
-    extern int64 GDedicatedSystemMemory;
-    extern int64 GSharedSystemMemory;
-    extern int64 GTotalGraphicsMemory;
-
     // Issue: 32bit windows doesn't report 64bit value, we take what we get.
-    GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);
-    GDedicatedSystemMemory = int64(AdapterDesc->DedicatedSystemMemory);
-    GSharedSystemMemory = int64(AdapterDesc->SharedSystemMemory);
+    FD3D12GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);
+    FD3D12GlobalStats::GDedicatedSystemMemory = int64(AdapterDesc->DedicatedSystemMemory);
+    FD3D12GlobalStats::GSharedSystemMemory = int64(AdapterDesc->SharedSystemMemory);
 
     // Total amount of system memory, clamped to 8 GB
     int64 TotalPhysicalMemory = FMath::Min(int64(FPlatformMemory::GetConstants().TotalPhysicalGB), 8ll) * (1024ll * 1024ll * 1024ll);
 
     // Consider 50% of the shared memory but max 25% of total system memory.
-    int64 ConsideredSharedSystemMemory = FMath::Min(GSharedSystemMemory / 2ll, TotalPhysicalMemory / 4ll);
+    int64 ConsideredSharedSystemMemory = FMath::Min(FD3D12GlobalStats::GSharedSystemMemory / 2ll, TotalPhysicalMemory / 4ll);
 
     IDXGIAdapter3* DxgiAdapter3 = MainDevice->GetAdapter3();
     TRefCountPtr<IDXGIAdapter> EnumAdapter;
@@ -425,20 +420,20 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo = {};
 	if (!bIsWARP)
 	{
-		GTotalGraphicsMemory = 0;
+		FD3D12GlobalStats::GTotalGraphicsMemory = 0;
 		if (DXGIFactory->EnumAdapters(MainDevice->GetAdapterIndex(), EnumAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND)
 		{
 			if (EnumAdapter)
 			{
 				VERIFYD3D11RESULT(DxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &LocalVideoMemoryInfo));
-				GTotalGraphicsMemory = LocalVideoMemoryInfo.Budget;
+				FD3D12GlobalStats::GTotalGraphicsMemory = LocalVideoMemoryInfo.Budget;
 			}
 		}
 
 	}
 	else
 	{
-		GTotalGraphicsMemory = GDedicatedSystemMemory;
+		FD3D12GlobalStats::GTotalGraphicsMemory = FD3D12GlobalStats::GDedicatedSystemMemory;
 	}
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(GMaxTextureDimensions) + 1;
@@ -455,24 +450,24 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	if (sizeof(SIZE_T) < 8)
 	{
 		// Clamp to 1 GB if we're less than 64-bit
-		GTotalGraphicsMemory = FMath::Min(GTotalGraphicsMemory, 1024ll * 1024ll * 1024ll);
+		FD3D12GlobalStats::GTotalGraphicsMemory = FMath::Min(FD3D12GlobalStats::GTotalGraphicsMemory, 1024ll * 1024ll * 1024ll);
 	}
 	else
 	{
 		// Clamp to 1.9 GB if we're 64-bit
-		GTotalGraphicsMemory = FMath::Min(GTotalGraphicsMemory, 1945ll * 1024ll * 1024ll);
+		FD3D12GlobalStats::GTotalGraphicsMemory = FMath::Min(FD3D12GlobalStats::GTotalGraphicsMemory, 1945ll * 1024ll * 1024ll);
 	}
 
 	if (!bIsWARP)
 	{
-		VERIFYD3D11RESULT(DxgiAdapter3->SetVideoMemoryReservation(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, FMath::Min((int64)LocalVideoMemoryInfo.AvailableForReservation, GTotalGraphicsMemory)));
+		VERIFYD3D11RESULT(DxgiAdapter3->SetVideoMemoryReservation(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, FMath::Min((int64)LocalVideoMemoryInfo.AvailableForReservation, FD3D12GlobalStats::GTotalGraphicsMemory)));
 	}
 
 
 
     if (GPoolSizeVRAMPercentage > 0)
     {
-        float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(GTotalGraphicsMemory);
+        float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(FD3D12GlobalStats::GTotalGraphicsMemory);
 
         // Truncate GTexturePoolSize to MB (but still counted in bytes)
         GTexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
@@ -480,7 +475,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
         UE_LOG(LogRHI, Log, TEXT("Texture pool is %llu MB (%d%% of %llu MB)"),
             GTexturePoolSize / 1024 / 1024,
             GPoolSizeVRAMPercentage,
-            GTotalGraphicsMemory / 1024 / 1024);
+            FD3D12GlobalStats::GTotalGraphicsMemory / 1024 / 1024);
     }
 
 #if (UE_BUILD_SHIPPING && WITH_EDITOR) && PLATFORM_WINDOWS && !PLATFORM_64BITS

@@ -58,6 +58,22 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Allocated"),STAT_D3D11TexturesA
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Released"),STAT_D3D11TexturesReleased,STATGROUP_D3D11RHI, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture object pool memory"),STAT_D3D11TexturePoolMemory,STATGROUP_D3D11RHI, );
 
+struct FD3D11GlobalStats
+{
+	// in bytes, never change after RHI, needed to scale game features
+	static int64 GDedicatedVideoMemory;
+	
+	// in bytes, never change after RHI, needed to scale game features
+	static int64 GDedicatedSystemMemory;
+	
+	// in bytes, never change after RHI, needed to scale game features
+	static int64 GSharedSystemMemory;
+	
+	// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
+	static int64 GTotalGraphicsMemory;
+};
+
+
 // This class has multiple inheritance but really FGPUTiming is a static class
 class FD3D11BufferedGPUTiming : public FRenderResource, public FGPUTiming
 {

@@ -6,19 +6,16 @@
 
 #include "D3D12RHIPrivate.h"
 
+
+int64 FD3D12GlobalStats::GDedicatedVideoMemory = 0;
+int64 FD3D12GlobalStats::GDedicatedSystemMemory = 0;
+int64 FD3D12GlobalStats::GSharedSystemMemory = 0;
+int64 FD3D12GlobalStats::GTotalGraphicsMemory = 0;
+
+
 /*-----------------------------------------------------------------------------
 	Texture allocator support.
 	-----------------------------------------------------------------------------*/
-
-// in bytes, never change after RHI, needed to scale game features
-int64 GDedicatedVideoMemory = 0;
-// in bytes, never change after RHI, needed to scale game features
-int64 GDedicatedSystemMemory = 0;
-// in bytes, never change after RHI, needed to scale game features
-int64 GSharedSystemMemory = 0;
-// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
-int64 GTotalGraphicsMemory = 0;
-
 
 namespace D3D12RHI
 {
@@ -236,9 +233,9 @@ uint64 FD3D12DynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
  */
 void FD3D12DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
-	OutStats.DedicatedVideoMemory = GDedicatedVideoMemory;
-	OutStats.DedicatedSystemMemory = GDedicatedSystemMemory;
-	OutStats.SharedSystemMemory = GSharedSystemMemory;
+	OutStats.DedicatedVideoMemory = FD3D12GlobalStats::GDedicatedVideoMemory;
+	OutStats.DedicatedSystemMemory = FD3D12GlobalStats::GDedicatedSystemMemory;
+	OutStats.SharedSystemMemory = FD3D12GlobalStats::GSharedSystemMemory;
 	bool bIsWARP = FParse::Param(FCommandLine::Get(), TEXT("warp"));
 
 	// Hack to handle a kernel bug where QueryVideomMemoryInfo can't be called on WARP
@@ -292,7 +289,7 @@ void FD3D12DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 	}
 	else
 	{
-		OutStats.TotalGraphicsMemory = GTotalGraphicsMemory;
+		OutStats.TotalGraphicsMemory = FD3D12GlobalStats::GTotalGraphicsMemory;
 	}
 
 

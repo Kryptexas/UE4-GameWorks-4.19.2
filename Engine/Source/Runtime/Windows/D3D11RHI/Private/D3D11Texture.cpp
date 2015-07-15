@@ -6,18 +6,16 @@
 
 #include "D3D11RHIPrivate.h"
 
+
+int64 FD3D11GlobalStats::GDedicatedVideoMemory = 0;
+int64 FD3D11GlobalStats::GDedicatedSystemMemory = 0;
+int64 FD3D11GlobalStats::GSharedSystemMemory = 0;
+int64 FD3D11GlobalStats::GTotalGraphicsMemory = 0;
+
+
 /*-----------------------------------------------------------------------------
 	Texture allocator support.
 -----------------------------------------------------------------------------*/
-
-// in bytes, never change after RHI, needed to scale game features
-int64 GDedicatedVideoMemory = 0;
-// in bytes, never change after RHI, needed to scale game features
-int64 GDedicatedSystemMemory = 0;
-// in bytes, never change after RHI, needed to scale game features
-int64 GSharedSystemMemory = 0;
-// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
-int64 GTotalGraphicsMemory = 0;
 
 static bool ShouldCountAsTextureMemory(uint32 BindFlags)
 {
@@ -232,10 +230,10 @@ uint64 FD3D11DynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
  */
 void FD3D11DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
-	OutStats.DedicatedVideoMemory = GDedicatedVideoMemory;
-    OutStats.DedicatedSystemMemory = GDedicatedSystemMemory;
-    OutStats.SharedSystemMemory = GSharedSystemMemory;
-	OutStats.TotalGraphicsMemory = GTotalGraphicsMemory ? GTotalGraphicsMemory : -1;
+	OutStats.DedicatedVideoMemory = FD3D11GlobalStats::GDedicatedVideoMemory;
+    OutStats.DedicatedSystemMemory = FD3D11GlobalStats::GDedicatedSystemMemory;
+    OutStats.SharedSystemMemory = FD3D11GlobalStats::GSharedSystemMemory;
+	OutStats.TotalGraphicsMemory = FD3D11GlobalStats::GTotalGraphicsMemory ? FD3D11GlobalStats::GTotalGraphicsMemory : -1;
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
 	OutStats.TexturePoolSize = GTexturePoolSize;

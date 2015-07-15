@@ -113,6 +113,22 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Used Video Memory"), STAT_D3D12UsedVideoMemory,
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Available Video Memory"), STAT_D3D12AvailableVideoMemory, STATGROUP_D3D12RHI, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Total Video Memory"), STAT_D3D12TotalVideoMemory, STATGROUP_D3D12RHI, );
 
+struct FD3D12GlobalStats
+{
+	// in bytes, never change after RHI, needed to scale game features
+	static int64 GDedicatedVideoMemory;
+	
+	// in bytes, never change after RHI, needed to scale game features
+	static int64 GDedicatedSystemMemory;
+	
+	// in bytes, never change after RHI, needed to scale game features
+	static int64 GSharedSystemMemory;
+	
+	// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
+	static int64 GTotalGraphicsMemory;
+};
+
+
 // This class handles query heaps
 class FD3D12QueryHeap : public FD3D12DeviceChild
 {
