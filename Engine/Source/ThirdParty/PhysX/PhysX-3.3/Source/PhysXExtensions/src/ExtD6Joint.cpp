@@ -415,7 +415,7 @@ void D6JointProject(const void* constantBlock,
 	bool linearTrunc, angularTrunc = false;
 	projected.p = truncateLinear(v, data.projectionLinearTolerance, linearTrunc) + (cB2cA.p - v);
 
-	projected.q = angularProject(data.locked >> 3, cB2cA.q, cos(data.projectionAngularTolerance / 2), angularTrunc);
+	projected.q = angularProject(data.locked >> 3, cB2cA.q, PxCos(data.projectionAngularTolerance / 2), angularTrunc);
 
 	if (linearTrunc || angularTrunc)
 		projectTransforms(bodyAToWorld, bodyBToWorld, cA2w, cB2w, projected, data, projectToA);

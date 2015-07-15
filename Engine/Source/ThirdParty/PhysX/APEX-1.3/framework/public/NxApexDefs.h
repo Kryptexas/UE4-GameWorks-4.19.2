@@ -52,7 +52,12 @@
 #define NX_APEX_SDK_RELEASE 0x01030300
 
 #if defined(PX_WINDOWS)
+// CUDA does not currently have a VS2015 supported build.
+#if _MSC_VER >= 1900
+#define APEX_CUDA_SUPPORT 0
+#else
 #define APEX_CUDA_SUPPORT 1
+#endif
 #endif
 
 

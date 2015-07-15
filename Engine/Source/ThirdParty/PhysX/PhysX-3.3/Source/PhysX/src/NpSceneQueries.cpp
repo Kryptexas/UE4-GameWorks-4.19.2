@@ -692,9 +692,6 @@ private:
 
 //========================================================================================================================
 template<typename HitType>
-	#if (PX_IS_WINDOWS | PX_IS_X360)
-	PX_FORCE_INLINE
-	#endif
 bool NpSceneQueries::multiQuery(
 	const MultiQueryInput& input, PxHitCallback<HitType>& hits, PxHitFlags hitFlags, const PxQueryCache* cache,
 	const PxQueryFilterData& filterData, PxQueryFilterCallback* filterCall, BatchQueryFilterData* bfd) const

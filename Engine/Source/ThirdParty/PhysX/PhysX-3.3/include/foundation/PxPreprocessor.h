@@ -34,7 +34,9 @@ Compiler define
 */
 #ifdef _MSC_VER 
 #	define PX_VC
-#	if _MSC_VER >= 1800
+#	if _MSC_VER >= 1900
+#		define PX_VC14
+#	elif _MSC_VER >= 1800
 #		define PX_VC12
 #   elif _MSC_VER >= 1700
 #       define PX_VC11
@@ -118,7 +120,7 @@ Platform define
 #   elif defined(__ppc64__)
 #       define PX_PPC
 #	define PX_PPC64
-#	elif defined (EMSCRIPTEN)
+#	elif defined (HTML5)
 #       define PX_HTML5
 #   else
 #	error "Unknown platform"
@@ -154,8 +156,7 @@ Platform define
 DLL export macros
 */
 #if !defined(PX_C_EXPORT) 
-#	if defined(PX_WINDOWS) || defined(PX_WINMODERN) // || defined(PX_LINUX) - extern "C" is applied to functions returning C++ types 
-													// (e.g. references) which triggers -Wreturn-type-c-linkage, so cannot be used on Linux
+#	if defined(PX_WINDOWS) || defined(PX_WINMODERN) || defined(PX_LINUX)
 #		define PX_C_EXPORT extern "C"
 #	else
 #		define PX_C_EXPORT
@@ -314,9 +315,9 @@ General defines
 
 // static assert
 #if defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 7)))  
-#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : 0] __attribute__((unused))
+#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1] __attribute__((unused))
 #else 
-#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : 0]
+#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1]
 #endif
 
 #if defined(PX_GNUC)

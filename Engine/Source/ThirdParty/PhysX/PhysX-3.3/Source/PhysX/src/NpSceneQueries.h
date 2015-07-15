@@ -139,9 +139,6 @@ public:
 	~NpSceneQueries();
 
 	template<typename QueryHit>
-		#if (PX_IS_WINDOWS | PX_IS_X360)
-		PX_FORCE_INLINE
-		#endif
 					bool							multiQuery(
 														const MultiQueryInput& in,
 														PxHitCallback<QueryHit>& hits, PxHitFlags hitFlags, const PxQueryCache* cache,

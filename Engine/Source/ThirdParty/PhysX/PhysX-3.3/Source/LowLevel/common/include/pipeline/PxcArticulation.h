@@ -35,8 +35,6 @@ namespace physx
 static const size_t PXC_ARTICULATION_MAX_SIZE = 64;
 static const size_t PXC_ARTICULATION_IDMASK = PXC_ARTICULATION_MAX_SIZE-1;
 
-typedef PX_ALIGN_PREFIX(16) PxVec4 PX_ALIGN_SUFFIX(16) PxVec4Aligned16;
-
 PX_FORCE_INLINE PxU32 PxcArticulationLowestSetBit(PxcArticulationBitField val)
 {
 #ifdef _XBOX
