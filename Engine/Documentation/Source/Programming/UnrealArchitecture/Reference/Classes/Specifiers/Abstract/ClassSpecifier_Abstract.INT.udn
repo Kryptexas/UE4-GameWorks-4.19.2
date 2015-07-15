@@ -2,7 +2,7 @@ Title: Abstract
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description: Class specifier declaring the class as unable to be instanced.
 Availability:Public
-Version: 4.5
+Version: 4.9
 
 The **Abstract** class specifier declares the class as an "abstract base class", preventing the user 
 from adding Actors of this class to the world in Unreal Editor or creating instances of this class during 
