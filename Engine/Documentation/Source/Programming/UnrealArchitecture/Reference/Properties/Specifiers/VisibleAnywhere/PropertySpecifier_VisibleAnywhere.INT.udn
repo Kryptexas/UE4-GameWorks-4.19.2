@@ -2,6 +2,6 @@ Title: VisibleAnywhere
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
 Description: 
 Availability:Public
-Version: 4.5
+Version: 4.9
 
 Indicates that this property is visible in property windows, but cannot be edited at all.
