@@ -1,22 +1,25 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
+#include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeSplineDetails.h"
 #include "LandscapeEdMode.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeSplineDetails"
 
 
 TSharedRef<IDetailCustomization> FLandscapeSplineDetails::MakeInstance()
 {
-	return MakeShareable( new FLandscapeSplineDetails );
+	return MakeShareable(new FLandscapeSplineDetails);
 }
 
-void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
+void FLandscapeSplineDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	IDetailCategoryBuilder& LandscapeSplineCategory = DetailBuilder.EditCategory( "LandscapeSpline", FText::GetEmpty(), ECategoryPriority::Transform );
+	IDetailCategoryBuilder& LandscapeSplineCategory = DetailBuilder.EditCategory("LandscapeSpline", FText::GetEmpty(), ECategoryPriority::Transform);
 
-	LandscapeSplineCategory.AddCustomRow( FText::GetEmpty() )
+	LandscapeSplineCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -45,7 +48,7 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		]
 	];
 
-	LandscapeSplineCategory.AddCustomRow( FText::GetEmpty() )
+	LandscapeSplineCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

@@ -10,7 +10,7 @@
 #include "MeshUtilities.h"
 #include "MaterialUtilities.h"
 #include "RawMesh.h"
-#include "LandscapeEdMode.h"
+#include "LandscapeEditorUtils.h"
 #include "ImageWrapper.h"
 
 #include "WorldTileDetails.h"

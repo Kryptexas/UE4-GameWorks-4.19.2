@@ -2,6 +2,12 @@
 
 #pragma once
 
+// Forward declarations
+class FEdModeLandscape;
+
+#include "IDetailCustomization.h"
+
+
 class FLandscapeSplineDetails : public IDetailCustomization
 {
 public:
@@ -9,10 +15,10 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 private:
-	class FEdModeLandscape* GetEditorMode() const;
+	FEdModeLandscape* GetEditorMode() const;
 	FReply OnSelectConnectedControlPointsButtonClicked();
 	FReply OnSelectConnectedSegmentsButtonClicked();
 	FReply OnMoveToCurrentLevelButtonClicked();

@@ -5,7 +5,7 @@
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
 
-#include "LandscapeEdMode.h"
+#include "../LandscapeEdMode.h"
 #include "../LandscapeEditorDetailCustomization_NewLandscape.h"
 #include "ScopedTransaction.h"
 #include "Landscape.h"

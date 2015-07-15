@@ -7,6 +7,7 @@
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
 #include "LandscapeEdit.h"
+#include "LandscapeEditorUtils.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeSplineProxies.h"

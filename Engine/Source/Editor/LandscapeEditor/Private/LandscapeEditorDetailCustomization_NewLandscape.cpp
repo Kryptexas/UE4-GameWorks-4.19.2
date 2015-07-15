@@ -6,6 +6,7 @@
 #include "LandscapeEditorObject.h"
 #include "LandscapeEditorDetails.h"
 #include "LandscapeEditorDetailCustomizations.h"
+#include "LandscapeEditorUtils.h"
 
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
