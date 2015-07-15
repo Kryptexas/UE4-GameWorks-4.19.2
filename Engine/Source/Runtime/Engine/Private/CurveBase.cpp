@@ -292,6 +292,34 @@ FRichCurveKey FRichCurve::GetLastKey() const
 	return Keys[Keys.Num()-1];
 }
 
+FKeyHandle FRichCurve::GetNextKey(FKeyHandle KeyHandle) const
+{
+	int32 KeyIndex = GetIndex(KeyHandle);
+	KeyIndex++;
+	if (Keys.IsValidIndex(KeyIndex))
+	{
+		return GetKeyHandle(KeyIndex);
+	}
+	else
+	{
+		return FKeyHandle();
+	}
+}
+
+FKeyHandle FRichCurve::GetPreviousKey(FKeyHandle KeyHandle) const
+{
+	int32 KeyIndex = GetIndex(KeyHandle);
+	KeyIndex--;
+	if (Keys.IsValidIndex(KeyIndex))
+	{
+		return GetKeyHandle(KeyIndex);
+	}
+	else
+	{
+		return FKeyHandle();
+	}
+}
+
 int32 FRichCurve::GetNumKeys() const
 {
 	return Keys.Num();

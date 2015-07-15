@@ -307,6 +307,10 @@ public:
 	FRichCurveKey GetFirstKey() const;
 	FRichCurveKey GetLastKey() const;
 
+	/** Get the next or previous key given the key handle */
+	FKeyHandle GetNextKey(FKeyHandle KeyHandle) const;
+	FKeyHandle GetPreviousKey(FKeyHandle KeyHandle) const;
+
 	/** Get number of key in curve. */
 	virtual int32 GetNumKeys() const override;
 	
