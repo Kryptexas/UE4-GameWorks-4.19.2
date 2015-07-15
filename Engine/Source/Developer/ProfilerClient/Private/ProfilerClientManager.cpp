@@ -422,9 +422,16 @@ bool FProfilerClientManager::CheckHashAndWrite( const FProfilerServiceFileChunk&
 	const int32 HashSize = 20;
 	uint8 LocalHash[HashSize]={0};
 	
+	// De-hex string into TArray<uint8>
+	TArray<uint8> FileChunkData;
+	const int32 DataLength = FileChunk.HexData.Len() / 2;
+	FileChunkData.Reset( DataLength );
+	FileChunkData.AddUninitialized( DataLength );
+	FString::ToHexBlob( FileChunk.HexData, FileChunkData.GetData(), DataLength );
+
 	// Hash file chunk data. 
 	FSHA1 Sha;
-	Sha.Update( FileChunk.Data.GetData(), FileChunkHeader.ChunkSize );
+	Sha.Update( FileChunkData.GetData(), FileChunkHeader.ChunkSize );
 	// Hash file chunk header.
 	Sha.Update( FileChunk.Header.GetData(), FileChunk.Header.Num() );
 	Sha.Final();
@@ -438,7 +445,7 @@ bool FProfilerClientManager::CheckHashAndWrite( const FProfilerServiceFileChunk&
 	{
 		// Write the data to the archive.
 		Writer->Seek( FileChunkHeader.ChunkOffset );
-		Writer->Serialize( (void*)FileChunk.Data.GetData(), FileChunkHeader.ChunkSize );
+		Writer->Serialize( (void*)FileChunkData.GetData(), FileChunkHeader.ChunkSize );
 
 		bResult = true;
 	}
@@ -462,7 +469,6 @@ void FProfilerClientManager::HandleServiceFileChunk( const FProfilerServiceFileC
 
 	const bool bValidFileChunk = !FailedTransfer.Contains( FileChunk.Filename );
 
-	// @TODO yrx 2014-03-24 At this moment received file chunks are handled on the main thread, asynchronous file receiving is planned for the future release.
 	if (ActiveSessionId.IsValid() && Connections.Find(FileChunk.InstanceId) != nullptr && bValidFileChunk)
 	{
 		FReceivedFileInfo* ReceivedFileInfo = ActiveTransfers.Find( FileChunk.Filename );
@@ -522,7 +528,7 @@ void FProfilerClientManager::HandleServiceFileChunk( const FProfilerServiceFileC
 			if( MessageEndpoint.IsValid() )
 			{
 				MessageEndpoint->Send( new FProfilerServiceFileChunk(FileChunk,FProfilerServiceFileChunk::FNullTag()), Context->GetSender() );
-				UE_LOG( LogProfilerClient, Log, TEXT( "Received a bad chunk of file, resending: %5i, %6u, %10u, %s" ), FileChunk.Data.Num(), ReceivedFileInfo->Progress, FileChunkHeader.FileSize, *FileChunk.Filename );
+				UE_LOG( LogProfilerClient, Log, TEXT( "Received a bad chunk of file, resending: %5i, %6u, %10u, %s" ), FileChunk.HexData.Len(), ReceivedFileInfo->Progress, FileChunkHeader.FileSize, *FileChunk.Filename );
 			}
 		}
 	}
