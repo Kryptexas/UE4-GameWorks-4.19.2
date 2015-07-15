@@ -3276,6 +3276,17 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
+	if (CompileOptions.DoesRequireBytecodeGeneration())
+	{
+		TArray<UEdGraph*> AllGraphs;
+		Blueprint->GetAllGraphs(AllGraphs);
+		for (int32 i = 0; i < AllGraphs.Num(); i++)
+		{
+			//Reset error flags associated with nodes in each graph
+			ResetErrorFlags(AllGraphs[i]);
+		}
+	}
+
 	// Early validation
 	if (CompileOptions.CompileType == EKismetCompileType::Full)
 	{
@@ -3362,17 +3373,6 @@ void FKismetCompilerContext::Compile()
 
 	// Conform implemented interfaces here, to ensure we generate all functions required by the interface as stubs
 	FBlueprintEditorUtils::ConformImplementedInterfaces(Blueprint);
-
-	if (CompileOptions.DoesRequireBytecodeGeneration())
-	{
-		TArray<UEdGraph*> AllGraphs;
-		Blueprint->GetAllGraphs(AllGraphs);
-		for (int32 i = 0; i < AllGraphs.Num(); i++)
-		{
-			//Reset error flags associated with nodes in each graph
-			ResetErrorFlags(AllGraphs[i]);
-		}
-	}
 
 	// Run thru the class defined variables first, get them registered
 	CreateClassVariablesFromBlueprint();
