@@ -44,6 +44,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 
+// these are the stats which are output to the Saved\Stats\<date>.csv file
+#define ENABLE_COOKER_STATS 1
 
 #define DEBUG_COOKONTHEFLY 0
 #define OUTPUT_TIMING 0
@@ -409,6 +411,223 @@ void OutputHierarchyTimers()
 #define OUTPUT_TIMERS()
 #define OUTPUT_HIERARCHYTIMERS()
 #endif
+
+
+
+#if ENABLE_COOKER_STATS
+#include "TypeHash.h"
+#include "CookingStatsModule.h"
+
+// gather stats about a cooked package
+namespace CookOnTheFlyStats
+{
+	ICookingStats* GetCookingStats()
+	{
+		static ICookingStats* CookingStats = nullptr;
+		static bool bInitialized = false;
+		if (bInitialized == false)
+		{
+			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
+			if (CookingStatsModule)
+			{
+				CookingStats = &CookingStatsModule->Get();
+			}
+			bInitialized = true;
+		}
+		return CookingStats;
+	}
+
+	class FCookerPackageStats
+	{
+	private:
+		const FName Filename; 
+	public:
+		FCookerPackageStats(const FName& InFilename) : Filename(InFilename)
+		{
+
+		};
+		void AddTag(const FName& TagName, const FString& Value)
+		{
+			ICookingStats* CookingStats = GetCookingStats();
+			if (CookingStats)
+			{
+				CookingStats->AddTagValue(Filename, TagName, Value);
+			}
+		}
+
+		bool GetTag(const FName& TagName, FString& Value) const
+		{
+			ICookingStats* CookingStats = GetCookingStats();
+			if (CookingStats)
+			{
+				return CookingStats->GetTagValue(Filename, TagName, Value);
+			}
+			return false;
+		}
+
+		const FName& GetFilename() const 
+		{
+			return Filename;
+		}
+	};
+
+	struct FPackageStat
+	{
+		FPackageStat(const FName& InPackageName, const FName& InStatName)
+		{
+			PackageName = InPackageName;
+			StatName = InStatName;
+		}
+
+		bool operator==(const FPackageStat& InPackageStat) const
+		{
+			return (InPackageStat.PackageName == PackageName) &&
+				(InPackageStat.StatName == StatName);
+		}
+
+		FName PackageName;
+		FName StatName;
+
+	};
+
+	struct FStatInfo
+	{
+		int HitCount;
+		bool bStarted;
+		double StartTime;
+		double Duration;
+	};
+
+	TMap<FPackageStat, FStatInfo> StatInfoMap;
+
+	struct FNameCache
+	{
+	public:
+		FNameCache(const FName& BaseName) 
+		{
+			Duration = FName(*FString::Printf(TEXT("%s_Duration"), *BaseName.ToString()));
+			HitCount = FName(*FString::Printf(TEXT("%s_HitCount"), *BaseName.ToString()));
+		}
+		FName Duration;
+		FName HitCount;
+	};
+	TMap<FName, FNameCache> NameCache;
+
+	const FNameCache& GetNameCache(const FName& BaseName)
+	{
+		const FNameCache* Result = NameCache.Find(BaseName);
+		if (Result == nullptr)
+		{
+			Result = &NameCache.Add(BaseName, FNameCache(BaseName));
+		}
+		return *Result;
+	}
+
+	FStatInfo* GetStatInfo(const FName& StatName, const FName& PackageName)
+	{
+		FPackageStat PackageStat(PackageName, StatName);
+
+		FStatInfo *StatInfo = StatInfoMap.Find(PackageStat);
+		if (StatInfo == nullptr)
+		{
+			StatInfo = &StatInfoMap.Add(PackageStat);
+		}
+		return StatInfo;
+	}
+
+	void StartPackageStat(const FName& Name, const FCookerPackageStats& CookerPackageStats)
+	{
+		FStatInfo* StatInfo = GetStatInfo(Name, CookerPackageStats.GetFilename());
+
+		if (StatInfo->bStarted == false)
+		{
+			StatInfo->StartTime = FPlatformTime::Seconds();
+			StatInfo->bStarted = true;
+		}
+	}
+
+	void EndPackageStat(const FName& Name, FCookerPackageStats& CookerPackageStats)
+	{
+		FStatInfo* StatInfo = GetStatInfo(Name, CookerPackageStats.GetFilename());
+
+		if (StatInfo->bStarted)
+		{
+			++StatInfo->HitCount;
+			double Duration = FPlatformTime::Seconds() - StatInfo->StartTime;
+			StatInfo->Duration += Duration;
+			const FNameCache& CachedFNames = GetNameCache(Name);
+
+			CookerPackageStats.AddTag(CachedFNames.Duration, FString::Printf(TEXT("%fms"), StatInfo->Duration*1000.0f));
+			CookerPackageStats.AddTag(CachedFNames.HitCount, FString::Printf(TEXT("%d"), StatInfo->HitCount));
+
+			StatInfo->bStarted = false;
+		}
+	}
+
+
+
+	class FCookerPackageScopeStat
+	{
+	private:
+		const FName& StatName;
+		FCookerPackageStats& PackageStats;
+	public:
+		FCookerPackageScopeStat(const FName& InStatName, FCookerPackageStats& InPackageStats) : StatName(InStatName), PackageStats(InPackageStats)
+		{
+			Start();
+		}
+
+		~FCookerPackageScopeStat()
+		{
+			End();
+		}
+
+		void Start()
+		{
+			StartPackageStat(StatName, PackageStats);
+		}
+		void End()
+		{
+			EndPackageStat(StatName, PackageStats);
+		}
+	};
+}
+
+uint32 GetTypeHash(const CookOnTheFlyStats::FPackageStat& PackageStat)
+{
+	return HashCombine(GetTypeHash(PackageStat.PackageName), GetTypeHash(PackageStat.StatName));
+}
+
+#define START_PACKAGE(filename) CookOnTheFlyStats::FCookerPackageStats CookerPackageStats(filename);
+
+#define SCOPE_PACKAGE_STAT(name) \
+	static const FName NAME_##name(#name); \
+	CookOnTheFlyStats::FCookerPackageScopeStat CookerPackageScopeStat##name(NAME_##name, CookerPackageStats);
+
+// static const FName NAME_StartTime(TEXT("StartTime"));
+
+#define START_PACKAGE_STAT(name) \
+	static const FName NAME_##name(TEXT(#name)); \
+	CookOnTheFlyStats::StartPackageStat(NAME_##name, CookerPackageStats);
+
+// CookerPackageStats.AddTag(NAME_##nameStartTime, FString::Printf(TEXT("%f"),FPlatformTime::Seconds()));
+
+#define END_PACKAGE_STAT(name) \
+	static const FName NAME2_##name(TEXT(#name)); \
+	CookOnTheFlyStats::EndPackageStat(NAME2_##name, CookerPackageStats);
+
+
+#else
+
+
+#define START_PACKAGE(filename)
+#define SCOPE_PACKAGE_STAT(name)
+#define START_PACKAGE_STAT(name)
+#define END_PACKAGE_STAT(name)
+
+#endif
+
+
 ////////////////////////////////////////////////////////////////
 /// Cook on the fly server
 ///////////////////////////////////////////////////////////////
@@ -1378,6 +1597,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		bool bLastLoadWasMap = false;
 		FString LastLoadedMapName;
 
+		START_PACKAGE(ToBuild.GetFilename());
+
 		const FString BuildFilename = ToBuild.GetFilename().ToString();
 
 		if ( ToBuild.GetFilename() != CurrentReentryData.FileName )
@@ -1408,6 +1629,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 		if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 		{
+			SCOPE_PACKAGE_STAT(AllOfLoadPackage);
+
+
 			SCOPE_TIMER(AllOfLoadPackage);
 			UPackage *Package = NULL;
 			{
@@ -1561,6 +1785,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		// this will load more packages :)
 		if ( IsCookByTheBookMode() )
 		{
+			SCOPE_PACKAGE_STAT(ResolveRedirectors);
 			SCOPE_TIMER(ResolveRedirectors);
 			GRedirectCollector.ResolveStringAssetReference();
 		}
@@ -1633,6 +1858,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 		if ( PackagesToSave.Num() )
 		{
+			START_PACKAGE_STAT(CacheForCookedPlatformData);
+
 			SCOPE_TIMER(CallBeginCacheForCookedPlatformData);
 			// cache the resources for this package for each platform
 			
@@ -1657,10 +1884,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
+		END_PACKAGE_STAT(CacheForCookedPlatformData);
+
 		int32 FirstUnsolicitedPackage = PackagesToSave.Num();
 
 		// generate a list of other packages which were loaded with this one
 		{
+			SCOPE_PACKAGE_STAT(UnsolicitedMarkup);
 			SCOPE_TIMER(UnsolicitedMarkup);
 
 			TArray<UObject *> ObjectsInOuter;
@@ -1725,6 +1955,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 
 		bool bFinishedSave = true;
+
+		START_PACKAGE_STAT(SavePackageCacheForCookedPlatformData);
 
 		if ( PackagesToSave.Num() )
 		{
@@ -1840,6 +2072,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					GetObjectsWithOuter(Package, ObjectsInPackage);
 					if (FinishPackageCacheForCookedPlatformData(ObjectsInPackage) == false)
 					{
+						// add to back of queue
 						PackagesToSave.Add(Package);
 					}
 				}
@@ -1853,7 +2086,10 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					bShouldSaveAsync = false;
 				}
 
+				END_PACKAGE_STAT(SavePackageCacheForCookedPlatformData);
 				{
+					SCOPE_PACKAGE_STAT(SaveCookedPackage);
+
 					SCOPE_TIMER(SaveCookedPackage);
 					if (SaveCookedPackage(Package, SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0), bWasUpToDate, AllTargetPlatformNames))
 					{
@@ -1870,6 +2106,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					}
 					Timer.SavedPackage();
 				}
+				START_PACKAGE_STAT(SavePackageCacheForCookedPlatformData);
+
 
 				if ( IsCookingInEditor() == false )
 				{
@@ -1912,6 +2150,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				}
 			}
 		}
+		END_PACKAGE_STAT(SavePackageCacheForCookedPlatformData);
 
 		// if after all this our requested file didn't get saved then we need to mark it as saved (this can happen if the file loaded didn't match the one we saved)
 		// for example say we request A.uasset which doesn't exist however A.umap exists, our load call will succeed as it will find A.umap, then the save will save A.umap
@@ -1945,6 +2184,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			break;
 		}
 	}
+	
 
 	OUTPUT_TIMERS();
 
@@ -2190,24 +2430,6 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 	if (Filename.Len())
 	{
 		FString Name = Package->GetPathName();
-
-		/*FString PkgFilename;
-		FDateTime DependentTimeStamp = FDateTime::MinValue();
-
-		// We always want to use the dependent time stamp when saving a cooked package...
-		// Iterative or not!
-		FString PkgFile;
-		
-
-		if (IsCookFlagSet(ECookInitializationFlags::Iterative) && FPackageName::DoesPackageExist(Name, NULL, &PkgFile))
-		{
-			PkgFilename = PkgFile;
-
-			if (GetPackageTimestamp(FPaths::GetBaseFilename(PkgFilename, false), DependentTimeStamp) == false)
-			{
-				UE_LOG(LogCook, Display, TEXT("Failed to find depedency timestamp for: %s"), *PkgFilename);
-			}
-		}*/
 
 		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
 		Filename = ConvertToFullSandboxPath(*Filename, true);

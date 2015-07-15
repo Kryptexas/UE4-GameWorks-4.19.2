@@ -4,61 +4,81 @@
 #include "CookingStatsModule.h"
 #include "ModuleManager.h"
 
-
-uint32 GetValidTLSSlot()
-{
-	uint32 TLSSlot = FPlatformTLS::AllocTlsSlot();
-	check(FPlatformTLS::IsValidTlsSlot(TLSSlot));
-	FPlatformTLS::SetTlsValue(TLSSlot, nullptr);
-	return TLSSlot;
-}
-
-ICookingStats* CookingStats = nullptr;
-
-struct FDDCStatsTLSStore
+namespace DDCStats
 {
 
-	FDDCStatsTLSStore() : TransactionGuid(NAME_None), CurrentIndex(0), RootScope(NULL) { }
-
-
-	FName GenerateNewTransactionName()
+	ICookingStats* GetCookingStats()
 	{
-		++CurrentIndex;
-		if (CurrentIndex <= 1)
+		static ICookingStats* CookingStats = nullptr;
+		static bool bInitialized = false;
+		if (bInitialized == false)
 		{
-			FString TransactionGuidString = TEXT("DDCTransactionId");
-			TransactionGuidString += FGuid::NewGuid().ToString();
-			TransactionGuid = FName(*TransactionGuidString);
-			CurrentIndex = 1;
+			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
+			if (CookingStatsModule)
+			{
+				CookingStats = &CookingStatsModule->Get();
+			}
+			bInitialized = true;
 		}
-		check(TransactionGuid != NAME_None);
-
-		return FName(TransactionGuid, CurrentIndex);
+		return CookingStats;
 	}
 
-	FName TransactionGuid;
-	int32 CurrentIndex;
-	FDDCScopeStatHelper *RootScope;
-};
+	static uint32 GetValidTLSSlot()
+	{
+		uint32 TLSSlot = FPlatformTLS::AllocTlsSlot();
+		check(FPlatformTLS::IsValidTlsSlot(TLSSlot));
+		FPlatformTLS::SetTlsValue(TLSSlot, nullptr);
+		return TLSSlot;
+	}
+	
 
-uint32 CookStatsFDDCStatsTLSStore = GetValidTLSSlot();
+	struct FDDCStatsTLSStore
+	{
 
-FDDCScopeStatHelper::FDDCScopeStatHelper(const TCHAR* CacheKey, const FName& FunctionName ) : bHasParent(false)
+		FDDCStatsTLSStore() : TransactionGuid(NAME_None), CurrentIndex(0), RootScope(NULL) { }
+
+
+		FName GenerateNewTransactionName()
+		{
+			++CurrentIndex;
+			if (CurrentIndex <= 1)
+			{
+				FString TransactionGuidString = TEXT("DDCTransactionId");
+				TransactionGuidString += FGuid::NewGuid().ToString();
+				TransactionGuid = FName(*TransactionGuidString);
+				CurrentIndex = 1;
+			}
+			check(TransactionGuid != NAME_None);
+
+			return FName(TransactionGuid, CurrentIndex);
+		}
+
+		FName TransactionGuid;
+		int32 CurrentIndex;
+		FDDCScopeStatHelper *RootScope;
+	};
+
+	uint32 CookStatsFDDCStatsTLSStore = GetValidTLSSlot();
+
+}; // namespace DDCStats
+
+
+FDDCScopeStatHelper::FDDCScopeStatHelper(const TCHAR* CacheKey, const FName& FunctionName) : bHasParent(false)
 {
-	FDDCStatsTLSStore* TLSStore = (FDDCStatsTLSStore*)FPlatformTLS::GetTlsValue(CookStatsFDDCStatsTLSStore);
+
+	if (DDCStats::GetCookingStats() == nullptr)
+		return;
+
+	DDCStats::FDDCStatsTLSStore* TLSStore = (DDCStats::FDDCStatsTLSStore*)FPlatformTLS::GetTlsValue(DDCStats::CookStatsFDDCStatsTLSStore);
 	if (TLSStore == nullptr)
 	{
-		TLSStore = new FDDCStatsTLSStore();
-		FPlatformTLS::SetTlsValue(CookStatsFDDCStatsTLSStore, TLSStore);
+		TLSStore = new DDCStats::FDDCStatsTLSStore();
+		FPlatformTLS::SetTlsValue(DDCStats::CookStatsFDDCStatsTLSStore, TLSStore);
 	}
 
 	TransactionGuid = TLSStore->GenerateNewTransactionName();
 
-	if (CookingStats == nullptr)
-	{
-		FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(TEXT("CookingStats"));
-		CookingStats = &CookingStatsModule.Get();
-	}
+
 	FString Temp;
 	AddTag(FunctionName, Temp);
 
@@ -74,7 +94,7 @@ FDDCScopeStatHelper::FDDCScopeStatHelper(const TCHAR* CacheKey, const FName& Fun
 	{
 		static const FName NAME_Parent = FName(TEXT("Parent"));
 		AddTag(NAME_Parent, TLSStore->RootScope->TransactionGuid.ToString());
-		
+
 		bHasParent = true;
 	}
 
@@ -90,13 +110,16 @@ FDDCScopeStatHelper::FDDCScopeStatHelper(const TCHAR* CacheKey, const FName& Fun
 
 FDDCScopeStatHelper::~FDDCScopeStatHelper()
 {
+	if (DDCStats::GetCookingStats() == nullptr)
+		return;
+
 	double EndTime = FPlatformTime::Seconds();
 	float DurationMS = (EndTime - StartTime) * 1000.0f;
 
 	static const FName NAME_Duration = FName(TEXT("Duration"));
 	AddTag(NAME_Duration, FString::Printf(TEXT("%fms"), DurationMS));
 
-	FDDCStatsTLSStore* TLSStore = (FDDCStatsTLSStore*)FPlatformTLS::GetTlsValue(CookStatsFDDCStatsTLSStore);
+	DDCStats::FDDCStatsTLSStore* TLSStore = (DDCStats::FDDCStatsTLSStore*)FPlatformTLS::GetTlsValue(DDCStats::CookStatsFDDCStatsTLSStore);
 	check(TLSStore);
 
 	if (TLSStore->RootScope == this)
@@ -107,5 +130,8 @@ FDDCScopeStatHelper::~FDDCScopeStatHelper()
 
 void FDDCScopeStatHelper::AddTag(const FName& Tag, const FString& Value)
 {
-	CookingStats->AddTagValue(TransactionGuid, Tag, Value);
+	if (DDCStats::GetCookingStats())
+	{
+		DDCStats::GetCookingStats()->AddTagValue(TransactionGuid, Tag, Value);
+	}
 }

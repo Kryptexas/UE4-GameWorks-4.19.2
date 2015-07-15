@@ -8,7 +8,7 @@ DEFINE_LOG_CATEGORY(LogCookingStats);
 
 FCookingStats::FCookingStats()
 {
-	RunGuid = FName(*FGuid::NewGuid().ToString());
+	RunGuid = FName(*FString::Printf(TEXT("RunID%s"), *FGuid::NewGuid().ToString()));
 }
 
 FCookingStats::~FCookingStats()
@@ -35,13 +35,29 @@ void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const FStrin
 		Value = &KeyTags.Add(Key);
 	}
 
-	FTag FullTag;
-	FullTag.Name = Tag;
-	FullTag.Value = TagValue;
-	
-	
-	Value->Add(FullTag);
+	Value->Add(Tag, TagValue);
 
+}
+
+
+bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString& OutValue) const
+{
+	FScopeLock ScopeLock(&SyncObject);
+	auto Tags = KeyTags.Find(Key);
+
+	if (Tags == nullptr)
+	{
+		return false;
+	}
+
+	auto* Value = Tags->Find(TagName);
+
+	if (Value == nullptr)
+	{
+		return false;
+	}
+	OutValue = *Value;
+	return true;
 }
 
 bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
@@ -56,7 +72,7 @@ bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
 		for (const auto& Tag : Stat.Value)
 		{
 			Output += TEXT(", ");
-			Output += Tag.Name.ToString();
+			Output += Tag.Key.ToString();
 			if (Tag.Value.IsEmpty() == false)
 			{
 				Output += TEXT("=");
@@ -68,7 +84,7 @@ bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
 		for (const auto& Tag : GlobalTags)
 		{
 			Output += TEXT(", ");
-			Output += Tag.Name.ToString();
+			Output += Tag.Key.ToString();
 			if (Tag.Value.IsEmpty() == false)
 			{
 				Output += TEXT("=");

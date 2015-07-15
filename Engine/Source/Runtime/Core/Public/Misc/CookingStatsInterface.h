@@ -12,15 +12,15 @@ class ICookingStatsModule : public IModuleInterface
 {
 public:
 	/**
-	 * Tries to gets a pointer to the active AssetRegistryInterface implementation. 
+	 * Tries to gets a pointer to the active CookingStatsModule implementation. 
 	 */
 	static inline ICookingStatsModule * GetPtr()
 	{
-		static FName CookingStats("CookingStats");
-		auto Module = FModuleManager::GetModulePtr<ICookingStatsModule>(CookingStats);
+		static FName NAME_CookingStats("CookingStats");
+		auto Module = FModuleManager::GetModulePtr<ICookingStatsModule>(NAME_CookingStats);
 		if (Module == nullptr)
 		{
-			Module = &FModuleManager::LoadModuleChecked<ICookingStatsModule>(CookingStats);
+			Module = &FModuleManager::LoadModuleChecked<ICookingStatsModule>(NAME_CookingStats);
 		}
 		return reinterpret_cast<ICookingStatsModule*>(Module);
 	}

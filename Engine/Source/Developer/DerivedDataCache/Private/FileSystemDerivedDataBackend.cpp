@@ -135,7 +135,10 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		// FDDCScopeStatHelper Stat(FString(CacheKey), FString(TEXT("FileSystemDerivedDataBackend::CachedDataProbablyExists")));
+		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
 
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);

@@ -22,43 +22,69 @@ static const FName WorldClassName = FName("World");
 
 #define UE_OUTPUTSTATSTOLOG 0
 
+namespace SavePackageStats
+{
 static const FName CookingStatsName("CookingStats");
 static const FName GSavePackageTransactionId(*FString::Printf(TEXT("SavePackageTransactionId%s"), *FGuid::NewGuid().ToString()));
 static uint32 GSavePackageTransactionNumber = 0;
+
+	ICookingStats* GetCookingStats()
+	{
+		static ICookingStats* CookingStats = nullptr;
+		static bool bInitialized = false;
+		if (bInitialized == false)
+		{
+			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
+			if (CookingStatsModule)
+			{
+				CookingStats = &CookingStatsModule->Get();
+			}
+			bInitialized = true;
+		}
+		return CookingStats;
+	}
+
+
+	// static ICookingStats* CookingStats = GetCookingStats();
+
 void CookStatsStartStat(const FName& Key, const TCHAR *Filename)
 {
 #if UE_OUTPUTSTATSTOLOG
 	UE_LOG(LogSavePackage, Log, TEXT("Starting save package for %s"), Filename);
 #endif
-
-	
-	static FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
-	static ICookingStats& CookingStats = CookingStatsModule.Get();
-
-	CookingStats.AddTagValue(Key, TEXT("Filename"), FString(Filename));
+		ICookingStats* CookingStats = GetCookingStats();
+		if (CookingStats)
+		{
+			CookingStats->AddTagValue(Key, TEXT("Filename"), FString(Filename));
+		}
 
 }
 
-void CookStatsAddStat(const FName& Key, const FName& Tag, const float TimeMilliseconds )
+	void CookStatsAddStat(const FName& Key, const FName& Tag, const float TimeMilliseconds)
 {
 #if UE_OUTPUTSTATSTOLOG
 	UE_LOG(LogSavePackage, Log, TEXT("TIMING: %s took %fms"), Tag, TimeMilliseconds);
 #endif
-	static FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
-	static ICookingStats& CookingStats = CookingStatsModule.Get();
+		ICookingStats* CookingStats = GetCookingStats();
+		if (CookingStats)
+		{
+			CookingStats->AddTagValue(Key, Tag, FString::Printf(TEXT("%fms"), TimeMilliseconds));
+		}
+	}
 
-	CookingStats.AddTagValue(Key, Tag, FString::Printf(TEXT("%fms"), TimeMilliseconds));
-}
 
 
-#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); const FName CookStatsKey = FName(GSavePackageTransactionId,++GSavePackageTransactionNumber); \
-	CookStatsStartStat(CookStatsKey, InFilename);
+}; // namespace SavePackageStats
+
+
+#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); const FName CookStatsKey = FName(SavePackageStats::GSavePackageTransactionId,++SavePackageStats::GSavePackageTransactionNumber); \
+	SavePackageStats::CookStatsStartStat(CookStatsKey, InFilename);
 
 #define UE_LOG_COOK_TIME(TimeType) \
 	{\
 		double CurrentTime = FPlatformTime::Seconds(); \
-		const FName TagName = FName(TimeType);\
-		CookStatsAddStat(CookStatsKey, TagName, (CurrentTime - PreviousTime) * 1000.0f);\
+	const FName TagName = FName(TimeType); \
+	SavePackageStats::CookStatsAddStat(CookStatsKey, TagName, (CurrentTime - PreviousTime) * 1000.0f); \
 		PreviousTime = CurrentTime; \
 	}
 

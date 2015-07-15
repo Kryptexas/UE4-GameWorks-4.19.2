@@ -30,14 +30,26 @@ public:
 	virtual void AddTag(const FName& Key, const FName& Tag) = 0;
 
 	/**
-	* AddTag
+	* AddTagValue
 	* add a tag to a key, the tags will be saved out with the key
 	* tags can be timing information or anything
 	*
 	* @param Key key to add the tag to
 	* @param Tag tag to add to the key
+	* @param VAlue value of the tag we are adding
 	*/
 	virtual void AddTagValue(const FName& Key, const FName& Tag, const FString& Value) = 0;
+
+	/**
+	 * GetTagValue
+	 * retrieve a previously added tag value
+	 *
+	 * @param Key to use to get the tag value
+	 * @param Tag to use to get the tag value
+	 * @param Value the value which will be returned fomr that tag key pair
+	 * @return if the key + tag exists will retrun true false otherwise
+	 */
+	virtual bool GetTagValue(const FName& Key, const FName& Tag, FString& Value) const = 0;
 
 	/**
 	 * SaveStatsAsCSV

@@ -40,6 +40,17 @@ public:
 	virtual void AddTagValue(const FName& Key, const FName& Tag, const FString& Value) override;
 
 	/**
+	* GetTagValue
+	* retrieve a previously added tag value
+	*
+	* @param Key to use to get the tag value
+	* @param Tag to use to get the tag value
+	* @param Value the value which will be returned fomr that tag key pair
+	* @return if the key + tag exists will retrun true false otherwise
+	*/
+	virtual bool GetTagValue(const FName& Key, const FName& Tag, FString& Value) const override;
+
+	/**
 	* SaveStatsAsCSV
 	* Save stats in a CSV file
 	*
@@ -51,12 +62,7 @@ public:
 private:
 	FName RunGuid; // unique guid for this run of the editor
 
-	struct FTag
-	{
-		FName Name;
-		FString Value;
-	};
-	TMap< FName, TArray<FTag> > KeyTags;
-	TArray<FTag> GlobalTags; // tags to add to every key in this runthrough
-	FCriticalSection SyncObject;
+	TMap< FName, TMap<FName,FString> > KeyTags;
+	TMap<FName, FString> GlobalTags; // tags to add to every key in this runthrough
+	mutable FCriticalSection SyncObject;
 };
