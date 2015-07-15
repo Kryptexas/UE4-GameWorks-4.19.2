@@ -647,11 +647,13 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 
 static void onNativeWindowResized(ANativeActivity* activity, ANativeWindow* window)
 {
-	FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED,window);
+	UE_LOG(LogAndroid, Log, TEXT("On Native Window Resized: %p"), window);
+	FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, window);
 }
 
 static void onContentRectChanged(ANativeActivity *activity, const ARect *rect)
 {
+	UE_LOG(LogAndroid, Log, TEXT("On Content Rect Changed: left: %d, top: %d, right: %d, bottom: %d"), rect->left, rect->top, rect->right, rect->bottom);
 	FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
 }
 

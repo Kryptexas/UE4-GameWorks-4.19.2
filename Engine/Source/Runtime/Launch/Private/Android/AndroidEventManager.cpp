@@ -261,6 +261,11 @@ void FAppEventManager::ExecWindowCreated()
 
 	FPlatformMisc::SetHardwareWindow(PendingWindow);
 	PendingWindow = NULL;
+
+	// When application launched while device is in sleep mode SystemResolution could be set to opposite orientation values
+	// Force to update SystemResolution to current values whenever we create a new window
+	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
+	FSystemResolution::RequestResolutionChange(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
 	
 	FAndroidAppEntry::ReInitWindow();
 }
