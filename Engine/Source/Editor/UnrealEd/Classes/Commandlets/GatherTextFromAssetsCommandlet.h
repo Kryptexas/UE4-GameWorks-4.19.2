@@ -63,5 +63,5 @@ private:
 	FConflictTracker ConflictTracker;
 
 	bool bFixBroken;
-	bool ShouldGatherBlueprintPinNames;
+	bool ShouldGatherFromEditorOnlyData;
 };

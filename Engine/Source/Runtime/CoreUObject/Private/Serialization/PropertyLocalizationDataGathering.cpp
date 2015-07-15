@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "Serialization/PropertyLocalizationDataGathering.h"
 #include "UTextProperty.h"
 
-void GatherLocalizationDataFromPropertiesOfDataStructure(UStruct* const Structure, void* const Data, TArray<FGatherableTextData>& GatherableTextDataArray)
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromPropertiesOfDataStructure(UStruct* const Structure, void* const Data, const bool ForceIsEditorOnly)
 {
 	FString Path;
 	{
@@ -19,11 +19,11 @@ void GatherLocalizationDataFromPropertiesOfDataStructure(UStruct* const Structur
 	// Iterate over all fields of the object's class.
 	for (TFieldIterator<UProperty> PropIt(Structure, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
 	{
-		GatherLocalizationDataFromChildTextProperies(Path, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Data), GatherableTextDataArray, false);
+		GatherLocalizationDataFromChildTextProperies(Path, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Data));
 	}
 }
 
-void GatherLocalizationDataFromChildTextProperies(const FString& PathToParent, UProperty* const Property, void* const ValueAddress, TArray<FGatherableTextData>& GatherableTextDataArray, const bool ForceIsEditorOnly)
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextProperies(const FString& PathToParent, UProperty* const Property, void* const ValueAddress, const bool ForceIsEditorOnly)
 {
 	UTextProperty* const TextProperty = Cast<UTextProperty>(Property);
 	UArrayProperty* const ArrayProperty = Cast<UArrayProperty>(Property);
@@ -32,7 +32,7 @@ void GatherLocalizationDataFromChildTextProperies(const FString& PathToParent, U
 	// Property is a text property.
 	if (TextProperty)
 	{
-		GatherLocalizationDataFromTextProperty(PathToParent, TextProperty, ValueAddress, GatherableTextDataArray, ForceIsEditorOnly);
+		GatherLocalizationDataFromTextProperty(PathToParent, TextProperty, ValueAddress, ForceIsEditorOnly);
 	}
 	else
 	{
@@ -51,7 +51,7 @@ void GatherLocalizationDataFromChildTextProperies(const FString& PathToParent, U
 				const int32 ElementCount = ScriptArrayHelper.Num();
 				for(int32 j = 0; j < ElementCount; ++j)
 				{
-					GatherLocalizationDataFromChildTextProperies(PathToElement + FString::Printf(TEXT("(%d)"), j), ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(j), GatherableTextDataArray, ForceIsEditorOnly || (Property->PropertyFlags & CPF_EditorOnly) != 0);
+					GatherLocalizationDataFromChildTextProperies(PathToElement + FString::Printf(TEXT("(%d)"), j), ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(j), ForceIsEditorOnly || Property->HasAnyPropertyFlags(CPF_EditorOnly));
 				}
 			}
 			// Property is a struct property.
@@ -62,14 +62,14 @@ void GatherLocalizationDataFromChildTextProperies(const FString& PathToParent, U
 				{
 					const FString Path = PathToElement;
 
-					GatherLocalizationDataFromChildTextProperies(PathToElement, *PropIt, PropIt->ContainerPtrToValuePtr<void>(ElementValueAddress), GatherableTextDataArray, ForceIsEditorOnly || (Property->PropertyFlags & CPF_EditorOnly) != 0);
+					GatherLocalizationDataFromChildTextProperies(PathToElement, *PropIt, PropIt->ContainerPtrToValuePtr<void>(ElementValueAddress), ForceIsEditorOnly || Property->HasAnyPropertyFlags(CPF_EditorOnly));
 				}
 			}
 		}
 	}
 }
 
-void GatherLocalizationDataFromTextProperty(const FString& PathToParent, UTextProperty* const TextProperty, void* const ValueAddress, TArray<FGatherableTextData>& GatherableTextDataArray, const bool ForceIsEditorOnly)
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromTextProperty(const FString& PathToParent, UTextProperty* const TextProperty, void* const ValueAddress, bool ForceIsEditorOnly)
 {
 	const bool IsFixedSizeArray = TextProperty->ArrayDim > 1;
 	for(int32 i = 0; i < TextProperty->ArrayDim; ++i)
@@ -137,7 +137,7 @@ void GatherLocalizationDataFromTextProperty(const FString& PathToParent, UTextPr
 			FTextSourceSiteContext& SourceSiteContext = *(new(GatherableTextData->SourceSiteContexts) FTextSourceSiteContext);
 			SourceSiteContext.KeyName = Key;
 			SourceSiteContext.SiteDescription = PathToElement;
-			SourceSiteContext.IsEditorOnly = ForceIsEditorOnly || (TextProperty->PropertyFlags & CPF_EditorOnly) != 0;
+			SourceSiteContext.IsEditorOnly = ForceIsEditorOnly || TextProperty->HasAnyPropertyFlags(CPF_EditorOnly);
 			SourceSiteContext.IsOptional = false;
 		}
 	}

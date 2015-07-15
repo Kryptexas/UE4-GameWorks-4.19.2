@@ -28,4 +28,7 @@ private:
 private:
 	void GatherTextFromUObjects(const TArray<FString>& IncludePaths, const TArray<FString>& ExcludePaths, const FGatherParameters& Arguments);
 	void GatherTextFromUObject(UField* const Field, const FGatherParameters& Arguments);
+
+private:
+	bool ShouldGatherFromEditorOnlyData;
 };

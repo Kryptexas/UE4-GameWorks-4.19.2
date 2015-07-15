@@ -22,7 +22,8 @@ namespace
 			const FString PathToRow = PathToObject + TEXT(".") + Pair.Key.ToString();
 			for (TFieldIterator<UProperty> PropIt(DataTable->RowStruct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
 			{
-				GatherLocalizationDataFromChildTextProperies(PathToRow, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Pair.Value), GatherableTextDataArray, false);
+				FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(GatherableTextDataArray);
+				PropertyLocalizationDataGatherer.GatherLocalizationDataFromChildTextProperies(PathToRow, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Pair.Value));
 			}
 		}
 	}

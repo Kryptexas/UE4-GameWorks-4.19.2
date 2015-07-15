@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "UObject/UTextProperty.h"
@@ -3356,21 +3356,19 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
 				{
-					TArray<UObject*> TagExpObjects;
-					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
-					for (UObject* const Object : TagExpObjects)
+					TArray<UObject*> ObjectsInPackage;
+					GetObjectsWithOuter(InOuter, ObjectsInPackage, true, RF_Transient | RF_PendingKill);
+					for (UObject* const Object : ObjectsInPackage)
 					{
-						if( !Object->HasAnyFlags( RF_Transient | RF_PendingKill ) )
-						{
-							GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object, Linker->GatherableTextDataMap);
+						FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(Linker->GatherableTextDataMap);
+						PropertyLocalizationDataGatherer.GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object);
 
-							for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
+						for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
+						{
+							FLocalizationDataGatheringCallback* const CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
+							if (CustomCallback)
 							{
-								FLocalizationDataGatheringCallback* const CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
-								if (CustomCallback)
-								{
-									(*CustomCallback)(Object, Linker->GatherableTextDataMap);
-								}
+								(*CustomCallback)(Object, Linker->GatherableTextDataMap);
 							}
 						}
 					}

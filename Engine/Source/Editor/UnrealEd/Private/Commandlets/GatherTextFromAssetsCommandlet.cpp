@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PackageTools.h"
@@ -77,7 +77,10 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 			// Gather if it requires gathering and isn't in a bad state.
 			if ((NewEntry.Status & EAssetTextGatherStatus::BadBitMask) == false)
 			{
+				if (!TextSourceSiteContext.IsEditorOnly || ShouldGatherFromEditorOnlyData)
+				{
 				ManifestInfo->AddEntry(TextSourceSiteContext.SiteDescription, GatherableTextData.NamespaceName, NewEntry.SourceString.Get() ? *(NewEntry.SourceString) : TEXT(""), Context );
+			}
 			}
 
 			// Add to conflict tracker.
@@ -93,14 +96,13 @@ void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >
 	for(UPackage* const Package : PackagesToProcess)
 	{
 		TArray<UObject*> ObjectsInPackage;
-		GetObjectsWithOuter(Package, ObjectsInPackage);
+		GetObjectsWithOuter(Package, ObjectsInPackage, true, RF_Transient | RF_PendingKill);
 		for (UObject* const Object : ObjectsInPackage)
 		{
 			TArray<FGatherableTextData> GatherableTextDataArray;
 
-			if( !Object->HasAnyFlags( RF_Transient | RF_PendingKill ) )
-			{
-				GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object, GatherableTextDataArray);
+			FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(GatherableTextDataArray);
+			PropertyLocalizationDataGatherer.GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object);
 
 				for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
 				{
@@ -114,7 +116,6 @@ void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >
 				ProcessGatherableTextDataArray(Package->FileName.ToString(), GatherableTextDataArray);
 			}
 		}
-	}
 }
 
 int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
@@ -256,10 +257,10 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		bFixBroken = false;
 	}
 
-	// Get whether we should gather pin name properties that we find. Typically only useful for the localization of UE4 itself.
-	if (!GetBoolFromConfig(*SectionName, TEXT("ShouldGatherBlueprintPinNames"), ShouldGatherBlueprintPinNames, GatherTextConfigPath))
+	// Get whether we should gather editor-only data. Typically only useful for the localization of UE4 itself.
+	if (!GetBoolFromConfig(*SectionName, TEXT("ShouldGatherFromEditorOnlyData"), ShouldGatherFromEditorOnlyData, GatherTextConfigPath))
 	{
-		ShouldGatherBlueprintPinNames = false;
+		ShouldGatherFromEditorOnlyData = false;
 	}
 
 	// Add any manifest dependencies if they were provided
