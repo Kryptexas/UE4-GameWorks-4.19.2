@@ -2,6 +2,6 @@ Title: BlueprintProtected
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions, Programming/UnrealArchitecture/Reference/Functions/Specifiers
 Description: 
 Availability:Public
-Version: 4.5
+Version: 4.9
 
  This function can only be called on 'this' in a blueprint. It cannot be called on another instance.
