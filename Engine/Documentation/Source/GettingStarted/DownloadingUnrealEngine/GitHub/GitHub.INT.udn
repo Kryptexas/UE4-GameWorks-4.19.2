@@ -81,10 +81,6 @@ Description:Downloading the Unreal Engine source code from GitHub.
 	[/PARAM]
 [/OBJECT]
 
-## Next Steps
-
-Now that you've downloaded and set-up Unreal Engine, you're ready to [build the engine from source](Programming/Development/BuildingUnrealEngine).
-
 <!--
 
 There are two ways to get the source code for Unreal Engine from GitHub:

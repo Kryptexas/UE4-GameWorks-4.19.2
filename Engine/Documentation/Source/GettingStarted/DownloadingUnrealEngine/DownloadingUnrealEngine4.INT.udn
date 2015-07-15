@@ -72,6 +72,11 @@ Subscribers can download Unreal Engine's source code by:
 ### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
+
+### %GettingStarted/DownloadingUnrealEngine/DownloadZip:title%
+
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/DownloadZip]
+
 [/PUBLISH:Rocket]
 
 [/EXCERPT:Main]
