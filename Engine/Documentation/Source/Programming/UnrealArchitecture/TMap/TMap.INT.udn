@@ -4,8 +4,6 @@ Description:
 Availability:Public
 Version:4.7
 
-## Overview
-
 After TArray, the most commonly used container in Unreal Engine is TMap.  This container is an associative container, which means that every key has an associated value, and you can efficiently look up a value object by its key.
 
 There are two types of map: TMap and TMultiMap.  TMap's keys are unique, and inserting a new key-value pair when the key already exists will cause the existing pair to be replaced.  TMultiMap's keys are not unique and so existing pairs will not be replaced by new additions.

@@ -54,13 +54,13 @@ Click for full size or **right-click** and Save As.
 [/REGION]
 
 
-The parent Blueprint, **BP_Pickup_Parent**, contains script for basic pickup behavior, such as a timeline animation to make the pickup spin and float, and a sequence for collecting the pickup. 
+The parent Blueprint, BP_Pickup_Parent, contains script for basic pickup behavior, such as a timeline animation to make the pickup spin and float, and a sequence for collecting the pickup. 
 The child Blueprints inherit all of this script, but have additional script for when they are collected, so that each pickup does something different while sharing the same basic features. 
 This is useful because any updates made to the parent Blueprint's script will also apply to all its child Blueprints.
 
 
-The **OnPickedUp** [event dispatcher](Engine/Blueprints\UserGuide\EventDispatcher) is called when the player's Pawn overlaps the **Pickup Trigger** _SphereComponent_. Each child _Blueprint_ binds a different 
-event to **OnPickedUp**, so that a different string prints when the player collects each pickup and **OnPickedUp** is called.
+The OnPickedUp [event dispatcher](Engine/Blueprints\UserGuide\EventDispatcher) is called when the player's Pawn overlaps the **Pickup Trigger** _SphereComponent_. Each child _Blueprint_ binds a different 
+event to OnPickedUp, so that a different string prints when the player collects each pickup and OnPickedUp is called.
 [/EXCERPT:CoinParent]
 
 ## Child Blueprints' Event Graph
@@ -75,7 +75,7 @@ Click for full size or **right-click** and Save As.
 
 
 
-As a rule, Blueprint graphs cannot contain duplicates of the same event, so if both the parent script and the child script each contain a **ReceiveBeginPlay** event, only the event in the parent script will fire. You can get around this in the child script by **right-clicking** an event and selecting **Add call to parent function**. This will create a function that will trigger the corresponding event in the parent script when it is called.
+As a rule, Blueprint graphs cannot contain duplicates of the same event, so if both the parent script and the child script each contain a ReceiveBeginPlay event, only the event in the parent script will fire. You can get around this in the child script by **right-clicking** an event and selecting **Add call to parent function**. This will create a function that will trigger the corresponding event in the parent script when it is called.
 
 [/EXCERPT:CoinChild]
 
