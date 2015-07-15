@@ -229,9 +229,6 @@ void FRawStatsMemoryProfiler::PostProcessStats()
 		DumpDebugAllocations();
 	}
 
-	// We don't need the allocation map. Each snapshot has its own copy.
-	AllocationMap.Empty();
-
 	if (!IsProcessingStopped())
 	{
 		StageProgress.Set( 100 );
@@ -288,6 +285,9 @@ void FRawStatsMemoryProfiler::FreeDebugInformation()
 
 void FRawStatsMemoryProfiler::GenerateAllocationMap()
 {
+	/** Map of currently alive allocations. Ptr to AllocationInfo. */
+	TMap<uint64, FAllocationInfo> AllocationMap;
+
 	// Initialize the begin snapshot.
 	auto BeginSnapshot = SnapshotsToBeProcessed[0];
 
@@ -429,6 +429,9 @@ void FRawStatsMemoryProfiler::GenerateAllocationMap()
 	auto EndSnapshot = SnapshotsToBeProcessed[0];
 	SnapshotsToBeProcessed.RemoveAt( 0 );
 	PrepareSnapshot( EndSnapshot.Value, AllocationMap );
+
+	// We don't need the allocation map. Each snapshot has its own copy.
+	AllocationMap.Empty();
 
 	SnapshotNamesArray = SnapshotNamesSet.Array();
 
@@ -767,11 +770,11 @@ void FRawStatsMemoryProfiler::DumpScopedAllocations( const TCHAR* Name, const TM
 	MemoryReport.CycleRow();
 }
 
-void FRawStatsMemoryProfiler::GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, TMap<FName, FCombinedAllocationInfo>& out_CombinedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations )
+void FRawStatsMemoryProfiler::GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& InAllocationMap, TMap<FName, FCombinedAllocationInfo>& out_CombinedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations )
 {
 	FScopeLogTime SLT( TEXT( "GenerateScopedAllocations" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
 
-	for (const auto& It : AllocationMap)
+	for (const auto& It : InAllocationMap)
 	{
 		const FAllocationInfo& Alloc = It.Value;
 		FCombinedAllocationInfo& CombinedAllocation = out_CombinedAllocations.FindOrAdd( Alloc.EncodedCallstack );
@@ -785,7 +788,7 @@ void FRawStatsMemoryProfiler::GenerateScopedAllocations( const TMap<uint64, FAll
 	out_CombinedAllocations.ValueSort( FCombinedAllocationInfoSizeGreater() );
 }
 
-void FRawStatsMemoryProfiler::PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& AllocationMap )
+void FRawStatsMemoryProfiler::PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& InAllocationMap )
 {
 	FScopeLogTime SLT( TEXT( "PrepareSnapshot" ), nullptr, FScopeLogTime::ScopeLog_Milliseconds );
 
@@ -797,12 +800,12 @@ void FRawStatsMemoryProfiler::PrepareSnapshot( const FName SnapshotName, const T
 	}
 	SnapshotNamesSet.Add( UniqueSnapshotName );
 
-	SnapshotsWithAllocationMap.Add( UniqueSnapshotName, AllocationMap );
+	SnapshotsWithAllocationMap.Add( UniqueSnapshotName, InAllocationMap );
 
 	TMap<FName, FCombinedAllocationInfo> SnapshotCombinedAllocations;
 	uint64 TotalAllocatedMemory = 0;
 	uint64 NumAllocations = 0;
-	GenerateScopedAllocations( AllocationMap, SnapshotCombinedAllocations, TotalAllocatedMemory, NumAllocations );
+	GenerateScopedAllocations( InAllocationMap, SnapshotCombinedAllocations, TotalAllocatedMemory, NumAllocations );
 	SnapshotsWithScopedAllocations.Add( UniqueSnapshotName, SnapshotCombinedAllocations );
 
 	// Decode callstacks.
@@ -815,7 +818,7 @@ void FRawStatsMemoryProfiler::PrepareSnapshot( const FName SnapshotName, const T
 	}
 	SnapshotsWithDecodedScopedAllocations.Add( UniqueSnapshotName, SnapshotDecodedCombinedAllocations );
 
-	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Alloc: %i Scoped: %i Total: %.2f MB" ), *UniqueSnapshotName.ToString(), AllocationMap.Num(), SnapshotCombinedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f );
+	UE_LOG( LogStats, Warning, TEXT( "PrepareSnapshot: %s Alloc: %i Scoped: %i Total: %.2f MB" ), *UniqueSnapshotName.ToString(), InAllocationMap.Num(), SnapshotCombinedAllocations.Num(), TotalAllocatedMemory / 1024.0f / 1024.0f );
 }
 
 void FRawStatsMemoryProfiler::CompareSnapshots( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result )

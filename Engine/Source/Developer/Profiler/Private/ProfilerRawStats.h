@@ -293,12 +293,12 @@ public:
 	void DumpScopedAllocations( const TCHAR* Name, const TMap<FString, FCombinedAllocationInfo>& CombinedAllocations );
 
 	/** Generates callstack based allocation map. */
-	void GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& AllocationMap, TMap<FName, FCombinedAllocationInfo>& out_CombinedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations );
+	void GenerateScopedAllocations( const TMap<uint64, FAllocationInfo>& InAllocationMap, TMap<FName, FCombinedAllocationInfo>& out_CombinedAllocations, uint64& TotalAllocatedMemory, uint64& NumAllocations );
 
 	void GenerateScopedTreeAllocations( const TMap<FName, FCombinedAllocationInfo>& ScopedAllocations, FNodeAllocationInfo& out_Root );
 
 	/** Prepares data for a snapshot. */
-	void PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& AllocationMap );
+	void PrepareSnapshot( const FName SnapshotName, const TMap<uint64, FAllocationInfo>& InAllocationMap );
 
 	/** Compare two snapshots and saves the result for further processing. */
 	void CompareSnapshots( const FName BeginSnaphotName, const FName EndSnaphotName, TMap<FName, FCombinedAllocationInfo>& out_Result );
@@ -336,9 +336,6 @@ protected:
 	 *	 There is an assumption that the sequence tag will not turn-around.
 	 */
 	TArray<FAllocationInfo> SequenceAllocationArray;
-
-	/** Map of currently alive allocations. Ptr to AllocationInfo. */
-	TMap<uint64, FAllocationInfo> AllocationMap;
 
 	/** The sequence tag mapping to the named markers. */
 	TArray<TPair<uint32, FName>> Snapshots;
