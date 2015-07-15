@@ -21,7 +21,7 @@ class UMG_API UBorder : public UContentWidget
 public:
 
 	/** Color and opacity multiplier of content in the border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content", meta=( sRGB="true" ))
 	FLinearColor ContentColorAndOpacity;
 
 	/** A bindable delegate for the ContentColorAndOpacity. */
@@ -49,7 +49,7 @@ public:
 	FGetSlateBrush BackgroundDelegate;
 
 	/** Color and opacity of the actual border image */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, meta=( sRGB="true" ))
 	FLinearColor BrushColor;
 
 	/** A bindable delegate for the BrushColor. */

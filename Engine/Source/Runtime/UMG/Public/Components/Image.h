@@ -31,7 +31,7 @@ public:
 	FGetSlateBrush BrushDelegate;
 
 	/** Color and opacity */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, meta=( sRGB="true") )
 	FLinearColor ColorAndOpacity;
 
 	/** A bindable delegate for the ColorAndOpacity. */

@@ -33,11 +33,11 @@ public:
 	FButtonStyle WidgetStyle;
 	
 	/** The color multiplier for the button content */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance", meta=( sRGB="true" ))
 	FLinearColor ColorAndOpacity;
 	
 	/** The color multiplier for the button background */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance", meta=( sRGB="true" ))
 	FLinearColor BackgroundColor;
 
 	/** The type of mouse action required by the user to trigger the buttons 'Click' */

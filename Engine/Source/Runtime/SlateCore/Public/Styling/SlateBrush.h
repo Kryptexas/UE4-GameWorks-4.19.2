@@ -122,7 +122,7 @@ struct SLATECORE_API FSlateBrush
 	FLinearColor Tint_DEPRECATED;
 
 	/** Tinting applied to the image. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayName="Tint" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayName="Tint", sRGB="true" ))
 	FSlateColor TintColor;
 
 	/** How to tile the image in Image mode */
