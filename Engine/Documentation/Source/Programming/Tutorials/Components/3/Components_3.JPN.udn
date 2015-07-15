@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2620109
 Availability:Public
 Title:3.Pawn Movement Component のビヘイビアのコーディング
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:Pawn Movement Component でコントロールするポーンがフレームごとに動く位置の判断方法を定義するコードの記述
-
+バージョン:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -12,7 +12,7 @@ Description:Pawn Movement Component でコントロールするポーンがフ�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ][Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:title%")
@@ -22,12 +22,12 @@ Description:Pawn Movement Component でコントロールするポーンがフ�
 
 %Steps%
 
-1. **Visual Studio** に戻ってカスタム仕様の **Pawn Movement Component** をプログラミングします。ここで必要な記述は、フレーム間を移動するための TickComponent 関数です（ **アクタ** のTick 関数と類似）「 `CollidingPawnMovementComponent.h` 」ファイルのクラス定義で、 TickComponent をオーバーライドしなくてはいけません：
+1. **Visual Studio** に戻ってカスタム仕様の **Pawn Movement Component** をプログラミングします。ここで必要な記述は、フレーム間を移動するための **TickComponent** 関数です（ **アクタ** のTick 関数と類似）「CollidingPawnMovementComponent.h」ファイルのクラス定義で TickComponent をオーバーライドしなくてはいけません：
 
 		public:
 			virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;	
 
-	「 `CollidingPawnMovementComponent.cpp` 」ファイルにこの関数を定義します：
+	「CollidingPawnMovementComponent.cpp」 ファイルにこの関数を定義します：
 
 		void UCollidingPawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 		{
@@ -54,17 +54,17 @@ Description:Pawn Movement Component でコントロールするポーンがフ�
 			}
 		};
 
-	このコードは、適切な箇所でサーフェスをスライドしながら、ワールド内で **ポーン** をスムースに動かします。重力は **ポーン** に適用されず、ポーンの最大速度は1秒当たり150の **アンリアル単位** でハードコーディングされています。
+	このコードは、適切な箇所でサーフェスをスライドしながら、ワールド内で **ポーン** をスムースに動かします。重力はポーンに適用されず、ポーンの最大速度は1秒当たり150の **アンリアル単位** でハードコーディングされています。
 
 	[REGION:note]この TickComponent function は **UPawnMovementComponent** クラスが提供するパワフルな機能をいくつか利用します。
-	<br>ConsumeInputVector は、移動入力値の保存に使用するビルドイン変数の値をレポートしてクリアします。
-	<br>SafeMoveUpdatedComponent はソリッドなバリアを尊重しながら **Pawn Movement Component** の移動に **アンリアルエンジン** 物理を使用します。
-	<br>SlideAlongSurface は、その場に停止したり壁や斜面にくっつくのではなく、壁や斜面に最終的に衝突した時のコリジョンサーフェスに沿ったスムースなスライドの計算および物理を処理します。
-	<br>その他にも検討に値する機能が **Pawn Movement Components** に含まれていますが、このチュートリアルのスコープには必要ありません。**Floating Pawn Movement**、 **Spectator Pawn Movement**、 または **Character Movement Component** などその他のクラスもさらなる使用法やアイデアを与えてくれるかもしれません。[/REGION]
+	<br>**ConsumeInputVector** は、移動入力値の保存に使用するビルドイン変数の値をレポートしてクリアします。
+	<br>**SafeMoveUpdatedComponent** はソリッドなバリアを尊重しながら Pawn Movement Component の移動に **アンリアルエンジン** 物理を使用します。
+	<br>**SlideAlongSurface** は、その場に停止したり壁や斜面にくっつくのではなく、壁や斜面に最終的に衝突した時のコリジョンサーフェスに沿ったスムースなスライドの計算および物理を処理します。
+	<br>その他にも検討に値する機能が Pawn Movement Components に含まれていますが、このチュートリアルのスコープには必要ありません。**Floating Pawn Movement**、 **Spectator Pawn Movement**、 または **Character Movement Component** などその他のクラスもさらなる使用法やアイデアを与えてくれるかもしれません。[/REGION]
 
 ----
 
-**Pawn Movement Component** のビヘイビアを定義したら、カスタマイズ **Pawn** クラスにすべてをまとめるコードを記述していきます。
+Pawn Movement Component のビヘイビアを定義したら、カスタマイズ Pawn クラスにすべてをまとめるコードを記述していきます。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
