@@ -23,13 +23,17 @@ struct FSyncSettings
 	/* Auto-clobber sync? */
 	bool bAutoClobber;
 
+	/* Automatically delete stale binaries? */
+	bool bDeleteStaleBinaries;
+
 	/* Override sync step. If set then it overrides collecting sync steps and uses this one instead. */
 	FString OverrideSyncStep;
 
-	FSyncSettings(bool bInArtist, bool bInPreview, bool bInAutoClobber, FString InOverrideSyncStep = FString())
+	FSyncSettings(bool bInArtist, bool bInPreview, bool bInAutoClobber, bool bInDeleteStaleBinaries, FString InOverrideSyncStep = FString())
 		: bArtist(bInArtist)
 		, bPreview(bInPreview)
 		, bAutoClobber(bInAutoClobber)
+		, bDeleteStaleBinaries(bInDeleteStaleBinaries)
 		, OverrideSyncStep(MoveTemp(InOverrideSyncStep))
 	{ }
 
@@ -37,6 +41,7 @@ struct FSyncSettings
 		: bArtist(Other.bArtist)
 		, bPreview(Other.bPreview)
 		, bAutoClobber(Other.bAutoClobber)
+		, bDeleteStaleBinaries(Other.bDeleteStaleBinaries)
 		, OverrideSyncStep(MoveTemp(Other.OverrideSyncStep))
 	{ }
 };
@@ -162,6 +167,11 @@ private:
 	 * @returns True if succeeded. False otherwise.
 	 */
 	static bool DeleteIfExistsAndCopy(const FString& To, const FString& From);
+
+	/**
+	 * Deletes stale binaries from the workspace.
+	 */
+	static void DeleteStaleBinaries(const FOnSyncProgress& OnSyncProgress, bool bPreview);
 
 	/* Error that happened during application initialization. */
 	static FString InitializationError;

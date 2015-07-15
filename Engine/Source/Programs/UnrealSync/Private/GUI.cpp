@@ -1324,6 +1324,18 @@ public:
 					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top).Padding(0.0f, 0.0f, 10.0f, 0.0f)
 					[
 						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						[
+							SAssignNew(DeleteStaleBinariesOnSuccessfulSync, SPreservableCheckBox)
+							[
+								SNew(STextBlock).Text(LOCTEXT("DeleteStaleBinariesOnSuccessfulSync", "Delete stale binaries?"))
+							]
+						]
+						+ SVerticalBox::Slot().AutoHeight()
+					]
+					+ SHorizontalBox::Slot().AutoWidth()
+					[
+						SNew(SVerticalBox)
 						+SVerticalBox::Slot()
 						[
 							SAssignNew(AutoClobberSyncCheckBox, SPreservableCheckBox)
@@ -1491,6 +1503,7 @@ public:
 			Action.Serialize("IsArtist", Object.ArtistSyncCheckBox);
 			Action.Serialize("IsPreview", Object.PreviewSyncCheckBox);
 			Action.Serialize("IsAutoClobber", Object.AutoClobberSyncCheckBox);
+			Action.Serialize("ShouldDeleteStaleBinariesOnSuccessfulSync", Object.DeleteStaleBinariesOnSuccessfulSync);
 			Action.Serialize("ShouldRunUE4AfterSync", Object.RunUE4AfterSyncCheckBox);
 			Action.Serialize("RadioSelection", Object.RadioSelection);
 			Action.Serialize("LatestPromoted", Object.LatestPromoted);
@@ -1877,6 +1890,7 @@ private:
 			ArtistSyncCheckBox->IsChecked(),
 			PreviewSyncCheckBox->IsChecked(),
 			AutoClobberSyncCheckBox->IsChecked(),
+			DeleteStaleBinariesOnSuccessfulSync->IsChecked(),
 			OverrideSyncStep);
 
 		Switcher->SetActiveWidgetIndex(1);
@@ -2141,6 +2155,8 @@ private:
 	TSharedPtr<SPreservableCheckBox> AutoClobberSyncCheckBox;
 	/* Check box to tell if UnrealSync should run UE4 after sync. */
 	TSharedPtr<SPreservableCheckBox> RunUE4AfterSyncCheckBox;
+	/* Check box to tell if UnrealSync should delete stale binaries on successful sync. */
+	TSharedPtr<SPreservableCheckBox> DeleteStaleBinariesOnSuccessfulSync;
 
 	/* External thread requests dispatcher. */
 	TSharedRef<FExternalThreadsDispatcher, ESPMode::ThreadSafe> ExternalThreadsDispatcher;
