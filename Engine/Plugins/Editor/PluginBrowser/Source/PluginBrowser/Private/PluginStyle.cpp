@@ -144,6 +144,13 @@ void FPluginStyle::Initialize()
 				StyleSet->Set( "PluginTile.NameText", NameText );
 			}
 
+			FTextBlockStyle DescriptionText = FTextBlockStyle(NormalText)
+				.SetColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f));
+			{
+				DescriptionText.Font.Size = 10;
+				StyleSet->Set("PluginTile.DescriptionText", DescriptionText);
+			}
+
 			FTextBlockStyle BetaText = FTextBlockStyle( NormalText )
 				.SetColorAndOpacity( FLinearColor( 0.9f, 0.9f, 0.9f ) );
 			{

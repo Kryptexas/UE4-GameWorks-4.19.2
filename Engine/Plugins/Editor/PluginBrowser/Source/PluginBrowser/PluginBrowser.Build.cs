@@ -24,21 +24,24 @@ namespace UnrealBuildTool.Rules
 					"UnrealEd",
 					"PropertyEditor",
 					"SharedSettingsWidgets",
-					"DirectoryWatcher"
+					"DirectoryWatcher",
+					"GameProjectGeneration",
 				}
 			);
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
+					"DesktopPlatform",
 					"GameProjectGeneration",
 				}
 			);
 
-			DynamicallyLoadedModuleNames.AddRange(
+			// TODO: Move back to using this if we can remove dependencies on GameProjectUtils
+			/*DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"GameProjectGeneration",
 				}
-			);
+			);*/
 		}
 	}
 }

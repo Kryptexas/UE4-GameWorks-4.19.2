@@ -63,6 +63,9 @@ private:
 	/** One-off active timer to trigger a refresh of the breadcrumb trail as needed */
 	EActiveTimerReturnType TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime);
 
+	/** Handle the "new plugin" button being clicked */
+	FReply HandleNewPluginButtonClicked() const;
+
 private:
 	/** Handles to the directory changed delegates */
 	TMap<FString, FDelegateHandle> WatchDirectories;

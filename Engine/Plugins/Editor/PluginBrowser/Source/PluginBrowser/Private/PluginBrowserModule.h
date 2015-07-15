@@ -23,4 +23,10 @@ public:
 
 	/** ID name for the plugins editor major tab */
 	static const FName PluginsEditorTabName;
+
+	/** ID name for the plugin creator tab */
+	static const FName PluginCreatorTabName;
+
+private:
+	TSharedRef<SDockTab> HandleSpawnPluginCreatorTab(const FSpawnTabArgs& SpawnTabArgs);
 };

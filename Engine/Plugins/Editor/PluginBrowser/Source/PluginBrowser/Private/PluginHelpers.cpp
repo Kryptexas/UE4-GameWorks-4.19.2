@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginCreatorPrivatePCH.h"
+#include "PluginBrowserPrivatePCH.h"
 #include "PluginHelpers.h"
 #include "GameProjectUtils.h"
 
@@ -8,7 +8,7 @@
 
 bool FPluginHelpers::ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason)
 {
-	const FString FullFileName = GetPluginCreatorRootPath() / TEXT("Templates") / TemplateFileName;
+	const FString FullFileName = IPluginManager::Get().FindPlugin(TEXT("PluginBrowser"))->GetBaseDir() / TEXT("Templates") / TemplateFileName;
 	if (FFileHelper::LoadFileToString(OutFileContents, *FullFileName))
 	{
 		return true;
@@ -78,7 +78,7 @@ bool FPluginHelpers::CreatePluginHeaderFile(const FString& FolderPath, const FSt
 	return GameProjectUtils::WriteOutputFile(FolderPath / PluginName + TEXT(".h"), FinalOutput, OutFailReason);
 }
 
-bool FPluginHelpers::CreatePluginCPPFile(const FString& FolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType, bool bMakeEditorMode, FEdModeSettings EdModeSettings)
+bool FPluginHelpers::CreatePluginCPPFile(const FString& FolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType, bool bMakeEditorMode, bool bUsesToolkits)
 {
 	FString Template;
 
@@ -93,11 +93,12 @@ bool FPluginHelpers::CreatePluginCPPFile(const FString& FolderPath, const FStrin
 	FString RegisterModeString;
 	FString UnRegisterModeString;
 
-	if (bMakeEditorMode && !EdModeSettings.Name.IsEmpty())
+	if (bMakeEditorMode)
 	{
-		PublicHeaderIncludes.Add(FString::Printf(TEXT("%s.h"), *(EdModeSettings.Name)));
-		RegisterModeString = EdModeSettings.MakeRegisterModeString();
-		UnRegisterModeString = EdModeSettings.MakeUnRegisterModeString();
+		FString EdModeName = PluginName + TEXT("EdMode");
+		PublicHeaderIncludes.Add(FString::Printf(TEXT("%s.h"), *(EdModeName)));
+		RegisterModeString = MakeRegisterEdModeString(EdModeName, bUsesToolkits);
+		UnRegisterModeString = MakeUnRegisterEdModeString(EdModeName);
 	}
 
 	FString	FinalOutput = Template.Replace(TEXT("%PUBLIC_HEADER_INCLUDES%"), *GameProjectUtils::MakeIncludeList(PublicHeaderIncludes), ESearchCase::CaseSensitive);
@@ -215,9 +216,9 @@ bool FPluginHelpers::CreatePluginStyleFiles(const FString& PrivateFolderPath, co
 	
 }
 
-bool FPluginHelpers::CreatePluginEdModeFiles(const FString& PrivateFolderPath, const FString& PublicFolderPath, const FString& PluginName, FEdModeSettings EdModeSettings, FText& OutFailReason, FString TemplateType /*= FString("")*/)
+bool FPluginHelpers::CreatePluginEdModeFiles(const FString& PrivateFolderPath, const FString& PublicFolderPath, const FString& PluginName, bool bUsesToolkits, bool bIncludeSampleUI, FText& OutFailReason, FString TemplateType /*= FString("")*/)
 {
-	FString EdModeName = EdModeSettings.Name;
+	FString EdModeName = PluginName +  + TEXT("EdMode");
 
 	{
 		// Make EdMode.h file first
@@ -251,9 +252,9 @@ bool FPluginHelpers::CreatePluginEdModeFiles(const FString& PrivateFolderPath, c
 			return false;
 		}
 
-		FString UsesToolkit = EdModeSettings.bUsesToolkits ? TEXT("true") : TEXT("false");
-		FString BeginComment = EdModeSettings.bUsesToolkits ? TEXT("") : TEXT("/*");
-		FString EndComment = EdModeSettings.bUsesToolkits ? TEXT("") : TEXT("*/");
+		FString UsesToolkit = bUsesToolkits ? TEXT("true") : TEXT("false");
+		FString BeginComment = bUsesToolkits ? TEXT("") : TEXT("/*");
+		FString EndComment = bUsesToolkits ? TEXT("") : TEXT("*/");
 
 		FString	FinalOutput = Template.Replace(TEXT("%PLUGIN_NAME%"), *PluginName, ESearchCase::CaseSensitive);
 		FinalOutput = FinalOutput.Replace(TEXT("%MODE_NAME%"), *EdModeName, ESearchCase::CaseSensitive);
@@ -269,7 +270,7 @@ bool FPluginHelpers::CreatePluginEdModeFiles(const FString& PrivateFolderPath, c
 	}
 
 	// Make toolkit files if necessary
-	if (EdModeSettings.bUsesToolkits)
+	if (bUsesToolkits)
 	{
 		{
 			FString Template;
@@ -300,7 +301,7 @@ bool FPluginHelpers::CreatePluginEdModeFiles(const FString& PrivateFolderPath, c
 
 			FString SampleUITemplate = TEXT("");
 
-			if (EdModeSettings.bIncludeSampleUI)
+			if (bIncludeSampleUI)
 			{
 				TemplateFileName = TEXT("ToolkitUI.template");
 

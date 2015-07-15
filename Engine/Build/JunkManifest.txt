@@ -54,6 +54,9 @@ Engine\Binaries\Win64\NotForLicensees\*-XMPP*.*
 Engine\Binaries\DotNET\AutomationScripts\NoRedist\FotniteGame.Automation.*
 Engine\Plugins\Editor\IntroTutorials\Binaries\Win64\*-IntroTutorials*.*
 Engine\Plugins\Editor\IntroTutorials\Binaries\Mac\*-IntroTutorials*.*
+Engine\Plugins\Editor\PluginCreator\Binaries\Linux\*-PluginCreator*.*
+Engine\Plugins\Editor\PluginCreator\Binaries\Mac\*-PluginCreator*.*
+Engine\Plugins\Editor\PluginCreator\Binaries\Win64\*-PluginCreator*.*
 Engine\Plugins\Script\ScriptEditorPlugin\Binaries\Mac\*
 Engine\Plugins\Script\ScriptEditorPlugin\Binaries\Win64\*
 Engine\Plugins\Script\ScriptGeneratorPlugin\Binaries\Mac\*
