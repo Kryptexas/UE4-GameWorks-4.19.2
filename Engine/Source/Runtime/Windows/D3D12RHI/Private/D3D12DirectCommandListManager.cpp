@@ -1,6 +1,10 @@
 #include "D3D12RHIPrivate.h"
 #include "Windows.h"
 
+
+extern bool D3D12RHI_ShouldCreateWithD3DDebug();
+
+
 FD3D12Fence::FD3D12Fence()
 	: CurrentFence(-1)
 	, LastCompletedFence(-1)
