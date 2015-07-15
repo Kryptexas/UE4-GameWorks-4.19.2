@@ -3465,7 +3465,7 @@ void SLevelViewport::EndPlayInEditorSession()
 		ActiveViewport->OnPlayWorldViewportSwapped(*InactiveViewport);
 
 		// Play in editor viewport was active, swap back to our level editor viewport
-		ActiveViewport->SetViewportClient( NULL );
+		ActiveViewport->SetViewportClient( nullptr );
 
 		// We should be the only thing holding on to viewports
 		check( ActiveViewport.IsUnique() );
@@ -3481,8 +3481,11 @@ void SLevelViewport::EndPlayInEditorSession()
 	}
 	else
 	{
-		InactiveViewport->SetViewportClient( NULL );
+		InactiveViewport->SetViewportClient( nullptr );
 	}
+
+	// Remove camera roll from any PIE camera applied in this viewport. A rolled camera is hard to use for editing
+	LevelViewportClient->RemoveCameraRoll();
 
 	// Reset the inactive viewport
 	InactiveViewport.Reset();
