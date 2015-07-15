@@ -611,7 +611,7 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 {
 	Super::TickPose(DeltaTime, bNeedsValidRootMotion);
 
-	if (!bEnableUpdateRateOptimizations || !AnimUpdateRateParams->ShouldSkipUpdate())
+	if (AnimUpdateRateParams != nullptr && (!bEnableUpdateRateOptimizations || !AnimUpdateRateParams->ShouldSkipUpdate()))
 	{
 		float TimeAdjustment = AnimUpdateRateParams->GetTimeAdjustment();
 		TickAnimation(DeltaTime + TimeAdjustment);

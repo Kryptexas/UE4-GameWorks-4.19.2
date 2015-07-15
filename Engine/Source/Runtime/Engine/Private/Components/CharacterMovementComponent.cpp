@@ -6581,6 +6581,12 @@ void UCharacterMovementComponent::MoveAutonomous
 	
 	PerformMovement(DeltaTime);
 
+	// Check if data is valid as PerformMovement can mark character for pending kill
+	if (!HasValidData())
+	{
+		return;
+	}
+
 	// If not playing root motion, tick animations after physics. We do this here to keep events, notifies, states and transitions in sync with client updates.
 	if( !CharacterOwner->bClientUpdating && !CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh() )
 	{
