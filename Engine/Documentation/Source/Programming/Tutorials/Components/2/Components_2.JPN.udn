@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573818
+﻿INTSourceChangelist:2620109
 Availability:Public
 Title:2.入力設定とPawn Movement Componentの作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:ポーンの移動方法を定義する入力設定とカスタムPawn Movement Component の構築
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:title%")
@@ -22,11 +23,11 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 
 %Steps%
 
-1. **アンリアルエディタ** へ戻って、プロジェクトの入力設定を行います。設定値は **Edit（編集）** ドロップダウンメニューの **Project Settings（プロジェクト設定）** にあります。
+1. **アンリアルエディタ** へ戻って、プロジェクトの入力設定を行います。設定値は **Edit** ドロップダウンメニューの **Project Settings** にあります。
 
 	[![](EditProjectSettings.png)](EditProjectSettings.png)
 
-	設定メニューに移動したら、左パネルの **エンジン** セクションから **Input（入力）** を選択します。パーティクルシステムの切り替えを設定する **Action Mapping（アクションマッピング）** 、 **ポーン** を動かす2つの **Axis Mappings** 、そして **ポーン** を回転するためにもう一つの **Axis Mapping** を設定しなくてはいけません。
+	設定メニューに移動したら、左パネルの **エンジン** セクションから **Input（入力）** を選択します。パーティクルシステムの切り替えを設定する **Action Mapping** 、 **ポーン** を動かす2つの **Axis Mappings** 、そしてポーンを回転するためにもう一つの **Axis Mapping** を設定しなくてはいけません。
 
 	| ----- | ----- | ----- |
 	| Action Mapping | | |
@@ -42,11 +43,11 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 
 	[![](InputSettings.png)](InputSettings.png)
 
-1. **Pawn** クラスですべての動きを直接処理する代わりに、動きを管理する **Movement Component** を作成します。このチュートリアルでは、 **Pawn Movement Component** クラスを拡張します。最初に **ファイル** のドロップダウンメニューから **Add Code to Project（コードをプロジェクトに追加）** コマンドを選択します。
+1. Pawn クラスですべての動きを直接処理する代わりに、動きを管理する **Movement Component** を作成します。このチュートリアルでは、 **Pawn Movement Component** クラスを拡張します。最初に **ファイル** のドロップダウンメニューから **Add Code to Project** コマンドを選択します。
 
 	[![](AddCPPCode.png)](AddCPPCode.png)
 
-	**Pawn** クラスとは異なり、 **Pawn Movement Component** はデフォルトで表示されません。このコマンドを探すには、 **Show All Classes（すべてのクラスを表示）** オプションにチェックをいれなくてはいけません。
+	Pawn クラスとは異なり、 Pawn Movement Component はデフォルトで表示されません。このコマンドを探すには、 **Show All Classes** オプションにチェックをいれなくてはいけません。
 
 	[![](ShowAllClasses.png)](ShowAllClasses.png)
 
@@ -54,15 +55,15 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 
 	[![](ChooseParentClass.png)](ChooseParentClass.png)
 
-	[REGION:tip]**Pawn Movement Components** にはパワフルな内蔵機能がいくつかあり共通の物理機能に役立ちます。また、多数ある **Pawn** タイプの間で移動コードの共有に最適な方法です。プロジェクトが大きくなるにつれて乱雑な状態になったり **ポーン** がより複雑になることを防ぐために、機能の分割に **コンポーネント** を使用することはグッドプラクティスです。[/REGION]
+	[REGION:tip]Pawn Movement Components にはパワフルな内蔵機能がいくつかあり共通の物理機能に役立ちます。また、多数ある Pawn タイプの間で移動コードの共有に最適な方法です。プロジェクトが大きくなるにつれて乱雑な状態になったりポーンがより複雑になることを防ぐために、機能の分割にコンポーネントを使用することはグッドプラクティスです。[/REGION]
 
-	**Pawn** クラスを "CollidingPawn" と呼ぶため、このクラスを "CollidingPawnMovementComponent" と呼びましょう。
+	**Pawn** クラスを "CollidingPawn" と呼んでいたため、このクラスは "CollidingPawnMovementComponent" と呼びましょう。
 
 	[![](NameComponent.png)](NameComponent.png)
 
 ----
 
-これで入力設定を定義して、カスタム **Pawn Movement Component** を作成しました。**Visual Studio** に戻って、 **Pawn Movement Component** を使用時の **ポーン** の移動方法を定義するためにコードを記述しましょう。
+これで入力設定を定義して、カスタム Pawn Movement Component を作成しました。**Visual Studio** に戻って、 Pawn Movement Component を使用時の ポーン の移動方法を定義するためにコードを記述しましょう。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -95,8 +96,8 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 
 				virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input（入力と機能を連結するために呼ばれます）
-				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
+				// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
+				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 				UParticleSystemComponent* OurParticleSystem;
 			};
@@ -110,7 +111,7 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 			// Sets default values（デフォルト値を設定）
 			ACollidingPawn::ACollidingPawn()
 			{
- 				// Set this pawn to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このアクタがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+ 				// Set this pawn to call Tick() every frame.（フレームごとに Tick() を呼び出すためこのポーンを設定）You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
 				PrimaryActorTick.bCanEverTick = true;
 
 				// Our root component will be a sphere that reacts to physics（ルートコンポーネントは物理に反応するスフィアになります）
@@ -171,7 +172,7 @@ Description:ポーンの移動方法を定義する入力設定とカスタムPa
 
 			}
 
-			// Called to bind functionality to input（入力と機能を連結するために呼ばれます）
+			// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
 			void ACollidingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 			{
 				Super::SetupPlayerInputComponent(InputComponent);
