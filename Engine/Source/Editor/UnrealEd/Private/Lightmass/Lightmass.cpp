@@ -2321,10 +2321,11 @@ FLightmassProcessor::FLightmassProcessor(const FStaticLightingSystem& InSystem, 
 
 FLightmassProcessor::~FLightmassProcessor()
 {
+	// Note: the connection must be closed before deleting anything that SwarmCallback accesses
+	Swarm.CloseConnection();
+
 	delete Exporter;
 	delete Importer;
-
-	Swarm.CloseConnection();
 
 	for ( TMap<FGuid, FMappingImportHelper*>::TIterator It(ImportedMappings); It; ++It )
 	{
