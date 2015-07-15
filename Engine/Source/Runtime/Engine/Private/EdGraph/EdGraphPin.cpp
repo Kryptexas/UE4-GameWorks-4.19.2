@@ -260,6 +260,7 @@ FString UEdGraphPin::GetDefaultAsString() const
 	}
 }
 
+#if WITH_EDITORONLY_DATA
 FText UEdGraphPin::GetDisplayName() const
 {
 	FText DisplayName = FText::GetEmpty();
@@ -281,6 +282,7 @@ FText UEdGraphPin::GetDisplayName() const
 	}
 	return DisplayName;
 }
+#endif // WITH_EDITORONLY_DATA
 
 const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, const FString& InInfoData, const UEdGraphPin* InToPin ) const
 {

@@ -610,8 +610,10 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 */
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const { return FLinearColor::Black; }
 
+#if WITH_EDITORONLY_DATA
 	/** Get the name to show in the editor */
 	virtual FText GetPinDisplayName(const UEdGraphPin* Pin) const;
+#endif // WITH_EDITORONLY_DATA
 
 	/**
 	 * Takes the PinDescription and tacks on any other data important to the 
