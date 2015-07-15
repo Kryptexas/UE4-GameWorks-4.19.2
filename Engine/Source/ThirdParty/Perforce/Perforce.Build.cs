@@ -36,7 +36,8 @@ public class Perforce : ModuleRules
         {
             if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
                 LibPostfixAndExt = "d.";
-            if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+
+            if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 || WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
             {
                 P4APIPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Perforce/p4api-2014.2/";
             }
