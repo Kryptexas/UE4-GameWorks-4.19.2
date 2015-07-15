@@ -11,22 +11,21 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "SceneUtils.h"
 
-static TAutoConsoleVariable<int32> CVarAmbientOcclusionSampleSetQuality(
-	TEXT("r.AmbientOcclusionSampleSetQuality"),
-	-1,
-	TEXT("Defines how many samples we use for ScreenSpace Ambient Occlusion\n")
-	TEXT("-1: sample count depends on post process settings (default)\n")
-	TEXT("0: low sample count (defined in shader, 3 * 2 per pixel)\n")
-	TEXT("1: high sample count (defined in shader, 6 * 2 per pixel)"),
+static TAutoConsoleVariable<int32> CVarAmbientOcclusionMaxQuality(
+	TEXT("r.AmbientOcclusionMaxQuality"),
+	100,
+	TEXT("Defines the max clamping value from the post process volume's quality level for ScreenSpace Ambient Occlusion\n")
+	TEXT(" 100: don't override quality level from the post process volume (default)\n")
+	TEXT(" <100: clamp down quality level from the post process volume to the maximum set by this cvar"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarAmbientOcclusionStepMipLevelFactor(
 	TEXT("r.AmbientOcclusionMipLevelFactor"),
 	0.5f,
 	TEXT("Controle mipmap level according to the SSAO step id\n")
-	TEXT("0: always look into the HZB mipmap level 0 (memory cache trashing)\n")
-	TEXT("0.5: sample count depends on post process settings (default)\n")
-	TEXT("1: Go into higher mipmap level (quality loss)"),
+	TEXT(" 0: always look into the HZB mipmap level 0 (memory cache trashing)\n")
+	TEXT(" 0.5: sample count depends on post process settings (default)\n")
+	TEXT(" 1: Go into higher mipmap level (quality loss)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters,TEXT("CameraMotion"));
@@ -217,13 +216,16 @@ public:
 
 
 // #define avoids a lot of code duplication
+#define VARIATION0(C)	    VARIATION1(0, C) VARIATION1(1, C)
 #define VARIATION1(A, C)	VARIATION2(A, 0, C) VARIATION2(A, 1, C)
 #define VARIATION2(A, B, C) typedef FPostProcessAmbientOcclusionPS<A, B, C> FPostProcessAmbientOcclusionPS##A##B##C; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessAmbientOcclusionPS##A##B##C, SF_Pixel);
 
-	VARIATION1(0,0) VARIATION1(1,0)
-	VARIATION1(0,1) VARIATION1(1,1)
-
+	VARIATION0(0)
+	VARIATION0(1)
+	VARIATION0(2)
+	
+#undef VARIATION0
 #undef VARIATION1
 #undef VARIATION2
 
@@ -457,43 +459,36 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	int32 SampleSetQuality = CVarAmbientOcclusionSampleSetQuality.GetValueOnRenderThread();
-
-	if(SampleSetQuality < 0)
-	{
-		SampleSetQuality = 0;
-
-		// SampleSetQuality depends on post process settings
-		if(Context.View.FinalPostProcessSettings.AmbientOcclusionQuality > 60.0f)
-		{
-			SampleSetQuality = 1;
-		}
-	}
-
+	const float QualityPercent = FMath::Min(float(CVarAmbientOcclusionMaxQuality.GetValueOnRenderThread()), Context.View.FinalPostProcessSettings.AmbientOcclusionQuality);
+	const int32 QualitySet = 
+		(QualityPercent > 60.0f) +
+		(QualityPercent > 25.0f);
 	bool bDoUpsample = (InputDesc2 != 0);
 
-	if(bAOSetupAsInput)
+#define SET_SHADER_CASE(Quality)                                \
+	case Quality:			                                    \
+	if(bAOSetupAsInput)                                         \
+    {                                                           \
+		if(bDoUpsample) SetShaderTempl<1, 1, Quality>(Context); \
+		else SetShaderTempl<1, 0, Quality>(Context);            \
+	}                                                           \
+	else                                                        \
+    {                                                           \
+		if(bDoUpsample) SetShaderTempl<0, 1, Quality>(Context); \
+		else SetShaderTempl<0, 0, Quality>(Context);            \
+	}                                                           \
+	break
+
+	switch(QualitySet)
 	{
-		if(bDoUpsample)
-		{
-			if(SampleSetQuality) SetShaderTempl<1, 1, 1>(Context); else SetShaderTempl<1, 1, 0>(Context);
-		}
-		else
-		{
-			if(SampleSetQuality) SetShaderTempl<1, 0, 1>(Context); else SetShaderTempl<1, 0, 0>(Context);
-		}
-	}
-	else
-	{
-		if(bDoUpsample)
-		{
-			if(SampleSetQuality) SetShaderTempl<0, 1, 1>(Context); else SetShaderTempl<0, 1, 0>(Context);
-		}
-		else
-		{
-			if(SampleSetQuality) SetShaderTempl<0, 0, 1>(Context); else SetShaderTempl<0, 0, 0>(Context);
-		}
-	}
+		SET_SHADER_CASE(0);
+		SET_SHADER_CASE(1);
+		SET_SHADER_CASE(2);
+		default:
+			break;
+	};
+
+#undef SET_SHADER_CASE
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 

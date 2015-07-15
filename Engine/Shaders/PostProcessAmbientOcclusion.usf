@@ -10,7 +10,7 @@
 
 // set by C++:
 //
-// 0:low / 1:high
+// 0:low / 1: medium / 2:high
 // SAMPLESET_QUALITY
 //
 // 0:no / 1:yes
@@ -26,7 +26,7 @@
 #define OPTIMIZATION_O1 1
 
 // 1:lowest quality, 2:medium , 3:high, more doesn't give too much (maybe HZB mip computations should be adjusted)
-#define SAMPLE_STEPS 3
+//#define SAMPLE_STEPS 3
 
 // 0:does not use normals (slightly faster, lower quality, WIP = not finished), 1: uses normals (slower but higher quality)
 #define SSAO_NORMAL_AFFECTED 1
@@ -40,9 +40,15 @@
 #if SAMPLESET_QUALITY == 0
 	// low
 	#define USE_SAMPLESET 1
-#else
+	#define SAMPLE_STEPS 1
+#elif SAMPLESET_QUALITY == 1
+	// medium
+	#define USE_SAMPLESET 1
+	#define SAMPLE_STEPS 3
+#else // SAMPLESET_QUALITY == 2
 	// high
 	#define USE_SAMPLESET 3
+	#define SAMPLE_STEPS 3
 #endif
 
 // 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
