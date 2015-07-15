@@ -4,8 +4,6 @@ Description:
 Availability:Public
 Version:4.7
 
-## Overview
-
 The primary go-to container class is TArray.  TArray is a class which is responsible for the ownership and organization of a sequence of other objects (called elements) of the same type.  As a TArray is a sequence, its elements have a well-defined order and its methods are used to deterministically manipulate those objects and their order.
 
 ## TArray
