@@ -448,7 +448,7 @@ private:
 		return ShaderData;
 	}
 
-	virtual bool UsesExtraBoneInfluences() const = 0;
+	virtual bool UsesExtraBoneInfluences() const { return false; }
 
 	/**
 	 * Set the data with the given frame number, keeps data for the last frame.
