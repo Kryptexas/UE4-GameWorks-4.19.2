@@ -79,17 +79,17 @@ To enable this functionality, you need to make sure that the Material meets the 
 
 1. First make sure that the Material that you want to preview is applied to something in the level. 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-SvCjqU1XDzY
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	SvCjqU1XDzY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. Inside of the Material, make sure that you are using **Scalar** or **Vector Parameters** as inputs for the properties you want to change. 
 	Previewing like this will not work with **Constant** Material Expression nodes, you have to use or convert the Material Expression nodes you want to tweak into **Parameter** nodes.
@@ -111,45 +111,45 @@ SvCjqU1XDzY
 	The adjustments that you make should then be displayed, in real time, in the level viewport.
  
 	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:width]
-		640
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		360
-		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		gKSnoGXuaKQ
-		[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	gKSnoGXuaKQ
+	[/PARAMLITERAL]
 	[/OBJECT]
 
 ## How to Apply your Materials 
 
 There are two main ways that you can apply Materials to objects inside of UE4.
 * **Drag and Drop** - You can drag any Material from the **Content Browser** and then drop it on any object in the level to change its material like in the following example:
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-57tC0KaB2BU
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	57tC0KaB2BU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 * **Apply via Object's Details Panel** - You can also apply materials via the object's **Details** panel by using the **Use selected asset from Content Browser** button like in the following example.
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-fSLRV947n7A
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	fSLRV947n7A
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 ## Conclusion
