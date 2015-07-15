@@ -2177,6 +2177,8 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 				continue;
 			}
 
+			Component->Modify();
+
 			int32 UpdateLayerIdx = Component->WeightmapLayerAllocations.IndexOfByPredicate([LayerInfo](const FWeightmapLayerAllocationInfo& Allocation){ return Allocation.LayerInfo == LayerInfo; });
 
 			// Need allocation for weightmap
@@ -2191,8 +2193,6 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 				{
 					continue;
 				}
-
-				Component->Modify();
 
 				UpdateLayerIdx = Component->WeightmapLayerAllocations.Num();
 				new (Component->WeightmapLayerAllocations) FWeightmapLayerAllocationInfo(LayerInfo);
