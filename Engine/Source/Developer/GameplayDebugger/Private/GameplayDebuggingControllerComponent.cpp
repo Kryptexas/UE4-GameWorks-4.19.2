@@ -446,7 +446,7 @@ void UGameplayDebuggingControllerComponent::ToggleDebugCamera()
 	{
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.Owner = PlayerOwner->GetWorldSettings();
 			SpawnInfo.Instigator = PlayerOwner->Instigator;
 			DebugCameraController = GetWorld()->SpawnActor<ADebugCameraController>(SpawnInfo);
@@ -463,7 +463,7 @@ void UGameplayDebuggingControllerComponent::ToggleDebugCamera()
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.Owner = PlayerOwner.Get();
 			SpawnInfo.Instigator = PlayerOwner->Instigator;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.ObjectFlags |= RF_Transient;	// We never want these to save into a map
 			AGaneplayDebuggerProxyHUD* ProxyHUD = GetWorld()->SpawnActor<AGaneplayDebuggerProxyHUD>(SpawnInfo);
 			ProxyHUD->RedirectedHUD = PlayerOwner->MyHUD;

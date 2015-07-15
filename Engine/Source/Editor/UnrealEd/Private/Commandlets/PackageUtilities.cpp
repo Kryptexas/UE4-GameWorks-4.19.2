@@ -2442,7 +2442,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 
 						FActorSpawnParameters SpawnInfo;
 						SpawnInfo.OverrideLevel = Level;
-						SpawnInfo.bNoCollisionFail = true;
+						SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 						// spawn the new actor
 						AActor* NewActor = World->SpawnActor<AActor>( ReplaceWithClass, OldLocation, OldRotator, SpawnInfo );
 

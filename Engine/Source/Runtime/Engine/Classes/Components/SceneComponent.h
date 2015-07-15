@@ -839,7 +839,7 @@ public:
 	/** Update the Bounds of the component.*/
 	virtual void UpdateBounds();
 
-	/** If true, bounds should be used when placing component/actor in level, and spawning may fail */
+	/** If true, bounds should be used when placing component/actor in level. Does not affect spawning. */
 	virtual bool ShouldCollideWhenPlacing() const
 	{
 		return false;

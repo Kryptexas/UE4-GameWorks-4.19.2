@@ -1150,7 +1150,7 @@ void FHeadMountedDisplay::DrawSeaOfCubes(UWorld* World, FVector ViewLocation)
 	if (frame->Settings->Flags.bDrawCubes && !SeaOfCubesActorPtr.IsValid())
 	{
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.bNoFail = true;
 		SpawnInfo.ObjectFlags = RF_Transient;
 		AStaticMeshActor* SeaOfCubesActor;

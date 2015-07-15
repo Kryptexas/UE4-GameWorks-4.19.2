@@ -1085,7 +1085,7 @@ void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
 		if( PlayerStart == NULL )
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			PlayerStart = World->SpawnActor<AActor>( APlayerStart::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo );
 
 			bCreatedPlayerStart = true;

@@ -56,6 +56,7 @@ APawn::APawn(const FObjectInitializer& ObjectInitializer)
 	BaseEyeHeight = 64.0f;
 	AllowedYawError = 10.99f;
 	bCollideWhenPlacing = true;
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 	bProcessingOutsideWorldBounds = false;
 
 	bUseControllerRotationPitch = false;
@@ -296,7 +297,7 @@ void APawn::SpawnDefaultController()
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.Instigator = Instigator;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.OverrideLevel = GetLevel();
 		SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save AI controllers into a map
 		AController* NewController = GetWorld()->SpawnActor<AController>(AIControllerClass, GetActorLocation(), GetActorRotation(), SpawnInfo);

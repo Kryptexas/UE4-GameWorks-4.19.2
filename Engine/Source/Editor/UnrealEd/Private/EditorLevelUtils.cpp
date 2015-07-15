@@ -230,7 +230,7 @@ namespace EditorLevelUtils
 				if (SubLevelWorld != NULL)
 				{
 					FActorSpawnParameters SpawnInfo;
-					SpawnInfo.bNoCollisionFail = true;
+					SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 					SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
 					AWorldSettings* NewWorldSettings = SubLevelWorld->SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
 					NewLevel->Actors[0] = NewWorldSettings;

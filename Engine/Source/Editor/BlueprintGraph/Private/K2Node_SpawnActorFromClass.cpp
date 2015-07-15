@@ -6,6 +6,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_EnumLiteral.h"
 
 struct FK2Node_SpawnActorFromClassHelper
 {
@@ -13,13 +14,15 @@ struct FK2Node_SpawnActorFromClassHelper
 	static FString ClassPinName;
 	static FString SpawnTransformPinName;
 	static FString NoCollisionFailPinName;
+	static FString CollisionHandlingOverridePinName;
 	static FString OwnerPinName;
 };
 
 FString FK2Node_SpawnActorFromClassHelper::WorldContextPinName(TEXT("WorldContextObject"));
 FString FK2Node_SpawnActorFromClassHelper::ClassPinName(TEXT("Class"));
 FString FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName(TEXT("SpawnTransform"));
-FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));
+FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
+FString FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName(TEXT("CollisionHandlingOverride"));
 FString FK2Node_SpawnActorFromClassHelper::OwnerPinName(TEXT("Owner"));
 
 #define LOCTEXT_NAMESPACE "K2Node_SpawnActorFromClass"
@@ -53,9 +56,13 @@ void UK2Node_SpawnActorFromClass::AllocateDefaultPins()
 	UEdGraphPin* TransformPin = CreatePin(EGPD_Input, K2Schema->PC_Struct, TEXT(""), TransformStruct, false, false, FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName);
 	K2Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with"), TransformPin->PinToolTip);
 
-	// bNoCollisionFail pin
-	UEdGraphPin* NoCollisionFailPin = CreatePin(EGPD_Input, K2Schema->PC_Boolean, TEXT(""), NULL, false, false, FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName);
-	K2Schema->ConstructBasicPinTooltip(*NoCollisionFailPin, LOCTEXT("NoCollisionFailPinDescription", "Determines if the Actor should be spawned when the location is blocked by a collision"), NoCollisionFailPin->PinToolTip);
+	// Collision handling method pin
+	UEnum* const MethodEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ESpawnActorCollisionHandlingMethod"), true);
+	UEdGraphPin* const CollisionHandlingOverridePin = CreatePin(EGPD_Input, K2Schema->PC_Byte, TEXT(""), MethodEnum, false, false, FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName);
+	CollisionHandlingOverridePin->DefaultValue = MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::Undefined));
+
+	K2Schema->ConstructBasicPinTooltip(*CollisionHandlingOverridePin, LOCTEXT("CollisionHandlingOverridePinDescription", "Specifies how to handle collisions at the spawn point. If undefined, uses actor class settings."), CollisionHandlingOverridePin->PinToolTip);
+
 
 	UEdGraphPin* OwnerPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AActor::StaticClass(),/*bIsArray =*/false, /*bIsReference =*/false, FK2Node_SpawnActorFromClassHelper::OwnerPinName);
 	OwnerPin->bAdvancedView = true;
@@ -139,6 +146,126 @@ UClass* UK2Node_SpawnActorFromClass::GetClassToSpawn(const TArray<UEdGraphPin*>*
 	return UseSpawnClass;
 }
 
+void UK2Node_SpawnActorFromClass::MaybeUpdateCollisionPin(TArray<UEdGraphPin*>& OldPins)
+{
+	// see if there's a bNoCollisionFail pin
+	for (UEdGraphPin* Pin : OldPins)
+	{
+		if (Pin->PinName == FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName)
+		{
+			bool bHadOldCollisionPin = true;
+			if (Pin->LinkedTo.Num() == 0)
+			{
+				// no links, use the default value of the pin
+				bool const bOldCollisionPinValue = (Pin->DefaultValue == FString(TEXT("true")));
+
+				UEdGraphPin* const CollisionHandlingOverridePin = GetCollisionHandlingOverridePin();
+				if (CollisionHandlingOverridePin)
+				{
+					UEnum const* const MethodEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ESpawnActorCollisionHandlingMethod"), true);
+					CollisionHandlingOverridePin->DefaultValue =
+						bOldCollisionPinValue
+						? MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
+						: MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding));
+				}
+			}
+			else
+			{
+				// something was linked. we will just move the links to the new pin
+				// #note: this will be an invalid linkage and the BP compiler will complain, and that's intentional
+				// so that users will be able to see and fix issues
+				UEdGraphPin* const CollisionHandlingOverridePin = GetCollisionHandlingOverridePin();
+				check(CollisionHandlingOverridePin);
+
+				UEnum* const MethodEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ESpawnActorCollisionHandlingMethod"), true);
+				
+				FGraphNodeCreator<UK2Node_EnumLiteral> AlwaysSpawnLiteralCreator(*GetGraph());
+				UK2Node_EnumLiteral* const AlwaysSpawnLiteralNode = AlwaysSpawnLiteralCreator.CreateNode();
+				AlwaysSpawnLiteralNode->Enum = MethodEnum;
+				AlwaysSpawnLiteralNode->NodePosX = NodePosX;
+				AlwaysSpawnLiteralNode->NodePosY = NodePosY;
+				AlwaysSpawnLiteralCreator.Finalize();
+			
+				FGraphNodeCreator<UK2Node_EnumLiteral> AdjustIfNecessaryLiteralCreator(*GetGraph());
+				UK2Node_EnumLiteral* const AdjustIfNecessaryLiteralNode = AdjustIfNecessaryLiteralCreator.CreateNode();
+				AdjustIfNecessaryLiteralNode->Enum = MethodEnum;
+				AdjustIfNecessaryLiteralNode->NodePosX = NodePosX;
+				AdjustIfNecessaryLiteralNode->NodePosY = NodePosY;
+				AdjustIfNecessaryLiteralCreator.Finalize();
+
+				FGraphNodeCreator<UK2Node_Select> SelectCreator(*GetGraph());
+				UK2Node_Select* const SelectNode = SelectCreator.CreateNode();
+				SelectNode->NodePosX = NodePosX;
+				SelectNode->NodePosY = NodePosY;
+				SelectCreator.Finalize();
+
+				// find pins we want to set and link up
+				auto FindEnumInputPin = [](UK2Node_EnumLiteral const* Node)
+				{
+					for (UEdGraphPin* NodePin : Node->Pins)
+					{
+						if (NodePin->PinName == Node->GetEnumInputPinName())
+						{
+							return NodePin;
+						}
+					}
+					return (UEdGraphPin*)nullptr;
+				};
+
+				UEdGraphPin* const AlwaysSpawnLiteralNodeInputPin = FindEnumInputPin(AlwaysSpawnLiteralNode);
+				UEdGraphPin* const AdjustIfNecessaryLiteralInputPin = FindEnumInputPin(AdjustIfNecessaryLiteralNode);
+
+				TArray<UEdGraphPin*> SelectOptionPins;
+				SelectNode->GetOptionPins(SelectOptionPins);
+				UEdGraphPin* const SelectIndexPin = SelectNode->GetIndexPin();
+
+				auto FindResultPin = [](UK2Node const* Node)
+				{
+					for (UEdGraphPin* NodePin : Node->Pins)
+					{
+						if (EEdGraphPinDirection::EGPD_Output == NodePin->Direction)
+						{
+							return NodePin;
+						}
+					}
+					return (UEdGraphPin*)nullptr;
+				};
+				UEdGraphPin* const AlwaysSpawnLiteralNodeResultPin = FindResultPin(AlwaysSpawnLiteralNode);
+				check(AlwaysSpawnLiteralNodeResultPin);
+				UEdGraphPin* const AdjustIfNecessaryLiteralResultPin = FindResultPin(AdjustIfNecessaryLiteralNode);
+				check(AdjustIfNecessaryLiteralResultPin);
+
+				UEdGraphPin* const OldBoolPin = Pin->LinkedTo[0];
+				check(OldBoolPin);
+
+				//
+				// now set data and links that we want to set
+				//
+
+				AlwaysSpawnLiteralNodeInputPin->DefaultValue = MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
+				AdjustIfNecessaryLiteralInputPin->DefaultValue = MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding));
+
+				OldBoolPin->BreakLinkTo(Pin);
+				OldBoolPin->MakeLinkTo(SelectIndexPin);
+
+				AlwaysSpawnLiteralNodeResultPin->MakeLinkTo(SelectOptionPins[0]);
+				AdjustIfNecessaryLiteralResultPin->MakeLinkTo(SelectOptionPins[1]);
+				
+				UEdGraphPin* const SelectOutputPin = SelectNode->GetReturnValuePin();
+				check(SelectOutputPin);
+				SelectOutputPin->MakeLinkTo(CollisionHandlingOverridePin);
+
+				// tell select node to update its wildcard status
+				SelectNode->NotifyPinConnectionListChanged(SelectIndexPin);
+				SelectNode->NotifyPinConnectionListChanged(SelectOptionPins[0]);
+				SelectNode->NotifyPinConnectionListChanged(SelectOptionPins[1]);
+				SelectNode->NotifyPinConnectionListChanged(SelectOutputPin);
+
+			}
+		}
+	}
+}
+
 
 void UK2Node_SpawnActorFromClass::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) 
 {
@@ -149,6 +276,8 @@ void UK2Node_SpawnActorFromClass::ReallocatePinsDuringReconstruction(TArray<UEdG
 		TArray<UEdGraphPin*> ClassPins;
 		CreatePinsForClass(UseSpawnClass, ClassPins);
 	}
+
+	MaybeUpdateCollisionPin(OldPins);
 }
 
 void UK2Node_SpawnActorFromClass::PostPlacedNewNode()
@@ -182,7 +311,7 @@ bool UK2Node_SpawnActorFromClass::IsSpawnVarPin(UEdGraphPin* Pin)
 			Pin->PinName != K2Schema->PN_ReturnValue &&
 			Pin->PinName != FK2Node_SpawnActorFromClassHelper::ClassPinName &&
 			Pin->PinName != FK2Node_SpawnActorFromClassHelper::WorldContextPinName &&
-			Pin->PinName != FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName &&
+			Pin->PinName != FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName &&
 			Pin->PinName != FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName && 
 			Pin->PinName != FK2Node_SpawnActorFromClassHelper::OwnerPinName );
 }
@@ -297,10 +426,9 @@ UEdGraphPin* UK2Node_SpawnActorFromClass::GetSpawnTransformPin() const
 	return Pin;
 }
 
-
-UEdGraphPin* UK2Node_SpawnActorFromClass::GetNoCollisionFailPin() const
+UEdGraphPin* UK2Node_SpawnActorFromClass::GetCollisionHandlingOverridePin() const
 {
-	UEdGraphPin* Pin = FindPinChecked(FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName);
+	UEdGraphPin* const Pin = FindPinChecked(FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName);
 	check(Pin->Direction == EGPD_Input);
 	return Pin;
 }
@@ -428,14 +556,14 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	static FName BeginSpawningBlueprintFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, BeginSpawningActorFromClass);
+	static FName BeginSpawningBlueprintFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, BeginDeferredActorSpawnFromClass);
 	static FString ActorClassParamName = FString(TEXT("ActorClass"));
 	static FString WorldContextParamName = FString(TEXT("WorldContextObject"));
 
 	static FName FinishSpawningFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, FinishSpawningActor);
 	static FString ActorParamName = FString(TEXT("Actor"));
 	static FString TransformParamName = FString(TEXT("SpawnTransform"));
-	static FString NoCollisionFailParamName = FString(TEXT("bNoCollisionFail"));
+	static FString CollisionHandlingOverrideParamName = FString(TEXT("CollisionHandlingOverride"));
 	static FString OwnerParamName = FString(TEXT("Owner"));
 
 	static FString ObjectParamName = FString(TEXT("Object"));
@@ -445,7 +573,7 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 	UK2Node_SpawnActorFromClass* SpawnNode = this;
 	UEdGraphPin* SpawnNodeExec = SpawnNode->GetExecPin();
 	UEdGraphPin* SpawnNodeTransform = SpawnNode->GetSpawnTransformPin();
-	UEdGraphPin* SpawnNodeNoCollisionFail = GetNoCollisionFailPin();
+	UEdGraphPin* SpawnNodeCollisionHandlingOverride = GetCollisionHandlingOverridePin();
 	UEdGraphPin* SpawnWorldContextPin = SpawnNode->GetWorldContextPin();
 	UEdGraphPin* SpawnClassPin = SpawnNode->GetClassPin();
 	UEdGraphPin* SpawnNodeOwnerPin = SpawnNode->GetOwnerPin();
@@ -471,7 +599,8 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 	UEdGraphPin* CallBeginWorldContextPin = CallBeginSpawnNode->FindPinChecked(WorldContextParamName);
 	UEdGraphPin* CallBeginActorClassPin = CallBeginSpawnNode->FindPinChecked(ActorClassParamName);
 	UEdGraphPin* CallBeginTransform = CallBeginSpawnNode->FindPinChecked(TransformParamName);
-	UEdGraphPin* CallBeginNoCollisionFail = CallBeginSpawnNode->FindPinChecked(NoCollisionFailParamName);
+	UEdGraphPin* CallBeginCollisionHandlingOverride = CallBeginSpawnNode->FindPinChecked(CollisionHandlingOverrideParamName);
+
 	UEdGraphPin* CallBeginOwnerPin = CallBeginSpawnNode->FindPinChecked(FK2Node_SpawnActorFromClassHelper::OwnerPinName);
 	UEdGraphPin* CallBeginResult = CallBeginSpawnNode->GetReturnValuePin();	
 
@@ -504,7 +633,7 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeTransform, *CallBeginTransform);
 
 	// Copy the 'bNoCollisionFail' connection from the spawn node to 'begin spawn'
-	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail);
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeCollisionHandlingOverride, *CallBeginCollisionHandlingOverride);
 
 	//////////////////////////////////////////////////////////////////////////
 	// create 'finish spawn' call node

@@ -3919,7 +3919,7 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 		SpectatorPawn = NewSpectatorPawn;
 		AttachToPawn(SpectatorPawn);
 		AddPawnTickDependency(SpectatorPawn);
-
+		
 		if (NewSpectatorPawn)
 		{
 			AutoManageActiveCameraTarget(NewSpectatorPawn);
@@ -3943,7 +3943,8 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = this;
-			SpawnParams.bNoCollisionFail = true;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
 			SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
 			SpawnedSpectator = GetWorld()->SpawnActor<ASpectatorPawn>(GameState->SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
 			if (SpawnedSpectator)

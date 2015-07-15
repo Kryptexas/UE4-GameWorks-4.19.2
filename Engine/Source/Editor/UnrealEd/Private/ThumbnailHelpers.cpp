@@ -239,7 +239,7 @@ FMaterialThumbnailScene::FMaterialThumbnailScene()
 	// Create preview actor
 	// checked
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<AStaticMeshActor>( SpawnInfo );
@@ -382,7 +382,7 @@ FSkeletalMeshThumbnailScene::FSkeletalMeshThumbnailScene()
 	// Create preview actor
 	// checked
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>( SpawnInfo );
@@ -452,7 +452,7 @@ FDestructibleMeshThumbnailScene::FDestructibleMeshThumbnailScene()
 	// Create preview actor
 	// checked
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<ADestructibleActor>(SpawnInfo);
@@ -523,7 +523,7 @@ FStaticMeshThumbnailScene::FStaticMeshThumbnailScene()
 	// Create preview actor
 	// checked
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<AStaticMeshActor>( SpawnInfo );
@@ -600,7 +600,7 @@ FAnimationSequenceThumbnailScene::FAnimationSequenceThumbnailScene()
 	// Create preview actor
 	// checked
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
@@ -724,7 +724,7 @@ FBlendSpaceThumbnailScene::FBlendSpaceThumbnailScene()
 	// Create preview actor
 	// checked
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
@@ -850,7 +850,7 @@ FAnimBlueprintThumbnailScene::FAnimBlueprintThumbnailScene()
 	
 	// Create preview actor
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
 	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);

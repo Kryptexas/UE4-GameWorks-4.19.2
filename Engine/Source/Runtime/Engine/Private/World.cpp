@@ -813,9 +813,9 @@ void UWorld::RepairWorldSettings()
 		}
 		
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
-		AWorldSettings* NewWorldSettings = SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
+		AWorldSettings* const NewWorldSettings = SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
 
 		const int32 NewWorldSettingsActorIndex = PersistentLevel->Actors.Find( NewWorldSettings );
 
@@ -1047,7 +1047,7 @@ void UWorld::InitializeNewWorld(const InitializationValues IVS)
 
 	// Create the WorldInfo actor.
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	// Set constant name for WorldSettings to make a network replication work between new worlds on host and client
 	SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
 	AActor* WorldSettings = SpawnActor( GEngine->WorldSettingsClass, NULL, NULL, SpawnInfo );
@@ -2879,7 +2879,7 @@ bool UWorld::SetGameMode(const FURL& InURL)
 		// Spawn the GameMode.
 		UE_LOG(LogWorld, Log,  TEXT("Game class is '%s'"), *GameClass->GetName() );
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save game modes into a map
 		AuthorityGameMode = SpawnActor<AGameMode>( GameClass, SpawnInfo );
 		

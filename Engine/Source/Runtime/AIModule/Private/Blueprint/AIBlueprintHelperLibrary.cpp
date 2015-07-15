@@ -140,7 +140,8 @@ APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(UObject* WorldContextObject, 
 	if (World && *PawnClass)
 	{
 		FActorSpawnParameters ActorSpawnParams;
-		ActorSpawnParams.bNoCollisionFail = bNoCollisionFail;
+		ActorSpawnParams.SpawnCollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AlwaysSpawn : ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
 		NewPawn = World->SpawnActor<APawn>(*PawnClass, Location, Rotation, ActorSpawnParams);
 
 		if (NewPawn != NULL)

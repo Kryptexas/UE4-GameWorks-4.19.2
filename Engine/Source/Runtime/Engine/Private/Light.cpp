@@ -19,6 +19,7 @@ ALight::ALight(const FObjectInitializer& ObjectInitializer)
 
 	bHidden = true;
 	bCollideWhenPlacing = true;
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 }
 
 /** The quality level to use for half-resolution lightmaps (not exposed)		*/

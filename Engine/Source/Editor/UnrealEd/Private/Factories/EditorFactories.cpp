@@ -551,7 +551,7 @@ UObject* ULevelFactory::FactoryCreateText
 						FActorSpawnParameters SpawnInfo;
 						SpawnInfo.Name = ActorUniqueName;
 						SpawnInfo.Template = Archetype;
-						SpawnInfo.bNoCollisionFail = true;
+						SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 						AActor* NewActor = World->SpawnActor( TempClass, nullptr, nullptr, SpawnInfo );
 						
 						if( NewActor )

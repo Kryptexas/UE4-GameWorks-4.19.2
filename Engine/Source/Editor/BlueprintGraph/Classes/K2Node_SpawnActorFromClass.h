@@ -53,8 +53,8 @@ class BLUEPRINTGRAPH_API UK2Node_SpawnActorFromClass : public UK2Node
 	UEdGraphPin* GetWorldContextPin() const;
 	/** Get the spawn transform input pin */	
 	UEdGraphPin* GetSpawnTransformPin() const;
-	/** Get the spawn NoCollisionFail input pin */
-	UEdGraphPin* GetNoCollisionFailPin() const;
+	/** Get the collision handling method input pin */
+	UEdGraphPin* GetCollisionHandlingOverridePin() const;
 	/** Get the actor owner pin */
 	UEdGraphPin* GetOwnerPin() const;
 	/** Get the result output pin */
@@ -72,4 +72,7 @@ protected:
 
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;
+
+private:
+	void MaybeUpdateCollisionPin(TArray<UEdGraphPin*>& OldPins);
 };

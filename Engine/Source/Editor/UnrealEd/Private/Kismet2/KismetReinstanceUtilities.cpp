@@ -999,7 +999,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				FActorSpawnParameters SpawnInfo;
 				SpawnInfo.OverrideLevel      = ActorLevel;
 				SpawnInfo.Template           = NewArchetype;
-				SpawnInfo.bNoCollisionFail   = true;
+				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				SpawnInfo.bDeferConstruction = true;
 
 				// Temporarily remove the deprecated flag so we can respawn the Blueprint in the level

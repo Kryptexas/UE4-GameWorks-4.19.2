@@ -193,7 +193,7 @@ AActor* FLogVisualizer::GetVisualLoggerHelperActor()
 	}
 
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Name = *FString::Printf(TEXT("VisualLoggerRenderingActor"));
 	AActor* HelperActor = World->SpawnActor<AVisualLoggerRenderingActor>(SpawnInfo);
 

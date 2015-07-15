@@ -258,7 +258,7 @@ ASpectatorPawn* ADebugCameraController::SpawnSpectatorPawn()
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = this;
-			SpawnParams.bNoCollisionFail = true;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
 			SpawnedSpectator = GetWorld()->SpawnActor<ASpectatorPawn>(ASpectatorPawn::StaticClass(), GetSpawnLocation(), GetControlRotation(), SpawnParams);
 			if (SpawnedSpectator)
@@ -324,7 +324,7 @@ void ADebugCameraController::PostInitializeComponents()
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Owner = this;
 	SpawnInfo.Instigator = Instigator;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want these to save into a map
 	MyHUD = GetWorld()->SpawnActor<ADebugCameraHUD>( SpawnInfo );
 

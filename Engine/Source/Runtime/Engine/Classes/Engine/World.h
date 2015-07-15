@@ -425,6 +425,7 @@ struct ENGINE_API FActorSpawnParameters
 		,	Owner(NULL)
 		,	Instigator(NULL)
 		,	OverrideLevel(NULL)
+		,	SpawnCollisionHandlingOverride(ESpawnActorCollisionHandlingMethod::Undefined)
 		,	bNoCollisionFail(false)
 		,	bRemoteOwned(false)
 		,	bNoFail(false)
@@ -449,20 +450,24 @@ struct ENGINE_API FActorSpawnParameters
 	/* The ULevel to spawn the Actor in, i.e. the Outer of the Actor. If left as NULL the Outer of the Owner is used. If the Owner is NULL the persistent level is used. */
 	class	ULevel* OverrideLevel;
 
+	/** Method for resolving collisions at the spawn point. Undefined means no override, use the actor's setting. */
+	ESpawnActorCollisionHandlingMethod SpawnCollisionHandlingOverride;
+
 	/* Determines whether a collision test will be performed when spawning the Actor. If true, no collision test will be performed when spawning the Actor regardless of the collision settings of the root component or template Actor. */
-	uint32	bNoCollisionFail:1;
+	DEPRECATED(4.9, "bNoCollisionFail is deprecated. Use SpawnCollisionHandlingOverride to override the actor class's spawn collision handling setting.")
+	uint16	bNoCollisionFail:1;
 
 	/* Is the actor remotely owned. */
-	uint32	bRemoteOwned:1;
+	uint16	bRemoteOwned:1;
 
 	/* Determines whether spawning will not fail if certain conditions are not met. If true, spawning will not fail because the class being spawned is `bStatic=true` or because the class of the template Actor is not the same as the class of the Actor being spawned. */
-	uint32	bNoFail:1;
+	uint16	bNoFail:1;
 
 	/* Determines whether the construction script will be run. If true, the construction script will not be run on the spawned Actor. Only applicable if the Actor is being spawned from a Blueprint. */
-	uint32	bDeferConstruction:1;
+	uint16	bDeferConstruction:1;
 	
 	/* Determines whether or not the actor may be spawned when running a construction script. If true spawning will fail if a construction script is being run. */
-	uint32	bAllowDuringConstructionScript:1;
+	uint16	bAllowDuringConstructionScript:1;
 	
 	/* Flags used to describe the spawned actor/object instance. */
 	EObjectFlags ObjectFlags;		
@@ -2852,9 +2857,9 @@ public:
 		UClass* Class,
 		FVector const& Location,
 		FRotator const& Rotation,
-		AActor* Owner=NULL,
-		APawn* Instigator=NULL,
-		bool bNoCollisionFail=false
+		AActor* Owner,
+		APawn* Instigator,
+		bool bNoCollisionFail
 		)
 	{
 		if( Owner )
@@ -2862,7 +2867,7 @@ public:
 			check(this==Owner->GetWorld());
 		}
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = bNoCollisionFail;
+		SpawnInfo.SpawnCollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AlwaysSpawn : ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 		SpawnInfo.Owner = Owner;
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bDeferConstruction = true;
@@ -2870,17 +2875,18 @@ public:
 	}
 
 	/**
-	* Spawns given class and returns class T pointer, forcibly sets world transform(note this allows scale as well). WILL NOT run Construction Script of Blueprints 
+	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
 	* to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
 	* manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
 	*/
 	template< class T >
 	T* SpawnActorDeferred(
 		UClass* Class,
-		FTransform const& Transform,
-		AActor* Owner=NULL,
-		APawn* Instigator=NULL,
-		bool bNoCollisionFail=false
+		FVector const& Location,
+		FRotator const& Rotation,
+		AActor* Owner = nullptr,
+		APawn* Instigator = nullptr,
+		ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::Undefined
 		)
 	{
 		if( Owner )
@@ -2888,11 +2894,37 @@ public:
 			check(this==Owner->GetWorld());
 		}
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = bNoCollisionFail;
+		SpawnInfo.SpawnCollisionHandlingOverride = CollisionHandlingOverride;
 		SpawnInfo.Owner = Owner;
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bDeferConstruction = true;
-		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Transform, SpawnInfo )) : NULL;
+		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Location, &Rotation, SpawnInfo )) : NULL;
+	}
+
+	/**
+	 * Spawns given class and returns class T pointer, forcibly sets world transform (note this allows scale as well). WILL NOT run Construction Script of Blueprints 
+	 * to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
+	 * manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
+	 */
+	template< class T >
+	T* SpawnActorDeferred(
+		UClass* Class,
+		FTransform const& Transform,
+		AActor* Owner=NULL,
+		APawn* Instigator=NULL,
+		ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::Undefined
+		)
+	{
+		if( Owner )
+		{
+			check(this==Owner->GetWorld());
+		}
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = CollisionHandlingOverride;
+		SpawnInfo.Owner = Owner;
+		SpawnInfo.Instigator = Instigator;
+		SpawnInfo.bDeferConstruction = true;
+		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Transform, SpawnInfo)) : NULL;
 	}
 
 	/** 

@@ -7373,7 +7373,7 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 
 			// Spawn an Actor based on the Blueprint's generated class
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.bNoFail = true;
 			SpawnInfo.ObjectFlags = RF_Transient|RF_Transactional;
 

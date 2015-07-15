@@ -689,7 +689,7 @@ void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class AP
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.Owner = NULL;
 		SpawnInfo.Instigator = NULL;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		DebugRenderer = GetWorld()->SpawnActor<AGameplayDebuggingHUDComponent>(DebugComponentHUDClass.Get(), SpawnInfo);
 		DebugRenderer->SetCanvas(Canvas);

@@ -25,8 +25,11 @@ bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, FG
 {
 	if (Ability.IsValid() && Ability.Get()->GetCurrentActorInfo()->IsNetAuthority())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		SpawnedActor = World->SpawnActorDeferred<AActor>(InClass, FTransform::Identity, NULL, NULL, true);
+		UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if (World)
+		{
+			SpawnedActor = World->SpawnActorDeferred<AActor>(InClass, FTransform::Identity, NULL, NULL, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		}
 	}
 	
 	if (SpawnedActor == nullptr)

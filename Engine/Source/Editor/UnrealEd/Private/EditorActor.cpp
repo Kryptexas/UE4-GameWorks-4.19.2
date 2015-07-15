@@ -945,7 +945,7 @@ AActor* UUnrealEdEngine::ReplaceActor( AActor* CurrentActor, UClass* NewActorCla
 	FRotator SpawnRot = CurrentActor->GetActorRotation();
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Template = Cast<AActor>(Archetype);
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	AActor* NewActor = CurrentActor->GetWorld()->SpawnActor( NewActorClass, &SpawnLoc, &SpawnRot, SpawnInfo );
 	if( NewActor )
 	{

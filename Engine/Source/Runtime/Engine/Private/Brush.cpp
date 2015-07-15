@@ -36,6 +36,7 @@ ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	bNotForClientOrServer = false;
 	bCanBeDamaged = false;
 	bCollideWhenPlacing = true;
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 }
 
 #if WITH_EDITOR

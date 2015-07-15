@@ -13,6 +13,7 @@
 #endif // WITH_PHYSX
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/GameMode.h"
 
 // CVars
@@ -324,18 +325,46 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* Transform, const FA
 	FRotator NewRotation = Transform ? Transform->GetRotation().Rotator() :	(Template->GetRootComponent() ? Template->GetRootComponent()->RelativeRotation : FRotator::ZeroRotator);
 	FVector NewScale = Transform ? Transform->GetScale3D() :	(Template->GetRootComponent() ? Template->GetRootComponent()->RelativeScale3D : FVector(1.f) );
 
-	// If we can fail, and we have a root component, and either the component should collide or bCollideWhenPlacing is true, test
-	if( !SpawnParameters.bNoCollisionFail && Template->GetRootComponent() && Template->bCollideWhenPlacing && Template->GetRootComponent()->ShouldCollideWhenPlacing() )
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS;
+	// handle existing (but deprecated) uses of bNoCollisionFail where user set it to true
+	ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = SpawnParameters.SpawnCollisionHandlingOverride;
+	if ((CollisionHandlingOverride == ESpawnActorCollisionHandlingMethod::Undefined) && SpawnParameters.bNoCollisionFail)
 	{
-		// Try to find a spawn position
-		if ( !FindTeleportSpot(Template, NewLocation, NewRotation) )
+		CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS;
+
+	// "no fail" take preedence over collision handling settings that include fails
+	if (SpawnParameters.bNoFail)
+	{
+		// maybe upgrade to disallow fail
+		if (CollisionHandlingOverride == ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding)
 		{
-			UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because of collision at the spawn location [%s] for [%s]"), *NewLocation.ToString(), *Class->GetName() );
-			return NULL;
+			CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		}
+		else if (CollisionHandlingOverride == ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding)
+		{
+			CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		}
 	}
 
-	AActor* Actor = NewObject<AActor>(LevelToSpawnIn, Class, NewActorName, SpawnParameters.ObjectFlags, Template);
+	// use override if set, else fall back to actor's preference
+	ESpawnActorCollisionHandlingMethod const CollisionHandlingMethod = (CollisionHandlingOverride == ESpawnActorCollisionHandlingMethod::Undefined) ? Template->SpawnCollisionHandlingMethod : CollisionHandlingOverride;
+
+	// see if we can avoid spawning altogether by checking native components
+	// note: we can't handle all cases here, since we don't know the full component hierarchy until after the actor is spawned
+	if (CollisionHandlingMethod == ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding)
+	{
+		if (EncroachingBlockingGeometry(Template, NewLocation, NewRotation))
+		{
+			// a native component is colliding, that's enough to reject spawning
+			UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because of collision at the spawn location [%s] for [%s]"), *NewLocation.ToString(), *Class->GetName());
+			return nullptr;
+		}
+	}
+
+	// actually make the actor object
+	AActor* const Actor = NewObject<AActor>(LevelToSpawnIn, Class, NewActorName, SpawnParameters.ObjectFlags, Template);
 	check(Actor);
 
 #if WITH_EDITOR
@@ -359,6 +388,9 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* Transform, const FA
 	}
 #endif
 
+	// tell the actor what method to use, in case it was overridden
+	Actor->SpawnCollisionHandlingMethod = CollisionHandlingMethod;
+
 	Actor->PostSpawnInitialize(FTransform(NewRotation, NewLocation, NewScale), SpawnParameters.Owner, SpawnParameters.Instigator, SpawnParameters.bRemoteOwned, SpawnParameters.bNoFail, SpawnParameters.bDeferConstruction);
 
 	if (Actor->IsPendingKill() && !SpawnParameters.bNoFail)
@@ -366,6 +398,55 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* Transform, const FA
 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because the spawned actor IsPendingKill"));
 		return NULL;
 	}
+// 
+// 	// actor should have all of its components now, do any collision checking and handling that we need to do
+// 	switch (CollisionHandlingMethod)
+// 	{
+// 	case ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn:
+// 	 	// Try to find a spawn position
+// 		{
+// 			FVector AdjustedLocation = NewLocation;
+// 			FRotator AdjustedRotation = NewRotation;
+// 			if (FindTeleportSpot(Actor, AdjustedLocation, AdjustedRotation))
+// 			{
+// 				Actor->SetActorLocationAndRotation(AdjustedLocation, AdjustedRotation);
+// 			}
+// 		}
+// 	 	break;
+// 	case ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding:
+// 	 	// Try to find a spawn position
+// 		{
+// 			FVector AdjustedLocation = NewLocation;
+// 			FRotator AdjustedRotation = NewRotation;
+// 			if (FindTeleportSpot(Actor, AdjustedLocation, AdjustedRotation))
+// 			{
+// 				Actor->SetActorLocationAndRotation(AdjustedLocation, AdjustedRotation);
+// 			}
+// 			else
+// 			{
+// 				UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because of collision at the spawn location [%s] for [%s]"), *NewLocation.ToString(), *Class->GetName());
+// 				DestroyActor(Actor);
+// 				return nullptr;
+// 			}
+// 		}
+// 	 	break;
+// 	case ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding:
+// 		// #todo: don't recheck components checked above?
+// 		if (EncroachingBlockingGeometry(Actor, NewLocation, NewRotation))
+// 	 	{
+// 	 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because of collision at the spawn location [%s] for [%s]"), *NewLocation.ToString(), *Class->GetName());
+// 			DestroyActor(Actor);
+// 			return nullptr;
+// 	 	}
+// 	 	break;
+// 	// note we use "always spawn" as default, so treat undefined as that
+// 	case ESpawnActorCollisionHandlingMethod::Undefined:
+// 	case ESpawnActorCollisionHandlingMethod::AlwaysSpawn:
+// 	default:
+// 	 	// nothing to do, just proceed as normal
+// 	 	break;
+// 	}
+
 	Actor->CheckDefaultSubobjects();
 
 	// Broadcast notification of spawn
@@ -385,8 +466,8 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* Transform, const FA
 ABrush* UWorld::SpawnBrush()
 {
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
-	ABrush* Result = SpawnActor<ABrush>( SpawnInfo );
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ABrush* const Result = SpawnActor<ABrush>( SpawnInfo );
 	check(Result);
 	return Result;
 }
@@ -637,7 +718,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	}
 
 	// first do only Z
-	if ( Adjust.Z != 0.f )
+	if (!FMath::IsNearlyZero(Adjust.Z)) 
 	{
 		TestLocation.Z += Adjust.Z;
 		if( !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust) )
@@ -647,7 +728,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	}
 
 	// now try just XY
-	if ( (Adjust.X != 0.f) || (Adjust.Y != 0.f) )
+	if (!FMath::IsNearlyZero(Adjust.X) || !FMath::IsNearlyZero(Adjust.Y))
 	{
 		for (int i = 0; i < 8; ++i)
 		{
@@ -665,7 +746,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	}
 
 	// now z again
-	if ( Adjust.Z != 0.f )
+	if (!FMath::IsNearlyZero(Adjust.Z))
 	{
 		TestLocation.Z += Adjust.Z;
 		if( !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust) )
@@ -673,7 +754,8 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 			return true;
 		}
 	}
-	if ( Adjust.IsZero() )
+
+	if ( Adjust.IsNearlyZero() )
 	{
 		return false;
 	}
@@ -684,85 +766,237 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	return !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust);
 }
 
-bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation, FRotator TestRotation, FVector* ProposedAdjustment )
-{
-	float Epsilon = CVarEncroachEpsilon.GetValueOnGameThread();
-
-	// currently just tests RootComponent.  @TODO FIXME should test all colliding components?  Cost/benefit?
-	UPrimitiveComponent* PrimComp = TestActor ? Cast<UPrimitiveComponent>(TestActor->GetRootComponent()) : NULL;
-	bool bFoundBlockingHit = false;
-	if (ProposedAdjustment)
+/** Tests shape components more efficiently than the with-adjustment case, but does less-efficient ppr-poly collision for meshes. */
+static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform)
+{	
+	float const Epsilon = CVarEncroachEpsilon.GetValueOnGameThread();
+	
+	if (World && PrimComp)
 	{
-		*ProposedAdjustment = FVector::ZeroVector;
-	}
-	if ( PrimComp )
-	{
-		TArray<FOverlapResult> Overlaps;
-		static FName NAME_EncroachingBlockingGeometry = FName(TEXT("EncroachingBlockingGeometry"));
-		ECollisionChannel BlockingChannel = PrimComp->GetCollisionObjectType();
+		bool bFoundBlockingHit = false;
+		
+		static FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
+		ECollisionChannel const BlockingChannel = PrimComp->GetCollisionObjectType();
+		FCollisionShape const CollisionShape = PrimComp->GetCollisionShape(-Epsilon);
 
-		// @TODO support more than just capsules and spheres for spawning, don't yet have - add primitive component function to calculate these, use boundingbox as fallback
-		UCapsuleComponent* const Capsule = Cast<UCapsuleComponent>(PrimComp);
-		if (Capsule)
+		if (CollisionShape.IsBox() && (Cast<UBoxComponent>(PrimComp) == nullptr))
 		{
-			FCollisionQueryParams Params(NAME_EncroachingBlockingGeometry, false, TestActor);
-			bFoundBlockingHit = OverlapMultiByChannel(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeCapsule(FMath::Max(Capsule->GetScaledCapsuleRadius() - Epsilon, 0.1f), FMath::Max(Capsule->GetScaledCapsuleHalfHeight() - Epsilon, 0.1f)), Params);
+			// we have a bounding box not for a box component, which means this was the fallback aabb
+			// since we don't need the penetration info, go ahead and test the component itself for overlaps, which is more accurate
+			if (PrimComp->IsRegistered())
+			{
+				// must be registered
+				TArray<FOverlapResult> Overlaps;
+				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, TestActor);
+				return World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Log, TEXT("Components must be registered in order to be used in a ComponentOverlapMulti call. PriComp: %s TestActor: %s"), *PrimComp->GetName(), *TestActor->GetName());
+				return false;
+			}
 		}
 		else
 		{
-			USphereComponent* const Sphere = Cast<USphereComponent>(PrimComp);
-			if (Sphere)
-			{
-				FCollisionQueryParams Params(NAME_EncroachingBlockingGeometry, false, TestActor);
-				bFoundBlockingHit = OverlapMultiByChannel(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeSphere(FMath::Max(Sphere->GetScaledSphereRadius() - Epsilon, 0.1f)), Params);
-			}
-			else if (PrimComp->IsRegistered())
+			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, false, TestActor);
+			return World->OverlapAnyTestByChannel(TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params);
+		}
+	}
+
+	return false;
+}
+
+/** Tests shape components less efficiently than the no-adjustment case, but does quicker aabb collision for meshes. */
+static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector& OutProposedAdjustment)
+{
+	// init our output
+	OutProposedAdjustment = FVector::ZeroVector;
+
+	float const Epsilon = CVarEncroachEpsilon.GetValueOnGameThread();
+
+	if (World && PrimComp)
+	{
+		bool bFoundBlockingHit = false;
+		bool bComputePenetrationAdjustment = true;
+		
+		TArray<FOverlapResult> Overlaps;
+		static FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
+		ECollisionChannel const BlockingChannel = PrimComp->GetCollisionObjectType();
+		FCollisionShape const CollisionShape = PrimComp->GetCollisionShape(-Epsilon);
+
+		if (CollisionShape.IsBox() && (Cast<UBoxComponent>(PrimComp) == nullptr))
+		{
+			// we have a bounding box not for a box component, which means this was the fallback aabb
+			// so lets test the actual component instead of it's aabb
+			// note we won't get penetration adjustment but that's ok
+			if (PrimComp->IsRegistered())
 			{
 				// must be registered
-				FComponentQueryParams Params(NAME_EncroachingBlockingGeometry, TestActor);
-				bFoundBlockingHit = ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestLocation, TestActor->GetActorQuat(), BlockingChannel, Params);
+				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, TestActor);
+				bFoundBlockingHit = World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
+				bComputePenetrationAdjustment = false;
 			}
 			else
 			{
 				UE_LOG(LogPhysics, Log, TEXT("Components must be registered in order to be used in a ComponentOverlapMulti call. PriComp: %s TestActor: %s"), *PrimComp->GetName(), *TestActor->GetName());
 			}
 		}
-
-		if ( !bFoundBlockingHit )
+		else
 		{
-			return false;
+			// overlap our shape
+			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, false, TestActor);
+			bFoundBlockingHit = World->OverlapMultiByChannel(Overlaps, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params);
 		}
 
-		if ( ProposedAdjustment && Capsule )
+		// compute adjustment
+		if (bFoundBlockingHit && bComputePenetrationAdjustment)
 		{
 			// if encroaching, add up all the MTDs of overlapping shapes
-			float CapsuleRadius, CapsuleHalfHeight;
-			Capsule->GetScaledCapsuleSize(CapsuleRadius, CapsuleHalfHeight);
-			FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
 			FMTDResult MTDResult;
-
 			for (int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++)
 			{
-				UPrimitiveComponent * OverlapComponent = Overlaps[HitIdx].Component.Get();
+				UPrimitiveComponent* const OverlapComponent = Overlaps[HitIdx].Component.Get();
 				// first determine closest impact point along each axis
 				if (OverlapComponent && OverlapComponent->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block)
-
 				{
-					bool bSuccess = OverlapComponent->ComputePenetration(MTDResult, CapsuleShape, TestLocation, FQuat::Identity);
+					FCollisionShape const NonShrunkenCollisionShape = PrimComp->GetCollisionShape();
+					bool bSuccess = OverlapComponent->ComputePenetration(MTDResult, NonShrunkenCollisionShape, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation());
 					if (bSuccess)
 					{
-						*ProposedAdjustment += MTDResult.Direction * MTDResult.Distance;
+						OutProposedAdjustment += MTDResult.Direction * MTDResult.Distance;
 					}
 					else
 					{
 						UE_LOG(LogPhysics, Log, TEXT("OverlapTest says we are overlapping, yet MTD says we're not. Something is wrong"));
 					}
+
+					// #hack: sometimes for boxes, physx returns a 0 MTD even though it reports a contact (returns true)
+					// to get around this, let's go ahead and test again with the epsilon-shrunken collision shape to see if we're really in 
+					// the clear.  if so, we'll say we have no contact (despite what OverlapMultiByChannel said -- it uses a different algorithm)
+					if (FMath::IsNearlyZero(MTDResult.Distance))
+					{
+						FCollisionShape const ShrunkenCollisionShape = PrimComp->GetCollisionShape(-Epsilon);
+						bool bSuccess = OverlapComponent->ComputePenetration(MTDResult, ShrunkenCollisionShape, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation());
+						if (bSuccess)
+						{
+							OutProposedAdjustment += MTDResult.Direction * MTDResult.Distance;
+						}
+						else
+						{
+							// let's call this "no contact" and be done
+							return false;
+						}
+					}
 				}
 			}
+		}
 
+		return bFoundBlockingHit;
+	}
+
+	return false;
+}
+
+/** Tests if the given component overlaps any blocking geometry if it were placed at the given world transform, optionally returns a suggested translation to get the component away from its overlaps. */
+static bool ComponentEncroachesBlockingGeometry(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector* OutProposedAdjustment)
+{
+	return OutProposedAdjustment
+		? ComponentEncroachesBlockingGeometry_WithAdjustment(World, TestActor, PrimComp, TestWorldTransform, *OutProposedAdjustment)
+		: ComponentEncroachesBlockingGeometry_NoAdjustment(World, TestActor, PrimComp, TestWorldTransform);
+}
+
+
+static FVector CombineAdjustments(FVector CurrentAdjustment, FVector AdjustmentToAdd)
+{
+	// remove the part of the new adjustment that's parallel to the current adjustment
+	if (CurrentAdjustment.IsZero())
+	{
+		return AdjustmentToAdd;
+	}
+
+	FVector Projection = AdjustmentToAdd.ProjectOnTo(CurrentAdjustment);
+	Projection = Projection.GetClampedToMaxSize(CurrentAdjustment.Size());
+
+	FVector OrthogalAdjustmentToAdd = AdjustmentToAdd - Projection;
+	return CurrentAdjustment + OrthogalAdjustmentToAdd;
+}
+
+// perf note: this is faster if ProposedAdjustment is null, since it can early out on first penetration
+bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation, FRotator TestRotation, FVector* ProposedAdjustment)
+{
+	if (TestActor == nullptr)
+	{
+		return false;
+	}
+
+	USceneComponent* const RootComponent = TestActor->GetRootComponent();
+	if (RootComponent == nullptr)
+	{
+		return false;
+	}
+
+	bool bFoundEncroacher = false;
+	FVector TotalAdjustment(0.f);
+
+	FTransform const TestRootToWorld = FTransform(TestRotation, TestLocation);
+	
+	UPrimitiveComponent* const RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
+	if (RootPrimComp && RootPrimComp->IsCollisionEnabled())
+	{
+		if (ComponentEncroachesBlockingGeometry(this, TestActor, RootPrimComp, TestRootToWorld, ProposedAdjustment))
+		{
+			if (ProposedAdjustment == nullptr)
+			{
+				// don't need an adjustment and we know we are overlapping, so we can be done
+				return true;
+			}
+			else
+			{
+				TotalAdjustment = *ProposedAdjustment;
+			}
+
+			bFoundEncroacher = true;
 		}
 	}
-	return bFoundBlockingHit;
+
+	// now test all colliding children for encroachment
+	TArray<USceneComponent*> Children;
+	RootComponent->GetChildrenComponents(true, Children);
+
+	FTransform const WorldToOldRoot = RootComponent->GetComponentToWorld().Inverse();
+
+	for (auto Child : Children)
+	{
+		if (Child->IsCollisionEnabled())
+		{
+			UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(Child);
+			if (PrimComp)
+			{
+				FTransform const CompToRoot = Child->GetComponentToWorld() * WorldToOldRoot;
+				FTransform const CompToNewWorld = CompToRoot * TestRootToWorld;
+
+				if (ComponentEncroachesBlockingGeometry(this, TestActor, PrimComp, CompToNewWorld, ProposedAdjustment))
+				{
+					if (ProposedAdjustment == nullptr)
+					{
+						// don't need an adjustment and we know we are overlapping, so we can be done
+						return true;
+					}
+
+					TotalAdjustment = CombineAdjustments(TotalAdjustment, *ProposedAdjustment);
+					bFoundEncroacher = true;
+				}
+			}
+		}
+	}
+
+	// copy over total adjustment
+	if (ProposedAdjustment)
+	{
+		*ProposedAdjustment = TotalAdjustment;
+	}
+
+	return bFoundEncroacher;
 }
 
 
