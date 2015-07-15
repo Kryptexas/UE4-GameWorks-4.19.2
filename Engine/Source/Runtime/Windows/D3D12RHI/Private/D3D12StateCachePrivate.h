@@ -491,8 +491,8 @@ public:
 		void RollOver();
 		uint32 ReserveSlots(uint32 NumSlotsRequested);
 		void SetNextSlot(uint32 NextSlot);
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) { return{ CPUBase.ptr + Slot * DescriptorSize }; }
-		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) { return{ GPUBase.ptr + Slot * DescriptorSize }; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{ CPUBase.ptr + Slot * DescriptorSize }; }
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{ GPUBase.ptr + Slot * DescriptorSize }; }
 	};
 
 	OnlineHeap ViewHeap;
@@ -618,12 +618,11 @@ public:
 	void Close(uint32 numberOfPSOs);
 	void Flush(uint32 numberOfPSOs);
 	void ClearDiskCache();
-	uint32 GetNumPSOs(){
+	uint32 GetNumPSOs() const
+	{
 		return mHeader.mNumPsos;
 	}
-	bool IsInErrorState(){
-		return mInErrorState;
-	}
+	bool IsInErrorState() const;
 
 	~FDiskCacheInterface()
 	{
@@ -637,7 +636,7 @@ public:
 	}
 };
 
-static bool bCPUSupportsSSE4;
+static bool GCPUSupportsSSE4;
 
 class FD3D12PipelineStateCache : public FD3D12DeviceChild
 {
@@ -738,20 +737,22 @@ public:
 	void Set (uint32 Bits)
 	{
 		for (uint32 i = 0; i < Bits; ++i)
-			SetIndex (i);
+		{
+			SetIndex(i);
+		}
 	}
 
-	bool AnySet()
+	bool AnySet() const
 	{
 		return (Array != 0);
 	}
 
-	uint32 LastSet()
+	uint32 LastSet() const
 	{
 		return 32 - FMath::CountLeadingZeros (Array);
 	}
 
-	uint32 GetValue()
+	uint32 GetValue() const
 	{
 		return Array;
 	}
@@ -777,7 +778,7 @@ public:
 		ChangedIndices.SetIndex (Index);
 	}
 
-	uint32 LastSet()
+	uint32 LastSet() const
 	{
 		FD3D12BitArray Merged (SetIndices.GetValue() | ChangedIndices.GetValue());
 
@@ -945,7 +946,9 @@ protected:
 			bNeedSetSamplersPerShaderStage[ShaderFrequency] = true;
 			bNeedSetSamplers = true;
 			if (AlternatePathFunction != nullptr)
+			{
 				(*AlternatePathFunction)(this, SamplerState, SamplerIndex);
+			}
 		}
 	}
 
@@ -1105,7 +1108,7 @@ public:
 	}
 
 	template <EShaderFrequency ShaderFrequency>
-	D3D12_STATE_CACHE_INLINE void GetSamplerState(uint32 StartSamplerIndex, uint32 NumSamplerIndexes, FD3D12SamplerState** SamplerStates)
+	D3D12_STATE_CACHE_INLINE void GetSamplerState(uint32 StartSamplerIndex, uint32 NumSamplerIndexes, FD3D12SamplerState** SamplerStates) const
 	{
 		check(StartSamplerIndex + NumSamplerIndexes <= D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
 		for (uint32 StateLoop = 0; StateLoop < NumSamplerIndexes; StateLoop++)
@@ -1153,14 +1156,14 @@ public:
 		}
 	}
 
-	D3D12_STATE_CACHE_INLINE void GetRasterizerState(D3D12_RASTERIZER_DESC** RasterizerState)
+	D3D12_STATE_CACHE_INLINE void GetRasterizerState(D3D12_RASTERIZER_DESC** RasterizerState) const
 	{
 		*RasterizerState = PipelineState.Graphics.HighLevelDesc.RasterizerState;
 	}
 
 	D3D12_STATE_CACHE_INLINE void SetBlendState(D3D12_BLEND_DESC* State, const float BlendFactor[4], uint32 SampleMask);
 
-	D3D12_STATE_CACHE_INLINE void GetBlendState(D3D12_BLEND_DESC** BlendState, float BlendFactor[4], uint32* SampleMask)
+	D3D12_STATE_CACHE_INLINE void GetBlendState(D3D12_BLEND_DESC** BlendState, float BlendFactor[4], uint32* SampleMask) const
 	{
 		*BlendState = PipelineState.Graphics.HighLevelDesc.BlendState;
 		*SampleMask = PipelineState.Graphics.HighLevelDesc.SampleMask;
@@ -1169,7 +1172,7 @@ public:
 
 	D3D12_STATE_CACHE_INLINE void SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State, uint32 RefStencil);
 
-	D3D12_STATE_CACHE_INLINE void GetDepthStencilState(D3D12_DEPTH_STENCIL_DESC** DepthStencilState, uint32* StencilRef)
+	D3D12_STATE_CACHE_INLINE void GetDepthStencilState(D3D12_DEPTH_STENCIL_DESC** DepthStencilState, uint32* StencilRef) const
 	{
 		*DepthStencilState = PipelineState.Graphics.HighLevelDesc.DepthStencilState;
 		*StencilRef = PipelineState.Graphics.CurrentReferenceStencil;
@@ -1226,7 +1229,7 @@ public:
 		}
 	}
 
-	D3D12_STATE_CACHE_INLINE void GetBoundShaderState(FD3D12BoundShaderState** BoundShaderState)
+	D3D12_STATE_CACHE_INLINE void GetBoundShaderState(FD3D12BoundShaderState** BoundShaderState) const
 	{
 		*BoundShaderState = PipelineState.Graphics.HighLevelDesc.BoundShaderState;
 	}
@@ -1249,7 +1252,7 @@ public:
 		*ComputeShader = PipelineState.Compute.CurrentComputeShader;
 	}
 
-	D3D12_STATE_CACHE_INLINE void GetInputLayout(D3D12_INPUT_LAYOUT_DESC* InputLayout)
+	D3D12_STATE_CACHE_INLINE void GetInputLayout(D3D12_INPUT_LAYOUT_DESC* InputLayout) const
 	{
 		*InputLayout = PipelineState.Graphics.HighLevelDesc.BoundShaderState->InputLayout;
 	}
@@ -1337,7 +1340,7 @@ public:
 	D3D12_STATE_CACHE_INLINE void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology);
 
 
-	D3D12_STATE_CACHE_INLINE void GetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY* PrimitiveTopology)
+	D3D12_STATE_CACHE_INLINE void GetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY* PrimitiveTopology) const
 	{
 		*PrimitiveTopology = PipelineState.Graphics.CurrentPrimitiveTopology;
 	}
@@ -1435,23 +1438,23 @@ public:
 	void ForceSetBlendFactor() { bNeedSetBlendFactor = true; }
 	void ForceSetStencilRef() { bNeedSetStencilRef = true; }
 
-	bool GetForceRebuildGraphicsPSO() { return PipelineState.Graphics.bNeedRebuildPSO; }
-	bool GetForceRebuildComputePSO() { return PipelineState.Compute.bNeedRebuildPSO; }
-	bool GetForceSetVB() { return bNeedSetVB; }
-	bool GetForceSetIB() { return bNeedSetIB; }
-	bool GetForceSetUAVs() { return bNeedSetUAVs; }
-	bool GetForceSetRTs() { return bNeedSetRTs; }
-	bool GetForceSetSOs() { return bNeedSetSOs; }
-	bool GetForceSetSamplersPerShaderStage(uint32 Frequency) { return bNeedSetSamplersPerShaderStage[Frequency]; }
-	bool GetForceSetSamplers() { return bNeedSetSamplers; }
-	bool GetForceSetSRVsPerShaderStage(uint32 Frequency) { return bNeedSetSRVsPerShaderStage[Frequency]; }
-	bool GetForceSetSRVs() { return bNeedSetSRVs; }
-	bool GetForceSetConstantBuffers() { return bNeedSetConstantBuffers; }
-	bool GetForceSetViewports() { return bNeedSetViewports; }
-	bool GetForceSetScissorRects() { return bNeedSetScissorRects; }
-	bool GetForceSetPrimitiveTopology() { return bNeedSetPrimitiveTopology; }
-	bool GetForceSetBlendFactor() { return bNeedSetBlendFactor; }
-	bool GetForceSetStencilRef() { return bNeedSetStencilRef; }
+	bool GetForceRebuildGraphicsPSO() const { return PipelineState.Graphics.bNeedRebuildPSO; }
+	bool GetForceRebuildComputePSO() const { return PipelineState.Compute.bNeedRebuildPSO; }
+	bool GetForceSetVB() const { return bNeedSetVB; }
+	bool GetForceSetIB() const { return bNeedSetIB; }
+	bool GetForceSetUAVs() const { return bNeedSetUAVs; }
+	bool GetForceSetRTs() const { return bNeedSetRTs; }
+	bool GetForceSetSOs() const { return bNeedSetSOs; }
+	bool GetForceSetSamplersPerShaderStage(uint32 Frequency) const { return bNeedSetSamplersPerShaderStage[Frequency]; }
+	bool GetForceSetSamplers() const { return bNeedSetSamplers; }
+	bool GetForceSetSRVsPerShaderStage(uint32 Frequency) const { return bNeedSetSRVsPerShaderStage[Frequency]; }
+	bool GetForceSetSRVs() const { return bNeedSetSRVs; }
+	bool GetForceSetConstantBuffers() const { return bNeedSetConstantBuffers; }
+	bool GetForceSetViewports() const { return bNeedSetViewports; }
+	bool GetForceSetScissorRects() const { return bNeedSetScissorRects; }
+	bool GetForceSetPrimitiveTopology() const { return bNeedSetPrimitiveTopology; }
+	bool GetForceSetBlendFactor() const { return bNeedSetBlendFactor; }
+	bool GetForceSetStencilRef() const { return bNeedSetStencilRef; }
 
 
 #if D3D11_STATE_CACHE_DEBUG

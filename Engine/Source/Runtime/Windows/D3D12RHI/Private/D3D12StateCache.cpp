@@ -12,6 +12,14 @@
 
 #define IL_MAX_SEMANTIC_NAME 255
 
+static int32 GEnablePSOCache = 0;
+static FAutoConsoleVariableRef CVarEnablePSOCache(
+	TEXT("r.RHI.EnablePSOCache"),
+	GEnablePSOCache,
+	TEXT("Enables a disk cache for PipelineState Objects."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+
 extern bool D3D12RHI_ShouldCreateWithD3DDebug();
 
 inline bool operator!=(D3D12_CPU_DESCRIPTOR_HANDLE lhs, D3D12_CPU_DESCRIPTOR_HANDLE rhs)
@@ -694,9 +702,13 @@ void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* In
 	DescriptorCache.Init(InParent, InCmdContext);
 
 	if (AncestralState)
+	{
 		InheritState(*AncestralState);
+	}
 	else
+	{
 		ClearState();
+	}
 
 	bAlwaysSetIndexBuffers = bInAlwaysSetIndexBuffers;
 }
@@ -712,7 +724,9 @@ void FD3D12StateCacheBase::Clear()
 void FD3D12StateCacheBase::ClearSRVs()
 {
 	if (bSRVSCleared)
+	{
 		return;
+	}
 
 	ZeroMemory(PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT, sizeof(PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT));
 	PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount = 0;
@@ -891,7 +905,9 @@ void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(ID3D12RootSignatu
 	psoDesc.Desc.InputLayout = BoundShaderState->InputLayout;
 
 	if (BoundShaderState->GetGeometryShader())
+	{
 		psoDesc.Desc.StreamOutput = BoundShaderState->GetGeometryShader()->StreamOutput;
+	}
 
 #define COPY_SHADER(Initial, Name) \
 	if (FD3D12##Name##Shader* Shader = BoundShaderState->Get##Name##Shader()) \
@@ -1202,6 +1218,12 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 #endif
 }
 
+inline bool FDiskCacheInterface::IsInErrorState() const
+{
+	return !GEnablePSOCache || mInErrorState;
+}
+
+
 void FDiskCacheInterface::Init(FString &filename)
 {
 	mFileStart = nullptr;
@@ -1215,11 +1237,18 @@ void FDiskCacheInterface::Init(FString &filename)
 
 	mFileName = filename;
 	mCacheExists = true;
-	WIN32_FIND_DATA fileData;
-	FindFirstFile(mFileName.GetCharArray().GetData(), &fileData);
-	if (GetLastError() == ERROR_FILE_NOT_FOUND)
+	if (!GEnablePSOCache)
 	{
 		mCacheExists = false;
+	}
+	else
+	{
+		WIN32_FIND_DATA fileData;
+		FindFirstFile(mFileName.GetCharArray().GetData(), &fileData);
+		if (GetLastError() == ERROR_FILE_NOT_FOUND)
+		{
+			mCacheExists = false;
+		}
 	}
 	bool fileFound = mCacheExists;
 	mCurrentFileMapSize = 1;
@@ -1244,26 +1273,36 @@ void FDiskCacheInterface::Init(FString &filename)
 
 void FDiskCacheInterface::GrowMapping(SIZE_T size, bool firstrun)
 {
-	if (mInErrorState)
+	if (!GEnablePSOCache || mInErrorState)
 	{
 		return;
 	}
 
 	if (mCurrentFileMapSize - mCurrentOffset < size)
 	{
-		while ((mCurrentFileMapSize - mCurrentOffset) < size){ mCurrentFileMapSize += mFileGrowSize; }
+		while ((mCurrentFileMapSize - mCurrentOffset) < size)
+		{
+			mCurrentFileMapSize += mFileGrowSize;
+		}
 	}
 	else
 	{
 		return;
 	}
 
-	if (hMapAddress){
+	if (hMapAddress)
+	{
 		FlushViewOfFile(hMapAddress, mCurrentOffset);
 		UnmapViewOfFile(hMapAddress);
 	}
-	if (hMemoryMap){ CloseHandle(hMemoryMap); }
-	if (hFile){ CloseHandle(hFile); }
+	if (hMemoryMap)
+	{
+		CloseHandle(hMemoryMap);
+	}
+	if (hFile)
+	{
+		CloseHandle(hFile);
+	}
 
 	uint32 flag = (mCacheExists) ? OPEN_EXISTING : CREATE_NEW;
 	// open the shader cache file
@@ -1382,13 +1421,20 @@ void FDiskCacheInterface::Close(uint32 numberOfPSOs)
 
 	if (!IsInErrorState())
 	{
-		if (hMapAddress){
+		if (hMapAddress)
+		{
 			*(FDiskCacheHeader*)mFileStart = mHeader;
 			FlushViewOfFile(hMapAddress, mCurrentOffset);
 			UnmapViewOfFile(hMapAddress);
 		}
-		if (hMemoryMap){ CloseHandle(hMemoryMap); }
-		if (hFile){ CloseHandle(hFile); }
+		if (hMemoryMap)
+		{
+			CloseHandle(hMemoryMap);
+		}
+		if (hFile)
+		{
+			CloseHandle(hFile);
+		}
 	}
 }
 
@@ -1400,9 +1446,23 @@ void FDiskCacheInterface::ClearDiskCache()
 	mHeader.mNumPsos = 0;
 	mHeader.mUsesAPILibraries = FD3D12PipelineStateCache::bUseAPILibaries;
 
-	if (hMapAddress){ UnmapViewOfFile(hMapAddress); }
-	if (hMemoryMap){ CloseHandle(hMemoryMap); }
-	if (hFile){ CloseHandle(hFile); }
+	if (!GEnablePSOCache)
+	{
+		return;
+	}
+
+	if (hMapAddress)
+	{
+		UnmapViewOfFile(hMapAddress);
+	}
+	if (hMemoryMap)
+	{
+		CloseHandle(hMemoryMap);
+	}
+	if (hFile)
+	{
+		CloseHandle(hFile);
+	}
 #ifdef UNICODE
 	BOOL result = DeleteFileW(mFileName.GetCharArray().GetData());
 #else
@@ -1416,7 +1476,8 @@ void FDiskCacheInterface::Flush(uint32 numberOfPSOs)
 	mHeader.mNumPsos = numberOfPSOs;
 	mHeader.mUsesAPILibraries = FD3D12PipelineStateCache::bUseAPILibaries;
 
-	if (hMapAddress && !IsInErrorState()){
+	if (hMapAddress && !IsInErrorState())
+	{
 		*(FDiskCacheHeader*)mFileStart = mHeader;
 		FlushViewOfFile(hMapAddress, mCurrentOffset);
 	}
@@ -1502,7 +1563,10 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* pGraphi
 		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&cachedBlobSize, sizeof(SIZE_T));
 
 		check(cachedBlobSize);
-		if (bUseAPILibaries && cachedBlobSize) { check(*cachedBlobSize); }
+		if (bUseAPILibaries && cachedBlobSize)
+		{
+			check(*cachedBlobSize);
+		}
 
 		if (bUseAPILibaries && cachedBlobSize &&*cachedBlobSize)
 		{
@@ -1550,7 +1614,10 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* pGraphi
 		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&cachedBlobSize, sizeof(SIZE_T));
 
 		check(cachedBlobSize);
-		if (bUseAPILibaries && cachedBlobSize) { check(*cachedBlobSize); }
+		if (bUseAPILibaries && cachedBlobSize)
+		{
+			check(*cachedBlobSize);
+		}
 
 		if (bUseAPILibaries && cachedBlobSize &&*cachedBlobSize)
 		{
@@ -1629,7 +1696,9 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 	graphicsPSODesc.CombinedHash = FD3D12PipelineStateCache::HashPSODesc(graphicsPSODesc);
 
 	if (TRefCountPtr<ID3D12PipelineState>* PSO = LowLevelGraphicsPipelineStateCache.Find(graphicsPSODesc))
+	{
 		return PSO->GetReference();
+	}
 
 	return Add(graphicsPSODesc, insertIntoDiskCache);
 }
@@ -1640,7 +1709,9 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 	computePSODesc.CombinedHash = FD3D12PipelineStateCache::HashPSODesc(computePSODesc);
 
 	if (TRefCountPtr<ID3D12PipelineState>* PSO = ComputePipelineStateCache.Find(computePSODesc))
+	{
 		return PSO->GetReference();
+	}
 
 	return Add(computePSODesc, insertIntoDiskCache);
 }
@@ -1843,7 +1914,7 @@ void FD3D12PipelineStateCache::Close()
 
 FORCEINLINE uint32 SSE4_CRC32(void* data, SIZE_T numBytes)
 {
-	check(bCPUSupportsSSE4);
+	check(GCPUSupportsSSE4);
 	uint32 hash = 0;
 #if _WIN64
 	static const SIZE_T alignment = 8;//64 Bit
@@ -1880,7 +1951,7 @@ FORCEINLINE uint32 SSE4_CRC32(void* data, SIZE_T numBytes)
 
 SIZE_T FD3D12PipelineStateCache::HashData(void* data, SIZE_T numBytes)
 {
-	if (bCPUSupportsSSE4)
+	if (GCPUSupportsSSE4)
 	{
 		return SIZE_T(SSE4_CRC32(data, numBytes));
 	}
@@ -1945,7 +2016,7 @@ void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &Com
 	{
 		int32 cpui[4];
 		__cpuidex(cpui, 1, 0);
-		bCPUSupportsSSE4 = !!(cpui[SSE4_CPUID_ARRAY_INDEX] & SSE4_2);
+		GCPUSupportsSSE4 = !!(cpui[SSE4_CPUID_ARRAY_INDEX] & SSE4_2);
 	}
 
 }
@@ -2149,7 +2220,9 @@ bool FD3D12StateCacheBase::VerifyViewState(ID3D12DebugCommandList* pDebugCommand
 void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, uint32 NumSimultaneousUAVs, FD3D12UnorderedAccessView** UAVArray, uint32 *UAVInitialCountArray)
 {
 	if (NumSimultaneousUAVs == 0)
+	{
 		return;
+	}
 	
 	PipelineState.Common.CurrentUAVStartSlot = FMath::Min(UAVStartSlot, PipelineState.Common.CurrentUAVStartSlot);
 	PipelineState.Common.CurrentUAVStage = ShaderStage;
@@ -2386,7 +2459,9 @@ void FD3D12StateCacheBase::InternalSetShaderResourceView(FD3D12ShaderResourceVie
 		}
 
 		if (AlternatePathFunction != nullptr)
+		{
 			(*AlternatePathFunction)(this, SRV, ResourceIndex, SrvType);
+		}
 	}
 }
 
@@ -2713,7 +2788,9 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 	for (uint32 i = 0; i < SlotsNeeded; i++)
 	{
 		if (UnorderedAccessViewArray[i] != NULL)
+		{
 			UnorderedAccessViewArray[i]->GetResource()->UpdateResidency();
+		}
 	}
 #endif
 
@@ -2949,8 +3026,9 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 	D3D12_GPU_DESCRIPTOR_HANDLE* FoundDescriptor = SRVMap.Find(Desc);
 
 	if (FoundDescriptor)
+	{
 		BindDescriptor = *FoundDescriptor;
-
+	}
 	else
 	{
 		// Reserve heap slots
@@ -3025,7 +3103,9 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 	for (uint32 i = 0; i < SlotsNeeded; i++)
 	{
 		if (SRVs[i] != NULL)
+		{
 			SRVs[i]->GetResource()->UpdateResidency();
+		}
 	}
 #endif
 
