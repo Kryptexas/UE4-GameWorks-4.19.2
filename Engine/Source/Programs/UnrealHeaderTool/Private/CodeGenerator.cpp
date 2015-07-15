@@ -2049,6 +2049,7 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 			if (ClassDefinitionRanges.Contains(Class))
 			{
 				ClassRange = ClassDefinitionRanges[Class];
+				ClassRange.Validate();
 			}
 
 			auto ClassStart = ClassRange.Start;
@@ -2143,6 +2144,7 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 			if (ClassDefinitionRanges.Contains(Class))
 			{
 				ClassRange = ClassDefinitionRanges[Class];
+				ClassRange.Validate();
 			}
 
 			auto ClassStart = ClassRange.Start;
@@ -4180,6 +4182,7 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	if (ClassDefinitionRanges.Contains(Function->GetOwnerClass()))
 	{
 		ClassRange = ClassDefinitionRanges[Function->GetOwnerClass()];
+		ClassRange.Validate();
 	}
 
 	auto ClassStart = ClassRange.Start;
@@ -4285,6 +4288,7 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& Sourc
 	if (ClassDefinitionRanges.Contains(Class))
 	{
 		ClassRange = ClassDefinitionRanges[Class];
+		ClassRange.Validate();
 	}
 
 	// export the C++ stubs

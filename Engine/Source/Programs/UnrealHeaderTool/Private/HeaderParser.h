@@ -115,6 +115,14 @@ struct ClassDefinitionRange
 		, bHasGeneratedBody(false)
 	{ }
 
+	void Validate()
+	{
+		if (End <= Start)
+		{
+			FError::Throwf(TEXT("The class definition range is invalid. Most probably caused by previous parsing error."));
+		}
+	}
+
 	const TCHAR* Start;
 	const TCHAR* End;
 	bool bHasGeneratedBody;
