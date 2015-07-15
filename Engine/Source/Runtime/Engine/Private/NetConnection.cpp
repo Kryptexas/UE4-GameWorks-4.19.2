@@ -497,17 +497,13 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 		// MalformedPacket - Received a packet with 0's in the last byte
 		else 
 		{
-			UE_SECURITY_LOG(this, ESecurityEvent::Malformed_Packet, TEXT("Received packet with 0's in last byte of packet"));
-			Close();	// If they have the secret key (or haven't opened the control channel yet) and get here, assume they are being malicious
-			UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection closed"));
+			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Received packet with 0's in last byte of packet"));
 		}
 	}
 	// MalformedPacket - Received a packet of 0 bytes
 	else 
 	{
-		UE_SECURITY_LOG(this, ESecurityEvent::Malformed_Packet, TEXT("Received zero-size packet"));
-		Close();	// If they have the secret key (or haven't opened the control channel yet) and get here, assume they are being malicious
-		UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection closed"));
+		CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Received zero-size packet"));
 	}
 }
 
@@ -737,9 +733,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		bool IsAck = !!Reader.ReadBit();
 		if ( Reader.IsError() )
 		{
-			UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Bunch missing ack flag"));
-			Close();
-			UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection Closed"));
+			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Bunch missing ack flag"));
 			return;
 		}
 
@@ -753,9 +747,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			if( Reader.IsError() )
 			{
-				UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Bunch missing ack"));
-				Close();
-				UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection Closed"));
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Bunch missing ack"));
 				return;
 			}
 
@@ -914,16 +906,14 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			if( Reader.IsError() )
 			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch header overflowed" ) );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Bunch header overflowed"));
 				return;
 			}
 			Bunch.SetData( Reader, BunchDataBits );
 			if( Reader.IsError() )
 			{
 				// Bunch claims it's larger than the enclosing packet.
-				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch data overflowed (%i %i+%i/%i)" ), IncomingStartPos, HeaderPos, BunchDataBits, Reader.GetNumBits() );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Invalid_Data, TEXT("Bunch data overflowed (%i %i+%i/%i)"), IncomingStartPos, HeaderPos, BunchDataBits, Reader.GetNumBits());
 				return;
 			}
 
@@ -951,8 +941,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// Can't handle other channels until control channel exists.
 				if ( Channels[0] == NULL )
 				{
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
-					Close();
+					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType);
 					return;
 				}
 				// on the server, if we receive bunch data for a channel that doesn't exist while we're still logging in,
@@ -960,16 +949,14 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// so reject it
 				else if ( PlayerController == NULL && Driver->ClientConnections.Contains( this ) )
 				{
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before player controller was assigned. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
-					Close();
+					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before player controller was assigned. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType);
 					return;
 				}
 			}
 			// ignore control channel close if it hasn't been opened yet
 			if ( Bunch.ChIndex == 0 && Channels[0] == NULL && Bunch.bClose && Bunch.ChType == CHTYPE_Control )
 			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ) );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ));
 				return;
 			}
 
@@ -1021,8 +1008,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				if ( !UChannel::IsKnownChannelType( Bunch.ChType ) )
 				{
 					// Unknown type.
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Connection unknown channel type (%i)" ), (int)Bunch.ChType );
-					Close();
+					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Invalid_Data, TEXT( "UNetConnection::ReceivedPacket: Connection unknown channel type (%i)" ), (int)Bunch.ChType);
 					return;
 				}
 
