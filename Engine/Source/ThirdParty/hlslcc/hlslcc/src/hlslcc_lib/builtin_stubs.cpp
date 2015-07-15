@@ -99,7 +99,7 @@ void make_intrinsic_genType(
 	const bool bIsVoid = (flags & IR_INTRINSIC_RETURNS_VOID);
 
 	ir_function* func = new(ctx)ir_function(name);
-	if (flags)
+	if ((flags & ~IR_INTRINSIC_RETURNS_VOID))
 	{
 		for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_BOOL; ++base_type)
 		{

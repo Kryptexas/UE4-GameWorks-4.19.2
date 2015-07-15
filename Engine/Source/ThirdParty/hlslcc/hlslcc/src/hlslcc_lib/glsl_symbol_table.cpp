@@ -67,8 +67,11 @@ glsl_symbol_table::glsl_symbol_table()
 
 glsl_symbol_table::~glsl_symbol_table()
 {
+	//#todo-rco: Crashes in debug
+#ifdef NDEBUG
 	_mesa_symbol_table_dtor(table);
 	ralloc_free(mem_ctx);
+#endif
 }
 
 void glsl_symbol_table::push_scope()
