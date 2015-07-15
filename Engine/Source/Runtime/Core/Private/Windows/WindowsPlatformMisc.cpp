@@ -1985,27 +1985,18 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 }
 #endif	//#if !UE_BUILD_SHIPPING
 
-FLinearColor FWindowsPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma)
+FLinearColor FWindowsPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float /*InGamma*/)
 {
 	COLORREF PixelColorRef = GetPixel(GetDC(HWND_DESKTOP), InScreenPos.X, InScreenPos.Y);
 
-	const float DivideBy255 = 1.0f / 255.0f;
+	FColor sRGBScreenColor(
+		(PixelColorRef & 0xFF),
+		((PixelColorRef & 0xFF00) >> 8),
+		((PixelColorRef & 0xFF0000) >> 16),
+		255);
 
-	FLinearColor ScreenColor(
-		(PixelColorRef & 0xFF) * DivideBy255,
-		((PixelColorRef & 0xFF00) >> 8) * DivideBy255,
-		((PixelColorRef & 0xFF0000) >> 16) * DivideBy255,
-		1.0f);
-
-	if (InGamma > 1.0f)
-	{
-		// Correct for render gamma
-		ScreenColor.R = FMath::Pow(ScreenColor.R, InGamma);
-		ScreenColor.G = FMath::Pow(ScreenColor.G, InGamma);
-		ScreenColor.B = FMath::Pow(ScreenColor.B, InGamma);
-	}
-
-	return ScreenColor;
+	// Assume the screen color is coming in as sRGB space
+	return FLinearColor(sRGBScreenColor);
 }
 
 /**

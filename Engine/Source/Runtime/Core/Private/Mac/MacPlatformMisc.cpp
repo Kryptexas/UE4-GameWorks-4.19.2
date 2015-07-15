@@ -484,7 +484,7 @@ bool FMacPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 			}
 			break;
 		}
-    }
+	}
 	
 	return true;
 }
@@ -573,9 +573,9 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 				CFDataGetBytes((CFDataRef)MACAddressAsCFData, CFRangeMake(0, kIOEthernetAddressSize), Result.GetData());
 				break;
 				CFRelease(MACAddressAsCFData);
-            }
+			}
 			IOObjectRelease(ControllerService);
-        }
+		}
 		IOObjectRelease(InterfaceService);
 	}
 	IOObjectRelease(InterfaceIterator);
@@ -749,14 +749,14 @@ void FMacPlatformMisc::ClipboardPaste(class FString& Result)
 
 void FMacPlatformMisc::CreateGuid(FGuid& Result)
 {
-    uuid_t UUID;
+	uuid_t UUID;
 	uuid_generate(UUID);
-    
-    uint32* Values = (uint32*)(&UUID[0]);
-    Result[0] = Values[0];
-    Result[1] = Values[1];
-    Result[2] = Values[2];
-    Result[3] = Values[3];
+	
+	uint32* Values = (uint32*)(&UUID[0]);
+	Result[0] = Values[0];
+	Result[1] = Values[1];
+	Result[2] = Values[2];
+	Result[3] = Values[3];
 }
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
@@ -1074,30 +1074,23 @@ void FMacPlatformMisc::LoadPreInitModules()
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
 }
 
-FLinearColor FMacPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma)
+FLinearColor FMacPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float /*InGamma*/)
 {
 	SCOPED_AUTORELEASE_POOL;
 
 	CGImageRef ScreenImage = CGWindowListCreateImage(CGRectMake(InScreenPos.X, InScreenPos.Y, 1, 1), kCGWindowListOptionOnScreenBelowWindow, kCGNullWindowID, kCGWindowImageDefault);
-    NSBitmapImageRep *BitmapRep = [[[NSBitmapImageRep alloc] initWithCGImage: ScreenImage] autorelease];
-    NSImage *Image = [[[NSImage alloc] init] autorelease];
-    [Image addRepresentation: BitmapRep];
-	[Image lockFocus];
-	NSColor* PixelColor = NSReadPixel(NSMakePoint(0.0f, 0.0f));
-	[Image unlockFocus];
+	
+	CGDataProviderRef provider = CGImageGetDataProvider(ScreenImage);
+	NSData* data = (id)CGDataProviderCopyData(provider);
+	[data autorelease];
+	const uint8* bytes = (const uint8*)[data bytes];
+	
+	// Mac colors are gamma corrected in Pow(2.2) space, so do the conversion using the 2.2 to linear conversion.
+	FColor ScreenColor(bytes[2], bytes[1], bytes[0]);
+	FLinearColor ScreenLinearColor = FLinearColor::FromPow22Color(ScreenColor);
 	CGImageRelease(ScreenImage);
 
-	FLinearColor ScreenColor([PixelColor redComponent], [PixelColor greenComponent], [PixelColor blueComponent], 1.0f);
-
-	if (InGamma > 1.0f)
-	{
-		// Correct for render gamma
-		ScreenColor.R = FMath::Pow(ScreenColor.R, InGamma);
-		ScreenColor.G = FMath::Pow(ScreenColor.G, InGamma);
-		ScreenColor.B = FMath::Pow(ScreenColor.B, InGamma);
-	}
-	
-	return ScreenColor;
+	return ScreenLinearColor;
 }
 
 FString FMacPlatformMisc::GetCPUVendor()
@@ -1154,21 +1147,21 @@ int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
 
 int32 FMacPlatformMisc::ConvertCocoaYPositionToSlate(int32 YPosition)
 {
-    NSArray* AllScreens = [NSScreen screens];
-    NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-    NSRect ScreenFrame = [PrimaryScreen frame];
-    NSRect WholeWorkspace = {{0,0},{0,0}};
-    for(NSScreen* Screen in AllScreens)
-    {
-        if(Screen)
-        {
-            WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-        }
-    }
-    
-    CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
-    CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
-    return OffsetToWorkspace + OffsetToPrimary;
+	NSArray* AllScreens = [NSScreen screens];
+	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+	NSRect ScreenFrame = [PrimaryScreen frame];
+	NSRect WholeWorkspace = {{0,0},{0,0}};
+	for(NSScreen* Screen in AllScreens)
+	{
+		if(Screen)
+		{
+			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
+		}
+	}
+	
+	CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
+	CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
+	return OffsetToWorkspace + OffsetToPrimary;
 }
 
 
