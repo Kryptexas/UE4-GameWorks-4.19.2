@@ -7,6 +7,7 @@
 #include "PlatformErrorReport.h"
 #include "PendingReports.h"
 #include "XmlFile.h"
+#include "CrashReportUtil.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 

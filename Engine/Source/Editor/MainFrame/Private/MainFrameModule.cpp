@@ -6,6 +6,7 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "GenericCommands.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -611,6 +612,7 @@ void FMainFrameModule::StartupModule( )
 	ensureMsgf(!IsRunningGame(), TEXT("The MainFrame module should only be loaded when running the editor.  Code that extends the editor, adds menu items, etc... should not run when running in -game mode or in a non-WITH_EDITOR build"));
 	MainFrameHandler = MakeShareable(new FMainFrameHandler);
 
+	FGenericCommands::Register();
 	FMainFrameCommands::Register();
 
 	SetLevelNameForWindowTitle(TEXT(""));
