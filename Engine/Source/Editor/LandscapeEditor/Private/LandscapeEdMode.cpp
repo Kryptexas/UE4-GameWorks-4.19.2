@@ -282,6 +282,12 @@ bool FEdModeLandscape::UsesToolkits() const
 	return true;
 }
 
+TSharedRef<FUICommandList> FEdModeLandscape::GetUICommandList() const
+{
+	check(Toolkit.IsValid());
+	return Toolkit->GetToolkitCommands();
+}
+
 /** FEdMode: Called when the mode is entered */
 void FEdModeLandscape::Enter()
 {

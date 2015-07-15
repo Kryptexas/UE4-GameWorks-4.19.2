@@ -542,6 +542,8 @@ public:
 
 	virtual bool UsesToolkits() const override;
 
+	TSharedRef<FUICommandList> GetUICommandList() const;
+
 	/** FEdMode: Called when the mode is entered */
 	virtual void Enter() override;
 

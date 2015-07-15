@@ -1312,58 +1312,21 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& In
 {
 	// Check to see if any of the actions for the level editor can be processed by the current event
 	// If we are in debug mode do not process commands
-	if( FSlateApplication::Get().IsNormalExecution() )
+	if (FSlateApplication::Get().IsNormalExecution())
 	{
-		// Figure out if any of our toolkit's tabs is the active tab.  This is important because we want
-		// the toolkit to have it's own keybinds (which may overlap the level editor's keybinds or any
-		// other toolkit).  When a toolkit tab is active, we give that toolkit a chance to process
-		// commands instead of the level editor.
-		TSharedPtr< IToolkit > ActiveToolkit;
+		for (const auto& ActiveToolkit : HostedToolkits)
 		{
-			const TSharedPtr<SDockableTab> CurrentActiveTab;// = FSlateApplication::xxxGetGlobalTabManager()->GetActiveTab();
-
-			for( auto HostedToolkitIt = HostedToolkits.CreateConstIterator(); HostedToolkitIt && !ActiveToolkit.IsValid(); ++HostedToolkitIt )
-			{
-				const auto& CurToolkit = *HostedToolkitIt;
-				if( CurToolkit.IsValid() )
-				{
-					// Iterate over this toolkits spawned tabs
-					const auto& ToolkitTabsInSpots = CurToolkit->GetToolkitTabsInSpots();
-
-					for( auto CurSpotIt( ToolkitTabsInSpots.CreateConstIterator() ); CurSpotIt && !ActiveToolkit.IsValid(); ++CurSpotIt )
-					{
-						const auto& TabsForSpot = CurSpotIt.Value();
-						for( auto CurTabIt( TabsForSpot.CreateConstIterator() ); CurTabIt; ++CurTabIt )
-						{
-							const auto& PinnedTab = CurTabIt->Pin();
-							if( PinnedTab.IsValid() )
-							{
-								if( PinnedTab == CurrentActiveTab )
-								{
-									ActiveToolkit = CurToolkit;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if( ActiveToolkit.IsValid() )
-		{
-			// A toolkit tab is active, so direct all command processing to it
-			if( ActiveToolkit->ProcessCommandBindings( InKeyEvent ) )
+			// A toolkit is active, so direct all command processing to it
+			if (ActiveToolkit->ProcessCommandBindings(InKeyEvent))
 			{
 				return FReply::Handled();
 			}
 		}
-		else
+
+		// No toolkit processed the key, so let the level editor have a chance at the keystroke
+		if (LevelEditorCommands->ProcessCommandBindings(InKeyEvent))
 		{
-			// No toolkit tab is active, so let the level editor have a chance at the keystroke
-			if( LevelEditorCommands->ProcessCommandBindings( InKeyEvent ) )
-			{
-				return FReply::Handled();
-			}
+			return FReply::Handled();
 		}
 	}
 	
@@ -1436,10 +1399,10 @@ TSharedPtr< class FAssetThumbnailPool > SLevelEditor::GetThumbnailPool() const
 	return ThumbnailPool;
 }
 
- void SLevelEditor::AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend )
- {
-	 LevelEditorCommands->Append(InCommandsToAppend);
- }
+void SLevelEditor::AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend )
+{
+	LevelEditorCommands->Append(InCommandsToAppend);
+}
 
 UWorld* SLevelEditor::GetWorld() const
 {
