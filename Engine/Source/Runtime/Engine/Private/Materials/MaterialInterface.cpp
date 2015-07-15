@@ -35,8 +35,11 @@ UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializ
 		InitDefaultMaterials();
 		AssertDefaultMaterialsExist();
 
-		SamplerTypeEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.EMaterialSamplerType"));
-		check(SamplerTypeEnum);
+		if (SamplerTypeEnum == nullptr)
+		{
+			SamplerTypeEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.EMaterialSamplerType"));
+			check(SamplerTypeEnum);
+		}
 	}
 }
 

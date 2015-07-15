@@ -4434,31 +4434,9 @@ struct FMobileLayerAllocation
 	}
 };
 
-void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
+void ULandscapeComponent::GeneratePlatformPixelData()
 {
 	check(!IsTemplate())
-
-	if (!bIsCooking)
-	{
-		// Calculate hash of source data and skip generation if the data we have in memory is unchanged
-		FBufferArchive ComponentStateAr;
-		SerializeStateHashes(ComponentStateAr);
-
-		uint32 Hash[5];
-		FSHA1::HashBuffer(ComponentStateAr.GetData(), ComponentStateAr.Num(), (uint8*)Hash);
-		FGuid NewSourceHash = FGuid(Hash[0] ^ Hash[4], Hash[1], Hash[2], Hash[3]);
-	
-		// Skip generation if the source hash matches
-		if (MobilePixelDataSourceHash.IsValid() && 
-			MobilePixelDataSourceHash == NewSourceHash &&
-			MobileMaterialInterface != nullptr &&
-			MobileWeightNormalmapTexture != nullptr)
-		{
-			return;
-		}
-			
-		MobilePixelDataSourceHash = NewSourceHash;
-	}
 
 	TArray<FMobileLayerAllocation> MobileLayerAllocations;
 	MobileLayerAllocations.Reserve(WeightmapLayerAllocations.Num());
@@ -4537,7 +4515,6 @@ void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
 
 	MobileWeightNormalmapTexture = NewWeightNormalmapTexture;
 
-
 	FLinearColor Masks[5];
 	Masks[0] = FLinearColor(1, 0, 0, 0);
 	Masks[1] = FLinearColor(0, 1, 0, 0);
@@ -4545,54 +4522,30 @@ void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
 	Masks[3] = FLinearColor(0, 0, 0, 1);
 	Masks[4] = FLinearColor(0, 0, 0, 0); // mask out layers 4+ altogether
 
-	if (!bIsCooking)
+	UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(true);
+	UMaterialInstanceConstant* NewMobileMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
+
+	NewMobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
+
+	MobileBlendableLayerMask = 0;
+
+	// Set the layer mask
+	int32 CurrentIdx = 0;
+	for (const auto& MobileAllocation : MobileLayerAllocations)
 	{
-		UMaterialInstanceDynamic* NewMobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost());
-
-		MobileBlendableLayerMask = 0;
-
-		// Set the layer mask
-		int32 CurrentIdx = 0;
-		for (const auto& MobileAllocation : MobileLayerAllocations)
+		const FWeightmapLayerAllocationInfo& Allocation = MobileAllocation.Allocation;
+		if (Allocation.LayerInfo)
 		{
-			const FWeightmapLayerAllocationInfo& Allocation = MobileAllocation.Allocation;
-			if (Allocation.LayerInfo)
-			{
-				FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
-				NewMobileMaterialInstance->SetVectorParameterValue(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
-				MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
-				CurrentIdx++;
-			}
+			FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
+			NewMobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
+			MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
+			CurrentIdx++;
 		}
-		MobileMaterialInterface = NewMobileMaterialInstance;
 	}
-	else // for cooking
-	{
-		UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(true);
-		UMaterialInstanceConstant* NewMobileMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 
-		NewMobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
+	NewMobileMaterialInstance->PostEditChange();
 
-		MobileBlendableLayerMask = 0;
-
-		// Set the layer mask
-		int32 CurrentIdx = 0;
-		for (const auto& MobileAllocation : MobileLayerAllocations)
-		{
-			const FWeightmapLayerAllocationInfo& Allocation = MobileAllocation.Allocation;
-			if (Allocation.LayerInfo)
-			{
-				FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
-				NewMobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
-				MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
-				CurrentIdx++;
-			}
-		}
-
-		NewMobileMaterialInstance->PostEditChange();
-
-		MobileMaterialInterface = NewMobileMaterialInstance;
-	}
+	MobileMaterialInterface = NewMobileMaterialInstance;
 }
 
 //
@@ -4620,13 +4573,16 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 	NewPlatformData.AddZeroed(NewPlatformDataSize);
 
 	// Get the required mip data
+	TArray<TArray<uint8>> HeightmapMipRawData;
 	TArray<FColor*> HeightmapMipData;
 	for (int32 MipIdx = 0; MipIdx < FMath::Min(LANDSCAPE_MAX_ES_LOD, HeightmapTexture->Source.GetNumMips()); MipIdx++)
 	{
 		int32 MipSubsectionSizeVerts = (SubsectionSizeVerts) >> MipIdx;
 		if (MipSubsectionSizeVerts > 1)
 		{
-			HeightmapMipData.Add((FColor*)HeightmapTexture->Source.LockMip(MipIdx));
+			new(HeightmapMipRawData) TArray<uint8>();
+			HeightmapTexture->Source.GetMipData(HeightmapMipRawData.Last(), MipIdx);
+			HeightmapMipData.Add((FColor*)HeightmapMipRawData.Last().GetData());
 		}
 	}
 
@@ -4749,11 +4705,6 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 		}
 
 		DstVert++;
-	}
-
-	for (int32 MipIdx = 0; MipIdx < HeightmapTexture->Source.GetNumMips(); MipIdx++)
-	{
-		HeightmapTexture->Source.UnlockMip(MipIdx);
 	}
 
 	// Copy to PlatformData as Compressed

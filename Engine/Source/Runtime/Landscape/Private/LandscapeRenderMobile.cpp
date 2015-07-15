@@ -220,9 +220,6 @@ FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandsc
 	check(InComponent && InComponent->PlatformData.HasValidPlatformData());
 	InComponent->PlatformData.GetUncompressedData(PlatformData);
 
-#if WITH_EDITOR
-	InComponent->GeneratePlatformPixelData(false);
-#endif
 	check(InComponent->MobileMaterialInterface);
 	check(InComponent->MobileWeightNormalmapTexture);
 	
