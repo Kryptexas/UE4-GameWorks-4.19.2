@@ -956,7 +956,7 @@ public:
 	virtual void UpdateBasedMovement(float DeltaSeconds);
 
 	/** Update controller's view rotation as pawn's base rotates */
-	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
+	virtual void UpdateBasedRotation(FRotator& FinalRotation, const FRotator& ReducedRotation);
 
 	/** Update (or defer updating) OldBaseLocation and OldBaseQuat if there is a valid movement base. */
 	DEPRECATED(4.4, "CharacterMovementComponent::MaybeSaveBaseLocation() will be removed, call SaveBaseLocation().")
@@ -1006,7 +1006,7 @@ public:
 	virtual void JumpOutOfWater(FVector WallNormal);
 
 	/** @return how far to rotate character during the time interval DeltaTime. */
-	virtual FRotator GetDeltaRotation(float DeltaTime);
+	virtual FRotator GetDeltaRotation(float DeltaTime) const;
 
 	/**
 	  * Compute a target rotation based on current movement. Used by PhysicsRotation() when bOrientRotationToMovement is true.
@@ -1018,7 +1018,7 @@ public:
 	  *
 	  * @return The target rotation given current movement.
 	  */
-	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation);
+	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation) const;
 
 	/**
 	 * Use velocity requested by path following to compute a requested acceleration and speed.
@@ -1047,7 +1047,7 @@ public:
 	/* Determine how deep in water the character is immersed.
 	 * @return float in range 0.0 = not in water, 1.0 = fully immersed
 	 */
-	virtual float ImmersionDepth();
+	virtual float ImmersionDepth() const;
 
 	/** 
 	 * Updates Velocity and Acceleration based on the current state, applying the effects of friction and acceleration or deceleration. Does not apply gravity.
@@ -1103,7 +1103,7 @@ public:
 	/** 
 	 * Move up steps or slope. Does nothing and returns false if CanStepUp(Hit) returns false.
 	 *
-	 * @param GravDir			Gravity vector
+	 * @param GravDir			Gravity vector direction (assumed normalized or zero)
 	 * @param Delta				Requested move
 	 * @param Hit				[In] The hit before the step up.
 	 * @param OutStepDownResult	[Out] If non-null, a floor check will be performed if possible as part of the final step down, and it will be updated to reflect this result.
@@ -1118,6 +1118,12 @@ public:
 	 * Update the base of the character, using the given floor result if it is walkable, or null if not. Calls SetBase().
 	 */
 	void SetBaseFromFloor(const FFindFloorResult& FloorResult);
+
+	/**
+	 * Applies downward force when walking on top of physics objects.
+	 * @param DeltaSeconds Time elapsed since last frame.
+	 */
+	virtual void ApplyDownwardForce(float DeltaSeconds);
 
 	/** Applies repulsion force to all touched components. */
 	virtual void ApplyRepulsionForce(float DeltaSeconds);
@@ -1136,7 +1142,7 @@ public:
 	void StartSwimming(FVector OldLocation, FVector OldVelocity, float timeTick, float remainingTime, int32 Iterations);
 
 	/* Swimming uses gravity - but scaled by (1.f - buoyancy) */
-	float Swim(FVector Delta, FHitResult &Hit);
+	float Swim(FVector Delta, FHitResult& Hit);
 
 	/** Get as close to waterline as possible, staying on same side as currently. */
 	FVector FindWaterLine(FVector Start, FVector End);
@@ -1185,8 +1191,7 @@ protected:
 	virtual float BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 	/**
-	 * Checks if air control will cause the player collision shape to hit something given the current location.
-	 * This function is used internally by PhysFalling().
+	 * (DEPRECATED) Checks if air control will cause the player collision shape to hit something given the current location.
 	 *
 	 * @param DeltaTime			Time step for the current update.
 	 * @param AdditionalTime	Time to look ahead further, applying acceleration and gravity.
@@ -1197,10 +1202,11 @@ protected:
 	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
 	 * @see GetAirControl()
 	 */
+	DEPRECATED(4.9, "FindAirControlImpact is no longer used by engine code.")
 	virtual bool FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult);
 
 	/**
-	 * Limits the air control to use during falling movement, given an impact from FindAirControlImpact().
+	 * Limits the air control to use during falling movement, given an impact while falling.
 	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
@@ -1208,7 +1214,7 @@ protected:
 	 * @param HitResult			Result of impact.
 	 * @param bCheckForValidLandingSpot If true, will use IsValidLandingSpot() to determine if HitResult is a walkable surface. If false, this check is skipped.
 	 * @return Modified air control acceleration to use during falling movement.
-	 * @see FindAirControlImpact()
+	 * @see PhysFalling()
 	 */
 	virtual FVector LimitAirControl(float DeltaTime, const FVector& FallAcceleration, const FHitResult& HitResult, bool bCheckForValidLandingSpot);
 	
@@ -1262,13 +1268,13 @@ public:
 	virtual bool CanCrouchInCurrentState() const;
 	
 	/** @return true if there is a suitable floor SideStep from current position. */
-	bool CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir);
+	virtual bool CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir) const;
 
 	/** 
 	 * @param Delta is the current move delta (which ended up going over a ledge).
 	 * @return new delta which moves along the ledge
 	 */
-	FVector GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir);
+	virtual FVector GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir) const;
 
 	/** Check if pawn is falling */
 	virtual bool CheckFall(const FFindFloorResult& OldFloor, const FHitResult& Hit, const FVector& Delta, const FVector& OldLocation, float remainingTime, float timeTick, int32 Iterations, bool bMustJump);
@@ -1445,7 +1451,7 @@ protected:
 	virtual bool ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation) override;
 
 	/** Handle a blocking impact. Calls ApplyImpactPhysicsForces for the hit, if bEnablePhysicsInteraction is true. */
-	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
+	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
 	/**
 	 * Apply physics forces to the impacted component, if bEnablePhysicsInteraction is true.
@@ -1456,10 +1462,10 @@ protected:
 	virtual void ApplyImpactPhysicsForces(const FHitResult& Impact, const FVector& ImpactAcceleration, const FVector& ImpactVelocity);
 
 	/** Custom version of SlideAlongSurface that handles different movement modes separately; namely during walking physics we might not want to slide up slopes. */
-	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) override;
+	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult& Hit, bool bHandleImpact) override;
 
 	/** Custom version that allows upwards slides when walking if the surface is walkable. */
-	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const override;
+	virtual void TwoWallAdjust(FVector& Delta, const FHitResult& Hit, const FVector& OldHitNormal) const override;
 
 	/**
 	 * Calculate slide vector along a surface.
@@ -1497,7 +1503,7 @@ protected:
 	 * Return true if the 2D distance to the impact point is inside the edge tolerance (CapsuleRadius minus a small rejection threshold).
 	 * Useful for rejecting adjacent hits when finding a floor or landing spot.
 	 */
-	bool IsWithinEdgeTolerance(const FVector& CapsuleLocation, const FVector& TestImpactPoint, const float CapsuleRadius) const;
+	virtual bool IsWithinEdgeTolerance(const FVector& CapsuleLocation, const FVector& TestImpactPoint, const float CapsuleRadius) const;
 
 	/**
 	 * Sweeps a vertical trace to find the floor for the capsule at the given location. Will attempt to perch if ShouldComputePerchResult() returns true for the downward sweep result.
@@ -1581,7 +1587,7 @@ protected:
 
 	/** Called when the collision capsule touches another primitive component */
 	UFUNCTION()
-	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	// Enum used to control GetPawnCapsuleExtent behavior
 	enum EShrinkCapsuleExtent
@@ -1848,6 +1854,14 @@ public:
 
 	/** Simulate Root Motion physics on Simulated Proxies */
 	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);
+
+	/**
+	 * Calculate velocity from root motion. Under some movement conditions, only portions of root motion may be used (e.g. when falling Z may be ignored).
+	 * @param RootMotionDeltaMove	Change in location from root motion.
+	 * @param DeltaSeconds			Elapsed time
+	 * @param CurrentVelocity		Non-root motion velocity at current time, used for components of result that may ignore root motion.
+	 */
+	virtual FVector CalcRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const;
 
 	// RVO Avoidance
 
