@@ -3,10 +3,13 @@
 #pragma once
 
 
+class IMediaStream;
+
+
 /**
- * Interface for video tracks details.
+ * Interface for video tracks.
  */
-class IMediaTrackVideoDetails
+class IMediaVideoTrack
 {
 public:
 
@@ -14,6 +17,7 @@ public:
 	 * Gets the average data rate of the video track in bits per second.
 	 *
 	 * @return The data rate.
+	 * @see GetFrameRate
 	 */
 	virtual uint32 GetBitRate() const = 0;
 
@@ -29,8 +33,16 @@ public:
 	 * Gets the video's frame rate in frames per second.
 	 *
 	 * @return The frame rate.
+	 * @see GetBitRate
 	 */
 	virtual float GetFrameRate() const = 0;
+
+	/**
+	 * Get the underlying media stream.
+	 *
+	 * @return Media stream object.
+	 */
+	virtual IMediaStream& GetStream() = 0;
 
 public:
 
@@ -55,5 +67,12 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMediaTrackVideoDetails() { }
+	~IMediaVideoTrack() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMediaVideoTrack. */
+typedef TSharedPtr<IMediaVideoTrack, ESPMode::ThreadSafe> IMediaVideoTrackPtr;
+
+/** Type definition for shared references to instances of IMediaVideoTrack. */
+typedef TSharedRef<IMediaVideoTrack, ESPMode::ThreadSafe> IMediaVideoTrackRef;

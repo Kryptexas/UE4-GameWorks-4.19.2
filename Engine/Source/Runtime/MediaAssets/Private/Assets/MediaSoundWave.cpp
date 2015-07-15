@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
-#include "IMediaTrackAudioDetails.h"
+#include "IMediaAudioTrack.h"
 #include "MediaSampleQueue.h"
 #include "MediaSoundWave.h"
 
@@ -24,7 +24,7 @@ UMediaSoundWave::~UMediaSoundWave()
 {
 	if (AudioTrack.IsValid())
 	{
-		AudioTrack->RemoveSink(AudioQueue);
+		AudioTrack->GetStream().RemoveSink(AudioQueue);
 	}
 
 	if (CurrentMediaPlayer != nullptr)
@@ -167,7 +167,7 @@ void UMediaSoundWave::InitializeTrack()
 	// disconnect from current track
 	if (AudioTrack.IsValid())
 	{
-		AudioTrack->RemoveSink(AudioQueue);
+		AudioTrack->GetStream().RemoveSink(AudioQueue);
 	}
 
 	AudioTrack.Reset();
@@ -177,28 +177,26 @@ void UMediaSoundWave::InitializeTrack()
 	{
 		IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
-		if (Player .IsValid())
+		if (Player.IsValid())
 		{
-			if (AudioTrackIndex == INDEX_NONE)
-			{
-				AudioTrack = Player->GetFirstTrack(EMediaTrackTypes::Audio);
+			auto AudioTracks = Player->GetAudioTracks();
 
-				if (AudioTrack.IsValid())
-				{
-					AudioTrackIndex = AudioTrack->GetIndex();
-				}
-			}
-			else
+			if (AudioTracks.IsValidIndex(AudioTrackIndex))
 			{
-				AudioTrack = Player ->GetTrack(AudioTrackIndex, EMediaTrackTypes::Audio);
+				AudioTrack = AudioTracks[AudioTrackIndex];
+			}
+			else if (AudioTracks.Num() > 0)
+			{
+				AudioTrack = AudioTracks[0];
+				AudioTrackIndex = 0;
 			}
 		}
 	}
 
 	if (AudioTrack.IsValid())
 	{
-		NumChannels = AudioTrack->GetAudioDetails().GetNumChannels();
-		SampleRate = AudioTrack->GetAudioDetails().GetSamplesPerSecond();
+		NumChannels = AudioTrack->GetNumChannels();
+		SampleRate = AudioTrack->GetSamplesPerSecond();
 	}
 	else
 	{
@@ -209,7 +207,7 @@ void UMediaSoundWave::InitializeTrack()
 	// connect to new track
 	if (AudioTrack.IsValid())
 	{
-		AudioTrack->AddSink(AudioQueue);
+		AudioTrack->GetStream().AddSink(AudioQueue);
 	}
 }
 

@@ -8,7 +8,7 @@
 
 class FMediaSampleBuffer;
 class IMediaPlayer;
-class IMediaTrack;
+class IMediaVideoTrack;
 class UMediaPlayer;
 enum EPixelFormat;
 enum TextureAddress;
@@ -78,7 +78,7 @@ public:
 	 *
 	 * @return The selected video track, or nullptr if none is selected.
 	 */
-	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetVideoTrack() const
+	TSharedPtr<IMediaVideoTrack, ESPMode::ThreadSafe> GetVideoTrack() const
 	{
 		return VideoTrack;
 	}
@@ -147,5 +147,5 @@ private:
 	TSharedRef<FMediaSampleBuffer, ESPMode::ThreadSafe> VideoBuffer;
 
 	/** Holds the selected video track. */
-	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> VideoTrack;
+	TSharedPtr<IMediaVideoTrack, ESPMode::ThreadSafe> VideoTrack;
 };

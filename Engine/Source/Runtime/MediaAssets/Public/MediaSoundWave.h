@@ -8,8 +8,8 @@
 
 
 class FMediaSampleQueue;
+class IMediaAudioTrack;
 class IMediaPlayer;
-class IMediaTrack;
 class UMediaPlayer;
 
 
@@ -89,7 +89,7 @@ private:
 	TSharedRef<FMediaSampleQueue, ESPMode::ThreadSafe> AudioQueue;
 
 	/** Holds the selected audio track. */
-	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> AudioTrack;
+	TSharedPtr<IMediaAudioTrack, ESPMode::ThreadSafe> AudioTrack;
 
 	/** Holds the media player asset currently being used. */
 	UMediaPlayer* CurrentMediaPlayer;

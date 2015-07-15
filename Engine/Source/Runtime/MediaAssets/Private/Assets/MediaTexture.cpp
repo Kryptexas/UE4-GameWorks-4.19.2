@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
-#include "IMediaTrackVideoDetails.h"
+#include "IMediaVideoTrack.h"
 #include "MediaSampleBuffer.h"
 
 
@@ -17,7 +17,6 @@ UMediaTexture::UMediaTexture( const FObjectInitializer& ObjectInitializer )
 	, VideoBuffer(MakeShareable(new FMediaSampleBuffer))
 {
 	NeverStream = true;
-
 	UpdateResource();
 }
 
@@ -26,7 +25,7 @@ UMediaTexture::~UMediaTexture()
 {
 	if (VideoTrack.IsValid())
 	{
-		VideoTrack->RemoveSink(VideoBuffer);
+		VideoTrack->GetStream().RemoveSink(VideoBuffer);
 	}
 
 	if (CurrentMediaPlayer != nullptr)
@@ -191,7 +190,7 @@ void UMediaTexture::InitializeTrack()
 	// disconnect from current track
 	if (VideoTrack.IsValid())
 	{
-		VideoTrack->RemoveSink(VideoBuffer);
+		VideoTrack->GetStream().RemoveSink(VideoBuffer);
 		VideoTrack.Reset();
 	}
 
@@ -202,25 +201,23 @@ void UMediaTexture::InitializeTrack()
 
 		if (Player.IsValid())
 		{
-			if (VideoTrackIndex == INDEX_NONE)
-			{
-				VideoTrack = Player->GetFirstTrack(EMediaTrackTypes::Video);
+			auto VideoTracks = Player->GetVideoTracks();
 
-				if (VideoTrack.IsValid())
-				{
-					VideoTrackIndex = VideoTrack->GetIndex();
-				}
-			}
-			else
+			if (VideoTracks.IsValidIndex(VideoTrackIndex))
 			{
-				VideoTrack = Player->GetTrack(VideoTrackIndex, EMediaTrackTypes::Video);
+				VideoTrack = VideoTracks[VideoTrackIndex];
+			}
+			else if (VideoTracks.Num() > 0)
+			{
+				VideoTrack = VideoTracks[0];
+				VideoTrackIndex = 0;
 			}
 		}
 	}
 
 	if (VideoTrack.IsValid())
 	{
-		CachedDimensions = VideoTrack->GetVideoDetails().GetDimensions();
+		CachedDimensions = VideoTrack->GetDimensions();
 	}
 	else
 	{
@@ -232,7 +229,7 @@ void UMediaTexture::InitializeTrack()
 	// connect to new track
 	if (VideoTrack.IsValid())
 	{
-		VideoTrack->AddSink(VideoBuffer);
+		VideoTrack->GetStream().AddSink(VideoBuffer);
 	}
 }
 

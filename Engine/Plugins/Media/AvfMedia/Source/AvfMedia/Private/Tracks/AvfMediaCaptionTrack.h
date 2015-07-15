@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "IMediaCaptionTrack.h"
+
 
 /**
  * Caption Track implementation using the AV Foundation Framework.
  */
 class FAvfMediaCaptionTrack
 	: public FAvfMediaTrack
-	, public IMediaTrackCaptionDetails
+	, public IMediaCaptionTrack
 {
 public:
 
@@ -19,31 +21,10 @@ public:
 
 public:
 
-	// IMediaTrackCaptionDetails interface
+	// IMediaCaptionTrack interface
 
-public:
-
-	// IMediaTrack interface
-
-	virtual const IMediaTrackAudioDetails& GetAudioDetails() const override
-	{
-		check(false); // not an audio track
-		return (IMediaTrackAudioDetails&)*this;
-	}
-
-	virtual const IMediaTrackCaptionDetails& GetCaptionDetails() const override
+	virtual IMediaStream& GetStream() override
 	{
 		return *this;
-	}
-
-	virtual EMediaTrackTypes GetType() const override
-	{
-		return EMediaTrackTypes::Caption;
-	}
-
-	virtual const IMediaTrackVideoDetails& GetVideoDetails() const override
-	{
-		check(false); // not a video track
-		return (IMediaTrackVideoDetails&)*this;
 	}
 };

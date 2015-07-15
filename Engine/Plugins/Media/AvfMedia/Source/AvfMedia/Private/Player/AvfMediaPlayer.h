@@ -58,10 +58,12 @@ public:
 	// IMediaPlayer interface
 
 	virtual void Close() override;
+	virtual const TArray<IMediaAudioTrackRef>& GetAudioTracks() const override;
+	virtual const TArray<IMediaCaptionTrackRef>& GetCaptionTracks() const override;
 	virtual const IMediaInfo& GetMediaInfo() const override;
 	virtual float GetRate() const override;
 	virtual FTimespan GetTime() const override;
-	virtual const TArray<IMediaTrackRef>& GetTracks() const override;
+	virtual const TArray<IMediaVideoTrackRef>& GetVideoTracks() const override;
 	virtual bool IsLooping() const override;
 	virtual bool IsPaused() const override;
 	virtual bool IsPlaying() const override;
@@ -107,14 +109,17 @@ protected:
 
 private:
 
+	/** The available audio tracks. */
+	TArray<IMediaAudioTrackRef> AudioTracks;
+
+	/** The available caption tracks. */
+	TArray<IMediaCaptionTrackRef> CaptionTracks;
+
     /** The AVFoundation media player */
     AVPlayer* MediaPlayer;
 
     /** The player item which the media player uses to progress. */
     AVPlayerItem* PlayerItem;
-
-    /** The available media tracks. */
-    TArray<IMediaTrackRef> Tracks;
 
     /** The duration of the media. */
     FTimespan Duration;
@@ -130,6 +135,9 @@ private:
 
 	/** Cocoa helper object we can use to keep track of ns property changes in our media items */
 	FMediaHelper* MediaHelper;
+
+	/** The available video tracks. */
+	TArray<IMediaVideoTrackRef> VideoTracks;
 
 private:
 

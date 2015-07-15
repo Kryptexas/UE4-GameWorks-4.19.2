@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "IMediaVideoTrack.h"
+
 
 /**
  * Video Track implementation using the AV Foundation Framework.
  */
 class FAvfMediaVideoTrack
 	: public FAvfMediaTrack
-	, public IMediaTrackVideoDetails
+	, public IMediaVideoTrack
 {
 public:
 
@@ -41,31 +43,14 @@ public:
 		return FrameRate;
 	}
 
-public:
-
-	// IMediaTrack interface
-
-	virtual const IMediaTrackAudioDetails& GetAudioDetails() const override
-	{
-		check(false); // not an audio track
-		return (IMediaTrackAudioDetails&)*this;
-	}
-
-	virtual const IMediaTrackCaptionDetails& GetCaptionDetails() const override
-	{
-		check(false); // not a caption track
-		return (IMediaTrackCaptionDetails&)*this;
-	}
-
-	virtual const IMediaTrackVideoDetails& GetVideoDetails() const override
+	virtual IMediaStream& GetStream() override
 	{
 		return *this;
 	}
 
-    virtual EMediaTrackTypes GetType() const override
-    {
-        return EMediaTrackTypes::Video;
-    }
+public:
+
+	// IMediaTrack interface
 
     virtual void AddSink( const IMediaSinkRef& Sink ) override
     {

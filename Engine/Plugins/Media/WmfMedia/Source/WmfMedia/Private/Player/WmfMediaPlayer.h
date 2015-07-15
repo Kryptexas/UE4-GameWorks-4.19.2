@@ -36,10 +36,12 @@ public:
 	// IMediaPlayer interface
 
 	virtual void Close() override;
+	virtual const TArray<IMediaAudioTrackRef>& GetAudioTracks() const override;
+	virtual const TArray<IMediaCaptionTrackRef>& GetCaptionTracks() const override;
 	virtual const IMediaInfo& GetMediaInfo() const override;
 	virtual float GetRate() const override;
 	virtual FTimespan GetTime() const override;
-	virtual const TArray<IMediaTrackRef>& GetTracks() const override;
+	virtual const TArray<IMediaVideoTrackRef>& GetVideoTracks() const override;
 	virtual bool IsLooping() const override;
 	virtual bool IsPaused() const override;
 	virtual bool IsPlaying() const override;
@@ -97,8 +99,11 @@ private:
 
 private:
 
-	/** The available media tracks. */
-	TArray<IMediaTrackRef> Tracks;
+	/** The available audio tracks. */
+	TArray<IMediaAudioTrackRef> AudioTracks;
+
+	/** The available caption tracks. */
+	TArray<IMediaCaptionTrackRef> CaptionTracks;
 
 	/** The duration of the currently loaded media. */
 	FTimespan Duration;
@@ -111,6 +116,9 @@ private:
 
 	/** The URL of the currently opened media. */
 	FString MediaUrl;
+
+	/** The available video tracks. */
+	TArray<IMediaVideoTrackRef> VideoTracks;
 
 private:
 

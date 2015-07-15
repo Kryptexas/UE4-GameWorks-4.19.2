@@ -3,10 +3,13 @@
 #pragma once
 
 #include "IMediaInfo.h"
-#include "IMediaTrack.h"
+#include "IMediaStream.h"
 
 
-class IMediaTrack;
+class IMediaStream;
+class IMediaAudioTrack;
+class IMediaCaptionTrack;
+class IMediaVideoTrack;
 
 
 /**
@@ -47,6 +50,22 @@ public:
 	virtual void Close() = 0;
 
 	/**
+	 * Get the media's audio tracks.
+	 *
+	 * @return Collection of audio tracks.
+	 * @see GetCaptionTracks, GetVideoTracks
+	 */
+	virtual const TArray<TSharedRef<IMediaAudioTrack, ESPMode::ThreadSafe>>& GetAudioTracks() const = 0;
+
+	/**
+	 * Get the media's caption tracks.
+	 *
+	 * @return Collection of caption tracks.
+	 * @see GetAudioTracks, GetVideoTracks
+	 */
+	virtual const TArray<TSharedRef<IMediaCaptionTrack, ESPMode::ThreadSafe>>& GetCaptionTracks() const = 0;
+
+	/**
 	 * Gets the last error that occurred during media loading or playback.
 	 *
 	 * @return The error string, or an empty string if no error occurred.
@@ -77,12 +96,12 @@ public:
 	virtual FTimespan GetTime() const = 0;
 
 	/**
-	 * Gets access to the media's audio, video and other tracks.
+	 * Get the media's video tracks.
 	 *
-	 * @return Media tracks interface.
-	 * @see GetFirstTrack, GetTrack
+	 * @return Collection of video tracks.
+	 * @see GetAudioTracks, GetCaptionTracks
 	 */
-	virtual const TArray<TSharedRef<IMediaTrack, ESPMode::ThreadSafe>>& GetTracks() const = 0;
+	virtual const TArray<TSharedRef<IMediaVideoTrack, ESPMode::ThreadSafe>>& GetVideoTracks() const = 0;
 
 	/**
 	 * Checks whether playback is currently looping.
@@ -127,7 +146,7 @@ public:
 	 * @return true if the media was opened successfully, false otherwise.
 	 * @see Close, IsReady
 	 */
-	virtual bool Open( const FString& Url ) = 0;
+	virtual bool Open(const FString& Url) = 0;
 
 	/**
 	 * Opens a media from a file or memory archive.
@@ -137,7 +156,7 @@ public:
 	 * @return true if the media was opened, false otherwise.
 	 * @see Close, IsReady
 	 */
-	virtual bool Open( const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl ) = 0;
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl) = 0;
 
 	/**
 	 * Changes the media's playback time.
@@ -146,7 +165,7 @@ public:
 	 * @return true on success, false otherwise.
 	 * @see GetTime
 	 */
-	virtual bool Seek( const FTimespan& Time ) = 0;
+	virtual bool Seek(const FTimespan& Time) = 0;
 
 	/**
 	 * Sets whether playback should be looping.
@@ -154,7 +173,7 @@ public:
 	 * @param Looping Enables or disables looping.
 	 * @see IsLooping
 	 */
-	virtual bool SetLooping( bool Looping ) = 0;
+	virtual bool SetLooping(bool Looping) = 0;
 
 	/**
 	 * Sets the current playback rate.
@@ -185,49 +204,6 @@ public:
 	virtual FOnTracksChanged& OnTracksChanged() = 0;
 
 public:
-
-	/**
-	 * Gets the first media track matching the specified type.
-	 *
-	 * @param TrackType The expected type of the track, i.e. audio or video.
-	 * @return The first matching track, nullptr otherwise.
-	 * @see GetTrack, GetTracks
-	 */
-	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetFirstTrack( EMediaTrackTypes TrackType )
-	{
-		for (const TSharedRef<IMediaTrack, ESPMode::ThreadSafe>& Track : GetTracks())
-		{
-			if (Track->GetType() == TrackType)
-			{
-				return Track;
-			}
-		}
-
-		return nullptr;
-	}
-
-	/**
-	 * Gets the media track with the specified index and type.
-	 *
-	 * @param TrackIndex The index of the track to get.
-	 * @param TrackType The expected type of the track, i.e. audio or video.
-	 * @return The track if it exists, nullptr otherwise.
-	 * @see GetFirstTrack, GetTracks
-	 */
-	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetTrack( int32 TrackIndex, EMediaTrackTypes TrackType )
-	{
-		if (GetTracks().IsValidIndex(TrackIndex))
-		{
-			TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> Track = GetTracks()[TrackIndex];
-
-			if (Track->GetType() == TrackType)
-			{
-				return Track;
-			}
-		}
-
-		return nullptr;
-	}
 
 	/**
 	 * Pauses media playback.
@@ -263,7 +239,7 @@ public:
 	 * @return true on success, false otherwise.
 	 * @see GetDuration, GetTime
 	 */
-	bool Seek( const FTimespan& TimeOffset, EMediaSeekDirection Direction )
+	bool Seek(const FTimespan& TimeOffset, EMediaSeekDirection Direction)
 	{
 		FTimespan SeekTime;
 

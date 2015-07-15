@@ -375,76 +375,10 @@ private: // Members
 	FCriticalSection CritSect;
 };
 
-void LogExecuteCommandLists(uint32 NumCommandLists, ID3D12CommandList *const *ppCommandLists)
-{
-	for (uint32 i = 0; i < NumCommandLists; i++)
-	{
-		ID3D12CommandList *const pCurrentCommandList = ppCommandLists[i];
-		UE_LOG(LogD3D12RHI, Log, TEXT("*** EXECUTE (CmdList: %016llX) %u/%u ***"), pCurrentCommandList, i + 1, NumCommandLists);
-	}
-}
+void LogExecuteCommandLists(uint32 NumCommandLists, ID3D12CommandList *const *ppCommandLists);
+FString ConvertToResourceStateString(uint32 ResourceState);
+void LogResourceBarriers(uint32 NumBarriers, D3D12_RESOURCE_BARRIER *pBarriers, ID3D12CommandList *const pCommandList);
 
-FString ConvertToResourceStateString(uint32 ResourceState)
-{
-	if (ResourceState == 0)
-	{
-		return FString(TEXT("D3D12_RESOURCE_STATE_COMMON"));
-	}
-	
-	TCHAR *ResourceStateNames[] =
-	{
-		TEXT("D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER"	  ), 
-		TEXT("D3D12_RESOURCE_STATE_INDEX_BUFFER"				  ), 
-		TEXT("D3D12_RESOURCE_STATE_RENDER_TARGET"				  ), 
-		TEXT("D3D12_RESOURCE_STATE_UNORDERED_ACCESS"			  ), 
-		TEXT("D3D12_RESOURCE_STATE_DEPTH_WRITE"					  ), 
-		TEXT("D3D12_RESOURCE_STATE_DEPTH_READ"					  ), 
-		TEXT("D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE"	  ), 
-		TEXT("D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE"		  ), 
-		TEXT("D3D12_RESOURCE_STATE_STREAM_OUT"					  ), 
-		TEXT("D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT"			  ), 
-		TEXT("D3D12_RESOURCE_STATE_COPY_DEST"					  ), 
-		TEXT("D3D12_RESOURCE_STATE_COPY_SOURCE"					  ), 
-		TEXT("D3D12_RESOURCE_STATE_RESOLVE_DEST"				  ), 
-		TEXT("D3D12_RESOURCE_STATE_RESOLVE_SOURCE"				  ), 
-	};
-
-	FString ResourceStateString;
-	uint16 NumStates = 0;
-	for (uint16 i = 0; ResourceState && i < ARRAYSIZE(ResourceStateNames); i++)
-	{
-		if (ResourceState & 1)
-		{
-			if (NumStates > 0)
-			{
-				ResourceStateString += " | ";
-			}
-
-			ResourceStateString += ResourceStateNames[i];
-			NumStates++;
-		}
-		ResourceState = ResourceState >> 1;
-	}
-	return ResourceStateString;
-}
-
-void LogResourceBarriers(uint32 NumBarriers, D3D12_RESOURCE_BARRIER *pBarriers, ID3D12CommandList *const pCommandList)
-{
-	for (uint32 i = 0; i < NumBarriers; i++)
-	{
-		D3D12_RESOURCE_BARRIER &currentBarrier = pBarriers[i];
-		check(currentBarrier.Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION);
-
-		FString StateBefore = ConvertToResourceStateString(static_cast<uint32>(currentBarrier.Transition.StateBefore));
-		FString StateAfter = ConvertToResourceStateString(static_cast<uint32>(currentBarrier.Transition.StateAfter));
-
-		UE_LOG(LogD3D12RHI, Log, TEXT("*** BARRIER (CmdList: %016llX) %u/%u: %016llX (Sub: %u), %s -> %s"), pCommandList, i + 1, NumBarriers,
-			currentBarrier.Transition.pResource,
-			currentBarrier.Transition.Subresource,
-			*StateBefore,
-			*StateAfter);
-	}
-}
 
 // Custom resource states
 // To Be Determined (TBD) means we need to fill out a resource barrier before the command list is executed.

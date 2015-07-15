@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "IMediaAudioTrack.h"
+
 
 /**
  * Audio Track implementation using the AV Foundation Framework.
  */
 class FAvfMediaAudioTrack
 	: public FAvfMediaTrack
-	, public IMediaTrackAudioDetails
+	, public IMediaAudioTrack
 {
 public:
 
@@ -22,7 +24,7 @@ public:
 
 public:
 
-	// IMediaTrackAudioDetails interface
+	// IMediaAudioTrack interface
 	
 	virtual uint32 GetNumChannels() const override
 	{
@@ -34,30 +36,9 @@ public:
 		return SamplesPerSecond;
 	}
 
-public:
-
-	// IMediaTrack interface
-
-	virtual const IMediaTrackAudioDetails& GetAudioDetails() const override
+	virtual IMediaStream& GetStream() override
 	{
 		return *this;
-	}
-
-	virtual const IMediaTrackCaptionDetails& GetCaptionDetails() const override
-	{
-		check(false); // not a caption track
-		return (IMediaTrackCaptionDetails&)*this;
-	}
-
-	virtual EMediaTrackTypes GetType() const override
-	{
-		return EMediaTrackTypes::Audio;
-	}
-
-	virtual const IMediaTrackVideoDetails& GetVideoDetails() const override
-	{
-		check(false); // not an video track
-		return (IMediaTrackVideoDetails&)*this;
 	}
 
 private:

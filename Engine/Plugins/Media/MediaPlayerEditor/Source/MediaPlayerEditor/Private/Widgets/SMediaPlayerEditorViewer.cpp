@@ -29,7 +29,7 @@ SMediaPlayerEditorViewer::~SMediaPlayerEditorViewer()
 /* SMediaPlayerEditorPlayer interface
  *****************************************************************************/
 
-void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer* InMediaPlayer, const TSharedRef<ISlateStyle>& InStyle )
+void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer* InMediaPlayer, const TSharedRef<ISlateStyle>& InStyle)
 {
 	MediaPlayer = InMediaPlayer;
 	Viewport = MakeShareable(new FMediaPlayerEditorViewport());
@@ -92,7 +92,7 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 									.Padding(4.0f, 0.0f)
 									.VAlign(VAlign_Center)
 									[
-										SAssignNew(VideoTrackComboBox, SComboBox<IMediaTrackPtr>)
+										SAssignNew(VideoTrackComboBox, SComboBox<IMediaVideoTrackPtr>)
 											.OnGenerateWidget(this, &SMediaPlayerEditorViewer::HandleVideoTrackComboBoxGenerateWidget)
 											.OnSelectionChanged(this, &SMediaPlayerEditorViewer::HandleVideoTrackComboBoxSelectionChanged)
 											.OptionsSource(&VideoTracks)
@@ -124,7 +124,7 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 									.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 									.VAlign(VAlign_Center)
 									[
-										SAssignNew(AudioTrackComboBox, SComboBox<IMediaTrackPtr>)
+										SAssignNew(AudioTrackComboBox, SComboBox<IMediaAudioTrackPtr>)
 											.OnGenerateWidget(this, &SMediaPlayerEditorViewer::HandleAudioTrackComboBoxGenerateWidget)
 											.OnSelectionChanged(this, &SMediaPlayerEditorViewer::HandleAudioTrackComboBoxSelectionChanged)
 											.OptionsSource(&AudioTracks)
@@ -156,7 +156,7 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 									.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 									.VAlign(VAlign_Center)
 									[
-										SAssignNew(CaptionTrackComboBox, SComboBox<IMediaTrackPtr>)
+										SAssignNew(CaptionTrackComboBox, SComboBox<IMediaCaptionTrackPtr>)
 											.OnGenerateWidget(this, &SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxGenerateWidget)
 											.OnSelectionChanged(this, &SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxSelectionChanged)
 											.OptionsSource(&CaptionTracks)
@@ -295,11 +295,11 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 void SMediaPlayerEditorViewer::ReloadTracks()
 {
 	// clear track collections
-	IMediaTrackPtr SelectedCaptionTrack = CaptionTrackComboBox->GetSelectedItem();
+	IMediaCaptionTrackPtr SelectedCaptionTrack = CaptionTrackComboBox->GetSelectedItem();
 
 	if (SelectedCaptionTrack.IsValid())
 	{
-		SelectedCaptionTrack->RemoveSink(CaptionBuffer);
+		SelectedCaptionTrack->GetStream().RemoveSink(CaptionBuffer);
 	}
 
 	AudioTracks.Reset();
@@ -313,22 +313,19 @@ void SMediaPlayerEditorViewer::ReloadTracks()
 
 		if (Player.IsValid())
 		{
-			for (IMediaTrackPtr Track : Player->GetTracks())
+			for (auto AudioTrack : Player->GetAudioTracks())
 			{
-				switch (Track->GetType())
-				{
-				case EMediaTrackTypes::Audio:
-					AudioTracks.Add(Track);
-					break;
+				AudioTracks.Add(AudioTrack);
+			}
 
-				case EMediaTrackTypes::Caption:
-					CaptionTracks.Add(Track);
-					break;
+			for (auto CaptionTrack : Player->GetCaptionTracks())
+			{
+				CaptionTracks.Add(CaptionTrack);
+			}
 
-				case EMediaTrackTypes::Video:
-					VideoTracks.Add(Track);
-					break;
-				}
+			for (auto VideoTrack : Player->GetVideoTracks())
+			{
+				VideoTracks.Add(VideoTrack);
 			}
 		}
 	}
@@ -351,7 +348,7 @@ void SMediaPlayerEditorViewer::ReloadTracks()
 		if (CaptionTracks.Num() > 0)
 		{
 			CaptionTrackComboBox->SetSelectedItem(CaptionTracks[0]);
-			CaptionTracks[0]->AddSink(CaptionBuffer);
+			CaptionTracks[0]->GetStream().AddSink(CaptionBuffer);
 		}
 		else
 		{
@@ -389,14 +386,14 @@ EActiveTimerReturnType SMediaPlayerEditorViewer::HandleActiveTimer(double InCurr
 }
 
 
-TSharedRef<SWidget> SMediaPlayerEditorViewer::HandleAudioTrackComboBoxGenerateWidget( IMediaTrackPtr Value ) const
+TSharedRef<SWidget> SMediaPlayerEditorViewer::HandleAudioTrackComboBoxGenerateWidget(IMediaAudioTrackPtr Value) const
 {
 	return SNew(STextBlock)
-		.Text(Value->GetDisplayName());
+		.Text(Value->GetStream().GetDisplayName());
 }
 
 
-void SMediaPlayerEditorViewer::HandleAudioTrackComboBoxSelectionChanged( IMediaTrackPtr Selection, ESelectInfo::Type SelectInfo )
+void SMediaPlayerEditorViewer::HandleAudioTrackComboBoxSelectionChanged(IMediaAudioTrackPtr Selection, ESelectInfo::Type SelectInfo)
 {
 	if (SelectInfo != ESelectInfo::Direct)
 	{
@@ -407,11 +404,11 @@ void SMediaPlayerEditorViewer::HandleAudioTrackComboBoxSelectionChanged( IMediaT
 
 FText SMediaPlayerEditorViewer::HandleAudioTrackComboBoxText() const
 {
-	IMediaTrackPtr AudioTrack = AudioTrackComboBox->GetSelectedItem();
+	IMediaAudioTrackPtr AudioTrack = AudioTrackComboBox->GetSelectedItem();
 
 	if (AudioTrack.IsValid())
 	{
-		return AudioTrack->GetDisplayName();
+		return AudioTrack->GetStream().GetDisplayName();
 	}
 
 	if (AudioTracks.Num() == 0)
@@ -423,14 +420,14 @@ FText SMediaPlayerEditorViewer::HandleAudioTrackComboBoxText() const
 }
 
 
-TSharedRef<SWidget> SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxGenerateWidget( IMediaTrackPtr Value ) const
+TSharedRef<SWidget> SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxGenerateWidget(IMediaCaptionTrackPtr Value) const
 {
 	return SNew(STextBlock)
-		.Text(Value->GetDisplayName());
+		.Text(Value->GetStream().GetDisplayName());
 }
 
 
-void SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxSelectionChanged( IMediaTrackPtr Selection, ESelectInfo::Type SelectInfo )
+void SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxSelectionChanged(IMediaCaptionTrackPtr Selection, ESelectInfo::Type SelectInfo)
 {
 	if (SelectInfo != ESelectInfo::Direct)
 	{
@@ -441,11 +438,11 @@ void SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxSelectionChanged( IMedi
 
 FText SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxText() const
 {
-	IMediaTrackPtr CaptionTrack = CaptionTrackComboBox->GetSelectedItem();
+	IMediaCaptionTrackPtr CaptionTrack = CaptionTrackComboBox->GetSelectedItem();
 
 	if (CaptionTrack.IsValid())
 	{
-		return CaptionTrack->GetDisplayName();
+		return CaptionTrack->GetStream().GetDisplayName();
 	}
 
 	if (CaptionTracks.Num() == 0)
@@ -629,14 +626,14 @@ EVisibility SMediaPlayerEditorViewer::HandleTrackSelectionBoxVisibility() const
 }
 
 
-TSharedRef<SWidget> SMediaPlayerEditorViewer::HandleVideoTrackComboBoxGenerateWidget( IMediaTrackPtr Value ) const
+TSharedRef<SWidget> SMediaPlayerEditorViewer::HandleVideoTrackComboBoxGenerateWidget(IMediaVideoTrackPtr Value) const
 {
 	return SNew(STextBlock)
-		.Text(Value->GetDisplayName());
+		.Text(Value->GetStream().GetDisplayName());
 }
 
 
-void SMediaPlayerEditorViewer::HandleVideoTrackComboBoxSelectionChanged( IMediaTrackPtr Selection, ESelectInfo::Type SelectInfo )
+void SMediaPlayerEditorViewer::HandleVideoTrackComboBoxSelectionChanged(IMediaVideoTrackPtr Selection, ESelectInfo::Type SelectInfo)
 {
 	if (SelectInfo != ESelectInfo::Direct)
 	{
@@ -647,11 +644,11 @@ void SMediaPlayerEditorViewer::HandleVideoTrackComboBoxSelectionChanged( IMediaT
 
 FText SMediaPlayerEditorViewer::HandleVideoTrackComboBoxText() const
 {
-	IMediaTrackPtr VideoTrack = VideoTrackComboBox->GetSelectedItem();
+	IMediaVideoTrackPtr VideoTrack = VideoTrackComboBox->GetSelectedItem();
 
 	if (VideoTrack.IsValid())
 	{
-		return VideoTrack->GetDisplayName();
+		return VideoTrack->GetStream().GetDisplayName();
 	}
 
 	if (VideoTracks.Num() == 0)

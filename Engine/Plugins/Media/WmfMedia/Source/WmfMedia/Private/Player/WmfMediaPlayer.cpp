@@ -86,13 +86,27 @@ void FWmfMediaPlayer::Close()
 		MediaSource = NULL;
 	}
 
-	Tracks.Reset();
+	AudioTracks.Reset();
+	CaptionTracks.Reset();
+	VideoTracks.Reset();
 
 	Duration = 0;
 	MediaUrl = FString();
 
 	TracksChangedEvent.Broadcast();
 	ClosedEvent.Broadcast();
+}
+
+
+const TArray<IMediaAudioTrackRef>& FWmfMediaPlayer::GetAudioTracks() const
+{
+	return AudioTracks;
+}
+
+
+const TArray<IMediaCaptionTrackRef>& FWmfMediaPlayer::GetCaptionTracks() const
+{
+	return CaptionTracks;
 }
 
 
@@ -118,9 +132,9 @@ FTimespan FWmfMediaPlayer::GetTime() const
 }
 
 
-const TArray<IMediaTrackRef>& FWmfMediaPlayer::GetTracks() const
+const TArray<IMediaVideoTrackRef>& FWmfMediaPlayer::GetVideoTracks() const
 {
-	return Tracks;
+	return VideoTracks;
 }
 
 
@@ -388,15 +402,15 @@ void FWmfMediaPlayer::AddStreamToTopology(uint32 StreamIndex, IMFTopology* Topol
 	// create and add track
 	if (MajorType == MFMediaType_Audio)
 	{
-		Tracks.Add(MakeShareable(new FWmfMediaAudioTrack(OutputType, PresentationDescriptor, Sampler, StreamDescriptor, StreamIndex)));
+		AudioTracks.Add(MakeShareable(new FWmfMediaAudioTrack(OutputType, PresentationDescriptor, Sampler, StreamDescriptor, StreamIndex)));
 	}
 	else if (MajorType == MFMediaType_SAMI)
 	{
-		Tracks.Add(MakeShareable(new FWmfMediaCaptionTrack(OutputType, PresentationDescriptor, Sampler, StreamDescriptor, StreamIndex)));
+		CaptionTracks.Add(MakeShareable(new FWmfMediaCaptionTrack(OutputType, PresentationDescriptor, Sampler, StreamDescriptor, StreamIndex)));
 	}
 	else if (MajorType == MFMediaType_Video)
 	{
-		Tracks.Add(MakeShareable(new FWmfMediaVideoTrack(OutputType, PresentationDescriptor, Sampler, StreamDescriptor, StreamIndex)));
+		VideoTracks.Add(MakeShareable(new FWmfMediaVideoTrack(OutputType, PresentationDescriptor, Sampler, StreamDescriptor, StreamIndex)));
 	}
 }
 
@@ -455,7 +469,7 @@ bool FWmfMediaPlayer::InitializeMediaSession(IUnknown* SourceObject, const FStri
 		AddStreamToTopology(StreamIndex, Topology, PresentationDescriptor, MediaSourceObject);
 	}
 
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Added a total of %i tracks"), Tracks.Num());
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Added a total of %i audio tracks, %i caption tracks, %i video tracks"), AudioTracks.Num(), CaptionTracks.Num(), VideoTracks.Num());
 	TracksChangedEvent.Broadcast();
 
 	UINT64 PresentationDuration = 0;
