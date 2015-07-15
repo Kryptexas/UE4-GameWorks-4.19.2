@@ -52,7 +52,7 @@ protected:
 };
 
 /* Reliability Module Interface */
-class FReliabilityHandlerComponentModuleInterface : public FPacketHandlerModuleInterface
+class FReliabilityHandlerComponentModuleInterface : public FPacketHandlerComponentModuleInterface
 {
 public:
 	virtual HandlerComponent* CreateComponentInstance() override;

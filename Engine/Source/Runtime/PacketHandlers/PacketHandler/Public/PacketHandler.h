@@ -207,9 +207,11 @@ private:
 };
 
 /** Packet Handler Module Interface */
-class FPacketHandlerModuleInterface : public IModuleInterface
+class FPacketHandlerComponentModuleInterface : public IModuleInterface
 {
 public:
+	/* Creates an instance of this component */
 	virtual HandlerComponent* CreateComponentInstance() PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
-	virtual HandlerComponent* CreateComponentInstance(FName& Options) PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
+	/* Creates an instance of this component with an FString of options */
+	virtual HandlerComponent* CreateComponentInstance(FString& Options) PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
 };

@@ -3,17 +3,15 @@
 using UnrealBuildTool;
 using System.IO;
 
-public class PacketHandler : ModuleRules
+public class XORStreamEncryptor : ModuleRules
 {
-    public PacketHandler(TargetInfo Target)
+    public XORStreamEncryptor(TargetInfo Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {
 				"Core",
-                "ReliabilityHandlerComponent",
+                "StreamEncryptionHandlerComponent"
             }
         );
-
-        CircularlyReferencedDependentModules.Add("ReliabilityHandlerComponent");
     }
 }
