@@ -70,17 +70,28 @@ bool FNameTableArchiveReader::SerializeNameMap()
 
 void FNameTableArchiveReader::Serialize( void* V, int64 Length )
 {
-	Reader.Serialize( V, Length );
+	if (!IsError())
+	{
+		Reader.Serialize( V, Length );
+	}
 }
 
 bool FNameTableArchiveReader::Precache( int64 PrecacheOffset, int64 PrecacheSize )
 {
-	return Reader.Precache( PrecacheOffset, PrecacheSize );
+	if (!IsError())
+	{
+		return Reader.Precache( PrecacheOffset, PrecacheSize );
+	}
+
+	return false;
 }
 
 void FNameTableArchiveReader::Seek( int64 InPos )
 {
-	Reader.Seek( InPos );
+	if (!IsError())
+	{
+		Reader.Seek( InPos );
+	}
 }
 
 int64 FNameTableArchiveReader::Tell()
@@ -101,11 +112,12 @@ FArchive& FNameTableArchiveReader::operator<<( FName& Name )
 
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
-		UE_LOG(LogAssetRegistry, Fatal, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
+		UE_LOG(LogAssetRegistry, Error, TEXT("Bad name index reading cache %i/%i"), NameIndex, NameMap.Num() );
+		SetError();
 	}
 
 	// if the name wasn't loaded (because it wasn't valid in this context)
-	const FName& MappedName = NameMap[NameIndex];
+	const FName& MappedName = NameMap.IsValidIndex(NameIndex) ? NameMap[NameIndex] : NAME_None;
 	if (MappedName.IsNone())
 	{
 		int32 TempNumber;

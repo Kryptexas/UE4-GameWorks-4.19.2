@@ -474,8 +474,23 @@ void FAssetDataGatherer::SerializeCache(FArchive& Ar)
 			// load it
 			Ar << *NewCachedAssetDataPtr;
 
+			if (Ar.IsError())
+			{
+				// There was an error reading the cache. Bail out.
+				break;
+			}
+
 			// hash it
 			DiskCachedAssetDataMap.Add(NewCachedAssetDataPtr->PackageName, NewCachedAssetDataPtr);
+		}
+
+		// If there was an error loading the cache, abandon all data loaded from it so we can build a clean one.
+		if (Ar.IsError())
+		{
+			UE_LOG(LogAssetRegistry, Error, TEXT("There was an error loading the asset registry cache. Generating a new one."));
+			DiskCachedAssetDataMap.Empty();
+			delete DiskCachedAssetDataBuffer;
+			DiskCachedAssetDataBuffer = nullptr;
 		}
 	}
 
