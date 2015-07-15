@@ -168,6 +168,7 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	 *	use the SpaceBases array in the MasterPoseComponent. This is used when constructing a character using multiple skeletal meshes sharing the same
 	 *	skeleton within the same Actor.
 	 */
+	UPROPERTY(BlueprintReadOnly, Category="Mesh")
 	TWeakObjectPtr< class USkinnedMeshComponent > MasterPoseComponent;
 
 private:
@@ -665,7 +666,7 @@ public:
 	 *
 	 * @param NewMasterBoneComponent New MasterPoseComponent
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent);
 
 	/** 

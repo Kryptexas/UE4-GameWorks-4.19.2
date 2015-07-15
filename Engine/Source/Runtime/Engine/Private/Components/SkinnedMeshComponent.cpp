@@ -224,8 +224,15 @@ void USkinnedMeshComponent::OnRegister()
 
 	AnimUpdateRateParams = FAnimUpdateRateManager::GetUpdateRateParameters(this);
 
-	AllocateTransformData();
-	UpdateMasterBoneMap();	
+	if (MasterPoseComponent.IsValid())
+	{
+		// this has to be called again during register so that it can do related initialization
+		SetMasterPoseComponent(MasterPoseComponent.Get());
+	}
+	else
+	{
+		AllocateTransformData();
+	}
 
 	Super::OnRegister();
 
