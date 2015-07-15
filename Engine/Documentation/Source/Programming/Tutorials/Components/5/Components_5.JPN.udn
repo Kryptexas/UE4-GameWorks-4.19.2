@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573834
+﻿INTSourceChangelist:2620109
 Availability:Public
 Title:5. Play in Editor（PIE）
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:エディタ再生によるコードのテスト
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:エディタ再生によるコードのテスト
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ][Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\Components\6 "%Programming\Tutorials\Components\6:title%")
@@ -26,7 +27,7 @@ Description:エディタ再生によるコードのテスト
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-1. ワールドに **CollidingPawn** のインスタンスをドロップします。**コンテンツブラウザ** の "C++ Classes/(Our Project Name)/CollidingPawn" の配下にクラスがあります。
+1. ワールドに **CollidingPawn** のインスタンスをドロップします。"C++ Classes/HowTo_Components/CollidingPawn" 配下の **コンテンツブラウザ** にクラスがあります。
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
 
@@ -38,7 +39,7 @@ Description:エディタ再生によるコードのテスト
 
 ----
 
-**アンリアルエンジン4** は幅広い用途向けの **コンポーネント** を提供しています。これまでは一般的なコンポーネントをいくつか紹介しただけですが、その他にもたくさんのコンポーネントがあります。ビルトイン **コンポーネント** を検索したり、独自のコンポーネントを記述してみてください！柔軟性に優れたパワフルな機能を提供するだけでなく、プロジェクトコードの管理と再利用に役立ちます。
+**アンリアルエンジン4** は幅広い用途向けの **コンポーネント** を提供しています。これまでは一般的なコンポーネントをいくつか紹介しただけですが、その他にもたくさんのコンポーネントがあります。ビルトインコンポーネントを探索したり、独自のコンポーネントを記述してみてください！柔軟性に優れたパワフルな機能を提供するだけでなく、プロジェクトコードの管理と再利用に役立ちます。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
