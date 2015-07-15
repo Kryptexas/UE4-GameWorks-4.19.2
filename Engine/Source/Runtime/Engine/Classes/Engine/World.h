@@ -2837,7 +2837,6 @@ public:
 		return CastChecked<T>(SpawnActor(Class, &Location, &Rotation, SpawnParameters),ECastCheckedType::NullAllowed);
 	}
 	/** 
-	
 	 *  Templated version of SpawnActor that allows you to specify whole Transform
 	 *  class type via parameter while the return type is a parent class of that type 
 	 */
@@ -2853,13 +2852,14 @@ public:
 	* manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
 	*/
 	template< class T >
+	DEPRECATED(4.9, "This version of SpawnActorDeferred is deprecated. Please use the version that takes an FTransform and ESpawnActorCollisionHandlingMethod.")
 	T* SpawnActorDeferred(
 		UClass* Class,
 		FVector const& Location,
 		FRotator const& Rotation,
-		AActor* Owner,
-		APawn* Instigator,
-		bool bNoCollisionFail
+		AActor* Owner = nullptr,
+		APawn* Instigator = nullptr,
+		bool bNoCollisionFail = false
 		)
 	{
 		if( Owner )
@@ -2875,15 +2875,14 @@ public:
 	}
 
 	/**
-	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
-	* to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
-	* manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
-	*/
+	 * Spawns given class and returns class T pointer, forcibly sets world transform (note this allows scale as well). WILL NOT run Construction Script of Blueprints 
+	 * to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
+	 * manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
+	 */
 	template< class T >
 	T* SpawnActorDeferred(
 		UClass* Class,
-		FVector const& Location,
-		FRotator const& Rotation,
+		FTransform const& Transform,
 		AActor* Owner = nullptr,
 		APawn* Instigator = nullptr,
 		ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::Undefined
@@ -2898,33 +2897,7 @@ public:
 		SpawnInfo.Owner = Owner;
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bDeferConstruction = true;
-		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Location, &Rotation, SpawnInfo )) : NULL;
-	}
-
-	/**
-	 * Spawns given class and returns class T pointer, forcibly sets world transform (note this allows scale as well). WILL NOT run Construction Script of Blueprints 
-	 * to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
-	 * manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
-	 */
-	template< class T >
-	T* SpawnActorDeferred(
-		UClass* Class,
-		FTransform const& Transform,
-		AActor* Owner=NULL,
-		APawn* Instigator=NULL,
-		ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::Undefined
-		)
-	{
-		if( Owner )
-		{
-			check(this==Owner->GetWorld());
-		}
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = CollisionHandlingOverride;
-		SpawnInfo.Owner = Owner;
-		SpawnInfo.Instigator = Instigator;
-		SpawnInfo.bDeferConstruction = true;
-		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Transform, SpawnInfo)) : NULL;
+		return (Class != nullptr) ? Cast<T>(SpawnActor(Class, &Transform, SpawnInfo)) : nullptr;
 	}
 
 	/** 
