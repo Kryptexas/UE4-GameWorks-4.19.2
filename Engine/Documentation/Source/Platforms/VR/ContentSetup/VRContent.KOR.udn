@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2430670
+﻿INTSourceChangelist:2609228
 Availability:Public
 Title:가상 현실 실전 사례
 Crumbs:%ROOT%, Platforms, Platforms/VR
@@ -45,8 +45,6 @@ platforms
 [/VAR]
 
 [TOC(start:2)]
-
-## 개요
 
 가상 현실(VR)용 콘텐츠 개발시 최적의 사용자 경험을 보장하기 위해서 작업방식에 약간의 조정이 필요합니다.
 이 가이드의 목적은 VR 프로젝트용 콘텐츠 개발시 알아둬야 할 몇 가지 중요 사안들을 짚어드리는 데 

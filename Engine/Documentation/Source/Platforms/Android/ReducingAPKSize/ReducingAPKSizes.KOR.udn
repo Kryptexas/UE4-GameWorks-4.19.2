@@ -101,5 +101,15 @@ UE4 안에서 플러그인을 비활성화시키는 방법은 다음과 같습�
 1. 플러그인 브라우저에서 여러 섹션을 선택하고 **Enabled** 옆의 박스 체크를 해제하여 사용하지 않는 플러그인을 비활성화시킵니다.
   모든 플러그인을 비활성화시켰다면, 굳이 결과 확인을 위해 프로젝트를 다시 패키징할 필요는 없습니다.
 
-	
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	xLJ01QEvV7Y
+	[/PARAMLITERAL]
+	[/OBJECT]
 
