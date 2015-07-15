@@ -697,6 +697,89 @@ MaterialFloat3 RGBMDecode( MaterialFloat4 rgbm )
 	return rgbm.rgb * (rgbm.a * 64.0f);
 }
 
+MaterialFloat4 RGBTEncode8BPC(MaterialFloat3 Color, MaterialFloat Range)
+{
+	MaterialFloat Max = max(max(Color.r, Color.g), max(Color.b, 1e-6));
+	Max = min(Max, Range);
+
+	MaterialFloat4 RGBT;
+	RGBT.a = (Range + 1) / Range *  Max / (1 + Max);
+
+	// quantise alpha to 8 bit.
+	RGBT.a = ceil(RGBT.a*255.0) / 255.0;
+	Max = RGBT.a / (1 + 1 / Range - RGBT.a);
+
+	MaterialFloat RcpMax = rcp(Max);
+	RGBT.rgb = Color.rgb * RcpMax;
+	return RGBT;
+}
+
+MaterialFloat3 RGBTDecode8BPC(MaterialFloat4 RGBT, MaterialFloat Range)
+{
+	RGBT.a = RGBT.a / (1 + 1 / Range - RGBT.a);
+	return RGBT.rgb * RGBT.a;
+}
+
+#define HDR_ENCODE_NONE 0.0
+#define HDR_ENCODE_MOSAIC 1.0
+#define HDR_ENCODE_RGBA 2.0
+
+float GetHDR32bppEncodeMode()
+{
+#if ES2_PROFILE
+	#if COMPILER_GLSL_ES2
+		#if IOS || WEBGL
+			#if USE_32BPP_HDR
+				return HDR_ENCODE_MOSAIC;
+			#endif
+		#else // ANDROID
+			return intrinsic_GetHDR32bppEncodeModeES2();
+		#endif
+	#endif
+	#if MOBILE_EMULATION
+		// To enable editor runtime change without recompile, PC always eats the encode cost.
+		return View.HDR32bppEncodingMode;
+	#endif
+#endif
+	return HDR_ENCODE_NONE;
+}
+
+#define DEFAULT_32BPPHDR_ENCODED_RANGE 1024.0
+
+MaterialFloat4 Encode32BPPHDR(MaterialFloat4 Color, MaterialFloat2 SvPosition)
+{
+	float Mode = GetHDR32bppEncodeMode();
+	if (Mode == HDR_ENCODE_MOSAIC)
+	{ 
+		return MaterialFloat4(HdrMosaic(Color.rgb, SvPosition), Color.a);
+	}
+	else if (Mode == HDR_ENCODE_RGBA)
+	{ 
+		return RGBTEncode8BPC(Color.rgb, DEFAULT_32BPPHDR_ENCODED_RANGE);
+	}
+	else 
+	{ 
+		return Color;
+	}
+}
+
+MaterialFloat3 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncoded = MaterialFloat3(0, 0, 0), MaterialFloat2 SvPosition = MaterialFloat2(0, 0))
+{
+	float Mode = GetHDR32bppEncodeMode();
+	if (Mode == HDR_ENCODE_MOSAIC)
+	{
+		return HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition);
+	}
+	if (Mode == HDR_ENCODE_RGBA)
+	{ 
+		return RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE);
+	}
+	else 
+	{
+		return Encoded.rgb; 
+	}
+}
+
 /** Calculates the ScreenUV given the screen position and an offset fraction. */
 float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFraction)
 {

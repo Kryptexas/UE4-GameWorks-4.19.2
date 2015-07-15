@@ -40,6 +40,9 @@ bool IsMobileHDR();
 /** True if the mobile renderer is emulating HDR in a 32bpp render target. */
 bool IsMobileHDR32bpp();
 
+/** True if the mobile renderer is emulating HDR with mosaic. */
+bool IsMobileHDRMosaic();
+
 class FOcclusionQueryHelpers
 {
 public:

@@ -32,7 +32,7 @@ typedef enum {
 	TonemapperDOF               = (1<<8),
 	TonemapperVignette          = (1<<9),
 	TonemapperLightShafts       = (1<<10),
-	TonemapperMosaic            = (1<<11),
+	Tonemapper32BPPHDR          = (1<<11),
 	TonemapperColorFringe       = (1<<12),
 	TonemapperMsaa              = (1<<13),
 } TonemapperOption;
@@ -222,89 +222,97 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 
 
 	//
-	// 14 for MOSAIC PATH
+	// 14 for 32 bit HDR PATH
 	//
 
-	// This is mosaic without film post.
-	TonemapperMosaic +
+	// This is 32bpp hdr without film post.
+	Tonemapper32BPPHDR +
 	TonemapperGammaOnly +
 	0,
 
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	0,
 
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperVignette +
-	0,
-
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperVignette +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
 	TonemapperVignette +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperVignette +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperVignette +
+	TonemapperBloom +
 	0,
 
 	// With grain
 
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperGrainIntensity +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperGrainIntensity +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainIntensity +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperVignette +
-	TonemapperGrainIntensity +
-	0,
-
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperVignette +
-	TonemapperGrainIntensity +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
+	TonemapperGrainIntensity +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
 	TonemapperVignette +
 	TonemapperGrainIntensity +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperVignette +
+	TonemapperGrainIntensity +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperVignette +
+	TonemapperGrainIntensity +
+	TonemapperBloom +
 	0,
 
 
@@ -392,7 +400,7 @@ static uint32 TonemapperFindLeastExpensive(uint32* RESTRICT Table, uint32 TableE
 	// Custom logic to insure fail cases do not happen.
 	uint32 MustNotHaveBitmask = 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperDOF) == 0) ? TonemapperDOF : 0;
-	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMosaic) == 0) ? TonemapperMosaic : 0;
+	MustNotHaveBitmask += ((RequiredOptionsBitmask & Tonemapper32BPPHDR) == 0) ? Tonemapper32BPPHDR : 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMsaa) == 0) ? TonemapperMsaa : 0;
 
 	// Search for exact match first.
@@ -542,18 +550,18 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 
 	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, true);
 
-	bool bUseMosaic = IsMobileHDR32bpp();
+	bool bUse32BPPHDR = IsMobileHDR32bpp();
+	bool bUseMosaic = IsMobileHDRMosaic();
 
 	// Must early exit if gamma only.
 	if(Bitmask == TonemapperGammaOnly)
 	{
-		return Bitmask + (bUseMosaic ? TonemapperMosaic : 0);
+		return Bitmask + (bUse32BPPHDR ? Tonemapper32BPPHDR : 0);
 	}
 
-	// Check if mosaic mode is on and exit if on.
-	if(bUseMosaic)
+	if (bUseMosaic)
 	{
-		return Bitmask + TonemapperMosaic;
+		return Bitmask + Tonemapper32BPPHDR;
 	}
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
@@ -562,16 +570,22 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 		Bitmask += TonemapperMsaa;
 	}
 
-	// Only add mobile post if FP16 is supported.
-	if(GSupportsRenderTargetFormat_PF_FloatRGBA)
+	if (bUse32BPPHDR)
 	{
+		// add limited post for 32 bit encoded hdr.
+		Bitmask += Tonemapper32BPPHDR;
+		Bitmask += TonemapperGenerateBitmaskPost(View);
+	}
+	else if (GSupportsRenderTargetFormat_PF_FloatRGBA)
+	{
+		// add full mobile post if FP16 is supported.
 		Bitmask += TonemapperGenerateBitmaskPost(View);
 		Bitmask += (View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? TonemapperDOF         : 0;
 		Bitmask += (View->bLightShaftUse)                                    ? TonemapperLightShafts : 0;
-
-		// Mobile is not supporting grain quantization and grain jitter currently.
-		Bitmask &= ~(TonemapperGrainQuantization | TonemapperGrainJitter);
 	}
+
+	// Mobile is not supporting grain quantization and grain jitter currently.
+	Bitmask &= ~(TonemapperGrainQuantization | TonemapperGrainJitter);
 	return Bitmask;
 }
 
@@ -1173,7 +1187,7 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_MATRIX"),       TonemapperIsDefined(ConfigBitmask, TonemapperColorMatrix));
 		OutEnvironment.SetDefine(TEXT("USE_SHADOW_TINT"),        TonemapperIsDefined(ConfigBitmask, TonemapperShadowTint));
 		OutEnvironment.SetDefine(TEXT("USE_CONTRAST"),           TonemapperIsDefined(ConfigBitmask, TonemapperContrast));
-		OutEnvironment.SetDefine(TEXT("USE_HDR_MOSAIC"),         TonemapperIsDefined(ConfigBitmask, TonemapperMosaic));
+		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"),         TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR));
 		OutEnvironment.SetDefine(TEXT("USE_BLOOM"),              TonemapperIsDefined(ConfigBitmask, TonemapperBloom));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_JITTER"),       TonemapperIsDefined(ConfigBitmask, TonemapperGrainJitter));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_INTENSITY"),    TonemapperIsDefined(ConfigBitmask, TonemapperGrainIntensity));
@@ -1256,8 +1270,8 @@ public:
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
-			
-		if (TonemapperIsDefined(ConfigBitmask, TonemapperMosaic))
+
+		if (TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) && IsMobileHDRMosaic())
 		{
 			PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		}

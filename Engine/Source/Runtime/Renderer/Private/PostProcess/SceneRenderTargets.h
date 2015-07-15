@@ -680,7 +680,7 @@ private:
 	int32 CurrentRSMResolution;
 	/** To detect a change of the CVar r.TranslucencyLightingVolumeDim */
 	int32 CurrentTranslucencyLightingVolumeDim;
-	/** To detect a change of the CVar r.MobileHDR / r.MobileHDR32bpp */
+	/** To detect a change of the CVar r.MobileHDR / r.MobileHDR32bppMode */
 	int32 CurrentMobile32bpp;
 	/** To detect a change of the CVar r.MobileMSAA */
 	int32 CurrentMobileMSAA;

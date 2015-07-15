@@ -224,6 +224,10 @@ struct FAndroidOpenGL : public FOpenGLES2
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 
+	// Android ES2 shaders have code that allows compile selection of
+	// 32 bpp HDR encoding mode via 'intrinsic_GetHDR32bppEncodeModeES2()'.
+	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return true; }
+
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
 		return bUseES30ShadingLanguage;

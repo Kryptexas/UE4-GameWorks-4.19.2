@@ -47,7 +47,7 @@ static bool VerifyLinkedProgram(GLuint Program)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderLinkVerifyTime);
 
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || DEBUG_GL_SHADERS
 	GLint LinkStatus = 0;
 	glGetProgramiv(Program, GL_LINK_STATUS, &LinkStatus);
 	if (LinkStatus != GL_TRUE)
@@ -586,6 +586,23 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 
 		if (IsES2Platform(GMaxRHIShaderPlatform))
 		{
+			if (GSupportsRenderTargetFormat_PF_FloatRGBA)
+			{
+				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
+			}
+			else
+			{
+				if (!FOpenGL::SupportsShaderFramebufferFetch())
+				{
+					// mosaic
+					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 1.0\n");
+				}
+				else
+				{
+					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
+				}
+			}
+
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
 			if (FOpenGL::UseES30ShadingLanguage())
 			{

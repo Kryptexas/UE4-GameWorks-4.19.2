@@ -102,6 +102,29 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 }
 #endif
 
+
+half3 FrameBufferBlendOp(half4 Source)
+{
+#if (COMPILER_GLSL_ES2)
+	half4 Dest = FramebufferFetchES2();
+	Dest.rgb = Decode32BPPHDR(Dest);
+#else
+	half4 Dest = half4 (0,0,0,0);
+#endif
+
+#if MATERIALBLENDING_SOLID
+	return Source.rgb;
+#elif MATERIALBLENDING_MASKED
+	return Source.rgb;
+#elif MATERIALBLENDING_TRANSLUCENT
+	return (Source.rgb*Source.a) + (Dest.rgb*(1.0 - Source.a));
+#elif MATERIALBLENDING_ADDITIVE
+	return Source.rgb + Dest.rgb;
+#elif MATERIALBLENDING_MODULATE
+	return Source.rgb * Dest.rgb;
+#endif
+}
+
 half4 IndirectLightingSHCoefficients[3]; 
 half DirectionalLightShadowing;
 
@@ -329,7 +352,7 @@ void Main(
 		OutColor = half4(FoggedColor, Opacity);
 	#else
 		OutColor.rgb = Color * VertexFog.a + VertexFog.rgb;
-		#if USE_HDR_MOSAIC || OUTPUT_GAMMA_SPACE 
+		#if USE_32BPP_HDR || OUTPUT_GAMMA_SPACE 
 			// Scene color alpha is not used yet so we set it to 0
 			OutColor.a = 0.0;
 		#else
@@ -349,13 +372,12 @@ void Main(
 	#endif
 
 	#if (ES2_PROFILE || ES3_1_PROFILE) && (!OUTPUT_GAMMA_SPACE)
-		#if COMPILER_GLSL_ES2 || METAL_PROFILE
-			#if USE_HDR_MOSAIC
-				OutColor.rgb = HdrMosaic(OutColor.rgb, SvPosition.xy);
-			#endif
-		#else
-			// To enable editor runtime change without recompile, PC always eats the HdrMosaic() cost.
-			OutColor.rgb = View.HdrMosaic ? HdrMosaic(OutColor.rgb, SvPosition.xy) : OutColor.rgb;
+		#if (COMPILER_GLSL_ES2 && USE_32BPP_HDR) || (MOBILE_EMULATION)
+			if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
+			{
+				OutColor.rgb = FrameBufferBlendOp(OutColor);
+			}
+			OutColor = Encode32BPPHDR(OutColor, SvPosition.xy);
 		#endif
 	#endif
 

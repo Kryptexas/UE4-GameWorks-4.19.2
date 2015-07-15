@@ -277,7 +277,7 @@ public:
 	{		
 		TBasePassForForwardShadingPSBaseType<LightMapPolicyType, NumDynamicPointLights>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), (uint32)(bEnableSkyLight ? 1 : 0));
-		OutEnvironment.SetDefine(TEXT("USE_HDR_MOSAIC"), OutputFormat == HDR_LINEAR_32 ? 1u : 0u );
+		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"), OutputFormat == HDR_LINEAR_32 ? 1u : 0u );
 		OutEnvironment.SetDefine(TEXT("OUTPUT_GAMMA_SPACE"), OutputFormat == LDR_GAMMA_32 ? 1u : 0u );
 	}
 	
@@ -423,28 +423,31 @@ public:
 #endif
 		{
 			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode, bEnableEditorPrimitiveDepthTest);
-
-			switch(BlendMode)
+			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
+			if (bEncodedHDR == false)
 			{
-			default:
-			case BLEND_Opaque:
-				// Opaque materials are rendered together in the base pass, where the blend state is set at a higher level
-				break;
-			case BLEND_Masked:
-				// Masked materials are rendered together in the base pass, where the blend state is set at a higher level
-				break;
-			case BLEND_Translucent:
-				RHICmdList.SetBlendState( TStaticBlendState<CW_RGB, BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_InverseSourceAlpha>::GetRHI());
-				break;
-			case BLEND_Additive:
-				// Add to the existing scene color
-				RHICmdList.SetBlendState( TStaticBlendState<CW_RGB, BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_InverseSourceAlpha>::GetRHI());
-				break;
-			case BLEND_Modulate:
-				// Modulate with the existing scene color
-				RHICmdList.SetBlendState( TStaticBlendState<CW_RGB,BO_Add,BF_DestColor,BF_Zero>::GetRHI());
-				break;
-			};
+				switch (BlendMode)
+				{
+				default:
+				case BLEND_Opaque:
+					// Opaque materials are rendered together in the base pass, where the blend state is set at a higher level
+					break;
+				case BLEND_Masked:
+					// Masked materials are rendered together in the base pass, where the blend state is set at a higher level
+					break;
+				case BLEND_Translucent:
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+					break;
+				case BLEND_Additive:
+					// Add to the existing scene color
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+					break;
+				case BLEND_Modulate:
+					// Modulate with the existing scene color
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
+					break;
+				};
+			}
 		}
 		
 		// Set the light-map policy.

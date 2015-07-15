@@ -417,17 +417,18 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 	}
 }
 
-// Returns true if the FramebufferFetchES2() 'intrinsic' is used
-static bool UsesFramebufferFetchES2(exec_list* Instructions)
+// Returns true if the passed 'intrinsic' is used
+static bool UsesUEIntrinsic(exec_list* Instructions, const char * UEIntrinsic)
 {
-	struct SFindFramebufferFetchES2Intrinsic : public ir_hierarchical_visitor
+	struct SFindUEIntrinsic : public ir_hierarchical_visitor
 	{
 		bool bFound;
-		SFindFramebufferFetchES2Intrinsic() : bFound(false) {}
+		const char * UEIntrinsic;
+		SFindUEIntrinsic(const char * InUEIntrinsic) : bFound(false), UEIntrinsic(InUEIntrinsic) {}
 
 		virtual ir_visitor_status visit_enter(ir_call* IR) override
 		{
-			if (IR->use_builtin && !strcmp(IR->callee_name(), FRAMEBUFFER_FETCH_ES2))
+			if (IR->use_builtin && !strcmp(IR->callee_name(), UEIntrinsic))
 			{
 				bFound = true;
 				return visit_stop;
@@ -437,35 +438,11 @@ static bool UsesFramebufferFetchES2(exec_list* Instructions)
 		}
 	};
 
-	SFindFramebufferFetchES2Intrinsic Visitor;
+	SFindUEIntrinsic Visitor(UEIntrinsic);
 	Visitor.run(Instructions);
 	return Visitor.bFound;
 }
 
-// Returns true if the DepthbufferFetchES2() 'intrinsic' is used
-static bool UsesDepthbufferFetchES2(exec_list* Instructions)
-{
-	struct SFindepthbufferFetchES2Intrinsic : public ir_hierarchical_visitor
-	{
-		bool bFound;
-		SFindepthbufferFetchES2Intrinsic() : bFound(false) {}
-
-		virtual ir_visitor_status visit_enter(ir_call* IR) override
-		{
-			if (IR->use_builtin && !strcmp(IR->callee_name(), DEPTHBUFFER_FETCH_ES2))
-			{
-				bFound = true;
-				return visit_stop;
-			}
-
-			return visit_continue;
-		}
-	};
-
-	SFindepthbufferFetchES2Intrinsic Visitor;
-	Visitor.run(Instructions);
-	return Visitor.bFound;
-}
 
 /**
  * IR visitor used to generate GLSL. Based on ir_print_visitor.
@@ -2851,6 +2828,9 @@ class ir_gen_glsl_visitor : public ir_visitor
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_framebuffer_fetch : enable\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
+			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch\n");
+			ralloc_asprintf_append(buffer, "#extension GL_ARM_shader_framebuffer_fetch : enable\n");
+			ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
 		if (bUsesDepthbufferFetchES2)
@@ -2955,17 +2935,21 @@ public:
 		}
 
 		// FramebufferFetchES2 'intrinsic'
-		bool bUsesFramebufferFetchES2 = UsesFramebufferFetchES2(ir);
+		bool bUsesFramebufferFetchES2 = UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
 		if (bUsesFramebufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
-			ralloc_asprintf_append(buffer, "vec4 FramebufferFetchES2() { return gl_LastFragData[0]; }\n");
+			ralloc_asprintf_append(buffer, "	vec4 FramebufferFetchES2() { return gl_LastFragData[0]; }\n");
 			ralloc_asprintf_append(buffer, "#else\n");
-			ralloc_asprintf_append(buffer, "vec4 FramebufferFetchES2() { return vec4(65000.0, 65000.0, 65000.0, 65000.0); }\n");
+			ralloc_asprintf_append(buffer, "	#ifdef GL_ARM_shader_framebuffer_fetch\n");
+			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return gl_LastFragColorARM; }\n");
+			ralloc_asprintf_append(buffer, "	#else\n");
+			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return vec4(65000.0, 65000.0, 65000.0, 65000.0); }\n");
+			ralloc_asprintf_append(buffer, "	#endif\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");
 		}
 
-		bool bUsesDepthbufferFetchES2 = UsesDepthbufferFetchES2(ir);
+		bool bUsesDepthbufferFetchES2 = UsesUEIntrinsic(ir, DEPTHBUFFER_FETCH_ES2);
 		if (bUsesDepthbufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
@@ -2973,6 +2957,11 @@ public:
 			ralloc_asprintf_append(buffer, "#else\n");
 			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");
+		}
+
+		if (UsesUEIntrinsic(ir, GET_HDR_32BPP_HDR_ENCODE_MODE_ES2))
+		{
+			ralloc_asprintf_append(buffer, "\nfloat %s() { return HDR_32BPP_ENCODE_MODE; }\n", GET_HDR_32BPP_HDR_ENCODE_MODE_ES2);
 		}
 
 		foreach_iter(exec_list_iterator, iter, *ir)
@@ -5222,6 +5211,7 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 	{
 		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
 		make_intrinsic_genType(ir, State, DEPTHBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 3, 1, 1);
+		make_intrinsic_genType(ir, State, GET_HDR_32BPP_HDR_ENCODE_MODE_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 0);
 	}
 
 	if (State->language_version >= 310)

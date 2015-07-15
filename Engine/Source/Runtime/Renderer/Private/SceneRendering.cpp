@@ -758,8 +758,12 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.AmbientCubemapIntensity = FinalPostProcessSettings.AmbientCubemapIntensity;
 
 	{
-		// Enables toggle of HDR Mosaic mode without recompile of all PC shaders during ES2 emulation.
-		ViewUniformShaderParameters.HdrMosaic = IsMobileHDR32bpp() ? 1.0f : 0.0f;
+		// Enables HDR encoding mode selection without recompile of all PC shaders during ES2 emulation.
+		ViewUniformShaderParameters.HDR32bppEncodingMode = 0;
+		if (IsMobileHDR32bpp())
+		{
+			ViewUniformShaderParameters.HDR32bppEncodingMode = IsMobileHDRMosaic() ? 1.0f : 2.0f;
+		}
 	}
 	
 	FVector2D OneScenePixelUVSize = FVector2D(1.0f / BufferSize.X, 1.0f / BufferSize.Y);
@@ -1716,6 +1720,23 @@ bool IsMobileHDR()
 
 bool IsMobileHDR32bpp()
 {
-	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
-	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppCvar->GetValueOnRenderThread() == 1);
+	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
+	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppModeCvar->GetValueOnRenderThread() != 0);
+}
+
+bool IsMobileHDRMosaic()
+{
+	if (!IsMobileHDR32bpp())
+		return false;
+
+	static auto* MobileHDR32bppMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
+	switch (MobileHDR32bppMode->GetValueOnRenderThread())
+	{
+		case 1:
+			return true;
+		case 2:
+			return false;
+		default:
+			return !(GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch);
+	}
 }

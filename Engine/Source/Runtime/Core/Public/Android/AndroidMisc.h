@@ -59,6 +59,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static FString GetGPUFamily();
 	static FString GetGLVersion();
 	static bool SupportsFloatingPointRenderTargets();
+	static bool SupportsShaderFramebufferFetch();
 	static int GetAndroidBuildVersion();
 
 #if !UE_BUILD_SHIPPING

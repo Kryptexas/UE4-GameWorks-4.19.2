@@ -1604,11 +1604,12 @@ static TAutoConsoleVariable<int32> CVarMobileDynamicPointLightsUseStaticBranch(
 	TEXT("1: Use a shared shader with static branching for rendering 1 or more dynamic point lights (slightly slower but reduces shaders generated, recommended for most games)."),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
-static TAutoConsoleVariable<int32> CVarMobileHDR32bpp(
-	TEXT("r.MobileHDR32bpp"),
+static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
+	TEXT("r.MobileHDR32bppMode"),
 	0,
-	TEXT("0: Mobile HDR renders to an FP16 render target.\n")
-	TEXT("1: Mobile HDR renders to an RGBA8 target."),
+	TEXT("0: If 32bpp is required mobile HDR will use best suited 32 bpp mode. (default)")
+	TEXT("1: Force Mobile 32bpp HDR to use mosaic encoding.\n")
+	TEXT("2: Force Mobile 32bpp HDR to use RGBA encoding mode."),
 	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(

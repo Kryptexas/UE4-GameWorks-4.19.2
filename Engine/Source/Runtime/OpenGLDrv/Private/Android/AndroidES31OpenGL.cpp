@@ -553,7 +553,13 @@ FString FAndroidMisc::GetGLVersion()
 
 bool FAndroidMisc::SupportsFloatingPointRenderTargets()
 {
-	return FAndroidGPUInfo::Get().bSupportsFloatingPointRenderTargets;}
+	return FAndroidGPUInfo::Get().bSupportsFloatingPointRenderTargets;
+}
+
+bool FAndroidMisc::SupportsShaderFramebufferFetch()
+{
+	return FAndroidGPUInfo::Get().bSupportsFrameBufferFetch;
+}
 
 void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 {

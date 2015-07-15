@@ -1712,8 +1712,11 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 		if( View.Family->EngineShowFlags.PostProcessing )
 		{
-			bool bUseSun = View.bLightShaftUse;
-			bool bUseDof = View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f;
+			bool bUseMosaic = IsMobileHDRMosaic();
+			bool bUseEncodedHDR = IsMobileHDR32bpp() && !bUseMosaic;
+
+			bool bUseSun = !bUseEncodedHDR && View.bLightShaftUse;
+			bool bUseDof = !bUseEncodedHDR && View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f;
 			bool bUseBloom = View.FinalPostProcessSettings.BloomIntensity > 0.0f;
 			bool bUseVignette = View.FinalPostProcessSettings.VignetteIntensity > 0.0f;
 
@@ -1724,8 +1727,8 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 
 			bool bUsePost = bUseSun | bUseDof | bUseBloom | bUseVignette;
 
-			// Post is only supported on ES2 devices with FP16.
-			bUsePost &= GSupportsRenderTargetFormat_PF_FloatRGBA;
+			// Post is not supported on ES2 devices using mosaic.
+			bUsePost &= !bUseMosaic;
 			bUsePost &= IsMobileHDR();
 
 

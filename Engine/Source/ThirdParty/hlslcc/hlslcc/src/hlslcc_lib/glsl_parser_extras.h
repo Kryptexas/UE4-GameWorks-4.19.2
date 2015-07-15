@@ -464,5 +464,6 @@ extern int preprocess(void *ctx, const char **shader, char **info_log);
 #define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
 #define DEPTHBUFFER_FETCH_ES2	"DepthbufferFetchES2"
 #define FRAMEBUFFER_FETCH_MRT	"FramebufferFetchMRT"
+#define GET_HDR_32BPP_HDR_ENCODE_MODE_ES2 "intrinsic_GetHDR32bppEncodeModeES2"
 
 #endif /* GLSL_PARSER_EXTRAS_H */

@@ -207,6 +207,8 @@ bool GRHISupportsFirstInstance = false;
 bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
 bool GRHISupportsParallelRHIExecute = false;
+bool GSupportsHDR32bppEncodeModeIntrinsic = false;
+
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;

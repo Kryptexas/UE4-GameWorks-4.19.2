@@ -113,6 +113,9 @@ extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
 /** True if the RHI supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
 
+/** True if the RHI supports 'GetHDR32bppEncodeModeES2' shader intrinsic. */
+extern RHI_API bool GSupportsHDR32bppEncodeModeIntrinsic;
+
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;
 
