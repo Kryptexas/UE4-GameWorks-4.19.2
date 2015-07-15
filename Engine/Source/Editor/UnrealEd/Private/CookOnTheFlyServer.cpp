@@ -591,12 +591,13 @@ namespace CookOnTheFlyStats
 			EndPackageStat(StatName, PackageStats);
 		}
 	};
+
+	uint32 GetTypeHash(const FPackageStat& PackageStat)
+	{
+		return HashCombine(GetTypeHash(PackageStat.PackageName), GetTypeHash(PackageStat.StatName));
+	}
 }
 
-uint32 GetTypeHash(const CookOnTheFlyStats::FPackageStat& PackageStat)
-{
-	return HashCombine(GetTypeHash(PackageStat.PackageName), GetTypeHash(PackageStat.StatName));
-}
 
 #define START_PACKAGE(filename) CookOnTheFlyStats::FCookerPackageStats CookerPackageStats(filename);
 
