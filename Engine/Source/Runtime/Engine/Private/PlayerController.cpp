@@ -3583,6 +3583,9 @@ void APlayerController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > 
 	// But, since they also don't update unless that condition is true, these values won't change, thus won't send
 	// This is a little less efficient, but fits into the new condition system well, and shouldn't really add much overhead
 	DOREPLIFETIME_CONDITION( APlayerController, TargetViewRotation,		COND_OwnerOnly );
+
+	// Replicate SpawnLocation for remote spectators
+	DOREPLIFETIME_CONDITION( APlayerController, SpawnLocation, COND_OwnerOnly );
 }
 
 void APlayerController::SetPawn(APawn* InPawn)

@@ -1532,7 +1532,7 @@ private:
 
 protected:
 	/** The location used internally when there is no pawn or spectator, to know where to spawn the spectator or focus the camera on death. */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	FVector SpawnLocation;
 
 	/** Set the SpawnLocation for use when changing states or when there is no pawn or spectator. */
