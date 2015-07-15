@@ -216,11 +216,11 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceOrientations)
 	uint32 bSupportsUpsideDownOrientation : 1;
 
-	// Supports left landscape orientation. Protrait will not be supported.
+	// Supports left landscape orientation. Portrait will not be supported.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceOrientations)
 	uint32 bSupportsLandscapeLeftOrientation : 1;
 
-	// Supports right landscape orientation. Protrait will not be supported.
+	// Supports right landscape orientation. Portrait will not be supported.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceOrientations)
 	uint32 bSupportsLandscapeRightOrientation : 1;
 
