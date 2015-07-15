@@ -354,6 +354,7 @@ protected:
 	
 	/** Called when a user executes the delete command to delete sections or keys */
 	void DeleteSelectedItems();
+	bool CanDeleteSelectedItems();
 	
 	/** Transport controls */
 	void TogglePlay();
