@@ -935,7 +935,7 @@ public:
 			FTickFunction* PrevComparisionFunction = nullptr;
 			FTickFunction* ComparisonFunction = AllCoolingDownTickFunctions.Head;
 			bool bFound = false;
-			while (ComparisonFunction)
+			while (ComparisonFunction && !bFound)
 			{
 				if (ComparisonFunction == TickFunction)
 				{
