@@ -60,7 +60,6 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 
 [TOC(start:2 end:2)]
 
-## 概述
 
 本实例展示了虚幻引擎4的真实渲染的可能性。我们的目标是创建一个小场景，它拥有建筑渲染般的外观和感觉，看起来像是由CG渲染引擎如VRay和Mental Ray所制作出来的那样。 不过，本例中的主要约束是所有的资源都必须可用于游戏，这意味着不允许使用高多边形模型。 此场景中的任意物品都必须这样创建：创建这些这些物品的方式必须可用于实际的可玩的游戏中。 
 
@@ -131,7 +130,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 [/OBJECT]
 [/REGION]
 
-## 材质
+## 材质 
 
 虚幻引擎4使用 _physically-based Material system_ （基于物理的材质系统）。 这表示一些晦涩的材质属性，例如"Diffuse" （漫反射）和"Specular Power"（高光次幂），已经被本质上更为物理化的描述所替代，例如"Base Color" （底色）和 "Roughness"（粗糙度）。 许多这些属性的值都基于0到1，并且不需要过多的浮点数值。 这类似于包中用到的材质系统，例如Pixar RenderMan（皮克斯渲染器 ）。 以下是定义基础材质的物理性的四个主要属性。 以不同的方式组合这几个属性就可以让您创建出真实世界物理表面的几乎任何可能的类型。
 
@@ -209,7 +208,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 [/REGION]
 
 
-### 材质
+### 地毯材质        
 
 地毯的材质使用了叠加的Bump Offset（凸凹偏移），并被添加到四个独立层中。 这四层，乘以每层四个堆叠的几何体，总共对特效添加了16个“分层”。 Bump Offset（凸凹偏移）实际上以逆向运行，使得纤维有种退向表面的感觉。 此材质进行了高度参数化并可随意自定义。
 
