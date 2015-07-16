@@ -1924,10 +1924,13 @@ namespace UnrealBuildTool
                                     ActionsToExecute.Count
                                     );
 
-							// clean up any stale modules
-							foreach (UEBuildTarget Target in Targets)
+							if (!bIsHotReload)
 							{
-								Target.CleanStaleModules();
+								// clean up any stale modules
+								foreach (UEBuildTarget Target in Targets)
+								{
+									Target.CleanStaleModules();
+								}
 							}
 							
 							ToolChain.PreBuildSync();
