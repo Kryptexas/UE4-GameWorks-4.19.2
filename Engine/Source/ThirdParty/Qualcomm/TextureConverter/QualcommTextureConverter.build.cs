@@ -20,8 +20,8 @@ public class QualcommTextureConverter : ModuleRules
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
-                LibraryPath += "vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/x64";
-                RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/QualComm/Win64/" + LibraryName + ".dll"));
+				LibraryPath += "vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/x64";
+				PublicDelayLoadDLLs.Add("TextureConverter.dll");
             }
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{

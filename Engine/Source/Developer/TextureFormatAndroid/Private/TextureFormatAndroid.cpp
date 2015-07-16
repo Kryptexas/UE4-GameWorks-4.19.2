@@ -254,6 +254,14 @@ static ITextureFormat* Singleton = NULL;
 class FTextureFormatAndroidModule : public ITextureFormatModule
 {
 public:
+
+	FTextureFormatAndroidModule()
+	{
+#if PLATFORM_WINDOWS
+		TextureConverterHandle = LoadLibraryW(*(QualCommBinariesRoot + "TextureConverter.dll"));
+#endif
+	}
+
 	virtual ~FTextureFormatAndroidModule()
 	{
 		delete Singleton;
