@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519684
+﻿INTSourceChangelist:2618124
 Availability:Public
 Title:被破壊性プロパティのマトリックス
 Crumbs: %ROOT%, Engine
@@ -28,7 +28,7 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 ![Physics](Engine/Physics/physics_landing_banner.png)
 [/REGION]
 
-## 被破壊メッシュのカテゴリ
+##被破壊メッシュのカテゴリ
 
 ### 初期設定の被破壊パラメータのサブカテゴリ
 
@@ -36,23 +36,25 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | --------- | ----------- |
 | [REGION:tablesection] _Damage パラメータ_ [/REGION] ||
 | **Damage Threshold** | チャンクのフラクチャ (破砕) を引き起こすダメージ量です。 |
-| **Damage Spread** | ダメージを伝える被破壊アクタへの距離を制御します。チャンクに適用されるダメージに **Damage Spread** を乗じることによって、ダメージ伝播距離を取得します。 |
-| **Impact Damage** | チャンクの深度が衝撃ダメージ設定に位置している場合、チャンクが別のオブジェクトと衝突した時に衝撃力 (impact force) で乗じた **ImpactDamage** と等しいダメージを受けます (**Report Rigid Collisions** は両オブジェクトで有効であると仮定)。|
-| **Impact Resistance** | 物理的な接触によってチャンクが衝撃ダメージを受けた時、このパラメータは接触によって生成される衝撃の最大値を表します。壊れやすいマテリアルに設定するこの値が低いほど、破砕中に通過させるオブジェクトを重くすることができます。値 0.0 は無限と解釈されます |
+| **Damage Spread** | 被破壊アクタに伝わるダメージの距離を制御します。チャンクに適用されるダメージに Damage Spread を乗じることによって、ダメージ伝播距離を取得します。 |
+| **Enable Impact Damage** | オブジェクトと衝突した際に、被破壊アクタへのダメージの適用を有効にします。 |
+| **Impact Damage** | チャンクが衝撃ダメージ設定の深度にある場合、チャンクが別のオブジェクトと衝突した時に衝撃力 (impact force) で乗じた Impact Damage と等しいダメージを受けます (Report Rigid Collisions は両オブジェクトで有効であると仮定)。|
+| **Custom Impact Resistance** | デフォルトで、被破壊アクタと衝突しするとオブジェクトはデフォルトで跳ね返ります。衝突したオブジェクトに対して、被破壊アクタが「押し戻す」量を微調整するパラメータです。 |
+| **Impact Resistance** | 物理的な接触によってチャンクが衝撃ダメージを受けた時に、接触が生み出せる衝撃の最大値を表します。壊れやすいマテリアルはこの設定値が低いので、破砕中は重いオブジェクトが通過することができます。値 0.0 は無限と解釈されます |
 | **Default Impact Damage** | この深度まで衝撃ダメージを受けます。値がマイナスの場合、衝撃ダメージは無効になります。|
 | [REGION:tablesection] _Debris パラメータ_ [/REGION] ||
-| **Debris Lifetime Min** | 「残骸チャンク」 (下記 debris Depth 参照) は、残骸以外のチャンクから分離して一定時間 (単位：秒) 後に破壊されます。実際のライフタイムは、モジュールの LOD 設定に基づいて	 2 つの bDebrisTimeout 値の間で補間されます。ライフタイムを無効にするには、フラグフィールドで bDebrisTimeout フラグをクリアします。debrisLifetimeMax < debrisLifetimeMinの場合は、 2 つの平均値が両値として使用されます。
+| **Debris Lifetime Min** | 「残骸チャンク」 (下記 debris Depth 参照) は、残骸以外のチャンクから分離して一定時間 (単位：秒) 後に破壊されます。実際のライフタイムは、モジュールの LOD 設定に基づいて	 2 つの bDebrisTimeout 値の間で補間されます。ライフタイムを無効にするには、フラグフィールドで bDebrisTimeout フラグをクリアします。debrisLifetimeMax < debrisLifetimeMinの場合は、 2 つの平均値を両方に使用します。
 | **Debris Lifetime Max** | |
-| **Debris Max Separation Min** | 「残骸チャンク」 (下記 debrisDepth 参照) が、maxSeparation よりも大きい距離だけ原点から切り離された場合に破棄されます。実際の maxSeparation は、モジュールの LOD 設定に基づいて 2 つの maxSeparation 値の中間で補間されます。maxSeparation を無効にするには、フラグフィールドで bDebrisMaxSeparation フラグをクリアします。debrisMaxSeparationMax < debrisMaxSeparationMin の場合は、 2 つの平均値が両値に使用されます。
+| **Debris Max Separation Min** | 「残骸チャンク」 (下記 debrisDepth 参照) は、原点から切り離された距離が maxSeparation よりも大きい場合に破棄されます。実際の maxSeparation は、モジュールの LOD 設定に基づいて 2 つの maxSeparation 値の中間で補間されます。maxSeparation を無効にするには、フラグフィールドで bDebrisMaxSeparation フラグをクリアします。debrisMaxSeparationMax < debrisMaxSeparationMin の場合は、 2 つの平均値が両値に使用されます。
 | **Debris Max Separation Max** | |
 | **Valid Bounds** | 「残骸チャンク」 (下記 debrisDepth 参照) はこのボックスを離れると破壊されます。このボックスは被破壊アクタの初期位置で変換されますが、回転またはスケーリングはしません。|
 | [REGION:tablesection] _高度なパラメータ_ [/REGION] ||
-|	**Damage Cap** | チャンクに適用されるダメージ量を制限します。非常に大きなダメージの適用によって被破壊性全体	が粉砕されるのを防ぐために役立ちます。このようなダメージは、衝撃ダメージが用いられなおかつダメージ量が衝撃力 (forceToDamage 参照) に比例する場合によく起こります。| 
-|	**Impact Velocity Threshold** | 剛体が互いの内部にスポーンされた場合に、大きな衝撃力が発生する場合があります。この場合、2 つのオブジェクトの相対速度は低速になります。この変数に衝撃のための最小速度閾値をセットすることによって、衝撃力を考慮しながら、オブジェクトを確実に最小速度で移動させます。| 
-|	**Max Chunk Speed** | 0 以上の値は、チャンクの速度がこの値を超えることはできません。値 0 はこの機能を無効にします (デフォルト値)。|
+|	**Damage Cap** | チャンクに適用されるダメージ量を制限します。非常に大きなダメージを受けても、被破壊性全体	が粉砕されないようにする場合に役立ちます。このようなダメージは、衝撃ダメージを使用し、そのダメージ量が衝撃力 (forceToDamage 参照) に比例する場合によく起こります。| 
+|	**Impact Velocity Threshold** | 剛体が互いの内部にスポーンされた場合に、大きな衝撃力が発生する場合があります。この場合、2 つのオブジェクトの相対速度は低速になります。この変数に衝撃のための最小速度閾値をセットすることによって、衝撃力を考慮しながら、オブジェクトを確実に最小速度で移動させます。 |
+|	**Max Chunk Speed** | 0 より大きいと、チャンクの速度はこの値を超えることはできません。値が 0 の場合、この機能は無効になります (デフォルト値)。|
 |	**Fracture Impulse Scale** | フラクチャ時に、チャンクの法線に平行する衝撃力の適用に使用するスケール係数です。これは、フラクチャ時に断片を「押し出す」ために使用されます。|
 | [REGION:tablesection] _Special Hierarchy Depths_ [/REGION] ||
-|	**Support Depth** | サポートグラフが作成されるチャンクの階層深度です。深度レベルが高くなるとサポートの詳細度が上がりますが、計算負荷も高くなります。サポート深度よりも下位に位置するチャンクは、けっしてサポートされません。| 
+|	**Support Depth** | サポートグラフが作成されるチャンクの階層深度です。深度レベルが高くなるとサポートの詳細度が上がりますが、計算負荷も高くなります。サポート深度よりも下位に位置するチャンクは、けっしてサポートれません。|
 |	**Minimum Fracture Depth** | この深度以下へチャンクが抜け出すことはありません。 |
 | **Debris Depth** | チャンクが「残骸」 (debris) として見なされるチャンク階層深度です。この深度およびこれより下の深度は、例えば debrisLifetime 設定など、残骸の各種設定項目の考慮対象となります。負の値は、チャンクの深度に検討する残骸がないことを意味します。 |
 | **Essential LOD Depth** | チャンクの処理が保証されるチャンク階層深度です。これらのチャンクは、ゲームプレイまたはビジュアル的に必要なものと見なされます。最低値は 0 です。つまりレベル 0 のチャンクは常に必要不可欠であるとみなされます。 |
@@ -71,10 +73,7 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | [REGION:tablesection] _フラクチャ エフェクト - 深度レベル別_ [/REGION] ||
 | **Particle System** | チャンクが壊れるとスポーンするパーティクルシステムです。 |
 | **Sound** | チャンクが壊れると再生するサウンドまたはサウンドキューです。|
-| **Body Setup (パラメータ)** ||
-|[REGION:tablesection]_Body Setup_ [/REGION]||
-| **Bone Name** | Physics アセット使用時のみに使用できます。被破壊アクタへの使用ではありません。 |
-| **Consider for Bounds** | 有効な場合、領域を考慮するためにボディ設定が使用されます。 |
+
 
 プロパティの物理およびコリジョンのセクションは [コリジョン反応](Engine/Physics/Collision) ドキュメントを参照してください。
 
@@ -89,11 +88,23 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | **Use Full Precision UVs** | _true_ の場合、このオブジェクトは 32 ビットの UV を使用します。 _false_ の場合、 16 ビットの UV を使用してメモリをセーブします。|
 
 ### テクスチャストリーミングのサブカテゴリ
+
 | **プロパティ** | **説明** |
 | --------| ---------|
 | **Streaming Distance Multiplier** | アーティストは 0 の UV を使用するテクスチャが内外へストリームする距離を調整することができます。デフォルトは 1.0 です。値が高いほど、ストリーミングされる解像度を向上します。 |
 
-## フラクチャ (破砕) 設定のカテゴリ
+## Chunk パラメータのカテゴリ
+
+### Chunks サブカテゴリ
+
+| **プロパティ** | **説明** |
+| --------| ---------|
+| **Is Support Chunk** | 適切な NxDestructibleParametersFlag フラグが NxDestructibleParameters が設定されている場合、チャンクを環境的にサポートするかどうかを定義します。 |
+| **Do Not Fracture** | チャンクが破砕されないように定義します。True にすると、その子は 1 つも破砕されなくなります。 |
+| **Do Not Damage** | チャンクがダメージを受けないように定義します。対象のチャンクは破砕されませんが、その子は破砕される場合があります。 |
+| **Do not Crumble** | チャンクが粉々に砕けないように定義します。どんなダメージを受けても、対象のチャンクは粉々に砕けて流体メッシュ パーティクルとなることはありません。注：チャンクに子がない場合のみの適用となります。チャンクに子がある場合は、1)  doNotCrumble Flag が設定されていない場合、チャンクは崩れて子供となり、子は粉々に砕けてしまいます。2) そのチャンクが子を持たないように被破壊モジュールの深度オフセット LOD に設定されている場合、doNotCrumble フラグが適用になります。 |
+
+## フラクチャ設定のカテゴリ
 
 ### Voronoi のサブカテゴリ
 
