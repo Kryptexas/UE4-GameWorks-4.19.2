@@ -132,11 +132,10 @@ namespace UnrealBuildTool
 						{
 							FullFilePath = Path.GetFullPath(RelativeFilePath);
 						}
-						catch (Exception Exception)
+						catch (Exception)
 						{
-							throw new BuildException(Exception, "Failed to get full path for include: \"{0}\"", RelativeFilePath);
 						}
-						if( DirectoryLookupCache.FileExists( FullFilePath ) )
+						if( FullFilePath != null && DirectoryLookupCache.FileExists( FullFilePath ) )
 						{
 							Result = FileItem.GetItemByFullPath( FullFilePath );
 							break;
