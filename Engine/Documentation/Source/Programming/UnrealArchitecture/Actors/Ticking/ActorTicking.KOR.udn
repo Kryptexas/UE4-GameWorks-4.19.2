@@ -1,15 +1,11 @@
-﻿INTSourceChangelist:2568859
+﻿INTSourceChangelist:2621752
 Availability: Docs
 Title:액터 틱
 Crumbs:%ROOT%, Programming
 Description:매 프레임 액터를 업데이트하는 데 사용되는 Tick, 틱 시스템에 대한 설명입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
-
-
-
-## 개요
 
 액터는 월드의 액터 리스트(모든 레벨의 리스트 총합)에 나타나는 순서대로, 프레임 사이 경과 시간으로 프레임마다 한 번씩 틱이 적용됩니다. 현재 액터의 틱은 3 단계로 이루어지는데: 
 비동기 작업 전, 비동기 작업 중, 비동기 작업 후 입니다. 액터의 틱이 어느 그룹에서 일어나는지는 TickGroup 멤버로 제어합니다. 상태 업데이트를 비동기 작업 전 (피직스 등은 나중에) 해야 하는 액터는 

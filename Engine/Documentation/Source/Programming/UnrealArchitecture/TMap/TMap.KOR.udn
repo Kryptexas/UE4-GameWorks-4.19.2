@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2621719
 Title:TMap
 Crumbs:
 Description:
 Availability:Public
 Version:4.7
-
-## 개요
 
 TArray 다음으로 언리얼 엔진에서 가장 자주 쓰이는 컨테이너는 TMap 입니다. 이 컨테이너는 연관성이 있는 컨테이너로, 모든 키에는 연관된 값이 있어서 값 오브젝트를 키를 통해 효율적으로 찾아볼 수 있다는 뜻입니다.
 

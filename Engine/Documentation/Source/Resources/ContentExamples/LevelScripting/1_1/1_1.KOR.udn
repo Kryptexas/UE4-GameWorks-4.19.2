@@ -1,4 +1,4 @@
-INTSourceChangelist:2251647
+﻿INTSourceChangelist:2621691
 Availability: Docs
 Title:1.1 - 트리거 박스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
@@ -26,8 +26,6 @@ Description:Level Scripting 예제 레벨에 대한 개요로, 예제 1.1: Trigg
 [REGION:fullwidth]
 
 ![](levelscripting_1_1.png)
-
-## 개요
 
 트리거 박스 액터는 문짝 세트가 들어있는 블루프린트 앞에 놓입니다. 플레이어가 트리거 박스에 닿으면 문은 열리고, 떠나면 닫힙니다. 문 블루프린트에는 커스텀 이벤트에 연결하기 위해 필수적인 애니메이션 스크립트가 전부 들어있습니다.
 

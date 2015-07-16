@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2622313
 Title: Category
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
 Description: 
 Availability:Public
-Version: 4.5
+Version: 4.9
 
 프로퍼티의 카테고리를 지정합니다.
 

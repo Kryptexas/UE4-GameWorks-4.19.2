@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2622257
 Title: Intrinsic
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-Version: 4.5
+Version: 4.9
 
 클래스가 C++ 에서 바로 선언되어 언리얼 헤더 툴에서 생성된 상용구가 없습니다.
 

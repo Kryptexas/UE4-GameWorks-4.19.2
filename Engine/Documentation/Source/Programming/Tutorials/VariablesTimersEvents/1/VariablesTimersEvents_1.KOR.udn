@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2555570
+﻿INTSourceChangelist:2621690
 Availability: Public
 Title:1. 타이머를 사용하는 액터 만들기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
 Description:타이머를 사용하여 고정된 속도로 코드를 실행 시작 또는 중지시킵니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,7 +12,7 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:title%")

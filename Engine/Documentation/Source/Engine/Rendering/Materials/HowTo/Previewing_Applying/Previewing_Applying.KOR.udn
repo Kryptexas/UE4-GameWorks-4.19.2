@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615175
+﻿INTSourceChangelist:2621686
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 미리보기 및 적용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -80,17 +80,17 @@ TDn_9Dg1s-Q
 
 1. 먼저 미리보려는 머티리얼이 레벨의 무언가에 적용되었는지 확인합니다.
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-SvCjqU1XDzY
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	SvCjqU1XDzY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 머티리얼 안에서 변경하고자 하는 프로퍼티에 대한 입력으로 **Scalar** 또는 **Vector Parameter** 를 사용중인지 확인합니다.
 	이러한 미리보기는 **Constant** 머티리얼 표현식 노드에는 작동하지 않으며, 조정하고자 하는 머티리얼 표현식 노드를 **Parameter** 노드로 변환하여 사용해야 합니다.
@@ -112,45 +112,45 @@ SvCjqU1XDzY
 	방금 가한 조정이 레벨 뷰포트에 실시간으로 표시될 것입니다.
  
 	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:width]
-		640
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		360
-		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		gKSnoGXuaKQ
-		[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	gKSnoGXuaKQ
+	[/PARAMLITERAL]
 	[/OBJECT]
 
 ## 머티리얼을 적용하는 법
 
 머티리얼을 UE4 의 머티리얼에 적용하는 방법은 크게 두 가지입니다.
 * **드래그 앤 드롭** - **콘텐츠 브라우저** 에서 아무 머티리얼이나 끌어서 레벨에 있는 오브젝트 위에 놓으면 그 머티리얼이 바뀝니다. 예제는 다음과 같습니다.
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-57tC0KaB2BU
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	57tC0KaB2BU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 * **오브젝트의 디테일 패널을 통해 적용** - 오브젝트의 **디테일** 패널에서 **콘텐츠 브라우저에 선택된 애셋 사용** 버튼을 통해 머티리얼을 적용할 수도 있습니다. 예제는 다음과 같습니다.
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-fSLRV947n7A
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	fSLRV947n7A
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 ## 결론
@@ -160,6 +160,7 @@ fSLRV947n7A
 기억하실 것은 무언가를 미리볼 때, **적용** 및 **저장** 버튼을 눌르지 않으면 작업물을 잃거나 보이지 않게 될 수가 있습니다.
 
 ![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
+
 
 
 

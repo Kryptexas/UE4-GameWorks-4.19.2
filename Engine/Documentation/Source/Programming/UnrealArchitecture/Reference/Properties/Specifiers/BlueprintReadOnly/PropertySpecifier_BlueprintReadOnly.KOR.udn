@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2622313
 Title: BlueprintReadOnly
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
 Description: 
 Availability:Public
-Version: 4.5
+Version: 4.9
 
 이 프로퍼티는 블루프린트에서 읽을 수는 있지만, 쓰기는 안됩니다.

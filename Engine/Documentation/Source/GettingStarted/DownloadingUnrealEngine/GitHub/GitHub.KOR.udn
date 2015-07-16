@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2621119
+﻿INTSourceChangelist:2622256
 Availability:NoPublish
 Title:GitHub 에서 언리얼 엔진 내려받기
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -81,10 +81,6 @@ Description:GitHub 에서 언리얼 엔진 소스 코드 내려받기 입니다.
 	1.	소스 폴더를 열고 **run Setup.sh** 명령을 내려 엔진의 바이너리 콘텐츠를 다운로드합니다.
 	[/PARAM]
 [/OBJECT]
-
-## 다음 단계
-
-언리얼 엔진 다운로드 및 구성이 완료되었으면, 이제 [소스에서 엔진을 빌드](Programming/Development/BuildingUnrealEngine) 하면 됩니다.
 
 <!--
 

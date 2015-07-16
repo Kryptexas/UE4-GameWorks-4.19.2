@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602131
+﻿INTSourceChangelist:2621829
 Availability: Public
 title:기타
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -28,7 +28,9 @@ TimeWithSpeedVariable (속력 변수가 있는 시간) 함수는 Time 노드와 
 
 ![Time with Speed Offset](TimeWithSpeedVariable_Demo.png)
 
-**주: 출력 결과창에서 기본적으로 노드를 미리봅니다. 이 경우 노드는 깜빡입니다.**
+[REGION:note]
+출력 결과창에서 기본적으로 노드를 미리봅니다. 이 경우 노드는 깜빡입니다.**
+[/REGION]
 
 ### OffsetAndScaleTo1
 

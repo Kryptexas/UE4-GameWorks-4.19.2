@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2622065
 Availability:Public
 Title:약 포인터
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:약 레퍼런스를 보관, 오브젝트의 소멸을 막지 않는 스마트 포인터입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -34,7 +34,7 @@ Version: 4.5
 
 약 포인터는 할 일이 끝나면 리셋(이나 재할당)시킬 수 있습니다.
 
-	NodeObserver = NULL;
+	NodeObserver = null;
 
 ## 레퍼런스 해제와 접근
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2555570
+﻿INTSourceChangelist:2621701
 Availability: Public
 Title:2. 에디터에 변수와 함수를 노출
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
 Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수를 에디터에 노출시킵니다.
-
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -12,7 +12,7 @@ Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:title%")

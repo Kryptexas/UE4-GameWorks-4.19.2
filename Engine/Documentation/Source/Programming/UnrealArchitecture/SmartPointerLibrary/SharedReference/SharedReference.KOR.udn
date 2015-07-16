@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2622058
 Availability:Public
 Title:공유 레퍼런스
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:초기화되지 않거나(uninitialized) null 할당 불가능한 스마트 포인터 유형입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -20,7 +20,7 @@ Version: 4.5
 	// Create a shared reference to a new node  새 노드로의 공유 레퍼런스 생성
 	TSharedRef<FTreeNode> NodeRef( new FTreeNode() );
 
-초기화나 NULL 을 할당하지 않고 공유 레퍼런스를 선언하려 한다니, 경을 칠 노릇입니다!:
+초기화나 null 을 할당하지 않고 공유 레퍼런스를 선언하려 한다니, 경을 칠 노릇입니다!:
 
 	TSharedRef<UBool> EmptyBool;			// 컴파일 아니되오!!
 
@@ -35,9 +35,9 @@ Version: 4.5
 	( *NodeRef ).ListChildren();
 	const FTreeNode& NodeVar = NodeRef.Get();
 
-다시금, 중요한 차이점은 공유 포인터는 NULL 로 설정할 수 없습니다:
+다시금, 중요한 차이점은 공유 포인터는 null 로 설정할 수 없습니다:
 
-	TSharedRef<FTreeNode> Node = NULL;		// 컴파일 아니되오!!
+	TSharedRef<FTreeNode> Node = null;		// 컴파일 아니되오!!
 
 ### 포인터와 레퍼런스 변환
 

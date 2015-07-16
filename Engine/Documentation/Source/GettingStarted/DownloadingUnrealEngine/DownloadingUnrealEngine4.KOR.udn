@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2621119
+﻿INTSourceChangelist:2622256
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -73,6 +73,11 @@ Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌�
 ### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
+
+### %GettingStarted/DownloadingUnrealEngine/DownloadZip:title%
+
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/DownloadZip]
+
 [/PUBLISH:Rocket]
 
 [/EXCERPT:Main]

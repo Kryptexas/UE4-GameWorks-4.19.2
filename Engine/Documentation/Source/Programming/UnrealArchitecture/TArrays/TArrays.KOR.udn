@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2621752
 Title: TArray: 언리얼 엔진의 배열
 Crumbs:
 Description:
 Availability:Public
-Version:4.7
-
-## 개요
+Version:4.9
 
 주된 go-to 컨테이너 클래스는 TArray 입니다. TArray 는 유형이 같은 다른 오브젝트(, 소위 엘리먼트)를 순서대로 정리하여 소속시키는 것을 담당하는 클래스입니다. TArray 는 시퀀스이므로, 그 엘리먼트는 잘 정의된 순서를 갖으며, 그 메소드를 사용해서 해당 오브젝트와 순서를 결정론적으로 조작하게 됩니다.
 

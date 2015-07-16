@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2621854
 Availability: Public
 Title:4. 직접 해보기!
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
 Description:배운 내용을 토대로 직접 해 봅니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:배운 내용을 토대로 직접 해 봅니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]

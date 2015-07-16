@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2621887
 Availability: Public
 title:텍스처링
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,9 +6,7 @@ Description:Texturing, 텍스처링 카테고리 아래 있는 머티리얼 함�
 
 [TOC (start:2 end:3)]
 
-## 개요
-
-Texturing 함수는 텍스처의 UV 조정이나 텍스처 잘라내기(crop) 등과 같은 텍스처 기반 동작을 전문적으로 처리하는 함수입니다.
+The Texturing functions provide for specialized handling of texture-based actions, such as adjusting UVs of a texture, cropping textures, and many others.
 
 ## 텍스처링 함수
 
@@ -138,7 +136,9 @@ Texturing 카테고리 아래 있는 함수는 다음과 같습니다.
 
 ![WorldAlignedNormal](WorldAlignedNormal_Demo.png)
 
-**바닥이 회전되어도 텍스처는 여전히 월드 좌표계에 수평인 것을 볼 수 있습니다.**
+[REGION:note]
+바닥이 회전되어도 텍스처는 여전히 월드 좌표계에 수평인 것을 볼 수 있습니다.
+[/REGION]
 
 ### WorldAlignedTexture
 
@@ -165,7 +165,9 @@ Texturing 카테고리 아래 있는 함수는 다음과 같습니다.
 
 ![WorldAlignedTexture](WorldAlignedTexture_Demo.png)
 
-**바닥이 회전되어도 텍스처는 여전히 월드 좌표계에 수평인 것을 볼 수 있습니다.**
+[REGION:note]
+바닥이 회전되어도 텍스처는 여전히 월드 좌표계에 수평인 것을 볼 수 있습니다.
+[/REGION]
 
 ### 3DSandMayaUVCoordinates
 
@@ -239,7 +241,9 @@ Texturing 카테고리 아래 있는 함수는 다음과 같습니다.
 
 ![CameraWorldBlend](CameraWorldBlend_Demo.png)
 
-**표면이 XY 면에 수평인 곳은 초록 텍스처가, 나머지 곳에는 빨간 텍스처가 블렌딩되는 것을 볼 수 있습니다.**
+[REGION:note]
+표면이 XY 면에 수평인 곳은 초록 텍스처가, 나머지 곳에는 빨간 텍스처가 블렌딩되는 것을 볼 수 있습니다.
+[/REGION]
 
 ### LocalSpaceSurfaceMirroring
 

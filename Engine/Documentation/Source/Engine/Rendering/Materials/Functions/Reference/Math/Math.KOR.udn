@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2621815
 Availability: Public
 title:수학
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Math (수학) 카테고리 아래 머티리얼 함수에 대한 설명과 예제입니다.
 
 [TOC (start:2 end:3)]
-
-## 개요
 
 수학 함수는 텍스처 안의 픽셀 값에 대해 기본적인 수학 연산을 하는 함수입니다.
 

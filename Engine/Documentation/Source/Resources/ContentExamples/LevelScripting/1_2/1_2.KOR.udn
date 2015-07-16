@@ -1,4 +1,4 @@
-INTSourceChangelist:2176209
+﻿INTSourceChangelist:2621689
 Availability: Docs
 Title:1.2 - 이벤트 디스패처
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
@@ -26,8 +26,6 @@ Description:Level Scripting 예제 레벨에 대한 개요로, 예제 1.2: Event
 [REGION:fullwidth]
 
 ![](levelscripting_1_2.png)
-
-## 개요
 
 여기서는 문 블루프린트 인스턴스가 다르게 사용되었는데, 플레이어가 버튼 블루프린트에 올라섰을 때 문을 여닫기 위해서입니다. 이 버튼 블루프린트는 레벨 스크립트가 받을 수 있는 특수한 디스패치 이벤트를 사용합니다. 버튼이 눌리면 디스패치 함수가 호출됩니다. 그에 해당하는 이벤트를 레벨 스크립트에 추가하지 않는 한 그 자체로는 아무런 작업도 하지 않습니다.
 
