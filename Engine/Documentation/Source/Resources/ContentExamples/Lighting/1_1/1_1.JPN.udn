@@ -2,7 +2,7 @@
 Availability:Public
 Title:1.1 - ポイントライト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのサンプル レベル、1.1：ポイントライト
+Description:ライティングのサンプル レベルの概要、1.1：ポイントライト
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
