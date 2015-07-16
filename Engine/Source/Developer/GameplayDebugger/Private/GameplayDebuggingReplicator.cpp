@@ -332,7 +332,7 @@ UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (IsPendingKill() == false && !DebugComponent && DebugComponentClass.IsValid() && GetNetMode() < ENetMode::NM_Client)
 	{
-		DebugComponent = NewObject<UGameplayDebuggingComponent>(this, DebugComponentClass.Get());
+		DebugComponent = NewObject<UGameplayDebuggingComponent>(this, DebugComponentClass.Get(), TEXT("DebugComponent"), RF_Transient);
 		DebugComponent->SetIsReplicated(true);
 		DebugComponent->RegisterComponent();
 		DebugComponent->Activate();

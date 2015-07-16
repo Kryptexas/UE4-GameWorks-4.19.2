@@ -295,6 +295,7 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.ObjectFlags = RF_Transient;
 	SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_%s"), *PlayerController->GetName());
 	AGameplayDebuggingReplicator* DestActor = World->SpawnActor<AGameplayDebuggingReplicator>(FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo);
 	if (DestActor != NULL)
@@ -360,6 +361,7 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 	// create global replicator on level
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.ObjectFlags = RF_Transient;
 	SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_Global"));
 	AGameplayDebuggingReplicator* DestActor = InWorld->SpawnActor<AGameplayDebuggingReplicator>(FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo);
 	if (DestActor != NULL)
@@ -397,7 +399,11 @@ void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 	APlayerController* PC = Cast<APlayerController>(InActor);
 	if (PC && PC->GetNetMode() < ENetMode::NM_Client)
 	{
-		CreateGameplayDebuggerForPlayerController(PC);
+		UWorld* PCWorld = PC->GetWorld();
+		if (PCWorld && PCWorld->IsGameWorld())
+		{
+			CreateGameplayDebuggerForPlayerController(PC);
+		}
 	}
 #endif
 }
