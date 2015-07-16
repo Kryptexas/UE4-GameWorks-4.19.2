@@ -120,7 +120,7 @@ Platform define
 #   elif defined(__ppc64__)
 #       define PX_PPC
 #	define PX_PPC64
-#	elif defined (HTML5)
+#	elif defined (EMSCRIPTEN)
 #       define PX_HTML5
 #   else
 #	error "Unknown platform"
@@ -156,7 +156,8 @@ Platform define
 DLL export macros
 */
 #if !defined(PX_C_EXPORT) 
-#	if defined(PX_WINDOWS) || defined(PX_WINMODERN) || defined(PX_LINUX)
+#	if defined(PX_WINDOWS) || defined(PX_WINMODERN) // || defined(PX_LINUX) - extern "C" is applied to functions returning C++ types 
+													// (e.g. references) which triggers -Wreturn-type-c-linkage, so cannot be used on Linux
 #		define PX_C_EXPORT extern "C"
 #	else
 #		define PX_C_EXPORT
