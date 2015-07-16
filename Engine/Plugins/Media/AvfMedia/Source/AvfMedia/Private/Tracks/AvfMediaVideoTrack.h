@@ -26,6 +26,12 @@ public:
 
 public:
 
+	// FAvfMediaTrack overrides
+
+    virtual bool IsReady() const override;
+
+public:
+
 	// IMediaTrackVideoDetails interface
 
 	virtual uint32 GetBitRate() const override
@@ -47,6 +53,7 @@ public:
 	{
 		return *this;
 	}
+
 
 public:
 
@@ -78,13 +85,6 @@ public:
      * @param SeekTime The time the Track Reader should be set to.
      */
     bool SeekToTime( const CMTime& SeekTime );
-
-    /**
-     * Is this track ready to begin reading?
-	 *
-	 * @return true if ready, false otherwise.
-     */
-    bool IsReady() const;
 
 private:
 

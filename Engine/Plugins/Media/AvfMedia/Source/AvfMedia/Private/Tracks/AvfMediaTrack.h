@@ -19,6 +19,15 @@ public:
 
 public:
 
+	/**
+	 * Check whether the track is ready.
+	 *
+	 * @return true if the track is ready, false otherwise.
+	 */
+	virtual bool IsReady() const = 0;
+
+public:
+
 	// IMediaTrack interface
 
 	virtual void AddSink(const IMediaSinkRef& Sink) = 0;

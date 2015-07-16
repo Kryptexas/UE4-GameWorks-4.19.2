@@ -21,6 +21,16 @@ public:
 
 public:
 
+	// FAvfMediaTrack overrides
+
+	virtual bool IsReady() const override
+	{
+		// not implemented yet
+		return false;
+	}
+
+public:
+
 	// IMediaCaptionTrack interface
 
 	virtual IMediaStream& GetStream() override

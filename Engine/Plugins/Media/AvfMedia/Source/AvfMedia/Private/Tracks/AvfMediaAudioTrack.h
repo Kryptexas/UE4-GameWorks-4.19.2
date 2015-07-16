@@ -17,9 +17,18 @@ public:
 	/** Default constructor. */
 	FAvfMediaAudioTrack()
 		: FAvfMediaTrack()
+		, NumChannels(0)
+		, SamplesPerSecond(0)
+	{ }
+
+public:
+
+	// FAvfMediaTrack overrides
+
+	virtual bool IsReady() const override
 	{
-		NumChannels = 0;
-		SamplesPerSecond = 0;
+		// not implemented yet
+		return false;
 	}
 
 public:
