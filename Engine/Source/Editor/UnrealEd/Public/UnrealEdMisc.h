@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "Editor.h" // for FEditorModeID
+
 class FPerformanceAnalyticsStats;
+class FTickableEditorObject;
 
 namespace EMapChangeType
 {
