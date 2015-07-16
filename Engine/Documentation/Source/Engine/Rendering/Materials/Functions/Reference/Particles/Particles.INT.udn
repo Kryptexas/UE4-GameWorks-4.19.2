@@ -1,11 +1,9 @@
-Availability: Public
+﻿Availability: Public
 title:Particles
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Specialized functions designed to aid setting up the look of complex particle networks.
 
 [TOC (start:2 end:3)]
-
-## Overview
 
 Particle functions are designed to aid in complex material generation for particle systems.
 
