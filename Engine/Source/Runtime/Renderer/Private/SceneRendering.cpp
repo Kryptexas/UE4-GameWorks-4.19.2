@@ -1670,9 +1670,9 @@ TGlobalResource<FFilterVertexDeclaration>& FRendererModule::GetFilterVertexDecla
 	return GFilterVertexDeclaration;
 }
 
-void FRendererModule::RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& PostOpaqueRenderDelegate)
+void FRendererModule::RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& InPostOpaqueRenderDelegate)
 {
-	this->PostOpaqueRenderDelegate = PostOpaqueRenderDelegate;
+	this->PostOpaqueRenderDelegate = InPostOpaqueRenderDelegate;
 }
 
 void FRendererModule::RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate)
