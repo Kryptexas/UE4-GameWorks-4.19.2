@@ -1675,9 +1675,9 @@ void FRendererModule::RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDe
 	this->PostOpaqueRenderDelegate = InPostOpaqueRenderDelegate;
 }
 
-void FRendererModule::RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate)
+void FRendererModule::RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& InOverlayRenderDelegate)
 {
-	this->OverlayRenderDelegate = OverlayRenderDelegate;
+	this->OverlayRenderDelegate = InOverlayRenderDelegate;
 }
 
 void FRendererModule::RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext)
