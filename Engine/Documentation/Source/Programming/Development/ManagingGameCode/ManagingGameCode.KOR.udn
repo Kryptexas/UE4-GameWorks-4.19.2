@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2431860
+﻿INTSourceChangelist:2611026
 Availability:Public
 Title:게임 코드 관리
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:코드를 추가하고 프로젝트 파일을 생성하는 법입니다.
-Version: 4.5
+Version: 4.9
 
 %Globals:OSSelect%
 

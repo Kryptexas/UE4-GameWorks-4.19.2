@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346120
+﻿INTSourceChangelist:2620548
 Availability: Public
 Title:마티네 콘텐츠 예제
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -48,7 +48,6 @@ Related: Engine/UI/CurveEditor
 [TOC(start:2 end:2)]
 
 
-## 개요
 
 **Matinee** 콘텐츠 예제 맵에는 타임라인 상에 **키프레임** 을 놓는 것으로 게임플레이 시퀀스를 만들거나 컷씬을 생성하는 법에 대한 여러가지 예제가 제공됩니다. 각 **키프레임** 은 대상 **액터** 더러 타임라인상의 그 시점에서 "무언가를 하라" 고 이르는 것으로, 일정 위치로 이동 또는 도달, 색 변경, **블루프린트** 의 이벤트 발동 등입니다.
 

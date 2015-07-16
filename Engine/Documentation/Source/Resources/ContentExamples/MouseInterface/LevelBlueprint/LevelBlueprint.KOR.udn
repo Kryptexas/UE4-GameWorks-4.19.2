@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2436948
+﻿INTSourceChangelist:2620645
 Availability: Public
 Title:마우스 인터페이스의 레벨 블루프린트
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
@@ -7,7 +7,6 @@ Description:마우스 인터페이스 데모렛에 사용된 레벨 블루프린
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 
 데모렛을 보면 동작을 구성하는 데 있어 레벨 블루프린트와 액터 블루프린트 스크립트를 둘 다 쓰는 것을 알 수 있습니다. 예제로써 일부러 그렇게 한 건데, 각각 마우스 상호작용을 어떻게 활용하는지 선보이기 위함입니다. 레벨 블루프린트는 박스 이동을 처리하는 반면, 액터 블루프린트는 이동가능 구체를 만드는데 사용됩니다.

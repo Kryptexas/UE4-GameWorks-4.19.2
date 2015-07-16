@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2620823
 Availability: Public
 Title:2.4 - 네트워크 연관성 (4 부 - 복합 솔루션)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -37,7 +37,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 
-## 개요
+
 예제 2.2 와 2.3 모두 실패했는데, 둘 다 상자 예제에 필요한 두 가지 경우에 대한 처리를 못했기 때문입니다:
 
 * 상호작용 시점에서 이펙트 재생

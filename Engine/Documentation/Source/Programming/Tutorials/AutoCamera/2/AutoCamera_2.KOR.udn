@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573803
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:2. C++ 에서 카메라 뷰 제어
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:카메라 뷰 제어를 위한 클래스 코딩입니다.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:카메라 뷰 제어를 위한 클래스 코딩입니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:title%")

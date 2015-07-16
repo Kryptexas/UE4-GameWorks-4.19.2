@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2620245
 Availability: Public
 Title:Velocity 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,13 +6,21 @@ Description:Velocity (속도) 모듈은 다양한 방법으로 파티클의 속�
 
 [TOC(start:2 end:3)]
 
-## Velocity 모듈
-
 Velocity (속도) 모듈은 다양한 방법으로 파티클의 속도를 조절하는 모듈입니다.
 
-### Initial Velocity
+## Initial Velocity
 
-![psys_initial_velocity.gif](psys_initial_velocity.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+htluEXsHV4o
+[/PARAMLITERAL]
+[/OBJECT]
 
 Initial Velocity (초기 속도)는 파티클의 초기 속도를 설정하는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -28,7 +36,7 @@ Initial Velocity (초기 속도)는 파티클의 초기 속도를 설정하는 �
 
 
 
-### Initial Vel (Seed)
+## Initial Vel (Seed)
 
 Initial Vel (Seeded) (초기 속도 (시드))는 파티클이 방출될 때 속도를 설정한다는 점에서는 [Initial Velocity](#InitialVelocity) 모듈과 같습니다만, 이미터가 사용될 때마다 모듈로부터의 효과를 좀 더 일관되게 하기 위해, 분포 값을 선택할 때 사용되는 시드 정보를 지정할 수 있는 모듈이라는 점이 다릅니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -43,7 +51,7 @@ Initial Vel (Seeded) (초기 속도 (시드))는 파티클이 방출될 때 속�
 | **Apply Owner Scale** | 오너 스케일 적용 - _True_ 면 속도 값은 파티클 시스템 컴포넌트의 스케일 값으로 조절됩니다. |
 
 
-### Velocity Cone
+## Velocity Cone
 
 Velocity Cone (속도 원뿔)은 파티클을 사용자 지정 원뿔 모양으로 방출시키는 모듈입니다.
 
@@ -56,7 +64,7 @@ Velocity Cone (속도 원뿔)은 파티클을 사용자 지정 원뿔 모양으�
 | **In World Space** | 월드 공간 내 - _True_ 면 속도는 월드-공간 내에 있는 것으로 간주됩니다. |
 | **Apply Owner Scale** | 오너 스케일 적용 - _True_ 면 속도 값은 파티클 시스템 컴포넌트의 스케일 값으로 조절됩니다. |
 
-### Inherit Parent Vel
+## Inherit Parent Vel
 
 Inheret Parent Vel(부모 속도 상속)은 파티클이 스폰될 때 부모(파티클 이미터 자체)의 속도를 물려주는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -70,9 +78,19 @@ Inheret Parent Vel(부모 속도 상속)은 파티클이 스폰될 때 부모(�
 
 
 
-### Velocity/Life
+## Velocity/Life
 
-![psys_velocity_life.gif](psys_velocity_life.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+zblNBP4eJLE
+[/PARAMLITERAL]
+[/OBJECT]
 
 Velocity/Life(속도/수명)은 파티클의 수명에 걸친 속도를 스케일 조절하는 모듈입니다. 다음과 같은 멤버가 포함됩니다:
 

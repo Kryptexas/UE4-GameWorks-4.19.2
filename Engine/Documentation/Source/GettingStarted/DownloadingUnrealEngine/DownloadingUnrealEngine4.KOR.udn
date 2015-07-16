@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2607487
+﻿INTSourceChangelist:2621119
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -12,13 +12,49 @@ Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌�
 라이선시께서는 에픽의 퍼포스 서버에 직접 연결하여 언리얼 엔진 4 를 내려받을 수 있습니다. 서버에 접속하기 전, 보안 VPN 연결을 먼저 구성해야 합니다. VPN 와 퍼포스 서버 둘 다에 대한 로그인 인증 정보는 에픽 게임스가 귀하의 기술팀장께 보내드린 UDN 환영 이메일에 제공되어 있습니다. 각 팀마다 한 세트의 로그인 인증정보만 제공됩니다.
 [/PUBLISH:Licensee]
 [PUBLISH:Rocket]
-언리얼 엔진 4 소스 코드의 다운로드는 멤버쉽 라이선스 회원의 경우 Unreal Engine GitHub 저장소에서 가능합니다. 소스 코드 접근권한이 있으면 엔진과 툴을 프로젝트의 필요에 따라 입맛대로 변경할 수 있습니다. 윈도우 및 맥 용으로 에디터를 빌드할 수 있으며, 게임 컴파일은 안드로이드와 iOS 용으로도 가능합니다. 언리얼 라이트매스나 언리얼 프론트엔드 등 모든 툴에 대한 소스 코드 역시도 포함되어 있습니다.
+언리얼 엔진 4 (UE4) 소스 코드는 멤버쉽 회원의 경우 Unreal Engine GitHub repository(저장소)에서 다운로드 가능합니다. 소스 코드를 접할 수 있으므로, 필요에 따라 자유롭게 엔진과 툴을 수정할 수 있습니다. 윈도우, 맥, 리눅스에서 에디터를 빌드하고, 안드로이드와 iOS 용으로도 게임 컴파일이 가능합니다. (언리얼 라이트매스나 프론트엔드 등) 툴 전체에 대한 소스 코드 역시도 포함되어 있습니다.
+[REGION:warning]
+[repository](https://github.com/EpicGames/UnrealEngine) (저장소) 접근을 위해서는 GitHub 계정을 가지고 언리얼 엔진 계정에 연동시켜야 합니다.
+*	GitHub 계정이 없으신 경우, [GitHub](https://github.com/) 페이지에서 가입하시면 됩니다.
+*	언리얼 엔진 계정에 GitHub 계정을 연동시키는 법에 대한 안내는, [GitHub 의 언리얼 엔진 4](https://www.unrealengine.com/ue4-on-github) 페이지를 참고하세요.
+[/REGION]
+
+## 소스 코드 브랜치
+
+저장소에 접근해 보면, UE4 소스 코드가 세 가지 브랜치로 나뉘어 퍼블리싱되는 것을 알 수 있습니다:
+
+*	**Release Branch** 릴리즈 브랜치
+*	**Promoted Branch** 승격 브랜치
+*	**Master Branch** 마스터 브랜치
+
+### 릴리즈 브랜치
+
+![](ReleaseBranch.png)
+
+(위 그림의) [릴리즈 브랜치](https://github.com/EpicGames/UnrealEngine/tree/release) 는 QA 팀의 철저한 테스트를 거쳐 UE4 를 배우거나 언리얼 게임 제작을 시작하기에 좋습니다. 이 브랜치는 안전성 확보를 최우선으로 두고 한 두 달에 한 번씩 새로운 빌드를 낼 수 있도록 열심히 노력하고 있습니다.
+
+### 승격 브랜치
+
+![](PromotedBranch.png)
+
+(위 그림의) [승격 브랜치](https://github.com/EpicGames/UnrealEngine/tree/promoted) 는 저희 내부 디자이너와 아티스트가 사용하도록 업데이트되는 빌드입니다. 이 브랜치는 안정된 상태의 UE4 최신 기능을 접할 수 있도록 일 단위로 업데이트하도록 노력하고 있습니다. UE4 의 기능 개발이 어떤 식으로 이루어지는지 배워 보기에 좋은 곳입니다.
+
+### 마스터 브랜치
+
+[REGION:warning]
+마스터 브랜치는 최첨단 기술이 포함되어 있기에, UE4 가 소스에서 제대로 컴파일된다는 보장이 없습니다.
+[/REGION]
+
+![](MasterBranch.png)
+
+(위 그림의) [마스터 브랜치](https://github.com/EpicGames/UnrealEngine/tree/master) 는 저희 엔진 팀의 (아래 그림과 같은) [라이브 체인지](https://github.com/EpicGames/UnrealEngine/commits/master) 를 추적합니다. 보통 UE4 개발자들과 공동 작업을 하고자 하는 숙련된 개발자들이 이 곳에서 작업합니다.
+
+![](LiveChanges.png)
 
 [REGION:note]
-[저장소](https://github.com/EpicGames/UnrealEngine) 에 접근하려면 언리얼 엔진 멤버쉽 회원이 되어야 하며, 언리얼 엔진 계정과 GitHub 계정을 연동시켜 줘야 합니다.
-
-계정 연동 관련 안내는 [GitHub 에서의 UE4](https://www.unrealengine.com/ue4-on-github) 페이지를 참고해 주시기 바랍니다.
+새 버전 릴리즈의 안정화 및 핫픽스 진행에 따라 때때로 다른 브랜치가 생길 수도 있습니다.
 [/REGION]
+
 [/PUBLISH:Rocket]
 
 [PUBLISH:Licensee]
@@ -26,6 +62,16 @@ Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌�
 [/PUBLISH:Licensee]
 
 [PUBLISH:Rocket]
+
+## 언리얼 엔진 다운로드
+
+멤버쉽 회원분들이 언리얼 엔진 소스 코드를 다운로드할 수 있는 방법은 다음과 같습니다:
+
+*	GitHub 에서 Unreal Engine 다운로드
+*	압축된 파일로 Unreal Engine 다운로드
+
+### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
+
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
 [/PUBLISH:Rocket]
 

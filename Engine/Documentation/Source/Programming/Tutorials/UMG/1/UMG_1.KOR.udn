@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2611722
+﻿INTSourceChangelist:2620214
 Availability: Public
 Title:1. UMG 용 모듈 종속성 구성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:메뉴를 만드는 데 필요한 모듈을 포함하도록 프로젝트를 변경합니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,7 +12,7 @@ Description:메뉴를 만드는 데 필요한 모듈을 포함하도록 프로�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\UMG\2 "%Programming\Tutorials\UMG\2:title%")

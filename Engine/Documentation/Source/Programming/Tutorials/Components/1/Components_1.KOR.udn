@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2573824
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:1. 컴포넌트 만들고 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:다양한 컴포넌트를 만들어 커스텀 폰에 붙여봅니다.
-
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -11,7 +11,7 @@ Description:다양한 컴포넌트를 만들어 커스텀 폰에 붙여봅니다
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\Components\2 "%Programming\Tutorials\Components\2:title%")

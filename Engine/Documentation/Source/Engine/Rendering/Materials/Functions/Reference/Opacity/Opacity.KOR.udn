@@ -1,4 +1,4 @@
-INTSourceChangelist:2131046
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:불투명도
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Opacity (불투명도) 카테고리 아래 머티리얼 함수에 �
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 불투명도 함수는 복잡한 불투명도 계산 처리를 빠르게 하기 위한 것입니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2283242
+﻿INTSourceChangelist:2620209
 Availability: Public
 Title:Rotation 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,11 +6,9 @@ Description:Rotation 모듈은 파티클 수명 내 다양한 시점에서의 �
 
 [TOC(start:2 end:3)]
 
-## Rotation 모듈 
-
 Rotation 모듈은 파티클 수명 내 다양한 시점에서의 회전 방식을 제어하는 모듈입니다.
 
-### Init Mesh Rotation
+## Init Mesh Rotation
 
 Init Mesh Rotation 모듈은 Mesh Data 이미터와 함께 생성되는 메시 파티클에 초기 로테이션을 적용하는 모듈입니다.
 
@@ -22,9 +20,9 @@ Init Mesh Rotation 모듈은 Mesh Data 이미터와 함께 생성되는 메시 �
 
 
 
-### Init Mesh Rot (Seed)
+## Init Mesh Rot (Seed)
 
-Inti Mesh Rot (Seed) 모듈은 Mesh Data 이미터와 함께 생성되는 메시 파티클에 초기 로테이션을 적용하는 모듈로, 난수 발생에 추가적인 기능을 활용할 수 있습니다.
+Init Mesh Rot (Seed) 모듈은 Mesh Data 이미터와 함께 생성되는 메시 파티클에 초기 로테이션을 적용하는 모듈로, 난수 발생에 추가적인 기능을 활용할 수 있습니다.
 
 | 프로퍼티 | 설명 |
 | ---------- | ----------- |
@@ -35,9 +33,19 @@ Inti Mesh Rot (Seed) 모듈은 Mesh Data 이미터와 함께 생성되는 메시
 |**Inherit Parent** | 부모 상속 - _True_ 면 부모의 로테이션이 메시 파티클에도 적용됩니다. |
 
 
-### Initial Rotation
+## Initial Rotation
 
-![psys_initial_rotation.gif](psys_initial_rotation.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TkMzhGUYjnI
+[/PARAMLITERAL]
+[/OBJECT]
 
 Initial Rotation 모듈은 파티클 스폰시 초기 로테이션을 설정하는 모듈입니다. 속한 내용은 다음과 같습니다:
 
@@ -48,7 +56,7 @@ Initial Rotation 모듈은 파티클 스폰시 초기 로테이션을 설정하�
 
 
 
-### Init Rotation (Seeded)
+## Init Rotation (Seeded)
 
 Init Rotation (Seeded) 모듈은 파티클에 초기 로테이션을 설정한다는 점에 있어서는 [Initial Rotation](#InitialRotation) 모듈과 동일하나, 이미터가 사용될 때마다 모듈에서 얻을 수 있는 효과를 좀 더 일관되게 만들기 위해 분포값 선택시의 시드 정보를 지정할 수 있다는 점이 다릅니다. 속한 내용은 다음과 같습니다:
 
@@ -61,9 +69,19 @@ Init Rotation (Seeded) 모듈은 파티클에 초기 로테이션을 설정한�
 
 
 
-### Rotation/Life
+## Rotation/Life
 
-![psys_rotation_life.gif](psys_rotation_life.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+M-mHMXH2y7Q
+[/PARAMLITERAL]
+[/OBJECT]
 
 Rotation/Life 모듈은 파티클의 수명 동안의 로테이션을 설정하는 데 사용되는 모듈입니다. 속한 내용은 다음과 같습니다:
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2534001
+﻿INTSourceChangelist:2602658
 Availability: Public
 Title:머티리얼 에디터 - 텍스처 마스킹 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -13,7 +13,7 @@ Related: Engine/Rendering/Materials/HowTo/Instancing
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 3D 애셋 제작시 같은 머티리얼 내 여러가지 표면 유형을 정의하는 기능이 있었으면 싶을 때가 있습니다.
 간단하고 저렴한 해결책은, Texture Mask (텍스처 마스크)를 사용하여 어느 표면이 머티리얼의 어느 부분에 영향받도록 할 것인지 정의하면 됩니다.

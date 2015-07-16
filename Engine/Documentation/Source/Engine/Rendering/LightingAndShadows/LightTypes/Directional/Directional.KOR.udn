@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521805
+﻿INTSourceChangelist:2602426
 Availability: Public
 Title:디렉셔널 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -49,11 +49,11 @@ Description:디렉셔널 라이트에 대한 기초입니다.
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 [EXCERPT:Intro]
 **Directional Light** (디렉셔널 라이트)는 무한히 먼 거리에 있는 광원에서 오는 빛을 흉내내는 것입니다. 즉 이 라이트로 인해 드리워지는 모든 그림자는 평행이 되며, 태양광 시뮬레이션에 이상적입니다. **디렉셔널 라이트** 를 배치하면 세 가지 **모빌리티** 세팅 중 하나로 설정 가능합니다:
-[/EXCERPT:Intro]
+
 
 [REGION:raw]
 ![](spacer.png)
@@ -69,6 +69,7 @@ Description:디렉셔널 라이트에 대한 기초입니다.
 	**스테이셔너리** - (역시 왼쪽 그림) 라이트가 스태틱 지오메트리의 그림자와 반사광만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 됩니다. 이 세팅으로 게임에서 라이트의 색과 세기를 변경하는 것이 가능하지만, 이동이나 라이팅을 일부만 굽는 것은 불가능합니다.
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)

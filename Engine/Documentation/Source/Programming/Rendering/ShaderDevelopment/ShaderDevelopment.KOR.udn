@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2567301
+﻿INTSourceChangelist:2615012
 Availability:Public
 Title:셰이더 개발
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:셰이더를 작성하는 그래픽 프로그래머를 위한 정보입니다.
-Version: 4.5
+Version: 4.9
 
 ## 퀵 스타트
 
@@ -139,9 +139,9 @@ _r.DumpShaderDebugInfo=1_ 를 사용해서 컴파일되는 모든 셰이더에 �
  * 소스 파일 및 인클루드
  * 셰이더 전처리 버전
  * 사용된 컴파일러에 상응하는 명령줄 옵션을 포함해서 전처리 버전 컴파일을 위한 뱃치 파일
-
- **주: 이 세팅을 켜면, 하드 디스크가 다수의 작은 파일과 폴더로 가득찰 수 있습니다.**
-
+ [REGION:note]
+이 세팅을 켜면, 하드 디스크가 다수의 작은 파일과 폴더로 가득찰 수 있습니다.**
+ [/REGION]
 ## 반복처리 실전 사례
 
 글로벌 셰이더 작업중인 경우, 반복처리에 가장 빠른 방법은 'recompileshaders changed' 또는 **Ctrl+Shift+.** 입니다. 셰이더 컴파일에 오랜 시간이 걸리는 경우, 셰이더의 ModifyCompilationEnvironment 에 CFLAG_StandardOptimization 을 컴파일 플랙으로 지정하는 것을 고려해 보세요.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2434072
+﻿INTSourceChangelist:2614145
 Availability:Public
 Title: 액터 (Actor)
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
@@ -6,7 +6,6 @@ Description:기본적인 게임플레이 요소인 액터와 오브젝트에 대
 
 [TOC (start:2 end:3)]
 
-## 개요
 
 <!-- Actor (액터)란 월드에 배치 또는 [스폰](Programming\UnrealArchitecture\Actors\Spawning) 되는 오브젝트에 대한 바탕이 되는 오브젝트입니다. 액터를 한마디로 설명해 보자면, "틱(tick)이 적용되는 컴포넌트 모음" 입니다. 실제로 액터는 
  여러가지 작업이 가능합니다. Actor.h 에서 포함된 변수와 함수 전부를 살펴볼 수 있습니다.

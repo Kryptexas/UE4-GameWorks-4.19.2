@@ -1,17 +1,14 @@
-﻿INTSourceChangelist:2077604
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:Spawn 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Spawn 모듈은 이미터 파티클의 스폰 갯수/속도에 영향을 끼치는 모듈입니다.
 
 [TOC(start:2 end:3)]
-
-## Spawn 모듈
-
 Spawn (스폰) 모듈은 이미터 파티클의 스폰 갯수/속도에 영향을 끼치는 모듈입니다.
 
 
-### Spawn Per Unit
+## Spawn Per Unit
 
 Spawn Per Unit(유닛별 스폰)은 이미터가 움직인 거리에 따라 파티클을 스폰시킬 수 있는 모듈입니다. 스프라이트 기반 연기 자국처럼 빠르게 움직이든 천천히 움직이든 간에 따라붙게 하거나, 간극을 항상 메꾸기 위해 스폰되는 파티클 수를 상대적으로 조절한다든가 하는 트레일에 좋습니다. 다음과 같은 멤버를 포함합니다:
 

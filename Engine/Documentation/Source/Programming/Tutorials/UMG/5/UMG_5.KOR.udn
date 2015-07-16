@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2574101
+﻿INTSourceChangelist:2620442
 Availability: Public
 Title:5. 2차 메뉴 제작
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:새로운 기능의 2차 메뉴를 만듭니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:새로운 기능의 2차 메뉴를 만듭니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\UMG\6 "%Programming\Tutorials\UMG\6:title%")
@@ -30,6 +31,7 @@ Description:새로운 기능의 2차 메뉴를 만듭니다.
 	[![](CreateTextEntryBox.png)](CreateTextEntryBox.png)
 	
 1.  **텍스트 박스** 환경설정은 다음과 같이 합니다:
+	* 이름을 NameTextEntry 로 바꿉니다.
 	* 위치는 (325, 200) 입니다. **텍스트 박스** 왼쪽에 위치한 **텍스트 블록** 을 남겨둡니다.
 	* 크기는 250x40 입니다.
 	* ("Style" 제목 아래) 폰트 크기는 20 입니다.
@@ -37,6 +39,8 @@ Description:새로운 기능의 2차 메뉴를 만듭니다.
 	[![](TextBoxDetails.png)](TextBoxDetails.png)
 
 1. 예전 메뉴에서 **버튼** 을 만들었던 것과 같은 방식으로 **텍스트 블록** 라벨이 있는 게임 플레이 **버튼** 을 만들면 됩니다.
+	* 버튼의 경우: 이름은 PlayGameButton, **Position** 은 200, 300, **Size** 는 200, 100 으로 변경합니다.
+	* 텍스트 블록의 경우: 이름을 PlayGameText 로, **Visibility** 를 Hit Test Visible 로 변경한 다음 PlayGameButton 위에 끌어놓습니다.
 
 1. 게임 플레이 **버튼** 에는 특별한 기능이 있습니다. **텍스트 박스** 에 입력된 이름이 공백이 아닐 때만 활성화되는 것입니다. UMG 의 "바인드" 기능을 사용하여 (Behavior 섹션 아래) "Is Enabled" 칸에 새로운 함수를 만들면 됩니다.
 
@@ -49,12 +53,15 @@ Description:새로운 기능의 2차 메뉴를 만듭니다.
 	[![](PlayGameButtonEnableFunction.png)](PlayGameButtonEnableFunction.png)
 
 1. 여기서 메인 메뉴로 돌아나갈 수 있도록 **버튼** 을 하나 더 추가해 봅시다. 메인 메뉴에서 게임 플레이 **버튼** 과 비슷하지만, 위치 기준이 좌상단이 아닌 우하단 구석이 될 것입니다. 그러기 위해서는, **버튼** 의 **디테일 패널** 에서 "앵커" 드롭다운을 클릭한 다음, 팝업 메뉴에서 우하단 부분을 나타내는 모양을 선택합니다.
+	* 이름을 MainMenuButton 으로 바꿉니다.
+	* **Position** 을 -400, -200 으로 설정합니다.
+	* **Size** 를 200x100 으로 설정합니다.
 
 	[![](SelectAnchor.png)](SelectAnchor.png)
 
 	[REGION:tip]앵커를 우하단 구석으로 지정한다고 크기나 위치값 작동 방식이 변하는 것은 아니므로, 위치 값을 음수로 해 줘야 화면에 보이게 됩니다. 크기 값은 양수로 둡니다.[/REGION]
 
-1. 이제 새로운 **버튼** 에 스크립트를 추가하겠습니다. 메인 메뉴 **버튼** 은 단순히 메인 메뉴 **위젯** 을 로드하는 반면, 게임 플레이 **버튼** 은 _ChangeMenuWidget_ 함수로의 호출에 새로운 **위젯** 을 전혀 제공하지 않는 것으로 메뉴를 비활성화시킵니다. 이는 실제 클래스 또는 애셋 이름 대신 "Select Class" (클래스 선택)이라 되어있는 문구로 알 수 있습니다.
+1. 이제 **OnClicked** 이벤트를 한 번 더 추가하는 것으로 새 **버튼** 에 스크립트를 추가하겠습니다. 메인 메뉴 **버튼** 은 단순히 메인 메뉴 **위젯** 을 로드하는 반면, 게임 플레이 **버튼** 은 _ChangeMenuWidget_ 함수로의 호출에 새로운 **위젯** 을 전혀 제공하지 않는 것으로 메뉴를 비활성화시킵니다. 이는 실제 클래스 또는 애셋 이름 대신 "Select Class" (클래스 선택)이라 되어있는 문구로 알 수 있습니다.
 
 	[![](NewGameButtonBPs.png)](NewGameButtonBPs.png)
 

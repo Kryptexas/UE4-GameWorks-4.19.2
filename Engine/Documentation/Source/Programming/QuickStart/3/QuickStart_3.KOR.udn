@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2604547
+﻿INTSourceChangelist:2613633
 Availability: Public
 Title:3 - C++ 코드 작성 및 컴파일
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:C++ 클래스를 작성하고 언리얼 엔진으로 컴파일합니다.
 SkillLevel: Beginner
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -57,7 +57,7 @@ Version: 4.8
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-		*	코딩이 완료되었으니, **Solution Browser** 의 프로젝트에 우클릭 후 **Build** 명령을 선택하거나, **언리얼 에디터** 의 **컴파일** 버튼을 누르면 컴파일 가능합니다. 컴파일이 성공하면 **언리얼 엔진** 이 자동으로 변경사항을 로드합니다.
+		*	코딩이 완료되었으니, **Solution Browser** 의 프로젝트에 우클릭 후 **Build** 명령을 선택하거나, **언리얼 에디터** 의 **컴파일** 버튼을 누르면 컴파일 가능합니다. 컴파일이 성공하면 **언리얼 에디터** 가 자동으로 변경사항을 로드합니다.
 
 	[![](CompileFromVS.png)](CompileFromVS.png)
 	
@@ -108,7 +108,7 @@ Version: 4.8
 
 ----
 
-이제 코드를 기반으로 **언리얼 엔진** 에 오브젝트를 만들 준비가 되었습니다! 참고로, 이 글에 사용된 모든 코드는 아래 포함되어 있습니다.
+이제 코드를 기반으로 **언리얼 에디터** 에 오브젝트를 만들 준비가 되었습니다! 참고로, 이 글에 사용된 모든 코드는 아래 포함되어 있습니다.
 
 [OBJECT:Section]
     [PARAMLITERAL:id]

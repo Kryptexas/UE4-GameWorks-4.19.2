@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573818
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:2. 입력 환경설정 및 폰 무브먼트 컴포넌트 생성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:입력을 구성하고 커스텀 폰 무브먼트 컴포넌트를 만들어 폰 이동 방식을 정의합니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:입력을 구성하고 커스텀 폰 무브먼트 컴포넌트를 �
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:title%")

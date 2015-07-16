@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2539112
+﻿INTSourceChangelist:2620366
 Availability: Public
 Title:4. 게임 모드 환경설정
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:메인 메뉴 위젯에 사용할 게임 모드를 구성합니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:메인 메뉴 위젯에 사용할 게임 모드를 구성합니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\UMG\5 "%Programming\Tutorials\UMG\5:title%")

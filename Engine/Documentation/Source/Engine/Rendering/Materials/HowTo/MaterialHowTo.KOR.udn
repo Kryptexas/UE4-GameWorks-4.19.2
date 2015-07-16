@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539468
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title:머티리얼 - 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -29,7 +29,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 [/OBJECT]
 [/VAR]
 
-## 개요
+
 
 이 비법 튜토리얼에서는 언리얼 엔진 4 (UE4) 의 머티리얼 에디터에 잠재된 능력을 최대한 활용하는 법을 보여드립니다.
 사람 피부를 제대로 구성하는 법, 레이어드 머티리얼 사용법에 관련된 팁 등, 이 비법 튜토리얼은 UE4 의 머티리얼 에디터에 대해 더욱 자세히 알고자 하는 분들을 위한 필독서가 될 것입니다.

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2612631
 Availability:Public
 Title: 온라인 서브시스템 스팀
 Crumbs:%ROOT%, Programming
 Description:Steam 온라인 서브시스템에 관한 정보입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -12,7 +12,7 @@ Version: 4.5
 이 곳에 있는 정보는 구체적으로 스팀 구현에 관련된 것입니다. 단계별 셋업 관련 부가 정보, 팁과 꼼수, 우회법 등을 찾을 수 있습니다.
 [/EXCERPT:Intro]
 
-## 개요
+
 
 스팀 모듈에는 온라인 서브시스템을 통해 노출된 인터페이스 대부분이 구현되어 있으며, Steamworks SDK 를 통해 Valve 가 제공하는 대부분의 것들을 지원합니다.
 
@@ -56,15 +56,20 @@ shipping 빌드에서 엔진은 로그인한 사용자가 제대로 게임을 �
 	* /YourUnrealEnginePath/EngineOrGameFolder/Binaries/Mac/YourGame.app/Contents/MacOS
 		* libsteam_api.dylib (/redistributable_bin/osx32 에서 - dylib 하나에 32 와 64 비트 둘 다 지원됩니다).
 		
-*주:* 전체 엔진을 컴파일하는 경우, OnlineSubsystemSteam\Private\OnlineSubsystemSteamPrivatePCH.h 에서 다음 줄을 수정해 주는 것이 좋습니다:
+[REGION:note]
+전체 엔진을 컴파일하는 경우, OnlineSubsystemSteam\Private\OnlineSubsystemSteamPrivatePCH.h 에서 다음 줄을 수정해 주는 것이 좋습니다:
 
 define STEAM_SDK_VER TEXT("Steamv130")
 
 그래야 새로운 SDK 디렉토리 위치 / 버전을 가리킵니다.
+[/REGION]
 
 ### INI 환경설정
 
-게임의 `DefaultEngine.ini` 에 몇 가지 세팅을 켜 줍니다. *참고:* SteamDevAppId 480 은 Valve 의 테스트 앱 id 로 모두에게 공유된 것입니다. 언젠가 별도의 앱 id 가 필요하긴 하겠지만, 그때까지는 대부분의 Steam 기능이 작동할 것입니다.
+게임의 `DefaultEngine.ini` 에 몇 가지 세팅을 켜 줍니다. 
+[REGION:note]
+SteamDevAppId 480 은 Valve 의 테스트 앱 id 로 모두에게 공유된 것입니다. 언젠가 별도의 앱 id 가 필요하긴 하겠지만, 그때까지는 대부분의 Steam 기능이 작동할 것입니다.
+[/REGION]
 
     [/Script/Engine.GameEngine]
     +NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")

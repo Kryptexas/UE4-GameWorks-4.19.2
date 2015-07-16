@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573946
+﻿INTSourceChangelist:2620071
 Availability: Public
 Title:3. 게임 액션 프로그래밍 및 바인딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
 Description:C++ 코드에 입력을 바인딩합니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:C++ 코드에 입력을 바인딩합니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerInput)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\PlayerInput\4 "%Programming\Tutorials\PlayerInput\4:title%")

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2600565
+﻿INTSourceChangelist:2613660
 Availability: Public
 Title:4 - 코드 테스트
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:레벨에 테스트 오브젝트를 만듭니다.
 SkillLevel: Beginner
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620758
 Availability: Public
 Title:1.2 - 블루프린트로 네트워크 오쏘리티 및 원격 클라이언트 감지
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -37,7 +37,6 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 
-## 개요
 
 이 예제는 블루프린트가 Network Authority (네트워크 오쏘리티, 즉 서버)상에서 실행중인지, 아니면 원격 머신(, 즉 클라이언트)상에서 실행중인지에 따라 다른 로직을 실행하는 블루프린트 데모입니다.
 

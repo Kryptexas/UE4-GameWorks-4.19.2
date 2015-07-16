@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2533465
+﻿INTSourceChangelist:2603893
 Availability:Public
 Title: 핵심 파티클 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:언리얼 내에서 그리고 캐스케이드 파티클 에디터에서 파티클 작업을 할 때의 핵심 개념입니다.
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 **파티클 시스템** 그리고 그 _파티클 시스템_ 에디터를 말하는 **캐스케이드** 는 매우 유연하고 강력한 툴입니다. 하지만 손을 걷어붙이고 뛰어들기 전에 완벽히 이해해 둬야 하는 중요한 핵심 개념 몇 가지가 있습니다. 이 글의 목적은 그러한 핵심 개념에 대해 소개해 드려, 이러한 파티클 시스템의 작동방식에 대한 보다 확고한 이해를 도우면서도 유저 인터페이스나 파티클 이펙트 생성시 구체적인 부분에 있어서 미묘한 차이를 줄이기 위함입니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536078
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:SubUV 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,15 +6,13 @@ Description:파티클에 SubUV 멀티 프레임 텍스처를 활용할 수 있�
 
 [TOC(start:2 end:3)]
 
-## SubUV 모듈
-
 SubUV 는 다수의 개별 "프레임"이 격자 배치되는 SubUV 텍스처를 파티클에 활용할 수 있도록 해 주는 모듈입니다.
 
 [REGION:note]
 SubUV 모듈은 InterpolationMethod 가 PSUVIM_None 이 아닌 이미터에만 적용해야 합니다.
 [/REGION]
 
-### SubImage Index
+## SubImage Index
 
 SubImage Index(서브이미지 인덱스)는 플로트 분포에 따라 사용할 서브이미지를 선택하는 모듈입니다. 현재 서브이미지는 왼쪽에서 오른쪽, 위에서 아래 순입니다. 다음과 같은 멤버가 포함됩니다:
 
@@ -27,7 +25,7 @@ SubImage Index(서브이미지 인덱스)는 플로트 분포에 따라 사용�
 
 
 
-### SubUV Movie
+## SubUV Movie
 
 SubUV Movie(SubUV 무비)는 텍스처의 서브이미지를 지정된 프레임율로 순서대로 순환시키는 모듈로, 플립북 텍스처의 작동방식과 비슷합니다. 다음 프로퍼티를 포함합니다:
 

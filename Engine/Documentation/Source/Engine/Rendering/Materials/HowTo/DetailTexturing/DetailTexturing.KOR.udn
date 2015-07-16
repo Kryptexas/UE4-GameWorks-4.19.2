@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533872
+﻿INTSourceChangelist:2602607
 Availability: Public
 Title:머티리얼 에디터 - 디테일 텍스처 추가 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -11,7 +11,7 @@ Related: Engine/Rendering/Materials/ExpressionReference/Textures
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 머티리얼을 매우 가까이서 볼 때, 머티리얼에 사용되는 텍스처가 깨지면서 큰 픽셀로 보이게 되어, 그리 안좋게 보인 적이 있을 것입니다.
 이러한 문제 해결을 위해, Detail Texture (디테일 텍스처)라 알려진 방법을 사용하면 머티리얼을 매우 가까이서 봤을 때 텍스처가 픽셀로 보이는 것을 숨기는 데 도움이 될 수 있습니다.

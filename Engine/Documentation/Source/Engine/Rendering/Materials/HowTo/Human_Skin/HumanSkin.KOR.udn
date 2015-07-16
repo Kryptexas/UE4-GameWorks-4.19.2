@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533903
+﻿INTSourceChangelist:2602675
 Availability: Public
 Title:머티리얼 에디터 - 사람 피부 구성 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -12,7 +12,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 [TOC(start:2)]
 
-## 개요
+
 
 [REGION:lightbox]
 [![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)(w:920 convert:false)](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)

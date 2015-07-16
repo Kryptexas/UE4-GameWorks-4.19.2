@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573881
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:2. 카메라 제어 입력 환경설정
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:폰과 카메라에 적용시킬 입력 환경설정 입니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:폰과 카메라에 적용시킬 입력 환경설정 입니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerCamera)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\PlayerCamera\3 "%Programming\Tutorials\PlayerCamera\3:title%")

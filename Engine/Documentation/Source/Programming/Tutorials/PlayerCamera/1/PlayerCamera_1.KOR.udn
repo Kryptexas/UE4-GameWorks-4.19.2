@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573881
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:1. 폰에 카메라 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:스프링 암과 카메라를 만들어 붙입니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,7 +12,7 @@ Description:스프링 암과 카메라를 만들어 붙입니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerCamera)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:title%")

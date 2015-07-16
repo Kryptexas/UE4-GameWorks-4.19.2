@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620067
 Availability: Docs
 Title:블룸
 Crumbs:%ROOT%, Resources, Resources/Showcases/PostProcessing
 Description:UE4 에 포함된 포스트 프로세스 마티네 예제 중 블룸을 활용한 방법에 대한 요약입니다.
 
-
-
-### 블룸
-
-[INCLUDE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess#LightingAndPostProcess_Bloom] 씬의 이 부분에서 블룸은 다음과 같은 방식으로 활용되었습니다:
+[INCLUDE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess#LightingAndPostProcess_Bloom] For this portion of the scene, bloom was employed in the following manner:
 
 ![](BloomSettings.png)
 

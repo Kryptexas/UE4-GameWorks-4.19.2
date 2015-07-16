@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533870
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title:이미시브 머티리얼 입력 사용
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials/HowTo
@@ -11,7 +11,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_5
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 프로젝트 개발 도중 Self Illuminated Material (자체 발광 머티리얼) 또는 글로우 머티리얼 필요성이 생기게 마련입니다.
 언리얼 엔진 4 (UE4) 안에서 자체 발광 머티리얼은 Emissive Material (이미시브 머티리얼)이라고 알려져 있습니다.

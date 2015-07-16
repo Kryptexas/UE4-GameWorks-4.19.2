@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2537337
+﻿INTSourceChangelist:2620339
 Availability: Public
 Title:3. 메뉴 위젯 블루프린트 생성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:메뉴 화면으로 사용할 위젯 블루프린트를 만듭니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:메뉴 화면으로 사용할 위젯 블루프린트를 만듭니다
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\UMG\4 "%Programming\Tutorials\UMG\4:title%")
@@ -33,7 +34,7 @@ Description:메뉴 화면으로 사용할 위젯 블루프린트를 만듭니다
 
 1. 방금 만든 "메인 메뉴" **위젯** 을 더블클릭하면 **블루프린트 디자이너** 창이 열리며, 여기서 메뉴 레이아웃을 만들 수 있습니다.
 
-1. **팔레트 패널** 의 "일반" 섹션에서 **Button** (버튼)을 끌어 **그래프** 에 놓읍시다. 이 **버튼** 은 새 게임 메뉴를 여는 데 사용될 것입니다.
+1. **팔레트 패널** 의 "일반" 섹션에서 **Button** (버튼)과 **Text** (텍스트)를 끌어 **그래프** 에 놓읍시다. 이 **버튼** 은 새 게임 메뉴를 여는 데 사용될 것입니다.
 
 	[![](AddButtonAndTextBlock.png)](AddButton.png)
 
@@ -44,16 +45,19 @@ Description:메뉴 화면으로 사용할 위젯 블루프린트를 만듭니다
 
 	[![](ButtonDetails.png)](ButtonDetails.png)
 
-1. **버튼** 에 대한 이미지 커스텀 세트를 그리고 있지는 않으므로, 그 위에 **Text Block** (텍스트 블록)을 떨구고 다음과 같이 변경하여 라벨을 붙여주면 됩니다:
+1. **버튼** 에 대한 이미지 커스텀 세트를 그리고 있지는 않으므로, 그 위에 **Text Block** (텍스트 블록)을 끌어놓고 다음과 같이 변경하여 라벨을 붙여주면 됩니다:
 	* 텍스트를 "New Game" 이라 설정합니다.
 	* 비저빌리티를 Hit Test Invisible 로 변경합니다. 그러면 그 아래 **버튼** 을 누르려는 마우스 클릭을 **텍스트 블록** 이 가로채지 않습니다.
 	* 이름을 "NewGameText" 라 합니다. 필수는 아니지만 들여두면 좋은 습관입니다.
 
 	[![](TextBlockDetails.png)](TextBlockDetails.png)
 
-1. 다음, 둘째 **버튼** 과 **텍스트 블록** 으로 "Quit" (종료) 기능을 만들고자 합니다. "New Game" **버튼** 및 **텍스트 블록** 과 같은 방식으로 구성해 줍니다.
+1. 다음, 둘째 **버튼** 과 **텍스트 블록** 으로 "Quit" (종료) 기능을 만들고자 합니다. 다음을 제외하고는 "New Game" **버튼** 및 **텍스트 블록** 과 비슷한 방식으로 구성합니다:
+	* 버튼 이름은 QuitButton 으로 설정합니다.
+	* 버튼 위치를 600, 100 으로 설정합니다.
+	* 텍스트 블록 이름을 QuitText 로 설정합니다.
 
-1. 그 다음, **버튼** 을 클릭했을 때 코드를 실행하도록 **버튼** 에 **이벤트** 를 추가해 줍니다. **디테일 패널** 에서 적합한 **이벤트** 이름 옆의 "+" 버튼을 찾아 누르면 됩니다. 이 경우 "OnClicked" (클릭시)가 유일하게 사용가능한 **이벤트** 입니다. NewGameButton 및 QuitButton **위젯** 둘 다에 대해 이 이벤트를 생성합니다.
+1. 그 다음, **버튼** 을 클릭했을 때 코드를 실행하도록 **버튼** 에 **이벤트** 를 추가해 줍니다. **디테일 패널** 에서 적합한 **이벤트** 이름 옆의 "+" 버튼을 찾아 누르면 됩니다. 이 경우 "OnClicked" (클릭시) 가 찾는 **이벤트** 입니다. NewGameButton 및 QuitButton **위젯** 둘 다에 대해 이 이벤트를 생성합니다.
 
 	[![](CreateOnClickedEvent.png)](CreateOnClickedEvent.png)
 

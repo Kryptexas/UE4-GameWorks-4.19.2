@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2612934
 Availability:Public
 Title: 프로퍼티
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
@@ -20,14 +20,14 @@ UProperty 변수는 표준 C++ 문법과 부가 지시어, 즉 선언부 위에 
 
 | 변수 유형 | 설명 |
 | ------------| -------------|
-| uint8	 | 8-bit  unsigned|
-| uint16	| 16-bit unsigned|
-| uint32	| 32-bit unsigned|
-| uint64	| 64-bit unsigned|
-| int8	| 8-bit  signed|
-| int16	| 16-bit signed|
-| int32	| 32-bit signed|
-| int64 | 64-bit signed|
+| **uint8**	 | 8-bit  unsigned|
+| **uint16**	| 16-bit unsigned|
+| **uint32**	| 32-bit unsigned|
+| **uint64**	| 64-bit unsigned|
+| **int8**	| 8-bit  signed|
+| **int16**	| 16-bit signed|
+| **int32**	| 32-bit signed|
+| **int64** | 64-bit signed|
 
 ### 부동 소수점 유형
 언리얼은 표준 C++ 부동 소수점 유형인 float 와 double 을 사용합니다.

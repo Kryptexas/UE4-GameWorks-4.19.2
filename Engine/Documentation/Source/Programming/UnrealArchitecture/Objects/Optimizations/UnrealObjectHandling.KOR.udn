@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2615615
 Availability:Public
 Title: 언리얼 오브젝트 처리
 Crumbs: %ROOT%
@@ -7,7 +7,6 @@ Version: 4.5
 
 [TOC (start:2 end:2)]
 
-## 개요
 클래스, 프로퍼티, 함수에 적합한 매크로로 마킹해 주면 UClass, UProperty, UFunction 으로 변합니다. 그러면 언리얼 엔진이 접근할 수 있어, 
 다수의 내부적인 처리 기능을 구현할 수 있습니다.
 

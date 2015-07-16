@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2615489
 Availability:Public
 Title: 오브젝트 (Object)
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
@@ -7,7 +7,7 @@ Version: 4.5
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 [EXCERPT:ObjectIntro]
 언리얼에는 게임 오브젝트 처리용 탄탄한 시스템이 있습니다. 언리얼에서 오브젝트의 베이스 클래스는 UObject 입니다. UObject 에서 파생되는 클래스에 UCLASS 매크로를 사용하여 태그를 해 주면 UObject 처리 

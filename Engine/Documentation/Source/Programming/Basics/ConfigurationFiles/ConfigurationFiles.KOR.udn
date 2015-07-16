@@ -1,14 +1,12 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2609231
 Availability: Public
 Title: 환경설정 파일 
 Crumbs: %ROOT%, Engine, Programming, Programming/Basics
 Description:게임플레이나 엔진 작동방식 프로퍼티 세팅이 들어있는 텍스트 파일입니다.
-Version: 4.5
+Version: 4.9
 
 
 [TOC (start:2 end:3)]
-
-## 개요
 
 환경설정 파일은 프로젝트 로드시 초기화시킬 프로퍼티에 대한 값을 설정하는 데 사용될 수 있습니다. 환경설정은 섹션별로 배치된 키-값 짝으로 이루어집니다.
 주어진 키에 하나 이상의 값이 할당될 수 있습니다.

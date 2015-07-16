@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2568479
+﻿INTSourceChangelist:2616662
 Availability:Public
 Title:디테일 패널 커스터마이징
 Crumbs:%ROOT%, Programming, Programming/Slate
 Description:언리얼 에디터의 디테일 패널 내 프로퍼티 표시 커스터마이징 안내서입니다.
+version: 4.9
 
 이제 디테일 패널은 완벽히 커스터마이징 가능합니다. 간단한 시스템을 통해 프로퍼티를 재배치하거나 [](Programming/Slate) 를 사용하여 완전히 커스터마이징 할 수도 있습니다. Slate 문법을 사용하여 디테일에 다른 UI 를 추가할 수도 있습니다.
 
@@ -51,7 +52,7 @@ Description:언리얼 에디터의 디테일 패널 내 프로퍼티 표시 커�
 		IDetailCategory& LightingCategory = DetailBuilder.EditCategory("Lighting", TEXT("OptionalLocalizedDisplayName") );
 	}
 
-`EditCategory` 함수는 프로퍼티가 있게 될 카테고리의 `FName` 과 현지화된 표시명을 옵션으로 받습니다. 표시명이 지정되어 있으면 기존 표시명을 덮어씁니다. 카테고리 이름이 꼭 `UPROPERTY` 매크로에 지정된 카테고리 이름과 같을 필요는 **없습니다**. 물론, 이름이 같으면 `UPROPERTY` 카테고리를 재사용하기는 하지만 말입니다. 프로퍼티가 커스터마이징 되어있지 않고 트리 뷰에 있다면, 매크로 카테고리 이름이 기본 카테고리로 사용됩니다.
+`EditCategory` 함수는 프로퍼티가 있게 될 카테고리의 `FName` 과 현지화된 표시명을 옵션으로 받습니다. 표시명이 지정되어 있으면 기존 표시명을 덮어씁니다. 카테고리 이름이 꼭 `UPROPERTY` 매크로에 지정된 카테고리 이름과 같을 필요는 없습니다. 물론, 이름이 같으면 `UPROPERTY` 카테고리를 재사용하기는 하지만 말입니다. 프로퍼티가 커스터마이징 되어있지 않고 트리 뷰에 있다면, 매크로 카테고리 이름이 기본 카테고리로 사용됩니다.
 
 `EditCategory` 는 `IDetailCategoryBuilder&` 를 반환하는데, 카테고리에 프로퍼티를 추가할 때 사용하는 것입니다. 그 방법은 두 가지입니다:
 

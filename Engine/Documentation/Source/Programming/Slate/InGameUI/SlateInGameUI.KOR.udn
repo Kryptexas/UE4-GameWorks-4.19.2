@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2568498
+﻿INTSourceChangelist:2615366
 Availability:Public
 Title: 게임내 슬레이트 사용하기
 Crumbs:%ROOT%, Programming, Programming/Slate
 Description:게임내 유저 인터페이스에 Slate UI 위젯 사용하기 입니다.
-Version:4.4
+Version:4.9
 
-## 개요
 
 Slate (슬레이트) 위젯은 게임내에서 HUD 나 메뉴같은 기타 UI 요소를 만드는 데 사용할 수 있습니다.
 일반적으로는 하나 이상의 _컨테이너_ 위젯을 만들며, 그 각각은 UI 의 특정 부분을 담당하는 
@@ -38,7 +37,7 @@ Slate (슬레이트) 위젯은 게임내에서 HUD 나 메뉴같은 기타 UI �
 추가시 지정된 Z 순서 (Z-order) 값에 따라 순서가 정해지는데, Z 순서 값이 큰 것이 작은 것 위에 
 그려집니다.
 
-**게임 뷰포트 접근**
+###게임 뷰포트 접근
 
 게임의 뷰포트는 `GameViewportClient` 클래스의 인스턴스입니다. 현재 게임 뷰포트로의 레퍼런스는 
 UEngine 멤버인 `GameViewport` 를 통해 가능하며, 이것은 게임에 대한 현재 UEngine 인스턴스로의 
@@ -53,7 +52,7 @@ UEngine 멤버인 `GameViewport` 를 통해 가능하며, 이것은 게임에 �
 확인해야 합니다.
 [/REGION]
 
-**뷰포트에 위젯 추가**
+### 뷰포트에 위젯 추가
 
 뷰포트에 슬레이트 위젯을 추가하려면 위젯으로의 레퍼런스, 정확히는 `TSharedref<SWidget>` 을 
 `GameViewportClient::AddViewportWidgetContent()` 에 전달하면 됩니다. 이 함수는 위젯과 Z 순서값 

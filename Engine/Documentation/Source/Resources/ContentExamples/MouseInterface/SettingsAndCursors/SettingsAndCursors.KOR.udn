@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2298663
+﻿INTSourceChangelist:2620685
 Availability: Public
 Title:마우스 상호작용 프로퍼티
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
@@ -8,7 +8,6 @@ Description:마우스 상호작용에 사용되는 프로퍼티와 커서에 대
 [TOC(start:2 end:2)]
 
 
-## 개요
 
 다음은 마우스 상호작용 구성시 사용되는 프로퍼티에 대한 분석이자 거기에 사용되는 커서 샘플입니다. 참고로 운영체제에 따라 표시되는 커서는 바뀔 수 있습니다.
 

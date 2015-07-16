@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533832
+﻿INTSourceChangelist:2602544
 Availability: Public
 Title:머티리얼 에디터 - 컬러 반투명 그림자 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -10,7 +10,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 이번 "비법"에서는 컬러 그림자를 드리울 수 있는 머티리얼을 만드는 **Translucent Shadow Color** (반투명 그림자 컬러) 구성 및 사용법을 보여드리고자 합니다.
 이를 통해 씬에 색을 주입시키는 데 유용하게 쓰일 수 있는 적용 사례가 많이 있지만, 그 중에서도 흔히 색유리창 같은 것에 많이 쓰입니다.

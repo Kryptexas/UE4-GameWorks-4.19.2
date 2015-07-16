@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2486695
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:컴포넌트와 콜리전
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:컴포넌트를 통해 폰에 피직스 상호작용, 파티클 이펙트 사용 등을 가능하게 하는 법을 배워봅니다.
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

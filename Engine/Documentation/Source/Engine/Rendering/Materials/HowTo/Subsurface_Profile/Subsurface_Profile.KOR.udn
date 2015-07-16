@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2534164
+﻿INTSourceChangelist:2602520
 Availability:Public
 Title: 머티리얼 에디터 - 머티리얼에 서브서피스 프로파일 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -10,7 +10,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 [TOC(start:2)]
 
-## 개요
+
 현실적인 사람 피부 렌더링 능력은 요즘의 비디오 게임 엔진에 있어서 없어서는 안될 기능입니다. 그를 위해 언리얼 엔진 4 (UE4) 에는 **Subsurface Profile** (서브서피스 프로파일)이라는, 피부나 밀랍같은 표면에 특화된 셰이딩 메소드를 제공합니다.
 서브서피스 프로파일 셰이딩 모델의 속성은 **Subsurface** (서브서피스) 셰이딩 모델과 비슷하나, 렌더링 방식에 큰 차이가 있습니다.
 서브서피스 프로파일은 스크린 스페이스에 기반한 렌더링 접근법을 사용하는데, 

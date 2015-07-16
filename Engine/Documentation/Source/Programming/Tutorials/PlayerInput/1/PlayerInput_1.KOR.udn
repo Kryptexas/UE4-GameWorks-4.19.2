@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573946
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:1. 폰 커스터마이즈
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
 Description:폰에 대한 소개입니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,7 +12,7 @@ Description:폰에 대한 소개입니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerInput)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\PlayerInput\2 "%Programming\Tutorials\PlayerInput\2:title%")

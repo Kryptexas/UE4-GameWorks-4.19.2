@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2527382
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:기타
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Misc, 기타 카테고리에 있는 머티리얼 함수에 대한 �
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 다른 카테고리에는 그리 잘 맞지 않는 다양한 일회성 함수들을 포함한 기타 함수입니다. 함수가 딱 하나밖에 없는 카테고리가 너무 많이 생기는 것을 방지하기 위해서입니다.
 

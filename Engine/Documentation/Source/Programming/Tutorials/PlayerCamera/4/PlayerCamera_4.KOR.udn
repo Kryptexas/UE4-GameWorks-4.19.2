@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2486757
+﻿INTSourceChangelist:2618490
 Availability: Public
 Title:4. 직접 해보기!
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:추가로 해볼 수 있는 아이디어입니다!
-
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -12,7 +12,7 @@ Description:추가로 해볼 수 있는 아이디어입니다!
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerCamera)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]

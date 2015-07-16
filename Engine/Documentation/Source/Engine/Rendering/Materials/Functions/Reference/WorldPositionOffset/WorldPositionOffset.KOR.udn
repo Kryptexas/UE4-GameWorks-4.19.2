@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2527465
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:WorldPositionOffset
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:WorldPositionOffset 카테고리 아래 나열된 머티리얼 함�
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 WorldPositionOffset (월드 포지션 오프셋) 카테고리에는 월드 포지션 오프셋을 통해 메시의 버텍스를 조작하기 위한 특수 함수가 들어있습니다. 이 함수들은 연쇄시켜 중첩 효과를 낼 수 있습니다.
 

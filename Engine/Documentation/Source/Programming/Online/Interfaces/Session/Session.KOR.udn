@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2575544
+﻿INTSourceChangelist:2612601
 Availability:Public
 Title: 세션 및 대전검색
 Crumbs:%ROOT%, Programming, Programming/Online
 Description:경기에 대한 홍보와 플레이어의 대전검색 처리를 위한 시스템입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
-## 개요
 
 Matchmaking, 대전검색은 _플레이어_ 와 _세션_ 을 성사시켜 주는 프로세스를 말합니다. _세션_ 은 기본적으로 서버에서 
 실행중인 게임의 인스턴스를 말하는 것으로, 여기에는 일정한 프로퍼티를 통해 공개적으로 _홍보_ 해서 게임을 플레이하고자 

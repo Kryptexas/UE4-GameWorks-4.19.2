@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2299807
+﻿INTSourceChangelist:2620111
 Availability: Docs
 Title:기본 머티리얼 예제
 Crumbs:%ROOT%, Resources
@@ -54,9 +54,6 @@ Description:UE4 에 포함된 Basic Materials, 기본 머티리얼 예제에 대
 [/REGION]
 
 [TOC(start:2)]
-
-
-## 개요
 
 이 예제는 언리얼 엔진 4 의 강력한 머티리얼 시스템을 활용하는 데 있어 가장 기본적이고 핵심적인 개념 일부를 살펴봅니다. 쇼케이스에 포함된 기능은 다음과 같습니다:
 

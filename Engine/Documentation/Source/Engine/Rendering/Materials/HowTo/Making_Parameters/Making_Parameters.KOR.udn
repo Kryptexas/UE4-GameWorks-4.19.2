@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533985
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 파라미터 제작 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -10,7 +10,7 @@ Related: Engine/Matinee/HowTo/MHT_6
 
 [TOC(start:2)]
 
-## 개요
+
 
 머티리얼 인스턴스와의 상호작용을 위해서는, **Material Parameter** (머티리얼 파라미터) 라는 특수 유형 머티리얼 표현식 노드를 사용해야 합니다.
 이번 비법에서는 머티리얼 노드를 머티리얼 파라미터 노드로 변환하거나 추가하는 방법과 아울러 그 머티리얼 파라미터 노드를 머티리얼에서 사용하는 법을 살펴보겠습니다.

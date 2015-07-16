@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620792
 Availability: Public
 Title:1.5 - 함수 리플리케이션
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -36,7 +36,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 
-## 개요
+
 변수에 추가로 함수 호출 역시 리플리케이트 가능합니다. **Replicated Function Calls** (리플리케이트된 함수 호출)은 **Reliable** (신뢰성) 또는 **Unreliable** (비신뢰성) 설정이 가능합니다. 신뢰성 호출은 반드시 실행이 보장되는 반면, 비신뢰성 호출은 트래픽이 심한 경우 실행되지 않을 수가 있습니다. 장식성 비주얼 처리를 담당하는 함수는 보통 비신뢰성 설정을 하여 네트워크 포화 상태를 방지합니다.
 
 리플리케이트되는 함수는 크게 세 가지 유형이 있습니다: **Multicast** (멀티캐스트), **Server** (서버), **Client** (클라이언트) 입니다. 멀티캐스트 함수는 실행되는 곳인 서버에서 호출된 이후, 클라이언트에 자동으로 전송됩니다. 서버 함수는 클라이언트에서 호출되어 서버에서만 실행됩니다. 클라이언트 함수는 서버에서 호출되어 소유중인 클라이언트에서만 실행됩니다.

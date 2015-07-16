@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2566867
+﻿INTSourceChangelist:2612449
 Availability:Public
 Title:UnrealVS 익스텐션
 Crumbs: %ROOT%, GettingStarted, Programming, Programming/Development/VisualStudioSetup
 Description:Visual Studio 용 UnrealVS 익스텐션 설치, 셋업, 사용 안내입니다.
-Version: 4.5
+Version: 4.9
 
 [EXCERPT:Overview]
 Visual Studio 용 UnrealVS 익스텐션으로 언리얼 엔진으로 개발할 때 자주 쓰는 기능을 쉽게 접할 수 있습니다.
@@ -19,7 +19,7 @@ Visual Studio 용 UnrealVS 익스텐션으로 언리얼 엔진으로 개발할 �
 * '퀵 빌드' 프로젝트 메뉴.
 
 [REGION:note]
-UnrealVS 익스텐션은 Visual Studio 2013 Express 버전에서 작동하지 않습니다. Visual Studio 2013 Professional 버전에서만 호환됩니다.
+UnrealVS 익스텐션은 Visual Studio 2013 Express 버전에서 작동하지 않습니다. Visual Studio 2013 Community 와 Professional 버전에서만 호환됩니다.
 [/REGION]
 [/EXCERPT:Overview]
 
@@ -48,8 +48,9 @@ UnrealVS 익스텐션은 Visual Studio 2013 Express 버전에서 작동하지 �
 	[REGION:note]
 	Visual Studio 가 이미 실행중이라면 재시작을 해야 익스텐션이 로드되어 표시될 것입니다.
 	[/REGION]
-
-1. 익스텐션은 **Help->About Microsoft Visual Studio** 대화창의 Installed Products 목록에도 표시됩니다.
+	[REGION:tip]
+	익스텐션은 **Help->About Microsoft Visual Studio** 대화창의 Installed Products 목록에도 표시됩니다.
+	[/REGION]
 
 1. **View->Toolbars** 또는 Visual Studio 툴바 영역에 우클릭한 다음 **UnrealVS** 를 선택하여 익스텐션의 툴바를 표시합니다.
 
@@ -81,9 +82,9 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 익스텐션에는 현재 _Startup Project_ 빌드 기능을 단축키나 다른 커스텀 실행 방법에 
 지정하는 명령도 포함되어 있습니다.
 
-**단축키에 지정하는 방법:**
+####단축키에 지정하는 방법
 
-1. **Tools->Options...** 대화창에서 **Keyboard** 를 선택합니다.
+1. **Tools->Options...** 대화창에서 **Environment** 트리 아래 **Keyboard** 를 선택합니다.
 
 1. 목록에서 **_UnrealVS.BuildStartupProject_** 명령을 선택합니다.
 

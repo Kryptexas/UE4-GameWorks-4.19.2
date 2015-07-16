@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2541382
+﻿INTSourceChangelist:2620667
 Availability: Public
 Title:마우스 콘트롤 셋업
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
@@ -6,7 +6,6 @@ Description:게임의 마우스 콘트롤 셋업 방법입니다.
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 마우스 커서를 사용할 수 있는 게임을 만들기 위해서는, 시작할 때 해 줘야 되는 작업이 몇 가지 있습니다. 하이 레벨에서, 블루프린트의 단계는 다음과 같습니다. 나중에 더욱 자세히 다루도록 하겠습니다:
 

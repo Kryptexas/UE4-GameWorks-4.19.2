@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2318754
+﻿INTSourceChangelist:2601148
 Availability: Public
 title:그레디언트
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Gradient 카테고리 아래 머티리얼 함수의 설명과 예제
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 그레디언트 함수는 Texture Coordinate 표현식에서 만들어진 순차 생성 그레디언트를 내는 함수입니다. 텍스처 기반 그레디언트를 만들지 않아도 되니 메모리가 절약됩니다.
 

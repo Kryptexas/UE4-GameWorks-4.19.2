@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438315
+﻿INTSourceChangelist:2619058
 Availability: Public
 Title:머티리얼 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -50,7 +50,6 @@ Related: Engine/Actors/DecalActor
 [TOC(start:2 end:2)]
 
 
-## 개요
 
 레벨에 있는 지오메트리나 스태틱 메시 액터나 캐릭터의 표면 모양을 결정하는 프로세스는 모두 **Material** (머티리얼)로 처리됩니다.
 언리얼 엔진 4 의 머티리얼 시스템이 꽤나 포괄적이기는 하지만, **Material** 콘텐츠 예제는 **머티리얼** 을 정의하는 시스템을 다섯 개의 맵으로 나누었으며, 이 페이지에 그 각각에 대한 개요를 제공해 드립니다.

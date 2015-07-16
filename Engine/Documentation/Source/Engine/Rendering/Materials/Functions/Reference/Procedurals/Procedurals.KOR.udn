@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2281973
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:순차함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Procedurals (순차함수) 카테고리 아래 있는 머티리얼 �
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 Procedural (순차) 함수로는 단순한 순차 생성 텍스처와 마스크를 빠르게 만들 수 있습니다. 임포트된 텍스처를 사용해야 하는 것에 비해 메모리가 절약됩니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2535976
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:Parameter 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,11 +6,9 @@ Description:파티클 시스템 외부, 즉 머티리얼 등에 데이터를 전
 
 [TOC(start:2 end:3)]
 
-## Parameter 모듈
-
 Parameter 모듈은 머티리얼같은 다른 부분을 제어할 수 있도록 파티클 시스템 외부로 데이터를 전달하는 모듈입니다.
 
-### Dynamic
+## Dynamic
 
 Dynamic 모듈은 이미터에 사용되는 머티리얼에 네 개의 스칼라 값을 전달하여 이미터가 머티리얼 이펙트를 제어할 수 있도록 하는 데 사용됩니다.
 
@@ -54,7 +52,7 @@ Dynamic 모듈은 이미터에 사용되는 머티리얼에 네 개의 스칼라
 -------------Dynamic Includes--------------->
 
 
-### Dynamic (Seed)
+## Dynamic (Seed)
 
 Dynamic (Seed) 모듈은 이미터가 머티리얼에 값을 전할 수 있게 한다는 점에서 [Dynamic Parameter](#Dynamic) 모듈과 동일하나, 이미터가 사용될 때마다 모듈에서 좀 더 일관된 효과를 내도록 하기 위해서 분포 값 선택시 사용되는 시드 정보를 지정할 수 있다는 점이 다른 모듈입니다. 포함된 멤버는 다음과 같습니다:
 

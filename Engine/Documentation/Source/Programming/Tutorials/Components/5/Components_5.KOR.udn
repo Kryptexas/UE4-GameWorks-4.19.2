@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573834
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:5. 에디터에서 플레이하기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:에디터에서 플레이하면서 코드 테스트하기 입니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:에디터에서 플레이하면서 코드 테스트하기 입니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\Components\6 "%Programming\Tutorials\Components\6:title%")
@@ -26,7 +27,7 @@ Description:에디터에서 플레이하면서 코드 테스트하기 입니다.
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-1. **CollidingPawn** 인스턴스를 월드에 놓습니다. **콘텐츠 브라우저** 의 "C++ Classes/(프로젝트 이름)/CollidingPawn" 아래에서 클래스를 찾을 수 있습니다.
+1. **CollidingPawn** 인스턴스를 월드에 놓습니다. **콘텐츠 브라우저** 의 "C++ Classes/HowTo_Components/CollidingPawn" 아래에서 클래스를 찾을 수 있습니다.
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
 

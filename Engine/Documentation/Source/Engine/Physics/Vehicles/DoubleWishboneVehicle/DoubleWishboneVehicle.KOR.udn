@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611486
+﻿INTSourceChangelist:2621036
 Availability:Public
 Title:더블 위시본 서스펜션 비히클 만드는 법
 Crumbs:%ROOT%, Engine, Engine/Physics
@@ -13,7 +13,7 @@ Navigation:topic
 
 고맙습니다!
 
-## 개요
+_________________________
 
 이 튜토리얼은 고급 비히클 템플릿의 디테일한 부분에 대한 길잡이입니다. 마치고 나면 그 이론적인 작동법에 대해 꽤나 잘 이해할 수 있을 것이며, 무언가를 직접 만드는 법에 대해서도 알 수 있을 것입니다. 여기서 주요 초점으로 삼을 것은, 서스펜션입니다.
 

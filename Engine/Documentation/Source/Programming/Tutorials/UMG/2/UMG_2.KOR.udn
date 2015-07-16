@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2574074
+﻿INTSourceChangelist:2620221
 Availability: Public
 Title:2. 게임 모드 확장
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 추가 및 제거합니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 �
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\UMG\3 "%Programming\Tutorials\UMG\3:title%")

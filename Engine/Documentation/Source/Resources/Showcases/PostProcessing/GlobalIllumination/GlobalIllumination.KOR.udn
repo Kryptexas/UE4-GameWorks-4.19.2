@@ -1,12 +1,9 @@
-﻿INTSourceChangelist:2097549
+﻿INTSourceChangelist:2620054
 Availability: Docs
 Title:글로벌 일루미네이션
 Crumbs:%ROOT%, Resources, Resources/Showcases/PostProcessing
 Description:UE4 에 포함된 포스트 프로세스 마티네 예제 중 글로벌 일루미네이션에 대한 요약입니다.
 
-
-
-### 글로벌 일루미네이션
 
 Global Illumination 세팅을 통해 라이트매스(Lightmass)로 얻을 수 있는 산란광을 강화시키거나 수정할 수 있습니다. 라이트를 조정하거나 리빌드하지 않고도 산란광을 조정할 수 있게 됩니다.
 

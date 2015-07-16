@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603901
+﻿INTSourceChangelist:2620280
 Availability:Public
 Title:파티클 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -55,7 +55,29 @@ _CPU Particle Emitters_ (CPU 파티클 이미터)는 **캐스케이드** 에서 
 
 파티클 라이트 구성시의 일반적인 전략은 커다란 파티클 라이트를 아주 조금 만들거나, 조그만 파티클 라이트를 많이 만드는 것입니다. 파티클 라이트의 비용은 쉽게 감당할 수 없을만큼 늘어나기 때문에 항상 `ProfileGPU` 콘솔 명령으로 프로파일링 및 트윅 작업을 하는 것이 중요합니다. 그 비용은 _라이트_ 부분에 표시됩니다.
 
-![](PL_Sparks_2.gif)(convert:false) ![](PL_flow_2.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+bJ1xiMPl71Y
+[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nyGqpilZe08
+[/PARAMLITERAL]
+[/OBJECT]
 
 참고로 여기, 파티클 라이트 이미터만 가지고 위 애니메이션을 찍은 스틸 샷입니다.
 

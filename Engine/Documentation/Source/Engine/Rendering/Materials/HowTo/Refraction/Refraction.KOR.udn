@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2534104
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title:머티리얼 에디터 - 굴절 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -10,7 +10,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 
 빛이 하나의 매체에서 다른 매체로 통과할 때, 즉 공기에서 물로 이동할 때, 그 두 매체가 만나는 지점에서 빛의 이동 방향이 바뀌게 됩니다.
 이러한 빛 현상을 일컬어 Refration, 굴절이라 하며, 빛이 닿는 재질의 서로 다은 유형에 따라 빛의 이동 속도가 달라지기 때문에 발생하는 것입니다.

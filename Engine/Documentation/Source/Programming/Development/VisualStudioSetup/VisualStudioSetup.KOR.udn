@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2432054
+﻿INTSourceChangelist:2611146
 Availability:Public
 Title:UE4 용 Visual Studio 셋업하기
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:언리얼 엔진 4 로 개발하는 데 있어서 Visual Studio 셋업 관련 기법과 꼼수입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
 
-## 개요
 
 [EXCERPT:Intro]
 

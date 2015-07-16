@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2533894
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title:머티리얼 - 프레넬 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -12,7 +12,7 @@ Related: Engine/Rendering/Materials/ExpressionReference/Utility
 
 ![](FN_Fresnel_Sample.png)
 
-## 개요
+
 
 영화나 시네마틱 제작시 캐릭터의 실루엣을 더욱 강조시키는 방법이 필요할 때가 종종 있습니다. 이 라이팅 기법은 림 / 에지 (테두리) 라이팅이라고도 하며,
 라이트를 추가하여 배경에서 캐릭터 실루엣을 도드라지게 하는 데 도움이 됩니다. 이 방법은 영화에는 꽤나 잘 통하지만, 3D 씬에 라이트를 추가하면 

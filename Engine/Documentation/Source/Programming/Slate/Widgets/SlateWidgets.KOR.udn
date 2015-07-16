@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2568526
+﻿INTSourceChangelist:2616658
 Availability:Public
 Title:슬레이트 위젯 예제
 Crumbs:%ROOT%, Programming, Programming/Slate, Programming/Slate/Widgets
 Description:슬레이트 뷰어 위젯 갤러리에 선보이지 않은 위젯 복잡성 및 레이아웃 관련 부분입니다.
-Version:4.4
+Version:4.9
 
 [TOC (start:2)]
 

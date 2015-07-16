@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2611001
 Availability:Public
 Title:게임 프로젝트 컴파일하기
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:윈도우에서는 Visual Studio, 맥에서는 Xcode 를 사용하여 개별 게임 프로젝트 컴파일하기 입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -114,8 +114,6 @@ Visual Studio 에서 빌드할 때는, 게임 프로젝트만 컴파일하는 �
 Visual Studio 에서 빌드할 때, 게임 프로젝트에 추가로 엔진도 컴파일하게 됩니다.
 [/REGION]
 [/PUBLISH:Licensee]
-
-**프로젝트를 컴파일하려면:**
 
 [PUBLISH:Licensee]
 1.	**Solution Configuration** 을 빌드하고자 하는 환경설정으로 설정합니다. 이 예제에서는 **Development Editor** 로 설정했습니다. 각각의 환경설정에 대한 설명은 [빌드 환경설정](#빌드환경설정) 부분을 참고해 주시기 바랍니다.

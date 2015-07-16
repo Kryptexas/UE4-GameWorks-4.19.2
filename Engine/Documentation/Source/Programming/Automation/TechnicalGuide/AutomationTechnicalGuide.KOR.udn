@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2609111
 Availability:Public
 Title:자동화 테크니컬 가이드
 Crumbs: %ROOT%, Programming, Programming/Automation
 Description:새로운 자동화 테스트 생성을 위한 프로그래머 안내서입니다.
-Version: 4.5
+Version: 4.9
 
 자동화 테스트는 크게 **Simple** 과 **Complex** 두 가지로 나뉩니다. Simple Test, 단순 테스트는 하나의 원자성 
 테스트를 말하는 반면, Complex Test, 복잡 테스트는 다수의 입력에 같은 코드를 돌리는 데 사용됩니다.
@@ -161,7 +161,6 @@ Update 호출 이후 실행이 완료되었다면 참을, 자동화 테스트를
 
 예제는 EngineAutomationTests.cpp 의 FSetResTest 를 참고해 보세요.
 
-## 참고
 
 [REGION:warning]
 에디터에서, 맵 로딩은 즉시 일어납니다. 게임에서, 맵 로딩은 다음 프레임에 일어나므로 

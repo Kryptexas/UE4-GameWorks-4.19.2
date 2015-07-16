@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2614163
 Availability:Public
 Title: 액터의 생명 주기
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Actors
@@ -6,7 +6,6 @@ Description:액터가 로드 또는 스폰된 후 결국 죽을 때 벌어지는
 
 [TOC (start:2 end:3)]
 
-## 개요
 
 이 문서는 액터의 생명 주기에 대한 하이 레벨 개요서로, 액터가 레벨에 어떻게 인스턴스가 생성 (**Spawn**) 되고 소멸 (**Destroy**) 되는지에 대해서입니다.
 

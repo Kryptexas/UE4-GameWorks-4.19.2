@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2612782
 Availability:Public
 Title:함수
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
@@ -33,7 +33,10 @@ Version: 4.5
 $ Out : 
 파라미터가 참조 전달되는 것으로 선언, 함수에서 변경할 수 있도록 합니다.		
 $ Optional : 
-특정 함수 파라미터를 옵션으로 만들 수 있는, 호출자 편의를 위한 키워드입니다. 호출자가 지정하지 않는 옵션 파라미터의 값은 함수에 따라 달라집니다. 예를 들어 `SpawnActor` 함수는 옵션으로 위치와 회전을 받으며, 기본값은 스폰하는 액터의 루트 컴포넌트의 위치와 회전입니다. 옵셔널 인수의 기본값은 `= [value]` 를 붙여 지정할 수 있습니다. 예: `function myFunc(optional int x = -1)`. 대부분의 경우 옵셔널 파라미터에 전달되는 값이 없는 경우 해당 변수형의 기본값 (예: False, "", None) 또는 0 이 사용됩니다.
+특정 함수 파라미터를 옵션으로 만들 수 있는, 호출자 편의를 위한 키워드입니다. 호출자가 지정하지 않는 옵션 파라미터의 값은 함수에 따라 달라집니다. 
+예를 들어 `SpawnActor` 함수는 옵션으로 위치와 회전을 받으며, 기본값은 스폰하는 액터의 루트 컴포넌트의 위치와 회전입니다. 옵셔널 인수의 기본값은 `= [value]` 를 붙여 지정할 수 있습니다. 
+예: `function myFunc(optional int x = -1)`. 대부분의 경우 옵셔널 파라미터에 전달되는 값이 없는 경우 해당 변수형의 
+기본값 (예: False, "", None) 또는 0 이 사용됩니다.
 
 
 ## 함수 구현

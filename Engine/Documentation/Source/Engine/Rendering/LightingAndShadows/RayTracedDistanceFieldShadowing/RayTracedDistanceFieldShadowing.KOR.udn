@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2523052
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title: 레이 트레이스 디스턴스 필드 소프트 섀도우
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -49,7 +49,7 @@ Description:동적인 에리어 섀도우 입니다.
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 Ray Traced Distance Field shadow (레이 트레이스 디스턴스 필드 섀도우)는 씬의 디스턴스 필드 표현의 프로퍼티를 활용하여 다이내믹 메시에서의 에리어 섀도우를 효율적으로 계산해 냅니다. 이 기능은 [디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 과 같은 데이터를 사용하므로, 한계점 역시도 동일한 부분이 많습니다.
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2573803
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:3. 월드에 카메라 디렉터 배치
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:월드에 카메라 디렉터를 배치하고 카메라를 할당합니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:월드에 카메라 디렉터를 배치하고 카메라를 할당합
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:title%")

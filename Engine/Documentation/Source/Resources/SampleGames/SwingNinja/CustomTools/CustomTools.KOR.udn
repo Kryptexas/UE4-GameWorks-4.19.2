@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2620113
 Availability: Docs
 Title:커스텀 툴
 Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
@@ -12,7 +12,6 @@ Description:스윙 닌자 게임 제작에 사용된 커스텀 툴에 대해 다
 
 [TOC(start:2 end:3)]
 [REGION:fullwidth]
-## 개요
 
 블루프린트 비주얼 스크립팅 시스템의 매우 유용한 기능 중 하나는, 레벨 디자이너가 필요한 디자인 작업을 보다 빠르게 할 수 있도록 커스텀 툴을 만들 수 있다는 것입니다. 스윙 닌자의 보다 효율적인 제작을 위해, 블루프린트를 사용하여 디자인 툴을 만들었습니다. 각 툴에 대한 개요, 만든 이유, 만든 방법에 대한 것은 아래와 같습니다.
 

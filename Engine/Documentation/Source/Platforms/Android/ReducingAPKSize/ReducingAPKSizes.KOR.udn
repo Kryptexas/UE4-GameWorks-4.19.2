@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2619892
+﻿INTSourceChangelist:2620199
 Availability:Docs
 Title: APK 패키지 크기 축소
 Crumbs:%ROOT%, Platforms, Platforms/Android
@@ -99,7 +99,7 @@ UE4 안에서 플러그인을 비활성화시키는 방법은 다음과 같습�
 	![](T_Open_Plugins_Browser.png)
 
 1. 플러그인 브라우저에서 여러 섹션을 선택하고 **Enabled** 옆의 박스 체크를 해제하여 사용하지 않는 플러그인을 비활성화시킵니다.
-  모든 플러그인을 비활성화시켰다면, 굳이 결과 확인을 위해 프로젝트를 다시 패키징할 필요는 없습니다.
+  모든 플러그인을 비활성화시킨 후에는 UE4 에디터를 재시작하고 프로젝트를 다시 패키징해야 합니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

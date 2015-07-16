@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346120
+﻿INTSourceChangelist:2620692
 Availability: Public
 Title:내비메시 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -46,7 +46,6 @@ Related: Engine/Actors/Volumes
 [TOC(start:2 end:2)]
 
 
-## 개요
 
 **Navmesh** 콘텐츠 예제 맵에는 **NavMesh** (내비메시)를 생성 및 사용하여 **폰** 이 장애물을 피해 경사로를 넘거나 턱을 점프하여 길을 찾을 수 있도록 해 주는 예제가 셋 제공됩니다. 에디터에서 **NavMeshBoundsVolume** 을 레벨에 배치한 상태로 **P** 키를 누르면 **내비메시** 가 커버하는 영역이 표시/숨겨집니다. 이 맵의 마지막 예제에서는 레벨에 있는 **액터** 를 움직이니 **내비메시** 가 커버하는 영역이 자동으로 업데이트되는 것을 보여줍니다 (이 기능은 **에디터 세팅** 에서 **레벨 에디터/기타** 아래 **Update Navigation Automatically** (내비게이션 자동 업데이트) 체크박스를 해제하여 끌 수 있습니다).
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2609424
 Availability:Public
 Title:언리얼 엔진 빌드하기
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:언리얼 엔진 컴파일하기 입니다.
-Version: 4.5
+Version: 4.9
 
 %Globals:OSSelect%
 

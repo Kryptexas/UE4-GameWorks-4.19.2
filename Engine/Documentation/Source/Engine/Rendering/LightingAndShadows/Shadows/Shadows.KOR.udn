@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2414251
+﻿INTSourceChangelist:2602520
 Availability: Public
 Title:그림자 드리우기
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -50,7 +50,7 @@ Related: Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 그림자는 시각적인 대조를 통해 오브젝트가 땅 위에 있구나 하는 느낌을 내면서, 관찰자에게 공간감과 입체감을 부여해 줍니다. 스태틱 섀도우는 사실상 렌더링 비용이 없는 것이나 마찬가지인 반면, 다이내믹 섀도우는 퍼포먼스에 있어 가장 주의해야 할 부분 중 하나가 될 수 있습니다. 이 글에서는 언리얼 엔진 4 에서 사용할 수 있는 네가지 그림자 유형에 대한 기초적인 내용을 다루겠습니다.
 
@@ -106,5 +106,9 @@ _스테이셔너리 라이트의 빛 속에 서 있는 오른쪽의 동상과 �
 각각이 서로의 단점을 보완하는 식으로 모든 그림자를 종합해서 사용할 때, 인상적이면서 렌더링 속도도 빠른 비주얼에 생동감을 불어넣을 수 있습니다.
 
 ![](LO_Shadows_Footer.png)
+
+
+
+
 
 

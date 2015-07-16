@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620111
 Availability: Docs
 Title:게임플레이
 Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
@@ -7,8 +7,6 @@ Description:스윙 닌자 게임의 게임플레이 셋업에 대해 다루는 �
 [TOC(start:2 end:2)]
 
 [REGION:fullwidth]
-
-## 개요
 
 스윙 닌자는 횡스크롤 물리기반 게임입니다. 그 정상 작동을 위해 필요한 핵심 요소는 두 가지입니다:
 

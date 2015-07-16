@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2620804
 Availability: Public
 Title:2.2 - 네트워크 연관성 (2 부 - 함수 리플리케이션 솔루션 시도)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -37,7 +37,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 
-## 개요
+
 이 예제는 상자의 행위 관련해서 Replicated Multicast Function 를 사용하여 네트워킹 시도합니다. 상자에 상호작용이 생기면 상자가 멀티캐스트 호출하여 모든 클라이언트에서 상자 열기 비주얼 재생을 처리한다는 개념입니다.
 
 그러나 연관성 이슈 데모를 위해, 이 상자는 매우 짧은 거리에서 네트워크 연관성이 없도록 수정되었습니다. 클라이언트를 파랑 고리 밖에 세워두면 상자가 보일지라도 클라이언트에 연관성이 없습니다. 이제 서버를 상자로 옮긴 다음 작동시켜 클라이언트에 어떤 일이 벌어지는지 관찰합니다. 클라이언트에 아무런 변화가 보이지 않습니다! 예상된 것으로, 상자가 아직 클라이언트에 연관성이 없기 때문입니다. 클라이언트를 파랑 고리 안으로 이동시켜 상자가 연관성이 있도록 만듭니다. 어떤 일이 벌어질까요? 그대로입니다. 바라던 상황이 아니지요.

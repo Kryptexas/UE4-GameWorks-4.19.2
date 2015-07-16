@@ -1,14 +1,97 @@
-﻿INTSourceChangelist:2616328
+﻿INTSourceChangelist:2621119
 Availability:NoPublish
 Title:GitHub 에서 언리얼 엔진 내려받기
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:GitHub 에서 언리얼 엔진 소스 코드 내려받기 입니다.
 
+%Globals:osselect_linux%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	[GitHub for Windows](https://windows.github.com/) 를 설치합니다.
+	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다 (아래 그림).
+		![](UnrealRepo.png)
+		[REGION:tip]
+		*	GitHub 를 갈라서 복제하는 법은 [Forking Projects Guide](https://guides.github.com/activities/forking/) 문서를 참고하세요.
+		*	명령줄에서 Git 를 사용하는 방법은, [Setting-up Git](https://help.github.com/articles/set-up-git/) & [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요.
+		[/REGION]
+	1.	Visual Studio 2013 을 설치하지 않았다면 설치합니다. MFC 라이브러리가 기본 설치 세팅에 포함되어 있기는 하지만, ATL 지원을 위해 MFC 라이브러리가 포함되어 있는지 확인합니다.
+		[REGION:note]
+		Visual Studio 는 무료 버전으로도 ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)) UE4 빌드가 가능합니다 .
+		[/REGION]
+	1.	탐색기에서 소스 폴더를 열어 **run Setup.bat** 명령을 내립니다.
+		[REGION:note]
+		이 셋업 뱃치 파일은 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성합니다. 엔진 바이너리 파일은 현재 메모리를 3-4 기가 차지하므로 다운로드에 시간이 조금 걸릴 수 있습니다. 그 이후의 체크아웃에는 다운로드 시간이 단축됩니다.
+		[/REGION]
+		[REGION:warning]
+		윈도우 8 에서는 스마트 스크린에 경고가 뜰 수 있습니다. **More Info** 를 클릭한 다음 **Run Anyway** 를 선택하여 셋업 뱃치 파일 실행을 계속합니다.
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	[GitHub for Mac](https://mac.github.com/) 을 설치합니다. 
+	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다 (아래 그림).
+		![](UnrealRepo.png)
+		[REGION:tip]
+		*	GitHub 를 갈라서 복제하는 법은 [Forking Projects Guide](https://guides.github.com/activities/forking/) 문서를 참고하세요.
+		*	명령줄에서 Git 를 사용하는 방법은, [Setting-up Git](https://help.github.com/articles/set-up-git/) & [Forking a Repository](https://help.github.com/articles/fork-a-repo/) 문서를 참고하세요.
+		[/REGION]
+	1.	최신 버전 [Xcode](https://itunes.apple.com/us/app/xcode/id497799835) 를 설치하지 않았다면, 먼저 설치합니다.
+	1.	Finder 에서 소스 폴더를 연 다음 **run Setup.command** 명령을 내립니다.
+		[REGION:note]
+		Setup.command 가 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성한 이후에는 터미널 창을 닫습니다.
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	[Git](https://help.github.com/articles/set-up-git/) 구성을 합니다.
+	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다 (아래 그림).
+		![](UnrealRepo.png)
+	1.	소스 폴더를 열고 **run Setup.sh** 명령을 내려 엔진의 바이너리 콘텐츠를 다운로드합니다.
+	[/PARAM]
+[/OBJECT]
+
+## 다음 단계
+
+언리얼 엔진 다운로드 및 구성이 완료되었으면, 이제 [소스에서 엔진을 빌드](Programming/Development/BuildingUnrealEngine) 하면 됩니다.
+
+<!--
+
 GitHub 에서 언리얼 엔진 소스 코드를 받을 수 있는 방법은 두 가지입니다:
 
 * Fork (분기)를 만들어 저장소(repository)를 복제하는 방법.
 * 소스를 내려받아 폴더에 압축을 푸는 방법.
-
 
 ## Fork 및 복제
 
@@ -82,6 +165,11 @@ release 에 대한 소스 코드 아카이브를 내려받을 수 있습니다.
 
 내려받은 압축파일을 컴퓨터의 원하는 위치에 풉니다.
 
+## 다음 단계
+
+이제 [엔진을 빌드](Programming/Development/BuildingUnrealEngine) 하면 됩니다.
+-->
+<!-- This section is deprecated per UE 4.8
 ## 종속성 설치하기
 
 엔진을 컴파일하고 실행하기 위해서는 소스 코드 이외에 추가적으로 설치해야 하는 종속성이 있습니다.
@@ -96,3 +184,4 @@ release 에 대한 소스 코드 아카이브를 내려받을 수 있습니다.
 ## 다음 단계
 
 종속성 설치 이후에는 [엔진 빌드](Programming/Development/BuildingUnrealEngine) 를 하면 됩니다.
+-->

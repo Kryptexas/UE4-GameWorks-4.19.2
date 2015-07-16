@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620749
 Availability: Public
 Title:1.1 - 액터 리플리케이션
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -38,7 +38,6 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 
 
-## 개요
 
 이 예제는 액터의 **Replicates** 불리언 사용법에 대한 예제입니다. 켜면 네트워크 관점에서, 클라이언트가 서버에 스폰되는 액터를 인지합니다.
 

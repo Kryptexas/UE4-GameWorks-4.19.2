@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:3. 폰 무브먼트 컴포넌트의 작동방식 코딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:폰 무브먼트 컴포넌트 조종하는 폰의 매 프레임 위치를 어떻게 결정하는지 정의하는 코드를 작성합니다.
-
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -12,7 +12,7 @@ Description:폰 무브먼트 컴포넌트 조종하는 폰의 매 프레임 위�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:title%")

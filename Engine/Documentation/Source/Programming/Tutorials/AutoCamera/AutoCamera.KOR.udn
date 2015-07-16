@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2486588
+﻿INTSourceChangelist:2620011
 Availability: Public
 Title:게임 조종 카메라
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:다양한 시점을 선택하고 전환하는 법을 배워봅니다.
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

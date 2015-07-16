@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2615195
 Availability:Public
 Title:스레디드 렌더링
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:스레디드 렌더러 작업을 하는 그래픽 프로그래머를 위한 정보입니다.
-Version: 4.5
+Version: 4.9
 
 ## 렌더링 스레드
 
@@ -51,7 +51,7 @@ FRenderResource 는 기본적인 렌더링 리소스 인터페이스를 제공�
 
 #### UObject 및 가비지 콜렉션
 
-GC 는 게임 스레드에서 발생하여 UObject 상에서 작동됩니다. 렌더링 스레드에서 UObject 를 가리키는 명령을 처리하는 와중에 게임 스레드에서 그 오브젝트를 삭제할 수가 있습니다. 그렇기 때문에 렌더링 스레드에서 UObject 를 더이상 가리키지 않는다는 것이 확실한 상태에서만 지울 수 있도록 하는 메커니즘이 확보되지 않고서야 UObject 포인터에 대한 레퍼런스를 절대 해제해서는 안될 것입니다. UPrimitiveComponent 를 예로 들면, DetachFence 라는 FRenderCommandFence 를 사용하여 렌더링 스레드가 detach 명령 처리를 끝낼 때까지 GC 가 UObject 를 삭제하지 못하도록 막는 것입니다.
+가비지 콜렉션(GC)은 게임 스레드에서 발생하여 UObject 상에서 작동됩니다. 렌더링 스레드에서 UObject 를 가리키는 명령을 처리하는 와중에 게임 스레드에서 그 오브젝트를 삭제할 수가 있습니다. 그렇기 때문에 렌더링 스레드에서 UObject 를 더이상 가리키지 않는다는 것이 확실한 상태에서만 지울 수 있도록 하는 메커니즘이 확보되지 않고서야 UObject 포인터에 대한 레퍼런스를 절대 해제해서는 안될 것입니다. UPrimitiveComponent 를 예로 들면, DetachFence 라는 FRenderCommandFence 를 사용하여 렌더링 스레드가 detach 명령 처리를 끝낼 때까지 GC 가 UObject 를 삭제하지 못하도록 막는 것입니다.
 #### 게임 스레드 FRenderResource 처리
 
 게임 스레드 <-> 렌더링 스레드 리소스 상호작용간에는 고려해야 할 시나리오가 두 가지 있는데, (인덱스 버퍼처럼 로드시 또는 에디터에서만 변경되는) 정적인 리소스의 경우와, 게임 스레드 시뮬레이션의 최신 결과로 매 프레임마다 업데이트시켜줘야 하는 동적인 리소스의 경우입니다.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2227032
+﻿INTSourceChangelist:2620308
 Availability: Public
 Title:Attractor 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,15 +6,23 @@ Description:파티클을 공간의 한 점으로 끌어당기는 모듈입니다
 
 [TOC(start:2 end:3)]
 
-## Attractor 모듈
-
 파티클을 점이나 선 또는 다른 파티클의 위치 형태로 정의할 수 있는 공간 내 특정 위치로 끌어당기는 인력을 구현하는 모듈입니다. 좀 더 복잡한 효과를 내기 위해 조합도 가능합니다. 
 
 파티클의 수명에 따라 세기가 변하는 선 인력과 점 인력을 조합하여 소용돌이 효과를 내는 모습입니다.
 
-![psys_attractor.gif](psys_attractor.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Ntf5chUK4jM
+[/PARAMLITERAL]
+[/OBJECT]
 
-### Attractor Line
+## Attractor Line
 
 선 인력은 파티클의 3D 공간 내 선쪽으로 잡아당기는 모듈입니다.
 
@@ -28,9 +36,19 @@ Description:파티클을 공간의 한 점으로 끌어당기는 모듈입니다
 
 
 
-### Particle Attractor
+## Particle Attractor
 
-![psys_attractor_particle.gif](psys_attractor_particle.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+6EHCXt4q-Ao
+[/PARAMLITERAL]
+[/OBJECT]
 
 시스템 내 다른 이미터에서 방출된 파티클이 인력을 갖도록 할 수 있는 모듈입니다. 포함된 멤버는 다음과 같습니다:
 
@@ -61,9 +79,19 @@ Description:파티클을 공간의 한 점으로 끌어당기는 모듈입니다
 --------End Attractor Particle Includes---------->
 
 
-### Point Attractor
+## Point Attractor
 
-![psys_attractor_point.gif](psys_attractor_point.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+fHYk6juHU0c
+[/PARAMLITERAL]
+[/OBJECT]
 
  포인트 어트랙터는 어느 점으로 끌어당길 지와 그 효과 범위를 정의할 수 있습니다. 다음과 같은 멤버가 포함됩니다: 
 
@@ -82,7 +110,17 @@ Description:파티클을 공간의 한 점으로 끌어당기는 모듈입니다
 
 ## Point Gravity
 
-![phys_pointGravity.gif](phys_pointGravity.gif)(w:420 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+uqXArTDw9as
+[/PARAMLITERAL]
+[/OBJECT]
 
 Point Gravity (점 중력) 모듈은 주어진 세기값을 사용하여 3D 공간상의 한 점으로 파티클을 끌어당기는 모듈입니다. Maya 파티클 시스템의 Newton field 와 비슷합니다. 파티클을 원점쪽으로 잡아당기거나 한 점을 구심점으로 선회하는 효과를 내는 데 사용됩니다.
 
