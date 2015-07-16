@@ -347,7 +347,6 @@ struct FTCharArrayTester
 			} \
 		 }
 
-
 		// Conditional logging. Will only log if Condition is met.
 		#define UE_CLOG(Condition, CategoryName, Verbosity, Format, ...) \
 		{ \
@@ -448,3 +447,32 @@ struct FTCharArrayTester
 #if PLATFORM_HTML5
 #include "HTML5/HTML5AssertionMacros.h"
 #endif 
+
+#if UE_BUILD_SHIPPING
+#define NOTIFY_CLIENT_OF_SECURITY_EVENT_IF_NOT_SHIPPING(NetConnection, SecurityPrint) ;
+#else
+#define NOTIFY_CLIENT_OF_SECURITY_EVENT_IF_NOT_SHIPPING(NetConnection, SecurityPrint) \
+	FNetControlMessage<NMT_SecurityViolation>::Send(NetConnection, SecurityPrint); \
+	NetConnection->FlushNet(true)
+#endif
+
+/**
+	* A  macro that closes the connection and logs the security event on the server and the client
+	* @param NetConnection, a valid UNetConnection
+	* @param SecurityEventType, a security event type (ESecurityEvent::Type)
+	* @param Format, format text
+***/
+#define CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(NetConnection, SecurityEventType, Format, ...) \
+{ \
+	static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
+	check(NetConnection != nullptr); \
+	FString SecurityPrint = FString::Printf(Format, ##__VA_ARGS__); \
+	if(Channels[0] == nullptr) \
+	{ \
+		Channels[0] = CreateChannel(EChannelType::CHTYPE_Control, false, 0); \
+	} \
+	UE_SECURITY_LOG(NetConnection, SecurityEventType, Format, ##__VA_ARGS__); \
+	UE_SECURITY_LOG(NetConnection, ESecurityEvent::Closed, TEXT("Connection closed")); \
+	NOTIFY_CLIENT_OF_SECURITY_EVENT_IF_NOT_SHIPPING(NetConnection, SecurityPrint); \
+	NetConnection->Close(); \
+}

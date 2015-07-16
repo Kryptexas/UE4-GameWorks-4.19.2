@@ -1037,6 +1037,7 @@ IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Abort);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(PCSwap);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(ActorChannelFailure);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(DebugText);
+IMPLEMENT_CONTROL_CHANNEL_MESSAGE(SecurityViolation);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconWelcome);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconJoin);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(BeaconAssignGUID);
@@ -1177,6 +1178,13 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 				}
 
 			}
+		}
+		else if(MessageType == NMT_SecurityViolation)
+		{
+			FString DebugMessage;
+			FNetControlMessage<NMT_SecurityViolation>::Receive(Bunch, DebugMessage);
+			UE_SECURITY_LOG(Connection, ESecurityEvent::Closed, TEXT("%s"), *DebugMessage);
+			break;
 		}
 		else
 		{
