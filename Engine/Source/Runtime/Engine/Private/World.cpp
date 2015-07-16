@@ -3064,9 +3064,9 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	check(IsVisibilityRequestPending() == false);
 
 	// Wait on current physics scenes if they are processing
-	if(FPhysScene* Scene = GetPhysicsScene())
+	if(FPhysScene* CurrPhysicsScene = GetPhysicsScene())
 	{
-		Scene->WaitPhysScenes();
+		CurrPhysicsScene->WaitPhysScenes();
 	}
 
 	FWorldDelegates::OnWorldCleanup.Broadcast(this, bSessionEnded, bCleanupResources);
