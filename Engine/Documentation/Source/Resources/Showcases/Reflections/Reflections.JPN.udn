@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614993
+﻿INTSourceChangelist:2616803
 Availability:Public
 Title:リフレクション 
 Crumbs:%ROOT%, Resources
@@ -62,47 +62,67 @@ Related:Resources/ContentExamples/Reflections/1_3
 
 [TOC(start:2 end:2)]
 
-この例は、アンリアル エンジン 4 が提供するリアルタイムなリフレクション機能を紹介します。シーンは、荒れ果てた地下鉄のターミナルです。あちらこちらで水が漏れ、セラミックタイルは埃にまみれ、配管は老朽化し、ボロボロになっている環境の詳細を表しています。このページでは、このエフェクトを出すために使用した技術と機能の概要を一緒に説明します。
+このサンプルでは、アンリアル エンジン 4 のリアルタイムなリフレクション機能を紹介します。シーンは、荒れ果てた地下鉄のターミナルです。あちらこちらで水が漏れ、セラミックタイルは埃にまみれ、配管は老朽化し、ボロボロになっている環境の詳細を表しています。このエフェクトを出すために使用した技術と機能の概要も一緒に説明します。
 
-次の画像は、エフェクトを表現するためにシーンにおいてリフレクションのオンオフをブレンドしています。
+次の画像は、エフェクトを表現するために、シーンの中でリフレクションのオンオフをブレンドしています。
 
-![](ReflectionsOnOff.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+JZaQVznNBcA
+[/PARAMLITERAL]
+[/OBJECT]
 
 
-## 反射環境
+## 反射背景
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment#RefEnvIntro]
 
 ![](Engine/Rendering/LightingAndShadows/ReflectionEnvironment\reflection_environment.png)(w:600)
 
-反射環境と反射キャプチャに関する詳細は、[](Engine/Rendering/LightingAndShadows/ReflectionEnvironment) を参照してください。
+反射背景と反射キャプチャに関する詳細は、[](Engine/Rendering/LightingAndShadows/ReflectionEnvironment) を参照してください。
 
-## 反射キャプチャ アクタ
+## Reflection Capture アクタ
 
 ![](CaptureIcon.gif)
 
-反射キャプチャ アクタは、レベル全体へ戦略的に配置するオブジェクトで、反射環境へ反射データを入力します。 
+Reflection Capture アクタは、レベル全体へ戦略的に配置するオブジェクトで、反射背景へ反射データを入力します。 
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment#RefCaptures]
 
 
-反射環境と反射キャプチャに関する詳細は、[](Engine/Rendering/LightingAndShadows/ReflectionEnvironment) を参照してください。
+反射背景と反射キャプチャに関する詳細は、[](Engine/Rendering/LightingAndShadows/ReflectionEnvironment) を参照してください。
 
 ## スクリーン空間反射
 
-スクリーン空間反射は、地面など平面な表面上へオブジェクトを配置する際に役立つエンジン機能です。この反射は初期設定でアクティベートされて、より詳細な反射効果をもたらすために反射環境の結果とブレンドされます。 
+スクリーン空間反射は、地面など平面な表面上へオブジェクトを配置する際に役立つエンジン機能です。この反射は初期設定でアクティベートされて、より詳細な反射効果をもたらすために反射背景の結果とブレンドされます。 
 
 ![](ScreenSpaceReflections.gif)
 
 アンリアル エンジン 4 のスクリーン空間反射はデフォルト設定でアクティブになっていますが、設定によっては _r.SSR.Quality 3_ または _r.SSR.Quality 0_ などのコンソールコマンドを使用してトグルすることも出来ます。
 以下は (r.SSR を 1 に設定) した例と、スクリーン空間反射なし (r.SSR を 0 に設定) の両設定をした反射シーンの結果です。
 
-![](SSROnOff.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+DUe4z3-5WvU
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 反射の留意事項
 
-反射に利用する環境ビルドを作成する際、弊社のアーティストが留意している事項がいくつかあります。
+反射に利用する背景を作成する際に、弊社のアーティストが留意している事項がいくつかあります。
 
 ### コントラスト
 
@@ -125,11 +145,11 @@ Related:Resources/ContentExamples/Reflections/1_3
 
 ![](ReflectionActors.png)(w:600)
 
-程よく反射を取り入れるコツは、シーン全体に反射キャプチャアクタを配置することです。満足のいく結果を得るまでシーン全体へこれらのアクタをばらまきたくなるのが、最初の衝動かもしれません。しかし、このアクタの使用時に留意しなくてはいけないいくつかの規則があります。
+程よく反射を取り入れるコツは、シーン全体に Reflection Capture アクタを配置することです。満足のいく結果を得るまでシーン全体へこれらのアクタをばらまきたくなるのが、最初の衝動かもしれません。しかし、このアクタの使用時に留意しなくてはいけないいくつかの規則があります。
 
 * **Screen Space** - 反射キャプチャアクタにかかる負荷は、半径がスクリーンを覆っている度合いによります。この点は、パーティクルや動的ライトに似ています。つまり、キャプチャアクタの半径を過度に押しすぎないように気をつけなくてはいけません。
 
-* **Overlap** - 反射キャプチャアクタの半径はオーバーラップすることができます。オーバーラップしたアクタは、反射のピクセル単位のコストが増加する要因となります。スクリーン空間が原因で増加したコストと組み合わせたとき、大半径の反射キャプチャアクタでシーンを覆うために、突如として法外なパフォーマンスコストとなるかもしれません。 
+* **Overlap** - Reflection Capture アクタの半径はオーバーラップすることができます。オーバーラップしたアクタは、反射のピクセル単位のコストが増加する要因となります。スクリーン空間が原因で増加したコストと組み合わせたとき、大半径の反射キャプチャアクタでシーンを覆うために、突如として法外なパフォーマンスコストとなるかもしれません。 
 
 * **Hierarchical Placement** - リソースを保存して反射キャプチャアクタのレイアウトをきれいに保つには、階層レイアウトを使用することによって最低限のオーバーラップで確実な反射を設定することができます。このようなシステムでは、背景から反射を取り込む 1 つの大半径のキャプチャが配置されます。その後一連の小さなキャプチャアクタが詳細周りの反射を取り入れます。 
 
