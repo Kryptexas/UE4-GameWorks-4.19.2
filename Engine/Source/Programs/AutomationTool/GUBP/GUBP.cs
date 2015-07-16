@@ -208,6 +208,7 @@ public partial class GUBP : BuildCommand
 					if (Trigger.Name.Equals(ExplicitTriggerName, StringComparison.InvariantCultureIgnoreCase))
                     {
 						Trigger.Activate();
+						ExplicitTrigger = Trigger;
                         break;
                     }
                 }
