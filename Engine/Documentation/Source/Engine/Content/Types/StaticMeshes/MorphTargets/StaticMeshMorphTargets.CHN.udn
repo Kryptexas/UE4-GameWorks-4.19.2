@@ -1,27 +1,19 @@
-﻿INTSourceChangelist:1647529
-Availability:Public
+﻿Availability:Public
 Title:静态网格物体顶点变形目标
-Crumbs:%ROOT%, Content, Content/Types/StaticMeshes
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
 Description:使用顶点变形目标和WorldPositionOffset(世界位置偏移)来使得静态网格物体发生变形。
 
 [TOC(start:2)]
 
-顶点变形目标提供了一种让网格物体从其基础形态向 _目标_ 形态变形的方法。
-一般，顶点变形目标是作为动画系统的一部分,和骨架网格物体结合使用的；但是，
-通过使用`StaticMeshMorpher.ms`MAX脚本和 **StaticMeshMorphtarget（静态网格物体顶点变形目标）** 
-[材质函数](Engine/Rendering/Materials/Functions), 
-您也可以设置静态网格物体通过使用顶点变形目标发生变形。
+顶点变形目标提供了一种让网格物体从其基础形态向 _目标_ 形态变形的方法。 一般来说，顶点变形目标是作为动画系统的一部分,和骨架网格物体结合使用的；但是， 通过使用`StaticMeshMorpher.ms`MAX脚本和 **StaticMeshMorphtarget（静态网格物体顶点变形目标）**[材质函数](Engine/Rendering/Materials/Functions),您也可以设置静态网格物体通过使用顶点变形目标发生变形。 
 
-这种方法通过使用多个UV通道、顶点颜色和 
-[**WorldPositionOffset（世界位置偏移）**](Engine/Rendering/Materials/WorldPositionOffset)来执行变形处理。
-每个顶点变形目标的顶点的偏移量存储为UV通道中的顶点颜色。
-然后 **StaticMeshMorphTarget** 材质函数提取这些颜色，并使它们在材质中可用。通过把它们传入到材质的 **WorldPositionoffset** 输入端，可以把网格物体的顶点变换到顶点变形目标中顶点的位置处。
+这种方法通过使用多个UV通道、顶点颜色和WorldPositionOffset（世界位置偏移）来执行变形处理。每个顶点变形目标的顶点的偏移量存储为UV通道中的顶点颜色。 然后StaticMeshMorphTarget材质函数提取这些颜色，并使它们在材质中可用。 通过把它们传入到材质的WorldPositionoffset输入端，可以把网格物体的顶点变换到顶点变形目标中顶点的位置处。
 
 ## 脚本设置和安装
 
- `StaticMeshMorpher.ms` 脚本位于您的版本的 `UE4/Engine/Extras/FX_tools/3DSMax2012_x64/` 目录内。
+`StaticMeshMorpher.ms` 脚本位于您的版本的 `UE4/Engine/Extras/FX_tools/3DSMax2012_x64/` 目录内。 
 
-**要想运行 `StaticMeshMorpher.ms` 脚本:**
+**要想运行**`StaticMeshMorpher.ms` **maxscript:**
 
 1. 在3dsmax中，在 **MAXScript** 菜单中选择  **Run Script(运行脚本)...** 。
 
@@ -36,8 +28,7 @@ Description:使用顶点变形目标和WorldPositionOffset(世界位置偏移)�
 
 ## 创建顶点变形目标
 
-顶点变形目标需要具有同一网格物体的多个实例，且这些实例的顶点具有变化。例如，
-一个融化的冰球可以有三种形态：
+顶点变形目标需要具有同一网格物体的多个实例，且这些实例的顶点具有变化。 例如，一个融化的冰球可以有三种形态：
 
 [REGION:imagetable]
 | ![Game Model](game_model_table.png) | ![Morph target 1](morph_1_table.png) | ![Morph target 1](morph_2_table.png) |
@@ -67,18 +58,14 @@ Description:使用顶点变形目标和WorldPositionOffset(世界位置偏移)�
 
 	![Morph Packing Progress](processing_progress.png)
 
-1. 一般可以从 3dsMax 中导入网格物体并将其导入到虚幻引擎中。请参照[](Content/FBX/StaticMeshes)获得关于这个过程的细节。
+1. 一般可以从 3dsMax 中导入网格物体并将其导入到虚幻引擎中。 请参照[](Engine/Content/FBX/StaticMeshes)获得关于这个过程的细节。
 
 
 ## 材质设置
 
-_StaticMeshMorphTargets_ 函数使您可以访问顶点变形目标和应用到 _静态网格物体_ 上的 _材质_ 中的法线。
-这个函数有两个同这两个顶点变形目标相对应的输出端和一个同法线相对应的输出端。顶点变形目标输出端提供了可以连入到  _Material_ 节点的 **WorldPositionOffset** 输入通道的值; 而法线输出端，正如您期望的， 
-可以连接到 _Material_ 节点的 _Normal_ 输入通道。
+_StaticMeshMorphTargets_ 函数使您可以访问顶点变形目标和应用到 _静态网格物体_ 上的 _材质_ 中的法线。 这个函数有两个同这两个顶点变形目标相对应的输出端和一个同法线相对应的输出端。 顶点变形目标输出端提供了可以连入到  _Material（材质）_ 节点的 **WorldPositionOffset** 输入通道的值; 而法线输出端，正如您期望的，可以连接到 _Material（材质）_ 节点的 _Normal（法线）_ 输入通道。 
 
-为了在基础网格物体和顶点变形目标之间发生 _顶点变形_ ，需要使用了一个或多个 _LinearInterpolate(线性插值)_ 表达式， 
-并通过一个单独的 _ScalarParameter（标量参数）_ 驱动它的 **Alpha** 输入端。这使得可以在运行时通过游戏代码或Matinee 
-驱动顶点变形目标。
+为了在基础网格物体和顶点变形目标之间发生 _顶点变形_ ，需要使用了一个或多个 _LinearInterpolate(线性插值)_ 表达式，并通过一个单独的 _ScalarParameter（标量参数）_ 驱动它的Alpha输入端。 这使得可以在运行时通过游戏代码或Matinee驱动顶点变形目标。
 
 这里展示了一个示例设置(仅顶点变形网络)：
 
