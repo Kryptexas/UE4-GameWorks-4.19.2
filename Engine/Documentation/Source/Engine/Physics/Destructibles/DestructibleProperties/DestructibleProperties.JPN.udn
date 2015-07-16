@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2618124
-Availability:Public
+﻿Availability:Public
 Title:被破壊性プロパティのマトリックス
 Crumbs: %ROOT%, Engine
-Description:DestructibleMesh エディタ内の被破壊アクタの全プロパティの説明
+Description:被破壊メッシュ エディタ内の Destructible アクタの全プロパティの説明
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -36,10 +35,10 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | --------- | ----------- |
 | [REGION:tablesection] _Damage パラメータ_ [/REGION] ||
 | **Damage Threshold** | チャンクのフラクチャ (破砕) を引き起こすダメージ量です。 |
-| **Damage Spread** | 被破壊アクタに伝わるダメージの距離を制御します。チャンクに適用されるダメージに Damage Spread を乗じることによって、ダメージ伝播距離を取得します。 |
-| **Enable Impact Damage** | オブジェクトと衝突した際に、被破壊アクタへのダメージの適用を有効にします。 |
+| **Damage Spread** | Destructible アクタに伝わるダメージの距離を制御します。チャンクに適用されるダメージに Damage Spread を乗じることによって、ダメージ伝播距離を取得します。 |
+| **Enable Impact Damage** | オブジェクトと衝突した際に、Destructible アクタへのダメージの適用を有効にします。 |
 | **Impact Damage** | チャンクが衝撃ダメージ設定の深度にある場合、チャンクが別のオブジェクトと衝突した時に衝撃力 (impact force) で乗じた Impact Damage と等しいダメージを受けます (Report Rigid Collisions は両オブジェクトで有効であると仮定)。|
-| **Custom Impact Resistance** | デフォルトで、被破壊アクタと衝突しするとオブジェクトはデフォルトで跳ね返ります。衝突したオブジェクトに対して、被破壊アクタが「押し戻す」量を微調整するパラメータです。 |
+| **Custom Impact Resistance** | デフォルトで、Destructible アクタと衝突しするとオブジェクトはデフォルトで跳ね返ります。衝突したオブジェクトに対して、Destructible アクタが「押し戻す」量を微調整するパラメータです。 |
 | **Impact Resistance** | 物理的な接触によってチャンクが衝撃ダメージを受けた時に、接触が生み出せる衝撃の最大値を表します。壊れやすいマテリアルはこの設定値が低いので、破砕中は重いオブジェクトが通過することができます。値 0.0 は無限と解釈されます |
 | **Default Impact Damage** | この深度まで衝撃ダメージを受けます。値がマイナスの場合、衝撃ダメージは無効になります。|
 | [REGION:tablesection] _Debris パラメータ_ [/REGION] ||
@@ -47,7 +46,7 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | **Debris Lifetime Max** | |
 | **Debris Max Separation Min** | 「残骸チャンク」 (下記 debrisDepth 参照) は、原点から切り離された距離が maxSeparation よりも大きい場合に破棄されます。実際の maxSeparation は、モジュールの LOD 設定に基づいて 2 つの maxSeparation 値の中間で補間されます。maxSeparation を無効にするには、フラグフィールドで bDebrisMaxSeparation フラグをクリアします。debrisMaxSeparationMax < debrisMaxSeparationMin の場合は、 2 つの平均値が両値に使用されます。
 | **Debris Max Separation Max** | |
-| **Valid Bounds** | 「残骸チャンク」 (下記 debrisDepth 参照) はこのボックスを離れると破壊されます。このボックスは被破壊アクタの初期位置で変換されますが、回転またはスケーリングはしません。|
+| **Valid Bounds** | 「残骸チャンク」 (下記 debrisDepth 参照) はこのボックスを離れると破壊されます。このボックスは Destructible アクタの初期位置で変換されますが、回転またはスケーリングはしません。|
 | [REGION:tablesection] _高度なパラメータ_ [/REGION] ||
 |	**Damage Cap** | チャンクに適用されるダメージ量を制限します。非常に大きなダメージを受けても、被破壊性全体	が粉砕されないようにする場合に役立ちます。このようなダメージは、衝撃ダメージを使用し、そのダメージ量が衝撃力 (forceToDamage 参照) に比例する場合によく起こります。| 
 |	**Impact Velocity Threshold** | 剛体が互いの内部にスポーンされた場合に、大きな衝撃力が発生する場合があります。この場合、2 つのオブジェクトの相対速度は低速になります。この変数に衝撃のための最小速度閾値をセットすることによって、衝撃力を考慮しながら、オブジェクトを確実に最小速度で移動させます。 |
@@ -68,7 +67,7 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | **Debris Max Separation** | 残骸 (debris) 深度と同位置または以下にあるチャンクが原点から乖離した場合に、除去されるか否かをセットします。
 | **Crumble Smallest Chunks** | このフラグがセットされている場合は、最小チャンクをさらに分解することができます。流動的なクランブル (砕かれた残骸) を用いるか (クランブル パーティクルシステムが NxDestructibleActorDesc で指定されている場合) 、あるいは、クランブル パーティクルシステムが指定されていない場合は単にチャンクを除去します。 |
 | **Accurate Raycasts** | このフラグがセットされている場合、RayCast 関数が、子チャンクとのコリジョンに最も近いビジブルなチャンクヒット内を検索します。親のコリジョン ボリュームがグラフィックス メッシュにしっかりと適合しない場合、これを利用することによって、より適合したレイキャストの位置と法線を得ることができます。ただし返されるチャンクのインデックスが、必ず交差するビジブルな親のインデックスとなります。 |
-| **Use Valid Bounds** | このフラグがセットされている場合、NxDestructibleParameters のValidBounds (有効領域) フィールドが使用されます。これらの領域 (bounds) は、被破壊アクタの原点に変換されます	 (スケーリングや回転はされずに) 。チャンクまたはチャンクの島は、これらの領域から外に移動すると破棄されます。 |
+| **Use Valid Bounds** | このフラグがセットされている場合、NxDestructibleParameters のValidBounds (有効領域) フィールドが使用されます。これらの領域 (bounds) は、Destructible アクタの原点に変換されます	 (スケーリングや回転はされずに) 。チャンクまたはチャンクの島は、これらの領域から外に移動すると破棄されます。 |
 | **Form Extended Structures** | このフラグがセットされていて最初は静的である場合、このフラグがセットされている他の静的被破壊性と当該の被破壊性が接触すると、当該の被破壊性が拡張されたサポート構造の一部となります。|
 | [REGION:tablesection] _フラクチャ エフェクト - 深度レベル別_ [/REGION] ||
 | **Particle System** | チャンクが壊れるとスポーンするパーティクルシステムです。 |
@@ -84,7 +83,7 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 | [REGION:tablesection] _マテリアル - エレメント別_ [/REGION] ||
 | **Material Interface** | このエレメントに使用するマテリアルです。|
 | **Enable Shadow Casting** | シャドウをキャストするためにこのマテリアルを有効にします。1 エレメントレベル当たりであるため、それぞれの破砕レベルは異なるマテリアルを使用できます。破砕されたオブジェクトより小さなレベルでシャドウを消すことができます。 |
-| **Force CPUSkinning** | 全てのスキニングは、 GPU スキニングがデフォルト値です。この設定により、被破壊アクタは強制的に CPU スキニングを使用します。 |
+| **Force CPUSkinning** | 全てのスキニングは、 GPU スキニングがデフォルト値です。この設定により、Destructible アクタは強制的に CPU スキニングを使用します。 |
 | **Use Full Precision UVs** | _true_ の場合、このオブジェクトは 32 ビットの UV を使用します。 _false_ の場合、 16 ビットの UV を使用してメモリをセーブします。|
 
 ### テクスチャストリーミングのサブカテゴリ
@@ -96,7 +95,6 @@ Description:DestructibleMesh エディタ内の被破壊アクタの全プロパ
 ## Chunk パラメータのカテゴリ
 
 ### Chunks サブカテゴリ
-
 | **プロパティ** | **説明** |
 | --------| ---------|
 | **Is Support Chunk** | 適切な NxDestructibleParametersFlag フラグが NxDestructibleParameters が設定されている場合、チャンクを環境的にサポートするかどうかを定義します。 |
