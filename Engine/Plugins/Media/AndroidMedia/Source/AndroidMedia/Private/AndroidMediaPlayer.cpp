@@ -181,6 +181,18 @@ public:
 		return *this;
 	}
 
+#if WITH_ENGINE
+	virtual void BindTexture(class FRHITexture* Texture) override
+	{
+		// @todo android: cbabcock: implement texture binding
+	}
+
+	virtual void UnbindTexture(class FRHITexture* Texture) override
+	{
+		// @todo android: cbabcock: implement texture binding
+	}
+#endif
+
 	virtual void Tick(float DeltaTime)
 	{
 		if (MediaPlayer.MediaState != EMediaState::Error)
