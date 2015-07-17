@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618687
 Availability:Public
 Title:5.4 - Min Roughness
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 5.4：Min Roughness
+Description:ライティングのサンプル レベル、5.4：Min Roughness
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -38,7 +38,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\5_4:title%](Resources\ContentExamples\Lighting\Lighting_5_4.png)
 [/REGION]
 
-この例はライトの反射上に Min Roughness (最少ラフネス値) の効果を示します。カテゴリを拡張する必要がありますが (小さな白い三角をクリック)、Min Roughnessは **[詳細]** パネルの [Light] カテゴリから利用できます。
+この例はライトの反射上に **Min Roughness (最少ラフネス値)** の効果を示します。カテゴリを拡張する必要がありますが (小さな白い三角をクリック)、Min Roughnessは **[Details]** パネルの [Light] カテゴリから利用できます。
 
 ![](MinRoughness.png)
 
