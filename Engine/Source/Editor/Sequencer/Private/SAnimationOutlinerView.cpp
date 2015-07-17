@@ -9,7 +9,6 @@
 #include "MovieSceneSection.h"
 #include "MovieSceneCommonHelpers.h"
 #include "Engine/Selection.h"
-#include "ISequencerObjectBindingManager.h"
 #include "IKeyArea.h"
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
