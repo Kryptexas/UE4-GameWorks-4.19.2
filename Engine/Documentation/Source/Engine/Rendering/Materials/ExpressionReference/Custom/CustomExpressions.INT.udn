@@ -5,10 +5,6 @@ Description:Expressions that allow the use of custom, plain shader code.
 Skilllevel: Advanced
 Version: 4.8
 
-[EXCERPT:TOC]
-[TOC(start:2)]
-[/EXCERPT:TOC]
-
 ## Custom
 
 The Custom expression allows you to write custom HLSL shader code operating on an arbitrary amount of inputs and outputting the result of the operation.
@@ -39,6 +35,29 @@ Specifies the name of the input. This is the name displayed on the expression in
 Add as many inputs as you need to the Inputs array, and name them. You can then write code in the Code property. You can type either a full function body with return statements as shown in the example, or a simple expression such as **Input.bgr**. You must also specify the output data type in OutputType.
 
 ![](T_Custom_Node.png)
+
+Here is the code that was used above so you can try out the Custom node for yourself.
+
+	float3 blur = Texture2DSample(Tex, TexSampler, UV);
+
+	for (int i = 0; i < r; i++)
+	{
+
+	  blur += Texture2DSample(Tex, TexSampler, UV + float2(i * dist, 0));
+	  blur += Texture2DSample(Tex, TexSampler, UV - float2(i * dist, 0));
+
+	}
+
+	for (int j = 0; j < r; j++)
+	{ 
+
+	  blur += Texture2DSample(Tex, TexSampler, UV + float2(0, j * dist));
+	  blur += Texture2DSample(Tex, TexSampler, UV - float2(0, j * dist));
+
+	}
+
+	blur /= 2*(2*r)+1;
+	return blur;
 
 (#Warnings)
 [REGION:warning]
