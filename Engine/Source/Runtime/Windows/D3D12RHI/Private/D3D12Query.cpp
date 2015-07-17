@@ -15,7 +15,7 @@ namespace RHIConsoleVariables
 {
     int32 bStablePowerState = 0;
     static FAutoConsoleVariableRef CVarStablePowerState(
-        TEXT("D3D12RHI.StablePowerState"),
+        TEXT("D3D12.StablePowerState"),
         bStablePowerState,
         TEXT("If true, enable stable power state. This increases GPU timing measurement accuracy but may decrease overall GPU clock rate."),
         ECVF_Default

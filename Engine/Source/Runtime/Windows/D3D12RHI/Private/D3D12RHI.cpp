@@ -761,7 +761,7 @@ void FD3D12DynamicRHI::GetLocalVideoMemoryInfo (DXGI_QUERY_VIDEO_MEMORY_INFO* Lo
 #if SUPPORTS_MEMORY_RESIDENCY
 int32 bLogMemoryResidency = 1;
 static FAutoConsoleVariableRef CVarLogMemoryResidency(
-	TEXT("r.D3D12LogMemoryResidency"),
+	TEXT("D3D12.LogMemoryResidency"),
 	bLogMemoryResidency,
 	TEXT("Print out a log of the memory residency stats.")
 	TEXT("  0: Off completely\n")

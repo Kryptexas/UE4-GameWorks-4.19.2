@@ -14,7 +14,7 @@
 
 static int32 GEnablePSOCache = 0;
 static FAutoConsoleVariableRef CVarEnablePSOCache(
-	TEXT("r.RHI.EnablePSOCache"),
+	TEXT("D3D12.EnablePSOCache"),
 	GEnablePSOCache,
 	TEXT("Enables a disk cache for PipelineState Objects."),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly
