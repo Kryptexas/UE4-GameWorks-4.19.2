@@ -5653,12 +5653,12 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 	// Avoid TArray slack for meta data.
 	GScriptHelper.Shrink();
 
-	UE_LOG(LogCompile, Log, TEXT("Preparsing %i modules took %f seconds"), GManifest.Modules.Num(), TotalModulePreparseTime);
-	UE_LOG(LogCompile, Log, TEXT("Parsing took %f seconds"), TotalParseAndCodegenTime - GHeaderCodeGenTime);
-	UE_LOG(LogCompile, Log, TEXT("Code generation took %f seconds"), GHeaderCodeGenTime);
-	UE_LOG(LogCompile, Log, TEXT("ScriptPlugin overhead was %f seconds"), GPluginOverheadTime);
-	UE_LOG(LogCompile, Log, TEXT("Macroize time was %f seconds"), GMacroizeTime);
-	UE_LOG(LogCompile, Log, TEXT("Tabify time was was %f seconds"), GTabifyTime);
+	UE_LOG(LogCompile, Log, TEXT("Preparsing %i modules took %.2f seconds"), GManifest.Modules.Num(), TotalModulePreparseTime);
+	UE_LOG(LogCompile, Log, TEXT("Parsing took %.2f seconds"), TotalParseAndCodegenTime - GHeaderCodeGenTime);
+	UE_LOG(LogCompile, Log, TEXT("Code generation took %.2f seconds"), GHeaderCodeGenTime);
+	UE_LOG(LogCompile, Log, TEXT("ScriptPlugin overhead was %.2f seconds"), GPluginOverheadTime);
+	UE_LOG(LogCompile, Log, TEXT("Macroize time was %.2f seconds"), GMacroizeTime);
+	UE_LOG(LogCompile, Log, TEXT("Tabify time was was %.2f seconds"), GTabifyTime);
 
 	if (bWriteContents)
 	{

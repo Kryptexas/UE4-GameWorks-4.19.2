@@ -4283,7 +4283,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->Detach();
 				}
 				UNCLOCK_CYCLES(Time);
-				UE_LOG(LogSavePackage, Log,  TEXT("Save=%fms"), FPlatformTime::ToMilliseconds(Time) );
+				UE_LOG(LogSavePackage, Log,  TEXT("Save=%.2fms"), FPlatformTime::ToMilliseconds(Time) );
 		
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
