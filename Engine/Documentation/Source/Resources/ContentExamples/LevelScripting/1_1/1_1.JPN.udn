@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2251647
+﻿INTSourceChangelist:2621691
 Availability:Docs
 Title:1.1 - トリガーボックス
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
@@ -27,8 +27,6 @@ Description:レベル スクリプトの事例概要 1.1:ドアを開くため�
 
 ![](levelscripting_1_1.png)
 
-## 概要
-
 トリガーボックス アクタは 2 枚扉を収容するブループリントの前に配置します。プレイヤーがトリガーボックスに触れるとドアが開き、プレイヤーがトリガーボックスから抜け出すとドアが閉まります。ドアのブループリントは、接続したカスタム イベントのアニメートに必要な全てのスクリプトを収容します。レベル スクリプトはこれらカスタム イベントを呼び出すことができます。
 
 ## レベル スクリプト
@@ -45,10 +43,10 @@ Description:レベル スクリプトの事例概要 1.1:ドアを開くため�
 [![](DoubleDoorsBlueprint.png)](DoubleDoorsBlueprint.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、 **右クリック** または [名前をつけて保存] を選択します。
+フルサイズ表示をクリック、または [Save As (名前をつけて保存)] を **右クリック** します。
 [/REGION]
 
-BP_Double_Doors ブループリントアクタには、幾分洗練されたドアの設定が含まれています。各ドアの場所、ボルト構造の回転、ボルトに使用するマテリアルなどいくつかの物を操作するために [タイムライン](Engine/Blueprints\UserGuide\Timelines) がどのように使用されるかがわかります。このブループリントに対して作成されたカスタム イベントである **Open Doors** イベントまたは **Close Doors** イベントをブループリントが受け取るたびにネットワークがアクティベートします。
+BP_Double_Doors Blueprint アクタには、幾分洗練されたドアの設定が含まれています。各ドアの場所、ボルト構造の回転、ボルトに使用するマテリアルなどいくつかの物を操作するために [タイムライン](Engine/Blueprints\UserGuide\Timelines) がどのように使用されるかがわかります。このブループリントに対して作成されたカスタム イベントである Open Doors イベントまたは Close Doors イベントをブループリントが受け取るたびにネットワークがアクティベートします。
 
 [/EXCERPT:bpDoubleDoors]
 [/REGION]
