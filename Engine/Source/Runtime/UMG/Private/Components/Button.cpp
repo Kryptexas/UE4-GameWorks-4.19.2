@@ -80,21 +80,30 @@ void UButton::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-void UButton::SetColorAndOpacity(FLinearColor Color)
+void UButton::SetStyle(const FButtonStyle& InStyle)
 {
-	ColorAndOpacity = Color;
+	WidgetStyle = InStyle;
 	if ( MyButton.IsValid() )
 	{
-		MyButton->SetColorAndOpacity(Color);
+		MyButton->SetButtonStyle(&WidgetStyle);
 	}
 }
 
-void UButton::SetBackgroundColor(FLinearColor Color)
+void UButton::SetColorAndOpacity(FLinearColor InColorAndOpacity)
 {
-	BackgroundColor = Color;
+	ColorAndOpacity = InColorAndOpacity;
 	if ( MyButton.IsValid() )
 	{
-		MyButton->SetBorderBackgroundColor(Color);
+		MyButton->SetColorAndOpacity(InColorAndOpacity);
+	}
+}
+
+void UButton::SetBackgroundColor(FLinearColor InBackgroundColor)
+{
+	BackgroundColor = InBackgroundColor;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetBorderBackgroundColor(InBackgroundColor);
 	}
 }
 

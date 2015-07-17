@@ -68,6 +68,10 @@ public:
 
 public:
 	
+	/** Sets the color multiplier for the button background */
+	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
+	void SetStyle(const FButtonStyle& InStyle);
+
 	/** Sets the color multiplier for the button content */
 	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
 	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
