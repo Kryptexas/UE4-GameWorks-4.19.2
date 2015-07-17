@@ -15,7 +15,7 @@ Description:アンリアル エンジンのソースコードを ZIP ファイ�
 	[/PARAMLITERAL]
 	[PARAM:content]
 	1.	GitHubページへ **移動** します。
-	1.	**Download ZIP**ボタン (上図) を **クリック** します。
+	1.	**Download ZIP** ボタン (上図) を **クリック** します。
 		![](DownloadZipButton.png)
 		[REGION:warning]
 		ビルトインされた Windows のジップ ユーティリティが、ダウンロードした ZIP ファイルのコンテンツは実行する安全性が確認できないことを示します。  
@@ -77,7 +77,7 @@ Description:アンリアル エンジンのソースコードを ZIP ファイ�
 	[/PARAMLITERAL]
 	[PARAM:content]
 	1.	GitHubページへ **移動** します。
-	1.	**[Download ZIP]**ボタン (上図) を **クリック** します。
+	1.	**[Download ZIP]** ボタン (上図) を **クリック** します。
 		![](DownloadZipButton.png)
 	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
 	1.	ルート フォルダで、端末から **Setup.sh を実行** して、エンジンのバイナリ コンテキスト (下図参照) を **ダウンロード** します。
