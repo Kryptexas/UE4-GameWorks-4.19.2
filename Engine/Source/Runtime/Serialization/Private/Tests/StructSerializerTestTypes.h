@@ -135,13 +135,17 @@ struct FStructSerializerBuiltinTestStruct
 	FRotator Rotator;
 
 	UPROPERTY()
+	FText Text;
+
+	UPROPERTY()
 	FVector Vector;
 
 	/** Default constructor. */
 	FStructSerializerBuiltinTestStruct()
 		: Guid(FGuid::NewGuid())
-		, String("Hello World!")
+		, String("Test String")
 		, Rotator(4096, 8192, 16384)
+		, Text(FText::FromString("Test Text"))
 		, Vector(1.0f, 2.0f, 3.0f)
 	{ }
 

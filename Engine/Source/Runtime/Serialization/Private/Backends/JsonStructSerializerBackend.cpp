@@ -162,7 +162,7 @@ void FJsonStructSerializerBackend::WriteProperty( UProperty* Property, const voi
 		WritePropertyValue(JsonWriter, Property, (double)Cast<UUInt64Property>(Property)->GetPropertyValue_InContainer(Data, ArrayIndex));
 	}
 
-	// names & strings
+	// names, strings & text
 	else if (TypeInfo == UNameProperty::StaticClass())
 	{
 		WritePropertyValue(JsonWriter, Property, Cast<UNameProperty>(Property)->GetPropertyValue_InContainer(Data, ArrayIndex).ToString());
@@ -170,6 +170,10 @@ void FJsonStructSerializerBackend::WriteProperty( UProperty* Property, const voi
 	else if (TypeInfo == UStrProperty::StaticClass())
 	{
 		WritePropertyValue(JsonWriter, Property, Cast<UStrProperty>(Property)->GetPropertyValue_InContainer(Data, ArrayIndex));
+	}
+	else if (TypeInfo == UTextProperty::StaticClass())
+	{
+		WritePropertyValue(JsonWriter, Property, Cast<UTextProperty>(Property)->GetPropertyValue_InContainer(Data, ArrayIndex).ToString());
 	}
 
 	// classes & objects
