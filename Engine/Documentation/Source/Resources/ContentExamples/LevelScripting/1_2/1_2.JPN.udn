@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2176209
+﻿INTSourceChangelist:2621689
 Availability:Docs
 Title:イベント ディスパッチャー
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
-Description:レベルスクリプトの事例概要 1.2:ドアを開くために用いるイベントディスパッチャー
+Description:レベルスクリプトのサンプル レベル、 1.2:ドアを開くために用いるイベントディスパッチャー
 
 
 [VAR:TopicCompact]
@@ -26,8 +26,6 @@ Description:レベルスクリプトの事例概要 1.2:ドアを開くために
 [REGION:fullwidth]
 
 ![](levelscripting_1_2.png)
-
-## 概要
 
 ドアのブループリントの別のインスタンスを使用していますが、今回はボタンのブループリントをプレイヤーが踏んだときにドアが開閉します。ボタンのブループリントは、レベル スクリプトが受け取る特別なディスパッチイベントを使用します。ボタンが押されるとディスパッチ関数が呼ばれます。対応するイベントがレベル スクリプトへ追加されるまでは、ボタンを押すだけでは何も起こりません。
 
