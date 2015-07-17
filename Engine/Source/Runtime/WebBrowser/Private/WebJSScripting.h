@@ -93,12 +93,12 @@ public:
 		}
 	}
 
-	FWebJSParam ConvertResult(UProperty* ResultProperty, uint8* Data);
 	void BindCefBrowser(CefRefPtr<CefBrowser> Browser);
 	void UnbindCefBrowser();
 	CefRefPtr<CefDictionaryValue> GetPermanentBindings();
 
 	void InvokeJSFunction(FGuid FunctionId, int32 ArgCount, FWebJSParam Arguments[], bool bIsError=false);
+	void InvokeJSFunction(FGuid FunctionId, const CefRefPtr<CefListValue>& FunctionArguments, bool bIsError=false);
 	void InvokeJSErrorResult(FGuid FunctionId, const FString& Error);
 
 public:
