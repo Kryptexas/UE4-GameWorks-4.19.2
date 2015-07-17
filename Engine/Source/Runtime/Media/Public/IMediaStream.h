@@ -33,7 +33,7 @@ public:
 	/**
 	 * Adds the given media sink to this stream.
 	 *
-	 * @param Sink The sink to add.
+	 * @param Sink The sink to add.  Uses deferred CPU copies to update the resource.
 	 * @see RemoveSink
 	 */
 	virtual void AddSink(const TSharedRef<IMediaSink, ESPMode::ThreadSafe>& Sink) = 0;
