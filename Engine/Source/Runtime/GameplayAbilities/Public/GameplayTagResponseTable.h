@@ -61,17 +61,12 @@ protected:
 
 	UFUNCTION()
 	void TagResponseEvent(const FGameplayTag Tag, int32 NewCount, UAbilitySystemComponent* ASC, int32 idx);
-	
-	/** Temporary structs to avoid extra heap allocations every time we recalculate tag count */
-	FActiveGameplayEffectQuery Query;
-	FGameplayTagContainer QueryContainer;
 
-	FActiveGameplayEffectQuery& MakeQuery(const FGameplayTag& Tag)
+	FGameplayEffectQuery MakeQuery(const FGameplayTag& Tag)
 	{
-		QueryContainer.RemoveAllTags(QueryContainer.Num());
-		QueryContainer.AddTagFast(Tag);
-		return Query;
+		return FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(Tag));
 	}
+
 
 	// ----------------------------------------------------
 

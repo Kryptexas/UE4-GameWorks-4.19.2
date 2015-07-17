@@ -279,6 +279,13 @@ int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffec
 
 int32 UAbilitySystemComponent::GetAggregatedStackCount(const FActiveGameplayEffectQuery& Query)
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return ActiveGameplayEffects.GetActiveEffectCount(Query);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+int32 UAbilitySystemComponent::GetAggregatedStackCount(const FGameplayEffectQuery& Query)
+{
 	return ActiveGameplayEffects.GetActiveEffectCount(Query);
 }
 
