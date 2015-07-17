@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620111
 Availability:Docs
 Title:ゲームプレイ
 Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
@@ -7,8 +7,6 @@ Description: Swing Ninja ゲームのゲームプレイ セットアップに関
 [TOC(start:2 end:2)]
 
 [REGION:fullwidth]
-
-## 概要
 
 Swing Ninja は横スクロールの物理ベースのゲームです。そのため、適切に機能するために以下の 2 つの主要エレメントがあります。
 
