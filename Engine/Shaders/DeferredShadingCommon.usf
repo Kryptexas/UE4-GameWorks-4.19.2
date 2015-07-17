@@ -359,11 +359,11 @@ void EncodeGBuffer(
 #else
 		OutGBufferC.a = GBuffer.GBufferAO;
 #endif
-		OutGBufferB.a = Encode71(EncodeShadingModelId(GBuffer.ShadingModelID), GBuffer.DecalMask);
-
 		OutGBufferD.r = GBuffer.Opacity;
 		OutGBufferD.gba = GBuffer.CustomData;
 	}
+
+	OutGBufferB.a = Encode71(EncodeShadingModelId(GBuffer.ShadingModelID), GBuffer.DecalMask);
 
 	OutGBufferE = GBuffer.PrecomputedShadowFactors;
 
