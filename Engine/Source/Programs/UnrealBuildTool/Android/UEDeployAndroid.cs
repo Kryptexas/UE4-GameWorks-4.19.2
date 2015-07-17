@@ -1607,10 +1607,9 @@ namespace UnrealBuildTool.Android
             string ThirdPartyDir = Path.GetFullPath(Path.Combine(EngineDirectory, "Source/ThirdParty"));
 
             // Check for GearVR enabled
-            bool bPackageForGearVR;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-
-            Console.WriteLine("bPackageForGearVR? {0}, arch {1}", bPackageForGearVR, Arch);
+            bool bPackageForGearVR = true;
+//            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+//            Console.WriteLine("bPackageForGearVR? {0}, arch {1}", bPackageForGearVR, Arch);
 
             // Note: only support ARMv7 at the moment
             if (bPackageForGearVR && Arch == "armeabi-v7a")
