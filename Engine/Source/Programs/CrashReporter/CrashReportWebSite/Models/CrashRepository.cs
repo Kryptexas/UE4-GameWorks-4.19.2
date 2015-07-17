@@ -764,15 +764,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						select CrashDetail
 					);
 			}
-			else
-			{
-				Results =
-				(
-					from CrashDetail in Results
-					where !CrashDetail.Branch.Contains( "UE4-UT" )
-					select CrashDetail
-				);
-			}
 
 			// Filter by VersionName
 			if (!string.IsNullOrEmpty( FormData.VersionName ))
