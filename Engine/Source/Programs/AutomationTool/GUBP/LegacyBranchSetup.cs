@@ -701,7 +701,8 @@ partial class GUBP
                     }
                 }
 
-                var CookedAgentSharingGroup = "Shared_CookedTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
+                var CookedSharedAgentSharingGroup = "Shared_CookedTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
+                var CookedSampleAgentSharingGroup = "Sample_CookedTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
 
                 var GameTestNodes = new List<string>();
                 var GameCookNodes = new List<string>();
@@ -746,7 +747,7 @@ partial class GUBP
                                     foreach (var Test in GameTests)
                                     {
                                         var TestName = Test.Key + "_" + Plat.ToString();
-                                        ThisMonoGameTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, Branch.BaseEngineProject, TestName, Test.Value, CookedAgentSharingGroup, false, RequiredPlatforms)));
+                                        ThisMonoGameTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, Branch.BaseEngineProject, TestName, Test.Value, CookedSharedAgentSharingGroup, false, RequiredPlatforms)));
                                     }
                                     if (ThisMonoGameTestNodes.Count > 0)
                                     {										
@@ -818,6 +819,7 @@ partial class GUBP
 											foreach (var Test in GameTests)
 											{
 												var TestName = Test.Key + "_" + Plat.ToString();
+												string CookedAgentSharingGroup = GamePlatformMonolithicsNode.IsSample(BranchConfig, NonCodeProject)? CookedSampleAgentSharingGroup : CookedSharedAgentSharingGroup;
 												ThisMonoGameTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, NonCodeProject, TestName, Test.Value, CookedAgentSharingGroup, false, RequiredPlatforms)));
 											}
 											if (ThisMonoGameTestNodes.Count > 0)
@@ -884,7 +886,14 @@ partial class GUBP
                 var AgentShareName = CodeProj.GameName;
                 if (!Options.bSeparateGamePromotion)
                 {
-                    AgentShareName = "Shared";
+					if(GamePlatformMonolithicsNode.IsSample(BranchConfig, CodeProj))
+					{
+						AgentShareName = "Sample";
+					}
+					else
+					{
+						AgentShareName = "Shared";
+					}
                 }
 
 				if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform) && !Options.bIsNonCode)
@@ -1151,7 +1160,9 @@ partial class GUBP
             BranchConfig.AddNode(new SharedLabelPromotableSuccessNode());
             BranchConfig.AddNode(new WaitForTestShared(this));
             BranchConfig.AddNode(new WaitForSharedPromotionUserInput(this, true));
-			BranchConfig.AddNode(new SharedLabelPromotableNode(BranchConfig, true));			
+			BranchConfig.AddNode(new SharedLabelPromotableNode(BranchConfig, true));		
+
+			BranchConfig.AddNode(new WaitToPackageSamplesNode());
         }
 
 		AddCustomNodes(BranchConfig, HostPlatforms, ActivePlatforms);
