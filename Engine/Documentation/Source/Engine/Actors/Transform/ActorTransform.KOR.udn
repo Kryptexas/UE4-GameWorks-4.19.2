@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2623563
 Availability:Public
 Title:액터 트랜스폼
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -62,9 +62,10 @@ Description:레벨에 배치된 액터의 위치, 회전, 스케일 변경하기
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2)]
+%playlistnav%
 
-## 개요
+
+[TOC(start:2)]
 
 액터 트랜스폼이란 액터를 이동, 회전, 스케일 조절하는 것으로, 레벨 편집 과정에 있어서 중요한 부분입니다. 언리얼 에디터에서 액터 트랜스폼 방법은 두 가지입니다. 둘 다 현재 선택된 액터의 트랜스폼에 변경을 가합니다.
 

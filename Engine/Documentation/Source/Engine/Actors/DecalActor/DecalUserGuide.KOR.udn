@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2623510
 Availability:Public
 Title:데칼 액터 사용 안내서
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -45,7 +45,6 @@ Description:Deferred Decal, 디퍼드 데칼 액터 사용 안내서입니다.
 [/VAR]
 [TOC(start:2)]
 
-## 개요
 
 Deferred decal (디퍼드 데칼)은 향상된 퍼포먼스에 관리도 더욱 쉽습니다. 라이팅을 재계산하지 않고 GBuffer 에 쓸 수 있다는 것은 여러가지 장점이 있습니다:
 

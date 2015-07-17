@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2569422
+﻿INTSourceChangelist:2623172
 Availability: Public
 Title:캐릭터 인코딩
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description:언리얼 엔진 4 에 사용되는 캐릭터 인코딩에 대한 개요입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
-## 개요
+
 
 언리얼에서 사용되는 캐릭터 인코딩에 대한 개요입니다.
 
@@ -175,7 +175,7 @@ UTF-8 혹은 디폴트 윈도우 인코딩 입니다. MSVC, Xbox360 컴파일러
 
 UE4 는 현재 ASCII 만 처리합니다. (ASCII | 코드 페이지 1252 | | 서유럽)
 
-모든 언어에 대해서 이 작업을 하기에 그나마 가장 나은 방법은 이 정도입니다: http://en.wikipedia.org/wiki/ISO/IEC_8859
+모든 언어에 대해서 이 작업을 하기에 그나마 가장 나은 방법은 이 정도입니다: [](http://en.wikipedia.org/wiki/ISO/IEC_8859)
 
 
 * ISO/IEC 8859-1 : 영어, 프랑스어, 독일어, 이탈리아어, 포르투갈어와 양 스페인어
@@ -183,7 +183,7 @@ UE4 는 현재 ASCII 만 처리합니다. (ASCII | 코드 페이지 1252 | | 서
 * ISO/IEC 8859-5 : 러시아어
 
 
-ftp://ftp.unicode.org/Public/MAPPINGS/ISO8859/ 의 매핑에는 위에 나열한 언어의 변환 규칙이 포함되어 있습니다. '대문자' 와 '소문자' 정보는 바라는 결과를 내기 위해 적합한 유니코드 캐릭터로 교차 참조될 것입니다.
+[](ftp://ftp.unicode.org/Public/MAPPINGS/ISO8859/) 의 매핑에는 위에 나열한 언어의 변환 규칙이 포함되어 있습니다. '대문자' 와 '소문자' 정보는 바라는 결과를 내기 위해 적합한 유니코드 캐릭터로 교차 참조될 것입니다.
 
 
 
@@ -276,7 +276,7 @@ __결론__
 C++ 소스 코드에 UTF-8 이나 기본 윈도우 인코딩을 사용할 수는 있으나, 이런 문제가 있음을 알아 주시기 바랍니다. 다시 한 번 말씀드리지만, C++ 소스 내부에 스트링 리터럴을 쓰지는 말아 주시기 바랍니다. C++ 소스 코드에 동아시아어 캐릭터 인코딩을 사용해야만 한다면 동아시아어를 기본 코드 페이지로 사용해 주시기 바랍니다.  
 또 한가지 좋은 방법은 BOM 있는 UTF-8 방식을 사용하는 것입니다. (BOM 을 유니코드 시그너처로 인식하는 텍스트 에디터도 있습니다).
 
-__주__
+[REGION:note]
   
 2010년 2월 18일, UTF-8 과 UTF-16 으로 약간의 컴파일러를 테스트했습니다.
 
@@ -286,4 +286,6 @@ PC 와 Xbox 360 용 MSVC, PS3 용 gcc 나 slc 는 (BOM 이 있든 없든) UTF-8 
 퍼포스는 UTF-16 과 UTF-8 둘 다 작업 가능하나, p4 diff 에서는 UTF-8 파일의 BOM 이 일정한 글자로 보이는 문제가 있습니다.
 
 외부 참고자료: [Code Pages Supported by Windows](http://msdn.microsoft.com/en-us/goglobal/bb964654.aspx)
+
+[/REGION]
 

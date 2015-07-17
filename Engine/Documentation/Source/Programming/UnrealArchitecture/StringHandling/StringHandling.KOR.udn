@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2623127
 Availability: Public
 Title:스트링 처리
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
 Description: UE4 에서 사용가능한 스트링 클래스에 대한 개요와 FName, FText, FString 에 대한 참고 안내서입니다.
-Version: 4.5
+Version: 4.9
 
-## 개요
 
 ### FName
 

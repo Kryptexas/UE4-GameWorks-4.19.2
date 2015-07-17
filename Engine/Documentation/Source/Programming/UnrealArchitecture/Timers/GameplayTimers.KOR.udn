@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2623320
 Availability:Public
 Title: 게임플레이 타이머
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
 Description:설정된 주기마다 동작을 수행하는 타이머 구조체입니다.
+Version: 4.9
 
 [EXCERPT:Overview]
 타이머를 통해 지정된 주기마다 한 번 또는 반복적으로 동작을 수행할 수 있습니다. 타이머 설정을 
@@ -116,7 +117,7 @@ Description:설정된 주기마다 동작을 수행하는 타이머 구조체입
 		D.BindDynamic( this, &AMyClass::MyUFunction );
 		GetWorldTimerManager().SetTimer( D, 5.0f, TRUE );
 
-	이 델리게이트는 UFunction 이벤트 메커니즘을 통해 호출되는데, 블루프린트에서처럼 네이티브가 아닌 오버라이드를 제대로 따른다는 뜻입니다.
+	이 델리게이트는 UFUNCTION 이벤트 메커니즘을 통해 호출되는데, 블루프린트에서처럼 네이티브가 아닌 오버라이드를 제대로 따른다는 뜻입니다.
 
 
 ## 알려진 문제

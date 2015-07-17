@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2622256
+﻿INTSourceChangelist:2623711
 Availability:NoPublish
 Title:GitHub 에서 언리얼 엔진 내려받기
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -78,7 +78,13 @@ Description:GitHub 에서 언리얼 엔진 소스 코드 내려받기 입니다.
 	1.	[Git](https://help.github.com/articles/set-up-git/) 구성을 합니다.
 	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다 (아래 그림).
 		![](UnrealRepo.png)
-	1.	소스 폴더를 열고 **run Setup.sh** 명령을 내려 엔진의 바이너리 콘텐츠를 다운로드합니다.
+	1.	루트 폴더 안에서, 터미널 창에 **Setup.sh** 를 실행시키면 엔진의 바이너리 콘텐츠가 다운로드됩니다 (아래 예제 그림).
+
+		![](RunSetupShellScript_Linux.png)
+
+		[REGION:note]
+		이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 확인하세요. BuildThirdParty.log 는 `Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
+		[/REGION]
 	[/PARAM]
 [/OBJECT]
 

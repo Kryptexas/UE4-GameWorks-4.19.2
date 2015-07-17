@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2609424
+﻿INTSourceChangelist:2623713
 Availability:Public
-Title:언리얼 엔진 빌드하기
+Title:소스에서 언리얼 엔진 빌드하기
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:언리얼 엔진 컴파일하기 입니다.
 Version: 4.9
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [TOC (start:2 end:3)]
 
-## 언리얼 엔진 셋업하기
+## 소스에서 언리얼 엔진 빌드
 
 [EXCERPT:Main]
 [OBJECT:ToggleButtonContent]
@@ -24,22 +24,48 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[PARAM:content]
 		[REGION:note]
-		진행하기 전 Microsoft Visual Studio 2013 이 실행중인지 확인하세요.
+		소스에서 언리얼 엔진을 빌드하기 전, Microsoft Visual Studio 2013 이 설치되어 있는지 확인하세요.
 		[/REGION]
 
-		엔진속으로 빠져들기 전에 먼저 해 줘야 할 기본적인 작업이 있습니다:
-
-		1.	루트 디렉토리에 있는 `GenerateProjectFiles.bat` 배치 파일을 실행합니다.
+		1.	루트 디렉토리 안에서, **GenerateProjectFiles.bat** 를 실행하여 프로젝트 파일을 구성합니다.
 
 			[REGION:warning]
-				퍼포스에는 모든 프로젝트 파일은 물론 UE4 솔루션이나 `[UE4Root]\Engine\Intermediate\ProjectFiles` 에 위치한 중간 파일들도 저장되지 않습니다. 새 빌드로 동기화할 때마다 매번 생성하여 최신 상태로 업데이트해 줘야 합니다. 즉 `Intermediate` 폴더를 삭제했다면 위의 배치 파일을 사용하여 프로젝트 파일을 재생성해 줘야 한다는 뜻이기도 합니다.
+			모든 프로젝트 파일은 중간 파일입니다 (`[UE4Root]\Engine\Intermediate\ProjectFiles`). 최신 상태를 유지하려면 새 빌드를 동기화할 때마다 프로젝트 파일을 생성해야 합니다. `Intermediate` 폴더를 지운 경우, 반드시 앞서 말한 뱃치 파일을 실행하여 프로젝트를 재생성해야 합니다.
 			[/REGION]
 
-		1.	루트 디렉토리에 있는 **UE4.sln** Visual Studio 솔루션을 엽니다. 전체 엔진에 대한 메인 Visual Studio 솔루션 파일입니다. 엔진 코어와 게임에 대한 프로젝트는 이 솔루션 안에 포함되어 있습니다.
+		1.	**UE4.sln** 을 더블클릭하여 Visual Studio 에서 프로젝트를 로드합니다.
 
-		1.	**UE4** 프로젝트에 우클릭하고 **Set As StartUp Project** 를 선택합니다.
+		1.	솔루션 환경설정을 **Development Editor** 로 설정합니다 (아래 그림).
 
-		1.	`UE4.sln` 을 저장합니다. 다음 번 솔루션을 열 때 이러한 과정을 반복하지 않도록 변경 내용을 꼭 저장하시기 바랍니다.
+			![](configMenu_updated.png)
+
+		1.	윈도우 64 비트 운영체제로 개발중이라면, 솔루션 플랫폼을 **Win64** 로 설정합니다 (아래 그림).
+
+			![](platform_menu_updated.png)
+
+		1.	UE4 타겟에 우클릭한 다음 **Build** 를 선택합니다 (아래 그림).
+
+			![](BuildUE4.png)
+
+			[REGION:note]
+			시스템의 사양에 따라 소스에서 엔진을 컴파일하는 데 10 분에서 40 분까지 걸릴 수 있습니다.
+			[/REGION]
+
+		1.	엔진 컴파일 이후에는, 스타트업 프로젝트를 **UE4** 로 설정합니다 (아래 그림).
+
+			![](SetUE4_StartPrj.png)
+
+		1.	**UE4** 프로젝트에 우클릭, **'Debug'** 위에 커서를 올린 뒤, **'Start New Instance'** 를 선택하여 컴파일된 에디터를 디버그 모드로 실행시킵니다 (아래 그림).
+
+			![](RunCompiledWindowsEditor.png)
+
+			[REGION:tip]
+			또는, **F5** 키를 눌러도 컴파일된 에디터의 인스턴스를 디버그 모드에서 새로 시작시킬 수 있습니다.
+			[/REGION]
+
+		1.	축하합니다! 소스에서 엔진을 컴파일하고 실행시키는 데 성공하셨습니다 (아래 결과 그림).
+
+			![](CompiledEditor_Windows.png)
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -53,26 +79,75 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[PARAM:content]
 		[REGION:note]
-		진행하기 전 Xcode 5.1 이 설치되어 있는지 확인해 주시기 바랍니다.
+		소스에서 언리얼 엔진을 빌드하기 전 XCode 최신 버전이 설치되어 있는지 확인하세요.
 		[/REGION]
-
-		엔진속으로 빠져들기 전, 컴파일하기 위해서는 프로젝트 파일이 필요할 것입니다:
 		
-		1. 루트 디렉토리에 위치한 `GenerateProjectFiles.command` 파일을 실행합니다. 완료하는 데 일 분이 채 걸리지 않을 것입니다.
+		1.	루트 디렉토리에서, **GenerateProjectFiles.command** 를 실행시켜 프로젝트 파일을 구성합니다.
 		
-		1. 작업이 완료되면 Terminal 창을 닫습니다.
+		1.	**UE4.xcodeproj** 에 더블클릭하여 프로젝트를 XCode 에 로드합니다.
 
-		1.	루트 디렉토리에 있는 `UE4.xcodeproj` Xcode 프로젝트 파일을 엽니다. 전체 엔진에 대한 메인 프로젝트 파일입니다. 엔진 코어와 게임에 대한 모든 프로젝트가 이 프로젝트 안에 포함되어 있습니다.
+		1.	빌드 타겟 설정은, 제목줄에서 **My Mac** 에 **UE4Editor - Mac** 을 선택합니다 (아래 그림)
 
-		1. Xcode 에서 **UE4Editor - Mac** 을 선택한 다음 활성 스키마로 **My Mac 64-bit** 를 선택합니다.
+			![](SettingMacTarget.png)
 
+		1.	프로젝트를 빌드하려면, **Product > Build** 를 선택합니다 (아래 그림).
+
+			![](BuildingMacEditor.png)
+
+			[REGION:note]
+			시스템 사양에 따라 소스에서 엔진을 컴파일하는 데 15 분에서 40 분까지 걸릴 수 있습니다.
+			[/REGION]
+		
+		1.	엔진 컴파일 이후 **Product > Run** 으로 에디터를 실행시킵니다 (아래 그림).
+		
+			![](RunningMacEditor.png)
+
+		1.	축하합니다! 소스에서 엔진을 컴파일하고 실행시키는 데 성공하셨습니다 (아래 결과 그림).
+
+			![](CompiledEditor_Mac.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:warning]
+		현재 Ubuntu 15.04 버전만 지원합니다.
+		[/REGION]
+		
+		1.	루트 디렉토리에서, 터미널에 **GenerateProjectFiles.sh** 를 실행시켜 프로젝트 파일을 구성합니다 (아래 예제 그림).
+
+			![](RunGenPrjFilesShellScript_Linux.png)
+
+		1.	프로젝트를 빌드하려면, 터미널에서 **make** 를 실행합니다 (아래 예제 그림).
+
+			![](RunMakeFile_Linux.png)
+
+		1.	엔진 컴파일 이후, 터미널에 **cd `Engine/Binaries/Linux/`** 라 입력하여 에디터의 바이너리 경로로 이동합니다.
+
+		1.	**UE4Editor** 로 에디터를 실행시킵니다 (아래 그림).
+
+			![](RunUE4Editor_Linux.png)
+
+		1.	축하합니다! 소스에서 엔진을 컴파일하고 실행시키는 데 성공했습니다 (아래 결과 그림).
+
+			![](CompiledEditor_Linux.png)
 	[/PARAM]
 [/OBJECT]
 
+[/EXCERPT:Main]
+
+<!--Currently deprecated for the 'Building from Source' version
 
 ## 언리얼 엔진 컴파일하기
 
-언리얼 엔진 4 는 UnrealBuildTool 을 통한 커스텀 빌딩 방법을 사용합니다. 이 툴은 엔진과 그 모든 부속의 컴파일에 관련된 복잡한 부분 전부를 처리합니다.
+언리얼 엔진 4 는 UnrealBuildTool 을 통한 커스텀 빌딩 방법을 사용합니다. 이 툴은 엔진 컴파일에 관련된 복잡한 부분 전부를 처리합니다.
 
 ### 빌드 환경설정
 
@@ -236,5 +311,4 @@ PC 플랫폼에 대해서는 예외인데, Development 환경설정으로 빌드
 		1. **product** 메뉴에서 **Build For > Running** 을 선택합니다.
 	[/PARAM]
 [/OBJECT]
-
-[/EXCERPT:Main]
+-->
