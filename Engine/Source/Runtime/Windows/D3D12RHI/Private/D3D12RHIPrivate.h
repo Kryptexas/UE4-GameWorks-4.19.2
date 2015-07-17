@@ -946,10 +946,11 @@ public:
     FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
 
 	/** Destructor */
-	virtual ~FD3D12DynamicRHI() {}
+	virtual ~FD3D12DynamicRHI();
 
 	// FDynamicRHI interface.
 	virtual void Init() override;
+	virtual void PostInit() override;
 	virtual void Shutdown() override;
 
     template<typename TRHIType>
@@ -1900,7 +1901,7 @@ public:
 
 namespace D3D12RHI
 {
-	extern TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
+	extern TGlobalResource<FVector4VertexDeclaration> GD3D12Vector4VertexDeclaration;
 
 	/**
 	 *	Default 'Fast VRAM' allocator...

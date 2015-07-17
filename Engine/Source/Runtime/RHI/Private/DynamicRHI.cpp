@@ -63,6 +63,12 @@ void RHIInit(bool bHasEditorToken)
 	}
 }
 
+void RHIPostInit()
+{
+	check(GDynamicRHI);
+	GDynamicRHI->PostInit();
+}
+
 void RHIExit()
 {
 	if ( !GUsingNullRHI && GDynamicRHI != NULL )

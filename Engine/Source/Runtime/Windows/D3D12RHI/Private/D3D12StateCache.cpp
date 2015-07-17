@@ -1149,7 +1149,9 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		{
 			if ((bNeedSetSRVs && bNeedSetSRVsPerShaderStage[Stage]) || bForceState)
 			{
-				NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
+				// Disable SRV slot optimization for now. This will causes us to use a lot more descriptor heap slots.
+				//NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
+				NumSRVs[Stage] = MAX_SRVS;
 			}
 			if ((bNeedSetConstantBuffers && (bNeedSetConstantBuffersPerShaderStage[Stage])) || bForceState)
 			{

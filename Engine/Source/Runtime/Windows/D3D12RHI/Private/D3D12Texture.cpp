@@ -1374,6 +1374,9 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FTexture
 	uint64 Offset = 0;
     const D3D12_RESOURCE_DESC& TextureDesc = Texture2D->GetResource()->GetDesc();
 
+	bool bSRGB = (Texture2D->GetFlags() & TexCreate_SRGB) != 0;
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(TextureDesc.Format, bSRGB);
+
 	// Create a Shader Resource View
     D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
     SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1381,7 +1384,7 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FTexture
 	SRVDesc.Texture2D.MostDetailedMip = MipLevel;
 	SRVDesc.Texture2D.MipLevels = 1;
 
-	SRVDesc.Format = TextureDesc.Format;
+	SRVDesc.Format = PlatformShaderResourceFormat;
 
 	SRVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(TextureDesc.Format, SRVDesc.Format);
 

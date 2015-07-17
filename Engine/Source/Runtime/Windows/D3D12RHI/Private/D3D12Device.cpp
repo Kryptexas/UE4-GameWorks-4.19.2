@@ -427,6 +427,13 @@ void FD3D12Device::CreateCommandContexts()
 	CommandContextArray[0]->OpenCommandList();
 }
 
+FD3D12DynamicRHI::~FD3D12DynamicRHI()
+{
+	UE_LOG(LogD3D12RHI, Log, TEXT("~FD3D12DynamicRHI"));
+
+	check(MainDevice == nullptr);
+}
+
 void FD3D12DynamicRHI::Shutdown()
 {
 	check(IsInGameThread() && IsInRenderingThread());  // require that the render thread has been shut down
@@ -434,6 +441,7 @@ void FD3D12DynamicRHI::Shutdown()
 	// Cleanup the D3D devices.
 	MainDevice->CleanupD3DDevice();
 	delete(MainDevice);
+	MainDevice = nullptr;
 
 	// Release buffered timestamp queries
 	GPUProfilingData.FrameTiming.ReleaseResource();
@@ -466,14 +474,14 @@ void FD3D12DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 	BestMode.Height = 0;
 
 	{
-		HRESULT hr = S_OK;
+		HRESULT HResult = S_OK;
 		TRefCountPtr<IDXGIAdapter> Adapter;
-        hr = DXGIFactory->EnumAdapters(GetRHIDevice()->GetAdapterIndex(), Adapter.GetInitReference());
-		if( DXGI_ERROR_NOT_FOUND == hr )
+		HResult = DXGIFactory->EnumAdapters(GetRHIDevice()->GetAdapterIndex(), Adapter.GetInitReference());
+		if (DXGI_ERROR_NOT_FOUND == HResult)
 		{
 			return;
 		}
-		if( FAILED(hr) )
+		if (FAILED(HResult))
 		{
 			return;
 		}
@@ -488,22 +496,22 @@ void FD3D12DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 		for(uint32 o = 0;o < 1; o++)
 		{
 			TRefCountPtr<IDXGIOutput> Output;
-			hr = Adapter->EnumOutputs(o,Output.GetInitReference());
-			if(DXGI_ERROR_NOT_FOUND == hr)
+			HResult = Adapter->EnumOutputs(o,Output.GetInitReference());
+			if(DXGI_ERROR_NOT_FOUND == HResult)
 				break;
-			if(FAILED(hr))
+			if(FAILED(HResult))
 				return;
 
 			// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 			//  We might want to work around some DXGI badness here.
 			DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			uint32 NumModes = 0;
-			hr = Output->GetDisplayModeList(Format,0,&NumModes,NULL);
-			if(hr == DXGI_ERROR_NOT_FOUND)
+			HResult = Output->GetDisplayModeList(Format,0,&NumModes,NULL);
+			if(HResult == DXGI_ERROR_NOT_FOUND)
 			{
 				return;
 			}
-			else if(hr == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
+			else if(HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
 			{
 				UE_LOG(LogD3D12RHI, Fatal,
 					TEXT("This application cannot be run over a remote desktop configuration")
@@ -848,12 +856,6 @@ void FD3D12DynamicRHI::RHIFlushResources()
 
 void FD3D12DynamicRHI::RHIAcquireThreadOwnership()
 {
-#if WITH_EDITOR
-	if (GRHISupportsRHIThread)
-	{
-		SetupRecursiveResources();
-	}
-#endif
 }
 
 void FD3D12DynamicRHI::RHIReleaseThreadOwnership()

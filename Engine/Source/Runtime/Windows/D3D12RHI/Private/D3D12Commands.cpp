@@ -23,8 +23,8 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 // MSFT: Seb: Fix up these D3D11 names and remove namespace
 namespace D3D12RHI
 {
-	FGlobalBoundShaderState GD3D11ClearMRTBoundShaderState[8];
-	TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
+	FGlobalBoundShaderState GD3D12ClearMRTBoundShaderState[8];
+	TGlobalResource<FVector4VertexDeclaration> GD3D12Vector4VertexDeclaration;
 
 	// MSFT: Seb: Do we need this here?
 	//FGlobalBoundShaderState ResolveBoundShaderState;
@@ -66,7 +66,7 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 	FRHICommandList_RecursiveHazardous RHICmdList(RHIGetDefaultContext());
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
-	GD3D11Vector4VertexDeclaration.InitRHI();
+	GD3D12Vector4VertexDeclaration.InitRHI();
 
 	for (int32 NumBuffers = 1; NumBuffers <= MaxSimultaneousRenderTargets; NumBuffers++)
 	{
@@ -113,7 +113,7 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 			PixelShader = *MRTPixelShader;
 		}
 
-		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[NumBuffers - 1], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D12ClearMRTBoundShaderState[NumBuffers - 1], GD3D12Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 	}
 
 	// MSFT: Seb: Is this needed?
@@ -1780,36 +1780,36 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 		/** The global D3D device's immediate context */
 		FDeviceStateHelper() {}
 
-		void CaptureDeviceState(FD3D12StateCache& StateCache)
+		void CaptureDeviceState(FD3D12StateCache& StateCacheRef)
 		{
-			StateCache.GetBoundShaderState(&OldShaderState);
-			StateCache.GetShaderResourceViews<SF_Vertex>(0, NumVertResources, &VertResources[0]);
-			StateCache.GetDepthStencilState(&pOldDepthStencilState, &StencilRef);
-			StateCache.GetBlendState(&pOldBlendState, BlendFactor, &SampleMask);
-			StateCache.GetRasterizerState(&pOldRasterizerState);
+			StateCacheRef.GetBoundShaderState(&OldShaderState);
+			StateCacheRef.GetShaderResourceViews<SF_Vertex>(0, NumVertResources, &VertResources[0]);
+			StateCacheRef.GetDepthStencilState(&pOldDepthStencilState, &StencilRef);
+			StateCacheRef.GetBlendState(&pOldBlendState, BlendFactor, &SampleMask);
+			StateCacheRef.GetRasterizerState(&pOldRasterizerState);
 		}
 
-		void ClearCurrentVertexResources(FD3D12StateCache& StateCache)
+		void ClearCurrentVertexResources(FD3D12StateCache& StateCacheRef)
 		{
 			static FD3D12ShaderResourceView* NullResources[ResourceCount] = {};
 			for (uint32 ResourceLoop = 0 ; ResourceLoop < NumVertResources; ResourceLoop++)
 			{
-				StateCache.SetShaderResourceView<SF_Vertex>(NullResources[0],0);
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(NullResources[0], 0);
 			}
 		}
 
-		void RestoreDeviceState(FD3D12StateCache& StateCache) 
+		void RestoreDeviceState(FD3D12StateCache& StateCacheRef)
 		{
 
 			// Restore the old shaders
-			StateCache.SetBoundShaderState(OldShaderState);
+			StateCacheRef.SetBoundShaderState(OldShaderState);
 			for (uint32 ResourceLoop = 0 ; ResourceLoop < NumVertResources; ResourceLoop++)
 			{
-				StateCache.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop],ResourceLoop);
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop], ResourceLoop);
 			}
-			StateCache.SetDepthStencilState(pOldDepthStencilState, StencilRef);
-			StateCache.SetBlendState(pOldBlendState, BlendFactor, SampleMask);
-			StateCache.SetRasterizerState(pOldRasterizerState);
+			StateCacheRef.SetDepthStencilState(pOldDepthStencilState, StencilRef);
+			StateCacheRef.SetBlendState(pOldBlendState, BlendFactor, SampleMask);
+			StateCacheRef.SetRasterizerState(pOldRasterizerState);
 
 			ReleaseResources();
 		}
@@ -1913,6 +1913,19 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 			D3D12_RESOURCE_DESC const& Desc = BaseTexture->GetDesc();
 			Width = (uint32)Desc.Width;
 			Height = Desc.Height;
+
+			// Adjust dimensions for the mip level we're clearing.
+			D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc = DepthStencilView->GetDesc();
+			if (DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1D ||
+				DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1DARRAY ||
+				DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D ||
+				DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
+			{
+				// All the non-multisampled texture types have their mip-slice in the same position.
+				uint32 MipIndex = DSVDesc.Texture2D.MipSlice;
+				Width >>= MipIndex;
+				Height >>= MipIndex;
+			}
 		}
 
 		if ((Viewport.Width < Width || Viewport.Height < Height) 
@@ -2045,7 +2058,7 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 
 		{
 			FRHICommandList_RecursiveHazardous RHICmdList(this);
-			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D12ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D12Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
 
 			{

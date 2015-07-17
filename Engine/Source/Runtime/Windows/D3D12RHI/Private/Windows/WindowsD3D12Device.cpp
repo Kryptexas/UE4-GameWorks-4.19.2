@@ -379,13 +379,14 @@ void FD3D12DynamicRHI::Init()
     PresentCount = 0;
 #endif
 	InitD3DDevices();
+}
 
-#if !WITH_EDITOR
+void FD3D12DynamicRHI::PostInit()
+{
 	if (GRHISupportsRHIThread)
 	{
 		SetupRecursiveResources();
 	}
-#endif
 }
 
 void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
@@ -789,14 +790,14 @@ bool FD3D12DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 		MaxAllowableRefreshRate = 10480;
 	}
 
-	HRESULT hr = S_OK;
+	HRESULT HResult = S_OK;
 	TRefCountPtr<IDXGIAdapter> Adapter;
     //TODO: should only be called on display out device
-    hr = DXGIFactory->EnumAdapters(GetRHIDevice()->GetAdapterIndex(), Adapter.GetInitReference());
+	HResult = DXGIFactory->EnumAdapters(GetRHIDevice()->GetAdapterIndex(), Adapter.GetInitReference());
 
-	if (DXGI_ERROR_NOT_FOUND == hr)
+	if (DXGI_ERROR_NOT_FOUND == HResult)
 		return false;
-	if (FAILED(hr))
+	if (FAILED(HResult))
 		return false;
 
 	// get the description of the adapter
@@ -810,22 +811,22 @@ bool FD3D12DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 	do 
 	{
 		TRefCountPtr<IDXGIOutput> Output;
-		hr = Adapter->EnumOutputs(CurrentOutput, Output.GetInitReference());
-		if (DXGI_ERROR_NOT_FOUND == hr)
+		HResult = Adapter->EnumOutputs(CurrentOutput, Output.GetInitReference());
+		if (DXGI_ERROR_NOT_FOUND == HResult)
 			break;
-		if (FAILED(hr))
+		if (FAILED(HResult))
 			return false;
 
 		// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 		//  We might want to work around some DXGI badness here.
 		DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		uint32 NumModes = 0;
-		hr = Output->GetDisplayModeList(Format, 0, &NumModes, NULL);
-		if (hr == DXGI_ERROR_NOT_FOUND)
+		HResult = Output->GetDisplayModeList(Format, 0, &NumModes, NULL);
+		if (HResult == DXGI_ERROR_NOT_FOUND)
 		{
 			continue;
 		}
-		else if (hr == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
+		else if (HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
 		{
 			UE_LOG(LogD3D12RHI, Fatal,
 				TEXT("This application cannot be run over a remote desktop configuration")
