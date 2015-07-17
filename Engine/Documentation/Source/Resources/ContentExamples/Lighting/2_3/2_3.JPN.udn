@@ -1,9 +1,17 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618622
 Availability:Public
 Title:2.3 - 可動ライト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 2_3：可動ライト
-
+Description:ライティングのサンプル レベルの概要 2_3：可動ライト
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -32,7 +40,7 @@ Description:ライティングの事例概要、例 2_3：可動ライト
 
 [INCLUDE:Shared/Glossary/M/#Glossary_Movable_Lights]
 
-固定ライトは [Example 3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES プロファイルをサポートします。また、[Example 3.2](Resources\ContentExamples\Lighting\3_2) で説明する Light 関数もサポートします。
+固定ライトは **[サンプル 3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES プロファイルをサポートします。また、**[サンプル 3.2](Resources\ContentExamples\Lighting\3_2) で説明するライト機能もサポートします。
 
 
 
