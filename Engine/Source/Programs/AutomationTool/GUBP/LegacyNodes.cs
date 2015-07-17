@@ -1225,6 +1225,11 @@ partial class GUBP
 				AddDependency(ToolsNode.StaticGetFullName(InHostPlatform));
 			}
 
+			if(IsSample(BranchConfig, InGameProj))
+			{
+				AddDependency(WaitToPackageSamplesNode.StaticGetFullName());
+			}
+
             if (InGameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
             {
 				if (!BranchConfig.BranchOptions.ExcludePlatformsForEditor.Contains(InHostPlatform))
@@ -1249,6 +1254,11 @@ partial class GUBP
                 AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
         }
+
+		public static bool IsSample(GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject GameProj)
+		{
+			return (GameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && (GameProj.FilePath.Contains("Samples") || GameProj.FilePath.Contains("Templates")));
+		}
 
 		public override string GetDisplayGroupName()
 		{
@@ -1797,6 +1807,34 @@ partial class GUBP
         }
     }
 
+    public class WaitToPackageSamplesNode : WaitForUserInput
+    {
+        public WaitToPackageSamplesNode()
+        {
+			AddDependency(WaitForSharedPromotionUserInput.StaticGetFullName(false));
+		}
+
+        public static string StaticGetFullName()
+        {
+            return "WaitToPackageSamples";
+        }
+
+        public override string GetFullName()
+        {
+            return StaticGetFullName();
+        }
+
+        public override string GetTriggerDescText()
+        {
+			return "Ready to package samples";
+        }
+
+        public override string GetTriggerActionText()
+        {
+			return "Package samples";
+        }
+    }
+
     public class WaitForPromotionUserInput : WaitForUserInput
     {
         string PromotionLabelPrefix;
@@ -2179,7 +2217,13 @@ partial class GUBP
                 {
                     AddPseudodependency(CookNode.StaticGetFullName(HostPlatform, BranchConfig.Branch.BaseEngineProject, BaseCookedPlatform));
                 }
-            }			
+            }
+
+			if(GamePlatformMonolithicsNode.IsSample(BranchConfig, GameProj))
+			{
+				AddDependency(WaitToPackageSamplesNode.StaticGetFullName());
+				AgentSharingGroup = "SampleCooks" + StaticGetHostPlatformSuffix(HostPlatform);
+			}
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InCookPlatform)
         {
@@ -2271,9 +2315,9 @@ partial class GUBP
 							if(Target.Rules.GUBP_BuildWindowsXPMonolithics())
 							{
 								AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, TargetPlatform, true));
-                        }
-                    }
-                }
+							}
+						}
+					}
                 }
                 else
                 {
