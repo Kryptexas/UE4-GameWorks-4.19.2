@@ -28,7 +28,16 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCoreAudio, Log, All);
 /**
  * Maximum number of multichannel audio channels - used only for MatrixMixer setup
  */
-#define MAX_MULTICHANNEL_AUDIOCHANNELS 16
+
+//#define CORE_AUDIO_MAX_CHANNELS (MAX_AUDIOCHANNELS)
+//#define CORE_AUDIO_MAX_MULTICHANNEL_AUDIOCHANNELS 16
+
+// Note: I'm reducing the core-audio max channels to 32 since PC uses a max of 32
+// TODO: This should be something we define from an engine .ini.
+#define CORE_AUDIO_MAX_CHANNELS (32)
+
+// Note: reducing the max multichannel files to 8 (from 16) for perf reasons
+#define CORE_AUDIO_MAX_MULTICHANNEL_AUDIOCHANNELS 8
 
 class FCoreAudioDevice;
 class FCoreAudioEffectsManager;
@@ -400,8 +409,8 @@ private:
 	AudioStreamBasicDescription	MatrixMixerInputFormat;
 	AudioStreamBasicDescription	MatrixMixerOutputFormat;
 
-	bool						Mixer3DInputStatus[MAX_MULTICHANNEL_AUDIOCHANNELS];
-	bool						MatrixMixerInputStatus[MAX_AUDIOCHANNELS];
+	bool						Mixer3DInputStatus[CORE_AUDIO_MAX_MULTICHANNEL_AUDIOCHANNELS];
+	bool						MatrixMixerInputStatus[CORE_AUDIO_MAX_CHANNELS];
 
 	friend class FCoreAudioSoundBuffer;
 	friend class FCoreAudioSoundSource;

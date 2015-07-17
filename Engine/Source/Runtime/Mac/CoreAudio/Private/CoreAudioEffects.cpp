@@ -13,7 +13,7 @@
 #include "CoreAudioEffects.h"
 #include "Engine.h"
 
-extern FCoreAudioSoundSource *GAudioChannels[MAX_AUDIOCHANNELS + 1];
+extern FCoreAudioSoundSource *GAudioChannels[CORE_AUDIO_MAX_CHANNELS + 1];
 
 static CFBundleRef LoadRadioEffectComponent()
 {
@@ -132,7 +132,7 @@ void FCoreAudioEffectsManager::SetReverbEffectParameters( const FAudioReverbEffe
 	float LargeDelayRange = 0.3f;														// 0->1, 0.3
 	float LargeBrightness = FMath::Max<float>(ReverbEffectParameters.Density*ReverbEffectParameters.Gain, 0.1f);	// 0.1->1, 0.49
 
-	for( uint32 Index = 1; Index < MAX_AUDIOCHANNELS + 1; Index++ )
+	for( uint32 Index = 1; Index < CORE_AUDIO_MAX_CHANNELS + 1; Index++ )
 	{
 		FCoreAudioSoundSource *Source = GAudioChannels[Index];
 		if( Source && Source->ReverbUnit )
@@ -168,7 +168,7 @@ void FCoreAudioEffectsManager::SetEQEffectParameters( const FAudioEQEffect& EQEf
 	float CenterGain = VolumeToDeciBels(EQEffectParameters.MFGain);
 	float HighGain = VolumeToDeciBels(EQEffectParameters.HFGain);
 
-	for( uint32 Index = 1; Index < MAX_AUDIOCHANNELS + 1; Index++ )
+	for( uint32 Index = 1; Index < CORE_AUDIO_MAX_CHANNELS + 1; Index++ )
 	{
 		FCoreAudioSoundSource *Source = GAudioChannels[Index];
 		if( Source && Source->EQUnit )
@@ -214,7 +214,7 @@ void FCoreAudioEffectsManager::SetRadioEffectParameters( const FAudioRadioEffect
 	const float ChebyshevMultiplier = Radio_ChebyshevMultiplier->GetValueOnGameThread();
 	const float ChebyshevCubedMultiplier = Radio_ChebyshevCubedMultiplier->GetValueOnGameThread();
 
-	for( uint32 Index = 1; Index < MAX_AUDIOCHANNELS + 1; Index++ )
+	for( uint32 Index = 1; Index < CORE_AUDIO_MAX_CHANNELS + 1; Index++ )
 	{
 		FCoreAudioSoundSource *Source = GAudioChannels[Index];
 		if( Source && Source->RadioUnit )

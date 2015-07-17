@@ -25,11 +25,11 @@
 	check(Status == noErr);\
 }
 
-FCoreAudioSoundSource *GAudioChannels[MAX_AUDIOCHANNELS + 1];
+FCoreAudioSoundSource *GAudioChannels[CORE_AUDIO_MAX_CHANNELS + 1];
 
 static int32 FindFreeAudioChannel()
 {
-	for( int32 Index = 1; Index < MAX_AUDIOCHANNELS + 1; Index++ )
+	for( int32 Index = 1; Index < CORE_AUDIO_MAX_CHANNELS + 1; Index++ )
 	{
 		if( GAudioChannels[Index] == NULL )
 		{
@@ -246,7 +246,28 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 		if( Buffer && Buffer->NumChannels > 0 )
 		{
 			SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );
-		
+
+			if (Buffer->NumChannels < 3)
+			{
+				MixerInputNumber = AudioDevice->GetFreeMixer3DInput();
+			}
+			else
+			{
+				MixerInputNumber = AudioDevice->GetFreeMatrixMixerInput();
+			}
+
+			if (MixerInputNumber == -1)
+			{
+				return false;
+			}
+
+			AudioChannel = FindFreeAudioChannel();
+			if (AudioChannel == 0)
+			{
+				return false;
+			}
+
+
 			WaveInstance = InWaveInstance;
 
 			// Set whether to apply reverb
@@ -291,6 +312,9 @@ void FCoreAudioSoundSource::Update( void )
 	{	
 		return;
 	}
+
+	check(AudioChannel != 0);
+	check(MixerInputNumber != -1);
 
 	float Volume = 0.0f;
 	
@@ -689,32 +713,45 @@ OSStatus FCoreAudioSoundSource::CreateAndConnectAudioUnit( OSType Type, OSType S
 
 bool FCoreAudioSoundSource::AttachToAUGraph()
 {
-	AudioChannel = FindFreeAudioChannel();
+
+	// We should usually have a non-zero AudioChannel here, but this can happen when unpausing a sound
+	if (AudioChannel == 0)
+	{
+		AudioChannel = FindFreeAudioChannel();
+		if (AudioChannel == 0)
+		{
+			return false;
+		}
+	}
+
+	check(MixerInputNumber != -1);
 
 	OSStatus ErrorStatus = noErr;
 	AUNode DestNode = -1;
-	int32 DestInputNumber = 0;
+	int32 DestInputNumber = MixerInputNumber;
 	AudioStreamBasicDescription* StreamFormat = NULL;
 	
 	if( Buffer->NumChannels < 3 )
 	{
 		ErrorStatus = AudioConverterNew( &Buffer->PCMFormat, &AudioDevice->Mixer3DFormat, &CoreAudioConverter );
 		DestNode = AudioDevice->GetMixer3DNode();
-		MixerInputNumber = DestInputNumber = AudioDevice->GetFreeMixer3DInput();
-		
+
 		uint32 SpatialSetting = ( Buffer->NumChannels == 1 ) ? kSpatializationAlgorithm_SoundField : kSpatializationAlgorithm_StereoPassThrough;
-		AudioUnitSetProperty( AudioDevice->GetMixer3DUnit(), kAudioUnitProperty_SpatializationAlgorithm, kAudioUnitScope_Input, MixerInputNumber, &SpatialSetting, sizeof( SpatialSetting ) );
-		AudioUnitSetParameter( AudioDevice->GetMixer3DUnit(), k3DMixerParam_Distance, kAudioUnitScope_Input, MixerInputNumber, 1.0f, 0 );
+		ErrorStatus = AudioUnitSetProperty( AudioDevice->GetMixer3DUnit(), kAudioUnitProperty_SpatializationAlgorithm, kAudioUnitScope_Input, MixerInputNumber, &SpatialSetting, sizeof( SpatialSetting ) );
+		check(ErrorStatus == noErr);
+
+		ErrorStatus = AudioUnitSetParameter( AudioDevice->GetMixer3DUnit(), k3DMixerParam_Distance, kAudioUnitScope_Input, MixerInputNumber, 1.0f, 0 );
+		check(ErrorStatus == noErr);
 
 		StreamFormat = &AudioDevice->Mixer3DFormat;
 	}
 	else
-	{
-		MixerInputNumber = DestInputNumber = AudioDevice->GetFreeMatrixMixerInput();
+	{	
 		DestNode = AudioDevice->GetMatrixMixerNode();
 		StreamFormat = &AudioDevice->MatrixMixerInputFormat;
 		
 		ErrorStatus = AudioConverterNew( &Buffer->PCMFormat, &AudioDevice->MatrixMixerInputFormat, &CoreAudioConverter );
+		check(ErrorStatus == noErr);
 
 		bool bIs6ChannelOGG = Buffer->NumChannels == 6
 							&& ((Buffer->DecompressionState && Buffer->DecompressionState->UsesVorbisChannelOrdering())
@@ -736,6 +773,7 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 		++FiltersNeeded;
 	}
 #else
+	check(EQNode == 0);
 	bool bNeedEQFilter = false;
 #endif
 
@@ -746,6 +784,7 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 		++FiltersNeeded;
 	}
 #else
+	check(RadioNode == 0);
 	bool bNeedRadioFilter = false;
 #endif
 
@@ -756,6 +795,7 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 		++FiltersNeeded;
 	}
 #else
+	check(ReverbNode == 0);
 	bool bNeedReverbFilter = false;
 #endif
 
@@ -924,7 +964,11 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 		Input.inputProcRefCon = this;
 		SAFE_CA_CALL( AudioUnitSetProperty( SourceUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &Input, sizeof( Input ) ) );
 
-		SAFE_CA_CALL( AUGraphUpdate( AudioDevice->GetAudioUnitGraph(), NULL ) );
+		// This is split to easily investigate the callstack if the assert happens
+		AUGraph Graph = AudioDevice->GetAudioUnitGraph();
+		check(Graph);
+		ErrorStatus = AUGraphUpdate( Graph, NULL );
+        check(ErrorStatus == noErr);
 
 		GAudioChannels[AudioChannel] = this;
 	}
@@ -933,6 +977,9 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 
 bool FCoreAudioSoundSource::DetachFromAUGraph()
 {
+	check(AudioChannel != 0);
+	check(MixerInputNumber != -1);
+
 	AURenderCallbackStruct Input;
 	Input.inputProc = NULL;
 	Input.inputProcRefCon = NULL;
@@ -942,6 +989,21 @@ bool FCoreAudioSoundSource::DetachFromAUGraph()
 	{
 		SAFE_CA_CALL( AUGraphDisconnectNodeInput( AudioDevice->GetAudioUnitGraph(), StreamSplitterNode, 0 ) );
 	}
+
+// Make sure we still have null nodes
+#if !RADIO_ENABLED
+	check(RadioNode == 0);
+#endif
+
+#if !REVERB_ENABLED
+	check(ReverbNode == 0);
+#endif
+
+#if !EQ_ENABLED
+	check(EQNode == 0);
+#endif
+
+
 	if( ReverbNode )
 	{
 		SAFE_CA_CALL( AUGraphDisconnectNodeInput( AudioDevice->GetAudioUnitGraph(), ReverbNode, 0 ) );
