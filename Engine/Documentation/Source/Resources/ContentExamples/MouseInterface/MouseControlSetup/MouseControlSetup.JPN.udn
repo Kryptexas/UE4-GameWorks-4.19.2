@@ -1,40 +1,39 @@
-﻿INTSourceChangelist:2541382
+﻿INTSourceChangelist:2620667
 Availability:Public
 Title:マウス操作の設定
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
-Description:マウスで遊べるゲームの設定方法
+Description:マウス操作可能なゲームの設定方法
 
 [TOC(start:2 end:2)]
 
-## 概要
 
-マウス操作のゲーム作成を開始する前にいくつかの設定を行わなくてはいけません。以下はブループリントで行う手順の概要です。詳細も以下で説明します。
+マウス操作可能なゲーム作成を開始する前にいくつかの設定を行わなくてはいけません。以下はブループリントで行う手順の概要です。詳細も以下で説明します。
 
 * マウス カーソルとその他のマウス動作を有効にするため、新規に **PlayerController** ブループリント クラスを作成します。 
 * 新しい **PlayerController** クラスを利用する **GameMode** ブループリント クラスを新規に作成します。
 * Default Game Type で新しい GameMode を利用するために **World Settings** を設定します。
-* マウスのインタラクションの一連の操作にブループリント スクリプト (レベル ブループリントまたはアクタ ブループリント内のどちらか) を使用します。
+* マウスのインタラクションの処理にブループリントのスクリプト (Level ブループリントまたは Actor ブループリント内のどちらか) を使用します。
 
 
 
 
-## マウス制御にカスタムプレイヤー コントローラを作成する方法
+## マウス制御にカスタムのプレイヤー コントローラを作成する方法
 
-PlayerController クラスは、デフォルト設定でマウス インターフェースが有効になっていません。全てのゲームがインタラクションにマウス カーソルを必要とするわけではないことが理由です。以下の手順で、マウス カーソルへアクセスを可能とするカスタム PlayerController ブループリント クラスの作成について説明します。
+PlayerController クラスは、デフォルト設定でマウス インターフェースが有効になっていません。全てのゲームがインタラクションにマウス カーソルを必要とするわけではないことが理由です。以下の手順で、マウス カーソルを利用できるようにするカスタムの PlayerController ブループリント クラスの作成について説明します。
 
 [REGION:note]
-	これから紹介する手順は、マウス制御を有効にするための基本手順であることを理解してください。大抵の場合、ユーザーが作成中の特定タイプのゲームの PlayerController とGameMode をカスタマイズするには、その他の手順が必要となります。
+	以下の手順は、マウス制御を有効にする基本手順であることを理解してください。大抵の場合、ユーザーが作成中の特定タイプのゲームの PlayerController とGameMode をカスタマイズするには、その他の手順が必要となります。
 [/REGION]
 
 1. **コンテンツ ブラウザ** (単純化のため Developer フォルダを使用) を **右クリック** してコンテキスト メニューから **Blueprint Class** を選択します。
 
 	[REGION:raw]![](CreateNewBlueprint.png)[/REGION]
 
-1.  **Pick Parent Class** ウィンドウの検索バーで PlayerController クラスを検索してクリックします。
+1.  **Pick Parent Class** ウィンドウの検索バーで **PlayerController** クラスを検索して **クリック** します。
 
 	![](PickParentClass_PlayerController.png)
 
-1. 新クラスは **Mouse_PlayerController** と名前を付けます。
+1. 新クラスに **Mouse_PlayerController** と名前を付けます。
 
 	![](MousePlayerController_CB.png)
 
@@ -46,18 +45,18 @@ PlayerController クラスは、デフォルト設定でマウス インター�
 
 	![](MouseInterfaceProperties.png)
 
-1. ブループリントを保存します。
+1. 新しいブループリントを **保存** します。
 
 
 ## カスタム仕様のゲームモードの作成方法
 
-Mouse Input が有効となった PlayerController が作成されたので、次に PlayerController を利用するカスタム仕様の GameMode を作成します。上記で紹介したカスタムの Player Controller クラスを作成していないと、以下に説明する手順は _機能しません_ 。
+Mouse Input が有効となった PlayerController が作成されたので、次に新しいPlayerController を利用するカスタム仕様の GameMode を作成します。上記で紹介したカスタムの Player Controller クラスを作成していないと、以下に説明する手順は _機能しません_ 。
 
 1. **コンテンツ ブラウザ** (単純化のため Developer フォルダを使用) を **右クリック** してコンテキスト メニューから **Blueprint Class** を選択します。
 
 	[REGION:raw]![](CreateNewBlueprint.png)[/REGION]
 
-1.  **Pick Parent Class** ウィンドウの検索バーで GameMode クラスを検索してクリックします。
+1.  **Pick Parent Class** ウィンドウの検索バーで **GameMode** クラスを検索して **クリック** します。
 
 	![](GameInfoParentClass.png)
 
@@ -69,18 +68,18 @@ Mouse Input が有効となった PlayerController が作成されたので、�
 
 	![](EditDefaultsBlueprint2.png)
 
-1. Classes カテゴリの **Player Controller Class** の横にあるドロップダウンリストをクリックします。予め作成されている **Mouse_PlayerController** がリストに表示されます。リストからこれを選択します。
+1. Classes カテゴリの **Player Controller Class** の横にある **ドロップダウンリストをクリック** します。予め作成されている **Mouse_PlayerController** がリストに表示されます。リストからこれを選択します。
 
 	![](SelectingPlayerControllerClass.png)
 
-1. ブループリントを保存します。
+1. 新しいブループリントを **保存** します。
 
 
 ## カスタムの Game Mode に World Info プロパティを設定する方法
 
 カスタム仕様の PlayerController と GameMode が設定されたブループリントが作成されたので、次に World Settings でこれを利用する設定をします。
 
-1. ツールバーにある **Settings** ボタンをクリックします。次にドロップダウンから **World Settings** を選択します。**[詳細]** パネルで World Settings が開きます。
+1. ツールバーにある **Settings (設定)** ボタンを **クリック** します。次にドロップダウンから **World Settings (ワールド設定)** を **選択** します。**[詳細]** パネルで World Settings が開きます。
 
 	![](WorldSettings.png)
 
