@@ -426,13 +426,15 @@ struct ENGINE_API FActorSpawnParameters
 		,	Instigator(NULL)
 		,	OverrideLevel(NULL)
 		,	SpawnCollisionHandlingOverride(ESpawnActorCollisionHandlingMethod::Undefined)
-		,	bNoCollisionFail(false)
 		,	bRemoteOwned(false)
 		,	bNoFail(false)
 		,	bDeferConstruction(false)		
 		,	bAllowDuringConstructionScript(false)
 		,	ObjectFlags(RF_Transactional)
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		bNoCollisionFail = false;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	/* A name to assign as the Name of the Actor being spawned. If no value is specified, the name of the spawned Actor will be automatically generated using the form [Class]_[Number]. */
