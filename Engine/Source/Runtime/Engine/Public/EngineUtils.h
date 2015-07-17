@@ -474,6 +474,18 @@ public:
 	{
 		return **this;
 	}
+
+private:
+	/**
+	 * Used to examine whether this level is valid for iteration or not
+	 *
+	 * @param Level the level to check for iteration
+	 * @return true if the level can be iterated, false otherwise
+	 */
+	static bool CanIterateLevel(ULevel* Level)
+	{
+		return Level->bIsVisible;
+	}
 };
 
 /**
