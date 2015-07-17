@@ -153,7 +153,14 @@ public:
 	/**
 	 * Destructor.
 	 */
-	~FLauncherProfile( ) { }
+	~FLauncherProfile( ) 
+	{
+		if (DeployedDeviceGroup.IsValid())
+		{
+			DeployedDeviceGroup->OnDeviceAdded().Remove(OnLauncherDeviceGroupDeviceAddedDelegateHandle);
+			DeployedDeviceGroup->OnDeviceRemoved().Remove(OnLauncherDeviceGroupDeviceRemoveDelegateHandle);
+		}
+	}
 
 public:
 
@@ -373,6 +380,11 @@ public:
 	virtual FGuid GetId( ) const override
 	{
 		return Id;
+	}
+
+	virtual FString GetFileName() const override
+	{
+		return GetName() + TEXT("_") + GetId().ToString() + TEXT(".ulp");
 	}
 
 	virtual ELauncherProfileLaunchModes::Type GetLaunchMode( ) const override

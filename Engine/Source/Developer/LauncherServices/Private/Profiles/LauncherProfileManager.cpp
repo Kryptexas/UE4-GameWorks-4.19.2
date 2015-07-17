@@ -267,7 +267,7 @@ void FLauncherProfileManager::RemoveProfile( const ILauncherProfileRef& Profile 
 		if (Profile->GetId().IsValid())
 		{
 			// delete the persisted profile on disk
-			FString ProfileFileName = GetProfileFolder() / Profile->GetId().ToString() + TEXT(".ulp");
+			FString ProfileFileName = GetProfileFolder() / Profile->GetFileName();
 
 			// delete the profile
 			IFileManager::Get().Delete(*ProfileFileName);
@@ -278,11 +278,11 @@ void FLauncherProfileManager::RemoveProfile( const ILauncherProfileRef& Profile 
 }
 
 
-void FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
+bool FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
 {
 	if (Profile->GetId().IsValid())
 	{
-		FString ProfileFileName = GetProfileFolder() / Profile->GetId().ToString() + TEXT(".ulp");
+		FString ProfileFileName = GetProfileFolder() / Profile->GetFileName();
 		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*ProfileFileName);
 
 		if (ProfileFileWriter != nullptr)
@@ -290,9 +290,32 @@ void FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
 			Profile->Serialize(*ProfileFileWriter);
 
 			delete ProfileFileWriter;
+
+			return true;
 		}
 	}
+	return false;
 }
+
+void FLauncherProfileManager::ChangeProfileName(const ILauncherProfileRef& Profile, FString Name)
+{
+	FString OldName = Profile->GetName();
+	FString OldProfileFileName = GetProfileFolder() / Profile->GetFileName();
+
+	//change name and save to new location
+	Profile->SetName(Name);
+	if (SaveProfile(Profile))
+	{
+		// delete the old profile
+		IFileManager::Get().Delete(*OldProfileFileName);
+	}
+	else
+	{
+		//if we couldn't save successfully, change the name back to keep files/profiles matching.
+		Profile->SetName(OldName);		
+	}	
+}
+
 
 
 void FLauncherProfileManager::SaveSettings( )
@@ -357,6 +380,32 @@ void FLauncherProfileManager::LoadProfiles( )
 {
 	TArray<FString> ProfileFileNames;
 
+	//load and move legacy profiles
+	{
+		IFileManager::Get().FindFiles(ProfileFileNames, *(GetLegacyProfileFolder() / TEXT("*.ulp")), true, false);
+		for (TArray<FString>::TConstIterator It(ProfileFileNames); It; ++It)
+		{
+			FString ProfileFilePath = GetLegacyProfileFolder() / *It;
+			FArchive* ProfileFileReader = IFileManager::Get().CreateFileReader(*ProfileFilePath);
+
+			if (ProfileFileReader != nullptr)
+			{
+				ILauncherProfilePtr LoadedProfile = LoadProfile(*ProfileFileReader);
+				delete ProfileFileReader;
+
+				//resave profile to new location
+				if (LoadedProfile.IsValid())
+				{
+					SaveProfile(LoadedProfile.ToSharedRef());
+				}
+
+				//delete legacy profile.
+				IFileManager::Get().Delete(*ProfileFilePath);				
+			}
+		}
+	}
+
+	ProfileFileNames.Reset();
 	IFileManager::Get().FindFiles(ProfileFileNames, *(GetProfileFolder() / TEXT("*.ulp")), true, false);
 	
 	for (TArray<FString>::TConstIterator It(ProfileFileNames); It; ++It)

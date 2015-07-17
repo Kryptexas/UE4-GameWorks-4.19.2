@@ -197,7 +197,14 @@ public:
 	 * @param Archive The archive to save to.
 	 * @see LoadProfile
 	 */
-	virtual void SaveProfile(const ILauncherProfileRef& Profile) = 0;
+	virtual bool SaveProfile(const ILauncherProfileRef& Profile) = 0;
+
+	/**
+	* Modifies profile name. Saves file to new location and deletes old one to avoid duplicating profiles.
+	*
+	* @param Profile The profile to change	
+	*/
+	virtual void ChangeProfileName(const ILauncherProfileRef& Profile, FString Name) = 0;
 
 public:
 

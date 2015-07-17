@@ -299,7 +299,7 @@ void SProjectLauncherSettings::OnNameTextCommitted(const FText& NewText, ETextCo
 	const ILauncherProfilePtr& LaunchProfile = Model->GetSelectedProfile();
 	if (LaunchProfile.IsValid())
 	{
-		LaunchProfile->SetName(NewText.ToString());
+		Model->GetProfileManager()->ChangeProfileName(LaunchProfile.ToSharedRef(), NewText.ToString());
 	}
 }
 

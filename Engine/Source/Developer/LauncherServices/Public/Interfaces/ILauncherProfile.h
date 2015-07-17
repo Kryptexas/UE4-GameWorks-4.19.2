@@ -315,6 +315,13 @@ public:
 	virtual FGuid GetId( ) const = 0;
 
 	/**
+	* Gets the file name for serialization.
+	*
+	* @return The file name.
+	*/
+	virtual FString GetFileName( ) const = 0;
+
+	/**
 	 * Gets the human readable name of the profile.
 	 *
 	 * @return The profile name.
