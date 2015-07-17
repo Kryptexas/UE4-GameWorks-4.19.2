@@ -462,7 +462,6 @@ void FRHICommandListExecutor::LatchBypass()
 	{
 		GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);		
 
-#if 0
 		static bool bOnce = false;
 		if (!bOnce)
 		{
@@ -473,11 +472,10 @@ void FRHICommandListExecutor::LatchBypass()
 				BypassVar->Set(0, ECVF_SetByCommandline);
 			}
 		}
-#endif
 
 		check((GRHICommandList.OutstandingCmdListCount.GetValue() == 1 && !GRHICommandList.GetImmediateCommandList().HasCommands()));
 		bool NewBypass = (CVarRHICmdBypass.GetValueOnAnyThread() >= 1);
-		NewBypass = true;
+
 		if (NewBypass && !bLatchedBypass)
 		{
 			FRHIResource::FlushPendingDeletes();
