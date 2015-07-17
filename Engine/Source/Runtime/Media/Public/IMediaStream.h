@@ -33,7 +33,9 @@ public:
 	/**
 	 * Adds the given media sink to this stream.
 	 *
-	 * @param Sink The sink to add.  Uses deferred CPU copies to update the resource.
+	 * This method uses deferred CPU copies to update the resource, which can be slow.
+	 *
+	 * @param Sink The sink to add.
 	 * @see RemoveSink
 	 */
 	virtual void AddSink(const TSharedRef<IMediaSink, ESPMode::ThreadSafe>& Sink) = 0;
@@ -125,8 +127,8 @@ public:
 };
 
 
-/** Type definition for shared pointers to instances of IMediaTrack. */
+/** Type definition for shared pointers to instances of IMediaStream. */
 typedef TSharedPtr<IMediaStream, ESPMode::ThreadSafe> IMediaStreamPtr;
 
-/** Type definition for shared references to instances of IMediaTrack. */
+/** Type definition for shared references to instances of IMediaStream. */
 typedef TSharedRef<IMediaStream, ESPMode::ThreadSafe> IMediaStreamRef;

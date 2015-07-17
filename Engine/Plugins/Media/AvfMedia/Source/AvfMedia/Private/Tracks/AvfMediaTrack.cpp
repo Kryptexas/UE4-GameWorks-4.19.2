@@ -6,7 +6,7 @@
 #define LOCTEXT_NAMESPACE "FAvfMediaTrack"
 
 
-/* IMediaTrack interface
+/* IMediaStream interface
  *****************************************************************************/
 
 bool FAvfMediaTrack::Disable()

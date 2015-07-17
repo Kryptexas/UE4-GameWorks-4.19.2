@@ -28,7 +28,7 @@ public:
 
 public:
 
-	// IMediaTrack interface
+	// IMediaStream interface
 
 	virtual void AddSink(const IMediaSinkRef& Sink) = 0;
 	virtual bool Disable() override;

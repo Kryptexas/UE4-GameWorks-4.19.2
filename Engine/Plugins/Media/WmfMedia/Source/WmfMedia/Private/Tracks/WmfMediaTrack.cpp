@@ -36,7 +36,7 @@ FWmfMediaTrack::FWmfMediaTrack( IMFPresentationDescriptor* InPresentationDescrip
 }
 
 
-/* IMediaTrack interface
+/* IMediaStream interface
  *****************************************************************************/
 
 void FWmfMediaTrack::AddSink( const IMediaSinkRef& Sink )

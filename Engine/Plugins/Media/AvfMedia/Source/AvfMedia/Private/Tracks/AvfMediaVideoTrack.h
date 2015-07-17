@@ -32,7 +32,7 @@ public:
 
 public:
 
-	// IMediaTrackVideoDetails interface
+	// IMediaVideoTrack interface
 
 	virtual uint32 GetBitRate() const override
 	{
@@ -57,16 +57,16 @@ public:
 
 public:
 
-	// IMediaTrack interface
+	// IMediaStream interface
 
-    virtual void AddSink( const IMediaSinkRef& Sink ) override
+    virtual void AddSink(const IMediaSinkRef& Sink) override
     {
-        Sinks.Add( Sink );
+        Sinks.Add(Sink);
     }
 
-    virtual void RemoveSink( const IMediaSinkRef& Sink ) override
+    virtual void RemoveSink(const IMediaSinkRef& Sink) override
     {
-        Sinks.Remove( Sink );
+        Sinks.Remove(Sink);
     }
 
 public:
@@ -77,14 +77,14 @@ public:
      * @param AVPlayerTime The time the AVPlayer is currently synced to.
      * @param bInIsInitialFrameRead Flag whether this is the first frame read of the asset.
      */
-    void ReadFrameAtTime( const CMTime& AVPlayerTime, bool bInIsInitialFrameRead = false );
+    void ReadFrameAtTime(const CMTime& AVPlayerTime, bool bInIsInitialFrameRead = false);
 
     /**
      * Set the Av Asset reader to a specified time.
      *
      * @param SeekTime The time the Track Reader should be set to.
      */
-    bool SeekToTime( const CMTime& SeekTime );
+    bool SeekToTime(const CMTime& SeekTime);
 
 private:
 

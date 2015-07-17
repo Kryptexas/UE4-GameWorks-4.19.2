@@ -34,7 +34,7 @@ enum class EMediaSeekDirection
 /**
  * Interface for media players.
  *
- * @see IMediaTrack
+ * @see IMediaStream
  */
 class IMediaPlayer
 {

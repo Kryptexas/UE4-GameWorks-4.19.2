@@ -46,17 +46,19 @@ public:
 
 #if WITH_ENGINE
 	/**
-	* Binds the given TextureResource to the track.  The MediaPlayer/Track implementation can use this to bypass the normal CPU copy deferred sinks
-	* and directly update the resource with the GPU if desired.
-	*
-	* @see RemoveBoundTexture
-	*/
+	 * Bind the given TextureResource to the track.
+	 *
+	 * The MediaPlayer/Track implementation can use this to bypass the normal CPU
+	 * copy deferred sinks and directly update the resource with the GPU if desired.
+	 *
+	 * @see RemoveBoundTexture
+	 */
 	virtual void AddBoundTexture(class FRHITexture* BoundResource) { };
 
 	/**
-	* Removes the given texture from the track binding.  Texture will no longer be updated via BoundTexture path.
-	* @see AddBoundTexture
-	*/
+	 * Remove the given texture from the track binding.  Texture will no longer be updated via BoundTexture path.
+	 * @see AddBoundTexture
+	 */
 	virtual void RemoveBoundTexture(class FRHITexture* BoundResource) { };
 #endif
 
