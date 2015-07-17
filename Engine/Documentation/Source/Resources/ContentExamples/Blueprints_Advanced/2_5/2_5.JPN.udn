@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2621719
 Availability:Public
 Title:2.5 - 子ブループリント
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description: 高度なブループリント事例レベルの概要 例 2.5:子ブループリント
+Description: 高度なブループリントのサンプル レベルの概要 例 2.5:子ブループリント
 Related: Engine/Blueprints/Overview 
 Related: Engine/Blueprints/UserGuide/Variables
 Related: Engine/Blueprints/UserGuide/BlueprintComms
@@ -35,7 +35,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## 概要
 
-マスターマテリアルのマテリアル インスタンスを作成する方法と同じように、親 _ブループリント_ に基づいて子 _ブループリント_ を作成することができます。子は自動的に親の機能を継承します。継承した機能は拡張、追加、変更が可能です。この実例では、3 つの収集可能な pickup _ブループリント_ が一般的な pickup _ブループリント_ の子になります。 
+マスターマテリアルのマテリアル インスタンスを作成する方法と同じように、親 _ブループリント_ に基づいて子 _ブループリント_ を作成することができます。子は自動的に親の機能を継承します。継承した機能は拡張、追加、変更が可能です。この例では、3 つの収集可能な pickup _ブループリント_ が一般的な pickup _ブループリント_ の子になります。 
 
 親 _ブループリント_ は **BP_Pickup_Parent_C** で、以下の 3 つが子 _ブループリント_ です。
 
@@ -51,17 +51,17 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [![](AdvBP_2_5_Parent_EventGraph.png)](AdvBP_2_5_Parent_EventGraph.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+クリックしてフルサイズ表示するか、**右クリック** して [Save As (名前を付けて保存)] します。
 [/REGION]
 
 
-親ブループリントである **BP_Pickup_Parent** には、ピックアップをスピンやフローさせるタイムライン アニメーションなどの基本的なピックアップ動作用のスクリプトが含まれています。 
-子ブループリントはこのスクリプトを全て継承しますが、収集される時の追加スクリプトがあるので、各ピックアップは同じ基本機能を共有しつつ若干異なる動作をします。 
-親ブループリント対する更新が全ての子ブループリントに適用されるという点で便利です。
+親ブループリントである BP_Pickup_Parent には、ピックアップをスピンおよびフロートさせるタイムライン アニメーションや、ピックアップを集めるためのシーケンスなどの基本的なピックアップ動作用のスクリプトが含まれています。 
+子ブループリントはこのスクリプトを全て継承しますが、集める時の追加スクリプトがあるので、各ピックアップは同じ基本機能を共有しつつ若干異なる動作をします。 
+親ブループリントに対する更新が全ての子ブループリントに適用されるという点で便利です。
 
 
-プレイヤーのポーンが **Pickup Trigger** _SphereComponent_ にオーバーラップすると、**OnPickedUp** [イベントディスパッチャー](Engine/Blueprints\UserGuide\EventDispatcher) が呼び出されます。プレイヤーがそれぞれの pickup を収集すると **OnPickedUp** が呼び出され、異なる文字列がプリントするように、 
-それぞれの子 _ブループリント_ は異なるイベントを **OnPickedUp** にバインドします。
+プレイヤーのポーンが Pickup Trigger _SphereComponent_ にオーバーラップすると、**OnPickedUp** [イベントディスパッチャー](Engine/Blueprints\UserGuide\EventDispatcher) が呼び出されます。プレイヤーがそれぞれの pickup を集めて **OnPickedUp** が呼び出されると、異なる文字列がプリントするように、 
+それぞれの子 _ブループリント_ は異なるイベントを OnPickedUp にバインドします。
 [/EXCERPT:CoinParent]
 
 ## 子ブループリントのイベント グラフ
@@ -71,12 +71,12 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [![](AdvBP_2_5_Child1_EventGraph.png)](AdvBP_2_5_Child1_EventGraph.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+クリックしてフルサイズ表示するか、**右クリック** して [Save As (名前を付けて保存)] します。
 [/REGION]
 
 
 
-原則として、ブループリント グラフは同じイベントの複製を含むことができないので、両方とも親スクリプトで子スクリプトがそれぞれ **ReceiveBeginPlay** イベントを含む場合、親スクリプトにあるイベントだけが発行されます。イベントを **右クリック** し、**[Add call to parent function]** を選択すると、子スクリプト内でこの現象を回避できます。呼び出し時に親スクリプト内の対応するイベントをトリガーする関数が作成されます。
+原則として、ブループリント グラフは同じイベントの複製を含むことができないので、親スクリプトと子スクリプトの両方がそれぞれ ReceiveBeginPlay イベントを含む場合、親スクリプトにあるイベントだけが発行されます。イベントを **右クリック** し、**[Add call to parent function]** を選択すると、子スクリプト内でこの現象を回避できます。これで呼び出し時に親スクリプト内の対応するイベントをトリガーする関数が作成されます。
 
 [/EXCERPT:CoinChild]
 
