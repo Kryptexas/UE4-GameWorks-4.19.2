@@ -528,7 +528,6 @@ namespace Rocket
 			BuildProducts = new List<string>();
 
 			string InputDir = Path.GetFullPath(CommandUtils.CmdEnv.LocalRoot);
-			string RulesFileName = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "InstalledEngineFilters.ini");
 
 			// Read the filter for files on this platform
 			FileFilter SignFilter = new FileFilter();
