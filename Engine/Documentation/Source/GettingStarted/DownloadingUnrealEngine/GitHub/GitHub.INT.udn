@@ -1,7 +1,7 @@
 ﻿Availability:NoPublish
-Title:Downloading Unreal Engine from GitHub
+Title:Forking and Cloning Unreal from GitHub
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
-Description:Downloading the Unreal Engine source code from GitHub.
+Description:Forking and cloning the Unreal Engine source code from GitHub.
 
 %Globals:osselect_linux%
 
