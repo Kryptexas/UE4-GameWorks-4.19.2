@@ -253,7 +253,7 @@ void FLauncherProfileManager::RemoveSimpleProfile(const ILauncherSimpleProfileRe
 	if (SimpleProfiles.Remove(SimpleProfile) > 0)
 	{
 		// delete the persisted simple profile on disk
-		FString SimpleProfileFileName = GetProfileFolder() / SimpleProfile->GetDeviceName() + TEXT(".uslp");
+		FString SimpleProfileFileName = FLauncherProfile::GetProfileFolder() / SimpleProfile->GetDeviceName() + TEXT(".uslp");
 		IFileManager::Get().Delete(*SimpleProfileFileName);
 	}
 }
@@ -267,7 +267,7 @@ void FLauncherProfileManager::RemoveProfile( const ILauncherProfileRef& Profile 
 		if (Profile->GetId().IsValid())
 		{
 			// delete the persisted profile on disk
-			FString ProfileFileName = GetProfileFolder() / Profile->GetFileName();
+			FString ProfileFileName = Profile->GetFilePath();
 
 			// delete the profile
 			IFileManager::Get().Delete(*ProfileFileName);
@@ -282,7 +282,7 @@ bool FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
 {
 	if (Profile->GetId().IsValid())
 	{
-		FString ProfileFileName = GetProfileFolder() / Profile->GetFileName();
+		FString ProfileFileName = Profile->GetFilePath();
 		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*ProfileFileName);
 
 		if (ProfileFileWriter != nullptr)
@@ -300,19 +300,23 @@ bool FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
 void FLauncherProfileManager::ChangeProfileName(const ILauncherProfileRef& Profile, FString Name)
 {
 	FString OldName = Profile->GetName();
-	FString OldProfileFileName = GetProfileFolder() / Profile->GetFileName();
+	FString OldProfileFileName = Profile->GetFilePath();
 
 	//change name and save to new location
 	Profile->SetName(Name);
 	if (SaveProfile(Profile))
 	{
-		// delete the old profile
-		IFileManager::Get().Delete(*OldProfileFileName);
+		//delete the old profile if the location moved.  File names should be uppercase so this compare works on case sensitive and insensitive platforms
+		if (OldProfileFileName.Compare(Profile->GetFilePath()) != 0)
+		{
+			
+			IFileManager::Get().Delete(*OldProfileFileName);
+		}
 	}
 	else
 	{
 		//if we couldn't save successfully, change the name back to keep files/profiles matching.
-		Profile->SetName(OldName);		
+		Profile->SetName(OldName);
 	}	
 }
 
@@ -406,11 +410,11 @@ void FLauncherProfileManager::LoadProfiles( )
 	}
 
 	ProfileFileNames.Reset();
-	IFileManager::Get().FindFiles(ProfileFileNames, *(GetProfileFolder() / TEXT("*.ulp")), true, false);
+	IFileManager::Get().FindFilesRecursive(ProfileFileNames, *FLauncherProfile::GetProfileFolder(), TEXT("*.ulp"), true, false);
 	
 	for (TArray<FString>::TConstIterator It(ProfileFileNames); It; ++It)
 	{
-		FString ProfileFilePath = GetProfileFolder() / *It;
+		FString ProfileFilePath = *It;
 		FArchive* ProfileFileReader = IFileManager::Get().CreateFileReader(*ProfileFilePath);
 
 		if (ProfileFileReader != nullptr)
@@ -420,6 +424,10 @@ void FLauncherProfileManager::LoadProfiles( )
 
 			if (LoadedProfile.IsValid())
 			{
+				if (ProfileFilePath.Contains("NotForLicensees"))
+				{
+					LoadedProfile->SetNotForLicensees();
+				}
 				AddProfile(LoadedProfile.ToSharedRef());
 			}
 			else
@@ -509,7 +517,7 @@ void FLauncherProfileManager::SaveSimpleProfiles()
 {
 	for (TArray<ILauncherSimpleProfilePtr>::TIterator It(SimpleProfiles); It; ++It)
 	{
-		FString SimpleProfileFileName = GetProfileFolder() / (*It)->GetDeviceName() + TEXT(".uslp");
+		FString SimpleProfileFileName = FLauncherProfile::GetProfileFolder() / (*It)->GetDeviceName() + TEXT(".uslp");
 		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*SimpleProfileFileName);
 
 		if (ProfileFileWriter != nullptr)

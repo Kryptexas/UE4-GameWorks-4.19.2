@@ -99,7 +99,7 @@ public:
 		// profiles created for your persistent devices to be in debug. The user might not see this if they don't expand the Advanced options.
 		BuildConfiguration = EBuildConfigurations::Development;
 		
-		CookMode = ELauncherProfileCookModes::OnTheFly;
+		CookMode = ELauncherProfileCookModes::OnTheFly;		
 	}
 
 private:
@@ -125,6 +125,16 @@ class FLauncherProfile
 	: public ILauncherProfile
 {
 public:
+
+	/**
+	* Gets the folder in which profile files are stored.
+	*
+	* @return The folder path.
+	*/
+	static FString GetProfileFolder()
+	{
+		return FPaths::EngineDir() / TEXT("Programs/UnrealFrontend/Profiles");
+	}
 
 	/**
 	 * Default constructor.
@@ -384,7 +394,17 @@ public:
 
 	virtual FString GetFileName() const override
 	{
-		return GetName() + TEXT("_") + GetId().ToString() + TEXT(".ulp");
+		//toupper for filename so that filepaths can be compared the same on case sensitive and case-insensitive platforms
+		return GetName().ToUpper() + TEXT("_") + GetId().ToString() + TEXT(".ulp");
+	}
+
+	virtual FString GetFilePath() const override
+	{
+		if (bNotForLicensees)
+		{
+			return GetProfileFolder() / "NotForLicensees" / GetFileName();			
+		}
+		return GetProfileFolder() / GetFileName();
 	}
 
 	virtual ELauncherProfileLaunchModes::Type GetLaunchMode( ) const override
@@ -817,6 +837,8 @@ public:
 		// default UAT settings
 		EditorExe.Empty();
 
+		bNotForLicensees = false;
+
 		Validate();
 	}
 
@@ -1058,6 +1080,11 @@ public:
 
 			Validate();
 		}
+	}
+
+	virtual void SetNotForLicensees() override
+	{
+		bNotForLicensees = true;
 	}
 
 	virtual void SetPackagingMode( ELauncherProfilePackagingModes::Type Mode ) override
@@ -1521,6 +1548,9 @@ private:
 
 	// Path to the editor executable to pass to UAT, for cooking, etc... May be empty.
 	FString EditorExe;
+
+	// Profile is for an internal project
+	bool bNotForLicensees;
 
 private:
 

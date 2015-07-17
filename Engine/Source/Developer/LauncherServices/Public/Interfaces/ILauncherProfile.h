@@ -322,6 +322,13 @@ public:
 	virtual FString GetFileName( ) const = 0;
 
 	/**
+	* Gets the full file path for serialization.
+	*
+	* @return The file path.
+	*/
+	virtual FString GetFilePath() const = 0;
+
+	/**
 	 * Gets the human readable name of the profile.
 	 *
 	 * @return The profile name.
@@ -399,6 +406,12 @@ public:
 	 * @param NewDescription The new description of the profile.
 	 */
 	virtual void SetDescription(const FString& NewDescription) = 0;
+
+	/**
+	* Changes the save location to an internal project path.
+	*	
+	*/
+	virtual void SetNotForLicensees() = 0;
 
 	/**
 	 * Returns the cook delegate which can be used to query if the cook is finished.

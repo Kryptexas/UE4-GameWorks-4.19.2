@@ -47,7 +47,7 @@ void SProjectLauncherSettings::Construct( const FArguments& InArgs, const FProje
 				.VAlign(VAlign_Center)
 				.Padding(4.0f, 0.0f, 4.0f, 0.0f)
 				[
-					SNew(SProjectLauncherProfileNameDescEditor, true)
+					SNew(SProjectLauncherProfileNameDescEditor, InModel, true)
 					.LaunchProfile(this, &SProjectLauncherSettings::GetLaunchProfile)
 				]
 

@@ -142,16 +142,6 @@ protected:
 		return FPaths::EngineSavedDir() / TEXT("Launcher");
 	}
 
-	/**
-	 * Gets the folder in which profile files are stored.
-	 *
-	 * @return The folder path.
-	 */
-	static FString GetProfileFolder( )
-	{
-		return FPaths::EngineDir() / TEXT("Programs/UnrealFrontend/Profiles");
-	}
-
 private:
 
 	// Holds the collection of device groups.
