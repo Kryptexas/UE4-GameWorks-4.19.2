@@ -971,7 +971,9 @@ void FD3D12ResourceResidencyManager::FreeMemory (uint32 BytesToFree)
 	int64 AvailableSpace = budget - int64(LocalVideoMemoryInfo.CurrentUsage);
 
 	if (AvailableSpace < BytesToFree)
+	{
 		Process (0, BytesToFree - AvailableSpace);
+	}
 }
 
 void FD3D12ResourceResidencyManager::MakeResident()
@@ -997,7 +999,9 @@ void FD3D12ResourceResidencyManager::MakeResident()
 				hresult = GetParentDevice()->GetDevice()->MakeResident (PageableResources.Num(), PageableResources.GetData());
 
 				if (hresult != E_OUTOFMEMORY)
+				{
 					break;
+				}
 			}
 		}
 

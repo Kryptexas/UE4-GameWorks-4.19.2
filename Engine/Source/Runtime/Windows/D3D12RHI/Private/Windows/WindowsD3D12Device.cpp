@@ -443,7 +443,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	// "GMaxTextureMipCount = 9" allows Intel to run the 4.8 Elemental demo, ideally this handling 
 	// is unnecessary as the upper engine should be able to look at GTotalGraphicsMemory to determine 
 	// the appropriate mip level but that doesn't appear to happen correctly on start-up.
-	if (LocalVideoMemoryInfo.Budget <= 2ll * 1024ll * 1024ll * 1024ll)
+	if (IsRHIDeviceIntel() && LocalVideoMemoryInfo.Budget <= 2ll * 1024ll * 1024ll * 1024ll)
 	{
 		GMaxTextureMipCount = FMath::Min<int32>(GMaxTextureMipCount, 9);
 	}
@@ -796,9 +796,13 @@ bool FD3D12DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 	HResult = DXGIFactory->EnumAdapters(GetRHIDevice()->GetAdapterIndex(), Adapter.GetInitReference());
 
 	if (DXGI_ERROR_NOT_FOUND == HResult)
+	{
 		return false;
+	}
 	if (FAILED(HResult))
+	{
 		return false;
+	}
 
 	// get the description of the adapter
 	DXGI_ADAPTER_DESC AdapterDesc;
@@ -813,9 +817,13 @@ bool FD3D12DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 		TRefCountPtr<IDXGIOutput> Output;
 		HResult = Adapter->EnumOutputs(CurrentOutput, Output.GetInitReference());
 		if (DXGI_ERROR_NOT_FOUND == HResult)
+		{
 			break;
+		}
 		if (FAILED(HResult))
+		{
 			return false;
+		}
 
 		// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 		//  We might want to work around some DXGI badness here.

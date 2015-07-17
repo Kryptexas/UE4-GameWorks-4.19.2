@@ -32,7 +32,7 @@ bool D3D12RHI_ShouldAllowAsyncResourceCreation()
 
 IMPLEMENT_MODULE(FD3D12DynamicRHIModule, D3D12RHI);
 
-FD3D12DynamicRHI *FD3D12DynamicRHI::SingleD3DRHI = nullptr;
+FD3D12DynamicRHI* FD3D12DynamicRHI::SingleD3DRHI = nullptr;
 
 IRHICommandContext* FD3D12DynamicRHI::RHIGetDefaultContext()
 {
@@ -54,7 +54,7 @@ public:
 
 	/** Custom new/delete with recycling */
 	void* operator new(size_t Size);
-	void operator delete(void *RawMemory);
+	void operator delete(void* RawMemory);
 
 	FD3D12CommandContextContainer(FD3D12Device* InOwningDevice)
 		: OwningDevice(InOwningDevice), CmdContext(nullptr)
@@ -73,7 +73,9 @@ public:
 		check(CmdContext != nullptr);
 
 		if (CmdContext->CommandListHandle == nullptr)
+		{
 			CmdContext->OpenCommandList();
+		}
 
 		CmdContext->ClearState();
 
@@ -286,7 +288,7 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	// Initialize the RHI capabilities.
 	check(FeatureLevel == D3D_FEATURE_LEVEL_11_0 || FeatureLevel == D3D_FEATURE_LEVEL_10_0 );
 
-	if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
+	if (FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
 		GSupportsDepthFetchDuringDepthTest = false;
 	}
@@ -421,7 +423,9 @@ void FD3D12Device::CreateCommandContexts()
 
 		// Make available all but the first command context for parallel threads
 		if (i > 0)
+		{
 			FreeCommandContexts.Add(CommandContextArray[i]);
+		}
 	}
 
 	CommandContextArray[0]->OpenCommandList();
@@ -456,6 +460,7 @@ void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name)
 {
     OwningRHI.PushGPUEvent(Name);
 }
+
 void FD3D12CommandContext::RHIPopEvent()
 {
     OwningRHI.PopGPUEvent();
@@ -497,21 +502,25 @@ void FD3D12DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 		{
 			TRefCountPtr<IDXGIOutput> Output;
 			HResult = Adapter->EnumOutputs(o,Output.GetInitReference());
-			if(DXGI_ERROR_NOT_FOUND == HResult)
+			if (DXGI_ERROR_NOT_FOUND == HResult)
+			{
 				break;
-			if(FAILED(HResult))
+			}
+			if (FAILED(HResult))
+			{
 				return;
+			}
 
 			// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 			//  We might want to work around some DXGI badness here.
 			DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			uint32 NumModes = 0;
 			HResult = Output->GetDisplayModeList(Format,0,&NumModes,NULL);
-			if(HResult == DXGI_ERROR_NOT_FOUND)
+			if (HResult == DXGI_ERROR_NOT_FOUND)
 			{
 				return;
 			}
-			else if(HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
+			else if (HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
 			{
 				UE_LOG(LogD3D12RHI, Fatal,
 					TEXT("This application cannot be run over a remote desktop configuration")
@@ -529,14 +538,14 @@ void FD3D12DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 				CA_SUPPRESS( 6385 );
 				bool IsEqualOrBetterWidth = FMath::Abs((int32)ModeList[m].Width - (int32)Width) <= FMath::Abs((int32)BestMode.Width - (int32)Width);
 				bool IsEqualOrBetterHeight = FMath::Abs((int32)ModeList[m].Height - (int32)Height) <= FMath::Abs((int32)BestMode.Height - (int32)Height);
-				if(!InitializedMode || (IsEqualOrBetterWidth && IsEqualOrBetterHeight))
+				if (!InitializedMode || (IsEqualOrBetterWidth && IsEqualOrBetterHeight))
 				{
 					BestMode = ModeList[m];
 					InitializedMode = true;
 				}
 			}
 
-			delete[] ModeList;
+			delete [] ModeList;
 		}
 #endif // PLATFORM_XBOXONE
 	}
@@ -587,7 +596,7 @@ MSVC_PRAGMA(warning(push))
 
 uint32 FD3D12DynamicRHI::GetMaxMSAAQuality(uint32 SampleCount)
 {
-	if(SampleCount <= DX_MAX_MSAA_COUNT)
+	if (SampleCount <= DX_MAX_MSAA_COUNT)
 	{
 		// 0 has better quality (a more even distribution)
 		// higher quality levels might be useful for non box filtered AA or when using weighted samples 
@@ -767,7 +776,7 @@ void FD3D12Device::UpdateMSAASettings()
 
 void FD3D12Device::CleanupD3DDevice()
 {
-	if(GIsRHIInitialized)
+	if (GIsRHIInitialized)
 	{
 		// Ensure any pending rendering is finished
 		GetCommandListManager().SignalFrameComplete(true);
@@ -826,7 +835,7 @@ void FD3D12Device::CleanupD3DDevice()
 		// Cleanup thread resources
         for (uint32 index; (index = InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != (uint32)-1;)
 		{
-            FD3D12DynamicHeapAllocator *pHeapAllocator = ThreadDynamicHeapAllocatorArray[index];
+            FD3D12DynamicHeapAllocator* pHeapAllocator = ThreadDynamicHeapAllocatorArray[index];
 			pHeapAllocator->ReleaseAllResources();
 			delete(pHeapAllocator);
 		}
