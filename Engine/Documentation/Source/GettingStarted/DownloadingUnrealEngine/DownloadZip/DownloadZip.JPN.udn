@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:0
-Availability:NoPublish
-Title:Downloading Unreal Engine As a Zip File
+﻿Availability:NoPublish
+Title: アンリアル・エンジンを ZIP ファイルでダウンロードする
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
-Description:Downloading the Unreal Engine source code as a Zip file.
+Description:アンリアル エンジンのソースコードを ZIP ファイルでダウンロードしてみましょう。
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -15,29 +14,30 @@ Description:Downloading the Unreal Engine source code as a Zip file.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Navigate** to our GitHub page.
-	1.	**Click** the **Download ZIP** button (pictured below).
+	1.	GitHubページへ **移動** します。
+	1.	**Download ZIP**ボタン (上図) を **クリック** します。
 		![](DownloadZipButton.png)
 		[REGION:warning]
-		The built-in Windows zip utility marks downloaded zip file contents as unsafe to execute.  
-		Before decompressing the zip file:
-		1.	**Right-click** the zip file.
-		1.	**Click 'Properties...'**.
-		1.	**Select 'Unblock'**.
+		ビルトインされた Windows のジップ ユーティリティが、ダウンロードした ZIP ファイルのコンテンツは実行する安全性が確認できないことを示します。  
+		ZIP ファイルを解凍する前に以下を行います：
 
-		Third party zip utilities may not require the above mentioned steps prior to decompression.
+		1.	ZIP ファイルを **右クリック** する。
+		1.	**'Properties...' をクリックする** 。
+		1.	**'Unblock' を選択する**。
+
+		サードパーティの ZIP ユーティリティの場合は、解凍時に上記の手順を要求しない場合もあります。
 		[/REGION]
-	1.	**Decompress** 'UnrealEngine-(branch_name).zip' onto your hard disk.
-	1.	If you already haven't done so, **install** Visual Studio 2013. Although MFC libraries are included in Visual Studio's default installation settings, make sure that MFC libraries are included for ATL support.
+	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
+	1.	Visual Studio 2013 をインストールしてない場合は、**インストール** します。MFC ライブラリは Visual Studio のインストール設定にデフォルトで含まれていますが、MFC ライブラリが ATL サポート用に含まれていることを確認してください。
 		[REGION:note]
-		Developers build UE4 with all desktop editions of Visual Studio, including Microsoft's free version ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)).
+		デベロッパーは Microsoft の無料版 Visual Studio のすべてのデスクトップ版で UE4 をビルドします ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs))。
 		[/REGION]
-	1.	**Open** your source folder in Explorer and **run Setup.bat**.
+	1.	エクスプローラでソースフォルダを **開き** **Setup.bat を実行します**。
 		[REGION:note]
-		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they are currently take up three to four gigabytes of memory. Subsequent checkouts take less time to download.
+		セットアップ用バッチファイルが、エンジン用バイナリ コンテンツのダウンロード、前提条件のインストール、アンリアル ファイルの関連付けの設定を行います。現在エンジン バイナリには 4GB のメモリが必要なので、ダウンロードには若干時間がかかる場合があります。それ以降チェックアウトする場合、ダウンロード時間は短くなります。
 		[/REGION]
 		[REGION:warning]
-		A warning from SmartScreen may appear in Windows 8. **Click "More Info"**, then **"Run Anyway"** to continue running our Setup batch file.
+		SmartScreen からの警告が Windows 8 に表示される場合があります。まず **[More Info]**、次に **[Run Anyway]** をクリックしてセットアップ用バッチファイルの実行を継続します。
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -53,14 +53,14 @@ Description:Downloading the Unreal Engine source code as a Zip file.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Navigate** to our GitHub page.
-	1.	**Click** the **Download ZIP** button (pictured below).
+	1.	GitHubページへ **移動** します。
+	1.	**Download ZIP**ボタン (上図) を **クリック** します。
 		![](DownloadZipButton.png)
-	1.	**Decompress** 'UnrealEngine-(branch_name).zip' onto your hard disk.
-	1.	If you haven't already done so, **install** the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
-	1.	**Open** your source folder in Finder and **run Setup.command**.
+	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
+	1.	[Xcode](https://itunes.apple.com/us/app/xcode/id497799835) の最新版をまだインストールしていない場合は、**インストール** してください。
+	1.	Finder でソースフォルダを **開き** **Setup.command を実行します**。
 		[REGION:note]
-		**Close** the Terminal window after Setup.command downloads binary content for the engine, installs prequisites, and sets up Unreal file associations.
+		Setup.command によるエンジン用バイナリ コンテンツのダウンロード、前提条件のインストール、アンリアル ファイルの関連付けの設定が終了したら、端末のウィンドウを **終了** します。
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -76,14 +76,20 @@ Description:Downloading the Unreal Engine source code as a Zip file.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Navigate** to our GitHub page.
-	1.	**Click** the **Download ZIP** button (pictured below).
+	1.	GitHubページへ **移動** します。
+	1.	**[Download ZIP]**ボタン (上図) を **クリック** します。
 		![](DownloadZipButton.png)
-	1.	**Decompress** 'UnrealEngine-(branch_name).zip' onto your hard disk.
-	1.	**Open** your source folder and **run Setup.sh** to **download** the engine's binary content.
+	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
+	1.	ルート フォルダで、端末から **Setup.sh を実行** して、エンジンのバイナリ コンテキスト (下図参照) を **ダウンロード** します。
+
+		![](RunSetupShellScript_Linux.png)
+
+		[REGION:note]
+		このステップを実行しても ** \*\*SUCCESS\*\* ** メッセージが表示されない場合は、**BuildThirdParty.log** ファイルで詳細を確認してください。BuildThirdParty.log は `Engine/Build/BatchFiles/Linux` ディレクトリにあります。
+		[/REGION]
 	[/PARAM]
 [/OBJECT]
 
-## Next Steps
+## 次のステップ
 
-Now that you've downloaded and set-up Unreal Engine, you're ready to [build the engine from source](Programming/Development/BuildingUnrealEngine).
+アンリアル エンジンのダウンロードとセットアップが終了しました。つぎは、[ソースからエンジンをビルドする][build the engine from source](Programming/Development/BuildingUnrealEngine) へ進みます。
