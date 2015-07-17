@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2438154
+﻿INTSourceChangelist:2620388
 Availability:Public
 Title:1.4 - グループ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.4：グループ
+Description:マテリアル インスタンスのサンプル レベルの概要、1.4：グループ
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/ExpressionReference
@@ -57,7 +57,5 @@ Related:Engine/Actors/DecalActor
 [/REGION]
 </div>
 
-**マテリアル** は急激に非常に複雑化する場合があります。 **Groups (グループ)** は、**マテリアル インスタンス** エディタで **パラメータ** をリスト表示する方法を管理します。
-
-パラメータのグループ化は **マテリアル** のレンダリング方法には影響はなく、単にワークフローを最適化するものです。
+マテリアルは急激に非常に複雑化する場合があります。**Groups (グループ)** は、**マテリアル インスタンス エディタ** でパラメータをリスト表示する方法を管理します。パラメータのグループ化は、マテリアル のレンダリング方法には影響はなく、単にワークフローを最適化するものです。
 
