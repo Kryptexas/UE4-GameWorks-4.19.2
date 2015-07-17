@@ -436,7 +436,7 @@ void FBlendedCurve::Set(USkeleton::AnimCurveUID InUid, float InValue, int32 InFl
 
 void FBlendedCurve::Reset(int32 Count)
 {
-	Elements.Empty(Count);
+	Elements.Reset();
 	Elements.Reserve(Count);
 }
 

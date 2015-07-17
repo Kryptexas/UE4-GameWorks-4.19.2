@@ -270,7 +270,7 @@ struct ENGINE_API FBlendedCurve
 	void InitFrom(const FBlendedCurve& InCurveToInitFrom)
 	{
 		UIDList = InCurveToInitFrom.UIDList;
-		Elements.Empty(UIDList.Num());
+		Elements.Reset(UIDList.Num());
 		Elements.AddZeroed(UIDList.Num());
 		bInitialized = true;
 	}
@@ -316,8 +316,8 @@ struct ENGINE_API FBlendedCurve
 	/** Empty */
 	void Empty()
 	{
-		UIDList.Empty();
-		Elements.Empty();
+		UIDList.Reset();
+		Elements.Reset();
 	}
 private:
 	/**  Whether initialized or not */
