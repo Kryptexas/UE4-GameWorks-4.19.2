@@ -2134,7 +2134,7 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 	double EndTime = FPlatformTime::Seconds();
 	UE_LOG(LogMaterial, Log,
-		TEXT("%f seconds spent updating %d materials, %d interfaces, %d instances, %d with static permutations."),
+		TEXT("%.2f seconds spent updating %d materials, %d interfaces, %d instances, %d with static permutations."),
 		(float)(EndTime - StartTime),
 		UpdatedMaterials.Num(),
 		UpdatedMaterialInterfaces.Num(),
