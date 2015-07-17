@@ -8,7 +8,8 @@ using System.IO;
 using UnrealBuildTool;
 using System.Diagnostics;
 using Tools.DotNETCommon.CaselessDictionary;
-using Tools.DotNETCommon.ExecutingAssembly;
+using Tools.DotNETCommon;
+using System.Reflection;
 
 namespace AutomationTool
 {
@@ -194,10 +195,10 @@ namespace AutomationTool
 			string oldCWD = Directory.GetCurrentDirectory();
 			if (BuildConfiguration.RelativeEnginePath == "../../Engine/")
 			{
-				string EngineSourceDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine", "Source");
+				string EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Source");
 				if (!Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
 				{
-					EngineSourceDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine", "Binaries");
+                    EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Binaries");
 				}
 				Directory.SetCurrentDirectory(EngineSourceDirectory);
 			}

@@ -49,7 +49,7 @@
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="CaselessDictionary.cs" />
-    <Compile Include="ExecutingAssembly.cs" />
+    <Compile Include="AssemblyUtils.cs" />
     <Compile Include="FileContentsCacheType.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="HarvestEnvVars.cs" />

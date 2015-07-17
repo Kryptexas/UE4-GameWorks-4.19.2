@@ -9,7 +9,7 @@ using System.Threading;
 using System.Reflection;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using Tools.DotNETCommon.ExecutingAssembly;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -192,7 +192,7 @@ namespace UnrealBuildTool
 
         static public string GetUBTPath()
         {
-            string UnrealBuildToolPath = Path.Combine(ExecutingAssembly.GetDirectory(), "UnrealBuildTool.exe");
+            string UnrealBuildToolPath = Assembly.GetExecutingAssembly().GetOriginalLocation();
             return UnrealBuildToolPath;
         }
 
@@ -634,20 +634,19 @@ namespace UnrealBuildTool
             // Change the working directory to be the Engine/Source folder. We are likely running from Engine/Binaries/DotNET
             // This is critical to be done early so any code that relies on the current directory being Engine/Source will work.
             // UEBuildConfiguration.PostReset is susceptible to this, so we must do this before configs are loaded.
-            string EngineSourceDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine", "Source");
+            string EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Source");
 
             //@todo.Rocket: This is a workaround for recompiling game code in editor
             // The working directory when launching is *not* what we would expect
             if (Directory.Exists(EngineSourceDirectory) == false)
             {
-                // We are assuming UBT always runs from <>/Engine/...
-                EngineSourceDirectory = ExecutingAssembly.GetDirectory();
+                // We are assuming UBT always runs from <>/Engine/Binaries/DotNET/...
+                EngineSourceDirectory = Assembly.GetExecutingAssembly().GetOriginalLocation();
                 EngineSourceDirectory = EngineSourceDirectory.Replace("\\", "/");
-                Int32 EngineIdx = EngineSourceDirectory.IndexOf("/Engine/");
+                Int32 EngineIdx = EngineSourceDirectory.IndexOf("/Engine/Binaries/DotNET/", StringComparison.InvariantCultureIgnoreCase);
                 if (EngineIdx != 0)
                 {
-                    EngineSourceDirectory = EngineSourceDirectory.Substring(0, EngineIdx + 8);
-                    EngineSourceDirectory += "Source";
+                    EngineSourceDirectory = Path.Combine(EngineSourceDirectory.Substring(0, EngineIdx), "Engine", "Source");
                 }
             }
             if (Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
@@ -941,7 +940,7 @@ namespace UnrealBuildTool
                 Mutex SingleInstanceMutex = null;
                 if (bUseMutex)
                 {
-                    int LocationHash = ExecutingAssembly.GetFilename().GetHashCode();
+                    int LocationHash = Assembly.GetEntryAssembly().GetOriginalLocation().GetHashCode();
 
                     String MutexName;
                     if (bAutoSDKOnly || bValidatePlatforms)
@@ -957,7 +956,7 @@ namespace UnrealBuildTool
                     SingleInstanceMutex = new Mutex(true, MutexName, out bCreatedMutex);
                     if (!bCreatedMutex)
                     {
-                        throw new BuildException("Mutex {0} already set, indicating that a conflicting instance of {1} is already running.", MutexName, ExecutingAssembly.GetFilename());
+                        throw new BuildException("Mutex {0} already set, indicating that a conflicting instance of {1} is already running.", MutexName, Assembly.GetEntryAssembly().GetOriginalLocation());
                     }
                 }
 

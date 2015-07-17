@@ -7,14 +7,14 @@ using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Reflection;
 using System.Diagnostics;
-using Tools.DotNETCommon.ExecutingAssembly;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
 	public class DynamicCompilation
 	{
 		/// File information for UnrealBuildTool.exe, cached at program start
-		private static FileInfo UBTExecutableFileInfo = new FileInfo( ExecutingAssembly.GetFilename() );
+		private static FileInfo UBTExecutableFileInfo = new FileInfo( Assembly.GetEntryAssembly().GetOriginalLocation() );
 
 		/*
 		 * Checks to see if the assembly needs compilation
