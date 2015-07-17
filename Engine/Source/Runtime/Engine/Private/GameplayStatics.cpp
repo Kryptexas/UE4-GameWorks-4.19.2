@@ -102,6 +102,24 @@ APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, i
 	return (LocalPlayer ? LocalPlayer->PlayerController : NULL);
 }
 
+void UGameplayStatics::RemovePlayer(APlayerController* PlayerController, bool bDestroyPawn)
+{
+	if (PlayerController)
+	{
+		if (UWorld* World = PlayerController->GetWorld())
+		{
+			if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+			{
+				APawn* PlayerPawn = (bDestroyPawn ? PlayerController->GetPawn() : nullptr);
+				if (World->GetGameInstance()->RemoveLocalPlayer(LocalPlayer) && PlayerPawn)
+				{
+					PlayerPawn->Destroy();
+				}
+			}
+		}
+	}
+}
+
 AGameMode* UGameplayStatics::GetGameMode(UObject* WorldContextObject)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
