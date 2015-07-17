@@ -3261,7 +3261,7 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 	if (OwningTagQuery.IsEmpty() == false)
 	{
 		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
-		if ((CombinedTags.Num() > 0) && (OwningTagQuery.Matches(CombinedTags) == false))		// note: matches on empty
+		if (OwningTagQuery.Matches(CombinedTags) == false)
 		{
 			if (OwningTagQuery.Matches(Effect.Spec.DynamicGrantedTags) == false)
 			{
@@ -3277,7 +3277,7 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 	if (EffectTagQuery.IsEmpty() == false)
 	{
 		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
-		if ((CombinedTags.Num() > 0) && (OwningTagQuery.Matches(CombinedTags) == false))		// note: matches on empty
+		if (OwningTagQuery.Matches(CombinedTags) == false)
 		{
 			if (OwningTagQuery.Matches(Effect.Spec.DynamicAssetTags) == false)
 			{
