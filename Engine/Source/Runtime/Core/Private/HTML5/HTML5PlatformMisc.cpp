@@ -38,12 +38,12 @@ GenericApplication* FHTML5Misc::CreateApplication()
 	return FHTML5Application::CreateHTML5Application();
 }
 
-uint32 FHTML5Misc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+uint32 FHTML5Misc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
 {
 	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
 }
 
-uint32 FHTML5Misc::GetKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+uint32 FHTML5Misc::GetKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
 {
 #define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
 

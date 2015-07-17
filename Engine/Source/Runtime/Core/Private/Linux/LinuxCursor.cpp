@@ -196,7 +196,19 @@ void FLinuxCursor::SetCachedPosition( const int32 X, const int32 Y )
 
 void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 {
-	SDL_WarpMouseGlobal( X, Y);
+	// according to reports on IRC SDL_WarpMouseGlobal() doesn't work on some WMs so use InWindow unless we don't have a window.
+	SDL_HWindow WndFocus = SDL_GetMouseFocus();
+
+	if (WndFocus)
+	{
+		int WndX, WndY;
+		SDL_GetWindowPosition(WndFocus, &WndX, &WndY);	//	get top left
+		SDL_WarpMouseInWindow(WndFocus, X - WndX, Y - WndY);
+	}
+	else
+	{
+		SDL_WarpMouseGlobal(X, Y);
+	}
 
 	SetCachedPosition(X, Y);
 }

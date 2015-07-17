@@ -1058,7 +1058,7 @@ FInputKeyManager& FInputKeyManager::Get()
 void FInputKeyManager::InitKeyMappings()
 {
 	static const uint32 MAX_KEY_MAPPINGS(256);
-	uint16 KeyCodes[MAX_KEY_MAPPINGS], CharCodes[MAX_KEY_MAPPINGS];
+	uint32 KeyCodes[MAX_KEY_MAPPINGS], CharCodes[MAX_KEY_MAPPINGS];
 	FString KeyNames[MAX_KEY_MAPPINGS], CharKeyNames[MAX_KEY_MAPPINGS];
 
 	uint32 const CharKeyMapSize(FPlatformMisc::GetCharKeyMap(CharCodes, CharKeyNames, MAX_KEY_MAPPINGS));
@@ -1092,7 +1092,7 @@ void FInputKeyManager::InitKeyMappings()
  *
  * @param	KeyCode	the key code to get the name for
  */
-FKey FInputKeyManager::GetKeyFromCodes( const uint16 KeyCode, const uint16 CharCode ) const
+FKey FInputKeyManager::GetKeyFromCodes( const uint32 KeyCode, const uint32 CharCode ) const
 {
 	const FKey* KeyPtr(KeyMapVirtualToEnum.Find(KeyCode));
 	if (KeyPtr == NULL)
@@ -1102,7 +1102,7 @@ FKey FInputKeyManager::GetKeyFromCodes( const uint16 KeyCode, const uint16 CharC
 	return KeyPtr ? *KeyPtr : EKeys::Invalid;
 }
 
-void FInputKeyManager::GetCodesFromKey(const FKey Key, const uint16*& KeyCode, const uint16*& CharCode) const
+void FInputKeyManager::GetCodesFromKey(const FKey Key, const uint32*& KeyCode, const uint32*& CharCode) const
 {
 	KeyCode = KeyMapCharToEnum.FindKey(Key);
 	CharCode = KeyMapVirtualToEnum.FindKey(Key);

@@ -203,6 +203,19 @@ bool FLinuxApplication::GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDow
 		(Sym != SDLK_DOWN && Sym != SDLK_LEFT && Sym != SDLK_RIGHT && Sym != SDLK_UP && Sym != SDLK_DELETE);
 }
 
+static inline uint32 CharCodeFromSDLKeySym(const SDL_Keycode KeySym)
+{
+	if ((KeySym & SDLK_SCANCODE_MASK) != 0)
+	{
+		return 0;
+	}
+	else if (KeySym == SDLK_DELETE)  // this doesn't use the scancode mask for some reason.
+	{
+		return 0;
+	}
+	return (uint32) KeySym;
+}
+
 void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 {
 	// This function can be reentered when entering a modal tick loop.
@@ -225,28 +238,33 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 	{
 	case SDL_KEYDOWN:
 		{
-			SDL_KeyboardEvent KeyEvent = Event.key;
-			const SDL_Keycode KeyCode = KeyEvent.keysym.scancode;
+			const SDL_KeyboardEvent &KeyEvent = Event.key;
+			const SDL_Keycode KeySym = KeyEvent.keysym.sym;
+			const uint32 CharCode = CharCodeFromSDLKeySym(KeySym);
 			const bool bIsRepeated = KeyEvent.repeat != 0;
 
 			// Text input is now handled in SDL_TEXTINPUT: see below
-			MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
+			MessageHandler->OnKeyDown(KeySym, CharCode, bIsRepeated);
 
 			// Backspace input in only caught here.
-			if (KeyCode == SDL_SCANCODE_BACKSPACE || KeyCode == SDL_SCANCODE_RETURN)
+			if (KeySym == SDLK_BACKSPACE)
 			{
-				const TCHAR Character = SDL_GetKeyFromScancode(Event.key.keysym.scancode);
-				MessageHandler->OnKeyChar(Character, bIsRepeated);
+				MessageHandler->OnKeyChar('\b', bIsRepeated);
+			}
+			else if (KeySym == SDLK_RETURN)
+			{
+				MessageHandler->OnKeyChar('\r', bIsRepeated);
 			}
 		}
 		break;
 	case SDL_KEYUP:
 		{
-			SDL_KeyboardEvent keyEvent = Event.key;
-			const SDL_Keycode KeyCode = keyEvent.keysym.scancode;
-			const bool IsRepeat = keyEvent.repeat != 0;
+			const SDL_KeyboardEvent &KeyEvent = Event.key;
+			const SDL_Keycode KeySym = KeyEvent.keysym.sym;
+			const uint32 CharCode = CharCodeFromSDLKeySym(KeySym);
+			const bool IsRepeat = KeyEvent.repeat != 0;
 
-			MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
+			MessageHandler->OnKeyUp( KeySym, CharCode, IsRepeat );
 		}
 		break;
 	case SDL_TEXTINPUT:
@@ -313,7 +331,20 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 			if(bUsingHighPrecisionMouseInput)
 			{
- 				MessageHandler->OnRawMouseMove(motionEvent.xrel, motionEvent.yrel);
+				// hack to work around jumps
+				const int kTooFarAway = 100;
+				const int kTooFarAwaySquare = kTooFarAway * kTooFarAway;
+				if (motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
+				{
+					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than treshold %d)"),
+						motionEvent.xrel, motionEvent.yrel,
+						kTooFarAway
+						);
+				}
+				else
+				{
+					MessageHandler->OnRawMouseMove(motionEvent.xrel, motionEvent.yrel);
+				}
 			}
 			else
 			{
