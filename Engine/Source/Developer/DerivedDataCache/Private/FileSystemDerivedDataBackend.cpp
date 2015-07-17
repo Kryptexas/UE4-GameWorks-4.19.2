@@ -162,7 +162,7 @@ public:
 	 * @param	OutData		Buffer to receive the results, if any were found
 	 * @return				true if any data was found, and in this case OutData is non-empty
 	 */
-	virtual bool GetCachedData(const TCHAR* CacheKey,TArray<uint8>& Data) override
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, FCacheStatRecord* Stats) override
 	{
 		static FName NAME_GetCachedData(TEXT("GetCachedData"));
 		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
@@ -172,7 +172,18 @@ public:
 		
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
-
+		if (Stats)
+		{
+			Stats->CacheKey = Filename;
+			if (Filename.StartsWith(TEXT("//")) || Filename.StartsWith(TEXT("\\\\")))
+			{
+				Stats->bFromNetwork = true;
+			}
+			else
+			{
+				Stats->bFromNetwork = false;
+			}
+		}
 		double StartTime = FPlatformTime::Seconds();
 		if (FFileHelper::LoadFileToArray(Data,*Filename,FILEREAD_Silent))
 		{
@@ -183,12 +194,20 @@ public:
 
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
 			Stat.AddTag(NAME_Retrieved, TEXT("true"));
+			if (Stats)
+			{
+				Stats->GetDuration += FPlatformTime::Seconds() - StartTime;
+			}
 			return true;
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
 		Stat.AddTag(NAME_Retrieved, TEXT("false"));
-		return false;	
+		if (Stats)
+		{
+			Stats->GetDuration += FPlatformTime::Seconds() - StartTime;
+		}
+		return false;
 	}
 	/**
 	 * Asynchronous, fire-and-forget placement of a cache item
@@ -197,7 +216,7 @@ public:
 	 * @param	OutData		Buffer containing the data to cache, can be destroyed after the call returns, immediately
 	 * @param	bPutEvenIfExists	If true, then do not attempt skip the put even if CachedDataProbablyExists returns true
 	 */
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) override
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
 	{
 		check(!bFailed);
 		if (!bReadOnly)
@@ -206,6 +225,19 @@ public:
 			{
 				check(Data.Num());
 				FString Filename = BuildFilename(CacheKey);
+				double StartTime = FPlatformTime::Seconds();
+				if (Stats)
+				{
+					Stats->CacheKey = Filename;
+					if (Filename.StartsWith(TEXT("//")) || Filename.StartsWith(TEXT("\\\\")))
+					{
+						Stats->bFromNetwork = true;
+					}
+					else
+					{
+						Stats->bFromNetwork = false;
+					}
+				}
 				FString TempFilename(TEXT("temp.")); 
 				TempFilename += FGuid::NewGuid().ToString();
 				TempFilename = FPaths::GetPath(Filename) / TempFilename;
@@ -243,6 +275,10 @@ public:
 				else
 				{
 					UE_LOG(LogDerivedDataCache, Warning, TEXT("FFileSystemDerivedDataBackend: Could not write temp file %s!"),*TempFilename);
+				}
+				if (Stats)
+				{
+					Stats->PutDuration += FPlatformTime::Seconds() - StartTime;
 				}
 				// if everything worked, this is not necessary, but we will make every effort to avoid leaving junk in the cache
 				if (FPaths::FileExists(TempFilename))

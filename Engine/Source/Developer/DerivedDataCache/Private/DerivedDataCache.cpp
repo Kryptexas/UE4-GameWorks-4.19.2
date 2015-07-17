@@ -39,11 +39,13 @@ class FDerivedDataCache : public FDerivedDataCacheInterface
 		 * @param	InDataDeriver	plugin to produce cache key and in the event of a miss, return the data.
 		 * @param	InCacheKey		Complete cache key for this data.
 		**/
-		FBuildAsyncWorker(FDerivedDataPluginInterface* InDataDeriver, const TCHAR* InCacheKey, bool bInSynchronousForStats)
+		FBuildAsyncWorker(FDerivedDataPluginInterface* InDataDeriver, const TCHAR* InCacheKey, bool bInSynchronousForStats, FCacheStatRecord* InGetRecord, FCacheStatRecord* InPutRecord)
 		: bSuccess(false)
 		, bSynchronousForStats(bInSynchronousForStats)
 		, DataDeriver(InDataDeriver)
 		, CacheKey(InCacheKey)
+		, GetRecord(InGetRecord)
+		, PutRecord(InPutRecord)
 		{
 		}
 		
@@ -56,7 +58,15 @@ class FDerivedDataCache : public FDerivedDataCacheInterface
 				STAT(double ThisTime = 0);
 				{
 					SCOPE_SECONDS_COUNTER(ThisTime);
-					bGetResult = FDerivedDataBackend::Get().GetRoot().GetCachedData(*CacheKey, Data);
+					GetRecord->CacheKey = CacheKey;
+					GetRecord->CacheGet = 1;
+					GetRecord->bSynchronous = bSynchronousForStats;
+					GetRecord->StartTime = FPlatformTime::Seconds();
+					GetRecord->GetDuration = 0.;
+					GetRecord->PutDuration = 0.;
+					bGetResult = FDerivedDataBackend::Get().GetRoot().GetCachedData(*CacheKey, Data, GetRecord);
+					GetRecord->EndTime = FPlatformTime::Seconds();
+					GetRecord->DataSize = Data.Num();
 				}
 				INC_FLOAT_STAT_BY(STAT_DDC_SyncGetTime, bSynchronousForStats ? (float)ThisTime : 0.0f);
 			}
@@ -87,7 +97,15 @@ class FDerivedDataCache : public FDerivedDataCacheInterface
 					STAT(double ThisTime = 0);
 					{
 						SCOPE_SECONDS_COUNTER(ThisTime);
-						FDerivedDataBackend::Get().GetRoot().PutCachedData(*CacheKey, Data, true);
+						PutRecord->CacheKey = CacheKey;
+						PutRecord->CacheGet = 0;
+						PutRecord->bSynchronous = bSynchronousForStats;
+						PutRecord->StartTime = FPlatformTime::Seconds();
+						PutRecord->GetDuration = 0.;
+						PutRecord->PutDuration = 0.;
+						FDerivedDataBackend::Get().GetRoot().PutCachedData(*CacheKey, Data, true, PutRecord);
+						PutRecord->EndTime = FPlatformTime::Seconds();
+						PutRecord->DataSize = Data.Num();
 					}
 					INC_FLOAT_STAT_BY(STAT_DDC_PutTime, bSynchronousForStats ? (float)ThisTime : 0.0f);
 				}
@@ -114,6 +132,8 @@ class FDerivedDataCache : public FDerivedDataCacheInterface
 		FString							CacheKey;
 		/** Data to return to caller, later **/
 		TArray<uint8>					Data;
+		FCacheStatRecord*				GetRecord;
+		FCacheStatRecord*				PutRecord;
 	};
 
 public:
@@ -143,7 +163,12 @@ public:
 		check(DataDeriver);
 		FString CacheKey = FDerivedDataCache::BuildCacheKey(DataDeriver);
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetSynchronous %s"), *CacheKey);
-		FAsyncTask<FBuildAsyncWorker> PendingTask(DataDeriver, *CacheKey, true);
+		FCacheStatRecord* GetRecord = new FCacheStatRecord();
+		FCacheStatRecord* PutRecord = new FCacheStatRecord();
+		PutRecord->CacheGet = -1;
+		CacheStats.Add(GetRecord);
+		CacheStats.Add(PutRecord);
+		FAsyncTask<FBuildAsyncWorker> PendingTask(DataDeriver, *CacheKey, true, GetRecord, PutRecord);
 		AddToAsyncCompletionCounter(1);
 		PendingTask.StartSynchronousTask();
 		OutData = PendingTask.GetTask().Data;
@@ -158,7 +183,12 @@ public:
 		FString CacheKey = FDerivedDataCache::BuildCacheKey(DataDeriver);
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetAsynchronous %s"), *CacheKey);
 		bool bSync = !DataDeriver->IsBuildThreadsafe();
-		FAsyncTask<FBuildAsyncWorker>* AsyncTask = new FAsyncTask<FBuildAsyncWorker>(DataDeriver, *CacheKey, bSync);
+		FCacheStatRecord* GetRecord = new FCacheStatRecord();
+		FCacheStatRecord* PutRecord = new FCacheStatRecord();
+		PutRecord->CacheGet = -1;
+		CacheStats.Add(GetRecord);
+		CacheStats.Add(PutRecord);
+		FAsyncTask<FBuildAsyncWorker>* AsyncTask = new FAsyncTask<FBuildAsyncWorker>(DataDeriver, *CacheKey, bSync, GetRecord, PutRecord);
 		check(!PendingTasks.Contains(Handle));
 		PendingTasks.Add(Handle,AsyncTask);
 		AddToAsyncCompletionCounter(1);
@@ -238,7 +268,12 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_DDC_GetSynchronous_Data);
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetSynchronous %s"), CacheKey);
-		FAsyncTask<FBuildAsyncWorker> PendingTask((FDerivedDataPluginInterface*)NULL, CacheKey, true);
+		FCacheStatRecord* GetRecord = new FCacheStatRecord();
+		FCacheStatRecord* PutRecord = new FCacheStatRecord();
+		PutRecord->CacheGet = -1;
+		CacheStats.Add(GetRecord);
+		CacheStats.Add(PutRecord);
+		FAsyncTask<FBuildAsyncWorker> PendingTask((FDerivedDataPluginInterface*)NULL, CacheKey, true, GetRecord, PutRecord);
 		AddToAsyncCompletionCounter(1);
 		PendingTask.StartSynchronousTask();
 		OutData = PendingTask.GetTask().Data;
@@ -252,7 +287,12 @@ public:
 		FScopeLock ScopeLock(&SynchronizationObject);
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetAsynchronous %s"), CacheKey);
 		uint32 Handle = NextHandle();
-		FAsyncTask<FBuildAsyncWorker>* AsyncTask = new FAsyncTask<FBuildAsyncWorker>((FDerivedDataPluginInterface*)NULL, CacheKey, false);
+		FCacheStatRecord* GetRecord = new FCacheStatRecord();
+		FCacheStatRecord* PutRecord = new FCacheStatRecord();
+		PutRecord->CacheGet = -1;
+		CacheStats.Add(GetRecord);
+		CacheStats.Add(PutRecord);
+		FAsyncTask<FBuildAsyncWorker>* AsyncTask = new FAsyncTask<FBuildAsyncWorker>((FDerivedDataPluginInterface*)NULL, CacheKey, false, GetRecord, PutRecord);
 		check(!PendingTasks.Contains(Handle));
 		PendingTasks.Add(Handle, AsyncTask);
 		AddToAsyncCompletionCounter(1);
@@ -271,7 +311,12 @@ public:
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_DDC_GetAsynchronousForRollup);
 		FScopeLock ScopeLock(&SynchronizationObject);
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetAsynchronous(handle) %s"), CacheKey);
-		FAsyncTask<FBuildAsyncWorker>* AsyncTask = new FAsyncTask<FBuildAsyncWorker>((FDerivedDataPluginInterface*)NULL, CacheKey, false);
+		FCacheStatRecord* GetRecord = new FCacheStatRecord();
+		FCacheStatRecord* PutRecord = new FCacheStatRecord();
+		PutRecord->CacheGet = -1;
+		CacheStats.Add(GetRecord);
+		CacheStats.Add(PutRecord);
+		FAsyncTask<FBuildAsyncWorker>* AsyncTask = new FAsyncTask<FBuildAsyncWorker>((FDerivedDataPluginInterface*)NULL, CacheKey, false, GetRecord, PutRecord);
 		check(!PendingTasks.Contains(Handle));
 		PendingTasks.Add(Handle,AsyncTask);
 		AddToAsyncCompletionCounter(1);
@@ -284,7 +329,17 @@ public:
 		STAT(double ThisTime = 0);
 		{
 			SCOPE_SECONDS_COUNTER(ThisTime);
+			FCacheStatRecord* Record = new FCacheStatRecord();
+			CacheStats.Add(Record);
+			Record->CacheKey = CacheKey;
+			Record->CacheGet = 0;
+			Record->bSynchronous = true;
+			Record->DataSize = Data.Num();
+			Record->StartTime = FPlatformTime::Seconds();
+			Record->PutDuration = 0;
+			Record->GetDuration = 0;
 			FDerivedDataBackend::Get().GetRoot().PutCachedData(CacheKey, Data, bPutEvenIfExists);
+			Record->EndTime = FPlatformTime::Seconds();
 		}
 		INC_FLOAT_STAT_BY(STAT_DDC_PutTime,(float)ThisTime);
 		INC_DWORD_STAT(STAT_DDC_NumPuts);
@@ -337,6 +392,41 @@ public:
 		// Used by derived classes to spit out leaked pending rollups
 	}
 
+	virtual void PrintStats()
+	{
+		if (CacheStats.Num() > 0)
+		{
+#if ALLOW_DEBUG_FILES
+			const FString OutputDir = FPaths::GameLogDir() / TEXT("DDCStats");
+			IFileManager::Get().MakeDirectory(*OutputDir, true);
+
+			// Create archive for log data.
+			const FString ChartName = OutputDir / FString(TEXT("CookRunDDC.csv"));
+			FArchive* OutputFile = IFileManager::Get().CreateDebugFileWriter(*ChartName);
+
+			if (OutputFile)
+			{
+				OutputFile->Logf(TEXT("Key,Size,Total Duration(ms),Get Duration(ms),Put Duration(ms),Get,Sync,Network"));
+				for (int32 Index = 0; Index < CacheStats.Num(); Index++)
+				{
+					FCacheStatRecord* Record = CacheStats[Index];
+					if (Record->CacheGet != -1)
+					{
+						OutputFile->Logf(TEXT("%s,%d,%lf,%lf,%lf,%d,%s,%s"), *(Record->CacheKey), Record->DataSize, (Record->EndTime - Record->StartTime) * 1000.0f, Record->GetDuration * 1000.0f, Record->PutDuration * 1000.0f, Record->CacheGet, Record->bSynchronous ? TEXT("true") : TEXT("false"), Record->bFromNetwork ? TEXT("true") : TEXT("false"));
+					}
+				}
+				delete OutputFile;
+			}
+#endif
+			for (int32 Index = 0; Index < CacheStats.Num(); Index++)
+			{
+				FCacheStatRecord* Record = CacheStats[Index];
+				delete Record;
+			}
+			CacheStats.Empty();
+		}
+	}
+
 protected:
 	uint32 NextHandle()
 	{
@@ -364,6 +454,9 @@ private:
 	FCriticalSection			SynchronizationObject;
 	/** Map of handle to pending task **/
 	TMap<uint32,FAsyncTask<FBuildAsyncWorker>*>	PendingTasks;
+
+	// TEMP: stats
+	TArray<FCacheStatRecord*> CacheStats;
 };
 
 //Forward reference
@@ -934,6 +1027,7 @@ public:
 
 		FDerivedDataCache& DDC = static_cast< FDerivedDataCache& >( GetDDC() );
 		DDC.PrintLeaks();
+		DDC.PrintStats();
 	}
 };
 

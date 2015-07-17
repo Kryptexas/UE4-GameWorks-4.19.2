@@ -738,6 +738,15 @@ class FDerivedDataCacheInterface* GetDerivedDataCache()
 	return SingletonInterface;
 }
 
+void DerivedDataCachePrint()
+{
+	class IDerivedDataCacheModule* Module = FModuleManager::LoadModulePtr<IDerivedDataCacheModule>("DerivedDataCache");
+	if (Module)
+	{
+		Module->ShutdownModule();
+	}
+}
+
 class FDerivedDataCacheInterface& GetDerivedDataCacheRef()
 {
 	class FDerivedDataCacheInterface* SingletonInterface = GetDerivedDataCache();
