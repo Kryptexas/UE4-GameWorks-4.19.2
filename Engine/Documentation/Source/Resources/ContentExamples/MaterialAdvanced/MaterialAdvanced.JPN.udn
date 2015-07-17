@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2033300
+﻿INTSourceChangelist:2621719
 Availability:Docs
 Title:高度なマテリアル
 Crumbs:%ROOT%, Resources
-Description:マテリアルの高度な例の概要
+Description:高度なマテリアルのサンプル レベルの概要
 
 [TOC(start:2 end:2)]
 
@@ -47,17 +47,15 @@ Description:マテリアルの高度な例の概要
 
 <!--Insert path when done! [RELATIVE:Resources/ContentExamples/MaterialAdvanced]-->
 
-## 概要
-
 [REGION:fullwidth]
 
 [/REGION]
 
-**マテリアルの高度な** 事例へようこそ！
+**高度なマテリアル** のサンプル レベルへようこそ！
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
 
-## 例
+## サンプル
 
 [REGION:topics fifth]
 %Resources/ContentExamples/MaterialAdvanced/1_1:Topic%
