@@ -85,7 +85,7 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 	}
 
-	Sequencer->InitSequencer( SequencerInitParams, TrackEditorDelegates );
+	Sequencer->InitSequencer(SequencerInitParams, TrackEditorDelegates);
 
 	if (bEditWithinLevelEditor)
 	{

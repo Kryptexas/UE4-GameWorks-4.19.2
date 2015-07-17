@@ -14,7 +14,9 @@
 #include "IKeyArea.h"
 #include "ISequencerObjectBindingManager.h"
 
+
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
+
 
 class SSequencerObjectTrack : public SLeafWidget
 {

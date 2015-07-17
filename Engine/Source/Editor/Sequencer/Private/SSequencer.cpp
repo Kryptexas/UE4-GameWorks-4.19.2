@@ -30,6 +30,7 @@
 #include "SSequencerSplitterOverlay.h"
 #include "IKeyArea.h"
 
+
 #define LOCTEXT_NAMESPACE "Sequencer"
 
 

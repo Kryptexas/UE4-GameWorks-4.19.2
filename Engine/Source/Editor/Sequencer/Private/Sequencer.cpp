@@ -80,7 +80,6 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 
 		LastViewRange = TargetViewRange = InitParams.ViewParams.InitalViewRange;
 		ScrubPosition = InitParams.ViewParams.InitialScrubPosition;
-
 		ObjectChangeListener = InitParams.ObjectChangeListener;
 		ObjectBindingManager = InitParams.ObjectBindingManager;
 
@@ -176,14 +175,12 @@ FSequencer::FSequencer()
 FSequencer::~FSequencer()
 {
 	GEditor->GetActorRecordingState().RemoveAll( this );
-
 	GEditor->UnregisterForUndo( this );
 
 	DestroySpawnablesForAllMovieScenes();
+
 	ObjectBindingManager.Reset();
-
 	TrackEditors.Empty();
-
 	SequencerWidget.Reset();
 }
 
@@ -615,7 +612,6 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 {
 	TSharedRef<FMovieSceneInstance> FocusedMovieSceneInstance = GetFocusedMovieSceneInstance();
 	UMovieScene* FocusedMovieScene = FocusedMovieSceneInstance->GetMovieScene();
-
 	FGuid ObjectGuid = ObjectBindingManager->FindGuidForObject( *FocusedMovieScene, *Object );
 
 	// Check here for spawnable otherwise spawnables get recreated as possessables, which doesn't make sens
@@ -1027,7 +1023,7 @@ void FSequencer::OnToggleAutoScroll()
 FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject )
 {
 	FGuid NewSpawnableGuid;
-	
+
 	if (ObjectBindingManager->AllowsSpawnableObjects())
 	{
 		// Grab the MovieScene that is currently focused.  We'll add our Blueprint as an inner of the
