@@ -161,7 +161,7 @@ public:
 
 		FTransform ComponentTrans = DecalProxy.ComponentTrans;
 
-		FMatrix WorldToComponent = ComponentTrans.ToMatrixWithScale().InverseFast();
+		FMatrix WorldToComponent = ComponentTrans.ToInverseMatrixWithScale();
 
 		// Set the transform from screen space to light space.
 		if(ScreenToDecal.IsBound())
