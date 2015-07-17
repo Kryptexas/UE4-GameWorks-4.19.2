@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2319915
+﻿INTSourceChangelist:2590930
 Availability:NoPublish
 Title:ビークルのプロパティ リファレンス
 Crumbs:%ROOT%
@@ -94,8 +94,8 @@ Navigation:topic
 | プロパティ | 説明 |
 | --- | --- |
 | **Idle Brake Input** | プレイヤーがスロットルを解放した場合に、ブレーキを押す度合。 |
-| **Stop Threshold** | ビークルの絶対前進割合が、この (cm/s) よりも遅い場合に自動ブレーキ |
-| **Wrong Direction Threshold** | ビークルの前進割合が、少なくともこの (cm/s) 程度まで、プレイヤーの入力の逆である場合、自動ブレーキ |
+| **Stop Threshold** | ビークルの絶対前進速度が、この (cm/s) よりも遅い場合に自動ブレーキ |
+| **Wrong Direction Threshold** | ビークルの前進速度が、少なくともこの (cm/s) 程度まで、プレイヤーの入力の逆である場合、自動ブレーキ |
 | [REGION:tablesection] **Advanced** [/REGION]||
 | **Throttle Input** | %in1% [INCLUDE:#risefall] |
 | **Brake Input** | %in2% [INCLUDE:#risefall] |
@@ -134,3 +134,8 @@ Navigation:topic
 | **FVehicle Input Rate** | %doxygen:FVehicleInputRate::FVehicleInputRate% |
 | **Interp Input Value** | %doxygen:FVehicleInputRate::InterpInputValue% |
 -->
+
+
+
+
+
