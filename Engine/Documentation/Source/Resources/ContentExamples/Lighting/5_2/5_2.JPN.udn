@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618678
 Availability:Public
 Title:5.2 - Lightsource Radius
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 5.2：Lightsource Radius (反射への影響)
+Description:ライティングのサンプル レベル、5.2：Lightsource Radius (反射への影響)
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -38,7 +38,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\5_2:title%](Resources\ContentExamples\Lighting\Lighting_5_2.png)
 [/REGION]
 
-この例は非静的 (固定または可動) ライト上に及ぼす Source Radius の影響を示します。特にスペキュラ反射に与える影響を紹介します。Source Radius は光源のサイズをシミュレートするため、ライトの反射が相互関係を示すために大きさを変更することは理にかなっています。
+この例は非静的 (固定または可動) ライト上に及ぼす **Source Radius** の影響を示します。特にスペキュラ反射に与える影響を紹介します。Source Radius は光源のサイズをシミュレートするため、ライトの反射が相互関係を示すために大きさを変更することは理にかなっています。
 
 
 
