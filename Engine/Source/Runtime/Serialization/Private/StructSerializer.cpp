@@ -143,6 +143,11 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 
 				for (TFieldIterator<UProperty> It(CurrentState.TypeInfo, EFieldIteratorFlags::IncludeSuper); It; ++It)
 				{
+					// Skip property if the filter function is set and rejects it.
+					if (Policies.PropertyFilter && !Policies.PropertyFilter(*It, CurrentState.Property))
+					{
+						continue;
+					}
 					FWriteState NewState;
 
 					NewState.Data = NewData;

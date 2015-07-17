@@ -135,6 +135,11 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 				}
 				else
 				{
+					// Skip array property if property filter is set and rejects it
+					if (Policies.PropertyFilter && Policies.PropertyFilter(NewState.Property, CurrentState.Property))
+					{
+						continue;
+					}
 					NewState.ArrayIndex = 0;
 					NewState.Data = CurrentState.Data;
 					NewState.TypeInfo = FindClass(NewState);
@@ -205,9 +210,18 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 							return false;
 						}
 					}
-					else if (!Backend.ReadProperty(Property, CurrentState.Property, CurrentState.Data, CurrentState.ArrayIndex))
+					else
 					{
-						UE_LOG(LogSerialization, Verbose, TEXT("The property '%s' could not be read (%s)"), *PropertyName, *Backend.GetDebugString());
+						// Skip scalar property if property filter is set and rejects it
+						if (Policies.PropertyFilter && Policies.PropertyFilter(Property, CurrentState.Property))
+						{
+							continue;
+						}
+
+						if (!Backend.ReadProperty(Property, CurrentState.Property, CurrentState.Data, CurrentState.ArrayIndex))
+						{
+							UE_LOG(LogSerialization, Verbose, TEXT("The property '%s' could not be read (%s)"), *PropertyName, *Backend.GetDebugString());
+						}
 					}
 				}
 			}
@@ -278,6 +292,13 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 
 				if (NewState.Property != nullptr)
 				{
+					// Skip struct property if property filter is set and rejects it
+					if (Policies.PropertyFilter && !Policies.PropertyFilter(NewState.Property, CurrentState.Property))
+					{
+						Backend.SkipStructure();
+						continue;
+					}
+
 					NewState.ArrayIndex = 0;
 					NewState.TypeInfo = FindClass(NewState);
 
