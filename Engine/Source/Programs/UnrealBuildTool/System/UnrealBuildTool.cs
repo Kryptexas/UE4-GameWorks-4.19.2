@@ -1155,6 +1155,13 @@ namespace UnrealBuildTool
 						throw new BuildException("When running UnrealCodeAnalyzer, please specify module to analyze in UCAModuleToAnalyze field in BuildConfiguration.xml");
 					}
 
+					// Get the build version
+					BuildVersion Version;
+					if(!Utils.TryReadBuildVersion("../Build/Build.version", out Version))
+					{
+						Log.TraceWarning("Could not read build.version");
+					}
+
                     // Send an event with basic usage dimensions
                     // [RCL] 2014-11-03 FIXME: this is incorrect since we can have more than one action
                     Telemetry.SendEvent("CommonAttributes.2",
@@ -1185,7 +1192,7 @@ namespace UnrealBuildTool
                             : "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
-                        "EngineVersion", Utils.GetEngineVersionFromObjVersionCPP().ToString()
+                        "EngineVersion", (Version == null)? "0" : Version.Changelist.ToString()
                         );
 
 

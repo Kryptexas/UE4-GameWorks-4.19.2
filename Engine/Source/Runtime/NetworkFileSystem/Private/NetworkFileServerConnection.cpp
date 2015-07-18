@@ -813,8 +813,10 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 	// report the package version information
 	// The downside of this is that ALL cooked data will get tossed on package version changes
-	Out << GPackageFileUE4Version;
-	Out << GPackageFileLicenseeUE4Version;
+	int32 PackageFileUE4Version = GPackageFileUE4Version;
+	Out << PackageFileUE4Version;
+	int32 PackageFileLicenseeUE4Version = GPackageFileLicenseeUE4Version;
+	Out << PackageFileLicenseeUE4Version;
 
 	// Send *our* engine and game dirs
 	Out << LocalEngineDir;

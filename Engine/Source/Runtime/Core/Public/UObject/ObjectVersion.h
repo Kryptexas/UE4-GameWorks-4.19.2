@@ -586,9 +586,5 @@ enum EUnrealEngineObjectLicenseeUE4Version
 
 // Version access.
 
-extern CORE_API int32			GEngineNetVersion;				// Version used for networking; the P4 changelist number.
-extern CORE_API int32			GEngineMinNetVersion;			// Earliest engine build that is network compatible with this one.
-extern CORE_API int32			GEngineNegotiationVersion;		// Base protocol version to negotiate in network play.
-
-extern CORE_API int32			GPackageFileUE4Version;			// UE4 Version Number.
-extern CORE_API int32			GPackageFileLicenseeUE4Version;	// Licensee Version Number.
+extern const CORE_API int32			GPackageFileUE4Version;			// UE4 Version Number.
+extern const CORE_API int32			GPackageFileLicenseeUE4Version;	// Licensee Version Number.

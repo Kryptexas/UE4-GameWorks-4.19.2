@@ -489,23 +489,6 @@ namespace AutomationTool
 				}
 				Result.Add(VerFile);
 			}
-			{
-				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Core", "Private", "UObject", "ObjectVersion.cpp");
-				if (bDoUpdateVersionFiles)
-				{
-					Log("Updating {0} with:", VerFile);
-					Log(" #define	ENGINE_VERSION  {0}", ChangelistNumber.ToString());
-
-					VersionFileUpdater ObjectVersionCpp = new VersionFileUpdater(VerFile);
-					ObjectVersionCpp.ReplaceLine("#define	ENGINE_VERSION	", ChangelistNumber.ToString());
-                    ObjectVersionCpp.Commit();
-                }
-				else
-				{
-					Log("{0} will not be updated because P4 is not enabled.", VerFile);
-				}
-                Result.Add(VerFile);
-            }
 
             string EngineVersionFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Launch", "Resources", "Version.h");
             {
@@ -513,13 +496,11 @@ namespace AutomationTool
 				if (bDoUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
-					Log(" #define	ENGINE_VERSION  {0}", ChangelistNumber.ToString());
 					Log(" #define	BRANCH_NAME  {0}", Branch);
 					Log(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
 					Log(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
-					VersionH.ReplaceLine("#define ENGINE_VERSION ", ChangelistNumber.ToString());
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
 					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", ChangelistString);
 					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");

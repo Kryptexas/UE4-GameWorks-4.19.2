@@ -192,16 +192,17 @@ void operator<<(FArchive &Ar, FEngineVersion &Version)
 	Ar << Version.Branch;
 }
 
-// Make sure this is defined
-#ifndef ENGINE_IS_LICENSEE_VERSION
-	#define ENGINE_IS_LICENSEE_VERSION 0
-#endif
+/** Changelist constants. The two lines below may be modified by tools. */
+const int32 GEngineVersionChangelist = BUILT_FROM_CHANGELIST;
+const int32 GCompatibleWithEngineVersionChangelist = MODULE_API_VERSION;
 
-// Licensee changelists part of the engine version has the top bit set to 1
-#define ENGINE_VERSION_INTERNAL_OR_LICENSEE (BUILT_FROM_CHANGELIST | (ENGINE_IS_LICENSEE_VERSION << 31))
+/** Version numbers for networking */
+const int32 GEngineNetVersion			= GEngineVersionChangelist;
+const int32 GEngineMinNetVersion		= 7038;
+const int32 GEngineNegotiationVersion	= 3077;
 
 // Global instance of the current engine version
-const FEngineVersion GEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, ENGINE_VERSION_INTERNAL_OR_LICENSEE, BRANCH_NAME);
+const FEngineVersion GEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (GEngineVersionChangelist | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
 
 // Version which this engine maintains strict API and package compatibility with
-const FEngineVersion GCompatibleWithEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (MODULE_API_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+const FEngineVersion GCompatibleWithEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (GCompatibleWithEngineVersionChangelist | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);

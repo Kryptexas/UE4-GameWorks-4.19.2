@@ -13,10 +13,27 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using Tools.DotNETCommon.CaselessDictionary;
 using Tools.DotNETCommon.HarvestEnvVars;
+using System.Web.Script.Serialization;
 
 namespace UnrealBuildTool
 {
-	public abstract class Utils
+	/// <summary>
+	/// Holds information about the current engine version
+	/// </summary>
+	public class BuildVersion
+	{
+		public int MajorVersion;
+		public int MinorVersion;
+		public int PatchVersion;
+		public int Changelist;
+		public int IsLicenseeVersion;
+		public string BranchName;
+	}
+
+	/// <summary>
+	/// Utility functions
+	/// </summary>
+	public static class Utils
 	{
 		/// <summary>
 		/// Whether we are currently running on Mono platform.  We cache this statically because it is a bit slow to check.
@@ -790,29 +807,37 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-
 		/// <summary>
-		/// Finds the Engine Version from ObjVersion.cpp.
+		/// Try to read the Build/Build.version file from disk
 		/// </summary>
-		/// <remarks>
-		/// If UBT eventually gets the engine version passed from the build environment this code should be scrapped for that instead.
-		/// </remarks>
-		/// <returns></returns>
-		public static int GetEngineVersionFromObjVersionCPP()
+		/// <param name="Version">The version information</param>
+		/// <returns>True if the version was read sucessfully, false otherwise</returns>
+		public static bool TryReadBuildVersion(string FileName, out BuildVersion Version)
 		{
+			JsonObject Object;
 			try
 			{
-				return
-					(from line in File.ReadLines("Runtime/Core/Private/UObject/ObjectVersion.cpp", Encoding.ASCII)
-						where line.StartsWith("#define	ENGINE_VERSION")
-						select int.Parse(line.Split()[2])).Single();
+				Object = JsonObject.FromFile(FileName);
 			}
-			catch (Exception ex)
+			catch(Exception)
 			{
-				// Don't do a stack trace so we don't pollute the logs with spurious exception data, as we don't crash on this case.
-				Log.TraceWarning("Could not parse Engine Version from ObjectVersion.cpp: {0}", ex.Message);
-				return 0;
+				Version = null;
+				return false;
 			}
+
+			BuildVersion NewVersion = new BuildVersion();
+			if(!Object.TryGetIntegerField("MajorVersion", out NewVersion.MajorVersion) || !Object.TryGetIntegerField("MinorVersion", out NewVersion.MinorVersion) || !Object.TryGetIntegerField("PatchVersion", out NewVersion.PatchVersion))
+			{
+				Version = null;
+				return false;
+			}
+
+			Object.TryGetIntegerField("Changelist", out NewVersion.Changelist);
+			Object.TryGetIntegerField("IsLicenseeVersion", out NewVersion.IsLicenseeVersion);
+			Object.TryGetStringField("BranchName", out NewVersion.BranchName);
+
+			Version = NewVersion;
+			return true;
 		}
 
 		/// <summary>

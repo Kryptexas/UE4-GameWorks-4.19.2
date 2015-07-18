@@ -374,8 +374,10 @@ bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString
 			if (bOldProtocol)
 #endif
 			{
-				*ControlChanBunch << GEngineMinNetVersion;
-				*ControlChanBunch << GEngineNetVersion;
+				int32 EngineMinNetVersion = GEngineMinNetVersion;
+				*ControlChanBunch << EngineMinNetVersion;
+				int32 EngineNetVersion = GEngineNetVersion;
+				*ControlChanBunch << EngineNetVersion;
 				*ControlChanBunch << (FGuid&)GetDefault<UGeneralProjectSettings>()->ProjectID;
 			}
 #if TARGET_UE4_CL >= CL_FNETWORKVERSION

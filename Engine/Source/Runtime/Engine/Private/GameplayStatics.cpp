@@ -1239,7 +1239,8 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		MemoryWriter << SavegameFileVersion;
 
 		// Write out engine and UE4 version information
-		MemoryWriter << GPackageFileUE4Version;
+		int32 PackageFileUE4Version = GPackageFileUE4Version;
+		MemoryWriter << PackageFileUE4Version;
 		FEngineVersion SavedEngineVersion = GEngineVersion;
 		MemoryWriter << SavedEngineVersion;
 

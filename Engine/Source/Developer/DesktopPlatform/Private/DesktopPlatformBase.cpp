@@ -313,7 +313,7 @@ bool FDesktopPlatformBase::TryGetEngineVersion(const FString& RootDir, FEngineVe
 					{
 						PatchVersion = FCString::Atoi(*Tokens[3]);
 					}
-					else if(Tokens[2] == "ENGINE_VERSION")
+					else if(Tokens[2] == "BUILT_FROM_CHANGELIST")
 					{
 						Changelist = FCString::Atoi(*Tokens[3]);
 					}

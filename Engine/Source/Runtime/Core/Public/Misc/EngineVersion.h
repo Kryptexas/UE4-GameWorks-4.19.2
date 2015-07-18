@@ -46,6 +46,14 @@ private:
 	FString Branch;
 };
 
+/** Version used for networking; the P4 changelist number. */
+CORE_API extern const int32 GEngineNetVersion;
+
+/** Earliest engine build that is network compatible with this one. */
+CORE_API extern const int32 GEngineMinNetVersion;
+
+/** Base protocol version to negotiate in network play. */
+CORE_API extern const int32 GEngineNegotiationVersion;		
 
 /** Global instance of the current engine version. */
 CORE_API extern const FEngineVersion GEngineVersion;

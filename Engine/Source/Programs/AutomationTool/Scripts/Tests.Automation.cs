@@ -1328,17 +1328,10 @@ public class ZeroEngineVersions : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		string ObjectVersionFilename = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/Core/Private/UObject/ObjectVersion.cpp";
 		string VersionFilename = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/Launch/Resources/Version.h";
 		if (P4Env.Changelist > 0)
 		{
-			var Stat = P4.FStat(ObjectVersionFilename);
-			if (Stat.IsValid && Stat.Action != P4Action.None)
-			{
-				Log("Reverting {0}", ObjectVersionFilename);
-				P4.Revert(ObjectVersionFilename);
-			}
-			Stat = P4.FStat(VersionFilename);
+			var Stat = P4.FStat(VersionFilename);
 			if (Stat.IsValid && Stat.Action != P4Action.None)
 			{
 				Log("Reverting {0}", VersionFilename);
@@ -1346,7 +1339,6 @@ public class ZeroEngineVersions : BuildCommand
 			}
 
 			Log("Gettting engine version files @{0}", P4Env.Changelist);
-			P4.Sync(String.Format("-f {0}@{1}", ObjectVersionFilename, P4Env.Changelist));
 			P4.Sync(String.Format("-f {0}@{1}", VersionFilename, P4Env.Changelist));
 		}
 

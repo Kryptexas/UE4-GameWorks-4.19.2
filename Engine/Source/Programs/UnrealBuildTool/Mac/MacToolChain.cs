@@ -424,15 +424,15 @@ namespace UnrealBuildTool
 
 		private int LoadEngineCL()
 		{
-			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			foreach (string Line in VersionHeader)
+			BuildVersion Version;
+			if(Utils.TryReadBuildVersion("../Build/Build.version", out Version))
 			{
-				if (Line.StartsWith("#define ENGINE_VERSION "))
-				{
-					return int.Parse(Line.Split(' ')[2]);
-				}
+				return Version.Changelist;
 			}
-			return 0;
+			else
+			{
+				return 0;
+			}
 		}
 
 		private string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
