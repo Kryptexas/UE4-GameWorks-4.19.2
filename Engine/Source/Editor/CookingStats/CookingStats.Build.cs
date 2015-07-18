@@ -8,15 +8,8 @@ public class CookingStats : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Core",
-				"CoreUObject"
+				"Core"
 			}
 			);
-
-		if (UEBuildConfiguration.bBuildEditor == true)
-		{
-			PrivateIncludePathModuleNames.AddRange(new string[] { "DirectoryWatcher" });
-			DynamicallyLoadedModuleNames.AddRange(new string[] { "DirectoryWatcher" });
-		}
 	}
 }

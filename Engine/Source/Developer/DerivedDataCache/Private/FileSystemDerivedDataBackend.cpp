@@ -218,6 +218,12 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
 	{
+		static FName NAME_PutCachedData(TEXT("PutCachedData"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+
+
 		check(!bFailed);
 		if (!bReadOnly)
 		{

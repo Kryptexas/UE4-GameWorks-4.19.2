@@ -37,6 +37,13 @@ enum
 #define TEXTURE_DERIVEDDATA_VER		TEXT("814DCC3DC72143F49509781513CB9855")
 
 
+// output texture building stats to Saved\Stats\Stats.csv
+#define BUILD_TEXTURE_STATS 1
+
+#if BUILD_TEXTURE_STATS
+#include "DDCStatsHelper.h"
+#endif
+
 /*------------------------------------------------------------------------------
 	Timing of derived data operations.
 ------------------------------------------------------------------------------*/
@@ -752,6 +759,14 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 	/** Build the texture. This function is safe to call from any thread. */
 	void BuildTexture()
 	{
+#if BUILD_TEXTURE_STATS
+		FString DerivedDataKey;
+		GetTextureDerivedDataKeyFromSuffix(KeySuffix, DerivedDataKey);
+		static const FName NAME_BuildTexture(TEXT("BuildTexture"));
+		FDDCScopeStatHelper ScopeStat(*DerivedDataKey, NAME_BuildTexture);
+#endif
+
+
 		if (SourceMips.Num())
 		{
 			TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::BuildTextureTime);

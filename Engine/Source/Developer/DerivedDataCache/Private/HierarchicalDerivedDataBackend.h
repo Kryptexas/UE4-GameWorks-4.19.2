@@ -156,6 +156,15 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
 	{
+		const static FName NAME_PutCachedData = FName(TEXT("PutCachedData"));
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		const static FName NAME_DataSize = FName(TEXT("DataSize"));
+
+		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+		Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), InData.Num()));
+
+
 		if (!bIsWritable)
 		{
 			return; // no point in continuing down the chain
