@@ -2076,14 +2076,14 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 
 UEdGraphPin* FKismetCompilerContext::ExpandNodesToAllocateRuntimeMovieScenePlayer( UEdGraph* SourceGraph, UK2Node_PlayMovieScene* PlayMovieSceneNode, ULevel* Level, UK2Node_TemporaryVariable*& OutPlayerVariableNode )
 {
-	// Call URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer() to create a new RuntimeMovieScenePlayer instance
+	// Call URuntimeMovieScenePlayer::CreatePlayer() to create a new RuntimeMovieScenePlayer instance
 	UK2Node_CallFunction* CreatePlayerCallNode = SpawnIntermediateNode<UK2Node_CallFunction>( PlayMovieSceneNode, SourceGraph );
 	{
-		CreatePlayerCallNode->FunctionReference.SetExternalMember(GET_FUNCTION_NAME_CHECKED(URuntimeMovieScenePlayer, CreateRuntimeMovieScenePlayer), URuntimeMovieScenePlayer::StaticClass());
+		CreatePlayerCallNode->FunctionReference.SetExternalMember(GET_FUNCTION_NAME_CHECKED(URuntimeMovieScenePlayer, CreatePlayer), URuntimeMovieScenePlayer::StaticClass());
 		CreatePlayerCallNode->AllocateDefaultPins();
 	}
 
-	// The return value of URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer() is the actual MovieScenePlayer we'll be operating with
+	// The return value of URuntimeMovieScenePlayer::CreatePlayer() is the actual MovieScenePlayer we'll be operating with
 	UEdGraphPin* CreatePlayerReturnValuePin = CreatePlayerCallNode->GetReturnValuePin();
 
 	// Make a literal for the level and bind it to our function call as a parameter
@@ -2143,7 +2143,7 @@ UEdGraphPin* FKismetCompilerContext::ExpandNodesToAllocateRuntimeMovieScenePlaye
 		// create the player object
 		IfVariableNullNode->GetThenPin()->MakeLinkTo( CreatePlayerCallNode->GetExecPin() );
 
-		// Setup function params for "URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer()"
+		// Setup function params for "URuntimeMovieScenePlayer::CreatePlayer()"
 		{
 			// Our level literal just points to the level object
 			LevelLiteralNode->SetObjectRef( Level );

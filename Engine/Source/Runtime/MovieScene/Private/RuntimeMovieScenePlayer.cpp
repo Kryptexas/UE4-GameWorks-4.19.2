@@ -9,25 +9,25 @@
 /* URuntimeMovieScenePlayer static functions
  *****************************************************************************/
 
-URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlayer(ULevel* Level, UMovieSceneBindings* MovieSceneBindings)
-{	
-	URuntimeMovieScenePlayer* NewRuntimeMovieScenePlayer = NewObject<URuntimeMovieScenePlayer>((UObject*)GetTransientPackage(), NAME_None, RF_Transient);
-	check(NewRuntimeMovieScenePlayer != nullptr);
+URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreatePlayer(ULevel* Level, UMovieSceneBindings* MovieSceneBindings)
+{
+	URuntimeMovieScenePlayer* NewPlayer = NewObject<URuntimeMovieScenePlayer>((UObject*)GetTransientPackage(), NAME_None, RF_Transient);
+	check(NewPlayer != nullptr);
 
-	// Associate the player with its world
-	NewRuntimeMovieScenePlayer->World = Level->OwningWorld;
-	check( NewRuntimeMovieScenePlayer->World.IsValid() );
+	// associate the player with its world
+	NewPlayer->World = Level->OwningWorld;
+	check(NewPlayer->World.IsValid());
 
-	// Attach bindings to the newly-created RuntimeMovieScenePlayer
-	NewRuntimeMovieScenePlayer->SetMovieSceneBindings( MovieSceneBindings );
+	// attach bindings to the newly-created RuntimeMovieScenePlayer
+	NewPlayer->SetMovieSceneBindings(MovieSceneBindings);
 
-	// Spawn actors for each spawnable!
+	// spawn actors for each spawnable!
 
-	// Add this to the level's list of active RuntimeMovieScenePlayers.  The level will own this player from now on.
-	check( Level != nullptr );
-	Level->AddActiveRuntimeMovieScenePlayer( NewRuntimeMovieScenePlayer );
+	// add to the level's list of active players
+	check(Level != nullptr);
+	Level->AddActiveRuntimeMovieScenePlayer(NewPlayer);
 
-	return NewRuntimeMovieScenePlayer;
+	return NewPlayer;
 }
 
 

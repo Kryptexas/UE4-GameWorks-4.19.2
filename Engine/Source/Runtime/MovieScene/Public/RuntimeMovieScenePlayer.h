@@ -38,7 +38,7 @@ public:
 	 * @return The newly created RuntimeMovieScenePlayer instance for this MovieScene
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
-	static URuntimeMovieScenePlayer* CreateRuntimeMovieScenePlayer(ULevel* Level, UMovieSceneBindings* InMovieSceneBindings);
+	static URuntimeMovieScenePlayer* CreatePlayer(ULevel* Level, UMovieSceneBindings* InMovieSceneBindings);
 
 public:
 
