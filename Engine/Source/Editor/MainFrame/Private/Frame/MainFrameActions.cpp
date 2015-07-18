@@ -592,6 +592,12 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	}
 #endif
 
+	int32 NumCookers = GetDefault<UEditorExperimentalSettings>()->MultiProcessCooking;
+	if (NumCookers > 0 )
+	{
+		OptionalParams += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), NumCookers);
+	}
+
 	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 
 	if (bRunningDebug)
