@@ -138,13 +138,17 @@ F3DTransformTrackEditor::F3DTransformTrackEditor( TSharedRef<ISequencer> InSeque
 
 F3DTransformTrackEditor::~F3DTransformTrackEditor()
 {
+	OnRelease();
+	F3DTransformTrackCommands::Unregister();
+}
+
+void F3DTransformTrackEditor::OnRelease()
+{
 	GEditor->OnBeginObjectMovement().RemoveAll( this );
 	GEditor->OnEndObjectMovement().RemoveAll( this );
 
 	GEditor->OnBeginCameraMovement().RemoveAll( this );
 	GEditor->OnEndCameraMovement().RemoveAll( this );
-
-	F3DTransformTrackCommands::Unregister();
 }
 
 TSharedRef<FMovieSceneTrackEditor> F3DTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )

@@ -193,7 +193,11 @@ FSequencer::OnClose()
 
 		FEditorDelegates::PreSaveWorld.RemoveAll(this);
 		FEditorDelegates::PostSaveWorld.RemoveAll(this);
-
+		
+		for (auto TrackEditor : TrackEditors)
+		{
+			TrackEditor->OnRelease();
+		}
 		ActiveSequencer.Reset();
 
 		if( GLevelEditorModeTools().IsModeActive( FSequencerEdMode::EM_SequencerMode ) )

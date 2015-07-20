@@ -26,6 +26,9 @@ public:
 	/** Destructor */
 	virtual ~FMovieSceneTrackEditor(){};
 
+	/** Called when the instance of this track editor is released */
+	virtual void OnRelease(){};
+
 	/** @return The current movie scene */
 	UMovieScene* GetMovieScene() const
 	{
