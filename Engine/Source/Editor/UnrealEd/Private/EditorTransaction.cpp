@@ -312,6 +312,7 @@ void FTransaction::Apply()
 		return (BAsComponent ? (BAsComponent->GetOwner() != &A) : true);
 	});
 
+	TArray<ULevel*> LevelsToCommitModelSurface;
 	NumModelsModified = 0;		// Count the number of UModels that were changed.
 	for (auto ChangedObjectIt : ChangedObjects)
 	{
@@ -322,6 +323,14 @@ void FTransaction::Apply()
 			FBSPOps::bspBuildBounds(Model);
 			++NumModelsModified;
 		}
+		
+		if (UModelComponent* ModelComponent = Cast<UModelComponent>(ChangedObject))
+		{
+			ULevel* Level = ModelComponent->GetTypedOuter<ULevel>();
+			check(Level);
+			LevelsToCommitModelSurface.AddUnique(Level);
+		}
+
 		TSharedPtr<ITransactionObjectAnnotation> ChangedObjectTransactionAnnotation = ChangedObjectIt.Value;
 		if (ChangedObjectTransactionAnnotation.IsValid())
 		{
@@ -331,6 +340,12 @@ void FTransaction::Apply()
 		{
 			ChangedObject->PostEditUndo();
 		}
+	}
+
+	// Commit model surfaces for unique levels within the transaction
+	for (ULevel* Level : LevelsToCommitModelSurface)
+	{
+		Level->CommitModelSurfaces();
 	}
 
 	// Flip it.

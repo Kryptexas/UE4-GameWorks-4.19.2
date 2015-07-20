@@ -596,7 +596,7 @@ public:
 	/**
 	 * Commits changes made to the UModel's surfaces.
 	 */
-	void CommitModelSurfaces();
+	ENGINE_API void CommitModelSurfaces();
 
 	/**
 	 * Discards the cached data used to render the level's UModel.  Assumes that the
