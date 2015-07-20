@@ -20,9 +20,11 @@ class USCS_Node : public UObject
 	UPROPERTY()
 	FName VariableName;
 
+#if WITH_EDITORONLY_DATA
 	/** If non-None, the assigned category name */
 	UPROPERTY()
 	FText CategoryName;
+#endif //WITH_EDITORONLY_DATA
 
 	/** Socket/Bone that Node might attach to */
 	UPROPERTY()
