@@ -1508,7 +1508,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	]
 	.ValueContent()
 	[
-		SNew(STextComboBox)
+		SAssignNew(LODGroupComboBox, STextComboBox)
 		.ContentPadding(0)
 		.OptionsSource(&LODGroupOptions)
 		.InitiallySelectedItem(LODGroupOptions[(LODGroupIndex == INDEX_NONE) ? 0 : LODGroupIndex])
@@ -1883,14 +1883,15 @@ void FLevelOfDetailSettingsLayout::OnLODGroupChanged(TSharedPtr<FString> NewValu
 	FName NewGroup = LODGroupNames[GroupIndex];
 	if (StaticMesh->LODGroup != NewGroup)
 	{
-		StaticMesh->Modify();
-		StaticMesh->LODGroup = NewGroup;
 		EAppReturnType::Type DialogResult = FMessageDialog::Open(
 			EAppMsgType::YesNo,
-			FText::Format( LOCTEXT("ApplyDefaultLODSettings", "Overwrite settings with the defaults from LOD group '{0}'?"), FText::FromString( **NewValue ) )
+			FText::Format( LOCTEXT("ApplyDefaultLODSettings", "Changing LOD group will overwrite the current settings with the defaults from LOD group '{0}'. Do you wish to continue?"), FText::FromString( **NewValue ) )
 			);
 		if (DialogResult == EAppReturnType::Yes)
 		{
+			StaticMesh->Modify();
+			StaticMesh->LODGroup = NewGroup;
+
 			const ITargetPlatform* Platform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 			check(Platform);
 			const FStaticMeshLODGroup& GroupSettings = Platform->GetStaticMeshLODSettings().GetLODGroup(NewGroup);
@@ -1911,9 +1912,16 @@ void FLevelOfDetailSettingsLayout::OnLODGroupChanged(TSharedPtr<FString> NewValu
 			}
 			StaticMesh->bAutoComputeLODScreenSize = true;
 			StaticMesh->LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
+			StaticMesh->PostEditChange();
+			StaticMeshEditor.RefreshTool();
 		}
-		StaticMesh->PostEditChange();
-		StaticMeshEditor.RefreshTool();
+		else
+		{
+			// Overriding the selection; ensure that the widget correctly reflects the property value
+			int32 Index = LODGroupNames.Find(StaticMesh->LODGroup);
+			check(Index != INDEX_NONE);
+			LODGroupComboBox->SetSelectedItem(LODGroupOptions[Index]);
+		}
 	}
 }
 

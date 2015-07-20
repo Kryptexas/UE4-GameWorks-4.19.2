@@ -328,6 +328,9 @@ private:
 	TSharedPtr<FMeshBuildSettingsLayout> BuildSettingsWidgets[MAX_STATIC_MESH_LODS];
 	TSharedPtr<FMeshSectionSettingsLayout> SectionSettingsWidgets[MAX_STATIC_MESH_LODS];
 
+	/** ComboBox widget for the LOD Group property */
+	TSharedPtr<STextComboBox> LODGroupComboBox;
+
 	/** The display factors at which LODs swap */
 	float LODScreenSizes[MAX_STATIC_MESH_LODS];
 
