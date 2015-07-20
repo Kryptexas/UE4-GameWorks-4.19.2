@@ -4,6 +4,8 @@
 #include "SSequencerTrackArea.h"
 #include "SSequencerTrackLane.h"
 #include "TimeSliderController.h"
+#include "CommonMovieSceneTools.h"
+#include "Sequencer.h"
 
 
 struct FMarqueeSelectData
