@@ -190,8 +190,8 @@ void FStatsMallocProfilerProxy::TrackRealloc( void* OldPtr, void* NewPtr, int64 
 
 void* FStatsMallocProfilerProxy::Malloc( SIZE_T Size, uint32 Alignment )
 {
-	const int32 SequenceTag = MemorySequenceTag.Increment();
 	void* Ptr = UsedMalloc->Malloc( Size, Alignment );
+	const int32 SequenceTag = MemorySequenceTag.Increment();
 	// We lose the Size's precision, but don't worry about it.
 	TrackAlloc( Ptr, (int64)Size, SequenceTag );
 	return Ptr;
@@ -199,8 +199,8 @@ void* FStatsMallocProfilerProxy::Malloc( SIZE_T Size, uint32 Alignment )
 
 void* FStatsMallocProfilerProxy::Realloc( void* OldPtr, SIZE_T NewSize, uint32 Alignment )
 {
-	const int32 SequenceTag = MemorySequenceTag.Increment();
 	void* NewPtr = UsedMalloc->Realloc( OldPtr, NewSize, Alignment );
+	const int32 SequenceTag = MemorySequenceTag.Increment();
 	TrackRealloc( OldPtr, NewPtr, (int64)NewSize, SequenceTag );
 	return NewPtr;
 }
