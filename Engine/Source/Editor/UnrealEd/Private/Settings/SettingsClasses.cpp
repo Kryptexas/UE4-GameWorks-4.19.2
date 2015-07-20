@@ -351,6 +351,7 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	RouteGamepadToSecondWindow = false;
 	AutoConnectToServer = true;
 	BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Default;
+	LaunchConfiguration = EPlayOnLaunchConfiguration::LaunchConfig_Default;
 	bAutoCompileBlueprintsOnLaunch = true;
 	CenterNewWindow = true;
 	CenterStandaloneWindow = true;
