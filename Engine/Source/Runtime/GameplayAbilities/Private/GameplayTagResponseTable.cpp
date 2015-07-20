@@ -13,7 +13,6 @@
 UGameplayTagReponseTable::UGameplayTagReponseTable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	Query.OwningTagContainer = &QueryContainer;
 }
 
 void UGameplayTagReponseTable::RegisterResponseForEvents(UAbilitySystemComponent* ASC)
