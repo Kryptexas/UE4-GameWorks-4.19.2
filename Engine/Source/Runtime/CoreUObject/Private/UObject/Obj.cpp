@@ -15,6 +15,7 @@
 #include "HotReloadInterface.h"
 #include "UObject/TlsObjectInitializers.h"
 #include "UObject/UObjectThreadContext.h"
+#include "Serialization/DeferredMessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
@@ -3730,6 +3731,7 @@ void StaticExit()
 	UObjectBaseShutdown();
 	// Empty arrays to prevent falsely-reported memory leaks.
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
+	FDeferredMessageLog::Cleanup();
 
 	UE_LOG(LogExit, Log, TEXT("Object subsystem successfully closed.") );
 }
