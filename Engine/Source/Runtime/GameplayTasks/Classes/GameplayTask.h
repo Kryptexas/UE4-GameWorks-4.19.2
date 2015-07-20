@@ -130,7 +130,7 @@ public:
 	FString GetDebugDescription() const;
 };
 
-UCLASS(Abstract)
+UCLASS(Abstract, meta = (ExposedAsyncProxy))
 class GAMEPLAYTASKS_API UGameplayTask : public UObject
 {
 	GENERATED_BODY()

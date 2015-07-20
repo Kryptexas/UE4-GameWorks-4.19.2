@@ -55,7 +55,15 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
-	CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), ProxyClass, false, false, FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	bool bExposeProxy = false;
+	for (const UStruct* TestStruct = ProxyClass; TestStruct && !bExposeProxy; TestStruct = TestStruct->GetSuperStruct())
+	{
+		bExposeProxy = TestStruct->HasMetaData(TEXT("ExposedAsyncProxy"));
+	}
+	if (bExposeProxy)
+	{
+		CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), ProxyClass, false, false, FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	}
 
 	UFunction* DelegateSignatureFunction = NULL;
 	for (TFieldIterator<UProperty> PropertyIt(ProxyClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
@@ -284,8 +292,8 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 	UEdGraphPin* const ProxyObjectPin = CallCreateProxyObjectNode->GetReturnValuePin();
 	check(ProxyObjectPin);
-	auto OutputAsyncTaskProxy = FindPinChecked(FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
-	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*OutputAsyncTaskProxy, *ProxyObjectPin).CanSafeConnect();
+	UEdGraphPin* OutputAsyncTaskProxy = FindPin(FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	bIsErrorFree &= !OutputAsyncTaskProxy || CompilerContext.MovePinLinksToIntermediate(*OutputAsyncTaskProxy, *ProxyObjectPin).CanSafeConnect();
 
 	// GATHER OUTPUT PARAMETERS AND PAIR THEM WITH LOCAL VARIABLES
 	TArray<FBaseAsyncTaskHelper::FOutputPinAndLocalVariable> VariableOutputs;
