@@ -294,7 +294,7 @@ void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& Disp
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow)
 {
-	return SNew( SAnimationOutlinerTreeNode, SharedThis( this ), InRow, &GetSequencer() );
+	return SNew( SAnimationOutlinerTreeNode, SharedThis( this ), InRow );
 }
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateEditWidgetForOutliner()

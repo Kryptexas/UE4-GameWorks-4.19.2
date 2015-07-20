@@ -15,9 +15,8 @@
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
 
 
-void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node, const TSharedRef<SSequencerTreeViewRow>& InTableRow, FSequencer* InSequencer  )
+void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node, const TSharedRef<SSequencerTreeViewRow>& InTableRow )
 {
-	Sequencer = InSequencer;
 	DisplayNode = Node;
 
 	SelectedBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.SelectionBorder" );
@@ -449,13 +448,14 @@ void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequence
 		return;
 	}
 
-	if (!Sequencer->IsLevelEditorSequencer())
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	if (!Sequencer.IsLevelEditorSequencer())
 	{
 		return;
 	}
 
 	// Mark that the user is selecting so that the UI doesn't respond to the selection changes in the following block
-	TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget());
+	TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
 	SequencerWidget->SetUserIsSelecting(true);
 
 	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
@@ -485,7 +485,7 @@ void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequence
 
 		// Get the bound objects
 		TArray<UObject*> RuntimeObjects;
-		Sequencer->GetRuntimeObjects( Sequencer->GetFocusedMovieSceneInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
+		Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
 		
 		if( RuntimeObjects.Num() > 0 )
 		{
@@ -500,7 +500,7 @@ void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequence
 
 					if (IsControlDown)
 					{
-						bSelectActor = Sequencer->GetSelection().IsSelected(ObjectNodes[ObjectIdx].ToSharedRef());
+						bSelectActor = Sequencer.GetSelection().IsSelected(ObjectNodes[ObjectIdx].ToSharedRef());
 					}
 
 					GEditor->SelectActor(Actor, bSelectActor, bNotifySelectionChanged );

@@ -14,7 +14,7 @@ public:
 	SLATE_BEGIN_ARGS(SAnimationOutlinerTreeNode){}
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node, const TSharedRef<SSequencerTreeViewRow>& InTableRow, FSequencer* InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node, const TSharedRef<SSequencerTreeViewRow>& InTableRow );
 
 	/**
 	 * @return The display node used by this widget                                                              
@@ -63,8 +63,6 @@ private:
 	void OnSelectionChanged( TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes );
 
 private:
-	/** Internal sequencer interface */
-	FSequencer* Sequencer;
 	/** Layout node the widget is visualizing */
 	TSharedPtr<FSequencerDisplayNode> DisplayNode;
 	/** Brush to display a border around the widget when it is selected */
