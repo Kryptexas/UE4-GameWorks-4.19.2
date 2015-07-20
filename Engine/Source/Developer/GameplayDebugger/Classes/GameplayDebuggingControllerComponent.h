@@ -88,6 +88,8 @@ protected:
 	virtual void BindAIDebugViewKeys(class UInputComponent*& InputComponent);
 	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;
 	virtual void ToggleDebugCamera();
+	virtual void ToggleOnScreenDebugMessages();
+	virtual void ToggleGameHUD();
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
 	TWeakObjectPtr<ADebugCameraController> DebugCameraController;
