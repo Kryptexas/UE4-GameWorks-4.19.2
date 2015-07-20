@@ -1280,6 +1280,7 @@ private:
 
 	friend class FParallelBlendPhysicsCompletionTask;
 	void CompleteParallelBlendPhysics();
+	void PostBlendPhysics();
 
 	friend class FTickClothingTask;
 	void PerformTickClothing(float DeltaTime);
