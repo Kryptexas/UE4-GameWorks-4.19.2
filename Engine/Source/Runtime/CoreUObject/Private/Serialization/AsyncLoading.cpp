@@ -6,7 +6,6 @@
 
 #include "CoreUObjectPrivate.h"
 #include "Serialization/AsyncLoading.h"
-#include "Serialization/DeferredMessageLog.h"
 #include "Serialization/AsyncPackage.h"
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/LinkerManager.h"
@@ -721,7 +720,6 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 #endif
 			if (AsyncPackagesCounter.GetValue() == 0 && LoadedPackagesToProcess.Num() == 0)
 			{
-				FDeferredMessageLog::Flush();
 				FAsyncObjectsReferencer::Get().EmptyReferencedObjects();
 			}
 		}

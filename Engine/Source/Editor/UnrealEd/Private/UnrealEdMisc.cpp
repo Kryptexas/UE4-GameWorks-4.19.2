@@ -869,7 +869,11 @@ void FUnrealEdMisc::CB_DisplayLoadErrors()
 		const bool bIsImmersive = FParse::Param( FCommandLine::Get(), TEXT( "immersive" ) );
 		if( !bIsImmersive && !GIsAutomationTesting)
 		{
-			FMessageLog("LoadErrors").Open();
+			FMessageLog MessageLog("LoadErrors");
+			if (MessageLog.HasUnseenMessages())
+			{
+				MessageLog.Open();
+			}
 		}
 	}
 }

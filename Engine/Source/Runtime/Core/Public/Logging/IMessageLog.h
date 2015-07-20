@@ -63,4 +63,9 @@ public:
 	 * @return The number of messages that pass our filter
 	 */
 	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) = 0;
+
+	/**
+	 * Returns whether there are any messages in the log which have not yet been seen.
+	 */
+	virtual bool HasUnseenMessages() const = 0;
 };

@@ -32,6 +32,11 @@ public:
 		}
 	}
 
+	virtual bool HasUnseenMessages() const override
+	{
+		return true;
+	}
+
 	virtual void NewPage( const FText& Title ) override
 	{
 		FFormatNamedArguments Arguments;
@@ -155,14 +160,16 @@ int32 FMessageLog::NumMessages( EMessageSeverity::Type InSeverityFilter )
 	return MessageLog->NumMessages(InSeverityFilter);
 }
 
+bool FMessageLog::HasUnseenMessages()
+{
+	Flush();
+	return MessageLog->HasUnseenMessages();
+}
+
 void FMessageLog::Open( EMessageSeverity::Type InSeverityFilter, bool bOpenEvenIfEmpty )
 {
 	Flush();
-	if(bOpenEvenIfEmpty)
-	{
-		MessageLog->Open();
-	}
-	else if(MessageLog->NumMessages(InSeverityFilter) > 0)
+	if(bOpenEvenIfEmpty || MessageLog->NumMessages(InSeverityFilter) > 0)
 	{
 		MessageLog->Open();
 	}

@@ -9,7 +9,6 @@
 #include "LinkerPlaceholderExportObject.h"
 #include "LinkerPlaceholderFunction.h"
 #include "LinkerManager.h"
-#include "Serialization/DeferredMessageLog.h"
 #include "UObject/UObjectThreadContext.h"
 #include "GatherableTextData.h"
 #include "Serialization/AsyncLoading.h"
@@ -85,7 +84,7 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 		FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIniName );
 		if (PackageRedirects)
 		{
-			FDeferredMessageLog RedirectErrors(NAME_LoadErrors);
+			FMessageLog RedirectErrors(NAME_LoadErrors);
 
 			static FName ActiveClassRedirectsKey(TEXT("ActiveClassRedirects"));
 			for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
@@ -2225,7 +2224,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				UClass* FindClass = ClassPackage ? FindObject<UClass>( ClassPackage, *OriginalImport.ClassName.ToString() ) : NULL;
 				if( GIsEditor && !IsRunningCommandlet())
 				{
-					FDeferredMessageLog LoadErrors(NAME_LoadErrors);
+					FMessageLog LoadErrors(NAME_LoadErrors);
 					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
 					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
 					TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
@@ -3311,7 +3310,7 @@ bool FLinkerLoad::WillTextureBeLoaded( UClass* Class, int32 ExportIndex )
 UObject* FLinkerLoad::CreateExport( int32 Index )
 {
 	FScopedCreateExportCounter ScopedCounter( this, Index );
-	FDeferredMessageLog LoadErrors(NAME_LoadErrors);
+	FMessageLog LoadErrors(NAME_LoadErrors);
 
 	// Map the object into our table.
 	FObjectExport& Export = ExportMap[ Index ];

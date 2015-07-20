@@ -91,6 +91,7 @@ void FMessageLogListingViewModel::OpenMessageLog( )
 {
 	FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.OpenMessageLog(GetName());
+	bHasUnseenMessages = false;
 }
 
 int32 FMessageLogListingViewModel::NumMessagesPresent( uint32 PageIndex, EMessageSeverity::Type InSeverity ) const
@@ -138,6 +139,7 @@ void FMessageLogListingViewModel::AddMessage( const TSharedRef< class FTokenized
 	}
 
 	MessageLogListingModel->AddMessage(NewMessage);
+	bHasUnseenMessages = true;
 }
 
 void FMessageLogListingViewModel::AddMessages( const TArray< TSharedRef< class FTokenizedMessage > >& NewMessages )
@@ -153,12 +155,14 @@ void FMessageLogListingViewModel::AddMessages( const TArray< TSharedRef< class F
 	else
 	{
 		MessageLogListingModel->AddMessages(NewMessages);
+		bHasUnseenMessages = true;
 	}
 }
 
 void FMessageLogListingViewModel::ClearMessages()
 {
 	MessageLogListingModel->ClearMessages();
+	bHasUnseenMessages = false;
 }
 
 TSharedPtr<FTokenizedMessage> FMessageLogListingViewModel::GetMessageFromData(const struct FTokenizedMiscData& MessageData) const
@@ -328,6 +332,11 @@ void FMessageLogListingViewModel::NotifyIfAnyMessages( const FText& Message, EMe
 int32 FMessageLogListingViewModel::NumMessages( EMessageSeverity::Type SeverityFilter )
 {
 	return NumMessagesPresent(0, SeverityFilter);
+}
+
+bool FMessageLogListingViewModel::HasUnseenMessages() const
+{
+	return bHasUnseenMessages;
 }
 
 void FMessageLogListingViewModel::Open()
