@@ -231,6 +231,23 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs, FMeshMergingTool* I
 						.Font(FEditorStyle::GetFontStyle("StandardDialog.SmallFont"))
 					]
 				]
+				
+				// Merge physics data
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetMergePhyisicData)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetMergePhyisicData)
+					.Content()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("MergePhysicsDataLabel", "Merge Physics Data"))
+						.Font(FEditorStyle::GetFontStyle("StandardDialog.SmallFont"))
+					]
+				]
 
 				// Merge materials
 				+SVerticalBox::Slot()
@@ -425,6 +442,16 @@ ECheckBoxState SMeshMergingDialog::GetReplaceSourceActors() const
 void SMeshMergingDialog::SetReplaceSourceActors(ECheckBoxState NewValue)
 {
 	Tool->bReplaceSourceActors = (ECheckBoxState::Checked == NewValue);
+}
+
+ECheckBoxState SMeshMergingDialog::GetMergePhyisicData() const
+{
+	return (Tool->MergingSettings.bMergePhysicsData ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetMergePhyisicData(ECheckBoxState NewValue)
+{
+	Tool->MergingSettings.bMergePhysicsData = (ECheckBoxState::Checked == NewValue);
 }
 
 bool SMeshMergingDialog::IsMaterialMergingEnabled() const

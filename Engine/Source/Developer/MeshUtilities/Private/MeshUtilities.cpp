@@ -16,6 +16,7 @@
 #include "DistanceFieldAtlas.h"
 #include "FbxErrors.h"
 #include "Components/SplineMeshComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "MaterialUtilities.h"
 
 //@todo - implement required vector intrinsics for other implementations
@@ -4210,7 +4211,7 @@ void FMeshUtilities::CalculateRawMeshTangents(FRawMesh& OutRawMesh, const FMeshB
 /*------------------------------------------------------------------------------
 	Mesh merging 
 ------------------------------------------------------------------------------*/
-bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh)
+static bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh)
 {
 	UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
 	
@@ -4259,6 +4260,83 @@ bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, 
 	return false;
 }
 
+static void TransformPhysicsGeometry(const FTransform& InTransform, FKAggregateGeom& AggGeom)
+{
+	for (auto& Elem : AggGeom.SphereElems)
+	{
+		FTransform ElemTM = Elem.GetTransform();
+		Elem.SetTransform(ElemTM*InTransform);
+	}
+	
+	for (auto& Elem : AggGeom.BoxElems)
+	{
+		FTransform ElemTM = Elem.GetTransform();
+		Elem.SetTransform(ElemTM*InTransform);
+	}
+
+	for (auto& Elem : AggGeom.SphylElems)
+	{
+		FTransform ElemTM = Elem.GetTransform();
+		Elem.SetTransform(ElemTM*InTransform);
+	}
+
+	for (auto& Elem : AggGeom.ConvexElems)
+	{
+		FTransform ElemTM = Elem.GetTransform();
+		Elem.SetTransform(ElemTM*InTransform);
+	}
+
+	// seems like all primitives except Convex need separate scaling pass		
+	const FVector Scale3D = InTransform.GetScale3D();
+	if (!Scale3D.Equals(FVector(1.f)))
+	{
+		const float MinPrimSize = KINDA_SMALL_NUMBER;
+		
+		for (auto& Elem : AggGeom.SphereElems)
+		{
+			Elem.ScaleElem(Scale3D, MinPrimSize);
+		}
+	
+		for (auto& Elem : AggGeom.BoxElems)
+		{
+			Elem.ScaleElem(Scale3D, MinPrimSize);
+		}
+
+		for (auto& Elem : AggGeom.SphylElems)
+		{
+			Elem.ScaleElem(Scale3D, MinPrimSize);
+		}
+	}
+}
+
+static void ExtractPhysicsGeometry(UStaticMeshComponent* InMeshComponent, FKAggregateGeom& OutAggGeom)
+{
+	UStaticMesh* SrcMesh = InMeshComponent->StaticMesh;
+	if (SrcMesh == nullptr)
+	{
+		return;
+	}
+	
+	if (!SrcMesh->BodySetup)
+	{
+		return;
+	}
+
+	OutAggGeom = SrcMesh->BodySetup->AggGeom;
+	
+	// we are not owner of this stuff
+	OutAggGeom.RenderInfo = nullptr; 
+	for (auto& Elem : OutAggGeom.ConvexElems)
+	{
+		Elem.ConvexMesh = nullptr;
+		Elem.ConvexMeshNegX = nullptr;
+	}
+
+	// Transform geometry to world space
+	FTransform CtoM = InMeshComponent->ComponentToWorld;
+	TransformPhysicsGeometry(CtoM, OutAggGeom);
+}
+
 static void CopyTextureRect(const FColor* Src, const FIntPoint& SrcSize, FColor* Dst, const FIntPoint& DstSize, const FIntPoint& DstPos)
 {
 	int32 RowLength = SrcSize.X*sizeof(FColor);
@@ -4291,12 +4369,10 @@ static void SetTextureRect(const FColor& ColorValue, const FIntPoint& SrcSize, F
 
 struct FRawMeshExt
 {
-	FRawMeshExt() 
-	{}
-		
-	FRawMesh	MeshLOD[MAX_STATIC_MESH_LODS];
-	FString		AssetPackageName;
-	FVector		Pivot;	
+	FRawMesh		MeshLOD[MAX_STATIC_MESH_LODS];
+	FString			AssetPackageName;
+	FVector			Pivot;
+	FKAggregateGeom	AggGeom;
 };
 
 struct FRawMeshUVTransform
@@ -4509,6 +4585,7 @@ static void MergeMaterials(UWorld* InWorld, const TArray<UMaterialInterface*>& I
 		AtlasTargetPos = FIntPoint(AtlasColIdx*ExportTextureSize.X, AtlasRowIdx*ExportTextureSize.Y);
 	}
 }
+
 void FMeshUtilities::MergeActors(
 	const TArray<AActor*>& SourceActors,
 	const FMeshMergingSettings& InSettings,
@@ -4540,8 +4617,9 @@ void FMeshUtilities::MergeActors(
 	}
 
 	UWorld* World = SourceActors[0]->GetWorld();
+	float ViewDistance = TNumericLimits<float>::Max();
 
-	MergeStaticMeshComponents(ComponentsToMerge, World, InSettings, InOuter, InBasePackageName, UseLOD, OutAssetsToSync, OutMergedActorLocation, bSilent);
+	MergeStaticMeshComponents(ComponentsToMerge, World, InSettings, InOuter, InBasePackageName, UseLOD, OutAssetsToSync, OutMergedActorLocation, ViewDistance, bSilent);
 }
 
 void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent*>& ComponentsToMerge, UWorld* World, const FMeshMergingSettings& InSettings, UPackage* InOuter, const FString& InBasePackageName, int32 UseLOD, /* does not build all LODs but only use this LOD to create base mesh */ TArray<UObject*>& OutAssetsToSync, FVector& OutMergedActorLocation, float ViewDistance, bool bSilent /*= false*/) const
@@ -4553,7 +4631,13 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	TArray<FRawMeshExt>								SourceMeshes;
 	bool											bWithVertexColors[MAX_STATIC_MESH_LODS] = {};
 	bool											bOcuppiedUVChannels[MAX_STATIC_MESH_LODS][MAX_MESH_TEXTURE_COORDS] = {};
+	UBodySetup*										BodySetupSource = nullptr;
 	FScopedSlowTask									MergeProgress(5);
+
+	if (ComponentsToMerge.Num() == 0)
+	{
+		return;
+	}
 	
 	SourceMeshes.Reserve(ComponentsToMerge.Num());
 	SourceMeshes.SetNum(ComponentsToMerge.Num());
@@ -4569,9 +4653,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		SourceMeshes[MeshId].Pivot = MeshComponent->ComponentToWorld.GetLocation();
 		// Source mesh asset package name
 		SourceMeshes[MeshId].AssetPackageName = MeshComponent->StaticMesh->GetOutermost()->GetName();
-
-
-		bool check = true;
 	}
 
 	NumMaxLOD = FMath::Min(NumMaxLOD, MAX_STATIC_MESH_LODS);
@@ -4621,11 +4702,21 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		}
 	}
 
-	if (SourceMeshes.Num() == 0)
+	if (InSettings.bMergePhysicsData)
 	{
-		return;
+		for (int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
+		{
+			UStaticMeshComponent* MeshComponent = ComponentsToMerge[MeshId];
+			ExtractPhysicsGeometry(MeshComponent, SourceMeshes[MeshId].AggGeom);
+			
+			// We will use first valid BodySetup as a source of physics settings
+			if (BodySetupSource == nullptr)
+			{
+				BodySetupSource = MeshComponent->StaticMesh->BodySetup;
+			}
+		}
 	}
-
+	
 	MergeProgress.EnterProgressFrame();
 
 	// For each raw mesh, re-map the material indices according to the MaterialMap
@@ -4840,6 +4931,16 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		}
 	}
 
+	// Transform physics primitives to merged mesh pivot
+	if (InSettings.bMergePhysicsData && !MergedMesh.Pivot.IsZero())
+	{
+		FTransform PivotTM(-MergedMesh.Pivot);
+		for (auto& SourceMesh : SourceMeshes)
+		{
+			TransformPhysicsGeometry(PivotTM, SourceMesh.AggGeom);
+		}
+	}
+
 	// Compute target lightmap channel for each LOD
 	// User can specify any index, but there are should not be empty gaps in UV channel list
 	int32 TargetLightMapUVChannel[MAX_STATIC_MESH_LODS];
@@ -4920,6 +5021,18 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			}
 
 			StaticMesh->Materials.Add(Material);
+		}
+
+		if (InSettings.bMergePhysicsData && BodySetupSource)
+		{
+			StaticMesh->CreateBodySetup();
+			StaticMesh->BodySetup->CopyBodyPropertiesFrom(BodySetupSource);
+			StaticMesh->BodySetup->AggGeom = FKAggregateGeom();
+			
+			for (const FRawMeshExt& SourceMesh : SourceMeshes)
+			{
+				StaticMesh->BodySetup->AddCollisionFrom(SourceMesh.AggGeom);
+			}
 		}
 
 		StaticMesh->Build(bSilent);
