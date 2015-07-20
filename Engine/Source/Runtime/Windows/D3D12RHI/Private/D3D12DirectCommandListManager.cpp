@@ -245,7 +245,7 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 	FD3D12CommandListHandle BarrierCommandList[128];
 	if (NeedsResourceBarriers)
 	{
-#if 0//UE_BUILD_DEBUG	
+#if UE_BUILD_DEBUG	
 		if (!ResourceStateCS.TryLock())
 		{
 			FD3D12DynamicRHI::GetD3DRHI()->SubmissionLockStalls++;
