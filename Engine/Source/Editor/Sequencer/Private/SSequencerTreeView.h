@@ -103,6 +103,9 @@ protected:
 
 private:
 
+	/** The cached geometry for this tree view*/
+	FGeometry CachedTreeGeometry;
+
 	/** The tree view's header row (hidden) */
 	TSharedPtr<SHeaderRow> HeaderRow;
 

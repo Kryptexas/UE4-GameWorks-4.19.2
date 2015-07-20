@@ -91,6 +91,7 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 void SSequencerTreeView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	STreeView::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	CachedTreeGeometry = AllottedGeometry;
 	UpdateCachedVerticalGeometry();
 }
 
@@ -244,8 +245,7 @@ void SSequencerTreeView::Refresh()
 
 void SSequencerTreeView::ScrollByDelta(float DeltaInSlateUnits)
 {
-	const float FractionalScrollOffsetInItems = (ScrollOffset + GetScrollRateInItems() * DeltaInSlateUnits);
-	ScrollTo( FractionalScrollOffsetInItems );
+	ScrollBy( CachedTreeGeometry, DeltaInSlateUnits, EAllowOverscroll::No );
 }
 
 template<typename T>
