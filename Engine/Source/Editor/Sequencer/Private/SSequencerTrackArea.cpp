@@ -86,9 +86,12 @@ private:
 	SSequencerTreeView& TreeView;
 };
 
+// User-defined constructor/destructor to ensure TUniquePtr destruction
+SSequencerTrackArea::SSequencerTrackArea()
+{
+}
 SSequencerTrackArea::~SSequencerTrackArea()
 {
-	// User-defined destructor to ensure TUniquePtr destruction
 }
 
 void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSequencerTimeSliderController> InTimeSliderController, TSharedRef<FSequencer> InSequencer )

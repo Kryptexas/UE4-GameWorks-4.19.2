@@ -9,17 +9,6 @@
 
 static FName TrackAreaName = "TrackArea";
 
-/** Structure used to cache physical geometry for a particular node */
-struct FCachedGeometry
-{
-	FCachedGeometry(FDisplayNodeRef InNode, float InPhysicalTop, float InPhysicalHeight)
-		: Node(MoveTemp(InNode)), PhysicalTop(InPhysicalTop), PhysicalHeight(InPhysicalHeight)
-	{}
-
-	FDisplayNodeRef Node;
-	float PhysicalTop, PhysicalHeight;
-};
-
 /** Construct function for this widget */
 void SSequencerTreeViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const FDisplayNodeRef& InNode)
 {

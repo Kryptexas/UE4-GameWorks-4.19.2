@@ -22,7 +22,8 @@ public:
 	SLATE_BEGIN_ARGS( SSequencerTrackArea ){}
 	SLATE_END_ARGS()
 
-	/** User-defined destructor to ensure TUniquePtr destruction */
+	/** User-defined constructor/destructor to ensure TUniquePtr destruction */
+	SSequencerTrackArea();
 	~SSequencerTrackArea();
 
 	/** Construct this widget */

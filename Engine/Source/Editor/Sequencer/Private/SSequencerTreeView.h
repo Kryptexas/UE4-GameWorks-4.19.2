@@ -98,6 +98,17 @@ protected:
 	/** Update the cached visible geometry for each tree item in this view */
 	void UpdateCachedVerticalGeometry();
 
+	/** Structure used to cache physical geometry for a particular node */
+	struct FCachedGeometry
+	{
+		FCachedGeometry(FDisplayNodeRef InNode, float InPhysicalTop, float InPhysicalHeight)
+			: Node(MoveTemp(InNode)), PhysicalTop(InPhysicalTop), PhysicalHeight(InPhysicalHeight)
+		{}
+
+		FDisplayNodeRef Node;
+		float PhysicalTop, PhysicalHeight;
+	};
+	
 	/** Linear array of cached geometry for visible nodes in the tree */
 	TArray<struct FCachedGeometry> CachedGeometry;
 
