@@ -1732,7 +1732,13 @@ void FSequencer::BindSequencerCommands()
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleCleanView,
-		FExecuteAction::CreateLambda( [this]{ Settings->SetIsUsingCleanView( !Settings->GetIsUsingCleanView() ); } ),
+		FExecuteAction::CreateLambda( [this]{
+			Settings->SetIsUsingCleanView( !Settings->GetIsUsingCleanView() );
+			if (SequencerWidget.IsValid())
+			{
+				SequencerWidget->GetTreeView()->Refresh();
+			}
+		} ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetIsUsingCleanView(); } ) );
 

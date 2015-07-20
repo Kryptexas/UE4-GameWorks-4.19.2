@@ -727,6 +727,7 @@ void SSequencer::ResetBreadcrumbs()
 void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 {
 	SequencerNodeTree->FilterNodes( Filter.ToString() );
+	TreeView->Refresh();
 }
 
 float SSequencer::OnGetTimeSnapInterval() const
