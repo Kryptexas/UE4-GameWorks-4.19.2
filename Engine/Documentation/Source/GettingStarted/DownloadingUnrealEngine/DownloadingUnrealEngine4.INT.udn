@@ -1,7 +1,11 @@
 Availability:Public
 Title:Downloading Unreal Engine Source Code
-Crumbs: %ROOT%, Programming, Programming/Development
 Description:Steps for connecting to the source code repository and downloading the latest build of Unreal Engine.
+Crumbs: %ROOT%, Programming, Programming/Development
+Prereq: GettingStarted/RecommendedSpecifications
+Prereq: Support/Builds
+Related: Programming/Development/BuildingUnrealEngine
+Version: 4.8
 
 [TOC (start:2 end:3)]
 
@@ -12,8 +16,12 @@ Unreal Engine 4 is available to be downloaded by licensees directly from Epic's 
 [PUBLISH:Rocket]
 
 [REGION:warning]
-This page shows subscribers how to download and build Unreal Engine from our source code repository on GitHub. If you would like to download the binary version of Unreal Engine, go to our main page to [get unreal](https://www.unrealengine.com/) (click the image pictured below).
+This page shows subscribers how to download and build Unreal Engine from our source code repository on GitHub. If you'd like to download the binary version of Unreal Engine, go to our main page to [Get Unreal](https://www.unrealengine.com/).
 [/REGION]
+
+----
+
+![](WindowsMacLinux.png)
 
 Source code for Unreal Engine 4 (UE4) can be downloaded by our subscribers from the Unreal Engine GitHub repository. With access to our source code, subscribers can customize the engine and tools to meet their needs. Our subscribers are building the editor in Windows, Mac, Linux, and compiling games for both Android and iOS. Source code for all of our tools (such as Unreal Lightmass and Frontend) is included as well.
 
@@ -27,11 +35,13 @@ Before you can access the [repository](https://github.com/EpicGames/UnrealEngine
 
 Once you've accessed the repository, you'll notice that we've published UE4's source code in three rolling branches, namely:
 
-*	**Release Branch**
-*	**Promoted Branch**
-*	**Master Branch**
+*	[Release Branch](#Bookmark1)
+*	[Promoted Branch](#Bookmark2)
+*	[Master Branch](#Bookmark3)
 
 ### Release Branch
+
+(#Bookmark1)
 
 ![](ReleaseBranch.png)
 
@@ -39,11 +49,15 @@ The [release branch](https://github.com/EpicGames/UnrealEngine/tree/release) (pi
 
 ### Promoted Branch
 
+(#Bookmark2)
+
 ![](PromotedBranch.png)
 
 The [promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted) (pictured above) is updated with builds for use by our designers and artists. We try to update this branch daily so that our subscribers have access to UE4's latest stable features. This branch is a great place to learn how feature development works in UE4.
 
 ### Master Branch
+
+(#Bookmark3)
 
 [REGION:warning]
 Because the master branch contains cutting-edge technology, UE4 isn't guaranteed to compile from source.
@@ -71,14 +85,18 @@ Other branches may appear from time-to-time as we work to stabilize new releases
 
 Subscribers can download Unreal Engine's source code by:
 
-*	%GettingStarted/DownloadingUnrealEngine/GitHub:title%
-*	%GettingStarted/DownloadingUnrealEngine/DownloadZip:title%
+*	[%GettingStarted/DownloadingUnrealEngine/GitHub:title%](#Bookmark4)
+*	[%GettingStarted/DownloadingUnrealEngine/DownloadZip:title%](#Bookmark5)
 
 ### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
+
+(#Bookmark4)
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
 
 ### %GettingStarted/DownloadingUnrealEngine/DownloadZip:title%
+
+(#Bookmark5)
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/DownloadZip]
 

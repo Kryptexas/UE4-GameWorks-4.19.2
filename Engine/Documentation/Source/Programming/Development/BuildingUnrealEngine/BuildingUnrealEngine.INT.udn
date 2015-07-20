@@ -1,8 +1,11 @@
 Availability:Public
 Title:Building Unreal Engine from Source
+Description:Compiling Unreal Engine from source.
 Crumbs: %ROOT%, Programming, Programming/Development
-Description:Compiling the Unreal Engine.
-Version: 4.9
+Prereq: GettingStarted/DownloadingUnrealEngine
+Prereq: GettingStarted/RecommendedSpecifications
+Related: GettingStarted/DownloadingUnrealEngine
+Version: 4.8
 
 %Globals:osselect_linux%
 
@@ -23,13 +26,13 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[PARAM:content]
 		[REGION:note]
-		Make sure that Microsoft Visual Studio 2013 is installed prior to building Unreal Engine from Source.
+		Make sure that Microsoft Visual Studio 2013 is installed prior to building Unreal Engine from source.
 		[/REGION]
 
 		1.	Inside the root directory, **run GenerateProjectFiles.bat** to set-up your project files.
 
 			[REGION:warning]
-			All project files are intermediate (`[UE4Root]\Engine\Intermediate\ProjectFiles`). You must generate project files each time you sync a new build to ensure they are up to date If you delete your `Intermediate` folder, you must regenerate project files using the above-mentioned batch file.
+			All project files are intermediate (`[UE4Root]\Engine\Intermediate\ProjectFiles`). You must generate project files each time you sync a new build to ensure they are up to date. If you delete your `Intermediate` folder, you must regenerate project files using the 'GenerateProjectFiles' batch file.
 			[/REGION]
 
 		1.	**Load** the project into Visual Studio by **double-clicking UE4.sln**.
@@ -38,7 +41,7 @@ Version: 4.9
 
 			![](configMenu_updated.png)
 
-		1.	If you're developing on the 64-bit version of the Windows operating system, set your solution platform to **Win64** (pictured below).
+		1.	Depending on your target-version of the Windows operating system (32-bit versus 64-bit), set your solution platform to either **Win32** or **Win64** (pictured below).
 
 			![](platform_menu_updated.png)
 
@@ -47,7 +50,7 @@ Version: 4.9
 			![](BuildUE4.png)
 
 			[REGION:note]
-			Depending on your system's specifications, it may take anywhere between 10 and 40 minutes to finish compiling the engine from source.
+			Depending on your system's specifications, it may take between 10 and 40 minutes to compile the engine from source.
 			[/REGION]
 
 		1.	After compiling the engine, set your startup project to **UE4** (pictured below).
@@ -94,7 +97,7 @@ Version: 4.9
 			![](BuildingMacEditor.png)
 
 			[REGION:note]
-			Depending on your system's specifications, it may take anywhere between 15 and 40 minutes to finish compiling the engine from source.
+			Depending on your system's specifications, it may take between 15 and 40 minutes to compile the engine from source.
 			[/REGION]
 		
 		1.	After compiling the engine, select **Product > Run** to launch the editor (pictured below).
@@ -117,7 +120,7 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[PARAM:content]
 		[REGION:warning]
-		At this time, we only provide support for Ubuntu 15.04.
+		At this time, we only provide development support for Ubuntu 15.04.
 		[/REGION]
 		
 		1.	Inside the root directory, **run GenerateProjectFiles.sh** from the terminal to set-up your project files (example pictured below). 
@@ -128,17 +131,25 @@ Version: 4.9
 
 			![](RunMakeFile_Linux.png)
 
-		1.	After compiling the engine, navigate to the editor's binary path by entering **cd `Engine/Binaries/Linux/`** into the terminal.
+		1.	After compiling the engine, navigate to the editor's binary path by entering ** cd Engine/Binaries/Linux/ ** into the terminal.
 
 		1.	Run **UE4Editor** to launch the editor (pictured below).
 
 			![](RunUE4Editor_Linux.png)
+
+			[REGION:warning]
+			If you're unable to create an OpenGL context, you may need to [update](http://www.nvidia.com/Download/index.aspx?lang=en-us) your Nvidia graphics driver. Refer to [Nvidia's website](http://www.nvidia.com/page/home.html) for more information.
+			[/REGION]
 
 		1.	Congratulations! You've compiled and launched the engine from source (result pictured below).
 
 			![](CompiledEditor_Linux.png)
 	[/PARAM]
 [/OBJECT]
+
+## Previous Steps
+
+If you want a refresher on our GitHub download process, refer to the [](GettingStarted/DownloadingUnrealEngine) documentation.
 
 [/EXCERPT:Main]
 

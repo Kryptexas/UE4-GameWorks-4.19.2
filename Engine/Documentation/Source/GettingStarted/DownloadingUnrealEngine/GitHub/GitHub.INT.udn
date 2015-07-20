@@ -3,6 +3,8 @@ Title:Forking and Cloning Unreal from GitHub
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:Forking and cloning the Unreal Engine source code from GitHub.
 
+Forking and cloning our source code from GitHub is a great way to get started with Unreal.
+
 %Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
@@ -29,10 +31,10 @@ Description:Forking and cloning the Unreal Engine source code from GitHub.
 		[/REGION]
 	1.	**Open** your source folder in Explorer and **run Setup.bat**.
 		[REGION:note]
-		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they are currently take up three to four gigabytes of memory. Subsequent checkouts take less time to download.
+		Our Setup batch file downloads binary content for the engine, installs prerequesites, and sets up Unreal file associations. Downloading engine binaries may take some time because they currently take up three to four gigabytes of memory. Subsequent checkouts take less time to download.
 		[/REGION]
 		[REGION:warning]
-		A warning from SmartScreen may appear in Windows 8. **Click "More Info"**, then **"Run Anyway"** to continue running our Setup batch file.
+		A warning from SmartScreen may appear in Windows 8. **Click 'More Info'**, then **'Run Anyway'** to continue running our Setup batch file.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -74,6 +76,11 @@ Description:Forking and cloning the Unreal Engine source code from GitHub.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
+
+	[REGION:warning]
+	At this time, we only provide development support for Ubuntu 15.04.
+	[/REGION]
+
 	1.	**Set up** [Git](https://help.github.com/articles/set-up-git/).
 	1.	**Fork** and **Clone** our [repository](https://help.github.com/articles/fork-a-repo/) (pictured below).
 		![](UnrealRepo.png)
@@ -82,7 +89,7 @@ Description:Forking and cloning the Unreal Engine source code from GitHub.
 		![](RunSetupShellScript_Linux.png)
 
 		[REGION:note]
-		If you don't see a ** \*\*SUCCESS\*\* ** message after running this step, refer to the **BuildThirdParty.log** file for more information. BuildThirdParty.log is located in the `Engine/Build/BatchFiles/Linux` directory.
+		If you don't see a ** \*\*SUCCESS\*\* ** message after running this step, refer to the **'BuildThirdParty.log'** file for more information. 'BuildThirdParty.log' is located in the `[UE4Root]/Engine/Build/BatchFiles/Linux` directory.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
