@@ -983,6 +983,9 @@ namespace UM
 
 		//[ClassMetadata] Do not spawn an object of the class using Generic Create Object node in Blueprint. It makes sense only for a BluprintType class, that is neither Actor, nor ActorComponent.
 		DontUseGenericSpawnObject,
+
+		//[ClassMetadata] Expose a proxy object of this class in Async Task node.
+		ExposedAsyncProxy,
 	};
 
 	// Metadata usable in USTRUCT
