@@ -2,14 +2,12 @@
 
 #pragma once
 
+class SSequencerTreeView;
+
 namespace SequencerLayoutConstants
 {
 	/** The amount to indent child nodes of the layout tree */
-	const float IndentAmount = 25.0f;
-	/** Padding between each node */
-	const float NodePadding = 3.0f;
-	/** Padding between each node */
-	const float ObjectNodePadding = 5.0f;
+	const float IndentAmount = 8.0f;
 	/** Height of each object node */
 	const float ObjectNodeHeight = 20.0f;
 	/** Height of each section area if there are no sections (note: section areas may be larger than this if they have children. This is the height of a section area with no children or all children hidden) */
@@ -106,16 +104,16 @@ public:
 	void StepToPreviousCameraKey();
 	void StepToKey(bool bStepToNextKey, bool bCameraOnly);
 
-	/** Expand or collapse selected nodes out of the sequencer node tree */
-	void ToggleExpandCollapseSelectedNodes(bool bDescendants = false);
-	void ExpandCollapseNode(TSharedRef<FSequencerDisplayNode> SelectedNode, bool bDescendants, bool bExpand);
-
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
 	void SetUserIsSelecting(bool bUserIsSelectingIn) { bUserIsSelecting = bUserIsSelectingIn; }
 	bool UserIsSelecting() { return bUserIsSelecting; }
 
 	/** Called when the save button is clicked */
 	FReply OnSaveMovieSceneClicked();
+
+	/** Access the tree view for this sequencer */
+	TSharedPtr<SSequencerTreeView> GetTreeView() const;
+
 private:
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
@@ -250,6 +248,8 @@ private:
 	TSharedPtr<class FSequencerNodeTree> SequencerNodeTree;
 	/** The breadcrumb trail widget for this sequencer */
 	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
+	/** The sequencer tree view responsible for the outliner and track areas */
+	TSharedPtr<SSequencerTreeView> TreeView;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
 	/** Cached settings provided to the sequencer itself on creation */

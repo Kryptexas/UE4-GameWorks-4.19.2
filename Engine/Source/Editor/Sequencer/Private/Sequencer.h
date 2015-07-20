@@ -317,10 +317,7 @@ protected:
 	 */
 	void OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated );
 
-	/**
-	 * Calculates the amount of encroachment the specified time has into the autoscroll region, if any
-	 */
-	TOptional<float> CalculateAutoscrollEncroachment(float NewTime) const;
+
 
 	/**
 	 * Called when the scrub position is changed by the user
@@ -336,6 +333,20 @@ protected:
 	/** Called when the user has finished scrubbing */
 	void OnEndScrubbing();
 
+public:
+
+	/** Put the sequencer in a horizontally autoscrolling state with the given rate */
+	void StartAutoscroll(float UnitsPerS);
+
+	/** Stop the sequencer from autoscrolling */
+	void StopAutoscroll();
+
+protected:
+	/**
+	 * Calculates the amount of encroachment the specified time has into the autoscroll region, if any
+	 */
+	TOptional<float> CalculateAutoscrollEncroachment(float NewTime, float ThresholdPercentage = 0.1f) const;
+
 	/** Called to toggle auto-scroll on and off */
 	void OnToggleAutoScroll();
 
@@ -348,6 +359,8 @@ protected:
 	{
 		return bAutoScrollEnabled;
 	}
+
+protected:
 
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const;
@@ -385,6 +398,8 @@ protected:
 	// End of FEditorUndoClient
 
 	void OnSectionSelectionChanged();
+
+	void OnSelectedOutlinerNodesChanged();
 
 	/** Called before the world is going to be saved. The sequencer puts everything back to its initial state. */
 	void OnPreSaveWorld(uint32 SaveFlags, class UWorld* World);
@@ -451,6 +466,8 @@ private:
 	/** The amount of autoscroll pan offset that is currently being applied */
 	TOptional<float> AutoscrollOffset;
 
+	/** The amount of autoscrub offset that is currently being applied */
+	TOptional<float> AutoscrubOffset;
 	/** Whether or not we are allowing autoscroll */
 	bool bAutoScrollEnabled;
 

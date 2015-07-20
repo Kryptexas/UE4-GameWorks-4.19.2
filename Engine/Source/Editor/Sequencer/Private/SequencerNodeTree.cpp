@@ -115,6 +115,18 @@ void FSequencerNodeTree::Update()
 	// Add all other nodes after the shot track
 	RootNodes.Append( NewRootNodes );
 
+	float VerticalOffset = 0.f;
+	for (auto& Node : RootNodes)
+	{
+		Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode){
+			InNode.VirtualTop = VerticalOffset;
+			VerticalOffset += InNode.GetNodeHeight() + InNode.GetNodePadding().Combined();
+			InNode.VirtualBottom = VerticalOffset;
+			return true;
+		});
+
+	}
+
 	// Re-filter the tree after updating 
 	// @todo Sequencer - Newly added sections may need to be visible even when there is a filter
 	FilterNodes( FilterString );

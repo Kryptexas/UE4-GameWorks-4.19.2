@@ -26,54 +26,14 @@
 #include "SSearchBox.h"
 #include "SNumericDropDown.h"
 #include "EditorWidgetsModule.h"
-#include "SequencerTrackLaneFactory.h"
+#include "SSequencerTreeView.h"
+
 #include "SSequencerSplitterOverlay.h"
 #include "IKeyArea.h"
 
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
-
-class SSequencerScrollBox : public SScrollBox
-{
-public:
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer);
-
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-
-	/** The sequencer which owns this widget. */
-	TWeakPtr<FSequencer> Sequencer;
-};
-
-void SSequencerScrollBox::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSequencer)
-{
-	Sequencer = InSequencer;
-	SScrollBox::Construct(InArgs);
-}
-
-FReply SSequencerScrollBox::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	// Clear the selection if no sequencer display nodes were clicked on
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		if (Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes().Num() != 0)
-		{
-			Sequencer.Pin()->GetSelection().EmptySelectedOutlinerNodes();
-
-			if (Sequencer.Pin()->IsLevelEditorSequencer())
-			{
-				const bool bNotifySelectionChanged = false;
-				const bool bDeselectBSP = true;
-				const bool bWarnAboutTooManyActors = false;
-
-				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
-				GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
-				return FReply::Handled();
-			}
-		}
-	}
-	return FReply::Unhandled();
-}
 
 /**
  * The shot filter overlay displays the overlay needed to filter out widgets based on
@@ -236,14 +196,19 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	SAssignNew( TrackOutliner, SSequencerTrackOutliner );
 
-	SAssignNew( TrackArea, SSequencerTrackArea, TimeSliderController )
+	SAssignNew( TrackArea, SSequencerTrackArea, TimeSliderController, PinnedSequencer )
 		.Visibility( this, &SSequencer::GetTrackAreaVisibility );
+	
+	SAssignNew( TreeView, SSequencerTreeView, SequencerNodeTree.ToSharedRef(), TrackArea.ToSharedRef() )
+	.ExternalScrollbar( ScrollBar );
 
 	SAssignNew( CurveEditor, SSequencerCurveEditor, PinnedSequencer, TimeSliderController )
 		.Visibility( this, &SSequencer::GetCurveEditorVisibility )
 		.OnViewRangeChanged( InArgs._OnViewRangeChanged )
 		.ViewRange( InArgs._ViewRange );
 	CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+
+	TrackArea->SetTreeView(TreeView);
 
 	const int32 				Column0	= 0,	Column1	= 1;
 	const int32 Row0	= 0,
@@ -304,29 +269,23 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 							+ SOverlay::Slot()
 							[
-								SNew( SSequencerScrollBox, Sequencer.Pin().ToSharedRef() )
-								.ExternalScrollbar(ScrollBar)
-
-								+ SScrollBox::Slot()
+								SNew(SHorizontalBox)
+								
+								+ SHorizontalBox::Slot()
+								.FillWidth( FillCoefficient_0 )
 								[
-									SNew( SHorizontalBox )
-
-									+ SHorizontalBox::Slot()
-									.FillWidth( FillCoefficient_0 )
+									SNew(SBox)
+									// Padding to allow space for the scroll bar
+									.Padding(FMargin(0,0,10.f,0))
 									[
-										SNew(SBox)
-										// Padding to allow space for the scroll bar
-										.Padding(FMargin(0,0,10.f,0))
-										[
-											TrackOutliner.ToSharedRef()
-										]
+										TreeView.ToSharedRef()
 									]
+								]
 
-									+ SHorizontalBox::Slot()
-									.FillWidth( FillCoefficient_1 )
-									[
-										TrackArea.ToSharedRef()
-									]
+								+ SHorizontalBox::Slot()
+								.FillWidth( FillCoefficient_1 )
+								[
+									TrackArea.ToSharedRef()
 								]
 							]
 
@@ -711,8 +670,7 @@ void SSequencer::UpdateLayoutTree()
 	// Update the node tree
 	SequencerNodeTree->Update();
 
-	FSequencerTrackLaneFactory Factory(TrackOutliner.ToSharedRef(), TrackArea.ToSharedRef(), Sequencer.Pin().ToSharedRef() );
-	Factory.Repopulate( *SequencerNodeTree );
+	TreeView->Refresh();
 
 	// Restore the selection state.
 	RestoreSelectionState(SequencerNodeTree->GetRootNodes(), SelectedPathNames, Sequencer.Pin()->GetSelection());	// Update to actor selection.
@@ -1126,6 +1084,11 @@ FText SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
 	return Cast<UMovieSceneShotSection>(ShotSection)->GetShotDisplayName();
 }
 
+TSharedPtr<SSequencerTreeView> SSequencer::GetTreeView() const
+{
+	return TreeView;
+}
+
 void SSequencer::DeleteSelectedNodes()
 {
 	TSet< TSharedRef<FSequencerDisplayNode> > SelectedNodesCopy = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
@@ -1138,28 +1101,12 @@ void SSequencer::DeleteSelectedNodes()
 
 		for( const TSharedRef<FSequencerDisplayNode>& SelectedNode : SelectedNodesCopy )
 		{
-			if( SelectedNode->IsVisible() )
+			if( !SelectedNode->IsHidden() )
 			{
 				// Delete everything in the entire node
 				TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted = StaticCastSharedRef<const FSequencerDisplayNode>(SelectedNode);
 				SequencerRef.OnRequestNodeDeleted( NodeToBeDeleted );
 			}
-		}
-	}
-}
-
-void SSequencer::ExpandCollapseNode(TSharedRef<FSequencerDisplayNode> Node, bool bDescendants, bool bExpand)
-{
-	if (Node->IsExpanded() != bExpand)
-	{
-		Node->ToggleExpansion();
-	}
-
-	if (bDescendants)
-	{
-		for (auto ChildNode : Node->GetChildNodes())
-		{
-			ExpandCollapseNode(ChildNode, bDescendants, bExpand);
 		}
 	}
 }
@@ -1291,30 +1238,6 @@ void SSequencer::StepToKey(bool bStepToNextKey, bool bCameraOnly)
 		if (StepToKeyFound)
 		{
 			Sequencer.Pin()->SetGlobalTime(StepToTime);
-		}
-	}
-}
-
-void SSequencer::ToggleExpandCollapseSelectedNodes(bool bDescendants)
-{
-	const TSet< TSharedRef<FSequencerDisplayNode> >& SelectedNodes = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
-
-	TSet< TSharedRef<FSequencerDisplayNode> > Nodes(SelectedNodes);
-
-	if (Nodes.Num() == 0)
-	{
-		TSet<TSharedRef<FSequencerDisplayNode>> RootNodes(SequencerNodeTree->GetRootNodes());
-		Nodes = RootNodes;
-	}
-
-	if (Nodes.Num() > 0)
-	{
-		auto It = Nodes.CreateConstIterator();
-		bool bExpand = !(*It).Get().IsExpanded();
-
-		for (auto Node : Nodes)
-		{
-			ExpandCollapseNode(Node, bDescendants, bExpand);
 		}
 	}
 }

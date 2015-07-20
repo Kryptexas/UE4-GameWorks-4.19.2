@@ -19,6 +19,7 @@ void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> Secti
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;
 	SectionInterface = SectionNode->GetSections()[InSectionIndex];
+	CachedKeyAreaHeight = 0.f;
 
 	ChildSlot
 	[
@@ -26,42 +27,50 @@ void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> Secti
 	];
 }
 
-void SSection::GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreas ) const
+FVector2D SSection::ComputeDesiredSize(float) const
 {
-	float HeightOffset = 0;
-	TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = SectionAreaNode->GetTopLevelKeyNode();
-	if( SectionKeyNode.IsValid() )
-	{
-		new( OutKeyAreas ) FKeyAreaElement( *SectionKeyNode, HeightOffset );
-	}
-
-	GetKeyAreas_Recursive( SectionAreaNode->GetChildNodes(), HeightOffset, OutKeyAreas );
+	return FVector2D(100, CachedKeyAreaHeight);
 }
 
-void SSection::GetKeyAreas_Recursive(  const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes, float& HeightOffset, TArray<FKeyAreaElement>& OutKeyAreas ) const
+void SSection::GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreas, float* TotalHeight ) const
 {
-	const float Padding = SequencerLayoutConstants::NodePadding;
+	*TotalHeight = 0.f;
 
-	for( int32 NodeIndex = 0; NodeIndex < Nodes.Num(); ++NodeIndex )
+	float LastPadding = 0.f;
+
+	// First, layout the parent
 	{
-		FSequencerDisplayNode& Node = *Nodes[NodeIndex];
+		TSharedPtr<FSequencerDisplayNode> LayoutNode = SectionAreaNode;
 
-		if( Node.IsVisible() )
+		TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = SectionAreaNode->GetTopLevelKeyNode();
+		if( SectionKeyNode.IsValid() )
 		{
-			// Compute the node height.  If this is not a key area it will contribute to the accumulated height offset
-			float NodeHeight = Node.GetNodeHeight();
-			HeightOffset += Padding + NodeHeight;
-			if( Node.GetType() == ESequencerNode::KeyArea )
-			{
-				// The node is a key area, we need to draw it
-				new( OutKeyAreas ) FKeyAreaElement( *StaticCastSharedRef<FSectionKeyAreaNode>( Nodes[NodeIndex] ), HeightOffset );
-			}
-
-			// Get any child key areas
-			GetKeyAreas_Recursive( Node.GetChildNodes(), HeightOffset, OutKeyAreas );
-
+			LayoutNode = SectionKeyNode;
+			OutKeyAreas.Add(FKeyAreaElement( *SectionKeyNode, *TotalHeight ));
 		}
+
+		LastPadding = LayoutNode->GetNodePadding().Bottom;
+		*TotalHeight += LayoutNode->GetNodeHeight() + LastPadding;
 	}
+
+	// Then any children
+	SectionAreaNode->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& Node){
+		
+		*TotalHeight += Node.GetNodePadding().Top;
+
+		if( Node.GetType() == ESequencerNode::KeyArea )
+		{
+			OutKeyAreas.Add(FKeyAreaElement( static_cast<FSectionKeyAreaNode&>(Node), *TotalHeight ));
+		}
+
+		LastPadding = Node.GetNodePadding().Bottom;
+		*TotalHeight += Node.GetNodeHeight() + LastPadding;
+		return true;
+
+	}, false);
+
+	// Remove the padding from the bottom
+	*TotalHeight -= LastPadding;
 }
 
 
@@ -472,8 +481,10 @@ void SSection::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 {	
 	if( GetVisibility() == EVisibility::Visible )
 	{
+		CachedKeyAreaHeight = 0.f;
+
 		KeyAreas.Reset();
-		GetKeyAreas( ParentSectionArea, KeyAreas );
+		GetKeyAreas( ParentSectionArea, KeyAreas, &CachedKeyAreaHeight );
 
 		SectionInterface->Tick(AllottedGeometry, ParentGeometry, InCurrentTime, InDeltaTime);
 	}
@@ -492,20 +503,24 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 	{
 		// Check for clicking on a key and mark it as the pressed key for drag detection (if necessary) later
 		PressedKey = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
+	}
 
-		if( !PressedKey.IsValid() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if( !PressedKey.IsValid() )
 		{
 			CheckForEdgeInteraction( MouseEvent, MyGeometry );
 		}
 
 		return FReply::Handled().CaptureMouse( AsShared() );
 	}
-	else if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	else if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && PressedKey.IsValid())
 	{
-		return FReply::Handled().CaptureMouse(AsShared());
+		// Don't return handled if we didn't click on a key so that right-click panning gets a look in
+		return FReply::Handled();
 	}
 
-	return FReply::Handled();
+	return FReply::Unhandled();
 }
 
 void SSection::ResetState()
@@ -535,12 +550,12 @@ FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 	}
 	else
 	{
-		if( ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) && HasMouseCapture() && MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
+		if( ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) && MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
 		{
 			HandleSelection( MyGeometry, MouseEvent );
 		}
 
-		if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && HasMouseCapture() )
+		if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 		{
 			TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
 			if (MenuContent.IsValid())
@@ -555,7 +570,7 @@ FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 					);
 
-				return FReply::Handled().ReleaseMouseCapture().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
+				return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
 			}
 		}
 	}

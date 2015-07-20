@@ -27,6 +27,8 @@ public:
 	/** Caches the parent geometry to be given to section interfaces that need it on tick */
 	void CacheParentGeometry(const FGeometry& InParentGeometry) {ParentGeometry = InParentGeometry;}
 
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	
 private:
 	/** Information about how to draw a key area */
 	struct FKeyAreaElement
@@ -46,16 +48,7 @@ private:
 	 * @param SectionAreaNode		The section area node containing key areas
 	 * @param OutKeyAreaElements	Populated list of key elements to draw
 	 */
-	void GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreaElements ) const;
-
-	/**
-	 * Recursively gets keys areas from a list of nodes
-	 *
-	 * @param Nodes					List of nodes that could be key areas or contain key areas
-	 * @param HeightOffset			The current height offset incremented for each key area
-	 * @param OutKeyAreaElements	Populated list of key elements to draw
-	 */
-	void GetKeyAreas_Recursive(  const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes, float& HeightOffset, TArray<FKeyAreaElement>& OutKeyAreaElements ) const;
+	void GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreaElements, float* HeightOffset = nullptr ) const;
 
 	/**
 	 * Computes the geometry for a key area
@@ -163,6 +156,8 @@ private:
 	TSharedPtr<FTrackNode> ParentSectionArea;
 	/** Key areas inside this section */
 	TArray<FKeyAreaElement> KeyAreas;
+	/** Cached height of all the key areas */
+	float CachedKeyAreaHeight;
 	/** Current drag operation if any */
 	TSharedPtr<class FSequencerDragOperation> DragOperation;
 	/** The currently pressed key if any */

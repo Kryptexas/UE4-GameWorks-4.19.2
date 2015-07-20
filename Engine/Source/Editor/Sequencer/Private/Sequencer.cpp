@@ -170,7 +170,9 @@ FSequencer::FSequencer()
 	, bPerspectiveViewportPossessionEnabled( true )
 	, bIsEditingWithinLevelEditor( false )
 	, bNeedTreeRefresh( false )
-{ }
+{
+	Selection.GetOnOutlinerNodeSelectionChanged().AddRaw(this, &FSequencer::OnSelectedOutlinerNodesChanged);
+}
 
 FSequencer::~FSequencer()
 {
@@ -218,12 +220,19 @@ void FSequencer::Tick(float InDeltaTime)
 		bNeedTreeRefresh = false;
 	}
 	
+	static const float AutoScrollFactor = 0.1f;
+
 	// Animate the autoscroll offset if it's set
 	if (AutoscrollOffset.IsSet())
 	{
-		static const float AutoScrollFactor = 0.1f;
 		float Offset = AutoscrollOffset.GetValue() * AutoScrollFactor;
 		OnViewRangeChanged(TRange<float>(TargetViewRange.GetLowerBoundValue() + Offset, TargetViewRange.GetUpperBoundValue() + Offset), EViewRangeInterpolation::Immediate);
+	}
+
+	// Animate the autoscrub offset if it's set
+	if (AutoscrubOffset.IsSet())
+	{
+		float Offset = AutoscrubOffset.GetValue() * AutoScrollFactor;
 		SetGlobalTime(GetGlobalTime() + Offset);
 	}
 
@@ -575,14 +584,14 @@ void FSequencer::SetGlobalTime( float NewTime )
 	GEditor->RedrawLevelEditingViewports();
 }
 
-TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime) const
+TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime, float ThresholdPercentage) const
 {
 	enum class EDirection { Positive, Negative };
 	const EDirection Movement = NewTime - ScrubPosition >= 0 ? EDirection::Positive : EDirection::Negative;
 
 	const TRange<float> CurrentRange = GetViewRange();
 	const float RangeMin = CurrentRange.GetLowerBoundValue(), RangeMax = CurrentRange.GetUpperBoundValue();
-	const float AutoScrollThreshold = (RangeMax - RangeMin) * 0.1f;
+	const float AutoScrollThreshold = (RangeMax - RangeMin) * ThresholdPercentage;
 
 	if (Movement == EDirection::Negative && NewTime < RangeMin + AutoScrollThreshold)
 	{
@@ -989,10 +998,15 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 		else if (bAutoScrollEnabled)
 		{
 			// When scrubbing, we animate auto-scrolled scrub position in Tick()
-			AutoscrollOffset = CalculateAutoscrollEncroachment(NewScrubPosition);
+			AutoscrollOffset = CalculateAutoscrollEncroachment(NewScrubPosition, 0.025f);
 			if (AutoscrollOffset.IsSet())
 			{
+				AutoscrubOffset = AutoscrollOffset;
 				return;
+			}
+			else
+			{
+				AutoscrubOffset.Reset();
 			}
 		}
 	}
@@ -1008,6 +1022,17 @@ void FSequencer::OnBeginScrubbing()
 void FSequencer::OnEndScrubbing()
 {
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
+	AutoscrubOffset.Reset();
+	StopAutoscroll();
+}
+
+void FSequencer::StartAutoscroll(float UnitsPerS)
+{
+	AutoscrollOffset = UnitsPerS;
+}
+
+void FSequencer::StopAutoscroll()
+{
 	AutoscrollOffset.Reset();
 }
 
@@ -1354,6 +1379,19 @@ void FSequencer::OnSectionSelectionChanged()
 	}
 }
 
+void FSequencer::OnSelectedOutlinerNodesChanged()
+{
+	if (IsLevelEditorSequencer())
+	{
+		const bool bNotifySelectionChanged = false;
+		const bool bDeselectBSP = true;
+		const bool bWarnAboutTooManyActors = false;
+
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
+		GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
+	}
+}
+
 void FSequencer::ZoomToSelectedSections()
 {
 	TArray< TRange<float> > Bounds;
@@ -1593,12 +1631,12 @@ void FSequencer::StepToPreviousCameraKey()
 
 void FSequencer::ToggleExpandCollapseNodes()
 {
-	SequencerWidget->ToggleExpandCollapseSelectedNodes();
+	SequencerWidget->GetTreeView()->ToggleSelectedNodeExpansion(ETreeRecursion::NonRecursive);
 }
 
 void FSequencer::ToggleExpandCollapseNodesAndDescendants()
 {
-	SequencerWidget->ToggleExpandCollapseSelectedNodes(true);
+	SequencerWidget->GetTreeView()->ToggleSelectedNodeExpansion(ETreeRecursion::Recursive);
 }
 
 void FSequencer::SetKey()

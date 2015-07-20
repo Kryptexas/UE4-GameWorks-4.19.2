@@ -17,6 +17,10 @@
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
 
+namespace SequencerNodeConstants
+{
+	float CommonPadding = 4.f;
+}
 
 class SSequencerObjectTrack : public SLeafWidget
 {
@@ -55,17 +59,6 @@ private:
 
 int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	// Draw a region around the entire section area
-	FSlateDrawElement::MakeBox( 
-		OutDrawElements, 
-		LayerId,
-		AllottedGeometry.ToPaintGeometry(),
-		FEditorStyle::GetBrush("Sequencer.SectionArea.Background"),
-		MyClippingRect,
-		ESlateDrawEffect::None,
-		FLinearColor( .1f, .1f, .1f, 0.5f )
-		);
-
 	TArray<float> OutKeyTimes;
 	CollectAllKeyTimes(OutKeyTimes);
 	
@@ -134,7 +127,6 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	: ParentNode( InParentNode )
 	, ParentTree( InParentTree )
 	, NodeName( InNodeName )
-	, TreeLevel( InParentNode.IsValid() ? InParentNode->GetTreeLevel() + 1 : 0 )
 	, bExpanded( false )
 	, bCachedShotFilteredVisibility( true )
 	, bNodeIsPinned( false )
@@ -145,6 +137,84 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FObjectBindingNode> ObjectBindingNode)
 {
 	ChildNodes.Add(ObjectBindingNode);
+}
+
+
+bool FSequencerDisplayNode::Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	for (auto& Child : GetChildNodes())
+	{
+		if (!Child->Traverse_ChildFirst(InPredicate, true))
+		{
+			return false;
+		}
+	}
+
+	return bIncludeThisNode ? InPredicate(*this) : true;
+}
+
+bool FSequencerDisplayNode::Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	if (bIncludeThisNode && !InPredicate(*this))
+	{
+		return false;
+	}
+
+	for (auto& Child : GetChildNodes())
+	{
+		if (!Child->Traverse_ParentFirst(InPredicate, true))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool FSequencerDisplayNode::TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	// If the item is not expanded, its children ain't visible
+	if (IsExpanded())
+	{
+		for (auto& Child : GetChildNodes())
+		{
+			if (!Child->IsHidden() && !Child->TraverseVisible_ChildFirst(InPredicate, true))
+			{
+				return false;
+			}
+		}
+	}
+
+	if (bIncludeThisNode && !IsHidden())
+	{
+		return InPredicate(*this);
+	}
+
+	// Continue iterating regardless of visibility
+	return true;
+}
+
+
+bool FSequencerDisplayNode::TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	if (bIncludeThisNode && !IsHidden() && !InPredicate(*this))
+	{
+		return false;
+	}
+
+	// If the item is not expanded, its children ain't visible
+	if (IsExpanded())
+	{
+		for (auto& Child : GetChildNodes())
+		{
+			if (!Child->IsHidden() && !Child->TraverseVisible_ParentFirst(InPredicate, true))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
@@ -222,9 +292,9 @@ void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& Disp
 	KeyAreaNode->AddKeyArea( KeyArea );
 }
 
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner()
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow)
 {
-	return SNew( SAnimationOutlinerView, SharedThis( this ), &GetSequencer() );
+	return SNew( SAnimationOutlinerTreeNode, SharedThis( this ), InRow, &GetSequencer() );
 }
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateEditWidgetForOutliner()
@@ -250,6 +320,24 @@ TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea( const T
 		// Currently only section areas display widgets
 		return SNullWidget::NullWidget;
 	}
+}
+
+TSharedPtr<FSequencerDisplayNode> FSequencerDisplayNode::GetSectionAreaAuthority() const
+{
+	TSharedPtr<FSequencerDisplayNode> Authority = SharedThis(const_cast<FSequencerDisplayNode*>(this));
+
+	while (Authority.IsValid())
+	{
+		if (Authority->GetType() == ESequencerNode::Object || Authority->GetType() == ESequencerNode::Track)
+		{
+			return Authority;
+		}
+		else
+		{
+			Authority = Authority->GetParent();
+		}
+	}
+	return Authority;
 }
 
 FString FSequencerDisplayNode::GetPathName() const
@@ -279,9 +367,9 @@ void FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<F
 	}
 }
 
-void FSequencerDisplayNode::ToggleExpansion()
+void FSequencerDisplayNode::SetExpansionState(bool bInExpanded)
 {
-	bExpanded = !bExpanded;
+	bExpanded = bInExpanded;
 
 	// Expansion state has changed, save it to the movie scene now
 	ParentTree.SaveExpansionState( *this, bExpanded );
@@ -294,14 +382,15 @@ bool FSequencerDisplayNode::IsExpanded() const
 	return ParentTree.HasActiveFilter() ? ParentTree.IsNodeFiltered( AsShared() ) : bExpanded;
 }
 
-bool FSequencerDisplayNode::IsVisible() const
+bool FSequencerDisplayNode::IsHidden() const
 {
-	// Must be visible after shot filtering AND
-	// If there is a search filter, must be filtered, otherwise, it's parent must be expanded AND
-	// If shot filtering is off on clean view is on, node must be pinned
-	return bCachedShotFilteredVisibility &&
-		(ParentTree.HasActiveFilter() ? ParentTree.IsNodeFiltered(AsShared()) : IsParentExpandedOrIsARootNode()) &&
-		(GetSequencer().IsShotFilteringOn() || !GetSequencer().GetSettings()->GetIsUsingCleanView() || bNodeIsPinned);
+	// Not visible if:
+	// Its cached shot visibility is false OR
+	// There is a search filter, and it's not filtered, OR
+	// If shot filtering is off and clean view is on, but the node isn't pinned
+	return !bCachedShotFilteredVisibility ||
+		(ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared())) ||
+		(!GetSequencer().IsShotFilteringOn() && GetSequencer().GetSettings()->GetIsUsingCleanView() && !bNodeIsPinned);
 }
 
 bool FSequencerDisplayNode::HasVisibleChildren() const
@@ -311,11 +400,6 @@ bool FSequencerDisplayNode::HasVisibleChildren() const
 		if (ChildNodes[i]->bCachedShotFilteredVisibility) {return true;}
 	}
 	return false;
-}
-
-bool FSequencerDisplayNode::IsParentExpandedOrIsARootNode() const
-{
-	return !ParentNode.IsValid() || ParentNode.Pin()->bExpanded;
 }
 
 void FSequencerDisplayNode::UpdateCachedShotFilteredVisibility()
@@ -342,6 +426,11 @@ float FSectionKeyAreaNode::GetNodeHeight() const
 {
 	//@todo Sequencer - Should be defined by the key area probably
 	return SequencerLayoutConstants::KeyAreaHeight;
+}
+
+FNodePadding FSectionKeyAreaNode::GetNodePadding() const
+{
+	return FNodePadding(0.f, 1.f);
 }
 
 bool FSectionKeyAreaNode::GetShotFilteredVisibilityToCache() const
@@ -377,6 +466,11 @@ FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSha
 float FTrackNode::GetNodeHeight() const
 {
 	return Sections.Num() > 0 ? Sections[0]->GetSectionHeight() * (GetMaxRowIndex()+1) : SequencerLayoutConstants::SectionAreaDefaultHeight;
+}
+
+FNodePadding FTrackNode::GetNodePadding() const
+{
+	return FNodePadding(SequencerNodeConstants::CommonPadding);
 }
 
 FText FTrackNode::GetDisplayName() const
@@ -488,8 +582,13 @@ FText FObjectBindingNode::GetDisplayName() const
 }
 
 float FObjectBindingNode::GetNodeHeight() const
-{ 
+{
 	return SequencerLayoutConstants::ObjectNodeHeight;
+}
+
+FNodePadding FObjectBindingNode::GetNodePadding() const
+{
+	return FNodePadding(SequencerNodeConstants::CommonPadding * 2, 0.f);
 }
 
 bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
@@ -664,6 +763,11 @@ void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 float FSectionCategoryNode::GetNodeHeight() const 
 {
 	return SequencerLayoutConstants::CategoryNodeHeight;
+}
+
+FNodePadding FSectionCategoryNode::GetNodePadding() const
+{
+	return FNodePadding(SequencerNodeConstants::CommonPadding/2);
 }
 
 bool FSectionCategoryNode::GetShotFilteredVisibilityToCache() const

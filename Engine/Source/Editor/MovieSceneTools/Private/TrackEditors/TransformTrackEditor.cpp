@@ -406,6 +406,7 @@ void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizont
 		.IsChecked(this, &F3DTransformTrackEditor::IsCameraLocked, CameraActor)
 		.OnCheckStateChanged(this, &F3DTransformTrackEditor::OnLockCameraClicked, CameraActor)
 		.ToolTipText(this, &F3DTransformTrackEditor::GetLockCameraToolTip, CameraActor)
+		.ForegroundColor(FLinearColor::White)
 		.CheckedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
 		.CheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
 		.CheckedPressedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))

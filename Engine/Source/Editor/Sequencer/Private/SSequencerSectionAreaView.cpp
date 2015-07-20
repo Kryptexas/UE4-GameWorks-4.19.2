@@ -62,19 +62,28 @@ namespace SequencerSectionUtils
 
 void SSequencerSectionAreaView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node )
 {
-	SSequencerSectionAreaViewBase::Construct( SSequencerSectionAreaViewBase::FArguments(), Node );
+	//SSequencerSectionAreaViewBase::Construct( SSequencerSectionAreaViewBase::FArguments(), Node );
 
 	ViewRange = InArgs._ViewRange;
 
 	check( Node->GetType() == ESequencerNode::Track );
 	SectionAreaNode = StaticCastSharedRef<FTrackNode>( Node );
 
-	SetVisibility( TAttribute<EVisibility>( this, &SSequencerSectionAreaView::GetNodeVisibility ) );
-
 	BackgroundBrush = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
 
 	// Generate widgets for sections in this view
 	GenerateSectionWidgets();
+};
+
+FVector2D SSequencerSectionAreaView::ComputeDesiredSize(float) const
+{
+	// Note: X Size is not used
+	FVector2D Size(100, 0.f);
+	for (int32 Index = 0; Index < Children.Num(); ++Index)
+	{
+		Size.Y = FMath::Max(Size.Y, Children[Index]->GetDesiredSize().Y);
+	}
+	return Size + SectionAreaNode->GetNodePadding().Bottom;
 }
 
 void SSequencerSectionAreaView::GenerateSectionWidgets()
@@ -100,37 +109,12 @@ EVisibility SSequencerSectionAreaView::GetSectionVisibility( UMovieSceneSection*
 	return GetSequencer().IsSectionVisible( SectionObject ) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-float SSequencerSectionAreaView::GetSectionAreaHeight() const
-{
- 	return SectionAreaNode->GetNodeHeight() + ComputeHeightRecursive( SectionAreaNode->GetChildNodes() );
-}
-
-EVisibility SSequencerSectionAreaView::GetNodeVisibility() const
-{
-	// We are not visible if our node is hidden
-	return SectionAreaNode->IsVisible() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
 
 /** SWidget Interface */
 int32 SSequencerSectionAreaView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
-
-	if( SectionAreaNode.IsValid() )
-	{
-		// Draw a region around the entire section area
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements, 
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			BackgroundBrush,
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			SequencerSectionAreaConstants::BackgroundColor
-			);
-	}
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
@@ -140,17 +124,6 @@ int32 SSequencerSectionAreaView::OnPaint( const FPaintArgs& Args, const FGeometr
 	}
 
 	return LayerId+1;
-}
-
-FReply SSequencerSectionAreaView::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	// Clear selected sections
-	if( !MouseEvent.IsControlDown() )
-	{
-		GetSequencer().GetSelection().EmptySelectedSections();
-	}
-
-	return FReply::Handled();
 }
 
 void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
@@ -167,7 +140,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 	int32 MaxTracks = MaxRowIndex + 1;
 
 
-	float SectionHeight = GetSectionAreaHeight();
+	float SectionHeight = AllottedGeometry.GetLocalSize().Y - SectionAreaNode->GetNodePadding().Bottom;
 
 	FTimeToPixel TimeToPixelConverter = GetTimeToPixel( AllottedGeometry );
 

@@ -5,14 +5,10 @@
 class FSectionKeyAreaNode;
 class FTrackNode;
 
-
-typedef TSequencerTrackViewPanel<SSection> SSequencerSectionAreaViewBase;
-
-
 /**
  * Visualizes a section area and its children                                        
  */
-class SSequencerSectionAreaView : public SSequencerSectionAreaViewBase
+class SSequencerSectionAreaView : public SPanel
 {
 public:
 	SLATE_BEGIN_ARGS( SSequencerSectionAreaView )
@@ -23,24 +19,15 @@ public:
 
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node );
 
-	/**
-	 * @return The current height of the section area
-	 */
-	float GetSectionAreaHeight() const;
-	
-	/**
-	 * @return The visibility of this node                                                              
-	 */
-	EVisibility GetNodeVisibility() const;
-
 private:
 	/** SWidget Interface */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/** SPanel Interface */
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	virtual FChildren* GetChildren() override { return &Children; }
+	
 	/**
 	 * Returns the visibility of a section
 	 *
@@ -79,4 +66,6 @@ private:
 	float DistanceDragged;
 	/** Whether or not we are dragging */
 	bool bDragging;
+	/** All the widgets in the panel */
+	TSlotlessChildren<SSection> Children;
 };

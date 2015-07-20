@@ -466,12 +466,14 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 
 	if( bDisplayTickLines )
 	{
+		static FLinearColor TickColor(0.f, 0.f, 0.f, 0.3f);
+		
 		// Draw major tick lines in the section area
 		FDrawTickArgs Args;
 		Args.AllottedGeometry = AllottedGeometry;
 		Args.bMirrorLabels = false;
 		Args.bOnlyDrawMajorTicks = true;
-		Args.TickColor = FLinearColor( 0.3f, 0.3f, 0.3f, 0.3f );
+		Args.TickColor = TickColor;
 		Args.ClippingRect = MyClippingRect;
 		Args.DrawEffects = DrawEffects;
 		// Draw major ticks under sections
