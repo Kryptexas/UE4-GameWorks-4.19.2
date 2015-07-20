@@ -250,8 +250,18 @@ void UEditorEngine::EndPlayMap()
 			}
 		}
 	}
-	// Garbage Collect
-	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	// Clean up any PIE world objects
+	{
+		// The trans buffer should never have a PIE object in it.  If it does though, as a s
+		if( GEditor->Trans->ContainsPieObject() )
+		{
+			GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "TransactionContainedPIEObject", "A PIE object was in the transaction buffer and had to be destroyed") );
+		}
+
+		// Garbage Collect
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	}
 
 	// Make sure that all objects in the temp levels were entirely garbage collected.
 	for( FObjectIterator ObjectIt; ObjectIt; ++ObjectIt )

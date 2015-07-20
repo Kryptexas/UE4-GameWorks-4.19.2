@@ -257,6 +257,9 @@ protected:
 		/** Used by GC to collect referenced objects. */
 		void AddReferencedObjects( FReferenceCollector& Collector );
 
+		/** @return True if this record contains a reference to a pie object */
+		bool ContainsPieObject() const;
+
 		/** Transfers data from an array. */
 		class FReader : public FArchiveUObject
 		{
@@ -490,6 +493,10 @@ public:
 	int32 GetRecordCount() const;
 
 	const UObject* GetPrimaryObject() const { return PrimaryObject; }
+
+	/** @return True if this record contains a reference to a pie object */
+	bool ContainsPieObject() const;
+
 	/**
 	 * Outputs the contents of the ObjectMap to the specified output device.
 	 */
@@ -652,8 +659,11 @@ class UTransactor : public UObject
 	 */
 	virtual void SetPrimaryUndoObject( UObject* Object ) PURE_VIRTUAL(UTransactor::MakePrimaryUndoObject,);
 
+	/** Checks if a specific object is referenced by the transaction buffer */
 	virtual bool IsObjectInTransationBuffer( const UObject* Object ) const { return false; }
 
+	/** @return True if this record contains a reference to a pie object */
+	virtual bool ContainsPieObject() const { return false; }
 
 	// @todo document
 	virtual ITransaction* CreateInternalTransaction() PURE_VIRTUAL(UTransactor::CreateInternalTransaction,return NULL;);
