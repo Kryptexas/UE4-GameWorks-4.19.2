@@ -1551,7 +1551,21 @@ bool FLevelEditorActionCallbacks::PasteHere_CanExecute()
 
 void FLevelEditorActionCallbacks::ExecuteExecCommand( FString Command )
 {
-	GUnrealEd->Exec( GetWorld(), *Command );
+	UWorld* OldWorld = nullptr;
+
+	// The play world needs to be selected if it exists
+	if (GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld)
+	{
+		OldWorld = SetPlayInEditorWorld(GEditor->PlayWorld);
+	}
+
+	GUnrealEd->Exec(GetWorld(), *Command);
+
+	// Restore the old world if there was one
+	if (OldWorld)
+	{
+		RestoreEditorWorld(OldWorld);
+	}
 }
 
 void FLevelEditorActionCallbacks::OnSelectAllActorsOfClass( bool bArchetype )

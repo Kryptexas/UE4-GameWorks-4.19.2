@@ -552,6 +552,11 @@ UObject* ULevelFactory::FactoryCreateText
 						SpawnInfo.Name = ActorUniqueName;
 						SpawnInfo.Template = Archetype;
 						SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+						if (GEditor->bIsSimulatingInEditor)
+						{
+							// During SIE, we don't want to run construction scripts on a BP until it is completely constructed
+							SpawnInfo.bDeferConstruction = true;
+						}
 						AActor* NewActor = World->SpawnActor( TempClass, nullptr, nullptr, SpawnInfo );
 						
 						if( NewActor )

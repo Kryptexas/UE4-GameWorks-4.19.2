@@ -419,6 +419,14 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 		return nullptr;
 	}
 
+	UWorld* OldWorld = nullptr;
+
+	// The play world needs to be selected if it exists
+	if (GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld)
+	{
+		OldWorld = SetPlayInEditorWorld(GEditor->PlayWorld);
+	}
+
 	// For Brushes/Volumes, use the default brush as the template rather than the factory default actor
 	if (NewActorTemplate->IsA(ABrush::StaticClass()) && GWorld->GetDefaultBrush() != nullptr)
 	{
@@ -439,20 +447,15 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 
 	// Don't spawn the actor if the current level is locked.
-	if ( FLevelUtils::IsLevelLocked(DesiredLevel) )
+	if (FLevelUtils::IsLevelLocked(DesiredLevel))
 	{
-		FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked.") );
+		FNotificationInfo Info(NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked."));
 		Info.ExpireDuration = 3.0f;
 		FSlateNotificationManager::Get().AddNotification(Info);
-		return nullptr;
 	}
-
+	else
 	{
-		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
-		{
-			Transaction.Cancel();
-		}
+		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor"), (ObjectFlags & RF_Transactional) != 0 );
 
 		// Create the actor.
 		Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags, Name );
@@ -467,14 +470,20 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 			Actor->InvalidateLightingCache();
 			Actor->PostEditChange();
 		}
-	}
 
-	GEditor->RedrawLevelEditingViewports();
+		GEditor->RedrawLevelEditingViewports();
+	}
 
 	if ( Actor )
 	{
 		Actor->MarkPackageDirty();
 		ULevel::LevelDirtiedEvent.Broadcast();
+	}
+
+	// Restore the old world if there was one
+	if (OldWorld)
+	{
+		RestoreEditorWorld(OldWorld);
 	}
 
 	return Actor;

@@ -4121,6 +4121,14 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 	//Load Asset
 	UObject* Asset = AssetData.GetAsset();
 
+	UWorld* OldWorld = nullptr;
+
+	// The play world needs to be selected if it exists
+	if (GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld)
+	{
+		OldWorld = SetPlayInEditorWorld(GEditor->PlayWorld);
+	}
+
 	AActor* Actor = NULL;
 	if ( bIsAllowedToCreateActor )
 	{
@@ -4171,18 +4179,19 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 					ULevel::LevelDirtiedEvent.Broadcast();
 				}
 			}
-			else
-			{
-				return NULL;
-			}
 		}
 		else
 		{
 			FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked.") );
 			Info.ExpireDuration = 3.0f;
 			FSlateNotificationManager::Get().AddNotification(Info);
-			return NULL;
 		}
+	}
+
+	// Restore the old world if there was one
+	if (OldWorld)
+	{
+		RestoreEditorWorld(OldWorld);
 	}
 
 	return Actor;
