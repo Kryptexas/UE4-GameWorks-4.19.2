@@ -1647,7 +1647,7 @@ FORCEINLINE FVector FVector::Reciprocal() const
 
 FORCEINLINE bool FVector::IsUniform(float Tolerance) const
 {
-	return (FMath::Abs(X-Y) <= Tolerance) && (FMath::Abs(Y-Z) <= Tolerance);
+	return AllComponentsEqual(Tolerance);
 }
 
 FORCEINLINE FVector FVector::MirrorByVector( const FVector& MirrorNormal ) const
