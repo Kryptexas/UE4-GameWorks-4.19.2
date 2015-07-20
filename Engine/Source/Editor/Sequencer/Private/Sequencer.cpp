@@ -1581,7 +1581,7 @@ void FSequencer::DeleteSelectedItems()
 bool FSequencer::CanDeleteSelectedItems()
 {
 	// Only delete sequencer items if the delete key was pressed in the sequencer widget and not in, for example, the viewport.
-	return SequencerWidget->HasKeyboardFocus();
+	return SequencerWidget->HasFocusedDescendants();
 }
 
 void FSequencer::TogglePlay()
