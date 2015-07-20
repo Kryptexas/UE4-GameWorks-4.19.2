@@ -127,10 +127,9 @@ public:
 
 		if(EyeAdaptation.IsBound())
 		{
-			IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation();
-
-			if(EyeAdaptationRT)
+			if (Context.View.HasValidEyeAdaptation())
 			{
+				IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation();
 				SetTextureParameter(Context.RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
 			}
 			else

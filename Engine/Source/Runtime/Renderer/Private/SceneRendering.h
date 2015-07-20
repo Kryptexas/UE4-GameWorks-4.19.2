@@ -594,6 +594,12 @@ public:
 	/** Gets the eye adaptation render target for this view. */
 	IPooledRenderTarget* GetEyeAdaptation() const;
 
+	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
+	bool HasValidEyeAdaptation() const;
+
+	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
+	void SetValidEyeAdaptation();
+
 	/** Create acceleration data structure and information to do forward lighting with dynamic branching. */
 	void CreateLightGrid();
 
@@ -621,6 +627,8 @@ public:
 	static void DestroyAllSnapshots();
 
 private:
+
+	FSceneViewState* GetEffectiveViewState() const;
 
 	/** Initialization that is common to the constructors. */
 	void Init();

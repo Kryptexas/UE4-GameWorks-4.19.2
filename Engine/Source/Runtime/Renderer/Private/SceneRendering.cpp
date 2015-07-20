@@ -1040,7 +1040,7 @@ void FViewInfo::DestroyAllSnapshots()
 	ViewInfoSnapshots.Reset();
 }
 
-IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
+FSceneViewState* FViewInfo::GetEffectiveViewState() const
 {
 	FSceneViewState* EffectiveViewState = ViewState;
 
@@ -1063,6 +1063,13 @@ IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
 		}
 	}
 
+	return EffectiveViewState;
+}
+
+IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+
 	if (EffectiveViewState)
 	{
 		TRefCountPtr<IPooledRenderTarget>& EyeAdaptRef = EffectiveViewState->GetEyeAdaptation();
@@ -1073,6 +1080,28 @@ IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
 	}
 	return NULL;
 }
+
+bool FViewInfo::HasValidEyeAdaptation() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();	
+
+	if (EffectiveViewState)
+	{
+		return EffectiveViewState->HasValidEyeAdaptation();
+	}
+	return false;
+}
+
+void FViewInfo::SetValidEyeAdaptation()
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();	
+
+	if (EffectiveViewState)
+	{
+		EffectiveViewState->SetValidEyeAdaptation();
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	FSceneRenderer
 -----------------------------------------------------------------------------*/
