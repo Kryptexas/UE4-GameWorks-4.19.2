@@ -4087,12 +4087,17 @@ void UEdGraphSchema_K2::ValidateExistingConnections(UEdGraphPin* Pin)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
+	const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(Pin->GetOwningNodeUnchecked());
+	const UClass* CallingContext = Blueprint
+		? ((Blueprint->GeneratedClass != nullptr) ? Blueprint->GeneratedClass : Blueprint->ParentClass)
+		: nullptr;
+
 	// Break any newly invalid links
 	TArray<UEdGraphPin*> BrokenLinks;
-	for (int32 Index = 0; Index < Pin->LinkedTo.Num(); )
+	for (int32 Index = 0; Index < Pin->LinkedTo.Num();)
 	{
 		UEdGraphPin* OtherPin = Pin->LinkedTo[Index];
-		if (K2Schema->ArePinsCompatible(Pin, OtherPin))
+		if (K2Schema->ArePinsCompatible(Pin, OtherPin, CallingContext))
 		{
 			++Index;
 		}
