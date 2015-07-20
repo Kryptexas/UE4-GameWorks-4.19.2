@@ -1078,9 +1078,9 @@ public:
 				}
 				else if (((UPTRINT)Ptr & (UPTRINT)(Alignment - 1)) != 0)
 				{
-					void* NewPtr = Align(Ptr, Alignment);
-					FMemory::Memmove(Ptr, NewPtr, NewSize);
-			}
+					NewPtr = Align(Ptr, Alignment);
+					FMemory::Memmove(NewPtr, Ptr, NewSize);
+				}
 			}
 			else
 			{
