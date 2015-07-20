@@ -22,6 +22,9 @@ public:
 	SLATE_BEGIN_ARGS( SSequencerTrackArea ){}
 	SLATE_END_ARGS()
 
+	/** User-defined destructor to ensure TUniquePtr destruction */
+	~SSequencerTrackArea();
+
 	/** Construct this widget */
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerTimeSliderController> InTimeSliderController, TSharedRef<FSequencer> InSequencer );
 
