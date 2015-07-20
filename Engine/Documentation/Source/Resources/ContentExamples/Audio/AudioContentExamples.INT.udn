@@ -45,9 +45,9 @@ Related: Engine/Audio/DistanceModelAttenuation
 [TOC(start:2 end:2)]
 
 
-## Overview
 
-The **Audio Map** located inside the **Content Examples** project is an excellent source to see firsthand how all the audio systems come together, while demonstrating them in bite-sized practical examples. This page is intended to give you an idea of what to expect from the audio **Content Examples** as well as where to find specific examples based on the audio system(s) you want to work with. 
+
+The **Audio Map** located inside the **Content Examples** project is an excellent source to see firsthand how all the audio systems come together, while demonstrating them in bite-sized practical examples. This page is intended to give you an idea of what to expect from the audio Content Examples as well as where to find specific examples based on the audio system(s) you want to work with. 
 
 
 ## Audio Map
@@ -67,7 +67,7 @@ The **Audio** map gives you the core concepts for using audio in Unreal Engine 4
 | **1.7 Shared Attenuation Settings** | Showcases a **Sound Attenuation** asset that affects the **Attenuation** of multiple **Sound Actors**. |
 | **1.8 AmbientSound Actor using SoundCues** | Showcases how a **Sound Cue** can be used instead of a **Sound Wave** to create more complex sounds or to mix multiple sounds into one. |
 | **1.9 Audio Volume** | Audio is affected by an **Audio Volume** where its effects can only be heard when the player is inside the volume (e.g. Dialogue plays and sounds as if you are in an auditorium when inside the volume. When outside, dialogue plays normally). |
-| **1.10 Audio Volume using Ambient Zone** | Two sounds are affected by an **Ambient Zone** where one sound is placed inside an **Audio Volume** and the other is not. The inside sound is quiet while outside the **Audio Volume** but louder when inside, while the outside sound is quiet when inside the **Audio Volume** and louder while standing outside it (e.g. audio when moving from an indoor to outdoor environment at night). |
+| **1.10 Audio Volume using Ambient Zone** | Two sounds are affected by an **Ambient Zone** where one sound is placed inside an Audio Volume and the other is not. The inside sound is quiet while outside the Audio Volume but louder when inside, while the outside sound is quiet when inside the Audio Volume and louder while standing outside it (e.g. audio when moving from an indoor to outdoor environment at night). |
 
 <!--
 ### Sound Cue Node Usage
