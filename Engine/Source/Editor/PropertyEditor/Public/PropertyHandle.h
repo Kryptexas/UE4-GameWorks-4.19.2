@@ -263,10 +263,11 @@ public:
 	 * Gets a child handle of this handle.  Useful for accessing properties in structs.  
 	 * Array elements cannot be accessed in this way  
 	 *
-	 * @param The name of the child
+	 * @param ChildName The name of the child
+	 * @param bRecurse	Whether or not to recurse into children of children and so on. If false will only search all immediate children
 	 * @return The property handle for the child if it exists
 	 */
-	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName ) const = 0;
+	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName, bool bRecurse = true ) const = 0;
 
 	/**
 	 * Gets a child handle of this handle.  Useful for accessing properties in structs.  

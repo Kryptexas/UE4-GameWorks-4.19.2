@@ -6,8 +6,8 @@ class FObjectBaseAddress
 {
 public:
 	FObjectBaseAddress()
-		:	Object( NULL )
-		,	BaseAddress( NULL )
+		:	Object( nullptr )
+		,	BaseAddress( nullptr )
 		,	bIsStruct(false)
 	{}
 	FObjectBaseAddress(UObject* InObject, uint8* InBaseAddress, bool InIsStruct)
@@ -207,15 +207,15 @@ public:
 	 * Gets a child node of the property node
 	 * 
 	 * @param ChildName	The name of the child to get
-	 * @return The child property node or NULL if it doesnt exist
+	 * @return The child property node or nullptr if it doesnt exist
 	 */
-	TSharedPtr<FPropertyNode> GetChildNode( FName ChildName ) const;
+	TSharedPtr<FPropertyNode> GetChildNode( FName ChildName, bool bRecurse = true ) const;
 
 	/**
 	 * Gets a child node of the property node
 	 * 
 	 * @param ChildIndex	The child index where the child is stored
-	 * @return The child property node or NULL if it doesnt exist
+	 * @return The child property node or nullptr if it doesnt exist
 	 */
 	TSharedPtr<FPropertyNode> GetChildNode( int32 ChildIndex ) const ;
 
@@ -379,14 +379,14 @@ public:
 	virtual FPropertyAccess::Result GetValueAsDisplayText( FText& OutValue ) const override;
 	virtual FPropertyAccess::Result SetValueFromFormattedString( const FString& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( uint32 ChildIndex ) const override;
-	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName ) const override;
+	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName, bool bRecurse = true ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const override;
 	virtual void AccessRawData( TArray<void*>& RawData ) override;
 	virtual void AccessRawData( TArray<const void*>& RawData ) const override;
 	virtual uint32 GetNumOuterObjects() const override;
 	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const override;
 	virtual FPropertyAccess::Result GetNumChildren( uint32& OutNumChildren ) const override;
-	virtual TSharedPtr<IPropertyHandleArray> AsArray() override { return NULL; }
+	virtual TSharedPtr<IPropertyHandleArray> AsArray() override { return nullptr; }
 	virtual const UClass* GetPropertyClass() const override;
 	virtual UProperty* GetProperty() const override;
 	virtual UProperty* GetMetaDataProperty() const override;
