@@ -3211,7 +3211,7 @@ bool FConfigFile::UpdateSinglePropertyInSection(const TCHAR* DiskFilename, const
 
 				NewFile += TheLine + LINE_TERMINATOR;
 			}
-			else if (bIsCurrentlyWritingSectionProperty && TheLine.StartsWith(PropertyName))
+			else if (bIsCurrentlyWritingSectionProperty && TheLine.StartsWith(FString::Printf(TEXT("%s="), PropertyName)))
 			{
 				bPropertyWasUpdated = true;
 				// If we have found the property in the file, let's update it with the new value.
