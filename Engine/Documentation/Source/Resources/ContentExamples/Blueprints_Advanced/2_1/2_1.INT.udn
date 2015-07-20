@@ -33,9 +33,9 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_2_1.png)
 
-## Overview
 
-The **BP_Timeline_Ball** Blueprint demonstrates a basic [Timeline](Engine/Blueprints/UserGuide/Timelines) in the Event Graph, which automatically plays and loops, triggering an event at a certain point along the Timeline that spawns a particle effect.
+
+The **BP_Timeline_Ball** Blueprint demonstrates a basic [**Timeline**](Engine/Blueprints/UserGuide/Timelines) in the Event Graph, which automatically plays and loops, triggering an event at a certain point along the Timeline that spawns a particle effect.
 
 
 
