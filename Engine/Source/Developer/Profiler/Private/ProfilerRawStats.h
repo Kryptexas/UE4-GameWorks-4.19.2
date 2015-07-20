@@ -280,6 +280,12 @@ protected:
 	 */
 	void GenerateAllocationMap();
 
+	/** Processes an alloc memory operation. */
+	void ProcessAlloc( const FAllocationInfo& AllocInfo, TMap<uint64, FAllocationInfo>& AllocationMap );
+
+	/** Processes a free memory operation. */
+	void ProcessFree( const FAllocationInfo& FreeInfo, TMap<uint64, FAllocationInfo>& AllocationMap, const bool bReallocFree );
+
 	/** Dumps debug allocations. */
 	void DumpDebugAllocations();
 
@@ -357,17 +363,14 @@ protected:
 
 	TMap<FName, TMap<FString, FCombinedAllocationInfo> > SnapshotsWithDecodedScopedAllocations;
 
-	/** Free without allocation map. Debug only. */
-	TMultiMap<uint64, FAllocationInfo> FreeWithoutAllocMap;
-
 	/** Duplicated allocation map. Debug only. */
-	TMultiMap<uint64, FAllocationInfo> DuplicatedAllocMap;
+	TMultiMap<FString, FAllocationInfo> DuplicatedAllocMap;
+
+	/** Zero allocation map. Debug only. */
+	TMultiMap<FString, FAllocationInfo> ZeroAllocMap;
 
 	/** Number of duplicated memory operations. */
 	int32 NumDuplicatedMemoryOperations;
-
-	/** Number of Free without Alloc. */
-	int32 NumFWAMemoryOperations;
 
 	/** Number of Malloc(0). */
 	int32 NumZeroAllocs = 0;
