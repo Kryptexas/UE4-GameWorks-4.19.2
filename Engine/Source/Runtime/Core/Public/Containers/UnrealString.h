@@ -751,7 +751,7 @@ public:
 	 */
 	FORCEINLINE FString& operator/=( const TCHAR* Str )
 	{
-		if( Data.Num() > 1 && Data[Data.Num()-2] != TEXT('/') && Data[Data.Num()-2] != TEXT('\\') )
+		if( Data.Num() > 1 && Data[Data.Num()-2] != TEXT('/') && Data[Data.Num()-2] != TEXT('\\') && (!Str || *Str != TEXT('/')) )
 		{
 			*this += TEXT("/");
 		}
