@@ -2629,7 +2629,7 @@ class RHI_API FRHICommandListExecutor
 public:
 	enum
 	{
-		DefaultBypass = 1 //PLATFORM_RHITHREAD_DEFAULT_BYPASS
+		DefaultBypass = PLATFORM_RHITHREAD_DEFAULT_BYPASS
 	};
 	FRHICommandListExecutor()
 		: bLatchedBypass(!!DefaultBypass)
