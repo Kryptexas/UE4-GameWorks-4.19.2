@@ -45,6 +45,11 @@ bool FUserOnlineAccountFacebook::GetUserAttribute(const FString& AttrName, FStri
 	return false;
 }
 
+bool FUserOnlineAccountFacebook::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	return false;
+}
+
 FString FUserOnlineAccountFacebook::GetAccessToken() const
 {
 	return AuthTicket;

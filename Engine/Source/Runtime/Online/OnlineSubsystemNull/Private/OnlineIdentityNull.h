@@ -19,6 +19,7 @@ public:
 	virtual FString GetRealName() const override { return TEXT("DummyRealName"); }
 	virtual FString GetDisplayName() const override  { return TEXT("DummyDisplayName"); }
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
+	virtual bool SetUserAttribute(const FString& AttrName, const FString& AttrValue) override;
 
 	// FUserOnlineAccount
 

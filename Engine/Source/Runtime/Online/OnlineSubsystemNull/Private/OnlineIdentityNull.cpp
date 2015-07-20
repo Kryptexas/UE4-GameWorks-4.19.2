@@ -27,6 +27,17 @@ bool FUserOnlineAccountNull::GetUserAttribute(const FString& AttrName, FString& 
 	return false;
 }
 
+bool FUserOnlineAccountNull::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	const FString* FoundAttr = UserAttributes.Find(AttrName);
+	if (FoundAttr == NULL || *FoundAttr != AttrValue)
+	{
+		UserAttributes.Add(AttrName, AttrValue);
+		return true;
+	}
+	return false;
+}
+
 inline FString GenerateRandomUserId(int32 LocalUserNum)
 {
 	FString HostName;

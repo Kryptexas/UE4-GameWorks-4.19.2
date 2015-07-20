@@ -25,6 +25,11 @@ bool FUserOnlineAccountAmazon::GetUserAttribute(const FString& AttrName, FString
 	return false;
 }
 
+bool FUserOnlineAccountAmazon::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	return false;
+}
+
 FString FUserOnlineAccountAmazon::GetAccessToken() const
 {
 	return AuthTicket;

@@ -1074,6 +1074,10 @@ public:
 	 * @return Any additional auth data associated with a registered user
 	 */
 	virtual bool GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const = 0;
+	/** 
+	 * @return True, if the data has been changed
+	 */
+	virtual bool SetUserAttribute(const FString& AttrName, const FString& AttrValue) = 0;
 };
 
 /** 
