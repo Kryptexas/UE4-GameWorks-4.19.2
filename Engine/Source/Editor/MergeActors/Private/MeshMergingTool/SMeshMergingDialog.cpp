@@ -215,19 +215,19 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs, FMeshMergingTool* I
 					]
 				]
 
-				// Place in world
+				// Replace source actors
 				+SVerticalBox::Slot()
 				.AutoHeight()
 				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshMergingDialog::GetPlaceInWorld)
-					.OnCheckStateChanged(this, &SMeshMergingDialog::SetPlaceInWorld)
+					.IsChecked(this, &SMeshMergingDialog::GetReplaceSourceActors)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetReplaceSourceActors)
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("PlaceInWorldLabel", "Place In World"))
+						.Text(LOCTEXT("ReplaceSourceActorsLabel", "Replace Source Actors"))
 						.Font(FEditorStyle::GetFontStyle("StandardDialog.SmallFont"))
 					]
 				]
@@ -417,14 +417,14 @@ void SMeshMergingDialog::SetPivotPointAtZero(ECheckBoxState NewValue)
 	Tool->MergingSettings.bPivotPointAtZero = (ECheckBoxState::Checked == NewValue);
 }
 
-ECheckBoxState SMeshMergingDialog::GetPlaceInWorld() const
+ECheckBoxState SMeshMergingDialog::GetReplaceSourceActors() const
 {
-	return (Tool->bPlaceInWorld ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	return (Tool->bReplaceSourceActors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
-void SMeshMergingDialog::SetPlaceInWorld(ECheckBoxState NewValue)
+void SMeshMergingDialog::SetReplaceSourceActors(ECheckBoxState NewValue)
 {
-	Tool->bPlaceInWorld = (ECheckBoxState::Checked == NewValue);
+	Tool->bReplaceSourceActors = (ECheckBoxState::Checked == NewValue);
 }
 
 bool SMeshMergingDialog::IsMaterialMergingEnabled() const

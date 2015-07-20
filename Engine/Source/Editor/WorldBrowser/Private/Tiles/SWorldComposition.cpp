@@ -1200,10 +1200,11 @@ FReply SWorldComposition::NewLayer_Clicked()
 		return FReply::Handled();
 	}
 	
-	TSharedRef<SNewLayerPopup> CreateLayerWidget = 
-		SNew(SNewLayerPopup)
+	TSharedRef<SNewWorldLayerPopup> CreateLayerWidget = 
+		SNew(SNewWorldLayerPopup)
 		.OnCreateLayer(this, &SWorldComposition::CreateNewLayer)
-		.DefaultName(LOCTEXT("Layer_DefaultName", "MyLayer").ToString());
+		.DefaultName(LOCTEXT("Layer_DefaultName", "MyLayer").ToString())
+		.InWorldModel(TileWorldModel);
 
 	NewLayerMenu = FSlateApplication::Get().PushMenu(
 		this->AsShared(),

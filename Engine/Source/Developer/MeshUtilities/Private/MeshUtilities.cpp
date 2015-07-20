@@ -4553,7 +4553,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	TArray<FRawMeshExt>								SourceMeshes;
 	bool											bWithVertexColors[MAX_STATIC_MESH_LODS] = {};
 	bool											bOcuppiedUVChannels[MAX_STATIC_MESH_LODS][MAX_MESH_TEXTURE_COORDS] = {};
-
+	FScopedSlowTask									MergeProgress(5);
+	
 	SourceMeshes.Reserve(ComponentsToMerge.Num());
 	SourceMeshes.SetNum(ComponentsToMerge.Num());
 
@@ -4582,6 +4583,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		StartLODIndex = FMath::Min(UseLOD, NumMaxLOD - 1);
 		NumMaxLOD = StartLODIndex + 1;
 	}
+
+	MergeProgress.EnterProgressFrame();
 
 	int32 RawMeshLODIdx = 0;
 	for (int32 LODIndex = StartLODIndex; LODIndex < NumMaxLOD; ++LODIndex, ++RawMeshLODIdx)
@@ -4623,6 +4626,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		return;
 	}
 
+	MergeProgress.EnterProgressFrame();
+
 	// For each raw mesh, re-map the material indices according to the MaterialMap
 	for (int32 MeshIndex = 0; MeshIndex < SourceMeshes.Num(); ++MeshIndex)
 	{
@@ -4648,6 +4653,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 	if (InSettings.bMergeMaterials)
 	{
+		MergeProgress.EnterProgressFrame();
+
 		FIntPoint AtlasTextureSize = FIntPoint(InSettings.MergedMaterialAtlasResolution, InSettings.MergedMaterialAtlasResolution);
 		FFlattenMaterial MergedFlatMaterial;
 		MergedFlatMaterial.DiffuseSize = AtlasTextureSize;
@@ -4752,6 +4759,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		UniqueMaterials.Add(MergedMaterial);
 	}
 
+	MergeProgress.EnterProgressFrame();
+
 	// Merge meshes into single mesh
 	for (int32 SourceMeshIdx = 0; SourceMeshIdx < SourceMeshes.Num(); ++SourceMeshIdx)
 	{
@@ -4840,6 +4849,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		for (; ChannelIdx < MAX_MESH_TEXTURE_COORDS && bOcuppiedUVChannels[LODIndex][ChannelIdx]; ++ChannelIdx);
 		TargetLightMapUVChannel[LODIndex] = FMath::Min(InSettings.TargetLightMapUVChannel, ChannelIdx);
 	}
+
+	MergeProgress.EnterProgressFrame();
 
 	//
 	//Create merged mesh asset
