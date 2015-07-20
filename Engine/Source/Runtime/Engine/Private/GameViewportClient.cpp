@@ -2708,6 +2708,18 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
 		}
 	}
+
+	if (PLATFORM_WINDOWS && FullScreenMode == EWindowMode::Fullscreen)
+	{
+		// Handle fullscreen mode differently for D3D11/D3D12
+		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+		if (bD3D12)
+		{
+			// Force D3D12 RHI to use windowed fullscreen mode
+			FullScreenMode = EWindowMode::WindowedFullscreen;
+		}
+	}
+
 	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, FullScreenMode);
 	return true;
 }

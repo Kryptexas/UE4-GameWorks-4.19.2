@@ -180,6 +180,17 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 		auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 		check(CVar);
 		WindowMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+
+		if (PLATFORM_WINDOWS && WindowMode == EWindowMode::Fullscreen)
+		{
+			// Handle fullscreen mode differently for D3D11/D3D12
+			static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+			if (bD3D12)
+			{
+				// Force D3D12 RHI to use windowed fullscreen mode
+				WindowMode = EWindowMode::WindowedFullscreen;
+			}
+		}
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
