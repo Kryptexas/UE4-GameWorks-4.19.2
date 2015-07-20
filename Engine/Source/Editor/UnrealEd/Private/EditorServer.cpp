@@ -2520,11 +2520,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					InitializingFeedback.EnterProgressFrame();
 
-					if (!FEditorFileUtils::IsLoadingStartupMap())
-					{
-						// Don't attempt to display load errors if loading the startup map; this will be done in the first editor tick.
-						FEditorDelegates::DisplayLoadErrors.Broadcast();
-					}
+					FEditorDelegates::DisplayLoadErrors.Broadcast();
 
 					if( FModuleManager::Get().IsModuleLoaded("LevelEditor") )
 					{

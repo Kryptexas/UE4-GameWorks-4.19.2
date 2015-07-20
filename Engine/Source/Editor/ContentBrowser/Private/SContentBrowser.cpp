@@ -1769,8 +1769,6 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	{
 		ContentBrowserUtils::OpenEditorForAsset(ObjectsWithoutTypeActions);
 	}
-
-	FEditorDelegates::DisplayLoadErrors.Broadcast();
 }
 
 TSharedPtr<SWidget> SContentBrowser::OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets)

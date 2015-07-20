@@ -49,18 +49,11 @@ public:
 	/**
 	 * Check whether there are any messages present for this log.
 	 * If the log is paged, this will check if there are any messages on the current page.
-	 * This call will cause a flush so that the log's state is properly reflected.
+	 * This call will cause a flush so that the logs state is properly reflected.
 	 * @param	InSeverityFilter	Only messages of higher severity than this filter will be considered when checking.
 	 * @return The number of messages that pass our filter
 	 */
 	CORE_API int32 NumMessages( EMessageSeverity::Type InSeverityFilter = EMessageSeverity::Info );
-
-	/**
-	 * Check whether there are any unseen messages present for this log.
-	 * This call will cause a flush so that the log's state is properly reflected.
-	 * @return Whether there are unseen message present for this log.
-	 */
-	CORE_API bool HasUnseenMessages();
 
 	/**
 	 * Opens the log for display to the user given certain conditions.

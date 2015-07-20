@@ -59,7 +59,6 @@ public:
 	virtual void NotifyIfAnyMessages( const FText& Message, EMessageSeverity::Type SeverityFilter = EMessageSeverity::Info, bool bForce = false ) override;
 	virtual void Open() override;
 	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) override;
-	virtual bool HasUnseenMessages() const override;
 
 	DECLARE_DERIVED_EVENT(FMessageLogListingViewModel, IMessageLogListing::IMessageTokenClickedEvent, IMessageTokenClickedEvent)
 	virtual IMessageLogListing::IMessageTokenClickedEvent& OnMessageTokenClicked() override { return TokenClickedEvent; }
@@ -155,7 +154,6 @@ private:
 		, bShowPages( InitializationOptions.bShowPages )
 		, bAllowClear( InitializationOptions.bAllowClear )
 		, bDiscardDuplicates( InitializationOptions.bDiscardDuplicates )
-		, bHasUnseenMessages( false )
 		, MaxPageCount( InitializationOptions.MaxPageCount )
 		, CurrentPageIndex( 0 )
 		, bIsRefreshing( false )
@@ -188,9 +186,6 @@ private:
 
 	/** Whether to check for duplicate messages & discard them */
 	bool bDiscardDuplicates;
-
-	/** Whether there are unseen messages in this listing */
-	bool bHasUnseenMessages;
 
 	/** The limit on the number of displayed pages for this listing */
 	uint32 MaxPageCount;
