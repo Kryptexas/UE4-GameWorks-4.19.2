@@ -106,6 +106,8 @@ private:
 		// Get the default color of the first instance
 		FLinearColor DefaultColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+		static const FName SlateColorName("SlateColor");
+
 		const TArray<FMovieSceneBinding>& MovieSceneBindings = Sequencer->GetFocusedMovieScene()->GetBindings();
 
 		bool bFoundColor = false;
@@ -123,15 +125,20 @@ private:
 					for (UObject* RuntimeObject : RuntimeObjects)
 					{
 						UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(CastChecked<UMovieSceneColorTrack>(Track)->GetPropertyName());
-						if (Property != nullptr)
+						UStructProperty* ColorStructProp = Cast<UStructProperty>( Property );
+						if (ColorStructProp && ColorStructProp->Struct )
 						{
-							if (CastChecked<UMovieSceneColorTrack>(Track)->IsSlateColor())
+							if (ColorStructProp->Struct->GetFName() == SlateColorName )
 							{
 								DefaultColor = (*Property->ContainerPtrToValuePtr<FSlateColor>(RuntimeObject)).GetSpecifiedColor();
 							}
-							else
+							else if( ColorStructProp->Struct->GetFName() == NAME_LinearColor )
 							{
 								DefaultColor = *Property->ContainerPtrToValuePtr<FLinearColor>(RuntimeObject);
+							}
+							else
+							{
+								DefaultColor = Property->ContainerPtrToValuePtr<FColor>(RuntimeObject)->ReinterpretAsLinear();
 							}
 							bFoundColor = true;
 							break;

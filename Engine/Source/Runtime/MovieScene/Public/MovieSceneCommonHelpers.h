@@ -61,6 +61,14 @@ public:
 	void UpdateBindings( const TArray<UObject*>& InRuntimeObjects );
 
 	/**
+	 * Gets the UProperty that is bound to the track instance
+	 *
+	 * @param Object	The Object that owns the property
+	 * @return			The property on the object if it exists
+	 */
+	UProperty* GetProperty(const UObject* Object) const;
+
+	/**
 	 * Gets the current value of a property on an object
 	 *
 	 * @param Object	The object to get the property from
@@ -106,8 +114,8 @@ private:
 		{}
 	};
 
-	FPropertyAddress FindPropertyRecursive(UObject* Object, void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index) const;
-	FPropertyAddress FindProperty(UObject* Object, const FString& InPropertyPath) const;
+	FPropertyAddress FindPropertyRecursive(const UObject* Object, void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index) const;
+	FPropertyAddress FindProperty(const UObject* Object, const FString& InPropertyPath) const;
 
 private:
 	/** Mapping of objects to bound functions that will be called to update data on the track */

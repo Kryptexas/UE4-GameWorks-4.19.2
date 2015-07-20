@@ -176,8 +176,8 @@ void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& T
 		{
 			// The track does not have an instance, create one
 			Instance = Track->CreateInstance();
-			Instance->SaveState(RuntimeObjects);
 			Instance->RefreshInstance( RuntimeObjects, Player );
+			Instance->SaveState(RuntimeObjects);
 
 			TrackInstances.Add( Track, Instance );
 		}

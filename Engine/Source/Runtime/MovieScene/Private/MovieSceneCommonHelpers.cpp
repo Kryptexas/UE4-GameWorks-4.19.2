@@ -137,7 +137,7 @@ void FTrackInstancePropertyBindings::CallFunction( UObject* InRuntimeObject, voi
 }
 
 
-FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindPropertyRecursive( UObject* Object, void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index ) const
+FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindPropertyRecursive( const UObject* Object, void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index ) const
 {
 	UProperty* Property = FindField<UProperty>(InStruct, *InPropertyNames[Index]);
 	
@@ -170,7 +170,7 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 }
 
 
-FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindProperty( UObject* InObject, const FString& InPropertyPath ) const
+FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings::FindProperty( const UObject* InObject, const FString& InPropertyPath ) const
 {
 	TArray<FString> PropertyNames;
 
@@ -202,8 +202,26 @@ void FTrackInstancePropertyBindings::UpdateBindings( const TArray<UObject*>& InR
 		}
 		else
 		{
-			// Dont call potentially invalid functions
+			// Don't call potentially invalid functions
 			RuntimeObjectToFunctionMap.Remove(Object);
 		}
 	}
+}
+
+UProperty* FTrackInstancePropertyBindings::GetProperty(const UObject* Object) const
+{
+	UProperty* Prop = nullptr;
+
+	FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(Object);
+	if( PropAndFunction.PropertyAddress.Property ) 
+	{
+		Prop = PropAndFunction.PropertyAddress.Property;
+	}
+	else
+	{
+		FPropertyAddress PropertyAddress = FindProperty( Object, PropertyPath );
+		Prop = PropertyAddress.Property;
+	}
+
+	return Prop;
 }
