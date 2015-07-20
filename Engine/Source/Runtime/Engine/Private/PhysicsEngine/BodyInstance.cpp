@@ -836,6 +836,12 @@ void FBodyInstance::UpdatePhysicsFilterData()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePhysFilter);
 
+	if(WeldParent)
+	{
+		WeldParent->UpdatePhysicsFilterData();
+		return;
+	}
+
 	// Do nothing if no physics actor
 	if (!IsValidBodyInstance())
 	{
