@@ -751,6 +751,9 @@ void UTexture2D::CalcAllowedMips( int32 MipCount, int32 NumNonStreamingMips, int
 	int32 MaxAllowedMips = FMath::Max( MipCount - LODBias, MinAllowedMips );
 	MaxAllowedMips = FMath::Min( MaxAllowedMips, GMaxTextureMipCount );
 
+	// Make sure min <= max
+	MinAllowedMips = FMath::Min(MinAllowedMips, MaxAllowedMips);
+
 	// Return results.
 	OutMinAllowedMips = MinAllowedMips;
 	OutMaxAllowedMips = MaxAllowedMips;

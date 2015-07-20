@@ -1789,6 +1789,7 @@ void FWindowsPlatformMisc::LoadPreInitModules()
 	// D3D11 is not supported on WinXP, so in this case we use the OpenGL RHI
 	if(FWindowsPlatformMisc::VerifyWindowsVersion(6, 0))
 	{
+		FModuleManager::Get().LoadModule(TEXT("D3D12RHI"));
 		FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
 	}
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));

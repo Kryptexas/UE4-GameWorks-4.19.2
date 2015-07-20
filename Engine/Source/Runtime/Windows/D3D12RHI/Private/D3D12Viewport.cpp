@@ -306,7 +306,7 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 		// Signal the frame is complete.
 		GetParentDevice()->GetCommandListManager().SignalFrameComplete();
 
-#if UE_BUILD_DEBUG
+#if 0//UE_BUILD_DEBUG
 		UE_LOG(LogD3D12RHI, Log, TEXT("*** PRESENT ***"), this);
 		GetParentDevice()->GetOwningRHI()->DrawCount = 0;
 		GetParentDevice()->GetOwningRHI()->PresentCount++;

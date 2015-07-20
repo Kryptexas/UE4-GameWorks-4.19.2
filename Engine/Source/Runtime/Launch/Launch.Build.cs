@@ -51,6 +51,7 @@ public class Launch : ModuleRules
 				(Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				DynamicallyLoadedModuleNames.Add("D3D11RHI");
+				DynamicallyLoadedModuleNames.Add("D3D12RHI");
 				DynamicallyLoadedModuleNames.Add("XAudio2");
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
