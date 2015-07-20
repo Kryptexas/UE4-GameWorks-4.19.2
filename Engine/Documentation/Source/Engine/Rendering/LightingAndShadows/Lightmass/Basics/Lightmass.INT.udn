@@ -46,7 +46,7 @@ Description:High level introduction to Lightmass.
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-[TOC(start:2)
+[TOC(start:2)]
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/Lightmass#LightMass_002]
 
