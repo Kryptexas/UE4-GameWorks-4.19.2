@@ -2962,6 +2962,22 @@ void UEditorEngine::MoveSelectedFoliageToLevel(ULevel* InTargetLevel)
 	}
 }
 
+TArray<UFoliageType*> UEditorEngine::GetFoliageTypesInWorld(UWorld* InWorld)
+{
+	TSet<UFoliageType*> FoliageSet;
+	
+	// Iterate over all foliage actors in the world
+	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
+	{
+		for (const auto& Pair : It->FoliageMeshes)
+		{
+			FoliageSet.Add(Pair.Key);
+		}
+	}
+
+	return FoliageSet.Array();
+}
+
 ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 {
 	ULevel* BufferLevel = NewObject<ULevel>(GetTransientPackage(), TEXT("TransLevelMoveBuffer"));

@@ -1506,6 +1506,11 @@ public:
 	
 	virtual bool GetShadowIndirectOnly() const { return false; }
 
+#if WITH_EDITOR
+	/** Returns mask that represents in which views this primitive is hidden */
+	virtual uint64 GetHiddenEditorViews() const;
+#endif// WITH_EDITOR
+
 	/**
 	 *	Set the angular velocity of all bodies in this component.
 	 *

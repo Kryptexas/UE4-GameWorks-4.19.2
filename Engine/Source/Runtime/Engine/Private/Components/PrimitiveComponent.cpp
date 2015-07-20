@@ -986,6 +986,13 @@ void UPrimitiveComponent::PushEditorVisibilityToProxy( uint64 InVisibility )
 	}
 }
 
+#if WITH_EDITOR
+uint64 UPrimitiveComponent::GetHiddenEditorViews() const
+{
+	const AActor* OwnerActor = GetOwner();
+	return OwnerActor ? OwnerActor->HiddenEditorViews : 0;
+}
+#endif// WITH_EDITOR
 
 void UPrimitiveComponent::PushHoveredToProxy(const bool bInHovered)
 {

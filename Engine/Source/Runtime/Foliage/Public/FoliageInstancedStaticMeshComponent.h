@@ -22,6 +22,16 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game|Damage")
 	FInstanceRadialDamageSignature OnInstanceTakeRadialDamage;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(transient)
+	uint64 FoliageHiddenEditorViews;
+#endif// WITH_EDITOR
+
 	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	//USceneComponent Interface
+#if WITH_EDITOR
+	virtual uint64 GetHiddenEditorViews() const override;
+#endif// WITH_EDITOR
 };
 

@@ -40,6 +40,7 @@
 #include "GameFramework/PlayerController.h"
 #include "SActorPilotViewportToolbar.h"
 #include "SGameLayerManager.h"
+#include "FoliageType.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -1796,6 +1797,57 @@ void SLevelViewport::ToggleShowLayer( FName LayerName )
 bool SLevelViewport::IsLayerVisible( FName LayerName ) const
 {
 	return LevelViewportClient->ViewHiddenLayers.Find(LayerName) == INDEX_NONE;
+}
+
+void SLevelViewport::ToggleShowFoliageType(TWeakObjectPtr<UFoliageType> InFoliageType)
+{
+	UFoliageType* FoliageType = InFoliageType.Get();
+	if (FoliageType)
+	{
+		FoliageType->HiddenEditorViews^= (1ull << LevelViewportClient->ViewIndex);
+		// Notify UFoliageType that things have changed
+		FoliageType->OnHiddenEditorViewMaskChanged(GetWorld());
+	
+		// Make sure to redraw viewport when user toggles foliage
+		LevelViewportClient->Invalidate();
+	}
+}
+
+void SLevelViewport::ToggleAllFoliageTypes(bool bVisible)
+{
+	UWorld* CurrentWorld = GetWorld(); 
+	TArray<UFoliageType*> AllFoliageTypes = GEditor->GetFoliageTypesInWorld(CurrentWorld);
+	if (AllFoliageTypes.Num())
+	{
+		const uint64 ViewMask = (1ull << LevelViewportClient->ViewIndex);
+
+		for (UFoliageType* FoliageType  : AllFoliageTypes)
+		{
+			if (bVisible)
+			{
+				FoliageType->HiddenEditorViews&= ~ViewMask;
+			}
+			else
+			{
+				FoliageType->HiddenEditorViews|= ViewMask;
+			}
+			
+			FoliageType->OnHiddenEditorViewMaskChanged(CurrentWorld);
+		}
+		
+		// Make sure to redraw viewport when user toggles meshes
+		LevelViewportClient->Invalidate(); 
+	}
+}
+
+bool SLevelViewport::IsFoliageTypeVisible(TWeakObjectPtr<UFoliageType> InFoliageType) const
+{
+	const UFoliageType* FoliageType = InFoliageType.Get();
+	if (FoliageType)
+	{
+		return (FoliageType->HiddenEditorViews & (1ull << LevelViewportClient->ViewIndex)) == 0;
+	}
+	return false;
 }
 
 FViewport* SLevelViewport::GetActiveViewport() 

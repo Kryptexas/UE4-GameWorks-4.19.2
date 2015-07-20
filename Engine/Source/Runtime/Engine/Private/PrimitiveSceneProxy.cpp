@@ -131,7 +131,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 
 #if WITH_EDITOR
 		// cache the actor's group membership
-		HiddenEditorViews = InComponent->GetOwner()->HiddenEditorViews;
+		HiddenEditorViews = InComponent->GetHiddenEditorViews();
 #endif
 	}
 	

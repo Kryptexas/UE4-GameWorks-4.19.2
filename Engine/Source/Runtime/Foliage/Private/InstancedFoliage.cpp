@@ -52,6 +52,8 @@ struct FFoliageCustomVersion
 		FoliageHISMCBlueprints = 9,
 		// Added Mobility setting to UFoliageType
 		AddedMobility = 10,
+		// Make sure that foliage has FoliageHISMC class
+		FoliageUsingFoliageISMC = 11,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -328,6 +330,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Curve->AddKey(1.f, 1.f);
 
 	UpdateGuid = FGuid::NewGuid();
+	HiddenEditorViews = 0;
 
 #if WITH_EDITORONLY_DATA
 	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
@@ -532,6 +535,25 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 		}
 	}
 }
+
+void UFoliageType::OnHiddenEditorViewMaskChanged(UWorld* InWorld)
+{
+	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
+	{
+		FFoliageMeshInfo* MeshInfo = It->FindMesh(this);
+		if (MeshInfo && MeshInfo->Component)
+		{
+	 		UFoliageInstancedStaticMeshComponent* FoliageComponent = Cast<UFoliageInstancedStaticMeshComponent>(MeshInfo->Component);
+
+			if (FoliageComponent && FoliageComponent->FoliageHiddenEditorViews != HiddenEditorViews)
+			{
+				FoliageComponent->FoliageHiddenEditorViews = HiddenEditorViews;
+				FoliageComponent->MarkRenderStateDirty();
+			}
+		}
+	}
+}
+
 #endif
 
 //
@@ -629,12 +651,17 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 		ComponentClass = UFoliageInstancedStaticMeshComponent::StaticClass();
 	}
 
-	Component = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
+	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
 
+	Component = FoliageComponent;
 	Component->StaticMesh = InSettings->GetStaticMesh();
 	Component->bSelectable = true;
 	Component->bHasPerInstanceHitProxies = true;
 	Component->InstancingRandomSeed = FMath::Rand();
+
+#if WITH_EDITOR
+	FoliageComponent->FoliageHiddenEditorViews = InSettings->HiddenEditorViews;
+#endif	
 
 	UpdateComponentSettings(InSettings);
 
@@ -781,6 +808,14 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsInvalidateLightingCache = true;
 		}
 
+		UFoliageInstancedStaticMeshComponent* FoliageComponent = Cast<UFoliageInstancedStaticMeshComponent>(Component);
+
+		if (FoliageComponent && FoliageComponent->FoliageHiddenEditorViews != InSettings->HiddenEditorViews)
+		{
+			FoliageComponent->FoliageHiddenEditorViews = InSettings->HiddenEditorViews;
+			bNeedsMarkRenderStateDirty = true;
+		}
+		
 		const UFoliageType_InstancedStaticMesh* FoliageType_ISM = Cast<UFoliageType_InstancedStaticMesh>(FoliageType);
 		if (FoliageType_ISM)
 		{
@@ -1053,6 +1088,7 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 		// clear the transactional flag if it was set prior to deleting the actor
 		Component->ClearFlags(RF_Transactional);
 
+		const bool bWasRegistered = Component->IsRegistered();
 		Component->UnregisterComponent();
 		Component->ClearInstances();
 
@@ -1071,7 +1107,10 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 			}
 		}
 
-		Component->RegisterComponent();
+		if (bWasRegistered)
+		{
+			Component->RegisterComponent();
+		}
 	}
 }
 
@@ -2249,7 +2288,7 @@ void AInstancedFoliageActor::PostLoad()
 			->AddToken(FActionToken::Create(LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor", "Fix"),
 				LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor_Desc", "Click consolidate into the main foliage actor."),
 				FOnActionTokenExecuted::CreateUObject(OwningLevel->InstancedFoliageActor.Get(), &AInstancedFoliageActor::RepairDuplicateIFA, this), true))
-#endif
+#endif// WITH_EDITOR
 			;
 		FMessageLog("MapCheck").Open(EMessageSeverity::Warning);
 	}
@@ -2304,17 +2343,6 @@ void AInstancedFoliageActor::PostLoad()
 				MeshInfo.ReallocateClusters(this, MeshPair.Key);
 			}
 
-			// Update foliage component settings if the foliage settings object was changed while the level was not loaded.
-			if (MeshInfo.FoliageTypeUpdateGuid != FoliageType->UpdateGuid)
-			{
-				if (MeshInfo.FoliageTypeUpdateGuid.IsValid())
-				{
-					MeshInfo.CheckComponentClass(this, FoliageType);
-					MeshInfo.UpdateComponentSettings(FoliageType);
-				}
-				MeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
-			}
-
 			// Update the hash.
 			MeshInfo.ComponentHash.Empty();
 			MeshInfo.InstanceHash->Empty();
@@ -2337,20 +2365,37 @@ void AInstancedFoliageActor::PostLoad()
 					MeshInfo.Component->ClearFlags(RF_Transactional);
 				}
 			}
-
-			//Clean up case where embeded instances had their static mesh deleted
+			
+			// Clean up case where embeded instances had their static mesh deleted
 			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr)
 			{
 				OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
 				RemoveFoliageType(&FoliageType, 1);
+				continue;
+			}
+
+			// Upgrade foliage component
+			if (GetLinkerCustomVersion(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageUsingFoliageISMC)
+			{
+				MeshInfo.CheckComponentClass(this, FoliageType);
+			}
+
+			// Update foliage component settings if the foliage settings object was changed while the level was not loaded.
+			if (MeshInfo.FoliageTypeUpdateGuid != FoliageType->UpdateGuid)
+			{
+				if (MeshInfo.FoliageTypeUpdateGuid.IsValid())
+				{
+					MeshInfo.CheckComponentClass(this, FoliageType);
+					MeshInfo.UpdateComponentSettings(FoliageType);
+				}
+				MeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
 			}
 		}
 
 		// Clean up dead cross-level references
 		FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
-
 	}
-#endif
+#endif// WITH_EDITOR
 }
 
 #if WITH_EDITOR
@@ -2756,5 +2801,14 @@ void UFoliageInstancedStaticMeshComponent::ReceiveComponentDamage(float DamageAm
 		}
 	}
 }
+
+#if WITH_EDITOR
+
+uint64 UFoliageInstancedStaticMeshComponent::GetHiddenEditorViews() const
+{
+	return FoliageHiddenEditorViews;
+}
+
+#endif// WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE

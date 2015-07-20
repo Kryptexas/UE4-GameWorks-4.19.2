@@ -174,6 +174,27 @@ public:
 	 */
 	bool IsLayerVisible( FName LayerName ) const;
 
+	/**
+	 * Toggles foliage type visibility in this viewport
+	 *
+	 * @param FoliageType	Target foliage type
+	 */
+	void ToggleShowFoliageType(TWeakObjectPtr<class UFoliageType> FoliageType);
+
+	/**
+	 * Toggles all foliage types visibility
+	 *
+	 * @param Visible	true if foliage types should be visible, false otherwise
+	 */
+	void ToggleAllFoliageTypes(bool bVisible);
+
+	/**
+	 * Checks if a foliage type is visible in this viewport
+	 *
+	 * @param FoliageType	Target foliage type
+	 */
+	bool IsFoliageTypeVisible(TWeakObjectPtr<class UFoliageType> FoliageType) const;
+
 
 	/** Called to lock/unlock the actor from the viewport's context menu */
 	void OnActorLockToggleFromMenu(AActor* Actor);

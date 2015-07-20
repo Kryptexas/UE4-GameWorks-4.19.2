@@ -22,6 +22,7 @@
 #include "StatsData.h"
 #include "BufferVisualizationData.h"
 #include "GameFramework/WorldSettings.h"
+#include "FoliageType.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportToolBar"
 
@@ -938,9 +939,9 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 
 			// Show Layers sub-menu is dynamically generated when the user enters 'show' menu
 			{
-			ShowMenuBuilder.AddSubMenu(LOCTEXT("ShowLayersMenu", "Layers"), LOCTEXT("ShowLayersMenu_ToolTip", "Show layers flags"),
-				FNewMenuDelegate::CreateStatic(&SLevelViewportToolBar::FillShowLayersMenu, Viewport));
-		}
+				ShowMenuBuilder.AddSubMenu(LOCTEXT("ShowLayersMenu", "Layers"), LOCTEXT("ShowLayersMenu_ToolTip", "Show layers flags"),
+					FNewMenuDelegate::CreateStatic(&SLevelViewportToolBar::FillShowLayersMenu, Viewport));
+			}
 
 			// Show Sprites sub-menu
 			{
@@ -956,6 +957,13 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 				ShowMenuBuilder.AddSubMenu(LOCTEXT("ShowSpritesMenu", "Sprites"), LOCTEXT("ShowSpritesMenu_ToolTip", "Show sprites flags"),
 					FNewMenuDelegate::CreateStatic(&FillShowMenu, ShowSpritesMenu, 2));
 			}
+
+			// Show 'Foliage types' sub-menu is dynamically generated when the user enters 'show' menu
+			{
+				ShowMenuBuilder.AddSubMenu(LOCTEXT("ShowFoliageTypesMenu", "Foliage Types"), LOCTEXT("ShowFoliageTypesMenu_ToolTip", "Show/hide specific foliage types"),
+					FNewMenuDelegate::CreateStatic(&SLevelViewportToolBar::FillShowFoliageTypesMenu, Viewport));
+			}
+
 		}
 
 		ShowMenuBuilder.EndSection();
@@ -1081,6 +1089,47 @@ void SLevelViewportToolBar::FillShowLayersMenu( FMenuBuilder& MenuBuilder, TWeak
 	}
 }
 
+void SLevelViewportToolBar::FillShowFoliageTypesMenu(class FMenuBuilder& MenuBuilder, TWeakPtr<class SLevelViewport> Viewport)
+{
+	auto ViewportPtr = Viewport.Pin();
+	if (!ViewportPtr.IsValid())
+	{
+		return;
+	}
+		
+	MenuBuilder.BeginSection("LevelViewportFoliageMeshes");
+	{
+		// Map 'Show All' and 'Hide All' commands
+		FUIAction ShowAllFoliage(FExecuteAction::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::ToggleAllFoliageTypes, true));
+		FUIAction HideAllFoliage(FExecuteAction::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::ToggleAllFoliageTypes, false));
+		
+		MenuBuilder.AddMenuEntry(LOCTEXT("ShowAllLabel", "Show All"), FText::GetEmpty(), FSlateIcon(), ShowAllFoliage);
+		MenuBuilder.AddMenuEntry(LOCTEXT("HideAllLabel", "Hide All"), FText::GetEmpty(), FSlateIcon(), HideAllFoliage);
+	}
+	MenuBuilder.EndSection();
+		
+	TArray<UFoliageType*> AllFoliageTypes = GEditor->GetFoliageTypesInWorld(ViewportPtr->GetWorld());
+
+	if (AllFoliageTypes.Num())
+	{
+		MenuBuilder.BeginSection("LevelViewportFoliageTypes");
+			
+		for (UFoliageType* FoliageType : AllFoliageTypes)
+		{
+			FString MeshName = FoliageType->GetName();
+			TWeakObjectPtr<UFoliageType> FoliageTypePtr = FoliageType;
+				
+			FUIAction Action(
+					FExecuteAction::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::ToggleShowFoliageType, FoliageTypePtr),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::IsFoliageTypeVisible, FoliageTypePtr));
+
+			MenuBuilder.AddMenuEntry(FText::FromString(MeshName), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::ToggleButton);
+		}
+
+		MenuBuilder.EndSection();
+	}
+}
 
 TWeakObjectPtr<UWorld> SLevelViewportToolBar::GetWorld() const
 {

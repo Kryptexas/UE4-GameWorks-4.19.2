@@ -16,6 +16,8 @@ class FAssetData;
 class FPoly;
 class UAnimSequence;
 class USkeleton;
+class UFoliageType;
+
 //
 // Things to set in mapSetBrush.
 //
@@ -1791,6 +1793,14 @@ public:
 	 * @param	InLevel		The target level.
 	 */
 	void MoveSelectedFoliageToLevel( ULevel* InTargetLevel );
+
+	/**
+	 *	Returns list of all foliage types used in the world
+	 * 
+	 * @param	InWorld	 The target world.
+	 * @return	List of all foliage types used in the world
+	 */
+	TArray<UFoliageType*> GetFoliageTypesInWorld(UWorld* InWorld);
 
 	/**
 	 * Checks to see whether it's possible to perform a copy operation on the selected actors.
