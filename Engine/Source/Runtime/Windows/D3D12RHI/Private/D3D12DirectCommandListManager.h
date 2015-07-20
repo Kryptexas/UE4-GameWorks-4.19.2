@@ -99,7 +99,11 @@ private:
 
 	FD3D12Fence Fences[FT_NumTypes];
 	
+#if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
 	int64									NumCommandListsAllocated;
+#else
+	int32									NumCommandListsAllocated;
+#endif
 	D3D12_COMMAND_LIST_TYPE					CommandListType;
 	ID3D12Device*							Direct3DDevice;
 	FCriticalSection						PeekReadyListCS;

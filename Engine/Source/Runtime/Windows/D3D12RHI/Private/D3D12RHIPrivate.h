@@ -142,7 +142,11 @@ private:
 
         int64 GenerateID()
         {
+#if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
             static int64 ID = 0;
+#else
+			static int32 ID = 0;
+#endif
             return FPlatformAtomics::_InterlockedIncrement(&ID);
         }
 
