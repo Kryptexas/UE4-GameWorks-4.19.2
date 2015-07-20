@@ -6,6 +6,9 @@
 #include "TimeSliderController.h"
 #include "CommonMovieSceneTools.h"
 #include "Sequencer.h"
+#include "SSequencerTreeView.h"
+#include "IKeyArea.h"
+#include "ISequencerSection.h"
 
 
 struct FMarqueeSelectData

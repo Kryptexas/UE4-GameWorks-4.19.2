@@ -5,6 +5,9 @@
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
 #include "SListPanel.h"
+#include "SSequencerTreeView.h"
+#include "SSequencerTrackLane.h"
+#include "SSequencerTrackArea.h"
 
 static FName TrackAreaName = "TrackArea";
 
