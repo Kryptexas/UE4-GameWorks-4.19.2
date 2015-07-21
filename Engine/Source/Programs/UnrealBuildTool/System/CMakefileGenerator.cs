@@ -267,33 +267,41 @@ namespace UnrealBuildTool
 
 			string CMakeProjectCmdArg = "";
 
-			foreach (string TargetFilePath in DiscoverTargets())
+			foreach(var Project in GeneratedProjectFiles)
 			{
-				var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFilePath);		// Remove both ".cs" and ".
-
-				foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+				foreach (var TargetFile in Project.ProjectTargets)
 				{
-					if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
+					if (TargetFile.TargetFilePath == null)
 					{
-						if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
+						continue;
+					}
+
+					var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFile.TargetFilePath);		// Remove both ".cs" and ".
+
+					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+					{
+						if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
 						{
-							if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
 							{
-								CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
+								if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+								{
+									CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
+								}
+								var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
+								CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} ${{BUILD}} {2} {0} {3} {1} $(ARGS))\n", TargetName, ConfName, CMakeProjectCmdArg, HostArchitecture));
 							}
-							var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-							CMakefileContent.Append(String.Format("add_custom_target({0}-{3}-{1} ${{BUILD}} {2} {0} {3} {1} $(ARGS))\n", TargetName, ConfName, CMakeProjectCmdArg, HostArchitecture));
 						}
 					}
-				}
 
-				if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
-				{
-					CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
-				}
-				if (HostArchitecture != null) 
-				{
-					CMakefileContent.Append (String.Format ("add_custom_target({0} ${{BUILD}} {1} {0} {2} Development $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture));
+					if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+					{
+						CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
+					}
+					if (HostArchitecture != null) 
+					{
+						CMakefileContent.Append (String.Format ("add_custom_target({0} ${{BUILD}} {1} {0} {2} Development $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture));
+					}
 				}
 			}
 
