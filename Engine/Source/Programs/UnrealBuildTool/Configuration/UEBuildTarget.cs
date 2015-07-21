@@ -1419,22 +1419,29 @@ namespace UnrealBuildTool
 				LibraryPaths.Add(Directory.GetCurrentDirectory());
 				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
 
-				// Add all the libraries
-				string LibraryExtension = BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary);
-				foreach(string LibraryName in Rules.PublicAdditionalLibraries)
-				{
-					foreach(string LibraryPath in LibraryPaths)
-					{
-						string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
-						if(File.Exists(LibraryFileName))
-						{
-							FileNames.Add(LibraryFileName);
-						}
+				// Get all the extensions to look for
+				List<string> LibraryExtensions = new List<string>();
+				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
+				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
 
-						string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
-						if(File.Exists(UnixLibraryFileName))
+				// Add all the libraries
+				foreach(string LibraryExtension in LibraryExtensions)
+				{
+					foreach(string LibraryName in Rules.PublicAdditionalLibraries)
+					{
+						foreach(string LibraryPath in LibraryPaths)
 						{
-							FileNames.Add(UnixLibraryFileName);
+							string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
+							if(File.Exists(LibraryFileName))
+							{
+								FileNames.Add(LibraryFileName);
+							}
+
+							string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
+							if(File.Exists(UnixLibraryFileName))
+							{
+								FileNames.Add(UnixLibraryFileName);
+							}
 						}
 					}
 				}
