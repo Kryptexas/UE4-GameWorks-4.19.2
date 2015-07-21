@@ -99,6 +99,7 @@ public:
 	virtual EMaterialValueType GetMaterialType() override;
 	virtual float GetSurfaceWidth() const override;
 	virtual float GetSurfaceHeight() const override;
+	virtual void UpdateResource() override;	
 
 public:
 

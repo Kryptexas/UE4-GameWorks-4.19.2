@@ -80,6 +80,17 @@ float UMediaTexture::GetSurfaceHeight() const
 	return CachedDimensions.Y;
 }
 
+void UMediaTexture::UpdateResource()
+{
+#if WITH_ENGINE
+	if (VideoTrack.IsValid() && Resource)
+	{		
+		VideoTrack->RemoveBoundTexture(Resource->TextureRHI.GetReference());
+	}
+#endif
+	UTexture::UpdateResource();
+}
+
 
 /* UObject  overrides
  *****************************************************************************/
@@ -191,6 +202,10 @@ void UMediaTexture::InitializeTrack()
 	if (VideoTrack.IsValid())
 	{
 		VideoTrack->GetStream().RemoveSink(VideoBuffer);
+
+#if WITH_ENGINE
+		VideoTrack->RemoveBoundTexture(Resource->TextureRHI.GetReference());
+#endif
 		VideoTrack.Reset();
 	}
 
@@ -230,6 +245,12 @@ void UMediaTexture::InitializeTrack()
 	if (VideoTrack.IsValid())
 	{
 		VideoTrack->GetStream().AddSink(VideoBuffer);
+
+#if WITH_ENGINE
+		FlushRenderingCommands();
+		IMediaVideoTrack* VideoTrackPtr = static_cast<IMediaVideoTrack*>(VideoTrack.Get());
+		VideoTrackPtr->AddBoundTexture((Resource->TextureRHI.GetReference()));
+#endif
 	}
 }
 
