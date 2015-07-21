@@ -2,8 +2,8 @@
 
 #pragma once
 
-
 #include "EditorLoadingSavingSettings.generated.h"
+
 
 UENUM()
 namespace ELoadLevelAtStartup
@@ -15,6 +15,7 @@ namespace ELoadLevelAtStartup
 		LastOpened
 	};
 }
+
 
 /** A filter used by the auto reimport manager to explicitly include/exclude files matching the specified wildcard */
 USTRUCT()
@@ -30,6 +31,7 @@ struct FAutoReimportWildcard
 	UPROPERTY(EditAnywhere, config, Category=AutoReimport)
 	bool bInclude;
 };
+
 
 /** Auto reimport settings for a specific directory */
 USTRUCT()
