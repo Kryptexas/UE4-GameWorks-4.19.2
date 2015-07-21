@@ -210,7 +210,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	}
 
 	// create a stencil buffer if needed
-	if (GMaxRHIShaderPlatform == SP_METAL_MRT && Format == PF_DepthStencil)
+	if (Format == PF_DepthStencil)
 	{
 		Desc.textureType = MTLTextureType2D;
 		Desc.pixelFormat = MTLPixelFormatStencil8;

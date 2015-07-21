@@ -459,6 +459,7 @@ void FMetalDynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef New
 	FMetalDepthStencilState* NewState = ResourceCast(NewStateRHI);
 
 	NewState->Set();
+	[FMetalManager::GetContext() setStencilReferenceValue: StencilRef];
 }
 
 void FMetalDynamicRHI::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
