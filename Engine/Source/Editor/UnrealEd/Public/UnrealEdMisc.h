@@ -8,7 +8,7 @@ class FPerformanceAnalyticsStats;
 class FTickableEditorObject;
 
 
-enum class EMapChangeType
+enum class EMapChangeType : uint8
 {
 	/** Map has just been loaded*/
 	LoadMap,

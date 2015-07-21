@@ -13,7 +13,7 @@ class ISequencerObjectBindingManager;
 class UAnimSequence;
 class UMovieScene;
 class UMovieSceneSection;
-
+enum class EMapChangeType : uint8;
 
 /**
  * Interface for sequencers.
