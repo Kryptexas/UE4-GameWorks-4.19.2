@@ -967,8 +967,7 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 		// This is split to easily investigate the callstack if the assert happens
 		AUGraph Graph = AudioDevice->GetAudioUnitGraph();
 		check(Graph);
-		ErrorStatus = AUGraphUpdate( Graph, NULL );
-        check(ErrorStatus == noErr);
+		SAFE_CA_CALL(AUGraphUpdate( Graph, NULL ));
 
 		GAudioChannels[AudioChannel] = this;
 	}
