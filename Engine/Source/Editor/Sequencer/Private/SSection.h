@@ -125,8 +125,9 @@ private:
 	 * Selects the section if needed
 	 *
 	 * @param MouseEvent		The mouse event that may have caused selection
+	 * @param bSelectDueToDrag	If we are selecting the key due to a drag operation rather than it just being clicked
 	 */
-	void HandleSectionSelection( const FPointerEvent& MouseEvent );
+	void HandleSectionSelection( const FPointerEvent& MouseEvent, bool bSelectDueToDrag );
 
 	/** @return the sequencer interface */
 	FSequencer& GetSequencer() const;

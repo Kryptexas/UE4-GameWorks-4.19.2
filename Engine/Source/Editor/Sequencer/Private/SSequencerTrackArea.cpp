@@ -176,18 +176,19 @@ FReply SSequencerTrackArea::OnMouseButtonDown( const FGeometry& MyGeometry, cons
 		FVector2D VirtualClickPosition = Converter.PhysicalToVirtual(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()));
 		MarqueeSelectData.Reset(new FMarqueeSelectData(VirtualClickPosition));
 
+		// Clear selected sections and keys
+		auto SequencerPin = Sequencer.Pin();
+		if( !MouseEvent.IsControlDown() && !MouseEvent.IsShiftDown() && SequencerPin.IsValid() )
+		{
+			SequencerPin->GetSelection().EmptySelectedSections();
+			SequencerPin->GetSelection().EmptySelectedKeys();
+		}
+
 		Reply = FReply::Handled().CaptureMouse(AsShared());
 	}
 	else
 	{
 		Reply = TimeSliderController->OnMouseButtonDown( SharedThis(this), MyGeometry, MouseEvent );
-	}
-
-	// Clear selected sections
-	auto SequencerPin = Sequencer.Pin();
-	if( !MouseEvent.IsControlDown() && SequencerPin.IsValid() )
-	{
-		SequencerPin->GetSelection().EmptySelectedSections();
 	}
 
 	return Reply;
