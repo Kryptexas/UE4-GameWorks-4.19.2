@@ -227,7 +227,7 @@ private:
 
     TArray<QueryBatch> ActiveQueryBatches;              // List of active query batches. The data for these is in use.
 
-    static const uint32 MAX_ACTIVE_BATCHES = 10;        // The max number of query batches that will be held.
+    static const uint32 MAX_ACTIVE_BATCHES = 5;         // The max number of query batches that will be held.
     uint32 LastBatch;                                   // The index of the newest batch.
 
     uint32 HeadActiveElement;                   // The oldest element that is in use (Active). The data for this element is being used.
