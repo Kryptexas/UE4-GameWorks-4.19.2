@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2176341
+﻿INTSourceChangelist:2618843
 Availability:Public
 Title:マテリアル ノード
 Crumbs:%ROOT%, Resources
-Description: マテリアルノード事例レベルの概要
+Description: マテリアルノード サンプル レベルの概要
 
 [TOC(start:2 end:2)]
 
@@ -46,26 +46,26 @@ Description: マテリアルノード事例レベルの概要
 [/OBJECT]
 [/VAR]
 
-## 概要
+
 
 [REGION:fullwidth]
 
 [/REGION]
 
-**マテリアルノード** の事例へようこそ！コンテンツの事例は、各コンテンツの使用例の実演を交えながら、マテリアルに有効なさまざまな入力をユーザーに習熟してもらうことを目的に作成しています。
+**マテリアルノード** のサンプル レベルへようこそ！コンテンツ サンプルは、各コンテンツの使用例の実演を交えながら、マテリアルに有効なさまざまな入力をユーザーに習熟してもらうことを目的に作成しています。
 
 
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
 
-全てのコンテンツ例と同様に、このレベルはインタラクティブに作成されています。表示されるいずれかのマテリアルサンプルを左マウスボタンで選択することができます。以下に表示されている **Element 0** 配下にリストされる **[詳細]** パネルでマテリアルをダブルクリックすることによって、選択したマテリアルをプレビュー表示することができます。
+全てのコンテンツ サンプルと同様に、このレベルはインタラクティブに作成されています。表示されるいずれかのマテリアルサンプルをマウスの左ボタンで選択することができます。以下に表示されている **Element 0** 配下にリストされる **[Details (詳細)]** パネルでマテリアルをダブルクリックすることによって、選択したマテリアルをプレビュー表示することができます。
 
 [REGION:fullwidth]
 ![](PreviewingMaterialsInCE.png)
 [/REGION]
 
 [EXCERPT:Topics]
-## 例
+## サンプル
 
 [REGION:topics third]
 %Resources/ContentExamples/MaterialNodes/1_1:TopicCompact%
