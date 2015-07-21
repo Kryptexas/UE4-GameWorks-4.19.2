@@ -2746,6 +2746,30 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 #if DEBUG_GL_SHADERS
 	VerifyProgramPipeline();
 #endif
+	
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia” Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
+	// This workaround has performance and correctness implications - it is only needed on Mac + OpenGL + Nvidia and will
+	// break AMD drivers entirely as it is technically an abuse of the OpenGL specification. Consequently it is deliberately
+	// compiled out for other platforms. Apple have closed the bug claiming the NV behaviour is permitted by the GL spec.
+#if PLATFORM_MAC
+	bool bAttributeLessDraw = (PendingState.BoundShaderState->VertexShader->Bindings.InOutMask == 0 && ContextState.ElementArrayBufferBound && IsRHIDeviceNVIDIA());
+	if(bAttributeLessDraw)
+	{
+		CachedBindArrayBuffer(ContextState, IndexBuffer->Resource);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 1, IndexType, false, 0, INDEX_TO_VOID(StartIndex));
+		ContextState.VertexAttrs[0].Pointer = INDEX_TO_VOID(StartIndex);
+		ContextState.VertexAttrs[0].Stride = 0;
+		ContextState.VertexAttrs[0].Buffer = IndexBuffer->Resource;
+		ContextState.VertexAttrs[0].Size = 1;
+		ContextState.VertexAttrs[0].Divisor = 0;
+		ContextState.VertexAttrs[0].Type = IndexType;
+		ContextState.VertexAttrs[0].StreamOffset = 0;
+		ContextState.VertexAttrs[0].StreamIndex = 0;
+		ContextState.VertexAttrs[0].bNormalized = false;
+		ContextState.VertexAttrs[0].bEnabled = true;
+	}
+#endif
 
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumElements * NumInstances);
 	if (NumInstances > 1)
@@ -2771,6 +2795,16 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 		}
 		REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, (void *)StartIndex);
 	}
+	
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia”
+#if PLATFORM_MAC
+	if(bAttributeLessDraw)
+	{
+		glDisableVertexAttribArray(0);
+		ContextState.VertexAttrs[0].bEnabled = false;
+		ContextState.VertexStreams[0].VertexBuffer = nullptr;
+	}
+#endif
 
 	FShaderCache::LogDraw(IndexBuffer->GetStride());
 }

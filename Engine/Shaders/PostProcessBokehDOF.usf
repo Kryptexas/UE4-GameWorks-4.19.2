@@ -55,15 +55,6 @@ void MainVS(
 
 	// needs to be the same on C++ side (faster on NVIDIA and AMD)
 	uint QuadsPerInstance = 8;
-#if DOF_INDEX_STYLE == 1
-	// remap the indices to get vertexid to VId and quadid into IId
-	IId = IId * QuadsPerInstance + (VId / 6);
-	VId = VId % 6;
-
-	// triangle A: 0:left top, 1:right top, 2: left bottom
-	// triangle B: 3:right bottom, 4:left bottom, 5: right top
-	float2 LocalPos = float2(VId % 2, VId > 1 && VId < 5);
-#else // DOF_INDEX_STYLE == 1
 	// remap the indices to get vertexid to VId and quadid into IId
 	IId = IId * QuadsPerInstance + (VId / 4);
 	VId = VId % 4;
@@ -71,7 +62,6 @@ void MainVS(
 	// triangle A: 0:left top, 1:right top, 2: left bottom
 	// triangle B: 3:right bottom, 4:left bottom, 5: right top
 	float2 LocalPos = float2(VId % 2, VId / 2);
-#endif // DOF_INDEX_STYLE == 1
 	float2 TilePos = float2(IId % TileCount.x, IId / TileCount.x);
 	
 	OutPosition =  float4(0, 0, 0, 1);
@@ -157,17 +147,6 @@ void MainVS(
 
 	// needs to be the same on C++ side (faster on NVIDIA and AMD)
 	uint QuadsPerInstance = 8;
-#if DOF_INDEX_STYLE == 1
-	// remap the indices to get vertexid to VId and quadid into IId
-	uint QuadId = VId / 6;
-
-	// triangle A: 0:left top, 1:right top, 2: left bottom
-	// triangle B: 3:right bottom, 4:left bottom, 5: right top
-	uint VertexId = VId % 6;
-	uint HalfTileCountX = TileCount.x / 2;
-	uint QuarterTileCountX = TileCount.x / 4;
-	float2 LocalPos = float2(VertexId % 2, VertexId > 1 && VertexId < 5);
-#else // DOF_INDEX_STYLE == 1
 	// remap the indices to get vertexid to VId and quadid into IId
 	uint QuadId = VId / 4;
 
@@ -177,7 +156,6 @@ void MainVS(
 	uint HalfTileCountX = TileCount.x / 2;
 	uint QuarterTileCountX = TileCount.x / 4;
 	float2 LocalPos = float2(VertexId % 2, VertexId / 2);
-#endif // DOF_INDEX_STYLE == 1
 	uint QuadIdIndex = QuadId%4;
 	float2 TilePos = float2(IId % QuarterTileCountX, IId / QuarterTileCountX) * uint2(4,2) + uint2(QuadId/4,0)*2;
 
