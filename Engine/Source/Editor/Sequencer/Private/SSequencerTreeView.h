@@ -87,17 +87,8 @@ protected:
 	/** Overridden to keep external selection states up to date */
 	virtual void Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo) override;
 
-protected:
-
-	/** Populate the map of column definitions, and add relevant columns to the header row */
-	void SetupColumns(const FArguments& InArgs);
-
-	/** Ensure that the track area column is either show or hidden, depending on the visibility of the curve editor */
-	void UpdateTrackArea();
-
-	/** Update the cached visible geometry for each tree item in this view */
-	void UpdateCachedVerticalGeometry();
-
+public:
+	
 	/** Structure used to cache physical geometry for a particular node */
 	struct FCachedGeometry
 	{
@@ -108,14 +99,33 @@ protected:
 		FDisplayNodeRef Node;
 		float PhysicalTop, PhysicalHeight;
 	};
+
+	/** Retrieve the last reported physical geometry for the specified node, if available */
+	TOptional<FCachedGeometry> GetPhysicalGeometryForNode(const FDisplayNodeRef& InNode) const;
+
+	/** Report geometry for a child row */
+	void ReportChildRowGeometry(const FDisplayNodeRef& InNode, const FGeometry& InGeometry);
+
+	/** Called when a child row widget has been added/removed */
+	void OnChildRowRemoved(const FDisplayNodeRef& InNode);
+
+protected:
 	
-	/** Linear array of cached geometry for visible nodes in the tree */
-	TArray<struct FCachedGeometry> CachedGeometry;
+	/** Linear, sorted array of nodes that we currently have generated widgets for */
+	TArray<FCachedGeometry> PhysicalNodes;
+
+	/** Map of cached geometries for visible nodes */
+	TMap<FDisplayNodeRef, FCachedGeometry> CachedRowGeometry;
+
+protected:
+
+	/** Populate the map of column definitions, and add relevant columns to the header row */
+	void SetupColumns(const FArguments& InArgs);
+
+	/** Ensure that the track area column is either show or hidden, depending on the visibility of the curve editor */
+	void UpdateTrackArea();
 
 private:
-
-	/** The cached geometry for this tree view*/
-	FGeometry CachedTreeGeometry;
 
 	/** The tree view's header row (hidden) */
 	TSharedPtr<SHeaderRow> HeaderRow;
@@ -146,30 +156,23 @@ public:
 
 	SLATE_END_ARGS()
 
+	~SSequencerTreeViewRow();
+
 	/** Construct function for this widget */
 	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const FDisplayNodeRef& InNode);
 
 	/** Get the dispolay node to which this row relates */
 	TSharedPtr<FSequencerDisplayNode> GetDisplayNode() const;
 
-	/** Access this row's cached geometry */
-	const FGeometry& GetCachedGeometry() const;
-
 	/** Add a reference to the specified track lane, keeping it alive until this row is destroyed */
 	void AddTrackAreaReference(const TSharedPtr<SSequencerTrackLane>& Lane);
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
-	/** Access this row's owner tree view. */
-	TSharedPtr<SSequencerTreeView> GetOwnerTree() const;
-
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnId) override;
 
 private:
-
-	/** Cached row geometry, used for virtual <-> physical space conversions */
-	FGeometry RowGeometry;
 
 	/** Cached reference to a track lane that we relate to. This keeps the track lane alive (it's a weak widget) as long as we are in view. */
 	TSharedPtr<SSequencerTrackLane> TrackLaneReference;

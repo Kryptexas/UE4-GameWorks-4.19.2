@@ -54,10 +54,10 @@ float SSequencerTrackLane::GetPhysicalPosition() const
 	// Iterate parent first until we find a tree view row we can use for the offset height
 	auto Iter = [&](FSequencerDisplayNode& InNode){
 		
-		auto ChildRow = StaticCastSharedPtr<SSequencerTreeViewRow>(TreeViewPinned->WidgetFromItem(InNode.AsShared()));
-		if (ChildRow.IsValid())
+		auto ChildRowGeometry = TreeViewPinned->GetPhysicalGeometryForNode(InNode.AsShared());
+		if (ChildRowGeometry.IsSet())
 		{
-			Top = ChildRow->GetCachedGeometry().Position.Y;
+			Top = ChildRowGeometry->PhysicalTop;
 			// Stop iterating
 			return false;
 		}

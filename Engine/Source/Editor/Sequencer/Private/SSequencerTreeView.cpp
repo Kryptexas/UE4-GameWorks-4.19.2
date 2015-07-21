@@ -2,12 +2,51 @@
 
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
-#include "SListPanel.h"
 #include "SSequencerTreeView.h"
 #include "SSequencerTrackLane.h"
 #include "SSequencerTrackArea.h"
 
 static FName TrackAreaName = "TrackArea";
+
+namespace Utils
+{
+	enum class ESearchState { Before, After, Found };
+
+	template<typename T, typename F>
+	const T* BinarySearch(const TArray<T>& InContainer, const F& InPredicate)
+	{
+		int32 Min = 0;
+		int32 Max = InContainer.Num();
+
+		ESearchState State = ESearchState::Before;
+
+		for ( ; Min != Max ; )
+		{
+			int32 SearchIndex = Min + (Max - Min) / 2;
+
+			auto& Item = InContainer[SearchIndex];
+			State = InPredicate(Item);
+			switch (State)
+			{
+				case ESearchState::Before:	Max = SearchIndex; break;
+				case ESearchState::After:		Min = SearchIndex + 1; break;
+				case ESearchState::Found: 	return &Item;
+			}
+		}
+
+		return nullptr;
+	}
+}
+
+SSequencerTreeViewRow::~SSequencerTreeViewRow()
+{
+	auto TreeView = StaticCastSharedPtr<SSequencerTreeView>(OwnerTablePtr.Pin());
+	auto PinnedNode = Node.Pin();
+	if (TreeView.IsValid() && PinnedNode.IsValid())
+	{
+		TreeView->OnChildRowRemoved(PinnedNode.ToSharedRef());
+	}
+}
 
 /** Construct function for this widget */
 void SSequencerTreeViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const FDisplayNodeRef& InNode)
@@ -34,11 +73,6 @@ TSharedPtr<FSequencerDisplayNode> SSequencerTreeViewRow::GetDisplayNode() const
 	return Node.Pin();
 }
 
-const FGeometry& SSequencerTreeViewRow::GetCachedGeometry() const
-{
-	return RowGeometry;
-}
-
 void SSequencerTreeViewRow::AddTrackAreaReference(const TSharedPtr<SSequencerTrackLane>& Lane)
 {
 	TrackLaneReference = Lane;
@@ -46,7 +80,7 @@ void SSequencerTreeViewRow::AddTrackAreaReference(const TSharedPtr<SSequencerTra
 
 void SSequencerTreeViewRow::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	RowGeometry = AllottedGeometry;
+	StaticCastSharedPtr<SSequencerTreeView>(OwnerTablePtr.Pin())->ReportChildRowGeometry(Node.Pin().ToSharedRef(), AllottedGeometry);
 }
 
 void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FSequencerNodeTree>& InNodeTree, const TSharedRef<SSequencerTrackArea>& InTrackArea)
@@ -81,40 +115,72 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 void SSequencerTreeView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	STreeView::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-	CachedTreeGeometry = AllottedGeometry;
-	UpdateCachedVerticalGeometry();
+	
+	PhysicalNodes.Reset();
+	CachedRowGeometry.GenerateValueArray(PhysicalNodes);
+
+	PhysicalNodes.Sort([](const FCachedGeometry& A, const FCachedGeometry& B){
+		return A.PhysicalTop < B.PhysicalTop;
+	});
 }
 
-void SSequencerTreeView::UpdateCachedVerticalGeometry()
+TOptional<SSequencerTreeView::FCachedGeometry> SSequencerTreeView::GetPhysicalGeometryForNode(const FDisplayNodeRef& InNode) const
 {
-	FChildren* Children = ItemsPanel->GetChildren();
-
-	CachedGeometry.Empty(Children->Num());
-	for (int32 Index = 0; Index < Children->Num(); ++Index)
+	if (const FCachedGeometry* FoundGeometry = CachedRowGeometry.Find(InNode))
 	{
-		TSharedRef<SSequencerTreeViewRow> TreeViewRow = StaticCastSharedRef<SSequencerTreeViewRow>(Children->GetChildAt(Index));
-		TSharedPtr<FSequencerDisplayNode> Node = TreeViewRow->GetDisplayNode();
-		if (Node.IsValid())
-		{
-			CachedGeometry.Emplace(Node.ToSharedRef(), TreeViewRow->GetCachedGeometry().Position.Y, TreeViewRow->GetCachedGeometry().Size.Y);
-		}
+		return *FoundGeometry;
 	}
+
+	return TOptional<FCachedGeometry>();
+}
+
+void SSequencerTreeView::ReportChildRowGeometry(const FDisplayNodeRef& InNode, const FGeometry& InGeometry)
+{
+	float ChildOffset = TransformPoint(
+		Concatenate(
+			InGeometry.GetAccumulatedLayoutTransform(),
+			CachedGeometry.GetAccumulatedLayoutTransform().Inverse()
+		),
+		FVector2D(0,0)
+	).Y;
+
+	CachedRowGeometry.Add(InNode, FCachedGeometry(InNode, ChildOffset, InGeometry.Size.Y));
+}
+
+void SSequencerTreeView::OnChildRowRemoved(const FDisplayNodeRef& InNode)
+{
+	CachedRowGeometry.Remove(InNode);
 }
 
 float SSequencerTreeView::PhysicalToVirtual(float InPhysical) const
 {
-	for (auto& Geometry : CachedGeometry)
-	{
-		if (InPhysical >= Geometry.PhysicalTop && InPhysical <= Geometry.PhysicalTop + Geometry.PhysicalHeight)
+	int32 SearchIndex = PhysicalNodes.Num() / 2;
+
+	auto* Found = Utils::BinarySearch<FCachedGeometry>(PhysicalNodes, [&](const FCachedGeometry& In){
+
+		if (InPhysical < In.PhysicalTop)
 		{
-			const float FractionalHeight = (InPhysical - Geometry.PhysicalTop) / Geometry.PhysicalHeight;
-			return Geometry.Node->VirtualTop + (Geometry.Node->VirtualBottom - Geometry.Node->VirtualTop) * FractionalHeight;
+			return Utils::ESearchState::Before;
 		}
+		else if (InPhysical > In.PhysicalTop + In.PhysicalHeight)
+		{
+			return Utils::ESearchState::After;
+		}
+
+		return Utils::ESearchState::Found;
+
+	});
+
+
+	if (Found)
+	{
+		const float FractionalHeight = (InPhysical - Found->PhysicalTop) / Found->PhysicalHeight;
+		return Found->Node->VirtualTop + (Found->Node->VirtualBottom - Found->Node->VirtualTop) * FractionalHeight;
 	}
 
-	if (CachedGeometry.Num())
+	if (PhysicalNodes.Num())
 	{
-		auto Last = CachedGeometry.Last();
+		auto& Last = PhysicalNodes.Last();
 		return Last.Node->VirtualTop + (InPhysical - Last.PhysicalTop);
 	}
 
@@ -123,18 +189,30 @@ float SSequencerTreeView::PhysicalToVirtual(float InPhysical) const
 
 float SSequencerTreeView::VirtualToPhysical(float InVirtual) const
 {
-	for (auto& Geometry : CachedGeometry)
-	{
-		if (InVirtual >= Geometry.Node->VirtualTop && InVirtual <= Geometry.Node->VirtualBottom)
+	auto* Found = Utils::BinarySearch(PhysicalNodes, [&](const FCachedGeometry& In){
+
+		if (InVirtual < In.Node->VirtualTop)
 		{
-			const float FractionalHeight = (InVirtual - Geometry.Node->VirtualTop) / (Geometry.Node->VirtualBottom - Geometry.Node->VirtualTop);
-			return Geometry.PhysicalTop + Geometry.PhysicalHeight * FractionalHeight;
+			return Utils::ESearchState::Before;
 		}
+		else if (InVirtual > In.Node->VirtualBottom)
+		{
+			return Utils::ESearchState::After;
+		}
+
+		return Utils::ESearchState::Found;
+
+	});
+
+	if (Found)
+	{
+		const float FractionalHeight = (InVirtual - Found->Node->VirtualTop) / (Found->Node->VirtualBottom - Found->Node->VirtualTop);
+		return Found->PhysicalTop + Found->PhysicalHeight * FractionalHeight;
 	}
 	
-	if (CachedGeometry.Num())
+	if (PhysicalNodes.Num())
 	{
-		auto Last = CachedGeometry.Last();
+		auto Last = PhysicalNodes.Last();
 		return Last.PhysicalTop + (InVirtual - Last.Node->VirtualTop);
 	}
 
@@ -235,7 +313,7 @@ void SSequencerTreeView::Refresh()
 
 void SSequencerTreeView::ScrollByDelta(float DeltaInSlateUnits)
 {
-	ScrollBy( CachedTreeGeometry, DeltaInSlateUnits, EAllowOverscroll::No );
+	ScrollBy( CachedGeometry, DeltaInSlateUnits, EAllowOverscroll::No );
 }
 
 template<typename T>
