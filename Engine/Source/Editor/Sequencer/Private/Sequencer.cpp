@@ -68,7 +68,7 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 		{
 			if (ActiveSequencer.IsValid())
 			{
-				ActiveSequencer->OnClose();
+				ActiveSequencer->Close();
 			}
 			ActiveSequencer = SharedThis(this);
 
@@ -187,8 +187,7 @@ FSequencer::~FSequencer()
 	SequencerWidget.Reset();
 }
 
-void
-FSequencer::OnClose()
+void FSequencer::Close()
 {
 	if (ActiveSequencer.IsValid() && ActiveSequencer.Get() == this)
 	{

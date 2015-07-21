@@ -119,7 +119,7 @@ FSequencerAssetEditor::FSequencerAssetEditor()
 
 FSequencerAssetEditor::~FSequencerAssetEditor()
 {
-	Sequencer->OnClose();
+	Sequencer->Close();
 
 	// Unregister delegates
 	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )

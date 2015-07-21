@@ -24,6 +24,9 @@ class ISequencer
 {
 public:
 
+	/** Close the sequencer. */
+	virtual void Close() = 0;
+
 	/** @return Widget used to display the sequencer */
 	virtual TSharedRef<SWidget> GetSequencerWidget() const = 0;
 

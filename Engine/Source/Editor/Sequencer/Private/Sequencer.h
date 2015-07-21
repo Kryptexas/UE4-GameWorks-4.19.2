@@ -58,9 +58,6 @@ public:
 	 */
 	void InitSequencer( const FSequencerInitParams& InitParams, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates );
 
-	/** Close the sequencer. */
-	void OnClose();
-
 	/** Constructor */
 	FSequencer();
 
@@ -85,6 +82,7 @@ public:
 
 	// ISequencer interface
 
+	virtual void Close() override;
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
 	virtual UMovieScene* GetRootMovieScene() const override;
 	virtual UMovieScene* GetFocusedMovieScene() const override;
