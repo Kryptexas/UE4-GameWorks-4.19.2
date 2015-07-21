@@ -42,7 +42,7 @@ public class MediaPlayerEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"TextureEditor",
-				"UnrealEd"
+				"UnrealEd",
 			}
 		);
 
