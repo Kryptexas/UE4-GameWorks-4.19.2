@@ -63,7 +63,6 @@ DEFINE_STAT(STAT_PostTickComponentUpdateWait);
 DEFINE_STAT(STAT_TickTime);
 DEFINE_STAT(STAT_WorldTickTime);
 DEFINE_STAT(STAT_UpdateCameraTime);
-DEFINE_STAT(STAT_CharacterMovement);
 DEFINE_STAT(STAT_PlayerControllerTick);
 
 DEFINE_STAT(STAT_VolumeStreamingTickTime);
