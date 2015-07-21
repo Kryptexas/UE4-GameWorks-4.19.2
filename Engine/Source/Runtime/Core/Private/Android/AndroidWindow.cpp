@@ -77,6 +77,16 @@ void FAndroidWindow::InvalidateCachedScreenRect()
 	WindowInit = false;
 }
 
+void FAndroidWindow::AcquireWindowRef(ANativeWindow* InWindow)
+{
+	ANativeWindow_acquire(InWindow);
+}
+
+void FAndroidWindow::ReleaseWindowRef(ANativeWindow* InWindow)
+{
+	ANativeWindow_release(InWindow);
+}
+
 FPlatformRect FAndroidWindow::GetScreenRect()
 {
 	// CSF is a multiplier to 1280x720

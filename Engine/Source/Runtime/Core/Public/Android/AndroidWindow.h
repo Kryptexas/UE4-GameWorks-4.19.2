@@ -42,6 +42,9 @@ public:
 	static void OnWindowOrientationChanged(bool bIsPortrait);
 
 	static int32 GetDepthBufferPreference();
+	
+	static void AcquireWindowRef(ANativeWindow* InWindow);
+	static void ReleaseWindowRef(ANativeWindow* InWindow);
 
 protected:
 	/** @return true if the native window is currently in fullscreen mode, false otherwise */
