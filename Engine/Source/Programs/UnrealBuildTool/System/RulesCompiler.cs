@@ -1774,7 +1774,7 @@ namespace UnrealBuildTool
 		/// <returns>Compiled module rule info</returns>
 		public static bool TryCreateModuleRules( string ModuleName, TargetInfo Target, out ModuleRules Rules )
 		{
-			if(GetModuleFilename( ModuleName ) == null)
+			if(GetModuleFilename( ModuleName ) == "")
 			{
 				Rules = null;
 				return false;
