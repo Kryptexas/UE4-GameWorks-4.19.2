@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:2610045
 Availability:Public
-Title:2 - ビューポートの遷移
+Title:2 - ビューポートの操作
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:アンリアル エンジン 4 で様々なビューポートへ遷移する方法をいろいろ学びましょう。 
+Description:様々なビューポートの操作を学びましょう 
 SkillLevel:初心者
 Version:4.8
 Related:Engine/UI/LevelEditor/Viewports
@@ -32,10 +32,10 @@ Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 ![](TableAndChairs.png)(w:720)
 
 レベル構築のほとんどは、ビューポートで済ますことができます。前のステップで選択したテンプレート プロジェクトに含まれている小さなサンプル [**レベル**](Engine/Levels) とアセットを使って、作業を開始します。 
-この小さな領域をリファレンスのポイントとして使用して、アンリアル エンジン 4 のビューポートの遷移に一番よく使う方法で [**ビューポート カメラ コントロール**](Engine/UI/LevelEditor/Viewports/ViewportControls) に慣れていきましょう。 
+この小さな領域をリファレンスのポイントとして使用して、UNREAL ENGINEのビューポートの遷移に一番よく使う方法で [**ビューポート カメラ コントロール**](Engine/UI/LevelEditor/Viewports/ViewportControls) に慣れていきましょう。 
 
 
-## 標準の制御
+## スタンダードコントロール
 
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
 
@@ -45,11 +45,11 @@ Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 ![](OrthographicViews.png)
 [/REGION]
 
-## WASD 飛行制御
+## WASD フライコントロール
 
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
 
-##周回、ドリー 、トラック
+## ALT　フォーカスコントール
 
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
 
