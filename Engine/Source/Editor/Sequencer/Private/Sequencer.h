@@ -111,7 +111,7 @@ public:
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const override;
 	virtual FSequencerSelection& GetSelection() override;
-	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType) override;
+	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;

@@ -159,5 +159,5 @@ public:
 
 	virtual FSequencerSelection& GetSelection() = 0;
 
-	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType) = 0;
+	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) = 0;
 };

@@ -384,7 +384,7 @@ void FLevelEditorModule::BroadcastTakeHighResScreenShots( )
 	TakeHighResScreenShotsEvent.Broadcast();
 }
 
-void FLevelEditorModule::BroadcastMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )
+void FLevelEditorModule::BroadcastMapChanged( UWorld* World, EMapChangeType MapChangeType )
 {
 	MapChangedEvent.Broadcast( World, MapChangeType );
 }

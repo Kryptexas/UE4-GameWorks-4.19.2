@@ -96,7 +96,7 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 			
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
-		LevelEditorModule.OnMapChanged().AddSP(Sequencer.ToSharedRef(), &FSequencerAssetEditor::HandleMapChanged);
+		LevelEditorModule.OnMapChanged().AddRaw(this, &FSequencerAssetEditor::HandleMapChanged);
 	}
 }
 
@@ -214,7 +214,7 @@ void FSequencerAssetEditor::AddComponentTrack( UActorComponent* Component )
 }
 
 
-void FSequencerAssetEditor::HandleMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType)
+void FSequencerAssetEditor::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
 }

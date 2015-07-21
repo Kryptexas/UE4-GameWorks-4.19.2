@@ -945,7 +945,7 @@ TSharedRef< SWidget > SLevelViewport::BuildViewportDragDropContextMenu()
 	return ViewportContextMenuBuilder.MakeWidget();
 }
 
-void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )
+void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType MapChangeType )
 {
 	if( World && ( ( World == GetWorld() ) || ( World->EditorViews[LevelViewportClient->ViewportType].CamUpdated ) ) )
 	{

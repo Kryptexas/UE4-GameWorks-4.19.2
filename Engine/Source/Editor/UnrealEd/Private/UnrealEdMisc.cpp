@@ -1563,7 +1563,7 @@ void FUnrealEdMisc::CancelPerformanceSurvey()
 	LevelEditor.OnMapChanged().Remove( OnMapChangedDelegateHandle );
 }
 
-void FUnrealEdMisc::OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )
+void FUnrealEdMisc::OnMapChanged( UWorld* World, EMapChangeType MapChangeType )
 {
 	if (bIsSurveyingPerformance)
 	{

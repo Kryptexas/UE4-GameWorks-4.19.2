@@ -46,7 +46,7 @@ private:
 	TSharedRef<FExtender> GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects );
 	void ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects );
 	void AddComponentTrack( UActorComponent* Component );
-	void HandleMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType);
+	void HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType);
 
 private:
 
