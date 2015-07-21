@@ -145,6 +145,37 @@ private:
 	TArray< TRange<float> > CachedFilteredRanges;
 };
 
+/**
+* Wrapper box to encompass clicks that don't fall on a tree view row.
+*/
+class SSequencerTreeViewBox : public SBox
+{
+public:
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer ) 
+	{
+		Sequencer = InSequencer;
+		SBox::Construct(InArgs);
+	}
+	
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override 
+	{
+		if (Sequencer.Pin().IsValid())
+		{
+			FSequencerSelection& Selection = Sequencer.Pin()->GetSelection();
+			if (Selection.GetSelectedOutlinerNodes().Num())
+			{
+				Selection.EmptySelectedOutlinerNodes();
+				return FReply::Handled();
+			}
+		}
+		return FReply::Unhandled();
+	}
+	
+private:
+	/** Weak pointer to the sequencer */
+	TWeakPtr<FSequencer> Sequencer;
+};
+
 void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
@@ -274,7 +305,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 								+ SHorizontalBox::Slot()
 								.FillWidth( FillCoefficient_0 )
 								[
-									SNew(SBox)
+									SNew(SSequencerTreeViewBox, PinnedSequencer)
 									// Padding to allow space for the scroll bar
 									.Padding(FMargin(0,0,10.f,0))
 									[

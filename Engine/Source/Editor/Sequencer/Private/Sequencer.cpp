@@ -1383,12 +1383,16 @@ void FSequencer::OnSelectedOutlinerNodesChanged()
 {
 	if (IsLevelEditorSequencer())
 	{
-		const bool bNotifySelectionChanged = false;
-		const bool bDeselectBSP = true;
-		const bool bWarnAboutTooManyActors = false;
+		// Clear the selection if no sequencer display nodes were clicked on and there are selected actors
+		if (Selection.GetSelectedOutlinerNodes().Num() == 0 && GEditor->GetSelectedActors()->Num() != 0)
+		{
+			const bool bNotifySelectionChanged = true;
+			const bool bDeselectBSP = true;
+			const bool bWarnAboutTooManyActors = false;
 
-		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
-		GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
+			GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
+		}
 	}
 }
 
