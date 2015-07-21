@@ -926,9 +926,36 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 		else if(RootComponentTemplate != nullptr
 			&& RootNodes.Contains(DefaultSceneRootNode))
 		{
-			RootNodes.Remove(DefaultSceneRootNode);
+			// Temporarily parent to a native or inherited root (to propagate to any children that might be promoted on removal below)
+			if(UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(RootComponentTemplate->GetOuter()))
+			{
+				if(BPClass->SimpleConstructionScript != nullptr
+					&& BPClass->SimpleConstructionScript != this)
+				{
+					DefaultSceneRootNode->bIsParentComponentNative = false;
+					DefaultSceneRootNode->ParentComponentOwnerClassName = BPClass->GetFName();
+					TArray<const USCS_Node*> ParentSCSNodes = BPClass->SimpleConstructionScript->GetAllNodesConst();
+					for(const USCS_Node* ParentSCSNode : ParentSCSNodes)
+					{
+						if(ParentSCSNode != nullptr && ParentSCSNode->ComponentTemplate == RootComponentTemplate)
+						{
+							DefaultSceneRootNode->ParentComponentOrVariableName = ParentSCSNode->VariableName;
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				DefaultSceneRootNode->bIsParentComponentNative = true;
+				DefaultSceneRootNode->ParentComponentOrVariableName = RootComponentTemplate->GetFName();
+				DefaultSceneRootNode->ParentComponentOwnerClassName = NAME_None;
+			}
 
-			// These shouldn't be set, but just in case...
+			// Remove from the root node list (but keep child nodes)
+			RemoveNodeAndPromoteChildren(DefaultSceneRootNode);
+
+			// Ensure that these are reset back to their default state
 			DefaultSceneRootNode->bIsParentComponentNative = false;
 			DefaultSceneRootNode->ParentComponentOrVariableName = NAME_None;
 			DefaultSceneRootNode->ParentComponentOwnerClassName = NAME_None;
