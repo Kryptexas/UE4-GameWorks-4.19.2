@@ -2396,7 +2396,7 @@ static USceneComponent* FixupNativeActorComponents(AActor* Actor)
 	return SceneRootComponent;
 }
 
-void AActor::PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction)
+void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction)
 {
 	// General flow here is like so
 	// - Actor sets up the basics.
@@ -2409,7 +2409,7 @@ void AActor::PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwn
 	// This should be the same sequence for deferred or nondeferred spawning.
 
 	// It's not safe to call UWorld accessor functions till the world info has been spawned.
-	UWorld* World = GetWorld();
+	UWorld* const World = GetWorld();
 	bool const bActorsInitialized = World && World->AreActorsInitialized();
 
 	CreationTime = (World ? World->GetTimeSeconds() : 0.f);
@@ -2417,12 +2417,16 @@ void AActor::PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwn
 	// Set network role.
 	check(Role == ROLE_Authority);
 	ExchangeNetRoles(bRemoteOwned);
-	
-	USceneComponent* SceneRootComponent = FixupNativeActorComponents(this);
-	// Set the actor's location and rotation.
+
+	USceneComponent* const SceneRootComponent = FixupNativeActorComponents(this);
 	if (SceneRootComponent != NULL)
 	{
-		SceneRootComponent->SetWorldTransform(SpawnTransform);
+		// Set the actor's location and rotation since it has a native rootcomponent
+		// Note that we respect any initial transformation the root component may have from the CDO, so the final transform
+		// might necessarily be exactly the passed-in UserSpawnTransform.
+ 		const FTransform RootTransform(SceneRootComponent->RelativeRotation, SceneRootComponent->RelativeLocation, SceneRootComponent->RelativeScale3D);
+ 		const FTransform FinalRootComponentTransform = RootTransform * UserSpawnTransform;
+		SceneRootComponent->SetWorldTransform(FinalRootComponentTransform);
 	}
 
 	// Call OnComponentCreated on all default (native) components
@@ -2459,17 +2463,21 @@ void AActor::PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwn
 	if (!bDeferConstruction)
 	{
 		// Preserve original root component scale
-		FinishSpawning(SpawnTransform, true);
+		FinishSpawning(UserSpawnTransform, true);
 	}
 }
 
-void AActor::FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform)
+void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTransform)
 {
 	if (ensure(!bHasFinishedSpawning))
 	{
 		bHasFinishedSpawning = true;
 
-		ExecuteConstruction(Transform, nullptr, bIsDefaultTransform);
+		// if we have a native root component, its transform is already set properly, so we use that.  it might not be the same as UserTransform 
+		// if the root component in the CDO has a nonzero transform.
+		const FTransform FinalRootComponentTransform = RootComponent ? RootComponent->ComponentToWorld : UserTransform;
+
+		ExecuteConstruction(FinalRootComponentTransform, nullptr, bIsDefaultTransform);
 		PostActorConstruction();
 	}
 }
