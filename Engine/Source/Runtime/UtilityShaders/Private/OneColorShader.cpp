@@ -30,8 +30,9 @@ void FOneColorPS::SetColors(FRHICommandList& RHICmdList, const FLinearColor* Col
 				ClearData.DrawColorMRT[i].W = Colors[i].A;
 			}
 
-			TUniformBufferRef<FClearShaderUB> Data = TUniformBufferRef<FClearShaderUB>::CreateUniformBufferImmediate(ClearData, UniformBuffer_SingleFrame);			
-			SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FClearShaderUB>(), Data);
+			FLocalUniformBuffer LocalUB = TUniformBufferRef<FClearShaderUB>::CreateLocalUniformBuffer(RHICmdList, ClearData, UniformBuffer_SingleFrame);	
+			auto& Parameter = GetUniformBufferParameter<FClearShaderUB>();
+			RHICmdList.SetLocalShaderUniformBuffer(GetPixelShader(), Parameter.GetBaseIndex(), LocalUB);
 		}
 	}
 
