@@ -39,14 +39,17 @@ public:
 	void UpdateViewports(AActor* ActorToViewThrough) const;
 
 private:
+
 	EVisibility GetTransportControlVisibility(TWeakPtr<ILevelViewport> LevelViewport) const;
 	TSharedRef<SDockTab> SpawnTab_SequencerMain(const FSpawnTabArgs& Args);	
 
 	TSharedRef<FExtender> GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects );
 	void ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects );
 	void AddComponentTrack( UActorComponent* Component );
+	void HandleMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType);
 
 private:
+
 	TSharedPtr<FSequencer> Sequencer;
 
 	/** A map of all the transport controls to viewports that this sequencer has made */

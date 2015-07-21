@@ -158,4 +158,6 @@ public:
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
+
+	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType) = 0;
 };

@@ -111,6 +111,7 @@ public:
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const override;
 	virtual FSequencerSelection& GetSelection() override;
+	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType) override;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
@@ -251,9 +252,6 @@ public:
 	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 
 	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited();
-
-	/** Called by LevelEditor when the map changes */
-	void OnMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType);
 
 	/** Called when an actor is dropped into Sequencer */
 	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );

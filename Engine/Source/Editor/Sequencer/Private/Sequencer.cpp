@@ -458,7 +458,7 @@ void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> Mo
 	}
 }
 
-void FSequencer::OnMapChanged( class UWorld* NewWorld, EMapChangeType::Type MapChangeType )
+void FSequencer::NotifyMapChanged( class UWorld* NewWorld, EMapChangeType::Type MapChangeType )
 {
 	// @todo Sequencer Sub-MovieScenes Needs more investigation of what to spawn
 	// Destroy our puppets because the world is going away.  We probably don't have to do this (the actors will
