@@ -467,6 +467,9 @@ private:
 	// to implement eye adaptation changes over time
 	TRefCountPtr<IPooledRenderTarget> EyeAdaptationRT;
 
+	// eye adaptation is only valid after it has been computed, not on allocation of the RT
+	bool bValidEyeAdaptation;
+
 	// used by the Postprocess Material Blending system to avoid recreation and garbage collection of MIDs
 	TArray<UMaterialInstanceDynamic*> MIDPool;
 	uint32 MIDUsedCount;
@@ -656,6 +659,16 @@ public:
 			GRenderTargetPool.FindFreeElement(Desc, EyeAdaptationRT, TEXT("EyeAdaptation"));
 		}
 		return EyeAdaptationRT;
+	}
+
+	bool HasValidEyeAdaptation() const
+	{
+		return bValidEyeAdaptation;
+	}
+
+	void SetValidEyeAdaptation()
+	{
+		bValidEyeAdaptation = true;
 	}
 
 	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FIntPoint Size)

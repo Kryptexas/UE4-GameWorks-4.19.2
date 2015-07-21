@@ -105,6 +105,8 @@ FSceneViewState::FSceneViewState()
 
 	ShadowOcclusionQueryMaps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
 	ShadowOcclusionQueryMaps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);	
+
+	bValidEyeAdaptation = false;
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)
