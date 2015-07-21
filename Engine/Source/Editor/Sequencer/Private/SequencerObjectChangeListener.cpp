@@ -111,6 +111,10 @@ bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectCla
 		{
 			bFound = true;
 		}
+		else
+		{
+			bFound = false;
+		}
 	}
 
 	return bFound;
