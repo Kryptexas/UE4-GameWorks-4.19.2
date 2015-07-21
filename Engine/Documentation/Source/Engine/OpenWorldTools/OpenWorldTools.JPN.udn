@@ -2,18 +2,18 @@
 Availability:Public
 Title:Open World ツール
 Crumbs:
-Description:広い屋外環境を容易に作成できるようにするためのツール
+Description:広大な土地を容易に作成できるようにするためのツール
 Navigation:topic
 SkillLevel:Intermediate
 バージョン4.8
 
 ![](T_OWT_Header_00.png)
 
-2015年に開催された Games Developer Conference(GDC) で、エピックは動植物でいっぱいの壮大なオープンワールドのレンダリング能力を発表しました。
-Open World ツールと呼ばれるこのデモ作成に使用したツール、アンリアルエンジン 4.8 は、 UE4 プロジェクトで利用可能になりました。 
+2015年のGDCで、EPICは植物が敷き詰められた広大な大地を走り回ることが出来るデモを発表しました。
+オープンワールドのデモの作成に使用したツール群は、UNREAL ENGINE 4.8から利用可能になりました。 
 
 [region:note]
-Open World ツールは現時点では実験的であるため、ツールの使用中にエラーが発生したり不安定な状態になる可能性があることに留意してください。
+オープンワールドのツールは現時点では実験段階であるため、ツールの使用中にエラーが発生したり不安定な状態になる可能性があります。
 [/region]
 
 [VAR:Topic]
