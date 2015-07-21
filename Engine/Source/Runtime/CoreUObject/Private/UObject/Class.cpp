@@ -220,7 +220,8 @@ FText UField::GetToolTipText(bool bShortTooltip) const
 		else
 		{
 			static const FString DoxygenSee(TEXT("@see"));
-			if (NativeToolTip.Split(DoxygenSee, &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
+			static const FString TooltipSee(TEXT("See:"));
+			if (NativeToolTip.ReplaceInline(*DoxygenSee, *TooltipSee) > 0)
 			{
 				NativeToolTip.TrimTrailing();
 			}

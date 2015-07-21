@@ -12,7 +12,7 @@
 #include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
-
+#pragma optimize("",off)
 #define LOCTEXT_NAMESPACE "K2Node"
 
 /*******************************************************************************
@@ -1366,10 +1366,12 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 		static const FString DoxygenParam(TEXT("@param"));
 		static const FString DoxygenReturn(TEXT("@return"));
 		static const FString DoxygenSee(TEXT("@see"));
+		static const FString TooltipSee(TEXT("See:"));
 
 		Tooltip.Split(DoxygenParam, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		Tooltip.Split(DoxygenReturn, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-		Tooltip.Split(DoxygenSee, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.ReplaceInline(*DoxygenSee, *TooltipSee);
+
 		Tooltip.Trim();
 		Tooltip.TrimTrailing();
 

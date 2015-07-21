@@ -494,7 +494,8 @@ FText UEnum::GetToolTipText(int32 NameIndex) const
 	if ( !FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip, &NativeToolTip ) )
 	{
 		static const FString DoxygenSee(TEXT("@see"));
-		if (NativeToolTip.Split(DoxygenSee, &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
+		static const FString TooltipSee(TEXT("See:"));
+		if (NativeToolTip.ReplaceInline(*DoxygenSee, *TooltipSee) > 0)
 		{
 			NativeToolTip.TrimTrailing();
 		}
