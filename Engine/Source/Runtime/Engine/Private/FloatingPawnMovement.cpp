@@ -53,7 +53,7 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 		if (!Delta.IsNearlyZero(1e-6f))
 		{
 			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
-			const FRotator Rotation = UpdatedComponent->GetComponentRotation();
+			const FQuat Rotation = UpdatedComponent->GetComponentQuat();
 
 			FHitResult Hit(1.f);
 			SafeMoveUpdatedComponent(Delta, Rotation, true, Hit);
