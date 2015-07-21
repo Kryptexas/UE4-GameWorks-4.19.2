@@ -1,58 +1,101 @@
-INTSourceChangelist:1571365
-Availability:Public
+﻿Availability:Public
 Title:内容浏览器
 Crumbs: %ROOT%, Engine, Engine/Content
-Description:该工具用于管理包文件、组织资源、创建资源及在资源上执行有用的操作。
+Description:能管理打包文件以及能对资源进行管理、创建和执行有效操作的工具。
 
-[REGION:full_feature]
-[OBJECT:Feature]
-	[PARAMLITERAL:image]
-		![%Engine/Content/Browser/UserGuide:title%](content_browser_feature.png)
-	[/PARAMLITERAL]
-	[PARAMLITERAL:icon]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
 		![](%ROOT%/project_icon.png)(convert:false)
-	[/PARAMLITERAL]
-	[PARAMLITERAL:title]
-		%Engine/Content/Browser/UserGuide:title%
-	[/PARAMLITERAL]
-	[PARAMLITERAL:description]
-		%Engine/Content/Browser/UserGuide:description%
-	[/PARAMLITERAL]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Content/Browser]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
-
-[EXCERPT:Intro]
- **内容浏览器** 是在虚幻编辑器中创建、查看级修改资源的主要界面区域 
-。它提供了管理资源文件夹及在资源上执行有用操作的功能， 
-比如重命名、移动、复制及查看资源引用。 **内容浏览器** 
-可以查看游戏中的 _所有资源_ 并与之进行交互，而不必把它们加载到内存中。
-[/EXCERPT:Intro]
-
-* 浏览游戏中可找到的所有资源并进行交互处理: 已加载的资源和未加载的资源。
-* 查找已加载和未加载的资源：
-    * Text Filter(文本过滤器): 通过输入名称、路径、标签或类型来查找资源。您可以在搜索关键字前使用前缀 '-'来从您的搜索中排除掉一些资源。
-    * Extended Filter(扩展过滤器): 通过使用Object Type(对象类型) 和/或 标签组合来浏览资源。
-* 管理加载的和未加载的资源,不必再将资源从包中迁出。
-    * 创建私有收藏夹并在其中存储资源以备将来使用。
-    * 创建共享收藏夹来和您的同事分享有趣的资源。
-* 开发助手:
-    * 显示可能存在问题的资源。
-
-
-[OBJECT:TopicList]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
+		![](%ROOT%/project_icon.png)(convert:false)
 	[/PARAM]
-	[PARAMLITERAL:title]
-		内容浏览器工具
-	[/PARAMLITERAL]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
 	[PARAM:description]
+		%Engine/Content/Browser:description%
 	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Content/Browser/AssetConsolidationTool) - %Engine/Content/Browser/AssetConsolidationTool:Description%
-		* [](Engine/Content/Browser/ReferenceTreeTool) - %Engine/Content/Browser/ReferenceTreeTool:Description%
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
 	[/PARAM]
 [/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](ContentBrowserInterface.png)(w:800)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+[EXCERPT:Intro]
+[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
+
+[/EXCERPT:Intro]
+
+在 **内容浏览器** 中，您可以：
+
+* 浏览游戏中的可找到的所有资源并进行交互处理。
+* 查找已保存或未保存的资源：
+    * Text Filter(文本过滤器): 通过输入名称、路径、标签或类型来在搜索资源框中输入文本来查找资源。 您可以在搜索关键字前使用前缀 '-'来从您的搜索中排除掉一些资源。
+    * Extended Filter(扩展过滤器): 点击Filter（筛选器）按钮来根据资源类型和其它标准进行筛选。
+* 不必再将包从源码控制中迁出，就能管理资源：
+    * 创建本地或私有收藏夹并在其中存储资源以备将来使用。
+    * 创建共享收藏夹来和您的同事分享有趣的资源。
+* 获取开发助手:
+    * 显示可能存在问题的资源。
+* 使用整合工具来自动移动资源及其依赖资源到其它内容文件夹中。
+
+
+## 访问内容浏览器
+
+您可以从窗口菜单中访问 **内容浏览器** 。 您可以一次打开 **内容浏览器** 的四个同时存在的实例。 这可以用于多个方面，诸如：
+
+* 在不同的 **内容浏览器** 中筛选不同的资源类型，诸如仅显示静态网格物体的类型和仅显示材质的类型。
+* 在您想要查看文件夹中其他可用资源的不同文件夹间移动资源。
+
+
+[REGION:caption]
+	默认情况下， **内容浏览器** 驻留在主关卡编辑器界面的左下角处，但它可以被拉到关卡编辑器中的任意位置，或作为单独的窗口悬浮。
+[/REGION]
+
+
+
+## 内容浏览器浏览主题
+
+[REGION:topics fourth]
+%Engine/Content/Browser/UI:TopicCompact%
+%Engine/Content/Browser/UserGuide/WorkingWithSources:TopicCompact%
+%Engine/Content/Browser/UserGuide/BrowserAssetCreation:TopicCompact%
+%Engine/Content/Browser/UserGuide/Collections:TopicCompact%
+%Engine/Content/Browser/UserGuide/Filters:TopicCompact%
+%Engine/Content/Browser/UserGuide/Folders:TopicCompact%
+%Engine/Content/Browser/UserGuide/DevelopersFolder:TopicCompact%
+%Engine/UI/SourceControl:TopicCompact%
+%Engine/Content/Browser/AssetConsolidationTool:TopicCompact%
+%Engine/Content/Browser/UserGuide/Migrate:TopicCompact%
+%Engine/Content/Browser/ReferenceViewer:TopicCompact%
+[/REGION]
+
