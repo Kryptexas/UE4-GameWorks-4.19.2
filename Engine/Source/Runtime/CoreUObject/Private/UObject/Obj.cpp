@@ -15,6 +15,7 @@
 #include "HotReloadInterface.h"
 #include "UObject/TlsObjectInitializers.h"
 #include "UObject/UObjectThreadContext.h"
+#include "ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
@@ -718,7 +719,10 @@ void UObject::ConditionalPostLoad()
 		}
 
 		ConditionalPostLoadSubobjects();
+
+		FExclusiveLoadPackageTimeTracker::PushPostLoad(this);
 		PostLoad();
+		FExclusiveLoadPackageTimeTracker::PopPostLoad(this);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (ThreadContext.DebugPostLoad.Contains(this))

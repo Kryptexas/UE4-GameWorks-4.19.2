@@ -11,6 +11,7 @@
 #include "UObject/TlsObjectInitializers.h"
 #include "UObject/UObjectThreadContext.h"
 #include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
+#include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
@@ -957,6 +958,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			return Result;
 		}
 
+		if ( Result )
+		{
+			// We have begun loading a package that we know the name of. Let the package time tracker know.
+			FExclusiveLoadPackageTimeTracker::PushLoadPackage(Result->GetFName());
+		}
+
 #if !WITH_EDITOR
 		static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 		if (CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
@@ -1039,6 +1046,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		SlowTask.EnterProgressFrame(30);
 
 		EndLoadAndCopyLocalizationGatherFlag();
+
+		if ( Result )
+		{
+			// We are done loading the package. Let the package time tracker know.
+			FExclusiveLoadPackageTimeTracker::PopLoadPackage(Result);
+		}
 
 #if WITH_EDITOR
 		GIsEditorLoadingPackage = *IsEditorLoadingPackage;
@@ -1215,6 +1228,13 @@ void EndLoad()
 		ThreadContext.ObjBeginLoadCount--;
 		return;
 	}
+
+	// The package time tracker keeps track of time spent in EndLoad.
+	struct FEndLoadScopedTracker
+	{
+		FEndLoadScopedTracker() { FExclusiveLoadPackageTimeTracker::PushEndLoad(); }
+		~FEndLoadScopedTracker() { FExclusiveLoadPackageTimeTracker::PopEndLoad(); }
+	} EndLoadScopedTracker;
 
 #if WITH_EDITOR
 	FScopedSlowTask SlowTask(0, NSLOCTEXT("Core", "PerformingPostLoad", "Performing post-load..."), ShouldReportProgress());

@@ -11,6 +11,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/LinkerManager.h"
 #include "Serialization/AsyncLoadingThread.h"
+#include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
 
 /*-----------------------------------------------------------------------------
@@ -1151,6 +1152,9 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 		// Begin async loading, simulates BeginLoad
 		BeginAsyncLoad();
 
+		// We have begun loading a package that we know the name of. Let the package time tracker know.
+		FExclusiveLoadPackageTimeTracker::PushLoadPackage(Desc.NameToLoad);
+
 		// Create raw linker. Needs to be async created via ticking before it can be used.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
@@ -1199,6 +1203,9 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 		{
 			LoadingState = PostLoadObjects();
 		}
+
+		// We are done loading the package for now. Whether it is done or not, let the package time tracker know.
+		FExclusiveLoadPackageTimeTracker::PopLoadPackage(Linker ? Linker->LinkerRoot : nullptr);
 
 		// End async loading, simulates EndLoad
 		EndAsyncLoad();
