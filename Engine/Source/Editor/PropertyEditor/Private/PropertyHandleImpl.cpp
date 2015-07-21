@@ -1550,13 +1550,14 @@ TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FText& 
 	return SNullWidget::NullWidget;
 }
 
-TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyValueWidget() const
+TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyValueWidget( bool bDisplayDefaultPropertyButtons ) const
 {
 	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
 	{
 		TSharedPtr<FPropertyEditor> PropertyEditor = FPropertyEditor::Create( Implementation->GetPropertyNode().ToSharedRef(), Implementation->GetPropertyUtilities().ToSharedRef() );
 
-		return SNew( SPropertyValueWidget, PropertyEditor, Implementation->GetPropertyUtilities() );
+		return SNew( SPropertyValueWidget, PropertyEditor, Implementation->GetPropertyUtilities() )
+				.ShowPropertyButtons( bDisplayDefaultPropertyButtons );
 	}
 
 	return SNullWidget::NullWidget;

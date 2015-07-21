@@ -372,7 +372,7 @@ public:
 
 	 * @return the value widget for this property
 	 */
-	virtual TSharedRef<SWidget> CreatePropertyValueWidget() const = 0;
+	virtual TSharedRef<SWidget> CreatePropertyValueWidget( bool bDisplayDefaultPropertyButtons = true ) const = 0;
 
 	/**
 	 * Adds a restriction to the possible values for this property.
