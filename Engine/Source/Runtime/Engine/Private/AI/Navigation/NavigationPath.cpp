@@ -385,6 +385,7 @@ void FNavMeshPath::Reset()
 	PathCorridorCost.Reset();
 	bStringPulled = false;
 	bCorridorEdgesGenerated = false;
+	bIsPartial = false;
 }
 
 float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const
