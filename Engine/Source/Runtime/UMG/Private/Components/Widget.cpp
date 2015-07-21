@@ -105,9 +105,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 #endif
 	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
-
-	//TODO UMG ToolTipWidget
-	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
+	Cursor = EMouseCursor::Default;
 }
 
 void UWidget::SetRenderTransform(FWidgetTransform Transform)
@@ -181,6 +179,29 @@ void UWidget::SetIsEnabled(bool bInIsEnabled)
 	if (SafeWidget.IsValid())
 	{
 		SafeWidget->SetEnabled(bInIsEnabled);
+	}
+}
+
+void UWidget::SetCursor(EMouseCursor::Type InCursor)
+{
+	bOverride_Cursor = true;
+	Cursor = InCursor;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		SafeWidget->SetCursor(Cursor);
+	}
+}
+
+void UWidget::ResetCursor()
+{
+	bOverride_Cursor = false;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		SafeWidget->SetCursor(TOptional<EMouseCursor::Type>());
 	}
 }
 
@@ -735,6 +756,11 @@ void UWidget::SynchronizeProperties()
 	else
 #endif
 	{
+		if ( bOverride_Cursor /*|| CursorDelegate.IsBound()*/ )
+		{
+			SafeWidget->SetCursor(Cursor);// GAME_SAFE_OPTIONAL_BINDING(EMouseCursor::Type, Cursor));
+		}
+
 		SafeWidget->SetEnabled(GAME_SAFE_OPTIONAL_BINDING( bool, bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
