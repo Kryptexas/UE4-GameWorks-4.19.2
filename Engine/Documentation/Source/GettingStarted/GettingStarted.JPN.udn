@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:2612412
 Availability:Public
-Title:まずはここから
+Title:はじめよう
 Crumbs:%ROOT%
-Description:アンリアルエンジンの入門レベル
+Description:UNREAL ENGINE 入門
 Navigation:start
 
 [VAR:Params]
@@ -50,7 +50,7 @@ gettingstarted
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		開始する
+		はじめよう
 	[/PARAM]
 	[PARAM:description]
 		[REGION:topics third]
@@ -100,7 +100,7 @@ gettingstarted
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタの基本原理
+		エディタの基本
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Shared/Glossary/P/#Glossary_project]
@@ -138,7 +138,7 @@ gettingstarted
 		![](%ROOT%/viewport_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタ ビューポート
+		エディタのビューポート
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
@@ -154,7 +154,7 @@ gettingstarted
 		![](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタ モード
+		エディタのモード
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Shared/Glossary/M#glossary_modes_panel]
@@ -169,15 +169,15 @@ gettingstarted
 		![](%ROOT%/levels_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		アクタ＆ジオメトリ
+		アクタとジオメトリー
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/UI/LevelEditor#actors]
 	[/PARAM]
 	[PARAM:links]
-	* [](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
-	* [ジオメトリ アクタ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
-	* [](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
+	* [配置](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
+	* [ジオメトリーブラシ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [トランスフォーム](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
 
 	[REGION:gallery]
 	[REGION:normaltitle]
@@ -205,7 +205,7 @@ gettingstarted
 		![](%ROOT%/cb_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		コンテンツ ブラウザ
+		コンテントブラウザ
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
@@ -283,7 +283,7 @@ gettingstarted
 		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ブループリント・ビジュアル・スクリプティング
+		ブループリント・ビジュアルスクリプティング
 	[/PARAM]
 	[PARAM:description]	
 		[INCLUDE:Engine/Blueprints#intro]	
@@ -359,10 +359,10 @@ gettingstarted
 		自分のゲームをプレイテストする
 	[/PARAM]
 	[PARAM:description]
-		アンリアル エンジンのビルトイン機能を使用してレベルとゲームプレイをテストし、デバッグします。Play In Editor モードを使用してリアルタイムのフィードバックを直接エディタから得ます。 
-		Simulate In Editor (エディタでシミュレーション) モードを使用して 
-		ゲームの実行中にオブジェクトを調べたり、操作したりすることもします。Hot Reload (ホットリロード) を使用して 
-		プレイ中にゲームプレイ コードを変更、ゲームをリコンパイル、更新します。
+		UNREAL ENGINE のビルトイン機能を使用してレベルとゲームプレイをテストし、デバッグします。プレイインエディタモードを使用してリアルタイムのフィードバックを直接エディタから得ます。 
+		シミュレートインエディタモードを使用して 
+		ゲームの実行中にオブジェクトを調べたり、操作したりすることもします。ホットリロードを使用して 
+		プレイ中にゲームプレイ コードを変更、ゲームをリコンパイル、更新することができます。
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/UI/LevelEditor/InEditorTesting "%Engine/UI/LevelEditor/InEditorTesting:description%")
