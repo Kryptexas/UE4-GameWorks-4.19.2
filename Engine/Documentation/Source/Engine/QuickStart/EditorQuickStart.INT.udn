@@ -3,6 +3,7 @@ Title:Level Designer Quick Start
 Crumbs: %ROOT%, GettingStarted
 Description: Getting up and running with the basics of the Unreal Editor.
 prereq:GettingStarted/Installation
+prereq:GettingStarted/DownloadingUnrealEngine
 prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.8

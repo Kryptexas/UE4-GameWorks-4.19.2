@@ -5,6 +5,10 @@ Description:Compiling Unreal Engine from source.
 Prereq: GettingStarted/DownloadingUnrealEngine
 Prereq: GettingStarted/RecommendedSpecifications
 Related: GettingStarted/DownloadingUnrealEngine
+Related: GettingStarted
+Related: Engine/Content/QuickStart
+Related: Programming/QuickStart
+Related: Engine/QuickStart
 Version: 4.8
 
 %Globals:osselect_linux%
@@ -147,9 +151,16 @@ Version: 4.8
 	[/PARAM]
 [/OBJECT]
 
-## Previous Steps
+## Getting Started with Unreal Engine
 
-If you want a refresher on our GitHub download process, refer to the [](GettingStarted/DownloadingUnrealEngine) documentation.
+Learn how to use Unreal Engine by referring to the [](GettingStarted) documentation!
+
+[REGION:tip]
+If you're an artist, programmer, or designer looking to quickly get started with UE4, refer to the following tutorials:
+*	[](Engine/Content/QuickStart)
+*	[](Programming/QuickStart)
+*	[](Engine/QuickStart)
+[/REGION]
 
 [/EXCERPT:Main]
 

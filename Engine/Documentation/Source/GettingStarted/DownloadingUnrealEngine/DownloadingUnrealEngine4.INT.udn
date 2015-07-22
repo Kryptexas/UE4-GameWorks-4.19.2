@@ -16,7 +16,7 @@ Unreal Engine 4 is available to be downloaded by licensees directly from Epic's 
 [PUBLISH:Rocket]
 
 [REGION:warning]
-This page shows subscribers how to download and build Unreal Engine from our source code repository on GitHub. If you'd like to download the binary version of Unreal Engine, go to our main page to [Get Unreal](https://www.unrealengine.com/).
+This page shows subscribers how to download and build Unreal Engine from our source code repository on GitHub. If you'd like to download the binary version of Unreal Engine, read our [](GettingStarted/Installation) documentation to learn how to [Get Unreal](https://www.unrealengine.com/).
 [/REGION]
 
 ----
