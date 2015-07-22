@@ -720,9 +720,10 @@ void UObject::ConditionalPostLoad()
 
 		ConditionalPostLoadSubobjects();
 
-		FExclusiveLoadPackageTimeTracker::PushPostLoad(this);
-		PostLoad();
-		FExclusiveLoadPackageTimeTracker::PopPostLoad(this);
+		{
+			FExclusiveLoadPackageTimeTracker::FScopedPostLoadTracker Tracker(this);
+			PostLoad();
+		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (ThreadContext.DebugPostLoad.Contains(this))

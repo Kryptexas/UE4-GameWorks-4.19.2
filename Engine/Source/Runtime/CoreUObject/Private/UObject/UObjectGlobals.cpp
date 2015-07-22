@@ -958,11 +958,8 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			return Result;
 		}
 
-		if ( Result )
-		{
-			// We have begun loading a package that we know the name of. Let the package time tracker know.
-			FExclusiveLoadPackageTimeTracker::PushLoadPackage(Result->GetFName());
-		}
+		// The time tracker keeps track of time spent in LoadPackage.
+		FExclusiveLoadPackageTimeTracker::FScopedPackageTracker Tracker(Result);
 
 #if !WITH_EDITOR
 		static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
@@ -1046,12 +1043,6 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		SlowTask.EnterProgressFrame(30);
 
 		EndLoadAndCopyLocalizationGatherFlag();
-
-		if ( Result )
-		{
-			// We are done loading the package. Let the package time tracker know.
-			FExclusiveLoadPackageTimeTracker::PopLoadPackage(Result);
-		}
 
 #if WITH_EDITOR
 		GIsEditorLoadingPackage = *IsEditorLoadingPackage;
@@ -1229,13 +1220,6 @@ void EndLoad()
 		return;
 	}
 
-	// The package time tracker keeps track of time spent in EndLoad.
-	struct FEndLoadScopedTracker
-	{
-		FEndLoadScopedTracker() { FExclusiveLoadPackageTimeTracker::PushEndLoad(); }
-		~FEndLoadScopedTracker() { FExclusiveLoadPackageTimeTracker::PopEndLoad(); }
-	} EndLoadScopedTracker;
-
 #if WITH_EDITOR
 	FScopedSlowTask SlowTask(0, NSLOCTEXT("Core", "PerformingPostLoad", "Performing post-load..."), ShouldReportProgress());
 
@@ -1244,6 +1228,9 @@ void EndLoad()
 
 	while (--ThreadContext.ObjBeginLoadCount == 0 && (ThreadContext.ObjLoaded.Num() || ThreadContext.ImportCount || ThreadContext.ForcedExportCount))
 	{
+		// The time tracker keeps track of time spent in EndLoad.
+		FExclusiveLoadPackageTimeTracker::FScopedEndLoadTracker Tracker;
+
 		// Make sure we're not recursively calling EndLoad as e.g. loading a config file could cause
 		// BeginLoad/EndLoad to be called.
 		ThreadContext.ObjBeginLoadCount++;

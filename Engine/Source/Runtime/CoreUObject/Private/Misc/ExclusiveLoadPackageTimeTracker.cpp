@@ -68,31 +68,18 @@ void FExclusiveLoadPackageTimeTracker::InternalPopLoadPackage(UPackage* LoadedPa
 			}
 		}
 
-		bool bIncrementCount = false;
 		double InclusiveTime = CurrentTime - Time.OriginalStartTime;
 		FLoadTime* LoadTimePtr = LoadTimes.Find(Time.TimeName);
 		if ( LoadTimePtr )
 		{
+			// Use the most recently discovered classname. This may be "Unknown" during async loading but future pops will correct it.
+			LoadTimePtr->AssetClass = ClassName;
 			LoadTimePtr->ExclusiveTime += Time.ExclusiveTime;
 			LoadTimePtr->InclusiveTime += InclusiveTime;
 		}
 		else
 		{
-			LoadTimes.Add(Time.TimeName, FLoadTime(Time.TimeName, Time.ExclusiveTime, InclusiveTime));
-			bIncrementCount = true;
-		}
-
-		if (IsPackageLoadTime(Time))
-		{
-			FTimeCount& TypeTimeCount = AssetTypeLoadTimes.FindOrAdd(ClassName);
-			TypeTimeCount.AssetClass = ClassName;
-			TypeTimeCount.Time.ExclusiveTime += Time.ExclusiveTime;
-			TypeTimeCount.Time.InclusiveTime += InclusiveTime;
-
-			if (bIncrementCount)
-			{
-				TypeTimeCount.Count++;
-			}
+			LoadTimes.Add(Time.TimeName, FLoadTime(Time.TimeName, ClassName, Time.ExclusiveTime, InclusiveTime));
 		}
 
 		TimeStack.RemoveAt(TimeStack.Num() - 1, 1, false);
@@ -117,20 +104,30 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 	FName LongestLoadName;
 	double TotalLoadTime = 0;
 	const double SlowAssetThreshold = 0.10f;
+	TMap<FName, FTimeCount> AssetTypeLoadTimes;
 	for (const auto& LoadTimeIt : LoadTimes)
 	{
-		if (LoadTimeIt.Value.ExclusiveTime > LongestLoadTime && IsPackageLoadTime(LoadTimeIt.Value))
+		const FLoadTime& Time = LoadTimeIt.Value;
+		if (IsPackageLoadTime(Time))
 		{
-			LongestLoadName = LoadTimeIt.Key;
-			LongestLoadTime = LoadTimeIt.Value.ExclusiveTime;
+			if (Time.ExclusiveTime > LongestLoadTime)
+			{
+				LongestLoadName = LoadTimeIt.Key;
+				LongestLoadTime = Time.ExclusiveTime;
+			}
+
+			if (Time.ExclusiveTime > SlowAssetThreshold)
+			{
+				SlowAssetTime += Time.ExclusiveTime;
+			}
+
+			FTimeCount& TypeTimeCount = AssetTypeLoadTimes.FindOrAdd(Time.AssetClass);
+			TypeTimeCount.Time.AssetClass = Time.AssetClass;
+			TypeTimeCount.Time.ExclusiveTime += Time.ExclusiveTime;
+			TypeTimeCount.Count++;
 		}
 
-		if (LoadTimeIt.Value.ExclusiveTime > SlowAssetThreshold && IsPackageLoadTime(LoadTimeIt.Value))
-		{
-			SlowAssetTime += LoadTimeIt.Value.ExclusiveTime;
-		}
-
-		TotalLoadTime += LoadTimeIt.Value.ExclusiveTime;
+		TotalLoadTime += Time.ExclusiveTime;
 	}
 
 	const FLoadTime* EndLoadTime = LoadTimes.Find(EndLoadName);
@@ -148,7 +145,7 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 	SortedAssetTypeLoadTimes.Sort([](const FTimeCount& A, const FTimeCount& B){ return A.Time.ExclusiveTime >= B.Time.ExclusiveTime; });
 	for (const FTimeCount& TimeCount : SortedAssetTypeLoadTimes)
 	{
-		UE_LOG(LogLoad, Log, TEXT("    %.3f: %s (%d packages, %.1fms per package)"), TimeCount.Time.ExclusiveTime, *TimeCount.AssetClass.ToString(), TimeCount.Count, TimeCount.Time.ExclusiveTime / TimeCount.Count * 1000);
+		UE_LOG(LogLoad, Log, TEXT("    %.3f: %s (%d packages, %.1fms per package)"), TimeCount.Time.ExclusiveTime, *TimeCount.Time.AssetClass.ToString(), TimeCount.Count, TimeCount.Time.ExclusiveTime / TimeCount.Count * 1000);
 	}
 
 	// Assets faster than this will be excluded

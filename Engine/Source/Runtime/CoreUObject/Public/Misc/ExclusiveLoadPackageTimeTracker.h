@@ -14,6 +14,57 @@
 class FExclusiveLoadPackageTimeTracker
 {
 public:
+	/** Scoped helper for LoadPackage */
+	struct FScopedPackageTracker
+	{
+		FScopedPackageTracker(UPackage* InPackageToTrack)
+			: PackageToTrack(InPackageToTrack)
+		{
+			FExclusiveLoadPackageTimeTracker::PushLoadPackage(PackageToTrack ? PackageToTrack->GetFName() : NAME_None);
+		}
+		FScopedPackageTracker(FName PackageNameToTrack)
+			: PackageToTrack(nullptr)
+		{
+			FExclusiveLoadPackageTimeTracker::PushLoadPackage(PackageNameToTrack);
+		}
+		~FScopedPackageTracker()
+		{
+			FExclusiveLoadPackageTimeTracker::PopLoadPackage(PackageToTrack);
+		}
+		UPackage* PackageToTrack;
+	};
+
+	/** Scoped helper for PostLoad */
+	struct FScopedPostLoadTracker
+	{
+		FScopedPostLoadTracker(UObject* InPostLoadObject)
+		{
+			if (FExclusiveLoadPackageTimeTracker::PushPostLoad(InPostLoadObject))
+			{
+				PostLoadObject = InPostLoadObject;
+			}
+			else
+			{
+				PostLoadObject = nullptr;
+			}
+		}
+		~FScopedPostLoadTracker()
+		{
+			if (PostLoadObject)
+			{
+				FExclusiveLoadPackageTimeTracker::PopPostLoad(PostLoadObject);
+			}
+		}
+		UObject* PostLoadObject;
+	};
+
+	/** Scoped helper for EndLoad */
+	struct FScopedEndLoadTracker
+	{
+		FScopedEndLoadTracker() { FExclusiveLoadPackageTimeTracker::PushEndLoad(); }
+		~FScopedEndLoadTracker() { FExclusiveLoadPackageTimeTracker::PopEndLoad(); }
+	};
+
 	/** Starts a time for the specified package name. */
 	FORCEINLINE static void PushLoadPackage(FName PackageName)
 	{
@@ -31,24 +82,23 @@ public:
 	}
 
 	/** Starts a time for the specified package name. */
-	FORCEINLINE static void PushPostLoad(UObject* PostLoadObject)
+	FORCEINLINE static bool PushPostLoad(UObject* PostLoadObject)
 	{
 #if WITH_LOADPACKAGE_TIME_TRACKER
 		if (PostLoadObject && PostLoadObject->IsAsset())
 		{
 			Get().InternalPushLoadPackage(PostLoadObject->GetOutermost()->GetFName());
+			return true;
 		}
 #endif
+		return false;
 	}
 
 	/** Records a time and stats for the loaded package. Optionally provide the loaded asset if it is known, otherwise the asset in the package is detected. */
 	FORCEINLINE static void PopPostLoad(UObject* PostLoadObject)
 	{
 #if WITH_LOADPACKAGE_TIME_TRACKER
-		if (PostLoadObject && PostLoadObject->IsAsset())
-		{
-			Get().InternalPopLoadPackage(nullptr, PostLoadObject);
-		}
+		Get().InternalPopLoadPackage(nullptr, PostLoadObject);
 #endif
 	}
 
@@ -105,6 +155,7 @@ private:
 	struct FLoadTime
 	{
 		FName TimeName;
+		FName AssetClass;
 		double ExclusiveTime;
 		double InclusiveTime;
 		double LastStartTime;
@@ -118,7 +169,7 @@ private:
 			: TimeName(InName), ExclusiveTime(0), InclusiveTime(0), LastStartTime(InStartTime), OriginalStartTime(InStartTime)
 		{}
 
-		FLoadTime(FName InName, double InExclusive, double InInclusive)
+		FLoadTime(FName InName, FName InAssetClass, double InExclusive, double InInclusive)
 			: TimeName(InName), ExclusiveTime(InExclusive), InclusiveTime(InInclusive), LastStartTime(0), OriginalStartTime(0)
 		{}
 	};
@@ -126,7 +177,6 @@ private:
 	/** Struct to assemble times for assets loaded by class */
 	struct FTimeCount
 	{
-		FName AssetClass;
 		FLoadTime Time;
 		int32 Count;
 
@@ -165,7 +215,6 @@ private:
 
 	/** A couple maps used to make the report and to report calculated times */
 	TMap<FName, FLoadTime> LoadTimes;
-	TMap<FName, FTimeCount> AssetTypeLoadTimes;
 
 	/** The amount of time spent in this singleton keeping track of load times. This overhead is included in the report. */
 	double TrackerOverhead;
