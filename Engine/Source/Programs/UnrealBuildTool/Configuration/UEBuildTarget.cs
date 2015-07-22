@@ -807,7 +807,7 @@ namespace UnrealBuildTool
 		public CaselessDictionary<FlatModuleCsDataType> FlatModuleCsData = new CaselessDictionary<FlatModuleCsDataType>();
 
 		/** The receipt for this target, which contains a record of this build. */
-		private BuildReceipt Receipt;
+		private TargetReceipt Receipt;
 
 		/** Filename for the receipt for this target. */
 		private string ReceiptFileName;
@@ -925,7 +925,7 @@ namespace UnrealBuildTool
 			}
 
 			// Get the receipt path for this target
-			ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, UEBuildPlatform.GetBuildPlatform(Platform).GetActiveArchitecture());
+			ReceiptFileName = TargetReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, UEBuildPlatform.GetBuildPlatform(Platform).GetActiveArchitecture());
 
 			RemoteRoot = InDesc.RemoteRoot;
 
@@ -1067,10 +1067,10 @@ namespace UnrealBuildTool
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			BuildReceipt ReceiptWithFullPaths = BuildReceipt.Read(ReceiptFileName);
+			TargetReceipt ReceiptWithFullPaths = TargetReceipt.Read(ReceiptFileName);
 			if (ReceiptWithFullPaths == null)
 			{
-				ReceiptWithFullPaths = new BuildReceipt(Receipt);
+				ReceiptWithFullPaths = new TargetReceipt(Receipt);
 			}
 			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 
@@ -1319,11 +1319,11 @@ namespace UnrealBuildTool
 		public void CleanStaleModules()
 		{
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			BuildReceipt ReceiptWithFullPaths = new BuildReceipt(Receipt);
+			TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
 			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			BuildReceipt BuiltReceiptWithFullPaths = BuildReceipt.Read(ReceiptFileName);
+			TargetReceipt BuiltReceiptWithFullPaths = TargetReceipt.Read(ReceiptFileName);
 			if (BuiltReceiptWithFullPaths == null)
 			{
 				return;
@@ -1523,7 +1523,7 @@ namespace UnrealBuildTool
 			}
 
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			BuildReceipt ReceiptWithFullPaths = new BuildReceipt(Receipt);
+			TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
 			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 
 			foreach(BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
@@ -1563,7 +1563,7 @@ namespace UnrealBuildTool
 		/** Creates the receipt for the target */
 		private void PrepareReceipt(IUEToolChain ToolChain)
 		{
-			Receipt = new BuildReceipt();
+			Receipt = new TargetReceipt();
 
 			// Add the target properties
 			Receipt.SetProperty("TargetName", TargetName);
@@ -1574,7 +1574,7 @@ namespace UnrealBuildTool
 			// Merge all the binary receipts into this
 			foreach(UEBuildBinary Binary in AppBinaries)
 			{
-				BuildReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
+				TargetReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
 				if(Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
 				{
 					BinaryReceipt.RuntimeDependencies.Clear();

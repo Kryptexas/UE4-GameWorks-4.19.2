@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 			SetupXcodePaths(true);
 		}
 
-		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+		public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
 		{
 			if (BuildConfiguration.bCreateStubIPA && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{

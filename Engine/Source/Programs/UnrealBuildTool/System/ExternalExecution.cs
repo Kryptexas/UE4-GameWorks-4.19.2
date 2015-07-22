@@ -230,17 +230,17 @@ namespace UnrealBuildTool
 			using (var TimestampTimer = new ScopedTimer("GetHeaderToolTimestamp"))
 			{
 				// Try to read the receipt for UHT.
-				string ReceiptPath = BuildReceipt.GetDefaultPath(BuildConfiguration.RelativeEnginePath, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
+				string ReceiptPath = TargetReceipt.GetDefaultPath(BuildConfiguration.RelativeEnginePath, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
 				if(!File.Exists(ReceiptPath))
 				{
 					Timestamp = DateTime.MaxValue;
 					return false;
 				}
 
-				BuildReceipt Receipt;
+				TargetReceipt Receipt;
 				try
 				{
-					Receipt = BuildReceipt.Read(ReceiptPath);
+					Receipt = TargetReceipt.Read(ReceiptPath);
 				}
 				catch(Exception)
 				{
@@ -268,7 +268,7 @@ namespace UnrealBuildTool
 		/// <returns>
 		/// True if all the files are valid.
 		/// </returns>
-		static bool CheckBinariesExist(BuildReceipt Receipt)
+		static bool CheckBinariesExist(TargetReceipt Receipt)
 		{
 			bool bExist = true;
 			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -291,7 +291,7 @@ namespace UnrealBuildTool
 		/// <returns>
 		/// True if all the files are valid.
 		/// </returns>
-		static bool CheckDynamicLibaryVersionsMatch(BuildReceipt Receipt)
+		static bool CheckDynamicLibaryVersionsMatch(TargetReceipt Receipt)
 		{
 			List<Tuple<string, int>> BinaryVersions = new List<Tuple<string,int>>();
 			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -323,7 +323,7 @@ namespace UnrealBuildTool
 		/// <returns>
 		/// True if all the files are valid.
 		/// </returns>
-		static DateTime GetTimestampFromBinaries(BuildReceipt Receipt)
+		static DateTime GetTimestampFromBinaries(TargetReceipt Receipt)
 		{
 			DateTime LatestWriteTime = DateTime.MinValue;
 			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)

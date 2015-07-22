@@ -97,7 +97,7 @@ class BuildPlugin : BuildCommand
 				Arguments += String.Format(" -module {0}", ModuleName);
 			}
 
-			string ReceiptFileName = BuildReceipt.GetDefaultPath(Path.GetDirectoryName(PluginFileName), TargetName, Platform, Configuration, "");
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(Path.GetDirectoryName(PluginFileName), TargetName, Platform, Configuration, "");
 			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName));
 			ReceiptFileNames.Add(ReceiptFileName);
 			
@@ -115,7 +115,7 @@ class BuildPlugin : BuildCommand
 		List<BuildProduct> BuildProducts = new List<BuildProduct>();
 		foreach(string ReceiptFileName in ReceiptFileNames)
 		{
-			BuildReceipt Receipt = BuildReceipt.Read(ReceiptFileName);
+			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
 			BuildProducts.AddRange(Receipt.BuildProducts);
 		}
 		return BuildProducts;

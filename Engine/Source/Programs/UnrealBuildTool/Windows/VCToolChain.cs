@@ -1762,7 +1762,7 @@ namespace UnrealBuildTool
 			return IncludePaths;
 		}
 
-		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+		public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
 		{
 			if (Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
 			{

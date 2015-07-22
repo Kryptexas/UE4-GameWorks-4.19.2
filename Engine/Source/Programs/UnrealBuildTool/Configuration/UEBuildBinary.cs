@@ -289,9 +289,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ToolChain">Toolchain for the target platform</param>
 		/// <param name="BuildPlatform">Platform that we're building for</param>
-		public virtual BuildReceipt MakeReceipt(IUEToolChain ToolChain)
+		public virtual TargetReceipt MakeReceipt(IUEToolChain ToolChain)
 		{
-			BuildReceipt Receipt = new BuildReceipt();
+			TargetReceipt Receipt = new TargetReceipt();
 
 			// Get the type of build products we're creating
 			BuildProductType Type = BuildProductType.RequiredResource;
@@ -335,7 +335,7 @@ namespace UnrealBuildTool
 		/// <param name="OutputFile">Build product to add</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
 		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, BuildReceipt Receipt)
+		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, TargetReceipt Receipt)
 		{
 			Receipt.AddBuildProduct(OutputFile, OutputType);
 
@@ -633,9 +633,9 @@ namespace UnrealBuildTool
 		/// Overrides base class to add module runtime dependencies to the build receipt.
 		/// </summary>
 		/// <param name="ToolChain">The platform toolchain</param>
-		public override BuildReceipt MakeReceipt(IUEToolChain ToolChain)
+		public override TargetReceipt MakeReceipt(IUEToolChain ToolChain)
 		{
-			BuildReceipt Receipt = base.MakeReceipt(ToolChain);
+			TargetReceipt Receipt = base.MakeReceipt(ToolChain);
 
 			// Set the IsPrecompiled flag on all the build products if we're not actually building this binary
 			if(!Config.bAllowCompilation)

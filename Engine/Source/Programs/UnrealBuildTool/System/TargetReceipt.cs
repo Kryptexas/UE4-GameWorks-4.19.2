@@ -115,7 +115,7 @@ namespace UnrealBuildTool
 	/// Stores a record of a built target, with all metadata that other tools may need to know about the build.
 	/// </summary>
 	[Serializable]
-	public class BuildReceipt
+	public class TargetReceipt
 	{
 		[XmlArrayItem("Property")]
 		public List<BuildProperty> Properties = new List<BuildProperty>();
@@ -132,7 +132,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Default constructor
 		/// </summary>
-		public BuildReceipt()
+		public TargetReceipt()
 		{
 		}
 
@@ -140,7 +140,7 @@ namespace UnrealBuildTool
 		/// Copy constructor
 		/// </summary>
 		/// <param name="InOther">Receipt to copy from</param>
-		public BuildReceipt(BuildReceipt Other)
+		public TargetReceipt(TargetReceipt Other)
 		{ 
 			foreach(BuildProduct OtherBuildProduct in Other.BuildProducts)
 			{
@@ -218,7 +218,7 @@ namespace UnrealBuildTool
 		/// Merges another receipt to this one.
 		/// </summary>
 		/// <param name="Other">Receipt which should be merged</param>
-		public void Merge(BuildReceipt Other)
+		public void Merge(TargetReceipt Other)
 		{
 			foreach(BuildProduct OtherBuildProduct in Other.BuildProducts)
 			{
@@ -341,19 +341,19 @@ namespace UnrealBuildTool
 			return Path.Combine(BaseDir, "Build", "Receipts", String.Format("{0}-{1}-{2}{3}.target.xml", TargetName, Platform.ToString(), Configuration.ToString(), BuildArchitecture));
 		}
 
-		static XmlSerializer Serializer = XmlSerializer.FromTypes(new Type[]{ typeof(BuildReceipt) })[0];
+		static XmlSerializer Serializer = XmlSerializer.FromTypes(new Type[]{ typeof(TargetReceipt) })[0];
 
 		/// <summary>
 		/// Read a receipt from disk.
 		/// </summary>
 		/// <param name="FileName">Filename to read from</param>
-		public static BuildReceipt Read(string FileName)
+		public static TargetReceipt Read(string FileName)
 		{
 			if (File.Exists(FileName))
 			{
 				using (StreamReader Reader = new StreamReader(FileName))
 				{
-					return (BuildReceipt)Serializer.Deserialize(Reader);
+					return (TargetReceipt)Serializer.Deserialize(Reader);
 				}
 			}
 			else

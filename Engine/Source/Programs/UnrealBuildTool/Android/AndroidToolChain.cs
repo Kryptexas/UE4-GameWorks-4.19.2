@@ -1146,7 +1146,7 @@ namespace UnrealBuildTool
 			return Outputs.ToArray();
 		}
 
-		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+		public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
 		{
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)

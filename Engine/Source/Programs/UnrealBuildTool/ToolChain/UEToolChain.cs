@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 
 		void SetUpGlobalEnvironment();
 
-		void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary);
+		void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary);
 
 		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
 
@@ -172,7 +172,7 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public virtual void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+		public virtual void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
 		{
 		}
 

@@ -54,7 +54,7 @@ public class DeploymentContext //: ProjectParams
 	/// <summary>
 	/// Receipts for the build targets that should be staged
 	/// </summary>
-	public List<BuildReceipt> StageTargetReceipts;
+	public List<TargetReceipt> StageTargetReceipts;
 
 	/// <summary>
 	///  this is the root directory that contains the engine: d:\a\UE4\
@@ -234,7 +234,7 @@ public class DeploymentContext //: ProjectParams
 		Platform InSourcePlatform,
         Platform InTargetPlatform,
 		List<UnrealTargetConfiguration> InTargetConfigurations,
-		IEnumerable<BuildReceipt> InStageTargetReceipts,
+		IEnumerable<TargetReceipt> InStageTargetReceipts,
 		List<String> InStageExecutables,
 		bool InServer,
 		bool InCooked,
@@ -254,7 +254,7 @@ public class DeploymentContext //: ProjectParams
         CookSourcePlatform = InSourcePlatform;
 		StageTargetPlatform = InTargetPlatform;
 		StageTargetConfigurations = new List<UnrealTargetConfiguration>(InTargetConfigurations);
-		StageTargetReceipts = new List<BuildReceipt>(InStageTargetReceipts);
+		StageTargetReceipts = new List<TargetReceipt>(InStageTargetReceipts);
 		StageExecutables = InStageExecutables;
         IsCodeBasedProject = ProjectUtils.IsCodeBasedUProjectFile(RawProjectPath);
 		ShortProjectName = ProjectUtils.GetShortProjectName(RawProjectPath);
@@ -385,7 +385,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageBuildProductsFromReceipt(BuildReceipt Receipt)
+	public void StageBuildProductsFromReceipt(TargetReceipt Receipt)
 	{
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -407,7 +407,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageRuntimeDependenciesFromReceipt(BuildReceipt Receipt)
+	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt)
 	{
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)

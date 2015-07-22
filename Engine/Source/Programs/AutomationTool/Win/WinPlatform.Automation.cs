@@ -36,7 +36,7 @@ public abstract class BaseWinPlatform : Platform
 		}
 
 		// Stage all the build products
-		foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
+		foreach(TargetReceipt Receipt in SC.StageTargetReceipts)
 		{
 			SC.StageBuildProductsFromReceipt(Receipt);
 		}
@@ -47,7 +47,7 @@ public abstract class BaseWinPlatform : Platform
 		// Stage the bootstrap executable
 		if(!Params.NoBootstrapExe)
 		{
-			foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
+			foreach(TargetReceipt Receipt in SC.StageTargetReceipts)
 			{
 				BuildProduct Executable = Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
 				if(Executable != null)

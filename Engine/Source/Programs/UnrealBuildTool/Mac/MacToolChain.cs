@@ -1296,7 +1296,7 @@ namespace UnrealBuildTool
 
 		static private string BundleContentsDirectory = "";
 
-        public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+        public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
 		{
 			// The cross-platform code adds .dSYMs for static libraries, which is just wrong, so
 			// eliminate them here for now.

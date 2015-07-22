@@ -536,7 +536,7 @@ namespace UnrealBuildTool
 			throw new BuildException("HTML5 cannot compile C# files");
 		}
 
-        public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+        public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
         {
             // we need to include the generated .mem and .symbols file.  
 			if(Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
