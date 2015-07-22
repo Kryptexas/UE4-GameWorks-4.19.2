@@ -617,7 +617,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 		}
 		else
 		{
-			const FCharacterEntry& Entry = CharacterList[ CurrentChar ];
+			const FCharacterEntry& Entry = CharacterList.GetCharacter(InPayload.FontInfo, CurrentChar);
 
 			if( FontAtlasTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
 			{
@@ -641,7 +641,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 			const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
 
-			if( !bIsWhitespace && PreviousCharEntry.IsValidEntry() )
+			if( !bIsWhitespace && PreviousCharEntry.IsCached() )
 			{
 				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry );
 			}

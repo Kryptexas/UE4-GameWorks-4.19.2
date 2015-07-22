@@ -16,6 +16,7 @@ FSlateFontInfo::FSlateFontInfo( )
 	, Size(0)
 	, FontName_DEPRECATED()
 	, Hinting_DEPRECATED(EFontHinting::Default)
+	, FontFallback(EFontFallback::FF_Max)
 {
 }
 
@@ -28,6 +29,7 @@ FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont
 	, Size(InSize)
 	, FontName_DEPRECATED()
 	, Hinting_DEPRECATED(EFontHinting::Default)
+	, FontFallback(EFontFallback::FF_Max)
 {
 	if (!InCompositeFont.IsValid())
 	{
@@ -44,6 +46,7 @@ FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize,
 	, Size(InSize)
 	, FontName_DEPRECATED()
 	, Hinting_DEPRECATED(EFontHinting::Default)
+	, FontFallback(EFontFallback::FF_Max)
 {
 	if (InFontObject)
 	{
@@ -68,6 +71,7 @@ FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontH
 	, Size(InSize)
 	, FontName_DEPRECATED(*InFontName)
 	, Hinting_DEPRECATED(InHinting)
+	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -84,6 +88,7 @@ FSlateFontInfo::FSlateFontInfo( const FName& InFontName, uint16 InSize, EFontHin
 	, Size(InSize)
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
+	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -100,6 +105,7 @@ FSlateFontInfo::FSlateFontInfo( const ANSICHAR* InFontName, uint16 InSize, EFont
 	, Size(InSize)
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
+	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );
@@ -116,6 +122,7 @@ FSlateFontInfo::FSlateFontInfo( const WIDECHAR* InFontName, uint16 InSize, EFont
 	, Size(InSize)
 	, FontName_DEPRECATED(InFontName)
 	, Hinting_DEPRECATED(InHinting)
+	, FontFallback(EFontFallback::FF_Max)
 {
 	//Useful for debugging style breakages
 	//check( FPaths::FileExists( FontName.ToString() ) );

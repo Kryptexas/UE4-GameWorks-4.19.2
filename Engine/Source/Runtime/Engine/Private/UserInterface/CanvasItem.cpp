@@ -1155,7 +1155,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 		}
 		else
 		{
-			const FCharacterEntry& Entry = CharacterList[ CurrentChar ];
+			const FCharacterEntry& Entry = CharacterList.GetCharacter(LegacyFontInfo, CurrentChar);
 
 			if( FontTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
 			{
@@ -1174,7 +1174,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 
 			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
 
-			if( !bIsWhitespace && PreviousCharEntry.IsValidEntry() )
+			if( !bIsWhitespace && PreviousCharEntry.IsCached() )
 			{
 				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry ) * Scale.X;
 			}
