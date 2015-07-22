@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2627672
 Availability: Public
 Title:2.3 - 블루프린트 인터페이스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -36,7 +36,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_2_3.png)
 
-## 개요
+
 
 [블루프린트 인터페이스](Engine/Blueprints\UserGuide\Types\Interface) 를 통해 하나의 _블루프린트_ 로 다른 _블루프린트_ 에 있는 이벤트나 함수를 트리거시킬 수 있습니다. 이 두 _블루프린트_ 모두 **블루프린트 프로퍼티** 에서 _블루프린트 인터페이스_ 를 구현해야 합니다.
 이 예제에서, **BP_Button** 블루프린트는 **BP_Gears** _블루프린트_ 기어의 스핀을 시작 또는 중지시킵니다.

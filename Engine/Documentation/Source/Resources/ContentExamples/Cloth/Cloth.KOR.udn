@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2435894
+﻿INTSourceChangelist:2627815
 Availability: Public
 Title:클로쓰 콘텐츠 예제
 Crumbs: %ROOT%, Resources
@@ -44,7 +44,7 @@ Related: Engine/Physics/Apex
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 
 Content Examples (콘텐츠 예제) 프로젝트 안의 **Cloth** (클로쓰) 맵은 여러가지 클로쓰 애셋을 만들고 조작하는 법을 보여줍니다. 이 맵에서는, 바람의 영향을 시뮬레이션하는 클로쓰 생성 방법, 프로퍼티를 조정하여 (비단이나 가죽처럼) 다양한 머티리얼 유형을 혼합하는 방법, 클로쓰가 자기 자체나 다른 오브젝트와 교차되는 것을 방지하기 위한 클로쓰 콜리전 세팅은 물론 클로쓰를 입고있는 플레이 가능 캐릭터 예제 등을 확인할 수 있습니다.
 

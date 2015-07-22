@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2384003
+﻿INTSourceChangelist:2627307
 Availability: Docs
 Title: BatchExport 커맨드렛
 Crumbs: %ROOT%, Engine, Engine/Commandlets
@@ -10,7 +10,6 @@ Description:패키지의 리소스를 다양한 파일 유형으로 익스포트
 
 [TOC(start:2)]
 
-## 개요
 
 batchexport 커맨드렛은 리소스를 Unreal 패키지 파일로부터 다양한 외부 파일 타입으로 익스포트하는데 사용됩니다.
 
