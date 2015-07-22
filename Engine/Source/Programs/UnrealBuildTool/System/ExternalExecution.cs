@@ -241,6 +241,11 @@ namespace UnrealBuildTool
 				try
 				{
 					Receipt = TargetReceipt.Read(ReceiptPath);
+					if(Receipt == null)
+					{
+						Timestamp = DateTime.MaxValue;
+						return false;
+					}
 				}
 				catch(Exception)
 				{
