@@ -12,7 +12,7 @@
 #include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
-#pragma optimize("",off)
+
 #define LOCTEXT_NAMESPACE "K2Node"
 
 /*******************************************************************************
