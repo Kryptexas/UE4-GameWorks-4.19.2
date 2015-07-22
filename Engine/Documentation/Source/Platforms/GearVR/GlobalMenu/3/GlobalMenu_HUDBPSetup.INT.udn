@@ -83,8 +83,8 @@ With the **GearVR_GlobalMenu** HUD now assigned as the game HUD, we can now star
 
 	![](T_Final_Graph.png)
 
-1. Now you can package your project up and deploy it to your Smartphone to use with the Gear VR HMD. 
-	To see the menu in action, launch your project and then hold down the back button that is on the side of Gear VR HMD.
+1. Now you can package your project up and deploy it to your Smartphone to use with the Samsung Gear VR HMD. 
+	To see the menu in action, launch your project and then hold down the back button that is on the side of Samsung Gear VR HMD.
 	As you do you will see a line being drawn across the screen and then when it finishes the Global Menu will be displayed.
 
 
