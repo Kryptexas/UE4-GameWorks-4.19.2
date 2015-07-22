@@ -19,13 +19,30 @@ Painted geometry is instanced and renders very quickly; however, it cannot be li
 
 ### Wind
 
-Add wind to the scene by adding a wind direction source object (Select **Window** -> **Class Viewer**, search for "WindDirectionalSource", and drag it into the scene). The **Speed** property defaults to 1.0 which is considered maximum wind for SpeedTree models. Lower this value to something like 0.1 to start with calm wind.
+Add wind to the scene by adding a wind direction source object (Select **Window** -> **Class Viewer**, search for "WindDirectionalSource", and drag it into the scene). The **Speed** property defaults to 0.1. Increase this value to something like 1.0 to start with have stronger winds. There are also other properties for **Strength** and **Min/Max Gust Amount**. 
 
 ### Level of Detail
 
 LOD transitions are based on screen space area in UE4. These values are edited by editing the Static Mesh asset associated with the SpeedTree model. Default values are chosen upon import that work for typical situations.
 
 
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Unreal Engine 4 SpeedTree Pipeline
+	[/PARAM]
+	[PARAM:description]
+	
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/SpeedTree/CreatingModelsForUE4 "%Engine/Content/SpeedTree/CreatingModelsForUE4:description%")
+		* [](Engine/Content/SpeedTree/ImportingModelsIntoUE4 "%Engine/Content/SpeedTree/ImportingModelsIntoUE4:description%")
+		* [](Engine/Content/SpeedTree/WorkingWithModelsinUE4 "%Engine/Content/SpeedTree/WorkingWithModelsinUE4:description%")
+		* [](Engine/Content/SpeedTree/ComputingLightmapUVs "%Engine/Content/SpeedTree/ComputingLightmapUVs:description%")
+	[/PARAM]
+[/OBJECT]
 
 
 
