@@ -10,7 +10,7 @@
 #include "SecureHash.h"
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
-#include "GenericPlatformContext.h"
+#include "GenericPlatformCrashContext.h"
 
 #include "UProjectInfo.h"
 

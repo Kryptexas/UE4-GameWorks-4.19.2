@@ -38,7 +38,7 @@ struct CORE_API FProgramCounterSymbolInfoEx
 
 
 /** Enumerates crash description versions. */
-enum class ECrashDescVersions
+enum class ECrashDescVersions : int32
 {
 	/** Introduces a new crash description format. */
 	VER_1_NewCrashFormat,
@@ -73,9 +73,6 @@ public:
 	static const ANSICHAR* CrashContextRuntimeXMLNameA;
 	static const TCHAR* CrashContextRuntimeXMLNameW;
 
-	/**	Whether the Initialize() has been called */
-	static bool bIsInitialized;
-
 	/** Initializes crash context related platform specific data that can be impossible to obtain after a crash. */
 	static void Initialize();
 
@@ -93,6 +90,9 @@ public:
 	/** Serializes all data to the buffer. */
 	void SerializeContentToBuffer();
 
+	/**
+	 * @return the buffer containing serialized data.
+	 */
 	const FString& GetBuffer() const
 	{
 		return CommonBuffer;
@@ -108,8 +108,8 @@ public:
 	 */
 	const bool IsFullCrashDump();
 
-	/** Serializes crash's informations to the specified filename. */
-	void SerializeAsXML( const TCHAR* Filename );
+	/** Serializes crash's informations to the specified filename. Should be overridden for platforms where using FFileHelper is not safe, all POSIX platforms. */
+	virtual void SerializeAsXML( const TCHAR* Filename );
 
 	/** Writes a common property to the buffer. */
 	void AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue );
@@ -133,6 +133,15 @@ private:
 
 	void BeginSection( const TCHAR* SectionName );
 	void EndSection( const TCHAR* SectionName );
+
+	/** Escapes a specified XML string, naive implementation. */
+	static FString EscapeXMLString( const FString& Text );
+
+	/** Unescapes a specified XML string, naive implementation. */
+	static FString UnescapeXMLString( const FString& Text );
+
+	/**	Whether the Initialize() has been called */
+	static bool bIsInitialized;
 
 	/** The buffer used to store the crash's properties. */
 	FString CommonBuffer;

@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
-#include "GenericPlatform/GenericPlatformContext.h"
-#include "Misc/App.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
+#include "Misc./App.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 
@@ -10,6 +10,7 @@ const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContex
 const TCHAR* FGenericCrashContext::CrashContextRuntimeXMLNameW = TEXT( "CrashContext.runtime-xml" );
 bool FGenericCrashContext::bIsInitialized = false;
 FPlatformMemoryStats FGenericCrashContext::CrashMemoryStats = FPlatformMemoryStats();
+
 namespace NCachedCrashContextProperties
 {
 	static bool bIsInternalBuild;
@@ -33,7 +34,7 @@ namespace NCachedCrashContextProperties
 	static FString UserName;
 	static FString DefaultLocale;
 	static int32 CrashDumpMode;
-
+	static int32 SecondsSinceStart;
 	static FString CrashGUID;
 }
 
@@ -75,6 +76,14 @@ void FGenericCrashContext::Initialize()
 	const FGuid Guid = FGuid::NewGuid();
 	NCachedCrashContextProperties::CrashGUID = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
 
+	// Initialize delegate for updating SecondsSinceStart, beacuse FPlatformTime::Seconds() is not POSIX safe.
+	const float PollingInterval = 1.0f;
+	FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateLambda( []( float DeltaTime )
+	{
+		NCachedCrashContextProperties::SecondsSinceStart = int32(FPlatformTime::Seconds() - GStartTime);
+		return true;
+	} ), PollingInterval );
+
 	bIsInitialized = true;
 }
 
@@ -91,69 +100,63 @@ void FGenericCrashContext::SerializeContentToBuffer()
 
 	BeginSection( TEXT( "RuntimeProperties" ) );
 	AddCrashProperty( TEXT( "Version" ), (int32)ECrashDescVersions::VER_2_AddedNewProperties );
-	// ProcessId will be used by the crash report client to get more information about the crashed process.
-	// It should be enough to open the process, get the memory stats, a list of loaded modules etc.
-	// It means that the crashed process needs to be alive as long as the crash report client is working on the process.
-	// Proposal, not implemented yet.
 	AddCrashProperty( TEXT( "ProcessId" ), FPlatformProcess::GetCurrentProcessId() );
 	AddCrashProperty( TEXT( "IsInternalBuild" ), (int32)NCachedCrashContextProperties::bIsInternalBuild );
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), (int32)NCachedCrashContextProperties::bIsPerforceBuild );
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), (int32)NCachedCrashContextProperties::bIsSourceDistribution );
 
-	// Added 'editor/game open time till crash' 
+	AddCrashProperty( TEXT( "SecondsSinceStart" ), (int32)NCachedCrashContextProperties::SecondsSinceStart );
 
 	// Add common crash properties.
 	AddCrashProperty( TEXT( "GameName" ), FApp::GetGameName() );
-	AddCrashProperty(TEXT("ExecutableName"), *NCachedCrashContextProperties::ExecutableName);
+	AddCrashProperty( TEXT( "ExecutableName" ), *NCachedCrashContextProperties::ExecutableName );
 	AddCrashProperty( TEXT( "BuildConfiguration" ), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ) );
 
-	AddCrashProperty(TEXT("PlatformName"), *NCachedCrashContextProperties::PlatformName);
-	AddCrashProperty(TEXT("PlatformNameIni"), *NCachedCrashContextProperties::PlatformNameIni);
+	AddCrashProperty( TEXT( "PlatformName" ), *NCachedCrashContextProperties::PlatformName );
+	AddCrashProperty( TEXT( "PlatformNameIni" ), *NCachedCrashContextProperties::PlatformNameIni );
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
 	AddCrashProperty( TEXT( "EngineVersion" ), *GEngineVersion.ToString() );
-	AddCrashProperty( TEXT( "CommandLine" ), FCommandLine::IsInitialized() ? FCommandLine::Get() : TEXT("") );
+	AddCrashProperty( TEXT( "CommandLine" ), FCommandLine::IsInitialized() ? FCommandLine::Get() : TEXT( "" ) );
 	AddCrashProperty( TEXT( "LanguageLCID" ), FInternationalization::Get().GetCurrentCulture()->GetLCID() );
-	AddCrashProperty(TEXT("DefaultLocale"), *NCachedCrashContextProperties::DefaultLocale);
+	AddCrashProperty( TEXT( "DefaultLocale" ), *NCachedCrashContextProperties::DefaultLocale );
 
-	AddCrashProperty( TEXT( "IsUE4Release" ), (int32)NCachedCrashContextProperties::bIsUE4Release);
+	AddCrashProperty( TEXT( "IsUE4Release" ), (int32)NCachedCrashContextProperties::bIsUE4Release );
 
 	// Remove periods from user names to match AutoReporter user names
 	// The name prefix is read by CrashRepository.AddNewCrash in the website code
 	const bool bSendUserName = NCachedCrashContextProperties::bIsInternalBuild;
 	AddCrashProperty( TEXT( "UserName" ), bSendUserName ? *NCachedCrashContextProperties::UserName.Replace( TEXT( "." ), TEXT( "" ) ) : TEXT( "" ) );
 
-	AddCrashProperty(TEXT("BaseDir"), *NCachedCrashContextProperties::BaseDir);
-	AddCrashProperty(TEXT("RootDir"), *NCachedCrashContextProperties::RootDir);
-	AddCrashProperty(TEXT("MachineId"), *NCachedCrashContextProperties::MachineIdStr);
-	AddCrashProperty(TEXT("EpicAccountId"), *NCachedCrashContextProperties::EpicAccountId);
+	AddCrashProperty( TEXT( "BaseDir" ), *NCachedCrashContextProperties::BaseDir );
+	AddCrashProperty( TEXT( "RootDir" ), *NCachedCrashContextProperties::RootDir );
+	AddCrashProperty( TEXT( "MachineId" ), *NCachedCrashContextProperties::MachineIdStr );
+	AddCrashProperty( TEXT( "EpicAccountId" ), *NCachedCrashContextProperties::EpicAccountId );
 
 	AddCrashProperty( TEXT( "CallStack" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "SourceContext" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "UserDescription" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "ErrorMessage" ), (const TCHAR*)GErrorMessage ); // GErrorMessage may be broken.
-
-	// Add misc stats.
-	AddCrashProperty(TEXT("MiscNumberOfCores"), NCachedCrashContextProperties::NumberOfCores);
-	AddCrashProperty(TEXT("MiscNumberOfCoresIncludingHyperthreads"), NCachedCrashContextProperties::NumberOfCoresIncludingHyperthreads);
-	AddCrashProperty( TEXT( "MiscIs64bitOperatingSystem" ), (int32)FPlatformMisc::Is64bitOperatingSystem() );
-
-	AddCrashProperty(TEXT("MiscCPUVendor"), *NCachedCrashContextProperties::CPUVendor);
-	AddCrashProperty(TEXT("MiscCPUBrand"), *NCachedCrashContextProperties::CPUBrand);
-	AddCrashProperty(TEXT("MiscPrimaryGPUBrand"), *NCachedCrashContextProperties::PrimaryGPUBrand);
-	AddCrashProperty(TEXT("MiscOSVersionMajor"), *NCachedCrashContextProperties::OsVersion);
-	AddCrashProperty(TEXT("MiscOSVersionMinor"), *NCachedCrashContextProperties::OsSubVersion);
-
 	AddCrashProperty( TEXT( "CrashDumpMode" ), NCachedCrashContextProperties::CrashDumpMode );
 
+	// Add misc stats.
+	AddCrashProperty( TEXT( "Misc.NumberOfCores" ), NCachedCrashContextProperties::NumberOfCores );
+	AddCrashProperty( TEXT( "Misc.NumberOfCoresIncludingHyperthreads" ), NCachedCrashContextProperties::NumberOfCoresIncludingHyperthreads );
+	AddCrashProperty( TEXT( "Misc.Is64bitOperatingSystem" ), (int32)FPlatformMisc::Is64bitOperatingSystem() );
 
-	// @TODO yrx 2014-10-08 Move to the crash report client.
-	/*if( CanUseUnsafeAPI() )
-	{
+	AddCrashProperty( TEXT( "Misc.CPUVendor" ), *NCachedCrashContextProperties::CPUVendor );
+	AddCrashProperty( TEXT( "Misc.CPUBrand" ), *NCachedCrashContextProperties::CPUBrand );
+	AddCrashProperty( TEXT( "Misc.PrimaryGPUBrand" ), *NCachedCrashContextProperties::PrimaryGPUBrand );
+	AddCrashProperty( TEXT( "Misc.OSVersionMajor" ), *NCachedCrashContextProperties::OsVersion );
+	AddCrashProperty( TEXT( "Misc.OSVersionMinor" ), *NCachedCrashContextProperties::OsSubVersion );
+
+
+	// #YRX_Crash: 2015-07-21 Move to the crash report client.
+	/*{
 		uint64 AppDiskTotalNumberOfBytes = 0;
 		uint64 AppDiskNumberOfFreeBytes = 0;
 		FPlatformMisc::GetDiskTotalAndFreeSpace( FPlatformProcess::BaseDir(), AppDiskTotalNumberOfBytes, AppDiskNumberOfFreeBytes );
-		AddCrashProperty( TEXT( "MiscAppDiskTotalNumberOfBytes" ), AppDiskTotalNumberOfBytes );
-		AddCrashProperty( TEXT( "MiscAppDiskNumberOfFreeBytes" ), AppDiskNumberOfFreeBytes );
+		AddCrashProperty( TEXT( "Misc.AppDiskTotalNumberOfBytes" ), AppDiskTotalNumberOfBytes );
+		AddCrashProperty( TEXT( "Misc.AppDiskNumberOfFreeBytes" ), AppDiskNumberOfFreeBytes );
 	}*/
 
 	// FPlatformMemory::GetConstants is called in the GCreateMalloc, so we can assume it is always valid.
@@ -161,21 +164,21 @@ void FGenericCrashContext::SerializeContentToBuffer()
 		// Add memory stats.
 		const FPlatformMemoryConstants& MemConstants = FPlatformMemory::GetConstants();
 
-		AddCrashProperty( TEXT( "MemoryStatsTotalPhysical" ), (uint64)MemConstants.TotalPhysical );
-		AddCrashProperty( TEXT( "MemoryStatsTotalVirtual" ), (uint64)MemConstants.TotalVirtual );
-		AddCrashProperty( TEXT( "MemoryStatsPageSize" ), (uint64)MemConstants.PageSize );
-		AddCrashProperty( TEXT( "MemoryStatsTotalPhysicalGB" ), MemConstants.TotalPhysicalGB );
+		AddCrashProperty( TEXT( "MemoryStats.TotalPhysical" ), (uint64)MemConstants.TotalPhysical );
+		AddCrashProperty( TEXT( "MemoryStats.TotalVirtual" ), (uint64)MemConstants.TotalVirtual );
+		AddCrashProperty( TEXT( "MemoryStats.PageSize" ), (uint64)MemConstants.PageSize );
+		AddCrashProperty( TEXT( "MemoryStats.TotalPhysicalGB" ), MemConstants.TotalPhysicalGB );
 	}
 
-	AddCrashProperty( TEXT( "MemoryStatsAvailablePhysical" ), (uint64)CrashMemoryStats.AvailablePhysical );
-	AddCrashProperty( TEXT( "MemoryStatsAvailableVirtual" ), (uint64)CrashMemoryStats.AvailableVirtual );
-	AddCrashProperty( TEXT( "MemoryStatsUsedPhysical" ), (uint64)CrashMemoryStats.UsedPhysical );
-	AddCrashProperty( TEXT( "MemoryStatsPeakUsedPhysical" ), (uint64)CrashMemoryStats.PeakUsedPhysical );
-	AddCrashProperty( TEXT( "MemoryStatsUsedVirtual" ), (uint64)CrashMemoryStats.UsedVirtual );
-	AddCrashProperty( TEXT( "MemoryStatsPeakUsedVirtual" ), (uint64)CrashMemoryStats.PeakUsedVirtual );
-	AddCrashProperty( TEXT( "MemoryStatsbIsOOM" ), (int32)FPlatformMemory::bIsOOM );
-	AddCrashProperty( TEXT( "MemoryStatsOOMAllocationSize"), (uint64)FPlatformMemory::OOMAllocationSize );
-	AddCrashProperty( TEXT( "MemoryStatsOOMAllocationAlignment"), (int32)FPlatformMemory::OOMAllocationAlignment );
+	AddCrashProperty( TEXT( "MemoryStats.AvailablePhysical" ), (uint64)CrashMemoryStats.AvailablePhysical );
+	AddCrashProperty( TEXT( "MemoryStats.AvailableVirtual" ), (uint64)CrashMemoryStats.AvailableVirtual );
+	AddCrashProperty( TEXT( "MemoryStats.UsedPhysical" ), (uint64)CrashMemoryStats.UsedPhysical );
+	AddCrashProperty( TEXT( "MemoryStats.PeakUsedPhysical" ), (uint64)CrashMemoryStats.PeakUsedPhysical );
+	AddCrashProperty( TEXT( "MemoryStats.UsedVirtual" ), (uint64)CrashMemoryStats.UsedVirtual );
+	AddCrashProperty( TEXT( "MemoryStats.PeakUsedVirtual" ), (uint64)CrashMemoryStats.PeakUsedVirtual );
+	AddCrashProperty( TEXT( "MemoryStats.bIsOOM" ), (int32)FPlatformMemory::bIsOOM );
+	AddCrashProperty( TEXT( "MemoryStats.OOMAllocationSize"), (uint64)FPlatformMemory::OOMAllocationSize );
+	AddCrashProperty( TEXT( "MemoryStats.OOMAllocationAlignment"), (int32)FPlatformMemory::OOMAllocationAlignment );
 
 	//Architecture
 	//CrashedModuleName
@@ -213,7 +216,8 @@ void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TC
 	CommonBuffer += PropertyName;
 	CommonBuffer += TEXT( ">" );
 
-	CommonBuffer += PropertyValue;
+
+	CommonBuffer += EscapeXMLString( PropertyValue );
 
 	CommonBuffer += TEXT( "</" );
 	CommonBuffer += PropertyName;
@@ -254,6 +258,26 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName )
 	CommonBuffer += LINE_TERMINATOR;
 }
 
+
+FString FGenericCrashContext::EscapeXMLString( const FString& Text )
+{
+	return Text
+		.Replace( TEXT( "&" ), TEXT( "&amp;" ) )
+		.Replace( TEXT( "\"" ), TEXT( "&quot;" ) )
+		.Replace( TEXT( "'" ), TEXT( "&apos;" ) )
+		.Replace( TEXT( "<" ), TEXT( "&lt;" ) )
+		.Replace( TEXT( ">" ), TEXT( "&gt;" ) );
+}
+
+FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
+{
+	return Text
+		.Replace( TEXT( "&amp;" ), TEXT( "&" ) )
+		.Replace( TEXT( "&quot;" ), TEXT( "\"" ) )
+		.Replace( TEXT( "&apos;" ), TEXT( "'" ) )
+		.Replace( TEXT( "&lt;" ), TEXT( "<" ) )
+		.Replace( TEXT( "&gt;" ), TEXT( ">" ) );
+}
 
 FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :
 	ModuleName( InModuleName ),

@@ -295,7 +295,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 			{
 				// No super safe due to dynamic memory allocations, but at least enables new functionality.
 				// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
-				FPlatformCrashContext CrashContext;
+				FWindowsPlatformCrashContext CrashContext;
 
 				const FString CrashContextXMLPath = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), FPlatformCrashContext::CrashContextRuntimeXMLNameW );
 				CrashContext.SerializeAsXML( *CrashContextXMLPath );

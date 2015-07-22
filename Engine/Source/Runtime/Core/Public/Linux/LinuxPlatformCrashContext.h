@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 // commandline parameter to suppress DWARF parsing (greatly speeds up callstack generation)
 #define CMDARG_SUPPRESS_DWARF_PARSING			"nodwarf"

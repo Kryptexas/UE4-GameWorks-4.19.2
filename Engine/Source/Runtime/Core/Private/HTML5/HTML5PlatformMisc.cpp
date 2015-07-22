@@ -14,7 +14,7 @@
 #include "trace.h"
 
 #include "unicode/locid.h"
-#include "GenericPlatformContext.h"
+#include "GenericPlatformCrashContext.h"
 #include <SDL.h>
 #include <ctime>
 

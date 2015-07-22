@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GenericPlatformContext.h"
+#include "GenericPlatformCrashContext.h"
 
 /**
  *	Describes a unified crash, should be used by all platforms.

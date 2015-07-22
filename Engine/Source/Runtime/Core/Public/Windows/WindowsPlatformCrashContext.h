@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include "DbgHelp.h"

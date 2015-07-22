@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 /**
  * Declaration for common crash context implementation for Apple platforms.
