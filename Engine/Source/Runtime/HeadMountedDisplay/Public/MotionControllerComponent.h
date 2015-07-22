@@ -4,7 +4,7 @@
 #include "IMotionController.h"
 #include "MotionControllerComponent.generated.h"
 
-UCLASS(MinimalAPI, meta = (BlueprintSpawnableComponent), ClassGroup = MotionController)
+UCLASS(MinimalAPI, Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = MotionController)
 class UMotionControllerComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

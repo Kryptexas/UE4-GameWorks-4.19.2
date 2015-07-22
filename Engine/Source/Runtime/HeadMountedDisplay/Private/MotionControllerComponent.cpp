@@ -22,7 +22,10 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	FVector Position = FVector::ZeroVector;
 	FRotator Orientation = FRotator::ZeroRotator;
 
-	if (PlayerIndex != INDEX_NONE)
+	const APlayerController* Actor = Cast<APlayerController>(GetOwner());
+	const bool bHasAuthority = !Actor || Actor->IsLocalPlayerController();
+
+	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)
 	{
 		for (auto MotionController : GEngine->MotionControllerDevices)
 		{
