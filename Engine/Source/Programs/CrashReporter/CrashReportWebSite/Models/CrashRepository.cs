@@ -630,6 +630,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 				else if (NewCrash.RawCallStack.Contains( "FDebug::Ensure" ))
 				{
+					NewCrash.CrashType = 3;			
+				}
+				else if (NewCrash.RawCallStack.Contains( "FDebug::OptionallyLogFormattedEnsureMessageReturningFalse" ))
+				{
 					NewCrash.CrashType = 3;
 				}
 				else if (NewCrash.RawCallStack.Contains( "NewReportEnsure" ))
