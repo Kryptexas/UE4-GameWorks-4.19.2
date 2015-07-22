@@ -78,7 +78,6 @@ private:
 
 	/* stuff needed by the Sequencer */
 	UMovieScene *MovieScene;
-	TSharedPtr<ISequencerObjectBindingManager> SequencerBindingManager;
 	TSharedPtr<ISequencer> Sequencer;
 
 

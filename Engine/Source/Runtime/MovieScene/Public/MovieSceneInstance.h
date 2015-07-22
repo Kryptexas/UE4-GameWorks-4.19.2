@@ -3,7 +3,7 @@
 #pragma once
 
 
-class UMovieSceneObjectManager;
+class IMovieSceneTrackInstance;
 class UMovieSceneTrack;
 
 
@@ -67,13 +67,6 @@ public:
 		return TimeRange;
 	}
 
-	/**
-	 * Get the movie scene's object manager.
-	 *
-	 * @return The object manager.
-	 */
-	TScriptInterface<UMovieSceneObjectManager> GetObjectManager() const;
-
 protected:
 
 	void RefreshInstanceMap(const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, class IMovieScenePlayer& Player);
@@ -98,7 +91,7 @@ private:
 	TWeakObjectPtr<UMovieScene> MovieScene;
 
 	/** The shot track instance map */
-	TSharedPtr<class IMovieSceneTrackInstance> ShotTrackInstance;
+	TSharedPtr<IMovieSceneTrackInstance> ShotTrackInstance;
 
 	/** All Master track instances */
 	FMovieSceneInstanceMap MasterTrackInstances;

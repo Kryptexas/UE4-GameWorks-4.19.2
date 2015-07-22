@@ -2,6 +2,7 @@
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraEffect.h"
+#include "NiagaraAnimation.h"
 
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -81,28 +82,33 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 	if (!Sequencer.IsValid())
 	{
-		FSequencerViewParams ViewParams( TEXT( "NiagaraSequencerSettings" ) );
-		ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
-		ViewParams.InitialScrubPosition = 0;
-
-		SequencerBindingManager = MakeShareable(new FNiagaraSequencerObjectBindingManager());
-
 		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"), RF_RootSet);
+		auto NewAnimation = NewObject<UNiagaraAnimation>(MovieScene);
+
+		FSequencerViewParams ViewParams(TEXT("NiagaraSequencerSettings"));
+		{
+			ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
+			ViewParams.InitialScrubPosition = 0;
+		}
+
+		FSequencerInitParams SequencerInitParams;
+		{
+			SequencerInitParams.ViewParams = ViewParams;
+			SequencerInitParams.Animation = NewAnimation;
+			SequencerInitParams.bEditWithinLevelEditor = false;
+			SequencerInitParams.ToolkitHost = nullptr;
+		}
 
 		ISequencerModule &SeqModule = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer");
 		FDelegateHandle CreateTrackEditorHandle = SeqModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FNiagaraEffectEditor::CreateTrackEditor));
-		Sequencer = SeqModule.CreateSequencer(MovieScene, ViewParams, SequencerBindingManager.ToSharedRef());
+		Sequencer = SeqModule.CreateSequencer(SequencerInitParams);
 
 		for (TSharedPtr<FNiagaraSimulation> Emitter : EffectInstance->GetEmitters())
 		{
 			UEmitterMovieSceneTrack *Track = Cast<UEmitterMovieSceneTrack> (MovieScene->AddMasterTrack(UEmitterMovieSceneTrack::StaticClass()) );
 			 Track->SetEmitter(Emitter);
 		}
-
 	}
-
-
-
 
 	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Niagara_Effect_Layout_v7")
 		->AddArea

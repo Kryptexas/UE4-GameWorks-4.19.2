@@ -1,12 +1,12 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieScenePrivatePCH.h"
-#include "MovieSceneObjectManager.h"
+#include "MovieSceneAnimation.h"
 
 
-/* UMovieSceneBindingManager structors
+/* UMovieSceneAnimation structors
  *****************************************************************************/
 
-UMovieSceneObjectManager::UMovieSceneObjectManager(const FObjectInitializer& ObjectInitializer)
+UMovieSceneAnimation::UMovieSceneAnimation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 { }

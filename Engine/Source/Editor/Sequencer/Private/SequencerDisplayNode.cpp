@@ -12,7 +12,6 @@
 #include "MovieSceneTrack.h"
 #include "CommonMovieSceneTools.h"
 #include "IKeyArea.h"
-#include "ISequencerObjectBindingManager.h"
 
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
@@ -577,7 +576,7 @@ void FTrackNode::FixRowIndices()
 FText FObjectBindingNode::GetDisplayName() const
 {
 	FText DisplayName;
-	return GetSequencer().GetObjectBindingManager()->TryGetObjectBindingDisplayName(GetSequencer().GetFocusedMovieSceneInstance(), ObjectBinding, DisplayName) ?
+	return GetSequencer().GetAnimation()->TryGetObjectDisplayName(ObjectBinding, DisplayName) ?
 		DisplayName : DefaultDisplayName;
 }
 
@@ -697,10 +696,10 @@ void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UPro
 TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 {
 	TArray<TArray<UProperty*>> KeyablePropertyPaths;
-	TArray<UObject*> BoundObjects;
 	FSequencer& Sequencer = GetSequencer();
-	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetRootMovieSceneInstance(), ObjectBinding, BoundObjects);
-	for (UObject* BoundObject : BoundObjects)
+	UObject* BoundObject = Sequencer.GetAnimation()->FindObject(ObjectBinding);
+
+	if (BoundObject != nullptr)
 	{
 		TArray<UProperty*> PropertyPath;
 		GetKeyablePropertyPaths(BoundObject->GetClass(), BoundObject->GetClass(), PropertyPath, Sequencer, KeyablePropertyPaths);
@@ -722,7 +721,7 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 
 	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
 	TSharedRef<FUICommandList> CommandList(new FUICommandList);
-	FMenuBuilder AddTrackMenuBuilder(true, nullptr, SequencerModule.GetMenuExtensibilityManager()->GetAllExtenders(CommandList, BoundObjects));
+	FMenuBuilder AddTrackMenuBuilder(true, nullptr, SequencerModule.GetMenuExtensibilityManager()->GetAllExtenders(CommandList, TArrayBuilder<UObject*>().Add(BoundObject)));
 
 	AddTrackMenuBuilder.BeginSection( SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection, LOCTEXT("PropertiesMenuHeader" , "Properties"));
 	{
@@ -745,12 +744,10 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
-
-	TArray<UObject*> BoundObjects;
-	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetFocusedMovieSceneInstance(), ObjectBinding, BoundObjects);
+	UObject* BoundObject = Sequencer.GetAnimation()->FindObject(ObjectBinding);
 
 	TArray<UObject*> KeyableBoundObjects;
-	for (UObject* BoundObject : BoundObjects)
+	if (BoundObject != nullptr)
 	{
 		if (Sequencer.CanKeyProperty(FCanKeyPropertyParams(BoundObject->GetClass(), PropertyPath)))
 		{

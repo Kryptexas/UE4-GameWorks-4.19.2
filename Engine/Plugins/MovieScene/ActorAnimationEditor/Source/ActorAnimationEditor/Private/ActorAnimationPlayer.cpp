@@ -1,91 +1,92 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneBindings.h"
+#include "ActorAnimationEditorPrivatePCH.h"
+#include "ActorAnimationPlayer.h"
+#include "MovieScene.h"
+#include "MovieSceneAnimation.h"
 #include "MovieSceneInstance.h"
-#include "RuntimeMovieScenePlayer.h"
 
 
-/* URuntimeMovieScenePlayer static functions
+/* UActorAnimationPlayer structors
  *****************************************************************************/
 
-URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreatePlayer(ULevel* Level, UMovieSceneBindings* MovieSceneBindings)
-{
-	URuntimeMovieScenePlayer* NewPlayer = NewObject<URuntimeMovieScenePlayer>((UObject*)GetTransientPackage(), NAME_None, RF_Transient);
-	check(NewPlayer != nullptr);
-
-	// associate the player with its world
-	NewPlayer->World = Level->OwningWorld;
-	check(NewPlayer->World.IsValid());
-
-	// attach bindings to the newly-created RuntimeMovieScenePlayer
-	NewPlayer->SetMovieSceneBindings(MovieSceneBindings);
-
-	// spawn actors for each spawnable!
-
-	// add to the level's list of active players
-	check(Level != nullptr);
-	Level->AddActiveRuntimeMovieScenePlayer(NewPlayer);
-
-	return NewPlayer;
-}
-
-
-/* URuntimeMovieScenePlayer structors
- *****************************************************************************/
-
-URuntimeMovieScenePlayer::URuntimeMovieScenePlayer(const FObjectInitializer& ObjectInitializer)
+UActorAnimationPlayer::UActorAnimationPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, ActorAnimation(nullptr)
 	, bIsPlaying(false)
-	, MovieSceneBindings(nullptr)
 	, TimeCursorPosition(0.0f)
 { }
 
 
-/* URuntimeMovieScenePlayer interface
+/* UActorAnimationPlayer interface
  *****************************************************************************/
 
-bool URuntimeMovieScenePlayer::IsPlaying() const
+void UActorAnimationPlayer::PlayActorAnimation(UObject* WorldContextObject, UActorAnimation* ActorAnimation)
+{
+	if (ActorAnimation == nullptr)
+	{
+		return;
+	}
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	check(World != nullptr);
+	check(World->PersistentLevel != nullptr);
+
+	UActorAnimationPlayer* NewPlayer = NewObject<UActorAnimationPlayer>((UObject*)GetTransientPackage(), NAME_None, RF_Transient);
+
+	check(NewPlayer != nullptr);
+
+	NewPlayer->Initialize(ActorAnimation, World);
+	World->PersistentLevel->AddActiveRuntimeMovieScenePlayer(NewPlayer);
+}
+
+
+bool UActorAnimationPlayer::IsPlaying() const
 {
 	return bIsPlaying;
 }
 
 
-void URuntimeMovieScenePlayer::Pause()
+void UActorAnimationPlayer::Pause()
 {
 	bIsPlaying = false;
 }
 
 
-void URuntimeMovieScenePlayer::Play()
+void UActorAnimationPlayer::Play()
 {
-	// Init the root movie scene instance
-	if (MovieSceneBindings != nullptr)
+	if ((ActorAnimation == nullptr) || !World.IsValid())
 	{
-		UMovieScene* MovieScene = MovieSceneBindings->GetRootMovieScene();
-	
-		// @todo Sequencer playback: Should we recreate the instance every time?
-		RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(*MovieScene));
-
-		// @odo Sequencer Should we spawn actors here?
-		SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
-		RootMovieSceneInstance->RefreshInstance(*this);
+		return;
 	}
+
+	// @todo Sequencer playback: Should we recreate the instance every time?
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(*ActorAnimation->GetMovieScene()));
+
+	// @odo Sequencer Should we spawn actors here?
+	SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
+	RootMovieSceneInstance->RefreshInstance(*this);
 	
 	bIsPlaying = true;
+}
+
+
+/* UActorAnimationPlayer implementation
+ *****************************************************************************/
+
+void UActorAnimationPlayer::Initialize(UActorAnimation* InActorAnimation, UWorld* InWorld)
+{
+	ActorAnimation = InActorAnimation;
+	World = InWorld;
 }
 
 
 /* IMovieScenePlayer interface
  *****************************************************************************/
 
-void URuntimeMovieScenePlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
+void UActorAnimationPlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
 {
-	if (MovieSceneBindings == nullptr)
-	{
-		return;
-	}
-
 	UWorld* WorldPtr = World.Get();
 
 	if (WorldPtr == nullptr)
@@ -146,13 +147,8 @@ void URuntimeMovieScenePlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstanc
 }
 
 
-void URuntimeMovieScenePlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
+void UActorAnimationPlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
 {
-	if (MovieSceneBindings == nullptr)
-	{
-		return;
-	}
-
 	UWorld* WorldPtr = World.Get();
 
 	if (WorldPtr == nullptr)
@@ -188,13 +184,7 @@ void URuntimeMovieScenePlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneInsta
 }
 
 
-void URuntimeMovieScenePlayer::SetMovieSceneBindings( UMovieSceneBindings* NewMovieSceneBindings )
-{
-	MovieSceneBindings = NewMovieSceneBindings;
-}
-
-	
-void URuntimeMovieScenePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<UObject*>& OutObjects) const
+void UActorAnimationPlayer::GetRuntimeObjects(TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
 {
 	// @todo sequencer runtime: Add support for individually spawning actors on demand when first requested?
 	//    This may be important to reduce the up-front hitch when spawning actors for the entire movie, but
@@ -211,65 +201,50 @@ void URuntimeMovieScenePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneInstance>
 		{
 			const FSpawnedActorInfo ActorInfo = SpawnedActorInfoRef[SpawnedActorIndex];
 
-			if ((ActorInfo.RuntimeGuid == ObjectHandle) && ActorInfo.SpawnedActor.IsValid())
+			if ((ActorInfo.RuntimeGuid == ObjectId) && ActorInfo.SpawnedActor.IsValid())
 			{
 				OutObjects.Add(ActorInfo.SpawnedActor.Get());
 			}
 		}
 	}
-	else if (MovieSceneBindings != nullptr)
+	else
 	{
 		// otherwise, check whether we have one or more possessed actors that are mapped to this handle
-		for (FMovieSceneBoundObjectInfo& BoundObject : MovieSceneBindings->FindBoundObjects(ObjectHandle))
+		UObject* FoundObject = ActorAnimation->FindObject(ObjectId);
+
+		if (FoundObject != nullptr)
 		{
-			if (BoundObject.Tag.IsEmpty() == false)
-			{
-				AActor* Actor = Cast<AActor>(BoundObject.Object);
-				if (Actor != nullptr)
-				{
-					for (UActorComponent* ActorComponent : Actor->GetComponents())
-					{
-						if (ActorComponent->GetName() == BoundObject.Tag)
-						{
-							OutObjects.Add(ActorComponent);
-						}
-					}
-				}
-			}
-			else
-			{
-				OutObjects.Add(BoundObject.Object);
-			}
+			OutObjects.Add(FoundObject);
 		}
 	}
 }
 
 
-void URuntimeMovieScenePlayer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
+void UActorAnimationPlayer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
 {
 }
 
 
-EMovieScenePlayerStatus::Type URuntimeMovieScenePlayer::GetPlaybackStatus() const
+EMovieScenePlayerStatus::Type UActorAnimationPlayer::GetPlaybackStatus() const
 {
 	return bIsPlaying ? EMovieScenePlayerStatus::Playing : EMovieScenePlayerStatus::Stopped;
 }
 
 
-void URuntimeMovieScenePlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd)
+void UActorAnimationPlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd)
 {
 	SpawnActorsForMovie( InstanceToAdd );
 }
 
 
-void URuntimeMovieScenePlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove)
+void UActorAnimationPlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove)
 {
 	const bool bDestroyAll = true;
 	DestroyActorsForMovie( InstanceToRemove );
 }
 
 
-TSharedRef<FMovieSceneInstance> URuntimeMovieScenePlayer::GetRootMovieSceneInstance() const
+TSharedRef<FMovieSceneInstance> UActorAnimationPlayer::GetRootMovieSceneInstance() const
 {
 	return RootMovieSceneInstance.ToSharedRef();
 }
@@ -278,7 +253,7 @@ TSharedRef<FMovieSceneInstance> URuntimeMovieScenePlayer::GetRootMovieSceneInsta
 /* IRuntimeMovieScenePlayerInterface interface
  *****************************************************************************/
 
-void URuntimeMovieScenePlayer::Tick(const float DeltaSeconds)
+void UActorAnimationPlayer::Tick(const float DeltaSeconds)
 {
 	float LastTimePosition = TimeCursorPosition;
 

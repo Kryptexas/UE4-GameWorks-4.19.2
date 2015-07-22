@@ -1,13 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "SequencerPossessedObject.h"
+#include "ActorAnimationPrivatePCH.h"
+#include "ActorAnimationObject.h"
 
 
 /* FSequencerPossessedObject interface
  *****************************************************************************/
 
-UObject* FSequencerPossessedObject::GetObject() const
+UObject* FActorAnimationObject::GetObject() const
 {
 	// get component-less object
 	if (ComponentName.IsEmpty())

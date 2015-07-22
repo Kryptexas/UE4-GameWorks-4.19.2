@@ -11,12 +11,6 @@ FMovieSceneInstance::FMovieSceneInstance( UMovieScene& InMovieScene )
 }
 
 
-TScriptInterface<UMovieSceneObjectManager> FMovieSceneInstance::GetObjectManager() const
-{
-	return MovieScene.Get()->GetObjectManager();
-}
-
-
 void FMovieSceneInstance::SaveState()
 {
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();

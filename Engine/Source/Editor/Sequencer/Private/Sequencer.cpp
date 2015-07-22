@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
 #include "SequencerEdMode.h"
-#include "ISequencerObjectBindingManager.h"
+#include "MovieSceneAnimation.h"
 #include "MovieScene.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -25,7 +25,6 @@
 #include "MovieSceneTrackEditor.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "K2Node_PlayMovieScene.h"
 #include "AssetSelection.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneShotSection.h"
@@ -55,7 +54,7 @@ namespace
 	TSharedPtr<FSequencer> ActiveSequencer;
 }
 
-void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates )
+void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates)
 {
 	if( IsSequencerEnabled() )
 	{
@@ -81,13 +80,13 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 
 		LastViewRange = TargetViewRange = InitParams.ViewParams.InitalViewRange;
 		ScrubPosition = InitParams.ViewParams.InitialScrubPosition;
-		ObjectChangeListener = InitParams.ObjectChangeListener;
-		ObjectBindingManager = InitParams.ObjectBindingManager;
+		ObjectChangeListener = InObjectChangeListener;
+		Animation = InitParams.Animation;
 
 		check( ObjectChangeListener.IsValid() );
-		check( ObjectBindingManager.IsValid() );
+		check( Animation != nullptr );
 		
-		UMovieScene& RootMovieScene = *InitParams.RootMovieScene;
+		UMovieScene& RootMovieScene = *InitParams.Animation->GetMovieScene();
 		RootMovieScene.SetFlags( RF_Transactional );
 		
 		// Focusing the initial movie scene needs to be done before the first time GetFocusedMovieSceneInstane or GetRootMovieSceneInstance is used
@@ -182,7 +181,7 @@ FSequencer::~FSequencer()
 
 	DestroySpawnablesForAllMovieScenes();
 
-	ObjectBindingManager.Reset();
+	Animation = nullptr;
 	TrackEditors.Empty();
 	SequencerWidget.Reset();
 }
@@ -304,7 +303,7 @@ UMovieScene* FSequencer::GetFocusedMovieScene() const
 	return MovieSceneStack.Top()->GetMovieScene();
 }
 
-void FSequencer::ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISequencerObjectBindingManager> NewObjectBindingManager )
+void FSequencer::ResetToNewAnimation(IMovieSceneAnimation& NewAnimation)
 {
 	DestroySpawnablesForAllMovieScenes();
 
@@ -316,12 +315,13 @@ void FSequencer::ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISeq
 	UnfilterableObjects.Empty();
 	MovieSceneSectionToInstanceMap.Empty();
 
-	NewRoot.SetFlags(RF_Transactional);
+	NewAnimation.GetMovieScene()->SetFlags(RF_Transactional);
 
-	ObjectBindingManager = NewObjectBindingManager;
+	Animation = &NewAnimation;
+	check(Animation != nullptr);
 
 	// Focusing the initial movie scene needs to be done before the first time GetFocusedMovieSceneInstane or GetRootMovieSceneInstance is used
-	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(NewRoot));
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(*Animation->GetMovieScene()));
 	MovieSceneStack.Add(RootMovieSceneInstance.ToSharedRef());
 
 	SequencerWidget->ResetBreadcrumbs();
@@ -452,9 +452,9 @@ void FSequencer::DeleteSelectedKeys()
 
 void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance )
 {
-	if( ObjectBindingManager->AllowsSpawnableObjects() )
+	if( Animation->AllowsSpawnableObjects() )
 	{
-		ObjectBindingManager->SpawnOrDestroyObjectsForInstance( MovieSceneInstance, false /*bDestroyAll*/ );
+		Animation->SpawnOrDestroyObjects(MovieSceneInstance->GetMovieScene(), false /*DestroyAll*/);
 	}
 }
 
@@ -493,13 +493,13 @@ void FSequencer::OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors 
 			OwnerMovieScene->Modify();
 				
 			const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(Actor->GetActorLabel(), Actor->GetClass());
-				 
+
 			if (IsShotFilteringOn())
 			{
 				AddUnfilterableObject(PossessableGuid);
 			}
-				
-			ObjectBindingManager->BindPossessableObject(PossessableGuid, *Actor);			
+
+			Animation->BindPossessableObject(PossessableGuid, *Actor);
 			bPossessableAdded = true;
 		}
 	}
@@ -616,9 +616,14 @@ void FSequencer::SetPerspectiveViewportPossessionEnabled(bool bEnabled)
 
 FGuid FSequencer::GetHandleToObject( UObject* Object )
 {
+	if (Object == nullptr)
+	{
+		return FGuid();
+	}
+
 	TSharedRef<FMovieSceneInstance> FocusedMovieSceneInstance = GetFocusedMovieSceneInstance();
 	UMovieScene* FocusedMovieScene = FocusedMovieSceneInstance->GetMovieScene();
-	FGuid ObjectGuid = ObjectBindingManager->FindGuidForObject( *FocusedMovieScene, *Object );
+	FGuid ObjectGuid = Animation->FindObjectId(*Object);
 
 	// Check here for spawnable otherwise spawnables get recreated as possessables, which doesn't make sens
 	FMovieSceneSpawnable* Spawnable = FocusedMovieScene->FindSpawnable(ObjectGuid);
@@ -633,10 +638,9 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 		// Make sure that the possessable is still valid, if it's not remove the binding so new one 
 		// can be created.  This can happen due to undo.
 		FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectGuid);
-		
-		if (Possessable == nullptr)
+		if(Possessable == nullptr)
 		{
-			ObjectBindingManager->UnbindPossessableObjects(ObjectGuid);
+			Animation->UnbindPossessableObjects(ObjectGuid);
 			ObjectGuid.Invalidate();
 		}
 	}
@@ -645,7 +649,7 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 
 	// If the object guid was not found attempt to add it
 	// Note: Only possessed actors can be added like this
-	if (!ObjectGuid.IsValid() && ObjectBindingManager->CanPossessObject(*Object))
+	if (!ObjectGuid.IsValid() && Animation->CanPossessObject(*Object))
 	{
 		// @todo sequencer: Undo doesn't seem to be working at all
 		const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene"));
@@ -657,17 +661,17 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 
 			ObjectGuid = FocusedMovieScene->AddPossessable(Object->GetName(), Object->GetClass());
 
-			if (IsShotFilteringOn())
+			if(IsShotFilteringOn())
 			{
 				AddUnfilterableObject(ObjectGuid);
 			}
 
-			ObjectBindingManager->BindPossessableObject(ObjectGuid, *Object);
+			Animation->BindPossessableObject(ObjectGuid, *Object);
 			bPossessableAdded = true;
 		}
 
 		// If we're adding a possessable, generate handles to it's parent objects too.
-		UObject* ParentObject = ObjectBindingManager->GetParentObject(Object);
+		UObject* ParentObject = Animation->GetParentObject(Object);
 		if ( ParentObject != nullptr )
 		{
 			GetHandleToObject(ParentObject);
@@ -696,36 +700,17 @@ void FSequencer::SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieScene
 
 void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject*>& OutObjects ) const
 {
-	ObjectBindingManager->GetRuntimeObjects( MovieSceneInstance, ObjectHandle, OutObjects );
-	
-	/*if( ObjectSpawner.IsValid() )
-	{	
-		// First, try to find spawnable puppet objects for the specified Guid
-		UObject* FoundPuppetObject = ObjectSpawner->FindPuppetObjectForSpawnableGuid( MovieSceneInstance, ObjectHandle );
-		if( FoundPuppetObject != nullptr )
-		{
-			// Found a puppet object!
-			OutObjects.Reset();
-			OutObjects.Add( FoundPuppetObject );
-		}
-		else
-		{
-			// No puppets were found for spawnables, so now we'll check for possessed actors
-			if( PlayMovieSceneNode != nullptr )
-			{
-				// @todo Sequencer SubMovieScene: Figure out how to instance possessables
-				OutObjects = PlayMovieSceneNode->FindBoundObjects( ObjectHandle );
-			}
-		}
-	}
-	else
+	if (Animation == nullptr)
 	{
-		FMovieScenePossessable* Possessable = MovieSceneInstance->GetMovieScene()->FindPossessable( ObjectHandle );
-		if( Possessable && Possessable->GetPossessableObject() )
-		{
-			OutObjects.Add( Possessable->GetPossessableObject() );
-		}
-	}*/
+		return;
+	}
+
+	UObject* FoundObject = Animation->FindObject(ObjectHandle);
+
+	if (FoundObject != nullptr)
+	{
+		OutObjects.Add(FoundObject);
+	}
 }
 
 void FSequencer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
@@ -761,11 +746,8 @@ void FSequencer::AddOrUpdateMovieSceneInstance( UMovieSceneSection& MovieSceneSe
 
 void FSequencer::RemoveMovieSceneInstance( UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove )
 {
-	if( ObjectBindingManager->AllowsSpawnableObjects() )
-	{
-		ObjectBindingManager->RemoveMovieSceneInstance( InstanceToRemove );
-	}
-	
+	UMovieScene* MovieScene = InstanceToRemove->GetMovieScene();
+	Animation->DestroyAllSpawnedObjects(*MovieScene);
 
 	MovieSceneSectionToInstanceMap.Remove( &MovieSceneSection );
 }
@@ -804,10 +786,8 @@ void FSequencer::UpdateRuntimeInstances()
 
 void FSequencer::DestroySpawnablesForAllMovieScenes()
 {
-	if( ObjectBindingManager->AllowsSpawnableObjects() )
-	{
-		ObjectBindingManager->DestroyAllSpawnedObjects();
-	}
+	UMovieScene* MovieScene = RootMovieSceneInstance->GetMovieScene();
+	Animation->DestroyAllSpawnedObjects(*MovieScene);
 }
 
 FReply FSequencer::OnPlay(bool bTogglePlay)
@@ -1046,7 +1026,7 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 {
 	FGuid NewSpawnableGuid;
 
-	if (ObjectBindingManager->AllowsSpawnableObjects())
+	if (Animation->AllowsSpawnableObjects())
 	{
 		// Grab the MovieScene that is currently focused.  We'll add our Blueprint as an inner of the
 		// MovieScene asset.
@@ -1194,9 +1174,9 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& 
 			// The guid should be associated with a possessable if it wasnt a spawnable
 			bRemoved = OwnerMovieScene->RemovePossessable( BindingToRemove );
 			
-			// @todo Sequencer - undo needs to work here
-			ObjectBindingManager->UnbindPossessableObjects( BindingToRemove );
-			
+			// @todo sequencer: undo needs to work here
+			Animation->UnbindPossessableObjects( BindingToRemove );
+
 			// If this check fails the guid was not associated with a spawnable or possessable so there was an invalid guid being stored on a node
 			check( bRemoved );
 		}
@@ -1510,9 +1490,9 @@ void FSequencer::KeyProperty(FKeyPropertyParams KeyPropertyParams)
 	ObjectChangeListener->KeyProperty(KeyPropertyParams);
 }
 
-TSharedRef<ISequencerObjectBindingManager> FSequencer::GetObjectBindingManager() const
+IMovieSceneAnimation* FSequencer::GetAnimation()
 {
-	return ObjectBindingManager.ToSharedRef();
+	return Animation;
 }
 
 FSequencerSelection& FSequencer::GetSelection()

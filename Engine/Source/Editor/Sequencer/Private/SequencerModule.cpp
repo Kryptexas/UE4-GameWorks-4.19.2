@@ -5,7 +5,6 @@
 #include "Sequencer.h"
 #include "Toolkits/ToolkitManager.h"
 #include "SequencerCommands.h"
-#include "SequencerAssetEditor.h"
 #include "SequencerEdMode.h"
 #include "SequencerObjectChangeListener.h"
 
@@ -28,33 +27,16 @@ public:
 
 	// ISequencerModule interface
 
-	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* RootMovieScene, const FSequencerViewParams& InViewParams, TSharedRef<ISequencerObjectBindingManager> ObjectBindingManager ) override
+	virtual TSharedRef<ISequencer> CreateSequencer(const FSequencerInitParams& InitParams) override
 	{
-		TSharedRef< FSequencer > Sequencer = MakeShareable(new FSequencer);
-		
-		FSequencerInitParams SequencerInitParams;
-		{
-			SequencerInitParams.ViewParams = InViewParams;
-			SequencerInitParams.ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( Sequencer, false ) );
-			SequencerInitParams.ObjectBindingManager = ObjectBindingManager;
-			SequencerInitParams.RootMovieScene = RootMovieScene;
-			SequencerInitParams.bEditWithinLevelEditor = false;
-			SequencerInitParams.ToolkitHost = nullptr;
-		}
-		
-		Sequencer->InitSequencer(SequencerInitParams, TrackEditorDelegates);
-		
+		TSharedRef<FSequencer> Sequencer = MakeShareable(new FSequencer);
+		TSharedRef<ISequencerObjectChangeListener> ObjectChangeListener = MakeShareable(new FSequencerObjectChangeListener(Sequencer, InitParams.bEditWithinLevelEditor));
+
+		Sequencer->InitSequencer(InitParams, ObjectChangeListener, TrackEditorDelegates);
+
 		return Sequencer;
 	}
 	
-	virtual TSharedPtr<ISequencer> CreateSequencerAssetEditor( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, bool bEditWithinLevelEditor ) override
-	{
-		TSharedRef<FSequencerAssetEditor> SequencerAssetEditor = MakeShareable(new FSequencerAssetEditor);
-
-		SequencerAssetEditor->InitSequencerAssetEditor( Mode, InViewParams, InitToolkitHost, InRootMovieScene, TrackEditorDelegates, bEditWithinLevelEditor );
-		return SequencerAssetEditor->GetSequencerInterface();
-	}
-
 	virtual FDelegateHandle RegisterTrackEditor_Handle( FOnCreateTrackEditor InOnCreateTrackEditor ) override
 	{
 		TrackEditorDelegates.Add( InOnCreateTrackEditor );

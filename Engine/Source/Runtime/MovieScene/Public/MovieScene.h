@@ -9,7 +9,6 @@
 
 
 class UBlueprint;
-class UMovieSceneObjectManager;
 class UMovieSceneSection;
 class UMovieSceneTrack;
 
@@ -240,16 +239,6 @@ public:
 	}
 
 	/**
-	 * Get the movie scene's object manager.
-	 *
-	 * @return The object manager.
-	 */
-	TScriptInterface<UMovieSceneObjectManager> GetObjectManager() const
-	{
-		return BindingManager;
-	}
-
-	/**
 	 * @return The time range of the movie scene (defined by all sections in the scene)
 	 */
 	TRange<float> GetTimeRange() const;
@@ -281,10 +270,6 @@ protected:
 	void RemoveBinding(const FGuid& Guid);
 
 private:
-
-	/** The object binding manager. */
-	UPROPERTY()
-	TScriptInterface<UMovieSceneObjectManager> BindingManager;
 
 	/**
 	 * Data-only blueprints for all of the objects that we we're able to spawn.

@@ -3,9 +3,10 @@
 #pragma once
 
 #include "IMovieScenePlayer.h"
-#include "MovieScene.h"
+#include "ActorAnimation.h"
+#include "IMovieScenePlayer.h"
 #include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
-#include "RuntimeMovieScenePlayer.generated.h"
+#include "ActorAnimationPlayer.generated.h"
 
 
 class FMovieSceneInstance;
@@ -20,7 +21,7 @@ class UMovieSceneBindings;
  * a MovieScene while its playing.
  */
 UCLASS(MinimalAPI)
-class URuntimeMovieScenePlayer
+class UActorAnimationPlayer
 	: public UObject
 	, public IMovieScenePlayer
 	, public IRuntimeMovieScenePlayerInterface
@@ -30,17 +31,12 @@ class URuntimeMovieScenePlayer
 public:
 
 	/**
-	 * Static:  Creates a RuntimeMovieScenePlayer.  This function is designed to be called through the expanded PlayMovieScene
-	 * Kismet node, and not called directly through visual script.
+	 * Play an actor animation.
 	 *
-	 * @param Level The level to play this MovieScene in.  This level will "own" the instance of the returned RuntimeMovieScenePlayer.
-	 * @param MovieSceneBindings The MovieScene to play, along with the bindings to any actors in the level that may be possessed during playback.
-	 * @return The newly created RuntimeMovieScenePlayer instance for this MovieScene
+	 * @param ActorAnimation The actor animation to play.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
-	static URuntimeMovieScenePlayer* CreatePlayer(ULevel* Level, UMovieSceneBindings* InMovieSceneBindings);
-
-public:
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject"))
+	static void PlayActorAnimation(UObject* WorldContextObject, UActorAnimation* ActorAnimation);
 
 	/** Start playback from the current time cursor position. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
@@ -55,8 +51,13 @@ public:
 
 protected:
 
-	/** Sets the bindings for this RuntimeMovieScenePlayer.  Should be called right after construction. */
-	void SetMovieSceneBindings(UMovieSceneBindings* NewMovieSceneBindings);
+	/**
+	 * Initialize the player.
+	 *
+	 * @param InActorAnimation The actor animation to play.
+	 * @param InWorld The world that the animation is played in.
+	 */
+	void Initialize(UActorAnimation* InActorAnimation, UWorld* InWorld);
 
 protected:
 
@@ -79,13 +80,13 @@ protected:
 
 private:
 
+	/** The actor animation to play. */
+	UPROPERTY()
+	UActorAnimation* ActorAnimation;
+
 	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
 	UPROPERTY()
 	bool bIsPlaying;
-
-	/** The MovieScene we're playing as well as bindings for this MovieScene.  May contain sub-scenes. */
-	UPROPERTY()
-	UMovieSceneBindings* MovieSceneBindings;
 
 	/** The current time cursor position within the sequence (in seconds) */
 	UPROPERTY()

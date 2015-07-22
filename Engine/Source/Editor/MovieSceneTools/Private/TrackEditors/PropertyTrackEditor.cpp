@@ -3,6 +3,7 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "PropertyEditing.h"
 #include "MovieScene.h"
+#include "MovieSceneAnimation.h"
 #include "MovieSceneTrack.h"
 #include "MovieSceneFloatTrack.h"
 #include "MovieSceneVectorTrack.h"
@@ -12,7 +13,6 @@
 #include "MovieSceneVisibilityTrack.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneSection.h"
-#include "ISequencerObjectBindingManager.h"
 #include "ISequencerObjectChangeListener.h"
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
@@ -119,10 +119,9 @@ private:
 			{
 				if (MovieSceneBinding.GetTracks()[TrackIndex] == Track)
 				{
-					TArray<UObject*> RuntimeObjects;
-					Sequencer->GetObjectBindingManager()->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects);
+					UObject* RuntimeObject = Sequencer->GetAnimation()->FindObject(MovieSceneBinding.GetObjectGuid());
 
-					for (UObject* RuntimeObject : RuntimeObjects)
+					if (RuntimeObject != nullptr)
 					{
 						UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(CastChecked<UMovieSceneColorTrack>(Track)->GetPropertyName());
 						UStructProperty* ColorStructProp = Cast<UStructProperty>( Property );
@@ -466,11 +465,10 @@ void FPropertyTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAs
 
 UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
-	TArray<UObject*> RuntimeObjects;
-	Sequencer->GetObjectBindingManager()->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneInstance(), OwnerObjectHandle, RuntimeObjects);
+	UObject* RuntimeObject = Sequencer->GetAnimation()->FindObject(OwnerObjectHandle);
 
 	TSet<UEnum*> PropertyEnums;
-	for (UObject* RuntimeObject : RuntimeObjects)
+	if (RuntimeObject != nullptr)
 	{
 		UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(PropertyName);
 		if (Property != nullptr)

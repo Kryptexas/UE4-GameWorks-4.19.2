@@ -1,23 +1,19 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
+#include "ActorAnimationEditorPrivatePCH.h"
 #include "Toolkits/IToolkitHost.h"
-#include "SequencerAssetEditor.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "Sequencer.h"
-#include "MovieScene.h"
-#include "EditorWidgetsModule.h"
-#include "SequencerActorBindingManager.h"
-#include "SequencerObjectChangeListener.h"
+#include "ISequencer.h"
+#include "ISequencerModule.h"
 #include "SDockTab.h"
 
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
-const FName FSequencerAssetEditor::SequencerMainTabId( TEXT( "Sequencer_SequencerMain" ) );
+const FName FActorAnimationEditorToolkit::SequencerMainTabId(TEXT("Sequencer_SequencerMain"));
 
 
 namespace SequencerDefs
@@ -26,23 +22,24 @@ namespace SequencerDefs
 }
 
 
-void FSequencerAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FActorAnimationEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
+	if (IsWorldCentricAssetEditor())
 	{
-		WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
-
-		TabManager->RegisterTabSpawner( SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FSequencerAssetEditor::SpawnTab_SequencerMain) )
-			.SetDisplayName( LOCTEXT("SequencerMainTab", "Sequencer") )
-			.SetGroup( WorkspaceMenuCategory.ToSharedRef() );
+		return;
 	}
 
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
+
+	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FActorAnimationEditorToolkit::SpawnTab_SequencerMain))
+		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 }
 
 
-void FSequencerAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FActorAnimationEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
+	if (!IsWorldCentricAssetEditor())
 	{
 		TabManager->UnregisterTabSpawner( SequencerMainTabId );
 	}
@@ -53,7 +50,7 @@ void FSequencerAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabMan
 }
 
 
-void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor )
+void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor )
 {
 	{
 		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Sequencer_Layout")
@@ -69,23 +66,19 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 
 		const bool bCreateDefaultStandaloneMenu = true;
 		const bool bCreateDefaultToolbar = false;
-		FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, InRootMovieScene);
+		FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ActorAnimation);
 	}
 	
 	// Init Sequencer
-	Sequencer = MakeShareable(new FSequencer);
-	
 	FSequencerInitParams SequencerInitParams;
 	{
 		SequencerInitParams.ViewParams = InViewParams;
-		SequencerInitParams.ObjectChangeListener = MakeShareable(new FSequencerObjectChangeListener(Sequencer.ToSharedRef(), bEditWithinLevelEditor));
-		SequencerInitParams.ObjectBindingManager = MakeShareable(new FSequencerActorBindingManager(SequencerInitParams.ObjectChangeListener.ToSharedRef(), Sequencer.ToSharedRef()));
-		SequencerInitParams.RootMovieScene = InRootMovieScene;
+		SequencerInitParams.Animation = ActorAnimation;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 	}
 
-	Sequencer->InitSequencer(SequencerInitParams, TrackEditorDelegates);
+	Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
 
 	if (bEditWithinLevelEditor)
 	{
@@ -96,28 +89,22 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 			
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
-		LevelEditorModule.OnMapChanged().AddRaw(this, &FSequencerAssetEditor::HandleMapChanged);
+		LevelEditorModule.OnMapChanged().AddRaw(this, &FActorAnimationEditorToolkit::HandleMapChanged);
 	}
 }
 
 
-TSharedRef<ISequencer> FSequencerAssetEditor::GetSequencerInterface() const
-{ 
-	return Sequencer.ToSharedRef(); 
-}
-
-
-FSequencerAssetEditor::FSequencerAssetEditor()
+FActorAnimationEditorToolkit::FActorAnimationEditorToolkit()
 {
 	// Register sequencer menu extenders.
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
 	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
-		FAssetEditorExtender::CreateRaw( this, &FSequencerAssetEditor::GetContextSensitiveSequencerExtender ) );
+		FAssetEditorExtender::CreateRaw( this, &FActorAnimationEditorToolkit::GetContextSensitiveSequencerExtender ) );
 	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
 }
 
 
-FSequencerAssetEditor::~FSequencerAssetEditor()
+FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
 {
 	Sequencer->Close();
 
@@ -137,7 +124,7 @@ FSequencerAssetEditor::~FSequencerAssetEditor()
 }
 
 
-TSharedRef<SDockTab> FSequencerAssetEditor::SpawnTab_SequencerMain(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FActorAnimationEditorToolkit::SpawnTab_SequencerMain(const FSpawnTabArgs& Args)
 {
 	check(Args.GetTabId() == SequencerMainTabId);
 
@@ -151,42 +138,42 @@ TSharedRef<SDockTab> FSequencerAssetEditor::SpawnTab_SequencerMain(const FSpawnT
 }
 
 
-FName FSequencerAssetEditor::GetToolkitFName() const
+FName FActorAnimationEditorToolkit::GetToolkitFName() const
 {
 	static FName SequencerName("Sequencer");
 	return SequencerName;
 }
 
 
-FText FSequencerAssetEditor::GetBaseToolkitName() const
+FText FActorAnimationEditorToolkit::GetBaseToolkitName() const
 {
 	return LOCTEXT("AppLabel", "Sequencer");
 }
 
 
-FLinearColor FSequencerAssetEditor::GetWorldCentricTabColorScale() const
+FLinearColor FActorAnimationEditorToolkit::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor( 0.7, 0.0f, 0.0f, 0.5f );
 }
 
 
-FString FSequencerAssetEditor::GetWorldCentricTabPrefix() const
+FString FActorAnimationEditorToolkit::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("WorldCentricTabPrefix", "Sequencer ").ToString();
 }
 
-TSharedRef<FExtender> FSequencerAssetEditor::GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects )
+TSharedRef<FExtender> FActorAnimationEditorToolkit::GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects )
 {
 	TSharedRef<FExtender> AddTrackMenuExtender( new FExtender() );
 	AddTrackMenuExtender->AddMenuExtension(
 		SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection,
 		EExtensionHook::Before,
 		CommandList,
-		FMenuExtensionDelegate::CreateRaw( this, &FSequencerAssetEditor::ExtendSequencerAddTrackMenu, ContextSensitiveObjects ) );
+		FMenuExtensionDelegate::CreateRaw( this, &FActorAnimationEditorToolkit::ExtendSequencerAddTrackMenu, ContextSensitiveObjects ) );
 	return AddTrackMenuExtender;
 }
 
-void FSequencerAssetEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
+void FActorAnimationEditorToolkit::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
 {
 	if ( ContextObjects.Num() == 1 )
 	{
@@ -197,7 +184,7 @@ void FSequencerAssetEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackM
 			{
 				for ( UActorComponent* Component : Actor->GetComponents() )
 				{
-					FUIAction AddComponentAction( FExecuteAction::CreateSP( this, &FSequencerAssetEditor::AddComponentTrack, Component ) );
+					FUIAction AddComponentAction( FExecuteAction::CreateSP( this, &FActorAnimationEditorToolkit::AddComponentTrack, Component ) );
 					FText AddComponentLabel = FText::FromString(Component->GetName());
 					FText AddComponentToolTip = FText::Format( LOCTEXT( "ComponentToolTipFormat", "Add {0} component" ), FText::FromString( Component->GetName() ) );
 					AddTrackMenuBuilder.AddMenuEntry( AddComponentLabel, AddComponentToolTip, FSlateIcon(), AddComponentAction );
@@ -208,13 +195,13 @@ void FSequencerAssetEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackM
 	}
 }
 
-void FSequencerAssetEditor::AddComponentTrack( UActorComponent* Component )
+void FActorAnimationEditorToolkit::AddComponentTrack( UActorComponent* Component )
 {
 	Sequencer->GetHandleToObject( Component );
 }
 
 
-void FSequencerAssetEditor::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
+void FActorAnimationEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
 }

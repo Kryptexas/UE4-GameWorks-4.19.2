@@ -6,7 +6,6 @@
 #include "MovieSceneSection.h"
 #include "MovieScene3DPathTrack.h"
 #include "MovieScene3DPathSection.h"
-#include "ISequencerObjectBindingManager.h"
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"

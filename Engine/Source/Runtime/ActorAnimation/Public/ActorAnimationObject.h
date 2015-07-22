@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include "SequencerPossessedObject.generated.h"
+#include "ActorAnimationObject.generated.h"
 
 
 /**
- * Structure for movie scene objects in Sequencer.
+ * Structure for animated Actor objects.
  */
 USTRUCT()
-struct FSequencerPossessedObject
+struct FActorAnimationObject
 {
-	GENERATED_USTRUCT_BODY(FSequencerPossessedObject)
+	GENERATED_USTRUCT_BODY(FActorAnimationObject)
 
 public:
 
 	/** Creates and initializes a new instance. */
-	FSequencerPossessedObject()
+	FActorAnimationObject()
 		: ObjectOrOwner(nullptr)
 		, CachedComponent(nullptr)
 	{ }
@@ -26,7 +26,7 @@ public:
 	 *
 	 * @param InObject The object to be bound.
 	 */
-	FSequencerPossessedObject(UObject* InObject)
+	FActorAnimationObject(UObject* InObject)
 		: ObjectOrOwner(InObject)
 		, CachedComponent(nullptr)
 	{ }
@@ -37,7 +37,7 @@ public:
 	 * @param InOwner The object that owns the component.
 	 * @param InComponentName The component to be bound.
 	 */
-	FSequencerPossessedObject(UObject* InOwner, FString InComponentName)
+	FActorAnimationObject(UObject* InOwner, FString InComponentName)
 		: ObjectOrOwner(InOwner)
 		, ComponentName(InComponentName)
 		, CachedComponent(nullptr)
@@ -50,7 +50,7 @@ public:
 	 * @param Y The second binding to compare.
 	 * @return true if the bindings refer to the same object, false otherwise.
 	 */
-	friend bool operator==(const FSequencerPossessedObject& X, const FSequencerPossessedObject& Y)
+	friend bool operator==(const FActorAnimationObject& X, const FActorAnimationObject& Y)
 	{
 		return (X.ObjectOrOwner == Y.ObjectOrOwner) && (X.ComponentName == Y.ComponentName);
 	}
@@ -60,7 +60,7 @@ public:
 	 *
 	 * @return The object (usually an Actor or an ActorComponent).
 	 */
-	SEQUENCER_API UObject* GetObject() const;
+	ACTORANIMATION_API UObject* GetObject() const;
 
 private:
 

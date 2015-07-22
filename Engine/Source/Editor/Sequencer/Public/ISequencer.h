@@ -9,11 +9,12 @@
 
 
 class FSequencerSelection;
-class ISequencerObjectBindingManager;
+class IMovieSceneAnimation;
 class UAnimSequence;
 class UMovieScene;
 class UMovieSceneSection;
 enum class EMapChangeType : uint8;
+
 
 /**
  * Interface for sequencers.
@@ -41,8 +42,8 @@ public:
 	 */
 	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const = 0;
 
-	/** Resets sequencer with a new RootMovieScene */
-	virtual void ResetToNewRootMovieScene(UMovieScene& NewRoot, TSharedRef<ISequencerObjectBindingManager> NewObjectBindingManager) = 0;
+	/** Resets sequencer with a new animation */
+	virtual void ResetToNewAnimation(IMovieSceneAnimation& NewAnimation) = 0;
 
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer.
@@ -155,7 +156,12 @@ public:
 
 	virtual void UpdateRuntimeInstances() = 0;
 
-	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const = 0;
+	/**
+	 * Get the animation that is being played by this sequencer.
+	 *
+	 * @return The current animation, or nullptr if no animation is playing.
+	 */
+	virtual IMovieSceneAnimation* GetAnimation() = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
 

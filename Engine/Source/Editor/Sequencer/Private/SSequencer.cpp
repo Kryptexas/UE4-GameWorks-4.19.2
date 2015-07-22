@@ -20,7 +20,6 @@
 #include "DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "DragAndDrop/ClassDragDropOp.h"
 #include "AssetSelection.h"
-#include "K2Node_PlayMovieScene.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 #include "SSearchBox.h"

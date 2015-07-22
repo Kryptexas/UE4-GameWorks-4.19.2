@@ -1,0 +1,23 @@
+{
+	"FileVersion" : 3,
+	
+	"FriendlyName" : "Actor Animation Editor",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"EngineVersion" : "4.5.0",
+	"Description" : "Content Editor for ActorAnimation Assets.",
+	"Category" : "Editor",
+	"EnabledByDefault" : true,
+
+	"Modules" :
+	[
+		{
+			"Name" : "ActorAnimationEditor",
+			"Type" : "Editor"
+		}
+	],
+
+	"CanContainContent" : false
+}

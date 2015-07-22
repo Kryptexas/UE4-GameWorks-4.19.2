@@ -9,31 +9,8 @@
 
 class UMovieScene;
 class IToolkitHost;
-class ISequencerObjectBindingManager;
+class IMovieSceneAnimation;
 class ISequencerObjectChangeListener;
-
-
-/** Parameters for initializing a Sequencer */
-struct FSequencerInitParams
-{
-	/** The root movie scene being edited */
-	UMovieScene* RootMovieScene;
-	
-	/** The interface for managing runtime object bindings */
-	TSharedPtr<ISequencerObjectBindingManager> ObjectBindingManager;
-	
-	/** The Object change listener for various systems that need to be notified when objects change */
-	TSharedPtr<ISequencerObjectChangeListener> ObjectChangeListener;
-	
-	/** The asset editor created for this (if any) */
-	TSharedPtr<IToolkitHost> ToolkitHost;
-
-	/** View parameters */
-	FSequencerViewParams ViewParams;
-
-	/** Whether or not sequencer should be edited within the level editor */
-	bool bEditWithinLevelEditor;
-};
 
 
 /**
@@ -52,11 +29,11 @@ public:
 	/**
 	 * Initializes sequencer
 	 *
-	 * @param	InitParams		Initialization options
-	 * @param	TrackEditorDelegates	Delegates to call to create auto-key handlers for this sequencer
-
+	 * @param InitParams Initialization parameters.
+	 * @param InObjectChangeListener The object change listener to use.
+	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
 	 */
-	void InitSequencer( const FSequencerInitParams& InitParams, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates );
+	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
 
 	/** Constructor */
 	FSequencer();
@@ -86,7 +63,7 @@ public:
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
 	virtual UMovieScene* GetRootMovieScene() const override;
 	virtual UMovieScene* GetFocusedMovieScene() const override;
-	virtual void ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISequencerObjectBindingManager> NewObjectBindingManager ) override;
+	virtual void ResetToNewAnimation(IMovieSceneAnimation& NewAnimation) override;
 	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const override;
 	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const override;
 	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) override;
@@ -109,7 +86,7 @@ public:
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
-	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const override;
+	virtual IMovieSceneAnimation* GetAnimation() override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
 
@@ -423,8 +400,8 @@ private:
 	TWeakPtr<FMovieSceneTrackEditor> ShotTrackEditor;
 	TWeakPtr<FMovieSceneTrackEditor> AnimationTrackEditor;
 
-	/** Manager for handling runtime object bindings */
-	TSharedPtr< ISequencerObjectBindingManager > ObjectBindingManager;
+	/** The current animation being edited. */
+	IMovieSceneAnimation* Animation;
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;

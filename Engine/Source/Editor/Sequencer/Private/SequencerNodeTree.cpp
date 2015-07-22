@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
+#include "MovieSceneAnimation.h"
 #include "MovieSceneSection.h"
 #include "SequencerNodeTree.h"
 #include "Sequencer.h"
@@ -10,7 +11,7 @@
 #include "MovieSceneTrackEditor.h"
 #include "SectionLayoutBuilder.h"
 #include "ISequencerSection.h"
-#include "ISequencerObjectBindingManager.h"
+
 
 void FSequencerNodeTree::Empty()
 {
@@ -200,14 +201,14 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 		// Try to get the parent object node if there is one.
 		TSharedPtr<FObjectBindingNode> ParentNode;
 		TArray<UObject*> RuntimeObjects;
-		TSharedRef<ISequencerObjectBindingManager> BindingManager(Sequencer.GetObjectBindingManager());
-		BindingManager->GetRuntimeObjects(Sequencer.GetFocusedMovieSceneInstance(), ObjectBinding, RuntimeObjects);
-		if ( RuntimeObjects.Num() == 1)
+		IMovieSceneAnimation* Animation = Sequencer.GetAnimation();
+		UObject* RuntimeObject = Animation->FindObject(ObjectBinding);
+		if ( RuntimeObject != nullptr)
 		{
-			UObject* ParentObject = BindingManager->GetParentObject(RuntimeObjects[0]);
+			UObject* ParentObject = Animation->GetParentObject(RuntimeObject);
 			if (ParentObject != nullptr)
 			{
-				FGuid ParentBinding = BindingManager->FindGuidForObject(*Sequencer.GetFocusedMovieScene(), *ParentObject);
+				FGuid ParentBinding = Animation->FindObjectId(*ParentObject);
 				TSharedPtr<FObjectBindingNode>* FoundParentNode = ObjectBindingMap.Find( ParentBinding );
 				if ( FoundParentNode != nullptr )
 				{
