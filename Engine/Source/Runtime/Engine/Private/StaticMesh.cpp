@@ -2311,9 +2311,16 @@ void UStaticMesh::EnforceLightmapRestrictions()
 
 	int32 NumUVs = 16;
 
-	for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+	if (RenderData)
 	{
-		NumUVs = FMath::Min(RenderData->LODResources[LODIndex].GetNumTexCoords(), NumUVs);
+		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+		{
+			NumUVs = FMath::Min(RenderData->LODResources[LODIndex].GetNumTexCoords(),NumUVs);
+		}
+	}
+	else
+	{
+		NumUVs = 1;
 	}
 
 	// Clamp LightMapCoordinateIndex to be valid for all lightmap uvs
