@@ -282,14 +282,6 @@ public:
 	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const = 0;
 
 	/**
-	 * Creates a tool tip with the specified string.
-	 *
-	 * @param ToolTipString The string attribute to assign to the tool tip.
-	 * @return The tool tip.
-	 */
-	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) = 0;
-
-	/**
 	 * Creates a tool tip with the specified text.
 	 *
 	 * @param ToolTipText The text attribute to assign to the tool tip.

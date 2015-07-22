@@ -819,9 +819,6 @@ public:
 	 *
 	 * @param InToolTipText  the text that should appear in the tool tip
 	 */
-	DEPRECATED(4.8, "Passing text to Slate as FString is deprecated, please use FText instead (likely via a LOCTEXT).")
-	void SetToolTipText( const TAttribute<FString>& InToolTipText );
-
 	void SetToolTipText(const TAttribute<FText>& ToolTipText);
 
 	void SetToolTipText( const FText& InToolTipText );

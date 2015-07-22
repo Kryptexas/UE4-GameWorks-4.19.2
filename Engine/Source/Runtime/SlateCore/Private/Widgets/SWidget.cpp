@@ -598,12 +598,6 @@ FSlateColor SWidget::GetForegroundColor() const
 }
 
 
-void SWidget::SetToolTipText( const TAttribute<FString>& ToolTipString )
-{
-	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipString);
-}
-
-
 void SWidget::SetToolTipText(const TAttribute<FText>& ToolTipText)
 {
 	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipText);

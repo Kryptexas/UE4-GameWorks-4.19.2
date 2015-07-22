@@ -33,7 +33,7 @@ public:
 		/** Content displayed inside the area that is expanded */
 		SLATE_NAMED_SLOT( FArguments, BodyContent )
 		/** The title to display.  Not used if header content is supplied */
-		SLATE_TEXT_ATTRIBUTE( AreaTitle )
+		SLATE_ATTRIBUTE( FText, AreaTitle )
 		/** Whether or not the area is initially collapsed */
 		SLATE_ARGUMENT( bool, InitiallyCollapsed )
 		/** The maximum height of the area */

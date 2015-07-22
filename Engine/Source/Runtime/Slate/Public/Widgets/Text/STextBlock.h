@@ -45,7 +45,7 @@ public:
 		{}
 
 		/** The text displayed in this text block */
-		SLATE_TEXT_ATTRIBUTE( Text )
+		SLATE_ATTRIBUTE( FText, Text )
 
 		/** Pointer to a style of the text block, which dictates the font, color, and shadow options. */
 		SLATE_STYLE_ARGUMENT( FTextBlockStyle, TextStyle )

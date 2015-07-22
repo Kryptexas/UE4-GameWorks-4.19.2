@@ -57,7 +57,7 @@ public:
 		/** The value that should be displayed.  This value is optional in the case where a value cannot be determined */
 		SLATE_ATTRIBUTE( TOptional<NumericType>, Value )
 		/** The string to display if the value cannot be determined */
-		SLATE_TEXT_ARGUMENT( UndeterminedString )
+		SLATE_ARGUMENT( FText, UndeterminedString )
 		/** Font color and opacity */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
 		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */

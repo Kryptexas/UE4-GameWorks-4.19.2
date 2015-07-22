@@ -41,7 +41,7 @@ public:
 		SLATE_NAMED_SLOT(FArguments, Content)
 
 		/** Text to display on main button. */
-		SLATE_TEXT_ATTRIBUTE(ButtonText)
+		SLATE_ATTRIBUTE(FText, ButtonText)
 
 		/** Whether the optional icon is shown */
 		SLATE_ATTRIBUTE(bool, bShowIcon)
