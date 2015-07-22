@@ -257,7 +257,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				break;
 			case 3:
 				bSkipping = true;
-				LineToSkipUpto = "FDebug::Ensure";
+				LineToSkipUpto = "FDebug::";
 				break;
 			}
 
