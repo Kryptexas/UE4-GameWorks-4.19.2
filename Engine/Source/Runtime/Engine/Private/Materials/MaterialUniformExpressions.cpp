@@ -43,7 +43,7 @@ FMaterialUniformExpressionType::FMaterialUniformExpressionType(
 	SerializationConstructor(InSerializationConstructor)
 {
 	// Put the type in the type list until the name subsystem/type map are initialized.
-	(new TLinkedList<FMaterialUniformExpressionType*>(this))->Link(GetTypeList());
+	(new TLinkedList<FMaterialUniformExpressionType*>(this))->LinkHead(GetTypeList());
 }
 
 FArchive& operator<<(FArchive& Ar,FMaterialUniformExpression*& Ref)

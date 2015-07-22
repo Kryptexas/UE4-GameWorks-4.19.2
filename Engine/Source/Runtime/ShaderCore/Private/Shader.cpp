@@ -99,7 +99,7 @@ FShaderType::FShaderType(
 	check(FCString::Strlen(InName) < NAME_SIZE);
 
 	// register this shader type
-	GlobalListLink.Link(GetTypeList());
+	GlobalListLink.LinkHead(GetTypeList());
 	GetNameToTypeMap().Add(FName(InName), this);
 
 	// Assign the shader type the next unassigned hash index.

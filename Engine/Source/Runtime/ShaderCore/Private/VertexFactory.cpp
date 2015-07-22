@@ -121,7 +121,7 @@ FVertexFactoryType::FVertexFactoryType(
 	checkf(!bInitializedSerializationHistory, TEXT("VF type was loaded after engine init, use ELoadingPhase::PostConfigInit on your module to cause it to load earlier."));
 
 	// Add this vertex factory type to the global list.
-	GlobalListLink.Link(GetTypeList());
+	GlobalListLink.LinkHead(GetTypeList());
 
 	// Assign the vertex factory type the next unassigned hash index.
 	HashIndex = NextHashIndex++;

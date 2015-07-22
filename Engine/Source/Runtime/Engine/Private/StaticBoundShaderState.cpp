@@ -25,14 +25,14 @@ FGlobalBoundShaderStateResource::FGlobalBoundShaderStateResource()
 	// Add this resource to the global list in the rendering thread.
 	if(IsInRenderingThread())
 	{
-		GlobalListLink.Link(GetGlobalBoundShaderStateList());
+		GlobalListLink.LinkHead(GetGlobalBoundShaderStateList());
 	}
 	else
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			LinkGlobalBoundShaderStateResource,FGlobalBoundShaderStateResource*,Resource,this,
 			{
-				Resource->GlobalListLink.Link(GetGlobalBoundShaderStateList());
+				Resource->GlobalListLink.LinkHead(GetGlobalBoundShaderStateList());
 			});
 	}
 }

@@ -170,7 +170,7 @@ void FSceneViewStateReference::Allocate()
 	check(!Reference);
 	Reference = GetRendererModule().AllocateViewState();
 	GlobalListLink = TLinkedList<FSceneViewStateReference*>(this);
-	GlobalListLink.Link(GetSceneViewStateList());
+	GlobalListLink.LinkHead(GetSceneViewStateList());
 }
 
 void FSceneViewStateReference::Destroy()

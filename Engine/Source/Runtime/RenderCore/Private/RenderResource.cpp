@@ -22,7 +22,7 @@ void FRenderResource::InitResource()
 	if(!bInitialized)
 	{
 		ResourceLink = TLinkedList<FRenderResource*>(this);
-		ResourceLink.Link(GetResourceList());
+		ResourceLink.LinkHead(GetResourceList());
 		if(GIsRHIInitialized)
 		{
 			InitDynamicRHI();

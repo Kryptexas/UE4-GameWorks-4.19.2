@@ -221,7 +221,7 @@ public:
 
 		if (bRegisterForAutoBinding)
 		{
-			GlobalListLink.Link(GetStructList());
+			GlobalListLink.LinkHead(GetStructList());
 			FName StrutTypeFName(StructTypeName);
 			// Verify that during FName creation there's no case conversion
 			checkSlow(FCString::Strcmp(StructTypeName, *StrutTypeFName.GetPlainNameString()) == 0);
