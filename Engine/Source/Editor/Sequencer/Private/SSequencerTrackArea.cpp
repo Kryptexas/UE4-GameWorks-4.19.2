@@ -221,7 +221,7 @@ FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPoi
 {
 	if (MarqueeSelectData.IsValid())
 	{
-		SetNewMarqueeBounds(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), MyGeometry);
+		SetNewMarqueeBounds(MouseEvent, MyGeometry);
 		return FReply::Handled();
 	}
 	else if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
@@ -277,49 +277,57 @@ void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double 
 	}
 }
 
-void SSequencerTrackArea::SetNewMarqueeBounds(FVector2D NewVirtualPosition, const FGeometry& MyGeometry)
+void SSequencerTrackArea::SetNewMarqueeBounds(const FPointerEvent& MouseEvent, const FGeometry& MyGeometry)
 {
-	const FVirtualConverter Converter(TreeView.Pin(), Sequencer.Pin(), MyGeometry);
-	TRange<float> ViewRange = Sequencer.Pin()->GetViewRange();
+	const FVector2D MouseDelta = MouseEvent.GetCursorDelta();
 
-	FVector2D Change = MarqueeSelectData->CurrentPosition;
+	FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
-	MarqueeSelectData->CurrentPosition = Converter.PhysicalToVirtual(NewVirtualPosition);
-
-	// Handle virtual scrolling when at the extremes of the widget
-	Change = MarqueeSelectData->CurrentPosition - Change;
-
-	const float ScrollThresholdH = ViewRange.Size<float>() * 0.025f;
-	const float ScrollThresholdV = MyGeometry.Size.Y * 0.025f;
-
-	float Difference = MarqueeSelectData->CurrentPosition.X - (ViewRange.GetLowerBoundValue() + ScrollThresholdH);
-	if (Difference < 0 && Change.X < 0)
+	// Handle virtual scrolling when at the vertical extremes of the widget (performed before we clamp the mouse pos)
 	{
-		Sequencer.Pin()->StartAutoscroll(Difference);
+		const float ScrollThresholdV = MyGeometry.Size.Y * 0.025f;
+
+		float Difference = LocalPosition.Y - ScrollThresholdV;
+		if (Difference < 0 && MouseDelta.Y < 0)
+		{
+			TreeView.Pin()->ScrollByDelta( Difference * 0.1f );
+		}
+
+		Difference = LocalPosition.Y - (MyGeometry.Size.Y - ScrollThresholdV);
+		if (Difference > 0 && MouseDelta.Y > 0)
+		{
+			TreeView.Pin()->ScrollByDelta( Difference * 0.1f );
+		}
 	}
-	else
+
+	const FVirtualConverter Converter(TreeView.Pin(), Sequencer.Pin(), MyGeometry);
+
+	// Clamp the vertical position to the actual bounds of the track area
+	LocalPosition.Y = FMath::Clamp(LocalPosition.Y, 0.f, MyGeometry.GetLocalSize().Y);
+	MarqueeSelectData->CurrentPosition = Converter.PhysicalToVirtual(LocalPosition);
+
+	// Handle virtual scrolling when at the horizontal extremes of the widget
 	{
-		Difference = MarqueeSelectData->CurrentPosition.X - (ViewRange.GetUpperBoundValue() - ScrollThresholdH);
-		if (Difference > 0 && Change.X > 0)
+		TRange<float> ViewRange = Sequencer.Pin()->GetViewRange();
+		const float ScrollThresholdH = ViewRange.Size<float>() * 0.025f;
+
+		float Difference = MarqueeSelectData->CurrentPosition.X - (ViewRange.GetLowerBoundValue() + ScrollThresholdH);
+		if (Difference < 0 && MouseDelta.X < 0)
 		{
 			Sequencer.Pin()->StartAutoscroll(Difference);
 		}
 		else
 		{
-			Sequencer.Pin()->StopAutoscroll();
+			Difference = MarqueeSelectData->CurrentPosition.X - (ViewRange.GetUpperBoundValue() - ScrollThresholdH);
+			if (Difference > 0 && MouseDelta.X > 0)
+			{
+				Sequencer.Pin()->StartAutoscroll(Difference);
+			}
+			else
+			{
+				Sequencer.Pin()->StopAutoscroll();
+			}
 		}
-	}
-
-	Difference = Converter.VerticalOffsetToPixel(MarqueeSelectData->CurrentPosition.Y) - ScrollThresholdV;
-	if (Difference < 0 && Change.Y < 0)
-	{
-		TreeView.Pin()->ScrollByDelta( Difference * 0.1f );
-	}
-
-	Difference = Converter.VerticalOffsetToPixel(MarqueeSelectData->CurrentPosition.Y) - (MyGeometry.Size.Y - ScrollThresholdV);
-	if (Difference > 0 && Change.Y > 0)
-	{
-		TreeView.Pin()->ScrollByDelta( Difference * 0.1f );
 	}
 }
 

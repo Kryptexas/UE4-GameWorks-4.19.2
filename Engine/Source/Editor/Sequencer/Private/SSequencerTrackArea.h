@@ -52,7 +52,7 @@ private:
 	int32 PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
 	/** Set new bounds for the marquee selection */
-	void SetNewMarqueeBounds(FVector2D NewVirtualPosition, const FGeometry& Geometry);
+	void SetNewMarqueeBounds(const FPointerEvent& MouseEvent, const FGeometry& Geometry);
 
 	/** Select all the keys contained in the current marquee */
 	void HandleMarqueeSelection(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
