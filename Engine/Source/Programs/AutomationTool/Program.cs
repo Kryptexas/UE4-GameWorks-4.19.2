@@ -8,6 +8,7 @@ using System.Threading;
 using System.Diagnostics;
 using UnrealBuildTool;
 using System.Reflection;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -33,8 +34,8 @@ namespace AutomationTool
                 XmlConfigLoader.Init();
 
                 // Log if we're running from the launcher
-                var ExecutingAssemblyLocation = CommandUtils.CombinePaths(Assembly.GetExecutingAssembly().Location);
-                if (String.Compare(ExecutingAssemblyLocation, CommandUtils.CombinePaths(InternalUtils.ExecutingAssemblyLocation), true) != 0)
+                var ExecutingAssemblyLocation = Assembly.GetExecutingAssembly().Location;
+                if (string.Compare(ExecutingAssemblyLocation, Assembly.GetEntryAssembly().GetOriginalLocation(), StringComparison.OrdinalIgnoreCase) != 0)
                 {
                     Log.WriteLine(TraceEventType.Information, "Executed from AutomationToolLauncher ({0})", ExecutingAssemblyLocation);
                 }
@@ -46,7 +47,7 @@ namespace AutomationTool
                 Domain.DomainUnload += Domain_ProcessExit;
                 HostPlatform.Current.SetConsoleCtrlHandler(ProgramCtrlHandler);
 
-                var Version = InternalUtils.ExecutableVersion;
+                var Version = AssemblyUtils.ExecutableVersion;
                 Log.WriteLine(TraceEventType.Verbose, "{0} ver. {1}", Version.ProductName, Version.ProductVersion);
 
                 // Don't allow simultaneous execution of AT (in the same branch)

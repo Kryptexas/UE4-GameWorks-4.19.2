@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Reflection;
 using UnrealBuildTool;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon;
 
 namespace AutomationTool
 {
@@ -690,55 +691,23 @@ namespace AutomationTool
                 return;
 			}
 			var bCreatedMutex = false;
-			var LocationHash = InternalUtils.ExecutingAssemblyLocation.GetHashCode();
-			var MutexName = "Global/" + Path.GetFileNameWithoutExtension(ExecutingAssemblyLocation) + "_" + LocationHash.ToString() + "_Mutex";
+            var EntryAssemblyLocation = Assembly.GetEntryAssembly().GetOriginalLocation();
+			var LocationHash = EntryAssemblyLocation.GetHashCode();
+            var MutexName = "Global/" + Path.GetFileNameWithoutExtension(EntryAssemblyLocation) + "_" + LocationHash.ToString() + "_Mutex";
 			using (Mutex SingleInstanceMutex = new Mutex(true, MutexName, out bCreatedMutex))
 			{
 				if (!bCreatedMutex)
 				{
-                    throw new AutomationException("Another instance of {0} is already running.", ExecutingAssemblyLocation);
+                    throw new AutomationException("Another instance of {0} is already running.", EntryAssemblyLocation);
 				}
 				else
 				{
-					Log.WriteLine(TraceEventType.Verbose, "No other instance of {0} is running.", ExecutingAssemblyLocation);
+                    Log.WriteLine(TraceEventType.Verbose, "No other instance of {0} is running.", EntryAssemblyLocation);
 				}
 
 				Main(Param);
 
 				SingleInstanceMutex.ReleaseMutex();
-			}
-		}
-
-		/// <summary>
-		/// Path to the executable which runs this code.
-		/// </summary>
-		public static string ExecutingAssemblyDirectory
-		{
-			get
-			{
-				return CommandUtils.CombinePaths(Path.GetDirectoryName(ExecutingAssemblyLocation));
-			}
-		}
-
-		/// <summary>
-		/// Filename of the executable which runs this code.
-		/// </summary>
-		public static string ExecutingAssemblyLocation
-		{
-			get
-			{
-				return CommandUtils.CombinePaths(new Uri(System.Reflection.Assembly.GetEntryAssembly().CodeBase).LocalPath);
-			}
-		}
-
-		/// <summary>
-		/// Version info of the executable which runs this code.
-		/// </summary>
-		public static FileVersionInfo ExecutableVersion
-		{
-			get
-			{
-				return FileVersionInfo.GetVersionInfo(ExecutingAssemblyLocation);
 			}
 		}
 	}

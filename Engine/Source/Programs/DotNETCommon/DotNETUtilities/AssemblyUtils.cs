@@ -1,6 +1,7 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
@@ -18,5 +19,16 @@ namespace Tools.DotNETCommon
         {
             return new Uri(ThisAssembly.CodeBase).LocalPath;
         }
-	}
+    
+        /// <summary>
+        /// Version info of the executable which runs this code.
+        /// </summary>
+        public static FileVersionInfo ExecutableVersion
+        {
+            get
+            {
+                return FileVersionInfo.GetVersionInfo(Assembly.GetEntryAssembly().GetOriginalLocation());
+            }
+        }
+    }
 }

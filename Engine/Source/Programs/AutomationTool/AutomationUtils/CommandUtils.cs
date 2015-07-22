@@ -13,6 +13,8 @@ using Tools.DotNETCommon.XmlHandler;
 using UnrealBuildTool;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Reflection;
+using Tools.DotNETCommon;
 using Tools.DotNETCommon.CaselessDictionary;
 using Tools.DotNETCommon.HarvestEnvVars;
 
@@ -976,47 +978,17 @@ namespace AutomationTool
 		/// If the file does exists, appends a new line.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
-		/// <param name="Format">Format string</param>
-		/// <param name="Args">Arguments</param>
-		public static void WriteToFile(string Filename, string Format, params object[] Args)
-		{
-			WriteToFile(Filename, String.Format(Format, Args));
-		}
-
-		/// <summary>
-		/// Writes a line of formatted string to a file. Creates the file if it does not exists.
-		/// If the file does exists, appends a new line.
-		/// </summary>
-		/// <param name="Filename">Filename</param>
 		/// <param name="Text">Text to write</param>
 		public static void WriteToFile(string Filename, string Text)
 		{
-			try
+            Filename = ConvertSeparators(PathSeparator.Default, Filename);
+            try
 			{
-				Filename = ConvertSeparators(PathSeparator.Default, Filename);
-				FileStream Stream;
-				if (File.Exists(Filename))
-				{
-					Stream = new FileStream(Filename, FileMode.Append, FileAccess.Write, FileShare.Read);
-				}
-				else
-				{
-					Stream = new FileStream(Filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
-				}
-				if (Stream != null)
-				{
-					using (StreamWriter Writer = new StreamWriter(Stream))
-					{
-						Writer.WriteLine(Text);
-						Writer.Flush();
-						Writer.Close();
-					}
-					Stream.Dispose();
-				}
+                File.AppendAllText(Filename, Text);
 			}
 			catch (Exception Ex)
 			{
-				throw new AutomationException(String.Format("Failed to Write to file {0}", Filename), Ex);
+				throw new AutomationException(Ex, "Failed to Write to file {0}", Filename);
 			}
 		}
 
@@ -1948,31 +1920,6 @@ namespace AutomationTool
 		{
 			get { return CommandLineParams; }
 			set { CommandLineParams = value; }
-		}
-
-		/// <summary>
-		/// Path to the AutomationTool executable.
-		/// </summary>
-		public static string ExeFilename
-		{
-			get { return InternalUtils.ExecutingAssemblyLocation; }
-		}
-
-		/// <summary>
-		/// Directory where the AutomationTool executable sits.
-		/// </summary>
-		public static string ExeDirectory
-		{
-			get { return InternalUtils.ExecutingAssemblyDirectory; }
-		}
-
-		/// <summary>
-		/// Current directory.
-		/// </summary>
-		public static string CurrentDirectory
-		{
-			get { return Environment.CurrentDirectory; }
-			set { ChDir(value); }
 		}
 
 		/// <summary>

@@ -6,6 +6,7 @@ using System.Text;
 using System.Reflection;
 using Microsoft.Win32;
 using System.Diagnostics;
+using Tools.DotNETCommon;
 using UnrealBuildTool;
 
 namespace AutomationTool
@@ -75,7 +76,7 @@ namespace AutomationTool
 		{
 			if (String.IsNullOrEmpty(UATExe))
 			{
-				UATExe = CommandUtils.CombinePaths(Path.GetFullPath(InternalUtils.ExecutingAssemblyLocation));
+				UATExe = Assembly.GetExecutingAssembly().GetOriginalLocation();
 			}
 			if (!CommandUtils.FileExists_NoExceptions(UATExe))
 			{
