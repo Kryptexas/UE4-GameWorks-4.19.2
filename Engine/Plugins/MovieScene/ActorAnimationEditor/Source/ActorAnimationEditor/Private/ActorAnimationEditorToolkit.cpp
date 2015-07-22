@@ -11,7 +11,7 @@
 #include "SDockTab.h"
 
 
-#define LOCTEXT_NAMESPACE "Sequencer"
+#define LOCTEXT_NAMESPACE "ActorAnimationEditor"
 
 
 /* Local constants
@@ -32,9 +32,9 @@ FActorAnimationEditorToolkit::FActorAnimationEditorToolkit(const TSharedRef<ISla
 	: Style(InStyle)
 {
 	// Register sequencer menu extenders.
-	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
+	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
-		FAssetEditorExtender::CreateRaw( this, &FActorAnimationEditorToolkit::GetContextSensitiveSequencerExtender ) );
+		FAssetEditorExtender::CreateRaw(this, &FActorAnimationEditorToolkit::HandleMenuExtensibilityGetExtender));
 	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
 }
 
@@ -44,48 +44,23 @@ FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
 	Sequencer->Close();
 
 	// Unregister delegates
-	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
 	{
-		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
-		LevelEditorModule.OnMapChanged().RemoveAll( this );
+		auto& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		LevelEditorModule.OnMapChanged().RemoveAll(this);
 	}
 
 	// Un-Register sequencer menu extenders.
-	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
-	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll( [this]( const FAssetEditorExtender& Extender )
+	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
+	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll([this](const FAssetEditorExtender& Extender)
 	{
 		return SequencerExtenderHandle == Extender.GetHandle();
-	} );
+	});
 }
 
 
-void FActorAnimationEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
-{
-	if (IsWorldCentricAssetEditor())
-	{
-		return;
-	}
-
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
-
-	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FActorAnimationEditorToolkit::SpawnTab_SequencerMain))
-		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
-		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
-}
-
-
-void FActorAnimationEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
-{
-	if (!IsWorldCentricAssetEditor())
-	{
-		TabManager->UnregisterTabSpawner( SequencerMainTabId );
-	}
-	
-	// @todo remove when world-centric mode is added
-	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.AttachSequencer( SNullWidget::NullWidget, nullptr );
-}
-
+/* FActorAnimationEditorToolkit interface
+ *****************************************************************************/
 
 void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor )
 {
@@ -93,19 +68,19 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Sequencer_Layout")
 			->AddArea
 			(
-				FTabManager::NewPrimaryArea()
-					->Split
-					(
-						FTabManager::NewStack()
-						->AddTab(SequencerMainTabId, ETabState::OpenedTab)
-					)
+			FTabManager::NewPrimaryArea()
+			->Split
+			(
+			FTabManager::NewStack()
+			->AddTab(SequencerMainTabId, ETabState::OpenedTab)
+			)
 			);
 
 		const bool bCreateDefaultStandaloneMenu = true;
 		const bool bCreateDefaultToolbar = false;
 		FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ActorAnimation);
 	}
-	
+
 	// Init Sequencer
 	FSequencerInitParams SequencerInitParams;
 	{
@@ -123,7 +98,7 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
 		LevelEditorModule.AttachSequencer( Sequencer->GetSequencerWidget(), SharedThis(this));
-			
+
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
 		LevelEditorModule.OnMapChanged().AddRaw(this, &FActorAnimationEditorToolkit::HandleMapChanged);
@@ -131,36 +106,25 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 }
 
 
-TSharedRef<SDockTab> FActorAnimationEditorToolkit::SpawnTab_SequencerMain(const FSpawnTabArgs& Args)
-{
-	check(Args.GetTabId() == SequencerMainTabId);
+/* IToolkit interface
+ *****************************************************************************/
 
-	return SNew(SDockTab)
-		.Icon( FEditorStyle::GetBrush("Sequencer.Tabs.SequencerMain") )
-		.Label( LOCTEXT("SequencerMainTitle", "Sequencer") )
-		.TabColorScale( GetTabColorScale() )
-		[
-			Sequencer->GetSequencerWidget()
-		];
+FText FActorAnimationEditorToolkit::GetBaseToolkitName() const
+{
+	return LOCTEXT("AppLabel", "Actor Animation Editor");
 }
 
 
 FName FActorAnimationEditorToolkit::GetToolkitFName() const
 {
-	static FName SequencerName("Sequencer");
+	static FName SequencerName("ActorAnimationEditor");
 	return SequencerName;
-}
-
-
-FText FActorAnimationEditorToolkit::GetBaseToolkitName() const
-{
-	return LOCTEXT("AppLabel", "Sequencer");
 }
 
 
 FLinearColor FActorAnimationEditorToolkit::GetWorldCentricTabColorScale() const
 {
-	return FLinearColor( 0.7, 0.0f, 0.0f, 0.5f );
+	return FLinearColor(0.7, 0.0f, 0.0f, 0.5f);
 }
 
 
@@ -169,40 +133,40 @@ FString FActorAnimationEditorToolkit::GetWorldCentricTabPrefix() const
 	return LOCTEXT("WorldCentricTabPrefix", "Sequencer ").ToString();
 }
 
-TSharedRef<FExtender> FActorAnimationEditorToolkit::GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects )
-{
-	TSharedRef<FExtender> AddTrackMenuExtender( new FExtender() );
-	AddTrackMenuExtender->AddMenuExtension(
-		SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection,
-		EExtensionHook::Before,
-		CommandList,
-		FMenuExtensionDelegate::CreateRaw( this, &FActorAnimationEditorToolkit::ExtendSequencerAddTrackMenu, ContextSensitiveObjects ) );
-	return AddTrackMenuExtender;
-}
 
-void FActorAnimationEditorToolkit::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
+void FActorAnimationEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	if ( ContextObjects.Num() == 1 )
+	if (IsWorldCentricAssetEditor())
 	{
-		AActor* Actor = Cast<AActor>( ContextObjects[0] );
-		if ( Actor != nullptr )
-		{
-			AddTrackMenuBuilder.BeginSection( "Components", LOCTEXT( "ComponentsSection", "Components" ) );
-			{
-				for ( UActorComponent* Component : Actor->GetComponents() )
-				{
-					FUIAction AddComponentAction( FExecuteAction::CreateSP( this, &FActorAnimationEditorToolkit::AddComponentTrack, Component ) );
-					FText AddComponentLabel = FText::FromString(Component->GetName());
-					FText AddComponentToolTip = FText::Format( LOCTEXT( "ComponentToolTipFormat", "Add {0} component" ), FText::FromString( Component->GetName() ) );
-					AddTrackMenuBuilder.AddMenuEntry( AddComponentLabel, AddComponentToolTip, FSlateIcon(), AddComponentAction );
-				}
-			}
-			AddTrackMenuBuilder.EndSection();
-		}
+		return;
 	}
+
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
+
+	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FActorAnimationEditorToolkit::HandleTabManagerSpawnTab))
+		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
 }
 
-void FActorAnimationEditorToolkit::AddComponentTrack( UActorComponent* Component )
+
+void FActorAnimationEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+{
+	if (!IsWorldCentricAssetEditor())
+	{
+		TabManager->UnregisterTabSpawner( SequencerMainTabId );
+	}
+
+	// @todo remove when world-centric mode is added
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	LevelEditorModule.AttachSequencer( SNullWidget::NullWidget, nullptr );
+}
+
+
+/* FActorAnimationEditorToolkit callbacks
+ *****************************************************************************/
+
+void FActorAnimationEditorToolkit::HandleAddComponentActionExecute( UActorComponent* Component )
 {
 	Sequencer->GetHandleToObject( Component );
 }
@@ -211,6 +175,66 @@ void FActorAnimationEditorToolkit::AddComponentTrack( UActorComponent* Component
 void FActorAnimationEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
+}
+
+
+TSharedRef<FExtender> FActorAnimationEditorToolkit::HandleMenuExtensibilityGetExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects )
+{
+	TSharedRef<FExtender> AddTrackMenuExtender(new FExtender());
+	AddTrackMenuExtender->AddMenuExtension(
+		SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection,
+		EExtensionHook::Before,
+		CommandList,
+		FMenuExtensionDelegate::CreateRaw(this, &FActorAnimationEditorToolkit::HandleTrackMenuExtensionAddTrack, ContextSensitiveObjects));
+
+	return AddTrackMenuExtender;
+}
+
+
+TSharedRef<SDockTab> FActorAnimationEditorToolkit::HandleTabManagerSpawnTab(const FSpawnTabArgs& Args)
+{
+	TSharedPtr<SWidget> TabWidget = SNullWidget::NullWidget;
+
+	if (Args.GetTabId() == SequencerMainTabId)
+	{
+		TabWidget = Sequencer->GetSequencerWidget();
+	}
+
+	return SNew(SDockTab)
+		.Label(LOCTEXT("SequencerMainTitle", "Sequencer"))
+		.TabColorScale(GetTabColorScale())
+		.TabRole(ETabRole::PanelTab)
+		[
+			TabWidget.ToSharedRef()
+		];
+}
+
+
+void FActorAnimationEditorToolkit::HandleTrackMenuExtensionAddTrack( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects )
+{
+	if (ContextObjects.Num() != 1)
+	{
+		return;
+	}
+
+	AActor* Actor = Cast<AActor>(ContextObjects[0]);
+	
+	if (Actor == nullptr)
+	{
+		return;
+	}
+
+	AddTrackMenuBuilder.BeginSection("Components", LOCTEXT("ComponentsSection", "Components"));
+	{
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			FUIAction AddComponentAction(FExecuteAction::CreateSP(this, &FActorAnimationEditorToolkit::HandleAddComponentActionExecute, Component));
+			FText AddComponentLabel = FText::FromString(Component->GetName());
+			FText AddComponentToolTip = FText::Format(LOCTEXT("ComponentToolTipFormat", "Add {0} component"), FText::FromString(Component->GetName()));
+			AddTrackMenuBuilder.AddMenuEntry(AddComponentLabel, AddComponentToolTip, FSlateIcon(), AddComponentAction);
+		}
+	}
+	AddTrackMenuBuilder.EndSection();
 }
 
 

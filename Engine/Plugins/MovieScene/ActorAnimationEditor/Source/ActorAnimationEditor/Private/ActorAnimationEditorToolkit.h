@@ -52,10 +52,10 @@ public:
 
 	// IToolkit interface
 
-	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
-	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FName GetToolkitFName() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 
@@ -63,13 +63,20 @@ public:
 
 private:
 
-	EVisibility GetTransportControlVisibility(TWeakPtr<ILevelViewport> LevelViewport) const;
-	TSharedRef<SDockTab> SpawnTab_SequencerMain(const FSpawnTabArgs& Args);	
+	/** Callback for executing the Add Component action. */
+	void HandleAddComponentActionExecute(UActorComponent* Component);
 
-	TSharedRef<FExtender> GetContextSensitiveSequencerExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
-	void ExtendSequencerAddTrackMenu(FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects);
-	void AddComponentTrack(UActorComponent* Component);
+	/** Callback for map changes. */
 	void HandleMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType);
+
+	/** Callback for the menu extensibility manager. */
+	TSharedRef<FExtender> HandleMenuExtensibilityGetExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
+
+	/** Callback for spawning tabs. */
+	TSharedRef<SDockTab> HandleTabManagerSpawnTab(const FSpawnTabArgs& Args);	
+
+	/** Callback for the track menu extender. */
+	void HandleTrackMenuExtensionAddTrack(FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects);
 
 private:
 
