@@ -60,10 +60,10 @@ bool UActorAnimation::CanPossessObject(UObject& Object) const
 }
 
 
-void UActorAnimation::DestroyAllSpawnedObjects(UMovieScene& MovieScene)
+void UActorAnimation::DestroyAllSpawnedObjects(UMovieScene& SubMovieScene)
 {
 	const bool DestroyAll = true;
-	SpawnOrDestroyObjects(&MovieScene, DestroyAll);
+	SpawnOrDestroyObjects(&SubMovieScene, DestroyAll);
 	SpawnedActors.Empty();
 }
 
@@ -141,12 +141,12 @@ UObject* UActorAnimation::GetParentObject(UObject* Object) const
 }
 
 
-void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll)
+void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll)
 {
 	bool bAnyLevelActorsChanged = false;
 
 	// remove any proxy actors that we no longer need
-	if (MovieScene != nullptr)
+	if (SubMovieScene != nullptr)
 	{
 		for (auto SpawnedActorPair : SpawnedActors)
 		{
@@ -155,9 +155,9 @@ void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* MovieScene, bool Destro
 			if (!DestroyAll)
 			{
 				// figure out if we still need this proxy actor
-				for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
+				for (auto SpawnableIndex = 0; SpawnableIndex < SubMovieScene->GetSpawnableCount(); ++SpawnableIndex)
 				{
-					auto& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
+					auto& Spawnable = SubMovieScene->GetSpawnable(SpawnableIndex);
 
 					if (Spawnable.GetGuid() == SpawnedActorPair.Key)
 					{
@@ -210,11 +210,11 @@ void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* MovieScene, bool Destro
 		}
 	}
 
-	if (!DestroyAll && (MovieScene != nullptr))
+	if (!DestroyAll && (SubMovieScene != nullptr))
 	{
-		for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
+		for (auto SpawnableIndex = 0; SpawnableIndex < SubMovieScene->GetSpawnableCount(); ++SpawnableIndex)
 		{
-			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable( SpawnableIndex );
+			FMovieSceneSpawnable& Spawnable = SubMovieScene->GetSpawnable(SpawnableIndex);
 
 			// Do we already have a proxy for this spawnable?
 			if (SpawnedActors.Contains(Spawnable.GetGuid()))

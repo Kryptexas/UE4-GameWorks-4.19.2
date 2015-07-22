@@ -45,7 +45,7 @@ class IMovieSceneAnimation
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) PURE_VIRTUAL(IMovieSceneAnimation::BindPossessableObject,);
 	
 	/**
-	 * Check whether the given object can be possessed by this object manager.
+	 * Check whether the given object can be possessed by this animation.
 	 *
 	 * @param Object The object to check.
 	 * @return true if the object can be possessed, false otherwise.
@@ -53,11 +53,11 @@ class IMovieSceneAnimation
 	virtual bool CanPossessObject(UObject& Object) const PURE_VIRTUAL(IMovieSceneAnimation::CanPossessObject, return false;);
 
 	/**
-	 * Destroy all objects that were spawned by this binding manager.
+	 * Destroy all objects that were spawned by this animation.
 	 *
-	 * @param MovieScene The movie scene that owns this manager.
+	 * @param SubMovieScene The (sub) movie scene to destroy objects for.
 	 */
-	virtual void DestroyAllSpawnedObjects(UMovieScene& MovieScene) PURE_VIRTUAL(IMovieSceneAnimation::DestroyAllSpawnedObjects,);
+	virtual void DestroyAllSpawnedObjects(UMovieScene& SubMovieScene) PURE_VIRTUAL(IMovieSceneAnimation::DestroyAllSpawnedObjects,);
 
 	/**
 	 * Gets the possessed or spawned object for the specified identifier.
@@ -96,10 +96,10 @@ class IMovieSceneAnimation
 	/**
 	 * Called to spawn or destroy objects for a movie instance.
 	 *
-	 * @param MovieScene The movie scene to spawn or destroy objects for.
+	 * @param SubMovieScene The (sub) movie scene to spawn or destroy objects for.
 	 * @param DestroyAll If true, destroy all spawned objects for the instance, if false only destroy unused objects.
 	 */
-	virtual void SpawnOrDestroyObjects(UMovieScene* MovieScene, bool DestroyAll) PURE_VIRTUAL(IMovieSceneAnimation::SpawnOrDestroyObjects,);
+	virtual void SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll) PURE_VIRTUAL(IMovieSceneAnimation::SpawnOrDestroyObjects,);
 
 	/**
 	 * Unbinds all possessable objects from the provided GUID.
