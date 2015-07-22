@@ -196,9 +196,9 @@ public:
 	FRotator GridSnap( const FRotator& RotGrid ) const;
 
 	/**
-	 * Convert a rotation into a vector facing in its direction.
+	 * Convert a rotation into a unit vector facing in its direction.
 	 *
-	 * @return Rotation as a direction vector.
+	 * @return Rotation as a unit direction vector.
 	 */
 	CORE_API FVector Vector() const;
 

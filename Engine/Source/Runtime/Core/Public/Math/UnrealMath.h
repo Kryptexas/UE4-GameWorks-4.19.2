@@ -90,6 +90,16 @@ inline FVector FVector::PointPlaneProject(const FVector& Point, const FVector& A
 	return Point - Plane.PlaneDot(Point) * Plane;
 }
 
+FORCEINLINE_DEBUGGABLE FRotator FVector::Rotation() const
+{
+	return ToOrientationRotator();
+}
+
+FORCEINLINE_DEBUGGABLE FRotator FVector4::Rotation() const
+{
+	return ToOrientationRotator();
+}
+
 inline FPlane FPlane::TransformBy( const FMatrix& M ) const
 {
 	const FMatrix tmpTA = M.TransposeAdjoint();

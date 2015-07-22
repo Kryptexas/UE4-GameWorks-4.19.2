@@ -622,13 +622,34 @@ public:
 	FORCEINLINE FVector ProjectOnToNormal(const FVector& Normal ) const;
 
 	/**
-	 * Return the FRotator corresponding to the direction that the vector
-	 * is pointing in.  Sets Yaw and Pitch to the proper numbers, and sets
-	 * roll to zero because the roll can't be determined from a vector.
+	 * Return the FRotator orientation corresponding to the direction in which the vector points.
+	 * Sets Yaw and Pitch to the proper numbers, and sets Roll to zero because the roll can't be determined from a vector.
 	 *
-	 * @return The FRotator from the vector's direction.
+	 * @return FRotator from the Vector's direction, without any roll.
+	 * @see ToOrientationQuat()
 	 */
-	CORE_API FRotator Rotation() const;
+	CORE_API FRotator ToOrientationRotator() const;
+
+	/**
+	 * Return the Quaternion orientation corresponding to the direction in which the vector points.
+	 * Similar to the FRotator version, returns a result without roll such that it preserves the up vector.
+	 *
+	 * @note If you don't care about preserving the up vector and just want the most direct rotation, you can use the faster
+	 * 'FQuat::FindBetweenVectors(FVector::ForwardVector, YourVector)' or 'FQuat::FindBetweenNormals(...)' if you know the vector is of unit length.
+	 *
+	 * @return Quaternion from the Vector's direction, without any roll.
+	 * @see ToOrientationRotator(), FQuat::FindBetweenVectors()
+	 */
+	CORE_API FQuat ToOrientationQuat() const;
+
+	/**
+	 * Return the FRotator orientation corresponding to the direction in which the vector points.
+	 * Sets Yaw and Pitch to the proper numbers, and sets Roll to zero because the roll can't be determined from a vector.
+	 * @note Identical to 'ToOrientationRotator()' and preserved for legacy reasons.
+	 * @return FRotator from the Vector's direction.
+	 * @see ToOrientationRotator(), ToOrientationQuat()
+	 */
+	FRotator Rotation() const;
 
 	/**
 	 * Find good arbitrary axis vectors to represent U and V axes of a plane,

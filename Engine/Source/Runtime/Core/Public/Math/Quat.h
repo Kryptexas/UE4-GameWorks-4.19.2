@@ -357,6 +357,9 @@ public:
 	/** Get the up direction (Z axis) after it has been rotated by this Quaternion. */
 	FORCEINLINE FVector GetUpVector() const;
 
+	/** Convert a rotation into a unit vector facing in its direction. Equivalent to GetForwardVector(). */
+	FORCEINLINE FVector Vector() const;
+
 	/** Get the FRotator representation of this Quaternion. */
 	CORE_API FRotator Rotator() const;
 
@@ -402,9 +405,22 @@ public:
 public:
 
 	/**
-	 * Generates the 'smallest' (geodesic) rotation between these two vectors.
+	 * Generates the 'smallest' (geodesic) rotation between two vectors of arbitrary length.
 	 */
-	static CORE_API FQuat FindBetween( const FVector& vec1, const FVector& vec2 );
+	static FORCEINLINE FQuat FindBetween( const FVector& Vector1, const FVector& Vector2 )
+	{
+		return FindBetweenVectors(Vector1, Vector2);
+	}
+
+	/**
+	 * Generates the 'smallest' (geodesic) rotation between two normals (assumed to be unit length).
+	 */
+	static CORE_API FQuat FindBetweenNormals( const FVector& Normal1, const FVector& Normal2 );
+
+	/**
+	 * Generates the 'smallest' (geodesic) rotation between two vectors of arbitrary length.
+	 */
+	static CORE_API FQuat FindBetweenVectors( const FVector& Vector1, const FVector& Vector2 );
 
 	/**
 	 * Error measure (angle) between two quaternions, ranged [0..1].
@@ -972,6 +988,11 @@ FORCEINLINE FVector FQuat::GetRightVector() const
 FORCEINLINE FVector FQuat::GetUpVector() const
 {
 	return GetAxisZ();
+}
+
+FORCEINLINE FVector FQuat::Vector() const
+{
+	return GetAxisX();
 }
 
 

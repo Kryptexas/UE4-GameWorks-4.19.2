@@ -163,15 +163,15 @@ void FRotator::SerializeCompressedShort( FArchive& Ar )
 	}
 }
 
-CORE_API FRotator FVector::Rotation() const
+FRotator FVector::ToOrientationRotator() const
 {
 	FRotator R;
 
 	// Find yaw.
-	R.Yaw = FMath::Atan2(Y,X) * 180.f / PI;
+	R.Yaw = FMath::Atan2(Y,X) * (180.f / PI);
 
 	// Find pitch.
-	R.Pitch = FMath::Atan2(Z,FMath::Sqrt(X*X+Y*Y)) * 180.f / PI;
+	R.Pitch = FMath::Atan2(Z,FMath::Sqrt(X*X+Y*Y)) * (180.f / PI);
 
 	// Find roll.
 	R.Roll = 0;
@@ -179,21 +179,68 @@ CORE_API FRotator FVector::Rotation() const
 	return R;
 }
 
-FRotator FVector4::Rotation() const
+FRotator FVector4::ToOrientationRotator() const
 {
 	FRotator R;
 
 	// Find yaw.
-	R.Yaw = FMath::Atan2(Y,X) * 180.f / PI;
+	R.Yaw = FMath::Atan2(Y,X) * (180.f / PI);
 
 	// Find pitch.
-	R.Pitch = FMath::Atan2(Z,FMath::Sqrt(X*X+Y*Y)) * 180.f / PI;
+	R.Pitch = FMath::Atan2(Z,FMath::Sqrt(X*X+Y*Y)) * (180.f / PI);
 
 	// Find roll.
 	R.Roll = 0;
 
 	return R;
 }
+
+
+FQuat FVector::ToOrientationQuat() const
+{
+	// Essentially an optimized Vector->Rotator->Quat made possible by knowing Roll == 0, and avoiding radians->degrees->radians.
+	// This is done to avoid adding any roll (which our API states as a constraint).
+	const float YawRad = FMath::Atan2(Y, X);
+	const float PitchRad = FMath::Atan2(Z, FMath::Sqrt(X*X + Y*Y));
+
+	const float DIVIDE_BY_2 = 0.5f;
+	float SP, SY;
+	float CP, CY;
+
+	FMath::SinCos(&SP, &CP, PitchRad * DIVIDE_BY_2);
+	FMath::SinCos(&SY, &CY, YawRad * DIVIDE_BY_2);
+
+	FQuat RotationQuat;
+	RotationQuat.X =  SP*SY;
+	RotationQuat.Y = -SP*CY;
+	RotationQuat.Z =  CP*SY;
+	RotationQuat.W =  CP*CY;
+	return RotationQuat;
+}
+
+
+FQuat FVector4::ToOrientationQuat() const
+{
+	// Essentially an optimized Vector->Rotator->Quat made possible by knowing Roll == 0, and avoiding radians->degrees->radians.
+	// This is done to avoid adding any roll (which our API states as a constraint).
+	const float YawRad = FMath::Atan2(Y, X);
+	const float PitchRad = FMath::Atan2(Z, FMath::Sqrt(X*X + Y*Y));
+
+	const float DIVIDE_BY_2 = 0.5f;
+	float SP, SY;
+	float CP, CY;
+
+	FMath::SinCos(&SP, &CP, PitchRad * DIVIDE_BY_2);
+	FMath::SinCos(&SY, &CY, YawRad * DIVIDE_BY_2);
+
+	FQuat RotationQuat;
+	RotationQuat.X =  SP*SY;
+	RotationQuat.Y = -SP*CY;
+	RotationQuat.Z =  CP*SY;
+	RotationQuat.W =  CP*CY;
+	return RotationQuat;
+}
+
 
 void FVector::FindBestAxisVectors( FVector& Axis1, FVector& Axis2 ) const
 {
@@ -696,52 +743,48 @@ bool FQuat::NetSerialize(FArchive& Ar, class UPackageMap*, bool& bOutSuccess)
 	return true;
 }
 
-FQuat FQuat::FindBetween(const FVector& vec1, const FVector& vec2)
+
+//
+// Based on:
+// http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
+// http://www.euclideanspace.com/maths/algebra/vectors/angleBetween/index.htm
+//
+FORCEINLINE_DEBUGGABLE FQuat FindBetween_Helper(const FVector& A, const FVector& B, float NormAB)
 {
-	const FVector cross = vec1 ^ vec2;
-	const float crossMag = cross.Size();
+	float W = NormAB + FVector::DotProduct(A, B);
+	FQuat Result;
 
-	// See if vectors are parallel or anti-parallel
-	if(crossMag < KINDA_SMALL_NUMBER)
+	if (W >= 1e-6f * NormAB)
 	{
-		// If these vectors are parallel - just return identity quaternion (ie no rotation).
-		const float Dot = vec1 | vec2;
-		if(Dot > -KINDA_SMALL_NUMBER)
-		{
-			return FQuat::Identity; // no rotation
-		}
-		// Exactly opposite..
-		else
-		{
-			// ..rotation by 180 degrees around a vector orthogonal to vec1 & vec2
-			FVector Vec = vec1.SizeSquared() > vec2.SizeSquared() ? vec1 : vec2;
-			Vec.Normalize();
-
-			FVector AxisA, AxisB;
-			Vec.FindBestAxisVectors(AxisA, AxisB);
-
-			return FQuat(AxisA.X, AxisA.Y, AxisA.Z, 0.f); // (axis*sin(pi/2), cos(pi/2)) = (axis, 0)
-		}
+		//Axis = FVector::CrossProduct(A, B);
+		Result = FQuat(A.Y * B.Z - A.Z * B.Y,
+					   A.Z * B.X - A.X * B.Z,
+					   A.X * B.Y - A.Y * B.X,
+					   W);
+	}
+	else
+	{
+		// A and B point in opposite directions
+		W = 0.f;
+		Result = FMath::Abs(A.X) > FMath::Abs(A.Y)
+				? FQuat(-A.Z, 0.f, A.X, W)
+				: FQuat(0.f, -A.Z, A.Y, W);
 	}
 
-	// Not parallel, so use normal code
-	float angle = FMath::Asin(crossMag);
+	Result.Normalize();
+	return Result;
+}
 
-	const float dot = vec1 | vec2;
-	if(dot < 0.0f)
-	{
-		angle = PI - angle;
-	}
+FQuat FQuat::FindBetweenNormals(const FVector& A, const FVector& B)
+{
+	const float NormAB = 1.f;
+	return FindBetween_Helper(A, B, NormAB);
+}
 
-	float sinHalfAng, cosHalfAng;
-	FMath::SinCos(&sinHalfAng, &cosHalfAng, 0.5f * angle);
-	const FVector axis = cross / crossMag;
-
-	return FQuat(
-		sinHalfAng * axis.X,
-		sinHalfAng * axis.Y,
-		sinHalfAng * axis.Z,
-		cosHalfAng );
+FQuat FQuat::FindBetweenVectors(const FVector& A, const FVector& B)
+{
+	const float NormAB = FMath::Sqrt(A.SizeSquared() * B.SizeSquared());
+	return FindBetween_Helper(A, B, NormAB);
 }
 
 FQuat FQuat::Log() const
