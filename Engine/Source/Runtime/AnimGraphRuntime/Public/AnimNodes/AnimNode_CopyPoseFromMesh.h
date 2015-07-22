@@ -28,10 +28,9 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CopyPoseFromMesh : public FAnimNode_Base
 	// End of FAnimNode_Base interface
 
 private:
-	TWeakObjectPtr<USkeletalMeshComponent> CurrentlyUsedMeshComponent;
+	TWeakObjectPtr<USkeletalMeshComponent> CurrentlyUsedSourceMeshComponent;
 	// cache of target space bases to source space bases
 	TMap<int32, int32> BoneMapToSource;
-	int32 CachedTargetLODIndex;
 
 	// reinitialize mesh component 
 	void ReinitializeMeshComponent(UAnimInstance* AnimInstance);
