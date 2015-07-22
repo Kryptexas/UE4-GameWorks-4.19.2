@@ -35,10 +35,6 @@
 #pragma pack(pop)
 #pragma warning(pop)
 
-typedef ID3D12GraphicsCommandList FD3D12CommandList;
-typedef ID3D12CommandQueue FD3D12CommandQueue;
-typedef ID3D12CommandAllocator FD3D12CommandAllocator;
-
 
 class FD3D12Device;
 

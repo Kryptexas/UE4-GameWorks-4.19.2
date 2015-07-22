@@ -27,7 +27,7 @@ public:
 	~FD3D12Fence();
 
 	void CreateFence(ID3D12Device* pDirect3DDevice, uint64 InitialValue = 0);
-	uint64 Signal(FD3D12CommandQueue* pCommandQueue);
+	uint64 Signal(ID3D12CommandQueue* pCommandQueue);
 	bool IsFenceFinished(uint64 FenceValue);
 	void WaitForFence(uint64 FenceValue);
 
@@ -75,7 +75,7 @@ public:
 		return D3DCommandQueue->GetTimestampFrequency(Frequency);
 	}
 
-    inline FD3D12CommandQueue* GetD3DCommandQueue()
+    inline ID3D12CommandQueue* GetD3DCommandQueue()
     {
         return D3DCommandQueue.GetReference();
     }
@@ -93,7 +93,7 @@ private:
 	uint64 ExecuteAndIncrementFence(ID3D12CommandList* pD3DCommandLists[], uint64 NumCommandLists, FD3D12Fence &Fence);
 	FD3D12CommandListHandle CreateCommandListHandle();
 
-	TRefCountPtr<FD3D12CommandQueue>		D3DCommandQueue;
+	TRefCountPtr<ID3D12CommandQueue>		D3DCommandQueue;
 
 	FThreadsafeQueue<FD3D12CommandListHandle> ReadyLists;
 
