@@ -166,6 +166,11 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 			// TODO UMG Allow showing a preview of this.
 			if ( bIsDrop )
 			{
+				FScopedTransaction Transaction(LOCTEXT("AddWidgetFromTemplate", "Add Widget"));
+
+				Blueprint->WidgetTree->SetFlags(RF_Transactional);
+				Blueprint->WidgetTree->Modify();
+
 				Blueprint->WidgetTree->RootWidget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
@@ -185,6 +190,12 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 				// TODO UMG Allow showing a preview of this.
 				if (bIsDrop)
 				{
+					FScopedTransaction Transaction(LOCTEXT("AddWidgetFromTemplate", "Add Widget"));
+
+					Blueprint->WidgetTree->SetFlags(RF_Transactional);
+					Blueprint->WidgetTree->Modify();
+					Parent->Modify();
+
 					UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
 
 					UPanelSlot* NewSlot = nullptr;
