@@ -109,7 +109,7 @@ namespace AutomationTool
 				}
 				if (Result == false && Attempts + 1 < MaxAttempts)
 				{
-					System.Threading.Thread.Sleep(1000);
+					Thread.Sleep(1000);
 				}
 			} while (Result == false && ++Attempts < MaxAttempts);
 
@@ -375,7 +375,7 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(System.Diagnostics.TraceEventType.Warning, "SafeCopyFile Exception was {0}", LogUtils.FormatException(Ex));
+					Log.WriteLine(TraceEventType.Warning, "SafeCopyFile Exception was {0}", LogUtils.FormatException(Ex));
 					Retry = true;
 				}
 
@@ -464,7 +464,7 @@ namespace AutomationTool
 			// Windows needs the symlinks though because that's how deduplication works on Windows server, 
 			// see https://answers.unrealengine.com/questions/212888/automated-buildjenkins-failing-due-to-symlink-chec.html
 			// FIXME: ZFS, JFS and other fs that can be case-insensitive on Linux should use the faster path as well.
-			if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux)
 			{
 				return Directory.GetFiles(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 			}
@@ -683,7 +683,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Main"></param>
 		/// <param name="Param"></param>
-		public static void RunSingleInstance(System.Action<object> Main, object Param)
+		public static void RunSingleInstance(Action<object> Main, object Param)
 		{
 			if (Environment.GetEnvironmentVariable("uebp_UATMutexNoWait") == "1")
 			{
@@ -710,6 +710,114 @@ namespace AutomationTool
 				SingleInstanceMutex.ReleaseMutex();
 			}
 		}
+
+	    public static void Robust_CopyFile(string InputFileName, string OutputFileName)
+	    {
+	        if (OutputFileName.StartsWith("/Volumes/"))
+	        {
+	            int Retry = 0;
+	            int NumRetries = 60;
+	            bool bCopied = false;
+	            while (!bCopied && Retry < NumRetries)
+	            {
+	                if (Retry > 0)
+	                {
+	                    CommandUtils.Log("*** Mac temp storage retry {0}", OutputFileName);
+	                    System.Threading.Thread.Sleep(1000);
+	                }
+	                bCopied = CommandUtils.CopyFile_NoExceptions(InputFileName, OutputFileName, true);
+	                Retry++;
+	            }
+	        }
+	        else
+	        {
+	            CommandUtils.CopyFile(InputFileName, OutputFileName);
+	        }
+	    }
+
+	    public static void Robust_FileExists_NoExceptions(string Filename, string Message)
+	    {
+	        Robust_FileExists_NoExceptions(false, Filename, Message);
+	    }
+
+	    public static void Robust_FileExists_NoExceptions(bool bQuiet, string Filename, string Message)
+	    {
+	        if (!CommandUtils.FileExists_NoExceptions(bQuiet, Filename))
+	        {
+	            bool bFound = false;
+	            // mac is terrible on shares, this isn't a solution, but a stop gap
+	            if (Filename.StartsWith("/Volumes/"))
+	            {
+	                int Retry = 0;
+	                while (!bFound && Retry < 60)
+	                {
+	                    CommandUtils.Log(System.Diagnostics.TraceEventType.Information, "*** Mac temp storage retry {0}", Filename);
+	                    System.Threading.Thread.Sleep(10000);
+	                    bFound = CommandUtils.FileExists_NoExceptions(bQuiet, Filename);
+	                    Retry++;
+	                }
+	            }
+	            if (!bFound)
+	            {
+	                throw new AutomationException(Message, Filename);
+	            }
+	        }
+	    }
+
+	    public static bool Robust_DirectoryExists_NoExceptions(string Directoryname, string Message)
+	    {
+	        bool bFound = false;
+	        if (!CommandUtils.DirectoryExists_NoExceptions(Directoryname))
+	        {				
+	            // mac is terrible on shares, this isn't a solution, but a stop gap
+	            if (Directoryname.StartsWith("/Volumes/"))
+	            {
+	                int Retry = 0;
+	                while (!bFound && Retry < 60)
+	                {
+	                    CommandUtils.Log(System.Diagnostics.TraceEventType.Information, "*** Mac temp storage retry {0}", Directoryname);
+	                    System.Threading.Thread.Sleep(10000);
+	                    bFound = CommandUtils.DirectoryExists_NoExceptions(Directoryname);
+	                    Retry++;
+	                }
+	            }				
+	        }
+	        else
+	        {
+	            bFound = true;
+	        }
+	        return bFound;
+	    }
+
+	    public static bool Robust_DirectoryExistsAndIsWritable_NoExceptions(string Directoryname)
+	    {
+	        bool bFound = false;
+	        if (!CommandUtils.DirectoryExistsAndIsWritable_NoExceptions(Directoryname))
+	        {
+	            // mac is terrible on shares, this isn't a solution, but a stop gap
+	            if (Directoryname.StartsWith("/Volumes/"))
+	            {
+	                int Retry = 0;
+	                int NumRetries = 60;
+	                if(!Directoryname.Contains("UE4"))
+	                {
+	                    NumRetries = 2;
+	                }
+	                while (!bFound && Retry < NumRetries)
+	                {
+	                    CommandUtils.Log("*** Mac temp storage retry {0}", Directoryname);
+	                    System.Threading.Thread.Sleep(1000);
+	                    bFound = CommandUtils.DirectoryExistsAndIsWritable_NoExceptions(Directoryname);
+	                    Retry++;
+	                }
+	            }
+	        }
+	        else
+	        {
+	            bFound = true;
+	        }
+	        return bFound;
+	    }
 	}
 
 	#endregion
