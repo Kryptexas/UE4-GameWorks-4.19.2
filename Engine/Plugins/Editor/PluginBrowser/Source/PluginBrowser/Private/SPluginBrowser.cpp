@@ -20,6 +20,8 @@ SPluginBrowser::~SPluginBrowser()
 	{
 		DirectoryWatcherModule.Get()->UnregisterDirectoryChangedCallback_Handle(Pair.Key, Pair.Value);
 	}
+
+	FPluginBrowserModule::Get().OnNewPluginCreated().RemoveAll(this);
 }
 
 void SPluginBrowser::Construct( const FArguments& Args )
@@ -42,6 +44,8 @@ void SPluginBrowser::Construct( const FArguments& Args )
 			WatchDirectories.Add(WatchDirectoryName, Handle);
 		}
 	}
+
+	FPluginBrowserModule::Get().OnNewPluginCreated().AddSP(this, &SPluginBrowser::OnNewPluginCreated);
 
 	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginBrowser::TriggerBreadcrumbRefresh));
 
@@ -179,7 +183,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 
 EVisibility SPluginBrowser::HandleRestartEditorNoticeVisibility() const
 {
-	return (FPluginBrowserModule::Get().PendingEnablePlugins.Num() > 0)? EVisibility::Visible : EVisibility::Collapsed;
+	return FPluginBrowserModule::Get().HasPluginsPendingEnable() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -234,6 +238,15 @@ void SPluginBrowser::SetNeedsRefresh()
 void SPluginBrowser::OnPluginDirectoryChanged(const TArray<struct FFileChangeData>&)
 {
 	if(UpdatePluginsTimerHandle.IsValid())
+	{
+		UnRegisterActiveTimer(UpdatePluginsTimerHandle.ToSharedRef());
+	}
+	UpdatePluginsTimerHandle = RegisterActiveTimer(2.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SPluginBrowser::UpdatePluginsTimerCallback));
+}
+
+void SPluginBrowser::OnNewPluginCreated()
+{
+	if (UpdatePluginsTimerHandle.IsValid())
 	{
 		UnRegisterActiveTimer(UpdatePluginsTimerHandle.ToSharedRef());
 	}
