@@ -351,9 +351,16 @@ namespace UnrealBuildTool
 		{
 			if (File.Exists(FileName))
 			{
-				using (StreamReader Reader = new StreamReader(FileName))
+				try
 				{
-					return (TargetReceipt)Serializer.Deserialize(Reader);
+					using (StreamReader Reader = new StreamReader(FileName))
+					{
+						return (TargetReceipt)Serializer.Deserialize(Reader);
+					}
+				}
+				catch(Exception)
+				{
+					return null;
 				}
 			}
 			else
