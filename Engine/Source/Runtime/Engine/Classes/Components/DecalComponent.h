@@ -32,6 +32,10 @@ class ENGINE_API UDecalComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal)
 	float FadeScreenSize;
 
+	/** Size if the scale if 1,1,1, technically redundant but there for convenience */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal, meta=(AllowPreserveRatio = "true"))
+	FVector DecalSize;
+
 	/** Sets the sort order for the decal component. Higher values draw later (on top). This will force the decal to reattach */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Decal")
 	void SetSortOrder(int32 Value);
@@ -100,6 +104,8 @@ public:
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual const UObject* AdditionalStatObject() const override;
 	// End UActorComponent Interface
+
+	virtual void Serialize(FArchive& Ar) override;
 
 	// Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;

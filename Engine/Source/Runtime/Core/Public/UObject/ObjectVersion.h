@@ -560,6 +560,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MAX_ANGULAR_VELOCITY_DEFAULT,
 	// Build Adjacency index buffer for clothing tessellation
 	VER_UE4_APEX_CLOTH_TESSELLATION,
+	// Added DecalSize member, solved backward compatibility
+	VER_UE4_DECAL_SIZE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

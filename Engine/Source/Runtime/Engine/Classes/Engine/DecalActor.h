@@ -39,10 +39,9 @@ private_subobject:
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 
-	/* Reference to the selected visualization box component */
-	DEPRECATED_FORGAME(4.6, "BoxComponent should not be accessed directly, please use GetBoxComponent() function instead. BoxComponent will soon be private and your code will not compile.")
+	// formerly we used this component to draw a box, now we use the DecalComponentVisualizer
 	UPROPERTY()
-	UBoxComponent* BoxComponent;
+	UBoxComponent* BoxComponent_DEPRECATED;
 #endif
 
 public:
@@ -69,6 +68,10 @@ public:
 	// End AActor interface.
 #endif // WITH_EDITOR
 
+	
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+
 public:
 
 	/** Returns Decal subobject **/
@@ -78,7 +81,5 @@ public:
 	UArrowComponent* GetArrowComponent() const;
 	/** Returns SpriteComponent subobject **/
 	UBillboardComponent* GetSpriteComponent() const;
-	/** Returns BoxComponent subobject **/
-	UBoxComponent* GetBoxComponent() const;
 #endif
 };
