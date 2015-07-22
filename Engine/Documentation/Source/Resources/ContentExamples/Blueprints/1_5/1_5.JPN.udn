@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2626222
 Availability:Public
 Title:1.5 - イベントグラフ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:ブループリントの事例概要、例1.5：イベントグラフ
+Description:ブループリントのサンプル レベルの概要、サンプル 1.5：イベントグラフ
 Related: Engine/Blueprints/Overview 
 Related: Engine/Blueprints/UserGuide/Components
 Related: Engine/Blueprints/UserGuide/Variables
@@ -35,9 +35,9 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [REGION:fullwidth]
 ![](1.5BlueprintOverview.png)
 
-## 概要
 
-この例では、色付きのハイライトを持つロケット メッシュを使います。**[詳細 ]** パネルで、設定可能な 2 種類のカラーがあることがわかります。1 つはコンストラクション スクリプトで設定され、もう 1 つはイベント グラフで設定されます。この例では 2 つのグラフの違いと、いつ実行するかについて示します。コンストラクション スクリプトのプロパティを変更すると、エディタでただちに変更がわかります。しかし、イベント グラフのカラーを変更した場合は、プレイするかシミュレーションするまで変更されません。 
+
+このサンプルでは、色付きのハイライトを持つロケット メッシュを使います。**[Details (詳細)]** パネルで、設定可能な 2 種類のカラーがあることがわかります。1 つはコンストラクション スクリプトで設定され、もう 1 つは **イベントグラフ** で設定されます。このサンプルでは 2 つのグラフの違いと、いつ実行するかについて示します。コンストラクション スクリプトのプロパティを変更すると、エディタでただちに変更がわかります。しかし、イベントグラフのカラーを変更した場合は、プレイするかシミュレーションするまで変更されません。 
 
 ## コンストラクション スクリプト
 
