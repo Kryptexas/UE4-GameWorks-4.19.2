@@ -6,13 +6,17 @@ Description:Guide to the Pivot Painter MAXScript, which stores model pivot and r
 [TOC(start:2)]
 
 
-[REGION:header_img]
-[![splash_demo.jpg](splash_demo.jpg)](PivotPainterFoliageExamples.mp4)
-[/REGION]
-
-[REGION:caption]
-(Click to view video)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+G3vUj7c5gUM
+[/PARAMLITERAL]
+[/OBJECT]
 
 Pivot Painter is a MAXScript that stores model pivot and rotation information in the model's vertex data. That information can then be referenced inside of Unreal's shader system to create interactive effects.
 
@@ -32,21 +36,33 @@ You can find the **Pivot Painter** script in the following location:
 
 This video covers installing the script and creating a keyboard shortcut and menu to open the Pivot Painter tool.
 
-[![splash_installing.jpg](splash_installing.jpg)(w:640 h:327)](InstallingPivotPainter.mp4)
-
-[REGION:caption]
-(Click to view video)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+FSGMdqfE7cU
+[/PARAMLITERAL]
+[/OBJECT]
 
 ## Prep Tools 
 
 This video will cover the "Prep Tools" section of the script as well as workflow tips and information about the overall process. Prep Tools contains options to detach model elements as separate objects and several tools to help create new pivot points easily.
 
-[![splash_preptools.jpg](splash_preptools.jpg)(w:640 h:327)](FinalPrepTools.mp4)
-
-[REGION:caption]
-(Click to view video)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+ZPqVnaO-AFc
+[/PARAMLITERAL]
+[/OBJECT]
 
 [REGION:note]
 The **Prep Tools** are designed to separate a given models elements into a series of new models and to move their pivots into ideal locations. It is not necessary to use these tools. They are simply provided for convenience. If the model being processed is already separated, its pivot is located at the point from which it is supposed to rotate, and the models X axis is facing down the length of the model, then your model is good to go to the next step. 
@@ -58,11 +74,17 @@ The **Prep Tools** are designed to separate a given models elements into a serie
 
 This video covers the "Hierarchy Painter" segment of the script. This portion of the tool is used to store child parent relationships like the relation between a branch and leaf for instance,  as well as the model pivot and rotation information in the meshes.
 
-[![splash_hierarchy.jpg](splash_hierarchy.jpg)(w:640 h:327)](HierarchyPainter.mp4)
-
-[REGION:caption]
-(Click to view video)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+tQdaxZnFx7k
+[/PARAMLITERAL]
+[/OBJECT]
 
 [REGION:note]
 Models should only be processed with the "Hierarchy Painter" section of the script if the model requires a hierarchy. A tree with leaves is a good use case whereas grass is not. Grass should be painted with the "Per Object Painter" section. 
@@ -76,11 +98,17 @@ Also, branches/parent pivots need to be positioned within a box as described by 
 
 This video goes over the options available under the "Per Object Painter" script section. It also discusses some of the possible uses and some information about how the data is stored on the model. 
 
-[![splash_perpainter.jpg](splash_perpainter.jpg)(w:640 h:327)](perpainter.mp4)
-
-[REGION:caption]
-(Click to view video)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+xolW5QBMwpE
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 3D Studio Max Example File 
