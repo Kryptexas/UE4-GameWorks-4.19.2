@@ -1178,13 +1178,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		RunTickGroup(TG_StartCloth);
 		}
 		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_EndCloth);
-		RunTickGroup(TG_EndCloth);
-		}
-		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);
-		RunTickGroup(TG_PostPhysics);
-	}
+			RunTickGroup(TG_PostPhysics);
+		}
 	}
 	else if( bIsPaused )
 	{
@@ -1279,7 +1275,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PostUpdateWork);
-		RunTickGroup(TG_PostUpdateWork);
+			RunTickGroup(TG_PostUpdateWork);
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TG_EndCloth);
+			RunTickGroup(TG_EndCloth);
 		}
 		FTickTaskManagerInterface::Get().EndFrame(); 
 
