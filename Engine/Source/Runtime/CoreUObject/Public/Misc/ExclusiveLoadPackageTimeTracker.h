@@ -174,15 +174,6 @@ private:
 		{}
 	};
 
-	/** Struct to assemble times for assets loaded by class */
-	struct FTimeCount
-	{
-		FLoadTime Time;
-		int32 Count;
-
-		FTimeCount() : Count(0) {}
-	};
-
 	FExclusiveLoadPackageTimeTracker();
 	COREUOBJECT_API static FExclusiveLoadPackageTimeTracker& Get();
 
