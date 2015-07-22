@@ -33,5 +33,14 @@ public class ActorAnimationEditor : ModuleRules
 				"AssetTools",
 			}
 		);
+
+        PrivateIncludePaths.AddRange(
+            new string[] {
+				"ActorAnimationEditor/Private",
+				"ActorAnimationEditor/Private/AssetTools",
+				"ActorAnimationEditor/Private/Factories",
+				"ActorAnimationEditor/Private/Styles",
+			}
+        );
 	}
 }
