@@ -6,8 +6,9 @@
 /* Private dependencies
  *****************************************************************************/
 
-#include "ActorAnimation.h"
+#include "Core.h"
 #include "CoreUObject.h"
+#include "ActorAnimation.h"
 #include "AssetToolsModule.h"
 #include "EditorStyle.h"
 #include "Engine.h"
