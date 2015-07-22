@@ -84,6 +84,9 @@ public:
 	 * blueprint is a normal UBlueprint, like UUserWidget blueprints should be UWidgetBlueprints.
 	 */
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const = 0;
+
+	virtual FString GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum) = 0;
+	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -102,6 +105,8 @@ public:
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
 	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
+	virtual FString GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum) override;
+	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) override;
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded);

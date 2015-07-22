@@ -8,6 +8,7 @@
 #include "Engine/UserDefinedStruct.h"
 #include "SourceCodeNavigation.h"
 #include "DesktopPlatformModule.h"
+//#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 
@@ -19,9 +20,7 @@
 struct FGeneratedCodeData
 {
 	FGeneratedCodeData(UBlueprint& InBlueprint) 
-		: HeaderSource(new FString())
-		, CppSource(new FString())
-		, Blueprint(&InBlueprint)
+		: Blueprint(&InBlueprint)
 	{
 		FName GeneratedClassName, SkeletonClassName;
 		InBlueprint.GetBlueprintClassNames(GeneratedClassName, SkeletonClassName);
@@ -31,11 +30,10 @@ struct FGeneratedCodeData
 	}
 
 	FString TypeDependencies;
-	TSharedPtr<FString> HeaderSource;
-	TSharedPtr<FString> CppSource;
 	FString ErrorString;
 	FString ClassName;
 	TWeakObjectPtr<UBlueprint> Blueprint;
+	TSet<UObject*> DependentObjects;
 
 	void GatherUserDefinedDependencies(UBlueprint& InBlueprint)
 	{
@@ -70,9 +68,11 @@ struct FGeneratedCodeData
 				{
 					TypeDependencies += Obj->GetPathName();
 					TypeDependencies += TEXT("\n");
+					DependentObjects.Add(Obj);
 				}
 			}
 		}
+		DependentObjects.Add(InBlueprint.GeneratedClass);
 
 		if (TypeDependencies.IsEmpty())
 		{
@@ -104,72 +104,80 @@ struct FGeneratedCodeData
 
 	bool Save(const FString& HeaderDirPath, const FString& CppDirPath)
 	{
-		FScopedSlowTask SlowTask(7, LOCTEXT("GeneratingCppFiles", "Generating C++ files.."));
-		SlowTask.MakeDialog();
-		SlowTask.EnterProgressFrame();
-
 		if (!Blueprint.IsValid())
 		{
 			ErrorString += LOCTEXT("InvalidBlueprint", "Invalid Blueprint\n").ToString();
 			return false;
 		}
 
-		FKismetEditorUtilities::GenerateCppCode(Blueprint.Get(), HeaderSource, CppSource, ClassName);
-
+		const int WorkParts = 4 + 2 * DependentObjects.Num();
+		FScopedSlowTask SlowTask(WorkParts, LOCTEXT("GeneratingCppFiles", "Generating C++ files.."));
+		SlowTask.MakeDialog();
 		SlowTask.EnterProgressFrame();
-
-		bool bProjectHadCodeFiles = false;
-		{
-			TArray<FString> OutProjectCodeFilenames;
-			IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
-			IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
-			bProjectHadCodeFiles = OutProjectCodeFilenames.Num() > 0;
-		}
 
 		TArray<FString> CreatedFiles;
+		for(auto Obj : DependentObjects)
+		{
+			TSharedPtr<FString> HeaderSource(new FString());
+			TSharedPtr<FString> CppSource(new FString());
+			FKismetEditorUtilities::GenerateCppCode(Obj, HeaderSource, CppSource);
+			SlowTask.EnterProgressFrame();
 
-		const FString NeHeaderFilename = FPaths::Combine(*HeaderDirPath, *HeaderFileName());
-		const bool bHeaderSaved = FFileHelper::SaveStringToFile(*HeaderSource, *NeHeaderFilename);
-		if (!bHeaderSaved)
-		{
-			ErrorString += LOCTEXT("HeaderNotSaved", "Header file wasn't saved. Check log for details.\n").ToString();
-		}
-		else
-		{
-			CreatedFiles.Add(NeHeaderFilename);
-		}
+			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(Obj->GetName() + TEXT(".h")));
+			const bool bHeaderSaved = FFileHelper::SaveStringToFile(*HeaderSource, *FullHeaderFilename);
+			if (!bHeaderSaved)
+			{
+				ErrorString += FString::Printf(*LOCTEXT("HeaderNotSaved", "Header file wasn't saved. Check log for details. %s\n").ToString(), *Obj->GetPathName());
+			}
+			else
+			{
+				CreatedFiles.Add(FullHeaderFilename);
+			}
 
-		SlowTask.EnterProgressFrame();
-
-		const FString NewCppFilename = FPaths::Combine(*CppDirPath, *SourceFileName());
-		const bool bCppSaved = FFileHelper::SaveStringToFile(*CppSource, *NewCppFilename);
-		if (!bCppSaved)
-		{
-			ErrorString += LOCTEXT("CppNotSaved", "Cpp file wasn't saved. Check log for details.\n").ToString();
-		}
-		else
-		{
-			CreatedFiles.Add(NewCppFilename);
-		}
-
-		TArray<FString> CreatedFilesForExternalAppRead;
-		CreatedFilesForExternalAppRead.Reserve(CreatedFiles.Num());
-		for (const FString& CreatedFile : CreatedFiles)
-		{
-			CreatedFilesForExternalAppRead.Add(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*CreatedFile));
+			SlowTask.EnterProgressFrame();
+			if (!CppSource->IsEmpty())
+			{
+				const FString NewCppFilename = FPaths::Combine(*CppDirPath, *(Obj->GetName() + TEXT(".cpp")));
+				const bool bCppSaved = FFileHelper::SaveStringToFile(*CppSource, *NewCppFilename);
+				if (!bCppSaved)
+				{
+					ErrorString += FString::Printf(*LOCTEXT("CppNotSaved", "Cpp file wasn't saved. Check log for details. %s\n").ToString(), *Obj->GetPathName());
+				}
+				else
+				{
+					CreatedFiles.Add(NewCppFilename);
+				}
+			}
 		}
 
 		SlowTask.EnterProgressFrame();
 
 		bool bGenerateProjectFiles = true;
-		// First see if we can avoid a full generation by adding the new files to an already open project
-		if (bProjectHadCodeFiles && FSourceCodeNavigation::AddSourceFiles(CreatedFilesForExternalAppRead))
 		{
-			// We successfully added the new files to the solution, but we still need to run UBT with -gather to update any UBT makefiles
-			if (FDesktopPlatformModule::Get()->InvalidateMakefiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
+			bool bProjectHadCodeFiles = false;
 			{
-				// We managed the gather, so we can skip running the full generate
-				bGenerateProjectFiles = false;
+				TArray<FString> OutProjectCodeFilenames;
+				IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
+				IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
+				bProjectHadCodeFiles = OutProjectCodeFilenames.Num() > 0;
+			}
+
+			TArray<FString> CreatedFilesForExternalAppRead;
+			CreatedFilesForExternalAppRead.Reserve(CreatedFiles.Num());
+			for (const FString& CreatedFile : CreatedFiles)
+			{
+				CreatedFilesForExternalAppRead.Add(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*CreatedFile));
+			}
+
+			// First see if we can avoid a full generation by adding the new files to an already open project
+			if (bProjectHadCodeFiles && FSourceCodeNavigation::AddSourceFiles(CreatedFilesForExternalAppRead))
+			{
+				// We successfully added the new files to the solution, but we still need to run UBT with -gather to update any UBT makefiles
+				if (FDesktopPlatformModule::Get()->InvalidateMakefiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
+				{
+					// We managed the gather, so we can skip running the full generate
+					bGenerateProjectFiles = false;
+				}
 			}
 		}
 
@@ -186,7 +194,7 @@ struct FGeneratedCodeData
 			}
 		}
 
-		return bHeaderSaved && bCppSaved && bProjectFileUpdated;
+		return ErrorString.IsEmpty();
 	}
 };
 
@@ -320,22 +328,6 @@ private:
 		return GeneratedCodeData.IsValid() ? FText::FromString(GeneratedCodeData->ClassName) : FText::GetEmpty();
 	}
 
-	void OnClassNameCommited(const FText& NameText, ETextCommit::Type TextCommit)
-	{
-		if (GeneratedCodeData.IsValid())
-		{
-			GeneratedCodeData->ClassName = NameText.ToString();
-			if (HeaderDirectoryBrowser.IsValid())
-			{
-				HeaderDirectoryBrowser->File = GeneratedCodeData->HeaderFileName();
-			}
-			if (SourceDirectoryBrowser.IsValid())
-			{
-				SourceDirectoryBrowser->File = GeneratedCodeData->SourceFileName();
-			}
-		}
-	}
-
 public:
 
 	void Construct(const FArguments& InArgs)
@@ -362,10 +354,8 @@ public:
 				.Padding(4.0f)
 				.AutoHeight()
 				[
-					SNew(SEditableTextBox)
+					SNew(STextBlock)
 					.Text(this, &SNativeCodeGenerationDialog::GetClassName)
-					.OnTextCommitted(this, &SNativeCodeGenerationDialog::OnClassNameCommited)
-					.IsEnabled(this, &SNativeCodeGenerationDialog::IsEditable)
 				]
 				+ SVerticalBox::Slot()
 				.Padding(4.0f)

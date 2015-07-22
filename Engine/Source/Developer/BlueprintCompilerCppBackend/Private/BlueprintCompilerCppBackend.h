@@ -6,9 +6,6 @@
 class FBlueprintCompilerCppBackend : public IBlueprintCompilerCppBackend
 {
 protected:
-	FCompilerResultsLog& MessageLog;
-	FKismetCompilerContext& CompilerContext;
-
 	struct FFunctionLabelInfo
 	{
 		TMap<FBlueprintCompiledStatement*, int32> StateMap;
@@ -40,25 +37,23 @@ public:
 	FStringOutputDevice Header;
 	FStringOutputDevice Body;
 
-	const FString& GetBody()	const override { return Body; }
-	const FString& GetHeader()	const override { return Header; }
+	// IBlueprintCompilerCppBackend implementation
+	virtual void GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
+	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) override;
+	virtual void GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) override;
+
+	virtual const FString& GetBody()	const override { return Body; }
+	virtual const FString& GetHeader()	const override { return Header; }
+	// end of IBlueprintCompilerCppBackend implementation
 
 public:
-
-	FBlueprintCompilerCppBackend(FKismetCompilerContext& InContext)
-		: MessageLog(InContext.MessageLog)
-		, CompilerContext(InContext)
-	{
-	}
 
 	void Emit(FStringOutputDevice& Target, const TCHAR* Message)
 	{
 		Target += Message;
 	}
 
-	void EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass);
-
-	void GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
+	void EmitStructProperties(FStringOutputDevice& Target, UStruct* SourceClass);
 
 	void EmitCallStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
 	void EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
@@ -92,6 +87,7 @@ public:
 	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = nullptr);
 
 protected:
+	void EmitFileBeginning(const FString& CleanName, UStruct* SourceStruct);
 
 	FString LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel);
 

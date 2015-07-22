@@ -8,7 +8,9 @@
 class IBlueprintCompilerCppBackend
 {
 public:
-	virtual void GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) = 0;
+	virtual void GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) = 0;
+	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) = 0;
+	virtual void GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) = 0;
 
 	virtual const FString& GetBody() const = 0;
 	virtual const FString& GetHeader() const = 0;
@@ -44,5 +46,5 @@ public:
 		return FModuleManager::Get().IsModuleLoaded("BlueprintCompilerCppBackend");
 	}
 
-	virtual IBlueprintCompilerCppBackend* Create(FKismetCompilerContext& InContext) = 0;
+	virtual IBlueprintCompilerCppBackend* Create() = 0;
 };

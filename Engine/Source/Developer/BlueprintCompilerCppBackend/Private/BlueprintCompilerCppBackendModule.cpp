@@ -10,7 +10,7 @@ class FBlueprintCompilerCppBackendModule : public IBlueprintCompilerCppBackendMo
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	virtual IBlueprintCompilerCppBackend* Create(FKismetCompilerContext& InContext)  override;
+	virtual IBlueprintCompilerCppBackend* Create()  override;
 };
 
 IMPLEMENT_MODULE(FBlueprintCompilerCppBackendModule, BlueprintCompilerCppBackend)
@@ -29,7 +29,7 @@ void FBlueprintCompilerCppBackendModule::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
-IBlueprintCompilerCppBackend* FBlueprintCompilerCppBackendModule::Create(FKismetCompilerContext& InContext)
+IBlueprintCompilerCppBackend* FBlueprintCompilerCppBackendModule::Create()
 {
-	return new FBlueprintCompilerCppBackend(InContext);
+	return new FBlueprintCompilerCppBackend();
 }
