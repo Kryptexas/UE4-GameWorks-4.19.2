@@ -204,17 +204,17 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 		if( bLeftEdgePressed || bLeftEdgeHovered )
 		{
 			// Selected the start of a section
-			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), *SectionObject, false ) );
+			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections(), false ) );
 		}
 		else if( bRightEdgePressed || bRightEdgeHovered )
 		{
 			// Selected the end of a section
-			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), *SectionObject, true ) );
+			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections(), true ) );
 		}
 		else
 		{
 			// Entire selection moved
-			DragOperation = MakeShareable( new FMoveSection( GetSequencer(), *SectionObject ) );
+			DragOperation = MakeShareable( new FMoveSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections() ) );
 		}
 	}
 	
@@ -516,7 +516,7 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 
 		return FReply::Handled().CaptureMouse( AsShared() );
 	}
-	else if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && (PressedKey.IsValid() || Sequencer.GetSelection().GetSelectedKeys().Num()))
+	else if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && (PressedKey.IsValid() || Sequencer.GetSelection().GetSelectedKeys().Num() || Sequencer.GetSelection().GetSelectedSections().Num()))
 	{
 		// Don't return handled if we didn't click on a key so that right-click panning gets a look in
 		return FReply::Handled();
@@ -616,6 +616,10 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 			
 			FVector2D LocalMousePos = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 
+			FTimeToPixel TimeToPixelConverter = SectionInterface->GetSectionObject()->IsInfinite() ? 			
+				FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+				FTimeToPixel( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
+
 			if( !bDragging )
 			{
 				// If we are not dragging determine if the mouse has moved far enough to start a drag
@@ -648,7 +652,7 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 				
 					if( DragOperation.IsValid() )
 					{
-						DragOperation->OnBeginDrag(LocalMousePos, ParentSectionArea);
+						DragOperation->OnBeginDrag(LocalMousePos, TimeToPixelConverter, ParentSectionArea);
 					}
 
 				}
@@ -656,9 +660,6 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 			else if( DragOperation.IsValid() )
 			{
 				// Already in a drag, tell all operations to perform their drag implementations
-				FTimeToPixel TimeToPixelConverter = SectionInterface->GetSectionObject()->IsInfinite() ? 			
-					FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
-					FTimeToPixel( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
 
 				DragOperation->OnDrag( MouseEvent, LocalMousePos, TimeToPixelConverter, ParentSectionArea );
 			}
@@ -773,7 +774,10 @@ void SSection::HandleSectionSelection( const FPointerEvent& MouseEvent, bool bSe
 	// Keep key selection if right clicking to bring up a menu and the current key is selected
 	bool bKeepSectionSelection = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && bSectionIsSelected;
 	
-	if (MouseEvent.IsControlDown() && bSectionIsSelected)
+	// Don't clear selection edge is being dragged
+	bool bEdgePressed = bLeftEdgePressed || bRightEdgePressed;
+
+	if (MouseEvent.IsControlDown() && bSectionIsSelected && !bEdgePressed)
 	{
 		GetSequencer().GetSelection().RemoveFromSelection(Section);
 	}

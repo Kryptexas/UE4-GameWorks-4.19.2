@@ -13,7 +13,7 @@ public:
 	FSequencerDragOperation( FSequencer& InSequencer );
 
 	virtual ~FSequencerDragOperation(){}
-	void BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc );
+	void BeginTransaction( const TSet<TWeakObjectPtr<UMovieSceneSection> >& Sections, const FText& TransactionDesc );
 	void EndTransaction();
 
 	/**
@@ -22,7 +22,7 @@ public:
 	 * @param LocalMousePos	The current relative (to sequencer) mouse location
 	 * @param SequencerNode	The sequencer node that this operation is being performed on
 	 */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) = 0;
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const struct FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode) = 0;
 
 	/**
 	 * Notification that drag is ending
@@ -88,18 +88,22 @@ protected:
 class FResizeSection : public FSequencerDragOperation
 {
 public:
-	FResizeSection( FSequencer& Sequencer, UMovieSceneSection& InSection, bool bInDraggingByEnd );
+	FResizeSection( FSequencer& Sequencer, const TSet<TWeakObjectPtr<UMovieSceneSection> >& InSections, bool bInDraggingByEnd );
 
 	/** FSequencerDragOperation interface */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode) override;
 	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) override;
 	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) override;
 	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight ); }
 private:
-	/** The section we are interacting with */
-	TWeakObjectPtr<UMovieSceneSection> Section;
+	/** The sections we are interacting with */
+	TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
 	/** true if dragging  the end of the section, false if dragging the start */
 	bool bDraggingByEnd;
+	/** Time where the mouse is pressed */
+	float MouseDownTime;
+	/** The section start or end times when the mouse is pressed */
+	TMap<TWeakObjectPtr<UMovieSceneSection>, float> SectionInitTimes;
 	/** The exact key handles that we're dragging */
 	TSet<FKeyHandle> DraggedKeyHandles;
 };
@@ -110,10 +114,10 @@ private:
 class FMoveSection : public FSequencerDragOperation
 {
 public:
-	FMoveSection( FSequencer& Sequencer, UMovieSceneSection& InSection );
+	FMoveSection( FSequencer& Sequencer, const TSet<TWeakObjectPtr<UMovieSceneSection> >& Sections );
 
 	/** FSequencerDragOperation interface */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode) override;
 	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) override;
 	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) override;
 	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::CardinalCross ); }
@@ -123,10 +127,10 @@ private:
 	bool IsSectionAtNewLocationValid(UMovieSceneSection* Section, int32 TrackIndex, float DeltaTime, TSharedPtr<FTrackNode> SequencerNode) const;
 
 private:
-	/** The section we are interacting with */
-	TWeakObjectPtr<UMovieSceneSection> Section;
-	/** Local mouse position when dragging the section */
-	FVector2D DragOffset;
+	/** The sections we are interacting with */
+	TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
+	/** Time where the mouse is pressed */
+	float MouseDownTime;
 	/** The exact key handles that we're dragging */
 	TSet<FKeyHandle> DraggedKeyHandles;
 };
@@ -144,7 +148,7 @@ public:
 	{}
 
 	/** FSequencerDragOperation interface */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
+	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode) override;
 	virtual void OnEndDrag(TSharedPtr<FTrackNode> SequencerNode) override;
 	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode ) override;
 
