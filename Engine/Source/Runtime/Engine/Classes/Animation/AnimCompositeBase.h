@@ -133,7 +133,7 @@ struct FAnimSegment
 	/**
 	 * Get Animation Data, for now have weight to be controlled here, in the future, it will be controlled in Track
 	 */
-	UAnimSequenceBase* GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const;
+	ENGINE_API UAnimSequenceBase* GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const;
 
 	/** Converts 'Track Position' to position on AnimSequence.
 	 * Note: doesn't check that position is in valid range, must do that before calling this function! */

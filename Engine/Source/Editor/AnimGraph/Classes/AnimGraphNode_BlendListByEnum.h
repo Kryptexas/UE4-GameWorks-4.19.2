@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_BlendListBase.h"
-#include "Animation/AnimNode_BlendListByEnum.h"
+#include "AnimNodes/AnimNode_BlendListByEnum.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_BlendListByEnum.generated.h"
 

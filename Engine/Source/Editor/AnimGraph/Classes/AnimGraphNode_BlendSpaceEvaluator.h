@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_BlendSpaceBase.h"
-#include "Animation/AnimNode_BlendSpaceEvaluator.h"
+#include "AnimNodes/AnimNode_BlendSpaceEvaluator.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_BlendSpaceEvaluator.generated.h"
 

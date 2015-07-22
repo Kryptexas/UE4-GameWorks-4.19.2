@@ -3,7 +3,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
-#include "Animation/AnimNode_RotateRootBone.h"
+#include "AnimNodes/AnimNode_RotateRootBone.h"
 #include "AnimGraphNode_RotateRootBone.generated.h"
 
 UCLASS(MinimalAPI)

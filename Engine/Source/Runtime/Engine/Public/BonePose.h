@@ -154,7 +154,7 @@ struct FCompactPoseBoneIndexReverseIterator
 	FCompactPoseBoneIndex operator*() const { return FCompactPoseBoneIndex(Index); }
 };
 
-struct FCompactPose : FBasePose<FCompactPoseBoneIndex>
+struct ENGINE_API FCompactPose : FBasePose<FCompactPoseBoneIndex>
 {
 public:
 	typedef FCompactPoseBoneIndex BoneIndexType;
@@ -244,7 +244,7 @@ public:
 	}
 
 	// Sets this pose to the supplied BoneContainers ref pose
-	ENGINE_API void ResetToRefPose(const FBoneContainer& RequiredBones);
+	void ResetToRefPose(const FBoneContainer& RequiredBones);
 
 	// Sets every bone transform to Identity
 	void ResetToIdentity();

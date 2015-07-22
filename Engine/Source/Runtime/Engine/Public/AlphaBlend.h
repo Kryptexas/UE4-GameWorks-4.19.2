@@ -45,7 +45,7 @@ enum class EAlphaBlendOption : uint8
  * Alpha Blend Type
  */
 USTRUCT()
-struct FAlphaBlend
+struct ENGINE_API FAlphaBlend
 {
 	GENERATED_BODY()
 

@@ -277,7 +277,7 @@ public:
 	/**
 	 * BlendSpace Get Animation Pose function
 	 */
-	void GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve);
+	ENGINE_API void GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve);
 
 	/** Accessor for blend parameter **/
 	ENGINE_API const FBlendParameter& GetBlendParameter(int32 Index)
@@ -350,7 +350,7 @@ public:
 	ENGINE_API bool IsTooCloseToExistingSamplePoint(const FVector& SampleValue, int32 OriginalIndex) const;
 
 	/** Initialize BlendSpace for runtime. It needs certain data to be reinitialized per instsance **/
-	void InitializeFilter(FBlendFilter* Filter) const;
+	ENGINE_API void InitializeFilter(FBlendFilter* Filter) const;
 
 	/** 
 	 * Get PerBoneInterpolationIndex for the input BoneIndex

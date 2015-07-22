@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
-#include "Animation/AnimNode_Slot.h"
+#include "AnimNodes/AnimNode_Slot.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_Slot.generated.h"
 

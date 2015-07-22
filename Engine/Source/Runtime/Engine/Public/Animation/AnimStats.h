@@ -31,11 +31,11 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("BlueprintUpdateAnimation"), STAT_BlueprintUpdate
 DECLARE_CYCLE_STAT_EXTERN(TEXT("NativeUpdateAnimation"), STAT_NativeUpdateAnimation, STATGROUP_Anim, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("BlueprintPostEvaluateAnimation"), STAT_BlueprintPostEvaluateAnimation, STATGROUP_Anim, );
 
-#define DO_ANIMSTAT_PROCESSING(StatName) DECLARE_CYCLE_STAT_EXTERN(TEXT(#StatName), STAT_ ## StatName, STATGROUP_Anim, )
+#define DO_ANIMSTAT_PROCESSING(StatName) DECLARE_CYCLE_STAT_EXTERN(TEXT(#StatName), STAT_ ## StatName, STATGROUP_Anim, ENGINE_API)
 #include "AnimMTStats.h"
 #undef DO_ANIMSTAT_PROCESSING
 
-#define DO_ANIMSTAT_PROCESSING(StatName) DECLARE_CYCLE_STAT_EXTERN(TEXT(#StatName) TEXT("_WorkerThread"), STAT_ ## StatName ## _WorkerThread, STATGROUP_Anim, )
+#define DO_ANIMSTAT_PROCESSING(StatName) DECLARE_CYCLE_STAT_EXTERN(TEXT(#StatName) TEXT("_WorkerThread"), STAT_ ## StatName ## _WorkerThread, STATGROUP_Anim, ENGINE_API)
 #include "AnimMTStats.h"
 #undef DO_ANIMSTAT_PROCESSING
 

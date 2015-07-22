@@ -412,7 +412,7 @@ class UAnimMontage : public UAnimCompositeBase
 #endif // WITH_EDITORONLY_DATA
 
 	/** return true if valid slot */
-	bool IsValidSlot(FName InSlotName) const;
+	ENGINE_API bool IsValidSlot(FName InSlotName) const;
 
 public:
 	// Begin UObject Interface
@@ -504,7 +504,7 @@ public:
 	float CalculatePos(FCompositeSection &Section, float PosWithinCompositeSection) const;
 	
 	/** Prototype function to get animation data - this will need rework */
-	const FAnimTrack* GetAnimationData(FName SlotName) const;
+	ENGINE_API const FAnimTrack* GetAnimationData(FName SlotName) const;
 
 	/** Returns whether the anim sequences this montage have root motion enabled */
 	virtual bool HasRootMotion() const override;

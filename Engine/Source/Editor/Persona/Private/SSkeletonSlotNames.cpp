@@ -14,7 +14,7 @@
 #include "STextEntryPopup.h"
 #include "Animation/AnimBlueprint.h"
 #include "AnimGraphNode_Slot.h"
-#include "Animation/AnimNode_Slot.h"
+#include "AnimNodes/AnimNode_Slot.h"
 #include "BlueprintEditorUtils.h"
 #include "SSlotNameReferenceWindow.h"
 #include "IMainFrameModule.h"

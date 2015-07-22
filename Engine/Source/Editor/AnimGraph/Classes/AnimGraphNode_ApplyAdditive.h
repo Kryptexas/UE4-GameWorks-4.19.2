@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
-#include "Animation/AnimNode_ApplyAdditive.h"
+#include "AnimNodes/AnimNode_ApplyAdditive.h"
 #include "AnimGraphNode_ApplyAdditive.generated.h"
 
 UCLASS(MinimalAPI)
