@@ -127,6 +127,7 @@ void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, const TArray<FT
 
 void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexType>& InRequiredBones, TArray<FTransform>& InLocalAtoms)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BlendInPhysics);
 	// Get drawscale from Owner (if there is one)
 	FVector TotalScale3D = ComponentToWorld.GetScale3D();
 	FVector RecipScale3D = TotalScale3D.Reciprocal();
@@ -369,9 +370,8 @@ bool USkeletalMeshComponent::DoAnyPhysicsBodiesHaveWeight() const
 
 TAutoConsoleVariable<int32> CVarUseParallelBlendPhysics(TEXT("a.ParallelBlendPhysics"), 1, TEXT("If 1, physics blending will be run across the task graph system. If 0, blending will run purely on the game thread"));
 
-void USkeletalMeshComponent::BlendInPhysics()
+void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 {
-	SCOPE_CYCLE_COUNTER(STAT_BlendInPhysics);
 	check(IsInGameThread());
 
 	// Can't do anything without a SkeletalMesh
@@ -408,6 +408,8 @@ void USkeletalMeshComponent::BlendInPhysics()
 
 			check(!IsValidRef(ParallelBlendPhysicsCompletionTask));
 			ParallelBlendPhysicsCompletionTask = TGraphTask<FParallelBlendPhysicsCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
+
+			ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ParallelBlendPhysicsCompletionTask);
 		}else
 		{
 			PerformBlendPhysicsBones(RequiredBones, LocalAtoms);

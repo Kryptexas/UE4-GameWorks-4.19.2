@@ -44,7 +44,7 @@ void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, en
 
 	if ((TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
 	{
-		Target->PreClothTick(DeltaTime);
+		Target->PreClothTick(DeltaTime, *this);
 	}
 }
 
@@ -3115,7 +3115,7 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
 
-void USkeletalMeshComponent::PreClothTick(float DeltaTime)
+void USkeletalMeshComponent::PreClothTick(float DeltaTime, FTickFunction& ThisTickFunction)
 {
 	//IMPORTANT!
 	//
@@ -3147,7 +3147,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	{
 		if (IsRegistered())
 		{
-			BlendInPhysics();
+			BlendInPhysics(ThisTickFunction);
 		}
 	}
 
@@ -3157,7 +3157,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// if skeletal mesh has clothing assets, call TickClothing
 	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
 	{
-		TickClothing(DeltaTime);
+		TickClothing(DeltaTime, ThisTickFunction);
 	}
 #endif
 }
@@ -3728,13 +3728,14 @@ void USkeletalMeshComponent::PerformTickClothing(float DeltaTime)
 #endif// #if WITH_APEX_CLOTHING
 }
 
-void USkeletalMeshComponent::TickClothing(float DeltaTime)
+void USkeletalMeshComponent::TickClothing(float DeltaTime, FTickFunction& ThisTickFunction)
 {
 	if(IsValidRef(ParallelBlendPhysicsCompletionTask))
 	{
 		FGraphEventArray Prerequistes;
 		Prerequistes.Add(ParallelBlendPhysicsCompletionTask);
-		TGraphTask<FTickClothingTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this, DeltaTime);
+		FGraphEventRef TickClothingCompletionEvent = TGraphTask<FTickClothingTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this, DeltaTime);
+		ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(TickClothingCompletionEvent);
 	}else
 	{
 		PerformTickClothing(DeltaTime);
