@@ -5,7 +5,6 @@ Description:Tool used to preview the look, collision, and UVs as well as set and
 
 [TOC(start:2)]
 
-## Overview
 
 The **Static Mesh Editor** consists of four areas:
 
@@ -60,7 +59,7 @@ The **Static Mesh Editor** consists of four areas:
 * **Convert Boxes to Convex** - Converts any simple box collision meshes to convex collision meshes.
 * **Copy Collision from Selected Static Mesh** - Copies any collision meshes that were created in the native 3D application and saved with the Static Mesh.
 
-For more information about collision for Static Meshes in Unreal Engine, see the [Collision Reference](Engine/Physics/Collision/Reference).
+For more information about collision for Static Meshes in Unreal Engine, see the [**Collision Reference**](Engine/Physics/Collision/Reference).
 
 
 ### Window
@@ -84,7 +83,7 @@ For more information about collision for Static Meshes in Unreal Engine, see the
 | Item | Description |
 | ---- | ----------- |
 | ![button_realtime.png](button_realtime.png)| Toggles whether the viewport updates in realtime, or only when clicked on / moused over.  By default, it is turned off, and you may need to click in the viewport once after the mesh is loaded in order to get streamed textures displaying at high resolution. |
-| ![button_sockets.png](button_sockets.png) | Displays any sockets that have been applied to this mesh. For more information about sockets, see [](Engine/Content\Types\SkeletalMeshes\Sockets). |
+| ![button_sockets.png](button_sockets.png) | Displays any sockets that have been applied to this mesh. For more information about sockets, see **[](Engine/Content\Types\SkeletalMeshes\Sockets)**. |
 | ![button_wireframe.png](button_wireframe.png)| Toggles the viewmode of the **Preview** panel between a lit view and a wireframe view. |
 | ![button_vertcolor.png](button_vertcolor.png) | Toggles visibility of vertex colors. |
 | ![button_grid.png](button_grid.png) | Toggles visibility of the grid in the **Preview** panel. |
@@ -122,7 +121,7 @@ In this information you will find the following:
 
 The **Details** panel shows specific properties pertaining to the Static Mesh Actor, such as the Materials applied to the surface, LOD options, and mesh reduction options. 
 
-For information about the basics of using this panel, see the [Editor Details Panel](Engine/UI/LevelEditor\Details) documentation.
+For information about the basics of using this panel, see the [**Editor Details Panel**](Engine/UI/LevelEditor\Details) documentation.
 
 ## Controls
 
