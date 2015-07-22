@@ -35,9 +35,10 @@ void YCbCrConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
+	OutColor = float4(0, 0, 0, 0);
 	float3 YCbCr;
-	YCbCr.x = YCbCrConvertUB.LumaTexture.Sample(YCbCrConvertUB.YCbCrSampler, InUV.xy).x - 0.0625; //e.g. 16 / 255
-	YCbCr.yz = YCbCrConvertUB.CbCrTexture.Sample(YCbCrConvertUB.YCbCrSampler, InUV.xy).xy - float2(0.5, 0.5);
+	YCbCr.x = YCbCrConvertUB.LumaTexture.Sample(YCbCrConvertUB.LumaSampler, InUV.xy).x - 0.0625; //e.g. 16 / 255
+	YCbCr.yz = YCbCrConvertUB.CbCrTexture.Sample(YCbCrConvertUB.CbCrSampler, InUV.xy).xy - float2(0.5, 0.5);
 			
 	
 	OutColor =	float4(

@@ -7,7 +7,8 @@
 BEGIN_UNIFORM_BUFFER_STRUCT(FYCbCrConvertUB, )
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, LumaTexture)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, CbCrTexture)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YCbCrSampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, LumaSampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, CbCrSampler)
 END_UNIFORM_BUFFER_STRUCT(FYCbCrConvertUB)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FYCbCrConvertUB, TEXT("YCbCrConvertUB"));
@@ -21,7 +22,8 @@ void FYCbCrConvertShaderPS::SetParameters(FRHICommandList& RHICmdList, FTextureR
 	FYCbCrConvertUB YCbCrUB;
 	YCbCrUB.LumaTexture = LumaTexture;
 	YCbCrUB.CbCrTexture = CbCrTexture;
-	YCbCrUB.YCbCrSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();		
+	YCbCrUB.LumaSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	YCbCrUB.CbCrSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
 
 	TUniformBufferRef<FYCbCrConvertUB> Data = TUniformBufferRef<FYCbCrConvertUB>::CreateUniformBufferImmediate(YCbCrUB, UniformBuffer_SingleFrame);
 	SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FYCbCrConvertUB>(), Data);	
