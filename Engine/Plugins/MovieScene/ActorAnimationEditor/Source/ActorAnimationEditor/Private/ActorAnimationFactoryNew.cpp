@@ -39,6 +39,12 @@ UObject* UActorAnimationFactoryNew::FactoryCreateNew(UClass* Class, UObject* InP
 
 bool UActorAnimationFactoryNew::ShouldShowInNewMenu() const
 {
+	// @todo sequencer: Only allow users to create new MovieScenes if that feature is turned on globally.
+	if (!FParse::Param(FCommandLine::Get(), TEXT("Sequencer")))
+	{
+		return false;
+	}
+
 	return true;
 }
 
