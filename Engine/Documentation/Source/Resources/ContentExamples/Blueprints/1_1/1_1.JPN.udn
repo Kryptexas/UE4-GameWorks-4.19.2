@@ -2,7 +2,7 @@
 Availability:Public
 Title:1.1 - ハローワールド
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:ブループリントのサンプル レベルの概要、例1．1：ハローワールド
+Description:ブループリントのサンプル レベルの概要、サンプル 1．1：ハローワールド
 Related: Engine/Blueprints/Overview 
 Related: Engine/Blueprints/UserGuide/Variables
 Related: Engine/Blueprints/UserGuide/BlueprintComms
