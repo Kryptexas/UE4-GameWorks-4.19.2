@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2626348
 Availability: Public
 Title:2.2 - 액터 추적
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -35,7 +35,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_2_2.png)
 
-## 개요
+
 
 **BP_Spotlight_Follow** 블루프린트의 이벤트 그래프에는, 플레이어의 폰이 얼마나 멀리 있는지 감지하여 지정된 **Detection Range** (감지 범위) 안에 들어오면 폰을 향하도록 하는 스크립트가 들어있습니다. **Hinge mesh** (힌지 메시) 컴포넌트는 스포트 라이트의 요를 제어하는 반면, **Spotlight mesh** (스포트라이트 메시) 컴포넌트는 힌지를 통과해 잘리지 않도록 제한된 범위내에서 핏치만 제어합니다.
 

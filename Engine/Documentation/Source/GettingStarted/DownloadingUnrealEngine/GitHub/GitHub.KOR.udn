@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2623711
+﻿INTSourceChangelist:2626398
 Availability:NoPublish
-Title:GitHub 에서 언리얼 엔진 내려받기
+Title:GitHub 에서 언리얼 엔진 Fork 및 Clone
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
-Description:GitHub 에서 언리얼 엔진 소스 코드 내려받기 입니다.
+Description:GitHub 에서 언리얼 엔진 소스 코드를 Fork 및 복제하는 방법입니다.
 
 %Globals:osselect_linux%
 
@@ -75,6 +75,11 @@ Description:GitHub 에서 언리얼 엔진 소스 코드 내려받기 입니다.
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
+
+	[REGION:warning]
+	현재 Ubuntu 15.04 버전에 대해서만 개발 지원합니다.
+	[/REGION]
+
 	1.	[Git](https://help.github.com/articles/set-up-git/) 구성을 합니다.
 	1.	[repository](https://github.com/EpicGames/UnrealEngine) (저장소)를 **Fork** & **Clone** (갈라서 복제)합니다 (아래 그림).
 		![](UnrealRepo.png)
@@ -83,7 +88,7 @@ Description:GitHub 에서 언리얼 엔진 소스 코드 내려받기 입니다.
 		![](RunSetupShellScript_Linux.png)
 
 		[REGION:note]
-		이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 확인하세요. BuildThirdParty.log 는 `Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
+		이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 확인하세요. BuildThirdParty.log 는 `[UE4Root]/Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

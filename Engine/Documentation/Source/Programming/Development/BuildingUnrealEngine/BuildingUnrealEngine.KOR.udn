@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2623713
+﻿INTSourceChangelist:2627266
 Availability:Public
 Title:소스에서 언리얼 엔진 빌드하기
 Crumbs: %ROOT%, Programming, Programming/Development
-Description:언리얼 엔진 컴파일하기 입니다.
-Version: 4.9
+Description:소스에서 언리얼 엔진 컴파일하기 입니다.
+Prereq: GettingStarted/DownloadingUnrealEngine
+Prereq: GettingStarted/RecommendedSpecifications
+Related: GettingStarted/DownloadingUnrealEngine
+Version: 4.8
 
 %Globals:osselect_linux%
 
@@ -30,7 +33,7 @@ Version: 4.9
 		1.	루트 디렉토리 안에서, **GenerateProjectFiles.bat** 를 실행하여 프로젝트 파일을 구성합니다.
 
 			[REGION:warning]
-			모든 프로젝트 파일은 중간 파일입니다 (`[UE4Root]\Engine\Intermediate\ProjectFiles`). 최신 상태를 유지하려면 새 빌드를 동기화할 때마다 프로젝트 파일을 생성해야 합니다. `Intermediate` 폴더를 지운 경우, 반드시 앞서 말한 뱃치 파일을 실행하여 프로젝트를 재생성해야 합니다.
+			모든 프로젝트 파일은 중간 파일입니다 (`[UE4Root]\Engine\Intermediate\ProjectFiles`). 최신 상태를 유지하려면 새 빌드를 동기화할 때마다 프로젝트 파일을 생성해야 합니다. `Intermediate` 폴더를 지운 경우, GenerateProjectFiles 뱃치 파일을 실행하여 프로젝트를 재생성해야 합니다.
 			[/REGION]
 
 		1.	**UE4.sln** 을 더블클릭하여 Visual Studio 에서 프로젝트를 로드합니다.
@@ -39,7 +42,7 @@ Version: 4.9
 
 			![](configMenu_updated.png)
 
-		1.	윈도우 64 비트 운영체제로 개발중이라면, 솔루션 플랫폼을 **Win64** 로 설정합니다 (아래 그림).
+		1.	개발중인 윈도우 운영체제 타겟 버전(32 비트냐 62 비트냐)에 따라 솔루션 플랫폼을 **Win32** 나 **Win64** 중 하나로 설정합니다 (아래 그림).
 
 			![](platform_menu_updated.png)
 
@@ -118,7 +121,7 @@ Version: 4.9
 	[/PARAMLITERAL]
 	[PARAM:content]
 		[REGION:warning]
-		현재 Ubuntu 15.04 버전만 지원합니다.
+		현재 Ubuntu 15.04 버전에 대해서만 개발 지원합니다.
 		[/REGION]
 		
 		1.	루트 디렉토리에서, 터미널에 **GenerateProjectFiles.sh** 를 실행시켜 프로젝트 파일을 구성합니다 (아래 예제 그림).
@@ -129,17 +132,25 @@ Version: 4.9
 
 			![](RunMakeFile_Linux.png)
 
-		1.	엔진 컴파일 이후, 터미널에 **cd `Engine/Binaries/Linux/`** 라 입력하여 에디터의 바이너리 경로로 이동합니다.
+		1.	엔진 컴파일 이후, 터미널에 ** cd Engine/Binaries/Linux/ ** 라 입력하여 에디터의 바이너리 경로로 이동합니다.
 
 		1.	**UE4Editor** 로 에디터를 실행시킵니다 (아래 그림).
 
 			![](RunUE4Editor_Linux.png)
+
+			[REGION:warning]
+			OpenGL 컨텍스트를 만들 수 없다면 엔비디아 그래픽 드라이버 [업데이트](http://www.nvidia.com/Download/index.aspx?lang=en-us) 가 필요할 수 있습니다. 자세한 정보는 [Nvidia 웹사이트](http://www.nvidia.com/page/home.html) 를 참고하세요.
+			[/REGION]
 
 		1.	축하합니다! 소스에서 엔진을 컴파일하고 실행시키는 데 성공했습니다 (아래 결과 그림).
 
 			![](CompiledEditor_Linux.png)
 	[/PARAM]
 [/OBJECT]
+
+## 예전 단계
+
+GitHub 다운로드 프로세스를 다시 살펴보시려면, [](GettingStarted/DownloadingUnrealEngine) 문서를 참고하세요.
 
 [/EXCERPT:Main]
 

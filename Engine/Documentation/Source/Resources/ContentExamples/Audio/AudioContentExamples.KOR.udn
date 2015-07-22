@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2626065
 Availability: Public
 Title:오디오 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -46,7 +46,6 @@ Related: Engine/Audio/DistanceModelAttenuation
 [TOC(start:2 end:2)]
 
 
-## 개요
 
 **Content Examples** (콘텐츠 예제) 프로젝트 안에 위치한 **Audio** 맵은 전체 오디오 시스템 조합 방식을 직접적으로 살펴보기에 좋은 자료로, 적당한 크기의 실용적인 예제를 통해 데모가 제공되고 있기도 합니다. 이 페이지의 용도는 오디오 콘텐츠 예제에서 기대할 수 있는 것들과, 작업하고자 하는 오디오 시스템에 따른 구체적인 예제가 있는 위치를 알려드리기 위함입니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2625805
 Availability:Public
 Title:버텍스 애니메이션 툴
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,7 +9,7 @@ Version: 4.8
 
 [TOC(start:2 end:3)]
 
-## 개요
+
 2D 텍스처나 메시의 UV 에 복잡한 애니메이션 데이터를 저장하면, 애니메이션 부하를 줄이면서도 애니메이션에 필요한 모양과 느낌을 유지시키는 데 좋습니다.
 과거에는 그렇게 하기 위해 [모프 타겟](Engine/Content/FBX/MorphTargets) 을 사용했겠지만, 이 새로운 방법에는 전에 없던 장점이 몇 가지 있습니다.
 그 중 하나는, 기존에 캐스케이드 파티클 에디터에서 모프 타겟을 활용하거나 하지 않으면 불가능했을 복잡한 시스템 내 애니메이션 데이터를 사용할 수 있다는 점입니다.

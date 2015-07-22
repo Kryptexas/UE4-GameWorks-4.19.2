@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2623709
+﻿INTSourceChangelist:2626398
 Availability:NoPublish
 Title:Zip 파일로 언리얼 엔진 다운로드
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니다.
+
+소스 코드를 GitHub 에서 ZIP 파일로 다운로드하는 방법이 편하신 분들을 위한 글입니다.
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -77,6 +79,11 @@ Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
+
+	[REGION:warning]
+	현재 Ubuntu 15.04 버전만 개발 지원합니다.
+	[/REGION]
+
 	1.	GitHub 페이지로 이동합니다.
 	1.	**Download ZIP** 버튼을 누릅니다 (아래 그림).
 		![](DownloadZipButton.png)
@@ -86,7 +93,7 @@ Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니�
 		![](RunSetupShellScript_Linux.png)
 
 		[REGION:note]
-		이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 참고하세요. BuildThirdParty.log 는 `Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
+		이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 참고하세요. BuildThirdParty.log 는 `[UE4Root]/Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

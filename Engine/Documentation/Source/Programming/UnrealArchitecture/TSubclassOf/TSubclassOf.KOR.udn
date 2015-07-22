@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2465658
+﻿INTSourceChangelist:2624274
 Title: TSubclassOf
 Crumbs:
 Description:
 Availability:Public
-Version:4.7
+Version:4.9
 
 TSubclassOf 는 UClass 유형의 안전성을 보장해 주는 템플릿 클래스입니다. 예를 들어 디자이너가 대미지 유형을 지정하도록 해주는 프로젝타일 클래스를 제작중이라 가정합시다. 그냥 UPROPERTY 유형의 UClass 를 만든 다음 디자이너가 항상 UDamageType 파생 클래스만 할당하기를 바라거나, TSubclassOf 템플릿을 사용하여 선택지를 제한시킬 수도 있습니다. 그 차이점은 아래 코드와 같습니다:
 

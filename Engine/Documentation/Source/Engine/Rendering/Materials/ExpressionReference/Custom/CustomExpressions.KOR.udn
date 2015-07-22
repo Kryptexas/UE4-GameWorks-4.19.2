@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2623410
+﻿INTSourceChangelist:2624449
 Availability:Public
 Title:Custom 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:커스텀, 보통 셰이더 코드를 사용할 수 있는 표현식입니다.
 Skilllevel: Advanced
 Version: 4.8
-
-[EXCERPT:TOC]
-[TOC(start:2)]
-[/EXCERPT:TOC]
 
 ## Custom
 
@@ -40,6 +36,29 @@ Custom 은 임의의 입력에 일정한 연산을 하여 그 결과를 출력�
 Inputs 배열에 필요한 만큼 입력을 추가하고 이름을 붙입니다. 그런 다음 Code 프로퍼티에 코드를 작성합니다. 예처럼 return 문이 포함된 함수 본문을 제대로 입력해도 되고, "Input.bgr" 처럼 단순한 표현식을 입력해도 됩니다. OutputType 에 출력 데이터형도 지정해 줘야 합니다.
 
 ![](T_Custom_Node.png)
+
+Custom 노드를 직접 시험해 보실 수 있도록 코드를 제공해 드립니다.
+
+	float3 blur = Texture2DSample(Tex, TexSampler, UV);
+
+	for (int i = 0; i < r; i++)
+	{
+
+	  blur += Texture2DSample(Tex, TexSampler, UV + float2(i * dist, 0));
+	  blur += Texture2DSample(Tex, TexSampler, UV - float2(i * dist, 0));
+
+	}
+
+	for (int j = 0; j < r; j++)
+	{ 
+
+	  blur += Texture2DSample(Tex, TexSampler, UV + float2(0, j * dist));
+	  blur += Texture2DSample(Tex, TexSampler, UV - float2(0, j * dist));
+
+	}
+
+	blur /= 2*(2*r)+1;
+	return blur;
 
 (#Warnings)
 [REGION:warning]
