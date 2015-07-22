@@ -30,7 +30,7 @@ which will be set to the next LOD in the chain (LOD 2 in the example below):
 
 ## LOD Generation
 
-Automatic LOD generation uses [](Engine/UI/Tools/Simplygon) to create simplified versions of the base mesh to be 
+Automatic LOD generation uses [**Simplygon**](Engine/UI/Tools/Simplygon) to create simplified versions of the base mesh to be 
 used as LODs. These algorithms take into account factors such as target complexity, preservation of 
 silhouette and texture coordinates, and more in order to generate a new mesh that can be displayed at 
 a distance without noticeable degradation or artifacts.
@@ -41,7 +41,7 @@ a distance without noticeable degradation or artifacts.
 
 	![](lod_number.png)
 
-1. Set the [quality options](#QualitySettings) for each LOD mesh to be generated.
+1. Set the [**quality options**](#QualitySettings) for each LOD mesh to be generated.
 
 	![](lod_settings.png)
 
