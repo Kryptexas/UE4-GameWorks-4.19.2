@@ -13,12 +13,49 @@
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
-const FName FActorAnimationEditorToolkit::SequencerMainTabId(TEXT("Sequencer_SequencerMain"));
 
+/* Local constants
+ *****************************************************************************/
+
+const FName FActorAnimationEditorToolkit::SequencerMainTabId(TEXT("Sequencer_SequencerMain"));
 
 namespace SequencerDefs
 {
-	static const FName SequencerAppIdentifier( TEXT( "SequencerApp" ) );
+	static const FName SequencerAppIdentifier(TEXT("SequencerApp"));
+}
+
+
+/* FActorAnimationEditorToolkit structors
+ *****************************************************************************/
+
+FActorAnimationEditorToolkit::FActorAnimationEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
+	: Style(InStyle)
+{
+	// Register sequencer menu extenders.
+	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
+	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
+		FAssetEditorExtender::CreateRaw( this, &FActorAnimationEditorToolkit::GetContextSensitiveSequencerExtender ) );
+	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
+}
+
+
+FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
+{
+	Sequencer->Close();
+
+	// Unregister delegates
+	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )
+	{
+		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
+		LevelEditorModule.OnMapChanged().RemoveAll( this );
+	}
+
+	// Un-Register sequencer menu extenders.
+	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
+	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll( [this]( const FAssetEditorExtender& Extender )
+	{
+		return SequencerExtenderHandle == Extender.GetHandle();
+	} );
 }
 
 
@@ -91,36 +128,6 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 		// when previewing a MovieScene
 		LevelEditorModule.OnMapChanged().AddRaw(this, &FActorAnimationEditorToolkit::HandleMapChanged);
 	}
-}
-
-
-FActorAnimationEditorToolkit::FActorAnimationEditorToolkit()
-{
-	// Register sequencer menu extenders.
-	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
-	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
-		FAssetEditorExtender::CreateRaw( this, &FActorAnimationEditorToolkit::GetContextSensitiveSequencerExtender ) );
-	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
-}
-
-
-FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
-{
-	Sequencer->Close();
-
-	// Unregister delegates
-	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )
-	{
-		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
-		LevelEditorModule.OnMapChanged().RemoveAll( this );
-	}
-
-	// Un-Register sequencer menu extenders.
-	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
-	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll( [this]( const FAssetEditorExtender& Extender )
-	{
-		return SequencerExtenderHandle == Extender.GetHandle();
-	} );
 }
 
 

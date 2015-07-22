@@ -9,6 +9,14 @@
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 
+/* FActorAnimationActions constructors
+ *****************************************************************************/
+
+FActorAnimationActions::FActorAnimationActions( const TSharedRef<ISlateStyle>& InStyle )
+	: Style(InStyle)
+{ }
+
+
 /* IAssetTypeActions interface
  *****************************************************************************/
 
@@ -55,7 +63,7 @@ void FActorAnimationActions::OpenAssetEditor(const TArray<UObject*>& InObjects, 
 		if (ActorAnimation != nullptr)
 		{
 			FSequencerViewParams ViewParams(TEXT("ActorAnimationEditorViewParams"));
-			TSharedRef<FActorAnimationEditorToolkit> Toolkit = MakeShareable(new FActorAnimationEditorToolkit);
+			TSharedRef<FActorAnimationEditorToolkit> Toolkit = MakeShareable(new FActorAnimationEditorToolkit(Style));
 			Toolkit->Initialize(Mode, ViewParams, EditWithinLevelEditor, ActorAnimation, true);
 		}
 	}

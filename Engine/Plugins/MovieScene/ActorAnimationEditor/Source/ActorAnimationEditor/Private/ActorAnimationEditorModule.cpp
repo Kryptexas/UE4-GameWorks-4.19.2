@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorAnimationEditorPrivatePCH.h"
+#include "ActorAnimationEditorStyle.h"
 #include "ModuleInterface.h"
 
 
@@ -16,6 +17,8 @@ public:
 
 	virtual void StartupModule() override
 	{
+		Style = MakeShareable(new FActorAnimationEditorStyle());
+
 		RegisterAssetTools();
 	}
 	
@@ -31,7 +34,7 @@ protected:
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FActorAnimationActions));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FActorAnimationActions(Style.ToSharedRef())));
 	}
 
 	/**
@@ -40,7 +43,7 @@ protected:
 	 * @param AssetTools The asset tools object to register with.
 	 * @param Action The asset type action to register.
 	 */
-	void RegisterAssetTypeAction( IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action )
+	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
 	{
 		AssetTools.RegisterAssetTypeActions(Action);
 		RegisteredAssetTypeActions.Add(Action);
@@ -66,6 +69,9 @@ private:
 
 	/** The collection of registered asset type actions. */
 	TArray<TSharedRef<IAssetTypeActions>> RegisteredAssetTypeActions;
+
+	/** Holds the plug-ins style set. */
+	TSharedPtr<ISlateStyle> Style;
 };
 
 

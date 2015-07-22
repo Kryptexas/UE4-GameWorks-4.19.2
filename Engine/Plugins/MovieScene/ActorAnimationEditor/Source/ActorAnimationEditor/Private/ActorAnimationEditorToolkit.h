@@ -24,8 +24,12 @@ class FActorAnimationEditorToolkit
 { 
 public:
 
-	/** Default constructor */
-	FActorAnimationEditorToolkit();
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InStyle The style set to use.
+	 */
+	FActorAnimationEditorToolkit(const TSharedRef<ISlateStyle>& InStyle);
 
 	/** Virtual destructor */
 	virtual ~FActorAnimationEditorToolkit();
@@ -55,7 +59,6 @@ public:
 	virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 
-
 	void UpdateViewports(AActor* ActorToViewThrough) const;
 
 private:
@@ -77,6 +80,9 @@ private:
 	TMap<TWeakPtr<ILevelViewport>, TSharedPtr<SWidget>> TransportControls;
 
 	FDelegateHandle SequencerExtenderHandle;
+
+	/** Pointer to the style set to use for toolkits. */
+	TSharedRef<ISlateStyle> Style;
 
 private:
 

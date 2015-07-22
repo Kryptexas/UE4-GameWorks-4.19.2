@@ -12,6 +12,15 @@ class FActorAnimationActions
 	: public FAssetTypeActions_Base
 {
 public:
+
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InStyle The style set to use for asset editor toolkits.
+	 */
+	FActorAnimationActions(const TSharedRef<ISlateStyle>& InStyle);
+
+public:
 	
 	// IAssetTypeActions interface
 
@@ -21,4 +30,9 @@ public:
 	virtual FColor GetTypeColor() const override;
 	virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) override;
 	virtual bool ShouldForceWorldCentric() override;
+
+private:
+
+	/** Pointer to the style set to use for toolkits. */
+	TSharedRef<ISlateStyle> Style;
 };
