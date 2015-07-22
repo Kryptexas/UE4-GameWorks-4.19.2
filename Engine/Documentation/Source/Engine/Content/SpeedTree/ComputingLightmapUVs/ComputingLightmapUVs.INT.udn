@@ -22,18 +22,18 @@ This visualization shows how well your lightmap resolution is distributed across
 The lightmap itself is rendered in the lower left hand corner. Select part of the model to see where it is represented in the lightmap. You can also select triangles in the lightmap to see which part of the model they come from. You want to use as much of the lightmap as possible, with big sections of the model getting big sections of the lightmap. More on how to achieve that later.
 
 [REGION:note]
-The units of the model matter in the visualization. Select the "Tree" generator and edit "Lightmap:Scale" to scale the model by the same amount you will in UE4 when you import it. The default value here matches the default value of the importer.
+The units of the model matter in the visualization. Select the **Tree** generator and edit **Lightmap:Scale** to scale the model by the same amount you will in UE4 when you import it. The default value here matches the default value of the importer.
 [/REGION]
 
 [REGION:note]
-You can change how large the lightmap is rendered in the viewport by editing the corresponding property in the "Window properties".
+You can change how large the lightmap is rendered in the viewport by editing the corresponding property in the **Window properties**.
 [/REGION]
 
 ## Step 2: Pick a Lightmap Resolution
 
 The resolution of the lightmap is dependent on your project's requirements and the complexity of the tree. The goal is to use the lowest possible lightmap resolution that gives you adequate coverage given the model's placement in your scene.
 
-Set the target lightmap resolution by selecting the "Tree" generator and editing the "Lightmap:Resolution" property. It may be possible that the model is too complex to fit in the resolution you have chosen. If so, you will get a warning in the output window and the resolution will be bumped to the smallest resolution that will give each node in the model at least one texel in the lightmap while maintaining the one texel border necessary to prevent rendering artifacts.
+Set the target lightmap resolution by selecting the **Tree** generator and editing the **Lightmap:Resolution** property. It may be possible that the model is too complex to fit in the resolution you have chosen. If so, you will get a warning in the output window and the resolution will be bumped to the smallest resolution that will give each node in the model at least one texel in the lightmap while maintaining the one texel border necessary to prevent rendering artifacts.
 
 ## Step 3: Tune the Lightmap
 
@@ -41,9 +41,9 @@ Once you have picked a resolution, the next step is to tune how the lightmap is 
 
 Use a combination of the following tools to tune the lightmap density distribution:
 
-* **Reset** - Select "Tools -> Reset lightmap" to set all lightmap scalars to 1.0 except the leaves. They are set to 0.0 so that each leaf gets exactly one texel and no more to start with (we will up that later).
-* **Material Scales** - Each material has a property called "Unwrap scale". Increase or decrease this value to change the relative size of each piece of geometry that uses this material (very useful for caps).
-* **Generator/Node Scales** - Each generator/node combination that can house geometry has a "Lightmap:Scale" property. Change this value to change the size of the selected object's space in the lightmap. The distribution curve on branches can be used to shift the distribution of lightmap space on the object itself (without changing the actual lightmap area used). This curve is used to counteract the fact that branch lightmap density naturally increases near the tip as the geometry narrows but uses the same texture space.
+* **Reset** - Select **Tools** -> **Reset lightmap** to set all lightmap scalars to 1.0 except the leaves. They are set to 0.0 so that each leaf gets exactly one texel and no more to start with (we will up that later).
+* **Material Scales** - Each material has a property called **Unwrap scale**. Increase or decrease this value to change the relative size of each piece of geometry that uses this material (very useful for caps).
+* **Generator/Node Scales** - Each generator/node combination that can house geometry has a Lightmap:Scale property. Change this value to change the size of the selected object's space in the lightmap. The distribution curve on branches can be used to shift the distribution of lightmap space on the object itself (without changing the actual lightmap area used). This curve is used to counteract the fact that branch lightmap density naturally increases near the tip as the geometry narrows but uses the same texture space.
 * **Lightmap Resolution** - If you just cannot make it work well in the resolution you have selected, you may need to bump it up by selecting a higher resolution like you did in Step 2. The layout will drastically change so you may need to do a reset and start over if it comes to this.
 
 [REGION:note]
@@ -58,7 +58,7 @@ Our algorithm aggressively tries to fit everything in the resolution you have se
 
 ## Step 4: Pick the Lightmap Resolution in Unreal Engine 4
 
-When you import the model in UE4, it will have a default lightmap resolution of 128 like all Static Meshes. Select the mesh asset and enter the ligthmap resolution you used here. When you build lighting in UE4, you should have amazing results on some of the hardest types of geometry to lightmap!
+When you import the model in UE4, it will have a default lightmap resolution of 64 like all Static Meshes. Select the mesh asset and enter the ligthmap resolution (**Details** -> **Static Mesh Settings** -> **Lightmap Resolution**) you used here. When you build lighting in UE4, you should have amazing results on some of the hardest types of geometry to lightmap!
 
 
 
