@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
-#include "Misc./App.h"
+#include "Misc/App.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 
