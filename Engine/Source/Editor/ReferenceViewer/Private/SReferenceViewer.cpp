@@ -585,7 +585,7 @@ void SReferenceViewer::MakeCollectionWithReferencedAssets(ECollectionShareType::
 
 	if ( SelectedObject )
 	{
-		FString DefaultName = FText::Format(NSLOCTEXT("UnrealEd", "Resources", "{0}_Resources"), FText::FromString( SelectedObject->GetPathName())).ToString();
+		FString DefaultName = FText::Format(NSLOCTEXT("UnrealEd", "Resources", "{0}_Resources"), FText::FromString(SelectedObject->GetName())).ToString();
 		ObjectTools::ShowReferencedObjs(SelectedObject, DefaultName, ShareType);
 	}
 }
