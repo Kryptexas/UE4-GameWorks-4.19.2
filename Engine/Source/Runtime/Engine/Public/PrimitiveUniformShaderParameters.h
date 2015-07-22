@@ -122,4 +122,4 @@ public:
 };
 
 /** Global primitive uniform buffer resource containing identity transformations. */
-extern TGlobalResource<FIdentityPrimitiveUniformBuffer> GIdentityPrimitiveUniformBuffer;
+extern ENGINE_API TGlobalResource<FIdentityPrimitiveUniformBuffer> GIdentityPrimitiveUniformBuffer;
