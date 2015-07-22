@@ -53,9 +53,9 @@ To create a Deferred Decal Actor, drag and drop them from the **Modes** panel.
 This is only accessible from the **Modes** panel if you're in Placement mode.
 [/REGION]
 
-<!--You then only need to apply a Decal Material, which is really just a regular Material that has had its **Material Domain** property set to _Deferred Decal_.
+You then only need to apply a Decal Material, which is really just a regular Material that has had its **Material Domain** property set to **Deferred Decal** in the Material's Details panel.
 
-![](DeferredDecalSetting.png) - Commented out due to no longer being relevant, as decal actors are automatically Deferred Decals-->
+![](DeferredDecalSetting.png)
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
 
