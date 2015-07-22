@@ -754,7 +754,7 @@ public:
 	void TickAnimation(float DeltaTime);
 
 	/** Tick Clothing Animation , basically this is called inside TickComponent */
-	void TickClothing(float DeltaTime);
+	void TickClothing(float DeltaTime, FTickFunction& ThisTickFunction);
 
 	/** Store cloth simulation data into OutClothSimData */
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
@@ -947,7 +947,7 @@ public:
 
 
 	/** Take the results of the physics and blend them with the animation state (based on the PhysicsWeight parameter), and update the SpaceBases array. */
-	void BlendInPhysics();	
+	void BlendInPhysics(FTickFunction& ThisTickFunction);	
 
 	/** 
 	 * Intialize PhysicsAssetInstance for the physicsAsset 
@@ -1112,7 +1112,7 @@ public:
 	FVector GetClosestCollidingRigidBodyLocation(const FVector& TestLocation) const;
 
 	/** Calls needed cloth updates */
-	void PreClothTick(float DeltaTime);
+	void PreClothTick(float DeltaTime, FTickFunction& ThisTickFunction);
 	
 	/** Set physics transforms for all bodies */
 	void ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation);
