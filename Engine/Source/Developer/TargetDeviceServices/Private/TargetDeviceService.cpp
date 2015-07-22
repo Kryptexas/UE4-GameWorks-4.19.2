@@ -255,8 +255,9 @@ bool FTargetDeviceService::StoreDeployedFile(FArchive* FileReader, const FString
 
 void FTargetDeviceService::HandleClaimDeniedMessage(const FTargetDeviceClaimDenied& Message, const IMessageContextRef& Context)
 {
-// HACK: Disabling claim denied message. Allows the editor to always claim a device and should pervent cases where instances of the
-// editor running on other machines claim a device - which is undesirable on some platforms.
+// HACK: Disabling claim denied message. Allows the editor to always claim a device and should prevent cases where instances of the
+// editor running on other machines can steal a device from us - which is undesirable on some platforms.
+// Also see FTargetDeviceProxyManager::HandlePongMessage()
 #if 0
  	if (Running && (Message.DeviceName == DeviceName))
  	{

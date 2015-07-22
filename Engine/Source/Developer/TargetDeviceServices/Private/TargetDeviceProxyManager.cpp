@@ -118,6 +118,12 @@ void FTargetDeviceProxyManager::SendPing()
 
 void FTargetDeviceProxyManager::HandlePongMessage(const FTargetDeviceServicePong& Message, const IMessageContextRef& Context)
 {
+	// Another HACK: Ignore devices from other machines. See FTargetDeviceService::HandleClaimDeniedMessage()
+	if (Message.HostName != FPlatformProcess::ComputerName())
+ 	{
+ 		return;
+ 	}
+
 	TSharedPtr<FTargetDeviceProxy>& Proxy = Proxies.FindOrAdd(Message.Name);
 
 	if (!Proxy.IsValid())
