@@ -61,6 +61,9 @@ class UFoliageType : public UObject
 
 	/* Notifies all relevant foliage actors that HiddenEditorView mask has been changed */
 	FOLIAGE_API void OnHiddenEditorViewMaskChanged(UWorld* InWorld);
+
+	/* Nice and clean name for user interface */
+	FOLIAGE_API FName GetDisplayFName() const;
 #endif
 
 	/* A GUID that is updated every time the foliage type is modified, 

@@ -1070,8 +1070,7 @@ void SLevelViewportToolBar::FillShowLayersMenu( FMenuBuilder& MenuBuilder, TWeak
 		{
 			// Get all the layers and create an entry for each of them
 			TArray<FName> AllLayerNames;
-
-				GEditor->Layers->AddAllLayerNamesTo(AllLayerNames);
+			GEditor->Layers->AddAllLayerNamesTo(AllLayerNames);
 
 			for( int32 LayerIndex = 0; LayerIndex < AllLayerNames.Num(); ++LayerIndex )
 			{
@@ -1087,6 +1086,27 @@ void SLevelViewportToolBar::FillShowLayersMenu( FMenuBuilder& MenuBuilder, TWeak
 		}
 		MenuBuilder.EndSection();
 	}
+}
+
+static TMap<FName, TArray<UFoliageType*>> GroupFoliageByOuter(const TArray<UFoliageType*> FoliageList)
+{
+	TMap<FName, TArray<UFoliageType*>> Result;
+
+	for (UFoliageType* FoliageType : FoliageList)
+	{
+		if (FoliageType->IsAsset())
+		{
+			Result.FindOrAdd(NAME_None).Add(FoliageType);
+		}
+		else
+		{
+			FName LevelName = FoliageType->GetOutermost()->GetFName();
+			Result.FindOrAdd(LevelName).Add(FoliageType);
+		}
+	}
+
+	Result.KeySort([](const FName& A, const FName& B) { return (A < B && B != NAME_None); });
+	return Result;
 }
 
 void SLevelViewportToolBar::FillShowFoliageTypesMenu(class FMenuBuilder& MenuBuilder, TWeakPtr<class SLevelViewport> Viewport)
@@ -1107,24 +1127,28 @@ void SLevelViewportToolBar::FillShowFoliageTypesMenu(class FMenuBuilder& MenuBui
 		MenuBuilder.AddMenuEntry(LOCTEXT("HideAllLabel", "Hide All"), FText::GetEmpty(), FSlateIcon(), HideAllFoliage);
 	}
 	MenuBuilder.EndSection();
-		
-	TArray<UFoliageType*> AllFoliageTypes = GEditor->GetFoliageTypesInWorld(ViewportPtr->GetWorld());
+	
+	// Gather all foliage types used in this world and group them by sub-levels
+	auto AllFoliageMap = GroupFoliageByOuter(GEditor->GetFoliageTypesInWorld(ViewportPtr->GetWorld()));
 
-	if (AllFoliageTypes.Num())
+	for (auto& FoliagePair : AllFoliageMap)
 	{
-		MenuBuilder.BeginSection("LevelViewportFoliageTypes");
-			
-		for (UFoliageType* FoliageType : AllFoliageTypes)
-		{
-			FString MeshName = FoliageType->GetName();
-			TWeakObjectPtr<UFoliageType> FoliageTypePtr = FoliageType;
-				
-			FUIAction Action(
-					FExecuteAction::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::ToggleShowFoliageType, FoliageTypePtr),
-					FCanExecuteAction(),
-					FIsActionChecked::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::IsFoliageTypeVisible, FoliageTypePtr));
+		// Name foliage group by an outer sub-level name, or empty if foliage type is an asset
+		FText EntryName = (FoliagePair.Key == NAME_None ? FText::GetEmpty() : FText::FromName(FPackageName::GetShortFName(FoliagePair.Key)));
+		MenuBuilder.BeginSection(NAME_None, EntryName);
 
-			MenuBuilder.AddMenuEntry(FText::FromString(MeshName), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::ToggleButton);
+		TArray<UFoliageType*>& FoliageList = FoliagePair.Value;
+		for (UFoliageType* FoliageType : FoliageList)
+		{
+			FName MeshName = FoliageType->GetDisplayFName();
+			TWeakObjectPtr<UFoliageType> FoliageTypePtr = FoliageType;
+
+			FUIAction Action(
+				FExecuteAction::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::ToggleShowFoliageType, FoliageTypePtr),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(ViewportPtr.ToSharedRef(), &SLevelViewport::IsFoliageTypeVisible, FoliageTypePtr));
+
+			MenuBuilder.AddMenuEntry(FText::FromName(MeshName), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::ToggleButton);
 		}
 
 		MenuBuilder.EndSection();

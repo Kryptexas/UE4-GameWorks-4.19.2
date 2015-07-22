@@ -554,6 +554,26 @@ void UFoliageType::OnHiddenEditorViewMaskChanged(UWorld* InWorld)
 	}
 }
 
+FName UFoliageType::GetDisplayFName() const
+{
+	FName DisplayFName;
+
+	if (IsAsset())
+	{
+		DisplayFName = GetFName();
+	}
+	else if (UBlueprint* FoliageTypeBP = Cast<UBlueprint>(GetClass()->ClassGeneratedBy))
+	{
+		DisplayFName = FoliageTypeBP->GetFName();
+	}
+	else if (UStaticMesh* StaticMesh = GetStaticMesh())
+	{
+		DisplayFName = StaticMesh->GetFName();
+	}
+
+	return DisplayFName;
+}
+
 #endif
 
 //
