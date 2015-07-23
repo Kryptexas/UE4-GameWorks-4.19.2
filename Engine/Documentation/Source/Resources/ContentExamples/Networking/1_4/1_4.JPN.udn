@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2620779
 Availability:Public
-Title:1.4 - 変数のレプリケーション (RepNotify)
+Title:1.4 - 変数のレプリケーション（RepNotify）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能の事例レベルの概要 事例 1.4:変数のレプリケーション (RepNotify)
+Description:ネットワーク機能のサンプル レベルの概要、1.4:変数のレプリケーション (RepNotify)
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
@@ -32,17 +32,17 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 [REGION:tip]
-**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients]** 欄を 2 に設定します。
+**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** フィールドを 2 に設定します。
 [/REGION]
 
 
-## 概要
+
 レプリケートされた変数の値に対応してロジックを実行させたい場合がしばしばあります。**RepNotify** とマークされている変数には、ネットワーク権限のあるマシンとリモートマシンの両方で変数が変更されると自動的に呼び出される特別な関数があります。 
 
-このサンプルでは、ネットワーク権限のあるマシンが、街頭が **RepNotify** 変数を使って何色を表示するかを示すスカラー値の変更を制御します。値が変更されると、自動生成 OnRep 関数が呼び出され、このサンプルではマテリアル パラメータが更新されます。 
+このサンプルでは、ネットワーク権限のあるマシンが、街頭が RepNotify 変数を使って何色を表示するかを示すスカラー値の変更を制御します。値が変更されると、自動生成 OnRep 関数が呼び出され、このサンプルではマテリアル パラメータが更新されます。 
 
 ## ブループリントの詳細
-**BP_Stoplight_Variable_RepNotify** ブループリントのイベント グラフ (下の画像) では、 ライト切り替えロジックを処理するために、スクリプトがネットワーク権限のあるマシンのみを呼び出しているのが分かります。ライトのステートを表す **Streetlight Scalar** 変数は特別に **RepNotify** とマークされ、値が変わるとクライアントとサーバーの両方が **OnRep_StreetlightScalar** 関数を呼び出します。 
+**BP_Stoplight_Variable_RepNotify** ブループリントのイベント グラフ (下の画像) では、 ライト切り替えロジックを処理するために、スクリプトがネットワーク権限のあるマシンのみを呼び出しているのが分かります。ライトのステートを表す **Streetlight Scalar** 変数は特別に RepNotify とマークされ、値が変わるとクライアントとサーバーの両方が **OnRep_StreetlightScalar** 関数を呼び出します。 
 
 **クリックしてフルサイズで表示**
 [REGION:lightbox]
@@ -51,7 +51,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 **OnRep_StreetlightScalar** 関数はその後、街頭の外見の更新処理するので、すべてのマシン上で有効になります。 
 
-**RepNotify** への変数の設定は、 **[Replication]** ドロップダウン メニューの変数の **[Details]** パネルで行えます。 
+RepNotify への変数の設定は、 **[Replication]** ドロップダウン メニューの変数の **[Details]** パネルで行えます。 
 
 ![](1_4_RepNotify.png)
 
