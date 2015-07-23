@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2622460
 Availability:Public
 Title:1.4 - Thruster
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理事例レベルの概要 例 1.4:Thruster
+Description: 物理のサンプル レベルの概要、1.4:Thruster
 Related:Engine/Physics/PhysicsBodies
 Related:Engine/Physics/PhAT/UserGuide
 Related:Engine/Physics/Constraints/ConstraintsReference
@@ -54,10 +54,10 @@ Related:Engine/Physics/PhysicalMaterials/PhysMatReference
 [/REGION]
 
 
-**Physics Thrusters** は特別な物理アクタで、エディタ内に配置してから物理シミュレーションを行うオブジェクトの親になり、そのオブジェクトに Thruster  からの力を受け取らせることができます。Thrust は **X軸の負の** 方向にある **Physics Thruster** を前に押し出す、つまり逆の見方をすれば、Thruster の **X軸の正の** 方向は「ジェットエンジンの排気ガス」です。
+**Physics Thrusters** は特別な物理アクタで、エディタ内に配置してから物理シミュレーションを行うオブジェクトの親になり、そのオブジェクトに Thruster  からの力を受け取らせることができます。Thrust は X 軸の負の方向にある **Physics Thruster** を前に押し出す、つまり逆の見方をすれば、Thruster の **X 軸の正の** 方向は「ジェットエンジンの排気ガス」です。
 
 ![](physics_1_4_002.png)(w:300)
 
-**Physics Thrusters** は、 **Place Mode** セクション _All Classes_ の **[Modes]** パネルにあります。
+Physics Thrusters は、 **Place Mode** セクション _All Classes_ の **[Modes]** パネルにあります。
 
 
