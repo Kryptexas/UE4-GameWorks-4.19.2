@@ -20,9 +20,9 @@ public:
 	 *
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	static TSharedRef<FStreamingLevelCollectionModel> Create(UEditorEngine* InEditor, UWorld* InWorld)
+	static TSharedRef<FStreamingLevelCollectionModel> Create(UWorld* InWorld)
 	{
-		TSharedRef<FStreamingLevelCollectionModel> LevelCollectionModel(new FStreamingLevelCollectionModel(InEditor));
+		TSharedRef<FStreamingLevelCollectionModel> LevelCollectionModel(new FStreamingLevelCollectionModel());
 		LevelCollectionModel->Initialize(InWorld);
 		return LevelCollectionModel;
 	}
@@ -55,7 +55,7 @@ private:
 	 *	@param	InWorldLevels	The Level management logic object
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	FStreamingLevelCollectionModel(UEditorEngine* InEditor);
+	FStreamingLevelCollectionModel();
 	
 	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override { UpdateAllLevels(); }
