@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2620804
 Availability:Public
 Title:2.2 - ネットワークの関連性 (パート 2 - 関数をレプリケートする方法)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能の事例レベルの概要 事例 2.2:ネットワークの関連性 (パート 2 - 関数をレプリケートする方法)
+Description:ネットワーク機能のサンプル レベルの概要、2.2:ネットワークの関連性 (パート 2 - 関数をレプリケートする方法)
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
@@ -33,11 +33,11 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 [REGION:tip]
-**Server** と **Client** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients]** 欄を 2 に設定します。
+**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** フィールドを 2 に設定します。
 [/REGION]
 
 
-## 概要
+
 このサンプルでは、レプリケートした Multicast 関数を使って木箱のビヘイビアのネットワーク化を試みます。木箱は相互作用する時に Multicast 関数を呼び出し、それにより全てのクライアントに対して木箱が開く外見の再生処理する、という考えです。 
 
 ただし、関連性に関する問題をお見せするため、非常に近距離ではネットワークと無関係となるようにこの木箱を変更してあります。クライアントを青いリングの外側におくと、木箱は見えていてもクライアントとの関係がなくなります。では、サーバーを木箱に移して起動し、クライアント上で何が起こるか見てみましょう。クライアントは全く変化がありません！そのはずです。木箱はまだクライアントと関連がないからです。クライアントを青いリングの中へ移すと、木箱が関連を持つようになります。さて今度はどうでしょう？何も起こらないままです。そうではないはずです。 
@@ -45,7 +45,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 この方法の問題点は、木箱の更新に関わるアクションの全てがレプリケートされた関数によって送られている点です。関連性の関係でクライアントは関数コールを受け取っていないので、木箱を開くための何かが実行されることは絶対にありません。 
 
 ## ブループリントの詳細
-もうお分かりかと思いますが、 **BP_Relevancy_Replication_RPC** ブループリントのイベント グラフは事例 2.1 から派生したものに若干の修正がされています (このサンプルに対する関連性の距離をお見せするためにリングが作成されています)。まず最初に、OnChestTouched 関数がオーバーライドされ、新規の **Chest Touch Multicast** イベントが呼び出されます。**Chest Touch Multicast** イベントがサーバー上で呼び出されます。イベントは **Multicast** に設定されているので、すべてのリモートのマシンにイベントをレプリケートします。 
+もうお分かりかと思いますが、 **BP_Relevancy_Replication_RPC** ブループリントのイベント グラフはサンプル 2.1 から派生したものに若干の修正がされています (このサンプルに対する関連性の距離をお見せするためにリングが作成されています)。まず最初に、OnChestTouched 関数がオーバーライドされ、新規の **Chest Touch Multicast** イベントが呼び出されます。**Chest Touch Multicast** イベントがサーバー上で呼び出されます。イベントは **Multicast** に設定されているので、すべてのリモートのマシンにイベントをレプリケートします。 
 
 **クリックしてフルサイズで表示**
 [REGION:lightbox]
