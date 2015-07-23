@@ -1,7 +1,7 @@
 ﻿Availability:Public
 Title: Aim Offset(瞄准偏移)
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Aim Offset(瞄准偏移)是一种资源，存储了一系列可混合的姿势，可以帮助角色瞄准武器。
+Description:瞄准偏移是一个存储了一系列可混合姿势的资源，这些姿势可辅助角色瞄准武器。
 Related: Engine/Content/FBX/Animations
 Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Animation/PhysicallyDrivenAnimation
@@ -15,7 +15,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 
 ## 概述
 
-%Engine/Animation/AimOffset:description%在动画进行过程中，Aim Offset的效果同其他动作（比如跑动、不行、跳跃等）相混合，来使得角色在所有方向上都呈现出平滑的外观效果。
+在动画进行过程中，Aim Offset的效果同其他动作（比如跑动、不行、跳跃等）相混合，来使得角色在所有方向上都呈现出平滑的外观效果。
 
 Aim Offset背后的基本理念是，叠加地混合到现有动画上。 因此，比如，如果您正在使用一个Aim Offset来使得角色瞄准武器，那么您会想确保角色上的其他动作不会妨碍那个叠加动作。 换句话说，您跑动、空闲、跳跃等动作应该有一个相对僵硬的胳膊，以便可以通过Aim Offset来叠加地控制它们。
 
