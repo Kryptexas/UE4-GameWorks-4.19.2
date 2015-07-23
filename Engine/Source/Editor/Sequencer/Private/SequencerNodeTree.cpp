@@ -201,7 +201,7 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 		// Try to get the parent object node if there is one.
 		TSharedPtr<FObjectBindingNode> ParentNode;
 		TArray<UObject*> RuntimeObjects;
-		IMovieSceneAnimation* Animation = Sequencer.GetAnimation();
+		UMovieSceneAnimation* Animation = Sequencer.GetAnimation();
 		UObject* RuntimeObject = Animation->FindObject(ObjectBinding);
 		if ( RuntimeObject != nullptr)
 		{

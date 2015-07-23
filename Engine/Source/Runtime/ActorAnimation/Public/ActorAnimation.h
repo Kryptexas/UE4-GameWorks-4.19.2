@@ -12,8 +12,7 @@
  */
 UCLASS(BlueprintType, MinimalAPI)
 class UActorAnimation
-	: public UObject
-	, public IMovieSceneAnimation
+	: public UMovieSceneAnimation
 {
 	GENERATED_UCLASS_BODY()
 
@@ -22,7 +21,7 @@ class UActorAnimation
 
 public:
 
-	// IMovieSceneAnimation interface
+	// UMovieSceneAnimation overrides
 
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;

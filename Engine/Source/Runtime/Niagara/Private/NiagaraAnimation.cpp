@@ -13,7 +13,7 @@ UNiagaraAnimation::UNiagaraAnimation(const FObjectInitializer& ObjectInitializer
 { }
 
 
-/* IMovieSceneAnimation interface
+/* UMovieSceneAnimation overrides
  *****************************************************************************/
 
 bool UNiagaraAnimation::AllowsSpawnableObjects() const

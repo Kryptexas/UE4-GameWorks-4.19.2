@@ -9,7 +9,7 @@
 
 
 class FSequencerSelection;
-class IMovieSceneAnimation;
+class UMovieSceneAnimation;
 class UAnimSequence;
 class UMovieScene;
 class UMovieSceneSection;
@@ -43,7 +43,7 @@ public:
 	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const = 0;
 
 	/** Resets sequencer with a new animation */
-	virtual void ResetToNewAnimation(IMovieSceneAnimation& NewAnimation) = 0;
+	virtual void ResetToNewAnimation(UMovieSceneAnimation& NewAnimation) = 0;
 
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer.
@@ -161,7 +161,7 @@ public:
 	 *
 	 * @return The current animation, or nullptr if no animation is playing.
 	 */
-	virtual IMovieSceneAnimation* GetAnimation() = 0;
+	virtual UMovieSceneAnimation* GetAnimation() = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
 

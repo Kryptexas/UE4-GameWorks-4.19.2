@@ -94,7 +94,7 @@ void UWidgetAnimation::Initialize(UUserWidget* InPreviewWidget)
 }
 
 
-/* IMovieSceneAnimation interface
+/* UMovieSceneAnimation overrides
  *****************************************************************************/
 
 bool UWidgetAnimation::AllowsSpawnableObjects() const

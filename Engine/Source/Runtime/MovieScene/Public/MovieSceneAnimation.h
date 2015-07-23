@@ -11,29 +11,22 @@ class UObject;
 
 
 /**
- * Interface for movie scene animations (UObject version).
+ * Abstract base class for movie scene animations (C++ version).
  */
-UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
+UCLASS(MinimalAPI)
 class UMovieSceneAnimation
-	: public UInterface
+	: public UObject
 {
-	GENERATED_UINTERFACE_BODY()
-};
+	GENERATED_BODY()
 
-
-/**
- * Interface for movie scene animations (C++ version).
- */
-class IMovieSceneAnimation
-{
-	GENERATED_IINTERFACE_BODY()
+public:
 
 	/**
 	 * Whether objects can be spawned at run-time.
 	 *
 	 * @return true if objects can be spawned by sequencer, false if only existing objects can be possessed.
 	 */
-	virtual bool AllowsSpawnableObjects() const PURE_VIRTUAL(IMovieSceneAnimation::AllowsSpawnableObjects, return false;);
+	virtual bool AllowsSpawnableObjects() const PURE_VIRTUAL(UMovieSceneAnimation::AllowsSpawnableObjects, return false;);
 
 	/**
 	 * Called when Sequencer has created an object binding for a possessable object
@@ -42,7 +35,7 @@ class IMovieSceneAnimation
 	 * @param PossessedObject The runtime object which was possessed.
 	 * @see UnbindPossessableObjects
 	 */
-	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) PURE_VIRTUAL(IMovieSceneAnimation::BindPossessableObject,);
+	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) PURE_VIRTUAL(UMovieSceneAnimation::BindPossessableObject,);
 	
 	/**
 	 * Check whether the given object can be possessed by this animation.
@@ -50,14 +43,14 @@ class IMovieSceneAnimation
 	 * @param Object The object to check.
 	 * @return true if the object can be possessed, false otherwise.
 	 */
-	virtual bool CanPossessObject(UObject& Object) const PURE_VIRTUAL(IMovieSceneAnimation::CanPossessObject, return false;);
+	virtual bool CanPossessObject(UObject& Object) const PURE_VIRTUAL(UMovieSceneAnimation::CanPossessObject, return false;);
 
 	/**
 	 * Destroy all objects that were spawned by this animation.
 	 *
 	 * @param SubMovieScene The (sub) movie scene to destroy objects for.
 	 */
-	virtual void DestroyAllSpawnedObjects(UMovieScene& SubMovieScene) PURE_VIRTUAL(IMovieSceneAnimation::DestroyAllSpawnedObjects,);
+	virtual void DestroyAllSpawnedObjects(UMovieScene& SubMovieScene) PURE_VIRTUAL(UMovieSceneAnimation::DestroyAllSpawnedObjects,);
 
 	/**
 	 * Gets the possessed or spawned object for the specified identifier.
@@ -65,7 +58,7 @@ class IMovieSceneAnimation
 	 * @param ObjectId The unique identifier of the object.
 	 * @return The object, or nullptr if not found.
 	 */
-	virtual UObject* FindObject(const FGuid& ObjectId) const PURE_VIRTUAL(IMovieSceneAnimation::FindObject, return nullptr;);
+	virtual UObject* FindObject(const FGuid& ObjectId) const PURE_VIRTUAL(UMovieSceneAnimation::FindObject, return nullptr;);
 
 	/**
 	 * Find the identifier for a possessed or spawned object.
@@ -73,7 +66,7 @@ class IMovieSceneAnimation
 	 * @param The object to get the identifier for.
 	 * @return The object identifier, or an invalid GUID if not found.
 	 */
-	virtual FGuid FindObjectId( UObject& Object) const PURE_VIRTUAL(IMovieSceneAnimation::FindGuidForObject, return FGuid(););
+	virtual FGuid FindObjectId( UObject& Object) const PURE_VIRTUAL(UMovieSceneAnimation::FindGuidForObject, return FGuid(););
 
 	/**
 	 * Get the movie scene that controls this animation.
@@ -83,7 +76,7 @@ class IMovieSceneAnimation
 	 *
 	 * @return The movie scene.
 	 */
-	virtual UMovieScene* GetMovieScene() const PURE_VIRTUAL(IMovieSceneAnimation::GetMovieScene(), return nullptr;);
+	virtual UMovieScene* GetMovieScene() const PURE_VIRTUAL(UMovieSceneAnimation::GetMovieScene(), return nullptr;);
 
 	/**
 	 * Get the logical parent object for the supplied object (not necessarily its outer).
@@ -91,7 +84,7 @@ class IMovieSceneAnimation
 	 * @param Object The object whose parent to get.
 	 * @return The parent object, or nullptr if the object has no logical parent.
 	 */
-	virtual UObject* GetParentObject(UObject* Object) const = 0;
+	virtual UObject* GetParentObject(UObject* Object) const PURE_VIRTUAL(UMovieSceneAnimation::GetParentObject(), return nullptr;);
 
 	/**
 	 * Called to spawn or destroy objects for a movie instance.
@@ -99,7 +92,7 @@ class IMovieSceneAnimation
 	 * @param SubMovieScene The (sub) movie scene to spawn or destroy objects for.
 	 * @param DestroyAll If true, destroy all spawned objects for the instance, if false only destroy unused objects.
 	 */
-	virtual void SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll) PURE_VIRTUAL(IMovieSceneAnimation::SpawnOrDestroyObjects,);
+	virtual void SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll) PURE_VIRTUAL(UMovieSceneAnimation::SpawnOrDestroyObjects,);
 
 	/**
 	 * Unbinds all possessable objects from the provided GUID.
@@ -107,7 +100,7 @@ class IMovieSceneAnimation
 	 * @param ObjectId The guid bound to possessable objects that should be removed.
 	 * @see BindPossessableObject
 	 */
-	virtual void UnbindPossessableObjects(const FGuid& ObjectId) PURE_VIRTUAL(IMovieSceneAnimation::UnbindPossessableObjects,);
+	virtual void UnbindPossessableObjects(const FGuid& ObjectId) PURE_VIRTUAL(UMovieSceneAnimation::UnbindPossessableObjects,);
 
 public:
 
@@ -120,6 +113,6 @@ public:
 	 * @param DisplayName The display name for the object binding.
 	 * @returns true if DisplayName has been set to a valid display name, otherwise false.
 	 */
-	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const PURE_VIRTUAL(IMovieSceneAnimation::TryGetObjectDisplayName, return false;);
+	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const PURE_VIRTUAL(UMovieSceneAnimation::TryGetObjectDisplayName, return false;);
 #endif
 };

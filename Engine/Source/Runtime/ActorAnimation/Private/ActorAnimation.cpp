@@ -25,7 +25,7 @@ void UActorAnimation::Initialize()
 }
 
 
-/* IMovieSceneAnimation interface
+/* UMovieSceneAnimation overrides
  *****************************************************************************/
 
 bool UActorAnimation::AllowsSpawnableObjects() const

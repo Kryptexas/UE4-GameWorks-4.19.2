@@ -307,7 +307,7 @@ UMovieScene* FSequencer::GetFocusedMovieScene() const
 	return MovieSceneStack.Top()->GetMovieScene();
 }
 
-void FSequencer::ResetToNewAnimation(IMovieSceneAnimation& NewAnimation)
+void FSequencer::ResetToNewAnimation(UMovieSceneAnimation& NewAnimation)
 {
 	DestroySpawnablesForAllMovieScenes();
 
@@ -1507,7 +1507,7 @@ void FSequencer::KeyProperty(FKeyPropertyParams KeyPropertyParams)
 	ObjectChangeListener->KeyProperty(KeyPropertyParams);
 }
 
-IMovieSceneAnimation* FSequencer::GetAnimation()
+UMovieSceneAnimation* FSequencer::GetAnimation()
 {
 	return Animation;
 }

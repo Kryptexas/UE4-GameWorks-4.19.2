@@ -9,7 +9,7 @@
 
 class UMovieScene;
 class IToolkitHost;
-class IMovieSceneAnimation;
+class UMovieSceneAnimation;
 class ISequencerObjectChangeListener;
 
 
@@ -63,7 +63,7 @@ public:
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
 	virtual UMovieScene* GetRootMovieScene() const override;
 	virtual UMovieScene* GetFocusedMovieScene() const override;
-	virtual void ResetToNewAnimation(IMovieSceneAnimation& NewAnimation) override;
+	virtual void ResetToNewAnimation(UMovieSceneAnimation& NewAnimation) override;
 	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const override;
 	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const override;
 	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) override;
@@ -86,7 +86,7 @@ public:
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
-	virtual IMovieSceneAnimation* GetAnimation() override;
+	virtual UMovieSceneAnimation* GetAnimation() override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
 
@@ -404,7 +404,7 @@ private:
 	TWeakPtr<FMovieSceneTrackEditor> AnimationTrackEditor;
 
 	/** The current animation being edited. */
-	IMovieSceneAnimation* Animation;
+	UMovieSceneAnimation* Animation;
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;

@@ -56,7 +56,7 @@ struct FSequencerViewParams
 struct FSequencerInitParams
 {
 	/** The animation being edited. */
-	IMovieSceneAnimation* Animation;
+	UMovieSceneAnimation* Animation;
 
 	/** The asset editor created for this (if any) */
 	TSharedPtr<IToolkitHost> ToolkitHost;

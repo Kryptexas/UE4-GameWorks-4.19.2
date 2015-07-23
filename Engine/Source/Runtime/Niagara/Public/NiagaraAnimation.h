@@ -11,14 +11,13 @@
  */
 UCLASS(BlueprintType, MinimalAPI)
 class UNiagaraAnimation
-	: public UObject
-	, public IMovieSceneAnimation
+	: public UMovieSceneAnimation
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
-	// IMovieSceneAnimation interface
+	// UMovieSceneAnimation overrides
 
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
