@@ -108,7 +108,17 @@ Time to get our hands dirty and script the functionality of our Main Menu. At th
 
 1.	Click the **Play** Button from the Main Toolbar to play in the editor. 
 
-	[![](MenuImage.png)(w:720)](ExampleMainMenu.mp4)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mEVUvk32CRI
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_Click the image above to play the video._
 
