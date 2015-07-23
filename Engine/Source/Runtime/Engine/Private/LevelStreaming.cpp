@@ -598,7 +598,8 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 					FLinkerLoad* PackageLinker = FLinkerLoad::FindExistingLinkerForPackage(LevelPackage);
 					if (PackageLinker)
 					{
-						delete PackageLinker;
+						PackageLinker->Detach();
+						DeleteLoader(PackageLinker);
 						PackageLinker = nullptr;
 					}
 

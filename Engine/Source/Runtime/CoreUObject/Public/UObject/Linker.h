@@ -1814,7 +1814,7 @@ public:
 	/**
 	* Detaches linker from bulk data/ exports and removes itself from array of loaders.
 	*/
-	void Detach();
+	COREUOBJECT_API void Detach();
 
 private:
 
@@ -2263,6 +2263,9 @@ COREUOBJECT_API void ResetLoaders( UObject* InOuter );
 
 /** Deletes all linkers that have finished loading */
 COREUOBJECT_API void DeleteLoaders();
+
+/** Queues linker for deletion */
+COREUOBJECT_API void DeleteLoader(FLinkerLoad* Loader);
 
 /**
  * Dissociates all linker import and forced export object references. This currently needs to 
