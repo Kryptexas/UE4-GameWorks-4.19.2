@@ -177,6 +177,9 @@ class ULevelStreaming : public UObject
 		return (LoadedLevel || PendingUnloadLevel);
 	}
 
+	/** Setter for WorldAsset. Use this instead of setting WorldAsset directly to update the cached package name. */
+	ENGINE_API void SetWorldAsset(const TAssetPtr<UWorld>& NewWorldAsset);
+
 	/** Gets the package name for the world asset referred to by this level streaming */
 	ENGINE_API FString GetWorldAssetPackageName() const;
 
@@ -337,6 +340,10 @@ private:
 	/** Pointer to a Level object that was previously active and was replaced with a new LoadedLevel (for LOD switching) */
 	UPROPERTY(transient)
 	class ULevel* PendingUnloadLevel;
+
+	/** The cached package name of the world asset that is loaded by the levelstreaming */
+	UPROPERTY(Transient)
+	FName CachedWorldAssetPackageFName;
 	
 	/** Friend classes to allow access to SetLoadedLevel */
 	friend class UEngine;

@@ -215,24 +215,28 @@ void ULevelStreaming::PostLoad()
 		}
 	}
 
-	if ( !PIESession && !WorldAsset.IsNull() )
+	if ( !WorldAsset.IsNull() )
 	{
 		const FString WorldPackageName = GetWorldAssetPackageName();
-		if (FPackageName::DoesPackageExist(WorldPackageName) == false)
+		CachedWorldAssetPackageFName = FName(*WorldPackageName);
+		if ( !PIESession )
 		{
-			UE_LOG(LogLevelStreaming, Display, TEXT("Failed to find streaming level package file: %s. This streaming level may not load or save properly."), *WorldPackageName);
-#if WITH_EDITOR
-			if (GIsEditor)
+			if (FPackageName::DoesPackageExist(WorldPackageName) == false)
 			{
-				// Launch notification to inform user of default change
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("PackageName"), FText::FromString(WorldPackageName));
-				FNotificationInfo Info(FText::Format(LOCTEXT("LevelStreamingFailToStreamLevel", "Failed to find streamed level {PackageName}, please fix the reference to it in the Level Browser"), Args));
-				Info.ExpireDuration = 7.0f;
+				UE_LOG(LogLevelStreaming, Display, TEXT("Failed to find streaming level package file: %s. This streaming level may not load or save properly."), *WorldPackageName);
+#if WITH_EDITOR
+				if (GIsEditor)
+				{
+					// Launch notification to inform user of default change
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("PackageName"), FText::FromString(WorldPackageName));
+					FNotificationInfo Info(FText::Format(LOCTEXT("LevelStreamingFailToStreamLevel", "Failed to find streamed level {PackageName}, please fix the reference to it in the Level Browser"), Args));
+					Info.ExpireDuration = 7.0f;
 
-				FSlateNotificationManager::Get().AddNotification(Info);
-			}
+					FSlateNotificationManager::Get().AddNotification(Info);
+				}
 #endif // WITH_EDITOR
+			}
 		}
 	}
 
@@ -626,7 +630,7 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 						DestinationWorld->PersistentLevel->CommitModelSurfaces();
 					}
 					
-					WorldAsset = DestinationWorld;
+					SetWorldAsset(DestinationWorld);
 				}
 			}
 		}
@@ -753,6 +757,12 @@ void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName
 	}
 }
 
+void ULevelStreaming::SetWorldAsset(const TAssetPtr<UWorld>& NewWorldAsset)
+{
+	WorldAsset = NewWorldAsset;
+	CachedWorldAssetPackageFName = FName(*GetWorldAssetPackageName());
+}
+
 FString ULevelStreaming::GetWorldAssetPackageName() const
 {
 	const FString WorldAssetPath = WorldAsset.ToStringReference().ToString();
@@ -761,20 +771,16 @@ FString ULevelStreaming::GetWorldAssetPackageName() const
 
 FName ULevelStreaming::GetWorldAssetPackageFName() const
 {
-	const FString WorldAssetPackageName = GetWorldAssetPackageName();
-	if ( !WorldAssetPackageName.IsEmpty() )
-	{
-		return FName(*WorldAssetPackageName);
-	}
-	
-	return NAME_None;
+	return CachedWorldAssetPackageFName;
 }
 
 void ULevelStreaming::SetWorldAssetByPackageName(FName InPackageName)
 {
 	const FString TargetWorldPackageName = InPackageName.ToString();
 	const FString TargetWorldObjectName = FPackageName::GetLongPackageAssetName(TargetWorldPackageName);
-	WorldAsset = TargetWorldPackageName + TEXT(".") + TargetWorldObjectName;
+	TAssetPtr<UWorld> NewWorld;
+	NewWorld = TargetWorldPackageName + TEXT(".") + TargetWorldObjectName;
+	SetWorldAsset(NewWorld);
 }
 
 void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
@@ -875,6 +881,10 @@ void ULevelStreaming::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			{
 				LoadedLevel->MarkLevelComponentsRenderStateDirty();
 			}
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, WorldAsset))
+		{
+			CachedWorldAssetPackageFName = FName(*GetWorldAssetPackageName());
 		}
 	}
 
