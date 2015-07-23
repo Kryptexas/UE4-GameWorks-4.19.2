@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2402210
+﻿INTSourceChangelist:2613787
 Availability:Public
 Title:1.9 - Screenspace Reflection (スクリーン空間の反射)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.9：Screenspace Reflection (スクリーン空間の反射)
+Description:ポストプロセスのサンプル レベルの概要、1.9：Screenspace Reflection (スクリーン空間の反射)
 Related:Engine/Rendering/PostProcessEffects/ScreenSpaceReflection
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
@@ -54,7 +54,7 @@ Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [/REGION]
 
 
-**Screen Space Reflection** (スクリーン空間の反射) は、デフォルトで有効になっているエフェクトであり、 **マテリアル** サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。Intensity 、Quality 、Max Roughness です。このオプションに関する詳細は、以下のリンクからスクリーン空間の反射を参照してください。  
+**Screen Space Reflection** (スクリーン空間の反射) は、デフォルトで有効になっているエフェクトであり、 マテリアル サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。Intensity 、Quality 、Max Roughness です。このオプションに関する詳細は、以下のリンクからスクリーン空間の反射を参照してください。  
 
 
 
