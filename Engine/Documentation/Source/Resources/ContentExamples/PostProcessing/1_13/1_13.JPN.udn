@@ -2,7 +2,7 @@
 Availability:Public
 Title:1.13 - スクリーン比率
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.13：スクリーン比率
+Description:ポストプロセスのサンプル レベル、1.13：スクリーン比率
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
