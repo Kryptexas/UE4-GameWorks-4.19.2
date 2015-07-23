@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2613749
 Availability:Public
-Title:1.16 -Blendables (合成可能なもの) 
+Title:1.16 -Blendables (合成可能なもの)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.16：Blendables
+Description:ポストプロセスのサンプル レベル、1.16：Blendables
+Related:Engine/Rendering/Overview
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,5 +54,5 @@ Description:ポストプロセスの事例概要、例 1.16：Blendables
 
 [INCLUDE:Engine/Rendering\PostProcessEffects\PostProcessMaterials#PostProcessMaterials_Desc]
 
-**Blendables** は **PostProcessMaterials** としても知られています。これは、バッファーを読み取り、それを合成、修正してからスクリーンにアウトプットします。スクリーン上のマテリアルオーバーレイとして考えるとわかりやすいでしょう。
+**Blendables** は PostProcessMaterials としても知られています。これは、バッファーを読み取り、それを合成、修正してからスクリーンにアウトプットします。スクリーン上のマテリアルオーバーレイとして考えるとわかりやすいでしょう。
 
