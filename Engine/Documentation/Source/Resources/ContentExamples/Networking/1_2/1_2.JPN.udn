@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2620758
 Availability:Public
 Title:1.2 - ブループリントでネットワーク権限とリモート クライアントを検知する
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能のサンプルレベルの概要 事例 1.2:ブループリントでネットワーク権限とリモート クライアントを検知する
+Description:ネットワーク機能のサンプル レベルの概要、1.2:ブループリントでネットワーク権限とリモート クライアントを検知する
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
@@ -33,11 +33,10 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 [REGION:tip]
-**Server** と **Client** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** 欄を 2 に設定します。
+**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** フィールドを 2 に設定します。
 [/REGION]
 
 
-## 概要
 
 このサンプルでは、ブループリントがネットワーク権限のあるマシン (サーバー) あるいはリモートマシン (クライアント) 側のどちらで起動するかにより異なるロジックで実行するところをお見せします。 
 
@@ -50,7 +49,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 	[![](Resources/ContentExamples/Networking/1_2/1_2_Blueprint.png)(w:640)](Resources/ContentExamples/Networking/1_2/1_2_Blueprint.png)
 [/REGION]
 
-**Switch Has Authority** でこのスクリプトを実行すると、サーバーおよびクライアント側からは以下が見えるようになります。 
+Switch Has Authority でこのスクリプトを実行すると、サーバーおよびクライアント側からは以下が見えるようになります。 
 
 [REGION:fullwidth]
 ![](1_2_Play.png)
