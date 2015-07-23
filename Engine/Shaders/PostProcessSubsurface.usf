@@ -38,6 +38,9 @@ float GetSubsurfaceStrength(float2 UV)
 	return Mask * ScreenSpaceData.GBuffer.Opacity;
 }
 
+// 0:full res (slower but reference) / 1:faster half res with some quality loss
+// #define HALF_RES 1
+
 // 0:speculars leak into SSS / 1:requires alpha channel for scenecolor
 // #define SSSS_SPECULAR_CORRECTION 1
 
@@ -301,6 +304,7 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 {
 	float2 UV = UVAndScreenPos.xy;
 
+#if HALF_RES
 	// order aligned with Gather() hardware implementation
 	// RGB: color*A, A:weight 0 if no subsurface scattering
 	float4 A = SetupSubsurfaceForOnePixel(UV + float2(-0.5,  0.5f) * PostprocessInput0Size.zw);
@@ -308,11 +312,11 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 	float4 C = SetupSubsurfaceForOnePixel(UV + float2( 0.5, -0.5f) * PostprocessInput0Size.zw);
 	float4 D = SetupSubsurfaceForOnePixel(UV + float2(-0.5, -0.5f) * PostprocessInput0Size.zw);
 
-	OutColor = (A + B) + (C + D);
+	float4 Sum = (A + B) + (C + D);
 
-	float Div = 1.0f / max(OutColor.a, 0.00001f);
+	float Div = 1.0f / max(Sum.a, 0.00001f);
 
-	OutColor.rgba *= Div;
+	OutColor.rgb = Sum.rgb * Div;
 	
 	float4 FourDepth = GatherSceneDepth(UV, PostprocessInput0Size.zw);
 
@@ -320,6 +324,10 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 	float SingleDepth = dot(FourDepth, float4(A.a, B.a, C.a, D.a)) * Div;
 
 	OutColor.a = SingleDepth;
+#else // HALF_RES
+	OutColor.rgb = SetupSubsurfaceForOnePixel(UV).rgb;
+	OutColor.a = CalcSceneDepth(UV);
+#endif // HALF_RES
 
 #if 0
 	float SSSScaleX = SSSParams.x;
@@ -382,7 +390,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 #endif
 
 	// can be optimized
-	float2 GBufferUV = (ViewportUV * PostprocessInput0Size.xy * 2 + View.ViewRectMin.xy) * View.BufferSizeAndInvSize.zw;
+	float2 GBufferUV = (ViewportUV * View.ViewSizeAndInvSize.xy + View.ViewRectMin.xy) * View.BufferSizeAndInvSize.zw;
 
 	bool bIncludeCenter = true;
 
@@ -430,6 +438,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 	float LerpFactor = 1;
 
+#if HALF_RES
 #if 1
 	// fade out subsurface scattering if radius is too small to be more crips (not blend with half resolution)
 	// minor quality improvement (faces are more detailed in distance)
@@ -438,6 +447,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	// hack to debug if the fade is happening at the same time the VisualizeSSS shows it
 //	SSSColor = 0;
 #endif
+#endif // HALF_RES
 
 	// only affect pixels that have SSS
 	LerpFactor *= BlendFactor;

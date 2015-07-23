@@ -327,8 +327,9 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc
 /**
  * Encapsulates the post processing subsurface scattering pixel shader.
  * @param SetupMode 0:without specular correction, 1:with specular correction
+ * @param HalfRes 0:to full res, 1:to half res
  */
-template <uint32 SetupMode>
+template <uint32 SetupMode, uint32 HalfRes>
 class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSubsurfaceSetupPS , Global);
@@ -342,6 +343,7 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SETUP_MODE"), SetupMode);
+		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
 	}
 
 	/** Default constructor. */
@@ -393,19 +395,19 @@ public:
 };
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A) typedef FPostProcessSubsurfaceSetupPS<A> FPostProcessSubsurfaceSetupPS##A; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessSubsurfaceSetupPS##A, SF_Pixel);
-
+#define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)
+#define VARIATION2(A, B) typedef FPostProcessSubsurfaceSetupPS<A, B> FPostProcessSubsurfaceSetupPS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessSubsurfaceSetupPS##A##B, SF_Pixel);
 	VARIATION1(0) VARIATION1(1)
-
 #undef VARIATION1
+#undef VARIATION2
 
 
-template <uint32 SetupMode>
+template <uint32 SetupMode, uint32 HalfRes>
 void SetSubsurfaceSetupShader(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessSubsurfaceSetupPS<SetupMode> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSubsurfaceSetupPS<SetupMode, HalfRes> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -634,8 +636,9 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceExtractSpecular::ComputeOutp
 
 // --------------------------------------
 
-FRCPassPostProcessSubsurfaceSetup::FRCPassPostProcessSubsurfaceSetup(FViewInfo& View)
+FRCPassPostProcessSubsurfaceSetup::FRCPassPostProcessSubsurfaceSetup(FViewInfo& View, bool bInHalfRes)
 	: ViewRect(View.ViewRect)
+	, bHalfRes(bInHalfRes)
 {
 }
 
@@ -658,8 +661,13 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
 
 	FIntRect DestRect = FIntRect(0, 0, DestSize.X, DestSize.Y);
-	// upscale rectangle to not slightly scale (might miss a pixel)
-	FIntRect SrcRect = DestRect * 2 + View.ViewRect.Min;
+	FIntRect SrcRect = View.ViewRect;
+	
+	if(bHalfRes)
+	{
+		// upscale rectangle to not slightly scale (might miss a pixel)
+		SrcRect = DestRect * 2 + View.ViewRect.Min;
+	}
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -678,11 +686,11 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 	if(bSpecularCorrection)
 	{
-		SetSubsurfaceSetupShader<1>(Context);
+		if(bHalfRes) SetSubsurfaceSetupShader<1, 1>(Context); else SetSubsurfaceSetupShader<1, 0>(Context);
 	}
 	else
 	{
-		SetSubsurfaceSetupShader<0>(Context);
+		if(bHalfRes) SetSubsurfaceSetupShader<0, 1>(Context); else SetSubsurfaceSetupShader<0, 0>(Context);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -713,10 +721,12 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPa
 
 	Ret.Extent = ViewRect.Size();
 
-	// half res
-	Ret.Extent  = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
-	Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
-	Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
+	if(bHalfRes)
+	{
+		Ret.Extent = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
+		Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
+		Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
+	}
 	
 	return Ret;
 }
@@ -805,8 +815,9 @@ public:
 #undef VARIATION2
 
 
-FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InDirection)
+FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InDirection, bool bInHalfRes)
 	: Direction(InDirection) 
+	, bHalfRes(bInHalfRes)
 {
 	check(InDirection < 2);
 }
@@ -931,9 +942,9 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurface::ComputeOutputDesc(EPassOut
 
 
 
-/** Encapsulates the post processing subsurafce recombine pixel shader. */
-// @param SpecularCorrection 0: reconstruct specular
-template <uint32 RecombineMethod>
+/** Encapsulates the post processing subsurface recombine pixel shader. */
+// @param RecombineMethod 1: with specular correction, 0: without specular correction
+template <uint32 RecombineMethod, uint32 HalfRes>
 class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TPostProcessSubsurfaceRecombinePS, Global);
@@ -947,6 +958,7 @@ class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SSS_RECOMBINE_METHOD"), RecombineMethod);
+		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
 	}
 
 	/** Default constructor. */
@@ -996,16 +1008,17 @@ public:
 };
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A) typedef TPostProcessSubsurfaceRecombinePS<A> TPostProcessSubsurfaceRecombinePS##A; \
-	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfaceRecombinePS##A, SF_Pixel);
+#define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)
+#define VARIATION2(A, B) typedef TPostProcessSubsurfaceRecombinePS<A, B> TPostProcessSubsurfaceRecombinePS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfaceRecombinePS##A##B, SF_Pixel);
 	VARIATION1(0) VARIATION1(1)
 #undef VARIATION1
+#undef VARIATION2
 
-
-template <uint32 RecombineMethod>
+template <uint32 RecombineMethod, uint32 HalfRes>
 void SetSubsurfaceRecombineShader(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader)
 {
-	TShaderMapRef<TPostProcessSubsurfaceRecombinePS<RecombineMethod> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<TPostProcessSubsurfaceRecombinePS<RecombineMethod, HalfRes> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -1013,6 +1026,11 @@ void SetSubsurfaceRecombineShader(const FRenderingCompositePassContext& Context,
 
 	PixelShader->SetParameters(Context);
 	VertexShader->SetParameters(Context);
+}
+
+FRCPassPostProcessSubsurfaceRecombine::FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes)
+	: bHalfRes(bInHalfRes)
+{
 }
 
 void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassContext& Context)
@@ -1057,11 +1075,11 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 
 	if(bDoSpecularCorrection)
 	{
-		SetSubsurfaceRecombineShader<1>(Context, VertexShader);
+		if(bHalfRes) SetSubsurfaceRecombineShader<1, 1>(Context, VertexShader); else SetSubsurfaceRecombineShader<1, 0>(Context, VertexShader);
 	}
 	else
 	{
-		SetSubsurfaceRecombineShader<0>(Context, VertexShader);
+		if(bHalfRes) SetSubsurfaceRecombineShader<0, 1>(Context, VertexShader); else SetSubsurfaceRecombineShader<0, 0>(Context, VertexShader);
 	}
 
 	DrawRectangle(

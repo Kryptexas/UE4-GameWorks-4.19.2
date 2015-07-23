@@ -43,7 +43,7 @@ class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 
 {
 public:
 	// constructor
-	FRCPassPostProcessSubsurfaceSetup(FViewInfo& View);
+	FRCPassPostProcessSubsurfaceSetup(FViewInfo& View, bool bInHalfRes);
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
@@ -51,6 +51,7 @@ public:
 	virtual void Release() override { delete this; }
 
 	FIntRect ViewRect;
+	bool bHalfRes;
 };
 
 
@@ -63,7 +64,7 @@ class FRCPassPostProcessSubsurface : public TRenderingCompositePassBase<2, 1>
 public:
 	// constructor
 	// @param InDirection 0:horizontal/1:vertical
-	FRCPassPostProcessSubsurface(uint32 InDirection);
+	FRCPassPostProcessSubsurface(uint32 InDirection, bool bInHalfRes);
 
 	// interface FRenderingCompositePass ---------
 
@@ -74,6 +75,7 @@ public:
 private:
 	// 0:horizontal/1:vertical
 	uint32 Direction;
+	bool bHalfRes;
 };
 
 
@@ -84,9 +86,14 @@ private:
 class FRCPassPostProcessSubsurfaceRecombine : public TRenderingCompositePassBase<2, 1>
 {
 public:
+	// constructor
+	FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes);
+
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+	bool bHalfRes;
 };
