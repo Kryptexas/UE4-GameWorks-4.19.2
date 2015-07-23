@@ -21,3 +21,4 @@
 #include "AbilitySystemLog.h"
 
 #include "GameplayTasksComponent.h"
+#include "VisualLogger.h"
