@@ -166,7 +166,16 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 		virtual FArchive& operator<<(FStringAssetReference& Value) override
 		{
 			FArchive& Ar = *this;
-			Ar << Value.AssetLongPathname;
+
+			FString Path = Value.ToString();
+
+			Ar << Path;
+
+			if (IsLoading())
+			{
+				Value.SetPath(MoveTemp(Path));
+			}
+
 			return Ar;
 		}
 		/** Archive name, for debugging */
@@ -386,7 +395,16 @@ void FHotReloadClassReinstancer::UpdateDefaultProperties()
 		virtual FArchive& operator<<(FStringAssetReference& Value) override
 		{
 			FArchive& Ar = *this;
-			Ar << Value.AssetLongPathname;
+
+			FString Path = Value.ToString();
+
+			Ar << Path;
+
+			if (IsLoading())
+			{
+				Value.SetPath(MoveTemp(Path));
+			}
+
 			return Ar;
 		}
 	};

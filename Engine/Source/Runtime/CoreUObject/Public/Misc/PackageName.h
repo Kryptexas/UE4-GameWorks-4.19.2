@@ -197,6 +197,25 @@ public:
 	static bool SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName = NULL, FString* OutFilename = NULL, bool bUseLocalizedNames = false);
 
 	/**
+	 * Tries to convert object path with short package name to object path with long package name found on disk (very slow)
+	 *
+	 * @param ObjectPath Path to the object.
+	 * @param OutLongPackageName Converted object path.
+	 *
+	 * @returns True if succeeded. False otherwise.
+	 */
+	static bool TryConvertShortPackagePathToLongInObjectPath(const FString& ObjectPath, FString& ConvertedObjectPath);
+
+	/**
+	 * Gets normlized object path i.e. with long package format.
+	 *
+	 * @param ObjectPath Path to the object.
+	 *
+	 * @returns Normalized path (or empty path, if short object path was given and it wasn't found on the disk).
+	 */
+	static FString GetNormalizedObjectPath(const FString& ObjectPath);
+
+	/**
 	 * Strips all path and extension information from a relative or fully qualified file name.
 	 *
 	 * @param	InPathName	a relative or fully qualified file name

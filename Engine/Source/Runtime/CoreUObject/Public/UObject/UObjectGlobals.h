@@ -121,7 +121,26 @@ COREUOBJECT_API TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags);
 
 COREUOBJECT_API UPackage* GetTransientPackage();
 
-COREUOBJECT_API bool ResolveName( UObject*& Outer, FString& Name, bool Create, bool Throw );
+/**
+ * Gets INI file name from object's reference if it contains one.
+ *
+ * @returns If object reference doesn't contain any INI reference the function
+ *		returns nullptr. Otherwise a ptr to INI's file name.
+ */
+COREUOBJECT_API const FString* GetIniFilenameFromObjectsReference(const FString& ObjectsReferenceString);
+
+/**
+ * Resolves ini object path to string object path.
+ *
+ * @param ObjectReference Ini reference.
+ * @param IniFilename Ini filename.
+ * @param bThrow Can this function throw?
+ *
+ * @returns Resolved object path.
+ */
+COREUOBJECT_API FString ResolveIniObjectsReference(const FString& ObjectReference, const FString* IniFilename, bool bThrow = false);
+
+COREUOBJECT_API bool ResolveName( UObject*& Outer, FString& ObjectsReferenceString, bool Create, bool Throw );
 COREUOBJECT_API void SafeLoadError( UObject* Outer, uint32 LoadFlags, const TCHAR* ErrorMessage);
 
 /**

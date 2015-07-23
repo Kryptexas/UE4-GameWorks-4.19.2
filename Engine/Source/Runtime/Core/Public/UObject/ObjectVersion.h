@@ -562,6 +562,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_APEX_CLOTH_TESSELLATION,
 	// Added DecalSize member, solved backward compatibility
 	VER_UE4_DECAL_SIZE,
+	// Keep only package names in StringAssetReferencesMap
+	VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

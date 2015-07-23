@@ -351,7 +351,16 @@ FArchive& FNetBitWriter::operator<<( UObject*& Object )
 
 FArchive& FNetBitWriter::operator<<(FStringAssetReference& Value)
 {
-	return *this << Value.AssetLongPathname;
+	FString Path = Value.ToString();
+
+	*this << Path;
+
+	if (IsLoading())
+	{
+		Value.SetPath(MoveTemp(Path));
+	}
+
+	return *this;
 }
 
 
@@ -378,7 +387,16 @@ FArchive& FNetBitReader::operator<<( class FName& N )
 
 FArchive& FNetBitReader::operator<<(FStringAssetReference& Value)
 {
-	return *this << Value.AssetLongPathname;
+	FString Path = Value.ToString();
+
+	*this << Path;
+
+	if (IsLoading())
+	{
+		Value.SetPath(MoveTemp(Path));
+	}
+
+	return *this;
 }
 
 static const TCHAR* GLastRPCFailedReason = NULL;

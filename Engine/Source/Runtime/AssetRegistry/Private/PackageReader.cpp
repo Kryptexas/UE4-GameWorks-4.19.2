@@ -302,11 +302,39 @@ void FPackageReader::SerializeStringAssetReferencesMap(TArray<FString>& OutStrin
 	{
 		Seek(PackageFileSummary.StringAssetReferencesOffset);
 
-		for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+		if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
 		{
-			FString Buf;
-			*this << Buf;
-			OutStringAssetReferencesMap.Add(MoveTemp(Buf));
+			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+			{
+				FString Buf;
+				*this << Buf;
+
+				if (GetIniFilenameFromObjectsReference(Buf) != nullptr)
+				{
+					OutStringAssetReferencesMap.AddUnique(MoveTemp(Buf));
+				}
+				else
+				{
+					FString NormalizedPath = FPackageName::GetNormalizedObjectPath(MoveTemp(Buf));
+					if (!NormalizedPath.IsEmpty())
+					{
+						OutStringAssetReferencesMap.AddUnique(
+							FPackageName::ObjectPathToPackageName(
+								NormalizedPath
+							)
+						);
+					}
+				}
+			}
+		}
+		else
+		{
+			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+			{
+				FString Buf;
+				*this << Buf;
+				OutStringAssetReferencesMap.Add(MoveTemp(Buf));
+			}
 		}
 	}
 }

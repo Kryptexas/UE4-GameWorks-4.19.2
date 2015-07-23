@@ -55,7 +55,7 @@ public:
 
 		if(Category.Texture.IsValid())
 		{
-			UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Category.Texture.AssetLongPathname);
+			UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Category.Texture.ToString());
 			if(Texture != nullptr)
 			{
 				FIntPoint TextureSize = Texture->GetImportedSize();

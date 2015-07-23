@@ -569,55 +569,65 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 	return Result;
 }
 
+FString ResolveIniObjectsReference(const FString& ObjectReference, const FString* IniFilename, bool bThrow)
+{
+	// Get .ini key and section.
+	FString Section = ObjectReference.Mid(1 + ObjectReference.Find(TEXT(":"), ESearchCase::CaseSensitive));
+	int32 i = Section.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	FString Key;
+	if (i != -1)
+	{
+		Key = Section.Mid(i + 1);
+		Section = Section.Left(i);
+	}
+
+	FString Output;
+
+	// Look up name.
+	if (!GConfig->GetString(*Section, *Key, Output, *IniFilename))
+	{
+		if (bThrow == true)
+		{
+			UE_LOG(LogUObjectGlobals, Error, TEXT(" %s %s "), *FString::Printf(TEXT("Can't find '%s' in configuration file section=%s key=%s"), *ObjectReference, *Section, *Key), **IniFilename);
+		}
+	}
+
+	return Output;
+}
+
+const FString* GetIniFilenameFromObjectsReference(const FString& Name)
+{
+	// See if the name is specified in the .ini file.
+	if (FCString::Strnicmp(*Name, TEXT("engine-ini:"), FCString::Strlen(TEXT("engine-ini:"))) == 0)
+	{
+		return &GEngineIni;
+	}
+	else if (FCString::Strnicmp(*Name, TEXT("game-ini:"), FCString::Strlen(TEXT("game-ini:"))) == 0)
+	{
+		return &GGameIni;
+	}
+	else if (FCString::Strnicmp(*Name, TEXT("input-ini:"), FCString::Strlen(TEXT("input-ini:"))) == 0)
+	{
+		return &GInputIni;
+	}
+	else if (FCString::Strnicmp(*Name, TEXT("editor-ini:"), FCString::Strlen(TEXT("editor-ini:"))) == 0)
+	{
+		return &GEditorIni;
+	}
+
+	return nullptr;
+}
+
 //
 // Resolve a package and name.
 //
 bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Throw )
 {
-	FString* IniFilename = NULL;
+	const FString* IniFilename = GetIniFilenameFromObjectsReference(InOutName);
 
-	// See if the name is specified in the .ini file.
-	if( FCString::Strnicmp( *InOutName, TEXT("engine-ini:"), FCString::Strlen(TEXT("engine-ini:")) )==0 )
+	if (IniFilename && InOutName.Contains(TEXT("."), ESearchCase::CaseSensitive))
 	{
-		IniFilename = &GEngineIni;
-	}
-	else if( FCString::Strnicmp( *InOutName, TEXT("game-ini:"), FCString::Strlen(TEXT("game-ini:")) )==0 )
-	{
-		IniFilename = &GGameIni;
-	}
-	else if( FCString::Strnicmp( *InOutName, TEXT("input-ini:"), FCString::Strlen(TEXT("input-ini:")) )==0 )
-	{
-		IniFilename = &GInputIni;
-	}
-	else if( FCString::Strnicmp( *InOutName, TEXT("editor-ini:"), FCString::Strlen(TEXT("editor-ini:")) )==0 )
-	{
-		IniFilename = &GEditorIni;
-	}
-
-
-	if( IniFilename && InOutName.Contains(TEXT("."), ESearchCase::CaseSensitive) )
-	{
-		// Get .ini key and section.
-		FString Section = InOutName.Mid(1+InOutName.Find(TEXT(":"), ESearchCase::CaseSensitive));
-		int32 i = Section.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-		FString Key;
-		if( i != -1)
-		{
-			Key = Section.Mid(i+1);
-			Section = Section.Left(i);
-		}
-
-		// Look up name.
-		FString Result;
-		if( !GConfig->GetString( *Section, *Key, Result, *IniFilename ) )
-		{
-			if( Throw == true )
-			{
-				UE_LOG(LogUObjectGlobals, Error, TEXT( " %s %s " ), *FString::Printf( TEXT("Can't find '%s' in configuration file section=%s key=%s"), *InOutName, *Section, *Key), **IniFilename );
-			}
-			return false;
-		}
-		InOutName = Result;
+		InOutName = ResolveIniObjectsReference(InOutName, IniFilename, Throw);
 	}
 
 	// Strip off the object class.

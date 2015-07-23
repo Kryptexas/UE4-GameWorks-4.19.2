@@ -647,9 +647,9 @@ private:
 				}
 				else if (ColumnName == CueHandlerColumnName)
 				{
-					if (CueHandlerItem->GameplayCueNotifyObj.AssetLongPathname.IsEmpty() == false)
+					if (CueHandlerItem->GameplayCueNotifyObj.ToString().IsEmpty() == false)
 					{
-						FString ObjName = CueHandlerItem->GameplayCueNotifyObj.AssetLongPathname;
+						FString ObjName = CueHandlerItem->GameplayCueNotifyObj.ToString();
 
 						int32 idx;
 						if (ObjName.FindLastChar(TEXT('.'), idx))

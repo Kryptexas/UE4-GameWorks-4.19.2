@@ -577,7 +577,7 @@ public:
 			{
 				Writer << EX_AssetConst;
 				FAssetPtr AssetPtr(Term->ObjectLiteral);
-				EmitStringLiteral(AssetPtr.GetUniqueID().AssetLongPathname);
+				EmitStringLiteral(AssetPtr.GetUniqueID().ToString());
 			}
 			else if (CoerceProperty->IsA(UObjectPropertyBase::StaticClass()))
 			{

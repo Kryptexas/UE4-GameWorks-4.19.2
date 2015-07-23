@@ -761,7 +761,54 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 	return bResult;
 }
 
-FString FPackageName::PackageFromPath( const TCHAR* InPathName )
+bool FPackageName::TryConvertShortPackagePathToLongInObjectPath(const FString& ObjectPath, FString& ConvertedObjectPath)
+{
+	FString PackagePath;
+	FString ObjectName;
+
+	int32 DotPosition = ObjectPath.Find(TEXT("."), ESearchCase::CaseSensitive);
+	if (DotPosition != INDEX_NONE)
+	{
+		PackagePath = ObjectPath.Mid(0, DotPosition);
+		ObjectName = ObjectPath.Mid(DotPosition + 1);
+	}
+	else
+	{
+		PackagePath = ObjectPath;
+	}
+
+	FString LongPackagePath;
+	if (!SearchForPackageOnDisk(PackagePath, &LongPackagePath))
+	{
+		return false;
+	}
+
+	ConvertedObjectPath = FString::Printf(TEXT("%s.%s"), *LongPackagePath, *ObjectName);
+	return true;
+}
+
+FString FPackageName::GetNormalizedObjectPath(const FString& ObjectPath)
+{
+	if (!ObjectPath.IsEmpty() && FPackageName::IsShortPackageName(ObjectPath))
+	{
+		FString LongPath;
+
+		UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" is in short form, which is unsupported and -- even if valid -- resolving it will be really slow."), *ObjectPath);
+
+		if (!FPackageName::TryConvertShortPackagePathToLongInObjectPath(ObjectPath, LongPath))
+		{
+			UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" could not be resolved."), *ObjectPath);
+		}
+
+		return LongPath;
+	}
+	else
+	{
+		return ObjectPath;
+	}
+}
+
+FString FPackageName::PackageFromPath(const TCHAR* InPathName)
 {
 	FString PackageName;
 	if (FPackageName::TryConvertFilenameToLongPackageName(InPathName, PackageName))

@@ -896,7 +896,7 @@ struct FTimespan
 
 // A string asset reference
 
-USTRUCT(noexport)
+USTRUCT(noexport, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
 struct FStringAssetReference
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringAssetReference)

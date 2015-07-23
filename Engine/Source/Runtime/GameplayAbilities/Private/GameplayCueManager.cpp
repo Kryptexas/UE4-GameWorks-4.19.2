@@ -298,7 +298,7 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 			{
 				// Add a new NotifyData entry to our flat list for this one
 				FStringAssetReference StringRef;
-				StringRef.AssetLongPathname = FPackageName::ExportTextPathToObjectPath(*GeneratedClassTag);
+				StringRef.SetPath(FPackageName::ExportTextPathToObjectPath(*GeneratedClassTag));
 
 				OutCuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
 
@@ -354,7 +354,7 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 			if (IsAssetInLoadedPaths(Object))
 			{
 				FStringAssetReference StringRef;
-				StringRef.AssetLongPathname = Blueprint->GeneratedClass->GetPathName();
+				StringRef.SetPath(Blueprint->GeneratedClass->GetPathName());
 
 				TArray<FGameplayCueReferencePair> CuesToAdd;
 				if (StaticCDO)
@@ -387,7 +387,7 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 		
 		if (StaticCDO || ActorCDO)
 		{
-			StringRefToRemove.AssetLongPathname = Blueprint->GeneratedClass->GetPathName();
+			StringRefToRemove.SetPath(Blueprint->GeneratedClass->GetPathName());
 		}
 	}
 

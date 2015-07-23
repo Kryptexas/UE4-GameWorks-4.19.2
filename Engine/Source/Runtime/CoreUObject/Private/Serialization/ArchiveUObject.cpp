@@ -67,7 +67,26 @@ FArchive& FArchiveUObject::operator<<( class FAssetPtr& AssetPtr )
 
 FArchive& FArchiveUObject::operator<<(struct FStringAssetReference& Value)
 {
-	*this << Value.AssetLongPathname;
+	FString Path = Value.ToString();
+
+	*this << Path;
+
+	if (IsLoading())
+	{
+		if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
+		{
+			FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
+			if (Value.ToString() != NormalizedPath)
+			{
+				Value.SetPath(NormalizedPath);
+			}
+		}
+		else
+		{
+			Value.SetPath(MoveTemp(Path));
+		}
+	}
+
 	return *this;
 }
 

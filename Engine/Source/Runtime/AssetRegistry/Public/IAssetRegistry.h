@@ -102,8 +102,9 @@ public:
 	 * @param PackageName		the name of the package for which to gather dependencies
 	 * @param OutDependencies	a list of paths to objects that are referenced by the package whose path is PackageName
 	 * @param InDependencyType	which kinds of dependency to include in the output list
+	 * @param bResolveIniStringReferences Tells if the method should also resolve INI references.
 	 */
-	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const = 0;
+	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All, bool bResolveIniStringReferences = false) const = 0;
 
 	/**
 	 * Gets a list of paths to objects that reference the supplied package. (On disk references ONLY)

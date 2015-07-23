@@ -627,9 +627,22 @@ public:
 	FArchive& operator<<(FAssetPtr& AssetPtr) override;
 	FArchive& operator<<(FStringAssetReference& Value) override
 	{
-		if ( Value.IsValid() )
+		if (Value.IsValid())
 		{
-			StringAssetReferencesMap.Add(Value.ToString());
+			const FString& Path = Value.ToString();
+			if (GetIniFilenameFromObjectsReference(Path) != nullptr)
+			{
+				StringAssetReferencesMap.AddUnique(Path);
+			}
+			else
+			{
+				FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
+				if (!NormalizedPath.IsEmpty())
+				{
+					StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
+					Value.SetPath(MoveTemp(NormalizedPath));
+				}
+			}
 		}
 		return *this;
 	}

@@ -732,7 +732,7 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData) const
 	return true;
 }
 
-bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
+bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType, bool bResolveIniStringReferences) const
 {
 	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(PackageName);
 	const FDependsNode* Node = NULL;
@@ -743,7 +743,27 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 
 	if (Node != NULL)
 	{
-		Node->GetDependencies(OutDependencies, InDependencyType);
+		if (bResolveIniStringReferences)
+		{
+			TArray<FName> DependencyNodes;
+			Node->GetDependencies(DependencyNodes, InDependencyType);
+
+			for (auto NodeIt = DependencyNodes.CreateConstIterator(); NodeIt; ++NodeIt)
+			{
+				FString PackagePath = NodeIt->ToString();
+				const FString* IniFilename = GetIniFilenameFromObjectsReference(PackagePath);
+
+				OutDependencies.Add(
+					(IniFilename != nullptr)
+					? FName(*ResolveIniObjectsReference(PackagePath, IniFilename))
+					: *NodeIt);
+			}
+		}
+		else
+		{
+			Node->GetDependencies(OutDependencies, InDependencyType);
+		}
+
 		return true;
 	}
 	else
@@ -1789,13 +1809,12 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 
 		for (int32 StringAssetRefIdx = 0; StringAssetRefIdx < Result.StringAssetReferencesMap.Num(); ++StringAssetRefIdx)
 		{
-			FString PackageName, ObjName;
-			Result.StringAssetReferencesMap[StringAssetRefIdx].Split(".", &PackageName, &ObjName, ESearchCase::CaseSensitive);
-
-			if (!PackageDependencies.Contains(*PackageName))
+			if (FPackageName::IsShortPackageName(Result.StringAssetReferencesMap[StringAssetRefIdx]))
 			{
-				PackageDependencies.Add(*PackageName, EAssetRegistryDependencyType::Soft);
+				UE_LOG(LogAssetRegistry, Warning, TEXT("Package with string asset reference with short asset path: %s. This is unsupported, can couse errors and be slow on loading. Please resave the package to fix this."), *Result.PackageName.ToString());
 			}
+
+			PackageDependencies.Add(*Result.StringAssetReferencesMap[StringAssetRefIdx]);
 		}
 
 
