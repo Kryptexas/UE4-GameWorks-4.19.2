@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2613743
 Availability:Public
 Title:1.14 - AA メソッド
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.14：AA メソッド
+Description:ポストプロセスのサンプル レベル、1.14：AA メソッド
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
@@ -52,5 +52,5 @@ Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 
 アンチエイリアス処理は、スクリーンの縁に表示されるジャギーを取り除いて画像の品質を向上させます。**Temporal AA** (一時アンチエイリアシング) はデフォルトであり、最善の結果が得られます。デフォルトで有効ですが、 [Real-time] がビューポートでアクティブまたはゲームモード **(G-key)** となっている時にエディタのみに表示されます。 
 
-Temporal AA は、スクリーンの解像度より大きなスクリーンショットを作成する「highresshot」コンソールコマンドと現時点では機能しません。このようなスクリーンショットの作成は、 **Temporal AA** 機能をオフにするか、FXAA を使用しなくてはいけません。
+Temporal AA は、スクリーンの解像度より大きなスクリーンショットを作成する「highresshot」コンソールコマンドと現時点では機能しません。このようなスクリーンショットの作成は、 Temporal AA 機能をオフにするか、FXAA を使用しなくてはいけません。
 
