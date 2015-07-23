@@ -120,7 +120,7 @@ public class AndroidPlatform : Platform
 		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 
 		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
-		Log("BaseApkName = {0}", BaseApkName);
+		LogConsole("BaseApkName = {0}", BaseApkName);
 
 		// Create main OBB with entire contents of staging dir. This
 		// includes any PAK files, movie files, etc.
@@ -134,7 +134,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// Now create the OBB as a ZIP archive.
-		Log("Creating {0} from {1}", LocalObbName, SC.StageDirectory);
+		LogConsole("Creating {0} from {1}", LocalObbName, SC.StageDirectory);
 		using (ZipFile ObbFile = new ZipFile(LocalObbName))
 		{
 			ObbFile.CompressionMethod = CompressionMethod.None;
@@ -146,7 +146,7 @@ public class AndroidPlatform : Platform
 					if (e.EventType == ZipProgressEventType.Adding_AfterAddEntry)
 					{
 						ObbFileCount += 1;
-						Log("[{0}/{1}] Adding {2} to OBB",
+						LogConsole("[{0}/{1}] Adding {2} to OBB",
 							ObbFileCount, e.EntriesTotal,
 							e.CurrentEntry.FileName);
 					}
@@ -166,7 +166,7 @@ public class AndroidPlatform : Platform
                     UE4SOName = UE4SOName.Replace(".apk", ".so");
                     if (FileExists_NoExceptions(UE4SOName) == false)
 					{
-                        Log("Failed to find game .so " + UE4SOName);
+						LogConsole("Failed to find game .so " + UE4SOName);
                         throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find .so {0}. You may need to build the UE4 project with your target configuration and platform.", UE4SOName);
 					}
 				}
@@ -227,7 +227,7 @@ public class AndroidPlatform : Platform
         {
             string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName;
 
-            Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
+			LogConsole("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
@@ -271,7 +271,7 @@ public class AndroidPlatform : Platform
         {
             string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName;
 
-            Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
+			LogConsole("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
             BatchLines = new string[] {
 						"setlocal",
                         "set ANDROIDHOME=%ANDROID_HOME%",
@@ -1018,7 +1018,7 @@ public class AndroidPlatform : Platform
 				TimeSpan DeltaRunTime = DateTime.Now - StartTime;
 				if ((DeltaRunTime.TotalSeconds > TimeOutSeconds) && (TimeOutSeconds != 0))
 				{
-					Log("Device: " + Params.Device + " timed out while waiting for run to finish");
+					LogConsole("Device: " + Params.Device + " timed out while waiting for run to finish");
 					break;
 				}
 			}

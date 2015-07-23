@@ -900,13 +900,13 @@ namespace EpicGames.MCP.Config
 
         public void SpewValues()
         {
-            CommandUtils.Log("Name : {0}", Name);
-            CommandUtils.Log("AccountBaseUrl : {0}", AccountBaseUrl);
-            CommandUtils.Log("FortniteBaseUrl : {0}", FortniteBaseUrl);
-            CommandUtils.Log("LauncherBaseUrl : {0}", LauncherBaseUrl);
-			CommandUtils.Log("BuildInfoV2BaseUrl : {0}", BuildInfoV2BaseUrl);
-			CommandUtils.Log("LauncherV2BaseUrl : {0}", LauncherV2BaseUrl);
-            CommandUtils.Log("ClientId : {0}", ClientId);
+            CommandUtils.LogVerbose("Name : {0}", Name);
+            CommandUtils.LogVerbose("AccountBaseUrl : {0}", AccountBaseUrl);
+            CommandUtils.LogVerbose("FortniteBaseUrl : {0}", FortniteBaseUrl);
+            CommandUtils.LogVerbose("LauncherBaseUrl : {0}", LauncherBaseUrl);
+			CommandUtils.LogVerbose("BuildInfoV2BaseUrl : {0}", BuildInfoV2BaseUrl);
+			CommandUtils.LogVerbose("LauncherV2BaseUrl : {0}", LauncherV2BaseUrl);
+            CommandUtils.LogVerbose("ClientId : {0}", ClientId);
             // we don't really want this in logs CommandUtils.Log("ClientSecret : {0}", ClientSecret);
         }
     }

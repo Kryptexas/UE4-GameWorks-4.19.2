@@ -668,7 +668,7 @@ namespace AutomationTool
 
 			if (String.IsNullOrEmpty(LogPath))
 			{
-				CommandUtils.Log(TraceEventType.Error, "P4Utils.SetupP4() must be called before issuing Peforce commands");
+				CommandUtils.LogError("P4Utils.SetupP4() must be called before issuing Peforce commands");
 				return false;
 			}
 
@@ -744,7 +744,7 @@ namespace AutomationTool
             }
             if (Result == "")
             {
-                CommandUtils.Log(TraceEventType.Warning, "Could not find email for P4 user {0}", User);
+				CommandUtils.LogWarning("Could not find email for P4 user {0}", User);
             }
             UserToEmailCache.Add(User, Result);
             return Result;
@@ -881,8 +881,8 @@ namespace AutomationTool
             }
 			catch (Exception Ex)
             {
-                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Unable to get P4 changes with {0}", CommandLine);
-                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+				CommandUtils.LogWarning("Unable to get P4 changes with {0}", CommandLine);
+				CommandUtils.LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
                 return false;
             }
             ChangeRecords.Sort((A, B) => ChangeRecord.Compare(A, B));
@@ -1343,7 +1343,7 @@ namespace AutomationTool
                 bool isClPending = false;
                 if (ChangeFiles(CL, out isClPending, false).Count == 0)
                 {
-                    CommandUtils.Log(TraceEventType.Information, "No edits left to commit after brutal submit resolve. Assuming another build committed same changes already and exiting as success.");
+					CommandUtils.LogConsole("No edits left to commit after brutal submit resolve. Assuming another build committed same changes already and exiting as success.");
                     DeleteChange(CL);
                     // No changes to submit, no need to retry.
                     return;
@@ -1355,7 +1355,7 @@ namespace AutomationTool
 					{
 						throw new P4Exception("Change {0} failed to submit.\n{1}", CL, CmdOutput);
 					}
-					CommandUtils.Log(TraceEventType.Information, "**** P4 Returned\n{0}\n*******", CmdOutput);
+					CommandUtils.LogConsole("**** P4 Returned\n{0}\n*******", CmdOutput);
 
 					LastCmdOutput = CmdOutput;
 					bool DidSomething = false;
@@ -1418,7 +1418,7 @@ namespace AutomationTool
                                 {
                                     continue;
                                 }
-								CommandUtils.Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
+								CommandUtils.LogConsole("Brutal 'resolve' on {0} to force submit.\n", File);
 								Revert(CL, "-k " + CommandUtils.MakePathSafeToUseWithCommandLine(File));  // revert the file without overwriting the local one
 								Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File + "#head"), false); // sync the file without overwriting local one
 								ReconcileNoDeletes(CL, CommandUtils.MakePathSafeToUseWithCommandLine(File));  // re-check out, if it changed, or add
@@ -1429,7 +1429,7 @@ namespace AutomationTool
                     }
 					if (!DidSomething)
 					{
-						CommandUtils.Log(TraceEventType.Information, "Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
+						CommandUtils.LogConsole("Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
 					}
 					System.Threading.Thread.Sleep(30000);
 				}
@@ -1461,7 +1461,7 @@ namespace AutomationTool
 							}
 						}
 
-						CommandUtils.Log(TraceEventType.Information, "Submitted CL {0} which became CL {1}\n", CL, SubmittedCL);
+						CommandUtils.LogConsole("Submitted CL {0} which became CL {1}\n", CL, SubmittedCL);
 					}
 
 					if (SubmittedCL < CL)
@@ -1475,9 +1475,9 @@ namespace AutomationTool
 			}
 			if (RevertIfFail)
 			{
-				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
+				CommandUtils.LogError("Submit CL {0} failed, reverting files\n", CL);
 				RevertAll(CL);
-				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
+				CommandUtils.LogError("Submit CL {0} failed, reverting files\n", CL);
 			}
 			throw new P4Exception("Change {0} failed to submit after 48 retries??.\n{1}", CL, LastCmdOutput);
 		}
@@ -1498,7 +1498,7 @@ namespace AutomationTool
 			int CL = 0;
 			if(AllowSpew)
 			{
-				CommandUtils.Log(TraceEventType.Information, "Creating Change\n {0}\n", ChangeSpec);
+				CommandUtils.LogConsole("Creating Change\n {0}\n", ChangeSpec);
 			}
 			if (LogP4Output(out CmdOutput, "change -i", Input: ChangeSpec, AllowSpew: AllowSpew))
 			{
@@ -1517,7 +1517,7 @@ namespace AutomationTool
 			}
 			else if(AllowSpew)
 			{
-				CommandUtils.Log(TraceEventType.Information, "Returned CL {0}\n", CL);
+				CommandUtils.LogConsole("Returned CL {0}\n", CL);
 			}
 			return CL;
 		}
@@ -1648,7 +1648,7 @@ namespace AutomationTool
 				int EndOffset = CmdOutput.LastIndexOf(EndStr);
 				if (Offset == 0 && Offset < EndOffset)
 				{
-					CommandUtils.Log(TraceEventType.Information, "Change {0} does not exist", CL);
+					CommandUtils.LogConsole("Change {0} does not exist", CL);
 					return false;
 				}
 
@@ -1659,16 +1659,16 @@ namespace AutomationTool
 
 				if (StatusOffset < 1 || DescOffset < 1 || StatusOffset > DescOffset)
 				{
-					CommandUtils.Log(TraceEventType.Error, "Change {0} could not be parsed\n{1}", CL, CmdOutput);
+					CommandUtils.LogError("Change {0} could not be parsed\n{1}", CL, CmdOutput);
 					return false;
 				}
 
 				string Status = CmdOutput.Substring(StatusOffset + StatusStr.Length, DescOffset - StatusOffset - StatusStr.Length).Trim();
-				CommandUtils.Log(TraceEventType.Information, "Change {0} exists ({1})", CL, Status);
+				CommandUtils.LogConsole("Change {0} exists ({1})", CL, Status);
 				Pending = (Status == "pending");
 				return true;
 			}
-			CommandUtils.Log(TraceEventType.Error, "Change exists failed {0} no output?", CL, CmdOutput);
+			CommandUtils.LogError("Change exists failed {0} no output?", CL, CmdOutput);
 			return false;
 		}
 
@@ -1756,7 +1756,7 @@ namespace AutomationTool
 			string Output;
 			if (!LogP4Output(out Output, CommandLine, null, AllowSpew))
 			{
-				CommandUtils.Log(TraceEventType.Information, "Couldn't delete label '{0}'.  It may not have existed in the first place.", LabelName);
+				CommandUtils.LogConsole("Couldn't delete label '{0}'.  It may not have existed in the first place.", LabelName);
 			}
 		}
 
@@ -1788,7 +1788,7 @@ namespace AutomationTool
 			LabelSpec += "View: \n";
 			LabelSpec += " " + View;
 
-			CommandUtils.Log(TraceEventType.Information, "Creating Label\n {0}\n", LabelSpec);
+			CommandUtils.LogConsole("Creating Label\n {0}\n", LabelSpec);
 			LogP4("label -i", Input: LabelSpec);
 		}
 
@@ -2565,7 +2565,7 @@ namespace AutomationTool
             {
                 SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
             }
-			if(AllowSpew) CommandUtils.Log(SpecInput);
+			if (AllowSpew) CommandUtils.Log(SpecInput);
             LogP4("client -i", SpecInput, AllowSpew: AllowSpew, WithClient: false);
             return ClientSpec;
         }

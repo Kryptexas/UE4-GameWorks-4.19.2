@@ -116,7 +116,7 @@ namespace AutomationTool
 		/// <returns>Changelist number as a string.</returns>
 		private static string DetectCurrentCL(P4Connection Connection, string ClientRootPath)
 		{
-			CommandUtils.Log("uebp_CL not set, detecting 'have' CL...");
+			CommandUtils.LogVerbose("uebp_CL not set, detecting 'have' CL...");
 
 			// Retrieve the current changelist 
 			var P4Result = Connection.P4("changes -m 1 " + CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath, "/...#have"), AllowSpew: false);
@@ -177,7 +177,7 @@ namespace AutomationTool
 		/// <returns>Client to use.</returns>
 		private static P4ClientInfo DetectClient(P4Connection Connection, string UserName, string HostName, string UATLocation)
 		{
-			CommandUtils.Log("uebp_CLIENT not set, detecting current client...");
+			CommandUtils.LogVerbose("uebp_CLIENT not set, detecting current client...");
 
 			var MatchingClients = new List<P4ClientInfo>();
 			P4ClientInfo[] P4Clients = Connection.GetClientsForUser(UserName, UATLocation);

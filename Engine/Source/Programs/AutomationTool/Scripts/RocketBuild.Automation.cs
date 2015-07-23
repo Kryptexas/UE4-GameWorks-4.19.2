@@ -402,7 +402,7 @@ namespace Rocket
 			for (int Idx = 0; Idx < SourceFileNames.Length; Idx++)
 			{
 				CommandUtils.CreateDirectory(Path.GetDirectoryName(TargetFileNames[Idx]));
-				CommandUtils.Log("Stripping symbols: {0} -> {1}", SourceFileNames[Idx], TargetFileNames[Idx]);
+				CommandUtils.LogConsole("Stripping symbols: {0} -> {1}", SourceFileNames[Idx], TargetFileNames[Idx]);
 				ToolChain.StripSymbols(SourceFileNames[Idx], TargetFileNames[Idx]);
 			}
 		}
@@ -572,7 +572,7 @@ namespace Rocket
 			for (int Idx = 0; Idx < SourceFileNames.Length; Idx++)
 			{
 				CommandUtils.CreateDirectory(Path.GetDirectoryName(TargetFileNames[Idx]));
-				CommandUtils.Log("Signing code: {0} -> {1}", SourceFileNames[Idx], TargetFileNames[Idx]);
+				CommandUtils.LogConsole("Signing code: {0} -> {1}", SourceFileNames[Idx], TargetFileNames[Idx]);
 				CommandUtils.CopyFile(SourceFileNames[Idx], TargetFileNames[Idx]);
 			}
 
@@ -934,10 +934,10 @@ namespace Rocket
 			}
 
 			// Write the list to the log
-			CommandUtils.Log("Files to be included in Rocket build:");
+			CommandUtils.LogConsole("Files to be included in Rocket build:");
 			foreach(KeyValuePair<string, bool> SortedFile in SortedFiles)
 			{
-				CommandUtils.Log("  {0}{1}", SortedFile.Key, SortedFile.Value? " (stripped)" : "");
+				CommandUtils.LogConsole("  {0}{1}", SortedFile.Key, SortedFile.Value ? " (stripped)" : "");
 			}
 		}
 
@@ -1041,11 +1041,11 @@ namespace Rocket
 		static void CopyManifestFilesToOutput(string ManifestPath, string InputDir, string OutputDir)
 		{
 			// Read the files from the manifest
-			CommandUtils.Log("Reading manifest: '{0}'", ManifestPath);
+			CommandUtils.LogConsole("Reading manifest: '{0}'", ManifestPath);
 			string[] Files = CommandUtils.ReadAllLines(ManifestPath).Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
 
 			// Create lists of source and target files
-			CommandUtils.Log("Preparing file lists...");
+			CommandUtils.LogConsole("Preparing file lists...");
 			string[] SourceFiles = Files.Select(x => CommandUtils.CombinePaths(InputDir, x)).ToArray();
 			string[] TargetFiles = Files.Select(x => CommandUtils.CombinePaths(OutputDir, x)).ToArray();
 
@@ -1083,7 +1083,7 @@ namespace Rocket
 		{
 			// Create a zip file containing the install
 			string FullZipFileName = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "FullInstall" + StaticGetHostPlatformSuffix(HostPlatform) + ".zip");
-			CommandUtils.Log("Creating {0}...", FullZipFileName);
+			CommandUtils.LogConsole("Creating {0}...", FullZipFileName);
 			CommandUtils.ZipFiles(FullZipFileName, LocalDir, new FileFilter(FileFilterType.Include));
 
 			// Create a filter for the files we need just to run the editor
@@ -1103,11 +1103,11 @@ namespace Rocket
 
 			// Create a zip file containing the editor install
 			string EditorZipFileName = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "EditorInstall" + StaticGetHostPlatformSuffix(HostPlatform) + ".zip");
-			CommandUtils.Log("Creating {0}...", EditorZipFileName);
+			CommandUtils.LogConsole("Creating {0}...", EditorZipFileName);
 			CommandUtils.ZipFiles(EditorZipFileName, LocalDir, EditorFilter);
 
 			// Copy the files to their final location
-			CommandUtils.Log("Copying files to {0}", PublishDir);
+			CommandUtils.LogConsole("Copying files to {0}", PublishDir);
 			InternalUtils.Robust_CopyFile(FullZipFileName, Path.Combine(PublishDir, Path.GetFileName(FullZipFileName)));
 			InternalUtils.Robust_CopyFile(EditorZipFileName, Path.Combine(PublishDir, Path.GetFileName(EditorZipFileName)));
 			CommandUtils.DeleteFile(FullZipFileName);
@@ -1265,7 +1265,7 @@ namespace Rocket
 				List<string> ProjectPakFiles = new List<string>();
 				foreach(BranchInfo.BranchUProject Project in Projects)
 				{
-					CommandUtils.Log("Generating DDC data for {0} on {1}", Project.GameName, TargetPlatforms);
+					CommandUtils.LogConsole("Generating DDC data for {0} on {1}", Project.GameName, TargetPlatforms);
 					CommandUtils.DDCCommandlet(Project.FilePath, EditorExe, null, TargetPlatforms, "-fill -DDC=CreateInstalledEnginePak -ProjectOnly");
 
 					string ProjectPakFile = CommandUtils.CombinePaths(Path.GetDirectoryName(OutputPakFile), String.Format("Compressed-{0}.ddp", Project.GameName));
@@ -1280,7 +1280,7 @@ namespace Rocket
 				}
 
 				// Generate DDC for the editor, and merge all the other PAK files in
-				CommandUtils.Log("Generating DDC data for engine content on {0}", TargetPlatforms);
+				CommandUtils.LogConsole("Generating DDC data for engine content on {0}", TargetPlatforms);
 				CommandUtils.DDCCommandlet(null, EditorExe, null, TargetPlatforms, "-fill -DDC=CreateInstalledEnginePak " + CommandUtils.MakePathSafeToUseWithCommandLine("-MergePaks=" + String.Join("+", ProjectPakFiles)));
 
 				// Copy the DDP file to the output path

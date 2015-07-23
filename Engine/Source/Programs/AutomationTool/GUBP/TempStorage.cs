@@ -34,7 +34,7 @@ namespace AutomationTool
                 bool bOk = true;
                 if (!Name.Equals(Other.Name, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    CommandUtils.Log(System.Diagnostics.TraceEventType.Error, "File name mismatch {0} {1}", Name, Other.Name);
+                    CommandUtils.LogError("File name mismatch {0} {1}", Name, Other.Name);
                     bOk = false;
                 }
                 else
@@ -68,22 +68,22 @@ namespace AutomationTool
                     // Lets just allow all mac warnings to be silent
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || Name.Contains("Engine/Binaries/Mac");
 
-                    System.Diagnostics.TraceEventType LogType = bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error;
+                    UnrealBuildTool.LogEventType LogType = bOkToBeDifferent ? UnrealBuildTool.LogEventType.Warning : UnrealBuildTool.LogEventType.Error;
                     if (bSilentOkToBeDifferent)
                     {
-                        LogType = System.Diagnostics.TraceEventType.Information;
+                        LogType = UnrealBuildTool.LogEventType.Console;
                     }
 
                     // on FAT filesystems writetime has a two seconds resolution
                     // cf. http://msdn.microsoft.com/en-us/library/windows/desktop/ms724290%28v=vs.85%29.aspx
                     if (!((Timestamp - Other.Timestamp).TotalSeconds < 2 && (Timestamp - Other.Timestamp).TotalSeconds > -2))
                     {
-                        CommandUtils.Log(LogType, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
+                        CommandUtils.LogWithVerbosity(LogType, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
                         bOk = bOkToBeDifferent || bSilentOkToBeDifferent;
                     }
                     if (!(Size == Other.Size))
                     {
-                        CommandUtils.Log(LogType, "File size mismatch {0} {1} {2} {3}", Name, Size, Other.Name, Other.Size);
+                        CommandUtils.LogWithVerbosity(LogType, "File size mismatch {0} {1} {2} {3}", Name, Size, Other.Name, Other.Size);
                         bOk = bOkToBeDifferent;
                     }
                 }
@@ -158,13 +158,13 @@ namespace AutomationTool
             {
                 if (Directories.Count != Other.Directories.Count)
                 {
-                    CommandUtils.Log(System.Diagnostics.TraceEventType.Error, "Directory count mismatch {0} {1}", Directories.Count, Other.Directories.Count);
+                    CommandUtils.LogError("Directory count mismatch {0} {1}", Directories.Count, Other.Directories.Count);
                     foreach (KeyValuePair<string, List<TempStorageFileInfo>> Directory in Directories)
                     {
                         List<TempStorageFileInfo> OtherDirectory;
                         if (Other.Directories.TryGetValue(Directory.Key, out OtherDirectory) == false)
                         {
-                            CommandUtils.Log(System.Diagnostics.TraceEventType.Error, "Missing Directory {0}", Directory.Key);
+                            CommandUtils.LogError("Missing Directory {0}", Directory.Key);
                             return false;
                         }
                     }
@@ -173,7 +173,7 @@ namespace AutomationTool
                         List<TempStorageFileInfo> OtherDirectory;
                         if (Directories.TryGetValue(Directory.Key, out OtherDirectory) == false)
                         {
-                            CommandUtils.Log(System.Diagnostics.TraceEventType.Error, "Missing Other Directory {0}", Directory.Key);
+                            CommandUtils.LogError("Missing Other Directory {0}", Directory.Key);
                             return false;
                         }
                     }
@@ -185,12 +185,12 @@ namespace AutomationTool
                     List<TempStorageFileInfo> OtherDirectory;
                     if (Other.Directories.TryGetValue(Directory.Key, out OtherDirectory) == false)
                     {
-                        CommandUtils.Log(System.Diagnostics.TraceEventType.Error, "Missing Directory {0}", Directory.Key); 
+                        CommandUtils.LogError("Missing Directory {0}", Directory.Key); 
                         return false;
                     }
                     if (OtherDirectory.Count != Directory.Value.Count)
                     {
-                        CommandUtils.Log(System.Diagnostics.TraceEventType.Error, "File count mismatch {0} {1} {2}", Directory.Key, OtherDirectory.Count, Directory.Value.Count);
+                        CommandUtils.LogError("File count mismatch {0} {1} {2}", Directory.Key, OtherDirectory.Count, Directory.Value.Count);
                         for (int FileIndex = 0; FileIndex < Directory.Value.Count; ++FileIndex)
                         {
                             CommandUtils.Log("Manifest1: {0}", Directory.Value[FileIndex].Name);
@@ -632,8 +632,8 @@ namespace AutomationTool
             }
             catch (Exception Ex)
             {
-                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Unable to Clean Directory with GameName {0}", GameFolder);
-                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+                CommandUtils.LogWarning("Unable to Clean Directory with GameName {0}", GameFolder);
+                CommandUtils.LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
             }
         }
         public static string SharedTempStorageDirectory(string StorageBlock, string GameFolder = "")
@@ -756,7 +756,7 @@ namespace AutomationTool
                 var StartTime = DateTime.UtcNow;
 
                 var BlockPath = SharedTempStorageDirectory(StorageBlockName, GameFolder);
-                CommandUtils.Log("Storing to {0}", BlockPath);
+                CommandUtils.LogConsole("Storing to {0}", BlockPath);
                 if (CommandUtils.DirectoryExists_NoExceptions(BlockPath))
                 {
                     throw new AutomationException("Storage Block Already Exists! {0}", BlockPath);
@@ -829,7 +829,7 @@ namespace AutomationTool
                 if (BuildDuration > 60.0f && Shared.GetTotalSize() > 0)
                 {
                     var MBSec = (((float)(Shared.GetTotalSize())) / (1024.0f * 1024.0f)) / BuildDuration;
-                    CommandUtils.Log("Wrote to shared temp storage at {0} MB/s    {1}B {2}s", MBSec, Shared.GetTotalSize(), BuildDuration);
+                    CommandUtils.LogConsole("Wrote to shared temp storage at {0} MB/s    {1}B {2}s", MBSec, Shared.GetTotalSize(), BuildDuration);
                 }
             }
 
@@ -1014,7 +1014,7 @@ namespace AutomationTool
             {
                 foreach (var ThisFile in CommandUtils.FindFiles_NoExceptions(WildCard, true, LocalParent))
                 {
-                    CommandUtils.Log("  Found local file {0}", ThisFile);
+                    CommandUtils.LogConsole("  Found local file {0}", ThisFile);
                     int IndexOfWildcard = ThisFile.IndexOf(PreStarWildcard);
                     if (IndexOfWildcard < 0)
                     {
@@ -1052,8 +1052,8 @@ namespace AutomationTool
                     }
                     catch (Exception Ex)
                     {
-                        CommandUtils.Log("Unable to Find Directories in {0} with wildcard {1}", SharedParent, Path.GetFileNameWithoutExtension(SharedFiles));
-                        CommandUtils.Log(" Exception was {0}", LogUtils.FormatException(Ex));
+                        CommandUtils.LogConsole("Unable to Find Directories in {0} with wildcard {1}", SharedParent, Path.GetFileNameWithoutExtension(SharedFiles));
+                        CommandUtils.LogConsole(" Exception was {0}", LogUtils.FormatException(Ex));
                     }
                     if (Dirs != null)
                     {

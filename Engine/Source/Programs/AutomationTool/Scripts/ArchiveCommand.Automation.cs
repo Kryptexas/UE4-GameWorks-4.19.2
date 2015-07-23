@@ -57,7 +57,7 @@ public partial class Project : CommandUtils
 			return;
 		}
 
-		Log("********** ARCHIVE COMMAND STARTED **********");
+		LogConsole("********** ARCHIVE COMMAND STARTED **********");
 
 		if (!Params.NoClient)
 		{
@@ -81,7 +81,7 @@ public partial class Project : CommandUtils
 				SC.StageTargetPlatform.ProcessArchivedProject(Params, SC);
 			}
 		}
-        Log("********** ARCHIVE COMMAND COMPLETED **********");
+		LogConsole("********** ARCHIVE COMMAND COMPLETED **********");
     }
 
 	#endregion

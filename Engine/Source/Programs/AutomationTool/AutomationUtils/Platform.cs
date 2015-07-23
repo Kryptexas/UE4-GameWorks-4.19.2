@@ -59,7 +59,7 @@ namespace AutomationTool
 						LogError("Loader Exceptions:");
 						foreach (var LoaderException in TypeLoadException.LoaderExceptions)
 						{
-							Log(System.Diagnostics.TraceEventType.Error, LoaderException);
+							LogError(LogUtils.FormatException(LoaderException));
 						}
 					}
 					else

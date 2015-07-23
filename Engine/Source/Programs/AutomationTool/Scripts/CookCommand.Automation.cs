@@ -27,7 +27,7 @@ public partial class Project : CommandUtils
 		}
 		Params.ValidateAndLog();
 
-		Log("********** COOK COMMAND STARTED **********");
+		LogConsole("********** COOK COMMAND STARTED **********");
 
 		string UE4EditorExe = HostPlatform.Current.GetUE4ExePath(Params.UE4Exe);
 		if (!FileExists(UE4EditorExe))
@@ -57,7 +57,7 @@ public partial class Project : CommandUtils
 
 				if (ServerProcess != null)
 				{
-					Log("Waiting a few seconds for the server to start...");
+					LogConsole("Waiting a few seconds for the server to start...");
 					Thread.Sleep(5000);
 				}
 			}
@@ -91,7 +91,7 @@ public partial class Project : CommandUtils
 
 			if (Params.Clean.HasValue && Params.Clean.Value && !Params.IterativeCooking)
 			{
-				Log("Cleaning cooked data.");
+				LogConsole("Cleaning cooked data.");
 				CleanupCookedData(PlatformsToCook.ToList(), Params);
 			}
 
@@ -102,11 +102,11 @@ public partial class Project : CommandUtils
 				Maps = Params.MapsToCook.ToArray();
                 foreach (var M in Maps)
                 {
-                    Log("HasMapsToCook " + M.ToString());
+					LogConsole("HasMapsToCook " + M.ToString());
                 }
                 foreach (var M in Params.MapsToCook)
                 {
-                    Log("Params.HasMapsToCook " + M.ToString());
+					LogConsole("Params.HasMapsToCook " + M.ToString());
                 }
 			}
 
@@ -234,14 +234,14 @@ public partial class Project : CommandUtils
 				else
 				{
 					// Delete cooked data (if any) as it may be incomplete / corrupted.
-					Log("Cook failed. Deleting cooked data.");
+					LogConsole("Cook failed. Deleting cooked data.");
 					CleanupCookedData(PlatformsToCook.ToList(), Params);
 					throw new AutomationException(ErrorCodes.Error_UnknownCookFailure, Ex, "Cook failed.");
 				}
 			}
 		}
 
-		Log("********** COOK COMMAND COMPLETED **********");
+		LogConsole("********** COOK COMMAND COMPLETED **********");
 	}
 
 	private static void CleanupCookedData(List<string> PlatformsToCook, ProjectParams Params)

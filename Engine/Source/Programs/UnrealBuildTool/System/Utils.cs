@@ -30,6 +30,20 @@ namespace UnrealBuildTool
 		public string BranchName;
 	}
 
+	/// 
+	/// Log Event Type
+	///
+	public enum LogEventType
+	{
+		Fatal = 1,
+		Error = 2,
+		Warning = 4,
+		Console = 8,
+		Log = 16,
+		Verbose = 32,
+		VeryVerbose = 64
+	}
+
 	/// <summary>
 	/// Utility functions
 	/// </summary>
@@ -923,7 +937,7 @@ namespace UnrealBuildTool
 				CurrentProgressString = ProgressString;
 				if (bWriteMarkup)
 				{
-					Log.WriteLine(TraceEventType.Information, "@progress '{0}' {1}", Message, ProgressString);
+					Log.WriteLine(LogEventType.Console, "@progress '{0}' {1}", Message, ProgressString);
 				}
 				else if (bWriteToConsole)
 				{
@@ -1062,21 +1076,21 @@ namespace UnrealBuildTool
         }
 
         /// <summary>
-        /// Converts a TraceEventType into a log prefix. Only used when bLogSeverity is true.
+        /// Converts a LogEventType into a log prefix. Only used when bLogSeverity is true.
         /// </summary>
         /// <param name="EventType"></param>
         /// <returns></returns>
-        private static string GetSeverityPrefix(TraceEventType Severity)
+        private static string GetSeverityPrefix(LogEventType Severity)
         {
-            return Severity <= TraceEventType.Error ? "ERROR: " : Severity == TraceEventType.Warning ? "WARNING: " : "";
+            return Severity <= LogEventType.Error ? "ERROR: " : Severity == LogEventType.Warning ? "WARNING: " : "";
         }
 
 		/// <summary>
-		/// Converts a TraceEventType into a message code
+		/// Converts a LogEventType into a message code
 		/// </summary>
 		/// <param name="EventType"></param>
 		/// <returns></returns>
-		private static int GetMessageCode(TraceEventType Severity)
+		private static int GetMessageCode(LogEventType Severity)
 		{
 			return (int)Severity;
 		}
@@ -1091,9 +1105,9 @@ namespace UnrealBuildTool
         /// <param name="Args">Message text parameters</param>
         /// <returns>Formatted message</returns>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        private static string FormatMessage(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
+		private static string FormatMessage(int StackFramesToSkip, string CustomSource, LogEventType Verbosity, string Format, params object[] Args)
         {
-            return string.Format("{4}{0}{1}{2}{3}",
+            return string.Format("{0}{1}{2}{3}",
                     Timer != null ? String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed) : "",
                     bLogSources ? string.Format("{0}: ", string.IsNullOrEmpty(CustomSource) ? GetSource(StackFramesToSkip) : CustomSource) : "",
                     bLogSeverity ? GetSeverityPrefix(Verbosity) : "",
@@ -1112,7 +1126,7 @@ namespace UnrealBuildTool
         /// <param name="Format">Message format string.</param>
         /// <param name="Args">Optional arguments</param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        private static void WriteLinePrivate(int StackFramesToSkip, string CustomSource, bool bWriteOnce, TraceEventType Verbosity, string Format, params object[] Args)
+		private static void WriteLinePrivate(int StackFramesToSkip, string CustomSource, bool bWriteOnce, LogEventType Verbosity, string Format, params object[] Args)
         {
             if (!bIsInitialized)
             {
@@ -1131,7 +1145,7 @@ namespace UnrealBuildTool
 				WriteOnceSet.Add(Formatted);
 			}
 
-//            if (Verbosity < TraceEventType.Verbose || bLogVerbose)
+			if (Verbosity < LogEventType.Verbose || bLogVerbose)
             {
                 // Do console color highlighting here.
                 ConsoleColor DefaultColor = ConsoleColor.Gray;
@@ -1141,8 +1155,8 @@ namespace UnrealBuildTool
                 if (bColorConsoleOutput)
                 {
                     DefaultColor = Console.ForegroundColor;
-                    bIsWarning = Verbosity == TraceEventType.Warning;
-                    bIsError = Verbosity <= TraceEventType.Error;
+					bIsWarning = Verbosity == LogEventType.Warning;
+					bIsError = Verbosity <= LogEventType.Error;
 					// @todo mono - mono doesn't seem to initialize the ForegroundColor properly, so we can't restore it properly.
 					// Avoid touching the console color unless we really need to.
 					if (bIsWarning || bIsError)
@@ -1157,19 +1171,22 @@ namespace UnrealBuildTool
 					// work around this by simulating Trace.WriteLine on mono.
 					// We use UAT to spawn UBT instances recursively a lot, so this bug can effectively
 					// make all build output disappear outside of the top level UAT process.
-					#if MONO
+//					#if MONO
 					    lock (((System.Collections.ICollection)Trace.Listeners).SyncRoot)
 						{
 						    foreach (TraceListener l in Trace.Listeners) 
 						    {
-                                l.WriteLine(FormatMessage(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args));
+								if (Verbosity != LogEventType.Log || (l as ConsoleTraceListener) == null || bLogVerbose)
+								{
+									l.WriteLine(FormatMessage(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args));
+								}
 							    l.Flush();
 						    }
 						}
-					#else
+//					#else
                     	// Call Trace directly here. Trace ensures that our logging is threadsafe using the GlobalLock.
-                    	Trace.WriteLine(FormatMessage(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args));
-					#endif
+//                    	Trace.WriteLine(FormatMessage(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args));
+//					#endif
                 }
                 finally
                 {
@@ -1190,7 +1207,7 @@ namespace UnrealBuildTool
         /// <param name="Format"></param>
         /// <param name="Args"></param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        public static void WriteLineIf(bool Condition, TraceEventType Verbosity, string Format, params object[] Args)
+        public static void WriteLineIf(bool Condition, LogEventType Verbosity, string Format, params object[] Args)
         {
             if (Condition)
             {
@@ -1207,7 +1224,7 @@ namespace UnrealBuildTool
         /// <param name="Format"></param>
         /// <param name="Args"></param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        public static void WriteLine(int StackFramesToSkip, TraceEventType Verbosity, string Format, params object[] Args)
+		public static void WriteLine(int StackFramesToSkip, LogEventType Verbosity, string Format, params object[] Args)
         {
             WriteLinePrivate(StackFramesToSkip + 1, null, false, Verbosity, Format, Args);
         }
@@ -1221,7 +1238,7 @@ namespace UnrealBuildTool
         /// <param name="Format"></param>
         /// <param name="Args"></param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        public static void WriteLine(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
+		public static void WriteLine(int StackFramesToSkip, string CustomSource, LogEventType Verbosity, string Format, params object[] Args)
         {
             WriteLinePrivate(StackFramesToSkip + 1, CustomSource, false, Verbosity, Format, Args);
         }
@@ -1233,7 +1250,7 @@ namespace UnrealBuildTool
         /// <param name="Format"></param>
         /// <param name="Args"></param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        public static void WriteLine(TraceEventType Verbosity, string Format, params object[] Args)
+		public static void WriteLine(LogEventType Verbosity, string Format, params object[] Args)
         {
             WriteLinePrivate(1, null, false, Verbosity, Format, Args);
         }
@@ -1246,7 +1263,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceError(string Format, params object[] Args)
         {
-			WriteLinePrivate(1, null, false, TraceEventType.Error, Format, Args);
+			WriteLinePrivate(1, null, false, LogEventType.Error, Format, Args);
         }
 
         /// <summary>
@@ -1258,7 +1275,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceVerbose(string Format, params object[] Args)
         {
-			WriteLinePrivate(1, null, false, TraceEventType.Verbose, Format, Args);
+			WriteLinePrivate(1, null, false, LogEventType.Verbose, Format, Args);
         }
 
         /// <summary>
@@ -1269,7 +1286,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceInformation(string Format, params object[] Args)
         {
-			WriteLinePrivate(1, null, false, TraceEventType.Information, Format, Args);
+			WriteLinePrivate(1, null, false, LogEventType.Console, Format, Args);
         }
 
         /// <summary>
@@ -1280,8 +1297,32 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceWarning(string Format, params object[] Args)
         {
-            WriteLinePrivate(1, null, false, TraceEventType.Warning, Format, Args);
+			WriteLinePrivate(1, null, false, LogEventType.Warning, Format, Args);
         }
+
+		/// <summary>
+		/// Writes a very verbose message to the console.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[Conditional("TRACE")]
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceVeryVerbose(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, false, LogEventType.VeryVerbose, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes a message to the log only.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[Conditional("TRACE")]
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceLog(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, false, LogEventType.Log, Format, Args);
+		}
 
 		/// <summary>
 		/// Similar to Trace.WriteLin
@@ -1290,7 +1331,7 @@ namespace UnrealBuildTool
 		/// <param name="Format"></param>
 		/// <param name="Args"></param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLineOnce(TraceEventType Verbosity, string Format, params object[] Args)
+		public static void WriteLineOnce(LogEventType Verbosity, string Format, params object[] Args)
 		{
 			WriteLinePrivate(1, null, true, Verbosity, Format, Args);
 		}
@@ -1303,7 +1344,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceErrorOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, null, true, TraceEventType.Error, Format, Args);
+			WriteLinePrivate(1, null, true, LogEventType.Error, Format, Args);
 		}
 
 		/// <summary>
@@ -1315,7 +1356,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceVerboseOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, null, true, TraceEventType.Verbose, Format, Args);
+			WriteLinePrivate(1, null, true, LogEventType.Verbose, Format, Args);
 		}
 
 		/// <summary>
@@ -1326,7 +1367,7 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceInformationOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, null, true, TraceEventType.Information, Format, Args);
+			WriteLinePrivate(1, null, true, LogEventType.Console, Format, Args);
 		}
 
 		/// <summary>
@@ -1337,10 +1378,32 @@ namespace UnrealBuildTool
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void TraceWarningOnce(string Format, params object[] Args)
 		{
-			WriteLinePrivate(1, null, true, TraceEventType.Warning, Format, Args);
+			WriteLinePrivate(1, null, true, LogEventType.Warning, Format, Args);
 		}
 
+		/// <summary>
+		/// Writes a very verbose message to the console.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[Conditional("TRACE")]
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceVeryVerboseOnce(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, LogEventType.VeryVerbose, Format, Args);
+		}
 
+		/// <summary>
+		/// Writes a message to the log only.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[Conditional("TRACE")]
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceLogOnce(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, LogEventType.Log, Format, Args);
+		}
 	}
 
     #region StreamUtils
@@ -1540,11 +1603,11 @@ namespace UnrealBuildTool
 	{
 		DateTime StartTime;
 		string TimerName;
-		TraceEventType Verbosity;
+		LogEventType Verbosity;
 		static int Indent = 0;
 		static object IndentLock = new object();
 
-		public ScopedTimer(string Name, TraceEventType InVerbosity = TraceEventType.Verbose)
+		public ScopedTimer(string Name, LogEventType InVerbosity = LogEventType.Verbose)
 		{
 			TimerName = Name;
 			lock (IndentLock)
@@ -1578,7 +1641,7 @@ namespace UnrealBuildTool
 		class Accumulator
 		{
 			public double Time;
-			public TraceEventType Verbosity;
+			public LogEventType Verbosity;
 		}
 		DateTime StartTime;
 		Accumulator ScopedAccumulator;
@@ -1586,7 +1649,7 @@ namespace UnrealBuildTool
 		
 		static Dictionary<string, Accumulator> Accumulators = new Dictionary<string, Accumulator>();
 
-		public ScopedCounter(string Name, TraceEventType InVerbosity = TraceEventType.Verbose)
+		public ScopedCounter(string Name, LogEventType InVerbosity = LogEventType.Verbose)
 		{
 			CounterName = Name;
 			if (!Accumulators.TryGetValue(CounterName, out ScopedAccumulator))
@@ -1651,42 +1714,6 @@ namespace UnrealBuildTool
 		}
 	}
 
-	#endregion
-
-	#region FilteredConsoleTraceListener
-
-	/// <summary>
-	///  Filtered Console Trace Listener
-	///  </summary>
-	public class FilteredConsoleTraceListener : TextWriterTraceListener
-	{
-		public FilteredConsoleTraceListener()
-			: base(Console.OpenStandardOutput())
-		{ }
-
-		#region TraceListener Interface
-
-		public override void WriteLine(string message)
-		{
-			// strip off the message code
-			int Code = 0;
-			if (Int32.TryParse(message.Substring(0, 3), System.Globalization.NumberStyles.HexNumber, null, out Code))
-			{
-				// filter the message based on the code
-				if (Code < (int)TraceEventType.Verbose || Log.bIsVerbose)
-				{
-					// filter based on the message code
-					base.WriteLine(message.Substring(3));
-				}
-			}
-			else
-			{
-				base.WriteLine(message);
-			}
-		}
-
-		#endregion
-	}
 	#endregion
 
 }

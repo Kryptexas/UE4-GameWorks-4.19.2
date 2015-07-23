@@ -88,27 +88,27 @@ namespace AutomationTool
 		{
 			try
 			{
-				CommandUtils.Log("Updating node props for node {0}", NodeToDo.Name);
+				CommandUtils.LogConsole("Updating node props for node {0}", NodeToDo.Name);
 				RunECTool(String.Format("setProperty \"/myWorkflow/FailEmails/{0}\" \"{1}\"", NodeToDo.Name, String.Join(" ", NodeToDo.RecipientsForFailureEmails)), true);
 			}
 			catch (Exception Ex)
 			{
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Failed to UpdateECProps.");
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+				CommandUtils.LogWarning("Failed to UpdateECProps.");
+				CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 			}
 		}
 		public void UpdateECBuildTime(BuildNode NodeToDo, double BuildDuration)
 		{
 			try
 			{
-				CommandUtils.Log("Updating duration prop for node {0}", NodeToDo.Name);
+				CommandUtils.LogConsole("Updating duration prop for node {0}", NodeToDo.Name);
 				RunECTool(String.Format("setProperty \"/myWorkflow/NodeDuration/{0}\" \"{1}\"", NodeToDo.Name, BuildDuration.ToString()));
 				RunECTool(String.Format("setProperty \"/myJobStep/NodeDuration\" \"{0}\"", BuildDuration.ToString()));
 			}
 			catch (Exception Ex)
 			{
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Failed to UpdateECBuildTime.");
-				CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+				CommandUtils.LogWarning("Failed to UpdateECBuildTime.");
+				CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 			}
 		}
 
@@ -123,8 +123,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Failed to get properties for jobstep to save them.");
-					CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+					CommandUtils.LogWarning("Failed to get properties for jobstep to save them.");
+					CommandUtils.LogWarning(LogUtils.FormatException(Ex));
 				}
 			}
 			string RecordOfSuccess = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", NodeToDo.Name + Suffix +".log");
@@ -832,13 +832,13 @@ public class TestECJobErrorParse : BuildCommand
 {
     public override void ExecuteBuild()
     {
-        Log("*********************** TestECJobErrorParse");
+		LogConsole("*********************** TestECJobErrorParse");
 
         string Filename = CombinePaths(@"P:\Builds\UE4\GUBP\++depot+UE4-2104401-RootEditor_Failed\Engine\Saved\Logs", "RootEditor_Failed.log");
         var Errors = ECJobPropsUtils.ErrorsFromProps(Filename);
         foreach (var ThisError in Errors)
         {
-            Log("Error: {0}", ThisError);
+            LogError(" {0}", ThisError);
         }
     }
 }

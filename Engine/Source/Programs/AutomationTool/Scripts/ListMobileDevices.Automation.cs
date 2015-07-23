@@ -8,7 +8,7 @@ namespace AutomationScripts.Automation
 	{
 		public override void ExecuteBuild()
 		{
-			Log("======= ListMobileDevices - Start =======");
+			LogConsole("======= ListMobileDevices - Start =======");
 
 			var GlobalParams = new ProjectParams(
 				Command: this,
@@ -25,7 +25,7 @@ namespace AutomationScripts.Automation
 				throw new AutomationException("iOS is not yet implemented.");
 			}
 
-			Log("======= ListMobileDevices - Done ========");
+			LogConsole("======= ListMobileDevices - Done ========");
 		}
 
 		private static void GetConnectedDevices(ProjectParams Params, Platform TargetPlatform)
@@ -38,7 +38,7 @@ namespace AutomationScripts.Automation
 			{
 				foreach (var DeviceName in ConnectedDevices)
 				{
-					Log("Device:{0}:{1}", PlatformName, DeviceName);
+					LogConsole("Device:{0}:{1}", PlatformName, DeviceName);
 				}
 			}
 			catch

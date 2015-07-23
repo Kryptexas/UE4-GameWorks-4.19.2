@@ -119,87 +119,129 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Log).
+		/// Writes formatted text to log (with LogEventType.Console).
 		/// </summary>
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(string Format, params object[] Args)
+		public static void LogConsole(string Format, params object[] Args)
 		{
-			UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Information, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Log).
+		/// Writes formatted text to log (with LogEventType.Console).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(string Message)
+		public static void LogConsole(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Information, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Message);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Error).
+		/// Writes formatted text to log (with LogEventType.Error).
 		/// </summary>
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogError(string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Error, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Error, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Error).
+		/// Writes formatted text to log (with LogEventType.Error).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogError(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Error, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Error, Message);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Warning).
+		/// Writes formatted text to log (with LogEventType.Warning).
 		/// </summary>
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWarning(string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Warning, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Warning, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes a message to log (with TraceEventType.Warning).
+		/// Writes a message to log (with LogEventType.Warning).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogWarning(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Warning, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Warning, Message);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Verbose).
+		/// Writes formatted text to log (with LogEventType.Verbose).
 		/// </summary>
 		/// <param name="Foramt">Format string</param>
 		/// <param name="Args">Arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVerbose(string Format, params object[] Args)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Verbose, Format, Args);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Verbose, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes formatted text to log (with TraceEventType.Verbose).
+		/// Writes formatted text to log (with LogEventType.Verbose).
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
 		public static void LogVerbose(string Message)
 		{
-            UnrealBuildTool.Log.WriteLine(1, null, TraceEventType.Verbose, Message);
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Verbose, Message);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.VeryVerbose).
+		/// </summary>
+		/// <param name="Foramt">Format string</param>
+		/// <param name="Args">Arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void LogVeryVerbose(string Format, params object[] Args)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.VeryVerbose, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.VeryVerbose).
+		/// </summary>
+		/// <param name="Message">Text</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void LogVeryVerbose(string Message)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.VeryVerbose, Message);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.Log).
+		/// </summary>
+		/// <param name="Foramt">Format string</param>
+		/// <param name="Args">Arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void Log(string Format, params object[] Args)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes formatted text to log (with LogEventType.Log).
+		/// </summary>
+		/// <param name="Message">Text</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void Log(string Message)
+		{
+			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Message);
 		}
 
 		/// <summary>
@@ -209,7 +251,7 @@ namespace AutomationTool
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(TraceEventType Verbosity, string Format, params object[] Args)
+		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, string Format, params object[] Args)
 		{
             UnrealBuildTool.Log.WriteLine(1, null, Verbosity, Format, Args);
 		}
@@ -220,7 +262,7 @@ namespace AutomationTool
 		/// <param name="Verbosity">Verbosity</param>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(TraceEventType Verbosity, string Message)
+		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, string Message)
 		{
             UnrealBuildTool.Log.WriteLine(1, null, Verbosity, Message);
 		}
@@ -231,7 +273,7 @@ namespace AutomationTool
 		/// <param name="Verbosity">Verbosity</param>
 		/// <param name="Ex">Exception</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(TraceEventType Verbosity, Exception Ex)
+		public static void LogWithVerbosity(UnrealBuildTool.LogEventType Verbosity, Exception Ex)
 		{
             UnrealBuildTool.Log.WriteLine(1, null, Verbosity, LogUtils.FormatException(Ex));
 		}
@@ -244,7 +286,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				Log("[@progress push {0}/{1} skipline]", Numerator, Denominator);
+				LogConsole("[@progress push {0}/{1} skipline]", Numerator, Denominator);
 			}
 		}
 
@@ -252,7 +294,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				Log("[@progress pop skipline]");
+				LogConsole("[@progress pop skipline]");
 			}
 		}
 
@@ -260,7 +302,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				Log("[@progress increment {0}/{1} skipline]", Numerator, Denominator);
+				LogConsole("[@progress increment {0}/{1} skipline]", Numerator, Denominator);
 			}
 		}
 
@@ -268,7 +310,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				Log("[@progress '{0}' skipline]", String.Format(Format, Args));
+				LogConsole("[@progress '{0}' skipline]", String.Format(Format, Args));
 			}
 		}
 
@@ -276,7 +318,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				Log("[@progress {0}/{1} '{2}' skipline]", Numerator, Denominator, String.Format(Format, Args));
+				LogConsole("[@progress {0}/{1} '{2}' skipline]", Numerator, Denominator, String.Format(Format, Args));
 			}
 		}
 
@@ -455,7 +497,7 @@ namespace AutomationTool
 				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
 				if (!InternalUtils.SafeDeleteFile(NormalizedFilename))
 				{
-					Log(TraceEventType.Warning, "Failed to delete file '{0}'", NormalizedFilename);
+					LogWarning("Failed to delete file '{0}'", NormalizedFilename);
 					Result = false;
 				}
 			}
@@ -473,7 +515,7 @@ namespace AutomationTool
 			var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
 			if (!InternalUtils.SafeDeleteFile(NormalizedFilename, bQuiet))
 			{
-				Log(bQuiet ? TraceEventType.Information : TraceEventType.Warning, "Failed to delete file '{0}'", NormalizedFilename);
+				LogWithVerbosity(bQuiet ? LogEventType.Log : LogEventType.Warning, "Failed to delete file '{0}'", NormalizedFilename);
 				Result = false;
 			}
 			return Result;
@@ -523,7 +565,7 @@ namespace AutomationTool
                 {
                     if (!InternalUtils.SafeDeleteDirectory(NormalizedDirectory, bQuiet))
                     {
-                        Log(TraceEventType.Warning, "Failed to delete directory '{0}'", NormalizedDirectory);
+                        LogWarning("Failed to delete directory '{0}'", NormalizedDirectory);
                         Result = false;
                     }
                 }
@@ -531,8 +573,8 @@ namespace AutomationTool
                 {
 					if (!bQuiet)
 					{
-						Log(TraceEventType.Warning, "Failed to delete directory, exception '{0}'", NormalizedDirectory);
-						Log(TraceEventType.Warning, Ex);
+						LogWarning("Failed to delete directory, exception '{0}'", NormalizedDirectory);
+						LogWarning(Ex.Message);
 					}
                     Result = false;
                 }
@@ -561,7 +603,7 @@ namespace AutomationTool
 		/// <param name="DirectoryName"></param>
 		public static void DeleteDirectoryContents(string DirectoryName)
 		{
-			Log("DeleteDirectoryContents({0})", DirectoryName);
+			LogVerbose("DeleteDirectoryContents({0})", DirectoryName);
 			const bool bQuiet = true;
 			var Files = CommandUtils.FindFiles_NoExceptions(bQuiet, "*", false, DirectoryName);
 			foreach (var Filename in Files)
@@ -608,8 +650,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log(TraceEventType.Warning, "Unable to check if directory exists: {0}", NormalizedDirectory);
-					Log(TraceEventType.Warning, Ex);
+					LogWarning("Unable to check if directory exists: {0}", NormalizedDirectory);
+					LogWarning(Ex.Message);
 					bExists = false;
 					break;
 				}
@@ -664,7 +706,7 @@ namespace AutomationTool
 				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
 				if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
 				{
-					Log(TraceEventType.Warning, "Failed to create directory '{0}'", NormalizedDirectory);
+					LogWarning("Failed to create directory '{0}'", NormalizedDirectory);
 					Result = false;
 				}
 			}
@@ -700,7 +742,7 @@ namespace AutomationTool
 			var Result = InternalUtils.SafeRenameFile(OldNormalized, NewNormalized);
 			if (!Result)
 			{
-				Log(TraceEventType.Warning, "Failed to rename/move file '{0}' to '{1}'", OldName, NewName);
+				LogWarning("Failed to rename/move file '{0}' to '{1}'", OldName, NewName);
 			}
 			return Result;
 		}
@@ -796,7 +838,7 @@ namespace AutomationTool
 			}
 			catch
 			{
-				Log(TraceEventType.Warning, "Unable to change current directory to {0}", WorkingDirectory);
+				LogWarning("Unable to change current directory to {0}", WorkingDirectory);
 				Result = false;
 			}
 			return Result;
@@ -829,7 +871,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				Log(TraceEventType.Warning, "Unable to PopDir. WorkingDirectoryStack is empty.");
+				LogWarning("Unable to PopDir. WorkingDirectoryStack is empty.");
 				Result = false;
 			}
 			return Result;
@@ -877,7 +919,7 @@ namespace AutomationTool
 			}
 			catch
 			{
-				Log(TraceEventType.Warning, "Unable to change current directory to {0}", WorkingDirectory);
+				LogWarning("Unable to change current directory to {0}", WorkingDirectory);
 				Result = false;
 			}
 			return Result;
@@ -915,7 +957,7 @@ namespace AutomationTool
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
 			if (!File.Exists(Filename))
 			{
-				Log(TraceEventType.Warning, "Unable to set attributes for a non-exisiting file ({0})", Filename);
+				LogWarning("Unable to set attributes for a non-exisiting file ({0})", Filename);
 				return false;
 			}
 
@@ -928,8 +970,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log(TraceEventType.Warning, "Error trying to set file attributes for: {0}", Filename);
-				Log(TraceEventType.Warning, Ex);
+				LogWarning("Error trying to set file attributes for: {0}", Filename);
+				LogWarning(Ex.Message);
 				Result = false;
 			}
 			return Result;
@@ -1273,13 +1315,13 @@ namespace AutomationTool
 			{
 				if (bAllowDifferingTimestamps == true)
 				{
-					Log("CopyFileIncremental Skipping {0}, already exists", Dest);
+					LogVerbose("CopyFileIncremental Skipping {0}, already exists", Dest);
 					return;
 				}
 				TimeSpan Diff = File.GetLastWriteTimeUtc(Dest) - File.GetLastWriteTimeUtc(Source);
 				if (Diff.TotalSeconds > -1 && Diff.TotalSeconds < 1)
 				{
-					Log("CopyFileIncremental Skipping {0}, up to date.", Dest);
+					LogVerbose("CopyFileIncremental Skipping {0}, up to date.", Dest);
 					return;
 				}
 				InternalUtils.SafeDeleteFile(Dest);
@@ -1529,7 +1571,7 @@ namespace AutomationTool
 		/// <param name="MaxThreads"></param>
 		public static void ThreadedCopyFiles(string[] Source, string[] Dest, int MaxThreads = 64)
 		{
-			Log("Copying {0} file(s) using max {1} thread(s)", Source.Length, MaxThreads);
+			LogConsole("Copying {0} file(s) using max {1} thread(s)", Source.Length, MaxThreads);
 
 			if (Source.Length != Dest.Length)
 			{
@@ -1621,7 +1663,7 @@ namespace AutomationTool
 		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
 		{
 			// Filter all the relative paths
-			CommandUtils.Log("Applying filter to {0}...", SourceDir);
+			LogConsole("Applying filter to {0}...", SourceDir);
 			string[] RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks).ToArray();
 			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
@@ -1896,7 +1938,7 @@ namespace AutomationTool
 					}
 					catch (Exception Ex)
 					{
-						Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
+						LogWarning("Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
 					}
 					bFinished = true;
 				}
@@ -1951,7 +1993,7 @@ namespace AutomationTool
         {
             if (!DirectoryExists_NoExceptions(Dir))
             {
-				Log(System.Diagnostics.TraceEventType.Information, "Directory {0} does not exist", Dir);
+				Log("Directory {0} does not exist", Dir);
 				return false;
 			}
 
@@ -1966,7 +2008,7 @@ namespace AutomationTool
 				if(File.Exists(NativeFilename))
 				{
 		            DeleteFile_NoExceptions(Filename, true);
-		            Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is writable", Dir);
+		            Log("Directory {0} is writable", Dir);
 					return true;
 				}
 			}
@@ -1974,7 +2016,7 @@ namespace AutomationTool
 			{
 			}
 
-			Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is not writable", Dir);
+			Log("Directory {0} is not writable", Dir);
 			return false;
 		}
 
@@ -2007,7 +2049,7 @@ namespace AutomationTool
 
                 DirectoryInfo DirInfo = new DirectoryInfo(ParentDir);
                 var TopLevelDirs = DirInfo.GetDirectories();
-                Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
+				LogConsole("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
                 foreach (var TopLevelDir in TopLevelDirs)
                 {
                     if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
@@ -2028,30 +2070,30 @@ namespace AutomationTool
                                 }
                                 if (bOld)
                                 {
-                                    Log("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                    LogVerbose("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
                                     DeleteDirectory_NoExceptions(true, TopLevelDir.FullName);
                                 }
                                 else
                                 {
-                                    Log("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                    LogVerbose("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
                                 }
                             }
                             else
                             {
-                                Log("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
+                                LogVerbose("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
                             }
                         }
                         else
                         {
-                            Log("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
+                            LogVerbose("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
                         }
                     }
                 }
             }
             catch (Exception Ex)
             {
-                Log(System.Diagnostics.TraceEventType.Warning, "Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
-                Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+                LogWarning("Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
+                LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
             }
         }
 
@@ -2219,7 +2261,7 @@ namespace AutomationTool
 		{
             if (UnrealBuildTool.Utils.IsRunningOnMono)
             {
-                CommandUtils.Log(TraceEventType.Information, String.Format("Can't sign '{0}', we are running under mono.", Filename));
+                CommandUtils.Log(String.Format("Can't sign '{0}', we are running under mono.", Filename));
                 return;
             }
             if (!CommandUtils.FileExists(Filename))
@@ -2246,7 +2288,7 @@ namespace AutomationTool
 			}
 			if (!IsExecutable)
 			{
-				CommandUtils.Log(TraceEventType.Verbose, String.Format("Won't sign '{0}', not an executable.", TargetFileInfo.FullName));
+				CommandUtils.Log(String.Format("Won't sign '{0}', not an executable.", TargetFileInfo.FullName));
 				return;
 			}
 
@@ -2290,7 +2332,7 @@ namespace AutomationTool
 				{
 					if (Result.ExitCode == 2)
 					{
-						CommandUtils.Log(TraceEventType.Error, String.Format("Signtool returned a warning."));
+						CommandUtils.LogError(String.Format("Signtool returned a warning."));
 					}
 					// Success!
 					break;
@@ -2342,7 +2384,7 @@ namespace AutomationTool
 			}
 			if (!IsExecutable)
 			{
-				CommandUtils.Log(TraceEventType.Verbose, String.Format("Won't sign '{0}', not an executable.", InPath));
+				CommandUtils.Log(String.Format("Won't sign '{0}', not an executable.", InPath));
 				return;
 			}
 
@@ -2385,7 +2427,7 @@ namespace AutomationTool
 		{
 			if (!Command.ParseParam("NoSign"))
 			{
-				CommandUtils.Log("Signing up to {0} files...", Files.Count);
+				CommandUtils.LogConsole("Signing up to {0} files...", Files.Count);
 				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.BuildHostPlatform.Current.Platform;
 				if (TargetPlatform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 				{
@@ -2452,7 +2494,7 @@ namespace AutomationTool
 				{
 					if (Result.ExitCode == 2)
 					{
-						CommandUtils.Log(TraceEventType.Error, String.Format("Signtool returned a warning."));
+						CommandUtils.LogError(String.Format("Signtool returned a warning."));
 					}
 					// Success!
 					break;
@@ -2473,7 +2515,7 @@ namespace AutomationTool
 		{
 			if (UnrealBuildTool.Utils.IsRunningOnMono)
 			{
-				CommandUtils.Log(TraceEventType.Information, String.Format("Can't sign we are running under mono."));
+				CommandUtils.Log(String.Format("Can't sign we are running under mono."));
 				return;
 			}
 			List<string> FinalFiles = new List<string>();

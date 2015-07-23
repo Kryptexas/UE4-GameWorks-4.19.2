@@ -517,7 +517,7 @@ partial class GUBP
             {
                 var EnginePlatformBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", HostPlatform.ToString());
                 var Wildcard = Target + "-*";
-                Log("************Deleting stale editor DLLs, path {0} wildcard {1}", EnginePlatformBinaries, Wildcard);
+                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1}", EnginePlatformBinaries, Wildcard);
                 foreach (var DiskFile in FindFiles(Wildcard, true, EnginePlatformBinaries))
                 {
                     bool IsBuildProduct = false;
@@ -536,7 +536,7 @@ partial class GUBP
                 }
                 var EnginePluginBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Plugins");
                 var HostSubstring = CommandUtils.CombinePaths("/", HostPlatform.ToString(), "/");
-                Log("************Deleting stale editor DLLs, path {0} wildcard {1} host {2}", EnginePluginBinaries, Wildcard, HostSubstring);
+                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1} host {2}", EnginePluginBinaries, Wildcard, HostSubstring);
                 foreach (var DiskFile in FindFiles(Wildcard, true, EnginePluginBinaries))
                 {
                     if (DiskFile.IndexOf(HostSubstring, StringComparison.InvariantCultureIgnoreCase) < 0)
@@ -625,7 +625,7 @@ partial class GUBP
             {
                 var EnginePlatformBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", UnrealTargetPlatform.Linux.ToString());
                 var Wildcard = Target + "-*";
-                Log("************Deleting stale editor DLLs, path {0} wildcard {1}", EnginePlatformBinaries, Wildcard);
+                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1}", EnginePlatformBinaries, Wildcard);
                 foreach (var DiskFile in FindFiles(Wildcard, true, EnginePlatformBinaries))
                 {
                     bool IsBuildProduct = false;
@@ -644,7 +644,7 @@ partial class GUBP
                 }
                 var EnginePluginBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Plugins");
                 var HostSubstring = CommandUtils.CombinePaths("/", UnrealTargetPlatform.Linux.ToString(), "/");
-                Log("************Deleting stale editor DLLs, path {0} wildcard {1} host {2}", EnginePluginBinaries, Wildcard, HostSubstring);
+                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1} host {2}", EnginePluginBinaries, Wildcard, HostSubstring);
                 foreach (var DiskFile in FindFiles(Wildcard, true, EnginePluginBinaries))
                 {
                     if (DiskFile.IndexOf(HostSubstring, StringComparison.InvariantCultureIgnoreCase) < 0)
@@ -2027,7 +2027,7 @@ partial class GUBP
                 else
                 {
 					int WorkingCL = P4.CreateChange(P4Env.Client, String.Format("GUBP Node {0} built from changelist {1}", GetFullName(), BranchConfig.CL));
-                    Log("Build from {0}    Working in {1}", BranchConfig.CL, WorkingCL);
+                    LogConsole("Build from {0}    Working in {1}", BranchConfig.CL, WorkingCL);
 
                     var ProductsToSubmit = new List<String>();
 
@@ -3253,7 +3253,7 @@ partial class GUBP
                     TempStorage.CleanSharedTempStorageDirectory(GameName);
                 }
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-                Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
+                LogConsole("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
             }
 
             BuildProducts = new List<string>();

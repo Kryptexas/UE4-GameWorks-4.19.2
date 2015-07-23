@@ -588,7 +588,7 @@ namespace UnrealBuildTool
 		{
 			if(ProgressWriter.bWriteMarkup)
 			{
-				Log.WriteLine(TraceEventType.Information, "@progress push 5%");
+				Log.WriteLine(LogEventType.Console, "@progress push 5%");
 			}
 			using (ProgressWriter Progress = new ProgressWriter("Generating code...", false))
 			{
@@ -757,7 +757,7 @@ namespace UnrealBuildTool
 			}
 			if(ProgressWriter.bWriteMarkup)
 			{
-				Log.WriteLine(TraceEventType.Information, "@progress pop");
+				Log.WriteLine(LogEventType.Console, "@progress pop");
 			}
 			return true;
 		}

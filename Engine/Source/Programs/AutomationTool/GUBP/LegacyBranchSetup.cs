@@ -553,7 +553,7 @@ partial class GUBP
                     var Proj = Branch.FindGame(Codeless.Key);
                     if (Proj == null)
                     {
-                        Log(System.Diagnostics.TraceEventType.Verbose, "{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
+                        LogVerbose("{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
                     }
                     else if (Proj.Properties.bIsCodeBasedProject)
                     {
@@ -592,7 +592,7 @@ partial class GUBP
                     }
                     else
                     {
-                        Log(System.Diagnostics.TraceEventType.Verbose, "{0} was listed as a codeless formal build GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
+                        LogVerbose("{0} was listed as a codeless formal build GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
                     }
                 }
             }

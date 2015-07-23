@@ -139,7 +139,7 @@ namespace AutomationTool
             }
             if (Result)
             {
-                CommandUtils.Log("Rejecting file {0}", FileToCopy);
+                CommandUtils.LogVerbose("Rejecting file {0}", FileToCopy);
             }
             return Result;
         }
@@ -214,7 +214,7 @@ namespace AutomationTool
             var FilesToCopy = new List<string>();
 
             string AbsFile = CommandUtils.CombinePaths(FullPathAndWildcard);
-            CommandUtils.Log("Distilling {0}", AbsFile);
+            CommandUtils.LogVerbose("Distilling {0}", AbsFile);
             string PathOnly = Path.GetDirectoryName(AbsFile);
             if (!CommandUtils.DirectoryExists_NoExceptions(PathOnly))
             {

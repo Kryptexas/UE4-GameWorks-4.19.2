@@ -480,7 +480,7 @@ namespace AutomationTool
 				}
 				else
 				{
-					Log("{0} will not be updated because P4 is not enabled.", VerFile);
+					LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
 				}
 				if (IsBuildMachine)
 				{
@@ -509,7 +509,7 @@ namespace AutomationTool
                 }
 				else
 				{
-					Log("{0} will not be updated because P4 is not enabled.", VerFile);
+					LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
 				}
                 Result.Add(VerFile);
             }
@@ -531,7 +531,7 @@ namespace AutomationTool
                 }
                 else
                 {
-                    Log("{0} will not be updated because P4 is not enabled.", VerFile);
+                    LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
                 }
                 Result.Add(VerFile);
             }
@@ -552,9 +552,9 @@ namespace AutomationTool
 				string PublicKeyExponent = String.Format("\"{0}\"", Lines[2]);
 				string VerFile = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
 
-				Log("Updating {0} with:", VerFile);
-				Log(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
-				Log(" #define DECYRPTION_KEY_MODULUS {0}", Modulus);
+				LogVerbose("Updating {0} with:", VerFile);
+				LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
+				LogVerbose(" #define DECYRPTION_KEY_MODULUS {0}", Modulus);
 
 				VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
 				PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
@@ -788,7 +788,7 @@ namespace AutomationTool
 				}
 				else
 				{
-					Log("Incremental build, apparently everything was up to date, no XGE jobs produced.");
+					LogVerbose("Incremental build, apparently everything was up to date, no XGE jobs produced.");
 				}
 			}
 			else
@@ -843,15 +843,15 @@ namespace AutomationTool
 						{
 							while (true)
 							{
-								Log("Running {0} *******", XGETool);
+								LogVerbose("Running {0} *******", XGETool);
 								PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
 								int SuccesCode;
-								string LogFile = GetRunAndLogLogName(CmdEnv, XGETool);
+								string LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
 								string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
 								PopDir();
 								if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !Output.Contains("------Project:"))
 								{
-									Log(System.Diagnostics.TraceEventType.Warning, String.Format("{0} failure on the local connection timeout", XGETool));
+									LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
 									if (ConnectionRetries < 2)
 									{
 										System.Threading.Thread.Sleep(60000);
@@ -861,23 +861,23 @@ namespace AutomationTool
 								}
 								else if (SuccesCode != 0)
 								{
-									Log("{0} did not succeed *******", XGETool);
+									LogWarning("{0} did not succeed *******", XGETool);
 									throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
 																	XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
 								}
-								Log("{0} {1} Done *******", XGETool, Args);
+								LogVerbose("{0} {1} Done *******", XGETool, Args);
 								break;
 							}
 							break;
 						}
 						catch (Exception Ex)
 						{
-							Log("{0} failed on try {1}: {2}", XGETool, i + 1, Ex.ToString());
+							LogWarning("{0} failed on try {1}: {2}", XGETool, i + 1, Ex.ToString());
 							if (i + 1 >= Retries)
 							{
 								return false;
 							}
-							Log("Deleting build products to force a rebuild.");
+							LogWarning("Deleting build products to force a rebuild.");
 							foreach (var Item in Actions)
 							{
 								XGEDeleteBuildProducts(Item.Manifest);
@@ -1023,7 +1023,7 @@ namespace AutomationTool
 											if (PCHFileName.Contains(@"\SharedPCHs\") && PCHFileName.Contains(@"\UE4Editor\"))
 											{
 												Key = "SharedEditorPCH$ " + PCHFileName;
-												Log("Hack: detected Shared PCH, which will use a different key {0}", Key);
+												LogWarning("Hack: detected Shared PCH, which will use a different key {0}", Key);
 
 											}
 										}
@@ -1352,7 +1352,7 @@ namespace AutomationTool
 			Log("************************* ForceNonUnity:{0} ", bForceNonUnity);
 			Log("************************* ForceDebugInfo: {0}", bForceDebugInfo);
 			Log("************************* UseXGE: {0}", bCanUseXGE);
-            Log("************************* UseParallelExecutor: {0}", bCanUseParallelExecutor);
+			Log("************************* UseParallelExecutor: {0}", bCanUseParallelExecutor);
 
 			// process XGE files
 			if (bCanUseXGE || bCanUseParallelExecutor)
@@ -1454,7 +1454,7 @@ namespace AutomationTool
 				Log("Build products *******");
 				if (BuildProductFiles.Count < 1)
 				{
-					Log("No build products were made");
+					LogConsole("No build products were made");
 				}
 				else
 				{
@@ -1478,7 +1478,7 @@ namespace AutomationTool
 		/// <param name="Files">List of files to check out</param>
 		public static void AddBuildProductsToChangelist(int WorkingCL, List<string> Files)
 		{
-			Log("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
+			LogConsole("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
 			foreach (var File in Files)
 			{
 				P4.Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File) + "#head"); // sync the file without overwriting local one
@@ -1533,7 +1533,7 @@ namespace AutomationTool
 		{
 			if (!GlobalCommandLine.Compile)
 			{
-				Log("We are being asked to copy the UBT build products, but we are running precompiled, so this does not make much sense.");
+				LogVerbose("We are being asked to copy the UBT build products, but we are running precompiled, so this does not make much sense.");
 			}
 
 			var UBTLocation = Path.GetDirectoryName(GetUBTExecutable());

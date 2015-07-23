@@ -149,7 +149,7 @@ namespace AutomationTool
 		/// <param name="Parameters">Command line parameters (without -run=)</param>
 		public static void RunCommandlet(string ProjectName, string UE4Exe, string Commandlet, string Parameters = null)
 		{
-			Log("Running UE4Editor {0} for project {1}", Commandlet, ProjectName);
+			LogConsole("Running UE4Editor {0} for project {1}", Commandlet, ProjectName);
 
             var CWD = Path.GetDirectoryName(UE4Exe);
 
@@ -164,14 +164,15 @@ namespace AutomationTool
 			PushDir(CWD);
 
 			string LocalLogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.EngineSavedFolder, Commandlet));
-			Log("Commandlet log file is {0}", LocalLogFile);
+			LogConsole("Commandlet log file is {0}", LocalLogFile);
 			string Args = String.Format(
-				"{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended -AllowStdOutLogVerbosity {4}",
+				"{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended {5}{4}",
 				(ProjectName == null) ? "" : CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName),
 				Commandlet,
 				String.IsNullOrEmpty(Parameters) ? "" : Parameters,
 				CommandUtils.MakePathSafeToUseWithCommandLine(LocalLogFile),
-				IsBuildMachine ? "-buildmachine" : ""
+				IsBuildMachine ? "-buildmachine" : "",
+				GlobalCommandLine.Verbose ? "-AllowStdOutLogVerbosity " : ""
 			);
 			ERunOptions Opts = ERunOptions.Default;
 			if (GlobalCommandLine.UTF8Output)
@@ -188,9 +189,17 @@ namespace AutomationTool
 			{
 				CommandUtils.LogWarning("Commandlet {0} failed to copy the local log file from {1} to {2}. The log file will be lost.", Commandlet, LocalLogFile, DestLogFile);
 			}
+			// copy the ddc access log to the destination folder
+			string DestDDCLogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.LogFolder, Commandlet + "-DDC"));
+			string LocalDDCLogFile = CombinePaths(CmdEnv.EngineSavedFolder, Commandlet + "RunDDC.txt");
+			if (!CommandUtils.CopyFile_NoExceptions(LocalDDCLogFile, DestDDCLogFile))
+			{
+				CommandUtils.LogWarning("Commandlet {0} failed to copy the local log file from {1} to {2}. The log file will be lost.", Commandlet, LocalDDCLogFile, DestDDCLogFile);
+			}
 
 			// Whether it was copied correctly or not, delete the local log as it was only a temporary file. 
 			CommandUtils.DeleteFile_NoExceptions(LocalLogFile);
+			CommandUtils.DeleteFile_NoExceptions(LocalDDCLogFile);
 
 			if (RunResult.ExitCode != 0)
 			{

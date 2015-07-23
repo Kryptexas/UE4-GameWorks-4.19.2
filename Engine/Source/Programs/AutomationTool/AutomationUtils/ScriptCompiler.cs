@@ -199,7 +199,7 @@ namespace AutomationTool
 					}
 					catch (Exception Ex)
 					{
-						CommandUtils.Log(TraceEventType.Error, Ex);
+						CommandUtils.LogError(LogUtils.FormatException(Ex));
 						throw new AutomationException("Failed to compile module {0}", ModuleName);
 					}
 					break;
@@ -218,7 +218,7 @@ namespace AutomationTool
 					}
 					catch (Exception Ex)
 					{
-						CommandUtils.Log(TraceEventType.Error, Ex);
+						CommandUtils.LogError(LogUtils.FormatException(Ex));
 						throw new AutomationException("Failed to compile module {0}", ModuleName);
 					}
 				}
@@ -264,7 +264,7 @@ namespace AutomationTool
 		/// <param name="OutScriptAssemblies">List to store all loaded assemblies.</param>
 		private static void LoadPreCompiledScriptAssemblies(List<Assembly> OutScriptAssemblies)
 		{
-			CommandUtils.Log("Loading precompiled script DLLs");
+			CommandUtils.LogConsole("Loading precompiled script DLLs");
 
 			bool DefaultScriptsDLLFound = false;
 			var ScriptsLocation = GetScriptAssemblyFolder();
@@ -272,7 +272,7 @@ namespace AutomationTool
 			{
 				var ScriptDLLFiles = Directory.GetFiles(ScriptsLocation, "*.Automation.dll", SearchOption.AllDirectories);
 
-				CommandUtils.Log("Found {0} script DLL(s).", ScriptDLLFiles.Length);
+				CommandUtils.LogConsole("Found {0} script DLL(s).", ScriptDLLFiles.Length);
 				foreach (var ScriptsDLLFilename in ScriptDLLFiles)
 				{
 

@@ -461,7 +461,7 @@ namespace AutomationTool
 				bool DoNotCompile = false;
 				if (!CommandUtils.IsBuildMachine && !CheckIfScriptAssemblyIsOutOfDate(TargetsDllFilename, TargetScripts))
 				{
-					Log.TraceInformation("Targets DLL {0} is up to date.", TargetsDllFilename);
+					Log.TraceVerbose("Targets DLL {0} is up to date.", TargetsDllFilename);
 					DoNotCompile = true;
 				}
 				if (!DoNotCompile && CommandUtils.FileExists_NoExceptions(TargetsDllFilename))
@@ -469,7 +469,7 @@ namespace AutomationTool
 					if (!CommandUtils.DeleteFile_NoExceptions(TargetsDllFilename, true))
 					{
 						DoNotCompile = true;
-						CommandUtils.Log("Could not delete {0} assuming it is up to date and reusable for a recursive UAT call.", TargetsDllFilename);
+						CommandUtils.LogVerbose("Could not delete {0} assuming it is up to date and reusable for a recursive UAT call.", TargetsDllFilename);
 					}
 				}
 
@@ -486,7 +486,7 @@ namespace AutomationTool
 		/// <param name="TargetScripts"></param>
 		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, string TargetsDllFilename, bool DoNotCompile, List<string> TargetScripts)
 		{
-			CommandUtils.Log("Compiling targets DLL: {0}", TargetsDllFilename);
+			CommandUtils.LogVerbose("Compiling targets DLL: {0}", TargetsDllFilename);
 
 			var ReferencedAssemblies = new List<string>() 
 					{ 
@@ -580,7 +580,7 @@ namespace AutomationTool
 		/// </summary>
 		public static void CleanupFolders()
 		{
-			CommandUtils.Log("Cleaning up project rules folder");
+			CommandUtils.LogVerbose("Cleaning up project rules folder");
 			var RulesFolder = GetRulesAssemblyFolder();
 			if (CommandUtils.DirectoryExists(RulesFolder))
 			{
@@ -747,15 +747,15 @@ namespace AutomationTool
 
 			using(CommandUtils.TelemetryStopwatch ProjectDumpStopwatch = new CommandUtils.TelemetryStopwatch("Project Dump"))
 			{
-				CommandUtils.Log("  Base Engine:");
+				CommandUtils.LogVerbose("  Base Engine:");
 				BaseEngineProject.Dump(InHostPlatforms);
 
-				CommandUtils.Log("  {0} Code projects:", CodeProjects.Count);
+				CommandUtils.LogVerbose("  {0} Code projects:", CodeProjects.Count);
 				foreach (var Proj in CodeProjects)
 				{
 					Proj.Dump(InHostPlatforms);
 				}
-				CommandUtils.Log("  {0} Non-Code projects:", CodeProjects.Count);
+				CommandUtils.LogVerbose("  {0} Non-Code projects:", CodeProjects.Count);
 				foreach (var Proj in NonCodeProjects)
 				{
 					Proj.Dump(InHostPlatforms);

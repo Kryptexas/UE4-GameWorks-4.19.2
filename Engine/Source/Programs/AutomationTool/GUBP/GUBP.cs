@@ -70,14 +70,14 @@ public partial class GUBP : BuildCommand
 	/// </summary>
     public override void ExecuteBuild()
     {
-        Log("************************* GUBP");
+		LogConsole("************************* GUBP");
 
 		bool bPreflightBuild = false;
 		int PreflightShelveCL = 0;
         string PreflightShelveCLString = GetEnvVar("uebp_PreflightShelveCL");
         if ((!String.IsNullOrEmpty(PreflightShelveCLString) && IsBuildMachine) || ParseParam("PreflightTest"))
         {
-            Log("**** Preflight shelve {0}", PreflightShelveCLString);
+            LogConsole("**** Preflight shelve {0}", PreflightShelveCLString);
             if (!String.IsNullOrEmpty(PreflightShelveCLString))
             {
                 PreflightShelveCL = int.Parse(PreflightShelveCLString);
@@ -493,7 +493,7 @@ public partial class GUBP : BuildCommand
 		AggregateNode[] MatchingAggregates = Aggregates.Where(x => x.Dependencies.All(y => Nodes.Contains(y))).ToArray();
 		if (MatchingAggregates.Length > 0)
 		{
-			Log("*********** Aggregates");
+			LogConsole("*********** Aggregates");
 			foreach (AggregateNode Aggregate in MatchingAggregates.OrderBy(x => x.Name))
 			{
 				StringBuilder Note = new StringBuilder("    " + Aggregate.Name);
@@ -501,7 +501,7 @@ public partial class GUBP : BuildCommand
 				{
 					Note.Append(" (promotable)");
 				}
-				Log(Note.ToString());
+				LogConsole(Note.ToString());
 			}
 		}
 
@@ -510,7 +510,7 @@ public partial class GUBP : BuildCommand
         string LastControllingTrigger = "";
         string LastAgentGroup = "";
 
-        Log("*********** Desired And Dependent Nodes, in order.");
+		LogConsole("*********** Desired And Dependent Nodes, in order.");
         foreach (BuildNode NodeToDo in Nodes)
         {
             string MyControllingTrigger = NodeToDo.ControllingTriggerDotName;
@@ -531,13 +531,13 @@ public partial class GUBP : BuildCommand
                             Finished = "(already triggered)";
                         }
                     }
-                    Log("  Controlling Trigger: {0}    {1}", MyControllingTrigger, Finished);
+					LogConsole("  Controlling Trigger: {0}    {1}", MyControllingTrigger, Finished);
                 }
             }
 
 			if (NodeToDo.AgentSharingGroup != LastAgentGroup && NodeToDo.AgentSharingGroup != "")
             {
-                Log("    Agent Group: {0}", NodeToDo.AgentSharingGroup);
+				LogConsole("    Agent Group: {0}", NodeToDo.AgentSharingGroup);
             }
             LastAgentGroup = NodeToDo.AgentSharingGroup;
 
@@ -577,17 +577,17 @@ public partial class GUBP : BuildCommand
             {
 				Builder.AppendFormat(" {0}", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
             }
-			Log(Builder.ToString());
+			LogConsole(Builder.ToString());
 
             if (bShowDependencies)
             {
                 foreach (BuildNode Dep in NodeToDo.Dependencies)
                 {
-                    Log("            dep> {0}", Dep.Name);
+					LogConsole("            dep> {0}", Dep.Name);
                 }
                 foreach (BuildNode Dep in NodeToDo.PseudoDependencies)
                 {
-                    Log("           pdep> {0}", Dep.Name);
+					LogConsole("           pdep> {0}", Dep.Name);
                 }
             }
         }
@@ -654,9 +654,9 @@ public partial class GUBP : BuildCommand
 
 		// Export the graph definition
 		string Filename = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "GubpGraph.gexf");
-		Log("Writing graph to {0}", Filename);
+		LogConsole("Writing graph to {0}", Filename);
 		GraphVisualization.WriteGraphFile(Filename, "GUBP Nodes", NodeToGraphNodeMap.Values.ToList(), GraphEdges);
-		Log("Wrote graph to {0}", Filename);
+		LogConsole("Wrote graph to {0}", Filename);
 	 }
 
     static List<int> ConvertCLToIntList(List<string> Strings)
@@ -667,7 +667,7 @@ public partial class GUBP : BuildCommand
             int ThisInt = int.Parse(ThisString);
             if (ThisInt < 1960000 || ThisInt > 3000000)
             {
-                Log("CL {0} appears to be out of range", ThisInt);
+				LogConsole("CL {0} appears to be out of range", ThisInt);
             }
             Result.Add(ThisInt);
         }
@@ -732,7 +732,7 @@ public partial class GUBP : BuildCommand
 					throw new AutomationException("Agent sharing group '{0}' has multiple controlling triggers: {1}", Chain.Key, Triggers);
 				}
 			}
-            Log("***************Done with recursion");
+			LogConsole("***************Done with recursion");
         }
 
         // here we do a topological sort of the nodes, subject to a lexographical and priority sort
@@ -884,7 +884,7 @@ public partial class GUBP : BuildCommand
 
             if (!bProgressMade && NodesToDo.Count > 0)
             {
-                Log("Cycle in GUBP, could not resolve:");
+				LogConsole("Cycle in GUBP, could not resolve:");
                 foreach (BuildNode NodeToDo in NodesToDo)
                 {
                     string Deps = "";
@@ -915,7 +915,7 @@ public partial class GUBP : BuildCommand
                             Deps = Deps + Dep.Name + " ";
                         }
                     }
-                    Log("  {0}    deps: {1}", NodeToDo.Name, Deps);
+					LogConsole("  {0}    deps: {1}", NodeToDo.Name, Deps);
                 }
                 throw new AutomationException("Cycle in GUBP");
             }
@@ -923,7 +923,7 @@ public partial class GUBP : BuildCommand
         if (!SubSort)
         {
             double BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-            Log("Took {0}s to sort {1} nodes", BuildDuration / 1000, OrdereredToDo.Count);
+			LogConsole("Took {0}s to sort {1} nodes", BuildDuration / 1000, OrdereredToDo.Count);
         }
 
         return OrdereredToDo;
@@ -993,15 +993,15 @@ public partial class GUBP : BuildCommand
 						LastNonDuplicateFail = FindLastNonDuplicateFail(NodeToDo, History, CLString, StoreName);
                         if (LastNonDuplicateFail < P4Env.Changelist)
                         {
-                            Log("*** Red-after-red spam reduction, changed CL {0} to CL {1} because the errors didn't change.", P4Env.Changelist, LastNonDuplicateFail);
+							LogConsole("*** Red-after-red spam reduction, changed CL {0} to CL {1} because the errors didn't change.", P4Env.Changelist, LastNonDuplicateFail);
                         }
                     }
                 }
                 catch (Exception Ex)
                 {
                     LastNonDuplicateFail = P4Env.Changelist;
-                    Log(System.Diagnostics.TraceEventType.Warning, "Failed to FindLastNonDuplicateFail.");
-                    Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+                    LogWarning("Failed to FindLastNonDuplicateFail.");
+                    LogWarning(LogUtils.FormatException(Ex));
                 }
 
 				if(LastNonDuplicateFail > History.LastSucceeded)
@@ -1569,7 +1569,7 @@ public partial class GUBP : BuildCommand
 	private void DoCommanderSetup(ElectricCommander EC, IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrdereredToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, string FakeFail, bool bPreflightBuild)
 	{
 		List<BuildNode> SortedNodes = TopologicalSort(new HashSet<BuildNode>(AllNodes), null, SubSort: false, DoNotConsiderCompletion: true);
-		Log("******* {0} GUBP Nodes", SortedNodes.Count);
+		LogConsole("******* {0} GUBP Nodes", SortedNodes.Count);
 
 		List<BuildNode> FilteredOrdereredToDo = new List<BuildNode>();
 		using(TelemetryStopwatch StartFilterTimer = new TelemetryStopwatch("FilterNodes"))
@@ -1597,7 +1597,7 @@ public partial class GUBP : BuildCommand
 		}
 		using(TelemetryStopwatch PrintNodesTimer = new TelemetryStopwatch("SetupCommanderPrint"))
 		{
-			Log("*********** EC Nodes, in order.");
+			LogConsole("*********** EC Nodes, in order.");
 			PrintNodes(this, FilteredOrdereredToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
 		}
 
@@ -1665,18 +1665,18 @@ public partial class GUBP : BuildCommand
             bool SaveSuccessRecords = (IsBuildMachine || bFakeEC) && // no real reason to make these locally except for fakeEC tests
                 (!(NodeToDo is TriggerNode) || NodeToDo.IsSticky); // trigger nodes are run twice, one to start the new workflow and once when it is actually triggered, we will save reconds for the latter
 
-            Log("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, NodeStoreName);
+			LogConsole("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, NodeStoreName);
             if (NodeToDo.IsComplete)
             {
                 if (NodeToDo.Name == VersionFilesNode.StaticGetFullName() && !IsBuildMachine)
                 {
-                    Log("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", NodeToDo.Name, NodeStoreName);
+					LogConsole("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", NodeToDo.Name, NodeStoreName);
                     NodeToDo.Node.BuildProducts = new List<string>();
 
                 }
                 else
                 {
-                    Log("***** Retrieving GUBP Node {0} from {1}", NodeToDo.Name, NodeStoreName);
+					LogConsole("***** Retrieving GUBP Node {0} from {1}", NodeToDo.Name, NodeStoreName);
                     bool WasLocal;
 					try
 					{
@@ -1714,12 +1714,12 @@ public partial class GUBP : BuildCommand
                     }
                     if (bFake)
                     {
-                        Log("***** FAKE!! Building GUBP Node {0} for {1}", NodeToDo.Name, NodeStoreName);
+						LogConsole("***** FAKE!! Building GUBP Node {0} for {1}", NodeToDo.Name, NodeStoreName);
                         NodeToDo.Node.DoFakeBuild(this);
                     }
                     else
-                    {                        
-						Log("***** Building GUBP Node {0} for {1}", NodeToDo.Name, NodeStoreName);
+                    {
+						LogConsole("***** Building GUBP Node {0} for {1}", NodeToDo.Name, NodeStoreName);
 						DateTime StartTime = DateTime.UtcNow;
 						using(TelemetryStopwatch DoBuildStopwatch = new TelemetryStopwatch("DoBuild.{0}", NodeToDo.Name))
 						{
@@ -1735,7 +1735,7 @@ public partial class GUBP : BuildCommand
 						DateTime StartTime = DateTime.UtcNow;
 						TempStorage.StoreToTempStorage(CmdEnv, NodeStoreName, NodeToDo.Node.BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
 						StoreDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
-						Log("Took {0} seconds to store build products", StoreDuration);
+						LogConsole("Took {0} seconds to store build products", StoreDuration);
 						if (IsBuildMachine)
 						{
 							EC.RunECTool(String.Format("setProperty \"/myJobStep/StoreDuration\" \"{0}\"", StoreDuration.ToString()));
@@ -1794,17 +1794,17 @@ public partial class GUBP : BuildCommand
 						EC.UpdateECBuildTime(NodeToDo, BuildDuration);
                     }
 
-                    Log("{0}", ExceptionToString(Ex));
+					LogConsole("{0}", ExceptionToString(Ex));
 
 
                     if (History != null)
                     {
-                        Log("Changes since last green *********************************");
-                        Log("");
-                        Log("");
-                        Log("");
+						LogConsole("Changes since last green *********************************");
+						LogConsole("");
+						LogConsole("");
+						LogConsole("");
                         PrintDetailedChanges(History, P4Env.Changelist);
-                        Log("End changes since last green");
+						LogConsole("End changes since last green");
                     }
 
                     string FailInfo = "";

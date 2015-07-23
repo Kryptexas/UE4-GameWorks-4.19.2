@@ -32,11 +32,11 @@ class Localise : BuildCommand
 
 		if (P4Enabled)
 		{
-			Log("Sync necessary content to head revision");
+			LogConsole("Sync necessary content to head revision");
 			P4.Sync(P4Env.BuildRootP4 + "/Engine/Config/...");
 			P4.Sync(P4Env.BuildRootP4 + "/Engine/Content/...");
 			P4.Sync(P4Env.BuildRootP4 + "/Engine/Source/...");
-			Log("Localize from label {0}", P4Env.LabelToSync);
+			LogConsole("Localize from label {0}", P4Env.LabelToSync);
 		}
 
         OneSkyConfigData OneSkyConfig = OneSkyConfigHelper.Find("OneSkyConfig_EpicGames");
@@ -96,9 +96,9 @@ class Localise : BuildCommand
 		// Execute commandlet for each set of arguments.
 		foreach (var CommandletArguments in CommandletArgumentSets)
 		{
-			Log("Localization for {0} {1}", EditorArguments, CommandletArguments);
+			LogConsole("Localization for {0} {1}", EditorArguments, CommandletArguments);
 
-            Log("Running UE4Editor to generate localization data");
+			LogConsole("Running UE4Editor to generate localization data");
 
 			string Arguments = String.Format("-run=GatherText {0} {1}", EditorArguments, CommandletArguments);
 			var RunResult = Run(EditorExe, Arguments);

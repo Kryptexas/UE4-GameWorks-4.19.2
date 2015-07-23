@@ -49,7 +49,7 @@ public class BuildCookRun : BuildCommand
 
 	protected ProjectParams SetupParams()
 	{
-		Log("Setting up ProjectParams for {0}", ProjectPath);
+		LogConsole("Setting up ProjectParams for {0}", ProjectPath);
 
 		var Params = new ProjectParams
 		(
@@ -128,13 +128,13 @@ public class BuildCookRun : BuildCommand
 	private string GetDefaultMap(ProjectParams Params)
 	{
 		const string EngineEntryMap = "/Engine/Maps/Entry";
-		Log("Trying to find DefaultMap in ini files");
+		LogConsole("Trying to find DefaultMap in ini files");
 		string DefaultMap = null;
 		var ProjectFolder = GetDirectoryName(Params.RawProjectPath);
 		var DefaultGameEngineConfig = CombinePaths(ProjectFolder, "Config", "DefaultEngine.ini");
 		if (FileExists(DefaultGameEngineConfig))
 		{
-			Log("Looking for DefaultMap in {0}", DefaultGameEngineConfig);
+			LogConsole("Looking for DefaultMap in {0}", DefaultGameEngineConfig);
 			DefaultMap = GetDefaultMapFromIni(DefaultGameEngineConfig, Params.DedicatedServer);
 			if (DefaultMap == null && Params.DedicatedServer)
 			{
@@ -146,7 +146,7 @@ public class BuildCookRun : BuildCommand
 			var BaseEngineConfig = CombinePaths(CmdEnv.LocalRoot, "Config", "BaseEngine.ini");
 			if (FileExists(BaseEngineConfig))
 			{
-				Log("Looking for DefaultMap in {0}", BaseEngineConfig);
+				LogConsole("Looking for DefaultMap in {0}", BaseEngineConfig);
 				DefaultMap = GetDefaultMapFromIni(BaseEngineConfig, Params.DedicatedServer);
 				if (DefaultMap == null && Params.DedicatedServer)
 				{
@@ -157,12 +157,12 @@ public class BuildCookRun : BuildCommand
 		// We check for null here becase null == not found
 		if (DefaultMap == null)
 		{
-			Log("No DefaultMap found, assuming: {0}", EngineEntryMap);
+			LogConsole("No DefaultMap found, assuming: {0}", EngineEntryMap);
 			DefaultMap = EngineEntryMap;
 		}
 		else
 		{
-			Log("Found DefaultMap={0}", DefaultMap);
+			LogConsole("Found DefaultMap={0}", DefaultMap);
 		}
 		return DefaultMap;
 	}
@@ -233,7 +233,7 @@ public class BuildCookRun : BuildCommand
 		}
 
 		var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
-		Log("Make a foreign sample {0} -> {1}", Src, Dest);
+		LogConsole("Make a foreign sample {0} -> {1}", Src, Dest);
 
 		CloneDirectory(Src, Dest);
 
@@ -259,7 +259,7 @@ public class BuildCookRun : BuildCommand
 		}
 
 		var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
-		Log("Make a foreign sample {0} -> {1}", Src, Dest);
+		LogConsole("Make a foreign sample {0} -> {1}", Src, Dest);
 
 		CloneDirectory(Src, Dest);
 		DeleteDirectory_NoExceptions(CombinePaths(Dest, "Intermediate"));

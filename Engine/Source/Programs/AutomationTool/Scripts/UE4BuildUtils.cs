@@ -51,7 +51,7 @@ public class UE4BuildUtils : CommandUtils
 			throw new AutomationException("Target is required when calling UE4BuildUtils.BuildProduct");
 		}
 
-		Log("Building {0}", Target.TargetName);
+		LogConsole("Building {0}", Target.TargetName);
 
 		if (Command == null)
 		{

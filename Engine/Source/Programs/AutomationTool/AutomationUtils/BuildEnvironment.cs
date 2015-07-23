@@ -191,7 +191,7 @@ namespace AutomationTool
 			catch (Exception)
 			{
 				// Something went wrong, we can't compile.
-				Log.WriteLine(TraceEventType.Warning, "SetFrameworkVars failed. Assuming no compilation capability.");
+				Log.WriteLine(LogEventType.Warning, "SetFrameworkVars failed. Assuming no compilation capability.");
 				HasCapabilityToCompile = false;
 			}
 
@@ -203,8 +203,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(TraceEventType.Warning, Ex.Message);
-					Log.WriteLine(TraceEventType.Warning, "Assuming no compilation capability.");
+					Log.WriteLine(LogEventType.Warning, Ex.Message);
+					Log.WriteLine(LogEventType.Warning, "Assuming no compilation capability.");
 					HasCapabilityToCompile = false;
 					MsBuildExe = "";
 				}
@@ -218,8 +218,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(TraceEventType.Warning, Ex.Message);
-					Log.WriteLine(TraceEventType.Warning, "Assuming no solution compilation capability.");
+					Log.WriteLine(LogEventType.Warning, Ex.Message);
+					Log.WriteLine(LogEventType.Warning, "Assuming no solution compilation capability.");
 					MsDevExe = "";
 				}
 			}

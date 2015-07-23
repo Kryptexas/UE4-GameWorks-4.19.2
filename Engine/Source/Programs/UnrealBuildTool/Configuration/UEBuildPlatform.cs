@@ -1317,7 +1317,7 @@ namespace UnrealBuildTool
 					//HookProcess.StartInfo.RedirectStandardOutput = true;
 					//HookProcess.StartInfo.RedirectStandardError = true;					
 
-					using (var HookTimer = new ScopedTimer("Time to run hook: ", bShouldLogInfo ? TraceEventType.Information : TraceEventType.Verbose))
+					using (var HookTimer = new ScopedTimer("Time to run hook: ", bShouldLogInfo ? LogEventType.Log : LogEventType.Verbose))
 					{
 						//installers may require administrator access to succeed. so run as an admmin.
 						HookProcess.StartInfo.Verb = "runas";
@@ -1796,7 +1796,7 @@ namespace UnrealBuildTool
 		{
 			if (bShouldLogInfo)
 			{
-				Log.WriteLine(TraceEventType.Information, Format, Args);
+				Log.WriteLine(LogEventType.Log, Format, Args);
 			}
 		}
 
@@ -1804,7 +1804,7 @@ namespace UnrealBuildTool
 		{
 			if (bShouldLogInfo)
 			{
-				Log.WriteLine(TraceEventType.Information, Message);
+				Log.WriteLine(LogEventType.Log, Message);
 			}
 		}
 

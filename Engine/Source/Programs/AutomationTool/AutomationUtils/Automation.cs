@@ -293,12 +293,12 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 
 			// Check for build machine override (force local)
 			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : IsBuildMachine;
-			Log.TraceInformation("IsBuildMachine={0}", IsBuildMachine);
+			Log.TraceVerbose("IsBuildMachine={0}", IsBuildMachine);
 			Environment.SetEnvironmentVariable("IsBuildMachine", IsBuildMachine ? "1" : "0");
 
 			// should we kill processes on exit
 			ShouldKillProcesses = !GlobalCommandLine.NoKill;
-			Log.TraceInformation("ShouldKillProcesses={0}", ShouldKillProcesses);
+			Log.TraceVerbose("ShouldKillProcesses={0}", ShouldKillProcesses);
 
 			if (CommandsToExecute.Count == 0 && GlobalCommandLine.Help)
 			{
@@ -450,7 +450,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				Message += String.Format("  {0}{1}", AvailableCommand.Key, Environment.NewLine);
 			}
-			CommandUtils.Log(Message);
+			CommandUtils.LogConsole(Message);
 		}
 
 		#endregion

@@ -105,7 +105,7 @@ public partial class Project : CommandUtils
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
 
-		Log("Running UnrealPak *******");
+		LogConsole("Running UnrealPak *******");
 		string CmdLine = CommandUtils.MakePathSafeToUseWithCommandLine(OutputLocation) + " -create=" + CommandUtils.MakePathSafeToUseWithCommandLine(UnrealPakResponseFileName);
 		if (!String.IsNullOrEmpty(EncryptionKeys))
 		{
@@ -126,7 +126,7 @@ public partial class Project : CommandUtils
         }
 		CmdLine += PlatformOptions;
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
-		Log("UnrealPak Done *******");
+		LogConsole("UnrealPak Done *******");
 	}
 
 	static public void LogDeploymentContext(DeploymentContext SC)
@@ -235,6 +235,7 @@ public partial class Project : CommandUtils
 		}
 		var ThisPlatform = SC.StageTargetPlatform;
 
+		LogConsole("Creating Staging Manifest...");
 
         if (Params.HasDLCName)
         {
@@ -553,6 +554,7 @@ public partial class Project : CommandUtils
 
 	public static void CopyManifestFilesToStageDir(Dictionary<string, string> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
 	{
+		LogConsole("Copying {0} to staging directory: {1}", ManifestName, StageDir);
 		string ManifestPath = "";
 		string ManifestFile = "";
 		if (!String.IsNullOrEmpty(ManifestName))
@@ -630,7 +632,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	private static void CreatePakUsingStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
-		Log("Creating pak using staging manifest.");
+		LogConsole("Creating pak using staging manifest.");
 
 		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "PrePak" + (SC.DedicatedServer ? "_Server" : "")));
 
@@ -653,7 +655,7 @@ public partial class Project : CommandUtils
 			var PakBlacklistFilename = CombinePaths(SC.ProjectRoot, "Build", SC.PlatformDir, string.Format("PakBlacklist-{0}.txt", SC.StageTargetConfigurations[0].ToString()));
 			if (File.Exists(PakBlacklistFilename))
 			{
-				Log("Applying PAK blacklist file {0}", PakBlacklistFilename);
+				LogConsole("Applying PAK blacklist file {0}", PakBlacklistFilename);
 				string[] BlacklistContents = File.ReadAllLines(PakBlacklistFilename);
 				foreach (string Candidate in BlacklistContents)
 				{
@@ -691,7 +693,7 @@ public partial class Project : CommandUtils
 
 				if (bExcludeFile)
 				{
-					Log("Excluding {0}", Src);
+					LogConsole("Excluding {0}", Src);
 					continue;
 				}
 			}
@@ -771,13 +773,13 @@ public partial class Project : CommandUtils
 
 				if (InternalUtils.SafeCopyFile(SourceOutputLocation, OutputLocation))
 				{
-					Log("Copying source pak from {0} to {1} instead of creating new pak", SourceOutputLocation, OutputLocation);
+					LogConsole("Copying source pak from {0} to {1} instead of creating new pak", SourceOutputLocation, OutputLocation);
 					bCopiedExistingPak = true;
 				}
 			}
 			if (!bCopiedExistingPak)
 			{
-				Log("Failed to copy source pak from {0} to {1}, creating new pak", SourceOutputLocation, OutputLocation);
+				LogConsole("Failed to copy source pak from {0} to {1}, creating new pak", SourceOutputLocation, OutputLocation);
 			}
 		}
 
@@ -903,7 +905,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	private static void CreatePaksUsingChunkManifests(ProjectParams Params, DeploymentContext SC)
 	{
-		Log("Creating pak using streaming install manifests.");
+		LogConsole("Creating pak using streaming install manifests.");
 		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "PrePak" + (SC.DedicatedServer ? "_Server" : "")));
 
 		var TmpPackagingPath = GetTmpPackagingPath(Params, SC);
@@ -1044,6 +1046,7 @@ public partial class Project : CommandUtils
 	public static void ApplyStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
 		MaybeConvertToLowerCase(Params, SC);
+		LogConsole("Cleaning Stage Directory: {0}", SC.StageDirectory);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage && !Params.IterativeDeploy)
 		{
             try
@@ -1114,6 +1117,7 @@ public partial class Project : CommandUtils
 			return;
 		}
 
+		LogConsole("Creating UE4CommandLine.txt");
 		if (!string.IsNullOrEmpty(Params.StageCommandline) || !string.IsNullOrEmpty(Params.RunCommandline))
 		{
 			string FileHostParams = " ";
@@ -1604,7 +1608,7 @@ public partial class Project : CommandUtils
 		{
 			Params.ValidateAndLog();
 
-			Log("********** STAGE COMMAND STARTED **********");
+			LogConsole("********** STAGE COMMAND STARTED **********");
 
 			if (!Params.NoClient)
 			{
@@ -1661,7 +1665,7 @@ public partial class Project : CommandUtils
 					ApplyStagingManifest(Params, SC);
 				}
 			}
-			Log("********** STAGE COMMAND COMPLETED **********");
+			LogConsole("********** STAGE COMMAND COMPLETED **********");
 		}
 	}
 

@@ -8,6 +8,6 @@ class TestSnippetUtils : CommandUtils
 {
 	public static void Test(params object[] Args)
 	{
-		Log("Args[0]=" + Args[0].ToString());
+		LogConsole("Args[0]=" + Args[0].ToString());
 	}
 }

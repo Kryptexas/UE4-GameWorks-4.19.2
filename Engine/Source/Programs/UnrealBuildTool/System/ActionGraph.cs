@@ -777,7 +777,7 @@ namespace UnrealBuildTool
 				}
 
 				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats && !String.IsNullOrEmpty( LatestUpdatedProducedItemName ),
-					TraceEventType.Verbose, "{0}: Oldest produced item is {1}", RootAction.StatusDescription, LatestUpdatedProducedItemName);
+					LogEventType.Verbose, "{0}: Oldest produced item is {1}", RootAction.StatusDescription, LatestUpdatedProducedItemName);
 
 				bool bCheckIfIncludedFilesAreNewer = false;
 				bool bPerformExhaustiveIncludeSearchAndUpdateCache = false;

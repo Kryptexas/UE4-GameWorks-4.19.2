@@ -604,7 +604,7 @@ namespace UnrealBuildTool
                 bLogSeverity: false,
                 bLogSources: false,
                 bColorConsoleOutput: true,
-                TraceListeners: new[] { new FilteredConsoleTraceListener() });
+                TraceListeners: new[] { new ConsoleTraceListener() });
         }
 
         /// <summary>
@@ -853,7 +853,7 @@ namespace UnrealBuildTool
                 bColorConsoleOutput: true,
                 TraceListeners: new[] 
                 {
-                    new FilteredConsoleTraceListener(),
+                    new ConsoleTraceListener(),
                     !string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
                 });
         }
@@ -2023,7 +2023,7 @@ namespace UnrealBuildTool
             if (ExecutorName == "Local" || ExecutorName == "Distcc" || ExecutorName == "SNDBS")
             {
                 Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
-					TraceEventType.Information, 
+					LogEventType.Console, 
 					"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
                     System.Environment.ProcessorCount,
                     TotalBuildProjectTime,

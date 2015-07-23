@@ -20,8 +20,8 @@ class TestP4_Info : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("P4CLIENT={0}", GetEnvVar("P4CLIENT"));
-		Log("P4PORT={0}", GetEnvVar("P4PORT"));
+		LogConsole("P4CLIENT={0}", GetEnvVar("P4CLIENT"));
+		LogConsole("P4PORT={0}", GetEnvVar("P4PORT"));
 
 		var Result = P4.P4("info");
 		if (Result != 0)
@@ -74,7 +74,7 @@ class GitPullRequest : BuildCommand
 			throw new AutomationException("Unable to find Git.exe in the system path under a 'PortableGit' subdirectory.  Make sure the GitHub client is installed, and you are running this script from within a GitHub Command Shell.  We want to make sure we're using the correct version of Git, in case multiple versions are on the computer, which is why we check for a PortableGit folder that the GitHub Shell uses.");
 		}
 
-		Log("Running {0} {1}", GitExePath, GitCommandLine);
+		LogConsole("Running {0} {1}", GitExePath, GitCommandLine);
 
 		ProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
 		if (Result > 0 || Result < 0)
@@ -116,7 +116,7 @@ class GitPullRequest : BuildCommand
 				{
 					throw new AutomationException("Unrecognized branch.");
 				}
-				Log("Depot {0}", Depot);
+				LogConsole("Depot {0}", Depot);
 
 				Base = Base.Substring(0, Base.IndexOf(BaseEnd));
 				if (!Base.Contains(" "))
@@ -124,10 +124,10 @@ class GitPullRequest : BuildCommand
 					throw new AutomationException("Unrecognized commit3.");
 				}
 				Base = Base.Substring(Base.LastIndexOf(" "));
-				Log("CL String {0}", Base);
+				LogConsole("CL String {0}", Base);
 				CL = int.Parse(Base);
 			}
-			Log("CL int {0}", CL);
+			LogConsole("CL int {0}", CL);
 			if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
 			{
 				throw new AutomationException("Unrecognized commit3.");
@@ -161,7 +161,7 @@ class GitPullRequest : BuildCommand
 					throw new AutomationException("Unrecognized commit5.");
 				}
 				CLStuff = CLStuff.Substring(0, CLStuff.IndexOf(" "));
-				Log("CL String {0}", CLStuff);
+				LogConsole("CL String {0}", CLStuff);
 				CL = int.Parse(CLStuff);
 
 				var BranchStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length, Base.IndexOf(LiveEnd) - Base.IndexOf(LiveStart) - LiveStart.Length);
@@ -170,7 +170,7 @@ class GitPullRequest : BuildCommand
 					throw new AutomationException("Unrecognized commit6.");
 				}
 				BranchStuff = BranchStuff.Substring(BranchStuff.LastIndexOf(" ") + 1);
-				Log("Branch String {0}", BranchStuff);
+				LogConsole("Branch String {0}", BranchStuff);
 				if (BranchStuff.StartsWith("4."))
 				{
 					Depot = "//depot/UE4-Releases/4." + BranchStuff.Substring(2, 1);
@@ -188,7 +188,7 @@ class GitPullRequest : BuildCommand
 					throw new AutomationException("Unrecognized branch2.");
 				}
 			}
-			Log("CL int {0}", CL);
+			LogConsole("CL int {0}", CL);
 			if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
 			{
 				throw new AutomationException("Unrecognized commit3.");
@@ -256,7 +256,7 @@ class GitPullRequest : BuildCommand
 
 		foreach (var p in NewClient.View)
 		{
-			Log("{0} = {1}", p.Key, p.Value);
+			LogConsole("{0} = {1}", p.Key, p.Value);
 		}
 
 		string TestClient = P4Env.User + "_" + Environment.MachineName + "_PullRequests_" + Depot.Replace("/", "_");
@@ -386,7 +386,7 @@ class GitPullRequest : BuildCommand
 			}
 			catch (Exception Ex)
 			{
-				Log(" Exception was {0}", LogUtils.FormatException(Ex));
+				LogConsole(" Exception was {0}", LogUtils.FormatException(Ex));
 				Failures.Add(String.Format("PR {0} Failed with {1}", PR, LogUtils.FormatException(Ex)));
 			}
 		}
@@ -394,7 +394,7 @@ class GitPullRequest : BuildCommand
 
 		foreach (var Failed in Failures)
 		{
-			Log("{0}", Failed);
+			LogConsole("{0}", Failed);
 		}
 	}
 }
@@ -413,7 +413,7 @@ class TestSuccess : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("TestSuccess message.");
+		LogConsole("TestSuccess message.");
 	}
 }
 
@@ -422,11 +422,11 @@ class TestMessage : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("TestMessage message.");
-		Log("you must be in error");
-		Log("Behold the Error of you ways");
-		Log("ERROR, you are silly");
-		Log("ERROR: Something must be broken");
+		LogConsole("TestMessage message.");
+		LogConsole("you must be in error");
+		LogConsole("Behold the Error of you ways");
+		LogConsole("ERROR, you are silly");
+		LogConsole("ERROR: Something must be broken");
 	}
 }
 
@@ -435,9 +435,9 @@ class TestRecursion : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("TestRecursion *********************");
+		LogConsole("TestRecursion *********************");
 		string Params = ParseParamValue("Cmd");
-		Log("Recursive Command: {0}", Params);
+		LogConsole("Recursive Command: {0}", Params);
 		RunUAT(CmdEnv, Params);
 
 	}
@@ -447,7 +447,7 @@ class TestRecursionAuto : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("TestRecursionAuto *********************");
+		LogConsole("TestRecursionAuto *********************");
 		RunUAT(CmdEnv, "TestMessage");
 		RunUAT(CmdEnv, "TestMessage");
 		RunUAT(CmdEnv, "TestRecursion -Cmd=TestMessage");
@@ -461,7 +461,7 @@ class TestMacZip : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("TestMacZip *********************");
+		LogConsole("TestMacZip *********************");
 
 		if (UnrealBuildTool.Utils.IsRunningOnMono)
 		{
@@ -491,14 +491,14 @@ class TestP4_CreateChangelist : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("P4CLIENT={0}", GetEnvVar("P4CLIENT"));
-		Log("P4PORT={0}", GetEnvVar("P4PORT"));
+		LogConsole("P4CLIENT={0}", GetEnvVar("P4CLIENT"));
+		LogConsole("P4PORT={0}", GetEnvVar("P4PORT"));
 
 		var CLDescription = "AutomationTool TestP4";
 
-		Log("Creating new changelist \"{0}\" using client \"{1}\"", CLDescription, GetEnvVar("P4CLIENT"));
+		LogConsole("Creating new changelist \"{0}\" using client \"{1}\"", CLDescription, GetEnvVar("P4CLIENT"));
 		var ChangelistNumber = P4.CreateChange(Description: CLDescription);
-		Log("Created changelist {0}", ChangelistNumber);
+		LogConsole("Created changelist {0}", ChangelistNumber);
 	}
 }
 
@@ -509,12 +509,12 @@ class TestP4_StrandCheckout : BuildCommand
 	{
 		int WorkingCL = P4.CreateChange(P4Env.Client, String.Format("TestP4_StrandCheckout, head={0}", P4Env.Changelist));
 
-		Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
+		LogConsole("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 
 		List<string> Sign = new List<string>();
 		Sign.Add(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Binaries\DotNET\AgentInterface.dll"));
 
-		Log("Signing and adding {0} build products to changelist {1}...", Sign.Count, WorkingCL);
+		LogConsole("Signing and adding {0} build products to changelist {1}...", Sign.Count, WorkingCL);
 
 		CodeSign.SignMultipleIfEXEOrDLL(this, Sign);
 		foreach (var File in Sign)
@@ -537,13 +537,13 @@ class TestP4_LabelDescription : BuildCommand
 	{
 		string Label = GetEnvVar("SBF_LabelFromUser");
 		string Desc;
-		Log("LabelDescription {0}", Label);
+		LogConsole("LabelDescription {0}", Label);
 		var Result = P4.LabelDescription(Label, out Desc);
 		if (!Result)
 		{
 			throw new AutomationException("Could not get label description");
 		}
-		Log("Result***\n{0}\n***\n", Desc);
+		LogConsole("Result***\n{0}\n***\n", Desc);
 	}
 }
 
@@ -616,8 +616,8 @@ class TestP4_ClientOps : BuildCommand
 					throw new AutomationException("{0} does not contain {1} and it is supposed to.", depot, P4Env.BuildRootP4);
 				}
 				string local = CombinePaths(depot.Replace(SlashRoot, LocalRoot));
-				Log("{0}", depot);
-				Log("    {0}", local);
+				LogConsole("{0}", depot);
+				LogConsole("    {0}", local);
 			}
 		}
 
@@ -642,7 +642,7 @@ class CleanDDC : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("*********************** Clean DDC");
+		LogConsole("*********************** Clean DDC");
 
 		bool DoIt = ParseParam("DoIt");
 
@@ -663,10 +663,10 @@ class CleanDDC : BuildCommand
 						if (FileExists_NoExceptions(file))
 						{
 							FileInfo Info = new FileInfo(file);
-							Log("{0}", file);
+							LogConsole("{0}", file);
 							if ((DateTime.UtcNow - Info.LastWriteTimeUtc).TotalDays > 20)
 							{
-								Log("  is old.");
+								LogConsole("  is old.");
 								if (DoIt)
 								{
 									DeleteFile_NoExceptions(file);
@@ -674,7 +674,7 @@ class CleanDDC : BuildCommand
 							}
 							else
 							{
-								Log("  is NOT old.");
+								LogConsole("  is NOT old.");
 							}
 						}
 					}
@@ -689,7 +689,7 @@ class TestTestFarm : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("*********************** TestTestFarm");
+		LogConsole("*********************** TestTestFarm");
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
@@ -702,7 +702,7 @@ class TestTestFarm : BuildCommand
 			if (!String.IsNullOrEmpty(Output) &&
 					Output.Contains("Game Engine Initialized"))
 			{
-				Log("It looks started, let me kill it....");
+				LogConsole("It looks started, let me kill it....");
 				App.StopProcess();
 			}
 			return true; //keep reading
@@ -715,10 +715,10 @@ class TestArguments : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("List of provided arguments: ");
+		LogConsole("List of provided arguments: ");
 		for (int Index = 0; Index < Params.Length; ++Index)
 		{
-			Log("{0}={1}", Index, Params[Index].ToString());
+			LogConsole("{0}={1}", Index, Params[Index].ToString());
 		}
 
 		object[] TestArgs = new object[] { "NoXGE", "SomeArg", "Map=AwesomeMap", "run=whatever", "Stuff" };
@@ -771,7 +771,7 @@ public class TestCombinePaths : BuildCommand
 		for (int Index = 0; Index < Results.Length; ++Index)
 		{
 			var CombinedPath = Results[Index];
-			Log(CombinedPath);
+			LogConsole(CombinedPath);
 			if (CombinedPath != Results[0])
 			{
 				throw new AutomationException("Path {0} does not match path 0: {1} (expected: {2})", Index, CombinedPath, Results[0]);
@@ -795,7 +795,7 @@ class TestLog : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("************************* ShooterGameRun");
+		LogConsole("************************* ShooterGameRun");
 		string MapToRun = ParseParamValue("map", "/game/maps/sanctuary");
 
 		PushDir(CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/Win64/"));
@@ -846,7 +846,7 @@ class TestGamePerf : BuildCommand
 
 	public override void ExecuteBuild()
 	{
-		Log("*********************** TestGamePerf");
+		LogConsole("*********************** TestGamePerf");
 
 		string UserName = "test.automation";
 		string Password = "JJGfh9CX";
@@ -1046,13 +1046,13 @@ class TestGamePerf : BuildCommand
 						{
 							if (!File.Exists(ClientLogFile))
 							{
-								Log("Creating log file");
+								LogConsole("Creating log file");
 
 								File.Create(ClientLogFile).Close();
 
-								Log(ClientLogFile);
+								LogConsole(ClientLogFile);
 
-								Log("Log file created");
+								LogConsole("Log file created");
 							}
 
 							RunAndLog(Exe, CmdLine, ClientLogFile);
@@ -1090,7 +1090,7 @@ class TestGamePerf : BuildCommand
 
 						catch (Exception Err)
 						{
-							Log(Err.Message);
+							LogConsole(Err.Message);
 						}
 					}
 				}
@@ -1099,7 +1099,7 @@ class TestGamePerf : BuildCommand
 
 		catch (Exception Err)
 		{
-			Log(Err.Message);
+			LogConsole(Err.Message);
 		}
 	}
 }
@@ -1132,10 +1132,10 @@ public class TestUATBuildProducts : BuildCommand
 		UE4Build Build = new UE4Build(this);
 		Build.AddUATFilesToBuildProducts();
 
-		Log("Build products:");
+		LogConsole("Build products:");
 		foreach (var Product in Build.BuildProductFiles)
 		{
-			Log("  " + Product);
+			LogConsole("  " + Product);
 		}
 	}
 }
@@ -1147,37 +1147,37 @@ public class TestWatchdogTimer : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("Starting 1st timer (1s). This should not crash.");
+		LogConsole("Starting 1st timer (1s). This should not crash.");
 		using (var SafeTimer = new WatchdogTimer(1))
 		{
 			// Wait 500ms
-			Log("Started {0}", SafeTimer.GetProcessName());
+			LogConsole("Started {0}", SafeTimer.GetProcessName());
 			Thread.Sleep(500);
 		}
-		Log("First timer disposed successfully.");
+		LogConsole("First timer disposed successfully.");
 
-		Log("Starting 2nd timer (2s). This should throw an exception after 1 second.");
+		LogConsole("Starting 2nd timer (2s). This should throw an exception after 1 second.");
 		try
 		{
 			using (var CrashTimer = new WatchdogTimer(2))
 			{
 				// Wait 5s (this will trigger the watchdog timer)
-				Log("Started {0}", CrashTimer.GetProcessName());
+				LogConsole("Started {0}", CrashTimer.GetProcessName());
 				Thread.Sleep(1000);
 				throw new Exception("Test exceptions under WatchdogTimer");
 			}
 		}
 		catch (Exception Ex)
 		{
-			Log("Triggered exception guarded by WatchdogTimer:");
-			Log(System.Diagnostics.TraceEventType.Information, Ex);
+			LogConsole("Triggered exception guarded by WatchdogTimer:");
+			LogConsole(Ex.Message);
 		}
 
-		Log("Starting 3rd timer (2s). This should crash after 2 seconds.");
+		LogConsole("Starting 3rd timer (2s). This should crash after 2 seconds.");
 		using (var CrashTimer = new WatchdogTimer(2))
 		{
 			// Wait 5s (this will trigger the watchdog timer)
-			Log("Started {0}", CrashTimer.GetProcessName());
+			LogConsole("Started {0}", CrashTimer.GetProcessName());
 			Thread.Sleep(5000);
 		}
 	}
@@ -1203,7 +1203,7 @@ class TestOSSCommands : BuildCommand
 		}
 		catch (Exception Err)
 		{
-			Log(Err.Message);
+			LogConsole(Err.Message);
 		}
 
 		FileInfo[] LogFiles = new DirectoryInfo(LogDirectory).GetFiles();
@@ -1311,15 +1311,15 @@ public class UBT : BuildCommand
 
 		Agenda.AddTargets(Targets.ToArray(), Platform, Configuration);
 
-		Log("UBT Buid");
-		Log("Targets={0}", String.Join(",", Targets));
-		Log("Platform={0}", Platform);
-		Log("Configuration={0}", Configuration);
-		Log("Clean={0}", Clean);
+		LogConsole("UBT Buid");
+		LogConsole("Targets={0}", String.Join(",", Targets));
+		LogConsole("Platform={0}", Platform);
+		LogConsole("Configuration={0}", Configuration);
+		LogConsole("Clean={0}", Clean);
 
 		Build.Build(Agenda, InUpdateVersionFiles: false);
 
-		Log("UBT Completed");
+		LogConsole("UBT Completed");
 	}
 }
 [Help("Zeroes engine versions in ObjectVersion.cpp and Version.h and checks them in.")]
@@ -1334,21 +1334,21 @@ public class ZeroEngineVersions : BuildCommand
 			var Stat = P4.FStat(VersionFilename);
 			if (Stat.IsValid && Stat.Action != P4Action.None)
 			{
-				Log("Reverting {0}", VersionFilename);
+				LogConsole("Reverting {0}", VersionFilename);
 				P4.Revert(VersionFilename);
 			}
 
-			Log("Gettting engine version files @{0}", P4Env.Changelist);
+			LogConsole("Gettting engine version files @{0}", P4Env.Changelist);
 			P4.Sync(String.Format("-f {0}@{1}", VersionFilename, P4Env.Changelist));
 		}
 
-		Log("Checking if engine version files need to be reset...");
+		LogConsole("Checking if engine version files need to be reset...");
 		List<string> FilesToSubmit = new List<string>();
 		{
 			VersionFileUpdater VersionH = new VersionFileUpdater(VersionFilename);
 			if (VersionH.Contains("#define ENGINE_VERSION 0") == false)
 			{
-				Log("Zeroing out engine versions in {0}", VersionFilename);
+				LogConsole("Zeroing out engine versions in {0}", VersionFilename);
 				VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + P4Env.BranchName + "\"");
 				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
 
@@ -1364,14 +1364,14 @@ public class ZeroEngineVersions : BuildCommand
 			{
 				P4.Edit(CL, Filename);
 			}
-			Log("Submitting CL #{0}...", CL);
+			LogConsole("Submitting CL #{0}...", CL);
 			int SubmittedCL;
 			P4.Submit(CL, out SubmittedCL, false, true);
-			Log("CL #{0} submitted as {1}", CL, SubmittedCL);
+			LogConsole("CL #{0} submitted as {1}", CL, SubmittedCL);
 		}
 		else
 		{
-			Log("Engine version files are set to 0.");
+			LogConsole("Engine version files are set to 0.");
 		}
 	}
 }
@@ -1393,7 +1393,7 @@ public class SyncSource : BuildCommand
 		catch (Exception Ex)
 		{
 			LogError("Unable to sync {0}", SyncCmdLine);
-			Log(System.Diagnostics.TraceEventType.Error, Ex);
+			LogError(Ex.Message);
 		}
 	}
 
@@ -1441,7 +1441,7 @@ public class SyncSource : BuildCommand
 		foreach (var AlwaysSyncSubFolder in AlwaysSync)
 		{
 			var SyncCmdLine = CombinePaths(PathSeparator.Depot, DepotPath, AlwaysSyncSubFolder, "...") + Changelist;
-			Log("Syncing {0}", SyncCmdLine, Changelist);
+			LogConsole("Syncing {0}", SyncCmdLine, Changelist);
 			SafeSync(SyncCmdLine);
 		}
 
@@ -1457,7 +1457,7 @@ public class SyncSource : BuildCommand
 				if (!ExclusionList.Contains(SubDirName))
 				{
 					var SyncCmdLine = CombinePaths(PathSeparator.Depot, SubDir, "...") + Changelist;
-					Log("Syncing {0}", SyncCmdLine);
+					LogConsole("Syncing {0}", SyncCmdLine);
 					SafeSync(SyncCmdLine);
 				}
 			}
@@ -1534,7 +1534,7 @@ class DumpBranch : BuildCommand
 
 	public override void ExecuteBuild()
 	{
-		Log("************************* DumpBranch");
+		LogConsole("************************* DumpBranch");
 
 		var HostPlatforms = new List<UnrealTargetPlatform>();
 		HostPlatforms.Add(UnrealTargetPlatform.Win64);
@@ -1575,7 +1575,7 @@ class TestBlame : BuildCommand
 		var Filename = ParseParamValue("File", "//depot/UE4/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h");
 		var OutFilename = ParseParamValue("Out");
 
-		Log("Creating blame file for {0}", Filename);
+		LogConsole("Creating blame file for {0}", Filename);
 		P4Connection.BlameLineInfo[] Result = null;
 		if (ParseParam("Timelapse"))
 		{
@@ -1589,7 +1589,7 @@ class TestBlame : BuildCommand
 		foreach (var BlameLine in Result)
 		{
 			var ResultLine = String.Format("#{0} in {1} by {2}: {3}", BlameLine.Revision.Revision, BlameLine.Revision.Changelist, BlameLine.Revision.User, BlameLine.Line);
-			Log(ResultLine);
+			LogConsole(ResultLine);
 			BlameResult.AppendLine(ResultLine);
 		}
 		if (String.IsNullOrEmpty(OutFilename) == false)
@@ -1616,7 +1616,7 @@ class TestChanges : BuildCommand
 			}
 			foreach (var Record in ChangeRecords)
 			{
-				Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+				LogConsole("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
 			}
 		}
 		{
@@ -1627,7 +1627,7 @@ class TestChanges : BuildCommand
 			}
 			foreach (var Record in ChangeRecords)
 			{
-				Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+				LogConsole("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
 			}
 		}
 	}
@@ -1638,7 +1638,7 @@ class TestKillAll : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("*********************** TestKillAll");
+		LogConsole("*********************** TestKillAll");
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
@@ -1654,7 +1654,7 @@ class TestCleanFormalBuilds : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("*********************** TestCleanFormalBuilds");
+		LogConsole("*********************** TestCleanFormalBuilds");
 		var Dir = ParseParamValue("Dir", @"P:\Builds\Soul\Soul_Android_Shipping_MakeBuild\++depot+UE4-CL-2077154");
 		var CLString = ParseParamValue("CL", "2077154");
 		CleanFormalBuilds(Dir, CLString);
@@ -1667,7 +1667,7 @@ class TestStopProcess : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("*********************** TestStopProcess");
+		LogConsole("*********************** TestStopProcess");
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
@@ -1675,13 +1675,13 @@ class TestStopProcess : BuildCommand
 
 		for (int Attempt = 0; Attempt < 5; ++Attempt)
 		{
-			Log("Attempt: {0}", Attempt);
+			LogConsole("Attempt: {0}", Attempt);
 			var Proc = Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 			Thread.Sleep(10000);
 			Proc.StopProcess();
 		}
 
-		Log("One final attempt to test KillAll");
+		LogConsole("One final attempt to test KillAll");
 		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 		Thread.Sleep(10000);
 	}

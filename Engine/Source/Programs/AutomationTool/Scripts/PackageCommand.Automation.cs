@@ -25,7 +25,7 @@ public partial class Project : CommandUtils
 		}
 		if (DeployContextList.Count > 0 && !Params.SkipStage)
 		{
-			Log("********** PACKAGE COMMAND STARTED **********");
+			LogConsole("********** PACKAGE COMMAND STARTED **********");
 
 			foreach (var SC in DeployContextList)
 			{
@@ -35,7 +35,7 @@ public partial class Project : CommandUtils
 				}
 			}
 
-			Log("********** PACKAGE COMMAND COMPLETED **********");
+			LogConsole("********** PACKAGE COMMAND COMPLETED **********");
 		}
 	}
 

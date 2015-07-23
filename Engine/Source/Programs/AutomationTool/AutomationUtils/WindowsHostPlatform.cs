@@ -111,7 +111,7 @@ namespace AutomationTool
 
 				if (File.Exists(VCVarsBatchFile))
 				{
-					Log.TraceInformation("Setting VS environment variables via {0}.", VCVarsBatchFile);
+					Log.TraceVerbose("Setting VS environment variables via {0}.", VCVarsBatchFile);
 					var BatchVars = CommandUtils.GetEnvironmentVariablesFromBatchFile(VCVarsBatchFile);
 					// Note these env var names are hardcoded here because they're more
 					// related to the values stored inside the batch files rather than the mapping equivalents.
@@ -124,8 +124,8 @@ namespace AutomationTool
 				{
 					throw new AutomationException("{0} does not exist.", VCVarsBatchFile);
 				}
-				Log.TraceInformation("{0}={1}", EnvVarNames.NETFrameworkDir, FrameworkDir);
-				Log.TraceInformation("{0}={1}", EnvVarNames.NETFrameworkVersion, FrameworkVersion);
+				Log.TraceVerbose("{0}={1}", EnvVarNames.NETFrameworkDir, FrameworkDir);
+				Log.TraceVerbose("{0}={1}", EnvVarNames.NETFrameworkVersion, FrameworkVersion);
 			}
 		}
 

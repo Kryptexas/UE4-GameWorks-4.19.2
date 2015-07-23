@@ -503,8 +503,8 @@ namespace UnrealBuildTool
 				}
 			}
 
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
+			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
+			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
 
 			double TotalThreadSeconds = 0;
 
@@ -530,7 +530,7 @@ namespace UnrealBuildTool
 				double ThreadSeconds = Action.Duration.TotalSeconds;
 
 				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats,
-					TraceEventType.Information,
+					LogEventType.Console,
 					"^{0}^{1:0.00}^{2}^{3}^{4}", 
 					Action.ActionType.ToString(),
 					ThreadSeconds,
@@ -573,8 +573,8 @@ namespace UnrealBuildTool
 			Log.TraceInformation("-------- End Detailed Actions Stats -----------------------------------------------------------");
 
 			// Log total CPU seconds and numbers of processors involved in tasks.
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo, 
-				TraceEventType.Information, "Cumulative thread seconds ({0} processors): {1:0.00}", System.Environment.ProcessorCount, TotalThreadSeconds);
+			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+				LogEventType.Console, "Cumulative thread seconds ({0} processors): {1:0.00}", System.Environment.ProcessorCount, TotalThreadSeconds);
 
 			return bSuccess;
 		}

@@ -32,7 +32,7 @@ public partial class Project : CommandUtils
 			return;
 		}
 
-		Log("********** BUILD COMMAND STARTED **********");
+		LogConsole("********** BUILD COMMAND STARTED **********");
 
 		var UE4Build = new UE4Build(Command);
 		var Agenda = new UE4Build.BuildAgenda();
@@ -126,7 +126,7 @@ public partial class Project : CommandUtils
 			UE4Build.AddBuildProductsToChangelist(WorkingCL, UE4Build.BuildProductFiles);
 		}
 
-		Log("********** BUILD COMMAND COMPLETED **********");
+		LogConsole("********** BUILD COMMAND COMPLETED **********");
 	}
 
 	#endregion

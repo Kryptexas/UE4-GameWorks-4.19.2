@@ -34,7 +34,7 @@ public abstract class BuildCommand : CommandUtils
 			LogError("BUILD FAILED");
 			throw;
 		}
-		Log("BUILD SUCCESSFUL");
+		LogConsole("BUILD SUCCESSFUL");
 	}
 
 	/// <summary>

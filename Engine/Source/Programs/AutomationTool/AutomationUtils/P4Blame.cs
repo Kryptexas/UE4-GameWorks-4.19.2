@@ -302,7 +302,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				CommandUtils.Log("Filelog({0})", DepotFilename);
+				CommandUtils.LogConsole("Filelog({0})", DepotFilename);
 			}
 			var Result = new List<RevisionInfo>();
 			var FilelogResult = P4("filelog " + DepotFilename, AllowSpew: false);
@@ -335,7 +335,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				CommandUtils.Log("P4Print({0})", CommandLine);
+				CommandUtils.LogConsole("P4Print({0})", CommandLine);
 			}
 			var PrintResult = P4("print " + CommandLine, AllowSpew: false);
 			var OutputLines = new List<string>(PrintResult.Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.None));
@@ -354,7 +354,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				CommandUtils.Log("Annotate({0})", CommandLine);
+				CommandUtils.LogConsole("Annotate({0})", CommandLine);
 			}
 			var PrintResult = P4("annotate " + CommandLine, AllowSpew: false);
 			var OutputLines = new List<string>(PrintResult.Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.None));
@@ -374,7 +374,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				CommandUtils.Log("Diff2({0}, {1}, {2})", DepotFilename, RevA, RevB);
+				CommandUtils.LogConsole("Diff2({0}, {1}, {2})", DepotFilename, RevA, RevB);
 			}
 			var Changes = new List<DiffChange>();
 			var Diff2Result = P4(String.Format("diff2 {0}#{1} {0}#{2}", DepotFilename, RevA, RevB), AllowSpew: false);
@@ -400,7 +400,7 @@ namespace AutomationTool
 		/// <returns>An array of lines with blame information.</returns>
 		public BlameLineInfo[] Timelapse(string DepotFilename, int MaxRevision = Int32.MaxValue)
 		{
-			CommandUtils.Log("Timelapse({0}#{1})", DepotFilename, (MaxRevision == Int32.MaxValue) ? "head" : MaxRevision.ToString());
+			CommandUtils.LogConsole("Timelapse({0}#{1})", DepotFilename, (MaxRevision == Int32.MaxValue) ? "head" : MaxRevision.ToString());
 			// Get the file history.
 			var FileHistory = Filelog(DepotFilename, bQuiet: true);
 			if (!CommandUtils.IsNullOrEmpty(FileHistory))
@@ -453,7 +453,7 @@ namespace AutomationTool
 		/// <returns>An array of lines with blame information.</returns>
 		public BlameLineInfo[] Blame(string DepotFilename)
 		{
-			CommandUtils.Log("Blame({0})", DepotFilename);
+			CommandUtils.LogConsole("Blame({0})", DepotFilename);
 			// Get the file history.
 			var FileHistory = Filelog(DepotFilename, bQuiet: true);
 			
