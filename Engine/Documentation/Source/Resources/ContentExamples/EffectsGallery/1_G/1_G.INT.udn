@@ -59,7 +59,7 @@ This effect is achieved by way of the Bone/Socket Location module, which allows 
 
 ![](image034.png)
  
-Then, in the Emitter Actor properties, you add the instance parameter with the name you specified before in the location module, select 'PSPT_Actor' from the list, and select the Actor (Skeletal Mesh in this case) you want to emit particles from, and you will immediately see particles spawning at the bones/sockets you specified in the location module. Done!
+Then, in the Emitter Actor properties, you add the instance parameter with the name you specified before in the location module, select **PSPT_Actor** from the list, and select the Actor (Skeletal Mesh in this case) you want to emit particles from, and you will immediately see particles spawning at the bones/sockets you specified in the location module. Done!
 
 ![](image036.png)
 
