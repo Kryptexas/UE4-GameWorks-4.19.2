@@ -16,7 +16,7 @@ struct UNREALED_API FRecreateUberGraphFrameScope
 {
 private:
 	TArray<UObject*> Objects;
-	UClass* Class;
+	UClass* RecompiledClass;
 public:
 	FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate);
 	~FRecreateUberGraphFrameScope();
