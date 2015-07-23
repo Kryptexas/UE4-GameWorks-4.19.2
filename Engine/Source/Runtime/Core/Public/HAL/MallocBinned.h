@@ -1156,7 +1156,7 @@ public:
 	}
 
 
-	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
+	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. MUST BE THREAD SAFE. */
 	virtual void UpdateStats() override
 	{
 		FMalloc::UpdateStats();
