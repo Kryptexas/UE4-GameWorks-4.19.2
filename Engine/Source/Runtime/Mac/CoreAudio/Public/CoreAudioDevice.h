@@ -172,7 +172,6 @@ public:
 
 typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FCoreAudioSoundBuffer>> FAsyncRealtimeAudioTask;
 
-
 /**
  * CoreAudio implementation of FSoundSource, the interface used to play, stop and update sources
  */
@@ -294,11 +293,11 @@ protected:
 	AUNode						SourceNode;
 	AudioUnit					SourceUnit;
 
-	AUNode						StreamSplitterNode;
-	AudioUnit					StreamSplitterUnit;
-
 	AUNode						EQNode;
 	AudioUnit					EQUnit;
+
+	AUNode						LowPassNode;
+	AudioUnit					LowPassUnit;
 
 	AUNode						RadioNode;
 	AudioUnit					RadioUnit;
@@ -310,9 +309,6 @@ protected:
 
 	bool						bDryMuted;
 
-	AUNode						StreamMergerNode;
-	AudioUnit					StreamMergerUnit;
-
 	int32						AudioChannel;
 	int32						BufferInUse;
 	int32						NumActiveBuffers;
@@ -322,6 +318,12 @@ protected:
 private:
 
 	void FreeResources();
+
+	void InitSourceUnit(AudioStreamBasicDescription* Format, AUNode& HeadNode);
+	void InitLowPassEffect(AudioStreamBasicDescription* Format, AUNode& HeadNode);
+	void InitRadioSourceEffect(AudioStreamBasicDescription* Format, AUNode& HeadNode);
+	void InitEqSourceEffect(AudioStreamBasicDescription* Format, AUNode& HeadNode);
+	void InitReverbSourceEffect(AudioStreamBasicDescription* Format, AUNode& HeadNode);
 
 	friend class FCoreAudioDevice;
 	friend class FCoreAudioEffectsManager;
@@ -391,6 +393,19 @@ class FCoreAudioDevice : public FAudioDevice
 		return ( ( InputNum << 16 ) | ( OutputNum & 0x0000FFFF ) );
 	}
 
+	int32 FindFreeAudioChannel()
+	{
+		for (int32 Index = 1; Index < CORE_AUDIO_MAX_CHANNELS + 1; Index++)
+		{
+			if (AudioChannels[Index] == nullptr)
+			{
+				return Index;
+			}
+		}
+		return 0;
+	}
+
+
 protected:
 
 	/** Inverse listener transformation, used for spatialization */
@@ -409,11 +424,14 @@ private:
 	AudioStreamBasicDescription	MatrixMixerInputFormat;
 	AudioStreamBasicDescription	MatrixMixerOutputFormat;
 
-	bool						Mixer3DInputStatus[CORE_AUDIO_MAX_MULTICHANNEL_AUDIOCHANNELS];
-	bool						MatrixMixerInputStatus[CORE_AUDIO_MAX_CHANNELS];
+	bool						Mixer3DInputStatus[CORE_AUDIO_MAX_CHANNELS];
+	bool						MatrixMixerInputStatus[CORE_AUDIO_MAX_MULTICHANNEL_AUDIOCHANNELS];
+
+	class FCoreAudioSoundSource* AudioChannels[CORE_AUDIO_MAX_CHANNELS + 1];
 
 	friend class FCoreAudioSoundBuffer;
 	friend class FCoreAudioSoundSource;
+	friend class FCoreAudioEffectsManager;
 };
 
 #endif
