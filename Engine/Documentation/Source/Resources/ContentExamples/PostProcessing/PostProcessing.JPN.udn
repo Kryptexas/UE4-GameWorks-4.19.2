@@ -2,7 +2,7 @@
 Availability:Public
 Title:ポストプロセスのコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
-Description:ポストプロセスのコンテンツ例で提供されるサンプルの概要
+Description:ポストプロセスのコンテンツ サンプルで提供されるサンプルの概要
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
@@ -52,7 +52,7 @@ Related:Resources/Showcases/Stylized
 
 
 [REGION:note]
-それぞれのサンプル別にさらにリソースを見る場合は、サンプル名をクリックしてください。
+サンプル名をクリッすると、サンプルごとにリソースを見ることができます。
 [/REGION]
  
 
@@ -62,7 +62,7 @@ Related:Resources/Showcases/Stylized
 
 **ポストプロセス** マップで提供されているサンプルは以下の通りです。
 
-| 例 | 実演内容 |
+| サンプル | 実演内容 |
 | ------- | ------------ |
 | **[1.1 デフォルト設定](Resources\ContentExamples\PostProcessing\1_1)** | **Post Process Volume** のデフォルト設定の説明です (カメラが **Post Process Volume** 内にない場合にも使われる設定です)。 |
 | **[1.2 フィルム](Resources\ContentExamples\PostProcessing\1_2)** | **Film** でシーンの色の調整ができます。 |
