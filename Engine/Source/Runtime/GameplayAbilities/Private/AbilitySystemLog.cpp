@@ -23,7 +23,7 @@ AbilitySystemLog * GetInstance()
 	return &Instance;
 }
 
-FString AbilitySystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
+FString AbilitySystemLog::Log(ELogVerbosity::Type Verbosity, const FString& LogStr)
 {
 #if !NO_LOGGING
 	if (!LogAbilitySystem.IsSuppressed(Verbosity))
@@ -49,11 +49,11 @@ FString AbilitySystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
 		}
 
 		FString IndentStr = FString::Printf(TEXT("%*s"), Instance->Indent, TEXT(""));
-		return IndentStr + Log;
+		return IndentStr + LogStr;
 	}
 #endif
 	
-	return Log;
+	return LogStr;
 }
 
 void AbilitySystemLog::PushScope(AbilitySystemLogScope * Scope)
