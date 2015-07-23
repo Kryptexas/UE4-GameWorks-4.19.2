@@ -147,8 +147,8 @@ TOptional<float> FSequencerDragOperation::SnapToTimes(float InitialTime, const T
 FResizeSection::FResizeSection( FSequencer& Sequencer, const TSet<TWeakObjectPtr<UMovieSceneSection> >& InSections, bool bInDraggingByEnd )
 	: FSequencerDragOperation( Sequencer )
 	, Sections( InSections )
+	, bDraggingByEnd(bInDraggingByEnd)
 	, MouseDownTime(ForceInit)
-	, bDraggingByEnd( bInDraggingByEnd )
 {
 }
 

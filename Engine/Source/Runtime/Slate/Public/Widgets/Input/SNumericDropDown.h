@@ -51,8 +51,8 @@ public:
 		: _DropDownValues()
 		, _LabelText()
 		, _Orientation( EOrientation::Orient_Horizontal )
-		, _bShowNamedValue( false )
 		, _MinDesiredValueWidth( 40 )
+		, _bShowNamedValue(false)
 		{}
 
 		/** The values which are used to populate the drop down menu. */
