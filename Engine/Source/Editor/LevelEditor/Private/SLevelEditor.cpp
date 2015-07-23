@@ -737,7 +737,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	{
 		// @todo remove when world-centric mode is added
 		SequencerTab = SNew(SDockTab)
-			.Icon( FEditorStyle::GetBrush("Sequencer.Tabs.SequencerMain") )
+			.Icon( FSlateStyleRegistry::FindSlateStyle("ActorAnimationEditorStyle")->GetBrush("ActorAnimationEditor.Tabs.Sequencer") )
 			.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
 			[
 				SNullWidget::NullWidget
