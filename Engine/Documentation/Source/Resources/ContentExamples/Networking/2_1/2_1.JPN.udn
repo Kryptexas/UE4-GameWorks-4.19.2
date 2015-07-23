@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2620792
 Availability:Public
 Title:2.1 - ネットワークの関連性 (パート 1 - 全くレプリケートされていない場合)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能の事例レベルの概要 事例 2.1:ネットワークの関連性 (パート 1 - 全くレプリケートされていない場合)
+Description:ネットワーク機能のサンプル レベルの概要、2.1:ネットワークの関連性 (パート 1 - 全くレプリケートされていない場合)
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
@@ -32,11 +32,10 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 [REGION:tip]
-**Server** と **Client** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients]** 欄を 2 に設定します。
+**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients (クライアント数)]** フィールドを 2 に設定します。
 [/REGION]
 
 
-## 概要
 ブループリントで正しくネットワーク化されたゲームプレイを作成するために、 **ネットワークの関連性** のコンセプトを理解することが大切です。 
 クライアント マシンの場合、すべてのアクタのネットワーク データをいちいち受け取っても意味のない場合が多いです。大きなマップの片方にいるプレイヤーは、ネットワークの構築の観点すると、マップの逆側で起こっていることを全部知る必要はないのです。 
 この場合、ある時間でプレイヤーに「関連する」のは、幾つかのアクタのみだということになります。関連するアクタは通常、プレイヤーが見ることができ、相互に作用し、あるいは近くにいます。プレイヤーは、最適化として、関連するアクタのみに対してネットワークを完全に更新します。 
@@ -61,4 +60,4 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 	[![](Resources/ContentExamples/Networking/2_1/2_1_OnChestTouched.png)(w:640)](Resources/ContentExamples/Networking/2_1/2_1_OnChestTouched.png)
 [/REGION]
 
-このサンプルではレプリケーションや関連性は取り扱いませんので、 Server のみが木箱が開くところを見ることができます。 
+このサンプルではレプリケーションや関連性は取り扱いませんので、Server のみが木箱が開くところを見ることができます。 
