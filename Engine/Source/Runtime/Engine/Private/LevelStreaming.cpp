@@ -870,20 +870,9 @@ void ULevelStreaming::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		{
 			// Make sure the level's Level Color change is applied immediately by reregistering the
 			// components of the actor's in the level
-			if( LoadedLevel != NULL )
+			if (LoadedLevel != nullptr)
 			{
-				UPackage* Package = LoadedLevel->GetOutermost();
-				for( TObjectIterator<UActorComponent> It; It; ++It )
-				{
-					if( It->IsIn( Package ) )
-					{
-						UActorComponent* ActorComponent = Cast<UActorComponent>( *It );
-						if( ActorComponent )
-						{
-							ActorComponent->RecreateRenderState_Concurrent();
-						}
-					}
-				}
+				LoadedLevel->MarkLevelComponentsRenderStateDirty();
 			}
 		}
 	}

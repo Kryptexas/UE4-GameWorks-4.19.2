@@ -354,12 +354,6 @@ void FLevelModel::SetLevelTranslationDelta(FVector2D InAbsoluteDelta)
 	}
 }
 
-bool FLevelModel::SupportsLevelColor() const
-{
-	// By default Levels don't support a level color
-	return false;
-}
-
 FLinearColor FLevelModel::GetLevelColor() const
 {
 	// Returns Constant color, base classes will override this

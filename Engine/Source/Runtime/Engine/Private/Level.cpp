@@ -237,6 +237,9 @@ ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 	,	PrecomputedLightVolume(new FPrecomputedLightVolume())
 {
+#if WITH_EDITORONLY_DATA
+	LevelColor = FLinearColor::White;
+#endif
 }
 
 void ULevel::Initialize(const FURL& InURL)
@@ -801,6 +804,25 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 }
 
 #if WITH_EDITOR
+
+void ULevel::MarkLevelComponentsRenderStateDirty()
+{
+	for (UModelComponent* ModelComponent : ModelComponents)
+	{
+		if (ModelComponent)
+		{
+			ModelComponent->MarkRenderStateDirty();
+		}
+	}
+
+	for (AActor* Actor : Actors)
+	{
+		if (Actor)
+		{
+			Actor->MarkComponentsRenderStateDirty();
+		}
+	}
+}
 
 void ULevel::CreateModelComponents()
 {

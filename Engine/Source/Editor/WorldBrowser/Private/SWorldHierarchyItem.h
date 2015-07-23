@@ -100,6 +100,9 @@ private:
 	void OnColorPickerCancelled(FLinearColor OriginalColor);
 	void OnColorPickerInteractiveBegin();
 	void OnColorPickerInteractiveEnd();
+
+	/** Whether color button should be visible, depends on whether sub-level is loaded */
+	EVisibility GetColorButtonVisibility() const;
 	
 	/**
 	 *  @return The text of level name while it is not being edited

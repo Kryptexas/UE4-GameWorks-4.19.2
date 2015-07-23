@@ -33,7 +33,6 @@ public:
 	virtual FName GetAssetName() const override;
 	virtual FName GetLongPackageName() const override;
 	virtual void UpdateAsset(const FAssetData& AssetData) override;
-	virtual bool SupportsLevelColor() const override;
 	virtual FLinearColor GetLevelColor() const override;
 	virtual void SetLevelColor(FLinearColor InColor) override;
 	virtual void Update() override;

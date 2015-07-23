@@ -468,6 +468,13 @@ public:
 	/** Level simplification settings for each LOD */
 	UPROPERTY()
 	FLevelSimplificationDetails LevelSimplification[WORLDTILE_LOD_MAX_INDEX];
+
+	/** 
+	 * The level color used for visualization. (Show -> Advanced -> Level Coloration)
+	 * Used only in world composition mode
+	 */
+	UPROPERTY()
+	FLinearColor LevelColor;
 #endif //WITH_EDITORONLY_DATA
 
 	/** Actor which defines level logical bounding box				*/
@@ -582,8 +589,11 @@ public:
 	 * Invalidates the cached data used to render the level's UModel.
 	 */
 	void InvalidateModelGeometry();
-
+	
 #if WITH_EDITOR
+	/** Marks all level components render state as dirty */
+	ENGINE_API void MarkLevelComponentsRenderStateDirty();
+
 	/** Called to create ModelComponents for BSP rendering */
 	void CreateModelComponents();
 #endif // WITH_EDITOR

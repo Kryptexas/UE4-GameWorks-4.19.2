@@ -111,30 +111,23 @@ TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName&
 	}
 	else if (ColumnID == HierarchyColumns::ColumnID_Color)
 	{
-		if (LevelModel->SupportsLevelColor())
-		{
-			TableRowContent =
-				SAssignNew(ColorButton, SButton)
-				.ContentPadding(0)
-				.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-				.IsEnabled(true)
-				.OnClicked(this, &SWorldHierarchyItem::OnChangeColor)
-				.ToolTipText(LOCTEXT("LevelColorButtonToolTip", "Change Level Color"))
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				.Content()
-				[
-					SNew(SImage)
-					.ColorAndOpacity(this, &SWorldHierarchyItem::GetDrawColor)
-					.Image(this, &SWorldHierarchyItem::GetLevelColorBrush)
-				]
-			;
-		}
-		else
-		{
-			TableRowContent =
-				SNew(SHorizontalBox);
-		}
+		TableRowContent =
+			SAssignNew(ColorButton, SButton)
+			.ContentPadding(0)
+			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+			.IsEnabled(true)
+			.OnClicked(this, &SWorldHierarchyItem::OnChangeColor)
+			.ToolTipText(LOCTEXT("LevelColorButtonToolTip", "Change Level Color"))
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Visibility(this, &SWorldHierarchyItem::GetColorButtonVisibility)
+			.Content()
+			[
+				SNew(SImage)
+				.ColorAndOpacity(this, &SWorldHierarchyItem::GetDrawColor)
+				.Image(this, &SWorldHierarchyItem::GetLevelColorBrush)
+			]
+		;
 	}
 	else if (ColumnID == HierarchyColumns::ColumnID_Kismet)
 	{
@@ -330,6 +323,20 @@ FReply SWorldHierarchyItem::OnChangeColor()
 	}
 
 	return FReply::Handled();
+}
+
+EVisibility SWorldHierarchyItem::GetColorButtonVisibility() const
+{
+	EVisibility Result = EVisibility::Hidden;
+	if (LevelModel.IsValid())
+	{
+		ULevel* LevelObject = LevelModel->GetLevelObject();
+		if (LevelObject && !LevelObject->IsPersistentLevel())
+		{
+			Result = EVisibility::Visible;
+		}
+	}
+	return Result;
 }
 
 FReply SWorldHierarchyItem::OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

@@ -82,6 +82,8 @@ public:
 	virtual void OnLevelRemovedFromWorld() override;
 	virtual void OnParentChanged() override;
 	virtual bool IsVisibleInCompositionView() const override;
+	virtual FLinearColor GetLevelColor() const override;
+	virtual void SetLevelColor(FLinearColor InColor) override;
 	// FLevelModel interface end
 	
 	/** Adds new streaming level*/

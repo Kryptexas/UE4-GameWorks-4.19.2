@@ -72,11 +72,6 @@ void FStreamingLevelModel::UpdateAsset(const FAssetData& AssetData)
 	}
 }
 
-bool FStreamingLevelModel::SupportsLevelColor() const
-{
-	return LevelStreaming.IsValid();
-}
-
 FLinearColor FStreamingLevelModel::GetLevelColor() const
 {
 	if (LevelStreaming.IsValid())

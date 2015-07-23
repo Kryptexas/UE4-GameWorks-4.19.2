@@ -581,6 +581,14 @@ void FWorldTileModel::LoadLevel()
 	bWasShelved = !bShouldBeVisible;
 	//
 	LoadedLevel = LevelStreaming->GetLoadedLevel();
+	
+	if (LoadedLevel.IsValid())
+	{
+		// LevelStreaming is transient object, but components fetch color from it
+		LevelStreaming->LevelColor = LoadedLevel->LevelColor;
+		LoadedLevel->MarkLevelComponentsRenderStateDirty();
+	}
+	
 	// Enable tile properties
 	TileDetails->bTileEditable = (LoadedLevel != nullptr);
 }
@@ -605,7 +613,7 @@ ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 
 		//
 		AssociatedStreamingLevel->SetWorldAssetByPackageName(PackageName);
-		AssociatedStreamingLevel->LevelColor		= FLinearColor::MakeRandomColor();
+		AssociatedStreamingLevel->LevelColor		= GetLevelColor();
 		AssociatedStreamingLevel->LevelTransform	= FTransform::Identity;
 		AssociatedStreamingLevel->PackageNameToLoad	= PackageName;
 		//
@@ -658,6 +666,35 @@ void FWorldTileModel::OnParentChanged()
 bool FWorldTileModel::IsVisibleInCompositionView() const
 {
 	return !TileDetails->bHideInTileView && LevelCollectionModel.PassesAllFilters(*this);
+}
+
+FLinearColor FWorldTileModel::GetLevelColor() const
+{
+	ULevel* LevelObject = GetLevelObject();
+	if (LevelObject)
+	{
+		return LevelObject->LevelColor;
+	}
+	else
+	{
+		return FLevelModel::GetLevelColor();
+	}
+}
+
+void FWorldTileModel::SetLevelColor(FLinearColor InColor)
+{
+	ULevel* LevelObject = GetLevelObject();
+	if (LevelObject)
+	{
+		ULevelStreaming* StreamingLevel = GetAssosiatedStreamingLevel();
+		if (StreamingLevel)
+		{
+			LevelObject->MarkPackageDirty();
+			LevelObject->LevelColor = InColor;
+			StreamingLevel->LevelColor = InColor; // this is transient object, but components fetch color from it
+			LevelObject->MarkLevelComponentsRenderStateDirty();
+		}
+	}
 }
 
 void FWorldTileModel::OnLevelBoundsActorUpdated()
