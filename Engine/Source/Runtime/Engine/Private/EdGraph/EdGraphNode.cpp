@@ -284,7 +284,10 @@ void UEdGraphNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	GetSchema()->ForceVisualizationCacheClear();
+	if(const UEdGraphSchema* Schema = GetSchema())
+	{
+		Schema->ForceVisualizationCacheClear();
+	}
 }
 
 void UEdGraphNode::CreateNewGuid()
