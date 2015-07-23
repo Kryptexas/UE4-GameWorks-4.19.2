@@ -28,13 +28,14 @@ public:
 
 		SetContentRoot(FPaths::EnginePluginsDir() / TEXT("MovieScene/ActorAnimationEditor/Content"));
 
-		// add styles here
+		// tab icons
+		Set("ActorAnimationEditor.Tabs.Sequencer", new IMAGE_BRUSH("icon_tab_sequencer_16x", Icon16x16));
 		
 		FSlateStyleRegistry::RegisterSlateStyle(*this);
 	 }
 
-	 /** Destructor. */
-	 ~FActorAnimationEditorStyle()
+	 /** Virtual destructor. */
+	 virtual ~FActorAnimationEditorStyle()
 	 {
 		FSlateStyleRegistry::UnRegisterSlateStyle(*this);
 	 }

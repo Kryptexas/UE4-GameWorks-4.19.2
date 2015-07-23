@@ -31,7 +31,7 @@ namespace SequencerDefs
 FActorAnimationEditorToolkit::FActorAnimationEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
 	: Style(InStyle)
 {
-	// Register sequencer menu extenders.
+	// register sequencer menu extenders
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
 		FAssetEditorExtender::CreateRaw(this, &FActorAnimationEditorToolkit::HandleMenuExtensibilityGetExtender));
@@ -43,14 +43,14 @@ FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
 {
 	Sequencer->Close();
 
-	// Unregister delegates
+	// unregister delegates
 	if (FModuleManager::Get().IsModuleLoaded(TEXT("LevelEditor")))
 	{
 		auto& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 		LevelEditorModule.OnMapChanged().RemoveAll(this);
 	}
 
-	// Un-Register sequencer menu extenders.
+	// unregister sequencer menu extenders
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll([this](const FAssetEditorExtender& Extender)
 	{
@@ -64,24 +64,24 @@ FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
 
 void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor )
 {
-	{
-		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Sequencer_Layout")
-			->AddArea
-			(
+	// create tab layout
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_ActorAnimationEditor")
+		->AddArea
+		(
 			FTabManager::NewPrimaryArea()
-			->Split
-			(
-			FTabManager::NewStack()
-			->AddTab(SequencerMainTabId, ETabState::OpenedTab)
-			)
-			);
+				->Split
+				(
+					FTabManager::NewStack()
+						->AddTab(SequencerMainTabId, ETabState::OpenedTab)
+				)
+		);
 
-		const bool bCreateDefaultStandaloneMenu = true;
-		const bool bCreateDefaultToolbar = false;
-		FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ActorAnimation);
-	}
+	const bool bCreateDefaultStandaloneMenu = true;
+	const bool bCreateDefaultToolbar = false;
 
-	// Init Sequencer
+	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ActorAnimation);
+
+	// initialize sequencer
 	FSequencerInitParams SequencerInitParams;
 	{
 		SequencerInitParams.ViewParams = InViewParams;
@@ -97,7 +97,7 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 		// @todo remove when world-centric mode is added
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
-		LevelEditorModule.AttachSequencer( Sequencer->GetSequencerWidget(), SharedThis(this));
+		LevelEditorModule.AttachSequencer(Sequencer->GetSequencerWidget(), SharedThis(this));
 
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
@@ -146,7 +146,7 @@ void FActorAnimationEditorToolkit::RegisterTabSpawners(const TSharedRef<class FT
 	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FActorAnimationEditorToolkit::HandleTabManagerSpawnTab))
 		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
-		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+		.SetIcon(FSlateIcon(Style->GetStyleSetName(), "ActorAnimationEditor.Tabs.Sequencer"));
 }
 
 
@@ -154,12 +154,12 @@ void FActorAnimationEditorToolkit::UnregisterTabSpawners(const TSharedRef<class 
 {
 	if (!IsWorldCentricAssetEditor())
 	{
-		TabManager->UnregisterTabSpawner( SequencerMainTabId );
+		TabManager->UnregisterTabSpawner(SequencerMainTabId);
 	}
 
 	// @todo remove when world-centric mode is added
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.AttachSequencer( SNullWidget::NullWidget, nullptr );
+	LevelEditorModule.AttachSequencer(SNullWidget::NullWidget, nullptr);
 }
 
 
