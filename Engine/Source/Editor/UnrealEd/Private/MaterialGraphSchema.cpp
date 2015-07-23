@@ -737,9 +737,17 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 						LibraryCategoriesProperty->ImportText(*LibraryCategoriesString, DestAddr, PPF_None, NULL, GWarn);
 					}
 
-					for (FString& Category : LibraryCategories)
+					for (const FString& Category : LibraryCategories)
 					{
-						LibraryCategoriesText.Add(FText::FromString(Category));
+						if (!LibraryCategoriesText.ContainsByPredicate(
+							[&Category](const FText& Text)
+							{
+								return Text.ToString() == Category;
+							}
+							))
+						{
+							LibraryCategoriesText.Add(FText::FromString(Category));
+						}
 					}
 
 					if ( LibraryCategoriesText.Num() == 0 )
