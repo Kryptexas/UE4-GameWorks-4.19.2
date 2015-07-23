@@ -12,7 +12,27 @@ public:
 	GENERATED_BODY()
 
 	/** Get or create a settings object for the specified name */
-	static USequencerSettings* GetOrCreate(const TCHAR* InName);
+	template<class T> 
+	static T* GetOrCreate(const TCHAR* InName)
+	{
+		static const TCHAR* SettingsContainerName = TEXT("SequencerSettingsContainer");
+
+		auto* Outer = FindObject<USequencerSettingsContainer>(GetTransientPackage(), SettingsContainerName);
+		if (!Outer)
+		{
+			Outer = NewObject<USequencerSettingsContainer>(GetTransientPackage(), USequencerSettingsContainer::StaticClass(), SettingsContainerName);
+			Outer->AddToRoot();
+		}
+	
+		T* Inst = FindObject<T>( Outer, InName );
+		if (!Inst)
+		{
+			Inst = NewObject<T>( Outer, T::StaticClass(), InName );
+			Inst->LoadConfig();
+		}
+
+		return Inst;
+	}
 };
 
 /** Serializable options for sequencer. */
@@ -28,6 +48,11 @@ public:
 	bool GetAutoKeyEnabled() const;
 	/** Sets whether or not auto key is enabled. */
 	void SetAutoKeyEnabled(bool InbAutoKeyEnabled);
+
+	/** Gets whether or not to show frame numbers. */
+	bool GetShowFrameNumbers() const;
+	/** Sets whether or not to show frame numbers. */
+	void SetShowFrameNumbers(bool InbShowFrameNumbers);
 
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
@@ -110,6 +135,9 @@ protected:
 	bool bAutoKeyEnabled;
 
 	UPROPERTY( config )
+	bool bShowFrameNumbers;
+
+	UPROPERTY( config )
 	bool bIsSnapEnabled;
 
 	UPROPERTY( config )
@@ -152,4 +180,12 @@ protected:
 	bool bShowCurveEditorCurveToolTips;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
+};
+
+/** Level editor specific sequencer settings */
+UCLASS(config=EditorPerProjectUserSettings, PerObjectConfig)
+class ULevelEditorSequencerSettings : public USequencerSettings
+{
+public:
+	GENERATED_UCLASS_BODY()
 };

@@ -60,11 +60,11 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 	{
 		bIsEditingWithinLevelEditor = InitParams.bEditWithinLevelEditor;
 		
-		Settings = USequencerSettingsContainer::GetOrCreate(*InitParams.ViewParams.UniqueName);
-
 		// If this sequencer edits the level, close out the existing active sequencer and mark this as the active sequencer.
 		if (bIsEditingWithinLevelEditor)
 		{
+			Settings = USequencerSettingsContainer::GetOrCreate<ULevelEditorSequencerSettings>(*InitParams.ViewParams.UniqueName);
+
 			if (ActiveSequencer.IsValid())
 			{
 				ActiveSequencer->Close();
@@ -74,6 +74,10 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			// Register for saving the level so that the state of the scene can be restored before saving and updated after saving.
 			FEditorDelegates::PreSaveWorld.AddSP(this, &FSequencer::OnPreSaveWorld);
 			FEditorDelegates::PostSaveWorld.AddSP(this, &FSequencer::OnPostSaveWorld);
+		}
+		else
+		{
+			Settings = USequencerSettingsContainer::GetOrCreate<USequencerSettings>(*InitParams.ViewParams.UniqueName);
 		}
 
 		ToolkitHost = InitParams.ToolkitHost;
@@ -843,16 +847,24 @@ FReply FSequencer::OnRecord()
 FReply FSequencer::OnStepForward()
 {
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
-	// @todo Sequencer Add proper step sizes
-	SetGlobalTime(ScrubPosition + 0.1f);
+	ScrubPosition += Settings->GetTimeSnapInterval();
+	if ( Settings->GetIsSnapEnabled() )
+	{
+		ScrubPosition = Settings->SnapTimeToInterval(ScrubPosition);
+	}
+	SetGlobalTime(ScrubPosition);
 	return FReply::Handled();
 }
 
 FReply FSequencer::OnStepBackward()
 {
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
-	// @todo Sequencer Add proper step sizes
-	SetGlobalTime(ScrubPosition - 0.1f);
+	ScrubPosition -= Settings->GetTimeSnapInterval();
+	if ( Settings->GetIsSnapEnabled() )
+	{
+		ScrubPosition = Settings->SnapTimeToInterval(ScrubPosition);
+	}
+	SetGlobalTime(ScrubPosition);
 	return FReply::Handled();
 }
 
@@ -887,6 +899,11 @@ FReply FSequencer::OnToggleLooping()
 bool FSequencer::IsLooping() const
 {
 	return bLoopingEnabled;
+}
+
+bool FSequencer::CanShowFrameNumbers() const
+{
+	return SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval());
 }
 
 EPlaybackMode::Type FSequencer::GetPlaybackMode() const
@@ -1725,6 +1742,12 @@ void FSequencer::BindSequencerCommands()
 		} ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetIsUsingCleanView(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleShowFrameNumbers,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetShowFrameNumbers( !Settings->GetShowFrameNumbers() ); } ),
+		FCanExecuteAction::CreateSP(this, &FSequencer::CanShowFrameNumbers ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowFrameNumbers(); } ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleIsSnapEnabled,

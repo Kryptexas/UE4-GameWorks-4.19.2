@@ -531,13 +531,6 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 
 	ToolBarBuilder.BeginSection("Snapping");
 	{
-		TArray<SNumericDropDown<float>::FNamedValue> SnapValues;
-		SnapValues.Add( SNumericDropDown<float>::FNamedValue( 0.001f, LOCTEXT( "Snap_OneThousandth", "0.001" ), LOCTEXT( "SnapDescription_OneThousandth", "Set snap to 1/1000th" ) ) );
-		SnapValues.Add( SNumericDropDown<float>::FNamedValue( 0.01f, LOCTEXT( "Snap_OneHundredth", "0.01" ), LOCTEXT( "SnapDescription_OneHundredth", "Set snap to 1/100th" ) ) );
-		SnapValues.Add( SNumericDropDown<float>::FNamedValue( 0.1f, LOCTEXT( "Snap_OneTenth", "0.1" ), LOCTEXT( "SnapDescription_OneTenth", "Set snap to 1/10th" ) ) );
-		SnapValues.Add( SNumericDropDown<float>::FNamedValue( 1.0f, LOCTEXT( "Snap_One", "1" ), LOCTEXT( "SnapDescription_One", "Set snap to 1" ) ) );
-		SnapValues.Add( SNumericDropDown<float>::FNamedValue( 10.0f, LOCTEXT( "Snap_Ten", "10" ), LOCTEXT( "SnapDescription_Ten", "Set snap to 10" ) ) );
-		SnapValues.Add( SNumericDropDown<float>::FNamedValue( 100.0f, LOCTEXT( "Snap_OneHundred", "100" ), LOCTEXT( "SnapDescription_OneHundred", "Set snap to 100" ) ) );
 
 		ToolBarBuilder.SetLabelVisibility( EVisibility::Collapsed );
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleIsSnapEnabled, NAME_None, TAttribute<FText>( FText::GetEmpty() ) );
@@ -553,8 +546,9 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 			.VAlign( VAlign_Center )
 			[
 				SNew( SNumericDropDown<float> )
-				.DropDownValues( SnapValues )
+				.DropDownValues( SequencerSnapValues::GetTimeSnapValues() )
 				.LabelText( LOCTEXT( "TimeSnapLabel", "Time" ) )
+				.bShowNamedValue(true)
 				.ToolTipText( LOCTEXT( "TimeSnappingIntervalToolTip", "Time snapping interval" ) )
 				.Value( this, &SSequencer::OnGetTimeSnapInterval )
 				.OnValueChanged( this, &SSequencer::OnTimeSnapIntervalChanged )
@@ -564,7 +558,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 			.VAlign( VAlign_Center )
 			[
 				SNew( SNumericDropDown<float> )
-				.DropDownValues( SnapValues )
+				.DropDownValues( SequencerSnapValues::GetSnapValues() )
 				.LabelText( LOCTEXT( "ValueSnapLabel", "Value" ) )
 				.ToolTipText( LOCTEXT( "ValueSnappingIntervalToolTip", "Curve value snapping interval" ) )
 				.Value( this, &SSequencer::OnGetValueSnapInterval )
@@ -591,6 +585,12 @@ TSharedRef<SWidget> SSequencer::MakeAddMenu()
 TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 {
 	FMenuBuilder MenuBuilder( false, Sequencer.Pin()->GetCommandBindings() );
+
+	MenuBuilder.BeginSection("Frames", LOCTEXT("SnappingMenuFramesHeader", "Frames") );
+	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowFrameNumbers );
+	}
+	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection( "KeySnapping", LOCTEXT( "SnappingMenuKeyHeader", "Key Snapping" ) );
 	{

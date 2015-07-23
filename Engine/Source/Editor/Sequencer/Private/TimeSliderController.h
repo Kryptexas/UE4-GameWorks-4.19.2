@@ -79,8 +79,18 @@ private:
 	const FSlateBrush* ScrubHandleDown;
 	/** Total mouse delta during dragging **/
 	float DistanceDragged;
-	/** If we are dragging the scrubber */
-	bool bDraggingScrubber;
+	/** If we are dragging the scrubber or dragging to set the time range */
+	enum DragType
+	{
+		DRAG_SCRUBBING_TIME,
+		DRAG_SETTING_RANGE,
+		DRAG_NONE
+	};
+	DragType MouseDragType;
 	/** If we are currently panning the panel */
 	bool bPanning;
+	/** Mouse down time range */
+	FVector2D MouseDownRange;
+	/** Range stack */
+	TArray<FVector2D> RangeStack;
 };

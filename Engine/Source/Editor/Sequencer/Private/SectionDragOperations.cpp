@@ -483,9 +483,22 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 				}
 			}
 
-			if ( bSnappedToKeyTime == false && Settings->GetSnapKeyTimesToInterval() )
+			if (Settings->GetSnapKeyTimesToInterval())
 			{
-				TimeDelta = Settings->SnapTimeToInterval( MouseTime ) - SelectedKeyTime;
+				float SnapTimeIntervalDelta = Settings->SnapTimeToInterval(MouseTime) - SelectedKeyTime;
+
+				// Snap to time interval only if we haven't snapped to a keyframe or if the time difference is smaller than the difference to the keyframe.
+				if (bSnappedToKeyTime)
+				{					
+					if (FMath::Abs(SnapTimeIntervalDelta) < FMath::Abs(TimeDelta))
+					{
+						TimeDelta = SnapTimeIntervalDelta;
+					}
+				}
+				else
+				{
+					TimeDelta = SnapTimeIntervalDelta;
+				}
 			}
 		}
 

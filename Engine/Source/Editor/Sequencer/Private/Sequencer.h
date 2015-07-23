@@ -245,6 +245,9 @@ public:
 	bool IsLooping() const;
 	EPlaybackMode::Type GetPlaybackMode() const;
 
+	/** Called to determine whether a frame number is set so that frame numbers can be shown */
+	bool CanShowFrameNumbers() const;
+
 	/** @return The toolkit that this sequencer is hosted in (if any) */
 	TSharedPtr<IToolkitHost> GetToolkitHost() const { return ToolkitHost.Pin(); }
 
