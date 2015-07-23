@@ -1337,11 +1337,47 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 		return FString( TEXT("") );
 	}
 
+	FString Result(Input);
+
+	// Sweep out comments marked to be ignored.
+	{
+		int32 CommentStart, CommentEnd;
+		// Block comments go first
+		for (CommentStart = Result.Find(TEXT("/*~")); CommentStart != INDEX_NONE; CommentStart = Result.Find(TEXT("/*~")))
+		{
+			CommentEnd = Result.Find(TEXT("*/"), ESearchCase::CaseSensitive, ESearchDir::FromStart, CommentStart);
+			if (CommentEnd != INDEX_NONE)
+			{
+				Result.RemoveAt(CommentStart, (CommentEnd + 2) - CommentStart, false);
+			}
+			else
+			{
+				// This looks like an error - an unclosed block comment.
+				break;
+			}
+		}
+		// Leftover line comments go next
+		for (CommentStart = Result.Find(TEXT("//~")); CommentStart != INDEX_NONE; CommentStart = Result.Find(TEXT("//~")))
+		{
+			CommentEnd = Result.Find(TEXT("\n"), ESearchCase::CaseSensitive, ESearchDir::FromStart, CommentStart);
+			if (CommentEnd != INDEX_NONE)
+			{
+				Result.RemoveAt(CommentStart, (CommentEnd + 1) - CommentStart, false);
+			}
+			else
+			{
+				Result.RemoveAt(CommentStart, Result.Len() - CommentStart, false);
+				break;
+			}
+		}
+		// Finish by shrinking if anything was removed, since we deferred this during the search.
+		Result.Shrink();
+	}
+
 	// Check for known commenting styles.
-	FString Result( Input );
-	const bool bJavaDocStyle = Input.Contains(TEXT("/**"));
-	const bool bCStyle = Input.Contains(TEXT("/*"));
-	const bool bCPPStyle = Input.StartsWith(TEXT("//"));
+	const bool bJavaDocStyle = Result.Contains(TEXT("/**"));
+	const bool bCStyle = Result.Contains(TEXT("/*"));
+	const bool bCPPStyle = Result.StartsWith(TEXT("//"));
 
 	if ( bJavaDocStyle || bCStyle)
 	{

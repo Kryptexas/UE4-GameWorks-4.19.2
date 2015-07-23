@@ -1367,10 +1367,13 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 		static const FString DoxygenReturn(TEXT("@return"));
 		static const FString DoxygenSee(TEXT("@see"));
 		static const FString TooltipSee(TEXT("See:"));
+		static const FString DoxygenNote(TEXT("@note"));
+		static const FString TooltipNote(TEXT("Note:"));
 
 		Tooltip.Split(DoxygenParam, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		Tooltip.Split(DoxygenReturn, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		Tooltip.ReplaceInline(*DoxygenSee, *TooltipSee);
+		Tooltip.ReplaceInline(*DoxygenNote, *TooltipNote);
 
 		Tooltip.Trim();
 		Tooltip.TrimTrailing();
