@@ -225,8 +225,10 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			StubResults.bSilentMode = true;
 			FKismetCompilerOptions StubCompileOptions(CompileOptions);
 			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
-
-			CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
+			{
+				FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(Blueprint->GeneratedClass, bBytecodeOnly);
+				CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
+			}
 
 			StubReinstancer->UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )

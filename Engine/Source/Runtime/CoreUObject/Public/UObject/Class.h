@@ -2027,11 +2027,11 @@ public:
 		return NULL;
 	}
 
-	virtual void CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty = false) const
+	virtual void CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty = false, bool bSkipSuperClass = false) const
 	{
 	}
 
-	virtual void DestroyPersistentUberGraphFrame(UObject* Obj) const
+	virtual void DestroyPersistentUberGraphFrame(UObject* Obj, bool bSkipSuperClass = false) const
 	{
 	}
 
