@@ -63,7 +63,7 @@ Secondly, the lights that are intended to affect the particles must have **Cast 
  
 ![](image042.png)
 
-And finally, the settings for the shadow and self-shadow behavior are located in the Material used in this particle effect, under the two Translucency groups in the material properties. This image shows these properties from the Material Editor.
+And finally, the settings for the shadow and self-shadow behavior are located in the Material used in this particle effect, under the two **Translucency** groups in the material properties. This image shows these properties from the **Material Editor**.
 
 ![](image044.png)
 
