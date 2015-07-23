@@ -638,15 +638,16 @@ struct FBeamParticleModifierPayloadData
 	{
 		if (bModifyTangent == true)
 		{
-			FVector ModTangent = Tangent;
-
+			FVector ModTangent;
 			if (bAbsolute == false)
 			{
 				// Transform the modified tangent so it is relative to the real tangent
-				FQuat RotQuat = FQuat::FindBetween(FVector(1.0f, 0.0f, 0.0f), Value);
-				FMatrix RotMat = FQuatRotationTranslationMatrix(RotQuat, FVector::ZeroVector);
-
-				ModTangent = RotMat.TransformVector(Tangent);
+				const FQuat RotQuat = FQuat::FindBetweenNormals(FVector(1.0f, 0.0f, 0.0f), Value);
+				ModTangent = RotQuat.RotateVector(Tangent);
+			}
+			else
+			{
+				ModTangent = Tangent;
 			}
 
 			if (bScaleTangent == false)

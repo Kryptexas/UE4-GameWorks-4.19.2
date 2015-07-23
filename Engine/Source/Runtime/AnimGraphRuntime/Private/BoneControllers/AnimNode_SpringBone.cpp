@@ -195,7 +195,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		FVector ParentToTarget = (TargetPos - ParentSpaceBase.GetLocation()).GetSafeNormal();
 		FVector ParentToCurrent = (BoneLocation - ParentSpaceBase.GetLocation()).GetSafeNormal();
 
-		FQuat AdditionalRotation = FQuat::FindBetween(ParentToTarget, ParentToCurrent);
+		FQuat AdditionalRotation = FQuat::FindBetweenNormals(ParentToTarget, ParentToCurrent);
 
 		// Filter rotation based on our filter properties
 		FVector EularRot = AdditionalRotation.Euler();

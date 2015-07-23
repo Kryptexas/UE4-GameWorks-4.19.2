@@ -3399,7 +3399,7 @@ void UParticleSystemComponent::OrientZAxisTowardCamera()
 		const FVector LocalZAxis = FVector(0,0,1);
 
 		// Find angle between z-axis and the camera direction
-		const FQuat PointTo = FQuat::FindBetween(LocalZAxis, DirToCamera);
+		const FQuat PointTo = FQuat::FindBetweenNormals(LocalZAxis, DirToCamera);
 		
 		// Adjust our rotation
 		const FRotator AdjustmentAngle(PointTo);

@@ -745,8 +745,7 @@ void UAnimCompress_RemoveLinearKeys::ProcessAnimationTracks(
 								// limit the range we will retarget to something reasonable (~60 degrees)
 								if (DotResult < 1.0f && DotResult > 0.5f)
 								{
-									FQuat Adjustment= FQuat::FindBetween(CurrentHeading, DesiredHeading); 
-									Adjustment.Normalize();
+									FQuat Adjustment= FQuat::FindBetweenVectors(CurrentHeading, DesiredHeading);
 									Adjustment= EnforceShortestArc(FQuat::Identity, Adjustment);
 
 									const FVector Test = Adjustment.RotateVector(CurrentHeading);

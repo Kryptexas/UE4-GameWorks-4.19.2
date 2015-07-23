@@ -2934,7 +2934,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				NewDirection.Normalize();
 				FVector	OldDirection(1.0f, 0.0f, 0.0f);
 
-				FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
+				FQuat Rotation	= FQuat::FindBetweenNormals(OldDirection, NewDirection);
 				FVector Euler	= Rotation.Euler();
 				PayloadData->Rotation = PayloadData->InitRotation + Euler;
 				PayloadData->Rotation += PayloadData->CurContinuousRotation;
@@ -3177,7 +3177,7 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 		NewDirection.Normalize();
 		FVector	OldDirection(1.0f, 0.0f, 0.0f);
 
-		FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
+		FQuat Rotation	= FQuat::FindBetweenNormals(OldDirection, NewDirection);
 		FVector Euler	= Rotation.Euler();
 
 		PayloadData->Rotation.X	+= Euler.X;

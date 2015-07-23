@@ -239,7 +239,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 		FVector const OldDir = (InitialJointPos - RootPos).GetSafeNormal();
 		FVector const NewDir = (OutJointPos - RootPos).GetSafeNormal();
 		// Find Delta Rotation take takes us from Old to New dir
-		FQuat const DeltaRotation = FQuat::FindBetween(OldDir, NewDir);
+		FQuat const DeltaRotation = FQuat::FindBetweenNormals(OldDir, NewDir);
 		// Rotate our Joint quaternion by this delta rotation
 		UpperLimbCSTransform.SetRotation( DeltaRotation * UpperLimbCSTransform.GetRotation() );
 		// And put joint where it should be.
@@ -256,7 +256,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 		FVector const NewDir = (OutEndPos - OutJointPos).GetSafeNormal();
 
 		// Find Delta Rotation take takes us from Old to New dir
-		FQuat const DeltaRotation = FQuat::FindBetween(OldDir, NewDir);
+		FQuat const DeltaRotation = FQuat::FindBetweenNormals(OldDir, NewDir);
 		// Rotate our Joint quaternion by this delta rotation
 		LowerLimbCSTransform.SetRotation( DeltaRotation * LowerLimbCSTransform.GetRotation() );
 		// And put joint where it should be.

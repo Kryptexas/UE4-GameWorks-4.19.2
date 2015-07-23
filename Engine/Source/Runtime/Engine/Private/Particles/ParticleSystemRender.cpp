@@ -1679,14 +1679,14 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 					bFacingDirectionIsValid = false;
 				}
 				// Velocity align the X-axis, and camera face the selected axis
-				PointTo = FQuat::FindBetween(FVector(1.0f, 0.0f, 0.0f), VelocityDirection);
+				PointTo = FQuat::FindBetweenNormals(FVector(1.0f, 0.0f, 0.0f), VelocityDirection);
 				FacingDir = VelocityDirection;
 				DesiredDir = DirToCamera;
 			}
 			else if (CameraFacingOption <= XAxisFacing_NegativeYUp)
 			{
 				// Camera face the X-axis, and point the selected axis towards the world up
-				PointTo = FQuat::FindBetween(FVector(1,0,0), DirToCamera);
+				PointTo = FQuat::FindBetweenNormals(FVector(1,0,0), DirToCamera);
 				FacingDir = DirToCamera;
 				DesiredDir = FVector(0,0,1);
 			}
@@ -1709,7 +1709,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 
 			FVector	DirToDesiredInRotationPlane = DesiredDir - ((DesiredDir | FacingDir) * FacingDir);
 			DirToDesiredInRotationPlane.Normalize();
-			FQuat FacingRotation = FQuat::FindBetween(PointTo.RotateVector(CameraFacingOpVector), DirToDesiredInRotationPlane);
+			FQuat FacingRotation = FQuat::FindBetweenNormals(PointTo.RotateVector(CameraFacingOpVector), DirToDesiredInRotationPlane);
 			PointTo = FacingRotation * PointTo;
 
 			// Add in additional rotation about either the directional or camera facing axis
@@ -1729,7 +1729,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 		}
 		else
 		{
-			PointTo = FQuat::FindBetween(FVector(1,0,0), DirToCamera);
+			PointTo = FQuat::FindBetweenNormals(FVector(1,0,0), DirToCamera);
 			// Add in additional rotation about facing axis
 			FQuat AddedRotation = FQuat(DirToCamera, InParticle.Rotation);
 			kLockedAxisRotator = FRotator(AddedRotation * PointTo);
@@ -1769,12 +1769,12 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 			// For the locked axis behavior, only rotate to	face the camera	about the
 			// locked direction, and maintain the up vector	pointing towards the locked	direction
 			// Find	the	rotation that points the localupaxis towards the targetupaxis
-			FQuat PointToUp	= FQuat::FindBetween(LocalSpaceUpAxis, Source.LockedAxis);
+			FQuat PointToUp	= FQuat::FindBetweenNormals(LocalSpaceUpAxis, Source.LockedAxis);
 
 			// Add in rotation about the TargetUpAxis to point the facing vector towards the camera
 			FVector	DirToCameraInRotationPlane = DirToCamera - ((DirToCamera | Source.LockedAxis)*Source.LockedAxis);
 			DirToCameraInRotationPlane.Normalize();
-			FQuat PointToCamera	= FQuat::FindBetween(PointToUp.RotateVector(LocalSpaceFacingAxis), DirToCameraInRotationPlane);
+			FQuat PointToCamera	= FQuat::FindBetweenNormals(PointToUp.RotateVector(LocalSpaceFacingAxis), DirToCameraInRotationPlane);
 
 			// Set kRotator	to the composed	rotation
 			FQuat MeshRotation = PointToCamera*PointToUp;
@@ -1787,7 +1787,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 				// (c.f. the roll rotation is about	the	radial axis)
 
 				// Find	the	rotation that points the facing	axis towards the camera
-				FRotator PointToRotation = FRotator(FQuat::FindBetween(LocalSpaceFacingAxis, DirToCamera));
+				FRotator PointToRotation = FRotator(FQuat::FindBetweenNormals(LocalSpaceFacingAxis, DirToCamera));
 
 				// When	constructing the rotation, we need to eliminate	roll around	the	dirtocamera	axis,
 				// otherwise the particle appears to rotate	around the dircamera axis when it or the camera	moves
@@ -1814,7 +1814,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 				// with	no roll, and then rotates about	the	direction_to_camera	by the spriteparticle rotation.
 
 				// Find	the	rotation that points the facing	axis towards the camera
-				FRotator PointToRotation = FRotator(FQuat::FindBetween(LocalSpaceFacingAxis, DirToCamera));
+				FRotator PointToRotation = FRotator(FQuat::FindBetweenNormals(LocalSpaceFacingAxis, DirToCamera));
 
 				// When	constructing the rotation, we need to eliminate	roll around	the	dirtocamera	axis,
 				// otherwise the particle appears to rotate	around the dircamera axis when it or the camera	moves
@@ -1893,7 +1893,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 	if (bUseMeshLockedAxis == true)
 	{
 		// facing axis is taken to be the local x axis.	
-		PointToLockedAxis = FQuat::FindBetween(FVector(1,0,0), Source.LockedAxis);
+		PointToLockedAxis = FQuat::FindBetweenNormals(FVector(1,0,0), Source.LockedAxis);
 	}
 
 	FVector CameraFacingOpVector = FVector::ZeroVector;

@@ -166,11 +166,11 @@ void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 		// project target to the plane
 		FVector NewTarget = FVector::VectorPlaneProject(ToTarget, LookUpVector);
 		NewTarget.Normalize();
-		DeltaRot = FQuat::FindBetween(LookAtVector, NewTarget);
+		DeltaRot = FQuat::FindBetweenNormals(LookAtVector, NewTarget);
 	}
 	else
 	{
-		DeltaRot = FQuat::FindBetween(LookAtVector, ToTarget);
+		DeltaRot = FQuat::FindBetweenNormals(LookAtVector, ToTarget);
 	}
 
 	// transform current rotation to delta rotation
