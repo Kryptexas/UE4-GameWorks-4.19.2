@@ -54,9 +54,9 @@ void FOnlineAsyncTaskGooglePlayShowLoginUI::TriggerDelegates()
 
 void FOnlineAsyncTaskGooglePlayShowLoginUI::OnAuthActionFinished(gpg::AuthOperation InOp, gpg::AuthStatus InStatus)
 {
-	if (InOp == AuthOperation::SIGN_IN)
+	if (InOp == gpg::AuthOperation::SIGN_IN)
 	{
-		bWasSuccessful = InStatus == AuthStatus::VALID;
+		bWasSuccessful = InStatus == gpg::AuthStatus::VALID;
 		bIsComplete = true;
 	}
 }

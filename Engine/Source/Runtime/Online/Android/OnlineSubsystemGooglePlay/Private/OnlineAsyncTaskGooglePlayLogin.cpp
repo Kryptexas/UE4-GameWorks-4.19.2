@@ -5,6 +5,7 @@
 
 #include "gpg/builder.h"
 #include "gpg/debug.h"
+#include "gpg/types.h"
 
 FOnlineAsyncTaskGooglePlayLogin::FOnlineAsyncTaskGooglePlayLogin(
 	FOnlineSubsystemGooglePlay* InSubsystem,
@@ -25,12 +26,12 @@ void FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread()
 		// Store the Subsystem pointer locally so that the OnAuthActionFinished lambda can capture it
 		FOnlineSubsystemGooglePlay* LocalSubsystem = Subsystem;
 
-		Subsystem->GameServicesPtr = GameServices::Builder()
-			.SetDefaultOnLog(LogLevel::VERBOSE)
-			.SetOnAuthActionStarted([](AuthOperation Op) {
+		Subsystem->GameServicesPtr = gpg::GameServices::Builder()
+			.SetDefaultOnLog(gpg::LogLevel::VERBOSE)
+			.SetOnAuthActionStarted([](gpg::AuthOperation Op) {
 				UE_LOG(LogOnline, Log, TEXT("GPG OnAuthActionStarted: %s"), *FString(DebugString(Op).c_str()));
 			})
-			.SetOnAuthActionFinished([LocalSubsystem](AuthOperation Op, AuthStatus LocalStatus) {
+			.SetOnAuthActionFinished([LocalSubsystem](gpg::AuthOperation Op, gpg::AuthStatus LocalStatus) {
 				UE_LOG(LogOnline, Log, TEXT("GPG OnAuthActionFinished: %s, AuthStatus: %s"),
 					*FString(DebugString(Op).c_str()),
 					*FString(DebugString(LocalStatus).c_str()));
@@ -41,7 +42,7 @@ void FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread()
 	else if(Subsystem->GameServicesPtr->IsAuthorized())
 	{
 		// We have a GameServices object and the user is authorized, nothing else to do.
-		Status = AuthStatus::VALID;
+		Status = gpg::AuthStatus::VALID;
 		bWasSuccessful = true;
 		bIsComplete = true;
 	}
