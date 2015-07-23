@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2622478
-Availability:Public
-Title:1.7 - 線モーター
+﻿Availability:Public
+Title:1.7 - リニア モーター
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理事例レベルの概要 例 1.7:物理コンストレイント 線モーター
+Description: 物理のサンプル レベルの概要、1.7:物理コンストレイント リニア モーター
 Related:Engine/Physics/PhysicsBodies
 Related:Engine/Physics/PhAT/UserGuide
 Related:Engine/Physics/Constraints/ConstraintsReference
