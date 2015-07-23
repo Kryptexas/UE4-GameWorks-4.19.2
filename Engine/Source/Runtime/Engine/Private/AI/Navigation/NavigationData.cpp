@@ -400,19 +400,31 @@ bool ANavigationData::DoesSupportAgent(const FNavAgentProperties& AgentProps) co
 	return NavDataConfig.IsEquivalent(AgentProps);
 }
 
+void ANavigationData::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnregisterAndCleanUp();
+	Super::EndPlay(EndPlayReason);
+}
+
 void ANavigationData::Destroyed()
 {
-	UWorld* WorldOuter = GetWorld();
-
-	bRegistered = false;
-	if (WorldOuter != NULL && WorldOuter->GetNavigationSystem() != NULL)
-	{
-		WorldOuter->GetNavigationSystem()->UnregisterNavData(this);
-	}
-
-	CleanUp();
-
+	UnregisterAndCleanUp();
 	Super::Destroyed();
+}
+void ANavigationData::UnregisterAndCleanUp()
+{
+	if (bRegistered)
+	{
+		UWorld* WorldOuter = GetWorld();
+
+		bRegistered = false;
+		if (WorldOuter != NULL && WorldOuter->GetNavigationSystem() != NULL)
+		{
+			WorldOuter->GetNavigationSystem()->UnregisterNavData(this);
+		}
+
+		CleanUp();
+	}
 }
 
 void ANavigationData::CleanUp()

@@ -1853,14 +1853,14 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 
 void UNavigationSystem::UnregisterNavData(ANavigationData* NavData)
 {
+	NavDataSet.RemoveSingle(NavData);
+
 	if (NavData == NULL)
 	{
 		return;
 	}
 
 	FScopeLock Lock(&NavDataRegistration);
-
-	NavDataSet.RemoveSingle(NavData);
 	NavData->OnUnregistered();
 }
 
