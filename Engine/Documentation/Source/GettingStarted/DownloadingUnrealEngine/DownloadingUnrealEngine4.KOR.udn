@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2628500
+﻿INTSourceChangelist:2628858
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -17,8 +17,7 @@ Version: 4.8
 [PUBLISH:Rocket]
 
 [REGION:warning]
-GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 빌드하는 법에 대한 글입니다.
-This page shows subscribers how to download and build Unreal Engine from our source code repository on GitHub. If you'd like to download the binary version of Unreal Engine, go to our main page to [Get Unreal](https://www.unrealengine.com/).
+GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 빌드하는 법에 대한 글입니다. 언리얼 엔진 바이너리 버전을 다운로드하려면, [](GettingStarted/Installation) 문서를 통해 [UE4 시작](https://www.unrealengine.com/) 방법을 참고하시기 바랍니다.
 [/REGION]
 
 ----

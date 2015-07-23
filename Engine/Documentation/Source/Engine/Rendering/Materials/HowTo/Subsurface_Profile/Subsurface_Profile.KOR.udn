@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2602520
+﻿INTSourceChangelist:2629502
 Availability:Public
-Title: 머티리얼 에디터 - 머티리얼에 서브서피스 프로파일 사용 비법
+Title: 머티리얼 에디터 - 머티리얼에 서브서피스 프로파일 사용
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description: 머티리얼에 서브서피스 프로파일을 구성하여 피부나 밀랍같은 표면 렌더링을 개선시키는 방법입니다.
 Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile

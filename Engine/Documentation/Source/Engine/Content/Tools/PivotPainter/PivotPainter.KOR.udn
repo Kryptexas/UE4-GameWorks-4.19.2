@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602213
+﻿INTSourceChangelist:2629562
 Availability: Public
 Title:피벗 페인터 툴
 Crumbs:%ROOT%, Engine, Engine/Content
@@ -7,13 +7,17 @@ Description:상호작용형 애니메이션용 버텍스 안에 모델 피벗과
 [TOC(start:2)]
 
 
-[REGION:header_img]
-[![splash_demo.jpg](splash_demo.jpg)](PivotPainterFoliageExamples.mp4)
-[/REGION]
-
-[REGION:caption]
-(클릭하면 비디오가 재생됩니다.)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+G3vUj7c5gUM
+[/PARAMLITERAL]
+[/OBJECT]
 
 피벗 페인터(Pivot Painter)는 모델의 버텍스 데이터에 피벗(중심점)과 로테이션(회전) 정보를 저장하는 MAXScript 입니다. 나중에 이 정보를 언리얼의 셰이서 시스템 안에서 참조하여 상호작용형 이펙트를 만들 수 있습니다.
 
@@ -33,21 +37,33 @@ Description:상호작용형 애니메이션용 버텍스 안에 모델 피벗과
 
 스크립트를 설치하고 키보드 단축키와 피벗 페인터 툴을 열기 위한 메뉴를 만드는 법을 다루는 비디오입니다.
 
-[![splash_installing.jpg](splash_installing.jpg)(w:640 h:327)](InstallingPivotPainter.mp4)
-
-[REGION:caption]
-(클릭하면 비디오가 재생됩니다.)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+FSGMdqfE7cU
+[/PARAMLITERAL]
+[/OBJECT]
 
 ## 프렙 툴
 
 스크립트의 "Prep Tools" 부분, 전체적인 프로세스에 대한 작업방식 꼼수와 정보를 다루는 비디오입니다. 프렙 툴에는 모델 엘리먼트를 별도의 오브젝트로 떼어내는(detach) 옵션, 새 중심점을 쉽게 만들 수 있는 여러가지 툴이 들어 있습니다.
 
-[![splash_preptools.jpg](splash_preptools.jpg)(w:640 h:327)](FinalPrepTools.mp4)
-
-[REGION:caption]
-(클릭하면 비디오가 재생됩니다.)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+ZPqVnaO-AFc
+[/PARAMLITERAL]
+[/OBJECT]
 
 [REGION:note]
 **프렙 툴** 은 주어진 모델 엘리먼트를 새로운 모델 시리즈로 분할하고 그 피벗을 이상적인 위치로 이동시키도록 디자인되었습니다. 이 툴 사용이 필수는 아니며, 그냥 편의상 제공되는 것일 뿐입니다. 처리중인 모델이 이미 분할되어 있고, 그 피벗은 회전해야 할 곳에 위치해 있으며, 모델의 X 축이 모델 길이 아래쪽을 향해 있다면, 그 모델은 다음 단계로 넘어가도 좋은 모델입니다.
@@ -59,11 +75,17 @@ Description:상호작용형 애니메이션용 버텍스 안에 모델 피벗과
 
 스크립트의 "Hierarchy Painter" 부분을 다루는 비디오입니다. 툴의 이 부분은 예를 들면 가지와 잎 사이의 관계처럼 부모 자손 관계는 물론, 메시의 모델 피벗과 로테이션 정보를 저장하는 데 사용됩니다.
 
-[![splash_hierarchy.jpg](splash_hierarchy.jpg)(w:640 h:327)](HierarchyPainter.mp4)
-
-[REGION:caption]
-(클릭하면 비디오가 재생됩니다.)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+tQdaxZnFx7k
+[/PARAMLITERAL]
+[/OBJECT]
 
 [REGION:note]
 모델이 계층구조를 요하는 경우 스크립트의 "하이어아키 페인터" 섹션으로만 처리해야 합니다. 나뭇잎이 있는 나무가 좋은 사용 예이며, 풀은 아닙니다. 풀은 "오브젝트별 페인터" 섹션으로 칠해야 합니다.
@@ -77,11 +99,17 @@ Description:상호작용형 애니메이션용 버텍스 안에 모델 피벗과
 
 "Per Object Painter" 스크립트 부분 아래에서 가능한 옵션을 다루는 비디오입니다. 몇 가지 사용법과 모델에 데이터를 저장하는 법에 대한 정보도 약간 다룹니다.
 
-[![splash_perpainter.jpg](splash_perpainter.jpg)(w:640 h:327)](perpainter.mp4)
-
-[REGION:caption]
-(Click to view video)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+xolW5QBMwpE
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 3D Studio Max 예제 파일

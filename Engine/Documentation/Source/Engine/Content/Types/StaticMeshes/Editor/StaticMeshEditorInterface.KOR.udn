@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2628893
 Availability: Public
 Title:스태틱 메시 에디터 UI
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
@@ -6,7 +6,6 @@ Description:스태틱 메시 애셋의 모양, 콜리전, UV 미리보기는 물
 
 [TOC(start:2)]
 
-## 개요
 
 **스태틱 메시 에디터** 는 네 영역으로 이루어져 있습니다.
 

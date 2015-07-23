@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611017
+﻿INTSourceChangelist:2629334
 Availability:Public
 Title:삼성 기어 VR 글로벌 메뉴 블루프린트 구성
 Crumbs:%ROOT%, Platforms/GearVR
@@ -84,8 +84,8 @@ Version: 4.8
 
 	![](T_Final_Graph.png)
 
-1. 이제 기어 VR HMD 에 사용할 프로젝트를 패키징하고 스마트폰에 디플로이하면 됩니다.
-	메뉴를 실제로 확인하려면, 프로젝트를 실행시키고 기어 VR HMD 측면의 뒤로가기 버튼을 누르고 있습니다.
+1. 이제 삼성 기어 VR HMD 에 사용할 프로젝트를 패키징하고 스마트폰에 디플로이하면 됩니다.
+	메뉴를 실제로 확인하려면, 프로젝트를 실행시키고 삼성 기어 VR HMD 측면의 뒤로가기 버튼을 누르고 있습니다.
 	그러면 화면을 가로지르는 선이 보이고, 끝에 도착하면 글로벌 메뉴가 표시될 것입니다.
 
 

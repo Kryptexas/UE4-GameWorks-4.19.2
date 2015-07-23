@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346120
+﻿INTSourceChangelist:2629302
 Availability: Public
 Title:다이내믹 씬 섀도우
 Crumbs:%ROOT%, Resources
@@ -59,7 +59,7 @@ Related: Engine/Rendering/LightingAndShadows/Shadows
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 **Dynamic Scene Shadows** 콘텐츠 예제 맵에서는 **디렉셔널 라이트 액터** 전용 섀도잉 메소드인 **Cascading Shadow Mapping** (캐스케티드 섀도우 매핑)을 통해 구워진 라이팅으로 동적인 섀도잉 효과를 내는 법을 확인할 수 있습니다.
 미리 구워둔 그림자에 비할 때, 바람에 나부끼는 잎사귀 풍성한 나무같은 다이내믹 오브젝트에도 그림자를 드리워 훨씬 사실적인 씬을 만들 수 있다는 장점이 있습니다.
 

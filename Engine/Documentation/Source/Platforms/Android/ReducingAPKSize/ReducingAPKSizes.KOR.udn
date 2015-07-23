@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2622288
+﻿INTSourceChangelist:2629326
 Availability:Docs
 Title: APK 패키지 크기 축소
 Crumbs:%ROOT%, Platforms, Platforms/Android
@@ -47,7 +47,7 @@ APK 패키지 크기 줄이기에 가장 쉽고 빠른 방법은 UE4 더러 패�
 1. **Create compressed cooked packages** (압축 쿠킹 패키지 생성) 옵션을 찾아 이미 켜져있지 않은 경우 켜줍니다.
 
 	![](T_Enable_Comp_Packages.png)
-
+	
 압축 쿠킹 패키지 생성 옵션을 켜지 않고 게임을 패키징하지 않은 경우, 나중에 켜고서 다시 패키징을 해 보면 크기 차이가 크게 난다는 것을 알 수 있을 것입니다.
 사실 압축 쿠킹 패키지 생성 옵션을 켜면 프로젝트에 따라 APK 패키지 파일 크기가 50% 정도까지 압축되는 경우도 종종 볼 수 있습니다.
 
@@ -78,6 +78,12 @@ Cooked 폴더를 찾을 수 있는 곳은 **(ProjectName)\Saved\Cooked** 에서 
 가장 큰 애셋을 확인했으면 UE4 안에서 애셋을 검사하여 애셋의 완성도를 희생시키지 않고도 실제 크기를 줄일 수 있는지 알아보면 됩니다.
 
 ![](T_Cooked_Content.png)
+
+## Development 대 Shipping 빌드 크기
+
+프로젝트 최종 크기가 얼마나 될지 알아내고자 할 때, 프로젝트 Development 버전 크기는 Shipping 빌드 크기보다 약간 크다는 점을 염두에 두세요.
+Medieval Match 예제 게임의 Development 빌드와 Shipping 빌드의 크기는 약 **14 퍼센트** 차이가 났습니다.
+하지만 각 프로젝트마다 요구사항이 다르므로, 두 빌드 유형간의 차이는 14 퍼센트 이상 또는 이하가 될 수도 있습니다.
 
 ## 디바이스별 텍스처 LOD
 언리얼 엔진 4.8 릴리즈 이후 디바이스별로 사용할 텍스처 크기를 지정할 수 있게 되었습니다.

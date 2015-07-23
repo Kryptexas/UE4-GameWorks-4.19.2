@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2628852
 Availability:Public
 Title:UE4 에서 모델 작업하기
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
@@ -20,8 +20,29 @@ Description:언리얼 엔진 4 에서 SpeedTree 모델 작업하기 입니다.
 
 ### 바람
 
-윈드 디렉션 소스 오브젝트를 추가 (**창** -> **클래스 뷰어**, "WindDirectionSource" 검색 후 씬에 드래그 앤 드롭) 하는 것으로 씬에 바람을 추가할 수 있습니다. **Speed** 프로퍼티의 기본값 1.0 은, SpeedTree 모델의 최대 바람으로 간주됩니다. 이 값을 0.1 정도로 낮추면 잔잔한 바람으로 시작됩니다.
+윈드 디렉션 소스 오브젝트를 추가 (**창** -> **클래스 뷰어**, "WindDirectionSource" 검색 후 씬에 드래그 앤 드롭) 하는 것으로 씬에 바람을 추가할 수 있습니다. **Speed** 프로퍼티의 기본값은 0.1 입니다. 이 값을 1.0 정도로 올리면 바람이 강해집니다. **Strength** 나 **Min/Max Gust Amount** 같은 프로퍼티도 있습니다.
 
 ### 레벨 오브 디테일
 
 LOD 전환은 UE4 의 스크린 스페이스 영역을 기반으로 일어납니다. 이 값은 SpeedTree 모델에 연관된 스태틱 메시를 편집하여 수정할 수 있습니다. 기본값은 임포트시 전형적인 상황에 맞는 값으로 선택됩니다.
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		언리얼 엔진 4 스피드트리 파이프라인
+	[/PARAM]
+	[PARAM:description]
+	
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/SpeedTree/CreatingModelsForUE4 "%Engine/Content/SpeedTree/CreatingModelsForUE4:description%")
+		* [](Engine/Content/SpeedTree/ImportingModelsIntoUE4 "%Engine/Content/SpeedTree/ImportingModelsIntoUE4:description%")
+		* [](Engine/Content/SpeedTree/WorkingWithModelsinUE4 "%Engine/Content/SpeedTree/WorkingWithModelsinUE4:description%")
+		* [](Engine/Content/SpeedTree/ComputingLightmapUVs "%Engine/Content/SpeedTree/ComputingLightmapUVs:description%")
+	[/PARAM]
+[/OBJECT]
+
+

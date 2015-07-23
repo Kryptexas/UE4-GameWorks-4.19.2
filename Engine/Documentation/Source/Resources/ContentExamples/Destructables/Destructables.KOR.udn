@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2622341
+﻿INTSourceChangelist:2629285
 Availability: Public
 Title:Destructibles 콘텐츠 예제
 Crumbs: %ROOT%, Resources
@@ -47,7 +47,7 @@ Related:
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 
 **Destructibles** 맵 안에 제공되는 콘텐츠 예제는 언리얼 엔진 4 에서 디스트럭터블(파괴가능) 메시를 만들고 사용하는 법을 보여줍니다. 이 맵에서는 자동생성 / 커스텀 임포트된 디스트럭터블, **Support** (지지대) 및 **Destruction Depth** (파괴 심도) 수준을 통한 파괴방식 제어, 파괴시 파티클 스폰이나 사운드 재생과 같은 이벤트 발동 등에 대한 데모를 확인할 수 있습니다.
 
