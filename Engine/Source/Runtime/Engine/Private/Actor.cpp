@@ -3423,6 +3423,7 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 	FHitResult Result;
 	Result.Location = Result.ImpactPoint = ContactInfo.ContactPosition;
 	Result.Normal = Result.ImpactNormal = ContactInfo.ContactNormal;
+	Result.PenetrationDepth = ContactInfo.ContactPenetration;
 	Result.PhysMaterial = ContactInfo.PhysMaterial[1];
 	Result.Actor = OtherInfo.Actor;
 	Result.Component = OtherInfo.Component;
