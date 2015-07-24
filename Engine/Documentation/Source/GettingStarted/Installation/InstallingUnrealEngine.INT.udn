@@ -3,29 +3,36 @@ Title:Installing Unreal Engine
 Description:Steps for installing Unreal Engine.
 Crumbs: %ROOT%, GettingStarted
 Prereq: GettingStarted/RecommendedSpecifications
-Prereq: Support/Builds
 Related: GettingStarted
 Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
 Related: Engine/QuickStart
+Related: Support/Builds
 Version: 4.8
 
-[TOC (start:2 end:3)]
+[REGION:warning]
+We currently don't provide a binary installer of Unreal Engine for Linux.  
+Linux users; however, can compile Unreal Engine from source by referring to our [](GettingStarted/DownloadingUnrealEngine) documentation.
+[/REGION]
 
-----
+By the end of this tutorial, you'll be able to:
 
-We make it easy for subscribers to download, install, and run Unreal Engine 4 (UE4) from our launcher.
+*	[Create an Epic Games account _(if you don't already have one)_](#Bookmark1)
+*	[Download and Run the Installer (Epic Games Launcher Set-Up Program)](#Bookmark2)
+*	[Sign into the Epic Games Launcher](#Bookmark3)
+*	[Install Unreal Engine](#Bookmark4)
+*	[Launch Unreal Engine](#Bookmark5)
 
 ![](InstallationGoal.png)
 
-_By the end of this tutorial, you'll be able to run the Unreal Editor from the **Epic Games Launcher** (pictured above)._
-
-The Epic Games Launcher enables our subscribers to conveniently download and install updates for UE4.
+_The Epic Games Launcher enables our subscribers to conveniently download and install updates for UE4 (example pictured above)._
 
 ## Creating an Epic Games Account
 
+(#Bookmark1)
+
 [REGION:warning]
-If you already have an Epic Games account, skip ahead to learn about [Downloading and Running the Installer](#Bookmark1).
+If you already have an Epic Games account, skip ahead to learn about [Downloading and Running the Installer](#Bookmark2).
 [/REGION]
 
 In order to run the Epic Games Launcher, you need to have a valid Epic Games account.
@@ -54,9 +61,9 @@ In order to run the Epic Games Launcher, you need to have a valid Epic Games acc
 
 ## Downloading and Running the Installer
 
-(#Bookmark1)
+(#Bookmark2)
 
-With a valid Epic Games account, you're able to download our Epic Games Launcher set-up program (installer).
+With a valid Epic Games account, you're able to download our installer (Epic Games Launcher Set-Up Program).
 
 %Globals:osselect_linux%
 
@@ -128,11 +135,15 @@ With a valid Epic Games account, you're able to download our Epic Games Launcher
 
 ## Signing into the Epic Launcher
 
-After the set-up program installs the Epic Games Launcher on your machine, you're ready to sign-in (see below).
+(#Bookmark3)
+
+After the set-up program installs the Epic Games Launcher on your machine, use your Epic Game account credentials to login (see below).
 
 ![](EpicSignIn.png)
 
 ## Installing Unreal Engine
+
+(#Bookmark4)
 
 Now that you've signed into the Epic Games Launcher, you're ready to install UE4.
 
@@ -147,7 +158,7 @@ Unreal Engine uses approximately eight gigabytes of disk space for every version
 
 	![](LauncherLoadScreen.png)
 
-1.	**Click** the **Install Engine** button to **download and install** the latest version of Unreal Engine (pictured below).
+1.	**Click** the **Install Engine** button to download and install the latest version of Unreal Engine (pictured below).
 
 	![](InstallEngine.png)
 
@@ -155,7 +166,7 @@ Unreal Engine uses approximately eight gigabytes of disk space for every version
 
 	![](AcceptEULALauncher.png)
 
-1.	Depending on your system specifications, **downloading and installing** Unreal Engine will take between 10-40 minutes.
+1.	Depending on your system specifications, downloading and installing Unreal Engine will take between 10-40 minutes.
 	
 	![](DownloadingEngine.png)
 
@@ -163,21 +174,35 @@ Unreal Engine uses approximately eight gigabytes of disk space for every version
 
 ## Launching Unreal Engine
 
+(#Bookmark5)
+
 After the Epic Games Launcher successfully downloads and installs Unreal Engine, you're ready to **click** the **Launch** button (see below).
 
 ![](LaunchUE4.png)
+
+Congratulations! You've learned how to:
+
+&#x2713;	[Create an Epic Games account _(if you didn't already have one)_](#Bookmark1)  
+&#x2713;	[Download and Run the Installer (Epic Games Launcher Set-Up Program)](#Bookmark2)  
+&#x2713;	[Sign into the Epic Games Launcher](#Bookmark3)  
+&#x2713;	[Install Unreal Engine](#Bookmark4)  
+&#x2713;	[Launch Unreal Engine](#Bookmark5)
+
+Now, you're ready to start using Unreal Engine.
 
 ## Getting Started with Unreal Engine
 
 Learn how to use Unreal Engine by referring to the [](GettingStarted) documentation!
 
-[REGION:tip]
-If you're an artist, programmer, or designer looking to quickly get started with UE4, refer to the following tutorials:
+If you're looking to quickly get started with UE4, refer to the following tutorials:
 *	[](Engine/Content/QuickStart)
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
-[/REGION]
 
+
+[REGION:tip]
+UE4's in-editor help features are a great way to get your questions answered.
+[/REGION]
 <!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 
