@@ -525,7 +525,13 @@ public:
 	 * @return The device group, or NULL if none was configured.
 	 * @see SetDeployedDeviceGroup
 	 */
-	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) const = 0;
+	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) = 0;
+
+	/**
+	* Gets the default platforms to deploy if no specific devices were selected.
+	*	
+	*/
+	virtual const FName GetDefaultDeployPlatform() const = 0;
 
 	/**
 	 * Gets the deployment mode.
@@ -772,6 +778,15 @@ public:
 	 * @see ClearCookedPlatforms, GetCookedPlatforms, RemoveCookedPlatform
 	 */
 	virtual void AddCookedPlatform( const FString& PlatformName ) = 0;
+
+	/**
+	* Adds a platform to deploy (only used if a specific device is not specified).
+	* Will deploy to the default device of the given platform, or the first device if none are
+	* marked as 'default'.
+	*
+	* @param PlatformName The name of the platform to add.		
+	*/
+	virtual void SetDefaultDeployPlatform(const FName PlatformName) = 0;
 
 	/**
 	 * Removes all cooked cultures.

@@ -10,6 +10,7 @@
 #define LAUNCHERSERVICES_ADDEDGENERATECHUNKS 16
 #define LAUNCHERSERVICES_ADDEDNUMCOOKERSTOSPAWN 17
 #define LAUNCHERSERVICES_ADDEDSKIPCOOKINGEDITORCONTENT 18
+#define LAUNCHERSERVICES_ADDEDDEFAULTDEPLOYPLATFORM 19
 
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
@@ -213,6 +214,45 @@ public:
 		Validate();
 	}
 
+	virtual void SetDefaultDeployPlatform(const FName PlatformName) override
+	{
+		
+		DefaultDeployPlatform = PlatformName;	
+
+		if (DeployedDeviceGroup.IsValid())
+		{
+			DeployedDeviceGroup->RemoveAllDevices();
+
+			if (DefaultDeployPlatform != NAME_None)
+			{
+				TArray<ITargetDeviceProxyPtr> PlatformDeviceProxies;
+				ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>("TargetDeviceServices");
+				const ITargetDeviceProxyManagerRef& InDeviceProxyManager = TargetDeviceServicesModule.GetDeviceProxyManager();
+
+				InDeviceProxyManager->GetProxies(NAME_None, true, PlatformDeviceProxies);
+
+				ITargetDeviceProxyPtr DefaultPlatformDevice;
+				for (int32 ProxyIndex = 0; ProxyIndex < PlatformDeviceProxies.Num(); ++ProxyIndex)
+				{
+					ITargetDeviceProxyPtr DeviceProxy = PlatformDeviceProxies[ProxyIndex];
+
+					if (DeviceProxy->GetVanillaPlatformId(NAME_None) == DefaultDeployPlatform)
+					{
+						DefaultPlatformDevice = DeviceProxy;
+						break;
+					}
+				}
+
+				if (DefaultPlatformDevice.IsValid())
+				{
+					DeployedDeviceGroup->AddDevice(DefaultPlatformDevice->GetTargetDeviceId(NAME_None));
+				}
+			}
+		}
+
+		Validate();
+	}
+
 	virtual void ClearCookedCultures( ) override
 	{
 		if (CookedCultures.Num() > 0)
@@ -304,9 +344,20 @@ public:
 		return DefaultLaunchRole;
 	}
 
-	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) const override
+	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) override
 	{
+		// setting the default platform will update the device group.  always do this when getting the group because
+		// devices come in lazily through messages and can't be added properly at profile load.
+		if (DefaultDeployPlatform != NAME_None)
+		{
+			SetDefaultDeployPlatform(DefaultDeployPlatform);
+		}
 		return DeployedDeviceGroup;
+	}
+
+	virtual const FName GetDefaultDeployPlatform() const override
+	{
+		return DefaultDeployPlatform;
 	}
 
 	virtual bool IsGeneratingPatch() const override
@@ -628,7 +679,7 @@ public:
 
 	virtual bool Serialize( FArchive& Archive ) override
 	{
-		int32 Version = LAUNCHERSERVICES_ADDEDSKIPCOOKINGEDITORCONTENT;
+		int32 Version = LAUNCHERSERVICES_ADDEDDEFAULTDEPLOYPLATFORM;
 
 		Archive	<< Version;
 
@@ -676,6 +727,11 @@ public:
                 << ForceClose
                 << Timeout;
 
+		FString DeployPlatformString = DefaultDeployPlatform.ToString();
+		if (Version >= LAUNCHERSERVICES_ADDEDDEFAULTDEPLOYPLATFORM)
+		{
+			Archive << DeployPlatformString;
+		}		
 		if (Version >= LAUNCHERSERVICES_ADDEDNUMCOOKERSTOSPAWN)
 		{
 			Archive << NumCookersToSpawn;
@@ -743,6 +799,16 @@ public:
 			{
 				LaunchRoles[RoleIndex]->Serialize(Archive);
 			}
+		}
+
+		if (Archive.IsLoading())
+		{
+			DefaultDeployPlatform = FName(*DeployPlatformString);
+		}
+
+		if (DefaultDeployPlatform != NAME_None)
+		{
+			SetDefaultDeployPlatform(DefaultDeployPlatform);
 		}
 
 		Validate();
@@ -822,6 +888,7 @@ public:
 		HttpChunkDataReleaseName = TEXT("");
 
 		// default launch settings
+		DefaultDeployPlatform = NAME_None;
 		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
 		DefaultLaunchRole->SetCommandLine(FString());
 		DefaultLaunchRole->SetInitialCulture(I18N.GetCurrentCulture()->GetName());
@@ -983,6 +1050,11 @@ public:
 		else
 		{
 			DeployedDeviceGroupId = FGuid();
+		}
+
+		if (DefaultDeployPlatform != NAME_None)
+		{
+			SetDefaultDeployPlatform(DefaultDeployPlatform);
 		}
 
 		Validate();
@@ -1445,6 +1517,9 @@ private:
 
 	// Holds the platforms to include in the build (only used if creating new builds).
 	TArray<FString> CookedPlatforms;
+
+	// Holds the platforms to deploy to if no specific devices were chosen for deploy.
+	FName DefaultDeployPlatform;
 
 	// Holds the default role (only used if launch mode is DefaultRole).
 	ILauncherProfileLaunchRoleRef DefaultLaunchRole;

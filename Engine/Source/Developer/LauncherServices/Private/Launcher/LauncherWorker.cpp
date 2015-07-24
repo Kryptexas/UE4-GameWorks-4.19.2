@@ -177,6 +177,24 @@ void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 	StageCompleted.Broadcast(TaskName, FPlatformTime::Seconds() - StageStartTime);
 }
 
+static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxyPtr DeviceProxy, const ILauncherProfileRef& InProfile, FString& DeviceNames, FString& RoleCommands, bool& bVsyncAdded)
+{
+	// add the platform
+	DeviceNames += TEXT("+\"") + DeviceId + TEXT("\"");
+	TArray<ILauncherProfileLaunchRolePtr> Roles;
+	if (InProfile->GetLaunchRolesFor(DeviceId, Roles) > 0)
+	{
+		for (int32 RoleIndex = 0; RoleIndex < Roles.Num(); RoleIndex++)
+		{
+			if (!bVsyncAdded && Roles[RoleIndex]->IsVsyncEnabled())
+			{
+				RoleCommands += TEXT(" -vsync");
+				bVsyncAdded = true;
+			}
+			RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetCommandLine());
+		}
+	}
+}
 
 FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile, const TArray<FString>& InPlatforms, TArray<FCommandDesc>& OutCommands, FString& CommandStart )
 {
@@ -265,38 +283,25 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	FString DeviceCommand = TEXT("");
 	FString RoleCommands = TEXT("");
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
+
+	bool bVsyncAdded = false;
+
 	if (DeviceGroup.IsValid())
 	{
-		const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();
-		bool bVsyncAdded = false;
+		const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();		
 
 		// for each deployed device...
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 		{
 			const FString& DeviceId = Devices[DeviceIndex];
-
 			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
-
 			if (DeviceProxy.IsValid())
 			{
-				// add the platform
-				DeviceNames += TEXT("+\"") + DeviceId + TEXT("\"");
-				TArray<ILauncherProfileLaunchRolePtr> Roles;
-				if (InProfile->GetLaunchRolesFor(DeviceId, Roles) > 0)
-				{
-					for (int32 RoleIndex = 0; RoleIndex < Roles.Num(); RoleIndex++)
-					{
-						if (!bVsyncAdded && Roles[RoleIndex]->IsVsyncEnabled())
-						{
-							RoleCommands += TEXT(" -vsync");
-							bVsyncAdded = true;
-						}
-						RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetCommandLine());
-					}
-				}
+				AddDeviceToLaunchCommand(DeviceId, DeviceProxy, InProfile, DeviceNames, RoleCommands, bVsyncAdded);
 			}			
 		}
 	}
+
 	if (DeviceNames.Len() > 0)
 	{
 		DeviceCommand += TEXT(" -device=") + DeviceNames.RightChop(1);
