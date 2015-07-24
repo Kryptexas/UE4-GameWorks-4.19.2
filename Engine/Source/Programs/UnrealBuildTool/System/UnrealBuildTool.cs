@@ -836,6 +836,14 @@ namespace UnrealBuildTool
                 {
                     BuildConfiguration.UCAModuleToAnalyze = LowercaseArg.Substring(UCAModuleToAnalyzeString.Length).Trim();
                 }
+				else if (LowercaseArg == "-ucacheckuobjectthreadsafety")
+				{
+					BuildConfiguration.bUCACheckUObjectThreadSafety = true;
+				}
+				else if (LowercaseArg == "-ucacheckpchfiles")
+				{
+					BuildConfiguration.bUCACheckPCHFiles = true;
+				}
             }
         }
 
@@ -1150,9 +1158,18 @@ namespace UnrealBuildTool
                         throw new BuildException( "UnrealBuildTool: At least one of either IsGatheringBuild or IsAssemblingBuild must be true.  Did you pass '-NoGather' with '-NoAssemble'?" );
                     }
 
-					if (BuildConfiguration.bRunUnrealCodeAnalyzer && (BuildConfiguration.UCAModuleToAnalyze == null || BuildConfiguration.UCAModuleToAnalyze.Length == 0))
+					if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+					{
+						if (BuildConfiguration.UCAModuleToAnalyze == null || BuildConfiguration.UCAModuleToAnalyze.Length == 0)
 					{
 						throw new BuildException("When running UnrealCodeAnalyzer, please specify module to analyze in UCAModuleToAnalyze field in BuildConfiguration.xml");
+					}
+
+						if ((BuildConfiguration.bUCACheckPCHFiles && BuildConfiguration.bUCACheckUObjectThreadSafety)
+							|| (!BuildConfiguration.bUCACheckPCHFiles && !BuildConfiguration.bUCACheckUObjectThreadSafety))
+						{
+							throw new BuildException("When running UnrealCodeAnalyzer, please specify exactly one action to execute");
+						}
 					}
 
 					// Get the build version

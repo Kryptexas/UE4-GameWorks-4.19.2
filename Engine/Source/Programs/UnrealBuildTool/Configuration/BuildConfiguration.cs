@@ -426,10 +426,22 @@ namespace UnrealBuildTool
 		public static string DistccExecutablesPath;
 
 		/// <summary>
-		/// Run UnrealCodeAnalyzer instead of regular compilation.
+		/// Run UnrealCodeAnalyzer instead of regular compilation. Requires setting UCA mode by bUCACheckUObjectThreadSafety or bUCACheckPCHFiles.
 		/// </summary>
 		[XmlConfig]
 		public static bool bRunUnrealCodeAnalyzer;
+
+		/// <summary>
+		/// Perform basic UObject thread safety checks. Dumps information whether UObject constructors, Serialize and PostInitProperties functions access any global/static variables or functions.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUCACheckUObjectThreadSafety;
+
+		/// <summary>
+		/// Dumps information about header inclusion in PCH.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUCACheckPCHFiles;
 
 		/// <summary>
 		/// Percentage of cpp files in module where header must be included to get included in PCH.
@@ -570,6 +582,8 @@ namespace UnrealBuildTool
 			// If header is included in 0% or more cpp files in module it should be included in PCH.
 			UCAUsageThreshold = 100.0f;
 
+			bUCACheckUObjectThreadSafety = false;
+
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -672,8 +686,8 @@ namespace UnrealBuildTool
 				BuildConfiguration.bUsePCHFiles = false;
 				BuildConfiguration.bUseSharedPCHs = false;
 
-				//BuildConfiguration.bUseUBTMakefiles = false;
-				//BuildConfiguration.bUseActionHistory = false;
+				BuildConfiguration.bUseUBTMakefiles = false;
+				BuildConfiguration.bUseActionHistory = false;
 			}
 		}
 	}

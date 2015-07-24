@@ -7,5 +7,6 @@ public class UnrealCodeAnalyzerTests : ModuleRules
 	public UnrealCodeAnalyzerTests(TargetInfo Target)
 	{
 		PublicDependencyModuleNames.Add("Core");
+		PublicDependencyModuleNames.Add("CoreUObject");
 	}
 }

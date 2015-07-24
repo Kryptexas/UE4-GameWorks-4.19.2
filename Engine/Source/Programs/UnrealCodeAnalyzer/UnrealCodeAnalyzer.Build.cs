@@ -23,6 +23,8 @@ public class UnrealCodeAnalyzer : ModuleRules
 		PrivateIncludePaths.AddRange(new string[] {
 			"Runtime/Launch/Private",	// For LaunchEngineLoop.cpp include
 			"Runtime/Launch/Public",
+			"Programs/UnrealCodeAnalyzer/Public",
+			"Programs/UnrealCodeAnalyzer/Private",
 			"ThirdParty/llvm/3.5.0/include"
 		});
 
