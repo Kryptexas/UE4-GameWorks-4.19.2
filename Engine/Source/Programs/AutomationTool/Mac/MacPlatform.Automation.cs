@@ -433,7 +433,7 @@ public class MacPlatform : Platform
 			string AppBundlePath = "";
 			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
 			{
-				AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+				AppBundlePath = CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
 			}
 			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
 			{
