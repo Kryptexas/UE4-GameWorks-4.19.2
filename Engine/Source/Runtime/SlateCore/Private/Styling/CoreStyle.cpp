@@ -91,6 +91,16 @@ void FCoreStyle::SetPressedSelectionColor( const FLinearColor& NewColor )
 	FSlateCoreStyle::SetColor(Style->SelectionColor_Pressed_LinearRef, NewColor);
 }
 
+void FCoreStyle::SetFocusBrush(FSlateBrush* NewBrush)
+{
+	TSharedRef<FSlateCoreStyle> Style = StaticCastSharedRef<FSlateCoreStyle>(Instance.ToSharedRef());
+	FSlateStyleRegistry::UnRegisterSlateStyle(Style.Get());
+
+	Style->Set("FocusRectangle", NewBrush);
+
+	FSlateStyleRegistry::RegisterSlateStyle(Style.Get());
+}
+
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
@@ -193,7 +203,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 		Style->Set("BoxShadow", new BOX_BRUSH( "Common/BoxShadow" , FMargin( 5.0f / 64.0f)));
 
-		Style->Set("FocusRectangle", new BORDER_BRUSH( "Old/DashedBorder", FMargin(6.0f / 32.0f)));
+		Style->Set("FocusRectangle", new BORDER_BRUSH( "Old/DashedBorder", FMargin(6.0f / 32.0f), FLinearColor(1, 1, 1, 0.5)));
 	}
 
 	// Important colors

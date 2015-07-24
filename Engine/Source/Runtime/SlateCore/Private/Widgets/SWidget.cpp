@@ -714,7 +714,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 					BrushResource,
 					MyClippingRect,
 					ESlateDrawEffect::None,
-					FColor(255, 255, 255, 128)
+					BrushResource->GetTint(InWidgetStyle)
 					);
 			}
 		}
