@@ -955,6 +955,9 @@ private:
 	/** Util to try and get doc link for the currently selected node */
 	FString GetDocLinkForSelectedNode();
 
+	/** Fixes SubObject references of the passed object so they match up to sub-object UProperty references */
+	void FixSubObjectReferencesPostUndoRedo(UObject* InObject);
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 

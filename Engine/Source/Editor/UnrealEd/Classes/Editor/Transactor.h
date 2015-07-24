@@ -49,6 +49,33 @@ inline bool OuterIsCDO(const UObject* Obj, UObject*& OutCDO)
 	return bOuterIsCDO;
 }
 
+inline bool OuterIsCDO(const UObject* Obj, UObject*& OutCDO, TArray<FName>& OutHierarchyNames)
+{
+	bool bOuterIsCDO = false;
+	UObject* Iter = Obj->GetOuter();
+	while (Iter)
+	{
+		if (Iter->HasAllFlags(RF_ClassDefaultObject))
+		{
+			bOuterIsCDO = true;
+			OutCDO = Iter;
+			break;
+		}
+		else
+		{
+			OutHierarchyNames.Add(Iter->GetFName());
+		}
+		Iter = Iter->GetOuter();
+	}
+
+	// If the outer is not a CDO, clear the hierarchy of names, they will not be used
+	if (bOuterIsCDO == false)
+	{
+		OutHierarchyNames.Empty();
+	}
+	return bOuterIsCDO;
+}
+
 /*-----------------------------------------------------------------------------
 	FTransaction.
 -----------------------------------------------------------------------------*/
@@ -97,13 +124,11 @@ protected:
 		private:
 			UObject* Object;
 			UClass* SourceCDO;
-			FName SubObjectId;
-
+			TArray<FName> SubObjectHierarchyID;
 		public:
 			FPersistentObjectRef()
 				: Object(nullptr)
 				, SourceCDO(nullptr)
-				, SubObjectId()
 			{}
 
 			FPersistentObjectRef(UObject* InObject)
@@ -117,7 +142,7 @@ protected:
 				// objects' names so we can look them up later in Get() 
 				const bool bIsCDO = InObject && InObject->HasAllFlags(RF_ClassDefaultObject);
 				UObject* CDO = bIsCDO ? InObject : nullptr;
-				const bool bIsSubobjectOfCDO = OuterIsCDO(InObject, CDO);
+				const bool bIsSubobjectOfCDO = OuterIsCDO(InObject, CDO, SubObjectHierarchyID);
 				
 				// we have to be careful though, Blueprints also duplicate CDOs 
 				// and their sub-objects; we don't want changes to the 
@@ -136,7 +161,7 @@ protected:
 
 					if (bIsSubobjectOfCDO)
 					{
-						SubObjectId = InObject->GetFName();
+						SubObjectHierarchyID.Add(InObject->GetFName());
 					}
 				}
 				else
@@ -152,15 +177,55 @@ protected:
 				//ensure(Get() == InObject);
 			}
 
+			/** Returns TRUE if the recorded object is part of the CDO */
+			bool IsPartOfCDO() const
+			{
+				return SourceCDO != nullptr;
+			}
+
 			UObject* Get() const
 			{
 				checkSlow(!SourceCDO || !Object);
 				if (SourceCDO)
 				{
-					if (SubObjectId != FName())
+					if (SubObjectHierarchyID.Num() > 0)
 					{
 						// find the subobject:
-						return SourceCDO->GetDefaultSubobjectByName(SubObjectId);
+						UObject* CurrentObject = SourceCDO->GetDefaultObject();
+						UObject* NextObject = CurrentObject->GetDefaultSubobjectByName(SubObjectHierarchyID[0]);
+
+						// Current increasing depth into sub-objects, starts at 1 to avoid the sub-object found and placed in NextObject.
+						int SubObjectDepth = 1;
+
+						// Only continue digging deeper if the current target sub-object was found
+						bool bFoundTargetSubObject = true;
+						while(NextObject && bFoundTargetSubObject)
+						{
+							CurrentObject = NextObject;
+							NextObject = nullptr;
+
+							// If there is no more depth to dig for our object, we are done.
+							if (SubObjectDepth < SubObjectHierarchyID.Num())
+							{
+								bFoundTargetSubObject = false;
+
+								// Look for any UObject's with the CurrentObject's outer to find the next sub-object
+								TArray<UObject*> OutDefaultSubobjects;
+								GetObjectsWithOuter(CurrentObject, OutDefaultSubobjects, false);
+								for (int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++)
+								{
+									if (OutDefaultSubobjects[SubobjectIndex]->GetFName() == SubObjectHierarchyID[SubObjectDepth])
+									{
+										SubObjectDepth++;
+										NextObject = OutDefaultSubobjects[SubobjectIndex];
+										bFoundTargetSubObject = true;
+										break;
+									}
+								}
+							}
+						}
+
+						return bFoundTargetSubObject? CurrentObject : nullptr;
 					}
 					else
 					{
