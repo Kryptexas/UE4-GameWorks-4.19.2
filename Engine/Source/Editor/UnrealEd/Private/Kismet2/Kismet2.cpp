@@ -974,7 +974,7 @@ void FKismetEditorUtilities::GenerateCppCode(UBlueprint* InBlueprintObj, TShared
 namespace ConformComponentsUtils
 {
 	static void ConformRemovedNativeComponents(UObject* BpCdo);
-	static UObject* FindeNativeArchetype(UActorComponent* Component);
+	static UObject* FindNativeArchetype(UActorComponent* Component);
 };
 
 static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCdo)
@@ -999,7 +999,7 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 	TSet<UObject*> DestroyedComponents;
 	for (UActorComponent* Component : OldNativeComponents)
 	{
-		UObject* NativeArchetype = FindeNativeArchetype(Component);
+		UObject* NativeArchetype = FindNativeArchetype(Component);
 		if ((NativeArchetype == nullptr) || !NativeArchetype->HasAnyFlags(RF_ClassDefaultObject))
 		{
 			continue;
@@ -1055,10 +1055,8 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 	}
 }
 
-static UObject* ConformComponentsUtils::FindeNativeArchetype(UActorComponent* Component)
+static UObject* ConformComponentsUtils::FindNativeArchetype(UActorComponent* Component)
 {
-	check(Component->HasAnyFlags(RF_DefaultSubObject));
-
 	UActorComponent* Archetype = Cast<UActorComponent>(Component->GetArchetype());
 	if (Archetype == nullptr)
 	{
@@ -1077,7 +1075,7 @@ static UObject* ConformComponentsUtils::FindeNativeArchetype(UActorComponent* Co
 	{
 		return nullptr;
 	}
-	return FindeNativeArchetype(Archetype);
+	return FindNativeArchetype(Archetype);
 }
 
 /** Tries to make sure that a blueprint is conformed to its native parent, in case any native class flags have changed */
