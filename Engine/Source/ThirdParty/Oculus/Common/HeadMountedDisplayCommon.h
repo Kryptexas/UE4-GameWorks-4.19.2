@@ -298,12 +298,12 @@ public:
 	/**
 	 * This method is called when new game frame begins (called on a game thread).
 	 */
-	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
+	virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
 
 	/**
 	 * This method is called when game frame ends (called on a game thread).
 	 */
-	virtual bool OnEndGameFrame( FWorldContext& WorldContext ) override;
+	virtual bool OnEndGameFrame(FWorldContext& WorldContext) override;
 
 	virtual void SetupViewFamily(class FSceneViewFamily& InViewFamily) {}
 	virtual void SetupView(class FSceneViewFamily& InViewFamily, FSceneView& InView) {}
@@ -377,7 +377,42 @@ public:
 	*/
 	virtual FVector GetBaseOffsetInMeters() const;
 
-    virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	/* Raw sensor data structure. */
+	struct SensorData
+	{
+		FVector Accelerometer;	// Acceleration reading in m/s^2.
+		FVector Gyro;			// Rotation rate in rad/s.
+		FVector Magnetometer;   // Magnetic field in Gauss.
+		float Temperature;		// Temperature of the sensor in degrees Celsius.
+		float TimeInSeconds;	// Time when the reported IMU reading took place, in seconds.
+	};
+
+	/**
+	* Reports raw sensor data. If HMD doesn't support any of the parameters then it should be set to zero.
+	*
+	* @param OutData	(out) SensorData structure to be filled in.
+	*/
+	virtual void GetRawSensorData(SensorData& OutData) 
+	{
+		FMemory::Memzero(OutData);
+	}
+
+	/**
+	* User profile structure.
+	*/
+	struct UserProfile
+	{
+		FString Name;
+		FString Gender;
+		float PlayerHeight;				// Height of the player, in meters
+		float EyeHeight;				// Height of the player's eyes, in meters
+		float IPD;						// Interpupillary distance, in meters
+		FVector2D NeckToEyeDistance;	// Neck-to-eye distance, X - horizontal, Y - vertical, in meters
+		TMap<FString, FString> ExtraFields; // extra fields in name / value pairs.
+	};
+	virtual bool GetUserProfile(UserProfile& OutProfile) { return false;  }
+
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 	virtual void SetScreenPercentage(float InScreenPercentage) override;
 	virtual float GetScreenPercentage() const override;
@@ -480,6 +515,18 @@ protected:
 	int								 NumberOfCubesInOneSide;
 	FVector							 CenterOffsetInMeters; // offset from the center of 'sea of cubes'
 #endif
+
+public:
+	FHMDSettings* GetSettings()
+	{
+		return Settings.Get();
+	}
+
+	const FHMDSettings* GetSettings() const
+	{
+		return Settings.Get();
+	}
+
 };
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);

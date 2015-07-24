@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "OculusFunctionLibrary.generated.h"
 
 USTRUCT(BlueprintType, meta = (DisplayName = "HMD User Profile Data Field"))
@@ -177,5 +178,5 @@ class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	static void GetBaseRotationAndPositionOffset(FRotator& OutRot, FVector& OutPosOffset);
 
 protected:
-	static class FOculusRiftHMD* GetOculusHMD();
+	static class FHeadMountedDisplay* GetOculusHMD();
 };

@@ -197,11 +197,11 @@ FHMDGameFrame* FHeadMountedDisplay::GetCurrentFrame() const
 	return nullptr;
 }
 
-bool FHeadMountedDisplay::OnStartGameFrame( FWorldContext& WorldContext )
+bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 {
 	check(IsInGameThread());
 
-	if (!WorldContext.World() || !WorldContext.World()->IsGameWorld())
+	if (!GWorld || !GWorld->IsGameWorld())
 	{
 		// ignore all non-game worlds
 		return false;
@@ -253,18 +253,20 @@ bool FHeadMountedDisplay::OnStartGameFrame( FWorldContext& WorldContext )
 	CurrentFrame->FrameNumber = GFrameCounter;
 	CurrentFrame->Flags.bOutOfFrame = false;
 
+	check(GWorld);
+
 	if (Settings->Flags.bWorldToMetersOverride)
 	{
 		CurrentFrame->WorldToMetersScale = Settings->WorldToMetersScale;
 	}
 	else
 	{
-		CurrentFrame->WorldToMetersScale = WorldContext.World()->GetWorldSettings()->WorldToMeters;
+		CurrentFrame->WorldToMetersScale = GWorld->GetWorldSettings()->WorldToMeters;
 	}
 	return true;
 }
 
-bool FHeadMountedDisplay::OnEndGameFrame( FWorldContext& WorldContext )
+bool FHeadMountedDisplay::OnEndGameFrame(FWorldContext& WorldContext)
 {
 	check(IsInGameThread());
 
@@ -272,7 +274,7 @@ bool FHeadMountedDisplay::OnEndGameFrame( FWorldContext& WorldContext )
 
 	FHMDGameFrame* const CurrentGameFrame = Frame.Get();
 
-	if (!WorldContext.World() || !WorldContext.World()->IsGameWorld() || !CurrentGameFrame)
+		if (!GWorld || !GWorld->IsGameWorld() || !CurrentGameFrame)
 	{
 		// ignore all non-game worlds
 		return false;
@@ -863,7 +865,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 	}
 	else if (FParse::Command(&Cmd, TEXT("UNCAPFPS")))
 	{
-		GEngine->bForceDisableFrameRateSmoothing = true;
+		GEngine->bSmoothFrameRate = false;
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMDVERSION")))
