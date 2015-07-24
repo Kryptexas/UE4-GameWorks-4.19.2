@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2631099
 Availability: Public
 Title:5. 게임내 일시정지 메뉴 생성 / 스크립트 작성
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -171,7 +171,17 @@ Description:게임 일시정지 또는 종료가 가능한 게임내 일시정�
 
 1.	**컴파일**, **저장** 버튼을 클릭한 뒤, **플레이** 버튼을 눌러 에디터에서 플레이합니다.
 
-	[![](Engine\UMG\QuickStart\4\MenuImage.png)(w:720)](PauseMovie.mp4)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	RALk7pUzRdw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	게임내에서 **M** (또는 자체 설정한) 키를 누르면, 게임이 일시정지되고 일시정지 메뉴가 뜨는 것이 보일 것입니다. 여기서 **Resume** 버튼으로 게임플레이를 재개하거나, **Quit** 버튼으로 메인 메뉴로 빠져나갈 수 있습니다.
 	
