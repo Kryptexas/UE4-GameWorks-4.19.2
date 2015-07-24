@@ -326,10 +326,14 @@ void ResetLoaders(UObject* InPkg)
 	FLinkerManager::Get().ResetLoaders(InPkg);
 }
 
-/** Deletes all linkers that have finished loading */
 void DeleteLoaders()
 {
 	FLinkerManager::Get().DeleteLinkers();
+}
+
+void DeleteLoader(FLinkerLoad* Loader)
+{
+	FLinkerManager::Get().RemoveLinker(Loader);
 }
 
 /**
