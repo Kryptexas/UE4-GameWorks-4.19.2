@@ -583,8 +583,6 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 
 void UGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	SetCurrentInfo(Handle, ActorInfo, ActivationInfo);
-
 	if (bHasBlueprintActivate)
 	{
 		// A Blueprinted ActivateAbility function must call CommitAbility somewhere in its execution chain.
@@ -635,6 +633,8 @@ void UGameplayAbility::PreActivate(const FGameplayAbilitySpecHandle Handle, cons
 	{
 		OnGameplayAbilityEnded = *OnGameplayAbilityEndedDelegate;
 	}
+
+	SetCurrentInfo(Handle, ActorInfo, ActivationInfo);
 
 	Comp->NotifyAbilityActivated(Handle, this);
 }
