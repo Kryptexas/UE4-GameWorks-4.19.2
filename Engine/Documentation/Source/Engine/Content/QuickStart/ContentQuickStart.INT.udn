@@ -3,8 +3,8 @@ Title:Artist Quick Start
 Crumbs:%ROOT%, GettingStarted
 Description:Learn how to get started with Unreal Engine 4 as a content creator.
 prereq:GettingStarted/Installation
-prereq:GettingStarted/DownloadingUnrealEngine
 prereq:Engine/Basics/Projects/Browser
+Related:GettingStarted/DownloadingUnrealEngine
 SkillLevel: Beginner
 Version: 4.8
 
