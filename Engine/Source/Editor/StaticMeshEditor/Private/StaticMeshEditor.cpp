@@ -1699,8 +1699,11 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 			bs = StaticMesh->BodySetup;
 		}
 
-		// Run actual util to do the work
-		DecomposeMeshToHulls(bs, Verts, CollidingIndices, InAccuracy, InMaxHullVerts);		
+		// Run actual util to do the work (if we have some valid input)
+		if(Verts.Num() >= 3 && CollidingIndices.Num() >= 3)
+		{
+			DecomposeMeshToHulls(bs, Verts, CollidingIndices, InAccuracy, InMaxHullVerts);		
+		}
 
 		// Enable collision, if not already
 		if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
