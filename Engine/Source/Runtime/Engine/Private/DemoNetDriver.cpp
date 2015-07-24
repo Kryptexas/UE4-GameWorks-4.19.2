@@ -359,6 +359,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		{
 			GEngine->DestroyNamedNetDriver( WorldContext->PendingNetGame, NetDriverName );
 			WorldContext->PendingNetGame = NULL;
+			GEngine->BrowseToDefaultMap( *WorldContext );
 		}
 
 		Error = LoadMapError;
