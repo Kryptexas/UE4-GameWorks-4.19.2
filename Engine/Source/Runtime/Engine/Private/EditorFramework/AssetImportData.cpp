@@ -198,6 +198,25 @@ void UAssetImportData::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 }
 
+void UAssetImportData::PostLoad()
+{
+	if (!SourceFilePath_DEPRECATED.IsEmpty() && SourceFiles.Num() == 0)
+	{
+		FDateTime SourceDateTime;
+		if (!FDateTime::Parse(SourceFileTimestamp_DEPRECATED,SourceDateTime))
+		{
+			SourceDateTime = 0;
+		}
+
+		SourceFiles.Add(FSourceFile(MoveTemp(SourceFilePath_DEPRECATED),SourceDateTime));
+
+		SourceFilePath_DEPRECATED.Empty();
+		SourceFileTimestamp_DEPRECATED.Empty();
+	}
+
+	Super::PostLoad();
+}
+
 void UAssetImportData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

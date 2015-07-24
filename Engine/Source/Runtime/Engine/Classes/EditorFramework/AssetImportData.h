@@ -61,6 +61,14 @@ public:
 	UPROPERTY()
 	uint32 bDirty : 1;
 
+	/** Path to the resource used to construct this static mesh. Relative to the object's package, BaseDir() or absolute */
+	UPROPERTY()
+	FString SourceFilePath_DEPRECATED;
+
+	/** Date/Time-stamp of the file from the last import */
+	UPROPERTY()
+	FString SourceFileTimestamp_DEPRECATED;
+
 public:
 
 	/** Static event that is broadcast whenever any asset has updated its import data */
@@ -83,6 +91,8 @@ public:
 
 	/** Resolve a filename that is relative to either the specified package, BaseDir() or absolute */
 	static FString ResolveImportFilename(const FString& InRelativePath, const UPackage* Outermost);
+
+	virtual void PostLoad() override;
 
 protected:
 
