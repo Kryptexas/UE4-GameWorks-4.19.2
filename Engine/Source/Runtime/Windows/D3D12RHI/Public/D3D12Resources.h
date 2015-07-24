@@ -2816,7 +2816,7 @@ public:
 class FD3D12DynamicHeapAllocator : public FD3D12ResourceAllocator
 {
 	static const uint32 BucketShift = 6;
-	static const uint32 NumBuckets = 21; // bucket resource sizes range from 64 to 2^24 
+	static const uint32 NumBuckets = 22; // bucket resource sizes range from 64 to 2^28 
 	FThreadsafeQueue<TRefCountPtr<FD3D12ResourceBlockInfo>> AvailableBlocks[NumBuckets];
 	
 	D3D12_HEAP_TYPE HeapType;

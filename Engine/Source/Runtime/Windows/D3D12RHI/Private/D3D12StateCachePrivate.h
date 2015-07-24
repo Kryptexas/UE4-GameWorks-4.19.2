@@ -22,7 +22,7 @@
 #define D3D11_STATE_CACHE_DEBUG 0
 #endif
 
-#define MAX_SRVS 16
+#define MAX_SRVS 22
 #define MAX_CBS 8
 
 // Uncomment only for debugging of the descriptor heap management; this is very noisy
@@ -967,7 +967,6 @@ protected:
 
 			if (FD3D12DynamicRHI::ResourceViewsIntersect(PipelineState.Graphics.CurrentDepthStencilTarget, SRV))
 			{
-				check(PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH);
 				if (!PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
 				{
 					PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = true;
