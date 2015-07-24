@@ -557,8 +557,11 @@ void FReimportFeedbackContext::ProgressReported(const float TotalProgressInterp,
 
 void FReimportFeedbackContext::FinalizeSlowTask()
 {
-	SlowTaskText->SetVisibility(EVisibility::Collapsed);
-	SlowTaskText = nullptr;
+	if (SlowTaskText.IsValid())
+	{
+		SlowTaskText->SetVisibility(EVisibility::Collapsed);
+		SlowTaskText = nullptr;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
