@@ -884,7 +884,7 @@ void UDemoNetDriver::SaveCheckpoint()
 	{
 		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
 		{
-			Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
+			Actor->CallPreReplication( this );
 			DemoReplicateActor( Actor, CheckpointConnection, false );
 		}
 	}
@@ -998,7 +998,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 			continue;
 		}
 
-		Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
+		Actor->CallPreReplication( this );
 		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient );
 	}
 

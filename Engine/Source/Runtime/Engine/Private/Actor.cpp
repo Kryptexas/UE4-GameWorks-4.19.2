@@ -753,6 +753,16 @@ void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker
 	{
 		BPClass->InstancePreReplication(ChangedPropertyTracker);
 	}
+}
+
+void AActor::CallPreReplication(UNetDriver* NetDriver)
+{
+	if (NetDriver == nullptr)
+	{
+		return;
+	}
+
+	PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(this).Get());
 
 	// Call PreReplication on all owned components that are replicated
 	for (UActorComponent* Component : OwnedComponents)
@@ -760,7 +770,7 @@ void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker
 		// Only call on components that aren't pending kill
 		if (Component && !Component->IsPendingKill() && Component->GetIsReplicated())
 		{
-			Component->PreReplication(*GetNetDriver()->FindOrCreateRepChangedPropertyTracker(Component).Get());
+			Component->PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(Component).Get());
 		}
 	}
 }

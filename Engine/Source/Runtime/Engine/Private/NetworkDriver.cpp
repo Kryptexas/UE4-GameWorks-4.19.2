@@ -2065,7 +2065,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 				if ( bWasConsidered )
 				{
-					Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
+					Actor->CallPreReplication( this );
 				}
 			}
 			/*

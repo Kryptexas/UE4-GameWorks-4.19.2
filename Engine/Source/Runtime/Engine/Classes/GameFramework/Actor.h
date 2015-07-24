@@ -13,6 +13,7 @@
 struct FHitResult;
 class AActor;
 class FTimerManager; 
+class UNetDriver;
 
 #include "Actor.generated.h"
 
@@ -319,6 +320,9 @@ public:
 
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker );
+
+	/** Called by the networking system to call PreReplication on this actor and its components using the given NetDriver to find or create RepChangedPropertyTrackers. */
+	void CallPreReplication(UNetDriver* NetDriver);
 
 	/** If true then destroy self when "finished", meaning all relevant components report that they are done and no timelines or timers are in flight. */
 	UPROPERTY(BlueprintReadWrite, Category=Actor)
