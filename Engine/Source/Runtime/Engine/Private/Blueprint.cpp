@@ -941,15 +941,7 @@ bool UBlueprint::GetBlueprintHierarchyFromClass(const UClass* InClass, TArray<UB
 		bNoErrors &= (BP->Status != BS_Error);
 #endif // #if WITH_EDITORONLY_DATA
 
-		// If valid, use stored ParentClass rather than the actual UClass::GetSuperClass(); handles the case when the class has not been recompiled yet after a reparent operation.
-		if(BP->ParentClass != nullptr)
-		{
-			CurrentClass = BP->ParentClass;
-		}
-		else
-		{
-			CurrentClass = CurrentClass->GetSuperClass();
-		}
+		CurrentClass = CurrentClass->GetSuperClass();
 	}
 
 	return bNoErrors;
