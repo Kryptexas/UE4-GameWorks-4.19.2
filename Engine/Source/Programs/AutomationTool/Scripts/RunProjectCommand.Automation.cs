@@ -775,7 +775,7 @@ public partial class Project : CommandUtils
                 }
 				TempCmdLine += " ";
 
-				if (!Params.CookOnTheFlyStreaming)
+				if (Params.CookOnTheFlyStreaming)
 				{
 					TempCmdLine += "-streaming ";
 				}
