@@ -170,10 +170,6 @@ namespace UnrealBuildTool
 				{
 					Log.TraceVerbose("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
 				}
-                if (Action.bPrintDebugInfo)
-                {
-                    Log.TraceInformation("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
-                }
 				// Log summary if wanted.
 				else if (Action.bShouldOutputStatusDescription)
 				{
