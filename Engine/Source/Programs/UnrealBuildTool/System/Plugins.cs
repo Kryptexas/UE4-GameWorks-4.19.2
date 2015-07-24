@@ -64,10 +64,10 @@ namespace UnrealBuildTool
 			// Read all the engine plugins
 			
 			string EnginePluginsDir = Path.Combine(BuildConfiguration.RelativeEnginePath, "Plugins");
-			Console.WriteLine("EngineDir for plugin search: " + EnginePluginsDir);
+			Log.TraceVerbose("EngineDir for plugin search: " + EnginePluginsDir);
 			foreach(string PluginFileName in EnumeratePlugins(EnginePluginsDir))
 			{
-				Console.WriteLine("Found Engine Plugin: " + PluginFileName);
+				Log.TraceVerbose("Found Engine Plugin: " + PluginFileName);
 				PluginInfo Plugin = new PluginInfo(PluginFileName, PluginLoadedFrom.Engine);
 				Plugins.Add(Plugin);
 			}
