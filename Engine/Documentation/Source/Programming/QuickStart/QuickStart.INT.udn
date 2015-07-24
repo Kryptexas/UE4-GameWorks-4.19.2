@@ -4,7 +4,6 @@ Crumbs:%ROOT%, Programming
 Description:Create your first code project and add a new C++ class.
 prereq:GettingStarted/Installation
 prereq:Engine/Basics/Projects/Browser
-Related:GettingStarted/DownloadingUnrealEngine
 SkillLevel: Beginner
 Version: 4.8
 

@@ -4,7 +4,6 @@ Crumbs: %ROOT%, GettingStarted
 Description: Getting up and running with the basics of the Unreal Editor.
 prereq:GettingStarted/Installation
 prereq:Engine/Basics/Projects/Browser
-Related:GettingStarted/DownloadingUnrealEngine
 SkillLevel: Beginner
 Version: 4.8
 
