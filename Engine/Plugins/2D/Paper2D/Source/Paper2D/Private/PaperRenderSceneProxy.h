@@ -5,8 +5,6 @@
 #include "PaperSprite.h"
 #include "SpriteDrawCall.h"
 
-#define TEST_BATCHING 0
-
 #if WITH_EDITOR
 typedef TMap<const UTexture*, const UTexture*> FPaperRenderSceneProxyTextureOverrideMap;
 
@@ -150,7 +148,6 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual uint32 GetMemoryFootprint() const override;
 	virtual bool CanBeOccluded() const override;
-	virtual void CreateRenderThreadResources() override;
 	// End of FPrimitiveSceneProxy interface.
 
 	void SetDrawCall_RenderThread(const FSpriteDrawCallRecord& NewDynamicData);
