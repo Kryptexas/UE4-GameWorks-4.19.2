@@ -205,7 +205,7 @@ namespace AutomationTool
 
 			// Read the project descriptor, and find all the plugins available to this project
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(RawProjectPath);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(BuildConfiguration.RelativeEnginePath, RawProjectPath);
 
 			// check the target platforms for any differences in build settings or additional plugins
 			bool RetVal = false;

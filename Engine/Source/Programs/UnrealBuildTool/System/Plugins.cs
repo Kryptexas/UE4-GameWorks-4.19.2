@@ -55,19 +55,17 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Read all the plugins available to a given project
 		/// </summary>
+		/// <param name="EngineDir">Path to the engine directory</param>
 		/// <param name="ProjectFileName">Path to the project file (or null)</param>
 		/// <returns>Sequence of PluginInfo objects, one for each discovered plugin</returns>
-		public static List<PluginInfo> ReadAvailablePlugins(string ProjectFileName)
+		public static List<PluginInfo> ReadAvailablePlugins(string EngineDir, string ProjectFileName)
 		{
 			List<PluginInfo> Plugins = new List<PluginInfo>();
 
 			// Read all the engine plugins
-			
-			string EnginePluginsDir = Path.Combine(BuildConfiguration.RelativeEnginePath, "Plugins");
-			Log.TraceVerbose("EngineDir for plugin search: " + EnginePluginsDir);
+			string EnginePluginsDir = Path.Combine(EngineDir, "Plugins");
 			foreach(string PluginFileName in EnumeratePlugins(EnginePluginsDir))
 			{
-				Log.TraceVerbose("Found Engine Plugin: " + PluginFileName);
 				PluginInfo Plugin = new PluginInfo(PluginFileName, PluginLoadedFrom.Engine);
 				Plugins.Add(Plugin);
 			}

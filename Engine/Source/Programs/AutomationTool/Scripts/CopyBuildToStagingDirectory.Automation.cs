@@ -373,14 +373,10 @@ public partial class Project : CommandUtils
             }
 			
 			// Engine & Game Plugins. Push the Engine/Source working directory so UBT code has a correct RelativeEnginePath in ReadAvailablePlugins
-			PushDir(CombinePaths(SC.LocalRoot, "Engine", "Source"));
-			String OrigEngineRelativeDir = BuildConfiguration.RelativeEnginePath;
-			BuildConfiguration.RelativeEnginePath = "../../Engine/";
-
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath);
 			Log("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
 			Log("Searching for plugins in: " + SC.RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(SC.RawProjectPath);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(CombinePaths(SC.LocalRoot, "Engine"), SC.RawProjectPath);
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
 				Log("Considering Plugin for Stage: " + Plugin.FileName);
@@ -390,9 +386,6 @@ public partial class Project : CommandUtils
 					SC.StageFiles(StagedFileType.UFS, Plugin.Directory, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
 				}
 			}
-
-			BuildConfiguration.RelativeEnginePath = OrigEngineRelativeDir;
-			PopDir();
 
             // Game ufs (content)
 
