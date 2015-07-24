@@ -1,19 +1,32 @@
-﻿INTSourceChangelist:2622256
+﻿INTSourceChangelist:2628858
 Availability:Public
 Title:アンリアル エンジン ソースコードのダウンロード
 Crumbs:%ROOT%, Programming, Programming/Development
 Description:ソースコード レポジトリへ接続し、アンリアル エンジンの最新ビルドをダウンロードしてみましょう。
+Prereq:GettingStarted/RecommendedSpecifications
+Prereq:Support/Builds
+Related:Programming/Development/BuildingUnrealEngine
+Version:4.8
 
 [TOC (start:2 end:3)]
-
 
 [EXCERPT:Main]
 [PUBLISH:Licensee]
 ライセンシーの方は Epic の Perforce サーバーから直接アンリアル エンジン 4 のダウンロードが可能です。サーバーへ接続する前に、安全な VPN 接続が確立されていなければなりません。VPN 及び Perforce サーバーへのログイン認証情報は Epic が発行する UDN のウェルカムメールでチームのテクニカルリード宛に送信されます。ログイン認証情報は各チームに 1 セットのみの発行となっています。
 [/PUBLISH:Licensee]
 [PUBLISH:Rocket]
-会員になると、アンリアル エンジン 4 (UE4) のソースコードを Unreal Engine GitHub レポジトリからダウンロードできます。ソースコードにアクセスして、エンジンとツールをカスタマイズして、自分のニーズを満たすことができます。Windows、Mac、Linux 用にエディタをビルドし、Android および iOS の両方に対してゲームをコンパイルすることができます。Unreal Lightmass や Unreal Frontend など、すべてのツールのソースコードも格納されています。
+
 [REGION:warning]
+GitHub 上のソースコード レポジトリからアンリアル エンジンをダウンロードおよびビルドする方法を説明します。アンリアル エンジンのバイナリ バージョンをダウンロードしたい場合は、 [](GettingStarted/Installation) ドキュメントで[アンリアルを取得する](https://www.unrealengine.com/) 方法を学習してください。
+[/REGION]
+
+----
+
+![](WindowsMacLinux.png)
+
+会員になると、アンリアル エンジン 4 (UE4) のソースコードを Unreal Engine GitHub レポジトリからダウンロードできます。ソースコードにアクセスして、エンジンとツールをカスタマイズして、自分のニーズを満たすことができます。Windows、Mac、Linux 用にエディタをビルドし、Android および iOS の両方に対してゲームをコンパイルすることができます。Unreal Lightmass や Unreal Frontend など、すべてのツールのソースコードも格納されています。
+
+[REGION:note]
 [レポジトリ](https://github.com/EpicGames/UnrealEngine) へアクセスする前に、アンリアル エンジンに会員登録し、 GitHub アカウントを取得する必要があります。  
 *	GitHub アカウントをお持ちでない場合、[GitHub](https://github.com/) のページで登録をしてください。   
 *	GitHub アカウントを Unreal Engine アカウントに連携させる方法は [UE4 on GitHub](https://www.unrealengine.com/ue4-on-github) ページをご覧ください。
@@ -23,11 +36,13 @@ Description:ソースコード レポジトリへ接続し、アンリアル エ
 
 リポジトリにアクセスすると、UE4 のソースコードが 3 つのブランチで発行されていることが分かります。
 
-*	**Release ブランチ**
-*	**Promoted ブランチ**
-*	**Master ブランチ**
+*	[Release ブランチ](#Bookmark1)
+*	[Promoted ブランチ](#Bookmark2)
+*	[Master ブランチ](#Bookmark3)
 
 ### Release ブランチ
+
+(#Bookmark1)
 
 ![](ReleaseBranch.png)
 
@@ -35,11 +50,15 @@ Description:ソースコード レポジトリへ接続し、アンリアル エ
 
 ### Promoted ブランチ
 
+(#Bookmark2)
+
 ![](PromotedBranch.png)
 
 [Promoted ブランチ](https://github.com/EpicGames/UnrealEngine/tree/promoted) (上記) は、デザイナーとアーティストによる使用のためにビルドが更新されます。会員の皆さんが UE4 の安定が確認された最新機能にアクセスできるように、毎日更新を心掛けています。UE4 の機能開発について、このブランチでしっかり学習することができます。
 
 ### Master ブランチ
+
+(#Bookmark3)
 
 [REGION:warning]
 Master ブランチには最新技術が含まれているので、UE4 はソースからのコンパイルを保証していません。
@@ -67,14 +86,18 @@ Master ブランチには最新技術が含まれているので、UE4 はソー
 
 会員はアンリアル エンジンのソースコードを以下の方法でダウンロードできます：
 
-*	GitHub からアンリアル エンジンをダウンロードする
-*	アンリアル エンジンを圧縮ファイルとしてダウンロードする
+*	[%GettingStarted/DownloadingUnrealEngine/GitHub:title%](#Bookmark4)
+*	[%GettingStarted/DownloadingUnrealEngine/DownloadZip:title%](#Bookmark5)
 
 ### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
+
+(#Bookmark4)
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
 
 ### %GettingStarted/DownloadingUnrealEngine/DownloadZip:title%
+
+(#Bookmark5)
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/DownloadZip]
 
