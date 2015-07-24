@@ -420,6 +420,8 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 
 void USkeletalMeshComponent::PostBlendPhysics()
 {
+	SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
+	
 	FinalizeBoneTransform();
 
 	// Update Child Transform - The above function changes bone transform, so will need to update child transform
@@ -427,6 +429,9 @@ void USkeletalMeshComponent::PostBlendPhysics()
 
 	// animation often change overlap. 
 	UpdateOverlaps();
+
+	// update bounds
+	UpdateBounds();
 
 	// New bone positions need to be sent to render thread
 	MarkRenderDynamicDataDirty();
