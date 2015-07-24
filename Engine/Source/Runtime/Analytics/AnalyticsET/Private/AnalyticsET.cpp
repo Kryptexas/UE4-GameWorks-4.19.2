@@ -11,8 +11,6 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "EngineVersion.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
-
 IMPLEMENT_MODULE( FAnalyticsET, AnalyticsET );
 
 class FAnalyticsProviderET : 
