@@ -638,6 +638,10 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 				AddToReferenceList(ReferenceList, Ref);
 			}
 		}
+		else if (REFERENCE_INFO.Type == GCRT_EndOfPointer)
+		{
+			TokenReturnCount = REFERENCE_INFO.ReturnCount;
+		}
 		else if( REFERENCE_INFO.Type == GCRT_EndOfStream )
 		{
 			// Break out of loop.
