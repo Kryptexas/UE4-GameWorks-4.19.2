@@ -605,12 +605,13 @@ const FString& AActor::GetActorLabel() const
 	return ActorLabel;
 }
 
-void AActor::SetActorLabel( const FString& NewActorLabelDirty )
+void AActor::SetActorLabel( const FString& NewActorLabelDirty, bool bMarkDirty )
 {
-	SetActorLabelInternal(NewActorLabelDirty, false);
+	const bool bMakeGloballyUniqueFName = false;
+	SetActorLabelInternal(NewActorLabelDirty, bMakeGloballyUniqueFName, bMarkDirty );
 }
 
-void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName )
+void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName, bool bMarkDirty )
 {
 	// Clean up the incoming string a bit
 	FString NewActorLabel = NewActorLabelDirty;
@@ -624,7 +625,7 @@ void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMak
 		if( FCString::Strcmp( *NewActorLabel, *GetActorLabel() ) != 0 )
 		{
 			// Store new label
-			Modify();
+			Modify( bMarkDirty );
 			ActorLabel = NewActorLabel;
 		}
 	}
