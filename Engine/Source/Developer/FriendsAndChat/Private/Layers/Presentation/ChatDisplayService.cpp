@@ -78,6 +78,12 @@ public:
 		return FriendsSendNetworkMessageEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FChatDisplayServiceImpl, IChatDisplayService::FOnFocusReleasedEvent, FOnFocusReleasedEvent);
+	virtual FOnFocusReleasedEvent& OnFocuseReleasedEvent() override
+	{
+		return OnFocusReleasedEvent;
+	}
+
 	DECLARE_DERIVED_EVENT(FChatDisplayServiceImpl, IChatDisplayService::FChatListSetFocus, FChatListSetFocus);
 	virtual FChatListSetFocus& OnChatListSetFocus() override
 	{
@@ -96,6 +102,7 @@ private:
 		else
 		{
 			ChatEntryVisibility = EVisibility::Hidden;
+			OnFocuseReleasedEvent().Broadcast();
 		}
 	}
 
@@ -187,6 +194,8 @@ private:
 	FChatListUpdated ChatListUpdatedEvent;
 	FOnFriendsChatMessageCommitted ChatMessageCommittedEvent;
 	FOnFriendsSendNetworkMessageEvent FriendsSendNetworkMessageEvent;
+	FOnFocusReleasedEvent OnFocusReleasedEvent;
+
 	FChatListSetFocus ChatSetFocusEvent;
 
 	// Delegate for which function we should use when we tick

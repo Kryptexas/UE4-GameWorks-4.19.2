@@ -58,6 +58,9 @@ public:
 	DECLARE_EVENT_OneParam(IChatDisplayService, FOnFriendsSendNetworkMessageEvent, /*struct*/ const FString& /* the message */)
 	virtual FOnFriendsSendNetworkMessageEvent& OnNetworkMessageSentEvent() = 0;
 
+	DECLARE_EVENT(IChatDisplayService, FOnFocusReleasedEvent)
+	virtual FOnFocusReleasedEvent& OnFocuseReleasedEvent() = 0;
+
 	DECLARE_EVENT(IChatDisplayService, FChatListUpdated)
 	virtual FChatListUpdated& OnChatListUpdated() = 0;
 
