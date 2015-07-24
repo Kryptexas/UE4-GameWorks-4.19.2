@@ -488,7 +488,8 @@ FLinkerLoad* GetPackageLinker
 			return nullptr;
 		}
 
-		if (UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName))
+		UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName);
+		if (ExistingPackage)
 		{
 			if (!ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_InMemoryOnly))
 			{
@@ -509,8 +510,8 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Create the package with the provided long package name.
-		UPackage* FilenamePkg = CreatePackage(nullptr, *PackageName);
-		if (FilenamePkg && (LoadFlags & LOAD_PackageForPIE))
+		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageName));
+		if (FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
 			FilenamePkg->PackageFlags |= PKG_PlayInEditor;
 		}
