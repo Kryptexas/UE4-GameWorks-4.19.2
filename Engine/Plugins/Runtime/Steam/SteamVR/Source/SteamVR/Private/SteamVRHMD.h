@@ -84,6 +84,9 @@ public:
 	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
 	virtual FQuat GetBaseOrientation() const override;
 
+	virtual bool HasHiddenAreaMask() const override { return HiddenAreaMeshes[0].IsValid() && HiddenAreaMeshes[1].IsValid(); }
+	virtual void DrawHiddenAreaMaskView_RenderThread(FRHICommandList& RHICmdList, const FViewInfo& View) const override;
+
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
 
 	virtual void UpdateScreenSettings(const FViewport* InViewport) override {}
@@ -98,7 +101,6 @@ public:
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
 	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override;
 	virtual void GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
-
 	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
 	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) override;
 	virtual bool ShouldUseSeparateRenderTarget() const override
@@ -106,6 +108,7 @@ public:
 		check(IsInGameThread());
 		return IsStereoEnabled();
 	}
+	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport*) override;
 
 	/** ISceneViewExtension interface */
 	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override;
@@ -113,8 +116,6 @@ public:
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override {}
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
-
-	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport*) override;
 
 	class BridgeBaseImpl : public FRHICustomPresent
 	{
@@ -295,6 +296,27 @@ private:
 	{
 		return FVector(InVector.v[0], InVector.v[1], InVector.v[2]);
 	}
+
+	struct FHiddenAreaMesh
+	{
+		FHiddenAreaMesh();
+		~FHiddenAreaMesh();
+
+		bool IsValid() const
+		{
+			return NumTriangles > 0;
+		}
+
+		void Build(const vr::HiddenAreaMesh_t& Mesh);
+
+		FVector4* pVertices;
+		uint16*   pIndices;
+		unsigned  NumVertices;
+		unsigned  NumIndices;
+		unsigned  NumTriangles;
+	};
+
+	FHiddenAreaMesh HiddenAreaMeshes[2];
 
 	/** Chaperone Support */
 	struct FChaperoneBounds

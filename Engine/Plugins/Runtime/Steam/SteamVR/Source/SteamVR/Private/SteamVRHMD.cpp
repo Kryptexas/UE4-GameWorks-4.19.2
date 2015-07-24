@@ -952,13 +952,17 @@ void FSteamVRHMD::Startup()
 		}
 
 		// Initialize our controller to device index
-		for (int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex )
+		for (int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex)
 		{
-			for( int32 HandIndex = 0; HandIndex < 2; ++HandIndex )
+			for (int32 HandIndex = 0; HandIndex < 2; ++HandIndex)
 			{
-				UnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ] = INDEX_NONE;
+				UnrealControllerIdAndHandToDeviceIdMap[UnrealControllerIndex][HandIndex] = INDEX_NONE;
 			}
 		}
+
+		// Setup hidden area meshes
+		HiddenAreaMeshes[0].Build(VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Left));
+		HiddenAreaMeshes[1].Build(VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Right));
 
 #if PLATFORM_WINDOWS
 		if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
@@ -1076,6 +1080,64 @@ void FSteamVRHMD::UnloadOpenVRModule()
 	{
 		FPlatformProcess::FreeDllHandle(OpenVRDLLHandle);
 		OpenVRDLLHandle = nullptr;
+	}
+}
+
+FSteamVRHMD::FHiddenAreaMesh::FHiddenAreaMesh() :
+	pVertices(nullptr),
+	pIndices(nullptr),
+	NumVertices(0),
+	NumIndices(0),
+	NumTriangles(0)
+{}
+
+FSteamVRHMD::FHiddenAreaMesh::~FHiddenAreaMesh()
+{
+	if (pVertices)
+	{
+		delete[] pVertices;
+	}
+
+	if (pIndices)
+	{
+		delete[] pIndices;
+	}
+}
+
+void FSteamVRHMD::FHiddenAreaMesh::Build(const vr::HiddenAreaMesh_t& Mesh)
+{
+	check(pVertices == nullptr);
+
+	NumTriangles = Mesh.unTriangleCount;
+	NumVertices  = NumTriangles * 3;
+	NumIndices   = NumVertices;
+
+	// Did we get any data?
+	if (NumVertices == 0)
+	{
+		return;
+	}
+
+	pVertices = new FVector4[NumVertices];
+	pIndices  = new uint16[NumIndices];
+
+	uint32 DataIndex = 0;
+	for (uint32 TriangleIter = 0; TriangleIter < NumTriangles; ++TriangleIter)
+	{
+		for (uint32 VertexIter = 0; VertexIter < 3; ++VertexIter)
+		{
+			const vr::HmdVector2_t& Vertex = Mesh.pVertexData[DataIndex];
+
+			// Remap from [0 1] to [-1 1] to match our NDC space
+			pVertices[DataIndex].X = (Vertex.v[0] * 2.0f) - 1.0f;
+			pVertices[DataIndex].Y = (Vertex.v[1] * 2.0f) - 1.0f;
+			pVertices[DataIndex].Z = 1.0f; // Setting to 1 for reversed depth near plane
+			pVertices[DataIndex].W = 1.0f; 
+
+			pIndices[DataIndex] = DataIndex;
+
+			++DataIndex;
+		}
 	}
 }
 

@@ -75,6 +75,28 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 	}
 }
 
+void FSteamVRHMD::DrawHiddenAreaMaskView_RenderThread(FRHICommandList& RHICmdList, const FViewInfo& View) const
+{
+	check(IsInRenderingThread());
+	check(View.StereoPass != eSSP_FULL);
+
+	const uint32 HiddenMeshIndex = (View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
+	const FHiddenAreaMesh& Mesh = HiddenAreaMeshes[HiddenMeshIndex];
+	check(Mesh.IsValid());
+
+	DrawIndexedPrimitiveUP(
+		RHICmdList,
+		PT_TriangleList,
+		0,
+		Mesh.NumVertices,
+		Mesh.NumTriangles,
+		Mesh.pIndices,
+		sizeof(Mesh.pIndices[0]),
+		Mesh.pVertices,
+		sizeof(Mesh.pVertices[0])
+	);
+}
+
 #if PLATFORM_WINDOWS
 
 FSteamVRHMD::D3D11Bridge::D3D11Bridge(FSteamVRHMD* plugin):
@@ -93,6 +115,8 @@ void FSteamVRHMD::D3D11Bridge::BeginRendering()
 		Plugin->VRCompositor->SetGraphicsDevice(vr::Compositor_DeviceType_D3D11, RHIGetNativeDevice());
 		Inited = true;
 	}
+
+
 }
 
 void FSteamVRHMD::D3D11Bridge::FinishRendering()

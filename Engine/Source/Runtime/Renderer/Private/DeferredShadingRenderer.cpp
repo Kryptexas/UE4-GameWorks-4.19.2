@@ -24,6 +24,7 @@
 #include "DistanceFieldAtlas.h"
 #include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
 #include "EngineModule.h"
+#include "IHeadMountedDisplay.h"
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
@@ -686,6 +687,19 @@ static FORCEINLINE bool NeedsPrePass(const FDeferredShadingSceneRenderer* Render
 		(Renderer->EarlyZPassMode != DDM_None || GEarlyZPassMovable != 0);
 }
 
+/**
+ * Returns true if there's a hidden area mask available
+ */
+static FORCEINLINE bool HasHiddenAreaMask()
+{
+	static const IConsoleVariable* const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.HiddenAreaMask"));
+
+	return (CVar->GetInt() == 1 &&
+		GEngine &&
+		GEngine->HMDDevice.IsValid() &&
+		GEngine->HMDDevice->HasHiddenAreaMask());
+}
+
 static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bClearDepth)
 {
 	// if we didn't to the prepass above, then we will need to clear now, otherwise, it's already been cleared and rendered to
@@ -929,6 +943,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// at this point, the depth was cleared
 		bDepthWasCleared = true;
 	}
+	else if (HasHiddenAreaMask())
+	{
+		bDepthWasCleared = RenderPrePassHMD(RHICmdList);
+	}
+
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
 	ServiceLocalQueue();
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
@@ -1381,10 +1400,20 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FIntRect& ViewRe
 {
 	// Disable color writes, enable depth tests and writes.
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_DepthNearOrEqual>::GetRHI());
-	RHICmdList.SetViewport(ViewRect.Min.X, ViewRect.Min.Y, 0, ViewRect.Max.X, ViewRect.Max.Y, 1);
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+	RHICmdList.SetViewport(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+}
+
+static void RenderHiddenAreaMaskView(FRHICommandList& RHICmdList, const FViewInfo& View)
+{
+	const auto FeatureLevel = GMaxRHIFeatureLevel;
+	const auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
+	static FGlobalBoundShaderState BoundShaderState;
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, nullptr);
+	GEngine->HMDDevice->DrawHiddenAreaMaskView_RenderThread(RHICmdList, View);
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)
@@ -1393,6 +1422,12 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 
 	SetupPrePassView(RHICmdList, View.ViewRect);
 
+	if (HasHiddenAreaMask() && View.StereoPass != eSSP_FULL)
+	{
+		RenderHiddenAreaMaskView(RHICmdList, View);
+		bDirty = true;
+	}
+	
 	// Draw the static occluder primitives using a depth drawing policy.
 	{
 		// Draw opaque occluders which support a separate position-only
@@ -1474,6 +1509,11 @@ public:
 	{
 		FSceneRenderTargets::Get(CmdList).BeginRenderingPrePass(CmdList, false);
 		SetupPrePassView(CmdList, View.ViewRect);
+
+		if (HasHiddenAreaMask() && View.StereoPass != eSSP_FULL)
+		{
+			RenderHiddenAreaMaskView(CmdList, View);
+		}
 	}
 };
 
@@ -1573,6 +1613,36 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	SceneContext.FinishRenderingPrePass(RHICmdList);
 
 	return bDirty;
+}
+
+bool FDeferredShadingSceneRenderer::RenderPrePassHMD(FRHICommandListImmediate& RHICmdList)
+{
+
+	// Early out before we change any state if there's not a mask to render
+	if (!HasHiddenAreaMask())
+	{
+		return false;
+	}
+
+	SCOPED_DRAW_EVENT(RHICmdList, PrePassHMD);
+	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	SceneContext.BeginRenderingPrePass(RHICmdList, true);
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+		if (View.StereoPass != eSSP_FULL)
+		{
+			SetupPrePassView(RHICmdList, View.ViewRect);
+			RenderHiddenAreaMaskView(RHICmdList, View);
+		}
+	}
+
+	SceneContext.FinishRenderingPrePass(RHICmdList);
+
+	return true;
 }
 
 static TAutoConsoleVariable<int32> CVarParallelBasePass(

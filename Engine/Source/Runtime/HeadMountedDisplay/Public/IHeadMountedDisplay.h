@@ -248,6 +248,16 @@ public:
 	 */
 	virtual FQuat GetBaseOrientation() const { return FQuat::Identity; }
 
+	/**
+	* @return true if a hidden area mask is available for the device.
+	*/
+	virtual bool HasHiddenAreaMask() const { return false; }
+
+	/**
+	* Optional method to draw a view's hidden area mask where supported.
+	* This can be used to avoid rendering pixels which are not included as input into the final distortion pass.
+	*/
+	virtual void DrawHiddenAreaMaskView_RenderThread(class FRHICommandList& RHICmdList, const FViewInfo& View) const {};
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) {}
 
