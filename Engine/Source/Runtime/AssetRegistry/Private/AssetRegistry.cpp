@@ -469,7 +469,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 				}
 
 				// This asset is in memory and passes all filters
-				FAssetData* AssetData = new (OutAssetData) FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs());
+				FAssetData* AssetData = new (OutAssetData)FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs(), InMemoryPackage->PackageFlags);
 			}
 		};
 
@@ -1714,6 +1714,16 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 	for (AssetIndex = 0; AssetIndex < AssetResults.Num(); ++AssetIndex)
 	{
 		IGatheredAssetData*& BackgroundResult = AssetResults[AssetIndex];
+
+		// If this data is cooked and it we couldn't find any asset in its export table then try load the entire package 
+		if (BackgroundResult->IsCooked())
+		{
+			LoadPackage(nullptr, *BackgroundResult->GetPackageName(), 0);
+			delete BackgroundResult;
+			BackgroundResult = nullptr;
+			continue;
+		}
+
 		FAssetData Result = BackgroundResult->ToAssetData();
 
 		// Try to update any asset data that may already exist

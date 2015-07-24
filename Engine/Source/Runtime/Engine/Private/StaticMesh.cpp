@@ -622,7 +622,8 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 
 	// Note: this is all derived data, native versioning is not needed, but be sure to bump STATICMESH_DERIVEDDATA_VER when modifying!
 #if WITH_EDITOR
-	if (Ar.IsSaving())
+	const bool bHasEditorData = !(Owner->GetOutermost()->PackageFlags & PKG_FilterEditorOnly);
+	if (Ar.IsSaving() && bHasEditorData)
 	{
 		ResolveSectionInfo(Owner);
 	}
@@ -1157,6 +1158,13 @@ static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 
 void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettings& LODSettings)
 {
+	if (Owner->GetOutermost()->PackageFlags & PKG_FilterEditorOnly)
+	{
+		// Don't chache for cooked packages
+		return;
+	}
+
+
 	int32 T0 = FPlatformTime::Cycles();
 	int32 NumLODs = Owner->SourceModels.Num();
 	const FStaticMeshLODGroup& LODGroup = LODSettings.GetLODGroup(Owner->LODGroup);
@@ -1698,6 +1706,13 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 	const FStaticMeshLODSettings& PlatformLODSettings = Platform->GetStaticMeshLODSettings();
 	FString PlatformDerivedDataKey = BuildStaticMeshDerivedDataKey(Mesh, PlatformLODSettings.GetLODGroup(Mesh->LODGroup));
 	FStaticMeshRenderData* PlatformRenderData = Mesh->RenderData;
+
+	if (Mesh->GetOutermost()->PackageFlags & PKG_FilterEditorOnly)
+	{
+		check(PlatformRenderData);
+		return *PlatformRenderData;
+	}
+
 	while (PlatformRenderData && PlatformRenderData->DerivedDataKey != PlatformDerivedDataKey)
 	{
 		PlatformRenderData = PlatformRenderData->NextCachedRenderData;
@@ -1932,66 +1947,69 @@ void UStaticMesh::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	// Needs to happen before 'CacheDerivedData'
-	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
+	if (!(GetOutermost()->PackageFlags & PKG_FilterEditorOnly))
 	{
-		int32 NumLODs = SourceModels.Num();
-		for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+		// Needs to happen before 'CacheDerivedData'
+		if (GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR)
 		{
-			FStaticMeshSourceModel& SrcModel = SourceModels[LODIndex];
-			SrcModel.BuildSettings.BuildScale3D = FVector( SrcModel.BuildSettings.BuildScale_DEPRECATED );
-		}
-	}
-
-	if( GetLinkerUE4Version() < VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS )
-	{
-		for( int32 i = 0; i < SourceModels.Num(); i++ )
-		{
-			SourceModels[i].BuildSettings.bGenerateLightmapUVs = false;
-		}
-	}
-
-	if (GetLinkerUE4Version() < VER_UE4_MIKKTSPACE_IS_DEFAULT)
-	{
-		for (int32 i = 0; i < SourceModels.Num(); ++i)
-		{
-			SourceModels[i].BuildSettings.bUseMikkTSpace = true;
-		}
-	}
-
-	if (GetLinkerUE4Version() < VER_UE4_BUILD_MESH_ADJ_BUFFER_FLAG_EXPOSED)
-	{
-		FRawMesh TempRawMesh;
-		uint32 TotalIndexCount = 0;
-
-		for (int32 i = 0; i < SourceModels.Num(); ++i)
-		{
-			FRawMeshBulkData* RawMeshBulkData = SourceModels[i].RawMeshBulkData;
-			if (RawMeshBulkData)
+			int32 NumLODs = SourceModels.Num();
+			for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 			{
-				RawMeshBulkData->LoadRawMesh(TempRawMesh);
-				TotalIndexCount += TempRawMesh.WedgeIndices.Num();
+				FStaticMeshSourceModel& SrcModel = SourceModels[LODIndex];
+				SrcModel.BuildSettings.BuildScale3D = FVector(SrcModel.BuildSettings.BuildScale_DEPRECATED);
 			}
 		}
 
-		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		if (GetLinkerUE4Version() < VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS)
 		{
-			SourceModels[i].BuildSettings.bBuildAdjacencyBuffer = (TotalIndexCount < 50000);
+			for (int32 i = 0; i < SourceModels.Num(); i++)
+			{
+				SourceModels[i].BuildSettings.bGenerateLightmapUVs = false;
+			}
 		}
-	}
 
-	CacheDerivedData();
+		if (GetLinkerUE4Version() < VER_UE4_MIKKTSPACE_IS_DEFAULT)
+		{
+			for (int32 i = 0; i < SourceModels.Num(); ++i)
+			{
+				SourceModels[i].BuildSettings.bUseMikkTSpace = true;
+			}
+		}
 
-	// Only required in an editor build as other builds process this in a different place
-	if(bRequiresLODDistanceConversion)
-	{
-		// Convert distances to Display Factors
-		ConvertLegacyLODDistance();
-	}
+		if (GetLinkerUE4Version() < VER_UE4_BUILD_MESH_ADJ_BUFFER_FLAG_EXPOSED)
+		{
+			FRawMesh TempRawMesh;
+			uint32 TotalIndexCount = 0;
 
-	if(RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
-	{
-		FixupZeroTriangleSections();
+			for (int32 i = 0; i < SourceModels.Num(); ++i)
+			{
+				FRawMeshBulkData* RawMeshBulkData = SourceModels[i].RawMeshBulkData;
+				if (RawMeshBulkData)
+				{
+					RawMeshBulkData->LoadRawMesh(TempRawMesh);
+					TotalIndexCount += TempRawMesh.WedgeIndices.Num();
+				}
+			}
+
+			for (int32 i = 0; i < SourceModels.Num(); ++i)
+			{
+				SourceModels[i].BuildSettings.bBuildAdjacencyBuffer = (TotalIndexCount < 50000);
+			}
+		}
+
+		CacheDerivedData();
+		
+		// Only required in an editor build as other builds process this in a different place
+		if (bRequiresLODDistanceConversion)
+		{
+			// Convert distances to Display Factors
+			ConvertLegacyLODDistance();
+		}
+
+		if (RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
+		{
+			FixupZeroTriangleSections();
+		}
 	}
 #endif // #if WITH_EDITOR
 

@@ -2592,6 +2592,10 @@ namespace ObjectTools
 					UPackage* NewPackage = CreatePackage( NULL, *FullPackageName );
 					NewPackage->GetOutermost()->FullyLoad();
 
+					// Make sure we copy all the cooked package flags if the asset was already cooked.
+					NewPackage->PackageFlags |= (Object->GetOutermost()->PackageFlags & PKG_FilterEditorOnly);
+					NewPackage->bIsCookedForEditor = Object->GetOutermost()->bIsCookedForEditor;
+
 					UObjectRedirector* Redirector = Cast<UObjectRedirector>( StaticFindObject(UObjectRedirector::StaticClass(), NewPackage, *NewObjectName) );
 					bool bFoundCompatibleRedirector = false;
 					// If we found a redirector, check that the object it points to is of the same class.

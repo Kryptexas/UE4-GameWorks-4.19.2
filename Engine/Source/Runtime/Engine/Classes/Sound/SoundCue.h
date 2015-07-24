@@ -78,10 +78,10 @@ public:
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #endif
 	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface.
 
 	// Begin USoundBase interface.

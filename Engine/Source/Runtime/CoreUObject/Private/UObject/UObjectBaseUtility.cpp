@@ -135,7 +135,7 @@ bool UObjectBaseUtility::MarkPackageDirty() const
 	{
 		UPackage* Package = GetOutermost();
 
-		if( Package != NULL )
+		if( Package != NULL	)
 		{
 			// It is against policy to dirty a map or package during load in the Editor, to enforce this policy
 			// we explicitly disable the ability to dirty a package or map during load.  Commandlets can still
@@ -145,6 +145,9 @@ bool UObjectBaseUtility::MarkPackageDirty() const
 #if WITH_HOT_RELOAD
 				&& !GIsHotReload
 #endif // WITH_HOT_RELOAD
+#if WITH_EDITORONLY_DATA
+				&& !Package->bIsCookedForEditor // Cooked packages can't be modified nor marked as dirty
+#endif
 				))
 			{
 				const bool bIsDirty = Package->IsDirty();

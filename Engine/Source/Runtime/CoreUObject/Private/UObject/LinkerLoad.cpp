@@ -995,11 +995,35 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		}
 
 		// don't load packages that contain editor only data in builds that don't support that and vise versa
-		if ( (!FPlatformProperties::HasEditorOnlyData() && !(Summary.PackageFlags & PKG_FilterEditorOnly)) ||
-			 (FPlatformProperties::HasEditorOnlyData() && !!(Summary.PackageFlags & PKG_FilterEditorOnly)) )
+		if (!FPlatformProperties::HasEditorOnlyData() && !(Summary.PackageFlags & PKG_FilterEditorOnly))
 		{
-			UE_LOG(LogLinker, Warning, TEXT("Unable to load package (%s). Package contains EditorOnly data which is not supported by the current build or vice versa."), *Filename );
+			UE_LOG(LogLinker, Warning, TEXT("Unable to load package (%s). Package contains EditorOnly data which is not supported by the current build."), *Filename );
 			return LINKER_Failed;
+		}
+
+		// don't load packages that contain editor only data in builds that don't support that and vise versa
+		if (FPlatformProperties::HasEditorOnlyData() && !!(Summary.PackageFlags & PKG_FilterEditorOnly))
+		{
+			// This warning can be disabled in ini with [Core.System] AllowCookedDataInEditorBuilds=False
+			static struct FInitCookedDatataInEditorBuildsSupport
+			{
+				bool bAllowCookedData;
+				FInitCookedDatataInEditorBuildsSupport()
+				{
+					if (!GConfig->GetBool(TEXT("Core.System"), TEXT("AllowCookedDataInEditorBuilds"), bAllowCookedData, GEngineIni))
+					{
+						bAllowCookedData = true;
+					}
+				}
+				FORCEINLINE operator bool() const { return bAllowCookedData; }
+			} AllowCookedDataInEditorBuilds;
+			if (!AllowCookedDataInEditorBuilds)
+			{
+				UE_LOG(LogLinker, Warning, 
+					TEXT("Unable to load package (%s). Package contains cooked data which is not supported by the current build. Set [Core.System] AllowCookedDataInEditorBuilds to true in Engine.ini to allow it."), 
+					*Filename);
+				return LINKER_Failed;
+			}
 		}
 
 #if PLATFORM_WINDOWS
@@ -1123,6 +1147,10 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			LinkerRootPackage->LinkerPackageVersion = ArUE4Ver;
 			LinkerRootPackage->LinkerLicenseeVersion = ArLicenseeUE4Ver;
 			LinkerRootPackage->LinkerCustomVersion = SummaryVersions;
+
+#if WITH_EDITORONLY_DATA
+			LinkerRootPackage->bIsCookedForEditor = !!(Summary.PackageFlags & PKG_FilterEditorOnly);
+#endif
 		}
 		
 		// Propagate fact that package cannot use lazy loading to archive (aka this).

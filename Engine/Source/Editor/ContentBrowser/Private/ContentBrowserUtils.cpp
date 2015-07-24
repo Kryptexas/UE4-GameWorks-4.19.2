@@ -413,8 +413,8 @@ bool ContentBrowserUtils::CanRenameFolder(const FString& InFolderPath)
 
 bool ContentBrowserUtils::CanRenameAsset(const FAssetData& InAssetData)
 {
-	// Cannot rename redirectors or classes
-	return !InAssetData.IsRedirector() && InAssetData.AssetClass != NAME_Class;
+	// Cannot rename redirectors or classes or cooked packages
+	return !InAssetData.IsRedirector() && InAssetData.AssetClass != NAME_Class && !(InAssetData.PackageFlags & PKG_FilterEditorOnly);
 }
 
 void ContentBrowserUtils::RenameAsset(UObject* Asset, const FString& NewName, FText& ErrorMessage)

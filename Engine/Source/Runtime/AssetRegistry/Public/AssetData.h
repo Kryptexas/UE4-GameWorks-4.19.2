@@ -26,6 +26,8 @@ public:
 	TSharedMapView<FName, FString> TagsAndValues;
 	/** The IDs of the chunks this asset is located in for streaming install.  Empty if not assigned to a chunk */
 	TArray<int32> ChunkIDs;
+	/** Asset package flags */
+	uint32 PackageFlags;
 
 public:
 	/** Default constructor */
@@ -33,7 +35,7 @@ public:
 	{}
 
 	/** Constructor */
-	FAssetData(FName InPackageName, FName InPackagePath, FName InGroupNames, FName InAssetName, FName InAssetClass, TMap<FName, FString> InTags, TArray<int32> InChunkIDs)
+	FAssetData(FName InPackageName, FName InPackagePath, FName InGroupNames, FName InAssetName, FName InAssetClass, TMap<FName, FString> InTags, TArray<int32> InChunkIDs, uint32 InPackageFlags)
 		: PackageName(InPackageName)
 		, PackagePath(InPackagePath)
 		, GroupNames(InGroupNames)
@@ -41,6 +43,7 @@ public:
 		, AssetClass(InAssetClass)
 		, TagsAndValues(MakeSharedMapView(MoveTemp(InTags)))
 		, ChunkIDs(MoveTemp(InChunkIDs))
+		, PackageFlags(InPackageFlags)
 	{
 		FString ObjectPathStr = PackageName.ToString() + TEXT(".");
 
@@ -92,6 +95,7 @@ public:
 			TagsAndValues = MakeSharedMapView(MoveTemp(TagsAndValuesMap));
 
 			ChunkIDs = Outermost->GetChunkIDs();
+			PackageFlags = Outermost->PackageFlags;
 		}
 	}
 
@@ -256,6 +260,8 @@ public:
 		{
 			UE_LOG(LogAssetData, Log, TEXT("                 %d"), Chunk);
 		}
+
+		UE_LOG(LogAssetData, Log, TEXT("        PackageFlahs: %d"), PackageFlags);
 	}
 
 	/** Get the first FAssetData of a particular class from an Array of FAssetData */
@@ -286,9 +292,6 @@ public:
 	/** Operator for serialization */
 	friend FArchive& operator<<(FArchive& Ar, FAssetData& AssetData)
 	{
-
-		//FNameAsStringProxyArchive Ar(InAr);
-
 		// serialize out the asset info
 		Ar << AssetData.ObjectPath;
 		Ar << AssetData.PackagePath;
@@ -332,6 +335,11 @@ public:
 			// loading old assetdata.  we weren't using this value yet, so throw it away
 			int ChunkID = -1;
 			Ar << ChunkID;
+		}
+
+		if (Ar.UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)
+		{
+			Ar << AssetData.PackageFlags;
 		}
 
 		return Ar;

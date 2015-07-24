@@ -38,7 +38,7 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 	Ar << P.ReferencePose;
 #if WITH_EDITORONLY_DATA
 	//TODO: we should use strip flags but we need to rev the serialization version
-	if (!Ar.IsCooking())
+	if (!Ar.IsCooking() && !Ar.IsFilterEditorOnly())
 	{
 		Ar << P.ReferenceMesh;
 	}

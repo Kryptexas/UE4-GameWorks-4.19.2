@@ -2,7 +2,7 @@
 
 #include "AssetRegistryPCH.h"
 
-FBackgroundAssetData::FBackgroundAssetData(FString InPackageName, FString InPackagePath, FString InGroupNames, FString InAssetName, FString InAssetClass, TMap<FString, FString> InTags, TArray<int32> InChunkIDs)
+FBackgroundAssetData::FBackgroundAssetData(FString InPackageName, FString InPackagePath, FString InGroupNames, FString InAssetName, FString InAssetClass, TMap<FString, FString> InTags, TArray<int32> InChunkIDs, uint32 InPackageFlags)
 	: PackageName(MoveTemp(InPackageName))
 	, PackagePath(MoveTemp(InPackagePath))
 	, GroupNames(MoveTemp(InGroupNames))
@@ -10,6 +10,7 @@ FBackgroundAssetData::FBackgroundAssetData(FString InPackageName, FString InPack
 	, AssetClass(MoveTemp(InAssetClass))
 	, TagsAndValues(MakeSharedMapView(MoveTemp(InTags)))
 	, ChunkIDs(MoveTemp(InChunkIDs))
+	, PackageFlags(InPackageFlags)
 {
 	ObjectPath = PackageName + TEXT(".");
 
@@ -20,6 +21,13 @@ FBackgroundAssetData::FBackgroundAssetData(FString InPackageName, FString InPack
 
 	ObjectPath += AssetName;
 }
+
+FBackgroundAssetData::FBackgroundAssetData(FString InPackageName, uint32 InPackageFlags)
+	: PackageName(InPackageName)
+	, PackageFlags(InPackageFlags)
+{
+}
+
 
 FAssetData FBackgroundAssetData::ToAssetData() const
 {
@@ -36,7 +44,8 @@ FAssetData FBackgroundAssetData::ToAssetData() const
 		FName(*AssetName),
 		FName(*AssetClass),
 		MoveTemp(CopiedTagsAndValues),
-		ChunkIDs
+		ChunkIDs,
+		PackageFlags
 		);
 }
 
@@ -59,4 +68,10 @@ FAssetData FAssetDataWrapper::ToAssetData() const
 bool FAssetDataWrapper::IsWithinSearchPath(const FString& InSearchPath) const
 {
 	return PackagePathStr.StartsWith(InSearchPath);
+}
+
+
+FString FAssetDataWrapper::GetPackageName() const
+{ 
+	return WrappedAssetData.PackageName.ToString();  
 }

@@ -108,6 +108,11 @@ public:
 	int32 PIEInstanceID;
 #endif
 
+#if WITH_EDITORONLY_DATA
+	/** True if this packages has been cooked for the editor / opened cooked by the editor */
+	bool bIsCookedForEditor;
+#endif
+
 	/**
 	 * Called after the C++ constructor and after the properties have been initialized, but before the config has been loaded, etc.
 	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.

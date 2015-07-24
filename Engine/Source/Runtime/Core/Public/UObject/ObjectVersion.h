@@ -564,6 +564,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DECAL_SIZE,
 	// Keep only package names in StringAssetReferencesMap
 	VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP,
+	// Support sound cue not saving out editor only data
+	VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

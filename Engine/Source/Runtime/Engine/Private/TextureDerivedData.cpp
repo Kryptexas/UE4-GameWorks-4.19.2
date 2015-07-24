@@ -1464,7 +1464,7 @@ void UTexture::BeginCachePlatformData()
 void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TMap<FString, FTexturePlatformData*>* CookedPlatformDataPtr = GetCookedPlatformData();
-	if (CookedPlatformDataPtr)
+	if (CookedPlatformDataPtr && !(GetOutermost()->PackageFlags & PKG_FilterEditorOnly))
 	{
 		TMap<FString,FTexturePlatformData*>& CookedPlatformData = *CookedPlatformDataPtr;
 		
@@ -1719,12 +1719,15 @@ void UTexture::FinishCachePlatformData()
 			}
 
 #if DO_CHECK
-			FString DerivedDataKey;
-			FTextureBuildSettings BuildSettings;
-			GetBuildSettingsForRunningPlatform(*this, BuildSettings);
-			GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
+			if (!(GetOutermost()->PackageFlags & PKG_FilterEditorOnly))
+			{
+				FString DerivedDataKey;
+				FTextureBuildSettings BuildSettings;
+				GetBuildSettingsForRunningPlatform(*this, BuildSettings);
+				GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
 
-			check( RunningPlatformData->DerivedDataKey == DerivedDataKey );
+				check(RunningPlatformData->DerivedDataKey == DerivedDataKey);
+			}
 #endif
 		}
 	}
@@ -1828,35 +1831,53 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 	{
 		if (!Ar.CookingTarget()->IsServerOnly())
 		{
-			TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
-			if ( CookedPlatformDataPtr == NULL )
-				return;
-
-
-
 			FTextureBuildSettings BuildSettings;
-			TArray<FName> PlatformFormats;
+			GetTextureBuildSettings(*this, Ar.CookingTarget()->GetTextureLODSettings(), BuildSettings);
+
 			TArray<FTexturePlatformData*> PlatformDataToSerialize;
 
-			GetTextureBuildSettings(*this, Ar.CookingTarget()->GetTextureLODSettings(), BuildSettings);
-			Ar.CookingTarget()->GetTextureFormats(this, PlatformFormats);
-			for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
+			if (GetOutermost()->bIsCookedForEditor)
 			{
-				FString DerivedDataKey;
-				BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
-				GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
-
-				FTexturePlatformData *PlatformDataPtr = (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
-				
-				if (PlatformDataPtr == NULL)
+				// For cooked packages, simply grab the current platform data and serialize it
+				FTexturePlatformData** RunningPlatformDataPtr = GetRunningPlatformData();
+				if (RunningPlatformDataPtr == nullptr)
 				{
-					PlatformDataPtr = new FTexturePlatformData();
-					PlatformDataPtr->Cache(*this, BuildSettings, ETextureCacheFlags::InlineMips | ETextureCacheFlags::Async);
-					
-					CookedPlatformDataPtr->Add( DerivedDataKey, PlatformDataPtr );
-					
+					return;
 				}
-				PlatformDataToSerialize.Add(PlatformDataPtr);
+				FTexturePlatformData* RunningPlatformData = *RunningPlatformDataPtr;
+				if (RunningPlatformData == nullptr)
+				{
+					return;
+				}
+				PlatformDataToSerialize.Add(RunningPlatformData);
+			}
+			else
+			{
+				TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+				if (CookedPlatformDataPtr == NULL)
+					return;
+				
+				TArray<FName> PlatformFormats;
+
+				Ar.CookingTarget()->GetTextureFormats(this, PlatformFormats);
+				for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
+				{
+					FString DerivedDataKey;
+					BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
+					GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
+
+					FTexturePlatformData *PlatformDataPtr = (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
+
+					if (PlatformDataPtr == NULL)
+					{
+						PlatformDataPtr = new FTexturePlatformData();
+						PlatformDataPtr->Cache(*this, BuildSettings, ETextureCacheFlags::InlineMips | ETextureCacheFlags::Async);
+
+						CookedPlatformDataPtr->Add(DerivedDataKey, PlatformDataPtr);
+
+					}
+					PlatformDataToSerialize.Add(PlatformDataPtr);
+				}
 			}
 
 			for (int32 i = 0; i < PlatformDataToSerialize.Num(); ++i)

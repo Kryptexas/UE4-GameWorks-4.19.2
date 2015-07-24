@@ -313,9 +313,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		{
 			if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(GetClass()))
 			{
-				UAnimBlueprint* AnimBP = CastChecked<UAnimBlueprint>(AnimBlueprintClass->ClassGeneratedBy);
-
-				if (AnimBP->GetObjectBeingDebugged() == this)
+				UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(AnimBlueprintClass->ClassGeneratedBy);
+				if (AnimBP && AnimBP->GetObjectBeingDebugged() == this)
 				{
 					AnimBlueprintClass->GetAnimBlueprintDebugData().ResetNodeVisitSites();
 				}

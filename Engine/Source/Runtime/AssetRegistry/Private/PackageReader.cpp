@@ -141,7 +141,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		if (bLegacyPackage || bNoMapAsset)
 		{
 			FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
-			AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, FString(), MoveTemp(AssetName), TEXT("World"), TMap<FString, FString>(), PackageFileSummary.ChunkIDs));
+			AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, FString(), MoveTemp(AssetName), TEXT("World"), TMap<FString, FString>(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 		}
 	}
 
@@ -190,7 +190,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		}
 
 		// Create a new FBackgroundAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, MoveTemp(GroupNames), MoveTemp(AssetName), MoveTemp(ObjectClassName), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs));
+		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, MoveTemp(GroupNames), MoveTemp(AssetName), MoveTemp(ObjectClassName), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 	}
 
 	return true;
@@ -245,7 +245,7 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FBackgroundAssetData
 		}
 
 		// Create a new FBackgroundAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, MoveTemp(GroupNames), MoveTemp(AssetName), MoveTemp(AssetClassName), TMap<FString, FString>(), PackageFileSummary.ChunkIDs));
+		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, MoveTemp(GroupNames), MoveTemp(AssetName), MoveTemp(AssetClassName), TMap<FString, FString>(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 	}
 
 	return true;
@@ -292,6 +292,19 @@ void FPackageReader::SerializeImportMap(TArray<FObjectImport>& OutImportMap)
 		{
 			FObjectImport* Import = new(OutImportMap)FObjectImport;
 			*this << *Import;
+		}
+	}
+}
+
+void FPackageReader::SerializeExportMap(TArray<FObjectExport>& OutExportMap)
+{
+	if (PackageFileSummary.ExportCount > 0)
+	{
+		Seek(PackageFileSummary.ExportOffset);
+		for (int32 ExportMapIdx = 0; ExportMapIdx < PackageFileSummary.ExportCount; ++ExportMapIdx)
+		{
+			FObjectExport* Export = new(OutExportMap)FObjectExport;
+			*this << *Export;
 		}
 	}
 }
@@ -367,6 +380,11 @@ int64 FPackageReader::TotalSize()
 {
 	check(Loader);
 	return Loader->TotalSize();
+}
+
+uint32 FPackageReader::GetPackageFlags() const
+{
+	return PackageFileSummary.PackageFlags;
 }
 
 FArchive& FPackageReader::operator<<( FName& Name )
