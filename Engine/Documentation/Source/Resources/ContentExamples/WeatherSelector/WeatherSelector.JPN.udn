@@ -1,7 +1,8 @@
-﻿Availability:Docs
-Title:天候セレクターコンテンツ事例
+﻿INTSourceChangelist:2620123
+Availability:Docs
+Title:天候セレクターのンテンツ サンプル
 Crumbs:%ROOT%, Resources
-Description: 天候セレクター事例レベルの概要
+Description: 天候セレクターのサンプル レベルの概要
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -42,14 +43,12 @@ Description: 天候セレクター事例レベルの概要
 [/OBJECT]
 [/VAR]
 
-## 概要
-
 [REGION:fullwidth]
 
 [/REGION]
 
 [EXCERPT:Topics]
-## 例
+## サンプル
 
 [REGION:topics third]
 %Resources/ContentExamples/WeatherSelector/1_1:TopicCompact%
