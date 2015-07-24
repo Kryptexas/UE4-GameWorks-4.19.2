@@ -229,7 +229,7 @@ namespace EpicGames.MCP.Automation
         /// <param name="platform"></param>
         /// <param name="stagingDirRelativePath">Relative path from the BuildRootPath where files will be staged. Commonly matches the AppName.</param>
 		/// <param name="InManifestFilename">If specifies, will override the value returned by the ManifestFilename property</param>
-        public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath, string InManifestFilename = null)
+        public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath)
             : this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(platform), stagingDirRelativePath)
         {
         }
@@ -242,11 +242,11 @@ namespace EpicGames.MCP.Automation
         /// <param name="InBuildVersion"></param>
         /// <param name="platform"></param>
         /// <param name="stagingDirRelativePath">Relative path from the BuildRootPath where files will be staged. Commonly matches the AppName.</param>
-		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath, string InManifestFilename = null)
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath)
         {
             OwnerCommand = InOwnerCommand;
             AppName = InAppName;
-			_ManifestFilename = InManifestFilename;
+			_ManifestFilename = null;
             McpConfigKey = InMcpConfigKey;
             AppID = InAppID;
             BuildVersion = InBuildVersion;
@@ -260,15 +260,15 @@ namespace EpicGames.MCP.Automation
 		/// <summary>
 		/// Basic constructor with staging dir suffix override, basically to avoid having platform concatenated
 		/// </summary>
-		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath, string stagingDirSuffix, string InManifestFilename = null)
-			: this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(platform), stagingDirRelativePath, stagingDirSuffix)
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath, string stagingDirSuffix, string InManifestFilename)
+			: this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(platform), stagingDirRelativePath, stagingDirSuffix, InManifestFilename)
 		{
 		}
 
 		/// <summary>
 		/// Basic constructor with staging dir suffix override, basically to avoid having platform concatenated
 		/// </summary>
-		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath, string stagingDirSuffix, string InManifestFilename = null)
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath, string stagingDirSuffix, string InManifestFilename)
 		{
 			OwnerCommand = InOwnerCommand;
 			AppName = InAppName;
