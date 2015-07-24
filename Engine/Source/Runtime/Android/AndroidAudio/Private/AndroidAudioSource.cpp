@@ -467,7 +467,9 @@ void FSLESSoundSource::Play( void )
 {
 	if( WaveInstance )
 	{
-		
+		// Reset the previous volume on play so it can be set at least once in the update function
+		VolumePreviousUpdate = -1.0f;
+
 		// set the player's state to playing
 		SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_PLAYING);
 		check(SL_RESULT_SUCCESS == result);
