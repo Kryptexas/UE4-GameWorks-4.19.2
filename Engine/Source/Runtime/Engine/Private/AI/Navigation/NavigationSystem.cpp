@@ -2208,7 +2208,7 @@ void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystemRunMo
 
 		// Remove old/stale chunk data from all levels, when navigation auto-update is enabled
 		// In case navigation system will be created chunks will be regenerated anyway
-		if (Mode == FNavigationSystemRunMode::EditorMode)
+		if (Mode == FNavigationSystemRunMode::EditorMode && bNavigationAutoUpdateEnabled == true)
 		{
 			DiscardNavigationDataChunks(World);
 		}
