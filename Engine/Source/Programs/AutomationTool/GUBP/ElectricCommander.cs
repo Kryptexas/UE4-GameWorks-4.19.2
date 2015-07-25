@@ -327,7 +327,7 @@ namespace AutomationTool
 			CommandUtils.WriteAllLines(BranchJobDefFile, ECProps.ToArray());
 			RunECTool(String.Format("setProperty \"/myJob/BranchJobDefFile\" \"{0}\"", BranchJobDefFile.Replace("\\", "\\\\")));
 
-			bool bHasTests = OrdereredToDo.Any(x => x.Node.IsTest());
+			bool bHasTests = OrdereredToDo.Any(x => x.IsTest);
 			RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
 		}
 
@@ -749,7 +749,7 @@ namespace AutomationTool
 				Dictionary<string, List<BuildNode>> DisplayGroups = new Dictionary<string,List<BuildNode>>();
 				foreach(BuildNode Node in NodesByThisFrequency)
 				{
-					string GroupName = Node.Node.GetDisplayGroupName();
+					string GroupName = Node.DisplayGroupName;
 					if(!DisplayGroups.ContainsKey(GroupName))
 					{
 						DisplayGroups.Add(GroupName, new List<BuildNode>{ Node });
@@ -778,7 +778,7 @@ namespace AutomationTool
 				// Add nodes for each frequency into the master list, trying to match up different groups along the way
 				foreach(BuildNode FirstNode in NodesByThisFrequency)
 				{
-					List<BuildNode> GroupNodes = DisplayGroups[FirstNode.Node.GetDisplayGroupName()];
+					List<BuildNode> GroupNodes = DisplayGroups[FirstNode.DisplayGroupName];
 					foreach(BuildNode GroupNode in GroupNodes)
 					{
 						AddNodeAndDependencies(GroupNode, NodeDependencies, VisitedNodes, SortedNodes);

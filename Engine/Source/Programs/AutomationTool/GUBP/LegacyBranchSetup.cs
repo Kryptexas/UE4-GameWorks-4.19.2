@@ -295,7 +295,7 @@ partial class GUBP
         }
     }
 
-	void FindFrequenciesForNodes(GUBP.GUBPBranchConfig BranchConfig, IEnumerable<BuildNode> Nodes, Dictionary<string, int> FrequencyOverrides)
+	void FindFrequenciesForNodes(GUBP.GUBPBranchConfig BranchConfig, Dictionary<GUBP.GUBPNode, BuildNode> LegacyToNewNodes, Dictionary<string, int> FrequencyOverrides)
 	{
         List<GUBPFrequencyHacker> FrequencyHackers = new List<GUBPFrequencyHacker>();
 
@@ -316,9 +316,10 @@ partial class GUBP
             }
         }
 
-		foreach(BuildNode Node in Nodes)
+		foreach (KeyValuePair<GUBP.GUBPNode, BuildNode> LegacyToNewNodePair in LegacyToNewNodes)
 		{
-			Node.FrequencyShift = Node.Node.CISFrequencyQuantumShift(BranchConfig);
+			BuildNode Node = LegacyToNewNodePair.Value;
+			Node.FrequencyShift = LegacyToNewNodePair.Key.CISFrequencyQuantumShift(BranchConfig);
 
 			foreach(GUBPFrequencyHacker FrequencyHacker in FrequencyHackers)
 			{
@@ -1212,15 +1213,18 @@ partial class GUBP
 		// Calculate the frequency overrides
 		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
 
+		// Get the legacy node to new node mapping
+		Dictionary<GUBP.GUBPNode, BuildNode> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetBuildNode());
+
 		// Convert the GUBPNodes and GUBPAggregates maps into lists
 		AllNodes = new List<BuildNode>();
-		AllNodes.AddRange(BranchConfig.GUBPNodes.Values.Select(x => x.GetBuildNode()));
+		AllNodes.AddRange(LegacyToNewNodes.Values);
 
 		AllAggregates = new List<AggregateNode>();
 		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new LegacyAggregateNode(x)));
 
 		// Calculate the frequencies for each node
-		FindFrequenciesForNodes(BranchConfig, AllNodes, FrequencyOverrides);
+		FindFrequenciesForNodes(BranchConfig, LegacyToNewNodes, FrequencyOverrides);
 
 		// Get the email list for each node
 		FindEmailsForNodes(BranchName, AllNodes);
@@ -1233,11 +1237,11 @@ partial class GUBP
 			{
 				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
 			}
-			foreach (BuildNode Node in AllNodes)
+			foreach(GUBP.GUBPNode Node in BranchConfig.GUBPNodes.Values)
 			{
-				if (Node.Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
+				if (Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
 				{
-					NodeNames.Add(Node.Name);
+					NodeNames.Add(Node.GetFullName());
 				}
 			}
 			if (NodeNames.Count > 0)
