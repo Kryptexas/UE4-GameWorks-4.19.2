@@ -52,4 +52,24 @@ namespace AutomationTool
 			return Name;
 		}
 	}
+
+	public class LegacyBuildNode : BuildNode
+	{
+		public LegacyBuildNode(GUBP.GUBPNode InNode)
+		{
+			Name = InNode.GetFullName();
+			Node = InNode;
+			AgentRequirements = Node.ECAgentString();
+			AgentSharingGroup = Node.AgentSharingGroup;
+			AgentMemoryRequirement = Node.AgentMemoryRequirement();
+			TimeoutInMinutes = Node.TimeoutInMinutes();
+			SendSuccessEmail = Node.SendSuccessEmail();
+			Priority = Node.Priority();
+		}
+
+		public override bool IsSticky
+		{
+			get { return Node.IsSticky(); }
+		}
+	}
 }

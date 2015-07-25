@@ -6,7 +6,7 @@ using System.Text;
 
 namespace AutomationTool
 {
-	public class TriggerNode : LegacyNode
+	public class TriggerNode : LegacyBuildNode
 	{
         public bool IsTriggered;
 		public bool RequiresRecursiveWorkflow;

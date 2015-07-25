@@ -39,7 +39,7 @@ partial class GUBP
         }
 		public virtual BuildNode GetBuildNode()
 		{
-			return new LegacyNode(this);
+			return new LegacyBuildNode(this);
 		}
         public virtual void DoBuild(GUBP bp)
         {
