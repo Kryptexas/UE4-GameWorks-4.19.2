@@ -21,6 +21,7 @@ DECLARE_CYCLE_STAT(TEXT("Recompile Child Classes"), EKismetReinstancerStats_Reco
 DECLARE_CYCLE_STAT(TEXT("Replace Classes Without Reinstancing"), EKismetReinstancerStats_ReplaceClassNoReinsancing, STATGROUP_KismetReinstancer );
 DECLARE_CYCLE_STAT(TEXT("Reinstance Objects"), EKismetCompilerStats_ReinstanceObjects, STATGROUP_KismetCompiler);
 DECLARE_CYCLE_STAT(TEXT("Refresh Dependent Blueprints In Reinstancer"), EKismetCompilerStats_RefreshDependentBlueprintsInReinstancer, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Recreate UberGraphPersistentFrame"), EKismetCompilerStats_RecreateUberGraphPersistentFrame, STATGROUP_KismetCompiler);
 
 struct FReplaceReferenceHelper
 {
@@ -1323,4 +1324,36 @@ FBlueprintCompileReinstancer::FCDODuplicatesProvider& FBlueprintCompileReinstanc
 {
 	static FCDODuplicatesProvider Delegate;
 	return Delegate;
+}
+
+TArray<UObject*> Objects;
+UClass* Class;
+
+FRecreateUberGraphFrameScope::FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate)
+	: Class(InClass)
+{
+	if (bRecreate && ensure(Class))
+	{
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RecreateUberGraphPersistentFrame);
+
+		const bool bIncludeDerivedClasses = true;
+		GetObjectsOfClass(Class, Objects, bIncludeDerivedClasses);
+
+		for (auto Obj : Objects)
+		{
+			Class->DestroyPersistentUberGraphFrame(Obj, true);
+		}
+	}
+}
+
+FRecreateUberGraphFrameScope::~FRecreateUberGraphFrameScope()
+{
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RecreateUberGraphPersistentFrame);
+	for (auto Obj : Objects)
+	{
+		if (IsValid(Obj))
+		{
+			Class->CreatePersistentUberGraphFrame(Obj, false, true);
+		}
+	}
 }

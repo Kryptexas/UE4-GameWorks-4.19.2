@@ -544,7 +544,7 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
 
-void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty) const
+void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass) const
 {
 	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
@@ -577,12 +577,15 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 		}
 	}
 
-	auto ParentClass = GetSuperClass();
-	checkSlow(ParentClass);
-	return ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
+	if (!bSkipSuperClass)
+	{
+		auto ParentClass = GetSuperClass();
+		checkSlow(ParentClass);
+		ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
+	}
 }
 
-void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) const
+void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, bool bSkipSuperClass) const
 {
 	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
@@ -606,9 +609,12 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) con
 		}
 	}
 
-	auto ParentClass = GetSuperClass();
-	checkSlow(ParentClass);
-	return ParentClass->DestroyPersistentUberGraphFrame(Obj);
+	if (!bSkipSuperClass)
+	{
+		auto ParentClass = GetSuperClass();
+		checkSlow(ParentClass);
+		ParentClass->DestroyPersistentUberGraphFrame(Obj);
+	}
 }
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)

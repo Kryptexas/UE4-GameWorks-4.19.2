@@ -12,6 +12,16 @@ DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STA
 
 class FReinstanceFinalizer;
 
+struct UNREALED_API FRecreateUberGraphFrameScope
+{
+private:
+	TArray<UObject*> Objects;
+	UClass* Class;
+public:
+	FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate);
+	~FRecreateUberGraphFrameScope();
+};
+
 class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBlueprintCompileReinstancer>, public FGCObject
 {
 public:
