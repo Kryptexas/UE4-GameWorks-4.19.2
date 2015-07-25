@@ -649,7 +649,7 @@ namespace AutomationTool
 			List<AggregateNode> SeparatePromotables = new List<AggregateNode>();
 			foreach (AggregateNode NodeToDo in NodesToDo)
 			{
-				if (NodeToDo.Node.IsSeparatePromotable())
+				if (NodeToDo.IsSeparatePromotable)
 				{
 					SeparatePromotables.Add(NodeToDo);
 				}

@@ -1217,7 +1217,7 @@ partial class GUBP
 		AllNodes.AddRange(BranchConfig.GUBPNodes.Values.Select(x => x.GetBuildNode()));
 
 		AllAggregates = new List<AggregateNode>();
-		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new AggregateNode{ Name = x.GetFullName(), Node = x }));
+		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new LegacyAggregateNode(x)));
 
 		// Calculate the frequencies for each node
 		FindFrequenciesForNodes(BranchConfig, AllNodes, FrequencyOverrides);

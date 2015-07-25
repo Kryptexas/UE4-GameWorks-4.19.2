@@ -497,7 +497,7 @@ public partial class GUBP : BuildCommand
 			foreach (AggregateNode Aggregate in MatchingAggregates.OrderBy(x => x.Name))
 			{
 				StringBuilder Note = new StringBuilder("    " + Aggregate.Name);
-				if (Aggregate.Node.IsPromotableAggregate())
+				if (Aggregate.IsPromotableAggregate)
 				{
 					Note.Append(" (promotable)");
 				}
@@ -1188,7 +1188,7 @@ public partial class GUBP : BuildCommand
 			Aggregate.Dependencies = new BuildNode[0];
 
 			HashSet<BuildNode> Dependencies = new HashSet<BuildNode>();
-			foreach (string DependencyName in Aggregate.Node.Dependencies)
+			foreach (string DependencyName in Aggregate.DependencyNames)
 			{
 				AggregateNode AggregateDependency;
 				if(AggregateNameToInfo.TryGetValue(DependencyName, out AggregateDependency))
