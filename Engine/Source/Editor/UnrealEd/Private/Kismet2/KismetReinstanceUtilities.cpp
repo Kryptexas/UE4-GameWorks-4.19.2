@@ -1326,9 +1326,6 @@ FBlueprintCompileReinstancer::FCDODuplicatesProvider& FBlueprintCompileReinstanc
 	return Delegate;
 }
 
-TArray<UObject*> Objects;
-UClass* Class;
-
 FRecreateUberGraphFrameScope::FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate)
 	: Class(InClass)
 {
