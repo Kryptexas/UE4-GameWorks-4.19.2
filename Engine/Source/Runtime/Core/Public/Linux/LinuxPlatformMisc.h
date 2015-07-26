@@ -31,6 +31,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	{
 		if( IsDebuggerPresent() )
 		{
+			UngrabAllInput();
 			raise(SIGTRAP);
 		}
 	}
@@ -131,6 +132,13 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 * Initializes video (and not only) subsystem.
 	 */
 	static bool PlatformInitMultimedia();
+
+#if !UE_BUILD_SHIPPING	// only in non-shipping because we break into the debugger in non-shipping builds only
+	/**
+	 * Ungrabs input (useful before breaking into debugging)
+	 */
+	static void UngrabAllInput();
+#endif // !UE_BUILD_SHIPPING
 
 	/**
 	 * Returns whether the program has been started remotely (e.g. over SSH)

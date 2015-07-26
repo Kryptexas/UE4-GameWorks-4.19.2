@@ -710,6 +710,21 @@ bool FLinuxPlatformMisc::IsDebuggerPresent()
 }
 #endif // !UE_BUILD_SHIPPING
 
+#if !UE_BUILD_SHIPPING
+void FLinuxPlatformMisc::UngrabAllInput()
+{
+	SDL_Window * GrabbedWindow = SDL_GetGrabbedWindow();
+	if (GrabbedWindow)
+	{
+		SDL_SetWindowGrab(GrabbedWindow, SDL_FALSE);
+		SDL_SetKeyboardGrab(GrabbedWindow, SDL_FALSE);
+	}
+
+	SDL_CaptureMouse(SDL_FALSE);
+}
+
+#endif // !UE_BUILD_SHIPPING
+
 bool FLinuxPlatformMisc::HasBeenStartedRemotely()
 {
 	static bool bHaveAnswer = false;
