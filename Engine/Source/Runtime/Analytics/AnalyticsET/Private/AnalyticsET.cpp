@@ -369,13 +369,9 @@ FString FAnalyticsProviderET::GetSessionID() const
 
 bool FAnalyticsProviderET::SetSessionID(const FString& InSessionID)
 {
-	if (bSessionInProgress)
-	{
-		SessionID = InSessionID;
-		UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
-		return true;
-	}
-	return false;
+	SessionID = InSessionID;
+	UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
+	return true;
 }
 
 /** Helper to log any ET event. Used by all the LogXXX functions. */
