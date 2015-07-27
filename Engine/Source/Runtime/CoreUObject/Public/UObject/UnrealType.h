@@ -31,6 +31,8 @@ enum EPropertyExportCPPFlags
 	CPPF_NoConst					=	0x00000010,
 	/** No reference '&' sign */
 	CPPF_NoRef						=	0x00000020,
+	/** Blueprint kompiler generated C++ code */
+	CPPF_BlueprintCppBackend		=	0x00000080,
 };
 
 namespace EExportedDeclaration
@@ -2205,6 +2207,7 @@ public:
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	virtual void BeginDestroy() override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	/**
