@@ -57,6 +57,14 @@ struct FGeneratedCodeData
 			{
 				ReferencedObjects.Add(Class);
 			}
+
+			for (auto& ImplementedInterface : InBlueprint.GeneratedClass->Interfaces)
+			{
+				if (ImplementedInterface.Class && !ImplementedInterface.Class->HasAnyClassFlags(CLASS_Native))
+				{
+					ReferencedObjects.Add(ImplementedInterface.Class);
+				}
+			}
 		}
 
 		TypeDependencies.Empty();

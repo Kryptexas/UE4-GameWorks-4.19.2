@@ -10,13 +10,34 @@
 // Special libraries
 #include "Kismet/DataTableFunctionLibrary.h"
 
+#include "Stack.h"
+
 FORCEINLINE UClass* DynamicMetaCast(const UClass* DesiredClass, UClass* SourceClass)
 {
 	return ((SourceClass)->IsChildOf(DesiredClass)) ? SourceClass : NULL;
 }
 
+FORCEINLINE bool IsValid(const FScriptInterface& Test)
+{
+	return IsValid(Test.GetObject()) && (nullptr != Test.GetInterface());
+}
+
 struct FCustomThunkTemplates
 {
+private:
+	static void ExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity)
+	{
+		FFrame::KismetExecutionMessage(Message, Verbosity);
+	}
+
+	template<typename T>
+	static int32 LastIndexForLog(const TArray<T>& TargetArray)
+	{
+		const int32 ArraySize = TargetArray.Num();
+		return (ArraySize > 0) ? (ArraySize - 1) : 0;
+	}
+
+public:
 	//Replacements for CustomThunk functions from UKismetArrayLibrary
 
 	template<typename T>
@@ -54,15 +75,26 @@ struct FCustomThunkTemplates
 	template<typename T>
 	static void Array_Insert(TArray<T>& TargetArray, const T& NewItem, int32 Index)
 	{
-		TargetArray.Insert(NewItem, Index);
+		if ((Index >= 0) && (Index <= TargetArray.Num()))
+		{
+			TargetArray.Insert(NewItem, Index);
+		}
+		else
+		{
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to insert an item into array out of bounds [%d/%d]!"), Index, LastIndexForLog(TargetArray)), ELogVerbosity::Warning);
+		}
 	}
 
 	template<typename T>
 	static void Array_Remove(TArray<T>& TargetArray, int32 IndexToRemove)
 	{
-		if (ensure(TargetArray.IsValidIndex(IndexToRemove)))
+		if (TargetArray.IsValidIndex(IndexToRemove))
 		{
 			TargetArray.RemoveAt(IndexToRemove);
+		}
+		else
+		{
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to remove an item from an invalid index from array [%d/%d]!"), IndexToRemove, LastIndexForLog(TargetArray)), ELogVerbosity::Warning);
 		}
 	}
 
@@ -87,7 +119,14 @@ struct FCustomThunkTemplates
 	template<typename T>
 	static void Array_Resize(TArray<T>& TargetArray, int32 Size)
 	{
-		TargetArray.SetNum(Size);
+		if (Size >= 0)
+		{
+			TargetArray.SetNum(Size);
+		}
+		else
+		{
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to resize an array using negative size: Size = %d!"), Size), ELogVerbosity::Warning);
+		}
 	}
 
 	template<typename T>
@@ -105,23 +144,32 @@ struct FCustomThunkTemplates
 	template<typename T>
 	static void Array_Get(TArray<T>& TargetArray, int32 Index, T& Item)
 	{
-		Item = TargetArray[Index];
+		if (TargetArray.IsValidIndex(Index))
+		{
+			Item = TargetArray[Index];
+		}
+		else
+		{
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array out of bounds [%d/%d]!"), Index, LastIndexForLog(TargetArray)), ELogVerbosity::Warning);
+			Item = T{};
+		}
 	}
 
 	template<typename T>
 	static void Array_Set(TArray<T>& TargetArray, int32 Index, const T& Item, bool bSizeToFit)
 	{
-		if (ensure(Index >= 0))
+		if (!TargetArray.IsValidIndex(Index) && bSizeToFit && (Index >= 0))
 		{
-			if (!TargetArray.IsValidIndex(Index) && bSizeToFit)
-			{
-				TargetArray.SetNum(Index + 1);
-			}
+			TargetArray.SetNum(Index + 1);
+		}
 
-			if (TargetArray.IsValidIndex(Index))
-			{
-				TargetArray[Index] = Item;
-			}
+		if (TargetArray.IsValidIndex(Index))
+		{
+			TargetArray[Index] = Item;
+		}
+		else
+		{
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to set an invalid index on array [%d/%d]!"), Index, LastIndexForLog(TargetArray)), ELogVerbosity::Warning);
 		}
 	}
 

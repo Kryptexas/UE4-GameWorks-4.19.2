@@ -84,7 +84,7 @@ public:
 	/** Builds both the header declaration and body implementation of a function */
 	void ConstructFunction(FKismetFunctionContext& FunctionContext, bool bGenerateStubOnly);
 
-	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = nullptr);
+	FString TermToText(const FBPTerminal* Term, bool bUseSafeContext = true);
 
 protected:
 	void EmitFileBeginning(const FString& CleanName, UStruct* SourceStruct);

@@ -975,6 +975,11 @@ void FKismetEditorUtilities::GenerateCppCode(UObject* Obj, TSharedPtr<FString> O
 				CompileOptions.OutCppSourceCode = OutCppSource;
 				CompileOptions.OutHeaderSourceCode = OutHeaderSource;
 				Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
+
+				if (EBlueprintType::BPTYPE_Interface == BlueprintObj->BlueprintType && OutCppSource.IsValid())
+				{
+					OutCppSource->Empty();
+				}
 			}
 			BlueprintObj->RemoveGeneratedClasses();
 			BlueprintObj->ClearFlags(RF_Standalone);

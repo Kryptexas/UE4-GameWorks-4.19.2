@@ -26,6 +26,7 @@ namespace UnrealBuildTool.Rules
                     "Engine",
 					"KismetCompiler",
                     "UnrealEd",
+                    "BlueprintGraph",
 				}
 				);
 		}
