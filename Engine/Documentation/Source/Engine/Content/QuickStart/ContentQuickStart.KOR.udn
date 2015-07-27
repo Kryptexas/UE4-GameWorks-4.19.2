@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:2628858
+﻿INTSourceChangelist:2632887
 Availability: Public
 Title:아티스트 퀵 스타트
 Crumbs:%ROOT%, GettingStarted
 Description:콘텐츠 제작자로 언리얼 엔진 4 시작하는 법을 배워봅니다.
 prereq:GettingStarted/Installation
-prereq:GettingStarted/DownloadingUnrealEngine
 prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.8

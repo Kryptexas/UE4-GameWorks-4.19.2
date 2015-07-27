@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2632559
 Availability:Public
 Title:내려보기 2D 게임 구성
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -166,7 +166,17 @@ Related: Engine\Paper2D\Flipbooks
 
 1.	메인 툴바에서 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
 
-	![](TopDownExample.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	92LFHoHWfOk
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	2D 캐릭터가 빈둥거리는 상태이긴 하지만, 이제 **WASD** 키를 사용해서 기본 맵을 돌아다닐 수 있습니다.
 

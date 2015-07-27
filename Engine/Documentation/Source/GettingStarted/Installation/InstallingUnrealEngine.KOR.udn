@@ -1,32 +1,39 @@
-﻿INTSourceChangelist:2628860
+﻿INTSourceChangelist:2632917
 Availability:Public
 Title:언리얼 엔진 설치하기
 Description:언리얼 엔진 설치법 단계별 안내입니다.
 Crumbs: %ROOT%, GettingStarted
 Prereq: GettingStarted/RecommendedSpecifications
-Prereq: Support/Builds
 Related: GettingStarted
 Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
 Related: Engine/QuickStart
+Related: Support/Builds
 Version: 4.8
 
-[TOC (start:2 end:3)]
+[REGION:warning]
+현재 리눅스 용으로는 언리얼 엔진 바이너리 인스톨러를 제공하지 않습니다.
+하지만 [](GettingStarted/DownloadingUnrealEngine) 문서를 참고해서 직접 소스에서 언리얼 엔진을 컴파일하시면 됩니다.
+[/REGION]
 
-----
+이 튜토리얼을 통해 배울 수 있는 내용은 다음과 같습니다:
 
-이 글은 런처에서 언리얼 엔진 4 (UE4) 를 쉽게 다운로드, 설치, 실행할 수 있도록 돕기 위한 것입니다.
+*	[에픽 게임스 계정 생성 (없는 경우)](#Bookmark1)
+*	[인스톨러 다운로드 및 실행 (에픽 게임스 런처 구성 프로그램)](#Bookmark2)
+*	[에픽 게임스 런처 로그인](#Bookmark3)
+*	[언리얼 엔진 설치](#Bookmark4)
+*	[언리얼 엔진 실행](#Bookmark5)
 
 ![](InstallationGoal.png)
 
-_이 튜토리얼을 마치고나면 **에픽 게임스 런처** (위 그림)에서 언리얼 에디터를 실행할 수 있을 것입니다.
-
-에픽 게임스 런처를 통해 UE4 를 보다 편리하게 다운로드하고 업데이트를 설치할 수 있습니다.
+에픽 게임스 런처를 통해 UE4 를 보다 편리하게 다운로드하고 업데이트를 설치할 수 있습니다 (위 그림 예제).
 
 ## 에픽 게임스 계정 생성
 
+(#Bookmark1)
+
 [REGION:warning]
-이미 에픽 게임스 계정이 있으시다면, [인스톨러 다운로드 및 실행](#Bookmark1) 부분으로 넘어가시기 바랍니다.
+이미 에픽 게임스 계정이 있으시다면, [인스톨러 다운로드 및 실행](#Bookmark2) 부분으로 넘어가시기 바랍니다.
 [/REGION]
 
 에픽 게임스 런처 실행을 위해서는, 유효한 에픽 게임스 계정이 있어야 합니다.
@@ -55,9 +62,9 @@ _이 튜토리얼을 마치고나면 **에픽 게임스 런처** (위 그림)에
 
 ## 인스톨러 다운로드 & 실행
 
-(#Bookmark1)
+(#Bookmark2)
 
-유효한 에픽 게임스 계정이 있으면 에픽 게임스 구성 프로그램 (인스톨러) 다운로드가 가능합니다.
+유효한 에픽 게임스 계정이 있으면 인스톨러 (에픽 게임스 구성 프로그램) 다운로드가 가능합니다.
 
 %Globals:osselect_linux%
 
@@ -129,11 +136,15 @@ _이 튜토리얼을 마치고나면 **에픽 게임스 런처** (위 그림)에
 
 ## 에픽 런처에 로그인
 
-구성 프로그램이 로컬 머신에 에픽 게임스 런처 설치를 마쳤으면 로그인 가능합니다 (아래 참고).
+(#Bookmark3)
+
+구성 프로그램이 로컬 머신에 에픽 게임스 런처를 설치한 이후에는, 에픽 게임스 계정 정보로 로그인합니다 (아래 참고).
 
 ![](EpicSignIn.png)
 
 ## 언리얼 엔진 설치
+
+(#Bookmark4)
 
 에픽 게임스 런처에 로그인했으니 UE4 설치 준비가 다 되었습니다.
 
@@ -164,21 +175,35 @@ _이 튜토리얼을 마치고나면 **에픽 게임스 런처** (위 그림)에
 
 ## 언리얼 엔진 실행
 
+(#Bookmark5)
+
 에픽 게임스 런처가 언리얼 엔진 다운로드 & 설치에 성공한 이후, **실행** 버튼을 누르면 됩니다 (아래 그림).
 
 ![](LaunchUE4.png)
+
+축하합니다! 지금까지 배우신 내용은 다음과 같습니다:
+
+&#x2713;	[에픽 게임스 계정 생성 (없는 경우)](#Bookmark1)
+&#x2713;	[인스톨러 다운로드 및 실행 (에픽 게임스 런처 구성 프로그램)](#Bookmark2)
+&#x2713;	[에픽 게임스 런처 로그인](#Bookmark3)
+&#x2713;	[언리얼 엔진 설치](#Bookmark4)
+&#x2713;	[언리얼 엔진 실행](#Bookmark5)
+
+이제 언리얼 엔진 사용을 시작할 준비가 되셨습니다.
 
 ## 언리얼 엔진 시작
 
 [](GettingStarted) 문서를 참고하여 언리얼 엔진 사용법을 배워봅니다!
 
-[REGION:tip]
-UE4 를 빠르게 시작하고자 하는 아티스트, 프로그래머, 디자이너 분들께서는 다음 튜토리얼을 참고해 보시기 바랍니다:
+UE4 를 빠르게 시작하고자 하는 분들께서는 다음 튜토리얼을 참고해 보시기 바랍니다:
 *	[](Engine/Content/QuickStart)
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
-[/REGION]
 
+
+[REGION:tip]
+UE4 의 에디터내 도움말 기능도 질문의 답을 구하는 데 뛰어난 방법입니다.
+[/REGION]
 <!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 

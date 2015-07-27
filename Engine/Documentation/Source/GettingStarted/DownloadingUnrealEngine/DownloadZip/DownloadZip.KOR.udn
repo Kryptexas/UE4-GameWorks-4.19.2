@@ -63,7 +63,8 @@ Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니�
 	1.	[Xcode](https://itunes.apple.com/us/app/xcode/id497799835) 최신 버전이 설치되지 않은 경우, 지금 설치해 줍니다.
 	1.	Finder 에서 소스 폴더를 열고 **run Setup.command** 명령을 내립니다.
 		[REGION:note]
-		Setup.command 가 엔진의 바이너리 콘텐츠 다운로드, 사전 요구사항 설치, 언리얼 파일 연결 프로그램 구성을 마치고나면 터미널 창을 닫습니다.
+		*	셋업 파일이 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성해 줍니다. 엔진 바이너리는 현재 디스크 공간을 3-4 기가 차지하므로 다운로드하는 데 시간이 조금 걸릴 수 있습니다.
+		*	Setup.command 가 엔진 바이너리 콘텐츠 다운로드, 사전 요구사항 설치, 언리얼 파일 연결 프로그램 구성 작업을 완료하면 터미널 창을 닫습니다.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -93,7 +94,8 @@ Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니�
 		![](RunSetupShellScript_Linux.png)
 
 		[REGION:note]
-		이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 참고하세요. BuildThirdParty.log 는 `[UE4Root]/Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
+		*	셋업 뱃치 파일이 엔진의 바이너리 콘텐츠를 다운로드하고 사전 요구사항을 설치한 뒤 언리얼 파일에 대한 연결 프로그램을 구성해 줍니다. 엔진 바이너리는 현재 디스크 공간을 3-4 기가 차지하므로 다운로드하는 데 시간이 조금 걸릴 수 있습니다. 그 이후의 체크아웃은 일반적으로 다운로드 시간이 덜 걸립니다.
+		*	이 단계 실행 후 ** \*\*SUCCESS\*\* ** 메시지가 보이지 않는다면, **BuildThirdParty.log** 에서 자세한 정보를 확인하세요. BuildThirdParty.log 는 `[UE4Root]/Engine/Build/BatchFiles/Linux` 디렉토리에 있습니다.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

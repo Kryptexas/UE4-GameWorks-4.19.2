@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2628858
+﻿INTSourceChangelist:2632917
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌드를 다운로드하는 법에 대한 단계별 안내입니다.
 Prereq: GettingStarted/RecommendedSpecifications
-Prereq: Support/Builds
 Related: Programming/Development/BuildingUnrealEngine
+Related: Support/Builds
 Version: 4.8
 
 [TOC (start:2 end:3)]
@@ -22,9 +22,11 @@ GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 
 
 ----
 
-![](WindowsMacLinux.png)
+언리얼 엔진 4 (UE4) 소스 코드는 멤버쉽 회원의 경우 Unreal Engine GitHub repository(저장소)에서 다운로드 가능합니다. 
 
-언리얼 엔진 4 (UE4) 소스 코드는 멤버쉽 회원의 경우 Unreal Engine GitHub repository(저장소)에서 다운로드 가능합니다. 소스 코드를 접할 수 있으므로, 필요에 따라 자유롭게 엔진과 툴을 수정할 수 있습니다. 윈도우, 맥, 리눅스에서 에디터를 빌드하고, 안드로이드와 iOS 용으로도 게임 컴파일이 가능합니다. (언리얼 라이트매스나 프론트엔드 등) 툴 전체에 대한 소스 코드 역시도 포함되어 있습니다.
+<!-- The following is commented out per LaurenR's request during Peer Review on 23.07.15
+소스 코드를 접할 수 있으므로, 필요에 따라 자유롭게 엔진과 툴을 수정할 수 있습니다. 윈도우, 맥, 리눅스에서 에디터를 빌드하고, 안드로이드와 iOS 용으로도 게임 컴파일이 가능합니다. (언리얼 라이트매스나 프론트엔드 등) 툴 전체에 대한 소스 코드 역시도 포함되어 있습니다.
+-->
 
 [REGION:note]
 [repository](https://github.com/EpicGames/UnrealEngine) (저장소) 접근을 위해서는 GitHub 계정을 가지고 언리얼 엔진 계정에 연동시켜야 합니다.
@@ -44,7 +46,9 @@ GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 
 
 (#Bookmark1)
 
+[REGION:raw]
 ![](ReleaseBranch.png)
+[/REGION]
 
 (위 그림의) [릴리즈 브랜치](https://github.com/EpicGames/UnrealEngine/tree/release) 는 QA 팀의 철저한 테스트를 거쳐 UE4 를 배우거나 언리얼 게임 제작을 시작하기에 좋습니다. 이 브랜치는 안전성 확보를 최우선으로 두고 한 두 달에 한 번씩 새로운 빌드를 낼 수 있도록 열심히 노력하고 있습니다.
 
@@ -52,7 +56,9 @@ GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 
 
 (#Bookmark2)
 
+[REGION:raw]
 ![](PromotedBranch.png)
+[/REGION]
 
 (위 그림의) [승격 브랜치](https://github.com/EpicGames/UnrealEngine/tree/promoted) 는 저희 내부 디자이너와 아티스트가 사용하도록 업데이트되는 빌드입니다. 이 브랜치는 안정된 상태의 UE4 최신 기능을 접할 수 있도록 일 단위로 업데이트하도록 노력하고 있습니다. UE4 의 기능 개발이 어떤 식으로 이루어지는지 배워 보기에 좋은 곳입니다.
 
@@ -64,11 +70,15 @@ GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 
 마스터 브랜치는 최첨단 기술이 포함되어 있기에, UE4 가 소스에서 제대로 컴파일된다는 보장이 없습니다.
 [/REGION]
 
+[REGION:raw]
 ![](MasterBranch.png)
+[/REGION]
 
 (위 그림의) [마스터 브랜치](https://github.com/EpicGames/UnrealEngine/tree/master) 는 저희 엔진 팀의 (아래 그림과 같은) [라이브 체인지](https://github.com/EpicGames/UnrealEngine/commits/master) 를 추적합니다. 보통 UE4 개발자들과 공동 작업을 하고자 하는 숙련된 개발자들이 이 곳에서 작업합니다.
 
+[REGION:raw]
 ![](LiveChanges.png)
+[/REGION]
 
 [REGION:note]
 새 버전 릴리즈의 안정화 및 핫픽스 진행에 따라 때때로 다른 브랜치가 생길 수도 있습니다.
