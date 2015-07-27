@@ -150,7 +150,6 @@ FTransform FActorPositioning::GetCurrentViewportPlacementTransform(const AActor&
 		const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
 			.DrawSnapHelpers(true)
 			.UseFactory(Factory)
-			.UseStartTransform(Actor.GetTransform())
 			.UsePlacementExtent(Actor.GetPlacementExtent());
 
 		ActorTransform = bSnap ? GetSnappedSurfaceAlignedTransform(PositioningData) : GetSurfaceAlignedTransform(PositioningData);
