@@ -1055,10 +1055,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					else
 					{
 						Ar.Preload(Enum);
-						PreviousValue = Enum->FindEnumIndex(EnumValue);
-						if (Enum->NumEnums() < PreviousValue)
+						PreviousValue = Enum->GetValueByName(EnumValue);
+						if (Enum->GetNameByValue(PreviousValue) != NAME_None)
 						{
-							PreviousValue = Enum->NumEnums() - 1;
+							PreviousValue = Enum->GetMaxEnumValue();
 						}
 					}
 				}
@@ -1297,10 +1297,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					else
 					{
 						Ar.Preload(Enum);
-						PreviousValue = Enum->FindEnumIndex(EnumValue);
-						if (Enum->NumEnums() < PreviousValue)
+						PreviousValue = Enum->GetValueByName(EnumValue);
+						if (Enum->GetNameByValue(PreviousValue) != NAME_None)
 						{
-							PreviousValue = Enum->NumEnums() - 1;
+							PreviousValue = Enum->GetMaxEnumValue();
 						}
 					}
 				}

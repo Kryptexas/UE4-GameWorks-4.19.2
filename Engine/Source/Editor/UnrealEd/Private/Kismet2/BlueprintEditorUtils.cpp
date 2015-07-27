@@ -7388,7 +7388,7 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 			int32 IntValue = 0;
 			if (const UEnum* Enum = ByteProperty->Enum)
 			{
-				IntValue = Enum->FindEnumIndex(FName(*Value));
+				IntValue = Enum->GetValueByName(FName(*Value));
 				bParseSucceeded = (INDEX_NONE != IntValue);
 
 				// If the parse did not succeed, clear out the int to keep the enum value valid

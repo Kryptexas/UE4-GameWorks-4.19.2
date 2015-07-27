@@ -1234,7 +1234,7 @@ static void SerializePlatformData(
 	{
 		FString PixelFormatString;
 		Ar << PixelFormatString;
-		PlatformData->PixelFormat = (EPixelFormat)PixelFormatEnum->FindEnumIndex(*PixelFormatString);
+		PlatformData->PixelFormat = (EPixelFormat)PixelFormatEnum->GetValueByName(*PixelFormatString);
 	}
 	else if (Ar.IsSaving())
 	{
@@ -1919,7 +1919,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 		Ar << PixelFormatName;
 		while (PixelFormatName != NAME_None)
 		{
-			EPixelFormat PixelFormat = (EPixelFormat)PixelFormatEnum->FindEnumIndex(PixelFormatName);
+			EPixelFormat PixelFormat = (EPixelFormat)PixelFormatEnum->GetValueByName(PixelFormatName);
 			int32 SkipOffset = 0;
 			Ar << SkipOffset;
 			bool bFormatSupported = GPixelFormats[PixelFormat].Supported;

@@ -171,10 +171,10 @@ UK2Node::ERedirectType UK2Node_SwitchEnum::DoPinsMatchForReconstruction(const UE
 	UK2Node::ERedirectType ReturnValue = Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	if (ReturnValue == UK2Node::ERedirectType_None && Enum && OldPinIndex > 2 && NewPinIndex > 2)
 	{
-		int32 OldIndex = Enum->FindEnumIndex(FName(*OldPin->PinName));
-		int32 NewIndex = Enum->FindEnumIndex(FName(*NewPin->PinName));
+		int32 OldValue = Enum->GetValueByName(FName(*OldPin->PinName));
+		int32 NewValue = Enum->GetValueByName(FName(*NewPin->PinName));
 		// This handles redirects properly
-		if (OldIndex == NewIndex && OldIndex != INDEX_NONE)
+		if (OldValue == NewValue && OldValue != INDEX_NONE)
 		{
 			ReturnValue = UK2Node::ERedirectType_Name;
 		}

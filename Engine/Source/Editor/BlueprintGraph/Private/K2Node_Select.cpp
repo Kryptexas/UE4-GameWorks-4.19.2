@@ -217,8 +217,8 @@ public:
 
 				if (UEnum* NodeEnum = SelectNode->GetEnum())
 				{
-					int32 EnumIndex = NodeEnum->FindEnumIndex(FName(*OptionPins[OptionIdx]->PinName));
-					LiteralTerm->Name = FString::Printf(TEXT("%d"), EnumIndex);
+					int32 EnumValue = NodeEnum->GetValueByName(FName(*OptionPins[OptionIdx]->PinName));
+					LiteralTerm->Name = FString::Printf(TEXT("%d"), EnumValue);
 				}
 				else
 				{
