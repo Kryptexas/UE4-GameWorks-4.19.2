@@ -45,6 +45,9 @@ enum class ECrashDescVersions : int32
 
 	/** Added misc properties (CPU,GPU,OS,etc), memory related stats and platform specific properties as generic payload. */
 	VER_2_AddedNewProperties,
+
+	/** Using crash context when available. */
+	VER_3_CrashContext = 3,
 };
 
 /** Enumerates crash dump modes. */
@@ -56,6 +59,23 @@ enum class ECrashDumpMode : int32
 	/** Full memory crash minidump */
 	FullDump = 1,
 };
+
+/*-----------------------------------------------------------------------------
+	LexicalConversion
+-----------------------------------------------------------------------------*/
+
+namespace LexicalConversion
+{
+	inline FString ToString( const ECrashDescVersions& Value )
+	{
+		return TTypeToString<int32>::ToString( int32( Value ) );
+	}
+
+	inline FString ToString( const ECrashDumpMode& Value )
+	{
+		return TTypeToString<int32>::ToString( int32( Value ) );
+	}
+}
 
 /**
  *	Contains a runtime crash's properties that are common for all platforms.
@@ -70,8 +90,15 @@ public:
 	* exception and use in crash reporting.
 	*/
 	static FPlatformMemoryStats CrashMemoryStats;
+	
 	static const ANSICHAR* CrashContextRuntimeXMLNameA;
 	static const TCHAR* CrashContextRuntimeXMLNameW;
+
+	static const FString CrashContextExtension;
+	static const FString RuntimePropertiesTag;
+	static const FString PlatformPropertiesTag;
+	static const FString UE4MinidumpName;
+	static const FString NewLineTag;
 
 	/** Initializes crash context related platform specific data that can be impossible to obtain after a crash. */
 	static void Initialize();
@@ -121,6 +148,12 @@ public:
 		AddCrashProperty( PropertyName, *TTypeToString<Type>::ToString( Value ) );
 	}
 
+	/** Escapes a specified XML string, naive implementation. */
+	static FString EscapeXMLString( const FString& Text );
+
+	/** Unescapes a specified XML string, naive implementation. */
+	static FString UnescapeXMLString( const FString& Text );
+
 private:
 	/** Serializes platform specific properties to the buffer. */
 	virtual void AddPlatformSpecificProperties();
@@ -133,12 +166,6 @@ private:
 
 	void BeginSection( const TCHAR* SectionName );
 	void EndSection( const TCHAR* SectionName );
-
-	/** Escapes a specified XML string, naive implementation. */
-	static FString EscapeXMLString( const FString& Text );
-
-	/** Unescapes a specified XML string, naive implementation. */
-	static FString UnescapeXMLString( const FString& Text );
 
 	/**	Whether the Initialize() has been called */
 	static bool bIsInitialized;
