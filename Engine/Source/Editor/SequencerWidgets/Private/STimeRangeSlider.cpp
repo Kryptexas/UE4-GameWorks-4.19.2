@@ -3,6 +3,7 @@
 #include "SequencerWidgetsPrivatePCH.h"
 #include "STimeRangeSlider.h"
 #include "SlateStyle.h"
+#include "EditorStyle.h"
 
 #define LOCTEXT_NAMESPACE "STimeRangeSlider"
 
