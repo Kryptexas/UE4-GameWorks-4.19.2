@@ -60,6 +60,11 @@ public:
 		return TEXT("Test Client");
 	}
 
+	FDateTime GetLastSeen() const
+	{
+		return FDateTime::UtcNow();
+	}
+
 	virtual const bool IsOnline() const override
 	{
 		return false;
@@ -182,11 +187,17 @@ public:
 			Member.MemberId = OnlineIdentity->CreateUniquePlayerId("Test4");
 			MemberList.Add(MakeShareable(new FClanMember(Member)));
 		}
+		bPrimaryClan = true;
 	}
 
 	virtual FText GetTitle() const override
 	{
 		return FText::FromString("Test Title");
+	}
+
+	virtual const TSharedRef<const FUniqueNetId> GetUniqueID() const override
+	{
+		return UniqueID.ToSharedRef();
 	}
 
 	virtual FText GetDescription() const override
@@ -214,11 +225,18 @@ public:
 		return MemberList.Num();
 	}
 
+	virtual bool IsPrimaryClan() const override
+	{
+		return bPrimaryClan;
+	}
+
 	DECLARE_DERIVED_EVENT(FClanInfo, IClanInfo::FChangedEvent, FChangedEvent)
 	virtual IClanInfo::FChangedEvent& OnChanged() override { return ChangedEvent; }
 
 private:
 	TArray<TSharedPtr<IFriendItem> > MemberList;
+	TSharedPtr<FUniqueNetId> UniqueID;
+	bool bPrimaryClan;
 
 	FChangedEvent ChangedEvent;
 };

@@ -5,8 +5,12 @@
 #include "ChatItemViewModel.h"
 #include "IChatCommunicationService.h"
 #include "FriendsAndChatAnalytics.h"
+#include "OSSScheduler.h"
+#include "FriendsService.h"
+#include "FriendsNavigationService.h"
 
-#define LOCTEXT_NAMESPACE "FriendsMessageManager"
+#define LOCTEXT_NAMESPACE ""
+
 // Message expiry time for different message types
 static const int32 GlobalMessageLifetime = 5 * 60;  // 5 min
 static const int32 GameMessageLifetime = 5 * 60;  // 5 min
@@ -18,23 +22,20 @@ static const int32 WhisperMaxStore = 100;
 static const int32 GameMaxStore = 100;
 static const int32 PartyMaxStore = 100;
 
-class FFriendsMessageManagerImpl
-	: public FFriendsMessageManager
+class FMessageServiceImpl
+	: public FMessageService
 {
 public:
 
-	virtual void LogIn(IOnlineSubsystem* InOnlineSub, int32 LocalUserNum) override
+	virtual void Login() override
 	{
 		// Clear existing data
-		LogOut();
-
-		OnlineSub = InOnlineSub;
+		Logout();
 
 		Initialize();
-		if (OnlineSub != nullptr &&
-			OnlineSub->GetIdentityInterface().IsValid())
+		if (OSSScheduler->GetOnlineIdentity().IsValid())
 		{
-			LoggedInUser = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+			LoggedInUser = OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(0);
 		}
 
 		for (auto RoomName : RoomJoins)
@@ -43,20 +44,20 @@ public:
 		}
 	}
 
-	virtual void LogOut() override
+	virtual void Logout() override
 	{
-		if (OnlineSub != nullptr &&
-			OnlineSub->GetChatInterface().IsValid() &&
+		if (OSSScheduler->GetChatInterface().IsValid() &&
 			LoggedInUser.IsValid())
 		{
 			// exit out of any rooms that we're in
 			TArray<FChatRoomId> JoinedRooms;
-			OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
+			OSSScheduler->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
 			for (auto RoomId : JoinedRooms)
 			{
-				OnlineSub->GetChatInterface()->ExitRoom(*LoggedInUser, RoomId);
+				OSSScheduler->GetChatInterface()->ExitRoom(*LoggedInUser, RoomId);
 			}
 		}
+		RoomJoins.Empty();
 		LoggedInUser.Reset();
 		UnInitialize();
 	}
@@ -68,10 +69,9 @@ public:
 
 	virtual bool SendRoomMessage(const FString& RoomName, const FString& MsgBody) override
 	{
-		if (OnlineSub != nullptr &&
-			LoggedInUser.IsValid())
+		if (LoggedInUser.IsValid())
 		{
-			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			IOnlineChatPtr ChatInterface = OSSScheduler->GetChatInterface();
 			if (ChatInterface.IsValid())
 			{
 				if (!RoomName.IsEmpty())
@@ -88,7 +88,7 @@ public:
 					// send to all joined rooms
 					bool bAbleToSend = false;
 					TArray<FChatRoomId> JoinedRooms;
-					OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
+					OSSScheduler->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
 					for (auto RoomId : JoinedRooms)
 					{
 						if (ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody))
@@ -104,30 +104,28 @@ public:
 		return false;
 	}
 
-	virtual bool SendPrivateMessage(TSharedPtr<const FUniqueNetId> UserID, const FText MessageText) override
+	virtual bool SendPrivateMessage(TSharedPtr<IFriendItem> Friend, const FText MessageText) override
 	{
-		if (OnlineSub != nullptr &&
-			LoggedInUser.IsValid())
+		if (LoggedInUser.IsValid())
 		{
-			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
-			if(ChatInterface.IsValid())
+			IOnlineChatPtr ChatInterface = OSSScheduler->GetChatInterface();
+			if(ChatInterface.IsValid() && Friend.IsValid() && Friend->GetInviteStatus() == EInviteStatus::Accepted)
 			{
 				TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-				ChatItem->FromName = FText::FromString(OnlineSub->GetIdentityInterface()->GetPlayerNickname(*LoggedInUser.Get()));
-				TSharedPtr<IFriendItem> FoundFriend = FriendsAndChatManager.Pin()->FindUser(*UserID.Get());
-				ChatItem->ToName = FText::FromString(*FoundFriend->GetName());
+				ChatItem->FromName = FText::FromString(OSSScheduler->GetOnlineIdentity()->GetPlayerNickname(*LoggedInUser.Get()));
+				ChatItem->ToName = FText::FromString(*Friend->GetName());
 				ChatItem->Message = MessageText;
 				ChatItem->MessageType = EChatMessageType::Whisper;
 				ChatItem->MessageTime = FDateTime::Now();
 				ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(WhisperMessageLifetime);
 				ChatItem->bIsFromSelf = true;
 				ChatItem->SenderId = LoggedInUser;
-				ChatItem->RecipientId = UserID;
+				ChatItem->RecipientId = Friend->GetUniqueID();
 				AddMessage(ChatItem.ToSharedRef());
 				
-				FriendsAndChatManager.Pin()->GetAnalytics()->RecordPrivateChat(UserID->ToString());
+				OSSScheduler->GetAnalytics()->RecordPrivateChat(Friend->GetUniqueID()->ToString());
 
-				return ChatInterface->SendPrivateChat(*LoggedInUser, *UserID.Get(), MessageText.ToString());
+				return ChatInterface->SendPrivateChat(*LoggedInUser, *ChatItem->RecipientId.Get(), MessageText.ToString());
 			}
 		}
 		return false;
@@ -150,45 +148,74 @@ public:
 	{
 		if (LoggedInUser.IsValid())
 		{
-			if (OnlineSub != nullptr &&
-				OnlineSub->GetChatInterface().IsValid())
+			if (OSSScheduler->GetChatInterface().IsValid())
 			{
 				// join the room to start receiving messages from it
-				FString NickName = OnlineSub->GetIdentityInterface()->GetPlayerNickname(*LoggedInUser);
-				OnlineSub->GetChatInterface()->JoinPublicRoom(*LoggedInUser, FChatRoomId(RoomName), NickName);
+				FString NickName = OSSScheduler->GetOnlineIdentity()->GetPlayerNickname(*LoggedInUser);
+				OSSScheduler->GetChatInterface()->JoinPublicRoom(*LoggedInUser, FChatRoomId(RoomName), NickName);
 			}
 		}
 		RoomJoins.AddUnique(RoomName);
 	}
 
-	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, IChatCommunicationService::FOnChatMessageReceivedEvent, FOnChatMessageReceivedEvent)
+	virtual EOnlinePresenceState::Type GetOnlineStatus() override
+	{
+		return OSSScheduler->GetOnlineStatus();
+	}
+
+	virtual TSharedPtr<class FFriendsAndChatAnalytics> GetAnalytics() const override
+	{
+		return OSSScheduler->GetAnalytics();
+	}
+
+	virtual bool IsInGlobalChat() const override
+	{
+		return bJoinedGlobalChat;
+	}
+
+	virtual bool OpenGlobalChat() override
+	{
+		// All this does now is send an analytics event
+		if (IsInGlobalChat())
+		{
+			if (OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex).IsValid())
+			{
+				OSSScheduler->GetAnalytics()->FireEvent_RecordToggleChat(*OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex), TEXT("Global"), true);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	DECLARE_DERIVED_EVENT(FMessageServiceImpl, IChatCommunicationService::FOnChatMessageAddedEvent, FOnChatMessageAddedEvent)
+	virtual FOnChatMessageAddedEvent& OnChatMessageAdded() override
+	{
+		return MessageAddedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FMessageServiceImpl, IChatCommunicationService::FOnChatMessageReceivedEvent, FOnChatMessageReceivedEvent)
 	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() override
 	{
 		return MessageReceivedEvent;
 	}
-	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatPublicRoomJoinedEvent, FOnChatPublicRoomJoinedEvent)
+
+	DECLARE_DERIVED_EVENT(FMessageServiceImpl, FMessageService::FOnChatPublicRoomJoinedEvent, FOnChatPublicRoomJoinedEvent)
 	virtual FOnChatPublicRoomJoinedEvent& OnChatPublicRoomJoined() override
 	{
 		return PublicRoomJoinedEvent;
 	}
-	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatPublicRoomExitedEvent, FOnChatPublicRoomExitedEvent)
+
+	DECLARE_DERIVED_EVENT(FMessageServiceImpl, FMessageService::FOnChatPublicRoomExitedEvent, FOnChatPublicRoomExitedEvent)
 	virtual FOnChatPublicRoomExitedEvent& OnChatPublicRoomExited() override
 	{
 		return PublicRoomExitedEvent;
 	}
 
-	~FFriendsMessageManagerImpl()
+	~FMessageServiceImpl()
 	{
 	}
 
 private:
-
-	FFriendsMessageManagerImpl(const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
-		: FriendsAndChatManager(InFriendsAndChatManager)
-		, OnlineSub(nullptr)
-		, bEnableEnterExitMessages(false)
-	{
-	}
 
 	void Initialize()
 	{
@@ -198,64 +225,58 @@ private:
 		PartyMessagesCount = 0;
 		ReceivedMessages.Empty();
 
-		if (OnlineSub != nullptr)
+		IOnlineChatPtr ChatInterface = OSSScheduler->GetChatInterface();
+		if (ChatInterface.IsValid())
 		{
-			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
-			if (ChatInterface.IsValid())
-			{
-				OnChatRoomJoinPublicDelegate         = FOnChatRoomJoinPublicDelegate        ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomJoinPublic);
-				OnChatRoomExitDelegate               = FOnChatRoomExitDelegate              ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomExit);
-				OnChatRoomMemberJoinDelegate         = FOnChatRoomMemberJoinDelegate        ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMemberJoin);
-				OnChatRoomMemberExitDelegate         = FOnChatRoomMemberExitDelegate        ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMemberExit);
-				OnChatRoomMemberUpdateDelegate       = FOnChatRoomMemberUpdateDelegate      ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMemberUpdate);
-				OnChatRoomMessageReceivedDelegate    = FOnChatRoomMessageReceivedDelegate   ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMessageReceived);
-				OnChatPrivateMessageReceivedDelegate = FOnChatPrivateMessageReceivedDelegate::CreateSP(this, &FFriendsMessageManagerImpl::OnChatPrivateMessageReceived);
+			OnChatRoomJoinPublicDelegate = FOnChatRoomJoinPublicDelegate::CreateSP(this, &FMessageServiceImpl::OnChatRoomJoinPublic);
+			OnChatRoomExitDelegate = FOnChatRoomExitDelegate::CreateSP(this, &FMessageServiceImpl::OnChatRoomExit);
+			OnChatRoomMemberJoinDelegate = FOnChatRoomMemberJoinDelegate::CreateSP(this, &FMessageServiceImpl::OnChatRoomMemberJoin);
+			OnChatRoomMemberExitDelegate = FOnChatRoomMemberExitDelegate::CreateSP(this, &FMessageServiceImpl::OnChatRoomMemberExit);
+			OnChatRoomMemberUpdateDelegate = FOnChatRoomMemberUpdateDelegate::CreateSP(this, &FMessageServiceImpl::OnChatRoomMemberUpdate);
+			OnChatRoomMessageReceivedDelegate = FOnChatRoomMessageReceivedDelegate::CreateSP(this, &FMessageServiceImpl::OnChatRoomMessageReceived);
+			OnChatPrivateMessageReceivedDelegate = FOnChatPrivateMessageReceivedDelegate::CreateSP(this, &FMessageServiceImpl::OnChatPrivateMessageReceived);
 
-				OnChatRoomJoinPublicDelegateHandle         = ChatInterface->AddOnChatRoomJoinPublicDelegate_Handle        (OnChatRoomJoinPublicDelegate);
-				OnChatRoomExitDelegateHandle               = ChatInterface->AddOnChatRoomExitDelegate_Handle              (OnChatRoomExitDelegate);
-				OnChatRoomMemberJoinDelegateHandle         = ChatInterface->AddOnChatRoomMemberJoinDelegate_Handle        (OnChatRoomMemberJoinDelegate);
-				OnChatRoomMemberExitDelegateHandle         = ChatInterface->AddOnChatRoomMemberExitDelegate_Handle        (OnChatRoomMemberExitDelegate);
-				OnChatRoomMemberUpdateDelegateHandle       = ChatInterface->AddOnChatRoomMemberUpdateDelegate_Handle      (OnChatRoomMemberUpdateDelegate);
-				OnChatRoomMessageReceivedDelegateHandle    = ChatInterface->AddOnChatRoomMessageReceivedDelegate_Handle   (OnChatRoomMessageReceivedDelegate);
-				OnChatPrivateMessageReceivedDelegateHandle = ChatInterface->AddOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegate);
-			}
-			IOnlinePresencePtr PresenceInterface = OnlineSub->GetPresenceInterface();
-			if (PresenceInterface.IsValid())
-			{
-				OnPresenceReceivedDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FFriendsMessageManagerImpl::OnPresenceReceived);
-				OnPresenceReceivedDelegateHandle = PresenceInterface->AddOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegate);
-			}
+			OnChatRoomJoinPublicDelegateHandle = ChatInterface->AddOnChatRoomJoinPublicDelegate_Handle(OnChatRoomJoinPublicDelegate);
+			OnChatRoomExitDelegateHandle = ChatInterface->AddOnChatRoomExitDelegate_Handle(OnChatRoomExitDelegate);
+			OnChatRoomMemberJoinDelegateHandle = ChatInterface->AddOnChatRoomMemberJoinDelegate_Handle(OnChatRoomMemberJoinDelegate);
+			OnChatRoomMemberExitDelegateHandle = ChatInterface->AddOnChatRoomMemberExitDelegate_Handle(OnChatRoomMemberExitDelegate);
+			OnChatRoomMemberUpdateDelegateHandle = ChatInterface->AddOnChatRoomMemberUpdateDelegate_Handle(OnChatRoomMemberUpdateDelegate);
+			OnChatRoomMessageReceivedDelegateHandle = ChatInterface->AddOnChatRoomMessageReceivedDelegate_Handle(OnChatRoomMessageReceivedDelegate);
+			OnChatPrivateMessageReceivedDelegateHandle = ChatInterface->AddOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegate);
+		}
+		IOnlinePresencePtr PresenceInterface = OSSScheduler->GetPresenceInterface();
+		if (PresenceInterface.IsValid())
+		{
+			OnPresenceReceivedDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FMessageServiceImpl::OnPresenceReceived);
+			OnPresenceReceivedDelegateHandle = PresenceInterface->AddOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegate);
 		}
 	}
 
 	void UnInitialize()
 	{
-		if (OnlineSub != nullptr)
+		IOnlineChatPtr ChatInterface = OSSScheduler->GetChatInterface();
+		if( ChatInterface.IsValid())
 		{
-			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
-			if( ChatInterface.IsValid())
-			{
-				ChatInterface->ClearOnChatRoomJoinPublicDelegate_Handle        (OnChatRoomJoinPublicDelegateHandle);
-				ChatInterface->ClearOnChatRoomExitDelegate_Handle              (OnChatRoomExitDelegateHandle);
-				ChatInterface->ClearOnChatRoomMemberJoinDelegate_Handle        (OnChatRoomMemberJoinDelegateHandle);
-				ChatInterface->ClearOnChatRoomMemberExitDelegate_Handle        (OnChatRoomMemberExitDelegateHandle);
-				ChatInterface->ClearOnChatRoomMemberUpdateDelegate_Handle      (OnChatRoomMemberUpdateDelegateHandle);
-				ChatInterface->ClearOnChatRoomMessageReceivedDelegate_Handle   (OnChatRoomMessageReceivedDelegateHandle);
-				ChatInterface->ClearOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegateHandle);
-			}
-			IOnlinePresencePtr PresenceInterface = OnlineSub->GetPresenceInterface();
-			if (PresenceInterface.IsValid())
-			{
-				PresenceInterface->ClearOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegateHandle);
-			}
+			ChatInterface->ClearOnChatRoomJoinPublicDelegate_Handle        (OnChatRoomJoinPublicDelegateHandle);
+			ChatInterface->ClearOnChatRoomExitDelegate_Handle              (OnChatRoomExitDelegateHandle);
+			ChatInterface->ClearOnChatRoomMemberJoinDelegate_Handle        (OnChatRoomMemberJoinDelegateHandle);
+			ChatInterface->ClearOnChatRoomMemberExitDelegate_Handle        (OnChatRoomMemberExitDelegateHandle);
+			ChatInterface->ClearOnChatRoomMemberUpdateDelegate_Handle      (OnChatRoomMemberUpdateDelegateHandle);
+			ChatInterface->ClearOnChatRoomMessageReceivedDelegate_Handle   (OnChatRoomMessageReceivedDelegateHandle);
+			ChatInterface->ClearOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegateHandle);
 		}
-		OnlineSub = nullptr;
+		IOnlinePresencePtr PresenceInterface = OSSScheduler->GetPresenceInterface();
+		if (PresenceInterface.IsValid())
+		{
+			PresenceInterface->ClearOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegateHandle);
+		}
 	}
 
 	void OnChatRoomJoinPublic(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
 	{
 		if (bWasSuccessful)
 		{
+			bJoinedGlobalChat = true;
 			OnChatPublicRoomJoined().Broadcast(ChatRoomID);
 		}
 	}
@@ -264,6 +285,7 @@ private:
 	{
 		if (bWasSuccessful)
 		{
+			bJoinedGlobalChat = false;
 			OnChatPublicRoomExited().Broadcast(ChatRoomID);
 		}		
 	}
@@ -275,7 +297,7 @@ private:
 			*LoggedInUser != MemberId)
 		{
 			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-			TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
+			TSharedPtr<FChatRoomMember> ChatMember = OSSScheduler->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
 			if (ChatMember.IsValid())
 			{
 				ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
@@ -297,7 +319,7 @@ private:
 			*LoggedInUser != MemberId)
 		{
 			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-			TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
+			TSharedPtr<FChatRoomMember> ChatMember = OSSScheduler->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
 			if (ChatMember.IsValid())
 			{
 				ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
@@ -323,8 +345,8 @@ private:
 		{
 			// Determine roomtype for the message.  
 			FString GlobalChatRoomId;
-			TSharedPtr<const FOnlinePartyId> PartyChatRoomId = FriendsAndChatManager.Pin()->GetPartyChatRoomId();
-			if (FriendsAndChatManager.Pin()->GetGlobalChatRoomId(GlobalChatRoomId) && ChatRoomID == GlobalChatRoomId)
+			TSharedPtr<const FOnlinePartyId> PartyChatRoomId = OSSScheduler->GetPartyChatRoomId();
+			if (GetGlobalChatRoomId(GlobalChatRoomId) && ChatRoomID == GlobalChatRoomId)
 			{
 				ChatItem->MessageType = EChatMessageType::Global;
 			}
@@ -352,9 +374,9 @@ private:
 	void OnChatPrivateMessageReceived(const FUniqueNetId& UserId, const TSharedRef<FChatMessage>& ChatMessage)
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-		TSharedPtr<IFriendItem> FoundFriend = FriendsAndChatManager.Pin()->FindUser(ChatMessage->GetUserId());
+		TSharedPtr<IFriendItem> FoundFriend = FriendsService->FindUser(ChatMessage->GetUserId());
 		// Ignore messages from unknown people
-		if(FoundFriend.IsValid())
+		if(FoundFriend.IsValid() && FoundFriend->GetInviteStatus() == EInviteStatus::Accepted)
 		{
 			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());
 			ChatItem->SenderId = FoundFriend->GetUniqueID();
@@ -369,7 +391,7 @@ private:
 			AddMessage(ChatItem.ToSharedRef());
 
 			// Inform listers that we have received a chat message
-			FriendsAndChatManager.Pin()->SendChatMessageReceivedEvent(ChatItem->MessageType, FoundFriend);
+			OnChatMessageRecieved().Broadcast(ChatItem->MessageType, FoundFriend);
 		}
 	}
 
@@ -471,7 +493,7 @@ private:
 				}
 			}
 		}
-		OnChatMessageRecieved().Broadcast(NewMessage);
+		OnChatMessageAdded().Broadcast(NewMessage);
 	}
 
 	void RemoveMessage(TSharedRef<FFriendChatMessage> Message)
@@ -486,9 +508,27 @@ private:
 		ReceivedMessages.Remove(Message);
 	}
 
+	bool GetGlobalChatRoomId(FString& OutGlobalRoomId) const
+	{
+		if (RoomJoins.Num() > 0)
+		{
+			OutGlobalRoomId = RoomJoins[0];
+			return true;
+		}
+		return false;
+	}
+
+	FMessageServiceImpl(const TSharedRef<FOSSScheduler>& InOSSScheduler, const TSharedRef<FFriendsService>& InFriendsService)
+		: bEnableEnterExitMessages(false)
+		, LocalControllerIndex(0)
+		, bJoinedGlobalChat(false)
+		, OSSScheduler(InOSSScheduler)
+		, FriendsService(InFriendsService)
+	{
+	}
+
 private:
 
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	// Incoming delegates
 	FOnChatRoomJoinPublicDelegate OnChatRoomJoinPublicDelegate;
 	FOnChatRoomExitDelegate OnChatRoomExitDelegate;
@@ -511,30 +551,35 @@ private:
 
 	// Outgoing events
 	FOnChatMessageReceivedEvent MessageReceivedEvent;
+	FOnChatMessageAddedEvent MessageAddedEvent;
 	FOnChatPublicRoomJoinedEvent PublicRoomJoinedEvent;
 	FOnChatPublicRoomExitedEvent PublicRoomExitedEvent;
 
-	IOnlineSubsystem* OnlineSub;
 	TSharedPtr<const FUniqueNetId> LoggedInUser;
 	TArray<FString> RoomJoins;
-
 	TArray<TSharedRef<FFriendChatMessage> > ReceivedMessages;
 
+	// Message counts
 	int32 GlobalMessagesCount;
 	int32 WhisperMessagesCount;
 	int32 GameMessagesCount;
 	int32 PartyMessagesCount;
-
+	
 	bool bEnableEnterExitMessages;
+	int32 LocalControllerIndex;
+	bool bJoinedGlobalChat;
 
-private:
-	friend FFriendsMessageManagerFactory;
+	// Services
+	TSharedRef<FOSSScheduler> OSSScheduler;
+	TSharedRef<FFriendsService> FriendsService;
+
+	friend FMessageServiceFactory;
 };
 
-TSharedRef< FFriendsMessageManager > FFriendsMessageManagerFactory::Create(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+TSharedRef< FMessageService > FMessageServiceFactory::Create(const TSharedRef<FOSSScheduler>& OSSScheduler, const TSharedRef<class FFriendsService>& FriendsService)
 {
-	TSharedRef< FFriendsMessageManagerImpl > MessageManager(new FFriendsMessageManagerImpl(FriendsAndChatManager));
-	return MessageManager;
+	TSharedRef< FMessageServiceImpl > MessageService(new FMessageServiceImpl(OSSScheduler, FriendsService));
+	return MessageService;
 }
 
 #undef LOCTEXT_NAMESPACE

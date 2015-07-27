@@ -21,4 +21,4 @@ class FDefaultFriendList
 FACTORY(TSharedRef< FDefaultFriendList >, FDefaultFriendList,
 	EFriendsDisplayLists::Type ListType,
 	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<class FFriendsAndChatManager> & FriendAndChatManager);
+	const TSharedRef<class FFriendsService> & FriendsService);

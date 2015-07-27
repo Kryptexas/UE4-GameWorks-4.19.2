@@ -5,6 +5,7 @@
 #include "IFriendItem.h"
 #include "FriendViewModel.h"
 #include "FriendsNavigationService.h"
+#include "FriendsService.h"
 
 class FRecentPlayerListImpl
 	: public FRecentPlayerList
@@ -13,11 +14,18 @@ public:
 
 	virtual int32 GetFriendList(TArray< TSharedPtr<FFriendViewModel> >& OutFriendsList) override
 	{
-		TArray< TSharedPtr< IFriendItem > > FriendItemList = FriendsAndChatManager.Pin()->GetRecentPlayerList();
-		FriendItemList.Sort(FCompareGroupByName());
+		const int32 MaxResults = 10;
+		int32 iResult = 0;
+		TArray< TSharedPtr< IFriendItem > > FriendItemList = FriendsService.Pin()->GetRecentPlayerList();
+		FriendItemList.Sort(FCompareGroupByLastSeen());
 		for(const auto& FriendItem : FriendItemList)
 		{
+			iResult++;
 			OutFriendsList.Add(FriendViewModelFactory->Create(FriendItem.ToSharedRef()));
+			if (iResult == MaxResults)
+			{
+				break;
+			}
 		}
 		return 0;
 	}
@@ -35,33 +43,33 @@ private:
 
 	void Initialize()
 	{
-		FriendsAndChatManager.Pin()->OnFriendsListUpdated().AddSP(this, &FRecentPlayerListImpl::HandleChatListUpdated);
+		FriendsService.Pin()->OnFriendsListUpdated().AddSP(this, &FRecentPlayerListImpl::HandleRecentPlayerListUpdated);
 	}
 
-	void HandleChatListUpdated()
+	void HandleRecentPlayerListUpdated()
 	{
 		OnFriendsListUpdated().Broadcast();
 	}
 
 	FRecentPlayerListImpl(
 	const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	const TSharedRef<FFriendsService>& InFriendsService)
 		:FriendViewModelFactory(InFriendViewModelFactory)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, FriendsService(InFriendsService)
 	{
 	}
 
 private:
 	TSharedRef<IFriendViewModelFactory> FriendViewModelFactory;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TWeakPtr<FFriendsService> FriendsService;
 	friend FRecentPlayerListFactory;
 };
 
 TSharedRef< FRecentPlayerList > FRecentPlayerListFactory::Create(
 	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	const TSharedRef<FFriendsService>& FriendsService)
 {
-	TSharedRef< FRecentPlayerListImpl > ChatList(new FRecentPlayerListImpl(FriendViewModelFactory, FriendsAndChatManager));
+	TSharedRef< FRecentPlayerListImpl > ChatList(new FRecentPlayerListImpl(FriendViewModelFactory, FriendsService));
 	ChatList->Initialize();
 	return ChatList;
 }

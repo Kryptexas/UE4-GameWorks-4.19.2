@@ -35,4 +35,5 @@ IFACTORY(TSharedRef< FFriendViewModel >, IFriendViewModel,
 
 FACTORY(TSharedRef< IFriendViewModelFactory >, FFriendViewModelFactory,
 	const TSharedRef<class FFriendsNavigationService>& NavigationService,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);
+	const TSharedRef<class FFriendsService>& InFriendsService,
+	const TSharedRef<class FGameAndPartyService>& InGamePartyService);

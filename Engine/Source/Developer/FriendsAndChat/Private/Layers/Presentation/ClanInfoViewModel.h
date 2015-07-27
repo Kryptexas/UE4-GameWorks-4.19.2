@@ -62,12 +62,14 @@ class FClanInfoViewModel
 public:
 	virtual ~FClanInfoViewModel() {}
 
-	virtual FText GetClanTitle() = 0;
-	virtual int32 GetMemberCount() = 0;
+	virtual FText GetClanTitle() const = 0;
+	virtual int32 GetMemberCount() const = 0;
 	virtual TSharedRef<class FFriendListViewModel > GetFriendListViewModel() = 0;
 	virtual FText GetListCountText() const = 0;
 	virtual FText GetClanBrushName() const = 0;
 	virtual void EnumerateActions(TArray<EClanActionType::Type>& OUTActions) = 0;
+	virtual void PerformAction(EClanActionType::Type ClanAction) = 0;
+	virtual bool IsPrimaryClan() const = 0;
 
 	DECLARE_EVENT_OneParam(FClanInfoViewModel, FOpenClanDetails, const TSharedRef<class FClanInfoViewModel>&)
 	virtual FOpenClanDetails& OpenClanDetails() = 0;
@@ -80,7 +82,6 @@ public:
  */
 FACTORY(TSharedRef< FClanInfoViewModel >, FClanInfoViewModel,
 	const TSharedRef<class IClanInfo>& ClanInfo,
-	const TSharedRef<class IFriendListFactory>& FriendsListFactory,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);
+	const TSharedRef<class IFriendListFactory>& FriendsListFactory);
 
 #undef LOCTEXT_NAMESPACE

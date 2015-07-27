@@ -76,7 +76,6 @@ public:
 	virtual EVisibility GetBackgroundVisibility() const = 0;
 	virtual EVisibility GetTipVisibility() const = 0;
 	virtual EVisibility GetChatListVisibility() const = 0;
-	virtual void ToggleChatTipVisibility() = 0;
 	virtual void ValidateChatInput(const FText Message, const FText PlainText) = 0;
 	virtual FText GetValidatedInput() = 0;
 	virtual void SetIsActive(bool IsActive) = 0;
@@ -109,9 +108,11 @@ public:
  * @return the newly created ChatViewModel implementation.
  */
 FACTORY(TSharedRef< FChatViewModel >, FChatViewModel,
-	const TSharedRef<class FFriendsMessageManager>& MessageManager,
+	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory,
+	const TSharedRef<class FMessageService>& MessageService,
 	const TSharedRef<class FFriendsNavigationService>& NavigationService,
 	const TSharedRef<class FFriendsChatMarkupService>& MarkupService,
 	const TSharedRef<class IChatDisplayService>& ChatDisplayService,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager,
+	const TSharedRef<class FFriendsService>& FriendsService,
+	const TSharedRef<class FGameAndPartyService>& GamePartyService,
 	EChatViewModelType::Type ChatType);

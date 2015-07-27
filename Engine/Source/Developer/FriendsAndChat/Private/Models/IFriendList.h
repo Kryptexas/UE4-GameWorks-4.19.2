@@ -32,6 +32,16 @@ protected:
 			return ( A->GetName() < B->GetName() );
 		}
 	};
+
+	struct FCompareGroupByLastSeen
+	{
+		FORCEINLINE bool operator()(const TSharedPtr< IFriendItem > A, const TSharedPtr< IFriendItem > B) const
+		{
+			check(A.IsValid());
+			check(B.IsValid());
+			return (A->GetLastSeen() > B->GetLastSeen());
+		}
+	};
 };
 
 class IFriendListFactory
@@ -44,4 +54,5 @@ public:
 
 FACTORY(TSharedRef< IFriendListFactory >, FFriendListFactory,
 	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);
+	const TSharedRef<class FFriendsService>& FriendsService,
+	const TSharedRef<class FGameAndPartyService>& GamePartyInviteService);

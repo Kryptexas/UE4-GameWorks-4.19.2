@@ -53,7 +53,7 @@ private:
 		ClanRepository->EnumerateClanList(ClanInfos);
 		for (const auto& ClanItem : ClanInfos)
 		{
-			TSharedRef<FClanInfoViewModel> CIModel = FClanInfoViewModelFactory::Create(ClanItem, FriendsListFactory, FriendsAndChatManager.Pin().ToSharedRef());
+			TSharedRef<FClanInfoViewModel> CIModel = FClanInfoViewModelFactory::Create(ClanItem, FriendsListFactory);
 			CIModel->OpenClanDetails().AddSP(this, &FClanCollectionViewModelImpl::OnOpenClanDetails);
 			ClanList.Add(CIModel);
 		}
@@ -67,11 +67,9 @@ private:
 private:
 	FClanCollectionViewModelImpl(
 	const TSharedRef<IClanRepository>& InClanRepository,
-	const TSharedRef<IFriendListFactory>& InFriendsListFactory,
-	const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	const TSharedRef<IFriendListFactory>& InFriendsListFactory)
 		: ClanRepository(InClanRepository)
 		, FriendsListFactory(InFriendsListFactory)
-		, FriendsAndChatManager(InFriendsAndChatManager)
 	{
 	}
 
@@ -79,18 +77,16 @@ private:
 	TSharedRef<IClanRepository> ClanRepository;
 	TArray<TSharedRef<FClanInfoViewModel>> ClanList;
 	TSharedRef<IFriendListFactory> FriendsListFactory;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 
 	friend FClanCollectionViewModelFactory;
 };
 
 TSharedRef< FClanCollectionViewModel > FClanCollectionViewModelFactory::Create(
 	const TSharedRef<IClanRepository>& ClanRepository,
-	const TSharedRef<IFriendListFactory>& FriendsListFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
+	const TSharedRef<IFriendListFactory>& FriendsListFactory
 	)
 {
-	TSharedRef< FClanCollectionViewModelImpl > ViewModel(new FClanCollectionViewModelImpl(ClanRepository, FriendsListFactory, FriendsAndChatManager));
+	TSharedRef< FClanCollectionViewModelImpl > ViewModel(new FClanCollectionViewModelImpl(ClanRepository, FriendsListFactory));
 	ViewModel->Initialize();
 	return ViewModel;
 }

@@ -7,9 +7,13 @@ namespace EScrollerState
 {
 	enum Type
 	{
-		Start = 0,
+		FadeOn = 0,
+		Start,
+		Start_Wait,
 		Scrolling,
-		End
+		Stop,
+		Stop_Wait,
+		FadeOff
 	};
 }
 
@@ -32,14 +36,23 @@ public:
 			[
 				SNew(STextBlock)
 				.Font(FontStyle.FriendsFontSmallBold)
-				.ColorAndOpacity(FontStyle.DefaultDullFontColor)
+				.ColorAndOpacity(this, &SAutoTextScrollerImpl::GetFontColor)
 				.Text(InArgs._Text)
+				//.Text(NSLOCTEXT("ughu", "eref", "This is a very long sentence to test the auto scroller 5 4 3 2 1 ."))
 			]
 		]);
 
 		TimeElapsed = 0.f;
 		ScrollOffset = 0;
+		FontAlpha = 1.0f;
 		ScrollerState = EScrollerState::Start;
+	}
+
+	FSlateColor GetFontColor() const
+	{
+		FLinearColor RetVal = FontStyle.DefaultDullFontColor;
+		RetVal.A = FontAlpha;
+		return RetVal;
 	}
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
@@ -48,20 +61,47 @@ public:
 		const float Speed = 20.0f;
 		const float StartDelay = 2.0f;
 		const float EndDelay = 2.0f;
+		const float FadeOnDelay = 0.5f;
+		const float FadeOffDelay = 0.5f;
 
 		TimeElapsed += InDeltaTime;
 
 		switch (ScrollerState)
 		{
+			case EScrollerState::FadeOn:
+			{
+				FontAlpha = TimeElapsed / FadeOnDelay;
+				if (TimeElapsed >= FadeOnDelay)
+				{
+					FontAlpha = 1.0f;
+					TimeElapsed = 0.0f;
+					ScrollOffset = 0.0f;
+					ScrollerState = EScrollerState::Start;
+				}
+			}break;
 			case EScrollerState::Start:
 			{
+				// Unregister Tick Delegate
 				auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
 				if (PinnedActiveTimerHandle.IsValid())
 				{
 					UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 				}
-				ActiveTimerHandle = RegisterActiveTimer(StartDelay, FWidgetActiveTimerDelegate::CreateSP(this, &SAutoTextScrollerImpl::UpdateScrollerState));
+
+				// Check to see if we need to scroll
+				if (ExternalScrollbar->DistanceFromBottom() == 0.0f && ExternalScrollbar->DistanceFromTop() == 0.0f)
+				{
+					// Don't run auto scrolling if text already fits.
+					break;
+				}
+				else
+				{
+					ActiveTimerHandle = RegisterActiveTimer(StartDelay, FWidgetActiveTimerDelegate::CreateSP(this, &SAutoTextScrollerImpl::UpdateScrollerState));
+					ScrollerState = EScrollerState::Start_Wait;
+				}
 			}break;
+			case EScrollerState::Start_Wait:
+				break;
 			case EScrollerState::Scrolling:
 			{
 				ScrollOffset += Speed * InDeltaTime;
@@ -69,18 +109,43 @@ public:
 				{
 					ScrollOffset = ContentSize;
 					TimeElapsed = 0.0f;
-					ScrollerState = EScrollerState::End;
+					ScrollerState = EScrollerState::Stop;
 				}
 				
 			}break;
-			case EScrollerState::End:
+			case EScrollerState::Stop:
 			{
+				// Unregister Tick Delegate
 				auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
 				if (PinnedActiveTimerHandle.IsValid())
 				{
 					UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 				}
-				ActiveTimerHandle = RegisterActiveTimer(EndDelay, FWidgetActiveTimerDelegate::CreateSP(this, &SAutoTextScrollerImpl::UpdateScrollerState));
+
+				// Check to see if we need to scroll
+				if (ExternalScrollbar->DistanceFromBottom() == 0.0f && ExternalScrollbar->DistanceFromTop() == 0.0f)
+				{
+					// Don't run auto scrolling if text already fits.
+					break;
+				}
+				else
+				{
+					ActiveTimerHandle = RegisterActiveTimer(EndDelay, FWidgetActiveTimerDelegate::CreateSP(this, &SAutoTextScrollerImpl::UpdateScrollerState));
+					ScrollerState = EScrollerState::Stop_Wait;
+				}
+			}break;
+			case EScrollerState::Stop_Wait:
+				break;
+			case EScrollerState::FadeOff:
+			{
+				FontAlpha = 1.0f - TimeElapsed / FadeOffDelay;
+				if (TimeElapsed >= FadeOffDelay)
+				{
+					FontAlpha = 0.0f;
+					TimeElapsed = 0.0f;
+					ScrollOffset = 0.0f;
+					ScrollerState = EScrollerState::FadeOn;
+				}
 			}break;
 		};
 		ScrollBox->SetScrollOffset(ScrollOffset);
@@ -88,19 +153,32 @@ public:
 
 	EActiveTimerReturnType UpdateScrollerState(double InCurrentTime, float InDeltaTime)
 	{
-		if (ScrollerState == EScrollerState::End)
+		if (ScrollerState == EScrollerState::Stop_Wait)
 		{
 			TimeElapsed = 0.0f;
-			ScrollOffset = 0.0f;
-			ScrollerState = EScrollerState::Start;
+			ScrollerState = EScrollerState::FadeOff;
 			ScrollBox->SetScrollOffset(ScrollOffset);
+
+			auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+			if (PinnedActiveTimerHandle.IsValid())
+			{
+				UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
+			}
+			ActiveTimerHandle = RegisterActiveTimer(0, FWidgetActiveTimerDelegate::CreateSP(this, &SAutoTextScrollerImpl::UpdateScrollerState));
 		}
-		else if (ScrollerState == EScrollerState::Start)
+		else if (ScrollerState == EScrollerState::Start_Wait)
 		{
 			TimeElapsed = 0.0f;
 			ScrollOffset = 0.0f;
 			ScrollerState = EScrollerState::Scrolling;
 			ScrollBox->SetScrollOffset(ScrollOffset);
+
+			auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+			if (PinnedActiveTimerHandle.IsValid())
+			{
+				UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
+			}
+			ActiveTimerHandle = RegisterActiveTimer(0, FWidgetActiveTimerDelegate::CreateSP(this, &SAutoTextScrollerImpl::UpdateScrollerState));
 		}
 		return EActiveTimerReturnType::Continue;
 	}
@@ -115,6 +193,7 @@ private:
 	EScrollerState::Type ScrollerState;
 	float TimeElapsed;
 	float ScrollOffset;
+	float FontAlpha;
 };
 
 TSharedRef<SAutoTextScroller> SAutoTextScroller::New()

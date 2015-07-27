@@ -20,4 +20,4 @@ class FRecentPlayerList
  */
 FACTORY(TSharedRef< FRecentPlayerList >, FRecentPlayerList,
 	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);
+	const TSharedRef<class FFriendsService>& FriendsService);

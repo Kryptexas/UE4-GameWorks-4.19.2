@@ -3,7 +3,21 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendPartyInviteItem.h"
 
+#include "GameAndPartyService.h"
+
 // FFriendPartyInviteItem
+
+bool FFriendPartyInviteItem::CanJoinParty() const
+{
+	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
+	return PartyInfo.IsValid() && PartyInfo->GetIsAcceptingMembers() && !GameAndPartyService->IsFriendInSameParty(AsShared());
+}
+
+bool FFriendPartyInviteItem::CanInvite() const
+{
+	FString FriendsClientID = GetClientId();
+	return FriendsClientID == GameAndPartyService->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
+}
 
 bool FFriendPartyInviteItem::IsGameRequest() const
 {
@@ -17,7 +31,7 @@ bool FFriendPartyInviteItem::IsGameJoinable() const
 	if (PartyJoinInfo.IsValid())
 	{
 		const TSharedPtr<const IFriendItem> Item = AsShared();
-		return !FriendsAndChatManager.Pin()->IsFriendInSameParty(Item);
+		return !GameAndPartyService->IsFriendInSameParty(Item);
 	}
 	return false;
 }

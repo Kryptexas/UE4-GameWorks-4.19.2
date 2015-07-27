@@ -16,9 +16,6 @@ public:
 
 		SLATE_ARGUMENT(const FFriendsAndChatStyle*, FriendStyle)	
 
-		/** The marshaller used to get/set the raw text to/from the text layout. */
-		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
-
 		// The hint that shows what key activates chat
 		SLATE_ATTRIBUTE(FText, HintText)
 

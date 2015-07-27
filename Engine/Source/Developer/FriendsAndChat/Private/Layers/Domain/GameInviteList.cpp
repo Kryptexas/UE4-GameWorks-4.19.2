@@ -1,19 +1,20 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
-#include "FriendInviteList.h"
+#include "GameInviteList.h"
 #include "IFriendItem.h"
 #include "FriendViewModel.h"
+#include "GameAndPartyService.h"
 
-class FFriendInviteListImpl
-	: public FFriendInviteList
+class FGameInviteListImpl
+	: public FGameInviteList
 {
 public:
 
 	virtual int32 GetFriendList(TArray< TSharedPtr<FFriendViewModel> >& OutFriendsList) override
 	{
 		TArray< TSharedPtr< IFriendItem > > FriendItemList;
-		FriendsAndChatManager.Pin()->GetFilteredGameInviteList(FriendItemList);
+		GamePartyInviteService.Pin()->GetFilteredGameInviteList(FriendItemList);
 
 		FriendItemList.Sort(FCompareGroupByName());
 		for(const auto& FriendItem : FriendItemList)
@@ -24,7 +25,7 @@ public:
 		return 0;
 	}
 
-	DECLARE_DERIVED_EVENT(FFriendInviteList, IFriendList::FFriendsListUpdated, FFriendsListUpdated);
+	DECLARE_DERIVED_EVENT(FGameInviteList, IFriendList::FFriendsListUpdated, FFriendsListUpdated);
 	virtual FFriendsListUpdated& OnFriendsListUpdated() override
 	{
 		return FriendsListUpdatedEvent;
@@ -36,7 +37,7 @@ public:
 private:
 	void Initialize()
 	{
-		FriendsAndChatManager.Pin()->OnGameInvitesUpdated().AddSP(this, &FFriendInviteListImpl::HandleChatListUpdated);
+		GamePartyInviteService.Pin()->OnGameInvitesUpdated().AddSP(this, &FGameInviteListImpl::HandleChatListUpdated);
 	}
 
 	void HandleChatListUpdated()
@@ -44,23 +45,23 @@ private:
 		OnFriendsListUpdated().Broadcast();
 	}
 
-	FFriendInviteListImpl(const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory,
-		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	FGameInviteListImpl(const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory,
+		const TSharedRef<FGameAndPartyService>& InGamePartyInviteService)
 		:FriendViewModelFactory(InFriendViewModelFactory)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, GamePartyInviteService(InGamePartyInviteService)
 	{}
 
 private:
 	TSharedRef<IFriendViewModelFactory> FriendViewModelFactory;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
-	friend FFriendInviteListFactory;
+	TWeakPtr<FGameAndPartyService> GamePartyInviteService;
+	friend FGameInviteListFactory;
 };
 
-TSharedRef< FFriendInviteList > FFriendInviteListFactory::Create(
+TSharedRef< FGameInviteList > FGameInviteListFactory::Create(
 	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	const TSharedRef<FGameAndPartyService>& GamePartyInviteService)
 {
-	TSharedRef< FFriendInviteListImpl > ChatList(new FFriendInviteListImpl(FriendViewModelFactory, FriendsAndChatManager));
+	TSharedRef< FGameInviteListImpl > ChatList(new FGameInviteListImpl(FriendViewModelFactory, GamePartyInviteService));
 	ChatList->Initialize();
 	return ChatList;
 }

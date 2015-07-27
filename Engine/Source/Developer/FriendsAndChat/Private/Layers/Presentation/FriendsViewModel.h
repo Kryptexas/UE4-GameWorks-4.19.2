@@ -25,7 +25,9 @@ public:
  * @return the newly created FriendsViewModel implementation.
  */
 FACTORY(TSharedRef< FFriendsViewModel >, FFriendsViewModel,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager,
+	const TSharedRef<class FFriendsService>& FriendsService,
+	const TSharedRef<class FGameAndPartyService>& GameAndPartyService,
+	const TSharedRef<class FMessageService>& MessageService,
 	const TSharedRef<class IClanRepository>& ClanRepository,
 	const TSharedRef<class IFriendListFactory>& FriendsListFactory,
 	const TSharedRef<class FFriendsNavigationService>& NavigationService);

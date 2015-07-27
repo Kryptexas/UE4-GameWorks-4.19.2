@@ -3,7 +3,27 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendGameInviteItem.h"
 
+#include "GameAndPartyService.h"
+
 // FFriendGameInviteItem
+
+bool FFriendGameInviteItem::CanJoinParty() const
+{
+	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
+	return PartyInfo.IsValid() && PartyInfo->GetIsAcceptingMembers() && !GameAndPartyService->IsFriendInSameParty(AsShared());
+}
+
+bool FFriendGameInviteItem::CanInvite() const
+{
+	FString FriendsClientID = GetClientId();
+	return FriendsClientID == GameAndPartyService->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
+}
+
+TSharedPtr<IOnlinePartyJoinInfo> FFriendGameInviteItem::GetPartyJoinInfo() const
+{
+	// obtain party info from presence
+	return GameAndPartyService->GetPartyJoinInfo(AsShared());
+}
 
 bool FFriendGameInviteItem::IsGameRequest() const
 {
@@ -13,7 +33,7 @@ bool FFriendGameInviteItem::IsGameRequest() const
 bool FFriendGameInviteItem::IsGameJoinable() const
 {
 	const TSharedPtr<const IFriendItem> Item = AsShared();
-	return !FriendsAndChatManager.Pin()->IsFriendInSameSession(Item);
+	return !GameAndPartyService->IsFriendInSameSession(Item);
 }
 
 TSharedPtr<const FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const
@@ -21,7 +41,7 @@ TSharedPtr<const FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const
 	TSharedPtr<const FUniqueNetId> SessionId = NULL;
 	if (SessionResult->Session.SessionInfo.IsValid())
 	{
-		SessionId = FriendsAndChatManager.Pin()->GetGameSessionId(SessionResult->Session.SessionInfo->GetSessionId().ToString());
+		SessionId = GameAndPartyService->GetGameSessionId(SessionResult->Session.SessionInfo->GetSessionId().ToString());
 	}
 	return SessionId;
 }

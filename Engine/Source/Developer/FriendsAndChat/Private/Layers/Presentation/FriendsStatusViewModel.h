@@ -37,5 +37,4 @@ public:
  *
  * @return the newly created FFriendsStatusViewModel implementation.
  */
-FACTORY(TSharedRef< FFriendsStatusViewModel >, FFriendsStatusViewModel,
-	const TSharedRef<class FFriendsAndChatManager>& FFriendsAndChatManager );
+FACTORY(TSharedRef< FFriendsStatusViewModel >, FFriendsStatusViewModel, const TSharedRef<class FFriendsService>& FriendsService);

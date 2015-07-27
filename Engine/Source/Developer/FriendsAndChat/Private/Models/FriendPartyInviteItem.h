@@ -13,6 +13,8 @@ public:
 
 	// FFriendStuct overrides
 
+	virtual bool CanJoinParty() const override;
+	virtual bool CanInvite() const override;
 	virtual bool IsGameRequest() const override;
 	virtual bool IsGameJoinable() const override;
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
@@ -25,10 +27,11 @@ public:
 		const TSharedRef<FOnlineUser>& InOnlineUser,
 		const FString& InClientId,
 		const TSharedRef<IOnlinePartyJoinInfo>& InPartyJoinInfo,
-		const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager)
-		: FFriendItem(nullptr, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay, FriendsAndChatManager)
+		const TSharedRef<class FGameAndPartyService>& InGameAndPartyService)
+		: FFriendItem(nullptr, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
 		, PartyJoinInfo(InPartyJoinInfo)
 		, ClientId(InClientId)
+		, GameAndPartyService(InGameAndPartyService)
 	{ }
 
 protected:
@@ -41,4 +44,5 @@ private:
 
 	TSharedPtr<IOnlinePartyJoinInfo> PartyJoinInfo;
 	FString ClientId;
+	TSharedPtr<class FGameAndPartyService> GameAndPartyService;
 };

@@ -4,7 +4,7 @@
 #include "IFriendList.h"
 #include "DefaultFriendList.h"
 #include "RecentPlayerList.h"
-#include "FriendInviteList.h"
+#include "GameInviteList.h"
 #include "ClanMemberList.h"
 
 class FFriendListFactoryFactory;
@@ -19,21 +19,21 @@ public:
 		{
 			case EFriendsDisplayLists::GameInviteDisplay :
 			{
-				return FFriendInviteListFactory::Create(FriendViewModelFactory, FriendsAndChatManager.Pin().ToSharedRef());
+				return FGameInviteListFactory::Create(FriendViewModelFactory, GameAndPartyService.Pin().ToSharedRef());
 			}
 			break;
 			case EFriendsDisplayLists::RecentPlayersDisplay :
 			{
-				return FRecentPlayerListFactory::Create(FriendViewModelFactory, FriendsAndChatManager.Pin().ToSharedRef());
+				return FRecentPlayerListFactory::Create(FriendViewModelFactory, FriendsService.Pin().ToSharedRef());
 			}
 			break;
 		}
-		return FDefaultFriendListFactory::Create(ListType, FriendViewModelFactory, FriendsAndChatManager.Pin().ToSharedRef());
+		return FDefaultFriendListFactory::Create(ListType, FriendViewModelFactory, FriendsService.Pin().ToSharedRef());
 	}
 
 	virtual TSharedRef<IFriendList> Create(TSharedRef<IClanInfo> ClanInfo) override
 	{
-		return FClanMemberListFactory::Create(ClanInfo, FriendViewModelFactory, FriendsAndChatManager.Pin().ToSharedRef());
+		return FClanMemberListFactory::Create(ClanInfo, FriendViewModelFactory);
 	}
 
 	virtual ~FFriendListFactory() {}
@@ -42,24 +42,28 @@ private:
 
 	FFriendListFactory(
 	const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	const TSharedRef<FFriendsService>& InFriendsService,
+	const TSharedRef<FGameAndPartyService>& InGameAndPartyService)
 		: FriendViewModelFactory(InFriendViewModelFactory)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, FriendsService(InFriendsService)
+		, GameAndPartyService(InGameAndPartyService)
 	{ }
 
 private:
 
 	const TSharedRef<IFriendViewModelFactory> FriendViewModelFactory;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TWeakPtr<FFriendsService> FriendsService;
+	TWeakPtr<FGameAndPartyService> GameAndPartyService;
 	friend FFriendListFactoryFactory;
 };
 
 TSharedRef<IFriendListFactory> FFriendListFactoryFactory::Create(
 	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	const TSharedRef<FFriendsService>& FriendsService,
+	const TSharedRef<FGameAndPartyService>& GameAndPartyService)
 {
 	TSharedRef<FFriendListFactory> Factory = MakeShareable(
-		new FFriendListFactory(FriendViewModelFactory, FriendsAndChatManager));
+		new FFriendListFactory(FriendViewModelFactory, FriendsService, GameAndPartyService));
 
 	return Factory;
 }

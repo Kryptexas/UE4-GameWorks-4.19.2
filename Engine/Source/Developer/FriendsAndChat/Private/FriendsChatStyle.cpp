@@ -34,6 +34,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetTextStyle(const FTextBlockStyle& InText
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetTimeStampTextStyle(const FTextBlockStyle& InTextStle)
+{
+	TimeStampTextStyle = InTextStle;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetDefaultChatColor(const FLinearColor& InFontColor)
 {
 	DefaultChatColor = InFontColor;

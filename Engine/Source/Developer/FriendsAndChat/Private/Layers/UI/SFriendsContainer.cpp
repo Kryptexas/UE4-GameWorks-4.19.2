@@ -230,6 +230,11 @@ private:
 		return AddFriendButton.IsValid() && AddFriendButton->IsHovered() ? &FriendListStyle.AddFriendButtonContentHoveredBrush : &FriendListStyle.AddFriendButtonContentBrush;
 	}
 
+	EVisibility GetGlobalVisibility() const
+	{
+		return ViewModel->GetGlobalChatButtonVisibility();
+	}
+
 	EVisibility NoFriendsNoticeVisibility() const
 	{
 		for (auto& ListViewModel : ListViewModels)
@@ -267,6 +272,11 @@ private:
 
 	TSharedRef<SWidget> GetFriendsListWidget()
 	{
+		ListScrollBox = SNew(SScrollBox)
+			.ExternalScrollbar(ExternalScrollbar.ToSharedRef());
+
+		CreateLists();
+
 		// Probably move this to its own widget Nick Davies (3/25/2015)
 		return SNew(SVerticalBox)
 			+SVerticalBox::Slot()
@@ -339,7 +349,7 @@ private:
 								SNew(SBorder)
 								.Padding(0)
 								.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
-								.Visibility(ViewModel->GetGlobalChatButtonVisibility())
+								.Visibility(this, &SFriendsContainerImpl::GetGlobalVisibility)
 								[
 									SNew(SButton)
 									.ToolTip(CreateGlobalChatToolTip())
@@ -404,77 +414,7 @@ private:
 					SNew(SOverlay)
 					+ SOverlay::Slot()
 					[
-						SNew(SScrollBox)
-						.ExternalScrollbar(ExternalScrollbar.ToSharedRef())
-						+ SScrollBox::Slot()
-						.HAlign(HAlign_Center)
-						.Padding(10)
-						.Padding(FMargin(10, 10, 40, 10))
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("NoFriendsNotice", "Press the Plus Button to add friends."))
-							.Font(FriendFontStyle.FriendsFontSmallBold)
-							.ColorAndOpacity(FLinearColor::White)
-							.Visibility(this, &SFriendsContainerImpl::NoFriendsNoticeVisibility)
-						]
-						+SScrollBox::Slot()
-						.Padding(FMargin(10, 10, 30, 0))
-						[
-							SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::GameInviteDisplay].ToSharedRef())
-							.FriendStyle(&FriendListStyle)
-							.FontStyle(&FriendStyle.FriendsNormalFontStyle)
-							.Method(MenuMethod)
-							.Visibility(ListViewModels[EFriendsDisplayLists::GameInviteDisplay].Get(), &FFriendListViewModel::GetListVisibility)
-						]
-						+SScrollBox::Slot()
-						.Padding(FMargin(10, 10, 30, 0))
-						[
-							SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].ToSharedRef())
-							.FriendStyle(&FriendListStyle)
-							.FontStyle(&FriendStyle.FriendsNormalFontStyle)
-							.Method(MenuMethod)
-							.Visibility(ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].Get(), &FFriendListViewModel::GetListVisibility)
-						]
-						+SScrollBox::Slot()
-						.Padding(FMargin(10, 10, 30, 0))
-						[
-							SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::DefaultDisplay].ToSharedRef())
-							.FriendStyle(&FriendListStyle)
-							.FontStyle(&FriendStyle.FriendsNormalFontStyle)
-							.Method(MenuMethod)
-							.Visibility(ListViewModels[EFriendsDisplayLists::DefaultDisplay].Get(), &FFriendListViewModel::GetListVisibility)
-						]
-						+SScrollBox::Slot()
-						.Padding(FMargin(10, 10, 30, 0))
-						[
-							SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OfflineFriends].ToSharedRef())
-							.FriendStyle(&FriendListStyle)
-							.FontStyle(&FriendStyle.FriendsNormalFontStyle)
-							.Method(MenuMethod)
-							.Visibility(ListViewModels[EFriendsDisplayLists::OfflineFriends].Get(), &FFriendListViewModel::GetListVisibility)
-						]
-						+SScrollBox::Slot()
-						.Padding(FMargin(10, 10, 30, 0))
-						[
-							SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].ToSharedRef())
-							.FriendStyle(&FriendListStyle)
-							.FontStyle(&FriendStyle.FriendsNormalFontStyle)
-							.Method(MenuMethod)
-							.Visibility(ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].Get(), &FFriendListViewModel::GetListVisibility)
-						]
-						+SScrollBox::Slot()
-						.Padding(FMargin(10, 10, 30, 0))
-						[
-							SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].ToSharedRef())
-							.FriendStyle(&FriendListStyle)
-							.FontStyle(&FriendStyle.FriendsNormalFontStyle)
-							.Method(MenuMethod)
-							.Visibility(ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].Get(), &FFriendListViewModel::GetListVisibility)
-						]
-						+ SScrollBox::Slot()
-						[
-							SNew(SSpacer).Size(FVector2D(10, 10))
-						]
+						ListScrollBox.ToSharedRef()
 					]
 					+ SOverlay::Slot()
 					.HAlign(HAlign_Right)
@@ -483,6 +423,93 @@ private:
 						ExternalScrollbar.ToSharedRef()
 					]
 				]
+			];
+	}
+
+	virtual void RefreshRecentFriends()
+	{
+		CreateLists();
+	}
+
+	void CreateLists()
+	{
+		ListScrollBox->ClearChildren();
+
+		ListScrollBox->AddSlot()
+		.HAlign(HAlign_Center)
+		.Padding(10)
+		.Padding(FMargin(10, 10, 40, 10))
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("NoFriendsNotice", "Press the Plus Button to add friends."))
+			.Font(FriendFontStyle.FriendsFontSmallBold)
+			.ColorAndOpacity(FLinearColor::White)
+			.Visibility(this, &SFriendsContainerImpl::NoFriendsNoticeVisibility)
+		];
+
+		ListScrollBox->AddSlot()
+		.Padding(FMargin(10, 10, 30, 0))
+		[
+			SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::GameInviteDisplay].ToSharedRef())
+			.FriendStyle(&FriendListStyle)
+			.FontStyle(&FriendStyle.FriendsNormalFontStyle)
+			.Method(MenuMethod)
+			.Visibility(ListViewModels[EFriendsDisplayLists::GameInviteDisplay].Get(), &FFriendListViewModel::GetListVisibility)
+		];
+
+		ListScrollBox->AddSlot()
+		.Padding(FMargin(10, 10, 30, 0))
+		[
+			SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].ToSharedRef())
+			.FriendStyle(&FriendListStyle)
+			.FontStyle(&FriendStyle.FriendsNormalFontStyle)
+			.Method(MenuMethod)
+			.Visibility(ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].Get(), &FFriendListViewModel::GetListVisibility)
+		];
+
+		ListScrollBox->AddSlot()
+		.Padding(FMargin(10, 10, 30, 0))
+		[
+			SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::DefaultDisplay].ToSharedRef())
+			.FriendStyle(&FriendListStyle)
+			.FontStyle(&FriendStyle.FriendsNormalFontStyle)
+			.Method(MenuMethod)
+			.Visibility(ListViewModels[EFriendsDisplayLists::DefaultDisplay].Get(), &FFriendListViewModel::GetListVisibility)
+		];
+
+		ListScrollBox->AddSlot()
+		.Padding(FMargin(10, 10, 30, 0))
+		[
+			SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OfflineFriends].ToSharedRef())
+			.FriendStyle(&FriendListStyle)
+			.FontStyle(&FriendStyle.FriendsNormalFontStyle)
+			.Method(MenuMethod)
+			.Visibility(ListViewModels[EFriendsDisplayLists::OfflineFriends].Get(), &FFriendListViewModel::GetListVisibility)
+		];
+	
+		ListScrollBox->AddSlot()
+		.Padding(FMargin(10, 10, 30, 0))
+		[
+			SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].ToSharedRef())
+			.FriendStyle(&FriendListStyle)
+			.FontStyle(&FriendStyle.FriendsNormalFontStyle)
+			.Method(MenuMethod)
+			.Visibility(ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].Get(), &FFriendListViewModel::GetListVisibility)
+		];
+
+		ListScrollBox->AddSlot()
+		.Padding(FMargin(10, 10, 30, 0))
+		[
+			SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].ToSharedRef())
+			.FriendStyle(&FriendListStyle)
+			.FontStyle(&FriendStyle.FriendsNormalFontStyle)
+			.Method(MenuMethod)
+			.Visibility(ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].Get(), &FFriendListViewModel::GetListVisibility)
+		];
+
+		ListScrollBox->AddSlot()
+			[
+				SNew(SSpacer).Size(FVector2D(10, 10))
 			];
 	}
 
@@ -541,6 +568,8 @@ private:
 	TSharedPtr<SScrollBar> ExternalScrollbar;
 
 	TSharedPtr<SButton> AddFriendButton;
+
+	TSharedPtr<SScrollBox> ListScrollBox;
 };
 
 TSharedRef<SFriendsContainer> SFriendsContainer::New()

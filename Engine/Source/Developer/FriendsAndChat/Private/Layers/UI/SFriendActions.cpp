@@ -22,7 +22,7 @@ public:
 
 
 		TArray<EFriendActionType::Type> Actions;
-		FriendViewModel->EnumerateActions(Actions);
+		FriendViewModel->EnumerateActions(Actions, InArgs._FromChat);
 		for (EFriendActionType::Type Action : Actions)
 		{
 			ActionContainer->AddSlot()

@@ -20,6 +20,20 @@ class IFriendsAndChatManager
 {
 public:
 
+	/** Log out and kill the friends list window. */
+	virtual void Logout() = 0;
+
+	/** Log in and start checking for Friends. */
+	virtual void Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame = false, int32 LocalUserID = 0) = 0;
+
+	/** Is the chat manager logged in. */
+	virtual bool IsLoggedIn() = 0;
+
+	/** Set the user to an online state. */
+	virtual void SetOnline() = 0;
+
+	/** Set the user to an away state. */
+	virtual void SetAway() = 0;
 
 	/**
 	* Create the chat Settings service used to customize chat
@@ -89,6 +103,24 @@ public:
 	virtual TSharedPtr<class FFriendsNavigationService> GetNavigationService() = 0;
 
 	/**
+	* Get the notification service.
+	* @return The notification service
+	*/
+	virtual TSharedPtr<class IChatNotificationService> GetNotificationService() = 0;
+
+	/**
+	* Get the Message service.
+	* @return The message service
+	*/
+	virtual TSharedPtr<class IChatCommunicationService> GetCommunicationService() = 0;
+
+	/**
+	* Get the GameAndParty service.
+	* @return The GameAndParty service
+	*/
+	virtual TSharedPtr<class IGameAndPartyService> GetGameAndPartyService() = 0;
+
+	/**
 	 * Insert a network chat message.
 	 * @param InMessage The chat message.
 	 */
@@ -105,50 +137,12 @@ public:
 	 */
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) = 0;
 
-	/** Log out and kill the friends list window. */
-	virtual void Logout() = 0;
-
-	/** Log in and start checking for Friends. */
-	virtual void Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame = false, int32 LocalUserID = 0) = 0;
-
-	/** Is the chat manager logged in. */
-	virtual bool IsLoggedIn() = 0;
-
-	/** Set the user to an online state. */
-	virtual void SetOnline() = 0;
-
-	/** Set the user to an away state. */
-	virtual void SetAway() = 0;
-
 	/**
 	* Get the online status
 	*
 	* @return EOnlinePresenceState
 	*/
 	virtual EOnlinePresenceState::Type GetOnlineStatus() = 0;
-
-	/**
-	* Get the friends filtered list of friends.
-	*
-	* @param OutFriendsList  Array of friends to fill in.
-	* @return the friend list count.
-	*/
-	virtual int32 GetFilteredFriendsList(TArray< TSharedPtr< class IFriendItem > >& OutFriendsList) = 0;
-
-	/**
-	* Get the recent players list.
-	* @return the list.
-	*/
-
-	virtual TArray< TSharedPtr< class IFriendItem > >& GetRecentPlayerList() = 0;
-
-	/**
-	* Get incoming game invite list.
-	*
-	* @param OutFriendsList  Array of friends to fill in.
-	* @return The friend list count.
-	*/
-	virtual int32 GetFilteredGameInviteList(TArray< TSharedPtr< class IFriendItem > >& OutFriendsList) = 0;
 
 	/** 
 	 * Set the application view model to query and perform actions on.
@@ -164,32 +158,8 @@ public:
 
 	virtual void ClearApplicationViewModels() = 0;
 
-	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationEvent, const bool /*Show or Clear */)
-	virtual FOnFriendsNotificationEvent& OnFriendsNotification() = 0;
-
-	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationActionEvent, TSharedRef<FFriendsAndChatMessage> /*Chat notification*/)
-	virtual FOnFriendsNotificationActionEvent& OnFriendsActionNotification() = 0;
-
-	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsUserSettingsUpdatedEvent, /*struct*/ FFriendsAndChatSettings& /* New Options */)
-	virtual FOnFriendsUserSettingsUpdatedEvent& OnFriendsUserSettingsUpdated() = 0;
-
-	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FUniqueNetId& /*SessionId*/)
-	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
-
-	DECLARE_EVENT_ThreeParams(IFriendsAndChatManager, FOnFriendsJoinPartyEvent, const FUniqueNetId& /*SenderId*/, const TSharedRef<class IOnlinePartyJoinInfo>& /*PartyJoinInfo*/, bool /*bIsFromInvite*/)
-	virtual FOnFriendsJoinPartyEvent& OnFriendsJoinParty() = 0;
-
-	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FChatMessageReceivedEvent, EChatMessageType::Type /*Type of message received*/, TSharedPtr<IFriendItem> /*Friend if chat type is whisper*/);
-	virtual FChatMessageReceivedEvent& OnChatMessageRecieved() = 0;
-
 	DECLARE_DELEGATE_RetVal(bool, FAllowFriendsJoinGame);
 	virtual FAllowFriendsJoinGame& AllowFriendsJoinGame() = 0;
-
-	DECLARE_EVENT(IFriendsAndChatManager, FOnFriendsUpdated)
-	virtual FOnFriendsUpdated& OnFriendsListUpdated() = 0;
-
-	DECLARE_EVENT(IFriendsAndChatManager, FOnGameInvitesUpdated)
-	virtual FOnGameInvitesUpdated& OnGameInvitesUpdated() = 0;
 
 public:
 

@@ -153,7 +153,7 @@ private:
 
 	void Initialize()
 	{
-		FriendsAndChatManager->OnChatMessageRecieved().AddSP(this, &FChatDisplayServiceImpl::HandleChatMessageReceived);
+		ChatService->OnChatMessageRecieved().AddSP(this, &FChatDisplayServiceImpl::HandleChatMessageReceived);
 
 		if(IsFading())
 		{
@@ -166,8 +166,8 @@ private:
 		}
 	}
 
-	FChatDisplayServiceImpl(const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager, bool InFadeChatList, bool InFadeChatEntry, float InListFadeTime, float InEntryFadeTime)
-		: FriendsAndChatManager(InFriendsAndChatManager)
+	FChatDisplayServiceImpl(const TSharedRef<IChatCommunicationService>& InChatService, bool InFadeChatList, bool InFadeChatEntry, float InListFadeTime, float InEntryFadeTime)
+		: ChatService(InChatService)
 		, FadeChatList(InFadeChatList)
 		, FadeChatEntry(InFadeChatEntry)
 		, ChatFadeInterval(InListFadeTime)
@@ -180,7 +180,7 @@ private:
 
 private:
 
-	TSharedRef<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<IChatCommunicationService> ChatService;
 	bool FadeChatList;
 	bool FadeChatEntry;
 	float ChatFadeDelay;
@@ -206,9 +206,9 @@ private:
 	friend FChatDisplayServiceFactory;
 };
 
-TSharedRef< FChatDisplayService > FChatDisplayServiceFactory::Create(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager, bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime)
+TSharedRef< FChatDisplayService > FChatDisplayServiceFactory::Create(const TSharedRef<IChatCommunicationService>& ChatService, bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime)
 {
-	TSharedRef< FChatDisplayServiceImpl > DisplayService = MakeShareable(new FChatDisplayServiceImpl(FriendsAndChatManager, FadeChatList, FadeChatEntry, ListFadeTime, EntryFadeTime));
+	TSharedRef< FChatDisplayServiceImpl > DisplayService = MakeShareable(new FChatDisplayServiceImpl(ChatService, FadeChatList, FadeChatEntry, ListFadeTime, EntryFadeTime));
 	DisplayService->Initialize();
 	return DisplayService;
 }

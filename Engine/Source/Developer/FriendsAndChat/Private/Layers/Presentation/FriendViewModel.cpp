@@ -3,6 +3,8 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendViewModel.h"
 #include "FriendsNavigationService.h"
+#include "GameAndPartyService.h"
+#include "FriendsService.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChat"
 
@@ -30,12 +32,12 @@ public:
 		}
 		else if (FriendItem->GetListType() == EFriendsDisplayLists::RecentPlayersDisplay)
 		{
-			TSharedPtr<IFriendItem> ExistingFriend = FriendsAndChatManager.Pin()->FindUser(*FriendItem->GetUniqueID());
+			TSharedPtr<IFriendItem> ExistingFriend = FriendsService->FindUser(*FriendItem->GetUniqueID());
 			if (!ExistingFriend.IsValid())
 			{
 				Actions.Add(EFriendActionType::SendFriendRequest);
 			}
-			if (FriendItem->IsOnline() && (FriendsAndChatManager.Pin()->IsInJoinableGameSession() || FriendsAndChatManager.Pin()->IsInJoinableParty()))
+			if (FriendItem->IsOnline() && (GamePartyService->IsInJoinableGameSession() || GamePartyService->IsInJoinableParty()))
 			{
 				Actions.Add(EFriendActionType::InviteToGame);
 			}
@@ -52,15 +54,15 @@ public:
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
-						else if(FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId()) && FriendItem->IsInParty())
+						else if (GamePartyService->JoinGameAllowed(GetClientId()) && FriendItem->IsInParty())
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
 					}
 					if (FriendItem->IsOnline() && FriendItem->CanInvite())
 					{
-						const bool bIsJoinableGame = FriendsAndChatManager.Pin()->IsInJoinableGameSession() && !FriendsAndChatManager.Pin()->IsFriendInSameSession(FriendItem);
-						const bool bIsJoinableParty = FriendsAndChatManager.Pin()->IsInJoinableParty() && !FriendsAndChatManager.Pin()->IsFriendInSameParty(FriendItem);
+						const bool bIsJoinableGame = GamePartyService->IsInJoinableGameSession() && !GamePartyService->IsFriendInSameSession(FriendItem);
+						const bool bIsJoinableParty = GamePartyService->IsInJoinableParty() && !GamePartyService->IsFriendInSameParty(FriendItem);
 						if (bIsJoinableGame || bIsJoinableParty)
 						{
 							Actions.Add(EFriendActionType::InviteToGame);
@@ -96,11 +98,11 @@ public:
 	
 	virtual const bool HasChatAction() const override
 	{
-		bool bIsFriendInSameSession = FriendsAndChatManager.Pin()->IsFriendInSameSession(FriendItem);
+		bool bIsFriendInSameSession = GamePartyService->IsFriendInSameSession(FriendItem);
 
 		return FriendItem->GetInviteStatus() != EInviteStatus::Accepted
 			|| FriendItem->IsGameJoinable()
-			|| (FriendsAndChatManager.Pin()->IsInJoinableGameSession() && !bIsFriendInSameSession);
+			|| (GamePartyService->IsInJoinableGameSession() && !bIsFriendInSameSession);
 	}
 
 	virtual void PerformAction(const EFriendActionType::Type ActionType) override
@@ -166,7 +168,7 @@ public:
 		{
 			case EFriendActionType::JoinGame:
 			{
-				if(FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId()))
+				if (GamePartyService->JoinGameAllowed(GetClientId()))
 				{
 					if(FriendItem->IsInParty())
 					{
@@ -198,7 +200,7 @@ public:
 		static const FText InLauncher = LOCTEXT("GameJoinFail_InLauncher", "Please ensure Fortnite is installed and up to date");
 		static const FText InSession = LOCTEXT("GameJoinFail_InSession", "Quit to the Main Menu to join a friend's game");
 
-		if(FriendsAndChatManager.Pin()->IsInLauncher())
+		if (GamePartyService->IsInLauncher())
 		{
 			return InLauncher;
 		}
@@ -232,12 +234,12 @@ public:
 
 	virtual bool IsInGameSession() const override
 	{
-		return FriendsAndChatManager.Pin()->IsInGameSession();
+		return GamePartyService->IsInGameSession();
 	}
 
 	virtual bool IsInActiveParty() const override
 	{
-		return FriendsAndChatManager.Pin()->IsInActiveParty();
+		return GamePartyService->IsInActiveParty();
 	}
 
 	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override
@@ -259,33 +261,33 @@ private:
 
 	void RemoveFriend(EFriendActionType::Type Reason) const
 	{
-		FriendsAndChatManager.Pin()->DeleteFriend(FriendItem, Reason);
+		FriendsService->DeleteFriend(FriendItem, Reason);
 	}
 
 	void AcceptFriend() const
 	{
-		FriendsAndChatManager.Pin()->AcceptFriend( FriendItem );
+		FriendsService->AcceptFriend(FriendItem);
 	}
 
 	void SendFriendRequest() const
 	{
-		FriendsAndChatManager.Pin()->RequestFriend(FText::FromString(FriendItem->GetName()));
+		FriendsService->RequestFriend(FText::FromString(FriendItem->GetName()));
 	}
 
 	void InviteToGame()
 	{
-		FriendsAndChatManager.Pin()->SendGameInvite(FriendItem);
+		GamePartyService->SendGameInvite(FriendItem);
 	}
 
 	void JoinGame()
 	{
 		if (FriendItem->IsGameRequest() || FriendItem->IsGameJoinable())
 		{
-			FriendsAndChatManager.Pin()->AcceptGameInvite(FriendItem);
+			GamePartyService->AcceptGameInvite(FriendItem);
 		}
-		else if(FriendsAndChatManager.Pin()->JoinGameAllowed(GetClientId()) && FriendItem->CanJoinParty())
+		else if (GamePartyService->JoinGameAllowed(GetClientId()) && FriendItem->CanJoinParty())
 		{
-			FriendsAndChatManager.Pin()->AcceptGameInvite(FriendItem);
+			GamePartyService->AcceptGameInvite(FriendItem);
 		}
 	}
 
@@ -293,7 +295,7 @@ private:
 	{
 		if (FriendItem->IsGameRequest())
 		{
-			FriendsAndChatManager.Pin()->RejectGameInvite(FriendItem);
+			GamePartyService->RejectGameInvite(FriendItem);
 		}
 	}
 
@@ -316,11 +318,13 @@ private:
 	FFriendViewModelImpl(
 		const TSharedRef<IFriendItem>& InFriendItem,
 		const TSharedRef<FFriendsNavigationService>& InNavigationService,
-		const TSharedRef<class FFriendsAndChatManager>& InFriendsAndChatManager
+		const TSharedRef<FFriendsService>& InFriendsService,
+		const TSharedRef<FGameAndPartyService>& InGamePartyService
 		)
 		: FriendItem(InFriendItem)
 		, NavigationService(InNavigationService)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, GamePartyService(InGamePartyService)
+		, FriendsService(InFriendsService)
 	{
 	}
 
@@ -328,7 +332,8 @@ private:
 	FString NameNoSpaces;
 	TSharedRef<IFriendItem> FriendItem;
 	TSharedRef<FFriendsNavigationService> NavigationService;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<FGameAndPartyService> GamePartyService;
+	TSharedRef<FFriendsService> FriendsService;
 
 private:
 	friend FFriendViewModelFactoryImpl;
@@ -341,7 +346,7 @@ public:
 	virtual TSharedRef<FFriendViewModel> Create(const TSharedRef<IFriendItem>& FriendItem) override
 	{
 		TSharedRef<FFriendViewModelImpl> ViewModel = MakeShareable(
-			new FFriendViewModelImpl(FriendItem, NavigationService, FriendsAndChatManager.Pin().ToSharedRef()));
+			new FFriendViewModelImpl(FriendItem, NavigationService, FriendsService, GamePartyService));
 		ViewModel->Initialize();
 		return ViewModel;
 	}
@@ -352,24 +357,30 @@ private:
 
 	FFriendViewModelFactoryImpl(
 	const TSharedRef<FFriendsNavigationService>& InNavigationService,
-	const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	const TSharedRef<FFriendsService>& InFriendsService,
+	const TSharedRef<FGameAndPartyService>& InGamePartyService
+	)
 		: NavigationService(InNavigationService)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, FriendsService(InFriendsService)
+		, GamePartyService(InGamePartyService)
 	{ }
 
 private:
 
 	const TSharedRef<FFriendsNavigationService> NavigationService;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	const TSharedRef<FFriendsService> FriendsService;
+	const TSharedRef<FGameAndPartyService> GamePartyService;
 	friend FFriendViewModelFactoryFactory;
 };
 
 TSharedRef<IFriendViewModelFactory> FFriendViewModelFactoryFactory::Create(
 	const TSharedRef<FFriendsNavigationService>& NavigationService,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager)
+	const TSharedRef<FFriendsService>& FriendsService,
+	const TSharedRef<FGameAndPartyService>& GamePartyService
+	)
 {
 	TSharedRef<FFriendViewModelFactoryImpl> Factory = MakeShareable(
-		new FFriendViewModelFactoryImpl(NavigationService, FriendsAndChatManager));
+		new FFriendViewModelFactoryImpl(NavigationService, FriendsService, GamePartyService));
 
 	return Factory;
 }

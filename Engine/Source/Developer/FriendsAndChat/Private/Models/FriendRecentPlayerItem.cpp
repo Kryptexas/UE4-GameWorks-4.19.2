@@ -44,6 +44,15 @@ const FString FFriendRecentPlayerItem::GetClientName() const
 	return TEXT("");
 }
 
+FDateTime FFriendRecentPlayerItem::GetLastSeen() const
+{
+	if (RecentPlayer.IsValid())
+	{
+		return RecentPlayer->GetLastSeen();
+	}
+	return FDateTime::UtcNow();
+}
+
 const bool FFriendRecentPlayerItem::IsOnline() const
 {
 	return false;

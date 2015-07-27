@@ -15,6 +15,4 @@ public:
  *
  * @return the newly created FChatDisplayService implementation.
  */
-FACTORY(TSharedRef< FChatDisplayService >, FChatDisplayService, 
-	const TSharedRef<class FFriendsAndChatManager>& FFriendsAndChatManager,
-	bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime);
+FACTORY(TSharedRef< FChatDisplayService >, FChatDisplayService, const TSharedRef<IChatCommunicationService>& ChatService, bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime);

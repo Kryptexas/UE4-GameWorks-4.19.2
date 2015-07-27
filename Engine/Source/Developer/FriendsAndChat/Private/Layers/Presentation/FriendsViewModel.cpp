@@ -11,6 +11,10 @@
 #include "IFriendList.h"
 #include "FriendsNavigationService.h"
 
+#include "FriendsService.h"
+#include "MessageService.h"
+#include "GameAndPartyService.h"
+
 class FFriendsViewModelImpl
 	: public FFriendsViewModel
 {
@@ -28,12 +32,12 @@ public:
 
 	virtual TSharedRef< class FFriendsUserViewModel > GetUserViewModel() override
 	{
-		return FFriendsUserViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
+		return FFriendsUserViewModelFactory::Create(FriendsService);
 	}
 
 	virtual TSharedRef< FFriendsStatusViewModel > GetStatusViewModel() override
 	{
-		return FFriendsStatusViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
+		return FFriendsStatusViewModelFactory::Create(FriendsService);
 	}
 
 	virtual TSharedRef< FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) override
@@ -43,43 +47,31 @@ public:
 
 	virtual TSharedRef< FClanCollectionViewModel > GetClanCollectionViewModel() override
 	{
-		return FClanCollectionViewModelFactory::Create(ClanRepository, FriendsListFactory, FriendsAndChatManager.Pin().ToSharedRef());
+		return FClanCollectionViewModelFactory::Create(ClanRepository, FriendsListFactory);
 	}
 
 	virtual void RequestFriend(const FText& FriendName) const override
 	{
-		if (FriendsAndChatManager.IsValid())
-		{
-			FriendsAndChatManager.Pin()->RequestFriend(FriendName);
-		}
+		FriendsService->RequestFriend(FriendName);
 	}
 
 	virtual EVisibility GetGlobalChatButtonVisibility() const override
 	{
-		if (FriendsAndChatManager.IsValid())
-		{
-			TSharedPtr<FFriendsAndChatManager> FriendsAndChatManagerPtr = FriendsAndChatManager.Pin();
-			return FriendsAndChatManagerPtr->IsInGlobalChat() && FriendsAndChatManagerPtr->IsInLauncher() ? EVisibility::Visible : EVisibility::Collapsed;
-		}
-		return EVisibility::Collapsed;
+		return MessageService->IsInGlobalChat() && GameAndPartyService->IsInLauncher() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	virtual void DisplayGlobalChatWindow() const override
 	{
-		if (FriendsAndChatManager.IsValid())
+		if (MessageService->IsInGlobalChat())
 		{
-			FriendsAndChatManager.Pin()->OpenGlobalChat();
+			MessageService->OpenGlobalChat();
+			NavigationService->ChangeViewChannel(EChatMessageType::Global);
 		}
 	}
 
 	virtual const FString GetName() const override
 	{
-		FString Nickname;
-		TSharedPtr<FFriendsAndChatManager> ManagerPinned = FriendsAndChatManager.Pin();
-		if (ManagerPinned.IsValid())
-		{
-			Nickname = ManagerPinned->GetUserNickname();
-		}
+		FString Nickname = FriendsService->GetUserNickname();
 		return Nickname;
 	}
 
@@ -92,20 +84,20 @@ private:
 
 	void Uninitialize()
 	{
-		if( FriendsAndChatManager.IsValid())
-		{
-			FriendsAndChatManager.Reset();
-		}
 		NavigationService->OnChatViewChanged().RemoveAll(this);
 	}
 
 	FFriendsViewModelImpl(
-		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager,
+		const TSharedRef<FFriendsService>& InFriendsService,
+		const TSharedRef<FGameAndPartyService>& InGameAndPartyService,
+		const TSharedRef<FMessageService>& InMessageService,
 		const TSharedRef<IClanRepository>& InClanRepository,
 		const TSharedRef<IFriendListFactory>& InFriendsListFactory,
 		const TSharedRef<FFriendsNavigationService>& InNavigationService
 		)
-		: FriendsAndChatManager(InFriendsAndChatManager)
+		: FriendsService(InFriendsService)
+		, GameAndPartyService(InGameAndPartyService)
+		, MessageService(InMessageService)
 		, ClanRepository(InClanRepository)
 		, FriendsListFactory(InFriendsListFactory)
 		, NavigationService(InNavigationService)
@@ -114,7 +106,9 @@ private:
 	}
 
 private:
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<FFriendsService> FriendsService;
+	TSharedRef<FGameAndPartyService> GameAndPartyService;
+	TSharedRef<FMessageService> MessageService;
 	TSharedRef<IClanRepository> ClanRepository;
 	TSharedRef<IFriendListFactory> FriendsListFactory;
 	TSharedRef<FFriendsNavigationService> NavigationService;
@@ -125,12 +119,14 @@ private:
 };
 
 TSharedRef< FFriendsViewModel > FFriendsViewModelFactory::Create(
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager,
+	const TSharedRef<FFriendsService>& FriendsService,
+	const TSharedRef<FGameAndPartyService>& GameAndPartyService,
+	const TSharedRef<FMessageService>& MessageService,
 	const TSharedRef<IClanRepository>& ClanRepository,
 	const TSharedRef<IFriendListFactory>& FriendsListFactory,
 	const TSharedRef<FFriendsNavigationService>& NavigationService
 	)
 {
-	TSharedRef< FFriendsViewModelImpl > ViewModel(new FFriendsViewModelImpl(FriendsAndChatManager, ClanRepository, FriendsListFactory, NavigationService));
+	TSharedRef< FFriendsViewModelImpl > ViewModel(new FFriendsViewModelImpl(FriendsService, GameAndPartyService, MessageService, ClanRepository, FriendsListFactory, NavigationService));
 	return ViewModel;
 }

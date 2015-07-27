@@ -21,9 +21,8 @@ public:
 	 * @param InOnlineUser The online user.
 	 * @param InListType The list type.
 	 */
-	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& InFriendsAndChatManager)
-		: FriendsAndChatManager(InFriendsAndChatManager)
-		, bIsUpdated(true)
+	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType)
+		: bIsUpdated(true)
 		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
 		, OnlineUser( InOnlineUser )
@@ -84,6 +83,12 @@ public:
 	 * @return The game name
 	*/
 	virtual const FString GetClientName() const override;
+
+	/**
+	* Get last seen time
+	* @return The time
+	*/
+	virtual FDateTime GetLastSeen() const override;
 
 	/**
 	 * Get if the user is online.
@@ -204,8 +209,6 @@ protected:
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
 	{ };
-
-	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 
 private:
 

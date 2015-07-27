@@ -67,26 +67,24 @@ private:
 		OnFriendsListUpdated().Broadcast();
 	}
 
-	FClanMemberListImpl(TSharedRef<IClanInfo> InClanInfo, const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory, const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	FClanMemberListImpl(TSharedRef<IClanInfo> InClanInfo, const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory)
 		: ClanInfo(InClanInfo)
-		, FriendsAndChatManager(InFriendsAndChatManager)
 		, FriendViewModelFactory(InFriendViewModelFactory)
 	{}
 
 private:
 
 	TSharedRef<IClanInfo> ClanInfo;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	TSharedRef<IFriendViewModelFactory> FriendViewModelFactory;
 
 	friend FClanMemberListFactory;
 };
 
 TSharedRef< FClanMemberList > FClanMemberListFactory::Create(TSharedRef<IClanInfo> ClanInfo,
-	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory
+	)
 {
-	TSharedRef< FClanMemberListImpl > ChatList(new FClanMemberListImpl(ClanInfo, FriendViewModelFactory, FriendsAndChatManager));
+	TSharedRef< FClanMemberListImpl > ChatList(new FClanMemberListImpl(ClanInfo, FriendViewModelFactory));
 	ChatList->Initialize();
 	return ChatList;
 }

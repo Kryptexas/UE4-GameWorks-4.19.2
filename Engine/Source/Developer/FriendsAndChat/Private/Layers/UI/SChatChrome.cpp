@@ -24,13 +24,12 @@ public:
 
 		ChromeViewModel->OnActiveTabChanged().AddSP(this, &SChatChromeImpl::HandleActiveTabChanged);
 		ChromeViewModel->OnVisibleTabsChanged().AddSP(this, &SChatChromeImpl::HandleVisibleTabsChanged);
-		FLinearColor BorderColor = ChromeViewModel->IsFading() ? FLinearColor::Transparent : FLinearColor::White;
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendsChatChromeStyle.ChatBackgroundBrush)
-			.BorderBackgroundColor(BorderColor)
+			.Padding(0)
+			.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 			.Visibility(this, &SChatChromeImpl::GetChatWindowVisibility)
 			.Padding(0)
 			[

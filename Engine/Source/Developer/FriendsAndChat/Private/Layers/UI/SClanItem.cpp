@@ -50,7 +50,8 @@ public:
 						[
 							// Primary Clan Indicator
 							SNew(SImage)
-							.Image(&FriendStyle.AwayBrush )
+							.Visibility(this, &SClanItemImpl::PrimaryClanVisibility)
+							.Image(&FriendStyle.OnlineBrush )
 						]
 					]
 					+ SHorizontalBox::Slot()
@@ -145,8 +146,31 @@ private:
 		return ActionItems;
 	}
 
+	FName ActionToItemTag(EClanActionType::Type Action)
+	{
+		return FName(*EClanActionType::ToText(Action).ToString());
+	}
+
+	EClanActionType::Type ItemTagToAction(const FName& Tag)
+	{
+		for (int32 ActionIdx = 0; ActionIdx < EClanActionType::MAX_None; ActionIdx++)
+		{
+			EClanActionType::Type ActionAsEnum = (EClanActionType::Type)ActionIdx;
+			if (Tag == ActionToItemTag(ActionAsEnum))
+			{
+				return ActionAsEnum;
+			}
+		}
+		return EClanActionType::MAX_None;
+	}
+
 	void HandleItemClicked(FName ItemTag)
 	{
+		EClanActionType::Type Action = ItemTagToAction(ItemTag);
+		if (Action != EClanActionType::MAX_None)
+		{
+			ClanInfoViewModel->PerformAction(Action);
+		}
 	}
 
 	void HandleActionMenuOpened() const
@@ -156,6 +180,11 @@ private:
 	EVisibility ActionMenuButtonVisibility() const
 	{
 		return EVisibility::Visible;
+	}
+
+	EVisibility PrimaryClanVisibility() const
+	{
+		return ClanInfoViewModel->IsPrimaryClan() ? EVisibility::Visible : EVisibility::Hidden;
 	}
 
 	virtual bool SupportsKeyboardFocus() const override

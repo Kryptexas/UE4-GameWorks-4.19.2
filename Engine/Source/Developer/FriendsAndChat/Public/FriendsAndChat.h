@@ -30,3 +30,6 @@
 #include "FriendsChatStyle.h"
 #include "FriendsChatChromeStyle.h"
 #include "FriendsAndChatStyle.h"
+#include "IChatNotificationService.h"
+#include "IChatCommunicationService.h"
+#include "IGameAndPartyService.h"

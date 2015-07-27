@@ -19,11 +19,6 @@ public:
 	virtual ~FFriendsChatMarkupService() {}
 
 	/**
-	 * Toggle the chat tips visibility.
-	 */
-	virtual void ToggleDisplayChatTips() = 0;
-
-	/**
 	 * Make chat tips unavailable.
 	 */
 	virtual void CloseChatTips() = 0;

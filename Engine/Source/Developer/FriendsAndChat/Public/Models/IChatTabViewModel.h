@@ -18,7 +18,7 @@ public:
 	virtual const EChatMessageType::Type GetTabID() const = 0;
 
 	virtual const FSlateBrush* GetTabImage() const = 0;
-	virtual const TSharedPtr<FChatViewModel> GetChatViewModel() const = 0;
+	virtual const TSharedPtr<class FChatViewModel> GetChatViewModel() const = 0;
 
 	DECLARE_EVENT(IChatTabViewModel, FChatTabVisibilityChangedEvent)
 	virtual FChatTabVisibilityChangedEvent& OnTabVisibilityChanged() = 0;

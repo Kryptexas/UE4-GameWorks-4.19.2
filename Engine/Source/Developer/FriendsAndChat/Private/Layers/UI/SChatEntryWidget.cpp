@@ -6,6 +6,7 @@
 #include "RichTextLayoutMarshaller.h"
 #include "ChatViewModel.h"
 #include "ChatEntryCommands.h"
+#include "SFriendActions.h"
 
 #define LOCTEXT_NAMESPACE ""
 
@@ -27,34 +28,19 @@ public:
 		float HightOverride = FriendStyle.FriendsChatStyle.ChatEntryHeight;
 		MaxChatLength = InArgs._MaxChatLength;
 		HintText = InArgs._HintText;
-		Marshaller = InArgs._Marshaller;
+
+		Marshaller = FRichTextLayoutMarshaller::Create(
+			TArray<TSharedRef<ITextDecorator>>(), 
+			&FFriendsAndChatModuleStyle::Get()
+			);
+
+		OnHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateSP(SharedThis(this), &SChatEntryWidgetImpl::HandleNameClicked);
+
+		Marshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("UserName"), OnHyperlinkClicked));
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-			 	SNew(SBox)
-				.Visibility(ViewModel->AllowMarkup() ? EVisibility::Visible : EVisibility::Collapsed)
-			 	.WidthOverride(HightOverride)
-			 	[
-					SNew(SButton)
-					.OnClicked(this, &SChatEntryWidgetImpl::HandleActionDropDownClicked)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.Cursor(EMouseCursor::Hand)
-					[
-						SNew(STextBlock)
-						.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontLargeBold)
-						.Text(FText::FromString("/"))
-					]
-				 ]
-			]
-			+SHorizontalBox::Slot()
-			[
-				SAssignNew(ChatBox, SBox)
-			]
+			SAssignNew(ChatBox, SBox)
 		]);
 
 		RebuildTextEntry();
@@ -128,12 +114,6 @@ public:
 
 	// End SUserWidget
 private:
-
-	FReply HandleActionDropDownClicked()
-	{
-		ViewModel->ToggleChatTipVisibility();
-		return FReply::Handled();
-	}
 
 	/**
 	 * Handle chat commited - send the message to be broadcast from the message service
@@ -253,6 +233,27 @@ private:
 		return FMath::Max(WindowWidth - 60, 0.0f);
 	}
 
+	void HandleNameClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
+	{
+		const FString* UsernameString = Metadata.Find(TEXT("Username"));
+		const FString* UniqueIDString = Metadata.Find(TEXT("uid"));
+
+		if (UsernameString && UniqueIDString)
+		{
+			FText Username = FText::FromString(*UsernameString);
+			const TSharedRef<FFriendViewModel> FriendViewModel = ViewModel->GetFriendViewModel(*UniqueIDString, Username).ToSharedRef();
+			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle);
+
+			FSlateApplication::Get().PushMenu(
+				SharedThis(this),
+				FWidgetPath(),
+				Widget,
+				FSlateApplication::Get().GetCursorPos(),
+				FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+				);
+		}
+	}
+
 private:
 	/* Holds the max chat length */
 	int32 MaxChatLength;
@@ -269,7 +270,8 @@ private:
 	/* Holds the hint text for the chat box*/
 	TAttribute< FText > HintText;
 	/* Holds the marshaller for the chat box*/
-	TSharedPtr<ITextLayoutMarshaller> Marshaller;
+	TSharedPtr<FRichTextLayoutMarshaller> Marshaller;
+	FSlateHyperlinkRun::FOnClick OnHyperlinkClicked;
 };
 
 TSharedRef<SChatEntryWidget> SChatEntryWidget::New()

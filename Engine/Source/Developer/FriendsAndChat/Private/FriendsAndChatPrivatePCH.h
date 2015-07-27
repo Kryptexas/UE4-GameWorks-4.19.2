@@ -28,4 +28,4 @@
 *****************************************************************************/
 
 #include "FriendsAndChatManager.h"
-#include "FriendsMessageManager.h"
+#include "MessageService.h"

@@ -3,6 +3,8 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsUserViewModel.h"
 
+#include "FriendsService.h"
+
 class FFriendsUserViewModelImpl
 	: public FFriendsUserViewModel
 {
@@ -15,33 +17,18 @@ public:
 
 	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override
 	{
-		TSharedPtr<FFriendsAndChatManager> ManagerPinned = FriendsAndChatManager.Pin();
-		if (ManagerPinned.IsValid())
-		{
-			return ManagerPinned->GetOnlineStatus();
-		}
-		return EOnlinePresenceState::Offline;
+		return FriendsService->GetOnlineStatus();
 	}
 
 	virtual const FString GetClientId() const override
 	{
-		FString ClientId;
-		TSharedPtr<FFriendsAndChatManager> ManagerPinned = FriendsAndChatManager.Pin();
-		if (ManagerPinned.IsValid())
-		{
-			ClientId = ManagerPinned->GetUserClientId();
-		}
+		FString ClientId = FriendsService->GetUserClientId();
 		return ClientId;
 	}
 
 	virtual const FString GetName() const override
 	{
-		FString Nickname;
-		TSharedPtr<FFriendsAndChatManager> ManagerPinned = FriendsAndChatManager.Pin();
-		if (ManagerPinned.IsValid())
-		{
-			Nickname = ManagerPinned->GetUserNickname();
-		}
+		FString Nickname = FriendsService->GetUserNickname();
 		return Nickname;
 	}
 
@@ -49,28 +36,22 @@ private:
 
 	void Uninitialize()
 	{
-		if (FriendsAndChatManager.IsValid())
-		{
-			FriendsAndChatManager.Reset();
-		}
 	}
 
-	FFriendsUserViewModelImpl(
-		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager
-		)
-		: FriendsAndChatManager(InFriendsAndChatManager)
+	FFriendsUserViewModelImpl(const TSharedRef<FFriendsService>& InFriendsService)
+	: FriendsService(InFriendsService)
 	{
 	}
 
 private:
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<FFriendsService> FriendsService;
 
 private:
 	friend FFriendsUserViewModelFactory;
 };
 
-TSharedRef< FFriendsUserViewModel > FFriendsUserViewModelFactory::Create(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+TSharedRef< FFriendsUserViewModel > FFriendsUserViewModelFactory::Create(const TSharedRef<FFriendsService>& FriendsService)
 {
-	TSharedRef< FFriendsUserViewModelImpl > ViewModel(new FFriendsUserViewModelImpl(FriendsAndChatManager));
+	TSharedRef< FFriendsUserViewModelImpl > ViewModel(new FFriendsUserViewModelImpl(FriendsService));
 	return ViewModel;
 }

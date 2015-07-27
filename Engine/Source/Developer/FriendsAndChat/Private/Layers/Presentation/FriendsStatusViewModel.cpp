@@ -3,18 +3,20 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsStatusViewModel.h"
 
+#include "FriendsService.h"
+
 class FFriendsStatusViewModelImpl
 	: public FFriendsStatusViewModel
 {
 public:
 	virtual EOnlinePresenceState::Type GetOnlineStatus() const override
 	{
-		return FriendsAndChatManager.Pin()->GetOnlineStatus();
+		return FriendsService->GetOnlineStatus();
 	}
 
 	virtual void SetOnlineStatus(EOnlinePresenceState::Type OnlineState) override
 	{
-		FriendsAndChatManager.Pin()->SetUserIsOnline(OnlineState);
+		FriendsService->SetUserIsOnline(OnlineState);
 	}
 
 	virtual const TArray<FOnlineState>& GetStatusList() const override
@@ -24,20 +26,13 @@ public:
 
 	virtual FText GetStatusText() const override
 	{
-		FString Nickname;
-		TSharedPtr<FFriendsAndChatManager> ManagerPinned = FriendsAndChatManager.Pin();
-		if (ManagerPinned.IsValid())
-		{
-			Nickname = ManagerPinned->GetUserNickname();
-		}
+		FString Nickname = FriendsService->GetUserNickname();
 		return FText::FromString(Nickname);
 	}
 
 private:
-	FFriendsStatusViewModelImpl(
-		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager
-		)
-		: FriendsAndChatManager(InFriendsAndChatManager)
+	FFriendsStatusViewModelImpl(const TSharedRef<FFriendsService>& InFriendsService)
+	: FriendsService(InFriendsService)
 	{
 		OnlineStateArray.Add(FOnlineState(true, NSLOCTEXT("OnlineState", "OnlineState_Online", "Online"), EOnlinePresenceState::Online));
 		OnlineStateArray.Add(FOnlineState(false, NSLOCTEXT("OnlineState", "OnlineState_Offline", "Offline"), EOnlinePresenceState::Offline));
@@ -48,17 +43,15 @@ private:
 	}
 
 private:
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<FFriendsService> FriendsService;
 	TArray<FOnlineState> OnlineStateArray;
 
 private:
 	friend FFriendsStatusViewModelFactory;
 };
 
-TSharedRef< FFriendsStatusViewModel > FFriendsStatusViewModelFactory::Create(
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
-	)
+TSharedRef< FFriendsStatusViewModel > FFriendsStatusViewModelFactory::Create(const TSharedRef<FFriendsService>& FriendsService)
 {
-	TSharedRef< FFriendsStatusViewModelImpl > ViewModel(new FFriendsStatusViewModelImpl(FriendsAndChatManager));
+	TSharedRef< FFriendsStatusViewModelImpl > ViewModel(new FFriendsStatusViewModelImpl(FriendsService));
 	return ViewModel;
 }

@@ -4,6 +4,7 @@
 #include "DefaultFriendList.h"
 #include "IFriendItem.h"
 #include "FriendViewModel.h"
+#include "FriendsService.h"
 
 class FDefaultFriendListImpl
 	: public FDefaultFriendList
@@ -13,7 +14,7 @@ public:
 	virtual int32 GetFriendList(TArray< TSharedPtr<FFriendViewModel> >& OutFriendsList) override
 	{
 		TArray< TSharedPtr< IFriendItem > > FriendItemList;
-		FriendsAndChatManager.Pin()->GetFilteredFriendsList(FriendItemList);
+		FriendsService.Pin()->GetFilteredFriendsList(FriendItemList);
 		TArray< TSharedPtr< IFriendItem > > OnlineFriendsList;
 		TArray< TSharedPtr< IFriendItem > > OfflineFriendsList;
 
@@ -91,7 +92,7 @@ public:
 private:
 	void Initialize()
 	{
-		FriendsAndChatManager.Pin()->OnFriendsListUpdated().AddSP(this, &FDefaultFriendListImpl::HandleChatListUpdated);
+		FriendsService.Pin()->OnFriendsListUpdated().AddSP(this, &FDefaultFriendListImpl::HandleChatListUpdated);
 	}
 
 	void HandleChatListUpdated()
@@ -102,16 +103,16 @@ private:
 	FDefaultFriendListImpl(
 		EFriendsDisplayLists::Type InListType,
 		const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory,
-		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+		const TSharedRef<FFriendsService>& InFriendsService)
 		: ListType(InListType)
 		, FriendViewModelFactory(InFriendViewModelFactory)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, FriendsService(InFriendsService)
 	{}
 
 private:
 	const EFriendsDisplayLists::Type ListType;
 	TSharedRef<IFriendViewModelFactory> FriendViewModelFactory;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TWeakPtr<FFriendsService> FriendsService;
 
 	friend FDefaultFriendListFactory;
 };
@@ -119,9 +120,9 @@ private:
 TSharedRef< FDefaultFriendList > FDefaultFriendListFactory::Create(
 	EFriendsDisplayLists::Type ListType,
 	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	const TSharedRef<FFriendsService>& FriendsService)
 {
-	TSharedRef< FDefaultFriendListImpl > ChatList(new FDefaultFriendListImpl(ListType, FriendViewModelFactory, FriendsAndChatManager));
+	TSharedRef< FDefaultFriendListImpl > ChatList(new FDefaultFriendListImpl(ListType, FriendViewModelFactory, FriendsService));
 	ChatList->Initialize();
 	return ChatList;
 }

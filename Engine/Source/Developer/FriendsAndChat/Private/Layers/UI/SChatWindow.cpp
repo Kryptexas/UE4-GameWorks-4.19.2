@@ -10,7 +10,7 @@
 #include "SChatMarkupTips.h"
 #include "SFriendActions.h"
 #include "SChatEntryWidget.h"
-#include "RichTextLayoutMarshaller.h"
+#include "ChatTextLayoutMarshaller.h"
 #include "TextDecorators.h"
 
 #define LOCTEXT_NAMESPACE "SChatWindow"
@@ -31,19 +31,12 @@ public:
 
 		FFriendsAndChatModuleStyle::Initialize(FriendStyle);
 
-		RichTextMarshaller = FRichTextLayoutMarshaller::Create(
-			TArray<TSharedRef<ITextDecorator>>(), 
-			&FFriendsAndChatModuleStyle::Get()
-			);
-
 		OnHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateSP(SharedThis(this), &SChatWindowImpl::HandleNameClicked);
 		OnChannelHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateSP(SharedThis(this), &SChatWindowImpl::HandleChannelClicked);
-		OnTimeStampCreated = FWidgetDecorator::FCreateWidget::CreateSP(SharedThis(this), &SChatWindowImpl::HandleTimeStampDisplay);
 
-		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("UserName"), OnHyperlinkClicked));
-		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("Channel"), OnChannelHyperlinkClicked));
-		RichTextMarshaller->AppendInlineDecorator(FImageDecorator::Create(TEXT("img"), &FFriendsAndChatModuleStyle::Get()));
-		RichTextMarshaller->AppendInlineDecorator(FWidgetDecorator::Create(TEXT("TimeStamp"), OnTimeStampCreated));
+		RichTextMarshaller = FChatTextLayoutMarshallerFactory::Create(&FriendStyle, ViewModel->MultiChat());
+		RichTextMarshaller->AddChannelNameHyperlinkDecorator(FHyperlinkDecorator::Create(TEXT("Channel"), OnChannelHyperlinkClicked));
+		RichTextMarshaller->AddUserNameHyperlinkDecorator(FHyperlinkDecorator::Create(TEXT("UserName"), OnHyperlinkClicked));
 
 		TimeTransparency = 0.0f;
 
@@ -93,7 +86,7 @@ public:
 						]
 					]
 					+SOverlay::Slot()
-					.Padding(FMargin(40, 0))
+					.Padding(FMargin(10, 0))
 					.VAlign(VAlign_Bottom)
 					[
 						SNew(SBorder)
@@ -128,7 +121,6 @@ public:
 								[
 									SAssignNew(ChatTextBox, SChatEntryWidget, ViewModel.ToSharedRef())
 								 	.FriendStyle(&FriendStyle)
-									.Marshaller(RichTextMarshaller)
 									.HintText(InArgs._ActivationHintText)
 								]
 								+SVerticalBox::Slot()
@@ -249,7 +241,6 @@ private:
 			.Font(FFriendsAndChatModuleStyle::GetStyleService()->GetNormalFont())
 			.WrapTextAt(this, &SChatWindowImpl::GetChatWrapWidth)
 			.Marshaller(RichTextMarshaller.ToSharedRef())
-			.Text(this, &SChatWindowImpl::GetChatText)
 			.IsReadOnly(true);
 
 			ChatScrollBox->AddSlot()
@@ -268,6 +259,7 @@ private:
 			CreateChatWidgets();
 		}
 
+		// ToDo - Move the following logic into the view model
 		TArray<TSharedRef<FChatItemViewModel>> Messages = ViewModel->GetMessages();
 		for (;LastMessageIndex < Messages.Num(); ++LastMessageIndex)
 		{
@@ -282,30 +274,23 @@ private:
 				*LastMessage->GetRecipientID() == *ChatItem->GetRecipientID() &&
 				(ChatItem->GetMessageTime() - LastMessage->GetMessageTime()).GetDuration() <= FTimespan::FromMinutes(1.0))
 			{
-				ChatText.AppendLine(FormatListMessageText(ChatItem, true));
+				RichTextMarshaller->AppendMessage(ChatItem, true);
 			}
 			else
 			{
-				static FString MessageBreak(TEXT("<MessageBreak></>"));
-				ChatText.AppendLine(MessageBreak);
-				ChatText.AppendLine(FormatListMessageText(ChatItem, false));
+				RichTextMarshaller->AppendLineBreak();
+				RichTextMarshaller->AppendMessage(ChatItem, false);
 			}
 			LastMessage = ChatItem;
 		}
 
 		if (RichText.IsValid() && ChatScrollBox.IsValid())
 		{
-			RichText->Refresh();
 			if(ExternalScrollbar.IsValid() && ExternalScrollbar->DistanceFromBottom() == 0)
 			{
 				ChatScrollBox->ScrollToEnd();
 			}
 		}
-	}
-
-	FText GetChatText() const
-	{
-		return ChatText.ToText();
 	}
 
 	void HandleNameClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
@@ -317,7 +302,7 @@ private:
 		{
 			FText Username = FText::FromString(*UsernameString);
 			const TSharedRef<FFriendViewModel> FriendViewModel = ViewModel->GetFriendViewModel(*UniqueIDString, Username).ToSharedRef();
-			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle);
+			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle).FromChat(true);
 
 			FSlateApplication::Get().PushMenu(
 				SharedThis(this),
@@ -338,203 +323,6 @@ private:
 			ViewModel->SetOutgoingMessageChannel(EChatMessageType::EnumFromString(*ChannelString));
 			ViewModel->SetFocus();
 		}
-	}
-
-	FSlateWidgetRun::FWidgetRunInfo HandleTimeStampDisplay( const FTextRunInfo& RunInfo, const ISlateStyle* Style ) const
-	{
-		// Internal class for timestamps
-		class SChatTimeStamp : public SCompoundWidget
-		{
-			SLATE_BEGIN_ARGS(SChatTimeStamp)
-				: _DateTime(FDateTime::Now())
-			{ }
-				SLATE_ARGUMENT(FDateTime, DateTime)
-			SLATE_END_ARGS()
-
-			virtual ~SChatTimeStamp()
-			{
-				FTicker::GetCoreTicker().RemoveTicker(TickerHandle);
-			}
-
-			void Construct(const FArguments& InArgs)
-			{
-				TimeStamp = InArgs._DateTime;
-				ChildSlot
-				[
-					SNew(STextBlock)
-					.Text(this, &SChatTimeStamp::GetMessageTimeText)
-					.Font(FFriendsAndChatModuleStyle::GetStyleService()->GetNormalFont())
-				];
-
-				if (UpdateTimeStamp(60)) //this will broadcast a changed event
-				{
-					TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateSP(this, &SChatTimeStamp::UpdateTimeStamp), 60);
-				}
-			}
-
-			private:
-
-			bool UpdateTimeStamp(float Delay)
-			{
-				bool ContinueTicking = true;
-
-				FDateTime Now = FDateTime::Now();
-
-				if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(1.0))
-				{
-					static FText NowTimeStamp = NSLOCTEXT("SChatWindow", "Now_TimeStamp", "Now");
-					MessageTimeAsText = NowTimeStamp;
-				}
-				else if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(2.0))
-				{
-					static FText OneMinuteTimeStamp = NSLOCTEXT("SChatWindow", "1_Minute_TimeStamp", "1 min");
-					MessageTimeAsText = OneMinuteTimeStamp;
-				}
-				else if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(3.0))
-				{
-					static FText TwoMinuteTimeStamp = NSLOCTEXT("SChatWindow", "2_Minute_TimeStamp", "2 min");
-					MessageTimeAsText = TwoMinuteTimeStamp;
-				}
-				else if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(4.0))
-				{
-					static FText ThreeMinuteTimeStamp = NSLOCTEXT("SChatWindow", "3_Minute_TimeStamp", "3 min");
-					MessageTimeAsText = ThreeMinuteTimeStamp;
-				}
-				else if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(5.0))
-				{
-					static FText FourMinuteTimeStamp = NSLOCTEXT("SChatWindow", "4_Minute_TimeStamp", "4 min");
-					MessageTimeAsText = FourMinuteTimeStamp;
-				}
-				else if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(6.0))
-				{
-					static FText FiveMinuteTimeStamp = NSLOCTEXT("SChatWindow", "5_Minute_TimeStamp", "5 min");
-					MessageTimeAsText = FiveMinuteTimeStamp;
-				}
-				else
-				{
-					MessageTimeAsText = FText::AsTime(TimeStamp, EDateTimeStyle::Short, "GMT");
-					ContinueTicking = false;
-				}
-
-				return ContinueTicking;
-			}
-
-			FText GetMessageTimeText() const
-			{
-				return MessageTimeAsText;
-			}
-
-			private:
-				FText MessageTimeAsText;
-				FDelegateHandle TickerHandle;
-				FDateTime TimeStamp;
-		};
-
-		TSharedRef< SWidget > Widget = SNullWidget::NullWidget;
-
-		FDateTime TimeStamp;
-		FString TimeStampSting = RunInfo.Content.ToString();
-		if (!TimeStampSting.IsEmpty() && FDateTime::Parse(TimeStampSting, TimeStamp))
-		{
-			Widget = SNew( SChatTimeStamp )
-			.DateTime(TimeStamp);
-		}
-
-
-		TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-		int16 Baseline = FontMeasure->GetBaseline(FFriendsAndChatModuleStyle::GetStyleService()->GetNormalFont());
-
-		return FSlateWidgetRun::FWidgetRunInfo(Widget, Baseline);
-	}
-
-	FText FormatListMessageText(TSharedRef<FChatItemViewModel> ChatItem, bool bGrouped)
-	{
-		const FText& TextToSet = ChatItem->GetMessage();
-		FFormatNamedArguments Args;
-		FString HyperlinkStyle = TEXT("UserNameTextStyle.DefaultHyperlink");
-		FSlateBrush* Brush = nullptr;
-
-		switch (ChatItem->GetMessageType())
-		{
-		case EChatMessageType::Global: 
-			HyperlinkStyle = TEXT("UserNameTextStyle.GlobalHyperlink"); 
-			Args.Add(TEXT("RoomName"), FText::FromString(TEXT("[g]")));
-			break;
-		case EChatMessageType::Whisper: 
-			HyperlinkStyle = TEXT("UserNameTextStyle.Whisperlink"); 
-			Args.Add(TEXT("RoomName"), FText::FromString(TEXT("[w]")));
-			break;
-		case EChatMessageType::Game: 
-			HyperlinkStyle = TEXT("UserNameTextStyle.GameHyperlink"); 
-			Args.Add(TEXT("RoomName"), FText::FromString(TEXT("[p]")));
-			break;
-		}
-
-		Args.Add(TEXT("Channel"), FText::FromString(EChatMessageType::ShortcutString(ChatItem->GetMessageType())));
-		Args.Add(TEXT("RecipientName"), ChatItem->GetRecipientName());
-		if(ChatItem->GetRecipientID().IsValid())
-		{
-			Args.Add(TEXT("RecipientID"), FText::FromString(ChatItem->GetRecipientID()->ToString()));
-		}
-		Args.Add(TEXT("SenderName"), ChatItem->GetSenderName());
-		if(ChatItem->GetSenderID().IsValid())
-		{
-			Args.Add(TEXT("SenderID"), FText::FromString(ChatItem->GetSenderID()->ToString()));
-		}
-
-		FString MessageTime = ChatItem->GetMessageTime().ToString();
-		FString TimeStampMarkup = "<TimeStamp>" + MessageTime + "</>";
-		Args.Add(TEXT("TimeStampMarkup"), FText::FromString(TimeStampMarkup));
-
-		Args.Add(TEXT("NameStyle"), FText::FromString(HyperlinkStyle));
-		Args.Add(TEXT("Message"), TextToSet);
-
-		FText ListMessage;
-
-		if (bGrouped)
-		{
-			ListMessage = FText::Format(NSLOCTEXT("SChatWindow", "DisplayMessage", "{Message}"), TextToSet);
-		}
-		else
-		{
-			if (!ViewModel->MultiChat())
-			{
-				if (ChatItem->IsFromSelf())
-				{
-					ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{TimeStampMarkup} {SenderName} : {Message}"), Args);
-				}
-				else
-				{
-					ListMessage = FText::Format(NSLOCTEXT("SChatWindow", "DisplayNameAndMessageWithMarkup", "{TimeStampMarkup} <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> : {Message}"), Args);
-				}
-			}
-			else
-			{
-				if (ChatItem->GetMessageType() == EChatMessageType::Whisper)
-				{
-					if (ChatItem->IsFromSelf())
-					{
-						ListMessage = FText::Format(NSLOCTEXT("SChatWindow", "DisplayNameAndMessageWhisperFromSelf", "{TimeStampMarkup} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> to <a id=\"UserName\" uid=\"{RecipientID}\" Username=\"{RecipientName}\" style=\"{NameStyle}\">{RecipientName}</> : {Message}"), Args);
-					}
-					else
-					{
-						ListMessage = FText::Format(NSLOCTEXT("SChatWindow", "DisplayNameAndMessageWhisper", "{TimeStampMarkup} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> from <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> : {Message}"), Args);
-					}
-				}
-				else
-				{
-					if (ChatItem->IsFromSelf())
-					{
-						ListMessage = FText::Format(NSLOCTEXT("SChatWindow", "DisplayNameAndMessageOtherFromSelf", "{TimeStampMarkup} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> {SenderName} : {Message}"), Args);
-					}
-					else
-					{
-						ListMessage = FText::Format(NSLOCTEXT("SChatWindow", "DisplayNameAndMessageOther", "{TimeStampMarkup} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> : {Message}"), Args);
-					}
-				}
-			}
-		}
-		return ListMessage;
 	}
 
 	EVisibility GetChatChannelVisibility() const
@@ -581,13 +369,11 @@ private:
 
 	TSharedPtr<SScrollBox> ChatScrollBox;
 
-	TSharedPtr<FRichTextLayoutMarshaller> RichTextMarshaller;
+	TSharedPtr<FChatTextLayoutMarshaller> RichTextMarshaller;
 
 	TSharedPtr<SMultiLineEditableTextBox> RichText;
 
 	SVerticalBox::FSlot* ChannelTextSlot;
-
-	FTextBuilder ChatText;
 
 	int32 LastMessageIndex;
 

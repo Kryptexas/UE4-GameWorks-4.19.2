@@ -27,5 +27,4 @@ public:
  */
 FACTORY(TSharedRef< FClanCollectionViewModel >, FClanCollectionViewModel,
 	const TSharedRef<class IClanRepository>& ClanRepository,
-	const TSharedRef<class IFriendListFactory>& FriendsListFactory,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);
+	const TSharedRef<class IFriendListFactory>& FriendsListFactory);

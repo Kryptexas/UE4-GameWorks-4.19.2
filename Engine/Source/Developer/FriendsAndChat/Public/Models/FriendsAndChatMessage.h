@@ -2,12 +2,8 @@
 
 #pragma once
 
-
-class FUniqueNetId;
-
-
-// Enum to list download status flags
-namespace EFriendsRequestType
+// Enum to list message flags
+namespace EMessageType
 {
 	enum Type
 	{
@@ -25,12 +21,13 @@ namespace EFriendsRequestType
 		FriendAccepted,
 		// The message is handled. Clear the notification if present
 		MessageHandled,
+		// Invite someone to join your clan
+		ClanInvite,
 	};
 };
 
-
-// Enum to list friend response type
-namespace EFriendsResponseType
+// Enum to list message response types
+namespace EResponseType
 {
 	enum Type
 	{
@@ -43,6 +40,7 @@ namespace EFriendsResponseType
 	};
 };
 
+class FUniqueNetId;
 
 // Enum holding the display list selection
 namespace EFriendsDisplayLists
@@ -132,6 +130,26 @@ public:
 	}
 
 	/**
+	* Get the Net ID for the clan this message is sent to.
+	*
+	* @return The net ID.
+	*/
+	const TSharedRef<const FUniqueNetId> GetClanID()
+	{
+		return UniqueClanID.ToSharedRef();
+	}
+
+	/**
+	* Set the Net ID for the clan this message is sent to.
+	*
+	* @return The net ID.
+	*/
+	void SetClanID(TSharedRef<const FUniqueNetId> ClanID)
+	{
+		UniqueClanID = ClanID;
+	}
+
+	/**
 	 * Set a button callbacks.
 	 *
 	 * @param InCallback The button callback.
@@ -166,7 +184,7 @@ public:
 	 *
 	 * @param InType The message type.
 	 */
-	void SetMessageType( EFriendsRequestType::Type InType )
+	void SetMessageType(EMessageType::Type InType)
 	{
 		MessageType = InType;
 	}
@@ -196,7 +214,7 @@ public:
 	 *
 	 * @return The message type.
 	 */
-	EFriendsRequestType::Type GetMessageType()
+	EMessageType::Type GetMessageType()
 	{
 		return MessageType;
 	}
@@ -290,7 +308,7 @@ public:
 	/** Set this message into a handled state. */
 	void SetHandled()
 	{
-		MessageType = EFriendsRequestType::MessageHandled;
+		MessageType = EMessageType::MessageHandled;
 	}
 
 private:
@@ -309,9 +327,12 @@ private:
 	
 	// Holds the Unique Friend Net ID
 	const TSharedPtr<const FUniqueNetId> UniqueFriendID;
+
+	// Holds the Unique clan Net ID
+	TSharedPtr<const FUniqueNetId> UniqueClanID;
 	
 	// Holds the message type
-	EFriendsRequestType::Type MessageType;
+	EMessageType::Type MessageType;
 	
 	// Holds the requester name.
 	FString RequesterName;

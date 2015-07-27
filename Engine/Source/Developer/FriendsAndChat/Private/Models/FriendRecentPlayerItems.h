@@ -66,6 +66,13 @@ public:
 	*/
 	virtual const FString GetClientName() const override;
 
+
+	/**
+	* Get last seen time
+	* @return The date last seen
+	*/
+	virtual FDateTime GetLastSeen() const override;
+
 	/**
 	 * Get if the user is online.
 	 * @return The user online state.

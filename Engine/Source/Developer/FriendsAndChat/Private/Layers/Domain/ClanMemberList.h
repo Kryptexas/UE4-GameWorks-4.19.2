@@ -20,5 +20,4 @@ class FClanMemberList
  */
 FACTORY(TSharedRef< FClanMemberList >, FClanMemberList,
 	TSharedRef<class IClanInfo> ClanInfo,
-	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory,
-	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);
+	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory);

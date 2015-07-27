@@ -12,12 +12,12 @@ class FClanInfoViewModelImpl
 {
 public:
 
-	virtual FText GetClanTitle() override
+	virtual FText GetClanTitle() const override
 	{
 		return ClanInfo->GetTitle();
 	}
 
-	virtual int32 GetMemberCount() override
+	virtual int32 GetMemberCount() const override
 	{
 		return ClanInfo->GetMemberList().Num();
 	}
@@ -47,6 +47,16 @@ public:
 		OUTActions.Add(EClanActionType::SetPrimaryClan);
 	}
 
+	virtual void PerformAction(EClanActionType::Type ClanAction) override
+	{
+
+	}
+
+	virtual bool IsPrimaryClan() const override
+	{
+		return ClanInfo->IsPrimaryClan();
+	}
+
 	DECLARE_DERIVED_EVENT(FClanInfoViewModelImpl, FClanInfoViewModel::FOpenClanDetails, FOpenClanDetails);
 	virtual FOpenClanDetails& OpenClanDetails() override
 	{
@@ -62,28 +72,24 @@ private:
 private:
 	FClanInfoViewModelImpl(
 	const TSharedRef<IClanInfo>& InClanInfo,
-	const TSharedRef<IFriendListFactory>& InFriendsListFactory,
-	const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+	const TSharedRef<IFriendListFactory>& InFriendsListFactory)
 		: ClanInfo(InClanInfo)
 		, FriendsListFactory(InFriendsListFactory)
-		, FriendsAndChatManager(InFriendsAndChatManager)
 	{
 	}
 
 	FOpenClanDetails OpenClanDetailsEvent;
 	TSharedRef<IClanInfo> ClanInfo;
 	TSharedRef<IFriendListFactory> FriendsListFactory;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	friend FClanInfoViewModelFactory;
 };
 
 TSharedRef< FClanInfoViewModel > FClanInfoViewModelFactory::Create(
 	const TSharedRef<IClanInfo>& ClanInfo,
-	const TSharedRef<IFriendListFactory>& FriendsListFactory,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
+	const TSharedRef<IFriendListFactory>& FriendsListFactory
 	)
 {
-	TSharedRef< FClanInfoViewModelImpl > ViewModel(new FClanInfoViewModelImpl(ClanInfo, FriendsListFactory, FriendsAndChatManager));
+	TSharedRef< FClanInfoViewModelImpl > ViewModel(new FClanInfoViewModelImpl(ClanInfo, FriendsListFactory));
 	ViewModel->Initialize();
 	return ViewModel;
 }

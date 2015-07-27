@@ -162,15 +162,6 @@ class FFriendsChatMarkupServiceImpl
 {
 public:
 
-	virtual void ToggleDisplayChatTips() override
-	{
-		ForceDisplayToolTips = !ForceDisplayToolTips;
-		if(ForceDisplayToolTips)
-		{
-			GenerateDefaultTips();
-		}
-	}
-
 	virtual void CloseChatTips() override
 	{
 		ForceDisplayToolTips = false;
@@ -205,7 +196,7 @@ public:
 					}
 					else
 					{
-						CommunicationService->SendPrivateMessage(ProcessedInput->ValidFriends[0]->GetFriendItem()->GetUniqueID(), FText::FromString(ProcessedInput->Message));
+						CommunicationService->SendPrivateMessage(ProcessedInput->ValidFriends[0]->GetFriendItem(), FText::FromString(ProcessedInput->Message));
 						NavigationService->ChangeViewChannel(EChatMessageType::Whisper);
 					}
 				}

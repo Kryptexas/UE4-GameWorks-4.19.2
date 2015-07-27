@@ -128,6 +128,12 @@ public:
 	virtual const FString GetClientName() const = 0;
 
 	/**
+	* Get last seen time
+	* @return The time
+	*/
+	virtual FDateTime GetLastSeen() const = 0;
+
+	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -167,7 +173,7 @@ public:
 	 * Obtain info needed to join a party for this friend item
 	 * @return party info if available or null
 	 */
-	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const = 0;
+	virtual TSharedPtr<class IOnlinePartyJoinInfo> GetPartyJoinInfo() const = 0;
 
 	/**
 	 * Get the Unique ID.

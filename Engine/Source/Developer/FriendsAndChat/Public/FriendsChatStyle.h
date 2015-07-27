@@ -58,6 +58,11 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FTextBlockStyle TextStyle;
 	FFriendsChatStyle& SetTextStyle(const FTextBlockStyle& InTextStyle);
 
+	/** Time Stamp Text Style */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FTextBlockStyle TimeStampTextStyle;
+	FFriendsChatStyle& SetTimeStampTextStyle(const FTextBlockStyle& InTextStyle);
+
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor DefaultChatColor;
 	FFriendsChatStyle& SetDefaultChatColor(const FLinearColor& InFontColor);

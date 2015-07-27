@@ -8,9 +8,12 @@
 #include "OnlineChatInterface.h"
 #include "FriendsNavigationService.h"
 #include "FriendsChatMarkupService.h"
+#include "FriendsService.h"
 #include "ChatTipViewModel.h"
 #include "ChatSettingsService.h"
+#include "GameAndPartyService.h"
 #include "FriendsAndChatAnalytics.h"
+#include "FriendRecentPlayerItems.h"
 
 #define LOCTEXT_NAMESPACE ""
 
@@ -35,14 +38,28 @@ public:
 		return FilteredMessages.Num();
 	}
 
-	virtual TSharedPtr<FFriendViewModel> GetFriendViewModel(const TSharedPtr<const FUniqueNetId> UniqueID, const FText Username) override
+	virtual TSharedPtr<FFriendViewModel> GetFriendViewModel(const TSharedPtr<const FUniqueNetId> InUserID, const FText Username) override
 	{
-		return FriendsAndChatManager.Pin()->GetFriendViewModel(UniqueID, Username);
+		TSharedPtr<IFriendItem> FoundFriend = FriendsService->FindUser(InUserID.ToSharedRef());
+		if (!FoundFriend.IsValid())
+		{
+			FoundFriend = FriendsService->FindRecentPlayer(*InUserID.Get());
+		}
+		if (!FoundFriend.IsValid())
+		{
+			FoundFriend = MakeShareable(new FFriendRecentPlayerItem(InUserID, Username));
+		}
+		if (FoundFriend.IsValid())
+		{
+			return FriendViewModelFactory->Create(FoundFriend.ToSharedRef());
+		}
+		return nullptr;
 	}
 
 	virtual TSharedPtr<FFriendViewModel> GetFriendViewModel(const FString InUserID, const FText Username) override
 	{
-		return FriendsAndChatManager.Pin()->GetFriendViewModel(InUserID, Username);
+		TSharedPtr<const FUniqueNetId> NetID = FriendsService->CreateUniquePlayerId(InUserID);
+		return GetFriendViewModel(NetID, Username);
 	}
 
 	virtual void SetChannelFlags(uint8 ChatFlags) override
@@ -95,7 +112,7 @@ public:
 		SelectedFriend = InFriend;
 		if (SelectedFriend->UserID.IsValid())
 		{
-			SelectedFriend->ViewModel = FriendsAndChatManager.Pin()->GetFriendViewModel(SelectedFriend->UserID, SelectedFriend->DisplayName);
+			SelectedFriend->ViewModel = GetFriendViewModel(SelectedFriend->UserID, SelectedFriend->DisplayName);
 		}
 		SelectedFriend->MessageType = EChatMessageType::Whisper;
 		bHasActionPending = false;
@@ -115,14 +132,14 @@ public:
 	virtual bool IsChatConnected() const override
 	{
 		// Are we online
-		bool bConnected = FriendsAndChatManager.Pin()->GetOnlineStatus() != EOnlinePresenceState::Offline;
+		bool bConnected = MessageService->GetOnlineStatus() != EOnlinePresenceState::Offline;
 
 		// Is our friend online
 		if (GetChatChannelType() == EChatMessageType::Whisper && SelectedFriend.IsValid())
 		{ 
 			if(SelectedFriend->ViewModel.IsValid())
 			{
-				bConnected &= SelectedFriend->ViewModel->IsOnline();
+				bConnected &= SelectedFriend->ViewModel->IsOnline() && SelectedFriend->ViewModel->GetFriendItem()->GetInviteStatus() == EInviteStatus::Accepted;
 			}
 			else
 			{
@@ -134,7 +151,7 @@ public:
 
 	virtual FText GetChatDisconnectText() const override
 	{
-		if (FriendsAndChatManager.Pin()->GetOnlineStatus() == EOnlinePresenceState::Offline)
+		if (MessageService->GetOnlineStatus() == EOnlinePresenceState::Offline)
 		{
 			return NSLOCTEXT("ChatViewModel", "LostConnection", "Unable to chat while offline.");
 		}
@@ -171,7 +188,7 @@ public:
 						{
 							if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 							{
-								if (MessageManager.Pin()->SendPrivateMessage(SelectedFriend->UserID, PlainText))
+								if (MessageService->SendPrivateMessage(SelectedFriend->ViewModel->GetFriendItem(), PlainText))
 								{
 									bSuccess = true;
 								}
@@ -180,22 +197,21 @@ public:
 						break;
 						case EChatMessageType::Party:
 						{
-							TSharedPtr<const FOnlinePartyId> PartyRoomId = FriendsAndChatManager.Pin()->GetPartyChatRoomId();
-							if (FriendsAndChatManager.Pin()->IsInActiveParty()
-								&& PartyRoomId.IsValid())
+							TSharedPtr<const FOnlinePartyId> PartyRoomId = GamePartyService->GetPartyChatRoomId();
+							if (GamePartyService->IsInActiveParty() && PartyRoomId.IsValid())
 							{
 								//@todo will need to support multiple party channels eventually, hardcoded to first party for now
-								bSuccess = MessageManager.Pin()->SendRoomMessage((*PartyRoomId).ToString(), NewMessage.ToString());
+								bSuccess = MessageService->SendRoomMessage((*PartyRoomId).ToString(), NewMessage.ToString());
 
-								FriendsAndChatManager.Pin()->GetAnalytics()->RecordChannelChat(TEXT("Party"));
+								MessageService->GetAnalytics()->RecordChannelChat(TEXT("Party"));
 							}
 						}
 						break;
 						case EChatMessageType::Global:
 						{
 								//@todo samz - send message to specific room (empty room name will send to all rooms)
-								bSuccess = MessageManager.Pin()->SendRoomMessage(FString(), PlainText.ToString());
-								FriendsAndChatManager.Pin()->GetAnalytics()->RecordChannelChat(TEXT("Global"));
+								bSuccess = MessageService->SendRoomMessage(FString(), PlainText.ToString());
+								MessageService->GetAnalytics()->RecordChannelChat(TEXT("Global"));
 						}
 					}
 				}
@@ -304,7 +320,7 @@ protected:
 	 */
 	void RefreshMessages() override
 	{
-		const TArray<TSharedRef<FFriendChatMessage>>& Messages = MessageManager.Pin()->GetMessages();
+		const TArray<TSharedRef<FFriendChatMessage>>& Messages = MessageService->GetMessages();
 		FilteredMessages.Empty();
 
 		bool AddedItem = false;
@@ -343,7 +359,7 @@ private:
 	 * Deal with new message arriving
 	 * @param NewMessage Message
 	 */
-	void HandleMessageReceived(const TSharedRef<FFriendChatMessage> NewMessage)
+	void HandleMessageAdded(const TSharedRef<FFriendChatMessage> NewMessage)
 	{
 		if (FilterMessage(NewMessage))
 		{
@@ -395,12 +411,12 @@ private:
 		{
 			if(SelectedFriend->UserID.IsValid())
 			{
-				SelectedFriend->ViewModel = FriendsAndChatManager.Pin()->GetFriendViewModel(SelectedFriend->UserID, SelectedFriend->DisplayName);
+				SelectedFriend->ViewModel = GetFriendViewModel(SelectedFriend->UserID, SelectedFriend->DisplayName);
 				bHasActionPending = false;
 			}
 			else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->GetSenderID().IsValid())
 			{
-				SelectedFriend->ViewModel = FriendsAndChatManager.Pin()->GetFriendViewModel(SelectedFriend->SelectedMessage->GetSenderID(), SelectedFriend->SelectedMessage->GetSenderName());
+				SelectedFriend->ViewModel = GetFriendViewModel(SelectedFriend->SelectedMessage->GetSenderID(), SelectedFriend->SelectedMessage->GetSenderName());
 				bHasActionPending = false;
 			}
 		}
@@ -452,11 +468,6 @@ public:
 			return ChatDisplayService->GetChatListVisibility();
 		}
 		return EVisibility::Visible;
-	}
-
-	virtual void ToggleChatTipVisibility() override
-	{
-		MarkupService->ToggleDisplayChatTips();
 	}
 
 	virtual void ValidateChatInput(const FText Message, const FText PlainText)
@@ -626,18 +637,23 @@ private:
 
 protected:
 
-	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& InMessageManager,
+	FChatViewModelImpl(
+		const TSharedRef<IFriendViewModelFactory>& InFriendViewModelFactory,
+		const TSharedRef<FMessageService>& InMessageService,
 		const TSharedRef<FFriendsNavigationService>& InNavigationService,
 		const TSharedRef<FFriendsChatMarkupService>& InMarkupService,
 		const TSharedRef<IChatDisplayService>& InChatDisplayService,
-		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager)
+		const TSharedRef<FFriendsService>& InFriendsService,
+		const TSharedRef<FGameAndPartyService>& InGamePartyService)
 		: ChatChannelFlags(0)
 		, OutgoingMessageChannel(EChatMessageType::Custom)
-		, MessageManager(InMessageManager)
+		, FriendViewModelFactory(InFriendViewModelFactory)
+		, MessageService(InMessageService)
 		, NavigationService(InNavigationService)
 		, MarkupService(InMarkupService)
 		, ChatDisplayService(InChatDisplayService)
-		, FriendsAndChatManager(InFriendsAndChatManager)
+		, FriendsService(InFriendsService)
+		, GamePartyService(InGamePartyService)
 		, bIsActive(false)
 		, bInGame(true)
 		, bHasActionPending(false)
@@ -652,13 +668,13 @@ protected:
 
 	void Initialize(bool bBindNavService)
 	{
-		FriendsAndChatManager.Pin()->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
+		FriendsService->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
 		if (bBindNavService)
 		{
 			NavigationService->OnChatViewChanged().AddSP(this, &FChatViewModelImpl::HandleViewChangedEvent);
 			NavigationService->OnChatFriendSelected().AddSP(this, &FChatViewModelImpl::HandleChatFriendSelected);
 		}
-		MessageManager.Pin()->OnChatMessageRecieved().AddSP(this, &FChatViewModelImpl::HandleMessageReceived);
+		MessageService->OnChatMessageAdded().AddSP(this, &FChatViewModelImpl::HandleMessageAdded);
 		ChatDisplayService->OnChatListSetFocus().AddSP(this, &FChatViewModelImpl::HandleSetFocus);
 		MarkupService->OnValidateInputReady().AddSP(this, &FChatViewModelImpl::HandleChatInputUpdated);
 		RefreshMessages();
@@ -672,11 +688,13 @@ private:
 	// The Current outgoing channel we are sending messages on
 	EChatMessageType::Type OutgoingMessageChannel;
 
-	TWeakPtr<FFriendsMessageManager> MessageManager;
+	TSharedRef<IFriendViewModelFactory> FriendViewModelFactory;
+	TSharedRef<FMessageService> MessageService;
 	TSharedRef<FFriendsNavigationService> NavigationService;
 	TSharedRef<FFriendsChatMarkupService> MarkupService;
-	TSharedRef<IChatDisplayService> ChatDisplayService;
-	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<IChatDisplayService> ChatDisplayService;	
+	TSharedRef<FFriendsService> FriendsService;
+	TSharedRef<FGameAndPartyService> GamePartyService;
 	TSharedPtr<IChatSettingsService> ChatSettingsService;
 
 	bool bIsActive;
@@ -718,12 +736,15 @@ class FWindowedChatViewModelImpl : public FChatViewModelImpl
 {
 private:
 
-	FWindowedChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager,
+	FWindowedChatViewModelImpl(
+			const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory, 
+			const TSharedRef<FMessageService>& MessageService,
 			const TSharedRef<FFriendsNavigationService>& NavigationService,
 			const TSharedRef<FFriendsChatMarkupService>& MarkupService,
 			const TSharedRef<IChatDisplayService>& ChatDisplayService,
-			const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
-		: FChatViewModelImpl(MessageManager, NavigationService, MarkupService, ChatDisplayService, FriendsAndChatManager)
+			const TSharedRef<FFriendsService>& FriendsService,
+			const TSharedRef<FGameAndPartyService>& GamePartyService)
+		: FChatViewModelImpl(FriendViewModelFactory, MessageService, NavigationService, MarkupService, ChatDisplayService, FriendsService, GamePartyService)
 	{
 	}
 
@@ -777,20 +798,22 @@ private:
 
 // Factory
 TSharedRef< FChatViewModel > FChatViewModelFactory::Create(
-	const TSharedRef<FFriendsMessageManager>& MessageManager,
+	const TSharedRef<IFriendViewModelFactory>& FriendViewModelFactory,
+	const TSharedRef<FMessageService>& MessageService,
 	const TSharedRef<FFriendsNavigationService>& NavigationService,
 	const TSharedRef<FFriendsChatMarkupService>& MarkupService,
 	const TSharedRef<IChatDisplayService>& ChatDisplayService,
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager,
+	const TSharedRef<FFriendsService>& FriendsService,
+	const TSharedRef<FGameAndPartyService>& GamePartyService,
 	EChatViewModelType::Type ChatType)
 {
 	if (ChatType == EChatViewModelType::Windowed)
 	{
-		TSharedRef< FWindowedChatViewModelImpl > ViewModel(new FWindowedChatViewModelImpl(MessageManager, NavigationService, MarkupService, ChatDisplayService, FriendsAndChatManager));
+		TSharedRef< FWindowedChatViewModelImpl > ViewModel(new FWindowedChatViewModelImpl(FriendViewModelFactory, MessageService, NavigationService, MarkupService, ChatDisplayService, FriendsService, GamePartyService));
 		ViewModel->Initialize(false);
 		return ViewModel;
 	}
-	TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(MessageManager, NavigationService, MarkupService, ChatDisplayService, FriendsAndChatManager));
+	TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(FriendViewModelFactory, MessageService, NavigationService, MarkupService, ChatDisplayService, FriendsService, GamePartyService));
 	ViewModel->Initialize(true);
 	return ViewModel;
 }

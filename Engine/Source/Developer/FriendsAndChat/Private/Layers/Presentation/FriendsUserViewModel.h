@@ -17,5 +17,4 @@ public:
 *
 * @return the newly created FriendsUserViewModel implementation.
 */
-FACTORY(TSharedRef< FFriendsUserViewModel >, FFriendsUserViewModel,
-	const TSharedRef<class FFriendsAndChatManager>& FFriendsAndChatManager);
+FACTORY(TSharedRef< FFriendsUserViewModel >, FFriendsUserViewModel, const TSharedRef<class FFriendsService>& FriendsService);
