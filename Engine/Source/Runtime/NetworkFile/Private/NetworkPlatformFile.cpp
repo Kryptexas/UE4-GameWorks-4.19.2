@@ -456,6 +456,14 @@ bool FNetworkPlatformFile::DeleteDirectory(const TCHAR* Directory)
 	return InnerPlatformFile->DeleteDirectory(Directory);
 }
 
+FFileStatData FNetworkPlatformFile::GetStatData(const TCHAR* FilenameOrDirectory)
+{
+//	FScopeLock ScopeLock(&SynchronizationObject);
+
+	// perform a local operation
+	return InnerPlatformFile->GetStatData(FilenameOrDirectory);
+}
+
 bool FNetworkPlatformFile::IterateDirectory(const TCHAR* InDirectory, IPlatformFile::FDirectoryVisitor& Visitor)
 {
 //	FScopeLock ScopeLock(&SynchronizationObject);
@@ -525,6 +533,102 @@ bool FNetworkPlatformFile::IterateDirectoryRecursively(const TCHAR* InDirectory,
 
 				// visit!
 				RetVal = Visitor.Visit(*It.Key(), bIsDirectory);
+			}
+		}
+	}
+
+	return RetVal;
+}
+
+bool FNetworkPlatformFile::IterateDirectoryStat(const TCHAR* InDirectory, IPlatformFile::FDirectoryStatVisitor& Visitor)
+{
+//	FScopeLock ScopeLock(&SynchronizationObject);
+
+	// for .dll, etc searches that don't specify a path, we need to strip off the path
+	// before we send it to the visitor
+	bool bHadNoPath = InDirectory[0] == 0;
+
+	// local files go right to the source
+	FString RelativeDirectory = InDirectory;
+	MakeStandardNetworkFilename(RelativeDirectory);
+	if (IsInLocalDirectory(RelativeDirectory))
+	{
+		return InnerPlatformFile->IterateDirectoryStat(InDirectory, Visitor);
+	}
+
+	// we loop until this is false
+	bool RetVal = true;
+
+	FServerTOC::FDirectory* ServerDirectory = ServerFiles.FindDirectory(RelativeDirectory);
+	if (ServerDirectory != NULL)
+	{
+		// loop over the server files and look if they are in this exact directory
+		for (FServerTOC::FDirectory::TIterator It(*ServerDirectory); It && RetVal == true; ++It)
+		{
+			if (FPaths::GetPath(It.Key()) == RelativeDirectory)
+			{
+				// timestamps of 0 mean directories
+				bool bIsDirectory = It.Value() == 0;
+			
+				// todo: this data is just wrong for most things, but can we afford to get the files from the server to get the correct info? Could the server provide this instead?
+				const FFileStatData StatData(
+					FDateTime::MinValue(), 
+					FDateTime::MinValue(), 
+					(bIsDirectory) ? FDateTime::MinValue() : It.Value(),
+					-1,		// FileSize
+					bIsDirectory, 
+					true	// IsReadOnly
+					);
+
+				// visit (stripping off the path if needed)
+				RetVal = Visitor.Visit(bHadNoPath ? *FPaths::GetCleanFilename(It.Key()) : *It.Key(), StatData);
+			}
+		}
+	}
+
+	return RetVal;
+}
+
+bool FNetworkPlatformFile::IterateDirectoryStatRecursively(const TCHAR* InDirectory, IPlatformFile::FDirectoryStatVisitor& Visitor)
+{
+//	FScopeLock ScopeLock(&SynchronizationObject);
+
+	// local files go right to the source
+	FString RelativeDirectory = InDirectory;
+	MakeStandardNetworkFilename(RelativeDirectory);
+
+	if (IsInLocalDirectory(RelativeDirectory))
+	{
+		return InnerPlatformFile->IterateDirectoryStatRecursively(InDirectory, Visitor);
+	}
+
+	// we loop until this is false
+	bool RetVal = true;
+
+	for (TMap<FString, FServerTOC::FDirectory*>::TIterator DirIt(ServerFiles.Directories); DirIt && RetVal == true; ++DirIt)
+	{
+		if (DirIt.Key().StartsWith(RelativeDirectory))
+		{
+			FServerTOC::FDirectory& ServerDirectory = *DirIt.Value();
+		
+			// loop over the server files and look if they are in this exact directory
+			for (FServerTOC::FDirectory::TIterator It(ServerDirectory); It && RetVal == true; ++It)
+			{
+				// timestamps of 0 mean directories
+				bool bIsDirectory = It.Value() == 0;
+
+				// todo: this data is just wrong for most things, but can we afford to get the files from the server to get the correct info? Could the server provide this instead?
+				const FFileStatData StatData(
+					FDateTime::MinValue(), 
+					FDateTime::MinValue(), 
+					(bIsDirectory) ? FDateTime::MinValue() : It.Value(),
+					0,		// FileSize
+					bIsDirectory, 
+					true	// IsReadOnly
+					);
+
+				// visit!
+				RetVal = Visitor.Visit(*It.Key(), StatData);
 			}
 		}
 	}
@@ -607,12 +711,12 @@ void FNetworkPlatformFile::GetFileInfo(const TCHAR* Filename, FFileInfo& Info)
 		EnsureFileIsLocal(RelativeFilename);
 	}
 
-	// @todo: This is pretty inefficient. If GetFileInfo was a first class function, this could be avoided
-	Info.FileExists = InnerPlatformFile->FileExists(Filename);
-	Info.ReadOnly = InnerPlatformFile->IsReadOnly(Filename);
-	Info.Size = InnerPlatformFile->FileSize(Filename);
-	Info.TimeStamp = InnerPlatformFile->GetTimeStamp(Filename);
-	Info.AccessTimeStamp = InnerPlatformFile->GetAccessTimeStamp(Filename);
+	const FFileStatData StatData = InnerPlatformFile->GetStatData(Filename);
+	Info.FileExists = StatData.bIsValid && !StatData.bIsDirectory;
+	Info.ReadOnly = StatData.bIsReadOnly;
+	Info.Size = StatData.FileSize;
+	Info.TimeStamp = StatData.ModificationTime;
+	Info.AccessTimeStamp = StatData.AccessTime;
 }
 
 void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& FilenameToConvert)
