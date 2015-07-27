@@ -526,7 +526,7 @@ FAnimatedRange FSequencer::GetViewRange() const
 
 FAnimatedRange FSequencer::GetClampRange() const
 {
-	return TRange<float>(GetFocusedMovieSceneSequence()->GetMovieScene()->GetTimeRange() );
+	return TRange<float>(GetFocusedMovieSceneSequence()->GetMovieScene()->StartTime, GetFocusedMovieSceneSequence()->GetMovieScene()->EndTime);
 }
 
 bool FSequencer::GetAutoKeyEnabled() const 
@@ -923,25 +923,53 @@ void FSequencer::UpdateTimeBoundsToFocusedMovieScene()
 	float InTime = FocusedMovieScene->InTime;
 	if (InTime >= FLT_MAX)
 	{
-		InTime = SequencerHelpers::FrameToTime(InFrame, 1.0f/Settings->GetTimeSnapInterval());
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval()))
+		{
+			InTime = SequencerHelpers::FrameToTime(InFrame, 1.0f/Settings->GetTimeSnapInterval());
+		}
+		else
+		{
+			InTime = 0.0f;
+		}
 	}
 
 	float OutTime = FocusedMovieScene->OutTime;
 	if (OutTime <= -FLT_MAX)
 	{
-		OutTime = SequencerHelpers::FrameToTime(OutFrame, 1.0f/Settings->GetTimeSnapInterval());
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval()))
+		{
+			OutTime = SequencerHelpers::FrameToTime(OutFrame, 1.0f/Settings->GetTimeSnapInterval());
+		}
+		else
+		{
+			OutTime = 5.0f;
+		}
 	}
 
 	float StartTime = FocusedMovieScene->StartTime;
 	if (StartTime >= FLT_MAX)
 	{
-		StartTime = SequencerHelpers::FrameToTime(InFrame, 1.0f/Settings->GetTimeSnapInterval());
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval()))
+		{
+			StartTime = SequencerHelpers::FrameToTime(InFrame, 1.0f/Settings->GetTimeSnapInterval());
+		}
+		else
+		{
+			StartTime = 0.0f;
+		}
 	}
 
 	float EndTime = FocusedMovieScene->EndTime;
 	if (EndTime <= -FLT_MAX)
 	{
-		EndTime = SequencerHelpers::FrameToTime(OutFrame, 1.0f/Settings->GetTimeSnapInterval());
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval()))
+		{
+			EndTime = SequencerHelpers::FrameToTime(OutFrame, 1.0f/Settings->GetTimeSnapInterval());
+		}
+		else
+		{
+			EndTime = 5.0f;
+		}
 	}
 
 	// Set the clamp range to the movie scene's clamp range.

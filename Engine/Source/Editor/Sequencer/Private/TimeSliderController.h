@@ -25,7 +25,6 @@ public:
 	virtual FAnimatedRange GetViewRange() const override { return TimeSliderArgs.ViewRange.Get(); }
 
 	/** Get the current clamp range for this controller */
-	//virtual FAnimatedRange GetClampRange() const override { return TRange<float>(TimeSliderArgs.ClampMin.Get().GetValue(), TimeSliderArgs.ClampMax.Get().GetValue()); }
 	virtual FAnimatedRange GetClampRange() const override { return TimeSliderArgs.ClampRange.Get(); }
 
 	/** Convert time to frame */

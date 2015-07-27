@@ -188,11 +188,6 @@ void STimeRange::OnStartTimeCommitted(const FText& NewText, ETextCommit::Type In
 			NewStart = FCString::Atof(*NewTextStr);
 		}
 
-		if (NewStart > TimeSliderController.Get()->GetViewRange().GetLowerBoundValue())
-		{
-			TimeSliderController.Get()->SetViewRange(NewStart, TimeSliderController.Get()->GetViewRange().GetUpperBoundValue(), EViewRangeInterpolation::Immediate);
-		}
-
 		TimeSliderController.Get()->SetClampRange(NewStart, TimeSliderController.Get()->GetClampRange().GetUpperBoundValue());
 	}
 }
@@ -214,11 +209,6 @@ void STimeRange::OnEndTimeCommitted(const FText& NewText, ETextCommit::Type InTe
 		else
 		{
 			NewEnd = FCString::Atof(*NewTextStr);
-		}
-
-		if (NewEnd < TimeSliderController.Get()->GetViewRange().GetUpperBoundValue())
-		{
-			TimeSliderController.Get()->SetViewRange(TimeSliderController.Get()->GetViewRange().GetLowerBoundValue(), NewEnd, EViewRangeInterpolation::Immediate);
 		}
 
 		TimeSliderController.Get()->SetClampRange(TimeSliderController.Get()->GetClampRange().GetLowerBoundValue(), NewEnd);

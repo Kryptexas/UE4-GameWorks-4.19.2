@@ -15,7 +15,7 @@ namespace TimeRangeSliderConstants
 void STimeRangeSlider::Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController)
 {
 	TimeSliderController = InTimeSliderController;
-	LastViewRange.Empty();
+	LastViewRange = TimeSliderController.Get()->GetViewRange();
 
 	ResetState();
 	ResetHoveredState();
