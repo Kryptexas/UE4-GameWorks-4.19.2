@@ -31,5 +31,5 @@ private:
 	virtual FChildren* GetChildren() override;
 
 	FVector2D LocalCursorPosition;
-	FSimpleSlot ChildSlot;
+	TWeakChild<SWidget> ChildSlot;
 };
