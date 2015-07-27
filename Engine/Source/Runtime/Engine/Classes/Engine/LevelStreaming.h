@@ -342,7 +342,6 @@ private:
 	class ULevel* PendingUnloadLevel;
 
 	/** The cached package name of the world asset that is loaded by the levelstreaming */
-	UPROPERTY(Transient)
 	FName CachedWorldAssetPackageFName;
 	
 	/** Friend classes to allow access to SetLoadedLevel */
