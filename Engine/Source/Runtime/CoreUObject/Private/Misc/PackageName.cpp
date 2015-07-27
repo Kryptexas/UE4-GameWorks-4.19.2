@@ -853,6 +853,55 @@ bool FPackageName::FindPackagesInDirectory( TArray<FString>& OutPackages, const 
 	return OutPackages.Num() > PreviousPackagesCount;
 }
 
+void FPackageName::IteratePackagesInDirectory(const FString& RootDir, const FPackageNameVisitor& Callback)
+{
+	class FPackageVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+	public:
+		const FPackageNameVisitor& Callback;
+		explicit FPackageVisitor(const FPackageNameVisitor& InCallback)
+			: Callback(InCallback)
+		{
+		}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+		{
+			bool Result = true;
+			if (!bIsDirectory && IsPackageFilename(FilenameOrDirectory))
+			{
+				Result = Callback(FilenameOrDirectory);
+			}
+			return Result;
+		}
+	};
+
+	FPackageVisitor PackageVisitor(Callback);
+	IFileManager::Get().IterateDirectoryRecursively(*RootDir, PackageVisitor);
+}
+
+void FPackageName::IteratePackagesInDirectory(const FString& RootDir, const FPackageNameStatVisitor& Callback)
+{
+	class FPackageStatVisitor : public IPlatformFile::FDirectoryStatVisitor
+	{
+	public:
+		const FPackageNameStatVisitor& Callback;
+		explicit FPackageStatVisitor(const FPackageNameStatVisitor& InCallback)
+			: Callback(InCallback)
+		{
+		}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, const FFileStatData& StatData) override
+		{
+			bool Result = true;
+			if (!StatData.bIsDirectory && IsPackageFilename(FilenameOrDirectory))
+			{
+				Result = Callback(FilenameOrDirectory, StatData);
+			}
+			return Result;
+		}
+	};
+
+	FPackageStatVisitor PackageVisitor(Callback);
+	IFileManager::Get().IterateDirectoryStatRecursively(*RootDir, PackageVisitor);
+}
 
 void FPackageName::QueryRootContentPaths( TArray<FString>& OutRootContentPaths )
 {

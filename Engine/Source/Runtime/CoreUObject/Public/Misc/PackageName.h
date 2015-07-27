@@ -273,6 +273,17 @@ public:
 	 */
 	static bool FindPackagesInDirectory(TArray<FString>& OutPackages, const FString& RootDir);
 
+	/**
+	 * This will recurse over a directory structure looking for packages.
+	 * 
+	 * @param	RootDirectory		The root of the directory structure to recurse through
+	 * @param	Visitor				Visitor to call for each package file found (takes the package filename, and optionally the stat data for the file - returns true to continue iterating)
+	 */
+	typedef TFunctionRef<bool(const TCHAR*)> FPackageNameVisitor;
+	typedef TFunctionRef<bool(const TCHAR*, const FFileStatData&)> FPackageNameStatVisitor;
+	static void IteratePackagesInDirectory(const FString& RootDir, const FPackageNameVisitor& Visitor);
+	static void IteratePackagesInDirectory(const FString& RootDir, const FPackageNameStatVisitor& Visitor);
+
 	/** Event that is triggered when a new content path is mounted */
 	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnContentPathMountedEvent, const FString& /* Asset path */, const FString& /* ContentPath */ );
 	static FOnContentPathMountedEvent& OnContentPathMounted()
