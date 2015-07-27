@@ -30,7 +30,7 @@ void NUTUtil::GetUnitTestClassDefList(TArray<UUnitTest*>& OutUnitTestClassDefaul
 
 void NUTUtil::SortUnitTestClassDefList(TArray<UUnitTest*>& InUnitTestClassDefaults)
 {
-	// @todo JohnB: Convert these inline sort functions to lambda's now
+	// @todo #JohnBRefactorLambda: Convert these inline sort functions to lambda's now
 	struct FUnitTestDateSort
 	{
 		FORCEINLINE bool operator()(const UUnitTest& A, const UUnitTest& B) const
@@ -69,7 +69,6 @@ void NUTUtil::SortUnitTestClassDefList(TArray<UUnitTest*>& InUnitTestClassDefaul
 
 
 	// First reorder the unit test classes by date, then grab the unit test types by date, then group them by type/date
-	// @todo JohnB: You can tweak the order here manually, e.g. by manually adding certain categories as hardcoded
 	TArray<FString> ListTypes;
 
 	InUnitTestClassDefaults.Sort(FUnitTestDateSort());

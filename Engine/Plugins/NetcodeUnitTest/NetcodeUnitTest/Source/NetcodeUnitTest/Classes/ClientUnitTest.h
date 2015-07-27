@@ -364,9 +364,11 @@ public:
 	FOnSuspendStateChange OnServerSuspendState;
 
 
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 private:
 	/** Handle to the registered InternalNotifyNetworkFailure delegate */
 	FDelegateHandle InternalNotifyNetworkFailureDelegateHandle;
+#endif
 
 
 	/**
@@ -604,6 +606,11 @@ protected:
 	virtual bool ValidateUnitTestSettings(bool bCDOCheck=false) override;
 
 	virtual void ResetTimeout(FString ResetReason, bool bResetConnTimeout=false, uint32 MinDuration=0) override;
+
+	/**
+	 * Resets the net connection timeout
+	 */
+	void ResetConnTimeout();
 
 
 	/**

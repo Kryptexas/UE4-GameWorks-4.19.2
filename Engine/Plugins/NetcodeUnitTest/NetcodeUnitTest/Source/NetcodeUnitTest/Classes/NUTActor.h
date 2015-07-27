@@ -14,7 +14,7 @@ class ANUTActor;
 /**
  * Enum for defining custom NetcodeUnitTest control channel commands (sent through NMT_NUTControl)
  */
-// @todo JohnB: Fully document individually
+// @todo #JohnBDoc: Fully document individually
 namespace ENUTControlCommand
 {
 	enum Type
@@ -162,7 +162,7 @@ public:
 	/**
 	 * Received by all clients, emits a ping to log
 	 */
-	// @todo JohnB: When the VM reflection helper is finished, remove NETCODEUNITTEST_API from this, and use reflection instead
+	// @todo #JohnBRefactor: When the VM reflection helper is finished, remove NETCODEUNITTEST_API from this, and use reflection instead
 	UFUNCTION(reliable, NetMulticast)
 	NETCODEUNITTEST_API void NetMulticastPing();
 

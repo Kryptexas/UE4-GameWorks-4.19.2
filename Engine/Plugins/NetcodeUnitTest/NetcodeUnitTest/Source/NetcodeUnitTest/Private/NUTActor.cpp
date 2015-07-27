@@ -2,7 +2,7 @@
 
 #include "NetcodeUnitTestPCH.h"
 
-// @todo JohnB: Need to tidy up and fully document this class; not all of the code below is clear
+// @todo #JohnBDoc: Need to tidy up and fully document this class; not all of the code below is clear
 
 #include "NUTActor.h"
 #include "NUTUtilNet.h"
@@ -338,7 +338,7 @@ void ANUTActor::Tick(float DeltaSeconds)
 
 			if (GameState != NULL)
 			{
-				// @todo JohnB: You want this to only happen if no remote players are present (perhaps give all players control instead,
+				// @todo #JohnBReview: You want this to only happen if no remote players are present (perhaps give all players control instead,
 				//				if this becomes a problem - requires setting things up differently though)
 				if (CurNetMode == NM_ListenServer || CurNetMode == NM_Standalone)
 				{

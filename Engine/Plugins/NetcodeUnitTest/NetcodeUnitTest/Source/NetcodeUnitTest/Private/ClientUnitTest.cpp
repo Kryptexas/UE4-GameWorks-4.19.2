@@ -25,6 +25,11 @@
 #include "Regex.h"
 
 
+// @todo #JohnBMultiFakeClient: Eventually, move >all< of the minimal/headless client handling code, into a new/separate class,
+//				so that a single unit test can have multiple minimal clients on a server.
+//				This would be useful for licensees, for doing load testing:
+//				https://udn.unrealengine.com/questions/247014/clientserver-automation.html
+
 /**
  * UClientUnitTest
  */
@@ -498,7 +503,7 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 		}
 	}
 
-	// @todo JohnB: Consider also, adding a way to communicate with launched clients,
+	// @todo #JohnBLowPri: Consider also, adding a way to communicate with launched clients,
 	//				to reset their connection timeout upon server progress, if they fully startup before the server does
 }
 
@@ -586,7 +591,7 @@ void UClientUnitTest::NotifyProcessSuspendState(TWeakPtr<FUnitTestProcess> InPro
 		OnServerSuspendState.ExecuteIfBound(InSuspendState);
 	}
 
-	// @todo JohnB: Want to support client process debugging in future?
+	// @todo #JohnBLowPri: Want to support client process debugging in future?
 }
 
 
@@ -610,8 +615,8 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 
 		if (!BadCmds.Contains(Command))
 		{
-			// @todo JohnB: Should this mark the log origin, as from the unit test?
-			// @todo JohnB: In general, I'm not sure how I handle the log-origin of UI-triggered events;
+			// @todo #JohnB: Should this mark the log origin, as from the unit test?
+			// @todo #JohnB: In general, I'm not sure how I handle the log-origin of UI-triggered events;
 			//				they maybe should be captured/categorized better
 			UNIT_LOG_BEGIN(this, ELogType::OriginConsole);
 			bHandled = GEngine->Exec(TargetWorld, *Command, *GLog);
@@ -625,7 +630,7 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 	}
 	else if (CommandContext == TEXT("Server"))
 	{
-		// @todo JohnB: Perhaps add extra checks here, to be sure we're ready to send console commands?
+		// @todo #JohnBBug: Perhaps add extra checks here, to be sure we're ready to send console commands?
 		//
 		//				UPDATE: Yes, this is a good idea, because if the client hasn't gotten to the correct login stage
 		//				(NMT_Join or such, need to check when server rejects non-login control commands),
@@ -658,7 +663,7 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 	}
 	else if (CommandContext == TEXT("Client"))
 	{
-		// @todo JohnB
+		// @todo #JohnBFeature
 
 		UNIT_LOG(ELogType::OriginConsole, TEXT("Client console commands not yet implemented"));
 	}
@@ -702,7 +707,14 @@ bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, 
 	{
 		if (TargetFunc->ParmsSize == ParmsSize + ParmsSizeCorrection)
 		{
-			Target->ProcessEvent(TargetFunc, Parms);
+			if (UnitConn->IsNetReady(false))
+			{
+				Target->ProcessEvent(TargetFunc, Parms);
+			}
+			else
+			{
+				UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', network saturated."), FunctionName);
+			}
 		}
 		else
 		{
@@ -765,7 +777,7 @@ bool UClientUnitTest::PostSendRPC(FString RPCName, AActor* Target/*=NULL*/)
 }
 
 
-// @todo JohnB: This should be changed to work as compile-time conditionals, if possible
+// @todo #JohnBRefactor: This should be changed to work as compile-time conditionals, if possible
 bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 {
 	bool bSuccess = Super::ValidateUnitTestSettings();
@@ -973,9 +985,17 @@ void UClientUnitTest::ResetTimeout(FString ResetReason, bool bResetConnTimeout/*
 
 	Super::ResetTimeout(ResetReason, bResetConnTimeout, MinDuration);
 
-	if (bResetConnTimeout && UnitConn != NULL && UnitConn->State != USOCK_Closed && UnitConn->Driver != NULL)
+	if (bResetConnTimeout)
 	{
-		// @todo JohnB: This is a slightly hacky way of setting the timeout to a large value, which will be overridden by newly
+		ResetConnTimeout();
+	}
+}
+
+void UClientUnitTest::ResetConnTimeout()
+{
+	if (UnitConn != NULL && UnitConn->State != USOCK_Closed && UnitConn->Driver != NULL)
+	{
+		// @todo #JohnBHack: This is a slightly hacky way of setting the timeout to a large value, which will be overridden by newly
 		//				received packets, making it unsuitable for most situations (except crashes - but that could still be subject
 		//				to a race condition)
 		UnitConn->LastReceiveTime = UnitConn->Driver->Time + (float)(TimeoutExpire - FPlatformTime::Seconds());
@@ -989,7 +1009,7 @@ bool UClientUnitTest::ExecuteUnitTest()
 
 	bool bValidSettings = ValidateUnitTestSettings();
 
-	// @todo JohnB: Fix support for Steam eventually
+	// @todo #JohnBLowPri: Fix support for Steam eventually
 	bool bSteamAvailable = NUTNet::IsSteamNetDriverAvailable();
 
 	if (bValidSettings && !bSteamAvailable)
@@ -1093,8 +1113,12 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 
 					if (GEngine != NULL)
 					{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 						InternalNotifyNetworkFailureDelegateHandle = GEngine->OnNetworkFailure().AddUObject(this,
 																		&UClientUnitTest::InternalNotifyNetworkFailure);
+#else
+						GEngine->OnNetworkFailure().AddUObject(this, &UClientUnitTest::InternalNotifyNetworkFailure);
+#endif
 					}
 
 
@@ -1189,12 +1213,12 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 	return bSuccess;
 }
 
-// @todo JohnB: Reconsider naming of this function, if you modify the other functions using 'fake'
+// @todo #JohnBRefactor: Reconsider naming of this function, if you modify the other functions using 'fake'
 void UClientUnitTest::CleanupFakeClient()
 {
 	if (UnitWorld != NULL && UnitNetDriver != NULL)
 	{
-		// @todo JohnB: As with the 'CreateFakePlayer' function, naming it 'fake' may not be optimal
+		// @todo #JohnBRefactor: As with the 'CreateFakePlayer' function, naming it 'fake' may not be optimal
 		NUTNet::DisconnectFakePlayer(UnitWorld, UnitNetDriver);
 
 		UnitNetDriver->Notify = NULL;
@@ -1213,7 +1237,11 @@ void UClientUnitTest::CleanupFakeClient()
 
 	if (GEngine != NULL)
 	{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 		GEngine->OnNetworkFailure().Remove(InternalNotifyNetworkFailureDelegateHandle);
+#else
+		GEngine->OnNetworkFailure().RemoveUObject(this, &UClientUnitTest::InternalNotifyNetworkFailure);
+#endif
 	}
 
 	// Immediately cleanup (or rather, start of next tick, as that's earliest possible time) after sending the RPC
@@ -1306,7 +1334,7 @@ TWeakPtr<FUnitTestProcess> UClientUnitTest::StartUnitTestClient(FString ConnectI
 	{
 		auto CurHandle = ReturnVal.Pin();
 
-		// @todo JohnB: If you add support for multiple clients, make the log prefix numbered, also try to differentiate colours
+		// @todo #JohnBMultiClient: If you add support for multiple clients, make the log prefix numbered, also try to differentiate colours
 		CurHandle->ProcessTag = TEXT("Client");
 		CurHandle->BaseLogType = ELogType::Client;
 		CurHandle->LogPrefix = TEXT("[CLIENT]");
@@ -1365,7 +1393,7 @@ void UClientUnitTest::ShutdownUnitTestProcess(TSharedPtr<FUnitTestProcess> InHan
 		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
 
-		// @todo JohnB: Restore 'true' here, once the issue where killing child processes sometimes kills all processes, is fixed
+		// @todo #JohnBHighPri: Restore 'true' here, once the issue where killing child processes sometimes kills all processes, is fixed
 		FPlatformProcess::TerminateProc(InHandle->ProcessHandle);//, true);
 
 #if TARGET_UE4_CL < CL_CLOSEPROC
@@ -1523,7 +1551,8 @@ void UClientUnitTest::CheckOutputForError(TSharedPtr<FUnitTestProcess> InProcess
 				InProcess->ErrorLogStage = EErrorLogStage::ELS_ErrorStart;
 
 				// Reset the timeout for both the unit test and unit test connection here, as callstack logs are prone to failure
-				ResetTimeout(TEXT("Detected crash."), true);
+				//	(do it for at least two minutes as well, as it can take a long time to get a crashlog)
+				ResetTimeout(TEXT("Detected crash."), true, 120);
 			}
 		}
 
@@ -1574,7 +1603,7 @@ void UClientUnitTest::CheckOutputForError(TSharedPtr<FUnitTestProcess> InProcess
 
 
 #if !UE_BUILD_SHIPPING
-// @todo JohnB: 'HookOrigin' is not optimal - try to at least make it a UClientUnitTest pointer
+// @todo #JohnB: 'HookOrigin' is not optimal - try to at least make it a UClientUnitTest pointer
 bool UClientUnitTest::InternalScriptProcessEvent(AActor* Actor, UFunction* Function, void* Parameters, void* HookOrigin)
 {
 	bool bBlockEvent = false;
@@ -1660,6 +1689,12 @@ void UClientUnitTest::UnitTick(float DeltaTime)
 		}
 	}
 
+	// Prevent net connection timeout in developer mode
+	if (bDeveloperMode)
+	{
+		ResetConnTimeout();
+	}
+
 
 	PollProcessOutput();
 
@@ -1711,7 +1746,7 @@ void UClientUnitTest::PollProcessOutput()
 				// Now split up the log into multiple lines
 				TArray<FString> LogLines;
 				
-				// @todo JohnB: Perhaps add support for both platforms line terminator, at some stage
+				// @todo #JohnB: Perhaps add support for both platforms line terminator, at some stage
 #if TARGET_UE4_CL < CL_STRINGPARSEARRAY
 				LogDump.ParseIntoArray(&LogLines, LINE_TERMINATOR, true);
 #else

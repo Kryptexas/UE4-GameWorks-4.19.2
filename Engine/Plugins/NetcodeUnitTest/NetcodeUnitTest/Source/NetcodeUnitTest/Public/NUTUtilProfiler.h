@@ -74,8 +74,11 @@ protected:
 	/** Whether or not profiling is active */
 	bool bActive;
 
+
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 	/** Handle to the registered OnNewFrame delegate */
 	FDelegateHandle OnNewFrameDelegateHandle;
+#endif
 };
 #endif
 

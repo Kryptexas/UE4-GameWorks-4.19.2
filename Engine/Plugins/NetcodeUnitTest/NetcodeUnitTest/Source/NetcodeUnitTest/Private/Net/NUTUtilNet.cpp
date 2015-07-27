@@ -365,7 +365,8 @@ bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString
 			FString VersionStr = GEngineVersion.ToString(EVersionComponent::Minor);
 			int32 VersionDelim = VersionStr.Find(TEXT("."));
 			int32 MajorVersion = FCString::Atoi(*VersionStr.Left(VersionDelim));
-			int32 MinorVersion = FCString::Atoi(*VersionStr.Right(VersionDelim));
+			int32 MinorVersion = FCString::Atoi(*VersionStr.Mid(VersionDelim+1));
+
 
 			bool bOldProtocol = (MajorVersion <= 4 && MinorVersion <= 7) &&
 				/** Exception for UT (treat 4.7 as having the new protocol) */

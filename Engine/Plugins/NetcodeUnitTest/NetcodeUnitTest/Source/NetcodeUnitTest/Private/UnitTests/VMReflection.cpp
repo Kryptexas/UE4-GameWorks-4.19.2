@@ -91,7 +91,7 @@ bool UVMReflection::ExecuteUnitTest()
 		TestResults.Add(TEXT("UObject Writing"), (!bError && TestObjA->AObjectRef == TargetResult));
 	}
 
-	// @todo JohnB: Add a test for UObject** casting, i.e. writable object property references, now that it is supported
+	// @todo #JohnB_VMRefl: Add a test for UObject** casting, i.e. writable object property references, now that it is supported
 
 
 

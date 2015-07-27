@@ -7,9 +7,9 @@
 class UUnitTest;
 
 
-// @todo JohnB: Convert to multicast delegate
+// @todo #JohnBRefactor: Convert to multicast delegate
 
-// @todo JohnB: Adjust all of these utility .h files, so that they implement code in .cpp, as these probably slow down compilation
+// @todo #JohnBRefactor: Adjust all of these utility .h files, so that they implement code in .cpp, as these probably slow down compilation
 
 #if !UE_BUILD_SHIPPING
 // Process even callback, which passes an extra parameter, for identifying the origin of the hook

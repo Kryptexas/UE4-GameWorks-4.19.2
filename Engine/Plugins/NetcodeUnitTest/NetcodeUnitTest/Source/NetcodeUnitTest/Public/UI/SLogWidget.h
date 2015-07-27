@@ -104,7 +104,7 @@ struct FLogTabInfo
 	TWeakPtr<SDockTab> TabWidget;
 
 
-	// @todo JohnB: Add an extended filter eventually (perhaps an FString for simple String.Contains filter?)
+	// @todo #JohnBFeatureUI: Add an extended filter eventually (perhaps an FString for simple String.Contains filter?)
 
 
 	FLogTabInfo(FString InLabel, FString InToolTip, ELogType InFilter=ELogType::All, uint8 InPriority=255, bool bInTabOpen=true)
@@ -158,7 +158,6 @@ public:
 		, OnDeveloperClicked()
 		, OnConsoleCommand()
 	{
-		// @todo JohnB: Compile a list of unit test commandline parameters somewhere (maybe in the commandlet header)
 		bAutoClose = !FParse::Param(FCommandLine::Get(), TEXT("UnitTestNoAutoClose"));
 	}
 

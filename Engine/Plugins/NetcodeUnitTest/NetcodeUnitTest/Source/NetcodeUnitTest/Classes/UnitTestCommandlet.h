@@ -26,6 +26,9 @@
  *	-UnitTestClientParms="CommandlineParameters"
  *		- Adds additional commandline parameters to unit test client instances
  *
+ *	-UnitTestClientDebug
+ *		- Launches unit test clients with a valid render interface (so you can interact with the client window), and a larger window
+ *
  *	-UnitTestCap=x
  *		- Caps the maximum number of unit tests that can run at the same time
  */

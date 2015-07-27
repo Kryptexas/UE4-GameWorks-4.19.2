@@ -97,7 +97,16 @@ FString FUnitTestEnvironment::GetDefaultClientParameters()
 	FString ReturnVal = TEXT("");
 	FString CmdLineClientParms;
 
-	ReturnVal = TEXT("-nullrhi -windowed -resx=640 -resy=480");
+	bool bDebugClient = FParse::Param(FCommandLine::Get(), TEXT("UnitTestClientDebug"));
+
+	if (!bDebugClient)
+	{
+		ReturnVal = TEXT("-nullrhi -windowed -resx=640 -resy=480");
+	}
+	else
+	{
+		ReturnVal = TEXT("-windowed -resx=1024 -resy=768");
+	}
 
 	// @todo JohnB: Add merging of LogCmds, from above function, if adding default LogCmds for any game
 

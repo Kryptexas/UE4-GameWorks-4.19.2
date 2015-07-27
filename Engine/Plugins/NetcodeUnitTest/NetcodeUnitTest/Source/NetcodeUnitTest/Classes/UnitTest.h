@@ -7,7 +7,7 @@
 #include "UnitTest.generated.h"
 
 
-// @todo JohnB: For bugtracking/changelist info, consider adding auto-launching of P4/TTP/Browser-JIRA links,
+// @todo #JohnBFeature: For bugtracking/changelist info, consider adding auto-launching of P4/TTP/Browser-JIRA links,
 //				upon double-clicking these entries in the status windows
 
 
@@ -173,7 +173,7 @@ protected:
 	bool bFirstTimeStats;
 
 
-	// @todo JohnB: Merge the two below variables
+	// @todo #JohnBRefactor: Merge the two below variables
 	/** Whether or not the unit test has completed */
 	bool bCompleted;
 

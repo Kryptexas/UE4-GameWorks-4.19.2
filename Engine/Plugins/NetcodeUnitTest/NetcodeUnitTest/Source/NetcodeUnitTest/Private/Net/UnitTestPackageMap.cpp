@@ -6,10 +6,6 @@
 #include "Net/UnitTestPackageMap.h"
 
 
-// @todo JohnB: Should probably add a CL-define which wraps this code, since not all codebases will expose PackageMapClient?
-//				(probably better to just error, and force a code change for that, in that codebase - otherwise not all unit tests work)
-
-
 /**
  * Default constructor
  */
