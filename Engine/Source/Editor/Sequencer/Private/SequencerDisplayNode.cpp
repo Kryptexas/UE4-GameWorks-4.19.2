@@ -12,7 +12,7 @@
 #include "MovieSceneTrack.h"
 #include "CommonMovieSceneTools.h"
 #include "IKeyArea.h"
-
+#include "GroupedKeyArea.h"
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
 
@@ -427,6 +427,39 @@ void FSequencerDisplayNode::PinNode()
 	bNodeIsPinned = true;
 }
 
+TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectionIndex)
+{
+	if (!KeyGroupings.IsValidIndex(InSectionIndex))
+	{
+		KeyGroupings.SetNum(InSectionIndex + 1);
+	}
+
+	if (!KeyGroupings[InSectionIndex].IsValid())
+	{
+		KeyGroupings[InSectionIndex] = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
+	}
+
+	return KeyGroupings[InSectionIndex].ToSharedRef();
+}
+
+TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSectionIndex)
+{
+	if (!KeyGroupings.IsValidIndex(InSectionIndex))
+	{
+		KeyGroupings.SetNum(InSectionIndex + 1);
+	}
+
+	if (!KeyGroupings[InSectionIndex].IsValid())
+	{
+		KeyGroupings[InSectionIndex] = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
+	}
+	else
+	{
+		*KeyGroupings[InSectionIndex] = FGroupedKeyArea(*this, InSectionIndex);
+	}
+
+	return KeyGroupings[InSectionIndex].ToSharedRef();
+}
 
 
 float FSectionKeyAreaNode::GetNodeHeight() const

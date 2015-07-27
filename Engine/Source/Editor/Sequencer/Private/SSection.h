@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "KeyAreaLayout.h"
+
 namespace SequencerSectionConstants
 {
 	/** How far the user has to drag the mouse before we consider the action dragging rather than a click */
@@ -30,25 +32,6 @@ public:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	
 private:
-	/** Information about how to draw a key area */
-	struct FKeyAreaElement
-	{
-		FKeyAreaElement( FSectionKeyAreaNode& InKeyAreaNode, float InHeightOffset )
-			: KeyAreaNode( InKeyAreaNode )
-			, HeightOffset( InHeightOffset )
-		{}
-
-		FSectionKeyAreaNode& KeyAreaNode;
-		float HeightOffset;
-	};
-
-	/**
-	 * Gets all the visible key areas in this section
-	 *
-	 * @param SectionAreaNode		The section area node containing key areas
-	 * @param OutKeyAreaElements	Populated list of key elements to draw
-	 */
-	void GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreaElements, float* HeightOffset = nullptr ) const;
 
 	/**
 	 * Computes the geometry for a key area
@@ -57,7 +40,7 @@ private:
 	 * @param SectionGeometry	The geometry of the section
 	 * @return The geometry of the key area
 	 */
-	FGeometry GetKeyAreaGeometry( const FKeyAreaElement& KeyArea, const FGeometry& SectionGeometry ) const;
+	FGeometry GetKeyAreaGeometry( const FKeyAreaLayoutElement& KeyArea, const FGeometry& SectionGeometry ) const;
 
 	/**
 	 * Determines the key that is under the mouse
@@ -155,10 +138,8 @@ private:
 	TSharedPtr<ISequencerSection> SectionInterface;
 	/** Section area where this section resides */
 	TSharedPtr<FTrackNode> ParentSectionArea;
-	/** Key areas inside this section */
-	TArray<FKeyAreaElement> KeyAreas;
-	/** Cached height of all the key areas */
-	float CachedKeyAreaHeight;
+	/** Cached layout generated each tick */
+	TOptional<FKeyAreaLayout> Layout;
 	/** Current drag operation if any */
 	TSharedPtr<class FSequencerDragOperation> DragOperation;
 	/** The currently pressed key if any */
@@ -179,6 +160,8 @@ private:
 	bool bRightEdgeHovered;
 	/** Whether or not the right edge of the section is pressed */
 	bool bRightEdgePressed;
+	/** When 0, regeneration of dynamic key layouts is enabled, when non-zero, such behaviour is disabled */
+	static FThreadSafeCounter LayoutRegenerationLock;
 	/** Cached parent geometry to pass down to any section interfaces that need it during tick */
 	FGeometry ParentGeometry;
 };

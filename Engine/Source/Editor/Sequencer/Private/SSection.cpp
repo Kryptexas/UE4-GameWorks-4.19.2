@@ -10,7 +10,7 @@
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 
-
+FThreadSafeCounter SSection::LayoutRegenerationLock;
 
 void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> SectionNode, int32 InSectionIndex )
 {
@@ -19,7 +19,7 @@ void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> Secti
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;
 	SectionInterface = SectionNode->GetSections()[InSectionIndex];
-	CachedKeyAreaHeight = 0.f;
+	Layout = FKeyAreaLayout(*SectionNode, InSectionIndex);
 
 	ChildSlot
 	[
@@ -29,70 +29,23 @@ void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> Secti
 
 FVector2D SSection::ComputeDesiredSize(float) const
 {
-	return FVector2D(100, CachedKeyAreaHeight);
+	return FVector2D(100, Layout->GetTotalHeight());
 }
 
-void SSection::GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreas, float* TotalHeight ) const
+FGeometry SSection::GetKeyAreaGeometry( const FKeyAreaLayoutElement& KeyArea, const FGeometry& SectionGeometry ) const
 {
-	*TotalHeight = 0.f;
-
-	float LastPadding = 0.f;
-
-	// First, layout the parent
-	{
-		TSharedPtr<FSequencerDisplayNode> LayoutNode = SectionAreaNode;
-
-		TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = SectionAreaNode->GetTopLevelKeyNode();
-		if( SectionKeyNode.IsValid() )
-		{
-			LayoutNode = SectionKeyNode;
-			OutKeyAreas.Add(FKeyAreaElement( *SectionKeyNode, *TotalHeight ));
-		}
-
-		LastPadding = LayoutNode->GetNodePadding().Bottom;
-		*TotalHeight += LayoutNode->GetNodeHeight() + LastPadding;
-	}
-
-	// Then any children
-	SectionAreaNode->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& Node){
-		
-		*TotalHeight += Node.GetNodePadding().Top;
-
-		if( Node.GetType() == ESequencerNode::KeyArea )
-		{
-			OutKeyAreas.Add(FKeyAreaElement( static_cast<FSectionKeyAreaNode&>(Node), *TotalHeight ));
-		}
-
-		LastPadding = Node.GetNodePadding().Bottom;
-		*TotalHeight += Node.GetNodeHeight() + LastPadding;
-		return true;
-
-	}, false);
-
-	// Remove the padding from the bottom
-	*TotalHeight -= LastPadding;
-}
-
-
-FGeometry SSection::GetKeyAreaGeometry( const struct FKeyAreaElement& KeyArea, const FGeometry& SectionGeometry ) const
-{
-	// Get the height of the key area node.  If the key area is top level then it is part of the section (and the same height ) and doesn't take up extra space
-	float KeyAreaHeight = KeyArea.KeyAreaNode.IsTopLevel() ? SectionGeometry.GetDrawSize().Y : KeyArea.KeyAreaNode.GetNodeHeight();
-
 	// Compute the geometry for the key area
-	return SectionGeometry.MakeChild( FVector2D( 0, KeyArea.HeightOffset ), FVector2D( SectionGeometry.Size.X, KeyAreaHeight ) );
+	return SectionGeometry.MakeChild( FVector2D( 0, KeyArea.GetOffset() ), FVector2D( SectionGeometry.Size.X, KeyArea.GetHeight(SectionGeometry) ) );
 }
-
 
 FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry ) const
 {
 	UMovieSceneSection& Section = *SectionInterface->GetSectionObject();
 
 	// Search every key area until we find the one under the mouse
-	for( int32 KeyAreaIndex = 0; KeyAreaIndex < KeyAreas.Num(); ++KeyAreaIndex )
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
 	{
-		const FKeyAreaElement& Element = KeyAreas[KeyAreaIndex];
-		TSharedRef<IKeyArea> KeyArea = Element.KeyAreaNode.GetKeyArea( SectionIndex ); 
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
 
 		// Compute the current key area geometry
 		FGeometry KeyAreaGeometryPadded = GetKeyAreaGeometry( Element, AllottedGeometry );
@@ -195,6 +148,8 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 
 	if( bKeysUnderMouse )
 	{
+		// Disable layout regeneration of dynamic key areas
+		LayoutRegenerationLock.Increment();
 		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection().GetSelectedKeys(), PressedKey ) );
 	}
 	else
@@ -217,7 +172,6 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 			DragOperation = MakeShareable( new FMoveSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections() ) );
 		}
 	}
-	
 }
 
 int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -262,9 +216,6 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 			);
 	}
 
-	
-
-
 	return LayerId;
 }
 
@@ -294,12 +245,10 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 	FLinearColor HoveredKeyColor = SelectedKeyColor * FLinearColor(1.5,1.5,1.5,1.0f);
 
 	// Draw all keys in each key area
-	for( int32 KeyAreaIndex = 0; KeyAreaIndex < KeyAreas.Num(); ++KeyAreaIndex )
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
 	{
-		const FKeyAreaElement& Element = KeyAreas[KeyAreaIndex];
-
 		// Get the key area at the same index of the section.  Each section in this widget has the same layout and the same number of key areas
-		const TSharedRef<IKeyArea>& KeyArea = Element.KeyAreaNode.GetKeyArea( SectionIndex );
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
 
 		FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, AllottedGeometry );
 
@@ -330,7 +279,16 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 			// Omit keys which would not be visible
 			if( SectionObject.IsTimeWithinSection( KeyTime ) )
 			{
+				const FSlateBrush* BrushToUse = KeyBrush;
 				FLinearColor KeyColor( 1.0f, 1.0f, 1.0f, 1.0f );
+				FLinearColor KeyTint(1.f, 1.f, 1.f, 1.f);
+
+				if (Element.GetType() == FKeyAreaLayoutElement::Group)
+				{
+					auto Group = StaticCastSharedPtr<FGroupedKeyArea>(KeyArea);
+					KeyTint = Group->GetKeyTint(KeyHandle);
+					BrushToUse = Group->GetBrush(KeyHandle);
+				}
 
 				// Where to start drawing the key (relative to the section)
 				float KeyPosition =  TimeToPixelConverter.TimeToPixel( KeyTime );
@@ -360,6 +318,8 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 					}
 				}
 
+				KeyColor *= KeyTint;
+
 				// Draw the key
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
@@ -367,7 +327,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 					bSelected ? KeyLayer+1 : KeyLayer,
 					// Center the key along Y.  Ensure the middle of the key is at the actual key time
 					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
-					KeyBrush,
+					BrushToUse,
 					MyClippingRect,
 					ESlateDrawEffect::None,
 					KeyColor
@@ -481,11 +441,10 @@ void SSection::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 {	
 	if( GetVisibility() == EVisibility::Visible )
 	{
-		CachedKeyAreaHeight = 0.f;
-
-		KeyAreas.Reset();
-		GetKeyAreas( ParentSectionArea, KeyAreas, &CachedKeyAreaHeight );
-
+		if (LayoutRegenerationLock.GetValue() == 0)
+		{
+			Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+		}
 		SectionInterface->Tick(AllottedGeometry, ParentGeometry, InCurrentTime, InDeltaTime);
 	}
 }
@@ -532,6 +491,7 @@ void SSection::ResetState()
 	DragOperation.Reset();
 	ResetHoveredState();
 	PressedKey = FSelectedKey();
+	LayoutRegenerationLock.Reset();
 }
 
 void SSection::ResetHoveredState()
@@ -546,7 +506,7 @@ void SSection::ResetHoveredState()
 FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if( bDragging && DragOperation.IsValid() )
-	{
+	{	
 		// If dragging tell the operation we are no longer dragging
 		DragOperation->OnEndDrag(ParentSectionArea);
 	}

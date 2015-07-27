@@ -9,6 +9,7 @@
 #include "SSequencerTreeView.h"
 #include "IKeyArea.h"
 #include "ISequencerSection.h"
+#include "SSection.h"
 
 
 struct FMarqueeSelectData
@@ -47,6 +48,141 @@ struct FMarqueeSelectData
 	FVector2D InitialPosition;
 	FVector2D CurrentPosition;
 };
+
+
+struct IMarqueeVisitor
+{
+	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const { }
+	virtual void VisitSection(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const { }
+};
+
+/** Struct used to iterate a marquee range with a user-supplied visitor */
+/* @todo: This could probably live in a header so it can be used elsewhere */
+struct FMarqueeRange
+{
+	/** Construction from the range itself */
+	FMarqueeRange(FVector2D InTopLeft, FVector2D InBottomRight, FVector2D InVirtualKeySize)
+		: TopLeft(InTopLeft), BottomRight(InBottomRight), VirtualKeySize(InVirtualKeySize)
+	{}
+
+	/** Visit the specified nodes (recursively) with this range and a user-supplied visitor */
+	void Visit(const IMarqueeVisitor& Visitor, const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes);
+
+private:
+
+	/** Handle visitation of a particular node */
+	void HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode);
+	/** Handle visitation of a particular node, along with a set of sections */
+	void HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
+	/** Handle visitation of a key area node */
+	void HandleKeyAreaNode(const IMarqueeVisitor& Visitor, FSectionKeyAreaNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
+	/** Handle visitation of a key area */
+	void HandleKeyArea(const IMarqueeVisitor& Visitor, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section);
+	
+	/** The bounds of the range */
+	FVector2D TopLeft, BottomRight;
+
+	/** Key size in virtual space */
+	FVector2D VirtualKeySize;
+};
+
+void FMarqueeRange::Visit(const IMarqueeVisitor& Visitor, const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes)
+{
+	for (auto& Child : Nodes)
+	{
+		if (!Child->IsHidden())
+		{
+			HandleNode(Visitor, *Child);
+		}
+	}
+}
+
+void FMarqueeRange::HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode)
+{
+	if (InNode.GetType() == ESequencerNode::Track)
+	{
+		HandleNode(Visitor, InNode, static_cast<FTrackNode&>(InNode).GetSections());
+	}
+
+	if (InNode.IsExpanded())
+	{
+		for (auto& Child : InNode.GetChildNodes())
+		{
+			if (!Child->IsHidden())
+			{
+				HandleNode(Visitor, *Child);
+			}
+		}
+	}
+}
+
+void FMarqueeRange::HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
+{
+	const float NodeCenter = InNode.GetVirtualTop() + (InNode.GetVirtualBottom() - InNode.GetVirtualTop())/2;
+	if (NodeCenter + VirtualKeySize.Y/2 > TopLeft.Y &&
+		NodeCenter - VirtualKeySize.Y/2 < BottomRight.Y)
+	{
+		bool bNodeHasKeyArea = false;
+		if (InNode.GetType() == ESequencerNode::KeyArea)
+		{
+			HandleKeyAreaNode(Visitor, static_cast<FSectionKeyAreaNode&>(InNode), InSections);
+			bNodeHasKeyArea = true;
+		}
+		else if (InNode.GetType() == ESequencerNode::Track)
+		{
+			TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = static_cast<FTrackNode&>(InNode).GetTopLevelKeyNode();
+			if (SectionKeyNode.IsValid())
+			{
+				HandleKeyAreaNode(Visitor, static_cast<FSectionKeyAreaNode&>(InNode), InSections);
+				bNodeHasKeyArea = true;
+			}
+		}
+
+		if (!InNode.IsExpanded() && !bNodeHasKeyArea)
+		{
+			// As a fallback, handle key groupings on collapsed parents
+			for (int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex)
+			{
+				TSharedRef<IKeyArea> KeyArea = InNode.UpdateKeyGrouping(SectionIndex);
+				HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
+			}
+		}
+	}
+
+	if (InNode.IsExpanded())
+	{
+		// Handle Children
+		for (auto& Child : InNode.GetChildNodes())
+		{
+			if (!Child->IsHidden())
+			{
+				HandleNode(Visitor, *Child, InSections);
+			}
+		}
+	}
+}
+
+void FMarqueeRange::HandleKeyAreaNode(const IMarqueeVisitor& Visitor, FSectionKeyAreaNode& KeyAreaNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
+{
+	for( int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex )
+	{
+		TSharedRef<IKeyArea> KeyArea = KeyAreaNode.GetKeyArea(SectionIndex);
+		HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
+	}
+}
+
+void FMarqueeRange::HandleKeyArea(const IMarqueeVisitor& Visitor, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section)
+{
+	for (FKeyHandle KeyHandle : KeyArea->GetUnsortedKeyHandles())
+	{
+		float KeyPosition = KeyArea->GetKeyTime(KeyHandle);
+		if (KeyPosition + VirtualKeySize.X/2 > TopLeft.X &&
+			KeyPosition - VirtualKeySize.X/2 < BottomRight.X)
+		{
+			Visitor.VisitKey(KeyHandle, KeyPosition, KeyArea, Section);
+		}
+	}
+}
 
 /** Structure used for converting X and Y positional values to Time and vertical offsets respectively */
 struct FVirtualConverter : FTimeToPixel
@@ -331,6 +467,48 @@ void SSequencerTrackArea::SetNewMarqueeBounds(const FPointerEvent& MouseEvent, c
 	}
 }
 
+struct FSelectionVisitor : IMarqueeVisitor
+{
+	FSelectionVisitor(FSequencerSelection& InSelection, const FPointerEvent& InMouseEvent)
+		: Selection(InSelection)
+		, MouseEvent(InMouseEvent)
+	{}
+
+	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const override
+	{
+		FSelectedKey SelectedKey(*Section, KeyArea, KeyHandle);
+
+		if (MouseEvent.IsLeftShiftDown())
+		{
+			Selection.AddToSelection(SelectedKey);
+		}
+		else if (MouseEvent.IsLeftControlDown())
+		{
+			if (Selection.IsSelected(SelectedKey))
+			{
+				Selection.RemoveFromSelection(SelectedKey);
+			}
+			else
+			{
+				Selection.AddToSelection(SelectedKey);
+			}
+		}
+		else
+		{
+			Selection.AddToSelection(SelectedKey);
+		}
+	}
+
+	virtual void VisitSection(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const
+	{
+
+	}
+
+private:
+	mutable FSequencerSelection& Selection;
+	const FPointerEvent& MouseEvent;
+};
+
 void SSequencerTrackArea::HandleMarqueeSelection(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
 {
 	auto PinnedSequencer = Sequencer.Pin();
@@ -347,75 +525,16 @@ void SSequencerTrackArea::HandleMarqueeSelection(const FGeometry& Geometry, cons
 		Selection.Empty();
 	}
 
-	auto TopLeft = MarqueeSelectData->TopLeft();
-	auto BottomRight = MarqueeSelectData->BottomRight();
+	Selection.SuspendBroadcast();
 
-	// Pointer to the current traversal parent's sections.
-	const TArray<TSharedRef<ISequencerSection>>* CurrentSections = nullptr;
+	FVector2D VirtualKeySize;
+	VirtualKeySize.X = SequencerSectionConstants::KeySize.X / Geometry.Size.X * (PinnedSequencer->GetViewRange().GetUpperBoundValue() - PinnedSequencer->GetViewRange().GetLowerBoundValue());
+	// Vertically, virtual units == physical units
+	VirtualKeySize.Y = SequencerSectionConstants::KeySize.Y;
 
-	auto PerformSelection = [&](FSectionKeyAreaNode& KeyAreaNode){
-		for( int32 SectionIndex = 0; SectionIndex < CurrentSections->Num(); ++SectionIndex )
-		{
-			TSharedRef<IKeyArea> KeyArea = KeyAreaNode.GetKeyArea(SectionIndex);
+	FMarqueeRange Range(MarqueeSelectData->TopLeft(), MarqueeSelectData->BottomRight(), VirtualKeySize);
+	Range.Visit(FSelectionVisitor(Selection, MouseEvent), PinnedTreeView->GetNodeTree()->GetRootNodes());
 
-			for (FKeyHandle KeyHandle : KeyArea->GetUnsortedKeyHandles())
-			{
-				float KeyPosition = KeyArea->GetKeyTime(KeyHandle);
-				if (KeyPosition > TopLeft.X && KeyPosition < BottomRight.X)
-				{
-					FSelectedKey SelectedKey(*(*CurrentSections)[SectionIndex]->GetSectionObject(), KeyArea, KeyHandle);
-
-					if (MouseEvent.IsLeftShiftDown())
-					{
-						Selection.AddToSelection(SelectedKey);
-					}
-					else if (MouseEvent.IsLeftControlDown())
-					{
-						if (Selection.IsSelected(SelectedKey))
-						{
-							Selection.RemoveFromSelection(SelectedKey);
-						}
-						else
-						{
-							Selection.AddToSelection(SelectedKey);
-						}
-					}
-					else
-					{
-						Selection.AddToSelection(SelectedKey);
-					}
-				}
-			}
-		}
-	};
-
-	for (auto& RootNode : PinnedTreeView->GetNodeTree()->GetRootNodes())
-	{
-		RootNode->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& InNode){
-
-			if (InNode.GetType() == ESequencerNode::KeyArea)
-			{
-				FSectionKeyAreaNode& KeyAreaNode = static_cast<FSectionKeyAreaNode&>(InNode);
-
-				if (CurrentSections && InNode.GetVirtualTop() > TopLeft.Y && InNode.GetVirtualBottom() < BottomRight.Y)
-				{
-					PerformSelection(KeyAreaNode);
-				}
-			}
-			else if (InNode.GetType() == ESequencerNode::Track)
-			{
-				FTrackNode& TrackNode = static_cast<FTrackNode&>(InNode);
-
-				CurrentSections = &TrackNode.GetSections();
-
-				TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = TrackNode.GetTopLevelKeyNode();
-				if( SectionKeyNode.IsValid() && TrackNode.GetVirtualTop() > TopLeft.Y && TrackNode.GetVirtualBottom() < BottomRight.Y )
-				{
-					PerformSelection(*SectionKeyNode);
-				}
-			}
-
-			return true;
-		});
-	}
+	Selection.ResumeBroadcast();
+	Selection.GetOnKeySelectionChanged().Broadcast();
 }

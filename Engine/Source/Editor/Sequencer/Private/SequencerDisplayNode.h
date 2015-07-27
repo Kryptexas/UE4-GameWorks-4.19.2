@@ -5,6 +5,7 @@
 class IKeyArea;
 class ISequencerSection;
 class SSequencerTreeViewRow;
+class FGroupedKeyArea;
 
 /** Structure used to define padding for a particular node */
 struct FNodePadding
@@ -246,7 +247,13 @@ public:
 	
 	/** @return this node's virtual offset plus its virtual height, irrespective of expansion states */
 	float GetVirtualBottom() const { return VirtualBottom; }
-	
+
+	/** Get the key grouping for the specified section index, ensuring it is fully up to date */
+	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(int32 InSectionIndex);
+
+	/** Get the key grouping for the specified section index */
+	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
+
 protected:
 	/**
 	 * Visibility of nodes is a complex situation. There are 7 different factors to account for:
@@ -303,6 +310,8 @@ protected:
 	bool bCachedShotFilteredVisibility;
 	/** Whether this node is pinned to the top of the sequencer */
 	bool bNodeIsPinned;
+	/** Transient grouped keys for this node */
+	TArray< TSharedPtr<FGroupedKeyArea> > KeyGroupings;
 };
 
 /**
