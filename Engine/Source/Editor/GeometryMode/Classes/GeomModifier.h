@@ -143,6 +143,11 @@ protected:
 	 * Implements the modifier application.
 	 */
 	virtual bool OnApply();
+
+	/**
+	 * Updates the pivot offset of the selected brushes based on the current vertex positions
+	 */
+	virtual void UpdatePivotOffset();
 };
 
 

@@ -246,6 +246,48 @@ bool UGeomModifier::DoEdgesOverlap()
 	return false;
 }
 
+void UGeomModifier::UpdatePivotOffset()
+{
+	if (!GetDefault<ULevelEditorMiscSettings>()->bAutoMoveBSPPivotOffset)
+	{
+		return;
+	}
+
+	FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+
+	for (FEdModeGeometry::TGeomObjectIterator It(Mode->GeomObjectItor()); It; ++It)
+	{
+		FGeomObjectPtr GeomObject = *It;
+		ABrush* Brush = GeomObject->GetActualBrush();
+
+		TSet<FVector> UniqueVertices;
+		FVector VertexCenter = FVector::ZeroVector;
+
+		if (Brush->Brush && Brush->Brush->Polys)
+		{
+			for (const auto& Element : Brush->Brush->Polys->Element)
+			{
+				for (const auto& Vertex : Element.Vertices)
+				{
+					UniqueVertices.Add(Vertex);
+				}
+			}
+
+			for (const auto& Vertex : UniqueVertices)
+			{
+				VertexCenter += Vertex;
+			}
+
+			if (UniqueVertices.Num() > 0)
+			{
+				VertexCenter /= UniqueVertices.Num();
+			}
+		}
+
+		Brush->SetPivotOffset(Brush->GetTransform().TransformPosition(VertexCenter));
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //	Transaction tracking.
@@ -579,6 +621,8 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 
 	EndTrans();
 
+	UpdatePivotOffset();
+
 	GEditor->RedrawLevelEditingViewports(true);
 
 	return true;
@@ -661,6 +705,8 @@ bool UGeomModifier_Extrude::OnApply()
 	GLevelEditorModeTools().SetCoordSystem(SaveCS);
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
+
+	UpdatePivotOffset();
 
 	return true;
 }
@@ -861,6 +907,8 @@ bool UGeomModifier_Lathe::OnApply()
 	Apply( TotalSegments, Segments, Axis );
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
+
+	UpdatePivotOffset();
 
 	return true;
 }
@@ -1175,6 +1223,8 @@ void UGeomModifier_Pen::WasActivated()
 bool UGeomModifier_Pen::OnApply()
 {
 	Apply();
+
+	UpdatePivotOffset();
 
 	return true;
 }
@@ -1979,6 +2029,8 @@ bool UGeomModifier_Clip::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
+	UpdatePivotOffset();
+
 	return true;
 }
 
@@ -2417,6 +2469,8 @@ bool UGeomModifier_Delete::OnApply()
 		Tools.SetPivotLocation( SelectedActor->GetActorLocation() , false );
 	}
 	
+	UpdatePivotOffset();
+
 	return bHandled;
 }
 
@@ -2482,6 +2536,7 @@ bool UGeomModifier_Create::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
+	UpdatePivotOffset();
 	return true;
 }
 
@@ -2527,6 +2582,7 @@ bool UGeomModifier_Flip::OnApply()
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
 
+	UpdatePivotOffset();
 	return true;
 }
 
@@ -2897,6 +2953,8 @@ bool UGeomModifier_Split::OnApply()
 	mode->GetFromSource();
 
 	GEditor->RebuildAlteredBSP(); // Brush has been altered, update the Bsp
+
+	UpdatePivotOffset();
 
 	return true;
 }
