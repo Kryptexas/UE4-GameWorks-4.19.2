@@ -72,7 +72,7 @@ void FProfilerModule::StatsMemoryDumpCommand( const TCHAR* Filename )
 	TUniquePtr<FRawStatsMemoryProfiler> Instance( FCreateStatsReader<FRawStatsMemoryProfiler>::ForRawStats( Filename ) );
 	if (Instance)
 	{
-		Instance->ReadAndProcessAsynchronously();
+		Instance->ReadAndProcessSynchronously();
 
 		while (Instance->IsBusy())
 		{
