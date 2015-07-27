@@ -19,10 +19,17 @@
 
 FWebJSParam::~FWebJSParam()
 {
-	// Since the FString member is in a union, it may or may not be valid, so we have to call its destructor manually.
-	if (Tag == PTYPE_STRING)
+	// Since the FString and TArray members are in a union, they may or may not be valid, so we have to call the destructors manually.
+	switch (Tag)
 	{
-		delete StringValue;
+		case PTYPE_STRING:
+			delete StringValue;
+			break;
+		case PTYPE_ARRAY:
+			delete ArrayValue;
+			break;
+		default:
+			break;
 	}
 }
 
@@ -51,6 +58,9 @@ FWebJSParam::FWebJSParam(const FWebJSParam& Other)
 		case PTYPE_STRUCT:
 			StructValue.TypeInfo = Other.StructValue.TypeInfo;
 			StructValue.StructPtr = Other.StructValue.StructPtr;
+			break;
+		case PTYPE_ARRAY:
+			ArrayValue = new TArray<FWebJSParam>(*Other.ArrayValue);
 			break;
 	}
 }

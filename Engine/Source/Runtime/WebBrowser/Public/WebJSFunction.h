@@ -2,13 +2,14 @@
 
 #pragma once
 #include "CoreUObject.h"
+#include "EnableIf.h"
 #include "WebJSFunction.generated.h"
 
 class FWebJSScripting;
 
 struct WEBBROWSER_API FWebJSParam
 {
-	enum { PTYPE_NULL, PTYPE_BOOL, PTYPE_INT, PTYPE_DOUBLE, PTYPE_STRING, PTYPE_OBJECT, PTYPE_STRUCT, } Tag;
+	enum { PTYPE_NULL, PTYPE_BOOL, PTYPE_INT, PTYPE_DOUBLE, PTYPE_STRING, PTYPE_OBJECT, PTYPE_STRUCT, PTYPE_ARRAY } Tag;
 	union
 	{
 		bool BoolValue;
@@ -17,9 +18,10 @@ struct WEBBROWSER_API FWebJSParam
 		UObject* ObjectValue;
 		const FString* StringValue;
 		struct {
-			UStruct* TypeInfo;
 			const void* StructPtr;
+			UStruct* TypeInfo;
 		} StructValue;
+		TArray<FWebJSParam>* ArrayValue;
 	};
 
 	FWebJSParam() : Tag(PTYPE_NULL) {}
@@ -37,8 +39,21 @@ struct WEBBROWSER_API FWebJSParam
 	FWebJSParam(const FString& Value) : Tag(PTYPE_STRING), StringValue(new FString(Value)) {}
 	FWebJSParam(const TCHAR* Value) : Tag(PTYPE_STRING), StringValue(new FString(Value)) {}
 	FWebJSParam(UObject* Value) : Tag(PTYPE_OBJECT), ObjectValue(Value) {}
-	FWebJSParam(UStruct* Struct, const void* Value) : Tag(PTYPE_STRUCT), StructValue({Struct, Value}) {}
-	template <typename T> FWebJSParam(const T& Value) : Tag(PTYPE_STRUCT), StructValue({T::StaticStruct(), &Value}) {}
+	FWebJSParam(const void* Value, UStruct* Struct) : Tag(PTYPE_STRUCT), StructValue({Value, Struct}) {}
+	template <typename T> FWebJSParam(const T& Value,
+		typename TEnableIf<!TIsPointerType<T>::Value, UStruct>::Type* InTypeInfo=T::StaticStruct())
+		: Tag(PTYPE_STRUCT)
+		, StructValue({&Value, InTypeInfo}) {}
+	template <typename T> FWebJSParam(const TArray<T>& Value)
+		: Tag(PTYPE_ARRAY)
+	{
+		ArrayValue = new TArray<FWebJSParam>();
+		ArrayValue->Reserve(Value.Num());
+		for(T Item : Value)
+		{
+			ArrayValue->Add(FWebJSParam(Item));
+		}
+	}
 	FWebJSParam(const FWebJSParam& Other);
 	~FWebJSParam();
 

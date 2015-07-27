@@ -88,6 +88,15 @@ public:
 				CefRefPtr<CefDictionaryValue> ConvertedStruct = ConvertStruct(Param.StructValue.TypeInfo, Param.StructValue.StructPtr);
 				return Container->SetDictionary(Key, ConvertedStruct);
 			}
+			case FWebJSParam::PTYPE_ARRAY:
+			{
+				CefRefPtr<CefListValue> ConvertedArray = CefListValue::Create();
+				for(int i=0; i < Param.ArrayValue->Num(); ++i)
+				{
+					SetConverted(ConvertedArray, i, (*Param.ArrayValue)[i]);
+				}
+				return Container->SetList(Key, ConvertedArray);
+			}
 			default:
 				return false;
 		}
