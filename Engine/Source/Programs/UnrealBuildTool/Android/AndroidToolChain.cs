@@ -401,7 +401,10 @@ namespace UnrealBuildTool
 				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 				{
 					Result += " -fno-omit-frame-pointer";	// Disable removing the save/restore frame pointer for better debugging
-					Result += " -fno-function-sections";	// Improve breakpoint location
+					if (ClangVersionFloat >= 3.6f)
+					{
+						Result += " -fno-function-sections";	// Improve breakpoint location
+					}
 				}
 
 				// Some switches interfere with on-device debugging
