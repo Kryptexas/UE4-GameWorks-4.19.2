@@ -8,7 +8,7 @@
 #include "SSequencer.h"
 #include "SSequencerSectionAreaView.h"
 #include "MovieSceneSection.h"
-#include "MovieSceneAnimation.h"
+#include "MovieSceneSequence.h"
 #include "MovieSceneTrack.h"
 #include "CommonMovieSceneTools.h"
 #include "IKeyArea.h"
@@ -617,7 +617,7 @@ void FTrackNode::FixRowIndices()
 FText FObjectBindingNode::GetDisplayName() const
 {
 	FText DisplayName;
-	return GetSequencer().GetAnimation()->TryGetObjectDisplayName(ObjectBinding, DisplayName) ?
+	return GetSequencer().GetFocusedMovieSceneSequence()->TryGetObjectDisplayName(ObjectBinding, DisplayName) ?
 		DisplayName : DefaultDisplayName;
 }
 
@@ -642,7 +642,7 @@ const UClass* FObjectBindingNode::GetClassForObjectBinding()
 {
 	FSequencer& ParentSequencer = GetSequencer();
 
-	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieScene();
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
 	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectBinding);
@@ -738,7 +738,7 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 {
 	TArray<TArray<UProperty*>> KeyablePropertyPaths;
 	FSequencer& Sequencer = GetSequencer();
-	UObject* BoundObject = Sequencer.GetAnimation()->FindObject(ObjectBinding);
+	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequence()->FindObject(ObjectBinding);
 
 	if (BoundObject != nullptr)
 	{
@@ -785,7 +785,7 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
-	UObject* BoundObject = Sequencer.GetAnimation()->FindObject(ObjectBinding);
+	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequence()->FindObject(ObjectBinding);
 
 	TArray<UObject*> KeyableBoundObjects;
 	if (BoundObject != nullptr)

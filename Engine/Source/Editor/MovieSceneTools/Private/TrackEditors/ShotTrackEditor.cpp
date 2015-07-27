@@ -248,7 +248,7 @@ FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, c
 {
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		TSharedRef<FMovieSceneInstance> MovieSceneInstance = Sequencer.Pin()->GetInstanceForSubMovieSceneSection( *Section );
+		TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance = Sequencer.Pin()->GetInstanceForSubMovieSceneSection( *Section );
 
 		Sequencer.Pin()->FocusSubMovieScene( MovieSceneInstance );
 	}
@@ -448,7 +448,7 @@ ACameraActor* FShotSection::UpdateCameraObject() const
 {
 	TArray<UObject*> OutObjects;
 	// @todo Sequencer - Sub-MovieScenes The director track may be able to get cameras from sub-movie scenes
-	Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetRootMovieSceneInstance(),  Section->GetCameraGuid(), OutObjects);
+	Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetRootMovieSceneSequenceInstance(),  Section->GetCameraGuid(), OutObjects);
 
 	ACameraActor* ReturnCam = nullptr;
 	if( OutObjects.Num() > 0 )
@@ -471,20 +471,20 @@ void FShotSection::OnRenameShot( const FText& NewShotName, ETextCommit::Type Com
 		Section->Modify();
 		Section->SetShotNameAndNumber( NewShotName, Section->GetShotNumber() );
 
-		UMovieScene* ShotMovieScene = Section->GetMovieScene();
-		if( ShotMovieScene )
+		UMovieSceneSequence* ShotMovieSceneAnim = Section->GetMovieSceneAnimation();
+		if( ShotMovieSceneAnim )
 		{
 			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
 			TArray<FAssetRenameData> AssetsAndNames;
-			const FString PackagePath = FPackageName::GetLongPackagePath(ShotMovieScene->GetOutermost()->GetName());
+			const FString PackagePath = FPackageName::GetLongPackagePath(ShotMovieSceneAnim->GetOutermost()->GetName());
 
 			// We want to prepend the owning movie scene name.  This is not the movie scene inside referenced by the shot but the movie scene containing 
 			// the shot track
 			UMovieScene* OwningMovieScene = Section->GetTypedOuter<UMovieScene>();
 			const FString NewAssetName = OwningMovieScene->GetName() + TEXT("_") + NewShotName.ToString();
 
-			new (AssetsAndNames) FAssetRenameData(ShotMovieScene, PackagePath, NewAssetName );
+			new (AssetsAndNames) FAssetRenameData(ShotMovieSceneAnim, PackagePath, NewAssetName );
 
 			AssetToolsModule.Get().RenameAssets(AssetsAndNames);
 		}
@@ -527,7 +527,7 @@ void FShotTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
 {
 	TArray<UObject*> OutObjects;
 	// @todo Sequencer - Sub-MovieScenes The director track may be able to get cameras from sub-movie scenes
-	GetSequencer()->GetRuntimeObjects(  GetSequencer()->GetRootMovieSceneInstance(), ObjectGuid, OutObjects);
+	GetSequencer()->GetRuntimeObjects(  GetSequencer()->GetRootMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 	bool bValidKey = OutObjects.Num() == 1 && OutObjects[0]->IsA<ACameraActor>();
 	if (bValidKey)
 	{
@@ -560,7 +560,8 @@ void FShotTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, 
 
 void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
-	UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
 
 	UMovieSceneTrack* Track = MovieScene->GetShotTrack();
 	if( !Track )
@@ -594,7 +595,12 @@ void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 	AssetToolsModule.Get().CreateUniqueAssetName(NewShotPackagePath, EmptySuffix, PackageName, AssetName);
 	const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
 
-	UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UMovieScene::StaticClass(), nullptr );
+	// Create the same type as the sequence type we have
+	UClass* AssetClass = FocusedSequence->GetClass();
+
+	UFactory* Factory = GetAssetFactoryForNewShot( AssetClass );
+
+	UObject* NewAsset = AssetToolsModule.Get().CreateAsset( AssetName, PackagePath, AssetClass, Factory );
 	
 	float EndTime = KeyTime;
 	if( AllSections.IsValidIndex( SectionIndex + 1 ) )
@@ -622,7 +628,7 @@ void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 	}
 
 	TRange<float> TimeRange( KeyTime, EndTime );
-	ShotTrack->AddNewShot( ObjectGuid, *CastChecked<UMovieScene>( NewAsset ), TimeRange, FText::FromString( ShotName ), ShotNumber );
+	ShotTrack->AddNewShot( ObjectGuid, *CastChecked<UMovieSceneSequence>( NewAsset ), TimeRange, FText::FromString( ShotName ), ShotNumber );
 }
 
 int32 FShotTrackEditor::GenerateShotNumber( UMovieSceneShotTrack& ShotTrack, int32 SectionIndex ) const
@@ -686,4 +692,32 @@ int32 FShotTrackEditor::FindIndexForNewShot( const TArray<UMovieSceneSection*>& 
 	for (SectionIndex = 0; SectionIndex < ShotSections.Num() && ShotSections[SectionIndex]->GetStartTime() < NewShotTime; ++SectionIndex);
 
 	return SectionIndex;
+}
+
+UFactory* FShotTrackEditor::GetAssetFactoryForNewShot( UClass* SequenceClass )
+{
+	static TWeakObjectPtr<UFactory> ShotFactory;
+
+	if( !ShotFactory.IsValid() || ShotFactory->SupportedClass != SequenceClass )
+	{
+		TArray<UFactory*> Factories;
+		for (TObjectIterator<UClass> It; It; ++It)
+		{
+			UClass* Class = *It;
+			if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
+			{
+				UFactory* Factory = Class->GetDefaultObject<UFactory>();
+				if (Factory->CanCreateNew())
+				{
+					UClass* SupportedClass = Factory->GetSupportedClass();
+					if ( SupportedClass == SequenceClass )
+					{
+						ShotFactory = Factory;
+					}
+				}
+			}
+		}
+	}
+
+	return ShotFactory.Get();
 }

@@ -30,7 +30,7 @@ public:
 	 * @param ShotName		The display name of the shot
 	 * @param ShotNumber		The number of the shot.  This is used to assist with auto-generated shot names when new shots are added
 	 */
-	MOVIESCENETRACKS_API void AddNewShot(FGuid CameraHandle, UMovieScene& ShotMovieScene, const TRange<float>& TimeRange, const FText& ShotName, int32 ShotNumber );
+	MOVIESCENETRACKS_API void AddNewShot(FGuid CameraHandle, UMovieSceneSequence& ShotMovieSceneAnimation, const TRange<float>& TimeRange, const FText& ShotName, int32 ShotNumber );
 
 #if WITH_EDITOR
 	virtual void OnSectionMoved( UMovieSceneSection& Section ) override;

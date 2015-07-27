@@ -33,14 +33,14 @@ void UMovieSceneShotTrack::RemoveSection( UMovieSceneSection* Section )
 	// @todo Sequencer: The movie scene owned by the section is now abandoned.  Should we offer to delete it?  
 }
 
-void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, UMovieScene& ShotMovieScene, const TRange<float>& TimeRange, const FText& ShotName, int32 ShotNumber )
+void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, UMovieSceneSequence& ShotMovieSceneAnimation, const TRange<float>& TimeRange, const FText& ShotName, int32 ShotNumber )
 {
 	Modify();
 
 	FName UniqueShotName = MakeUniqueObjectName( this, UMovieSceneShotSection::StaticClass(), *ShotName.ToString() );
 
 	UMovieSceneShotSection* NewSection = NewObject<UMovieSceneShotSection>( this, UniqueShotName, RF_Transactional );
-	NewSection->SetMovieScene( &ShotMovieScene );
+	NewSection->SetMovieSceneAnimation( &ShotMovieSceneAnimation );
 	NewSection->SetStartTime( TimeRange.GetLowerBoundValue() );
 	NewSection->SetEndTime( TimeRange.GetUpperBoundValue() );
 	NewSection->SetCameraGuid( CameraHandle );

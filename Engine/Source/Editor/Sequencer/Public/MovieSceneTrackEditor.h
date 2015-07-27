@@ -6,6 +6,7 @@
 #include "ISequencer.h"
 #include "MovieScene.h"
 #include "ScopedTransaction.h"
+#include "MovieSceneSequence.h"
 
 class ISequencerSection;
 
@@ -30,9 +31,9 @@ public:
 	virtual void OnRelease(){};
 
 	/** @return The current movie scene */
-	UMovieScene* GetMovieScene() const
+	UMovieSceneSequence* GetMovieSceneSequence() const
 	{
-		return Sequencer.Pin()->GetFocusedMovieScene();
+		return Sequencer.Pin()->GetFocusedMovieSceneSequence();
 	}
 
 	/**
@@ -42,9 +43,9 @@ public:
 	 * @param OutTime		The current time of the sequencer which should be used for adding keys during auto-key
 	 * @return true	if we can auto-key
 	 */
-	float GetTimeForKey( UMovieScene* InMovieScene )
+	float GetTimeForKey( UMovieSceneSequence* InMovieSceneSequence )
 	{ 
-		return Sequencer.Pin()->GetCurrentLocalTime( *InMovieScene );
+		return Sequencer.Pin()->GetCurrentLocalTime( *InMovieSceneSequence );
 	}
 
 	/** Gets whether the tool can legally autokey */
@@ -69,16 +70,16 @@ public:
 		check(OnKeyProperty.IsBound());
 
 		// Get the movie scene we want to autokey
-		UMovieScene* MovieScene = GetMovieScene();
-		float KeyTime = GetTimeForKey( MovieScene );
+		UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
+		float KeyTime = GetTimeForKey( MovieSceneSequence );
 		bool bIsKeyingValid = !bMustBeAutokeying || IsAllowedToAutoKey();
 
 		if( bIsKeyingValid )
 		{
-			check( MovieScene );
+			check( MovieSceneSequence );
 
 			// @todo Sequencer - The sequencer probably should have taken care of this
-			MovieScene->SetFlags(RF_Transactional);
+			MovieSceneSequence->SetFlags(RF_Transactional);
 		
 			// Create a transaction record because we are about to add keys
 			const bool bShouldActuallyTransact = !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
@@ -106,7 +107,7 @@ public:
 	{
 		check( UniqueTypeName != NAME_None );
 
-		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
+		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
 
 		UMovieSceneTrack* Type = MovieScene->FindTrack( TrackClass, ObjectHandle, UniqueTypeName );
 
@@ -125,7 +126,7 @@ public:
 
 	UMovieSceneTrack* GetMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 	{
-		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
+		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
 		UMovieSceneTrack* Type = MovieScene->FindMasterTrack( TrackClass );
 
 		if( !Type )

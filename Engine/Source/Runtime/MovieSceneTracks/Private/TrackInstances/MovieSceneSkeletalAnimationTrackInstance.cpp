@@ -1,23 +1,23 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneAnimationTrack.h"
-#include "MovieSceneAnimationTrackInstance.h"
-#include "MovieSceneAnimationSection.h"
+#include "MovieSceneSkeletalAnimationTrack.h"
+#include "MovieSceneSkeletalAnimationTrackInstance.h"
+#include "MovieSceneSkeletalAnimationSection.h"
 #include "IMovieScenePlayer.h"
 #include "Matinee/MatineeAnimInterface.h"
 
-FMovieSceneAnimationTrackInstance::FMovieSceneAnimationTrackInstance( UMovieSceneAnimationTrack& InAnimationTrack )
+FMovieSceneSkeletalAnimationTrackInstance::FMovieSceneSkeletalAnimationTrackInstance( UMovieSceneSkeletalAnimationTrack& InAnimationTrack )
 {
 	AnimationTrack = &InAnimationTrack;
 }
 
-FMovieSceneAnimationTrackInstance::~FMovieSceneAnimationTrackInstance()
+FMovieSceneSkeletalAnimationTrackInstance::~FMovieSceneSkeletalAnimationTrackInstance()
 {
 	// @todo Sequencer Need to find some way to call PreviewFinishAnimControl (needs the runtime objects)
 }
 
-void FMovieSceneAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	// @todo Sequencer gameplay update has a different code path than editor update for animation
 
@@ -26,7 +26,7 @@ void FMovieSceneAnimationTrackInstance::Update( float Position, float LastPositi
 		IMatineeAnimInterface* AnimInterface = Cast<IMatineeAnimInterface>(RuntimeObjects[i]);
 		if (AnimInterface)
 		{
-			UMovieSceneAnimationSection* AnimSection = Cast<UMovieSceneAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));
+			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));
 			if (AnimSection)
 			{
 				int32 ChannelIndex = 0;

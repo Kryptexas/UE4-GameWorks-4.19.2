@@ -7,7 +7,7 @@
 #include "MovieScene.h"
 #include "ScopedTransaction.h"
 #include "ISequencerSection.h"
-#include "MovieSceneInstance.h"
+#include "MovieSceneSequenceInstance.h"
 #include "MovieSceneTrackEditor.h"
 #include "IMovieSceneTools.h"
 #include "MovieSceneSection.h"

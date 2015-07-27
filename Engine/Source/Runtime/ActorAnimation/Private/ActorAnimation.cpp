@@ -21,7 +21,7 @@ UActorAnimation::UActorAnimation(const FObjectInitializer& ObjectInitializer)
 void UActorAnimation::Initialize()
 {
 	// @todo sequencer: gmp: fix me
-	MovieScene = NewObject<UMovieScene>(this);
+	MovieScene = NewObject<UMovieScene>(this, NAME_None, RF_Transactional);
 }
 
 
@@ -60,10 +60,10 @@ bool UActorAnimation::CanPossessObject(UObject& Object) const
 }
 
 
-void UActorAnimation::DestroyAllSpawnedObjects(UMovieScene& SubMovieScene)
+void UActorAnimation::DestroyAllSpawnedObjects()
 {
 	const bool DestroyAll = true;
-	SpawnOrDestroyObjects(&SubMovieScene, DestroyAll);
+	SpawnOrDestroyObjects(DestroyAll);
 	SpawnedActors.Empty();
 }
 
@@ -141,12 +141,12 @@ UObject* UActorAnimation::GetParentObject(UObject* Object) const
 }
 
 
-void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll)
+void UActorAnimation::SpawnOrDestroyObjects(bool DestroyAll)
 {
 	bool bAnyLevelActorsChanged = false;
 
 	// remove any proxy actors that we no longer need
-	if (SubMovieScene != nullptr)
+	if (MovieScene != nullptr)
 	{
 		for (auto SpawnedActorPair : SpawnedActors)
 		{
@@ -155,9 +155,9 @@ void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool Des
 			if (!DestroyAll)
 			{
 				// figure out if we still need this proxy actor
-				for (auto SpawnableIndex = 0; SpawnableIndex < SubMovieScene->GetSpawnableCount(); ++SpawnableIndex)
+				for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
 				{
-					auto& Spawnable = SubMovieScene->GetSpawnable(SpawnableIndex);
+					auto& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
 
 					if (Spawnable.GetGuid() == SpawnedActorPair.Key)
 					{
@@ -210,11 +210,11 @@ void UActorAnimation::SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool Des
 		}
 	}
 
-	if (!DestroyAll && (SubMovieScene != nullptr))
+	if (!DestroyAll && (MovieScene != nullptr))
 	{
-		for (auto SpawnableIndex = 0; SpawnableIndex < SubMovieScene->GetSpawnableCount(); ++SpawnableIndex)
+		for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
 		{
-			FMovieSceneSpawnable& Spawnable = SubMovieScene->GetSpawnable(SpawnableIndex);
+			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
 
 			// Do we already have a proxy for this spawnable?
 			if (SpawnedActors.Contains(Spawnable.GetGuid()))

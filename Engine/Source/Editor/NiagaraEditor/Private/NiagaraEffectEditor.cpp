@@ -101,7 +101,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 		FSequencerInitParams SequencerInitParams;
 		{
 			SequencerInitParams.ViewParams = ViewParams;
-			SequencerInitParams.Animation = NewAnimation;
+			SequencerInitParams.RootSequence = NewAnimation;
 			SequencerInitParams.bEditWithinLevelEditor = false;
 			SequencerInitParams.ToolkitHost = nullptr;
 		}

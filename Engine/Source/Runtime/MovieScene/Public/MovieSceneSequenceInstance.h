@@ -5,22 +5,26 @@
 
 class IMovieSceneTrackInstance;
 class UMovieSceneTrack;
-
+class UMovieSceneSequence;
 
 typedef TMap<TWeakObjectPtr<UMovieSceneTrack>, TSharedPtr<class IMovieSceneTrackInstance>> FMovieSceneInstanceMap;
 
-
-class FMovieSceneInstance
-	: public TSharedFromThis<FMovieSceneInstance>
+/**
+ * A sequence instance holds the live objects bound to the tracks in a sequence.  This is completely transient
+ * There is one instance per sequence.  If a sequence holds multiple sub-sequences each sub-sequence will have it's own instance even if they are the same sequence asset
+ * A sequence instance also creates and manages all track instances for the tracks in a sequence
+ */
+class FMovieSceneSequenceInstance
+	: public TSharedFromThis<FMovieSceneSequenceInstance>
 {
 public:
 
 	/**
-	 * Creates and initializes a new instance from a movie scene.
+	 * Creates and initializes a new instance from a Sequence
 	 *
-	 * @param InMovieScene The movie scene that this instance represents.
+	 * @param InMovieSceneSequence The sequence that this instance represents.
 	 */
-	MOVIESCENE_API FMovieSceneInstance(UMovieScene& InMovieScene);
+	MOVIESCENE_API FMovieSceneSequenceInstance(const UMovieSceneSequence& InMovieSceneSequence);
 
 	/** Save state of the objects that this movie scene controls. */
 	MOVIESCENE_API void SaveState();
@@ -45,13 +49,13 @@ public:
 	MOVIESCENE_API void RefreshInstance(class IMovieScenePlayer& Player);
 
 	/**
-	 * Get the movie scene associated with this instance.
+	 * Get the sequence associated with this instance.
 	 *
-	 * @return The movie scene object.
+	 * @return The movie scene sequence object.
 	 */
-	UMovieScene* GetMovieScene()
+	UMovieSceneSequence* GetSequence()
 	{
-		return MovieScene.Get();
+		return MovieSceneSequence.Get();
 	}
 
 	/** 
@@ -88,7 +92,7 @@ private:
 
 
 	/** MovieScene that is instanced */
-	TWeakObjectPtr<UMovieScene> MovieScene;
+	const TWeakObjectPtr<UMovieSceneSequence> MovieSceneSequence;
 
 	/** The shot track instance map */
 	TSharedPtr<IMovieSceneTrackInstance> ShotTrackInstance;

@@ -7,7 +7,7 @@ class IMovieScenePlayer;
 
 
 /**
- * Base class for an animated type instance in a Movie Scene
+ * A track instance holds the live objects for a track.  
  */
 class IMovieSceneTrackInstance
 {
@@ -18,11 +18,13 @@ public:
 
 	/**
 	 * Save state of objects that this instance will be editing.
+	 * @todo Sequencer: This is likely editor only
 	 */
 	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) = 0;
 
 	/**
 	 * Restore state of objects that this instance edited.
+	 * @todo Sequencer: This is likely editor only
 	 */
 	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) = 0;
 

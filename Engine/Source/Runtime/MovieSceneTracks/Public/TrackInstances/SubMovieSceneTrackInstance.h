@@ -5,7 +5,7 @@
 #include "IMovieSceneTrackInstance.h"
 
 
-class FMovieSceneInstance;
+class FMovieSceneSequenceInstance;
 class USubMovieSceneSection;
 class USubMovieSceneTrack;
 
@@ -32,5 +32,5 @@ protected:
 	TWeakObjectPtr<USubMovieSceneTrack> SubMovieSceneTrack;
 
 	/** Mapping of section lookups to instances.  Each section has a movie scene which must be instanced */
-	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneInstance> > SubMovieSceneInstances; 
+	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneSequenceInstance> > SubMovieSceneInstances; 
 };

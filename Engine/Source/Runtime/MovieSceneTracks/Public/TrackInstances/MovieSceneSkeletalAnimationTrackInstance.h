@@ -5,19 +5,19 @@
 #include "IMovieSceneTrackInstance.h"
 
 
-class UMovieSceneAnimationTrack;
+class UMovieSceneSkeletalAnimationTrack;
 
 
 /**
- * Instance of a UMovieSceneAnimationTrack
+ * Instance of a UMovieSceneSkeletalAnimationTrack
  */
-class FMovieSceneAnimationTrackInstance
+class FMovieSceneSkeletalAnimationTrackInstance
 	: public IMovieSceneTrackInstance
 {
 public:
 
-	FMovieSceneAnimationTrackInstance( UMovieSceneAnimationTrack& InAnimationTrack );
-	virtual ~FMovieSceneAnimationTrackInstance();
+	FMovieSceneSkeletalAnimationTrackInstance( UMovieSceneSkeletalAnimationTrack& InAnimationTrack );
+	virtual ~FMovieSceneSkeletalAnimationTrackInstance();
 
 	/** IMovieSceneTrackInstance interface */
 	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) override {}
@@ -29,5 +29,5 @@ public:
 private:
 
 	/** Track that is being instanced */
-	UMovieSceneAnimationTrack* AnimationTrack;
+	UMovieSceneSkeletalAnimationTrack* AnimationTrack;
 };

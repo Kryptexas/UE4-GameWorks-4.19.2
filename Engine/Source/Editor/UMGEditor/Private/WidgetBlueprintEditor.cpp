@@ -567,7 +567,7 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 			NullAnimation->MovieScene->EndTime = OutTime;
 
 			SequencerInitParams.ViewParams = ViewParams;
-			SequencerInitParams.Animation = NullAnimation;
+			SequencerInitParams.RootSequence = NullAnimation;
 			SequencerInitParams.bEditWithinLevelEditor = false;
 			SequencerInitParams.ToolkitHost = nullptr;
 		};
@@ -589,7 +589,7 @@ void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimatio
 	CurrentAnimation = &InAnimationToView;
 	CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
 
-	Sequencer->ResetToNewAnimation(InAnimationToView);
+	Sequencer->ResetToNewRootSequence(InAnimationToView);
 
 	TSharedPtr<SOverlay> SequencerOverlayPin = SequencerOverlay.Pin();
 	if (SequencerOverlayPin.IsValid())

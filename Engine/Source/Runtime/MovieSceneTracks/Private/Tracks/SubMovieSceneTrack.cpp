@@ -18,12 +18,12 @@ UMovieSceneSection* USubMovieSceneTrack::CreateNewSection()
 
 FName USubMovieSceneTrack::GetTrackName() const
 {
-	static const FName DefaultName( "MovieScene" );
+	static const FName DefaultName( "Sequence" );
 
 	FName Name = DefaultName;
 	if( SubMovieSceneSections.Num() > 0 )
 	{
-		Name = CastChecked<USubMovieSceneSection>(SubMovieSceneSections[0])->GetMovieScene()->GetFName();
+		Name = CastChecked<USubMovieSceneSection>(SubMovieSceneSections[0])->GetMovieSceneAnimation()->GetFName();
 	}
 
 	return Name;
@@ -73,15 +73,15 @@ bool USubMovieSceneTrack::HasSection( UMovieSceneSection* Section ) const
 	return SubMovieSceneSections.Contains( Section );
 }
 
-void USubMovieSceneTrack::AddMovieSceneSection( UMovieScene* SubMovieScene, float Time )
+void USubMovieSceneTrack::AddMovieSceneSection( UMovieSceneSequence* SubMovieSceneSequence, float Time )
 {
 	Modify();
 
 	USubMovieSceneSection* NewSection = CastChecked<USubMovieSceneSection>( CreateNewSection() );
 
-	NewSection->SetMovieScene( SubMovieScene );
+	NewSection->SetMovieSceneAnimation( SubMovieSceneSequence );
 	NewSection->SetStartTime( Time );
-	NewSection->SetEndTime( Time + SubMovieScene->GetTimeRange().Size<float>() );
+	NewSection->SetEndTime( Time + SubMovieSceneSequence->GetMovieScene()->GetTimeRange().Size<float>() );
 
 	SubMovieSceneSections.Add( NewSection );
 

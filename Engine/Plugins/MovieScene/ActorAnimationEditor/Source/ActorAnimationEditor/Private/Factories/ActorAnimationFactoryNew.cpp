@@ -30,7 +30,7 @@ UActorAnimationFactoryNew::UActorAnimationFactoryNew(const FObjectInitializer& O
 
 UObject* UActorAnimationFactoryNew::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	auto NewActorAnimation = NewObject<UActorAnimation>(InParent, Name, Flags);
+	auto NewActorAnimation = NewObject<UActorAnimation>(InParent, Name, Flags|RF_Transactional);
 	NewActorAnimation->Initialize();
 
 	return NewActorAnimation;

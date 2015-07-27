@@ -174,8 +174,8 @@ TSharedRef<ISequencerSection> F3DTransformTrackEditor::MakeSectionInterface( UMo
 
 void F3DTransformTrackEditor::OnPreTransformChanged( UObject& InObject )
 {
-	UMovieScene* MovieScene = GetMovieScene();
-	float AutoKeyTime = GetTimeForKey( MovieScene );
+	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
+	float AutoKeyTime = GetTimeForKey( MovieSceneSequence );
 
 	if( IsAllowedToAutoKey() )
 	{
@@ -273,7 +273,7 @@ void F3DTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* Additiona
 void F3DTransformTrackEditor::AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset, bool bForceKey, F3DTransformTrackKey::Type KeyType)
 {
 	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
 	for ( UObject* Object : OutObjects )
 	{
@@ -376,7 +376,7 @@ void F3DTransformTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerC
 void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectGuid, const UClass* ObjectClass)
 {
 	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
 	TWeakObjectPtr<ACameraActor> CameraActor;
 

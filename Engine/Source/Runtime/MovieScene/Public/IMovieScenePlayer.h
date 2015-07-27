@@ -14,7 +14,7 @@ namespace EMovieScenePlayerStatus
 	};
 }
 
-class FMovieSceneInstance;
+class FMovieSceneSequenceInstance;
 
 /**
  * Interface for movie scene players
@@ -30,7 +30,7 @@ public:
 	 * @param ObjectHandle The handle to runtime objects
 	 * @Param The list of runtime objects that will be populated
 	 */
-	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const = 0;
+	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const = 0;
 
 
 	/**
@@ -47,7 +47,7 @@ public:
 	 * @param MovieSceneSection	The section owning the MovieScene being instanced. 
 	 * @param InstanceToAdd		The instance being added
 	 */
-	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) = 0;
+	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd ) = 0;
 
 	/**
 	 * Removes a MovieScene instance from the player. 
@@ -55,12 +55,12 @@ public:
 	 * @param MovieSceneSection	The section owning the MovieScene that was instanced. 
 	 * @param InstanceToAdd		The instance being removed
 	 */
-	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) = 0;
+	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove ) = 0;
 
 	/**
 	 * @return The root movie scene instance being played
 	 */
-	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const = 0;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const = 0;
 
 	/** @return whether the player is currently playing, scrubbing, etc. */
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const = 0;

@@ -45,7 +45,7 @@ void SFloatCurveKeyEditor::OnEndSliderMovement(float Value)
 
 float SFloatCurveKeyEditor::OnGetKeyValue() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Eval(CurrentTime);
 }
 
@@ -53,7 +53,7 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 {
 	OwningSection->Modify();
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
 	if (Curve->IsKeyHandleValid(CurrentKeyHandle))
 	{

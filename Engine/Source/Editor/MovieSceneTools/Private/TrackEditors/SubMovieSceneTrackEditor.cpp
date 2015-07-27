@@ -4,6 +4,7 @@
 #include "SubMovieSceneTrackEditor.h"
 #include "SubMovieSceneTrack.h"
 #include "SubMovieSceneSection.h"
+#include "MovieSceneSequence.h"
 
 /**
  * A generic implementation for displaying simple property sections
@@ -29,7 +30,7 @@ public:
 
 	virtual FText GetSectionTitle() const override
 	{
-		return FText::FromString( SectionObject.GetMovieScene()->GetName() );
+		return FText::FromString( SectionObject.GetMovieSceneAnimation()->GetName() );
 	}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
@@ -69,7 +70,7 @@ private:
 	/** The section we are visualizing */
 	USubMovieSceneSection& SectionObject;
 	/** The instance that this section is part of */
-	TWeakPtr<FMovieSceneInstance> MovieSceneInstance;
+	TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
 	/** Sequencer interface */
 	TWeakPtr<ISequencer> Sequencer;
 };
@@ -99,9 +100,11 @@ TSharedRef<ISequencerSection> FSubMovieSceneTrackEditor::MakeSectionInterface( U
 
 bool FSubMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
-	if (Asset->IsA<UMovieScene>())
+	UMovieSceneSequence* Animation = Cast<UMovieSceneSequence>( Asset );
+
+	if( Animation )
 	{
-		GetSequencer()->AddSubMovieScene( CastChecked<UMovieScene>( Asset ) );
+		GetSequencer()->AddSubMovieScene( Animation );
 
 		return true;
 	}

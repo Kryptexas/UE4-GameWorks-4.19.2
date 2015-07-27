@@ -20,7 +20,7 @@
 #include "SSequencer.h"
 #include "SSection.h"
 #include "SAnimationOutlinerTreeNode.h"
-#include "MovieSceneInstance.h"
+#include "MovieSceneSequenceInstance.h"
 #include "SequencerSettings.h"
 #include "SequencerProjectSettings.h"
 #include "SequencerCommonHelpers.h"

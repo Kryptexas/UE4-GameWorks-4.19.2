@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
-#include "MovieSceneAnimation.h"
+#include "MovieSceneSequence.h"
 #include "MovieSceneSection.h"
 #include "SequencerNodeTree.h"
 #include "Sequencer.h"
@@ -27,7 +27,7 @@ void FSequencerNodeTree::Update()
 	// @todo Sequencer - This update pass is too aggressive.  Some nodes may still be valid
 	Empty();
 
-	UMovieScene* MovieScene = Sequencer.GetFocusedMovieScene();
+	UMovieScene* MovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	TArray< TSharedRef<FSequencerDisplayNode> > NewRootNodes;
 
@@ -203,7 +203,7 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 		// Try to get the parent object node if there is one.
 		TSharedPtr<FObjectBindingNode> ParentNode;
 		TArray<UObject*> RuntimeObjects;
-		UMovieSceneAnimation* Animation = Sequencer.GetAnimation();
+		UMovieSceneSequence* Animation = Sequencer.GetFocusedMovieSceneSequence();
 		UObject* RuntimeObject = Animation->FindObject(ObjectBinding);
 		if ( RuntimeObject != nullptr)
 		{
@@ -247,7 +247,8 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 
 void FSequencerNodeTree::SaveExpansionState( const FSequencerDisplayNode& Node, bool bExpanded )
 {	
-	UMovieScene* MovieScene = Sequencer.GetFocusedMovieScene();
+	// @todo Sequencer - This should be moved to the sequence level
+	UMovieScene* MovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	FMovieSceneEditorData& EditorData = MovieScene->GetEditorData();
 
@@ -256,7 +257,8 @@ void FSequencerNodeTree::SaveExpansionState( const FSequencerDisplayNode& Node, 
 
 bool FSequencerNodeTree::GetSavedExpansionState( const FSequencerDisplayNode& Node ) const
 {
-	UMovieScene* MovieScene = Sequencer.GetFocusedMovieScene();
+	// @todo Sequencer - This should be moved to the sequence level
+	UMovieScene* MovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	FMovieSceneEditorData& EditorData = MovieScene->GetEditorData();
 	FMovieSceneExpansionState* ExpansionState = EditorData.ExpansionStates.Find( Node.GetPathName() );

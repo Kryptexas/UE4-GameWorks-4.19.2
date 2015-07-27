@@ -9,7 +9,7 @@
 
 
 class FSequencerSelection;
-class UMovieSceneAnimation;
+class UMovieSceneSequence;
 class UAnimSequence;
 class UMovieScene;
 class UMovieSceneSection;
@@ -32,25 +32,25 @@ public:
 	virtual TSharedRef<SWidget> GetSequencerWidget() const = 0;
 
 	/** @return The root movie scene being used */
-	virtual UMovieScene* GetRootMovieScene() const = 0;
+	virtual UMovieSceneSequence* GetRootMovieSceneSequence() const = 0;
 
 	/** @return Returns the MovieScene that is currently focused for editing by the sequencer.  This can change at any time. */
-	virtual UMovieScene* GetFocusedMovieScene() const = 0;
+	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const = 0;
 
 	/**
 	 * @return the currently focused movie scene instance
 	 */
-	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const = 0;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const = 0;
 
 	/** Resets sequencer with a new animation */
-	virtual void ResetToNewAnimation(UMovieSceneAnimation& NewAnimation) = 0;
+	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewAnimation) = 0;
 
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer.
 	 * 
 	 * @param SubMovieSceneInstance	Sub-MovieScene instance to focus.
 	 */
-	virtual void FocusSubMovieScene(TSharedRef<FMovieSceneInstance> SubMovieSceneInstance) = 0;
+	virtual void FocusSubMovieScene(TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance) = 0;
 	
 	/**
 	 * Given a sub-movie scene section, returns the instance of the movie scene for that section.
@@ -58,14 +58,14 @@ public:
 	 * @param SubMovieSceneSection	The sub-movie scene section containing a movie scene to get the instance for.
 	 * @return The instance for the sub-movie scene
 	 */
-	virtual TSharedRef<FMovieSceneInstance> GetInstanceForSubMovieSceneSection(UMovieSceneSection& SubMovieSceneSection) const = 0;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetInstanceForSubMovieSceneSection(UMovieSceneSection& SubMovieSceneSection) const = 0;
 
 	/**
 	 * Adds a movie scene as a section inside the current movie scene
 	 * 
 	 * @param SubMovieScene The movie scene to add.
 	 */
-	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) = 0;
+	virtual void AddSubMovieScene(UMovieSceneSequence* SubMovieScene) = 0;
 
 	/** @return Returns whether auto-key is enabled in this sequencer */
 	virtual bool GetAutoKeyEnabled() const = 0;
@@ -104,7 +104,7 @@ public:
 	 *
 	 * @param MovieScene The movie scene to get the local time for (must exist in this sequencer).
 	 */
-	virtual float GetCurrentLocalTime(UMovieScene& MovieScene) = 0;
+	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) = 0;
 	
 	/**
 	 * Gets the global time.
@@ -155,13 +155,6 @@ public:
 	virtual void NotifyMovieSceneDataChanged() = 0;
 
 	virtual void UpdateRuntimeInstances() = 0;
-
-	/**
-	 * Get the animation that is being played by this sequencer.
-	 *
-	 * @return The current animation, or nullptr if no animation is playing.
-	 */
-	virtual UMovieSceneAnimation* GetAnimation() = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
 

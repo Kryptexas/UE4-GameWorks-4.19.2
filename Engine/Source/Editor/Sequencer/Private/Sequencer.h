@@ -9,7 +9,7 @@
 
 class UMovieScene;
 class IToolkitHost;
-class UMovieSceneAnimation;
+class UMovieSceneSequence;
 class ISequencerObjectChangeListener;
 
 
@@ -61,19 +61,19 @@ public:
 
 	virtual void Close() override;
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
-	virtual UMovieScene* GetRootMovieScene() const override;
-	virtual UMovieScene* GetFocusedMovieScene() const override;
-	virtual void ResetToNewAnimation(UMovieSceneAnimation& NewAnimation) override;
-	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const override;
-	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const override;
-	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) override;
-	TSharedRef<FMovieSceneInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const override;
+	virtual UMovieSceneSequence* GetRootMovieSceneSequence() const override;
+	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const override;
+	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const override;
+	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance ) override;
+	TSharedRef<FMovieSceneSequenceInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const override;
 	virtual void AddNewShot(FGuid CameraGuid) override;
 	virtual void AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence) override;
 	virtual bool GetAutoKeyEnabled() const override;
 	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) override;
 	virtual bool IsRecordingLive() const override;
-	virtual float GetCurrentLocalTime(UMovieScene& MovieScene) override;
+	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() override;
 	virtual void SetGlobalTime(float Time) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
@@ -81,12 +81,11 @@ public:
 	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
 	virtual void NotifyMovieSceneDataChanged() override;
 	virtual void UpdateRuntimeInstances() override;
-	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) override;
+	virtual void AddSubMovieScene(UMovieSceneSequence* SubMovieSceneSequence) override;
 	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = false) override;
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
-	virtual UMovieSceneAnimation* GetAnimation() override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
 
@@ -106,14 +105,14 @@ public:
 	/**
 	 * Pops the current focused movie scene from the stack.  The parent of this movie scene will be come the focused one
 	 */
-	void PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance );
+	void PopToMovieScene( TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance );
 
 	/**
 	 * Spawn (or destroy) puppet objects as needed to match the spawnables array in the MovieScene we're editing
 	 *
 	 * @param MovieSceneInstance	The movie scene instance to spawn or destroy puppet objects for
 	 */
-	void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
+	void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance );
 
 	/** 
 	 * Deletes the passed in section
@@ -223,15 +222,13 @@ public:
 	void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const class UClass* ObjectClass);
 
 	/** IMovieScenePlayer interface */
-	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
+	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
 	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
-	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) override;
-	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) override;
+	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd ) override;
+	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove ) override;
 
-	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
-
-	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited();
+	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance );
 
 	/** Called when an actor is dropped into Sequencer */
 	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );
@@ -268,7 +265,7 @@ protected:
 	/**
 	 * Destroys spawnables for all movie scenes in the stack
 	 */
-	void DestroySpawnablesForAllMovieScenes();
+	void DestroySpawnablesForAllSequences();
 
 	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
 	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
@@ -402,7 +399,7 @@ private:
 	/** User-supplied settings object for this sequencer */
 	USequencerSettings* Settings;
 
-	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;
+	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneSequenceInstance> > MovieSceneSectionToInstanceMap;
 
 	/** Command list for sequencer commands */
 	TSharedRef<FUICommandList> SequencerCommandBindings;
@@ -412,16 +409,13 @@ private:
 
 	/** The editors we keep track of for special behaviors */
 	TWeakPtr<FMovieSceneTrackEditor> ShotTrackEditor;
-	TWeakPtr<FMovieSceneTrackEditor> AnimationTrackEditor;
-
-	/** The current animation being edited. */
-	UMovieSceneAnimation* Animation;
+	TWeakPtr<FMovieSceneTrackEditor> SkeletalAnimationTrackEditor;
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;
 
 	/** The runtime instance for the root movie scene */
-	TSharedPtr< class FMovieSceneInstance > RootMovieSceneInstance;
+	TSharedPtr< class FMovieSceneSequenceInstance > RootMovieSceneSequenceInstance;
 
 	/** Main sequencer widget */
 	TSharedPtr< class SSequencer > SequencerWidget;
@@ -439,7 +433,7 @@ private:
 	TArray<FGuid> UnfilterableObjects;
 
 	/** Stack of movie scenes.  The first element is always the root movie scene.  The last element is the focused movie scene */
-	TArray< TSharedRef<FMovieSceneInstance> > MovieSceneStack;
+	TArray< TSharedRef<FMovieSceneSequenceInstance> > MovieSceneStack;
 
 	/** The time range target to be viewed */
 	TRange<float> TargetViewRange;

@@ -6,7 +6,7 @@
 /**
  * Tools for animation tracks
  */
-class FAnimationTrackEditor : public FMovieSceneTrackEditor
+class FSkeletalAnimationTrackEditor : public FMovieSceneTrackEditor
 {
 public:
 	/**
@@ -14,8 +14,8 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	FAnimationTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~FAnimationTrackEditor();
+	FSkeletalAnimationTrackEditor( TSharedRef<ISequencer> InSequencer );
+	~FSkeletalAnimationTrackEditor();
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -43,11 +43,11 @@ private:
 
 
 /** Class for animation sections, handles drawing of all waveform previews */
-class FAnimationSection : public ISequencerSection, public TSharedFromThis<FAnimationSection>
+class FSkeletalAnimationSection : public ISequencerSection, public TSharedFromThis<FSkeletalAnimationSection>
 {
 public:
-	FAnimationSection( UMovieSceneSection& InSection );
-	~FAnimationSection();
+	FSkeletalAnimationSection( UMovieSceneSection& InSection );
+	~FSkeletalAnimationSection();
 
 	/** ISequencerSection interface */
 	virtual UMovieSceneSection* GetSectionObject() override;

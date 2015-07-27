@@ -17,8 +17,8 @@ bool FUMGDetailKeyframeHandler::IsPropertyKeyable(UClass* InObjectClass, const I
 
 bool FUMGDetailKeyframeHandler::IsPropertyKeyingEnabled() const
 {
-	UMovieScene* MovieScene = BlueprintEditor.Pin()->GetSequencer()->GetRootMovieScene();
-	return MovieScene != nullptr && MovieScene != UWidgetAnimation::GetNullAnimation()->MovieScene;
+	UMovieSceneSequence* Sequence = BlueprintEditor.Pin()->GetSequencer()->GetRootMovieSceneSequence();
+	return Sequence != nullptr && Sequence != UWidgetAnimation::GetNullAnimation();
 }
 
 void FUMGDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle& KeyedPropertyHandle)

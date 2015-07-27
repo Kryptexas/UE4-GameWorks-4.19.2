@@ -19,7 +19,7 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 		}
 		EnumValues.Add(MakeShareable(new FString(EnumDisplayValue)));
 	}
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	ChildSlot
 	[
 		SNew(SComboBox<TSharedPtr<FString>>)
@@ -39,7 +39,7 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 
 FText SEnumCurveKeyEditor::GetCurrentValue() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return FText::FromString(*EnumValues[Curve->Evaluate(CurrentTime)]);
 }
 
@@ -55,7 +55,7 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(TSharedPtr<FString> InSelected
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 
 	bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
 	if (bKeyWillBeAdded)

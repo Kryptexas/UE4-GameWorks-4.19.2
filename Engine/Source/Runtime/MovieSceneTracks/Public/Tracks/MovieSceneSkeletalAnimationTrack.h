@@ -4,14 +4,14 @@
 
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneAnimationTrack.generated.h"
+#include "MovieSceneSkeletalAnimationTrack.generated.h"
 
 
 /**
  * Handles animation of skeletal mesh actors
  */
 UCLASS( MinimalAPI )
-class UMovieSceneAnimationTrack : public UMovieSceneTrack
+class UMovieSceneSkeletalAnimationTrack : public UMovieSceneTrack
 {
 	GENERATED_UCLASS_BODY()
 

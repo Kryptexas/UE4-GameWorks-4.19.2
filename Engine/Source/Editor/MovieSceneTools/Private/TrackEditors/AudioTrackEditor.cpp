@@ -474,7 +474,7 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 		if (TargetObjectGuid.IsValid())
 		{
 			TArray<UObject*> OutObjects;
-			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneInstance(), TargetObjectGuid, OutObjects);
+			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
 			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(), false,
 				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));

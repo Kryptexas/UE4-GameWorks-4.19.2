@@ -3,13 +3,13 @@
 #pragma once
 
 #include "MovieSceneSection.h"
-#include "MovieSceneAnimationSection.generated.h"
+#include "MovieSceneSkeletalAnimationSection.generated.h"
 
 /**
  * Audio section, for use in the master audio, or by attached audio objects
  */
 UCLASS( MinimalAPI )
-class UMovieSceneAnimationSection : public UMovieSceneSection
+class UMovieSceneSkeletalAnimationSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
 public:

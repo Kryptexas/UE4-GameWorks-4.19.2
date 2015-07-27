@@ -1,17 +1,17 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieScenePrivatePCH.h"
-#include "MovieSceneInstance.h"
+#include "MovieSceneSequenceInstance.h"
+#include "MovieSceneSequence.h"
 
-
-FMovieSceneInstance::FMovieSceneInstance( UMovieScene& InMovieScene )
-	: MovieScene( &InMovieScene )
+FMovieSceneSequenceInstance::FMovieSceneSequenceInstance(const UMovieSceneSequence& InMovieSceneSequence)
+	: MovieSceneSequence( &InMovieSceneSequence )
 {
-	TimeRange = MovieScene->GetTimeRange();
+	TimeRange = MovieSceneSequence->GetMovieScene()->GetTimeRange();
 }
 
 
-void FMovieSceneInstance::SaveState()
+void FMovieSceneSequenceInstance::SaveState()
 {
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
 	for (; ObjectIt; ++ObjectIt)
@@ -26,7 +26,7 @@ void FMovieSceneInstance::SaveState()
 }
 
 
-void FMovieSceneInstance::RestoreState()
+void FMovieSceneSequenceInstance::RestoreState()
 {
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
 	for (; ObjectIt; ++ObjectIt)
@@ -41,7 +41,7 @@ void FMovieSceneInstance::RestoreState()
 }
 
 
-void FMovieSceneInstance::Update( float Position, float LastPosition, class IMovieScenePlayer& Player )
+void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, class IMovieScenePlayer& Player )
 {
 	// Update  shot track
 	TArray<UObject*> NoObjects;
@@ -70,17 +70,18 @@ void FMovieSceneInstance::Update( float Position, float LastPosition, class IMov
 }
 
 
-void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
+void FMovieSceneSequenceInstance::RefreshInstance( IMovieScenePlayer& Player )
 {
+	UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
 	TimeRange = MovieScene->GetTimeRange();
 
 	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
 
-	TSharedRef<FMovieSceneInstance> ThisInstance = AsShared();
+	TSharedRef<FMovieSceneSequenceInstance> ThisInstance = AsShared();
 
 	FMovieSceneInstanceMap ShotTrackInstanceMap;
 	// Only if root movie scene. Any sub-movie scene that has a shot track is ignored
-	if( ShotTrack && Player.GetRootMovieSceneInstance() == ThisInstance )
+	if( ShotTrack && Player.GetRootMovieSceneSequenceInstance() == ThisInstance )
 	{
 		if( ShotTrackInstance.IsValid() )
 		{
@@ -151,7 +152,7 @@ struct FTrackInstanceEvalSorter
 };
 
 
-void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, IMovieScenePlayer& Player  )
+void FMovieSceneSequenceInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, IMovieScenePlayer& Player  )
 {
 	// All the tracks we found during this pass
 	TSet< UMovieSceneTrack* > FoundTracks;

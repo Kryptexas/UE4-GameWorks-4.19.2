@@ -85,7 +85,7 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 	FSequencerInitParams SequencerInitParams;
 	{
 		SequencerInitParams.ViewParams = InViewParams;
-		SequencerInitParams.Animation = ActorAnimation;
+		SequencerInitParams.RootSequence = ActorAnimation;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 	}

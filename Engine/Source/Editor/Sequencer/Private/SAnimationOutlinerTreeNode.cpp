@@ -169,7 +169,7 @@ FReply SAnimationOutlinerTreeNode::OnPreviousKeyClicked()
 {
 	FSequencer& Sequencer = DisplayNode->GetSequencer();
 	float ClosestPreviousKeyDistance = MAX_FLT;
-	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
+	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieSceneSequence());
 	float PreviousTime = 0;
 	bool PreviousKeyFound = false;
 
@@ -200,7 +200,7 @@ FReply SAnimationOutlinerTreeNode::OnNextKeyClicked()
 {
 	FSequencer& Sequencer = DisplayNode->GetSequencer();
 	float ClosestNextKeyDistance = MAX_FLT;
-	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
+	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieSceneSequence());
 	float NextTime = 0;
 	bool NextKeyFound = false;
 
@@ -230,7 +230,7 @@ FReply SAnimationOutlinerTreeNode::OnNextKeyClicked()
 FReply SAnimationOutlinerTreeNode::OnAddKeyClicked()
 {
 	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
+	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieSceneSequence());
 
 	TSet<TSharedPtr<IKeyArea>> KeyAreas;
 	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
@@ -485,7 +485,7 @@ void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequence
 
 		// Get the bound objects
 		TArray<UObject*> RuntimeObjects;
-		Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
+		Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
 		
 		if( RuntimeObjects.Num() > 0 )
 		{

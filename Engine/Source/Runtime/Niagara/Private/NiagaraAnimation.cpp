@@ -33,7 +33,7 @@ bool UNiagaraAnimation::CanPossessObject(UObject& Object) const
 }
 
 
-void UNiagaraAnimation::DestroyAllSpawnedObjects(UMovieScene& SubMovieScene)
+void UNiagaraAnimation::DestroyAllSpawnedObjects()
 {
 }
 
@@ -62,7 +62,7 @@ UObject* UNiagaraAnimation::GetParentObject(UObject* Object) const
 }
 
 
-void UNiagaraAnimation::SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll)
+void UNiagaraAnimation::SpawnOrDestroyObjects(bool DestroyAll)
 {
 }
 

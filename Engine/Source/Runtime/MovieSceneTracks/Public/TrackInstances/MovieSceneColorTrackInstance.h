@@ -43,6 +43,7 @@ private:
 	TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
 
 	/** Map from object to initial state */
+	/** @todo Sequencer: This may be editor only data */
 	TMap< TWeakObjectPtr<UObject>, FSlateColor > InitSlateColorMap;
 	TMap< TWeakObjectPtr<UObject>, FLinearColor > InitLinearColorMap;
 

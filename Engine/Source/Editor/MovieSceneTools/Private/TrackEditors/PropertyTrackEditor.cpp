@@ -3,7 +3,7 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "PropertyEditing.h"
 #include "MovieScene.h"
-#include "MovieSceneAnimation.h"
+#include "MovieSceneSequence.h"
 #include "MovieSceneTrack.h"
 #include "MovieSceneFloatTrack.h"
 #include "MovieSceneVectorTrack.h"
@@ -108,7 +108,9 @@ private:
 
 		static const FName SlateColorName("SlateColor");
 
-		const TArray<FMovieSceneBinding>& MovieSceneBindings = Sequencer->GetFocusedMovieScene()->GetBindings();
+		UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
+
+		const TArray<FMovieSceneBinding>& MovieSceneBindings = Sequence->GetMovieScene()->GetBindings();
 
 		bool bFoundColor = false;
 		for (int32 BindingIndex = 0; BindingIndex < MovieSceneBindings.Num() && !bFoundColor; ++BindingIndex)
@@ -119,7 +121,7 @@ private:
 			{
 				if (MovieSceneBinding.GetTracks()[TrackIndex] == Track)
 				{
-					UObject* RuntimeObject = Sequencer->GetAnimation()->FindObject(MovieSceneBinding.GetObjectGuid());
+					UObject* RuntimeObject = Sequence->FindObject(MovieSceneBinding.GetObjectGuid());
 
 					if (RuntimeObject != nullptr)
 					{
@@ -456,7 +458,7 @@ void FPropertyTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAs
 	ISequencerObjectChangeListener& ObjectChangeListener = GetSequencer()->GetObjectChangeListener();
 
 	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 	for (int32 i = 0; i < OutObjects.Num(); ++i)
 	{
 		ObjectChangeListener.TriggerAllPropertiesChanged(OutObjects[i]);
@@ -465,7 +467,7 @@ void FPropertyTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAs
 
 UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
-	UObject* RuntimeObject = Sequencer->GetAnimation()->FindObject(OwnerObjectHandle);
+	UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequence()->FindObject(OwnerObjectHandle);
 
 	TSet<UEnum*> PropertyEnums;
 	if (RuntimeObject != nullptr)

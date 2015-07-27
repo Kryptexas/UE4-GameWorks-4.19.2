@@ -67,7 +67,7 @@ void FMovieScene3DPathTrackInstance::Update( float Position, float LastPosition,
 
 			if (PathId.IsValid())
 			{
-				Player.GetRuntimeObjects( Player.GetRootMovieSceneInstance(), PathId, PathObjects);
+				Player.GetRuntimeObjects( Player.GetRootMovieSceneSequenceInstance(), PathId, PathObjects);
 
 				for (int32 PathObjectIndex = 0; PathObjectIndex < PathObjects.Num(); ++PathObjectIndex)
 				{

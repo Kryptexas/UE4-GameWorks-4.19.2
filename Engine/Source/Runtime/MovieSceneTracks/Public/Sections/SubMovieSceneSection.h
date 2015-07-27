@@ -4,11 +4,13 @@
 
 #include "SubMovieSceneSection.generated.h"
 
+class UMovieSceneSequence;
+
 /**
  * A container for a movie scene within a movie scene
  */
-UCLASS( MinimalAPI )
-class USubMovieSceneSection : public UMovieSceneSection
+UCLASS()
+class MOVIESCENETRACKS_API USubMovieSceneSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
 public:
@@ -17,13 +19,13 @@ public:
 	 *
 	 * @param InMovieScene	The movie scene to play
 	 */
-	void SetMovieScene( UMovieScene* InMovieScene ) { MovieScene = InMovieScene; }
+	void SetMovieSceneAnimation( UMovieSceneSequence* InAnimation );
 
 	/** @return The movie scene played by this section */
-	UMovieScene* GetMovieScene() const { return MovieScene; }
+	UMovieSceneSequence* GetMovieSceneAnimation() const;
 private:
 	/** Movie scene being played by this section */
 	/** @todo Sequencer: Should this be lazy loaded? */
 	UPROPERTY()
-	UMovieScene* MovieScene;
+	UMovieSceneSequence* Sequence;
 };

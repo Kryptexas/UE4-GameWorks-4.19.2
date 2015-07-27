@@ -41,6 +41,9 @@ private:
 
 	/** Finds the index in the ShotSections array where a new shot should be inserted */
 	int32 FindIndexForNewShot( const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime ) const;
+
+	UFactory* GetAssetFactoryForNewShot( UClass* SequenceClass );
+
 private:
 	/** The Thumbnail pool which draws all the viewport thumbnails for the director track */
 	TSharedPtr<class FShotThumbnailPool> ThumbnailPool;

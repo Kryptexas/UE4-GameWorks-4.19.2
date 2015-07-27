@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneAnimation.h"
+#include "MovieSceneSequence.h"
 #include "ActorAnimationObject.h"
 #include "ActorAnimation.generated.h"
 
@@ -12,7 +12,7 @@
  */
 UCLASS(BlueprintType, MinimalAPI)
 class UActorAnimation
-	: public UMovieSceneAnimation
+	: public UMovieSceneSequence
 {
 	GENERATED_UCLASS_BODY()
 
@@ -26,12 +26,12 @@ public:
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
 	virtual bool CanPossessObject(UObject& Object) const override;
-	virtual void DestroyAllSpawnedObjects(UMovieScene& SubMovieScene) override;
+	virtual void DestroyAllSpawnedObjects() override;
 	virtual UObject* FindObject(const FGuid& ObjectId) const override;
 	virtual FGuid FindObjectId(UObject& Object) const override;
 	virtual UMovieScene* GetMovieScene() const override;
 	virtual UObject* GetParentObject(UObject* Object) const override;
-	virtual void SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll) override;
+	virtual void SpawnOrDestroyObjects(bool DestroyAll) override;
 	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
 
 #if WITH_EDITOR

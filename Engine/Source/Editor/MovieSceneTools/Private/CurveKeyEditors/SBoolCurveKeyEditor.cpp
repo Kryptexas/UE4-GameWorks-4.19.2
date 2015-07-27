@@ -10,7 +10,7 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	ChildSlot
 	[
 		SNew(SCheckBox)
@@ -21,7 +21,7 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 
 ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return !!Curve->Evaluate(CurrentTime) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
@@ -31,7 +31,7 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 
 	bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
 	if (bKeyWillBeAdded)

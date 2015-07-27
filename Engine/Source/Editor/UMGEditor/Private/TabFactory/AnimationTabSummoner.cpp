@@ -138,10 +138,10 @@ private:
 			{
 				const FScopedTransaction Transaction(TransactionName);
 				WidgetAnimation->Modify();
-				WidgetAnimation->MovieScene->Modify();
+				WidgetAnimation->GetMovieScene()->Modify();
 
 				WidgetAnimation->Rename(*InText.ToString());
-				WidgetAnimation->MovieScene->Rename(*InText.ToString());
+				WidgetAnimation->GetMovieScene()->Rename(*InText.ToString());
 
 				if(bNewAnimation)
 				{

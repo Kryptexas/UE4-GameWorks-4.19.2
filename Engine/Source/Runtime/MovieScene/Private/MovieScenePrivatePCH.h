@@ -11,7 +11,8 @@
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneInstance.h"
+#include "MovieSceneSequenceInstance.h"
 #include "IMovieSceneTrackInstance.h"
+#include "MovieSceneSequence.h"
 
 #endif

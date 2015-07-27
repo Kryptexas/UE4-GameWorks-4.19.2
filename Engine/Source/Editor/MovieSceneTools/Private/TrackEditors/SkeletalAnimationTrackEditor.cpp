@@ -7,22 +7,22 @@
 #include "PropertyEditorModule.h"
 #include "PropertyHandle.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneAnimationTrack.h"
+#include "MovieSceneSkeletalAnimationTrack.h"
 #include "ScopedTransaction.h"
 #include "ISequencerObjectChangeListener.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
 #include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
-#include "AnimationTrackEditor.h"
-#include "MovieSceneAnimationSection.h"
+#include "SkeletalAnimationTrackEditor.h"
+#include "MovieSceneSkeletalAnimationSection.h"
 #include "CommonMovieSceneTools.h"
 #include "AssetRegistryModule.h"
 #include "Animation/SkeletalMeshActor.h"
 
 
 
-namespace AnimatableAnimationEditorConstants
+namespace SkeletalAnimationEditorConstants
 {
 	// @todo Sequencer Allow this to be customizable
 	const uint32 AnimationTrackHeight = 20;
@@ -30,38 +30,38 @@ namespace AnimatableAnimationEditorConstants
 
 
 
-FAnimationSection::FAnimationSection( UMovieSceneSection& InSection )
+FSkeletalAnimationSection::FSkeletalAnimationSection( UMovieSceneSection& InSection )
 	: Section( InSection )
 {
 }
 
-FAnimationSection::~FAnimationSection()
+FSkeletalAnimationSection::~FSkeletalAnimationSection()
 {
 }
 
-UMovieSceneSection* FAnimationSection::GetSectionObject()
+UMovieSceneSection* FSkeletalAnimationSection::GetSectionObject()
 { 
 	return &Section;
 }
 
-FText FAnimationSection::GetDisplayName() const
+FText FSkeletalAnimationSection::GetDisplayName() const
 {
 	return NSLOCTEXT("FAnimationSection", "AnimationSection", "Animation");
 }
 
-FText FAnimationSection::GetSectionTitle() const
+FText FSkeletalAnimationSection::GetSectionTitle() const
 {
-	return FText::FromString( Cast<UMovieSceneAnimationSection>(&Section)->GetAnimSequence()->GetName() );
+	return FText::FromString( Cast<UMovieSceneSkeletalAnimationSection>(&Section)->GetAnimSequence()->GetName() );
 }
 
-float FAnimationSection::GetSectionHeight() const
+float FSkeletalAnimationSection::GetSectionHeight() const
 {
-	return (float)AnimatableAnimationEditorConstants::AnimationTrackHeight;
+	return (float)SkeletalAnimationEditorConstants::AnimationTrackHeight;
  }
 
-int32 FAnimationSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
+int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
-	UMovieSceneAnimationSection* AnimSection = Cast<UMovieSceneAnimationSection>(&Section);
+	UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(&Section);
 	
 	FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
 
@@ -122,49 +122,49 @@ int32 FAnimationSection::OnPaintSection( const FGeometry& AllottedGeometry, cons
 	return LayerId+3;
 }
 
-FAnimationTrackEditor::FAnimationTrackEditor( TSharedRef<ISequencer> InSequencer )
+FSkeletalAnimationTrackEditor::FSkeletalAnimationTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
 }
 
-FAnimationTrackEditor::~FAnimationTrackEditor()
+FSkeletalAnimationTrackEditor::~FSkeletalAnimationTrackEditor()
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> FAnimationTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<FMovieSceneTrackEditor> FSkeletalAnimationTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
-	return MakeShareable( new FAnimationTrackEditor( InSequencer ) );
+	return MakeShareable( new FSkeletalAnimationTrackEditor( InSequencer ) );
 }
 
-bool FAnimationTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
+bool FSkeletalAnimationTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
-	return Type == UMovieSceneAnimationTrack::StaticClass();
+	return Type == UMovieSceneSkeletalAnimationTrack::StaticClass();
 }
 
-TSharedRef<ISequencerSection> FAnimationTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FSkeletalAnimationTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 	
-	TSharedRef<ISequencerSection> NewSection( new FAnimationSection(SectionObject) );
+	TSharedRef<ISequencerSection> NewSection( new FSkeletalAnimationSection(SectionObject) );
 
 	return NewSection;
 }
 
-void FAnimationTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
+void FSkeletalAnimationTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
 {
 	UAnimSequence* AnimSequence = Cast<UAnimSequence>(AdditionalAsset);
 
 	if (AnimSequence)
 	{
 		TArray<UObject*> OutObjects;
-		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
+		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-		AnimatablePropertyChanged( UMovieSceneAnimationTrack::StaticClass(), false,
-			FOnKeyProperty::CreateRaw( this, &FAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence) );
+		AnimatablePropertyChanged( UMovieSceneSkeletalAnimationTrack::StaticClass(), false,
+			FOnKeyProperty::CreateRaw( this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence) );
 	}
 }
 
-bool FAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
+bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
 	if (Asset->IsA<UAnimSequence>())
 	{
@@ -177,10 +177,10 @@ bool FAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Target
 			if (Skeleton && Skeleton == AnimSequence->GetSkeleton())
 			{
 				TArray<UObject*> OutObjects;
-				GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneInstance(), TargetObjectGuid, OutObjects);
+				GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
-				AnimatablePropertyChanged(UMovieSceneAnimationTrack::StaticClass(), false,
-					FOnKeyProperty::CreateRaw(this, &FAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence));
+				AnimatablePropertyChanged(UMovieSceneSkeletalAnimationTrack::StaticClass(), false,
+					FOnKeyProperty::CreateRaw(this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence));
 
 				return true;
 			}
@@ -189,7 +189,7 @@ bool FAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Target
 	return false;
 }
 
-void FAnimationTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+void FSkeletalAnimationTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(ASkeletalMeshActor::StaticClass()))
 	{
@@ -227,7 +227,7 @@ void FAnimationTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuil
 	}
 }
 
-void FAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, class UAnimSequence* AnimSequence )
+void FSkeletalAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, class UAnimSequence* AnimSequence )
 {
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 	{
@@ -236,20 +236,20 @@ void FAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*
 		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
 		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAnimationTrack::StaticClass(), FName("Animation"));
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneSkeletalAnimationTrack::StaticClass(), FName("Animation"));
 
 			if (ensure(Track))
 			{
-				Cast<UMovieSceneAnimationTrack>(Track)->AddNewAnimation( KeyTime, AnimSequence );
+				Cast<UMovieSceneSkeletalAnimationTrack>(Track)->AddNewAnimation( KeyTime, AnimSequence );
 			}
 		}
 	}
 }
 
-USkeleton* FAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FGuid& Guid)
+USkeleton* FSkeletalAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FGuid& Guid)
 {
 	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneInstance(), Guid, OutObjects);
+	GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), Guid, OutObjects);
 
 	USkeleton* Skeleton = NULL;
 	for (int32 i = 0; i < OutObjects.Num(); ++i)

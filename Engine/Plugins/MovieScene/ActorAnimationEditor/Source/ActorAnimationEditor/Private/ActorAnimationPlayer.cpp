@@ -3,8 +3,8 @@
 #include "ActorAnimationEditorPrivatePCH.h"
 #include "ActorAnimationPlayer.h"
 #include "MovieScene.h"
-#include "MovieSceneAnimation.h"
-#include "MovieSceneInstance.h"
+#include "MovieSceneSequence.h"
+#include "MovieSceneSequenceInstance.h"
 
 
 /* UActorAnimationPlayer structors
@@ -62,7 +62,7 @@ void UActorAnimationPlayer::Play()
 	}
 
 	// @todo Sequencer playback: Should we recreate the instance every time?
-	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(*ActorAnimation->GetMovieScene()));
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*ActorAnimation));
 
 	// @odo Sequencer Should we spawn actors here?
 	SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
@@ -85,7 +85,7 @@ void UActorAnimationPlayer::Initialize(UActorAnimation* InActorAnimation, UWorld
 /* IMovieScenePlayer interface
  *****************************************************************************/
 
-void UActorAnimationPlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
+void UActorAnimationPlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance)
 {
 	UWorld* WorldPtr = World.Get();
 
@@ -94,7 +94,7 @@ void UActorAnimationPlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstance> 
 		return;
 	}
 
-	UMovieScene* MovieScene = MovieSceneInstance->GetMovieScene();
+	UMovieScene* MovieScene = MovieSceneInstance->GetSequence()->GetMovieScene();
 
 	if (MovieScene == nullptr)
 	{
@@ -147,7 +147,7 @@ void UActorAnimationPlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneInstance> 
 }
 
 
-void UActorAnimationPlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneInstance> MovieSceneInstance)
+void UActorAnimationPlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance)
 {
 	UWorld* WorldPtr = World.Get();
 
@@ -184,7 +184,7 @@ void UActorAnimationPlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneInstance
 }
 
 
-void UActorAnimationPlayer::GetRuntimeObjects(TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
+void UActorAnimationPlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
 {
 	// @todo sequencer runtime: Add support for individually spawning actors on demand when first requested?
 	//    This may be important to reduce the up-front hitch when spawning actors for the entire movie, but
@@ -231,20 +231,20 @@ EMovieScenePlayerStatus::Type UActorAnimationPlayer::GetPlaybackStatus() const
 }
 
 
-void UActorAnimationPlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd)
+void UActorAnimationPlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd)
 {
 	SpawnActorsForMovie( InstanceToAdd );
 }
 
 
-void UActorAnimationPlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove)
+void UActorAnimationPlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove)
 {
 	const bool bDestroyAll = true;
 	DestroyActorsForMovie( InstanceToRemove );
 }
 
 
-TSharedRef<FMovieSceneInstance> UActorAnimationPlayer::GetRootMovieSceneInstance() const
+TSharedRef<FMovieSceneSequenceInstance> UActorAnimationPlayer::GetRootMovieSceneSequenceInstance() const
 {
 	return RootMovieSceneInstance.ToSharedRef();
 }

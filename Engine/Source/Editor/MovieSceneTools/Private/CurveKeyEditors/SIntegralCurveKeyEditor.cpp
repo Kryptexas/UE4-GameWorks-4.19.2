@@ -45,7 +45,7 @@ void SIntegralCurveKeyEditor::OnEndSliderMovement(int32 Value)
 
 int32 SIntegralCurveKeyEditor::OnGetKeyValue() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Evaluate(CurrentTime);
 }
 
@@ -53,7 +53,7 @@ void SIntegralCurveKeyEditor::OnValueChanged(int32 Value)
 {
 	OwningSection->Modify();
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 
 	bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
 	if (bKeyWillBeAdded)

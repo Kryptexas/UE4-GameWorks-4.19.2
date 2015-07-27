@@ -22,7 +22,7 @@ void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& Runt
 	{
 		// @todo Sequencer - Sub-moviescenes: Get the cameras from the root movie scene instance.  We should support adding cameras for sub-moviescenes as shots
 		TArray<UObject*> CameraObjects;
-		Player.GetRuntimeObjects(Player.GetRootMovieSceneInstance(), CastChecked<UMovieSceneShotSection>( Section )->GetCameraGuid(), CameraObjects );
+		Player.GetRuntimeObjects(Player.GetRootMovieSceneSequenceInstance(), CastChecked<UMovieSceneShotSection>( Section )->GetCameraGuid(), CameraObjects );
 		if( CameraObjects.Num() == 1 )
 		{
 			RuntimeCameraObjects.Add( CameraObjects[0] );

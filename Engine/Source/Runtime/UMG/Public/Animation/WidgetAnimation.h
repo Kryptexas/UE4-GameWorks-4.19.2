@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneAnimation.h"
+#include "MovieSceneSequence.h"
 #include "WidgetAnimationBinding.h"
 #include "WidgetAnimation.generated.h"
 
@@ -13,7 +13,7 @@ class UUserWidget;
 
 UCLASS(BlueprintType, MinimalAPI)
 class UWidgetAnimation
-	: public UMovieSceneAnimation
+	: public UMovieSceneSequence
 {
 	GENERATED_UCLASS_BODY()
 
@@ -47,7 +47,7 @@ public:
 	UMG_API float GetEndTime() const;
 
 	/**
-	 * Initialize the widge editor with a new user widget.
+	 * Initialize the animation with a new user widget.
 	 *
 	 * @param InPreviewWidget The user widget to preview.
 	 */
@@ -60,18 +60,19 @@ public:
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
 	virtual bool CanPossessObject(UObject& Object) const override;
-	virtual void DestroyAllSpawnedObjects(UMovieScene& SubMovieScene) override { }
+	virtual void DestroyAllSpawnedObjects() override { }
 	virtual UObject* FindObject(const FGuid& ObjectId) const override;
 	virtual FGuid FindObjectId(UObject& Object) const override;
 	virtual UMovieScene* GetMovieScene() const override;
 	virtual UObject* GetParentObject(UObject* Object) const override;
-	virtual void SpawnOrDestroyObjects(UMovieScene* SubMovieScene, bool DestroyAll) override { }
+	virtual void SpawnOrDestroyObjects(bool DestroyAll) override { }
 	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
 
 #if WITH_EDITOR
 	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const override;
 #endif
 
+	const TArray<FWidgetAnimationBinding>& GetBindings() const { return AnimationBindings; }
 public:
 
 	/** Pointer to the movie scene that controls this animation. */

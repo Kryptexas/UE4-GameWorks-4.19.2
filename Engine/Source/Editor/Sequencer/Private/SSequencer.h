@@ -32,9 +32,9 @@ struct FSequencerBreadcrumb
 	/** The type of breadcrumb this is */
 	FSequencerBreadcrumb::Type BreadcrumbType;
 	/** The movie scene this may point to */
-	class TWeakPtr<FMovieSceneInstance> MovieSceneInstance;
+	class TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
 
-	FSequencerBreadcrumb( TSharedRef<class FMovieSceneInstance> InMovieSceneInstance )
+	FSequencerBreadcrumb( TSharedRef<class FMovieSceneSequenceInstance> InMovieSceneInstance )
 		: BreadcrumbType(FSequencerBreadcrumb::MovieSceneType)
 		, MovieSceneInstance(InMovieSceneInstance) {}
 
@@ -223,7 +223,7 @@ private:
 	void OnCrumbClicked(const FSequencerBreadcrumb& Item);
 
 	/** Gets the root movie scene name */
-	FText GetRootMovieSceneName() const;
+	FText GetRootAnimationName() const;
 
 	/** Gets the title of the passed in shot section */
 	FText GetShotSectionTitle(UMovieSceneSection* ShotSection) const;

@@ -157,7 +157,7 @@ void FParticleTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuild
 void FParticleTrackEditor::AddParticleKey(const FGuid ObjectGuid, bool bTrigger)
 {
 	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects );
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
 
 	AnimatablePropertyChanged( UMovieSceneParticleTrack::StaticClass(), false,
 		FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects, bTrigger) );
