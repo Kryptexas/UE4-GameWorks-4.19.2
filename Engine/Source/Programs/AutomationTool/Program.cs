@@ -27,6 +27,10 @@ namespace AutomationTool
 
             try
             {
+                if (!Environment.Is64BitProcess)
+                {
+                    throw new AutomationException(ErrorCodes.Error_UATLaunchFailure, "Not running as a 64-bit process. Something must be wrong with the build settings.");
+                }
                 HostPlatform.Initialize();
 
                 Log.TraceVerbose("Running on {0}", HostPlatform.Current.GetType().Name);
