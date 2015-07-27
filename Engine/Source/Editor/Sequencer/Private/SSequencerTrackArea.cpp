@@ -505,7 +505,7 @@ struct FSelectionVisitor : IMarqueeVisitor
 	}
 
 private:
-	mutable FSequencerSelection& Selection;
+	FSequencerSelection& Selection;
 	const FPointerEvent& MouseEvent;
 };
 
