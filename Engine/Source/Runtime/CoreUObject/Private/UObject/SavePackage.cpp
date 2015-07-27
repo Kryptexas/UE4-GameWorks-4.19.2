@@ -4489,7 +4489,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		UE_FINISH_LOG_COOK_TIME();
 
-		UE_LOG(LogSavePackage, Warning, TEXT("Finished SavePackage %s"), Filename);
+		UE_LOG(LogSavePackage, Display, TEXT("Finished SavePackage %s"), Filename);
 
 		return Success;
 	}
