@@ -112,7 +112,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddHeader();
 
 	BeginSection( *RuntimePropertiesTag );
-	AddCrashProperty( TEXT( "CrashVersion" ), ECrashDescVersions::VER_3_CrashContext );
+	AddCrashProperty( TEXT( "CrashVersion" ), (int32)ECrashDescVersions::VER_3_CrashContext );
 	AddCrashProperty( TEXT( "CrashGUID" ), *NCachedCrashContextProperties::CrashGUID );
 	AddCrashProperty( TEXT( "ProcessId" ), FPlatformProcess::GetCurrentProcessId() );
 	AddCrashProperty( TEXT( "IsInternalBuild" ), NCachedCrashContextProperties::bIsInternalBuild );
