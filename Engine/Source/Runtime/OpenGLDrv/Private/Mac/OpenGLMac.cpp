@@ -17,13 +17,8 @@
  OpenGL static variables.
  ------------------------------------------------------------------------------*/
 
-// @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
-static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
-	TEXT("r.Mac.UseFrameBufferSRGB"),
-	0,
-	TEXT("Flag to toggle use of GL_FRAMEBUFFER_SRGB for better color accuracy.\n"),
-	ECVF_RenderThreadSafe
-	);
+// As of 10.11.0 Apple fixed radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
+bool FMacOpenGL::bUseSRGBFramebuffer = false;
 
 // @todo: remove once Apple fixes radr://15553950, TTP# 315197
 static int32 GMacFlushTexStorage = true;
@@ -1169,6 +1164,8 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	
 	// SSOs require structs in geometry shaders - which only work in 10.10.0 and later
 	bSupportsSeparateShaderObjects &= (FMacPlatformMisc::MacOSXVersionCompare(10,10,0) >= 0);
+	
+	bUseSRGBFramebuffer = (!IsRHIDeviceAMD() || FMacPlatformMisc::MacOSXVersionCompare(10,11,0) >= 0);
 }
 
 void FMacOpenGL::MacQueryTimestampCounter(GLuint QueryID)
@@ -1290,20 +1287,6 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 	// @todo Fixed in 10.10.1.
 	FPlatformOpenGLContext::VerifyCurrentContext();
 	return GMacFlushTexStorage || GMacMustFlushTexStorage;
-}
-
-/** Is the current renderer the Intel HD3000? */
-bool FMacOpenGL::IsIntelHD3000()
-{
-	// Get the current renderer ID
-	GLint RendererID = 0;
-	CGLContextObj Current = CGLGetCurrentContext();
-	if (Current)
-	{
-		CGLError Error = CGLGetParameter(Current, kCGLCPCurrentRendererID, &RendererID);
-		check(Error == kCGLNoError && RendererID != 0);
-	}
-	return (RendererID & kCGLRendererIDMatchingMask) == kCGLRendererIntelHDID;
 }
 
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)

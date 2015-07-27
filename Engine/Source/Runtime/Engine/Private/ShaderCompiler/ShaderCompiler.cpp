@@ -1934,15 +1934,6 @@ void GlobalBeginCompileShader(
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 		Input.Environment.SetDefine(TEXT("USE_DBUFFER"), CVar ? CVar->GetInt() : 0);
 	}
-	
-	{
-		int32 UseFrameBufferSRGB = 1;
-#if PLATFORM_MAC // @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mac.UseFrameBufferSRGB"));
-		UseFrameBufferSRGB = CVar ? (CVar->GetValueOnGameThread() != 0) : 0;
-#endif
-		Input.Environment.SetDefine(TEXT("USE_FRAMEBUFFER_SRGB"), UseFrameBufferSRGB);
-	}
 
 	NewJobs.Add(NewJob);
 }

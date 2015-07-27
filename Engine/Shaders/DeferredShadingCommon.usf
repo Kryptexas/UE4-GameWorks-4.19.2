@@ -116,7 +116,6 @@ float3 DecodeNormal( float3 N )
 	//return OctahedronToUnitVector( Pack888To1212( N ) * 2 - 1 );
 }
 
-#if USE_FRAMEBUFFER_SRGB
 float3 EncodeBaseColor(float3 BaseColor)
 {
 	// we use sRGB on the render target to give more precision to the darks
@@ -128,18 +127,6 @@ float3 DecodeBaseColor(float3 BaseColor)
 	// we use sRGB on the render target to give more precision to the darks
 	return BaseColor;
 }
-#else // @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
-float3 EncodeBaseColor(float3 BaseColor)
-{
-	// Gamma 2.0
-	return sqrt( saturate(BaseColor) );
-}
-
-float3 DecodeBaseColor(float3 BaseColor)
-{
-	return Square( BaseColor );
-}
-#endif
 
 float3 EncodeSubsurfaceColor(float3 SubsurfaceColor)
 {
