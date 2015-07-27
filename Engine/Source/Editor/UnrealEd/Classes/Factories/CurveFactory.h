@@ -34,5 +34,36 @@ class UCurveFloatFactory : public UCurveFactory
 
 	// UFactory interface
 	virtual bool ConfigureProperties() override;
+	virtual bool ShouldShowInNewMenu() const override { return false; }
+	// End of UFactory interface
+};
+
+/**
+ * Factory that creates linear color curve assets
+ */
+
+UCLASS()
+class UCurveLinearColorFactory : public UCurveFactory
+{
+	GENERATED_UCLASS_BODY()
+
+	// UFactory interface
+	virtual bool ConfigureProperties() override;
+	virtual bool ShouldShowInNewMenu() const override { return false; }
+	// End of UFactory interface
+};
+
+/**
+ * Factory that creates vector curve assets
+ */
+
+UCLASS()
+class UCurveVectorFactory : public UCurveFactory
+{
+	GENERATED_UCLASS_BODY()
+
+	// UFactory interface
+	virtual bool ConfigureProperties() override;
+	virtual bool ShouldShowInNewMenu() const override { return false; }
 	// End of UFactory interface
 };

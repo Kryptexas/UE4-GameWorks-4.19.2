@@ -6375,12 +6375,11 @@ FString UBlueprintInterfaceFactory::GetDefaultNewAssetName() const
 UCurveFactory::UCurveFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	bCreateNew = true;
 	bEditAfterNew = true;
 	SupportedClass = UCurveBase::StaticClass();
 
-	CurveClass = UCurveFloat::StaticClass();
+	CurveClass = nullptr;
 }
 
 class FCurveDataAssetParentFilter : public IClassViewerFilter
@@ -6453,13 +6452,43 @@ UObject* UCurveFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 UCurveFloatFactory::UCurveFloatFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bCreateNew = true;
-	bEditAfterNew = true;
 	SupportedClass = UCurveFloat::StaticClass();
 	CurveClass = UCurveFloat::StaticClass();
 }
 
 bool UCurveFloatFactory::ConfigureProperties()
+{
+	return true;
+}
+
+/*------------------------------------------------------------------------------
+	UCurveLinearColorFactory implementation.
+------------------------------------------------------------------------------*/
+
+UCurveLinearColorFactory::UCurveLinearColorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UCurveLinearColor::StaticClass();
+	CurveClass = UCurveLinearColor::StaticClass();
+}
+
+bool UCurveLinearColorFactory::ConfigureProperties()
+{
+	return true;
+}
+
+/*------------------------------------------------------------------------------
+	UCurveVectorFactory implementation.
+------------------------------------------------------------------------------*/
+
+UCurveVectorFactory::UCurveVectorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UCurveVector::StaticClass();
+	CurveClass = UCurveVector::StaticClass();
+}
+
+bool UCurveVectorFactory::ConfigureProperties()
 {
 	return true;
 }
