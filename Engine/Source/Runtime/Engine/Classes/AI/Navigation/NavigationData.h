@@ -724,7 +724,6 @@ public:
 	 *	@param Location is expressed in WorldSpace, navigation data is responsible for tansforming if need be */
 	virtual bool DoesNodeContainLocation(NavNodeRef NodeRef, const FVector& WorldSpaceLocation) const PURE_VIRTUAL(ANavigationData::DoesNodeContainLocation, return false;);
 
-	const UWorld* GetCachedWorld() const;
 	float GetWorldTimeStamp() const;
 
 	//----------------------------------------------------------------------//

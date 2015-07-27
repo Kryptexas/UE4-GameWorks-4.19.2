@@ -558,14 +558,9 @@ void ANavigationData::DrawDebugPath(FNavigationPath* Path, FColor PathColor, UCa
 	Path->DebugDraw(this, PathColor, Canvas, bPersistent, NextPathPointIndex);
 }
 
-const UWorld* ANavigationData::GetCachedWorld() const
-{
-	return CachedWorld;
-}
-
 float ANavigationData::GetWorldTimeStamp() const
 {
-	const UWorld* World = GetCachedWorld();
+	const UWorld* World = GetWorld();
 	return World ? World->GetTimeSeconds() : 0.f;
 }
 
