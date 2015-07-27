@@ -10,20 +10,6 @@
 #include "AllowWindowsPlatformTypes.h"
 #include <DbgHelp.h>
 
-FCrashDebugHelperWindows::FCrashDebugHelperWindows()
-{
-}
-
-FCrashDebugHelperWindows::~FCrashDebugHelperWindows()
-{
-}
-
-
-bool FCrashDebugHelperWindows::ParseCrashDump(const FString& InCrashDumpName, FCrashDebugInfo& OutCrashDebugInfo)
-{
-	return true;
-}
-
 bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& InCrashDumpFilename )
 {
 	const bool bSyncSymbols = FParse::Param( FCommandLine::Get(), TEXT( "SyncSymbols" ) );

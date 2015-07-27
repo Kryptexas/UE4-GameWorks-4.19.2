@@ -642,20 +642,6 @@ void FCrashInfo::GenerateReport( const FString& DiagnosticsPath )
 	}
 }
 
-bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromLabel(const FString& InLabel, const FString& InPlatform)
-{
-	// @TODO yrx 2015-02-19 Use PDB cache
-
-	return false;
-}
-
-bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromChangelist(int32 InChangelistNumber, const FString& InPlatform)
-{
-	// @TODO yrx 2015-02-19 Use PDB cache
-
-	return false;
-}
-
 void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 {
 	CrashInfo.ExecutablesPath.Empty();

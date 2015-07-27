@@ -501,7 +501,7 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 				ModuleName = ModuleAndFunction;
 			}
 
-			// @TODO yrx 2015-02-24 Add for other platforms
+			// #YRX_Crash: 2015-07-24 Add for other platforms
 			// If we find an assert, the actual source file we're interested in is the next one up, so reset the source file found flag
 			if( FunctionName.Len() > 0 )
 			{
