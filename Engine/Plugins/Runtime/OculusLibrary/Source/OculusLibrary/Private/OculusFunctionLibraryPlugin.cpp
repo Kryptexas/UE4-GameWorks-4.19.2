@@ -2,6 +2,7 @@
 
 #include "OculusFunctionLibraryPrivatePCH.h"
 #include "IOculusLibraryPlugin.h"
+#include "OculusFunctionLibrary.h"
 
 class FOculusLibraryPlugin : public IOculusLibraryPlugin
 {
