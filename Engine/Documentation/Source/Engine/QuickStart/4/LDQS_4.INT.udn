@@ -3,7 +3,7 @@ Title:4 - Placing Actors in the Level
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:Here we will begin placing and manipulating Actors in our level to build out our environment. 
 SkillLevel:Beginner
-Version:4.8 
+Version:4.9 
 Related:Engine/UI/LevelEditor/Modes/PlaceMode
 Related:GettingStarted/HowTo/ManipulatingActors
 Related:Engine/UI/LevelEditor/Details
