@@ -667,8 +667,9 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 {
 	if (EventWindow.IsValid() && EventWindow->IsRegularWindow())
 	{
-		bool IsMouseOverTitleBar = false;
-		const bool IsMovable = IsWindowMovable(EventWindow.ToSharedRef(), &IsMouseOverTitleBar);
+		const EWindowZone::Type Zone = GetCurrentWindowZone(EventWindow.ToSharedRef());
+		bool IsMouseOverTitleBar = (Zone == EWindowZone::TitleBar);
+		const bool IsMovable = IsMouseOverTitleBar || IsEdgeZone(Zone);
 		[EventWindow->GetWindowHandle() setMovable:IsMovable];
 		[EventWindow->GetWindowHandle() setMovableByWindowBackground:IsMouseOverTitleBar];
 	}
@@ -784,11 +785,10 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 
 	if (EventWindow.IsValid())
 	{
+		const EWindowZone::Type Zone = GetCurrentWindowZone(EventWindow.ToSharedRef());
 		if (Button == LastPressedMouseButton && (Event.ClickCount % 2) == 0)
 		{
-			bool IsMouseOverTitleBar = false;
-			const bool IsMovable = IsWindowMovable(EventWindow.ToSharedRef(), &IsMouseOverTitleBar);
-			if (IsMouseOverTitleBar)
+			if (Zone == EWindowZone::TitleBar)
 			{
 				const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
 				FCocoaWindow* WindowHandle = EventWindow->GetWindowHandle();
@@ -806,7 +806,8 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 				MessageHandler->OnMouseDoubleClick(EventWindow, Button);
 			}
 		}
-		else
+		// Only forward left mouse button down events if it's not inside the resize edge zone of a normal resizable window.
+		else if (!EventWindow->IsRegularWindow() || Button != EMouseButtons::Left || !IsEdgeZone(Zone))
 		{
 			MessageHandler->OnMouseDown(EventWindow, Button);
 		}
@@ -1208,19 +1209,16 @@ NSScreen* FMacApplication::FindScreenByPoint(int32 X, int32 Y) const
 	return TargetScreen;
 }
 
-bool FMacApplication::IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMovableByBackground) const
+EWindowZone::Type FMacApplication::GetCurrentWindowZone(const TSharedRef<FMacWindow>& Window) const
 {
-	if (OutMovableByBackground)
-	{
-		*OutMovableByBackground = false;
-	}
-
 	const FVector2D CursorPos = ((FMacCursor*)Cursor.Get())->GetPosition();
 	const int32 LocalMouseX = CursorPos.X - Window->PositionX;
 	const int32 LocalMouseY = CursorPos.Y - Window->PositionY;
+	return MessageHandler->GetWindowZoneForPoint(Window, LocalMouseX, LocalMouseY);
+}
 
-	const EWindowZone::Type Zone = MessageHandler->GetWindowZoneForPoint(Window, LocalMouseX, LocalMouseY);
-	const bool IsMouseOverTitleBar = Zone == EWindowZone::TitleBar;
+bool FMacApplication::IsEdgeZone(EWindowZone::Type Zone) const
+{
 	switch (Zone)
 	{
 		case EWindowZone::NotInWindow:
@@ -1234,11 +1232,6 @@ bool FMacApplication::IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMo
 		case EWindowZone::BottomRightBorder:
 			return true;
 		case EWindowZone::TitleBar:
-			if (OutMovableByBackground)
-			{
-				*OutMovableByBackground = true;
-			}
-			return true;
 		case EWindowZone::ClientArea:
 		case EWindowZone::MinimizeButton:
 		case EWindowZone::MaximizeButton:

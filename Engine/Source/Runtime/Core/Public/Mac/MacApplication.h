@@ -220,7 +220,8 @@ private:
 
 	FCocoaWindow* FindEventWindow(NSEvent* CocoaEvent) const;
 	NSScreen* FindScreenByPoint(int32 X, int32 Y) const;
-	bool IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMovableByBackground) const;
+	EWindowZone::Type GetCurrentWindowZone(const TSharedRef<FMacWindow>& Window) const;
+	bool IsEdgeZone(EWindowZone::Type Zone) const;
 	bool IsPrintableKey(uint32 Character) const;
 	TCHAR ConvertChar(TCHAR Character) const;
 	TCHAR TranslateCharCode(TCHAR CharCode, uint32 KeyCode) const;
