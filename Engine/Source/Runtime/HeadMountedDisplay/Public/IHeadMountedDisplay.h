@@ -249,6 +249,18 @@ public:
 	virtual FQuat GetBaseOrientation() const { return FQuat::Identity; }
 
 	/**
+	 * Scales the HMD position that gets added to the virtual camera position.
+	 *
+	 * @param PosScale3D	(in) the scale to apply to the HMD position.
+	 */
+	virtual void SetPositionScale3D(FVector PosScale3D) {}
+
+	/**
+	 * Returns current position scale of HMD.
+	 */
+	virtual FVector GetPositionScale3D() const { return FVector::ZeroVector; }
+
+	/**
 	* @return true if a hidden area mask is available for the device.
 	*/
 	virtual bool HasHiddenAreaMask() const { return false; }

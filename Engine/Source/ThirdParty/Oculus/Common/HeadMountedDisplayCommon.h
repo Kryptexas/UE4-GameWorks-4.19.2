@@ -171,6 +171,9 @@ public:
 	/** Optional far clipping plane for projection matrix */
 	float FarClippingPlane;
 
+	/** Scale the positional movement */
+	FVector		PositionScale3D;
+
 	/** Size of mirror window; {0,0} if size is the default one */
 	FIntPoint	MirrorWindowSize;
 
@@ -345,6 +348,9 @@ public:
 
 	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
 	virtual FQuat GetBaseOrientation() const override;
+
+	virtual void SetPositionScale3D(FVector PosScale3D) override;
+	virtual FVector GetPositionScale3D() const override;
 
 	/**
 	* A helper function that calculates the estimated neck position using the specified orientation and position

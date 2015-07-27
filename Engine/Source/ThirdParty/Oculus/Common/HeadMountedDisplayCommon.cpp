@@ -35,6 +35,8 @@ FHMDSettings::FHMDSettings() :
 	Flags.bPlayerCameraManagerFollowsHmdOrientation = true;
 	Flags.bPlayerCameraManagerFollowsHmdPosition = true;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = FIntRect(0, 0, 0, 0);
+
+	PositionScale3D = FVector(1.0f, 1.0f, 1.0f);
 }
 
 TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FHMDSettings::Clone() const
@@ -460,6 +462,16 @@ FQuat FHeadMountedDisplay::GetBaseOrientation() const
 	return Settings->BaseOrientation;
 }
 
+void FHeadMountedDisplay::SetPositionScale3D(FVector PosScale3D)
+{
+	Settings->PositionScale3D = PosScale3D;
+}
+
+FVector FHeadMountedDisplay::GetPositionScale3D() const
+{
+	return Settings->PositionScale3D;
+}
+
 void FHeadMountedDisplay::SetBaseOffsetInMeters(const FVector& BaseOffset)
 {
 	Settings->BaseOffset = BaseOffset;
@@ -551,6 +563,10 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 		{
 			Settings->WorldToMetersScale = val;
 			Settings->Flags.bWorldToMetersOverride = true;
+		}
+		if (FParse::Value(Cmd, TEXT("PS="), val))
+		{
+			Settings->PositionScale3D = FVector(val, val, val);
 		}
 
 		// debug configuration
@@ -1040,7 +1056,7 @@ void FHeadMountedDisplay::UpdatePlayerCameraRotation(APlayerCameraManager* Camer
 	if (frame->Settings->Flags.bPlayerCameraManagerFollowsHmdPosition) // POV.bFollowHmdPosition
 	{
 		const FVector vCamPosition = CurPOVOrientation.RotateVector(CurHmdPosition);
-		POV.Location += vCamPosition;
+		POV.Location += vCamPosition * frame->Settings->PositionScale3D;
 		frame->LastHmdPosition = CurHmdPosition;
 		frame->Flags.bPositionChanged = true;
 	}
