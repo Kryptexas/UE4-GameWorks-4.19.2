@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
+#include "ISettingsModule.h"
 #include "ModuleManager.h"
 #include "Sequencer.h"
 #include "Toolkits/ToolkitManager.h"
@@ -15,6 +16,8 @@
 //
 // These macros should be removed when those functions are removed.
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+#define LOCTEXT_NAMESPACE "SequencerEditor"
 
 
 /**
@@ -63,6 +66,14 @@ public:
 
 		MenuExtensibilityManager = MakeShareable( new FExtensibilityManager );
 		ToolBarExtensibilityManager = MakeShareable( new FExtensibilityManager );
+
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+		{
+			SettingsModule->RegisterSettings("Project", "Editor", "Sequencer",
+				LOCTEXT("RuntimeSettingsName", "Sequencer"),
+				LOCTEXT("RuntimeSettingsDescription", "Configure the Sequencer plugin"),
+				GetMutableDefault<USequencerProjectSettings>());
+		}
 	}
 
 	virtual void ShutdownModule() override
@@ -72,6 +83,11 @@ public:
 			FSequencerCommands::Unregister();
 
 			FEditorModeRegistry::Get().UnregisterMode(FSequencerEdMode::EM_SequencerMode);
+		}
+
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+		{
+			SettingsModule->UnregisterSettings("Project", "Editor", "Sequencer");
 		}
 	}
 
@@ -91,3 +107,5 @@ private:
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 IMPLEMENT_MODULE(FSequencerModule, Sequencer);
+
+#undef LOCTEXT_NAMESPACE
