@@ -18,6 +18,16 @@ public:
 	* Get descendant nodes
 	*/
 	static void GetDescendantNodes(TSharedRef<FSequencerDisplayNode> DisplayNode, TSet<TSharedRef<FSequencerDisplayNode> >& Nodes);
+
+	/**
+	* Convert time to frame
+	*/
+	static int32 TimeToFrame(float Time, float FrameRate);
+
+	/**
+	* Convert frame to time
+	*/
+	static float FrameToTime(int32 Frame, float FrameRate);
 };
 
 class SequencerSnapValues

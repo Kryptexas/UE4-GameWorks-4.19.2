@@ -7,6 +7,8 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 {
 	bAutoKeyEnabled = false;
 	bShowFrameNumbers = true;
+	bShowRangeSlider = false;
+	bLockInOutToStartEndRange = false;
 	bIsSnapEnabled = true;
 	TimeSnapInterval = .05f;
 	bSnapKeyTimesToInterval = true;
@@ -47,6 +49,34 @@ void USequencerSettings::SetShowFrameNumbers(bool InbShowFrameNumbers)
 	if ( bShowFrameNumbers != InbShowFrameNumbers )
 	{
 		bShowFrameNumbers = InbShowFrameNumbers;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetShowRangeSlider() const
+{
+	return bShowRangeSlider;
+}
+
+void USequencerSettings::SetShowRangeSlider(bool InbShowRangeSlider)
+{
+	if ( bShowRangeSlider != InbShowRangeSlider )
+	{
+		bShowRangeSlider = InbShowRangeSlider;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetLockInOutToStartEndRange() const
+{
+	return bLockInOutToStartEndRange;
+}
+
+void USequencerSettings::SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange)
+{
+	if ( bLockInOutToStartEndRange != InbLockInOutToStartEndRange )
+	{
+		bLockInOutToStartEndRange = InbLockInOutToStartEndRange;
 		SaveConfig();
 	}
 }
@@ -266,4 +296,6 @@ ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectIniti
 	: Super( ObjectInitializer )
 {
 	TimeSnapInterval = 0.041667f;
+	bShowRangeSlider = true;
+	bLockInOutToStartEndRange = true;
 }

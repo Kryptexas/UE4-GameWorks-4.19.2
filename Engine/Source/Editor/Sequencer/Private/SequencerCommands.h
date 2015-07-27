@@ -57,6 +57,12 @@ public:
 	/** Turns show frame numbers on and off. */
 	TSharedPtr< FUICommandInfo > ToggleShowFrameNumbers;
 
+	/** Turns the range slider on and off. */
+	TSharedPtr< FUICommandInfo > ToggleShowRangeSlider;
+
+	/** Toggles whether to lock the in/out to the start/end range on scrolling. */
+	TSharedPtr< FUICommandInfo > ToggleLockInOutToStartEndRange;
+
 	/** Turns snapping on and off. */
 	TSharedPtr< FUICommandInfo > ToggleIsSnapEnabled;
 

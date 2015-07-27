@@ -548,17 +548,26 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 {
 	if(!Sequencer.IsValid())
 	{
+		const float InTime = 0.f;
+		const float OutTime = 5.0f;
+
 		FSequencerViewParams ViewParams(TEXT("UMGSequencerSettings"));
 		{
-			ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
+			ViewParams.InitalViewRange = TRange<float>(InTime, OutTime);
 			ViewParams.InitialScrubPosition = 0;
 			ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContent);
 		}
 
 		FSequencerInitParams SequencerInitParams;
 		{
+			UWidgetAnimation* NullAnimation = UWidgetAnimation::GetNullAnimation();
+			NullAnimation->MovieScene->StartTime = InTime;
+			NullAnimation->MovieScene->InTime = InTime;
+			NullAnimation->MovieScene->OutTime = OutTime;
+			NullAnimation->MovieScene->EndTime = OutTime;
+
 			SequencerInitParams.ViewParams = ViewParams;
-			SequencerInitParams.Animation = UWidgetAnimation::GetNullAnimation();
+			SequencerInitParams.Animation = NullAnimation;
 			SequencerInitParams.bEditWithinLevelEditor = false;
 			SequencerInitParams.ToolkitHost = nullptr;
 		};

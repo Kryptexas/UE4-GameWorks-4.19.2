@@ -76,8 +76,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 
 	FVisualLoggerTimeSliderArgs TimeSliderArgs;
 	TimeSliderArgs.ViewRange = FAnimatedRange::WrapAttribute(InArgs._ViewRange);
-	TimeSliderArgs.ClampMin = InArgs._ViewRange.Get().GetLowerBoundValue();
-	TimeSliderArgs.ClampMax = InArgs._ViewRange.Get().GetUpperBoundValue();
+	TimeSliderArgs.ClampRange = TRange<float>(InArgs._ViewRange.Get().GetLowerBoundValue(), InArgs._ViewRange.Get().GetUpperBoundValue());
 	TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
 	FLogVisualizer::Get().GetTimeSliderController()->SetTimesliderArgs(TimeSliderArgs);
 

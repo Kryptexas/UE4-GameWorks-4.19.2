@@ -54,10 +54,14 @@ public:
 	{}
 		/** The current view range (seconds) */
 		SLATE_ATTRIBUTE( FAnimatedRange, ViewRange )
+		/** The current clamp range (seconds) */
+		SLATE_ATTRIBUTE( FAnimatedRange, ClampRange )
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 		/** Called when the user changes the view range */
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
+		/** Called when the user changes the clamp range */
+		SLATE_EVENT( FOnClampRangeChanged, OnClampRangeChanged )
 		/** Called when the user has begun scrubbing */
 		SLATE_EVENT( FSimpleDelegate, OnBeginScrubbing )
 		/** Called when the user has finished scrubbing */
@@ -227,8 +231,17 @@ private:
 	/** Gets whether or not the breadcrumb trail should be visible. */
 	EVisibility GetBreadcrumbTrailVisibility() const;
 
-	/** Gets whether or not the curve editor toolbar should be visibe. */
+	/** Gets whether or not the curve editor toolbar should be visible. */
 	EVisibility GetCurveEditorToolBarVisibility() const;
+
+	/** Gets whether or not the bottom time slider should be visible. */
+	EVisibility GetBottomTimeSliderVisibility() const;
+
+	/** Gets whether or not the time range should be visible. */
+	EVisibility GetTimeRangeVisibility() const;
+
+	/** Gets whether or not to show frame numbers. */
+	bool ShowFrameNumbers() const;
 
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);

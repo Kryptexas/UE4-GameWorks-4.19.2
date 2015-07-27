@@ -320,15 +320,13 @@ void STimelinesContainer::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryI
 	CachedMaxTime = CachedMaxTime > Entry.Entry.TimeStamp ? CachedMaxTime : Entry.Entry.TimeStamp;
 
 	TRange<float> LocalViewRange = TimeSliderController->GetTimeSliderArgs().ViewRange.Get();
-	const float CurrentMin = TimeSliderController->GetTimeSliderArgs().ClampMin.Get().GetValue();
-	const float CurrentMax = TimeSliderController->GetTimeSliderArgs().ClampMax.Get().GetValue();
-	float ZoomLevel = LocalViewRange.Size<float>() / (CurrentMax - CurrentMin);
+	TRange<float> ClampRange = TimeSliderController->GetTimeSliderArgs().ClampRange.Get();
+	float ZoomLevel = LocalViewRange.Size<float>() / ClampRange.Size<float>();
 
-	TimeSliderController->GetTimeSliderArgs().ClampMin = CachedMinTime;
-	TimeSliderController->GetTimeSliderArgs().ClampMax = CachedMaxTime + 0.1;
+	TimeSliderController->GetTimeSliderArgs().ClampRange = TRange<float>(CachedMinTime, CachedMaxTime + 0.1f);
 	if ( FMath::Abs(ZoomLevel - 1) <= SMALL_NUMBER)
 	{
-		TimeSliderController->GetTimeSliderArgs().ViewRange = TRange<float>(TimeSliderController->GetTimeSliderArgs().ClampMin.Get().GetValue(), TimeSliderController->GetTimeSliderArgs().ClampMax.Get().GetValue());
+		TimeSliderController->GetTimeSliderArgs().ViewRange = TimeSliderController->GetTimeSliderArgs().ClampRange;
 	}
 }
 

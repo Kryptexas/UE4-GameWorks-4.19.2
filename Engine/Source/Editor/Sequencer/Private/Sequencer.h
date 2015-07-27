@@ -93,6 +93,9 @@ public:
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
 
+	/** @return The current clamp range */
+	FAnimatedRange GetClampRange() const;
+
 public:
 
 	/** Access the user-supplied settings object */
@@ -270,6 +273,9 @@ protected:
 	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
 	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
 
+	/** Update the time bounds to the focused movie scene */
+	void UpdateTimeBoundsToFocusedMovieScene();
+
 	/**
 	 * Gets the far time boundaries of the currently edited movie scene
 	 * If the scene has shots, it only takes the shot section boundaries
@@ -293,7 +299,12 @@ protected:
 	 */
 	void OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated );
 
-
+	/**
+	 * Called when the clamp range is changed by the user
+	 *
+	 * @param	NewClampRange The new clapm range
+	 */
+	void OnClampRangeChanged( TRange<float> NewClampRange );
 
 	/**
 	 * Called when the scrub position is changed by the user

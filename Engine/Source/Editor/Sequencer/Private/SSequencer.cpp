@@ -193,7 +193,9 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	FTimeSliderArgs TimeSliderArgs;
 	TimeSliderArgs.ViewRange = InArgs._ViewRange;
+	TimeSliderArgs.ClampRange = InArgs._ClampRange;
 	TimeSliderArgs.OnViewRangeChanged = InArgs._OnViewRangeChanged;
+	TimeSliderArgs.OnClampRangeChanged = InArgs._OnClampRangeChanged;
 	TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
 	TimeSliderArgs.OnBeginScrubberMovement = InArgs._OnBeginScrubbing;
 	TimeSliderArgs.OnEndScrubberMovement = InArgs._OnEndScrubbing;
@@ -205,9 +207,11 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	bool bMirrorLabels = false;
 	// Create the top and bottom sliders
 	TSharedRef<ITimeSlider> TopTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderController, bMirrorLabels );
-
 	bMirrorLabels = true;
-	TSharedRef<ITimeSlider> BottomTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderController, bMirrorLabels);
+	TSharedRef<ITimeSlider> BottomTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderController, TAttribute<EVisibility>(this, &SSequencer::GetBottomTimeSliderVisibility), bMirrorLabels );
+
+	// Create bottom time range slider
+	TSharedRef<ITimeSlider> BottomTimeRange = SequencerWidgets.CreateTimeRange( TimeSliderController, TAttribute<EVisibility>(this, &SSequencer::GetTimeRangeVisibility), TAttribute<bool>(this, &SSequencer::ShowFrameNumbers));
 
 	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
 
@@ -387,7 +391,17 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 							+ SVerticalBox::Slot()
 							.AutoHeight()
 							[
-								BottomTimeSlider
+								SNew( SOverlay )
+
+								+ SOverlay::Slot()
+								[
+									BottomTimeSlider
+								]
+
+								+ SOverlay::Slot()
+								[
+									BottomTimeRange
+								]
 							]
 
 							+ SVerticalBox::Slot()
@@ -586,9 +600,11 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 {
 	FMenuBuilder MenuBuilder( false, Sequencer.Pin()->GetCommandBindings() );
 
-	MenuBuilder.BeginSection("Frames", LOCTEXT("SnappingMenuFramesHeader", "Frames") );
+	MenuBuilder.BeginSection("FramesRanges", LOCTEXT("SnappingMenuFrameRangesHeader", "Frame Ranges") );
 	{
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowFrameNumbers );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowRangeSlider );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLockInOutToStartEndRange );
 	}
 	MenuBuilder.EndSection();
 
@@ -1281,6 +1297,21 @@ EVisibility SSequencer::GetBreadcrumbTrailVisibility() const
 EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 {
 	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SSequencer::GetBottomTimeSliderVisibility() const
+{
+	return Settings->GetShowRangeSlider() ? EVisibility::Hidden : EVisibility::Visible;
+}
+
+EVisibility SSequencer::GetTimeRangeVisibility() const
+{
+	return Settings->GetShowRangeSlider() ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+bool SSequencer::ShowFrameNumbers() const
+{
+	return Sequencer.Pin()->CanShowFrameNumbers() && Settings->GetShowFrameNumbers();
 }
 
 float SSequencer::GetOutlinerSpacerFill() const

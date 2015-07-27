@@ -54,6 +54,16 @@ public:
 	/** Sets whether or not to show frame numbers. */
 	void SetShowFrameNumbers(bool InbShowFrameNumbers);
 
+	/** Gets whether or not to show the time range slider. */
+	bool GetShowRangeSlider() const;
+	/** Sets whether or not to show frame numbers. */
+	void SetShowRangeSlider(bool InbShowRangeSlider);
+
+	/** Gets whether or not the in and out are bounded by start and end when scrolling. */
+	bool GetLockInOutToStartEndRange() const;
+	/** Sets whether or not the in and out are bounded by start and end when scrolling. */
+	void SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange);
+
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
 	/** Sets whether or not snapping is enabled. */
@@ -136,6 +146,12 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowFrameNumbers;
+
+	UPROPERTY( config )
+	bool bShowRangeSlider;
+
+	UPROPERTY( config )
+	bool bLockInOutToStartEndRange;
 
 	UPROPERTY( config )
 	bool bIsSnapEnabled;

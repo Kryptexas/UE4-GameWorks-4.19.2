@@ -318,10 +318,17 @@ private:
 
 	FReply OnNewAnimationClicked()
 	{
+		const float InTime = 0.f;
+		const float OutTime = 5.0f;
+
 		UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 
 		UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(WidgetBlueprint, MakeUniqueObjectName(WidgetBlueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
 		NewAnimation->MovieScene = NewObject<UMovieScene>(NewAnimation, NewAnimation->GetFName(), RF_Transactional);
+		NewAnimation->MovieScene->StartTime = InTime;
+		NewAnimation->MovieScene->InTime = InTime;
+		NewAnimation->MovieScene->OutTime = OutTime;
+		NewAnimation->MovieScene->EndTime = OutTime;
 
 		bool bRequestRename = true;
 		bool bNewAnimation = true;

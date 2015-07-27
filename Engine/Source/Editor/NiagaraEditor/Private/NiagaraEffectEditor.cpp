@@ -80,14 +80,21 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 	check(Effect != NULL);
 	EffectInstance = new FNiagaraEffectInstance(InEffect);
 
+	const float InTime = -0.02f;
+	const float OutTime = 3.2f;
+
 	if (!Sequencer.IsValid())
 	{
 		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"), RF_RootSet);
 		auto NewAnimation = NewObject<UNiagaraAnimation>(MovieScene);
+		MovieScene->StartTime = InTime;
+		MovieScene->InTime = InTime;
+		MovieScene->OutTime = OutTime;
+		MovieScene->EndTime = OutTime;
 
 		FSequencerViewParams ViewParams(TEXT("NiagaraSequencerSettings"));
 		{
-			ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
+			ViewParams.InitalViewRange = TRange<float>(InTime, OutTime);
 			ViewParams.InitialScrubPosition = 0;
 		}
 

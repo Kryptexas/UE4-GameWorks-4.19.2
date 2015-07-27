@@ -7,6 +7,15 @@
 /* UMovieScene interface
  *****************************************************************************/
 
+UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, InTime(FLT_MAX)
+	, OutTime(-FLT_MAX)
+	, StartTime(FLT_MAX)
+	, EndTime(-FLT_MAX)
+{ }
+
+
 #if WITH_EDITOR
 
 // @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieScene!
@@ -181,20 +190,7 @@ FMovieScenePossessable& UMovieScene::GetPossessable( const int32 Index )
 
 TRange<float> UMovieScene::GetTimeRange() const
 {
-	// Get the range of all sections combined
-	TArray< TRange<float> > Bounds;
-
-	for (int32 TypeIndex = 0; TypeIndex < MasterTracks.Num(); ++TypeIndex)
-	{
-		Bounds.Add(MasterTracks[TypeIndex]->GetSectionBoundaries());
-	}
-
-	for (int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex)
-	{
-		Bounds.Add(ObjectBindings[BindingIndex].GetTimeRange());
-	}
-
-	return TRange<float>::Hull(Bounds);
+	return TRange<float>(InTime, OutTime);
 }
 
 

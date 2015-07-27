@@ -100,11 +100,13 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 		// Make internal widgets
 		SequencerWidget = SNew( SSequencer, SharedThis( this ) )
 			.ViewRange( this, &FSequencer::GetViewRange )
+			.ClampRange( this, &FSequencer::GetClampRange )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
 			.OnBeginScrubbing( this, &FSequencer::OnBeginScrubbing )
 			.OnEndScrubbing( this, &FSequencer::OnEndScrubbing )
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
 			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged )
+			.OnClampRangeChanged( this, &FSequencer::OnClampRangeChanged )
 			.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent);
 
 		// When undo occurs, get a notification so we can make sure our view is up to date
@@ -144,6 +146,8 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 		// Update initial movie scene data
 		NotifyMovieSceneDataChanged();
+
+		UpdateTimeBoundsToFocusedMovieScene();
 
 		// NOTE: Could fill in asset editor commands here!
 
@@ -331,6 +335,8 @@ void FSequencer::ResetToNewAnimation(UMovieSceneAnimation& NewAnimation)
 	SequencerWidget->ResetBreadcrumbs();
 
 	NotifyMovieSceneDataChanged();
+
+	UpdateTimeBoundsToFocusedMovieScene();
 }
 
 TSharedRef<FMovieSceneInstance> FSequencer::GetRootMovieSceneInstance() const
@@ -359,6 +365,8 @@ void FSequencer::FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSce
 
 	// Update internal data for the new movie scene
 	NotifyMovieSceneDataChanged();
+
+	UpdateTimeBoundsToFocusedMovieScene();
 }
 
 TSharedRef<FMovieSceneInstance> FSequencer::GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const
@@ -381,6 +389,8 @@ void FSequencer::PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneI
 		ResetPerMovieSceneData();
 
 		NotifyMovieSceneDataChanged();
+
+		UpdateTimeBoundsToFocusedMovieScene();
 	}
 }
 
@@ -535,6 +545,11 @@ FAnimatedRange FSequencer::GetViewRange() const
 	return AnimatedRange;
 }
 
+FAnimatedRange FSequencer::GetClampRange() const
+{
+	return TRange<float>(GetFocusedMovieScene()->StartTime, GetFocusedMovieScene()->EndTime);
+}
+
 bool FSequencer::GetAutoKeyEnabled() const 
 {
 	return Settings->GetAutoKeyEnabled();
@@ -578,6 +593,11 @@ void FSequencer::SetGlobalTime( float NewTime )
 				EViewRangeInterpolation::Immediate
 				);
 		}
+	}
+
+	if (Settings->GetLockInOutToStartEndRange())
+	{
+		NewTime = FMath::Clamp(NewTime, GetFocusedMovieScene()->StartTime, GetFocusedMovieScene()->EndTime);
 	}
 
 	// Update the position
@@ -913,6 +933,49 @@ EPlaybackMode::Type FSequencer::GetPlaybackMode() const
 		EPlaybackMode::Stopped;
 }
 
+void FSequencer::UpdateTimeBoundsToFocusedMovieScene()
+{
+	USequencerProjectSettings* ProjectSettings = GetMutableDefault<USequencerProjectSettings>();
+
+	const int32 InFrame = ProjectSettings->InFrame;
+	const int32 OutFrame = ProjectSettings->OutFrame;
+
+	float InTime = GetFocusedMovieScene()->InTime;
+	if (InTime >= FLT_MAX)
+	{
+		InTime = SequencerHelpers::FrameToTime(InFrame, 1.0f/Settings->GetTimeSnapInterval());
+	}
+
+	float OutTime = GetFocusedMovieScene()->OutTime;
+	if (OutTime <= -FLT_MAX)
+	{
+		OutTime = SequencerHelpers::FrameToTime(OutFrame, 1.0f/Settings->GetTimeSnapInterval());
+	}
+
+	float StartTime = GetFocusedMovieScene()->StartTime;
+	if (StartTime >= FLT_MAX)
+	{
+		StartTime = SequencerHelpers::FrameToTime(InFrame, 1.0f/Settings->GetTimeSnapInterval());
+	}
+
+	float EndTime = GetFocusedMovieScene()->EndTime;
+	if (EndTime <= -FLT_MAX)
+	{
+		EndTime = SequencerHelpers::FrameToTime(OutFrame, 1.0f/Settings->GetTimeSnapInterval());
+	}
+
+	// Set the clamp range to the movie scene's clamp range.
+	OnClampRangeChanged(TRange<float>(StartTime, EndTime));
+
+	// Set the view range to the movie scene's view range.
+	OnViewRangeChanged(TRange<float>(InTime, OutTime), EViewRangeInterpolation::Immediate);
+
+	// Make sure the current time is within the bounds
+	if (!TargetViewRange.Contains(ScrubPosition))
+	{
+		ScrubPosition = LastViewRange.GetLowerBoundValue();
+	}
+}
 
 TRange<float> FSequencer::GetTimeBounds() const
 {
@@ -961,6 +1024,42 @@ void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInter
 
 	if (!NewViewRange.IsEmpty())
 	{
+		// If locked, clamp the new range to clamp range
+		if (Settings->GetLockInOutToStartEndRange())
+		{
+			if ( NewViewRange.GetLowerBoundValue() < GetFocusedMovieScene()->StartTime)
+			{
+				NewViewRange = TRange<float>(GetFocusedMovieScene()->StartTime, GetFocusedMovieScene()->StartTime + (NewViewRange.GetUpperBoundValue() - NewViewRange.GetLowerBoundValue()));
+			}
+			else if (NewViewRange.GetUpperBoundValue() > GetFocusedMovieScene()->EndTime)
+			{
+				NewViewRange = TRange<float>(GetFocusedMovieScene()->EndTime - (NewViewRange.GetUpperBoundValue() - NewViewRange.GetLowerBoundValue()), GetFocusedMovieScene()->EndTime);
+			}
+		}
+		// Otherwise, grow the clamp range to the new range
+		else
+		{
+			bool bNeedsClampSet = false;
+			float NewClampRangeMin = GetFocusedMovieScene()->StartTime;
+			if ( NewViewRange.GetLowerBoundValue() < NewClampRangeMin)
+			{
+				bNeedsClampSet = true;
+				NewClampRangeMin = NewViewRange.GetLowerBoundValue();
+			}
+	
+			float NewClampRangeMax = GetFocusedMovieScene()->EndTime;
+			if ( NewViewRange.GetUpperBoundValue() > NewClampRangeMax)
+			{
+				bNeedsClampSet = true;
+				NewClampRangeMax = NewViewRange.GetUpperBoundValue();
+			}
+
+			if (bNeedsClampSet)
+			{
+				OnClampRangeChanged(TRange<float>(NewClampRangeMin, NewClampRangeMax));
+			}
+		}
+
 		if (AnimationLengthSeconds != 0.f)
 		{
 			if (ZoomAnimation.GetCurve(0).DurationSeconds != AnimationLengthSeconds)
@@ -981,6 +1080,20 @@ void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInter
 			TargetViewRange = LastViewRange = NewViewRange;
 			ZoomAnimation.JumpToEnd();
 		}
+
+		// Synchronize the in and out time of the focused movie scene
+		GetFocusedMovieScene()->InTime = NewViewRange.GetLowerBoundValue();
+		GetFocusedMovieScene()->OutTime = NewViewRange.GetUpperBoundValue();
+	}
+}
+
+void FSequencer::OnClampRangeChanged( TRange<float> NewClampRange )
+{
+	if (!NewClampRange.IsEmpty())
+	{
+		// Synchronize the in and out time of the focused movie scene
+		GetFocusedMovieScene()->StartTime = NewClampRange.GetLowerBoundValue();
+		GetFocusedMovieScene()->EndTime = NewClampRange.GetUpperBoundValue();
 	}
 }
 
@@ -1748,6 +1861,18 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateLambda( [this]{ Settings->SetShowFrameNumbers( !Settings->GetShowFrameNumbers() ); } ),
 		FCanExecuteAction::CreateSP(this, &FSequencer::CanShowFrameNumbers ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowFrameNumbers(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleShowRangeSlider,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetShowRangeSlider( !Settings->GetShowRangeSlider() ); } ),
+		FCanExecuteAction::CreateSP(this, &FSequencer::CanShowFrameNumbers ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowRangeSlider(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleLockInOutToStartEndRange,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetLockInOutToStartEndRange( !Settings->GetLockInOutToStartEndRange() ); } ),
+		FCanExecuteAction::CreateSP(this, &FSequencer::CanShowFrameNumbers ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetLockInOutToStartEndRange(); } ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleIsSnapEnabled,

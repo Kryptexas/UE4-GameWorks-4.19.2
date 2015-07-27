@@ -22,7 +22,26 @@ public:
 	/** End ITimeSliderController Interface */
 
 	/** Get the current view range for this controller */
-	FAnimatedRange GetViewRange() const { return TimeSliderArgs.ViewRange.Get(); }
+	virtual FAnimatedRange GetViewRange() const override { return TimeSliderArgs.ViewRange.Get(); }
+
+	/** Get the current clamp range for this controller */
+	//virtual FAnimatedRange GetClampRange() const override { return TRange<float>(TimeSliderArgs.ClampMin.Get().GetValue(), TimeSliderArgs.ClampMax.Get().GetValue()); }
+	virtual FAnimatedRange GetClampRange() const override { return TimeSliderArgs.ClampRange.Get(); }
+
+	/** Convert time to frame */
+	virtual int32 TimeToFrame(float Time) const override;
+
+	/** Convert time to frame */
+	virtual float FrameToTime(int32 Frame) const override;
+
+	/**
+	 * Clamp the given range to the clamp range 
+	 *
+	 * @param NewRangeMin		The new lower bound of the range
+	 * @param NewRangeMax		The new upper bound of the range
+	 * @param bMaintainRange	Maintain the current range size if 
+	 */	
+	void ClampViewRange(float& NewRangeMin, float& NewRangeMax, bool bMaintainRange);
 
 	/**
 	 * Set a new range based on a min, max and an interpolation mode
@@ -31,7 +50,15 @@ public:
 	 * @param NewRangeMax		The new upper bound of the range
 	 * @param Interpolation		How to set the new range (either immediately, or animated)
 	 */
-	void SetViewRange( float NewRangeMin, float NewRangeMax, EViewRangeInterpolation Interpolation );
+	virtual void SetViewRange( float NewRangeMin, float NewRangeMax, EViewRangeInterpolation Interpolation ) override;
+
+	/**
+	 * Set a new clamp range based on a min, max
+	 * 
+	 * @param NewRangeMin		The new lower bound of the clamp range
+	 * @param NewRangeMax		The new upper bound of the clamp range
+	 */
+	virtual void SetClampRange( float NewRangeMin, float NewRangeMax ) override;
 
 	/**
 	 * Zoom the range by a given delta.

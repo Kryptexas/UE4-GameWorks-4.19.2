@@ -17,14 +17,6 @@ namespace ScrubConstants
 	const float ScrollPanFraction = 0.1f;
 }
 
-namespace TimeConversion
-{
-	int32 TimeToFrame(float Time, float FrameRate)
-	{
-		return FMath::RoundToInt(Time * FrameRate);
-	}
-}
-
 /** Utility struct for converting between scrub range space and local/absolute screen space */
 struct FScrubRangeToScreen
 {
@@ -162,8 +154,6 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);
 
-	float SnapSize = TimeSliderArgs.Settings->GetTimeSnapInterval();
-
 	float Seconds = 0;
 	while( (Seconds = OffsetNum*Spacing) < RangeToScreen.ViewInput.GetUpperBoundValue() )
 	{
@@ -199,7 +189,7 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 				FString FrameString;
 				if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
 				{
-					FrameString = FString::Printf( TEXT("%d"), TimeConversion::TimeToFrame(Seconds, 1.0f/SnapSize));
+					FrameString = FString::Printf( TEXT("%d"), TimeToFrame(Seconds));
 				}
 				else
 				{
@@ -313,8 +303,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 		FString FrameString;
 		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
 		{
-			float SnapSize = TimeSliderArgs.Settings->GetTimeSnapInterval();
-			FrameString = FString::Printf( TEXT("%d"), TimeConversion::TimeToFrame(Time, 1.0f/SnapSize));
+			FrameString = FString::Printf( TEXT("%d"), TimeToFrame(Time));
 		}
 		else
 		{
@@ -513,6 +502,8 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				float NewViewOutputMin = LocalViewRangeMin - InputDelta.X;
 				float NewViewOutputMax = LocalViewRangeMax - InputDelta.X;
 
+				const bool bMaintainRange = true;
+				ClampViewRange(NewViewOutputMin, NewViewOutputMax, bMaintainRange);
 				SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Immediate);
 			}
 		}
@@ -651,22 +642,70 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 	return LayerId;
 }
 
+int32 FSequencerTimeSliderController::TimeToFrame(float Time) const
+{
+	float FrameRate = 1.0f/TimeSliderArgs.Settings->GetTimeSnapInterval();
+	return SequencerHelpers::TimeToFrame(Time, FrameRate);
+}
+
+float FSequencerTimeSliderController::FrameToTime(int32 Frame) const
+{
+	float FrameRate = 1.0f/TimeSliderArgs.Settings->GetTimeSnapInterval();
+	return SequencerHelpers::FrameToTime(Frame, FrameRate);
+}
+
+void FSequencerTimeSliderController::ClampViewRange(float& NewRangeMin, float& NewRangeMax, bool bMaintainRange)
+{
+	// If locked, clamp the new range to clamp range
+	if (TimeSliderArgs.Settings->GetLockInOutToStartEndRange())
+	{
+		if (bMaintainRange)
+		{
+			if ( NewRangeMin < TimeSliderArgs.ClampRange.Get().GetLowerBoundValue() )
+			{
+				NewRangeMin = TimeSliderArgs.ClampRange.Get().GetLowerBoundValue();
+				NewRangeMax = NewRangeMin + (TimeSliderArgs.ViewRange.Get().GetUpperBoundValue() - TimeSliderArgs.ViewRange.Get().GetLowerBoundValue());
+			}
+	
+			else if ( NewRangeMax > TimeSliderArgs.ClampRange.Get().GetUpperBoundValue() )
+			{
+				NewRangeMax = TimeSliderArgs.ClampRange.Get().GetUpperBoundValue();
+				NewRangeMin = NewRangeMax - (TimeSliderArgs.ViewRange.Get().GetUpperBoundValue() - TimeSliderArgs.ViewRange.Get().GetLowerBoundValue());
+			}
+		}
+		else
+		{
+			NewRangeMin = FMath::Clamp(NewRangeMin, TimeSliderArgs.ClampRange.Get().GetLowerBoundValue(), TimeSliderArgs.ClampRange.Get().GetUpperBoundValue());
+			NewRangeMax = FMath::Clamp(NewRangeMax, TimeSliderArgs.ClampRange.Get().GetLowerBoundValue(), TimeSliderArgs.ClampRange.Get().GetUpperBoundValue());
+		}
+	}
+	// Otherwise, grow the clamp range to the new range
+	else
+	{
+		bool bNeedsClampSet = false;
+		float NewClampRangeMin = TimeSliderArgs.ClampRange.Get().GetLowerBoundValue();
+		if ( NewRangeMin < TimeSliderArgs.ClampRange.Get().GetLowerBoundValue() )
+		{
+			NewClampRangeMin = NewRangeMin;
+			bNeedsClampSet = true;
+		}
+	
+		float NewClampRangeMax = TimeSliderArgs.ClampRange.Get().GetUpperBoundValue();
+		if ( NewRangeMax > TimeSliderArgs.ClampRange.Get().GetUpperBoundValue() )
+		{
+			NewClampRangeMax = NewRangeMax;
+			bNeedsClampSet = true;
+		}
+
+		if (bNeedsClampSet)
+		{
+			SetClampRange(NewClampRangeMin, NewClampRangeMax);
+		}
+	}
+}
+
 void FSequencerTimeSliderController::SetViewRange( float NewRangeMin, float NewRangeMax, EViewRangeInterpolation Interpolation )
 {
-	TOptional<float> LocalClampMin = TimeSliderArgs.ClampMin.Get();
-	TOptional<float> LocalClampMax = TimeSliderArgs.ClampMax.Get();
-
-	// Clamp the range if clamp values are set
-	if ( LocalClampMin.IsSet() && NewRangeMin < LocalClampMin.GetValue() )
-	{
-		NewRangeMin = LocalClampMin.GetValue();
-	}
-	
-	if ( LocalClampMax.IsSet() && NewRangeMax > LocalClampMax.GetValue() )
-	{
-		NewRangeMax = LocalClampMax.GetValue();
-	}
-
 	const TRange<float> NewRange(NewRangeMin, NewRangeMax);
 
 	TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound( NewRange, Interpolation );
@@ -675,6 +714,19 @@ void FSequencerTimeSliderController::SetViewRange( float NewRangeMin, float NewR
 	{	
 		// The  output is not bound to a delegate so we'll manage the value ourselves (no animation)
 		TimeSliderArgs.ViewRange.Set( NewRange );
+	}
+}
+
+void FSequencerTimeSliderController::SetClampRange( float NewRangeMin, float NewRangeMax )
+{
+	const TRange<float> NewRange(NewRangeMin, NewRangeMax);
+
+	TimeSliderArgs.OnClampRangeChanged.ExecuteIfBound(NewRange);
+
+	if( !TimeSliderArgs.ClampRange.IsBound() )
+	{	
+		// The  output is not bound to a delegate so we'll manage the value ourselves (no animation)
+		TimeSliderArgs.ClampRange.Set(NewRange);
 	}
 }
 
@@ -691,6 +743,8 @@ bool FSequencerTimeSliderController::ZoomByDelta( float InDelta, float MousePosi
 
 	if( FMath::Abs( OutputChange ) > 0.01f && NewViewOutputMin < NewViewOutputMax )
 	{
+		const bool bMaintainRange = false;
+		ClampViewRange(NewViewOutputMin, NewViewOutputMax, bMaintainRange);
 		SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);
 		return true;
 	}
@@ -708,7 +762,12 @@ void FSequencerTimeSliderController::PanByDelta( float InDelta )
 	// Adjust the delta to be a percentage of the current range
 	InDelta *= ScrubConstants::ScrollPanFraction * (CurrentMax - CurrentMin);
 
-	SetViewRange(CurrentMin + InDelta, CurrentMax + InDelta, EViewRangeInterpolation::Animated);
+	float NewViewOutputMin = CurrentMin + InDelta;
+	float NewViewOutputMax = CurrentMax + InDelta;
+
+	const bool bMaintainRange = true;
+	ClampViewRange(NewViewOutputMin, NewViewOutputMax, bMaintainRange);
+	SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);
 }
 
 

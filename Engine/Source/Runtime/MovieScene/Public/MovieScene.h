@@ -49,7 +49,7 @@ UCLASS()
 class MOVIESCENE_API UMovieScene
 	: public UObject
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
 
@@ -251,7 +251,7 @@ public:
 	}
 
 	/**
-	 * @return The time range of the movie scene (defined by all sections in the scene)
+	 * @return The time range of the movie scene (the in to out time range)
 	 */
 	TRange<float> GetTimeRange() const;
 
@@ -312,4 +312,21 @@ private:
 	UPROPERTY()
 	FMovieSceneEditorData EditorData;
 #endif
+
+public:
+	/** In time of the movie scene in seconds*/
+	UPROPERTY()
+	float InTime;
+
+	/** Out time of the movie scene in seconds */
+	UPROPERTY()
+	float OutTime;
+
+	/** Start time of the movie scene in seconds*/
+	UPROPERTY()
+	float StartTime;
+
+	/** End time of the movie scene in seconds */
+	UPROPERTY()
+	float EndTime;
 };
