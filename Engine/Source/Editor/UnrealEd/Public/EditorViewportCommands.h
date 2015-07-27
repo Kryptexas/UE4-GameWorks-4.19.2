@@ -14,7 +14,7 @@ public:
 		(
 			TEXT("EditorViewport"), // Context name for fast lookup
 			NSLOCTEXT("Contexts", "EditorViewportCommands", "Common Viewport Commands"), // Localized context name for displaying
-			TEXT("LevelEditor"),
+			TEXT("MainFrame"),
 			FEditorStyle::GetStyleSetName() // Icon Style Set
 		)
 	{

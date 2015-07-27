@@ -223,10 +223,10 @@ void FLevelEditorModule::StartupModule()
 	NotificationBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
 	// Note this must come before any tab spawning because that can create the SLevelEditor and attempt to map commands
-	FLevelEditorCommands::Register();
-	FLevelEditorModesCommands::Register();
 	FEditorViewportCommands::Register();
 	FLevelViewportCommands::Register();
+	FLevelEditorCommands::Register();
+	FLevelEditorModesCommands::Register();
 
 	// Bind level editor commands shared across an instance
 	BindGlobalLevelEditorCommands();

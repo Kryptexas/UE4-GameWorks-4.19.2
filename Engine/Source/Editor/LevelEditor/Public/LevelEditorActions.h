@@ -19,7 +19,7 @@ public:
 	(
 		"LevelEditor", // Context name for fast lookup
 		NSLOCTEXT("Contexts", "LevelEditor", "Level Editor"), // Localized context name for displaying
-		"MainFrame", // Parent
+		"LevelViewport", // Parent
 		FEditorStyle::GetStyleSetName() // Icon Style Set
 	)
 	{
