@@ -2722,7 +2722,8 @@ void AActor::BeginPlay()
 
 	for (UActorComponent* Component : Components)
 	{
-		if (Component->IsRegistered())
+		// bHasBegunPlay will be true for the component if the component was renamed and moved to a new outer during initialization
+		if (Component->IsRegistered() && !Component->HasBegunPlay())
 		{
 			Component->BeginPlay();
 		}
