@@ -1,19 +1,84 @@
-Availability: Public
+﻿Availability: Public
 Title:Matinee & 过场动画
-Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools
+Crumbs: %ROOT%, Engine
+Description:动画工具提供了使actor属性随着时间变化的功能，也提供了创建动态游戏性或游戏中过场动画序列的功能。
 
-[REGION:header_img]
-![matinee.jpg](matinee.jpg)
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Matinee:title%](Engine/Matinee/matinee_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Matinee:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Matinee:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Matinee]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Matinee:title%](Engine/Matinee/matinee_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Matinee:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Matinee:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Matinee]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![matinee.jpg](matinee_landing_banner.png)
 [/REGION]
 
-Matinee动画工具提供了使actor属性随着时间变化的功能，也提供了创建动态游戏性或游戏中过场动画序列的功能。该系统是基于专用的动画轨迹的，可以在该轨迹上放置关键帧来设置关卡中actor的某些属性的值。Matinee编辑器和用于视频编辑的非线性编辑器类似，这使得它对于那些视频制作专业人员来说很熟悉。
+[EXCERPt:Intro]
+[INCLUDE:Shared/Glossary/M/#Glossary_Matinee]
+[/EXCERPT:Intro]
 
-[REGION:titlebar]
-关卡创建 主题
-[/REGION]
-[REGION:contentsection]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		要点知识
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [使用Matinee工具](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
+		* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
+		* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
+		* [](Engine/Matinee/TrackReference "%Engine/Matinee/TrackReference:description%")
+		* [](Engine/Matinee/HowTo/ "%Engine/Matinee/HowTo:description%")
+	[/PARAM]
+[/OBJECT]
 
-* [Matinee用户指南](Engine/Matinee/UserGuide) - Matinee编辑器的用户指南。
-* [曲线编辑器用户指南](Engine/UI/UserGuide/CurveEditor) - 虚幻引擎3中的曲线编辑器的用户指南。
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		相关链接
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")
+	[/PARAM]
+[/OBJECT]
 
-[/REGION]
