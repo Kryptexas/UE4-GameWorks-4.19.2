@@ -1184,12 +1184,12 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 		if ( AssetObj->IsA( AActor::StaticClass() ) || bHasActorFactory )
 		{
 			Result.bCanDrop = true;
-			bPivotMovedIndependently = false;
+			GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else if( AssetObj->IsA( UBrushBuilder::StaticClass()) )
 		{
 			Result.bCanDrop = true;
-			bPivotMovedIndependently = false;
+			GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else
 		{
@@ -1200,7 +1200,7 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 				{
 					// If our asset is a material and the target is a valid recipient
 					Result.bCanDrop = true;
-					bPivotMovedIndependently = false;
+					GUnrealEd->SetPivotMovedIndependently(false);
 
 					//if ( HitProxy->IsA(HActor::StaticGetType()) )
 					//{
@@ -1937,7 +1937,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			}
 
 			// We clicked an actor, allow the pivot to reposition itself.
-			bPivotMovedIndependently = false;
+//			GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
@@ -2025,9 +2025,9 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 {
 	FEditorViewportClient::Tick(DeltaTime);
 
-	if( !bPivotMovedIndependently && GCurrentLevelEditingViewportClient == this &&
+	if (!GUnrealEd->IsPivotMovedIndependently() && GCurrentLevelEditingViewportClient == this &&
 		bIsRealtime &&
-		( Widget == NULL || !Widget->IsDragging() ) )
+		(Widget == NULL || !Widget->IsDragging()))
 	{
 		// @todo SIE: May be very expensive for lots of actors
 		GUnrealEd->UpdatePivotLocationForSelection();
@@ -2337,7 +2337,7 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 				else
 				{
 					FSnappingUtils::SnapDragLocationToNearestVertex( ModeTools->PivotLocation, Drag, this );
-					bPivotMovedIndependently = true;
+					GUnrealEd->SetPivotMovedIndependently(true);
 					bOnlyMovedPivot = true;
 				}
 
@@ -2726,7 +2726,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 			GEditor->BroadcastEndObjectMovement(*Actor);
 		}
 
-		if (!bPivotMovedIndependently)
+		if (!GUnrealEd->IsPivotMovedIndependently())
 		{
 			GUnrealEd->UpdatePivotLocationForSelection();
 		}

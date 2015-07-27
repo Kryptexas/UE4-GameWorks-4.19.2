@@ -1693,6 +1693,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 		NoteActorMovement();
 		SetPivot( ClickLocation, false, false );
 		FinishAllSnaps();
+		SetPivotMovedIndependently(true);
 		RedrawLevelEditingViewports();
 	}
 	else if( FParse::Command(&Str,TEXT("SNAPPED")) )
@@ -1700,6 +1701,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 		NoteActorMovement();
 		SetPivot( ClickLocation, true, false );
 		FinishAllSnaps();
+		SetPivotMovedIndependently(true);
 		RedrawLevelEditingViewports();
 	}
 	else if( FParse::Command(&Str,TEXT("CENTERSELECTION")) )
@@ -1713,10 +1715,43 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
-			AActor* Actor = static_cast<AActor*>( *It );
-			checkSlow( Actor->IsA(AActor::StaticClass()) );
+			AActor* Actor = CastChecked<AActor>(*It);
 
-			Center += Actor->GetActorLocation();
+			if (ABrush* Brush = Cast<ABrush>(Actor))
+			{
+				// Treat brushes as a special case; calculate an effective position from the center point of the vertices.
+				// This way, "Center on Selection" has a special meaning for brushes.
+				TSet<FVector> UniqueVertices;
+				FVector VertexCenter = FVector::ZeroVector;
+
+				if (Brush->Brush && Brush->Brush->Polys)
+				{
+					for (const auto& Element : Brush->Brush->Polys->Element)
+					{
+						for (const auto& Vertex : Element.Vertices)
+						{
+							UniqueVertices.Add(Vertex);
+						}
+					}
+
+					for (const auto& Vertex : UniqueVertices)
+					{
+						VertexCenter += Vertex;
+					}
+
+					if (UniqueVertices.Num() > 0)
+					{
+						VertexCenter /= UniqueVertices.Num();
+					}
+				}
+
+				Center += Brush->GetTransform().TransformPosition(VertexCenter);
+			}
+			else
+			{
+				Center += Actor->GetActorLocation();
+			}
+
 			Count++;
 		}
 
@@ -1729,6 +1764,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 
 			SetPivot( ClickLocation, false, false );
 			FinishAllSnaps();
+			SetPivotMovedIndependently(true);
 		}
 
 		RedrawLevelEditingViewports();
@@ -2603,7 +2639,8 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 			FVector Delta( EditorModeTools.PivotLocation - Actor->GetActorLocation() );
 
 			Actor->Modify();
-			Actor->SetPivotOffset(Actor->GetPivotOffset() + Actor->GetTransform().InverseTransformVector(Delta));
+			Actor->SetPivotOffset(Actor->GetTransform().InverseTransformVector(Delta));
+			SetPivotMovedIndependently(false);
 			Actor->PostEditMove(true);
 		}
 
@@ -2625,6 +2662,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 			Actor->Modify();
 			Actor->SetPivotOffset(FVector::ZeroVector);
+			SetPivotMovedIndependently(false);
 			Actor->PostEditMove(true);
 		}
 
