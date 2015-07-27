@@ -302,6 +302,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	check(UnscaledViewRect.Min.Y >= 0);
 	check(UnscaledViewRect.Width() > 0);
 	check(UnscaledViewRect.Height() > 0);
+	check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
 
 	ViewMatrices.ViewMatrix = FTranslationMatrix(-InitOptions.ViewOrigin) * InitOptions.ViewRotationMatrix;
 
@@ -342,7 +343,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	/** The view transform, starting from world-space points translated by -ViewOrigin. */
 	FMatrix TranslatedViewMatrix = InitOptions.ViewRotationMatrix;
-	FMatrix InvTranslatedViewMatrix = TranslatedViewMatrix.Inverse();
+	FMatrix InvTranslatedViewMatrix = TranslatedViewMatrix.GetTransposed();
 
 	// Translate world-space so its origin is at ViewOrigin for improved precision.
 	// Note that this isn't exactly right for orthogonal projections (See the above special case), but we still use ViewOrigin
@@ -382,6 +383,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	{
 		TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation)
 			* FTranslationMatrix(-InitOptions.ViewOrigin) * InitOptions.ViewRotationMatrix;
+		InvTranslatedViewMatrix = TranslatedViewMatrix.Inverse();
 	}
 	
 	// Compute a transform from view origin centered world-space to clip space.

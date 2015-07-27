@@ -1550,6 +1550,9 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					SampleY = Halton( Index, 3 ) - 0.5f;
 				}
 
+				View.TemporalJitterPixelsX = SampleX;
+				View.TemporalJitterPixelsY = SampleY;
+
 				View.ViewMatrices.TemporalAAProjJitter.X = SampleX * 2.0f / View.ViewRect.Width();
 				View.ViewMatrices.TemporalAAProjJitter.Y = SampleY * 2.0f / View.ViewRect.Height();
 				View.ViewMatrices.ProjMatrix.M[2][0] += View.ViewMatrices.TemporalAAProjJitter.X;
@@ -1559,12 +1562,18 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;
 				View.InvViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.InvViewMatrix;
 
-				/** The view transform, starting from world-space points translated by -ViewOrigin. */
-				FMatrix TranslatedViewMatrix = FTranslationMatrix(-View.ViewMatrices.PreViewTranslation) * View.ViewMatrices.ViewMatrix;
-
 				// Compute a transform from view origin centered world-space to clip space.
-				View.ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-				View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+				if( View.ViewMatrices.PreViewTranslation.IsNearlyZero() )
+				{
+					View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewProjectionMatrix;
+					View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.InvViewProjectionMatrix;
+				}
+				else
+				{
+					ensure( View.ViewMatrices.TranslatedViewMatrix.GetOrigin().IsNearlyZero() );
+					View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
+					View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.ViewMatrices.TranslatedViewMatrix.GetTransposed();
+				}
 			}
 		}
 		else if(ViewState)
