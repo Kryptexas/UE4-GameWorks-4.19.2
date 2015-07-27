@@ -715,19 +715,21 @@ void FWebBrowserWindow::SetToolTip(const CefString& CefToolTip)
 	}
 }
 
-
 bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 {
-	if (ViewportSize == FIntPoint::ZeroValue)
-	{
-		return false;
-	}
-	
 	Rect.x = 0;
 	Rect.y = 0;
-	Rect.width = ViewportSize.X;
-	Rect.height = ViewportSize.Y;
-
+	if (ViewportSize == FIntPoint::ZeroValue)
+	{
+		// We need to return a dummy size until we know the final size of the viewport. Otherwise, popup menus may not work.
+		Rect.width = 1024;
+		Rect.height = 1024;
+	}
+	else
+	{
+		Rect.width = ViewportSize.X;
+		Rect.height = ViewportSize.Y;
+	}
 	return true;
 }
 
@@ -770,6 +772,15 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
 		// In case that should change in the future, we'll simply update the entire area if DirtyRects is not a single element.
 		FIntRect Dirty = (DirtyRects.size() == 1)?FIntRect(DirtyRects[0].x, DirtyRects[0].y, DirtyRects[0].x + DirtyRects[0].width, DirtyRects[0].y + DirtyRects[0].height):FIntRect();
 		UpdatableTextures[Type]->UpdateTextureThreadSafeRaw(Width, Height, Buffer, Dirty);
+	}
+
+	if (Type == PET_POPUP && bShowPopupRequested)
+	{
+		bShowPopupRequested = false;
+		bPopupHasFocus = true;
+		FIntPoint PopupSize = FIntPoint(Width, Height);
+		FIntRect PopupRect = FIntRect(PopupPosition, PopupPosition+PopupSize);
+		OnShowPopup().Broadcast(PopupRect);
 	}
 
 	bIsInitialized = true;
@@ -965,13 +976,12 @@ CefMouseEvent FWebBrowserWindow::GetCefMouseEvent(const FGeometry& MyGeometry, c
 {
 	CefMouseEvent Event;
 	FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	Event.x = LocalPos.X;
-	Event.y = LocalPos.Y;
 	if (bIsPopup)
 	{
-		Event.x += PopupRect.Min.X;
-		Event.y += PopupRect.Min.Y;
+		LocalPos += PopupPosition;
 	}
+	Event.x = LocalPos.X;
+	Event.y = LocalPos.Y;
 	Event.modifiers = GetCefMouseModifiers(MouseEvent);
 	return Event;
 }
@@ -1107,17 +1117,24 @@ void FWebBrowserWindow::OnBrowserClosed()
 	Handler = nullptr;
 }
 
-void FWebBrowserWindow::ShowPopup(CefRect CefPopupSize)
+void FWebBrowserWindow::SetPopupMenuPosition(CefRect CefPopupSize)
 {
-	PopupRect = FIntRect(CefPopupSize.x, CefPopupSize.y, CefPopupSize.x+CefPopupSize.width, CefPopupSize.y+CefPopupSize.height);
-	bPopupHasFocus = true;
-	OnShowPopup().Broadcast(PopupRect);
+	// We only store the position, as the size will be provided ib the OnPaint call.
+	PopupPosition = FIntPoint(CefPopupSize.x, CefPopupSize.y);
 }
 
-void FWebBrowserWindow::HidePopup()
+void FWebBrowserWindow:: ShowPopupMenu(bool bShow)
 {
-	bPopupHasFocus = false;
-	OnDismissPopup().Broadcast();
+	if (bShow)
+	{
+		bShowPopupRequested = true; // We have to delay showing the popup until we get the first OnPaint on it.
+	}
+	else
+	{
+		bPopupHasFocus = false;
+		bShowPopupRequested = false;
+		OnDismissPopup().Broadcast();
+	}
 }
 
 

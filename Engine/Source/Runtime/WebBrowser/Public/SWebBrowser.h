@@ -30,6 +30,7 @@ public:
 		, _SupportsTransparency(false)
 		, _SupportsThumbMouseButtonNavigation(false)
 		, _BackgroundColor(255,255,255,255)
+		, _PopupMenuMethod(TOptional<EPopupMethod>())
 		, _ViewportSize(FVector2D::ZeroVector)
 	{ }
 
@@ -59,6 +60,9 @@ public:
 
 		/** Opaque background color used before a document is loaded and when no document color is specified. */
 		SLATE_ARGUMENT(FColor, BackgroundColor)
+
+		/** Override the popup menu method used for popup menus. If not set, parent widgets will be queried instead. */
+		SLATE_ARGUMENT(TOptional<EPopupMethod>, PopupMenuMethod)
 
 		/** Desired size of the web browser viewport. */
 		SLATE_ATTRIBUTE(FVector2D, ViewportSize);
@@ -255,6 +259,14 @@ private:
 	/** Callback for hiding the popup menu */
 	void HandleDismissPopup();
 
+	/** Callback from the popup menu notifiying it has been dismissed */
+	void HandleMenuDismissed(TSharedRef<IMenu>);
+
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override
+	{
+		return PopupMenuMethod;
+	}
+
 private:
 
 	/** Interface for dealing with a web browser window. */
@@ -273,6 +285,9 @@ private:
 	 * Pointer is null when a popup is not visible.
 	 */
 	TWeakPtr<IMenu> PopupMenuPtr;
+
+	/** Can be set to override the popup menu method used for popup menus. If not set, parent widgets will be queried instead. */
+	TOptional<EPopupMethod> PopupMenuMethod;
 
 	/** The url that appears in the address bar which can differ from the url of the loaded page */
 	FText AddressBarUrl;

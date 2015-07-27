@@ -50,6 +50,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	OnCreateWindow = InArgs._OnCreateWindow;
 	OnCloseWindow = InArgs._OnCloseWindow;
 	AddressBarUrl = FText::FromString(InArgs._InitialURL);
+	PopupMenuMethod = InArgs._PopupMenuMethod;
 
 	BrowserWindow = InWebBrowserWindow;
 	if(!BrowserWindow.IsValid())
@@ -75,9 +76,8 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 			InArgs._ShowErrorMessage,
 			InArgs._BackgroundColor
 			);		
+		}
 	}
-	}
-
 
 	ChildSlot
 	[
@@ -374,7 +374,6 @@ EVisibility SWebBrowser::GetLoadingThrobberVisibility() const
 	return EVisibility::Hidden;
 }
 
-
 void SWebBrowser::HandleBrowserWindowDocumentStateChanged(EWebBrowserDocumentState NewState)
 {
 	switch (NewState)
@@ -500,6 +499,8 @@ void SWebBrowser::UnbindUObject(const FString& Name, UObject* Object, bool bIsPe
 
 void SWebBrowser::HandleShowPopup(const FIntRect& PopupSize)
 {
+	check(!PopupMenuPtr.IsValid())
+
 	TSharedPtr<SViewport> MenuContent;
 	SAssignNew(MenuContent, SViewport)
 				.ViewportSize(PopupSize.Size())
@@ -517,12 +518,18 @@ void SWebBrowser::HandleShowPopup(const FIntRect& PopupSize)
 		const FGeometry& BrowserGeometry = WidgetPath.Widgets.Last().Geometry;
 		const FVector2D NewPosition = BrowserGeometry.LocalToAbsolute(PopupSize.Min);
 
-		// Open the pop-up
+
+		// Open the pop-up. The popup method will be queried from the widget path passed in.
 		TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(ViewportWidget.ToSharedRef(), WidgetPath, MenuContentRef, NewPosition, FPopupTransitionEffect( FPopupTransitionEffect::ComboButton ), false);
+		NewMenu->GetOnMenuDismissed().AddSP(this, &SWebBrowser::HandleMenuDismissed);
 		PopupMenuPtr = NewMenu;
-		check(NewMenu.IsValid() && NewMenu->GetOwnedWindow().IsValid());
 	}
 
+}
+
+void SWebBrowser::HandleMenuDismissed(TSharedRef<IMenu>)
+{
+	PopupMenuPtr.Reset();
 }
 
 void SWebBrowser::HandleDismissPopup()
@@ -530,6 +537,7 @@ void SWebBrowser::HandleDismissPopup()
 	if (PopupMenuPtr.IsValid())
 	{
 		PopupMenuPtr.Pin()->Dismiss();
+		FSlateApplication::Get().SetKeyboardFocus(ViewportWidget, EFocusCause::SetDirectly);
 	}
 }
 

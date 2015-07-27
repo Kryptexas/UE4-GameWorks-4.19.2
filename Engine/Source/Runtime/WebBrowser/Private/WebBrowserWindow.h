@@ -318,16 +318,19 @@ private:
 	void OnBrowserClosed();
 
 	/**
-	 * Called to show the popup widget
+	 * Called to set the popup menu location. Note that CEF also passes a size to this method, 
+	 * which is ignored as the correct size is usually not known until inside OnPaint.
 	 *
- 	 * @param PopupSize The size and location of the popup widget.
+ 	 * @param PopupSize The location of the popup widget.
 	 */
-	void ShowPopup(CefRect PopupSize);
+	void SetPopupMenuPosition(CefRect PopupSize);
 
 	/**
-	 * Called to hide the popup widget again
+	 * Called to request that the popup widget is shown or hidden.
+	 *
+ 	 * @param bShow true for showing the popup, false for hiding it.
 	 */
-	void HidePopup();
+	void ShowPopupMenu(bool bShow);
 
 public:
 
@@ -458,7 +461,7 @@ private:
 	/** Delegate for handaling requests to show the popup menu. */
 	FOnShowPopup ShowPopupEvent;
 
-	/** Delegate for handaling requests to close new windows that were created. */
+	/** Delegate for hanaling requests to dismiss the current popup menu. */
 	FOnDismissPopup DismissPopupEvent;
 
 	/** Tracks the current mouse cursor */
@@ -482,7 +485,8 @@ private:
 	bool bMainHasFocus;
 	bool bPopupHasFocus;
 
-	FIntRect PopupRect;
+	FIntPoint PopupPosition;
+	bool bShowPopupRequested;
 
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FWebJSScripting> Scripting;
