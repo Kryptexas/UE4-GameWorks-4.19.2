@@ -32,11 +32,6 @@ class MEDIAASSETS_API UMediaSoundWave
 
 public:
 
-	/** Destructor. */
-	~UMediaSoundWave();
-
-public:
-
 	/**
 	 * Sets the MediaPlayer asset to be used for this texture.
 	 *
@@ -72,6 +67,7 @@ public:
 	virtual SIZE_T GetResourceSize( EResourceSizeMode::Type Mode ) override;
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 
 protected:
 
@@ -92,8 +88,11 @@ private:
 	TSharedPtr<IMediaAudioTrack, ESPMode::ThreadSafe> AudioTrack;
 
 	/** Holds the media player asset currently being used. */
-	UMediaPlayer* CurrentMediaPlayer;
+	UPROPERTY()
+	TWeakObjectPtr<UMediaPlayer> CurrentMediaPlayer;
 
 	/** Holds queued audio samples. */
 	TArray<uint8> QueuedAudio;
+
+	bool bSetupDelegates;
 };

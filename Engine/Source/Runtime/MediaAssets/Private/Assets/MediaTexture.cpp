@@ -16,22 +16,9 @@ UMediaTexture::UMediaTexture( const FObjectInitializer& ObjectInitializer )
 	, CurrentMediaPlayer(nullptr)
 	, VideoBuffer(MakeShareable(new FMediaSampleBuffer))
 {
+	bDelegatesAdded = false;
 	NeverStream = true;
 	UpdateResource();
-}
-
-
-UMediaTexture::~UMediaTexture()
-{
-	if (VideoTrack.IsValid())
-	{
-		VideoTrack->GetStream().RemoveSink(VideoBuffer);
-	}
-
-	if (CurrentMediaPlayer != nullptr)
-	{
-		CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
-	}
 }
 
 
@@ -114,6 +101,18 @@ void UMediaTexture::FinishDestroy()
 	delete ReleasePlayerFence;
 	ReleasePlayerFence = nullptr;
 
+	if (VideoTrack.IsValid())
+	{
+		VideoTrack->GetStream().RemoveSink(VideoBuffer);
+		VideoTrack.Reset();
+	}
+
+	if (CurrentMediaPlayer.IsValid())
+	{
+		CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
+		CurrentMediaPlayer.Reset();
+	}
+
 	Super::FinishDestroy();
 }
 
@@ -183,7 +182,7 @@ void UMediaTexture::PostEditChangeProperty( FPropertyChangedEvent& PropertyChang
 void UMediaTexture::InitializeTrack()
 {
 	// assign new media player asset
-	if (CurrentMediaPlayer != MediaPlayer)
+	if (CurrentMediaPlayer != MediaPlayer || !bDelegatesAdded)
 	{
 		if (CurrentMediaPlayer != nullptr)
 		{
@@ -196,6 +195,7 @@ void UMediaTexture::InitializeTrack()
 		{
 			MediaPlayer->OnTracksChanged().AddUObject(this, &UMediaTexture::HandleMediaPlayerTracksChanged);
 		}	
+		bDelegatesAdded = true;
 	}
 
 	// disconnect from current track

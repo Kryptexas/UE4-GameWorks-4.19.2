@@ -154,6 +154,15 @@ protected:
 private:
 
 	/**
+	* Returns whether the passed in extension is a video
+	* extension. Extensions with and without trailing dots are supported.
+	*
+	* @param	Extension to test.
+	* @return	True if Ext is a video extension.  e.g. .mp4
+	*/
+	static bool IsMediaExtension(const TCHAR* Ext);
+
+	/**
 	 * @return true if the path exists in a directory that should always use the local filesystem
 	 * This version does not worry about initialization or thread safety, do not call directly
 	 */
@@ -222,6 +231,8 @@ private:
 
     // Our network Transport. 
 	class ITransport* Transport; 
+
+	static FString MP4Extension;
 };
 
 class SOCKETS_API FNetworkFileHandle : public IFileHandle

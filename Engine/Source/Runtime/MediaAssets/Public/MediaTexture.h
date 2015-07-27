@@ -41,11 +41,6 @@ class MEDIAASSETS_API UMediaTexture
 
 public:
 
-	/** Destructor. */
-	~UMediaTexture();
-
-public:
-
 	/**
 	 * Gets the width and height of the texture (in pixels).
 	 *
@@ -139,7 +134,8 @@ private:
 	FIntPoint CachedDimensions;
 
 	/** Holds the UMediaPlayer asset currently being used. */
-	UMediaPlayer* CurrentMediaPlayer;
+	UPROPERTY() 
+	TWeakObjectPtr<UMediaPlayer> CurrentMediaPlayer;
 
 	/** Synchronizes access to this object from the render thread. */
 	FRenderCommandFence* ReleasePlayerFence;
@@ -149,4 +145,6 @@ private:
 
 	/** Holds the selected video track. */
 	TSharedPtr<IMediaVideoTrack, ESPMode::ThreadSafe> VideoTrack;
+
+	bool bDelegatesAdded;
 };
