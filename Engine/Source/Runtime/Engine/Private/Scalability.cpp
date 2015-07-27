@@ -435,6 +435,24 @@ void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 	EffectsQuality = Value;
 }
 
+// Returns the overall value if all settings are set to the same thing
+// @param Value -1:custom 0:low, 1:medium, 2:high, 3:epic
+int32 FQualityLevels::GetSingleQualityLevel() const
+{
+	int32 Result = ViewDistanceQuality;
+
+	const int32 Target = ViewDistanceQuality;
+	if ((Target == AntiAliasingQuality) && (Target == ShadowQuality) && (Target == PostProcessQuality) && (Target == TextureQuality) && (Target == EffectsQuality))
+	{
+		if (GetRenderScaleLevelFromQualityLevel(Target) == ResolutionQuality)
+		{
+			return Target;
+		}
+	}
+
+	return -1;
+}
+
 void LoadState(const FString& IniName)
 {
 	check(!IniName.IsEmpty());
