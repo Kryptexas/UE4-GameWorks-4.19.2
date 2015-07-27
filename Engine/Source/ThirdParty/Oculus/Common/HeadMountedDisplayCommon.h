@@ -77,6 +77,9 @@ public:
 			/** Whether world-to-meters scale is overriden or not. */
 			uint64 bWorldToMetersOverride : 1;
 
+			/** Whether camera scale is overriden or not. */
+			uint64 bCameraScale3DOverride : 1;
+
 			/** Distortion on/off */
 			uint64 bHmdDistortion : 1;
 
@@ -170,6 +173,9 @@ public:
 
 	/** Optional far clipping plane for projection matrix */
 	float FarClippingPlane;
+
+	/** Scale the camera positional movement */
+	FVector		CameraScale3D;
 
 	/** Scale the positional movement */
 	FVector		PositionScale3D;

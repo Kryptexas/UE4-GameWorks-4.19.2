@@ -36,6 +36,7 @@ FHMDSettings::FHMDSettings() :
 	Flags.bPlayerCameraManagerFollowsHmdPosition = true;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = FIntRect(0, 0, 0, 0);
 
+	CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
 	PositionScale3D = FVector(1.0f, 1.0f, 1.0f);
 }
 
@@ -265,6 +266,16 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 	{
 		CurrentFrame->WorldToMetersScale = GWorld->GetWorldSettings()->WorldToMeters;
 	}
+
+	if (Settings->Flags.bCameraScale3DOverride)
+	{
+		CurrentFrame->CameraScale3D = Settings->CameraScale3D;
+	}
+	else
+	{
+		CurrentFrame->CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
+	}
+
 	return true;
 }
 
@@ -563,6 +574,11 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 		{
 			Settings->WorldToMetersScale = val;
 			Settings->Flags.bWorldToMetersOverride = true;
+		}
+		if (FParse::Value(Cmd, TEXT("CS="), val))
+		{
+			Settings->CameraScale3D = FVector(val, val, val);
+			Settings->Flags.bCameraScale3DOverride = true;
 		}
 		if (FParse::Value(Cmd, TEXT("PS="), val))
 		{
@@ -996,8 +1012,6 @@ void FHeadMountedDisplay::ApplyHmdRotation(APlayerController* PC, FRotator& View
 
 	ViewRotation.Normalize();
 
-	frame->CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
-
 	FQuat CurHmdOrientation;
 	FVector CurHmdPosition;
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition, true, true);
@@ -1026,10 +1040,6 @@ void FHeadMountedDisplay::UpdatePlayerCameraRotation(APlayerCameraManager* Camer
 	{
 		return;
 	}
-	//if (!frame->Flags.bCameraScale3DAlreadySet)
-	//{
-	//	frame->CameraScale3D = POV.Scale3D;
-	//}
 
 #if !UE_BUILD_SHIPPING
 	if (frame->Settings->Flags.bDoNotUpdateOnGT)
