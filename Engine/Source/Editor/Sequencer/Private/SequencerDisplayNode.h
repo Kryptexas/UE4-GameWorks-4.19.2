@@ -237,6 +237,15 @@ public:
 
 	/** Pins this node, forcing it to the top of the sequencer. Affects visibility */
 	void PinNode();
+
+	/** Initialize this node with expansion states and virtual offsets */
+	void Initialize(float InVirtualTop, float InVirtualBottom);
+
+	/** @return this node's virtual offset from the top of the tree, irrespective of expansion states */
+	float GetVirtualTop() const { return VirtualTop; }
+	
+	/** @return this node's virtual offset plus its virtual height, irrespective of expansion states */
+	float GetVirtualBottom() const { return VirtualBottom; }
 	
 protected:
 	/**
@@ -272,9 +281,13 @@ protected:
 	
 	/** Whether this node has visible children, based on cached shot filtering visibility only */
 	bool HasVisibleChildren() const;
-public:
+
+protected:
+	/** The virtual offset of this item from the top of the tree, irrespective of expansion states */
 	float VirtualTop;
+	/** The virtual offset + virtual heightof this item, irrespective of expansion states */
 	float VirtualBottom;
+
 protected:
 	/** The parent of this node*/
 	TWeakPtr< FSequencerDisplayNode > ParentNode;

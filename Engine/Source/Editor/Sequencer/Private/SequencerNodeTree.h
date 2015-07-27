@@ -68,6 +68,13 @@ public:
 	 * @return true if the node should be expanded, false otherwise	
 	 */
 	bool GetSavedExpansionState( const FSequencerDisplayNode& Node ) const;
+
+	/**
+	 * Get the default expansion state for the specified node, where its state has not yet been saved
+	 *
+	 * @return true if the node is to be expanded, false otherwise
+	 */
+	bool GetDefaultExpansionState( const FSequencerDisplayNode& Node ) const;
 	
 	/** Updates nodes visibility for use when shot filters change at all */
 	void UpdateCachedVisibilityBasedOnShotFiltersChanged();

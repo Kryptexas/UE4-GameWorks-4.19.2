@@ -397,7 +397,7 @@ void SSequencerTrackArea::HandleMarqueeSelection(const FGeometry& Geometry, cons
 			{
 				FSectionKeyAreaNode& KeyAreaNode = static_cast<FSectionKeyAreaNode&>(InNode);
 
-				if (CurrentSections && InNode.VirtualTop > TopLeft.Y && InNode.VirtualBottom < BottomRight.Y)
+				if (CurrentSections && InNode.GetVirtualTop() > TopLeft.Y && InNode.GetVirtualBottom() < BottomRight.Y)
 				{
 					PerformSelection(KeyAreaNode);
 				}
@@ -409,7 +409,7 @@ void SSequencerTrackArea::HandleMarqueeSelection(const FGeometry& Geometry, cons
 				CurrentSections = &TrackNode.GetSections();
 
 				TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = TrackNode.GetTopLevelKeyNode();
-				if( SectionKeyNode.IsValid() && TrackNode.VirtualTop > TopLeft.Y && TrackNode.VirtualBottom < BottomRight.Y )
+				if( SectionKeyNode.IsValid() && TrackNode.GetVirtualTop() > TopLeft.Y && TrackNode.GetVirtualBottom() < BottomRight.Y )
 				{
 					PerformSelection(*SectionKeyNode);
 				}

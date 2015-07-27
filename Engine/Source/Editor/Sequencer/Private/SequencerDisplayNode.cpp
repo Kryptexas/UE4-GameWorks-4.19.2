@@ -130,7 +130,15 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	, bCachedShotFilteredVisibility( true )
 	, bNodeIsPinned( false )
 {
+	
+}
+
+void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom)
+{
 	bExpanded = ParentTree.GetSavedExpansionState( *this );
+
+	VirtualTop = InVirtualTop;
+	VirtualBottom = InVirtualBottom;
 }
 
 void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FObjectBindingNode> ObjectBindingNode)

@@ -175,13 +175,13 @@ float SSequencerTreeView::PhysicalToVirtual(float InPhysical) const
 	if (Found)
 	{
 		const float FractionalHeight = (InPhysical - Found->PhysicalTop) / Found->PhysicalHeight;
-		return Found->Node->VirtualTop + (Found->Node->VirtualBottom - Found->Node->VirtualTop) * FractionalHeight;
+		return Found->Node->GetVirtualTop() + (Found->Node->GetVirtualBottom() - Found->Node->GetVirtualTop()) * FractionalHeight;
 	}
 
 	if (PhysicalNodes.Num())
 	{
 		auto& Last = PhysicalNodes.Last();
-		return Last.Node->VirtualTop + (InPhysical - Last.PhysicalTop);
+		return Last.Node->GetVirtualTop() + (InPhysical - Last.PhysicalTop);
 	}
 
 	return InPhysical;
@@ -191,11 +191,11 @@ float SSequencerTreeView::VirtualToPhysical(float InVirtual) const
 {
 	auto* Found = Utils::BinarySearch(PhysicalNodes, [&](const FCachedGeometry& In){
 
-		if (InVirtual < In.Node->VirtualTop)
+		if (InVirtual < In.Node->GetVirtualTop())
 		{
 			return Utils::ESearchState::Before;
 		}
-		else if (InVirtual > In.Node->VirtualBottom)
+		else if (InVirtual > In.Node->GetVirtualBottom())
 		{
 			return Utils::ESearchState::After;
 		}
@@ -206,14 +206,14 @@ float SSequencerTreeView::VirtualToPhysical(float InVirtual) const
 
 	if (Found)
 	{
-		const float FractionalHeight = (InVirtual - Found->Node->VirtualTop) / (Found->Node->VirtualBottom - Found->Node->VirtualTop);
+		const float FractionalHeight = (InVirtual - Found->Node->GetVirtualTop()) / (Found->Node->GetVirtualBottom() - Found->Node->GetVirtualTop());
 		return Found->PhysicalTop + Found->PhysicalHeight * FractionalHeight;
 	}
 	
 	if (PhysicalNodes.Num())
 	{
 		auto Last = PhysicalNodes.Last();
-		return Last.PhysicalTop + (InVirtual - Last.Node->VirtualTop);
+		return Last.PhysicalTop + (InVirtual - Last.Node->GetVirtualTop());
 	}
 
 	return InVirtual;

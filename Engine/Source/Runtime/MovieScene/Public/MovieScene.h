@@ -16,6 +16,18 @@ class UMovieSceneTrack;
 MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
 
 
+/** @todo: remove this type when support for intrinsics on TMap values is added? */
+USTRUCT()
+struct FMovieSceneExpansionState
+{
+	GENERATED_BODY()
+
+	FMovieSceneExpansionState(bool bInExpanded = true) : bExpanded(bInExpanded) {}
+
+	UPROPERTY()
+	bool bExpanded;
+};
+
 /**
  * Editor only data that needs to be saved between sessions for editing but has no runtime purpose
  */
@@ -24,9 +36,9 @@ struct FMovieSceneEditorData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** List of collapsed sequencer nodes.  We store collapsed instead of expanded so that new nodes with no saved state are expanded by default */
+	/** Map of node path -> expansion state. */
 	UPROPERTY()
-	TArray<FString> CollapsedSequencerNodes;
+	TMap<FString, FMovieSceneExpansionState> ExpansionStates;
 };
 
 
