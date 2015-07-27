@@ -523,6 +523,13 @@ ECommandResult::Type FSubversionSourceControlProvider::ExecuteSynchronousCommand
 
 	// Delete the command now
 	check(!InCommand.bAutoDelete);
+
+	// ensure commands that are not auto deleted do not end up in the command queue
+	if ( CommandQueue.Contains( &InCommand ) ) 
+	{
+		CommandQueue.Remove( &InCommand );
+	}
+
 	delete &InCommand;
 
 	return Result;
