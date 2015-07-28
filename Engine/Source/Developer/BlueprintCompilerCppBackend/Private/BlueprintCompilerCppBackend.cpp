@@ -291,6 +291,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FBlueprintCompiledSt
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
+	const bool bInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
 	{
 		FSafeContextScopedEmmitter SafeContextScope(Result, bUseSafeContext ? Statement.FunctionContext : nullptr, *this, TEXT("\t\t\t"));
 		ensure(!bInline || !SafeContextScope.IsSafeContextUsed());
@@ -309,22 +310,42 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FBlueprintCompiledSt
 		}
 
 		// Emit object to call the method on
-		if (bStaticCall)
+		if (bInterfaceCall)
 		{
-			const bool bIsCustomThunk = Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) || Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
-			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
-			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s%s::"), OwnerClass->GetPrefixCPP(), *OwnerClass->GetName());
+			auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
+			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
+			Result += FString::Printf(TEXT("I%s::Execute_%s(%s.GetObject(), ")
+				, *ContextInterfaceClass->GetName()
+				, *Statement.FunctionToCall->GetName()
+				, *TermToText(Statement.FunctionContext, false));
 		}
-		else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
+		else
 		{
-			Result += FString::Printf(TEXT("%s->"), *TermToText(Statement.FunctionContext, false));
+			if (bStaticCall)
+			{
+				const bool bIsCustomThunk = Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) || Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
+				auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
+				Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s%s::"), OwnerClass->GetPrefixCPP(), *OwnerClass->GetName());
+			}
+			else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
+			{
+				Result += FString::Printf(TEXT("%s->"), *TermToText(Statement.FunctionContext, false));
+			}
+
+			if (Statement.bIsParentContext)
+			{
+				Result += TEXT("Super::");
+			}
+			Result += Statement.FunctionToCall->GetName();
+			if (Statement.bIsParentContext && FEmitHelper::ShoulsHandleAsNativeEvent(Statement.FunctionToCall))
+			{
+				ensure(!bCallOnDifferentObject);
+				Result += TEXT("_Implementation");
+			}
+
+			// Emit method parameter list
+			Result += TEXT("(");
 		}
-
-		// Emit method name
-		Result += FString::Printf(TEXT("%s%s"), Statement.bIsParentContext ? TEXT("Super::") : TEXT(""), *Statement.FunctionToCall->GetName());
-
-		// Emit method parameter list
-		Result += TEXT("(");
 		Result += EmitMethodInputParameterList(Statement);
 		Result += TEXT(")");
 
@@ -702,6 +723,19 @@ void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& Fun
 			}
 		}
 
+		bool bAddCppFromBpEventMD = false;
+		bool bGenerateAsNativeEventImplementation = false;
+		// Get original function declaration
+		if (FEmitHelper::ShoulsHandleAsNativeEvent(Function)) // BlueprintNativeEvent
+		{
+			bGenerateAsNativeEventImplementation = true;
+			FunctionName += TEXT("_Implementation");
+		}
+		else if (FEmitHelper::ShoulsHandleAsImplementableEvent(Function)) // BlueprintImplementableEvent
+		{
+			bAddCppFromBpEventMD = true;
+		}
+
 		// Emit the declaration
 		const FString ReturnType = ReturnValue ? ReturnValue->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName) : TEXT("void");
 
@@ -709,12 +743,28 @@ void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& Fun
 		{
 			const FString Start = FString::Printf(TEXT("%s %s%s%s("), *ReturnType, TEXT("%s"), TEXT("%s"), *FunctionName);
 
-			Emit(Header, *FString::Printf(TEXT("\t%s\n"), *FEmitHelper::EmitUFuntion(Function)));
+			TArray<FString> AdditionalMetaData;
+			if (bAddCppFromBpEventMD)
+			{
+				AdditionalMetaData.Emplace(TEXT("CppFromBpEvent"));
+			}
+
+			if (!bGenerateAsNativeEventImplementation)
+			{
+				Emit(Header, *FString::Printf(TEXT("\t%s\n"), *FEmitHelper::EmitUFuntion(Function, &AdditionalMetaData)));
+			}
 			Emit(Header, TEXT("\t"));
+
 			if (Function->HasAllFunctionFlags(FUNC_Static))
 			{
 				Emit(Header, TEXT("static "));
 			}
+
+			if (bGenerateAsNativeEventImplementation)
+			{
+				Emit(Header, TEXT("virtual "));
+			}
+
 			Emit(Header, *FString::Printf(*Start, TEXT(""), TEXT("")));
 			Emit(Body, *FString::Printf(*Start, *CppClassName, TEXT("::")));
 
@@ -739,6 +789,10 @@ void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& Fun
 			}
 
 			Emit(Header, TEXT(")"));
+			if (bGenerateAsNativeEventImplementation)
+			{
+				Emit(Header, TEXT(" override"));
+			}
 			Emit(Header, TEXT(";\n"));
 			Emit(Body, TEXT(")\n"));
 		}

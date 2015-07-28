@@ -5295,6 +5295,11 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 		FuncInfo.FunctionExportFlags |= FUNCEXPORT_CppStatic;
 	}
 
+	if (MetaData.Contains("CppFromBpEvent"))
+	{
+		FuncInfo.FunctionFlags |= FUNC_Event;
+	}
+
 	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
 
 	if ((FuncInfo.FunctionFlags & FUNC_BlueprintPure) && GetCurrentClass()->HasAnyClassFlags(CLASS_Interface))

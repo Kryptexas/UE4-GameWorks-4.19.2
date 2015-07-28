@@ -117,7 +117,7 @@ struct FEmitHelper
 		return true;
 	}
 
-	static FString HandleMetaData(const UField* Field, bool AddCategory = true)
+	static FString HandleMetaData(const UField* Field, bool AddCategory = true, TArray<FString>* AdditinalMetaData = nullptr)
 	{
 		FString MetaDataStr;
 
@@ -150,6 +150,10 @@ struct FEmitHelper
 		if (AddCategory && (!ValuesMap || !ValuesMap->Find(TEXT("Category"))))
 		{
 			MetaDataStrings.Emplace(TEXT("Category"));
+		}
+		if (AdditinalMetaData)
+		{
+			MetaDataStrings.Append(*AdditinalMetaData);
 		}
 		MetaDataStrings.Remove(FString());
 		if (MetaDataStrings.Num())
@@ -218,27 +222,27 @@ struct FEmitHelper
 
 		// OTHER
 		HANDLE_CPF_TAG(TEXT("Transient"), CPF_Transient)
-			HANDLE_CPF_TAG(TEXT("DuplicateTransient"), CPF_DuplicateTransient)
-			HANDLE_CPF_TAG(TEXT("TextExportTransient"), CPF_TextExportTransient)
-			HANDLE_CPF_TAG(TEXT("NonPIEDuplicateTransient"), CPF_NonPIEDuplicateTransient)
-			HANDLE_CPF_TAG(TEXT("Export"), CPF_ExportObject)
-			HANDLE_CPF_TAG(TEXT("NoClear"), CPF_NoClear)
-			HANDLE_CPF_TAG(TEXT("EditFixedSize"), CPF_EditFixedSize)
-			HANDLE_CPF_TAG(TEXT("NotReplicated"), CPF_RepSkip)
-			HANDLE_CPF_TAG(TEXT("Interp"), CPF_Edit | CPF_BlueprintVisible | CPF_Interp)
-			HANDLE_CPF_TAG(TEXT("NonTransactional"), CPF_NonTransactional)
-			HANDLE_CPF_TAG(TEXT("BlueprintAssignable"), CPF_BlueprintAssignable)
-			HANDLE_CPF_TAG(TEXT("BlueprintCallable"), CPF_BlueprintCallable)
-			HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), CPF_BlueprintAuthorityOnly)
-			HANDLE_CPF_TAG(TEXT("AssetRegistrySearchable"), CPF_AssetRegistrySearchable)
-			HANDLE_CPF_TAG(TEXT("SimpleDisplay"), CPF_SimpleDisplay)
-			HANDLE_CPF_TAG(TEXT("AdvancedDisplay"), CPF_AdvancedDisplay)
-			HANDLE_CPF_TAG(TEXT("SaveGame"), CPF_SaveGame)
+		HANDLE_CPF_TAG(TEXT("DuplicateTransient"), CPF_DuplicateTransient)
+		HANDLE_CPF_TAG(TEXT("TextExportTransient"), CPF_TextExportTransient)
+		HANDLE_CPF_TAG(TEXT("NonPIEDuplicateTransient"), CPF_NonPIEDuplicateTransient)
+		HANDLE_CPF_TAG(TEXT("Export"), CPF_ExportObject)
+		HANDLE_CPF_TAG(TEXT("NoClear"), CPF_NoClear)
+		HANDLE_CPF_TAG(TEXT("EditFixedSize"), CPF_EditFixedSize)
+		HANDLE_CPF_TAG(TEXT("NotReplicated"), CPF_RepSkip)
+		HANDLE_CPF_TAG(TEXT("Interp"), CPF_Edit | CPF_BlueprintVisible | CPF_Interp)
+		HANDLE_CPF_TAG(TEXT("NonTransactional"), CPF_NonTransactional)
+		HANDLE_CPF_TAG(TEXT("BlueprintAssignable"), CPF_BlueprintAssignable)
+		HANDLE_CPF_TAG(TEXT("BlueprintCallable"), CPF_BlueprintCallable)
+		HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), CPF_BlueprintAuthorityOnly)
+		HANDLE_CPF_TAG(TEXT("AssetRegistrySearchable"), CPF_AssetRegistrySearchable)
+		HANDLE_CPF_TAG(TEXT("SimpleDisplay"), CPF_SimpleDisplay)
+		HANDLE_CPF_TAG(TEXT("AdvancedDisplay"), CPF_AdvancedDisplay)
+		HANDLE_CPF_TAG(TEXT("SaveGame"), CPF_SaveGame)
 
-			//TODO:
-			//HANDLE_CPF_TAG(TEXT("Instanced"), CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference)
+		//TODO:
+		//HANDLE_CPF_TAG(TEXT("Instanced"), CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference)
 
-			return Tags;
+		return Tags;
 	}
 
 	static TArray<FString> FunctionFlagsToTags(uint64 Flags)
@@ -246,24 +250,24 @@ struct FEmitHelper
 		TArray<FString> Tags;
 
 		//Pointless: BlueprintNativeEvent, BlueprintImplementableEvent
-		//Pointless: CustomThunk ?
+		//Pointless: CustomThunk
 
 		//TODO: SealedEvent
 		//TODO: Unreliable
 		//TODO: ServiceRequest, ServiceResponse
 
 		HANDLE_CPF_TAG(TEXT("Exec"), FUNC_Exec)
-			HANDLE_CPF_TAG(TEXT("Server"), FUNC_Net | FUNC_NetServer)
-			HANDLE_CPF_TAG(TEXT("Client"), FUNC_Net | FUNC_NetClient)
-			HANDLE_CPF_TAG(TEXT("NetMulticast"), FUNC_Net | FUNC_NetMulticast)
-			HANDLE_CPF_TAG(TEXT("Reliable"), FUNC_NetReliable)
-			HANDLE_CPF_TAG(TEXT("BlueprintCallable"), FUNC_BlueprintCallable)
-			HANDLE_CPF_TAG(TEXT("BlueprintPure"), FUNC_BlueprintCallable | FUNC_BlueprintPure)
-			HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), FUNC_BlueprintAuthorityOnly)
-			HANDLE_CPF_TAG(TEXT("BlueprintCosmetic"), FUNC_BlueprintCosmetic)
-			HANDLE_CPF_TAG(TEXT("WithValidation"), FUNC_NetValidate)
+		HANDLE_CPF_TAG(TEXT("Server"), FUNC_Net | FUNC_NetServer)
+		HANDLE_CPF_TAG(TEXT("Client"), FUNC_Net | FUNC_NetClient)
+		HANDLE_CPF_TAG(TEXT("NetMulticast"), FUNC_Net | FUNC_NetMulticast)
+		HANDLE_CPF_TAG(TEXT("Reliable"), FUNC_NetReliable)
+		HANDLE_CPF_TAG(TEXT("BlueprintCallable"), FUNC_BlueprintCallable)
+		HANDLE_CPF_TAG(TEXT("BlueprintPure"), FUNC_BlueprintCallable | FUNC_BlueprintPure)
+		HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), FUNC_BlueprintAuthorityOnly)
+		HANDLE_CPF_TAG(TEXT("BlueprintCosmetic"), FUNC_BlueprintCosmetic)
+		HANDLE_CPF_TAG(TEXT("WithValidation"), FUNC_NetValidate)
 
-			return Tags;
+		return Tags;
 	}
 
 #undef HANDLE_CPF_TAG
@@ -278,11 +282,18 @@ struct FEmitHelper
 		return HasAllFlags(FunctionFlags, FUNC_Event | FUNC_BlueprintEvent) && !HasAllFlags(FunctionFlags, FUNC_Native);
 	}
 
-	static FString EmitUFuntion(UFunction* Function)
+	static FString EmitUFuntion(UFunction* Function, TArray<FString>* AdditinalMetaData = nullptr)
 	{
 		TArray<FString> Tags = FEmitHelper::FunctionFlagsToTags(Function->FunctionFlags);
+
+		auto FunctionOwnerClass = Function->GetOwnerClass();
+		if (FunctionOwnerClass->IsChildOf<UInterface>())
+		{
+			Tags.Emplace(TEXT("BlueprintNativeEvent"));
+		}
+
 		const bool bMustHaveCategory = (Function->FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintPure)) != 0;
-		Tags.Emplace(FEmitHelper::HandleMetaData(Function, bMustHaveCategory));
+		Tags.Emplace(FEmitHelper::HandleMetaData(Function, bMustHaveCategory, AdditinalMetaData));
 		Tags.Remove(FString());
 
 		FString AllTags;
@@ -583,5 +594,61 @@ struct FEmitHelper
 	{
 		return LiteralTerm(Type, FString(), nullptr);
 	}
-};
 
+	static UFunction* GetOriginalFunction(UFunction* Function)
+	{
+		check(Function);
+		const FName FunctionName = Function->GetFName();
+
+		UClass* Owner = Function->GetOwnerClass();
+		check(Owner);
+		for (auto& Inter : Owner->Interfaces)
+		{
+			if (UFunction* Result = Inter.Class->FindFunctionByName(FunctionName))
+			{
+				return GetOriginalFunction(Result);
+			}
+		}
+
+		for (UClass* SearchClass = Owner->GetSuperClass(); SearchClass; SearchClass = SearchClass->GetSuperClass())
+		{
+			if (UFunction* Result = SearchClass->FindFunctionByName(FunctionName))
+			{
+				return GetOriginalFunction(Result);
+			}
+		}
+
+		return Function;
+	}
+
+	static bool ShoulsHandleAsNativeEvent(UFunction* Function)
+	{
+		check(Function);
+		auto OriginalFunction = FEmitHelper::GetOriginalFunction(Function);
+		check(OriginalFunction);
+		if (OriginalFunction != Function)
+		{
+			const uint32 FlagsToCheckMask = EFunctionFlags::FUNC_Event | EFunctionFlags::FUNC_BlueprintEvent | EFunctionFlags::FUNC_Native;
+			const uint32 FlagsToCheck = OriginalFunction->FunctionFlags & FlagsToCheckMask;
+
+			auto OriginalOwner = OriginalFunction->GetOwnerClass();
+			const bool bBPInterface = Cast<UBlueprintGeneratedClass>(OriginalOwner) && OriginalOwner->IsChildOf<UInterface>();
+			return (FlagsToCheck == FlagsToCheckMask) || bBPInterface;
+		}
+		return false;
+	}
+
+	static bool ShoulsHandleAsImplementableEvent(UFunction* Function)
+	{
+		check(Function);
+		auto OriginalFunction = FEmitHelper::GetOriginalFunction(Function);
+		check(OriginalFunction);
+		if (OriginalFunction != Function)
+		{
+			const uint32 FlagsToCheckMask = EFunctionFlags::FUNC_Event | EFunctionFlags::FUNC_BlueprintEvent | EFunctionFlags::FUNC_Native;
+			const uint32 FlagsToCheck = OriginalFunction->FunctionFlags & FlagsToCheckMask;
+			return (FlagsToCheck == (EFunctionFlags::FUNC_Event | EFunctionFlags::FUNC_BlueprintEvent));
+		}
+		return false;
+	}
+};
