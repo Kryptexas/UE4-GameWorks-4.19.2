@@ -717,7 +717,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 		}
 		else
 		{
-			MacCursor->UpdateCurrentPosition(CurrentPosition);
+			MacCursor->UpdateCurrentPosition(CurrentPosition / MouseScaling);
 		}
 
 		if (EventWindow.IsValid())
