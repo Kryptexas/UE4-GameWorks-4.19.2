@@ -203,6 +203,7 @@ void FSlateOpenGLContext::Destroy()
 {
 	if (View)
 	{
+		LockGLContext(Context);
 		NSOpenGLContext* Current = [NSOpenGLContext currentContext];
 		[Context makeCurrentContext];
 		FSlateCocoaView* SlateView = ((FSlateCocoaView*)View);
@@ -226,6 +227,7 @@ void FSlateOpenGLContext::Destroy()
 
 		[PixelFormat release];
 		[Context clearDrawable];
+		UnlockGLContext(Context);
 		[Context release];
 		PixelFormat = NULL;
 		Context = NULL;
