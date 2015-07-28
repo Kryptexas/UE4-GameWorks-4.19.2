@@ -27,13 +27,9 @@ namespace AutomationTool
 
             try
             {
-                if (!Environment.Is64BitProcess)
-                {
-                    throw new AutomationException(ErrorCodes.Error_UATLaunchFailure, "Not running as a 64-bit process. Something must be wrong with the build settings.");
-                }
                 HostPlatform.Initialize();
 
-                Log.TraceVerbose("Running on {0}", HostPlatform.Current.GetType().Name);
+                Log.TraceVerbose("Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32);
 
                 XmlConfigLoader.Init();
 
