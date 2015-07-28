@@ -56,7 +56,7 @@ public:
 	 * @param InExtension Package extension.
 	 * @return Package filename.
 	 */
-	static FString LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension = TEXT(""));
+	static FString LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension = TEXT(""), const bool ShouldGetLocalizedPackage = false);
 	/** 
 	 * Returns the path to the specified package, excluding the short package name
 	 *
@@ -185,7 +185,7 @@ public:
 	 * @param OutFilename Package filename on disk.
 	 * @return true if the specified package name points to an existing package, false otherwise.
 	 **/
-	static bool DoesPackageExist(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutFilename = NULL);
+	static bool DoesPackageExist(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutFilename = NULL, const bool ShouldGetLocalizedPackage = false);
 
 	/**
 	 * Attempts to find a package given its short name on disk (very slow).

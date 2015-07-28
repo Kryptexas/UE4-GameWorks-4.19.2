@@ -147,6 +147,9 @@ namespace ContentBrowserUtils
 	/** Returns true if the passed-in path is a plugin folder */
 	bool IsPluginFolder( const FString& InPath );
 
+	/** Returns true if the passed-in path is a localization folder */
+	bool IsLocalizationFolder( const FString& InPath );
+
 	/** Get all the objects in a list of asset data */
 	void GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects);
 

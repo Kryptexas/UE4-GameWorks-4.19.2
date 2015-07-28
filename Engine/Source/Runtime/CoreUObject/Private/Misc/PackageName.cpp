@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectHash.cpp: Unreal object name hashes
@@ -328,16 +328,20 @@ FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
 	return Result;
 }
 
-FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension)
+FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension, const bool ShouldGetLocalizedPackage)
 {
 	const auto& Paths = FLongPackagePathsSingleton::Get();
+
+	const FCultureRef CurrentCulture = FInternationalization::Get().GetCurrentCulture();
+	const FString LocalizationPathParticle = FString::Printf(TEXT("L10N/%s/"), *CurrentCulture->GetName());
 
 	for (const auto& Pair : Paths.ContentRootToPath)
 	{
 		if (InLongPackageName.StartsWith(Pair.RootPath))
 		{
-			FString Result = Pair.ContentPath + InLongPackageName.Mid(Pair.RootPath.Len()) + InExtension;
-			return Result;
+			const FString RootRelativePath = InLongPackageName.Mid(Pair.RootPath.Len());
+			const bool IsLocalizedPath = RootRelativePath.StartsWith(LocalizationPathParticle);
+			return Pair.ContentPath + (ShouldGetLocalizedPackage && !IsLocalizedPath ? LocalizationPathParticle : TEXT("")) + RootRelativePath + InExtension;
 		}
 	}
 
@@ -599,7 +603,7 @@ bool FPackageName::FindPackageFileWithoutExtension(const FString& InPackageFilen
 	return false;
 }
 
-bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid* Guid /*= NULL*/, FString* OutFilename /*= NULL*/)
+bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid* Guid /*= NULL*/, FString* OutFilename /*= NULL*/, const bool ShouldGetLocalizedPackage /*= false*/)
 {
 	bool bFoundFile = false;
 
@@ -627,7 +631,7 @@ bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid*
 	}
 
 	// Convert to filename (no extension yet).
-	FString Filename = LongPackageNameToFilename(PackageName);
+	FString Filename = LongPackageNameToFilename(PackageName, TEXT(""), ShouldGetLocalizedPackage);
 	// Find the filename (with extension).
 	bFoundFile = FindPackageFileWithoutExtension(Filename, Filename);
 

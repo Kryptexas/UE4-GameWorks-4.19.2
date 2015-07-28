@@ -1112,6 +1112,12 @@ bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 	return false;
 }
 
+bool ContentBrowserUtils::IsLocalizationFolder( const FString& InPath )
+{
+	return	InPath.StartsWith(TEXT("/Engine/L10N")) || InPath.StartsWith(TEXT("Engine/L10N")) ||
+			InPath.StartsWith(TEXT("/Game/L10N")) || InPath.StartsWith(TEXT("Game/L10N"));
+}
+
 void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects)
 {	
 	for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
@@ -1593,6 +1599,12 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 	}
 
 	const FString NewFolderPath = InFolderPath / NewFolderName;
+
+	if (ContentBrowserUtils::IsLocalizationFolder(NewFolderPath))
+	{
+		OutErrorMessage = LOCTEXT("LocalizationFolderReserved", "The L10N folder is reserved for localized content.");
+		return false;
+	}
 
 	if (ContentBrowserUtils::DoesFolderExist(NewFolderPath))
 	{

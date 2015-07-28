@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 
@@ -758,17 +758,15 @@ TSharedPtr<struct FTreeItem> SPathView::AddRootItem( const FString& InFolderName
 
 	// If this isn't an engine folder or we want to show them, add
 	const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-	if ( bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName) )
-	{
 		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
-		if ( bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName) )
+	if ( (bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName)) && 
+		 (bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName)) )
 		{
 			const FText DisplayName = ContentBrowserUtils::GetRootDirDisplayName(InFolderName);
 			NewItem = MakeShareable( new FTreeItem(DisplayName, InFolderName, FString(TEXT("/")) + InFolderName, TSharedPtr<FTreeItem>()));
 			TreeRootItems.Add( NewItem );
 			TreeViewPtr->RequestTreeRefresh();
 		}
-	}
 
 	return NewItem;
 }
@@ -970,6 +968,12 @@ void SPathView::Populate()
 	const FString UserDeveloperFolder = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir().LeftChop(1));
 	PathList.Add(UserDeveloperFolder);
 
+	// Remove paths of localized assets.
+	PathList.RemoveAll([](const FString& Path) -> bool
+	{
+		return ContentBrowserUtils::IsLocalizationFolder(Path);
+	});
+
 	// we have a text filter, expand all parents of matching folders
 	for ( int32 PathIdx = 0; PathIdx < PathList.Num(); ++PathIdx)
 	{
@@ -1100,21 +1104,9 @@ FReply SPathView::OnFolderDragDetected(const FGeometry& Geometry, const FPointer
 	return FReply::Unhandled();
 }
 
-bool SPathView::VerifyFolderNameChanged(const FText& InName, FText& OutErrorMessage, const FString& InFolderPath) const
+bool SPathView::VerifyFolderNameChanged(const FString& InName, FText& OutErrorMessage, const FString& InFolderPath) const
 {	
-	if( !ContentBrowserUtils::IsValidFolderName(InName.ToString(), OutErrorMessage) )
-	{
-		return false;
-	}
-
-	const FString NewPath = FPaths::GetPath(InFolderPath) / InName.ToString();
-	if (ContentBrowserUtils::DoesFolderExist(NewPath))
-	{
-		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
-		return false;
-	}
-
-	return true;
+	return ContentBrowserUtils::IsValidFolderPathForCreate(FPaths::GetPath(InFolderPath), InName, OutErrorMessage);
 }
 
 void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation )
@@ -1382,7 +1374,11 @@ void SPathView::OnAssetRegistryPathAdded(const FString& Path)
 	// of successful hits in the filtered list. 
 	if ( SearchBoxFolderFilter->PassesFilter( Path ) )
 	{
+		// Do not add paths of localized assets.
+		if (!ContentBrowserUtils::IsLocalizationFolder(Path))
+		{
 		AddPath(Path);
+	}
 	}
 }
 

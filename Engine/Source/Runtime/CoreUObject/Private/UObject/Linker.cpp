@@ -467,8 +467,14 @@ FLinkerLoad* GetPackageLinker
 			LogGetPackageLinkerError(Result, InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
 			return nullptr;
 		}
+	
+		FString NativeFilename;
+		FString LocalizedFilename;
+		const bool DoesNativePackageExist = FPackageName::DoesPackageExist(InOuter->GetName(), CompatibleGuid, &NativeFilename, false);
+		const bool DoesLocalizedPackageExist = FPackageName::DoesPackageExist(InOuter->GetName(), CompatibleGuid, &LocalizedFilename, true);
 
-		if( !FPackageName::DoesPackageExist(InOuter->GetName(), CompatibleGuid, &NewFilename) )
+		// If we are the editor, we must have a native package. If we are the game, we must have a localized package or a native package.
+		if ( (GIsEditor && !DoesNativePackageExist) || (!GIsEditor && !DoesLocalizedPackageExist && !DoesNativePackageExist) )
 		{
 			// In memory-only packages have no linker and this is ok.
 			if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_InMemoryOnly))
@@ -485,6 +491,38 @@ FLinkerLoad* GetPackageLinker
 			}
 
 			return nullptr;
+		}
+
+		// The editor must not redirect packages for localization.
+		if (GIsEditor)
+		{
+			NewFilename = NativeFilename;
+		}
+		else
+		{
+			if (DoesLocalizedPackageExist)
+			{
+				NewFilename = LocalizedFilename;
+			}
+			// If we are the game, we can fallback to the native package, but must issue a warning.
+			else
+			{
+				// In memory-only packages have no linker and this is ok.
+				if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_InMemoryOnly))
+				{
+					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
+					Arguments.Add(TEXT("PackageName"), FText::FromString(ThreadContext.SerializedPackageLinker ? *(ThreadContext.SerializedPackageLinker->Filename) : TEXT("NULL")));
+					LogGetPackageLinkerError(Result, ThreadContext.SerializedPackageLinker ? *ThreadContext.SerializedPackageLinker->Filename : nullptr,
+						FText::Format(LOCTEXT("PackageNotFound", "Can't find localized file for asset '{AssetName}' while loading {PackageName}."), Arguments),
+						LOCTEXT("PackageNotFoundShort", "Can't find localized file for asset."),
+						InOuter,
+						LoadFlags);
+				}
+
+				NewFilename = NativeFilename;
+			}
 		}
 	}
 	else
@@ -509,7 +547,12 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Verify that the file exists.
-		if( !FPackageName::DoesPackageExist( PackageName, CompatibleGuid, &NewFilename ) )
+		FString NativeFilename;
+		FString LocalizedFilename;
+		const bool DoesNativePackageExist = FPackageName::DoesPackageExist(PackageName, CompatibleGuid, &NativeFilename, false);
+		const bool DoesLocalizedPackageExist = FPackageName::DoesPackageExist(PackageName, CompatibleGuid, &LocalizedFilename, true);
+
+		if( (GIsEditor && !DoesNativePackageExist) || (!GIsEditor && !DoesLocalizedPackageExist && !DoesNativePackageExist) )
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
@@ -517,6 +560,25 @@ FLinkerLoad* GetPackageLinker
 			// try to recover from this instead of throwing, it seems recoverable just by doing this
 			LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
 			return nullptr;
+		}
+
+		// The editor must not redirect packages for localization.
+		if (GIsEditor)
+		{
+			NewFilename = NativeFilename;
+		}
+		else
+		{
+			// Use the localized package if possible.
+			if (DoesLocalizedPackageExist)
+			{
+				NewFilename = LocalizedFilename;
+			}
+			// If we are the game, we can fallback to the native package.
+			else
+			{
+				NewFilename = NativeFilename;
+			}
 		}
 
 		// Create the package with the provided long package name.

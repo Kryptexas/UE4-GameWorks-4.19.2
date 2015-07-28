@@ -188,7 +188,7 @@ bool SAssetTreeItem::VerifyNameChanged(const FText& InName, FText& OutError) con
 		TSharedPtr<FTreeItem> TreeItemPtr = TreeItem.Pin();
 		if(OnVerifyNameChanged.IsBound())
 		{
-			return OnVerifyNameChanged.Execute(InName, OutError, TreeItemPtr->FolderPath);
+			return OnVerifyNameChanged.Execute(InName.ToString(), OutError, TreeItemPtr->FolderPath);
 		}
 	}
 

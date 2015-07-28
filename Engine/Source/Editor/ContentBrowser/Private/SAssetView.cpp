@@ -1432,19 +1432,18 @@ void SAssetView::RefreshSourceItems()
 	for (int32 AssetIdx = Items.Num() - 1; AssetIdx >= 0; --AssetIdx)
 	{
 		const FAssetData& Item = Items[AssetIdx];
-		if ( Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset() )
+		// Do not show redirectors if they are not the main asset in the uasset file.
+		const bool IsMainlyARedirector = Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset();
+		// If this is an engine folder, and we don't want to show them, remove
+		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
+		// If this is a plugin folder, and we don't want to show them, remove
+		const bool IsAHiddenPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString());
+		// Do not show localized content folders.
+		const bool IsLocalizedContentFolder = ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
+
+		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenPluginFolder || IsLocalizedContentFolder;
+		if (ShouldFilterOut)
 		{
-			// Do not show redirectors if they are not the main asset in the uasset file.
-			Items.RemoveAtSwap(AssetIdx);
-		}
-		else if ( !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString()) )
-		{
-			// If this is an engine folder, and we don't want to show them, remove
-			Items.RemoveAtSwap(AssetIdx);
-		}
-		else if ( !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString()) )
-		{
-			// If this is a plugin folder, and we don't want to show them, remove
 			Items.RemoveAtSwap(AssetIdx);
 		}
 	}
@@ -1688,6 +1687,11 @@ void SAssetView::RefreshFolders()
 			{
 				// If this is a developer folder, and we don't want to show them try the next path
 				if(!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(SubPath))
+				{
+					continue;
+				}
+
+				if (ContentBrowserUtils::IsLocalizationFolder(SubPath))
 				{
 					continue;
 				}
