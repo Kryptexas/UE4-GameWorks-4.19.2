@@ -12,9 +12,9 @@
 struct MOVIESCENETRACKS_API FVectorKey
 {
 	FVectorKey() { }
-	FVectorKey( FVector InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
-	FVectorKey( FVector2D InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
-	FVectorKey( FVector4 InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+	FVectorKey( const FVector& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+	FVectorKey( const FVector2D& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+	FVectorKey( const FVector4& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
 
 	FVector4 Value;
 	uint32 ChannelsUsed;
@@ -37,15 +37,11 @@ public:
 	/**
 	 * Adds a key to a section.  Will create the section if it doesn't exist
 	 *
-	 * @param ObjectHandle		Handle to the object(s) being changed
-	 * @param InPropertyName	The name of the property being manipulated.  @todo Sequencer - Could be a UFunction name
 	 * @param Time				The time relative to the owning movie scene where the section should be
-	 * @param InKey				The vector key to add
-	 * @param InChannelsUsed	The number of channels used, 2, 3, or 4, determining which type of vector this is
+	 * @param Key				The vector key to add
 	 * @return True if the key was successfully added.
 	 */
-
-	virtual bool AddKeyToSection( float Time, FVectorKey Key );
+	virtual bool AddKeyToSection( float Time, const FVectorKey& Key );
 	
 	/**
 	 * Evaluates the track at the playback position

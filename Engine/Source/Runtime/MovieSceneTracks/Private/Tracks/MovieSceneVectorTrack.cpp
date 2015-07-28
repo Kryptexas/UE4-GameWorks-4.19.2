@@ -6,7 +6,7 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneVectorTrackInstance.h"
 
-FVectorKey::FVectorKey( FVector2D InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+FVectorKey::FVectorKey( const FVector2D& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
 {
 	Value.X = InValue.X;
 	Value.Y = InValue.Y;
@@ -17,7 +17,7 @@ FVectorKey::FVectorKey( FVector2D InValue, FName InCurveName, bool InbAddKeyEven
 	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
 }
 
-FVectorKey::FVectorKey( FVector InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+FVectorKey::FVectorKey( const FVector& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
 {
 	Value.X = InValue.X;
 	Value.Y = InValue.Y;
@@ -28,7 +28,7 @@ FVectorKey::FVectorKey( FVector InValue, FName InCurveName, bool InbAddKeyEvenIf
 	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
 }
 
-FVectorKey::FVectorKey( FVector4 InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+FVectorKey::FVectorKey( const FVector4& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
 {
 	Value = InValue;
 	ChannelsUsed = 4;
@@ -73,7 +73,7 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value,
 	return false;
 }
 
-bool UMovieSceneVectorTrack::AddKeyToSection( float Time, FVectorKey Key )
+bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey& Key )
 {
 	return AddKeyToSection(Time, Key.Value, Key.ChannelsUsed, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
 }
