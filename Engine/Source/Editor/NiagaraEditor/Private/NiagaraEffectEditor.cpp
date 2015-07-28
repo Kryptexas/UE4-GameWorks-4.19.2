@@ -91,6 +91,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 		MovieScene->InTime = InTime;
 		MovieScene->OutTime = OutTime;
 		MovieScene->EndTime = OutTime;
+		NewAnimation->MovieScene = MovieScene;
 
 		FSequencerViewParams ViewParams(TEXT("NiagaraSequencerSettings"));
 		{

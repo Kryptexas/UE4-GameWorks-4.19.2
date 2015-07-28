@@ -336,12 +336,15 @@ void FNiagaraSimulation::SetRenderModuleType(EEmitterRenderModuleType Type, ERHI
 			break;
 		case RMT_Ribbon: EffectRenderer = new NiagaraEffectRendererRibbon(FeatureLevel, Props->RendererProperties);
 			break;
+		case RMT_Meshes: EffectRenderer = new NiagaraEffectRendererMeshes(FeatureLevel, Props->RendererProperties);
+			break;
 		default:	EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel, Props->RendererProperties);
 					Props->RenderModuleType = RMT_Sprites;
 					break;
 		}
 
 		EffectRenderer->SetMaterial(Material, FeatureLevel);
+
 		CheckAttriubtesForRenderer();
 	}
 }

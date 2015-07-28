@@ -40,6 +40,7 @@ void UNiagaraEffect::CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Si
 	{
 		Sim->GetProperties()->RendererProperties = nullptr;
 	}
+	Sim->GetEffectRenderer()->SetRendererProperties(Sim->GetProperties()->RendererProperties);
 }
 
 void UNiagaraEffect::Serialize(FArchive& Ar)

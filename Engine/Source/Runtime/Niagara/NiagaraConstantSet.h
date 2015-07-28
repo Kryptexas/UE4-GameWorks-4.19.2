@@ -20,6 +20,9 @@ private:
 	TMap<FNiagaraVariableInfo, class UNiagaraDataObject*> DataConstants;
 
 public:
+	FNiagaraConstantMap()
+	{
+	}
 
 	void Empty();
 

@@ -63,7 +63,6 @@ public:
 			FLinearColor(0.3f, 0.3f, 0.6f)
 			);
 
-
 		// draw all loops of the emitter as 'ghosts' of the original section
 		float X = AllottedGeometry.AbsolutePosition.X;
 		float GeomW = AllottedGeometry.GetDrawSize().X;

@@ -16,7 +16,6 @@ class UNiagaraAnimation
 	GENERATED_UCLASS_BODY()
 
 public:
-
 	// UMovieSceneAnimation overrides
 
 	virtual bool AllowsSpawnableObjects() const override;
@@ -33,8 +32,6 @@ public:
 #if WITH_EDITOR
 	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const override;
 #endif
-
-private:
 
 	/** Pointer to the movie scene that controls this animation. */
 	UPROPERTY()

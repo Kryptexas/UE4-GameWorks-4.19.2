@@ -64,7 +64,7 @@ UNiagaraDataObject::UNiagaraDataObject(const FObjectInitializer& ObjectInitializ
 }
 
 UNiagaraCurveDataObject::UNiagaraCurveDataObject(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+: Super(ObjectInitializer), CurveObj(nullptr)
 {
 }
 

@@ -25,6 +25,10 @@ class UNiagaraCurveDataObject : public UNiagaraDataObject
 	
 	UPROPERTY(EditAnywhere, Category="Curve")
 	class UCurveVector *CurveObj;
+public:
+	UNiagaraCurveDataObject(class UCurveVector *InCurve) : CurveObj(InCurve)
+	{
+	}
 
 	FVector4 Sample(const FVector4& InCoords) const;
 	virtual FVector4 Write(const FVector4& InCoords, const FVector4& InValue) override
