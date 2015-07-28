@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2630965
 Availability:Public
 Title:2.4 - イベントとレシーバーでスポーンするパーティクル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
-Description:エフェクト ギャラリーの事例概要
+Description:エフェクト ギャラリーのサンプル レベルの概要
 Related: Engine/Rendering/ParticleSystems/Overview
 Related: Engine/Rendering/ParticleSystems/Reference
 Related: Engine/Rendering/ParticleSystems/Optimization
@@ -53,12 +53,12 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image060.png)
 [/REGION]
 
-複雑なパーティクル効果に対して、より便利な機能の 1 つに Event Generator モジュールがあります。このモジュールは、パーティクルのライフスパンに渡って発生するさまざまなイベントタイプを指定することができます。またこれらのイベントを完全に異なるパーティクル効果のスポーンに使用することもできます。利用可能なイベントには、パーティクルのスポーン、消滅、コリジョン、バースト、もしくはレベル ブループリントで生成されるイベントまでもが含まれます！
+複雑なパーティクル エフェクトで、役立つ機能の 1 つに **Event Generator** モジュールがあります。このモジュールでは、パーティクルのライフスパンに渡って発生するさまざまなイベントタイプを指定することができます。またこれらのイベントを使用して、全く異なるパーティクル エフェクトをスポーンすることもできます。利用可能なイベントには、パーティクルのスポーン、消滅、コリジョン、バーストや、Level ブループリントで生成されるイベントまでもが含まれます。
 
-この例は、別のパーティクルの作成にパーティクルの消滅を使用します。花火を作成するには、ドロップダウンリストからイベントのタイプを選択して名前を付けます。
+このケースでは、別のパーティクルを作成するためにパーティクルの消滅を使用します。花火を作成するには、ドロップダウン リストからイベントのタイプを選択して名前を付けます。
  
 ![](image062.png)
 
-次に EventReceiver Spawn と名付けられた別のモジュール (2 番目のエミッタ) を使用すると、以前生成されたイベントに基づいたパーティクルのスポーンが有効になります。
+次に **EventReceiver Spawn** と名付けられた別のモジュール (2 番目のエミッタ) を使用すると、以前生成されたイベントに基づきパーティクルをスポーンできるようになります。
  
 ![](image064.png)
