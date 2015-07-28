@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Runtime/Online/HTTP/Public/Interfaces/IHttpRequest.h"
+#include "Runtime/NetworkReplayStreaming/NetworkReplayStreaming/Public/NetworkReplayStreaming.h"
 #include "DemoNetDriver.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
@@ -131,6 +133,8 @@ public:
 	void SpawnDemoRecSpectator( UNetConnection* Connection );
 	void ResetDemoState();
 	void JumpToEndOfLiveReplay();
+	void AddEvent(const FString& Group, const FString& Meta, const TArray<uint8>& Data);
+	void EnumerateEvents(const FString& Group, FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate);
 	virtual bool IsFastForwarding() { return bIsFastForwarding; }
 
 	/**
