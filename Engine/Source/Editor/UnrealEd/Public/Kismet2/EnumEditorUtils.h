@@ -69,7 +69,7 @@ public:
 	 *
 	 *	@return new enum 
 	 */
-	static int32 ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorIndex);
+	static int32 ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorValue);
 
 	//DISPLAY NAME
 	static FString GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, int32 EnumeratorIndex);

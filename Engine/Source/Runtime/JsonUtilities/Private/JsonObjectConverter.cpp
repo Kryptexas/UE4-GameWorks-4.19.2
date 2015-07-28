@@ -222,7 +222,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			const UEnum* EnumProperty = NumericProperty->GetIntPropertyEnum();
 			check(EnumProperty); // should be assured by IsEnum()
 			FString StrValue = JsonValue->AsString();
-			int32 IntValue = EnumProperty->FindEnumIndex(FName(*StrValue));
+			int32 IntValue = EnumProperty->GetValueByName(FName(*StrValue));
 			if (IntValue == INDEX_NONE)
 			{
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s for property %s"), *EnumProperty->CppType, *StrValue, *Property->GetNameCPP());

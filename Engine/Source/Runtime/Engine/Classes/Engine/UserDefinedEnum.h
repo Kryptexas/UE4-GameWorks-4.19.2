@@ -49,7 +49,7 @@ public:
 	 *	@param EnumeratorIndex	old index
 	 *	@return	new index
 	 */
-	virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const override;
+	virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorValue) const override;
 
 	/**
 	 * @return	The enum string at the specified index.

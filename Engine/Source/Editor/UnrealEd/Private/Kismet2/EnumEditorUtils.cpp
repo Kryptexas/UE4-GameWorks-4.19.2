@@ -312,25 +312,25 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 	FEnumEditorManager::Get().PostChange(Enum, EEnumEditorChangeInfo::Changed);
 }
 
-int32 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorIndex)
+int32 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorValue)
 {
 	check(Ar.UseToResolveEnumerators());
 	const FArchiveEnumeratorResolver* EnumeratorResolver = (FArchiveEnumeratorResolver*)(&Ar);
 	if(Enum == EnumeratorResolver->Enum)
 	{
 		const auto& OldNames = EnumeratorResolver->OldNames;
-		if(EnumeratorIndex < OldNames.Num())
+		if(EnumeratorValue < OldNames.Num())
 		{
-			const FName EnumeratorName = OldNames[EnumeratorIndex].Key;
-			const int32 NewEnumIndex = Enum->FindEnumIndex(EnumeratorName);
+			const FName EnumeratorName = OldNames[EnumeratorValue].Key;
+			const int32 NewEnumIndex = Enum->GetValueByName(EnumeratorName);
 			if(INDEX_NONE != NewEnumIndex)
 			{
 				return NewEnumIndex;
 			}
 		}
-		return (Enum->NumEnums() - 1);
+		return Enum->GetMaxEnumValue();
 	}
-	return EnumeratorIndex;
+	return EnumeratorValue;
 }
 
 FString FEnumEditorUtils::GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, const int32 EnumeratorIndex)

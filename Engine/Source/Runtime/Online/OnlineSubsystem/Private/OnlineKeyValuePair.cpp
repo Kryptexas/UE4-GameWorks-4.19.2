@@ -710,7 +710,7 @@ bool FVariantDataConverter::ConvertScalarVariantToUProperty(const FVariantData* 
 			FString StrValue;
 			Variant->GetValue(StrValue);
 
-			int32 IntValue = EnumProperty->FindEnumIndex(FName(*StrValue));
+			int32 IntValue = EnumProperty->GetValueByName(FName(*StrValue));
 			if (IntValue == INDEX_NONE)
 			{
 				UE_LOG(LogOnline, Error, TEXT("ConvertScalarVariantToUProperty - Unable import enum %s from string value %s for property %s"), *EnumProperty->CppType, *StrValue, *Property->GetNameCPP());

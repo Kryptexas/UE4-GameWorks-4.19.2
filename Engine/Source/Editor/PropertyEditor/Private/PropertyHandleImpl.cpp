@@ -68,15 +68,15 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					const uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
+					const uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
 
-					if (EnumValueIndex >= 0 && EnumValueIndex < ByteProperty->Enum->NumEnums())
+					if (EnumValue >= 0 && EnumValue < ByteProperty->Enum->GetMaxEnumValue() + 1)
 					{
 						// See if we specified an alternate name for this value using metadata
-						OutString = ByteProperty->Enum->GetDisplayNameText(EnumValueIndex).ToString();
+						OutString = ByteProperty->Enum->GetDisplayNameTextByValue(EnumValue).ToString();
 						if(!bAllowAlternateDisplayValue || OutString.Len() == 0) 
 						{
-							OutString = ByteProperty->Enum->GetEnumName(EnumValueIndex);
+							OutString = ByteProperty->Enum->GetEnumNameStringByValue(EnumValue);
 						}
 					}
 					else

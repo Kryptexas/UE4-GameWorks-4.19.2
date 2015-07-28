@@ -427,13 +427,13 @@ public:
 				//Check for valid enum object reference
 				if (ByteProp->Enum)
 				{
-					//Get index from enum string
-					Value = ByteProp->Enum->FindEnumIndex( *(Term->Name) );
+					//Get value from enum string
+					Value = ByteProp->Enum->GetValueByName(*(Term->Name));
 				}
 				// Allow enum literals to communicate with byte properties as literals
 				else if (UEnum* EnumPtr = Cast<UEnum>(Term->Type.PinSubCategoryObject.Get()))
 				{
-					Value = EnumPtr->FindEnumIndex( *(Term->Name) );
+					Value = EnumPtr->GetValueByName( *(Term->Name) );
 				}
 				else
 				{

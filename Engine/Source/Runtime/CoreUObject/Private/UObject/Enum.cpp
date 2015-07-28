@@ -133,19 +133,6 @@ FName UEnum::GetNameByValue(int8 InValue) const
 	return NAME_None;
 }
 
-int8 UEnum::GetValueByName(FName InName)
-{
-	for (TPair<FName, int8> Kvp : Names)
-	{
-		if (Kvp.Key == InName)
-		{
-			return Kvp.Value;
-		}
-	}
-
-	return INDEX_NONE;
-}
-
 int32 UEnum::GetIndexByName(FName InName) const
 {
 	int32 Count = Names.Num();
@@ -439,6 +426,11 @@ bool UEnum::SetEnums(TArray<TPair<FName, int8>>& InNames, UEnum::ECppForm InCppF
 }
 
 #if WITH_EDITOR
+FText UEnum::GetDisplayNameTextByValue(int32 Value) const
+{
+	int32 Index = GetIndexByValue(Value);
+	return GetDisplayNameText(Index);
+}
 /**
  * Finds the localized display name or native display name as a fallback.
  *
@@ -636,39 +628,6 @@ void UEnum::RemoveMetaData( const TCHAR* Key, int32 NameIndex/*=INDEX_NONE*/) co
 }
 
 #endif
-
-int32 UEnum::LookupEnumName(FName TestName, UEnum** FoundEnum)
-{
-	UEnum* TheEnum = AllEnumNames.FindRef(TestName);
-	if (FoundEnum != nullptr)
-	{
-		*FoundEnum = TheEnum;
-	}
-	return (TheEnum != nullptr) ? TheEnum->GetIndexByName(TestName) : INDEX_NONE;
-}
-
-int32 UEnum::LookupEnumNameSlow(const TCHAR* InTestShortName, UEnum** FoundEnum)
-{
-	int32 EnumIndex = LookupEnumName(InTestShortName, FoundEnum);
-	if (EnumIndex == INDEX_NONE)
-	{
-		FString TestShortName = FString(TEXT("::")) + InTestShortName;
-		UEnum* TheEnum = NULL;
-		for (TMap<FName, UEnum*>::TIterator It(AllEnumNames); It; ++It)
-		{
-			if (It.Key().ToString().Contains(TestShortName) )
-			{
-				TheEnum = It.Value();
-			}
-		}
-		if (FoundEnum != NULL)
-		{
-			*FoundEnum = TheEnum;
-		}
-		EnumIndex = (TheEnum != NULL) ? TheEnum->FindEnumIndex(InTestShortName) : INDEX_NONE;
-	}
-	return EnumIndex;
-}
 
 int32 UEnum::ParseEnum(const TCHAR*& Str)
 {

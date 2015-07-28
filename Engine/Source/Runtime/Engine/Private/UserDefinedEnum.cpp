@@ -77,13 +77,13 @@ FString UUserDefinedEnum::GenerateNewEnumeratorName()
 
 #endif	// WITH_EDITOR
 
-int32 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const
+int32 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorValue) const
 {
 #if WITH_EDITOR
-	return FEnumEditorUtils::ResolveEnumerator(this, Ar, EnumeratorIndex);
+	return FEnumEditorUtils::ResolveEnumerator(this, Ar, EnumeratorValue);
 #else // WITH_EDITOR
 	ensure(false);
-	return EnumeratorIndex;
+	return EnumeratorValue;
 #endif // WITH_EDITOR
 }
 

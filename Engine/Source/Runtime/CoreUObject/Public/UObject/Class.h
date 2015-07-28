@@ -1352,15 +1352,43 @@ public:
 
 	/** Gets enum name by index in Names array. Returns NAME_None if Index is not valid. */
 	FName GetNameByIndex(int8 Index) const;
-
+		
 	/** Gets enum value by index in Names array. */
 	int8 GetValueByIndex(int8 Index) const;
 
 	/** Gets enum name by value. Returns NAME_None if value is not found. */
 	FName GetNameByValue(int8 InValue) const;
-
+		
 	/** Gets enum value by name. Returns INDEX_NONE when name is not found. */
-	int8 GetValueByName(FName InName);
+	int8 GetValueByName(FName InName) const
+	{
+		FString InNameString = InName.ToString();
+		FString DoubleColon = TEXT("::");
+		int32 DoubleColonPosition = InNameString.Find(DoubleColon);
+		bool bIsInNameFullyQualified = DoubleColonPosition != INDEX_NONE;
+		bool bIsEnumFullyQualified = CppForm != ECppForm::Regular;
+
+		if (!bIsInNameFullyQualified && bIsEnumFullyQualified)
+		{
+			// Make InName fully qualified.
+			InName = FName(*GetName().Append(DoubleColon).Append(InNameString));
+		}
+		else if (bIsInNameFullyQualified && !bIsEnumFullyQualified)
+		{
+			// Make InName unqualified.
+			InName = FName(*InNameString.Mid(DoubleColonPosition + 2, InNameString.Len() - DoubleColonPosition + 2));
+		}
+
+		for (TPair<FName, int8> Kvp : Names)
+		{
+			if (Kvp.Key == InName)
+			{
+				return Kvp.Value;
+			}
+		}
+
+		return INDEX_NONE;
+	}
 
 	/** Gets index of name in enum. Returns INDEX_NONE when name is not found. */
 	int32 GetIndexByName(FName InName) const;
@@ -1441,12 +1469,41 @@ public:
 	/** searches the list of all enum value names for the specified name
 	 * @return the value the specified name represents if found, otherwise INDEX_NONE
 	 */
-	static int32 LookupEnumName(FName TestName, UEnum** FoundEnum = nullptr);
+	static int32 LookupEnumName(FName TestName, UEnum** FoundEnum = nullptr)
+	{
+		UEnum* TheEnum = AllEnumNames.FindRef(TestName);
+		if (FoundEnum != nullptr)
+		{
+			*FoundEnum = TheEnum;
+		}
+		return (TheEnum != nullptr) ? TheEnum->GetValueByName(TestName) : INDEX_NONE;
+	}
 
 	/** searches the list of all enum value names for the specified name
 	 * @return the value the specified name represents if found, otherwise INDEX_NONE
 	 */
-	static int32 LookupEnumNameSlow(const TCHAR* InTestShortName, UEnum** FoundEnum = nullptr);
+	static int32 LookupEnumNameSlow(const TCHAR* InTestShortName, UEnum** FoundEnum = NULL)
+	{
+		int32 EnumIndex = LookupEnumName(InTestShortName, FoundEnum);
+		if (EnumIndex == INDEX_NONE)
+		{
+			FString TestShortName = FString(TEXT("::")) + InTestShortName;
+			UEnum* TheEnum = NULL;
+			for (TMap<FName, UEnum*>::TIterator It(AllEnumNames); It; ++It)
+			{
+				if (It.Key().ToString().Contains(TestShortName) )
+				{
+					TheEnum = It.Value();
+				}
+			}
+			if (FoundEnum != NULL)
+			{
+				*FoundEnum = TheEnum;
+			}
+			EnumIndex = (TheEnum != NULL) ? TheEnum->GetValueByName(InTestShortName) : INDEX_NONE;
+		}
+		return EnumIndex;
+	}
 
 	/** parses the passed in string for a name, then searches for that name in any Enum (in any package)
 	 * @param Str	pointer to string to parse; if we successfully find an enum, this pointer is advanced past the name found
@@ -1475,10 +1532,34 @@ public:
 		return NAME_None;
 	}
 
+	int32 GetIndexByValue(int32 Value) const
+	{
+		for (int32 i = 0; i < Names.Num(); ++i)
+		{
+			if (Names[i].Value == Value)
+			{
+				return i;
+			}
+		}
+
+		return INDEX_NONE;
+	}
+	FString GetEnumNameStringByValue(int32 Value) const
+	{
+		int32 Index = GetIndexByValue(Value);
+		return GetEnumName(Index);
+	}
+
 	/**
 	 * @return	The short enum name at the specified Index.
 	 */
 	FString GetEnumName(int32 InIndex) const;
+
+	FText GetEnumTextByValue(int32 Value)
+	{
+		int32 Index = GetIndexByValue(Value);
+		return GetEnumText(Index);
+	}
 
 	/**
 	 * @return	The enum string at the specified index.
@@ -1515,6 +1596,7 @@ public:
 	 * @return The display name for this object.
 	 */
 	FText GetDisplayNameText(int32 NameIndex=INDEX_NONE) const;
+	FText GetDisplayNameTextByValue(int32 Value = INDEX_NONE) const;
 
 	/**
 	 * Finds the localized tooltip or native tooltip as a fallback.

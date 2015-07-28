@@ -832,8 +832,8 @@ bool FFeaturePackContentSource::ParseManifestString(const FString& ManifestStrin
 
 	FString CategoryString = ManifestObject->GetStringField("Category");
 	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
-	int32 Index = Enum->FindEnumIndex(FName(*CategoryString));
-	Category = Index != INDEX_NONE ? (EContentSourceCategory)Index : EContentSourceCategory::Unknown;
+	int32 EnumValue = Enum->GetValueByName(FName(*CategoryString));
+	Category = EnumValue != INDEX_NONE ? (EContentSourceCategory)EnumValue : EContentSourceCategory::Unknown;
 
 	// Thumbnail filename
 	IconFilename = ManifestObject->GetStringField("Thumbnail");
@@ -872,8 +872,8 @@ bool FFeaturePackContentSource::ParseManifestString(const FString& ManifestStrin
 			for (TSharedPtr<FJsonValue> DetailValue : EachAdditionalPack->GetArrayField("DetailLevels"))
 			{
 				const FString DetailString = DetailValue->AsString();
-				int32 eIndex = DetailEnum->FindEnumIndex(FName(*DetailString));
-				EFeaturePackDetailLevel EachLevel = Index != INDEX_NONE ? (EFeaturePackDetailLevel)eIndex : EFeaturePackDetailLevel::Standard;
+				int32 eValue = DetailEnum->GetValueByName(FName(*DetailString));
+				EFeaturePackDetailLevel EachLevel = eValue != INDEX_NONE ? (EFeaturePackDetailLevel)eValue : EFeaturePackDetailLevel::Standard;
 				Levels.AddUnique(EachLevel);
 			}
 			AdditionalFeaturePacks.Add(FFeaturePackLevelSet(MountName,Levels));
