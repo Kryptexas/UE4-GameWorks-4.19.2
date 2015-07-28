@@ -36,7 +36,7 @@ The NavMesh in Unreal has a number of functions that work well with Behavior Tre
 
 	![](createNavVol.png)
 
-1. Translate and scale the volume so it encapsulates the areas you want your characters to be able to navigate.
+1. **Translate** and **Scale** the volume so it encapsulates the areas you want your characters to be able to navigate.
 
 	* You can use more than one Volume if you like, or one large one that encapsulates the entire level.
 

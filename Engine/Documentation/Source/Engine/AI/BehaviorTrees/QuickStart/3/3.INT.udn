@@ -44,7 +44,7 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 
 	Name this **Blueprint** `AI_Character`.
 
-1. **New** -> **Miscellaneous** -> **Behavior Tree**
+1. **New** -> **Artificial Intelligence** -> **Behavior Tree**
 
 	[REGION:raw]
 	![](newBT.png)
@@ -52,7 +52,7 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 
 	Name the **Behavior Tree** `FollowerBT`.
 
-1. **New** -> **Miscellaneous** ->  **Blackboard**.
+1. **New** -> **Artificial Intelligence** ->  **Blackboard**.
 	
 	[REGION:raw]
 	![](newBB.png)
