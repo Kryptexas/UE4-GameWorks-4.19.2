@@ -306,7 +306,7 @@ FString FEndClothSimulationFunction::DiagnosticMessage()
 }
 
 
-void PvdConnect(FString Host);
+void PvdConnect(FString Host, bool bVisualization);
 
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
 void InitGamePhys()
@@ -369,7 +369,7 @@ void InitGamePhys()
 
 	if( FParse::Param( FCommandLine::Get(), TEXT( "PVD" ) ) )
 	{
-		PvdConnect(TEXT("localhost"));
+		PvdConnect(TEXT("localhost"), true);
 	}
 
 

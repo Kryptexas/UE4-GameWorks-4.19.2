@@ -446,18 +446,23 @@ static bool ExecApexVis(UWorld* InWorld, uint32 SceneType, const TCHAR* Cmd, FOu
 }
 
 #if WITH_PHYSX
-void PvdConnect(FString Host)
+void PvdConnect(FString Host, bool bVisualization)
 {
 	int32		Port = 5425;         // TCP port to connect to, where PVD is listening
 	uint32	Timeout = 100;          // timeout in milliseconds to wait for PVD to respond, consoles and remote PCs need a higher timeout.
+	
 	PxVisualDebuggerConnectionFlags ConnectionFlags = PxVisualDebuggerExt::getAllConnectionFlags();
+	if (!bVisualization)
+	{
+		ConnectionFlags &= ~PxVisualDebuggerConnectionFlag::eDEBUG;
+	}
 
 	// and now try to connect
 	PxVisualDebuggerExt::createConnection(GPhysXSDK->getPvdConnectionManager(), TCHAR_TO_ANSI(*Host), Port, Timeout, ConnectionFlags);
 
-	GPhysXSDK->getVisualDebugger()->setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_CONTACTS, true);
-	GPhysXSDK->getVisualDebugger()->setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_SCENEQUERIES, true);
-	GPhysXSDK->getVisualDebugger()->setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_CONSTRAINTS, true);
+	GPhysXSDK->getVisualDebugger()->setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_CONTACTS, bVisualization);
+	GPhysXSDK->getVisualDebugger()->setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_SCENEQUERIES, bVisualization);
+	GPhysXSDK->getVisualDebugger()->setVisualDebuggerFlag(PxVisualDebuggerFlag::eTRANSMIT_CONSTRAINTS, bVisualization);
 }
 #endif
 
@@ -557,7 +562,9 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 					Host = Cmd;
 				}
 
-				PvdConnect(Host);
+				const bool bVizualization = !FParse::Command(&Cmd, TEXT("NODEBUG"));
+
+				PvdConnect(Host, bVizualization);
 
 			}
 			else if(FParse::Command(&Cmd, TEXT("DISCONNECT")))
