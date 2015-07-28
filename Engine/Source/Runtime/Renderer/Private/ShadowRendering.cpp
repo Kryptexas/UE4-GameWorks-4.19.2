@@ -3815,7 +3815,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowProjections(FRHICommandL
 
 	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 
-	if (IsSimpleDynamicLightingEnabled() || !bDynamicShadows)
+	if (IsSimpleDynamicLightingEnabled() || !bDynamicShadows || !DeviceSupportsShaderDepthFetch())
 	{
 		return;
 	}

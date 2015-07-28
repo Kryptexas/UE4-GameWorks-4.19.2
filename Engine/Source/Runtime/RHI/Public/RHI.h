@@ -92,6 +92,9 @@ extern RHI_API bool GSupportsRenderTargetFormat_PF_FloatRGBA;
 /** true if mobile framebuffer fetch is supported */
 extern RHI_API bool GSupportsShaderFramebufferFetch;
 
+/** true if mobile depth & stencil fetch is supported */
+extern RHI_API bool GSupportsShaderDepthStencilFetch;
+
 /** true if the GPU supports hidden surface removal in hardware. */
 extern RHI_API bool GHardwareHiddenSurfaceRemoval;
 
