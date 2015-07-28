@@ -2399,6 +2399,7 @@ static void ComputeTangents_MikkTSpace(
 		SMikkTSpaceContext MikkTContext;
 		MikkTContext.m_pInterface = &MikkTInterface;
 		MikkTContext.m_pUserData = (void*)(&RawMesh);
+		MikkTContext.m_bIgnoreDegenerates = bIgnoreDegenerateTriangles;
 		genTangSpaceDefault(&MikkTContext);
 	}
 
