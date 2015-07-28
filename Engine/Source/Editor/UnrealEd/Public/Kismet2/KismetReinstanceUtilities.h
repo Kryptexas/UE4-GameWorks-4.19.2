@@ -85,8 +85,8 @@ public:
 	static void OptionallyRefreshNodes(UBlueprint* BP);
 
 	void ListDependentBlueprintsToRefresh(const TArray<UBlueprint*>& DependentBPs);
-	void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
-	void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
+	virtual void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
+	virtual void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
 
 	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false)
 	{
