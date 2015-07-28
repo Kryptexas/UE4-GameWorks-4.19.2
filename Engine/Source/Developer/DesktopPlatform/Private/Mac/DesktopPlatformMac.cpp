@@ -552,7 +552,7 @@ bool FDesktopPlatformMac::RegisterEngineInstallation(const FString &RootDir, FSt
 		ConfigFile.Read(ConfigPath);
 
 		FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
-		OutIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+		OutIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
 		Section.AddUnique(*OutIdentifier, RootDir);
 
 		ConfigFile.Dirty = true;
@@ -615,7 +615,9 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 				const FName* Key = Section.FindKey(EngineDir);
 				if (Key)
 				{
-					EngineId = Key->ToString();
+					FGuid IdGuid;
+					FGuid::Parse(Key->ToString(), IdGuid);
+					EngineId = IdGuid.ToString(EGuidFormats::DigitsWithHyphensInBraces);;
 				}
 				else
 				{
