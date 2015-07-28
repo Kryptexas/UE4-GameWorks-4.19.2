@@ -1066,6 +1066,19 @@ void FMacPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_
 	out_OSSubVersionLabel = GMacAppInfo.OSBuild;
 }
 
+bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	struct statfs FSStat = { 0 };
+	FTCHARToUTF8 Converter(*InPath);
+	int Err = statfs((ANSICHAR*)Converter.Get(), &FSStat);
+	if (Err == 0)
+	{
+		TotalNumberOfBytes = FSStat.f_blocks * FSStat.f_bsize;
+		NumberOfFreeBytes = FSStat.f_bavail * FSStat.f_bsize;
+	}
+	return (Err == 0);
+}
+
 #include "ModuleManager.h"
 
 void FMacPlatformMisc::LoadPreInitModules()

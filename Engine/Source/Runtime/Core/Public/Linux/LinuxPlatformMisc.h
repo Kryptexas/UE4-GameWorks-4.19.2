@@ -90,6 +90,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void LoadPreInitModules();
 	static void LoadStartupModules();
 	static FString GetOperatingSystemId();
+	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
 
 	/**
 	 * Determines the shader format for the platform

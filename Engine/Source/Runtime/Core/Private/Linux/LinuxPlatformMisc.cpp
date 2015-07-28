@@ -770,3 +770,9 @@ FString FLinuxPlatformMisc::GetOperatingSystemId()
 
 	return CachedResult;
 }
+
+bool FLinuxPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	STUBBED("FLinuxPlatformMisc::GetDiskTotalAndFreeSpace");
+	return false;
+}
