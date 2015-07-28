@@ -3,6 +3,8 @@
 #pragma once
 
 #include "OnlineUserCloudInterface.h"
+
+#ifdef __IPHONE_8_0
 #import <CloudKit/CloudKit.h>
 
 @class IOSCloudStorage;
@@ -25,6 +27,7 @@
 +(IOSCloudStorage*)cloudStorage;
 
 @end
+#endif
 
 /**
 *	FOnlineUserCloudInterfaceIOS - Implementation of user cloud storage for IOS
