@@ -137,4 +137,10 @@ public:
 	 * @return The localized display name of the category
 	 */
 	virtual const FText& GetDisplayName() const = 0;
+
+	/**
+	 * Sets whether or not this category is hidden or shown
+	 * This is designed to be used for dynamic category visibility after construction of the category
+	 */
+	virtual void SetCategoryVisibility( bool bVisible ) = 0;
 };

@@ -113,13 +113,14 @@ public:
 	virtual void HideFilterArea(bool bHide) override;
 
 	/** 
-	 * Implementation of IDetailsView:
+	 * IDetailsView interface 
 	 */
 	virtual TArray< FPropertyPath > GetPropertiesInOrderDisplayed() const override;
 	virtual void HighlightProperty(const FPropertyPath& Property) override;
 	virtual void ShowAllAdvancedProperties() override;
 	virtual void SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChangedDelegate) override;
 	virtual void SetDisableCustomDetailLayouts( bool bInDisableCustomDetailLayouts ) override { bDisableCustomDetailLayouts = bInDisableCustomDetailLayouts; }
+	virtual void RerunCurrentFilter() override;
 
 	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() override
 	{ 
