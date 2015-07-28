@@ -12,7 +12,7 @@ Description:複数のカメラがあるワールドを設定
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[ゲーム制御のカメラ](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 		[前の手順](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:title%")
