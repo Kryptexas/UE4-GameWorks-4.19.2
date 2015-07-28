@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2601329
+﻿INTSourceChangelist:2634596
 Availability: Public
 Title:익스포넨셜 하이트 포그 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
@@ -122,7 +122,7 @@ _Height Fog_ (하이트 포그) 섹션에서 컴포넌트와 연관된 다음 �
 적용한 모습은 다음과 같습니다:
 
 [REGION:imagetable]
-| ![FogStart_0.png](FogStart_0.png)(w:300) | ![FogStart_1000.png](FogStart_1000.png)(w:300) | ![FogStart_1000_high.png](FogStart_1000_high.png)(w:300) |
+| ![](Density0.jpg)(w:300) | ![](Density1000.jpg)(w:300) | ![](Density1000HighFog.jpg)(w:300) |
 | --- | --- | --- |
 | Fog Start Distance = 0 | Fog Start Distance = 1000 | Fog Start Distance = 1000 with a high Fog Density value |
 [/REGION]

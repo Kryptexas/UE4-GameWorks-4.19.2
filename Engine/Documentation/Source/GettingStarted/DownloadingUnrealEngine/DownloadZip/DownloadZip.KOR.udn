@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2626398
+﻿INTSourceChangelist:2632917
 Availability:NoPublish
 Title:Zip 파일로 언리얼 엔진 다운로드
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -37,7 +37,7 @@ Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니�
 		[/REGION]
 	1.	탐색기에서 소스 폴더를 열고 **run Setup.bat** 를 실행합니다.
 		[REGION:note]
-		셋업 뱃치 파일이 엔진의 바이너리 콘텐츠 다운로드, 사전 요구사항 설치, 언리얼 파일 연결 프로그램 구성을 해 줍니다. 이후의 체크아웃에 걸리는 다운로드 시간은 줄어듭니다.
+		셋업 뱃치 파일이 엔진의 바이너리 콘텐츠 다운로드, 사전 요구사항 설치, 언리얼 파일 연결 프로그램 구성을 해 줍니다. 엔진 바이너리 크기는 3-4 기가에 달하므로 다운로드에 시간이 조금 걸릴 수 있습니다. 이후의 체크아웃에 걸리는 다운로드 시간은 줄어듭니다. 
 		[/REGION]
 		[REGION:warning]
 		윈도우에서는 스마트 스크린에 경고가 나타날 수 있습니다. **More Info** 를 클릭한 다음 **Run Anyway** 를 선택하여 셋업 뱃치 파일 실행을 계속합니다.

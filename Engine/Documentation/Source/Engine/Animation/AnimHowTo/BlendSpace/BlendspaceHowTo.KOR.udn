@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2601100
+﻿INTSourceChangelist:2634518
 Availability: Public
 Title:블렌드 스페이스 만들기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -31,13 +31,13 @@ Related: Engine/Animation/StateMachines
 
 1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭하고 **Ue4ASP_Character** 를 선택합니다. 
 
-	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
+	![](BS_DefaultPawnClass.jpg)
 
 1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
 
 1.	**콘텐츠 브라우저** 에서 **생성** 버튼을 누른 다음 _애니메이션_ 아래 **블렌드 스페이스** 를 선택합니다.
 
-	![](BlendSpace1.png)(w:400)
+	![](BS_BlendSpace.jpg)
 
 1.	**스켈레톤 선택** 창에서 **Game/AnimStaterPack/Character** 폴더에 있는 **HeroTPP_Skeleton** 를 선택합니다. 
 
@@ -45,7 +45,7 @@ Related: Engine/Animation/StateMachines
 
 	_블렌드 스페이스_ 에 **Walk_Jog_BS** 같은 이름을 짓습니다. 
 
-	![](BlendSpace3.png)
+	![](BS_Walk_Jog_BS.jpg)
 
 1.	**Walk_Jog_BS** 를 연 다음 중앙 창의 **Parameters** 섹션 아래 표시된 값을 입력합니다.
 

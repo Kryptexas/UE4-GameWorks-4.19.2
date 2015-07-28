@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602348
+﻿INTSourceChangelist:2634344
 Availability: Docs
 Title:포스트 프로세스 이펙트 포함 라이팅
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -57,7 +57,7 @@ Description:라이트와 포스트 프로세스 체인의 상호작용에 대해
 
 ## 빛 순응
 
-화창한 밝은 곳에서 어두운 방으로 들어갈 때와 같이, 라이팅 조건의 변화에 카메라나 인간의 눈이 순응하는 효과를 흉내내는 데 사용됩니다.
+**Auto Exposure** (자동 노출)은 화창한 밝은 곳에서 어두운 방으로 들어갈 때와 같이, 라이팅 조건의 변화에 카메라나 인간의 눈이 순응하는 효과를 흉내내는 데 사용됩니다.
 
 [REGION:lightbox]
 [![](LO_Adapt_003.png)(w:302)](LO_Adapt_003.png) [![](LO_Adapt_001.png)(w:302)](LO_Adapt_001.png) [![](LO_Adapt_002.png)(w:302)](LO_Adapt_002.png) 
