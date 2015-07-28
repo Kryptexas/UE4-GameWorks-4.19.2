@@ -2019,3 +2019,13 @@ public:
 		return *this;
 	}
 };
+
+/**
+ * A helper function to find closing parenthesis that matches the first open parenthesis found. The open parenthesis
+ * referred to must be at or further up from the start index.
+ *
+ * @param TargetString      The string to search in
+ * @param StartSearch       The index to start searching at
+ * @return the index in the given string of the closing parenthesis
+ */
+CORE_API int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch = 0);

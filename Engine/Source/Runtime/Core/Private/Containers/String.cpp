@@ -1114,3 +1114,46 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 
 	return Ar;
 }
+
+int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch)
+{
+	check(StartSearch >= 0 && StartSearch <= TargetString.Len());// Check for usage, we do not accept INDEX_NONE like other string functions
+
+	const TCHAR* const StartPosition = (*TargetString) + StartSearch;
+	const TCHAR* CurrPosition = StartPosition;
+	int32 ParenthesisCount = 0;
+
+	// Move to first open parenthesis
+	while (*CurrPosition != 0 && *CurrPosition != TEXT('('))
+	{
+		++CurrPosition;
+	}
+
+	// Did we find the open parenthesis
+	if (*CurrPosition == TEXT('('))
+	{
+		++ParenthesisCount;
+		++CurrPosition;
+
+		while (*CurrPosition != 0 && ParenthesisCount > 0)
+		{
+			if (*CurrPosition == TEXT('('))
+			{
+				++ParenthesisCount;
+			}
+			else if (*CurrPosition == TEXT(')'))
+			{
+				--ParenthesisCount;
+			}
+			++CurrPosition;
+		}
+
+		// Did we find the matching close parenthesis
+		if (ParenthesisCount == 0 && *(CurrPosition - 1) == TEXT(')'))
+		{
+			return StartSearch + ((CurrPosition - 1) - StartPosition);
+		}
+	}
+
+	return INDEX_NONE;
+}

@@ -3927,7 +3927,47 @@ UProperty* FHeaderParser::GetVarNameAndDim
 
 		if (*Dimensions.String)
 		{
-			UEnum::LookupEnumNameSlow(Dimensions.String, &Enum);
+			FString Temp = Dimensions.String;
+
+			bool bAgain;
+			do
+			{
+				bAgain = false;
+
+				// Remove any casts
+				static const TCHAR* Casts[] = {
+					TEXT("(uint32)"),
+					TEXT("(int32)"),
+					TEXT("(uint16)"),
+					TEXT("(int16)"),
+					TEXT("(uint8)"),
+					TEXT("(int8)")
+				};
+
+				// Remove any brackets
+				if (Temp[0] == TEXT('('))
+				{
+					int32 TempLen      = Temp.Len();
+					int32 ClosingParen = FindMatchingClosingParenthesis(Temp);
+					if (ClosingParen == TempLen - 1)
+					{
+						Temp = Temp.Mid(1, TempLen - 2);
+						bAgain = true;
+					}
+				}
+
+				for (const TCHAR* Cast : Casts)
+				{
+					if (Temp.StartsWith(Cast))
+					{
+						Temp = Temp.RightChop(FCString::Strlen(Cast));
+						bAgain = true;
+					}
+				}
+			}
+			while (bAgain);
+
+			UEnum::LookupEnumNameSlow(*Temp, &Enum);
 		}
 
 		if (!Enum)
