@@ -45,6 +45,8 @@ typedef TSharedPtr<class IOnlineTime, ESPMode::ThreadSafe> IOnlineTimePtr;
 typedef TSharedPtr<class IOnlineIdentity, ESPMode::ThreadSafe> IOnlineIdentityPtr;
 typedef TSharedPtr<class IOnlineTitleFile, ESPMode::ThreadSafe> IOnlineTitleFilePtr;
 typedef TSharedPtr<class IOnlineStore, ESPMode::ThreadSafe> IOnlineStorePtr;
+typedef TSharedPtr<class IOnlineStoreV2, ESPMode::ThreadSafe> IOnlineStoreV2Ptr;
+typedef TSharedPtr<class IOnlinePurchase, ESPMode::ThreadSafe> IOnlinePurchasePtr;
 typedef TSharedPtr<class IOnlineEvents, ESPMode::ThreadSafe> IOnlineEventsPtr;
 typedef TSharedPtr<class IOnlineAchievements, ESPMode::ThreadSafe> IOnlineAchievementsPtr;
 typedef TSharedPtr<class IOnlineSharing, ESPMode::ThreadSafe> IOnlineSharingPtr;
@@ -226,6 +228,18 @@ public:
 	 * @return Interface pointer for the appropriate online store service
 	 */
 	virtual IOnlineStorePtr GetStoreInterface() const = 0;
+
+	/** 
+	 * Get the interface for accessing an online store
+	 * @return Interface pointer for the appropriate online store service
+	 */
+	virtual IOnlineStoreV2Ptr GetStoreV2Interface() const = 0;
+
+	/** 
+	 * Get the interface for purchasing 
+	 * @return Interface pointer for the appropriate purchase service
+	 */
+	virtual IOnlinePurchasePtr GetPurchaseInterface() const = 0;
 	
 	/** 
 	 * Get the interface for accessing online achievements

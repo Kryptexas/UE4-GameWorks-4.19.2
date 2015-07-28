@@ -44,16 +44,18 @@ public:
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
 	virtual IOnlineStorePtr GetStoreInterface() const override;
-	virtual IOnlineEventsPtr GetEventsInterface() const override { return NULL; }
-	virtual IOnlineMessagePtr GetMessageInterface() const override { return NULL; }
-	virtual IOnlineSharingPtr GetSharingInterface() const override { return NULL; }
-	virtual IOnlineUserPtr GetUserInterface() const override { return NULL; }
+	virtual IOnlineStoreV2Ptr GetStoreV2Interface() const override { return nullptr; }
+	virtual IOnlinePurchasePtr GetPurchaseInterface() const override { return nullptr; }
+	virtual IOnlineEventsPtr GetEventsInterface() const override { return nullptr; }
+	virtual IOnlineMessagePtr GetMessageInterface() const override { return nullptr; }
+	virtual IOnlineSharingPtr GetSharingInterface() const override { return nullptr; }
+	virtual IOnlineUserPtr GetUserInterface() const override { return nullptr; }
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
-	virtual IOnlinePresencePtr GetPresenceInterface() const override { return NULL; }
-	virtual IOnlineChatPtr GetChatInterface() const override { return NULL; }
-	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override { return NULL; }
+	virtual IOnlinePresencePtr GetPresenceInterface() const override { return nullptr; }
+	virtual IOnlineChatPtr GetChatInterface() const override { return nullptr; }
+	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override { return nullptr; }
 
-	virtual class UObject* GetNamedInterface(FName InterfaceName) override { return NULL; }
+	virtual class UObject* GetNamedInterface(FName InterfaceName) override { return nullptr; }
 	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override {}
 	virtual bool IsDedicated() const override { return false; }
 	virtual bool IsServer() const override { return true; }
