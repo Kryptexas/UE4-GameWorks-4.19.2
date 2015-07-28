@@ -1450,7 +1450,7 @@ FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAct
 						if (UK2Node_FunctionEntry* Node = Cast<UK2Node_FunctionEntry>(*It))
 						{
 							// See whether this node is a blueprint callable function
-							if (Node->ExtraFlags & (FUNC_BlueprintCallable|FUNC_BlueprintPure))
+							if (Node->GetFunctionFlags() & (FUNC_BlueprintCallable|FUNC_BlueprintPure))
 							{
 								bIsBlueprintCallableFunction = true;
 							}

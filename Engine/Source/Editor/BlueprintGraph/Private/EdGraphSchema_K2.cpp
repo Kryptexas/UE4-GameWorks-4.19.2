@@ -941,7 +941,7 @@ void UEdGraphSchema_K2::AddExtraFunctionFlags(const UEdGraph* CurrentGraph, int3
 	{
 		if (UK2Node_FunctionEntry* Node = Cast<UK2Node_FunctionEntry>(*It))
 		{
-			Node->ExtraFlags |= ExtraFlags;
+			Node->SetExtraFlags(Node->GetFunctionFlags() | ExtraFlags);
 		}
 	}
 }
@@ -2993,7 +2993,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 	if (InterfaceToImplement)
 	{
 		// Add modifier flags from the declaration
-		EntryNode->ExtraFlags |= InterfaceToImplement->FunctionFlags & (FUNC_Const | FUNC_Static | FUNC_BlueprintPure);
+		EntryNode->SetExtraFlags(EntryNode->GetFunctionFlags() | InterfaceToImplement->FunctionFlags & (FUNC_Const | FUNC_Static | FUNC_BlueprintPure));
 
 		UK2Node* NextNode = EntryNode;
 		UEdGraphPin* NextExec = FindExecutionPin(*EntryNode, EGPD_Output);
@@ -4504,7 +4504,7 @@ bool UEdGraphSchema_K2::IsConstFunctionGraph( const UEdGraph* TestEdGraph, bool*
 					*bOutIsEnforcingConstCorrectness = EntryNode->bEnforceConstCorrectness;
 				}
 
-				return (EntryNode->ExtraFlags & FUNC_Const) != 0;
+				return (EntryNode->GetFunctionFlags() & FUNC_Const) != 0;
 			}
 		}
 	}
@@ -4536,7 +4536,7 @@ bool UEdGraphSchema_K2::IsStaticFunctionGraph( const UEdGraph* TestEdGraph ) con
 			UEdGraphNode* Node = *I;
 			if(auto EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 			{
-				return (EntryNode->ExtraFlags & FUNC_Static) != 0;
+				return (EntryNode->GetFunctionFlags() & FUNC_Static) != 0;
 			}
 		}
 	}

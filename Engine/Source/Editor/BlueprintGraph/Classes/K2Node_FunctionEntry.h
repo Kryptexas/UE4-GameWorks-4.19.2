@@ -13,10 +13,6 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	UPROPERTY()
 	FName CustomGeneratedFunctionName;
 
-	/** Any extra flags that the function may need */
-	UPROPERTY()
-	int32 ExtraFlags;
-
 	/** Function metadata */
 	UPROPERTY()
 	struct FKismetUserDeclaredFunctionMetadata MetaData;
@@ -63,5 +59,25 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	// Returns pin for the automatically added WorldContext parameter (used only by BlueprintFunctionLibrary).
 	BLUEPRINTGRAPH_API UEdGraphPin* GetAutoWorldContextPin() const;
+
+	/** Retrieves the function flags from the UFunction that this function entry node represents */
+	BLUEPRINTGRAPH_API int32 GetFunctionFlags() const;
+
+	/** Retrieves the extra flags set on this node. */
+	BLUEPRINTGRAPH_API int32 GetExtraFlags(struct FKismetFunctionContext& CompilerContext) const
+	{
+		return ExtraFlags;
+	}
+
+	/** Set the extra flags on this node */
+	BLUEPRINTGRAPH_API void SetExtraFlags(int32 InFlags)
+	{
+		ExtraFlags = InFlags;
+	}
+
+protected:
+	/** Any extra flags that the function may need */
+	UPROPERTY()
+	int32 ExtraFlags;
 };
 

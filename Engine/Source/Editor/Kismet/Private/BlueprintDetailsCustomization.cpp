@@ -2889,8 +2889,10 @@ void FBlueprintGraphActionDetails::SetNetFlags( TWeakObjectPtr<UK2Node_EditableP
 
 			if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode.Get()))
 			{
-				TypedEntryNode->ExtraFlags &= ~FlagsToClear;
-				TypedEntryNode->ExtraFlags |= FlagsToSet;
+				int32 ExtraFlags = TypedEntryNode->GetFunctionFlags();
+				ExtraFlags &= ~FlagsToClear;
+				ExtraFlags |= FlagsToSet;
+				TypedEntryNode->SetExtraFlags(ExtraFlags);
 				bBlueprintModified = true;
 			}
 			if (UK2Node_CustomEvent * CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNode.Get()))
@@ -3773,7 +3775,7 @@ FText FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	if(UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 	{
-		AccessSpecifierFlag = FUNC_AccessSpecifiers & EntryNode->ExtraFlags;
+		AccessSpecifierFlag = FUNC_AccessSpecifiers & EntryNode->GetFunctionFlags();
 	}
 	else if(UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNode))
 	{
@@ -3820,8 +3822,10 @@ void FBlueprintGraphActionDetails::OnAccessSpecifierSelected( TSharedPtr<FAccess
 		const uint32 ClearAccessSpecifierMask = ~FUNC_AccessSpecifiers;
 		if(UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 		{
-			EntryNode->ExtraFlags &= ClearAccessSpecifierMask;
-			EntryNode->ExtraFlags |= SpecifierName->SpecifierFlag;
+			int32 ExtraFlags = EntryNode->GetFunctionFlags();
+			ExtraFlags &= ClearAccessSpecifierMask;
+			ExtraFlags |= SpecifierName->SpecifierFlag;
+			EntryNode->SetExtraFlags(ExtraFlags);
 		}
 		else if(UK2Node_Event* EventNode = Cast<UK2Node_Event>(FunctionEntryNode))
 		{
@@ -3912,7 +3916,7 @@ void FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified(const
 		{
 			if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 			{
-				TypedEntryNode->ExtraFlags |= FUNC_NetReliable;
+				TypedEntryNode->SetExtraFlags(TypedEntryNode->GetFunctionFlags() | FUNC_NetReliable);
 			}
 			if (UK2Node_CustomEvent * CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNode))
 			{
@@ -3923,7 +3927,7 @@ void FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified(const
 		{
 			if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 			{
-				TypedEntryNode->ExtraFlags &= ~FUNC_NetReliable;
+				TypedEntryNode->SetExtraFlags(TypedEntryNode->GetFunctionFlags() & ~FUNC_NetReliable);
 			}
 			if (UK2Node_CustomEvent * CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNode))
 			{
@@ -3981,8 +3985,8 @@ void FBlueprintGraphActionDetails::OnIsPureFunctionModified( const ECheckBoxStat
 		Function->Modify();
 
 		//set flags on function entry node also
-		EntryNode->ExtraFlags	^= FUNC_BlueprintPure;
 		Function->FunctionFlags ^= FUNC_BlueprintPure;
+		EntryNode->SetExtraFlags(Function->FunctionFlags);
 		OnParamsChanged(FunctionEntryNode);
 	}
 }
@@ -3995,7 +3999,7 @@ ECheckBoxState FBlueprintGraphActionDetails::GetIsPureFunction() const
 	{
 		return ECheckBoxState::Undetermined;
 	}
-	return (EntryNode->ExtraFlags & FUNC_BlueprintPure) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+	return (EntryNode->GetFunctionFlags() & FUNC_BlueprintPure) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 bool FBlueprintGraphActionDetails::IsConstFunctionVisible() const
@@ -4025,8 +4029,8 @@ void FBlueprintGraphActionDetails::OnIsConstFunctionModified( const ECheckBoxSta
 		Function->Modify();
 
 		//set flags on function entry node also
-		EntryNode->ExtraFlags	^= FUNC_Const;
 		Function->FunctionFlags ^= FUNC_Const;
+		EntryNode->SetExtraFlags(Function->FunctionFlags);
 		OnParamsChanged(FunctionEntryNode);
 	}
 }
@@ -4039,7 +4043,7 @@ ECheckBoxState FBlueprintGraphActionDetails::GetIsConstFunction() const
 	{
 		return ECheckBoxState::Undetermined;
 	}
-	return (EntryNode->ExtraFlags & FUNC_Const) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+	return (EntryNode->GetFunctionFlags() & FUNC_Const) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()

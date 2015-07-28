@@ -272,6 +272,26 @@ FText UK2Node_FunctionEntry::GetTooltipText() const
 	return Super::GetTooltipText();
 }
 
+int32 UK2Node_FunctionEntry::GetFunctionFlags() const
+{
+	int32 ReturnFlags = 0;
+
+	UClass* ClassToLookup = SignatureClass;
+
+	if (SignatureClass && SignatureClass->ClassGeneratedBy)
+	{
+		UBlueprint* GeneratingBP = CastChecked<UBlueprint>(SignatureClass->ClassGeneratedBy);
+		ClassToLookup = GeneratingBP->SkeletonGeneratedClass;
+	}
+
+	UFunction* Function = FindField<UFunction>(ClassToLookup, SignatureName);
+	if (Function)
+	{
+		ReturnFlags = Function->FunctionFlags;
+	}
+	return ReturnFlags | ExtraFlags;
+}
+
 void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
