@@ -103,6 +103,9 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 			FPlane(0,	1,	0,	0),
 			FPlane(0,	0,	0,	1));
 
+		Origin -= ViewRotationMatrix.InverseTransformPosition( FVector::ZeroVector );
+		ViewRotationMatrix = ViewRotationMatrix.RemoveTranslation();
+
 		FSceneViewInitOptions ViewInitOptions;
 		ViewInitOptions.ViewFamily = ViewFamily;
 		ViewInitOptions.SetViewRectangle(ViewRect);

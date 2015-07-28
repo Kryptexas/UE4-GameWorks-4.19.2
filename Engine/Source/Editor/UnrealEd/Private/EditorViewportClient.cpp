@@ -656,7 +656,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		{
 			if (bUsingOrbitCamera)
 			{
-				ViewInitOptions.ViewRotationMatrix = FTranslationMatrix(ViewLocation) * ViewTransform.ComputeOrbitMatrix();
+				ViewInitOptions.ViewRotationMatrix = ViewTransform.ComputeOrbitMatrix().RemoveTranslation();
 			}
 			else
 			{
@@ -806,6 +806,9 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 				// Unknown viewport type
 				check(false);
 			}
+
+			ViewInitOptions.ViewOrigin += ViewInitOptions.ViewRotationMatrix.InverseTransformPosition( FVector::ZeroVector );
+			ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix.RemoveTranslation();
 
 			ViewInitOptions.ProjectionMatrix = FReversedZOrthoMatrix(
 				OrthoWidth,

@@ -45,6 +45,15 @@ static TAutoConsoleVariable<int32> CVarTemporalAAPauseCorrect(
 	TEXT("Correct temporal AA in pause. This holds onto render targets longer preventing reuse and consumes more memory."),
 	ECVF_RenderThreadSafe);
 
+static float CatmullRom( float x )
+{
+	float ax = FMath::Abs(x);
+	if( ax > 1.0f )
+		return ( ( -0.5f * ax + 2.5f ) * ax - 4.0f ) *ax + 2.0f;
+	else
+		return ( 1.5f * ax - 2.5f ) * ax*ax + 1.0f;
+}
+
 /** Encapsulates a TemporalAA pixel shader. */
 template< uint32 Type, uint32 Responsive >
 class FPostProcessTemporalAAPS : public FGlobalShader
@@ -131,10 +140,6 @@ public:
 			};
 		
 			float Sharpness = CVarTemporalAASharpness.GetValueOnRenderThread();
-			// With the new temporal AA, need to hardcode a value here.
-			// Going to remove this once the new temporal AA is validated.
-			Sharpness = -0.25f;
-			Sharpness = 1.0f + Sharpness * 0.5f;
 
 			float Weights[9];
 			float WeightsLow[9];
@@ -144,21 +149,30 @@ public:
 			float TotalWeightPlus = 0.0f;
 			for( int32 i = 0; i < 9; i++ )
 			{
-				// Exponential fit to Blackman-Harris 3.3
 				float PixelOffsetX = SampleOffsets[i][0] - JitterX;
 				float PixelOffsetY = SampleOffsets[i][1] - JitterY;
-				PixelOffsetX *= Sharpness;
-				PixelOffsetY *= Sharpness;
-				Weights[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
-				TotalWeight += Weights[i];
+
+				if( Sharpness > 1.0f )
+				{
+					Weights[i] = CatmullRom( PixelOffsetX ) * CatmullRom( PixelOffsetY );
+					TotalWeight += Weights[i];
+				}
+				else
+				{
+					// Exponential fit to Blackman-Harris 3.3
+					PixelOffsetX *= 1.0f + Sharpness * 0.5f;
+					PixelOffsetY *= 1.0f + Sharpness * 0.5f;
+					Weights[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
+					TotalWeight += Weights[i];
+				}
 
 				// Lowpass.
 				PixelOffsetX = SampleOffsets[i][0] - JitterX;
 				PixelOffsetY = SampleOffsets[i][1] - JitterY;
 				PixelOffsetX *= 0.25f;
 				PixelOffsetY *= 0.25f;
-				PixelOffsetX *= Sharpness;
-				PixelOffsetY *= Sharpness;
+				PixelOffsetX *= 1.0f + Sharpness * 0.5f;
+				PixelOffsetY *= 1.0f + Sharpness * 0.5f;
 				WeightsLow[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
 				TotalWeightLow += WeightsLow[i];
 			}
@@ -721,7 +735,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	// Compute a transform from view origin centered world-space to clip space.
 	View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-	View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+	View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.ViewMatrices.TranslatedViewMatrix.Inverse();
 
 	View.InitRHIResources(nullptr);
 }
