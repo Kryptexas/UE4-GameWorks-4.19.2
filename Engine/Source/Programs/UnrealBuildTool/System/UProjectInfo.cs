@@ -310,16 +310,13 @@ namespace UnrealBuildTool
 		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform)
 		{
 			bool bEnabled = Plugin.Descriptor.bEnabledByDefault || Plugin.LoadedFrom == PluginLoadedFrom.GameProject;
-			Console.WriteLine("Plugin passes first enabled check: " + Plugin.FileName);
 			if(Project != null && Project.Plugins != null)
 			{
 				foreach(PluginReferenceDescriptor PluginReference in Project.Plugins)
 				{
 					if(String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
 					{
-						Console.WriteLine("Plugin passes project ref check: " + Plugin.FileName);
 						bEnabled = PluginReference.IsEnabledForPlatform(Platform);
-						Console.WriteLine("Plugin " + Plugin.FileName + "now " + bEnabled.ToString());
 					}
 				}
 			}
