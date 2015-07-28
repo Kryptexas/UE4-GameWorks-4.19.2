@@ -253,7 +253,6 @@ void UModelComponent::PostEditUndo()
 	if(ensure(Level))
 	{
 		Level->InvalidateModelSurface();
-//		Level->CommitModelSurfaces();
 	}
 	Super::PostEditUndo();
 }
