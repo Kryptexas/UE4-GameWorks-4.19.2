@@ -48,36 +48,23 @@ class FWebBrowserWindow
 	// Allow the Handler to access functions only it needs
 	friend class FWebBrowserHandler;
 
-public:
+	// The WebBrowserSingleton should be the only one creating instances of this class
+	friend class FWebBrowserSingleton;
+
+private:
 	/**
 	 * Creates and initializes a new instance.
 	 * 
-	 * @param InViewportSize Initial size of the browser window.
-	 * @param InInitialURL The Initial URL that will be loaded.
+	 * @param InBrowser The CefBrowser object representing this browser window.
+	 * @param InUrl The Initial URL that will be loaded.
 	 * @param InContentsToLoad Optional string to load as a web page.
 	 * @param InShowErrorMessage Whether to show an error message in case of loading errors.
 	 */
-	FWebBrowserWindow(FIntPoint ViewportSize, FString URL, TOptional<FString> ContentsToLoad, bool ShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency);
-
-	/** Virtual Destructor. */
-	virtual ~FWebBrowserWindow();
+	FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString InUrl, TOptional<FString> InContentsToLoad, bool ShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency);
 
 public:
-
-	/**
-	* Set the CEF Handler receiving browser callbacks for this window.
-	*
-	* @param InHandler Pointer to the handler for this window.
-	*/
-	void SetHandler(CefRefPtr<FWebBrowserHandler> InHandler);
-
-	/**
-	 * Called to pass reference to the underlying CefBrowser as this is not created at the same time
-	 * as the FWebBrowserWindow.
-	 *
-	 * @param Browser The CefBrowser for this window.
-	 */
-	void BindCefBrowser(CefRefPtr<CefBrowser> Browser);
+	/** Virtual Destructor. */
+	virtual ~FWebBrowserWindow();
 
 	bool IsShowingErrorMessages() { return ShowErrorMessage; }
 	bool IsThumbMouseButtonNavigationEnabled() { return bThumbMouseButtonNavigation; }
@@ -391,9 +378,6 @@ private:
 
 	/** Interface to the texture we are rendering to. */
 	FSlateUpdatableTexture* UpdatableTextures[2];
-
-	/** Pointer to the CEF Handler for this window. */
-	CefRefPtr<FWebBrowserHandler> Handler;
 
 	/** Pointer to the CEF Browser for this window. */
 	CefRefPtr<CefBrowser> InternalCefBrowser;

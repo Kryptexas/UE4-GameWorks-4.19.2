@@ -68,8 +68,6 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(
 			OSWindowHandle,
 			InArgs._InitialURL,
-			InArgs._ViewportSize.Get().X,
-			InArgs._ViewportSize.Get().Y,
 			InArgs._SupportsTransparency,
 			InArgs._SupportsThumbMouseButtonNavigation,
 			InArgs._ContentsToLoad,
@@ -189,7 +187,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow->OnBeforePopup().BindSP(this, &SWebBrowser::HandleBeforePopup);
 		BrowserWindow->OnShowPopup().AddSP(this, &SWebBrowser::HandleShowPopup);
 		BrowserWindow->OnDismissPopup().AddSP(this, &SWebBrowser::HandleDismissPopup);
-		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, ViewportWidget));
+		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow));
 		ViewportWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
 	}
 	else
@@ -508,7 +506,7 @@ void SWebBrowser::HandleShowPopup(const FIntRect& PopupSize)
 				.EnableBlending(false)
 				.IgnoreTextureAlpha(true)
 				.Visibility(EVisibility::Visible);
-	MenuViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, MenuContent, true));
+	MenuViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, true));
 	MenuContent->SetViewportInterface(MenuViewport.ToSharedRef());
 	FWidgetPath WidgetPath;
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), WidgetPath);

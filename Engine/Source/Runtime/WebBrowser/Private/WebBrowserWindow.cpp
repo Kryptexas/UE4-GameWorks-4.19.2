@@ -24,10 +24,11 @@ typedef FMacCursor FPlatformCursor;
 #else
 #endif
 
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
+FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
+	, InternalCefBrowser(InBrowser)
 	, CurrentUrl(InUrl)
-	, ViewportSize(InViewportSize)
+	, ViewportSize(FIntPoint::ZeroValue)
 	, bIsClosing(false)
 	, bIsInitialized(false)
 	, ContentsToLoad(InContentsToLoad)
@@ -45,8 +46,10 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TO
 	, bIgnoreCharacterEvent(false)
 	, bMainHasFocus(false)
 	, bPopupHasFocus(false)
-	, Scripting(new FWebJSScripting)
+	, Scripting(new FWebJSScripting(InBrowser))
 {
+	check(InBrowser.get() != nullptr);
+
 	UpdatableTextures[0] = nullptr;
 	UpdatableTextures[1] = nullptr;
 }
@@ -663,15 +666,6 @@ void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 	}
 }
 
-void FWebBrowserWindow::SetHandler(CefRefPtr<FWebBrowserHandler> InHandler)
-{
-	if (InHandler.get())
-	{
-		Handler = InHandler;
-		Handler->SetBrowserWindow(SharedThis(this));
-		Handler->SetShowErrorMessage(ShowErrorMessage);
-	}
-}
 
 void FWebBrowserWindow::CloseBrowser(bool bForce)
 {
@@ -679,13 +673,6 @@ void FWebBrowserWindow::CloseBrowser(bool bForce)
 	{
 		InternalCefBrowser->GetHost()->CloseBrowser(bForce);
 	}
-}
-
-void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
-{
-	check(Browser.get() == nullptr || InternalCefBrowser.get() == nullptr || InternalCefBrowser->IsSame(Browser));
-	Scripting->BindCefBrowser(Browser); // The scripting interface needs the browser too
-	InternalCefBrowser = Browser;
 }
 
 CefRefPtr<CefBrowser> FWebBrowserWindow::GetCefBrowser()
@@ -1114,7 +1101,6 @@ void FWebBrowserWindow::OnBrowserClosed()
 
 	Scripting->UnbindCefBrowser();
 	InternalCefBrowser = nullptr;
-	Handler = nullptr;
 }
 
 void FWebBrowserWindow::SetPopupMenuPosition(CefRect CefPopupSize)

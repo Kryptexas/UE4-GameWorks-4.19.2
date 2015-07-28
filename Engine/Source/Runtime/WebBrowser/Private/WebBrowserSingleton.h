@@ -58,9 +58,7 @@ public:
 	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
 		void* OSWindowHandle, 
 		FString InitialURL, 
-		uint32 Width, 
-		uint32 Height, 
-		bool bUseTransparency, 
+		bool bUseTransparency,
 		bool bThumbMouseButtonNavigation,
 		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
 		bool ShowErrorMessage = true,

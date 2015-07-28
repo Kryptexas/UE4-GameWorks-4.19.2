@@ -9,30 +9,120 @@
 #include "IPlatformTextField.h"
 #include "IVirtualKeyboardEntry.h"
 #include "SlateApplication.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #if WITH_CEF3
-#if PLATFORM_WINDOWS
-	#include "AllowWindowsPlatformTypes.h"
+#	if PLATFORM_WINDOWS
+#		include "AllowWindowsPlatformTypes.h"
+#	endif
+#	pragma push_macro("OVERRIDE")
+#		undef OVERRIDE // cef headers provide their own OVERRIDE macro
+#		include "include/cef_app.h"
+#	pragma pop_macro("OVERRIDE")
+#	if PLATFORM_WINDOWS
+#		include "HideWindowsPlatformTypes.h"
+#	endif
 #endif
-	#pragma push_macro("OVERRIDE")
-	#undef OVERRIDE // cef headers provide their own OVERRIDE macro
-	#include "include/cef_app.h"
-	#pragma pop_macro("OVERRIDE")
-#if PLATFORM_WINDOWS
-	#include "HideWindowsPlatformTypes.h"
+
+#if PLATFORM_MAC || PLATFORM_LINUX
+#	include <pthread.h>
 #endif
+
+// Define some platform-dependent file locations
+#define CEF3_BIN_DIR TEXT("Binaries/ThirdParty/CEF3")
+#if PLATFORM_WINDOWS && PLATFORM_64BITS
+#	define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Win64/Resources")
+#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Win64/UnrealCEFSubProcess.exe")
+#elif PLATFORM_WINDOWS && PLATFORM_32BITS
+#	define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Win32/Resources")
+#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Win32/UnrealCEFSubProcess.exe")
+#elif PLATFORM_MAC
+#	define CEF3_FRAMEWORK_DIR CEF3_BIN_DIR TEXT("/Mac/Chromium Embedded Framework.framework")
+#	define CEF3_RESOURCES_DIR CEF3_FRAMEWORK_DIR TEXT("/Resources")
+#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Mac/UnrealCEFSubProcess.app/Contents/MacOS/UnrealCEFSubProcess")
+#elif PLATFORM_LINUX // @todo Linux
+#	define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Linux/Resources")
+#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Linux/UnrealCEFSubProcess")
 #endif
+
+
+namespace {
+
+	/**
+	 * Helper function to set the current thread name, visible by the debugger.
+	 * @param ThreadName	Name to set
+	 */
+	void SetCurrentThreadName(char* ThreadName)
+	{
+#if PLATFORM_MAC
+		pthread_setname_np(ThreadName);
+#elif PLATFORM_LINUX
+		pthread_setname_np(pthread_self(), ThreadName);
+#elif PLATFORM_WINDOWS && !PLATFORM_SEH_EXCEPTIONS_DISABLED
+		/**
+		 * Code setting the thread name for use in the debugger.
+		 * Copied implementation from WindowsRunnableThread as it is private.
+		 *
+		 * http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx
+		 */
+		const uint32 MS_VC_EXCEPTION=0x406D1388;
+
+		struct THREADNAME_INFO
+		{
+			uint32 dwType;		// Must be 0x1000.
+			LPCSTR szName;		// Pointer to name (in user addr space).
+			uint32 dwThreadID;	// Thread ID (-1=caller thread).
+			uint32 dwFlags;		// Reserved for future use, must be zero.
+		};
+
+		THREADNAME_INFO ThreadNameInfo = {0x1000, ThreadName, -1, 0};
+
+		__try
+		{
+			RaiseException( MS_VC_EXCEPTION, 0, sizeof(ThreadNameInfo)/sizeof(ULONG_PTR), (ULONG_PTR*)&ThreadNameInfo );
+		}
+		__except( EXCEPTION_EXECUTE_HANDLER )
+		CA_SUPPRESS(6322)
+		{	
+		}
+#endif
+	}
+
+#if PLATFORM_MAC
+	// OSX wants caches in a separate location from other app data
+	const TCHAR* ApplicationCacheDir()
+	{
+		static TCHAR Result[MAX_PATH] = TEXT("");
+		if (!Result[0])
+		{
+			SCOPED_AUTORELEASE_POOL;
+			NSString *CacheBaseDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+			NSString* BundleID = [[NSBundle mainBundle] bundleIdentifier];
+			if(!BundleID)
+			{
+				BundleID = [[NSProcessInfo processInfo] processName];
+			}
+			check(BundleID);
+			
+			NSString* AppCacheDir = [CacheBaseDir stringByAppendingPathComponent: BundleID];
+			FPlatformString::CFStringToTCHAR((CFStringRef)AppCacheDir, Result);
+		}
+		return Result;
+	}
+#endif
+}
 
 FWebBrowserSingleton::FWebBrowserSingleton()
 {
 #if WITH_CEF3
+	// The FWebBrowserSingleton must be initialized on the game thread
+	check(IsInGameThread());
+
 	// Provide CEF with command-line arguments.
 #if PLATFORM_WINDOWS
 	CefMainArgs MainArgs(hInstance);
-#elif PLATFORM_MAC || PLATFORM_LINUX
-	//TArray<FString> Args;
-	//int ArgCount = GSavedCommandLine.ParseIntoArray(Args, TEXT(" "), true);
-	CefMainArgs MainArgs(0, nullptr);
+#else
+	CefMainArgs MainArgs;
 #endif
 
 	// WebBrowserApp implements application-level callbacks.
@@ -43,34 +133,28 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefSettings Settings;
 	Settings.no_sandbox = true;
 	Settings.command_line_args_disabled = true;
+	Settings.log_severity = LOGSEVERITY_WARNING;
 
 	// Specify locale from our settings
 	FString LocaleCode = GetCurrentLocaleCode();
 	CefString(&Settings.locale) = *LocaleCode;
 
+	// Append engine version to the user agent string.
+	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngineChrome/%s"), FApp::GetGameName(), ENGINE_VERSION_STRING);
+	CefString(&Settings.product_version) = *ProductVersion;
+
+	// Enable on disk cache
+#if PLATFORM_MAC
+	// OSX wants cache files in a special location
+	FString CachePath(FPaths::Combine(ApplicationCacheDir(), TEXT("webcache")));
+#else
+	FString CachePath(FPaths::Combine(*FPaths::GameSavedDir(), TEXT("webcache")));
+#endif
+	CachePath = FPaths::ConvertRelativePathToFull(CachePath);
+	CefString(&Settings.cache_path) = *CachePath;
+
 	// Specify path to resources
-#if PLATFORM_WINDOWS
-	#if PLATFORM_64BITS
-	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Win64/Resources")));
-	FString LocalesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Win64/Resources/locales")));
-	#else
-	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Win32/Resources")));
-	FString LocalesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Win32/Resources/locales")));
-	#endif
-#elif PLATFORM_MAC
-	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Mac/Chromium Embedded Framework.framework/Resources")));
-#elif PLATFORM_LINUX // @todo Linux
-	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Linux/Resources")));
-	FString LocalesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Linux/Resources/locales")));
-#endif
-#if !PLATFORM_MAC // On Mac Chromium ignores custom locales dir. Files need to be stored in Resources folder in the app bundle
-	LocalesPath = FPaths::ConvertRelativePathToFull(LocalesPath);
-	if (!FPaths::DirectoryExists(LocalesPath))
-	{
-		UE_LOG(LogWebBrowser, Error, TEXT("Chromium Locales information not found at: %s."), *LocalesPath);
-	}
-	CefString(&Settings.locales_dir_path) = *LocalesPath;
-#endif
+	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), CEF3_RESOURCES_DIR));
 	ResourcesPath = FPaths::ConvertRelativePathToFull(ResourcesPath);
 	if (!FPaths::DirectoryExists(ResourcesPath))
 	{
@@ -78,18 +162,19 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	}
 	CefString(&Settings.resources_dir_path) = *ResourcesPath;
 
-	// Specify path to sub process exe
-#if PLATFORM_WINDOWS
-	#if PLATFORM_64BITS
-	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/Win64/UnrealCEFSubProcess.exe")));
-	#else
-	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/Win32/UnrealCEFSubProcess.exe")));
-	#endif
-#elif PLATFORM_MAC
-	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/Mac/UnrealCEFSubProcess.app/Contents/MacOS/UnrealCEFSubProcess")));
-#else // @todo Linux
-	FString SubProcessPath(TEXT("UnrealCEFSubProcess"));
+#if !PLATFORM_MAC
+	// On Mac Chromium ignores custom locales dir. Files need to be stored in Resources folder in the app bundle
+	FString LocalesPath(FPaths::Combine(*ResourcesPath, TEXT("locales")));
+	LocalesPath = FPaths::ConvertRelativePathToFull(LocalesPath);
+	if (!FPaths::DirectoryExists(LocalesPath))
+	{
+		UE_LOG(LogWebBrowser, Error, TEXT("Chromium Locales information not found at: %s."), *LocalesPath);
+	}
+	CefString(&Settings.locales_dir_path) = *LocalesPath;
 #endif
+
+	// Specify path to sub process exe
+	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), CEF3_SUBPROCES_EXE));
 	SubProcessPath = FPaths::ConvertRelativePathToFull(SubProcessPath);
 	if (!FPaths::FileExists(SubProcessPath))
 	{
@@ -100,6 +185,9 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	// Initialize CEF.
 	bool bSuccess = CefInitialize(MainArgs, Settings, WebBrowserApp.get(), nullptr);
 	check(bSuccess);
+
+	// Set the thread name back to GameThread.
+	SetCurrentThreadName(TCHAR_TO_ANSI( *(FName( NAME_GameThread ).GetPlainNameString()) ));
 #endif
 }
 
@@ -132,12 +220,14 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 			WindowInterfaces[Index].Pin()->CloseBrowser(true);
 		}
 	}
+
 	// Just in case, although we deallocate WebBrowserApp right after this.
 	WebBrowserApp->OnRenderProcessThreadCreated().Unbind();
 	// CefRefPtr takes care of delete
 	WebBrowserApp = nullptr;
 	// Shut down CEF.
 	CefShutdown();
+
 #endif
 }
 
@@ -148,31 +238,24 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 {
 #if WITH_CEF3
 
-	//  @todo: Width/Height should be obtained when requesting a UI window from user code which happens later.
-	int32 Width = 800;
-	int32 Height = 600;
 	TOptional<FString> ContentsToLoad;
 
 	bool bShowErrorMessage = BrowserWindowParent->IsShowingErrorMessages();
 	bool bThumbMouseButtonNavigation = BrowserWindowParent->IsThumbMouseButtonNavigationEnabled();
 	bool bUseTransparency = BrowserWindowParent->UseTransparency();
 	FString InitialURL = BrowserWindowInfo->Browser->GetMainFrame()->GetURL().ToWString().c_str();
-	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
-	
-	NewBrowserWindow->SetHandler(BrowserWindowInfo->Handler);
-	NewBrowserWindow->BindCefBrowser(BrowserWindowInfo->Browser);
+	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(BrowserWindowInfo->Browser, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+	BrowserWindowInfo->Handler->SetBrowserWindow(NewBrowserWindow);
 
 	WindowInterfaces.Add(NewBrowserWindow);
 	return NewBrowserWindow;
 #endif
-	return NULL;
+	return nullptr;
 }
 
 TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	void* OSWindowHandle, 
 	FString InitialURL, 
-	uint32 Width, 
-	uint32 Height, 
 	bool bUseTransparency,
 	bool bThumbMouseButtonNavigation,
 	TOptional<FString> ContentsToLoad, 
@@ -180,12 +263,6 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	FColor BackgroundColor)
 {
 #if WITH_CEF3
-	// Create new window
-	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
-
-	// WebBrowserHandler implements browser-level callbacks.
-	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
-	NewWindow->SetHandler(NewHandler);
 
 	// Information used when creating the native window.
 	CefWindowHandle WindowHandle = (CefWindowHandle)OSWindowHandle; // TODO: check this is correct for all platforms
@@ -204,16 +281,23 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	// Disable plugins
 	BrowserSettings.plugins = STATE_DISABLED;
 
-	CefString URL = *InitialURL;
+
+	// WebBrowserHandler implements browser-level callbacks.
+	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
 
 	// Create the CEF browser window.
-	if (CefBrowserHost::CreateBrowser(WindowInfo, NewHandler.get(), URL, BrowserSettings, NULL))
+	CefRefPtr<CefBrowser> Browser = CefBrowserHost::CreateBrowserSync(WindowInfo, NewHandler.get(), *InitialURL, BrowserSettings, nullptr);
+	if (Browser.get())
 	{
-		WindowInterfaces.Add(NewWindow);
-		return NewWindow;
+		// Create new window
+		TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+		NewHandler->SetBrowserWindow(NewBrowserWindow);
+
+		WindowInterfaces.Add(NewBrowserWindow);
+		return NewBrowserWindow;
 	}
 #endif
-	return NULL;
+	return nullptr;
 }
 
 bool FWebBrowserSingleton::Tick(float DeltaTime)
@@ -253,3 +337,9 @@ FString FWebBrowserSingleton::GetCurrentLocaleCode()
 	}
 	return LocaleCode;
 }
+
+// Cleanup macros to avoid having them leak outside this source file
+#undef CEF3_BIN_DIR
+#undef CEF3_FRAMEWORK_DIR
+#undef CEF3_RESOURCES_DIR
+#undef CEF3_SUBPROCES_EXE

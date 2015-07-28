@@ -46,9 +46,14 @@ FReply FWebBrowserViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const
 {
 	// Capture mouse on left button down so that you can drag out of the viewport
 	FReply Reply = WebBrowserWindow->OnMouseButtonDown(MyGeometry, MouseEvent, bIsPopup);
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && ViewportWidget.IsValid())
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		return Reply.CaptureMouse(ViewportWidget.Pin().ToSharedRef());
+		const FWidgetPath* Path = MouseEvent.GetEventPath();
+		if (Path->IsValid())
+		{
+			TSharedRef<SWidget> TopWidget = Path->Widgets.Last().Widget;
+			return Reply.CaptureMouse(TopWidget);
+		}
 	}
 	return Reply;
 }

@@ -244,10 +244,12 @@ bool FWebJSScripting::HandleExecuteUObjectMethodMessage(CefRefPtr<CefListValue> 
 	uint16 ParamsSize = Function->ParmsSize;
 	TArray<uint8> Params;
 	UProperty* ReturnParam = nullptr;
+	UProperty* PromiseParam = nullptr;
 
 	// Convert cef argument list to a dictionary, so we can use FStructDeserializer to convert it for us
-	CefRefPtr<CefDictionaryValue> NamedArgs = CefDictionaryValue::Create();
+	if (ParamsSize > 0)
 	{
+		CefRefPtr<CefDictionaryValue> NamedArgs = CefDictionaryValue::Create();
 		int32 CurrentArg = 0;
 		CefRefPtr<CefListValue> CefArgs = MessageArguments->GetList(3);
 		for ( TFieldIterator<UProperty> It(Function); It; ++It )
@@ -261,47 +263,58 @@ bool FWebJSScripting::HandleExecuteUObjectMethodMessage(CefRefPtr<CefListValue> 
 				}
 				else
 				{
-					CopyContainerValue(NamedArgs, CefArgs, CefString(*Param->GetName()), CurrentArg);
-					CurrentArg++;
+					UStructProperty *StructProperty = Cast<UStructProperty>(Param);
+					if (StructProperty && StructProperty->Struct->IsChildOf(FWebJSResponse::StaticStruct()))
+					{
+						PromiseParam = Param;
+					}
+					else
+					{
+						CopyContainerValue(NamedArgs, CefArgs, CefString(*Param->GetName()), CurrentArg);
+						CurrentArg++;
+					}
 				}
 			}
 		}
 
-		if (ParamsSize > 0)
-		{
-			// UFunction is a subclass of UStruct, so we can treat the arguments as a struct for deserialization
+		// UFunction is a subclass of UStruct, so we can treat the arguments as a struct for deserialization
+		Params.AddUninitialized(ParamsSize);
+		Function->InitializeStruct(Params.GetData());
+		FWebJSStructDeserializerBackend Backend = FWebJSStructDeserializerBackend(SharedThis(this), NamedArgs);
+		FStructDeserializer::Deserialize(Params.GetData(), *Function, Backend);
+	}
 
-			Params.AddUninitialized(ParamsSize);
-			Function->InitializeStruct(Params.GetData());
-			FWebJSStructDeserializerBackend Backend = FWebJSStructDeserializerBackend(SharedThis(this), NamedArgs);
-			FStructDeserializer::Deserialize(Params.GetData(), *Function, Backend);
+	if (PromiseParam)
+	{
+		FWebJSResponse* PromisePtr = PromiseParam->ContainerPtrToValuePtr<FWebJSResponse>(Params.GetData());
+		if (PromisePtr)
+		{
+			*PromisePtr = FWebJSResponse(SharedThis(this), ResultCallbackId);
 		}
 	}
 
 	Object->ProcessEvent(Function, Params.GetData());
 	CefRefPtr<CefListValue> Results = CefListValue::Create();
-	if ( ReturnParam )
+
+	if ( ! PromiseParam ) // If PromiseParam is set, we assume that the UFunction will ensure it is called with the result
 	{
-		FStructSerializerPolicies ReturnPolicies;
-		ReturnPolicies.PropertyFilter = [&](const UProperty* CandidateProperty, const UProperty* ParentProperty)
+		if ( ReturnParam )
 		{
-			return ParentProperty != nullptr || CandidateProperty == ReturnParam;
-		};
-		FWebJSStructSerializerBackend ReturnBackend(SharedThis(this));
-		FStructSerializer::Serialize(Params.GetData(), *Function, ReturnBackend, ReturnPolicies);
-		CefRefPtr<CefDictionaryValue> ResultDict = ReturnBackend.GetResult();
+			FStructSerializerPolicies ReturnPolicies;
+			ReturnPolicies.PropertyFilter = [&](const UProperty* CandidateProperty, const UProperty* ParentProperty)
+			{
+				return ParentProperty != nullptr || CandidateProperty == ReturnParam;
+			};
+			FWebJSStructSerializerBackend ReturnBackend(SharedThis(this));
+			FStructSerializer::Serialize(Params.GetData(), *Function, ReturnBackend, ReturnPolicies);
+			CefRefPtr<CefDictionaryValue> ResultDict = ReturnBackend.GetResult();
 
-		// Extract the single return value from the serialized dictionary to an array
-		CopyContainerValue(Results, ResultDict, 0, CefString(*ReturnParam->GetName()));
+			// Extract the single return value from the serialized dictionary to an array
+			CopyContainerValue(Results, ResultDict, 0, CefString(*ReturnParam->GetName()));
+		}
+		InvokeJSFunction(ResultCallbackId, Results, false);
 	}
-	InvokeJSFunction(ResultCallbackId, Results, false);
 	return true;
-}
-
-void FWebJSScripting::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
-{
-	check(Browser.get() == nullptr || InternalCefBrowser.get() == nullptr || InternalCefBrowser->IsSame(Browser));
-	InternalCefBrowser = Browser;
 }
 
 void FWebJSScripting::UnbindCefBrowser()
