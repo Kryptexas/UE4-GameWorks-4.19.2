@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "PropertyTrackEditor.h"
-#include "MovieSceneMarginTrack.h"
+#include "MovieSceneVectorTrack.h"
 
-class UMovieSceneTrack;
-
-class FMarginTrackEditor : public FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>
+/**
+ * A property track editor for vectors.
+ */
+class FVectorPropertyTrackEditor : public FPropertyTrackEditor<UMovieSceneVectorTrack, FVectorKey>
 {
 public:
 	/**
@@ -15,9 +15,9 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>( InSequencer, "Margin" )
-	{ }
+	FVectorPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
+		: FPropertyTrackEditor<UMovieSceneVectorTrack, FVectorKey>( InSequencer, NAME_Vector, NAME_Vector4, NAME_Vector2D )
+	{}
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -32,7 +32,7 @@ public:
 
 protected:
 	/** FPropertyTrackEditor Interface */
-	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey ) override;
+	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FVectorKey& OutKey ) override;
 };
 
 

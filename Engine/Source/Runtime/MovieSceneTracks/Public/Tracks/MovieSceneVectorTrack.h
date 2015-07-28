@@ -9,10 +9,15 @@
 
 #include "MovieSceneVectorTrack.generated.h"
 
-template<typename VecType>
-struct FVectorKey
+struct MOVIESCENETRACKS_API FVectorKey
 {
-	VecType Value;
+	FVectorKey() { }
+	FVectorKey( FVector InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+	FVectorKey( FVector2D InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+	FVectorKey( FVector4 InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+
+	FVector4 Value;
+	uint32 ChannelsUsed;
 	FName CurveName;
 	bool bAddKeyEvenIfUnchanged;
 };
@@ -40,9 +45,7 @@ public:
 	 * @return True if the key was successfully added.
 	 */
 
-	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector4>& Key );
-	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector>& Key );
-	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector2D>& Key );
+	virtual bool AddKeyToSection( float Time, FVectorKey Key );
 	
 	/**
 	 * Evaluates the track at the playback position

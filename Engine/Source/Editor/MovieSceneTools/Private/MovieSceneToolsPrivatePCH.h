@@ -7,9 +7,14 @@
 #include "MovieScene.h"
 #include "ScopedTransaction.h"
 #include "ISequencerSection.h"
+#include "ISectionLayoutBuilder.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieSceneTrackEditor.h"
 #include "IMovieSceneTools.h"
 #include "MovieSceneSection.h"
+#include "PropertySection.h"
+#include "PropertyTrackEditor.h"
+#include "CommonMovieSceneTools.h"
+#include "MovieSceneToolHelpers.h"
 
 #endif // __MovieSceneToolsPrivatePCH_h__

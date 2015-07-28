@@ -6,6 +6,36 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneVectorTrackInstance.h"
 
+FVectorKey::FVectorKey( FVector2D InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+{
+	Value.X = InValue.X;
+	Value.Y = InValue.Y;
+	Value.Z = 0;
+	Value.W = 0;
+	ChannelsUsed = 2;
+	CurveName = InCurveName;
+	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
+}
+
+FVectorKey::FVectorKey( FVector InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+{
+	Value.X = InValue.X;
+	Value.Y = InValue.Y;
+	Value.Z = InValue.Z;
+	Value.W = 0;
+	ChannelsUsed = 3;
+	CurveName = InCurveName;
+	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
+}
+
+FVectorKey::FVectorKey( FVector4 InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+{
+	Value = InValue;
+	ChannelsUsed = 4;
+	CurveName = InCurveName;
+	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
+}
+
 UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
@@ -43,19 +73,9 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value,
 	return false;
 }
 
-bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey<FVector4>& Key )
+bool UMovieSceneVectorTrack::AddKeyToSection( float Time, FVectorKey Key )
 {
-	return AddKeyToSection(Time, Key.Value, 4, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
-}
-
-bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey<FVector>& Key )
-{
-	return AddKeyToSection(Time, FVector4(Key.Value.X, Key.Value.Y, Key.Value.Z, 0.f), 3, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
-}
-
-bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey<FVector2D>& Key )
-{
-	return AddKeyToSection(Time, FVector4(Key.Value.X, Key.Value.Y, 0.f, 0.f), 2, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
+	return AddKeyToSection(Time, Key.Value, Key.ChannelsUsed, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
 }
 
 bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4& InOutVector ) const

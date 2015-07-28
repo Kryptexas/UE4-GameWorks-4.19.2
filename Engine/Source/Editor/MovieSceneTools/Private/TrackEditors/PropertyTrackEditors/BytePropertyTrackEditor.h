@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "PropertyTrackEditor.h"
-#include "MovieSceneMarginTrack.h"
+#include "MovieSceneByteTrack.h"
 
-class UMovieSceneTrack;
-
-class FMarginTrackEditor : public FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>
+/**
+* A property track editor for byte and enums.
+*/
+class FBytePropertyTrackEditor : public FPropertyTrackEditor<UMovieSceneByteTrack, uint8>
 {
 public:
 	/**
@@ -15,9 +15,9 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>( InSequencer, "Margin" )
-	{ }
+	FBytePropertyTrackEditor( TSharedRef<ISequencer> InSequencer)
+		: FPropertyTrackEditor( InSequencer, NAME_ByteProperty )
+	{}
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -29,10 +29,11 @@ public:
 
 	/** FMovieSceneTrackEditor Interface */
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
+	virtual UMovieSceneTrack* AddTrack( UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName ) override;
 
 protected:
 	/** FPropertyTrackEditor Interface */
-	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey ) override;
+	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey ) override;
 };
 
 

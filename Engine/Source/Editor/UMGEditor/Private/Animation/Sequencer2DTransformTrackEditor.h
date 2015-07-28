@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "Editor/Sequencer/Public/MovieSceneTrackEditor.h"
+#include "PropertyTrackEditor.h"
+#include "MovieScene2DTransformTrack.h"
 
-class IPropertyHandle;
+class UMovieSceneTrack;
 
-class F2DTransformTrackEditor : public FMovieSceneTrackEditor
+class F2DTransformTrackEditor : public FPropertyTrackEditor<UMovieScene2DTransformTrack, F2DTransformKey>
 {
 public:
 	/**
@@ -14,8 +15,9 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	F2DTransformTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~F2DTransformTrackEditor();
+	F2DTransformTrackEditor( TSharedRef<ISequencer> InSequencer )
+		: FPropertyTrackEditor<UMovieScene2DTransformTrack, F2DTransformKey>( InSequencer, "WidgetTransform" )
+	{ }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -26,20 +28,11 @@ public:
 	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
 	/** FMovieSceneTrackEditor Interface */
-	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 
-private:
-	/**
-	 * Called by the details panel when an animatable property changes
-	 *
-	 * @param InObjectsThatChanged	List of objects that changed
-	 * @param PropertyValue			Handle to the property value which changed
-	 */
-	void OnTransformChanged( const class FPropertyChangedParams& PropertyChangedParams );
-
-	/** Called After OnMarginChanged if we actually can key the margin */
-	void OnKeyTransform( float KeyTime, const class FPropertyChangedParams* PropertyChangedParams );
+protected:
+	/** FPropertyTrackEditor Interface */
+	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey ) override;
 };
 
 

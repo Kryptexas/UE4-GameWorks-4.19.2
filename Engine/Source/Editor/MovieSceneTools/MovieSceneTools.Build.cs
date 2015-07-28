@@ -11,6 +11,8 @@ public class MovieSceneTools : ModuleRules
                 "Editor/MovieSceneTools/Private",
                 "Editor/MovieSceneTools/Private/CurveKeyEditors",
                 "Editor/MovieSceneTools/Private/TrackEditors",
+				"Editor/MovieSceneTools/Private/TrackEditors/PropertyTrackEditors",
+				"Editor/MovieSceneTools/Private/Sections"
             }
         );
 

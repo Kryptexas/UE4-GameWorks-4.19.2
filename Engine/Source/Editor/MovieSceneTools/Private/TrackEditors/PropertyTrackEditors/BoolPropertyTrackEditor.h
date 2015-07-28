@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "PropertyTrackEditor.h"
-#include "MovieSceneMarginTrack.h"
+#include "MovieSceneBoolTrack.h"
 
-class UMovieSceneTrack;
-
-class FMarginTrackEditor : public FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>
+/**
+* A property track editor for bools.
+*/
+class FBoolPropertyTrackEditor : public FPropertyTrackEditor<UMovieSceneBoolTrack, bool>
 {
 public:
 	/**
@@ -15,9 +15,9 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>( InSequencer, "Margin" )
-	{ }
+	FBoolPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
+		: FPropertyTrackEditor( InSequencer, NAME_BoolProperty )
+	{}
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -32,7 +32,7 @@ public:
 
 protected:
 	/** FPropertyTrackEditor Interface */
-	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey ) override;
+	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, bool& OutKey ) override;
 };
 
 

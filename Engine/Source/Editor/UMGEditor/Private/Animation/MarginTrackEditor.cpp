@@ -2,13 +2,10 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "MarginTrackEditor.h"
-#include "Editor/MovieSceneTools/Public/PropertySection.h"
-#include "Editor/MovieSceneTools/Public/MovieSceneToolHelpers.h"
-#include "Runtime/UMG/Public/Animation/MovieSceneMarginSection.h"
-#include "Runtime/UMG/Public/Animation/MovieSceneMarginTrack.h"
-#include "Editor/Sequencer/Public/ISectionLayoutBuilder.h"
-#include "Editor/Sequencer/Public/ISequencerObjectChangeListener.h"
-#include "Editor/PropertyEditor/Public/PropertyHandle.h"
+#include "MovieSceneMarginSection.h"
+#include "PropertySection.h"
+#include "ISectionLayoutBuilder.h"
+#include "MovieSceneToolHelpers.h"
 
 class FMarginPropertySection : public FPropertySection
 {
@@ -27,34 +24,9 @@ public:
 	}
 };
 
-FMarginTrackEditor::FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
-	: FMovieSceneTrackEditor( InSequencer ) 
-{
-	// Get the object change listener for the sequencer and register a delegates for when properties change that we care about
-	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( "Margin" ).AddRaw( this, &FMarginTrackEditor::OnMarginChanged );
-}
-
-FMarginTrackEditor::~FMarginTrackEditor()
-{
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	if( Sequencer.IsValid() )
-	{
-		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( "Margin" ).RemoveAll( this );
-	}
-}
-
-
-
 TSharedRef<FMovieSceneTrackEditor> FMarginTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FMarginTrackEditor( InSequencer ) );
-}
-
-bool FMarginTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
-{
-	return Type == UMovieSceneMarginTrack::StaticClass();
 }
 
 TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
@@ -68,48 +40,10 @@ TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSc
 	return NewSection;
 }
 
-
-void FMarginTrackEditor::OnMarginChanged(  const FPropertyChangedParams& PropertyChangedParams )
+bool FMarginTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey )
 {
-	AnimatablePropertyChanged
-	(
-		UMovieSceneMarginTrack::StaticClass(), 
-		PropertyChangedParams.bRequireAutoKey,
-		FOnKeyProperty::CreateRaw(this, &FMarginTrackEditor::OnKeyMargin, &PropertyChangedParams ) 
-	);
-}
-
-
-void FMarginTrackEditor::OnKeyMargin( float KeyTime, const FPropertyChangedParams* PropertyChangedParams )
-{
-	FMargin MarginValue = *PropertyChangedParams->GetPropertyValue<FMargin>();
-	FName PropertyName = PropertyChangedParams->PropertyPath.Last()->GetFName();
-
-	for( int32 ObjectIndex = 0; ObjectIndex < PropertyChangedParams->ObjectsThatChanged.Num(); ++ObjectIndex )
-	{
-		UObject* Object = PropertyChangedParams->ObjectsThatChanged[ObjectIndex];
-
-		FMarginKey Key;
-		Key.bAddKeyEvenIfUnchanged = !PropertyChangedParams->bRequireAutoKey;
-		Key.CurveName = PropertyChangedParams->StructPropertyNameToKey;
-		Key.Value = MarginValue;
-
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
-		if (ObjectHandle.IsValid())
-		{
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneMarginTrack::StaticClass(), PropertyName );
-			if( ensure( Track ) )
-			{
-				UMovieSceneMarginTrack* MarginTrack = CastChecked<UMovieSceneMarginTrack>(Track);
-				MarginTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams->GetPropertyPathString() );
-				// Find or add a new section at the auto-key time and changing the property same property
-				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
-				bool bSuccessfulAdd = MarginTrack->AddKeyToSection( KeyTime, Key );
-				if (bSuccessfulAdd)
-				{
-					MarginTrack->SetAsShowable();
-				}
-			}
-		}
-	}
+	OutKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
+	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FMargin>();
+	return true;
 }
