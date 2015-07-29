@@ -498,7 +498,7 @@ class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, con
 #if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
-		UEnum* ReturnEnum = FindObjectChecked<UEnum>(EnumOuter, EnumName);
+		UEnum* ReturnEnum = FindObject<UEnum>(EnumOuter, EnumName);
 		if (ReturnEnum)
 		{
 			UE_LOG(LogClass, Log, TEXT( "%s HotReload."), EnumName);
@@ -799,7 +799,7 @@ static void UObjectLoadAllCompiledInStructs()
 
 bool AnyNewlyLoadedUObjects()
 {
-	return GFirstPendingRegistrant != NULL || GetDeferredCompiledInRegistration().Num() || GetDeferredCompiledInStructRegistration().Num();
+	return GFirstPendingRegistrant != NULL || GetDeferredCompiledInRegistration().Num() || GetDeferredCompiledInStructRegistration().Num() || GetDeferredCompiledInEnumRegistration().Num();
 }
 
 
