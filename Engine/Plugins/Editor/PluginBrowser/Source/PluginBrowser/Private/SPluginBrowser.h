@@ -42,6 +42,9 @@ private:
 	/** Called with notification that one of the plugin directories has changed */
 	void OnPluginDirectoryChanged(const TArray<struct FFileChangeData>& );
 
+	/** Called with notification that a new plugin has been created */
+	void OnNewPluginCreated();
+
 	/** Timer callback for when */
 	EActiveTimerReturnType UpdatePluginsTimerCallback(double InCurrentTime, float InDeltaTime);
 

@@ -72,6 +72,30 @@ void FPluginBrowserModule::ShutdownModule()
 	IModularFeatures::Get().UnregisterModularFeature( EditorFeatures::PluginsEditor, this );
 }
 
+void FPluginBrowserModule::SetPluginPendingEnableState(const FString& PluginName, bool bCurrentlyEnabled, bool bPendingEnabled)
+{
+	if (bCurrentlyEnabled == bPendingEnabled)
+	{
+		PendingEnablePlugins.Remove(PluginName);
+	}
+	else
+	{
+		PendingEnablePlugins.FindOrAdd(PluginName) = bPendingEnabled;
+	}
+}
+
+bool FPluginBrowserModule::GetPluginPendingEnableState(const FString& PluginName) const
+{
+	check(PendingEnablePlugins.Contains(PluginName));
+
+	return PendingEnablePlugins[PluginName];
+}
+
+bool FPluginBrowserModule::HasPluginPendingEnable(const FString& PluginName) const
+{
+	return PendingEnablePlugins.Contains(PluginName);
+}
+
 TSharedRef<SDockTab> FPluginBrowserModule::HandleSpawnPluginCreatorTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	TSharedRef<SDockTab> ResultTab = SNew(SDockTab)

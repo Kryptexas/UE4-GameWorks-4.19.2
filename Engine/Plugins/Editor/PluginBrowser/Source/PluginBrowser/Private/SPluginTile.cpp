@@ -359,9 +359,9 @@ void SPluginTile::RecreateWidgets()
 ECheckBoxState SPluginTile::IsPluginEnabled() const
 {
 	FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-	if(PluginBrowserModule.PendingEnablePlugins.Contains(Plugin->GetName()))
+	if(PluginBrowserModule.HasPluginPendingEnable(Plugin->GetName()))
 	{
-		return PluginBrowserModule.PendingEnablePlugins[Plugin->GetName()]? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
+		return PluginBrowserModule.GetPluginPendingEnableState(Plugin->GetName()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
 	}
 	else
 	{
@@ -403,15 +403,7 @@ void SPluginTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 		}
 		else
 		{
-			FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-			if(Plugin->IsEnabled() == bNewEnabledState)
-			{
-				PluginBrowserModule.PendingEnablePlugins.Remove(Plugin->GetName());
-			}
-			else
-			{
-				PluginBrowserModule.PendingEnablePlugins.FindOrAdd(Plugin->GetName()) = bNewEnabledState;
-			}
+			FPluginBrowserModule::Get().SetPluginPendingEnableState(Plugin->GetName(), Plugin->IsEnabled(), bNewEnabledState);
 		}
 	}
 

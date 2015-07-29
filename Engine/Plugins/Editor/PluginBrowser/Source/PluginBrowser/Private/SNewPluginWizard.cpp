@@ -10,6 +10,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "GameProjectUtils.h"
+#include "PluginBrowserModule.h"
 
 DEFINE_LOG_CATEGORY(LogPluginWizard);
 
@@ -454,13 +455,20 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 
 	if (bSucceeded)
 	{
-		// Show the plugin folder in the file system
-		FPlatformProcess::ExploreFolder(*UPluginFilePath);
-
 		// Generate project files if we happen to be using a project file.
 		if (!FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn))
 		{
 			PopErrorNotification(LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files."));
+		}
+
+		// Notify that a new plugin has been created
+		FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
+		PluginBrowserModule.BroadcastNewPluginCreated();
+
+		// Add game plugins to list of pending enable plugins 
+		if (!bIsEnginePlugin)
+		{
+			PluginBrowserModule.SetPluginPendingEnableState(AutoPluginName, false, true);
 		}
 
 		auto PinnedOwnerTab = OwnerTab.Pin();
