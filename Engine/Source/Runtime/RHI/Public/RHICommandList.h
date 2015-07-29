@@ -1986,7 +1986,12 @@ class RHI_API FRHICommandListExecutor
 public:
 	enum
 	{
+//ensure bypass is not enabled for shipping builds on consoles.
+#if (PLATFORM_XBOXONE || PLATFORM_PS4)
+		DefaultBypass = 0
+#else
 		DefaultBypass = 1
+#endif
 	};
 	FRHICommandListExecutor()
 		: bLatchedBypass(!!DefaultBypass)
