@@ -154,6 +154,21 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	}
 }
 
+#if WITH_HOT_RELOAD_CTORS
+UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
+	: Super(Helper)
+	, EngineShowFlags(ESFIM_Game)
+	, CurrentBufferVisualizationMode(NAME_None)
+	, HighResScreenshotDialog(NULL)
+	, bIgnoreInput(false)
+	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
+	, bHideCursorDuringCapture(false)
+	, AudioDeviceHandle(INDEX_NONE)
+	, bHasAudioFocus(false)
+{
+
+}
+#endif // WITH_HOT_RELOAD_CTORS
 
 UGameViewportClient::~UGameViewportClient()
 {
