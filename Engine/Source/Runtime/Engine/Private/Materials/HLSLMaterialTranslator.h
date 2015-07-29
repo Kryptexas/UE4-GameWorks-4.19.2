@@ -3777,14 +3777,14 @@ protected:
 			case MCT_Texture2D:
 				InputParamDecl += TEXT("Texture2D ");
 				InputParamDecl += Custom->Inputs[i].InputName;
-				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += TEXT(", SamplerState ");
 				InputParamDecl += Custom->Inputs[i].InputName;
 				InputParamDecl += TEXT("Sampler ");
 				break;
 			case MCT_TextureCube:
 				InputParamDecl += TEXT("TextureCube ");
 				InputParamDecl += Custom->Inputs[i].InputName;
-				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += TEXT(", SamplerState ");
 				InputParamDecl += Custom->Inputs[i].InputName;
 				InputParamDecl += TEXT("Sampler ");
 				break;
