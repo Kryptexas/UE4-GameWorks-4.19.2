@@ -193,6 +193,10 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 	rc = pthread_mutex_unlock(&MainMutex);
 	check(rc == 0);
 
+	// Make sure window will not be deleted until event is processed
+	// Window could be deleted by OS while event queue stuck at game start-up phase
+	FAndroidWindow::AcquireWindowRef((ANativeWindow*)InWindow);
+
 	if(AlreadyInited)
 	{
 		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow );
@@ -260,14 +264,18 @@ void FAppEventManager::ExecWindowCreated()
 	check(PendingWindow)
 
 	FPlatformMisc::SetHardwareWindow(PendingWindow);
-	PendingWindow = NULL;
-
+	
 	// When application launched while device is in sleep mode SystemResolution could be set to opposite orientation values
 	// Force to update SystemResolution to current values whenever we create a new window
 	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 	FSystemResolution::RequestResolutionChange(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
 	
 	FAndroidAppEntry::ReInitWindow();
+	
+	// We hold this reference to ensure that window will not be deleted while game starting up
+	// release it when window is finally initialized
+	FAndroidWindow::ReleaseWindowRef(PendingWindow);
+	PendingWindow = nullptr;
 }
 
 
