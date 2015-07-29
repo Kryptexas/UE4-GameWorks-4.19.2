@@ -169,13 +169,17 @@ public:
 	UPROPERTY()
 	FGetSlateVisibility VisibilityDelegate;
 
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_Cursor : 1;
+
 	/** The cursor to show when the mouse is over the widget */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior", AdvancedDisplay, meta=( editcondition="bOverride_Cursor" ))
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	/** A bindable delegate for Cursor */
-	UPROPERTY()
-	FGetMouseCursor CursorDelegate;
+	//UPROPERTY()
+	//FGetMouseCursor CursorDelegate;
 
 protected:
 
@@ -266,6 +270,14 @@ public:
 	/** Sets a custom widget as the tooltip of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetToolTip(UWidget* Widget);
+
+	/** Sets the cursor to show over the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetCursor(EMouseCursor::Type InCursor);
+
+	/** Resets the cursor to use on the widget, removing any customization for it. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ResetCursor();
 
 	/** @return true if the widget is Visible, HitTestInvisible or SelfHitTestInvisible. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -574,4 +586,5 @@ private:
 private:
 	GAME_SAFE_BINDING_IMPLEMENTATION(FText, ToolTipText)
 	GAME_SAFE_BINDING_IMPLEMENTATION(bool, bIsEnabled)
+	//GAME_SAFE_BINDING_IMPLEMENTATION(EMouseCursor::Type, Cursor)
 };
