@@ -181,10 +181,9 @@ FReply FGameplayTagQueryCustomization::OnEditButtonClicked()
 				.ReadOnly(bReadOnly)
 			];
 
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		if (MainFrameModule.GetParentWindow().IsValid())
+		if (FGlobalTabmanager::Get()->GetRootWindow().IsValid())
 		{
-			FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagQueryWidgetWindow.ToSharedRef(), MainFrameModule.GetParentWindow().ToSharedRef());
+			FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagQueryWidgetWindow.ToSharedRef(), FGlobalTabmanager::Get()->GetRootWindow().ToSharedRef());
 		}
 		else
 		{
