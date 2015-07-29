@@ -358,7 +358,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 		else
 		{
 			// Should we use client-storage to improve update time on platforms that require it
-			bool const bRenderable = (Flags & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable)) != 0;
+			bool const bRenderable = (Flags & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable|TexCreate_CPUReadback)) != 0;
 			bool const bUseClientStorage = (FOpenGL::SupportsClientStorage() && !FOpenGL::SupportsTextureView() && !bRenderable && !GLFormat.bCompressed);
 			if(bUseClientStorage)
 			{
@@ -755,7 +755,7 @@ void* TOpenGLTexture<RHIResourceType>::Lock(uint32 InMipIndex,uint32 ArrayIndex,
 
 	// Should we use client-storage to improve update time on platforms that require it
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[PixelFormat];
-	bool const bRenderable = (this->GetFlags() & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable)) != 0;
+	bool const bRenderable = (this->GetFlags() & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable|TexCreate_CPUReadback)) != 0;
 	bool const bUseClientStorage = FOpenGL::SupportsClientStorage() && !FOpenGL::SupportsTextureView() && !bRenderable && !this->GetSizeZ() && !GLFormat.bCompressed;
 	if(!bUseClientStorage)
 	{
@@ -816,6 +816,7 @@ void* TOpenGLTexture<RHIResourceType>::Lock(uint32 InMipIndex,uint32 ArrayIndex,
 			
 			result = ClientStorageBuffers[BufferIndex].Data;
 		}
+		ClientStorageBuffers[BufferIndex].bReadOnly = (LockMode == RLM_ReadOnly);
 	}
 	
 	return result;
@@ -885,7 +886,7 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 	const bool bSRGB = (this->GetFlags() & TexCreate_SRGB) != 0;
 
 	// Should we use client-storage to improve update time on platforms that require it
-	bool const bRenderable = (this->GetFlags() & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable)) != 0;
+	bool const bRenderable = (this->GetFlags() & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable|TexCreate_CPUReadback)) != 0;
 	bool const bUseClientStorage = FOpenGL::SupportsClientStorage() && !FOpenGL::SupportsTextureView() && !bRenderable && !this->GetSizeZ() && !GLFormat.bCompressed;
 	check(bUseClientStorage || IsValidRef(PixelBuffers[BufferIndex]));
 	
@@ -1058,7 +1059,7 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 		//need to free PBO if we aren't keeping shadow copies
 		PixelBuffers[BufferIndex] = NULL;
 	}
-	else
+	else if(!bUseClientStorage || !ClientStorageBuffers[BufferIndex].bReadOnly)
 	{
 		// Code path for non-PBO:
 		// Volume/array textures are currently only supported if PixelBufferObjects are also supported.
@@ -1899,7 +1900,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPar
 	
 	// Should we use client-storage to improve update time on platforms that require it
 	const bool bCompressed = GOpenGLTextureFormats[Texture2D->GetFormat()].bCompressed;
-	bool const bRenderable = (Texture2D->GetFlags() & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable)) != 0;
+	bool const bRenderable = (Texture2D->GetFlags() & (TexCreate_RenderTargetable|TexCreate_ResolveTargetable|TexCreate_DepthStencilTargetable|TexCreate_CPUReadback)) != 0;
 	const bool bUseClientStorage = (FOpenGL::SupportsClientStorage() && !FOpenGL::SupportsTextureView() && !bRenderable && !bCompressed);
 	
 	// Use the GPU to asynchronously copy the old mip-maps into the new texture.
