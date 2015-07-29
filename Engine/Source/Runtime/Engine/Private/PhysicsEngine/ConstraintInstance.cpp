@@ -343,7 +343,7 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 	}
 	else
 	{
-		PScene = GetPhysXSceneFromIndex(SceneIndex1);
+		PScene = GetPhysXSceneFromIndex(SceneIndex1 >= 0 ? SceneIndex1 : SceneIndex2);
 	}
 
 	return PScene;
