@@ -418,7 +418,7 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 	}else
 	{
 		//we have valid scene and subtime so enqueue task
-		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, PScene->getTaskManager());
+		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager());
 		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
 
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SubstepSimulationImp"),
@@ -540,6 +540,30 @@ void GatherPhysXStats(PxScene* PScene, uint32 SceneType)
 #endif
 }
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Sync Sim Time (ms)"), STAT_PhysSyncSim, STATGROUP_Physics);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Async Sim Time (ms)"), STAT_PhysAsyncSim, STATGROUP_Physics);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Cloth Sim Time (ms)"), STAT_PhysClothSim, STATGROUP_Physics);
+
+double GSimStartTime[PST_MAX] = {0.f, 0.f, 0.f};
+
+void FinishSceneStat(uint32 Scene)
+{
+	if (Scene < PST_MAX)	//PST_MAX used when we don't care
+	{
+		float SceneTime = float(FPlatformTime::Seconds() - GSimStartTime[Scene]) * 1000.0f;
+		switch(Scene)
+		{
+			case PST_Sync:
+			INC_FLOAT_STAT_BY(STAT_PhysSyncSim, SceneTime); break;
+			case PST_Async:
+			INC_FLOAT_STAT_BY(STAT_PhysAsyncSim, SceneTime); break;
+			case PST_Cloth:
+			INC_FLOAT_STAT_BY(STAT_PhysClothSim, SceneTime); break;
+		}
+	}
+}
+
+
 /** Exposes ticking of physics-engine scene outside Engine. */
 void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent)
 {
@@ -547,6 +571,8 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	SCOPE_CYCLE_COUNTER(STAT_PhysicsKickOffDynamicsTime);
 
 	check(SceneType < NumPhysScenes);
+
+	GSimStartTime[SceneType] = FPlatformTime::Seconds();
 
 	if (bPhysXSceneExecuting[SceneType] != 0)
 	{
@@ -641,14 +667,14 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 #endif
 		{
 #if !WITH_APEX
-			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, PScene->getTaskManager());
+			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager());
 			PScene->lockWrite();
 			PScene->simulate(AveragedFrameTime[SceneType], Task);
 			PScene->unlockWrite();
 			Task->removeReference();
 			bTaskOutstanding = true;
 #else
-			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, ApexScene->getTaskManager());
+			PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, ApexScene->getTaskManager());
 			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task);
 			Task->removeReference();
 			bTaskOutstanding = true;

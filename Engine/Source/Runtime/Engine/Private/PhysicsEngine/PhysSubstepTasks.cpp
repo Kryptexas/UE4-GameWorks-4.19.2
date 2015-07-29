@@ -358,7 +358,9 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	
 	check(!CompletionEvent.GetReference());	//should be done
 	CompletionEvent = FGraphEvent::CreateGraphEvent();
-	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent, PAScene->getTaskManager());
+	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent,
+		 PST_MAX //we don't care about sub-step time. The full time is recorded by FullSimulationTask
+		,PAScene->getTaskManager());
 	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
 
 	DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysSubstepSimulation"),
