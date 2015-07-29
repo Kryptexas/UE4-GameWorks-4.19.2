@@ -224,7 +224,7 @@ namespace AutomationTool
 				case UnrealBuildTool.UnrealTargetPlatform.Linux:
 					return CommandUtils.CombinePaths(BuildRoot, "Engine/Binaries/Linux/UE4Editor");
 				default:
-					throw new NotImplementedException();
+					throw new AutomationException("EditorCommandlet is not supported for platform {0}", HostPlatform);
 			}
 		}
 
