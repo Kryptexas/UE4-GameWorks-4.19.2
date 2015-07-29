@@ -5,6 +5,8 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "KismetCompiler.h"
+#include "K2Node_TemporaryVariable.h"
+#include "K2Node_PureAssignmentStatement.h"
 #include "K2Node_GetClassDefaults.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_GetClassDefaults"
@@ -239,6 +241,36 @@ void UK2Node_GetClassDefaults::ReallocatePinsDuringReconstruction(TArray<UEdGrap
 FNodeHandlingFunctor* UK2Node_GetClassDefaults::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_GetClassDefaults(CompilerContext);
+}
+
+void UK2Node_GetClassDefaults::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
+{
+	const UClass* ClassType = GetInputClass();
+
+	// @TODO - Remove if/when we support 'const' input pins.
+	// For array properties, return a local copy of the array so that the original cannot be modified.
+	for(UEdGraphPin* OutputPin : Pins)
+	{
+		if(OutputPin != nullptr && OutputPin->Direction == EGPD_Output && OutputPin->LinkedTo.Num() > 0)
+		{
+			UProperty* BoundProperty = FindField<UProperty>(ClassType, *(OutputPin->PinName));
+			if(BoundProperty != nullptr && BoundProperty->IsA<UArrayProperty>())
+			{
+				UK2Node_TemporaryVariable* LocalVariable = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
+				LocalVariable->VariableType = OutputPin->PinType;
+				LocalVariable->VariableType.bIsReference = false;
+				LocalVariable->AllocateDefaultPins();
+
+				UK2Node_PureAssignmentStatement* CopyDefaultValue = CompilerContext.SpawnIntermediateNode<UK2Node_PureAssignmentStatement>(this, SourceGraph);
+				CopyDefaultValue->AllocateDefaultPins();
+				CompilerContext.GetSchema()->TryCreateConnection(LocalVariable->GetVariablePin(), CopyDefaultValue->GetVariablePin());
+
+				// Note: This must be done AFTER connecting the variable input, which sets the pin type.
+				CompilerContext.MovePinLinksToIntermediate(*OutputPin, *CopyDefaultValue->GetOutputPin());
+				CompilerContext.GetSchema()->TryCreateConnection(OutputPin, CopyDefaultValue->GetValuePin());
+			}
+		}
+	}
 }
 
 void UK2Node_GetClassDefaults::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
