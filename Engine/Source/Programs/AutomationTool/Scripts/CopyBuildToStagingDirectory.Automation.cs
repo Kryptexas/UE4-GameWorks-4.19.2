@@ -377,15 +377,11 @@ public partial class Project : CommandUtils
 			BuildConfiguration.RelativeEnginePath = "../../Engine/";
 
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath);
-			Console.WriteLine("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
-			Console.WriteLine("Searching for plugins in: " + SC.RawProjectPath);
 			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(SC.RawProjectPath);
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
-				Console.WriteLine("Considering Plugin for Stage: " + Plugin.FileName);
 				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType))
 				{
-					Console.WriteLine("EnabledPlugin: " + Plugin.FileName);
 					SC.StageFiles(StagedFileType.UFS, Plugin.Directory, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
 				}
 			}
