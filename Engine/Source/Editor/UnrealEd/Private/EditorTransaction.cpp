@@ -124,6 +124,20 @@ int32 FTransaction::GetRecordCount() const
 	return Records.Num();
 }
 
+bool FTransaction::ContainsPieObject() const
+{
+	for( const FObjectRecord& Record : Records )
+	{
+		if( Record.ContainsPieObject() )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 void FTransaction::RemoveRecords( int32 Count /* = 1  */ )
 {
 	if ( Count > 0 && Records.Num() >= Count )
@@ -213,6 +227,29 @@ void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Col
 	{
 		ObjectAnnotation->AddReferencedObjects(Collector);
 	}
+}
+
+bool FTransaction::FObjectRecord::ContainsPieObject() const
+{
+	{
+		UObject* Obj = Object.Get();
+
+		if(Obj && (Obj->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+		{
+			return true;
+		}
+	}
+
+	for( const FReferencedObject& ReferencedObject : ReferencedObjects )
+	{
+		const UObject* Obj = ReferencedObject.GetObject();
+		if( Obj && (Obj->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0 )
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FTransaction::AddReferencedObjects( FReferenceCollector& Collector )
@@ -768,6 +805,19 @@ bool UTransBuffer::IsObjectInTransationBuffer( const UObject* Object ) const
 		}
 		
 		TransactionObjects.Reset();
+	}
+
+	return false;
+}
+
+bool UTransBuffer::ContainsPieObject() const
+{
+	for( const FTransaction& Transaction : UndoBuffer )
+	{
+		if( Transaction.ContainsPieObject() )
+		{
+			return true;
+		}
 	}
 
 	return false;

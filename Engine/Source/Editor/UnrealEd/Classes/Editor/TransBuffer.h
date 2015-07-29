@@ -110,6 +110,7 @@ public:
 	virtual void SetPrimaryUndoObject( UObject* Object ) override;
 	virtual ITransaction* CreateInternalTransaction() override;
 	virtual bool IsObjectInTransationBuffer( const UObject* Object ) const override;
+	virtual bool ContainsPieObject() const override;
 	virtual bool IsActive() override
 	{
 		return ActiveCount > 0;
