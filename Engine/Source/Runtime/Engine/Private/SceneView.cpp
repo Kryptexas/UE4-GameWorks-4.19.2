@@ -158,7 +158,7 @@ static TAutoConsoleVariable<float> CVarSceneColorFringeMax(
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
 /** Global primitive uniform buffer resource containing identity transformations. */
-TGlobalResource<FIdentityPrimitiveUniformBuffer> GIdentityPrimitiveUniformBuffer;
+ENGINE_API TGlobalResource<FIdentityPrimitiveUniformBuffer> GIdentityPrimitiveUniformBuffer;
 
 FSceneViewStateReference::~FSceneViewStateReference()
 {

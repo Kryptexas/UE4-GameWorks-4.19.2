@@ -416,6 +416,20 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& Vi
 	auto PixelShader = MaterialShaderMap->GetShader<FDeferredDecalPS>();
 	TShaderMapRef<FDeferredDecalVS> VertexShader(View.ShaderMap);
 
+	// we don't have the Primitive uniform buffer setup for decals (later we want to batch)
+	{
+		auto& PrimitiveVS = VertexShader->GetUniformBufferParameter<FPrimitiveUniformShaderParameters>();
+		auto& PrimitivePS = PixelShader->GetUniformBufferParameter<FPrimitiveUniformShaderParameters>();
+
+		// uncomment to track down usage of the Primitive uniform buffer
+		//	check(!PrimitiveVS.IsBound());
+		//	check(!PrimitivePS.IsBound());
+
+		// to prevent potential shader error (UE-18852 ElementalDemo crashes due to nil constant buffer)
+		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(), PrimitiveVS, GIdentityPrimitiveUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, PixelShader->GetPixelShader(), PrimitivePS, GIdentityPrimitiveUniformBuffer);
+	}
+
 	if(bShaderComplexity)
 	{
 		TShaderMapRef<FShaderComplexityAccumulatePS> VisualizePixelShader(View.ShaderMap);
