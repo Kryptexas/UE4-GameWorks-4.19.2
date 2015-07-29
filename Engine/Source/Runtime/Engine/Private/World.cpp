@@ -87,6 +87,27 @@ DEFINE_LOG_CATEGORY(LogSpawn);
 
 #define LOCTEXT_NAMESPACE "World"
 
+// Deprecation warnings disabled to initialize bNoCollisionFail
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+FActorSpawnParameters::FActorSpawnParameters()
+: Name(NAME_None)
+, Template(NULL)
+, Owner(NULL)
+, Instigator(NULL)
+, OverrideLevel(NULL)
+, SpawnCollisionHandlingOverride(ESpawnActorCollisionHandlingMethod::Undefined)
+, bNoCollisionFail(false)
+, bRemoteOwned(false)
+, bNoFail(false)
+, bDeferConstruction(false)
+, bAllowDuringConstructionScript(false)
+, ObjectFlags(RF_Transactional)
+{
+}
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
 /*-----------------------------------------------------------------------------
 	UWorld implementation.
 -----------------------------------------------------------------------------*/
