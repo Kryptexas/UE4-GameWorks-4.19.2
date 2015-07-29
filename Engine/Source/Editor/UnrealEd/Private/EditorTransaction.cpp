@@ -36,6 +36,14 @@ FTransaction::FObjectRecord::FObjectRecord(FTransaction* Owner, UObject* InObjec
 
 void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper )
 {
+	// Cache to restore at the end
+	bool bWasArIgnoreOuterRef = Ar.ArIgnoreOuterRef;
+
+	if (Object.IsPartOfCDO())
+	{
+		Ar.ArIgnoreOuterRef = true;
+	}
+
 	if( Array )
 	{
 		//UE_LOG( LogEditorTransaction, Log, TEXT("Array %s %i*%i: %i"), Object ? *Object->GetFullName() : TEXT("Invalid Object"), Index, ElementSize, InOper);
@@ -89,6 +97,8 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		check(Serializer==NULL);
 		Object->Serialize( Ar );
 	}
+
+	Ar.ArIgnoreOuterRef = bWasArIgnoreOuterRef;
 }
 
 void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
@@ -169,15 +179,18 @@ void FTransaction::DumpObjectMap(FOutputDevice& Ar) const
 
 FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 {
-	UObject* Object = R.Object.Get();
-	check(Object);
-	FMemMark Mark(FMemStack::Get());
-	Ar << Object;
-	R.Object = Object;
-	Ar << R.Data;
-	Ar << R.ReferencedObjects;
-	Ar << R.ReferencedNames;
-	Mark.Pop();
+	if (!Ar.IsObjectReferenceCollector() || (Ar.IsObjectReferenceCollector() && !R.Object.IsPartOfCDO()))
+	{
+		UObject* Object = R.Object.Get();
+		check(Object);
+		FMemMark Mark(FMemStack::Get());
+		Ar << Object;
+		R.Object = Object;
+		Ar << R.Data;
+		Ar << R.ReferencedObjects;
+		Ar << R.ReferencedNames;
+		Mark.Pop();
+	}
 	return Ar;
 }
 
