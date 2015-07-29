@@ -109,17 +109,17 @@ FString FWindowsErrorReport::FindMostRecentErrorReport()
 {
 	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	auto DirectoryModifiedTime = FDateTime::MinValue();
+	auto DirectoryCreationTime = FDateTime::MinValue();
 	FString ReportDirectory;
 	auto ReportFinder = MakeDirectoryVisitor([&](const TCHAR* FilenameOrDirectory, bool bIsDirectory) 
 	{
 		if (bIsDirectory)
 		{
-			auto TimeStamp = PlatformFile.GetTimeStamp(FilenameOrDirectory);
-			if (TimeStamp > DirectoryModifiedTime && FCString::Strstr( FilenameOrDirectory, TEXT("UE4-") ) )
+			const FFileStatData StatData = PlatformFile.GetStatData( FilenameOrDirectory );
+			if (StatData.CreationTime > DirectoryCreationTime && FCString::Strstr( FilenameOrDirectory, TEXT("UE4-") ) )
 			{
 				ReportDirectory = FilenameOrDirectory;
-				DirectoryModifiedTime = TimeStamp;
+				DirectoryCreationTime = StatData.CreationTime;
 			}
 		}
 		return true;
