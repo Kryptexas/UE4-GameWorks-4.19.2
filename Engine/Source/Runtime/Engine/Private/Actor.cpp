@@ -446,6 +446,12 @@ void AActor::PostLoad()
 		bReplicates = (RemoteRole != ROLE_None);
 	}
 
+	// Ensure that this is not set for CDO (there was a case where this might have occurred in an older version when converting actor instances to BPs - see UE-18490)
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		bExchangedRoles = false;
+	}
+
 	if ( GIsEditor )
 	{
 #if WITH_EDITORONLY_DATA
