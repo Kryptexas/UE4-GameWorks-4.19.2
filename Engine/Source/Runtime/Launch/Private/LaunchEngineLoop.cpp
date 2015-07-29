@@ -1451,6 +1451,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 	SlowTask.EnterProgressFrame(5);
 
+	RHIPostInit();
+
 	if (GUseThreadedRendering)
 	{
 		if (GRHISupportsRHIThread)

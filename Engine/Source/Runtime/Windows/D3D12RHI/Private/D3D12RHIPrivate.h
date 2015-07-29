@@ -142,7 +142,11 @@ private:
 
         int64 GenerateID()
         {
+#if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
             static int64 ID = 0;
+#else
+			static int32 ID = 0;
+#endif
             return FPlatformAtomics::_InterlockedIncrement(&ID);
         }
 
@@ -223,7 +227,7 @@ private:
 
     TArray<QueryBatch> ActiveQueryBatches;              // List of active query batches. The data for these is in use.
 
-    static const uint32 MAX_ACTIVE_BATCHES = 10;        // The max number of query batches that will be held.
+    static const uint32 MAX_ACTIVE_BATCHES = 5;         // The max number of query batches that will be held.
     uint32 LastBatch;                                   // The index of the newest batch.
 
     uint32 HeadActiveElement;                   // The oldest element that is in use (Active). The data for this element is being used.
@@ -946,10 +950,11 @@ public:
     FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
 
 	/** Destructor */
-	virtual ~FD3D12DynamicRHI() {}
+	virtual ~FD3D12DynamicRHI();
 
 	// FDynamicRHI interface.
 	virtual void Init() override;
+	virtual void PostInit() override;
 	virtual void Shutdown() override;
 
     template<typename TRHIType>
@@ -1900,7 +1905,7 @@ public:
 
 namespace D3D12RHI
 {
-	extern TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
+	extern TGlobalResource<FVector4VertexDeclaration> GD3D12Vector4VertexDeclaration;
 
 	/**
 	 *	Default 'Fast VRAM' allocator...

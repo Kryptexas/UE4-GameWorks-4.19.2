@@ -34,7 +34,7 @@ void FD3D12Fence::CreateFence(ID3D12Device* pDirect3DDevice, uint64 InitialValue
 	CurrentFence = LastCompletedFence + 1;
 }
 
-uint64 FD3D12Fence::Signal(FD3D12CommandQueue* pCommandQueue)
+uint64 FD3D12Fence::Signal(ID3D12CommandQueue* pCommandQueue)
 {
 	check(pCommandQueue != nullptr);
 
@@ -245,7 +245,7 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 	FD3D12CommandListHandle BarrierCommandList[128];
 	if (NeedsResourceBarriers)
 	{
-#if 0//UE_BUILD_DEBUG	
+#if UE_BUILD_DEBUG	
 		if (!ResourceStateCS.TryLock())
 		{
 			FD3D12DynamicRHI::GetD3DRHI()->SubmissionLockStalls++;

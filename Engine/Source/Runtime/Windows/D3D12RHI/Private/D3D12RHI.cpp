@@ -267,7 +267,7 @@ void FD3D12DynamicRHI::IssueLongGPUTask()
 			TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 			TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-			RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
+			RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GD3D12Vector4VertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
 
 			// Draw a fullscreen quad
 			FVector4 Vertices[4];
@@ -761,7 +761,7 @@ void FD3D12DynamicRHI::GetLocalVideoMemoryInfo (DXGI_QUERY_VIDEO_MEMORY_INFO* Lo
 #if SUPPORTS_MEMORY_RESIDENCY
 int32 bLogMemoryResidency = 1;
 static FAutoConsoleVariableRef CVarLogMemoryResidency(
-	TEXT("r.D3D12LogMemoryResidency"),
+	TEXT("D3D12.LogMemoryResidency"),
 	bLogMemoryResidency,
 	TEXT("Print out a log of the memory residency stats.")
 	TEXT("  0: Off completely\n")
@@ -971,7 +971,9 @@ void FD3D12ResourceResidencyManager::FreeMemory (uint32 BytesToFree)
 	int64 AvailableSpace = budget - int64(LocalVideoMemoryInfo.CurrentUsage);
 
 	if (AvailableSpace < BytesToFree)
+	{
 		Process (0, BytesToFree - AvailableSpace);
+	}
 }
 
 void FD3D12ResourceResidencyManager::MakeResident()
@@ -997,7 +999,9 @@ void FD3D12ResourceResidencyManager::MakeResident()
 				hresult = GetParentDevice()->GetDevice()->MakeResident (PageableResources.Num(), PageableResources.GetData());
 
 				if (hresult != E_OUTOFMEMORY)
+				{
 					break;
+				}
 			}
 		}
 

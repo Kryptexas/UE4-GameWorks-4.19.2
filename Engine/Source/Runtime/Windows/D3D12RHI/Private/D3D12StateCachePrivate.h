@@ -22,7 +22,7 @@
 #define D3D11_STATE_CACHE_DEBUG 0
 #endif
 
-#define MAX_SRVS 16
+#define MAX_SRVS 22
 #define MAX_CBS 8
 
 // Uncomment only for debugging of the descriptor heap management; this is very noisy
@@ -967,11 +967,28 @@ protected:
 
 			if (FD3D12DynamicRHI::ResourceViewsIntersect(PipelineState.Graphics.CurrentDepthStencilTarget, SRV))
 			{
-				check(PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH);
-				if (!PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
+				const D3D12_DEPTH_STENCIL_VIEW_DESC &dsvDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc();
+				const bool bReadOnlyDepth = (dsvDesc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH) != 0;
+				if (bReadOnlyDepth)
 				{
-					PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = true;
-					PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount++;
+					// If the DSV has the read only depth then we can leave the depth stencil bound. This should be safe,
+					// as only the stencil bits should have artifacts and the shader reading the DS shouldn't care about it.
+					if (!PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
+					{
+						PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = true;
+						PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount++;
+					}
+				}
+				else
+				{
+					// Unbind the DSV because it's being used for depth write
+					check(!bReadOnlyDepth);
+					PipelineState.Graphics.CurrentDepthStencilTarget = nullptr;
+					if (PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
+					{
+						PipelineState.Common.CurrentShaderResourceViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = false;
+						PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount--;
+					}
 				}
 			}
 			else

@@ -95,8 +95,8 @@ private:
 		mutable FThreadSafeCounter				NumRefs;
 		FD3D12CommandListManager*               CommandListManager;
 		FD3D12CommandContext*					CurrentOwningContext;
-		TRefCountPtr<FD3D12CommandList>			CommandList;		// Raw D3D command list pointer
-		TRefCountPtr<FD3D12CommandAllocator>	CommandAllocator;	// Command allocator paired with the command list
+		TRefCountPtr<ID3D12GraphicsCommandList>	CommandList;		// Raw D3D command list pointer
+		TRefCountPtr<ID3D12CommandAllocator>	CommandAllocator;	// Command allocator paired with the command list
 		uint64									FenceIndex;			// -1 when active; positive when submitted for execution
 		uint64									CurrentGeneration;
 		bool                                    IsClosed;
@@ -216,7 +216,7 @@ public:
 		return lhs != rhs.CommandListData;
 	}
 
-	FD3D12CommandList* operator->() const
+	ID3D12GraphicsCommandList* operator->() const
 	{
 		check (CommandListData && !CommandListData->IsClosed);
 
@@ -247,7 +247,7 @@ public:
 		CommandListData->Reset();
 	}
 
-	FD3D12CommandList* CommandList() const
+	ID3D12GraphicsCommandList* CommandList() const
 	{
 		check (CommandListData);
 		return CommandListData->CommandList.GetReference();
@@ -2816,7 +2816,7 @@ public:
 class FD3D12DynamicHeapAllocator : public FD3D12ResourceAllocator
 {
 	static const uint32 BucketShift = 6;
-	static const uint32 NumBuckets = 21; // bucket resource sizes range from 64 to 2^24 
+	static const uint32 NumBuckets = 22; // bucket resource sizes range from 64 to 2^28 
 	FThreadsafeQueue<TRefCountPtr<FD3D12ResourceBlockInfo>> AvailableBlocks[NumBuckets];
 	
 	D3D12_HEAP_TYPE HeapType;

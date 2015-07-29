@@ -1166,6 +1166,9 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Pixel buffer memory"),STAT_PixelBufferMemo
 /** Initializes the RHI. */
 extern RHI_API void RHIInit(bool bHasEditorToken);
 
+/** Performs additional RHI initialization before the render thread starts. */
+extern RHI_API void RHIPostInit();
+
 /** Shuts down the RHI. */
 extern RHI_API void RHIExit();
 

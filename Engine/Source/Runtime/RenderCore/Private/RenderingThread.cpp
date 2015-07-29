@@ -654,6 +654,8 @@ void StopRenderingThread()
 			delete GRenderingThread;
 			GRenderingThread = NULL;
 			
+			GRHICommandList.LatchBypass();
+
 			delete GRenderingThreadRunnable;
 			GRenderingThreadRunnable = NULL;
 		}

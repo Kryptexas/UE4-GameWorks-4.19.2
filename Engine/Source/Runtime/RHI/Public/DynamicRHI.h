@@ -23,6 +23,9 @@ public:
 	/** Initializes the RHI; separate from IDynamicRHIModule::CreateRHI so that GDynamicRHI is set when it is called. */
 	virtual void Init() = 0;
 
+	/** Called after the RHI is initialized; before the render thread is started. */
+	virtual void PostInit() {}
+
 	/** Shutdown the RHI; handle shutdown and resource destruction before the RHI's actual destructor is called (so that all resources of the RHI are still available for shutdown). */
 	virtual void Shutdown() = 0;
 

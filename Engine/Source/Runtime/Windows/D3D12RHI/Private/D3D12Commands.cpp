@@ -23,8 +23,8 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 // MSFT: Seb: Fix up these D3D11 names and remove namespace
 namespace D3D12RHI
 {
-	FGlobalBoundShaderState GD3D11ClearMRTBoundShaderState[8];
-	TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
+	FGlobalBoundShaderState GD3D12ClearMRTBoundShaderState[8];
+	TGlobalResource<FVector4VertexDeclaration> GD3D12Vector4VertexDeclaration;
 
 	// MSFT: Seb: Do we need this here?
 	//FGlobalBoundShaderState ResolveBoundShaderState;
@@ -66,7 +66,7 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 	FRHICommandList_RecursiveHazardous RHICmdList(RHIGetDefaultContext());
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
-	GD3D11Vector4VertexDeclaration.InitRHI();
+	GD3D12Vector4VertexDeclaration.InitRHI();
 
 	for (int32 NumBuffers = 1; NumBuffers <= MaxSimultaneousRenderTargets; NumBuffers++)
 	{
@@ -113,7 +113,7 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 			PixelShader = *MRTPixelShader;
 		}
 
-		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[NumBuffers - 1], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D12ClearMRTBoundShaderState[NumBuffers - 1], GD3D12Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 	}
 
 	// MSFT: Seb: Is this needed?
@@ -265,7 +265,7 @@ void FD3D12CommandContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, 
 
 void FD3D12CommandContext::RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
 {
-	if(bEnable)
+	if (bEnable)
 	{
 		D3D12_RECT ScissorRect;
 		ScissorRect.left = MinX;
@@ -296,7 +296,7 @@ void FD3D12CommandContext::RHISetBoundShaderState(FBoundShaderStateRHIParamRef B
 
 	StateCache.SetBoundShaderState(BoundShaderState);
 
-	if(BoundShaderState->GetHullShader() && BoundShaderState->GetDomainShader())
+	if (BoundShaderState->GetHullShader() && BoundShaderState->GetDomainShader())
 	{
 		bUsingTessellation = true;
 	}
@@ -434,9 +434,13 @@ void FD3D12CommandContext::RHISetShaderTexture(FComputeShaderRHIParamRef Compute
 	FD3D12ResourceLocation* ResourceLocation = NewTexture ? NewTexture->ResourceLocation : nullptr;
 
 	if ( ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
+	{
 		SetShaderResourceView<SF_Compute>(ResourceLocation, ShaderResourceView, TextureIndex, FD3D12StateCache::SRV_Dynamic);
+	}
 	else
+	{
 		SetShaderResourceView<SF_Compute>(ResourceLocation, ShaderResourceView, TextureIndex, FD3D12StateCache::SRV_Static);
+	}
 
 	OwningRHI.IncrementSetShaderTextureCycles(FPlatformTime::Cycles() - Start);
 	OwningRHI.IncrementSetShaderTextureCalls();
@@ -448,7 +452,7 @@ void FD3D12CommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeS
 
 	FD3D12UnorderedAccessView* UAV = FD3D12DynamicRHI::ResourceCast(UAVRHI);
 
-	if(UAV)
+	if (UAV)
 	{
 		ConditionalClearShaderResource(UAV->GetResourceLocation());
 	}
@@ -466,7 +470,7 @@ void FD3D12CommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeS
 
 	FD3D12UnorderedAccessView* UAV = FD3D12DynamicRHI::ResourceCast(UAVRHI);
 
-	if(UAV)
+	if (UAV)
 	{
 		ConditionalClearShaderResource(UAV->GetResourceLocation());
 	}
@@ -952,7 +956,7 @@ void FD3D12CommandContext::RHISetRenderTargets(
 
 	// Set the appropriate depth stencil view depending on whether depth writes are enabled or not
 	FD3D12DepthStencilView* DepthStencilView = NULL;
-	if(NewDepthStencilTarget)
+	if (NewDepthStencilTarget)
 	{
 		CurrentDSVAccessType = NewDepthStencilTargetRHI->GetDepthStencilAccess();
 		DepthStencilView = NewDepthStencilTarget->GetDepthStencilView(CurrentDSVAccessType);
@@ -962,7 +966,7 @@ void FD3D12CommandContext::RHISetRenderTargets(
 	}
 
 	// Check if the depth stencil target is different from the old state.
-	if(CurrentDepthStencilTarget != DepthStencilView)
+	if (CurrentDepthStencilTarget != DepthStencilView)
 	{
 		if (DepthStencilView)
 		{
@@ -1006,7 +1010,7 @@ void FD3D12CommandContext::RHISetRenderTargets(
 			// A check to allow you to pinpoint what is using mismatching targets
 			// We filter our d3ddebug spew that checks for this as the d3d runtime's check is wrong.
 			// For filter code, see D3D12Device.cpp look for "OMSETRENDERTARGETS_INVALIDVIEW"
-			if(RenderTargetView && DepthStencilView)
+			if (RenderTargetView && DepthStencilView)
 			{
 				FRTVDesc RTTDesc = GetRenderTargetViewDesc(RenderTargetView);
 
@@ -1015,7 +1019,7 @@ void FD3D12CommandContext::RHISetRenderTargets(
 				D3D12_RESOURCE_DESC DTTDesc = DepthTargetTexture->GetDesc();
 
 				// enforce color target is <= depth and MSAA settings match
-				if(RTTDesc.Width > DTTDesc.Width || RTTDesc.Height > DTTDesc.Height || 
+				if (RTTDesc.Width > DTTDesc.Width || RTTDesc.Height > DTTDesc.Height || 
 					RTTDesc.SampleDesc.Count != DTTDesc.SampleDesc.Count || 
 					RTTDesc.SampleDesc.Quality != DTTDesc.SampleDesc.Quality)
 				{
@@ -1030,13 +1034,13 @@ void FD3D12CommandContext::RHISetRenderTargets(
 		NewRenderTargetViews[RenderTargetIndex] = RenderTargetView;
 
 		// Check if the render target is different from the old state.
-		if(CurrentRenderTargets[RenderTargetIndex] != RenderTargetView)
+		if (CurrentRenderTargets[RenderTargetIndex] != RenderTargetView)
 		{
 			CurrentRenderTargets[RenderTargetIndex] = RenderTargetView;
 			bTargetChanged = true;
 		}
 	}
-	if(NumSimultaneousRenderTargets != NewNumSimultaneousRenderTargets)
+	if (NumSimultaneousRenderTargets != NewNumSimultaneousRenderTargets)
 	{
 		NumSimultaneousRenderTargets = NewNumSimultaneousRenderTargets;
 		bTargetChanged = true;
@@ -1046,7 +1050,7 @@ void FD3D12CommandContext::RHISetRenderTargets(
 	for(uint32 UAVIndex = 0;UAVIndex < MaxSimultaneousUAVs;++UAVIndex)
 	{
 		FD3D12UnorderedAccessView* RHIUAV = NULL;
-		if(UAVIndex < NewNumUAVs && UAVs[UAVIndex] != NULL)
+		if (UAVIndex < NewNumUAVs && UAVs[UAVIndex] != NULL)
 		{
 			RHIUAV = (FD3D12UnorderedAccessView*)UAVs[UAVIndex];
 			FD3D12DynamicRHI::TransitionResource(CommandListHandle, RHIUAV, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -1055,20 +1059,20 @@ void FD3D12CommandContext::RHISetRenderTargets(
 			ConditionalClearShaderResource(RHIUAV->GetResourceLocation());
 		}
 
-		if(CurrentUAVs[UAVIndex] != RHIUAV)
+		if (CurrentUAVs[UAVIndex] != RHIUAV)
 		{
 			CurrentUAVs[UAVIndex] = RHIUAV;
 			bTargetChanged = true;
 		}
 	}
-	if(NumUAVs != NewNumUAVs)
+	if (NumUAVs != NewNumUAVs)
 	{
 		NumUAVs = NewNumUAVs;
 		bTargetChanged = true;
 	}
 
 	// Only make the D3D call to change render targets if something actually changed.
-	if(bTargetChanged)
+	if (bTargetChanged)
 	{
 		CommitRenderTargetsAndUAVs();
 	}
@@ -1129,7 +1133,7 @@ void FD3D12CommandContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
 	FD3D12OcclusionQuery* Query = FD3D12DynamicRHI::ResourceCast(QueryRHI);
 
-	if(Query->Type == RQT_Occlusion)
+	if (Query->Type == RQT_Occlusion)
 	{
 		Query->bResultIsCached = false;
 		Query->HeapIndex = GetParentDevice()->GetQueryHeap()->BeginQuery(*this, D3D12_QUERY_TYPE_OCCLUSION);
@@ -1170,7 +1174,7 @@ void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 
 static D3D_PRIMITIVE_TOPOLOGY GetD3D11PrimitiveType(uint32 PrimitiveType, bool bUsingTessellation)
 {
-	if(bUsingTessellation)
+	if (bUsingTessellation)
 	{
 		switch(PrimitiveType)
 		{
@@ -1268,7 +1272,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 	// Note that this is *potentially* unsafe because bDiscardSharedConstants is cleared at the
 	// end of the function, however we're OK for now because bDiscardSharedConstants
 	// is always reset whenever bUsingTessellation changes in SetBoundShaderState()
-	if(bUsingTessellation)
+	if (bUsingTessellation)
 	{
 		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Hull])
 		{
@@ -1780,36 +1784,36 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 		/** The global D3D device's immediate context */
 		FDeviceStateHelper() {}
 
-		void CaptureDeviceState(FD3D12StateCache& StateCache)
+		void CaptureDeviceState(FD3D12StateCache& StateCacheRef)
 		{
-			StateCache.GetBoundShaderState(&OldShaderState);
-			StateCache.GetShaderResourceViews<SF_Vertex>(0, NumVertResources, &VertResources[0]);
-			StateCache.GetDepthStencilState(&pOldDepthStencilState, &StencilRef);
-			StateCache.GetBlendState(&pOldBlendState, BlendFactor, &SampleMask);
-			StateCache.GetRasterizerState(&pOldRasterizerState);
+			StateCacheRef.GetBoundShaderState(&OldShaderState);
+			StateCacheRef.GetShaderResourceViews<SF_Vertex>(0, NumVertResources, &VertResources[0]);
+			StateCacheRef.GetDepthStencilState(&pOldDepthStencilState, &StencilRef);
+			StateCacheRef.GetBlendState(&pOldBlendState, BlendFactor, &SampleMask);
+			StateCacheRef.GetRasterizerState(&pOldRasterizerState);
 		}
 
-		void ClearCurrentVertexResources(FD3D12StateCache& StateCache)
+		void ClearCurrentVertexResources(FD3D12StateCache& StateCacheRef)
 		{
 			static FD3D12ShaderResourceView* NullResources[ResourceCount] = {};
 			for (uint32 ResourceLoop = 0 ; ResourceLoop < NumVertResources; ResourceLoop++)
 			{
-				StateCache.SetShaderResourceView<SF_Vertex>(NullResources[0],0);
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(NullResources[0], 0);
 			}
 		}
 
-		void RestoreDeviceState(FD3D12StateCache& StateCache) 
+		void RestoreDeviceState(FD3D12StateCache& StateCacheRef)
 		{
 
 			// Restore the old shaders
-			StateCache.SetBoundShaderState(OldShaderState);
+			StateCacheRef.SetBoundShaderState(OldShaderState);
 			for (uint32 ResourceLoop = 0 ; ResourceLoop < NumVertResources; ResourceLoop++)
 			{
-				StateCache.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop],ResourceLoop);
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop], ResourceLoop);
 			}
-			StateCache.SetDepthStencilState(pOldDepthStencilState, StencilRef);
-			StateCache.SetBlendState(pOldBlendState, BlendFactor, SampleMask);
-			StateCache.SetRasterizerState(pOldRasterizerState);
+			StateCacheRef.SetDepthStencilState(pOldDepthStencilState, StencilRef);
+			StateCacheRef.SetBlendState(pOldBlendState, BlendFactor, SampleMask);
+			StateCacheRef.SetRasterizerState(pOldRasterizerState);
 
 			ReleaseResources();
 		}
@@ -1824,19 +1828,19 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 		ClearWithExcludeRects = ExcludeRectCVar->GetValueOnRenderThread();
 #endif
 
-		if(ClearWithExcludeRects >= 2)
+		if (ClearWithExcludeRects >= 2)
 		{
 			// by default use the exclude rect
 			ClearWithExcludeRects = 1;
 
-			if(IsRHIDeviceIntel())
+			if (IsRHIDeviceIntel())
 			{
 				// Disable exclude rect (Intel has fast clear so better we disable)
 				ClearWithExcludeRects = 0;
 			}
 		}
 
-		if(!ClearWithExcludeRects)
+		if (!ClearWithExcludeRects)
 		{
 			// Disable exclude rect
 			ExcludeRect = FIntRect();
@@ -1875,12 +1879,12 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	}
 
 	/*	// possible optimization
-	if(ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0 && HardwareHasLinearClearPerformance) 
+	if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0 && HardwareHasLinearClearPerformance) 
 	{
 	UseDrawClear = true;
 	}
 	*/
-	if(ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Viewport.Width && ExcludeRect.Min.Y == 0 && ExcludeRect.Height() == Viewport.Height)
+	if (ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Viewport.Width && ExcludeRect.Min.Y == 0 && ExcludeRect.Height() == Viewport.Height)
 	{
 		// no need to do anything
 		return;
@@ -1913,6 +1917,19 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 			D3D12_RESOURCE_DESC const& Desc = BaseTexture->GetDesc();
 			Width = (uint32)Desc.Width;
 			Height = Desc.Height;
+
+			// Adjust dimensions for the mip level we're clearing.
+			D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc = DepthStencilView->GetDesc();
+			if (DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1D ||
+				DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1DARRAY ||
+				DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D ||
+				DSVDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
+			{
+				// All the non-multisampled texture types have their mip-slice in the same position.
+				uint32 MipIndex = DSVDesc.Texture2D.MipSlice;
+				Width >>= MipIndex;
+				Height >>= MipIndex;
+			}
 		}
 
 		if ((Viewport.Width < Width || Viewport.Height < Height) 
@@ -2045,12 +2062,12 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 
 		{
 			FRHICommandList_RecursiveHazardous RHICmdList(this);
-			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D12ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D12Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
 
 			{
 				// Draw a fullscreen quad
-				if(ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+				if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
 				{
 					// with a hole in it (optimization in case the hardware has non constant clear performance)
 					FVector4 OuterVertices[4];

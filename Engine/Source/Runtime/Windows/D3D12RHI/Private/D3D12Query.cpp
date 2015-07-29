@@ -15,7 +15,7 @@ namespace RHIConsoleVariables
 {
     int32 bStablePowerState = 0;
     static FAutoConsoleVariableRef CVarStablePowerState(
-        TEXT("D3D12RHI.StablePowerState"),
+        TEXT("D3D12.StablePowerState"),
         bStablePowerState,
         TEXT("If true, enable stable power state. This increases GPU timing measurement accuracy but may decrease overall GPU clock rate."),
         ECVF_Default
@@ -362,7 +362,7 @@ void FD3D12QueryHeap::EndQueryBatchAndResolveQueryData(FD3D12CommandContext& Cmd
 
     // Increment the active element count
     ActiveAllocatedElementCount += CurrentQueryBatch.ElementCount;
-    check(ActiveAllocatedElementCount <= GetQueryHeapCount());
+	checkf(ActiveAllocatedElementCount <= GetQueryHeapCount(), TEXT("The query heap is too small. Either increase the heap count (larger resource) or decrease MAX_ACTIVE_BATCHES."));
 
     // Track the current active batches (application is using the data)
     LastBatch = GetNextBatchElement(LastBatch);

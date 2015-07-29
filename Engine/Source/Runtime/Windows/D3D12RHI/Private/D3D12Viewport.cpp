@@ -29,7 +29,7 @@ namespace D3D12RHI
 	{
 		int32 bSyncWithDWM = 0;
 		static FAutoConsoleVariableRef CVarSyncWithDWM(
-		TEXT("D3D12RHI.SyncWithDWM"),
+		TEXT("D3D12.SyncWithDWM"),
 			bSyncWithDWM,
 			TEXT("If true, synchronize with the desktop window manager for vblank."),
 			ECVF_RenderThreadSafe
@@ -37,7 +37,7 @@ namespace D3D12RHI
 
 		float RefreshPercentageBeforePresent = 1.0f;
 		static FAutoConsoleVariableRef CVarRefreshPercentageBeforePresent(
-		TEXT("D3D12RHI.RefreshPercentageBeforePresent"),
+		TEXT("D3D12.RefreshPercentageBeforePresent"),
 			RefreshPercentageBeforePresent,
 			TEXT("The percentage of the refresh period to wait before presenting."),
 			ECVF_RenderThreadSafe
@@ -45,7 +45,7 @@ namespace D3D12RHI
 
 		int32 bForceThirtyHz = 1;
 		static FAutoConsoleVariableRef CVarForceThirtyHz(
-		TEXT("D3D12RHI.ForceThirtyHz"),
+		TEXT("D3D12.ForceThirtyHz"),
 			bForceThirtyHz,
 			TEXT("If true, the display will never update more often than 30Hz."),
 			ECVF_RenderThreadSafe
@@ -53,7 +53,7 @@ namespace D3D12RHI
 
 		int32 SyncInterval = 1;
 		static FAutoConsoleVariableRef CVarSyncInterval(
-		TEXT("D3D12RHI.SyncInterval"),
+		TEXT("D3D12.SyncInterval"),
 			SyncInterval,
 			TEXT("When synchronizing with D3D, specifies the interval at which to refresh."),
 			ECVF_RenderThreadSafe
@@ -61,7 +61,7 @@ namespace D3D12RHI
 
 		float SyncRefreshThreshold = 1.05f;
 		static FAutoConsoleVariableRef CVarSyncRefreshThreshold(
-		TEXT("D3D12RHI.SyncRefreshThreshold"),
+		TEXT("D3D12.SyncRefreshThreshold"),
 			SyncRefreshThreshold,
 			TEXT("Threshold for time above which vsync will be disabled as a percentage of the refresh rate."),
 			ECVF_RenderThreadSafe
@@ -69,7 +69,7 @@ namespace D3D12RHI
 
 		int32 MaxSyncCounter = 8;
 		static FAutoConsoleVariableRef CVarMaxSyncCounter(
-			TEXT("D3D12RHI.MaxSyncCounter"),
+			TEXT("D3D12.MaxSyncCounter"),
 			MaxSyncCounter,
 			TEXT("Maximum sync counter to smooth out vsync transitions."),
 			ECVF_RenderThreadSafe
@@ -77,7 +77,7 @@ namespace D3D12RHI
 
 		int32 SyncThreshold = 7;
 		static FAutoConsoleVariableRef CVarSyncThreshold(
-			TEXT("D3D12RHI.SyncThreshold"),
+			TEXT("D3D12.SyncThreshold"),
 			SyncThreshold,
 			TEXT("Number of consecutive 'fast' frames before vsync is enabled."),
 			ECVF_RenderThreadSafe
@@ -85,12 +85,21 @@ namespace D3D12RHI
 
 		int32 MaximumFrameLatency = 3;
 		static FAutoConsoleVariableRef CVarMaximumFrameLatency(
-			TEXT("D3D12RHI.MaximumFrameLatency"),
+			TEXT("D3D12.MaximumFrameLatency"),
 			MaximumFrameLatency,
 			TEXT("Number of frames that can be queued for render."),
 			ECVF_RenderThreadSafe
 			);
 
+#if UE_BUILD_DEBUG
+		int32 DumpStatsEveryNFrames = 0;
+		static FAutoConsoleVariableRef CVarDumpStatsNFrames(
+			TEXT("D3D12.DumpStatsEveryNFrames"),
+			DumpStatsEveryNFrames,
+			TEXT("Dumps D3D12 stats every N frames on Present; 0 means no information (default)."),
+			ECVF_RenderThreadSafe
+			);
+#endif
 	};
 
 	extern void D3D11TextureAllocated2D(FD3D12Texture2D& Texture);
@@ -307,15 +316,17 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 		GetParentDevice()->GetCommandListManager().SignalFrameComplete();
 
 #if UE_BUILD_DEBUG
-		UE_LOG(LogD3D12RHI, Log, TEXT("*** PRESENT ***"), this);
-		GetParentDevice()->GetOwningRHI()->DrawCount = 0;
-		GetParentDevice()->GetOwningRHI()->PresentCount++;
-
-		// Dump stats every 240 frames
-		if (GetParentDevice()->GetOwningRHI()->PresentCount % 240 == 0)
+		if (RHIConsoleVariables::DumpStatsEveryNFrames > 0)
 		{
-			FOutputDeviceRedirector* pOutputDevice = FOutputDeviceRedirector::Get();
-			GetParentDevice()->GetDefaultUploadHeapAllocator().DumpAllocatorStats(*pOutputDevice);
+			GetParentDevice()->GetOwningRHI()->DrawCount = 0;
+			GetParentDevice()->GetOwningRHI()->PresentCount++;
+
+			if (GetParentDevice()->GetOwningRHI()->PresentCount % RHIConsoleVariables::DumpStatsEveryNFrames == 0)
+			{
+				UE_LOG(LogD3D12RHI, Log, TEXT("*** PRESENT ***"), this);
+				FOutputDeviceRedirector* pOutputDevice = FOutputDeviceRedirector::Get();
+				GetParentDevice()->GetDefaultUploadHeapAllocator().DumpAllocatorStats(*pOutputDevice);
+			}
 		}
 #endif
 	}
