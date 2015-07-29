@@ -72,10 +72,10 @@ public:
 	* @param InSequencer The sequencer instance to be used by this tool
 	* @param WatchedPropertyTypeNameS An array of property type names that this property track editor should watch for changes.
 	*/
-	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, TArray<FName> WatchedPropertyTypeNames )
+	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, TArray<FName> InWatchedPropertyTypeNames )
 		: FMovieSceneTrackEditor( InSequencer )
 	{
-		for ( FName WatchedPropertyTypeName : WatchedPropertyTypeNames )
+		for ( FName WatchedPropertyTypeName : InWatchedPropertyTypeNames )
 		{
 			AddWatchedPropertyType( WatchedPropertyTypeName );
 		}
