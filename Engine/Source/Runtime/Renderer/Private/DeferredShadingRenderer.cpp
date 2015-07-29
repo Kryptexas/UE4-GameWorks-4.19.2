@@ -939,7 +939,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bShouldRenderVelocities = ShouldRenderVelocities();
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
 
-	if (bShouldRenderVelocities)
 	{
 		static bool bOnce = false;
 		if (!bOnce)
