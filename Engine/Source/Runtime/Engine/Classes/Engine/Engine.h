@@ -1764,6 +1764,11 @@ public:
 	void SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float GameThreadTime, float GPUFrameTime);
 
 	/**
+	 * Returns the display color for a given frame time (based on t.TargetFrameTimeThreshold and t.UnacceptableFrameTimeThreshold)
+	 */
+	FColor GetFrameTimeDisplayColor(float FrameTimeMS) const;
+
+	/**
 	 * @return true to throttle CPU usage based on current state (usually editor minimized or not in foreground)
 	 */
 	virtual bool ShouldThrottleCPUUsage() const;
