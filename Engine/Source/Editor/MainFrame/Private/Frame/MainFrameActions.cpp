@@ -340,7 +340,7 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
 		*OptionalParams
 	);
-
+	
 	CreateUatTask(CommandLine, PlatformInfo->DisplayName, LOCTEXT("CookingContentTaskName", "Cooking content"), LOCTEXT("CookingTaskName", "Cooking"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
 }
 
@@ -665,6 +665,16 @@ void FMainFrameActionCallbacks::OpenIDE()
 
 void FMainFrameActionCallbacks::ZipUpProject()
 {
+#if PLATFORM_WINDOWS
+	FText PlatformName = LOCTEXT("Platform Name", "Windows");
+#elif PLATFORM_MAC
+	FText PlatformName = LOCTEXT("Platform Name", "Mac");
+#elif PLATFORM_LINUX
+	FText PlatformName = LOCTEXT("Platform Name", "Linux");
+#else
+	FText PlatformName = LOCTEXT("Platform Name", "Other OS");
+#endif
+
 	bool bOpened = false;
 	TArray<FString> SaveFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
@@ -684,12 +694,14 @@ void FMainFrameActionCallbacks::ZipUpProject()
 	{
 		for (FString FileName : SaveFilenames)
 		{
-			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GameDir()) :
-				FPaths::RootDir() / FApp::GetGameName();
-			FString CommandLine = FString::Printf(TEXT("ZipProjectUp -project=\"%s\" -install=\"%s\""), *ProjectPath, *FileName);
+			// Ensure path is full rather than relative (for macs)
+			FString FinalFileName = FPaths::ConvertRelativePathToFull(FileName);
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GameDir()) : FPaths::RootDir() / FApp::GetGameName();
 
-			CreateUatTask(CommandLine, LOCTEXT("Windows", "Windows"), LOCTEXT("ZipTaskName", "Zipping Up Project"), 
-				LOCTEXT("ZipTaskShortName", "Zip"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
+			FString CommandLine = FString::Printf(TEXT("ZipProjectUp -project=\"%s\" -install=\"%s\""), *ProjectPath, *FinalFileName);
+
+			CreateUatTask(CommandLine, PlatformName, LOCTEXT("ZipTaskName", "Zipping Up Project"),
+				LOCTEXT("ZipTaskShortName", "Zip Project Task"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
 		}
 	}
 }
