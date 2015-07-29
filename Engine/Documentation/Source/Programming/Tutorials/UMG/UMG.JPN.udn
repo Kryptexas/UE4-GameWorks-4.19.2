@@ -1,8 +1,9 @@
-﻿NTSourceChangelist:2539112
+﻿INTSourceChangelist:2620171
 Availability:Public
 Title:UMG を使用したユーザー インターフェイス
 Crumbs:%ROOT%, GettingStarted
 Description:UMG を使用したシンプルなメニューシステムを作成する
+バージョン:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,7 +58,7 @@ Description:UMG を使用したシンプルなメニューシステムを作成�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
