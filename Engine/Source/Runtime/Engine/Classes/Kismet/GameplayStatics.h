@@ -111,6 +111,13 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject", AdvancedDisplay="2", UnsafeDuringActorConstruction="true"))
 	static class APlayerController* CreatePlayer(UObject* WorldContextObject, int32 ControllerId = -1, bool bSpawnPawn = true);
 
+	/** Removes a player from this game.  
+	 *  @param Player			The player controller of the player to be removed
+	 *  @param bDestroyPawn		Whether the controlled pawn should be deleted as well
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(UnsafeDuringActorConstruction="true"))
+	static void RemovePlayer(APlayerController* Player, bool bDestroyPawn);
+
 	// --- Level Streaming functions ------------------------
 	
 	/** Stream the level with the LevelName ; Calling again before it finishes has no effect */
