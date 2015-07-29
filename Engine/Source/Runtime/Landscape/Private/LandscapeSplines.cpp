@@ -1453,6 +1453,8 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		if (MeshComponent->StaticMesh != Mesh)
 		{
 			MeshComponent->Modify();
+			MeshComponent->UnregisterComponent();
+			bComponentNeedsRegistering = true;
 			MeshComponent->SetStaticMesh(Mesh);
 
 			AutoSetConnections(false);
