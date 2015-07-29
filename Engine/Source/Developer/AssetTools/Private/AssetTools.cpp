@@ -795,6 +795,12 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 				// If the existing object is one of the imports we've just created we can't replace or overwrite it
 				if (ReturnObjects.Contains(ExistingObject))
 				{
+					if( ImportAssetType == nullptr )
+					{
+						// The factory probably supports multiple types and cant be determined yet without asking the user or actually loading it
+						// We just need to generate an unused name so object should do fine.
+						ImportAssetType = UObject::StaticClass();
+					}
 					// generate a unique name for this import
 					Name = MakeUniqueObjectName(Pkg, ImportAssetType, *Name).ToString();
 				}
