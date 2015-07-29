@@ -14,7 +14,7 @@ enum class EViewRangeInterpolation
 };
 
 DECLARE_DELEGATE_TwoParams( FOnScrubPositionChanged, float, bool )
-DECLARE_DELEGATE_TwoParams( FOnViewRangeChanged, TRange<float>, EViewRangeInterpolation )
+DECLARE_DELEGATE_ThreeParams( FOnViewRangeChanged, TRange<float>, EViewRangeInterpolation, bool )
 DECLARE_DELEGATE_OneParam( FOnClampRangeChanged, TRange<float> )
 
 /** Structure used to wrap up a range, and an optional animation target */

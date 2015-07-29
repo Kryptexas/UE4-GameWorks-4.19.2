@@ -294,7 +294,7 @@ protected:
 	 *
 	 * @param	NewViewRange The new view range
 	 */
-	void OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated );
+	void OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated, bool bExpandClampRange = false );
 
 	/**
 	 * Called when the clamp range is changed by the user

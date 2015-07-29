@@ -443,7 +443,7 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> Widg
 					NewValue = LastRange[1];
 				}
 
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(DownValue, NewValue), EViewRangeInterpolation::Immediate);
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(DownValue, NewValue), EViewRangeInterpolation::Immediate, false);
 						
 				if( !TimeSliderArgs.ViewRange.IsBound() )
 				{	
@@ -708,7 +708,7 @@ void FSequencerTimeSliderController::SetViewRange( float NewRangeMin, float NewR
 {
 	const TRange<float> NewRange(NewRangeMin, NewRangeMax);
 
-	TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound( NewRange, Interpolation );
+	TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound( NewRange, Interpolation, false );
 
 	if( !TimeSliderArgs.ViewRange.IsBound() )
 	{	

@@ -1026,7 +1026,7 @@ TRange<float> FSequencer::GetFilteringShotsTimeBounds() const
 	return TRange<float>::Empty();
 }
 
-void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation )
+void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation, bool bExpandClampRange )
 {
 	const float AnimationLengthSeconds = Interpolation == EViewRangeInterpolation::Immediate ? 0.f : 0.1f;
 
@@ -1034,7 +1034,7 @@ void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInter
 	{
 		UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 		// If locked, clamp the new range to clamp range
-		if (Settings->GetLockInOutToStartEndRange())
+		if (Settings->GetLockInOutToStartEndRange() && !bExpandClampRange)
 		{
 			if ( NewViewRange.GetLowerBoundValue() < FocusedMovieScene->StartTime)
 			{
@@ -1530,19 +1530,21 @@ void FSequencer::ZoomToSelectedSections()
 	}
 
 	if (!BoundsHull.IsEmpty() && !BoundsHull.IsDegenerate())
-	{
+	{	
+		bool bExpandClampRange = true;
+
 		// Zoom back to last view range if already expanded
 		if (!ViewRangeBeforeZoom.IsEmpty() &&
 			FMath::IsNearlyEqual(BoundsHull.GetLowerBoundValue(), GetViewRange().GetLowerBoundValue(), KINDA_SMALL_NUMBER) &&
 			FMath::IsNearlyEqual(BoundsHull.GetUpperBoundValue(), GetViewRange().GetUpperBoundValue(), KINDA_SMALL_NUMBER))
 		{
-			OnViewRangeChanged(ViewRangeBeforeZoom);
+			OnViewRangeChanged(ViewRangeBeforeZoom, EViewRangeInterpolation::Animated, bExpandClampRange);
 		}
 		else
 		{
 			ViewRangeBeforeZoom = GetViewRange();
 
-			OnViewRangeChanged(BoundsHull);
+			OnViewRangeChanged(BoundsHull, EViewRangeInterpolation::Animated, bExpandClampRange);
 		}
 	}
 }
@@ -1600,7 +1602,8 @@ void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieS
 	if( bZoomToShotBounds )
 	{
 		// zoom in
-		OnViewRangeChanged(GetTimeBounds());
+		bool bExpandClampRange = true;
+		OnViewRangeChanged(GetTimeBounds(), EViewRangeInterpolation::Animated, bExpandClampRange);
 	}
 
 	SequencerWidget->UpdateBreadcrumbs(ActualShotSections);
