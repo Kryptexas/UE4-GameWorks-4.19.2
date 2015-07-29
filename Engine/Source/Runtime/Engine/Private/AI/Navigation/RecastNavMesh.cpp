@@ -1903,9 +1903,13 @@ void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, TSha
 
 		if (StartNode != INVALID_NAVNODEREF)
 		{
+			float RecastHitNormal[3];
+
 			const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
-				, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
+				, QueryFilter, &RaycastResult.HitTime, RecastHitNormal
 				, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+
+			RaycastResult.HitNormal = Recast2UnrVector(RecastHitNormal);
 
 			if (dtStatusSucceed(RaycastStatus) && RaycastResult.HasHit())
 			{
