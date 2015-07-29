@@ -54,8 +54,6 @@ private:
 const uint32 AggregateMaxSize	   = 128;
 const uint32 AggregateBodyShapesThreshold	   = 999999999;
 
-/** Global CCD Switch*/
-const bool bGlobalCCD = true;
 
 /////// UTILS
 

@@ -1372,7 +1372,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	SCENE_LOCK_WRITE(PScene);
 
 	// enable CCD at scene level
-	if (bGlobalCCD)
+	if (UPhysicsSettings::Get()->bDisableCCD == false)
 	{
 		PScene->setFlag(PxSceneFlag::eENABLE_CCD, true);
 	}

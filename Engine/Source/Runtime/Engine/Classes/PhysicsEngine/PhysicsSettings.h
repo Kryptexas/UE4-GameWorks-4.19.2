@@ -172,6 +172,11 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bDefaultHasComplexCollision;
 
+	/**
+	*  If true CCD will be ignored. This is an optimization when CCD is never used which removes the need for physx to check it internally. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	bool bDisableCCD;
+
 
 	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
