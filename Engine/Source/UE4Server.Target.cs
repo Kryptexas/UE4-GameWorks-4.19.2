@@ -51,6 +51,7 @@ public class UE4ServerTarget : TargetRules
 		ModuleNames.Add("GameplayAbilities");
 		ModuleNames.Add("XmlParser");
 		ModuleNames.Add("GameplayDebugger");
+		ModuleNames.Add("RuntimeAssetCache");
 
 		ModuleNames.Add("OnlineSubsystemNull");
 		ModuleNames.Add("OnlineSubsystemAmazon");
