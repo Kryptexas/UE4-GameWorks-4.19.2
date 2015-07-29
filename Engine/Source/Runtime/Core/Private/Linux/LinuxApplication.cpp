@@ -312,7 +312,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			{
 				int xOffset, yOffset;
 				SDL_GetWindowPosition( NativeWindow, &xOffset, &yOffset );
-				LinuxCursor->SetCachedPosition( motionEvent.x + xOffset, motionEvent.y + yOffset );
+
+				int32 BorderSizeX, BorderSizeY;
+				CurrentEventWindow->GetNativeBordersSize(BorderSizeX, BorderSizeY);
+
+				LinuxCursor->SetCachedPosition(motionEvent.x + xOffset + BorderSizeX, motionEvent.y + yOffset + BorderSizeY);
 
 				FVector2D CurrentPosition = LinuxCursor->GetPosition();
 				if( LinuxCursor->UpdateCursorClipping( CurrentPosition ) )
