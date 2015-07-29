@@ -8,6 +8,7 @@
 #include "OnlineAsyncTaskManagerGooglePlay.h"
 #include "OnlineAsyncTaskGooglePlayLogin.h"
 #include "OnlineAsyncTaskGooglePlayLogout.h"
+#include "OnlineAsyncTaskGooglePlayShowLoginUI.h"
 
 #include <android_native_app_glue.h>
 
