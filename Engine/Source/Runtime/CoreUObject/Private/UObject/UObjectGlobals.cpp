@@ -2178,13 +2178,13 @@ FObjectInitializer::~FObjectInitializer()
 	if (bIsCDO && (ObjectArchetype != nullptr) && !FBlueprintSupport::IsDeferredCDOInitializationDisabled())
 	{
 		UClass* ArchetypeClass = ObjectArchetype->GetClass();
+		const bool bSuperCDONeedsLoad = ObjectArchetype->HasAnyFlags(RF_NeedLoad) ||
+			(ArchetypeClass->GetLinker() && ArchetypeClass->GetLinker()->IsBlueprintFinalizationPending()) ||
+			FDeferredObjInitializerTracker::IsCdoDeferred(ArchetypeClass);
+
 		// if this is a blueprint CDO that derives from another blueprint, and 
 		// that parent (archetype) CDO isn't fully serialized
-		if ( !Class->HasAnyFlags(RF_Native) && !ArchetypeClass->HasAnyFlags(RF_Native) && 
-			(	ObjectArchetype->HasAnyFlags(RF_NeedLoad) ||
-				(ArchetypeClass->GetLinker() && ArchetypeClass->GetLinker()->IsBlueprintFinalizationPending()) ||
-				FDeferredObjInitializerTracker::IsCdoDeferred(ArchetypeClass))
-			)
+		if (!Class->HasAnyFlags(RF_Native) && !ArchetypeClass->HasAnyFlags(RF_Native) && bSuperCDONeedsLoad)
 		{
 			FLinkerLoad* ClassLinker = Class->GetLinker();
 			if ((ClassLinker != nullptr) && (ClassLinker->LoadFlags & LOAD_DeferDependencyLoads) != 0x00)
