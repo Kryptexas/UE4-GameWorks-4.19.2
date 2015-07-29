@@ -260,7 +260,9 @@ void FICUInternationalization::GetCultureNames(TArray<FString>& CultureNames) co
 	CultureNames.Reset(LocaleCount);
 	for (int32 i = 0; i < LocaleCount; ++i)
 	{
-		CultureNames.Add(AvailableLocales[i].getName());
+		FString CultureName = AvailableLocales[i].getName();
+		CultureName.ReplaceInline(TEXT("_"), TEXT("-"));
+		CultureNames.Add(CultureName);
 	}
 }
 
