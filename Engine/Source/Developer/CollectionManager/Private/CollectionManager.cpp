@@ -236,6 +236,14 @@ FCollectionManager::FCollectionManager()
 	{
 		const FString& CollectionFolder = CollectionFolders[CacheIdx];
 
+		if (CollectionFolder.IsEmpty())
+		{
+			continue;
+		}
+
+		// Make sure the folder we want to watch exists on disk
+		IFileManager::Get().MakeDirectory(*CollectionFolder, true);
+
 		DirectoryWatcher::FFileCacheConfig FileCacheConfig(FPaths::ConvertRelativePathToFull(CollectionFolder), FString());
 		FileCacheConfig.DetectMoves(false);
 		FileCacheConfig.RequireFileHashes(false);
@@ -1578,7 +1586,13 @@ bool FCollectionManager::TickFileCache(float InDeltaTime)
 			const auto FileCacheChanges = FileCache->GetOutstandingChanges();
 			for (const auto& FileCacheChange : FileCacheChanges)
 			{
-				const FName CollectionName = *FPaths::GetBaseFilename(FileCacheChange.Filename.Get());
+				const FString CollectionFilename = FileCacheChange.Filename.Get();
+				if (FPaths::GetExtension(CollectionFilename) != CollectionExtension)
+				{
+					continue;
+				}
+
+				const FName CollectionName = *FPaths::GetBaseFilename(CollectionFilename);
 
 				ECollectionFileAction CollectionFileAction = ECollectionFileAction::None;
 				switch (FileCacheChange.Action)
