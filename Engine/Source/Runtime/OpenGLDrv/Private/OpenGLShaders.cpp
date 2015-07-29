@@ -714,8 +714,11 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 
 		GLint CompileStatus = GL_TRUE;
 #if PLATFORM_ANDROID
-		// On Android the same shader is compiled with different hacks to find the right one(s) to apply so don't cache unless successful
-		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
+		// On Android the same shader is compiled with different hacks to find the right one(s) to apply so don't cache unless successful if currently testing them
+		if (FOpenGL::IsCheckingShaderCompilerHacks())
+		{
+			glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
+		}
 #endif
 #if PLATFORM_HTML5
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
