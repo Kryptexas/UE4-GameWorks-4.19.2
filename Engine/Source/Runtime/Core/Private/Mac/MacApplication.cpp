@@ -549,6 +549,10 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 				bModifiersValid = true;
 				break;
 				
+			case NSFlagsChanged:
+				bModifiersValid = true;
+				break;
+				
 			case NSMouseEntered:
 			case NSMouseExited:
 				bModifiersValid = true;
