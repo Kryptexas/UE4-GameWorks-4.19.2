@@ -1949,6 +1949,8 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	const float EndRollDegrees = EndRotation.Roll * (Connections[1].TangentLen > 0 ? -1 : 1);
 	const float StartRoll = FMath::DegreesToRadians(StartRollDegrees);
 	const float EndRoll = FMath::DegreesToRadians(EndRollDegrees);
+	const float StartMeshOffset = Connections[0].ControlPoint->SegmentMeshOffset;
+	const float EndMeshOffset = Connections[1].ControlPoint->SegmentMeshOffset;
 
 	int32 NumPoints = FMath::CeilToInt(SplineLength / OuterSplines->SplineResolution);
 	NumPoints = FMath::Clamp(NumPoints, 1, 1000);
@@ -1984,7 +1986,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		SplineEditorMeshEntry.Mesh = OuterSplines->SplineEditorMesh;
 		SplineEditorMeshEntry.MaterialOverrides = {};
 		SplineEditorMeshEntry.bCenterH = true;
-		SplineEditorMeshEntry.Offset = {0.0f, 0.5f};
+		SplineEditorMeshEntry.CenterAdjust = {0.0f, 0.5f};
 		SplineEditorMeshEntry.bScaleToWidth = true;
 		SplineEditorMeshEntry.Scale = {3, 1, 1};
 		SplineEditorMeshEntry.ForwardAxis = ESplineMeshAxis::X;
@@ -2184,6 +2186,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			                                (MeshEntry->ForwardAxis == ESplineMeshAxis::Y && MeshEntry->UpAxis == ESplineMeshAxis::Z) ||
 			                                (MeshEntry->ForwardAxis == ESplineMeshAxis::Z && MeshEntry->UpAxis == ESplineMeshAxis::X);
 			const float Roll = FMath::Lerp(StartRoll, EndRoll, CosInterp) + (bDoOrientationRoll ? -HALF_PI : 0);
+			const float MeshOffset = FMath::Lerp(StartMeshOffset, EndMeshOffset, CosInterp);
 
 			FVector Scale = MeshEntry->Scale;
 			if (MeshEntry->bScaleToWidth)
@@ -2191,7 +2194,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				Scale *= Width / USplineMeshComponent::GetAxisValue(MeshBounds.BoxExtent, SideAxis);
 			}
 
-			FVector2D Offset = MeshEntry->Offset;
+			FVector2D Offset = MeshEntry->CenterAdjust;
 			if (MeshEntry->bCenterH)
 			{
 				if (bDoOrientationRoll)
@@ -2221,6 +2224,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				break;
 			}
 			Offset *= Scale2D;
+			Offset.Y += MeshOffset;
 			Offset = Offset.GetRotated(-Roll);
 
 			MeshComponent->SplineParams.StartPos = SplineInfo.Eval(RescaledT, FVector::ZeroVector);
@@ -2232,6 +2236,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			const float CosInterpEnd = 0.5f - 0.5f * FMath::Cos(TEnd * PI);
 			const float WidthEnd = FMath::Lerp(StartWidth, EndWidth, CosInterpEnd);
 			const float RollEnd = FMath::Lerp(StartRoll, EndRoll, CosInterpEnd) + (bDoOrientationRoll ? -HALF_PI : 0);
+			const float MeshOffsetEnd = FMath::Lerp(StartMeshOffset, EndMeshOffset, CosInterpEnd);
 
 			FVector ScaleEnd = MeshEntry->Scale;
 			if (MeshEntry->bScaleToWidth)
@@ -2239,7 +2244,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				ScaleEnd *= WidthEnd / USplineMeshComponent::GetAxisValue(MeshBounds.BoxExtent, SideAxis);
 			}
 
-			FVector2D OffsetEnd = MeshEntry->Offset;
+			FVector2D OffsetEnd = MeshEntry->CenterAdjust;
 			if (MeshEntry->bCenterH)
 			{
 				if (bDoOrientationRoll)
@@ -2269,6 +2274,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				break;
 			}
 			OffsetEnd *= Scale2DEnd;
+			OffsetEnd.Y += MeshOffsetEnd;
 			OffsetEnd = OffsetEnd.GetRotated(-RollEnd);
 
 			MeshComponent->SplineParams.EndPos = SplineInfo.Eval(TEnd, FVector::ZeroVector);
