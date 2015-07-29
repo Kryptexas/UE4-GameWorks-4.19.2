@@ -1198,6 +1198,14 @@ public class GameActivity extends NativeActivity
 	static
 	{
 		System.loadLibrary("gnustl_shared");
+		try
+		{
+			System.loadLibrary("vrapi");
+		}
+		catch (java.lang.UnsatisfiedLinkError e)
+		{
+			Log.debug("GearVR library not loaded. Ignore this if GearVR plugin intentionally disabled.");
+		}
 		System.loadLibrary("UE4");
 	}
 }
