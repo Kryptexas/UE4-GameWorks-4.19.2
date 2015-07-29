@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineVersion": "1616732",
+	"PackageFileUE4Version": "231",
+	"PackageFileLicenseeUE4Version": "0",
+	"Modules": [
+		{
+			"Name": "TP_ThirdPerson",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

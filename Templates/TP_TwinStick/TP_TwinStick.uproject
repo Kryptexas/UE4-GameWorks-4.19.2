@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineVersion": "1608990",
+	"PackageFileUE4Version": "227",
+	"PackageFileLicenseeUE4Version": "0",
+	"Modules": [
+		{
+			"Name": "TP_TwinStick",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

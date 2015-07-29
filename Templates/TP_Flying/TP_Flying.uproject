@@ -1,0 +1,13 @@
+{
+	"FileVersion": "3",
+	"EngineVersion": "2041423",
+	"PackageFileUE4Version": "352",
+	"PackageFileLicenseeUE4Version": "0",
+	"Modules": [
+		{
+			"Name": "TP_Flying",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
