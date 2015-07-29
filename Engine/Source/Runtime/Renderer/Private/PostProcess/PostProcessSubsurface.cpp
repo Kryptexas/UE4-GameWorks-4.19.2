@@ -10,6 +10,7 @@
 #include "PostProcessSubsurface.h"
 #include "PostProcessing.h"
 #include "SceneUtils.h"
+#include "CompositionLighting/PostProcessPassThrough.h"
 
 ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);
 
