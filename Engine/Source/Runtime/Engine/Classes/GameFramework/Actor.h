@@ -1597,8 +1597,9 @@ public:
 	/**
 	 * Assigns a new label to this actor.  Actor labels are only available in development builds.
 	 * @param	NewActorLabel	The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	bMarkDirty		If true the actor's package will be marked dirty for saving.  Otherwise it will not be.  You should pass false for this parameter if dirtying is not allowed (like during loads)
 	 */
-	void SetActorLabel( const FString& NewActorLabel );
+	void SetActorLabel( const FString& NewActorLabel, bool bMarkDirty = true );
 
 	/** Advanced - clear the actor label. */
 	void ClearActorLabel();
@@ -2534,7 +2535,7 @@ private:
 #endif // ENABLE_VISUAL_LOG
 
 	//* Sets the friendly actor label and name */
-	void SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName );
+	void SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName, bool bMarkDirty );
 
 	static FMakeNoiseDelegate MakeNoiseDelegate;
 
