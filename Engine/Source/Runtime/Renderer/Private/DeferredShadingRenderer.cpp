@@ -782,6 +782,10 @@ static void ServiceLocalQueue()
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+	// this way we make sure the SceneColor format is the correct one and not the one from the end of frame before
+	SceneContext.ReleaseSceneColor();
+
 	bool bDBuffer = IsDBufferEnabled();	
 
 	if (GRHIThread)

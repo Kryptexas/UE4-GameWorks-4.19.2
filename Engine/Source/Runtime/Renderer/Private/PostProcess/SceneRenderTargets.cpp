@@ -1788,14 +1788,19 @@ void FSceneRenderTargets::AllocateRenderTargets()
 	}
 }
 
-void FSceneRenderTargets::ReleaseAllTargets()
+void FSceneRenderTargets::ReleaseSceneColor()
 {
-	ReleaseGBufferTargets();
-
 	for (auto i = 0; i < (int32)EShadingPath::Num; ++i)
 	{
 		SceneColor[i].SafeRelease();
 	}
+}
+
+void FSceneRenderTargets::ReleaseAllTargets()
+{
+	ReleaseGBufferTargets();
+
+	ReleaseSceneColor();
 
 	SceneAlphaCopy.SafeRelease();
 	SceneDepthZ.SafeRelease();

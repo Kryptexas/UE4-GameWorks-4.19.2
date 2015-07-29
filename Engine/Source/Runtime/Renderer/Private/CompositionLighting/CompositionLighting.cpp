@@ -389,25 +389,23 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 			if (bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
 			{
 				bool bHalfRes = CVarSSSHalfRes.GetValueOnRenderThread() != 0;
-
-				// can be optimized out if we don't do split screen/stereo rendering (should be done after we some post process refactoring)
-				FRenderingCompositePass* PassExtractSpecular = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceExtractSpecular());
-				PassExtractSpecular->SetInput(ePId_Input0, Context.FinalOutput);
+				bool bSingleViewportMode = View.Family->Views.Num() == 1;
 
 				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View, bHalfRes));
 				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
-				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, bHalfRes));
-				Pass0->SetInput(ePId_Input0, PassSetup);
+				FRenderingCompositePass* PassX = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, bHalfRes));
+				PassX->SetInput(ePId_Input0, PassSetup);
 
-				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, bHalfRes));
-				Pass1->SetInput(ePId_Input0, Pass0);
-				Pass1->SetInput(ePId_Input1, PassSetup);
+				FRenderingCompositePass* PassY = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, bHalfRes));
+				PassY->SetInput(ePId_Input0, PassX);
+				PassY->SetInput(ePId_Input1, PassSetup);
 
-				// full res composite pass, no blurring (Radius=0)
-				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes));
-				RecombinePass->SetInput(ePId_Input0, Pass1);
-				RecombinePass->SetInput(ePId_Input1, PassExtractSpecular);
+				// full res composite pass, no blurring (Radius=0), replaces SceneColor
+				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
+				RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+				RecombinePass->SetInput(ePId_Input1, PassY);
+				RecombinePass->SetInput(ePId_Input2, PassSetup);
 			}
 		}
 

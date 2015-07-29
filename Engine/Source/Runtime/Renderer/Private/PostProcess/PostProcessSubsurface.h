@@ -26,18 +26,6 @@ public:
 // ePId_Input0: SceneColor
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 // uses some GBuffer attributes
-class FRCPassPostProcessSubsurfaceExtractSpecular : public TRenderingCompositePassBase<1, 1>
-{
-public:
-	// interface FRenderingCompositePass ---------
-	virtual void Process(FRenderingCompositePassContext& Context) override;
-	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
-	virtual void Release() override { delete this; }
-};
-
-// ePId_Input0: SceneColor
-// derives from TRenderingCompositePassBase<InputCount, OutputCount> 
-// uses some GBuffer attributes
 // alpha is unused
 class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 1>
 {
@@ -80,14 +68,15 @@ private:
 
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
-// ePId_Input0: output from FRCPassPostProcessSubsurface
-// ePId_Input1: SceneColor before Screen Space Subsurface input
+// ePId_Input0: SceneColor before Screen Space Subsurface input
+// ePId_Input1: output from FRCPassPostProcessSubsurface
+// ePId_Input2: SubsurfaceSetup, can be half res
 // modifies SceneColor, uses some GBuffer attributes
-class FRCPassPostProcessSubsurfaceRecombine : public TRenderingCompositePassBase<2, 1>
+class FRCPassPostProcessSubsurfaceRecombine : public TRenderingCompositePassBase<3, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes);
+	FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes, bool bInSingleViewportMode);
 
 	// interface FRenderingCompositePass ---------
 
@@ -96,4 +85,5 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
 	bool bHalfRes;
+	bool bSingleViewportMode;
 };

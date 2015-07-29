@@ -69,11 +69,6 @@ public:
 			// can be extracted out of projection matrix
 
 			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-			float ScaleCorrectionX = Context.View.ViewRect.Width() / (float)SceneContext.GetBufferSizeXY().X;
-			float ScaleCorrectionY = Context.View.ViewRect.Height() / (float)SceneContext.GetBufferSizeXY().Y;
-
-			 // Divide by 3 as the kernels range from -3 to 3.
-			const float KernelSize = 3.0f;
 
 			// Calculate the sssWidth scale (1.0 for a unit plane sitting on the projection window):
 			float DistanceToProjectionWindow = Context.View.ViewMatrices.ProjMatrix.M[0][0]; 
@@ -81,9 +76,9 @@ public:
 			float SSSScaleZ = DistanceToProjectionWindow * GetSubsurfaceRadiusScale();
 
 			// * 0.5f: hacked in 0.5 - -1..1 to 0..1 but why this isn't in demo code?
-			float SSSScaleX = SSSScaleZ / KernelSize * 0.5f;
+			float SSSScaleX = SSSScaleZ / SUBSURFACE_KERNEL_SIZE * 0.5f;
 
-			FVector4 ColorScale(SSSScaleX, SSSScaleZ, ScaleCorrectionX, ScaleCorrectionY);
+			FVector4 ColorScale(SSSScaleX, SSSScaleZ, 0, 0);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, SSSParams, ColorScale);
 		}
 
@@ -131,6 +126,8 @@ class FPostProcessSubsurfaceVisualizePS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
 
 	/** Default constructor. */
@@ -344,6 +341,8 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SETUP_MODE"), SetupMode);
 		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
 
 	/** Default constructor. */
@@ -455,6 +454,8 @@ class FPostProcessSubsurfaceExtractSpecularPS : public FGlobalShader
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SSS_RECOMBINE_METHOD"), RecombineMethod);
 		OutEnvironment.SetDefine(TEXT("SSS_SAMPLESET"), SampleSet);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
 
 	/** Default constructor. */
@@ -554,85 +555,6 @@ void SetSubsurfaceExtractSpecular(const FRenderingCompositePassContext& Context,
 
 	VertexShader->SetParameters(Context);
 }
-
-void FRCPassPostProcessSubsurfaceExtractSpecular::Process(FRenderingCompositePassContext& Context)
-{
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	check(InputDesc);
-
-	const FSceneView& View = Context.View;
-	const FSceneViewFamily& ViewFamily = *(View.Family);
-
-	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
-
-	check(DestSize.X);
-	check(DestSize.Y);
-	check(SrcSize.X);
-	check(SrcSize.Y);
-
-	//	FIntRect SrcRect = View.ViewRect / ScaleFactor;
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
-
-	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
-
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
-
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
-
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-
-	bool bDoSpecularCorrection = DoSpecularCorrection();
-
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePass, TEXT("SubsurfacePassExtractSpecular#%d"), (int32)bDoSpecularCorrection);
-
-	uint32 SampleSet = FMath::Clamp(CVarSSSSampleSet.GetValueOnRenderThread(), 0, 2);
-
-	if(bDoSpecularCorrection)
-	{
-		SetSubsurfaceExtractSpecular<1>(Context, SampleSet);
-	}
-	else
-	{
-		SetSubsurfaceExtractSpecular<0>(Context, SampleSet);
-	}
-
-	DrawRectangle(
-		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
-		DestRect.Width(), DestRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y,
-		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
-		SrcSize,
-		*VertexShader,
-		EDRF_UseTriangleOptimization);
-
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-}
-
-
-FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceExtractSpecular::ComputeOutputDesc(EPassOutputId InPassOutputId) const
-{
-	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
-
-	Ret.Reset();
-	Ret.DebugName = TEXT("SubsurfaceExtractSpecular");
-	// alpha is not used
-	Ret.Format = PF_FloatRGB;
-
-	return Ret;
-}
-
 
 // --------------------------------------
 
@@ -750,6 +672,8 @@ class TPostProcessSubsurfacePS : public FGlobalShader
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SSS_DIRECTION"), Direction);
 		OutEnvironment.SetDefine(TEXT("SSS_SAMPLESET"), SampleSet);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
 
 	/** Default constructor. */
@@ -959,6 +883,8 @@ class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SSS_RECOMBINE_METHOD"), RecombineMethod);
 		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
+		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
 
 	/** Default constructor. */
@@ -1028,8 +954,9 @@ void SetSubsurfaceRecombineShader(const FRenderingCompositePassContext& Context,
 	VertexShader->SetParameters(Context);
 }
 
-FRCPassPostProcessSubsurfaceRecombine::FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes)
+FRCPassPostProcessSubsurfaceRecombine::FRCPassPostProcessSubsurfaceRecombine(bool bInHalfRes, bool bInSingleViewportMode)
 	: bHalfRes(bInHalfRes)
+	, bSingleViewportMode(bInSingleViewportMode)
 {
 }
 
@@ -1056,16 +983,18 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 
 	TRefCountPtr<IPooledRenderTarget>& SceneColor = SceneContext.GetSceneColor();
 
-	const FSceneRenderTargetItem& DestRenderTarget = SceneColor->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
-
-	Context.RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+	CopyOverOtherViewportsIfNeeded(Context, View);
+
+	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
@@ -1094,14 +1023,26 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// replace the current SceneColor with this one
+	SceneContext.SetSceneColor(PassOutputs[0].PooledRenderTarget);
+	PassOutputs[0].PooledRenderTarget.SafeRelease();
 }
 
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceRecombine::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
-	Ret.DebugName = TEXT("SceneColor");
-	// we directly render to the HDR scene color
+	Ret.Reset();
+	Ret.DebugName = TEXT("SceneColorSubsurface");
+
+	if(bSingleViewportMode)
+	{
+		// we don't need an alpha channel any more as it was used for ScreenSpaceSubsurfaceScattering only
+		Ret.Format = (Ret.Format == PF_FloatRGBA) ? PF_FloatRGB : PF_FloatRGBA;
+	}
+
+	// we replace the HDR SceneColor with this one
 	return Ret;
 }

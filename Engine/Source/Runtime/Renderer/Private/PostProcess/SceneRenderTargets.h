@@ -498,7 +498,10 @@ public:
 	{
 		bVelocityPass = bInVelocityPass;
 	}
-
+	
+	// Can be called when the Scene Color content is no longer needed. As we create SceneColor on demand we can make sure it is created with the right format.
+	// (as a call to SetSceneColor() can override it with a different format)
+	void ReleaseSceneColor();
 
 private: // Get...() methods instead of direct access
 

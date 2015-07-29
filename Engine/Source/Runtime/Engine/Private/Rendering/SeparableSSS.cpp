@@ -149,6 +149,8 @@ void ComputeMirroredSSSKernel(FLinearColor* TargetBuffer, uint32 TargetBufferSiz
 			}
 		}
 
+		/* we do that in the shader for better quality with half res 
+		
 		// Tweak them using the desired strength. The first one is:
 		//     lerp(1.0, kernel[0].rgb, strength)
 		kernel[0].R = FMath::Lerp(1.0f, kernel[0].R, SubsurfaceColor.R);
@@ -160,7 +162,7 @@ void ComputeMirroredSSSKernel(FLinearColor* TargetBuffer, uint32 TargetBufferSiz
 			kernel[i].R *= SubsurfaceColor.R;
 			kernel[i].G *= SubsurfaceColor.G;
 			kernel[i].B *= SubsurfaceColor.B;
-		}
+		}*/
 	}
 
 	// generate output (remove negative samples)
