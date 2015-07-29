@@ -7,7 +7,7 @@ Related: Gameplay/Networking/Server
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 There are two properties on actor that are important when it comes to replication. `Role` and `RemoteRole`. 
 
