@@ -504,13 +504,13 @@ struct INPUTCORE_API FInputKeyManager
 public:
 	static FInputKeyManager& Get();
 
-	void GetCodesFromKey(const FKey Key, const uint16*& KeyCode, const uint16*& CharCode) const;
+	void GetCodesFromKey(const FKey Key, const uint32*& KeyCode, const uint32*& CharCode) const;
 
 	/**
 	 * Retrieves the key mapped to the specified character code.
 	 * @param KeyCode	The key code to get the name for.
 	 */
-	FKey GetKeyFromCodes( const uint16 KeyCode, const uint16 CharCode ) const;
+	FKey GetKeyFromCodes( const uint32 KeyCode, const uint32 CharCode ) const;
 	void InitKeyMappings();
 private:
 	FInputKeyManager()
@@ -519,8 +519,8 @@ private:
 	}
 
 	static TSharedPtr< FInputKeyManager > Instance;
-	TMap<uint16, FKey> KeyMapVirtualToEnum;
-	TMap<uint16, FKey> KeyMapCharToEnum;
+	TMap<uint32, FKey> KeyMapVirtualToEnum;
+	TMap<uint32, FKey> KeyMapCharToEnum;
 };
 
 UCLASS(abstract)
