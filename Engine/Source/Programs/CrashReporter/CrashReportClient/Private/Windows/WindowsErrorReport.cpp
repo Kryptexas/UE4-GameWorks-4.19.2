@@ -129,6 +129,13 @@ FString FWindowsErrorReport::FindMostRecentErrorReport()
 	SHGetFolderPath(0, CSIDL_LOCAL_APPDATA, NULL, 0, LocalAppDataPath);
 	PlatformFile.IterateDirectory( *(FString(LocalAppDataPath) / TEXT("Microsoft/Windows/WER/ReportQueue")), ReportFinder);
 
+	if (ReportDirectory.Len() == 0)
+	{
+		TCHAR LocalAppDataPath[MAX_PATH];
+		SHGetFolderPath( 0, CSIDL_COMMON_APPDATA, NULL, 0, LocalAppDataPath );
+		PlatformFile.IterateDirectory( *(FString( LocalAppDataPath ) / TEXT( "Microsoft/Windows/WER/ReportQueue" )), ReportFinder );
+	}
+
 	return ReportDirectory;
 }
 
