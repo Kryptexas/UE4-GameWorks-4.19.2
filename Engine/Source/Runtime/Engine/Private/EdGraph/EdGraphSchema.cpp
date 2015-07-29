@@ -125,6 +125,7 @@ void FGraphActionListBuilderBase::ActionGroup::Move(FGraphActionListBuilderBase:
 	CategoryChain = MoveTemp(Other.CategoryChain);
 	SearchKeywordsArray = MoveTemp(Other.SearchKeywordsArray);
 	MenuDescriptionArray = MoveTemp(Other.MenuDescriptionArray);
+	SearchTitleArray = MoveTemp(Other.SearchTitleArray);
 	SearchCategoryArray = MoveTemp(Other.SearchCategoryArray);
 	SearchText = MoveTemp(Other.SearchText);
 }
@@ -136,6 +137,7 @@ void FGraphActionListBuilderBase::ActionGroup::Copy(const ActionGroup& Other)
 	CategoryChain = Other.CategoryChain;
 	SearchKeywordsArray = Other.SearchKeywordsArray;
 	MenuDescriptionArray = Other.MenuDescriptionArray;
+	SearchTitleArray = Other.SearchTitleArray;
 	SearchCategoryArray = Other.SearchCategoryArray;
 	SearchText = Other.SearchText;
 }

@@ -570,9 +570,9 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 					CategoryName,
 					FText::FromString(MaterialExpression.Name),
 					ToolTip.ToString(), 0));
-				ActionMenuBuilder.AddAction(NewNodeAction);
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
 				NewNodeAction->Keywords = CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords();
+				ActionMenuBuilder.AddAction(NewNodeAction);
 			}
 		}
 	}
