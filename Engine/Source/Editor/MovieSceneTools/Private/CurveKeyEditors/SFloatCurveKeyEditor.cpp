@@ -23,6 +23,7 @@ void SFloatCurveKeyEditor::Construct(const FArguments& InArgs)
 		.MinDesiredWidth(60.0f)
 		.Value(this, &SFloatCurveKeyEditor::OnGetKeyValue)
 		.OnValueChanged(this, &SFloatCurveKeyEditor::OnValueChanged)
+		.OnValueCommitted(this, &SFloatCurveKeyEditor::OnValueCommitted)
 		.OnBeginSliderMovement(this, &SFloatCurveKeyEditor::OnBeginSliderMovement)
 		.OnEndSliderMovement(this, &SFloatCurveKeyEditor::OnEndSliderMovement)
 	];
@@ -72,6 +73,16 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 		}
 	}
 	Sequencer->UpdateRuntimeInstances();
+}
+
+void SFloatCurveKeyEditor::OnValueCommitted(float Value, ETextCommit::Type CommitInfo)
+{
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		const FScopedTransaction Transaction( LOCTEXT("SetFloatKey", "Set float key value") );
+
+		OnValueChanged(Value);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

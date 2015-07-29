@@ -24,6 +24,7 @@ private:
 	int32 OnGetKeyValue() const;
 
 	void OnValueChanged(int32 Value);
+	void OnValueCommitted(int32 Value, ETextCommit::Type CommitInfo);
 
 	ISequencer* Sequencer;
 	UMovieSceneSection* OwningSection;

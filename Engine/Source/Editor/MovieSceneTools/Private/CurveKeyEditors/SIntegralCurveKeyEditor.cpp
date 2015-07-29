@@ -23,6 +23,7 @@ void SIntegralCurveKeyEditor::Construct(const FArguments& InArgs)
 		.MinDesiredWidth(60.0f)
 		.Value(this, &SIntegralCurveKeyEditor::OnGetKeyValue)
 		.OnValueChanged(this, &SIntegralCurveKeyEditor::OnValueChanged)
+		.OnValueCommitted(this, &SIntegralCurveKeyEditor::OnValueCommitted)
 		.OnBeginSliderMovement(this, &SIntegralCurveKeyEditor::OnBeginSliderMovement)
 		.OnEndSliderMovement(this, &SIntegralCurveKeyEditor::OnEndSliderMovement)
 	];
@@ -70,6 +71,16 @@ void SIntegralCurveKeyEditor::OnValueChanged(int32 Value)
 
 	Curve->UpdateOrAddKey(CurrentTime, Value);
 	Sequencer->UpdateRuntimeInstances();
+}
+
+void SIntegralCurveKeyEditor::OnValueCommitted(int32 Value, ETextCommit::Type CommitInfo)
+{
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		const FScopedTransaction Transaction( LOCTEXT("SetIntegralKey", "Set integral key value") );
+
+		OnValueChanged(Value);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
