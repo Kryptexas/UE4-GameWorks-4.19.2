@@ -922,6 +922,9 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 			// Create a package for each mesh
 			Package = CreatePackage(NULL, *NewPackageName);
+
+			// Require the parent because it will have been invalidated from the garbage collection
+			Parent = Package;
 		}
 		else
 		{
