@@ -59,14 +59,14 @@ enum ETickingGroup
 	/** Any item that needs to be updated after rigid body simulation is done, but before cloth is simulation is done. */
 	TG_StartCloth,
 
-	/** Any item that can be run during cloth simulation. */	
-	TG_EndCloth,
-
 	/** Any item that needs rigid body and cloth simulation to be complete before being executed. */
 	TG_PostPhysics,
 
 	/** Any item that needs the update work to be done before being ticked. */
 	TG_PostUpdateWork,
+
+	/** Special tick group that ends cloth simulation. */
+	TG_EndCloth,
 
 	/** Special tick group that is not actually a tick group. After every tick group this is repeatedly re-run until there are no more newly spawned items to run. */
 	TG_NewlySpawned,
