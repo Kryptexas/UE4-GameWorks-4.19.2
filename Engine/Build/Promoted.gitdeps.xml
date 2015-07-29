@@ -273,7 +273,6 @@
     <File Name="Engine/Binaries/Win64/UnrealPak.exe" Hash="0c045e3a2ece65798fbbd045d6e9c05aa83e9a1a" />
     <File Name="Engine/Binaries/Win64/UnrealSync.exe" Hash="9ac5e0a27e6b5ba6b6e7b60bc4bc7728005e3245" />
     <File Name="Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe" Hash="86c8e3866f95db1525f7fc3fce29254a93e93751" />
-    <File Name="Engine/Build/Build.version" Hash="90120d4bbd8c43e69b0ee0ef02d918b1bd1dc10e" />
     <File Name="Engine/Build/Receipts/BootstrapPackagedGame-Win32-Shipping.target.xml" Hash="fae00761560522477d8bf166fea1999577d583db" />
     <File Name="Engine/Build/Receipts/BootstrapPackagedGame-Win64-Shipping.target.xml" Hash="a28076a2bb4f15f460883af0a045e8067b620898" />
     <File Name="Engine/Build/Receipts/CrashReportClient-Mac-Shipping.target.xml" Hash="d7f33c8ac4ae0435864c6a15a12810923f6fc1ce" />
