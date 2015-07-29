@@ -53,8 +53,8 @@ namespace UnrealBuildTool
 			List<string> IncludeDirectories = new List<string>();
 			List<string> PreProcessor = new List<string>();
 
-			foreach (var CurProject in GeneratedProjectFiles) {
-
+			foreach (var CurProject in GeneratedProjectFiles) 
+			{
 				CodeLiteProject Project = CurProject as CodeLiteProject;
 				if (Project == null)
 				{
