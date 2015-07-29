@@ -278,14 +278,12 @@ public:
 	// End of SWidget interface
 
 	/** Saves the expansion state of property nodes for the selected object set */
-	void SaveExpandedItems();
+	void SaveExpandedItems( TSharedRef<FPropertyNode> StartNode );
 
 	/**
 	* Restores the expansion state of property nodes for the selected object set
-	*
-	* @param InitialStartNode The starting node if any.  If one is not supplied the expansion state is restored from the root node
 	*/
-	void RestoreExpandedItems(TSharedPtr<FPropertyNode> InitialStartNode = NULL);
+	void RestoreExpandedItems(TSharedRef<FPropertyNode> StartNode);
 
 	virtual TSharedPtr<FComplexPropertyNode> GetRootNode() = 0;
 

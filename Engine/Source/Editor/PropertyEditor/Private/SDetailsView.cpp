@@ -25,7 +25,11 @@
 
 SDetailsView::~SDetailsView()
 {
-	SaveExpandedItems();
+	auto RootNode = GetRootNode();
+	if( RootNode.IsValid() )
+	{
+		SaveExpandedItems( RootNode.ToSharedRef() );
+	}
 };
 
 /**
@@ -564,10 +568,21 @@ void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects 
 /** Called before during SetObjectArray before we change the objects being observed */
 void SDetailsView::PreSetObject()
 {
-	ExternalRootPropertyNodes.Empty();
-
 	// Save existing expanded items first
-	SaveExpandedItems();
+	if( GetRootNode().IsValid() )
+	{
+		SaveExpandedItems( GetRootNode().ToSharedRef() );
+	}
+
+	for( auto ExternalRootNode : ExternalRootPropertyNodes )
+	{
+		if( ExternalRootNode.IsValid() )
+		{
+			SaveExpandedItems( ExternalRootNode.Pin().ToSharedRef() );
+		}
+	}
+
+	ExternalRootPropertyNodes.Empty();
 
 	RootNodePendingKill = RootPropertyNode;
 
@@ -612,9 +627,23 @@ void SDetailsView::PostSetObject()
 	bool bInitiallySeen = true;
 	bool bParentAllowsVisible = true;
 	// Restore existing expanded items
-	RestoreExpandedItems();
+
+	if( GetRootNode().IsValid() )
+	{
+		RestoreExpandedItems( GetRootNode().ToSharedRef() );
+	}
 
 	UpdatePropertyMap();
+
+	for( auto ExternalRootNode : ExternalRootPropertyNodes )
+	{
+		if( ExternalRootNode.IsValid() )
+		{
+			RestoreExpandedItems( ExternalRootNode.Pin().ToSharedRef() );
+		}
+	}
+
+	UpdateFilteredDetails();
 }
 
 void SDetailsView::SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate)
