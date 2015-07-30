@@ -2334,6 +2334,9 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 		bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 	}
 
+	// Modulated shadows require depth fetch
+	const bool bSupportsDepthFetch = DeviceSupportsShaderDepthFetch();
+
 	{
 		SCOPE_CYCLE_COUNTER(STAT_InitDynamicShadowsTime);
 
@@ -2368,7 +2371,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 				NumWholeSceneShadows = VisibleLightInfo.AllProjectedShadows.Num();
 
 				// If we're casting modulated shadows then look for dynamic shadow interactions.
-				if (LightSceneInfo->Proxy->CastsModulatedShadows())
+				if (bSupportsDepthFetch && LightSceneInfo->Proxy->CastsModulatedShadows())
 				{
 					// Look for individual primitives with a dynamic shadow.
 					for (FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicPrimitiveList;

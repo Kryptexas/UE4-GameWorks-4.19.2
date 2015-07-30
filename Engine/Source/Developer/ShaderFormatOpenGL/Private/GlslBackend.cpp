@@ -2953,7 +2953,7 @@ public:
 		if (bUsesDepthbufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
-			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { float w = 1.0f/(gl_LastFragDepthARM*C1-C2); gl_FragDepth = w; return clamp(w, 0.0f, 65000.0f); }\n");
+			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { float w = 1.0f/(gl_LastFragDepthARM*C1-C2); return clamp(w, 0.0f, 65000.0f); }\n");
 			ralloc_asprintf_append(buffer, "#else\n");
 			ralloc_asprintf_append(buffer, "float DepthbufferFetchES2(float OptionalDepth, float C1, float C2) { return OptionalDepth; }\n");
 			ralloc_asprintf_append(buffer, "#endif\n\n");

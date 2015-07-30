@@ -1462,19 +1462,17 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 
 	EPixelFormat Format = GetSceneColor()->GetDesc().Format;
 
+#if PLATFORM_HTML5
 	// For 64-bit ES2 without framebuffer fetch, create extra render target for copy of alpha channel.
 	if((Format == PF_FloatRGBA) && (GSupportsShaderFramebufferFetch == false)) 
 	{
-#if PLATFORM_HTML5 || PLATFORM_ANDROID
 		// creating a PF_R16F (a true one-channel renderable fp texture) is only supported on GL if EXT_texture_rg is available.  It's present
 		// on iOS, but not in WebGL or Android.
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-#else
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-#endif
 		GRenderTargetPool.FindFreeElement(Desc, SceneAlphaCopy, TEXT("SceneAlphaCopy"));
 	}
 	else
+#endif
 	{
 		SceneAlphaCopy = GSystemTextures.MaxFP16Depth;
 	}

@@ -16,18 +16,17 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 		return;
 	}
 
-	SCOPE_CYCLE_COUNTER(STAT_DecalsDrawTime);
-
-	// Setup read access to depth/stencil buffer on PC platform (mobile preview)
-	if (IsPCPlatform(ViewFamily.GetShaderPlatform()))
+	// Check if it possible to render decals on this device
+	if (!DeviceSupportsShaderDepthFetch())
 	{
-		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-		FRHIDepthRenderTargetView	DepthView(SceneContext.GetSceneDepthSurface(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilRead));
-		FRHIRenderTargetView		ColorView(SceneContext.GetSceneColorSurface(), 0, -1, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::EStore);
-		FRHISetRenderTargetsInfo	Info(1, &ColorView, DepthView);
-		RHICmdList.SetRenderTargetsAndClear(Info);
+		return;
 	}
 
+	SCOPE_CYCLE_COUNTER(STAT_DecalsDrawTime);
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
+	
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
