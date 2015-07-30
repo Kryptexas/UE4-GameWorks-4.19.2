@@ -70,6 +70,8 @@ public:
 	static FORCEINLINE bool SupportsDrawIndirect()						{ return bSupportsDrawIndirect; }
 	static FORCEINLINE bool SupportsSRGBFramebuffer()					{ return bUseSRGBFramebuffer; }
 	
+	static FORCEINLINE bool SupportsCoreAnimation()						{ return !bUsingApitrace; }
+	
 	static FORCEINLINE void Flush()
 	{
 		glFlushRenderAPPLE();
