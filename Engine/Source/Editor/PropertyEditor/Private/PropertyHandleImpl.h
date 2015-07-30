@@ -406,6 +406,7 @@ public:
 	virtual FPropertyAccess::Result SetObjectValueFromSelection() override;
 	virtual void NotifyPreChange() override;
 	virtual void NotifyPostChange() override;
+	virtual void NotifyFinishedChangingProperties() override;
 	virtual void AddRestriction( TSharedRef<const FPropertyRestriction> Restriction )override;
 	virtual bool IsRestricted(const FString& Value) const override;
 	virtual bool IsRestricted(const FString& Value, TArray<FText>& OutReasons) const override;

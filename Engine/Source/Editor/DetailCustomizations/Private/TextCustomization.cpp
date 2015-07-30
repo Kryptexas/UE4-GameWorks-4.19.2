@@ -49,20 +49,25 @@ namespace
 
 		const auto& OnTextCommitted = [this](const FText& NewText, ETextCommit::Type CommitInfo)
 		{
-			PropertyHandle->NotifyPreChange();
-
 			TArray<void*> RawData;
 			PropertyHandle->AccessRawData(RawData);
-			for (void* const RawDatum : RawData)
-			{
-				FText& PropertyValue = *(reinterpret_cast<FText* const>(RawDatum));
 
-				// FText::FromString on the result of FText::ToString is intentional. For now, we want to nuke any namespace/key info and let it get regenerated from scratch,
-				// rather than risk adopting whatever came through some chain of calls. This will be replaced when preserving of identity is implemented.
-				PropertyValue = FText::FromString(NewText.ToString());
+			if (RawData.Num() > 0)
+			{
+				PropertyHandle->NotifyPreChange();
+
+				for (void* const RawDatum : RawData)
+				{
+					FText& PropertyValue = *(reinterpret_cast<FText* const>(RawDatum));
+
+					// FText::FromString on the result of FText::ToString is intentional. For now, we want to nuke any namespace/key info and let it get regenerated from scratch,
+					// rather than risk adopting whatever came through some chain of calls. This will be replaced when preserving of identity is implemented.
+					PropertyValue = FText::FromString(NewText.ToString());
+				}
+
+				PropertyHandle->NotifyPostChange();
+				PropertyHandle->NotifyFinishedChangingProperties();
 			}
-			
-			PropertyHandle->NotifyPostChange();
 		};
 
 		ChildSlot
