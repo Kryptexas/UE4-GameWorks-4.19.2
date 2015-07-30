@@ -489,6 +489,49 @@ void ReflectionApplyPS(
 #endif
 #endif
 
+#if APPLY_SSR
+		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );
+#endif
+
+		BRANCH
+		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
+		{
+			const float ClearCoat			= GBuffer.CustomData.x;
+			const float ClearCoatRoughness	= GBuffer.CustomData.y;
+
+			// TODO EnvBRDF should have a mask param
+			float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
+			SpecularColor = GBuffer.SpecularColor * AB.x + AB.y * saturate( 50 * GBuffer.SpecularColor.g ) * (1 - ClearCoat);
+
+			// F_Schlick
+			float F0 = 0.04;
+			float Fc = Pow5( 1 - NoV );
+			float F = Fc + (1 - Fc) * F0;
+			F *= ClearCoat;
+
+			float LayerAttenuation = (1 - F);
+			SpecularColor *= LayerAttenuation;
+			SpecularColor *= SpecularOcclusion;
+
+			#if APPLY_SSR
+				SpecularLighting.rgb *= lerp( 1 - SSR.a, 1, ClearCoat );
+				SpecularLighting.rgb += lerp( SSR.rgb, 0, ClearCoat );
+			#endif
+
+			SpecularLighting.rgb *= SpecularColor;
+
+			#if APPLY_SSR
+				SpecularLighting.rgb += SSR.rgb * F;
+			#endif
+		}
+		else
+		{
+			#if APPLY_SSR
+				SpecularLighting.rgb = SSR.rgb + SpecularLighting.rgb * (1 - SSR.a);
+			#endif
+			SpecularLighting.rgb *= SpecularColor;
+		}
+
 #if APPLY_SKYLIGHT
 
 		BRANCH
@@ -498,6 +541,27 @@ void ReflectionApplyPS(
 			// Normalize for static skylight types which mix with lightmaps
 			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			float3 SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
+			SkyLighting *= SpecularColor;
+
+			BRANCH
+			if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
+			{
+				const float ClearCoat			= GBuffer.CustomData.x;
+				const float ClearCoatRoughness	= GBuffer.CustomData.y;
+
+				// F_Schlick
+				float F0 = 0.04;
+				float Fc = Pow5( 1 - NoV );
+				float F = Fc + (1 - Fc) * F0;
+				F *= ClearCoat;
+
+				#if APPLY_SSR
+					F *= 1 - SSR.a;
+				#endif
+
+				float3 SampleColor = GetSkyLightReflectionSupportingBlend(ReflectionVector, ClearCoatRoughness, bNormalize);	
+				SkyLighting += SampleColor * F;
+			}
 
 		    float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.g;
 		    SkyLighting *= DirectionalOcclusion;
@@ -514,12 +578,7 @@ void ReflectionApplyPS(
 		}
 #endif
 
-#if APPLY_SSR
-		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );
-		SpecularLighting.rgb = SpecularLighting.rgb * (1 - SSR.a) + SSR.rgb;
-#endif
-
-		OutColor.rgb = SpecularLighting.rgb * SpecularColor;
+		OutColor.rgb = SpecularLighting.rgb;
 
 		// Transform NaNs to black, transform negative colors to black.
 		OutColor.rgb = -min(-OutColor.rgb, 0.0);
