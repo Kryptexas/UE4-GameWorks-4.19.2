@@ -71,6 +71,11 @@ void FStringAssetReference::operator=(FStringAssetReference const& Other)
 }
 bool FStringAssetReference::ExportTextItem(FString& ValueStr, FStringAssetReference const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
+	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
+	{
+		return false;
+	}
+
 	if (IsValid())
 	{
 		ValueStr += ToString();

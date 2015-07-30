@@ -49,7 +49,11 @@ void UTextProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 {
 	const FText& TextValue = GetPropertyValue(PropertyValue);
 	const FString& StringValue = FTextInspector::GetDisplayString(TextValue);
-	if( !(PortFlags & PPF_Delimited) )
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += FString::Printf(TEXT("FText::FromString(TEXT(\"%s\"))"), *(StringValue.ReplaceCharWithEscapedChar()));
+	}
+	else if( !(PortFlags & PPF_Delimited) )
 	{
 		ValueStr += StringValue;
 	}

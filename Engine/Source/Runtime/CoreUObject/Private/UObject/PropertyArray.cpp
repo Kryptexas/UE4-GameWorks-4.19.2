@@ -125,6 +125,14 @@ void UArrayProperty::ExportTextItem( FString& ValueStr, const void* PropertyValu
 {
 	checkSlow(Inner);
 
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		FString ExtendedTypeText;
+		FString TypeText = GetCPPType(&ExtendedTypeText, EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		ValueStr += FString::Printf(TEXT("%s%s()"), *TypeText, *ExtendedTypeText);
+		return;
+	}
+
 	FScriptArrayHelper ArrayHelper(this, PropertyValue);
 	FScriptArrayHelper DefaultArrayHelper(this, DefaultValue);
 

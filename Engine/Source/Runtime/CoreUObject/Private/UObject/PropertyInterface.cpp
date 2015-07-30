@@ -62,7 +62,7 @@ FString UInterfaceProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint
 			}
 		}
 		check(ExportClass);
-		check(ExportClass->HasAnyClassFlags(CLASS_Interface));
+		check(ExportClass->HasAnyClassFlags(CLASS_Interface) || 0 != (CPPF_BlueprintCppBackend & CPPExportFlags));
 
 		*ExtendedTypeText = FString::Printf(TEXT("<I%s>"), *ExportClass->GetName());
 	}
@@ -133,6 +133,18 @@ void UInterfaceProperty::ExportTextItem( FString& ValueStr, const void* Property
 	FScriptInterface* InterfaceValue = (FScriptInterface*)PropertyValue;
 
 	UObject* Temp = InterfaceValue->GetObject();
+
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		const FString GetObjectStr = Temp
+			? FString::Printf(TEXT("LoadObject<UObject>(nullptr, TEXT(\"%s\"))"), *Temp->GetPathName().ReplaceCharWithEscapedChar())
+			: TEXT("");
+		ValueStr += FString::Printf(TEXT("TScriptInterface<I%s>(%s)")
+			, (InterfaceClass ? *InterfaceClass->GetName() : TEXT("Interface"))
+			, *GetObjectStr);
+		return;
+	}
+
 	if( Temp != NULL )
 	{
 		bool bExportFullyQualified = true;

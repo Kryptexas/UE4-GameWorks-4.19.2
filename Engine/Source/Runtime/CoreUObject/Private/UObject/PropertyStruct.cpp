@@ -328,6 +328,12 @@ void UStructProperty::ExportTextItem( FString& ValueStr, const void* PropertyVal
 		}
 	}
 
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += FString::Printf(TEXT("F%s()"), *Struct->GetName());
+		return;
+	}
+
 	UStructProperty_ExportTextItem(Struct, ValueStr, PropertyValue, DefaultValue, Parent, PortFlags, ExportRootScope);
 } 
 

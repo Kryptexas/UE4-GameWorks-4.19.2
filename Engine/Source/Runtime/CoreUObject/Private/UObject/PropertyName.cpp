@@ -9,7 +9,13 @@
 void UNameProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {
 	FName Temp = *(FName*)PropertyValue;
-	if( !(PortFlags & PPF_Delimited) )
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += (Temp == NAME_None) 
+			? TEXT("FName()") 
+			: FString::Printf(TEXT("FName(TEXT(\"%s\"))"), *(Temp.ToString().ReplaceCharWithEscapedChar()));
+	}
+	else if( !(PortFlags & PPF_Delimited) )
 	{
 		ValueStr += Temp.ToString();
 	}

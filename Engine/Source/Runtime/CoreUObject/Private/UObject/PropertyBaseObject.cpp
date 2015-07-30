@@ -172,6 +172,20 @@ FString UObjectPropertyBase::GetExportPath(const UObject* Object, const UObject*
 void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {
 	UObject* Temp = GetObjectPropertyValue(PropertyValue);
+
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		FString::Printf(TEXT("%s%s*"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName());
+
+		ValueStr += Temp
+			? FString::Printf(TEXT("LoadObject<%s%s>(nullptr, TEXT(\"%s\"))")
+				, PropertyClass->GetPrefixCPP()
+				, *PropertyClass->GetName()
+				, *(Temp->GetPathName().ReplaceCharWithEscapedChar()))
+			: TEXT("nullptr");
+		return;
+	}
+
 	if( Temp != NULL )
 	{
 		if (PortFlags & PPF_DebugDump)

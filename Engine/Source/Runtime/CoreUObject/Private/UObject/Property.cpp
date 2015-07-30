@@ -1261,6 +1261,16 @@ void UNumericProperty::ExportTextItem( FString& ValueStr, const void* PropertyVa
 	ValueStr += GetNumericPropertyValueToString(PropertyValue);
 }
 
+void UFloatProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
+{
+	Super::ExportTextItem(ValueStr, PropertyValue, DefaultValue, Parent, PortFlags, ExportRootScope);
+
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += TEXT("f");
+	}
+}
+
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UNumericProperty, UProperty,
 {

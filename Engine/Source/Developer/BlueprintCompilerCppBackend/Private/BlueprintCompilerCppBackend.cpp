@@ -3,6 +3,7 @@
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackend.h"
 #include "BlueprintCompilerCppBackendUtils.h"
+#include "EdGraphSchema_K2.h"
 
 FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, bool bUseSafeContext)
 {
@@ -1016,6 +1017,7 @@ void FBlueprintCompilerCppBackend::GenerateCodeFromStruct(UUserDefinedStruct* So
 
 	Emit(Header, *FString::Printf(TEXT("struct %s\n{\npublic:\n\tGENERATED_BODY()\n"), *NewName));
 	EmitStructProperties(Header, SourceStruct);
+	Emit(Header, *FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct));
 	Emit(Header, TEXT("};\n"));
 }
 

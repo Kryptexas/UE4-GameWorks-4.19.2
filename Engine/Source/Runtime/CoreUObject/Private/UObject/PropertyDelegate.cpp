@@ -89,6 +89,12 @@ FString UDelegateProperty::GetCPPTypeForwardDeclaration() const
 
 void UDelegateProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += TEXT("{}");
+		return;
+	}
+
 	FScriptDelegate* ScriptDelegate = (FScriptDelegate*)PropertyValue;
 	check(ScriptDelegate != NULL);
 	bool bDelegateHasValue = ScriptDelegate->GetFunctionName() != NAME_None;

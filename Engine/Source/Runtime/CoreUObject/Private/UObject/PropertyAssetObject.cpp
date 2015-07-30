@@ -72,6 +72,12 @@ void UAssetObjectProperty::ExportTextItem( FString& ValueStr, const void* Proper
 		ID = AssetPtr.GetUniqueID();
 	}
 
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		ValueStr += FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *ID.ToString().ReplaceCharWithEscapedChar());
+		return;
+	}
+
 	if (!ID.ToString().IsEmpty())
 	{
 		ValueStr += ID.ToString();

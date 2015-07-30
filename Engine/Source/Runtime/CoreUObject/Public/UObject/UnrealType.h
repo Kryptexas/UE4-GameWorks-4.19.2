@@ -31,7 +31,7 @@ enum EPropertyExportCPPFlags
 	CPPF_NoConst					=	0x00000010,
 	/** No reference '&' sign */
 	CPPF_NoRef						=	0x00000020,
-	/** Blueprint kompiler generated C++ code */
+	/** Blueprint compiler generated C++ code */
 	CPPF_BlueprintCppBackend		=	0x00000080,
 };
 
@@ -1476,6 +1476,10 @@ class COREUOBJECT_API UFloatProperty : public TProperty_Numeric<float>
 		:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
+
+	// UProperty interface
+	virtual void ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const override;
+	// End of UProperty interface
 };
 
 /*-----------------------------------------------------------------------------
