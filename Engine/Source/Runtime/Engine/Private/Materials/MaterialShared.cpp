@@ -861,7 +861,7 @@ bool FMaterialResource::IsMasked() const
 	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
 }
 
-bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion; }
+bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion && IsTranslucentBlendMode(GetBlendMode()); }
 float FMaterialResource::GetTranslucencyDirectionalLightingIntensity() const { return Material->TranslucencyDirectionalLightingIntensity; }
 float FMaterialResource::GetTranslucentShadowDensityScale() const { return Material->TranslucentShadowDensityScale; }
 float FMaterialResource::GetTranslucentSelfShadowDensityScale() const { return Material->TranslucentSelfShadowDensityScale; }

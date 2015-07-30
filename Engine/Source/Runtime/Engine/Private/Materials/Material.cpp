@@ -2630,15 +2630,11 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	// check for distortion in material 
 	{
 		bUsesDistortion = false;
-		// can only have distortion with translucent blend modes
-		if(IsTranslucentBlendMode((EBlendMode)BlendMode))
-		{
-			// check for a distortion value
-			if(Refraction.Expression
+		// check for a distortion value
+		if (Refraction.Expression
 			|| (Refraction.UseConstant && FMath::Abs(Refraction.Constant) >= KINDA_SMALL_NUMBER))
-			{
-				bUsesDistortion = true;
-			}
+		{
+			bUsesDistortion = true;
 		}
 	}
 
