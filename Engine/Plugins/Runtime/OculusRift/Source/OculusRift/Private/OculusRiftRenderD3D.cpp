@@ -400,9 +400,13 @@ bool FOculusRiftHMD::D3D11Bridge::AllocateRenderTargetTexture(uint32 SizeX, uint
 			TexCreate_RenderTargetable | TexCreate_ShaderResource
 			);
 	}
-	OutTargetableTexture = ColorTextureSet->GetTexture2D();
-	OutShaderResourceTexture = ColorTextureSet->GetTexture2D();
-	return true;
+	if (ColorTextureSet)
+	{
+		OutTargetableTexture = ColorTextureSet->GetTexture2D();
+		OutShaderResourceTexture = ColorTextureSet->GetTexture2D();
+		return true;
+	}
+	return false;
 }
 
 void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT)

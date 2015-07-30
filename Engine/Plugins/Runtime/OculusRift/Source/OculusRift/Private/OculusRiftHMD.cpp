@@ -1698,6 +1698,16 @@ bool FOculusRiftHMD::GetUserProfile(UserProfile& OutProfile)
 	return false; 
 }
 
+void FOculusRiftHMD::ApplySystemOverridesOnStereo(bool force)
+{
+	check(IsInGameThread());
+	// ALWAYS SET r.FinishCurrentFrame to 0! Otherwise the perf might be poor.
+	// @TODO: revise the FD3D11DynamicRHI::RHIEndDrawingViewport code (and other renderers)
+	// to ignore this var completely.
+	static const auto CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
+	CFinishFrameVar->Set(0);
+}
+
 //////////////////////////////////////////////////////////////////////////
 FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate) 
 	: FHMDViewExtension(InDelegate)

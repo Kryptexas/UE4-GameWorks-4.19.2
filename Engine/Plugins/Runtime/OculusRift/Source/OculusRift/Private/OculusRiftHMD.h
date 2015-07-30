@@ -463,6 +463,7 @@ private:
 	virtual void UpdateStereoRenderingParams() override;
 	virtual void UpdateHmdRenderInfo() override;
 	virtual void UpdateHmdCaps() override;
+	virtual void ApplySystemOverridesOnStereo(bool force = false) override;
 
 	/**
 	 * Called when state changes from 'stereo' to 'non-stereo'. Suppose to distribute
