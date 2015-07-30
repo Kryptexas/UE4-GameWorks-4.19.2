@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2620473
 Availability:Public
 Title:変数、タイマー、イベント
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
-Description:変数と関数をエディタに公開、タイマーの使用、C++関数をブループリントでオーバーライド
+Description:変数と関数をエディタに公開、タイマーの使用、C++ の関数をブループリントでオーバーライドします。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +39,7 @@ Description:変数と関数をエディタに公開、タイマーの使用、C+
 [/OBJECT]
 [/VAR]
 
-このチュートリアルは、変数と関数をエディタに公開、コード実行を遅延またはリピートするためにタイマーを使用、アクタ間のコミュニケーションにイベントを使用する方法を紹介します。
+このチュートリアルでは、変数と関数をエディタに公開、コード実行を遅延またはリピートするためにタイマーを使用、アクタ間のコミュニケーションにイベントを使用する方法を紹介します。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -57,7 +58,7 @@ Description:変数と関数をエディタに公開、タイマーの使用、C+
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
