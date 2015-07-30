@@ -842,6 +842,8 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 
 	FStaticLODModel& LODModel = DestructibleMeshResource.LODModels[0];
 	
+	LODModel.ActiveBoneIndices.Add(0);
+
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
 	LODModel.NumTexCoords = FMath::Max<uint32>(1,SkelMeshImportDataPtr->NumTexCoords);
 //	if( bCreateRenderData )	// We always create render data
