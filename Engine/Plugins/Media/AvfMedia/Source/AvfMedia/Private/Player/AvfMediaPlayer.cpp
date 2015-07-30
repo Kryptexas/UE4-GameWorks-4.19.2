@@ -251,7 +251,7 @@ bool FAvfMediaPlayer::IsReady() const
 
 	for( const IMediaVideoTrackRef& VideoTrack : VideoTracks )
     {
-        FAvfMediaTrack& AVFTrack = (FAvfMediaTrack&)VideoTrack.Get();
+        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
 		if (!AVFTrack.IsReady())
 		{
 			return false;
