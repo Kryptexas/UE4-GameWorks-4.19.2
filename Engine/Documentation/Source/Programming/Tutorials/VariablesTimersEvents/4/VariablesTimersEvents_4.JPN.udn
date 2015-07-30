@@ -1,18 +1,19 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2621854
 Availability:Public
 Title:4.応用編
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
 Description:入力と C++ コードのバインド
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:title%")
+		[次の手順](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -23,15 +24,15 @@ Description:入力と C++ コードのバインド
 
 これまでに学んだ知識を活かして、以下の操作をしてみましょう。
 
-* **イベント** を実行した時にターゲット変形へ移動または回転する **アクタ** を作成します。ゲーム内の移動プラットフォームやドアとして使用できます。2番目の **イベント** をトリガーするために **タイマー** を始動する **イベント** を作成します。このイベントは **アクタ** を元の位置に戻します。ハードコードされた値の代わりに公開された変数（ **UPROPERTY** を用いて）を適切な場所に使用します。
-* **タイマー** ハンドルといくつかのカスタム **イベント** を使用して、じきに燃え尽きる（火の **Particle System Component** を非アクティブにするなど）火のついたトーチを作成します。例えば _AddFuel_ **イベント** でトーチの燃焼時間を延長することができます。_DouseWithWater_ **イベント** はトーチを瞬時に消化して、今後 _AddFuel_ が機能しないように設定します。これらの機能両方は **ティック** を使用しないで記述できます。ハンドルで実行している **タイマー** を単に修正するだけです。
+* **イベント** 実行時にターゲットの変形へ移動または回転する **アクタ** を作成します。ゲーム内の移動プラットフォームやドアとして使用できます。このイベントが 2 番目のイベントをトリガーする **タイマー** を開始するようにします。この 2 番めのイベントはアクタを元の位置に戻します。ハードコードされた値の代わりに公開された変数 (**UPROPERTY** を用いて) を適切な場所に使用します。
+* タイマー ハンドルといくつかのカスタム イベント を使用して、燃え尽きる (火の **Particle System Component** を非アクティブにするなど) 火のついたトーチを作成します。例えば AddFuel Event でトーチの燃焼時間を延長することができます。DouseWithWater Event はトーチを瞬時に消火して、今後 AddFuel が機能しないように設定します。こうした機能は両方とも **ティック** を使用しないで記述できます。ハンドルで実行しているタイマーを単に修正するだけです。
 
-以下はこのチュートリアルで取り扱った詳細です。
+以下はこのチュートリアルで取り扱った内容の詳しい情報のリンク先です。
 
-* **タイマー** に関する詳細は [%Programming/UnrealArchitecture/Timers:title%](Programming/UnrealArchitecture/Timers) ページを参照してください。
-* クラスまたは構造体の変数と一緒に **UPROPERTY** タグを使用した完全リファレンスは、 [%Programming/UnrealArchitecture/Reference/Properties:title%](Programming/UnrealArchitecture/Reference/Properties) ページを参照してください。
-* **UFUNCTIONS** と **イベント** の作成について学ぶには、 [%Programming/UnrealArchitecture/Reference/Functions:title%](Programming/UnrealArchitecture/Reference/Functions) ページを参照してください。
-* その他のチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページを参照してください。
+* タイマーに関する詳細は [%Programming/UnrealArchitecture/Timers:title%](Programming/UnrealArchitecture/Timers) ページをご覧ください。
+* クラスまたは構造体の変数と合わせて UPROPERTY タグを使用したリファレンス一式については、 [%Programming/UnrealArchitecture/Reference/Properties:title%](Programming/UnrealArchitecture/Reference/Properties) ページをご覧ください。
+* UFUNCTIONS とイベントの作成について学ぶには、 [%Programming/UnrealArchitecture/Reference/Functions:title%](Programming/UnrealArchitecture/Reference/Functions) ページをご覧ください。
+* さらに詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページをご覧ください。
 
 
 %Steps%
