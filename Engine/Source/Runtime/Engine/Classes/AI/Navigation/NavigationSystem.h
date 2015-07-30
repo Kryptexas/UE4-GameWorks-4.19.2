@@ -292,13 +292,13 @@ public:
 
 	/** Finds path instantly, in a FindPath Synchronously. 
 	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
-	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (WorldContext="WorldContext"))
 	static UNavigationPath* FindPathToLocationSynchronously(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, AActor* PathfindingContext = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Finds path instantly, in a FindPath Synchronously. Main advantage over FindPathToLocationSynchronously is that 
 	 *	the resulting path with automatically get updated if goal actor moves more then TetherDistance away from last path node
 	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
-	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (WorldContext="WorldContext"))
 	static UNavigationPath* FindPathToActorSynchronously(UObject* WorldContext, const FVector& PathStart, AActor* GoalActor, float TetherDistance = 50.f, AActor* PathfindingContext = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Performs navigation raycast on NavigationData appropriate for given Querier.

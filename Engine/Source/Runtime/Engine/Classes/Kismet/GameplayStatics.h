@@ -617,7 +617,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static bool DeleteGameInSlot(const FString& SlotName, const int32 UserIndex);
 
 	/** Returns the frame delta time in seconds adjusted by e.g. time dilation. */
-	UFUNCTION(BlueprintPure, Category = "Utilities|Time", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category = "Utilities|Time", meta = (WorldContext="WorldContextObject"))
 	static float GetWorldDeltaSeconds(UObject* WorldContextObject);
 
 	/** Returns time in seconds since world was brought up for play, does NOT stop when game pauses, NOT dilated/clamped */

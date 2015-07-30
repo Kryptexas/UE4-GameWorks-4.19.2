@@ -197,7 +197,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AI|PawnActions")
 	TEnumAsByte<EAIRequestPriority::Type> GetActionPriority();
 
-	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (WorldContext="WorldContextObject"))
 	static UPawnAction* CreateActionInstance(UObject* WorldContextObject, TSubclassOf<UPawnAction> ActionClass);
 
 	//----------------------------------------------------------------------//

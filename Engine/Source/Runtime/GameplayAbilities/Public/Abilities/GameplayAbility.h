@@ -749,10 +749,10 @@ protected:
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 
-	UFUNCTION(BlueprintPure, Category = Ability, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category = Ability)
 	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerActor();
 
-	UFUNCTION(BlueprintPure, Category = Ability, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category = Ability)
 	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName);
 
 	// ----------------------------------------------------------------------------------------------------------------
