@@ -1771,12 +1771,6 @@ void FSceneRenderTargets::AllocateRenderTargets()
 {
 	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(CurrentShadingPath))
 	{
-		// start with a defined state for the scissor rect (D3D11 was returning (0,0,0,0) which caused a clear to not execute correctly)
-		// todo: move this to an earlier place (for dx9 is has to be after device creation which is after window creation)
-		// todo: potentially redundant now? Seems like a strange thing to have here anyway???
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
-
 		if ((EShadingPath)CurrentShadingPath == EShadingPath::Forward)
 		{
 			AllocateForwardShadingPathRenderTargets();
