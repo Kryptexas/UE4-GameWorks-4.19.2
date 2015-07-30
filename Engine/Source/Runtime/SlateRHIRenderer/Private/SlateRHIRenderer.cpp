@@ -566,8 +566,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		Policy.BeginDrawingWindows();
 	});
 
-	// Clear accessed UTexture and Material objects from the previous frame
-	ResourceManager->ClearAccessedResources();
+	ReleaseAccessedResources();
 
 	// Update texture atlases if needed
 	ResourceManager->UpdateTextureAtlases();
@@ -1208,8 +1207,14 @@ void FSlateRHIRenderer::InvalidateAllViewports()
 {
 	for( TMap< const SWindow*, FViewportInfo*>::TIterator It(WindowToViewportInfo); It; ++It )
 	{
-		It.Value()->ViewportRHI = NULL;
+		It.Value()->ViewportRHI = nullptr;
 	}
+}
+
+void FSlateRHIRenderer::ReleaseAccessedResources()
+{
+	// Clear accessed UTexture and Material objects from the previous frame
+	ResourceManager->ReleaseAccessedResources();
 }
 
 void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight )

@@ -2039,6 +2039,11 @@ void FSlateApplication::UnregisterGameViewport()
 		GameViewportWidget.Pin()->SetActive(false);
 	}
 	GameViewportWidget.Reset();
+
+	// Release any temporary material or texture resources we may have cached and are reporting to prevent
+	// GC on those resources.  If the game viewport is being unregistered, we need to flush these resources
+	// to allow for them to be GC'ed.
+	Renderer->ReleaseAccessedResources();
 }
 
 TSharedPtr<SViewport> FSlateApplication::GetGameViewport() const
