@@ -251,6 +251,17 @@ struct glsl_switch_state
 	class ast_case_label *previous_default;
 
 	bool is_switch_innermost; // if switch stmt is closest to break, ...
+
+	glsl_switch_state() :
+		test_var(nullptr),
+		is_fallthru_var(nullptr),
+		is_break_var(nullptr),
+		switch_nesting_ast(nullptr),
+		labels_ht(nullptr),
+		previous_default(nullptr),
+		is_switch_innermost(false)
+	{
+	}
 };
 
 

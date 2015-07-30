@@ -12,12 +12,19 @@ namespace CCT
 		InputFile(""),
 		OutputFile(""),
 		BackEnd(BE_Invalid),
+		bValidate(true),
 		bRunCPP(true),
 		bUseNew(false),
 		bList(false),
 		bPreprocessOnly(false),
-		bForcePackedUBs(false),
-		bPackGlobalsIntoUB(false)
+		bPackIntoUBs(false),
+		bUseDX11Clip(false),
+		bFlattenUBs(false),
+		bFlattenUBStructs(false),
+		bGroupFlattenUBs(false),
+		bCSE(false),
+		bExpandExpressions(false),
+		bSeparateShaders(false)
 	{
 	}
 
@@ -29,8 +36,17 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-o=file\tOutput filename"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-entry=function\tMain entry point (defaults to Main())"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cpp\tOnly run C preprocessor"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tFlags:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-nocpp\tDo not run C preprocessor"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-novalidate\tDo not run AST/IR validation"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-dx11clip\tUse DX11 Clip space fixup at end of VS"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-flattenub\tRemoves/flattens UBs and puts them in a global packed array"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-flattenubstruct\tFlatten UB structures"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-groupflatub\tGroup flattened UBs"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cse\tRun common subexpression elimination"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-xpxpr\tExpand expressions"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-separateshaders\tUse the separate shaders flags"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-packintoubs\tMove packed global uniform arrays into a uniform buffer"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tProfiles:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-vs\tCompile as a Vertex Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-ps\tCompile as a Pixel Shader"));
@@ -275,13 +291,41 @@ namespace CCT
 			{
 				bList = true;
 			}
+			else if (Switch.StartsWith(TEXT("flattenubstruct")))
+			{
+				bFlattenUBStructs = true;
+			}
 			else if (Switch.StartsWith(TEXT("flattenub")))
 			{
-				bForcePackedUBs = true;
+				bFlattenUBs = true;
 			}
-			else if (Switch.StartsWith(TEXT("packglobalsintoub")))
+			else if (Switch.StartsWith(TEXT("groupflatub")))
 			{
-				bPackGlobalsIntoUB = true;
+				bGroupFlattenUBs = true;
+			}
+			else if (Switch.StartsWith(TEXT("packintoubs")))
+			{
+				bPackIntoUBs = true;
+			}
+			else if (Switch.StartsWith(TEXT("cse")))
+			{
+				bCSE = true;
+			}
+			else if (Switch.StartsWith(TEXT("novalidate")))
+			{
+				bValidate = false;
+			}
+			else if (Switch.StartsWith(TEXT("dx11clip")))
+			{
+				bUseDX11Clip = true;
+			}
+			else if (Switch.StartsWith(TEXT("xpxpr")))
+			{
+				bExpandExpressions = true;
+			}
+			else if (Switch.StartsWith(TEXT("separateshaders")))
+			{
+				bSeparateShaders = true;
 			}
 		}
 

@@ -33,11 +33,17 @@ namespace CCT
 		ILanguageSpec* Language = nullptr;
 		FCodeBackend* Backend = nullptr;
 
-		uint32 Flags = 0;
-
+		uint32 Flags = HLSLCC_PackUniforms;
+		Flags |= RunInfo.bValidate ? 0 : HLSLCC_NoValidation;
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
-		Flags |= RunInfo.bForcePackedUBs ? (HLSLCC_PackUniforms | HLSLCC_FlattenUniformBufferStructures | HLSLCC_FlattenUniformBuffers) : 0;
-		Flags |= RunInfo.bPackGlobalsIntoUB ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
+		Flags |= RunInfo.bPackIntoUBs ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
+		Flags |= RunInfo.bUseDX11Clip ? HLSLCC_DX11ClipSpace : 0;
+		Flags |= RunInfo.bFlattenUBs ? HLSLCC_FlattenUniformBuffers : 0;
+		Flags |= RunInfo.bFlattenUBStructs ? HLSLCC_FlattenUniformBufferStructures : 0;
+		Flags |= RunInfo.bGroupFlattenUBs ? HLSLCC_GroupFlattenedUniformBuffers : 0;
+		Flags |= RunInfo.bCSE ? HLSLCC_ApplyCommonSubexpressionElimination : 0;
+		Flags |= RunInfo.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
+		Flags |= RunInfo.bSeparateShaders ? HLSLCC_SeparateShaderObjects : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);

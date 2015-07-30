@@ -9,6 +9,54 @@
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);
 
+/**
+ * The shader frequency.
+ */
+enum EHlslShaderFrequency
+{
+	HSF_VertexShader,
+	HSF_PixelShader,
+	HSF_GeometryShader,
+	HSF_HullShader,
+	HSF_DomainShader,
+	HSF_ComputeShader,
+	HSF_FrequencyCount,
+	HSF_InvalidFrequency = -1
+};
+
+/**
+ * Compilation flags. See PackUniformBuffers.h for details on Grouping/Packing uniforms.
+ */
+enum EHlslCompileFlag
+{
+	/** Disables validation of the IR. */
+	HLSLCC_NoValidation = 0x1,
+	/** Disabled preprocessing. */
+	HLSLCC_NoPreprocess = 0x2,
+	/** Pack uniforms into typed arrays. */
+	HLSLCC_PackUniforms = 0x4,
+	/** Assume that input shaders output into DX11 clip space,
+	 * and adjust them for OpenGL clip space. */
+	HLSLCC_DX11ClipSpace = 0x8,
+	/** Print AST for debug purposes. */
+	HLSLCC_PrintAST = 0x10,
+	// Removed any structures embedded on uniform buffers flattens them into elements of the uniform buffer (Mostly for ES 2: this implies PackUniforms).
+	HLSLCC_FlattenUniformBufferStructures = 0x20 | HLSLCC_PackUniforms,
+	// Removes uniform buffers and flattens them into globals (Mostly for ES 2: this implies PackUniforms & Flatten Structures).
+	HLSLCC_FlattenUniformBuffers = 0x40 | HLSLCC_PackUniforms | HLSLCC_FlattenUniformBufferStructures,
+	// Groups flattened uniform buffers per uniform buffer source/precision (Implies Flatten UBs)
+	HLSLCC_GroupFlattenedUniformBuffers = 0x80 | HLSLCC_FlattenUniformBuffers,
+	// Remove redundant subexpressions [including texture fetches] (to workaround certain drivers who can't optimize redundant texture fetches)
+	HLSLCC_ApplyCommonSubexpressionElimination = 0x100,
+	// Expand subexpressions/obfuscate (to workaround certain drivers who can't deal with long nested expressions)
+	HLSLCC_ExpandSubexpressions = 0x200,
+	// Generate shaders compatible with the separate_shader_objects extension
+	HLSLCC_SeparateShaderObjects = 0x400,
+	// Finds variables being used as atomics and changes all references to use atomic reads/writes
+	HLSLCC_FixAtomicReferences = 0x800,
+	// Packs global uniforms & flattens structures, and makes each packed array its own uniform buffer
+	HLSLCC_PackUniformsIntoUniformBuffers = 0x1000 | HLSLCC_PackUniforms,
+};
 
 int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT)
 {
@@ -277,16 +325,39 @@ bool RemoveUniformBuffersFromSource(FString& SourceCode)
 
 namespace CrossCompiler
 {
-	FString CreateBatchFileContents(const FString& ShaderFile, const FString& OutputFile, const FString& FrequencySwitch, const FString& EntryPoint, const FString& VersionSwitch, const FString& ExtraArguments)
+	FString CreateBatchFileContents(const FString& ShaderFile, const FString& OutputFile, uint32 Frequency, const FString& EntryPoint, const FString& VersionSwitch, uint32 CCFlags, const FString& ExtraArguments)
 	{
+		const TCHAR* FrequencySwitch = TEXT("");
+		switch (Frequency)
+		{
+		case HSF_PixelShader:		FrequencySwitch = TEXT(" -ps"); break;
+		case HSF_VertexShader:		FrequencySwitch = TEXT(" -vs"); break;
+		case HSF_HullShader:		FrequencySwitch = TEXT(" -hs"); break;
+		case HSF_DomainShader:		FrequencySwitch = TEXT(" -ds"); break;
+		case HSF_ComputeShader:		FrequencySwitch = TEXT(" -cs"); break;
+		case HSF_GeometryShader:	FrequencySwitch = TEXT(" -gs"); break;
+		default:					check(0); break;
+		}
+
+		FString CCTCmdLine = ExtraArguments;
+		CCTCmdLine += ((CCFlags & HLSLCC_NoValidation) == HLSLCC_NoValidation) ? TEXT(" -novalidate") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_DX11ClipSpace) == HLSLCC_DX11ClipSpace) ? TEXT(" -dx11clip") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_NoPreprocess) == HLSLCC_NoPreprocess) ? TEXT(" -nopp") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_FlattenUniformBuffers) == HLSLCC_FlattenUniformBuffers) ? TEXT(" -flattenub") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_FlattenUniformBufferStructures) == HLSLCC_FlattenUniformBufferStructures) ? TEXT(" -flattenubstruct") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers) ? TEXT(" -groupflatub") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) == HLSLCC_ApplyCommonSubexpressionElimination) ? TEXT(" -cse") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_ExpandSubexpressions) == HLSLCC_ExpandSubexpressions) ? TEXT(" -xpxpr") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_SeparateShaderObjects) == HLSLCC_SeparateShaderObjects) ? TEXT(" -separateshaders") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_PackUniformsIntoUniformBuffers) == HLSLCC_PackUniformsIntoUniformBuffers) ? TEXT(" -packglobalsintoub") : TEXT("");
 		FString BatchFile;
 		if (PLATFORM_MAC)
 		{
-			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Source/ThirdParty/hlslcc/hlslcc/bin/Mac/hlslcc_64 %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
+			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Source/ThirdParty/hlslcc/hlslcc/bin/Mac/hlslcc_64 %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
 		}
 		else if (PLATFORM_LINUX)
 		{
-			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
+			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
 		}
 		else if (PLATFORM_WINDOWS)
 		{
@@ -294,7 +365,7 @@ namespace CrossCompiler
 			BatchFile += TEXT("\nif defined ue.hlslcc GOTO DONE\nset ue.hlslcc=");
 			BatchFile += FPaths::RootDir() / TEXT("Engine\\Binaries\\Win64\\CrossCompilerTool.exe");
 			BatchFile += TEXT("\n\n:DONE\n%ue.hlslcc% ");
-			BatchFile += FString::Printf(TEXT("\"%s\" -o=\"%s\" %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
+			BatchFile += FString::Printf(TEXT("\"%s\" -o=\"%s\" %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
 			BatchFile += TEXT("\npause\n");
 		}
 		else

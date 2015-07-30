@@ -1124,52 +1124,18 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 
 static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
 {
-	const TCHAR* FrequencySwitch = TEXT("");
-	switch (Frequency)
-	{
-		case HSF_PixelShader:
-			FrequencySwitch = TEXT(" -ps");
-			break;
-
-		case HSF_VertexShader:
-			FrequencySwitch = TEXT(" -vs");
-			break;
-
-		case HSF_HullShader:
-			FrequencySwitch = TEXT(" -hs");
-			break;
-
-		case HSF_DomainShader:
-			FrequencySwitch = TEXT(" -ds");
-			break;
-
-		case HSF_ComputeShader:
-			FrequencySwitch = TEXT(" -cs");
-			break;
-
-		case HSF_GeometryShader:
-			FrequencySwitch = TEXT(" -gs");
-			break;
-
-		default:
-			check(0);
-	}
-
 	const TCHAR* VersionSwitch = TEXT("");
 	switch (Version)
 	{
 		case GLSL_150:
 		case GLSL_150_ES2:
 		case GLSL_150_ES3_1:
-			VersionSwitch = TEXT(" -gl3 -separateshaders");
+		case GLSL_150_ES2_NOUB:
+			VersionSwitch = TEXT(" -gl3");
 			break;
 
 		case GLSL_150_MAC:
-			VersionSwitch = TEXT(" -gl3 -mac -separateshaders");
-			break;
-
-		case GLSL_150_ES2_NOUB:
-			VersionSwitch = TEXT(" -gl3 -flattenub -flattenubstruct -separateshaders");
+			VersionSwitch = TEXT(" -gl3 -mac");
 			break;
 
 		case GLSL_310_ES_EXT:
@@ -1177,14 +1143,11 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			break;
 
 		case GLSL_430:
-			VersionSwitch = TEXT(" -gl4 -separateshaders");
+			VersionSwitch = TEXT(" -gl4");
 			break;
 
 		case GLSL_ES2:
 		case GLSL_ES2_WEBGL:
-			VersionSwitch = TEXT(" -es2");
-			break;
-
 		case GLSL_ES2_IOS:
 			VersionSwitch = TEXT(" -es2");
 			break;
@@ -1193,8 +1156,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			return TEXT("");
 	}
 
-	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
+	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, Frequency, EntryPoint, VersionSwitch, CCFlags, TEXT(""));
 }
 
 /**

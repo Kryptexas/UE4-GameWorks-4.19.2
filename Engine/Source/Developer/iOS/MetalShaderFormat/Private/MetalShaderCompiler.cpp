@@ -455,40 +455,8 @@ static void BuildMetalShaderOutput(
 
 static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, uint32 CCFlags ) 
 {
-	const TCHAR* FrequencySwitch = TEXT("");
-	switch (Frequency)
-	{
-		case HSF_PixelShader:
-			FrequencySwitch = TEXT(" -ps");
-			break;
-
-		case HSF_VertexShader:
-			FrequencySwitch = TEXT(" -vs");
-			break;
-
-		case HSF_HullShader:
-			FrequencySwitch = TEXT(" -hs");
-			break;
-
-		case HSF_DomainShader:
-			FrequencySwitch = TEXT(" -ds");
-			break;
-		case HSF_ComputeShader:
-			FrequencySwitch = TEXT(" -cs");
-			break;
-
-		case HSF_GeometryShader:
-			FrequencySwitch = TEXT(" -gs");
-			break;
-
-		default:
-			check(0);
-	}
-
 	const TCHAR* VersionSwitch = TEXT("-metal");
-	const TCHAR* FlattenUB = ((CCFlags & HLSLCC_FlattenUniformBuffers) == HLSLCC_FlattenUniformBuffers) ? TEXT("-flattenub") : TEXT("");
-
-	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, FlattenUB);
+	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, Frequency, EntryPoint, VersionSwitch, CCFlags, TEXT(""));
 }
 
 void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory)

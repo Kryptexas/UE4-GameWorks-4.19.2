@@ -69,9 +69,10 @@ namespace CrossCompiler
 	extern SHADERCOMPILERCOMMON_API FString CreateBatchFileContents(
 		const FString& ShaderFile,
 		const FString& OutputFile,
-		const FString& FrequencySwitch,
+		uint32 Frequency,
 		const FString& EntryPoint,
 		const FString& VersionSwitch,
+		uint32 CCFlags,
 		const FString& ExtraArguments = TEXT(""));
 
 	extern SHADERCOMPILERCOMMON_API void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine);
