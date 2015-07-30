@@ -2725,10 +2725,13 @@ void FBlueprintEditor::FixSubObjectReferencesPostUndoRedo(UObject* InObject)
 			// The property and sub-objects should have the same name.
 			if (PropertySubObject->GetFName() == SubObject->GetFName())
 			{
+				// We found a matching property, we do not want to re-make the property
+				bFoundMatchingSubObject = true;
+
+				// Check if the properties have different outers so we can map old-to-new
 				if (PropertySubObject->GetOuter() != InObject)
 				{
 					OldToNewInstanceMap.Add(PropertySubObject, SubObject);
-					bFoundMatchingSubObject = true;
 				}
 				// Recurse on the SubObject to correct any sub-object/property references
 				FixSubObjectReferencesPostUndoRedo(SubObject);
