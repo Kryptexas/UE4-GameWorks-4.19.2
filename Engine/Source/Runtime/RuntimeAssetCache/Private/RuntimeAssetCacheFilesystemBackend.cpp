@@ -60,7 +60,8 @@ FRuntimeAssetCacheBucket* FRuntimeAssetCacheFilesystemBackend::PreLoadBucket(FNa
 			{
 				return true;
 			}
-			FArchive* Ar = Backend->CreateReadArchive(BucketName, FilenameOrDirectory);
+			FString CacheKey = FPaths::GetBaseFilename(FilenameOrDirectory);
+			FArchive* Ar = Backend->CreateReadArchive(BucketName, *CacheKey);
 			FCacheEntryMetadata* Metadata = Backend->PreloadMetadata(Ar);
 			Bucket->AddMetadataEntry(*FPaths::GetBaseFilename(FilenameOrDirectory), Metadata, true);
 			delete Ar;
