@@ -460,6 +460,7 @@ UBrushComponent::UBrushComponent(const FObjectInitializer& ObjectInitializer)
 	bUseAsOccluder = true;
 	bUseEditorCompositing = true;
 	bCanEverAffectNavigation = true;
+	PrePivot_DEPRECATED = FVector::ZeroVector;
 }
 
 FPrimitiveSceneProxy* UBrushComponent::CreateSceneProxy()
@@ -547,9 +548,12 @@ void UBrushComponent::PostLoad()
 
 #if WITH_EDITOR
 	AActor* Owner = GetOwner();
+
 	if (Owner)
 	{
+		AddRelativeLocation(GetComponentTransform().TransformVector(-PrePivot_DEPRECATED));
 		Owner->SetPivotOffset(PrePivot_DEPRECATED);
+		PrePivot_DEPRECATED = FVector::ZeroVector;
 	}
 #endif
 }
