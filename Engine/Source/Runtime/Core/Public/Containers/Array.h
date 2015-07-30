@@ -1626,6 +1626,16 @@ public:
 	}
 
 	/**
+	 * Does nothing except setting the new number of elements in the array. Does not destruct items, does not de-allocate memory.
+	 * @param NewNum New number of elements in the array, must be <= the current number of elements in the array.
+	 */
+	void SetNumUnsafeInternal(int32 NewNum)
+	{
+		checkSlow(NewNum <= Num() && NewNum >= 0);
+		ArrayNum = NewNum;
+	}
+
+	/**
 	 * Appends the specified array to this array.
 	 *
 	 * Allocator changing version.
