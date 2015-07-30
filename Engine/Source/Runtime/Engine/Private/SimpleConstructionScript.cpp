@@ -926,7 +926,66 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 		else if(RootComponentTemplate != nullptr
 			&& RootNodes.Contains(DefaultSceneRootNode))
 		{
+			// If the default scene root has any child nodes, determine what they should parent to.
+			USCS_Node* RootNode = nullptr;
+			bool bIsParentComponentNative = false;
+			FName ParentComponentOrVariableName = NAME_None;
+			FName ParentComponentOwnerClassName = NAME_None;
+			if(UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(RootComponentTemplate->GetOuter()))
+			{
+				// The root scene component is an SCS node.
+				if(BPClass->SimpleConstructionScript != nullptr)
+				{
+					const TArray<USCS_Node*> SCSRootNodes = BPClass->SimpleConstructionScript->GetRootNodes();
+					for(USCS_Node* SCSNode : SCSRootNodes)
+					{
+						if(SCSNode != nullptr && SCSNode->ComponentTemplate == RootComponentTemplate)
+						{
+							if(BPClass->SimpleConstructionScript != this)
+							{
+								// The root node is inherited from a parent BP class.
+								ParentComponentOwnerClassName = BPClass->GetFName();
+								ParentComponentOrVariableName = SCSNode->VariableName;
+							}
+							else
+							{
+								// The root node belongs to the current BP class.
+								RootNode = SCSNode;
+							}
+							
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				// The root scene component is a native component.
+				bIsParentComponentNative = true;
+				ParentComponentOrVariableName = RootComponentTemplate->GetFName();
+			}
+
+			// Reparent any child nodes within the current hierarchy.
+			for(USCS_Node* ChildNode : DefaultSceneRootNode->ChildNodes)
+			{
+				if(RootNode != nullptr)
+				{
+					// We have an existing root node within the current BP class.
+					RootNode->AddChildNode(ChildNode);
+				}
+				else
+				{
+					// The current root node is inherited from a parent class (may be BP or native).
+					RootNodes.Add(ChildNode);
+					ChildNode->bIsParentComponentNative = bIsParentComponentNative;
+					ChildNode->ParentComponentOrVariableName = ParentComponentOrVariableName;
+					ChildNode->ParentComponentOwnerClassName = ParentComponentOwnerClassName;
+				}
+			}
+
+			// Remove the default scene root node from the current hierarchy.
 			RootNodes.Remove(DefaultSceneRootNode);
+			DefaultSceneRootNode->ChildNodes.Empty();
 
 			// These shouldn't be set, but just in case...
 			DefaultSceneRootNode->bIsParentComponentNative = false;
