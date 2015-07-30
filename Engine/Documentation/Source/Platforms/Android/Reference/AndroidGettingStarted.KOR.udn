@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2605247
+﻿INTSourceChangelist:2637571
 Availability:Public
 Title: 안드로이드 개발 참고서
 Crumbs:%ROOT%, Platforms, Platforms/Android
@@ -9,8 +9,6 @@ Description:다양한 안드로이드 SDK 설치, 환경 변수 설정, 텍스�
 %Globals:OSSelect%
 
 
-
-## 개요
 
 현재 안드로이드 게임 개발용 필수 사항은 이와 같습니다:
 

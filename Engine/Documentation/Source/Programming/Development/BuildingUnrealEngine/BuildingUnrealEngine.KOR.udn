@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632917
+﻿INTSourceChangelist:2635412
 Availability:Public
 Title:소스에서 언리얼 엔진 빌드하기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -12,6 +12,7 @@ Related: Programming/QuickStart
 Related: Engine/QuickStart
 Related: Support/Builds
 Version: 4.8
+SkillLevel: Advanced
 
 %Globals:osselect_linux%
 

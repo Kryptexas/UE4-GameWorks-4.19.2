@@ -1,4 +1,4 @@
-INTSourceChangelist:2117133
+﻿INTSourceChangelist:2636094
 Availability: Public
 Title:버텍스 컬러 머티리얼
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
@@ -15,8 +15,9 @@ Vertex Color 머티리얼 표현식에서의 컬러를 사용할 수 있는 방�
 
 **클릭하면 크게 볼 수 있습니다.**
 
- [![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
-
+[REGION:lightbox]
+[![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
+[/REGION]
 
 [REGION:note]
 이 머티리얼은 약간 탈색시켜서, 메시 페인트 모드 툴로 칠할 수 있는 여지를 조금 남겨둔 것입니다.
@@ -27,8 +28,10 @@ Vertex Color 머티리얼 표현식에서의 컬러를 사용할 수 있는 방�
 
  **클릭하면 크게 볼 수 있습니다.**
 
+ 
+[REGION:lightbox]
 [![](VertexColorAdded.png)(w:720)](VertexColorAdded.png)
-
+[/REGION]
 
 코멘트를 단 부분에 보면 Multiply 노드와 해당 Vertex Color 노드를 추가시킨 것을 볼 수 있습니다.
 

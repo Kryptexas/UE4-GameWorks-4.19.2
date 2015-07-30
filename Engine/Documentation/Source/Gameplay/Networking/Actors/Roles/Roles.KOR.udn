@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2637520
 Availability:Public
 Title: 액터 롤 및 리모트 롤
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -8,7 +8,7 @@ Related: Gameplay/Networking/Server
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 리플리케이션 관련해서 액터에 중요한 프로퍼티가 두 가지 있습니다. `Role` (롤)과 `Remote Role` (리모트 롤)입니다.
 

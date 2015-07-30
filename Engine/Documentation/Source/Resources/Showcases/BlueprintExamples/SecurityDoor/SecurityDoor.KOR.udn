@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614050
+﻿INTSourceChangelist:2637536
 Availability: Public
 Title:보안 카메라, 알람, 문
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -47,8 +47,8 @@ Timeline 에는 애니메이션 트랙이 몇 개든 있을 수 있으며, 그 �
 
 
 
-[REGION:fullwidth]
-![](CameraEG.png)
+[REGION:lightbox]
+![](CameraEG.png)(w:920)
 [/REGION]
 
 
@@ -99,7 +99,9 @@ Alarm Blueprint 는 플레이어가 보안 카메라 범위에 걸려 알람을 
 | **Construction Script** | [INCLUDE:#AlarmCS] |
 | **Event Graph** | [INCLUDE:#AlarmEG]  |
 
-![](AlarmGraph.png)
+[Region:lightbox]
+![](AlarmGraph.png)(w:920)
+[/region]
 
 
 ### 편집가능 변수

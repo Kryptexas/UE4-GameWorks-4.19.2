@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2635791
 Availability:Public
 Title: 3. 기본 애셋 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -45,7 +45,7 @@ Description:3 단계. 기본 애셋 생성
 
 	이 **블루프린트** 이름은 `AI_Character` 라 합니다.
 
-1. **생성** -> **기타** -> **비헤이비어 트리**
+1. **생성** -> **인공 지능** -> **비헤이비어 트리**
 
 	[REGION:raw]
 	![](newBT.png)
@@ -53,7 +53,7 @@ Description:3 단계. 기본 애셋 생성
 
 	**비헤이비어 트리** 이름을 `FollowerBT` 로 합니다.
 
-1. **생성** -> **기타 * ->  **블랙보드** 입니다.
+1. **생성** -> **인공 지능** ->  **블랙보드** 입니다.
 	
 	[REGION:raw]
 	![](newBB.png)
@@ -63,3 +63,7 @@ Description:3 단계. 기본 애셋 생성
 
 
 %Steps%
+
+
+
+

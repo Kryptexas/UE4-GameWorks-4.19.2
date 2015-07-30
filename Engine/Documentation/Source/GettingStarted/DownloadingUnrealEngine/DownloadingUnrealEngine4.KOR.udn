@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632917
+﻿INTSourceChangelist:2635412
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -7,6 +7,7 @@ Prereq: GettingStarted/RecommendedSpecifications
 Related: Programming/Development/BuildingUnrealEngine
 Related: Support/Builds
 Version: 4.8
+SkillLevel: Advanced
 
 [TOC (start:2 end:3)]
 
