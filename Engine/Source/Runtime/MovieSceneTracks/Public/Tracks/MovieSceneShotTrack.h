@@ -19,6 +19,7 @@ public:
 	/** UMovieSceneTrack interface */
 	virtual FName GetTrackName() const override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
+	virtual void AddSection( UMovieSceneSection* Section ) override;
 	virtual void RemoveSection( UMovieSceneSection* Section ) override;
 
 	/** 

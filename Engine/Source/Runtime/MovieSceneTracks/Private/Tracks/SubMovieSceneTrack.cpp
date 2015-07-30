@@ -40,6 +40,15 @@ const TArray<UMovieSceneSection*>& USubMovieSceneTrack::GetAllSections() const
 	return SubMovieSceneSections;
 }
 
+void USubMovieSceneTrack::AddSection( UMovieSceneSection* Section )
+{
+	USubMovieSceneSection* SubMovieSceneSection = Cast<USubMovieSceneSection>( Section );
+	if(SubMovieSceneSection)
+	{
+		SubMovieSceneSections.Add( SubMovieSceneSection );
+	}
+}
+
 void USubMovieSceneTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	USubMovieSceneSection* SubMovieSceneSection = Cast<USubMovieSceneSection>( Section );

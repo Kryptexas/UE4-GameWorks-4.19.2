@@ -34,6 +34,11 @@ bool UMovieScene3DPathTrack::HasSection( UMovieSceneSection* Section ) const
 	return PathSections.Find( Section ) != INDEX_NONE;
 }
 
+void UMovieScene3DPathTrack::AddSection( UMovieSceneSection* Section )
+{
+	PathSections.Add( Section );
+}
+
 void UMovieScene3DPathTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	PathSections.Remove( Section );

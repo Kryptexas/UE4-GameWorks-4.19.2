@@ -70,6 +70,13 @@ public:
 	virtual bool HasSection( UMovieSceneSection* Section ) const PURE_VIRTUAL( UMovieSceneSection::HasSection, return false; );
 
 	/**
+	 * Add a section to this track
+	 *
+	 * @param Section	The section to add
+	 */
+	virtual void AddSection( UMovieSceneSection* Section ) PURE_VIRTUAL( UMovieSceneSection::AddSection, );
+
+	/**
 	 * Removes a section from this track
 	 *
 	 * @param Section	The section to remove

@@ -26,6 +26,11 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneShotTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneShotTrackInstance( *this ) ); 
 }
 
+void UMovieSceneShotTrack::AddSection( UMovieSceneSection* Section )
+{
+	Super::AddSection( Section );
+}
+
 void UMovieSceneShotTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	Super::RemoveSection( Section );

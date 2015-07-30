@@ -41,6 +41,11 @@ bool UMovieSceneAudioTrack::HasSection( UMovieSceneSection* Section ) const
 	return AudioSections.Find( Section ) != INDEX_NONE;
 }
 
+void UMovieSceneAudioTrack::AddSection( UMovieSceneSection* Section )
+{
+	AudioSections.Add( Section );
+}
+
 void UMovieSceneAudioTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	AudioSections.Remove( Section );

@@ -38,11 +38,15 @@ bool UMovieScenePropertyTrack::HasSection( UMovieSceneSection* Section ) const
 }
 
 
+void UMovieScenePropertyTrack::AddSection( UMovieSceneSection* Section ) 
+{
+	Sections.Add( Section );
+}
+
 void UMovieScenePropertyTrack::RemoveSection( UMovieSceneSection* Section ) 
 {
 	Sections.Remove( Section );
 }
-
 
 bool UMovieScenePropertyTrack::IsEmpty() const
 {
