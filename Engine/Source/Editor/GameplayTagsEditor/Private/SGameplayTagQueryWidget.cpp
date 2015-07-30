@@ -50,45 +50,37 @@ void SGameplayTagQueryWidget::Construct(const FArguments& InArgs, const TArray<F
 
 	ChildSlot
 	[
-		SNew(SScaleBox)
-		.HAlign(EHorizontalAlignment::HAlign_Left)
-		.VAlign(EVerticalAlignment::VAlign_Top)
-		.StretchDirection(EStretchDirection::DownOnly)
-		.Stretch(EStretch::ScaleToFit)
-		.Content()
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.VAlign(VAlign_Top)
 			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.VAlign(VAlign_Top)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.IsEnabled(!bReadOnly)
-						.Visibility(this, &SGameplayTagQueryWidget::GetSaveAndCloseButtonVisibility)
-						.OnClicked(this, &SGameplayTagQueryWidget::OnSaveAndCloseClicked)
-						.Text(LOCTEXT("GameplayTagQueryWidget_SaveAndClose", "Save and Close"))
-					]
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.Visibility(this, &SGameplayTagQueryWidget::GetCancelButtonVisibility)
-						.OnClicked(this, &SGameplayTagQueryWidget::OnCancelClicked)
-						.Text(LOCTEXT("GameplayTagQueryWidget_Cancel", "Close Without Saving"))
-					]
+					SNew(SButton)
+					.IsEnabled(!bReadOnly)
+					.Visibility(this, &SGameplayTagQueryWidget::GetSaveAndCloseButtonVisibility)
+					.OnClicked(this, &SGameplayTagQueryWidget::OnSaveAndCloseClicked)
+					.Text(LOCTEXT("GameplayTagQueryWidget_SaveAndClose", "Save and Close"))
 				]
-				// to delete!
-				+ SVerticalBox::Slot()
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
 				[
-					Details.ToSharedRef()
+					SNew(SButton)
+					.Visibility(this, &SGameplayTagQueryWidget::GetCancelButtonVisibility)
+					.OnClicked(this, &SGameplayTagQueryWidget::OnCancelClicked)
+					.Text(LOCTEXT("GameplayTagQueryWidget_Cancel", "Close Without Saving"))
 				]
+			]
+			// to delete!
+			+ SVerticalBox::Slot()
+			[
+				Details.ToSharedRef()
 			]
 		]
 	];
