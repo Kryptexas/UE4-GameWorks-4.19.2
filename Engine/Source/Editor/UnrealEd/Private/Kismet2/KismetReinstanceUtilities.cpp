@@ -534,6 +534,8 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 
 		if (QueueToReinstance.Num() && (QueueToReinstance[0] == SharedThis))
 		{
+			TSet<TWeakObjectPtr<UBlueprint>> CompiledBlueprints;
+
 			while (DependentBlueprintsToRecompile.Num())
 			{
 				auto Iter = DependentBlueprintsToRecompile.CreateIterator();
@@ -541,7 +543,8 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				Iter.RemoveCurrent();
 				if (auto BP = BPPtr.Get())
 				{
-					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
+					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, false, true);
+					CompiledBlueprints.Add(BP);
 				}
 			}
 
@@ -552,7 +555,8 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				Iter.RemoveCurrent();
 				if (auto BP = BPPtr.Get())
 				{
-					FKismetEditorUtilities::RecompileBlueprintBytecode(BP);
+					FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
+					CompiledBlueprints.Add(BP);
 				}
 			}
 
@@ -582,6 +586,11 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				}
 			}
 
+			for (auto CompiledBP : CompiledBlueprints)
+			{
+				CompiledBP->BroadcastCompiled();
+			}
+
 			{
 				BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprintsInReinstancer);
 				for (auto BPPtr : DependentBlueprintsToRefresh)
@@ -592,6 +601,11 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 					}
 				}
 				DependentBlueprintsToRefresh.Empty();
+			}
+
+			if (GEditor)
+			{
+				GEditor->BroadcastBlueprintCompiled();
 			}
 		}
 	}
