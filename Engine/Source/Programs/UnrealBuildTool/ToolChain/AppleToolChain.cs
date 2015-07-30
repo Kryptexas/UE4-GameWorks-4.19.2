@@ -36,6 +36,7 @@ namespace UnrealBuildTool
 					if (Results != null)
 					{
 						DeveloperDir = (string)Results["CommandOutput"];
+						DeveloperDir = DeveloperDir.TrimEnd();
 					}
 				}
 
