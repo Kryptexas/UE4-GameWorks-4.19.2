@@ -19,6 +19,7 @@
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #include "include/internal/cef_ptr.h"
 #include "include/cef_render_handler.h"
+#include "include/cef_jsdialog_handler.h"
 #pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
@@ -28,7 +29,7 @@
 /**
  * Helper for containing items required for CEF browser window creation.
  */
-struct  FWebBrowserWindowInfo
+struct FWebBrowserWindowInfo
 {
 	FWebBrowserWindowInfo(CefRefPtr<CefBrowser> InBrowser, CefRefPtr<FWebBrowserHandler> InHandler) 
 		: Browser(InBrowser)
@@ -178,6 +179,16 @@ public:
 		return DismissPopupEvent;
 	}
 
+	virtual FOnShowDialog& OnShowDialog() override
+	{
+		return ShowDialogDelegate;
+	}
+
+	virtual FOnDismissAllDialogs& OnDismissAllDialogs() override
+	{
+		return DismissAllDialogsDelegate;
+	}
+
 private:
 
 	/**
@@ -274,6 +285,21 @@ private:
 	 * Called when browser reports a key event that was not handled by it
 	 */
 	bool OnUnhandledKeyEvent(const CefKeyEvent& CefEvent);
+
+	/**
+	 * Handle showing javascript dialogs
+	 */
+	bool OnJSDialog(CefJSDialogHandler::JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage);
+
+	/**
+	 * Handle showing unload confirmation dialogs
+	 */
+	bool OnBeforeUnloadDialog(const CefString& MessageText, bool IsReload, CefRefPtr<CefJSDialogCallback> Callback);
+
+	/**
+	 * Notify when any and all pending dialogs should be canceled
+	 */
+	void OnResetDialogState();
 
 
 	/** Specifies if window creation functionality is available. 
@@ -436,17 +462,23 @@ private:
 	/** Delegate for notifying that a popup window is attempting to open. */
 	FOnBeforePopupDelegate BeforePopupDelegate;
 	
-	/** Delegate for handaling requests to create new windows. */
+	/** Delegate for handling requests to create new windows. */
 	FOnCreateWindow CreateWindowDelegate;
 
-	/** Delegate for handaling requests to close new windows that were created. */
+	/** Delegate for handling requests to close new windows that were created. */
 	FOnCloseWindow CloseWindowDelegate;
 
-	/** Delegate for handaling requests to show the popup menu. */
+	/** Delegate for handling requests to show the popup menu. */
 	FOnShowPopup ShowPopupEvent;
 
-	/** Delegate for hanaling requests to dismiss the current popup menu. */
+	/** Delegate for handling requests to dismiss the current popup menu. */
 	FOnDismissPopup DismissPopupEvent;
+
+	/** Delegate for showing dialogs. */
+	FOnShowDialog ShowDialogDelegate;
+
+	/** Delegate for dismissing all dialogs. */
+	FOnDismissAllDialogs DismissAllDialogsDelegate;
 
 	/** Tracks the current mouse cursor */
 	EMouseCursor::Type Cursor;

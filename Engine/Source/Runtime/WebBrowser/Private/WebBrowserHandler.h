@@ -33,6 +33,7 @@ class FWebBrowserHandler
 	, public CefRenderHandler
 	, public CefRequestHandler
 	, public CefKeyboardHandler
+	, public CefJSDialogHandler
 {
 public:
 
@@ -102,6 +103,11 @@ public:
 	}
 
 	virtual CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override
+	{
+		return this;
+	}
+
+	virtual CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override
 	{
 		return this;
 	}
@@ -191,6 +197,15 @@ public:
 	virtual bool OnKeyEvent(CefRefPtr<CefBrowser> Browser,
 		const CefKeyEvent& Event,
 		CefEventHandle OsEvent) override;
+
+public:
+	// CefJSDialogHandler interface
+
+	virtual bool OnJSDialog(CefRefPtr<CefBrowser> Browser, const CefString& OriginUrl, const CefString& AcceptLang, JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage) override;
+
+	virtual bool OnBeforeUnloadDialog(CefRefPtr<CefBrowser> Browser, const CefString& MessageText, bool IsReload, CefRefPtr<CefJSDialogCallback> Callback) override;
+
+	virtual void OnResetDialogState(CefRefPtr<CefBrowser> Browser) override;
 
 private:
 

@@ -454,6 +454,40 @@ bool FWebBrowserHandler::OnKeyEvent(CefRefPtr<CefBrowser> Browser,
 
 	return false;
 }
-#endif
+
+bool FWebBrowserHandler::OnJSDialog(CefRefPtr<CefBrowser> Browser, const CefString& OriginUrl, const CefString& AcceptLang, JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage)
+{
+	bool Retval = false;
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		Retval = BrowserWindow->OnJSDialog(DialogType, MessageText, DefaultPromptText, Callback, OutSuppressMessage);
+	}
+	return Retval;
+}
+
+bool FWebBrowserHandler::OnBeforeUnloadDialog(CefRefPtr<CefBrowser> Browser, const CefString& MessageText, bool IsReload, CefRefPtr<CefJSDialogCallback> Callback)
+{
+	bool Retval = false;
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		Retval = BrowserWindow->OnBeforeUnloadDialog(MessageText, IsReload, Callback);
+	}
+	return Retval;
+}
+
+void FWebBrowserHandler::OnResetDialogState(CefRefPtr<CefBrowser> Browser)
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->OnResetDialogState();
+	}
+}
+
+
+
+#endif // WITH_CEF
 
 #undef LOCTEXT_NAMESPACE

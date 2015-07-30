@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SlateBasics.h"
+#include "IWebBrowserDialog.h"
 
 enum class EWebBrowserDocumentState;
 class IWebBrowserWindow;
@@ -21,6 +22,7 @@ class WEBBROWSER_API SWebBrowser
 public:
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString&, bool)
 	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnLoadUrl, const FString& /*Method*/, const FString& /*Url*/, FString& /* Response */)
+	DECLARE_DELEGATE_RetVal_OneParam(EWebBrowserDialogEventResponse, FOnShowDialog, const TWeakPtr<IWebBrowserDialog>&);
 
 	SLATE_BEGIN_ARGS(SWebBrowser)
 		: _InitialURL(TEXT("https://www.google.com"))
@@ -96,6 +98,13 @@ public:
 	
 		/** Called to allow bypassing page content on load. */
 		SLATE_EVENT(FOnLoadUrl, OnLoadUrl)
+
+		/** Called when the browser needs to show a dialog to the user. */
+		SLATE_EVENT(FOnShowDialog, OnShowDialog)
+
+		/** Called to dismiss any dialogs shown via OnShowDialog. */
+		SLATE_EVENT(FSimpleDelegate, OnDismissAllDialogs)
+
 	SLATE_END_ARGS()
 
 
@@ -250,6 +259,12 @@ private:
 	 */
 	bool HandleCloseWindow(const TWeakPtr<IWebBrowserWindow>& BrowserWindow);
 
+	/** Callback for showing dialogs to the user */
+	EWebBrowserDialogEventResponse HandleShowDialog(const TWeakPtr<IWebBrowserDialog>& DialogParams);
+
+	/** Callback for dismissing any dialogs previously shown  */
+	void HandleDismissAllDialogs();
+
 	/** Callback for popup window permission */
 	bool HandleBeforePopup(FString URL, FString Target);
 
@@ -324,4 +339,11 @@ private:
 	
 	/** A delegate that is invoked when loading a resource, allowing the application to provide contents directly */
 	FOnLoadUrl OnLoadUrl;
+
+	/** A delegate that is invoked when when the browser needs to present a dialog to the user */
+	FOnShowDialog OnShowDialog;
+
+	/** A delegate that is invoked when when the browser needs to dismiss all dialogs */
+	FSimpleDelegate OnDismissAllDialogs;
+
 };

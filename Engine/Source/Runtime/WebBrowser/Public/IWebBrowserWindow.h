@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IWebbrowserDialog.h"
 
 struct FGeometry;
 struct FKeyEvent;
@@ -11,6 +12,7 @@ class FReply;
 class FCursorReply;
 class FSlateShaderResource;
 class IWebBrowserPopupFeatures;
+
 
 enum class EWebBrowserDocumentState
 {
@@ -286,6 +288,14 @@ public:
 	/** A delegate that is invoked when the browser no longer wants to show the popup menu. */
 	DECLARE_EVENT(IWebBrowserWindow, FOnDismissPopup)
 	virtual FOnDismissPopup& OnDismissPopup() = 0;
+
+	/** A delegate that is invoked when the browser needs to show a dialog. */
+	DECLARE_DELEGATE_RetVal_OneParam(EWebBrowserDialogEventResponse, FOnShowDialog, const TWeakPtr<IWebBrowserDialog>& /*DialogParams*/)
+	virtual FOnShowDialog& OnShowDialog() = 0;
+
+	/** A delegate that is invoked when the browser needs to dismiss and reset all dialogs. */
+	DECLARE_DELEGATE(FOnDismissAllDialogs)
+	virtual FOnDismissAllDialogs& OnDismissAllDialogs() = 0;
 
 protected:
 

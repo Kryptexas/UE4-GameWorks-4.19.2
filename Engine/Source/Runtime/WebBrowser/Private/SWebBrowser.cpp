@@ -29,6 +29,8 @@ SWebBrowser::~SWebBrowser()
 		BrowserWindow->OnDismissPopup().RemoveAll(this);
 		BrowserWindow->OnBeforeBrowse().Unbind();
 		BrowserWindow->OnLoadUrl().Unbind();
+		BrowserWindow->OnShowDialog().Unbind();
+		BrowserWindow->OnDismissAllDialogs().Unbind();
 		BrowserWindow->OnBeforePopup().Unbind();
 		if(!BrowserWindow->IsClosing())
 		{
@@ -46,6 +48,8 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	OnUrlChanged = InArgs._OnUrlChanged;
 	OnBeforeNavigation = InArgs._OnBeforeNavigation;
 	OnLoadUrl = InArgs._OnLoadUrl;
+	OnShowDialog = InArgs._OnShowDialog;
+	OnDismissAllDialogs = InArgs._OnDismissAllDialogs;
 	OnBeforePopup = InArgs._OnBeforePopup;
 	OnCreateWindow = InArgs._OnCreateWindow;
 	OnCloseWindow = InArgs._OnCloseWindow;
@@ -184,6 +188,8 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow->OnToolTip().AddSP(this, &SWebBrowser::HandleToolTip);
 		BrowserWindow->OnBeforeBrowse().BindSP(this, &SWebBrowser::HandleBeforeNavigation);
 		BrowserWindow->OnLoadUrl().BindSP(this, &SWebBrowser::HandleLoadUrl);
+		BrowserWindow->OnShowDialog().BindSP(this, &SWebBrowser::HandleShowDialog);
+		BrowserWindow->OnDismissAllDialogs().BindSP(this, &SWebBrowser::HandleDismissAllDialogs);
 		BrowserWindow->OnBeforePopup().BindSP(this, &SWebBrowser::HandleBeforePopup);
 		BrowserWindow->OnShowPopup().AddSP(this, &SWebBrowser::HandleShowPopup);
 		BrowserWindow->OnDismissPopup().AddSP(this, &SWebBrowser::HandleDismissPopup);
@@ -442,6 +448,21 @@ bool SWebBrowser::HandleLoadUrl(const FString& Method, const FString& Url, FStri
 	}
 	return false;
 }
+
+EWebBrowserDialogEventResponse SWebBrowser::HandleShowDialog(const TWeakPtr<IWebBrowserDialog>& DialogParams)
+{
+	if(OnShowDialog.IsBound())
+	{
+		return OnShowDialog.Execute(DialogParams);
+	}
+	return EWebBrowserDialogEventResponse::Unhandled;
+}
+
+void SWebBrowser::HandleDismissAllDialogs()
+{
+	OnDismissAllDialogs.ExecuteIfBound();
+}
+
 
 bool SWebBrowser::HandleBeforePopup(FString URL, FString Target)
 {
