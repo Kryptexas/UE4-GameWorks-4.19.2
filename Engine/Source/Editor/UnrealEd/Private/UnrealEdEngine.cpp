@@ -147,6 +147,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 			CookServer->Initialize(ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags);
 		}
 	}
+
+	bPivotMovedIndependently = false;
 }
 
 bool CanCookForPlatformInThisProcess( const FString& PlatformName )

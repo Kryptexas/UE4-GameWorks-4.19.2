@@ -1099,6 +1099,8 @@ void FComponentTransformDetails::OnSetLocation( float NewValue, ETextCommit::Typ
 
 	CacheTransform();
 
+	GUnrealEd->UpdatePivotLocationForSelection();
+	GUnrealEd->SetPivotMovedIndependently(false);
 	GUnrealEd->RedrawLevelEditingViewports();
 }
 
@@ -1230,6 +1232,8 @@ void FComponentTransformDetails::OnSetRotation( float NewValue, bool bCommitted,
 			GEditor->EndTransaction();
 		}
 
+		GUnrealEd->UpdatePivotLocationForSelection();
+		GUnrealEd->SetPivotMovedIndependently(false);
 		// Redraw
 		GUnrealEd->RedrawLevelEditingViewports();
 	}

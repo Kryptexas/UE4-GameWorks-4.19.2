@@ -644,9 +644,6 @@ public:
 
 	bool					bEnableColorScaling;
 
-	/** If true, the pivot has been moved independently of the actor and position updates should not occur when the actor is moved. */
-	bool					bPivotMovedIndependently;
-
 	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
 	bool					bEditorCameraCut;
 

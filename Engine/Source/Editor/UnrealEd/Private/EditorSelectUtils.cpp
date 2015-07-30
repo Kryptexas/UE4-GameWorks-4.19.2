@@ -156,10 +156,7 @@ void UUnrealEdEngine::SetPivot( FVector NewPivot, bool bSnapPivotToGrid, bool bI
 	}
 
 	// Set the pivot.
-	//EditorModeTools.CachedLocation	= NewPivot;	// Don't set the cached location, this is our pre-move point
-	EditorModeTools.PivotLocation		= NewPivot;
-	EditorModeTools.SnappedLocation		= NewPivot;
-	EditorModeTools.GridBase			= FVector::ZeroVector;
+	EditorModeTools.SetPivotLocation(NewPivot, false);
 
 	if( bSnapPivotToGrid )
 	{
@@ -274,6 +271,18 @@ void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 }
 
 
+void UUnrealEdEngine::SetPivotMovedIndependently(bool bMovedIndependently)
+{
+	bPivotMovedIndependently = bMovedIndependently;
+}
+
+
+bool UUnrealEdEngine::IsPivotMovedIndependently() const
+{
+	return bPivotMovedIndependently;
+}
+
+
 void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 {
 	// Pick a new common pivot, or not.
@@ -355,6 +364,8 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 	{
 		ResetPivot();
 	}
+
+	SetPivotMovedIndependently(false);
 }
 
 

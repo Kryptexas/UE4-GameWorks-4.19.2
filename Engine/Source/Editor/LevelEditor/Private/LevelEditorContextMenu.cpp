@@ -916,14 +916,14 @@ void FLevelEditorContextMenuImpl::FillPivotMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.BeginSection("SaveResetPivot");
 	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SavePivotToPrePivot );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ResetPivot );
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ResetPrePivot );
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MovePivotHere);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MovePivotHereSnapped);
 	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("MovePivot");
 	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MovePivotHere );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MovePivotHereSnapped );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MovePivotToCenter );
 	}
 	MenuBuilder.EndSection();

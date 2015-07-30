@@ -267,6 +267,16 @@ public:
 	virtual void SetActorSelectionFlags (AActor* InActor);
 
 	/**
+	 * Set whether the pivot has been moved independently or not
+	 */
+	void SetPivotMovedIndependently( bool bMovedIndependently );
+
+	/**
+	 * Return whether the pivot has been moved independently or not
+	 */
+	bool IsPivotMovedIndependently() const;
+
+	/**
 	 * Called to reset the editor's pivot (widget) location using the currently selected objects.  Usually
 	 * called when the selection changes.
 	 * @param bOnChange Set to true when we know for a fact the selected object has changed
@@ -757,4 +767,7 @@ protected:
 
 	/** Handle to the registered OnMatineeEditorClosed delegate. */
 	FDelegateHandle OnMatineeEditorClosedDelegateHandle;
+
+	/** Whether the pivot has been moved independently */
+	bool bPivotMovedIndependently;
 };
