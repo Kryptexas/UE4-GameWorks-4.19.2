@@ -590,30 +590,30 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT("");
 		BrainComponentString = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetDebugInfoString() : TEXT("");
 
-			BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
+		BlackboardString = MyController->BrainComponent->GetBlackboardComponent() ? MyController->BrainComponent->GetBlackboardComponent()->GetDebugInfoString(EBlackboardDescription::KeyWithValue) : TEXT("");
 
-			if (World && World->GetNetMode() != NM_Standalone)
-			{
-				TArray<uint8> UncompressedBuffer;
-				FMemoryWriter ArWriter(UncompressedBuffer);
+		if (World && World->GetNetMode() != NM_Standalone)
+		{
+			TArray<uint8> UncompressedBuffer;
+			FMemoryWriter ArWriter(UncompressedBuffer);
 
-				ArWriter << BlackboardString;
+			ArWriter << BlackboardString;
 
-				const int32 HeaderSize = sizeof(int32);
-				BlackboardRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedBuffer.Num()));
+			const int32 HeaderSize = sizeof(int32);
+			BlackboardRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedBuffer.Num()));
 
-				const int32 UncompressedSize = UncompressedBuffer.Num();
-				int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
-				uint8* DestBuffer = BlackboardRepData.GetData();
-				FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
-				DestBuffer += HeaderSize;
+			const int32 UncompressedSize = UncompressedBuffer.Num();
+			int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
+			uint8* DestBuffer = BlackboardRepData.GetData();
+			FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
+			DestBuffer += HeaderSize;
 
-				FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory),
-					(void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
+			FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory),
+				(void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
 
-				BlackboardRepData.SetNum(CompressedSize + HeaderSize, false);
-			}
+			BlackboardRepData.SetNum(CompressedSize + HeaderSize, false);
 		}
+	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
