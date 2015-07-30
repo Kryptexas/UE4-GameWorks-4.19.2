@@ -104,7 +104,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, bEnableSourceControlCompatabilityCheck(true)
-	, bMonitorContentDirectories(false)
+	, bMonitorContentDirectories(true)
 	, AutoReimportThreshold(3.f)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
