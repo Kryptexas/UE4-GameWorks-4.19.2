@@ -33,13 +33,13 @@ public:
 	/**
 	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
 	 */
-	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( WorldContext="WorldContextObject" ))
 	static float GetViewportScale(UObject* WorldContextObject);
 
 	/**
 	 * Gets the size of the game viewport.
 	 */
-	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( WorldContext="WorldContextObject" ))
 	static FVector2D GetViewportSize(UObject* WorldContextObject);
 
 	/**
@@ -96,6 +96,6 @@ public:
 	/**
 	 * Removes all widgets from the viewport.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Viewport", meta=( WorldContext="WorldContextObject" ))
 	static void RemoveAllWidgets(UObject* WorldContextObject);
 };

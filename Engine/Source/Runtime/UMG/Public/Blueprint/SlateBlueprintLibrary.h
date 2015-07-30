@@ -50,7 +50,7 @@ public:
 	 * to add another widget to the viewport at the same position in viewport space as this location, this is
 	 * what you would use.
 	 */
-	UFUNCTION(BlueprintPure, Category="User Interface|Geometry", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	UFUNCTION(BlueprintPure, Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
 	static void LocalToViewport(UObject* WorldContextObject, const FGeometry& Geometry, FVector2D LocalCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition);
 
 	/**
@@ -62,6 +62,6 @@ public:
 	 * to add another widget to the viewport at the same position in viewport space as this location, this is
 	 * what you would use.
 	 */
-	UFUNCTION(BlueprintPure, Category="User Interface|Geometry", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	UFUNCTION(BlueprintPure, Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
 	static void AbsoluteToViewport(UObject* WorldContextObject, FVector2D AbsoluteDesktopCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition);
 };
