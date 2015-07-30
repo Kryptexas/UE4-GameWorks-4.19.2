@@ -1139,8 +1139,8 @@ void USoundWave::WillNeverCacheCookedPlatformDataAgain()
 	Super::WillNeverCacheCookedPlatformDataAgain();
 
 	// TODO: We can clear these arrays if we never need to cook again. 
-	// RawData.RemoveBulkData();
-	// CompressedFormatData.FlushData();
+	RawData.RemoveBulkData();
+	CompressedFormatData.FlushData();
 }
 #endif
 
