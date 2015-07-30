@@ -19,11 +19,11 @@
 
 SStructureDetailsView::~SStructureDetailsView()
 {
-	auto RootNode = GetRootNode();
+	auto RootNodeLocal = GetRootNode();
 
-	if( RootNode.IsValid() )
+	if (RootNodeLocal.IsValid())
 	{
-		SaveExpandedItems( RootNode.ToSharedRef() );
+		SaveExpandedItems(RootNodeLocal.ToSharedRef());
 	}
 }
 
