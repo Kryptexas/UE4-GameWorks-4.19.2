@@ -20,6 +20,14 @@ void UAbilityTask::SetAbilitySystemComponent(UAbilitySystemComponent* InAbilityS
 	AbilitySystemComponent = InAbilitySystemComponent;
 }
 
+void UAbilityTask::InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent)
+{
+	UGameplayTask::InitSimulatedTask(InGameplayTasksComponent);
+
+	UAbilitySystemComponent* AbilitySystemComponent = Cast<UAbilitySystemComponent>(TasksComponent.Get());
+	SetAbilitySystemComponent(AbilitySystemComponent);
+}
+
 FPredictionKey UAbilityTask::GetActivationPredictionKey() const
 {
 	UGameplayAbility* MyAbility = Ability.Get();

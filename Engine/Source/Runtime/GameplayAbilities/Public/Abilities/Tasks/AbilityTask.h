@@ -86,6 +86,8 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 	/** Returns ActivationPredictionKey of owning ability */
 	FPredictionKey GetActivationPredictionKey() const;
 
+	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
+
 	/** Helper function for instantiating and initializing a new task */
 	template <class T>
 	static T* NewAbilityTask(UObject* WorldContextObject, FName InstanceName = FName())
