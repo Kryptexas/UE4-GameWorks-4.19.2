@@ -147,6 +147,9 @@ void FUObjectArray::RemoveUObjectCreateListener(FUObjectCreateListener* Listener
  */
 void FUObjectArray::AddUObjectDeleteListener(FUObjectDeleteListener* Listener)
 {
+#if THREADSAFE_UOBJECTS
+	FScopeLock UObjectDeleteListenersLock(&UObjectDeleteListenersCritical);
+#endif
 	check(!UObjectDeleteListeners.Contains(Listener));
 	UObjectDeleteListeners.Add(Listener);
 }
@@ -158,6 +161,9 @@ void FUObjectArray::AddUObjectDeleteListener(FUObjectDeleteListener* Listener)
  */
 void FUObjectArray::RemoveUObjectDeleteListener(FUObjectDeleteListener* Listener)
 {
+#if THREADSAFE_UOBJECTS
+	FScopeLock UObjectDeleteListenersLock(&UObjectDeleteListenersCritical);
+#endif
 	UObjectDeleteListeners.RemoveSingleSwap(Listener);
 }
 

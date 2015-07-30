@@ -414,6 +414,9 @@ private:
 	 * Array of things to notify when a UObjectBase is destroyed
 	 */
 	TArray<FUObjectDeleteListener* > UObjectDeleteListeners;
+#if THREADSAFE_UOBJECTS
+	FCriticalSection UObjectDeleteListenersCritical;
+#endif
 };
 
 /** Global UObject allocator							*/
