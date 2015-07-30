@@ -1,6 +1,6 @@
 Availability: Docs
 Title: Build Configurations Reference
-Description: Reference guide for the different build configurations available to developers.
+Description: Reference guide for solution and project build configurations.
 Crumbs: %ROOT%, Programming, Programming/Development
 Prereq: GettingStarted/RecommendedSpecifications
 Related: GettingStarted/DownloadingUnrealEngine
