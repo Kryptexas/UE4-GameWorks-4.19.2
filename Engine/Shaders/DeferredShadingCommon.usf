@@ -240,8 +240,10 @@ struct FGBufferData
 	float3 DiffuseColor;
 	// 0..1 (derived from BaseColor, Metalness, Specular)
 	float3 SpecularColor;
-	// 0..1
+	// 0..1, white for SHADINGMODELID_SUBSURFACE_PROFILE (apply BaseColor after scattering is more correct and less blurry)
 	float3 BaseColor;
+	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applied BaseColor later
+	float3 StoredBaseColor;
 	// 0..1
 	float Metallic;
 	// 0..1
@@ -389,7 +391,9 @@ FGBufferData DecodeGBufferData(
 	GBuffer.DecalMask = 0;
 	GBuffer.ShadingModelID = DecodeShadingModelId(Decode71(InGBufferB.a, GBuffer.DecalMask));
 	
-	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
+	GBuffer.StoredBaseColor = DecodeBaseColor(InGBufferC.rgb);
+	GBuffer.BaseColor = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) ? float3(1,1,1) : GBuffer.StoredBaseColor;
+
 	GBuffer.Metallic = InGBufferB.r;
 	GBuffer.Specular = InGBufferB.g;
 	GBuffer.Opacity = InGBufferD.r;
