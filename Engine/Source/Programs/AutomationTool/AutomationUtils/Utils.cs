@@ -994,31 +994,6 @@ namespace AutomationTool
                 throw new AutomationException(string.Format("Failed to parse {0} as an FEngineVersion compatible string", versionString), ex);
             }
         }
-
-        public static DateTime BuildTime()
-        {
-            string VerFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "build.properties");
-
-            var VerLines = CommandUtils.ReadAllText(VerFile);
-
-            var SearchFor = "TimestampForBVT=";
-
-            int Index = VerLines.IndexOf(SearchFor);
-
-            if (Index < 0)
-            {
-                throw new AutomationException("Could not find {0} in {1} for file {2}", SearchFor, VerLines, VerFile);
-            }
-            Index = Index + SearchFor.Length;
-
-
-            var Parts = VerLines.Substring(Index).Split('.', '_', '-', '\n', '\r', '\t');
-
-            DateTime Result = new DateTime(int.Parse(Parts[0]), int.Parse(Parts[1]), int.Parse(Parts[2]), int.Parse(Parts[3]), int.Parse(Parts[4]), int.Parse(Parts[5]));
-
-			CommandUtils.LogConsole("Current Build Time is {0}", Result);
-            return Result;
-        }
     }
 
     #endregion

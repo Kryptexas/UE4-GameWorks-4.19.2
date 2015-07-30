@@ -281,7 +281,7 @@ public partial class Project : CommandUtils
 		{
 			BuildPropertiesPath = BuildPropertiesPath.ToLowerInvariant();
 		}
-		SC.StageFiles(StagedFileType.NonUFS, BuildPropertiesPath, "build.properties", false, null, null, true);
+		SC.StageFiles(StagedFileType.NonUFS, BuildPropertiesPath, "Build.version", false, null, null, true);
 
 		// move the UE4Commandline.txt file to the root of the stage
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file
