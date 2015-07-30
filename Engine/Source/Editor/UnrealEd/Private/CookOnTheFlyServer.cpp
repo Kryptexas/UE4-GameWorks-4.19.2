@@ -3793,38 +3793,23 @@ void UCookOnTheFlyServer::BuildMapDependencyGraph(const FName& PlatformName)
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
-
 	// assign chunks for all the map packages
 	for (const auto& CookedPackage : PlatformCookedPackages)
 	{
-		
 		TArray<FAssetData> PackageAssets;
-		ensure(AssetRegistry.GetAssetsByPackageName(CookedPackage, PackageAssets));
+		FName Name = FName(*FPackageName::FilenameToLongPackageName(CookedPackage.ToString()));
 
-		bool bIsMap = false;
-		for (const auto& Asset : PackageAssets)
-		{
-			if (Asset.GetClass()->IsChildOf(UWorld::StaticClass()) ||
-				Asset.GetClass()->IsChildOf(ULevel::StaticClass()))
-			{
-				bIsMap = true;
-			}
-		}
-
-
-		// if we are not a map we don't care about this pacakge
-		if (!bIsMap)
-		{
+		if (!ContainsMap(Name))
 			continue;
-		}
 
 		TSet<FName> DependentPackages;
-		for (const auto& Asset : PackageAssets)
-		{
-			DependentPackages.Add(Asset.PackageName);
-		}
+		TSet<FName> Roots; 
 
-		MapDependencyGraph.Add(CookedPackage, DependentPackages);
+		Roots.Add(Name);
+
+		GetDependentPackages(Roots, DependentPackages);
+
+		MapDependencyGraph.Add(Name, DependentPackages);
 	}
 }
 
