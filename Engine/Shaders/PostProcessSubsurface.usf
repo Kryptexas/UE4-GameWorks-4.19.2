@@ -408,7 +408,6 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 
 	// 0: no SSS,  1: full SSS
 	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
-	// 0: no SSS,  1: full SSS
 	float LerpFactor = 1;
 
 #if HALF_RES
@@ -417,35 +416,29 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	// minor quality improvement (faces are more detailed in distance)
 	LerpFactor = ComputeFullResLerp(ScreenSpaceData, UVSceneColor, PostprocessInput1Size);
 
+	// hack to debug if the fade is happening at the same time the VisualizeSSS shows it
+//	SSSColor = 0;
 #endif
 #endif // HALF_RES
 
 	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor);
 
 	float3 ExtractedSpecular = 0;
-
+	{
 #if SSS_RECOMBINE_METHOD
 		// we took the specular highlights out, now we add them back in
-		ExtractedSpecular = LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
+		ExtractedSpecular += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
 #endif
 
-	float3 ExtractedNonSubsurface = lerp(SceneColor4.rgb, ExtractedSpecular, BlendFactor);
+		ExtractedSpecular = lerp(SceneColor4.rgb, ExtractedSpecular, BlendFactor);
+	}
 
-	// asset specific color
 	float3 SubsurfaceColor = GetProfileSubsurfaceColor(ScreenSpaceData.GBuffer);
-	float3 FadedSubsurfaceColor = GetProfileSubsurfaceColor(ScreenSpaceData.GBuffer) * LerpFactor;
 
-	float3 ExtractedDiffuse = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
+	// only affect pixels that have SSS
+	LerpFactor *= BlendFactor;
 
-	// hack to debug if the fade is happening at the same time the VisualizeSSS shows it
-//	SSSColor = float3(0,1,0);
-
-	// combine potentially half res with full res
-	float3 SubsurfaceLighting = lerp(ExtractedDiffuse, SSSColor, FadedSubsurfaceColor);
-
-	// we multiply the base color later in to get more crips human skin textures (scanned data always has Subsurface included)
-	float3 StoredBaseColor = ScreenSpaceData.GBuffer.StoredBaseColor;
-
-	OutColor = float4(SubsurfaceLighting * StoredBaseColor + ExtractedNonSubsurface, 0); 
+	// add back in non subsurface pixels and specular, alpha: 0=don't blend in, 1:fully blend in
+	OutColor = float4(lerp(SceneColor4.rgb, SSSColor * BlendFactor + ExtractedSpecular, SubsurfaceColor * LerpFactor), 0); 
 }
 
