@@ -159,9 +159,10 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// <param name="ParamIndex">Parameter index</param>
 		/// <param name="CommandLine">Command line</param>
 		/// <param name="CurrentCommand">Recently parsed command</param>
+		/// <param name="OutScriptsForProjectFileName">The only project to build scripts for</param>
 		/// <param name="OutAdditionalScriptsFolders">Additional script locations</param>
 		/// <returns>True if the parameter has been successfully parsed.</returns>
-		private static void ParseParam(string CurrentParam, CommandInfo CurrentCommand, List<string> OutAdditionalScriptsFolders)
+		private static void ParseParam(string CurrentParam, CommandInfo CurrentCommand, ref string OutScriptsForProjectFileName, List<string> OutAdditionalScriptsFolders)
 		{
 			bool bGlobalParam = false;
 			foreach (var RegisteredParam in GlobalCommandLine.RegisteredArgs)
@@ -176,7 +177,20 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 
 			// The parameter was not found in the list of global parameters, continue looking...
-			if (CurrentParam.StartsWith("-ScriptDir=", StringComparison.InvariantCultureIgnoreCase))
+			if (CurrentParam.StartsWith("-ScriptsForProject=", StringComparison.InvariantCultureIgnoreCase))
+			{
+				if(OutScriptsForProjectFileName != null)
+				{
+					throw new AutomationException("The -ProjectScripts argument may only be specified once");
+				}
+				var ProjectFileName = CurrentParam.Substring(CurrentParam.IndexOf('=') + 1);
+				if(!File.Exists(ProjectFileName))
+				{
+					throw new AutomationException("Project '{0}' does not exist", ProjectFileName);
+				}
+				OutScriptsForProjectFileName = Path.GetFullPath(ProjectFileName);
+			}
+			else if (CurrentParam.StartsWith("-ScriptDir=", StringComparison.InvariantCultureIgnoreCase))
 			{
 				var ScriptDir = CurrentParam.Substring(CurrentParam.IndexOf('=') + 1);
 				if (Directory.Exists(ScriptDir))
@@ -220,12 +234,14 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// <param name="CommandLine">Command line</param>
 		/// <param name="OutCommandsToExecute">List containing the names of commands to execute</param>
 		/// <param name="OutAdditionalScriptsFolders">Optional list of additional paths to look for scripts in</param>
-		private static void ParseCommandLine(string[] CommandLine, List<CommandInfo> OutCommandsToExecute, List<string> OutAdditionalScriptsFolders)
+		private static void ParseCommandLine(string[] CommandLine, List<CommandInfo> OutCommandsToExecute, out string OutScriptsForProjectFileName, List<string> OutAdditionalScriptsFolders)
 		{
 			// Initialize global command line parameters
 			GlobalCommandLine.Init();
 
 			Log.TraceInformation("Parsing command line: {0}", String.Join(" ", CommandLine));
+
+			OutScriptsForProjectFileName = null;
 
 			CommandInfo CurrentCommand = null;
 			for (int Index = 0; Index < CommandLine.Length; ++Index)
@@ -233,7 +249,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 				var Param = CommandLine[Index];
 				if (Param.StartsWith("-") || Param.Contains("="))
 				{
-					ParseParam(CommandLine[Index], CurrentCommand, OutAdditionalScriptsFolders);
+					ParseParam(CommandLine[Index], CurrentCommand, ref OutScriptsForProjectFileName, OutAdditionalScriptsFolders);
 				}
 				else
 				{
@@ -288,8 +304,9 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 
 			// Scan the command line for commands to execute.
 			var CommandsToExecute = new List<CommandInfo>();
+			string OutScriptsForProjectFileName;
 			var AdditionalScriptsFolders = new List<string>();
-			ParseCommandLine(CommandLine, CommandsToExecute, AdditionalScriptsFolders);
+			ParseCommandLine(CommandLine, CommandsToExecute, out OutScriptsForProjectFileName, AdditionalScriptsFolders);
 
 			// Check for build machine override (force local)
 			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : IsBuildMachine;
@@ -330,7 +347,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			ScriptCompiler Compiler = new ScriptCompiler();
 			using(CommandUtils.TelemetryStopwatch ScriptCompileStopwatch = new CommandUtils.TelemetryStopwatch("ScriptCompile"))
 			{
-				Compiler.FindAndCompileAllScripts(AdditionalScriptsFolders: AdditionalScriptsFolders);
+				Compiler.FindAndCompileAllScripts(OutScriptsForProjectFileName, AdditionalScriptsFolders);
 			}
 
 			if (GlobalCommandLine.CompileOnly)

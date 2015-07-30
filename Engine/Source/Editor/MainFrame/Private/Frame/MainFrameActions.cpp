@@ -288,7 +288,7 @@ const TCHAR* GetUATCompilationFlags()
 {
 	// We never want to compile editor targets when invoking UAT in this context.
 	// If we are rocket or don't have a compiler, we must assume we have a precompiled UAT.
-	return FRocketSupport::IsRocket() || !FSourceCodeNavigation::IsCompilerAvailable()
+	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled())
 		? TEXT("-nocompile -nocompileeditor")
 		: TEXT("-nocompileeditor");
 }
@@ -579,19 +579,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += FString::Printf(TEXT(" -manifests -createchunkinstall -chunkinstalldirectory=\"%s\" -chunkinstallversion=%s"), *(PackagingSettings->HttpChunkInstallDataDirectory.Path), *(PackagingSettings->HttpChunkInstallDataVersion));
 	}
 
-	FString ExecutableName = FPlatformProcess::ExecutableName(false);
-#if PLATFORM_WINDOWS
-	// turn UE4editor into UE4editor.cmd
-	if(ExecutableName.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(ExecutableName).EndsWith("-cmd", ESearchCase::IgnoreCase))
-	{
-		FString NewExeName = ExecutableName.Left(ExecutableName.Len() - 4) + "-Cmd.exe";
-		if (FPaths::FileExists(NewExeName))
-		{
-			ExecutableName = NewExeName;
-		}
-	}
-#endif
-
 	int32 NumCookers = GetDefault<UEditorExperimentalSettings>()->MultiProcessCooking;
 	if (NumCookers > 0 )
 	{
@@ -609,14 +596,15 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
+	FString CommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun %s%s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
+		*ProjectPath,
 		FRocketSupport::IsRocket() ? TEXT("-rocket ") : TEXT(""),
 		GetUATCompilationFlags(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PackagingSettings->StagingDirectory.Path,
 		*Configuration,
-		*ExecutableName,
+		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
 		*OptionalParams
 	);
 

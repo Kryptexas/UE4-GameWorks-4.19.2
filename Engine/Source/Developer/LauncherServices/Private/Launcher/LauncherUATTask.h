@@ -59,7 +59,8 @@ protected:
 		FString UATCommandLine;
 		FString ProjectPath = *ChainState.Profile->GetProjectPath();
 		ProjectPath = FPaths::ConvertRelativePathToFull(ProjectPath);
-		UATCommandLine = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -noP4 -clientconfig=%s -serverconfig=%s"),
+		UATCommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun -project=\"%s\" -noP4 -clientconfig=%s -serverconfig=%s"),
+			*ProjectPath,
 			*ProjectPath,
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()],
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()]);

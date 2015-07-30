@@ -53,8 +53,9 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds and/or compiles all script files and assemblies.
 		/// </summary>
+		/// <param name="ScriptsForProjectFileName">Path to the current project. May be null, in which case we compile scripts for all projects.</param>
 		/// <param name="AdditionalScriptsFolders">Additional script fodlers to look for source files in.</param>
-		public void FindAndCompileAllScripts(List<string> AdditionalScriptsFolders)
+		public void FindAndCompileAllScripts(string ScriptsForProjectFileName, List<string> AdditionalScriptsFolders)
 		{
 			bool DoCompile = false;
 			if (GlobalCommandLine.Compile)
@@ -78,7 +79,7 @@ namespace AutomationTool
 			if (DoCompile && !String.IsNullOrEmpty(CommandUtils.CmdEnv.MsBuildExe))
 			{
 				CleanupScriptsAssemblies();
-				FindAndCompileScriptModules(AdditionalScriptsFolders);
+				FindAndCompileScriptModules(ScriptsForProjectFileName, AdditionalScriptsFolders);
 			}
 
 			var ScriptAssemblies = new List<Assembly>();
@@ -110,7 +111,7 @@ namespace AutomationTool
 			}
 		}
 
-		private static void FindAndCompileScriptModules(List<string> AdditionalScriptsFolders)
+		private static void FindAndCompileScriptModules(string ScriptsForProjectFileName, List<string> AdditionalScriptsFolders)
 		{
 			var OldCWD = Environment.CurrentDirectory;
 			var UnrealBuildToolCWD = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
@@ -126,7 +127,15 @@ namespace AutomationTool
 
 			// Configure the rules compiler
 			// Get all game folders and convert them to build subfolders.
-			var AllGameFolders = UnrealBuildTool.UEBuildTarget.DiscoverAllGameFolders();
+			List<string> AllGameFolders;
+			if(ScriptsForProjectFileName == null)
+			{
+				AllGameFolders = UnrealBuildTool.UEBuildTarget.DiscoverAllGameFolders();
+			}
+			else
+			{
+				AllGameFolders = new List<string>{ Path.GetDirectoryName(ScriptsForProjectFileName) };
+			}
 			var BuildFolders = new List<string>(AllGameFolders.Count);
 			foreach (var Folder in AllGameFolders)
 			{

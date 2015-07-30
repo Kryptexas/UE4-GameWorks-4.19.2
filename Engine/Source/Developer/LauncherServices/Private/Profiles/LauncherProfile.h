@@ -845,7 +845,7 @@ public:
 
 		// default build settings
 		BuildGame = false;
-		BuildUAT = false;
+		BuildUAT = !FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled();
 
 		// default cook settings
 		CookConfiguration = FApp::GetBuildConfiguration();
