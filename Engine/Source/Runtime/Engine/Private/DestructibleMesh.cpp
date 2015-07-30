@@ -47,6 +47,13 @@ void UDestructibleMesh::PostLoad()
 		FSkeletalMeshLODInfo& ThisLODInfo = LODInfo[LodIndex];
 		FStaticLODModel& ThisLODModel = ImportedResource->LODModels[LodIndex];
 
+		// Check that we list the root bone as an active bone.
+		if(!ThisLODModel.ActiveBoneIndices.Contains(0))
+		{
+			ThisLODModel.ActiveBoneIndices.Add(0);
+			ThisLODModel.ActiveBoneIndices.Sort();
+		}
+
 		for (int32 ChunkIndex = 0; ChunkIndex < ThisLODModel.Chunks.Num(); ++ChunkIndex)
 		{
 			if (ThisLODModel.Chunks[ChunkIndex].BoneMap.Num() > MaxGPUSkinBones)
