@@ -17,7 +17,7 @@ namespace EAndroidScreenOrientation
 		/** Portrait orientation rotated 180 degrees. */
 		ReversePortrait,
 
-		/** Use either portrait or reverse portrait orientation, based on the device orientation sensor. */
+		/** Use either portrait or reverse portrait orientation, where supported by the device, based on the device orientation sensor. */
 		SensorPortrait,
 
 		/** Landscape orientation (the display is wider than it is tall). */
