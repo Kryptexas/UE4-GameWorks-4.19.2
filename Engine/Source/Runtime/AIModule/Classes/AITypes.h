@@ -471,8 +471,11 @@ struct AIMODULE_API FAIMoveRequest
 	FAIMoveRequest& SetAcceptanceRadius(float Radius) { AcceptanceRadius = Radius; return *this; }
 	FAIMoveRequest& SetUserData(FCustomMoveSharedPtr Data) { UserData = Data; return *this; }
 
-	bool HasGoalActor() const { return bHasGoalActor; }
-	AActor* GetGoalActor() const { return bHasGoalActor ? GoalActor : nullptr; }
+	/** the request should be either set up to move to a location, of go to a valid actor */
+	bool IsValid() const { return bMoveToActor == false || GoalActor != nullptr; }
+
+	bool IsMoveToActorRequest() const { return bMoveToActor; }
+	AActor* GetGoalActor() const { return bMoveToActor ? GoalActor : nullptr; }
 	FVector GetGoalLocation() const { return GoalLocation; }
 
 	bool IsUsingPathfinding() const { return bUsePathfinding; }
@@ -507,7 +510,7 @@ protected:
 	uint32 bInitialized : 1;
 
 	/** move goal is an actor */
-	uint32 bHasGoalActor : 1;
+	uint32 bMoveToActor : 1;
 
 	/** pathfinding: if set - regular pathfinding will be used, if not - direct path between two points */
 	uint32 bUsePathfinding : 1;
@@ -529,4 +532,9 @@ protected:
 
 	/** pathfollowing: custom user data */
 	FCustomMoveSharedPtr UserData;
+
+public:
+	// deprecated
+	DEPRECATED(4.8, "FAIMoveRequest::HasGoalActor is deprecated, please use FAIMoveRequest::IsMoveToActorRequest instead.")
+	bool HasGoalActor() const { return bMoveToActor; }
 };
