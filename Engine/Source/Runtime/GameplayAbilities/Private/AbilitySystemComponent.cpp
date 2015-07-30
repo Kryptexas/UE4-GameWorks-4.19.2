@@ -1200,7 +1200,7 @@ void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQue
 		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 }
-void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove)
+void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	if (IsOwnerActorAuthoritative())
 	{

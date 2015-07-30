@@ -2971,7 +2971,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 		}
 	}
 }
-void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove)
+void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
 	GAMEPLAYEFFECT_SCOPE_LOCK();
@@ -3277,9 +3277,9 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 	if (EffectTagQuery.IsEmpty() == false)
 	{
 		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
-		if (OwningTagQuery.Matches(CombinedTags) == false)
+		if (EffectTagQuery.Matches(CombinedTags) == false)
 		{
-			if (OwningTagQuery.Matches(Effect.Spec.DynamicAssetTags) == false)
+			if (EffectTagQuery.Matches(Effect.Spec.DynamicAssetTags) == false)
 			{
 				// none of these match, so EffectTagQuery fails to match, so entire query fails to match, we can be done
 				return false;
