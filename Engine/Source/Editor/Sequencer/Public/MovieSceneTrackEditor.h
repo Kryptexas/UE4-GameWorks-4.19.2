@@ -195,6 +195,15 @@ public:
 	virtual void BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
 
 	/**
+	 * Builds up the object binding track menu for the outliner
+	 *
+	 * @param MenuBuilder	The menu builder to change
+	 * @param ObjectBinding	The object binding this is for
+	 * @param ObjectClass	The class of the object this is for
+	 */
+	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
+
+	/**
 	 * Builds up the object binding edit buttons for the outliner
 	 *
 	 * @param EditBox	    The edit box to add buttons to

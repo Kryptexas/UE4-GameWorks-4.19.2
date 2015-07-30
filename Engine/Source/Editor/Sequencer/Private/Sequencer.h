@@ -213,6 +213,15 @@ public:
 	void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass);
 
 	/**
+	 * Builds up the track menu for object binding nodes in the outliner
+	 * 
+	 * @param MenuBuilder	The track menu builder to add things to
+	 * @param ObjectBinding	The object binding of the selected node
+	 * @param ObjectClass	The class of the selected object
+	 */
+	void BuildObjectBindingTrackMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass);
+
+	/**
 	 * Builds up the edit buttons for object binding nodes in the outliner
 	 * 
 	 * @param EditBox	    The edit box to add things to

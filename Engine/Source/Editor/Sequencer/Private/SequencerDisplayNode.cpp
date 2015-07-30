@@ -666,7 +666,7 @@ TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 	[
 		SNew(SComboButton)
 		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
-		.OnGetMenuContent(this, &FObjectBindingNode::OnGetAddPropertyTrackMenuContent)
+		.OnGetMenuContent(this, &FObjectBindingNode::OnGetAddTrackMenuContent)
 		.ContentPadding(FMargin(2, 0))
 		.ButtonContent()
 		[
@@ -734,7 +734,7 @@ void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UPro
 	}
 }
 
-TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
+TSharedRef<SWidget> FObjectBindingNode::OnGetAddTrackMenuContent()
 {
 	TArray<TArray<UProperty*>> KeyablePropertyPaths;
 	FSequencer& Sequencer = GetSequencer();
@@ -763,6 +763,11 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
 	TSharedRef<FUICommandList> CommandList(new FUICommandList);
 	FMenuBuilder AddTrackMenuBuilder(true, nullptr, SequencerModule.GetMenuExtensibilityManager()->GetAllExtenders(CommandList, TArrayBuilder<UObject*>().Add(BoundObject)));
+
+	const UClass* ObjectClass = GetClassForObjectBinding();
+	AddTrackMenuBuilder.BeginSection( NAME_None, LOCTEXT("TracksMenuHeader" , "Tracks"));
+	GetSequencer().BuildObjectBindingTrackMenu(AddTrackMenuBuilder, ObjectBinding, ObjectClass);
+	AddTrackMenuBuilder.EndSection();
 
 	AddTrackMenuBuilder.BeginSection( SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection, LOCTEXT("PropertiesMenuHeader" , "Properties"));
 	{

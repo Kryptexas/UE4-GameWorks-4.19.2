@@ -543,7 +543,7 @@ void FShotTrackEditor::Tick(float DeltaTime)
 	}
 }
 
-void FShotTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+void FShotTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(ACameraActor::StaticClass()))
 	{

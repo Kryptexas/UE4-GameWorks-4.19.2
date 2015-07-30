@@ -483,7 +483,7 @@ public:
 	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 private:
-	TSharedRef<SWidget> OnGetAddPropertyTrackMenuContent();
+	TSharedRef<SWidget> OnGetAddTrackMenuContent();
 
 	void AddTrackForProperty(TArray<UProperty*> PropertyPath);
 

@@ -189,7 +189,7 @@ bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid
 	return false;
 }
 
-void FSkeletalAnimationTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+void FSkeletalAnimationTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(ASkeletalMeshActor::StaticClass()))
 	{
@@ -206,23 +206,42 @@ void FSkeletalAnimationTrackEditor::BuildObjectBindingContextMenu(FMenuBuilder& 
 			TArray<FAssetData> AssetDataList;
 			AssetRegistryModule.Get().GetAssetsByClass(UAnimSequence::StaticClass()->GetFName(), AssetDataList);
 
-			for( int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex )
+			if (AssetDataList.Num())
 			{
-				const FAssetData& PossibleAnimSequence = AssetDataList[AssetIndex];
-				if( FAssetData(Skeleton).GetExportTextName() == PossibleAnimSequence.TagsAndValues.FindRef("Skeleton") )
-				{
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("AnimationName"), FText::FromName( PossibleAnimSequence.AssetName ) );
-
-					UAnimSequence* AnimSequence = CastChecked<UAnimSequence>(AssetDataList[AssetIndex].GetAsset());
-					MenuBuilder.AddMenuEntry(
-						FText::Format( NSLOCTEXT("Sequencer", "AddAnimSequence", "Add {AnimationName}"), Args ),
-						FText::Format( NSLOCTEXT("Sequencer", "AddAnimSequenceTooltip", "Adds a {AnimationName} animation to this skeletal mesh."), Args ),
-						FSlateIcon(),
-						FUIAction(FExecuteAction::CreateSP(ParentSequencer.Get(), &ISequencer::AddAnimation, ObjectBinding, AnimSequence))
-						);
-				}
+				MenuBuilder.AddSubMenu(
+					NSLOCTEXT("Sequencer", "AddAnimation", "Add Animation"), NSLOCTEXT("Sequencer", "AddAnimationTooltip", "Adds an animation track."),
+					FNewMenuDelegate::CreateRaw(this, &FSkeletalAnimationTrackEditor::BuildAnimationSubMenu, ObjectBinding, Skeleton));
 			}
+		}
+	}
+}
+
+void FSkeletalAnimationTrackEditor::BuildAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton)
+{
+	const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
+
+	// Load the asset registry module
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	// Collect a full list of assets with the specified class
+	TArray<FAssetData> AssetDataList;
+	AssetRegistryModule.Get().GetAssetsByClass(UAnimSequence::StaticClass()->GetFName(), AssetDataList);
+
+	for( int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex )
+	{
+		const FAssetData& PossibleAnimSequence = AssetDataList[AssetIndex];
+		if( FAssetData(Skeleton).GetExportTextName() == PossibleAnimSequence.TagsAndValues.FindRef("Skeleton") )
+		{
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("AnimationName"), FText::FromName( PossibleAnimSequence.AssetName ) );
+
+			UAnimSequence* AnimSequence = CastChecked<UAnimSequence>(AssetDataList[AssetIndex].GetAsset());
+			MenuBuilder.AddMenuEntry(
+				FText::Format( NSLOCTEXT("Sequencer", "AddAnimSequence", "Add {AnimationName}"), Args ),
+				FText::Format( NSLOCTEXT("Sequencer", "AddAnimSequenceTooltip", "Adds a {AnimationName} animation to this skeletal mesh."), Args ),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(ParentSequencer.Get(), &ISequencer::AddAnimation, ObjectBinding, AnimSequence))
+				);
 		}
 	}
 }

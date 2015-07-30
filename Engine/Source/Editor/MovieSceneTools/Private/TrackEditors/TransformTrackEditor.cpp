@@ -416,6 +416,61 @@ void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizont
 	];
 }
 
+void F3DTransformTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+{
+	if (ObjectClass->IsChildOf(AActor::StaticClass()))
+	{
+		FFormatNamedArguments Args;
+		MenuBuilder.AddMenuEntry(
+			FText::Format( NSLOCTEXT("Sequencer", "AddTransform", "Add Transform"), Args),
+			FText::Format( NSLOCTEXT("Sequencer", "AddPTransformTooltip", "Adds a transform track."), Args ),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &F3DTransformTrackEditor::AddTransform, ObjectBinding))
+			);
+	}
+}
+
+void F3DTransformTrackEditor::AddTransform(FGuid ObjectBinding)
+{
+	/*
+	TArray<UObject*> OutObjects;
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, OutObjects);
+
+	for ( UObject* Object : OutObjects )
+	{
+		FGuid ObjectHandle;
+		USceneComponent* SceneComponent = NULL;
+		AActor* Actor = Cast<AActor>( Object );
+		if( Actor && Actor->GetRootComponent() )
+		{
+			ObjectHandle = GetSequencer()->GetHandleToObject( Actor );
+			SceneComponent = Actor->GetRootComponent();
+		}
+		else
+		{
+			// If the object wasn't an actor attempt to get it directly as a scene component 
+			SceneComponent = Cast<USceneComponent>( Object );
+			if( SceneComponent )
+			{
+				ObjectHandle = GetSequencer()->GetHandleToObject( SceneComponent );
+			}
+		}
+		*/
+	FName Transform("Transform");
+	UMovieSceneTrack* Track = AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectBinding, UMovieScene3DTransformTrack::StaticClass(), Transform);
+	UMovieScene3DTransformTrack* TransformTrack = CastChecked<UMovieScene3DTransformTrack>( Track );
+	// Transform name and path are the same
+	TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
+
+	UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>(TransformTrack->CreateNewSection());
+	TransformSection->SetStartTime(GetSequencer()->GetViewRange().GetLowerBoundValue());
+	TransformSection->SetEndTime(GetSequencer()->GetViewRange().GetUpperBoundValue());
+	TransformTrack->AddSection(TransformSection);
+	TransformTrack->SetAsShowable();
+	
+	NotifyMovieSceneDataChanged();
+}
+
 void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, FTransformDataPair TransformPair, bool bAutoKeying, bool bForceKey, F3DTransformTrackKey::Type KeyType)
 {
 	// Only unwind rotation if we're generating keys while recording (scene is actively playing back)

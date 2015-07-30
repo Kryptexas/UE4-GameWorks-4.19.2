@@ -1949,6 +1949,14 @@ void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const 
 	}
 }
 
+void FSequencer::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+{
+	for (int32 i = 0; i < TrackEditors.Num(); ++i)
+	{
+		TrackEditors[i]->BuildObjectBindingTrackMenu(MenuBuilder, ObjectBinding, ObjectClass);
+	}
+}
+
 void FSequencer::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)
