@@ -14,25 +14,11 @@ UMediaSoundWave::UMediaSoundWave( const FObjectInitializer& ObjectInitializer )
 	, AudioTrackIndex(INDEX_NONE)
 	, AudioQueue(MakeShareable(new FMediaSampleQueue))
 {
+	bSetupDelegates = false;
 	bLooping = false;
 	bProcedural = true;
 	Duration = INDEFINITELY_LOOPING_DURATION;
 }
-
-
-UMediaSoundWave::~UMediaSoundWave()
-{
-	if (AudioTrack.IsValid())
-	{
-		AudioTrack->GetStream().RemoveSink(AudioQueue);
-	}
-
-	if (CurrentMediaPlayer != nullptr)
-	{
-		CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
-	}
-}
-
 
 /* UMediaSoundWave interface
  *****************************************************************************/
@@ -142,6 +128,23 @@ void UMediaSoundWave::PostLoad()
 	}
 }
 
+void UMediaSoundWave::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	if (AudioTrack.IsValid())
+	{
+		AudioTrack->GetStream().RemoveSink(AudioQueue);
+		AudioTrack.Reset();
+	}
+
+	if (CurrentMediaPlayer.IsValid())
+	{
+		CurrentMediaPlayer->OnTracksChanged().RemoveAll(this);
+		CurrentMediaPlayer.Reset();
+	}
+}
+
 
 /* UMediaSoundWave implementation
  *****************************************************************************/
@@ -149,7 +152,7 @@ void UMediaSoundWave::PostLoad()
 void UMediaSoundWave::InitializeTrack()
 {
 	// assign new media player asset
-	if (CurrentMediaPlayer != MediaPlayer)
+	if (CurrentMediaPlayer != MediaPlayer || !bSetupDelegates)
 	{
 		if (CurrentMediaPlayer != nullptr)
 		{
@@ -161,7 +164,8 @@ void UMediaSoundWave::InitializeTrack()
 		if (MediaPlayer != nullptr)
 		{
 			MediaPlayer->OnTracksChanged().AddUObject(this, &UMediaSoundWave::HandleMediaPlayerTracksChanged);
-		}	
+		}
+		bSetupDelegates = true;
 	}
 
 	// disconnect from current track

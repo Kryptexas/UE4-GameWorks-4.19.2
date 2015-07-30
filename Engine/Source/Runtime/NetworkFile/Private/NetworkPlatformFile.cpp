@@ -19,6 +19,7 @@
 
 DEFINE_LOG_CATEGORY(LogNetworkPlatformFile);
 
+FString FNetworkPlatformFile::MP4Extension = TEXT(".mp4");
 
 FNetworkPlatformFile::FNetworkPlatformFile()
 	: bHasLoadedDDCDirectories(false)
@@ -917,6 +918,18 @@ void AsyncReadUnsolicitedFiles(int32 InNumUnsolictedFiles, FNetworkPlatformFile&
 	(new FAutoDeleteAsyncTask<FAsyncReadUnsolicitedFile>(InNumUnsolictedFiles, &InNetworkFile, &InInnerPlatformFile, InServerEngineDir, InServerGameDir, InNetworkDoneEvent, InWritingDoneEvent))->StartSynchronousTask();
 }
 
+bool FNetworkPlatformFile::IsMediaExtension(const TCHAR* Ext)
+{
+	if (*Ext != TEXT('.'))
+	{
+		return MP4Extension.EndsWith(Ext);
+	}
+	else
+	{
+		return MP4Extension == Ext;
+	}
+}
+
 /**
  * Given a filename, make sure the file exists on the local filesystem
  */
@@ -976,7 +989,8 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Check for local file %6.2fms - %s"), ThisTime, *Filename);
 
 	// this is a bit of a waste if we aren't doing cook on the fly, but we assume missing asset files are relatively rare
-	bool bIsCookable = GConfig && GConfig->IsReadyForUse() && FPackageName::IsPackageExtension(*FPaths::GetExtension(Filename, true));
+	FString Extension = FPaths::GetExtension(Filename, true);
+	bool bIsCookable = GConfig && GConfig->IsReadyForUse() && (FPackageName::IsPackageExtension(*Extension) || IsMediaExtension(*Extension));
 
 	// we only copy files that actually exist on the server, can greatly reduce network traffic for, say,
 	// the INT file each package tries to load
