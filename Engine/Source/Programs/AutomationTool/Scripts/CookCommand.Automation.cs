@@ -130,7 +130,7 @@ public partial class Project : CommandUtils
 
             try
             {
-                var CommandletParams = "-buildmachine -fileopenlog";
+                var CommandletParams = IsBuildMachine ? "-buildmachine -fileopenlog" : "-fileopenlog";
                 if (Params.UnversionedCookedContent)
                 {
                     CommandletParams += " -unversioned";
