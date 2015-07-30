@@ -798,7 +798,7 @@ void FSlateRHIResourceManager::LoadStyleResources( const ISlateStyle& Style )
 	CreateTextures( Resources );
 }
 
-void FSlateRHIResourceManager::ClearAccessedResources()
+void FSlateRHIResourceManager::ReleaseAccessedResources()
 {
 	AccessedUTextures.Reset();
 	AccessedMaterials.Reset();

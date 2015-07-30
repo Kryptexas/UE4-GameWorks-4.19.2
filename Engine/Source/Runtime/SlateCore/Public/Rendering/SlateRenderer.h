@@ -187,6 +187,13 @@ public:
 	 */
 	virtual void InvalidateAllViewports() {}
 
+	/**
+	 * A renderer may need to keep a cache of accessed garbage collectible objects alive for the duration of their
+	 * usage.  During some operations like ending a game.  It becomes important to immediately release game related
+	 * resources.  This should flush any buffer holding onto those referenced objects.
+	 */
+	virtual void ReleaseAccessedResources() {}
+
 	/** 
 	 * Prepares the renderer to take a screenshot of the UI.  The Rect is portion of the rendered output
 	 * that will be stored into the TArray of FColors.

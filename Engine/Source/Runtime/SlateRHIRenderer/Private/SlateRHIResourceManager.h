@@ -91,7 +91,7 @@ public:
 	 * The accessed textures is used to determine which textures need be updated on the render thread
 	 * so they can be used by slate
 	 */
-	void ClearAccessedResources();
+	void ReleaseAccessedResources();
 
 	/**
 	 * Updates texture atlases if needed
