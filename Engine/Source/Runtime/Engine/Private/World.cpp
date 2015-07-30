@@ -5425,6 +5425,19 @@ ENetMode UWorld::GetNetMode() const
 	return AttemptDeriveFromURL();
 }
 
+bool UWorld::IsRecordingClientReplay() const
+{
+	if (GetNetDriver() != nullptr && !GetNetDriver()->IsServer())
+	{
+		if (DemoNetDriver != nullptr && DemoNetDriver->IsServer())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #if WITH_EDITOR
 ENetMode UWorld::AttemptDeriveFromPlayInSettings() const
 {

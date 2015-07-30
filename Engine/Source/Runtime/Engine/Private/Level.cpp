@@ -422,6 +422,21 @@ void ULevel::Serialize( FArchive& Ar )
 	}
 }
 
+bool ULevel::IsNetActor(const AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+
+	// If this is a server, use RemoteRole.
+	// If this is a client, use Role.
+	const ENetRole NetRole = (Actor->GetNetMode() < NM_Client) ? Actor->GetRemoteRole() : Actor->Role;
+
+	// This test will return true on clients for actors with ROLE_Authority, which might be counterintuitive,
+	// but clients will need to consider these actors in some cases, such as if their bTearOff flag is true.
+	return NetRole > ROLE_None;
+}
 
 void ULevel::SortActorList()
 {
@@ -443,7 +458,8 @@ void ULevel::SortActorList()
 	for (int32 ActorIndex = StartIndex; ActorIndex < Actors.Num(); ActorIndex++)
 	{
 		AActor* Actor = Actors[ActorIndex];
-		if (Actor != NULL && !Actor->IsPendingKill() && Actor->GetRemoteRole() == ROLE_None)
+
+		if (Actor != NULL && !Actor->IsPendingKill() && !IsNetActor(Actor))
 		{
 			NewActors.Add(Actor);
 		}
@@ -454,7 +470,7 @@ void ULevel::SortActorList()
 	for (int32 ActorIndex = StartIndex; ActorIndex < Actors.Num(); ActorIndex++)
 	{
 		AActor* Actor = Actors[ActorIndex];		
-		if (Actor != NULL && !Actor->IsPendingKill() && Actor->GetRemoteRole() > ROLE_None)
+		if (Actor != NULL && !Actor->IsPendingKill() && IsNetActor(Actor))
 		{
 			NewActors.Add(Actor);
 		}

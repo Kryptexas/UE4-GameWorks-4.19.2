@@ -725,8 +725,33 @@ void UDemoNetDriver::StopDemo()
 Demo Recording tick.
 -----------------------------------------------------------------------------*/
 
-static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool IsNetClient)
+static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool IsNetClient, APlayerController* SpectatorController)
 {
+	// RAII object to swap the Role and RemoteRole of an actor within a scope. Used for recording replays on a client.
+	class FScopedActorRoleSwap
+	{
+	public:
+		FScopedActorRoleSwap(AActor* InActor)
+			: Actor(InActor)
+		{
+			if (Actor != nullptr)
+			{
+				Actor->SwapRolesForReplay();
+			}
+		}
+
+		~FScopedActorRoleSwap()
+		{
+			if (Actor != nullptr)
+			{
+				Actor->SwapRolesForReplay();
+			}
+		}
+
+	private:
+		AActor* Actor;
+	};
+
 	// All actors marked for replication are assumed to be relevant for demo recording.
 	/*
 	if
@@ -736,37 +761,53 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 		&& (Actor == Connection->PlayerController || Cast<APlayerController>(Actor) == NULL)
 		)
 	*/
-	if ( Actor != NULL && Actor->GetRemoteRole() != ROLE_None && ( Actor == Connection->PlayerController || Cast< APlayerController >( Actor ) == NULL ) )
+	if ( Actor != NULL )
 	{
-		const bool bShouldHaveChannel =
-			Actor->bRelevantForNetworkReplays &&
+		// We need to swap roles if:
+		//  1. We're recording a replay on a client that's connected to a live server, and
+		//  2. the actor isn't bTearOff, and
+		//  3. the actor isn't the replay spectator controller.
+		// This is to ensure the roles appear correct when playing back this demo.
+		UWorld* ActorWorld = Actor->GetWorld();
+		bool bShouldSwapRoles =
+			ActorWorld != nullptr && ActorWorld->IsRecordingClientReplay() &&
 			!Actor->bTearOff &&
-			(!Actor->IsNetStartupActor() || Connection->ClientHasInitializedLevelFor(Actor));
+			Actor != SpectatorController;
 
-		UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
+		FScopedActorRoleSwap RoleSwap(bShouldSwapRoles ? Actor : nullptr);
 
-		if (bShouldHaveChannel && Channel == NULL)
+		if ( (Actor->GetRemoteRole() != ROLE_None || Actor->bTearOff) && ( Actor == Connection->PlayerController || Cast< APlayerController >( Actor ) == NULL ) )
 		{
-			// Create a new channel for this actor.
-			Channel = (UActorChannel*)Connection->CreateChannel(CHTYPE_Actor, 1);
-			if (Channel != NULL)
-			{
-				Channel->SetChannelActor(Actor);
-			}
-		}
+			const bool bShouldHaveChannel =
+				Actor->bRelevantForNetworkReplays &&
+				!Actor->bTearOff &&
+				(!Actor->IsNetStartupActor() || Connection->ClientHasInitializedLevelFor(Actor));
 
-		if (Channel != NULL && !Channel->Closing)
-		{
-			// Send it out!
-			if (Channel->IsNetReady(0))
+			UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
+
+			if (bShouldHaveChannel && Channel == NULL)
 			{
-				Channel->ReplicateActor();
+				// Create a new channel for this actor.
+				Channel = (UActorChannel*)Connection->CreateChannel(CHTYPE_Actor, 1);
+				if (Channel != NULL)
+				{
+					Channel->SetChannelActor(Actor);
+				}
 			}
+
+			if (Channel != NULL && !Channel->Closing)
+			{
+				// Send it out!
+				if (Channel->IsNetReady(0))
+				{
+					Channel->ReplicateActor();
+				}
 			
-			// Close the channel if this actor shouldn't have one
-			if (!bShouldHaveChannel)
-			{
-				Channel->Close();
+				// Close the channel if this actor shouldn't have one
+				if (!bShouldHaveChannel)
+				{
+					Channel->Close();
+				}
 			}
 		}
 	}
@@ -877,7 +918,7 @@ void UDemoNetDriver::SaveCheckpoint()
 	// It's important that we don't catch any new actors that the next frame will also catch, that will cause conflict with bOpen (the open will occur twice on the same channel)
 	if ( CheckpointConnection->ActorChannels.Contains( World->GetWorldSettings() ) )
 	{
-		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, false );
+		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, false, SpectatorController );
 	}
 
 	for ( AActor* Actor : World->NetworkActors )
@@ -885,7 +926,7 @@ void UDemoNetDriver::SaveCheckpoint()
 		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
 		{
 			Actor->CallPreReplication( this );
-			DemoReplicateActor( Actor, CheckpointConnection, false );
+			DemoReplicateActor( Actor, CheckpointConnection, false, SpectatorController );
 		}
 	}
 
@@ -992,7 +1033,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	const bool IsNetClient = ( GetWorld()->GetNetDriver() != NULL && GetWorld()->GetNetDriver()->GetNetMode() == NM_Client );
 
-	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient );
+	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient, SpectatorController );
 
 	for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
 	{
@@ -1004,14 +1045,16 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 			continue;
 		}
 
-		if ( Actor->GetRemoteRole() == ROLE_None )
+		// During client recording, a torn-off actor will already have its remote role set to None, but
+		// we still need to replicate it one more time so that the recorded replay knows it's been torn-off as well.
+		if ( Actor->GetRemoteRole() == ROLE_None && !Actor->bTearOff)
 		{
 			ActorIt.RemoveCurrent();
 			continue;
 		}
 
 		Actor->CallPreReplication( this );
-		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient );
+		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient, SpectatorController );
 	}
 
 	// Make sure nothing is left over

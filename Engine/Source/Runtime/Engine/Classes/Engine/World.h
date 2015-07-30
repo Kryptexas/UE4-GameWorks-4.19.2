@@ -3012,6 +3012,11 @@ public:
 	}
 
 	/**
+	 * Returns true if the game net driver exists and is a client and the demo net driver exists and is a server.
+	 */
+	bool IsRecordingClientReplay() const;
+
+	/**
 	 * Sets the number of frames to delay Streaming Volume updating, 
 	 * useful if you preload a bunch of levels but the camera hasn't caught up yet 
 	 */

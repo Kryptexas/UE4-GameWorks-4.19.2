@@ -2712,6 +2712,11 @@ void AActor::ExchangeNetRoles(bool bRemoteOwned)
 	}
 }
 
+void AActor::SwapRolesForReplay()
+{
+	Swap(Role, RemoteRole);
+}
+
 void AActor::BeginPlay()
 {
 	ensure(!bActorHasBegunPlay);

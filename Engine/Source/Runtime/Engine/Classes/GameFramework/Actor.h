@@ -1687,6 +1687,9 @@ public:
 	/** Swaps Role and RemoteRole if client */
 	void ExchangeNetRoles(bool bRemoteOwner);
 
+	/** The replay system calls this to hack the Role and RemoteRole while recording replays on a client. Only call this if you know what you're doing! */
+	void SwapRolesForReplay();
+
 	/**
 	 * When called, will call the virtual call chain to register all of the tick functions for both the actor and optionally all components
 	 * Do not override this function or make it virtual

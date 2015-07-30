@@ -515,6 +515,9 @@ private:
 	// Actors awaiting input to be enabled once the appropriate PlayerController has been created
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
 
+	// Used internally to determine which actors should go on the world's NetworkActor list
+	static bool IsNetActor(const AActor* Actor);
+
 public:
 	/** Called when a level package has been dirtied. */
 	ENGINE_API static FSimpleMulticastDelegate LevelDirtiedEvent;
