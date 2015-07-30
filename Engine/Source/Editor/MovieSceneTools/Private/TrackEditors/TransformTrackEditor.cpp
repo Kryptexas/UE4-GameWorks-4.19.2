@@ -425,8 +425,8 @@ void F3DTransformTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuil
 			FText::Format( NSLOCTEXT("Sequencer", "AddTransform", "Add Transform"), Args),
 			FText::Format( NSLOCTEXT("Sequencer", "AddPTransformTooltip", "Adds a transform track."), Args ),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &F3DTransformTrackEditor::AddTransform, ObjectBinding))
-			);
+			FUIAction(FExecuteAction::CreateSP(this, &F3DTransformTrackEditor::AddTransform, ObjectBinding),
+					  FCanExecuteAction::CreateSP(this, &F3DTransformTrackEditor::CanAddTransform, ObjectBinding)) );
 	}
 }
 
@@ -445,6 +445,16 @@ void F3DTransformTrackEditor::AddTransform(FGuid ObjectBinding)
 	TransformTrack->SetAsShowable();
 	
 	NotifyMovieSceneDataChanged();
+}
+
+bool F3DTransformTrackEditor::CanAddTransform(FGuid ObjectBinding) const
+{
+	FName Transform("Transform");
+	if (GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectBinding, Transform))
+	{
+		return false;
+	}
+	return true;
 }
 
 void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, FTransformDataPair TransformPair, bool bAutoKeying, bool bForceKey, F3DTransformTrackKey::Type KeyType)

@@ -40,6 +40,9 @@ private:
 	/** Add a transform track */
 	void AddTransform(FGuid ObjectGuid);
 
+	/** Called to determine whether a transform track can be added */
+	bool CanAddTransform(FGuid ObjectGuid) const;
+
 	/** Custom add key implementation */
 	void AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL, bool bForceKey = false, F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All);
 
