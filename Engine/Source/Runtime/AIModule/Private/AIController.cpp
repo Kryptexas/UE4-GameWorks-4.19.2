@@ -562,11 +562,17 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 	SCOPE_CYCLE_COUNTER(STAT_MoveTo);
 	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveTo: %s"), *MoveRequest.ToString());
 
+	if (MoveRequest.IsValid() == false)
+	{
+		UE_VLOG(this, LogAINavigation, Error, TEXT("MoveTo request failed due MoveRequest not being valid. Most probably desireg Goal Actor not longer exists"), *MoveRequest.ToString());
+		return EPathFollowingRequestResult::Failed;
+	}
+
 	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
 	bool bCanRequestMove = true;
 	bool bAlreadyAtGoal = false;
 
-	if (!MoveRequest.HasGoalActor())
+	if (!MoveRequest.IsMoveToActorRequest())
 	{
 		if (MoveRequest.GetGoalLocation().ContainsNaN() || FAISystem::IsValidLocation(MoveRequest.GetGoalLocation()) == false)
 		{
@@ -593,7 +599,7 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent &&
 			PathFollowingComponent->HasReached(MoveRequest.GetGoalLocation(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
 	}
-	else
+	else 
 	{
 		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent &&
 			PathFollowingComponent->HasReached(*MoveRequest.GetGoalActor(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
@@ -700,7 +706,7 @@ bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathF
 		if (NavData)
 		{
 			FVector GoalLocation = MoveRequest.GetGoalLocation();
-			if (MoveRequest.HasGoalActor())
+			if (MoveRequest.IsMoveToActorRequest())
 			{
 				const INavAgentInterface* NavGoal = Cast<const INavAgentInterface>(MoveRequest.GetGoalActor());
 				if (NavGoal)
@@ -764,7 +770,7 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 		{
 			if (PathResult.IsSuccessful() && PathResult.Path.IsValid())
 			{
-				if (MoveRequest.HasGoalActor())
+				if (MoveRequest.IsMoveToActorRequest())
 				{
 					PathResult.Path->SetGoalActorObservation(*MoveRequest.GetGoalActor(), 100.0f);
 				}
