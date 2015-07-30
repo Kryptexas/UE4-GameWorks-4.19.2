@@ -6,558 +6,558 @@ Description:本指南介绍了Matinee动画工具中的所有可用轨迹类型�
 [TOC(start:2 end:2)]
 
 
-Matinee提供了许多内置 **轨迹类型**，从而可以使得各种不同类型的actor上的不同数据类型产生动画。 
-Through the use of _Tracks_ you can dictate movement of _Actors_ around in a scene, fire off events in _Blueprints_, adjust color or material properties of an _Actor_, as well as several other elements which are covered on this page. 
+Matinee提供了许多内置 **轨迹类型**，从而可以使得各种不同类型的actor上的不同数据类型产生动画。
+通过使用 _轨迹_ ，您可以指示 _Actor_ 在场景中四处运动、在 _蓝图_ 中触发事件、调整 _Actor_ 的颜色或材质属性，以及本页面中介绍的其他元素。
 
 
-## Movement Track
-One of the most important _Track_ classes is the **Movement Track** which is used to move an _Actor_ around in the scene over time. A prime example of this would be to 
-generate a path for an _Actor_ to follow. Creating a path is simply a matter of selecting the _Movement Track_ you want to modify and doing the following:
+##运动轨迹
+其中一个最重要的 _轨迹_ 类别是 **运动轨迹** ，它用于在场景中随着时间四处移动 _Actor_ 。此应用的一个主要示例是 
+生成 _Actor_ 要遵循的路径。创建路径非常简单，仅需选择您想修改的 _运动轨迹_ ，并执行以下操作：
 
-* Scrub to the time when you want to add the new keyframe.
-* **Press** the **Enter** key or the **Add Key** button to create a new keyframe at that time.
-* **Move** the _Actor_ to the desired position for that frame.
-* **Repeat this for each keyframe** and desired position in order to create your path. 
+* 拖拽到您想添加新的关键帧的时间点处。
+* **按下回车键** 或者 **Add Key（添加关键帧）** 按钮来在那个时刻创建一个新的关键帧。
+* 把 _Actor_ **移动** 到在那帧所期望的放置位置。
+* 针对 **每个关键帧** 和期望的位置重复该操作，以创建您的路径。
 
-It is a very good idea to create an initial keyframe for the _Actor_ at its initial position at level load and then not move that keyframe. 
-Otherwise you may see a "pop" when playback begins as the _Actor_ moves to the position proscribed by the animation data.
+当关卡加载时在Actor的初始位置为其创建一个初始关键帧然后再也不移动那个关键帧是个好主意。
+否则随着Actor向动画数据禁止的地方移动，动画开始播放时将会看到‘跳跃’现象。
 
 [REGION:fullwidth]
 ![move_3dpath.png](move_3dpath.png)
 [/REGION] 
 
-You will see the path of the _Actor_ in the 3D viewport. Paths are drawn in yellow when the _Group_ is selected and are set to the _Editor Group_ color when unselected. 
-You can **Left-click** on the large keys (larger boxes) in the 3D viewport to select a key and allow you to edit it in the same way as you would select them 
-in the main _Matinee_ window. The smaller boxes (or Ticks) indicate 0.1 second intervals, and so give you an idea of the speed of the object.
+您将会在3D视口看到 _Actor_ 的路径。当选中该 _组_ 时，路径描画为黄色，当取消选择该组时则设置为 _编辑器组_ 的颜色。
+您可以在3D视口中 **左击**  大的关键帧（较大的方框）来选中关键帧，这使您可以像在主要Matinee窗口中选中它们进行编辑时那样 
+对其进行编辑。较小的框(更新)表示是0.1秒时间间隔，从而让您了解物体的速度。
 
-When a keyframe is selected, you will see green handles in the level viewports which allow you to control the velocity at that key and reshape the curve. 
-By default the interpolation mode between keyframes is a curve, but you can change the interpolation mode by **Right-clicking** on a key in the main _Matinee_ window 
-and using the **Interp Mode** menu. 
+当在关卡中选中关键帧时将会看到一个绿色的手柄，这允许您控制那个关键帧处的速度并允许重新调整曲线形状。
+默认情况下，关键帧之间的插值模式是曲线，但是您可以通过在主要 _Matinee_ 窗口中 **右击** 一个关键帧并使用‘Interp Mode（插值模式）’菜单 
+来改变插值模式。
 
 ![interp_mode_menu.png](interp_mode_menu.png)
 
 [REGION:note]
-The color of the keyframe triangle in the _Matinee_ window will indicate the current interpolation mode it is using. 
+_Matinee_ 窗口中的关键帧三角形的颜色指出了它当前使用的插值模式。
 [/REGION]
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the **Details** panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Ang Curve Tension | Controls the tightness of the curve for the rotation path. |
-| Disable Movement | Allows you to disable this _Movement Track_ in preview; useful when keyframing _Actors_ relative to another _Actor_. |
-| Hide 3D Track | Toggles display of the track's 3D movement path in the viewport. |
-| Lin Curve Tension | Controls the tightness of the curve for the translation path. |
-| Rot Mode | Allows you to choose the method for determining the rotation of the controlled _Actor_. |
-| Show Arrow At Keys | Displays an arrow at each keyframe to allow you to see the orientation at each keyframe. |
-| Show Rotation On Curve Ed | If _false_, when this track is displayed on the Curve Editor in _Matinee_, do not show the Rotation tracks. |
-| Show Translation On Curve Ed | If _false_, when this track is displayed on the Curve Editor in _Matinee_, do not show the Translation tracks. |
-| Use Quat Interpolation | Use a _Quaternion_ linear interpolation between keys. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Ang Curve Tension（角度曲线张力） | 控制旋转路径的曲线的张力。|
+| Disable Movement（禁用运动） | 允许您在预览时禁用该 _运动轨迹_ ; 当您相对于另一个 _Actor_ 对 _Actor_ 进行关键帧插值时这是有用的。|
+| Hide 3D Track(隐藏3D轨迹) | 切换视口中轨迹的3D运动路径的显示情况。|
+| Lin Curve Tension（线性曲线的张力） | 控制平移路径的曲线的张力。|
+| Rot Mode(旋转模式) | 允许您选择决定所控制的Actor的旋转方式。|
+| Show Arrow At Keys(在关键帧处显示箭头) | 在每个关键帧处显示一个箭头，从而允许您看到每个关键帧处的方位。|
+| Show Rotation On Curve Ed（在曲线编辑器上显示旋转情况） | 如果该项为 _假_ , 那么当在 _Matinee_ 内的曲线编辑器上显示该轨迹时，不显示旋转轨迹。|
+| Show Translation On Curve Ed（在曲线编辑器上显示平移） | 如果该项为 _假_ , 那么当在 _Matinee_ 内的曲线编辑器上显示该轨迹时，不显示平移轨迹。|
+| Use Quat Interpolation （使用四元插值）|  在关键帧之间使用 _四元_ 线性插值。|
 
 [REGION:tip]
-Refer to [](Engine\Matinee\HowTo\MHT_1) and [](Engine\Matinee\HowTo\MHT_2) for examples of using the Movement Track to move Actors in a scene.
+请参照[](Engine\Matinee\HowTo\MHT_1) 和[](Engine\Matinee\HowTo\MHT_2)来获得关于应用运动轨迹在场景中移动Actor的示例。
 [/REGION]
 
 
-### Rotation Interpolation
-_Matinee_ uses two different rotation interpolation schemes to rotate _Actors_ between keyframes: **Euler** and **Quaternion**.
+### 旋转度插值
+_Matinee_ 使用两种不同的旋转度插值机制来在关键帧之间旋转 _Actors_ : **Euler（欧拉插值）** 和 **Quaternion（四元插值）** 。
 
-* _Euler_ - This is the default and works by interpolating the Yaw, Pitch, and Roll of the _Actor_ between the values at keyframes. This allows you to edit the 3 curves for orientation over time in the Curve Editor and control ease-in/ease-out between keyframes. It also supports winding - that is, if you rotate an object multiple times around, the keyframe will store the number of complete revolutions instead of throwing it away. This makes it easy to keyframe something like a screw going into a wall, and also gives you complete control over which direction an _Actor_ takes when moving between two orientations.
+* _Euler(欧拉插值)_ -是默认使用的机制，它通过在关键帧的值之间插值Actor的Yaw(偏转)、Pitch(倾斜)及Roll(旋转)进行工作。这允许您在曲线编辑器中随着时间编辑这三条曲线来调整方位并控制关键帧之间的 缓入/缓出。它也支持绕圈 -  也就是，如果您把一个对象旋转很多次，那么关键帧将存放周转的次数，而不是丢弃它。这使得给某些对象添加关键帧变得容易，比如正在拧到墙里的螺丝钉，同时使您可以完全地控制当Actor在两个方位之间移动时Actor所采用的方向。
 
-* _Quaternion_ - This method of interpolation does not support winding, and is essentially linear between keyframes with no support for ease in/out. However, it is more robust and will always find the "shortest" route between two different orientations.
+* _Quaternion（四元插值）_ - 这种插值方法不支持绕圈，从本质上讲在关键帧之间它是线性的，不支持 缓入/缓出。但是，它更加强大，它总是可以找到两个不同方位之间的最短路线。
 
-You can control which method is being used by toggling the **Use Quat Interpolation** setting from the Details panel.  
-
-
-### Rotation Modes
-There are two different Rotation modes in _Matinee_: **Keyframed** and **Look At Group**.
-
-* _Keyframed_ - is the default, where the orientation of the _Actor_ is determined by keyframes.
-* _Look At Group_ - specifies that you want the _Actor_ to always point at the _Actor_ controlled by another _Group_. 
-
-_Look At Group_ is useful when using a camera, as you can have it always look at a particular target wherever it moves. To use _Look At Group_ as the Rotation Mode, type into the **LookAtGroupName** field the name of the _Group_ you wish the _Actor_ to point at, and set the **RotMode** setting to **IMR_LookAtGroup**.
+您可以使用详细信息面板中的 **Use Quat Interpolation（使用四元插值）** 设置来控制使用哪种方法。 
 
 
-### Movement Relative To Other Groups
-It is possible to have a _Movement Track_ keyframe lookup its transformation info from another _Group_ in the same _Matinee_ sequence.  
-This means that a keyframe can point to a moving object and have the _Movement Track_ interpolate to that position.  
-An example usage case of this would be animating a projectile that always hits a character moving in a non-predictable fashion.
+### 旋转模式
+_Matinee_ 中有两种不同的旋转模式： **Keyframed（关键帧）** 和 **Look At Group（朝向组）** 。
 
-To setup a keyframe to lookup its position from another _Group_, **Right-click** on the keyframe and **choose** **Select Transform Lookup Group...**.
+* _Keyframed（关键帧）_ 是默认模式，Actor的方位由关键帧决定。
+* _Look At Group（朝向组）_ - 表示您想让 _Actor_ 总是指向由另一个 _组_ 控制的 _Actor_ 。
+
+当使用相机时 _Look At Group(朝向组)_ 模式是有用的，因为无论它移动到哪里您都可以使它总是朝向特定目标。要想使用 _Look At Group（朝向组）_ 作为旋转模式，请在 **LookAtGroupName** 域中输入您想让 _Actor_ 指向的组的名称，并设置  **RotMode(旋转模式)** 为 **RotMode** 。
+
+
+### 相对于其他组运动
+可以让一个 _运动轨迹_ 关键帧在同一个 _Matinee_ 序列中的另一个 _组_ 中查找变换信息。 
+这意味着一个关键帧可以指向一个运动的对象，并且让 _运动轨迹_ 在那个位置处进行插值。 
+这个应用的一个示例是设置一个总是能射中以不可预知方式移动的角色的射弹。
+
+要想设置一个关键帧来在另一个 _组_ 中查找它的位置，那么请 **右击** 关键帧并选择 "Select Transform Lookup Group(选择变换查找组)..."。
 
 ![lookup_track1.png](lookup_track1.png)
 
-This will show a dialog that lets you choose a _Group_ to lookup transform information from.
+这将显示一个对话框，让选择一个组，以便从该组中查找变换信息。
 
 ![lookup_track2.png](lookup_track2.png)
 
-After selecting a _Group_, the keyframe will have the lookup _Group's_ name displayed above it.  
-The image below displays 4 key frames that are using the _Group's_ **Box1** and **Box2** to lookup their positioning info.
+当选择组后，关键帧将把查找组的名称显示在其上面。 
+以下图片显示了4个使用组Box1和Box2的关键帧在查找它们的位置信息。
 
 [REGION:fullwidth]
 ![lookup_track3.png](lookup_track3.png)
 [/REGION] 
 
-To clear a lookup _Group_ for a keyframe, **Right-click** on the keyframe and choose **Clear Transform Lookup Group**.
+要想清除一个关键帧的查找组，那么请 **右击** 关键帧并选择"Clear Transform Lookup Group(清除变换查找组)"。
 
 ![lookup_track4.png](lookup_track4.png)
 
 
-### Separating Translation and Rotation
-It is possible to "split" a _Movement Track's_ translation and rotation components so they can be keyframed individually on each axis.  
-This allows finer control over _Movement Track_ curves.  Splitting a _Movement Track_ is an opt-in process.  
-Initially, all _Movement Tracks_ are combined which means translation and rotation curves have the same number of keyframes and all keyframes exist at the same location in time.  
+### 分离平移和旋转
+现在，可以把一个运动轨迹的平移分量和旋转分量分离开来，以便可以在每个坐标轴上独立地对其添加关键帧。 
+这允许对运动轨迹曲线进行更加精细的控制。 分离 _运动轨迹_ 是一个可选的过程。 
+最初，所有运动轨迹组合到一起，这意味着平移和旋转曲线具有相同数量的关键帧，并且所有关键帧位于相同的时间处。 
 
-To split a _Movement Track_, simply **select** **Split Translation and Rotation** from the context menu when **Right-clicking** on a _Movement Track_.
+要想分离一个 _运动轨迹_, 仅需简单地右击一个 _运动轨迹_ 并从关联菜单中 **选择** **分离平移和旋转** 。
 
 ![MoveTrackMenu.png](MoveTrackMenu.png)
 
-Once you split a _Movement Track_, it will look like this:
+一旦分离了 _运动轨迹_ ，它将如下所示：
 
 [REGION:fullwidth]
 ![SplitMoveTrack.png](SplitMoveTrack.png)
 [/REGION] 
 
-Each axis operates like a unique _Track_ so you can have any number of keyframes in them.
+每个坐标轴可以作为独立轨迹操作，以便您可以在它们内设置任何数量的关键帧。
 
-Translation and rotation components are grouped and can be collapsed when not in use.  The vertical bars drawn adjacent to the translation and rotation groups represent 
-a keyframe in one or more of the axes.  Selecting a vertical bar will select all keyframes below it.  This allows you to select multiple keyframes at once.  
+当不使用时，可以把平移和旋转分量放到一个组中，并且可以合并到一起。 平移和旋转组附近的竖条代表 
+一个或多个坐标轴中的关键帧。 选中一个竖条，将选中它下面的所有关键帧。 这允许您一次选择多个关键帧。 
 
 [REGION:note]
-Quaternion interpolation mode cannot be used when translation and rotation are separated.
+当平移分量和旋转分量分离开时不能使用四元插值模式。
 [/REGION]
 
 
-### Normalize Velocity 
-When working with Bezier curves, it is often possible to create situations where objects traveling along a curve speed up or slow down depending on the shape and spacing of 
-keyframes.  The **Normalize Velocity** option modifies a _Movement Track's_ translation curves in order to make objects traveling along it move at constant velocity.  
-It is important to understand that constant velocity uses the 3D path that your _Movement Track_ curves generate.  When normalize velocity is used, the 2D curves for each axis 
-of translation may change shape but the 3D path that it generates should not change from the original path.  
+### 正规化速度 
+当使用Bezier(贝塞尔)曲线时，通常可以使得对象根据曲线形状和关键帧之间的间距而沿着曲线加速运动或 
+减速运动。 **正规化速度** 选项可以修改运动轨迹的平移曲线，以便使得对象沿着曲线以恒定速度运动。 
+知道恒定速度使用您的运动轨迹曲线生成的3D路径是非常重要的。 当应用正规化速度时，每个坐标轴的二维平移曲线 
+可以改变形状，但是它生成的三维路径则不可能从其原始路径发生修改。 
 
-_Normalize Velocity_ does not force a curve into constant velocity after the menu option is selected.  
-It simply does a one time adjustment by examining the original curves and modifying them to maintain constant velocity.  
-Any subsequent changes to the curve may cause it to no longer have constant velocity. _Normalize Velocity_ is also only available on _Movement Tracks_ which 
-have translation and rotation separated (see _Separating Translation and Rotation_ above).  
+当选中Normalize velocity(正规化速度)菜单项后，它不会强制曲线变为恒定速度。 
+它简单地通过检查原始曲线并把修改它们，进行一次性的调整以保持恒定速度。 
+任何对曲线的后续修改都会导致它不再具有恒定速度。_正规化速度_ 仅在分离了 
+平移和旋转的 _运动轨迹_ 上可用(请参照上面的 _分离平移和旋转_ )。 
 
-It is possible to _Normalize Velocity_ on segments of a curve rather than the full interval. When this happens, the _Normalize Velocity_ routine adds a keyframe 
-right before and right after the section being normalized. This is done so that the parts of the curve not being normalized remain intact. You may notice "jerky" movements 
-during playback when an object traveling along the curve transitions to and from the _Normalized Velocity_ section.  To fix this, you will have to manually adjust the keyframes 
-before and after the normalized segment.
-
-
-
-## The Director Group
-The **Director Group** is a special type of group that does not work on an arbitrary _Actor_ in the scene like a normal _Actor_, but implicitly works with the "Player". 
-It is used when you want your sequence to be a cinematic, and you want to take control of the players view.
-
-You can add a _Director Group_ to your _Matinee_ sequence in the same way as a regular group, but choose **Add New Director Group** instead. The _Director Group_ header is 
-a different color from a regular group header to make it easier to find. 
-
-The _Director Group_ has a set of unique _Track Types_ that can be added which are outlined below. 
+您可以在曲线片段上 _正规化速度_ ，而不必在完整的间隔上进行正规化。当进行这种处理时， _正规化速度_ 照常 
+在正规化部分的前面或后面添加一个关键帧。这样做是为了确保没有正规化的曲线部分仍然不影响。当一个对象沿着曲线变换到 _正规化速度_ 部分或者从 _正规化速度_ 部分变换而来时， 
+您可能会发现有 _抖动_ 现象。 要想修复该问题，您将需要手动地 
+调整此正规化片段之前和之后的关键帧。
 
 
-### Director Track
-The **Director Track** allows you to attach the players view to different _Actors_ as the sequence proceeds. When you add a new keyframe to the _Director Track_, a combo box 
-will allow you to choose which _Group_ to assign the view to at that point. 
 
-Colored bars on the _Director Track_ allow you to see which _Group_ the camera is viewing through at each point in the sequence - the color corresponds to the _Editor Group_ 
-color of each group. 
+##导演组
+Director Groupa(导演组)是一种特殊类型的组，它不会作用于在场景中任意Actor上，比如正常的Actor，但是它间接地作用于‘玩家’。
+当您想把序列设计为过场动画时或者您想控制玩家视角时就要使用到它。
 
-If you want to return the camera to the player, simply add a cut back to the _Director Group_ itself (think of the _Director Group_ as a special group relating to the "Player"). 
-At the end of the sequence, the view will automatically return to the player so a cut back to the _Director Group_ is not necessary.
+和正常的Group（组）一样，您可以使用相同的方式来把Director Group（导演组）添加到Matinee序列中，但是这次要选择‘Add New Director Group（添加新的调导演组）’。_导演组_ 的标题颜色和正常的组标题颜色有所区别， 
+以便可以更轻松地找到它。
+
+_导演组_ 有一组可以进行添加的独特 _轨迹类型_ ，下面对其进行了概述。
+
+
+### 导演轨迹
+**Director Track(导演轨迹)** 允许随着序列的进行把玩家视角附加到不同的Actor上。当您添加一个新关键帧到 _导演轨迹_ 时， 
+有一个复选框允许您选择此时将该视图分配给哪个 _组_ 。
+
+_导演轨迹_ 上的彩色横条允许您查看在序列的每个点处相机正在通过哪个组查看 - 颜色对应着 
+每个组的编辑器组颜色。
+
+如果您想将相机返还给玩家，那么请简单地添加一个‘倒回’到 _导演组_ 本身(将 _导演组_ 想像成一个和玩家相关的特殊组)。
+在该序列的尾部，视图将自动返还给玩家，所以不需要给 _导演组_ 添加倒回处理。
 
 ![dir_track.png](dir_track.png)
 
 
-#### Shots
-_Director Tracks_ are broken up into named **Shots**, just as you would encounter in standard film-making. Each key denotes a new shot and the shot lasts for the duration of 
-that key.
+#### 镜头
+_导演轨迹_ 细分为所谓的 **镜头*** ，就像您在标准的电影制作中所遇到的一样。 每个帧代表一个新的镜头，并且该镜头持续那帧 
+那么长的时间。
 
 ![shot_label.png](shot_label.png)
 
-By default, shots are numbered according to their position in the timeline. Adding a new key between two existing keys will cause the shot associated with the new key to be 
-numbered between the existing shots.
+默认情况下，会根据镜头在时间轴上的位置对镜头进行编号。在两个现有关键帧之间添加一个新的关键帧将会导致和新关键帧相关的 
+镜头编号在这个现有镜头之间。
 
-**Existing keys:**
+**现有关键帧:**
 [REGION:fullwidth]
 ![shot_before.png](shot_before.png)
 [/REGION] 
 
-**After adding new key:**
+**添加新的关键帧后:**
 [REGION:fullwidth]
 ![shot_after.png](shot_after.png)
 [/REGION] 
 
-Shots can be renamed through the context menu.
+可以通过关联菜单来重命名镜头。
 
-1. The existing shot name:   
+1. 现有镜头名称:   
     ![shot_label.png](shot_label.png)
-1. **Select** the key the shot is associated with, **Right-click** on it, and choose **Rename** in the context menu.   
+1. **选择** 和该镜头相关的关键帧，右击它，并在关联菜单中选择 *Rename(重命名)* 。  
     ![track_menu.png](track_menu.png)
-1. Enter a new number for the shot in the **Set Camera Shot Number** dialog:   
+1. 在 **Set Camera Shot Number(设置相机镜头编号)** 对话框中输入该镜头的编号：   
     ![shot_dialog.png](shot_dialog.png)
-1. The shot is now renamed:   
+1. 现在该镜头被重命名为:   
     ![shot_renamed.png](shot_renamed.png)
 
 
-### Fade Track
-To control fading of the scene to a particular color, you can use a **Fade Track**. In order to control the amount of fading over time, 
-you must use the [Curve Editor](Engine/UI/CurveEditor). When the Fade amount is 0.0, there is no fading, and when its 1.0, the scene is completely faded out.
+## 渐变轨迹
+Fade Track（渐变轨迹）用于控制场景向某个特定颜色渐变过程。为了控制随着时间的渐变量， 
+您必须使用[曲线编辑器](Engine/UI/CurveEditor)。当Fade Amount(渐变量)是0.0时，不会发生渐变；当它是1.0时，场景将完全淡出。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Persist Fade | Enables and Disables the _Fade Track._ |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Persist Fade（保持渐变） | 启用及禁用 _Fade Track（渐变轨迹）。_ |
 
-### Slomo Track
-One special effect you can apply to a cinematic is to slow down the game speed by using a **Slomo Track**. This _Track_ works similarly to the _Fade Track_ where you 
-use the [Curve Editor](Engine/UI/CurveEditor) to modify the slow-motion over time. A Slomo factor of 1.0 will use the default game speed, a lower number will reduce game 
-speed and a higher number will speed up the game.
+### 慢动作轨迹
+通过使用 **Slomo Track（慢动作轨迹）** ，您可以给过场动画应用一种特殊效果，来降低游戏速度。该 _轨迹_ 的工作原理和 _渐变轨迹_ 类似， 
+您使用 [曲线编辑器](Engine/UI/CurveEditor) 随着时间来修改慢动作运动。慢动作因数为1.0，将使用默认游戏速度，使用较小的值将降低游戏速度， 
+使用较大的值将增加游戏速度。
 
-Slomo affects all game actions, physics, particles, etc. as well as the speed of the sequence itself. 
+Slomo（慢动作）处理影响所有游戏动作、物理、粒子等,同时也影响序列本身的速度。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
 
 
-### Audio Master Track
-The **Audio Master Track** gives control over the overall volume and pitch of the game's audio. When an _Audio Master Track_ is added to the _Director Group_, it has 
-one default key at the beginning of the sequence whose **InterpMode** is Linear. Adding new keys allows you to modify the volume and/or pitch over the course of the sequence.
+### 音频控制轨迹
+**Audio Master Track(音频控制轨迹)** 允许您控制游戏音频的整体音量和音调。当把一个 _Master Track(音频控制轨迹)_ 添加到 _导演组_ 中时， 
+在序列的开始处有一个默认关键帧，该序列的 **插值模式** 是线性插值。添加新的关键帧允许您在序列播放过程中修改 音量 和/或 音调。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
 
 
-### Color Scale Track
-The **Color Scale Track** modifies the color scale of the rendered scene output, allowing you to tint the scene.
+### 颜色比例轨迹
+ **Color Scale Track(颜色比例轨迹)** 可以修改渲染的场景输出的颜色比例，允许您给场景着色。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
 
 
-## Property Tracks
-**Property Tracks** consist of several different _Track Types_ and contain a variable inside the _Actor_ the _Track_ is attached to. 
-You can set new variable values for a _Property Track_ by **Right-clicking** on a keyframe and choosing the **Set** action that corresponds to the _Track Type_ selected. 
+## 属性轨迹
+**属性轨迹** 包含了几种不同的 _轨迹类型_ 并且在该 _轨迹_ 附加到的 _Actor_ 内包含一个变量。
+您可以通过 **右击** 一个关键帧并选择同选中的 _轨迹类型_ 相对应的 **设置** 动作来为 _属性轨迹_ 设置新的变量值。
 
-Before a _Property Track _ can be added to _Matinee_ however, it must first be "exposed" so that _Matinee_ can affect it. 
+然而，在可以将 _属性轨迹_ 添加到 _Matinee_ 之前，必须先“暴露”它，以便 _Matinee_ 可以影响它。
 
-### Exposing Tracks To Matinee
-Exposing a variable to _Matinee_ can be accomplished by selecting the **Expose to Matinee** checkbox inside the Details panel of the _Blueprint_ the variable resides in, 
-as pictured below. 
+### 暴露轨迹给Matinee
+通过选择变量所在的 _蓝图_ 的详细信息面板中的 **暴露给Matinee** 复选框，便可以将一个变量暴露给 _Matinee_ ， 
+正如下图所示。
 
 ![Expose_ToMatinee.png](Expose_ToMatinee.png)
 
-Once you have compiled your _Blueprint_, the variable type can be used as a _Track Type_ in _Matinee_. 
+一旦您编译了您的 _蓝图_ 后，该变量类型便可以在 _Matinee_ 中用作为一种 _轨迹类型_ 。
 
 [REGION:note]
-To expose a variable in code, simply add `Interp` as a keyword in the [`UPROPERTY()` macro](Programming\UnrealArchitecture\Reference\Properties). 
+要想在代码中暴露变量，那么只需在[`UPROPERTY()` 宏]中简单地添加 `Interp` 作为关键字。
 [/REGION]
 
-While most _Tracks_ can be added and worked with instantly, the following _Track Types_ are required to be exposed to _Matinee_ (or through code) in order to work with them.  
+尽管大部分 _轨迹_ 都可以立即添加并应用，但是以下 _轨迹类型_ 需要暴露给 _Matinee_ (或通过代码)才能使用它们。 
 
 
-### Bool Property Track
-The **Bool Property Track** provides control over a boolean variable in the _Actor_ connected to the group containing the _Track_. When adding the _Track_, a dialog will 
-appear allowing you to choose from all boolean variables that are connected to the _Actor_ that can be controlled by _Matinee_.
+### 布尔型属性轨迹
+**布尔型属性轨迹**控制和包含该轨迹的组相连的actor中的布尔变量。当添加该 _轨迹_ 时， 
+将会出现一个对话框，允许您从连接到 _Matinee_ 可以控制的 _Actor_ 的所有布尔型变量中选择。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Property Name | Read-only variable indicating the name of the property in the connected _Actor_ which this track will modify over time. |
+| Property Name（属性名称）| 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。|
 
 
-### Float Property Track
-The **Float Property Track** allows you to modify the value of a floating-point property of an _Actor_ over time, such as Brightness for a light, or _DrawScale_ for a _StaticMesh Actor_. When you create the _Track_, it will bring up a combo box showing all modifiable properties of that Group's Actor. Select the one you want and then add/modify keyframes in the same way as you would for a _Movement Track_. You can also use the [CurveEditor](Engine/UI/CurveEditor) to adjust the value of the parameter over time.
+### 浮点型属性轨迹
+ Float Property Track(浮点型属性轨迹)允许您随着时间修改浮点型属性的值，比如光源的亮度、或者静态网格物体的描画比例。当您创建这种类型的轨迹时，将会弹出一个组合框显示了那个组的Actor的所有可修改的属性。选择其中一个您想修改的属性，然后使用和操作Movement Track(运动轨迹)一样的方式来 添加/修改关键帧。您可以使用[曲线编辑器](Engine/UI/CurveEditor) 来随着时间调整参数的值。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Property Name | Read-only variable indicating the name of the property in the connected _Actor_ which this track will modify over time. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Property Name（属性名称）| 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。|
 
 
-### Vector Property Track
-The **Vector Property Track** allows you to modify the value of a Vector property of an _Actor_ over time, such as _DrawScale3D_ for a _StaticMesh Actor_. When you create 
-the _Track_, it will bring up a combo box showing all modifiable properties of that Group's _Actor_. Select the one you want and then add/modify keyframes in the same way as 
-you would for a _Movement Track_. You can also use the [CurveEditor](Engine/UI/CurveEditor) to adjust the values of the parameter over time.
+### 向量型属性轨迹
+Vector Property Track(向量属性轨迹)允许您随着时间修改Actor的Vector（向量）属性的值，比如静态网格物体的DrawScale3D变量。当您创建这种类型的 _轨迹_ 时， 
+将会弹出一个组合框显示了那个组的Actor的所有可修改的属性。选择您需要的属性，然后就像您给 _运动轨迹_ 添加/修改关键帧一样 
+对其进行处理。您可以使用[曲线编辑器](Engine/UI/CurveEditor) 来随着时间调整参数的值。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Property Name | Read-only variable indicating the name of the property in the connected _Actor_ which this track will modify over time.|
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Property Name（属性名称）| 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。|
 
 
-### LinearColor Property Track
-The **LinearColor Property Track** is used to modify a linear color variable in the attached _Actor_. 
-For example, if you have a _Light Component_ as part of a _Blueprint_, you can assign a linear color variable as the light's color and can then change it using this type of track. 
-The components of a linear color take values in the range 0 to 1 (or higher to overdrive the component).
+### 线性颜色属性轨迹
+ Linear Color Property Track(线性颜色属性轨迹)用于修改附加actor中的线性颜色变量。
+比如，如果您有一个 _光源组件_ 作为 _蓝图_ 的一部分，那么您可以分配一个线性颜色变量作为该光源的颜色，然后可以使用这种类型的轨迹修改它。
+线性颜色的分量所使用的值的范围在0到1之间(较高的值将超出分量的范围)。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Property Name | Read-only variable indicating the name of the property in the connected _Actor_ which this track will modify over time. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Property Name（属性名称）| 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。|
 
 
-### Color Property Track
-The **Color Property Track** is used to control a byte-based Color variable in the attached _Actor_. 
-For example, unlike the **LinearColor Property Track,** if you were to place a _Light Actor_ directly inside a level, you would then be able to adjust the **Light Color** 
-property via this type of track. 
+### 颜色属性轨迹
+ Color Property Track(颜色属性轨迹)用于控制附加的actor中的基于字节的Color（颜色）变量。
+比如，和 **线性颜色属性轨迹** 不同，如果您直接在关卡中放置了一个  _光源Actor_ ，那么您便可以通过这种类型的轨迹 
+调整 **光源颜色** 。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Property Name | Read-only variable indicating the name of the property in the connected _Actor_ which this track will modify over time. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Property Name（属性名称）| 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。|
 
 
 
-## Material Parameter Tracks
-There are two **Material Parameter Tracks** that can be driven by _Matinee_: **Float Material Parameter** and **Vector Material Parameter**. 
+## 材质参数轨迹
+有两种类型可以由 _Matinee_ 驱动的 **材质参数轨迹** ： **浮点型材质参数** 和 **向量型材质参数** 。
 
 
-### Float Material Parameter Track
-The **Float Material Parameter Track** is used to modify Scalar Parameters within materials during runtime. The _Track_ takes a list of materials and modifies the value 
-of the given parameter in those materials.
+### 浮点型材质参数轨迹
+ **浮点型材质参数轨迹 ** 用于在运行时修改材质中的Scalar Parameters(标量参数)。该 _轨迹_ 获取一系列的材质，并修改 
+这些材质中的特定参数的值。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Target Materials | List of materials whose parameters will be modified and references to those materials that need to be given _MaterialInstanceConstants_ in the level, compiled at save time.  |
-| Param Name | Name of the parameter in the materials to modify. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Target Materials（目标材质） | 将要修改其参数的材质列表，及在关卡中到这些材质的引用，这些引用需要被赋予MaterialInstanceConstants ，在保存时编译。 |
+| Param Name（参数名称） | 材质中要修改的参数的名称。|
 
-### Vector Material Parameter Track
-The **Vector Material Parameter Track** is used to modify Vector Parameters within materials during runtime. The _Track_ takes a list of materials and modifies the value of the 
-given parameter in those materials.
+### 向量型材质参数轨迹
+**向量材质参数轨迹** 用于在运行时修改材质中的Scalar Parameters(标量参数)。该 _轨迹_ 获取一系列的材质，并修改 
+这些材质中给定参数的值。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Materials | List of materials whose parameters will be modified and references to those materials that need to be given _MaterialInstanceConstants_ in the level, compiled at save time. |
-| Param Name | Name of the parameter in the materials to modify. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Materials（材质） | 将要修改其参数的材质列表，及在关卡中到这些材质的引用，这些引用需要被赋予MaterialInstanceConstants ，在保存时编译。|
+| Param Name（参数名称） | 材质中要修改的参数的名称。|
 
 
-## Particle Tracks
-There are two **Particle Tracks** that can be driven by _Matinee_: **Float Particle Parameter Track** and **Particle Replay Track**. 
+## 粒子轨迹
+有两种类型可以由 _Matinee_ 驱动的 **粒子轨迹** ： **浮点型粒子参数轨迹** 和 **粒子重放轨迹** 。
 
-### Float Particle Parameter Track
-The **Float Particle Parameter Track** is used to modify parameter distributions within particle systems during runtime. Any parameters with the given parameter name in 
-the particle system connected to the group containing the _Track_ will be modified. This means you could have a fire particle system with emitters for the flames, sparks, 
-and smoke where each emitter has a parameter controlling the spawn rate named _SpawnRate_. A single _Float Particle Param Track_ could drive all of these parameters to control 
-the fire.
+### 浮点型粒子参数轨迹
+**浮点型粒子参数轨迹** 用于在运行时修改粒子系统中的参数分布。将会修改连接到 
+包含该 _轨迹_ 的组上的任何粒子系统中具有特定参数名称的任何参数。这意味着，您可以具有一个火粒子系统，有针对火焰、火花、 
+烟雾的发射器，每个发生器都有控制生成速率的参数  _SpawnRate(生成速率)_ 。一个单独的 _浮点型粒子参数轨迹_ 可以驱动所有这些参数来 
+控制火焰。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Param Name | Name of the parameter in the particle system to modify. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Param Name(参数名称) |  粒子系统中要修改的参数的名称。|
 
 
-### Particle Replay Track
-The **Particle Replay track** allows you to create and play back pre-recorded particle simulations. This is especially useful when you want the particle to behave the same 
-way in all shots. When you add a new key to the _Particle Replay Track_, you are essentially adding a new clip to record to. For each clip, a bar is displayed on the timeline 
-showing the duration of the clip.
+### 粒子重放轨迹
+**Particle Replay Track（粒子重放轨迹）** 允许您创建并播放预先录制的粒子仿真。当您想让粒子在所有镜头中都表现一样时，这是 
+非常有用的。当您向 _粒子重放轨迹_ 添加一个新的关键帧时，从本质上讲您是添加了一个新的要录制的剪辑。对于每个剪辑，时间轴上会显示一个横条， 
+代表该剪辑的持续时间。
 
 ![replay_bar.png](replay_bar.png)
 
-When selected, you have the ability to adjust the starting point and duration of the clip using the handles on either end of the clip's bar in the timeline. **Left-clicking** 
-and dragging the mouse on either handle will adjust the duration of the clip by moving that handle. To move the clip without adjusting its duration, **Ctrl+Click** and **drag** on 
-the key itself.
+当选中该横条时，您可以通过使用时间轴中的剪辑横条任何一段的手柄来调整剪辑的起始点和持续时间。在任何手柄上 **左击** 
+并拖拽鼠标，通过移动那个手柄来调整剪辑的持续时间。要想移动该剪辑，而不修改其持续时间，那么请按住 **Ctrl+左击** 并 
+在关键帧本身上 **拖拽** 。
 [REGION:fullwidth]
 ![replay_handles.png](replay_handles.png)
 [/REGION] 
 
-You can also adjust the starting position and duration of the clip as well as change the ID of the clip by **Right-clicking** on the clip's bar in the timeline and choosing 
-the appropriate option from the menu.
+通过在时间轴上右击剪辑的横条并从菜单中选择适当的选项，您也可以调整剪辑的起始位置、持续时间 
+和修改剪辑ID。
 
 ![replay_menu.png](replay_menu.png)
 
-To begin recording the particle system(s), **Right-click** on the track and choose **Start Recording Particles** from the context menu.
+要想开始录制粒子系统，只要 **右击** 轨迹并从关联菜单中选择 **Start Recording Particles(开始录制粒子)** 即可。
 
 ![replay_start.png](replay_start.png)
 
-When recording is active, the clip bars will be highlighted in the timeline.
+当录制激活时，剪辑横条在时间条上高亮显示。
 
 ![replay_start_bar.png](replay_start_bar.png)
 
-**Press** the ![replay_play.png](replay_play.png) button in the toolbar to begin playback. The track will record the particles during play back when recording is enabled. 
-Once recording is finished, **Right-click** the track again and choose **Stop Recording Particles**.
+按下工具条上的 ![replay_play.png](replay_play.png) 按钮开始播放。当录制启用时，轨迹将会在播放期间录制粒子。
+一旦录制完成，再次右击轨迹并选择 **Stop Recording Particles(停止录制粒子)** 即可。
 
 ![replay_stop.png](replay_stop.png)
 
-Now, when you press the ![replay_play.png](replay_play.png) button, the particle system(s) should play back from the recorded clips and you can scrub through the timeline to 
-move forward and backward through the clips to inspect the recording.
+现在，当您按下 ![replay_play.png](replay_play.png)时，粒子系统将从录制的剪辑开始重放，您可以 
+拖拽时间轴来在剪辑上向前及向后移动来检查该录制效果。
 
 
-## Animation Track
-The **Animation Track** allows you to animate the properties of _Actors_ over time, to create either dynamic gameplay or cinematic in-game sequences. 
-Through the use of this _Track Type_, you can place keyframes to control when and how they play specified animations. 
+## 动画轨迹
+**Animation Track（动画轨迹）** 允许您让 _Actor_ 的属性随着时间产生动画，以创建动态游戏可玩性或过场动画游戏序列。
+通过使用这种 _轨迹类型_ ，您可以放置关键帧来控制何时及如何播放特定动画。
 
-To add an animation to the _Track_, scrub through the _Track_ and **press** the **Enter** key or **Add Key** Button. When a key has been added, you will be prompted to select 
-an animation to add to the track through a pop-up window as shown below. 
+要想添加动画到该 _轨迹_ ，请沿着该轨迹拖拽，并按下 **回车** 键或者 **添加关键帧** 按钮。当添加了一个关键帧后，将提示您 
+通过如下所示的弹出窗口来选择要添加到该轨迹的动画。
 
 [REGION:fullwidth]
 ![animtrack_animation_select.png](animtrack_animation_select.png)
 [/REGION] 
 
-Once an animation has been added to the _Track_, it will be displayed in Blue. You can manipulate the animation by **Left-clicking** the key to select it. 
+一旦动画添加到该 _轨迹_ 后，它将显示为蓝色。您可以通过 **左击** 该关键帧选中它来操作该动画。
 
-With the animation selected, you can adjust the length by moving the cursor to the start or end point until the double-arrows are shown as seen below and dragging in either 
-direction. 
+选中该动画后，您可以通过移动鼠标光标到起始点或结束点，直到双向箭头显示为如下所示，并在 
+任意方向上进行拖拽来调整长度。
 
 [REGION:fullwidth]
 ![animtrack_adjust_time.png](animtrack_adjust_time.png)
 [/REGION] 
 
-You can also move the position of the animation on the track by **Control+Left-Clicking** on the animation and dragging it along the _Track_. 
+您也可以通过在动画上按下 **CTRL+左击** 并沿着该 _轨迹_ 拖拽它来在轨迹上移动动画的位置。
 
 [REGION:fullwidth]
 ![animtrack_moving.png](animtrack_moving.png)
 [/REGION] 
 
-The numbers shown on the animation illustrate the (Start->End) times in which the animation will play. The number following the Start/End times (x0.89 for example), indicate the 
-playback rate of the animation where 1.0 is the default and higher numbers increase the speed of the playback while lower numbers decrease the speed. To adjust playback rate, 
-hold **Control** when adjusting the length of the animation. 
+动画上显示的数字表示该动画将播放速度的乘数(起点->终点)。Start/End(起点/终点)乘数后的数字(比如x0.89),表示 
+当该值为1.0时，动画的播放速率是默认速率，较高的值则增加播放速率，较低的值则降低播放速度。要想调整播放速度， 
+请在调整动画长度是按住 **CTRL** 键。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Slot Name | Name of slot to use when playing animation. Passed to _Actor_. When multiple tracks use the same slot name, they are each given a different _ChannelIndex_ when _SetAnimPosition_ is called. |
-| Skip Anim Notifiers | Skips all anim notifiers. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Slot Name（镜头名称） | 播放动画时使用的镜头名称。传给 _Actor_ 。当多个任务使用相同的镜头名称时，那么在调用 _SetAnimPosition_ 时则为每个镜头赋予一个不同的 _ChannelIndex_ 。|
+| Skip Anim Notifiers（跳过动画通知） | 跳过所有动画通知。|
 
 
-## Event Track
-The Event Track gives _Matinee_ a mechanism for firing events back into _Blueprints_ at particular points in the sequence. When you place a keyframe on an _Event Track_, you 
-will be asked for an **Event Name**. Each unique _Event Name_ will create a new output connector on the _Matinee Actor_. When the sequence reaches the key, any _Blueprint_ nodes 
-that are connected to the output will be activated. If you have multiple keys with the same name, one output connector will be created, but it will be activated when each of the 
-keys are passed.
+##事件轨迹
+Event Track（事件轨迹）给Matinee提供了一种在序列的特定点处激活事件使它返回到 _蓝图_ 中的机制。当您在一个 _事件轨迹_ 上放置一个关键帧时， 
+将要求您提供一个 **事件名称** 。每个独特的 _事件名称_ 将在 _Matinee Actor_ 上创建一个新的输出连接器。当该序列到达该关键帧时，任何连接到该输出的 
+_蓝图_ 节点都将被激活。如果您有多个具有相同名称的关键帧，那么将会创建一个输出连接器，但是每当经过这些关键帧中的每一个时都 
+会触发该输出端。
 
-Here is an _Event Track_ with one key called "ToggleLight".
+这里是具有一个关键帧"ToggleLight"的 _事件轨迹_ 。
 
 ![event_track.png](event_track.png)
 
-And this is the _Matinee Actor_ in a _Blueprint_, showing the new output connector which you can connect to fire off events. 
+这是 _蓝图_ 中的 _Matinee Actor_ ,显示了您可以连接其触发事件的新的输出连接器。
 
 ![event_connector.png](event_connector.png)
 
-The ![eventarrows.jpg](eventarrows.jpg) buttons on the _Event Track_ header allow you to control if the output should be fired when the sequence is playing forwards, backwards, 
-or both. If the right arrow button is yellow, events on that track will fire as they are passed when the sequence is playing forwards. If the left arrow button is yellow, events 
-are fired when the sequence is played backwards.
+_事件轨迹_ 手柄上的![eventarrows.jpg](eventarrows.jpg) 按钮允许您控制当序列正向播放、逆向播放或者双向播放时是否应 
+该触发Output端。如果右箭头按钮是黄色的，那么当正向播放序列经过轨迹上的这些事件时触发它们。如果左箭头是黄色， 
+则当逆向播放序列时激活事件。
 
-Regardless of which group the _Event Track_ is in and whether or not an _Actor_ is attached to the group; the _Matinee Actor_ will create an output connector for each key placed 
-on its _Track_. You can also **Right-click** on a key to rename it and doing so will rename any other keys with the same name, as well as the output connector on 
-the _Matinee Actor_.
+无论该 _事件轨迹_ 位于哪个组中， 无论是否有 _Actor_ 附加到该组上， _Matinee Actor_ 都将会为 
+放置到其 _轨迹_ 上的每个关键帧创建一个输出连接器。您也可以 **右击** 一个关键帧来重命名它，这样做将重命名具有相同名称的任何其他关键帧及 
+_Matinee Actor_ 上的输出连接器。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Fire Events When Backwards | If _true_, events for this track will be fired when the _Matinee_ is playing in reverse. |
-| Fire Events When Forwards | If _true_, events for this track will be fired when the _Matinee_ is playing forwards. |
-| Fire Events When Jumping Forward | If _true_, allows all of the events in the track to be fired even if the _Matinee_ is skipped. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Fire Events When Backwards（当反向播放时激活事件） | 如果该项为true，那么当Matinee反向播放时激活该轨迹上的事件。|
+| Fire Events When Forwards（当正向播放时激活事件） | 如果该项为true，那么当Matinee正向播放时激活该轨迹上的事件。|
+| Fire Events When Jumping Forward（当跳跃正向播放时激活事件）| 如果该项为true，将允许激活轨迹上的所有事件，即时Matinee跳跃播放也可以。|
 
 
-## Sound Track
-The **Sound Track** is used to play audio from _SoundCues_ during a _Matinee_ sequence. When placing a new key, the _SoundCue_ currently selected in the Content Browser will be used. Keys for the _Sound Track_ appear similar to those of the _AnimControl Track_. You will see a bar with the name of the _SoundCue_ that stretches for the duration of the _SoundCue_.
+## 音效轨迹
+ Sound Track(声效轨迹)用于在Matinee序列过程中从SoundCues播放音频。当放置一个关键帧时，将会使用内容浏览器中当前选中的SoundCue。Sound Track(声效轨迹)的关键帧看上去和动画控制轨迹的关键帧类似。您将看到一个名称为 _SoundCue_ 的横条，延伸长度为此 _SoundCue_ 的持续时间长度。
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Continue Sound On Matinee End | If _true_, the sounds being played on this track will not be cut off if their duration continues beyond the end of the _Matinee_ sequence. They will continue to play until the sound ends. |
-| Play On Reverse | If _true_, the sounds being played on this track will only play when the _Matinee_ sequence is played in reverse. They will not play when the sequence is playing forwards. An example of using this feature would be to have different opening and closing sounds for movers. |
-| Suppress Subtitles | If _true_, any subtitles associated with the sounds being played by this track will not be displayed. |
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Continue Sound On Matinee End(当到达Matinee尾端时继续播放声效) | 如果该项为true，那么如果声效的持续时间超出Matinee序列的尾端时将不会终止音效播放。而是继续播放音效直到其结束为止。|
+| Play On Reverse(反向播放) | 如果该项为true，那么仅当Matinee序列反向播放时才播放在这个轨迹的声效。当正向播放序列时不播放声效。使用这个功能的一个示例是具有不同开始音乐和结束音乐的Movers（移动对象）。|
+| Suppress Subtitles（禁止字幕）|  如果该项为true，那么将不显示在这个轨迹上播放的声效相关的任何字幕。|
 
 
-## Toggle Track
-The **Toggle Track** gives _Matinee_ a mechanism for toggling _Emitter Actors_ on or off at particular points in the sequence. When you place a keyframe on a _Toggle Track_, 
-you will be presented with the following dialog:
+##切换轨迹
+ **Toggle Track(切换轨迹) ** 为Matinee提供了一种在序列的特定点处切换 _Emitter actor(发射器actor)_ 打开或关闭状态的机制。当您在一个 _切换轨迹_ 上放置一个关键帧时， 
+将呈现以下对话框：
 
 ![PSysToggle_Key.png](PSysToggle_Key.png)
 
-The options are:
-* **Trigger** - A one-shot activation of the particle system.
-* **On** - Turns the particle system on.
-* **Off** - Turns the particle system off.
+选项是:
+* **Trigger(触发器)** - 一次性激活粒子系统。
+* **On** - 打开粒子系统。
+* **Off** - 关闭粒子系统。
 
-The _Track_ display will show a green bar when an emitter is toggled on to make it easy to identify the state of the _Actor_. This can be seen below for a _Toggle Track_ that 
-turns the emitter on and back off again.
+当启动发射器时，轨迹将显示一个绿条，使得辨别actor的状态变得更加容易。正如下面所示，一个 _切换轨迹_ 
+启动了发射器又再次将其关闭。
 
 ![PSysToggle_Track.png](PSysToggle_Track.png)
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Activate System Each Update | If _true_, the track will call _ActivateSystem_ on the emitter each update (old 'incorrect' behavior). If _false_, the _ParticleSystem_ will only be activated if it was previously inactive. |
-| Activate with Just Attached Flag | If _true_, the track will activate the system with the Just Attached flag.  |
-| Fire Events When Backwards | If _true_, events for this track will be fired when the _Matinee_ is playing in reverse. |
-| Fire Events When Forwards | If _true_, events for this track will be fired when the _Matinee_ is playing forwards. |
-| Fire Events When Jumping Forward | If _true_, allows all of the events in the track to be fired even if the _Matinee_ is skipped. |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
+| Activate System Each Update(每次更新时激活系统) | 如果该项为ture，那么每次更新 (旧的'错误' 行为)都会在发射器上调用ActivateSystem。如果该项为false，仅当粒子系统先前为非激活状态时才激活它。|
+| Activate with Just Attached Flag（仅使用附加标志激活） |如果该项为 _true_, 则仅使用附加标志激活系统。 |
+| Fire Events When Backwards（当反向播放时激活事件） | 如果该项为true，那么当Matinee反向播放时激活该轨迹上的事件。|
+| Fire Events When Forwards（当正向播放时激活事件） | 如果该项为true，那么当Matinee正向播放时激活该轨迹上的事件。|
+| Fire Events When Jumping Forward（当跳跃正向播放时激活事件）| 如果该项为true，将允许激活轨迹上的所有事件，即时Matinee跳跃播放也可以。|
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
 
 
-## Visibility Track
-The **Visibility Track** is used to control whether an _Actor_ is visible or not (by way of the **Actor Hidden In Game** property). When adding a new key for this _Track_, you 
-are presented with a dialog with options to **Show**, **Hide**, and **Toggle** the associated _Actor_.
+## 可见性轨迹
+Visibility Track(可见性轨迹)用于控制一个Actor是否可以见(通过使用 **游戏中隐藏的Actor** 属性)。当为该 _轨迹_ 添加一个新的关键帧时， 
+将为您呈现一个对跨框，提供了选项供您 **显示** 、**隐藏** 及 **切换** 相关的 _Actor_ 。
 
 ![visibilitymenu.png](visibilitymenu.png)
 
-The _Track_ display will show a green bar when the _Actor_ is set to visible and later set not visible again to make it easy to identify the state of the _Actor_. This can 
-be seen below for a _Visibility Track_ that shows the _Actor_ for 1 second then hides it.
+当Actor设置为可见稍后又设置为不可见状态时该轨迹将显示一个绿色的横条，使得actor状态的辨别变得更加容易。正如下面所示的， 
+一条 _可见性轨迹_ 将该 _Actor_ 显示1秒有将其隐藏起来。
 
 ![visibilitytrack.png](visibilitytrack.png)
 
-Keys set to toggle the visibility of the _Actor_ are displayed with a small red bar to denote them as toggle keys.
+用于切换actor可见性而设置的关键帧显示为小红条，代表它们是用于切换的关键帧。
 
 ![visibilitytoggle.png](visibilitytoggle.png)
 
-Below are the _Properties_ that can be adjusted for this _Track_ from the Details panel. 
+以下是可以从 **详细信息** 面板中为该 _轨迹_ 调整的一些 _属性_ 。
 
-|Property| Description |
+| 属性 | 描述 |
 | ------- | ------------ |
-| Active Condition | Sets when the track should be enabled; always, when gore is enabled, or when gore is disabled. |
-| Curve Tension | Controls the tightness of the curve when using automatic tangents. |
-| Property Name | Read-only variable indicating the name of the property in the connected _Actor_ which this track will modify over time.|
+| Active Condition(激活条件) | 设置什么时候启用该轨迹：总是启用、当启用血腥时、或当禁用血腥时。|
+| Curve Tension（曲线张力） | 控制当使用自动切线时曲线的张力。|
+| Property Name（属性名称）| 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。|
 
 
