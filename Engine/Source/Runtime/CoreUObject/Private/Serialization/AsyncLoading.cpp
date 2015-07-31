@@ -644,15 +644,20 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 				{
 					FScopeLock LoadedLock(&LoadedPackagesToProcessCritical);					
 					LoadedPackagesToProcess.RemoveAt(PackageIndex--);
-					// Detach linker in mutex scope to make sure that if something requests this package
-					// before it's been deleted does not try to associate the new async package with the old linker
-					// while this async package is still bound to it.
-					Package->DetachLinker();
+					
 					if (FPlatformProperties::RequiresCookedData())
 					{
 						// Emulates ResetLoaders on the package linker's linkerroot.
 						Package->ResetLoader();
 					}
+					else
+					{
+						// Detach linker in mutex scope to make sure that if something requests this package
+						// before it's been deleted does not try to associate the new async package with the old linker
+						// while this async package is still bound to it.
+						Package->DetachLinker();
+					}
+					
 				}
 
 				// Incremented on the Async Thread, now decrement as we're done with this package				
