@@ -552,27 +552,7 @@ void FShaderResource::ReleaseRHI()
 	ComputeShader.SafeRelease();
 }
 
-void FShaderResource::InitializeVertexShaderRHI() 
-{ 
-	if (!IsInitialized())
-	{
-		STAT(double ShaderInitializationTime = 0);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
-			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
-
-			InitResourceFromPossiblyParallelRendering();
-
-		}
-
-		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
-	}
-
-	checkSlow(IsInitialized());
-}
-
-
-void FShaderResource::InitializePixelShaderRHI() 
+void FShaderResource::InitializeShaderRHI() 
 { 
 	if (!IsInitialized())
 	{
@@ -588,97 +568,6 @@ void FShaderResource::InitializePixelShaderRHI()
 	}
 
 	checkSlow(IsInitialized());
-}
-
-
-const FHullShaderRHIRef& FShaderResource::GetHullShader() 
-{ 
-	checkSlow(Target.Frequency == SF_Hull);
-	if (!IsInitialized())
-	{
-		STAT(double ShaderInitializationTime = 0);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
-			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
-
-			InitResourceFromPossiblyParallelRendering();
-		}
-
-		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
-	}
-
-	checkSlow(IsInitialized());
-
-	return HullShader; 
-}
-
-
-const FDomainShaderRHIRef& FShaderResource::GetDomainShader() 
-{ 
-	checkSlow(Target.Frequency == SF_Domain);
-
-	if (!IsInitialized())
-	{
-		STAT(double ShaderInitializationTime = 0);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
-			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
-
-			InitResourceFromPossiblyParallelRendering();
-		}
-		
-		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
-	}
-	
-	checkSlow(IsInitialized());
-
-	return DomainShader; 
-}
-
-
-const FGeometryShaderRHIRef& FShaderResource::GetGeometryShader() 
-{ 
-	checkSlow(Target.Frequency == SF_Geometry);
-
-	if (!IsInitialized())
-	{
-		STAT(double ShaderInitializationTime = 0);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
-			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
-
-			InitResourceFromPossiblyParallelRendering();
-		}
-
-		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
-	}
-
-	checkSlow(IsInitialized());
-
-	return GeometryShader; 
-}
-
-
-const FComputeShaderRHIRef& FShaderResource::GetComputeShader() 
-{ 
-	checkSlow(Target.Frequency == SF_Compute);
-
-	if (!IsInitialized())
-	{
-		STAT(double ShaderInitializationTime = 0);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Shaders_FrameRTShaderInitForRenderingTime);
-			SCOPE_SECONDS_COUNTER(ShaderInitializationTime);
-
-			InitResourceFromPossiblyParallelRendering();
-		}
-
-		INC_FLOAT_STAT_BY(STAT_Shaders_TotalRTShaderInitForRenderingTime,(float)ShaderInitializationTime);
-	}
-
-	checkSlow(IsInitialized());
-
-	return ComputeShader; 
 }
 
 FShaderResourceId FShaderResource::GetId() const

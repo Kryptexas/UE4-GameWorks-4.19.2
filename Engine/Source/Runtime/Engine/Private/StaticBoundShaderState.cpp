@@ -125,7 +125,7 @@ static FBoundShaderStateRHIParamRef GetGlobalBoundShaderState_Internal(FGlobalBo
 		WorkArea->Args.VertexDeclarationRHI,
 		GETSAFERHISHADER_VERTEX(WorkArea->Args.VertexShader),
 		GETSAFERHISHADER_PIXEL(WorkArea->Args.PixelShader),
-		(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(WorkArea->Args.GeometryShader));
+		GETSAFERHISHADER_GEOMETRY(WorkArea->Args.GeometryShader));
 	if (bNewBSS)
 	{
 		FPlatformMisc::MemoryBarrier();
