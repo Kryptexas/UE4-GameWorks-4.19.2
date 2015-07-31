@@ -45,8 +45,16 @@ public:
 	/**
 	 * Returns a percent-encoded version of the passed in string
 	 *
-	 * @param FString& The unencoded string to convert to percent-encoding
+	 * @param UnencodedString The unencoded string to convert to percent-encoding
 	 * @return The percent-encoded string
 	 */
-	static FString UrlEncode(const FString &);
+	static FString UrlEncode(const FString& UnencodedString);
+
+	/**
+	 * Returns a decoded version of the percent-encoded passed in string
+	 *
+	 * @param EncodedString The percent encoded string to convert to string
+	 * @return The decoded string
+	 */
+	static FString UrlDecode(const FString& EncodedString);
 };

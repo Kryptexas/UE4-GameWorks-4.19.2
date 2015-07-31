@@ -104,3 +104,69 @@ FString FGenericPlatformHttp::UrlEncode(const FString &UnencodedString)
 	}
 	return EncodedString;
 }
+
+FString FGenericPlatformHttp::UrlDecode(const FString &EncodedString)
+{
+	FTCHARToUTF8 Converter(*EncodedString);	
+	const UTF8CHAR* UTF8Data = (UTF8CHAR*)Converter.Get();	
+	
+	TArray<ANSICHAR> Data;
+	Data.Reserve(EncodedString.Len());
+
+	for (int32 CharIdx = 0; CharIdx < Converter.Length();)
+	{
+		if (UTF8Data[CharIdx] == '%')
+		{
+			int32 Value = 0;
+			if (UTF8Data[CharIdx + 1] == 'u')
+			{
+				if (CharIdx + 6 <= Converter.Length())
+				{
+					// Treat all %uXXXX as code point
+					Value = FParse::HexDigit(UTF8Data[CharIdx + 2]) << 12;
+					Value += FParse::HexDigit(UTF8Data[CharIdx + 3]) << 8;
+					Value += FParse::HexDigit(UTF8Data[CharIdx + 4]) << 4;
+					Value += FParse::HexDigit(UTF8Data[CharIdx + 5]);
+					CharIdx += 6;
+
+					ANSICHAR Buffer[8] = { 0 };
+					ANSICHAR* BufferPtr = Buffer;
+					int32 len = ARRAY_COUNT(Buffer);
+					FTCHARToUTF8_Convert::utf8fromcodepoint(Value, &BufferPtr, &len);
+
+					Data.Append(Buffer, BufferPtr - Buffer);
+				}
+				else
+				{
+					// Not enough in the buffer for valid decoding, skip it
+					CharIdx++;
+					continue;
+				}
+			}
+			else if(CharIdx + 3 <= Converter.Length())
+			{
+				// Treat all %XX as straight byte
+				Value = FParse::HexDigit(UTF8Data[CharIdx + 1]) << 4;
+				Value += FParse::HexDigit(UTF8Data[CharIdx + 2]);
+				CharIdx += 3;
+				Data.Add((ANSICHAR)(Value));
+			}
+			else
+			{
+				// Not enough in the buffer for valid decoding, skip it
+				CharIdx++;
+				continue;
+			}
+		}
+		else
+		{
+			// Non escaped characters
+			Data.Add(UTF8Data[CharIdx]);
+			CharIdx++;
+		}
+	}
+
+	Data.Add(0);
+	FUTF8ToTCHAR DecodeConvert(Data.GetData());
+	return DecodeConvert.Get();
+}
