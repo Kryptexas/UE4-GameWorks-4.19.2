@@ -7,6 +7,7 @@ UNavRelevantComponent::UNavRelevantComponent(const FObjectInitializer& ObjectIni
 {
 	bNavigationRelevant = true;
 	bAttachToOwnersRoot = true;
+	bBoundsInitialized = false;
 }
 
 void UNavRelevantComponent::OnRegister()
@@ -46,6 +47,11 @@ void UNavRelevantComponent::OnRegister()
 				}
 			}
 		}
+	}
+	else if (!bBoundsInitialized)
+	{
+		bBoundsInitialized = true;
+		UpdateNavigationBounds();
 	}
 
 	UNavigationSystem::OnComponentRegistered(this);
