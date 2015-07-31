@@ -4,4 +4,3 @@
 
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
-#include "IGearVRPlugin.h"

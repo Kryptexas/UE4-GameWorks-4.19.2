@@ -941,5 +941,7 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 	pPresentBridge = GearVRHMD->pGearVRBridge;
 }
 
+#include <HeadMountedDisplayCommon.cpp>
+
 #endif //GEARVR_SUPPORTED_PLATFORMS
 

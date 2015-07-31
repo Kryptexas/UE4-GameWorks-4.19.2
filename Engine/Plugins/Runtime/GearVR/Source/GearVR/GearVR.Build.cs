@@ -11,6 +11,7 @@ namespace UnrealBuildTool.Rules
 					"GearVR/Private",
 					"../../../../Source/Runtime/Renderer/Private",
 					"../../../../Source/Runtime/Launch/Private",
+ 					"../../../../Source/ThirdParty/Oculus/Common",
 					// ... add other private include paths required here ...
 				}
 				);

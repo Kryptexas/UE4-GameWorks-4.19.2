@@ -15,3 +15,4 @@
 
 #include <OVR_CAPI_Util.cpp>
 #include <OVR_StereoProjection.cpp>
+#include <HeadMountedDisplayCommon.cpp>
