@@ -424,6 +424,8 @@ void USkeletalMeshComponent::PostBlendPhysics()
 	
 	FinalizeBoneTransform();
 
+	UpdateComponentToWorld();
+
 	// Update Child Transform - The above function changes bone transform, so will need to update child transform
 	UpdateChildTransforms();
 
