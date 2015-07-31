@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "IWebbrowserDialog.h"
+#include "IWebBrowserDialog.h"
 
 struct FGeometry;
 struct FKeyEvent;
