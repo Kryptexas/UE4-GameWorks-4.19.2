@@ -10,7 +10,22 @@ template <class CharType, class PrintPolicy>
 class TJsonWriter;
 typedef TSharedRef< TJsonWriter<TCHAR,TPrettyJsonPrintPolicy<TCHAR> > > FPrettyJsonWriter;
 
+/**
+ * Delegate called for a given counter to generate custom json at the time the query is made
+ *
+ * @param JsonWriter json output writer
+ */
 DECLARE_DELEGATE_OneParam(FProduceJsonCounterValue, const FPrettyJsonWriter& /* JsonWriter */);
+
+/**
+ * Delegate called when an exec command has been passed in on via the query port
+ *
+ * @param ExecCmd string command to execute
+ * @param Output output device to write the response back to the querying service
+ * 
+ * @return true if the call was handled, false otherwise
+ */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FPerfCounterExecCommandCallback, const FString& /*ExecCmd*/, FOutputDevice& /*Output*/);
 
 /**
  * A programming interface for setting/updating performance counters
@@ -32,6 +47,9 @@ public:
 
 	/** Make a callback so we can request more extensive types on demand (presumably backed by some struct locally) */
 	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& Callback) = 0;
+
+	/** @return delegate called when an exec command is to be executed */
+	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() = 0;
 
 public:
 	/** Set overloads (use these) */

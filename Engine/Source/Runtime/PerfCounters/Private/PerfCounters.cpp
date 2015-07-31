@@ -142,92 +142,155 @@ bool FPerfCounters::Tick(float DeltaTime)
 	FSocket* IncomingConnection = Socket->Accept(PerfCounterRequest);
 	if (IncomingConnection)
 	{
+		if (0)
+		{
+			TSharedRef<FInternetAddr> FromAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
+			IncomingConnection->GetPeerAddress(*FromAddr);
+			UE_LOG(LogPerfCounters, Log, TEXT("New connection from %s"), *FromAddr->ToString(true));
+		}
+
 		// make sure this is non-blocking
-		bool bSuccess = false;
 		IncomingConnection->SetNonBlocking(true);
 
-		// read any data that's ready
-		// NOTE: this is not a full HTTP implementation, just enough to be usable by curl
-		uint8 Buffer[2*1024] = { 0 };
-		int32 DataLen = 0;
-		if (IncomingConnection->Recv(Buffer, sizeof(Buffer)-1, DataLen, ESocketReceiveFlags::None))
+		new (Connections) FPerfConnection(IncomingConnection);
+	}
+
+	TArray<FPerfConnection> ConnectionsToClose;
+	for (FPerfConnection& Connection : Connections)
+	{
+		FSocket* ExistingSocket = Connection.Connection;
+		if (ExistingSocket && ExistingSocket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::Zero()))
 		{
-			// scan the buffer for a line
-			FUTF8ToTCHAR WideBuffer(reinterpret_cast<const ANSICHAR*>(Buffer));
-			const TCHAR* BufferEnd = FCString::Strstr(WideBuffer.Get(), TEXT("\r\n"));
-			if (BufferEnd != nullptr)
+			// read any data that's ready
+			// NOTE: this is not a full HTTP implementation, just enough to be usable by curl
+			uint8 Buffer[2 * 1024] = { 0 };
+			int32 DataLen = 0;
+			if (ExistingSocket->Recv(Buffer, sizeof(Buffer) - 1, DataLen, ESocketReceiveFlags::None))
 			{
-				// crack into pieces
-				FString MainLine(BufferEnd - WideBuffer.Get(), WideBuffer.Get());
-				TArray<FString> Tokens;
-				MainLine.ParseIntoArrayWS(Tokens);
-				if (Tokens.Num() >= 2)
+				FResponse Response;
+				if (ProcessRequest(Buffer, DataLen, Response))
 				{
-					FString Body;
-					int ResponseCode = 200;
-
-					// handle the request
-					if (Tokens[0] != TEXT("GET"))
+					if (SendAsUtf8(ExistingSocket, Response.Header))
 					{
-						Body = FString::Printf(TEXT("{ \"error\": \"Method %s not allowed\" }"), *Tokens[0]);
-						ResponseCode = 405;
-					}
-					else if (Tokens[1] == TEXT("/stats"))
-					{
-						Body = ToJson();
-					}
-					else
-					{
-						Body = FString::Printf(TEXT("{ \"error\": \"%s not found\" }"), *Tokens[1]);
-						ResponseCode = 404;
-					}
-
-					// send the response headers
-					FString Header = FString::Printf(TEXT("HTTP/1.0 %d\r\nContent-Length: %d\r\nContent-Type: application/json\r\n\r\n"), ResponseCode, Body.Len());
-					if (SendAsUtf8(IncomingConnection, Header))
-					{
-						if (SendAsUtf8(IncomingConnection, Body))
-						{
-							bSuccess = true;
-						}
-						else
+						if (!SendAsUtf8(ExistingSocket, Response.Body))
 						{
 							UE_LOG(LogPerfCounters, Warning, TEXT("Unable to send full HTTP response body"));
 						}
 					}
 					else
 					{
-						UE_LOG(LogPerfCounters, Warning, TEXT("Unable to send HTTP response header: %s"), *Header);
+						UE_LOG(LogPerfCounters, Warning, TEXT("Unable to send HTTP response header: %s"), *Response.Header);
 					}
-				}
-				else
-				{
-					UE_LOG(LogPerfCounters, Warning, TEXT("Unable to parse HTTP request header: %s"), *MainLine);
 				}
 			}
 			else
 			{
-				UE_LOG(LogPerfCounters, Warning, TEXT("Unable to immediately receive full request header"));
+				UE_LOG(LogPerfCounters, Warning, TEXT("Unable to immediately receive request header"));
+			}
+
+			ConnectionsToClose.Add(Connection);
+		}
+		else if (Connection.ElapsedTime > 5.0f)
+		{
+			ConnectionsToClose.Add(Connection);
+		}
+
+		Connection.ElapsedTime += DeltaTime;
+	}
+
+	for (FPerfConnection& Connection : ConnectionsToClose)
+	{
+		Connections.RemoveSingleSwap(Connection);
+
+		FSocket* ClosingSocket = Connection.Connection;
+		if (ClosingSocket)
+		{
+			// close the socket (whether we processed or not)
+			ClosingSocket->Close();
+			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ClosingSocket);
+			
+			if (0)
+			{
+				UE_LOG(LogPerfCounters, Log, TEXT("Closed connection."));
 			}
 		}
-		else
-		{
-			UE_LOG(LogPerfCounters, Warning, TEXT("Unable to immediately receive request header"));
-		}
-
-		// log if we didn't succeed
-		if (!bSuccess)
-		{
-			UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters was unable to send a JSON response (or sent partial response)"));
-		}
-
-		// close the socket (whether we processed or not
-		IncomingConnection->Close();
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(IncomingConnection);
 	}
 
 	// keep ticking
 	return true;
+}
+
+bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Response)
+{
+	bool bSuccess = false;
+
+	// scan the buffer for a line
+	FUTF8ToTCHAR WideBuffer(reinterpret_cast<const ANSICHAR*>(Buffer));
+	const TCHAR* BufferEnd = FCString::Strstr(WideBuffer.Get(), TEXT("\r\n"));
+	if (BufferEnd != nullptr)
+	{
+		// crack into pieces
+		FString MainLine(BufferEnd - WideBuffer.Get(), WideBuffer.Get());
+		TArray<FString> Tokens;
+		MainLine.ParseIntoArrayWS(Tokens);
+		if (Tokens.Num() >= 2)
+		{
+			FString ContentType(TEXT("application/json"));
+			Response.Code = 200;
+
+			// handle the request
+			if (Tokens[0] != TEXT("GET"))
+			{
+				Response.Body = FString::Printf(TEXT("{ \"error\": \"Method %s not allowed\" }"), *Tokens[0]);
+				Response.Code = 405;
+			}
+			else if (Tokens[1] == TEXT("/stats"))
+			{
+				Response.Body = ToJson();
+			}
+			else if (Tokens[1].StartsWith(TEXT("/exec?c=")))
+			{
+				FString ExecCmd = Tokens[1].Mid(8);
+				FString ExecCmdDecoded = FGenericPlatformHttp::UrlDecode(ExecCmd);
+
+				FStringOutputDevice StringOutDevice;
+				StringOutDevice.SetAutoEmitLineTerminator(true);
+
+				bool bResult = false;
+				if (ExecCmdCallback.IsBound())
+				{
+					bResult = ExecCmdCallback.Execute(ExecCmdDecoded, StringOutDevice);
+					Response.Body = StringOutDevice;
+					ContentType = TEXT("text/text");
+				}
+				else
+				{
+					Response.Body = FString::Printf(TEXT("{ \"error\": \"exec handler not found\" }"));
+				}
+
+				Response.Code = bResult ? 200 : 404;
+			}
+			else
+			{
+				Response.Body = FString::Printf(TEXT("{ \"error\": \"%s not found\" }"), *Tokens[1]);
+				Response.Code = 404;
+			}
+
+			// send the response headers
+			Response.Header = FString::Printf(TEXT("HTTP/1.0 %d\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n"), Response.Code, Response.Body.Len(), *ContentType);
+			bSuccess = true;
+		}
+		else
+		{
+			UE_LOG(LogPerfCounters, Warning, TEXT("Unable to parse HTTP request header: %s"), *MainLine);
+		}
+	}
+	else
+	{
+		UE_LOG(LogPerfCounters, Warning, TEXT("Unable to immediately receive full request header"));
+	}
+
+	return bSuccess;
 }
 
 void FPerfCounters::SetNumber(const FString& Name, double Value) 
@@ -244,9 +307,9 @@ void FPerfCounters::SetString(const FString& Name, const FString& Value)
 	JsonValue.StringValue = Value;
 }
 
-void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue& Callback)
+void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback)
 {
 	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
 	JsonValue.Format = FJsonVariant::Callback;
-	JsonValue.CallbackValue = Callback;
+	JsonValue.CallbackValue = InCallback;
 }

@@ -28,7 +28,8 @@ public:
 	const FString& GetInstanceName() const override { return UniqueInstanceId; }
 	virtual void SetNumber(const FString& Name, double Value) override;
 	virtual void SetString(const FString& Name, const FString& Value) override;
-	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& Callback) override;
+	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback) override;
+	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() override { return ExecCmdCallback; }
 	// IPerfCounters interface end
 
 private:
@@ -36,6 +37,64 @@ private:
 	FString ToJson() const;
 
 private:
+	
+	/**
+	 * Simple response structure for returning output to requestor
+	 */
+	struct FResponse
+	{
+		/** http header */
+		FString Header;
+		/** http body */
+		FString Body;
+		/** http response code */
+		int32 Code;
+
+		FResponse() :
+			Code(0)
+		{}
+	};
+	
+	/**
+	 * Simple connection structure for keeping track of incoming/active connections
+	 */
+	struct FPerfConnection
+	{
+		/** accepted external socket */
+		FSocket* Connection;
+		/** time connection has existed */
+		float ElapsedTime;
+
+		FPerfConnection() :
+			Connection(nullptr),
+			ElapsedTime(0.0f)
+		{}
+
+		FPerfConnection(FSocket* InConnection) :
+			Connection(InConnection),
+			ElapsedTime(0.0f)
+		{}
+
+		bool operator==(const FPerfConnection& Other) const
+		{
+			return Connection == Other.Connection;
+		}
+	};
+
+	/** all active connections */
+	TArray<FPerfConnection> Connections;
+
+	/**
+	 * Process the incoming request from an active socket
+	 *
+	 * @param Buffer data sent from the requestor
+	 * @param BufferLen size of the data sent
+	 * @param Response [out] response to be given to the requestor
+	 *
+	 * @return true if the response is valid, false otherwise
+	 */
+	bool ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Response);
+
 	struct FJsonVariant
 	{
 		enum { Null, String, Number, Callback } Format;
@@ -51,6 +110,9 @@ private:
 
 	/** Map of all known performance counters */
 	TMap<FString, FJsonVariant>  PerfCounterMap;
+
+	/** Bound callback for script command execution */
+	FPerfCounterExecCommandCallback ExecCmdCallback;
 
 	/* Listen socket for outputting JSON on request */
 	FSocket* Socket;
