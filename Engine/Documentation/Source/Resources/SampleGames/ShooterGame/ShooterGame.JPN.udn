@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2613897
 Availability:Public
 Title:シューティング ゲーム
 Crumbs:%ROOT%, Resources
@@ -65,8 +65,6 @@ Related:Engine/Rendering/ParticleSystems
 [/REGION]
 
 [TOC(start:2)]
-
-## 概要
 
 ファーストパーソンシューティング ゲームのサンプルは PC 向けのマルチプレイ FPS ゲームのサンプルです。このサンプルには、簡単なフロントメニュー システムに沿った、 
 武器やゲームタイプの基本的な実装方法が含まれています。
