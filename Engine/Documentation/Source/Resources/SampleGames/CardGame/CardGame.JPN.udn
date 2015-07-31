@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2613892
 Availability:Public
 Title:記憶ゲームのサンプル 
 Crumbs:%ROOT%, Resources
@@ -61,11 +61,6 @@ Related:Engine/Content/Types/StaticMeshes
 
 [TOC(start:2)]
 
-
-
-
-## 概要
-
 記憶ゲームのサンプルは、シンプルな PC / モバイル用のロジック ゲームのサンプルです。追加コードのサポートなしで _ブループリント_ のみでビルドされています。
 
 
@@ -76,22 +71,22 @@ Related:Engine/Content/Types/StaticMeshes
 **BP_LogicMem** _ブループリント_ は _GameMode_ _クラス_ から派生しています。この _ブループリント_ には、 Default Pawn クラス、 HUD クラス、 Player Controller クラス、 Spectator クラス、 GameReplicationInfo クラスが
 設定されています。  
 
-**BP_LogicMem** _ブループリント_ にも _グラフ_ が 2 つあります。**EventGraph** には、ゲームの初期設定、ゲームプレイに必要なロジック テスト、 
-メニューへ戻ったり **[Hint]** ボタンで全てのカードを表示するなどの追加機能が含まれています。**FinishGame** はプレイヤーの勝敗、プレイヤーに与えられる星の数、ゲーム終了時に必要なクリーンアップに対応します。 
+BP_LogicMem _ブループリント_ にも _グラフ_ が 2 つあります。**EventGraph** には、ゲームの初期設定、ゲームプレイに必要なロジック テスト、 
+メニューへ戻ったり [Hint] ボタンで全てのカードを表示するなどの追加機能が含まれています。**FinishGame** はプレイヤーの勝敗、プレイヤーに与えられる星の数、ゲーム終了時に必要なクリーンアップに対応します。 
 
-**BP_Counter** は残りの移動数が 3 以下になると移動数用のテキストの色だけでなく表示する移動数を変更するため、 _Blueprint Interface_ を使って **BP_LogicMem** により呼ばれます。   
+**BP_Counter** は残りの移動数が 3 以下になると移動数用のテキストの色だけでなく表示する移動数を変更するため、 _Blueprint Interface_ を使って BP_LogicMem により呼ばれます。   
 
 ## カード処理
 
-**BP_DeckMem** と **BP_CardMem** _ブループリント_ は、ゲームにおいてカードがどのように定義されレイアウトされるのかを管理するプライマリ _ブループリント_ です。ゲームレベル内に置かれている 1 つの **BP_DeckMem** のインスタンスが
-**BP_CardMem** のスポーン処理をしています。
+**BP_DeckMem** と **BP_CardMem** _ブループリント_ は、ゲームにおいてカードがどのように定義されレイアウトされるのかを管理するプライマリ _ブループリント_ です。ゲームレベル内に置かれている 1 つの BP_DeckMem のインスタンスが
+BP_CardMem のスポーン処理をしています。
 
-**BP_DeckMem** には、カードデックの作成およびシャッフル、カードのスポーン、カードのをボード上への配置、 **[Hint]** ボタン押下時の全てのカードの表示のロジックが含まれています。デックをシャッフルするネットワークは **Shuffle** 機能に格納されており、 
+BP_DeckMem には、カードデックの作成およびシャッフル、カードのスポーン、カードのをボード上への配置、 [Hint] ボタン押下時の全てのカードの表示のロジックが含まれています。デックをシャッフルするネットワークは **Shuffle** 機能に格納されており、 
 新規ゲームの準備中にメインとなる **EventGraph** に呼び出されます。デックをシャッフルした後、カードの合計数に応じて異なるカード配置で 
-**BP_DeckMem** がカードをスポーンします。ボード上にはどの位置にもインデックスがあります。 **CardDeckObjects** 配列には **BP_CardMem** _ブループリント_ が含まれていますが、 
-**CardDeckShuffled** 配列にはそのインデックス用のカードタイプの情報があります。**BP_DeckMem** の **Rotate** イベントは **[Hint]** ボタンが押されると全てのカードをめくります。  
+**BP_DeckMem** がカードをスポーンします。ボード上にはどの位置にもインデックスがあります。 **CardDeckObjects** 配列には BP_CardMem _ブループリント_ が含まれていますが、 
+**CardDeckShuffled** 配列にはそのインデックス用のカードタイプの情報があります。BP_DeckMem の Rotate イベントは [Hint] ボタンが押されると全てのカードをめくります。  
 
-**BP_CardMem** はそれぞれのカード上の写真を定義し、カードの配置、カードめくり、カードの削除のアニメーションの定義、カードの比較時に使用する _ParticleEffects_ とサウンドを設定します。
+BP_CardMem はそれぞれのカード上の写真を定義し、カードの配置、カードめくり、カードの削除のアニメーションの定義、カードの比較時に使用する _ParticleEffects_ とサウンドを設定します。
 
 [REGION:fullwidth]
 ![](CardGame_ParticleEffects_Right.png)
@@ -99,22 +94,22 @@ Related:Engine/Content/Types/StaticMeshes
 
 ## Input をクリックする
 
-** BP_PlayerControllerMem** _ブループリント_ は Mouse Interface を有効化します。クリック イベントは有効化され、マウスオーバー イベントは有効化されません。クリック イベントを含む _ブループリント_ は **BP_MenuMem** 、**BP_CardMem** 、 **BP_Scoreboard** です。
-これらの **Assign OnClicked** _ノード_ はすべて **ReceivedBeginPlay** からアクティベートされ、プレイヤーがゲームを開始すると発行されます。 
+** BP_PlayerControllerMem** _ブループリント_ は Mouse Interface を有効化します。クリック イベントは有効化され、マウスオーバー イベントは有効化されません。クリック イベントを含む _ブループリント_ は BP_MenuMem 、BP_CardMem 、 BP_Scoreboard です。
+これらの Assign OnClicked _ノード_ はすべて ReceivedBeginPlay からアクティベートされ、プレイヤーがゲームを開始すると発行されます。 
 
-**Assign OnClicked** _ノード_ はデリゲート OnClicked と結びついたイベントを作成します。デリゲートは _ブループリント_ のコンポーネントにステータスを報告しステート変更に応じてイベントをトリガする方法です。   例えば、ゲームの **[Hint]** ボタンがクリックされると、 
-クリックされたことをボタンが報告し、 **[Hint]** ボタンの OnClicked デリゲートがトリガされ、並べられた全てのカードをめくるノードのシーケンスをアクティベートします。
+Assign OnClicked _ノード_ はデリゲート OnClicked と結びついたイベントを作成します。デリゲートは _ブループリント_ のコンポーネントにステータスを報告しステート変更に応じてイベントをトリガする方法です。   例えば、ゲームの [Hint] ボタンがクリックされると、 
+クリックされたことをボタンが報告し、 [Hint] ボタンの OnClicked デリゲートがトリガされ、並べられた全てのカードをめくるノードのシーケンスをアクティベートします。
 
 変数 **BlockClick** は、プレイヤーがめくったカードまたはめくる過程にあるカードをクリックしないようにします。
 
 ## フローズン カメラ
-**BP_LogicMem** _ブループリント_ は **SpectatorPawn** をデフォルトの Pawn クラスとして定義します。記憶ゲーム用の _Level ブループリント_ は PlayerStart に **SpectatorPawn** を配置し、 
-**SpectatorPawn** のプロパティは、ゲームプレイ中ずっとカメラをフローズしたままにします。 
+BP_LogicMem _ブループリント_ は **SpectatorPawn** をデフォルトの Pawn クラスとして定義します。記憶ゲーム用の _Level ブループリント_ は PlayerStart に SpectatorPawn を配置し、 
+SpectatorPawn のプロパティはゲームプレイ中ずっとカメラをフローズしたままにします。 
 
 ## メニュー
-**Memory Game** スタート メニューは _StaticMeshComponents_ を使った **BP_MenuMem** _ブループリント_ の簡単な設定です。_TextRenderComponents_ はテキストと数字に、 **Timeline** はメニューをゲーム ウィンドウの外に移動するために使用されています。  
-メニューを使って、使用カード数、揃った時点でゲーム終了となるブラックカードのペアの使用可否についての変数を設定します。これらの変数は、 **BPI_Communication** 経由で
- **BP_LogicMem** と **BP_DeckMem** _ブループリント_ へ送られます。 
+**Memory Game** スタート メニューは _StaticMeshComponents_ を使った BP_MenuMem _ブループリント_ の簡単な設定です。_TextRenderComponents_ はテキストと数字に、 Timeline はメニューをゲーム ウィンドウの外に移動するために使用されています。  
+メニューを使って、使用カード数、揃った時点でゲーム終了となるブラックカードのペアの使用可否についての変数を設定します。これらの変数は、 BPI_Communication 経由で
+ BP_LogicMem と **BP_DeckMem** _ブループリント_ へ送られます。 
 
 [REGION:fullwidth]
 ![](CardGameMenu.png)
@@ -236,7 +231,7 @@ Related:Engine/Content/Types/StaticMeshes
 * ゲームオーバー
 
 
-プレイヤーは `AShooterGameMode` の `PreLogin()` 、 `Login()` 、 そして `PostLogin()` 関数で処理される _ログイン_ プロセスを経てゲームに参加します。 
+プレイヤーは `AShooterGameMode` の `PreLogin()`、 `Login()`、 そして `PostLogin()` 関数で処理される _ログイン_ プロセスを経てゲームに参加します。 
 `Login()` は各プレイヤーに対し PlayerController をスポーンして、開始地点を設定します (例、開始地点の PlayerStart など)。  
 またマップ URI オプションやその他の要素に基づいて、プレイヤーに独自のカスタマイズを可能にする `InitNewPlayer()` を呼びます。 
 チームベースのゲームは、ここでプレイヤーがチームへ割り当てられます。 
