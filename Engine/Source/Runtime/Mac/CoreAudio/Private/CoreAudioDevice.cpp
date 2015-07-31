@@ -50,6 +50,11 @@ bool FCoreAudioDevice::InitializeHardware()
 
 	InverseTransform = FMatrix::Identity;
 
+	for (int32 Index = 0; Index < CORE_AUDIO_MAX_CHANNELS + 1; ++Index)
+	{
+		AudioChannels[Index] = nullptr;
+	}
+
 	for( SInt32 Index = 0; Index < CORE_AUDIO_MAX_CHANNELS; ++Index )
 	{
 		Mixer3DInputStatus[ Index ] = false;
@@ -223,6 +228,9 @@ bool FCoreAudioDevice::InitializeHardware()
 		// Connect 3D Mixer to Output node
 		Status = AUGraphConnectNodeInput( AudioUnitGraph, Mixer3DNode, 0, OutputNode, 0 );
 	}
+
+	// Set the sample rate
+	SampleRate = Mixer3DFormat.mSampleRate;
 
 	if( Status != noErr )
 	{
