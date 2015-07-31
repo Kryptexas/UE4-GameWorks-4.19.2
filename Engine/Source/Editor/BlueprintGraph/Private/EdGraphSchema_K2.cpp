@@ -3982,6 +3982,10 @@ bool UEdGraphSchema_K2::ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const
 						bShow = ( WorldContextPin != Pin );
 					}
 				}
+				else if (Cast<UK2Node_CreateDelegate>( Pin->GetOwningNode())) 
+				{
+					bShow = false;
+				}
 			}
 		}
 	}
