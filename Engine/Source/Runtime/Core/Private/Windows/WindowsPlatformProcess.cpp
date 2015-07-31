@@ -27,53 +27,48 @@
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
+TArray<FString> FWindowsPlatformProcess::DllDirectories;
 
 
 void FWindowsPlatformProcess::AddDllDirectory(const TCHAR* Directory)
 {
-	// Normalize the input directory
 	FString NormalizedDirectory = Directory;
 	FPaths::NormalizeDirectoryName(NormalizedDirectory);
 	FPaths::MakePlatformFilename(NormalizedDirectory);
-
-	// Get the size of the PATH variable
-	TArray<TCHAR> PathVariable;
-	PathVariable.AddUninitialized(::GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
-
-	// Get the actual value of variable.
-	if (::GetEnvironmentVariable(TEXT("PATH"), PathVariable.GetData(), PathVariable.Num()) == 0)
-	{
-		// Log a warning if reading value fails, but continue anyway.
-		UE_LOG(LogWindows, Warning, TEXT("Failed to load PATH environment variable. It either doesn't exist, or is too long."));
-		PathVariable.Add(TEXT(';'));
-	}
-
-	// Set the new path variable with the input directory at the start. Skip over any existing instances of the input directory.
-	FString NewPathVariable = NormalizedDirectory;
-	for(const TCHAR* PathPos = PathVariable.GetData(); PathPos < PathVariable.GetData() + PathVariable.Num(); )
-	{
-		// Scan to the end of this directory
-		const TCHAR* PathEnd = PathPos;
-		while(*PathEnd != ';' && *PathEnd != 0) PathEnd++;
-
-		// Add it to the new path variable if it doesn't match the input directory
-		if(PathEnd - PathPos != NormalizedDirectory.Len() || FCString::Strnicmp(*NormalizedDirectory, PathPos, PathEnd - PathPos) != 0)
-		{
-			NewPathVariable.AppendChar(TEXT(';'));
-			NewPathVariable.AppendChars(PathPos, PathEnd - PathPos);
-		}
-
-		// Move to the next string
-		PathPos = PathEnd + 1;
-	}
-	SetEnvironmentVariable(TEXT("PATH"), *NewPathVariable);
+	DllDirectories.AddUnique(NormalizedDirectory);
 }
 
 void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
 	check(Filename);
+
+	// In order to load the DLL and resolve its imports correctly, we update the PATH environment variable before the load, and restore it when we're done.
+	TArray<TCHAR> InitialPathVariable;
+	InitialPathVariable.AddUninitialized(::GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
+	if (::GetEnvironmentVariable(TEXT("PATH"), InitialPathVariable.GetData(), InitialPathVariable.Num()) == 0)
+	{
+		UE_LOG(LogWindows, Warning, TEXT("Failed to load PATH environment variable. It either doesn't exist, or is too long."));
+	}
+
+	// Set the new path variable with the input directory at the start. Skip over any existing instances of the input directory.
+	FString NewPathVariable;
+	for(const FString& DllDirectory: DllDirectories)
+	{
+		if(NewPathVariable.Len() > 0)
+		{
+			NewPathVariable.AppendChar(TEXT(';'));
+		}
+		NewPathVariable.Append(DllDirectory);
+	}
+	SetEnvironmentVariable(TEXT("PATH"), *NewPathVariable);
+
+	// Load the DLL
 	::SetErrorMode(SEM_NOOPENFILEERRORBOX);
-	return ::LoadLibraryW(Filename);
+	void* Handle = ::LoadLibraryW(Filename);
+
+	// Restore the PATH variable back to normal
+	::SetEnvironmentVariable(TEXT("PATH"), InitialPathVariable.GetData());
+	return Handle;
 }
 
 void FWindowsPlatformProcess::FreeDllHandle( void* DllHandle )

@@ -191,6 +191,11 @@ private:
 	 * this stack is used to reset the previous DllDirectory.
 	 */
 	static TArray<FString> DllDirectoryStack;
+
+	/**
+	 * All the DLL directories we want to load from. 
+	 */
+	static TArray<FString> DllDirectories;
 };
 
 
