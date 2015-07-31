@@ -237,6 +237,12 @@ public:
 	virtual void NotifyPostChange() = 0;
 
 	/**
+	 * Called to manually notify root objects that this property has finished changing
+	 * This does not need to be called when SetValue functions are used since it will be called automatically
+	 */
+	virtual void NotifyFinishedChangingProperties() = 0;
+
+	/**
 	 * Sets the object value from the current editor selection
 	 * Will fail if this handle isn't an object property
 	 */

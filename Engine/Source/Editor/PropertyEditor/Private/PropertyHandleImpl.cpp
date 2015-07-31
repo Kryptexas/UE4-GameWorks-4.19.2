@@ -2002,6 +2002,17 @@ void FPropertyHandleBase::NotifyPostChange()
 	}
 }
 
+void FPropertyHandleBase::NotifyFinishedChangingProperties()
+{
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if( PropertyNode.IsValid() )
+	{
+		FPropertyChangedEvent ChangeEvent(PropertyNode->GetProperty(), EPropertyChangeType::ValueSet);
+		PropertyNode->FixPropertiesInEvent(ChangeEvent);
+		Implementation->GetPropertyUtilities()->NotifyFinishedChangingProperties(ChangeEvent);
+	}
+}
+
 FPropertyAccess::Result FPropertyHandleBase::SetObjectValueFromSelection()
 {
 	return Implementation->OnUseSelected();
