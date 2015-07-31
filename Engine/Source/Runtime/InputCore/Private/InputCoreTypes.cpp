@@ -1020,7 +1020,8 @@ bool FKey::ExportTextItem(FString& ValueStr, FKey const& DefaultValue, UObject* 
 {
 	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
 	{
-		return false;
+		ValueStr += FString::Printf(TEXT("FKey(TEXT(\"%s\"))"), *KeyName.ToString());
+		return true;
 	}
 
 	ValueStr += KeyName.ToString();

@@ -121,6 +121,7 @@ void FKismetCompilerContext::SpawnNewClass(const FString& NewClassName)
 	else
 	{
 		// Already existed, but wasn't linked in the Blueprint yet due to load ordering issues
+		NewClass->ClassGeneratedBy = Blueprint;
 		FBlueprintCompileReinstancer::Create(NewClass);
 	}
 }

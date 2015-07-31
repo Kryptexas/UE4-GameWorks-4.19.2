@@ -67,4 +67,10 @@ struct FEmitDefaultValueHelper
 {
 	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct);
 	static void InnerGenerate(const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember, FString& OutResult);
+	
+	// Return if it's complete construction
+	static bool OneLineConstruction(const UProperty* Property, const uint8* ValuePtr, FString& OutResult);
+
+	//Return if handled
+	static bool HandleSpecialTypes(const UProperty* Property, const uint8* ValuePtr, FString& OutResult);
 };

@@ -531,7 +531,13 @@ FString FEmitHelper::LiteralTerm(const FEdGraphPinType& Type, const FString& Cus
 		else
 		{
 			//@todo:  This needs to be more robust, since import text isn't really proper for struct construction.
-			return FString(TEXT("F")) + StructType->GetName() + (CustomValue.IsEmpty() ? TEXT("{}") : *CustomValue);
+			ensure(CustomValue.IsEmpty());
+			
+			const FString StructName = FString(TEXT("F")) + StructType->GetName();
+			const FString ConstructBody = CustomValue.IsEmpty()
+				? (StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}"))
+				: CustomValue;
+			return StructName + ConstructBody;
 		}
 	}
 	else if (Type.PinSubCategory == UEdGraphSchema_K2::PSC_Self)
@@ -670,16 +676,54 @@ FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruc
 	return Result;
 }
 
+bool FEmitDefaultValueHelper::OneLineConstruction(const UProperty* Property, const uint8* ValuePtr, FString& OutResult)
+{
+	FString ValueStr;
+	bool bComplete = true;
+	if (!HandleSpecialTypes(Property, ValuePtr, ValueStr))
+	{
+		auto StructProperty = Cast<const UStructProperty>(Property);
+		Property->ExportTextItem(ValueStr, ValuePtr, ValuePtr, nullptr, EPropertyPortFlags::PPF_ExportCpp);
+		if (ValueStr.IsEmpty() && StructProperty)
+		{
+			check(StructProperty->Struct);
+			ValueStr = FString::Printf(TEXT("F%s()"), *StructProperty->Struct->GetName());
+			bComplete = false;
+		}
+		if (ValueStr.IsEmpty())
+		{
+			UE_LOG(LogK2Compiler, Warning, TEXT("FEmitDefaultValueHelper Cannot generate initilization: %s"), *Property->GetPathName());
+		}
+	}
+	OutResult += ValueStr;
+	return bComplete;
+}
+
 void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember, FString& OutResult)
 {
+	if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate | CPF_NativeAccessSpecifierProtected))
+	{
+		UE_LOG(LogK2Compiler, Warning, TEXT("FEmitDefaultValueHelper Cannot access property: %s"), *Property->GetPathName());
+		return;
+	}
+
+	auto StructProperty = Cast<const UStructProperty>(Property);
+	check(!StructProperty || StructProperty->Struct);
+	auto ArrayProperty = Cast<const UArrayProperty>(Property);
+	check(!ArrayProperty || ArrayProperty->Inner);
+
 	if (!Property->GetOuter()->IsA<UArrayProperty>())
 	{
 		FString ValueStr;
-		Property->ExportTextItem(ValueStr, ValuePtr, ValuePtr, nullptr, EPropertyPortFlags::PPF_ExportCpp);
+		const bool bComplete = OneLineConstruction(Property, ValuePtr, ValueStr);
 		OutResult += FString::Printf(TEXT("%s = %s;\n"), *PathToMember, *ValueStr);
+		if (bComplete && !ArrayProperty)
+		{
+			return;
+		}
 	}
 
-	if (auto StructProperty = Cast<const UStructProperty>(Property))
+	if (StructProperty)
 	{
 		for (auto LocalProperty : TFieldRange<const UProperty>(StructProperty->Struct))
 		{
@@ -693,20 +737,43 @@ void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uin
 			}
 		}
 	}
-	else if (auto ArrayProperty = Cast<const UArrayProperty>(Property))
+	
+	if (ArrayProperty)
 	{
-		check(ArrayProperty->Inner);
 		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
 		for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 		{
 			const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
+
+			FString ValueStr;
+			const bool bComplete = OneLineConstruction(ArrayProperty->Inner, LocalValuePtr, ValueStr);
+			OutResult += FString::Printf(TEXT("%s.Add(%s);\n"), *PathToMember, *ValueStr);
+			if (!bComplete)
 			{
-				FString ValueStr;
-				ArrayProperty->Inner->ExportTextItem(ValueStr, LocalValuePtr, LocalValuePtr, nullptr, EPropertyPortFlags::PPF_ExportCpp);
-				OutResult += FString::Printf(TEXT("%s.Add(%s);\n"), *PathToMember, *ValueStr);
+				const FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
+				InnerGenerate(ArrayProperty->Inner, LocalValuePtr, LocalPathToMember, OutResult);
 			}
-			const FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
-			InnerGenerate(ArrayProperty->Inner, LocalValuePtr, LocalPathToMember, OutResult);
 		}
 	}
+}
+
+bool FEmitDefaultValueHelper::HandleSpecialTypes(const UProperty* Property, const uint8* ValuePtr, FString& OutResult)
+{
+	if (auto StructProperty = Cast<UStructProperty>(Property))
+	{
+		if (TBaseStructure<FTransform>::Get() == StructProperty->Struct)
+		{
+			check(ValuePtr);
+			const FTransform* Transform = reinterpret_cast<const FTransform*>(ValuePtr);
+			const auto Rotation = Transform->GetRotation();
+			const auto Translation = Transform->GetTranslation();
+			const auto Scale = Transform->GetScale3D();
+			OutResult = FString::Printf(TEXT("FTransform(FQuat(%f, %f, %f, %f), FVector(%f, %f, %f), FVector(%f, %f, %f))")
+				, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W
+				, Translation.X, Translation.Y, Translation.Z
+				, Scale.X, Scale.Y, Scale.Z);
+			return true;
+		}
+	}
+	return false;
 }

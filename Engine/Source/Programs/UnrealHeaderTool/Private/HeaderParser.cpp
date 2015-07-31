@@ -2608,14 +2608,14 @@ void FHeaderParser::CompileDirective(FClasses& AllClasses, FUnrealSourceFile& So
 
 void FHeaderParser::GetVarType
 (
-	FClasses&                       AllClasses,
-	FScope*							Scope,
-	FPropertyBase&                  VarProperty,
-	uint64                          Disallow,
-	FToken*                         OuterPropertyType,
-	EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
-	EVariableCategory::Type         VariableCategory,
-	FIndexRange*                    ParsedVarIndexRange
+FClasses&                       AllClasses,
+FScope*							Scope,
+FPropertyBase&                  VarProperty,
+uint64                          Disallow,
+FToken*                         OuterPropertyType,
+EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
+EVariableCategory::Type         VariableCategory,
+FIndexRange*                    ParsedVarIndexRange
 )
 {
 	UStruct* OwnerStruct = Scope->IsFileScope() ? nullptr : ((FStructScope*)Scope)->GetStruct();
@@ -2638,7 +2638,7 @@ void FHeaderParser::GetVarType
 	const bool bIsParamList = (VariableCategory != EVariableCategory::Member) && MatchIdentifier(TEXT("UPARAM"));
 
 	// No specifiers are allowed inside a TArray
-	if( (OuterPropertyType == NULL) || !OuterPropertyType->Matches(TEXT("TArray")) )
+	if ((OuterPropertyType == NULL) || !OuterPropertyType->Matches(TEXT("TArray")))
 	{
 		// New-style UPROPERTY() syntax 
 		if (PropertyDeclarationStyle == EPropertyDeclarationStyle::UPROPERTY || bIsParamList)
@@ -2656,7 +2656,7 @@ void FHeaderParser::GetVarType
 		}
 	}
 
-	if (CompilerDirectiveStack.Num() > 0 && (CompilerDirectiveStack.Last()&ECompilerDirective::WithEditorOnlyData)!=0)
+	if (CompilerDirectiveStack.Num() > 0 && (CompilerDirectiveStack.Last()&ECompilerDirective::WithEditorOnlyData) != 0)
 	{
 		Flags |= CPF_EditorOnly;
 	}
@@ -2677,284 +2677,284 @@ void FHeaderParser::GetVarType
 		{
 			switch (SpecID)
 			{
-				case EVariableSpecifier::EditAnywhere:
+			case EVariableSpecifier::EditAnywhere:
+			{
+				if (bSeenEditSpecifier)
 				{
-					if (bSeenEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-					Flags |= CPF_Edit;
-					bSeenEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+				Flags |= CPF_Edit;
+				bSeenEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::EditInstanceOnly:
+			case EVariableSpecifier::EditInstanceOnly:
+			{
+				if (bSeenEditSpecifier)
 				{
-					if (bSeenEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-					Flags |= CPF_Edit|CPF_DisableEditOnTemplate;
-					bSeenEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+				Flags |= CPF_Edit | CPF_DisableEditOnTemplate;
+				bSeenEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::EditDefaultsOnly: 
+			case EVariableSpecifier::EditDefaultsOnly:
+			{
+				if (bSeenEditSpecifier)
 				{
-					if (bSeenEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-					Flags |= CPF_Edit|CPF_DisableEditOnInstance;
-					bSeenEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+				Flags |= CPF_Edit | CPF_DisableEditOnInstance;
+				bSeenEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::VisibleAnywhere: 
+			case EVariableSpecifier::VisibleAnywhere:
+			{
+				if (bSeenEditSpecifier)
 				{
-					if (bSeenEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-					Flags |= CPF_Edit|CPF_EditConst;
-					bSeenEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+				Flags |= CPF_Edit | CPF_EditConst;
+				bSeenEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::VisibleInstanceOnly:
+			case EVariableSpecifier::VisibleInstanceOnly:
+			{
+				if (bSeenEditSpecifier)
 				{
-					if (bSeenEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-					Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnTemplate;
-					bSeenEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+				Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnTemplate;
+				bSeenEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::VisibleDefaultsOnly:
+			case EVariableSpecifier::VisibleDefaultsOnly:
+			{
+				if (bSeenEditSpecifier)
 				{
-					if (bSeenEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-					Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnInstance;
-					bSeenEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+				Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnInstance;
+				bSeenEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::BlueprintReadWrite:
+			case EVariableSpecifier::BlueprintReadWrite:
+			{
+				if (bSeenBlueprintEditSpecifier)
 				{
-					if (bSeenBlueprintEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-
-					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
-					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
-					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
-					{
-						FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
-					}
-					Flags |= CPF_BlueprintVisible;
-					bSeenBlueprintEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+
+				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
+				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
+				if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+				{
+					FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
+				}
+				Flags |= CPF_BlueprintVisible;
+				bSeenBlueprintEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::BlueprintReadOnly:
+			case EVariableSpecifier::BlueprintReadOnly:
+			{
+				if (bSeenBlueprintEditSpecifier)
 				{
-					if (bSeenBlueprintEditSpecifier)
-					{
-						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
-					}
-
-					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
-					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
-					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
-					{
-						FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
-					}
-					Flags |= CPF_BlueprintVisible|CPF_BlueprintReadOnly;
-					bSeenBlueprintEditSpecifier = true;
+					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
 				}
+
+				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
+				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
+				if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+				{
+					FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
+				}
+				Flags |= CPF_BlueprintVisible | CPF_BlueprintReadOnly;
+				bSeenBlueprintEditSpecifier = true;
+			}
 				break;
 
-				case EVariableSpecifier::Config:
-				{
-					Flags |= CPF_Config;
-				}
+			case EVariableSpecifier::Config:
+			{
+				Flags |= CPF_Config;
+			}
 				break;
 
-				case EVariableSpecifier::GlobalConfig:
-				{
-					Flags |= CPF_GlobalConfig | CPF_Config;
-				}
+			case EVariableSpecifier::GlobalConfig:
+			{
+				Flags |= CPF_GlobalConfig | CPF_Config;
+			}
 				break;
 
-				case EVariableSpecifier::Localized:
-				{
-					FError::Throwf(TEXT("The Localized specifier is deprecated"));
-				}
+			case EVariableSpecifier::Localized:
+			{
+				FError::Throwf(TEXT("The Localized specifier is deprecated"));
+			}
 				break;
 
-				case EVariableSpecifier::Transient:
-				{
-					Flags |= CPF_Transient;
-				}
+			case EVariableSpecifier::Transient:
+			{
+				Flags |= CPF_Transient;
+			}
 				break;
 
-				case EVariableSpecifier::DuplicateTransient:
-				{
-					Flags |= CPF_DuplicateTransient;
-				}
+			case EVariableSpecifier::DuplicateTransient:
+			{
+				Flags |= CPF_DuplicateTransient;
+			}
 				break;
 
-				case EVariableSpecifier::TextExportTransient:
-				{
-					Flags |= CPF_TextExportTransient;
-				}
+			case EVariableSpecifier::TextExportTransient:
+			{
+				Flags |= CPF_TextExportTransient;
+			}
 				break;
 
-				case EVariableSpecifier::NonPIETransient:
-				{
-					UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
-					Flags |= CPF_NonPIEDuplicateTransient;
-				}
+			case EVariableSpecifier::NonPIETransient:
+			{
+				UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
+				Flags |= CPF_NonPIEDuplicateTransient;
+			}
 				break;
 
-				case EVariableSpecifier::NonPIEDuplicateTransient:
-				{
-					Flags |= CPF_NonPIEDuplicateTransient;
-				}
+			case EVariableSpecifier::NonPIEDuplicateTransient:
+			{
+				Flags |= CPF_NonPIEDuplicateTransient;
+			}
 				break;
 
-				case EVariableSpecifier::Export:
-				{
-					Flags |= CPF_ExportObject;
-				}
+			case EVariableSpecifier::Export:
+			{
+				Flags |= CPF_ExportObject;
+			}
 				break;
 
-				case EVariableSpecifier::EditInline:
-				{
-					FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
-				}
+			case EVariableSpecifier::EditInline:
+			{
+				FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
+			}
 				break;
 
-				case EVariableSpecifier::NoClear:
-				{
-					Flags |= CPF_NoClear;
-				}
+			case EVariableSpecifier::NoClear:
+			{
+				Flags |= CPF_NoClear;
+			}
 				break;
 
-				case EVariableSpecifier::EditFixedSize:
-				{
-					Flags |= CPF_EditFixedSize;
-				}
+			case EVariableSpecifier::EditFixedSize:
+			{
+				Flags |= CPF_EditFixedSize;
+			}
 				break;
 
-				case EVariableSpecifier::Replicated:
-				case EVariableSpecifier::ReplicatedUsing:
+			case EVariableSpecifier::Replicated:
+			case EVariableSpecifier::ReplicatedUsing:
+			{
+				if (OwnerStruct->IsA<UScriptStruct>())
 				{
-					if (OwnerStruct->IsA<UScriptStruct>())
-					{
-						FError::Throwf(TEXT("Struct members cannot be replicated"));
-					}
-
-					Flags |= CPF_Net;
-
-					// See if we've specified a rep notification function
-					if (SpecID == EVariableSpecifier::ReplicatedUsing)
-					{
-						RepCallbackName = FName(*RequireExactlyOneSpecifierValue(Specifier));
-						Flags |= CPF_RepNotify;
-					}
+					FError::Throwf(TEXT("Struct members cannot be replicated"));
 				}
+
+				Flags |= CPF_Net;
+
+				// See if we've specified a rep notification function
+				if (SpecID == EVariableSpecifier::ReplicatedUsing)
+				{
+					RepCallbackName = FName(*RequireExactlyOneSpecifierValue(Specifier));
+					Flags |= CPF_RepNotify;
+				}
+			}
 				break;
 
-				case EVariableSpecifier::NotReplicated:
+			case EVariableSpecifier::NotReplicated:
+			{
+				if (!OwnerStruct->IsA<UScriptStruct>())
 				{
-					if (!OwnerStruct->IsA<UScriptStruct>())
-					{
-						FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
-					}
-
-					Flags |= CPF_RepSkip;
+					FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
 				}
+
+				Flags |= CPF_RepSkip;
+			}
 				break;
 
-				case EVariableSpecifier::RepRetry:
-				{
-					FError::Throwf(TEXT("'RepRetry' is deprecated."));
-				}
+			case EVariableSpecifier::RepRetry:
+			{
+				FError::Throwf(TEXT("'RepRetry' is deprecated."));
+			}
 				break;
 
-				case EVariableSpecifier::Interp:
-				{
-					Flags |= CPF_Edit;
-					Flags |= CPF_BlueprintVisible;
-					Flags |= CPF_Interp;
-				}
+			case EVariableSpecifier::Interp:
+			{
+				Flags |= CPF_Edit;
+				Flags |= CPF_BlueprintVisible;
+				Flags |= CPF_Interp;
+			}
 				break;
 
-				case EVariableSpecifier::NonTransactional:
-				{
-					Flags |= CPF_NonTransactional;
-				}
+			case EVariableSpecifier::NonTransactional:
+			{
+				Flags |= CPF_NonTransactional;
+			}
 				break;
 
-				case EVariableSpecifier::Instanced:
-				{
-					Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
-					AddEditInlineMetaData(MetaDataFromNewStyle);
-				}
+			case EVariableSpecifier::Instanced:
+			{
+				Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
+				AddEditInlineMetaData(MetaDataFromNewStyle);
+			}
 				break;
 
-				case EVariableSpecifier::BlueprintAssignable:
-				{
-					Flags |= CPF_BlueprintAssignable;
-				}
+			case EVariableSpecifier::BlueprintAssignable:
+			{
+				Flags |= CPF_BlueprintAssignable;
+			}
 				break;
 
-				case EVariableSpecifier::BlueprintCallable:
-				{
-					Flags |= CPF_BlueprintCallable;
-				}
+			case EVariableSpecifier::BlueprintCallable:
+			{
+				Flags |= CPF_BlueprintCallable;
+			}
 				break;
 
-				case EVariableSpecifier::BlueprintAuthorityOnly:
-				{
-					Flags |= CPF_BlueprintAuthorityOnly;
-				}
+			case EVariableSpecifier::BlueprintAuthorityOnly:
+			{
+				Flags |= CPF_BlueprintAuthorityOnly;
+			}
 				break;
 
-				case EVariableSpecifier::AssetRegistrySearchable:
-				{
-					Flags |= CPF_AssetRegistrySearchable;
-				}
+			case EVariableSpecifier::AssetRegistrySearchable:
+			{
+				Flags |= CPF_AssetRegistrySearchable;
+			}
 				break;
 
-				case EVariableSpecifier::SimpleDisplay:
-				{
-					Flags |= CPF_SimpleDisplay;
-				}
+			case EVariableSpecifier::SimpleDisplay:
+			{
+				Flags |= CPF_SimpleDisplay;
+			}
 				break;
 
-				case EVariableSpecifier::AdvancedDisplay:
-				{
-					Flags |= CPF_AdvancedDisplay;
-				}
+			case EVariableSpecifier::AdvancedDisplay:
+			{
+				Flags |= CPF_AdvancedDisplay;
+			}
 				break;
 
-				case EVariableSpecifier::SaveGame:
-				{
-					Flags |= CPF_SaveGame;
-				}
+			case EVariableSpecifier::SaveGame:
+			{
+				Flags |= CPF_SaveGame;
+			}
 				break;
 
-				default:
-				{
-					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
-				}
+			default:
+			{
+				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+			}
 				break;
 			}
 		}
@@ -2962,36 +2962,36 @@ void FHeaderParser::GetVarType
 		{
 			switch (SpecID)
 			{
-				case EVariableSpecifier::Const:
-				{
-					Flags |= CPF_ConstParm;
-				}
+			case EVariableSpecifier::Const:
+			{
+				Flags |= CPF_ConstParm;
+			}
 				break;
 
-				case EVariableSpecifier::Ref:
-				{
-					Flags |= CPF_OutParm | CPF_ReferenceParm;
-				}
+			case EVariableSpecifier::Ref:
+			{
+				Flags |= CPF_OutParm | CPF_ReferenceParm;
+			}
 				break;
 
-				case EVariableSpecifier::NotReplicated:
+			case EVariableSpecifier::NotReplicated:
+			{
+				if (VariableCategory == EVariableCategory::ReplicatedParameter)
 				{
-					if (VariableCategory == EVariableCategory::ReplicatedParameter)
-					{
-						VariableCategory = EVariableCategory::RegularParameter;
-						Flags |= CPF_RepSkip;
-					}
-					else
-					{
-						FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
-					}
+					VariableCategory = EVariableCategory::RegularParameter;
+					Flags |= CPF_RepSkip;
 				}
+				else
+				{
+					FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
+				}
+			}
 				break;
 
-				default:
-				{
-					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
-				}
+			default:
+			{
+				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+			}
 				break;
 			}
 		}
@@ -3019,18 +3019,27 @@ void FHeaderParser::GetVarType
 		Flags       &= ~CPF_Protected;
 		ExportFlags |= PROPEXPORT_Public;
 		ExportFlags &= ~(PROPEXPORT_Private|PROPEXPORT_Protected);
+
+		Flags &= ~CPF_NativeAccessSpecifiers;
+		Flags |= CPF_NativeAccessSpecifierPublic;
 	}
 	else if (CurrentAccessSpecifier == ACCESS_Protected)
 	{
 		Flags       |= CPF_Protected;
 		ExportFlags |= PROPEXPORT_Protected;
 		ExportFlags &= ~(PROPEXPORT_Public|PROPEXPORT_Private);
+
+		Flags &= ~CPF_NativeAccessSpecifiers;
+		Flags |= CPF_NativeAccessSpecifierProtected;
 	}
 	else if (CurrentAccessSpecifier == ACCESS_Private)
 	{
 		Flags       &= ~CPF_Protected;
 		ExportFlags |= PROPEXPORT_Private;
 		ExportFlags &= ~(PROPEXPORT_Public|PROPEXPORT_Protected);
+
+		Flags &= ~CPF_NativeAccessSpecifiers;
+		Flags |= CPF_NativeAccessSpecifierPrivate;
 	}
 	else
 	{
@@ -5050,7 +5059,7 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 		// Get parameter type.
 		FToken Property(CPT_None);
 		EVariableCategory::Type VariableCategory = (Function->FunctionFlags & FUNC_Net) ? EVariableCategory::ReplicatedParameter : EVariableCategory::RegularParameter;
-		GetVarType(AllClasses, GetCurrentScope(), Property, ~(CPF_ParmFlags | CPF_AutoWeak | CPF_RepSkip | CPF_UObjectWrapper), NULL, EPropertyDeclarationStyle::None, VariableCategory);
+		GetVarType(AllClasses, GetCurrentScope(), Property, ~(CPF_ParmFlags | CPF_AutoWeak | CPF_RepSkip | CPF_UObjectWrapper | CPF_NativeAccessSpecifiers), NULL, EPropertyDeclarationStyle::None, VariableCategory);
 		Property.PropertyFlags |= CPF_Parm;
 
 		if (bExpectCommaBeforeName)
