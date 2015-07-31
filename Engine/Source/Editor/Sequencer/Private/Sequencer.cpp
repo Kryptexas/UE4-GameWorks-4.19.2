@@ -568,7 +568,7 @@ float FSequencer::GetGlobalTime()
 
 void FSequencer::SetGlobalTime( float NewTime )
 {
-	if (bAutoScrollEnabled)
+	if (bAutoScrollEnabled && !bLoopingEnabled)
 	{
 		float RangeOffset = CalculateAutoscrollEncroachment(NewTime).Get(0.f);
 			
