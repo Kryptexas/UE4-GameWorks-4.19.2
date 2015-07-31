@@ -54,6 +54,9 @@ public:
 	/** Turns auto keying on and off. */
 	TSharedPtr< FUICommandInfo > ToggleAutoKeyEnabled;
 
+	/** Turns key all on and off. */
+	TSharedPtr< FUICommandInfo > ToggleKeyAllEnabled;
+
 	/** Turns show frame numbers on and off. */
 	TSharedPtr< FUICommandInfo > ToggleShowFrameNumbers;
 

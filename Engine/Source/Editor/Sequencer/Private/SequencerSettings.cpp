@@ -6,6 +6,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	: Super( ObjectInitializer )
 {
 	bAutoKeyEnabled = false;
+	bKeyAllEnabled = false;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
 	bLockInOutToStartEndRange = false;
@@ -35,6 +36,20 @@ void USequencerSettings::SetAutoKeyEnabled(bool InbAutoKeyEnabled)
 	if ( bAutoKeyEnabled != InbAutoKeyEnabled )
 	{
 		bAutoKeyEnabled = InbAutoKeyEnabled;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetKeyAllEnabled() const
+{
+	return bKeyAllEnabled;
+}
+
+void USequencerSettings::SetKeyAllEnabled(bool InbKeyAllEnabled)
+{
+	if ( bKeyAllEnabled != InbKeyAllEnabled )
+	{
+		bKeyAllEnabled = InbKeyAllEnabled;
 		SaveConfig();
 	}
 }

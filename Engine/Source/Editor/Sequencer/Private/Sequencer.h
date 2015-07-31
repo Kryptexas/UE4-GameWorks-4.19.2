@@ -72,6 +72,8 @@ public:
 	virtual void AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence) override;
 	virtual bool GetAutoKeyEnabled() const override;
 	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) override;
+	virtual bool GetKeyAllEnabled() const override;
+	virtual void SetKeyAllEnabled(bool bKeyAllEnabled) override;
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() override;
@@ -265,6 +267,9 @@ public:
 
 	/** Called to save the current movie scene */
 	void SaveCurrentMovieScene();
+
+	/** Called to add selected objects to the movie scene */
+	void AddSelectedObjects();
 
 protected:
 

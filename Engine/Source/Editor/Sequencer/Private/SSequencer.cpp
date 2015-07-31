@@ -448,8 +448,6 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 	
 	ToolBarBuilder.BeginSection("Base Commands");
 	{
-		ToolBarBuilder.SetLabelVisibility(EVisibility::Visible);
-
 		if (OnGetAddMenuContent.IsBound())
 		{
 			ToolBarBuilder.AddWidget(
@@ -494,59 +492,45 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				]);
 		}
 
+		// General 
 		if( Sequencer.Pin()->IsLevelEditorSequencer() )
 		{
-			ToolBarBuilder.AddWidget
-			(
-				SNew( SButton )
-				.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-				.ToolTipText( LOCTEXT( "SaveDirtyPackagesTooltip", "Saves the current Movie Scene" ) )
-				.ContentPadding(FMargin(6, 2))
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.OnClicked( this, &SSequencer::OnSaveMovieSceneClicked )
-				[
-					SNew( SHorizontalBox )
-					+ SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.11"))
-						.Text(FText::FromString(FString(TEXT("\xf0c7"))) /*fa-floppy-o*/)
-						.ShadowOffset( FVector2D( 1,1) )
-					]
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(4, 1, 0, 0)
-					[
-						SNew( STextBlock )
-						.Text( LOCTEXT( "SaveMovieScene", "Save" ) )
-						.ShadowOffset( FVector2D( 1,1) )
-					]
-				]
-			);
+			ToolBarBuilder.AddToolBarButton(
+				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneClicked))
+				, NAME_None
+				, LOCTEXT("SaveDirtyPackages", "Save")
+				, LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current movie scene")
+				//, FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Save"));
+				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save"));
+		}
+		ToolBarBuilder.AddComboButton(
+			FUIAction(),
+			FOnGetContent::CreateSP( this, &SSequencer::MakeGeneralMenu ),
+			LOCTEXT( "GeneralOptions", "General Options" ),
+			LOCTEXT( "GeneralOptionsToolTip", "General Options" ),
+			TAttribute<FSlateIcon>(),
+			true );
 
-			ToolBarBuilder.AddSeparator();
+		ToolBarBuilder.AddSeparator();
+
+		if( Sequencer.Pin()->IsLevelEditorSequencer() )
+		{
+			ToolBarBuilder.AddToolBarButton(
+				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnAddObjectClicked))
+				, NAME_None
+				, LOCTEXT("AddObject", "Add Object")
+				, LOCTEXT("AddObjectTooltip", "Add selected objects")
+				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.AddObject"));
+
+			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleKeyAllEnabled );
 		}
 
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
-
-		if ( Sequencer.Pin()->IsLevelEditorSequencer() )
-		{
-			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleCleanView );
-		}
-
-		ToolBarBuilder.SetLabelVisibility(EVisibility::Collapsed);
-		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoScroll, NAME_None, TAttribute<FText>( FText::GetEmpty() ) );
-		ToolBarBuilder.SetLabelVisibility(EVisibility::Visible);
 	}
 	ToolBarBuilder.EndSection();
 
 	ToolBarBuilder.BeginSection("Snapping");
 	{
-
-		ToolBarBuilder.SetLabelVisibility( EVisibility::Collapsed );
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleIsSnapEnabled, NAME_None, TAttribute<FText>( FText::GetEmpty() ) );
 		ToolBarBuilder.AddComboButton(
 			FUIAction(),
@@ -583,9 +567,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 
 	ToolBarBuilder.BeginSection("Curve Editor");
 	{
-		ToolBarBuilder.SetLabelVisibility( EVisibility::Visible );
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleShowCurveEditor );
-		ToolBarBuilder.SetLabelVisibility( EVisibility::Collapsed );
 	}
 
 	return ToolBarBuilder.MakeWidget();
@@ -594,6 +576,23 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 TSharedRef<SWidget> SSequencer::MakeAddMenu()
 {
 	return OnGetAddMenuContent.Execute(Sequencer.Pin().ToSharedRef());
+}
+
+TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
+{
+	FMenuBuilder MenuBuilder( false, Sequencer.Pin()->GetCommandBindings() );
+
+	MenuBuilder.BeginSection( "ViewOptions", LOCTEXT( "ViewMenuHeader", "View" ) );
+	{
+		if (Sequencer.Pin()->IsLevelEditorSequencer())
+		{
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCleanView );
+		}
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
 }
 
 TSharedRef<SWidget> SSequencer::MakeSnapMenu()
@@ -1159,11 +1158,14 @@ void SSequencer::DeleteSelectedNodes()
 	}
 }
 
-FReply SSequencer::OnSaveMovieSceneClicked()
+void SSequencer::OnSaveMovieSceneClicked()
 {
 	Sequencer.Pin()->SaveCurrentMovieScene();
+}
 
-	return FReply::Unhandled();
+void SSequencer::OnAddObjectClicked()
+{
+	Sequencer.Pin()->AddSelectedObjects();
 }
 
 void SSequencer::StepToNextKey()

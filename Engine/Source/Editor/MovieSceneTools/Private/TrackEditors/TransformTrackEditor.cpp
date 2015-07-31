@@ -479,7 +479,7 @@ void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject
 		}
 
 		// If forcing the keyframe, set the last data invalid so that the transform keyframe will be set regardless of the current time values being equal.
-		if ( bForceKey )
+		if ( bForceKey || IsAllowedKeyAll() )
 		{
 			TransformPair.LastTransformData.bValid = false;
 		}

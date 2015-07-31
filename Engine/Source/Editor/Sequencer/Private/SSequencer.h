@@ -113,7 +113,10 @@ public:
 	bool UserIsSelecting() { return bUserIsSelecting; }
 
 	/** Called when the save button is clicked */
-	FReply OnSaveMovieSceneClicked();
+	void OnSaveMovieSceneClicked();
+
+	/** Called when the add object button is clicked */
+	void OnAddObjectClicked();
 
 	/** Access the tree view for this sequencer */
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
@@ -127,6 +130,9 @@ private:
 
 	/** Makes the add menu for the toolbar. */
 	TSharedRef<SWidget> MakeAddMenu();
+
+	/** Makes the general menu for the toolbar. */
+	TSharedRef<SWidget> MakeGeneralMenu();
 
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();

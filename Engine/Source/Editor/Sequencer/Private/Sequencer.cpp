@@ -539,6 +539,16 @@ void FSequencer::SetAutoKeyEnabled(bool bAutoKeyEnabled)
 	Settings->SetAutoKeyEnabled(bAutoKeyEnabled);
 }
 
+bool FSequencer::GetKeyAllEnabled() const 
+{
+	return Settings->GetKeyAllEnabled();
+}
+
+void FSequencer::SetKeyAllEnabled(bool bKeyAllEnabled) 
+{
+	Settings->SetKeyAllEnabled(bKeyAllEnabled);
+}
+
 bool FSequencer::IsRecordingLive() const 
 {
 	return PlaybackState == EMovieScenePlayerStatus::Recording && GIsPlayInEditorWorld;
@@ -1489,6 +1499,68 @@ void FSequencer::SaveCurrentMovieScene()
 	FEditorFileUtils::PromptForCheckoutAndSave( PackagesToSave, false, false );
 }
 
+void FSequencer::AddSelectedObjects()
+{
+	UMovieSceneSequence* OwnerSequence = GetFocusedMovieSceneSequence();
+	UMovieScene* OwnerMovieScene = OwnerSequence->GetMovieScene();
+
+	TArray<AActor*> SelectedActors;
+
+	USelection* CurrentSelection = GEditor->GetSelectedActors();
+	TArray<UObject*> SelectedObjects;
+	CurrentSelection->GetSelectedObjects( AActor::StaticClass(), SelectedObjects );
+	for (TArray<UObject*>::TIterator It(SelectedObjects); It; ++It)
+	{
+		AActor* Actor = CastChecked<AActor>(*It);
+
+		if (Actor != nullptr)
+		{			
+			FGuid ObjectGuid = OwnerSequence->FindObjectId(*Actor);
+
+			// Add this object if it hasn't already been possessed
+			if (ObjectGuid.IsValid())
+			{
+				FMovieScenePossessable* Possessable = OwnerMovieScene->FindPossessable(ObjectGuid);
+				if (Possessable == nullptr)
+				{
+					SelectedActors.Add(Actor);
+				}
+			}
+			else
+			{
+				SelectedActors.Add(Actor);
+			}
+		}
+	}
+
+	bool bPossessableAdded = false;
+	if (SelectedActors.Num() != 0)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene"));
+			
+		// possess the object!
+		OwnerSequence->Modify();
+				
+		for (auto Actor : SelectedActors)
+		{
+			const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(Actor->GetActorLabel(), Actor->GetClass());
+
+			if (IsShotFilteringOn())
+			{
+				AddUnfilterableObject(PossessableGuid);
+			}
+
+			OwnerSequence->BindPossessableObject(PossessableGuid, *Actor);
+			bPossessableAdded = true;
+		}
+	}
+
+	if (bPossessableAdded)
+	{
+		NotifyMovieSceneDataChanged();
+	}
+}
+
 void FSequencer::OnSectionSelectionChanged()
 {
 	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
@@ -1843,6 +1915,12 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateLambda( [this]{ Settings->SetAutoKeyEnabled( !Settings->GetAutoKeyEnabled() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetAutoKeyEnabled(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleKeyAllEnabled,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetKeyAllEnabled( !Settings->GetKeyAllEnabled() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetKeyAllEnabled(); } ) );
 
 	bAutoScrollEnabled = Settings->GetAutoScrollEnabled();
 	SequencerCommandBindings->MapAction(

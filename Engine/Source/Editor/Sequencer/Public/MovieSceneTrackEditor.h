@@ -56,6 +56,12 @@ public:
 		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyEnabled();
 	}
 
+	/** Gets whether the tool can key all*/
+	virtual bool IsAllowedKeyAll() const
+	{
+		return Sequencer.Pin()->GetKeyAllEnabled();
+	}
+
 	void NotifyMovieSceneDataChanged()
 	{
 		TSharedPtr<ISequencer> SequencerPin = Sequencer.Pin();
