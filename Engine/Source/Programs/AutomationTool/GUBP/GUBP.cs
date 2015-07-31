@@ -1729,18 +1729,8 @@ public partial class GUBP : BuildCommand
 						
                     }
 
-					using(TelemetryStopwatch StoreBuildProductsStopwatch = new TelemetryStopwatch("StoreBuildProducts"))
-					{
-						double StoreDuration = 0.0;
-						DateTime StartTime = DateTime.UtcNow;
-						TempStorage.StoreToTempStorage(CmdEnv, NodeStoreName, NodeToDo.Node.BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
-						StoreDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
-						LogConsole("Took {0} seconds to store build products", StoreDuration);
-						if (IsBuildMachine)
-						{
-							EC.RunECTool(String.Format("setProperty \"/myJobStep/StoreDuration\" \"{0}\"", StoreDuration.ToString()));
-						}
-					}
+                    TempStorage.StoreToTempStorage(CmdEnv, NodeStoreName, NodeToDo.Node.BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
+
                     if (ParseParam("StompCheck"))
                     {
                         foreach (string Dep in NodeToDo.Node.AllDependencies)

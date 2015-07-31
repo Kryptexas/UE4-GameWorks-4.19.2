@@ -753,83 +753,87 @@ namespace AutomationTool
             var Local = SaveLocalTempStorageManifest(Env, BaseFolder, StorageBlockName, Files); 
             if (!bLocalOnly)
             {
-                var StartTime = DateTime.UtcNow;
+                using (CommandUtils.TelemetryStopwatch TelemetryStopwatch = new CommandUtils.TelemetryStopwatch("StoreToTempStorage"))
+                {
+                    var StartTime = DateTime.UtcNow;
 
-                var BlockPath = SharedTempStorageDirectory(StorageBlockName, GameFolder);
-                CommandUtils.LogConsole("Storing to {0}", BlockPath);
-                if (CommandUtils.DirectoryExists_NoExceptions(BlockPath))
-                {
-                    throw new AutomationException("Storage Block Already Exists! {0}", BlockPath);
-                }
-                CommandUtils.CreateDirectory(true, BlockPath);
-                if (!CommandUtils.DirectoryExists_NoExceptions(BlockPath))
-                {
-                    throw new AutomationException("Storage Block Could Not Be Created! {0}", BlockPath);
-                }
-
-                var DestFiles = new List<string>();
-                if (ThreadsToCopyWith() < 2)
-                {
-                    foreach (string InFilename in Files)
+                    var BlockPath = SharedTempStorageDirectory(StorageBlockName, GameFolder);
+                    CommandUtils.LogConsole("Storing to {0}", BlockPath);
+                    if (CommandUtils.DirectoryExists_NoExceptions(BlockPath))
                     {
-                        var Filename = CommandUtils.CombinePaths(InFilename);
-                        InternalUtils.Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
-
-                        if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
-                        }
-                        var RelativeFile = Filename.Substring(BaseFolder.Length);
-                        var DestFile = CommandUtils.CombinePaths(BlockPath, RelativeFile);
-                        if (CommandUtils.FileExists_NoExceptions(true, DestFile))
-                        {
-                            throw new AutomationException("Dest file {0} already exists.", DestFile);
-                        }
-                        CommandUtils.CopyFile(Filename, DestFile, true);
-                        InternalUtils.Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
-
-                        DestFiles.Add(DestFile);
+                        throw new AutomationException("Storage Block Already Exists! {0}", BlockPath);
                     }
-                }
-                else
-                {
-                    var SrcFiles = new List<string>();
-                    foreach (string InFilename in Files)
+                    CommandUtils.CreateDirectory(true, BlockPath);
+                    if (!CommandUtils.DirectoryExists_NoExceptions(BlockPath))
                     {
-                        var Filename = CommandUtils.CombinePaths(InFilename);
-                        InternalUtils.Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
+                        throw new AutomationException("Storage Block Could Not Be Created! {0}", BlockPath);
+                    }
 
-                        if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
-                        }
-                        var RelativeFile = Filename.Substring(BaseFolder.Length);
-                        var DestFile = CommandUtils.CombinePaths(BlockPath, RelativeFile);
-                        if (CommandUtils.FileExists_NoExceptions(true, DestFile))
-                        {
-                            throw new AutomationException("Dest file {0} already exists.", DestFile);
-                        }
-                        SrcFiles.Add(Filename);
-                        DestFiles.Add(DestFile);
-                    }
-                    CommandUtils.ThreadedCopyFiles(SrcFiles.ToArray(), DestFiles.ToArray(), ThreadsToCopyWith());
-                    foreach (string DestFile in DestFiles)
+                    var DestFiles = new List<string>();
+                    if (ThreadsToCopyWith() < 2)
                     {
-                        InternalUtils.Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+                        foreach (string InFilename in Files)
+                        {
+                            var Filename = CommandUtils.CombinePaths(InFilename);
+                            InternalUtils.Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
+
+                            if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
+                            }
+                            var RelativeFile = Filename.Substring(BaseFolder.Length);
+                            var DestFile = CommandUtils.CombinePaths(BlockPath, RelativeFile);
+                            if (CommandUtils.FileExists_NoExceptions(true, DestFile))
+                            {
+                                throw new AutomationException("Dest file {0} already exists.", DestFile);
+                            }
+                            CommandUtils.CopyFile(Filename, DestFile, true);
+                            InternalUtils.Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+
+                            DestFiles.Add(DestFile);
+                        }
                     }
-                }
-                var Shared = SaveSharedTempStorageManifest(Env, StorageBlockName, GameFolder, DestFiles);
-                if (!Local.Compare(Shared))
-                {
-                    // we will rename this so it can't be used, but leave it around for inspection
-                    CommandUtils.RenameFile_NoExceptions(SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder), SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder) + ".broken");
-                    throw new AutomationException("Shared and Local manifest mismatch.");
-                }
-                float BuildDuration = (float)((DateTime.UtcNow - StartTime).TotalSeconds);
-                if (BuildDuration > 60.0f && Shared.GetTotalSize() > 0)
-                {
-                    var MBSec = (((float)(Shared.GetTotalSize())) / (1024.0f * 1024.0f)) / BuildDuration;
-                    CommandUtils.LogConsole("Wrote to shared temp storage at {0} MB/s    {1}B {2}s", MBSec, Shared.GetTotalSize(), BuildDuration);
+                    else
+                    {
+                        var SrcFiles = new List<string>();
+                        foreach (string InFilename in Files)
+                        {
+                            var Filename = CommandUtils.CombinePaths(InFilename);
+                            InternalUtils.Robust_FileExists_NoExceptions(false, Filename, "Could not add {0} to manifest because it does not exist");
+
+                            if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
+                            }
+                            var RelativeFile = Filename.Substring(BaseFolder.Length);
+                            var DestFile = CommandUtils.CombinePaths(BlockPath, RelativeFile);
+                            if (CommandUtils.FileExists_NoExceptions(true, DestFile))
+                            {
+                                throw new AutomationException("Dest file {0} already exists.", DestFile);
+                            }
+                            SrcFiles.Add(Filename);
+                            DestFiles.Add(DestFile);
+                        }
+                        CommandUtils.ThreadedCopyFiles(SrcFiles.ToArray(), DestFiles.ToArray(), ThreadsToCopyWith());
+                        foreach (string DestFile in DestFiles)
+                        {
+                            InternalUtils.Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
+                        }
+                    }
+                    var Shared = SaveSharedTempStorageManifest(Env, StorageBlockName, GameFolder, DestFiles);
+                    if (!Local.Compare(Shared))
+                    {
+                        // we will rename this so it can't be used, but leave it around for inspection
+                        CommandUtils.RenameFile_NoExceptions(SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder), SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder) + ".broken");
+                        throw new AutomationException("Shared and Local manifest mismatch.");
+                    }
+                    float BuildDuration = (float)((DateTime.UtcNow - StartTime).TotalSeconds);
+                    if (BuildDuration > 10.0f && Shared.GetTotalSize() > 0)
+                    {
+                        var MBSec = (((float)(Shared.GetTotalSize())) / (1024.0f * 1024.0f)) / BuildDuration;
+                        CommandUtils.LogConsole("Wrote to shared temp storage at {0} MB/s    {1}B {2}s", MBSec, Shared.GetTotalSize(), BuildDuration);
+                    }
+                    TelemetryStopwatch.Finish(string.Format("StoreToTempStorage.{0}.{1}", Shared.GetFileCount(), Shared.GetTotalSize()));
                 }
             }
 

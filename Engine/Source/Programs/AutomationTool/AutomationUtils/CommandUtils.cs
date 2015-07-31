@@ -1026,7 +1026,7 @@ namespace AutomationTool
             Filename = ConvertSeparators(PathSeparator.Default, Filename);
             try
 			{
-                File.AppendAllText(Filename, Text);
+                File.AppendAllText(Filename, Text + Environment.NewLine);
 			}
 			catch (Exception Ex)
 			{
@@ -1928,20 +1928,35 @@ namespace AutomationTool
 				bFinished = true;
 			}
 
-			public void Finish()
+            /// <summary>
+            /// Flushes the time to <see cref="CmdEnv.CSVFile"/> if we are the build machine and that environment variable is specified.
+            /// Call Finish manually with an alternate name to use that one instead. Useful for dynamically generated names that you can't specify at construction.
+            /// </summary>
+            /// <param name="AlternateName">Used in place of the Name specified during construction.</param>
+			public void Finish(string AlternateName = null)
 			{
-				if(!bFinished && IsBuildMachine && !String.IsNullOrEmpty(CmdEnv.CSVFile) && CmdEnv.CSVFile != "nul")
+				if(!bFinished)
 				{
-					try
-					{
-						File.AppendAllText(CmdEnv.CSVFile, String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime.ToString(), DateTime.Now.ToString()));
-					}
-					catch (Exception Ex)
-					{
-						LogWarning("Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
-					}
-					bFinished = true;
+                    if (!string.IsNullOrEmpty(AlternateName))
+                    {
+                        Name = AlternateName;
+                    }
+
+                    var OutputStr = String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime, DateTime.Now);
+                    LogVerbose(OutputStr);
+                    if (IsBuildMachine && !String.IsNullOrEmpty(CmdEnv.CSVFile) && CmdEnv.CSVFile != "nul")
+                    {
+					    try
+					    {
+                            File.AppendAllText(CmdEnv.CSVFile, OutputStr);
+                        }
+					    catch (Exception Ex)
+					    {
+						    LogWarning("Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
+					    }
+                    }
 				}
+                bFinished = true;
 			}
 
 			public void Dispose()
