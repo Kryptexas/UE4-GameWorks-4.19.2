@@ -3294,7 +3294,8 @@ private:
 				bool bReachedNextSection = false;
 				while (Ptr != nullptr && FParse::Line(&Ptr, NextUnprocessedLine, true))
 				{
-					if (bReachedNextSection |= (NextUnprocessedLine.StartsWith(TEXT("[")) && NextUnprocessedLine != DecoratedSectionName))
+					bReachedNextSection |= (NextUnprocessedLine.StartsWith(TEXT("[")) && NextUnprocessedLine != DecoratedSectionName);
+					if (bReachedNextSection)
 					{
 						IniFileMakeup.AfterSection += NextUnprocessedLine;
 						IniFileMakeup.AfterSection += LINE_TERMINATOR;
