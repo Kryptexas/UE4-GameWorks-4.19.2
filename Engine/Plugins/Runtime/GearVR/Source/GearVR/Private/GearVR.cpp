@@ -132,6 +132,19 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FGearVR::CreateNewSettings() const
 
 bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 {
+	if (GFrameNumber > 1)
+	{
+		// Temp fix to a bug in ovr_DeviceIsDocked() that can't return
+		// actual state of docking. We are switching to stereo at the start
+		// (missing the first frame to let it render at least once; otherwise
+		// a blurry image may appear).
+		if (!Settings->Flags.bStereoEnforced)
+		{
+			EnableStereo(true);
+		}
+	}
+
+#if 0 // temporarily out of order. Until ovr_DeviceIsDocked returns the actual state.
 	if (ovr_DeviceIsDocked() != Settings->IsStereoEnabled())
 	{
 		if (!Settings->IsStereoEnabled() || !Settings->Flags.bStereoEnforced)
@@ -140,6 +153,7 @@ bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 			EnableStereo(ovr_DeviceIsDocked());
 		}
 	}
+#endif // if 0
 
 	bool rv = FHeadMountedDisplay::OnStartGameFrame(WorldContext);
 	if (!rv)

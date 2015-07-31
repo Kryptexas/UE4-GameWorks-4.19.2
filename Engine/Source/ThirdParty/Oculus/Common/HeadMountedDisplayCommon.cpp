@@ -516,10 +516,12 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 		if (FParse::Command(&Cmd, TEXT("OFF")))
 		{
 			Flags.bNeedDisableStereo = true;
+			Settings->Flags.bStereoEnforced = true;
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("RESET")))
 		{
+			Settings->Flags.bStereoEnforced = false;
 			ResetStereoRenderingParams();
 			return true;
 		}
