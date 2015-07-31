@@ -47,6 +47,11 @@ public:
 	/** Access the underlying tree data */
 	TSharedPtr<FSequencerNodeTree> GetNodeTree() { return SequencerNodeTree; }
 
+public:
+
+	/** Get the display node at the specified physical vertical position */
+	TSharedPtr<FSequencerDisplayNode> HitTestNode(float InPhysical) const;
+
 	/** Convert the specified physical vertical position into an absolute virtual position, ignoring expanded states */
 	float PhysicalToVirtual(float InPhysical) const;
 
@@ -54,6 +59,8 @@ public:
 	 * @note: Will not work reliably for virtual positions that are outside of the physical space
 	 */
 	float VirtualToPhysical(float InVirtual) const;
+
+public:
 
 	/** Refresh this tree as a result of the underlying tree data changing */
 	void Refresh();

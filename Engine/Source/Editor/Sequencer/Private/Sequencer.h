@@ -6,12 +6,10 @@
 #include "SelectedKey.h"
 #include "EditorUndoClient.h"
 
-
 class UMovieScene;
 class IToolkitHost;
 class UMovieSceneSequence;
 class ISequencerObjectChangeListener;
-
 
 /**
  * Sequencer is the editing tool for MovieScene assets.
@@ -90,6 +88,9 @@ public:
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
+
+	/** Set the global time directly, without performing any auto-scroll */
+	void SetGlobalTimeDirectly(float Time);
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
@@ -271,6 +272,11 @@ public:
 	/** Called to add selected objects to the movie scene */
 	void AddSelectedObjects();
 
+public:
+
+	/** Access the currently enabled edit tool */
+	ISequencerEditTool& GetEditTool();
+
 protected:
 
 	/** Reset data about a movie scene when pushing or popping a movie scene. */
@@ -339,7 +345,15 @@ public:
 	/** Stop the sequencer from autoscrolling */
 	void StopAutoscroll();
 
+	/** Scroll the sequencer vertically by the specified number of slate units */
+	void VerticalScroll(float ScrollAmountUnits);
+
 protected:
+	/**
+	 * Update autoscroll mechanics as a result of a new time position
+	 */
+	void UpdateAutoScroll(float NewTime);
+
 	/**
 	 * Calculates the amount of encroachment the specified time has into the autoscroll region, if any
 	 */

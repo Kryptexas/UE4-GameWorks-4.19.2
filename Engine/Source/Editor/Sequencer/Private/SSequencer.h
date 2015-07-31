@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "UniquePtr.h"
+#include "ISequencerEditTool.h"
+#include "SequencerCommonHelpers.h"
+
 class SSequencerTreeView;
+struct FSectionHandle;
 
 namespace SequencerLayoutConstants
 {
@@ -75,6 +80,8 @@ public:
 
 	void Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer );
 
+	void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings);
+	
 	~SSequencer();
 	
 	virtual void AddReferencedObjects( FReferenceCollector& Collector )
@@ -121,7 +128,20 @@ public:
 	/** Access the tree view for this sequencer */
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
 
+	/** Access the currently active edit tool */
+	ISequencerEditTool& GetEditTool() const { return *EditTool; }
+
+	/** Generate a helper structure that can be used to transform between phsyical space and virtual space in the track area */
+	FVirtualTrackArea GetVirtualTrackArea(const FGeometry& InTrackAreaGeometry) const;
+
+	/** Get an array of section handles for the given set of movie scene sections */
+	TArray<FSectionHandle> GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const;
+
 private:
+	
+	/** Check whether the specified edit tool is enabled */
+	bool IsEditToolEnabled(FName InIdentifier);
+
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
 
@@ -279,6 +299,9 @@ private:
 	bool bIsActiveTimerRegistered;
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
 	bool bUserIsSelecting;
+	/** The current edit tool */
+	TUniquePtr<ISequencerEditTool> EditTool;
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
+
 };

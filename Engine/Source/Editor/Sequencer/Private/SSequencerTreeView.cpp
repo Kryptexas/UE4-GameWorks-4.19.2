@@ -152,6 +152,31 @@ void SSequencerTreeView::OnChildRowRemoved(const FDisplayNodeRef& InNode)
 	CachedRowGeometry.Remove(InNode);
 }
 
+TSharedPtr<FSequencerDisplayNode> SSequencerTreeView::HitTestNode(float InPhysical) const
+{
+	auto* Found = Utils::BinarySearch<FCachedGeometry>(PhysicalNodes, [&](const FCachedGeometry& In){
+
+		if (InPhysical < In.PhysicalTop)
+		{
+			return Utils::ESearchState::Before;
+		}
+		else if (InPhysical > In.PhysicalTop + In.PhysicalHeight)
+		{
+			return Utils::ESearchState::After;
+		}
+
+		return Utils::ESearchState::Found;
+
+	});
+
+	if (Found)
+	{
+		return Found->Node;
+	}
+	
+	return nullptr;
+}
+
 float SSequencerTreeView::PhysicalToVirtual(float InPhysical) const
 {
 	int32 SearchIndex = PhysicalNodes.Num() / 2;

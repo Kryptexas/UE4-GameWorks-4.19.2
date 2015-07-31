@@ -99,6 +99,9 @@ public:
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
 
+	TSharedPtr< FUICommandInfo > MoveTool;
+	TSharedPtr< FUICommandInfo > MarqueeTool;
+
 	/**
 	 * Initialize commands
 	 */

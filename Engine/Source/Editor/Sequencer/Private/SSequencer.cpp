@@ -19,6 +19,8 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "DragAndDrop/ClassDragDropOp.h"
+#include "Tools/SequencerEditTool_Selection.h"
+#include "Tools/SequencerEditTool_Movement.h"
 #include "AssetSelection.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
@@ -29,7 +31,8 @@
 #include "MovieSceneSequence.h"
 #include "SSequencerSplitterOverlay.h"
 #include "IKeyArea.h"
-
+#include "VirtualTrackArea.h"
+#include "SequencerHotspots.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -230,7 +233,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	SAssignNew( TrackOutliner, SSequencerTrackOutliner );
 
-	SAssignNew( TrackArea, SSequencerTrackArea, TimeSliderController, PinnedSequencer )
+	SAssignNew( TrackArea, SSequencerTrackArea, TimeSliderController, SharedThis(this) )
 		.Visibility( this, &SSequencer::GetTrackAreaVisibility );
 	
 	SAssignNew( TreeView, SSequencerTreeView, SequencerNodeTree.ToSharedRef(), TrackArea.ToSharedRef() )
@@ -243,6 +246,8 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
 
 	TrackArea->SetTreeView(TreeView);
+
+	EditTool.Reset(new FSequencerEditTool_Movement(PinnedSequencer, SharedThis(this)));
 
 	const int32 				Column0	= 0,	Column1	= 1;
 	const int32 Row0	= 0,
@@ -442,6 +447,46 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	ResetBreadcrumbs();
 }
 
+void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings)
+{
+	SequencerCommandBindings->MapAction(
+		FSequencerCommands::Get().MoveTool,
+		FExecuteAction::CreateLambda( [&]{
+			EditTool.Reset( new FSequencerEditTool_Movement(Sequencer.Pin(), SharedThis(this)) );
+		} ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateSP( this, &SSequencer::IsEditToolEnabled, FName("Movement") )
+		);
+
+	SequencerCommandBindings->MapAction(
+		FSequencerCommands::Get().MarqueeTool,
+		FExecuteAction::CreateLambda( [&]{
+
+			if (IsEditToolEnabled("Selection"))
+			{
+				// If the selection tool is already enabled, we toggle the selection mode
+				auto* SelectionTool = static_cast<FSequencerEditTool_Selection*>(EditTool.Get());
+
+				ESequencerSelectionMode CurrentMode = SelectionTool->GetSelectionMode();
+				SelectionTool->SetSelectionMode(CurrentMode == ESequencerSelectionMode::Keys ? ESequencerSelectionMode::Sections : ESequencerSelectionMode::Keys);
+			}
+			else
+			{
+				// Otherwise, switch the tool
+				EditTool.Reset( new FSequencerEditTool_Selection(Sequencer.Pin(), SharedThis(this)) );
+			}
+
+		} ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateSP( this, &SSequencer::IsEditToolEnabled, FName("Selection") )
+		);
+}
+
+bool SSequencer::IsEditToolEnabled(FName InIdentifier)
+{
+	return GetEditTool().GetIdentifier() == InIdentifier;
+}
+
 TSharedRef<SWidget> SSequencer::MakeToolBar()
 {
 	FToolBarBuilder ToolBarBuilder( Sequencer.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, TSharedPtr<FExtender>(), Orient_Horizontal, true);
@@ -526,6 +571,51 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 		}
 
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
+	}
+	ToolBarBuilder.EndSection();
+
+	ToolBarBuilder.BeginSection("Tools");
+	{
+		ToolBarBuilder.SetLabelVisibility( EVisibility::Collapsed );
+
+		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().MoveTool );
+
+		// The marquee selection button is a little more complicated as toggling it when enabled causes it to toggle between key/section selection
+		TAttribute<FSlateIcon> MarqueeIcon;
+		MarqueeIcon.Bind(TAttribute<FSlateIcon>::FGetter::CreateLambda([]{
+			static FSlateIcon MarqueeTool_Keys(FEditorStyle::GetStyleSetName(), "Sequencer.MarqueeTool_Keys");
+			static FSlateIcon MarqueeTool_Sections(FEditorStyle::GetStyleSetName(), "Sequencer.MarqueeTool_Sections");
+
+			return FSequencerEditTool_Selection::GetGlobalSelectionMode() == ESequencerSelectionMode::Keys ? MarqueeTool_Keys : MarqueeTool_Sections;
+		}));
+
+		TAttribute<FText> MarqueeTooltip;
+		MarqueeTooltip.Bind(TAttribute<FText>::FGetter::CreateLambda([&]{
+			if (FSequencerEditTool_Selection::GetGlobalSelectionMode() == ESequencerSelectionMode::Keys)
+			{
+				if (IsEditToolEnabled("Selection"))
+				{
+					return LOCTEXT("MarqueeTooltip_Enabled_Keys", "Change marquee selection to operate on keys rather than sections");
+				}
+				else
+				{
+					return LOCTEXT("MarqueeTooltip_Key", "Activate marquee key selection tool");
+				}
+			}
+			else
+			{
+				if (IsEditToolEnabled("Selection"))
+				{
+					return LOCTEXT("MarqueeTooltip_Enabled_Sections", "Change marquee selection to operate on sections rather than keys");
+				}
+				else
+				{
+					return LOCTEXT("MarqueeTooltip_Section", "Activate marquee section selection tool");
+				}
+			}
+		}));
+
+		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().MarqueeTool, NAME_None, TAttribute<FText>(), MarqueeTooltip, MarqueeIcon );
 	}
 	ToolBarBuilder.EndSection();
 
@@ -675,7 +765,7 @@ EActiveTimerReturnType SSequencer::EnsureSlateTickDuringPlayback(double InCurren
 	if (Sequencer.IsValid())
 	{
 		auto PlaybackStatus = Sequencer.Pin()->GetPlaybackStatus();
-		if (PlaybackStatus == EMovieScenePlayerStatus::Playing || PlaybackStatus == EMovieScenePlayerStatus::Recording)
+		if (PlaybackStatus == EMovieScenePlayerStatus::Playing || PlaybackStatus == EMovieScenePlayerStatus::Recording || PlaybackStatus == EMovieScenePlayerStatus::Scrubbing)
 		{
 			return EActiveTimerReturnType::Continue;
 		}
@@ -1158,6 +1248,33 @@ void SSequencer::DeleteSelectedNodes()
 	}
 }
 
+TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const
+{
+	TArray<FSectionHandle> SectionHandles;
+
+	for (auto& Node : SequencerNodeTree->GetRootNodes())
+	{
+		Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode){
+			if (InNode.GetType() == ESequencerNode::Track)
+			{
+				FTrackNode& TrackNode = static_cast<FTrackNode&>(InNode);
+
+				const auto& AllSections = TrackNode.GetTrack()->GetAllSections();
+				for (int32 Index = 0; Index < AllSections.Num(); ++Index)
+				{
+					if (DesiredSections.Contains(TWeakObjectPtr<UMovieSceneSection>(AllSections[Index])))
+					{
+						SectionHandles.Emplace(StaticCastSharedRef<FTrackNode>(TrackNode.AsShared()), Index);
+					}
+				}
+			}
+			return true;
+		});
+	}
+
+	return SectionHandles;
+}
+
 void SSequencer::OnSaveMovieSceneClicked()
 {
 	Sequencer.Pin()->SaveCurrentMovieScene();
@@ -1345,6 +1462,11 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 		// Only zoom horizontally if the editor is visible
 		CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
 	}
+}
+
+FVirtualTrackArea SSequencer::GetVirtualTrackArea(const FGeometry& InTrackAreaGeometry) const
+{
+	return FVirtualTrackArea(*Sequencer.Pin(), *TreeView.Get(), InTrackAreaGeometry);
 }
 
 #undef LOCTEXT_NAMESPACE

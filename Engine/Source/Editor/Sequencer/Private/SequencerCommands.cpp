@@ -46,6 +46,9 @@ void FSequencerCommands::RegisterCommands()
 	UI_COMMAND( ToggleCleanView, "Clean View", "Enable 'Clean View' mode which displays only global tracks when no filter is applied.", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	
 	UI_COMMAND( ToggleShowCurveEditor, "Curve Editor", "Show the animation keys in a curve editor.", EUserInterfaceActionType::ToggleButton, FInputChord() );
+
+	UI_COMMAND( MoveTool, "Move", "Activates the move tool.", EUserInterfaceActionType::ToggleButton, FInputChord( EKeys::V ) );
+	UI_COMMAND( MarqueeTool, "Marquee", "Activates the marquee selection tool.", EUserInterfaceActionType::ToggleButton, FInputChord( EKeys::M ) );
 }
 
 #undef LOCTEXT_NAMESPACE

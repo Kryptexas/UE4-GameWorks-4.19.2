@@ -6,20 +6,20 @@
 #include "IKeyArea.h"
 #include "ISequencerSection.h"
 #include "MovieSceneSection.h"
-#include "SectionDragOperations.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
+#include "SequencerHotspots.h"
 
 FThreadSafeCounter SSection::LayoutRegenerationLock;
 
 void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> SectionNode, int32 InSectionIndex )
 {
-	ResetState();
-
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;
 	SectionInterface = SectionNode->GetSections()[InSectionIndex];
 	Layout = FKeyAreaLayout(*SectionNode, InSectionIndex);
+
+	ResetState();
 
 	ChildSlot
 	[
@@ -123,6 +123,8 @@ void SSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent, const F
 		{
 			bLeftEdgeHovered = true;
 		}
+
+		GetSequencer().GetEditTool().SetHotspot(MakeShareable( new FSectionResizeHotspot(FSectionResizeHotspot::Left, FSectionHandle(ParentSectionArea, SectionIndex))) );
 	}
 	else if( SectionRectRight.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
 	{
@@ -134,44 +136,14 @@ void SSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent, const F
 		{
 			bRightEdgeHovered = true;
 		}
+
+		GetSequencer().GetEditTool().SetHotspot(MakeShareable( new FSectionResizeHotspot(FSectionResizeHotspot::Right, FSectionHandle(ParentSectionArea, SectionIndex))) );
 	}
 }
 
 FSequencer& SSection::GetSequencer() const
 {
 	return ParentSectionArea->GetSequencer();
-}
-
-void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bKeysUnderMouse )
-{	
-	check( !DragOperation.IsValid() );
-
-	if( bKeysUnderMouse )
-	{
-		// Disable layout regeneration of dynamic key areas
-		LayoutRegenerationLock.Increment();
-		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection().GetSelectedKeys(), PressedKey ) );
-	}
-	else
-	{
-		UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
-
-		if( bLeftEdgePressed || bLeftEdgeHovered )
-		{
-			// Selected the start of a section
-			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections(), false ) );
-		}
-		else if( bRightEdgePressed || bRightEdgeHovered )
-		{
-			// Selected the end of a section
-			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections(), true ) );
-		}
-		else
-		{
-			// Entire selection moved
-			DragOperation = MakeShareable( new FMoveSection( GetSequencer(), GetSequencer().GetSelection().GetSelectedSections() ) );
-		}
-	}
 }
 
 int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -452,12 +424,6 @@ void SSection::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 
 FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	DistanceDragged = 0;
-
-	DragOperation.Reset();
-
-	bDragging = false;
-
 	FSequencer& Sequencer = GetSequencer();
 
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
@@ -472,8 +438,6 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 		{
 			CheckForEdgeInteraction( MouseEvent, MyGeometry );
 		}
-
-		return FReply::Handled().CaptureMouse( AsShared() );
 	}
 	else if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && (PressedKey.IsValid() || Sequencer.GetSelection().GetSelectedKeys().Num() || Sequencer.GetSelection().GetSelectedSections().Num()))
 	{
@@ -486,9 +450,6 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 
 void SSection::ResetState()
 {
-	DistanceDragged = 0;
-	bDragging = false;
-	DragOperation.Reset();
 	ResetHoveredState();
 	PressedKey = FSelectedKey();
 	LayoutRegenerationLock.Reset();
@@ -501,56 +462,50 @@ void SSection::ResetHoveredState()
 	bLeftEdgePressed = false;
 	bRightEdgePressed = false;
 	HoveredKey = FSelectedKey();
+
+	GetSequencer().GetEditTool().SetHotspot(nullptr);
 }
 
 FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if( bDragging && DragOperation.IsValid() )
-	{	
-		// If dragging tell the operation we are no longer dragging
-		DragOperation->OnEndDrag(ParentSectionArea);
-	}
-	else
+	if( ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) && MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
 	{
-		if( ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) && MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
+		// Snap time to the key under the mouse if shift is down
+		if (MouseEvent.IsShiftDown() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 		{
-			// Snap time to the key under the mouse if shift is down
-			if (MouseEvent.IsShiftDown() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+			FSelectedKey Key = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
+			if (Key.IsValid())
 			{
-				FSelectedKey Key = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
-				if (Key.IsValid())
-				{
-					float KeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
-					GetSequencer().SetGlobalTime(KeyTime);
-				}
+				float KeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
+				GetSequencer().SetGlobalTime(KeyTime);
 			}
-
-			HandleSelection( MyGeometry, MouseEvent );
 		}
 
-		if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+		HandleSelection( MyGeometry, MouseEvent );
+	}
+
+	if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	{
+		TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
+		if (MenuContent.IsValid())
 		{
-			TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
-			if (MenuContent.IsValid())
-			{
-				FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
 
-				FSlateApplication::Get().PushMenu(
-					AsShared(),
-					WidgetPath,
-					MenuContent.ToSharedRef(),
-					MouseEvent.GetScreenSpacePosition(),
-					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
-					);
+			FSlateApplication::Get().PushMenu(
+				AsShared(),
+				WidgetPath,
+				MenuContent.ToSharedRef(),
+				MouseEvent.GetScreenSpacePosition(),
+				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+				);
 
-				return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
-			}
+			return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
 		}
 	}
 
 	ResetState();
 
-	return FReply::Handled().ReleaseMouseCapture();
+	return FReply::Handled();
 }
 
 FReply SSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -578,83 +533,24 @@ FReply SSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FP
 
 FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if( HasMouseCapture() )
+	ResetHoveredState();
+
+	// Checked for hovered key
+	// @todo Sequencer - Needs visual cue
+	HoveredKey = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
+
+	auto& EditTool = GetSequencer().GetEditTool();
+
+	EditTool.SetHotspot( MakeShareable( new FSectionHotspot(FSectionHandle(ParentSectionArea, SectionIndex))) );
+
+	if ( HoveredKey.IsValid() )
 	{
-		// Have mouse capture and there are drag operations that need to be performed
-		if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
-		{
-			DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
-			
-			FVector2D LocalMousePos = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-
-			FTimeToPixel TimeToPixelConverter = SectionInterface->GetSectionObject()->IsInfinite() ? 			
-				FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
-				FTimeToPixel( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
-
-			if( !bDragging )
-			{
-				// If we are not dragging determine if the mouse has moved far enough to start a drag
-				if( DistanceDragged >= SequencerSectionConstants::SectionDragStartDistance )
-				{
-					bDragging = true;
-
-					if( PressedKey.IsValid() )
-					{
-						// Clear selected sections when beginning to drag keys
-						GetSequencer().GetSelection().EmptySelectedSections();
-
-						bool bSelectDueToDrag = true;
-						HandleKeySelection( PressedKey, MouseEvent, bSelectDueToDrag );
-
-						bool bKeysUnderMouse = true;
-						CreateDragOperation( MyGeometry, MouseEvent, bKeysUnderMouse );
-					}
-					else
-					{
-						// Clear selected keys when beginning to drag a section
-						GetSequencer().GetSelection().EmptySelectedKeys();
-
-						bool bSelectDueToDrag = true;
-						HandleSectionSelection( MouseEvent, bSelectDueToDrag );
-
-						bool bKeysUnderMouse = false;
-						CreateDragOperation( MyGeometry, MouseEvent, bKeysUnderMouse );
-					}
-				
-					if( DragOperation.IsValid() )
-					{
-						DragOperation->OnBeginDrag(LocalMousePos, TimeToPixelConverter, ParentSectionArea);
-					}
-
-				}
-			}
-			else if( DragOperation.IsValid() )
-			{
-				// Already in a drag, tell all operations to perform their drag implementations
-
-				DragOperation->OnDrag( MouseEvent, LocalMousePos, TimeToPixelConverter, ParentSectionArea );
-			}
-		}
-
-		return FReply::Handled();
+		EditTool.SetHotspot( MakeShareable( new FKeyHotspot(HoveredKey, ParentSectionArea) ) );
 	}
 	else
 	{
-		// Not dragging
-
-
-		ResetHoveredState();
-
-		// Checked for hovered key
-		// @todo Sequencer - Needs visual cue
-		HoveredKey = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
-
 		// Only check for edge interaction if not hovering over a key
-		if( !HoveredKey.IsValid() )
-		{
-			CheckForEdgeInteraction( MouseEvent, MyGeometry );
-		}
-		
+		CheckForEdgeInteraction( MouseEvent, MyGeometry );
 	}
 
 	return FReply::Unhandled();
@@ -663,20 +559,12 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 void SSection::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	SCompoundWidget::OnMouseLeave( MouseEvent );
-
-	if( !HasMouseCapture() )
-	{
-		ResetHoveredState();
-	}
+	ResetHoveredState();
 }
 
 FCursorReply SSection::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
 {
-	if( DragOperation.IsValid() )
-	{
-		return DragOperation->GetCursor();
-	}
-	else if( bLeftEdgeHovered || bRightEdgeHovered )
+	if( bLeftEdgeHovered || bRightEdgeHovered )
 	{
 		return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight );
 	}

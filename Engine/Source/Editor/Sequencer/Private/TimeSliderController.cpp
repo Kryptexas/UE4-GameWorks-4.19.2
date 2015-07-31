@@ -534,10 +534,8 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 					{
 						NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
 					}
-
-					// Clamp to the view range so that you can't scroll beyond the current view range. This doesn't conflict with auto-scroll because the view range will grow before you get to the bounds.
-					NewValue = FMath::Clamp(NewValue, TimeSliderArgs.ViewRange.Get().GetLowerBoundValue(), TimeSliderArgs.ViewRange.Get().GetUpperBoundValue());
-
+					
+					// Delegate responsibility for clamping to the current viewrange to the client
 					CommitScrubPosition( NewValue, /*bIsScrubbing=*/true );
 				}
 				else if (MouseDragType == DRAG_SETTING_RANGE)

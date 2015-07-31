@@ -236,7 +236,7 @@ void FSequencer::Tick(float InDeltaTime)
 	if (AutoscrubOffset.IsSet())
 	{
 		float Offset = AutoscrubOffset.GetValue() * AutoScrollFactor;
-		SetGlobalTime(GetGlobalTime() + Offset);
+		SetGlobalTimeDirectly(GetGlobalTime() + Offset);
 	}
 
 	float NewTime = GetGlobalTime() + InDeltaTime;
@@ -568,9 +568,7 @@ float FSequencer::GetGlobalTime()
 
 void FSequencer::SetGlobalTime( float NewTime )
 {
-	float LastTime = ScrubPosition;
-
-	if (bAutoScrollEnabled && PlaybackState != EMovieScenePlayerStatus::Scrubbing)
+	if (bAutoScrollEnabled)
 	{
 		float RangeOffset = CalculateAutoscrollEncroachment(NewTime).Get(0.f);
 			
@@ -584,6 +582,13 @@ void FSequencer::SetGlobalTime( float NewTime )
 		}
 	}
 
+	SetGlobalTimeDirectly(NewTime);
+}
+
+void FSequencer::SetGlobalTimeDirectly( float NewTime )
+{
+	float LastTime = ScrubPosition;
+
 	if (Settings->GetLockInOutToStartEndRange())
 	{
 		UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
@@ -596,6 +601,51 @@ void FSequencer::SetGlobalTime( float NewTime )
 	RootMovieSceneSequenceInstance->Update( ScrubPosition, LastTime, *this );
 
 	GEditor->RedrawLevelEditingViewports();
+}
+
+void FSequencer::UpdateAutoScroll(float NewTime)
+{
+	float ThresholdPercentage = 0.025f;
+	AutoscrollOffset = CalculateAutoscrollEncroachment(NewTime, ThresholdPercentage);
+
+	if (!AutoscrollOffset.IsSet())
+	{
+		AutoscrubOffset.Reset();
+		return;
+	}
+
+	TRange<float> ViewRange = GetViewRange();
+	const float Threshold = (ViewRange.GetUpperBoundValue() - ViewRange.GetLowerBoundValue()) * ThresholdPercentage;
+
+	// If we have no autoscrub offset yet, we move the scrub position to the boundary of the autoscroll threasdhold, then autoscrub from there
+	if (!AutoscrubOffset.IsSet())
+	{
+		if (AutoscrollOffset.GetValue() < 0 && ScrubPosition > ViewRange.GetLowerBoundValue() + Threshold)
+		{
+			SetGlobalTimeDirectly( ViewRange.GetLowerBoundValue() + Threshold );
+		}
+		else if (AutoscrollOffset.GetValue() > 0 && ScrubPosition < ViewRange.GetUpperBoundValue() - Threshold)
+		{
+			SetGlobalTimeDirectly( ViewRange.GetUpperBoundValue() - Threshold );
+		}
+	}
+
+	// Set the autoscrub rate to the autoscroll rate
+	if (Settings->GetLockInOutToStartEndRange())
+	{
+		// Don't autoscrub if we're at the extremes of the movie scene range
+		UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
+		if (NewTime < FocusedMovieScene->StartTime + Threshold ||
+			NewTime > FocusedMovieScene->EndTime - Threshold
+			)
+		{
+			AutoscrubOffset.Reset();
+			return;
+		}
+	}
+
+	// Scrub at the same rate we scroll
+	AutoscrubOffset = AutoscrollOffset;
 }
 
 TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime, float ThresholdPercentage) const
@@ -612,7 +662,7 @@ TOptional<float> FSequencer::CalculateAutoscrollEncroachment(float NewTime, floa
 		// Scrolling backwards in time, and have hit the threshold
 		return NewTime - (RangeMin + AutoScrollThreshold);
 	}
-	else if (Movement == EDirection::Positive && ScrubPosition > RangeMax - AutoScrollThreshold)
+	else if (Movement == EDirection::Positive && NewTime > RangeMax - AutoScrollThreshold)
 	{
 		// Scrolling forwards in time, and have hit the threshold
 		return NewTime - (RangeMax - AutoScrollThreshold);
@@ -1128,26 +1178,23 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 		}
 		else if (bAutoScrollEnabled)
 		{
+			UpdateAutoScroll(NewScrubPosition);
+			
 			// When scrubbing, we animate auto-scrolled scrub position in Tick()
-			AutoscrollOffset = CalculateAutoscrollEncroachment(NewScrubPosition, 0.025f);
-			if (AutoscrollOffset.IsSet())
+			if (AutoscrubOffset.IsSet())
 			{
-				AutoscrubOffset = AutoscrollOffset;
 				return;
-			}
-			else
-			{
-				AutoscrubOffset.Reset();
 			}
 		}
 	}
 
-	SetGlobalTime( NewScrubPosition );
+	SetGlobalTimeDirectly( NewScrubPosition );
 }
 
 void FSequencer::OnBeginScrubbing()
 {
 	PlaybackState = EMovieScenePlayerStatus::Scrubbing;
+	SequencerWidget->RegisterActiveTimerForPlayback();
 }
 
 void FSequencer::OnEndScrubbing()
@@ -1171,6 +1218,11 @@ void FSequencer::OnToggleAutoScroll()
 {
 	bAutoScrollEnabled = !bAutoScrollEnabled;
 	Settings->SetAutoScrollEnabled(bAutoScrollEnabled);
+}
+
+void FSequencer::VerticalScroll(float ScrollAmountUnits)
+{
+	SequencerWidget->GetTreeView()->ScrollByDelta(ScrollAmountUnits);
 }
 
 FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject )
@@ -1853,6 +1905,11 @@ void FSequencer::SetKey()
 	}
 }
 
+ISequencerEditTool& FSequencer::GetEditTool()
+{
+	return SequencerWidget->GetEditTool();
+}
+
 void FSequencer::BindSequencerCommands()
 {
 	const FSequencerCommands& Commands = FSequencerCommands::Get();
@@ -2012,6 +2069,8 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateLambda( [this]{ Settings->SetShowCurveEditor(!Settings->GetShowCurveEditor()); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditor(); } ) );
+
+	SequencerWidget->BindCommands(SequencerCommandBindings);
 
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)
 	{

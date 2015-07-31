@@ -11,228 +11,9 @@
 #include "ISequencerSection.h"
 #include "SSection.h"
 
-
-struct FMarqueeSelectData
+void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSequencerTimeSliderController> InTimeSliderController, TSharedRef<SSequencer> InSequencerWidget )
 {
-	FMarqueeSelectData(const FVector2D& InInitialPosition)
-		: InitialPosition(InInitialPosition)
-		, CurrentPosition(InInitialPosition)
-	{}
-
-	FVector2D TopLeft() const
-	{
-		return FVector2D(
-			FMath::Min(InitialPosition.X, CurrentPosition.X),
-			FMath::Min(InitialPosition.Y, CurrentPosition.Y)
-		);
-	}
-	
-	FVector2D BottomRight() const
-	{
-		return FVector2D(
-			FMath::Max(InitialPosition.X, CurrentPosition.X),
-			FMath::Max(InitialPosition.Y, CurrentPosition.Y)
-		);
-	}
-
-	FVector2D Size() const
-	{
-		return BottomRight() - TopLeft();
-	}
-
-	bool HasDragged() const
-	{
-		return !Size().IsNearlyZero();
-	}
-
-	FVector2D InitialPosition;
-	FVector2D CurrentPosition;
-};
-
-
-struct IMarqueeVisitor
-{
-	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const { }
-	virtual void VisitSection(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const { }
-};
-
-/** Struct used to iterate a marquee range with a user-supplied visitor */
-/* @todo: This could probably live in a header so it can be used elsewhere */
-struct FMarqueeRange
-{
-	/** Construction from the range itself */
-	FMarqueeRange(FVector2D InTopLeft, FVector2D InBottomRight, FVector2D InVirtualKeySize)
-		: TopLeft(InTopLeft), BottomRight(InBottomRight), VirtualKeySize(InVirtualKeySize)
-	{}
-
-	/** Visit the specified nodes (recursively) with this range and a user-supplied visitor */
-	void Visit(const IMarqueeVisitor& Visitor, const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes);
-
-private:
-
-	/** Handle visitation of a particular node */
-	void HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode);
-	/** Handle visitation of a particular node, along with a set of sections */
-	void HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
-	/** Handle visitation of a key area node */
-	void HandleKeyAreaNode(const IMarqueeVisitor& Visitor, FSectionKeyAreaNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
-	/** Handle visitation of a key area */
-	void HandleKeyArea(const IMarqueeVisitor& Visitor, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section);
-	
-	/** The bounds of the range */
-	FVector2D TopLeft, BottomRight;
-
-	/** Key size in virtual space */
-	FVector2D VirtualKeySize;
-};
-
-void FMarqueeRange::Visit(const IMarqueeVisitor& Visitor, const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes)
-{
-	for (auto& Child : Nodes)
-	{
-		if (!Child->IsHidden())
-		{
-			HandleNode(Visitor, *Child);
-		}
-	}
-}
-
-void FMarqueeRange::HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode)
-{
-	if (InNode.GetType() == ESequencerNode::Track)
-	{
-		HandleNode(Visitor, InNode, static_cast<FTrackNode&>(InNode).GetSections());
-	}
-
-	if (InNode.IsExpanded())
-	{
-		for (auto& Child : InNode.GetChildNodes())
-		{
-			if (!Child->IsHidden())
-			{
-				HandleNode(Visitor, *Child);
-			}
-		}
-	}
-}
-
-void FMarqueeRange::HandleNode(const IMarqueeVisitor& Visitor, FSequencerDisplayNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
-{
-	const float NodeCenter = InNode.GetVirtualTop() + (InNode.GetVirtualBottom() - InNode.GetVirtualTop())/2;
-	if (NodeCenter + VirtualKeySize.Y/2 > TopLeft.Y &&
-		NodeCenter - VirtualKeySize.Y/2 < BottomRight.Y)
-	{
-		bool bNodeHasKeyArea = false;
-		if (InNode.GetType() == ESequencerNode::KeyArea)
-		{
-			HandleKeyAreaNode(Visitor, static_cast<FSectionKeyAreaNode&>(InNode), InSections);
-			bNodeHasKeyArea = true;
-		}
-		else if (InNode.GetType() == ESequencerNode::Track)
-		{
-			TSharedPtr<FSectionKeyAreaNode> SectionKeyNode = static_cast<FTrackNode&>(InNode).GetTopLevelKeyNode();
-			if (SectionKeyNode.IsValid())
-			{
-				HandleKeyAreaNode(Visitor, static_cast<FSectionKeyAreaNode&>(InNode), InSections);
-				bNodeHasKeyArea = true;
-			}
-		}
-
-		if (!InNode.IsExpanded() && !bNodeHasKeyArea)
-		{
-			// As a fallback, handle key groupings on collapsed parents
-			for (int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex)
-			{
-				TSharedRef<IKeyArea> KeyArea = InNode.UpdateKeyGrouping(SectionIndex);
-				HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
-			}
-		}
-	}
-
-	if (InNode.IsExpanded())
-	{
-		// Handle Children
-		for (auto& Child : InNode.GetChildNodes())
-		{
-			if (!Child->IsHidden())
-			{
-				HandleNode(Visitor, *Child, InSections);
-			}
-		}
-	}
-}
-
-void FMarqueeRange::HandleKeyAreaNode(const IMarqueeVisitor& Visitor, FSectionKeyAreaNode& KeyAreaNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
-{
-	for( int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex )
-	{
-		TSharedRef<IKeyArea> KeyArea = KeyAreaNode.GetKeyArea(SectionIndex);
-		HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
-	}
-}
-
-void FMarqueeRange::HandleKeyArea(const IMarqueeVisitor& Visitor, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section)
-{
-	for (FKeyHandle KeyHandle : KeyArea->GetUnsortedKeyHandles())
-	{
-		float KeyPosition = KeyArea->GetKeyTime(KeyHandle);
-		if (KeyPosition + VirtualKeySize.X/2 > TopLeft.X &&
-			KeyPosition - VirtualKeySize.X/2 < BottomRight.X)
-		{
-			Visitor.VisitKey(KeyHandle, KeyPosition, KeyArea, Section);
-		}
-	}
-}
-
-/** Structure used for converting X and Y positional values to Time and vertical offsets respectively */
-struct FVirtualConverter : FTimeToPixel
-{
-	FVirtualConverter(TSharedPtr<SSequencerTreeView> InTreeView, TSharedPtr<FSequencer> InSequencer, const FGeometry& InGeometry)
-		: FTimeToPixel(InGeometry, InSequencer->GetViewRange())
-		, TreeView(*InTreeView)
-	{}
-
-	float PixelToVerticalOffset(float InPixel) const
-	{
-		return TreeView.PhysicalToVirtual(InPixel);
-	}
-
-	float VerticalOffsetToPixel(float InOffset) const
-	{
-		return TreeView.VirtualToPhysical(InOffset);
-	}
-
-	FVector2D PhysicalToVirtual(FVector2D InPosition) const
-	{
-		InPosition.Y = PixelToVerticalOffset(InPosition.Y);
-		InPosition.X = PixelToTime(InPosition.X);
-
-		return InPosition;
-	}
-
-	FVector2D VirtualToPhysical(FVector2D InPosition) const
-	{
-		InPosition.Y = VerticalOffsetToPixel(InPosition.Y);
-		InPosition.X = TimeToPixel(InPosition.X);
-
-		return InPosition;
-	}
-
-private:
-	SSequencerTreeView& TreeView;
-};
-
-// User-defined constructor/destructor to ensure TUniquePtr destruction
-SSequencerTrackArea::SSequencerTrackArea()
-{
-}
-SSequencerTrackArea::~SSequencerTrackArea()
-{
-}
-
-void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSequencerTimeSliderController> InTimeSliderController, TSharedRef<FSequencer> InSequencer )
-{
-	Sequencer = InSequencer;
+	SequencerWidget = InSequencerWidget;
 	TimeSliderController = InTimeSliderController;
 
 	SOverlay::Construct(SOverlay::FArguments());
@@ -273,94 +54,58 @@ TSharedPtr<SSequencerTrackLane> SSequencerTrackArea::FindTrackSlot(const TShared
 int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	LayerId = SOverlay::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	return PaintMarquee(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
-}
 
-int32 SSequencerTrackArea::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
-{
-	if (MarqueeSelectData.IsValid() && MarqueeSelectData->HasDragged())
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
 	{
-		// Convert to physical space for rendering
-		const FVirtualConverter Converter(TreeView.Pin(), Sequencer.Pin(), AllottedGeometry);
-
-		FVector2D TopLeft = Converter.VirtualToPhysical(MarqueeSelectData->TopLeft());
-		FVector2D BottomRight = Converter.VirtualToPhysical(MarqueeSelectData->BottomRight());
-
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(TopLeft, BottomRight - TopLeft),
-			FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
-			MyClippingRect
-			);
-
-		return LayerId + 1;
+		return SequencerPin->GetEditTool().OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
 	}
-
 	return LayerId;
 }
 
 FReply SSequencerTrackArea::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	FReply Reply = FReply::Unhandled();
-
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
 	{
-		const FVirtualConverter Converter(TreeView.Pin(), Sequencer.Pin(), MyGeometry);
-
-		// Marquee data is stored in virtual space
-		FVector2D VirtualClickPosition = Converter.PhysicalToVirtual(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()));
-		MarqueeSelectData.Reset(new FMarqueeSelectData(VirtualClickPosition));
-
-		// Clear selected sections and keys
-		auto SequencerPin = Sequencer.Pin();
-		if( !MouseEvent.IsControlDown() && !MouseEvent.IsShiftDown() && SequencerPin.IsValid() )
+		FReply Reply = SequencerPin->GetEditTool().OnMouseButtonDown(*this, MyGeometry, MouseEvent);
+		if (Reply.IsEventHandled())
 		{
-			SequencerPin->GetSelection().EmptySelectedSections();
-			SequencerPin->GetSelection().EmptySelectedKeys();
+			return Reply;
 		}
-
-		Reply = FReply::Handled().CaptureMouse(AsShared());
-	}
-	else
-	{
-		Reply = TimeSliderController->OnMouseButtonDown( SharedThis(this), MyGeometry, MouseEvent );
 	}
 
-	return Reply;
+	return TimeSliderController->OnMouseButtonDown( SharedThis(this), MyGeometry, MouseEvent );
 }
 
 FReply SSequencerTrackArea::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	FReply Reply = FReply::Unhandled();
-
-	if (MarqueeSelectData.IsValid())
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
 	{
-		if (MarqueeSelectData->HasDragged())
+		FReply Reply = SequencerPin->GetEditTool().OnMouseButtonUp(*this, MyGeometry, MouseEvent);
+		if (Reply.IsEventHandled())
 		{
-			HandleMarqueeSelection(MyGeometry, MouseEvent);
+			return Reply;
 		}
-		MarqueeSelectData.Reset();
-		Sequencer.Pin()->StopAutoscroll();
-		Reply = FReply::Handled().ReleaseMouseCapture();
 	}
 
-	if (!Reply.IsEventHandled())
-	{
-		Reply = TimeSliderController->OnMouseButtonUp( SharedThis(this), MyGeometry, MouseEvent );
-	}
-
-	return Reply;
+	return TimeSliderController->OnMouseButtonUp( SharedThis(this), MyGeometry, MouseEvent );
 }
 
 FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (MarqueeSelectData.IsValid())
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
 	{
-		SetNewMarqueeBounds(MouseEvent, MyGeometry);
-		return FReply::Handled();
+		FReply Reply = SequencerPin->GetEditTool().OnMouseMove(*this, MyGeometry, MouseEvent);
+		if (Reply.IsEventHandled())
+		{
+			return Reply;
+		}
 	}
-	else if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
+
+	if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
 	{
 		TreeView.Pin()->ScrollByDelta( -MouseEvent.GetCursorDelta().Y );
 	}
@@ -370,19 +115,62 @@ FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPoi
 
 FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	FReply Reply = TimeSliderController->OnMouseWheel( SharedThis(this), MyGeometry, MouseEvent );
-
-	if (!Reply.IsEventHandled())
+	// First try the edit tool
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
 	{
-		TreeView.Pin()->ScrollByDelta(WheelScrollAmount * -MouseEvent.GetWheelDelta());
-		Reply = FReply::Handled();
+		FReply Reply = SequencerPin->GetEditTool().OnMouseWheel(*this, MyGeometry, MouseEvent);
+		if (Reply.IsEventHandled())
+		{
+			return Reply;
+		}
 	}
 
-	return Reply;
+	// Then the time slider
+	FReply Reply = TimeSliderController->OnMouseWheel( SharedThis(this), MyGeometry, MouseEvent );
+	if (Reply.IsEventHandled())
+	{
+		return Reply;
+	}
+
+	// Failing that, we'll just scroll vertically
+	TreeView.Pin()->ScrollByDelta(WheelScrollAmount * -MouseEvent.GetWheelDelta());
+	return FReply::Handled();
+}
+
+void SSequencerTrackArea::OnMouseCaptureLost()
+{
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
+	{
+		SequencerPin->GetEditTool().OnMouseCaptureLost();
+	}
+}
+
+FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
+{
+	if (CursorEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
+	{
+		return FCursorReply::Cursor(EMouseCursor::GrabHandClosed);
+	}
+
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
+	{
+		return SequencerPin->GetEditTool().OnCursorQuery(MyGeometry, CursorEvent);
+	}
+
+	return FCursorReply::Unhandled();
 }
 
 void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
+	{
+		SequencerPin->GetEditTool().Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	}
+
 	FVector2D Size = AllottedGeometry.GetLocalSize();
 
 	if (SizeLastFrame.IsSet() && Size.X != SizeLastFrame->X)
@@ -411,130 +199,4 @@ void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double 
 			++Index;
 		}
 	}
-}
-
-void SSequencerTrackArea::SetNewMarqueeBounds(const FPointerEvent& MouseEvent, const FGeometry& MyGeometry)
-{
-	const FVector2D MouseDelta = MouseEvent.GetCursorDelta();
-
-	FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-
-	// Handle virtual scrolling when at the vertical extremes of the widget (performed before we clamp the mouse pos)
-	{
-		const float ScrollThresholdV = MyGeometry.Size.Y * 0.025f;
-
-		float Difference = LocalPosition.Y - ScrollThresholdV;
-		if (Difference < 0 && MouseDelta.Y < 0)
-		{
-			TreeView.Pin()->ScrollByDelta( Difference * 0.1f );
-		}
-
-		Difference = LocalPosition.Y - (MyGeometry.Size.Y - ScrollThresholdV);
-		if (Difference > 0 && MouseDelta.Y > 0)
-		{
-			TreeView.Pin()->ScrollByDelta( Difference * 0.1f );
-		}
-	}
-
-	const FVirtualConverter Converter(TreeView.Pin(), Sequencer.Pin(), MyGeometry);
-
-	// Clamp the vertical position to the actual bounds of the track area
-	LocalPosition.Y = FMath::Clamp(LocalPosition.Y, 0.f, MyGeometry.GetLocalSize().Y);
-	MarqueeSelectData->CurrentPosition = Converter.PhysicalToVirtual(LocalPosition);
-
-	// Handle virtual scrolling when at the horizontal extremes of the widget
-	{
-		TRange<float> ViewRange = Sequencer.Pin()->GetViewRange();
-		const float ScrollThresholdH = ViewRange.Size<float>() * 0.025f;
-
-		float Difference = MarqueeSelectData->CurrentPosition.X - (ViewRange.GetLowerBoundValue() + ScrollThresholdH);
-		if (Difference < 0 && MouseDelta.X < 0)
-		{
-			Sequencer.Pin()->StartAutoscroll(Difference);
-		}
-		else
-		{
-			Difference = MarqueeSelectData->CurrentPosition.X - (ViewRange.GetUpperBoundValue() - ScrollThresholdH);
-			if (Difference > 0 && MouseDelta.X > 0)
-			{
-				Sequencer.Pin()->StartAutoscroll(Difference);
-			}
-			else
-			{
-				Sequencer.Pin()->StopAutoscroll();
-			}
-		}
-	}
-}
-
-struct FSelectionVisitor : IMarqueeVisitor
-{
-	FSelectionVisitor(FSequencerSelection& InSelection, const FPointerEvent& InMouseEvent)
-		: Selection(InSelection)
-		, MouseEvent(InMouseEvent)
-	{}
-
-	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const override
-	{
-		FSelectedKey SelectedKey(*Section, KeyArea, KeyHandle);
-
-		if (MouseEvent.IsLeftShiftDown())
-		{
-			Selection.AddToSelection(SelectedKey);
-		}
-		else if (MouseEvent.IsLeftControlDown())
-		{
-			if (Selection.IsSelected(SelectedKey))
-			{
-				Selection.RemoveFromSelection(SelectedKey);
-			}
-			else
-			{
-				Selection.AddToSelection(SelectedKey);
-			}
-		}
-		else
-		{
-			Selection.AddToSelection(SelectedKey);
-		}
-	}
-
-	virtual void VisitSection(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const
-	{
-
-	}
-
-private:
-	FSequencerSelection& Selection;
-	const FPointerEvent& MouseEvent;
-};
-
-void SSequencerTrackArea::HandleMarqueeSelection(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
-{
-	auto PinnedSequencer = Sequencer.Pin();
-	auto PinnedTreeView = TreeView.Pin();
-
-	if (!PinnedSequencer.IsValid() || !PinnedTreeView.IsValid())
-	{
-		return;
-	}
-
-	auto& Selection = PinnedSequencer->GetSelection();
-	if (!MouseEvent.IsLeftControlDown() && !MouseEvent.IsLeftShiftDown())
-	{
-		Selection.Empty();
-	}
-
-	Selection.SuspendBroadcast();
-
-	FVector2D VirtualKeySize;
-	VirtualKeySize.X = SequencerSectionConstants::KeySize.X / Geometry.Size.X * (PinnedSequencer->GetViewRange().GetUpperBoundValue() - PinnedSequencer->GetViewRange().GetLowerBoundValue());
-	// Vertically, virtual units == physical units
-	VirtualKeySize.Y = SequencerSectionConstants::KeySize.Y;
-
-	FMarqueeRange Range(MarqueeSelectData->TopLeft(), MarqueeSelectData->BottomRight(), VirtualKeySize);
-	Range.Visit(FSelectionVisitor(Selection, MouseEvent), PinnedTreeView->GetNodeTree()->GetRootNodes());
-
-	Selection.ResumeBroadcast();
-	Selection.GetOnKeySelectionChanged().Broadcast();
 }

@@ -52,20 +52,12 @@ private:
 	/** @return The sequencer interface */
 	FSequencer& GetSequencer() const;
 private:
-
-	/** List of all sequencer drag operations going on  in this area */
-	/** @todo Sequencer - This list may need to be on the section view itself for multi-select */
-	TArray< TSharedPtr< FSequencerDragOperation > > DragOperations;
 	/** The node containing the sections we are viewing/manipulating */
 	TSharedPtr<FTrackNode> SectionAreaNode;
 	/** The current view range */
 	TAttribute< TRange<float> > ViewRange;
 	/** Background brush of the section area */
 	const FSlateBrush* BackgroundBrush;
-	/** The distance we have dragged since the mouse was pressed down */
-	float DistanceDragged;
-	/** Whether or not we are dragging */
-	bool bDragging;
 	/** All the widgets in the panel */
 	TSlotlessChildren<SSection> Children;
 };

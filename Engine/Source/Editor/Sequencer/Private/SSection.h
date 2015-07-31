@@ -140,18 +140,12 @@ private:
 	TSharedPtr<FTrackNode> ParentSectionArea;
 	/** Cached layout generated each tick */
 	TOptional<FKeyAreaLayout> Layout;
-	/** Current drag operation if any */
-	TSharedPtr<class FSequencerDragOperation> DragOperation;
 	/** The currently pressed key if any */
 	FSelectedKey PressedKey;
 	/** The current hovered key if any */
 	FSelectedKey HoveredKey;
-	/** The distance we have dragged since the mouse was pressed down */
-	float DistanceDragged;
 	/** The index of this section in the parent section area */
 	int32 SectionIndex;
-	/** Whether or not we are dragging */
-	bool bDragging;
 	/** Whether or not the left edge of the section is hovered */
 	bool bLeftEdgeHovered;
 	/** Whether or not the left edge of the section is pressed */
