@@ -72,9 +72,10 @@ void UK2Node_GenericCreateObject::ValidateNodeDuringCompilation(class FCompilerR
 void UK2Node_GenericCreateObject::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::EarlyValidation(MessageLog);
-
+	auto ClassPin = GetClassPin(&Pins);
+	const bool bAllowAbstract = ClassPin && ClassPin->LinkedTo.Num();
 	auto ClassToSpawn = GetClassToSpawn();
-	if (!UGameplayStatics::CanSpawnObjectOfClass(ClassToSpawn))
+	if (!UGameplayStatics::CanSpawnObjectOfClass(ClassToSpawn, bAllowAbstract))
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("GenericCreateObject_WrongClass", "Wrong class to spawn '%s' in @@").ToString(), *GetPathNameSafe(ClassToSpawn)), this);
 	}
