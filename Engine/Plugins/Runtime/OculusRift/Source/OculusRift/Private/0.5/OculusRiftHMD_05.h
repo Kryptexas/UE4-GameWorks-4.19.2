@@ -361,7 +361,7 @@ public:
 	*
 	* @param OutData	(out) SensorData structure to be filled in.
 	*/
-	virtual void GetRawSensorData(SensorData& OutData) override;
+	virtual void GetRawSensorData(SensorData& OutData);
 
 	/**
 	* User profile structure.
