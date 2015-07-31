@@ -1210,25 +1210,6 @@ partial class GUBP
 			}
 		}
 
-		// Calculate the frequency overrides
-		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
-
-		// Get the legacy node to new node mapping
-		Dictionary<GUBP.GUBPNode, BuildNode> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetBuildNode());
-
-		// Convert the GUBPNodes and GUBPAggregates maps into lists
-		AllNodes = new List<BuildNode>();
-		AllNodes.AddRange(LegacyToNewNodes.Values);
-
-		AllAggregates = new List<AggregateNode>();
-		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new LegacyAggregateNode(x)));
-
-		// Calculate the frequencies for each node
-		FindFrequenciesForNodes(BranchConfig, LegacyToNewNodes, FrequencyOverrides);
-
-		// Get the email list for each node
-		FindEmailsForNodes(BranchName, AllNodes);
-
 		// Add aggregate nodes for every project in the branch
 		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
 		{
@@ -1249,6 +1230,25 @@ partial class GUBP
 				BranchConfig.AddNode(new FullGameAggregateNode(GameProj.GameName, NodeNames));
 			}
 		}
+
+		// Calculate the frequency overrides
+		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
+
+		// Get the legacy node to new node mapping
+		Dictionary<GUBP.GUBPNode, BuildNode> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetBuildNode());
+
+		// Convert the GUBPNodes and GUBPAggregates maps into lists
+		AllNodes = new List<BuildNode>();
+		AllNodes.AddRange(LegacyToNewNodes.Values);
+
+		AllAggregates = new List<AggregateNode>();
+		AllAggregates.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => new LegacyAggregateNode(x)));
+
+		// Calculate the frequencies for each node
+		FindFrequenciesForNodes(BranchConfig, LegacyToNewNodes, FrequencyOverrides);
+
+		// Get the email list for each node
+		FindEmailsForNodes(BranchName, AllNodes);
 	}
 
 	private static Dictionary<string, int> ApplyFrequencyBarriers(Dictionary<string, GUBPNode> GUBPNodes, Dictionary<string, GUBPAggregateNode> GUBPAggregates, Dictionary<string, sbyte> FrequencyBarriers)
