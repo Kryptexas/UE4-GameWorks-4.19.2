@@ -373,6 +373,7 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 		OnSelectionChanged( AffectedNodes );
 
 		Sequencer.GetSelection().ResumeBroadcast();
+		Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().Broadcast();
 
 		return FReply::Handled();
 	}
