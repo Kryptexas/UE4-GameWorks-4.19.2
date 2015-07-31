@@ -895,12 +895,6 @@ void UObject::Serialize( FArchive& Ar )
 		{
 			Ar << ObjClass;
 		}
-		//@todo UE4 - This seems to be required and it should not be. Seems to be related to the texture streamer.
-		FLinkerLoad* LinkerLoad = GetLinker();
-		if (LinkerLoad)
-		{
-			LinkerLoad->Serialize(Ar);
-		}
 	}
 	// Special support for supporting undo/redo of renaming and changing Archetype.
 	else if( Ar.IsTransacting() )

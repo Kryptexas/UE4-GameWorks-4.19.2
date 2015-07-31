@@ -86,6 +86,14 @@ void UPackage::Serialize( FArchive& Ar )
 	{
 		Ar << bDirty;
 	}
+	if (Ar.IsCountingMemory())
+	{		
+		if (LinkerLoad)
+		{
+			FLinker* Loader = LinkerLoad;
+			Loader->Serialize(Ar);
+		}
+	}
 }
 
 void UPackage::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
