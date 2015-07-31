@@ -10,7 +10,7 @@ class FLinuxWindow;
 class FGenericApplicationMessageHandler;
 
 
-class FLinuxApplication : public GenericApplication
+class FLinuxApplication : public GenericApplication, public FSelfRegisteringExec
 {
 
 public:
@@ -25,6 +25,9 @@ public:
 	virtual ~FLinuxApplication();
 	
 	virtual void DestroyApplication() override;
+
+	// FSelfRegisteringExec
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 public:
 	virtual void SetMessageHandler( const TSharedRef< class FGenericApplicationMessageHandler >& InMessageHandler ) override;
@@ -128,6 +131,12 @@ private:
 
 	TSharedPtr< FLinuxWindow > GetRootWindow(const TSharedPtr< FLinuxWindow >& Window);
 
+	/** Handles "Cursor" exec commands" */
+	bool HandleCursorCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+
+	/** Handles "Window" exec commands" */
+	bool HandleWindowCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+
 private:
 
 	void RefreshDisplayCache();
@@ -154,8 +163,6 @@ private:
 		}
 	};
 
-	bool bUsingHighPrecisionMouseInput;
-
 	TArray< SDL_Event > PendingEvents;
 
 	TArray< TSharedRef< FLinuxWindow > > Windows;
@@ -168,7 +175,13 @@ private:
 
 	int32 bAllowedToDeferMessageProcessing;
 
+	/** Using high precision mouse input */
+	bool bUsingHighPrecisionMouseInput;
+
+	/** TODO: describe */
 	bool bIsMouseCursorLocked;
+
+	/** TODO: describe */
 	bool bIsMouseCaptureEnabled;
 
 	/** Window that we think has been activated last. */

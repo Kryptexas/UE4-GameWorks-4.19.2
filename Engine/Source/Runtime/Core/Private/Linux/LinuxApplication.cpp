@@ -1602,3 +1602,60 @@ TSharedPtr< FLinuxWindow > FLinuxApplication::GetRootWindow(const TSharedPtr< FL
 	}
 	return ParentWindow;
 }
+
+bool FLinuxApplication::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	// Ignore any execs that doesn't start with LinuxApp
+	if (!FParse::Command(&Cmd, TEXT("LinuxApp")))
+	{
+		return false;
+	}
+
+	if (FParse::Command(&Cmd, TEXT("Cursor")))
+	{
+		return HandleCursorCommand(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("Window")))
+	{
+		return HandleWindowCommand(Cmd, Ar);
+	}
+
+	return false;
+}
+
+bool FLinuxApplication::HandleCursorCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	if (FParse::Command(&Cmd, TEXT("Status")))
+	{
+		FLinuxCursor *LinuxCursor = static_cast<FLinuxCursor*>(Cursor.Get());
+		FVector2D CurrentPosition = LinuxCursor->GetPosition();
+
+		Ar.Logf(TEXT("Cursor status:"));
+		Ar.Logf(TEXT("Position: (%f, %f)"), CurrentPosition.X, CurrentPosition.Y);
+		Ar.Logf(TEXT("IsHidden: %s"), LinuxCursor->IsHidden() ? TEXT("true") : TEXT("false"));
+		Ar.Logf(TEXT("bIsMouseCaptureEnabled: %s"), bIsMouseCaptureEnabled ? TEXT("true") : TEXT("false"));
+		Ar.Logf(TEXT("bUsingHighPrecisionMouseInput: %s"), bUsingHighPrecisionMouseInput ? TEXT("true") : TEXT("false"));
+		Ar.Logf(TEXT("bIsMouseCaptureEnabled: %s"), bIsMouseCaptureEnabled ? TEXT("true") : TEXT("false"));
+
+		return true;
+	}
+
+	return false;
+}
+
+bool FLinuxApplication::HandleWindowCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	if (FParse::Command(&Cmd, TEXT("List")))
+	{
+		Ar.Logf(TEXT("Window list:"));
+		for (int WindowIdx = 0, NumWindows = Windows.Num(); WindowIdx < NumWindows; ++WindowIdx)
+		{
+			Ar.Logf(TEXT("%d: native handle: %p, debugging ID: %d"), WindowIdx, Windows[WindowIdx]->GetHWnd(), Windows[WindowIdx]->GetID());
+		}
+
+		return true;
+	}
+
+	return false;
+}
+

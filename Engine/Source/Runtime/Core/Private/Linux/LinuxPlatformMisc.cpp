@@ -181,13 +181,22 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			return false;
 		}
 
+		// print out version information
+		SDL_version CompileTimeSDLVersion;
+		SDL_version RunTimeSDLVersion;
+		SDL_VERSION(&CompileTimeSDLVersion);
+		SDL_GetVersion(&RunTimeSDLVersion);
+		UE_LOG(LogInit, Log, TEXT("Initialized SDL %d.%d.%d (compiled against %d.%d.%d)"),
+			CompileTimeSDLVersion.major, CompileTimeSDLVersion.minor, CompileTimeSDLVersion.patch,
+			RunTimeSDLVersion.major, RunTimeSDLVersion.minor, RunTimeSDLVersion.patch
+			);
+
 		// Used to make SDL push SDL_TEXTINPUT events.
 		SDL_StartTextInput();
 
 		GInitializedSDL = true;
 
 		// needs to come after GInitializedSDL, otherwise it will recurse here
-		// @TODO [RCL] 2014-09-30 - move to FDisplayMetrics itself sometime after 4.5
 		if (!UE_BUILD_SHIPPING)
 		{
 			// dump information about screens for debug
