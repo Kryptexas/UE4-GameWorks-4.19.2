@@ -2100,25 +2100,17 @@ void UParticleSystem::SetupSoloing()
 		if (Emitters.Num())
 		{
 			// Store the settings of bEnabled for each LODLevel in each emitter
-			UParticleEmitter* ZeroEmitter = NULL;
+			SoloTracking.Empty(Emitters.Num());
+			SoloTracking.AddZeroed(Emitters.Num());
 			for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); EmitterIdx++)
 			{
 				UParticleEmitter* Emitter = Emitters[EmitterIdx];
-				if ((Emitter != NULL) && (ZeroEmitter == NULL))
+				if (Emitter != nullptr)
 				{
-					ZeroEmitter = Emitter;
-					break;
+					FLODSoloTrack& SoloTrack = SoloTracking[EmitterIdx];
+					SoloTrack.SoloEnableSetting.Empty(Emitter->LODLevels.Num());
+					SoloTrack.SoloEnableSetting.AddZeroed(Emitter->LODLevels.Num());
 				}
-			}
-			check(ZeroEmitter != NULL);
-
-			SoloTracking.Empty(Emitters.Num());
-			SoloTracking.AddZeroed(Emitters.Num());
-			for (int32 SoloIdx = 0; SoloIdx < SoloTracking.Num(); SoloIdx++)
-			{
-				FLODSoloTrack& SoloTrack = SoloTracking[SoloIdx];
-				SoloTrack.SoloEnableSetting.Empty(ZeroEmitter->LODLevels.Num());
-				SoloTrack.SoloEnableSetting.AddZeroed(ZeroEmitter->LODLevels.Num());
 			}
 
 			for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); EmitterIdx++)
