@@ -1209,6 +1209,27 @@ partial class GUBP
 			}
 		}
 
+		// Add aggregate nodes for every project in the branch
+		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
+		{
+			List<string> NodeNames = new List<string>();
+			if (GameProj.Options(UnrealTargetPlatform.Win64).bIsPromotable)
+			{
+				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
+			}
+			foreach(GUBP.GUBPNode Node in BranchConfig.GUBPNodes.Values)
+			{
+				if (Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
+				{
+					NodeNames.Add(Node.GetFullName());
+				}
+			}
+			if (NodeNames.Count > 0)
+			{
+				BranchConfig.AddNode(new FullGameAggregateNode(GameProj.GameName, NodeNames));
+			}
+		}
+
 		// Calculate the frequency overrides
 		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
 
@@ -1224,27 +1245,6 @@ partial class GUBP
 
 		// Get the email list for each node
 		FindEmailsForNodes(BranchName, AllNodes);
-
-		// Add aggregate nodes for every project in the branch
-		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
-		{
-			List<string> NodeNames = new List<string>();
-			if (GameProj.Options(UnrealTargetPlatform.Win64).bIsPromotable)
-			{
-				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
-			}
-			foreach (BuildNode Node in AllNodes)
-			{
-				if (Node.Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
-				{
-					NodeNames.Add(Node.Name);
-				}
-			}
-			if (NodeNames.Count > 0)
-			{
-				BranchConfig.AddNode(new FullGameAggregateNode(GameProj.GameName, NodeNames));
-			}
-		}
 	}
 
 	private static Dictionary<string, int> ApplyFrequencyBarriers(Dictionary<string, GUBPNode> GUBPNodes, Dictionary<string, GUBPAggregateNode> GUBPAggregates, Dictionary<string, sbyte> FrequencyBarriers)
