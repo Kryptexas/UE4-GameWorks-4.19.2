@@ -75,21 +75,13 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 		.AutoHeight()
 		.MaxHeight(400)
 		[
-			SNew(SScaleBox)
-			.HAlign(EHorizontalAlignment::HAlign_Left)
-			.VAlign(EVerticalAlignment::VAlign_Top)
-			.StretchDirection(EStretchDirection::DownOnly)
-			.Stretch(EStretch::ScaleToFit)
-			.Content()
-			[
-				SNew(SGameplayTagWidget, EditableContainers)
-				.Filter(Categories)
-				.ReadOnly(bReadOnly)
-				.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
-				.MultiSelect(false)
-				.OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
-				.PropertyHandle(StructPropertyHandle)
-			]
+            SNew(SGameplayTagWidget, EditableContainers)
+            .Filter(Categories)
+            .ReadOnly(bReadOnly)
+            .TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
+            .MultiSelect(false)
+            .OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
+            .PropertyHandle(StructPropertyHandle)
 		];
 }
 
