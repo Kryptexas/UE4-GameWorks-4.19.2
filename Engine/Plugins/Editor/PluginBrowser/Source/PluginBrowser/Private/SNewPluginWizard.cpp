@@ -11,13 +11,16 @@
 #include "NotificationManager.h"
 #include "GameProjectUtils.h"
 #include "PluginBrowserModule.h"
+#include "SFilePathBlock.h"
+#include "IMainFrameModule.h"
 
 DEFINE_LOG_CATEGORY(LogPluginWizard);
 
 #define LOCTEXT_NAMESPACE "NewPluginWizard"
 
 SNewPluginWizard::SNewPluginWizard()
-	: bIsPluginNameValid(false)
+	: bIsPluginPathValid(false)
+	, bIsPluginNameValid(false)
 	, bIsEnginePlugin(false)
 {
 	const FText BlankTemplateName = LOCTEXT("BlankLabel", "Blank");
@@ -36,13 +39,22 @@ SNewPluginWizard::SNewPluginWizard()
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(AdvancedTemplateName, AdvancedDescription, TEXT("Advanced"), true, false, false)));
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlueprintLibTemplateName, BlueprintLibDescription, TEXT("Blank"), false, false, true)));
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(EditorModeTemplateName, EditorModeDescription, TEXT("Blank"), false, true, false)));
+
+	AbsoluteGamePluginPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::GamePluginsDir());
+	FPaths::MakePlatformFilename(AbsoluteGamePluginPath);
+	AbsoluteEnginePluginPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir());
+	FPaths::MakePlatformFilename(AbsoluteEnginePluginPath);
 }
 
 void SNewPluginWizard::Construct(const FArguments& Args, TSharedPtr<SDockTab> InOwnerTab)
 {
 	OwnerTab = InOwnerTab;
 
-	const float PaddingAmount = FPluginStyle::Get()->GetFloat("PluginTile.Padding");
+	LastBrowsePath = AbsoluteGamePluginPath;
+	PluginFolderPath = AbsoluteGamePluginPath;
+	bIsPluginPathValid = true;
+
+	const float PaddingAmount = FPluginStyle::Get()->GetFloat("PluginCreator.Padding");
 
 	TSharedRef<SVerticalBox> MainContent = SNew(SVerticalBox)
 	+SVerticalBox::Slot()
@@ -69,43 +81,17 @@ void SNewPluginWizard::Construct(const FArguments& Args, TSharedPtr<SDockTab> In
 	+SVerticalBox::Slot()
 	.AutoHeight()
 	.Padding(PaddingAmount)
+	.HAlign(HAlign_Center)
 	[
-		SNew(SGridPanel)
-		.FillColumn(1, 1.0f)
-
-		+SGridPanel::Slot(0, 0)
-		.VAlign(VAlign_Center)
-		.Padding(PaddingAmount)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("NameLabel", "Name"))
-			.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
-		]
-		+SGridPanel::Slot(1, 0)
-		.VAlign(VAlign_Center)
-		.Padding(PaddingAmount)
-		[
-			// name of new plugin
-			SAssignNew(PluginNameTextBox, SEditableTextBox)
-			.HintText(LOCTEXT("PluginNameTextHint", "Plugin name"))
-			.OnTextChanged(this, &SNewPluginWizard::OnPluginNameTextChanged)
-		]
-		+SGridPanel::Slot(0, 1)
-		.VAlign(VAlign_Center)
-		.Padding(PaddingAmount)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("PathLabel", "Path"))
-			.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
-		]
-		+ SGridPanel::Slot(1, 1)
-		.VAlign(VAlign_Center)
-		.Padding(PaddingAmount)
-		[
-			// path for new plugin
-			SNew(STextBlock)
-			.Text(this, &SNewPluginWizard::GetPluginDestinationPath)
-		]
+		SAssignNew(FilePathBlock, SFilePathBlock)
+		.OnBrowseForFolder(this, &SNewPluginWizard::OnBrowseButtonClicked)
+		.LabelBackgroundBrush(FPluginStyle::Get()->GetBrush("PluginCreator.Background"))
+		.LabelBackgroundColor(FLinearColor::White)
+		.FolderPath(this, &SNewPluginWizard::GetPluginDestinationPath)
+		.Name(this, &SNewPluginWizard::GetCurrentPluginName)
+		.NameHint(LOCTEXT("PluginNameTextHint", "Plugin name"))
+		.OnFolderChanged(this, &SNewPluginWizard::OnFolderPathTextChanged)
+		.OnNameChanged(this, &SNewPluginWizard::OnPluginNameTextChanged)
 	];
 
 	// Don't show the option to make an engine plugin in installed builds
@@ -117,6 +103,8 @@ void SNewPluginWizard::Construct(const FArguments& Args, TSharedPtr<SDockTab> In
 		[
 			SNew(SBox)
 			.Padding(PaddingAmount)
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Center)
 			[
 				SNew(SCheckBox)
 				.OnCheckStateChanged(this, &SNewPluginWizard::OnEnginePluginCheckboxChanged)
@@ -229,74 +217,189 @@ void SNewPluginWizard::OnTemplateSelectionChanged( TSharedPtr<FPluginTemplateDes
 	CurrentTemplate = InItem;
 }
 
+void SNewPluginWizard::OnFolderPathTextChanged(const FText& InText)
+{
+	PluginFolderPath = InText.ToString();
+	FPaths::MakePlatformFilename(PluginFolderPath);
+	ValidateFullPluginPath();
+}
+
 void SNewPluginWizard::OnPluginNameTextChanged(const FText& InText)
 {
-	// Early exit if text is empty
-	if (InText.IsEmpty())
+	PluginNameText = InText;
+	ValidateFullPluginPath();
+}
+
+FReply SNewPluginWizard::OnBrowseButtonClicked()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (DesktopPlatform)
 	{
-		bIsPluginNameValid = false;
-		PluginNameText = FText();
-		PluginNameTextBox->SetError(FText::GetEmpty());
-		return;
+		void* ParentWindowWindowHandle = NULL;
+
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
+		{
+			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
+		FString FolderName;
+		const FString Title = LOCTEXT("NewPluginBrowseTitle", "Choose a plugin location").ToString();
+		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
+			ParentWindowWindowHandle,
+			Title,
+			LastBrowsePath,
+			FolderName
+			);
+
+		if (bFolderSelected)
+		{
+			LastBrowsePath = FolderName;
+			OnFolderPathTextChanged(FText::FromString(FolderName));
+		}
+	}
+
+	return FReply::Handled();
+}
+
+void SNewPluginWizard::ValidateFullPluginPath()
+{
+	// Check for issues with path
+	bIsPluginPathValid = false;
+	bool bIsNewPathValid = true;
+	FText FolderPathError;
+
+	if (!FPaths::ValidatePath(GetPluginDestinationPath().ToString(), &FolderPathError))
+	{
+		bIsNewPathValid = false;
+	}
+
+	if (bIsNewPathValid)
+	{
+		bool bFoundValidPath = false;
+		FString AbsolutePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*GetPluginDestinationPath().ToString());
+		FPaths::MakePlatformFilename(AbsolutePath);
+
+		if (AbsolutePath.StartsWith(AbsoluteGamePluginPath))
+		{
+			bFoundValidPath = true;
+			bIsEnginePlugin = false;
+		}
+
+		if (!bFoundValidPath && !FApp::IsEngineInstalled())
+		{
+			if (AbsolutePath.StartsWith(AbsoluteEnginePluginPath))
+			{
+				bFoundValidPath = true;
+				bIsEnginePlugin = true;
+			}
+		}
+
+		bIsNewPathValid = bFoundValidPath;
+		if (!bFoundValidPath)
+		{
+			if (FApp::IsEngineInstalled())
+			{
+				FolderPathError = LOCTEXT("InstalledPluginFolderPathError", "Plugins can only be created within your Project's Plugins folder");
+			}
+			else
+			{
+				FolderPathError = LOCTEXT("PluginFolderPathError", "Plugins can only be created within the Engine Plugins folder or your Project's Plugins folder");
+			}
+		}
+	}
+
+	bIsPluginPathValid = bIsNewPathValid;
+	FilePathBlock->SetFolderPathError(FolderPathError);
+
+	// Check for issues with name
+	bIsPluginNameValid = false;
+	bool bIsNewNameValid = true;
+	FText PluginNameError;
+
+	// Fail silently if text is empty
+	if (GetCurrentPluginName().IsEmpty())
+	{
+		bIsNewNameValid = false;
 	}
 
 	// Don't allow commas, dots, etc...
 	FString IllegalCharacters;
-	if (!GameProjectUtils::NameContainsOnlyLegalCharacters(InText.ToString(), IllegalCharacters))
+	if (bIsNewNameValid && !GameProjectUtils::NameContainsOnlyLegalCharacters(GetCurrentPluginName().ToString(), IllegalCharacters))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("IllegalCharacters"), FText::FromString(IllegalCharacters));
-		FText ErrorText = FText::Format(LOCTEXT("WrongPluginNameErrorText", "Plugin name cannot contain illegal characters like: \"{IllegalCharacters}\""), Args);
-
-		PluginNameTextBox->SetError(ErrorText);
-		bIsPluginNameValid = false;
-		return;
+		PluginNameError = FText::Format(LOCTEXT("WrongPluginNameErrorText", "Plugin name cannot contain illegal characters like: \"{IllegalCharacters}\""), Args);
+		bIsNewNameValid = false;
 	}
 
-	const FString TestPluginName = InText.ToString();
-
-	// Check to see if a a compiled plugin with this name exists (at any path)
-	const TArray< FPluginStatus > Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
-	for (auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
+	if (bIsNewNameValid)
 	{
-		const auto& PluginStatus = *PluginIt;
+		const FString& TestPluginName = GetCurrentPluginName().ToString();
 
-		if (PluginStatus.Name == TestPluginName)
+		// Check to see if a a compiled plugin with this name exists (at any path)
+		const TArray< FPluginStatus > Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
+		for (auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
 		{
-			PluginNameTextBox->SetError(LOCTEXT("PluginNameExistsErrorText", "A plugin with this name already exists!"));
-			bIsPluginNameValid = false;
+			const auto& PluginStatus = *PluginIt;
 
-			return;
+			if (PluginStatus.Name == TestPluginName)
+			{
+				PluginNameError = LOCTEXT("PluginNameExistsErrorText", "A plugin with this name already exists!");
+				bIsNewNameValid = false;
+				break;
+			}
 		}
 	}
 
 	// Check to see if a .uplugin exists at this path (in case there is an uncompiled or disabled plugin)
-	const FString TestPluginPath = GetPluginDestinationPath().ToString() / TestPluginName / (TestPluginName + TEXT(".uplugin"));
-	if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*TestPluginPath))
+	if (bIsNewNameValid)
 	{
-		PluginNameTextBox->SetError(LOCTEXT("PluginPathExistsErrorText", "A plugin already exists at this path!"));
-		bIsPluginNameValid = false;
-
-		return;
+		const FString TestPluginPath = GetPluginFilenameWithPath();
+		if (!TestPluginPath.IsEmpty())
+		{
+			if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*TestPluginPath))
+			{
+				PluginNameError = LOCTEXT("PluginPathExistsErrorText", "A plugin already exists at this path!");
+				bIsNewNameValid = false;
+			}
+		}
 	}
 
-	PluginNameText = InText;
-	PluginNameTextBox->SetError(FText::GetEmpty());
-	bIsPluginNameValid = true;
+	bIsPluginNameValid = bIsNewNameValid;
+	FilePathBlock->SetNameError(PluginNameError);
 }
 
 bool SNewPluginWizard::CanCreatePlugin() const
 {
-	return bIsPluginNameValid && CurrentTemplate.IsValid();
+	return bIsPluginPathValid && bIsPluginNameValid && CurrentTemplate.IsValid();
 }
 
 FText SNewPluginWizard::GetPluginDestinationPath() const
 {
-	const FString EnginePath = FPaths::EnginePluginsDir();
-	const FString GamePath = FPaths::GamePluginsDir();
+	return FText::FromString(PluginFolderPath);
+}
 
-	return bIsEnginePlugin ? FText::FromString(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*EnginePath))
-		: FText::FromString(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*GamePath));
+FText SNewPluginWizard::GetCurrentPluginName() const
+{
+	return PluginNameText;
+}
+
+FString SNewPluginWizard::GetPluginFilenameWithPath() const
+{
+	if (PluginFolderPath.IsEmpty() || PluginNameText.IsEmpty())
+	{
+		// Don't even try to assemble the path or else it may be relative to the binaries folder!
+		return TEXT("");
+	}
+	else
+	{
+		const FString& TestPluginName = PluginNameText.ToString();
+		FString TestPluginPath = PluginFolderPath / TestPluginName / (TestPluginName + TEXT(".uplugin"));
+		FPaths::MakePlatformFilename(TestPluginPath);
+		return TestPluginPath;
+	}
 }
 
 ECheckBoxState SNewPluginWizard::IsEnginePlugin() const
@@ -306,7 +409,21 @@ ECheckBoxState SNewPluginWizard::IsEnginePlugin() const
 
 void SNewPluginWizard::OnEnginePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 {
-	bIsEnginePlugin = NewCheckedState == ECheckBoxState::Checked;
+	bool bNewEnginePluginState = NewCheckedState == ECheckBoxState::Checked;
+	if (bIsEnginePlugin != bNewEnginePluginState)
+	{
+		bIsEnginePlugin = bNewEnginePluginState;
+		if (bIsEnginePlugin)
+		{
+			PluginFolderPath = AbsoluteEnginePluginPath;
+		}
+		else
+		{
+			PluginFolderPath = AbsoluteGamePluginPath;
+		}
+		bIsPluginPathValid = true;
+		FilePathBlock->SetFolderPathError(FText::GetEmpty());
+	}
 }
 
 FReply SNewPluginWizard::OnCreatePluginClicked()
@@ -330,27 +447,17 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 
 	FText LocalFailReason;
 
-	// If we're creating a game plugin, GameDir\Plugins folder may not exist so we have to create it
-	if (!bIsEnginePlugin && !IFileManager::Get().DirectoryExists(*GetPluginDestinationPath().ToString()))
-	{
-		if (!MakeDirectory(*GetPluginDestinationPath().ToString()))
-		{
-			return FReply::Unhandled();
-		}
-	}
-
-	// Create main plugin dir
-	const FString PluginFolder = GetPluginDestinationPath().ToString() / AutoPluginName;
-	if (!MakeDirectory(PluginFolder))
-	{
-		return FReply::Unhandled();
-	}
-
 	bool bSucceeded = true;
 
-	// Create resource folder
+	// Save descriptor file as .uplugin file
+	const FString UPluginFilePath = GetPluginFilenameWithPath();
+	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath);
+
+	// Main plugin dir
+	const FString PluginFolder = GetPluginDestinationPath().ToString() / AutoPluginName;
+
+	// Resource folder
 	const FString ResourcesFolder = PluginFolder / TEXT("Resources");
-	bSucceeded = bSucceeded && MakeDirectory(ResourcesFolder);
 
 	// Copy the icons
 	bSucceeded = bSucceeded && CopyFile(ResourcesFolder / TEXT("Icon128.png"), PluginEditorIconPath, /*inout*/ CreatedFiles);
@@ -361,23 +468,13 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 		bSucceeded = bSucceeded && CopyFile(ResourcesFolder / TEXT("ButtonIcon_40x.png"), PluginButtonIconPath, /*inout*/ CreatedFiles);
 	}
 
-	// Create source folder
+	// Source folder
 	const FString SourceFolder = PluginFolder / TEXT("Source");
-	bSucceeded = bSucceeded && MakeDirectory(SourceFolder);
 
-	// Save descriptor file as .uplugin file
-	const FString UPluginFilePath = PluginFolder / AutoPluginName + TEXT(".uplugin");
-	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath);
-
-	// Create Source Folders
-	const FString PluginSourceFolder = SourceFolder / AutoPluginName;
-	bSucceeded = bSucceeded && MakeDirectory(PluginSourceFolder);
-
-	FString PrivateSourceFolder = PluginSourceFolder / TEXT("Private");
-	bSucceeded = bSucceeded && MakeDirectory(PrivateSourceFolder);
-
-	FString PublicSourceFolder = PluginSourceFolder / TEXT("Public");
-	bSucceeded = bSucceeded && MakeDirectory(PublicSourceFolder);
+	// Create Plugin Module Folders
+	const FString PluginModuleFolder = SourceFolder / AutoPluginName;
+	FString PrivateSourceFolder = PluginModuleFolder / TEXT("Private");
+	FString PublicSourceFolder = PluginModuleFolder / TEXT("Public");
 
 	TArray<FString> PrivateDependencyModuleNames;
 	PrivateDependencyModuleNames.Add("CoreUObject");
@@ -396,7 +493,7 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	}
 
 	// Based on chosen template create build, and other source files
-	if (bSucceeded && !FPluginHelpers::CreatePluginBuildFile(PluginSourceFolder / AutoPluginName + TEXT(".Build.cs"), AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath, PrivateDependencyModuleNames))
+	if (bSucceeded && !FPluginHelpers::CreatePluginBuildFile(PluginModuleFolder / AutoPluginName + TEXT(".Build.cs"), AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath, PrivateDependencyModuleNames))
 	{
 		PopErrorNotification(FText::Format(LOCTEXT("FailedBuild", "Failed to create plugin build file. {0}"), LocalFailReason));
 		bSucceeded = false;
@@ -484,17 +581,6 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 		DeletePluginDirectory(*PluginFolder);
 		return FReply::Unhandled();
 	}
-}
-
-bool SNewPluginWizard::MakeDirectory(const FString& InPath)
-{
-	if (!IFileManager::Get().MakeDirectory(*InPath))
-	{
-		PopErrorNotification(FText::Format(LOCTEXT("CreateDirectoryFailed", "Failed to create directory '{0}'"), FText::AsCultureInvariant(InPath)));
-		return false;
-	}
-
-	return true;
 }
 
 bool SNewPluginWizard::CopyFile(const FString& DestinationFile, const FString& SourceFile, TArray<FString>& InOutCreatedFiles)

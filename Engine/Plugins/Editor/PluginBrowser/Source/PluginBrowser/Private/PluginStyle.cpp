@@ -181,6 +181,14 @@ void FPluginStyle::Initialize()
 		}
 	}
 
+	// Plugin Creator
+	{
+		const float PaddingAmount = 5.0f;
+		StyleSet->Set( "PluginCreator.Padding", PaddingAmount);
+
+		StyleSet->Set( "PluginCreator.Background", new BOX_BRUSH( "AppTabContentArea", FMargin(4/16.0f) ) );
+	}
+
 	FSlateStyleRegistry::RegisterSlateStyle( *StyleSet.Get() );
 };
 

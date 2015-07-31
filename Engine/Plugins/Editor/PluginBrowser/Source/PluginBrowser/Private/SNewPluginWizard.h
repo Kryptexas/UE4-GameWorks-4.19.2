@@ -4,6 +4,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginWizard, Log, All);
 
+class SFilePathBlock;
+
 /**
  * Description of a plugin template
  */
@@ -74,10 +76,25 @@ private:
 	void OnTemplateSelectionChanged( TSharedPtr<FPluginTemplateDescription> InItem, ESelectInfo::Type SelectInfo );
 
 	/**
+	 * Called when Folder Path textbox changes value
+	 * @param InText The new Plugin Folder Path text
+	 */
+	void OnFolderPathTextChanged(const FText& InText);
+
+	/**
 	 * Called when Plugin Name textbox changes value
 	 * @param InText The new Plugin name text
 	 */
 	void OnPluginNameTextChanged(const FText& InText);
+
+	/** Handler for when the Browse button is clicked */
+	FReply OnBrowseButtonClicked();
+
+	/**
+	 * Validates both the current path and plugin name as the final step in name
+	 * validation requires a valid path.
+	 */
+	void ValidateFullPluginPath();
 
 	/**
 	 * Whether we are currently able to create a plugin
@@ -88,6 +105,12 @@ private:
 	 * Get the path where we will create a plugin
 	 */
 	FText GetPluginDestinationPath() const;
+
+	/** Get the current name of the plugin */
+	FText GetCurrentPluginName() const;
+
+	/** Get the full path of the .plugin file we will create */
+	FString GetPluginFilenameWithPath() const;
 
 	/**
 	 * Whether we will create a plugin in the engine directory
@@ -105,12 +128,6 @@ private:
 	 * Create actual plugin using parameters collected from other widgets
 	 */
 	FReply OnCreatePluginClicked();
-
-	/**
-	 * Helper function to create directory under given path
-	 * @param InPath - path to a directory that you want to create
-	 */
-	bool MakeDirectory(const FString& InPath);
 
 	/**
 	 * Copies a file and adds to a list of created files
@@ -148,11 +165,26 @@ private:
 	/** Currently selected template */
 	TSharedPtr<FPluginTemplateDescription> CurrentTemplate;
 
+	/** Absolute path to game plugins directory so we don't have to convert it repeatedly */
+	FString AbsoluteGamePluginPath;
+
+	/** Absolute path to engine plugins directory so we don't have to convert it repeatedly */
+	FString AbsoluteEnginePluginPath;
+
+	/** Last Path used to browse, so that we know it will open dialog */
+	FString LastBrowsePath;
+
+	/** Path where you want to create the plugin*/
+	FString PluginFolderPath;
+
 	/** Name of the plugin you want to create*/
 	FText PluginNameText;
 
-	/** Textbox widget that user will put plugin name in */
-	TSharedPtr<SEditableTextBox> PluginNameTextBox;
+	/** File Path widget that user will choose plugin location and name with */
+	TSharedPtr<SFilePathBlock> FilePathBlock;
+
+	/** Whether the path of the plugin entered is currently valid */
+	bool bIsPluginPathValid;
 
 	/** Whether the name of the plugin entered is currently valid */
 	bool bIsPluginNameValid;
