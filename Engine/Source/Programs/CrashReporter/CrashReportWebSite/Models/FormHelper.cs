@@ -29,6 +29,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
 		public string MessageQuery = "";
 
+		/// <summary>BuiltFromCL as query for filtering.</summary>
+		public string BuiltFromCL = "";
+
+		/// <summary>BuggId as query for filtering.</summary>
+		public string BuggId = "";
+
 		/// <summary>The page to display from the list.</summary>
 		public int Page = 1;
 
@@ -171,6 +177,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			GetFormParameter( Request, Form, "EpicIdOrMachineQuery", EpicIdOrMachineQuery, out EpicIdOrMachineQuery );
 			GetFormParameter( Request, Form, "JiraQuery", JiraQuery, out JiraQuery );
 			GetFormParameter( Request, Form, "MessageQuery", MessageQuery, out MessageQuery );
+			GetFormParameter( Request, Form, "BuggId", BuggId, out BuggId );
+			GetFormParameter( Request, Form, "BuiltFromCL", BuiltFromCL, out BuiltFromCL );
 			GetFormParameter( Request, Form, "SortTerm", DefaultSortTerm, out SortTerm );
 			GetFormParameter( Request, Form, "CrashType", CrashType, out CrashType );
 			GetFormParameter( Request, Form, "UserGroup", UserGroup, out UserGroup );

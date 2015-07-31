@@ -50,6 +50,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
 		public string MessageQuery { get; set; }
 
+		/// <summary>Bugg Id as query for filtering.</summary>
+		public string BuggId { get; set; }
+
+		/// <summary>BuiltFromCL as query for filtering.</summary>
+		public string BuiltFromCL { get; set; }
+
 		/// <summary>The date of the earliest crash to display.</summary>
 		public long DateFrom { get; set; }
 

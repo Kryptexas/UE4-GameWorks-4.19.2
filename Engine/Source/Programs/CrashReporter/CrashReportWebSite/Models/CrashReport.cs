@@ -156,7 +156,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			this.AffectedPlatforms = new SortedSet<string>();
 			this.CrashesInTimeFrameAll = CrashesForBugg.Count;
 			this.CrashesInTimeFrameGroup = CrashesForBugg.Count;
-			var HashSetDescsriptions = new HashSet<string>();
+			var HashSetDescriptions = new HashSet<string>();
 
 			HashSet<string> MachineIds = new HashSet<string>();
 			int FirstCLAffected = int.MaxValue;
@@ -169,7 +169,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					MachineIds.Add( Crash.MachineId );
 					if (Crash.Description.Length > 4)
 					{
-						HashSetDescsriptions.Add( Crash.Description );
+						HashSetDescriptions.Add( Crash.Description );
 					}										
 				}
 
@@ -204,7 +204,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			// CopyToJira 
-			foreach( var Line in HashSetDescsriptions )
+			foreach( var Line in HashSetDescriptions )
 			{
 				string ListItem = "- " + HttpUtility.HtmlEncode( Line );
 				ToJiraDescriptions.Add( ListItem );
