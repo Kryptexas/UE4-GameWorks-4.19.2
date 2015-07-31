@@ -32,14 +32,6 @@ static TAutoConsoleVariable<int32> CVarSSSSampleSet(
 	TEXT(" 2: high quality (13*2+1) (default)"),
 	ECVF_RenderThreadSafe  | ECVF_Scalability);
 
-static TAutoConsoleVariable<int> CVarSubsurfaceQuality(
-	TEXT("r.SubsurfaceQuality"),
-	1,
-	TEXT("Define the quality of the Screenspace subsurface scattering postprocess.\n")
-	TEXT(" 0: low quality for speculars on subsurface materials\n")
-	TEXT(" 1: higher quality as specular is separated before screenspace blurring (Only used if SceneColor has an alpha channel)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 // -------------------------------------------------------------
 
 float GetSubsurfaceRadiusScale()
@@ -324,10 +316,9 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc
 
 /**
  * Encapsulates the post processing subsurface scattering pixel shader.
- * @param SetupMode 0:without specular correction, 1:with specular correction
  * @param HalfRes 0:to full res, 1:to half res
  */
-template <uint32 SetupMode, uint32 HalfRes>
+template <uint32 HalfRes>
 class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSubsurfaceSetupPS , Global);
@@ -340,7 +331,6 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("SETUP_MODE"), SetupMode);
 		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
@@ -395,19 +385,17 @@ public:
 };
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)
-#define VARIATION2(A, B) typedef FPostProcessSubsurfaceSetupPS<A, B> FPostProcessSubsurfaceSetupPS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessSubsurfaceSetupPS##A##B, SF_Pixel);
+#define VARIATION1(A) typedef FPostProcessSubsurfaceSetupPS<A> FPostProcessSubsurfaceSetupPS##A; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessSubsurfaceSetupPS##A, SF_Pixel);
 	VARIATION1(0) VARIATION1(1)
 #undef VARIATION1
-#undef VARIATION2
 
 
-template <uint32 SetupMode, uint32 HalfRes>
+template <uint32 HalfRes>
 void SetSubsurfaceSetupShader(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessSubsurfaceSetupPS<SetupMode, HalfRes> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSubsurfaceSetupPS<HalfRes> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -415,22 +403,6 @@ void SetSubsurfaceSetupShader(const FRenderingCompositePassContext& Context)
 
 	PixelShader->SetParameters(Context);
 	VertexShader->SetParameters(Context);
-}
-
-
-static bool DoSpecularCorrection()
-{
-	bool CVarState = CVarSubsurfaceQuality.GetValueOnRenderThread() > 0;
-
-	int SceneColorFormat;
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneColorFormat"));
-
-		SceneColorFormat = CVar->GetInt();
-	}
-
-	// we need an alpha channel for this feature
-	return CVarState && (SceneColorFormat >= 4);
 }
 
 // --------------------------------------
@@ -480,16 +452,13 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	// reconstruct specular and add it in final pass
-	bool bSpecularCorrection = DoSpecularCorrection();
-
-	if(bSpecularCorrection)
+	if(bHalfRes)
 	{
-		if(bHalfRes) SetSubsurfaceSetupShader<1, 1>(Context); else SetSubsurfaceSetupShader<1, 0>(Context);
+		SetSubsurfaceSetupShader<1>(Context);
 	}
 	else
 	{
-		if(bHalfRes) SetSubsurfaceSetupShader<0, 1>(Context); else SetSubsurfaceSetupShader<0, 0>(Context);
+		SetSubsurfaceSetupShader<0>(Context);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -744,8 +713,8 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurface::ComputeOutputDesc(EPassOut
 
 
 /** Encapsulates the post processing subsurface recombine pixel shader. */
-// @param RecombineMethod 1: with specular correction, 0: without specular correction
-template <uint32 RecombineMethod, uint32 HalfRes>
+// @param RecombineMode 0:fullres, 1: halfres, 2:no scattering, just reconstruct the lighting (needed for scalability)
+template <uint32 RecombineMode>
 class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TPostProcessSubsurfaceRecombinePS, Global);
@@ -758,8 +727,8 @@ class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("SSS_RECOMBINE_METHOD"), RecombineMethod);
-		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
+		OutEnvironment.SetDefine(TEXT("HALF_RES"), (uint32)(RecombineMode == 1));
+		OutEnvironment.SetDefine(TEXT("RECOMBINE_SUBSURFACESCATTER"), (uint32)(RecombineMode != 2));
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
@@ -811,17 +780,18 @@ public:
 };
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)
-#define VARIATION2(A, B) typedef TPostProcessSubsurfaceRecombinePS<A, B> TPostProcessSubsurfaceRecombinePS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfaceRecombinePS##A##B, SF_Pixel);
-	VARIATION1(0) VARIATION1(1)
+#define VARIATION1(A) typedef TPostProcessSubsurfaceRecombinePS<A> TPostProcessSubsurfaceRecombinePS##A; \
+	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfaceRecombinePS##A, SF_Pixel);
+	VARIATION1(0) VARIATION1(1) VARIATION1(2)
 #undef VARIATION1
-#undef VARIATION2
 
-template <uint32 RecombineMethod, uint32 HalfRes>
+// @param RecombineMode 0:fullres, 1: halfres, 2:no scattering, just reconstruct the lighting (needed for scalability)
+template <uint32 RecombineMode>
 void SetSubsurfaceRecombineShader(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader)
 {
-	TShaderMapRef<TPostProcessSubsurfaceRecombinePS<RecombineMethod, HalfRes> > PixelShader(Context.GetShaderMap());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePassRecombine, TEXT("SubsurfacePassRecombine%d"), RecombineMode);
+
+	TShaderMapRef<TPostProcessSubsurfaceRecombinePS<RecombineMode> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -875,17 +845,21 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
-	bool bDoSpecularCorrection = DoSpecularCorrection();
-
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePass, TEXT("SubsurfacePassRecombine#%d"), (int32)bDoSpecularCorrection);
-
-	if(bDoSpecularCorrection)
+	if(GetInput(ePId_Input1))
 	{
-		if(bHalfRes) SetSubsurfaceRecombineShader<1, 1>(Context, VertexShader); else SetSubsurfaceRecombineShader<1, 0>(Context, VertexShader);
+		if(bHalfRes)
+		{
+			SetSubsurfaceRecombineShader<1>(Context, VertexShader);
+		}
+		else
+		{
+			SetSubsurfaceRecombineShader<0>(Context, VertexShader);
+		}
 	}
 	else
 	{
-		if(bHalfRes) SetSubsurfaceRecombineShader<0, 1>(Context, VertexShader); else SetSubsurfaceRecombineShader<0, 0>(Context, VertexShader);
+		// needed for Scalability
+		SetSubsurfaceRecombineShader<2>(Context, VertexShader);
 	}
 
 	DrawRectangle(

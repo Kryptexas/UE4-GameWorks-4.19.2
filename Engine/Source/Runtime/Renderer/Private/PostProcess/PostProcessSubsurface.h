@@ -69,8 +69,8 @@ private:
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor before Screen Space Subsurface input
-// ePId_Input1: output from FRCPassPostProcessSubsurface
-// ePId_Input2: SubsurfaceSetup, can be half res
+// ePId_Input1: optional output from FRCPassPostProcessSubsurface (if not present we do cheap reconstruction for Scalability)
+// ePId_Input2: optional SubsurfaceSetup, can be half res
 // modifies SceneColor, uses some GBuffer attributes
 class FRCPassPostProcessSubsurfaceRecombine : public TRenderingCompositePassBase<3, 1>
 {

@@ -31,7 +31,7 @@ FCompositionLighting GCompositionLighting;
 static TAutoConsoleVariable<float> CVarSSSScale(
 	TEXT("r.SSS.Scale"),
 	1.0f,
-	TEXT("Experimental screen space subsurface scattering pass")
+	TEXT("Affects the Screen space subsurface scattering pass")
 	TEXT("(use shadingmodel SubsurfaceProfile, get near to the object as the default)\n")
 	TEXT("is human skin which only scatters about 1.2cm)\n")
 	TEXT(" 0: off (if there is no object on the screen using this pass it should automatically disable the post process pass)\n")
@@ -386,26 +386,35 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
 			bool bScreenSpaceSubsurfacePassNeeded = (View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0;
-			if (bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
+			if (bScreenSpaceSubsurfacePassNeeded && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
 			{
 				bool bHalfRes = CVarSSSHalfRes.GetValueOnRenderThread() != 0;
 				bool bSingleViewportMode = View.Family->Views.Num() == 1;
 
-				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View, bHalfRes));
-				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
+				if(Radius > 0)
+				{
+					FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View, bHalfRes));
+					PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
-				FRenderingCompositePass* PassX = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, bHalfRes));
-				PassX->SetInput(ePId_Input0, PassSetup);
+					FRenderingCompositePass* PassX = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, bHalfRes));
+					PassX->SetInput(ePId_Input0, PassSetup);
 
-				FRenderingCompositePass* PassY = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, bHalfRes));
-				PassY->SetInput(ePId_Input0, PassX);
-				PassY->SetInput(ePId_Input1, PassSetup);
+					FRenderingCompositePass* PassY = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, bHalfRes));
+					PassY->SetInput(ePId_Input0, PassX);
+					PassY->SetInput(ePId_Input1, PassSetup);
 
-				// full res composite pass, no blurring (Radius=0), replaces SceneColor
-				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
-				RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
-				RecombinePass->SetInput(ePId_Input1, PassY);
-				RecombinePass->SetInput(ePId_Input2, PassSetup);
+					// full res composite pass, no blurring (Radius=0), replaces SceneColor
+					FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
+					RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+					RecombinePass->SetInput(ePId_Input1, PassY);
+					RecombinePass->SetInput(ePId_Input2, PassSetup);
+				}
+				else
+				{
+					// needed for Scalability
+					FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
+					RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+				}
 			}
 		}
 
