@@ -303,7 +303,7 @@ void UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACont
 	}
 }
 
-bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass)
+bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass, bool bAllowAbstract)
 {
 	bool bBlueprintType = true;
 #if WITH_EDITOR
@@ -347,7 +347,8 @@ bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass)
 	return (nullptr != *ObjectClass)
 		&& bBlueprintType
 		&& !bForbiddenSpawn
-		&& !ObjectClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists)
+		&& (bAllowAbstract || !ObjectClass->HasAnyClassFlags(CLASS_Abstract))
+		&& !ObjectClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists)
 		&& !ObjectClass->IsChildOf(AActor::StaticClass())
 		&& !ObjectClass->IsChildOf(UActorComponent::StaticClass());
 }
