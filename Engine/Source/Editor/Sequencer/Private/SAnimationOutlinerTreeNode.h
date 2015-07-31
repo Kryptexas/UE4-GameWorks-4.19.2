@@ -60,6 +60,10 @@ private:
 	/** Get all descendant nodes from the given root node */
 	void GetAllDescendantNodes(TSharedPtr<FSequencerDisplayNode> RootNode, TArray<TSharedRef<FSequencerDisplayNode> >& AllNodes);
 
+	/** Return the root node given an object node */
+	TSharedPtr<FSequencerDisplayNode> GetRootNode(TSharedPtr<FSequencerDisplayNode> ObjectNode);
+
+	/** Called when nodes are selected */
 	void OnSelectionChanged( TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes );
 
 private:

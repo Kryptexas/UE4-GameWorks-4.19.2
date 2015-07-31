@@ -263,6 +263,16 @@ FReply SAnimationOutlinerTreeNode::OnAddKeyClicked()
 	return FReply::Handled();
 }
 
+TSharedPtr<FSequencerDisplayNode> SAnimationOutlinerTreeNode::GetRootNode(TSharedPtr<FSequencerDisplayNode> ObjectNode)
+{
+	if (!ObjectNode->GetParent().IsValid())
+	{
+		return ObjectNode;
+	}
+
+	return GetRootNode(ObjectNode->GetParent());
+}
+
 void SAnimationOutlinerTreeNode::GetAllDescendantNodes(TSharedPtr<FSequencerDisplayNode> RootNode, TArray<TSharedRef<FSequencerDisplayNode> >& AllNodes)
 {
 	if (!RootNode.IsValid())
@@ -291,6 +301,8 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 
 		TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes;
 		AffectedNodes.Add(DisplayNode.ToSharedRef());
+
+		Sequencer.GetSelection().SuspendBroadcast();
 
 		if (MouseEvent.IsShiftDown())
 		{
@@ -359,6 +371,9 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 		}
 
 		OnSelectionChanged( AffectedNodes );
+
+		Sequencer.GetSelection().ResumeBroadcast();
+
 		return FReply::Handled();
 	}
 
@@ -433,23 +448,100 @@ FText SAnimationOutlinerTreeNode::GetDisplayName() const
 
 void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes )
 {
-	TArray<TSharedPtr<FSequencerDisplayNode> > ObjectNodes;
-
-	for (int32 NodeIdx = 0; NodeIdx < AffectedNodes.Num(); ++NodeIdx)
-	{
-		if( AffectedNodes[NodeIdx]->GetType() == ESequencerNode::Object )
-		{
-			ObjectNodes.Add(AffectedNodes[NodeIdx]);
-		}
-	}
-
-	if (!ObjectNodes.Num())
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	if (!Sequencer.IsLevelEditorSequencer())
 	{
 		return;
 	}
 
-	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	if (!Sequencer.IsLevelEditorSequencer())
+	TArray<TSharedPtr<FSequencerDisplayNode> > AffectedRootNodes;
+
+	for (int32 NodeIdx = 0; NodeIdx < AffectedNodes.Num(); ++NodeIdx)
+	{
+		TSharedPtr<FSequencerDisplayNode> RootNode = GetRootNode(AffectedNodes[NodeIdx]);
+		if (RootNode.IsValid() && RootNode->GetType() == ESequencerNode::Object)
+		{
+			AffectedRootNodes.Add(RootNode);
+		}
+	}
+
+	if (!AffectedRootNodes.Num())
+	{
+		return;
+	}
+
+	const FModifierKeysState ModifierKeys = FSlateApplication::Get().GetModifierKeys();
+	bool IsControlDown = ModifierKeys.IsControlDown();
+	bool IsShiftDown = ModifierKeys.IsShiftDown();
+
+	TArray<AActor*> ActorsToSelect;
+	TArray<AActor*> ActorsToRemainSelected;
+	TArray<AActor*> ActorsToDeselect;
+
+	// Find objects bound to the object node and determine what actors need to be selected in the editor
+	for (int32 ObjectIdx = 0; ObjectIdx < AffectedRootNodes.Num(); ++ObjectIdx)
+	{
+		const TSharedPtr<const FObjectBindingNode> ObjectNode = StaticCastSharedPtr<const FObjectBindingNode>( AffectedRootNodes[ObjectIdx] );
+
+		// Get the bound objects
+		TArray<UObject*> RuntimeObjects;
+		Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
+		
+		if( RuntimeObjects.Num() > 0 )
+		{
+			for( int32 ActorIdx = 0; ActorIdx < RuntimeObjects.Num(); ++ActorIdx )
+			{
+				AActor* Actor = Cast<AActor>( RuntimeObjects[ActorIdx] );
+
+				if( Actor )
+				{
+					bool bIsActorSelected = GEditor->GetSelectedActors()->IsSelected(Actor);
+					if (IsControlDown)
+					{
+						if (!bIsActorSelected)
+						{
+							ActorsToSelect.Add(Actor);
+						}
+						else
+						{
+							ActorsToDeselect.Add(Actor);
+						}
+					}
+					else
+					{
+						if (!bIsActorSelected)
+						{
+							ActorsToSelect.Add(Actor);
+						}
+						else
+						{
+							ActorsToRemainSelected.Add(Actor);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (!IsControlDown && !IsShiftDown)
+	{
+		for (FSelectionIterator SelectionIt(*GEditor->GetSelectedActors()); SelectionIt; ++SelectionIt)
+		{
+			AActor* Actor = CastChecked< AActor >( *SelectionIt );
+			if (Actor)
+			{
+				if (ActorsToSelect.Find(Actor) == INDEX_NONE && 
+					ActorsToDeselect.Find(Actor) == INDEX_NONE &&
+					ActorsToRemainSelected.Find(Actor) == INDEX_NONE)
+				{
+					ActorsToDeselect.Add(Actor);
+				}
+			}
+		}
+	}
+
+	// If there's no selection to change, return early
+	if (ActorsToSelect.Num() + ActorsToDeselect.Num() == 0)
 	{
 		return;
 	}
@@ -459,15 +551,11 @@ void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequence
 	SequencerWidget->SetUserIsSelecting(true);
 
 	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnActors", "Clicking on Actors"));
-	bool bActorSelected = false;
-
-	const FModifierKeysState ModifierKeys = FSlateApplication::Get().GetModifierKeys();
-	bool IsControlDown = ModifierKeys.IsControlDown();
-	bool IsShiftDown = ModifierKeys.IsShiftDown();
 
 	const bool bNotifySelectionChanged = false;
 	const bool bDeselectBSP = true;
 	const bool bWarnAboutTooManyActors = false;
+	const bool bSelectEvenIfHidden = true;
 
 	GEditor->GetSelectedActors()->Modify();
 
@@ -478,44 +566,19 @@ void SAnimationOutlinerTreeNode::OnSelectionChanged( TArray<TSharedPtr<FSequence
 
 	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 
-	// Select objects bound to the object node
-	for (int32 ObjectIdx = 0; ObjectIdx < ObjectNodes.Num(); ++ObjectIdx)
+	for (auto ActorToSelect : ActorsToSelect)
 	{
-		const TSharedPtr<const FObjectBindingNode> ObjectNode = StaticCastSharedPtr<const FObjectBindingNode>( ObjectNodes[ObjectIdx] );
+		GEditor->SelectActor(ActorToSelect, true, bNotifySelectionChanged, bSelectEvenIfHidden);
+	}
 
-		// Get the bound objects
-		TArray<UObject*> RuntimeObjects;
-		Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
-		
-		if( RuntimeObjects.Num() > 0 )
-		{
-			// Select each actor			
-			for( int32 ActorIdx = 0; ActorIdx < RuntimeObjects.Num(); ++ActorIdx )
-			{
-				AActor* Actor = Cast<AActor>( RuntimeObjects[ActorIdx] );
-
-				if( Actor )
-				{
-					bool bSelectActor = true;
-
-					if (IsControlDown)
-					{
-						bSelectActor = Sequencer.GetSelection().IsSelected(ObjectNodes[ObjectIdx].ToSharedRef());
-					}
-
-					GEditor->SelectActor(Actor, bSelectActor, bNotifySelectionChanged );
-					bActorSelected = true;
-				}
-			}
-		}
+	for (auto ActorToDeselect : ActorsToDeselect)
+	{
+		GEditor->SelectActor(ActorToDeselect, false, bNotifySelectionChanged, bSelectEvenIfHidden);
 	}
 
 	GEditor->GetSelectedActors()->EndBatchSelectOperation();
 
-	if( bActorSelected )
-	{
-		GEditor->NoteSelectionChange();
-	}
+	GEditor->NoteSelectionChange();
 
 	// Unlock the selection so that the sequencer widget can now respond to selection changes in the level
 	SequencerWidget->SetUserIsSelecting(false);
