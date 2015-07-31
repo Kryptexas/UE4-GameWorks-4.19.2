@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "TextCustomization.h"
+#include "IPropertyUtilities.h"
 
 namespace
 {
