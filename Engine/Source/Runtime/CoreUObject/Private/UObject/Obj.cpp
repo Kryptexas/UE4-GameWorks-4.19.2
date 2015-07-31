@@ -1930,8 +1930,18 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 		NewFile.GetKeys(Keys);
 
 		const FString SectionName = Keys[0];
-		const FString PropertyName = InProperty->GetFName().ToString();
-		NewFile.UpdateSinglePropertyInSection(*InConfigIniName, *PropertyName, *SectionName);
+		FString PropertyKey = InProperty->GetFName().ToString();
+
+#if WITH_EDITOR
+		static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
+		FString CVarName = InProperty->GetMetaData(ConsoleVariableFName);
+		if (!CVarName.IsEmpty())
+		{
+			PropertyKey = CVarName;
+		}
+#endif // #if WITH_EDITOR
+
+		NewFile.UpdateSinglePropertyInSection(*InConfigIniName, *PropertyKey, *SectionName);
 
 		// reload the file, so that it refresh the cache internally.
 		FString FinalIniFileName;

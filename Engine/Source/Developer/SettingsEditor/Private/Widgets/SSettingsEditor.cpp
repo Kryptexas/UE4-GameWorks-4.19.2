@@ -244,7 +244,14 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 	{
 		RecordPreferenceChangedAnalytics( SelectedSection, PropertyChangedEvent );
 
-		SelectedSection->Save();
+		if (SelectedSection->GetSettingsObject()->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig) && !PropertyChangedEvent.Property->IsA(UArrayProperty::StaticClass()))
+		{
+			SelectedSection->GetSettingsObject()->UpdateSinglePropertyInConfigFile(PropertyThatChanged->GetActiveMemberNode()->GetValue(), SelectedSection->GetSettingsObject()->GetDefaultConfigFilename());
+		}
+		else
+		{
+			SelectedSection->Save();
+		}
 
 		static const FName ConfigRestartRequiredKey = "ConfigRestartRequired";
 		if (PropertyChangedEvent.Property->GetBoolMetaData(ConfigRestartRequiredKey))
