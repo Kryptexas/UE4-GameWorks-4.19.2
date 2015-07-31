@@ -57,7 +57,7 @@ namespace UnrealBuildTool
 			if (NsightVersion.ProductMajorPart > 3)
 			{
 				// Mark as Nsight 3.1 (project will be updated)
-				NsightVersionCode = 10;
+				NsightVersionCode = 11;
 				NsightInstalled = true;
 			}
 			else if (NsightVersion.ProductMajorPart == 3)
@@ -69,7 +69,7 @@ namespace UnrealBuildTool
 				if (NsightVersion.ProductMinorPart >= 1)
 				{
 					// Nsight 3.1+ should be valid (will update project if newer)
-					NsightVersionCode = 10;
+					NsightVersionCode = 11;
 				}
 			}
 			else if (NsightVersion.ProductMajorPart == 2)
