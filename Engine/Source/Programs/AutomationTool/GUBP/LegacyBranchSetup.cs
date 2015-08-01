@@ -1235,7 +1235,7 @@ partial class GUBP
 		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
 
 		// Get the legacy node to new node mapping
-		Dictionary<GUBP.GUBPNode, BuildNode> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetBuildNode());
+		Dictionary<GUBP.GUBPNode, BuildNode> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetBuildNode(this));
 
 		// Convert the GUBPNodes and GUBPAggregates maps into lists
 		AllNodes = new List<BuildNode>();

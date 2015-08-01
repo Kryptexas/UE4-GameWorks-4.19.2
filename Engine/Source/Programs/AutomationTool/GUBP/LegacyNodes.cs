@@ -37,9 +37,9 @@ partial class GUBP
         {
             return "";
         }
-		public virtual BuildNode GetBuildNode()
+		public virtual BuildNode GetBuildNode(GUBP bp)
 		{
-			return new LegacyBuildNode(this);
+			return new LegacyBuildNode(bp, this);
 		}
         public virtual void DoBuild(GUBP bp)
         {
@@ -245,9 +245,9 @@ partial class GUBP
 			}
             return "";
         }
-		public override BuildNode GetBuildNode()
+		public override BuildNode GetBuildNode(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode();
+			BuildNode Node = base.GetBuildNode(bp);
 			Node.AgentPlatform = GetAgentPlatform();
 			return Node;
 		}
@@ -365,9 +365,9 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNode GetBuildNode()
+		public override BuildNode GetBuildNode(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode();
+			BuildNode Node = base.GetBuildNode(bp);
 			if(HostPlatform == UnrealTargetPlatform.Win64)
 			{
 				Node.IsParallelAgentShareEditor = true;
@@ -467,9 +467,9 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNode GetBuildNode()
+		public override BuildNode GetBuildNode(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode();
+			BuildNode Node = base.GetBuildNode(bp);
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
 				Node.IsParallelAgentShareEditor = true;
@@ -1061,9 +1061,9 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNode GetBuildNode()
+		public override BuildNode GetBuildNode(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode();
+			BuildNode Node = base.GetBuildNode(bp);
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
 				Node.IsParallelAgentShareEditor = true;
@@ -1781,9 +1781,9 @@ partial class GUBP
             BuildProducts = new List<string>();
             SaveRecordOfSuccessAndAddToBuildProducts();
         }
-        public override BuildNode GetBuildNode()
+        public override BuildNode GetBuildNode(GUBP bp)
         {
-			return new TriggerNode(this);
+			return new TriggerNode(bp, this);
         }
         public virtual string GetTriggerStateName()
         {

@@ -378,7 +378,7 @@ public partial class GUBP : BuildCommand
 		foreach(BuildNode NodeToDo in NodesToDo)
 		{
 			string NodeStoreName = StoreName + "-" + NodeToDo.Name;
-			string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
+			string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
 
 			if (LocalOnly)
 			{
@@ -561,7 +561,7 @@ public partial class GUBP : BuildCommand
 			}
 
             string Agent = NodeToDo.AgentRequirements;
-			if(ParseParamValue("AgentOverride") != "" && !NodeToDo.Node.GetFullName().Contains("Mac"))
+			if(ParseParamValue("AgentOverride") != "" && !NodeToDo.Name.Contains("Mac"))
 			{
 				Agent = ParseParamValue("AgentOverride");
 			}
@@ -935,7 +935,7 @@ public partial class GUBP : BuildCommand
 
         if (!(NodeToDo is TriggerNode) && CLString != "")
         {
-            string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
+            string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
             string NodeStoreWildCard = StoreName.Replace(CLString, "*") + "-" + NodeToDo.Name;
             History = new NodeHistory();
 
@@ -1084,7 +1084,7 @@ public partial class GUBP : BuildCommand
     {
         int Result = P4Env.Changelist;
 
-        string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
+        string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
         string NodeStore = StoreName + "-" + NodeToDo.Name + FailedTempStorageSuffix;
 
         List<int> BackwardsFails = new List<int>(History.AllFailed);
@@ -1225,7 +1225,7 @@ public partial class GUBP : BuildCommand
 		{
 			// Find all the dependencies
 			HashSet<BuildNode> Dependencies = new HashSet<BuildNode>();
-			foreach (string DependencyName in Node.Node.FullNamesOfDependencies)
+			foreach (string DependencyName in Node.DependencyNames)
 			{
 				if (!ResolveDependencies(DependencyName, AggregateNameToInfo, NodeNameToInfo, Dependencies))
 				{
@@ -1237,7 +1237,7 @@ public partial class GUBP : BuildCommand
 
 			// Find all the pseudo-dependencies
 			HashSet<BuildNode> PseudoDependencies = new HashSet<BuildNode>();
-			foreach (string PseudoDependencyName in Node.Node.FullNamesOfPseudosependencies)
+			foreach (string PseudoDependencyName in Node.PseudoDependencyNames)
 			{
 				if (!ResolveDependencies(PseudoDependencyName, AggregateNameToInfo, NodeNameToInfo, PseudoDependencies))
 				{
@@ -1653,8 +1653,8 @@ public partial class GUBP : BuildCommand
 
             string NodeStoreName = StoreName + "-" + NodeToDo.Name;
             
-            string GameNameIfAny = NodeToDo.Node.GameNameIfAnyForTempStorage();
-            string StorageRootIfAny = NodeToDo.Node.RootIfAnyForTempStorage();
+            string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
+            string StorageRootIfAny = NodeToDo.RootIfAnyForTempStorage;
 					
             if (bFake)
             {
@@ -1715,7 +1715,7 @@ public partial class GUBP : BuildCommand
                     if (bFake)
                     {
 						LogConsole("***** FAKE!! Building GUBP Node {0} for {1}", NodeToDo.Name, NodeStoreName);
-                        NodeToDo.Node.DoFakeBuild(this);
+                        NodeToDo.DoFakeBuild();
                     }
                     else
                     {
@@ -1723,10 +1723,9 @@ public partial class GUBP : BuildCommand
 						DateTime StartTime = DateTime.UtcNow;
 						using(TelemetryStopwatch DoBuildStopwatch = new TelemetryStopwatch("DoBuild.{0}", NodeToDo.Name))
 						{
-							NodeToDo.Node.DoBuild(this);
+							NodeToDo.DoBuild();
 						}
 						BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
-						
                     }
 
                     TempStorage.StoreToTempStorage(CmdEnv, NodeStoreName, NodeToDo.Node.BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);

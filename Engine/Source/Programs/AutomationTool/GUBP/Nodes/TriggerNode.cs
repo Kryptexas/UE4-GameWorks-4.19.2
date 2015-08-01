@@ -14,7 +14,7 @@ namespace AutomationTool
 		public string DescriptionText;
 		public string ActionText;
 
-		public TriggerNode(GUBP.WaitForUserInput InNode) : base(InNode)
+		public TriggerNode(GUBP bp, GUBP.WaitForUserInput InNode) : base(bp, InNode)
 		{
 			AddSubmittersToFailureEmails = false;
 

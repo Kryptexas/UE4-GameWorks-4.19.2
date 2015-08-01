@@ -10,7 +10,7 @@ namespace AutomationTool
 	[DebuggerDisplay("{Name}")]
 	public abstract class BuildNode
 	{
-		public string Name;
+		public readonly string Name;
 		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
 		public string AgentRequirements;
 		public string AgentSharingGroup;
@@ -31,10 +31,29 @@ namespace AutomationTool
 		public bool SendSuccessEmail;
 		public bool IsParallelAgentShareEditor;
 
+		public BuildNode(string InName)
+		{
+			Name = InName;
+		}
+
 		public abstract bool IsSticky
 		{
 			get;
 		}
+
+		public abstract IEnumerable<string> DependencyNames
+		{
+			get;
+		}
+
+		public abstract IEnumerable<string> PseudoDependencyNames
+		{
+			get;
+		}
+
+		public abstract void DoBuild();
+
+		public abstract void DoFakeBuild();
 
 		public string ControllingTriggerDotName
 		{
@@ -63,13 +82,25 @@ namespace AutomationTool
 		{
 			get;
 		}
+
+		public abstract string GameNameIfAnyForTempStorage
+		{
+			get;
+		}
+
+		public abstract string RootIfAnyForTempStorage
+		{
+			get;
+		}
 	}
 
 	public class LegacyBuildNode : BuildNode
 	{
-		public LegacyBuildNode(GUBP.GUBPNode InNode)
+		GUBP Owner;
+
+		public LegacyBuildNode(GUBP InOwner, GUBP.GUBPNode InNode) : base(InNode.GetFullName())
 		{
-			Name = InNode.GetFullName();
+			Owner = InOwner;
 			Node = InNode;
 			AgentRequirements = Node.ECAgentString();
 			AgentSharingGroup = Node.AgentSharingGroup;
@@ -84,6 +115,26 @@ namespace AutomationTool
 			get { return Node.IsSticky(); }
 		}
 
+		public override IEnumerable<string> DependencyNames
+		{
+			get { return Node.FullNamesOfDependencies; }
+		}
+
+		public override IEnumerable<string> PseudoDependencyNames
+		{
+			get { return Node.FullNamesOfPseudosependencies; }
+		}
+
+		public override void DoBuild()
+		{
+			Node.DoBuild(Owner);
+		}
+
+		public override void DoFakeBuild()
+		{
+			Node.DoFakeBuild(Owner);
+		}
+
 		public override bool IsTest
 		{
 			get { return Node.IsTest(); }
@@ -92,6 +143,16 @@ namespace AutomationTool
 		public override string DisplayGroupName
 		{
 			get { return Node.GetDisplayGroupName(); }
+		}
+
+		public override string GameNameIfAnyForTempStorage
+		{
+			get { return Node.GameNameIfAnyForTempStorage(); }
+		}
+
+		public override string RootIfAnyForTempStorage
+		{
+			get { return Node.RootIfAnyForTempStorage(); }
 		}
 	}
 }
