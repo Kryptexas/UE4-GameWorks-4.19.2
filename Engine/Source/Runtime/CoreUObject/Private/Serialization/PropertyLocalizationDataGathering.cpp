@@ -75,7 +75,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromTextProperty(c
 	for(int32 i = 0; i < TextProperty->ArrayDim; ++i)
 	{
 		const FString PathToElement = FString(PathToParent.IsEmpty() ? TEXT("") : PathToParent + TEXT(".")) + (IsFixedSizeArray ? TextProperty->GetName() + FString::Printf(TEXT("[%d]"), i) : TextProperty->GetName());
-		FText* const ElementValueAddress = reinterpret_cast<FText*>(ValueAddress) + TextProperty->ElementSize * i;
+		FText* const ElementValueAddress = reinterpret_cast<FText*>(reinterpret_cast<uint8*>(ValueAddress) + TextProperty->ElementSize * i);
 
 		UPackage* const Package = TextProperty->GetOutermost();
 		if( FTextInspector::GetFlags(*ElementValueAddress) & ETextFlag::ConvertedProperty )
