@@ -31,7 +31,7 @@ void SFloatCurveKeyEditor::Construct(const FArguments& InArgs)
 
 void SFloatCurveKeyEditor::OnBeginSliderMovement()
 {
-	GEditor->BeginTransaction(LOCTEXT("SetFloatKey", "Set float key value"));
+	GEditor->BeginTransaction(LOCTEXT("SetFloatKey", "Set Float Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 }
@@ -79,7 +79,7 @@ void SFloatCurveKeyEditor::OnValueCommitted(float Value, ETextCommit::Type Commi
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("SetFloatKey", "Set float key value") );
+		const FScopedTransaction Transaction( LOCTEXT("SetFloatKey", "Set Float Key Value") );
 
 		OnValueChanged(Value);
 	}

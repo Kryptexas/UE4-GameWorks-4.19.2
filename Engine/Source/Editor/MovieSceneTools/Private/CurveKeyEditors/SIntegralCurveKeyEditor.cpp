@@ -31,7 +31,7 @@ void SIntegralCurveKeyEditor::Construct(const FArguments& InArgs)
 
 void SIntegralCurveKeyEditor::OnBeginSliderMovement()
 {
-	GEditor->BeginTransaction(LOCTEXT("SetIntegralKey", "Set integral key value"));
+	GEditor->BeginTransaction(LOCTEXT("SetIntegralKey", "Set Integral Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 }
@@ -77,7 +77,7 @@ void SIntegralCurveKeyEditor::OnValueCommitted(int32 Value, ETextCommit::Type Co
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("SetIntegralKey", "Set integral key value") );
+		const FScopedTransaction Transaction( LOCTEXT("SetIntegralKey", "Set Integral Key Value") );
 
 		OnValueChanged(Value);
 	}

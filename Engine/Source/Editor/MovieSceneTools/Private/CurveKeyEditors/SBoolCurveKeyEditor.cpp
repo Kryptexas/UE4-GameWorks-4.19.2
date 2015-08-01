@@ -27,7 +27,7 @@ ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 
 void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 {
-	FScopedTransaction Transaction(LOCTEXT("SetBoolKey", "Set bool key value"));
+	FScopedTransaction Transaction(LOCTEXT("SetBoolKey", "Set Bool Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 

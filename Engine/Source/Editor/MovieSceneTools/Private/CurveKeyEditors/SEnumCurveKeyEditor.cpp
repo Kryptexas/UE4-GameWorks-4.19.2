@@ -51,7 +51,7 @@ TSharedRef<SWidget> SEnumCurveKeyEditor::OnGenerateWidget(TSharedPtr<FString> In
 
 void SEnumCurveKeyEditor::OnComboSelectionChanged(TSharedPtr<FString> InSelectedItem, ESelectInfo::Type SelectInfo)
 {
-	FScopedTransaction Transaction(LOCTEXT("SetEnumKey", "Set enum key value"));
+	FScopedTransaction Transaction(LOCTEXT("SetEnumKey", "Set Enum Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 
