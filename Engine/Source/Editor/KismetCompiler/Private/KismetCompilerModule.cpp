@@ -211,7 +211,6 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			FKismetCompilerOptions StubCompileOptions(CompileOptions);
 			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
 			{
-				FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(Blueprint->GeneratedClass, bBytecodeOnly);
 				CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
 			}
 
