@@ -15,7 +15,7 @@ partial class GUBP
     public abstract class GUBPNode
     {
         public List<string> FullNamesOfDependencies = new List<string>();
-        public List<string> FullNamesOfPseudosependencies = new List<string>(); //these are really only used for sorting. We want the editor to fail before the monolithics. Think of it as "can't possibly be useful without".
+        public List<string> FullNamesOfPseudodependencies = new List<string>(); //these are really only used for sorting. We want the editor to fail before the monolithics. Think of it as "can't possibly be useful without".
         public List<string> BuildProducts = null;
         public List<string> AllDependencyBuildProducts = null;
         public List<string> AllDependencies = null;		
@@ -142,16 +142,16 @@ partial class GUBP
         }
         public void AddPseudodependency(string Node)
         {
-            if (!FullNamesOfPseudosependencies.Contains(Node))
+            if (!FullNamesOfPseudodependencies.Contains(Node))
             {
-                FullNamesOfPseudosependencies.Add(Node);
+                FullNamesOfPseudodependencies.Add(Node);
             }
         }
         public void RemovePseudodependency(string Node)
         {
-            if (FullNamesOfPseudosependencies.Contains(Node))
+            if (FullNamesOfPseudodependencies.Contains(Node))
             {
-                FullNamesOfPseudosependencies.Remove(Node);
+                FullNamesOfPseudodependencies.Remove(Node);
             }
         }
         public void AddBuildProduct(string Filename)

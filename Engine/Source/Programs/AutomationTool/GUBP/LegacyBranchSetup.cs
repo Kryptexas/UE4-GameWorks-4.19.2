@@ -1206,7 +1206,7 @@ partial class GUBP
 			GUBPNode Node = BranchConfig.TryFindNode(NodeToRemovePseudoDependencies);
 			if(Node != null)
 			{
-				Node.FullNamesOfPseudosependencies.Clear();
+				Node.FullNamesOfPseudodependencies.Clear();
 			}
 		}
 
@@ -1270,7 +1270,7 @@ partial class GUBP
 					if(GUBPNodes.TryGetValue(SearchNodes[Idx], out Node))
 					{
 						SearchNodes.AddRange(Node.FullNamesOfDependencies);
-						SearchNodes.AddRange(Node.FullNamesOfPseudosependencies);
+						SearchNodes.AddRange(Node.FullNamesOfPseudodependencies);
 					}
 					else
 					{

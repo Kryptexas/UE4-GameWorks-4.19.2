@@ -698,7 +698,7 @@ public partial class GUBP : BuildCommand
     {
         DateTime StartTime = DateTime.UtcNow;
 
-        List<BuildNode> OrdereredToDo = new List<BuildNode>();
+        List<BuildNode> OrderedToDo = new List<BuildNode>();
 
         Dictionary<string, List<BuildNode>> SortedAgentGroupChains = new Dictionary<string, List<BuildNode>>();
         if (!SubSort)
@@ -871,13 +871,13 @@ public partial class GUBP : BuildCommand
                 {
                     foreach (BuildNode ChainNode in SortedAgentGroupChains[BestNode.AgentSharingGroup])
                     {
-                        OrdereredToDo.Add(ChainNode);
+                        OrderedToDo.Add(ChainNode);
                         NodesToDo.Remove(ChainNode);
                     }
                 }
                 else
                 {
-                    OrdereredToDo.Add(BestNode);
+                    OrderedToDo.Add(BestNode);
                     NodesToDo.Remove(BestNode);
                 }
             }
@@ -923,10 +923,10 @@ public partial class GUBP : BuildCommand
         if (!SubSort)
         {
             double BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-			LogConsole("Took {0}s to sort {1} nodes", BuildDuration / 1000, OrdereredToDo.Count);
+			LogConsole("Took {0}s to sort {1} nodes", BuildDuration / 1000, OrderedToDo.Count);
         }
 
-        return OrdereredToDo;
+        return OrderedToDo;
     }
 
     static NodeHistory FindNodeHistory(BuildNode NodeToDo, string CLString, string StoreName)
@@ -1517,13 +1517,13 @@ public partial class GUBP : BuildCommand
 		throw new AutomationException("Failed to update the CIS counter after 20 tries.");
 	}
 
-	private List<TriggerNode> FindUnfinishedTriggers(bool bSkipTriggers, BuildNode ExplicitTrigger, List<BuildNode> OrdereredToDo)
+	private List<TriggerNode> FindUnfinishedTriggers(bool bSkipTriggers, BuildNode ExplicitTrigger, List<BuildNode> OrderedToDo)
 	{
 		// find all unfinished triggers, excepting the one we are triggering right now
 		List<TriggerNode> UnfinishedTriggers = new List<TriggerNode>();
 		if (!bSkipTriggers)
 		{
-			foreach (TriggerNode NodeToDo in OrdereredToDo.OfType<TriggerNode>())
+			foreach (TriggerNode NodeToDo in OrderedToDo.OfType<TriggerNode>())
 			{
 				if (!NodeToDo.IsComplete && ExplicitTrigger != NodeToDo)
 				{
@@ -1537,19 +1537,19 @@ public partial class GUBP : BuildCommand
 	/// <summary>
 	/// Validates that the given nodes are sorted correctly, so that all dependencies are met first
 	/// </summary>
-	/// <param name="OrdereredToDo">The sorted list of nodes</param>
-	private void CheckSortOrder(List<BuildNode> OrdereredToDo)
+	/// <param name="OrderedToDo">The sorted list of nodes</param>
+	private void CheckSortOrder(List<BuildNode> OrderedToDo)
 	{
-		foreach (BuildNode NodeToDo in OrdereredToDo)
+		foreach (BuildNode NodeToDo in OrderedToDo)
 		{
 			if ((NodeToDo is TriggerNode) && (NodeToDo.IsSticky || NodeToDo.IsComplete)) // these sticky triggers are ok, everything is already completed anyway
 			{
 				continue;
 			}
-			int MyIndex = OrdereredToDo.IndexOf(NodeToDo);
+			int MyIndex = OrderedToDo.IndexOf(NodeToDo);
 			foreach (BuildNode Dep in NodeToDo.Dependencies)
 			{
-				int DepIndex = OrdereredToDo.IndexOf(Dep);
+				int DepIndex = OrderedToDo.IndexOf(Dep);
 				if (DepIndex >= MyIndex)
 				{
 					throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
@@ -1557,7 +1557,7 @@ public partial class GUBP : BuildCommand
 			}
 			foreach (BuildNode Dep in NodeToDo.PseudoDependencies)
 			{
-				int DepIndex = OrdereredToDo.IndexOf(Dep);
+				int DepIndex = OrderedToDo.IndexOf(Dep);
 				if (DepIndex >= MyIndex)
 				{
 					throw new AutomationException("Topological sort error, node {0} has a pseduodependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
@@ -1566,16 +1566,16 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-	private void DoCommanderSetup(ElectricCommander EC, IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrdereredToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, string FakeFail, bool bPreflightBuild)
+	private void DoCommanderSetup(ElectricCommander EC, IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, string FakeFail, bool bPreflightBuild)
 	{
 		List<BuildNode> SortedNodes = TopologicalSort(new HashSet<BuildNode>(AllNodes), null, SubSort: false, DoNotConsiderCompletion: true);
 		LogConsole("******* {0} GUBP Nodes", SortedNodes.Count);
 
-		List<BuildNode> FilteredOrdereredToDo = new List<BuildNode>();
+		List<BuildNode> FilteredOrderedToDo = new List<BuildNode>();
 		using(TelemetryStopwatch StartFilterTimer = new TelemetryStopwatch("FilterNodes"))
 		{
 			// remove nodes that have unfinished triggers
-			foreach (BuildNode NodeToDo in OrdereredToDo)
+			foreach (BuildNode NodeToDo in OrderedToDo)
 			{
 				if (NodeToDo.ControllingTriggers.Length == 0 || !UnfinishedTriggers.Contains(NodeToDo.ControllingTriggers.Last()))
 				{
@@ -1591,23 +1591,23 @@ public partial class GUBP : BuildCommand
 						continue;
 					}
 
-					FilteredOrdereredToDo.Add(NodeToDo);
+					FilteredOrderedToDo.Add(NodeToDo);
 				}
 			}
 		}
 		using(TelemetryStopwatch PrintNodesTimer = new TelemetryStopwatch("SetupCommanderPrint"))
 		{
 			LogConsole("*********** EC Nodes, in order.");
-			PrintNodes(this, FilteredOrdereredToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
+			PrintNodes(this, FilteredOrderedToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
 		}
 
-		EC.DoCommanderSetup(AllNodes, AllAggregates, FilteredOrdereredToDo, SortedNodes, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, UnfinishedTriggers, FakeFail);
+		EC.DoCommanderSetup(AllNodes, AllAggregates, FilteredOrderedToDo, SortedNodes, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, CLString, ExplicitTrigger, UnfinishedTriggers, FakeFail);
 	}
 
-	void ExecuteNodes(ElectricCommander EC, List<BuildNode> OrdereredToDo, bool bFake, bool bFakeEC, bool bSaveSharedTempStorage, string CLString, string StoreName, string FakeFail)
+	void ExecuteNodes(ElectricCommander EC, List<BuildNode> OrderedToDo, bool bFake, bool bFakeEC, bool bSaveSharedTempStorage, string CLString, string StoreName, string FakeFail)
 	{
         Dictionary<string, BuildNode> BuildProductToNodeMap = new Dictionary<string, BuildNode>();
-		foreach (BuildNode NodeToDo in OrdereredToDo)
+		foreach (BuildNode NodeToDo in OrderedToDo)
         {
             if (NodeToDo.Node.BuildProducts != null || NodeToDo.Node.AllDependencyBuildProducts != null)
             {

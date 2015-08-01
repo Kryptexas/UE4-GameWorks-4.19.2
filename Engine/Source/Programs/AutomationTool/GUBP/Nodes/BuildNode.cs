@@ -122,7 +122,7 @@ namespace AutomationTool
 
 		public override IEnumerable<string> PseudoDependencyNames
 		{
-			get { return Node.FullNamesOfPseudosependencies; }
+			get { return Node.FullNamesOfPseudodependencies; }
 		}
 
 		public override void DoBuild()

@@ -255,10 +255,10 @@ namespace AutomationTool
 			}
 		}
 
-		public void DoCommanderSetup(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrdereredToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, string FakeFail)
+		public void DoCommanderSetup(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, string CLString, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, string FakeFail)
 		{
 			// Check there's some nodes in the graph
-			if (OrdereredToDo.Count == 0)
+			if (OrderedToDo.Count == 0)
 			{
 				throw new AutomationException("No nodes to do!");
 			}
@@ -266,7 +266,7 @@ namespace AutomationTool
 			// Make sure everything before the explicit trigger is completed.
 			if (ExplicitTrigger != null)
 			{
-				foreach (BuildNode NodeToDo in OrdereredToDo)
+				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
 					if (!NodeToDo.IsComplete && NodeToDo != ExplicitTrigger && !NodeToDo.DependsOn(ExplicitTrigger)) // if something is already finished, we don't put it into EC
 					{
@@ -276,13 +276,13 @@ namespace AutomationTool
 			}
 
 			// Update all the EC properties, and the branch definition files
-			WriteProperties(AllNodes, AllAggregates, OrdereredToDo, SortedNodes, TimeIndex, TimeQuantum);
+			WriteProperties(AllNodes, AllAggregates, OrderedToDo, SortedNodes, TimeIndex, TimeQuantum);
 
 			// Write all the job setup
-			WriteJobSteps(OrdereredToDo, bSkipTriggers);
+			WriteJobSteps(OrderedToDo, bSkipTriggers);
 		}
 
-		private void WriteProperties(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrdereredToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum)
+		private void WriteProperties(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum)
 		{
 			List<AggregateNode> SeparatePromotables = FindPromotables(AllAggregates);
 			Dictionary<BuildNode, List<AggregateNode>> DependentPromotions = FindDependentPromotables(AllNodes, SeparatePromotables);
@@ -308,7 +308,7 @@ namespace AutomationTool
 				ECProps.Add(string.Format("PossiblePromotables/{0}={1}", Node.Name, ""));
 			}
 
-			foreach (BuildNode NodeToDo in OrdereredToDo)
+			foreach (BuildNode NodeToDo in OrderedToDo)
 			{
 				if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
 				{
@@ -327,17 +327,17 @@ namespace AutomationTool
 			CommandUtils.WriteAllLines(BranchJobDefFile, ECProps.ToArray());
 			RunECTool(String.Format("setProperty \"/myJob/BranchJobDefFile\" \"{0}\"", BranchJobDefFile.Replace("\\", "\\\\")));
 
-			bool bHasTests = OrdereredToDo.Any(x => x.IsTest);
+			bool bHasTests = OrderedToDo.Any(x => x.IsTest);
 			RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
 		}
 
-		private void WriteJobSteps(List<BuildNode> OrdereredToDo, bool bSkipTriggers)
+		private void WriteJobSteps(List<BuildNode> OrderedToDo, bool bSkipTriggers)
 		{
 			BuildNode LastSticky = null;
 			bool HitNonSticky = false;
 			bool bHaveECNodes = false;
 			// sticky nodes are ones that we run on the main agent. We run then first and they must not be intermixed with parallel jobs
-			foreach (BuildNode NodeToDo in OrdereredToDo)
+			foreach (BuildNode NodeToDo in OrderedToDo)
 			{
 				if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC
 				{
@@ -376,7 +376,7 @@ namespace AutomationTool
 
 				Dictionary<string, List<BuildNode>> AgentGroupChains = new Dictionary<string, List<BuildNode>>();
 				List<BuildNode> StickyChain = new List<BuildNode>();
-				foreach (BuildNode NodeToDo in OrdereredToDo)
+				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
 					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
 					{
@@ -401,7 +401,7 @@ namespace AutomationTool
 						}
 					}
 				}
-				foreach (BuildNode NodeToDo in OrdereredToDo)
+				foreach (BuildNode NodeToDo in OrderedToDo)
 				{
 					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
 					{
@@ -433,9 +433,9 @@ namespace AutomationTool
 						List<BuildNode> UncompletedEcDeps = new List<BuildNode>();
 						foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
 						{
-							if (!Dep.IsComplete && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 							{
-								if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(NodeToDo))
+								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
 								{
 									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
 								}
@@ -443,7 +443,7 @@ namespace AutomationTool
 							}
 						}
 
-						string PreCondition = GetPreConditionForNode(OrdereredToDo, ParentPath, bHasNoop, AgentGroupChains, StickyChain, NodeToDo, UncompletedEcDeps);
+						string PreCondition = GetPreConditionForNode(OrderedToDo, ParentPath, bHasNoop, AgentGroupChains, StickyChain, NodeToDo, UncompletedEcDeps);
 						string RunCondition = GetRunConditionForNode(UncompletedEcDeps, ParentPath);
 
 						// Create the job steps for this node
@@ -564,7 +564,7 @@ namespace AutomationTool
 			}
 		}
 
-		private string GetPreConditionForNode(List<BuildNode> OrdereredToDo, string PreconditionParentPath, bool bHasNoop, Dictionary<string, List<BuildNode>> AgentGroupChains, List<BuildNode> StickyChain, BuildNode NodeToDo, List<BuildNode> UncompletedEcDeps)
+		private string GetPreConditionForNode(List<BuildNode> OrderedToDo, string PreconditionParentPath, bool bHasNoop, Dictionary<string, List<BuildNode>> AgentGroupChains, List<BuildNode> StickyChain, BuildNode NodeToDo, List<BuildNode> UncompletedEcDeps)
 		{
 			List<BuildNode> PreConditionUncompletedEcDeps = new List<BuildNode>();
 			if(NodeToDo.AgentSharingGroup == "")
@@ -586,9 +586,9 @@ namespace AutomationTool
 					{
 						foreach (BuildNode Dep in Chain.AllDirectDependencies)
 						{
-							if (!Dep.IsComplete && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 							{
-								if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(Chain))
+								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(Chain))
 								{
 									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", Chain.Name, Dep.Name);
 								}
@@ -616,9 +616,9 @@ namespace AutomationTool
 				{
 					foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
 					{
-						if (!Dep.IsComplete && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+						if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 						{
-							if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(NodeToDo))
+							if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
 							{
 								throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
 							}
