@@ -27,7 +27,7 @@
 
 
 /**
- * Implements a media player using the Windows Media Foundation framework.
+ * Implements a media player using the AV framework.
  */
 class FAvfMediaPlayer
 	: public IMediaInfo
