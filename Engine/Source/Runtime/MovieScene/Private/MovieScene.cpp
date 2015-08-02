@@ -161,6 +161,33 @@ bool UMovieScene::RemovePossessable( const FGuid& PossessableGuid )
 }
 
 
+bool UMovieScene::ReplacePossessable( const FGuid& OldGuid, const FGuid& NewGuid, const FString& NewName )
+{
+	bool bAnythingReplaced = false;
+
+	for( auto PossessableIter( Possessables.CreateIterator() ); PossessableIter; ++PossessableIter )
+	{
+		auto& CurPossessable = *PossessableIter;
+
+		if( CurPossessable.GetGuid() == OldGuid )
+		{	
+			Modify();
+
+			// Found it!
+			CurPossessable.SetGuid(NewGuid);
+			CurPossessable.SetName(NewName);
+
+			ReplaceBinding( OldGuid, NewGuid, NewName );
+
+			bAnythingReplaced = true;
+			break;
+		}
+	}
+
+	return bAnythingReplaced;
+}
+
+
 FMovieScenePossessable* UMovieScene::FindPossessable( const FGuid& Guid )
 {
 	for( auto CurPossessableIt( Possessables.CreateIterator() ); CurPossessableIt; ++CurPossessableIt )
@@ -386,6 +413,19 @@ void UMovieScene::RemoveBinding(const FGuid& Guid)
 		if (ObjectBindings[BindingIndex].GetObjectGuid() == Guid)
 		{
 			ObjectBindings.RemoveAt(BindingIndex);
+			break;
+		}
+	}
+}
+
+void UMovieScene::ReplaceBinding(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name)
+{
+	for (int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex)
+	{
+		if (ObjectBindings[BindingIndex].GetObjectGuid() == OldGuid)
+		{
+			ObjectBindings[BindingIndex].SetObjectGuid(NewGuid);
+			ObjectBindings[BindingIndex].SetName(Name);
 			break;
 		}
 	}

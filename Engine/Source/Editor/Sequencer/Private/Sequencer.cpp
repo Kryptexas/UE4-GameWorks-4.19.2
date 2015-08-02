@@ -1823,10 +1823,55 @@ void FSequencer::DeleteSelectedItems()
 	}
 }
 
-bool FSequencer::CanDeleteSelectedItems()
+bool FSequencer::CanDeleteSelectedItems() const
 {
 	// Only delete sequencer items if the delete key was pressed in the sequencer widget and not in, for example, the viewport.
 	return SequencerWidget->HasFocusedDescendants();
+}
+
+void FSequencer::AssignActor(FGuid InObjectBinding, FObjectBindingNode* ObjectBindingNode)
+{
+	if (ObjectBindingNode != nullptr)
+	{
+		// Get the first selected actor as the actor to replace with
+		AActor* Actor = GEditor->GetSelectedActors()->GetTop<AActor>();
+		if (Actor != nullptr)
+		{
+			FScopedTransaction AssignActor( NSLOCTEXT("Sequencer", "AssignActor", "Assign Actor") );
+
+			UMovieSceneSequence* OwnerSequence = GetFocusedMovieSceneSequence();
+			UMovieScene* OwnerMovieScene = OwnerSequence->GetMovieScene();
+
+			Actor->Modify();
+			OwnerSequence->Modify();
+			OwnerMovieScene->Modify();
+
+			// Get the object guid to assign
+			FGuid NewObjectGuid = OwnerSequence->FindObjectId(*Actor);
+			FString NewActorLabel = Actor->GetActorLabel();
+
+			if (NewObjectGuid.IsValid())
+			{
+				OwnerMovieScene->RemovePossessable(NewObjectGuid);
+				OwnerSequence->UnbindPossessableObjects(NewObjectGuid);
+			}
+
+			// Add this object if it hasn't already been possessed
+			FMovieScenePossessable NewPossessable( Actor->GetActorLabel(), Actor->GetClass());
+			NewObjectGuid = NewPossessable.GetGuid();
+			OwnerSequence->BindPossessableObject(NewObjectGuid, *Actor);
+
+			// Replace
+			OwnerMovieScene->ReplacePossessable(InObjectBinding, NewObjectGuid, NewActorLabel);
+					
+			NotifyMovieSceneDataChanged();
+		}
+	}
+}
+
+bool FSequencer::CanAssignActor(FGuid ObjectBinding) const
+{
+	return GEditor->GetSelectedActors()->Num() > 0;
 }
 
 void FSequencer::TogglePlay()
@@ -2078,8 +2123,17 @@ void FSequencer::BindSequencerCommands()
 	}
 }
 
-void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass, FObjectBindingNode* ObjectBindingNode)
 {
+	FFormatNamedArguments Args;
+	MenuBuilder.AddMenuEntry(
+		FText::Format( NSLOCTEXT("Sequencer", "Assign Actor ", "Assign Actor"), Args),
+		FText::Format( NSLOCTEXT("Sequencer", "AssignActorTooltip", "Assign the selected actor to this track"), Args ),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FSequencer::AssignActor, ObjectBinding, ObjectBindingNode),
+					FCanExecuteAction::CreateSP(this, &FSequencer::CanAssignActor, ObjectBinding)) );
+
+
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)
 	{
 		TrackEditors[i]->BuildObjectBindingContextMenu(MenuBuilder, ObjectBinding, ObjectClass);

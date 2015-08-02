@@ -707,7 +707,7 @@ TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyG
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
 
-	GetSequencer().BuildObjectBindingContextMenu(MenuBuilder, ObjectBinding, ObjectClass);
+	GetSequencer().BuildObjectBindingContextMenu(MenuBuilder, ObjectBinding, ObjectClass, this);
 
 	return MenuBuilder.MakeWidget();
 }

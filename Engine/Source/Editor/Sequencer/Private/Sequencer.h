@@ -213,7 +213,7 @@ public:
 	 * @param ObjectBinding	The object binding of the selected node
 	 * @param ObjectClass	The class of the selected object
 	 */
-	void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass);
+	void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass, FObjectBindingNode* ObjectBindingNode);
 
 	/**
 	 * Builds up the track menu for object binding nodes in the outliner
@@ -379,8 +379,12 @@ protected:
 	
 	/** Called when a user executes the delete command to delete sections or keys */
 	void DeleteSelectedItems();
-	bool CanDeleteSelectedItems();
+	bool CanDeleteSelectedItems() const;
 	
+	/** Called when a user executes the assign actor to track menu item */
+	void AssignActor(FGuid ObjectBinding, FObjectBindingNode* ObjectBindingNode);
+	bool CanAssignActor(FGuid ObjectBinding) const;
+
 	/** Transport controls */
 	void TogglePlay();
 	void PlayForward();

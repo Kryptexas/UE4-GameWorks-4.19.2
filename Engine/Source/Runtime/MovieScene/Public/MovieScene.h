@@ -125,6 +125,11 @@ public:
 	 */
 	bool RemovePossessable(const FGuid& PossessableGuid);
 	
+	/*
+	* Replace an existing possessable with another 
+	*/
+	bool ReplacePossessable(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
+
 	/**
 	 * Tries to locate a possessable in this MovieScene for the specified possessable GUID.
 	 *
@@ -249,6 +254,11 @@ public:
 	{
 		return ObjectBindings;
 	}
+
+	/*
+	* Replace an existing binding with another 
+	*/
+	void ReplaceBinding(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
 
 	/**
 	 * @return The time range of the movie scene (the in to out time range)
