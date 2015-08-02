@@ -20,10 +20,8 @@ namespace AutomationTool
 		public float Priority;
 
 		public GUBP.GUBPNode Node;
-		public BuildNode[] Dependencies;
-		public BuildNode[] PseudoDependencies;
-		public BuildNode[] AllDirectDependencies;
-		public BuildNode[] AllIndirectDependencies;
+		public HashSet<BuildNode> InputDependencies;
+		public HashSet<BuildNode> OrderDependencies;
 		public TriggerNode[] ControllingTriggers;
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
@@ -41,12 +39,12 @@ namespace AutomationTool
 			get;
 		}
 
-		public abstract IEnumerable<string> DependencyNames
+		public abstract IEnumerable<string> InputDependencyNames
 		{
 			get;
 		}
 
-		public abstract IEnumerable<string> PseudoDependencyNames
+		public abstract IEnumerable<string> OrderDependencyNames
 		{
 			get;
 		}
@@ -62,7 +60,7 @@ namespace AutomationTool
 
 		public bool DependsOn(BuildNode Node)
 		{
-			return AllIndirectDependencies.Contains(Node);
+			return OrderDependencies.Contains(Node);
 		}
 
 		public override string ToString()
@@ -115,18 +113,27 @@ namespace AutomationTool
 			get { return Node.IsSticky(); }
 		}
 
-		public override IEnumerable<string> DependencyNames
+		public override IEnumerable<string> InputDependencyNames
 		{
 			get { return Node.FullNamesOfDependencies; }
 		}
 
-		public override IEnumerable<string> PseudoDependencyNames
+		public override IEnumerable<string> OrderDependencyNames
 		{
 			get { return Node.FullNamesOfPseudodependencies; }
 		}
 
 		public override void DoBuild()
 		{
+			Node.AllDependencyBuildProducts = new List<string>();
+			foreach (BuildNode InputDependency in InputDependencies)
+			{
+				foreach (string BuildProduct in InputDependency.Node.BuildProducts)
+				{
+					Node.AddDependentBuildProduct(BuildProduct);
+				}
+			}
+
 			Node.DoBuild(Owner);
 		}
 

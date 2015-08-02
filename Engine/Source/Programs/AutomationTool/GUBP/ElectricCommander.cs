@@ -431,7 +431,7 @@ namespace AutomationTool
 						bool DoParallel = !Sticky || NodeToDo.IsParallelAgentShareEditor;
 
 						List<BuildNode> UncompletedEcDeps = new List<BuildNode>();
-						foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
+						foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
 						{
 							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 							{
@@ -584,7 +584,7 @@ namespace AutomationTool
 					// to avoid idle agents (and also EC doesn't actually reserve our agent!), we promote all dependencies to the first one
 					foreach (BuildNode Chain in MyChain)
 					{
-						foreach (BuildNode Dep in Chain.AllDirectDependencies)
+						foreach (BuildNode Dep in FindDirectOrderDependencies(Chain))
 						{
 							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 							{
@@ -614,7 +614,7 @@ namespace AutomationTool
 				}
 				else
 				{
-					foreach (BuildNode Dep in NodeToDo.AllDirectDependencies)
+					foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
 					{
 						if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
 						{
@@ -647,6 +647,16 @@ namespace AutomationTool
 				PreCondition = String.Format("\"\\$\" . \"[/javascript if({0}) true;]\"", String.Join(" && ", JobStepNames.Select(x => String.Format("getProperty('{0}/status') == 'completed'", x))));
 			}
 			return PreCondition;
+		}
+
+		private static HashSet<BuildNode> FindDirectOrderDependencies(BuildNode Node)
+		{
+			HashSet<BuildNode> DirectDependencies = new HashSet<BuildNode>(Node.OrderDependencies);
+			foreach(BuildNode OrderDependency in Node.OrderDependencies)
+			{
+				DirectDependencies.ExceptWith(OrderDependency.OrderDependencies);
+			}
+			return DirectDependencies;
 		}
 
 		private static string GetNodeForAllNodesProperty(BuildNode Node, int TimeQuantum)
@@ -712,7 +722,7 @@ namespace AutomationTool
 			Dictionary<BuildNode, List<AggregateNode>> DependentPromotions = NodesToDo.ToDictionary(x => x, x => new List<AggregateNode>());
 			foreach (AggregateNode SeparatePromotion in SeparatePromotions)
 			{
-				BuildNode[] Dependencies = SeparatePromotion.Dependencies.SelectMany(x => x.AllIndirectDependencies).Distinct().ToArray();
+				BuildNode[] Dependencies = SeparatePromotion.Dependencies.SelectMany(x => x.OrderDependencies).Distinct().ToArray();
 				foreach (BuildNode Dependency in Dependencies)
 				{
 					DependentPromotions[Dependency].Add(SeparatePromotion);
@@ -765,7 +775,7 @@ namespace AutomationTool
 				}
 
 				// Build a list of ordering dependencies, putting all Mac nodes after Windows nodes with the same names.
-				Dictionary<BuildNode, List<BuildNode>> NodeDependencies = new Dictionary<BuildNode,List<BuildNode>>(Nodes.ToDictionary(x => x, x => x.AllDirectDependencies.ToList()));
+				Dictionary<BuildNode, List<BuildNode>> NodeDependencies = new Dictionary<BuildNode,List<BuildNode>>(Nodes.ToDictionary(x => x, x => x.OrderDependencies.ToList()));
 				foreach(KeyValuePair<string, List<BuildNode>> DisplayGroup in DisplayGroups)
 				{
 					List<BuildNode> GroupNodes = DisplayGroup.Value;
