@@ -812,6 +812,9 @@ namespace UnrealBuildTool
 		/** Filename for the receipt for this target. */
 		private string ReceiptFileName;
 
+		/** Version manifests to be written to each output folder */
+		private Dictionary<string, VersionManifest> FileNameToVersionManifest;
+
 		/** Force output of the receipt to an additional filename */
 		[NonSerialized]
 		private string ForceReceiptFileName;
@@ -1256,13 +1259,13 @@ namespace UnrealBuildTool
 
 					// Normal makefile
 					{					
-					var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
-					if (File.Exists(UBTMakefilePath))
-					{
-						Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
-						CleanFile(UBTMakefilePath);
+						var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
+						if (File.Exists(UBTMakefilePath))
+						{
+							Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
+							CleanFile(UBTMakefilePath);
+						}
 					}
-				}
 
 					// Hot reload makefile
 					{					
@@ -1275,7 +1278,7 @@ namespace UnrealBuildTool
 						}
 						UEBuildConfiguration.bHotReloadFromIDE = false;
 					}
-			}
+				}
 
 				// Delete the action history
 				{
@@ -1294,6 +1297,7 @@ namespace UnrealBuildTool
 					CleanUnrealHeaderTool();
 				}
 			}
+
 		}
 
 		class BuldProductComparer : IEqualityComparer<BuildProduct>
@@ -1572,6 +1576,74 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/** Prepare all the version manifests for this target. See the VersionManifest class for an explanation of what these files are. */
+		public void PrepareVersionManifests()
+		{
+			FileNameToVersionManifest = new Dictionary<string,VersionManifest>(StringComparer.InvariantCultureIgnoreCase);
+			if(!bCompileMonolithic)
+			{
+				// Read the version file
+				BuildVersion Version;
+				if(!Utils.TryReadBuildVersion(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "Build.version"), out Version))
+				{
+					Version = new BuildVersion();
+				}
+
+				// Create a unique identifier for this build, which can be used to identify modules when the changelist is constant. It's fine to share this between runs with the same makefile; 
+				// the output won't change. By default we leave it blank when compiling a subset of modules (for hot reload, etc...), otherwise it won't match anything else. When writing to a directory
+				// that already contains a manifest, we'll reuse the build id that's already in there (see below).
+				string BuildId = (OnlyModules.Count == 0)? Guid.NewGuid().ToString() : "";
+
+				// Create the receipts for each folder
+				foreach(UEBuildBinary Binary in AppBinaries)
+				{
+					string DirectoryName = Path.GetDirectoryName(Binary.Config.OutputFilePath);
+					bool bIsGameDirectory = !Utils.IsFileUnderDirectory(Binary.Config.OutputFilePath, BuildConfiguration.RelativeEnginePath);
+					string ManifestFileName = Path.Combine(DirectoryName, VersionManifest.GetStandardFileName(AppName, Platform, Configuration, UEBuildPlatform.GetBuildPlatform(Platform).GetActiveArchitecture(), bIsGameDirectory));
+	
+					VersionManifest Manifest;
+					if(!FileNameToVersionManifest.TryGetValue(ManifestFileName, out Manifest))
+					{
+						Manifest = new VersionManifest(Version.Changelist, BuildId);
+
+						VersionManifest ExistingManifest;
+						if(VersionManifest.TryRead(ManifestFileName, out ExistingManifest) && Version.Changelist == ExistingManifest.Changelist)
+						{
+							if(OnlyModules.Count > 0)
+							{
+								// We're just building an existing module; reuse the existing manifest AND build id.
+								Manifest = ExistingManifest;
+							}
+							else if(Version.Changelist != 0)
+							{
+								// We're rebuilding at the same changelist. Keep all the existing binaries.
+								Manifest.ModuleNameToFileName.Union(ExistingManifest.ModuleNameToFileName);
+							}
+						}
+
+						FileNameToVersionManifest.Add(ManifestFileName, Manifest);
+					}
+
+					foreach(string ModuleName in Binary.Config.ModuleNames)
+					{
+						Manifest.ModuleNameToFileName[ModuleName] = Path.GetFileName(Binary.Config.OutputFilePath);
+					}
+				}
+			}
+		}
+
+		/** Writes out the version manifest */
+		public void WriteVersionManifests()
+		{
+			if(FileNameToVersionManifest != null)
+			{
+				foreach(KeyValuePair<string, VersionManifest> ManifestPair in FileNameToVersionManifest)
+				{
+					ManifestPair.Value.Write(ManifestPair.Key);
+				}
+			}
+		}
+
 		/** Creates the receipt for the target */
 		private void PrepareReceipt(IUEToolChain ToolChain)
 		{
@@ -1718,6 +1790,9 @@ namespace UnrealBuildTool
 				GenerateExternalFileList();
 				return ECompilationResult.Succeeded;
 			}
+
+			// Create all the version manifests
+			PrepareVersionManifests();
 
 			// Create a receipt for the target
 			PrepareReceipt(TargetToolChain);

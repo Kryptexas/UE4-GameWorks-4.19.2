@@ -940,34 +940,52 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
-	// Get the prefix and suffix for module filenames
-	FString ModulePrefix, ModuleSuffix;
-	GetModuleFilenameFormat(bIsGameDirectory, ModulePrefix, ModuleSuffix);
-
-	// Find all the files
-	TArray<FString> FullFileNames;
-	IFileManager::Get().FindFilesRecursive(FullFileNames, *InDirectoryName, *(ModulePrefix + NamePattern + ModuleSuffix), true, false);
-
-	// Parse all the matching module names
-	for (int32 Idx = 0; Idx < FullFileNames.Num(); Idx++)
+	if(QueryModulesDelegate.IsBound())
 	{
-		const FString &FullFileName = FullFileNames[Idx];
-	
-		// On Mac OS X the separate debug symbol format is the dSYM bundle, which is a bundle folder hierarchy containing a .dylib full of Mach-O formatted DWARF debug symbols, these are not loadable modules, so we mustn't ever try and use them. If we don't eliminate this here then it will appear in the module paths & cause errors later on which cannot be recovered from.
-	#if PLATFORM_MAC
-		if(FullFileName.Contains(".dSYM"))
+		// Use the delegate to query all the modules in this directory
+		TMap<FString, FString> Modules;
+		QueryModulesDelegate.Execute(InDirectoryName, bIsGameDirectory, Modules);
+
+		// Fill the output map with modules that match the wildcard
+		for(const TPair<FString, FString>& Pair: Modules)
 		{
-			continue;
-		}
-	#endif
-		
-		FString FileName = FPaths::GetCleanFilename(FullFileName);
-		if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
-		{
-			FString ModuleName = FileName.Mid(ModulePrefix.Len(), FileName.Len() - ModulePrefix.Len() - ModuleSuffix.Len());
-			if (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame"))
+			if(Pair.Key.MatchesWildcard(NamePattern))
 			{
-				OutModulePaths.Add(FName(*ModuleName), FullFileName);
+				OutModulePaths.Add(FName(*Pair.Key), FPaths::Combine(*InDirectoryName, *Pair.Value));
+			}
+		}
+	}
+	else
+	{
+		// Get the prefix and suffix for module filenames
+		FString ModulePrefix, ModuleSuffix;
+		GetModuleFilenameFormat(bIsGameDirectory, ModulePrefix, ModuleSuffix);
+
+		// Find all the files
+		TArray<FString> FullFileNames;
+		IFileManager::Get().FindFilesRecursive(FullFileNames, *InDirectoryName, *(ModulePrefix + NamePattern + ModuleSuffix), true, false);
+
+		// Parse all the matching module names
+		for (int32 Idx = 0; Idx < FullFileNames.Num(); Idx++)
+		{
+			const FString &FullFileName = FullFileNames[Idx];
+	
+			// On Mac OS X the separate debug symbol format is the dSYM bundle, which is a bundle folder hierarchy containing a .dylib full of Mach-O formatted DWARF debug symbols, these are not loadable modules, so we mustn't ever try and use them. If we don't eliminate this here then it will appear in the module paths & cause errors later on which cannot be recovered from.
+		#if PLATFORM_MAC
+			if(FullFileName.Contains(".dSYM"))
+			{
+				continue;
+			}
+		#endif
+		
+			FString FileName = FPaths::GetCleanFilename(FullFileName);
+			if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
+			{
+				FString ModuleName = FileName.Mid(ModulePrefix.Len(), FileName.Len() - ModulePrefix.Len() - ModuleSuffix.Len());
+				if (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame"))
+				{
+					OutModulePaths.Add(FName(*ModuleName), FullFileName);
+				}
 			}
 		}
 	}

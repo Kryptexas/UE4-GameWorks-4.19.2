@@ -1976,6 +1976,7 @@ namespace UnrealBuildTool
                             {
                                 foreach (UEBuildTarget Target in Targets)
                                 {
+									Target.WriteVersionManifests();
 									Target.WriteReceipt();
                                     ToolChain.PostBuildSync(Target);
                                 }

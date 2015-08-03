@@ -14,6 +14,8 @@
 #include "EngineVersion.h"
 
 #include "ModuleManager.h"
+#include "../Resources/Version.h"
+#include "VersionManifest.h"
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
@@ -1027,6 +1029,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FMath::SRandInit(Cycles2);
 		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Cycles1, Cycles2);
 	}
+
+	// Set up the module list and version information, if it's not compiled-in
+#if !IS_MONOLITHIC && BUILT_FROM_CHANGELIST == 0
+	static FVersionedModuleEnumerator ModuleEnumerator;
+	if(ModuleEnumerator.RegisterWithModuleManager())
+	{
+		const FVersionManifest& Manifest = ModuleEnumerator.GetInitialManifest();
+		UE_LOG(LogInit, Log, TEXT("Using version manifest at CL %d with build ID '%s'"), Manifest.Changelist, *Manifest.BuildId);
+	}
+#endif
 
 #if !IS_PROGRAM
 	if ( !GIsGameAgnosticExe && FApp::HasGameName() && !FPaths::IsProjectFilePathSet() )

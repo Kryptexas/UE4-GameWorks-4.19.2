@@ -829,11 +829,7 @@ namespace UnrealBuildTool
 		public static bool TryReadBuildVersion(string FileName, out BuildVersion Version)
 		{
 			JsonObject Object;
-			try
-			{
-				Object = JsonObject.FromFile(FileName);
-			}
-			catch(Exception)
+			if(!JsonObject.TryRead(FileName, out Object))
 			{
 				Version = null;
 				return false;

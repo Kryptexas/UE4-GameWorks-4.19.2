@@ -22,11 +22,36 @@ namespace UnrealBuildTool
 			RawObject = new Dictionary<string,object>(InRawObject, StringComparer.InvariantCultureIgnoreCase);
 		}
 
-		public static JsonObject FromFile(string FileName)
+		public static JsonObject Read(string FileName)
 		{
 			string Text = File.ReadAllText(FileName);
-			Dictionary<string, object> CaseSensitiveRawObject = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(Text);
+			Dictionary<string, object> CaseSensitiveRawObject = (Dictionary<string, object>)fastJSON.JSON.Instance.Parse(Text);
 			return new JsonObject(CaseSensitiveRawObject);
+		}
+
+		public static bool TryRead(string FileName, out JsonObject Result)
+		{
+			if(!File.Exists(FileName))
+			{
+				Result = null;
+				return false;
+			}
+
+			try
+			{
+				Result = Read(FileName);
+				return true;
+			}
+			catch(Exception)
+			{
+				Result = null;
+				return false;
+			}
+		}
+
+		public IEnumerable<string> KeyNames
+		{
+			get { return RawObject.Keys; }
 		}
 
 		public string GetStringField(string FieldName)
@@ -67,9 +92,9 @@ namespace UnrealBuildTool
 		public bool TryGetStringArrayField(string FieldName, out string[] Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is object[]) && ((object[])RawValue).All(x => x is string))
+			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is IEnumerable<object>) && ((IEnumerable<object>)RawValue).All(x => x is string))
 			{
-				Result = Array.ConvertAll((object[])RawValue, x => (string)x);
+				Result = ((IEnumerable<object>)RawValue).Select(x => (string)x).ToArray();
 				return true;
 			}
 			else
@@ -102,6 +127,16 @@ namespace UnrealBuildTool
 				Result = false;
 				return false;
 			}
+		}
+
+		public int GetIntegerField(string FieldName)
+		{
+			int IntegerValue;
+			if(!TryGetIntegerField(FieldName, out IntegerValue))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return IntegerValue;
 		}
 
 		public bool TryGetIntegerField(string FieldName, out int Result)
@@ -170,12 +205,37 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		public JsonObject GetObjectField(string FieldName)
+		{
+			JsonObject Result;
+			if(!TryGetObjectField(FieldName, out Result))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return Result;
+		}
+
+		public bool TryGetObjectField(string FieldName, out JsonObject Result)
+		{
+			object RawValue;
+			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is Dictionary<string, object>))
+			{
+				Result = new JsonObject((Dictionary<string, object>)RawValue);
+				return true;
+			}
+			else
+			{
+				Result = null;
+				return false;
+			}
+		}
+
 		public bool TryGetObjectArrayField(string FieldName, out JsonObject[] Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is object[]) && ((object[])RawValue).All(x => x is Dictionary<string, object>))
+			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is IEnumerable<object>) && ((IEnumerable<object>)RawValue).All(x => x is Dictionary<string, object>))
 			{
-				Result = Array.ConvertAll((object[])RawValue, x => new JsonObject((Dictionary<string, object>)x));
+				Result = ((IEnumerable<object>)RawValue).Select(x => new JsonObject((Dictionary<string, object>)x)).ToArray();
 				return true;
 			}
 			else
@@ -212,6 +272,17 @@ namespace UnrealBuildTool
 
 			Indent += "\t";
 			bRequiresComma = false;
+		}
+
+		public void WriteObjectStart(string ObjectName)
+		{
+			WriteCommaNewline();
+
+			Writer.Write("{0}\"{1}\" : ", Indent, ObjectName);
+
+			bRequiresComma = false;
+
+			WriteObjectStart();
 		}
 
 		public void WriteObjectEnd()
@@ -257,7 +328,7 @@ namespace UnrealBuildTool
 
 		public void WriteValue(string Name, string Value)
 		{
-			WriteValueInternal(Name, '"' + Value + '"');
+			WriteValueInternal(Name, '"' + Value.Replace("\\", "\\\\") + '"');
 		}
 
 		public void WriteValue(string Name, int Value)

@@ -88,7 +88,7 @@ namespace UnrealBuildTool
 		/// <returns>New plugin descriptor</returns>
 		public static PluginDescriptor FromFile(string FileName)
 		{
-			JsonObject RawObject = JsonObject.FromFile(FileName);
+			JsonObject RawObject = JsonObject.Read(FileName);
 			try
 			{
 				PluginDescriptor Descriptor = new PluginDescriptor();

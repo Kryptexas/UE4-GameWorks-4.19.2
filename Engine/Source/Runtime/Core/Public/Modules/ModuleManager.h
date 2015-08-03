@@ -216,6 +216,11 @@ public:
 	 */
 	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar, bool bAbandonOnly = false);
 
+	/** Delegate that's used by the module manager to find all the valid modules in a directory matching a pattern */
+	typedef TMap<FString, FString> FModuleNamesMap;
+	DECLARE_DELEGATE_ThreeParams( FQueryModulesDelegate, const FString&, bool, FModuleNamesMap& );
+	FQueryModulesDelegate QueryModulesDelegate;
+
 public:
 
 	/**
