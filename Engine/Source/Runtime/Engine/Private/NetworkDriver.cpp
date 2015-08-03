@@ -19,7 +19,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameMode.h"
 
-#if UE_SERVER
+#if USE_SERVER_PERF_COUNTERS
 #include "PerfCountersModule.h"
 #endif
 
@@ -266,7 +266,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			}
 		}
 
-#if UE_SERVER
+#if USE_SERVER_PERF_COUNTERS
 		IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
 		if (PerfCounters)
 		{
@@ -319,7 +319,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				PerfCounters->Set(TEXT("MinPing"), 0);
 			}
 		}
-#endif // UE_SERVER
+#endif // USE_SERVER_PERF_COUNTERS
 
 		// Copy the net status values over
 		SET_DWORD_STAT(STAT_Ping, Ping);

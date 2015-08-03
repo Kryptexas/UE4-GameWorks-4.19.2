@@ -111,7 +111,7 @@ public class Engine : ModuleRules
 			);
 		}
 
-		if (Target.Type == TargetRules.TargetType.Server)
+		if (Target.Type == TargetRules.TargetType.Server || Target.Type == TargetRules.TargetType.Editor)
 		{
 			PrivateDependencyModuleNames.Add("PerfCounters");
 		}

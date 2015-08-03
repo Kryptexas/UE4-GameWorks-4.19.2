@@ -241,5 +241,8 @@
 /** Enable fast calls for event thunks into an event graph that have no parameters  */
 #define UE_BLUEPRINT_EVENTGRAPH_FASTCALLS 1
 
+/** Enable perf counters on dedicated servers */
+#define USE_SERVER_PERF_COUNTERS UE_SERVER || UE_EDITOR
+
 #define USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING 1
 #define USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS (USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING && 0)
