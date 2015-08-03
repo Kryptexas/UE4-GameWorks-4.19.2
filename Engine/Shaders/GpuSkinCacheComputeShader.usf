@@ -7,7 +7,7 @@
 #include "Common.usf"
 #include "Definitions.usf"
 #include "VertexFactoryCommon.usf"
-#include "GpuSkinCacheCommon.usf"
+#include "GpuSkinCommon.usf"
 
 #define FBoneMatrix float3x4
 

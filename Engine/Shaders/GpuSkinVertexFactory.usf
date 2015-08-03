@@ -23,7 +23,7 @@
 =============================================================================*/
 
 #include "VertexFactoryCommon.usf"
-#include "GpuSkinCacheCommon.usf"
+#include "GpuSkinCommon.usf"
 
 #ifndef GPUSKIN_MORPH_BLEND
 #define GPUSKIN_MORPH_BLEND 0
