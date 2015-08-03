@@ -79,6 +79,7 @@ static uint32 TonemapperConfBitmaskPC[7] = {
 	0,
 
 	TonemapperBloom + 
+	TonemapperVignette +
 	TonemapperGrainQuantization +
 	0,
 
@@ -97,6 +98,7 @@ static uint32 TonemapperConfBitmaskPC[7] = {
 	0,
 
 	TonemapperBloom + 
+	TonemapperVignette +
 	0,
 
 	//
@@ -514,6 +516,11 @@ static uint32 TonemapperGenerateBitmaskPost(const FViewInfo* RESTRICT View)
 static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool bGammaOnly)
 {
 	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, false);
+
+	// PC doesn't support these
+	Bitmask &= ~TonemapperContrast;
+	Bitmask &= ~TonemapperColorMatrix;
+	Bitmask &= ~TonemapperShadowTint;
 
 	// Must early exit if gamma only.
 	if(Bitmask == TonemapperGammaOnly) 
