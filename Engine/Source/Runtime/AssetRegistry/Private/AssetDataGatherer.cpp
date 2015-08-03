@@ -278,11 +278,9 @@ void FAssetDataGatherer::AddFilesToSearch(const TArray<FString>& Files)
 
 void FAssetDataGatherer::PrioritizeSearchPath(const FString& PathToPrioritize)
 {
-	const bool bIncludeReadOnlyRoots = true;
-	if ( FPackageName::IsValidLongPackageName(PathToPrioritize, bIncludeReadOnlyRoots) )
+	FString FilenamePathToPrioritize;
+	if ( FPackageName::TryConvertLongPackageNameToFilename(PathToPrioritize, FilenamePathToPrioritize) )
 	{
-		const FString FilenamePathToPrioritize = FPackageName::LongPackageNameToFilename(PathToPrioritize);
-
 		// Critical section. This code needs to be as fast as possible since it is in a critical section!
 		// Swap all priority files to the top of the list
 		{
