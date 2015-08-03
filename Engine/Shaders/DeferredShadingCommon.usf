@@ -364,6 +364,18 @@ void EncodeGBuffer(
 }
 
 // High frequency Checkerboard pattern
+// @param PixelPos relative to left top of the rendertarget (not viewport)
+// @return true/false, todo: profile if float 0/1 would be better (need to make sure it's 100% the same)
+bool CheckerFromPixelPos(uint2 PixelPos)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	return (PixelPos.x + PixelPos.y) % 2;
+#else
+	return (uint)(fmod(PixelPos.x + PixelPos.y, 2)) != 0;
+#endif
+}
+
+// High frequency Checkerboard pattern
 // @param UVSceneColor at pixel center
 // @return true/false, todo: profile if float 0/1 would be better (need to make sure it's 100% the same)
 bool CheckerFromSceneColorUV(float2 UVSceneColor)
@@ -371,15 +383,7 @@ bool CheckerFromSceneColorUV(float2 UVSceneColor)
 	// relative to left top of the rendertarget (not viewport)
 	uint2 PixelPos = uint2(UVSceneColor * View.BufferSizeAndInvSize.xy);
 
-	return (PixelPos.x + PixelPos.y) % 2;
-}
-
-// High frequency Checkerboard pattern
-// @param PixelPos relative to left top of the rendertarget (not viewport)
-// @return true/false, todo: profile if float 0/1 would be better (need to make sure it's 100% the same)
-bool CheckerFromPixelPos(uint2 PixelPos)
-{
-	return (PixelPos.x + PixelPos.y) % 2;
+	return CheckerFromPixelPos(PixelPos);
 }
 
 /** Populates FGBufferData */
