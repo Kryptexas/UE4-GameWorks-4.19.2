@@ -200,7 +200,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
  		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
  
  		// Since NewItem isn't really an int, step the stack manually
  		const UProperty* InnerProp = ArrayProperty->Inner;
@@ -224,7 +229,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 
 		// Since NewItem isn't really an int, step the stack manually
 		const UProperty* InnerProp = ArrayProperty->Inner;
@@ -248,7 +258,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 
 		P_FINISH;
 
@@ -261,13 +276,22 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* TargetArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* TargetArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* TargetArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!TargetArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		// Retrieve the source array
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* SourceArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* SourceArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
+		UArrayProperty* SourceArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!TargetArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 
 		P_FINISH;
 
@@ -279,7 +303,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 
 		// Since NewItem isn't really an int, step the stack manually
 		const UProperty* InnerProp = ArrayProperty->Inner;
@@ -304,7 +333,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 
 		P_GET_PROPERTY(UIntProperty, Index);
 		P_FINISH;
@@ -317,8 +351,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		// Since Item isn't really an int, step the stack manually
 		const UProperty* InnerProp = ArrayProperty->Inner;
 		const int32 PropertySize = InnerProp->ElementSize * InnerProp->ArrayDim;
@@ -345,8 +383,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		P_FINISH;
 
 		GenericArray_Clear(ArrayAddr, ArrayProperty);
@@ -357,8 +399,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		P_GET_PROPERTY(UIntProperty, Size);
 		P_FINISH;
 
@@ -370,8 +416,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		P_FINISH;
 
 		*(int32*)RESULT_PARAM = GenericArray_Length(ArrayAddr, ArrayProperty);
@@ -382,8 +432,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		P_FINISH;
 
 		*(int32*)RESULT_PARAM = GenericArray_LastIndex(ArrayAddr, ArrayProperty);
@@ -394,8 +448,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		P_GET_PROPERTY(UIntProperty, Index);
 
 		// Since Item isn't really an int, step the stack manually
@@ -420,8 +478,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		P_GET_PROPERTY(UIntProperty, Index);
 
 		// Since NewItem isn't really an int, step the stack manually
@@ -448,8 +510,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		// Since ItemToFind isn't really an int, step the stack manually
 		const UProperty* InnerProp = ArrayProperty->Inner;
 		const int32 PropertySize = InnerProp->ElementSize * InnerProp->ArrayDim;
@@ -477,8 +543,12 @@ public:
 		Stack.MostRecentProperty = nullptr;
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* ArrayAddr = Stack.MostRecentPropertyAddress;
-		UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(Stack.MostRecentProperty);
-
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
+		if (!ArrayProperty)
+		{
+			Stack.bArrayContextFailed = true;
+			return;
+		}
 		// Since ItemToFind isn't really an int, step the stack manually
 		const UProperty* InnerProp = ArrayProperty->Inner;
 		const int32 PropertySize = InnerProp->ElementSize * InnerProp->ArrayDim;

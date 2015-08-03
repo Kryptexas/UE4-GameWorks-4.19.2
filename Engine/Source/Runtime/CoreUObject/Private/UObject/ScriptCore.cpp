@@ -1742,15 +1742,24 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	UObject* NewContext = NULL;
 	Stack.Step( this, &NewContext );
 
+	uint8* const OriginalCode = Stack.Code;
+	const bool bValidContext = IsValid(NewContext);
 	// Execute or skip the following expression in the object's context.
-	if (IsValid(NewContext))
+	if (bValidContext)
 	{
 		Stack.Code += sizeof(CodeSkipSizeType)	// Code offset for NULL expressions.
 			+ sizeof(ScriptPointerType);		// Property corresponding to the r-value data, in case the l-value needs to be cleared
 		Stack.Step( NewContext, RESULT_PARAM );
 	}
-	else
+
+	if (!bValidContext || Stack.bArrayContextFailed)
 	{
+		if (Stack.bArrayContextFailed)
+		{
+			Stack.bArrayContextFailed = false;
+			Stack.Code = OriginalCode;
+		}
+
 		if (!bCanFailSilently)
 		{
 			if (NewContext && NewContext->IsPendingKill())

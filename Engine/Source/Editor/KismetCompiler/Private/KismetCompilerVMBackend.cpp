@@ -784,7 +784,7 @@ public:
 		{
 			// RValue property is used to clear value after Access Violation. See UObject::ProcessContextOpcod
 			// If the property from LHS is used, then the retured property (with CPF_ReturnParm) is cleared. But properties returned by ref are not cleared. 
-			UProperty* RValueProperty = nullptr; //Statement.LHS ? Statement.LHS->AssociatedVarProperty : nullptr;
+			UProperty* RValueProperty = Statement.LHS ? Statement.LHS->AssociatedVarProperty : nullptr;
 			CallContextWriter.TryStartContext(Statement.FunctionContext, /*bUnsafeToSkip=*/ bHasOutputValue, Statement.bIsInterfaceContext, RValueProperty);
 		}
 
