@@ -978,7 +978,7 @@ void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window)
 bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
 {
 	SCOPED_AUTORELEASE_POOL;
-	if ([Window->GetWindowHandle() isKeyWindow])
+	if ([Window->GetWindowHandle() isMainWindow])
 	{
 		MessageHandler->OnWindowActivationChanged(Window, EWindowActivation::Deactivate);
 	}
