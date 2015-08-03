@@ -407,6 +407,9 @@ struct FPostProcessSettings
 	uint32 bOverride_DepthOfFieldSkyFocusDistance:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_DepthOfFieldVignetteSize:1;
+
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_MotionBlurAmount:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
@@ -892,7 +895,11 @@ struct FPostProcessSettings
 	/** Artificial distance to allow the skybox to be in focus (e.g. 200000), <=0 to switch the feature off, only for GaussianDOF, can cost performance */
 	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "200000.0", editcondition = "bOverride_DepthOfFieldSkyFocusDistance", DisplayName = "Sky Distance"))
 	float DepthOfFieldSkyFocusDistance;
-	
+
+	/** Artificial circular mask to (near) blur content outside the radius, only for GaussianDOF, diameter in percent of screen width, costs performance if the mask is used, keep Feather can Radius on default to keep it off */
+	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "100.0", editcondition = "bOverride_DepthOfFieldVignetteSize", DisplayName = "Vignette Size"))
+	float DepthOfFieldVignetteSize;
+
 	/** Strength of motion blur, 0:off, should be renamed to intensity */
 	UPROPERTY(interp, BlueprintReadWrite, Category=MotionBlur, meta=(ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_MotionBlurAmount", DisplayName = "Amount"))
 	float MotionBlurAmount;
@@ -1124,6 +1131,8 @@ struct FPostProcessSettings
 		DepthOfFieldColorThreshold = 1.0f;
 		DepthOfFieldSizeThreshold = 0.08f;
 		DepthOfFieldSkyFocusDistance = 0.0f;
+		// 200 should be enough even for extreme aspect ratios to give the default no effect
+		DepthOfFieldVignetteSize = 200.0f;
 		LensFlareTints[0] = FLinearColor(1.0f, 0.8f, 0.4f, 0.6f);
 		LensFlareTints[1] = FLinearColor(1.0f, 1.0f, 0.6f, 0.53f);
 		LensFlareTints[2] = FLinearColor(0.8f, 0.8f, 1.0f, 0.46f);

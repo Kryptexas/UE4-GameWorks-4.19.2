@@ -14,7 +14,8 @@
 
 
 /** Encapsulates the DOF setup pixel shader. */
-template <uint32 NearBlurEnable>
+// @param 0:no NearBlur, 1:with NearBlur, 2:With NearBlur and Vignette
+template <uint32 SetupMode>
 class FPostProcessDOFSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDOFSetupPS, Global);
@@ -27,7 +28,8 @@ class FPostProcessDOFSetupPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
+		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), (uint32)(SetupMode >= 1));
+		OutEnvironment.SetDefine(TEXT("ENABLE_DOF_VIGNETTE"), (uint32)(SetupMode == 2));
 	}
 
 	/** Default constructor. */
@@ -77,6 +79,7 @@ public:
 
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFSetupPS<0>,TEXT("PostProcessDOF"),TEXT("SetupPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFSetupPS<1>,TEXT("PostProcessDOF"),TEXT("SetupPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFSetupPS<2>,TEXT("PostProcessDOF"),TEXT("SetupPS"),SF_Pixel);
 
 void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -126,7 +129,7 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	// is optimized away if possible (RT size=view size, )
 	Context.RHICmdList.ClearMRT(true, NumRenderTargets, ClearColors, false, 1.0f, false, 0, DestRect);
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+	Context.SetViewportAndCallRHI(DestRect.Min.X, DestRect.Min.Y, 0.0f, DestRect.Max.X + 1, DestRect.Max.Y + 1, 1.0f );
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -134,16 +137,32 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	
 	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
-
+	
 	if (bNearBlurEnabled)
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-		
+		const float DOFVignetteSize = FMath::Max(0.0f, View.FinalPostProcessSettings.DepthOfFieldVignetteSize);
 
-		TShaderMapRef< FPostProcessDOFSetupPS<1> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		// todo: test is conservative, with bad content we would waste a bit of performance
+		const bool bDOFVignette = DOFVignetteSize < 200.0f;
+
+		if(bDOFVignette)
+		{
+			static FGlobalBoundShaderState BoundShaderState;
+
+			TShaderMapRef< FPostProcessDOFSetupPS<2> > PixelShader(ShaderMap);
+			SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		
-		PixelShader->SetParameters(Context);
+			PixelShader->SetParameters(Context);
+		}
+		else
+		{
+			static FGlobalBoundShaderState BoundShaderState;
+
+			TShaderMapRef< FPostProcessDOFSetupPS<1> > PixelShader(ShaderMap);
+			SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+			PixelShader->SetParameters(Context);
+		}
 	}
 	else
 	{
@@ -160,11 +179,11 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
+		0, 0,
 		DestRect.Width() + 1, DestRect.Height() + 1,
 		SrcRect.Min.X, SrcRect.Min.Y,
 		SrcRect.Width() + 1, SrcRect.Height() + 1,
-		DestSize,
+		DestRect.Size() + FIntPoint(1, 1),
 		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
