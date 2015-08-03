@@ -100,6 +100,8 @@ public:
 
 	/** Currently executed native function */
 	UFunction* CurrentNativeFunction;
+
+	bool bArrayContextFailed;
 public:
 
 	// Constructors.
@@ -183,6 +185,7 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 	, OutParms(NULL)
 	, PropertyChainForCompiledIn(InPropertyChainForCompiledIn)
 	, CurrentNativeFunction(NULL)
+	, bArrayContextFailed(false)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FScriptTraceStackNode StackNode(InNode->GetOuter()->GetFName(), InNode->GetFName());
