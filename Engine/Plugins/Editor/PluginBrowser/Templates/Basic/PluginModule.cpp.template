@@ -66,6 +66,12 @@ void F%PLUGIN_NAME%Module::ShutdownModule()
 void F%PLUGIN_NAME%Module::PluginButtonClicked()
 {
 	// Put your "OnButtonClicked" stuff here
+	FText DialogText = FText::Format(
+							LOCTEXT("PluginButtonDialogText", "Add code to {0} in {1} to override this button's actions"),
+							FText::FromString(TEXT("F%PLUGIN_NAME%Module::PluginButtonClicked()")),
+							FText::FromString(TEXT("%PLUGIN_NAME%.cpp"))
+					   );
+	FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 }
 
 void F%PLUGIN_NAME%Module::AddMenuExtension(FMenuBuilder& Builder)

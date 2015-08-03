@@ -568,6 +568,10 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 			PluginBrowserModule.SetPluginPendingEnableState(AutoPluginName, false, true);
 		}
 
+		FText DialogTitle = LOCTEXT("PluginCreatedTitle", "New Plugin Created");
+		FText DialogText = LOCTEXT("PluginCreatedText", "Restart the editor to activate new Plugin or reopen your code solution to see/edit the newly created source files.");
+		FMessageDialog::Open(EAppMsgType::Ok, DialogText, &DialogTitle);
+
 		auto PinnedOwnerTab = OwnerTab.Pin();
 		if (PinnedOwnerTab.IsValid())
 		{
