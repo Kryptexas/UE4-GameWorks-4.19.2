@@ -260,6 +260,19 @@ bool FLocMetadataObject::IsMetadataExactMatch( const FLocMetadataObject* const M
 	return MetadataA->IsExactMatch( *(MetadataB) );
 }
 
+FString FLocMetadataObject::ToString() const
+{
+	FString MemberList;
+	TMap< FString, TSharedPtr<FLocMetadataValue> > Values;
+	for (const auto Pair : Values)
+	{
+		const FString MemberName = Pair.Key;
+		const TSharedPtr<FLocMetadataValue> MemberValue = Pair.Value;
+		MemberList += (MemberList.IsEmpty() ? TEXT("") : TEXT(",")) + MemberValue->ToString();
+	}
+	return FString::Printf(TEXT("{%s}"), *MemberList);
+}
+
 namespace
 {
 	void SerializeLocMetadataValue(FArchive& Archive, FLocMetadataValue*& Value)
@@ -524,6 +537,16 @@ TSharedRef<FLocMetadataValue> FLocMetadataValueArray::Clone() const
 	return MakeShareable( new FLocMetadataValueArray( NewValue ) );
 }
 
+FString FLocMetadataValueArray::ToString() const
+{
+	FString ElementList;
+	for (const TSharedPtr<FLocMetadataValue> Element : Value)
+	{
+		ElementList += (ElementList.IsEmpty() ? TEXT("") : TEXT(",")) + Element->ToString();
+	}
+	return FString::Printf(TEXT("[%s]"), *ElementList);
+}
+
 FLocMetadataValueArray::FLocMetadataValueArray( FArchive& Archive )
 {
 	check(Archive.IsLoading());
@@ -587,6 +610,11 @@ TSharedRef<FLocMetadataValue> FLocMetadataValueObject::Clone() const
 {
 	TSharedRef<FLocMetadataObject> NewLocMetadataObject = MakeShareable( new FLocMetadataObject( *(this->Value) ) );
 	return MakeShareable( new FLocMetadataValueObject( NewLocMetadataObject ) );
+}
+
+FString FLocMetadataValueObject::ToString() const
+{
+	return Value->ToString();
 }
 
 FLocMetadataValueObject::FLocMetadataValueObject( FArchive& Archive )
