@@ -665,6 +665,9 @@ protected:
 	/** Deprecated. Use CooldownGameplayEffectClass instead */
 	UPROPERTY(VisibleDefaultsOnly, Category=Deprecated)
 	class UGameplayEffect* CooldownGameplayEffect;
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	float GetCooldownTimeRemaining() const; 
 	
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -761,6 +764,7 @@ protected:
 	// 
 	// ----------------------------------------------------------------------------------------------------------------
 	
+public:
 	/** Returns current level of the Ability */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	int32 GetAbilityLevel() const;

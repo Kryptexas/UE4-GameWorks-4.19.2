@@ -1473,3 +1473,8 @@ void UGameplayAbility::ConvertDeprecatedGameplayEffectReferencesToBlueprintRefer
 		MarkPackageDirty();
 	}
 }
+
+float UGameplayAbility::GetCooldownTimeRemaining() const
+{
+	return IsInstantiated() ? GetCooldownTimeRemaining(CurrentActorInfo) : 0.f;
+}

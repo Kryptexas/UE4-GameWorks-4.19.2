@@ -4,6 +4,8 @@
 #include "Perception/AISense.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseConfig_Prediction.h"
+#include "Perception/AISense_Prediction.h"
 
 #if !UE_BUILD_SHIPPING
 #include "DrawDebugHelpers.h"
@@ -181,3 +183,11 @@ void UAISenseConfig_Hearing::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionCompone
 	}
 }
 #endif // !UE_BUILD_SHIPPING
+
+//----------------------------------------------------------------------//
+// UAISenseConfig_Prediction
+//----------------------------------------------------------------------//
+TSubclassOf<UAISense> UAISenseConfig_Prediction::GetSenseImplementation() const 
+{ 
+	return UAISense_Prediction::StaticClass(); 
+}
