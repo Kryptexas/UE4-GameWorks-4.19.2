@@ -1,0 +1,81 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#include "MovieSceneTracksPrivatePCH.h"
+#include "MovieSceneCommonHelpers.h"
+#include "MovieScene3DConstraintTrackInstance.h"
+#include "MovieScene3DConstraintTrack.h"
+#include "MovieScene3DConstraintSection.h"
+#include "IMovieScenePlayer.h"
+#include "Components/SplineComponent.h"
+
+FMovieScene3DConstraintTrackInstance::FMovieScene3DConstraintTrackInstance( UMovieScene3DConstraintTrack& InConstraintTrack )
+{
+	ConstraintTrack = &InConstraintTrack;
+}
+
+void FMovieScene3DConstraintTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+{
+	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+	{
+		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+		if (SceneComponent != NULL)
+		{
+			InitTransformMap.Add(RuntimeObjects[ObjIndex], SceneComponent->GetRelativeTransform());
+		}
+	}
+}
+
+void FMovieScene3DConstraintTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+{
+	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+	{
+		if (!IsValid(RuntimeObjects[ObjIndex]))
+		{
+			continue;
+		}
+
+		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+		if (SceneComponent != NULL)
+		{
+			FTransform *Transform = InitTransformMap.Find(RuntimeObjects[ObjIndex]);
+			if (Transform != NULL)
+			{
+				SceneComponent->SetRelativeTransform(*Transform);
+			}
+		}
+	}
+}
+
+void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+{
+	UMovieScene3DConstraintSection* FirstConstraintSection = NULL;
+
+	const TArray<UMovieSceneSection*>& ConstraintSections = ConstraintTrack->GetAllSections();
+
+	for (int32 ConstraintIndex = 0; ConstraintIndex < ConstraintSections.Num(); ++ConstraintIndex)
+	{
+		UMovieScene3DConstraintSection* ConstraintSection = CastChecked<UMovieScene3DConstraintSection>(ConstraintSections[ConstraintIndex]);
+
+		if (ConstraintSection->IsTimeWithinSection(Position) &&
+			(FirstConstraintSection == NULL || FirstConstraintSection->GetRowIndex() > ConstraintSection->GetRowIndex()))
+		{
+			TArray<UObject*> ConstraintObjects;
+			FGuid ConstraintId = ConstraintSection->GetConstraintId();
+
+			if (ConstraintId.IsValid())
+			{
+				Player.GetRuntimeObjects( Player.GetRootMovieSceneSequenceInstance(), ConstraintId, ConstraintObjects);
+
+				for (int32 ConstraintObjectIndex = 0; ConstraintObjectIndex < ConstraintObjects.Num(); ++ConstraintObjectIndex)
+				{
+					AActor* Actor = Cast<AActor>(ConstraintObjects[ConstraintObjectIndex]);
+					if (Actor)
+					{
+						UpdateConstraint(Position, RuntimeObjects, Actor, ConstraintSection);
+					}	
+				}
+			}
+		}
+	}
+}
+

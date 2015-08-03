@@ -284,7 +284,7 @@ void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithS
 
 	if (SplineId.IsValid())
 	{
-		PathSection->SetPathId(SplineId);
+		PathSection->SetConstraintId(SplineId);
 	}
 }
 
@@ -333,7 +333,7 @@ void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 						}
 					}
 
-					Cast<UMovieScene3DPathTrack>(Track)->AddPath( KeyTime, PathEndTime, SplineId );
+					Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, SplineId );
 				}
 			}
 		}

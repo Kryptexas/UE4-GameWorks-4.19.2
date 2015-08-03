@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneSection.h"
+#include "MovieScene3DConstraintSection.h"
 #include "MovieScene3DPathSection.generated.h"
 
 class USplineComponent;
@@ -23,7 +23,7 @@ enum class MovieScene3DPathSection_Axis : uint8
  */
 UCLASS(MinimalAPI)
 class UMovieScene3DPathSection
-	: public UMovieSceneSection
+	: public UMovieScene3DConstraintSection
 {
 	GENERATED_UCLASS_BODY()
 
@@ -34,18 +34,12 @@ public:
 	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
 
-	/** Sets the path id for this path section */
-	virtual void SetPathId(const FGuid& InId);
-
-	/** Gets the path id for this path section */
-	virtual FGuid GetPathId() const;
-
 	/**
 	 * Evaluates the path track
 	 *
 	 * @param Time				The position in time within the movie scene
 	 */
-	void Eval( float Time, USplineComponent* SplineComponent, FVector& OutTranslation, FRotator& OutRotation ) const;
+	void Eval( USceneComponent* SceneComponent, float Time, USplineComponent* SplineComponent, FVector& OutTranslation, FRotator& OutRotation ) const;
 
 	/** 
 	 * Adds a path to the section
@@ -64,10 +58,6 @@ public:
 	MOVIESCENETRACKS_API FRichCurve& GetTimingCurve() { return TimingCurve; }
 	
 private:
-	/** The path possessable that this path uses */
-	UPROPERTY()
-	FGuid PathId;
-
 	/** Timing Curve */
 	UPROPERTY()
 	FRichCurve TimingCurve;

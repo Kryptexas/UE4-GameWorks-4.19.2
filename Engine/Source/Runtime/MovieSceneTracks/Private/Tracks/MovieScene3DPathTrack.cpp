@@ -20,51 +20,12 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DPathTrack::CreateInstance()
 	return MakeShareable( new FMovieScene3DPathTrackInstance( *this ) ); 
 }
 
-const TArray<UMovieSceneSection*>& UMovieScene3DPathTrack::GetAllSections() const
-{
-	return PathSections;
-}
-
-void UMovieScene3DPathTrack::RemoveAllAnimationData()
-{
-}
-
-bool UMovieScene3DPathTrack::HasSection( UMovieSceneSection* Section ) const
-{
-	return PathSections.Find( Section ) != INDEX_NONE;
-}
-
-void UMovieScene3DPathTrack::AddSection( UMovieSceneSection* Section )
-{
-	PathSections.Add( Section );
-}
-
-void UMovieScene3DPathTrack::RemoveSection( UMovieSceneSection* Section )
-{
-	PathSections.Remove( Section );
-}
-
-bool UMovieScene3DPathTrack::IsEmpty() const
-{
-	return PathSections.Num() == 0;
-}
-
-TRange<float> UMovieScene3DPathTrack::GetSectionBoundaries() const
-{
-	TArray< TRange<float> > Bounds;
-	for (int32 i = 0; i < PathSections.Num(); ++i)
-	{
-		Bounds.Add(PathSections[i]->GetRange());
-	}
-	return TRange<float>::Hull(Bounds);
-}
-
-void UMovieScene3DPathTrack::AddPath(float KeyTime, float PathEndTime, const FGuid& PathId)
+void UMovieScene3DPathTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FGuid& ConstraintId)
 {
 	// add the section
 	UMovieScene3DPathSection* NewSection = NewObject<UMovieScene3DPathSection>(this);
-	NewSection->AddPath(KeyTime, PathEndTime, PathId);
-	NewSection->InitialPlacement( PathSections, KeyTime, PathEndTime, SupportsMultipleRows() );
+	NewSection->AddPath(KeyTime, ConstraintEndTime, ConstraintId);
+	NewSection->InitialPlacement( ConstraintSections, KeyTime, ConstraintEndTime, SupportsMultipleRows() );
 
-	PathSections.Add(NewSection);
+	ConstraintSections.Add(NewSection);
 }
