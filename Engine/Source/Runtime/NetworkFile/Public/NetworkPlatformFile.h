@@ -178,21 +178,12 @@ private:
 	 */
 	void EnsureFileIsLocal(const FString& Filename);
 
+protected:
 	/**
 	* Does normal path standardization, and also any extra modifications to make string comparisons against
 	* the internal directory list work properly.
 	*/
 	void MakeStandardNetworkFilename(FString& Filename);
-
-	/**
-	 * This function will send a payload data (with header) and wait for a response, serializing
-	 * the response to a FBufferArchive
-	 *
-	 * @param Payload Bytes to send over the network
-	 * @param Response The archive to read the response into
-	 *
-	 * @return true if successful
-	 */
 
 protected:
 
