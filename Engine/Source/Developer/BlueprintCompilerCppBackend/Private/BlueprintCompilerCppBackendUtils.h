@@ -61,11 +61,16 @@ struct FEmitHelper
 	static bool ShoulsHandleAsNativeEvent(UFunction* Function);
 
 	static bool ShoulsHandleAsImplementableEvent(UFunction* Function);
+
+	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 };
 
 struct FEmitDefaultValueHelper
 {
 	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct);
+
+	static FString GenerateConstructor(UClass* BPGC);
+private:
 	static void InnerGenerate(const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember, FString& OutResult);
 	
 	// Return if it's complete construction
