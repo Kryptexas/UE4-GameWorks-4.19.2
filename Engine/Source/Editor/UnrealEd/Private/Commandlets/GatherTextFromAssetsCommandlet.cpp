@@ -361,8 +361,43 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			FPackageFileSummary PackageFileSummary;
 			(*FileReader) << PackageFileSummary;
 
-			// Package has gatherable text data in its header, process immediately.
-			if (PackageFileSummary.GetFileVersionUE4() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+			bool MustLoadForGather = false;
+
+			// Packages not resaved since localization gathering flagging was added to packages must be loaded.
+			if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)
+			{
+				MustLoadForGather = true;
+			}
+			// Package not resaved since gatherable text data was added to package headers must be loaded, since their package header won't contain pregathered text data.
+			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+			{
+				// Fallback on the old package flag check.
+				if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)
+				{
+					MustLoadForGather = true;
+				}
+			}
+			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_DIALOGUE_WAVE_NAMESPACE_AND_CONTEXT_CHANGES)
+			{
+				IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+				TArray<FAssetData> AssetDataInPackage;
+				AssetRegistry.GetAssetsByPackageName(*FPackageName::FilenameToLongPackageName(PackageFile), AssetDataInPackage);
+				for (const FAssetData& AssetData : AssetDataInPackage)
+				{
+					if (AssetData.AssetClass == UDialogueWave::StaticClass()->GetFName())
+					{
+						MustLoadForGather = true;
+					}
+				}
+			}
+				 
+			// Add package to list of packages to load fully and process.
+			if (MustLoadForGather)
+			{
+				PackageFileNamesToLoad.Add(PackageFile);
+			}
+			// Process immediately packages that don't require loading to process.
+			else
 			{
 				TArray<FGatherableTextData> GatherableTextDataArray;
 
@@ -378,11 +413,6 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 					ProcessGatherableTextDataArray(PackageFile, GatherableTextDataArray);
 				}
-			}
-			// Package not resaved since gatherable text data was added to package headers, defer processing until after loading.
-			else if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather || PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)
-			{
-				PackageFileNamesToLoad.Add(PackageFile);
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ActiveSound.h"
@@ -57,7 +57,7 @@ namespace
 		TArray< FTextSourceSiteContext > ContextSpecificVariations;
 	};
 
-	const FString FDialogueHelper::DialogueNamespace						= TEXT("Dialogue");
+	const FString FDialogueHelper::DialogueNamespace						= TEXT("");
 	const FString FDialogueHelper::PropertyName_VoiceActorDirection		= TEXT("Voice Actor Direction");
 	const FString FDialogueHelper::PropertyName_Speaker					= TEXT("Speaker");
 	const FString FDialogueHelper::PropertyName_Speakers					= TEXT("Speakers");
@@ -194,7 +194,7 @@ namespace
 				{
 					Context.KeyName = DialogueWave->GetContextLocalizationKey( DialogueContext );
 					Context.SiteDescription = SourceLocation;
-					Context.IsOptional = true;
+					Context.IsOptional = false;
 					Context.KeyMetaData = KeyMetaDataObject->Values.Num() > 0 ? *KeyMetaDataObject : FLocMetadataObject();
 					Context.InfoMetaData = InfoMetaDataObject->Values.Num() > 0 ? *InfoMetaDataObject : FLocMetadataObject();
 				}
@@ -216,34 +216,6 @@ namespace
 					}
 				}
 			}
-		}
-
-		// Create the base, non-optional entry
-		{
-			TSharedPtr< FLocMetadataObject > InfoMetaDataObject = MakeShareable( new FLocMetadataObject() );
-
-			// Setup a loc metadata object with all the context specific info.  This usually includes human readable descriptions of the dialogue
-			{
-				if( VariationsDisplayInfoList.Num() > 0 )
-				{
-					InfoMetaDataObject->SetArrayField( PropertyName_DialogueVariations, VariationsDisplayInfoList );
-				}
-
-				if( !VoiceActorDirection.IsEmpty() )
-				{
-					InfoMetaDataObject->SetStringField( PropertyName_VoiceActorDirection, VoiceActorDirection );
-				}
-			}
-
-			
-			// Setup the context
-			{
-				Base.KeyName = DialogueKey;
-				Base.SiteDescription = SourceLocation;
-				Base.IsOptional = false;
-				Base.InfoMetaData = InfoMetaDataObject->Values.Num() > 0 ? *InfoMetaDataObject : FLocMetadataObject();
-			}
-
 		}
 
 		return true;
