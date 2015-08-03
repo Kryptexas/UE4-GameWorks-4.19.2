@@ -1642,10 +1642,13 @@ SIZE_T FStaticLODModel::GetResourceSize() const
 		ResourceSize += IndexBuffer->GetResourceDataSize(); 
 	}
 
-	const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
-	if (AdjacentIndexBuffer)
+	if( AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() )
 	{
-		ResourceSize += AdjacentIndexBuffer->GetResourceDataSize();
+		const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+		if(AdjacentIndexBuffer)
+		{
+			ResourceSize += AdjacentIndexBuffer->GetResourceDataSize();
+		}
 	}
 
 	ResourceSize += VertexBufferGPUSkin.GetVertexDataSize();
