@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2635791
 Availability:Public
 Title:2.Nav Mesh Bounds Volume を作成する
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:ステップ 2Nav Mesh Bounds Volume を作成する
+Description:ステップ 2. Nav Mesh Bounds Volume を作成する
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,15 +29,15 @@ Description:ステップ 2Nav Mesh Bounds Volume を作成する
 
 アンリアルの NavMesh には、ビヘイビアツリーと相性の良い関数が数多くあります。ゲームによっては必要のない場合もありますが、様々なゲームタイプにおいて役立っています。さらに、 Top Down テンプレートには既に Nav Mesh Bounds Volume が含まれていますが、後日全くゼロの状態からプロジェクトを開始することを選択することもできます。
 
-## 手順
+## ステップ
 
-1. [REGION:raw]**[Modes Panel (モード パネル)]** %arrow% **[Create (新規作成)]** %arrow% **[Volumes (ボリューム)]**.[/REGION]
+1. [REGION:raw]**[Modes Panel (モード パネル)]** %arrow% **[Create (新規作成)]** %arrow% **[Volumes (ボリューム)]** を選択します。[/REGION]
 
-1. **Nav Mesh Bounds Volume** をクリックしてマップへドラッグします。
+1. **[Nav Mesh Bounds Volume]** をクリックしてマップへドラッグします。
 
 	![](createNavVol.png)
 
-1. ボリュームを移動およびスケールして、キャラクターを移動させたい領域を囲むようにします。
+1. ボリュームを **平行移動** および **スケール** して、キャラクターを移動させたい領域を囲むようにします。
 
 	* 必要であれば複数のボリューム、またはレベル全体を囲む大きさのボリュームを使用することができます。
 
