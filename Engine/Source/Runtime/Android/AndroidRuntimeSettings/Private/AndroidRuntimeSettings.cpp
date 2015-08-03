@@ -30,13 +30,16 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 	}
 }
 
-
-void UAndroidRuntimeSettings::MigrateData()
+void UAndroidRuntimeSettings::PostInitProperties()
 {
+	Super::PostInitProperties();
+
+	// If the config has an AdMobAdUnitID then we migrate it on load and clear the value
 	if (!AdMobAdUnitID.IsEmpty())
 	{
 		AdMobAdUnitIDs.Add(AdMobAdUnitID);
 		AdMobAdUnitID.Empty();
+		UpdateDefaultConfigFile();
 	}
 }
 #endif

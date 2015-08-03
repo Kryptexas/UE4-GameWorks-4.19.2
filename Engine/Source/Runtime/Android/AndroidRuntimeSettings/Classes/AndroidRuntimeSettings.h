@@ -258,9 +258,7 @@ public:
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostInitProperties() override;
 	// End of UObject interface
-
-	// If the config has an AdMobAdUnitID then we migrate it on load and clear the value
-	void MigrateData();
 #endif
 };
