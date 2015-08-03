@@ -11,7 +11,7 @@ public: \
 		DelegateName##Delegates.Add(Delegate); \
 		return Delegate.GetHandle(); \
 	} \
-	virtual void Clear##DelegateName##Delegate_Handle(FDelegateHandle Handle) \
+	virtual void Clear##DelegateName##Delegate_Handle(FDelegateHandle& Handle) \
 	{ \
 		DelegateName##Delegates.Remove(Handle); \
 		Handle.Reset(); \
@@ -87,7 +87,7 @@ public: \
 		} \
 		return Result; \
 	} \
-	virtual void Clear##DelegateName##Delegate_Handle(int32 LocalUserNum, FDelegateHandle Handle) \
+	virtual void Clear##DelegateName##Delegate_Handle(int32 LocalUserNum, FDelegateHandle& Handle) \
 	{ \
 		if (LocalUserNum >= 0 && LocalUserNum < MaxPlayers) \
 		{ \

@@ -2589,7 +2589,8 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		FOnLoginCompleteDelegate Delegate;
 		Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
 
-		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, OnLoginPIECompleteDelegateHandlesForPIEInstances.FindRef(OnlineIdentifier));
+		FDelegateHandle DelegateHandle = OnLoginPIECompleteDelegateHandlesForPIEInstances.FindRef(OnlineIdentifier);
+		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, DelegateHandle);
 		OnLoginPIECompleteDelegateHandlesForPIEInstances.Add(OnlineIdentifier, IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate));
 		IdentityInt->Login(0, AccountCreds);
 	}
