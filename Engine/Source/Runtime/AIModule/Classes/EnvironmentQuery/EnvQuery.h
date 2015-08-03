@@ -10,7 +10,7 @@ class UEnvQueryOption;
 class UEdGraph;
 #endif // WITH_EDITORONLY_DATA
 
-UCLASS()
+UCLASS(BlueprintType)
 class AIMODULE_API UEnvQuery : public UObject
 {
 	GENERATED_UCLASS_BODY()
