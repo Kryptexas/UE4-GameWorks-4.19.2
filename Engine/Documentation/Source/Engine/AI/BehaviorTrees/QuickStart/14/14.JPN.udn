@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2637071
 Availability:Public
 Title:14.ビヘイビアツリーのビルド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -39,7 +39,7 @@ Description:ステップ 14ビヘイビアツリーのビルド
 
 このツリーの作成をステップスルーしてみましょう。
 
-## 手順
+## ステップ
 
 ### 基本設定
 
@@ -57,19 +57,19 @@ Description:ステップ 14ビヘイビアツリーのビルド
 1. グラフ エディタで **右クリック** するとノードを作成できます。
 	1. **Composites** から **Sequence** ノードを追加します。
 
-		![](Engine/AI/BehaviorTrees/QuickStart/10/sequence.png)
+		![](sequence.jpg)
 
 	1. **Composites** から **Selector** ノードを 2 つ追加します。
 
-		![](Engine/AI/BehaviorTrees/QuickStart/10/selector.png)
+		![](selector.jpg)
 
 1. Selector ノードの 1 つへ Root ノードを接続します。
 
-	![](connectNodes.png)
+	![](connectNodes.jpg)
 
 1. 新しく接続された Sequence ノードを Selector ノードとその他の Sequence ノードへ接続します。そしてそれらを調整します。
 
-	![](connectNodes2.png)
+	![](connectNodes2.jpg)
 
 	_左側が 2 つ目の Selector ノード、右側が Sequence ノードです。_
 
@@ -82,7 +82,7 @@ Description:ステップ 14ビヘイビアツリーのビルド
 1. **Selector** ノードの **Agro Check** ボックスを選択し、 **[Details (詳細)]** パネルを使って **Target to Follow** プロパティを「TargetToFollow」に、 **Target Location (ターゲットの位置)** を [TargetLocation] に設定し、 **Interval (インターバル)** を 「0.5」、 **Random Deviation (ランダムな偏差)** を 「0.0」に調整します。
 
 	[REGION:raw]
-	![](setAgroCheck.png)
+	![](setAgroCheck.jpg)
 	[/REGION]
 
 ### タスクを追加
@@ -103,13 +103,13 @@ Description:ステップ 14ビヘイビアツリーのビルド
 1. 一番右にある **Move To** ノードの **Blackboard Key** プロパティを [HomeLocation] に設定します。
 
 	[REGION:raw]
-	![](adjustMoveTo.png)
+	![](adjustMoveTo.jpg)
 	[/REGION]
 
 1. **Wait** ノードを選択し、 **[Details (詳細)]** パネルを使って **Wait Time** プロパティを [2.5] に設定します。
 
 	[REGION:raw]
-	![](adjustWait.png)
+	![](adjustWait.jpg)
 	[/REGION]
 
 1. **RapidMoveTo** ノードを選択し、 **[Details (詳細)]** パネルを使って **Target to Follow** プロパティを [TargetToFollow] に設定します。
@@ -120,14 +120,14 @@ Description:ステップ 14ビヘイビアツリーのビルド
 1. 下側の **Selector** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Close Enough]** を選択します。
 
 	[REGION:raw]
-	![](addDecorator1.png)
+	![](addDecorator1.jpg)
 	[/REGION]
 
 1. **Blackboard** デコレーター上の **Observer Aborts** プロパティを [Both] に、 **Key Query** を [Is Set] に、 **Blackboard Key** を [TargetToFollow] に設定します。
 1. **Close Enough** デコレーターの **Acceptable Distance** プロパティを [100.0] に、 **Target to Follow** プロパティを [TargetToFollow] に設定します。
 
 	[REGION:raw]
-	![](setBB1.png)
+	![](setBB1.jpg)
 	[/REGION]
 
 1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Blackboard]** を選択します。
@@ -150,7 +150,17 @@ Description:ステップ 14ビヘイビアツリーのビルド
 これで終わりです！**Play in Editor** の使用中は **ビヘイビアツリー** エディタを開いたままにしておけば、ツリーがどのように動くのか確認することができます。AI に十分近寄って、その視界に入ると、 AI が追跡を開始します。視界から消えると、 AI は最後に目撃した位置に行って、待機してから、開始した場所に戻ります。
 
 
-![](BTFinal.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+1td5wSD3PPU
+[/PARAMLITERAL]
+[/OBJECT]
 
 %Steps%
 
