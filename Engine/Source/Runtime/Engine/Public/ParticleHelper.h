@@ -1214,6 +1214,30 @@ enum EDynamicEmitterType
 	DET_Custom
 };
 
+struct FParticleDataContainer
+{
+	int32 MemBlockSize;
+	int32 ParticleDataNumBytes;
+	int32 ParticleIndicesNumShorts;
+	uint8* ParticleData; // this is also the memory block we allocated
+	uint16* ParticleIndices; // not allocated, this is at the end of the memory block
+
+	FParticleDataContainer()
+		: MemBlockSize(0)
+		, ParticleDataNumBytes(0)
+		, ParticleIndicesNumShorts(0)
+		, ParticleData(nullptr)
+		, ParticleIndices(nullptr)
+	{
+	}
+	~FParticleDataContainer()
+	{
+		Free();
+	}
+	void Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts);
+	void Free();
+};
+
 /** Source data base class for all emitter types */
 struct FDynamicEmitterReplayDataBase
 {
@@ -1224,8 +1248,7 @@ struct FDynamicEmitterReplayDataBase
 	int32 ActiveParticleCount;
 
 	int32 ParticleStride;
-	TArray<uint8> ParticleData;
-	TArray<uint16> ParticleIndices;
+	FParticleDataContainer DataContainer;
 
 	FVector Scale;
 
@@ -1264,8 +1287,45 @@ struct FDynamicEmitterReplayDataBase
 
 		Ar << ActiveParticleCount;
 		Ar << ParticleStride;
+		
+		TArray<uint8> ParticleData;
+		TArray<uint16> ParticleIndices;
+
+		if (!Ar.IsLoading() && !Ar.IsObjectReferenceCollector())
+		{
+			if (DataContainer.ParticleDataNumBytes)
+			{
+				ParticleData.AddUninitialized(DataContainer.ParticleDataNumBytes);
+				FMemory::Memcpy(ParticleData.GetData(), DataContainer.ParticleData, DataContainer.ParticleDataNumBytes);
+			}
+			if (DataContainer.ParticleIndicesNumShorts)
+			{
+				ParticleIndices.AddUninitialized(DataContainer.ParticleIndicesNumShorts);
+				FMemory::Memcpy(ParticleIndices.GetData(), DataContainer.ParticleIndices, DataContainer.ParticleIndicesNumShorts * sizeof(uint16));
+			}
+		}
+
 		Ar << ParticleData;
 		Ar << ParticleIndices;
+
+		if (Ar.IsLoading())
+		{
+			DataContainer.Free();
+			if (ParticleData.Num())
+			{
+				DataContainer.Alloc(ParticleData.Num(), ParticleIndices.Num());
+				FMemory::Memcpy(DataContainer.ParticleData, ParticleData.GetData(), DataContainer.ParticleDataNumBytes);
+				if (DataContainer.ParticleIndicesNumShorts)
+				{
+					FMemory::Memcpy(DataContainer.ParticleIndices, ParticleIndices.GetData(), DataContainer.ParticleIndicesNumShorts * sizeof(uint16));
+				}
+			}
+			else
+			{
+				check(!ParticleIndices.Num());
+			}
+		}
+
 		Ar << Scale;
 		Ar << SortMode;
 		Ar << bOverrideSystemMacroUV;
@@ -1284,6 +1344,10 @@ struct FDynamicEmitterDataBase
 	{
 		ReturnVertexFactory();
 	}
+
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void *RawMemory, size_t Size);
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1461,7 +1525,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *	@param	ParticleOrder		The array to fill in with ordered indices
 	 */
 	void SortSpriteParticles(int32 SortMode, bool bLocalSpace, 
-		int32 ParticleCount, const TArray<uint8>& ParticleData, int32 ParticleStride, const TArray<uint16>& ParticleIndices,
+		int32 ParticleCount, const uint8* ParticleData, int32 ParticleStride, const uint16* ParticleIndices,
 		const FSceneView* View, const FMatrix& LocalToWorld, FParticleOrder* ParticleOrder) const;
 
 	/**
@@ -2298,10 +2362,14 @@ public:
 	{
 	}
 
-	virtual ~FParticleDynamicData()
+	~FParticleDynamicData()
 	{
 		ClearEmitterDataArray();
 	}
+
+	/** Custom new/delete with recycling */
+	void* operator new(size_t Size);
+	void operator delete(void *RawMemory, size_t Size);
 
 	void ClearEmitterDataArray()
 	{
@@ -2309,18 +2377,17 @@ public:
 		{
 			FDynamicEmitterDataBase* Data =	DynamicEmitterDataArray[Index];
 			delete Data;
-			DynamicEmitterDataArray[Index] = NULL;
 		}
-		DynamicEmitterDataArray.Empty();
+		DynamicEmitterDataArray.Reset();
 	}
 
 	uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + DynamicEmitterDataArray.GetAllocatedSize() ); }
 
-	// Variables
-	TArray<FDynamicEmitterDataBase*>	DynamicEmitterDataArray;
-
 	/** The Current Emmitter we are rendering **/
 	uint32 EmitterIndex;
+
+	// Variables
+	TArray<FDynamicEmitterDataBase*, TInlineAllocator<12> >	DynamicEmitterDataArray;
 
 	/** World space position that UVs generated with the ParticleMacroUV material node will be centered on. */
 	FVector SystemPositionForMacroUVs;

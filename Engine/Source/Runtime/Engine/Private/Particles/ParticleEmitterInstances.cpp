@@ -133,6 +133,116 @@ DEFINE_STAT(STAT_DynamicAnimTrailGTMem_MAX);
 DEFINE_STAT(STAT_DynamicUntrackedGTMem_MAX);
 
 /*-----------------------------------------------------------------------------
+	Fast allocators for small block data being sent to the render thread
+-----------------------------------------------------------------------------*/
+
+static TLockFreeFixedSizeAllocator<256> FastParticleSmallBlockAlloc256;
+static TLockFreeFixedSizeAllocator<384> FastParticleSmallBlockAlloc384;
+static TLockFreeFixedSizeAllocator<512> FastParticleSmallBlockAlloc512;
+static TLockFreeFixedSizeAllocator<768> FastParticleSmallBlockAlloc768;
+static TLockFreeFixedSizeAllocator<1024> FastParticleSmallBlockAlloc1024;
+static TLockFreeFixedSizeAllocator<1792> FastParticleSmallBlockAlloc1792;
+static TLockFreeFixedSizeAllocator<2048> FastParticleSmallBlockAlloc2048;
+
+FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
+{
+	check(AllocSize > 0);
+	if (AllocSize <= 768)
+	{
+		if (AllocSize <= 256)
+		{
+			return FastParticleSmallBlockAlloc256.Allocate();
+		}
+		if (AllocSize <= 384)
+		{
+			return FastParticleSmallBlockAlloc384.Allocate();
+		}
+		if (AllocSize <= 512)
+		{
+			return FastParticleSmallBlockAlloc512.Allocate();
+		}
+		return FastParticleSmallBlockAlloc768.Allocate();
+	}
+	if (AllocSize <= 1024)
+	{
+		return FastParticleSmallBlockAlloc1024.Allocate();
+	}
+	if (AllocSize <= 1792)
+	{
+		return FastParticleSmallBlockAlloc1792.Allocate();
+	}
+	if (AllocSize <= 2048)
+	{
+		return FastParticleSmallBlockAlloc2048.Allocate();
+	}
+	return FMemory::Malloc(AllocSize);
+}
+
+FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t AllocSize)
+{
+	check(AllocSize > 0);
+	if (AllocSize <= 768)
+	{
+		if (AllocSize <= 256)
+		{
+			return FastParticleSmallBlockAlloc256.Free(RawMemory);
+		}
+		if (AllocSize <= 384)
+		{
+			return FastParticleSmallBlockAlloc384.Free(RawMemory);
+		}
+		if (AllocSize <= 512)
+		{
+			return FastParticleSmallBlockAlloc512.Free(RawMemory);
+		}
+		return FastParticleSmallBlockAlloc768.Free(RawMemory);
+	}
+
+	if (AllocSize <= 1024)
+	{
+		return FastParticleSmallBlockAlloc1024.Free(RawMemory);
+	}
+	if (AllocSize <= 1792)
+	{
+		return FastParticleSmallBlockAlloc1792.Free(RawMemory);
+	}
+	if (AllocSize <= 2048)
+	{
+		return FastParticleSmallBlockAlloc2048.Free(RawMemory);
+	}
+	FMemory::Free(RawMemory);
+}
+
+
+void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)
+{
+	check(InParticleDataNumBytes > 0 && ParticleIndicesNumShorts >= 0
+		&& InParticleDataNumBytes % sizeof(uint16) == 0); // we assume that the particle storage has reasonable alignment below
+	ParticleDataNumBytes = InParticleDataNumBytes;
+	ParticleIndicesNumShorts = InParticleIndicesNumShorts;
+
+	MemBlockSize = ParticleDataNumBytes + ParticleIndicesNumShorts * sizeof(uint16);
+
+	ParticleData = (uint8*)FastParticleSmallBlockAlloc(MemBlockSize);
+	ParticleIndices = (uint16*)(ParticleData + ParticleDataNumBytes);
+}
+
+void FParticleDataContainer::Free()
+{
+	if (ParticleData)
+	{
+		check(MemBlockSize > 0);
+		FastParticleSmallBlockFree(ParticleData, MemBlockSize);
+	}
+	MemBlockSize = 0;
+	ParticleDataNumBytes = 0;
+	ParticleIndicesNumShorts = 0;
+	ParticleData = nullptr;
+	ParticleIndices = nullptr;
+}
+
+
+/*-----------------------------------------------------------------------------
 	Information compiled from modules to build runtime emitter data.
 -----------------------------------------------------------------------------*/
 
@@ -2427,22 +2537,14 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 	}
 
 	int32 ParticleMemSize = MaxActiveParticles * ParticleStride;
-	int32 IndexMemSize = MaxActiveParticles * sizeof(uint16);
-	{
-		SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
-		// This is 'render thread' memory in that we pass it over to the render thread for consumption
-		INC_DWORD_STAT_BY(STAT_RTParticleData, ParticleMemSize + IndexMemSize);
-		//SET_DWORD_STAT(STAT_RTParticleData_Largest, FMath::Max<uint32>(ParticleMemSize + IndexMemSize, GET_DWORD_STAT(STAT_RTParticleData_Largest)));
-	}
 
 	// Allocate particle memory
-	OutData.ParticleData.Empty(ParticleMemSize);
-	OutData.ParticleData.AddUninitialized(ParticleMemSize);
-	FMemory::BigBlockMemcpy(OutData.ParticleData.GetData(), ParticleData, ParticleMemSize);
-	// Allocate particle index memory
-	OutData.ParticleIndices.Empty(MaxActiveParticles);
-	OutData.ParticleIndices.AddUninitialized(MaxActiveParticles);
-	FMemory::BigBlockMemcpy(OutData.ParticleIndices.GetData(), ParticleIndices, IndexMemSize);
+
+	OutData.DataContainer.Alloc(ParticleMemSize, MaxActiveParticles);
+	INC_DWORD_STAT_BY(STAT_RTParticleData, OutData.DataContainer.MemBlockSize);
+
+	FMemory::BigBlockMemcpy(OutData.DataContainer.ParticleData, ParticleData, ParticleMemSize);
+	FMemory::Memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, OutData.DataContainer.ParticleIndicesNumShorts * sizeof(uint16));
 
 	// All particle emitter types derived from sprite emitters, so we can fill that data in here too!
 	{
@@ -2614,7 +2716,7 @@ FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData(bool bSe
 	}
 
 	// Allocate the dynamic data
-	FDynamicSpriteEmitterData* NewEmitterData = ::new FDynamicSpriteEmitterData(LODLevel->RequiredModule);
+	FDynamicSpriteEmitterData* NewEmitterData = new FDynamicSpriteEmitterData(LODLevel->RequiredModule);
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
 		INC_DWORD_STAT(STAT_DynamicEmitterCount);
@@ -2682,7 +2784,7 @@ FDynamicEmitterReplayDataBase* FParticleSpriteEmitterInstance::GetReplayData()
 		return NULL;
 	}
 
-	FDynamicEmitterReplayDataBase* NewEmitterReplayData = ::new FDynamicSpriteEmitterReplayData();
+	FDynamicEmitterReplayDataBase* NewEmitterReplayData = new FDynamicSpriteEmitterReplayData();
 	check( NewEmitterReplayData != NULL );
 
 	if( !FillReplayData( *NewEmitterReplayData ) )
@@ -3215,7 +3317,7 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSele
 	}
 
 	// Allocate the dynamic data
-	FDynamicMeshEmitterData* NewEmitterData = ::new FDynamicMeshEmitterData(LODLevel->RequiredModule);
+	FDynamicMeshEmitterData* NewEmitterData = new FDynamicMeshEmitterData(LODLevel->RequiredModule);
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
 		INC_DWORD_STAT(STAT_DynamicEmitterCount);
@@ -3293,7 +3395,7 @@ FDynamicEmitterReplayDataBase* FParticleMeshEmitterInstance::GetReplayData()
 		return NULL;
 	}
 
-	FDynamicEmitterReplayDataBase* NewEmitterReplayData = ::new FDynamicMeshEmitterReplayData();
+	FDynamicEmitterReplayDataBase* NewEmitterReplayData = new FDynamicMeshEmitterReplayData();
 	check( NewEmitterReplayData != NULL );
 
 	if( !FillReplayData( *NewEmitterReplayData ) )
@@ -3531,6 +3633,33 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 
 	return true;
 }
+
+
+void* FDynamicEmitterDataBase::operator new(size_t AllocSize)
+{
+	return FastParticleSmallBlockAlloc(AllocSize);
+}
+
+void FDynamicEmitterDataBase::operator delete(void *RawMemory, size_t AllocSize)
+{
+	FastParticleSmallBlockFree(RawMemory, AllocSize);
+}	
+
+static TLockFreeFixedSizeAllocator<sizeof(FParticleDynamicData)> ParticleDynamicDataAllocator;
+
+void* FParticleDynamicData::operator new(size_t AllocSize)
+{
+	check(AllocSize == sizeof(FParticleDynamicData));
+	return ParticleDynamicDataAllocator.Allocate();
+	//return FMemory::Malloc(AllocSize);
+}
+
+void FParticleDynamicData::operator delete(void *RawMemory, size_t AllocSize)
+{
+	check(AllocSize == sizeof(FParticleDynamicData));
+	ParticleDynamicDataAllocator.Free(RawMemory);
+	//FMemory::Free(RawMemory);
+}	
 
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)
 	: bSelected(false)

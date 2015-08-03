@@ -150,7 +150,7 @@ ENGINE_API uint32 GGPUFrameTime = 0;
 FSystemResolution GSystemResolution;
 
 /** Threshold for a frame to be considered a hitch (in seconds. */
-static TAutoConsoleVariable<float> GHitchThresholdCVar(
+static FAutoConsoleVariableRef GHitchThresholdCVar(
 	TEXT("t.HitchThreshold"),
 	GHitchThreshold,
 	TEXT("Time in seconds that is considered a hitch by \"stat dumphitches\"")
@@ -1013,8 +1013,8 @@ void UEngine::PreExit()
 		auto SavedHMD = HMDDevice;
 		{
 			FSuspendRenderingThread Suspend(false);
-			StereoRenderingDevice.Reset();
-			HMDDevice.Reset();
+	StereoRenderingDevice.Reset();
+	HMDDevice.Reset();
 		}
 		// shutdown will occur here.
 	}
@@ -1041,6 +1041,7 @@ void UEngine::TickDeferredCommands()
 	}
 	DeferredCommands.RemoveAt(0, DeferredCommandsCount);
 }
+
 
 #if !UE_BUILD_SHIPPING
 
@@ -1299,12 +1300,17 @@ struct FABTest
 
 	void Stop()
 	{
-		UE_LOG(LogConsoleResponse, Display, TEXT("Stopping AB test."));
+		UE_LOG(LogConsoleResponse, Display, TEXT("Running 'A' console command and stopping test."));
+		SwitchTest(0);
 		bABTestActive = false;
 	}
 	
 	void Start(FString* InABTestCmds)
 	{
+		if (bABTestActive)
+		{
+			Stop();
+		}
 		ABTestCmds[0] = InABTestCmds[0];
 		ABTestCmds[1] = InABTestCmds[1];
 
@@ -1327,7 +1333,7 @@ struct FABTest
 		RemainingPrint = ReportNum;
 
 		bABTestActive = true;
-		Get().SwitchTest(0);
+		SwitchTest(0);
 		UE_LOG(LogConsoleResponse, Display, TEXT("abtest started with A = '%s' and B = '%s'"), *ABTestCmds[0], *ABTestCmds[1]);
 	}
 
@@ -1899,8 +1905,8 @@ void UEngine::Serialize(FArchive& Ar)
 		// Only use the main audio device when counting memory
 		if (FAudioDevice* AudioDevice = GetMainAudioDevice())
 		{
-			AudioDevice->CountBytes(Ar);
-		}
+		AudioDevice->CountBytes(Ar);
+	}
 	}
 }
 
@@ -2064,10 +2070,10 @@ bool UEngine::InitializeAudioDeviceManager()
 					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle, true);
 					if (NewAudioDevice)
 					{
-						AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
-					}
-					else
-					{
+							AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
+						}
+						else
+						{
 						ShutdownAudioDeviceManager();
 					}
 				}
@@ -6517,23 +6523,23 @@ void UEngine::UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRat
 	{
 		// Smooth the framerate if wanted. The code uses a simplistic running average. Other approaches, like reserving
 		// a percentage of time, ended up creating negative feedback loops in conjunction with GPU load and were abandonend.
-		if( DeltaTime < 0.0f )
-		{
+			if( DeltaTime < 0.0f )
+			{
 #if PLATFORM_ANDROID
-			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
-			DeltaTime = 0.01;
+				UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
+				DeltaTime = 0.01;
 #elif (UE_BUILD_SHIPPING && WITH_EDITOR)
-			// End users don't have access to the secure parts of UDN. The localized string points to the release notes,
-			// which should include a link to the AMD CPU drivers download site.
-			UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("CPU time drift detected! Please consult release notes on how to address this."));
+				// End users don't have access to the secure parts of UDN. The localized string points to the release notes,
+				// which should include a link to the AMD CPU drivers download site.
+				UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("CPU time drift detected! Please consult release notes on how to address this."));
 #else
-			// Send developers to the support list thread.
-			UE_LOG(LogEngine, Fatal, TEXT("Negative delta time! Please see https://udn.epicgames.com/lists/showpost.php?list=ue3bugs&id=4364"));
+				// Send developers to the support list thread.
+				UE_LOG(LogEngine, Fatal, TEXT("Negative delta time! Please see https://udn.epicgames.com/lists/showpost.php?list=ue3bugs&id=4364"));
 #endif
-		}
+			}
 
-		// Keep track of running average over 300 frames, clamping at min of 5 FPS for individual delta times.
-		RunningAverageDeltaTime = FMath::Lerp<float>( RunningAverageDeltaTime, FMath::Min<float>( DeltaTime, 0.2f ), 1 / 300.f );
+			// Keep track of running average over 300 frames, clamping at min of 5 FPS for individual delta times.
+			RunningAverageDeltaTime = FMath::Lerp<float>( RunningAverageDeltaTime, FMath::Min<float>( DeltaTime, 0.2f ), 1 / 300.f );
 	}
 }
 
@@ -6545,19 +6551,19 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 
 	if (bAllowFrameRateSmoothing && IsAllowedFramerateSmoothing())
 	{
-		// Work in FPS domain as that is what the function will return.
-		MaxTickRate = 1.f / RunningAverageDeltaTime;
+			// Work in FPS domain as that is what the function will return.
+			MaxTickRate = 1.f / RunningAverageDeltaTime;
 
-		// Clamp FPS into ini defined min/ max range.
-		if (SmoothedFrameRateRange.HasLowerBound())
-		{
-			MaxTickRate = FMath::Max( MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue() );
+			// Clamp FPS into ini defined min/ max range.
+			if (SmoothedFrameRateRange.HasLowerBound())
+			{
+				MaxTickRate = FMath::Max( MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue() );
+			}
+			if (SmoothedFrameRateRange.HasUpperBound())
+			{
+				MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
+			}
 		}
-		if (SmoothedFrameRateRange.HasUpperBound())
-		{
-			MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
-		}
-	}
 
 	if (CVarCauseHitches.GetValueOnGameThread())
 	{
@@ -7587,19 +7593,19 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		for (const FDebugClass& DebugClass : DebugClasses)
 		{
 			if (DebugClass.Class)
-			{
+		{
 				TArray<UObject*> DebugObjectsOfClass;
 				const bool bIncludeDerivedClasses = true;
 				GetObjectsOfClass(DebugClass.Class, DebugObjectsOfClass, bIncludeDerivedClasses);
 				for (UObject* Obj : DebugObjectsOfClass)
-				{
+			{
 					if (!Obj)
-					{
-						continue;
-					}
+				{
+					continue;
+				}
 
 					if (Obj->GetWorld() && Obj->GetWorld() != World)
-					{
+				{
 						continue;
 					}
 
@@ -10663,19 +10669,19 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		if (Context.PendingLevelStreamingStatusUpdates.Num() > 0)
 		{
 			for (const FLevelStreamingStatus& PendingUpdate : Context.PendingLevelStreamingStatusUpdates)
-			{
+				{
 				ULevelStreaming** Found = Context.World()->StreamingLevels.FindByPredicate([&](ULevelStreaming* Level){
 					return Level && Level->GetWorldAssetPackageFName() == PendingUpdate.PackageName;
 				});
 
 				if (Found)
-				{
+					{
 					(*Found)->bShouldBeLoaded  = PendingUpdate.bShouldBeLoaded;
 					(*Found)->bShouldBeVisible = PendingUpdate.bShouldBeVisible;
 					(*Found)->LevelLODIndex    = PendingUpdate.LODIndex;
-				}
-				else
-				{
+						}
+						else
+						{
 					UE_LOG(LogStreaming, Log, TEXT("Unable to find streaming object %s"), *PendingUpdate.PackageName.ToString());
 				}
 			}
@@ -11804,6 +11810,116 @@ bool UEngine::ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient
 	return true;
 }
 #endif
+
+
+static uint64 TaskThread = 0xFFFFFFFFFFFFFFFF;
+static uint64 GameThread = 0xFFFFFFFFFFFFFFFF;
+static uint64 RenderThread = 0xFFFFFFFFFFFFFFFF;
+static uint64 RHIThread = 0xFFFFFFFFFFFFFFFF;
+FThreadSafeCounter StallForTaskThread;
+
+void SetAffinityOnThread()
+{
+	if (IsInActualRenderingThread())
+	{
+		FPlatformProcess::SetThreadAffinityMask(RenderThread);
+		UE_LOG(LogConsoleResponse, Display, TEXT("RT     %016llX"), RenderThread);
+	}
+	else if (IsInRHIThread())
+	{
+		FPlatformProcess::SetThreadAffinityMask(RHIThread);
+		UE_LOG(LogConsoleResponse, Display, TEXT("RHI    %016llX"), RHIThread);
+	}
+	else if (IsInGameThread())
+	{
+		FPlatformProcess::SetThreadAffinityMask(GameThread);
+		UE_LOG(LogConsoleResponse, Display, TEXT("GT     %016llX"), GameThread);
+	}
+	else // assume task thread
+	{
+		int32 TaskThreadIndex = int32(FTaskGraphInterface::Get().GetCurrentThreadIfKnown()) - int32(ENamedThreads::ActualRenderingThread) - 1;
+		FPlatformProcess::SetThreadAffinityMask(TaskThread);
+		UE_LOG(LogConsoleResponse, Display, TEXT("Task%2d %016llX"), TaskThreadIndex, TaskThread);
+		StallForTaskThread.Decrement();
+		// we wait for the others to finish here so that we do all task threads
+		while (StallForTaskThread.GetValue())
+		{
+			FPlatformProcess::Sleep(.0001f);
+		}
+	}
+}
+
+
+static void SetupThreadAffinity(const TArray<FString>& Args)
+{
+	static bool LoadedDefaults = false;
+	if (!LoadedDefaults || (Args.Num() && Args[0] == TEXT("default")))
+	{
+		LoadedDefaults = true;
+		TaskThread = FPlatformAffinity::GetTaskGraphThreadMask();
+		GameThread = FPlatformAffinity::GetMainGameMask();
+		RenderThread = FPlatformAffinity::GetRenderingThreadMask();
+		RHIThread = FPlatformAffinity::GetRHIThreadMask();
+	}
+	for (int32 Index = 0; Index + 1 < Args.Num(); Index += 2)
+	{
+		uint64 Aff = FParse::HexNumber(*Args[Index + 1]); // this is only 32 bits
+		if (!Aff)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("Parsed 0 for affinity, using 0xFFFFFFFFFFFFFFFF instead"));
+			Aff = 0xFFFFFFFFFFFFFFFF;
+		}
+		if (Args[Index] == TEXT("GT"))
+		{
+			GameThread = Aff;
+		}
+		else if (Args[Index] == TEXT("RT"))
+		{
+			RenderThread = Aff;
+		}
+		else if (Args[Index] == TEXT("RHI"))
+		{
+			RHIThread = Aff;
+		}
+		else if (Args[Index] == TEXT("Task"))
+		{
+			TaskThread = Aff;
+		}
+		else
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("Unrecognized thread name %s"), *Args[Index]);
+		}
+	}
+
+	StallForTaskThread.Reset();
+	StallForTaskThread.Add(FTaskGraphInterface::Get().GetNumWorkerThreads());
+
+	for (int32 Index = 0; Index < FTaskGraphInterface::Get().GetNumWorkerThreads(); Index++)
+	{
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+			TStatId(), NULL, ENamedThreads::AnyThread);
+	}
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+		TStatId(), NULL, ENamedThreads::RenderThread);
+	if (GRHIThread)
+	{
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+			TStatId(), NULL, ENamedThreads::RHIThread);
+	}
+	check(IsInGameThread());
+	SetAffinityOnThread();
+	FlushRenderingCommands();
+	GLog->FlushThreadedLogs();
+}
+
+static FAutoConsoleCommand SetupThreadAffinityCmd(
+	TEXT("SetThreadAffinity"),
+	TEXT("Sets the thread affinity. A single arg of default resets the thread affinity, otherwise pairs of args [GT|RT|RHI|Task] [Hex affinity] sets the affinity."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&SetupThreadAffinity)
+	);
 
 // REVERB
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

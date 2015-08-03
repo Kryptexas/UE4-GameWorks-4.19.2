@@ -2515,6 +2515,63 @@ public:
 	}
 };
 
+static struct FNewParticleAlloc
+{
+	TLockFreeFixedSizeAllocator<sizeof(TArray<FNewParticle>), FThreadSafeCounter> FreeTArrayFNewParticleArrays;
+	TLockFreePointerList<TArray<FNewParticle>>	FreeTArrayFNewParticle;
+	~FNewParticleAlloc()
+	{
+		while (true)
+		{
+			TArray<FNewParticle>* Recycle = FreeTArrayFNewParticle.Pop();
+			if (!Recycle)
+			{
+				break;
+			}
+			Recycle->Empty();
+			FreeTArrayFNewParticleArrays.Free(Recycle);
+		}
+	}
+
+} GNewParticleAlloc;
+
+static const int MaxNumParticlesToRecycle  = 512; // these can be quite large
+
+// recycle memory blocks for the NewParticle array
+static void FreeNewParticleArray(TArray<FNewParticle>& NewParticles)
+{
+	NewParticles.Reset();
+	const int MaxNumToRecycledArrays  = 100; 
+	int32 CurrentSize = NewParticles.GetSlack();
+	if (CurrentSize > 0 && CurrentSize <= MaxNumParticlesToRecycle && GNewParticleAlloc.FreeTArrayFNewParticleArrays.GetNumUsed().GetValue() < MaxNumToRecycledArrays)
+	{
+		TArray<FNewParticle>* Recycle = new (GNewParticleAlloc.FreeTArrayFNewParticleArrays.Allocate()) TArray<FNewParticle>;
+		Exchange(*Recycle, NewParticles);
+		check(Recycle->Num() == 0 && Recycle->GetSlack());
+		check(NewParticles.Num() == 0 && NewParticles.GetSlack() == 0);
+		GNewParticleAlloc.FreeTArrayFNewParticle.Push(Recycle);
+	}
+}
+
+static void GetNewParticleArray(TArray<FNewParticle>& NewParticles, int32 NumParticlesNeeded = -1)
+{
+	if (NumParticlesNeeded <= MaxNumParticlesToRecycle)
+	{
+		TArray<FNewParticle>* Recycle = GNewParticleAlloc.FreeTArrayFNewParticle.Pop();
+		if (Recycle)
+		{
+			Exchange(*Recycle, NewParticles);
+			Recycle->~TArray<FNewParticle>(); // this probably doesn't do anything, but type safety and all
+			GNewParticleAlloc.FreeTArrayFNewParticleArrays.Free(Recycle);
+			check(NewParticles.Num() == 0 && NewParticles.GetSlack());
+		}
+	}
+	if (NumParticlesNeeded > 0)
+	{
+		// this might realloc, but we need to get the small blocks out of the recycle list
+		NewParticles.Reserve(NumParticlesNeeded);
+	}
+}
 /**
  * Dynamic emitter data for Cascade.
  */
@@ -2568,6 +2625,11 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		, bLocalVectorFieldTileY(false)
 		, bLocalVectorFieldTileZ(false)
 	{
+		GetNewParticleArray(NewParticles);
+	}
+	~FGPUSpriteDynamicEmitterData()
+	{
+		FreeNewParticleArray(NewParticles);
 	}
 
 	bool RendersWithTranslucentMaterial() const
@@ -2919,6 +2981,7 @@ public:
 	 */
 	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDynamicEmitterDataBase_GetDynamicData);
 		check(Component);
 		check(SpriteTemplate);
 		check(FXSystem);
@@ -3017,8 +3080,7 @@ public:
 			Exchange(DynamicData->TilesToClear, TilesToClear);
 			Exchange(DynamicData->NewParticles, NewParticles);
 		}
-
-		NewParticles.Reset();
+		FreeNewParticleArray(NewParticles);
 		PendingDeltaSeconds = 0.0f;
 		PositionOffsetThisTick = FVector::ZeroVector;
 
@@ -3112,6 +3174,21 @@ public:
 		InitLocalVectorField();
 	}
 
+	FORCENOINLINE void ReserveNewParticles(int32 Num)
+	{
+		if (Num)
+		{
+			if (!(NewParticles.Num() + NewParticles.GetSlack()))
+			{
+				GetNewParticleArray(NewParticles, Num);
+			}
+			else
+			{
+				NewParticles.Reserve(Num);
+			}
+		}
+	}
+
 	/**
 	 * Simulates the emitter forward by the specified amount of time.
 	 */
@@ -3174,13 +3251,16 @@ public:
 			}
 
 
-
-			int32 FirstBurstParticleIndex = NewParticles.Num();
-			BurstInfo.Count = AllocateTilesForParticles(NewParticles, BurstInfo.Count, ActiveTileCount);
-
 			// Determine spawn count based on rate.
 			FSpawnInfo SpawnInfo = GetNumParticlesToSpawn(DeltaSeconds);
 			SpawnInfo.Count += ForceSpawnedParticles.Num();
+
+
+			int32 FirstBurstParticleIndex = NewParticles.Num();
+
+			ReserveNewParticles(FirstBurstParticleIndex + BurstInfo.Count + SpawnInfo.Count);
+
+			BurstInfo.Count = AllocateTilesForParticles(NewParticles, BurstInfo.Count, ActiveTileCount);
 
 			int32 FirstSpawnParticleIndex = NewParticles.Num();
 			SpawnInfo.Count = AllocateTilesForParticles(NewParticles, SpawnInfo.Count, ActiveTileCount);
@@ -3198,8 +3278,8 @@ public:
 				BuildNewParticles(NewParticles.GetData() + FirstSpawnParticleIndex, SpawnInfo, ForceSpawnedParticles);
 			}
 
-			ForceBurstSpawnedParticles.Empty();
-			ForceSpawnedParticles.Empty();
+			FreeNewParticleArray(ForceSpawnedParticles);
+			FreeNewParticleArray(ForceBurstSpawnedParticles);
 
 			int32 NewParticleCount = BurstInfo.Count + SpawnInfo.Count;
 			INC_DWORD_STAT_BY(STAT_GPUSpritesSpawned, NewParticleCount);
@@ -3500,6 +3580,10 @@ private:
 	 */
 	int32 AllocateTilesForParticles(TArray<FNewParticle>& InNewParticles, int32 NumNewParticles, int32& ActiveTileCount)
 	{
+		if (!NumNewParticles)
+		{
+			return 0;
+		}
 		// Need to allocate space in tiles for all new particles.
 		FParticleSimulationResources* SimulationResources = FXSystem->GetParticleSimulationResources();
 		uint32 TileIndex = (AllocatedTiles.IsValidIndex(TileToAllocateFrom)) ? AllocatedTiles[TileToAllocateFrom] : INDEX_NONE;
@@ -3822,6 +3906,10 @@ private:
 		FVector SpawnLocation = bUseLocalSpace ? FVector::ZeroVector : InLocation;
 
 		float Increment = DeltaTime / InSpawnCount;
+		if (InSpawnCount && !(ForceSpawnedParticles.Num() + ForceSpawnedParticles.GetSlack()))
+		{
+			GetNewParticleArray(ForceSpawnedParticles, InSpawnCount);
+		}
 		for (int32 i = 0; i < InSpawnCount; i++)
 		{
 
@@ -3831,7 +3919,10 @@ private:
 			Particle.RelativeTime = Increment*i;
 			ForceSpawnedParticles.Add(Particle);
 		}
-
+		if (InBurstCount && !(ForceBurstSpawnedParticles.Num() + ForceBurstSpawnedParticles.GetSlack()))
+		{
+			GetNewParticleArray(ForceBurstSpawnedParticles, InBurstCount);
+		}
 		for (int32 i = 0; i < InBurstCount; i++)
 		{
 			FNewParticle Particle;
@@ -4233,7 +4324,7 @@ void FFXSystem::SimulateGPUParticles(
 
 			// Add to the list of new particles.
 			NewParticles.Append(Simulation->NewParticles);
-			Simulation->NewParticles.Reset();
+			FreeNewParticleArray(Simulation->NewParticles);
 
 			// Reset pending simulation time. This prevents an emitter from simulating twice if we don't get an update from the game thread, e.g. the component didn't tick last frame.
 			Simulation->PerFrameSimulationParameters.DeltaSeconds = 0.0f;

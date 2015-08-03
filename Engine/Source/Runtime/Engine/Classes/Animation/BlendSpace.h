@@ -48,7 +48,7 @@ protected:
 	virtual void SnapToBorder(FBlendSample& Sample) const override;
 	virtual EBlendSpaceAxis GetAxisToScale() const override;
 	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const override;
-	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const override;
+	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const override;
 	// End UBlendSpaceBase interface
 
 private:

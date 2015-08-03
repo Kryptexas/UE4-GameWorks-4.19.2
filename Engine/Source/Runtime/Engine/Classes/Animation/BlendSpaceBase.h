@@ -410,7 +410,7 @@ protected:
 	 * @param	OutBlendSamples		Populated with the samples nearest the BlendInput 
 	 *
 	 */
-	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const {}
+	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const {}
 
 public:
 	

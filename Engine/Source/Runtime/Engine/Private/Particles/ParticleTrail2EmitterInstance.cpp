@@ -2572,7 +2572,7 @@ FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSe
 	}
 
 	// Allocate the dynamic data
-	FDynamicRibbonEmitterData* NewEmitterData = ::new FDynamicRibbonEmitterData(LODLevel->RequiredModule);
+	FDynamicRibbonEmitterData* NewEmitterData = new FDynamicRibbonEmitterData(LODLevel->RequiredModule);
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
 		INC_DWORD_STAT(STAT_DynamicEmitterCount);
@@ -2664,7 +2664,7 @@ FDynamicEmitterReplayDataBase* FParticleRibbonEmitterInstance::GetReplayData()
 		return NULL;
 	}
 
-	FDynamicEmitterReplayDataBase* NewEmitterReplayData = ::new FDynamicRibbonEmitterReplayData();
+	FDynamicEmitterReplayDataBase* NewEmitterReplayData = new FDynamicRibbonEmitterReplayData();
 	check(NewEmitterReplayData != NULL);
 
 	if (!FillReplayData(*NewEmitterReplayData))
@@ -3920,7 +3920,7 @@ FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool 
 	}
 
 	// Allocate the dynamic data
-	FDynamicAnimTrailEmitterData* NewEmitterData = ::new FDynamicAnimTrailEmitterData(LODLevel->RequiredModule);
+	FDynamicAnimTrailEmitterData* NewEmitterData = new FDynamicAnimTrailEmitterData(LODLevel->RequiredModule);
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
 		INC_DWORD_STAT(STAT_DynamicEmitterCount);
@@ -4026,7 +4026,7 @@ FDynamicEmitterReplayDataBase* FParticleAnimTrailEmitterInstance::GetReplayData(
 		return NULL;
 	}
 
-	FDynamicTrailsEmitterReplayData* NewEmitterReplayData = ::new FDynamicTrailsEmitterReplayData();
+	FDynamicTrailsEmitterReplayData* NewEmitterReplayData = new FDynamicTrailsEmitterReplayData();
 	check(NewEmitterReplayData != NULL);
 
 	if (!FillReplayData(*NewEmitterReplayData))

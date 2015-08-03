@@ -93,9 +93,9 @@ public:
 	}
 };
 
-
+typedef TArray<FAssetWorldBoneTM, TMemStackAllocator<ALIGNOF(FAssetWorldBoneTM)>> TAssetWorldBoneTMArray;
 // Use current pose to calculate world-space position of this bone without physics now.
-void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, const TArray<FTransform>& InLocalAtoms, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
+void UpdateWorldBoneTM(TAssetWorldBoneTMArray& WorldBoneTMs, const TArray<FTransform>& InLocalAtoms, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
 {
 	// If its already up to date - do nothing
 	if(	WorldBoneTMs[BoneIndex].bUpToDate )
@@ -152,9 +152,9 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		return;
 	}
 
+	FMemMark Mark(FMemStack::Get());
 	// Make sure scratch space is big enough.
-	TArray<FAssetWorldBoneTM> WorldBoneTMs;
-	WorldBoneTMs.Reset();
+	TAssetWorldBoneTMArray WorldBoneTMs;
 	WorldBoneTMs.AddZeroed(GetNumSpaceBases());
 	
 	FTransform LocalToWorldTM = ComponentToWorld;
@@ -167,8 +167,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 		FBodyInstance* BI;
 		FTransform TM;
 	};
-
-	TArray<FBodyTMPair> PendingBodyTMs;
+	TArray<FBodyTMPair, TMemStackAllocator<ALIGNOF(FBodyTMPair)>> PendingBodyTMs;
 
 #if WITH_PHYSX
 	// Lock the scenes we need (flags set in InitArticulated)

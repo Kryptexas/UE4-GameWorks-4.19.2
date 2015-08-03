@@ -202,7 +202,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 	check( ThisMesh->RefBasesInvMatrix.Num() != 0 );
 	if(ReferenceToLocal.Num() != ThisMesh->RefBasesInvMatrix.Num())
 	{
-		ReferenceToLocal.Empty(ThisMesh->RefBasesInvMatrix.Num());
+		ReferenceToLocal.Reset();
 		ReferenceToLocal.AddUninitialized(ThisMesh->RefBasesInvMatrix.Num());
 	}
 
@@ -302,7 +302,7 @@ void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinn
 
 	if(OutVectors.Num() != LODInfo.TriangleSortSettings.Num())
 	{
-		OutVectors.Empty(LODInfo.TriangleSortSettings.Num());
+		OutVectors.Reset();
 		OutVectors.AddUninitialized(LODInfo.TriangleSortSettings.Num());
 	}
 

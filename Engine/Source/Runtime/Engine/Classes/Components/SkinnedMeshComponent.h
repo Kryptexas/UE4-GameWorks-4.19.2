@@ -912,4 +912,6 @@ public:
 	virtual bool IsPlayingRootMotion(){ return false; }
 
 	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
+
+	bool ShouldUseUpdateRateOptimizations() const;
 };

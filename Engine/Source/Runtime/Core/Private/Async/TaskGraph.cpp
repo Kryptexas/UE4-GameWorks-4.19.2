@@ -187,6 +187,14 @@ FORCEINLINE void TestRandomizedThreads()
 
 #endif
 
+static int32 GNumWorkerThreadsToIgnore = 0;
+static FAutoConsoleVariableRef CVarNumWorkerThreadsToIgnore(
+	TEXT("TaskGraph.NumWorkerThreadsToIgnore"),
+	GNumWorkerThreadsToIgnore,
+	TEXT("Used to tune the number of task threads. Generally once you have found the right value, PlatformMisc::NumberOfWorkerThreadsToSpawn() should be hardcoded."),
+	ECVF_Cheat
+	);
+
 /** 
  *	FTaskQueue
  *	High performance, SINGLE threaded, FIFO task queue for the private queue on named threads.
@@ -1004,6 +1012,10 @@ public:
 				{
 					TASKGRAPH_SCOPE_CYCLE_COUNTER(5, STAT_TaskGraph_QueueTask_StalledUnnamedThreads_Pop);
 					TempTarget = StalledUnnamedThreads.Pop(); //@todo it is possible that a thread is in the process of stalling and we just missed it, non-fatal, but we could lose a whole task of potential parallelism.
+					if (TempTarget && GNumWorkerThreadsToIgnore && (TempTarget->GetThreadId() - NumNamedThreads) >= GetNumWorkerThreads())
+					{
+						TempTarget = nullptr;
+					}
 				}
 				if (TempTarget)
 				{
@@ -1011,7 +1023,8 @@ public:
 				}
 				else
 				{
-					ThreadToExecuteOn = ENamedThreads::Type((uint32(NextUnnamedThreadForTaskFromUnknownThread.Increment()) % uint32(NextUnnamedThreadMod)) + NumNamedThreads);
+					check(NextUnnamedThreadMod - GNumWorkerThreadsToIgnore > 0); // can't tune it to zero task threads
+					ThreadToExecuteOn = ENamedThreads::Type((uint32(NextUnnamedThreadForTaskFromUnknownThread.Increment()) % uint32(NextUnnamedThreadMod - GNumWorkerThreadsToIgnore)) + NumNamedThreads);
 				}
 				FTaskThread* Target = &Thread(ThreadToExecuteOn);
 				if (ThreadToExecuteOn != CurrentThreadIfKnown)
@@ -1043,7 +1056,9 @@ public:
 
 	virtual	int32 GetNumWorkerThreads() override
 	{
-		return NumThreads - NumNamedThreads;
+		int32 Result = NumThreads - NumNamedThreads - GNumWorkerThreadsToIgnore;
+		check(Result > 0); // can't tune it to zero task threads
+		return Result;
 	}
 
 	virtual ENamedThreads::Type GetCurrentThreadIfKnown(bool bLocalQueue) override
@@ -1331,7 +1346,7 @@ private:
 	enum
 	{
 		/** Compile time maximum number of threads. @todo Didn't really need to be a compile time constant. **/
-		MAX_THREADS=8
+		MAX_THREADS=12
 	};
 
 	/** Per thread data. **/
@@ -1479,86 +1494,4 @@ FGraphEvent::~FGraphEvent()
 #endif
 	CheckDontCompleteUntilIsEmpty(); // We should not have any wait untils outstanding
 }
-
-
-//---
-
-#include "ParallelFor.h"
-
-static void TestParallelFor(const TArray<FString>& Args)
-{
-
-	ParallelFor(10, 
-		[](int32 Index)
-		{
-			UE_LOG(LogConsoleResponse, Display, TEXT("ParallelFor index=%d, thread=%x"), Index, FPlatformTLS::GetCurrentThreadId());
-		}
-	);
-
-	ParallelFor(10, 
-		[](int32 Index)
-		{
-			ParallelFor(10, 
-				[Index](int32 IndexInner)
-				{
-					UE_LOG(LogConsoleResponse, Display, TEXT("ParallelFor index=%d %d, thread=%x"), Index, IndexInner, FPlatformTLS::GetCurrentThreadId());
-				}
-			);
-		}
-	);
-
-	TArray<bool> TestBools;
-
-	TestBools.AddZeroed(10000);
-
-	ParallelFor(TestBools.Num(), [&TestBools](int32 Index){TestBools[Index] = true;});
-
-	for (int32 Index = 0; Index < TestBools.Num(); Index++)
-	{
-		check(TestBools[Index]);
-	}
-
-	TestBools.Empty(10000);
-	TestBools.AddZeroed(10000);
-
-	ParallelFor(TestBools.Num(), [&TestBools](int32 Index){TestBools[Index] = true;}, true);
-
-	for (int32 Index = 0; Index < TestBools.Num(); Index++)
-	{
-		check(TestBools[Index]);
-	}
-
-	uint32 TargetCrc = FCrc::MemCrc32(TestBools.GetData(), 1024);
-
-	{
-		double StartTime = FPlatformTime::Seconds();
-		ParallelFor(1024, 
-			[&TestBools, TargetCrc](int32 Index)
-			{
-				uint32 TestCrc = FCrc::MemCrc32(TestBools.GetData(), 1024);
-				check(TestCrc == TargetCrc);
-			}
-		);
-		UE_LOG(LogConsoleResponse, Display, TEXT("Parallel CRC of 1MB (%d threads) in %6.3fms"), FTaskGraphInterface::Get().GetNumWorkerThreads() + 1, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
-	}
-	{
-		double StartTime = FPlatformTime::Seconds();
-		ParallelFor(1024, 
-			[&TestBools, TargetCrc](int32 Index)
-			{
-				uint32 TestCrc = FCrc::MemCrc32(TestBools.GetData(), 1024);
-				check(TestCrc == TargetCrc);
-			}, 
-			true
-		);
-		UE_LOG(LogConsoleResponse, Display, TEXT("Serial CRC of 1MB in %6.3fms"), float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
-	}
-}
-
-static FAutoConsoleCommand TestParallelForCmd(
-	TEXT("TestParallelFor"),
-	TEXT("Simple test of ParallelFor."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(&TestParallelFor)
-	);
-
 

@@ -119,9 +119,10 @@
 #define TEXT_FALSE TEXT("FALSE")
 #define TEXT_CONDITION(Condition) ((Condition) ? TEXT_TRUE : TEXT_FALSE)
 
-#if ENABLE_VISUAL_LOG
-
 DECLARE_LOG_CATEGORY_EXTERN(LogVisual, Warning, All);
+
+
+#if ENABLE_VISUAL_LOG
 
 class FVisualLogDevice;
 class FVisualLogExtensionInterface;

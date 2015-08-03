@@ -269,12 +269,12 @@ void UAnimInstance::UninitializeAnimation()
 		}
 	}
 
-	ActiveAnimNotifyState.Empty();
-	EventCurves.Empty();
-	MorphTargetCurves.Empty();
-	MaterialParameterCurves.Empty();
-	MaterialParamatersToClear.Empty();
-	AnimNotifies.Empty();
+	ActiveAnimNotifyState.Reset();
+	EventCurves.Reset();
+	MorphTargetCurves.Reset();
+	MaterialParameterCurves.Reset();
+	MaterialParamatersToClear.Reset();
+	AnimNotifies.Reset();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -305,6 +305,9 @@ bool UAnimInstance::UpdateSnapshotAndSkipRemainingUpdate()
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation);
+	FScopeCycleCounterUObject AnimScope(this);
+
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -332,15 +335,18 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	}
 #endif
 
-	AnimNotifies.Empty();
-
-	ClearSlotNodeWeights();
-
-	// Reset the player tick list (but keep it presized)
-	UngroupedActivePlayers.Empty(UngroupedActivePlayers.Num());
-	for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
 	{
-		SyncGroups[GroupIndex].Reset();
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_MiscClear);
+		AnimNotifies.Reset();
+
+		ClearSlotNodeWeights();
+
+	    // Reset the player tick list (but keep it presized)
+	    UngroupedActivePlayers.Empty(UngroupedActivePlayers.Num());
+	    for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
+	    {
+		    SyncGroups[GroupIndex].Reset();
+	    }
 	}
 
 	{
@@ -363,60 +369,75 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		RootNode->Update(UpdateContext);
 	}
 
-	// Handle all players inside sync groups
-	for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
 	{
-		FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstances);
 
-		if (SyncGroup.ActivePlayers.Num() > 0)
+	// Handle all players inside sync groups
+		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
 		{
-			const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
-
-			// Tick the group leader
-			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
-			FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
-			GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
-			if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+			FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
+    
+			if (SyncGroup.ActivePlayers.Num() > 0)
 			{
-				ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
-			}
-
-			// Update everything else to follow the leader
-			if (SyncGroup.ActivePlayers.Num() > 1)
-			{
-				TickContext.ConvertToFollower();
-
-				for (int32 TickIndex = 0; TickIndex < SyncGroup.ActivePlayers.Num(); ++TickIndex)
+				const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
+    
+				// Tick the group leader
+				FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
+				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
 				{
-					if (TickIndex != GroupLeaderIndex)
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+					FScopeCycleCounterUObject Scope(GroupLeader.SourceAsset);
+					GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
+				}
+				if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+				{
+					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
+				}
+    
+				// Update everything else to follow the leader
+				if (SyncGroup.ActivePlayers.Num() > 1)
+				{
+					TickContext.ConvertToFollower();
+    
+					for (int32 TickIndex = 0; TickIndex < SyncGroup.ActivePlayers.Num(); ++TickIndex)
 					{
-						const FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
-						AssetPlayer.SourceAsset->TickAssetPlayerInstance(AssetPlayer, this, TickContext);
-						if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+						if (TickIndex != GroupLeaderIndex)
 						{
-							ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
+							const FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
+							{
+								QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+								FScopeCycleCounterUObject Scope(AssetPlayer.SourceAsset);
+								AssetPlayer.SourceAsset->TickAssetPlayerInstance(AssetPlayer, this, TickContext);
+							}
+							if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+							{
+								ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
+							}
 						}
 					}
 				}
 			}
 		}
-	}
 
-	// Handle the remaining ungrouped animation players
-	for (int32 TickIndex = 0; TickIndex < UngroupedActivePlayers.Num(); ++TickIndex)
-	{
-		const FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
-		FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
-		AssetPlayerToTick.SourceAsset->TickAssetPlayerInstance(AssetPlayerToTick, this, TickContext);
-		if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+		// Handle the remaining ungrouped animation players
+		for (int32 TickIndex = 0; TickIndex < UngroupedActivePlayers.Num(); ++TickIndex)
 		{
-			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayerToTick.EffectiveBlendWeight);
+			const FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
+			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
+		    {
+			    QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+			    FScopeCycleCounterUObject Scope(AssetPlayerToTick.SourceAsset);
+				AssetPlayerToTick.SourceAsset->TickAssetPlayerInstance(AssetPlayerToTick, this, TickContext);
+		    }
+			if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+			{
+				ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayerToTick.EffectiveBlendWeight);
+			}
 		}
 	}
-
 	// update montage should run in game thread
 	// if we do multi threading, make sure this stays in game thread
-	Montage_Advance(DeltaSeconds);
+		Montage_Advance(DeltaSeconds);
 
 	// We may have just partially blended root motion, so make it up to 1 by
 	// blending in identity too
@@ -1488,7 +1509,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 
 void UAnimInstance::ReinitializeSlotNodes()
 {
-	SlotWeightTracker.Empty();
+	SlotWeightTracker.Reset();
 	
 	// Increment counter
 	SlotNodeInitializationCounter++;
@@ -1649,6 +1670,8 @@ float UAnimInstance::GetCurrentStateElapsedTime(int32 MachineIndex)
 
 void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_Montage_UpdateWeight);
+
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
 	for (int32 I=0; I<MontageInstances.Num(); ++I)
@@ -1662,6 +1685,8 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_Montage_Advance);
+
 	// We're about to tick montages, queue their events to they're triggered after batched anim notifies.
 	bQueueMontageEvents = true;
 
@@ -1761,7 +1786,7 @@ void UAnimInstance::TriggerQueuedMontageEvents()
 		{
 			TriggerMontageBlendingOutEvent(MontageBlendingOutEvent);
 		}
-		QueuedMontageBlendingOutEvents.Empty();
+		QueuedMontageBlendingOutEvents.Reset();
 	}
 
 	if (QueuedMontageEndedEvents.Num() > 0)
@@ -1770,7 +1795,7 @@ void UAnimInstance::TriggerQueuedMontageEvents()
 		{
 			TriggerMontageEndedEvent(MontageEndedEvent);
 		}
-		QueuedMontageEndedEvents.Empty();
+		QueuedMontageEndedEvents.Reset();
 	}
 }
 

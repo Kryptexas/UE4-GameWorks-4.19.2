@@ -767,7 +767,7 @@ void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RH
 			for (int32 Dest = 1; Dest < NumFrames; Dest++)
 			{
 				OcclusionSubmittedFence[Dest] = OcclusionSubmittedFence[Dest - 1];
-			}
+		}
 			OcclusionSubmittedFence[0] = RHICmdList.RHIThreadFence();
 		}
 	}
@@ -779,6 +779,11 @@ static void ServiceLocalQueue()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Render_ServiceLocalQueue);
 	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
 }
+
+static TAutoConsoleVariable<float> CVarStallInitViews(
+	TEXT("CriticalPathStall.AfterInitViews"),
+	0.0f,
+	TEXT("Sleep for the given time after InitViews. Time is given in ms. This is a debug option used for critical path analysis and forcing a change in the critical path."));
 
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
@@ -815,6 +820,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Find the visible primitives.
 	InitViews(RHICmdList);
+#if !UE_BUILD_SHIPPING
+	if (CVarStallInitViews.GetValueOnRenderThread() > 0.0f)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_Intentional_Stall);
+		FPlatformProcess::Sleep(CVarStallInitViews.GetValueOnRenderThread() / 1000.0f);
+	}
+#endif
 
 	if (GRHICommandList.UseParallelAlgorithms())
 	{
@@ -1047,20 +1059,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	ServiceLocalQueue();
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
-	{
-		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
-		SceneContext.BeginRenderingSceneColor(RHICmdList);
-		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
-	}
+	  {
+		  // clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
+		  SceneContext.BeginRenderingSceneColor(RHICmdList);
+		  RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+	  }
 
-	SceneContext.DBufferA.SafeRelease();
-	SceneContext.DBufferB.SafeRelease();
-	SceneContext.DBufferC.SafeRelease();
+	  SceneContext.DBufferA.SafeRelease();
+	  SceneContext.DBufferB.SafeRelease();
+	  SceneContext.DBufferC.SafeRelease();
 
-	// only temporarily available after early z pass and until base pass
-	check(!SceneContext.DBufferA);
-	check(!SceneContext.DBufferB);
-	check(!SceneContext.DBufferC);
+	  // only temporarily available after early z pass and until base pass
+	  check(!SceneContext.DBufferA);
+	  check(!SceneContext.DBufferB);
+	  check(!SceneContext.DBufferC);
 
 	if (bRequiresFarZQuadClear)
 	{
@@ -1691,10 +1703,10 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 				FViewInfo& View = Views[ViewIndex];
 				RenderBasePassViewParallel(View, RHICmdList);
 			}
-			bDirty = true; // assume dirty since we are not going to wait
-			if (FVelocityRendering::OutputsToGBuffer())
-			{
-				GPrevPerBoneMotionBlur.EndAppendFence(RHICmdList);
+				bDirty = true; // assume dirty since we are not going to wait
+				if (FVelocityRendering::OutputsToGBuffer())
+				{
+					GPrevPerBoneMotionBlur.EndAppendFence(RHICmdList);
 			}
 		}
 		else

@@ -112,7 +112,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (GScriptStack.Num())
 		{
-			GScriptStack.Pop();
+			GScriptStack.Pop(false);
 		}
 #endif
 	}

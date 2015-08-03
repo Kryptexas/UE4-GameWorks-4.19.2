@@ -26,6 +26,15 @@ FAutoConsoleVariableRef CVarSkeletalMeshLODBias(
 	ECVF_Scalability
 	);
 
+static TAutoConsoleVariable<int32> CVarEnableAnimRateOptimization(
+	TEXT("EnableAnimRateOptimization"),
+	1,
+	TEXT("True to anim rate optimization."));
+
+static TAutoConsoleVariable<int32> CVarDrawAnimRateOptimization(
+	TEXT("DrawAnimRateOptimization"),
+	0,
+	TEXT("True to draw color coded boxes for anim rate."));
 
 namespace FAnimUpdateRateManager
 {
@@ -121,6 +130,11 @@ namespace FAnimUpdateRateManager
 		}
 	}
 
+	static TAutoConsoleVariable<int32> CVarForceAnimRate(
+		TEXT("ForceAnimRate"),
+		0,
+		TEXT("Non-zero to force anim rate. 10 = eval anim every ten frames for those meshes that can do it. In some cases a frame is considered to be 30fps."));
+
 	void AnimUpdateRateSetParams(FAnimUpdateRateParametersTracker* Tracker, float DeltaTime, bool bRecentlyRendered, float MaxDistanceFactor, bool bNeedsValidRootMotion, bool bUsingRootMotionFromEverything)
 	{
 		// default rules for setting update rates
@@ -153,6 +167,12 @@ namespace FAnimUpdateRateManager
 					DesiredEvaluationRate = Index + 1;
 					break;
 				}
+			}
+
+			int32 ForceAnimRate = CVarForceAnimRate.GetValueOnGameThread();
+			if (ForceAnimRate)
+			{
+				DesiredEvaluationRate = ForceAnimRate;
 			}
 
 			if (bUsingRootMotionFromEverything && DesiredEvaluationRate > 1)
@@ -410,19 +430,22 @@ bool USkinnedMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 	return (bLODHasChanged || bRecentlyRendered || (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones));
 }
 
+bool USkinnedMeshComponent::ShouldUseUpdateRateOptimizations() const
+{
+	return bEnableUpdateRateOptimizations && CVarEnableAnimRateOptimization.GetValueOnGameThread() > 0;
+}
 
 void USkinnedMeshComponent::TickUpdateRate(float DeltaTime, bool bNeedsValidRootMotion)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TickUpdateRate);
-	if( bEnableUpdateRateOptimizations )
+	if (ShouldUseUpdateRateOptimizations())
 	{
 		if (GetOwner())
 		{
 			// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
 			FAnimUpdateRateManager::TickUpdateRateParameters(this, DeltaTime, bNeedsValidRootMotion);
 
-			// debug -- @todo: hook this up to a console command.
-			if (bDisplayDebugUpdateRateOptimizations)
+			if ((CVarDrawAnimRateOptimization.GetValueOnGameThread() > 0) || bDisplayDebugUpdateRateOptimizations)
 			{
 				FColor DrawColor = AnimUpdateRateParams->GetUpdateRateDebugColor();
 				DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);

@@ -115,7 +115,11 @@ FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* In
 FSkeletalMeshObjectGPUSkin::~FSkeletalMeshObjectGPUSkin()
 {
 	check(!RHIThreadFenceForDynamicData.GetReference());
-	delete DynamicData;
+	if (DynamicData)
+	{
+		FDynamicSkelMeshObjectDataGPUSkin::FreeDynamicSkelMeshObjectDataGPUSkin(DynamicData);
+	}
+	DynamicData = nullptr;
 }
 
 
@@ -189,14 +193,15 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 
 	// create the new dynamic data for use by the rendering thread
 	// this data is only deleted when another update is sent
-	FDynamicSkelMeshObjectDataGPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataGPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
+	FDynamicSkelMeshObjectDataGPUSkin* NewDynamicData = FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin();		
+	NewDynamicData->InitDynamicSkelMeshObjectDataGPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
 
 
 	// queue a call to update this data
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		SkelMeshObjectUpdateDataCommand,
-		FSkeletalMeshObject*, MeshObject, this,
-		FDynamicSkelMeshObjectData*, NewDynamicData, NewDynamicData,
+		FSkeletalMeshObjectGPUSkin*, MeshObject, this,
+		FDynamicSkelMeshObjectDataGPUSkin*, NewDynamicData, NewDynamicData,
 	{
 		FScopeCycleCounter Context(MeshObject->GetStatId());
 		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData);
@@ -216,22 +221,25 @@ static TAutoConsoleVariable<int32> CVarDeferSkeletalDynamicDataUpdateUntilGDME(
 	0,
 	TEXT("If > 0, then do skeletal mesh dynamic data updates will be deferred until GDME. Experimental option."));
 
-void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData)
+void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GPUSkinUpdateRTTime);
+	check(InDynamicData);
 	bool bMorphNeedsUpdate=false;
 	// figure out if the morphing vertex buffer needs to be updated. compare old vs new active morphs
 	bMorphNeedsUpdate = 
 		(bMorphNeedsUpdateDeferred && bNeedsUpdateDeferred) || // the need for an update sticks
-		(DynamicData ? (DynamicData->LODIndex != ((FDynamicSkelMeshObjectDataGPUSkin*)InDynamicData)->LODIndex ||
-		!DynamicData->ActiveVertexAnimsEqual(((FDynamicSkelMeshObjectDataGPUSkin*)InDynamicData)->ActiveVertexAnims))
+		(DynamicData ? (DynamicData->LODIndex != InDynamicData->LODIndex ||
+		!DynamicData->ActiveVertexAnimsEqual(InDynamicData->ActiveVertexAnims))
 		: true);
 
 	WaitForRHIThreadFenceForDynamicData();
-	delete DynamicData;
+	if (DynamicData)
+	{
+		FDynamicSkelMeshObjectDataGPUSkin::FreeDynamicSkelMeshObjectDataGPUSkin(DynamicData);
+	}
 	// update with new data
-	DynamicData = (FDynamicSkelMeshObjectDataGPUSkin*)InDynamicData;
-	check(DynamicData);
+	DynamicData = InDynamicData;
 
 	if (CVarDeferSkeletalDynamicDataUpdateUntilGDME.GetValueOnRenderThread())
 	{
@@ -471,13 +479,13 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			}
 		} // ApplyDelta
 
-			// Lock the real buffer.
-			FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
-			FMemory::Memcpy(ActualBuffer, Buffer, Size);
-			FMemory::Free(Buffer);
+		// Lock the real buffer.
+		FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
+		FMemory::Memcpy(ActualBuffer, Buffer, Size);
+		FMemory::Free(Buffer);
 
-			// Unlock the buffer.
-			RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
+		// Unlock the buffer.
+		RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
 		// set update flag
 		MorphVertexBuffer.bHasBeenUpdated = true;
 	}
@@ -1003,16 +1011,53 @@ const FTwoVectors& FSkeletalMeshObjectGPUSkin::GetCustomLeftRightVectors(int32 S
 FDynamicSkelMeshObjectDataGPUSkin
 -----------------------------------------------------------------------------*/
 
-FDynamicSkelMeshObjectDataGPUSkin::FDynamicSkelMeshObjectDataGPUSkin(
+static TLockFreePointerList<FDynamicSkelMeshObjectDataGPUSkin>	FreeDynamicSkelMeshObjectDataGPUSkins;
+
+void FDynamicSkelMeshObjectDataGPUSkin::Clear()
+{
+	ReferenceToLocal.Reset();
+	CustomLeftRightVectors.Reset();
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
+	MeshSpaceBases.Reset();
+#endif
+	LODIndex = 0;
+	ActiveVertexAnims.Reset();
+	NumWeightedActiveVertexAnims = 0;
+	ClothSimulUpdateData.Reset();
+	ClothBlendWeight = 0.0f;
+}
+
+
+FDynamicSkelMeshObjectDataGPUSkin* FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin()
+{
+	FDynamicSkelMeshObjectDataGPUSkin* Result = FreeDynamicSkelMeshObjectDataGPUSkins.Pop();
+	if (!Result)
+	{
+		Result = new FDynamicSkelMeshObjectDataGPUSkin;
+	}
+	return Result;
+}
+
+void FDynamicSkelMeshObjectDataGPUSkin::FreeDynamicSkelMeshObjectDataGPUSkin(FDynamicSkelMeshObjectDataGPUSkin* Who)
+{
+	check(Who);
+	Who->Clear();
+	FreeDynamicSkelMeshObjectDataGPUSkins.Push(Who);
+}
+
+void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(
 	USkinnedMeshComponent* InMeshComponent,
 	FSkeletalMeshResource* InSkeletalMeshResource,
 	int32 InLODIndex,
 	const TArray<FActiveVertexAnim>& InActiveVertexAnims
 	)
-	:	LODIndex(InLODIndex)
-	,	ActiveVertexAnims(InActiveVertexAnims)
-	,	NumWeightedActiveVertexAnims(0)
 {
+	LODIndex = InLODIndex;
+	check(!ActiveVertexAnims.Num() && !ReferenceToLocal.Num() && !CustomLeftRightVectors.Num() && !ClothSimulUpdateData.Num());
+
+	// append instead of equals to avoid alloc
+	ActiveVertexAnims.Append(InActiveVertexAnims);
+	NumWeightedActiveVertexAnims = 0;
 	// update ReferenceToLocal
 	UpdateRefToLocalMatrices( ReferenceToLocal, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
@@ -1020,7 +1065,9 @@ FDynamicSkelMeshObjectDataGPUSkin::FDynamicSkelMeshObjectDataGPUSkin(
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	MeshSpaceBases = InMeshComponent->GetSpaceBases();
+	check(!MeshSpaceBases.Num());
+	// append instead of equals to avoid alloc
+	MeshSpaceBases.Append(InMeshComponent->GetSpaceBases());
 #endif
 
 	// find number of morphs that are currently weighted and will affect the mesh
@@ -1038,7 +1085,7 @@ FDynamicSkelMeshObjectDataGPUSkin::FDynamicSkelMeshObjectDataGPUSkin(
 		}
 		else
 		{
-			ActiveVertexAnims.RemoveAt(AnimIdx);
+			ActiveVertexAnims.RemoveAt(AnimIdx, 1, false);
 		}
 	}
 
@@ -1169,17 +1216,16 @@ void FPreviousPerBoneMotionBlur::StartAppend(FRHICommandListImmediate& RHICmdLis
 
 		AdvanceBufferLocation();
 
-	FBoneDataVertexBuffer& WriteTexture = PerChunkBoneMatricesTexture[GetWriteBufferIndex()];
-
-	if(WriteTexture.IsValid())
-	{
-		LockedData = WriteTexture.LockData();
-		check(LockedTexelPosition.GetValue() == 0); //otherwise it wasn't unlocked or it was unlocked before it was done being filled by async stuff
-		LockedTexelPosition.Set(0);
-		LockedTexelCount = WriteTexture.GetSizeX();
-	}
-}
-
+	    FBoneDataVertexBuffer& WriteTexture = PerChunkBoneMatricesTexture[GetWriteBufferIndex()];
+    
+	    if(WriteTexture.IsValid())
+	    {
+		    LockedData = WriteTexture.LockData();
+		    check(LockedTexelPosition.GetValue() == 0); //otherwise it wasn't unlocked or it was unlocked before it was done being filled by async stuff
+		    LockedTexelPosition.Set(0);
+		    LockedTexelCount = WriteTexture.GetSizeX();
+	    }
+    }
 	if (CVarMotionBlurDebug.GetValueOnRenderThread())
 	{
 		UE_LOG(LogEngine, Log, TEXT("r.MotionBlurDebug: BufferSize=%d Read=%d Write=%d IsLocked=%d"),
@@ -1190,6 +1236,7 @@ void FPreviousPerBoneMotionBlur::StartAppend(FRHICommandListImmediate& RHICmdLis
 uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning*& OutChunkMatrices, uint32 BoneCount)
 {
 	check(LockedData);
+	checkSlow(DataStart);
 	checkSlow(BoneCount);
 
 	uint32 TexelCount = BoneCount * sizeof(FBoneSkinning) / sizeof(float) / 4;
@@ -1242,25 +1289,25 @@ void FPreviousPerBoneMotionBlur::EndAppend(FRHICommandListImmediate& RHICmdList)
 		PerChunkBoneMatricesTexture[GetWriteBufferIndex()].UnlockData(LockedTexelPosition.GetValue() * 4 * sizeof(float));
 		LockedTexelPosition.Set(0);
 
-		{
-			static int LogSpawmPrevent = 0;
+	    {
+		    static int LogSpawmPrevent = 0;
 
-			if(bWarningBufferSizeExceeded)
-			{
-				bWarningBufferSizeExceeded = false;
+		    if(bWarningBufferSizeExceeded)
+		    {
+			    bWarningBufferSizeExceeded = false;
 
-				if((LogSpawmPrevent % 16) == 0)
-				{
-					UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh velocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
-				}
-				++LogSpawmPrevent;
-			}
-			else
-			{
-				LogSpawmPrevent = 0;
-			}
-		}
-	}
+			    if((LogSpawmPrevent % 16) == 0)
+			    {
+				    UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh velocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
+			    }
+			    ++LogSpawmPrevent;
+		    }
+		    else
+		    {
+			    LogSpawmPrevent = 0;
+		    }
+	    }
+    }
 }
 
 void FPreviousPerBoneMotionBlur::SetVelocityPassCallback(const TFunction<bool(FRHICommandList& RHICmdList)>& InIsVelocityFunc)

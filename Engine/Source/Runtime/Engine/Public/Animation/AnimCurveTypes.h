@@ -269,10 +269,14 @@ struct ENGINE_API FBlendedCurve
 	void InitFrom(const class USkeleton* Skeleton);
 	void InitFrom(const FBlendedCurve& InCurveToInitFrom)
 	{
-		UIDList = InCurveToInitFrom.UIDList;
-		Elements.Reset(UIDList.Num());
-		Elements.AddZeroed(UIDList.Num());
-		bInitialized = true;
+		if (&InCurveToInitFrom != this)
+		{
+			UIDList.Reset();
+			UIDList.Append(InCurveToInitFrom.UIDList);
+			Elements.Reset();
+			Elements.AddZeroed(UIDList.Num());
+			bInitialized = true;
+		}
 	}
 
 	/** Set value of InUID to InValue */

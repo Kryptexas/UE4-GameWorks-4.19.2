@@ -1112,7 +1112,8 @@ USceneComponent* USceneComponent::GetChildComponent(int32 ChildIndex) const
 
 void USceneComponent::GetChildrenComponents(bool bIncludeAllDescendants, TArray<USceneComponent*>& Children) const
 {
-	Children.Empty();
+	Children.Reset();
+	Children.Reserve(AttachChildren.Num());
 
 	if (bIncludeAllDescendants)
 	{

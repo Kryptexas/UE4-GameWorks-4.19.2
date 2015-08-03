@@ -198,7 +198,7 @@ void UGameplayTagsManager::ConstructNetIndex()
 
 	{
 		FScopeLock Lock(&GameplayTagNodeMapCritical);
-		GameplayTagNodeMap.GenerateValueArray(NetworkGameplayTagNodeIndex);
+	GameplayTagNodeMap.GenerateValueArray(NetworkGameplayTagNodeIndex);
 	}
 
 	NetworkGameplayTagNodeIndex.Sort(FCompareFGameplayTagNodeByTag());
@@ -426,13 +426,13 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 
 		{
 			FScopeLock Lock(&GameplayTagMapCritical);
-			GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
+		GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
 		}
 
 		{
 			FScopeLock Lock(&GameplayTagNodeMapCritical);
-			GameplayTagNodeMap.Add(GameplayTag, TagNode);
-		}
+		GameplayTagNodeMap.Add(GameplayTag, TagNode);
+	}
 	}
 	else if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
 	{
@@ -659,46 +659,74 @@ void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, 
 
 bool UGameplayTagsManager::GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
 {
-	TSet<FName> Tags1;
-	TSet<FName> Tags2;
-
+	//fixme, why is there a critical section here
+	FScopeLock Lock(&GameplayTagNodeMapCritical);
+	check(IsInGameThread());
+	if (MatchTypeOne == EGameplayTagMatchType::Explicit && MatchTypeTwo == EGameplayTagMatchType::Explicit)
 	{
-		FScopeLock Lock(&GameplayTagNodeMapCritical);
-		if (MatchTypeOne == EGameplayTagMatchType::Explicit)
+		const TSharedPtr<FGameplayTagNode>* TagNode1 = GameplayTagNodeMap.Find(GameplayTagOne);
+		const TSharedPtr<FGameplayTagNode>* TagNode2 = GameplayTagNodeMap.Find(GameplayTagTwo);
+		if (TagNode1 && TagNode2)
 		{
-			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
-			if (TagNode)
-			{
-				Tags1.Add((*TagNode)->GetCompleteTag());
-			}
+			return (*TagNode1)->GetCompleteTag() == (*TagNode2)->GetCompleteTag();
 		}
-		if (MatchTypeTwo == EGameplayTagMatchType::Explicit)
+		return false;
+	}
+	static TSet<FName> Tags1;
+	static TSet<FName> Tags2;
+
+	check(!Tags1.Num() && !Tags2.Num()); // must be game thread, cannot call this recursively
+
+
+	if (MatchTypeOne == EGameplayTagMatchType::IncludeParentTags)
+	{
+		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
+		if (TagNode)
 		{
-			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
-			if (TagNode)
-			{
-				Tags2.Add((*TagNode)->GetCompleteTag());
-			}
+			GetAllParentNodeNames(Tags1, *TagNode);
 		}
-		if (MatchTypeOne == EGameplayTagMatchType::IncludeParentTags)
+	}
+	if (MatchTypeTwo == EGameplayTagMatchType::IncludeParentTags)
+	{
+		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
+		if (TagNode)
 		{
-			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
-			if (TagNode)
-			{
-				GetAllParentNodeNames(Tags1, *TagNode);
-			}
+			GetAllParentNodeNames(Tags2, *TagNode);
 		}
-		if (MatchTypeTwo == EGameplayTagMatchType::IncludeParentTags)
+	}
+	bool bResult = false;
+
+	if (MatchTypeOne == EGameplayTagMatchType::Explicit)
+	{
+		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
+		if (TagNode)
 		{
-			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
-			if (TagNode)
+			bResult = Tags2.Contains((*TagNode)->GetCompleteTag());
+		}
+	}
+	else if (MatchTypeTwo == EGameplayTagMatchType::Explicit)
+	{
+		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
+		if (TagNode)
+		{
+			bResult = Tags1.Contains((*TagNode)->GetCompleteTag());
+		}
+	}
+	else
+	{
+		for (auto& Tag1 : Tags1)
+		{
+			if (Tags2.Contains(Tag1))
 			{
-				GetAllParentNodeNames(Tags2, *TagNode);
+				bResult = true;
+				break;
 			}
 		}
 	}
 
-	return Tags1.Intersect(Tags2).Num() > 0;
+	Tags1.Reset();
+	Tags2.Reset();
+	return bResult;
 }
 
 void UGameplayTagsManager::GetAllParentNodeNames(TSet<FName>& NamesList, const TSharedPtr<FGameplayTagNode> GameplayTag) const

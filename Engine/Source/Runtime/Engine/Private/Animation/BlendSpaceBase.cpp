@@ -138,15 +138,18 @@ void UBlendSpaceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, c
 			UE_LOG(LogAnimation, Log, TEXT("BlendSpace(%s) - BlendInput(%s) : FilteredBlendInput(%s), FilterMultiplier(%0.2f)"), *GetName(), *Instance.BlendSpacePosition.ToString(), *BlendInput.ToString(), FilterMultiplier );
 		}
 
-		check (Instance.BlendSampleDataCache);
+		check(Instance.BlendSampleDataCache);
 
 		// For Target weight interpolation, we'll need to save old data, and interpolate to new data
-		TArray<FBlendSampleData> OldSampleDataList, NewSampleDataList;
+		static TArray<FBlendSampleData> OldSampleDataList;
+		static TArray<FBlendSampleData> NewSampleDataList;
+		check(IsInGameThread() && !OldSampleDataList.Num() && !NewSampleDataList.Num()); // this must be called non-recursively on the game thread
+
 		OldSampleDataList.Append(*Instance.BlendSampleDataCache);
 
 		// get sample data based on new input
 		// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
-		Instance.BlendSampleDataCache->Empty();
+		Instance.BlendSampleDataCache->Reset();
 		// new sample data that will be used for evaluation
 		TArray<FBlendSampleData> & SampleDataList = *Instance.BlendSampleDataCache;
 
@@ -287,15 +290,19 @@ void UBlendSpaceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, c
 				}
 			}
 		}
+		OldSampleDataList.Reset();
+		NewSampleDataList.Reset();
 	}
 }
 
 bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray<FBlendSampleData> & OutSampleDataList) const
 {
-	TArray<FGridBlendSample> RawGridSamples;
+	static TArray<FGridBlendSample, TInlineAllocator<4> > RawGridSamples;
+	check(IsInGameThread() && !RawGridSamples.Num()); // this must be called non-recursively from the gamethread
 	GetRawSamplesFromBlendInput(BlendInput, RawGridSamples);
 
-	OutSampleDataList.Empty();
+	OutSampleDataList.Reset();
+	OutSampleDataList.Reserve(RawGridSamples.Num() * FEditorElement::MAX_VERTICES);
 
 	// consolidate all samples
 	for (int32 SampleNum=0; SampleNum<RawGridSamples.Num(); ++SampleNum)
@@ -329,7 +336,7 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		if (OutSampleDataList[I].TotalWeight < ZERO_ANIMWEIGHT_THRESH)
 		{
 			// cut anything in front of this 
-			OutSampleDataList.RemoveAt(I, TotalSample-I);
+			OutSampleDataList.RemoveAt(I, TotalSample-I, false); // we won't shrink here, that might screw up alloc optimization at a higher level, if not this is temp anyway
 			break;
 		}
 
@@ -341,7 +348,7 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		// normalize to all weights
 		OutSampleDataList[I].TotalWeight /= TotalWeight;
 	}
-
+	RawGridSamples.Reset();
 	return (OutSampleDataList.Num()!=0);
 }
 

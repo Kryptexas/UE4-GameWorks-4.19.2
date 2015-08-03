@@ -48,6 +48,24 @@ struct FAnimationEvaluationContext
 		Clear();
 	}
 
+	void Copy(const FAnimationEvaluationContext& Other)
+	{
+		AnimInstance = Other.AnimInstance;
+		SkeletalMesh = Other.SkeletalMesh;
+		SpaceBases.Reset();
+		SpaceBases.Append(Other.SpaceBases);
+		LocalAtoms.Reset();
+		LocalAtoms.Append(Other.LocalAtoms);
+		VertexAnims.Reset();
+		VertexAnims.Append(Other.VertexAnims);
+		RootBoneTranslation = Other.RootBoneTranslation;
+		Curve.InitFrom(Other.Curve);
+		bDoInterpolation = Other.bDoInterpolation;
+		bDoEvaluation = Other.bDoEvaluation;
+		bDuplicateToCacheBones = Other.bDuplicateToCacheBones;
+		bDuplicateToCacheCurve = Other.bDuplicateToCacheCurve;
+	}
+
 	void Clear()
 	{
 		AnimInstance = NULL;

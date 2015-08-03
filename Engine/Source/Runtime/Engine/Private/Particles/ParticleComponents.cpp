@@ -2969,7 +2969,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 		case DET_Sprite:
 			{
 				// Allocate the dynamic data
-				FDynamicSpriteEmitterData* NewEmitterData = ::new FDynamicSpriteEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
+				FDynamicSpriteEmitterData* NewEmitterData = new FDynamicSpriteEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
 
 				// Fill in the source data
 				const FDynamicSpriteEmitterReplayData* SpriteEmitterReplayData =
@@ -3018,7 +3018,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 		case DET_Beam2:
 			{
 				// Allocate the dynamic data
-				FDynamicBeam2EmitterData* NewEmitterData = ::new FDynamicBeam2EmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
+				FDynamicBeam2EmitterData* NewEmitterData = new FDynamicBeam2EmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
 
 				// Fill in the source data
 				const FDynamicBeam2EmitterReplayData* Beam2EmitterReplayData =
@@ -3035,7 +3035,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 		case DET_Ribbon:
 			{
 				// Allocate the dynamic data
-				FDynamicRibbonEmitterData* NewEmitterData = ::new FDynamicRibbonEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
+				FDynamicRibbonEmitterData* NewEmitterData = new FDynamicRibbonEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
 
 				// Fill in the source data
 				const FDynamicRibbonEmitterReplayData* Trail2EmitterReplayData = static_cast<const FDynamicRibbonEmitterReplayData*>(EmitterReplayData);
@@ -3049,7 +3049,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 		case DET_AnimTrail:
 			{
 				// Allocate the dynamic data
-				FDynamicAnimTrailEmitterData* NewEmitterData = ::new FDynamicAnimTrailEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
+				FDynamicAnimTrailEmitterData* NewEmitterData = new FDynamicAnimTrailEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
 				// Fill in the source data
 				const FDynamicTrailsEmitterReplayData* AnimTrailEmitterReplayData = static_cast<const FDynamicTrailsEmitterReplayData*>(EmitterReplayData);
 				NewEmitterData->Source = *AnimTrailEmitterReplayData;
@@ -3100,12 +3100,11 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 		}
 	}
 
+
 	FParticleDynamicData* ParticleDynamicData = new FParticleDynamicData();
-	{
-		SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
-		INC_DWORD_STAT(STAT_DynamicPSysCompCount);
-		INC_DWORD_STAT_BY(STAT_DynamicPSysCompMem, sizeof(FParticleDynamicData));
-	}
+	INC_DWORD_STAT(STAT_DynamicPSysCompCount);
+	INC_DWORD_STAT_BY(STAT_DynamicPSysCompMem, sizeof(FParticleDynamicData));
+
 	if (Template)
 	{
 		ParticleDynamicData->SystemPositionForMacroUVs = ComponentToWorld.TransformPosition(Template->MacroUVPosition);
@@ -3114,6 +3113,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 
 	if( ReplayState == PRS_Replaying )
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Replay);
 		// Do we have any replay data to play back?
 		UParticleSystemReplay* ReplayData = FindReplayClipForIDNumber( ReplayClipIDNumber );
 		if( ReplayData != NULL )
@@ -3126,7 +3126,8 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 
 
 				// Fill the emitter dynamic buffers with data from our replay
-				ParticleDynamicData->DynamicEmitterDataArray.Empty( CurReplayFrame.Emitters.Num() );
+				ParticleDynamicData->DynamicEmitterDataArray.Reset();
+				ParticleDynamicData->DynamicEmitterDataArray.Reserve(CurReplayFrame.Emitters.Num());
 				for( int32 CurEmitterIndex = 0; CurEmitterIndex < CurReplayFrame.Emitters.Num(); ++CurEmitterIndex )
 				{
 					const FParticleEmitterReplayFrame& CurEmitter = CurReplayFrame.Emitters[ CurEmitterIndex ];
@@ -3156,6 +3157,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 		FParticleSystemReplayFrame* NewReplayFrame = NULL;
 		if( ReplayState == PRS_Capturing )
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Capture);
 			ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 			check(IsInGameThread());
 			// If we don't have any replay data for this component yet, create some now
@@ -3190,7 +3192,9 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 		// Is the particle system allowed to run?
 		if( bForcedInActive == false )
 		{
-			ParticleDynamicData->DynamicEmitterDataArray.Empty(EmitterInstances.Num());
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Gather);
+			ParticleDynamicData->DynamicEmitterDataArray.Reset();
+			ParticleDynamicData->DynamicEmitterDataArray.Reserve(EmitterInstances.Num());
 
 			for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 			{
@@ -3199,7 +3203,17 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 				if (EmitterInst)
 				{
 					// Generate the dynamic data for this emitter
-					NewDynamicEmitterData = EmitterInst->GetDynamicData( IsOwnerSelected() );
+					{
+						QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData);
+						bool bIsOwnerSeleted = false;
+#if WITH_EDITOR
+						{
+							QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData_Selected);
+							bIsOwnerSeleted = IsOwnerSelected();
+						}
+#endif
+						NewDynamicEmitterData = EmitterInst->GetDynamicData(bIsOwnerSeleted);
+					}
 					if( NewDynamicEmitterData != NULL )
 					{
 						NewDynamicEmitterData->bValid = true;
@@ -3207,6 +3221,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 						// Are we current capturing particle state?
 						if( ReplayState == PRS_Capturing )
 						{
+							QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_GatherCapture);
 							// Capture replay data for this particle system
 							// NOTE: This call should always succeed if GetDynamicData succeeded earlier
 							FDynamicEmitterReplayDataBase* NewEmitterReplayData = EmitterInst->GetReplayData();

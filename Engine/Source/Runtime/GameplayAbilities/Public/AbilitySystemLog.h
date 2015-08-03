@@ -14,7 +14,7 @@
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystem, Warning, All);
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(VLogAbilitySystem, Warning, All);
 
-#if NO_LOGGING
+#if NO_LOGGING || !PLATFORM_DESKTOP
 
 // Without logging enabled we pass ability system through to UE_LOG which only handles Fatal verbosity in NO_LOGGING
 #define ABILITY_LOG(Verbosity, Format, ...) \

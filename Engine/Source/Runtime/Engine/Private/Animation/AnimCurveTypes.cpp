@@ -520,7 +520,8 @@ void FBlendedCurve::Override(const FBlendedCurve& CurveToOverrideFrom, float Wei
 void FBlendedCurve::Override(const FBlendedCurve& CurveToOverrideFrom)
 {
 	InitFrom(CurveToOverrideFrom);
-	Elements = CurveToOverrideFrom.Elements;
+	Elements.Reset();
+	Elements.Append(CurveToOverrideFrom.Elements);
 
 	ValidateCurve(this);
 }
@@ -530,7 +531,7 @@ void FBlendedCurve::InitFrom(const USkeleton* Skeleton)
 	if(const FSmartNameMapping* Mapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
 	{
 		Mapping->FillUidArray(UIDList);
-		Elements.Empty(UIDList.Num());
+		Elements.Reset();
 		Elements.AddZeroed(UIDList.Num());
 	}
 
@@ -546,10 +547,15 @@ FBlendedCurve::FBlendedCurve(const class UAnimInstance* AnimInstance)
 
 void FBlendedCurve::CopyFrom(const FBlendedCurve& CurveToCopyFrom)
 {
-	UIDList = CurveToCopyFrom.UIDList;
-	Elements = CurveToCopyFrom.Elements;
-	bInitialized = true;
-	ValidateCurve(this);
+	if (&CurveToCopyFrom != this)
+	{
+		UIDList.Reset();
+		UIDList.Append(CurveToCopyFrom.UIDList);
+		Elements.Reset();
+		Elements.Append(CurveToCopyFrom.Elements);
+		bInitialized = true;
+		ValidateCurve(this);
+	}
 }
 
 void FBlendedCurve::MoveFrom(FBlendedCurve& CurveToMoveFrom)

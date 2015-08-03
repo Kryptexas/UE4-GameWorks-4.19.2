@@ -798,7 +798,7 @@ public:
 
 		LockInvocationList();
 		{
-			const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
+			const TInvocationList& LocalInvocationList = GetInvocationList();
 
 			// call bound functions in reverse order, so we ignore any instances that may be added by callees
 			for (int32 InvocationListIndex = LocalInvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
@@ -831,7 +831,7 @@ protected:
 	 */
 	void RemoveDelegateInstance( FDelegateHandle Handle )
 	{
-		const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
+		const TInvocationList& LocalInvocationList = GetInvocationList();
 
 		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{

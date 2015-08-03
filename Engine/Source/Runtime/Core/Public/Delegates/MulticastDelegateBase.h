@@ -6,6 +6,8 @@
 /**
  * Abstract base class for multicast delegates.
  */
+typedef TArray<IDelegateInstance*, TInlineAllocator<1> > TInvocationList;
+
 template<typename ObjectPtrType = FWeakObjectPtr>
 class FMulticastDelegateBase
 {
@@ -145,7 +147,7 @@ protected:
 	 *
 	 * @return The invocation list.
 	 */
-	inline const TArray<IDelegateInstance*>& GetInvocationList( ) const
+	inline const TInvocationList& GetInvocationList( ) const
 	{
 		return InvocationList;
 	}
@@ -164,11 +166,11 @@ protected:
 
 private:
 
+	/** Holds the collection of delegate instances to invoke. */
+	TInvocationList InvocationList;
+
 	/** Used to determine when a compaction should happen. */
 	int32 CompactionThreshold;
-
-	/** Holds the collection of delegate instances to invoke. */
-	TArray<IDelegateInstance*> InvocationList;
 
 	/** Holds a lock counter for the invocation list. */
 	mutable int32 InvocationListLockCount;

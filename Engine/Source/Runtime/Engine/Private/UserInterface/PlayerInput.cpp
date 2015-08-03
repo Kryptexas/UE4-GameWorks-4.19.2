@@ -890,9 +890,16 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		{
 		}
 	};
-	TArray<FAxisDelegateDetails> AxisDelegates;
-	TArray<FVectorAxisDelegateDetails> VectorAxisDelegates;
-	TArray<FDelegateDispatchDetails> NonAxisDelegates;
+	static TArray<FAxisDelegateDetails> AxisDelegates;
+	static TArray<FVectorAxisDelegateDetails> VectorAxisDelegates;
+	static TArray<FDelegateDispatchDetails> NonAxisDelegates;
+	static TArray<FKey> KeysToConsume;
+	static TArray<FDelegateDispatchDetails> FoundChords;
+
+
+	// must be called non-recursively and on the game thread
+	check(IsInGameThread() && !AxisDelegates.Num() && !VectorAxisDelegates.Num() && !NonAxisDelegates.Num() && !KeysToConsume.Num() && !FoundChords.Num());
+
 	struct FDelegateDispatchDetailsSorter
 	{
 		bool operator()( const FDelegateDispatchDetails& A, const FDelegateDispatchDetails& B ) const
@@ -909,8 +916,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		UInputComponent* const IC = InputComponentStack[StackIndex];
 		if (IC)
 		{
-			TArray<FKey> KeysToConsume;
-			TArray<FDelegateDispatchDetails> FoundChords;
+			check(!KeysToConsume.Num() && !FoundChords.Num())
 
 			for (int32 ActionIndex=0; ActionIndex<IC->GetNumActionBindings(); ++ActionIndex)
 			{
@@ -1081,6 +1087,8 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 					ConsumeKey(KeysToConsume[KeyIndex]);
 				}
 			}		
+			KeysToConsume.Reset();
+			FoundChords.Reset();
 		}
 	}
 
@@ -1140,6 +1148,9 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 	PlayerController->PostProcessInput(DeltaTime, bGamePaused);
 
 	FinishProcessingPlayerInput();
+	AxisDelegates.Reset();
+	VectorAxisDelegates.Reset();
+	NonAxisDelegates.Reset();
 }
 
 void UPlayerInput::DiscardPlayerInput()

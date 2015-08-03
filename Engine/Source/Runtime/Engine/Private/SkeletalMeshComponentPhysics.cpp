@@ -1937,7 +1937,27 @@ bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapRes
 // convert a bone name from APEX stype to FBX style
 static FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex)
 {
-	return *FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"));
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_GetConvertedBoneName);
+	static FString Work;
+	check(IsInGameThread() && !Work.Len());
+	// FIXME, this still needs work, string conversion and hashing
+
+	const char* Bone = ApexClothingAsset->getBoneName(BoneIndex);
+	if (Bone)
+	{
+		int32 SrcLen = FCStringAnsi::Strlen(Bone) + 1;
+		int32 DestLen = FPlatformString::ConvertedLength<TCHAR>(Bone, SrcLen);
+		TArray<TCHAR>& Array = Work.GetCharArray();
+		Array.AddUninitialized(DestLen);
+		FPlatformString::Convert(Array.GetData(), DestLen, Bone, SrcLen);
+
+		Work.ReplaceInline(TEXT(" "), TEXT("-"));
+		FName Result(*Work);
+		Work.Reset();
+		//check(Result == FName(*FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"))));
+		return Result;
+	}
+	return NAME_None;
 }
 
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds) const
@@ -3540,6 +3560,9 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 	// convert teleport mode to apex clothing teleport enum
 	physx::apex::ClothingTeleportMode::Enum CurTeleportMode = (physx::apex::ClothingTeleportMode::Enum)ClothTeleportMode;
 
+	static TArray<physx::PxMat44> BoneMatrices;
+	check(IsInGameThread() && !BoneMatrices.Num());
+
 	for(int32 ActorIdx=0; ActorIdx<NumActors; ActorIdx++)
 	{
 		// skip if ClothingActor is NULL or invalid
@@ -3550,13 +3573,11 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		ApplyWindForCloth(ClothingActors[ActorIdx]);
 
-		TArray<physx::PxMat44> BoneMatrices;
-
 		NxClothingAsset* ClothingAsset = ClothingActors[ActorIdx].ParentClothingAsset;
 
 		uint32 NumUsedBones = ClothingAsset->getNumUsedBones();
 
-		BoneMatrices.Empty(NumUsedBones);
+		check(!BoneMatrices.Num());
 		BoneMatrices.AddUninitialized(NumUsedBones);
 
 		for(uint32 Index=0; Index < NumUsedBones; Index++)
@@ -3603,6 +3624,8 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 			sizeof(physx::PxMat44), 
 			NumUsedBones,
 			CurTeleportMode);
+
+		BoneMatrices.Reset();
 	}
 
 	// reset to Continuous
@@ -3755,13 +3778,13 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 
 	if(NumClothingActors == 0 || bDisableClothSimulation)
 	{
-		OutClothSimData.Empty();
+		OutClothSimData.Reset();
 		return;
 	}
 
 	if(OutClothSimData.Num() != NumClothingActors)
 	{
-		OutClothSimData.Empty(NumClothingActors);
+		OutClothSimData.Reset();
 		OutClothSimData.AddZeroed(NumClothingActors);
 	}
 
@@ -3771,8 +3794,8 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 	{
 		if(!IsValidClothingActor(ActorIndex))
 		{
-			OutClothSimData[ActorIndex].ClothSimulPositions.Empty();
-			OutClothSimData[ActorIndex].ClothSimulNormals.Empty();
+			OutClothSimData[ActorIndex].ClothSimulPositions.Reset();
+			OutClothSimData[ActorIndex].ClothSimulNormals.Reset();
 			continue;
 		}
 
@@ -3791,9 +3814,9 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 
 				if(ClothData.ClothSimulPositions.Num() != NumSimulVertices)
 				{
-					ClothData.ClothSimulPositions.Empty(NumSimulVertices);
+					ClothData.ClothSimulPositions.Reset();
 					ClothData.ClothSimulPositions.AddUninitialized(NumSimulVertices);
-					ClothData.ClothSimulNormals.Empty(NumSimulVertices);
+					ClothData.ClothSimulNormals.Reset();
 					ClothData.ClothSimulNormals.AddUninitialized(NumSimulVertices);
 				}
 
@@ -3825,7 +3848,7 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 	//no simulated vertices 
 	if(!bSimulated)
 	{
-		OutClothSimData.Empty();
+		OutClothSimData.Reset();
 	}
 #endif// #if WITH_APEX_CLOTHING
 }

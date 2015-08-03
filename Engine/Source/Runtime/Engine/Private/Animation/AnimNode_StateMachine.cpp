@@ -171,7 +171,8 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 		if (Machine->States.Num() > 0)
 		{
 			// Create a pose link for each state we can reach
-			StatePoseLinks.Empty(Machine->States.Num());
+			StatePoseLinks.Reset();
+			StatePoseLinks.Reserve(Machine->States.Num());
 			for (int32 StateIndex = 0; StateIndex < Machine->States.Num(); ++StateIndex)
 			{
 				FPoseLink* StatePoseLink = new (StatePoseLinks) FPoseLink();
@@ -184,8 +185,8 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 			}
 
 			// Reset transition related variables
-			StatesUpdated.Empty(StatesUpdated.Num());
-			ActiveTransitionArray.Empty(ActiveTransitionArray.Num());
+			StatesUpdated.Reset();
+			ActiveTransitionArray.Reset();
 		
 			// Move to the default state
 			SetState(Context, Machine->InitialState);
@@ -350,7 +351,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 		bFirstUpdate = false;
 	}
 
-	StatesUpdated.Empty(StatesUpdated.Num());
+	StatesUpdated.Reset();
 
 	// Tick the individual state/states that are active
 	if (ActiveTransitionArray.Num() > 0)

@@ -67,19 +67,21 @@ public:
 	 * Captures the current stack and updates stack tracking information.
 	 * optionally stores a user data pointer that the tracker will take ownership of and delete upon reset
 	 * you must allocate the memory with FMemory::Malloc()
+	 * EntriesToIgnore are removed from the top of then stack, then we keep at most StackLen of the remaining entries.
 	 */
-	CORE_API void CaptureStackTrace( int32 EntriesToIgnore = 2, void* UserData = NULL );
+	CORE_API void CaptureStackTrace(int32 EntriesToIgnore = 2, void* UserData = nullptr, int32 StackLen = MAX_int32);
 
 	/**
 	 * Dumps capture stack trace summary to the passed in log.
 	 */
-	CORE_API void DumpStackTraces( int32 StackThreshold, FOutputDevice& Ar );
+	CORE_API void DumpStackTraces(int32 StackThreshold, FOutputDevice& Ar, float SampleCountCorrectionFactor = 1.0);
 
 	/** Resets stack tracking. Deletes all user pointers passed in via CaptureStackTrace() */
 	CORE_API void ResetTracking();
 
 	/** Toggles tracking. */
 	CORE_API void ToggleTracking();
+	CORE_API void ToggleTracking(bool bEnable, bool bSilent);
 
 private:
 

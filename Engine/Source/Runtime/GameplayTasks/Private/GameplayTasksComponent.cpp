@@ -428,7 +428,7 @@ void UGameplayTasksComponent::SetCurrentlyClaimedResources(FGameplayResourceSet 
 //----------------------------------------------------------------------//
 // debugging
 //----------------------------------------------------------------------//
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
 FString UGameplayTasksComponent::GetTickingTasksDescription() const
 {
 	FString TasksDescription;

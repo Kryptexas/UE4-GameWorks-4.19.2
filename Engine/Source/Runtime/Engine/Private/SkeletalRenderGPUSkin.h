@@ -19,9 +19,28 @@
 * Stores the updated matrices needed to skin the verts.
 * Created by the game thread and sent to the rendering thread as an update 
 */
-class FDynamicSkelMeshObjectDataGPUSkin : public FDynamicSkelMeshObjectData
+class FDynamicSkelMeshObjectDataGPUSkin
 {
+	/**
+	* Constructor, these are recycled, so you never use a constructor
+	*/
+	FDynamicSkelMeshObjectDataGPUSkin()
+	{
+		Clear();
+	}
+
+	virtual ~FDynamicSkelMeshObjectDataGPUSkin()
+	{
+		// we leak these
+		check(0);
+	}
+
+	void Clear();
+
 public:
+
+	static FDynamicSkelMeshObjectDataGPUSkin* AllocDynamicSkelMeshObjectDataGPUSkin();
+	static void FreeDynamicSkelMeshObjectDataGPUSkin(FDynamicSkelMeshObjectDataGPUSkin* Who);
 
 	/**
 	* Constructor
@@ -30,7 +49,7 @@ public:
 	* @param	InLODIndex - each lod has its own bone map 
 	* @param	InActiveVertexAnims - vertex anims active for the mesh
 	*/
-	FDynamicSkelMeshObjectDataGPUSkin(
+	void InitDynamicSkelMeshObjectDataGPUSkin(
 		USkinnedMeshComponent* InMeshComponent,
 		FSkeletalMeshResource* InSkeletalMeshResource,
 		int32 InLODIndex,
@@ -279,7 +298,7 @@ public:
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
-	virtual void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectData* InDynamicData) override;
+	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData);
 	virtual void PreGDMECallback() override;
 	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}

@@ -14,10 +14,9 @@
 #endif
 
 
-#if ENABLE_VISUAL_LOG 
-
-DEFINE_STAT(STAT_VisualLog);
 DEFINE_LOG_CATEGORY(LogVisual);
+#if ENABLE_VISUAL_LOG 
+DEFINE_STAT(STAT_VisualLog);
 
 TMap<UObject*, TArray<TWeakObjectPtr<const UObject> > > FVisualLogger::RedirectionMap;
 int32 FVisualLogger::bIsRecording = false;
@@ -512,10 +511,12 @@ public:
 #endif
 			}
 		}
+#if ENABLE_VISUAL_LOG
 		else if (FParse::Command(&Cmd, TEXT("LogNavOctree")))
 		{
 			FVisualLogger::NavigationDataDump(GetWorldForVisualLogger(nullptr), LogNavigation, ELogVerbosity::Log, INDEX_NONE, FBox());
 		}
+#endif
 		return false;
 	}
 } LogVisualizerExec;
