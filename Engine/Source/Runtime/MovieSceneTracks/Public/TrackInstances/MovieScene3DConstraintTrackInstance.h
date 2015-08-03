@@ -5,6 +5,7 @@
 #include "IMovieSceneTrackInstance.h"
 
 class UMovieScene3DConstraintTrack;
+class UMovieScene3DConstraintSection;
 
 /**
  * Instance of a UMovieScene3DConstraintTrack
