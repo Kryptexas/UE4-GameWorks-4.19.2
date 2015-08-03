@@ -29,4 +29,14 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 		bBuildForES2 = true;
 	}
 }
+
+
+void UAndroidRuntimeSettings::MigrateData()
+{
+	if (!AdMobAdUnitID.IsEmpty())
+	{
+		AdMobAdUnitIDs.Add(AdMobAdUnitID);
+		AdMobAdUnitID.Empty();
+	}
+}
 #endif

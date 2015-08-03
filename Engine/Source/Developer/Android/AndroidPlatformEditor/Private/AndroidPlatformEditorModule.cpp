@@ -60,6 +60,9 @@ class FAndroidPlatformEditorModule
 		auto &AndroidDeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetectionModule>("AndroidDeviceDetection");
 		settings->SetDeviceDetection(AndroidDeviceDetection.GetAndroidDeviceDetection());
 		settings->UpdateTargetModulePaths();
+
+		auto platformSettings = GetMutableDefault<UAndroidRuntimeSettings>();
+		platformSettings->MigrateData();
 	}
 
 	virtual void ShutdownModule() override
