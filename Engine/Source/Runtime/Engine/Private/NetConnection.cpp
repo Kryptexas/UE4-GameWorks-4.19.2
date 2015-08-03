@@ -696,8 +696,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
 	}
-	// Invalid Data Packet: Received a duplicate packet
-	else if ( PacketId > 0)
+	else
 	{
 		Driver->InOutOfOrderPackets++;
 		// Protect against replay attacks
@@ -705,16 +704,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		// The only bunch we would process would be unreliable RPC's, which could allow for replay attacks
 		// So rather than add individual protection for unreliable RPC's as well, just kill it at the source, 
 		// which protects everything in one fell swoop
-
-		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an Acked PacketID"));
-
-		return;		
-	}
-	// Invalid Data Packet: User has sent an invalid PacketId
-	else if ( PacketId < 0)
-	{
-		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an invalid PacketID"));
-
 		return;
 	}
 
