@@ -357,6 +357,20 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 	return NumMappings;
 }
 
+const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
+{
+	check(OutBuffer && BufferCount);
+	if (Error == 0)
+	{
+		Error = errno;
+	}
+
+	FString Message = FString::Printf(TEXT("errno=%d (%s)"), Error, UTF8_TO_TCHAR(strerror(Error)));
+	FCString::Strncpy(OutBuffer, *Message, BufferCount);
+
+	return OutBuffer;
+}
+
 void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
 {
 	if (SDL_HasClipboardText() == SDL_TRUE)
