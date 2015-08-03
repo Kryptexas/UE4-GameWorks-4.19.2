@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2636043
 Availability:Public
-Title: 13.デコレーターの作成
+Title:13.デコレーターの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:13. デコレーターの作成
+Description:13.Decoratorの作成
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,7 +26,7 @@ Behavior Tree (ビヘイビアツリー) システムの条件式としても知
 
 AI のポーンがターゲットに十分近づくと、**Decorator** はビヘイビアツリーの Rapid Move To ブランチの実行を中止します。これは **Rapid Move To** Task 内あるいは **Move To** Task によって処理することができますが、この Decorator はすべてのアクタを受け取り、ブランチの実行をブロックすることができます。従って、様々な状況での再利用が可能になります。
 
-## 手順
+## ステップ
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
 1. New Decorator ![](newDecorator_button.png) ボタンをクリックします。
