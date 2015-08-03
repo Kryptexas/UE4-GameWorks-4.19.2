@@ -122,14 +122,7 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 
 void FMaterialResource::GatherCustomOutputExpressions(TArray<UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
 {
-	for (UMaterialExpression* Expression : Material->Expressions)
-	{
-		UMaterialExpressionCustomOutput* CustomOutput = Cast<UMaterialExpressionCustomOutput>(Expression);
-		if (CustomOutput)
-		{
-			OutCustomOutputs.Add(CustomOutput);
-		}
-	}
+	Material->GetAllCustomOutputExpressions(OutCustomOutputs);
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -3422,6 +3415,17 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 	return nullptr;
 }
 
+void UMaterial::GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
+{
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		UMaterialExpressionCustomOutput* CustomOutput = Cast<UMaterialExpressionCustomOutput>(Expression);
+		if (CustomOutput)
+		{
+			OutCustomOutputs.Add(CustomOutput);
+		}
+	}
+}
 
 bool UMaterial::GetAllReferencedExpressions(TArray<UMaterialExpression*>& OutExpressions, class FStaticParameterSet* InStaticParameterSet)
 {
@@ -3438,6 +3442,14 @@ bool UMaterial::GetAllReferencedExpressions(TArray<UMaterialExpression*>& OutExp
 				OutExpressions.AddUnique(MPRefdExpressions[AddIdx]);
 			}
 		}
+	}
+
+	TArray<class UMaterialExpressionCustomOutput*> CustomOutputExpressions;
+	GetAllCustomOutputExpressions(CustomOutputExpressions);
+	for (UMaterialExpressionCustomOutput* Expression : CustomOutputExpressions)
+	{
+		TArray<FExpressionInput*> ProcessedInputs;
+		RecursiveGetExpressionChain(Expression, ProcessedInputs, OutExpressions, InStaticParameterSet);
 	}
 
 	return true;

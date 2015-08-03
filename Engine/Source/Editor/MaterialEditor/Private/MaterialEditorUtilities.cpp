@@ -16,6 +16,7 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialExpressionCustomOutput.h"
 
 #include "MaterialEditorUtilities.h"
 #include "Toolkits/ToolkitManager.h"
@@ -211,6 +212,13 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 		{
 			GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(ExpressionInput->Expression, ExpressionInput->OutputIndex), MaterialInstance, VisibleExpressions, FunctionStack);
 		}
+	}
+
+	TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
+	Material->GetAllCustomOutputExpressions(CustomOutputExpressions);
+	for (UMaterialExpressionCustomOutput* Expression : CustomOutputExpressions)
+	{
+		GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(Expression, 0), MaterialInstance, VisibleExpressions, FunctionStack);
 	}
 }
 

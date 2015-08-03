@@ -1213,6 +1213,9 @@ public:
 	*/
 	ENGINE_API FExpressionInput* GetExpressionInputForProperty(EMaterialProperty InProperty);
 
+	/* Returns any UMaterialExpressionCustomOutput expressions */
+	ENGINE_API void GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const;
+
 	/**
 	 *	Get all referenced expressions (returns the chains for all properties).
 	 *
