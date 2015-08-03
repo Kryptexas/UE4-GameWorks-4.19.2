@@ -545,7 +545,7 @@ struct FBox2D
 	FVector2D Max;
 
 	UPROPERTY()
-	uint8 IsValid;
+	bool bIsValid;
 
 };
 
