@@ -357,7 +357,8 @@ namespace CrossCompiler
 		}
 		else if (PLATFORM_LINUX)
 		{
-			BatchFile = FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
+			BatchFile = TEXT("#!/bin/sh\n");
+			BatchFile += FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
 		}
 		else if (PLATFORM_WINDOWS)
 		{

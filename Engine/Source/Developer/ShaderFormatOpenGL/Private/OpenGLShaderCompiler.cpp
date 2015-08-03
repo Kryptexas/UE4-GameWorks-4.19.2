@@ -1315,7 +1315,8 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
 			if (!CCBatchFileContents.IsEmpty())
 			{
-				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CrossCompile.bat")));
+				const TCHAR * ScriptName = PLATFORM_WINDOWS ? TEXT("CrossCompile.bat") : TEXT("CrossCompile.sh");
+				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / ScriptName));
 			}
 		}
 
