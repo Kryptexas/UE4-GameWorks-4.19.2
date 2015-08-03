@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2623510
 Availability:Public
 Title:Decal アクタの操作ガイド
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -45,7 +45,6 @@ Description:Deferred Decal アクタの操作ガイド
 [/VAR]
 [TOC(start:2)]
 
-## 概要
 
 ディファード デカールにより、高度でより簡単な維持管理が可能になります。ライティングを再計算するかわりに GBuffer へ書き出す利点は以下の通りです。
 
