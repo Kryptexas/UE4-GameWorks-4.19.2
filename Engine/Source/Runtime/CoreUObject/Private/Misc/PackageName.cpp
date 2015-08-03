@@ -328,7 +328,7 @@ FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
 	return Result;
 }
 
-FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension, const bool ShouldGetLocalizedPackage)
+bool FPackageName::TryConvertLongPackageNameToFilename(const FString& InLongPackageName, FString& OutFilename, const FString& InExtension, const bool ShouldGetLocalizedPackage)
 {
 	const auto& Paths = FLongPackagePathsSingleton::Get();
 
@@ -341,14 +341,24 @@ FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName
 		{
 			const FString RootRelativePath = InLongPackageName.Mid(Pair.RootPath.Len());
 			const bool IsLocalizedPath = RootRelativePath.StartsWith(LocalizationPathParticle);
-			return Pair.ContentPath + (ShouldGetLocalizedPackage && !IsLocalizedPath ? LocalizationPathParticle : TEXT("")) + RootRelativePath + InExtension;
+			OutFilename = Pair.ContentPath + (ShouldGetLocalizedPackage && !IsLocalizedPath ? LocalizationPathParticle : TEXT("")) + RootRelativePath + InExtension;
+			return true;
 		}
 	}
 
 	// This is not a long package name or the root folder is not handled in the above cases
-	UE_LOG(LogPackageName, Fatal,TEXT("LongPackageNameToFilename failed to convert '%s'. Path does not map to any roots."), *InLongPackageName);
+	return false;
+}
 
-	return InLongPackageName;
+FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension, const bool ShouldGetLocalizedPackage)
+{
+	FString FailureReason;
+	FString Result;
+	if (!TryConvertLongPackageNameToFilename(InLongPackageName, Result, InExtension, ShouldGetLocalizedPackage))
+	{
+		UE_LOG(LogPackageName, Fatal,TEXT("LongPackageNameToFilename failed to convert '%s'. Path does not map to any roots."), *InLongPackageName);
+	}
+	return Result;
 }
 
 FString FPackageName::GetLongPackagePath(const FString& InLongPackageName)

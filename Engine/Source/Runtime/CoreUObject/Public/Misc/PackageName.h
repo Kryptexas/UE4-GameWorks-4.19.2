@@ -50,6 +50,14 @@ public:
 	 */
 	static FString FilenameToLongPackageName(const FString& InFilename);
 	/** 
+	 * Tries to convert a long package name to a file name with the supplied extension.
+	 *
+	 * @param InLongPackageName Long Package Name
+	 * @param InExtension Package extension.
+	 * @return Package filename.
+	 */
+	static bool TryConvertLongPackageNameToFilename(const FString& InLongPackageName, FString& OutFilename, const FString& InExtension = TEXT(""), const bool ShouldGetLocalizedPackage = false);
+	/** 
 	 * Converts a long package name to a file name with the supplied extension.
 	 *
 	 * @param InLongPackageName Long Package Name
