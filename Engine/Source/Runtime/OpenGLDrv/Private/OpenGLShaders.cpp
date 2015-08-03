@@ -720,7 +720,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		}
 #endif
-#if PLATFORM_HTML5
+#if PLATFORM_HTML5 && !UE_BUILD_SHIPPING
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		if (CompileStatus == GL_FALSE)
 		{
