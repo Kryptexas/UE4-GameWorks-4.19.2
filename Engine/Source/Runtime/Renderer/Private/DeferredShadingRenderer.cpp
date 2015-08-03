@@ -694,7 +694,8 @@ static FORCEINLINE bool HasHiddenAreaMask()
 {
 	static const IConsoleVariable* const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.HiddenAreaMask"));
 
-	return (CVar->GetInt() == 1 &&
+	return (CVar != nullptr &&
+		CVar->GetInt() == 1 &&
 		GEngine &&
 		GEngine->HMDDevice.IsValid() &&
 		GEngine->HMDDevice->HasHiddenAreaMask());
