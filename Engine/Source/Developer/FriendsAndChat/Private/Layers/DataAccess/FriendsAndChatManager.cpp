@@ -205,6 +205,10 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateStatusWidget( const FFrien
 {
 	if(ShowStatusOptions)
 	{
+		if (!ClanRepository.IsValid())
+		{
+			ClanRepository = FClanRepositoryFactory::Create();
+		}
 		check(ClanRepository.IsValid());
 
 		TSharedRef<FFriendsViewModel> FriendsViewModel = FFriendsViewModelFactory::Create(FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), MessageService.ToSharedRef(), ClanRepository.ToSharedRef(), FriendsListFactory.ToSharedRef(), NavigationService.ToSharedRef());

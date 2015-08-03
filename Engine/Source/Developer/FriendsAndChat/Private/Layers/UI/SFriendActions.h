@@ -7,9 +7,11 @@ class SFriendActions : public SUserWidget
 public:
 	SLATE_USER_ARGS(SFriendActions)
 		: _FromChat(false)
+		, _DisplayChatOption(true)
 	{ }
 		SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
 		SLATE_ARGUMENT( bool, FromChat )
+		SLATE_ARGUMENT( bool, DisplayChatOption )
 	SLATE_END_ARGS()
 
 	/**

@@ -16,7 +16,7 @@ class FFriendViewModelImpl
 {
 public:
 
-	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false) override
+	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false, bool DisplayChatOption = true) override
 	{
 		if(FriendItem->IsGameRequest())
 		{
@@ -75,6 +75,10 @@ public:
 							Actions.Add(EFriendActionType::Chat);
 						}
 						Actions.Add(EFriendActionType::RemoveFriend);
+					}
+					else if( DisplayChatOption)
+					{
+						Actions.Add(EFriendActionType::Chat);
 					}
 				}
 				break;

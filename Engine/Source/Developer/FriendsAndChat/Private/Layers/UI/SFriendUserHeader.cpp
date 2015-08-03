@@ -66,7 +66,7 @@ private:
 			if (!ClientId.IsEmpty())
 			{
 				//@todo samz - better way of finding known ids
-				if (ClientId == FFriendItem::FortniteClientId)
+				if (FFriendItem::FortniteClientIds.Contains(ClientId))
 				{
 					return &FriendStyle.FriendsListStyle.FortniteImageBrush;
 				}

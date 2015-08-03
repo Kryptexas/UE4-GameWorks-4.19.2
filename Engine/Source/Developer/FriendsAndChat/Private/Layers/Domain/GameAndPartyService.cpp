@@ -375,7 +375,7 @@ private:
 
 			AdditionalCommandline = OSSScheduler->GetPartyInterface()->MakeTokenFromJoinInfo(*PartyInfo);
 		}
-		else
+		else if(FriendItem.IsValid() && FriendItem->GetGameSessionId().IsValid())
 		{
 			// notify for further processing of join game request 
 			OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), *FriendItem->GetGameSessionId());

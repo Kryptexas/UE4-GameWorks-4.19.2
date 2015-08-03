@@ -70,7 +70,7 @@ private:
 		FString ClientId = ViewModel->GetClientId();
 		if (!ClientId.IsEmpty())
 		{
-			if (ClientId == FFriendItem::FortniteClientId)
+			if (FFriendItem::FortniteClientIds.Contains(ClientId))
 			{
 				return &FriendStyle.FortniteImageBrush;
 			}

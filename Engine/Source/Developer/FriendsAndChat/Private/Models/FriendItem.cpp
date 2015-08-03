@@ -9,7 +9,10 @@
 // FFriendStruct implementation
 
 const FString FFriendItem::LauncherClientIds("f3e80378aed4462498774a7951cd263f, 34a02cf8f4414e29b15921876da36f9a");
-const FString FFriendItem::FortniteClientId("300d79839c914445948e3c1100f211db");
+const FString FFriendItem::FortniteLiveClientId("ec684b8c687f479fadea3cb2ad83f5c6");
+const FString FFriendItem::FortniteDeprecatedLiveClientId("300d79839c914445948e3c1100f211db");
+const FString FFriendItem::FortnitePublicTestClientId("7cf6977d137640759a51ec8fc88ebf9e");
+const FString FFriendItem::FortniteClientIds("300d79839c914445948e3c1100f211db, eb1ce404a0e5446f8e43964a24db7bdd, 299a8d0ee5c84d43a94ffe9e54cc92dc, 3aa8093ea5f14165a3b5f77ba7f6c66a, 81545b947bda44a6bacd844af10e0716, df94a22141b24b02acfffc811d4d6159, 5a1fb298e1824563ad28296cb3a4008e, 807553cb40704839adcfc505c29920be, 7cf6977d137640759a51ec8fc88ebf9e, ec684b8c687f479fadea3cb2ad83f5c6, e02dd6fea2bb4f029bf529992cff8351, 807553cb40704839adcfc505c29920be, 7cf6977d137640759a51ec8fc88ebf9e, ec684b8c687f479fadea3cb2ad83f5c6, e02dd6fea2bb4f029bf529992cff8351");
 const FString FFriendItem::UnrealTournamentClientId("1252412dc7704a9690f6ea4611bc81ee");
 
 const TSharedPtr< FOnlineFriend > FFriendItem::GetOnlineFriend() const
@@ -95,9 +98,17 @@ const FString FFriendItem::GetClientName() const
 	if (!ClientId.IsEmpty())
 	{
 		// hardcoded for now, need a generic way to receive client names or map client ids to names
-		if (ClientId == FFriendItem::FortniteClientId)
+		if (ClientId == FFriendItem::FortniteLiveClientId || ClientId == FFriendItem::FortniteDeprecatedLiveClientId)
 		{
 			Result = TEXT("Fortnite");
+		}
+		else if (ClientId == FFriendItem::FortnitePublicTestClientId)
+		{
+			Result = TEXT("Fortnite PublicTest");
+		}
+		else if (FFriendItem::FortniteClientIds.Contains(ClientId))
+		{
+			Result = TEXT("Fortnite Dev");
 		}
 		else if (ClientId == FFriendItem::UnrealTournamentClientId)
 		{

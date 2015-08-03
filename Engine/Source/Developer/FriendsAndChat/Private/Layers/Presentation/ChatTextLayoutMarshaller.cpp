@@ -92,7 +92,7 @@ public:
 				Runs.Add(Run.ToSharedRef());
 			}
 
-			if(IsMultiChat)
+			if(IsMultiChat && NewMessage->GetMessageType() == EChatMessageType::Whisper)
 			{
 				static const FText ToText = NSLOCTEXT("SChatWindow", "ChatTo", " to ");
 				static const FText FromText = NSLOCTEXT("SChatWindow", "ChatFrom", " from ");
@@ -110,7 +110,7 @@ public:
 				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, MessageTextStyle, ModelRange));
 			}
 
-			if(NameHyperlinkDecorator.IsValid() && (IsMultiChat || !NewMessage->IsFromSelf()))
+			if(NameHyperlinkDecorator.IsValid() && (!NewMessage->IsFromSelf() || (IsMultiChat && NewMessage->GetMessageType() == EChatMessageType::Whisper)))
 			{
 				FString MessageText = " " + GetSenderName(NewMessage) + " : ";
 

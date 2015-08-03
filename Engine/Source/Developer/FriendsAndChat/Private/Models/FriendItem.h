@@ -11,7 +11,10 @@ class FFriendItem : public IFriendItem
 public:
 
 	const static FString LauncherClientIds;
-	const static FString FortniteClientId;
+	const static FString FortniteClientIds;
+	const static FString FortniteLiveClientId;
+	const static FString FortniteDeprecatedLiveClientId;
+	const static FString FortnitePublicTestClientId;
 	const static FString UnrealTournamentClientId;
 
 	/**

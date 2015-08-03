@@ -10,7 +10,7 @@ class FFriendViewModel
 {
 public:
 	virtual ~FFriendViewModel() {}
-	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false) = 0;
+	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false, bool DisplayChatOption = true) = 0;
 	virtual const bool HasChatAction() const = 0;
 	virtual void PerformAction(const EFriendActionType::Type ActionType) = 0;
 	virtual void SetPendingAction(EFriendActionType::Type PendingAction) = 0;

@@ -302,7 +302,10 @@ private:
 		{
 			FText Username = FText::FromString(*UsernameString);
 			const TSharedRef<FFriendViewModel> FriendViewModel = ViewModel->GetFriendViewModel(*UniqueIDString, Username).ToSharedRef();
-			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle).FromChat(true);
+
+			bool DisplayChatOption = ViewModel->GetOutgoingChatChannel() != EChatMessageType::Whisper;
+
+			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle).FromChat(true).DisplayChatOption(DisplayChatOption);
 
 			FSlateApplication::Get().PushMenu(
 				SharedThis(this),
