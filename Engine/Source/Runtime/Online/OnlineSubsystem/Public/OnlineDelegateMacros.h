@@ -14,6 +14,7 @@ public: \
 	virtual void Clear##DelegateName##Delegate_Handle(FDelegateHandle Handle) \
 	{ \
 		DelegateName##Delegates.Remove(Handle); \
+		Handle.Reset(); \
 	}
 
 #define DEFINE_ONLINE_DELEGATE(DelegateName) \
@@ -91,6 +92,7 @@ public: \
 		if (LocalUserNum >= 0 && LocalUserNum < MaxPlayers) \
 		{ \
 			DelegateName##Delegates[LocalUserNum].Remove(Handle); \
+			Handle.Reset(); \
 		} \
 	}
 
