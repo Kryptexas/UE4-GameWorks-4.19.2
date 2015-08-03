@@ -1,25 +1,27 @@
-﻿Availability: Docs
+﻿INTSourceChangelist:2639459
 Title: 빌드 환경설정 참고서
-Description: 개발자가 사용할 수 있는 여러가지 빌드 환경설정에 대한 참고서입니다.
+Description: 솔루션 및 빌드 환경설정 참고서입니다.
 Crumbs: %ROOT%, Programming, Programming/Development
 Prereq: GettingStarted/RecommendedSpecifications
-Prereq: GettingStarted/DownloadingUnrealEngine
-Prereq: Programming/Development/BuildingUnrealEngine
+Related: GettingStarted/DownloadingUnrealEngine
+Related: Programming/Development/BuildingUnrealEngine
+Related: Programming/Development/CompilingProjects
 Related: Support/Builds
-SkillLevel: Advanced
 Version: 4.8
 
 [TOC (start:2 end:3)]
 
-## 빌드 환경설정
+## 빌드 환경설정 설명
 
 언리얼 엔진 4 (UE4) 는 UnrealBuildTool (언리얼 빌드 툴)을 통한 커스텀 빌드 메소드를 사용합니다. 이 툴은 엔진 컴파일에 있어서의 복잡한 부분을 전부 처리해 줍니다.
 
 [INCLUDE:Programming/Development/CompilingProjects#winbuildconfig]
 
-### 언리얼 엔진 소스 버전
+### UE4 솔루션용 빌드 환경설정
 
-언리얼 엔진 소스 버전 빌드시 사용 가능한 환경설정은 다음과 같습니다:
+(#bookmark1)
+
+UE4 솔루션을 컴파일할 때, 프로젝트의 소스 코드와 함께 엔진의 소스 코드를 함께 컴파일하게 됩니다. 이런 식으로 프로젝트를 빌드할 때 사용할 수 있는 빌드 환경설정은 다음과 같습니다:
 
 |             | Debug    | DebugGame | Development | Shipping | Test     |
 | ----------- | -----    | --------- | ----------- | -------- | ----     |
@@ -28,7 +30,9 @@ Version: 4.8
 | **Client ** | &#x2713; | &#x2713;  | &#x2713;    | &#x2713; | &#x2713; |
 | **Server ** | &#x2713; | &#x2713;  | &#x2713;    | &#x2713; | &#x2713; |
 													   
-### 언리얼 엔진 바이너리 버전
+### UE4 프로젝트용 빌드 환경설정
+
+UE4 프로젝트를 컴파일할 때, 프로젝트의 소스 코드만 컴파일합니다. 이런 식으로 프로젝트를 빌드할 때 사용할 수 있는 빌드 환경설정은 다음과 같습니다:
 
 %Globals:osselect_linux%
 
@@ -44,12 +48,12 @@ Version: 4.8
 	[/PARAMLITERAL]
 	[PARAM:content]
 	언리얼 엔진 바이너리 버전 빌드시 사용할 수 있는 환경설정은 다음과 같습니다:
-	|             | Debug    | DebugGame | Development | Shipping | Test     |
-    | ----------- | -----    | --------- | ----------- | -------- | ----     |
-    | **[공백]**  |          | &#x2713;  | &#x2713;    | &#x2713; |          |
-    | **Editor ** |          | &#x2713;  | &#x2713;    |          |          |
-    | **Client ** |          |           |             |          |          |
-    | **Server ** |          |           |             |          |          |
+	    |             | Debug | DebugGame | Development | Shipping | Test |
+        | ----------- | ----- | --------- | ----------- | -------- | ---- |
+        | **[공백]** |       | &#x2713;  | &#x2713;    | &#x2713; |      |
+        | **Editor ** |       | &#x2713;  | &#x2713;    |          |      |
+        | **Client ** |       |           |             |          |      |
+        | **Server ** |       |           |             |          |      |
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -62,7 +66,12 @@ Version: 4.8
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		Mac Test.
+	    |             | Debug | DebugGame | Development | Shipping | Test |
+        | ----------- | ----- | --------- | ----------- | -------- | ---- |
+        | **[empty]** |       | &#x2713;  | &#x2713;    | &#x2713; |      |
+        | **Editor ** |       | &#x2713;  | &#x2713;    |          |      |
+        | **Client ** |       |           |             |          |      |
+        | **Server ** |       |           |             |          |      |
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -75,6 +84,10 @@ Version: 4.8
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		Linux Test.
+	    [REGION:warning]
+        현재 리눅스 용으로는 언리얼 엔진 바이너리 인스톨러를 제공하지 않습니다.
+		리눅스 사용자는 [UE4 솔루션용 빌드 환경설정](#bookmark1) 부분을 참고하세요.
+        _소스에서 언리얼 엔진을 빌드하는 방법은 [](GettingStarted/DownloadingUnrealEngine) 문서를 참고하시기 바랍니다._
+        [/REGION]
 	[/PARAM]
 [/OBJECT]

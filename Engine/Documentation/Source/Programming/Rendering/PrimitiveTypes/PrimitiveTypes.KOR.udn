@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2290814
+﻿INTSourceChangelist:2638696
 Availability:Docs
 Title:프리미티브 유형 테크니컬 가이드
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -9,10 +9,6 @@ Description:렌더 프리미티브 유형을 새로 만드는 데 대한 프로�
 [/REGION]
 
 [TOC (start:2 end:3)]
-
-
-
-## 개요
 
 UPrimitiveComponent (프리미티브 컴포넌트)는 렌더링 및 충돌 대상이 되는 액터 컴포넌트입니다. 이 글에서는 UPrimitiveComponent 유형을 새로 만드는 법에 대해 알아봅니다.
 

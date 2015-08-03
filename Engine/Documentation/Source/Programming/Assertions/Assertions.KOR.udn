@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2605126
+﻿INTSourceChangelist:2638793
 Availability:Public
 Title: Assert (어서트)
 Crumbs:
 Description:
-Version:4.7
+Version:4.9
 
 Assert, 어서트란 주어진 코드 조각이 가정하는 상황을 검증하는 도구입니다. 포인터의 NULL 여부를 검증하는 간단한 것에서부터, 특정 함수에 재진입했는지와 같은 복잡한 검증도 가능합니다. UE4 에는 이러한 유형의 검증을 하기 위한 매크로 시리즈가 제공됩니다. 특정 빌드 환경설정 하에서는 컴파일시 제외시킬 수 있도록 매크로로 되어 있는데, 퍼포먼스 상의 이유거나 최종 빌드에서는 필요치 않기 때문이거나 입니다. 매크로를 직접 확인하려면, 이곳에서 찾을 수 있습니다:
 

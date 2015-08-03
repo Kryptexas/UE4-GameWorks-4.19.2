@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600564
+﻿INTSourceChangelist:2639203
 Availability:Public
 Title: 내비게이션 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -21,11 +21,11 @@ Navigation 컴포넌트는 언리얼 엔진 4 의 **NavMesh** (내비메시, 길
 
 예를 들어 빨간 영역은 통과 비용이 매우 높으나, 통과하는 것 말고는 다른 방법이 없습니다:
 
-![](throughRed.png)(convert:false)
+![](AroundTheRed.jpg)
 
  하지만, 벽을 제거하면:
 
-![](aroundRed.png)(convert:false)
+![](ThroughTheRed.jpg)
 
 그러면 폰은 경로가 훨씬 길어지긴 해도 빨간 영역을 피해 갑니다.
 

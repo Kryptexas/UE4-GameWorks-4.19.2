@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2641563
 Availability:Public
 Title: HTML5 프로젝트 개발 시작하기
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
@@ -90,14 +90,14 @@ emscripten [website](http://kripken.github.io/emscripten-site/docs/getting_start
 
 	\[HTML5SDKPaths\]
 	Windows="C:/html5sdk/path/on/windows"
-	Mac="/html5sdk/path/on/mac”
+	Mac="/html5sdk/path/on/mac"
 
 주요 브라우저 설치 및 `HTML5Engine.ini` 의 `\[HTML5DevicesWindows\]` 섹션 아래 링크가 올바른 브라우저 바이너리를 가리키는지 확인하세요.
 
 예:
 
 	\[HTML5DevicesWindows\]
-	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe”
+	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe"
 	Chrome(32bit)="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
 	Chrome(64bit)="C:/Program Files/Google/Chrome/Application/chrome.exe"
 

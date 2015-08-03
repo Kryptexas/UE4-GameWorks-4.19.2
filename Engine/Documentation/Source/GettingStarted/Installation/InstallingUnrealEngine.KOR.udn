@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2635412
+﻿INTSourceChangelist:2640578
 Availability:Public
 Title:언리얼 엔진 설치하기
 Description:언리얼 엔진 설치법 단계별 안내입니다.
@@ -29,37 +29,13 @@ SkillLevel: Beginner
 
 에픽 게임스 런처를 통해 UE4 를 보다 편리하게 다운로드하고 업데이트를 설치할 수 있습니다 (위 그림 예제).
 
-## 에픽 게임스 계정 생성
-
-(#Bookmark1)
-
 [REGION:warning]
 이미 에픽 게임스 계정이 있으시다면, [인스톨러 다운로드 및 실행](#Bookmark2) 부분으로 넘어가시기 바랍니다.
 [/REGION]
 
-에픽 게임스 런처 실행을 위해서는, 유효한 에픽 게임스 계정이 있어야 합니다.
+(#Bookmark1)
 
-1.	[UnrealEngine.com](https://www.unrealengine.com/what-is-unreal-engine-4) 으로 이동합니다.
-
-1.	**시작해요 UE4** 버튼을 누릅니다 (아래 그림).
-
-	![](UnrealWebsite.png)
-
-1.	**커뮤니티에 합류하세요.** 양식을 채우고 **가입** 버튼을 누릅니다 (아래 그림).
-	
-	![](SignupScreen.png)
-
-	[REGION:note]
-	가입 전 [서비스 조항](http://epicgames.com/tos) 을 검토하시기 바랍니다.
-	[/REGION]
-
-1.	**수락** 버튼을 누르기 전 [언리얼 엔진 최종 사용자 라이선스 계약](https://www.unrealengine.com/eula) (EULA) 내용을 검토하시기 바랍니다 (아래 그림).
-
-	![](EULA.png)
-
-	[REGION:note]
-	EULA 조항이나 조건 관련 추가 질문이 있으신 경우, [EULA 잦은 질문](https://www.unrealengine.com/faq#legal) 을 참고하시기 바랍니다.
-	[/REGION]
+[INCLUDE:GettingStarted/AccountSetup#epicAccount]
 
 ## 인스톨러 다운로드 & 실행
 

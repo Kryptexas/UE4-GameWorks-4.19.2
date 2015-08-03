@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637714
+﻿INTSourceChangelist:2639339
 Availability:Public
 Title:게임 프로젝트 컴파일하기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -51,56 +51,50 @@ UnrealBuildTool 은 `*.Build.cs` 와 `*.Target.cs` 파일을 사용하여 게임
 
 빌드 환경설정은 Visual Studio 툴바에서 설정할 수 있습니다.
 
-[PUBLISH:Rocket]
+### 프로젝트 - 환경설정 메뉴
+
 ![Project - Configuration Menu](rocket_configuration_menu.png)
-[/PUBLISH:Rocket]
-[PUBLISH:Licensee]
+<!--
+### 솔루션 - 환경설정 메뉴
+
 ![UE4 Solution - Configuration Menu](configuration_menu.png)
-[/PUBLISH:Licensee]
+-->
+### 솔루션 플랫폼 설정
 
-### 솔루션 플랫폼 설정하기
-
-솔루션 플랫폼은 Visual Studio 툴바에서 설정 가능합니다.
-
-[PUBLISH:Rocket]
-언리얼 엔진이 지원하는 플랫폼은 현재 다음과 같습니다:
+솔루션 플랫폼 설정은 Visual Studio 툴바에서 가능합니다.
+<!--
+UE4 currently supports the following platforms:
 
 * **윈도우 64-비트**
 
-
 ![Project - Platform Menu](rocket_platform_menu.png)
-[/PUBLISH:Rocket]
-
-[PUBLISH:Licensee]
-언리얼 엔진 4 에서 지원하는 플랫폼은 현재 다음과 같습니다:
+![UE4 Solution - Platform Menu](platform_menu.png)
+-->
+UE4 에서 지원하는 플랫폼은 다음과 같습니다:
 
 * **윈도우 32-비트**
 * **윈도우 64-비트**
 
-
 언리얼 엔진 4 작업을 할 때는 일반적으로 **Win64** 플랫폼을 사용합니다. 프로젝트 파일 생성시에도 기본적으로 이에 대한 것만 포함되어 있으며, 기타 플랫폼용 프로젝트 파일 생성을 위해서는 
 [](Programming/UnrealBuildSystem/ProjectFileGenerator) 페이지를 참고해 주시기 바랍니다.
 
-![UE4 Solution - Platform Menu](platform_menu.png)
-[/PUBLISH:Licensee]
-
 ### 프로젝트 빌드하기
 
-[PUBLISH:Rocket]
 [REGION:note]
 계속하기 전, 윈도우에서는 Visual Studio 2013 Professional or Visual Studio Express 2013 for Windows Desktop, 맥에서는 Xcode 가 설치되었는지 확인해 주시기 바랍니다.
 [/REGION]
+
+<!--
+
 [REGION:tip]
 Visual Studio 에서 빌드할 때는, 게임 프로젝트만 컴파일하는 것이지, 언리얼 에디터는 컴파일되지 않습니다.
 [/REGION]
-[/PUBLISH:Rocket]
-[PUBLISH:Licensee]
 [REGION:tip]
 Visual Studio 에서 빌드할 때, 게임 프로젝트에 추가로 엔진도 컴파일하게 됩니다.
 [/REGION]
-[/PUBLISH:Licensee]
 
-[PUBLISH:Licensee]
+-->
+
 1.	**Solution Configuration** 을 빌드하고자 하는 환경설정으로 설정합니다. 이 예제에서는 **Development Editor** 로 설정했습니다. 각각의 환경설정에 대한 설명은 [빌드 환경설정](#빌드환경설정) 부분을 참고해 주시기 바랍니다.
 
 	![Project - Set Configuration to Development](config_development_menu.png)
@@ -109,8 +103,6 @@ Visual Studio 에서 빌드할 때, 게임 프로젝트에 추가로 엔진도 �
 
 	![](rebuild_project_outside.png)
 
-[/PUBLISH:Licensee]
-[PUBLISH:Rocket]
 1.	**Solution Configuration** 을 빌드하고자 하는 환경설정으로 설정합니다. 이 예제에서는 **Development** 로 설정합니다. 각각의 환경설정에 대한 설명은 [빌드 환경설정](#빌드환경설정) 부분을 참고해 주시기 바랍니다.
 
 	![](rocket_config_development_menu.png)
@@ -118,39 +110,30 @@ Visual Studio 에서 빌드할 때, 게임 프로젝트에 추가로 엔진도 �
 1. 게임 프로젝트에 우클릭한 다음 **Rebuild** 를 선택하여 리컴파일합니다.
 
 	![](rebuild_project_rocket.png)
-[/PUBLISH:Rocket]
 
 이제 컴파일된 프로젝트로 [엔진을 실행](GettingStarted/RunningUnrealEngine) 시킬 수 있습니다.
 
-
 [EXCERPT:MatchEXE]
-[PUBLISH:Licensee]
 [REGION:note]
 엔진을 실행할 때는, 프로젝트 리빌드시 선택한 빌드 환경설정에 일치하는 언리얼 엔진 실행파일을 사용하는 것이 중요합니다. 예를 들어 프로젝트를 **DebugGame Uncooked** 빌드 환경설정으로 
 컴파일한 경우, `UE4-Win64-DebugGame.exe` 파일에 게임 정보를 인수로 붙여 실행시켜야 할 것입니다. 바이너리 파일 작명 규칙 관련 상세 정보는 [](Programming/Development/BuildingUnrealEngine) 문서를 참고해 주시기 바랍니다.
 [/REGION:note]
-[/PUBLISH:Licensee]	
 
-[PUBLISH:Rocket]
 [REGION:note]
 언리얼을 실행할 때 중요한 점은, **Uncooked** 환경설정으로 프로젝트를 리빌드한 경우 `-game` 플래그를 붙여야 하고, **Debug** 환경설정으로 프로젝트를 리빌드한 경우 `-debug` 플래그를 붙여야 합니다.
 [/REGION:note]
-[/PUBLISH:Rocket]	
 [/EXCERPT:MatchEXE]
 
-[PUBLISH:Rocket]
 ### Visual Studio 알려진 문제
-
 
 | 문제 | 해법 |
 | ---- | ---- |
 | "Project is out of date" 라는 메시지가 항상 나타납니다. | 사실 최신 프로젝트인데도 Visual Studio 는 오래되었다 보는 것입니다. 이 메시지는 **Do not show this dialog again** 박스를 체크하고 **No** 를 선택하여 억제시켜도 안전합니다. |
 | _Debug_ 환경설정 사용시 **No Debugging Information** 창이 뜹니다. | UE4editor.exe 는 _Development_ 환경설정을 사용해서 컴파일되었기 때문입니다. 이런 경고에도 불구하고 _Debug_ 환경설정으로 컴파일해도 게임 프로젝트를 디버깅할 수 있습니다. 이 메시지는 **Do not show this dialog again** 박스를 체크하고 **Yes** 를 눌러 억제시켜도 안전합니다. |
-[/PUBLISH:Rocket]
 [/EXCERPT:VS]
 
 [EXCERPT:Xcode]
-[PUBLISH:Rocket]
+
 ## Xcode 로 빌드하기
 
 [REGION:tip]
@@ -183,7 +166,8 @@ Xcode 의 LLDB 디버거 설정을 올바르게 해 줘야 언리얼 엔진 프�
 	settings set target.inline-breakpoint-strategy always
 [/EXCERPT:XcodeDebug]
 -->
-[/PUBLISH:Rocket]
+
 [/EXCERPT:Xcode]
+
 <!-- The following was deprecated per LaurenR 29.7.15
 | **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | -->

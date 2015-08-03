@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602692
+﻿INTSourceChangelist:2638998
 Availability:Public
 Title:삼성 기어 VR UE4 퀵스타트
 Crumbs:%ROOT%, Platforms/GearVR
@@ -6,7 +6,7 @@ Description:삼성 기어 VR 헤드셋과 함께 사용할 프로젝트를 빠�
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 
 
 이 기어 VR 퀵스타트에서는 개발 PC 와 삼성 갤럭시 노트 4 스마트폰이 삼성 기어 VR 헤드셋에 작동되도록 하는 방법을 안내해 드립니다.
