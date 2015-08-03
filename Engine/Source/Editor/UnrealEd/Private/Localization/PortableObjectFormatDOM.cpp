@@ -812,7 +812,7 @@ void FPortableObjectFormatDOM::SortEntries()
 	// Sort keys.
 	for (const TSharedPtr<FPortableObjectEntry>& Entry : Entries)
 	{
-		Entry->ExtractedComments.Sort();
+		Entry->ReferenceComments.Sort();
 	}
 
 	// Sort by namespace, then keys, then source text.
