@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2635791
 Availability:Public
 Title:4. Character ブループリントの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:ステップ 4Character ブループリントの設定
+Description:ステップ 4. Character ブループリントの設定
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,7 +26,7 @@ Description:ステップ 4Character ブループリントの設定
 
 このキャラクターが新規の AI キャラクターとなります。キャラクター、例えばポーンなどを使う理由は、 Character Movement コンポーネントの機能を利用できるようにするためです。
 
-## 手順
+## ステップ
 
 1. **コンテンツ ブラウザ** の **AI_Character ブループリント** をダブルクリックして、編集用に開きます。
 
@@ -34,7 +34,7 @@ Description:ステップ 4Character ブループリントの設定
 
 	![](meshComp.png)
 
-1. **[Details (詳細)]** パネルの **Mesh** カテゴリで HeroTPP (または自分自身の) **スケルタルメッシュ** を割り当てます。
+1. **[Details (詳細)]** パネルの **Mesh** カテゴリで `SK_Mannequin` (または独自の) **スケルタルメッシュ** を割り当てます。
 
 	![](assignSkelMesh.png)
 
@@ -42,7 +42,7 @@ Description:ステップ 4Character ブループリントの設定
 
 1. **Mesh** コンポーネントを回転させて、青い Arrow コンポーネントの指す方向に向かせます。
 
-1. **[Details (詳細)]** パネルの **Animation (アニメーション)** カテゴリで HeroTPP_AnimBlueprint を **Animation Blueprint Generated Class** プロパティに割り当てます。
+1. **[Details]** パネルの **Animation** カテゴリで `HeroTPP_AnimBlueprint` を **Animation Blueprint Generated Class (Animation ブループリントが生成したクラス)** に割り当てます。
 
 	![](assignAnimBP.png)
 
@@ -54,13 +54,13 @@ Description:ステップ 4Character ブループリントの設定
 
 	![](charmve.png)
 
-1. **[Details (詳細)]** パネルの Movement Component カテゴリで、 Agent Radius (エージェントの半径) と Agent Height (エージェントの高さ) の値を調整します。
+1. **[Details]** パネルの Movement Component カテゴリで、 Agent Radius (エージェントの半径) と Agent Height (エージェントの高さ) の値を調整します。
 
 	![](agentProps.png)
 
 	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの半分の高さの 2 倍になるように設定します。_
 
-1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed** プロパティを 400 に変更します。
+1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed (最高歩行速度)** プロパティを 400 に変更します。
 
 	![](maxWalk.png)
 
@@ -68,7 +68,7 @@ Description:ステップ 4Character ブループリントの設定
 
 	![](AI_con.png)
 
-1. ![](compile_button.png) をコンパイルして ![](save_button.png) を保存します。
+1. コンパイル ![](compile_button.png) して保存 ![](save_button.png) します。
 
 
 %Steps%
