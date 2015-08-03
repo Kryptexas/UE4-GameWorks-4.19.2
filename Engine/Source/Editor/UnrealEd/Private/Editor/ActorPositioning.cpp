@@ -153,6 +153,17 @@ FTransform FActorPositioning::GetCurrentViewportPlacementTransform(const AActor&
 			.UsePlacementExtent(Actor.GetPlacementExtent());
 
 		ActorTransform = bSnap ? GetSnappedSurfaceAlignedTransform(PositioningData) : GetSurfaceAlignedTransform(PositioningData);
+
+		if (GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled)
+		{
+			// HACK: If we are aligning rotation to surfaces, we have to factor in the inverse of the actor transform so that the resulting transform after SpawnActor is correct.
+
+			if (auto* RootComponent = Actor.GetRootComponent())
+			{
+				RootComponent->UpdateComponentToWorld();
+			}
+			ActorTransform = Actor.GetTransform().Inverse() * ActorTransform;
+		}
 	}
 
 	return ActorTransform;

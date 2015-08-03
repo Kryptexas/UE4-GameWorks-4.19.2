@@ -437,7 +437,18 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 		.UseFactory(Factory)
 		.UsePlacementExtent(NewActorTemplate->GetPlacementExtent());
 
-	const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
+	FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
+
+	if (GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled)
+	{
+		// HACK: If we are aligning rotation to surfaces, we have to factor in the inverse of the actor transform so that the resulting transform after SpawnActor is correct.
+
+		if (auto* RootComponent = NewActorTemplate->GetRootComponent())
+		{
+			RootComponent->UpdateComponentToWorld();
+		}
+		ActorTransform = NewActorTemplate->GetTransform().Inverse() * ActorTransform;
+	}
 
 	// Do not fade snapping indicators over time if the viewport is not realtime
 	bool bClearImmediately = !GCurrentLevelEditingViewportClient || !GCurrentLevelEditingViewportClient->IsRealtime();
