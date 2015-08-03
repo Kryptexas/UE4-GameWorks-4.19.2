@@ -4,6 +4,7 @@
 #include "OnlineDelegateMacros.h"
 
 typedef FString FUniqueOfferId;
+typedef FString FOfferNamespace;
 typedef FString FUniqueCategoryId;
 
 /**

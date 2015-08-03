@@ -14,19 +14,29 @@ public:
 	/**
 	 * Add a offer entry for purchase
 	 *
-	 * @param OfferId id of offer to be purchased
-	 * @param Quantity number to purchase
+	 * @param InNamespace namespace of offer to be purchased
+	 * @param InOfferId id of offer to be purchased
+	 * @param InQuantity number to purchase
 	 */
-	void AddPurchaseOffer(const FUniqueOfferId& OfferId, int32 Quantity);
-
+	void AddPurchaseOffer(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+	{ 
+		PurchaseOffers.Add(FPurchaseOfferEntry(InNamespace, InOfferId, InQuantity)); 
+	}
 	/**
 	 * Single offer entry for purchase 
 	 */
 	struct FPurchaseOfferEntry
 	{
+		FPurchaseOfferEntry(const FOfferNamespace& InOfferNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+			: OfferNamespace(InOfferNamespace)
+			, OfferId(InOfferId)
+			, Quantity(InQuantity)
+		{ }
+
+		FOfferNamespace OfferNamespace;
 		FUniqueOfferId OfferId;
 		int32 Quantity;
-	};
+	};	
 	/** List of offers being purchased */
 	TArray<FPurchaseOfferEntry> PurchaseOffers;
 };
@@ -59,16 +69,45 @@ namespace EPurchaseTransactionState
 class FPurchaseReceipt
 {
 public:
+	/**
+	 * Add a offer entry that has been purchased
+	 *
+	 * @param InNamespace of the offer that has been purchased
+	 * @param InOfferId id of offer that has been purchased
+	 * @param InQuantity number purchased
+	 */
+	void AddReceiptOffer(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+	{ 
+		ReceiptOffers.Add(FReceiptOfferEntry(InNamespace, InOfferId, InQuantity)); 
+	}
+
+public:
 	/** Unique Id for this transaction/order */
 	FString TransactionId;
 	/** Current state of the purchase */
 	EPurchaseTransactionState::Type TransactionState;
-	/** List of offers being purchased */
-	TArray<FUniqueOfferId> OfferIds;
 	/** The entitlements obtained from the completed purchase */
 	TArray<FUniqueEntitlementId> EntitlementIds;
 	/** Receipt validation data */
 	FString ReceiptValidation;
+
+	/**
+	 * Single purchased offer offer
+	 */
+	struct FReceiptOfferEntry
+	{
+		FReceiptOfferEntry(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+			: Namespace(InNamespace)
+			, OfferId(InOfferId)
+			, Quantity(InQuantity)
+		{ }
+
+		FOfferNamespace Namespace;
+		FUniqueOfferId OfferId;
+		int32 Quantity;
+	};
+	/** List of offers that were purchased */
+	TArray<FReceiptOfferEntry> ReceiptOffers;
 };
 
 /**
