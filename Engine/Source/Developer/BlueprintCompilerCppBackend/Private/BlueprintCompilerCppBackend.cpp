@@ -206,7 +206,7 @@ void FBlueprintCompilerCppBackend::GenerateCodeFromClass(UClass* SourceClass, TI
 
 	if (!bIsInterface)
 	{
-		Emit(Header, *FString::Printf(TEXT("\t%s(const FObjectInitializer& ObjectInitializer);\n\n"), *CppClassName));
+		Emit(Header, *FString::Printf(TEXT("\t%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());\n\n"), *CppClassName));
 		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(SourceClass));
 	}
 
@@ -612,6 +612,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FKismetFunctionContext& Fun
 	else if (Statement.Type == KCST_GotoReturn)
 	{
 		Emit(Body, TEXT("\t\t\tCurrentState = -1;\n"));
+		Emit(Body, *FString::Printf(TEXT("\t\t\tbreak;\n")));
 	}
 	else
 	{

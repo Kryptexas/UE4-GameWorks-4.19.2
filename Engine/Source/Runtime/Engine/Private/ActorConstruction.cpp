@@ -506,6 +506,18 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 			}
 		}
 	}
+	else
+	{
+#if WITH_EDITOR
+		bool bDoUserConstructionScript;
+		GConfig->GetBool(TEXT("Kismet"), TEXT("bTurnOffEditorConstructionScript"), bDoUserConstructionScript, GEngineIni);
+		if (!GIsEditor || !bDoUserConstructionScript)
+#endif
+		{
+			// Then run the user script, which is responsible for calling its own super, if desired
+			ProcessUserConstructionScript();
+		}
+	}
 
 	GetWorld()->UpdateCullDistanceVolumes(this);
 

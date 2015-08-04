@@ -71,11 +71,11 @@ struct FEmitDefaultValueHelper
 
 	static FString GenerateConstructor(UClass* BPGC);
 private:
+
+	static void OuterGenerate(const UProperty* Property, const uint8* DataContainer, const FString OuterPath, const uint8* OptionalDefaultDataContainer, FString& OutResult, bool bAllowProtected = false);
 	static void InnerGenerate(const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember, FString& OutResult);
 	
-	// Return if it's complete construction
-	static bool OneLineConstruction(const UProperty* Property, const uint8* ValuePtr, FString& OutResult);
-
 	//Return if handled
 	static bool HandleSpecialTypes(const UProperty* Property, const uint8* ValuePtr, FString& OutResult);
+	static bool HandleNonNativeComponent(UBlueprintGeneratedClass* BPGC, FName Name, bool bNew, const FString MemberPath, FString& OutResult);
 };
