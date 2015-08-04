@@ -2019,8 +2019,9 @@ namespace EScaleMode
 }
 
 //computes the relative scaling vectors based on scale mode used
-void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector& NewScale3D, FVector& OutScale3D, FVector& OutScale3DAbs)
+void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector& InScale3D, FVector& OutScale3D, FVector& OutScale3DAbs)
 {
+	const FVector NewScale3D = InScale3D.IsNearlyZero() ? FVector(KINDA_SMALL_NUMBER) : InScale3D;	//min scale
 	const FVector NewScale3DAbs = NewScale3D.GetAbs();
 	switch (ScaleMode)
 	{
