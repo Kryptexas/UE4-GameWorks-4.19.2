@@ -267,7 +267,7 @@ namespace Manzana
             }
 
             full_path = phone.FullPath(phone.CurrentDirectory, path);
-			ret = MobileDevice.DeviceImpl.FileRefOpen(phone.AFCHandle, full_path, (Int64)mode, out handle);
+			ret = MobileDevice.DeviceImpl.FileRefOpen(phone.AFCHandle, MobileDevice.StringToFileSystemRepresentation(full_path), (Int64)mode, out handle);
             if (ret != 0)
             {
                 phone.Reconnect();
