@@ -1003,6 +1003,7 @@ void UEngine::PreExit()
 		// Resume the thread to avoid a deadlock while waiting for finish.
 		ScreenSaverInhibitor->Suspend( false );
 		delete ScreenSaverInhibitor;
+		ScreenSaverInhibitor = nullptr;
 	}
 
 	delete ScreenSaverInhibitorRunnable;
@@ -6612,6 +6613,11 @@ void UEngine::SetMaxFPS(const int32 MaxFPS)
 void UEngine::EnableScreenSaver( bool bEnable )
 {
 #if PLATFORM_DESKTOP
+	if (GIsRequestingExit)
+	{
+		return;
+	}
+
 	TCHAR EnvVariable[32];
 	FPlatformMisc::GetEnvironmentVariable(TEXT("UE-DisallowScreenSaverInhibitor"), EnvVariable, ARRAY_COUNT(EnvVariable));
 	const bool bDisallowScreenSaverInhibitor = FString(EnvVariable).ToBool();
