@@ -4,12 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
 	[Serializable]
 	public class UEBuildEditor : UEBuildTarget
 	{
+		public UEBuildEditor(SerializationInfo Info, StreamingContext Context)
+			: base(Info, Context)
+		{
+		}
+
 		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
 			: base(InDesc, InRulesObject, "UE4Editor", InTargetCsFilename)
 		{

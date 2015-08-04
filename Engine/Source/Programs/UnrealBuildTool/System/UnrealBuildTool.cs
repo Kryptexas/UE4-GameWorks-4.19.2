@@ -9,6 +9,7 @@ using System.Threading;
 using System.Reflection;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
@@ -988,7 +989,7 @@ namespace UnrealBuildTool
                     UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out CheckPlatform, out CheckConfiguration, false);
 
 					// @todo ubtmake: remove this when building with RPCUtility works
-					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS)
+					if (BuildHostPlatform.Current.Platform != CheckPlatform && (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS))
 					{
 						BuildConfiguration.bUseUBTMakefiles = false;
 					}
@@ -2235,13 +2236,17 @@ namespace UnrealBuildTool
         /// A special Makefile that UBT is able to create in "-gather" mode, then load in "-assemble" mode to accelerate iterative compiling and linking
         /// </summary>
         [Serializable]
-        class UBTMakefile
+        class UBTMakefile : ISerializable
         {
+			public const int CurrentVersion = 1;
+
+			public int Version;
+
             /** Every action in the action graph */
             public List<Action> AllActions;
 
             /** List of the actions that need to be run in order to build the targets' final output items */
-            public Action[] PrerequisiteActions;			
+            public Action[] PrerequisiteActions;
 
             /** Environment variables that we'll need in order to invoke the platform's compiler and linker */
 			// @todo ubtmake: Really we want to allow a different set of environment variables for every Action.  This would allow for targets on multiple platforms to be built in a single assembling phase.  We'd only have unique variables for each platform that has actions, so we'd want to make sure we only store the minimum set.
@@ -2252,6 +2257,37 @@ namespace UnrealBuildTool
 
 			/** List of targets being built */
 			public List<UEBuildTarget> Targets;
+
+			public UBTMakefile()
+			{
+				Version = CurrentVersion;
+			}
+
+			public UBTMakefile(SerializationInfo Info, StreamingContext Context)
+			{
+				Version = Info.GetInt32("ve");
+				if (Version != CurrentVersion)
+				{
+					throw new Exception(string.Format("Makefile version does not match - found {0}, expected: {1}", Version, CurrentVersion));
+				}
+
+				AllActions                 = (List<Action>)Info.GetValue("ac", typeof(List<Action>));
+				PrerequisiteActions        = (Action[])Info.GetValue("pa", typeof(Action[]));
+				EnvironmentVariables       = ((string[])Info.GetValue("e1", typeof(string[]))).Zip((string[])Info.GetValue("e2", typeof(string[])), (i1, i2) => new Tuple<string, string>(i1, i2)).ToList();
+				TargetNameToUObjectModules = (Dictionary<string,List<UHTModuleInfo>>)Info.GetValue("nu", typeof(Dictionary<string,List<UHTModuleInfo>>));
+				Targets                    = (List<UEBuildTarget>)Info.GetValue("ta", typeof(List<UEBuildTarget>));
+			}
+
+			public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+			{
+				Info.AddValue("ve", Version);
+				Info.AddValue("ac", AllActions);
+				Info.AddValue("pa", PrerequisiteActions);
+				Info.AddValue("e1", EnvironmentVariables.Select(x => x.Item1).ToArray());
+				Info.AddValue("e2", EnvironmentVariables.Select(x => x.Item2).ToArray());
+				Info.AddValue("nu", TargetNameToUObjectModules);
+				Info.AddValue("ta", Targets);
+			}
 
 
             /** @return	 True if this makefile's contents look valid.  Called after loading the file to make sure it is legit. */

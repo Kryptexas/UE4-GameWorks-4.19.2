@@ -5,12 +5,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
 	[Serializable]
 	public class UEBuildGame : UEBuildTarget
 	{
+		public UEBuildGame(SerializationInfo Info, StreamingContext Context)
+			: base(Info, Context)
+		{
+		}
+
 		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
 			: base(InDesc, InRulesObject, "UE4", InTargetCsFilename)
 		{

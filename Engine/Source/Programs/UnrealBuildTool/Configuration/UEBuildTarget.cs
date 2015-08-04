@@ -182,21 +182,8 @@ namespace UnrealBuildTool
 	 * A target that can be built
 	 */
 	[Serializable]
-	public class UEBuildTarget : IDeserializationCallback
+	public class UEBuildTarget : ISerializable
 	{
-		void IDeserializationCallback.OnDeserialization(object sender)
-		{
-			if (OnlyModules == null)
-			{
-				OnlyModules = new List<OnlyModule>();
-			}
-
-			if (FlatModuleCsData == null)
-			{
-				FlatModuleCsData = new CaselessDictionary<FlatModuleCsDataType>();
-			}
-		}
-
 		public string GetAppName()
 		{
 			return AppName;
@@ -791,8 +778,22 @@ namespace UnrealBuildTool
 		private Dictionary<string, UEBuildModule> Modules = new CaselessDictionary<UEBuildModule>();
 
 		[Serializable]
-		public class FlatModuleCsDataType
+		public class FlatModuleCsDataType : ISerializable
 		{
+			public FlatModuleCsDataType(SerializationInfo Info, StreamingContext Context)
+			{
+				BuildCsFilename    = Info.GetString("bf");
+				ModuleSourceFolder = Info.GetString("mf");
+				UHTHeaderNames     = (List<string>)Info.GetValue("hn", typeof(List<string>));
+			}
+
+			public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+			{
+				Info.AddValue("bf", BuildCsFilename);
+				Info.AddValue("mf", ModuleSourceFolder);
+				Info.AddValue("hn", UHTHeaderNames);
+			}
+
 			public FlatModuleCsDataType(string InBuildCsFilename)
 			{
 				BuildCsFilename = InBuildCsFilename;
@@ -848,6 +849,60 @@ namespace UnrealBuildTool
 		public bool ShouldCompileMonolithic()
 		{
 			return bCompileMonolithic;	// @todo ubtmake: We need to make sure this function and similar things aren't called in assembler mode
+		}
+
+		public UEBuildTarget(SerializationInfo Info, StreamingContext Context)
+		{
+			TargetType                   = (TargetRules.TargetType)Info.GetInt32("tt");
+			AppName                      = Info.GetString("an");
+			TargetName                   = Info.GetString("tn");
+			bUseSharedBuildEnvironment   = Info.GetBoolean("sb");
+			Platform                     = (UnrealTargetPlatform)Info.GetInt32("pl");
+			Configuration                = (UnrealTargetConfiguration)Info.GetInt32("co");
+			TargetInfo                   = (TargetInfo)Info.GetValue("ti", typeof(TargetInfo));
+			ProjectDirectory             = Info.GetString("pd");
+			ProjectIntermediateDirectory = Info.GetString("pi");
+			EngineIntermediateDirectory  = Info.GetString("ed");
+			OutputPaths                  = (List<string>)Info.GetValue("op", typeof(List<string>));
+			RemoteRoot                   = Info.GetString("rr");
+			bPrecompile                  = Info.GetBoolean("pc");
+			bUsePrecompiled              = Info.GetBoolean("up");
+			bEditorRecompile             = Info.GetBoolean("er");
+			bCompileMonolithic           = Info.GetBoolean("cm");
+			var FlatModuleCsDataKeys   = (string[])Info.GetValue("fk", typeof(string[]));
+			var FlatModuleCsDataValues = (FlatModuleCsDataType[])Info.GetValue("fv", typeof(FlatModuleCsDataType[]));
+			for (int Index = 0; Index != FlatModuleCsDataKeys.Length; ++Index)
+			{
+				FlatModuleCsData.Add(FlatModuleCsDataKeys[Index], FlatModuleCsDataValues[Index]);
+			}
+			Receipt                      = (TargetReceipt)Info.GetValue("re", typeof(TargetReceipt));
+			ReceiptFileName              = Info.GetString("rf");
+			TargetCsFilenameField        = Info.GetString("tc");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("tt", (int)TargetType);
+			Info.AddValue("an", AppName);
+			Info.AddValue("tn", TargetName);
+			Info.AddValue("sb", bUseSharedBuildEnvironment);
+			Info.AddValue("pl", (int)Platform);
+			Info.AddValue("co", (int)Configuration);
+			Info.AddValue("ti", TargetInfo);
+			Info.AddValue("pd", ProjectDirectory);
+			Info.AddValue("pi", ProjectIntermediateDirectory);
+			Info.AddValue("ed", EngineIntermediateDirectory);
+			Info.AddValue("op", OutputPaths);
+			Info.AddValue("rr", RemoteRoot);
+			Info.AddValue("pc", bPrecompile);
+			Info.AddValue("up", bUsePrecompiled);
+			Info.AddValue("er", bEditorRecompile);
+			Info.AddValue("cm", bCompileMonolithic);
+			Info.AddValue("fk", FlatModuleCsData.Keys.ToArray());
+			Info.AddValue("fv", FlatModuleCsData.Values.ToArray());
+			Info.AddValue("re", Receipt);
+			Info.AddValue("rf", ReceiptFileName);
+			Info.AddValue("tc", TargetCsFilenameField);
 		}
 
 		/// <summary>
