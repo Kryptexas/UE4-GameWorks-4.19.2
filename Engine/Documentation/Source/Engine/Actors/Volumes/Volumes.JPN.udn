@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602509
+﻿INTSourceChangelist:2632329
 Availability:Public
 Title:ボリュームに関するユーザーガイド
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -10,10 +10,10 @@ Description:ビヘイビアとレベル設定を拡張するためにボリュ�
 		LevelDesign_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
+		[前のトピック](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
 	[/PARAM]
 	[PARAM:next]
-		[Next Topic](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
+		[次のトピック](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
@@ -32,7 +32,6 @@ Description:ビヘイビアとレベル設定を拡張するためにボリュ�
 **ボリューム** とはレベル内の 3D 領域のことです。各ボリュームは特定の目的を果たします。以下の目的が含まれます。
 
 * プレイヤーにダメージを与えます。
-* 物理法則を変更します。例えば、ボリュームの空間内でプレイヤーを浮遊させたり重力を減らしたりすることが可能です。
 * コリジョン サーフェスの機能を果たして、プレイヤーがボリューム内へ立ち入ることをブロックします。
 * ライティングや可視性を考慮してレベルの計算方法を変更します。
 
@@ -80,7 +79,7 @@ h:301
 
 ボリュームがレベル内に配置されると、ぴったりするまでボリュームのリサイズおよび再配置ができるようになります。 
 
-## ボリューム タイプ
+## ボリュームの種類
 
 
 ### Blocking Volume
@@ -94,7 +93,7 @@ Blocking Volume はコリジョン サーフェスの場所、特に構造体の
 
 ### Camera Blocking Volume
 
-**Camera Blocking Volumes** は、カメラ アクタがパスされないようにされている空間の定義に使用されるという点で本質的に Blocking Volume と似ています。サードパーソン視点がこの例になります。プレイヤーのカメラを再生空間に制限したまま、ワールドの外部でカメラを回転させない場合です。 
+**Camera Blocking Volumes** は、カメラ アクタがパスされないようにされている空間の定義に使用されるという点で本質的に Blocking Volume と似ています。三人称視点がその例です。プレイヤーのカメラをプレイ スペースだけに制限したいので、カメラがワールドの外側で回転しないようにします。 
 
 Camera Blocking Volume のプロパティはコリジョン チャンネルを調整する Blocking Volume と同じ方法で調節できます。 
 
@@ -118,7 +117,7 @@ Nav Mesh Bounds Volume を使用するには、レベルの中のナビゲーシ
 [P] を押せば、 Nav Mesh を好きな時にビューポートに表示することができます。
 [/REGION]
 
-詳細は、コンテンツ事例と [NavMech のコンテンツ事例](Resources\ContentExamples\NavMesh) をご覧ください。 
+詳細は、コンテンツ サンプルと [NavMech に関するドキュメント](Resources\ContentExamples\NavMesh) をご覧ください。 
 
 
 
@@ -131,7 +130,7 @@ Nav Mesh Bounds Volume を使用するには、レベルの中のナビゲーシ
 ![](killZdetails.png)
 
 | プロパティ | 説明 |
-| ------- | ------------ |
+| ------- | ------------|
 | Terminal Velocity | 落下時に CharacterMovement を使ってポーンの Terminal Velocity を判断します。 |
 | Priority | オーバーラップした場合、優先する PhysicsVolume を判断します。  |
 | Fluid Friction | CharacterMovement を使用しているポーンがそれを通過するときにボリュームによって適用される摩擦量を判断します。 <br> この値が高いほど、ボリューム内を移動するのが大変になります。 |
@@ -148,7 +147,7 @@ Physics Volume から割り当てが可能なプロパティの他に、 Pain Ca
 ![](paincausingvolume.png)
 
 | プロパティ | 説明 |
-| ------- | ------------ |
+| ------- | ------------|
 | Pain Causing | Volume が現在ダメージをするかどうかを判断します。  |
 | Damage Per Sec | Pain Causing が有効な場合、ボリューム内のアクタに与えられる毎秒のダメージ。 |
 | Damage Type | アクタに与えるダメージの種類を判断します。 |
@@ -172,7 +171,7 @@ Physics Volume から割り当てが可能なプロパティの他に、 Pain Ca
 ![](levelstreamingvolume.png)
 
 | プロパティ | 説明 |
-| ------- | ------------ |
+| ------- | ------------|
 | Streaming Levels | ボリュームに影響を受けるレベルを表示します。 |
 | Editor Pre Vis Only | ストリーミング ボリュームをエディタ ストリーミング レベルのプレビズ用にのみ使用するかを判断します。 |
 | Disabled | _true_ の場合、ストリーミング ボリュームはストリーミング ボリューム コードで無視されます。<br> レベルから切り離さないで Level Streaming Volume を有効化するか、またはブループリントとボリューム ストリーミング間でのレベルのストリーミングの切り替えのためにも使用されます。|
@@ -203,7 +202,7 @@ Cull Distances 配列にエントリを新規に追加して設定を開始し�
 ![](audiovolume.png)
 
 | プロパティ | 説明 |
-| ------- | ------------ |
+| ------- | ------------|
 | Priority | ボリュームがオーバーラップする場合、優先度の一番高いボリュームをが使用されます。2 つ以上のオーバーラップしているボリュームが同じプロパティの場合、順序は決まっていません。|
 | Apply Reverb | リバーブ設定を使うかどうかを判断します。 |
 | Reverb Effect | ボリュームに使うリバーブ アセットです。 |
@@ -211,10 +210,10 @@ Cull Distances 配列にエントリを新規に追加して設定を開始し�
 | Fade Time | 現在のリバーブ設定からボリューム設定へフェードする時間 (秒) です。  |
 | Enabled | ボリュームが有効でサウンドに影響を与えることができるかどうかを判断します。 |
 
-Ambient Zone は、関連する Audio Volume 内に置かれているサウンド アクタがプレイヤーの位置によってどのように変化するかを定義します。Ambient Zone の設定は **[Details]** パネルからも調整することができます。 
+**Ambient Zone** は、関連する Audio Volume 内に置かれているサウンド アクタがプレイヤーの位置によってどのように変化するかを定義します。Ambient Zone の設定は **[Details]** パネルからも調整することができます。 
 
 | プロパティ | 説明 |
-| ------- | ------------ |
+| ------- | ------------|
 | Exterior Volume | プレイヤーがボリューム内部にいる時の外部サウンドの最終的なボリューム。 |
 | Exterior Time | 新規の外部ボリュームへフェードする秒時間。 |
 | Exterior LPF | プレイヤーがボリューム内部にいる時の外部サウンドへ適用されるローパスフィルタ乗数 (最大適用 LPF は 0.1)。 |
@@ -224,13 +223,13 @@ Ambient Zone は、関連する Audio Volume 内に置かれているサウン�
 | Interior LPF | プレイヤーがボリュームの外側にいる時の内側のサウンドのローパスフィルタ乗数 (最大適用 LPF は 0.1)。 |
 | Interior LPFTime | 新規のローパスフィルタ レベルにフェードする秒時間。 |
 
-Ambient Zones に関する情報については、以下を参照してください。(Engine/Audio/AmbientZones).-->
+Ambient Zones に関する情報については、以下を参照してください。[Ambient Zonesに関するドキュメント](Engine/Audio/AmbientZones).-->
 
 ### Post Process Volume
 
 **Post Process Volume** は **[Details]** パネルのプロパティを調整することでオーバーライドできるカメラに適用される Post Process 設定のあるスペースです。 
 
-ポストプロセスエフェクトに関する詳細は [ポストプロセス エフェクト](Engine/Rendering/PostProcessEffects) を参照してください。
+ポストプロセスエフェクトに関する詳細は [ポストプロセス エフェクトに関するドキュメント](Engine/Rendering/PostProcessEffects) を参照してください。
  
 
 ### Lightmass Importance Volume
