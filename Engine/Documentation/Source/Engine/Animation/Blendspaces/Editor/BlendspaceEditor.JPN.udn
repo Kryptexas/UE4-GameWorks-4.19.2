@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2170734
+﻿INTSourceChangelist:2600917
 Availability:Public
 Title:ブレンド スペースの編集
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
-Description:ブレンド スペースの複雑で多入力のアニメーション ブレンディングにサンプル パラメータとアニメーション サンプルを作成するためのガイド
+Description:複雑で複数入力のアニメーション ブレンディング用に、サンプル パラメータとアニメーション サンプルを作成してみましょう。
 
 
 [VAR:topic]
@@ -33,7 +33,7 @@ Description:ブレンド スペースの複雑で多入力のアニメーショ�
 
 [EXCERPT:overview]
 **ブレンドスペース エディタ** は、 _ブレンドスペース_ のブレンドパラメータの設定に加え、 
-グラフを使用したサンプルポーズの配置の編集や、これサンプルポーズのブレンド結果を 
+グラフを使用したサンプルポーズの配置の編集やサンプルポーズのブレンド結果を 
 インタラクティブに見ることが出来ます。
 [/EXCERPT:overview]
 
@@ -43,22 +43,22 @@ Description:ブレンド スペースの複雑で多入力のアニメーショ�
 
 ![](TestBlendShape.png)(w:720)
 
-1. **Parameters** - _ブレンドスペース_ を設定する、ブレンド パラメータのプロパティ セクションです。
-1. **Samples** - _ブレンドスペース_ の編集が可能なサンプル全てのリストです。
-1. **Options** - _ブレンドスペース_ のプレビューオプションです。
-1. **Graph** - サンプルの配置とサンプルのブレンドをプレビューする 2D グラフです。
+1. **Parameters (パラメータ)** - _ブレンドスペース_ を設定する、Blend パラメータのプロパティ セクションです。
+1. **Samples (サンプル)** - _ブレンドスペース_ の編集が可能なサンプル全てのリストです。
+1. **Option (オプション)** - _ブレンドスペース_ のプレビュー オプションです。
+1. **Graph (グラフ)** - サンプルの配置とサンプルのブレンドをプレビューする 2D グラフです。
 
 
 ## パラメータの設定
 
-_ブレンドスペース_ のパラメータは、 UI の **パラメータ** セクションで設定されます。
+_ブレンドスペース_ のパラメータは、 UI の **[Parameter]** セクションで設定されます。
 
 ![Blendspace Parameters](bs_params.png)
 
 [INCLUDE:Engine/Animation/Blendspaces#BlendParameters]
 
 Blend パラメータのそれぞれに適切な値が設定されると、 ![Apply Parameter Changes](button_apply_changes.png) ボタン 
-を押すことにより値が _ブレンドスペース_ へ適用され、 **Graph** が更新されます。
+を押すことにより値が _ブレンドスペース_ へ適用され、 **グラフ** が更新されます。
 
 ![](BlendSpaceSetup.png)
 
@@ -68,12 +68,12 @@ Blend パラメータのそれぞれに適切な値が設定されると、 ![Ap
 
 ### サンプルの追加
 
-サンプルは、 **アセット ブラウザ** から _アニメーション シーケンス_ を **Graph** へドラッグして 
- _ブレンド スペース_ へ追加されます。
+**アセット ブラウザ** から _アニメーション シーケンス_ を **グラフ** へドラッグすると 
+サンプルが _ブレンド スペース_ に追加されます。
 
 [REGION:note]
-_AimOffsetBlendSpaces_ の作業時は、Sample として追加するために、 
- _AnimationSequences_ は **Additive Anim Type** を _AAT_RotationOffsetMeshSpace_ に設定しなくてはいけません。
+_AimOffsetBlendSpaces_ の作業時は、サンプルとして追加するために、 
+ _AnimationSequences_ の **Additive Anim Type** を _AAT_RotationOffsetMeshSpace_ に設定しなくてはいけません。
 [/REGION]
 
 ![](BlendShapeDragDrop.png)(w:720)
@@ -84,12 +84,12 @@ _AimOffsetBlendSpaces_ の作業時は、Sample として追加するために�
 
 ### サンプルの配置
 
-サンプルは、別の位置へインタラクティブまたは手動で移動させることが出来ます。Sample のインタラクティブな移動はとても直観的です。 
+サンプルは、別の位置へインタラクティブまたは手動で移動させることが出来ます。サンプルのインタラクティブな移動はとても直観的です。 
 しかし、サンプルの位置を手動で設定するような正確さはありません。
 
 **サンプルをインタラクティブに移動する**
 
-ノードをクリックして **Graph** へドラッグします。
+ノードをクリックして **グラフ** へドラッグします。
 
 ![Move Sample by Dragging](bs_sample_move_drag.png)(convert:false)
  
@@ -101,12 +101,12 @@ _AimOffsetBlendSpaces_ の作業時は、Sample として追加するために�
 
 ### サンプルの交換
 
-_ブレンドスペース_ に配置されたサンプルは、 **Graph** で _ドラッグ＆ドロップ_ 、 
+_ブレンドスペース_ に配置されたサンプルは、 **グラフ** で _ドラッグ＆ドロップ_ 、 
 または UI の **[Samples]** セクションで別のサンプルに置き換えることができます。
 
 **_ドラッグ＆ドロップ_ によるサンプルの交換**
 
-**Graph** でサンプルを交換するには、 **アセット ブラウザ** から新規の _AnimationSequence_ を 
+**グラフ** でサンプルを交換するには、 **アセット ブラウザ** から新規の _AnimationSequence_ を 
 直接既存ノードへドラッグします。
 
 [REGION:fullwidth]
@@ -122,7 +122,7 @@ _ブレンドスペース_ に配置されたサンプルは、 **Graph** で _�
 **手動による交換**
 
 **[Samples]** セクションでサンプルを交換するには、新規の _AnimationSequence_ を **コンテンツ ブラウザ** で選択して、 
-リストのサンプルの選択に ![Use Selected Asset](button_use_selected.png) ボタンを押します。
+リストのサンプル用の ![Use Selected Asset](button_use_selected.png) ボタンを押します。
 
 [REGION:note]
 	この場合、 **コンテンツ ブラウザ** から _AnimationSequence_ を選択しなければなりません。この操作では、ペルソナの **アセット ブラウザ** で選択されたどんなアセットを読み取られません。
@@ -138,12 +138,12 @@ _ブレンドスペース_ に配置されたサンプルは、 **Graph** で _�
 
 **Graph から削除**
 
-編集ダイアログを表示するため **Graph** から Sample ノードを選択して、 ![Delete](button_delete.png)  
+編集ダイアログを表示するため **グラフ** から Sample ノードを選択して、 ![Delete](button_delete.png)  
 ボタンを押してサンプルを削除します。
 
 ![Remove Sample in Graph](bs_sample_remove.png)(convert:false)
 
-**Sample セクションから削除**
+**Sample セクションから削除には**
 
 ![Remove Sample](button_clear_reference.png) ボタンを押して、サンプルをリストから削除します。
 
@@ -151,30 +151,38 @@ _ブレンドスペース_ に配置されたサンプルは、 **Graph** で _�
 
 ## プレビュー
 
-ポーズとポーズの合間のブレンディング結果は、 **Graph** を使って **ペルソナ** の **[ビューポート]** パネルで 
+ポーズとポーズの合間のブレンディング結果は、 **グラフ** を使って **ペルソナ** の **[Viewport]** パネルで 
 インタラクティブにプレビューすることが出来ます。カーソル位置はブレンディングの実行に使用する **X** と **Y** パラメータの値を決定し、 
-**[ビューポート]** パネルに最終ポーズを表示します。
+**[Viewport]** パネルに最終ポーズを表示します。
 
-_BlendSpace_ のプレビューを有効にするには、 UI の **[オプション]** セクションで **[Enable Preview BlendSpace]**  
+_BlendSpace_ のプレビューを有効にするには、 UI の **[Options]** セクションで **[Enable Preview BlendSpace (BlendSpace のプレビューを有効にする)]**  
 オプションをチェックします。
 
 ![Enable Preview Blendspace Option](bs_options_preview.png)
 
 プレビューが 1 度有効になると、カーソルを **グラフ** の周辺で移動させると、カーソルの位置に 
-対応するブレンドポーズが **[ビューポート]** パネルに表示されます。カーソルが位置するグリッド ブロック内は陰影がつけられ、 
+対応するブレンドポーズが **[Viewport]** パネルに表示されます。カーソルが位置するグリッド ブロック内は陰影がつけられ、 
 ブロックを構成しサンプルの点の合間のブレンディングを表す値が表示されます。
 
 ![Graph Grid Block](bs_samples_block.png)
 
-カーソルの位置およびブレンディングされているサンプルに関する詳細情報は、 **[ツールヒントの表示を有効にする]** オプションをチェックして 
+カーソルの位置およびブレンディングされているサンプルに関する詳細情報は、 **[Enable Tooltip Display (ツールチップの表示を有効にする)]** オプションをチェックして 
 表示することが出来ます。
 
 ![Enable Tooltip Display Option](bs_options_tooltip.png)
 
 ![Graph Tooltip](bs_samples_tooltip.png)
 
-[REGION:caption]
-**右クリックして [名前をつけて保存] を選択してビデオをダウンロード**
-[/REGION]
+下図はブレンド スペースをプレビューした例です。 
 
-[![](PlayBlendSpaceVideo.png)(w:640)](BlendSpace.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+L435S6VaUMY
+[/PARAMLITERAL]
+[/OBJECT]
