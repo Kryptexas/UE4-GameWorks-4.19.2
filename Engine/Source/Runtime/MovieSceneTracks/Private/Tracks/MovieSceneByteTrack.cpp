@@ -40,10 +40,12 @@ bool UMovieSceneByteTrack::AddKeyToSection( float Time, uint8 Value )
 
 bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& OutByte ) const
 {	
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
+		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+
 		OutByte = CastChecked<UMovieSceneByteSection>( Section )->Eval( Position );
 	}
 

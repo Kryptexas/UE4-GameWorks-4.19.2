@@ -41,10 +41,12 @@ bool UMovieSceneFloatTrack::AddKeyToSection( float Time, float Value )
 
 bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& OutFloat ) const
 {
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
+		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+
 		OutFloat = CastChecked<UMovieSceneFloatSection>( Section )->Eval( Position );
 	}
 

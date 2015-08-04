@@ -40,10 +40,12 @@ bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key )
 
 bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearColor& OutColor ) const
 {
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
+		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+
 		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, OutColor );
 	}
 

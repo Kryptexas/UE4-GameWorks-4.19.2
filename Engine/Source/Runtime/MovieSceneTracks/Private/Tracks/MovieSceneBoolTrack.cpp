@@ -40,10 +40,12 @@ bool UMovieSceneBoolTrack::AddKeyToSection( float Time, bool Value )
 
 bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBool ) const
 {	
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
+		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+
 		OutBool = CastChecked<UMovieSceneBoolSection>( Section )->Eval( Position );
 	}
 

@@ -24,11 +24,13 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene2DTransformTrack::CreateInstance
 
 bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidgetTransform& InOutTransform) const
 {
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime(Sections, Position);
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Position);
 
 	if(Section)
 	{
 		const UMovieScene2DTransformSection* TransformSection = CastChecked<UMovieScene2DTransformSection>(Section);
+
+		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 
 		InOutTransform = TransformSection->Eval(Position, InOutTransform);
 	}
@@ -39,7 +41,7 @@ bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidg
 
 bool UMovieScene2DTransformTrack::AddKeyToSection(float Time, const F2DTransformKey& TransformKey)
 {
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime(Sections, Time);
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Time);
 	if(!NearestSection || TransformKey.bAddKeyEvenIfUnchanged || CastChecked<UMovieScene2DTransformSection>(NearestSection)->NewKeyIsNewData(Time, TransformKey.Value))
 	{
 		Modify();
