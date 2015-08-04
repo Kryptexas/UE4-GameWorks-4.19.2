@@ -199,14 +199,7 @@ void UNetConnection::Close()
 	if (Driver != NULL && State != USOCK_Closed)
 	{
 		NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("CLOSE"), *(GetName() + TEXT(" ") + LowLevelGetRemoteAddress())));
-		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: Name: %s, Driver: %s, PC: %s, Owner: %s, Channels: %i, RemoteAddr: %s, Time: %s"), 
-			*GetName(), 
-			*Driver->GetDescription(), 
-			PlayerController ? *PlayerController->GetName() : TEXT("NULL"),
-			OwningActor ? *OwningActor->GetName() : TEXT("NULL"),
-			OpenChannels.Num(),
-			*LowLevelGetRemoteAddress(true),
-			*FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
+		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: %s, Channels: %i, Time: %s"), *Describe(), OpenChannels.Num(), *FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 
 		if (Channels[0] != NULL)
 		{
@@ -215,14 +208,21 @@ void UNetConnection::Close()
 		State = USOCK_Closed;
 		FlushNet();
 	}
-	else
-	{
-		UE_LOG(LogNet, Verbose, TEXT("UNetConnection::Close: Already closed. Name: %s"), *GetName() );
-	}
 
 	LogCallLastTime		= 0;
 	LogCallCount		= 0;
 	LogSustainedCount	= 0;
+}
+
+FString UNetConnection::Describe()
+{
+	return FString::Printf( TEXT( "[UNetConnection] RemoteAddr: %s, Name: %s, Driver: %s, IsServer: %s, PC: %s, Owner: %s" ),
+			*LowLevelGetRemoteAddress( true ),
+			*GetName(),
+			Driver ? *Driver->GetDescription() : TEXT( "NULL" ),
+			Driver && Driver->IsServer() ? TEXT( "YES" ) : TEXT( "NO" ),
+			PlayerController ? *PlayerController->GetName() : TEXT( "NULL" ),
+			OwningActor ? *OwningActor->GetName() : TEXT( "NULL" ) );
 }
 
 void UNetConnection::CleanUp()
@@ -236,12 +236,7 @@ void UNetConnection::CleanUp()
 
 	if ( State != USOCK_Closed )
 	{
-		UE_LOG(LogNet, Log, TEXT("UNetConnection::Cleanup: Closing open connection. Name: %s, RemoteAddr: %s Driver: %s, PC: %s, Owner: %s"),
-			*GetName(),
-			*LowLevelGetRemoteAddress(true),
-			Driver ? *Driver->NetDriverName.ToString() : TEXT("NULL"),
-			PlayerController ? *PlayerController->GetName() : TEXT("NoPC"),
-			OwningActor ? *OwningActor->GetName() : TEXT("No Owner"));
+		UE_LOG( LogNet, Log, TEXT( "UNetConnection::Cleanup: Closing open connection. %s" ), *Describe() );
 	}
 
 	Close();
@@ -1439,13 +1434,10 @@ void UNetConnection::Tick()
 	if ( bUseTimeout && Driver->Time - LastReceiveTime > Timeout )
 	{
 		// Timeout.
-		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Driver: %s, Elapsed: %f, Threshold: %f, RemoteAddr: %s, PC: %s, Owner: %s"),
-			*Driver->GetName(),
+		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Elapsed: %f, Threshold: %f, %s"),
 			Driver->Time - LastReceiveTime,
-			Timeout, *LowLevelGetRemoteAddress(true),
-			PlayerController ? *PlayerController->GetName() : TEXT("NoPC"),
-			OwningActor ? *OwningActor->GetName() : TEXT("No Owner")
-			);
+			Timeout, 
+			*Describe());
 		UE_LOG(LogNet, Warning, TEXT("%s"), *Error);
 		GEngine->BroadcastNetworkFailure(Driver->GetWorld(), Driver, ENetworkFailure::ConnectionTimeout, Error);
 		Close();

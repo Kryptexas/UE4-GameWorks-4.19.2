@@ -2729,7 +2729,7 @@ bool UNetDriver::NetObjectIsDynamic(const UObject *Object) const
 
 void UNetDriver::AddClientConnection(UNetConnection * NewConnection)
 {
-	UE_LOG( LogNet, Log, TEXT( "Added client connection.  Remote address = %s" ), *NewConnection->LowLevelGetRemoteAddress( true ) );
+	UE_LOG( LogNet, Log, TEXT( "AddClientConnection: Added client connection: %s" ), *NewConnection->Describe() );
 
 	ClientConnections.Add(NewConnection);
 

@@ -411,6 +411,9 @@ public:
 	/** @return the description of connection */
 	virtual FString LowLevelDescribe() PURE_VIRTUAL(UNetConnection::LowLevelDescribe,return TEXT(""););
 
+	/** Describe the connection. */
+	ENGINE_API virtual FString Describe();
+
 	/**
 	 * Sends a byte stream to the remote endpoint using the underlying socket
 	 *

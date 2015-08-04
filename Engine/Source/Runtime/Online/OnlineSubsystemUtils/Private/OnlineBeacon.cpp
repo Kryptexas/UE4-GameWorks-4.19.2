@@ -123,7 +123,7 @@ void AOnlineBeacon::NotifyAcceptedConnection(UNetConnection* Connection)
 {
 	check(NetDriver != nullptr);
 	check(NetDriver->ServerConnection == nullptr);
-	UE_LOG(LogNet, Log, TEXT("Open %s %s %s"), *GetName(), FPlatformTime::StrTimestamp(), *Connection->LowLevelGetRemoteAddress());
+	UE_LOG(LogNet, Log, TEXT("NotifyAcceptedConnection: Name: %s, TimeStamp: %s, %s"), *GetName(), FPlatformTime::StrTimestamp(), *Connection->Describe());
 }
 
 bool AOnlineBeacon::NotifyAcceptingChannel(UChannel* Channel)
