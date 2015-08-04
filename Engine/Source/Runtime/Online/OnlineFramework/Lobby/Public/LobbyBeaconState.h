@@ -255,7 +255,7 @@ class LOBBY_API ALobbyBeaconState : public AInfo
 	FOnLobbyStarted& OnLobbyStarted() { return LobbyStarted; }
 
 	/** @return delegate fired as time counts down waiting for players */
-	FOnLobbyWaitingForPlayersUpdate OnLobbyWaitingForPlayersUpdate() { return LobbyWaitingForPlayersUpdate; }
+	FOnLobbyWaitingForPlayersUpdate& OnLobbyWaitingForPlayersUpdate() { return LobbyWaitingForPlayersUpdate; }
 
 	/** @return true if the lobby has started, false otherwise */
 	bool HasLobbyStarted() const { return bLobbyStarted; }
