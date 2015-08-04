@@ -530,13 +530,14 @@ namespace UnrealBuildTool.Android
 			string Arch = GetNDKArch(UE4Arch);
 
 			string GccVersion = "4.6";
-			if (Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.9")))
-			{
-				GccVersion = "4.9";
-			}
-			else if (Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.8")))
+			if (Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.8")))
 			{
 				GccVersion = "4.8";
+			}
+			// only use 4.9 if NDK version > 19
+			if (AndroidToolChain.GetNdkApiLevelInt() > 19 && Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.9")))
+			{
+				GccVersion = "4.9";
 			}
 
 			// copy it in!
