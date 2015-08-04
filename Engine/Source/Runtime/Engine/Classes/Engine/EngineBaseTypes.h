@@ -235,7 +235,8 @@ public:
 	void SetTickFunctionEnable(bool bInEnabled);
 	/** Returns whether the tick function is currently enabled */
 	bool IsTickFunctionEnabled() const { return TickState != ETickState::Disabled; }
-
+	/** Returns whether it is valid to access this tick function's completion handle */
+	bool IsCompletionHandleValid() const { return TaskPointer != nullptr; }
 	/**
 	* Gets the current completion handle of this tick function, so it can be delayed until a later point when some additional
 	* tasks have been completed.  Only valid after TG_PreAsyncWork has started and then only until the TickFunction finishes
