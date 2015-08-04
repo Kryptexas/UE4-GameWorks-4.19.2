@@ -428,7 +428,7 @@ FGBufferData DecodeGBufferData(
 
 	GBuffer.Metallic = InGBufferB.r;
 	GBuffer.StoredSpecular = InGBufferB.g;
-	GBuffer.Specular = GBuffer.StoredSpecular;
+	GBuffer.Specular = GBuffer.StoredSpecular.g;
 	GBuffer.Opacity = InGBufferD.r;
 	
 	GBuffer.Roughness = InGBufferB.b;
