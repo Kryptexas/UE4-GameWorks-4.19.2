@@ -5,9 +5,31 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "SceneViewport.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "Classes/SteamVRFunctionLibrary.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#endif
+
+/** Helper function for acquiring the appropriate FSceneViewport */
+FSceneViewport* FindSceneViewport()
+{
+	if (!GIsEditor)
+	{
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		return GameEngine->SceneViewport.Get();
+	}
+#if WITH_EDITOR
+	else
+	{
+		UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
+		return (FSceneViewport*)(EditorEngine->GetPIEViewport());
+	}
+#endif
+	return nullptr;
+}
 
 //---------------------------------------------------
 // SteamVR Plugin Implementation
@@ -607,6 +629,16 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 	bStereoEnabled = (IsHMDEnabled()) ? bStereo : false;
 
 	FSystemResolution::RequestResolutionChange(1280, 720, (bStereo) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
+
+	// Set the viewport to match that of the HMD display
+	FSceneViewport* SceneVP = FindSceneViewport();
+	if (VRSystem && SceneVP)
+	{
+		int32 PosX, PosY;
+		uint32 Width, Height;
+		VRSystem->GetWindowBounds(&PosX, &PosY, &Width, &Height);
+		SceneVP->SetViewportSize(Width, Height);
+	}
 
 	// Uncap fps to enable FPS higher than 62
 	GEngine->bForceDisableFrameRateSmoothing = bStereo;
