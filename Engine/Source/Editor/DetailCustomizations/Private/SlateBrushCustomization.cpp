@@ -991,10 +991,14 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 	{
 		TArray<void*> RawData;
-		ResourceObjectProperty->AccessRawData(RawData);
 
-		check(RawData[0] != NULL);
-		TemporaryBrush = *static_cast<FSlateBrush*>( RawData[0] );
+		if (ResourceObjectProperty.IsValid() && ResourceObjectProperty->IsValidHandle())
+		{
+			ResourceObjectProperty->AccessRawData(RawData);
+
+			check(RawData[0] != NULL);
+			TemporaryBrush = *static_cast<FSlateBrush*>(RawData[0]);
+		}
 	}
 
 private:
