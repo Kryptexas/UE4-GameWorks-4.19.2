@@ -82,6 +82,12 @@ namespace AutomationTool
             this.ErrorCode = ErrorCode;
         }
 
+        [Obsolete]
+        public AutomationException(string Msg, System.Exception InnerException)
+            : base(Msg, InnerException)
+        {
+        }
+
         public AutomationException(Exception InnerException, string Format, params object[] Args)
 			:base(string.Format(Format, Args), InnerException)
 		{
