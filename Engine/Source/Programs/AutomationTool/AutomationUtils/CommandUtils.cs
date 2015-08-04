@@ -816,7 +816,7 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				throw new AutomationException(String.Format("Unable to change current directory to {0}", WorkingDirectory), Ex);
+				throw new AutomationException(Ex, "Unable to change current directory to {0}", WorkingDirectory);
 			}
 
 			WorkingDirectoryStack.Push(OrigCurrentDirectory);
@@ -937,7 +937,7 @@ namespace AutomationTool
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
 			if (!File.Exists(Filename))
 			{
-				throw new AutomationException("Unable to set attributes for a non-exisiting file.", new FileNotFoundException("File not found.", Filename));
+				throw new AutomationException(new FileNotFoundException("File not found.", Filename), "Unable to set attributes for a non-existing file.");
 			}
 
 			FileAttributes Attributes = File.GetAttributes(Filename);
@@ -1615,7 +1615,7 @@ namespace AutomationTool
 					}
 					if (Request.Result != null)
 					{
-						throw new AutomationException(String.Format("Failed to thread-copy files: {0}", Request.Result.Message), Request.Result);
+						throw new AutomationException(Request.Result, "Failed to thread-copy files: {0}", Request.Result.Message);
 					}
 				}
 			}
@@ -1708,7 +1708,7 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				throw new AutomationException(String.Format("Failed to set environment variable {0} to {1}", Name, Value), Ex);
+				throw new AutomationException(Ex, "Failed to set environment variable {0} to {1}", Name, Value);
 			}
 		}
 
@@ -1740,7 +1740,7 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				throw new AutomationException("Failed to harvest environment variables", Ex);
+				throw new AutomationException(Ex, "Failed to harvest environment variables");
 			}
 
 			if (AlsoSet)

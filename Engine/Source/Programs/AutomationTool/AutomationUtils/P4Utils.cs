@@ -25,7 +25,7 @@ namespace AutomationTool
 		public P4Exception(string Msg)
 			: base(Msg) { }
 		public P4Exception(string Msg, Exception InnerException)
-			: base(Msg, InnerException) { }
+			: base(InnerException, Msg) { }
 
 		public P4Exception(string Format, params object[] Args)
 			: base(Format, Args) { }

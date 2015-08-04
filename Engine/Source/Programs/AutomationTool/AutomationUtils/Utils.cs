@@ -874,7 +874,7 @@ namespace AutomationTool
                 }
                 catch (Exception ex)
                 {
-                    throw new AutomationException(string.Format("Failed to parse line {0} in version file {1}", line, Filename), ex);
+                    throw new AutomationException(ex, "Failed to parse line {0} in version file {1}", line, Filename);
                 }
             }
 
@@ -991,7 +991,7 @@ namespace AutomationTool
             }
             catch (Exception ex)
             {
-                throw new AutomationException(string.Format("Failed to parse {0} as an FEngineVersion compatible string", versionString), ex);
+                throw new AutomationException(ex, "Failed to parse {0} as an FEngineVersion compatible string", versionString);
             }
         }
     }
