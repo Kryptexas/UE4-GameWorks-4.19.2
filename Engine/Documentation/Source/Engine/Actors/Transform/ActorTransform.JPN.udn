@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2623563
 Availability:Public
 Title:アクタの変形
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -66,8 +66,6 @@ Description:レベルに配置されたアクタの位置、回転、スケー�
 
 
 [TOC(start:2)]
-
-## 概要
 
 アクタの変形とは、レベルの編集プロセスの重要な部分である移動、回転、スケーリングを意味します。アンリアル エディタでは、2 種類の基本的な方法でアクタを変形する事ができます。両方の方法とも、選択中であれば全てのアクタに変形を適用できます。
 
@@ -215,7 +213,7 @@ Drag Grid、Rotation Grid、Scale Grid を使用する場合、それぞれの�
 
 ![](UserDefinedIncrementsShown.png)
 
-ユーザー定義リストを追加するには、 [スナップの環境設定] の [array] プロパティを使用します。
+ユーザー定義リストを追加するには、 [Snap Preferences (スナップの環境設定)] の [array] プロパティを使用します。
 
 ![](UserDefinedArrays.png)
 
