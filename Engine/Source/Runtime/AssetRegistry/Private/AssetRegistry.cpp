@@ -199,13 +199,13 @@ void FAssetRegistry::SetupCookedTagsWhitelist()
 				UClass* WhitelistClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, *ClassName));
 				if (WhitelistClass)
 				{
-					FAssetData::WhitelistCookedTag(WhitelistClass->GetFName(), TagFName);
+					CookWhitelistedTagsByClass.FindOrAdd(WhitelistClass->GetFName()).Add(TagFName);
 
 					TArray<UClass*> DerivedClasses;
 					GetDerivedClasses(WhitelistClass, DerivedClasses);
 					for (UClass* DerivedClass : DerivedClasses)
 					{
-						FAssetData::WhitelistCookedTag(DerivedClass->GetFName(), TagFName);
+						CookWhitelistedTagsByClass.FindOrAdd(DerivedClass->GetFName()).Add(TagFName);
 					}
 				}
 				else
@@ -213,7 +213,7 @@ void FAssetRegistry::SetupCookedTagsWhitelist()
 					// Class is not in memory yet. Just add an explicit whitelist.
 					// Automatically adding subclasses of non-native classes is not supported.
 					// In these cases, using Class=* is usually sufficient
-					FAssetData::WhitelistCookedTag(FName(*ClassName), TagFName);
+					CookWhitelistedTagsByClass.FindOrAdd(FName(*ClassName)).Add(TagFName);
 				}
 			}
 		}
@@ -1558,7 +1558,37 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	// save out by walking the TMap
 	for (TMap<FName, FAssetData*>::TIterator It(Data); It; ++It)
 	{
-		Ar << *It.Value();
+		if (Ar.IsFilterEditorOnly())
+		{
+			const FAssetData& AssetData(*It.Value());
+
+			static FName WildcardName(TEXT("*"));
+			const TSet<FName>* AllClassesWhitelist = CookWhitelistedTagsByClass.Find(WildcardName);
+			const TSet<FName>* ClassSpecificWhitelist = CookWhitelistedTagsByClass.Find(AssetData.AssetClass);
+
+			// Include only whitelisted tags
+			TMap<FName, FString> LocalTagsAndValues;
+			for (auto TagIt = AssetData.TagsAndValues.GetMap().CreateConstIterator(); TagIt; ++TagIt)
+			{
+				FName TagName = TagIt.Key();
+				const bool bInAllClassesWhitelist = AllClassesWhitelist && (AllClassesWhitelist->Contains(TagName) || AllClassesWhitelist->Contains(WildcardName));
+				const bool bInClassSpecificWhitelist = ClassSpecificWhitelist && (ClassSpecificWhitelist->Contains(TagName) || ClassSpecificWhitelist->Contains(WildcardName));
+				if (bInAllClassesWhitelist || bInClassSpecificWhitelist)
+				{
+					// It is in the whitelist. Keep it.
+					LocalTagsAndValues.Add(TagIt.Key(), TagIt.Value());
+				}
+			}
+
+			FAssetData AssetDataCopyToSerialize(AssetData.PackageName, AssetData.PackagePath, AssetData.GroupNames, AssetData.AssetName, AssetData.AssetClass, LocalTagsAndValues, AssetData.ChunkIDs);
+
+			Ar << AssetDataCopyToSerialize;
+		}
+		else
+		{
+			Ar << *It.Value();
+		}
+
 		AssetIndexMap.Add(It.Value()->PackageName, AssetIndexMap.Num());
 		FDependsNode* DependencyNode = FindDependsNode(It.Value()->PackageName);
 		if (DependencyNode)

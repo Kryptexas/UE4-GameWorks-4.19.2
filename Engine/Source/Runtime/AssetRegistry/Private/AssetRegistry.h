@@ -197,6 +197,9 @@ private:
 	/** The map of classes to their parents, and a map of parents to their classes */
 	TMap<FName, FName> CachedInheritanceMap;
 
+	/** The map of classname to tag set of tags that are allowed in cooked builds */
+	TMap<FName, TSet<FName>> CookWhitelistedTagsByClass;
+
 	/** The root node to the path tree */
 	FPathTreeNode PathTreeRoot;
 

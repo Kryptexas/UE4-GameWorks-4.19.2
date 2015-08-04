@@ -302,30 +302,7 @@ public:
 		Ar << AssetData.PackageName;
 		Ar << AssetData.AssetName;
 
-		if (Ar.IsFilterEditorOnly() && Ar.IsSaving())
-		{
-			static FName WildcardName(TEXT("*"));
-			const TSet<FName>* AllClassesWhitelist = GetCookWhitelistedTags(WildcardName);
-			const TSet<FName>* ClassSpecificWhitelist = GetCookWhitelistedTags(AssetData.AssetClass);
-
-			// Exclude editor only data from serialization
-			TMap<FName, FString> LocalTagsAndValues;
-			for (auto TagIt = AssetData.TagsAndValues.GetMap().CreateConstIterator(); TagIt; ++TagIt)
-			{
-				FName TagName = TagIt.Key();
-				const bool bInAllClassesWhitelist = AllClassesWhitelist && (AllClassesWhitelist->Contains(TagName) || AllClassesWhitelist->Contains(WildcardName));
-				const bool bInClassSpecificWhitelist = ClassSpecificWhitelist && (ClassSpecificWhitelist->Contains(TagName) || ClassSpecificWhitelist->Contains(WildcardName));
-				if (bInAllClassesWhitelist || bInClassSpecificWhitelist)
-				{
-					LocalTagsAndValues.Add(TagIt.Key(), TagIt.Value());
-				}
-			}
-			Ar << LocalTagsAndValues;
-		}
-		else
-		{
-			Ar << const_cast<TMap<FName, FString>&>(AssetData.TagsAndValues.GetMap());
-		}
+		Ar << const_cast<TMap<FName, FString>&>(AssetData.TagsAndValues.GetMap());
 
 		if (Ar.UE4Ver() >= VER_UE4_CHANGED_CHUNKID_TO_BE_AN_ARRAY_OF_CHUNKIDS)
 		{
@@ -345,13 +322,4 @@ public:
 
 		return Ar;
 	}
-
-	/** Adds the specified class/tag pair to the cook whitelist */
-	ASSETREGISTRY_API static void WhitelistCookedTag(FName InClassName, FName InTagName);
-
-	/** Gets the tags whitelisted for the specified class */
-	ASSETREGISTRY_API static const TSet<FName>* GetCookWhitelistedTags(FName InClassName);
-
-private:
-	static TMap<FName, TSet<FName>> CookWhitelistedTagsByClass;
 };
