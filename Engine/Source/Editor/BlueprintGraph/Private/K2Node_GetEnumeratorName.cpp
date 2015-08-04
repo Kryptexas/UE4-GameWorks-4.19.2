@@ -148,9 +148,9 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	Schema->TrySetDefaultObject(*EnumPin, Enum);
 	check(EnumPin->DefaultObject == Enum);
 
-	//INDEX PIN
+	//VALUE PIN
 	UEdGraphPin* OrgInputPin = FindPinChecked(EnumeratorPinName);
-	UEdGraphPin* IndexPin = CallGetName->FindPinChecked(TEXT("EnumeratorIndex"));
+	UEdGraphPin* IndexPin = CallGetName->FindPinChecked(TEXT("EnumeratorValue"));
 	check(EGPD_Input == IndexPin->Direction && Schema->PC_Byte == IndexPin->PinType.PinCategory);
 	CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *IndexPin);
 

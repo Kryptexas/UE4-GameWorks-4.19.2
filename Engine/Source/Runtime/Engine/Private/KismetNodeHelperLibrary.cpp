@@ -141,15 +141,17 @@ int32 UKismetNodeHelperLibrary::GetFirstUnmarkedBit(int32 Data, int32 StartIdx, 
 	return INDEX_NONE;
 }
 
-FName UKismetNodeHelperLibrary::GetEnumeratorName(const UEnum* Enum, uint8 EnumeratorIndex)
+FName UKismetNodeHelperLibrary::GetEnumeratorName(const UEnum* Enum, uint8 EnumeratorValue)
 {
+	int32 EnumeratorIndex = Enum->GetIndexByValue(EnumeratorValue);
 	return (NULL != Enum) ? Enum->GetEnum(EnumeratorIndex) : NAME_None;
 }
 
-FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enum, uint8 EnumeratorIndex)
+FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enum, uint8 EnumeratorValue)
 {
 	if (NULL != Enum)
 	{
+		int32 EnumeratorIndex = Enum->GetIndexByValue(EnumeratorValue);
 		return Enum->GetEnumText(EnumeratorIndex).ToString();
 	}
 
