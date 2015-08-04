@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2603910
 Availability:Public
 Title: EQS Testing Pawn
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -54,7 +54,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 [/REGION]
 
 1. コンテンツ ブラウザで、新規のブループリントを **作成** します。
-1. **All Classes** を展開して、`EQSTestingPawn` を探します。
+1. **All Classes** を展開して、**EQSTestingPawn** を探します。
 1. **EQSTestingPawn** を選択します。
 1. 新規の **EQSTestingPawn** ブループリントに名前を付けます。
 
@@ -74,7 +74,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 
 ## フィードバックのリファレンス
 
-**青**:アイテムに対してテストは失敗したので、アイテムは完全にウェイトが外され、結果からカリングされました。通常、Distance Test を使って範囲を上回る (あるいは下回る) アイテムが除外されような、場合に発生します。値を完全に除去したくない場合は、採点セクションの Clamp 機能を使います。 
+**青**:アイテムに対してテストは失敗したので、アイテムは完全にウェイトが外され、結果からカリングされました。通常、Distance Test を使って範囲を上回る (あるいは下回る) アイテムを削除するような、値にフィルターをかけると発生します。値を完全に除去したくない場合は、採点セクションの Clamp 機能を使います。 
 
 **緑 - 赤**:赤より緑の方が好ましいです。これらに列挙された数字はアイテムのウェイトです。デバッグ ステップを 1 つだけプレビューする場合は、この値が選択されているテストの最終値となります。
 
