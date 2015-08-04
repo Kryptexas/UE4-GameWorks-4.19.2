@@ -67,7 +67,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 private:
 	friend class FAttributePropertyDetails;
 
-	UPROPERTY(Category=GameplayAttribute, EditDefaultsOnly)
+	UPROPERTY(Category=GameplayAttribute, EditAnywhere)
 	UProperty*	Attribute;
 };
 

@@ -184,7 +184,11 @@ void FAttributePropertyDetails::OnChangeProperty(TSharedPtr<FString> ItemSelecte
 void FAttributePropertyDetails::OnAttributeChanged(UProperty* SelectedAttribute)
 {
 	const UObject* ObjPtr = SelectedAttribute;
-	MyProperty->SetValue(ObjPtr);
+
+	if (MyProperty.IsValid())
+	{
+		MyProperty->SetValue(ObjPtr);
+	}
 }
 
 // ------------------------------------------------------------------------------------
