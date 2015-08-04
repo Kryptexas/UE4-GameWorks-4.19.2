@@ -71,6 +71,12 @@ class UTutorialStateSettings : public UObject
 	/** Returns true if user has dismissed tutorials */
 	bool AreAllTutorialsDismissed();
 
+public:
+	//~ From UObject
+	virtual void SaveConfig(uint64 Flags = CPF_Config, const TCHAR* Filename = nullptr, FConfigCacheIni* Config = GConfig) override;
+	virtual void LoadConfig(UClass* ConfigClass = nullptr, const TCHAR* Filename = nullptr, uint32 PropagationFlags = UE4::LCPF_None, class UProperty* PropertyToLoad = nullptr) override;
+	//~
+
 private:
 	/** Recorded progress */
 	TMap<UEditorTutorial*, FTutorialProgress> ProgressMap;
