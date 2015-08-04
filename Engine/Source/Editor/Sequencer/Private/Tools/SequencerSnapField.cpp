@@ -40,7 +40,7 @@ struct FSnapGridVisitor : ISequencerEntityVisitor
 		}
 	}
 
-	mutable ISequencerSnapCandidate& Candidate;
+	ISequencerSnapCandidate& Candidate;
 	mutable TArray<FSequencerSnapPoint> Snaps;
 };
 
