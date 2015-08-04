@@ -1175,7 +1175,7 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 	FToken TagToken;
 
 	TArray<FScriptLocation> EnumTagLocations;
-	TArray<TPair<FName, int8>> EnumNames;
+	TArray<TPair<FName, uint8>> EnumNames;
 
 	int32 CurrentEnumValue = 0;
 
@@ -1217,7 +1217,7 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 			break;
 		}
 
-		TPair<FName, int8> CurrentEnum = TPair<FName, int8>(TPairInitializer<FName, int8>(NewTag, CurrentEnumValue));
+		TPair<FName, uint8> CurrentEnum = TPair<FName, uint8>(TPairInitializer<FName, uint8>(NewTag, CurrentEnumValue));
 
 		if (EnumNames.Find(CurrentEnum, iFound))
 		{

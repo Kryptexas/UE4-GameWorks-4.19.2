@@ -1353,55 +1353,29 @@ public:
 	FString CppType;
 
 	/** Gets enum name by index in Names array. Returns NAME_None if Index is not valid. */
-	FName GetNameByIndex(int8 Index) const;
+	FName GetNameByIndex(uint8 Index) const;
 		
 	/** Gets enum value by index in Names array. */
-	int8 GetValueByIndex(int8 Index) const;
+	uint8 GetValueByIndex(uint8 Index) const;
 
 	/** Gets enum name by value. Returns NAME_None if value is not found. */
-	FName GetNameByValue(int8 InValue) const;
+	FName GetNameByValue(uint8 InValue) const;
 		
 	/** Gets enum value by name. Returns INDEX_NONE when name is not found. */
-	int8 GetValueByName(FName InName) const
-	{
-		FString InNameString = InName.ToString();
-		FString DoubleColon = TEXT("::");
-		int32 DoubleColonPosition = InNameString.Find(DoubleColon);
-		bool bIsInNameFullyQualified = DoubleColonPosition != INDEX_NONE;
-		bool bIsEnumFullyQualified = CppForm != ECppForm::Regular;
-
-		if (!bIsInNameFullyQualified && bIsEnumFullyQualified)
-		{
-			// Make InName fully qualified.
-			InName = FName(*GetName().Append(DoubleColon).Append(InNameString));
-		}
-		else if (bIsInNameFullyQualified && !bIsEnumFullyQualified)
-		{
-			// Make InName unqualified.
-			InName = FName(*InNameString.Mid(DoubleColonPosition + 2, InNameString.Len() - DoubleColonPosition + 2));
-		}
-
-		for (TPair<FName, int8> Kvp : Names)
-		{
-			if (Kvp.Key == InName)
-			{
-				return Kvp.Value;
-			}
-		}
-
-		return INDEX_NONE;
-	}
+	int32 GetValueByName(FName InName) const;
 
 	/** Gets index of name in enum. Returns INDEX_NONE when name is not found. */
 	int32 GetIndexByName(FName InName) const;
 
 	/** Gets max value of Enum. Defaults to zero if there are no entries. */
-	int8 GetMaxEnumValue() const;
+	uint8 GetMaxEnumValue() const;
+
+	bool IsValidEnumValue(uint8 Value) const;
 
 protected:
 	// Variables.
 	/** List of pairs of all enum names and values. */
-	TArray<TPair<FName, int8>> Names;
+	TArray<TPair<FName, uint8>> Names;
 
 	/** How the enum was originally defined. */
 	ECppForm CppForm;
@@ -1520,7 +1494,7 @@ public:
 	 * @param InCppForm The form of enum.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	virtual bool SetEnums(TArray<TPair<FName, int8>>& InNames, ECppForm InCppForm);
+	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm);
 
 	/**
 	 * @return	The enum name at the specified Index.

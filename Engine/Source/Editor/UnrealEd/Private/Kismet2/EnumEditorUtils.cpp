@@ -34,7 +34,7 @@ UEnum* FEnumEditorUtils::CreateUserDefinedEnum(UObject* InParent, FName EnumName
 
 	if (NULL != Enum)
 	{
-		TArray<TPair<FName, int8>> EmptyNames;
+		TArray<TPair<FName, uint8>> EmptyNames;
 		Enum->SetEnums(EmptyNames, UEnum::ECppForm::Namespaced);
 		Enum->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 	}
@@ -51,13 +51,13 @@ void FEnumEditorUtils::UpdateAfterPathChanged(UEnum* Enum)
 {
 	check(NULL != Enum);
 
-	TArray<TPair<FName, int8>> NewEnumeratorsNames;
+	TArray<TPair<FName, uint8>> NewEnumeratorsNames;
 	const int32 EnumeratorsToCopy = Enum->NumEnums() - 1; // skip _MAX
 	for (int32 Index = 0; Index < EnumeratorsToCopy; Index++)
 	{
 		const FString ShortName = Enum->GetEnumName(Index);
 		const FString NewFullName = Enum->GenerateFullEnumName(*ShortName);
-		NewEnumeratorsNames.Add(TPairInitializer<FName, int8>(FName(*NewFullName), Enum->GetValueByIndex(Index)));
+		NewEnumeratorsNames.Add(TPairInitializer<FName, uint8>(FName(*NewFullName), Enum->GetValueByIndex(Index)));
 	}
 
 	Enum->SetEnums(NewEnumeratorsNames, UEnum::ECppForm::Namespaced);
@@ -66,7 +66,7 @@ void FEnumEditorUtils::UpdateAfterPathChanged(UEnum* Enum)
 //////////////////////////////////////////////////////////////////////////
 // Enumerators
 
-void FEnumEditorUtils::CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair<FName, int8>>& OutEnumNames)
+void FEnumEditorUtils::CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair<FName, uint8>>& OutEnumNames)
 {
 	if (Enum == nullptr)
 	{
@@ -90,13 +90,13 @@ void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum
 
 	PrepareForChange(Enum);
 
-	TArray<TPair<FName, int8>> OldNames, Names;
+	TArray<TPair<FName, uint8>> OldNames, Names;
 	CopyEnumeratorsWithoutMax(Enum, OldNames);
 	Names = OldNames;
 
 	FString EnumNameString = Enum->GenerateNewEnumeratorName();
 	const FString FullNameStr = Enum->GenerateFullEnumName(*EnumNameString);
-	Names.Add(TPairInitializer<FName, int8>(FName(*FullNameStr), Enum->GetMaxEnumValue() + 1));
+	Names.Add(TPairInitializer<FName, uint8>(FName(*FullNameStr), Enum->GetMaxEnumValue() + 1));
 
 	const UEnum::ECppForm EnumType = Enum->GetCppForm();
 	Enum->SetEnums(Names, EnumType);
@@ -116,7 +116,7 @@ void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enu
 
 	PrepareForChange(Enum);
 
-	TArray<TPair<FName, int8>> OldNames, Names;
+	TArray<TPair<FName, uint8>> OldNames, Names;
 	CopyEnumeratorsWithoutMax(Enum, OldNames);
 	Names = OldNames;
 
@@ -142,7 +142,7 @@ void FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(UUserDefinedEnum* Enum, i
 
 	PrepareForChange(Enum);
 
-	TArray<TPair<FName, int8>> OldNames, Names;
+	TArray<TPair<FName, uint8>> OldNames, Names;
 	CopyEnumeratorsWithoutMax(Enum, OldNames);
 	Names = OldNames;
 
@@ -189,9 +189,9 @@ class FArchiveEnumeratorResolver : public FArchiveUObject
 {
 public:
 	const UEnum* Enum;
-	const TArray<TPair<FName, int8>>& OldNames;
+	const TArray<TPair<FName, uint8>>& OldNames;
 
-	FArchiveEnumeratorResolver(const UEnum* InEnum, const TArray<TPair<FName, int8>>& InOldNames)
+	FArchiveEnumeratorResolver(const UEnum* InEnum, const TArray<TPair<FName, uint8>>& InOldNames)
 		: FArchiveUObject(), Enum(InEnum), OldNames(InOldNames)
 	{
 	}
@@ -207,7 +207,7 @@ void FEnumEditorUtils::PrepareForChange(const UUserDefinedEnum* Enum)
 	FEnumEditorManager::Get().PreChange(Enum, EEnumEditorChangeInfo::Changed);
 }
 
-void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int8>>& OldNames, bool bResolveData)
+void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, uint8>>& OldNames, bool bResolveData)
 {
 	check(NULL != Enum);
 	if (bResolveData)
@@ -351,7 +351,7 @@ bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 En
 			PrepareForChange(Enum);
 			Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *NewDisplayName, EnumeratorIndex);
 			EnsureAllDisplayNamesExist(Enum);
-			BroadcastChanges(Enum, TArray<TPair<FName, int8>>(), false);
+			BroadcastChanges(Enum, TArray<TPair<FName, uint8>>(), false);
 			return true;
 		}
 	}
