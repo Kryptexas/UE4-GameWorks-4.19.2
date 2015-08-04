@@ -70,16 +70,21 @@ void FSubMovieSceneTrackInstance::Update( float Position, float LastPosition, co
 	{
 		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( TraversedSections[SectionIndex] );
 
-		TSharedPtr<FMovieSceneSequenceInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
+		TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef( Section );
 
-		TRange<float> TimeRange = Instance->GetMovieSceneTimeRange();
+		FMovieSceneSequenceInstance* InstancePtr = Instance.Get();
 
-		// Position for the movie scene needs to be in local space
-		float LocalDelta = TimeRange.GetLowerBoundValue() - Section->GetStartTime();
-		float LocalPosition = Position + LocalDelta;
+		if( InstancePtr )
+		{
+			TRange<float> TimeRange = InstancePtr->GetMovieSceneTimeRange();
+
+			// Position for the movie scene needs to be in local space
+			float LocalDelta = TimeRange.GetLowerBoundValue() - Section->GetStartTime();
+			float LocalPosition = Position + LocalDelta;
 
 
-		Instance->Update( LocalPosition, LastPosition + LocalDelta, Player );
+			InstancePtr->Update(LocalPosition, LastPosition + LocalDelta, Player);
+		}
 	}
 
 }

@@ -20,6 +20,8 @@ FGuid UMovieSceneShotSection::GetCameraGuid() const
 
 void UMovieSceneShotSection::SetShotNameAndNumber(const FText& InDisplayName, int32 InShotNumber)
 {
+	Modify();
+
 	DisplayName = InDisplayName;
 	ShotNumber = InShotNumber;
 }

@@ -64,16 +64,16 @@ TRange<float> GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FTrac
 	const TArray< TSharedRef<ISequencerSection> >& Sections = SequencerNode->GetSections();
 	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
-		const UMovieSceneSection* InSection = Sections[SectionIndex]->GetSectionObject();
-		if (Section != InSection && Section->GetRowIndex() == InSection->GetRowIndex())
+		const UMovieSceneSection* TestSection = Sections[SectionIndex]->GetSectionObject();
+		if (Section != TestSection && Section->GetRowIndex() == TestSection->GetRowIndex())
 		{
-			if (InSection->GetEndTime() <= Section->GetStartTime() && InSection->GetEndTime() > LowerBound)
+			if (TestSection->GetEndTime() <= Section->GetStartTime() && TestSection->GetEndTime() > LowerBound)
 			{
-				LowerBound = InSection->GetEndTime();
+				LowerBound = TestSection->GetEndTime();
 			}
-			if (InSection->GetStartTime() >= Section->GetEndTime() && InSection->GetStartTime() < UpperBound)
+			if (TestSection->GetStartTime() >= Section->GetEndTime() && TestSection->GetStartTime() < UpperBound)
 			{
-				UpperBound = InSection->GetStartTime();
+				UpperBound = TestSection->GetStartTime();
 			}
 		}
 	}
@@ -97,7 +97,7 @@ void GetSectionSnapTimes(TArray<float>& OutSnapTimes, UMovieSceneSection* Sectio
 		}
 	}
 
-	// snap to director track if it exists, and we are not the director track
+	// snap to shots if it exists, and we are not the director track
 	UMovieSceneTrack* OuterTrack = Cast<UMovieSceneTrack>(Section->GetOuter());
 	UMovieScene* MovieScene = Cast<UMovieScene>(OuterTrack->GetOuter());
 	UMovieSceneTrack* ShotTrack = MovieScene->FindMasterTrack(UMovieSceneShotTrack::StaticClass());
@@ -261,7 +261,7 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 		{
 			// Dragging the end of a section
 			// Ensure we aren't shrinking past the start time
-			NewTime = FMath::Clamp( NewTime, Section->GetStartTime(), SectionBoundaries.GetUpperBoundValue() );
+			NewTime = FMath::Max( NewTime, Section->GetStartTime() );
 
 			if (bIsDilating)
 			{
@@ -278,8 +278,8 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 		{
 			// Dragging the start of a section
 			// Ensure we arent expanding past the end time
-			NewTime = FMath::Clamp( NewTime, SectionBoundaries.GetLowerBoundValue(), Section->GetEndTime() );
-			
+			NewTime = FMath::Min( NewTime, Section->GetEndTime() );
+
 			if (bIsDilating)
 			{
 				float NewSize = Section->GetEndTime() - NewTime;
@@ -290,6 +290,13 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 			{
 				Section->SetStartTime( NewTime );
 			}
+		}
+
+		UMovieSceneTrack* OuterTrack = Section->GetTypedOuter<UMovieSceneTrack>();
+		if (OuterTrack)
+		{
+			OuterTrack->Modify();
+			OuterTrack->OnSectionMoved(*Section);
 		}
 	}
 }

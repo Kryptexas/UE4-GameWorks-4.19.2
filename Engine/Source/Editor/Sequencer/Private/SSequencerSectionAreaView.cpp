@@ -31,6 +31,9 @@ namespace SequencerSectionUtils
 	FGeometry GetSectionGeometry( const FGeometry& AllottedGeometry, int32 RowIndex, int32 MaxTracks, float NodeHeight, TSharedPtr<ISequencerSection> SectionInterface, const FTimeToPixel& TimeToPixelConverter )
 	{
 		const UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+		float PixelStartX = TimeToPixelConverter.TimeToPixel( Section->GetStartTime() );
+		// Note the -1 pixel at the end is because the section does not actually end at the end time if there is a section starting at that same time.  It is more important that a section lines up correctly with it's true start time
+		float PixelEndX = TimeToPixelConverter.TimeToPixel( Section->GetEndTime() );
 
 		float StartX, EndX = 0;
 
@@ -47,14 +50,22 @@ namespace SequencerSectionUtils
 		}
 
 		// Actual section length without grips.
-		float SectionLengthActual = EndX-StartX;
+		float SectionLengthActual = FMath::Max(1.0f,PixelEndX-PixelStartX);
 
-		float SectionLengthWithGrips = SectionLengthActual+SequencerSectionConstants::SectionGripSize*2;
+		float SectionLengthWithGrips = SectionLengthActual;
+		float ExtentSize = 0;
+		if( !SectionInterface->AreSectionsConnected() )
+		{
+			// Extend the section to include areas for the grips
+			ExtentSize = SectionInterface->GetSectionGripSize();
+			// Connected sections do not display grips outside of their section area
+			SectionLengthWithGrips += (ExtentSize*2);
+		}
 
 		float ActualHeight = NodeHeight / MaxTracks;
 
 		// Compute allotted geometry area that can be used to draw the section
-		return AllottedGeometry.MakeChild( FVector2D( StartX-SequencerSectionConstants::SectionGripSize, ActualHeight * RowIndex ), FVector2D( SectionLengthWithGrips, ActualHeight ) );
+		return AllottedGeometry.MakeChild( FVector2D( PixelStartX-ExtentSize, ActualHeight * RowIndex ), FVector2D( SectionLengthWithGrips, ActualHeight ) );
 	}
 
 }
@@ -92,7 +103,7 @@ void SSequencerSectionAreaView::GenerateSectionWidgets()
 
 	if( SectionAreaNode.IsValid() )
 	{
-		const TArray< TSharedRef<ISequencerSection> >& Sections = SectionAreaNode->GetSections();
+		TArray< TSharedRef<ISequencerSection> >& Sections = SectionAreaNode->GetSections();
 
 		for ( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
 		{

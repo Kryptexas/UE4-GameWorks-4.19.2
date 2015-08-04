@@ -24,20 +24,22 @@ public:
 
 	/** 
 	 * Adds a new shot at the specified time
-	 *
-	 * @param CameraHandle		Handle to the camera that the shot switches to when active
-	 * @param ShotMovieScene	MovieScene for the shot (each shot has a unique movie scene containing per tracks only active during the shot)
-	 * @param TimeRange		The range within this track's movie scene where the shot is initially placed
-	 * @param ShotName		The display name of the shot
-	 * @param ShotNumber		The number of the shot.  This is used to assist with auto-generated shot names when new shots are added
+	 *	
+	 * @param CameraHandle				Handle to the camera that the shot switches to when active
+	 * @param ShotMovieSceneSequence	MovieScene for the shot (each shot has a unique movie scene containing per tracks only active during the shot)
+	 * @param TimeRange					The range within this track's movie scene where the shot is initially placed
+	 * @param ShotName					The display name of the shot
+	 * @param ShotNumber				The number of the shot.  This is used to assist with auto-generated shot names when new shots are added
 	 */
-	MOVIESCENETRACKS_API void AddNewShot(FGuid CameraHandle, UMovieSceneSequence& ShotMovieSceneAnimation, const TRange<float>& TimeRange, const FText& ShotName, int32 ShotNumber );
+	MOVIESCENETRACKS_API void AddNewShot(FGuid CameraHandle, UMovieSceneSequence& ShotMovieSceneSequence, float Time, const FText& ShotName, int32 ShotNumber );
 
 #if WITH_EDITOR
 	virtual void OnSectionMoved( UMovieSceneSection& Section ) override;
 #endif
 
 private:
+	float FindEndTimeForShot( float StartTime );
+	void FixupSurroundingShots( UMovieSceneSection& Section, bool bDelete );
 	/** Sorts shots according to their start time */
 	void SortShots();
 };

@@ -21,12 +21,16 @@
 #include "AssetToolsModule.h"
 #include "SInlineEditableTextBlock.h"
 
-namespace AnimatableShotToolConstants
+
+namespace ShotTrackConstants
 {
 	// @todo Sequencer Perhaps allow this to be customizable
-	const uint32 TrackHeight = 90;
+	const uint32 ThumbnailHeight = 90;
+	const uint32 TrackHeight = ThumbnailHeight+10; // some extra padding
 	const uint32 TrackWidth = 90;
 	const double ThumbnailFadeInDuration = 0.25f;
+	const float SectionGripSize = 4.0f;
+	const FName ShotTrackGripBrushName = FName("Sequencer.ShotTrack.SectionHandle");
 
 }
 
@@ -88,6 +92,9 @@ void FShotThumbnailPool::DrawThumbnails()
 		
 		if( ThumbnailsDrawn > 0 )
 		{
+			// Ensure all buffers are updated
+			FlushRenderingCommands();
+
 			// restore the global time
 			Sequencer.Pin()->SetGlobalTime(SavedTime);
 		}
@@ -99,13 +106,14 @@ void FShotThumbnailPool::DrawThumbnails()
 /////////////////////////////////////////////////
 // FShotThumbnail
 
-FShotThumbnail::FShotThumbnail(TSharedPtr<FShotSection> InSection, TRange<float> InTimeRange)
+FShotThumbnail::FShotThumbnail(TSharedPtr<FShotSection> InSection, const FIntPoint& InSize, TRange<float> InTimeRange)
 	: OwningSection(InSection)
+	, Size(InSize)
 	, Texture(NULL)
 	, TimeRange(InTimeRange)
-	, FadeInCurve( 0.0f, AnimatableShotToolConstants::ThumbnailFadeInDuration )
+	, FadeInCurve( 0.0f, ShotTrackConstants::ThumbnailFadeInDuration )
 {
-	Texture = new FSlateTexture2DRHIRef(GetSize().X, GetSize().Y, PF_B8G8R8A8, NULL, TexCreate_Dynamic, true);
+	Texture = new FSlateTexture2DRHIRef(GetSize().X, GetSize().Y, PF_B8G8R8A8, nullptr, TexCreate_Dynamic, true);
 
 	BeginInitResource( Texture );
 
@@ -123,8 +131,14 @@ FShotThumbnail::~FShotThumbnail()
 	}
 }
 
-FIntPoint FShotThumbnail::GetSize() const {return FIntPoint(OwningSection.Pin()->GetThumbnailWidth(), AnimatableShotToolConstants::TrackHeight);}
-bool FShotThumbnail::RequiresVsync() const {return false;}
+FIntPoint FShotThumbnail::GetSize() const
+{
+	return Size;
+}
+bool FShotThumbnail::RequiresVsync() const 
+{
+	return false;
+}
 
 FSlateShaderResource* FShotThumbnail::GetViewportRenderTargetTexture() const
 {
@@ -193,11 +207,11 @@ FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShot
 		InternalViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Game);
 		InternalViewportClient->EngineShowFlags.DisableAdvancedFeatures();
 		InternalViewportClient->SetActorLock(Camera.Get());
+		InternalViewportClient->SetAllowCinematicPreview( false );
+		InternalViewportClient->SetRealtime( false );
 
 		InternalViewportScene = MakeShareable(new FSceneViewport(InternalViewportClient.Get(), nullptr));
 		InternalViewportClient->Viewport = InternalViewportScene.Get();
-
-		CalculateThumbnailWidthAndResize();
 	}
 
 	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
@@ -205,11 +219,14 @@ FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShot
 
 FShotSection::~FShotSection()
 {
-	ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
-
-	if (InternalViewportClient.IsValid())
+	if( ThumbnailPool.IsValid() )
 	{
-		InternalViewportClient->Viewport = nullptr;
+		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
+
+		if(InternalViewportClient.IsValid())
+		{
+			InternalViewportClient->Viewport = nullptr;
+		}
 	}
 }
 
@@ -241,7 +258,22 @@ FText FShotSection::GetSectionTitle() const
 
 float FShotSection::GetSectionHeight() const
 {
-	return AnimatableShotToolConstants::TrackHeight+10;
+	return ShotTrackConstants::TrackHeight;
+}
+
+float FShotSection::GetSectionGripSize() const
+{
+	return ShotTrackConstants::SectionGripSize;
+}
+
+FName FShotSection::GetSectionGripLeftBrushName() const
+{
+	return ShotTrackConstants::ShotTrackGripBrushName;
+}
+
+FName FShotSection::GetSectionGripRightBrushName() const
+{
+	return ShotTrackConstants::ShotTrackGripBrushName;
 }
 
 FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent )
@@ -276,22 +308,24 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 {
 	if (Camera.IsValid())
 	{
+		FGeometry ThumbnailAreaGeometry = AllottedGeometry.MakeChild( FVector2D(GetSectionGripSize(), 0.0f), AllottedGeometry.GetDrawSize() - FVector2D( GetSectionGripSize()*2, 0.0f ) );
+
 		FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId,
-				AllottedGeometry.ToPaintGeometry(),
-				WhiteBrush,
-				SectionClippingRect,
-				ESlateDrawEffect::None,
-				FLinearColor::Black
+				ThumbnailAreaGeometry.ToPaintGeometry(),
+				FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
+				SectionClippingRect
 			);
+
+		// @todo Sequencer: Need a way to visualize the key here
 
 		int32 ThumbnailIndex = 0;
 		for( const TSharedPtr<FShotThumbnail>& Thumbnail : Thumbnails )
 		{
-			FGeometry TruncatedGeometry = AllottedGeometry.MakeChild(
+			FGeometry TruncatedGeometry = ThumbnailAreaGeometry.MakeChild(
 				Thumbnail->GetSize(),
-				FSlateLayoutTransform(AllottedGeometry.Scale, FVector2D(ThumbnailIndex * ThumbnailWidth, 5.0f))
+				FSlateLayoutTransform(ThumbnailAreaGeometry.Scale, FVector2D( ThumbnailIndex * ThumbnailWidth, 5.f))
 				);
 			
 			FSlateDrawElement::MakeViewport(
@@ -310,12 +344,12 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 			{
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
-					LayerId + 1,
+					LayerId+1,
 					TruncatedGeometry.ToPaintGeometry(),
 					WhiteBrush,
 					SectionClippingRect,
 					ESlateDrawEffect::None,
-					FColor(255, 255, 255, Thumbnail->GetFadeInCurve() * 255)
+					FLinearColor(1.0f, 1.0f, 1.0f, Thumbnail->GetFadeInCurve())
 					);
 			}
 
@@ -333,13 +367,14 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 		); 
 	}
 
-	return LayerId + 1;
+	return LayerId + 2;
 }
 
 void FShotSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (!Camera.IsValid())
 	{
+		// @todo Sequencer: This is called too often and is expensive
 		Camera = UpdateCameraObject();
 	}
 
@@ -350,7 +385,9 @@ void FShotSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Par
 		TimeToPixelConverter.PixelToTime(-AllottedGeometry.Position.X),
 		TimeToPixelConverter.PixelToTime(-AllottedGeometry.Position.X + ParentGeometry.Size.X));
 
-	FIntPoint AllocatedSize = AllottedGeometry.Size.IntPoint();
+	FIntPoint AllocatedSize = AllottedGeometry.MakeChild( FVector2D( GetSectionGripSize(), 0.0f ), FVector2D( AllottedGeometry.Size.X - (GetSectionGripSize()*2), AllottedGeometry.Size.Y) ).Size.IntPoint();
+	AllocatedSize.X = FMath::Max(AllocatedSize.X, 1);
+
 	float StartTime = Section->GetStartTime();
 
 	if (!FSlateApplication::Get().HasAnyMouseCaptor() && ( AllocatedSize.X != StoredSize.X || !FMath::IsNearlyEqual(StartTime, StoredStartTime) ) )
@@ -369,79 +406,66 @@ void FShotSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 	StoredSize = Size;
 	StoredStartTime = Section->GetStartTime();
 	
-	ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
-	Thumbnails.Empty();
-
-	if (Size.X == 0 || Size.Y == 0)
+	if( Camera.IsValid() )
 	{
-		return;
+		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
+		Thumbnails.Empty();
+
+		if(Size.X == 0 || Size.Y == 0)
+		{
+			return;
+		}
+
+		float AspectRatio = Camera->CameraComponent->AspectRatio;
+
+		int32 NewThumbnailWidth = FMath::TruncToInt(ShotTrackConstants::TrackWidth*AspectRatio);
+
+		int32 ThumbnailCount = FMath::DivideAndRoundUp(StoredSize.X, NewThumbnailWidth);
+
+		if(NewThumbnailWidth != ThumbnailWidth)
+		{
+			ThumbnailWidth = NewThumbnailWidth;
+			InternalViewportScene->UpdateViewportRHI(false, ThumbnailWidth, ShotTrackConstants::ThumbnailHeight, EWindowMode::Windowed);
+		}
+
+		float StartTime = Section->GetStartTime();
+		float EndTime = Section->GetEndTime();
+		float DeltaTime = EndTime - StartTime;
+
+		int32 TotalX = StoredSize.X;
+
+		// @todo sequencer optimize this to use a single viewport and a single thumbnail
+		// instead paste the textures into the thumbnail at specific offsets
+		for(int32 ThumbnailIndex = 0; ThumbnailIndex < ThumbnailCount; ++ThumbnailIndex)
+		{
+			int32 StartX = ThumbnailIndex * ThumbnailWidth;
+			float FractionThrough = (float)StartX / (float)TotalX;
+			float Time = StartTime + DeltaTime * FractionThrough;
+
+			int32 NextStartX = (ThumbnailIndex+1) * ThumbnailWidth;
+			float NextFractionThrough = (float)NextStartX / (float)TotalX;
+			float NextTime = FMath::Min(StartTime + DeltaTime * NextFractionThrough, EndTime);
+
+			FIntPoint ThumbnailSize(NextStartX-StartX, ShotTrackConstants::ThumbnailHeight);
+
+			check(FractionThrough >= 0.f && FractionThrough <= 1.f && NextFractionThrough >= 0.f);
+			TSharedPtr<FShotThumbnail> NewThumbnail = MakeShareable(new FShotThumbnail(SharedThis(this), ThumbnailSize, TRange<float>(Time, NextTime)));
+
+			Thumbnails.Add(NewThumbnail);
+		}
+
+		// @todo Sequencer Optimize Only say a thumbnail needs redraw if it is onscreen
+		ThumbnailPool.Pin()->AddThumbnailsNeedingRedraw(Thumbnails);
 	}
-
-	CalculateThumbnailWidthAndResize();
-
-	int32 ThumbnailCount = FMath::DivideAndRoundUp(StoredSize.X, (int32)ThumbnailWidth);
-	
-	float StartTime = Section->GetStartTime();
-	float EndTime = Section->GetEndTime();
-	float DeltaTime = EndTime - StartTime;
-
-	int32 TotalX = StoredSize.X;
-	
-	// @todo sequencer optimize this to use a single viewport and a single thumbnail
-	// instead paste the textures into the thumbnail at specific offsets
-	for (int32 i = 0; i < ThumbnailCount; ++i)
-	{
-		int32 StartX = i * ThumbnailWidth;
-		float FractionThrough = (float)StartX / (float)TotalX;
-		float Time = StartTime + DeltaTime * FractionThrough;
-
-		int32 NextStartX = (i+1) * ThumbnailWidth;
-		float NextFractionThrough = (float)NextStartX / (float)TotalX;
-		float NextTime = FMath::Min(StartTime + DeltaTime * NextFractionThrough, EndTime);
-	
-		check(FractionThrough >= 0.f && FractionThrough <= 1.f && NextFractionThrough >= 0.f);
-		TSharedPtr<FShotThumbnail> NewThumbnail = MakeShareable(new FShotThumbnail(SharedThis(this), TRange<float>(Time, NextTime)));
-
-		Thumbnails.Add(NewThumbnail);
-	}
-
-	// @todo Sequencer Optimize Only say a thumbnail needs redraw if it is onscreen
-	ThumbnailPool.Pin()->AddThumbnailsNeedingRedraw(Thumbnails);
 }
 
 void FShotSection::DrawViewportThumbnail(TSharedPtr<FShotThumbnail> ShotThumbnail)
 {
 	Sequencer.Pin()->SetGlobalTime(ShotThumbnail->GetTime());
 	InternalViewportClient->UpdateViewForLockedActor();
-			
 	GWorld->SendAllEndOfFrameUpdates();
 	InternalViewportScene->Draw(false);
 	ShotThumbnail->CopyTextureIn((FSlateRenderTargetRHI*)InternalViewportScene->GetViewportRenderTargetTexture());
-
-	FlushRenderingCommands();
-}
-
-void FShotSection::CalculateThumbnailWidthAndResize()
-{
-	// @todo Sequencer We also should detect when the property is changed or keyframed to update
-
-	// get the aspect ratio at the first frame
-	// if it changes over time, we ignore this
-	Sequencer.Pin()->SetPerspectiveViewportPossessionEnabled(false);
-	float SavedTime = Sequencer.Pin()->GetGlobalTime();
-	
-	Sequencer.Pin()->SetGlobalTime(Section->GetStartTime());
-	uint32 OutThumbnailWidth = AnimatableShotToolConstants::TrackWidth * Camera->GetCameraComponent()->AspectRatio;
-
-	// restore the global time
-	Sequencer.Pin()->SetGlobalTime(SavedTime);
-	Sequencer.Pin()->SetPerspectiveViewportPossessionEnabled(true);
-
-	if (OutThumbnailWidth != ThumbnailWidth)
-	{
-		ThumbnailWidth = OutThumbnailWidth;
-		InternalViewportScene->UpdateViewportRHI( false, ThumbnailWidth, AnimatableShotToolConstants::TrackHeight, EWindowMode::Windowed );
-	}
 }
 
 ACameraActor* FShotSection::UpdateCameraObject() const
@@ -468,7 +492,6 @@ void FShotSection::OnRenameShot( const FText& NewShotName, ETextCommit::Type Com
 {
 	if (CommitType == ETextCommit::OnEnter && !GetShotName().EqualTo( NewShotName ) )
 	{
-		Section->Modify();
 		Section->SetShotNameAndNumber( NewShotName, Section->GetShotNumber() );
 
 		UMovieSceneSequence* ShotMovieSceneAnim = Section->GetMovieSceneAnimation();
@@ -602,33 +625,8 @@ void FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 
 	UObject* NewAsset = AssetToolsModule.Get().CreateAsset( AssetName, PackagePath, AssetClass, Factory );
 	
-	float EndTime = KeyTime;
-	if( AllSections.IsValidIndex( SectionIndex + 1 ) )
-	{
-		// The new section ends where the next section begins
-		EndTime = AllSections[SectionIndex+1]->GetStartTime();
-	}
-	else
-	{
-		// There is no section after this one so the new section should be the length of the movie scene
-		EndTime = MovieScene->GetTimeRange().GetUpperBoundValue();
-	}
 
-
-	if (AllSections.IsValidIndex(SectionIndex - 1))
-	{
-		// Shift the previous shot's end time so that it ends when the new shot starts
-		AllSections[SectionIndex - 1]->SetEndTime(KeyTime);
-	}
-
-	if (AllSections.IsValidIndex(SectionIndex + 1))
-	{
-		// Shift the next shot's start time so that it starts when the new shot ends
-		AllSections[SectionIndex + 1]->SetStartTime(EndTime);
-	}
-
-	TRange<float> TimeRange( KeyTime, EndTime );
-	ShotTrack->AddNewShot( ObjectGuid, *CastChecked<UMovieSceneSequence>( NewAsset ), TimeRange, FText::FromString( ShotName ), ShotNumber );
+	ShotTrack->AddNewShot( ObjectGuid, *CastChecked<UMovieSceneSequence>( NewAsset ), KeyTime, FText::FromString( ShotName ), ShotNumber );
 }
 
 int32 FShotTrackEditor::GenerateShotNumber( UMovieSceneShotTrack& ShotTrack, int32 SectionIndex ) const
@@ -688,6 +686,7 @@ int32 FShotTrackEditor::GenerateShotNumber( UMovieSceneShotTrack& ShotTrack, int
 
 int32 FShotTrackEditor::FindIndexForNewShot( const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime ) const
 {
+	// @todo Sequencer: This could be a binary search. All shots should be sorted 
 	int32 SectionIndex = 0;
 	for (SectionIndex = 0; SectionIndex < ShotSections.Num() && ShotSections[SectionIndex]->GetStartTime() < NewShotTime; ++SectionIndex);
 

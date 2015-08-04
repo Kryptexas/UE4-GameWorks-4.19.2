@@ -86,7 +86,7 @@ private:
 class FShotThumbnail : public ISlateViewport, public TSharedFromThis<FShotThumbnail>
 {
 public:
-	FShotThumbnail(TSharedPtr<class FShotSection> InSection, TRange<float> InTimeRange);
+	FShotThumbnail(TSharedPtr<class FShotSection> InSection, const FIntPoint& InSize, TRange<float> InTimeRange);
 	~FShotThumbnail();
 
 	/* ISlateViewport interface */
@@ -115,6 +115,8 @@ private:
 	/** Parent shot section we are a thumbnail of */
 	TWeakPtr<class FShotSection> OwningSection;
 	
+	FIntPoint Size;
+
 	/** The Texture RHI that holds the thumbnail */
 	class FSlateTexture2DRHIRef* Texture;
 
@@ -143,6 +145,10 @@ public:
 	virtual FText GetDisplayName() const override { return NSLOCTEXT("FShotSection", "", "Shots"); }
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
+	virtual float GetSectionGripSize() const override;
+	virtual FName GetSectionGripLeftBrushName() const override;
+	virtual FName GetSectionGripRightBrushName() const override;
+	virtual bool AreSectionsConnected() const override { return true; }
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) override;
@@ -159,17 +165,17 @@ public:
 	/** Draws the passed in viewport thumbnail and copies it to the thumbnail's texture */
 	void DrawViewportThumbnail(TSharedPtr<FShotThumbnail> ShotThumbnail);
 
-	/** Calculates and sets the thumbnail width, and resizes if it is different than before */
-	void CalculateThumbnailWidthAndResize();
-
 	/** Gets the time range of what in the sequencer is visible */
 	TRange<float> GetVisibleTimeRange() const {return VisibleTimeRange;}
 
 	/** @return The sequencer widget owning the shot section */
 	TSharedRef<SWidget> GetSequencerWidget() { return Sequencer.Pin()->GetSequencerWidget(); }
 private:
+
 	ACameraActor* UpdateCameraObject() const;
+
 	FText GetShotName() const;
+
 	void OnRenameShot( const FText& NewShotName, ETextCommit::Type CommitType );
 private:
 	/** The section we are visualizing */

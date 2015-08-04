@@ -65,7 +65,12 @@ FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const F
 		// Is the key area under the mouse
 		if( KeyAreaGeometryPadded.IsUnderLocation( MousePosition ) )
 		{
-			FGeometry SectionGeometry = AllottedGeometry.MakeChild(FVector2D(SequencerSectionConstants::SectionGripSize, 0), AllottedGeometry.GetDrawSize() - FVector2D(SequencerSectionConstants::SectionGripSize*2, 0.0f));
+			// Do not display section handles for connected sections
+			const bool bDisplaySectionHandles = SectionInterface->AreSectionsConnected();
+
+			const float SectionGripSize = bDisplaySectionHandles ? SectionInterface->GetSectionGripSize() : 0.0f;
+
+			FGeometry SectionGeometry = AllottedGeometry.MakeChild(FVector2D(SectionGripSize, 0), AllottedGeometry.GetDrawSize() - FVector2D(SectionGripSize*2, 0.0f));
 			FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, SectionGeometry );
 
 			FVector2D LocalSpaceMousePosition = KeyAreaGeometry.AbsoluteToLocal( MousePosition );
@@ -117,11 +122,11 @@ void SSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent, const F
 	// Make areas to the left and right of the geometry.  We will use these areas to determine if someone dragged the left or right edge of a section
 	FGeometry SectionRectLeft = SectionGeometry.MakeChild(
 		FVector2D::ZeroVector,
-		FVector2D( SequencerSectionConstants::SectionGripSize, SectionGeometry.Size.Y )
+		FVector2D( SectionInterface->GetSectionGripSize(), SectionGeometry.Size.Y )
 		);
 
 	FGeometry SectionRectRight = SectionGeometry.MakeChild(
-		FVector2D( SectionGeometry.Size.X - SequencerSectionConstants::SectionGripSize, 0 ), 
+		FVector2D( SectionGeometry.Size.X - SectionInterface->GetSectionGripSize(), 0 ), 
 		SectionGeometry.Size 
 		);
 
@@ -162,14 +167,16 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 {
 	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
-	FGeometry SectionGeometry = AllottedGeometry.MakeChild( FVector2D( SequencerSectionConstants::SectionGripSize, 0 ), AllottedGeometry.GetDrawSize() - FVector2D( SequencerSectionConstants::SectionGripSize*2, 0.0f ) );
+	FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
 
 	FSlateRect SectionClipRect = SectionGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
 
 	// Ask the interface to draw the section
 	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bParentEnabled );
-	
-	DrawSectionBorders(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer );
+
+	const bool bDisplaySectionHandles = true;
+
+	DrawSectionHandlesAndSelection(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, bDisplaySectionHandles );
 
 	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle );
 
@@ -321,7 +328,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 	}
 }
 
-void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles ) const
 {
 	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
 
@@ -329,39 +336,41 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 	const bool bSelected = Selection.IsSelected(SectionObject);
 	const bool bActive = Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
 
-	static const FName SelectionColorName("SelectionColor");
-	static const FName SelectionInactiveColorName("SelectionColorInactive");
-
-	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor(FWidgetStyle());
-	FLinearColor SelectionInactiveColor = FEditorStyle::GetSlateColor(SelectionInactiveColorName).GetColor(FWidgetStyle());
+	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
+	FLinearColor SelectionInactiveColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionInactiveColorName).GetColor(FWidgetStyle());
 	FLinearColor TransparentSelectionColor = SelectionColor;
 
-	static const FName SectionGripLeftName("Sequencer.SectionGripLeft");
-	static const FName SectionGripRightName("Sequencer.SectionGripRight");
+	if( bDisplaySectionHandles )
+	{
+		const FSlateBrush* LeftGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripLeftBrushName());
+		const FSlateBrush* RightGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripRightBrushName());
 
-	// Left Grip
-	FSlateDrawElement::MakeBox(
-		OutDrawElements,
-		LayerId,
-		// Center the key along Y.  Ensure the middle of the key is at the actual key time
-		AllottedGeometry.ToPaintGeometry( FVector2D( 0.0f, 0.0f ), FVector2D( SequencerSectionConstants::SectionGripSize, AllottedGeometry.GetDrawSize().Y) ) ,
-		FEditorStyle::GetBrush(SectionGripLeftName),
-		MyClippingRect,
-		ESlateDrawEffect::None,
-		(bLeftEdgePressed || bLeftEdgeHovered) ? TransparentSelectionColor : FLinearColor::White
-	);
-
-	// Right Grip
-	FSlateDrawElement::MakeBox(
-		OutDrawElements,
-		LayerId,
-		// Center the key along Y.  Ensure the middle of the key is at the actual key time
-		AllottedGeometry.ToPaintGeometry( FVector2D( AllottedGeometry.Size.X-SequencerSectionConstants::SectionGripSize, 0.0f), FVector2D(SequencerSectionConstants::SectionGripSize, AllottedGeometry.GetDrawSize().Y)),
-		FEditorStyle::GetBrush(SectionGripRightName),
-		MyClippingRect,
-		ESlateDrawEffect::None,
-		(bRightEdgePressed || bRightEdgeHovered) ? TransparentSelectionColor : FLinearColor::White
+		// Left Grip
+		FSlateDrawElement::MakeBox
+		(
+			OutDrawElements,
+			LayerId,
+			// Center the key along Y.  Ensure the middle of the key is at the actual key time
+			AllottedGeometry.ToPaintGeometry(FVector2D(0.0f, 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
+			LeftGripBrush,
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			(bLeftEdgePressed || bLeftEdgeHovered) ? TransparentSelectionColor : LeftGripBrush->GetTint(FWidgetStyle())
 		);
+		
+		// Right Grip
+		FSlateDrawElement::MakeBox
+		(
+			OutDrawElements,
+			LayerId,
+			// Center the key along Y.  Ensure the middle of the key is at the actual key time
+			AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.Size.X-SectionInterface->GetSectionGripSize(), 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
+			RightGripBrush,
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			(bRightEdgePressed || bRightEdgeHovered) ? TransparentSelectionColor : RightGripBrush->GetTint(FWidgetStyle())
+		);
+	}
 
 
 	// draw selection box
@@ -429,7 +438,9 @@ void SSection::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 		{
 			Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
 		}
-		SectionInterface->Tick(AllottedGeometry, ParentGeometry, InCurrentTime, InDeltaTime);
+		FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
+
+		SectionInterface->Tick(SectionGeometry, ParentGeometry, InCurrentTime, InDeltaTime);
 	}
 }
 
@@ -475,6 +486,15 @@ void SSection::ResetHoveredState()
 	HoveredKey = FSelectedKey();
 
 	GetSequencer().GetEditTool().SetHotspot(nullptr);
+}
+
+FGeometry SSection::MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& SectionInterface ) const
+{
+	const bool bSectionsAreConnected = SectionInterface->AreSectionsConnected();
+
+	const float SectionGripSize = !bSectionsAreConnected ? SectionInterface->GetSectionGripSize() : 0.0f;
+
+	return AllottedGeometry.MakeChild( FVector2D( SectionGripSize, 0 ), AllottedGeometry.GetDrawSize() - FVector2D( SectionGripSize*2, 0.0f ) );
 }
 
 FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -635,6 +655,7 @@ void SSection::HandleSectionSelection( const FPointerEvent& MouseEvent, bool bSe
 {
 	// handle selecting sections 
 	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+
 	bool bSectionIsSelected = GetSequencer().GetSelection().IsSelected(Section);
 
 	// Clear previous section selection if:
@@ -657,6 +678,15 @@ void SSection::HandleSectionSelection( const FPointerEvent& MouseEvent, bool bSe
 		{
 			GetSequencer().GetSelection().EmptySelectedSections();
 		}
+	}
+	
+	if( GetSequencer().GetSelection().IsSelected(Section) )
+	{
+		// Control should toggle the selection
+		GetSequencer().GetSelection().RemoveFromSelection(Section);
+	}
+	else
+	{
 		GetSequencer().GetSelection().AddToSelection(Section);
 	}
 }

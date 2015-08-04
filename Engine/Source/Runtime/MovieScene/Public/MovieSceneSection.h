@@ -33,14 +33,24 @@ public:
 	 * 
 	 * @param InEndTime	The new end time
 	 */
-	void SetStartTime( float NewStartTime ) { StartTime = NewStartTime; }
+	void SetStartTime( float NewStartTime )
+	{ 
+		Modify();
+
+		StartTime = NewStartTime;
+	}
 
 	/**
 	 * Sets a new end time for this section
 	 * 
 	 * @param InEndTime	The new end time
 	 */
-	void SetEndTime( float NewEndTime ) { EndTime = NewEndTime; }
+	void SetEndTime( float NewEndTime )
+	{ 
+		Modify();
+
+		EndTime = NewEndTime;
+	}
 	
 	/**
 	 * @return The range of times of the section

@@ -4,16 +4,6 @@
 
 #include "KeyAreaLayout.h"
 
-namespace SequencerSectionConstants
-{
-	/** How far the user has to drag the mouse before we consider the action dragging rather than a click */
-	const float SectionDragStartDistance = 5.0f;
-
-	/** The size of each key */
-	const FVector2D KeySize(11.0f, 11.0f);
-
-	const float SectionGripSize = 7.0f;
-}
 
 class SSection : public SCompoundWidget
 {
@@ -88,7 +78,7 @@ private:
 	/**
 	 * Draw the borders around each section.  The borders are the areas which can be used to expand or collapse the size of the section.
 	 */
-	void DrawSectionBorders( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
+	void DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles ) const;
 
 	/** Summons a context menu over the associated section */
 	TSharedPtr<SWidget> OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -139,6 +129,12 @@ private:
 	 * Resets the hovered state of elements in the widget (section edges, keys)
 	 */
 	void ResetHoveredState();
+
+	/** 
+	 * Creates geometry for a section without space for the handles
+	 */
+	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& SectionInterface ) const;
+
 private:
 	/** Interface to section data */
 	TSharedPtr<ISequencerSection> SectionInterface;
