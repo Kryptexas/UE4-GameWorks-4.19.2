@@ -2976,19 +2976,21 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 		}
 		else if (PropertyName == NAME_PhysMaterial)
 		{
-			// Only care current world object
-			for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
+			for (TObjectIterator<ALandscapeProxy> It; It; ++It)
 			{
 				ALandscapeProxy* Proxy = *It;
-				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
-				if (Info)
+				if (Proxy->GetWorld() && !Proxy->GetWorld()->IsPlayInEditor())
 				{
-					for (int32 i = 0; i < Info->Layers.Num(); ++i)
+					ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
+					if (Info)
 					{
-						if (Info->Layers[i].LayerInfoObj == this)
+						for (int32 i = 0; i < Info->Layers.Num(); ++i)
 						{
-							Proxy->ChangedPhysMaterial();
-							break;
+							if (Info->Layers[i].LayerInfoObj == this)
+							{
+								Proxy->ChangedPhysMaterial();
+								break;
+							}
 						}
 					}
 				}
