@@ -10,6 +10,17 @@ UGeometryCache::UGeometryCache(const FObjectInitializer& ObjectInitializer /*= F
 	NumVertexAnimationTracks = 0;
 }
 
+void UGeometryCache::PostInitProperties()
+{
+#if WITH_EDITORONLY_DATA
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+#endif
+	Super::PostInitProperties();
+}
+
 void UGeometryCache::Serialize(FArchive& Ar)
 {
 	// Custom serialization

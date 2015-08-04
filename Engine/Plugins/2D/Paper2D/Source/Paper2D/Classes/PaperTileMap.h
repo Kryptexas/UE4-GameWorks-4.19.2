@@ -127,6 +127,7 @@ public:
 public:
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
