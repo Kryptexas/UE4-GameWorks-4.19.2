@@ -28,6 +28,9 @@ public:
 	/** @note: Use with caution - not reliable where the specified point is not on screen */
 	FVector2D VirtualToPhysical(FVector2D InPosition) const;
 
+	/** Get the physical size of the track area */
+	FVector2D GetPhysicalSize() const;
+
 	/** Hit test at the specified physical position for a sequencer node */
 	TSharedPtr<FSequencerDisplayNode> HitTestNode(float InPhysicalPosition) const;
 
@@ -41,4 +44,7 @@ private:
 
 	/** Reference to the sequencer tree */
 	SSequencerTreeView& TreeView;
+
+	/** Cached physical geometry of the track area */
+	FGeometry TrackAreaGeometry;
 };

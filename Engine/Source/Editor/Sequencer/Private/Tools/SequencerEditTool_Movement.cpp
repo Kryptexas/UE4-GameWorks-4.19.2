@@ -32,7 +32,6 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-
 		DelayedDrag = FDelayedDrag_Hotspot(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), EKeys::LeftMouseButton, Hotspot);
 		return FReply::Handled();
 	}
@@ -62,7 +61,7 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 
 			if (DragOperation.IsValid())
 			{
-				DragOperation->OnBeginDrag(DelayedDrag->GetInitialPosition(), VirtualTrackArea);
+				DragOperation->OnBeginDrag(MouseEvent, DelayedDrag->GetInitialPosition(), VirtualTrackArea);
 
 				// Steal the capture, as we're now the authoritative widget in charge of a mouse-drag operation
 				Reply.CaptureMouse(OwnerWidget.AsShared());
@@ -146,7 +145,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 
 	if (DragOperation.IsValid())
 	{
-		DragOperation->OnEndDrag();
+		DragOperation->OnEndDrag(MouseEvent, MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), SequencerWidget.Pin()->GetVirtualTrackArea());
 		DragOperation = nullptr;
 
 		// Only return handled if we actually started a drag
@@ -159,11 +158,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 void FSequencerEditTool_Movement::OnMouseCaptureLost()
 {
 	DelayedDrag.Reset();
-	if (DragOperation.IsValid())
-	{
-		DragOperation->OnEndDrag();
-		DragOperation = nullptr;
-	}
+	DragOperation = nullptr;
 }
 
 FCursorReply FSequencerEditTool_Movement::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const

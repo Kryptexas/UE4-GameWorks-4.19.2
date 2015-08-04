@@ -193,7 +193,7 @@ FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> 
 {
 }
 
-void FResizeSection::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
+void FResizeSection::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	BeginTransaction( Sections, NSLOCTEXT("Sequencer", "DragSectionEdgeTransaction", "Resize section") );
 
@@ -211,14 +211,14 @@ void FResizeSection::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualT
 	}
 }
 
-void FResizeSection::OnEndDrag()
+void FResizeSection::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	EndTransaction();
 
 	DraggedKeyHandles.Empty();
 }
 
-void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea )
+void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	bool bIsDilating = MouseEvent.IsControlDown();
 
@@ -300,7 +300,7 @@ FMoveSection::FMoveSection( FSequencer& InSequencer, TArray<FSectionHandle> InSe
 {
 }
 
-void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
+void FMoveSection::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	BeginTransaction( Sections, NSLOCTEXT("Sequencer", "MoveSectionTransaction", "Move Section") );
 
@@ -314,7 +314,7 @@ void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTra
 	}
 }
 
-void FMoveSection::OnEndDrag()
+void FMoveSection::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	DraggedKeyHandles.Empty();
 
@@ -336,7 +336,7 @@ void FMoveSection::OnEndDrag()
 }
 
 
-void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea )
+void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	float NewMouseDownTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
 	float DistanceMoved =  NewMouseDownTime - MouseDownTime;
@@ -446,7 +446,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 	MouseDownTime = NewMouseDownTime;
 }
 
-void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
+void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	check( SelectedKeys.Num() > 0 )
 
@@ -481,7 +481,7 @@ void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackA
 	}
 }
 
-void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea )
+void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	float MouseTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
 	float DistanceMoved = MouseTime - VirtualTrackArea.PixelToTime(LocalMousePos.X - MouseEvent.GetCursorDelta().X);
@@ -562,7 +562,7 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 	}
 }
 
-void FMoveKeys::OnEndDrag()
+void FMoveKeys::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	EndTransaction();
 	SSection::EnableLayoutRegeneration();

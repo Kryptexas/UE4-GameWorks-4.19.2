@@ -13,25 +13,34 @@ public:
 	/**
 	 * Called to initiate a drag
 	 *
-	 * @param LocalMousePos		The current location of the mouse, relative to the top-left corner of the virtual track area
+	 * @param MouseEvent		The associated mouse event for dragging
+	 * @param LocalMousePos		The current location of the mouse, relative to the top-left corner of the physical track area
 	 * @param VirtualTrackArea	A virtual track area that can be used for pixel->time conversions and hittesting
 	 */
-	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) = 0;
-
-	/** Called when a drag has ended */
-	virtual void OnEndDrag() = 0;
-
-	/** Request the cursor for this drag operation */
-	virtual FCursorReply GetCursor() const { return FCursorReply::Cursor( EMouseCursor::Default ); }
+	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) = 0;
 
 	/**
 	 * Notification called when the mouse moves while dragging
 	 *
 	 * @param MouseEvent		The associated mouse event for dragging
-	 * @param LocalMousePos		The current location of the mouse, relative to the top-left corner of the virtual track area
+	 * @param LocalMousePos		The current location of the mouse, relative to the top-left corner of the physical track area
 	 * @param VirtualTrackArea	A virtual track area that can be used for pixel->time conversions and hittesting
 	 */
-	virtual void OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea ) = 0;
+	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) = 0;
+
+	/** Called when a drag has ended
+	 *
+	 * @param MouseEvent		The associated mouse event for dragging
+	 * @param LocalMousePos		The current location of the mouse, relative to the top-left corner of the physical track area
+	 * @param VirtualTrackArea	A virtual track area that can be used for pixel->time conversions and hittesting
+	 */
+	virtual void OnEndDrag( const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) = 0;
+
+	/** Request the cursor for this drag operation */
+	virtual FCursorReply GetCursor() const { return FCursorReply::Cursor( EMouseCursor::Default ); }
+
+	/** Override to implement drag-specific paint logic */
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const { return LayerId; }
 };
 
 class ISequencerEditTool

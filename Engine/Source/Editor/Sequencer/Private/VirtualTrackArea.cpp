@@ -10,6 +10,7 @@
 FVirtualTrackArea::FVirtualTrackArea(const FSequencer& InSequencer, SSequencerTreeView& InTreeView, const FGeometry& InTrackAreaGeometry)
 	: FTimeToPixel(InTrackAreaGeometry, InSequencer.GetViewRange())
 	, TreeView(InTreeView)
+	, TrackAreaGeometry(InTrackAreaGeometry)
 {
 }
 
@@ -37,6 +38,11 @@ FVector2D FVirtualTrackArea::VirtualToPhysical(FVector2D InPosition) const
 	InPosition.X = TimeToPixel(InPosition.X);
 
 	return InPosition;
+}
+
+FVector2D FVirtualTrackArea::GetPhysicalSize() const
+{
+	return TrackAreaGeometry.Size;
 }
 
 TSharedPtr<FSequencerDisplayNode> FVirtualTrackArea::HitTestNode(float InPhysicalPosition) const

@@ -39,25 +39,27 @@ public:
 	
 private:
 
-	/** Set new bounds for the marquee selection */
-	void SetNewMarqueeBounds(const FPointerEvent& MouseEvent, const FGeometry& Geometry);
-
-	/** Select all the keys contained in the current marquee */
-	void HandleMarqueeSelection(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
-
-private:
-
 	/** The sequencer itself */
 	TWeakPtr<FSequencer> Sequencer;
 
 	/** Sequencer widget */
 	TWeakPtr<SSequencer> SequencerWidget;
 
-	/** Helper class responsible for handling delayed dragging */
-	TOptional<FDelayedDrag> DelayedDrag;
+	struct FDelayedDrag_Hotspot : FDelayedDrag
+	{
+		FDelayedDrag_Hotspot(FVector2D InInitialPosition, FKey InApplicableKey, TSharedPtr<ISequencerHotspot> InHotspot)
+			: FDelayedDrag(InInitialPosition, InApplicableKey)
+			, Hotspot(MoveTemp(InHotspot))
+		{}
 
-	/** Optional marquee selection data, valid when dragging */
-	TUniquePtr<FMarqueeSelectData> MarqueeSelectData;
+		TSharedPtr<ISequencerHotspot> Hotspot;
+	};
+
+	/** Helper class responsible for handling delayed dragging */
+	TOptional<FDelayedDrag_Hotspot> DelayedDrag;
+	
+	/** Current drag operation if any */
+	TSharedPtr<IEditToolDragOperation> DragOperation;
 
 	/** What we are selecting */
 	ESequencerSelectionMode SelectionMode;
