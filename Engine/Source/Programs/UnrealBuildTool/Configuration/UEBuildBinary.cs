@@ -312,7 +312,7 @@ namespace UnrealBuildTool
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Target.Platform).GetDebugInfoExtension(Config.Type);
 			foreach (string OutputFilePath in Config.OutputFilePaths)
 			{
-				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, Receipt);
+				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, Receipt, ToolChain);
 			}
 
 			// Add the console app, if there is one
@@ -320,7 +320,7 @@ namespace UnrealBuildTool
 			{
 				foreach (string OutputFilePath in Config.OutputFilePaths)
 				{
-					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, Receipt);
+					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, Receipt, ToolChain);
 				}
 			}
 
@@ -335,11 +335,11 @@ namespace UnrealBuildTool
 		/// <param name="OutputFile">Build product to add</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
 		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, TargetReceipt Receipt)
+		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, TargetReceipt Receipt, IUEToolChain ToolChain)
 		{
 			Receipt.AddBuildProduct(OutputFile, OutputType);
 
-			if(!String.IsNullOrEmpty(DebugExtension))
+			if(!String.IsNullOrEmpty(DebugExtension) && ToolChain.ShouldAddDebugFileToReceipt(OutputFile, OutputType))
 			{
 				Receipt.AddBuildProduct(Path.ChangeExtension(OutputFile, DebugExtension), BuildProductType.SymbolFile);
 			}
