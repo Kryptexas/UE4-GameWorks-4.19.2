@@ -263,7 +263,6 @@ bool FLocMetadataObject::IsMetadataExactMatch( const FLocMetadataObject* const M
 FString FLocMetadataObject::ToString() const
 {
 	FString MemberList;
-	TMap< FString, TSharedPtr<FLocMetadataValue> > Values;
 	for (const auto Pair : Values)
 	{
 		const FString MemberName = Pair.Key;
