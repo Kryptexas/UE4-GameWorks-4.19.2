@@ -82,9 +82,11 @@ FAssetRegistry::FAssetRegistry()
 	bInitialSearchCompleted = true;
 	AmortizeStartTime = 0;
 	TotalAmortizeTime = 0;
-	
 
 	MaxSecondsPerFrame = 0.015;
+
+	// Registers the configured cooked tags whitelist to prevent non-whitelisted tags from being added to cooked builds
+	SetupCookedTagsWhitelist();
 
 	// Collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
@@ -141,18 +143,96 @@ FAssetRegistry::FAssetRegistry()
 	FPackageName::OnContentPathDismounted().AddRaw( this, &FAssetRegistry::OnContentPathDismounted );
 }
 
+void FAssetRegistry::SetupCookedTagsWhitelist()
+{
+	if (ensure(GConfig))
+	{
+		TArray<FString> WhitelistItems;
+		GConfig->GetArray(TEXT("AssetRegistry"), TEXT("CookedTagsWhitelist"), WhitelistItems, GEngineIni);
+
+		// Takes on the pattern "(Class=SomeClass,Tag=SomeTag)"
+		for (const FString& WhitelistItem : WhitelistItems)
+		{
+			FString TrimmedWhitelistItem = WhitelistItem;
+			TrimmedWhitelistItem.Trim();
+			TrimmedWhitelistItem.TrimTrailing();
+			if (TrimmedWhitelistItem.Left(1) == TEXT("("))
+			{
+				TrimmedWhitelistItem = TrimmedWhitelistItem.RightChop(1);
+			}
+			if (TrimmedWhitelistItem.Right(1) == TEXT(")"))
+			{
+				TrimmedWhitelistItem = TrimmedWhitelistItem.LeftChop(1);
+			}
+
+			TArray<FString> Tokens;
+			TrimmedWhitelistItem.ParseIntoArray(Tokens, TEXT(","));
+			FString ClassName;
+			FString TagName;
+
+			for(const FString& Token : Tokens)
+			{
+				FString KeyString;
+				FString ValueString;
+				if (Token.Split(TEXT("="), &KeyString, &ValueString))
+				{
+					KeyString.Trim();
+					KeyString.TrimTrailing();
+					ValueString.Trim();
+					ValueString.TrimTrailing();
+					if (KeyString == TEXT("Class"))
+					{
+						ClassName = ValueString;
+					}
+					else if (KeyString == TEXT("Tag"))
+					{
+						TagName = ValueString;
+					}
+				}
+			}
+
+			if (!ClassName.IsEmpty() && !TagName.IsEmpty())
+			{
+				FName TagFName = FName(*TagName);
+
+				// Include subclasses if the class is in memory at this time (native classes only)
+				UClass* WhitelistClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, *ClassName));
+				if (WhitelistClass)
+				{
+					FAssetData::WhitelistCookedTag(WhitelistClass->GetFName(), TagFName);
+
+					TArray<UClass*> DerivedClasses;
+					GetDerivedClasses(WhitelistClass, DerivedClasses);
+					for (UClass* DerivedClass : DerivedClasses)
+					{
+						FAssetData::WhitelistCookedTag(DerivedClass->GetFName(), TagFName);
+					}
+				}
+				else
+				{
+					// Class is not in memory yet. Just add an explicit whitelist.
+					// Automatically adding subclasses of non-native classes is not supported.
+					// In these cases, using Class=* is usually sufficient
+					FAssetData::WhitelistCookedTag(FName(*ClassName), TagFName);
+				}
+			}
+		}
+	}
+}
+
 void FAssetRegistry::CollectCodeGeneratorClasses()
 {
 	// Work around the fact we don't reference Engine module directly
 	UClass* BlueprintCoreClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, TEXT("BlueprintCore")));
 	if (BlueprintCoreClass)
 	{
-		for (TObjectIterator<UClass> It; It; ++It)
+		ClassGeneratorNames.Add(BlueprintCoreClass->GetFName());
+
+		TArray<UClass*> BlueprintCoreDerivedClasses;
+		GetDerivedClasses(BlueprintCoreClass, BlueprintCoreDerivedClasses);
+		for (UClass* BPCoreClass : BlueprintCoreDerivedClasses)
 		{
-			if (It->IsChildOf(BlueprintCoreClass))
-			{
-				ClassGeneratorNames.Add(It->GetFName());
-			}
+			ClassGeneratorNames.Add(BPCoreClass->GetFName());
 		}
 	}
 }

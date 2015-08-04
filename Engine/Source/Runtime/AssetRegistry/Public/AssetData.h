@@ -302,24 +302,25 @@ public:
 		Ar << AssetData.PackageName;
 		Ar << AssetData.AssetName;
 
-		static const FName BlueprintClassName = TEXT("Blueprint");
-		if ((Ar.IsSaving() || Ar.IsLoading()) && Ar.IsFilterEditorOnly() && AssetData.AssetClass == BlueprintClassName)
+		if (Ar.IsFilterEditorOnly() && Ar.IsSaving())
 		{
-			// Exclude FiB data from serialization
-			static FName FiBName = TEXT("FiB");
-			if (Ar.IsSaving())
+			static FName WildcardName(TEXT("*"));
+			const TSet<FName>* AllClassesWhitelist = GetCookWhitelistedTags(WildcardName);
+			const TSet<FName>* ClassSpecificWhitelist = GetCookWhitelistedTags(AssetData.AssetClass);
+
+			// Exclude editor only data from serialization
+			TMap<FName, FString> LocalTagsAndValues;
+			for (auto TagIt = AssetData.TagsAndValues.GetMap().CreateConstIterator(); TagIt; ++TagIt)
 			{
-				auto LocalTagsAndValues = AssetData.TagsAndValues.GetMap();
-				LocalTagsAndValues.Remove(FiBName);
-				Ar << LocalTagsAndValues;
+				FName TagName = TagIt.Key();
+				const bool bInAllClassesWhitelist = AllClassesWhitelist && (AllClassesWhitelist->Contains(TagName) || AllClassesWhitelist->Contains(WildcardName));
+				const bool bInClassSpecificWhitelist = ClassSpecificWhitelist && (ClassSpecificWhitelist->Contains(TagName) || ClassSpecificWhitelist->Contains(WildcardName));
+				if (bInAllClassesWhitelist || bInClassSpecificWhitelist)
+				{
+					LocalTagsAndValues.Add(TagIt.Key(), TagIt.Value());
+				}
 			}
-			else // if (Ar.IsLoading())
-			{
-				TMap<FName, FString> LocalTagsAndValues;
-				Ar << LocalTagsAndValues;
-				LocalTagsAndValues.Remove(FiBName);
-				AssetData.TagsAndValues = MakeSharedMapView(MoveTemp(LocalTagsAndValues));
-			}
+			Ar << LocalTagsAndValues;
 		}
 		else
 		{
@@ -344,4 +345,13 @@ public:
 
 		return Ar;
 	}
+
+	/** Adds the specified class/tag pair to the cook whitelist */
+	ASSETREGISTRY_API static void WhitelistCookedTag(FName InClassName, FName InTagName);
+
+	/** Gets the tags whitelisted for the specified class */
+	ASSETREGISTRY_API static const TSet<FName>* GetCookWhitelistedTags(FName InClassName);
+
+private:
+	static TMap<FName, TSet<FName>> CookWhitelistedTagsByClass;
 };
