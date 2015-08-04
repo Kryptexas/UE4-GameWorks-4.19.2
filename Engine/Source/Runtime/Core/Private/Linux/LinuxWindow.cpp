@@ -15,9 +15,6 @@ FLinuxWindow::~FLinuxWindow()
 	//       Use Destroy() instead.
 }
 
-const TCHAR FLinuxWindow::AppWindowClass[] = TEXT("UnrealWindow");
-
-
 TSharedRef< FLinuxWindow > FLinuxWindow::Make()
 {
 	// First, allocate the new native window object.  This doesn't actually create a native window or anything,

@@ -23,9 +23,6 @@ class CORE_API FLinuxWindow : public FGenericWindow
 public:
 	~FLinuxWindow();
 
-	/** Win32 requirement: see CreateWindowEx and RegisterClassEx. */
-	static const TCHAR AppWindowClass[];
-
 	/** Create a new SDLWindow.
 	 *
 	 * @param SlateWindows		List of all top level Slate windows.  This function will add the owner window to this list.
