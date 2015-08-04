@@ -12,6 +12,46 @@
 #include "MovieSceneShotTrack.h"
 #include "VirtualTrackArea.h"
 
+struct FDefaultKeySnappingCandidates : ISequencerSnapCandidate
+{
+	FDefaultKeySnappingCandidates(const TSet<FSelectedKey>& InSelectedKeys)
+		: SelectedKeys(InSelectedKeys)
+	{}
+
+	bool IsKeyApplicable(FKeyHandle KeyHandle, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section)
+	{
+		return !SelectedKeys.Contains(FSelectedKey(*Section, KeyArea, KeyHandle));
+	}
+
+	bool AreSectionBoundsApplicable(UMovieSceneSection* Section) { return true; }
+	bool AreGridLinesApplicable() { return true; }
+
+	const TSet<FSelectedKey>& SelectedKeys;
+};
+
+
+TOptional<FSequencerSnapField::FSnapResult> SnapToInterval(const TArray<float>& InTimes, float Threshold, const USequencerSettings& Settings)
+{
+	TOptional<FSequencerSnapField::FSnapResult> Result;
+
+	float SnapAmount = 0.f;
+	for (float Time : InTimes)
+	{
+		float IntervalSnap = Settings.SnapTimeToInterval(Time);
+		float ThisSnapAmount = IntervalSnap - Time;
+		if (FMath::Abs(ThisSnapAmount) <= Threshold)
+		{
+			if (!Result.IsSet() || FMath::Abs(ThisSnapAmount) < SnapAmount)
+			{
+				Result = FSequencerSnapField::FSnapResult{Time, IntervalSnap};
+				SnapAmount = ThisSnapAmount;
+			}
+		}
+	}
+
+	return Result;
+}
+
 /** How many pixels near the mouse has to be before snapping occurs */
 const float PixelSnapWidth = 10.f;
 
@@ -144,8 +184,8 @@ void FEditToolDragOperation::EndTransaction()
 	Sequencer.UpdateRuntimeInstances();
 }
 
-FResizeSection::FResizeSection( FSequencer& Sequencer, TArray<FSectionHandle> InSections, TOptional<FSectionHandle> InCardinalSection, bool bInDraggingByEnd )
-	: FEditToolDragOperation( Sequencer )
+FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, TOptional<FSectionHandle> InCardinalSection, bool bInDraggingByEnd )
+	: FEditToolDragOperation( InSequencer )
 	, Sections( MoveTemp(InSections) )
 	, CardinalSection(InCardinalSection)
 	, bDraggingByEnd(bInDraggingByEnd)
@@ -254,8 +294,8 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 	}
 }
 
-FMoveSection::FMoveSection( FSequencer& Sequencer, TArray<FSectionHandle> InSections )
-	: FEditToolDragOperation( Sequencer )
+FMoveSection::FMoveSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections )
+	: FEditToolDragOperation( InSequencer )
 	, Sections( MoveTemp(InSections) )
 {
 }
@@ -263,7 +303,7 @@ FMoveSection::FMoveSection( FSequencer& Sequencer, TArray<FSectionHandle> InSect
 void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
 	BeginTransaction( Sections, NSLOCTEXT("Sequencer", "MoveSectionTransaction", "Move Section") );
-		
+
 	MouseDownTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
 
 	DraggedKeyHandles.Empty();
@@ -313,7 +353,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 		{
 			MovieSceneSections.Add(SequencerNodeSections[i]->GetSectionObject());
 		}
-						
+		
 		if ( Settings->GetIsSnapEnabled() )
 		{
 			bool bSnappedToSection = false;
@@ -410,13 +450,22 @@ void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackA
 {
 	check( SelectedKeys.Num() > 0 )
 
+	SSection::DisableLayoutRegeneration();
+
+	FDefaultKeySnappingCandidates SnapCandidates(SelectedKeys);
+	SnapField = FSequencerSnapField(Sequencer, SnapCandidates);
+
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
 	BeginTransaction( TArray< FSectionHandle >(), NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
+
+	const float MouseTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
 
 	TSet<UMovieSceneSection*> ModifiedSections;
 	for( FSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
+
+		RelativeOffsets.Add(SelectedKey, SelectedKey.KeyArea->GetKeyTime(SelectedKey.KeyHandle.GetValue()) - MouseTime);
 
 		// Only modify sections once
 		if( !ModifiedSections.Contains( OwningSection ) )
@@ -432,137 +481,89 @@ void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackA
 	}
 }
 
-void FMoveKeys::OnEndDrag()
-{
-	EndTransaction();
-}
-
 void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea )
 {
 	float MouseTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
 	float DistanceMoved = MouseTime - VirtualTrackArea.PixelToTime(LocalMousePos.X - MouseEvent.GetCursorDelta().X);
 
-	if( DistanceMoved != 0.0f )
+	if( DistanceMoved == 0.0f )
 	{
-		float TimeDelta = DistanceMoved;
-		// Snapping
-		if ( Settings->GetIsSnapEnabled() )
-		{
-			bool bSnappedToKeyTime = false;
-			if ( Settings->GetSnapKeyTimesToKeys() && CardinalTrack.IsValid() )
-			{
-				TArray<float> OutSnapTimes;
-				GetKeySnapTimes(OutSnapTimes, CardinalTrack);
+		return;
+	}
 
-				TArray<float> InitialTimes;
-				for ( FSelectedKey SelectedKey : SelectedKeys )
-				{
-					InitialTimes.Add(SelectedKey.KeyArea->GetKeyTime(SelectedKey.KeyHandle.GetValue()) + DistanceMoved);
-				}
-				float OutInitialTime = 0.f;
-				float OutSnapTime = 0.f;
-				if ( SnapToTimes( InitialTimes, OutSnapTimes, VirtualTrackArea, OutInitialTime, OutSnapTime ) )
-				{
-					bSnappedToKeyTime = true;
-					TimeDelta = OutSnapTime - (OutInitialTime - DistanceMoved);
-				}
-			}
-
-			if (Settings->GetSnapKeyTimesToInterval())
-			{
-				// todo: arodham: fix snapping
-				// float SnapTimeIntervalDelta = Settings->SnapTimeToInterval(MouseTime) - SelectedKeyTime;
-
-				// // Snap to time interval only if we haven't snapped to a keyframe or if the time difference is smaller than the difference to the keyframe.
-				// if (bSnappedToKeyTime)
-				// {					
-				// 	if (FMath::Abs(SnapTimeIntervalDelta) < FMath::Abs(TimeDelta))
-				// 	{
-				// 		TimeDelta = SnapTimeIntervalDelta;
-				// 	}
-				// }
-				// else
-				// {
-				// 	TimeDelta = SnapTimeIntervalDelta;
-				// }
-			}
-		}
-
-		float PrevNewKeyTime = FLT_MAX;
-
+	// Snapping
+	if ( Settings->GetIsSnapEnabled() )
+	{
+		TArray<float> KeyTimes;
 		for( FSelectedKey SelectedKey : SelectedKeys )
 		{
-			UMovieSceneSection* Section = SelectedKey.Section;
-
-			TSharedPtr<IKeyArea>& KeyArea = SelectedKey.KeyArea;
-
-
-			// Tell the key area to move the key.  We reset the key index as a result of the move because moving a key can change it's internal index 
-			KeyArea->MoveKey( SelectedKey.KeyHandle.GetValue(), TimeDelta );
-
-			// Update the key that moved
-			float NewKeyTime = KeyArea->GetKeyTime( SelectedKey.KeyHandle.GetValue() );
-
-			// If the key moves outside of the section resize the section to fit the key
-			// @todo Sequencer - Doesn't account for hitting other sections 
-			if( NewKeyTime > Section->GetEndTime() )
-			{
-				Section->SetEndTime( NewKeyTime );
-			}
-			else if( NewKeyTime < Section->GetStartTime() )
-			{
-				Section->SetStartTime( NewKeyTime );
-			}
-
-			if (PrevNewKeyTime == FLT_MAX)
-			{
-				PrevNewKeyTime = NewKeyTime;
-			}
-			else if (!FMath::IsNearlyEqual(NewKeyTime, PrevNewKeyTime))
-			{
-				PrevNewKeyTime = -FLT_MAX;
-			}
+			KeyTimes.Add(MouseTime + RelativeOffsets.FindRef(SelectedKey));
 		}
 
-		// Snap the play time to the new dragged key time if all the keyframes were dragged to the same time
-		if (Settings->GetSnapPlayTimeToDraggedKey() && PrevNewKeyTime != FLT_MAX && PrevNewKeyTime != -FLT_MAX)
+		float SnapThresold = VirtualTrackArea.PixelToTime(10.f) - VirtualTrackArea.PixelToTime(0.f);
+
+		TOptional<FSequencerSnapField::FSnapResult> SnappedTime;
+
+		if (Settings->GetSnapKeyTimesToKeys())
 		{
-			Sequencer.SetGlobalTime(PrevNewKeyTime);
+			SnappedTime = SnapField->Snap(KeyTimes, SnapThresold);
 		}
+
+		if (!SnappedTime.IsSet() && Settings->GetSnapKeyTimesToInterval())
+		{
+			SnappedTime = SnapToInterval(KeyTimes, SnapThresold, *Settings);
+		}
+
+		if (SnappedTime.IsSet())
+		{
+			MouseTime += SnappedTime->Snapped - SnappedTime->Original;
+		}
+	}
+
+	float PrevNewKeyTime = FLT_MAX;
+
+	for( FSelectedKey SelectedKey : SelectedKeys )
+	{
+		UMovieSceneSection* Section = SelectedKey.Section;
+
+		TSharedPtr<IKeyArea>& KeyArea = SelectedKey.KeyArea;
+
+		float NewKeyTime = MouseTime + RelativeOffsets.FindRef(SelectedKey);
+		float CurrentTime = KeyArea->GetKeyTime( SelectedKey.KeyHandle.GetValue() );
+
+		// Tell the key area to move the key.  We reset the key index as a result of the move because moving a key can change it's internal index 
+		KeyArea->MoveKey( SelectedKey.KeyHandle.GetValue(), NewKeyTime - CurrentTime );
+
+		// If the key moves outside of the section resize the section to fit the key
+		// @todo Sequencer - Doesn't account for hitting other sections 
+		if( NewKeyTime > Section->GetEndTime() )
+		{
+			Section->SetEndTime( NewKeyTime );
+		}
+		else if( NewKeyTime < Section->GetStartTime() )
+		{
+			Section->SetStartTime( NewKeyTime );
+		}
+
+		if (PrevNewKeyTime == FLT_MAX)
+		{
+			PrevNewKeyTime = NewKeyTime;
+		}
+		else if (!FMath::IsNearlyEqual(NewKeyTime, PrevNewKeyTime))
+		{
+			PrevNewKeyTime = -FLT_MAX;
+		}
+	}
+
+	// Snap the play time to the new dragged key time if all the keyframes were dragged to the same time
+	if (Settings->GetSnapPlayTimeToDraggedKey() && PrevNewKeyTime != FLT_MAX && PrevNewKeyTime != -FLT_MAX)
+	{
+		Sequencer.SetGlobalTime(PrevNewKeyTime);
 	}
 }
 
-void FMoveKeys::GetKeySnapTimes(TArray<float>& OutSnapTimes, TSharedPtr<FTrackNode> SequencerNode)
+void FMoveKeys::OnEndDrag()
 {
-	// snap to non-selected keys
-	TArray< TSharedRef<FSectionKeyAreaNode> > KeyAreaNodes;
-	SequencerNode->GetChildKeyAreaNodesRecursively(KeyAreaNodes);
-
-	for (int32 NodeIndex = 0; NodeIndex < KeyAreaNodes.Num(); ++NodeIndex)
-	{
-		TArray< TSharedRef<IKeyArea> > KeyAreas = KeyAreaNodes[NodeIndex]->GetAllKeyAreas();
-		for (int32 KeyAreaIndex = 0; KeyAreaIndex < KeyAreas.Num(); ++KeyAreaIndex)
-		{
-			auto KeyArea = KeyAreas[KeyAreaIndex];
-
-			TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
-			for( int32 KeyIndex = 0; KeyIndex < KeyHandles.Num(); ++KeyIndex )
-			{
-				FKeyHandle KeyHandle = KeyHandles[KeyIndex];
-				bool bKeyIsSnappable = true;
-				for ( FSelectedKey SelectedKey : SelectedKeys )
-				{
-					if (SelectedKey.KeyArea == KeyArea && SelectedKey.KeyHandle.GetValue() == KeyHandle)
-					{
-						bKeyIsSnappable = false;
-						break;
-					}
-				}
-				if (bKeyIsSnappable)
-				{
-					OutSnapTimes.Add(KeyArea->GetKeyTime(KeyHandle));
-				}
-			}
-		}
-	}
+	EndTransaction();
+	SSection::EnableLayoutRegeneration();
 }

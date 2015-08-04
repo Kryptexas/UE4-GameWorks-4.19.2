@@ -40,7 +40,13 @@ public:
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
+	/** Access the cached geometry for this track area */
+	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
+	
 private:
+
+	/** Cached geometry */
+	FGeometry CachedGeometry;
 
 	/** A map of child slot content that exist in our view */
 	TMap<TSharedPtr<FSequencerDisplayNode>, TWeakPtr<SSequencerTrackLane>> TrackSlots;

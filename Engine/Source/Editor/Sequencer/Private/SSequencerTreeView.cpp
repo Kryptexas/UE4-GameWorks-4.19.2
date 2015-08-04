@@ -29,7 +29,7 @@ namespace Utils
 			switch (State)
 			{
 				case ESearchState::Before:	Max = SearchIndex; break;
-				case ESearchState::After:		Min = SearchIndex + 1; break;
+				case ESearchState::After:	Min = SearchIndex + 1; break;
 				case ESearchState::Found: 	return &Item;
 			}
 		}

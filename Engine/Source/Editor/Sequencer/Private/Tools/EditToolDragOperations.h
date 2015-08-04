@@ -5,6 +5,7 @@
 #include "ISequencerEditTool.h"
 #include "ScopedTransaction.h"
 #include "SequencerHotspots.h"
+#include "SequencerSnapField.h"
 
 class USequencerSettings;
 
@@ -42,7 +43,7 @@ protected:
 class FResizeSection : public FEditToolDragOperation
 {
 public:
-	FResizeSection( FSequencer& Sequencer, TArray<FSectionHandle> Sections, TOptional<FSectionHandle> InCardinalSection, bool bInDraggingByEnd );
+	FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections, TOptional<FSectionHandle> InCardinalSection, bool bInDraggingByEnd );
 
 	/** FEditToolDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
@@ -68,7 +69,7 @@ private:
 class FMoveSection : public FEditToolDragOperation
 {
 public:
-	FMoveSection( FSequencer& Sequencer, TArray<FSectionHandle> Sections );
+	FMoveSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections );
 
 	/** FEditToolDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
@@ -93,11 +94,11 @@ private:
 class FMoveKeys : public FEditToolDragOperation
 {
 public:
-	FMoveKeys( FSequencer& Sequencer, const TSet<FSelectedKey>& InSelectedKeys, TSharedPtr<FTrackNode> InCardinalTrack )
-		: FEditToolDragOperation(Sequencer)
+	FMoveKeys( FSequencer& InSequencer, const TSet<FSelectedKey>& InSelectedKeys )
+		: FEditToolDragOperation(InSequencer)
 		, SelectedKeys( InSelectedKeys )
-		, CardinalTrack(MoveTemp(InCardinalTrack))
-	{}
+	{
+	}
 
 	/** FEditToolDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
@@ -109,9 +110,11 @@ protected:
 	/** Gets all potential snap times for this drag operation */
 	void GetKeySnapTimes(TArray<float>& OutSnapTimes, TSharedPtr<FTrackNode> SequencerNode);
 
-private:
+private:	
 	/** The selected keys being moved. */
 	const TSet<FSelectedKey>& SelectedKeys;
-	/** Optional cardinal track to which the dragged key belongs */
-	TSharedPtr<FTrackNode> CardinalTrack;
+	/** Map of relative offsets from the original mouse position */
+	TMap<FSelectedKey, float> RelativeOffsets;
+	/** Snap field used to assist in snapping calculations */
+	TOptional<FSequencerSnapField> SnapField;
 };

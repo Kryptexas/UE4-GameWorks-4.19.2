@@ -165,6 +165,8 @@ FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, co
 
 void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	CachedGeometry = AllottedGeometry;
+
 	auto SequencerPin = SequencerWidget.Pin();
 	if (SequencerPin.IsValid())
 	{

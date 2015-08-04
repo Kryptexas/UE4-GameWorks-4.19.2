@@ -31,6 +31,12 @@ public:
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	
+	/** Temporarily disable dynamic layout regeneration. This prevents overlapping key groups from being amalgamated during drags. Key times will continue to update correctly. */
+	static void DisableLayoutRegeneration();
+
+	/** Re-enable dynamic layout regeneration */
+	static void EnableLayoutRegeneration();
+
 private:
 
 	/**
@@ -154,8 +160,6 @@ private:
 	bool bRightEdgeHovered;
 	/** Whether or not the right edge of the section is pressed */
 	bool bRightEdgePressed;
-	/** When 0, regeneration of dynamic key layouts is enabled, when non-zero, such behaviour is disabled */
-	static FThreadSafeCounter LayoutRegenerationLock;
 	/** Cached parent geometry to pass down to any section interfaces that need it during tick */
 	FGeometry ParentGeometry;
 };

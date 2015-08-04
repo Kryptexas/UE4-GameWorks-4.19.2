@@ -107,6 +107,9 @@ public:
 		float PhysicalTop, PhysicalHeight;
 	};
 
+	/** Access all the physical nodes currently visible on the sequencer */
+	const TArray<FCachedGeometry>& GetAllVisibleNodes() const { return PhysicalNodes; }
+
 	/** Retrieve the last reported physical geometry for the specified node, if available */
 	TOptional<FCachedGeometry> GetPhysicalGeometryForNode(const FDisplayNodeRef& InNode) const;
 

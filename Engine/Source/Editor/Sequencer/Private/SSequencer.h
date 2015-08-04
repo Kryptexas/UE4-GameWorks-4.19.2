@@ -132,7 +132,7 @@ public:
 	ISequencerEditTool& GetEditTool() const { return *EditTool; }
 
 	/** Generate a helper structure that can be used to transform between phsyical space and virtual space in the track area */
-	FVirtualTrackArea GetVirtualTrackArea(const FGeometry& InTrackAreaGeometry) const;
+	FVirtualTrackArea GetVirtualTrackArea() const;
 
 	/** Get an array of section handles for the given set of movie scene sections */
 	TArray<FSectionHandle> GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const;

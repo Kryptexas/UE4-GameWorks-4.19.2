@@ -10,7 +10,19 @@
 #include "CommonMovieSceneTools.h"
 #include "SequencerHotspots.h"
 
-FThreadSafeCounter SSection::LayoutRegenerationLock;
+
+/** When 0, regeneration of dynamic key layouts is enabled, when non-zero, such behaviour is disabled */
+FThreadSafeCounter LayoutRegenerationLock;
+
+void SSection::DisableLayoutRegeneration()
+{
+	LayoutRegenerationLock.Increment();
+}
+
+void SSection::EnableLayoutRegeneration()
+{
+	LayoutRegenerationLock.Decrement();
+}
 
 void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> SectionNode, int32 InSectionIndex )
 {
@@ -452,7 +464,6 @@ void SSection::ResetState()
 {
 	ResetHoveredState();
 	PressedKey = FSelectedKey();
-	LayoutRegenerationLock.Reset();
 }
 
 void SSection::ResetHoveredState()

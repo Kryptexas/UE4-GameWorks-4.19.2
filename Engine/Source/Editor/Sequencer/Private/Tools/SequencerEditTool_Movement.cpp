@@ -43,7 +43,7 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 {
 	if (DelayedDrag.IsSet())
 	{
-		const FVirtualTrackArea VirtualTrackArea = SequencerWidget.Pin()->GetVirtualTrackArea(MyGeometry);
+		const FVirtualTrackArea VirtualTrackArea = SequencerWidget.Pin()->GetVirtualTrackArea();
 
 		FReply Reply = FReply::Handled();
 
@@ -124,7 +124,7 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 				Selection.AddToSelection(ThisKey);
 			}
 
-			return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys(), StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->TrackNode ) );
+			return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
 		}
 	}
 	// If we're not dragging a hotspot, sections take precedence over keys
@@ -134,7 +134,7 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 	}
 	else if (Selection.GetSelectedKeys().Num())
 	{
-		return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys(), nullptr ) );
+		return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
 	}
 
 	return nullptr;

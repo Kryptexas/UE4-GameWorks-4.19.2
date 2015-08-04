@@ -1464,9 +1464,9 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 	}
 }
 
-FVirtualTrackArea SSequencer::GetVirtualTrackArea(const FGeometry& InTrackAreaGeometry) const
+FVirtualTrackArea SSequencer::GetVirtualTrackArea() const
 {
-	return FVirtualTrackArea(*Sequencer.Pin(), *TreeView.Get(), InTrackAreaGeometry);
+	return FVirtualTrackArea(*Sequencer.Pin(), *TreeView.Get(), TrackArea->GetCachedGeometry());
 }
 
 #undef LOCTEXT_NAMESPACE
