@@ -566,7 +566,10 @@ bool FCurlHttpRequest::StartRequest()
 	const int32 NumAllHeaders = AllHeaders.Num();
 	for (int32 Idx = 0; Idx < NumAllHeaders; ++Idx)
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("%p: Adding header '%s'"), this, *AllHeaders[Idx] );
+		if (!AllHeaders[Idx].Contains(TEXT("Authorization")))
+		{
+			UE_LOG(LogHttp, Verbose, TEXT("%p: Adding header '%s'"), this, *AllHeaders[Idx]);
+		}
 		HeaderList = curl_slist_append(HeaderList, TCHAR_TO_UTF8(*AllHeaders[Idx]));
 	}
 
