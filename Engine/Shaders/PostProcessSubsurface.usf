@@ -237,18 +237,41 @@ SDiffuseAndSpecular ReconstructDiffuse(float2 UVSceneColor)
 
 	float3 Quant0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor).rgb;
 
-	// todo: expose as scalability setting
-	// 0:fast but can appear pattern can appear, especially without TemporalAA / 1:high quality
+	// todo: expose as scalability setting (can be evaluate best without TemporalAA)
+	// 0:fast but pattern can appear, 1:better, 2: even better, 3: best but expensive
+
+	// With TemporalAA they all look the same but 0 has an offset which we can fixed by alternating the 2 (L R) or 4 directions (L R U D)
 	#define QUALITY_LEVEL 1
 
 #if QUALITY_LEVEL == 0
 	float3 Quant1 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(1, 0) * View.BufferSizeAndInvSize.zw).rgb;
-#else
+#elif QUALITY_LEVEL == 1
+	float3 Quant1 = 0.5f * (
+		Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb +
+		Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb);
+#elif QUALITY_LEVEL == 2
 	float3 Quant1 = 0.25f * (
 		Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb +
 		Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * View.BufferSizeAndInvSize.zw).rgb +
 		Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb +
 		Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * View.BufferSizeAndInvSize.zw).rgb);
+#else
+	float3 A = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 1,  0) * View.BufferSizeAndInvSize.zw).rgb;
+	float3 B = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2(-1,  0) * View.BufferSizeAndInvSize.zw).rgb;
+	float3 C = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0,  1) * View.BufferSizeAndInvSize.zw).rgb;
+	float3 D = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor + float2( 0, -1) * View.BufferSizeAndInvSize.zw).rgb;
+
+	// Luminance could be green channel only
+	float a = Luminance(A);
+	float b = Luminance(B);
+	float c = Luminance(C);
+	float d = Luminance(D);
+
+	float ab = abs(a - b);
+	float cd = abs(c - d);
+
+	// take the average in the direction that avoids dither pattern
+	float3 Quant1 = 0.5f * lerp(A + B, C + D, ab > cd);
 #endif
 
 	Ret.Diffuse = lerp(Quant1, Quant0, bChecker);
@@ -412,9 +435,13 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor);
 
 
+	// we multiply the base color later in to get more crips human skin textures (scanned data always has Subsurface included)
+	float3 StoredBaseColor = ScreenSpaceData.GBuffer.StoredBaseColor;
+	float3 StoredSpecular = ScreenSpaceData.GBuffer.StoredSpecular;
+
 	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructDiffuse(UVSceneColor);
 	
-	float3 ExtractedNonSubsurface = lerp(SceneColor4.rgb, DiffuseAndSpecular.Specular, BlendFactor);
+	float3 ExtractedNonSubsurface = lerp(SceneColor4.rgb, DiffuseAndSpecular.Specular * StoredSpecular, BlendFactor);
 
 	// asset specific color
 	float3 SubsurfaceColor = GetProfileSubsurfaceColor(ScreenSpaceData.GBuffer);
@@ -426,10 +453,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	// combine potentially half res with full res
 	float3 SubsurfaceLighting = lerp(DiffuseAndSpecular.Diffuse, SSSColor, FadedSubsurfaceColor);
 
-	// we multiply the base color later in to get more crips human skin textures (scanned data always has Subsurface included)
-	float3 StoredBaseColor = ScreenSpaceData.GBuffer.StoredBaseColor;
 
 	OutColor = float4(SubsurfaceLighting * StoredBaseColor + ExtractedNonSubsurface, 0); 
-
 }
 

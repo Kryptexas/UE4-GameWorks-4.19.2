@@ -2668,7 +2668,9 @@ protected:
 			|| SceneTextureId == PPI_Roughness
 			|| SceneTextureId == PPI_MaterialAO
 			|| SceneTextureId == PPI_DecalMask
-			|| SceneTextureId == PPI_ShadingModel;
+			|| SceneTextureId == PPI_ShadingModel
+			|| SceneTextureId == PPI_StoredBaseColor
+			|| SceneTextureId == PPI_StoredSpecular;
 
 		// not yet tracked:
 		//   PPI_SeparateTranslucency, PPI_CustomDepth, PPI_AmbientOcclusion

@@ -242,8 +242,6 @@ struct FGBufferData
 	float3 SpecularColor;
 	// 0..1, white for SHADINGMODELID_SUBSURFACE_PROFILE (apply BaseColor after scattering is more correct and less blurry)
 	float3 BaseColor;
-	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applied BaseColor later
-	float3 StoredBaseColor;
 	// 0..1
 	float Metallic;
 	// 0..1
@@ -278,6 +276,11 @@ struct FGBufferData
 	float Depth;
 	// Velocity for motion blur (only used when WRITES_VELOCITY_TO_GBUFFER is enabled)
 	float4 Velocity;
+
+	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies BaseColor later
+	float3 StoredBaseColor;
+	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies Specular later
+	float3 StoredSpecular;
 };
 
 
@@ -420,7 +423,8 @@ FGBufferData DecodeGBufferData(
 	GBuffer.BaseColor = GBuffer.StoredBaseColor;
 
 	GBuffer.Metallic = InGBufferB.r;
-	GBuffer.Specular = InGBufferB.g;
+	GBuffer.StoredSpecular = InGBufferB.g;
+	GBuffer.Specular = GBuffer.StoredSpecular;
 	GBuffer.Opacity = InGBufferD.r;
 	
 	GBuffer.Roughness = InGBufferB.b;
@@ -439,9 +443,9 @@ FGBufferData DecodeGBufferData(
 
 	if(GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
-		// we apply the BaseColor later, this is why we need StoredBaseColor
+		// we apply the BaseColor and Specular later, this is why we need StoredBaseColor
 		GBuffer.BaseColor = bChecker;
-		GBuffer.Specular *= !bChecker;
+		GBuffer.Specular = !bChecker;
 	}
 
 	// derived from BaseColor, Metalness, Specular
