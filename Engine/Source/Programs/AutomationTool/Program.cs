@@ -28,7 +28,7 @@ namespace AutomationTool
             {
                 HostPlatform.Initialize();
 
-                Log.WriteLine("Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32);
+                Log.TraceVerbose("Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32);
 
                 XmlConfigLoader.Init();
 
