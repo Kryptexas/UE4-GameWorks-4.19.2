@@ -162,9 +162,9 @@ void FRCPassPostProcessNoiseBlur::Process(FRenderingCompositePassContext& Contex
 		SetNoiseBlurShader<2>(Context, Radius);
 	}
 
-	// Draw a quad mapping scene color to the view's render target
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	DrawRectangle(
+
+	DrawPostProcessPass(
 		Context.RHICmdList,
 		DestRect.Min.X, DestRect.Min.Y,
 		DestRect.Width(), DestRect.Height(),
@@ -173,6 +173,8 @@ void FRCPassPostProcessNoiseBlur::Process(FRenderingCompositePassContext& Contex
 		DestSize,
 		SrcSize,
 		*VertexShader,
+		View.StereoPass,
+		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

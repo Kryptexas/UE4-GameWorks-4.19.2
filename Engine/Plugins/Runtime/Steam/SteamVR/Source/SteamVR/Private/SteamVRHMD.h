@@ -85,7 +85,10 @@ public:
 	virtual FQuat GetBaseOrientation() const override;
 
 	virtual bool HasHiddenAreaMask() const override { return HiddenAreaMeshes[0].IsValid() && HiddenAreaMeshes[1].IsValid(); }
-	virtual void DrawHiddenAreaMaskView_RenderThread(FRHICommandList& RHICmdList, const FViewInfo& View) const override;
+	virtual void DrawHiddenAreaMaskView_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
+
+	virtual bool HasPostProcessMesh() const override { return VisibleAreaMeshes[0].IsValid() && VisibleAreaMeshes[1].IsValid(); }
+	virtual void DrawPostProcessMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
 
@@ -316,7 +319,27 @@ private:
 		unsigned  NumTriangles;
 	};
 
+	struct FVisibleAreaMesh
+	{
+		FVisibleAreaMesh();
+		~FVisibleAreaMesh();
+
+		bool IsValid() const
+		{
+			return NumTriangles > 0;
+		}
+
+		void Build(const struct MeshVertex Positions[], uint32 InNumVertices);
+
+		FFilterVertex* pVertices;
+		uint16*   pIndices;
+		unsigned  NumVertices;
+		unsigned  NumIndices;
+		unsigned  NumTriangles;
+	};
+
 	FHiddenAreaMesh HiddenAreaMeshes[2];
+	FVisibleAreaMesh VisibleAreaMeshes[2];
 
 	/** Chaperone Support */
 	struct FChaperoneBounds

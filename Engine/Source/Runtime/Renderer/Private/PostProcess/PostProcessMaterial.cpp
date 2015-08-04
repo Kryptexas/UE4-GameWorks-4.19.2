@@ -187,7 +187,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	VertexShader->SetParameters(Context.RHICmdList, Context);
 	PixelShader->SetParameters(Context.RHICmdList, Context, MaterialInterface->GetRenderProxy(false));
 
-	DrawRectangle(
+	DrawPostProcessPass(
 		Context.RHICmdList,
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
@@ -196,6 +196,8 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 		DestRect.Size(),
 		SrcSize,
 		VertexShader,
+		View.StereoPass,
+		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

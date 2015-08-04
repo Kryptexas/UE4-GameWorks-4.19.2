@@ -128,8 +128,7 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 
 	PixelShader->SetPS(Context, LoopSizeValue);
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle(
+	DrawPostProcessPass(
 		Context.RHICmdList,
 		0, 0,
 		DestSize.X, DestSize.Y,
@@ -138,6 +137,8 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 		DestSize,
 		SrcSize,
 		*VertexShader,
+		View.StereoPass,
+		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

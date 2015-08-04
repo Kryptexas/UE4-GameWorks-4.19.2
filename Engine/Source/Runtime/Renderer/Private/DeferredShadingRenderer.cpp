@@ -692,10 +692,9 @@ static FORCEINLINE bool NeedsPrePass(const FDeferredShadingSceneRenderer* Render
  */
 static FORCEINLINE bool HasHiddenAreaMask()
 {
-	static const IConsoleVariable* const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.HiddenAreaMask"));
-
-	return (CVar != nullptr &&
-		CVar->GetInt() == 1 &&
+	static const auto* const HiddenAreaMaskCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.HiddenAreaMask"));
+	return (HiddenAreaMaskCVar != nullptr &&
+		HiddenAreaMaskCVar->GetValueOnRenderThread() == 1 &&
 		GEngine &&
 		GEngine->HMDDevice.IsValid() &&
 		GEngine->HMDDevice->HasHiddenAreaMask());
@@ -1430,7 +1429,7 @@ static void RenderHiddenAreaMaskView(FRHICommandList& RHICmdList, const FViewInf
 	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, nullptr);
-	GEngine->HMDDevice->DrawHiddenAreaMaskView_RenderThread(RHICmdList, View);
+	GEngine->HMDDevice->DrawHiddenAreaMaskView_RenderThread(RHICmdList, View.StereoPass);
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)

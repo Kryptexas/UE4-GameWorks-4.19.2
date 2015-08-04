@@ -56,6 +56,40 @@ extern void DrawTransformedRectangle(
     FIntPoint TextureSize
     );
 
+extern void DrawHmdMesh(
+	FRHICommandList& RHICmdList,
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize,
+	EStereoscopicPass StereoView,
+	FShader* VertexShader
+	);
+
+extern void DrawPostProcessPass(
+	FRHICommandList& RHICmdList,
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize,
+	class FShader* VertexShader,
+	EStereoscopicPass StereoView,
+	bool bHasCustomMesh,
+	EDrawRectangleFlags Flags = EDRF_Default
+	);
+
 extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 extern TGlobalResource<FEmptyVertexDeclaration> GEmptyVertexDeclaration;
 

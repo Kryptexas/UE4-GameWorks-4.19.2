@@ -343,16 +343,17 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 		VertexShader = SetShaderSetupTempl<0>(Context);
 	}
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle( 
+	DrawPostProcessPass(
 		Context.RHICmdList,
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
-			SrcRect.Min.X, SrcRect.Min.Y, 
+		SrcRect.Min.X, SrcRect.Min.Y,
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
 		VertexShader,
+		View.StereoPass,
+		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -492,8 +493,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle( 
+	DrawPostProcessPass(
 		Context.RHICmdList,
 		0, 0,
 		ViewRect.Width(), ViewRect.Height(),
@@ -502,9 +502,10 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		ViewRect.Size(),
 		TexSize,
 		*VertexShader,
+		View.StereoPass,
+		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
-
-
+	
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget->TargetableTexture, DestRenderTarget->ShaderResourceTexture, false, FResolveParams());
 }
 
@@ -563,16 +564,17 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context, SceneContext.GetBufferSizeXY());
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle( 
+	DrawPostProcessPass(
 		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		SceneContext.GetBufferSizeXY(),
 		*VertexShader,
+		View.StereoPass, 
+		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

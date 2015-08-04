@@ -9,6 +9,8 @@
 #include "PostProcess/PostProcessHMD.h"
 #include "Classes/SteamVRFunctionLibrary.h"
 
+#include "ViveVisibleAreaMesh.h"
+
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #endif
@@ -992,9 +994,11 @@ void FSteamVRHMD::Startup()
 			}
 		}
 
-		// Setup hidden area meshes
+		// Setup meshes
 		HiddenAreaMeshes[0].Build(VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Left));
 		HiddenAreaMeshes[1].Build(VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Right));
+		VisibleAreaMeshes[0].Build(LeftEyePositions, VertexCount);
+		VisibleAreaMeshes[1].Build(RightEyePositions, VertexCount);
 
 #if PLATFORM_WINDOWS
 		if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
@@ -1173,4 +1177,59 @@ void FSteamVRHMD::FHiddenAreaMesh::Build(const vr::HiddenAreaMesh_t& Mesh)
 	}
 }
 
+FSteamVRHMD::FVisibleAreaMesh::FVisibleAreaMesh() :
+	pVertices(nullptr),
+	pIndices(nullptr),
+	NumVertices(0),
+	NumIndices(0),
+	NumTriangles(0)
+{}
+
+FSteamVRHMD::FVisibleAreaMesh::~FVisibleAreaMesh()
+{
+	if (pVertices)
+	{
+		delete[] pVertices;
+	}
+
+	if (pIndices)
+	{
+		delete[] pIndices;
+	}
+}
+
+void FSteamVRHMD::FVisibleAreaMesh::Build(const MeshVertex Positions[], uint32 InNumVertices)
+{
+	check(pVertices == nullptr);
+	check(InNumVertices > 2 && InNumVertices % 3 == 0);
+
+	NumVertices = InNumVertices;
+	NumTriangles = NumVertices / 3;
+	NumIndices = NumVertices;
+
+	pVertices = new FFilterVertex[NumVertices];
+	pIndices = new uint16[NumIndices];
+
+	uint32 DataIndex = 0;
+	for (uint32 TriangleIter = 0; TriangleIter < NumTriangles; ++TriangleIter)
+	{
+		for (uint32 VertexIter = 0; VertexIter < 3; ++VertexIter)
+		{
+			const MeshVertex& Position = Positions[DataIndex];
+			FFilterVertex& Vertex = pVertices[DataIndex];
+			
+			Vertex.Position.X = Position.X;
+			Vertex.Position.Y = 1.0f - Position.Y;
+			Vertex.Position.Z = 0.0f;
+			Vertex.Position.W = 1.0f;
+			
+			Vertex.UV.X = Position.X;
+			Vertex.UV.Y = 1.0f - Position.Y;
+			
+			pIndices[DataIndex] = DataIndex;
+			
+			++DataIndex;
+		}
+	}
+}
 #endif //STEAMVR_SUPPORTED_PLATFORMS
