@@ -113,6 +113,8 @@ public:
 
 	~SWebBrowser();
 
+	virtual bool SupportsKeyboardFocus() const override {return true;}
+
 	/**
 	 * Construct the widget.
 	 *
