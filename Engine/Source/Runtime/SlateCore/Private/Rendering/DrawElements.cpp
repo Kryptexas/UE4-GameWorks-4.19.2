@@ -261,8 +261,8 @@ void FSlateBatchData::FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* Inde
 				IndexOffset += (Indices.Num()*sizeof(SlateIndex));
 				VertexOffset += (Vertices.Num()*sizeof(FSlateVertex));
 
-				Vertices.Empty(Vertices.Num());
-				Indices.Empty(Indices.Num());
+				Vertices.Reset();
+				Indices.Reset();
 			}
 		}
 	}
@@ -315,7 +315,7 @@ void FSlateBatchData::CreateRenderBatches()
 				}
 			}
 		}
-		ElementBatches.Empty( ElementBatches.Num() );
+		ElementBatches.Reset();
 	}
 
 }
