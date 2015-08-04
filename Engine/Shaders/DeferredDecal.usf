@@ -44,6 +44,25 @@ void StencilDecalMaskMain(
 	OutColor = 0;
 }
 
+half3 FrameBufferDecalBlendOp(half4 Source)
+{
+#if (COMPILER_GLSL_ES2)
+	half4 Dest = FramebufferFetchES2();
+	Dest.rgb = Decode32BPPHDR(Dest);
+#else
+	half4 Dest = half4(0, 0, 0, 0);
+#endif
+
+#if DECAL_BLEND_MODE == DECALBLENDMODEID_STAIN
+	return (Source.rgb*Dest.rgb) + (Dest.rgb*(1.0 - Source.a));
+#elif DECAL_BLEND_MODE == DECALBLENDMODEID_TRANSLUCENT
+	return (Source.rgb*Source.a) + (Dest.rgb*(1.0 - Source.a));
+#elif DECAL_BLEND_MODE == DECALBLENDMODEID_EMISSIVE
+	return (Source.rgb*Source.a) + Dest.rgb;
+#else
+	return Source.rgb;
+#endif
+}
 
 // decal vertex shader
 void MainVS(
@@ -307,6 +326,18 @@ void MainPS(
 
 	// RETURN_COLOR not needed unless writing to SceneColor
 	OutTarget0 = float4(Color, Opacity);
+
+#if (ES2_PROFILE || ES3_1_PROFILE)
+#if (COMPILER_GLSL_ES2) || (MOBILE_EMULATION)
+	// Do decal blending if encoding requires it.
+	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
+	{
+		OutTarget0.rgb = FrameBufferDecalBlendOp(OutTarget0);
+	}
+ 	// do 32bpp hdr encoding for mobile if required.
+	OutTarget0 = Encode32BPPHDR(OutTarget0, SvPosition.xy);
+#endif
+#endif
 
 #if DECAL_RENDERTARGET_COUNT > 1
 	// some MRT rendering

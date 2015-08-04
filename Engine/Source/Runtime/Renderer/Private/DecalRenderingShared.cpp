@@ -132,15 +132,17 @@ public:
 		uint32 RenderTargetCount = FDecalRendering::ComputeRenderTargetCount(Platform, RenderTargetMode);
 
 		// avoid using the index directly, better use DECALBLENDMODEID_VOLUMETRIC, DECALBLENDMODEID_STAIN, ...
-		OutEnvironment.SetDefine(TEXT("DECAL_BLEND_MODE"), (int32)DecalBlendMode);
-		OutEnvironment.SetDefine(TEXT("DECAL_PROJECTION"), 1);
+		OutEnvironment.SetDefine(TEXT("DECAL_BLEND_MODE"), (uint32)DecalBlendMode);
+		OutEnvironment.SetDefine(TEXT("DECAL_PROJECTION"), 1u);
 		OutEnvironment.SetDefine(TEXT("DECAL_RENDERTARGET_COUNT"), RenderTargetCount);
-		OutEnvironment.SetDefine(TEXT("DECAL_RENDERSTAGE"), (int32)FDecalRendering::ComputeRenderStage(Platform, DecalBlendMode));
+		OutEnvironment.SetDefine(TEXT("DECAL_RENDERSTAGE"), (uint32)FDecalRendering::ComputeRenderStage(Platform, DecalBlendMode));
 
 		// to compare against DECAL_BLEND_MODE, we can expose more if needed
-		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_VOLUMETRIC"), (int32)DBM_Volumetric_DistanceFunction);
-		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_STAIN"), (int32)DBM_Stain);
-		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_NORMAL"), (int32)DBM_Normal);
+		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_VOLUMETRIC"), (uint32)DBM_Volumetric_DistanceFunction);
+		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_STAIN"), (uint32)DBM_Stain);
+		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_NORMAL"), (uint32)DBM_Normal);
+		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_EMISSIVE"), (uint32)DBM_Emissive);
+		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_TRANSLUCENT"), (uint32)DBM_Translucent);
 	}
 
 	FDeferredDecalPS() {}

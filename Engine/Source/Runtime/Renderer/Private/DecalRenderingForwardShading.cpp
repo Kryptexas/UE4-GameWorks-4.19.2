@@ -46,7 +46,11 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 
 			TOptional<EDecalBlendMode> LastDecalBlendMode;
 			TOptional<bool> LastDecalDepthState;
-				
+			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
+			if (bEncodedHDR)
+			{
+				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			}
 			for (int32 DecalIndex = 0, DecalCount = SortedDecals.Num(); DecalIndex < DecalCount; DecalIndex++)
 			{
 				const FTransientDecalRenderData& DecalData = SortedDecals[DecalIndex];
@@ -72,7 +76,7 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 					}
 				}
 
-				if (!LastDecalBlendMode.IsSet() || LastDecalBlendMode.GetValue() != DecalData.DecalBlendMode)
+				if (!bEncodedHDR && (!LastDecalBlendMode.IsSet() || LastDecalBlendMode.GetValue() != DecalData.DecalBlendMode))
 				{
 					LastDecalBlendMode = DecalData.DecalBlendMode;
 					switch(DecalData.DecalBlendMode)
