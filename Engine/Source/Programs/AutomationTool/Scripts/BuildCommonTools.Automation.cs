@@ -177,6 +177,7 @@ public class ZipProjectUp : BuildCommand
         FileFilter Filter = new FileFilter();
         Filter.Include("/Config/...");
         Filter.Include("/Content/...");
+        Filter.Include("/Source/...");
         Filter.Include("*.uproject");
 
         ZipFiles(InstallDirectory, ProjectDirectory, Filter);
