@@ -296,8 +296,14 @@ void FBatchedElements::AddSprite(
 }
 
 /** Translates a ESimpleElementBlendMode into a RHI state change for rendering a mesh with the blend mode normally. */
-static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode BlendMode)
+static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode BlendMode, bool bEncodedHDR)
 {
+	if (bEncodedHDR)
+	{
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		return;
+	}
+
 	switch(BlendMode)
 	{
 	case SE_BLEND_Opaque:
@@ -363,20 +369,84 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 	}
 }
 
-FGlobalBoundShaderState FBatchedElements::SimpleBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::RegularSRGBBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::RegularLinearBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::MaskedBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::DistanceFieldBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::HitTestingBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::ColorChannelMaskShaderState;
-FGlobalBoundShaderState FBatchedElements::AlphaOnlyShaderState;
-FGlobalBoundShaderState FBatchedElements::GammaAlphaOnlyShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::SimpleBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularSRGBBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularLinearBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::DistanceFieldBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::HitTestingBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::ColorChannelMaskShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::AlphaOnlyShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::GammaAlphaOnlyShaderState;
 
 /** Global alpha ref test value for rendering masked batched elements */
 float GBatchedElementAlphaRefVal = 128.f;
 /** Global smoothing width for rendering batched elements with distance field blend modes */
 float GBatchedElementSmoothWidth = 12;
+
+template<class TSimpleElementPixelShader>
+static TSimpleElementPixelShader* GetPixelShader(bool bEncoded, ESimpleElementBlendMode BlendMode, ERHIFeatureLevel::Type FeatureLevel)
+{
+	if (bEncoded)
+	{
+		// When encoding blending occurs in the shader. return the appropriate blend shader.
+		switch (BlendMode)
+		{
+			case SE_BLEND_Opaque:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_Opaque> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_Masked:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_Masked> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_Translucent:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_Translucent> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_Additive:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_Additive> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_Modulate:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_Modulate> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_MaskedDistanceField:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_MaskedDistanceField> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_MaskedDistanceFieldShadowed:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_MaskedDistanceFieldShadowed> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_AlphaComposite:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_AlphaComposite> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_AlphaBlend:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_AlphaBlend> >(GetGlobalShaderMap(FeatureLevel));
+			case SE_BLEND_TranslucentAlphaOnly:
+				return *TShaderMapRef<FEncodedSimpleElement<TSimpleElementPixelShader, SE_BLEND_TranslucentAlphaOnly> >(GetGlobalShaderMap(FeatureLevel));
+
+			default:
+				checkNoEntry();
+		}
+	}
+	return *TShaderMapRef<TSimpleElementPixelShader>(GetGlobalShaderMap(FeatureLevel));
+}
+
+static bool Is32BppHDREncoded(const FSceneView* View)
+{
+	if (View == nullptr || View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	{
+		return false;
+	}
+
+	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	bool bMobileHDR = MobileHDRCvar->GetValueOnRenderThread() == 1;
+
+	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
+	bool bMobileHDR32Bpp = bMobileHDR && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppModeCvar->GetValueOnRenderThread() != 0);
+
+	if (bMobileHDR32Bpp)
+	{
+		switch (MobileHDR32bppModeCvar->GetValueOnRenderThread())
+		{
+		case 1:
+			return false;
+		case 2:
+			return true;
+		default:
+			return (GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch);
+		}
+	}
+	return false;
+}
 
 /**
  * Sets the appropriate vertex and pixel shader.
@@ -398,7 +468,10 @@ void FBatchedElements::PrepareShaders(
 {
 	// used to mask individual channels and desaturate
 	FMatrix ColorWeights( FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 0) );
-	
+
+	// bEncodedHDR requires that blend states are disabled.
+	bool bEncodedHDR = Is32BppHDREncoded(View);
+
 	float GammaToUse = Gamma;
 	if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 	{
@@ -427,13 +500,13 @@ void FBatchedElements::PrepareShaders(
 		// If we are only to draw the alpha channel, make the Blend state opaque, to allow easy identification of the alpha values
 		if( bAlphaOnly )
 		{
-			SetBlendState(RHICmdList, SE_BLEND_Opaque);
+			SetBlendState(RHICmdList, SE_BLEND_Opaque, bEncodedHDR);
 
 			R.W = G.W = B.W = 1.0f;
 		}
 		else
 		{
-			SetBlendState(RHICmdList, !bAlphaChannel ? SE_BLEND_Opaque : SE_BLEND_Translucent); // If alpha channel is disabled, do not allow alpha blending
+			SetBlendState(RHICmdList, !bAlphaChannel ? SE_BLEND_Opaque : SE_BLEND_Translucent, bEncodedHDR); // If alpha channel is disabled, do not allow alpha blending
 
 			// Determine the red, green, blue and alpha components of their respective weights to enable that colours prominence
 			R.X = bRedChannel ? 1.0f : 0.0f;
@@ -472,7 +545,7 @@ void FBatchedElements::PrepareShaders(
 		if (bHitTesting)
 		{
 			TShaderMapRef<FSimpleElementHitProxyPS> HitTestingPixelShader(GetGlobalShaderMap(FeatureLevel));
-			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, HitTestingBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, HitTestingBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 				*VertexShader, *HitTestingPixelShader);
 
 			HitTestingPixelShader->SetParameters(RHICmdList, Texture);
@@ -489,18 +562,18 @@ void FBatchedElements::PrepareShaders(
 
 				if (Texture->bSRGB)
 				{
-					TShaderMapRef<FSimpleElementMaskedGammaPS_SRGB> MaskedPixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *MaskedPixelShader);
+					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_SRGB>(bEncodedHDR, BlendMode, FeatureLevel);
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
 				}
 				else
 				{
-					TShaderMapRef<FSimpleElementMaskedGammaPS_Linear> MaskedPixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *MaskedPixelShader);
+					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_Linear>(bEncodedHDR, BlendMode, FeatureLevel);
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
@@ -518,7 +591,10 @@ void FBatchedElements::PrepareShaders(
 					BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed)
 				{
 					// enable alpha blending and disable clip ref value for translucent rendering
-					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
+					if (!bEncodedHDR)
+					{
+						RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
+					}
 					AlphaRefVal = 0.0f;
 				}
 				else
@@ -528,7 +604,7 @@ void FBatchedElements::PrepareShaders(
 				}
 				
 				TShaderMapRef<FSimpleElementDistanceFieldGammaPS> DistanceFieldPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DistanceFieldBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DistanceFieldBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *DistanceFieldPixelShader );			
 
 				// @todo - expose these as options for batch rendering
@@ -557,12 +633,12 @@ void FBatchedElements::PrepareShaders(
 			}
 			else if(BlendMode == SE_BLEND_TranslucentAlphaOnly)
 			{
-				SetBlendState(RHICmdList, BlendMode);
+				SetBlendState(RHICmdList, BlendMode, bEncodedHDR);
 
 				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 				{
 					TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *AlphaOnlyPixelShader);
 
 					AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
@@ -571,7 +647,7 @@ void FBatchedElements::PrepareShaders(
 				else
 				{
 					TShaderMapRef<FSimpleElementGammaAlphaOnlyPS> GammaAlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *GammaAlphaOnlyPixelShader);
 
 					GammaAlphaOnlyPixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
@@ -581,19 +657,19 @@ void FBatchedElements::PrepareShaders(
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
 				TShaderMapRef<FSimpleElementColorChannelMaskPS> ColorChannelMaskPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ColorChannelMaskShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ColorChannelMaskShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *ColorChannelMaskPixelShader );
 			
 				ColorChannelMaskPixelShader->SetParameters(RHICmdList, Texture, ColorWeights, GammaToUse );
 			}
 			else
 			{
-				SetBlendState(RHICmdList, BlendMode);
+				SetBlendState(RHICmdList, BlendMode, bEncodedHDR);
 	
 				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 				{
 					TShaderMapRef<FSimpleElementPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, SimpleBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, SimpleBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *PixelShader);
 
 					PixelShader->SetParameters(RHICmdList, Texture);
@@ -609,12 +685,12 @@ void FBatchedElements::PrepareShaders(
 					if (Texture->bSRGB)
 					{
 						BasePixelShader = *PixelShader_SRGB;
-						BoundShaderState = &RegularSRGBBoundShaderState;
+						BoundShaderState = &RegularSRGBBoundShaderState.GetBSS(bEncodedHDR, BlendMode);
 					}
 					else
 					{
 						BasePixelShader = *PixelShader_Linear;
-						BoundShaderState = &RegularLinearBoundShaderState;
+						BoundShaderState = &RegularLinearBoundShaderState.GetBSS(bEncodedHDR, BlendMode);
 					}
 
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, *BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
