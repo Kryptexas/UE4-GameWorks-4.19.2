@@ -113,6 +113,12 @@ namespace UnrealBuildTool
             return SDKStatus.Invalid;
         }
 
+		public override bool CanUseXGE()
+		{
+			// [RCL] 2015-08-04 FIXME: modular (cross-)builds (e.g. editor, UT server) fail with XGE as FixDeps step apparently depends on artifacts (object files) which aren't listed among its prerequisites.
+			return false;
+		}
+
 		/**
 		 *	Register the platform with the UEBuildPlatform class
 		 */
