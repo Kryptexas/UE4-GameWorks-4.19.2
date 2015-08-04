@@ -1359,9 +1359,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GDistanceFieldAsyncQueue = new FDistanceFieldAsyncQueue();
 	}
 
-	// Initialize the texture streaming system (needs to happen after RHIInit).
-	IStreamingManager::Get();
-
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Initial UObject load"), STAT_InitialUObjectLoad, STATGROUP_LoadTime);
 
@@ -1392,6 +1389,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsExist();
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
+
+	// Initialize the texture streaming system (needs to happen after RHIInit and ProcessNewlyLoadedUObjects).
+	IStreamingManager::Get();
 
 	SlowTask.EnterProgressFrame(5);
 
