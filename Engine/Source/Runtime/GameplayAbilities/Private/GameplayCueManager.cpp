@@ -108,6 +108,12 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 
 	CurrentWorld = TargetActor->GetWorld();
 
+	// Don't handle gameplay cues when world is tearing down
+	if (!GetWorld() || GetWorld()->bIsTearingDown)
+	{
+		return;
+	}
+
 	// Give the global set a chance
 	check(GlobalCueSet);
 	if (bAcceptsCue)
