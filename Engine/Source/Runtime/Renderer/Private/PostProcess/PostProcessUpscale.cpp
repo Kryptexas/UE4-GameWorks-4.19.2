@@ -261,11 +261,11 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	// with distortion (bTessellatedQuad) we need to clear the background
 	FIntRect ExcludeRect = bTessellatedQuad ? FIntRect() : DestRect;
 
+	Context.SetViewportAndCallRHI(DestRect);
 	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
 	{
 		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ExcludeRect);
 	}
-	Context.SetViewportAndCallRHI(DestRect);
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
