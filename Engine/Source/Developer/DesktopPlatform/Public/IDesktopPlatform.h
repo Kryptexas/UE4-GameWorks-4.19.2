@@ -138,9 +138,11 @@ public:
 	 * Opens the marketplace user interface.
 	 *
 	 * @param Install					Whether to install the marketplace if it is missing.
+	 * @param LauncherRelativeUrl		A url relative to the launcher which you'd like the launcher to navigate to. Empty defaults to the UE homepage
+	 * @param CommandLineParams			Optional command to open the launcher with if it is not already open
 	 * @return true if the marketplace was opened, false if it is not installed or could not be installed/opened.
 	 */
-	virtual bool OpenLauncher(bool Install, FString CommandLineParams ) = 0;
+	virtual bool OpenLauncher(bool Install, FString LauncherRelativeUrl, FString CommandLineParams) = 0;
 
 	/**
 	* Returns a description for the engine with the given identifier.

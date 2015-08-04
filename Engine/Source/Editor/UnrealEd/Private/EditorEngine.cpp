@@ -443,7 +443,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )
 		{
-			DesktopPlatform->OpenLauncher(false, TEXT(""));
+			DesktopPlatform->OpenLauncher(false, FString(), FString());
 		}
 	}
 

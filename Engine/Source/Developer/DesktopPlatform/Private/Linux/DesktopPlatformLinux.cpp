@@ -179,7 +179,7 @@ bool FDesktopPlatformLinux::CanOpenLauncher(bool Install)
 	return false;
 }
 
-bool FDesktopPlatformLinux::OpenLauncher(bool Install, FString CommandLineParams )
+bool FDesktopPlatformLinux::OpenLauncher(bool Install, FString LauncherRelativeUrl, FString CommandLineParams)
 {
 	// TODO: support launcher for realz
 	return true;
