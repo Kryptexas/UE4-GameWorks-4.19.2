@@ -777,25 +777,27 @@ void ULandscapeGrassType::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 	if (GIsEditor)
 	{
-		// Only care current world object
-		for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
+		for (TObjectIterator<ALandscapeProxy> It; It; ++It)
 		{
 			ALandscapeProxy* Proxy = *It;
-			const UMaterialInterface* MaterialInterface = Proxy->LandscapeMaterial;
-			if (MaterialInterface)
+			if (Proxy->GetWorld() && !Proxy->GetWorld()->IsPlayInEditor())
 			{
-				TArray<const UMaterialExpressionLandscapeGrassOutput*> GrassExpressions;
-				MaterialInterface->GetMaterial()->GetAllExpressionsOfType<UMaterialExpressionLandscapeGrassOutput>(GrassExpressions);
-
-				// Should only be one grass type node
-				if (GrassExpressions.Num() > 0)
+				const UMaterialInterface* MaterialInterface = Proxy->LandscapeMaterial;
+				if (MaterialInterface)
 				{
-					for (auto& Output : GrassExpressions[0]->GrassTypes)
+					TArray<const UMaterialExpressionLandscapeGrassOutput*> GrassExpressions;
+					MaterialInterface->GetMaterial()->GetAllExpressionsOfType<UMaterialExpressionLandscapeGrassOutput>(GrassExpressions);
+
+					// Should only be one grass type node
+					if (GrassExpressions.Num() > 0)
 					{
-						if (Output.GrassType == this)
+						for (auto& Output : GrassExpressions[0]->GrassTypes)
 						{
-							Proxy->FlushGrassComponents();
-							break;
+							if (Output.GrassType == this)
+							{
+								Proxy->FlushGrassComponents();
+								break;
+							}
 						}
 					}
 				}
