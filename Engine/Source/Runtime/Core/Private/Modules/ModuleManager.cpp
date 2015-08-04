@@ -942,16 +942,25 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 {
 	if(QueryModulesDelegate.IsBound())
 	{
-		// Use the delegate to query all the modules in this directory
-		TMap<FString, FString> ValidModules;
-		QueryModulesDelegate.Execute(InDirectoryName, bIsGameDirectory, ValidModules);
+		// Find all the directories to search through, including the base directory
+		TArray<FString> SearchDirectoryNames;
+		IFileManager::Get().FindFilesRecursive(SearchDirectoryNames, *InDirectoryName, TEXT("*"), false, true);
+		SearchDirectoryNames.Insert(InDirectoryName, 0);
 
-		// Fill the output map with modules that match the wildcard
-		for(const TPair<FString, FString>& Pair: ValidModules)
+		// Find the modules in each directory
+		for(const FString& SearchDirectoryName: SearchDirectoryNames)
 		{
-			if(Pair.Key.MatchesWildcard(NamePattern))
+			// Use the delegate to query all the modules in this directory
+			TMap<FString, FString> ValidModules;
+			QueryModulesDelegate.Execute(SearchDirectoryName, bIsGameDirectory, ValidModules);
+
+			// Fill the output map with modules that match the wildcard
+			for(const TPair<FString, FString>& Pair: ValidModules)
 			{
-				OutModulePaths.Add(FName(*Pair.Key), FPaths::Combine(*InDirectoryName, *Pair.Value));
+				if(Pair.Key.MatchesWildcard(NamePattern))
+				{
+					OutModulePaths.Add(FName(*Pair.Key), *FPaths::Combine(*SearchDirectoryName, *Pair.Value));
+				}
 			}
 		}
 	}
