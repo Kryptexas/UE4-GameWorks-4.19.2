@@ -16,6 +16,12 @@ TSharedRef<ISequencerSection> FBoolPropertyTrackEditor::MakeSectionInterface( UM
 
 bool FBoolPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, bool& OutKey )
 {
-	OutKey = *PropertyChangedParams.GetPropertyValue<bool>();
-	return true;
+	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(PropertyChangedParams.PropertyPath.Last());
+	if (BoolProperty)
+	{
+		OutKey = BoolProperty->GetPropertyValue(BoolProperty->ContainerPtrToValuePtr<void>(PropertyChangedParams.ObjectsThatChanged.Last()));
+		return true;
+	}
+
+	return false;
 }
