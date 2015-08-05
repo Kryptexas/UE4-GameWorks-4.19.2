@@ -358,7 +358,7 @@ Simple collision cannot be used with non-uniform scale. Please either fix the sc
 
 (#MoreMaterialsThanReferenced)
 [EXCERPT:MoreMaterialsThanReferenced]
-**More overriden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]**
+**More overridden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]**
 
 <!-- TODO -->
 [/EXCERPT:MoreMaterialsThanReferenced]
