@@ -77,7 +77,7 @@ namespace AutomationTool
 		{
 			if (String.IsNullOrEmpty(UATExe))
 			{
-				UATExe = Assembly.GetExecutingAssembly().GetOriginalLocation();
+				UATExe = Assembly.GetEntryAssembly().GetOriginalLocation();
 			}
 			if (!CommandUtils.FileExists_NoExceptions(UATExe))
 			{
