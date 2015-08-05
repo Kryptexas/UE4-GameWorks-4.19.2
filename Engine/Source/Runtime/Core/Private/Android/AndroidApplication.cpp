@@ -36,11 +36,9 @@ void FAndroidApplication::PollGameDeviceState( const float TimeDelta )
 		Windows.Num() > 0 && 
 		FPlatformMisc::GetHardwareWindow() != nullptr)
 	{
-		FAndroidWindow::InvalidateCachedScreenRect();
-		FAndroidAppEntry::ReInitWindow();
-				
 		int32 WindowX,WindowY, WindowWidth,WindowHeight;
 		Windows[0]->GetFullScreenInfo(WindowX, WindowY, WindowWidth, WindowHeight);
+
 		GenericApplication::GetMessageHandler()->OnSizeChanged(Windows[0],WindowWidth,WindowHeight, false);
 		GenericApplication::GetMessageHandler()->OnResizingWindow(Windows[0]);
 		

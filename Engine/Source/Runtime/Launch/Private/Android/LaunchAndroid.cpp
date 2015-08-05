@@ -645,18 +645,6 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 	return 0;
 }
 
-static void onNativeWindowResized(ANativeActivity* activity, ANativeWindow* window)
-{
-	UE_LOG(LogAndroid, Log, TEXT("On Native Window Resized: %p"), window);
-	FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, window);
-}
-
-static void onContentRectChanged(ANativeActivity *activity, const ARect *rect)
-{
-	UE_LOG(LogAndroid, Log, TEXT("On Content Rect Changed: left: %d, top: %d, right: %d, bottom: %d"), rect->left, rect->top, rect->right, rect->bottom);
-	FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
-}
-
 //Called from the event process thread
 static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 {
@@ -770,8 +758,11 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 			* Command from main thread: the current device configuration has changed.
 			*/
 			UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONFIG_CHANGED"));
+			
 			bool bPortrait = (AConfiguration_getOrientation(app->config) == ACONFIGURATION_ORIENTATION_PORT);
 			FAndroidWindow::OnWindowOrientationChanged(bPortrait);
+
+			FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
 		}
 		break;
 	case APP_CMD_LOW_MEMORY:
@@ -786,8 +777,6 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		 * Command from main thread: the app's activity has been started.
 		 */
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_START"));
-		app->activity->callbacks->onNativeWindowResized = onNativeWindowResized; //currently not handled in glue code.
-		app->activity->callbacks->onContentRectChanged = onContentRectChanged; 
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_ON_START);
 	
 		break;
