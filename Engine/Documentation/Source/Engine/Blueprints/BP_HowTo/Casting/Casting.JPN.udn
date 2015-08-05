@@ -1,31 +1,29 @@
-﻿INTSourceChangelist:2541080
+﻿INTSourceChangelist:2611581
 Availability:Public
 Title:ブループリント キャスティング
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:ブループリント キャスティングによってブループリントを一緒に使い、ブループリント同士でデータの受け渡しをする方法 
+Description:ブループリント キャスティングを使って、1 つのブループリントから複数のブループリント通信してみましょう。 
 Related:Engine/Blueprints/UserGuide/CastNodes
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
 
-2 つのブループリント間での直接通信方法およびデータの受け渡し方法を説明します。 
-
-このサンプルでは、プレイヤーはボックス経由で受け渡しおよび通信、パーティクル エフェクトのアクティベートができます。
+ブループリント キャスティングを使って異なるブループリントと通信して情報を共有する方法を説明します。このサンプルでは、プレイヤーがオブジェクトを撃つことが可能で、ヒットする都度オブジェクトが小さくなります。オブジェクトにヒットする都度、Character ブループリントに通知してプレイヤーの移動速度が速くなります。 
 
 [REGION:note]
 このガイドでは、**Starter Content** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
 [/REGION]
 
-1. **Viewport** で、**LargeCube** メッシュのひとつをクリックし、次に **[Details]** パネルの **[Blueprint/Add Script]** ボタンをクリックします。 
+1. **ビューポート** で、**LargeCube** メッシュのひとつをクリックし、次に **[Details]** パネルの **[Blueprint/Add Script (ブループリント/スクリプトを追加)]** ボタンをクリックします。 
 
 	![](Casting1.png)
+
+1. 表示された確認ウィンドウの **Ok** をクリックしてデフォルト名でブループリントを作成します。 
 
 1. **コンテンツ ブラウザ** の **Content/FirstPersonBP/Blueprints** で **FirstPeronProjectile** ブループリントを開きます。 
 
 	![](Casting2.png)
 
 	これは、ゲームプレイ中にプレイヤーが武器を発射する際にアクティベートする発射物用のブループリントです。 
-
-1. 表示された確認ウィンドウの **Ok** をクリックしてデフォルト名でブループリントを作成します。 
 
 1. **Event Hit** ノードを検索して **Other** ピンを引き出し、 **Cast To LargeCube_Blueprint** ノードを追加します。 
 
@@ -85,7 +83,17 @@ Related:Engine/Blueprints/UserGuide
 
 1.	**[Compile]** と **[Save]** をクリックしたら **[Play]** ボタンをクリックしてエディタで再生します。 
 
-	![](CastingGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	u8aJQ3PBXNk
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	Large Cube ブループリントを撃つたびに小さくなり、キャラクターの移動が速くなります。 
 
