@@ -499,8 +499,10 @@ void Sc::BodySim::resetSleepFilter()
 	mSleepAngVelAcc = PxVec3(0);
 }
 
-PxReal Sc::BodySim::updateWakeCounter(PxReal dt, PxReal energyThreshold, PxReal freezeThreshold, PxReal invDt, bool enableStabilization)
+PxReal Sc::BodySim::updateWakeCounter(PxReal dt, PxReal energyThreshold, PxReal freezeThreshold, PxReal invDt, bool enableStabilization, bool& notReadyForSleeping)
 {
+	PX_ASSERT(!notReadyForSleeping);
+
 	// update the body's sleep state and 
 	BodyCore& core = getBodyCore();
 
@@ -603,8 +605,9 @@ PxReal Sc::BodySim::updateWakeCounter(PxReal dt, PxReal energyThreshold, PxReal 
 						wc = factor * 0.5f * wakeCounterResetTime + dt * (sleepClusterFactor - 1.0f);
 						core.setWakeCounterFromSim(wc);
 						if (oldWc == 0.0f)  // for the case where a sleeping body got activated by the system (not the user) AND got processed by the solver as well
-							notifyNotReadyForSleeping();
-
+						{
+							notReadyForSleeping = true;
+						}
 						return wc;
 					}
 				}
@@ -646,7 +649,9 @@ PxReal Sc::BodySim::updateWakeCounter(PxReal dt, PxReal energyThreshold, PxReal 
 				wc = factor * 0.5f * wakeCounterResetTime + dt * (clusterFactor - 1.0f);
 				core.setWakeCounterFromSim(wc);
 				if (oldWc == 0.0f)  // for the case where a sleeping body got activated by the system (not the user) AND got processed by the solver as well
-					notifyNotReadyForSleeping();
+				{
+					notReadyForSleeping = true;
+				}
 
 				return wc;
 			}
@@ -659,17 +664,20 @@ PxReal Sc::BodySim::updateWakeCounter(PxReal dt, PxReal energyThreshold, PxReal 
 }
 
 
-void Sc::BodySim::sleepCheck(PxReal dt, PxReal invDt, bool enableStabilization)
+void Sc::BodySim::sleepCheck(PxReal dt, PxReal invDt, bool enableStabilization, bool& readyForSleeping, bool& notReadyForSleeping)
 {
+	readyForSleeping = false;
+	notReadyForSleeping = false;
+
 	BodyCore& core = getBodyCore();
 //	PxReal wakeCounterResetTime = ScInternalWakeCounterResetValue;
 
-	PxReal wc = updateWakeCounter(dt, core.getSleepThreshold(), core.getFreezeThreshold(), invDt, enableStabilization);
+	PxReal wc = updateWakeCounter(dt, core.getSleepThreshold(), core.getFreezeThreshold(), invDt, enableStabilization, notReadyForSleeping);
 	bool wakeCounterZero = (wc == 0.0f);
 
 	if(wakeCounterZero)
 	{
-		notifyReadyForSleeping();
+		readyForSleeping = true;
 		resetSleepFilter();
 	}
 }

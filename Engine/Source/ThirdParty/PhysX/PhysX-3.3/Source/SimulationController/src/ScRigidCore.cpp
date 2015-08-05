@@ -61,7 +61,7 @@ void Sc::RigidCore::onShapeChange(Sc::ShapeCore& shape, ShapeChangeNotifyFlags n
 	Sc::ShapeSim& s = sim->getSimForShape(shape);
 
 	if(notifyFlags & ShapeChangeNotifyFlag::eGEOMETRY)
-		s.onGeometryChange();
+		s.onVolumeChange();
 	if(notifyFlags & ShapeChangeNotifyFlag::eMATERIAL)
 		s.onMaterialChange();
 	if(notifyFlags & ShapeChangeNotifyFlag::eRESET_FILTERING)
@@ -74,6 +74,8 @@ void Sc::RigidCore::onShapeChange(Sc::ShapeCore& shape, ShapeChangeNotifyFlags n
 		s.onFlagChange(oldShapeFlags);
 	if(notifyFlags & ShapeChangeNotifyFlag::eRESTOFFSET)
 		s.onRestOffsetChange();
+	if(notifyFlags & ShapeChangeNotifyFlag::eCONTACTOFFSET)
+		s.onVolumeChange();
 }
 
 

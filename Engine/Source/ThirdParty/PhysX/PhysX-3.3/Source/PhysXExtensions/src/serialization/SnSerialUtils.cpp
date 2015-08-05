@@ -60,11 +60,16 @@ const char* sBinaryPlatformNames[SN_NUM_BINARY_PLATFORMS] =
 	"ios64"
 };
 
-#define SN_NUM_BINARY_COMPATIBLE_VERSIONS 2
+#define SN_NUM_BINARY_COMPATIBLE_VERSIONS 4
 
+//
+// Important: if you adjust the following structure, please adjust the comment for PX_BINARY_SERIAL_VERSION as well
+//
 const Ps::Pair<PxU32, PxU32> sBinaryCompatibleVersions[SN_NUM_BINARY_COMPATIBLE_VERSIONS] =
 {
 	Ps::Pair<PxU32, PxU32>(PX_PHYSICS_VERSION, PX_BINARY_SERIAL_VERSION),
+	Ps::Pair<PxU32, PxU32>(0x3030300, 0),
+	Ps::Pair<PxU32, PxU32>(0x3030200, 0),
 	Ps::Pair<PxU32, PxU32>(0x3030100, 0)
 };
 

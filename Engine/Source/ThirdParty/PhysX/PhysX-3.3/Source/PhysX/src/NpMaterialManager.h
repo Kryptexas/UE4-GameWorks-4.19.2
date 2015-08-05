@@ -179,7 +179,6 @@ namespace physx
 
 	class NpMaterialManagerIterator
 	{
-	
 	public:
 		NpMaterialManagerIterator(const NpMaterialManager& manager) : mManager(manager), mIndex(0)
 		{
