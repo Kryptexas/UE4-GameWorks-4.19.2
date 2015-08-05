@@ -73,18 +73,7 @@ FWebJSParam::FWebJSParam(const FWebJSParam& Other)
 	}
 }
 
-void FWebJSFunction::Invoke(int32 ArgCount, FWebJSParam Arguments[]) const
-{
-#if WITH_CEF3
-	TSharedPtr<FWebJSScripting> Scripting = ScriptingPtr.Pin();
-	if (Scripting.IsValid())
-	{
-		Scripting->InvokeJSFunction(FunctionId, ArgCount, Arguments);
-	}
-#endif
-}
-
-void FWebJSResponse::Invoke(int32 ArgCount, FWebJSParam Arguments[], bool bIsError) const
+void FWebJSCallbackBase::Invoke(int32 ArgCount, FWebJSParam Arguments[], bool bIsError) const
 {
 #if WITH_CEF3
 	TSharedPtr<FWebJSScripting> Scripting = ScriptingPtr.Pin();
