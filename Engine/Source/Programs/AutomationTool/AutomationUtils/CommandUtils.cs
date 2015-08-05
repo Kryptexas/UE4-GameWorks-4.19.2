@@ -1016,7 +1016,7 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				throw new AutomationException(String.Format("Failed to Write to file {0}", Filename), Ex);
+				throw new AutomationException(Ex, String.Format("Failed to Write to file {0}", Filename));
 			}
 		}
 
