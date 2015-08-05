@@ -32,8 +32,8 @@ FHMDSettings::FHMDSettings() :
 	Flags.bTimeWarp = true;
 	Flags.bHmdPosTracking = true;
 	Flags.bPlayerControllerFollowsHmd = true;
-	Flags.bPlayerCameraManagerFollowsHmdOrientation = false;
-	Flags.bPlayerCameraManagerFollowsHmdPosition = false;
+	Flags.bPlayerCameraManagerFollowsHmdOrientation = true;
+	Flags.bPlayerCameraManagerFollowsHmdPosition = true;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = FIntRect(0, 0, 0, 0);
 
 	CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
