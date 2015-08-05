@@ -22,6 +22,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 {
 	TimeSliderController = InTimeSliderController;
 	ShowFrameNumbers = InArgs._ShowFrameNumbers;
+	TimeSnapInterval = InArgs._TimeSnapInterval;
 	
 	this->ChildSlot
 	.HAlign(HAlign_Fill)
@@ -50,7 +51,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 		.VAlign(VAlign_Fill)
 		.Padding(2.0f, 4.0f)
 		[
-			SAssignNew(TimeRangeSlider, STimeRangeSlider, InTimeSliderController)
+			SAssignNew(TimeRangeSlider, STimeRangeSlider, InTimeSliderController, TSharedRef<STimeRange>(this))
 		]
 		+SHorizontalBox::Slot()
 		.AutoWidth()
@@ -322,6 +323,15 @@ FText STimeRange::EndTimeTooltip() const
 	{
 		return LOCTEXT("EndTimeTooltip", "End time");
 	}
+}
+
+float STimeRange::GetTimeSnapInterval() const
+{
+	if (TimeSnapInterval.IsBound())
+	{
+		return TimeSnapInterval.Get();
+	}
+	return 1.f;
 }
 
 #undef LOCTEXT_NAMESPACE

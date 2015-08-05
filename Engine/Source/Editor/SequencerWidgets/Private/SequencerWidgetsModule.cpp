@@ -33,11 +33,12 @@ TSharedRef<ITimeSlider> FSequencerWidgetsModule::CreateTimeSlider( const TShared
 		.MirrorLabels( bMirrorLabels );
 }
 
-TSharedRef<ITimeSlider> FSequencerWidgetsModule::CreateTimeRange( const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, const TAttribute<bool>& ShowFrameNumbersDelegate )
+TSharedRef<ITimeSlider> FSequencerWidgetsModule::CreateTimeRange( const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, const TAttribute<bool>& ShowFrameNumbersDelegate, const TAttribute<float>& TimeSnapIntervalDelegate )
 {
 	return 
 		SNew( STimeRange, InController)
 		.Visibility(VisibilityDelegate)
-		.ShowFrameNumbers(ShowFrameNumbersDelegate);
+		.ShowFrameNumbers(ShowFrameNumbersDelegate)
+		.TimeSnapInterval(TimeSnapIntervalDelegate);
 }
 

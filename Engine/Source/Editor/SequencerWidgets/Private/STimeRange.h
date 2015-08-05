@@ -11,14 +11,12 @@ DECLARE_DELEGATE_RetVal( bool, STimeRangeGetter );
 class STimeRange : public ITimeSlider
 {
 public:
-
-	//SLATE_BEGIN_ARGS(STimeRange){}
-	//	SLATE_DEFAULT_SLOT(FArguments, Content)
-	//SLATE_END_ARGS()
 	SLATE_BEGIN_ARGS(STimeRange)
 	{}
 		/* If we should show frame numbers on the timeline */
 		SLATE_ARGUMENT( TAttribute<bool>, ShowFrameNumbers )
+		/* The time snap interval for the timeline */
+		SLATE_ARGUMENT( TAttribute<float>, TimeSnapInterval )
 	SLATE_END_ARGS()
 
 	/**
@@ -27,6 +25,8 @@ public:
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
 	void Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController );
+
+	float GetTimeSnapInterval() const;
 
 protected:
 	FText InTime() const;
@@ -48,4 +48,5 @@ private:
 	TSharedPtr<ITimeSliderController> TimeSliderController;
 	TSharedPtr<STimeRangeSlider> TimeRangeSlider;
 	TAttribute<bool> ShowFrameNumbers;
+	TAttribute<float> TimeSnapInterval;
 };
