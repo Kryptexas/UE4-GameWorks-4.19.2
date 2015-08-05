@@ -6,6 +6,7 @@
 	The tool can be used in two modes of operation:
 	(1) to generate patch data (manifest, chunks, files) for build images given the existing cloud data; or
 	(2) to "compactify" a cloud directory by removing all orphaned chunks, not referenced by any manifest file.
+	(3) to enumerate the data files referenced by a manifest
 
 	In order to trigger compactify functionality, the -compactify commandline argument should be specified.
 
