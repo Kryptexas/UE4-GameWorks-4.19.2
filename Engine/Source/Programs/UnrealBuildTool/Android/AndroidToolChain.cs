@@ -143,6 +143,22 @@ namespace UnrealBuildTool
 			return GPUArchitectures;
 		}
 
+		static public int GetNdkApiLevelInt(int MinNdk = 19)
+		{
+			string NDKVersion = AndroidToolChain.GetNdkApiLevel();
+			int NDKVersionInt = MinNdk;
+			if (NDKVersion.Contains("-"))
+			{
+				int Version;
+				if (int.TryParse(NDKVersion.Substring(NDKVersion.LastIndexOf('-') + 1), out Version))
+				{
+					if (Version > NDKVersionInt)
+						NDKVersionInt = Version;
+				}
+			}
+			return NDKVersionInt;
+		}
+
 		static public string GetNdkApiLevel()
 		{
 			// ask the .ini system for what version to use
@@ -550,7 +566,7 @@ namespace UnrealBuildTool
 				Result += " -Wl,--fix-cortex-a8";		// required to route around a CPU bug in some Cortex-A8 implementations
 			}
 
-			if (ClangVersionFloat >= 3.6f)
+			if (BuildConfiguration.bUseUnityBuild && ClangVersionFloat >= 3.6f)
 			{
 				Result += " -fuse-ld=gold";				// ld.gold is available in r10e (clang 3.6)
 			}
