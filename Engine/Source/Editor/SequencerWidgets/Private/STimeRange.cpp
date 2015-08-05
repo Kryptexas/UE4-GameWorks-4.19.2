@@ -51,7 +51,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 		.VAlign(VAlign_Fill)
 		.Padding(2.0f, 4.0f)
 		[
-			SAssignNew(TimeRangeSlider, STimeRangeSlider, InTimeSliderController, TSharedRef<STimeRange>(this))
+			SAssignNew(TimeRangeSlider, STimeRangeSlider, InTimeSliderController, SharedThis(this))
 		]
 		+SHorizontalBox::Slot()
 		.AutoWidth()

@@ -13,7 +13,7 @@ namespace TimeRangeSliderConstants
 	const int32 HandleSize = 14;
 }
 
-void STimeRangeSlider::Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController, TSharedRef<STimeRange> InTimeRange)
+void STimeRangeSlider::Construct( const FArguments& InArgs, TSharedRef<ITimeSliderController> InTimeSliderController, TSharedPtr<STimeRange> InTimeRange)
 {
 	TimeSliderController = InTimeSliderController;
 	TimeRange = InTimeRange;
@@ -182,7 +182,10 @@ FReply STimeRangeSlider::OnMouseMove( const FGeometry& MyGeometry, const FPointe
 				NewIn = FMath::Clamp(NewIn, ClampRange.GetLowerBoundValue(), ClampRange.GetUpperBoundValue());
 				if (NewIn > TimeSliderController.Get()->GetViewRange().GetUpperBoundValue())
 				{
-					NewIn = TimeSliderController.Get()->GetViewRange().GetUpperBoundValue() - TimeRange.Get()->GetTimeSnapInterval();
+					if (TimeRange.IsValid())
+					{
+						NewIn = TimeSliderController.Get()->GetViewRange().GetUpperBoundValue() - TimeRange.Pin()->GetTimeSnapInterval();
+					}
 				}
 
 				TimeSliderController.Get()->SetViewRange(NewIn, TimeSliderController.Get()->GetViewRange().GetUpperBoundValue(), EViewRangeInterpolation::Immediate);
@@ -197,7 +200,10 @@ FReply STimeRangeSlider::OnMouseMove( const FGeometry& MyGeometry, const FPointe
 				NewOut = FMath::Clamp(NewOut, ClampRange.GetLowerBoundValue(), ClampRange.GetUpperBoundValue());
 				if (NewOut < TimeSliderController.Get()->GetViewRange().GetLowerBoundValue())
 				{
-					NewOut = TimeSliderController.Get()->GetViewRange().GetLowerBoundValue() + TimeRange.Get()->GetTimeSnapInterval();
+					if (TimeRange.IsValid())
+					{
+						NewOut = TimeSliderController.Get()->GetViewRange().GetLowerBoundValue() + TimeRange.Pin()->GetTimeSnapInterval();
+					}
 				}
 
 				TimeSliderController.Get()->SetViewRange(TimeSliderController.Get()->GetViewRange().GetLowerBoundValue(), NewOut, EViewRangeInterpolation::Immediate);
