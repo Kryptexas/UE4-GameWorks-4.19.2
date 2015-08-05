@@ -111,21 +111,21 @@ class ENGINE_API UKismetNodeHelperLibrary : public UBlueprintFunctionLibrary
 	 * Gets enumerator name.
 	 *
 	 * @param Enum - Enumeration
-	 * @param EnumeratorIndex - Index of searched enumeration
+	 * @param EnumeratorValue - Value of searched enumeration
 	 * @return - name of the searched enumerator, or NAME_None
 	 */
 	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "TRUE"))
-	static FName GetEnumeratorName(const UEnum* Enum, uint8 EnumeratorIndex);
+	static FName GetEnumeratorName(const UEnum* Enum, uint8 EnumeratorValue);
 
 	/**
 	 * Gets enumerator name as FString. Use DeisplayName when possible.
 	 *
 	 * @param Enum - Enumeration
-	 * @param EnumeratorIndex - Index of searched enumeration
+	 * @param EnumeratorValue - Value of searched enumeration
 	 * @return - name of the searched enumerator, or NAME_None
 	 */
 	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "TRUE"))
-	static FString GetEnumeratorUserFriendlyName(const UEnum* Enum, uint8 EnumeratorIndex);
+	static FString GetEnumeratorUserFriendlyName(const UEnum* Enum, uint8 EnumeratorValue);
 
 	/**
 	 * @param Enum - Enumeration
