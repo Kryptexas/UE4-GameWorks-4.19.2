@@ -148,7 +148,11 @@ partial class GUBP
             public List<string> PromotablesWithoutTools = new List<string>();
             public List<string> NodesToRemovePseudoDependencies = new List<string>();
             public List<string> EnhanceAgentRequirements = new List<string>();
-			public bool bNoAutomatedTesting = false;
+            /// <summary>
+            /// This turns off ALL automatedtesting in ALL branches by default.
+            /// A branch hacker must set this value to false explicitly to use automated testing.
+            /// </summary>
+			public bool bNoAutomatedTesting = true;
 			public bool bNoDocumentation = false;
 			public bool bNoInstalledEngine = false;
 			public bool bMakeFormalBuildWithoutLabelPromotable = false;
@@ -613,26 +617,23 @@ partial class GUBP
                 }
 
 
-				if (HostPlatform == UnrealTargetPlatform.Win64) //temp hack till automated testing works on other platforms than Win64
+                if (!bNoAutomatedTesting && HostPlatform == UnrealTargetPlatform.Win64) //temp hack till automated testing works on other platforms than Win64
                 {
 
                     var EditorTests = Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetEditorTests_EditorTypeOnly(HostPlatform);
                     var EditorTestNodes = new List<string>();
                     foreach (var Test in EditorTests)
                     {
-                        if (!bNoAutomatedTesting)
-                        {							
-                            EditorTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, Branch.BaseEngineProject, Test.Key, Test.Value, AgentSharingGroup)));
+                        EditorTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, Branch.BaseEngineProject, Test.Key, Test.Value, AgentSharingGroup)));
                         
-                            foreach (var NonCodeProject in Branch.NonCodeProjects)
+                        foreach (var NonCodeProject in Branch.NonCodeProjects)
+                        {
+                            if (!NonCodeProjectNames.ContainsKey(NonCodeProject.GameName))
                             {
-                                if (!NonCodeProjectNames.ContainsKey(NonCodeProject.GameName))
-                                {
-                                    continue;
-                                }
-                                if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
-                                EditorTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, NonCodeProject, Test.Key, Test.Value, AgentSharingGroup)));
+                                continue;
                             }
+                            if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
+                            EditorTestNodes.Add(BranchConfig.AddNode(new UATTestNode(BranchConfig, HostPlatform, NonCodeProject, Test.Key, Test.Value, AgentSharingGroup)));
                         }
                     }
                     if (EditorTestNodes.Count > 0)
