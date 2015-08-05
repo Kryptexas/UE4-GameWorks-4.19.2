@@ -32,6 +32,7 @@ void FTextureDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	PowerOfTwoModePropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UTexture, PowerOfTwoMode));
 
 	// Customize MaxTextureSize
+	if( MaxTextureSizePropertyHandle->IsValidHandle() )
 	{
 		IDetailCategoryBuilder& CompressionCategory = DetailBuilder.EditCategory("Compression");
 		IDetailPropertyRow& MaxTextureSizePropertyRow = CompressionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UTexture, MaxTextureSize));
@@ -68,6 +69,7 @@ void FTextureDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	}
 
 	// Customize PowerOfTwoMode
+	if( PowerOfTwoModePropertyHandle->IsValidHandle() )
 	{
 		IDetailCategoryBuilder& TextureCategory = DetailBuilder.EditCategory("Texture");
 		IDetailPropertyRow& PowerOfTwoModePropertyRow = TextureCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UTexture, PowerOfTwoMode));
