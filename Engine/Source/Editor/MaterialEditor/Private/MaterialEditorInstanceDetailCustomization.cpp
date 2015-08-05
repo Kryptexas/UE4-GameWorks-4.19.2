@@ -187,7 +187,7 @@ void FMaterialInstanceParameterDetails::CreateParameterValueWidget(UDEditorParam
 		.EditCondition( IsParamEnabled, FOnBooleanValueChanged::CreateSP( this, &FMaterialInstanceParameterDetails::OnOverrideParameter, Parameter ) )
 		.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowExpression, Parameter)) )
 		// Handle reset to default manually
-		.OverrideResetToDefault( true, FSimpleDelegate::CreateSP( this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter ) );
+		.OverrideResetToDefault(FResetToDefaultOverride::Create(FResetToDefaultHandler::CreateSP(this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter)));
 	}
 }
 
@@ -206,7 +206,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow( ParameterValueProperty.ToSharedRef() );
 		PropertyRow.EditCondition( IsParamEnabled, FOnBooleanValueChanged::CreateSP( this, &FMaterialInstanceParameterDetails::OnOverrideParameter, Parameter ) );
 		// Handle reset to default manually
-		PropertyRow.OverrideResetToDefault( true, FSimpleDelegate::CreateSP( this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter ) );
+		PropertyRow.OverrideResetToDefault(FResetToDefaultOverride::Create(FResetToDefaultHandler::CreateSP(this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter)));
 		PropertyRow.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowExpression, Parameter)) );
 
 		const FText ParameterName = FText::FromName(Parameter->ParameterName); 
@@ -362,7 +362,7 @@ FText FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDEdi
 	return FText::GetEmpty();
 }
 
-void FMaterialInstanceParameterDetails::ResetToDefault( class UDEditorParameterValue* Parameter )
+void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
 {
 	const FScopedTransaction Transaction( LOCTEXT( "ResetToDefault", "Reset To Default" ) );
 	Parameter->Modify();

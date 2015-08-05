@@ -5,6 +5,7 @@
 
 class FPropertyNode;
 class IPropertyUtilities;
+class FResetToDefaultOverride;
 
 class FPropertyEditor : public TSharedFromThis< FPropertyEditor >	
 {
@@ -87,7 +88,7 @@ public:
 	void EmptyArray();
 	void Find();
 	void ResetToDefault();
-	void CustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate );
+	void CustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault);
 	void OnGetClassesForAssetPicker( TArray<const UClass*>& OutClasses );
 	void OnAssetSelected( const FAssetData& AssetData );
 	void OnActorSelected( AActor* InActor );
@@ -124,7 +125,7 @@ private:
 	void OnBrowseTo();
 	void OnEmptyArray();
 	void OnResetToDefault();
-	void OnCustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate );
+	void OnCustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault);
 
 	/**
 	 * Returns true if the value of the conditional property matches the value required.  Indicates whether editing or otherwise interacting with this item's

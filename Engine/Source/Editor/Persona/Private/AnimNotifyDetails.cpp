@@ -236,7 +236,7 @@ void FAnimNotifyDetails::ClearInstancedSelectionDropDown(IDetailCategoryBuilder&
 	IDetailPropertyRow& PropRow = CategoryBuilder.AddProperty(PropHandle);
 	
 	PropRow
-	.OverrideResetToDefault(false, FSimpleDelegate())
+	.OverrideResetToDefault(FResetToDefaultOverride::Hide())
 	.CustomWidget(bShowChildren)
 	.NameContent()
 	[
