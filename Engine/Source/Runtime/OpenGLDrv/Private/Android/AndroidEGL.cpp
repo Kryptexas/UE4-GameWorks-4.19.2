@@ -503,6 +503,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface)
 
 void AndroidEGL::ReInit()
 {
+	SetCurrentContext(EGL_NO_CONTEXT, EGL_NO_SURFACE);
 	InitSurface(false);
 	SetCurrentSharedContext();
 }

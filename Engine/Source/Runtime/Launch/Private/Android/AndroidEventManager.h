@@ -59,6 +59,7 @@ private:
 	void ResumeAudio();
 
 	void ExecWindowCreated();
+	void ExecWindowResized();
 	
 	static FAppEventManager* sInstance;
 

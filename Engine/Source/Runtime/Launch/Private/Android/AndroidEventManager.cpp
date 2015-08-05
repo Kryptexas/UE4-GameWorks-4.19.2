@@ -28,6 +28,8 @@ FAppEventManager* FAppEventManager::GetInstance()
 
 void FAppEventManager::Tick()
 {
+	bool bWindowCreatedThisTick = false;
+	
 	while (!Queue.IsEmpty())
 	{
 		bool bDestroyWindow = false;
@@ -41,11 +43,15 @@ void FAppEventManager::Tick()
 			bCreateWindow = true;
 			PendingWindow = (ANativeWindow*)Event.Data;
 			break;
+		
 		case APP_EVENT_STATE_WINDOW_RESIZED:
-			FAndroidApplication::OnWindowSizeChanged();
-			break;
 		case APP_EVENT_STATE_WINDOW_CHANGED:
-			FAndroidApplication::OnWindowSizeChanged();
+			// React on device orientation/windowSize changes only when application has window
+			// In case window was created this tick it should already has correct size
+			if (bHaveWindow && !bWindowCreatedThisTick)
+			{
+				ExecWindowResized();
+			}
 			break;
 		case APP_EVENT_STATE_SAVE_STATE:
 			bSaveState = true; //todo android: handle save state.
@@ -108,6 +114,7 @@ void FAppEventManager::Tick()
 				ExecWindowCreated();
 				bCreateWindow = false;
 				bHaveWindow = true;
+				bWindowCreatedThisTick = true;
 			}
 		}
 
@@ -276,8 +283,20 @@ void FAppEventManager::ExecWindowCreated()
 	// release it when window is finally initialized
 	FAndroidWindow::ReleaseWindowRef(PendingWindow);
 	PendingWindow = nullptr;
+
+	FAndroidApplication::OnWindowSizeChanged();
 }
 
+void FAppEventManager::ExecWindowResized()
+{
+	if (bRunning)
+	{
+		FlushRenderingCommands();
+	}
+	FAndroidWindow::InvalidateCachedScreenRect();
+	FAndroidAppEntry::ReInitWindow();
+	FAndroidApplication::OnWindowSizeChanged();
+}
 
 void FAppEventManager::PauseAudio()
 {
