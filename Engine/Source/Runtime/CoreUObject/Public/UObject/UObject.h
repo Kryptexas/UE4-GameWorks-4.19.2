@@ -624,6 +624,9 @@ public:
 	/** Called right after receiving a bunch */
 	virtual void PostNetReceive();
 
+	/** Called right after calling all OnRep notifies (called even when there are no notifies) */
+	virtual void PostRepNotifies() {}
+
 	/** Called right before being marked for destruction due to network replication */
 	virtual void PreDestroyFromReplication();
 

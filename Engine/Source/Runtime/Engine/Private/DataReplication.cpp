@@ -762,6 +762,11 @@ void FObjectReplicator::PostReceivedBunch()
 
 	// Call RepNotifies
 	CallRepNotifies(true);
+
+	if (!Object->IsPendingKill())
+	{
+		Object->PostRepNotifies();
+	}
 }
 
 static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, int32 OutAckPacketId )
