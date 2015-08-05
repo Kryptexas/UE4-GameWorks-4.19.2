@@ -5,6 +5,7 @@
 #include "AutomationEditorCommon.h"
 #include "AutomationCommon.h"
 #include "ShaderCompiler.h"
+#include "AssetEditorManager.h"
 
 #define ASSET_OPEN_INTERVAL 1.5f
 
