@@ -103,6 +103,16 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Adds a build product and its associated debug file to a receipt.
+		/// </summary>
+		/// <param name="OutputFile">Build product to add</param>
+		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
+		public override bool ShouldAddDebugFileToReceipt(string OutputFile, BuildProductType OutputType)
+		{
+			return OutputType == BuildProductType.Executable;
+		}
+
 		static bool bHasPrinted = false;
 		static string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
 		{
@@ -221,7 +231,7 @@ namespace UnrealBuildTool
 			{
 				if (Framework.OwningModule != null && Framework.FrameworkZipPath != null && Framework.FrameworkZipPath != "")
 				{
-					Result += " -F \"" + GetRemoteIntermediateFrameworkZipPath(Framework) + "\"";
+					Result += " -F\"" + GetRemoteIntermediateFrameworkZipPath(Framework) + "\"";
 				}
 			}
 
@@ -373,7 +383,7 @@ namespace UnrealBuildTool
 				if ( Framework.OwningModule != null && Framework.FrameworkZipPath != null && Framework.FrameworkZipPath != "" )
 				{
 					// If this framework has a zip specified, we'll need to setup the path as well
-					Result += " -F \"" + GetRemoteIntermediateFrameworkZipPath( Framework ) + "\"";
+					Result += " -F\"" + GetRemoteIntermediateFrameworkZipPath( Framework ) + "\"";
 				}
 
 				Result += " -framework " + Framework.FrameworkName;

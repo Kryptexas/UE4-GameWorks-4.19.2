@@ -40,6 +40,8 @@ namespace UnrealBuildTool
 
 		void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary);
 
+		bool ShouldAddDebugFileToReceipt(string OutputFile, BuildProductType OutputType);
+
 		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
 
 		void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries);
@@ -174,6 +176,16 @@ namespace UnrealBuildTool
 
 		public virtual void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
 		{
+		}
+
+		/// <summary>
+		/// Adds a build product and its associated debug file to a receipt.
+		/// </summary>
+		/// <param name="OutputFile">Build product to add</param>
+		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
+		public virtual bool ShouldAddDebugFileToReceipt(string OutputFile, BuildProductType OutputType)
+		{
+			return true;
 		}
 
 		protected void AddPrerequisiteSourceFile( UEBuildTarget Target, IUEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems )

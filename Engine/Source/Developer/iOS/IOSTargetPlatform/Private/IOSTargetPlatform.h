@@ -110,7 +110,7 @@ public:
 		OutSection = TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings");
 		InBoolKeys.Add(TEXT("bDevForArmV7")); InBoolKeys.Add(TEXT("bDevForArm64")); InBoolKeys.Add(TEXT("bDevForArmV7S"));
 		InBoolKeys.Add(TEXT("bShipForArmV7")); InBoolKeys.Add(TEXT("bShipForArm64")); InBoolKeys.Add(TEXT("bShipForArmV7S"));
-		InBoolKeys.Add(TEXT("bGenerateSYMFile"));
+		InBoolKeys.Add(TEXT("bGeneratedSYMFile"));
 		InStringKeys.Add(TEXT("MinimumiOSVersion"));
 	}
 

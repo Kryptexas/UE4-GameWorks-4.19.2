@@ -237,7 +237,7 @@ namespace UnrealBuildTool
 				}
 
 				// determine if we need to generate the dsym
-				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
 
 				bInitializedProject = true;
 			}
@@ -252,7 +252,7 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
-				"bShipForArm64", "bShipForArmV7S", "bGenerateSYMFile",
+				"bShipForArm64", "bShipForArmV7S", "bGeneratedSYMFile",
 			};
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 
