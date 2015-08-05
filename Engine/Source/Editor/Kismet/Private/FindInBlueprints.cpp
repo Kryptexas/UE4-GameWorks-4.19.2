@@ -1041,7 +1041,7 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 				.Padding(0, 2)
 				[
 					SNew(STextBlock)
-					.Font( FEditorStyle::GetFontStyle("AssetDiscoveryIndicator.DiscovertingAssetsFont") )
+					.Font( FEditorStyle::GetFontStyle("AssetDiscoveryIndicator.MainStatusFont") )
 					.Text( LOCTEXT("SearchResults", "Searching...") )
 					.Visibility(this, &SFindInBlueprints::GetSearchbarVisiblity)
 				]

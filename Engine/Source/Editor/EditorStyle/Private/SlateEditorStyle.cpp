@@ -5548,7 +5548,6 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 
 		// Misc
 		Set( "ContentBrowser.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow" , FMargin( 4.0f / 64.0f ) ) );
-		Set( "AssetDiscoveryIndicator.DiscovertingAssetsFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
 		Set( "ContentBrowser.ColumnViewAssetIcon", new IMAGE_BRUSH( "Icons/doc_16x", Icon16x16 ) );
 		Set( "ContentBrowser.ColumnViewFolderIcon", new IMAGE_BRUSH( "Icons/FolderClosed", FVector2D(18, 16) ) );
 		Set( "ContentBrowser.ColumnViewDeveloperFolderIcon", new IMAGE_BRUSH( "Icons/FolderDeveloper", FVector2D(18, 16) ) );
@@ -5601,6 +5600,9 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		Set( "ContentBrowser.Private.Small", new IMAGE_BRUSH( "ContentBrowser/Content_Private_16x", Icon16x16 ) );
 		Set( "ContentBrowser.Private.Large", new IMAGE_BRUSH( "ContentBrowser/Content_Private_64x", Icon64x64 ) );
 		Set( "ContentBrowser.CollectionStatus", new IMAGE_BRUSH( "/Icons/CollectionStatus_8x", Icon8x8 ) );
+
+		Set( "AssetDiscoveryIndicator.MainStatusFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
+		Set( "AssetDiscoveryIndicator.SubStatusFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 	}
 #endif // #if WITH_EDITOR
 }

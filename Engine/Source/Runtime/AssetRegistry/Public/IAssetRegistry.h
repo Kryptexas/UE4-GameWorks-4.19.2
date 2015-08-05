@@ -213,8 +213,25 @@ public:
 	DECLARE_EVENT( IAssetRegistry, FFilesLoadedEvent );
 	virtual FFilesLoadedEvent& OnFilesLoaded() = 0;
 
+	/** Payload data for a file progress update */
+	struct FFileLoadProgressUpdateData
+	{
+		FFileLoadProgressUpdateData(int32 InNumTotalAssets, int32 InNumAssetsProcessedByAssetRegistry, int32 InNumAssetsPendingDataLoad, bool InIsDiscoveringAssetFiles)
+			: NumTotalAssets(InNumTotalAssets)
+			, NumAssetsProcessedByAssetRegistry(InNumAssetsProcessedByAssetRegistry)
+			, NumAssetsPendingDataLoad(InNumAssetsPendingDataLoad)
+			, bIsDiscoveringAssetFiles(InIsDiscoveringAssetFiles)
+		{
+		}
+
+		int32 NumTotalAssets;
+		int32 NumAssetsProcessedByAssetRegistry;
+		int32 NumAssetsPendingDataLoad;
+		bool bIsDiscoveringAssetFiles;
+	};
+
 	/** Event to update the progress of the background file load */
-	DECLARE_EVENT_TwoParams( IAssetRegistry, FFileLoadProgressUpdatedEvent, int32 /*NumAssetsDiscovered*/, int32 /*TotalAssets*/ );
+	DECLARE_EVENT_OneParam( IAssetRegistry, FFileLoadProgressUpdatedEvent, const FFileLoadProgressUpdateData& /*ProgressUpdateData*/ );
 	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() = 0;
 
 	/** Returns true if the asset registry is currently loading files and does not yet know about all assets */

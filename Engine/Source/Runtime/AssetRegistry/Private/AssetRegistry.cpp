@@ -1362,13 +1362,14 @@ void FAssetRegistry::Tick(float DeltaTime)
 	double TickStartTime = FPlatformTime::Seconds();
 
 	// Gather results from the background search
-	int32 NumFilesToSearch = 0;
-	int32 NumPathsToSearch = 0;
 	bool bIsSearching = false;
 	TArray<double> SearchTimes;
+	int32 NumFilesToSearch = 0;
+	int32 NumPathsToSearch = 0;
+	bool bIsDiscoveringFiles = false;
 	if ( BackgroundAssetSearch.IsValid() )
-	{		
-		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch);
+	{
+		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
 	}
 
 	// Report the search times
@@ -1384,6 +1385,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 	}
 
 	// Process the asset results
+	const bool bHadAssetsToProcess = BackgroundAssetResults.Num() > 0;
 	if ( BackgroundAssetResults.Num() )
 	{
 		// Mark the first amortize time
@@ -1399,18 +1401,24 @@ void FAssetRegistry::Tick(float DeltaTime)
 			TotalAmortizeTime += FPlatformTime::Seconds() - AmortizeStartTime;
 			AmortizeStartTime = 0;
 		}
-
-		// Notify the status change
-		int32 NumDiscoveredAssets = CachedAssetsByObjectPath.Num();
-		// Total assets may not be accurate if some files to search are not UAsset files. This number may fluctuate a little as packages are searched.
-		int32 TotalAssets = NumDiscoveredAssets + BackgroundAssetResults.Num() + NumFilesToSearch;
-		FileLoadProgressUpdatedEvent.Broadcast(NumDiscoveredAssets, TotalAssets);
 	}
 
 	// Add dependencies
 	if ( BackgroundDependencyResults.Num() )
 	{
 		DependencyDataGathered(TickStartTime, BackgroundDependencyResults);
+	}
+
+	// Notify the status change
+	if (bIsSearching || bHadAssetsToProcess)
+	{
+		const FFileLoadProgressUpdateData ProgressUpdateData(
+			CachedAssetsByObjectPath.Num() + BackgroundAssetResults.Num() + NumFilesToSearch,	// NumTotalAssets
+			CachedAssetsByObjectPath.Num(),														// NumAssetsProcessedByAssetRegistry
+			NumFilesToSearch,																	// NumAssetsPendingDataLoad
+			bIsDiscoveringFiles																	// bIsDiscoveringAssetFiles
+			);
+		FileLoadProgressUpdatedEvent.Broadcast(ProgressUpdateData);
 	}
 
 	// If completing an initial search, refresh the content browser
@@ -1790,7 +1798,8 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 		TArray<double> SearchTimes;
 		int32 NumFilesToSearch = 0;
 		int32 NumPathsToSearch = 0;
-		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch);
+		bool bIsDiscoveringFiles = false;
+		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
 
 		// Cache the search results
 		const int32 NumResults = AssetResults.Num();
