@@ -1090,9 +1090,9 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
-	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread() && FApp::ShouldUseThreadingForPerformance() && !GetWorld()->IsPaused();
+	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread() && FApp::ShouldUseThreadingForPerformance();
 
-	const bool bDoParallelEvaluation = bShouldDoEvaluation && TickFunction && bDoPAE;
+	const bool bDoParallelEvaluation = bDoPAE && bShouldDoEvaluation && TickFunction && TickFunction->IsCompletionHandleValid();
 
 	const bool bBlockOnTask = !bDoParallelEvaluation;   // If we aren't trying to do parallel evaluation then we
 														// will need to wait on an existing task.
