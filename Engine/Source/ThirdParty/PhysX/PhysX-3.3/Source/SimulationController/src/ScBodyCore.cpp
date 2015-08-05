@@ -140,14 +140,10 @@ void Sc::BodyCore::addSpatialAcceleration(Ps::Pool<SimStateData>* simStateDataPo
 	//the expense of querying the simStateData for the velmod values.
 	BodySim* sim = getSim();
 	if(sim)
-	{
 		sim->notifyAddSpatialAcceleration();
-	}
 
 	if(!mSimStateData || !mSimStateData->isVelMod())
-	{
 		setupSimStateData(simStateDataPool, false);
-	}
 
 	VelocityMod* velmod = mSimStateData->getVelocityModData();
 	velmod->notifyAddAcceleration();
@@ -197,6 +193,8 @@ void Sc::BodyCore::addSpatialVelocity(Ps::Pool<SimStateData>* simStateDataPool, 
 
 void Sc::BodyCore::clearSpatialVelocity(bool force, bool torque)
 {
+	PX_ASSERT(force || torque);
+
 	//The dirty flag is stored separately in the BodySim so that we query the dirty flag before going to 
 	//the expense of querying the simStateData for the velmod values.
 	BodySim* sim = getSim();

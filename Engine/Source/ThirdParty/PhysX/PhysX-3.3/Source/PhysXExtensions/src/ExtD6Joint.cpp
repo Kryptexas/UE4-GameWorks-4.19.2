@@ -385,10 +385,10 @@ PxQuat angularProject(PxU32 lockedDofs, const PxQuat& q, PxReal cosHalfTol, bool
 	case 0: return q;
 	case 1: return q;		// currently unimplemented
 	case 2: return q;		// currently unimplemented
-	case 3: return project(q, PxVec3(0, 0, 1), cosHalfTol, truncated);
+	case 3: return project(q, PxVec3(0.0f, 0.0f, 1.0f), cosHalfTol, truncated);
 	case 4: return q;		// currently unimplemented
-	case 5: return project(q, PxVec3(0, 1, 0), cosHalfTol, truncated);
-	case 6: return project(q, PxVec3(1, 0, 0), cosHalfTol, truncated);
+	case 5: return project(q, PxVec3(0.0f, 1.0f, 0.0f), cosHalfTol, truncated);
+	case 6: return project(q, PxVec3(1.0f, 0.0f, 0.0f), cosHalfTol, truncated);
 	case 7: return truncate(q, cosHalfTol, truncated);
 	default: return PxQuat(PxIdentity);
 	}

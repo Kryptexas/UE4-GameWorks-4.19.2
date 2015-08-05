@@ -162,9 +162,13 @@ void NpPhysics::initOffsetTables(PxvOffsetTable& pxvOffsetTable)
 		offsetTable.scArticulation2Px					= -reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<NpArticulation*>(0)->getScbArticulation()))	- static_cast<ptrdiff_t>(Scb::Articulation::getScOffset());
 		offsetTable.scConstraint2Px						= -reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<NpConstraint*>(0)->getScbConstraint()))		- static_cast<ptrdiff_t>(Scb::Constraint::getScOffset());
 		offsetTable.scShape2Px							= -reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<NpShape*>(0)->getScbShape()))					- static_cast<ptrdiff_t>(Scb::Shape::getScOffset());
+#if PX_USE_PARTICLE_SYSTEM_API
 		offsetTable.scParticleSystem2PxParticleFluid	= -reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<NpParticleFluid*>(0)->getScbParticleSystem())) - static_cast<ptrdiff_t>(Scb::ParticleSystem::getScOffset());	
 		offsetTable.scParticleSystem2Px					= -reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<NpParticleSystem*>(0)->getScbParticleSystem())) - static_cast<ptrdiff_t>(Scb::ParticleSystem::getScOffset());	
+#endif
+#if PX_USE_CLOTH_API
 		offsetTable.scCloth2Px							= -reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<NpCloth*>(0)->getScbCloth()))					- static_cast<ptrdiff_t>(Scb::Cloth::getScOffset());	
+#endif
 	}
 	{
 		Sq::OffsetTable& offsetTable =  Sq::gOffsetTable;

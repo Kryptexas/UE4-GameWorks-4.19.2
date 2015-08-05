@@ -63,7 +63,17 @@ template<class T> T* resizePODArray(const PxU32 oldMaxNb, const PxU32 newMaxNb, 
 	return newElements;
 }
 
-
+template<class T> T* resizePODArray(const PxU32 oldMaxNb, const PxU32 newMaxNb, PxcScratchAllocator* scratchAllocator, T* elements)
+{
+	PX_ASSERT(newMaxNb > oldMaxNb);
+	PX_ASSERT(newMaxNb > 0);
+	PX_ASSERT(0==((newMaxNb*sizeof(T)) & 15)); 
+	T* newElements = (T*)scratchAllocator->alloc(sizeof(T)*newMaxNb, true);
+	PX_ASSERT(0==((uintptr_t)newElements & 0x0f));
+	copyPodArray<T>(newElements, elements, newMaxNb, oldMaxNb);
+	if(elements) scratchAllocator->free(elements);
+	return newElements;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 

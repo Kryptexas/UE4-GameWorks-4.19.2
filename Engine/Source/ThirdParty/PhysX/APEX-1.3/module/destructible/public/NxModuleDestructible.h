@@ -22,6 +22,8 @@ class NxActorDesc;
 class NxScene;
 #endif
 
+#define APEX_RUNTIME_FRACTURE 0
+
 #ifndef APEX_RUNTIME_FRACTURE
 #if (NX_SDK_VERSION_MAJOR == 3)
 #define APEX_RUNTIME_FRACTURE 1

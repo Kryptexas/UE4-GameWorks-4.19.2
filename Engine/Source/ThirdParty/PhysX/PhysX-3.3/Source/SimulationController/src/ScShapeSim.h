@@ -88,7 +88,7 @@ namespace Sc
 						void							onRestOffsetChange();
 						void							onFlagChange(PxShapeFlags oldFlags);
 						void							onResetFiltering();
-						void							onGeometryChange();
+						void							onVolumeChange();
 						void							onTransformChange();
 						void							onMaterialChange();  // remove when material properties are gone from PxcNpWorkUnit
 

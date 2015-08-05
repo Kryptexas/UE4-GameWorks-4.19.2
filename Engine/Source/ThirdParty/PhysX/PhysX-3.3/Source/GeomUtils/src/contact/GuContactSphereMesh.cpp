@@ -26,7 +26,7 @@ using namespace physx;
 using namespace Gu;
 
 #ifdef __SPU__
-extern unsigned char HeightFieldBuffer[sizeof(Gu::HeightField)+16];
+extern unsigned char HeightFieldBuffer[sizeof(HeightField)+16];
 #include "CmMemFetch.h"
 #endif
 
@@ -386,6 +386,7 @@ struct SphereMeshContactGeneration
 				case FC_FACE:
 				case FC_UNDEFINED:
 					PX_ASSERT(0);	// PT: should not be possible
+					break;
 				default:
 					break;
 			};
@@ -452,10 +453,11 @@ struct SphereMeshContactGenerationCallback_Scale : SphereMeshContactGenerationCa
 	virtual PxAgain processHit(
 		const PxRaycastHit& hit, const PxVec3& v0, const PxVec3& v1, const PxVec3& v2, PxReal&, const PxU32* vinds)
 	{
-		const PxVec3 v0b = mMeshScaling * v0;
-		const PxVec3 v1b = mMeshScaling * v1;
-		const PxVec3 v2b = mMeshScaling * v2;
-		mGeneration.processTriangle(hit.faceIndex, v0b, v1b, v2b, vinds);
+		PxVec3 verts[3];
+		getScaledVertices(verts, v0, v1, v2, false, mMeshScaling);
+
+		mGeneration.processTriangle(hit.faceIndex, verts[0], verts[1], verts[2], vinds);
+
 		return true;
 	}
 protected:
@@ -480,13 +482,8 @@ bool Gu::contactSphereMesh(GU_CONTACT_METHOD_ARGS)
 	Cm::memFetchAlignedAsync(PxU64(meshDataBuf), PxU64(shapeMesh.meshData), sizeof(InternalTriangleMeshData), 5);
 #endif
 
-	Cm::FastVertex2ShapeScaling meshScaling;	// PT: TODO: get rid of default ctor :(
-	const bool idtMeshScale = shapeMesh.scale.isIdentity();
-	if(!idtMeshScale)
-		meshScaling.init(shapeMesh.scale);
-
 	// We must be in local space to use the cache
-	const PxVec3 sphereCenterShape1Space = transform1.transformInv(transform0.p);
+	const PxVec3 sphereCenterInMeshSpace = transform1.transformInv(transform0.p);
 	const PxReal inflatedRadius = shapeSphere.radius + contactDistance;
 
 #ifdef __SPU__
@@ -496,36 +493,39 @@ bool Gu::contactSphereMesh(GU_CONTACT_METHOD_ARGS)
 	const InternalTriangleMeshData* meshData = shapeMesh.meshData;
 #endif
 
-	Gu::RTreeMidphaseData hmd;
+	RTreeMidphaseData hmd;
 	meshData->mCollisionModel.getRTreeMidphaseData(hmd);
 
-	PxVec3 obbCenter = sphereCenterShape1Space;
-	PxVec3 obbExtents = PxVec3(inflatedRadius);
-	PxMat33 obbRot(PxIdentity);
-	if(!idtMeshScale)
-		meshScaling.transformQueryBounds(obbCenter, obbExtents, obbRot);
-
-	const Gu::Box obb(obbCenter, obbExtents, obbRot);
 	MPT_SET_CONTEXT("cosm", transform1, shapeMesh.scale);
 	// mesh scale is not baked into cached verts
-	if(!idtMeshScale)
+	if(shapeMesh.scale.isIdentity())
 	{
-		SphereMeshContactGenerationCallback_Scale callback(
-			*meshData, shapeSphere,
-			transform0, transform1,
-			meshScaling, contactBuffer,
-			sphereCenterShape1Space, inflatedRadius);
-		Gu::MeshRayCollider::collideOBB(obb, true, hmd, callback);
+		SphereMeshContactGenerationCallback_NoScale callback(
+			*meshData, shapeSphere, transform0, transform1,
+			contactBuffer, sphereCenterInMeshSpace, inflatedRadius);
+
+		// PT: TODO: switch to sphere query here
+		const Box obb(sphereCenterInMeshSpace, PxVec3(inflatedRadius), PxMat33(PxIdentity));
+		MeshRayCollider::collideOBB(obb, true, hmd, callback);
 	}
 	else
 	{
-		SphereMeshContactGenerationCallback_NoScale callback(
-			*meshData, shapeSphere,
-			transform0, transform1,
-			contactBuffer, sphereCenterShape1Space, inflatedRadius);
-		Gu::MeshRayCollider::collideOBB(obb, true, hmd, callback);
+		const Cm::FastVertex2ShapeScaling meshScaling(shapeMesh.scale);
+
+		SphereMeshContactGenerationCallback_Scale callback(
+			*meshData, shapeSphere, transform0, transform1,
+			meshScaling, contactBuffer, sphereCenterInMeshSpace, inflatedRadius);
+
+		PxVec3 obbCenter = sphereCenterInMeshSpace;
+		PxVec3 obbExtents = PxVec3(inflatedRadius);
+		PxMat33 obbRot(PxIdentity);
+		meshScaling.transformQueryBounds(obbCenter, obbExtents, obbRot);
+
+		const Box obb(obbCenter, obbExtents, obbRot);
+
+		MeshRayCollider::collideOBB(obb, true, hmd, callback);
 	}
-	return (contactBuffer.count > 0);
+	return contactBuffer.count > 0;
 }
 }
 
@@ -533,21 +533,21 @@ bool Gu::contactSphereMesh(GU_CONTACT_METHOD_ARGS)
 
 namespace
 {
-struct SphereHeightfieldContactGenerationCallback : Gu::EntityReport<PxU32>
+struct SphereHeightfieldContactGenerationCallback : EntityReport<PxU32>
 {
 	SphereMeshContactGeneration mGeneration;
-	Gu::HeightFieldUtil&		mHfUtil;
+	HeightFieldUtil&			mHfUtil;
 
 	SphereHeightfieldContactGenerationCallback(
-		Gu::HeightFieldUtil&	hfUtil,
+		HeightFieldUtil&		hfUtil,
 		const PxSphereGeometry&	shapeSphere,
 		const PxTransform&		transform0,
 		const PxTransform&		transform1,
 		ContactBuffer&			contactBuffer,
-		const PxVec3&			sphereCenterShape1Space,
+		const PxVec3&			sphereCenterInMeshSpace,
 		PxF32					inflatedRadius
 	) :
-		mGeneration	(shapeSphere, transform0, transform1, contactBuffer, sphereCenterShape1Space, inflatedRadius),
+		mGeneration	(shapeSphere, transform0, transform1, contactBuffer, sphereCenterInMeshSpace, inflatedRadius),
 		mHfUtil		(hfUtil)
 	{
 	}
@@ -580,30 +580,30 @@ bool Gu::contactSphereHeightField(GU_CONTACT_METHOD_ARGS)
 	const PxHeightFieldGeometryLL& shapeMesh = shape1.get<const PxHeightFieldGeometryLL>();
 
 #ifdef __SPU__
-	const Gu::HeightField& hf = *Cm::memFetchAsync<const Gu::HeightField>(HeightFieldBuffer, Cm::MemFetchPtr(static_cast<Gu::HeightField*>(shapeMesh.heightField)), sizeof(Gu::HeightField), 1);
+	const HeightField& hf = *Cm::memFetchAsync<const HeightField>(HeightFieldBuffer, Cm::MemFetchPtr(static_cast<HeightField*>(shapeMesh.heightField)), sizeof(HeightField), 1);
 	Cm::memFetchWait(1);
 #if HF_TILED_MEMORY_LAYOUT
 	g_sampleCache.init((uintptr_t)(hf.getData().samples), hf.getData().tilesU);
 #endif
 #else
-	const Gu::HeightField& hf = *static_cast<Gu::HeightField*>(shapeMesh.heightField);
+	const HeightField& hf = *static_cast<HeightField*>(shapeMesh.heightField);
 #endif
-	Gu::HeightFieldUtil hfUtil(shapeMesh, hf);
+	HeightFieldUtil hfUtil(shapeMesh, hf);
 
-	const PxVec3 sphereCenterShape1Space = transform1.transformInv(transform0.p);
+	const PxVec3 sphereCenterInMeshSpace = transform1.transformInv(transform0.p);
 	const PxReal inflatedRadius = shapeSphere.radius + contactDistance;
 	const PxVec3 inflatedRV3(inflatedRadius);
 
-	const PxBounds3 bounds(sphereCenterShape1Space - inflatedRV3, sphereCenterShape1Space + inflatedRV3);
+	const PxBounds3 bounds(sphereCenterInMeshSpace - inflatedRV3, sphereCenterInMeshSpace + inflatedRV3);
 
-	SphereHeightfieldContactGenerationCallback blockCallback(hfUtil, shapeSphere, transform0, transform1, contactBuffer, sphereCenterShape1Space, inflatedRadius);
+	SphereHeightfieldContactGenerationCallback blockCallback(hfUtil, shapeSphere, transform0, transform1, contactBuffer, sphereCenterInMeshSpace, inflatedRadius);
 
 	MPT_SET_CONTEXT("cosh", PxTransform(), PxMeshScale());
 	hfUtil.overlapAABBTriangles(transform1, bounds, 0, &blockCallback);
 
 	blockCallback.mGeneration.generateLastContacts();
 
-	return (contactBuffer.count > 0);
+	return contactBuffer.count > 0;
 }
 
 }

@@ -116,7 +116,6 @@ namespace physx
 
 	class PxsMaterialManagerIterator
 	{
-	
 	public:
 		PxsMaterialManagerIterator(PxsMaterialManager& manager) : mManager(manager), mIndex(0)
 		{
@@ -137,9 +136,8 @@ namespace physx
 
 	private:
 		PxsMaterialManagerIterator& operator=(const PxsMaterialManagerIterator&);
-		PxsMaterialManager&	mManager;
+		PxsMaterialManager& mManager;
 		PxU32				mIndex;
-
 	};
 
 }
