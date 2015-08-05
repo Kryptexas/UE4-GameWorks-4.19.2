@@ -70,7 +70,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 				{
 					const uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
 
-					if (EnumValue >= 0 && EnumValue < ByteProperty->Enum->GetMaxEnumValue() + 1)
+					if (ByteProperty->Enum->IsValidEnumValue(EnumValue))
 					{
 						// See if we specified an alternate name for this value using metadata
 						OutString = ByteProperty->Enum->GetDisplayNameTextByValue(EnumValue).ToString();
