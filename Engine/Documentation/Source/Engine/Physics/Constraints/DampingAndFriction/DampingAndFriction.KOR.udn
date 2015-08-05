@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609454
+﻿INTSourceChangelist:2643865
 Availability: Public
 Title:피직스 제동
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -35,7 +35,7 @@ Angular Damping (각형 제동)입니다. 피직스 바디나 컨스트레인트
 피직스 컨스트레인트의 모션을 한계치까지 설정하면 **Soft Limits** 가 표시됩니다:
 
 [REGION:raw]
-![](Phys_ConstraintDampProps.png)(convert:false)
+![](AngularAndDamping.png)(convert:false)
 [/REGION]
 
 _두 Angular Swing Motions (각형 스윙 모션) 이 제동 값을 공유하고, Angular Twist (각형 트위스트)는 별도의 제동 값을 갖고, 모든 선형 축은 같은 제동 값을 사용합니다. 
