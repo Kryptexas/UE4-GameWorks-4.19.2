@@ -1646,7 +1646,7 @@ public:
 	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const T EnumValue )
 	{
 		// For the C++ enum.
-		static_assert(IS_ENUM(T), "Should only call this with enum types");
+		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
 		return GetValueAsString_Internal(EnumPath, (int32)EnumValue);
 	}
 
@@ -1672,7 +1672,7 @@ public:
 	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumValue )
 	{
 		// For the C++ enum.
-		static_assert(IS_ENUM(T), "Should only call this with enum types");
+		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
 		return GetDisplayValueAsText_Internal(EnumPath, (int32)EnumValue);
 	}
 

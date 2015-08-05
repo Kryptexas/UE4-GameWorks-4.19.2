@@ -182,7 +182,7 @@ template<typename T> struct TIsLValueReferenceType     { enum { Value = false };
 template<typename T> struct TIsLValueReferenceType<T&> { enum { Value = true  }; };
 
 /**
- * TIsLValueReferenceType
+ * TIsRValueReferenceType
  */
 template<typename T> struct TIsRValueReferenceType      { enum { Value = false }; };
 template<typename T> struct TIsRValueReferenceType<T&&> { enum { Value = true  }; };
@@ -606,3 +606,14 @@ struct TIsEnum
 {
 	enum { Value = IS_ENUM(T) };
 };
+
+/*-----------------------------------------------------------------------------
+ * Undef Macros abstracting the presence of certain compiler intrinsic type traits
+ -----------------------------------------------------------------------------*/
+#undef IS_EMPTY
+#undef IS_ENUM
+#undef IS_POD
+#undef HAS_TRIVIAL_COPY
+#undef HAS_TRIVIAL_ASSIGN
+#undef HAS_TRIVIAL_DESTRUCTOR
+#undef HAS_TRIVIAL_CONSTRUCTOR
