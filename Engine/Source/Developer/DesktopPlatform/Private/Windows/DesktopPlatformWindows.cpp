@@ -146,27 +146,37 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 
 bool FDesktopPlatformWindows::CanOpenLauncher(bool Install)
 {
+	FRegistryRootedKey UriProtocolKey(HKEY_CLASSES_ROOT, TEXT("com.epicgames.launcher"));
+
 	// Check if the launcher exists, or (optionally) if the installer exists
 	FString Path;
-	return GetLauncherPath(Path) || (Install && GetLauncherInstallerPath(Path));
+	return UriProtocolKey.Exists() || (Install && GetLauncherInstallerPath(Path));
 }
 
-bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString CommandLineParams )
+bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString LauncherRelativeUrl, FString CommandLineParams)
 {
+	FRegistryRootedKey UriProtocolKey(HKEY_CLASSES_ROOT, TEXT("com.epicgames.launcher"));
+	FString InstallerPath;
+
 	// Try to launch it directly
-	FString LauncherPath;
-	if(GetLauncherPath(LauncherPath))
+	if (UriProtocolKey.Exists())
 	{
+		if (LauncherRelativeUrl.IsEmpty())
+		{
+			LauncherRelativeUrl = TEXT("ue");
+		}
+
 		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 		{
 			CommandLineParams += TEXT(" -noselfupdate");
 		}
-		return FPlatformProcess::CreateProc(*LauncherPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LauncherPath), NULL).IsValid();
-	}
 
+		FString Error;
+		FPlatformProcess::LaunchURL(*FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl), *CommandLineParams, &Error);
+		return true;
+	}
 	// Otherwise see if we can install it
-	FString InstallerPath;
-	if(Install && GetLauncherInstallerPath(InstallerPath))
+	else if(Install && GetLauncherInstallerPath(InstallerPath))
 	{
 		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
 		return true;
@@ -175,52 +185,15 @@ bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString CommandLinePara
 	return false;
 }
 
-bool FDesktopPlatformWindows::GetLauncherPath(FString& OutLauncherPath)
-{
-	// Try the default executable in the binaries directory
-	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
-	{
-		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"), TEXT("UnrealEngineLauncher-Win64-Debug.exe"));
-		if(FPaths::FileExists(LauncherPath))
-		{
-			OutLauncherPath = LauncherPath;
-			return true;
-		}
-	}
-	else
-	{
-		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("../../Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
-		if(FPaths::FileExists(LauncherPath))
-		{
-			OutLauncherPath = LauncherPath;
-			return true;
-		}
-	}
-
-	// Otherwise locate it in the Registry...
-	FString InstallDir;
-	if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\EpicGames\\Unreal Engine"), TEXT("InstallDir"), InstallDir) && (InstallDir.Len() > 0))
-	{
-		FString LauncherPath = FPaths::Combine(*InstallDir, TEXT("Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
-		if(FPaths::FileExists(LauncherPath))
-		{
-			OutLauncherPath = LauncherPath;
-			return true;
-		}
-	}
-
-	// Otherwise fail
-	return false;
-}
-
 bool FDesktopPlatformWindows::GetLauncherInstallerPath(FString& OutInstallerPath)
 {
-	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngineInstaller.msi")));
-	if(FPaths::FileExists(InstallerPath))
+	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/EpicGamesLauncherInstaller.msi")));
+	if (FPaths::FileExists(InstallerPath))
 	{
 		OutInstallerPath = InstallerPath;
 		return true;
 	}
+
 	return false;
 }
 

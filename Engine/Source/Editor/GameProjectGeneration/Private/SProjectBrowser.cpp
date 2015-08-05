@@ -1230,7 +1230,7 @@ FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 
-		if (DesktopPlatform->OpenLauncher(false, TEXT("-OpenMarket")))
+		if (DesktopPlatform->OpenLauncher(false, TEXT("ue/marketplace"), FString()))
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
 		}
@@ -1240,7 +1240,7 @@ FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 
 			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 			{
-				if (!DesktopPlatform->OpenLauncher(true, TEXT("-OpenMarket")))
+				if (!DesktopPlatform->OpenLauncher(true, TEXT("ue/marketplace"), FString()))
 				{
 					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
 					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));
