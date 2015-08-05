@@ -133,7 +133,7 @@ private:
 	/** 
 	 * Creates geometry for a section without space for the handles
 	 */
-	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& SectionInterface ) const;
+	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const;
 
 private:
 	/** Interface to section data */
