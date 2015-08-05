@@ -2186,8 +2186,13 @@ void FPhAT::OnResetBoneCollision()
 			int32 BoneIndex = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(BodySetup->BoneName);
 			check(BoneIndex != INDEX_NONE);
 
-			FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, SharedData->EditorSkelMesh, BoneIndex, SharedData->NewBodyData, (SharedData->NewBodyData.VertWeight == EVW_DominantWeight)? SharedData->DominantWeightBoneInfos: SharedData->AnyWeightBoneInfos);
-			BodyIndices.AddUnique(SharedData->SelectedBodies[i].Index);
+			if(FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, SharedData->EditorSkelMesh, BoneIndex, SharedData->NewBodyData, (SharedData->NewBodyData.VertWeight == EVW_DominantWeight)? SharedData->DominantWeightBoneInfos: SharedData->AnyWeightBoneInfos))
+			{
+				BodyIndices.AddUnique(SharedData->SelectedBodies[i].Index);
+			}else
+			{
+				FPhysicsAssetUtils::DestroyBody(SharedData->PhysicsAsset, SharedData->SelectedBodies[i].Index);
+			}
 		}
 
 		//deselect first
