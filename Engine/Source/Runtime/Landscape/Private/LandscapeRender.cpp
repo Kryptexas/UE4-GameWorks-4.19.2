@@ -619,7 +619,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	ComponentLightInfo = MakeUnique<FLandscapeLCI>(InComponent);
 	check(ComponentLightInfo);
 
-	const bool bHasStaticLighting = InComponent->LightMap != nullptr || InComponent->ShadowMap != nullptr;
+	const bool bHasStaticLighting = InComponent->bHasCachedStaticLighting;
 
 	// Check material usage
 	if (MaterialInterface == nullptr ||
