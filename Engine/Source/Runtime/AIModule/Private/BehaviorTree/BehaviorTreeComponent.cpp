@@ -1175,6 +1175,22 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		{
 			const FBTNodeIndex NextTaskIdx(ActiveInstanceIdx, NextTask->GetExecutionIndex());
 			bIsSearchValid = NextTaskIdx.TakesPriorityOver(ExecutionRequest.SearchEnd);
+			
+			// is new task is valid, but wants to ignore rerunning itself
+			// check it's the same as active node (or any of active parallel tasks)
+			if (bIsSearchValid && NextTask->ShouldIgnoreRestartSelf())
+			{
+				for (int32 TestInstanceIdx = 0; TestInstanceIdx <= ActiveInstanceIdx; TestInstanceIdx++)
+				{
+					const bool bIsTaskRunning = InstanceStack[TestInstanceIdx].HasActiveNode(NextTaskIdx.ExecutionIndex);
+					if (bIsTaskRunning)
+					{
+						BT_SEARCHLOG(SearchData, Verbose, TEXT("Task doesn't allow restart and it's already running! Discaring search."));
+						bIsSearchValid = false;
+						break;
+					}
+				}
+			}
 		}
 
 		if (bIsSearchValid)

@@ -349,4 +349,9 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct 
 	return ChatChrome;
 }
 
+void FFriendsAndChatManager::OnSendPartyInvitationCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, ESendInviteCompleteResult Result, const FUniqueNetId& RecipientId)
+{
+	OnSendPartyInvitationComplete().Broadcast(LocalUserId, PartyId, Result, RecipientId);
+}
+
 #undef LOCTEXT_NAMESPACE

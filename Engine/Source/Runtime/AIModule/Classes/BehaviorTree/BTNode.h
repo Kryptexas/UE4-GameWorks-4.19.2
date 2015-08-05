@@ -138,7 +138,7 @@ class AIMODULE_API UBTNode : public UObject, public IGameplayTaskOwnerInterface
 	virtual bool UsesBlueprint() const;
 #endif
 
-	/** Gets called only for instanced nodes(bCreateNodeInstance == true). In practive overriden by BP-implemented BT nodes */
+	/** Gets called only for instanced nodes(bCreateNodeInstance == true). In practive overridden by BP-implemented BT nodes */
 	virtual void SetOwner(AActor* ActorOwner) {}
 
 	//----------------------------------------------------------------------//

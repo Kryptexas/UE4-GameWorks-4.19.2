@@ -1230,7 +1230,7 @@ void FSCSEditorTreeNodeComponent::RemoveMeAsChild()
 
 UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemplate(UBlueprint* Blueprint, bool bCreateIfNecessary) const
 {
-	UActorComponent* OverridenComponent = NULL;
+	UActorComponent* OverriddenComponent = NULL;
 
 	FComponentKey Key(GetSCSNode());
 
@@ -1244,14 +1244,14 @@ UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemp
 		UInheritableComponentHandler* InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(bCreateIfNecessary);
 		if (InheritableComponentHandler)
 		{
-			OverridenComponent = InheritableComponentHandler->GetOverridenComponentTemplate(Key);
-			if (!OverridenComponent && bCreateIfNecessary)
+			OverriddenComponent = InheritableComponentHandler->GetOverridenComponentTemplate(Key);
+			if (!OverriddenComponent && bCreateIfNecessary)
 			{
-				OverridenComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
+				OverriddenComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
 			}
 		}
 	}
-	return OverridenComponent;
+	return OverriddenComponent;
 }
 
 //////////////////////////////////////////////////////////////////////////

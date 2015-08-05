@@ -676,7 +676,9 @@ void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class AP
 	{
 		// check for spectator debug camera
 		UGameplayDebuggingControllerComponent* GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		bAllowToDraw = GDC && GDC->GetDebugCameraController().IsValid() && Canvas->SceneView->ViewActor->GetInstigatorController() == GDC->GetDebugCameraController().Get();
+
+		// bAllowToDraw here used to check GDC->GetDebugCameraController().IsValid(), but it doesn't seem to be necessary, and it was preventing display in some desired cases.
+		bAllowToDraw = GDC && (Canvas->SceneView->ViewActor->GetInstigatorController() == GDC->GetDebugCameraController().Get());
 		
 		if (!bAllowToDraw)
 		{

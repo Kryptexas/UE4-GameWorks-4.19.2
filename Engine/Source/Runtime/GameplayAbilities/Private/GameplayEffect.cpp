@@ -2151,6 +2151,10 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	FGameplayEffectSpec& AppliedEffectSpec = AppliedActiveGE->Spec;
 	UAbilitySystemGlobals::Get().GlobalPreGameplayEffectSpecApply(AppliedEffectSpec, Owner);
 
+	// Make sure our target's tags are collected, so we can properly filter infinite effects
+	AppliedEffectSpec.CapturedTargetTags.GetActorTags().RemoveAllTags();
+	Owner->GetOwnedGameplayTags(AppliedEffectSpec.CapturedTargetTags.GetActorTags());
+
 	// Calc all of our modifier magnitudes now. Some may need to update later based on attributes changing, etc, but those should
 	// be done through delegate callbacks.
 	AppliedEffectSpec.CaptureAttributeDataFromTarget(Owner);

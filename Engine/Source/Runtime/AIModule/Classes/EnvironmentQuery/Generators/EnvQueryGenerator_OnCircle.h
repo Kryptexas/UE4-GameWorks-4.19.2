@@ -34,6 +34,10 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TSubclassOf<class UEnvQueryContext> CircleCenter;
 
+	/** context offset */
+	UPROPERTY(EditAnywhere, Category = Generator)
+	FAIDataProviderFloatValue CircleCenterZOffset;
+
 	/** horizontal trace for nearest obstacle */
 	UPROPERTY(EditAnywhere, Category=Generator)
 	FEnvTraceData TraceData;

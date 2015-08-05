@@ -21,6 +21,11 @@ namespace
 	{
 		return PosB.Z - PosA.Z;
 	}
+
+	FORCEINLINE float CalcDistanceAbsoluteZ(const FVector& PosA, const FVector& PosB)
+	{
+		return FMath::Abs(PosB.Z - PosA.Z);
+	}
 }
 
 UEnvQueryTest_Distance::UEnvQueryTest_Distance(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -78,6 +83,18 @@ void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 				for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 				{
 					const float Distance = CalcDistanceZ(ItemLocation, ContextLocations[ContextIndex]);
+					It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
+				}
+			}
+			break;
+
+		case EEnvTestDistance::DistanceAbsoluteZ:
+			for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
+			{
+				const FVector ItemLocation = GetItemLocation(QueryInstance, It.GetIndex());
+				for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
+				{
+					const float Distance = CalcDistanceAbsoluteZ(ItemLocation, ContextLocations[ContextIndex]);
 					It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 				}
 			}

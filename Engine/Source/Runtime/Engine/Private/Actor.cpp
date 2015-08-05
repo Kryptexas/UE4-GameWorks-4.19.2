@@ -648,7 +648,7 @@ UNetConnection* AActor::GetNetConnection() const
 	return Owner ? Owner->GetNetConnection() : NULL;
 }
 
-class UPlayer* AActor::GetNetOwningPlayer()
+UPlayer* AActor::GetNetOwningPlayer()
 {
 	// We can only replicate RPCs to the owning player
 	if (Role == ROLE_Authority)
@@ -659,6 +659,11 @@ class UPlayer* AActor::GetNetOwningPlayer()
 		}
 	}
 	return NULL;
+}
+
+bool AActor::DestroyNetworkActorHandled()
+{
+	return false;
 }
 
 void AActor::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunction& ThisTickFunction )

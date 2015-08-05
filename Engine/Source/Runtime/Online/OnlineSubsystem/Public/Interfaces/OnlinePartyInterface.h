@@ -129,6 +129,19 @@ public:
 };
 
 /**
+ * The binding of a join info object to a given sender
+ */
+class IOnlinePartyInvite
+{
+public:
+	IOnlinePartyInvite() {}
+	virtual ~IOnlinePartyInvite() {}
+
+	virtual const TSharedRef<const FUniqueNetId>& GetSenderId() const = 0;
+	virtual const TSharedRef<IOnlinePartyJoinInfo>& GetJoinInfo() const = 0;
+};
+
+/**
  * Info needed to join a party
  */
 class IOnlinePartyPendingJoinRequestInfo
@@ -241,55 +254,19 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 	}
 };
 
-struct EPartyState
+enum class EPartyState
 {
-	enum Type
-	{
-		None,
-		CreatePending,
-		DestroyPending,
-		JoinPending,
-		LeavePending,
-		RemovalPending,
-		Active
-	};
-
-	/** @return the stringified version of the enum passed in */
-	static const TCHAR* ToString(Type EnumVal)
-	{
-		switch (EnumVal)
-		{
-		case None:
-		{
-			return TEXT("None");
-		}
-		case CreatePending:
-		{
-			return TEXT("Create pending");
-		}
-		case DestroyPending:
-		{
-			return TEXT("Destroy pending");
-		}
-		case JoinPending:
-		{
-			return TEXT("Join pending");
-		}
-		case LeavePending:
-		{
-			return TEXT("Leave pending");
-		}
-		case RemovalPending:
-		{
-			return TEXT("Removal pending");
-		}
-		case Active:
-		{
-			return TEXT("Active");
-		}
-		}
-		return TEXT("");
-	}
+	None,
+	CreatePending,
+	DestroyPending,
+	JoinPending,
+	JoinChatPending,         // to be removed
+	JoinFinalizationPending, // to be removed
+	LeavePending,
+	RemovalPending,
+	Active,
+	Disconnected,
+	CleanUp
 };
 
 /**
@@ -318,7 +295,7 @@ public:
 	/** unique id of the party */
 	TSharedRef<const FOnlinePartyId> PartyId;
 	/** The current state of the party */
-	EPartyState::Type State;
+	EPartyState State;
 	/** Current state of configuration */
 	TSharedRef<FPartyConfiguration> Config;
 	/** id of chat room associated with the party */
@@ -332,26 +309,6 @@ enum class EMemberChangedReason
 	Promoted
 };
 
-inline const TCHAR* ToString(EMemberChangedReason Reason)
-{
-	switch (Reason)
-	{
-	case EMemberChangedReason::Disconnected:
-	{
-		return TEXT("Disconnected");
-	}
-	case EMemberChangedReason::Rejoined:
-	{
-		return TEXT("Rejoined");
-	}
-	case EMemberChangedReason::Promoted:
-	{
-		return TEXT("Promoted");
-	}
-	}
-	return TEXT("");
-}
-
 enum class EMemberExitedReason
 {
 	Unknown,
@@ -361,12 +318,22 @@ enum class EMemberExitedReason
 	Kicked
 };
 
-const TCHAR* ToString(EMemberExitedReason Reason);
+enum class ECreatePartyCompletionResult
+{
+	UnknownClientFailure = -100,
+	AlreadyCreatingParty,
+	AlreadyInParty,
+	FailedToCreateMucRoom,
+	NoResponse,
+	UnknownInternalFailure = 0,
+	Succeeded = 1
+};
 
 enum class EJoinPartyCompletionResult
 {
 	UnknownClientFailure = -100,
 	JoinInfoInvalid,
+	AlreadyJoiningParty,
 	AlreadyInParty,
 	UnknownLocalUser,
 	FailedToJoinChatRoom,
@@ -375,12 +342,48 @@ enum class EJoinPartyCompletionResult
 	NotApproved,
 	RequesteeNotMember,
 	RequesteeNotLeader,
+	NoResponse,
 	UnknownTransportFailure,
 	UnknownInternalFailure = 0,
 	Succeeded = 1
 };
 
-const TCHAR* ToString(EJoinPartyCompletionResult Reason);
+enum class ELeavePartyCompletionResult
+{
+	UnknownClientFailure = -100,
+	AlreadyLeavingParty,
+	UnknownLocalUser,
+	UnknownParty,
+	MessagingFailure,
+	NoResponse,
+	UnknownTransportFailure,
+	UnknownInternalFailure = 0,
+	Succeeded = 1
+};
+
+enum class ESendInviteCompleteResult
+{
+	NotLoggedIn = -100,
+	InvitePending,
+	AlreadyInParty,
+	PartyFull,
+	NoPermission,
+	UnknownInternalFailure = 0,
+	Succeeded = 1
+};
+
+enum class EKickMemberCompletionResult
+{
+	UnknownClientFailure = -100,
+	UnknownParty,
+	LocalMemberNotMember,
+	LocalMemberNotLeader,
+	RemoteMemberNotMember,
+	MessagingFailure,
+	NoResponse,
+	UnknownInternalFailure = 0,
+	Succeeded = 1
+};
 
 // Completion delegates
 
@@ -392,7 +395,7 @@ const TCHAR* ToString(EJoinPartyCompletionResult Reason);
  * @param PartyId - id associated with the party
  * @param Error - string with error info if any
  */
-DECLARE_DELEGATE_FourParams(FOnCreatePartyComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FString& /*Error*/);
+DECLARE_DELEGATE_ThreeParams(FOnCreatePartyComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const ECreatePartyCompletionResult /*Result*/);
 /**
  * Party update async task completed callback
  *
@@ -416,10 +419,6 @@ DECLARE_DELEGATE_FourParams(FOnDestroyPartyComplete, const FUniqueNetId& /*Local
  */
 DECLARE_DELEGATE_FourParams(FOnRequestInvitationComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FString& /*Error*/);
 /**
- * Not sure if this is needed or desired
- */
-DECLARE_DELEGATE_FiveParams(FOnSendInvitationComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*RecipientId*/, const FString& /*Error*/);
-/**
  * Party join async task completed callback
  *
  * @param LocalUserId - id of user that initiated the request
@@ -427,7 +426,7 @@ DECLARE_DELEGATE_FiveParams(FOnSendInvitationComplete, const FUniqueNetId& /*Loc
  * @param PartyId - id associated with the party
  * @param Error - string with error info if any
  */
-DECLARE_DELEGATE_FourParams(FOnJoinPartyComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FString& /*Error*/);
+DECLARE_DELEGATE_FourParams(FOnJoinPartyComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const EJoinPartyCompletionResult /*Result*/, const int32 /*NotApprovedReason*/);
 /**
  * Party leave async task completed callback
  *
@@ -436,17 +435,16 @@ DECLARE_DELEGATE_FourParams(FOnJoinPartyComplete, const FUniqueNetId& /*LocalUse
  * @param PartyId - id associated with the party
  * @param Error - string with error info if any
  */
-DECLARE_DELEGATE_FourParams(FOnLeavePartyComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FString& /*Error*/);
+DECLARE_DELEGATE_ThreeParams(FOnLeavePartyComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const ELeavePartyCompletionResult /*Result*/);
 /**
- * Sending an invite to a user to join party async task completed callback
+ * Party invitation sent completed callback
  *
  * @param LocalUserId - id of user that initiated the request
- * @param bWasSuccessful - true if successfully sent invite
  * @param PartyId - id associated with the party
- * @param RecipientId - id of user invite is being sent to
- * @param Error - string with error info if any
+ * @param Result - result of the send operation
+ * @param RecipientId - user invite was sent to
  */
-DECLARE_DELEGATE_FiveParams(FOnSendPartyInviteComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*RecipientId*/, const FString& /*Error*/);
+DECLARE_DELEGATE_FourParams(FOnSendInvitationComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, ESendInviteCompleteResult /*Result*/, const FUniqueNetId& /*RecipientId*/);
 /**
  * Accepting an invite to a user to join party async task completed callback
  *
@@ -474,7 +472,7 @@ DECLARE_DELEGATE_FourParams(FOnRejectPartyInviteComplete, const FUniqueNetId& /*
  * @param MemberId - id of member being kicked
  * @param Error - string with error info if any
  */
-DECLARE_DELEGATE_FiveParams(FOnKickPartyMemberComplete, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*MemberId*/, const FString& /*Error*/);
+DECLARE_DELEGATE_FourParams(FOnKickPartyMemberComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*MemberId*/, const EKickMemberCompletionResult /*Result*/);
 /**
  * Promoting a member of a party async task completed callback
  *
@@ -699,7 +697,7 @@ public:
 	*
 	* @return true if task was started
 	*/
-	virtual bool ApproveJoinRequest(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, bool bIsApproved) = 0;
+	virtual bool ApproveJoinRequest(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, bool bIsApproved, int32 DeniedResultCode = 0) = 0;
 
 	/**
 	* sends an request to a party leader for an invite to a party that could not otherwise be joined
@@ -729,7 +727,7 @@ public:
 	virtual bool SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, const FOnSendInvitationComplete& Delegate = FOnSendInvitationComplete()) = 0;
 
 	/**
-	* Accept an invite to a party
+	* Accept an invite to a party. NOTE this does not initiate a join.
 	*
 	* @param LocalUserId - user making the request
 	* @param PartyId - id of an existing party
@@ -737,7 +735,7 @@ public:
 	*
 	* @return true if task was started
 	*/
-	virtual bool AcceptInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnJoinPartyComplete& Delegate = FOnJoinPartyComplete()) = 0;
+	virtual bool AcceptInvitation(const FUniqueNetId& LocalUserId, const FUniqueNetId& SenderId) = 0;
 
 	/**
 	* Reject an invite to a party
@@ -747,7 +745,7 @@ public:
 	*
 	* @return true if task was started
 	*/
-	virtual bool RejectInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) = 0;
+	virtual bool RejectInvitation(const FUniqueNetId& LocalUserId, const FUniqueNetId& SenderId) = 0;
 
 	/**
 	 * Kick a user from an existing party
@@ -855,37 +853,37 @@ public:
 	virtual TSharedPtr<FOnlinePartyData> GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const = 0;
 
 	/**
-	* Get current cached data associated with a party member
-	* FOnPartyMemberDataReceived notification called whenever this data changes
-	*
-	* @param LocalUserId - user making the request
-	* @param PartyId     - id of an existing party
-	* @param MemberId    - id of member to find data for
-	*
-	* @return party member data or nullptr if not found
-	*/
+	 * Get current cached data associated with a party member
+	 * FOnPartyMemberDataReceived notification called whenever this data changes
+	 *
+	 * @param LocalUserId - user making the request
+	 * @param PartyId     - id of an existing party
+	 * @param MemberId    - id of member to find data for
+	 *
+	 * @return party member data or nullptr if not found
+	 */
 	virtual TSharedPtr<FOnlinePartyData> GetPartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const = 0;
 
 	/**
-	* returns true if the user is advertising a party on their presence
-	*
-	* @param LocalUserId       - user making the request
-	* @param UserId            - user to check
-	* @param OutPartyIdString  - string id of advertised party
-	* @param OutLeaderIdString - string id of advertised party's leader
-	* @param OutReservationKey - (optional) reservation key of the advertised party
-	*
-	*/
+	 * returns true if the user is advertising a party on their presence
+	 *
+	 * @param LocalUserId       - user making the request
+	 * @param UserId            - user to check
+	 * @param OutPartyIdString  - string id of advertised party
+	 * @param OutLeaderIdString - string id of advertised party's leader
+	 * @param OutReservationKey - (optional) reservation key of the advertised party
+	 *
+	 */
 	virtual TSharedPtr<IOnlinePartyJoinInfo> GetAdvertisedParty(const FUniqueNetId& LocalUserId, const FUniqueNetId& UserId) = 0;
 
 	/**
-	* Get a list of currently joined parties for the user
-	*
-	* @param LocalUserId     - user making the request
-	* @param OutPartyIdArray - list of party ids joined by the current user
-	*
-	* @return true if entries found
-	*/
+	 * Get a list of currently joined parties for the user
+	 *
+	 * @param LocalUserId     - user making the request
+	 * @param OutPartyIdArray - list of party ids joined by the current user
+	 *
+	 * @return true if entries found
+	 */
 	virtual bool GetJoinedParties(const FUniqueNetId& LocalUserId, TArray<TSharedRef<const FOnlinePartyId>>& OutPartyIdArray) const = 0;
 
 	/**
@@ -907,7 +905,7 @@ public:
 	*
 	* @return true if entries found
 	*/
-	virtual bool GetPendingInvites(const FUniqueNetId& LocalUserId, TArray<TSharedRef<IOnlinePartyJoinInfo>>& OutPendingInvitesArray) const = 0;
+	virtual bool GetPendingInvites(const FUniqueNetId& LocalUserId, TArray<TSharedRef<IOnlinePartyInvite>>& OutPendingInvitesArray) const = 0;
 
 	/**
 	* Get list of users requesting to join the party
@@ -1100,9 +1098,74 @@ public:
 
 typedef TSharedPtr<IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
 
-inline const TCHAR* ToString(EMemberExitedReason Reason)
+inline const TCHAR* ToString(EMemberChangedReason Value)
 {
-	switch (Reason)
+	switch (Value)
+	{
+	case EMemberChangedReason::Disconnected:
+	{
+		return TEXT("Disconnected");
+	}
+	case EMemberChangedReason::Rejoined:
+	{
+		return TEXT("Rejoined");
+	}
+	case EMemberChangedReason::Promoted:
+	{
+		return TEXT("Promoted");
+	}
+	}
+	return TEXT("");
+}
+
+/** @return the stringified version of the enum passed in */
+inline const TCHAR* ToString(EPartyState Value)
+{
+	switch (Value)
+	{
+	case EPartyState::None:
+	{
+		return TEXT("None");
+	}
+	case EPartyState::CreatePending:
+	{
+		return TEXT("Create pending");
+	}
+	case EPartyState::DestroyPending:
+	{
+		return TEXT("Destroy pending");
+	}
+	case EPartyState::JoinPending:
+	{
+		return TEXT("Join pending");
+	}
+	case EPartyState::JoinChatPending:
+	{
+		return TEXT("Join Chat pending");
+	}
+	case EPartyState::LeavePending:
+	{
+		return TEXT("Leave pending");
+	}
+	case EPartyState::RemovalPending:
+	{
+		return TEXT("Removal pending");
+	}
+	case EPartyState::Active:
+	{
+		return TEXT("Active");
+	}
+	case EPartyState::Disconnected:
+	{
+		return TEXT("Disconnected");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(EMemberExitedReason Value)
+{
+	switch (Value)
 	{
 	case EMemberExitedReason::Unknown:
 	{
@@ -1128,9 +1191,81 @@ inline const TCHAR* ToString(EMemberExitedReason Reason)
 	return TEXT("");
 }
 
-inline const TCHAR* ToString(EJoinPartyCompletionResult Reason)
+inline const TCHAR* ToString(ECreatePartyCompletionResult Value)
 {
-	switch (Reason)
+	switch (Value)
+	{
+	case ECreatePartyCompletionResult::UnknownClientFailure:
+	{
+		return TEXT("UnknownClientFailure");
+	}
+	case ECreatePartyCompletionResult::AlreadyCreatingParty:
+	{
+		return TEXT("AlreadyCreatingParty");
+	}
+	case ECreatePartyCompletionResult::AlreadyInParty:
+	{
+		return TEXT("AlreadyInParty");
+	}
+	case ECreatePartyCompletionResult::FailedToCreateMucRoom:
+	{
+		return TEXT("FailedToCreateMucRoom");
+	}
+	case ECreatePartyCompletionResult::NoResponse:
+	{
+		return TEXT("NoResponse");
+	}
+	case ECreatePartyCompletionResult::UnknownInternalFailure:
+	{
+		return TEXT("UnknownInternalFailure");
+	}
+	case ECreatePartyCompletionResult::Succeeded:
+	{
+		return TEXT("Succeeded");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(ESendInviteCompleteResult Value)
+{
+	switch (Value)
+	{
+	case ESendInviteCompleteResult::NotLoggedIn:
+	{
+		return TEXT("NotLoggedIn");
+	}
+	case ESendInviteCompleteResult::InvitePending:
+	{
+		return TEXT("InvitePending");
+	}
+	case ESendInviteCompleteResult::AlreadyInParty:
+	{
+		return TEXT("AlreadyInParty");
+	}
+	case ESendInviteCompleteResult::PartyFull:
+	{
+		return TEXT("PartyFull");
+	}
+	case ESendInviteCompleteResult::NoPermission:
+	{
+		return TEXT("NoPermission");
+	}
+	case ESendInviteCompleteResult::UnknownInternalFailure:
+	{
+		return TEXT("UnknownInternalFailure");
+	}
+	case ESendInviteCompleteResult::Succeeded:
+	{
+		return TEXT("Succeeded");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(EJoinPartyCompletionResult Value)
+{
+	switch (Value)
 	{
 	case EJoinPartyCompletionResult::UnknownClientFailure:
 	{
@@ -1139,6 +1274,10 @@ inline const TCHAR* ToString(EJoinPartyCompletionResult Reason)
 	case EJoinPartyCompletionResult::JoinInfoInvalid:
 	{
 		return TEXT("JoinInfoInvalid");
+	}
+	case EJoinPartyCompletionResult::AlreadyJoiningParty:
+	{
+		return TEXT("AlreadyJoiningParty");
 	}
 	case EJoinPartyCompletionResult::AlreadyInParty:
 	{
@@ -1172,11 +1311,107 @@ inline const TCHAR* ToString(EJoinPartyCompletionResult Reason)
 	{
 		return TEXT("RequesteeNotLeader");
 	}
+	case EJoinPartyCompletionResult::NoResponse:
+	{
+		return TEXT("NoResponse");
+	}
+	case EJoinPartyCompletionResult::UnknownTransportFailure:
+	{
+		return TEXT("UnknownTransportFailure");
+	}
 	case EJoinPartyCompletionResult::UnknownInternalFailure:
 	{
 		return TEXT("UnknownInternalFailure");
 	}
 	case EJoinPartyCompletionResult::Succeeded:
+	{
+		return TEXT("Succeeded");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(ELeavePartyCompletionResult Value)
+{
+	switch (Value)
+	{
+	case ELeavePartyCompletionResult::UnknownClientFailure:
+	{
+		return TEXT("UnknownClientFailure");
+	}
+	case ELeavePartyCompletionResult::AlreadyLeavingParty:
+	{
+		return TEXT("AlreadyLeavingParty");
+	}
+	case ELeavePartyCompletionResult::UnknownLocalUser:
+	{
+		return TEXT("UnknownLocalUser");
+	}
+	case ELeavePartyCompletionResult::UnknownParty:
+	{
+		return TEXT("UnknownParty");
+	}
+	case ELeavePartyCompletionResult::MessagingFailure:
+	{
+		return TEXT("MessagingFailure");
+	}
+	case ELeavePartyCompletionResult::NoResponse:
+	{
+		return TEXT("NoResponse");
+	}
+	case ELeavePartyCompletionResult::UnknownTransportFailure:
+	{
+		return TEXT("UnknownTransportFailure");
+	}
+	case ELeavePartyCompletionResult::UnknownInternalFailure:
+	{
+		return TEXT("UnknownInternalFailure");
+	}
+	case ELeavePartyCompletionResult::Succeeded:
+	{
+		return TEXT("Succeeded");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(EKickMemberCompletionResult Value)
+{
+	switch (Value)
+	{
+	case EKickMemberCompletionResult::UnknownClientFailure:
+	{
+		return TEXT("UnknownClientFailure");
+	}
+	case EKickMemberCompletionResult::UnknownParty:
+	{
+		return TEXT("UnknownParty");
+	}
+	case EKickMemberCompletionResult::LocalMemberNotMember:
+	{
+		return TEXT("LocalMemberNotMember");
+	}
+	case EKickMemberCompletionResult::LocalMemberNotLeader:
+	{
+		return TEXT("LocalMemberNotLeader");
+	}
+	case EKickMemberCompletionResult::RemoteMemberNotMember:
+	{
+		return TEXT("RemoteMemberNotMember");
+	}
+	case EKickMemberCompletionResult::MessagingFailure:
+	{
+		return TEXT("MessagingFailure");
+	}
+	case EKickMemberCompletionResult::NoResponse:
+	{
+		return TEXT("NoResponse");
+	}
+	case EKickMemberCompletionResult::UnknownInternalFailure:
+	{
+		return TEXT("UnknownInternalFailure");
+	}
+	case EKickMemberCompletionResult::Succeeded:
 	{
 		return TEXT("Succeeded");
 	}

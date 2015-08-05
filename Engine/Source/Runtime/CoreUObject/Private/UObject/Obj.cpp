@@ -598,20 +598,20 @@ FString UObject::GetDetailedInfo() const
 }
 
 #if WITH_ENGINE
-bool bGetWorldOverriden = false;
+bool bGetWorldOverridden = false;
 
 class UWorld* UObject::GetWorld() const
 {
-	bGetWorldOverriden = false;
+	bGetWorldOverridden = false;
 	return NULL;
 }
 
 class UWorld* UObject::GetWorldChecked(bool& bSupported) const
 {
-	bGetWorldOverriden = true;
+	bGetWorldOverridden = true;
 	UWorld* World = GetWorld();
 
-	if (!bGetWorldOverriden)
+	if (!bGetWorldOverridden)
 	{
 #if DO_CHECK
 		static TSet<UClass*> ReportedClasses;
@@ -634,15 +634,15 @@ class UWorld* UObject::GetWorldChecked(bool& bSupported) const
 #endif
 	}
 
-	bSupported = bGetWorldOverriden;
+	bSupported = bGetWorldOverridden;
 	return World;
 }
 
 bool UObject::ImplementsGetWorld() const
 {
-	bGetWorldOverriden = true;
+	bGetWorldOverridden = true;
 	GetWorld();
-	return bGetWorldOverriden;
+	return bGetWorldOverridden;
 }
 #endif
 

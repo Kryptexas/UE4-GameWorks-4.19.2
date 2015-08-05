@@ -23,6 +23,10 @@
 #include "PerfCountersModule.h"
 #endif
 
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
+
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
 DEFINE_STAT(STAT_Channels);
@@ -105,8 +109,13 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 :	UObject(ObjectInitializer)
 ,	MaxInternetClientRate(10000)
 , 	MaxClientRate(15000)
+,   bNoTimeouts(false)
+,   ServerConnection(nullptr)
 ,	ClientConnections()
+,   World(nullptr)
+,   Notify(nullptr)
 ,	Time( 0.f )
+,   bIsPeer(false)
 ,	InBytes(0)
 ,	OutBytes(0)
 ,	NetGUIDOutBytes(0)
@@ -145,7 +154,17 @@ void UNetDriver::PostInitProperties()
 		NetCache			= TSharedPtr< FClassNetCacheMgr >( new FClassNetCacheMgr() );
 
 		ProfileStats		= FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
+
+#if !UE_BUILD_SHIPPING
+		bNoTimeouts = bNoTimeouts || FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts")) ? true : false;
+#endif // !UE_BUILD_SHIPPING
+
+#if WITH_EDITOR
+		// Do not time out in PIE since the server is local.
+		bNoTimeouts = bNoTimeouts || (GEditor && GEditor->PlayWorld);
+#endif // WITH_EDITOR
 	}
+
 	// By default we're the game net driver and any child ones must override this
 	NetDriverName = NAME_GameNetDriver;
 }
@@ -2737,7 +2756,7 @@ void UNetDriver::AddClientConnection(UNetConnection * NewConnection)
 	{
 		if (It.Key().IsStatic())
 		{
-			UE_LOG(LogNet, Verbose, TEXT("Adding actor NetGUID <%s> to new connection's destroy list"), *It.Key().ToString());
+			UE_LOG(LogNet, VeryVerbose, TEXT("Adding actor NetGUID <%s> to new connection's destroy list"), *It.Key().ToString());
 			NewConnection->DestroyedStartupOrDormantActors.Add(It.Key());
 		}
 	}

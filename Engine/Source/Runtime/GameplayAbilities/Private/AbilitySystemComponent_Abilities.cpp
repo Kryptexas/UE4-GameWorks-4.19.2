@@ -992,7 +992,7 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		{
 			// If we have a valid prediction key, the ability was started on the local client so it's okay
 
-			ABILITY_LOG(Warning, TEXT("Can't activate LocalOnly or LocalPredicted ability %s when not local!"), *Ability->GetName());
+			ABILITY_LOG(Warning, TEXT("Can't activate LocalOnly or LocalPredicted ability %s when not local! Net Execution Policy is %d."), *Ability->GetName(), (int32)Ability->GetNetExecutionPolicy());
 
 			if (NetworkFailTag.IsValid())
 			{
@@ -1006,7 +1006,7 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 
 	if (NetMode != ROLE_Authority && (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly || Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated))
 	{
-		ABILITY_LOG(Warning, TEXT("Can't activate ServerOnly or ServerInitiated ability %s when not the server!"), *Ability->GetName());
+		ABILITY_LOG(Warning, TEXT("Can't activate ServerOnly or ServerInitiated ability %s when not the server! Net Execution Policy is %d."), *Ability->GetName(), (int32)Ability->GetNetExecutionPolicy());
 
 		if (NetworkFailTag.IsValid())
 		{
@@ -1051,6 +1051,7 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 			}
 			else
 			{
+				ABILITY_LOG(Verbose, TEXT("Can't activate instanced per actor ability %s when their is already a currently active instance for this actor."), *Ability->GetName());
 				return false;
 			}
 		}
@@ -2083,7 +2084,7 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 			// Start at a given Section.
 			if (StartSectionName != NAME_None)
 			{
-				AnimInstance->Montage_JumpToSection(StartSectionName);
+				AnimInstance->Montage_JumpToSection(StartSectionName, NewAnimMontage);
 			}
 
 			// Replicate to non owners
@@ -2236,7 +2237,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 				// If NextSectionID is different thant the replicated one, then set it.
 				if( NextSectionID != RepNextSectionID )
 				{
-					AnimInstance->Montage_SetNextSection(LocalAnimMontageInfo.AnimMontage->GetSectionName(RepSectionID), LocalAnimMontageInfo.AnimMontage->GetSectionName(RepNextSectionID));
+					AnimInstance->Montage_SetNextSection(LocalAnimMontageInfo.AnimMontage->GetSectionName(RepSectionID), LocalAnimMontageInfo.AnimMontage->GetSectionName(RepNextSectionID), LocalAnimMontageInfo.AnimMontage);
 				}
 
 				// Make sure we haven't received that update too late and the client hasn't already jumped to another section. 
@@ -2278,7 +2279,7 @@ void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 	{
 		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOutTime);
 
-		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
+		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime, MontageToStop);
 
 		if (IsOwnerActorAuthoritative())
 		{
@@ -2299,9 +2300,9 @@ void UAbilitySystemComponent::ClearAnimatingAbility(UGameplayAbility* Ability)
 void UAbilitySystemComponent::CurrentMontageJumpToSection(FName SectionName)
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
-	if( (SectionName != NAME_None) && AnimInstance )
+	if ((SectionName != NAME_None) && AnimInstance && LocalAnimMontageInfo.AnimMontage)
 	{
-		AnimInstance->Montage_JumpToSection(SectionName);
+		AnimInstance->Montage_JumpToSection(SectionName, LocalAnimMontageInfo.AnimMontage);
 		if (IsOwnerActorAuthoritative())
 		{
 			AnimMontage_UpdateReplicatedData();
@@ -2319,7 +2320,7 @@ void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSection
 	if( LocalAnimMontageInfo.AnimMontage && AnimInstance )
 	{
 		// Set Next Section Name. 
-		AnimInstance->Montage_SetNextSection(FromSectionName, ToSectionName);
+		AnimInstance->Montage_SetNextSection(FromSectionName, ToSectionName, LocalAnimMontageInfo.AnimMontage);
 
 		// Update replicated version for Simulated Proxies if we are on the server.
 		if( IsOwnerActorAuthoritative() )
@@ -2348,7 +2349,7 @@ void UAbilitySystemComponent::ServerCurrentMontageSetNextSectionName_Implementat
 		if (ClientAnimMontage == CurrentAnimMontage)
 		{
 			// Set NextSectionName
-			AnimInstance->Montage_SetNextSection(SectionName, NextSectionName);
+			AnimInstance->Montage_SetNextSection(SectionName, NextSectionName, CurrentAnimMontage);
 
 			// Correct position if we are in an invalid section
 			float CurrentPosition = AnimInstance->Montage_GetPosition(CurrentAnimMontage);
@@ -2386,7 +2387,7 @@ void UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Implementati
 		if (ClientAnimMontage == CurrentAnimMontage)
 		{
 			// Set NextSectionName
-			AnimInstance->Montage_JumpToSection(SectionName);
+			AnimInstance->Montage_JumpToSection(SectionName, CurrentAnimMontage);
 
 			// Update replicated version for Simulated Proxies if we are on the server.
 			if (IsOwnerActorAuthoritative())
@@ -2400,9 +2401,9 @@ void UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Implementati
 UAnimMontage* UAbilitySystemComponent::GetCurrentMontage() const
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
-	if (AnimInstance)
+	if (LocalAnimMontageInfo.AnimMontage && AnimInstance && AnimInstance->Montage_IsActive(LocalAnimMontageInfo.AnimMontage))
 	{
-		return AnimInstance->GetCurrentActiveMontage();
+		return LocalAnimMontageInfo.AnimMontage;
 	}
 
 	return nullptr;

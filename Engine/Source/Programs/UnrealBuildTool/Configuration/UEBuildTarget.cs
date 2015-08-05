@@ -90,7 +90,7 @@ namespace UnrealBuildTool
 			Config = InConfig;
 		}
 
-		/** Overriden ToString() to make this class esier to read when debugging. */
+		/** Overridden ToString() to make this class esier to read when debugging. */
 		public override string ToString()
 		{
 			return String.Format("{0}, {1}, {2}", Name, Platform, Config);

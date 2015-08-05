@@ -31,7 +31,7 @@ public:
 	*
 	* @param Out shared ref to party room id
 	*/
-	virtual TSharedPtr<const FOnlinePartyId> GetPartyChatRoomId() const = 0;
+	virtual FChatRoomId GetPartyChatRoomId() const = 0;
 
 	/**
 	* Reject a game invite

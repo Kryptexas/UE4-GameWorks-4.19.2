@@ -18,6 +18,11 @@ AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitial
 	bOnlyRelevantToOwner = true;
 }
 
+FString AOnlineBeaconClient::GetBeaconType() const
+{
+	return GetClass()->GetName();
+}
+
 AOnlineBeaconHostObject* AOnlineBeaconClient::GetBeaconOwner() const
 {
 	return BeaconOwner;
@@ -36,6 +41,16 @@ const AActor* AOnlineBeaconClient::GetNetOwner() const
 class UNetConnection* AOnlineBeaconClient::GetNetConnection() const
 {
 	return BeaconConnection;
+}
+
+bool AOnlineBeaconClient::DestroyNetworkActorHandled()
+{
+	if (BeaconConnection)
+	{
+		BeaconConnection->bPendingDestroy = true;
+	}
+
+	return false;
 }
 
 EBeaconConnectionState AOnlineBeaconClient::GetConnectionState() const

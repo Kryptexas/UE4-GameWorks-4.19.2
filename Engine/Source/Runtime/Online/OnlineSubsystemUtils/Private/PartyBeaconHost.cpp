@@ -6,11 +6,17 @@
 
 APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	State(NULL)
+	State(NULL),
+	bNoTimeouts(false)
 {
-	BeaconTypeName = PARTY_BEACON_TYPE;
 	ClientBeaconActorClass = APartyBeaconClient::StaticClass();
+	BeaconTypeName = ClientBeaconActorClass->GetName();
+
 	PrimaryActorTick.bCanEverTick = true;
+
+#if !UE_BUILD_SHIPPING
+	bNoTimeouts = bNoTimeouts || FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts")) ? true : false;
+#endif
 }
 
 bool APartyBeaconHost::InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32 InMaxReservations, FName InSessionName, int32 InForceTeamNum)
@@ -48,13 +54,13 @@ bool APartyBeaconHost::ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InN
 		bSuccess = State->ReconfigureTeamAndPlayerCount(InNumTeams, InNumPlayersPerTeam, InNumReservations);
 		UE_LOG(LogBeacon, Log,
 			TEXT("Beacon (%s) reconfiguring team and player count."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 	else
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, can't change team and player count."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 
 	return bSuccess;
@@ -146,16 +152,19 @@ void APartyBeaconHost::Tick(float DeltaTime)
 								// update elapsed time
 								PlayerEntry.ElapsedTime += DeltaTime;
 
-								// if the player is pending it's initial join then check against TravelSessionTimeoutSecs instead
-								FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
-								int32 FoundIdx = State->PlayersPendingJoin.IndexOfByPredicate(PlayerMatch);
-								const bool bIsPlayerPendingJoin = FoundIdx != INDEX_NONE;
-								// if the timeout has been exceeded then add to list of players 
-								// that need to be logged out from the beacon
-								if ((bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > TravelSessionTimeoutSecs) ||
-									(!bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > SessionTimeoutSecs))
+								if (!bNoTimeouts)
 								{
-									PlayersToLogout.AddUnique(PlayerEntry.UniqueId.GetUniqueNetId());
+									// if the player is pending it's initial join then check against TravelSessionTimeoutSecs instead
+									FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
+									int32 FoundIdx = State->PlayersPendingJoin.IndexOfByPredicate(PlayerMatch);
+									const bool bIsPlayerPendingJoin = FoundIdx != INDEX_NONE;
+									// if the timeout has been exceeded then add to list of players 
+									// that need to be logged out from the beacon
+									if ((bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > TravelSessionTimeoutSecs) ||
+										(!bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > SessionTimeoutSecs))
+									{
+										PlayersToLogout.AddUnique(PlayerEntry.UniqueId.GetUniqueNetId());
+									}
 								}
 							}
 						}
@@ -214,7 +223,7 @@ int32 APartyBeaconHost::GetNumPlayersOnTeam(int32 TeamIdx) const
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, can't get team player count."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 
 	return Result;
@@ -347,7 +356,7 @@ bool APartyBeaconHost::PlayerHasReservation(const FUniqueNetId& PlayerId) const
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, no reservations."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 
 	return bHasReservation;
@@ -366,7 +375,7 @@ bool APartyBeaconHost::GetPlayerValidation(const FUniqueNetId& PlayerId, FString
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, no validation."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 
 	return bHasValidation;
@@ -655,7 +664,7 @@ void APartyBeaconHost::RegisterAuthTicket(const FUniqueNetIdRepl& InPartyMemberI
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, not able to register auth ticket."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 }
 
@@ -669,7 +678,7 @@ void APartyBeaconHost::UpdatePartyLeader(const FUniqueNetIdRepl& InPartyMemberId
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, not able to update party leader."),
-			*BeaconTypeName);
+			*GetBeaconType());
 	}
 }
 
@@ -747,7 +756,7 @@ void APartyBeaconHost::ProcessCancelReservationRequest(APartyBeaconClient* Clien
 
 void APartyBeaconHost::DumpReservations() const
 {
-	UE_LOG(LogBeacon, Display, TEXT("Debug info for Beacon: %s"), *BeaconTypeName);
+	UE_LOG(LogBeacon, Display, TEXT("Debug info for Beacon: %s"), *GetBeaconType());
 	if (State)
 	{
 		State->DumpReservations();

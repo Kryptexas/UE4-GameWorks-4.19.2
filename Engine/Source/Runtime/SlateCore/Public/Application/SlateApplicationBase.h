@@ -202,7 +202,7 @@ public:
 
 protected:
 	/**
-	 * Implementation of GetMouseCaptor which can be overriden without warnings.
+	 * Implementation of GetMouseCaptor which can be overridden without warnings.
 	 * 
 	 * @return Widget with the mouse capture
 	 */

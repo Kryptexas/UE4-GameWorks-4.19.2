@@ -17,6 +17,7 @@ namespace FEQSHelpers
 		const FCollisionQueryParams Params;
 		enum ECollisionChannel Channel;
 		ETraceMode TraceMode;
+		TArray<uint8> TraceHits;
 
 		FBatchTrace(UWorld* InWorld, enum ECollisionChannel InChannel, const FCollisionQueryParams& InParams,
 			const FVector& InExtent, ETraceMode InTraceMode)
@@ -98,6 +99,7 @@ namespace FEQSHelpers
 	void RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
 	void RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
 	void RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
+	void RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, TArray<uint8>& TraceHits);
 
 	// deprecated
 

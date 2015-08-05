@@ -1910,6 +1910,14 @@ public:
 	virtual class UNetConnection* GetNetConnection() const;
 
 	/**
+	 * Called by DestroyActor(), gives actors a chance to op out of actor destruction
+	 * Used by network code to have the net connection timeout/cleanup first
+	 *
+	 * @return true if DestroyActor() should not continue with actor destruction, false otherwise
+	 */
+	virtual bool DestroyNetworkActorHandled();
+
+	/**
 	 * Gets the net mode for this actor, indicating whether it is a client or server (including standalone/not networked).
 	 */
 	ENetMode GetNetMode() const;

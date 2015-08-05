@@ -5583,7 +5583,7 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 							const UParticleModuleTypeDataMesh* TypeDataModule = Cast<UParticleModuleTypeDataMesh>( LOD->TypeDataModule );
 							if( !TypeDataModule->bOverrideMaterial )
 							{
-								// If the material isnt being overriden by the required module, for each mesh section, find the corresponding entry in the mesh material module
+								// If the material isnt being overridden by the required module, for each mesh section, find the corresponding entry in the mesh material module
 								// If that entry does not exist, take the material directly off the mesh section
 								const UParticleModuleMeshMaterial* MaterialModule = Cast<UParticleModuleMeshMaterial>( LOD->Modules[ ModuleIdx ] );
 								if( TypeDataModule->Mesh )

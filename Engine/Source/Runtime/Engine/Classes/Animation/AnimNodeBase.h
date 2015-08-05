@@ -400,7 +400,7 @@ struct ENGINE_API FAnimNode_Base
 
 	virtual void GatherDebugData(FNodeDebugData& DebugData)
 	{ 
-		DebugData.AddDebugItem(TEXT("Non Overriden GatherDebugData")); 
+		DebugData.AddDebugItem(TEXT("Non Overridden GatherDebugData")); 
 	}
 	// End of interface to implement
 

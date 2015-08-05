@@ -301,6 +301,9 @@ protected:
 	/** Delegate fired when asking the beacon owner if this reservation is legit */
 	FOnValidatePlayers ValidatePlayers;
 
+	/** Disable the timeouts below */
+	UPROPERTY(Config)
+	bool bNoTimeouts;
 	/** Seconds that can elapse before a reservation is removed due to player not being registered with the session */
 	UPROPERTY(Transient, Config)
 	float SessionTimeoutSecs;

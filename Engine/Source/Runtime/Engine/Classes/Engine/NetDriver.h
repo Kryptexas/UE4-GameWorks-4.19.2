@@ -143,13 +143,23 @@ public:
 	UPROPERTY(Config)
 	float KeepAliveTime;
 
-	/** @todo document */
+	/** Amount of time to wait for a new net connection to be established before destroying the connection */
 	UPROPERTY(Config)
 	float InitialConnectTimeout;
 
-	/** @todo document */
+	/** 
+	 * Amount of time to wait before considering an established connection timed out.  
+	 * Typically shorter than the time to wait on a new connection because this connection
+	 * should already have been setup and any interruption should be trapped quicker.
+	 */
 	UPROPERTY(Config)
 	float ConnectionTimeout;
+
+	/**
+	 * If true, ignore timeouts completely.  Should be used only in development
+	 */
+	UPROPERTY(Config)
+	bool bNoTimeouts;
 
 	/** Connection to the server (this net driver is a client) */
 	UPROPERTY()

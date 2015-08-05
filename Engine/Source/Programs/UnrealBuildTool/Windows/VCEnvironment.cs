@@ -14,7 +14,8 @@ namespace UnrealBuildTool
 	{
 		public readonly CPPTargetPlatform Platform;             // The platform the envvars have been initialized for
 		public readonly string            BaseVSToolPath;       // The path to Visual Studio's /Common7/Tools directory.
-		public readonly string            PlatformVSToolPath;   // The path to the platform tool binaries.
+		public readonly string            VSToolPath32Bit;      // The path to the 32bit platform tool binaries.
+		public readonly string            VSToolPath64Bit;      // The path to the 64bit platform tool binaries.
 		public readonly string            WindowsSDKDir;        // Installation folder of the Windows SDK, e.g. C:\Program Files\Microsoft SDKs\Windows\v6.0A\
 		public readonly string            WindowsSDKExtensionDir;  // Installation folder of the Windows SDK Extensions, e.g. C:\Program Files (x86)\Windows SDKs\10
 		public readonly string            NetFxSDKExtensionDir;    // Installation folder of the NetFx SDK, since that is split out from platform SDKs >= v10
@@ -68,11 +69,20 @@ namespace UnrealBuildTool
 			WindowsSDKExtensionDir = FindWindowsSDKExtensionInstallationFolder();
 			NetFxSDKExtensionDir = FindNetFxSDKExtensionInstallationFolder();
 			WindowsSDKExtensionHeaderLibVersion = FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
-			PlatformVSToolPath = GetPlatformVSToolPath      (Platform, BaseVSToolPath);
-			CompilerPath         = GetCompilerToolPath        (PlatformVSToolPath);
+
+			VSToolPath32Bit      = GetVSToolPath32Bit        (BaseVSToolPath);
+			VSToolPath64Bit      = GetVSToolPath64Bit        (BaseVSToolPath);
+
+			// Compile using 64 bit tools for 64 bit targets, and 32 for 32.
+			string CompilerVSToolPath = (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP) ? VSToolPath64Bit : VSToolPath32Bit;
+			
+			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker and can handle large linking jobs)
+			string LinkerVSToolPath = VSToolPath64Bit;
+			
+			CompilerPath         = GetCompilerToolPath        (CompilerVSToolPath);
 			CLExeVersion         = FindCLExeVersion           (CompilerPath);
-			LinkerPath           = GetLinkerToolPath          (PlatformVSToolPath);
-			LibraryLinkerPath    = GetLibraryLinkerToolPath   (PlatformVSToolPath);
+			LinkerPath           = GetLinkerToolPath          (LinkerVSToolPath);
+			LibraryLinkerPath    = GetLibraryLinkerToolPath   (LinkerVSToolPath);
 			ResourceCompilerPath = GetResourceCompilerToolPath(Platform);
 
 			// We ensure an extra trailing slash because of a user getting an odd error where the paths seemed to get concatenated wrongly:
@@ -265,24 +275,23 @@ namespace UnrealBuildTool
 			return LatestVersion;
 		}
 
-		/** Gets the path to the tool binaries for the specified platform. */
-		static string GetPlatformVSToolPath(CPPTargetPlatform Platform, string BaseVSToolPath)
+		/** Gets the path to the 32bit tool binaries. */
+		static string GetVSToolPath32Bit(string BaseVSToolPath)
 		{
-			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker)
-			//@todo.WIN32: Using the 64-bit linker appears to be broken at the moment.
-			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP)
-			{
-				// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
-				var Result = Path.Combine(BaseVSToolPath, "../../VC/bin/amd64");
-				if (Directory.Exists(Result))
-				{
-					return Result;
-				}
+			return Path.Combine(BaseVSToolPath, "../../VC/bin");
+		}
 
-				return Path.Combine(BaseVSToolPath, "../../VC/bin/x86_amd64");
+		/** Gets the path to the 64bit tool binaries. */
+		static string GetVSToolPath64Bit(string BaseVSToolPath)
+		{
+			// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
+			var Result = Path.Combine(BaseVSToolPath, "../../VC/bin/amd64");
+			if (Directory.Exists(Result))
+			{
+				return Result;
 			}
 
-			return Path.Combine(BaseVSToolPath, "../../VC/bin");
+			return Path.Combine(BaseVSToolPath, "../../VC/bin/x86_amd64");
 		}
 
 		/** Gets the path to the compiler. */

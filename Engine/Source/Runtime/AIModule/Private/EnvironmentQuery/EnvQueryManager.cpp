@@ -269,9 +269,10 @@ void UEnvQueryManager::Tick(float DeltaTime)
 
 				if (QueryInstance->IsFinished())
 				{
+					// Always log that we executed total execution time at the end of the query.
 					if (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds)
 					{
-						UE_LOG(LogEQS, Error, TEXT("Finished query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
+						UE_LOG(LogEQS, Warning, TEXT("Finished query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
 					}
 
 					RunningQueriesCopy.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
@@ -280,10 +281,10 @@ void UEnvQueryManager::Tick(float DeltaTime)
 					LoggedExecutionTimeWarning = false;
 				}
 
-				if (!LoggedExecutionTimeWarning && (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds))
+				if (!QueryInstance->HasLoggedTimeLimitWarning() && (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds))
 				{
-					UE_LOG(LogEQS, Error, TEXT("Query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
-					LoggedExecutionTimeWarning = true;
+					UE_LOG(LogEQS, Warning, TEXT("Query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
+					QueryInstance->SetHasLoggedTimeLimitWarning();
 				}
 
 				TimeLeft -= (FPlatformTime::Seconds() - StartTime);
@@ -477,14 +478,23 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 			InstanceTemplate = &InstanceCache[Idx].Instance;
 		}
 
-		for (int32 OptionIndex = 0; OptionIndex < LocalTemplate->Options.Num(); OptionIndex++)
+		// NOTE: We must iterate over this from 0->Num because we are copying the options from the template into the
+		// instance, and order matters!  Since we also may need to remove invalid or null options, we must decrement
+		// the iteration pointer when doing so to avoid problems.
+		for (int32 OptionIndex = 0; OptionIndex < LocalTemplate->Options.Num(); ++OptionIndex)
 		{
 			UEnvQueryOption* MyOption = LocalTemplate->Options[OptionIndex];
-			if (MyOption == NULL || MyOption->Generator == NULL)
+			if (MyOption == nullptr ||
+				MyOption->Generator == nullptr ||
+				MyOption->Generator->ItemType == nullptr)
 			{
-				UE_LOG(LogEQS, Error, TEXT("Trying to spawn a query with broken Template (empty generator): %s, option %d"),
+				UE_LOG(LogEQS, Error, TEXT("Trying to spawn a query with broken Template (generator:%s itemType:%s): %s, option %d"),
+					MyOption ? (MyOption->Generator ? TEXT("ok") : TEXT("MISSING")) : TEXT("N/A"),
+					(MyOption && MyOption->Generator) ? (MyOption->Generator->ItemType ? TEXT("ok") : TEXT("MISSING")) : TEXT("N/A"),
 					*GetNameSafe(LocalTemplate), OptionIndex);
 
+				LocalTemplate->Options.RemoveAt(OptionIndex, 1, false);
+				--OptionIndex; // See note at top of for loop.  We cannot iterate backwards here.
 				continue;
 			}
 
@@ -504,12 +514,22 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 					UE_LOG(LogEQS, Warning, TEXT("Query [%s] can't use test [%s] in option %d [%s], removing it"),
 						*GetNameSafe(LocalTemplate), *GetNameSafe(TestOb), OptionIndex, *MyOption->Generator->OptionName);
 
-					SortedTests.RemoveAt(TestIndex);
+					SortedTests.RemoveAt(TestIndex, 1, false);
 				}
 				else if (HighestCost < TestOb->Cost)
 				{
 					HighestCost = TestOb->Cost;
 				}
+			}
+
+			if (SortedTests.Num() == 0)
+			{
+				UE_LOG(LogEQS, Warning, TEXT("Query [%s] doesn't have any tests in option %d [%s]"),
+					*GetNameSafe(LocalTemplate), OptionIndex, *MyOption->Generator->OptionName);
+
+				LocalTemplate->Options.RemoveAt(OptionIndex, 1, false);
+				--OptionIndex; // See note at top of for loop.  We cannot iterate backwards here.
+				continue;
 			}
 
 			LocalOption->Tests.Reset(SortedTests.Num());
@@ -522,7 +542,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 			// use locally referenced duplicates
 			SortedTests = LocalOption->Tests;
 
-			if (SortedTests.Num())
+			if (SortedTests.Num() && LocalGenerator->bAutoSortTests)
 			{
 				switch (RunMode)
 				{

@@ -774,6 +774,7 @@ void AGameplayDebuggingHUDComponent::PrintString(FPrintContext& Context, const F
 			NewLine,
 			EndOfString,
 			RegularChar,
+			Tab
 		};
 
 		enum Tag
@@ -802,6 +803,10 @@ void AGameplayDebuggingHUDComponent::PrintString(FPrintContext& Context, const F
 				break;
 			case '\n':
 				OutToken = NewLine;
+				Index++;
+				break;
+			case '\t':
+				OutToken = Tab;
 				Index++;
 				break;
 			default:
@@ -894,6 +899,17 @@ void AGameplayDebuggingHUDComponent::PrintString(FPrintContext& Context, const F
 					break;
 				case EndOfString:
 					break;
+				case Tab:
+					{
+						const FString TabString(TEXT("     "));
+						Strings[Strings.Num()-1].String.Append(TabString);
+						static bool sbTest = false;
+						if (sbTest)
+						{
+						Index++;
+						}
+						break;
+					}
 				case OpenTag:
 					{
 						FString OutData;

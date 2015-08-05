@@ -230,6 +230,7 @@ void UCrowdManager::Tick(float DeltaTime)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepNextPointTime);
 				DetourCrowd->updateStepNextMovePoint(DeltaTime, DetourAgentDebug);
+				PostMovePointUpdate();
 			}
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepSteeringTime);
@@ -1256,6 +1257,55 @@ void UCrowdManager::UpdateAvoidanceConfig()
 void UCrowdManager::PostProximityUpdate()
 {
 	// empty in base class
+}
+
+void UCrowdManager::PostMovePointUpdate()
+{
+#if WITH_RECAST
+	TArray<uint8> HasUpdatedPos;
+	HasUpdatedPos.AddZeroed(ActiveAgents.Num());
+
+	// special case when following last segment of full path to actor: replace end point with actor's location
+
+	for (auto It : ActiveAgents)
+	{
+		UCrowdFollowingComponent* PathComp = Cast<UCrowdFollowingComponent>(It.Key);
+		FVector UpdatedGoalPos;
+
+		const bool bShouldUpdateGoalPos = PathComp ? PathComp->UpdateCachedGoal(UpdatedGoalPos) : false;
+		if (bShouldUpdateGoalPos)
+		{
+			const FCrowdAgentData& AgentData = It.Value;
+			const dtCrowdAgent* Agent = DetourCrowd->getAgent(AgentData.AgentIndex);
+			dtCrowdAgent* MutableAgent = (dtCrowdAgent*)Agent;
+			const FVector RcTargetPos = Unreal2RecastPoint(UpdatedGoalPos);
+
+			if (AgentData.AgentIndex >= HasUpdatedPos.Num())
+			{
+				HasUpdatedPos.AddZeroed(AgentData.AgentIndex - HasUpdatedPos.Num() + 1);
+			}
+			HasUpdatedPos[AgentData.AgentIndex] = 1;
+			dtVcopy(MutableAgent->targetPos, &RcTargetPos.X);
+		}
+	}
+
+	dtCrowdAgent** ActiveDetourAgents = DetourCrowd->getActiveAgents();
+	for (int32 Idx = 0; Idx < DetourCrowd->getNumActiveAgents(); Idx++)
+	{
+		dtCrowdAgent* Agent = ActiveDetourAgents[Idx];
+		if (Agent->state == DT_CROWDAGENT_STATE_WALKING &&
+			Agent->ncorners == 1 && Agent->corridor.getPathCount() < 5 &&
+			(Agent->cornerFlags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) == 0)
+		{
+			const int32 AgentIndex = DetourCrowd->getAgentIndex(Agent);
+
+			if (HasUpdatedPos.IsValidIndex(AgentIndex) && HasUpdatedPos[AgentIndex])
+			{
+				dtVcopy(Agent->cornerVerts, Agent->targetPos);
+			}
+		}
+	}
+#endif
 }
 
 UWorld* UCrowdManager::GetWorld() const

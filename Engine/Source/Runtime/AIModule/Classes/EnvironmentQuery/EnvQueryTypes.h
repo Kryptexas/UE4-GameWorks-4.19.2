@@ -206,6 +206,17 @@ namespace EEnvTraceShape
 }
 
 UENUM()
+namespace EEnvOverlapShape
+{
+	enum Type
+	{
+		Box,
+		Sphere,
+		Capsule,
+	};
+}
+
+UENUM()
 namespace EEnvDirection
 {
 	enum Type
@@ -365,6 +376,45 @@ struct AIMODULE_API FEnvTraceData
 	void SetNavmeshOnly();
 	
 	void OnPostLoad();
+};
+
+USTRUCT()
+struct AIMODULE_API FEnvOverlapData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FEnvOverlapData() :
+	ExtentX(10.0f), ExtentY(10.0f), ExtentZ(10.0f), bOnlyBlockingHits(true), bOverlapComplex(false)
+	{
+	}
+
+	/** shape parameter for overlap */
+	UPROPERTY(EditDefaultsOnly, Category = Trace, meta = (UIMin = 0, ClampMin = 0))
+	float ExtentX;
+
+	/** shape parameter for overlap */
+	UPROPERTY(EditDefaultsOnly, Category = Trace, meta = (UIMin = 0, ClampMin = 0))
+	float ExtentY;
+
+	/** shape parameter for overlap */
+	UPROPERTY(EditDefaultsOnly, Category = Trace, meta = (UIMin = 0, ClampMin = 0))
+	float ExtentZ;
+
+	/** geometry trace channel used for overlap */
+	UPROPERTY(EditDefaultsOnly, Category = Overlap)
+	TEnumAsByte<enum ECollisionChannel> OverlapChannel;
+
+	/** shape used for geometry overlap */
+	UPROPERTY(EditDefaultsOnly, Category = Overlap)
+	TEnumAsByte<EEnvOverlapShape::Type> OverlapShape;
+
+	/** if set, overlap will look only for blocking hits */
+	UPROPERTY(EditDefaultsOnly, Category = Overlap, AdvancedDisplay)
+	uint32 bOnlyBlockingHits : 1;
+
+	/** if set, overlap will run on complex collisions */
+	UPROPERTY(EditDefaultsOnly, Category = Overlap, AdvancedDisplay)
+	uint32 bOverlapComplex : 1;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -697,6 +747,9 @@ private:
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
+	/** true if this query has logged a warning that it overran the time limit */
+	uint8 bHasLoggedTimeLimitWarning : 1;
+
 	/** if > 0 then it's how much time query has for performing current step */
 	double CurrentStepTimeLimit;
 
@@ -724,7 +777,7 @@ public:
 	/** item type's CDO for actor tests */
 	UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
 
-	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false)
+	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false), bHasLoggedTimeLimitWarning(false)
 #if USE_EQS_DEBUGGER
 		, bStoreDebugInfo(bDebuggingInfoEnabled) 
 #endif // USE_EQS_DEBUGGER
@@ -734,6 +787,12 @@ public:
 
 	/** execute single step of query */
 	void ExecuteOneStep(double InCurrentStepTimeLimit);
+
+	/** have we logged that we overran time the time limit? */
+	bool HasLoggedTimeLimitWarning() const { return !!bHasLoggedTimeLimitWarning; }
+
+	/** set that we logged that we overran time the time limit. */
+	void SetHasLoggedTimeLimitWarning() { bHasLoggedTimeLimitWarning = true; }
 
 	/** get the amount of time spent executing query */
 	double GetTotalExecutionTime() const { return TotalExecutionTime; }

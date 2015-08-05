@@ -410,11 +410,14 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 	}
 
 	// Dynamically insert the new widget into the hierarchy if it exists.
-	if ( WidgetTree )
+	if (WidgetTree)
 	{
 		UNamedSlot* NamedSlot = Cast<UNamedSlot>(WidgetTree->FindWidget(SlotName));
-		NamedSlot->ClearChildren();
-		NamedSlot->AddChild(Content);
+		if (NamedSlot)
+		{
+			NamedSlot->ClearChildren();
+			NamedSlot->AddChild(Content);
+		}
 	}
 }
 

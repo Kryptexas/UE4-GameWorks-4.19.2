@@ -496,20 +496,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			return false;
 		}
 
-		// Don't destroy player actors.
-		APlayerController* PC = Cast<APlayerController>(ThisActor);
-		if ( PC )
+		if (ThisActor->DestroyNetworkActorHandled())
 		{
-			UNetConnection* C = Cast<UNetConnection>(PC->Player);
-			if( C )
-			{	
-				if( C->Channels[0] && C->State!=USOCK_Closed )
-				{
-					C->bPendingDestroy = true;
-					C->Channels[0]->Close();
-				}
-				return false;
-			}
+			// Network actor short circuited the destroy (network will cleanup properly)
+			// Don't destroy PlayerControllers and BeaconClients
+			return false;
 		}
 	}
 	else

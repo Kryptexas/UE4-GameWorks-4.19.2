@@ -12,6 +12,7 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSessionInterface.h"
 #include "GameFramework/OnlineSession.h"
+#include "GameFramework/PlayerState.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -580,6 +581,48 @@ APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 
 	// didn't find one
 	return nullptr;
+}
+
+APlayerController* UGameInstance::GetPrimaryPlayerController() const
+{
+	UWorld* World = GetWorld();
+	check(World);
+
+	APlayerController* PrimaryController = nullptr;
+	for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		APlayerController* NextPlayer = Cast<APlayerController>(*Iterator);
+		if (NextPlayer && NextPlayer->PlayerState && NextPlayer->PlayerState->UniqueId.IsValid() && NextPlayer->IsPrimaryPlayer())
+		{
+			PrimaryController = NextPlayer;
+			break;
+		}
+	}
+
+	return PrimaryController;
+}
+
+TSharedPtr<const FUniqueNetId> UGameInstance::GetPrimaryPlayerUniqueId() const
+{
+	ULocalPlayer* PrimaryLP = nullptr;
+
+	TArray<ULocalPlayer*>::TConstIterator LocalPlayerIt = GetLocalPlayerIterator();
+	for (; LocalPlayerIt && *LocalPlayerIt; ++LocalPlayerIt)
+	{
+		PrimaryLP = *LocalPlayerIt;
+		if (PrimaryLP && PrimaryLP->PlayerController && PrimaryLP->PlayerController->IsPrimaryPlayer())
+		{
+			break;
+		}
+	}
+
+	TSharedPtr<const FUniqueNetId> LocalUserId = nullptr;
+	if (PrimaryLP)
+	{
+		LocalUserId = PrimaryLP->GetPreferredUniqueNetId();
+	}
+
+	return LocalUserId;
 }
 
 ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(const int32 ControllerId) const

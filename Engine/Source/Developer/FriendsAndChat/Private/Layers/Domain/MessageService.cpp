@@ -345,12 +345,12 @@ private:
 		{
 			// Determine roomtype for the message.  
 			FString GlobalChatRoomId;
-			TSharedPtr<const FOnlinePartyId> PartyChatRoomId = OSSScheduler->GetPartyChatRoomId();
+			FChatRoomId PartyChatRoomId = OSSScheduler->GetPartyChatRoomId();
 			if (GetGlobalChatRoomId(GlobalChatRoomId) && ChatRoomID == GlobalChatRoomId)
 			{
 				ChatItem->MessageType = EChatMessageType::Global;
 			}
-			else if (PartyChatRoomId.IsValid() && ChatRoomID == (*PartyChatRoomId).ToString())
+			else if (!PartyChatRoomId.IsEmpty() && ChatRoomID == PartyChatRoomId)
 			{
 				ChatItem->MessageType = EChatMessageType::Party;
 			}

@@ -20,7 +20,7 @@ public:
 	virtual void SetAway() = 0;
 	virtual EOnlinePresenceState::Type GetOnlineStatus() = 0;
 	virtual FString GetUserClientId() const = 0;
-	virtual TSharedPtr<const FOnlinePartyId> GetPartyChatRoomId() const = 0;
+	virtual FChatRoomId GetPartyChatRoomId() const = 0;
 	virtual void SetUserIsOnline(EOnlinePresenceState::Type OnlineState) = 0;
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const = 0;
 	virtual bool IsFriendInSameSession(const TSharedPtr< const IFriendItem >& FriendItem) const = 0;

@@ -300,6 +300,9 @@ protected:
 	/** called from tick, just after updating agents proximity data */
 	virtual void PostProximityUpdate();
 
+	/** called from tick, after move points were updated, before any steering/avoidance */
+	virtual void PostMovePointUpdate();
+
 #if WITH_RECAST
 	void AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData) const;
 	void RemoveAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData* AgentData) const;

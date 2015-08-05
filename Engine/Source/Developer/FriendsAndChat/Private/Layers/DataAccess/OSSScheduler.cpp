@@ -155,10 +155,10 @@ public:
 		return OnlineSub->GetChatInterface();
 	}
 
-	virtual TSharedPtr<const FOnlinePartyId> GetPartyChatRoomId() const override
+	virtual FChatRoomId GetPartyChatRoomId() const override
 	{
 		TSharedPtr<const FUniqueNetId> UserId = GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
-		TSharedPtr<const FOnlinePartyId> PartyChatRoomId;
+		FChatRoomId PartyChatRoomId;
 		TArray< TSharedRef<const FOnlinePartyId> > OutPartyIds;
 		if (UserId.IsValid())
 		{
@@ -167,7 +167,11 @@ public:
 				&& PartyInterface->GetJoinedParties(*UserId, OutPartyIds) == true
 				&& OutPartyIds.Num() > 0)
 			{
-				PartyChatRoomId = OutPartyIds[0]; // @todo EN need to identify the primary game party consistently when multiple parties exist
+				TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInterface->GetPartyInfo(*UserId, *(OutPartyIds[0]));
+				if (PartyInfo.IsValid())
+				{
+					PartyChatRoomId = PartyInfo->RoomId; // @todo EN need to identify the primary game party consistently when multiple parties exist
+				}
 			}
 		}
 		return PartyChatRoomId;

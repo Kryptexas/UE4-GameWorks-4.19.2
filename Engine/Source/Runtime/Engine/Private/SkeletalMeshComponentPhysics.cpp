@@ -777,7 +777,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		{
 			// Copy body setup default instance properties
 			BodyInst->CopyBodyInstancePropertiesFrom(&PhysicsAssetBodySetup->DefaultInstance);
-			// we don't allow them to use this in editor. For physics asset, this set up is overriden by Physics Type. 
+			// we don't allow them to use this in editor. For physics asset, this set up is overridden by Physics Type. 
 			// but before we hide in the detail customization, we saved with this being true, causing the simulate always happens for some bodies
 			// so adding initialization here to disable this. 
 			// to check, please check BodySetupDetails.cpp, if (ChildProperty->GetProperty()->GetName() == TEXT("bSimulatePhysics"))

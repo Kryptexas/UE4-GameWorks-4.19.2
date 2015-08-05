@@ -1486,7 +1486,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		// Make sure the simple construction script is loaded, since the outer hierarchy isn't compatible with PreloadMembers past the root node
 		FBlueprintEditorUtils::PreloadConstructionScript(Blueprint);
 
-		// Preload Overriden Components
+		// Preload Overridden Components
 		if (Blueprint->InheritableComponentHandler)
 		{
 			Blueprint->InheritableComponentHandler->PreloadAll();
@@ -2349,9 +2349,9 @@ UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlu
 			UClass* SearchClass = (*It);
 			if( SearchClass )
 			{
-				if (UFunction* OverridenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper))
+				if (UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper))
 				{
-					return OverridenFunction;
+					return OverriddenFunction;
 				}
 			}
 			else if( bOutInvalidInterface )

@@ -53,6 +53,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetBorderPadding(const FMargin& Padd
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatFooterMinDesiredHeight(const float InChatFooterMinDesiredHeight)
+{
+	ChatFooterMinDesiredHeight = InChatFooterMinDesiredHeight;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatFooterPadding(const FMargin& InChatFooterPadding)
+{
+	ChatFooterPadding = InChatFooterPadding;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle)
 {
 	ScrollBarStyle = InScrollBarStyle;

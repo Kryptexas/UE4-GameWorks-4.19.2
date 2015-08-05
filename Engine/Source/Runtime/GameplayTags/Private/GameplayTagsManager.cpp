@@ -52,7 +52,7 @@ void UGameplayTagsManager::LoadGameplayTagTables(TArray<FString>& TagTableNames)
 #endif
 }
 
-void UGameplayTagsManager::GetAllNodesForTag_Recurse(TArray<FString>& Tags, int32 CurrentTagDepth, TSharedPtr<FGameplayTagNode> CurrentTagNode, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray)
+void UGameplayTagsManager::GetAllNodesForTag_Recurse(TArray<FString>& Tags, int32 CurrentTagDepth, TSharedPtr<FGameplayTagNode> CurrentTagNode, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const
 {
 	CurrentTagDepth++;
 	if(Tags.Num() > CurrentTagDepth)
@@ -74,7 +74,7 @@ void UGameplayTagsManager::GetAllNodesForTag_Recurse(TArray<FString>& Tags, int3
 	}
 }
 
-void UGameplayTagsManager::GetAllNodesForTag( const FString& Tag, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray )
+void UGameplayTagsManager::GetAllNodesForTag( const FString& Tag, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray ) const
 {
 	TArray<FString> Tags;
 	TArray<TSharedPtr<FGameplayTagNode>>& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
@@ -444,7 +444,7 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 }
 
 
-int32 UGameplayTagsManager::GetBestTagCategoryDescription(FString Tag, FText& OutDescription)
+int32 UGameplayTagsManager::GetBestTagCategoryDescription(FString Tag, FText& OutDescription) const
 {
 	// get all the nodes that make up this tag
 	TArray< TSharedPtr<FGameplayTagNode> > TagItems;

@@ -124,6 +124,34 @@ void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTC
 	}
 }
 
+bool FBehaviorTreeInstance::HasActiveNode(uint16 TestExecutionIndex) const
+{
+	if (ActiveNode && ActiveNode->GetExecutionIndex() == TestExecutionIndex)
+	{
+		return true;
+	}
+
+	for (int32 Idx = 0; Idx < ParallelTasks.Num(); Idx++)
+	{
+		const FBehaviorTreeParallelTask& ParallelTask = ParallelTasks[Idx];
+		if (ParallelTask.TaskNode && ParallelTask.TaskNode->GetExecutionIndex() == TestExecutionIndex)
+		{
+			return (ParallelTask.Status == EBTTaskStatus::Active);
+		}
+	}
+
+	for (int32 Idx = 0; Idx < ActiveAuxNodes.Num(); Idx++)
+	{
+		if (ActiveAuxNodes[Idx] && ActiveAuxNodes[Idx]->GetExecutionIndex() == TestExecutionIndex)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 
 //----------------------------------------------------------------------//
 // FBTNodeIndex

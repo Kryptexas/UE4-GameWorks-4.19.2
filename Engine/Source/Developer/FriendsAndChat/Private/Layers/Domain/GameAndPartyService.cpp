@@ -195,21 +195,30 @@ private:
 		if (OSSScheduler->GetOnlineIdentity().IsValid())
 		{
 			TSharedPtr<const FUniqueNetId> UserId = OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
-			TSharedPtr<const FOnlinePartyId> ActivePartyId = GetPartyChatRoomId();
-			if (ActivePartyId.IsValid() && UserId.IsValid())
+			FChatRoomId ActivePartyId = GetPartyChatRoomId();
+			if (!ActivePartyId.IsEmpty() && UserId.IsValid())
 			{
 				if (OSSScheduler.IsValid())
 				{
 					if (OSSScheduler->GetPartyInterface().IsValid())
 					{
-						TArray< TSharedRef<FOnlinePartyMember> > OutPartyMembers;
-						if (OSSScheduler->GetPartyInterface()->GetPartyMembers(*UserId, *ActivePartyId, OutPartyMembers)
-							&& OutPartyMembers.Num() > 1)
+						TArray< TSharedRef<const FOnlinePartyId> > OutPartyIds;
+						if (OSSScheduler->GetPartyInterface()->GetJoinedParties(*UserId, OutPartyIds) == true
+							&& OutPartyIds.Num() > 0)
 						{
-							// Fortnite puts you in a party immediately, so we have to check size here to see if YOU think you're in a party & have anyone to talk to
-							// @todo What about if people leave and come back - should MUC persist w/ chat history?
-							//       Need UI flow to determine right way to do this & edge cases.  Can a party of 1 exist, should it allow party chat, etc.
-							return true;
+							TSharedPtr<FOnlinePartyInfo> PartyInfo = OSSScheduler->GetPartyInterface()->GetPartyInfo(*UserId, *(OutPartyIds[0]));
+							if (PartyInfo.IsValid())
+							{
+								TArray< TSharedRef<FOnlinePartyMember> > OutPartyMembers;
+								if (OSSScheduler->GetPartyInterface()->GetPartyMembers(*UserId, *(PartyInfo->PartyId), OutPartyMembers)
+									&& OutPartyMembers.Num() > 1)
+								{
+									// Fortnite puts you in a party immediately, so we have to check size here to see if YOU think you're in a party & have anyone to talk to
+									// @todo What about if people leave and come back - should MUC persist w/ chat history?
+									//       Need UI flow to determine right way to do this & edge cases.  Can a party of 1 exist, should it allow party chat, etc.
+									return true;
+								}
+							}
 						}
 					}
 				}
@@ -319,7 +328,7 @@ private:
 		return OSSScheduler->GetUserClientId();
 	}
 
-	virtual TSharedPtr<const FOnlinePartyId> GetPartyChatRoomId() const override
+	virtual FChatRoomId GetPartyChatRoomId() const override
 	{
 		return OSSScheduler->GetPartyChatRoomId();
 	}
@@ -342,7 +351,7 @@ private:
 			TSharedPtr<const FUniqueNetId> UserId = OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
 			if (UserId.IsValid())
 			{
-				OSSScheduler->GetPartyInterface()->RejectInvitation(*UserId, *PartyInfo->GetPartyId());
+				OSSScheduler->GetPartyInterface()->RejectInvitation(*UserId, *(FriendItem->GetUniqueID()));
 			}
 		}
 
@@ -549,15 +558,15 @@ private:
 	{
 		if (OSSScheduler->GetPartyInterface().IsValid())
 		{
-			TArray<TSharedRef<IOnlinePartyJoinInfo>> PartyInvites;
+			TArray<TSharedRef<IOnlinePartyInvite>> PartyInvites;
 			if (OSSScheduler->GetPartyInterface()->GetPendingInvites(RecipientId, PartyInvites))
 			{
 				for (auto PartyInvite : PartyInvites)
 				{
-					if (*PartyInvite->GetPartyId() == PartyId)
+					if (*PartyInvite->GetSenderId() == SenderId)
 					{
 						TSharedPtr<const FUniqueNetId> SenderIdPtr = OSSScheduler->GetOnlineIdentity()->CreateUniquePlayerId(SenderId.ToString());
-						ReceivedPartyInvites.AddUnique(FReceivedPartyInvite(SenderIdPtr.ToSharedRef(), PartyInvite));
+						ReceivedPartyInvites.AddUnique(FReceivedPartyInvite(SenderIdPtr.ToSharedRef(), PartyInvite->GetJoinInfo()));
 						RequestOSS();
 						break;
 					}

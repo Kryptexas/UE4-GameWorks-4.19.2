@@ -122,6 +122,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	CircleRadius.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
 	SpaceBetween.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
 	ArcAngle.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	CircleCenterZOffset.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
 
 	float AngleDegree = ArcAngle.GetValue();
 	float RadiusValue = CircleRadius.GetValue();
@@ -153,10 +154,11 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = ContextData.RawData.GetData();
+		const FVector CircleCenterOffset = FVector(0.f, 0.f, CircleCenterZOffset.GetValue());
 
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			const FVector ContextItemLocation = DefTypeOb->GetItemLocation(RawData);
+			const FVector ContextItemLocation = DefTypeOb->GetItemLocation(RawData) + CircleCenterOffset;
 			GenerateItemsForCircle(RawData, DefTypeOb, ContextItemLocation, StartDirection, StepsCount, AngleStep, QueryInstance);
 
 			RawData += DefTypeValueSize;

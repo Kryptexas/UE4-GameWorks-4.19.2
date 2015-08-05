@@ -122,6 +122,22 @@ UNetConnection* APlayerController::GetNetConnection() const
 	return (Player != NULL) ? NetConnection : NULL;
 }
 
+bool APlayerController::DestroyNetworkActorHandled()
+{
+	UNetConnection* C = Cast<UNetConnection>(Player);
+	if (C)
+	{
+		if (C->Channels[0] && C->State != USOCK_Closed)
+		{
+			C->bPendingDestroy = true;
+			C->Channels[0]->Close();
+		}
+		return true;
+	}
+
+	return false;
+}
+
 bool APlayerController::IsLocalController() const
 {
 	ENetMode NetMode = GetNetMode();

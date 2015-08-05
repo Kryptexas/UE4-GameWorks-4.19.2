@@ -178,6 +178,8 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	StreamingDistanceMultiplier = 1.0f;
 	bBoundsChangeTriggersStreamingDataRebuild = true;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
+	bOverrideNavigationExport = false;
+	bForceNavigationObstacle = true;
 
 	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
 
@@ -363,7 +365,7 @@ void UStaticMeshComponent::CheckForErrors()
 			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(Owner))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_MoreMaterialsThanReferenced", "More overriden materials ({OverridenCount}) on static mesh component than are referenced ({ReferencedCount}) in source mesh '{MeshName}'" ), Arguments ) ))
+				->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_MoreMaterialsThanReferenced", "More overridden materials ({OverridenCount}) on static mesh component than are referenced ({ReferencedCount}) in source mesh '{MeshName}'" ), Arguments ) ))
 				->AddToken(FMapErrorToken::Create(FMapErrors::MoreMaterialsThanReferenced));
 		}
 		if (ZeroTriangleElements > 0)
@@ -1263,7 +1265,7 @@ bool UStaticMeshComponent::GetLightMapResolution( int32& Width, int32& Height ) 
 	bool bPadded = false;
 	if( StaticMesh )
 	{
-		// Use overriden per component lightmap resolution.
+		// Use overridden per component lightmap resolution.
 		if( bOverrideLightMapRes )
 		{
 			Width	= OverriddenLightMapRes;
@@ -1296,7 +1298,7 @@ void UStaticMeshComponent::GetEstimatedLightMapResolution(int32& Width, int32& H
 
 		bool bUseSourceMesh = false;
 
-		// Use overriden per component lightmap resolution.
+		// Use overridden per component lightmap resolution.
 		// If the overridden LM res is > 0, then this is what would be used...
 		if (bOverrideLightMapRes == true)
 		{
@@ -1462,7 +1464,7 @@ bool UStaticMeshComponent::GetEstimatedLightAndShadowMapMemoryUsage(
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
 	// @note : you don't have to consider Materials.Num()
-	// that only counts if overriden and it can't be more than StaticMesh->Materials. 
+	// that only counts if overridden and it can't be more than StaticMesh->Materials. 
 	if(StaticMesh)
 	{
 		return StaticMesh->Materials.Num();
@@ -1633,7 +1635,9 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 	if (StaticMesh != NULL && StaticMesh->NavCollision != NULL)
 	{
 		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		if (NavCollision->bIsDynamicObstacle)
+		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
+
+		if (bExportAsObstacle)
 		{
 			return false;
 		}
@@ -1671,7 +1675,9 @@ void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) cons
 	if (StaticMesh && StaticMesh->NavCollision)	
 	{
 		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		if (NavCollision->bIsDynamicObstacle)
+		const bool bExportAsObstacle = bOverrideNavigationExport ? bForceNavigationObstacle : NavCollision->bIsDynamicObstacle;
+
+		if (bExportAsObstacle)
 		{
 			NavCollision->GetNavigationModifier(Data.Modifiers, ComponentToWorld);
 		}

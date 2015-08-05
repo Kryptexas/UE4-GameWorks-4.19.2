@@ -39,7 +39,7 @@ public:
 
 	static TSharedRef<FTrackNodeDragDropOp> New(TSharedRef<STrackNode> TrackNode, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode);
 
-	/** Gets the widget that will serve as the decorator unless overriden. If you do not override, you will have no decorator */
+	/** Gets the widget that will serve as the decorator unless overridden. If you do not override, you will have no decorator */
 	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		return OriginalTrackNode.Pin();

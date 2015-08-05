@@ -251,6 +251,20 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	}
 }
 
+bool UCrowdFollowingComponent::UpdateCachedGoal(FVector& NewGoalPos)
+{
+	if (bFinalPathPart && !bUpdateDirectMoveVelocity &&
+		Path.IsValid() && !Path->IsPartial() && Path->GetGoalActor())
+	{
+		NewGoalPos = Path->GetGoalLocation();
+		CurrentDestination.Set(Path->GetBaseActor(), NewGoalPos);
+		return true;
+	}
+
+	return false;
+}
+
+
 void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink)
 {
 	if (bEnableCrowdSimulation && Status == EPathFollowingStatus::Moving)

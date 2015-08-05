@@ -162,7 +162,7 @@ namespace EpicGames.MCP.Automation
             }
         }
 
-        /// <summary>
+		/// <summary>
 		/// If set, this allows us to over-ride the automatically constructed ManifestFilename
 		/// </summary>
 		private readonly string _ManifestFilename;

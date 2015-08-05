@@ -82,6 +82,18 @@ public:
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) override;
 
 	// External events
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnSendPartyInvitationCompleteEvent, FOnSendPartyInvitationCompleteEvent);
+	virtual FOnSendPartyInvitationCompleteEvent& OnSendPartyInvitationComplete() override
+	{
+		return SendPartyInviteCompleteEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnSendFriendRequestCompleteEvent, FOnSendFriendRequestCompleteEvent);
+	virtual FOnSendFriendRequestCompleteEvent& OnSendFriendRequestComplete() override
+	{
+		return SendFriendRequestCompleteEvent;
+	}
+
 	virtual FAllowFriendsJoinGame& AllowFriendsJoinGame() override
 	{
 		return AllowFriendsJoinGameDelegate;
@@ -93,8 +105,23 @@ private:
 	void ShutdownManager();
 
 	/**
+	 * Notification when an invite list has changed for a party
+ 	 * @param LocalUserId - user that is associated with this notification
+	 */
+	void OnPartyInvitesChanged(const FUniqueNetId& LocalUserId);
+
+	/**
+	 * Delegate used when an party invite is sent
+	 * 
+	 * @param LocalUserId	The user ID.
+	 * @param PartyId		Party ID.
+	 * @param Result Result of send invite action.
+	 * @param RecipientId	The friend ID.
+	 */
+	void OnSendPartyInvitationCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, ESendInviteCompleteResult Result, const FUniqueNetId& RecipientId);
+
+	/**
 	 * A ticker used to perform updates on the main thread.
-	 *
 	 * @param Delta The tick delta.
 	 * @return true to continue ticking.
 	 */
@@ -117,6 +144,10 @@ private:
 
 	/* Delegates
 	*****************************************************************************/
+	// Holds the On send party invite complete delegate
+	FOnSendPartyInvitationCompleteEvent SendPartyInviteCompleteEvent;
+	// Holds the on send friend request complete delegate
+	FOnSendFriendRequestCompleteEvent SendFriendRequestCompleteEvent;
 	FAllowFriendsJoinGame AllowFriendsJoinGameDelegate;
 
 	/* Services

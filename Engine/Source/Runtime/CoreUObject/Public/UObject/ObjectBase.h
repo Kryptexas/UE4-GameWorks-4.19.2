@@ -973,7 +973,7 @@ namespace UM
 		/// [ClassMetadata] Specifies that this class is an acceptable base class for creating blueprints.
 		IsBlueprintBase,
 
-		/// [ClassMetadata] Comma delimited list of blueprint events that are not be allowed to be overriden in classes of this type
+		/// [ClassMetadata] Comma delimited list of blueprint events that are not be allowed to be overridden in classes of this type
 		KismetHideOverrides,
 
 		/// [ClassMetadata] Specifies interfaces that are not compatible with the class.

@@ -170,8 +170,6 @@ public:
 	bool						bDynamicResource;
 };
 
-typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FCoreAudioSoundBuffer>> FAsyncRealtimeAudioTask;
-
 /**
  * CoreAudio implementation of FSoundSource, the interface used to play, stop and update sources
  */
@@ -220,6 +218,11 @@ public:
 	virtual void Pause( void );
 	
 	/**
+	 * Handles feeding new data to a real time decompressed sound
+	 */
+	void HandleRealTimeSource( void );
+	
+	/**
 	 * Queries the status of the currently associated wave instance.
 	 *
 	 * @return	true if the wave instance/ source has finished playback and false if it is 
@@ -244,26 +247,11 @@ public:
 											 AudioStreamPacketDescription **outPacketDescription, void *inUserData );
 
 protected:
-
-	enum class EDataReadMode : uint8
-	{
-		Synchronous,
-		Asynchronous,
-		AsynchronousSkipFirstFrame
-	};
-
-	/**
-	 * Handles feeding new data to a real time decompressed sound
-	 */
-	void HandleRealTimeSourceData(bool bLooped);
-
-	/**
-	 * Handles feeding new data to a real time decompressed sound
-	 */
-	void HandleRealTimeSource(bool bBlockForData);
-
 	/** Decompress USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
-	bool ReadMorePCMData( const int32 BufferIndex, EDataReadMode DataReadMode );
+	bool ReadMorePCMData( const int32 BufferIndex );
+
+	/** Handle obtaining more data for procedural USoundWaves. Always returns false for convenience. */
+	bool ReadProceduralData( const int32 BufferIndex );
 
 	OSStatus CreateAudioUnit( OSType Type, OSType SubType, OSType Manufacturer, AudioStreamBasicDescription* InputFormat, AudioStreamBasicDescription* OutputFormat, AUNode* OutNode, AudioUnit* OutUnit );
 	OSStatus ConnectAudioUnit( AUNode DestNode, uint32 DestInputNumber, AUNode OutNode, AudioUnit OutUnit );
@@ -280,13 +268,10 @@ protected:
 
 	AudioConverterRef			CoreAudioConverter;
 
-	/** Asynchronous task for real time audio sources */
-	FAsyncRealtimeAudioTask* RealtimeAsyncTask;
-
 	/** Which sound buffer should be written to next - used for double buffering. */
 	bool						bStreamedSound;
 	/** A pair of sound buffers to allow notification when a sound loops. */
-	CoreAudioBuffer				CoreAudioBuffers[3];
+	CoreAudioBuffer				CoreAudioBuffers[2];
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 
@@ -314,7 +299,7 @@ protected:
 	int32						NumActiveBuffers;
 	
 	int32						MixerInputNumber;
-
+	bool						bFailedToCreateGraph;
 private:
 
 	void FreeResources();

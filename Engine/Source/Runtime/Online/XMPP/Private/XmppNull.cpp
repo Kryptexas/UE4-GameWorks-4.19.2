@@ -20,10 +20,12 @@ public:
 	{
 		UserJid.Id = UserId;
 		OnLoginComplete().Broadcast(UserJid, false, TEXT("not implemented"));
+		OnLoginChanged().Broadcast(UserJid, EXmppLoginStatus::LoggedOut);
 	}
 	virtual void Logout() override
 	{
 		OnLogoutComplete().Broadcast(UserJid, false, TEXT("not implemented"));
+		OnLoginChanged().Broadcast(UserJid, EXmppLoginStatus::LoggedOut);
 	}
 	virtual EXmppLoginStatus::Type GetLoginStatus() const override
 	{ 

@@ -948,7 +948,7 @@ UNREALED_API bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& D
 
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{
-			if (MaterialIndex < OverrideMaterials.Num())	//if user has overriden materials use it
+			if (MaterialIndex < OverrideMaterials.Num())	//if user has overridden materials use it
 			{
 				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = OverrideMaterials[MaterialIndex];
 			}

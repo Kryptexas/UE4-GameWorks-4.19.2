@@ -158,15 +158,29 @@ public:
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
 	ULocalPlayer*			GetFirstGamePlayer() const;
 
-	void					CleanupGameViewport();
-
 	TArray<ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator() const;
 	const TArray<ULocalPlayer*> &			GetLocalPlayers() const;
+	/**
+	 * Get the primary player controller on this machine (others are splitscreen children)
+	 * (must have valid player state and unique id)
+	 *
+	 * @return the primary controller on this machine
+	 */
+	APlayerController* GetPrimaryPlayerController() const;
+
+	/**
+	 * Get the unique id for the primary player on this machine (others are splitscreen children)
+	 *
+	 * @return the unique id of the primary player on this machine
+	 */
+	TSharedPtr<const FUniqueNetId> GetPrimaryPlayerUniqueId() const;
+
+	void CleanupGameViewport();
 
 	/** Called when demo playback fails for any reason */
-	virtual void			HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
+	virtual void HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
 
-	static void				AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
     /** Delegate that is called when a user has accepted an invite. */
 	void HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);

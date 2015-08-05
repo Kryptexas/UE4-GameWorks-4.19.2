@@ -161,6 +161,14 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	int32 SelectedEditorSection;
 #endif
 
+	/** If true, bForceNavigationObstacle flag will take priority over navigation data stored in StaticMesh */
+	UPROPERTY(transient)
+	uint32 bOverrideNavigationExport : 1;
+
+	/** Allows overriding navigation export behavior per component: full collisions or dynamic obstacle */
+	UPROPERTY(transient)
+	uint32 bForceNavigationObstacle : 1;
+
 	/**
 	 *	Ignore this instance of this static mesh when calculating streaming information.
 	 *	This can be useful when doing things like applying character textures to static geometry,

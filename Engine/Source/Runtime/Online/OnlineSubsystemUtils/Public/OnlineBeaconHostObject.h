@@ -25,7 +25,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 	/** Get the state of the beacon (accepting/rejecting connections) */
 	EBeaconState::Type GetBeaconState() const;
 
-	/** Get the type of beacon implemented */
+	/** Get the type of beacon supported by this host */
 	const FString& GetBeaconType() const { return BeaconTypeName; }
 
 	/** Simple accessor for client beacon actor class */

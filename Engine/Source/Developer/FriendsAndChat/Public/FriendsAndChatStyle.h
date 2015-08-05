@@ -58,6 +58,14 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetBorderPadding(const FMargin& InBorderPadding);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
+	float ChatFooterMinDesiredHeight;
+	FFriendsAndChatStyle& SetChatFooterMinDesiredHeight(const float InChatFooterMinDesiredHeight);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ChatFooterPadding;
+	FFriendsAndChatStyle& SetChatFooterPadding(const FMargin& InChatFooterPadding);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FScrollBarStyle ScrollBarStyle;
 	FFriendsAndChatStyle& SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle);
 

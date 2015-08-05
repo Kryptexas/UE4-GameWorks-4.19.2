@@ -729,7 +729,7 @@ namespace UnrealBuildTool
                     InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEBUG=1");
                     break;
                 case UnrealTargetConfiguration.DebugGame:
-                    // Default to Development; can be overriden by individual modules.
+                    // Default to Development; can be overridden by individual modules.
                 case UnrealTargetConfiguration.Development:
                     CompileConfiguration = CPPTargetConfiguration.Development;
                     InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does

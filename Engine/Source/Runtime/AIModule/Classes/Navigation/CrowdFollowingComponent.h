@@ -199,6 +199,7 @@ protected:
 	bool ShouldSwitchPathPart(int32 CorridorSize) const;
 	bool HasMovedDuringPause() const;
 	void UpdateCachedDirections(const FVector& NewVelocity, const FVector& NextPathCorner, bool bTraversingLink);
+	virtual bool UpdateCachedGoal(FVector& NewGoalPos);
 
 	friend UCrowdManager;
 };

@@ -475,7 +475,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 		}
 #endif
 		// Add to queue according to priority.
-		InsertPackage(Package);
+		InsertPackage(Package, false);
 
 		// For all other cases this is handled in FindExistingPackageAndAddCompletionCallback
 		const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
@@ -520,7 +520,7 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 	return NumCreated;
 }
 
-void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
+void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, bool bIsImportPackage)
 {
 	checkSlow(IsInAsyncLoadThread());
 
@@ -535,12 +535,24 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
 		FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
 #endif
 		// Insert new package keeping descending priority order in AsyncPackages
-		int32 InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
+		int32 InsertIndex = INDEX_NONE;
+		
+		if (bIsImportPackage)
 		{
-			// NOTE: Switched to < because we want newly inserted packages to go AFTER all existing packages of the 
-			//		 same priority. If this is too slow, we could probably do "LastIndexOfByPredicate" where we iterate backwards??
-			return Element->GetPriority() < Package->GetPriority();
-		});
+			// This inserts it before packages of equal priority
+			InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
+			{
+				return Element->GetPriority() <= Package->GetPriority();
+			});
+		}
+		else
+		{
+			// This inserts it after packages of equal priority, so it doesn't take priority over nested loads
+			InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
+			{
+				return Element->GetPriority() < Package->GetPriority();
+			});
+		}
 
 		InsertIndex = InsertIndex == INDEX_NONE ? AsyncPackages.Num() : InsertIndex;
 
@@ -1383,7 +1395,7 @@ void FAsyncPackage::AddImportDependency(int32 CurrentPackageIndex, const FName& 
 		{
 			PackageToStream->Desc.Priority = Desc.Priority;
 		}
-		FAsyncLoadingThread::Get().InsertPackage(PackageToStream);
+		FAsyncLoadingThread::Get().InsertPackage(PackageToStream, true);
 	}
 	else
 	{

@@ -93,7 +93,7 @@ static bool IncreaseLimit(int Resource, rlim_t DesiredLimit)
 /**
  * Expects GSavedCommandLine to be set up. Increases limit on 
  *  - number of open files to be no less than desired (if specified on command line, otherwise left alone)
- *  - size of core file, so core gets dumped and we can debug crashed builds (unless overriden with -nocore)
+ *  - size of core file, so core gets dumped and we can debug crashed builds (unless overridden with -nocore)
  *
  */
 static bool IncreasePerProcessLimits()

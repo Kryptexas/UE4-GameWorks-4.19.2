@@ -6,6 +6,7 @@
 #include "OnlineKeyValuePair.h"
 #include "OnlineSubsystemPackage.h"
 #include "OnlineSubsystemSessionSettings.h"
+#include "OnlineSessionSettings.generated.h"
 
 /** Setting describing the name of the current map (value is FString) */
 #define SETTING_MAPNAME FName(TEXT("MAPNAME"))
@@ -299,6 +300,44 @@ public:
 	 */
 	EOnlineDataAdvertisementType::Type GetAdvertisementType(FName Key) const;
 
+};
+
+USTRUCT()
+struct FJoinabilitySettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Name of session these settings affect */
+	UPROPERTY()
+	FName SessionName;
+	/** Is this session now publicly searchable */
+	UPROPERTY()
+	bool bPublicSearchable;
+	/** Does this session allow invites */
+	UPROPERTY()
+	bool bAllowInvites;
+	/** Does this session allow public join via presence */
+	UPROPERTY()
+	bool bJoinViaPresence;
+	/** Does this session allow friends to join via presence */
+	UPROPERTY()
+	bool bJoinViaPresenceFriendsOnly;
+	/** Current max players in this session */
+	UPROPERTY()
+	int32 MaxPlayers;
+	/** Current max party size in this session */
+	UPROPERTY()
+	int32 MaxPartySize;
+
+	FJoinabilitySettings() :
+		SessionName(NAME_None),
+		bPublicSearchable(false),
+		bAllowInvites(false),
+		bJoinViaPresence(false),
+		bJoinViaPresenceFriendsOnly(false),
+		MaxPlayers(0),
+		MaxPartySize(0)
+	{}
 };
 
 /** Basic session information serializable into a NamedSession or SearchResults */

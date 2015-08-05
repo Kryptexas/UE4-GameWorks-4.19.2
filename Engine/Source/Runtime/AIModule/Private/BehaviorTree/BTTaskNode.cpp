@@ -9,6 +9,7 @@ UBTTaskNode::UBTTaskNode(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	NodeName = GetClass()->GetName();
 	bNotifyTick = false;
 	bNotifyTaskFinished = false;
+	bIgnoreRestartSelf = false;
 }
 
 EBTNodeResult::Type UBTTaskNode::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

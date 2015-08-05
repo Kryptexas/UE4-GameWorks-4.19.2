@@ -253,7 +253,7 @@ bool FSystemSettings::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 -----------------------------------------------------------------------------*/
 
 /**
- * Overriden function that selects the proper ini section to write to
+ * Overridden function that selects the proper ini section to write to
  */
 void FSystemSettings::LoadFromIni()
 {

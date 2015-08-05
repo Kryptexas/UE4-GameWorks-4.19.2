@@ -328,6 +328,9 @@ struct FBehaviorTreeInstance
 	/** cleanup node instances */
 	void Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemoryClear::Type CleanupType);
 
+	/** check if instance has active node with given execution index */
+	bool HasActiveNode(uint16 TestExecutionIndex) const;
+
 protected:
 
 	/** worker for updating all nodes */

@@ -809,7 +809,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 void FStaticMeshEditorViewportClient::DrawUVsForMesh(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos )
 {
-	//use the overriden LOD level
+	//use the overridden LOD level
 	const uint32 LODLevel = FMath::Clamp(StaticMeshComponent->ForcedLodModel - 1, 0, StaticMesh->RenderData->LODResources.Num() - 1);
 
 	int32 UVChannel = StaticMeshEditorPtr.Pin()->GetCurrentUVChannel();

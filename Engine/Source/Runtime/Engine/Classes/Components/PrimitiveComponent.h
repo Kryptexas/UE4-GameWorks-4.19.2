@@ -1371,7 +1371,7 @@ protected:
 	/**
 	 * Called to get the Component To World Transform from the Root BodyInstance
 	 * This needs to be virtual since SkeletalMeshComponent Root has to undo its own transform
-	 * Without this, the root LocalToAtom is overriden by physics simulation, causing kinematic velocity to 
+	 * Without this, the root LocalToAtom is overridden by physics simulation, causing kinematic velocity to 
 	 * accelerate simulation
 	 *
 	 * @param : UseBI - root body instsance

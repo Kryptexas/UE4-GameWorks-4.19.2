@@ -2192,7 +2192,7 @@ namespace UnrealBuildTool
                     }
                 }
             }
-            // Simply use full command line arguments as target setting if not otherwise overriden.
+            // Simply use full command line arguments as target setting if not otherwise overridden.
             else
             {
                 TargetSettings.Add(Arguments);

@@ -1262,7 +1262,7 @@ namespace UnrealBuildTool
 
 		/**
 		* Returns Hook names as needed by the platform
-		* (e.g. can be overriden with custom executables or scripts)
+		* (e.g. can be overridden with custom executables or scripts)
 		*
 		* @param Hook Hook type
 		*/

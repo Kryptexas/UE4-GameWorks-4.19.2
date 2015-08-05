@@ -676,11 +676,11 @@ void SPropertyEditorAsset::OnBrowse()
 		// This code only works on loaded objects
 		FPropertyEditor::SyncToObjectsInNode(PropertyEditor->GetPropertyNode());		
 	}
-	else if (auto* Asset = Value.AssetData.GetAsset())
+	else
 	{
-		TArray< UObject* > Objects;
-		Objects.Add( Asset );
-		GEditor->SyncBrowserToObjects( Objects );
+		TArray<FAssetData> AssetDataList;
+		AssetDataList.Add( Value.AssetData );
+		GEditor->SyncBrowserToObjects( AssetDataList );
 	}
 }
 

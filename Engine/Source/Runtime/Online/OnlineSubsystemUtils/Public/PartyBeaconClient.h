@@ -11,8 +11,6 @@ struct FUniqueNetIdRepl;
 struct FPartyReservation;
 class FOnlineSessionSearchResult;
 
-#define PARTY_BEACON_TYPE TEXT("PartyBeacon")
-
 /**
  * Types of reservation requests that can be made by this beacon
  */
@@ -27,8 +25,6 @@ enum class EClientRequestType : uint8
 	ReservationUpdate,
 	/** Reservation to configure an empty server  */
 	EmptyServerReservation,
-	/** Attempt to change an existing session to use a new world */
-	ChangeWorldRequest,
 	/** Simple reconnect (checks for existing reservation) */
 	Reconnect
 };
@@ -52,10 +48,6 @@ inline const TCHAR* ToString(EClientRequestType RequestType)
 	case EClientRequestType::EmptyServerReservation:
 	{
 		return TEXT("Empty Server Reservation");
-	}
-	case EClientRequestType::ChangeWorldRequest:
-	{
-		return TEXT("Change World Request");
 	}
 	case EClientRequestType::Reconnect:
 	{
@@ -86,10 +78,6 @@ UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 {
 	GENERATED_UCLASS_BODY()
-
-	// Begin AOnlineBeacon Interface
-	virtual FString GetBeaconType() override { return PARTY_BEACON_TYPE; }
-	// End AOnlineBeacon Interface
 
 	// Begin AOnlineBeaconClient Interface
 	virtual void OnConnected() override;

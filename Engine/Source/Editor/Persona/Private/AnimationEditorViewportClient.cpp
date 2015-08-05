@@ -556,7 +556,7 @@ void FAnimationViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 
 void FAnimationViewportClient::DrawUVsForMesh(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos)
 {
-	//use the overriden LOD level
+	//use the overridden LOD level
 	const uint32 LODLevel = FMath::Clamp(PreviewSkelMeshComp->ForcedLodModel - 1, 0, PreviewSkelMeshComp->SkeletalMesh->LODInfo.Num() - 1);
 
 	TArray<FVector2D> SelectedEdgeTexCoords; //No functionality in Persona for this (yet?)

@@ -3688,20 +3688,20 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 
 #if STREAMING_LOG_VIEWCHANGES
 	static bool bWasLocationOveridden = false;
-	bool bIsLocationOverriden = false;
+	bool bIsLocationOverridden = false;
 	for ( int32 ViewIndex=0; ViewIndex < CurrentViewInfos.Num(); ++ViewIndex )
 	{
 		FStreamingViewInfo& ViewInfo = CurrentViewInfos( ViewIndex );
 		if ( ViewInfo.bOverrideLocation )
 		{
-			bIsLocationOverriden = true;
+			bIsLocationOverridden = true;
 			break;
 		}
 	}
-	if ( bIsLocationOverriden != bWasLocationOveridden )
+	if ( bIsLocationOverridden != bWasLocationOveridden )
 	{
-		UE_LOG(LogContentStreaming, Log, TEXT("Texture streaming view location is now %s."), bIsLocationOverriden ? TEXT("OVERRIDEN") : TEXT("normal") );
-		bWasLocationOveridden = bIsLocationOverriden;
+		UE_LOG(LogContentStreaming, Log, TEXT("Texture streaming view location is now %s."), bIsLocationOverridden ? TEXT("OVERRIDDEN") : TEXT("normal") );
+		bWasLocationOveridden = bIsLocationOverridden;
 	}
 #endif
 

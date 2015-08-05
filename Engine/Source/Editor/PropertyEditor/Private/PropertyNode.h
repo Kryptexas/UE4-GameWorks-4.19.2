@@ -41,7 +41,7 @@ namespace EPropertyNodeFlags
 
 	const Type	ShouldShowDisableEditOnInstance = 1 << 19; /** true if this node should show child properties marked CPF_DisableEditOnInstance */
 
-	const Type	IsReadOnly						= 1 << 20; /** true if this node is overriden to appear as read-only */
+	const Type	IsReadOnly						= 1 << 20; /** true if this node is overridden to appear as read-only */
 
 	const Type	SkipChildValidation				= 1 << 21; /** true if this node should skip child validation */
 

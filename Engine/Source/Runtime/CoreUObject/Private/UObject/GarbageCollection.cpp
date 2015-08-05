@@ -1208,7 +1208,7 @@ bool IsIncrementalPurgePending()
 typedef void (*EditorPostReachabilityAnalysisCallbackType)();
 COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilityAnalysisCallback = NULL;
 
-// Allow parralel GC to be overriden to single threaded via console command.
+// Allow parallel GC to be overridden to single threaded via console command.
 static int32 GAllowParallelGC = (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0;
 static FAutoConsoleVariableRef CVarAllowParallelGC(
 	TEXT("gc.AllowParallelGC"),

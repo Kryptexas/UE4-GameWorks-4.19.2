@@ -6,8 +6,8 @@
 ATestBeaconHost::ATestBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	BeaconTypeName = TEST_BEACON_TYPE;
 	ClientBeaconActorClass = ATestBeaconClient::StaticClass();
+	BeaconTypeName = ClientBeaconActorClass->GetName();
 }
 
 bool ATestBeaconHost::Init()

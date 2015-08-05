@@ -43,6 +43,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
 	virtual const AActor* GetNetOwner() const override;
 	virtual UNetConnection* GetNetConnection() const override;
+	virtual bool DestroyNetworkActorHandled() override;
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface
@@ -63,6 +64,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 * @return true if connection is being attempted, false otherwise
 	 */
 	bool InitClient(FURL& URL);
+
+	/**
+	 * Each beacon must have a unique type identifier
+	 *
+	 * @return string representing the type of beacon 
+	 */
+	FString GetBeaconType() const;
 	
 	/**
 	 * A connection has been made and RPC/replication can begin

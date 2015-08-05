@@ -14,10 +14,6 @@
 #include "GameFramework/GameMode.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
 -----------------------------------------------------------------------------*/
@@ -1426,12 +1422,12 @@ void UNetConnection::Tick()
 	{
 		Timeout = bPendingDestroy ? 2.f : Driver->ConnectionTimeout;
 	}
-	bool bUseTimeout = true;
-#if WITH_EDITOR
-	// Do not time out in PIE since the server is local.
-	bUseTimeout = !(GEditor && GEditor->PlayWorld);
+
+#if !UE_BUILD_SHIPPING
+	if (!Driver->bNoTimeouts && (Driver->Time - LastReceiveTime) > Timeout)
+#else
+	if ((Driver->Time - LastReceiveTime) > Timeout)
 #endif
-	if ( bUseTimeout && Driver->Time - LastReceiveTime > Timeout )
 	{
 		// Timeout.
 		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Elapsed: %f, Threshold: %f, %s"),

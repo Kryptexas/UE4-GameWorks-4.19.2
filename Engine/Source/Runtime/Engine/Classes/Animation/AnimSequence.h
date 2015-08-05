@@ -354,7 +354,7 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	TArray<FName> AnimationTrackNames;
 
 	/**
-	 * Source RawAnimationData. Only can be overriden by when transform curves are added first time OR imported
+	 * Source RawAnimationData. Only can be overridden by when transform curves are added first time OR imported
 	 */
 	TArray<struct FRawAnimSequenceTrack> SourceRawAnimationData;
 #endif // WITH_EDITORONLY_DATA

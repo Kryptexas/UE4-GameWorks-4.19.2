@@ -197,11 +197,11 @@ public:
 						break;
 						case EChatMessageType::Party:
 						{
-							TSharedPtr<const FOnlinePartyId> PartyRoomId = GamePartyService->GetPartyChatRoomId();
-							if (GamePartyService->IsInActiveParty() && PartyRoomId.IsValid())
+							FChatRoomId PartyChatRoomId = GamePartyService->GetPartyChatRoomId();
+							if (GamePartyService->IsInActiveParty() && !PartyChatRoomId.IsEmpty())
 							{
 								//@todo will need to support multiple party channels eventually, hardcoded to first party for now
-								bSuccess = MessageService->SendRoomMessage((*PartyRoomId).ToString(), NewMessage.ToString());
+								bSuccess = MessageService->SendRoomMessage(PartyChatRoomId, NewMessage.ToString());
 
 								MessageService->GetAnalytics()->RecordChannelChat(TEXT("Party"));
 							}

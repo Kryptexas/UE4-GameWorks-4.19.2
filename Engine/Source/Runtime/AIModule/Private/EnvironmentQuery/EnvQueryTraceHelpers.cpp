@@ -87,6 +87,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Line>(TArray<FNavLocati
 	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
 	{
 		const bool bHit = RunLineTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
+
 		if (bHit)
 		{
 			Points[Idx] = FNavLocation(HitPos + FVector(0, 0, HitOffsetZ));
@@ -94,6 +95,11 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Line>(TArray<FNavLocati
 		else if (TraceMode == ETraceMode::Discard)
 		{
 			Points.RemoveAt(Idx, 1, false);
+		}
+
+		if (TraceHits.IsValidIndex(Idx))
+		{
+			TraceHits[Idx] = bHit ? 1 : 0;
 		}
 	}
 }
@@ -114,6 +120,11 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Box>(TArray<FNavLocatio
 		{
 			Points.RemoveAt(Idx, 1, false);
 		}
+
+		if (TraceHits.IsValidIndex(Idx))
+		{
+			TraceHits[Idx] = bHit ? 1 : 0;
+		}
 	}
 }
 
@@ -133,6 +144,11 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Sphere>(TArray<FNavLoca
 		{
 			Points.RemoveAt(Idx, 1, false);
 		}
+
+		if (TraceHits.IsValidIndex(Idx))
+		{
+			TraceHits[Idx] = bHit ? 1 : 0;
+		}
 	}
 }
 
@@ -151,6 +167,11 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLoc
 		else if (TraceMode == ETraceMode::Discard)
 		{
 			Points.RemoveAt(Idx, 1, false);
+		}
+
+		if (TraceHits.IsValidIndex(Idx))
+		{
+			TraceHits[Idx] = bHit ? 1 : 0;
 		}
 	}
 }
@@ -293,4 +314,40 @@ void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceDat
 	default:
 		break;
 	}
+}
+
+void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, TArray<uint8>& TraceHits)
+{
+	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
+	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+
+	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	TraceParams.bTraceAsyncScene = true;
+
+	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, ETraceMode::Keep);
+	BatchOb.TraceHits.AddZeroed(Points.Num());
+
+	switch (TraceData.TraceShape)
+	{
+	case EEnvTraceShape::Line:
+		BatchOb.DoProject<EEnvTraceShape::Line>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	case EEnvTraceShape::Sphere:
+		BatchOb.DoProject<EEnvTraceShape::Sphere>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	case EEnvTraceShape::Capsule:
+		BatchOb.DoProject<EEnvTraceShape::Capsule>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	case EEnvTraceShape::Box:
+		BatchOb.DoProject<EEnvTraceShape::Box>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	default:
+		break;
+	}
+
+	TraceHits.Append(BatchOb.TraceHits);
 }

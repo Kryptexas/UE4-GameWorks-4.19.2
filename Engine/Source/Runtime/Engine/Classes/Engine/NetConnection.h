@@ -203,7 +203,7 @@ public:
 
 	EConnectionState	State;					// State this connection is in.
 	
-	uint32 bPendingDestroy:1;    // when true, playercontroller is being destroyed
+	uint32 bPendingDestroy:1;    // when true, playercontroller or beaconclient is being destroyed
 
 	// Packet Handler
 	TUniquePtr<PacketHandler> Handler;

@@ -142,7 +142,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 *
 	 * @return The index that we got the description from
 	 */
-	int32 GetBestTagCategoryDescription(FString Tag, FText& OutDescription);
+	int32 GetBestTagCategoryDescription(FString Tag, FText& OutDescription) const;
 
 	/** 
 	 * Gets all nodes that make up a tag, if any (e.g. weapons.ranged.pistol will return the nodes weapons, weapons.ranged, and weapons.ranged.pistol)
@@ -150,10 +150,10 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * @param Tag			The . delimited tag we wish to get nodes for
 	 * @param OutTagArray	The array of tag nodes that were found
 	 */
-	void GetAllNodesForTag( const FString& Tag, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray );
+	void GetAllNodesForTag( const FString& Tag, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray ) const;
 
 	// this is here because the tag tree doesn't start with a node and recursion can't be done until the first node is found
-	void GetAllNodesForTag_Recurse(TArray<FString>& Tags, int32 CurrentTagDepth, TSharedPtr<FGameplayTagNode> CurrentTagNode, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray );
+	void GetAllNodesForTag_Recurse(TArray<FString>& Tags, int32 CurrentTagDepth, TSharedPtr<FGameplayTagNode> CurrentTagNode, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray ) const;
 
 #if WITH_EDITOR
 	/** Gets a Filtered copy of the GameplayRootTags Array based on the comma delimited filter string passed in*/

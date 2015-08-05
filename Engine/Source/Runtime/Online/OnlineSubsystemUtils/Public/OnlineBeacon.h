@@ -45,13 +45,6 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	virtual bool NotifyAcceptingChannel(UChannel* Channel) override;
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch) override;
 	// End FNetworkNotify Interface
-
-	/**
-	 * Each beacon must have a unique type identifier
-	 *
-	 * @return string representing the type of beacon 
-	 */
-	virtual FString GetBeaconType() PURE_VIRTUAL(AOnlineBeacon::GetBeaconType, return TEXT(""););
 	
     /**
 	 * Get the current state of the beacon

@@ -134,7 +134,7 @@ FString UAbilityTask_PlayMontageAndWait::GetDebugString() const
 		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
 		if (ActorInfo->AnimInstance.IsValid())
 		{
-			PlayingMontage = ActorInfo->AnimInstance->GetCurrentActiveMontage();
+			PlayingMontage = ActorInfo->AnimInstance->Montage_IsActive(MontageToPlay) ? MontageToPlay : ActorInfo->AnimInstance->GetCurrentActiveMontage();
 		}
 	}
 

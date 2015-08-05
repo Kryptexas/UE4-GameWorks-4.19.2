@@ -125,13 +125,13 @@ void UInheritableComponentHandler::ValidateTemplates()
 				}
 				else
 				{
-					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overriden template is unnecessary - component '%s' from '%s'"),
+					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary - component '%s' from '%s'"),
 						*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 				}
 			}
 			else
 			{
-				UE_LOG(LogBlueprint, Warning, TEXT("ValidateTemplates '%s': overriden template is invalid - component '%s' from '%s'"),
+				UE_LOG(LogBlueprint, Warning, TEXT("ValidateTemplates '%s': overridden template is invalid - component '%s' from '%s'"),
 					*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 			}
 		}

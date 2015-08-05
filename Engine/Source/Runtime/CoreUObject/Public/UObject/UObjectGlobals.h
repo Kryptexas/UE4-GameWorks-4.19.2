@@ -795,7 +795,7 @@ public:
 	/**
 	 * Create a component or subobject
 	 * @param	TReturnType					class of return type, all overrides must be of this type
-	 * @param	TClassToConstructByDefault	if the derived class has not overriden, create a component of this type (default is TReturnType)
+	 * @param	TClassToConstructByDefault	if the derived class has not overridden, create a component of this type (default is TReturnType)
 	 * @param	Outer						outer to construct the subobject in
 	 * @param	SubobjectName				name of the new component
 	 * @param bIsRequired			true if the component is required and will always be created even if DoNotCreateDefaultSubobject was sepcified.

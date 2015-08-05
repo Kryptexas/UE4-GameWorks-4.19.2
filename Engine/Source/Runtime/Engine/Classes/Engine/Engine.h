@@ -1345,7 +1345,7 @@ private:
 	UPROPERTY(transient)
 	FLinearColor SelectedMaterialColorOverride;
 
-	/** Whether or not selection color is being overriden */
+	/** Whether or not selection color is being overridden */
 	UPROPERTY(transient)
 	bool bIsOverridingSelectedColor;
 public:
@@ -1416,11 +1416,11 @@ public:
 	UPROPERTY(transient)
 	float SelectionHighlightIntensityBillboards;
 
-	/** Delegate handling when streaming pause begins. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overriden by games. */
+	/** Delegate handling when streaming pause begins. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overridden by games. */
 	void RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate );
 	FBeginStreamingPauseDelegate* BeginStreamingPauseDelegate;
 
-	/** Delegate handling when streaming pause ends. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overriden by games. */
+	/** Delegate handling when streaming pause ends. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overridden by games. */
 	void RegisterEndStreamingPauseRenderingDelegate( FEndStreamingPauseDelegate* InDelegate );
 	FEndStreamingPauseDelegate* EndStreamingPauseDelegate;
 

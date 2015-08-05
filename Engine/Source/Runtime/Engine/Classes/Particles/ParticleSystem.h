@@ -314,7 +314,7 @@ public:
 	/** 
 	*	Array of named material slots for use by emitters of this system. 
 	*	Emitters can use these instead of their own materials by providing the name to the NamedMaterialOverrides property of their required module.
-	*	These materials can be overriden using CreateNamedDynamicMaterialInstance() on a ParticleSystemComponent.
+	*	These materials can be overridden using CreateNamedDynamicMaterialInstance() on a ParticleSystemComponent.
 	*/
 	UPROPERTY(EditAnywhere, Category = Materials)
 	TArray<FNamedEmitterMaterial> NamedMaterialSlots;

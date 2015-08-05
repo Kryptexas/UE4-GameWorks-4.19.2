@@ -1636,13 +1636,16 @@ SIZE_T FStaticLODModel::GetResourceSize() const
 	ResourceSize += ActiveBoneIndices.GetAllocatedSize();  
 	ResourceSize += RequiredBones.GetAllocatedSize();
 
-	const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
-	if (IndexBuffer)
+	if(MultiSizeIndexContainer.IsIndexBufferValid())
 	{
-		ResourceSize += IndexBuffer->GetResourceDataSize(); 
+		const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
+		if (IndexBuffer)
+		{
+			ResourceSize += IndexBuffer->GetResourceDataSize(); 
+		}
 	}
 
-	if( AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() )
+	if(AdjacencyMultiSizeIndexContainer.IsIndexBufferValid())
 	{
 		const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
 		if(AdjacentIndexBuffer)

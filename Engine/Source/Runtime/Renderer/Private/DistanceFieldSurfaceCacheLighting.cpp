@@ -2613,11 +2613,17 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 
 bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
 {
+	if (!ensure(Scene != nullptr))
+	{
+		return false;
+	}
+
 	return SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
 		&& (ShouldPrepareForDistanceFieldAO() 
 			|| ShouldPrepareForDistanceFieldShadows() 
-			|| Views[0].bUsesGlobalDistanceField
-			|| Scene->FXSystem->UsesGlobalDistanceField());
+			|| ((Views.Num() > 0) && Views[0].bUsesGlobalDistanceField)
+			|| ((Scene->FXSystem != nullptr) && Scene->FXSystem->UsesGlobalDistanceField())
+		   );
 }
 
 void RenderDistanceFieldAOSurfaceCache(
