@@ -241,7 +241,7 @@ struct FViewMatrices
 
 	FMatrix GetInvViewMatrix() const
 	{
-		return ViewMatrix.RemoveTranslation().GetTransposed() * FTranslationMatrix( ViewMatrix.GetOrigin() );
+		return FTranslationMatrix( -ViewMatrix.GetOrigin() ) * ViewMatrix.RemoveTranslation().GetTransposed();
 	}
 
 	FMatrix GetInvViewProjMatrix() const
