@@ -655,7 +655,7 @@ float FSequencerTimeSliderController::FrameToTime(int32 Frame) const
 void FSequencerTimeSliderController::ClampViewRange(float& NewRangeMin, float& NewRangeMax, bool bMaintainRange)
 {
 	// If locked, clamp the new range to clamp range
-	if (TimeSliderArgs.Settings->GetLockInOutToStartEndRange())
+	if (TimeSliderArgs.Settings->GetShowRangeSlider() && TimeSliderArgs.Settings->GetLockInOutToStartEndRange())
 	{
 		if (bMaintainRange)
 		{
