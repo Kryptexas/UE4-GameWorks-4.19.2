@@ -69,27 +69,14 @@ namespace EPurchaseTransactionState
 class FPurchaseReceipt
 {
 public:
-	/**
-	 * Add a offer entry that has been purchased
-	 *
-	 * @param InNamespace of the offer that has been purchased
-	 * @param InOfferId id of offer that has been purchased
-	 * @param InQuantity number purchased
-	 */
-	void AddReceiptOffer(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
-	{ 
-		ReceiptOffers.Add(FReceiptOfferEntry(InNamespace, InOfferId, InQuantity)); 
-	}
+	struct FLineItemInfo
+	{
+		/** unique identifier representing this purchased item (the specific instance owned by this account) */
+		FUniqueEntitlementId UniqueId;
 
-public:
-	/** Unique Id for this transaction/order */
-	FString TransactionId;
-	/** Current state of the purchase */
-	EPurchaseTransactionState::Type TransactionState;
-	/** The entitlements obtained from the completed purchase */
-	TArray<FUniqueEntitlementId> EntitlementIds;
-	/** Receipt validation data */
-	FString ReceiptValidation;
+		/** platform-specific opaque validation info (required to verify UniqueId belongs to this account) */
+		FString ValidationInfo;
+	};
 
 	/**
 	 * Single purchased offer offer
@@ -105,7 +92,34 @@ public:
 		FOfferNamespace Namespace;
 		FUniqueOfferId OfferId;
 		int32 Quantity;
+
+		/** Information about the individual items purchased */
+		TArray<FLineItemInfo> LineItems;
 	};
+
+	/**
+	 * Add a offer entry that has been purchased
+	 *
+	 * @param InNamespace of the offer that has been purchased
+	 * @param InOfferId id of offer that has been purchased
+	 * @param InQuantity number purchased
+	 */
+	void AddReceiptOffer(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+	{ 
+		ReceiptOffers.Add(FReceiptOfferEntry(InNamespace, InOfferId, InQuantity)); 
+	}
+
+	void AddReceiptOffer(const FReceiptOfferEntry& ReceiptOffer)
+	{ 
+		ReceiptOffers.Add(ReceiptOffer); 
+	}
+
+public:
+	/** Unique Id for this transaction/order */
+	FString TransactionId;
+	/** Current state of the purchase */
+	EPurchaseTransactionState::Type TransactionState;
+
 	/** List of offers that were purchased */
 	TArray<FReceiptOfferEntry> ReceiptOffers;
 };
