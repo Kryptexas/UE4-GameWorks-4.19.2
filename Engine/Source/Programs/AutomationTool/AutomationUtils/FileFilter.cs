@@ -392,13 +392,13 @@ public class FileFilter
 	/// <summary>
 	/// Finds a list of files within a given directory which match the filter.
 	/// </summary>
-	/// <param name="FolderName">File to match</param>
-	/// <returns>True if the file passes the filter</returns>
-	public IEnumerable<string> ApplyToDirectory(string DirectoryName, bool bIgnoreSymlinks)
+    /// <param name="DirectoryName">File to match</param>
+	/// <returns>List of files that pass the filter</returns>
+	public List<string> ApplyToDirectory(string DirectoryName, bool bIgnoreSymlinks)
 	{
 		List<string> MatchingFileNames = new List<string>();
 		FindMatchesFromDirectory(new DirectoryInfo(DirectoryName), "", bIgnoreSymlinks, MatchingFileNames);
-		return MatchingFileNames.ToArray();
+		return MatchingFileNames;
 	}
 
 	/// <summary>

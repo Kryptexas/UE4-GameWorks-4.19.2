@@ -121,6 +121,11 @@ namespace AutomationTool
 		public static CommandLineArg UTF8Output = new CommandLineArg("-UTF8Output");
 		public static CommandLineArg NoAutoSDK = new CommandLineArg("-NoAutoSDK");
 		public static CommandLineArg IgnoreJunk = new CommandLineArg("-ignorejunk");
+        /// <summary>
+        /// Allows you to use local storage for your root build storage dir (default of P:\Builds (on PC) is changed to Engine\Saved\LocalBuilds). Used for local testing.
+        /// </summary>
+        public static CommandLineArg UseLocalBuildStorage = new CommandLineArg("-UseLocalBuildStorage");
+
 		/// <summary>
 		/// Force initialize static members by calling this.
 		/// </summary>
@@ -149,7 +154,8 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 	[Help("nosubmit", "Prevents any submit attempts")]
 	[Help("nokill", "Does not kill any spawned processes on exit")]
 	[Help("ignorejunk", "Prevents UBT from cleaning junk files")]
-	public static class Automation
+    [Help("UseLocalBuildStorage", @"Allows you to use local storage for your root build storage dir (default of P:\Builds (on PC) is changed to Engine\Saved\LocalBuilds). Used for local testing.")]
+    public static class Automation
 	{
 		#region Command line parsing
 
@@ -167,7 +173,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			bool bGlobalParam = false;
 			foreach (var RegisteredParam in GlobalCommandLine.RegisteredArgs)
 			{
-				if (String.Compare(CurrentParam, RegisteredParam.Key, true) == 0)
+				if (String.Compare(CurrentParam, RegisteredParam.Key, StringComparison.InvariantCultureIgnoreCase) == 0)
 				{
 					// Register and exit, we're done here.
 					RegisteredParam.Value.Set();

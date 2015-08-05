@@ -14,6 +14,7 @@ using UnrealBuildTool;
 using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Tools.DotNETCommon;
 using Tools.DotNETCommon.CaselessDictionary;
 using Tools.DotNETCommon.HarvestEnvVars;
@@ -107,16 +108,6 @@ namespace AutomationTool
 		#endregion
 
 		#region Logging
-
-		/// <summary>
-		/// Returns a formatted string for the specified exception (including inner exception if any).
-		/// </summary>
-		/// <param name="Ex"></param>
-		/// <returns>Formatted exception string.</returns>
-		public static string ExceptionToString(Exception Ex)
-		{
-			return LogUtils.FormatException(Ex);
-		}
 
 		/// <summary>
 		/// Writes formatted text to log (with LogEventType.Console).
@@ -379,6 +370,7 @@ namespace AutomationTool
         /// <summary>
         /// Finds files in specified paths. 
         /// </summary>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
         /// <param name="SearchPattern">Pattern</param>
         /// <param name="Recursive">Recursive search</param>
         /// <param name="Paths">Paths to search</param>
@@ -403,7 +395,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds files in specified paths. 
 		/// </summary>
-		/// <param name="SearchPattern">Pattern</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="SearchPattern">Pattern</param>
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
@@ -428,7 +421,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds Directories in specified paths. 
 		/// </summary>
-		/// <param name="SearchPattern">Pattern</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="SearchPattern">Pattern</param>
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
@@ -454,7 +448,7 @@ namespace AutomationTool
 		/// If the file does not exist, silently succeeds.
 		/// If the deletion of the file fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="Filename">Filename</param>
+		/// <param name="Filenames">Filename</param>
 		public static void DeleteFile(params string[] Filenames)
 		{
 			foreach (var Filename in Filenames)
@@ -471,7 +465,8 @@ namespace AutomationTool
         /// If the file does not exist, silently succeeds.
         /// If the deletion of the file fails, this function throws an Exception.
         /// </summary>
-        /// <param name="Filename">Filename</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Filenames">Filename</param>
         public static void DeleteFile(bool bQuiet, params string[] Filenames)
         {
             foreach (var Filename in Filenames)
@@ -488,7 +483,7 @@ namespace AutomationTool
 		/// Deletes a file(s). 
 		/// If the deletion of the file fails, prints a warning.
 		/// </summary>
-		/// <param name="Filename">Filename</param>
+		/// <param name="Filenames">Filename</param>
         public static bool DeleteFile_NoExceptions(params string[] Filenames)
 		{
 			bool Result = true;
@@ -526,7 +521,7 @@ namespace AutomationTool
 		/// If the deletion of the directory fails, this function throws an Exception.
 		/// </summary>
 		/// <param name="bQuiet">Suppresses log output if true</param>
-		/// <param name="Directory">Directory</param>
+		/// <param name="Directories">Directories</param>
 		public static void DeleteDirectory(bool bQuiet, params string[] Directories)
 		{
 			foreach (var Directory in Directories)
@@ -543,8 +538,8 @@ namespace AutomationTool
 		/// Deletes a directory(or directories) including its contents (recursively, will delete read-only files).
 		/// If the deletion of the directory fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static void DeleteDirectory(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static void DeleteDirectory(params string[] Directories)
 		{
 			DeleteDirectory(false, Directories);
 		}
@@ -554,8 +549,8 @@ namespace AutomationTool
 		/// If the deletion of the directory fails, prints a warning.
 		/// </summary>
 		/// <param name="bQuiet">Suppresses log output if true</param>
-		/// <param name="Directory">Directory</param>
-		public static bool DeleteDirectory_NoExceptions(bool bQuiet, params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static bool DeleteDirectory_NoExceptions(bool bQuiet, params string[] Directories)
 		{
 			bool Result = true;
             foreach (var Directory in Directories)
@@ -588,8 +583,8 @@ namespace AutomationTool
 		/// Deletes a directory(or directories) including its contents (recursively, will delete read-only files).
 		/// If the deletion of the directory fails, prints a warning.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static bool DeleteDirectory_NoExceptions(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static bool DeleteDirectory_NoExceptions(params string[] Directories)
 		{
 			return DeleteDirectory_NoExceptions(false, Directories);
 		}
@@ -620,8 +615,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a directory(or directories) exists.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		/// <returns>True if the directory exists, false otherwise.</returns>
+        /// <param name="Directories">Directories</param>
+        /// <returns>True if the directory exists, false otherwise.</returns>
 		public static bool DirectoryExists(params string[] Directories)
 		{
 			bool bExists = Directories.Length > 0;
@@ -636,8 +631,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a directory(or directories) exists.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		/// <returns>True if the directory exists, false otherwise.</returns>
+        /// <param name="Directories">Directories</param>
+        /// <returns>True if the directory exists, false otherwise.</returns>
 		public static bool DirectoryExists_NoExceptions(params string[] Directories)
 		{
 			bool bExists = Directories.Length > 0;
@@ -663,8 +658,8 @@ namespace AutomationTool
 		/// Creates a directory(or directories).
 		/// If the creation of the directory fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static void CreateDirectory(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static void CreateDirectory(params string[] Directories)
 		{
 			foreach (var DirectoryName in Directories)
 			{
@@ -680,7 +675,8 @@ namespace AutomationTool
         /// Creates a directory(or directories).
         /// If the creation of the directory fails, this function throws an Exception.
         /// </summary>
-        /// <param name="Directory">Directory</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Directories">Directories</param>
         public static void CreateDirectory(bool bQuiet, params string[] Directories)
         {
             foreach (var DirectoryName in Directories)
@@ -697,8 +693,8 @@ namespace AutomationTool
 		/// Creates a directory (or directories).
 		/// If the creation of the directory fails, this function prints a warning.
 		/// </summary>
-		/// <param name="Directory">Directory</param>
-		public static bool CreateDirectory_NoExceptions(params string[] Directories)
+        /// <param name="Directories">Directories</param>
+        public static bool CreateDirectory_NoExceptions(params string[] Directories)
 		{
 			bool Result = true;
 			foreach (var DirectoryName in Directories)
@@ -717,7 +713,8 @@ namespace AutomationTool
 		/// Renames/moves a file.
 		/// If the rename of the file fails, this function throws an Exception.
 		/// </summary>
-		/// <param name="OldName">Old name</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="OldName">Old name</param>
 		/// <param name="NewName">new name</param>
         public static void RenameFile(string OldName, string NewName, bool bQuiet = false)
 		{
@@ -750,7 +747,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a file(s) exists.
 		/// </summary>
-		/// <param name="Filename">Filename.</param>
+		/// <param name="Filenames">Filename.</param>
 		/// <returns>True if the file exists, false otherwise.</returns>
 		public static bool FileExists(params string[] Filenames)
 		{
@@ -766,7 +763,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Checks if a file(s) exists.
 		/// </summary>
-		/// <param name="Filename">Filename.</param>
+		/// <param name="Filenames">Filename.</param>
 		/// <returns>True if the file exists, false otherwise.</returns>
 		public static bool FileExists_NoExceptions(params string[] Filenames)
 		{
@@ -776,7 +773,8 @@ namespace AutomationTool
         /// <summary>
         /// Checks if a file(s) exists.
         /// </summary>
-        /// <param name="Filename">Filename.</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Filenames">Filename.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
         public static bool FileExists(bool bQuiet, params string[] Filenames)
         {
@@ -792,7 +790,8 @@ namespace AutomationTool
         /// <summary>
         /// Checks if a file(s) exists.
         /// </summary>
-        /// <param name="Filename">Filename.</param>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <param name="Filenames">Filename.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
         public static bool FileExists_NoExceptions(bool bQuiet, params string[] Filenames)
         {
@@ -1085,7 +1084,7 @@ namespace AutomationTool
 		/// Writes text to a file.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
-		/// <param name="Lines">Text</param>
+		/// <param name="Text">Text</param>
 		public static void WriteAllText(string Filename, string Text)
 		{
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
@@ -1099,7 +1098,7 @@ namespace AutomationTool
 		/// Writes text to a file.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
-		/// <param name="Lines">Text</param>
+		/// <param name="Text">Text</param>
 		public static bool WriteAllText_NoExceptions(string Filename, string Text)
 		{
 			Filename = ConvertSeparators(PathSeparator.Default, Filename);
@@ -1246,7 +1245,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
-		/// <returns>True if the operation was successful, false otherwise.</returns>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <returns>True if the operation was successful, false otherwise.</returns>
         public static void CopyFile(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
@@ -1277,7 +1277,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
-		/// <returns>True if the operation was successful, false otherwise.</returns>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <returns>True if the operation was successful, false otherwise.</returns>
         public static bool CopyFile_NoExceptions(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
@@ -1354,7 +1355,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
-		/// <returns>True if the operation was successful, false otherwise.</returns>
+        /// <param name="bQuiet">When true, logging is suppressed.</param>
+        /// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool CopyDirectory_NoExceptions(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
@@ -1511,39 +1513,8 @@ namespace AutomationTool
 
 		#region Threaded Copy
 
-		/// <summary>
-		/// Single batch of files to copy on a thread
-		/// </summary>
-		class CopyRequest
-		{
-			public string[] Source;
-			public string[] Dest;
-			public Exception Result;
-			public Thread Worker;
-		}
-
-		/// <summary>
-		/// Main thread procedure for copying files
-		/// </summary>
-		private static void CopyThreadProc(object Request)
-		{
-			const bool bQuiet = true;
-			var FileToCopy = (CopyRequest)Request;
-			try
-			{
-				for (int Index = 0; Index < FileToCopy.Source.Length; ++Index)
-				{
-					CopyFile(FileToCopy.Source[Index], FileToCopy.Dest[Index], bQuiet);
-				}
-			}
-			catch (Exception Ex)
-			{
-				FileToCopy.Result = Ex;
-			}
-		}
-
-		/// <summary>
-		/// Copies files using miltiple threads
+        /// <summary>
+		/// Copies files using multiple threads
 		/// </summary>
 		/// <param name="SourceDirectory"></param>
 		/// <param name="DestDirectory"></param>
@@ -1551,83 +1522,37 @@ namespace AutomationTool
 		public static void ThreadedCopyFiles(string SourceDirectory, string DestDirectory, int MaxThreads = 64)
 		{
 			CreateDirectory(DestDirectory);
-
-			var SourceFiles = Directory.GetFiles(SourceDirectory, "*", SearchOption.AllDirectories);
-			var SourceBase = GetDirectoryName(SourceDirectory) + GetPathSeparatorChar(PathSeparator.Default);
-			var DestBase = GetDirectoryName(DestDirectory) + GetPathSeparatorChar(PathSeparator.Default);
-			var DestFiles = new string[SourceFiles.Length];
-			for (int Index = 0; Index < SourceFiles.Length; ++Index)
-			{
-				DestFiles[Index] = SourceFiles[Index].Replace(SourceBase, DestBase);
-			}
+            var SourceFiles = Directory.EnumerateFiles(SourceDirectory, "*", SearchOption.AllDirectories).ToList();
+            var DestFiles = SourceFiles.Select(SourceFile => CommandUtils.MakeRerootedFilePath(SourceFile, SourceDirectory, DestDirectory)).ToList();
 			ThreadedCopyFiles(SourceFiles, DestFiles, MaxThreads);
 		}
 
 		/// <summary>
 		/// Copies files using multiple threads
-		/// </summary>
-		/// <param name="SourceDirectory"></param>
-		/// <param name="DestDirectory"></param>
+        /// </summary>
+		/// <param name="Source"></param>
+		/// <param name="Dest"></param>
 		/// <param name="MaxThreads"></param>
-		public static void ThreadedCopyFiles(string[] Source, string[] Dest, int MaxThreads = 64)
+		public static void ThreadedCopyFiles(List<string> Source, List<string> Dest, int MaxThreads = 64)
 		{
-			LogConsole("Copying {0} file(s) using max {1} thread(s)", Source.Length, MaxThreads);
+			LogConsole("Copying {0} file(s) using max {1} thread(s)", Source.Count, MaxThreads);
 
-			if (Source.Length != Dest.Length)
+            if (Source.Count != Dest.Count)
 			{
-				throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Length, Dest.Length);
+                throw new AutomationException("Source count ({0}) does not match Dest count ({1})", Source.Count, Dest.Count);
 			}
-			const int MinFilesPerThread = 10;
-			if (MaxThreads > 1 && Source.Length > MinFilesPerThread)
-			{
-				// Split evenly across the threads
-				int FilesPerThread = Math.Max(Source.Length / MaxThreads, MinFilesPerThread);
-				int ThreadCount = Math.Min(Source.Length / FilesPerThread + 1, MaxThreads);
-				FilesPerThread = Source.Length / ThreadCount + 1;
-
-				// Divide and copy
-				var WorkerThreads = new List<CopyRequest>(ThreadCount);
-				var FilesToCopy = Source.Length;
-				var FirstFileIndex = 0;
-				while (FilesToCopy > 0)
-				{
-					var Request = new CopyRequest();
-					WorkerThreads.Add(Request);
-
-					Request.Source = new string[Math.Min(FilesToCopy, FilesPerThread)];
-					Request.Dest = new string[Request.Source.Length];
-					Array.Copy(Source, FirstFileIndex, Request.Source, 0, Request.Source.Length);
-					Array.Copy(Dest, FirstFileIndex, Request.Dest, 0, Request.Dest.Length);
-
-					Request.Worker = new Thread(new ParameterizedThreadStart(CopyThreadProc));
-					Request.Worker.Start(Request);
-
-					FirstFileIndex += Request.Source.Length;
-					FilesToCopy -= Request.Source.Length;
-				}
-
-				// Wait for completion
-				foreach (var Request in WorkerThreads)
-				{
-					if (Request.Worker.IsAlive)
-					{
-						Request.Worker.Join();
-					}
-					if (Request.Result != null)
-					{
-						throw new AutomationException(Request.Result, "Failed to thread-copy files: {0}", Request.Result.Message);
-					}
-				}
-			}
-			else
-			{
-				const bool bQuiet = true;
-				for (int Index = 0; Index < Source.Length; ++Index)
-				{
-					CopyFile(Source[Index], Dest[Index], bQuiet);
-				}
-			}
-		}
+            try
+            {
+                Parallel.ForEach(Source.Zip(Dest, (Src, Dst) => new { SourceFile = Src, DestFile = Dst }), new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, (Pair) =>
+                {
+                    CommandUtils.CopyFile(Pair.SourceFile, Pair.DestFile, true);
+                });
+            }
+            catch (AggregateException Ex)
+            {
+                throw new AutomationException(Ex, "Failed to thread-copy files.");
+            }
+        }
 
 		/// <summary>
 		/// Copies a set of files from one folder to another
@@ -1635,18 +1560,12 @@ namespace AutomationTool
 		/// <param name="SourceDir">Source directory</param>
 		/// <param name="TargetDir">Target directory</param>
 		/// <param name="RelativePaths">Paths relative to the source directory to copy</param>
-		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks during the copy</param>
 		/// <param name="MaxThreads">Maximum number of threads to create</param>
-		/// <returns>Array of filenames copied to the target directory</returns>
-		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, string[] RelativePaths, int MaxThreads = 64)
+		/// <returns>List of filenames copied to the target directory</returns>
+		public static List<string> ThreadedCopyFiles(string SourceDir, string TargetDir, List<string> RelativePaths, int MaxThreads = 64)
 		{
-			string[] SourceFileNames = new string[RelativePaths.Length];
-			string[] TargetFileNames = new string[RelativePaths.Length];
-			for(int Idx = 0; Idx < RelativePaths.Length; Idx++)
-			{
-				SourceFileNames[Idx] = CommandUtils.CombinePaths(SourceDir, RelativePaths[Idx]);
-				TargetFileNames[Idx] = CommandUtils.CombinePaths(TargetDir, RelativePaths[Idx]);
-			}
+            var SourceFileNames = RelativePaths.Select(RelativePath => CommandUtils.CombinePaths(SourceDir, RelativePath)).ToList();
+            var TargetFileNames = RelativePaths.Select(RelativePath => CommandUtils.CombinePaths(TargetDir, RelativePath)).ToList();
 			CommandUtils.ThreadedCopyFiles(SourceFileNames, TargetFileNames, MaxThreads);
 			return TargetFileNames;
 		}
@@ -1659,12 +1578,12 @@ namespace AutomationTool
 		/// <param name="Filter">Filter which selects files from the source directory to copy</param>
 		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks during the copy</param>
 		/// <param name="MaxThreads">Maximum number of threads to create</param>
-		/// <returns>Array of filenames copied to the target directory</returns>
-		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
+		/// <returns>List of filenames copied to the target directory</returns>
+		public static List<string> ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
 		{
 			// Filter all the relative paths
 			LogConsole("Applying filter to {0}...", SourceDir);
-			string[] RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks).ToArray();
+			var RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks);
 			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
 
@@ -1989,19 +1908,31 @@ namespace AutomationTool
 
 		#endregion
 
+        /// <summary>
+        /// Cached location of the build root storage because the logic to compute it is a little non-trivial.
+        /// </summary>
+        private static string CachedRootBuildStorageDirectory;
 
-        public static string RootSharedTempStorageDirectory()
+        /// <summary>
+        /// "P:\Builds" or "/Volumes/Builds". Root Folder for all build storage.
+        /// </summary>
+        /// <returns>"P:\Builds" or "/Volumes/Builds" unless overridden by -UseLocalBuildStorage from the commandline, where is uses Engine\Saved\LocalBuilds\.</returns>
+        public static string RootBuildStorageDirectory()
         {
-            string StorageDirectory = "";
-            if (UnrealBuildTool.Utils.IsRunningOnMono)
+            if (string.IsNullOrEmpty(CachedRootBuildStorageDirectory))
             {
-                StorageDirectory = "/Volumes/Builds";
+                if (GlobalCommandLine.UseLocalBuildStorage)
+                {
+                    CachedRootBuildStorageDirectory = CombinePaths(CmdEnv.LocalRoot, "Engine", "Saved", "LocalBuilds");
+                    // Must create the directory because much of the system assumes it is already there.
+                    CreateDirectory(CombinePaths(CachedRootBuildStorageDirectory, "UE4"));
+                }
+                else
+                {
+                    CachedRootBuildStorageDirectory = Utils.IsRunningOnMono ? "/Volumes/Builds" : CombinePaths("P:", "Builds");
+                }
             }
-            else
-            {
-                StorageDirectory = CombinePaths("P:", "Builds");
-            }
-            return StorageDirectory;
+            return CachedRootBuildStorageDirectory;
         }
 
         public static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
@@ -2037,7 +1968,7 @@ namespace AutomationTool
 
         public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "", int MaximumDaysToKeepTempStorage = 4)
         {
-            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootSharedTempStorageDirectory()) || !P4Enabled))
+            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootBuildStorageDirectory()) || !P4Enabled))
             {
                 return;
             }
@@ -2154,9 +2085,10 @@ namespace AutomationTool
 		/// <returns>List of files written</returns>
 		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
 		{
-			using(Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
+            // manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
+            // but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
+            using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
 			{
-				// For some reason, calling ExtractAll() under Mono throws an exception from a call to Directory.CreateDirectory(). Manually extract all the files instead.
 				List<string> OutputFileNames = new List<string>();
 				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries)
 				{

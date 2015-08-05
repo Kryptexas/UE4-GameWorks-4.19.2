@@ -54,8 +54,7 @@ namespace AutomationTool
             catch (Exception Ex)
             {
                 // Catch all exceptions and propagate the ErrorCode if we are given one.
-                Log.TraceError("AutomationTool terminated with exception:");
-                Log.TraceError(LogUtils.FormatException(Ex));
+                Log.TraceError("AutomationTool terminated with exception: {0}", Ex);
                 // set the exit code of the process
                 if (Ex is AutomationException)
                 {

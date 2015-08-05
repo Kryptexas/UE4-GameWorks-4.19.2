@@ -2004,7 +2004,7 @@ partial class GUBP
         {
             BuildProducts = new List<string>();
 
-			if (P4Enabled && !BranchConfig.bPreflightBuild)
+			if (P4Enabled && !BranchConfig.JobInfo.IsPreflight)
             {
                 if (AllDependencyBuildProducts.Count == 0)
                 {
@@ -2018,8 +2018,8 @@ partial class GUBP
                 }
                 else
                 {
-					int WorkingCL = P4.CreateChange(P4Env.Client, String.Format("GUBP Node {0} built from changelist {1}", GetFullName(), BranchConfig.CL));
-                    LogConsole("Build from {0}    Working in {1}", BranchConfig.CL, WorkingCL);
+					int WorkingCL = P4.CreateChange(P4Env.Client, String.Format("GUBP Node {0} built from changelist {1}", GetFullName(), BranchConfig.JobInfo.Changelist));
+                    LogConsole("Build from {0}    Working in {1}", BranchConfig.JobInfo.Changelist, WorkingCL);
 
                     var ProductsToSubmit = new List<String>();
 
@@ -2553,11 +2553,7 @@ partial class GUBP
         {
             string BaseDir = TempStorage.ResolveSharedBuildDirectory(InGameProj.GameName);
             string NodeName = StaticGetFullName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
-            string Inner = P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString;
-            if (BranchConfig.bPreflightBuild)
-            {
-                Inner = Inner + BranchConfig.PreflightMangleSuffix;
-            }
+            string Inner = P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString + BranchConfig.JobInfo.GetPreflightSuffix();
             string ArchiveDirectory = CombinePaths(BaseDir, NodeName, Inner);
             return ArchiveDirectory;
         }
@@ -3240,10 +3236,7 @@ partial class GUBP
         {
             {
                 var StartTime = DateTime.UtcNow;
-                foreach (string GameName in GameNames)
-                {
-                    TempStorage.CleanSharedTempStorageDirectory(GameName);
-                }
+                TempStorage.CleanSharedTempStorageDirectory(GameNames);
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
                 LogConsole("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
             }

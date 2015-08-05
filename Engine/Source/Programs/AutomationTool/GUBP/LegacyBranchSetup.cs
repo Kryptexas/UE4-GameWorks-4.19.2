@@ -13,28 +13,24 @@ partial class GUBP
 {
 	public class GUBPBranchConfig
 	{
-		public int CL = 0;
 		public List<UnrealTargetPlatform> HostPlatforms;
 		public string BranchName;
 		public BranchInfo Branch;
 		public GUBPBranchHacker.BranchOptions BranchOptions;
 		public bool bForceIncrementalCompile;
-		public bool bPreflightBuild;
-		public string PreflightMangleSuffix;
+        public JobInfo JobInfo;
 
 		public Dictionary<string, GUBPNode> GUBPNodes = new Dictionary<string, GUBPNode>();
 		public Dictionary<string, GUBPAggregateNode> GUBPAggregates = new Dictionary<string, GUBPAggregateNode>();
 
-		public GUBPBranchConfig(int InCL, IEnumerable<UnrealTargetPlatform> InHostPlatforms, string InBranchName, BranchInfo InBranch, GUBPBranchHacker.BranchOptions InBranchOptions, bool bInForceIncrementalCompile, bool bInPreflightBuild, string InPreflightMangleSuffix)
+        public GUBPBranchConfig(IEnumerable<UnrealTargetPlatform> InHostPlatforms, string InBranchName, BranchInfo InBranch, GUBPBranchHacker.BranchOptions InBranchOptions, bool bInForceIncrementalCompile, JobInfo JobInfo)
 		{
-			CL = InCL;
 			HostPlatforms = new List<UnrealTargetPlatform>(InHostPlatforms);
 			BranchName = InBranchName;
 			Branch = InBranch;
 			BranchOptions = InBranchOptions;
 			bForceIncrementalCompile = bInForceIncrementalCompile;
-			bPreflightBuild = bInPreflightBuild;
-			PreflightMangleSuffix = InPreflightMangleSuffix;
+			this.JobInfo = JobInfo;
 		}
 
 		public string AddNode(GUBPNode Node)
@@ -345,7 +341,7 @@ partial class GUBP
         return AltHostPlatform;
     }
 
-	void AddNodesForBranch(int CL, List<UnrealTargetPlatform> InitialHostPlatforms, bool bPreflightBuild, string PreflightMangleSuffix, out List<BuildNode> AllNodes, out List<AggregateNode> AllAggregates, ref int TimeQuantum)
+    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, out List<BuildNode> AllNodes, out List<AggregateNode> AllAggregates, ref int TimeQuantum)
 	{
 		string BranchName;
 		if (P4Enabled)
@@ -453,7 +449,7 @@ partial class GUBP
             }
         }
 
-		GUBPBranchConfig BranchConfig = new GUBPBranchConfig(CL, HostPlatforms, BranchName, Branch, BranchOptions, bForceIncrementalCompile, bPreflightBuild, PreflightMangleSuffix);
+		GUBPBranchConfig BranchConfig = new GUBPBranchConfig(HostPlatforms, BranchName, Branch, BranchOptions, bForceIncrementalCompile, JobInfo);
 
         BranchConfig.AddNode(new VersionFilesNode());
 
@@ -1179,7 +1175,8 @@ partial class GUBP
 			{
 				BranchConfig.AddNode(new RootEditorCrossCompileLinuxNode(BranchConfig, UnrealTargetPlatform.Win64));
 			}
-            if (!bPreflightBuild)
+            // Don't run clean on temp shared storage for preflight builds. They might have broken the clean, and it extends to storage beyond this job.
+            if (!BranchConfig.JobInfo.IsPreflight)
             {
                 BranchConfig.AddNode(new CleanSharedTempStorageNode(this, BranchConfig));
             }

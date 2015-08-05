@@ -216,7 +216,7 @@ namespace EpicGames.MCP.Automation
         static public string GetBuildRootPath()
         {
             return CommandUtils.P4Enabled && CommandUtils.AllowSubmit
-                ? CommandUtils.RootSharedTempStorageDirectory()
+                ? CommandUtils.RootBuildStorageDirectory()
                 : CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "LocalBuilds");
         }
 

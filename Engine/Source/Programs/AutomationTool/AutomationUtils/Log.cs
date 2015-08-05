@@ -12,6 +12,7 @@ namespace AutomationTool
 	#region LogUtils
 
 
+    //@todo: This class should be moved somewhere else or the file should be renamed LogUtils.cs
 	public class LogUtils
 	{
         private static string LogFilename;
@@ -146,8 +147,8 @@ namespace AutomationTool
 
         /// <summary>
 		/// Dumps exception info to log.
+		/// @todo: Remove this function as it doesn't do a good job printing the exception information.
 		/// </summary>
-		/// <param name="Verbosity">Verbosity</param>
 		/// <param name="Ex">Exception</param>
 		public static string FormatException(Exception Ex)
 		{

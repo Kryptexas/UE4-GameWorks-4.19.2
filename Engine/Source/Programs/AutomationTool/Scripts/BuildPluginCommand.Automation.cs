@@ -169,6 +169,6 @@ class BuildPlugin : BuildCommand
 		Filter.ExcludeConfidentialPlatforms();
 
 		// Apply the filter to the plugin directory
-		return new List<string>(Filter.ApplyToDirectory(PluginDirectory, true));
+		return Filter.ApplyToDirectory(PluginDirectory, true);
 	}
 }

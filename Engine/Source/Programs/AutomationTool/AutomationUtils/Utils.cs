@@ -42,6 +42,7 @@ namespace AutomationTool
 
 		/// <summary>
 		/// Creates a directory.
+		/// @todo: this function should not exchange exception context for error codes that can be ignored.
 		/// </summary>
 		/// <param name="Path">Directory name.</param>
 		/// <returns>True if the directory was created, false otherwise.</returns>
@@ -722,7 +723,8 @@ namespace AutomationTool
 	            {
 	                if (Retry > 0)
 	                {
-	                    CommandUtils.LogConsole("*** Mac temp storage retry {0}", OutputFileName);
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.LogConsole("*** Mac temp storage retry {0}", OutputFileName);
 	                    System.Threading.Thread.Sleep(1000);
 	                }
 	                bCopied = CommandUtils.CopyFile_NoExceptions(InputFileName, OutputFileName, true);
@@ -735,12 +737,12 @@ namespace AutomationTool
 	        }
 	    }
 
-	    public static void Robust_FileExists_NoExceptions(string Filename, string Message)
+	    public static void Robust_FileExists(string Filename, string Message)
 	    {
-	        Robust_FileExists_NoExceptions(false, Filename, Message);
+	        Robust_FileExists(false, Filename, Message);
 	    }
 
-	    public static void Robust_FileExists_NoExceptions(bool bQuiet, string Filename, string Message)
+	    public static void Robust_FileExists(bool bQuiet, string Filename, string Message)
 	    {
 	        if (!CommandUtils.FileExists_NoExceptions(bQuiet, Filename))
 	        {
@@ -751,7 +753,8 @@ namespace AutomationTool
 	                int Retry = 0;
 	                while (!bFound && Retry < 60)
 	                {
-	                    CommandUtils.LogConsole("*** Mac temp storage retry {0}", Filename);
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.LogConsole("*** Mac temp storage retry {0}", Filename);
 	                    System.Threading.Thread.Sleep(10000);
 	                    bFound = CommandUtils.FileExists_NoExceptions(bQuiet, Filename);
 	                    Retry++;
@@ -775,7 +778,8 @@ namespace AutomationTool
 	                int Retry = 0;
 	                while (!bFound && Retry < 60)
 	                {
-	                    CommandUtils.LogConsole("*** Mac temp storage retry {0}", Directoryname);
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.LogConsole("*** Mac temp storage retry {0}", Directoryname);
 	                    System.Threading.Thread.Sleep(10000);
 	                    bFound = CommandUtils.DirectoryExists_NoExceptions(Directoryname);
 	                    Retry++;
@@ -805,7 +809,8 @@ namespace AutomationTool
 	                }
 	                while (!bFound && Retry < NumRetries)
 	                {
-	                    CommandUtils.LogConsole("*** Mac temp storage retry {0}", Directoryname);
+                        //@todo: These retries should be reported so we can track how often they are occurring.
+                        CommandUtils.LogConsole("*** Mac temp storage retry {0}", Directoryname);
 	                    System.Threading.Thread.Sleep(1000);
 	                    bFound = CommandUtils.DirectoryExistsAndIsWritable_NoExceptions(Directoryname);
 	                    Retry++;

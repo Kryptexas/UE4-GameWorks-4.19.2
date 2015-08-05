@@ -141,7 +141,7 @@ namespace Rocket
 				string PublishedEngineDir;
 				if (ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(BranchConfig))
 				{
-					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.RootSharedTempStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
+					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
 				}
 				else
 				{
@@ -257,7 +257,7 @@ namespace Rocket
 
 		public static bool ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(GUBP.GUBPBranchConfig BranchConfig)
 		{
-			return CommandUtils.P4Enabled && CommandUtils.AllowSubmit && !BranchConfig.bPreflightBuild; // we don't do serious things in a preflight
+			return CommandUtils.P4Enabled && CommandUtils.AllowSubmit && !BranchConfig.JobInfo.IsPreflight; // we don't do serious things in a preflight
 		}
 
 		public static UnrealTargetPlatform GetSourceHostPlatform(List<UnrealTargetPlatform> HostPlatforms, UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
@@ -328,8 +328,7 @@ namespace Rocket
 			// Copy everything that matches the filter to the promotion folder
 			string PromotableFolder = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "GitPromotable");
 			CommandUtils.DeleteDirectoryContents(PromotableFolder);
-			string[] PromotableFiles = CommandUtils.ThreadedCopyFiles(CommandUtils.CmdEnv.LocalRoot, PromotableFolder, PromotableFilter, bIgnoreSymlinks: true);
-			BuildProducts = new List<string>(PromotableFiles);
+			BuildProducts = CommandUtils.ThreadedCopyFiles(CommandUtils.CmdEnv.LocalRoot, PromotableFolder, PromotableFilter, bIgnoreSymlinks: true);
 		}
 	}
 
@@ -918,7 +917,7 @@ namespace Rocket
 			}
 
 			// Write the filtered list of depot files to disk, removing any symlinks
-			List<string> DepotFiles = Filter.ApplyToDirectory(CommandUtils.CmdEnv.LocalRoot, true).ToList();
+			List<string> DepotFiles = Filter.ApplyToDirectory(CommandUtils.CmdEnv.LocalRoot, true);
 			WriteManifest(DepotManifestPath, DepotFiles);
 			BuildProducts.Add(DepotManifestPath);
 
@@ -1046,8 +1045,8 @@ namespace Rocket
 
 			// Create lists of source and target files
 			CommandUtils.LogConsole("Preparing file lists...");
-			string[] SourceFiles = Files.Select(x => CommandUtils.CombinePaths(InputDir, x)).ToArray();
-			string[] TargetFiles = Files.Select(x => CommandUtils.CombinePaths(OutputDir, x)).ToArray();
+			var SourceFiles = Files.Select(x => CommandUtils.CombinePaths(InputDir, x)).ToList();
+			var TargetFiles = Files.Select(x => CommandUtils.CombinePaths(OutputDir, x)).ToList();
 
 			// Copy everything
 			CommandUtils.ThreadedCopyFiles(SourceFiles, TargetFiles);
