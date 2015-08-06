@@ -2316,7 +2316,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 			}
 			else if (bInvalid)
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(AdjustedScale3D.ToString()), FText::FromString(GetBodyDebugName())));
+				UE_LOG(LogPhysics, Warning, TEXT("Scale '%s' is not valid on object '%s'."), *AdjustedScale3D.ToString(), *GetBodyDebugName());
 			}
 		}
 	});
