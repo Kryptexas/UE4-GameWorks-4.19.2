@@ -217,6 +217,10 @@ public:
 	 */
 	virtual FString GetConfigValueFromIni(const FString& IniName, const FString& SectionName, const FString& KeyName, bool bIsRequired);
 
+	/**
+	 * Helper for writing configuration values from to an INI file (which will be a common scenario). 
+	 */
+	virtual void WriteConfigValueToIni(const FString& IniName, const FString& SectionName, const FString& KeyName, const FString& Value);
 private:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
