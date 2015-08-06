@@ -49,8 +49,6 @@ USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*=
 	// default behavior is visible
 	bVisible = true;
 	bAutoActivate = false;
-
-	NetUpdateTransform = false;
 }
 
 void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -2208,7 +2206,7 @@ FBoxSphereBounds USceneComponent::GetPlacementExtent() const
 
 void USceneComponent::OnRep_Transform()
 {
-	NetUpdateTransform = true;
+	bNetUpdateTransform = true;
 }
 
 void USceneComponent::OnRep_Visibility(bool OldValue)
@@ -2253,11 +2251,14 @@ void USceneComponent::PostNetReceive()
 		
 		AttachTo(NetOldAttachParent, NetOldAttachSocketName);
 	}
+}
 
-	if (NetUpdateTransform)
+void USceneComponent::PostRepNotifies()
+{
+	if (bNetUpdateTransform)
 	{
 		UpdateComponentToWorld(true);
-		NetUpdateTransform = false;
+		bNetUpdateTransform = false;
 	}
 }
 

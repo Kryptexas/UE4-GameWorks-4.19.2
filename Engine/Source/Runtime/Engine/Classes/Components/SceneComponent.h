@@ -224,7 +224,7 @@ public:
 
 private:
 
-	bool NetUpdateTransform;
+	bool bNetUpdateTransform;
 
 	FName NetOldAttachSocketName;
 	USceneComponent *NetOldAttachParent;
@@ -237,6 +237,7 @@ private:
 
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;
+	virtual void PostRepNotifies() override;
 
 public:
 
