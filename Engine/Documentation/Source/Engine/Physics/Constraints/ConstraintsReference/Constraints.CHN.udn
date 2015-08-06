@@ -86,7 +86,7 @@ Description:关于虚幻编辑器中物理约束上的所有可用属性的参�
 | **Linear Limit Types(线性限制类型)** | [INCLUDE:#linearMotionEnum] |
 | **Linear Limit Size（线性限制大小）** | %doxygen:FConstraintInstance::LinearLimitSize% |
 | **Linear Limit Soft（线性限制柔和度）** | %doxygen:FConstraintInstance::bLinearLimitSoft% |
-| **Linear Limit Stiffness（线性限制硬度）** | %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Stiffness（线性限制强度）** | %doxygen:FConstraintInstance::LinearLimitStiffness% |
 | **Linear Limit Damping（线性限制阻尼）** | %doxygen:FConstraintInstance::LinearLimitDamping% |
 | **Linear Breakable（线性可损坏）** | %doxygen:FConstraintInstance::bLinearBreakable% |
 | **Linear Break Threshold（线性损坏阈值）** | %doxygen:FConstraintInstance::LinearBreakThreshold% |
@@ -103,10 +103,10 @@ Description:关于虚幻编辑器中物理约束上的所有可用属性的参�
 | **Swing 2Limit Angle（摇动 2限制角度）** | %doxygen:FConstraintInstance::Swing2LimitAngle% |
 | **Twist Limit Angle（扭动限制角度）** | %doxygen:FConstraintInstance::TwistLimitAngle% |
 | **Swing Limit Soft（摇动限制柔和度）** | %doxygen:FConstraintInstance::bSwingLimitSoft% |
-| **Swing Limit Stiffness（摇动限制硬度）** | %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Stiffness（摇动限制强度）** | %doxygen:FConstraintInstance::SwingLimitStiffness% |
 | **Swing Limit Damping（摇动限制阻尼）** | %doxygen:FConstraintInstance::SwingLimitDamping% |
 | **Twist Limit Soft（扭动限制柔和度）** | %doxygen:FConstraintInstance::bTwistLimitSoft% |
-| **Twist Limit Stiffness（扭动限制硬度）** | %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Stiffness（扭动限制强度）** | %doxygen:FConstraintInstance::TwistLimitStiffness% |
 | **Twist Limit Damping（扭动限制阻尼）** | %doxygen:FConstraintInstance::TwistLimitDamping% |
 | **Angular Breakable（角性可破坏）** | %doxygen:FConstraintInstance::bAngularBreakable% |
 | **Angular Break Threshold（角性破坏阈值）** | %doxygen:FConstraintInstance::AngularBreakThreshold% |
