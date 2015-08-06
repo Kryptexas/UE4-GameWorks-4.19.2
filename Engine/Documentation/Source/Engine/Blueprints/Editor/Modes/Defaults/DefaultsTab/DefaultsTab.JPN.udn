@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2446080
+﻿INTSourceChangelist:2597114
 Availability:Public
 Title:ブループリント エディタのデフォルト タブ
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes
 Description:ブループリント デフォルト タブの概要
 
 [TOC (start:2)]
-
-## 概要
 
 **[Class Defaults]** タブには、ブループリントのデフォルトの設定値およびプロパティ、そしてブループリントが収容する変数に関する情報が含まれています。これらの設定値は、ユーザーがニーズに合わせて変更することができます。
 
