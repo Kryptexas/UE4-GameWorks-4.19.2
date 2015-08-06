@@ -370,9 +370,9 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 
 					// Check if the source file that this asset last imported was the same as the one we're going to reimport.
 					// If it is, there's no reason to auto-reimport it
-					if (Info.IsSet() && Info->GetSourceFileData().Num() == 1)
+					if (Info.IsSet() && Info->SourceFiles.Num() == 1)
 					{
-						if (Info->GetSourceFileData()[0].FileHash == Change.FileData.FileHash)
+						if (Info->SourceFiles[0].FileHash == Change.FileData.FileHash)
 						{
 							continue;
 						}

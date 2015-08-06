@@ -76,9 +76,8 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FPostReimportNotification, UObject*, bool);
 	FPostReimportNotification& OnPostReimport(){ return PostReimport; }
 
-private:
 	/** Opens a file dialog to request a new reimport path */
-	void GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFilenames);
+	UNREALED_API void GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFilenames);
 
 private:
 	/** Reimport handlers registered with this manager */

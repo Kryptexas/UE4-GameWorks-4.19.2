@@ -64,6 +64,9 @@ EReimportResult::Type UPaperSpriteSheetReimportFactory::Reimport(UObject* Obj)
 	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, nullptr, this))
 	{
 		UE_LOG(LogPaperSpriteSheetImporter, Log, TEXT("Imported successfully"));
+
+		SpriteSheet->AssetImportData->Update(Filename);
+		
 		// Try to find the outer package so we can dirty it up
 		if (SpriteSheet->GetOuter())
 		{

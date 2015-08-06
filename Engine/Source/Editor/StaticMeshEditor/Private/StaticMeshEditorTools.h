@@ -34,12 +34,6 @@ public:
 
 	/** Applies level of detail changes to the static mesh */
 	void ApplyChanges();
-
-	/** Reimports the current static mesh */
-	FReply Reimport();
-
-	/** Whether the user should reimport based on the changes */
-	bool CanReimport() const;
 private:
 	/** Level of detail settings for the details panel */
 	TSharedPtr<FLevelOfDetailSettingsLayout> LevelOfDetailSettings;

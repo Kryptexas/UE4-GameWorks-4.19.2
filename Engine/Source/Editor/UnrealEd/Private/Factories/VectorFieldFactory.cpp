@@ -305,13 +305,13 @@ EReimportResult::Type UReimportVectorFieldStaticFactory::Reimport( UObject* Obj 
 
 	UVectorFieldStatic* VectorFieldStatic = Cast<UVectorFieldStatic>(Obj);
 
-	if ( VectorFieldStatic->AssetImportData->GetSourceFileData().Num() != 1 )
+	if ( VectorFieldStatic->AssetImportData->SourceData.SourceFiles.Num() != 1 )
 	{
 		// No source art path. Can't reimport.
 		return EReimportResult::Failed;
 	}
 
-	const FString& ReImportFilename = VectorFieldStatic->AssetImportData->GetSourceFileData()[0].RelativeFilename;
+	FString ReImportFilename = VectorFieldStatic->AssetImportData->GetFirstFilename();
 
 	UE_LOG(LogVectorFieldFactory, Log, TEXT("Performing atomic reimport of [%s]"), *ReImportFilename);
 
@@ -325,6 +325,7 @@ EReimportResult::Type UReimportVectorFieldStaticFactory::Reimport( UObject* Obj 
 	if (UFactory::StaticImportObject(VectorFieldStatic->GetClass(), VectorFieldStatic->GetOuter(), *VectorFieldStatic->GetName(), RF_Public|RF_Standalone, *ReImportFilename, NULL, this))
 	{
 		UE_LOG(LogVectorFieldFactory, Log, TEXT("Reimported successfully") );
+		VectorFieldStatic->AssetImportData->Update(ReImportFilename);
 		VectorFieldStatic->MarkPackageDirty();
 	}
 	else

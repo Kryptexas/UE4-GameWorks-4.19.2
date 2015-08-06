@@ -1006,7 +1006,6 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 		// @todo AssetImportData make a data class for Apex destructible assets
 		DestructibleMesh->AssetImportData = NewObject<UAssetImportData>(DestructibleMesh);
 		DestructibleMesh->AssetImportData->Update(UFactory::CurrentFilename);
-		DestructibleMesh->AssetImportData->bDirty = false;
 	}
 
 	DestructibleMesh->PreEditChange(NULL);

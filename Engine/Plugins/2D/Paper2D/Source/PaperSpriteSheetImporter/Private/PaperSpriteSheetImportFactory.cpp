@@ -72,7 +72,6 @@ UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObj
 		if (Importer.PerformImport(LongPackagePath, Flags, SpriteSheet))
 		{
 			SpriteSheet->AssetImportData->Update(CurrentFilename);
-			SpriteSheet->AssetImportData->bDirty = false;
 
 			Result = SpriteSheet;
 		}

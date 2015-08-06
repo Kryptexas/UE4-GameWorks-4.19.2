@@ -8,9 +8,6 @@
 UAssetImportData::UAssetImportData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-#if WITH_EDITORONLY_DATA
-	bDirty = false;
-#endif
 }
 
 #if WITH_EDITORONLY_DATA
@@ -87,45 +84,58 @@ TOptional<FAssetImportInfo> FAssetImportInfo::FromJson(FString InJsonString)
 void UAssetImportData::UpdateFilenameOnly(const FString& InPath)
 {
 	// Try and retain the MD5 and timestamp if possible
-	if (SourceFiles.Num() == 1)
+	if (SourceData.SourceFiles.Num() == 1)
 	{
-		SourceFiles[0].RelativeFilename = SanitizeImportFilename(InPath);
+		SourceData.SourceFiles[0].RelativeFilename = SanitizeImportFilename(InPath);
 	}
 	else
 	{
-		SourceFiles.Reset();
-		SourceFiles.Emplace(SanitizeImportFilename(InPath));
+		SourceData.SourceFiles.Reset();
+		SourceData.SourceFiles.Emplace(SanitizeImportFilename(InPath));
+	}
+}
+
+void UAssetImportData::UpdateFilenameOnly(const FString& InPath, int32 Index)
+{
+	if (SourceData.SourceFiles.IsValidIndex(Index))
+	{
+		SourceData.SourceFiles[Index].RelativeFilename = SanitizeImportFilename(InPath);
 	}
 }
 
 void UAssetImportData::Update(const FString& InPath)
 {
-	FAssetImportInfo Old;
-	Old.CopyFrom(*this);
+	FAssetImportInfo Old = SourceData;
 
-	SourceFiles.Reset();
-	SourceFiles.Emplace(
+	// Reset our current data
+	SourceData.SourceFiles.Reset();
+	SourceData.SourceFiles.Emplace(
 		SanitizeImportFilename(InPath),
 		IFileManager::Get().GetTimeStamp(*InPath),
 		FMD5Hash::HashFile(*InPath)
 		);
-
-	bDirty = true;
 	
 	OnImportDataChanged.Broadcast(Old, this);
 }
 
 FString UAssetImportData::GetFirstFilename() const
 {
-	return SourceFiles.Num() > 0 ? ResolveImportFilename(SourceFiles[0].RelativeFilename) : FString();
+	return SourceData.SourceFiles.Num() > 0 ? ResolveImportFilename(SourceData.SourceFiles[0].RelativeFilename) : FString();
 }
 
 void UAssetImportData::ExtractFilenames(TArray<FString>& AbsoluteFilenames) const
 {
-	for (const auto& File : SourceFiles)
+	for (const auto& File : SourceData.SourceFiles)
 	{
 		AbsoluteFilenames.Add(ResolveImportFilename(File.RelativeFilename));
 	}
+}
+
+TArray<FString> UAssetImportData::ExtractFilenames() const
+{
+	TArray<FString> Temp;
+	ExtractFilenames(Temp);
+	return Temp;
 }
 
 FString UAssetImportData::SanitizeImportFilename(const FString& InPath) const
@@ -182,15 +192,15 @@ void UAssetImportData::Serialize(FArchive& Ar)
 		if (Ar.IsLoading())
 		{
 			Ar << Json;
-			TOptional<FAssetImportInfo> Copy = FromJson(MoveTemp(Json));
+			TOptional<FAssetImportInfo> Copy = FAssetImportInfo::FromJson(MoveTemp(Json));
 			if (Copy.IsSet())
 			{
-				CopyFrom(Copy.GetValue());
+				SourceData = MoveTemp(Copy.GetValue());
 			}
 		}
 		else if (Ar.IsSaving())
 		{
-			Json = ToJson();
+			Json = SourceData.ToJson();
 			Ar << Json;
 		}
 	}
@@ -200,7 +210,7 @@ void UAssetImportData::Serialize(FArchive& Ar)
 
 void UAssetImportData::PostLoad()
 {
-	if (!SourceFilePath_DEPRECATED.IsEmpty() && SourceFiles.Num() == 0)
+	if (!SourceFilePath_DEPRECATED.IsEmpty() && SourceData.SourceFiles.Num() == 0)
 	{
 		FDateTime SourceDateTime;
 		if (!FDateTime::Parse(SourceFileTimestamp_DEPRECATED,SourceDateTime))
@@ -208,20 +218,13 @@ void UAssetImportData::PostLoad()
 			SourceDateTime = 0;
 		}
 
-		SourceFiles.Add(FSourceFile(MoveTemp(SourceFilePath_DEPRECATED),SourceDateTime));
+		SourceData.SourceFiles.Add(FAssetImportInfo::FSourceFile(MoveTemp(SourceFilePath_DEPRECATED),SourceDateTime));
 
 		SourceFilePath_DEPRECATED.Empty();
 		SourceFileTimestamp_DEPRECATED.Empty();
 	}
 
 	Super::PostLoad();
-}
-
-void UAssetImportData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	bDirty = true;
 }
 
 #endif // WITH_EDITORONLY_DATA

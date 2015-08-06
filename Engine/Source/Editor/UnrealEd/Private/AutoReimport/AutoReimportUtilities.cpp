@@ -36,7 +36,7 @@ namespace Utils
 				TOptional<FAssetImportInfo> ImportInfo = FAssetImportInfo::FromJson(Tag.Value);
 				if (ImportInfo.IsSet())
 				{
-					for (const auto& File : ImportInfo->GetSourceFileData())
+					for (const auto& File : ImportInfo->SourceFiles)
 					{
 						OutSourceFiles.Emplace(UAssetImportData::ResolveImportFilename(File.RelativeFilename, Object->GetOutermost()));
 					}

@@ -69,19 +69,17 @@ void FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource(TArray<TWeakOb
 		auto Object = (*ObjIt).Get();
 		if (Object)
 		{
-			FAssetImportInfo OldImportData;
-
 			// Make note of the old import data
-			OldImportData.CopyFrom(*Object->AssetImportData);
+			FAssetImportInfo OldImportData = Object->AssetImportData->SourceData;
 			// And reset the import data
-			Object->AssetImportData->CopyFrom(EmptyImportInfo);
+			Object->AssetImportData->SourceData = EmptyImportInfo;
 
 			bool bSuccess = FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
 
 			// restore the old source path in case reimport was not successful
 			if (!bSuccess)
 			{
-				Object->AssetImportData->CopyFrom(OldImportData);
+				Object->AssetImportData->SourceData = OldImportData;
 			}
 		}
 	}
