@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2608292
+﻿INTSourceChangelist:2644823
 Availability: Public
 Title:스태틱 메시 콜리전 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
@@ -84,10 +84,10 @@ Description:Collilsion, 콜리전 지오메트리 생성 및 구성을 위한 �
 
 ![Collision_CreateCollisionHullWithAutoConvex_1.jpg](Collision_CreateCollisionHullWithAutoConvex_1.png)(convert:false)
 
-* **Max Hulls** 최대 헐 - 오브젝트의 모양에 가장 근접하게 생성되는 헐 수를 결정합니다.
+* **Accuracy** 정확도 - 오브젝트의 모양에 가장 근접하게 생성되는 최저 헐 수를 결정합니다.
 * **Max Hull Verts** 최대 헐 버텍스 - 최대 콜리전 헐 버텍스 수입니다. 이 값을 올리면 최대로 가능한 콜리전 헐 복잡도도 올라갑니다.
 * **Apply** 적용 - 위 세팅에 따라 오브젝트에 콜리전을 추가합니다.
-* **Defaults** 디폴트 - **Max Hulls** 와 **Max Hull Verts** 값을 위 그림에서 보이는 값으로 리셋시킵니다.
+* **Defaults** 디폴트 - **Accuracy** 와 **Max Hull Verts** 값을 위 그림에서 보이는 값으로 리셋시킵니다.
 
 ![Collision_CreateCollisionHullWithAutoConvex_2.jpg](Collision_CreateCollisionHullWithAutoConvex_2.png)(convert:false)
 
