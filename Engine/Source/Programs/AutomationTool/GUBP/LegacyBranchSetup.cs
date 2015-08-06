@@ -464,9 +464,15 @@ partial class GUBP
 			
 			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
 			{
-				BranchConfig.AddNode(new RootEditorNode(BranchConfig, HostPlatform));			
-				BranchConfig.AddNode(new ToolsNode(BranchConfig, HostPlatform));            
+				BranchConfig.AddNode(new RootEditorNode(BranchConfig, HostPlatform));
+			}
+			
+			BranchConfig.AddNode(new ToolsNode(BranchConfig, HostPlatform));
+			
+			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+			{
 				BranchConfig.AddNode(new InternalToolsNode(BranchConfig, HostPlatform));
+			
 				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
 				{
 					if (!BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
