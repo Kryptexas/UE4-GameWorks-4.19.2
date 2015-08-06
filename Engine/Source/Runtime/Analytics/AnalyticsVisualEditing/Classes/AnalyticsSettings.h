@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreUObject.h"
 #include "Engine/DeveloperSettings.h"
 #include "AnalyticsSettings.generated.h"
 
