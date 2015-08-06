@@ -82,6 +82,8 @@ EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully"));
 
+		Mesh->AssetImportData->Update(Filename);
+
 		// Mark the package dirty after the successful import
 		Mesh->MarkPackageDirty();
 

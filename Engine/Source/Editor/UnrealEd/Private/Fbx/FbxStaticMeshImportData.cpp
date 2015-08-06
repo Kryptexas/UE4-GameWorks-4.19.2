@@ -27,7 +27,7 @@ UFbxStaticMeshImportData* UFbxStaticMeshImportData::GetImportDataForStaticMesh(U
 		// Try to preserve the source file path if possible
 		if ( StaticMesh->AssetImportData != NULL )
 		{
-			ImportData->CopyFrom(*StaticMesh->AssetImportData);
+			ImportData->SourceData = StaticMesh->AssetImportData->SourceData;
 		}
 
 		StaticMesh->AssetImportData = ImportData;

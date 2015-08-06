@@ -17,10 +17,10 @@ UFbxSkeletalMeshImportData* UFbxSkeletalMeshImportData::GetImportDataForSkeletal
 	{
 		ImportData = NewObject<UFbxSkeletalMeshImportData>(SkeletalMesh, NAME_None, RF_NoFlags, TemplateForCreation);
 
-		// Try to preserve the source file path if possible
+		// Try to preserve the source file data if possible
 		if ( SkeletalMesh->AssetImportData != NULL )
 		{
-			ImportData->CopyFrom(*SkeletalMesh->AssetImportData);
+			ImportData->SourceData = SkeletalMesh->AssetImportData->SourceData;
 		}
 
 		SkeletalMesh->AssetImportData = ImportData;

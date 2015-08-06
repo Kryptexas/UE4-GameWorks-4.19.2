@@ -361,7 +361,7 @@ void FAutoReimportManager::OnAssetRenamed(const FAssetData& AssetData, const FSt
 		return;
 	}
 
-	const TArray<FAssetImportInfo::FSourceFile>& SourceFileData = ImportInfo->GetSourceFileData();
+	const TArray<FAssetImportInfo::FSourceFile>& SourceFileData = ImportInfo->SourceFiles;
 
 	// We move the file with the asset provided it is the only file referenced, and sits right beside the uasset file
 	if (SourceFileData.Num() == 1 && !SourceFileData[0].RelativeFilename.GetCharArray().ContainsByPredicate([](const TCHAR Char) { return Char == '/' || Char == '\\'; }))

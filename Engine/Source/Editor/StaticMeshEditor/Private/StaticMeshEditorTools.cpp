@@ -85,26 +85,6 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 			}
 		}
 	}
-
-	// Only add the reimport button if we have reimport settings we can modify
-	// Note: this will get rebuilt if the asset is reimported so we don't need to use .Visibility on the button
-	const UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	if (StaticMesh->AssetImportData && StaticMesh->AssetImportData->GetClass() != UAssetImportData::StaticClass())
-	{
-		ImportCategory.AddCustomRow(LOCTEXT("ReimportStaticMesh", "Reimport Static Mesh"), true)
-			.ValueContent()
-			[
-				SNew(SButton)
-				.OnClicked(this, &FStaticMeshDetails::Reimport)
-				.IsEnabled(this, &FStaticMeshDetails::CanReimport)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("Reimport", "Reimport"))
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				]
-			];
-	}
 }
 
 void SConvexDecomposition::Construct(const FArguments& InArgs)
@@ -205,25 +185,6 @@ void FStaticMeshDetails::ApplyChanges()
 	{
 		LevelOfDetailSettings->ApplyChanges();
 	}
-}
-
-FReply FStaticMeshDetails::Reimport()
-{
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	FReimportManager::Instance()->Reimport(StaticMesh, true);
-	return FReply::Handled();
-}
-
-bool FStaticMeshDetails::CanReimport() const
-{
-	const UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	if (StaticMesh->AssetImportData)
-	{
-		return StaticMesh->AssetImportData->bDirty;
-	}
-	return false;
 }
 
 SConvexDecomposition::~SConvexDecomposition()

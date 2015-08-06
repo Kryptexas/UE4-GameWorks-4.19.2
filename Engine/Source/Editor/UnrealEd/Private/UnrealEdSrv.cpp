@@ -1106,7 +1106,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 				FAssetImportInfo AssetImportInfo;
 
 				bool bModified = false;
-				for (const auto& File : Data->GetSourceFileData())
+				for (const auto& File : Data->SourceData.SourceFiles)
 				{
 					if( !File.RelativeFilename.IsEmpty() && !SearchTerms.ContainsByPredicate([&](const FString& SearchTerm){ return File.RelativeFilename.Contains(SearchTerm); }) )
 					{
@@ -1122,7 +1122,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 				if (bModified)
 				{
 					Data->Modify();
-					Data->CopyFrom(AssetImportInfo);
+					Data->SourceData = AssetImportInfo;
 					return true;
 				}
 

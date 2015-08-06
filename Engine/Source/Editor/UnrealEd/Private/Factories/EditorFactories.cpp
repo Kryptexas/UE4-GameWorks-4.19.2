@@ -1897,6 +1897,8 @@ EReimportResult::Type UReimportSoundFactory::Reimport( UObject* Obj )
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
+		SoundWave->AssetImportData->Update(Filename);
+
 		// Mark the package dirty after the successful import
 		SoundWave->MarkPackageDirty();
 	}
@@ -5513,6 +5515,9 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 	if (UFactory::StaticImportObject(pTex->GetClass(), pTex->GetOuter(), *pTex->GetName(), RF_Public|RF_Standalone, *ResolvedSourceFilePath, nullptr, this))
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
+
+		pTex->AssetImportData->Update(ResolvedSourceFilePath);
+
 		// Try to find the outer package so we can dirty it up
 		if (pTex->GetOuter())
 		{
@@ -5629,7 +5634,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 
 	if( !bOperationCanceled && ensure(ImportData) )
 	{
-		const FString& Filename = ImportData->GetFirstFilename();
+		const FString Filename = ImportData->GetFirstFilename();
 		const FString FileExtension = FPaths::GetExtension(Filename);
 		const bool bIsValidFile = FileExtension.Equals( TEXT("fbx"), ESearchCase::IgnoreCase ) || FileExtension.Equals( "obj",  ESearchCase::IgnoreCase );
 
@@ -5698,6 +5703,8 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 				// Restore bounds extension settings
 				Mesh->PositiveBoundsExtension = PositiveBoundsExtension;
 				Mesh->NegativeBoundsExtension = NegativeBoundsExtension;
+
+				Mesh->AssetImportData->Update(Filename);
 
 				// Try to find the outer package so we can dirty it up
 				if (Mesh->GetOuter())
@@ -5854,6 +5861,8 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 			if ( FFbxImporter->ReimportSkeletalMesh(SkeletalMesh, ImportData) )
 			{
 				UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
+
+				SkeletalMesh->AssetImportData->Update(Filename);
 
 				// Try to find the outer package so we can dirty it up
 				if (SkeletalMesh->GetOuter())
@@ -6021,7 +6030,6 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 
 		// update the data in case the file source has changed
 		ImportData->Update(UFactory::CurrentFilename);
-		ImportData->bDirty = false;
 
 		// Try to find the outer package so we can dirty it up
 		if (AnimSequence->GetOuter())

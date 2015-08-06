@@ -21,7 +21,7 @@ void UScriptBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) 
 {
 	if (AssetImportData)
 	{
-		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
@@ -67,7 +67,7 @@ bool UScriptBlueprint::IsCodeDirty() const
 		return true;
 	}
 
-	const TArray<FAssetImportInfo::FSourceFile>& Data = AssetImportData->GetSourceFileData();
+	const TArray<FAssetImportInfo::FSourceFile>& Data = AssetImportData->SourceData.SourceFiles;
 
 	if (Data.Num() == 1)
 	{

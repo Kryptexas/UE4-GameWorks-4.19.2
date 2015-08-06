@@ -97,7 +97,7 @@ void FAssetSourceFilenameCache::HandleOnAssetAdded(const FAssetData& AssetData)
 	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData.TagsAndValues);
 	if (ImportData.IsSet())
 	{
-		for (const auto& SourceFile : ImportData->GetSourceFileData())
+		for (const auto& SourceFile : ImportData->SourceFiles)
 		{
 			SourceFileToObjectPathCache.FindOrAdd(FPaths::GetCleanFilename(SourceFile.RelativeFilename)).Add(AssetData.ObjectPath);
 		}
@@ -109,7 +109,7 @@ void FAssetSourceFilenameCache::HandleOnAssetRemoved(const FAssetData& AssetData
 	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData.TagsAndValues);
 	if (ImportData.IsSet())
 	{
-		for (auto& SourceFile : ImportData->GetSourceFileData())
+		for (auto& SourceFile : ImportData->SourceFiles)
 		{
 			FString CleanFilename = FPaths::GetCleanFilename(SourceFile.RelativeFilename);
 			if (auto* Objects = SourceFileToObjectPathCache.Find(CleanFilename))
@@ -131,7 +131,7 @@ void FAssetSourceFilenameCache::HandleOnAssetRenamed(const FAssetData& AssetData
 	{
 		FName OldPathName = *OldPath;
 
-		for (auto& SourceFile : ImportData->GetSourceFileData())
+		for (auto& SourceFile : ImportData->SourceFiles)
 		{
 			FString CleanFilename = FPaths::GetCleanFilename(SourceFile.RelativeFilename);
 
@@ -155,7 +155,7 @@ void FAssetSourceFilenameCache::HandleOnAssetUpdated(const FAssetImportInfo& Old
 {
 	FName ObjectPath = FName(*ImportData->GetOuter()->GetPathName());
 
-	for (const auto& SourceFile : OldData.GetSourceFileData())
+	for (const auto& SourceFile : OldData.SourceFiles)
 	{
 		FString CleanFilename = FPaths::GetCleanFilename(SourceFile.RelativeFilename);
 		if (auto* Objects = SourceFileToObjectPathCache.Find(CleanFilename))
@@ -168,7 +168,7 @@ void FAssetSourceFilenameCache::HandleOnAssetUpdated(const FAssetImportInfo& Old
 		}
 	}
 
-	for (const auto& SourceFile : ImportData->GetSourceFileData())
+	for (const auto& SourceFile : ImportData->SourceData.SourceFiles)
 	{
 		SourceFileToObjectPathCache.FindOrAdd(FPaths::GetCleanFilename(SourceFile.RelativeFilename)).Add(ObjectPath);
 	}
@@ -189,7 +189,7 @@ TArray<FAssetData> FAssetSourceFilenameCache::GetAssetsPertainingToFile(const IA
 				auto AssetPackagePath = FPackageName::LongPackageNameToFilename(Asset.PackagePath.ToString() / TEXT(""));
 
 				// Attempt to find the matching source filename in the list of imported sorce files (generally there are only one of these)
-				const bool bWasImportedFromFile = ImportInfo->GetSourceFileData().ContainsByPredicate([&](const FAssetImportInfo::FSourceFile& File){
+				const bool bWasImportedFromFile = ImportInfo->SourceFiles.ContainsByPredicate([&](const FAssetImportInfo::FSourceFile& File){
 
 					if (AbsoluteFilename == FPaths::ConvertRelativePathToFull(AssetPackagePath / File.RelativeFilename) ||
 						AbsoluteFilename == FPaths::ConvertRelativePathToFull(File.RelativeFilename))
