@@ -2368,26 +2368,35 @@ struct FMeshProxySettings
 	UPROPERTY()
 	bool bExportSpecularMap_DEPRECATED;
 
-	/** Should Simplygon recalculate normals for the proxy mesh? */
+	/** Lightmap resolution */
+	UPROPERTY(EditAnywhere, Category=ProxySettings)
+	int32 LightMapResolution;
+
+	/** Whether Simplygon should recalculate normals, otherwise the normals channel will be sampled from the original mesh */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bRecalculateNormals;
 
-	/** Angle at which a hard edge is introduced between faces. */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
+	/** Angle at which a hard edge is introduced between faces */
+	UPROPERTY(EditAnywhere, Category=ProxySettings, meta=(DisplayName="Hard Edge Angle"))
 	float HardAngleThreshold;
 
+	/** Set the on-screen merge distance in pixels. Smaller cavities will be removed */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 MergeDistance;
-
+	
+	/** Set to true to cap the mesh with a ground plane */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bUseClippingPlane;
 
+	/* Ground plane level */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	float ClippingLevel;
 
+	/** Set the axis index for the ground plane (0:X-Axis, 1:Y-Axis, 2:Z-Axis) */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 AxisIndex;
 
+	/** Set to true to use negative halfspace for model, and reject the positive halfspace */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bPlaneNegativeHalfspace;
 
@@ -2400,6 +2409,7 @@ struct FMeshProxySettings
 		, bExportMetallicMap_DEPRECATED(false)
 		, bExportRoughnessMap_DEPRECATED(false)
 		, bExportSpecularMap_DEPRECATED(false)
+		, LightMapResolution(256)
 		, bRecalculateNormals(true)
 		, HardAngleThreshold(80.0f)
 		, MergeDistance(4)

@@ -505,9 +505,9 @@ public:
 			RemeshingProcessor->GetRemeshingSettings()->SetGroundPlaneNegativeHalfspace(InProxySettings.bPlaneNegativeHalfspace);
 		}
 		
-		RemeshingProcessor->GetRemeshingSettings()->SetTransferNormals( false );
-		RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance( InProxySettings.MergeDistance );
-		RemeshingProcessor->GetRemeshingSettings()->SetHardEdgeAngle( FMath::DegreesToRadians(InProxySettings.HardAngleThreshold) );//This should be a user settings in the popup dialog!
+		RemeshingProcessor->GetRemeshingSettings()->SetTransferNormals(InProxySettings.bRecalculateNormals == false);
+		RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance(InProxySettings.MergeDistance);
+		RemeshingProcessor->GetRemeshingSettings()->SetHardEdgeAngle(FMath::DegreesToRadians(InProxySettings.HardAngleThreshold));
 		RemeshingProcessor->SetSceneRoot(Scene->GetRootNode());
 
 		//Setup the mapping image used for casting
