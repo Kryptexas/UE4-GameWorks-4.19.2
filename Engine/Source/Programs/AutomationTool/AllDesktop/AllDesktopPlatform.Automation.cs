@@ -9,7 +9,6 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using AutomationTool;
 using UnrealBuildTool;
-using Ionic.Zip;
 
 public class AllDesktopPlatform : Platform
 {

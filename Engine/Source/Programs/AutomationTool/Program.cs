@@ -9,6 +9,7 @@ using System.Diagnostics;
 using UnrealBuildTool;
 using System.Reflection;
 using Tools.DotNETCommon;
+using System.IO;
 
 namespace AutomationTool
 {
@@ -24,6 +25,8 @@ namespace AutomationTool
 
             try
             {
+                // ensure we can resolve any external assemblies as necessary.
+                AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
                 HostPlatform.Initialize();
 
                 Log.TraceVerbose("Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32);

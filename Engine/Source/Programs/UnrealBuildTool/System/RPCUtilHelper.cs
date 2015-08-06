@@ -32,47 +32,6 @@ namespace UnrealBuildTool
 		/** The number of commands the remote side should be able to run at once */
 		private static int MaxRemoteCommandsAllowed = 0;
 
-		static RPCUtilHelper()
-		{
-			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
-		}
-
-		/**
-		 * A callback function to find RPCUtility.exe
-		 */
-		static Assembly CurrentDomain_AssemblyResolve(Object sender, ResolveEventArgs args)
-		{
-			// Name is fully qualified assembly definition - e.g. "p4dn, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ff968dc1933aba6f"
-			string[] AssemblyInfo = args.Name.Split(",".ToCharArray());
-			string AssemblyName = AssemblyInfo[0];
-
-			if (AssemblyName.ToLowerInvariant() == "rpcutility")
-			{
-				AssemblyName = Path.GetFullPath(@"..\Binaries\DotNET\RPCUtility.exe");
-				Debug.WriteLineIf(System.Diagnostics.Debugger.IsAttached, "Loading assembly: " + AssemblyName);
-
-				if (File.Exists(AssemblyName))
-				{
-					Assembly A = Assembly.LoadFile(AssemblyName);
-					return A;
-				}
-			}
-			else if (AssemblyName.ToLowerInvariant() == "ionic.zip.reduced")
-			{
-				AssemblyName = Path.GetFullPath(@"..\Binaries\DotNET\" + AssemblyName + ".dll");
-
-				Debug.WriteLineIf(System.Diagnostics.Debugger.IsAttached, "Loading assembly: " + AssemblyName);
-
-				if (File.Exists(AssemblyName))
-				{
-					Assembly A = Assembly.LoadFile(AssemblyName);
-					return A;
-				}
-			}
-
-			return (null);
-		}
-
 		private static DateTime RemoteToLocalTime(string RemoteTime)
 		{
 			try

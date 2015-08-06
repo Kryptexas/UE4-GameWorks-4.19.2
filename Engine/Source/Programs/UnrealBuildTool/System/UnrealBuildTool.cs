@@ -622,6 +622,9 @@ namespace UnrealBuildTool
             // Do super early log init as a safeguard. We'll re-init with proper config options later.
             PreInitLogging();
 
+            // ensure we can resolve any external assemblies that are not in the same folder as our assembly.
+            AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
+
             // Copy off the arguments to allow checking for command-line arguments elsewhere
             CmdLine = new List<string>(Arguments);
 
