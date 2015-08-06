@@ -8,9 +8,9 @@
 USTRUCT()
 struct ENGINE_API FAssetImportInfo
 {
-#if WITH_EDITORONLY_DATA
-
 	GENERATED_BODY()
+	
+#if WITH_EDITORONLY_DATA
 
 	FAssetImportInfo() {}
 
