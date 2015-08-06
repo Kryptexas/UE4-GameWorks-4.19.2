@@ -885,9 +885,15 @@ protected:
 	/** Renders the opaque base pass for forward shading. */
 	void RenderForwardShadingBasePass(FRHICommandListImmediate& RHICmdList);
 
-	/** Projects any shadow depth images into the scene. (modulated shadows) */
+	/** Render modulated shadow projections in to the scene, loops over any unrendered shadows until all are processed.*/
 	void RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList);
 
+	/** Render shadow depths to the depth texture.*/
+	void RenderModulatedShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
+	
+	/** Projects any existing depth images into the scene.*/
+	void RenderAllocatedModulatedShadowProjections(FRHICommandListImmediate& RHICmdList);
+	
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
@@ -911,6 +917,7 @@ protected:
 	  */
 	bool RenderShadowDepthMap(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
 
-	/** Helper function to determine if a shadow should be cast **/
-	bool IsProjectedShadowPotentiallyVisible(const FProjectedShadowInfo* ProjectedShadowInfo) const;
+private:
+	bool bModulatedShadowsInUse;
+	bool bCSMShadowsInUse;
 };
