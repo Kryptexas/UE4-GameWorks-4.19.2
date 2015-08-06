@@ -193,6 +193,37 @@ bool AActor::CheckActorComponents()
 
 void AActor::ResetOwnedComponents()
 {
+	// Identify any natively-constructed components referenced by properties that either failed to serialize or came in as NULL.
+	if(HasAnyFlags(RF_WasLoaded) && NativeConstructedComponentToPropertyMap.Num() > 0)
+	{
+		TInlineComponentArray<UActorComponent*> ComponentsToDestroy;
+		for (auto Component : OwnedComponents)
+		{
+			// Only consider native components
+			if (Component->CreationMethod == EComponentCreationMethod::Native)
+			{
+				// Find the property or properties that previously referenced the natively-constructed component.
+				TArray<UObjectProperty*> Properties;
+				NativeConstructedComponentToPropertyMap.MultiFind(Component, Properties);
+
+				// Determine if the property or properties are no longer valid references (either it got serialized out that way or something failed during load)
+				for (auto ObjProp : Properties)
+				{
+					check(ObjProp != nullptr);
+					UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue_InContainer(this));
+					if (ActorComponent == nullptr)
+					{
+						// Restore the natively-constructed component instance
+						ObjProp->SetObjectPropertyValue_InContainer(this, Component);
+					}
+				}
+			}
+		}
+
+		// Clear out the mapping as we don't need it anymore
+		NativeConstructedComponentToPropertyMap.Empty();
+	}
+
 	TArray<UObject*> ActorChildren;
 	OwnedComponents.Empty();
 	ReplicatedComponents.Empty();
@@ -218,6 +249,27 @@ void AActor::PostInitProperties()
 	Super::PostInitProperties();
 	RegisterAllActorTickFunctions(true,false); // component will be handled when they are registered
 	RemoteRole = (bReplicates ? ROLE_SimulatedProxy : ROLE_None);
+
+	// Map natively-constructed component instances to any serialized properties that might reference them.
+	// We'll use this information post-load to determine if any owned components may not have been serialized through the reference property (i.e. in case the serialized property value ends up being NULL).
+	if(!HasAnyFlags(RF_WasLoaded))
+	{
+		NativeConstructedComponentToPropertyMap.Empty(OwnedComponents.Num());
+		for(TFieldIterator<UObjectProperty> PropertyIt(GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			UObjectProperty* ObjProp = *PropertyIt;
+
+			// Ignore transient properties since they won't be serialized
+			if(!ObjProp->HasAnyPropertyFlags(CPF_Transient))
+			{
+				UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue_InContainer(this));
+				if(ActorComponent != nullptr && ActorComponent->CreationMethod == EComponentCreationMethod::Native)
+				{
+					NativeConstructedComponentToPropertyMap.Add(ActorComponent, ObjProp);
+				}
+			}
+		}
+	}
 
 	// Make sure the OwnedComponents list correct.  
 	// Under some circumstances sub-object instancing can result in bogus/duplicate entries.

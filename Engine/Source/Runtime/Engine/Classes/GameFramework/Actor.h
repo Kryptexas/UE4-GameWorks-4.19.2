@@ -2467,6 +2467,9 @@ private:
 	/** List of replicated components. */
 	TArray<UActorComponent*> ReplicatedComponents;
 
+	/** Maps natively-constructed components to properties that reference them. */
+	TMultiMap<UActorComponent*, UObjectProperty*> NativeConstructedComponentToPropertyMap;
+
 public:
 
 	/** Array of ActorComponents that are created by blueprints and serialized per-instance. */
