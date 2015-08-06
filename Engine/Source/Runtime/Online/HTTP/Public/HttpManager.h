@@ -5,6 +5,8 @@
 #include "Ticker.h"
 #include "HttpPackage.h"
 
+class IHttpRequest;
+
 /**
  * Manages Http request that are currently being processed
  */

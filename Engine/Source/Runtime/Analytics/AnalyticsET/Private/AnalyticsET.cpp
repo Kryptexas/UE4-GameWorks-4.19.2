@@ -310,10 +310,10 @@ void FAnalyticsProviderET::FlushEvents()
 		JsonWriter->Close();
 
 		FString URLPath = FString::Printf(TEXT("CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s"),
-			*FGenericPlatformHttp::UrlEncode(SessionID),
-			*FGenericPlatformHttp::UrlEncode(APIKey),
-			*FGenericPlatformHttp::UrlEncode(AppVersion),
-			*FGenericPlatformHttp::UrlEncode(UserID));
+			*FPlatformHttp::UrlEncode(SessionID),
+			*FPlatformHttp::UrlEncode(APIKey),
+			*FPlatformHttp::UrlEncode(AppVersion),
+			*FPlatformHttp::UrlEncode(UserID));
 
 		// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
 		// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...

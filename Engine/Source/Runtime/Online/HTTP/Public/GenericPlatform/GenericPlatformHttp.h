@@ -11,7 +11,7 @@ class IHttpRequest;
 /**
  * Platform specific Http implementations
  */
-class CORE_API FGenericPlatformHttp
+class HTTP_API FGenericPlatformHttp
 {
 public:
 

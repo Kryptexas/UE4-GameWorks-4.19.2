@@ -3,6 +3,7 @@
 #include "PerfCounters.h"
 #include "SocketSubsystem.h"
 #include "Sockets.h"
+#include "Http.h"
 
 #define JSON_ARRAY_NAME					TEXT("PerfCounters")
 #define JSON_PERFCOUNTER_NAME			TEXT("Name")
@@ -251,7 +252,7 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 			else if (Tokens[1].StartsWith(TEXT("/exec?c=")))
 			{
 				FString ExecCmd = Tokens[1].Mid(8);
-				FString ExecCmdDecoded = FGenericPlatformHttp::UrlDecode(ExecCmd);
+				FString ExecCmdDecoded = FPlatformHttp::UrlDecode(ExecCmd);
 
 				FStringOutputDevice StringOutDevice;
 				StringOutDevice.SetAutoEmitLineTerminator(true);
