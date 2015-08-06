@@ -14,7 +14,7 @@ enum class EAITaskPriority : uint8
 	Low = 64, //FGameplayTasks::DefaultPriority / 2,
 	AutonomousAI = 127, //FGameplayTasks::DefaultPriority,
 	High = 192, //(1.5 * FGameplayTasks::DefaultPriority),
-	Ultimate = 255,
+	Ultimate = 254,
 };
 
 UCLASS(Abstract)

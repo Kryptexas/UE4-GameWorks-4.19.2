@@ -501,8 +501,7 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 			if(Enum)
 			{		
 				const uint8 EnumValue = ByteProperty->GetPropertyValue_InContainer(DefaultObject);
-				const int32 EnumAcceptableMax = Enum->GetMaxEnumValue();
-				if(EnumValue >= EnumAcceptableMax)
+				if(!Enum->IsValidEnumValue(EnumValue))
 				{
 					MessageLog.Warning(
 						*FString::Printf(

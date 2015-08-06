@@ -1039,8 +1039,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				if (Tag.EnumName != NAME_None)
 				{
 					//@warning: mirrors loading code in UByteProperty::SerializeItem()
-					FName EnumValue;
-					Ar << EnumValue;
+					FName EnumName;
+					Ar << EnumName;
 					UEnum* Enum = FindField<UEnum>((DefaultsClass != NULL) ? DefaultsClass : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
 					if (Enum == NULL)
 					{
@@ -1054,8 +1054,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					else
 					{
 						Ar.Preload(Enum);
-						PreviousValue = Enum->GetValueByName(EnumValue);
-						if (Enum->GetNameByValue(PreviousValue) != NAME_None)
+						PreviousValue = Enum->GetValueByName(EnumName);
+						if (!Enum->IsValidEnumValue(PreviousValue))
 						{
 							PreviousValue = Enum->GetMaxEnumValue();
 						}
@@ -1281,8 +1281,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				{
 					// attempt to find the old enum and get the byte value from the serialized enum name
 					//@warning: mirrors loading code in UByteProperty::SerializeItem()
-					FName EnumValue;
-					Ar << EnumValue;
+					FName EnumName;
+					Ar << EnumName;
 					UEnum* Enum = FindField<UEnum>((DefaultsClass != NULL) ? DefaultsClass : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
 					if (Enum == NULL)
 					{
@@ -1296,8 +1296,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					else
 					{
 						Ar.Preload(Enum);
-						PreviousValue = Enum->GetValueByName(EnumValue);
-						if (Enum->GetNameByValue(PreviousValue) != NAME_None)
+						PreviousValue = Enum->GetValueByName(EnumName);
+						if (!Enum->IsValidEnumValue(PreviousValue))
 						{
 							PreviousValue = Enum->GetMaxEnumValue();
 						}
