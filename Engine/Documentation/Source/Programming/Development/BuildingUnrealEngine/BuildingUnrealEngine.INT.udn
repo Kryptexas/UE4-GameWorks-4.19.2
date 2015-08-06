@@ -3,8 +3,6 @@ Title:Building Unreal Engine from Source
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:Compiling Unreal Engine from source.
 Prereq: GettingStarted/DownloadingUnrealEngine
-Prereq: GettingStarted/RecommendedSpecifications
-Related: GettingStarted/DownloadingUnrealEngine
 Related: GettingStarted
 Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
