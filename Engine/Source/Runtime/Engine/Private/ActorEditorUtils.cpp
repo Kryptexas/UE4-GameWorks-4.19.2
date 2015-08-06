@@ -74,12 +74,15 @@ namespace FActorEditorUtils
 			return false;
 		}
 
-		for (auto* ChildComponent : InActor->GetRootComponent()->AttachChildren)
+		if( InActor->GetRootComponent() )
 		{
-			AActor* ChildActor = ChildComponent ? ChildComponent->GetOwner() : nullptr;
-			if (ChildActor && ChildActor != InActor && !TraverseActorTree_ParentFirst(ChildActor, InPredicate))
+			for(auto* ChildComponent : InActor->GetRootComponent()->AttachChildren)
 			{
-				return false;
+				AActor* ChildActor = ChildComponent ? ChildComponent->GetOwner() : nullptr;
+				if(ChildActor && ChildActor != InActor && !TraverseActorTree_ParentFirst(ChildActor, InPredicate))
+				{
+					return false;
+				}
 			}
 		}
 		
