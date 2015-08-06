@@ -358,7 +358,7 @@ namespace AutomationTool
 			}
 
 			List<JobStep> Steps = new List<JobStep>();
-			using (CommandUtils.TelemetryStopwatch PerlOutputStopwatch = new CommandUtils.TelemetryStopwatch("PerlOutput"))
+			using (TelemetryStopwatch PerlOutputStopwatch = new TelemetryStopwatch("PerlOutput"))
 			{
 				string ParentPath = Command.ParseParamValue("ParentPath");
 

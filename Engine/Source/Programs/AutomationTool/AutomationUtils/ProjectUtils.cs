@@ -720,7 +720,7 @@ namespace AutomationTool
             BaseEngineProject = new BranchUProject();
 
             var AllProjects = UnrealBuildTool.UProjectInfo.FilterGameProjects(false, null);
-			using(CommandUtils.TelemetryStopwatch SortProjectsStopwatch = new CommandUtils.TelemetryStopwatch("SortProjects"))
+			using(TelemetryStopwatch SortProjectsStopwatch = new TelemetryStopwatch("SortProjects"))
 			{
 				foreach (var InfoEntry in AllProjects)
 				{
@@ -745,7 +745,7 @@ namespace AutomationTool
                 throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
             }*/
 
-			using(CommandUtils.TelemetryStopwatch ProjectDumpStopwatch = new CommandUtils.TelemetryStopwatch("Project Dump"))
+			using(TelemetryStopwatch ProjectDumpStopwatch = new TelemetryStopwatch("Project Dump"))
 			{
 				CommandUtils.LogVerbose("  Base Engine:");
 				BaseEngineProject.Dump(InHostPlatforms);

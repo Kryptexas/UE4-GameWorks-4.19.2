@@ -1828,63 +1828,9 @@ namespace AutomationTool
 				return UBTTargetPlatforms;
 			}
 		}
-		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms; 
+		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms;
 
-		public class TelemetryStopwatch : IDisposable
-		{
-			string Name;
-			DateTime StartTime;
-			bool bFinished;
-
-			public TelemetryStopwatch(string Format, params object[] Args)
-			{
-				Name = String.Format(Format, Args);
-				StartTime = DateTime.Now;
-			}
-
-			public void Cancel()
-			{
-				bFinished = true;
-			}
-
-            /// <summary>
-            /// Flushes the time to <see cref="CmdEnv.CSVFile"/> if we are the build machine and that environment variable is specified.
-            /// Call Finish manually with an alternate name to use that one instead. Useful for dynamically generated names that you can't specify at construction.
-            /// </summary>
-            /// <param name="AlternateName">Used in place of the Name specified during construction.</param>
-			public void Finish(string AlternateName = null)
-			{
-				if(!bFinished)
-				{
-                    if (!string.IsNullOrEmpty(AlternateName))
-                    {
-                        Name = AlternateName;
-                    }
-
-                    var OutputStr = String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime, DateTime.Now);
-                    LogVerbose(OutputStr);
-                    if (IsBuildMachine && !String.IsNullOrEmpty(CmdEnv.CSVFile) && CmdEnv.CSVFile != "nul")
-                    {
-					    try
-					    {
-                            File.AppendAllText(CmdEnv.CSVFile, OutputStr);
-                        }
-					    catch (Exception Ex)
-					    {
-						    LogWarning("Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, Ex.ToString());
-					    }
-                    }
-				}
-                bFinished = true;
-			}
-
-			public void Dispose()
-			{
-				Finish();
-			}
-		}
-
-		#endregion
+	    #endregion
 
 		#region Properties
 
@@ -2109,7 +2055,84 @@ namespace AutomationTool
 		}
 	}
 
-	/// <summary>
+    /// <summary>
+    /// Timer class used for telemetry reporting.
+    /// </summary>
+    public class TelemetryStopwatch : IDisposable
+    {
+        string Name;
+        DateTime StartTime;
+        bool bFinished;
+
+        public TelemetryStopwatch(string Format, params object[] Args)
+        {
+            Name = String.Format(Format, Args);
+            StartTime = DateTime.Now;
+        }
+
+        public void Cancel()
+        {
+            bFinished = true;
+        }
+
+        /// <summary>
+        /// Flushes the time to <see cref="CmdEnv.CSVFile"/> if we are the build machine and that environment variable is specified.
+        /// Call Finish manually with an alternate name to use that one instead. Useful for dynamically generated names that you can't specify at construction.
+        /// </summary>
+        /// <param name="AlternateName">Used in place of the Name specified during construction.</param>
+        public void Finish(string AlternateName = null)
+        {
+            if(!bFinished)
+            {
+                if (!String.IsNullOrEmpty(AlternateName))
+                {
+                    Name = AlternateName;
+                }
+
+                var OutputStr = String.Format("UAT,{0},{1},{2}" + Environment.NewLine, Name, StartTime, DateTime.Now);
+                CommandUtils.LogVerbose(OutputStr);
+                if (CommandUtils.IsBuildMachine && !String.IsNullOrEmpty(CommandUtils.CmdEnv.CSVFile) && CommandUtils.CmdEnv.CSVFile != "nul")
+                {
+                    try
+                    {
+                        File.AppendAllText(CommandUtils.CmdEnv.CSVFile, OutputStr);
+                    }
+                    catch (Exception Ex)
+                    {
+                        CommandUtils.LogWarning("Could not append to csv file ({0}) : {1}", CommandUtils.CmdEnv.CSVFile, Ex.ToString());
+                    }
+                }
+            }
+            bFinished = true;
+        }
+
+        public void Dispose()
+        {
+            Finish();
+        }
+    }
+
+    /// <summary>
+    /// Stopwatch that uses DateTime.UtcNow for timing. Not hi-res, but also not subject to short time limitations of System.Diagnostics.Stopwatch.
+    /// </summary>
+    public class DateTimeStopwatch
+    {
+        public static DateTimeStopwatch Start()
+        {
+            return new DateTimeStopwatch();
+        }
+
+        /// <summary>
+        /// Hide public ctor.
+        /// </summary>
+        private DateTimeStopwatch() { }
+
+        readonly DateTime StartTime = DateTime.UtcNow;
+
+        public TimeSpan ElapsedTime { get { return DateTime.UtcNow - StartTime; } }
+    }
+
+    /// <summary>
 	/// Use with "using" syntax to push and pop directories in a convenient, exception-safe way
 	/// </summary>
 	public class PushedDirectory : IDisposable
