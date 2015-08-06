@@ -89,5 +89,5 @@ The constructor is used to set default values for the properties. In this exampl
 Your new material expression should now be in the list in the material editor.  Here you can see the Square expression in action:  
 
 [REGION:todo]
-![SquareMaterialExpression.jpg](SquareMaterialExpression.jpg)
+![](MaterialExpression.png)
 [/REGION]
