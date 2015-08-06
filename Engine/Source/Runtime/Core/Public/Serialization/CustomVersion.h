@@ -46,8 +46,8 @@ struct CORE_API FCustomVersion
 	FORCEINLINE FCustomVersion(FGuid InKey, int32 InVersion, FName InFriendlyName)
 	: Key           (InKey)
 	, Version       (InVersion)
-	, FriendlyName  (InFriendlyName)
 	, ReferenceCount(1)
+	, FriendlyName  (InFriendlyName)
 	{
 	}
 
