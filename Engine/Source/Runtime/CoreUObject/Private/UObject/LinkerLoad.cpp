@@ -1054,12 +1054,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 
 		// Check custom versions.
 		const FCustomVersionContainer& LatestCustomVersions  = FCustomVersionContainer::GetRegistered();
-		const TArray<FCustomVersion>&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
+		const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
 		for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
 		{
 			const FCustomVersion& SerializedCustomVersion = *It;
 
-			auto* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
+			const FCustomVersion* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
 			if (!LatestVersion)
 			{
 				// Loading a package with custom integration that we don't know about!
