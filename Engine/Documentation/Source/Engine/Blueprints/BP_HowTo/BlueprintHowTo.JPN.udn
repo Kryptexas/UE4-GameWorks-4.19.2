@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2550597
+﻿INTSourceChangelist:2611556
 Availability:Public
 Title:ブループリントの操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,31 +7,54 @@ Related:Engine/Blueprints
 Related:Engine/Blueprints/UserGuide/Types
 Related:Gameplay
 
-## 概要
-アンリアル エンジン 4 の **ブループリント** が初めての場合、この **ブループリン操作ガイド** シリーズが、基本的な使用方法、ノードの追加と接続、変数の作成をはじめ、以下の表に挙げられているブループリントの操作に必要な重要項目の説明となります。 
 
-ブループリントの重要項目を理解している場合は、アクタのスポーン/破壊、再スポーン (OnDestroyed) 、タイマーの使用などゲームプレイ関連エレメントを説明している [](Gameplay) の中に **ゲームプレイ** 向けの操作ガイドを用意しています。 
+アンリアル エンジン 4 の [](Engine/Blueprints) が初めての場合、このブループリン操作ガイド シリーズが、基本的な使用方法、ノードの追加と接続、変数の作成をはじめ、以下の表に挙げられているブループリントの操作に必要な重要項目の説明となります。 
+
+ブループリントの重要項目を理解している場合は、アクタのスポーン/破壊、再スポーン (OnDestroyed) 、タイマーの使用などゲームプレイ関連エレメントを説明している [](Gameplay) においてゲームプレイ用のブループリントの操作ガイドがカバーされています。 
 
 詳細は以下の表を参照してください。リンクをクリックすると、それぞれのコンテンツが表示されます。 
 
+
+## 初心者向け
+
 | 操作手順 | 説明 |
-| ------- | ------------ |
+| ------- | ------------|
+| [](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) | %Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation/:description% |
+| [](Engine/Blueprints/BP_HowTo/PlacingNodes) | %Engine/Blueprints/BP_HowTo/PlacingNodes:description% |
+| [](Engine/Blueprints/BP_HowTo/ConnectingNodes) | %Engine/Blueprints/BP_HowTo/ConnectingNodes:description% |
+| [](Engine/Blueprints/BP_HowTo/NavigatingGraphs) | %Engine/Blueprints/BP_HowTo/NavigatingGraphs:description% |
+| [](Engine/Blueprints/BP_HowTo/CollapsingGraphs) | %Engine/Blueprints/BP_HowTo/CollapsingGraphs:description% |
+| [](Engine/Blueprints/BP_HowTo/Debugging) | %Engine/Blueprints/BP_HowTo/Debugging:description% |
+
+
+##中級者向け
+
+| 操作手順 | 説明 |
+| ------- | ------------|
+| [](Engine/Blueprints/BP_HowTo/ActorReference) | %Engine/Blueprints/BP_HowTo/ActorReference:description% |
+| [](Engine/Blueprints/BP_HowTo/MakingFunctions) | %Engine/Blueprints/BP_HowTo/MakingFunctions:description% |
+| [](Engine/Blueprints/BP_HowTo/WorkingWithArrays) | %Engine/Blueprints/BP_HowTo/WorkingWithArrays:description% |
+| [](Engine/Blueprints/UserGuide/Variables) | 変数全般のユーザーガイド. |
+
+## 高度なオプション
+
+| 操作手順 | 説明 |
+| ------- | ------------|
+| [](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) | %Engine\Blueprints\BP_HowTo\DirectBlueprintComs:description% |
+| [](Engine\Blueprints\BP_HowTo\Casting) | %Engine\Blueprints\BP_HowTo\Casting:description% |
+| [](Engine\Blueprints\BP_HowTo\Interfaces) | %Engine\Blueprints\BP_HowTo\Interfaces:description% |
+| [](Engine\Blueprints\BP_HowTo\EventDispatcher) | %Engine\Blueprints\BP_HowTo\EventDispatcher:description% |
+| [](Engine/Blueprints/BP_HowTo/MakingMacros) | %Engine/Blueprints/BP_HowTo/MakingMacros:description% |
+| [](Engine\Blueprints\BP_HowTo\MacroLibraries) | %Engine\Blueprints\BP_HowTo\MacroLibraries:description% |
+
+<!-- 重複文章のため、削除 
+
 | **[](Engine/Blueprints/BP_HowTo/BasicUsage)** | %Engine/Blueprints/BP_HowTo/BasicUsage:description% |
-| **[](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation)** | %Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation/:description% |
-| **[](Engine/Blueprints/BP_HowTo/PlacingNodes)** | %Engine/Blueprints/BP_HowTo/PlacingNodes:description% |
-| **[](Engine/Blueprints/BP_HowTo/ConnectingNodes)** | %Engine/Blueprints/BP_HowTo/ConnectingNodes:description% |
-| **[](Engine/Blueprints/BP_HowTo/NavigatingGraphs)** | %Engine/Blueprints/BP_HowTo/NavigatingGraphs:description% |
-| **[](Engine/Blueprints/BP_HowTo/CollapsingGraphs)** | %Engine/Blueprints/BP_HowTo/CollapsingGraphs:description% |
-| **[](Engine/Blueprints/BP_HowTo/ActorReference)** | %Engine/Blueprints/BP_HowTo/ActorReference:description% |
-| **[](Engine/Blueprints/BP_HowTo/MakingFunctions)** | %Engine/Blueprints/BP_HowTo/MakingFunctions:description% |
-| **[](Engine/Blueprints/BP_HowTo/WorkingWithArrays)** | %Engine/Blueprints/BP_HowTo/WorkingWithArrays:description% |
-| **[](Engine/Blueprints/UserGuide/Variables)** | The entire user guide for Variables. |
-| **[](Engine\Blueprints\BP_HowTo\DirectBlueprintComs)** | %Engine\Blueprints\BP_HowTo\DirectBlueprintComs:description% |
-| **[](Engine\Blueprints\BP_HowTo\Casting)** | %Engine\Blueprints\BP_HowTo\Casting:description% |
-| **[](Engine\Blueprints\BP_HowTo\Interfaces)** | %Engine\Blueprints\BP_HowTo\Interfaces:description% |
-| **[](Engine\Blueprints\BP_HowTo\EventDispatcher)** | %Engine\Blueprints\BP_HowTo\EventDispatcher:description% |
-| **[](Engine/Blueprints/BP_HowTo/MakingMacros)** | %Engine/Blueprints/BP_HowTo/MakingMacros:description% |
-| **[](Engine/Blueprints/BP_HowTo/Debugging)** | %Engine/Blueprints/BP_HowTo/Debugging:description% |
+
+-->
+
+
+
 
 
 
