@@ -207,9 +207,9 @@ public:
 	* [ASYNC THREAD] Inserts package to queue according to priority.
 	*
 	* @param PackageName async package name.
-	* @param bIsImportPackage true if this package was from another package's import, false if it was requested externally.
 	*/
-	void InsertPackage(FAsyncPackage* Package, bool bIsImportPackage);
+	void InsertPackage(FAsyncPackage* Package);
+
 	/**
 	* [ASYNC THREAD] Finds an existing async package in the LoadedPackages by its name.
 	*
