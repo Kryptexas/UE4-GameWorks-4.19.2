@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445736
+﻿INTSourceChangelist:2597157
 Availability:Public
 Title:マクロライブラリ UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -25,8 +25,6 @@ Description:ブループリント クラス エディタ インターフェー�
 [/VAR]
 
 [TOC (start:2)]
-
-## 概要
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#intro]
 
