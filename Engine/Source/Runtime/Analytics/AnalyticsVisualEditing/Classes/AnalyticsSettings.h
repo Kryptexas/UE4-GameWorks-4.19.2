@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/DeveloperSettings.h"
 #include "AnalyticsSettings.generated.h"
 
 UCLASS(Abstract)
