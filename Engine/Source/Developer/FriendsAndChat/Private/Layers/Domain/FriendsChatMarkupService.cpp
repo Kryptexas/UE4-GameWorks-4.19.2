@@ -582,10 +582,8 @@ private:
 
 	void Initialize()
 	{
-		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Team)));
 		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Party)));
 		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Whisper)));
-		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Clan)));
 		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Global)));
 		ProcessedInput = MakeShareable(new FProcessedInput());
 	}

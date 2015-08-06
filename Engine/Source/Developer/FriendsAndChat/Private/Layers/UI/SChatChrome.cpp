@@ -44,12 +44,10 @@ public:
 						SAssignNew(TabContainer, SHorizontalBox)
 					]
 					+SHorizontalBox::Slot()
+					.Expose(SettingBox)
 					.AutoWidth()
 					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Center)
-					[
-						GetChatSettingsWidget().ToSharedRef()
-					]
 				]
 				+ SVerticalBox::Slot()
 				[
@@ -60,8 +58,14 @@ public:
 
 		RegenerateTabs();
 		HandleActiveTabChanged();
-	}
 
+		if(SettingBox && ChromeViewModel->DisplayChatSettings())
+		{
+			SettingBox->AttachWidget(
+				GetChatSettingsWidget().ToSharedRef()
+			);
+		}
+	}
 
 	virtual void HandleWindowActivated() override
 	{
@@ -267,6 +271,7 @@ private:
 	TSharedPtr<FChatChromeViewModel> ChromeViewModel;
 	TSharedPtr<SHorizontalBox> TabContainer;
 	TSharedPtr<SWidgetSwitcher> ChatWindowContainer;
+	SHorizontalBox::FSlot* SettingBox;
 
 	TMap<TSharedPtr<IChatTabViewModel>, TSharedPtr<SChatWindow>> ChatWindows;
 	/** Holds the style to use when making the widget. */

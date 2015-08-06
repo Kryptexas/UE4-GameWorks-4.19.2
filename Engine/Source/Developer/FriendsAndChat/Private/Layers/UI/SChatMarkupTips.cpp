@@ -65,6 +65,7 @@ private:
 		if (Tab.IsValid() && Tab == ViewModel->GetActiveTip())
 		{
 			return FLinearColor::Black;
+
 		}
 		return FLinearColor::Gray;
 	}

@@ -85,6 +85,11 @@ public:
 		return ChatDisplayService->GetEntryBarVisibility();
 	}
 
+	virtual bool DisplayChatSettings() const override
+	{
+		return !NavigationService->IsInGame();
+	}
+
 	DECLARE_DERIVED_EVENT(FChatChromeViewModelImpl, FChatChromeViewModel::FActiveTabChangedEvent, FActiveTabChangedEvent)
 	virtual FActiveTabChangedEvent& OnActiveTabChanged() { return ActiveTabChangedEvent; }
 

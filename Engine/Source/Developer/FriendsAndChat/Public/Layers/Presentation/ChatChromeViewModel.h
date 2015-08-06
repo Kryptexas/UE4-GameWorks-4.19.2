@@ -16,6 +16,7 @@ public:
 	virtual bool IsActive() const = 0;
 	virtual EVisibility GetHeaderVisibility() const = 0;
 	virtual TSharedPtr<class FChatSettingsViewModel> GetChatSettingsViewModel() = 0;
+	virtual bool DisplayChatSettings() const = 0;
 
 	virtual ~FChatChromeViewModel() {}
 

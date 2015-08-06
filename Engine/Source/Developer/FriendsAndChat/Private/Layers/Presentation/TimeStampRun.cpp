@@ -162,7 +162,7 @@ bool FTimeStampRun::UpdateTimeStamp(float Delay)
 
 	if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(1.0))
 	{
-		static FText NowTimeStamp = NSLOCTEXT("FTimeStampRun", "Now_TimeStamp", "Now");
+		static FText NowTimeStamp = NSLOCTEXT("FTimeStampRun", "now_TimeStamp", "now");
 		MessageTimeAsText = NowTimeStamp;
 	}
 	else if ((Now - TimeStamp).GetDuration() <= FTimespan::FromMinutes(2.0))

@@ -118,7 +118,7 @@ public:
 		bHasActionPending = false;
 
 		// Re set the channel to rebuild the channel text
-		if(OutgoingMessageChannel == EChatMessageType::Whisper)
+		if(OutgoingMessageChannel == EChatMessageType::Whisper || GetChatChannelType() == EChatMessageType::Custom)
 		{
 			SetOutgoingMessageChannel(EChatMessageType::Whisper);
 		}

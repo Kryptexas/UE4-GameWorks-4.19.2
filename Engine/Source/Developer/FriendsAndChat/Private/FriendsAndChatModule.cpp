@@ -12,14 +12,14 @@ public:
 
 	// IFriendsAndChatModule interface
 
-	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager(FName MCPInstanceName) override
+	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager(FName MCPInstanceName,  bool InGame) override
 	{
 		if(MCPInstanceName == TEXT(""))
 		{
 			if (!DefaultManager.IsValid())
 			{
 				DefaultManager = MakeShareable(new FFriendsAndChatManager());
-				DefaultManager->Initialize();
+				DefaultManager->Initialize(InGame);
 			}
 			return DefaultManager.ToSharedRef();
 		}
@@ -33,7 +33,7 @@ public:
 		}
 
 		TSharedRef<FFriendsAndChatManager> NewManager = MakeShareable(new FFriendsAndChatManager());
-		NewManager->Initialize();
+		NewManager->Initialize(InGame);
 		ManagerMap.Add(MCPInstanceName, NewManager);
 		return NewManager;
 	}

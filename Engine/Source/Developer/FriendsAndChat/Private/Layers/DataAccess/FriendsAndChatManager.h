@@ -51,7 +51,7 @@ public:
 	/** Destructor. */
 	~FFriendsAndChatManager( );
 
-	void Initialize();
+	void Initialize(bool InGame);
 
 public:
 

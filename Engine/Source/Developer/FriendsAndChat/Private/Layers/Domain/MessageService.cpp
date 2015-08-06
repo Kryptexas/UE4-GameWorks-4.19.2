@@ -91,9 +91,12 @@ public:
 					OSSScheduler->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
 					for (auto RoomId : JoinedRooms)
 					{
-						if (ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody))
+						if (RoomJoins.Contains(RoomId))
 						{
-							bAbleToSend = true;
+							if (ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody))
+							{
+								bAbleToSend = true;
+							}
 						}
 					}
 					return bAbleToSend;

@@ -17,6 +17,7 @@ public:
 	virtual void ChangeViewChannel(EChatMessageType::Type ChannelSelected) = 0;
 	virtual void ChangeChatChannel(EChatMessageType::Type ChannelSelected) = 0;
 	virtual void SetOutgoingChatFriend(TSharedRef<class IFriendItem> FriendItem) = 0;
+	virtual bool IsInGame() const = 0;
 
 	/**
 	 * Event broadcast when a navigation even is requested.
@@ -38,4 +39,4 @@ public:
 
 };
 
-FACTORY(TSharedRef<FFriendsNavigationService>, FFriendsNavigationService);
+FACTORY(TSharedRef<FFriendsNavigationService>, FFriendsNavigationService, bool InGame);

@@ -45,19 +45,20 @@ FFriendsAndChatManager::FFriendsAndChatManager()
 
 FFriendsAndChatManager::~FFriendsAndChatManager( )
 {
+	Logout();
 }
 
-void FFriendsAndChatManager::Initialize()
+void FFriendsAndChatManager::Initialize(bool InGame)
 {
 	Analytics = FFriendsAndChatAnalyticsFactory::Create();
 	OSSScheduler = FOSSSchedulerFactory::Create(Analytics);
 	
-	NavigationService = FFriendsNavigationServiceFactory::Create();
+	NavigationService = FFriendsNavigationServiceFactory::Create(InGame);
 	NotificationService = FChatNotificationServiceFactory::Create();
 
 	FriendsService = FFriendsServiceFactory::Create(OSSScheduler.ToSharedRef(), NotificationService.ToSharedRef());
 	MessageService = FMessageServiceFactory::Create(OSSScheduler.ToSharedRef(), FriendsService.ToSharedRef());
-	GameAndPartyService = FGameAndPartyServiceFactory::Create(OSSScheduler.ToSharedRef(), FriendsService.ToSharedRef(), NotificationService.ToSharedRef(), false);
+	GameAndPartyService = FGameAndPartyServiceFactory::Create(OSSScheduler.ToSharedRef(), FriendsService.ToSharedRef(), NotificationService.ToSharedRef(), InGame);
 	
 	
 	

@@ -23,6 +23,11 @@ public:
 		OnChatFriendSelected().Broadcast(FriendItem);
 	}
 
+	virtual bool IsInGame() const override
+	{
+		return InGame;
+	}
+
 	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, FFriendsNavigationService::FViewChangedEvent, FViewChangedEvent);
 	virtual FViewChangedEvent& OnChatViewChanged() override
 	{
@@ -47,20 +52,22 @@ private:
 	{
 	}
 
-	FFriendsNavigationServiceImpl()
+	FFriendsNavigationServiceImpl(bool InIsInGame)
+		: InGame(InIsInGame)
 	{}
 
 private:
 	FViewChangedEvent ViewChangedEvent;
 	FChannelChangedEvent ChannelChangedEvent;
 	FFriendSelectedEvent FriendSelectedEvent;
+	bool InGame;
 
 	friend FFriendsNavigationServiceFactory;
 };
 
-TSharedRef< FFriendsNavigationService > FFriendsNavigationServiceFactory::Create()
+TSharedRef< FFriendsNavigationService > FFriendsNavigationServiceFactory::Create(bool InIsInGame)
 {
-	TSharedRef< FFriendsNavigationServiceImpl > Service = MakeShareable(new FFriendsNavigationServiceImpl());
+	TSharedRef< FFriendsNavigationServiceImpl > Service = MakeShareable(new FFriendsNavigationServiceImpl(InIsInGame));
 	Service->Initialize();
 	return Service;
 }
