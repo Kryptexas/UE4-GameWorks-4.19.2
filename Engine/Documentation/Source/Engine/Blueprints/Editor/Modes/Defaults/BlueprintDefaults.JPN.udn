@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2446078
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:Defaults モード
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:Defaults Mode にすると、ブループリント内のすべてのプロパティのデフォルト値が編集できるようになります。 
+Description:Defaults モードにすると、ブループリント内のすべてのプロパティのデフォルト値が編集できるようになります。 
 
 [INCLUDE:Globals#bpmodesremoved]
 
