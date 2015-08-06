@@ -3990,7 +3990,12 @@ UProperty* FHeaderParser::GetVarNameAndDim
 					TEXT("(uint16)"),
 					TEXT("(int16)"),
 					TEXT("(uint8)"),
-					TEXT("(int8)")
+					TEXT("(int8)"),
+					TEXT("(int)"),
+					TEXT("(unsigned)"),
+					TEXT("(signed)"),
+					TEXT("(unsigned int)"),
+					TEXT("(signed int)")
 				};
 
 				// Remove any brackets
