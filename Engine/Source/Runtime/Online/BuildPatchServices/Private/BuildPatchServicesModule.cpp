@@ -6,7 +6,8 @@
 
 #include "BuildPatchServicesPrivatePCH.h"
 
-IMPLEMENT_MODULE( FBuildPatchServicesModule, BuildPatchServices );
+DEFINE_LOG_CATEGORY(LogBuildPatchServices);
+IMPLEMENT_MODULE(FBuildPatchServicesModule, BuildPatchServices);
 
 /* FBuildPatchInstallationInfo implementation
 *****************************************************************************/
