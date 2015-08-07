@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2501115
+﻿INTSourceChangelist:2616790
 Availability:Public
 Title:6.HUD と通信する
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -49,7 +49,7 @@ Description:Character ブループリントに保存された値に基づいて 
 
 	変数を選択し **F2** を押すと、**MyBlueprint** ウィンドウで関数名の変更ができます。 
 
-1.	**[Designer]** タブで、 **[Details]** パネルの横にある **Pulls** 次に **Text** の値をクリックしてから **[Bind]** オプションをクリックします。 
+1.	**[Designer]** タブで、まず **[Details]** パネルの横にある **Pulls**、次に **Text** の値をクリックしてから **[Bind]** オプションをクリックします。 
 
 	![](Bind1.png)
 
@@ -77,10 +77,20 @@ Description:Character ブループリントに保存された値に基づいて 
 
 1. メイン エディタ ビューで、 **[Play]** ボタンをクリックしてエディタで再生します。 
 
-	![](GameplayGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	tbwor-dRyEs
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
-これで簡単なシューティング ゲームが完成しました。このガイドの途中で、 **Event Dispatcher** 、 **Cast** ノードと **Binding** を使って 3 つの異なるブループリント間での通信方法を学びます。プロジェクトではレベルから Character ブループリントの通信方法に加えて、キャラクターから情報の HUD への渡し方を学びます。 
+これで簡単なシューティング ｒゲームが完成しました。このガイドの途中で、 **Event Dispatcher** 、 **Cast** ノードと **Binding** を使って 3 つの異なるブループリント間での通信方法を学びます。プロジェクトではレベルから Character ブループリントの通信方法に加えて、キャラクターから情報の HUD への渡し方を学びます。 
 
 プロジェクトの終了時には、サンプルを使ってプロジェクトを独自のものに変更してみます。このガイドのトピックスをカバーしている追加文書へのリンクも紹介しています。 
 
