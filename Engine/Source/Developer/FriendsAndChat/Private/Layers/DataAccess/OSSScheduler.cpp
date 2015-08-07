@@ -230,20 +230,40 @@ public:
 	{
 		if (GetOnlineIdentity().IsValid() && GetPartyInterface().IsValid())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
-			if (UserId.IsValid())
+			TSharedPtr<const FUniqueNetId> LocalUserId = GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
+			if (LocalUserId.IsValid())
 			{
-				TSharedPtr<IOnlinePartyJoinInfo> FriendPartyJoinInfo = GetPartyJoinInfo(FriendItem);
-				if (FriendPartyJoinInfo.IsValid())
+				IOnlinePartyPtr PartyInt = GetPartyInterface();
+				if (PartyInt.IsValid())
 				{
 					TArray<TSharedRef<const FOnlinePartyId>> JoinedParties;
-					if (GetPartyInterface()->GetJoinedParties(*UserId, JoinedParties))
+					if (PartyInt->GetJoinedParties(*LocalUserId, JoinedParties))
 					{
-						for (auto PartyId : JoinedParties)
+						if (JoinedParties.Num() > 0)
 						{
-							if (*PartyId == *FriendPartyJoinInfo->GetPartyId())
+							TSharedPtr<IOnlinePartyJoinInfo> FriendPartyJoinInfo = GetPartyJoinInfo(FriendItem);
+							if (FriendPartyJoinInfo.IsValid())
 							{
-								return true;
+								for (auto PartyId : JoinedParties)
+								{
+									if (*PartyId == *FriendPartyJoinInfo->GetPartyId())
+									{
+										return true;
+									}
+								}
+							}
+							else
+							{
+								// Party might be private, search manually
+								TSharedRef<const FUniqueNetId> FriendUserId = FriendItem->GetUniqueID();
+								for (auto PartyId : JoinedParties)
+								{
+									TSharedPtr<FOnlinePartyMember> PartyMemberId = PartyInt->GetPartyMember(*LocalUserId, *PartyId, *FriendUserId);
+									if (PartyMemberId.IsValid())
+									{
+										return true;
+									}
+								}
 							}
 						}
 					}
