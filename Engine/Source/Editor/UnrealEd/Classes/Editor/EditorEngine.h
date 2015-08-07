@@ -882,8 +882,9 @@ public:
 	 *
 	 * @param Model					The model to be rebuilt.
 	 * @param bSelectedBrushesOnly	Use all brushes in the current level or just the selected ones?.
+	 * @param bTreatMovableBrushesAsStatic	Treat moveable brushes as static?.
 	 */
-	void RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly);
+	void RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly, bool bTreatMovableBrushesAsStatic = false);
 
 	/**
 	 * Rebuilds levels containing currently selected brushes and should be invoked after a brush has been modified

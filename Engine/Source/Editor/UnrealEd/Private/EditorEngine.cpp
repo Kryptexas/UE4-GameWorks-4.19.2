@@ -4981,7 +4981,7 @@ AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FString& InStaticMeshPac
 		InBrushesToConvert[BrushesIdx]->TeleportTo(Location - InPivotLocation, Rotation, false, true);
 	}
 
-	GEditor->RebuildModelFromBrushes(ConversionTempModel, true );
+	GEditor->RebuildModelFromBrushes(ConversionTempModel, true, true );
 	GEditor->bspBuildFPolys(ConversionTempModel, true, 0);
 
 	if (0 < ConversionTempModel->Polys->Element.Num())

@@ -1573,7 +1573,7 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	GLevelEditorModeTools().MapChangeNotify();
 }
 
-void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
+void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly, bool bTreatMovableBrushesAsStatic)
 {
 	TUniquePtr<FBspPointsGrid> BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
 	TUniquePtr<FBspPointsGrid> BspVectors = MakeUnique<FBspPointsGrid>(1/16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
@@ -1612,7 +1612,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
 	{	
 		ABrush* Brush = Cast<ABrush>(*It);
-		if ((Brush && Brush->IsStaticBrush() && !FActorEditorUtils::IsABuilderBrush(Brush)) &&
+		if ((Brush && (Brush->IsStaticBrush() || bTreatMovableBrushesAsStatic) && !FActorEditorUtils::IsABuilderBrush(Brush)) &&
 			(!bSelectedBrushesOnly || Brush->IsSelected()) &&
 			(!(Brush->PolyFlags & PF_Semisolid) || (Brush->BrushType != Brush_Add) || (Brush->PolyFlags & PF_Portal)))
 		{
@@ -1639,19 +1639,22 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 		}
 	}
 
-	// Rebuild dynamic brush BSP's.
-	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
+	// Rebuild dynamic brush BSP's (if they weren't handled earlier)
+	if (!bTreatMovableBrushesAsStatic)
 	{
-		ABrush* DynamicBrush = Cast<ABrush>(*It);
-		if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
-			(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
+		for (auto It(Level->Actors.CreateConstIterator()); It; ++It)
 		{
-			BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
-			BspVectors = MakeUnique<FBspPointsGrid>(1 / 16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
-			FBspPointsGrid::GBspPoints = BspPoints.Get();
-			FBspPointsGrid::GBspVectors = BspVectors.Get();
+			ABrush* DynamicBrush = Cast<ABrush>(*It);
+			if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
+				(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
+			{
+				BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
+				BspVectors = MakeUnique<FBspPointsGrid>(1 / 16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
+				FBspPointsGrid::GBspPoints = BspPoints.Get();
+				FBspPointsGrid::GBspVectors = BspVectors.Get();
 
-			FBSPOps::csgPrepMovingBrush(DynamicBrush);
+				FBSPOps::csgPrepMovingBrush(DynamicBrush);
+			}
 		}
 	}
 
