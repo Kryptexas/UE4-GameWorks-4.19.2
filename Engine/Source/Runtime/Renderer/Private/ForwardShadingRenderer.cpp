@@ -138,8 +138,8 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	RenderForwardShadingBasePass(RHICmdList);
 
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
-	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
-
+	ConditionalResolveSceneDepth(RHICmdList);
+	
 	if (ViewFamily.EngineShowFlags.Decals)
 	{
 		RenderDecals(RHICmdList);
@@ -272,4 +272,35 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 	Context.FinalOutput.GetOutput()->RenderTargetDesc = Desc;
 
 	CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("ES2BasicPostProcess"));
+}
+
+void FForwardShadingSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	
+	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
+
+	auto ShaderPlatform = ViewFamily.GetShaderPlatform();
+
+	if (IsMobilePlatform(ShaderPlatform) 
+		&& !IsPCPlatform(ShaderPlatform)) // exclude mobile emulation on PC
+	{
+		bool bSceneDepthInAlpha = (SceneContext.GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
+		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
+		
+		if (!bOnChipDepthFetch)
+		{
+			// Only these features require depth texture
+			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
+			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0 && bModulatedShadowsInUse;
+
+			if (bDecals || bModulatedShadows)
+			{
+				// Switch depth target to force hardware flush current depth to texture
+				FTextureRHIRef DummyDepthTarget = GSystemTextures.DepthDummy->GetRenderTargetItem().TargetableTexture;
+				SetRenderTarget(RHICmdList, SceneContext.GetSceneColorSurface(), DummyDepthTarget, ESimpleRenderTargetMode::EUninitializedColorClearDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+				RHICmdList.DiscardRenderTargets(true, true, 0);
+			}
+		}
+	}
 }

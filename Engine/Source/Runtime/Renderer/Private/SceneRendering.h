@@ -897,6 +897,9 @@ protected:
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
+	/** Resolves scene depth in case hardware does not support reading depth in the shader */
+	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList);
+
 	/** Renders decals. */
 	void RenderDecals(FRHICommandListImmediate& RHICmdList);
 

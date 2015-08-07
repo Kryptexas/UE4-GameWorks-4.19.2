@@ -298,24 +298,7 @@ public:
 			return (const FTexture2DRHIRef&)ShadowDepthZ->GetRenderTargetItem().ShaderResourceTexture; 
 		}
 	}
-	const FTexture2DRHIRef* GetActualDepthTexture() const
-	{
-		const FTexture2DRHIRef* DepthTexture = NULL;
-		if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
-		{
-			if(GSupportsDepthFetchDuringDepthTest)
-			{
-				DepthTexture = &GetSceneDepthTexture();
-			}
-			else
-			{
-				DepthTexture = &GetAuxiliarySceneDepthSurface();
-			}
-		}
-		check(DepthTexture != NULL);
-
-		return DepthTexture;
-	}
+	const FTexture2DRHIRef* GetActualDepthTexture() const;
 	const FTexture2DRHIRef& GetReflectiveShadowMapDepthTexture() const { return (const FTexture2DRHIRef&)ReflectiveShadowMapDepth->GetRenderTargetItem().ShaderResourceTexture; }
 	const FTexture2DRHIRef& GetReflectiveShadowMapNormalTexture() const { return (const FTexture2DRHIRef&)ReflectiveShadowMapNormal->GetRenderTargetItem().ShaderResourceTexture; }
 	const FTexture2DRHIRef& GetReflectiveShadowMapDiffuseTexture() const { return (const FTexture2DRHIRef&)ReflectiveShadowMapDiffuse->GetRenderTargetItem().ShaderResourceTexture; }

@@ -16,12 +16,6 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 		return;
 	}
 
-	// Check if it possible to render decals on this device
-	if (!DeviceSupportsShaderDepthFetch())
-	{
-		return;
-	}
-
 	SCOPE_CYCLE_COUNTER(STAT_DecalsDrawTime);
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);

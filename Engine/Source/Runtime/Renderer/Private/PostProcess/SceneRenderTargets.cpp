@@ -1927,6 +1927,41 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
 	return (const FTextureRHIRef&)GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture; 
 }
 
+const FTexture2DRHIRef* FSceneRenderTargets::GetActualDepthTexture() const
+{
+	const FTexture2DRHIRef* DepthTexture = NULL;
+	if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
+	{
+		if(GSupportsDepthFetchDuringDepthTest)
+		{
+			DepthTexture = &GetSceneDepthTexture();
+		}
+		else
+		{
+			DepthTexture = &GetAuxiliarySceneDepthSurface();
+		}
+	}
+	else if (IsMobilePlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
+	{
+		bool bSceneDepthInAlpha = (GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
+		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
+		
+		if (bOnChipDepthFetch)
+		{
+			DepthTexture = (const FTexture2DRHIRef*)(&GSystemTextures.DepthDummy->GetRenderTargetItem().ShaderResourceTexture);
+		}
+		else
+		{
+			DepthTexture = &GetSceneDepthTexture();
+		}
+	}
+
+	check(DepthTexture != NULL);
+
+	return DepthTexture;
+}
+
+
 IPooledRenderTarget* FSceneRenderTargets::GetGBufferVelocityRT()
 {
 	if (!bAllocateVelocityGBuffer)

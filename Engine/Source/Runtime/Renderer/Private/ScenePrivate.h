@@ -42,9 +42,6 @@ bool IsMobileHDR32bpp();
 /** True if the mobile renderer is emulating HDR with mosaic. */
 bool IsMobileHDRMosaic();
 
-/** True if device has some way to fetch depth in a fragment shader. */
-bool DeviceSupportsShaderDepthFetch();
-
 class FOcclusionQueryHelpers
 {
 public:
