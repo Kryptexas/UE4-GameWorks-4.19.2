@@ -943,9 +943,9 @@ void UParty::LeaveAndRestorePersistentParty()
 		bLeavingPersistentParty = true;
 		UWorld* World = GetWorld();
 
-		FTimerDelegate HandleLobbyConnectionAttemptFailed;
-		HandleLobbyConnectionAttemptFailed.BindUObject(this, &ThisClass::LeaveAndRestorePersistentPartyInternal);
-		World->GetTimerManager().SetTimerForNextTick(HandleLobbyConnectionAttemptFailed);
+		FTimerDelegate LeaveAndRestorePersistentPartyNextTick;
+		LeaveAndRestorePersistentPartyNextTick.BindUObject(this, &ThisClass::LeaveAndRestorePersistentPartyInternal);
+		World->GetTimerManager().SetTimerForNextTick(LeaveAndRestorePersistentPartyNextTick);
 	}
 	else
 	{
@@ -972,9 +972,7 @@ void UParty::LeaveAndRestorePersistentPartyInternal()
 
 void UParty::OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const ELeavePartyCompletionResult Result)
 {
-	UE_LOG(LogParty, Display, TEXT("OnLeavePersistentPartyAndRestore [%s] Success: %d %s"), *PartyId.ToString(), Result == ELeavePartyCompletionResult::Succeeded, ToString(Result));
-	ensure(bLeavingPersistentParty);
-	bLeavingPersistentParty = false;
+	UE_LOG(LogParty, Display, TEXT("OnLeavePersistentPartyAndRestore [%s] Result: %s"), *PartyId.ToString(), ToString(Result));
 	RestorePersistentPartyState();
 }
 
