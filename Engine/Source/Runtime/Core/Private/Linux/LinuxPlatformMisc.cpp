@@ -255,7 +255,7 @@ void FLinuxPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TC
 
 void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
-	if( bFromMainLoop )
+	if (GInitializedSDL && bFromMainLoop)
 	{
 		SDL_Event event;
 
