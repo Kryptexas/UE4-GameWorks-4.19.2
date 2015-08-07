@@ -147,7 +147,7 @@ void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, cons
 		HiddenAreaMaskCVar->GetValueOnRenderThread() == 1 &&
 		GEngine &&
 		GEngine->HMDDevice.IsValid() &&
-		GEngine->HMDDevice->HasPostProcessMesh());
+		GEngine->HMDDevice->HasVisibleAreaMesh());
 
 	if(Root)
 	{

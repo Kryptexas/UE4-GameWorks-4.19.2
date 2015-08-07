@@ -9,7 +9,7 @@
 #include "PostProcess/PostProcessHMD.h"
 #include "Classes/SteamVRFunctionLibrary.h"
 
-#include "ViveVisibleAreaMesh.h"
+#include "SteamVRMeshAssets.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
@@ -994,11 +994,7 @@ void FSteamVRHMD::Startup()
 			}
 		}
 
-		// Setup meshes
-		HiddenAreaMeshes[0].Build(VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Left));
-		HiddenAreaMeshes[1].Build(VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Right));
-		VisibleAreaMeshes[0].Build(LeftEyePositions, VertexCount);
-		VisibleAreaMeshes[1].Build(RightEyePositions, VertexCount);
+		SetupOcclusionMeshes();
 
 #if PLATFORM_WINDOWS
 		if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
@@ -1119,117 +1115,57 @@ void FSteamVRHMD::UnloadOpenVRModule()
 	}
 }
 
-FSteamVRHMD::FHiddenAreaMesh::FHiddenAreaMesh() :
-	pVertices(nullptr),
-	pIndices(nullptr),
-	NumVertices(0),
-	NumIndices(0),
-	NumTriangles(0)
-{}
+void FSteamVRHMD::SetupOcclusionMeshes()
+{	
+	const vr::HiddenAreaMesh_t LeftEyeMesh = VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Left);
+	const vr::HiddenAreaMesh_t RightEyeMesh = VRSystem->GetHiddenAreaMesh(vr::Hmd_Eye::Eye_Right);
+	
+	const uint32 VertexCount = LeftEyeMesh.unTriangleCount * 3;
+	check(LeftEyeMesh.unTriangleCount == RightEyeMesh.unTriangleCount);
 
-FSteamVRHMD::FHiddenAreaMesh::~FHiddenAreaMesh()
-{
-	if (pVertices)
+	// Copy mesh data from SteamVR format to ours, then initialize the meshes.
+	if (VertexCount > 0)
 	{
-		delete[] pVertices;
-	}
+		FVector2D* const LeftEyePositions = new FVector2D[VertexCount];
+		FVector2D* const RightEyePositions = new FVector2D[VertexCount];
 
-	if (pIndices)
-	{
-		delete[] pIndices;
-	}
-}
-
-void FSteamVRHMD::FHiddenAreaMesh::Build(const vr::HiddenAreaMesh_t& Mesh)
-{
-	check(pVertices == nullptr);
-
-	NumTriangles = Mesh.unTriangleCount;
-	NumVertices  = NumTriangles * 3;
-	NumIndices   = NumVertices;
-
-	// Did we get any data?
-	if (NumVertices == 0)
-	{
-		return;
-	}
-
-	pVertices = new FVector4[NumVertices];
-	pIndices  = new uint16[NumIndices];
-
-	uint32 DataIndex = 0;
-	for (uint32 TriangleIter = 0; TriangleIter < NumTriangles; ++TriangleIter)
-	{
-		for (uint32 VertexIter = 0; VertexIter < 3; ++VertexIter)
+		uint32 HiddenAreaMeshCrc = 0;
+		uint32 DataIndex = 0;
+		for (uint32 TriangleIter = 0; TriangleIter < LeftEyeMesh.unTriangleCount; ++TriangleIter)
 		{
-			const vr::HmdVector2_t& Vertex = Mesh.pVertexData[DataIndex];
+			for (uint32 VertexIter = 0; VertexIter < 3; ++VertexIter)
+			{
+				const vr::HmdVector2_t& LeftSrc = LeftEyeMesh.pVertexData[DataIndex];
+				const vr::HmdVector2_t& RightSrc = RightEyeMesh.pVertexData[DataIndex];
 
-			// Remap from [0 1] to [-1 1] to match our NDC space
-			pVertices[DataIndex].X = (Vertex.v[0] * 2.0f) - 1.0f;
-			pVertices[DataIndex].Y = (Vertex.v[1] * 2.0f) - 1.0f;
-			pVertices[DataIndex].Z = 1.0f; // Setting to 1 for reversed depth near plane
-			pVertices[DataIndex].W = 1.0f; 
+				FVector2D& LeftDst = LeftEyePositions[DataIndex];
+				FVector2D& RightDst = RightEyePositions[DataIndex];
 
-			pIndices[DataIndex] = DataIndex;
+				LeftDst.X = LeftSrc.v[0];
+				LeftDst.Y = LeftSrc.v[1];
 
-			++DataIndex;
+				RightDst.X = RightSrc.v[0];
+				RightDst.Y = RightSrc.v[1];
+
+				HiddenAreaMeshCrc = FCrc::MemCrc32(&LeftDst, sizeof(FVector2D), HiddenAreaMeshCrc);
+
+				++DataIndex;
+			}
 		}
-	}
-}
 
-FSteamVRHMD::FVisibleAreaMesh::FVisibleAreaMesh() :
-	pVertices(nullptr),
-	pIndices(nullptr),
-	NumVertices(0),
-	NumIndices(0),
-	NumTriangles(0)
-{}
+		HiddenAreaMeshes[0].BuildMesh(LeftEyePositions, VertexCount, FHMDViewMesh::MT_HiddenArea);
+		HiddenAreaMeshes[1].BuildMesh(RightEyePositions, VertexCount, FHMDViewMesh::MT_HiddenArea);
 
-FSteamVRHMD::FVisibleAreaMesh::~FVisibleAreaMesh()
-{
-	if (pVertices)
-	{
-		delete[] pVertices;
-	}
-
-	if (pIndices)
-	{
-		delete[] pIndices;
-	}
-}
-
-void FSteamVRHMD::FVisibleAreaMesh::Build(const MeshVertex Positions[], uint32 InNumVertices)
-{
-	check(pVertices == nullptr);
-	check(InNumVertices > 2 && InNumVertices % 3 == 0);
-
-	NumVertices = InNumVertices;
-	NumTriangles = NumVertices / 3;
-	NumIndices = NumVertices;
-
-	pVertices = new FFilterVertex[NumVertices];
-	pIndices = new uint16[NumIndices];
-
-	uint32 DataIndex = 0;
-	for (uint32 TriangleIter = 0; TriangleIter < NumTriangles; ++TriangleIter)
-	{
-		for (uint32 VertexIter = 0; VertexIter < 3; ++VertexIter)
+		// If the hidden area mesh from the SteamVR runtime matches the mesh used to generate the Vive's visible area mesh, initialize it.
+		if (HiddenAreaMeshCrc == ViveHiddenAreaMeshCrc)
 		{
-			const MeshVertex& Position = Positions[DataIndex];
-			FFilterVertex& Vertex = pVertices[DataIndex];
-			
-			Vertex.Position.X = Position.X;
-			Vertex.Position.Y = 1.0f - Position.Y;
-			Vertex.Position.Z = 0.0f;
-			Vertex.Position.W = 1.0f;
-			
-			Vertex.UV.X = Position.X;
-			Vertex.UV.Y = 1.0f - Position.Y;
-			
-			pIndices[DataIndex] = DataIndex;
-			
-			++DataIndex;
+			VisibleAreaMeshes[0].BuildMesh(Vive_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
+			VisibleAreaMeshes[1].BuildMesh(Vive_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
 		}
+
+		delete[] LeftEyePositions;
+		delete[] RightEyePositions;
 	}
 }
+
 #endif //STEAMVR_SUPPORTED_PLATFORMS

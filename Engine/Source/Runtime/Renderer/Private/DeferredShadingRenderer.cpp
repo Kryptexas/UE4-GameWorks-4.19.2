@@ -697,7 +697,7 @@ static FORCEINLINE bool HasHiddenAreaMask()
 		HiddenAreaMaskCVar->GetValueOnRenderThread() == 1 &&
 		GEngine &&
 		GEngine->HMDDevice.IsValid() &&
-		GEngine->HMDDevice->HasHiddenAreaMask());
+		GEngine->HMDDevice->HasHiddenAreaMesh());
 }
 
 static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bClearDepth)
@@ -1429,7 +1429,7 @@ static void RenderHiddenAreaMaskView(FRHICommandList& RHICmdList, const FViewInf
 	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, nullptr);
-	GEngine->HMDDevice->DrawHiddenAreaMaskView_RenderThread(RHICmdList, View.StereoPass);
+	GEngine->HMDDevice->DrawHiddenAreaMesh_RenderThread(RHICmdList, View.StereoPass);
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)

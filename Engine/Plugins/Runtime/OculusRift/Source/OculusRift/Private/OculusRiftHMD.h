@@ -286,6 +286,15 @@ public:
 	virtual bool IsFullscreenAllowed() override;
 	virtual void RecordAnalytics() override;
 
+	virtual bool HasHiddenAreaMesh() const override { return HiddenAreaMeshes[0].IsValid() && HiddenAreaMeshes[1].IsValid(); }
+	virtual void DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
+
+	virtual bool HasVisibleAreaMesh() const override { return VisibleAreaMeshes[0].IsValid() && VisibleAreaMeshes[1].IsValid(); }
+	virtual void DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
+
+	FHMDViewMesh HiddenAreaMeshes[2];
+	FHMDViewMesh VisibleAreaMeshes[2];
+
 	/** IStereoRendering interface */
 	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const override;
 	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, 
@@ -433,6 +442,8 @@ private:
 	bool InitDevice();
 
 	void ReleaseDevice();
+
+	void SetupOcclusionMeshes();
 
 	/**
 	 * Reads the device configuration, and sets up the stereoscopic rendering parameters

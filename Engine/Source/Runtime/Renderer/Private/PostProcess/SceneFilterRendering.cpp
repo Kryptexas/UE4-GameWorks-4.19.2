@@ -328,7 +328,7 @@ void DrawHmdMesh(
 
 	SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
 
-	GEngine->HMDDevice->DrawPostProcessMesh_RenderThread(RHICmdList, StereoView);
+	GEngine->HMDDevice->DrawVisibleAreaMesh_RenderThread(RHICmdList, StereoView);
 }
 
 void DrawPostProcessPass(

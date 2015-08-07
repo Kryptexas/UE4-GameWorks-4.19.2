@@ -4,24 +4,10 @@
 
 #include "StereoRendering.h"
 #include "Layout/SlateRect.h"
+#include "HeadMountedDisplayTypes.h"
 
 // depending on your kit and SDK, you may want to use this.
 // new distortion handling still in development.
-
-/**
- * The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until 
- */
-namespace EHMDDeviceType
-{
-	enum Type
-	{
-		DT_OculusRift,
-		DT_Morpheus,
-		DT_ES2GenericStereoMesh,
-		DT_SteamVR,
-		DT_GearVR
-	};
-}
 
 /**
  * HMD device interface
@@ -261,26 +247,26 @@ public:
 	virtual FVector GetPositionScale3D() const { return FVector::ZeroVector; }
 
 	/**
-	* @return true if a hidden area mask is available for the device.
+	* @return true if a hidden area mesh is available for the device.
 	*/
-	virtual bool HasHiddenAreaMask() const { return false; }
+	virtual bool HasHiddenAreaMesh() const { return false; }
 
 	/**
-	* @return true if a post process mesh is available for the device.
+	* @return true if a visible area mesh is available for the device.
 	*/
-	virtual bool HasPostProcessMesh() const { return false; }
+	virtual bool HasVisibleAreaMesh() const { return false; }
 
 	/**
-	* Optional method to draw a view's hidden area mask where supported.
+	* Optional method to draw a view's hidden area mesh where supported.
 	* This can be used to avoid rendering pixels which are not included as input into the final distortion pass.
 	*/
-	virtual void DrawHiddenAreaMaskView_RenderThread(class FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const {};
+	virtual void DrawHiddenAreaMesh_RenderThread(class FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const {};
 
 	/**
-	* Optional method to draw a view's post process mesh where supported.
+	* Optional method to draw a view's visible area mesh where supported.
 	* This can be used instead of a full screen quad to avoid rendering pixels which are not included as input into the final distortion pass.
 	*/
-	virtual void DrawPostProcessMesh_RenderThread(class FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const {};
+	virtual void DrawVisibleAreaMesh_RenderThread(class FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const {};
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) {}
 

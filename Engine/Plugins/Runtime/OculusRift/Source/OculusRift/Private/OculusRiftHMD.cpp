@@ -2,6 +2,7 @@
 
 #include "HMDPrivatePCH.h"
 #include "OculusRiftHMD.h"
+#include "OculusRiftMeshAssets.h"
 
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftHMD_05.cpp
 
@@ -1170,6 +1171,8 @@ void FOculusRiftHMD::Startup()
 		UE_LOG(LogHMD, Log, TEXT("Oculus plugin initialized. Version: %s"), *GetVersionString());
 	}
 
+	SetupOcclusionMeshes();
+
 	// grab a pointer to the renderer module for displaying our mirror window
 	static const FName RendererModuleName("Renderer");
 	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
@@ -1275,6 +1278,24 @@ void FOculusRiftHMD::ReleaseDevice()
 
 		ovrHmd_Destroy(Hmd);
 		Hmd = nullptr;
+	}
+}
+
+void FOculusRiftHMD::SetupOcclusionMeshes()
+{
+	if (Hmd->Type == ovrHmdType::ovrHmd_DK2)
+	{
+		HiddenAreaMeshes[0].BuildMesh(DK2_LeftEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
+		HiddenAreaMeshes[1].BuildMesh(DK2_RightEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
+		VisibleAreaMeshes[0].BuildMesh(DK2_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
+		VisibleAreaMeshes[1].BuildMesh(DK2_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
+	}
+	else if (Hmd->Type == ovrHmdType::ovrHmd_CB)
+	{
+		HiddenAreaMeshes[0].BuildMesh(CB_LeftEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
+		HiddenAreaMeshes[1].BuildMesh(CB_RightEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
+		VisibleAreaMeshes[0].BuildMesh(CB_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
+		VisibleAreaMeshes[1].BuildMesh(CB_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
 	}
 }
 
