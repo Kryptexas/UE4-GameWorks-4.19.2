@@ -98,7 +98,7 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 
 	if (RequestedContentScaleFactor != ContentScaleFactor)
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("***** RequestedContentScaleFactor different %d != %d, not using res cache"), RequestedContentScaleFactor, ContentScaleFactor);
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("***** RequestedContentScaleFactor different %f != %f, not using res cache"), RequestedContentScaleFactor, ContentScaleFactor);
 	}
 
 	if (Window != LastWindow)
