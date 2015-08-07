@@ -1063,7 +1063,7 @@ public:
 #endif
 				Pool = GetPoolInfo((UPTRINT)Free);
 
-				if ((UPTRINT)Free != ((UPTRINT)AlignedFree & ~(PageSize - 1)))
+				if ((UPTRINT)Free != ((UPTRINT)AlignedFree & ~((UPTRINT)PageSize - 1)))
 				{
 					// Mark the FPoolInfo for AlignedFree to jump back to the FPoolInfo for ptr.
 					for (UPTRINT i = (UPTRINT)PageSize, Offset = 0; i < AlignedSize; i += PageSize, ++Offset)
