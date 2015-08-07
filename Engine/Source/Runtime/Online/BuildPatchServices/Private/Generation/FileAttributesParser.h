@@ -23,7 +23,7 @@ namespace BuildPatchServices
 	class FFileAttributesParserFactory
 	{
 	public:
-		static FFileAttributesParserRef Create(IFileManager* FileManager = &IFileManager::Get());
+		static FFileAttributesParserRef Create(IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile());
 	};
 }
 
