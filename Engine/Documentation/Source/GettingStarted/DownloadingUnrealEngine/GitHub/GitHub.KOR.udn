@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2635412
+﻿INTSourceChangelist:2647048
 Availability:NoPublish
 Title:GitHub 에서 언리얼 엔진 Fork 및 Clone
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:GitHub 에서 언리얼 엔진 소스 코드를 Fork 및 복제하는 방법입니다.
+Prereq: GettingStarted/DownloadingUnrealEngine
+Related: Programming/Development/BuildingUnrealEngine
 Version: 4.8
 SkillLevel: Advanced
 
@@ -98,6 +100,10 @@ GitHub 에서 소스 코드를 Fork 및 Clone 하는 것으로 언리얼 작업�
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
+
+## 다음 단계
+
+언리얼 엔진을 다운로드하고 구성했으니 이제 [소스에서 엔진을 빌드](Programming/Development/BuildingUnrealEngine) 하면 됩니다.
 
 <!--
 

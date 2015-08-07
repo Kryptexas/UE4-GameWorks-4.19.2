@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2642557
+﻿INTSourceChangelist:2647048
 Availability:Public
 Title:언리얼 엔진 소스 코드 내려받기
 Crumbs: %ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌드를 다운로드하는 법에 대한 단계별 안내입니다.
 Prereq: GettingStarted/RecommendedSpecifications
-Related: Programming/Development/BuildingUnrealEngine
-Related: Support/Builds
+Related: GettingStarted/DownloadingUnrealEngine/GitHub
+Related: GettingStarted/DownloadingUnrealEngine/DownloadZip
 Version: 4.8
 SkillLevel: Advanced
 
@@ -17,23 +17,11 @@ SkillLevel: Advanced
 [/PUBLISH:Licensee]
 [PUBLISH:Rocket]
 
-[REGION:warning]
-GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 빌드하는 법에 대한 글입니다. 언리얼 엔진 바이너리 버전을 다운로드하려면, [](GettingStarted/Installation) 문서를 통해 [UE4 시작](https://www.unrealengine.com/) 방법을 참고하시기 바랍니다.
-[/REGION]
-
-----
-
-언리얼 엔진 4 (UE4) 소스 코드는 멤버쉽 회원의 경우 Unreal Engine GitHub repository(저장소)에서 다운로드 가능합니다. 
+언리얼 엔진 4 (UE4) 소스 코드는 멤버쉽 회원의 경우 Unreal Engine GitHub repository(저장소)에서 다운로드 가능합니다. [repository](https://github.com/EpicGames/UnrealEngine) (저장소) 접근을 위해서는 GitHub 계정을 가지고 언리얼 엔진 계정에 연동시켜야 합니다. 언리얼 엔진 계정에 GitHub 계정을 연동시키는 법에 대한 안내는, [GitHub 의 언리얼 엔진 4](https://www.unrealengine.com/ue4-on-github) 페이지를 참고하세요.
 
 <!-- The following is commented out per LaurenR's request during Peer Review on 23.07.15
 소스 코드를 접할 수 있으므로, 필요에 따라 자유롭게 엔진과 툴을 수정할 수 있습니다. 윈도우, 맥, 리눅스에서 에디터를 빌드하고, 안드로이드와 iOS 용으로도 게임 컴파일이 가능합니다. (언리얼 라이트매스나 프론트엔드 등) 툴 전체에 대한 소스 코드 역시도 포함되어 있습니다.
 -->
-
-[REGION:note]
-[repository](https://github.com/EpicGames/UnrealEngine) (저장소) 접근을 위해서는 GitHub 계정을 가지고 언리얼 엔진 계정에 연동시켜야 합니다.
-*	GitHub 계정이 없으신 경우, [GitHub](https://github.com/) 페이지에서 가입하시면 됩니다.
-*	언리얼 엔진 계정에 GitHub 계정을 연동시키는 법에 대한 안내는, [GitHub 의 언리얼 엔진 4](https://www.unrealengine.com/ue4-on-github) 페이지를 참고하세요.
-[/REGION]
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/SourceBranches]
 
@@ -45,24 +33,16 @@ GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 
 
 [PUBLISH:Rocket]
 
-## 언리얼 엔진 다운로드
+## 다음 단계
 
 멤버쉽 회원분들이 언리얼 엔진 소스 코드를 다운로드할 수 있는 방법은 다음과 같습니다:
 
-*	[%GettingStarted/DownloadingUnrealEngine/GitHub:title%](#Bookmark4)
-*	[%GettingStarted/DownloadingUnrealEngine/DownloadZip:title%](#Bookmark5)
+*	[](GettingStarted/DownloadingUnrealEngine/GitHub)
+*	[](GettingStarted/DownloadingUnrealEngine/DownloadZip)
 
-### %GettingStarted/DownloadingUnrealEngine/GitHub:title%
-
-(#Bookmark4)
-
-[INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
-
-### %GettingStarted/DownloadingUnrealEngine/DownloadZip:title%
-
-(#Bookmark5)
-
-[INCLUDE:GettingStarted/DownloadingUnrealEngine/DownloadZip]
+[REGION:note]
+이 글은 GitHub 의 소스 코드 저장소에서 언리얼 엔진을 다운로드하여 빌드하는 법을 보여드립니다. 언리얼 엔진 바이너리 버전을 다운로드하려면, [](GettingStarted/Installation) 문서를 통해 [언리얼을 시작](https://www.unrealengine.com/) 하는 법을 배워보세요.
+[/REGION]
 
 [/PUBLISH:Rocket]
 

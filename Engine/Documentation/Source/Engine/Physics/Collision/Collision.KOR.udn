@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2644823
+﻿INTSourceChangelist:2646849
 Availability: Public
 Title:콜리전 반응
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -189,7 +189,7 @@ Description:콜리전, 콜리전 반응, 콜리전 프리셋에 대한 모든 �
 
 | 구체 콜리전 셋업 | 벽 콜리전 셋업 |
 | --- | ---- |
-| ![](COL_OverlapEvent_Sphere.png)(w:300) %spacer% | ![](COL_collideNoEvent_Box.png)(w:303) %spacer% |
+| ![](SphereCollisiionSetup.png) %spacer% | ![](WallCollisionSetup.png) %spacer% |
 | 여기서 구체는 (벽과 같은) **WorldDynamic** 액터를 `오버랩` 하도록 설정되었고, 무언가에 겹치면 스스로 이벤트를 생성합니다. | 벽은 **WorldDynamic** 으로 (구체와 같은) **PhysicsBody** 액터를 `블로킹` 하도록 설정되었습니다. 위에 언급했듯이 두 액터 모두 서로의 오브젝트 유형을 블로킹하도록 설정해 줘야 하며, 그렇지 않으면 충돌하지 않습니다. 하지만 여기서 **오버랩** 과, 구체에 대한 이벤트가 발동됩니다. |
 
  

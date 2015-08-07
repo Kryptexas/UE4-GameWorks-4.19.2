@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2638711
+﻿INTSourceChangelist:2646570
 Availability: Docs
 Title:머티리얼 표현식 만들기
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -90,5 +90,5 @@ UE4에서 머티리얼 표현식 새로 만들기는 간단합니다. 예로 Mat
 이제 머티리얼 에디터의 목록에 새로운 머티리얼 표현식이 나타날 것입니다. Square 표현식이 돌아가는 모습입니다:  
 
 [REGION:todo]
-![SquareMaterialExpression.jpg](SquareMaterialExpression.jpg)
+![](MaterialExpression.png)
 [/REGION]

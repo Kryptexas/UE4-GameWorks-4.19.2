@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2635412
+﻿INTSourceChangelist:2647048
 Availability:Public
 Title:소스에서 언리얼 엔진 빌드하기
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:소스에서 언리얼 엔진 컴파일하기 입니다.
 Prereq: GettingStarted/DownloadingUnrealEngine
-Prereq: GettingStarted/RecommendedSpecifications
-Related: GettingStarted/DownloadingUnrealEngine
 Related: GettingStarted
 Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
