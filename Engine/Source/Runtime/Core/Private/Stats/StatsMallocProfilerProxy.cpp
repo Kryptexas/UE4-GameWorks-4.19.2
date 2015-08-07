@@ -179,7 +179,9 @@ void FStatsMallocProfilerProxy::TrackRealloc( void* OldPtr, void* NewPtr, int64 
 		}
 		else if (OldPtr == nullptr)
 		{
+#if !PLATFORM_XBOXONE
 			TrackAlloc( NewPtr, NewSize, SequenceTag );
+#endif
 		}
 		else
 		{
