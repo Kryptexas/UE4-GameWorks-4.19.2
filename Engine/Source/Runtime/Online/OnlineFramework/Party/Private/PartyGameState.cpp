@@ -769,8 +769,11 @@ bool UPartyGameState::IsInJoinableGameState() const
 
 bool UPartyGameState::GetJoinability(bool& bFriendJoinable, bool& bInviteOnly, bool& bAllowInvites) const
 {
+	bool bValidSettings = false;
 	if (PartyInfo.IsValid())
 	{
+		bValidSettings = true;
+
 		// In joinable game or no game at all
 		bool bGameJoinable = IsInJoinableGameState();
 
@@ -781,39 +784,12 @@ bool UPartyGameState::GetJoinability(bool& bFriendJoinable, bool& bInviteOnly, b
 		// If the game is joinable (ie not full in general), then party rules apply
 		if (bGameJoinable)
 		{
-			// Private parties require invites
-			bool bIsPrivateParty = (PartyStateRef->PartyType == EPartyType::Private);
-			bInviteOnly = bIsPrivateParty;
-
-			// Make sure party isn't full
-			bool bPartyNotFull = GetPartySize() < GetPartyMaxSize();
-			if (bPartyNotFull)
-			{
-				if (*OwningUserId == *GetPartyLeader())
-				{
-					// Remote players can join if we are accepting members AND we are the leader
-					bool bJoinViaPresence = CurrentConfig.bIsAcceptingMembers;
-					bFriendJoinable = bIsPrivateParty ? false : bJoinViaPresence;
-
-					// Remote players can send invites if we are the party leader
-					bAllowInvites = true;
-				}
-				else
-				{
-					// Remote players can join if we are accepting members AND we allow all party members to participate
-					bool bJoinViaPresence = (CurrentConfig.bIsAcceptingMembers && !PartyStateRef->bLeaderFriendsOnly);
-					bFriendJoinable = bIsPrivateParty ? false : bJoinViaPresence;
-
-					// Remote players can send invites if we allow all party members to participate
-					bAllowInvites = !PartyStateRef->bLeaderInvitesOnly;
-				}
-			}
+			bool bPublicJoinable = false;
+			bValidSettings = PartyInfo->GetJoinability(*OwningUserId, bPublicJoinable, bFriendJoinable, bInviteOnly, bAllowInvites);
 		}
-
-		return true;
 	}
 
-	return false;
+	return bValidSettings;
 }
 
 void UPartyGameState::UpdatePartyConfig(bool bResetAccessKey)
