@@ -1060,6 +1060,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 					StencilingGeometry::DrawSphere(RHICmdList);
 				}
 			}
+			RHICmdList.CopyToResolveTarget(LightAccumulation->GetRenderTargetItem().TargetableTexture, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, LightAccumulation);
 		}
