@@ -713,7 +713,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	}
 
 	// Detect packets on the client, which should trigger PingAck verification
-	const bool bCanHavePingChecksum	= !Driver->IsServer() && IsAckChecksumPacket( PacketId );
 	bool bGotPingChecksum			= false;
 	uint32 OutPingChecksum			= 0;
 
@@ -979,6 +978,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ));
 				return;
 			}
+
+			const bool bCanHavePingChecksum = !Driver->IsServer() && IsAckChecksumPacket(PacketId);
 
 			// Handle grabbing of PingChecksum, for client PingAck verification (need a minimum of 32bits data, for OutPingChecksum)
 			if ( bCanHavePingChecksum && !bGotPingChecksum && BunchDataBits >= 32 && FMath::Abs( Driver->Time - LastPingChecksumAck ) >= PING_ACK_CHECKSUM_DELAY )
