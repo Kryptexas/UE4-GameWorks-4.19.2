@@ -291,6 +291,7 @@ namespace AutomationTool
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.ArchiveMetaData = InParams.ArchiveMetaData;
+			this.CreateAppBundle = InParams.CreateAppBundle;
 			this.Distribution = InParams.Distribution;
 			this.Prereqs = InParams.Prereqs;
 			this.NoBootstrapExe = InParams.NoBootstrapExe;
@@ -393,6 +394,7 @@ namespace AutomationTool
 			bool? Archive = null,
 			string ArchiveDirectoryParam = null,
 			bool? ArchiveMetaData = null,
+			bool? CreateAppBundle = null,
 			ParamList<string> ProgramTargets = null,
 			bool? Distribution = null,
             bool? Prebuilt = null,
@@ -524,6 +526,7 @@ namespace AutomationTool
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty, true);
 			this.ArchiveMetaData = GetParamValueIfNotSpecified(Command, ArchiveMetaData, this.ArchiveMetaData, "archivemetadata");
+			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
 			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
@@ -913,6 +916,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("archivemetadata", "Archive extra metadata files in addition to the build (e.g. build.properties)")]
 		public bool ArchiveMetaData;
+
+		/// <summary>
+		/// When archiving for Mac, set this to true to package it in a .app bundle instead of normal loose files
+		/// </summary>
+		[Help("createappbundle", "When archiving for Mac, set this to true to package it in a .app bundle instead of normal loose files")]
+		public bool CreateAppBundle;
 
 		#endregion
 
@@ -2035,6 +2044,7 @@ namespace AutomationTool
 				CommandUtils.Log("AdditionalServerMapParams={0}", AdditionalServerMapParams);
 				CommandUtils.Log("Archive={0}", Archive);
 				CommandUtils.Log("ArchiveMetaData={0}", ArchiveMetaData);
+				CommandUtils.Log("CreateAppBundle={0}", CreateAppBundle);
 				CommandUtils.Log("BaseArchiveDirectory={0}", BaseArchiveDirectory);
 				CommandUtils.Log("BaseStageDirectory={0}", BaseStageDirectory);
 				CommandUtils.Log("Build={0}", Build);
