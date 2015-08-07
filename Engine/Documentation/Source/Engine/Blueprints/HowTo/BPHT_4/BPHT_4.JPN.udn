@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492313
+﻿INTSourceChangelist:2597737
 Availability:Public
 Title:4.情報をレベルから Character に渡す
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -24,7 +24,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 %Steps%
 
 
-1. メイン ツールバー で **[Blueprints]** ボタンをクリックして、 **[Open Level Blueprint]** を選択します。 
+1. メイン ツールバー で **[Blueprints]** ボタンをクリックして、 **[Open Level Blueprint (Level ブループリントを開く)]** を選択します。 
 
 	![](OpenLevelBlueprint.png)
 
@@ -56,9 +56,9 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](AssignSpawnLocation.png)
 
-	これが作成された **Event Dispatcher** です。これを選択すると、ノードが 2 つ追加されます。 
-
+	これが作成された **イベント ディスパッチャー** です。これを選択すると、ノードが 2 つ追加されます。 
 	[REGION:note]
+
 	リストにこのノードがない場合は、 **FirstPersonCharacter** ブループリントで **[Compile]** を必ずクリックして、再度確認してみてください。 
 	[/REGION]
 
@@ -76,7 +76,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](SelectAllTargetPoints.png)
 
-1. **Level ブループリント** に戻り、グラフ内を **右クリック** し **[Create References to 3 selected Actors]** オプションを選びます。 
+1. **Level ブループリント** に戻り、グラフ内を **右クリック** し **[Create References to 3 selected Actors (選択した 3 つのアクタにリファレンスを作成)]** オプションを選びます。 
 
 	![](AddReferences.png)
 
@@ -84,7 +84,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](MakeArray.png)
 
-	**[Add Pin]** ボタンをクリックすれば、ピンを追加することができます。この配列は、アクセスできる Target Point のコレクションを格納します。 
+	**[Add Pin (ピンを追加)]** ボタンをクリックすれば、ピンを追加することができます。この配列は、アクセス可能なターゲットポイントのコレクションを格納します。 
 
 1.	**Array** ピンを引き出して **Get** ノードを追加します。 
 
@@ -92,7 +92,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](GetNodeAdded.png)
 
-	ここで、スポーン ポイントとして使用するために、ランダムに Target Point を取得します。スポーン位置がもっと多い場合、それらを配列に追加して Range ノードの Random Integer の **Max** 値を増やせば、それらを含むことができます。 
+	ここで、スポーン ポイントとして使用するために、ランダムにターゲットポイントを取得します。スポーン位置がもっと多い場合、それらを配列に追加して Range ノードの Random Integer の **Max** 値を増やせば、それらを含むことができます。 
 
 1.	**Get** ノードを引き出して **Get Actor Transform** ノードを追加し、それを **Set Spawn Location** ノードに接続します。 
 
@@ -102,7 +102,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	スクリプト全体は上の画面のようになるはずです。クリックすると拡大表示されます。 
 
-このページではかなりいろいろな事をやってみました！**Cast** ノードを使って Character ブループリントにアクセスしてから、その中にある Custom Event を Event Dispatcher につなげました。これにより、 Event Dispatcher が呼び出されると必ず Level ブループリントの Custom Event を実行することができます。そして、スポーン位置の 1 つをランダムに取得し、それを (岩をスポーンする位置に使用する) 変数 Spawn Location として Character ブループリントへ戻します。 
+このページではかなりいろいろな事をやってみました！**Cast** ノードを使って Character ブループリントにアクセスしてから、その中にある Custom Event をイベントディスパッチャーにつなげました。これにより、イベントディスパッチャーが呼び出されると必ず Level ブループリントの Custom Event を実行することができます。そして、スポーン位置の 1 つをランダムに取得し、それを (岩をスポーンする位置に使用する) 変数 Spawn Location として Character ブループリントへ戻します。 
 
 次のステップでは、Bind Event と **OnHit** というイベントを使って、岩を撃ち破壊できるようにします。 
 
@@ -117,6 +117,10 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 
 	<!-- old
+
+
+
+
 
 
 情報を **Character** ブループリントから HUD へパスする前に、幾つかのものを作成しておかなければなりません。ダメージのビジュアル ソースおよびダメージ/ヘルス システムそのものを作成する必要があります。プレイヤーのヘルス値を HUD にパスできる設定にしておくと、プレイヤーはヘルス値の残量およびヘルス値が減少しているかどうかを確認できます。
@@ -140,7 +144,7 @@ Description:Level ブループリント を使用して、スポーン ポイン
 
 	![](BPHT4_5.png)
 
-1. [Details] パネルで、 **[Auto Activate]** オプションのチェックも外します。 
+1. **[Details]** パネルで、 **[Auto Activate]** オプションのチェックも外します。 
 
 	![](BPHT4_6.png)
 
@@ -234,8 +238,8 @@ Description:Level ブループリント を使用して、スポーン ポイン
 	_プレイヤーが死亡すると、通常プレイヤーが取るステートを新規に追加します。ただし、テキストは目的に対して有効です。_
 
 1. ブループリントを **コンパイル** し **保存** します。  
-	[REGION:lightbox]
 
+	[REGION:lightbox]
 	[![](BPHT4_19.png)(w:740)](BPHT4_19.png)
 	[/REGION]
 
