@@ -1,6 +1,11 @@
-Availability: Docs
+﻿Availability: Docs
 Title: MineCookedPackages 命令行开关
 Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:该命令行行可以向数据库中填充关于烘培的包及包内所包含的资源的信息。
+
+[REGION:todo]
+	本文从虚幻引擎3中转换而来，目前正在审阅中。有些信息可能过期了。
+[/REGION]
 
 [TOC(start:2)]
 
@@ -10,7 +15,7 @@ minecookedpackages命令行开关的作用是将烘焙包及其导出数据的�
 
 
 
-##如何使它工作
+## 如何使用它
 
 
 ### 设置
