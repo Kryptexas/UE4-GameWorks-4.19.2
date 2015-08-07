@@ -225,5 +225,7 @@ public:
 	virtual bool AlwaysCompileOnLoad() const override { return true; }
 	// End of UBlueprint interface
 
+	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const override;
+
 	static bool ValidateGeneratedClass(const UClass* InClass);
 };

@@ -584,6 +584,9 @@ public:
 
 	UInheritableComponentHandler* GetInheritableComponentHandler(bool bCreateIfNecessary);
 
+	/** Collect blueprints that depend on this blueprint. */
+	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const;
+
 #endif	//#if WITH_EDITOR
 
 	// Begin UObject interface

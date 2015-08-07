@@ -2781,6 +2781,8 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 				{
 					return;
 				}
+
+				Blueprint->GatherDependencies(InDependencies);
 			}
 		}
 	};
@@ -2788,6 +2790,8 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 	check(InBlueprint);
 	Dependencies.Empty();
 	OutUDSDependencies.Empty();
+
+	InBlueprint->GatherDependencies(Dependencies);
 
 	FGatherDependenciesHelper::ProcessHierarchy(InBlueprint->ParentClass, Dependencies);
 
