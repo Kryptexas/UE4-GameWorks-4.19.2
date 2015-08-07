@@ -280,6 +280,7 @@ void FForwardShadingSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListI
 	
 	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
+#if !PLATFORM_HTML5
 	auto ShaderPlatform = ViewFamily.GetShaderPlatform();
 
 	if (IsMobilePlatform(ShaderPlatform) 
@@ -303,4 +304,5 @@ void FForwardShadingSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListI
 			}
 		}
 	}
+#endif //!PLATFORM_HTML5
 }
