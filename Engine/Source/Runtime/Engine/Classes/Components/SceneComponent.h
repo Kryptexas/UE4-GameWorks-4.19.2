@@ -961,10 +961,24 @@ public:
 	/** Returns the form of collision for this component */
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const;
 
-	/** Utility to see if there is any form of collision enabled on this component */
-	bool IsCollisionEnabled() const
+	/** Utility to see if there is any form of collision (query or physics) enabled on this component. */
+	FORCEINLINE_DEBUGGABLE bool IsCollisionEnabled() const
 	{
 		return GetCollisionEnabled() != ECollisionEnabled::NoCollision;
+	}
+
+	/** Utility to see if there is any query collision enabled on this component. */
+	FORCEINLINE_DEBUGGABLE bool IsQueryCollisionEnabled() const
+	{
+		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
+		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::QueryOnly);
+	}
+
+	/** Utility to see if there is any physics collision enabled on this component. */
+	FORCEINLINE_DEBUGGABLE bool IsPhysicsCollisionEnabled() const
+	{
+		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
+		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::PhysicsOnly);
 	}
 
 	/** Returns the response that this component has to a specific collision channel. */

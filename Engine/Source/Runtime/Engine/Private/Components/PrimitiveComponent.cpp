@@ -1435,7 +1435,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 		// not sweeping, just go directly to the new transform
 		bMoved = InternalSetWorldLocationAndRotation(TraceEnd, NewRotationQuat, bSkipPhysicsMove, Teleport);
 		bRotationOnly = (DeltaSizeSq == 0);
-		bIncludesOverlapsAtEnd = bRotationOnly && (AreSymmetricRotations(InitialRotationQuat, NewRotationQuat, GetComponentScale())) && IsCollisionEnabled();
+		bIncludesOverlapsAtEnd = bRotationOnly && (AreSymmetricRotations(InitialRotationQuat, NewRotationQuat, GetComponentScale())) && IsQueryCollisionEnabled();
 	}
 	else
 	{
@@ -1443,7 +1443,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 		FVector NewLocation = TraceStart;
 
 		// Perform movement collision checking if needed for this actor.
-		const bool bCollisionEnabled = IsCollisionEnabled();
+		const bool bCollisionEnabled = IsQueryCollisionEnabled();
 		if( bCollisionEnabled && (DeltaSizeSq > 0.f))
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1754,7 +1754,7 @@ bool UPrimitiveComponent::IsNavigationRelevant() const
 	}
 
 	const FCollisionResponseContainer& ResponseToChannels = GetCollisionResponseToChannels();
-	return IsCollisionEnabled() &&
+	return IsQueryCollisionEnabled() &&
 		(ResponseToChannels.GetResponse(ECC_Pawn) == ECR_Block || ResponseToChannels.GetResponse(ECC_Vehicle) == ECR_Block);
 }
 
@@ -2241,7 +2241,7 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 				{
 					// Can we possibly collide with the component?
 					UPrimitiveComponent* const CurrentPrimitive = Cast<UPrimitiveComponent>(CurrentComp);
-					if (CurrentPrimitive && CurrentPrimitive->bGenerateOverlapEvents && CurrentPrimitive->IsCollisionEnabled() && CurrentPrimitive->GetCollisionResponseToChannel(GetCollisionObjectType()) != ECR_Ignore)
+					if (CurrentPrimitive && CurrentPrimitive->bGenerateOverlapEvents && CurrentPrimitive->IsQueryCollisionEnabled() && CurrentPrimitive->GetCollisionResponseToChannel(GetCollisionObjectType()) != ECR_Ignore)
 					{
 						MutableThis->bCachedAllCollideableDescendantsRelative = false;
 						MutableThis->LastCheckedAllCollideableDescendantsTime = MyWorld->GetTimeSeconds();
@@ -2322,7 +2322,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 	}
 
 	// first, dispatch any pending overlaps
-	if (bGenerateOverlapEvents && IsCollisionEnabled())
+	if (bGenerateOverlapEvents && IsQueryCollisionEnabled())
 	{
 		// if we haven't begun play, we're still setting things up (e.g. we might be inside one of the construction scripts)
 		// so we don't want to generate overlaps yet.
@@ -2484,7 +2484,7 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
 
-		if (bGenerateOverlapEvents && IsCollisionEnabled())
+		if (bGenerateOverlapEvents && IsQueryCollisionEnabled())
 		{
 			APhysicsVolume* BestVolume = GetWorld()->GetDefaultPhysicsVolume();
 			int32 BestPriority = BestVolume->Priority;

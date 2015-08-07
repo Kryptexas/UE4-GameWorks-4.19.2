@@ -925,7 +925,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 		// the world, and that component is the only one we care about encroaching (since the movement code will happily embedding
 		// other components in the world during movement updates)
 		UPrimitiveComponent* const MovedPrimComp = MoveComponent->UpdatedPrimitive;
-		if (MovedPrimComp->IsCollisionEnabled())
+		if (MovedPrimComp->IsQueryCollisionEnabled())
 		{
 			// might not be the root, so we need to compute the transform
 			FTransform const CompToRoot = MovedPrimComp->GetComponentToWorld() * WorldToOldRoot;
@@ -951,7 +951,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 	{
 		// This actor does not have a movement component, so we'll assume all components are potentially important to keep out of the world
 		UPrimitiveComponent* const RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
-		if (RootPrimComp && RootPrimComp->IsCollisionEnabled())
+		if (RootPrimComp && RootPrimComp->IsQueryCollisionEnabled())
 		{
 			if (ComponentEncroachesBlockingGeometry(this, TestActor, RootPrimComp, TestRootToWorld, ProposedAdjustment))
 			{
@@ -975,7 +975,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 
 		for (auto Child : Children)
 		{
-			if (Child->IsCollisionEnabled())
+			if (Child->IsQueryCollisionEnabled())
 			{
 				UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(Child);
 				if (PrimComp)
