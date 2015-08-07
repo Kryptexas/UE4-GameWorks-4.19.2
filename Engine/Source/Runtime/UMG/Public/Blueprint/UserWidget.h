@@ -761,6 +761,7 @@ public:
 	// End UObject interface
 
 	/** Are we currently playing any animations? */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
 	bool IsPlayingAnimation() const { return ActiveSequencePlayers.Num() > 0; }
 
 #if WITH_EDITOR
@@ -839,6 +840,12 @@ public:
 	UTexture2D* PreviewBackground;
 
 #endif
+
+	/** If a widget doesn't ever need to tick the blueprint, setting this to false is an optimization. */
+	bool bCanEverTick : 1;
+
+	/** If a widget doesn't ever need to do custom painting in the blueprint, setting this to false is an optimization. */
+	bool bCanEverPaint : 1;
 
 protected:
 
