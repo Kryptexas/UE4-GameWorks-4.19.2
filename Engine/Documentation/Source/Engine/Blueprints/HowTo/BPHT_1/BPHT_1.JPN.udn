@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2068080
+﻿INTSourceChangelist:2615578
 Availability:Public
-Title:1.アセットに必要な設定をする
+Title:1.必要なアセット設定
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:プロジェクトで使用するアセットのセットアップをするステップ 
 
@@ -28,13 +28,13 @@ Description:プロジェクトで使用するアセットのセットアップ�
 このガイドの場合、 **Starter Content** を有効にした **Blueprint First Person** テンプレートに基づいて新規プロジェクトを作成しています。テンプレートを使用したてプロジェクトの作成方法について自信がなかったり、スターター コンテンツを有効にする方法がわからない場合は、 [](Engine/Basics/Projects/Browser) のページをご覧ください。 
 [/REGION]
 
-作成したプロジェクトを開いたら、 **Ctrl+N** を押して **新規レベル** を作成し、ポップアップ ウィンドウで求められたら **Default** を選択します。全く新しいレベルを作成したら、以下のセクションに従って、必要とされるアセットに対して個々に設定を開始します。 
+作成したプロジェクトを開いたら、 **Ctrl+N** を押して **新規レベル** を作成し、ポップアップ ウィンドウで求められたら **[Default]** を選択します。全く新しいレベルを作成したら、以下のセクションに従って、必要とされるアセットに対して個々に設定を開始します。 
 
 ## 被破壊性スタティックメッシュの作成
 
 まず最初に、弾が当たると破壊することができる射撃対象となる岩を作成します。 
 
-1.	**コンテンツ ブラウザ** で、 **Content/StarterContent/Props** フォルダを開きます。 
+1.	**コンテンツ ブラウザ** で、「 **Content/StarterContent/Props** 」フォルダを開きます。 
 
 1.	「 **Props** 」フォルダの **SM_Rock** を **右クリック** して **[Create Destructible Mesh]** を選択します。 
 
@@ -50,13 +50,13 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 1.	**SM_Rock_DM** アセットを **保存** してから閉じます。 
 
-1.	**SM_Rock_DM** アセットを**右クリック** して、 **[Asset Actions/Create Blueprint Using This...]** を選択します。 
+1.	**SM_Rock_DM** アセットを**右クリック** して、 **[Asset Actions (アセットアクション)]>[Create Blueprint Using This... (これを使用してブループリントを作成)]** を選択します。 
 
 	![](CreateBlueprint.png)
 
-	指示されたら、ブループリントに「 **BP_Rock** 」などの名前を付けます。 
+	要求されたら、ブループリントに「 **BP_Rock** 」などの名前を付けます。 
 
-1.	ブループリントが開いたら、 **[Add Component]** ボタンをクリックして、 **Projectile Movement** コンポーネントを追加します。 
+1.	ブループリントが開いたら、 **[Add Component (コンポーネントの追加)]** ボタンをクリックして、 **Projectile Movement** コンポーネントを追加します。 
 
 	![](AddProjectile.png)
 
@@ -64,7 +64,7 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 	![](ProjectileDetails.png)
 
-1.	**Destructible** コンポーネントを選択して、 **Collision** の **[Details]** パネルで、 **Simulation Generates Hit Events** オプションにチェックを入れます。 
+1.	**Destructible** コンポーネントを選択して、 **Collision** の **[Details]** パネルで、 **[Simulation Generates Hit Events]** オプションにチェックを入れます。 
 
 	![](GenerateHits.png)
 
@@ -74,15 +74,19 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 射撃対象となる岩を起動するために、レベル内にスポーンポイントをいくつか作成します。 
 
-1.	**[Modes]** メニューから **ターゲットポイント** を検索してレベルに追加します。 
+1.	**[Modes]** メニューから **Target Point (ターゲット ポイント)** を検索してレベルに追加します。 
 
 	![](AddTargetPoint.png)
 
-1.	レベルで **TargetPoint** を選択し、 **Transform** を以下のように設定します。 
+1.	レベルで **[TargetPoint]** を選択し、 **Transform** を以下のように設定します。 
 
 	![](TargetPointTransform.png)
 
-	**X** の **位置** は **7.0m** (その他は 0) そして **Y** の **回転** は **40.0** (その他は 0) です。 
+	**X** の **[Location]** が **7.0m, 0.0m, 0.0m**、**[Rotation]** は **0.0, 40.0, 0.0**。 
+
+	[REGION:note]
+	7.0m と入力すると、同じ値である 700cm に値が変換される場合があります。仮想現実 (VR) ベスト プラクティス ページの [ワールドのスケーリング](Platforms/VR/ContentSetup) でアンリアル単位算出の詳細と表示サイズの変更方法を説明しています。参照してください。 
+	[/REGION]
 
 1.	レベル内で **ターゲットポイント** を選択して、ビューポートで **Ctrl+W** で複製し、その **詳細** を以下の通りに設定をします。 
 
@@ -94,16 +98,18 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 	![](NewDuplicate.png)
 
-	Player Start の向かい側に 3 つのスポーンポイントができます (コントローラ アイコンと方向が青い矢印で示されています)。 
+1.	レベルで **PlayerStart** を選択し、**E** を押して **Rotation** モードにして、ターゲット ポイントの方を向くように回転させます。 
 
 	![](TargetPointsAdded.png)
+
+	Player Start の向かい側に 3 つのスポーンポイントができます (コントローラ アイコンと方向が青い矢印で示されています)。 
 
 
 ## HUD を作成する
 
 最後に必要な設定要素は、情報を通信するための基本的な HUD を作成することです。 
 
-1.	**コンテンツ ブラウザ** の空のスペースを **右クリック** して **User Interface/Widget Blueprint** を選択します。 
+1.	**コンテンツ ブラウザ** の空のスペースを **右クリック** して **[User Interface]>[Widget Blueprint]** を選択します。 
 
 	![](CreateWidgetBlueprint.png)
 
@@ -113,17 +119,17 @@ Description:プロジェクトで使用するアセットのセットアップ�
 	詳細は [](Engine/UMG) をご覧ください。 
 	[/REGION]
 
-1.	指示されたら、 **HUD** を呼び出して開きます。 
+1.	指示されたら、**HUD** を呼び出して開きます。 
 
-1.	**[Palette]** ウィンドウの**[Panel]** で **Horizontal Box** を **[Hierarchy]** (階層) ウィンドウの **[CanvasPanel]** にドラッグします。 
+1.	**[Palette (パレット)]** ウィンドウの**[Panel]** で **Horizontal Box** を **[Hierarchy (階層)]** ウィンドウの **[CanvasPanel]** にドラッグします。 
 
 	![](AddVerticalBox.png)
 
-	[Palette] ウィンドウの**[Panel]** で **Horizontal Box** を **[Hierarchy]** (階層) ウィンドウの **[CanvasPanel]** にドラッグします。 
+	[Palette] ウィンドウの**[Panel]** で **Horizontal Box** を **[Hierarchy]** ウィンドウの **[CanvasPanel]** にドラッグします。 
 
 	![](AddHorizontalBox.png)
 
-1.	**[Panel]** で 2 つの **Vertical Boxes** を **[Hierarchy]** (階層) ウィンドウの **Horizontal Box** にドラッグします。  
+1.	**[Panel]** で 2 つの **Vertical Boxes** を **[Hierarchy]** ウィンドウの **Horizontal Box** にドラッグします。  
 
 	![](AddTextBlocks.png)
 
@@ -139,11 +145,11 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 	![](MovedWidget.png)
 
-1.	ボックス内の一番左に表示されているテキストをクリックし、 **[Details]** パネルの **Text** に「 **Pulls :** 」と入力します。 
+1.	ボックス内の一番左に表示されているテキストをクリックし、**[Details]** パネルの **Text** に「 **Pulls :** 」と入力します。 
 
 	![](EnterText1.png)
 
-1.	もう片方のテキストには、 **Text** フィールドに **10** と入力します。 
+1.	もう片方のテキストには、 **Text** フィールドに「 **10** 」と入力します。 
 
 	![](EnterText2.png)
 
@@ -210,8 +216,8 @@ Description:プロジェクトで使用するアセットのセットアップ�
 	![](BPHT1_3.png)
 
 	_これにより、メッシュが破砕すると、割り当てられたパーティクル システムとサウンドが再生されるようになります。_
-	_**[スケルタルメッシュ]** セクションで、外側のマテリアル (0) と内側のマテリアル (1) を岩に割り当てることもできます。_
 
+	_**[スケルタルメッシュ]** セクションで、外側のマテリアル (0) と内側のマテリアル (1) を岩に割り当てることもできます。_
 
 1. **保存** して **[Destructible Mesh]** ウィンドウを閉じます。
 
@@ -252,7 +258,7 @@ Description:プロジェクトで使用するアセットのセットアップ�
 	[/PARAM]
 [/OBJECT]
 
-1.  の **コンテンツブラウザ** の **Content/StarterContent/Blueprints** で、 **Blueprint_Effect_Fire** ブループリントを開きます。 
+1. **コンテンツブラウザ** の **Content/StarterContent/Blueprints** で、 **Blueprint_Effect_Fire** ブループリントを開きます。 
 
 1. **[Components]** ウィンドウから **[Add Component]** ボタンをクリックして、 **Sphere Collision** コンポーネントを検索して追加します。 
 
@@ -264,7 +270,7 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 	_炎／トリガーをブループリントの **Viewport** タブで表示できることを覚えておいてください。_
 
-1. **Collision** セクションで、 **[コリジョン プリセット]** を **OverlapOnlyPawn** に設定します。 
+1. **[Collision]** セクションで、 **[Collision Presets (コリジョン プリセット)]** を **OverlapOnlyPawn** に設定します。 
 
 	![](BPHT4_3.png)
 
@@ -311,7 +317,7 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 	![](BPHT5_2.png)
 
-1. 選択したブラシを使って、 **レベル ビューポート** の中で **Control+W** を押してブラシを複製します 
+1. 選択したブラシを使って、 **レベル ビューポート** の中で **Control+W** を押してブラシを複製します。 
 
 1. 複製したブラシを選択した状態で、 **[Details]** パネルから、 **ブラシの種類** を **[Subtractive]** に、そして **X** と **Y** の形状サイズを **400** に、 **Z** を **100** に設定します。 
 
@@ -335,7 +341,7 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 	![](BPHT5_6.png)
 
-1. **[モード]** メニューの **Basic** から、 **Box Trigger** をドラッグして、ボックスの開口部にフィットするようにリサイズ (**R** キー) します。 
+1. **[Modes]** メニューの **Basic** から、 **Box Trigger** をドラッグして、ボックスの開口部にフィットするようにリサイズ (**R** キー) します。 
 
 	![](BPHT5_7.png)(w:480)
 
