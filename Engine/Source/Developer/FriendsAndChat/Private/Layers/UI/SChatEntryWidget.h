@@ -11,7 +11,7 @@ class SChatEntryWidget : public SUserWidget
 {
 public:
 	SLATE_USER_ARGS( SChatEntryWidget )
-		: _MaxChatLength(128)
+		: _MaxChatLength(500)
 		{}
 
 		SLATE_ARGUMENT(const FFriendsAndChatStyle*, FriendStyle)	

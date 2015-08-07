@@ -17,6 +17,9 @@ public:
 	virtual EVisibility GetHeaderVisibility() const = 0;
 	virtual TSharedPtr<class FChatSettingsViewModel> GetChatSettingsViewModel() = 0;
 	virtual bool DisplayChatSettings() const = 0;
+	virtual void ToggleChatMinimized() = 0;
+	virtual bool IsChatMinimized() const = 0;
+	virtual TSharedRef<FChatChromeViewModel> Clone(TSharedRef<class IChatDisplayService> ChatDisplayService, TSharedRef<class IChatSettingsService> InChatSettingsService) = 0;
 
 	virtual ~FChatChromeViewModel() {}
 

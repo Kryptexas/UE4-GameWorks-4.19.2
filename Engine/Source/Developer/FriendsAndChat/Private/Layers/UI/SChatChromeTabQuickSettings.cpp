@@ -66,8 +66,8 @@ private:
 	{
 		OptionsContainer->ClearChildren();
 
-		EChatMessageType::Type MessageType = (EChatMessageType::Type)1;
-		for (; MessageType <= EChatMessageType::Global; MessageType = (EChatMessageType::Type)(MessageType << 1))
+		EChatMessageType::Type MessageType = EChatMessageType::Whisper;
+		for (; MessageType <= EChatMessageType::Party; MessageType = (EChatMessageType::Type)(MessageType << 1))
 		{
 			if (MessageType != EChatMessageType::Custom && MessageType != ChatType)
 			{

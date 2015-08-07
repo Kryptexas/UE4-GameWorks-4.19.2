@@ -138,19 +138,19 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 
 	// Name Style
 	const FTextBlockStyle GlobalChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormal)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GlobalChatColor);
 
 	const FTextBlockStyle GameChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormal)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameChatColor);
 
 	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormal)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyChatColor);
 
 	const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormal)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisplerChatColor);
 
 	const FButtonStyle UserNameButton = FButtonStyle()
@@ -187,7 +187,7 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 
 	Style->Set("UserNameTextStyle.GlobalHyperlink", GlobalChatHyperlink);
 	Style->Set("UserNameTextStyle.GameHyperlink", GameChatHyperlink);
-	Style->Set("UserNameTextStyle.PartyHyperlink", GameChatHyperlink);
+	Style->Set("UserNameTextStyle.PartyHyperlink", PartyChatHyperlink);
 	Style->Set("UserNameTextStyle.Whisperlink", WhisperChatHyperlink);
 	Style->Set("UserNameTextStyle.DefaultHyperlink", DefaultChatHyperlink);
 	Style->Set("UserNameTextStyle.GlobalTextStyle", GlobalChatFont);

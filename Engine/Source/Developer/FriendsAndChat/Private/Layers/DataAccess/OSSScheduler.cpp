@@ -59,7 +59,7 @@ public:
 
 	bool IsLoggedIn() const override
 	{
-		return OnlineSub != nullptr;
+		return OnlineSub != nullptr && OnlineIdentity.IsValid();
 	}
 
 	void SetOnline() override

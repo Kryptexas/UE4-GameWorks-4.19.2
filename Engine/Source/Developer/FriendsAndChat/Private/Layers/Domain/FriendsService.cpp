@@ -387,7 +387,7 @@ private:
 		TArray< TSharedRef<FOnlineFriend> > Friends;
 		bool bReadyToChangeState = true;
 
-		if (OSSScheduler->GetFriendsInterface()->GetFriendsList(LocalControllerIndex, ListName, Friends))
+		if (OSSScheduler.IsValid() && OSSScheduler->GetFriendsInterface()->GetFriendsList(LocalControllerIndex, ListName, Friends))
 		{
 			if (Friends.Num() > 0)
 			{
@@ -400,7 +400,7 @@ private:
 						{
 							ExistingFriend->SetOnlineFriend(Friend);
 						}
-						PendingFriendsList.Add(ExistingFriend);
+						PendingFriendsList.AddUnique(ExistingFriend);
 					}
 					else
 					{

@@ -48,6 +48,16 @@ public:
 					.AutoWidth()
 					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Center)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SButton)
+						.ButtonStyle(&FriendStyle.FriendsChatStyle.FriendsMinimizeButtonStyle)
+						.Visibility(this, &SChatChromeImpl::GetMinimizeVisibility)
+						.OnClicked(this, &SChatChromeImpl::ToggleHeader)
+					]
 				]
 				+ SVerticalBox::Slot()
 				[
@@ -263,6 +273,17 @@ private:
 	EVisibility GetHeaderVisibility() const
 	{
 		return ChromeViewModel->GetHeaderVisibility();
+	}
+
+	FReply ToggleHeader()
+	{
+		ChromeViewModel->ToggleChatMinimized();
+		return FReply::Handled();
+	}
+
+	EVisibility GetMinimizeVisibility() const
+	{
+		return ChromeViewModel->IsChatMinimized() ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
 	// Holds the menu anchor

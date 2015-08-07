@@ -22,7 +22,8 @@ public:
 	virtual bool IsInGameSession() const = 0;
 	virtual TSharedRef<class IFriendItem> GetFriendItem() const = 0;
 	virtual const FString GetNameNoSpaces() const = 0;
-	virtual bool IsInActiveParty() const = 0;
+	virtual bool IsLocalPlayerInActiveParty() const = 0;
+	virtual bool IsInPartyChat() const = 0;
 };
 
 /**

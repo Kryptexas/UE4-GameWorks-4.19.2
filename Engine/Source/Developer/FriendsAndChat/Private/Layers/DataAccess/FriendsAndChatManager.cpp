@@ -95,20 +95,23 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 	// OSS login
 	OSSScheduler->Login(InOnlineSub, bInIsGame, LocalUserID);
 
-	// Friends Service Login
-	FriendsService->Login();
-	FriendsService->OnAddToast().AddSP(this, &FFriendsAndChatManager::AddFriendsToast);
-
-	// Message Service Login
-	MessageService->Login();
-	MessageService->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnChatPublicRoomJoined);
-	for (auto RoomName : ChatRoomstoJoin)
+	if (OSSScheduler->IsLoggedIn())
 	{
-		MessageService->JoinPublicRoom(RoomName);
-	}
+		// Friends Service Login
+		FriendsService->Login();
+		FriendsService->OnAddToast().AddSP(this, &FFriendsAndChatManager::AddFriendsToast);
 
-	// Game Party Service
-	GameAndPartyService->Login();
+		// Message Service Login
+		MessageService->Login();
+		MessageService->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnChatPublicRoomJoined);
+		for (auto RoomName : ChatRoomstoJoin)
+		{
+			MessageService->JoinPublicRoom(RoomName);
+		}
+
+		// Game Party Service
+		GameAndPartyService->Login();
+	}
 }
 
 bool FFriendsAndChatManager::IsLoggedIn()
@@ -327,26 +330,39 @@ TSharedRef< IChatSettingsService > FFriendsAndChatManager::GenerateChatSettingsS
 TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService)
 {
 	Style = *InStyle;
-	TSharedPtr<FChatChromeViewModel> ChromeViewModel = FChatChromeViewModelFactory::Create(NavigationService.ToSharedRef(), ChatDisplayService, InChatSettingsService);
 
-	TSharedRef<FChatViewModel> CustomChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-	CustomChatViewModel->SetChannelFlags(EChatMessageType::Global | EChatMessageType::Whisper | EChatMessageType::Game);
-	CustomChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Global);
+	if(!CachedViewModel.IsValid())
+	{
+		CachedViewModel = FChatChromeViewModelFactory::Create(NavigationService.ToSharedRef(), ChatDisplayService, InChatSettingsService);
 
-	TSharedRef<FChatViewModel> GlobalChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-	GlobalChatViewModel->SetChannelFlags(EChatMessageType::Global);
-	GlobalChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Global);
+		TSharedRef<FChatViewModel> CustomChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
+		CustomChatViewModel->SetChannelFlags(EChatMessageType::Global | EChatMessageType::Whisper | EChatMessageType::Game | EChatMessageType::Party);
+		CustomChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Global);
 
-	TSharedRef<FChatViewModel> WhisperChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-	WhisperChatViewModel->SetChannelFlags(EChatMessageType::Whisper);
-	WhisperChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Whisper);
+		TSharedRef<FChatViewModel> GlobalChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
+		GlobalChatViewModel->SetChannelFlags(EChatMessageType::Global);
+		GlobalChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Global);
 
-	ChromeViewModel->AddTab(FChatChromeTabViewModelFactory::Create(CustomChatViewModel));
-	ChromeViewModel->AddTab(FChatChromeTabViewModelFactory::Create(GlobalChatViewModel));
-	ChromeViewModel->AddTab(FChatChromeTabViewModelFactory::Create(WhisperChatViewModel));
+		TSharedRef<FChatViewModel> WhisperChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
+		WhisperChatViewModel->SetChannelFlags(EChatMessageType::Whisper);
+		WhisperChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Whisper);
 
-	TSharedPtr<SChatChrome> ChatChrome = SNew(SChatChrome, ChromeViewModel.ToSharedRef()).FriendStyle(InStyle);
-	
+		TSharedRef<FChatViewModel> PartyChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
+		PartyChatViewModel->SetChannelFlags(EChatMessageType::Party);
+		PartyChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Party);
+
+		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(CustomChatViewModel));
+		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(GlobalChatViewModel));
+		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(WhisperChatViewModel));
+		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(PartyChatViewModel));
+	}
+	else
+	{
+		// Clone Chrome View Model. Keep messages, but add new style
+		CachedViewModel = CachedViewModel->Clone(ChatDisplayService, InChatSettingsService);
+	}
+
+	TSharedPtr<SChatChrome> ChatChrome = SNew(SChatChrome, CachedViewModel.ToSharedRef()).FriendStyle(InStyle);
 	return ChatChrome;
 }
 

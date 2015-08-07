@@ -32,6 +32,11 @@ public:
 	virtual EVisibility GetEntryBarVisibility() const = 0;
 
 	/*
+	 * Get Visibility of the Chat Header Bar (Tabs)
+	 */
+	virtual EVisibility GetChatHeaderVisibiliy() const = 0;
+
+	/*
 	 * Get Visibility of the chat list
 	 */
 	virtual EVisibility GetChatListVisibility() const = 0;
@@ -50,6 +55,16 @@ public:
 	 * Is this chat widget active
 	 */
 	virtual bool IsActive() const = 0;
+
+	/*
+	 * Toggle chat minimized
+	 */
+	virtual void ToggleChatMinimized() = 0;
+
+	/*
+	 * Return if chat window is minimized
+	 */
+	virtual bool IsChatMinimized() const = 0;
 
 
 	DECLARE_EVENT(IChatDisplayService, FOnFriendsChatMessageCommitted)

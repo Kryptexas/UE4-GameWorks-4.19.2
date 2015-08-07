@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatChromeTabViewModel.h"
 #include "ChatViewModel.h"
+#include "ChatDisplayService.h"
 
 class FChatChromeTabViewModelImpl
 	: public FChatChromeTabViewModel
@@ -19,6 +20,11 @@ public:
 		if (!ChatViewModel.IsValid())
 		{
 			return false;
+		}
+
+		if (ChatViewModel->GetChatChannelType() == EChatMessageType::Party)
+		{
+			return ChatViewModel->IsInPartyChat();
 		}
 
 		if(ChatViewModel->GetChatChannelType() == EChatMessageType::Whisper)
@@ -47,6 +53,12 @@ public:
 	const TSharedPtr<FChatViewModel> GetChatViewModel() const override
 	{
 		return ChatViewModel;
+	}
+
+	virtual TSharedRef<IChatTabViewModel> Clone(TSharedRef<IChatDisplayService> ChatDisplayService) override
+	{
+		TSharedRef< FChatChromeTabViewModelImpl > ViewModel(new FChatChromeTabViewModelImpl(ChatViewModel->Clone(ChatDisplayService)));
+		return ViewModel;
 	}
 
 	DECLARE_DERIVED_EVENT(FChatChromeTabViewModelImpl, IChatTabViewModel::FChatTabVisibilityChangedEvent, FChatTabVisibilityChangedEvent)

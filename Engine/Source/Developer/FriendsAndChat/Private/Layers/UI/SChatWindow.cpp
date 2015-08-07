@@ -54,11 +54,18 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendsChatStyle.ChatBackgroundBrush)
-			.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
-			.Visibility(this, &SChatWindowImpl::GetChatBackgroundVisibility)
-			.Padding(0)
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SBorder)
+				.BorderImage(&FriendStyle.FriendsChatStyle.ChatBackgroundBrush)
+				.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
+				.Visibility(this, &SChatWindowImpl::GetChatBackgroundVisibility)
+				.Padding(0)
+			]
+			+SOverlay::Slot()
 			[
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()
@@ -118,6 +125,7 @@ public:
 								.Expose(ChannelTextSlot)
 								.AutoHeight()
 								+ SVerticalBox::Slot()
+								.VAlign(VAlign_Center)
 								[
 									SAssignNew(ChatTextBox, SChatEntryWidget, ViewModel.ToSharedRef())
 								 	.FriendStyle(&FriendStyle)
@@ -150,8 +158,20 @@ public:
 		if(ChannelTextSlot && ViewModel->MultiChat())
 		{
 			ChannelTextSlot->AttachWidget(
-				SNew(STextBlock)
-				.Text(ViewModelPtr, &FChatViewModel::GetOutgoingChannelText)
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SNew(STextBlock)
+					.Text(ViewModelPtr, &FChatViewModel::GetOutgoingChannelText)
+				]
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Right)
+				[
+					SNew(SButton)
+					.ButtonStyle(&FriendStyle.FriendsChatStyle.FriendsMaximizeButtonStyle)
+					.Visibility(this, &SChatWindowImpl::GetChatMaximizeVisibility)
+					.OnClicked(this, &SChatWindowImpl::HandleMaximizeClicked)
+				]
 			);
 		}
 
@@ -368,6 +388,17 @@ private:
 		return FMath::Max(WindowWidth - 40, 0.0f);
 	}
 	
+	FReply HandleMaximizeClicked()
+	{
+		ViewModel->ToggleChatMinimized();
+		return FReply::Handled();
+	}
+
+	EVisibility GetChatMaximizeVisibility() const
+	{
+		return ViewModel->GetChatMaximizeVisibility();
+	}
+
 private:
 
 	TSharedPtr<SScrollBox> ChatScrollBox;

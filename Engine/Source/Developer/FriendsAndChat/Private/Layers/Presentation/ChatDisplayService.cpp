@@ -36,6 +36,11 @@ public:
 		return ChatEntryVisibility;
 	}
 
+	virtual EVisibility GetChatHeaderVisibiliy() const override
+	{
+		return ChatMinimized ? EVisibility::Collapsed : ChatEntryVisibility;
+	}
+
 	virtual EVisibility GetChatListVisibility() const override
 	{
 		return ChatListVisibility;
@@ -58,6 +63,16 @@ public:
 	virtual bool IsActive() const override
 	{
 		return IsChatActive;
+	}
+
+	virtual void ToggleChatMinimized() override
+	{
+		ChatMinimized = !ChatMinimized;
+	}
+
+	virtual bool IsChatMinimized() const override
+	{
+		return ChatMinimized;
 	}
 
 	DECLARE_DERIVED_EVENT(FChatDisplayServiceImpl, IChatDisplayService::FChatListUpdated, FChatListUpdated);
@@ -175,6 +190,7 @@ private:
 		, ChatEntryVisibility(EVisibility::Visible)
 		, ChatListVisibility(EVisibility::Visible)
 		, IsChatActive(true)
+		, ChatMinimized(false)
 	{
 	}
 
@@ -190,6 +206,7 @@ private:
 	EVisibility ChatEntryVisibility;
 	EVisibility ChatListVisibility;
 	bool IsChatActive;
+	bool ChatMinimized;
 	
 	FChatListUpdated ChatListUpdatedEvent;
 	FOnFriendsChatMessageCommitted ChatMessageCommittedEvent;

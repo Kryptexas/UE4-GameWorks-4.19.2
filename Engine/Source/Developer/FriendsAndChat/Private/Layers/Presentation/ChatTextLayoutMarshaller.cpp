@@ -112,7 +112,7 @@ public:
 
 			if(NameHyperlinkDecorator.IsValid() && (!NewMessage->IsFromSelf() || (IsMultiChat && NewMessage->GetMessageType() == EChatMessageType::Whisper)))
 			{
-				FString MessageText = " " + GetSenderName(NewMessage) + " : ";
+				FString MessageText = " " + GetSenderName(NewMessage) + ": ";
 
 				int32 NameLen = MessageText.Len();
 
@@ -143,7 +143,7 @@ public:
 			else
 			{
 				ModelRange.BeginIndex = ModelString->Len();
-				*ModelString += (" " + NewMessage->GetSenderName().ToString() + " : ");
+				*ModelString += (" " + NewMessage->GetSenderName().ToString() + ": ");
 				ModelRange.EndIndex = ModelString->Len();
 				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, MessageTextStyle, ModelRange));
 			}
@@ -202,6 +202,9 @@ protected:
 		case EChatMessageType::Whisper: 
 			HyperlinkStyle = TEXT("UserNameTextStyle.Whisperlink"); 
 			break;
+		case EChatMessageType::Party:
+			HyperlinkStyle = TEXT("UserNameTextStyle.PartyHyperlink");
+			break;
 		case EChatMessageType::Game: 
 			HyperlinkStyle = TEXT("UserNameTextStyle.GameHyperlink"); 
 			break;
@@ -219,6 +222,9 @@ protected:
 			break;
 		case EChatMessageType::Whisper: 
 			RoomName = TEXT("[w]");
+			break;
+		case EChatMessageType::Party:
+			RoomName = TEXT("[p]");
 			break;
 		case EChatMessageType::Game: 
 			RoomName = TEXT("[p]");

@@ -191,6 +191,8 @@ private:
 	FFriendsAndChatStyle Style;
 	// Holds the toast notification
 	TSharedPtr<SNotificationList> FriendsNotificationBox;
+	// Holds the last created chrome view model
+	TSharedPtr<class FChatChromeViewModel> CachedViewModel;
 
 private:
 

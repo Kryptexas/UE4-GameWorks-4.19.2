@@ -23,6 +23,16 @@ class FChatViewModelImpl
 public:
 
 	// Begin FChatViewModel interface
+
+	virtual TSharedRef<FChatViewModel> Clone(const TSharedRef<class IChatDisplayService>& InChatDisplayService) override
+	{
+		TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(FriendViewModelFactory, MessageService, NavigationService, MarkupService, InChatDisplayService, FriendsService, GamePartyService));
+		ViewModel->Initialize(true);
+		ViewModel->SetFilteredMessages(FilteredMessages);
+		ViewModel->SetChannelFlags(ChatChannelFlags);
+		return ViewModel;
+	}
+
 	virtual FText GetChatGroupText(bool ShowWhisperFriendsName) const override
 	{
 		return SelectedFriend.IsValid() && ShowWhisperFriendsName ? SelectedFriend->DisplayName : EChatMessageType::ToText(GetChatChannelType());
@@ -122,11 +132,17 @@ public:
 		{
 			SetOutgoingMessageChannel(EChatMessageType::Whisper);
 		}
+		SetFocus();
 	}
 
 	virtual bool IsWhisperFriendSet() const override
 	{
 		return SelectedFriend.IsValid();
+	}
+
+	virtual bool IsInPartyChat() const override
+	{
+		return GamePartyService->IsInPartyChat();
 	}
 
 	virtual bool IsChatConnected() const override
@@ -198,7 +214,7 @@ public:
 						case EChatMessageType::Party:
 						{
 							FChatRoomId PartyChatRoomId = GamePartyService->GetPartyChatRoomId();
-							if (GamePartyService->IsInActiveParty() && !PartyChatRoomId.IsEmpty())
+							if (GamePartyService->IsInPartyChat() && !PartyChatRoomId.IsEmpty())
 							{
 								//@todo will need to support multiple party channels eventually, hardcoded to first party for now
 								bSuccess = MessageService->SendRoomMessage(PartyChatRoomId, NewMessage.ToString());
@@ -237,6 +253,26 @@ public:
 		if ((ChatChannelFlags ^ EChatMessageType::Whisper) == 0)
 		{
 			return EChatMessageType::Whisper;
+		}
+		if ((ChatChannelFlags ^ EChatMessageType::Party) == 0)
+		{
+			return EChatMessageType::Party;
+		}
+		if ((ChatChannelFlags ^ EChatMessageType::Game) == 0)
+		{
+			return EChatMessageType::Game;
+		}
+		if ((ChatChannelFlags ^ EChatMessageType::Team) == 0)
+		{
+			return EChatMessageType::Team;
+		}
+		if ((ChatChannelFlags ^ EChatMessageType::Clan) == 0)
+		{
+			return EChatMessageType::Clan;
+		}
+		if ((ChatChannelFlags ^ EChatMessageType::Empty) == 0)
+		{
+			return EChatMessageType::Empty;
 		}
 		return EChatMessageType::Custom;
 	}
@@ -453,7 +489,7 @@ public:
 
 	virtual EVisibility GetBackgroundVisibility() const override
 	{
-		return EVisibility::Visible;
+		return ChatDisplayService->IsChatMinimized() ? EVisibility::Hidden : EVisibility::Visible;
 	}
 
 	virtual EVisibility GetTipVisibility() const override
@@ -468,6 +504,16 @@ public:
 			return ChatDisplayService->GetChatListVisibility();
 		}
 		return EVisibility::Visible;
+	}
+
+	virtual EVisibility GetChatMaximizeVisibility() const override
+	{
+		return ChatDisplayService->IsChatMinimized() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	virtual void ToggleChatMinimized() override
+	{
+		ChatDisplayService->ToggleChatMinimized();
 	}
 
 	virtual void ValidateChatInput(const FText Message, const FText PlainText)
@@ -633,6 +679,11 @@ private:
 	void HandleSetFocus()
 	{
 		OnChatListSetFocus().Broadcast();
+	}
+
+	void SetFilteredMessages(TArray<TSharedRef<FChatItemViewModel> > InFilteredMessages)
+	{
+		FilteredMessages = InFilteredMessages;
 	}
 
 protected:

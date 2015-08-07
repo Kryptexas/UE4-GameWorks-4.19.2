@@ -41,6 +41,7 @@ public:
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SAssignNew(ChatBox, SBox)
+			.VAlign(VAlign_Center)
 		]);
 
 		RebuildTextEntry();
@@ -58,7 +59,7 @@ public:
 		{
 			SAssignNew(ChatTextBox, SMultiLineEditableTextBox)
 				.Style(&FriendStyle.FriendsChatStyle.ChatEntryTextStyle)
-				.Font(FFriendsAndChatModuleStyle::GetStyleService()->GetNormalFont())
+				.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontSmall)
 				.ClearKeyboardFocusOnCommit(false)
 				.OnTextCommitted(this, &SChatEntryWidgetImpl::HandleChatEntered)
 				.OnKeyDownHandler(this, &SChatEntryWidgetImpl::HandleChatKeydown)
@@ -66,8 +67,7 @@ public:
 				.OnTextChanged(this, &SChatEntryWidgetImpl::HandleChatTextChanged)
 				.IsEnabled(this, &SChatEntryWidgetImpl::IsChatEntryEnabled)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
-				.Marshaller(Marshaller)
-				.WrapTextAt(this, &SChatEntryWidgetImpl::GetMessageBoxWrapWidth);
+				.Marshaller(Marshaller);
 
 			if (!EnteredText.IsEmpty())
 			{
@@ -97,19 +97,6 @@ public:
 	
 		SetFocus();
 		return FReply::Handled();
-	}
-
-	/**
-	 * Hack to find the wrap text width of the current widget. Rich text should support this in the future
-	 */
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
-	{
-		SUserWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-		int32 NewWindowWidth = FMath::FloorToInt(AllottedGeometry.GetLocalSize().X);
-		if(NewWindowWidth != WindowWidth)
-		{
-			WindowWidth = NewWindowWidth;
-		}
 	}
 
 	// End SUserWidget
@@ -145,8 +132,20 @@ private:
 	void HandleChatTextChanged(const FText& CurrentText)
 	{
 		FText PlainText = ChatTextBox->GetPlainText();
-		CheckLimit(PlainText);
-		ViewModel->ValidateChatInput(CurrentText, PlainText);
+		FString PlainTextString = PlainText.ToString();
+
+		if (PlainTextString.Len() > MaxChatLength)
+		{
+			int32 CharactersOver = PlainTextString.Len() - MaxChatLength;
+			FString CurrentTextString = CurrentText.ToString();
+			ChatTextBox->SetText(FText::FromString(CurrentTextString.LeftChop(CharactersOver-1)));
+			ChatTextBox->SetError(LOCTEXT("OverCharacterLimitMsg", "Message Over Character Limit"));
+		}
+		else
+		{
+			ChatTextBox->SetError(FText());
+			ViewModel->ValidateChatInput(CurrentText, PlainText);
+		}
 	}
 
 	/**
@@ -222,15 +221,6 @@ private:
 	bool IsChatEntryEnabled() const
 	{
 		return ViewModel->IsChatConnected();
-	}
-
-	/**
-	 * Hack to find the wrap text width of the current widget. Rich text should support this in the future.
-	 * Return the window width minus a boarder
-	 */
-	float GetMessageBoxWrapWidth() const
-	{
-		return FMath::Max(WindowWidth - 60, 0.0f);
 	}
 
 	void HandleNameClicked(const FSlateHyperlinkRun::FMetadata& Metadata)

@@ -109,7 +109,7 @@ public:
 	* @param ClientID ID of the Game we want to join
 	* @return true if joining a game is allowed
 	*/
-	virtual bool JoinGameAllowed(FString ClientID) = 0;
+	virtual bool JoinGameAllowed(const FString& ClientID) = 0;
 
 	/**
 	* Get party info our friend is in
@@ -132,10 +132,17 @@ public:
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId(FString SessionID) const = 0;
 
 	/**
-	* Get if we are in a party
-	* @return true if we are in a party
-	*/
-	virtual bool IsInActiveParty() const = 0;
+	 * Is the local player in a valid party
+	 * 
+	 * @return true if we are in a party
+	 */
+	virtual bool IsLocalPlayerInActiveParty() const = 0;
+	
+	/**
+	 * Get if we are able to party chat
+	 * @return true if we are in a party with more than 1 member and able to chat
+	 */
+	virtual bool IsInPartyChat() const = 0;
 
 	/**
 	* Add an application view model

@@ -7,6 +7,8 @@
 #include "IChatSettingsService.h"
 #include "IChatTabViewModel.h"
 #include "ChatSettingsViewModel.h"
+#include "ChatDisplayService.h"
+#include "ChatSettingsService.h"
 
 class FChatChromeViewModelImpl
 	: public FChatChromeViewModel
@@ -82,12 +84,33 @@ public:
 
 	virtual EVisibility GetHeaderVisibility() const override
 	{
-		return ChatDisplayService->GetEntryBarVisibility();
+		return ChatDisplayService->GetChatHeaderVisibiliy();
 	}
 
 	virtual bool DisplayChatSettings() const override
 	{
 		return !NavigationService->IsInGame();
+	}
+
+	virtual void ToggleChatMinimized() override
+	{
+		ChatDisplayService->ToggleChatMinimized();
+	}
+
+	virtual bool IsChatMinimized() const override
+	{
+		return ChatDisplayService->IsChatMinimized();
+	}
+
+	virtual TSharedRef<FChatChromeViewModel> Clone(TSharedRef<IChatDisplayService> InChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService) override
+	{
+		TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, InChatDisplayService, InChatSettingsService));
+		ViewModel->Initialize();
+		for (const auto& Tab: Tabs)
+		{
+			ViewModel->AddTab(Tab->Clone(InChatDisplayService));
+		}
+		return ViewModel;
 	}
 
 	DECLARE_DERIVED_EVENT(FChatChromeViewModelImpl, FChatChromeViewModel::FActiveTabChangedEvent, FActiveTabChangedEvent)

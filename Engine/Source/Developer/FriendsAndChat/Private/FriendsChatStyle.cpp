@@ -148,3 +148,15 @@ FFriendsChatStyle& FFriendsChatStyle::SetChatSettingsBrush(const FSlateBrush& Br
 	ChatSettingsBrush = Brush;
 	return *this;
 }
+
+FFriendsChatStyle& FFriendsChatStyle::SetMinimizeButtonStyle(const FButtonStyle& Button)
+{
+	FriendsMinimizeButtonStyle = Button;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetMaximizeButtonStyle(const FButtonStyle& Button)
+{
+	FriendsMaximizeButtonStyle = Button;
+	return *this;
+}

@@ -54,16 +54,10 @@ public:
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
-						else if (GamePartyService->JoinGameAllowed(GetClientId()) && FriendItem->IsInParty())
-						{
-							Actions.Add(EFriendActionType::JoinGame);
-						}
 					}
 					if (FriendItem->IsOnline() && FriendItem->CanInvite())
 					{
-						const bool bIsJoinableGame = GamePartyService->IsInJoinableGameSession() && !GamePartyService->IsFriendInSameSession(FriendItem);
-						const bool bIsJoinableParty = GamePartyService->IsInJoinableParty() && !GamePartyService->IsFriendInSameParty(FriendItem);
-						if (bIsJoinableGame || bIsJoinableParty)
+						if (CanPerformAction(EFriendActionType::InviteToGame))
 						{
 							Actions.Add(EFriendActionType::InviteToGame);
 						}
@@ -182,6 +176,21 @@ public:
 				}
 				return false;
 			}
+			case EFriendActionType::InviteToGame:
+			{
+				if (IsLocalPlayerInActiveParty())
+				{
+					// Party rules apply (if also in a game then party needs to reflect game state)
+					const bool bIsJoinableParty = GamePartyService->IsInJoinableParty() && !GamePartyService->IsFriendInSameParty(FriendItem);
+					return bIsJoinableParty;
+				}
+				else
+				{
+					// Game rules apply
+					const bool bIsJoinableGame = GamePartyService->IsInJoinableGameSession() && !GamePartyService->IsFriendInSameSession(FriendItem);
+					return bIsJoinableGame;
+				}
+			}
 			case EFriendActionType::AcceptFriendRequest:
 			case EFriendActionType::RemoveFriend:
 			case EFriendActionType::IgnoreFriendRequest:
@@ -189,7 +198,6 @@ public:
 			case EFriendActionType::RejectFriendRequest:
 			case EFriendActionType::CancelFriendRequest:
 			case EFriendActionType::SendFriendRequest:
-			case EFriendActionType::InviteToGame:
 			case EFriendActionType::RejectGame:
 			case EFriendActionType::Chat:
 			default:
@@ -241,9 +249,14 @@ public:
 		return GamePartyService->IsInGameSession();
 	}
 
-	virtual bool IsInActiveParty() const override
+	virtual bool IsLocalPlayerInActiveParty() const override
 	{
-		return GamePartyService->IsInActiveParty();
+		return GamePartyService->IsLocalPlayerInActiveParty();
+	}
+
+	virtual bool IsInPartyChat() const override
+	{
+		return GamePartyService->IsInPartyChat();
 	}
 
 	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override
