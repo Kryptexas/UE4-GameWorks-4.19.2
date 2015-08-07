@@ -1135,7 +1135,7 @@ void FTranslationEditor::UpdateContextSelection()
 
 void FTranslationEditor::PreviewAllTranslationsInEditor_Execute()
 {
-	DataManager->PreviewAllTranslationsInEditor();
+	DataManager->PreviewAllTranslationsInEditor(AssociatedLocalizationTarget.Get());
 }
 
 void FTranslationEditor::ImportLatestFromLocalizationService_Execute()
