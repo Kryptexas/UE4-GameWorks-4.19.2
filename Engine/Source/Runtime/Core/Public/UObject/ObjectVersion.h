@@ -568,6 +568,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT,
 	// Updated dialogue wave localization gathering logic.
 	VER_UE4_DIALOGUE_WAVE_NAMESPACE_AND_CONTEXT_CHANGES,
+	// Renamed MakeRot MakeRotator and rearranged parameters.
+	VER_UE4_MAKE_ROT_RENAME_AND_REORDER,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
