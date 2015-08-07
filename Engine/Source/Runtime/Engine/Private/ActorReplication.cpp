@@ -282,7 +282,7 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 
 	DOREPLIFETIME( AActor, bTearOff );
 	DOREPLIFETIME( AActor, bCanBeDamaged );
-	DOREPLIFETIME( AActor, AttachmentReplication );
+	DOREPLIFETIME_CONDITION( AActor, AttachmentReplication, COND_Custom );
 
 	DOREPLIFETIME( AActor, Instigator );
 

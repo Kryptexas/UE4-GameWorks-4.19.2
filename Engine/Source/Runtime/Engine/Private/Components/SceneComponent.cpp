@@ -2209,6 +2209,16 @@ void USceneComponent::OnRep_Transform()
 	bNetUpdateTransform = true;
 }
 
+void USceneComponent::OnRep_AttachParent()
+{
+	bNetUpdateAttachment = true;
+}
+
+void USceneComponent::OnRep_AttachSocketName()
+{
+	bNetUpdateAttachment = true;
+}
+
 void USceneComponent::OnRep_Visibility(bool OldValue)
 {
 	bool ReppedValue = bVisible;
@@ -2220,6 +2230,8 @@ void USceneComponent::PreNetReceive()
 {
 	Super::PreNetReceive();
 
+	bNetUpdateTransform = false;
+	bNetUpdateAttachment = false;
 	NetOldAttachSocketName = AttachSocketName;
 	NetOldAttachParent = AttachParent;
 }
@@ -2229,32 +2241,27 @@ void USceneComponent::PostNetReceive()
 	Super::PostNetReceive();
 
 	// If we have no attach parent, attach to parent's root component.
-	bool UpdateAttach = false;
-
-	UpdateAttach |= (NetOldAttachParent != AttachParent);
-	UpdateAttach |= (NetOldAttachSocketName != AttachSocketName);
-
 	if (AttachParent == NULL)
 	{
 		USceneComponent * ParentRoot = GetOwner()->GetRootComponent();
 		if (ParentRoot != this)
 		{
-			UpdateAttach = true;
+			bNetUpdateAttachment = true;
 			AttachParent = ParentRoot;
 		}
-	}
-	
-	if (UpdateAttach)
-	{
-		Exchange(NetOldAttachParent, AttachParent);
-		Exchange(NetOldAttachSocketName, AttachSocketName);
-		
-		AttachTo(NetOldAttachParent, NetOldAttachSocketName);
 	}
 }
 
 void USceneComponent::PostRepNotifies()
 {
+	if (bNetUpdateAttachment)
+	{
+		Exchange(NetOldAttachParent, AttachParent);
+		Exchange(NetOldAttachSocketName, AttachSocketName);
+		AttachTo(NetOldAttachParent, NetOldAttachSocketName);
+		bNetUpdateAttachment = false;
+	}
+
 	if (bNetUpdateTransform)
 	{
 		UpdateComponentToWorld(true);

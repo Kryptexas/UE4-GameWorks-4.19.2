@@ -805,6 +805,9 @@ void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker
 
 	DOREPLIFETIME_ACTIVE_OVERRIDE( AActor, ReplicatedMovement, bReplicateMovement );
 
+	// Don't need to replicate AttachmentReplication if the root component replicates, because it already handles it.
+	DOREPLIFETIME_ACTIVE_OVERRIDE( AActor, AttachmentReplication, RootComponent && !RootComponent->GetIsReplicated() );
+
 	UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(GetClass());
 	if (BPClass != NULL)
 	{

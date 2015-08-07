@@ -104,7 +104,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** What we are currently attached to. If valid, RelativeLocation etc. are used relative to this object */
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_AttachParent)
 	class USceneComponent* AttachParent;
 
 	/** List of child SceneComponents that are attached to us. */
@@ -112,7 +112,7 @@ public:
 	TArray< USceneComponent* > AttachChildren;
 
 	/** Optional socket name on AttachParent that we are attached to. */
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_AttachSocketName)
 	FName AttachSocketName;
 
 	/** if true, will call GetCustomLocation instead or returning the location part of ComponentToWorld */
@@ -225,12 +225,18 @@ public:
 private:
 
 	bool bNetUpdateTransform;
-
+	bool bNetUpdateAttachment;
 	FName NetOldAttachSocketName;
 	USceneComponent *NetOldAttachParent;
 
 	UFUNCTION()
 	void OnRep_Transform();
+
+	UFUNCTION()
+	void OnRep_AttachParent();
+
+	UFUNCTION()
+	void OnRep_AttachSocketName();
 
 	UFUNCTION()
 	void OnRep_Visibility(bool OldValue);
