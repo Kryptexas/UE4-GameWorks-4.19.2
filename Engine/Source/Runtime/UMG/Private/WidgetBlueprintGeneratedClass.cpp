@@ -17,6 +17,9 @@ UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FObjectInit
 
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
+	UserWidget->bCanEverTick = bCanEverTick;
+	UserWidget->bCanEverPaint = bCanEverPaint;
+
 #if WITH_EDITORONLY_DATA
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>(DesignerWidgetTree ? DesignerWidgetTree : WidgetTree, UserWidget);
 #else

@@ -81,6 +81,12 @@ public:
 	UPROPERTY()
 	TArray< FName > NamedSlots;
 
+	UPROPERTY()
+	uint32 bCanEverTick : 1;
+
+	UPROPERTY()
+	uint32 bCanEverPaint : 1;
+
 public:
 
 	virtual void PostLoad() override;

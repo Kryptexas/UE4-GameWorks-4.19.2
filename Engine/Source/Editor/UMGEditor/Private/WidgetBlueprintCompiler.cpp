@@ -304,6 +304,26 @@ void FWidgetBlueprintCompiler::Compile()
 {
 	Super::Compile();
 
+	//TODO Once we handle multiple derived blueprint classes, we need to check parent versions of the class.
+	if ( const UFunction* ReceiveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(GET_FUNCTION_NAME_CHECKED(UUserWidget, Tick), NewWidgetBlueprintClass) )
+	{
+		NewWidgetBlueprintClass->bCanEverTick = true;
+	}
+	else
+	{
+		NewWidgetBlueprintClass->bCanEverTick = false;
+	}
+	
+	//TODO Once we handle multiple derived blueprint classes, we need to check parent versions of the class.
+	if ( const UFunction* ReceivePaintEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(GET_FUNCTION_NAME_CHECKED(UUserWidget, OnPaint), NewWidgetBlueprintClass) )
+	{
+		NewWidgetBlueprintClass->bCanEverPaint = true;
+	}
+	else
+	{
+		NewWidgetBlueprintClass->bCanEverPaint = false;
+	}
+
 	WidgetToMemberVariableMap.Empty();
 }
 

@@ -16,6 +16,8 @@
 
 UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bCanEverTick(true)
+	, bCanEverPaint(true)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
 	Visiblity_DEPRECATED = Visibility = ESlateVisibility::SelfHitTestInvisible;
@@ -729,7 +731,10 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	TickActionsAndAnimation(MyGeometry, InDeltaTime);
 
-	Tick(MyGeometry, InDeltaTime);
+	if ( bCanEverTick )
+	{
+		Tick(MyGeometry, InDeltaTime);
+	}
 }
 
 void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime)
@@ -776,7 +781,10 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 
 void UUserWidget::NativePaint( FPaintContext& InContext ) const 
 {
-	OnPaint( InContext );
+	if ( bCanEverPaint )
+	{
+		OnPaint(InContext);
+	}
 }
 
 bool UUserWidget::NativeIsInteractable() const
