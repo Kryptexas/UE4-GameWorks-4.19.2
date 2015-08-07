@@ -285,7 +285,21 @@ public:
 	virtual ~FOnlinePartyInfo() 
 	{}
 
-	virtual TSharedPtr<const FUniqueNetId> GetLeaderId() = 0;
+	virtual TSharedPtr<const FUniqueNetId> GetLeaderId() const = 0;
+
+	/**
+	 * Calculate the possible joinability state of this party
+	 * check the values from left to right in order of precedence
+	 *
+	 * @param LocalUserId local user making this request
+	 * @param bPublicJoinable [out] is the party joinable by anyone at all
+	 * @param bFriendJoinable [out] is the party joinable by friends via presence (doesn't require invite)
+	 * @param bInviteOnly [out] is the party joinable via explicit invites
+	 * @param bAllowInvites [out] are invites possible (use with bInviteOnly to determine if invites are available right now)
+	 *
+	 * @return true if the out params are valid, false otherwise
+	 */
+	virtual bool GetJoinability(const FUniqueNetId& LocalUserId, bool& bPublicJoinable, bool& bFriendJoinable, bool& bInviteOnly, bool& bAllowInvites) const = 0;
 
 	/**
 	 * Dump state about the party info for debugging
