@@ -300,7 +300,7 @@ namespace
 				}
 				for (int32 i = 0; i < MandatoryColumnNames.Num(); ++i)
 				{
-					if (MandatoryColumnNames[i] != HeaderRow[i])
+					if (!MandatoryColumnNames[i].Equals(HeaderRow[i]))
 					{
 						return false;
 					}
