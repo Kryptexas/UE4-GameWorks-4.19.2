@@ -188,6 +188,9 @@ struct FFileManifestData
 	TArray<FChunkPartData> FileChunkParts;
 
 	UPROPERTY()
+	TArray<FString> InstallTags;
+
+	UPROPERTY()
 	bool bIsUnixExecutable;
 
 	UPROPERTY()

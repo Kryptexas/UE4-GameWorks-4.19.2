@@ -11,6 +11,7 @@
 #include "Generation/BuildStreamer.h"
 #include "Generation/CloudEnumeration.h"
 #include "Generation/ManifestBuilder.h"
+#include "Generation/FileAttributesParser.h"
 
 using namespace BuildPatchServices;
 
@@ -461,50 +462,6 @@ static void AddCustomFieldsToBuildManifest(const TMap<FString, FVariant>& Custom
 	}
 }
 
-static void FileAttributesMetaToMap(const FString& AttributesList, TMap<FString, FFileAttributes>& FileAttributesMap)
-{
-	const TCHAR Quote = TEXT('\"');
-	const TCHAR EOFile = TEXT('\0');
-	const TCHAR EOLine = TEXT('\n');
-
-	const TCHAR* CharPtr = *AttributesList;
-	while (*CharPtr != EOFile)
-	{
-		// Parse filename
-		while (*CharPtr != Quote && *CharPtr != EOFile){ ++CharPtr; }
-		if (*CharPtr == EOFile)
-		{
-			break;
-		}
-		const TCHAR* FilenameStart = ++CharPtr;
-		while (*CharPtr != Quote && *CharPtr != EOFile && *CharPtr != EOLine){ ++CharPtr; }
-		checkf(*CharPtr != EOFile, TEXT("Attributes File List: Unexpected end of file before next quote! Pos:%d"), CharPtr - *AttributesList);
-		checkf(*CharPtr != EOLine, TEXT("Attributes File List: Unexpected end of line before next quote! Pos:%d"), CharPtr - *AttributesList);
-		const TCHAR* FilenameEnd = CharPtr++;
-		// Parse keywords
-		while (*CharPtr != Quote && *CharPtr != EOFile && *CharPtr != EOLine){ ++CharPtr; }
-		checkf(*CharPtr != Quote, TEXT("Attributes File List: Unexpected Quote before end of keywords! Pos:%d"), CharPtr - *AttributesList);
-		const TCHAR* EndOfLine = CharPtr;
-		// Grab info
-		FString Filename = FString(FilenameEnd - FilenameStart, FilenameStart).Replace(TEXT("\\"), TEXT("/"));
-		FString Keywords(EndOfLine - FilenameEnd, FilenameEnd);
-		FFileAttributes FileAttributes;
-		if (Keywords.Contains(TEXT("readonly")))
-		{
-			FileAttributes.bReadOnly = true;
-		}
-		if (Keywords.Contains(TEXT("compressed")))
-		{
-			FileAttributes.bCompressed = true;
-		}
-		if (Keywords.Contains(TEXT("executable")))
-		{
-			FileAttributes.bUnixExecutable = true;
-		}
-		FileAttributesMap.Add(MoveTemp(Filename), FileAttributes);
-	}
-}
-
 /* FBuildDataGenerator implementation
 *****************************************************************************/
 bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatchSettings& Settings )
@@ -514,11 +471,36 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	// Take the build CS
 	FScopeLock SingleConcurrentBuild( &SingleConcurrentBuildCS );
 
+	// Create a manifest details
+	FManifestDetails ManifestDetails;
+	ManifestDetails.bIsFileData = false;
+	ManifestDetails.AppId = Settings.AppID;
+	ManifestDetails.AppName = Settings.AppName;
+	ManifestDetails.BuildVersion = Settings.BuildVersion;
+	ManifestDetails.LaunchExe = Settings.LaunchExe;
+	ManifestDetails.LaunchCommand = Settings.LaunchCommand;
+	ManifestDetails.PrereqName = Settings.PrereqName;
+	ManifestDetails.PrereqPath = Settings.PrereqPath;
+	ManifestDetails.PrereqArgs = Settings.PrereqArgs;
+	ManifestDetails.CustomFields = Settings.CustomFields;
+
+	// Load the required file attributes
+	if(!Settings.AttributeListFile.IsEmpty())
+	{
+		FFileAttributesParserRef FileAttributesParser = FFileAttributesParserFactory::Create();
+		if(!FileAttributesParser->ParseFileAttributes(Settings.AttributeListFile, ManifestDetails.FileAttributesMap))
+		{
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Attributes list file did not parse %s"), *Settings.AttributeListFile);
+			return false;
+		}
+	}
+
 	// Create stat collector
 	FStatsCollectorRef StatsCollector = FStatsCollectorFactory::Create();
 
 	// Enumerate Chunks
 	FCloudEnumerationRef CloudEnumeration = FCloudEnumerationFactory::Create(FBuildPatchServicesModule::GetCloudDirectory());
+
 	// Force waiting on cloud enumeration for more accurate stats, this line can be removed when stats are not required.
 	CloudEnumeration->GetChunkInventory();
 
@@ -536,36 +518,8 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	FBuildGenerationChunkCache::Init(Cutoff);
 	FBuildGenerationChunkCache::Get().SetStatsCollector(StatsCollector);
 
-	// Create a manifest builder
-	FManifestDetails ManifestDetails;
-	ManifestDetails.bIsFileData = false;
-	ManifestDetails.AppId = Settings.AppID;
-	ManifestDetails.AppName = Settings.AppName;
-	ManifestDetails.BuildVersion = Settings.BuildVersion;
-	ManifestDetails.LaunchExe = Settings.LaunchExe;
-	ManifestDetails.LaunchCommand = Settings.LaunchCommand;
-	ManifestDetails.PrereqName = Settings.PrereqName;
-	ManifestDetails.PrereqPath = Settings.PrereqPath;
-	ManifestDetails.PrereqArgs = Settings.PrereqArgs;
-	ManifestDetails.CustomFields = Settings.CustomFields;
-	// Get the file attributes
-	FString AttributesList;
-	if (Settings.AttributeListFile.Len() > 0)
-	{
-		FFileHelper::LoadFileToString(AttributesList, *Settings.AttributeListFile);
-		if (!AttributesList.IsEmpty())
-		{
-			FileAttributesMetaToMap(AttributesList, ManifestDetails.FileAttributesMap);
-		}
-		else
-		{
-			GLog->Logf(TEXT("WARNING: Attributes list file empty"));
-		}
-	}
+	// Create the manifest builder
 	FManifestBuilderRef ManifestBuilder = FManifestBuilderFactory::Create(ManifestDetails, BuildStream);
-
-	// Refers to how much data has been dequeued
-	//uint64 ProcessPos = 0;
 
 	// Used to store data read lengths
 	uint32 ReadLen = 0;
@@ -659,16 +613,13 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	// Get the file attributes
 	FString AttributesList;
 	TMap<FString, FFileAttributes> FileAttributesMap;
-	if (Settings.AttributeListFile.Len() > 0)
+	if(!Settings.AttributeListFile.IsEmpty())
 	{
-		FFileHelper::LoadFileToString(AttributesList, *Settings.AttributeListFile);
-		if (!AttributesList.IsEmpty())
+		FFileAttributesParserRef FileAttributesParser = FFileAttributesParserFactory::Create();
+		if(!FileAttributesParser->ParseFileAttributes(Settings.AttributeListFile, FileAttributesMap))
 		{
-			FileAttributesMetaToMap(AttributesList, FileAttributesMap);
-		}
-		else
-		{
-			GLog->Logf(TEXT("WARNING: Attributes list file empty"));
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Attributes list file did not parse %s"), *Settings.AttributeListFile);
+			return false;
 		}
 	}
 
@@ -752,6 +703,7 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 			FFileManifestData& FileManifest = *BuildManifest->FileManifestLookup[Filename];
 			FileManifest.bIsReadOnly = Attributes.bReadOnly;
 			FileManifest.bIsCompressed = Attributes.bCompressed;
+			FileManifest.InstallTags = Attributes.InstallTags.Array();
 			// Only overwrite unix exe if true
 			if (Attributes.bUnixExecutable)
 			{

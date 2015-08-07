@@ -804,6 +804,17 @@ void FBuildPatchAppManifest::SerializeToJSON(FString& JSONOutput)
 					}
 					Writer->WriteArrayEnd();
 				}
+				if (FileManifest.InstallTags.Num() > 0)
+				{
+					Writer->WriteArrayStart(TEXT("InstallTags"));
+					{
+						for (const auto& InstallTag : FileManifest.InstallTags)
+						{
+							Writer->WriteValue(InstallTag);
+						}
+					}
+					Writer->WriteArrayEnd();
+				}
 			}
 			Writer->WriteObjectEnd();
 		}
@@ -956,6 +967,14 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 				bSuccess = bSuccess && FromStringBlob(JsonChunkPart->GetStringField(TEXT("Offset")), FileChunkPart.Offset);
 				bSuccess = bSuccess && FromStringBlob(JsonChunkPart->GetStringField(TEXT("Size")), FileChunkPart.Size);
 				AllDataGuids.Add(FileChunkPart.Guid);
+			}
+			if (JsonFileManifest->HasTypedField<EJson::Array>(TEXT("InstallTags")))
+			{
+				TArray<TSharedPtr<FJsonValue>> JsonInstallTagsArray = JsonFileManifest->GetArrayField(TEXT("InstallTags"));
+				for (auto JsonInstallTagIt = JsonInstallTagsArray.CreateConstIterator(); JsonInstallTagIt && bSuccess; ++JsonInstallTagIt)
+				{
+					FileManifest.InstallTags.Add((*JsonInstallTagIt)->AsString());
+				}
 			}
 			FileManifest.bIsUnixExecutable = JsonFileManifest->HasField(TEXT("bIsUnixExecutable")) && JsonFileManifest->GetBoolField(TEXT("bIsUnixExecutable"));
 			FileManifest.bIsReadOnly = JsonFileManifest->HasField(TEXT("bIsReadOnly")) && JsonFileManifest->GetBoolField(TEXT("bIsReadOnly"));
