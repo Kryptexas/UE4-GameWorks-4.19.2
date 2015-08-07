@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2468092
+﻿INTSourceChangelist:2597690
 Availability:Public
-Title:2.キャラクターに必要な設定をする
+Title:2.必要なキャラクターの設定
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:プレイ可能なキャラクターのゲーム設定を正しく行うステップです。 
 
@@ -29,11 +29,11 @@ Description:プレイ可能なキャラクターのゲーム設定を正しく�
 
 Character ブループリントを使います。 
 
-1.	**コンテンツ ブラウザ** 内の **Content/FirstPersonBP/Blueprints** で、**First Person Character** ブループリントを開きます。 
+1.	**コンテンツ ブラウザ** で **Content>FirstPersonBP>Blueprints** を選択して、**First Person Character** ブループリントを開きます。 
 
 	![](FirstPersonCharacter.png)
 
-1.	グラフ内で、 **Stick Input** 、 **Movement Input** 、 **Jump** セクションを削除し、以下のセクションだけが含まれるようにします。 
+1.	グラフの **Stick Input** と **Movement Input** と **Jump** セクションを削除して、以下のセクションだけが残るようにします。 
 
 	![](CleanUp.png)
 
@@ -49,13 +49,13 @@ Character ブループリントを使います。
 
 	ゲームの再生開始時に **HUD** Widget ブループリントを呼びだし、それを表示します。 
 
-1.	**Class** の **Create Widget** ノード上で **HUD** を選択し、 **Return Value** を引き出し、 **Add to Viewport** ノードを使用します。 
+1.	**Create Widget** ノードの **Class** で **[HUD]** を選択したら、**Return Value** を引き出して、**Add to Viewport** ノードを使用します。 
 
 	![](AddToViewport.png)
 
 	HUD が表示されるようになるので、HUD に渡す変数を作成する必要があります。それでは実践してみましょう。 
 
-1.	**[MyBlueprint]** ウィンドウの **[Add Variable]** ボタンをクリックします。 
+1.	**[MyBlueprint]** ウィンドウの **[Add Variable (変数を追加)]** ボタンをクリックします。 
 
 	![](AddVariable.png)
 
@@ -137,7 +137,7 @@ Character ブループリントを使います。
 
 	![](BPHT1_8.png)
 
-1.	グラフ ウィンドウのどこかを **右クリック** して、 **「F」** と入力して **F** Key イベントをグラフに追加します。 
+1.	グラフ ウィンドウのどこかを **右クリック** して、「 **F** 」と入力して **F** Key イベントをグラフに追加します。 
 
 	![](BPHT1_9.png)
 
@@ -151,7 +151,7 @@ Character ブループリントを使います。
 
 	![](BPHT1_11.png)
 
-1.	**[MyBlueprint]** ウィンドウの **[Add Variable]** ボタンをクリックします。 
+1.	**[MyBlueprint]** ウィンドウの **[Add Variable (変数を追加)]** ボタンをクリックします。 
 
 	![](BPHT1_12.png)
 
@@ -165,7 +165,7 @@ Character ブループリントを使います。
 
 	_これにより Spawn Transform (または岩をスポーンする位置) として使用するように変数が接続およびアサインされます。自由に岩を取得してスポーンしたい位置は、レベル内に配置したスポーン地点に基いているので、 **イベントディスパッチャー** を使って **Level ブループリント*** の **イベント** を呼び出し、位置情報を MyCharacter ブループリントに戻すように指示します。_
 
-1.	**[MyBlueprint]** ウィンドウの **[Add Event Dispatcher]** ボタンをクリックして選択し、 **F2** を押して名前を「 **GetLocation** 」に変更します。 
+1.	**[MyBlueprint]** ウィンドウの **[Add Event Dispatcher (イベントディスパッチャーを追加)]** ボタンをクリックして選択し、 **F2** を押して名前を「 **GetLocation** 」に変更します。 
 
 	![](BPHT1_15.png)
 
@@ -188,12 +188,12 @@ Character ブループリントを使います。
 		Casting To ブループリント
 	[/PARAM]
 	[PARAM:description]
-	**Event Dispatcher** を終了し、 Character ブループリントで呼び出すと、 **Level ブループリント** が通知され、スポーン位置の 1 つをプルし、岩をスポーンする目的地として渡します。 
+	**イベントディスパチャー** を終了し、 Character ブループリントで呼び出すと、 **Level ブループリント** が通知され、スポーン位置の 1 つをプルし、岩をスポーンする目的地として渡します。 
 	[/PARAM]
 [/OBJECT]
 
 
-1.	メイン エディタ ビューの **[ワールド アウトライナー]** ウィンドウで、 **ターゲット** を検索して、それぞれのターゲットポイントを選択します。 
+1.	メイン エディタ ビューの **[World Outliner (ワールド アウトライナー)]** ウィンドウで、 **ターゲット** を検索して、それぞれのターゲットポイントを選択します。 
 
 	![](BPHT1_20.png)
 
@@ -203,7 +203,7 @@ Character ブループリントを使います。
 
 	![](BPHT1_21.png)
 
-1.	グラフ内をどこかを **右クリック** し、 **[Add references to 4 selected Actors]** オプションを選んでグラフに追加します。 
+1.	グラフ内をどこかを **右クリック** し、 **[Add references to 4 selected Actors (選択した 4 つのアクタにリファレンスを追加)]** オプションを選んでグラフに追加します。 
 
 	![](BPHT1_22.png)
 
@@ -287,7 +287,7 @@ Character ブループリントを使います。
 
 	![](GIF_1.gif)(convert:false)
 
-本ページでは、 イベントディスパッチャー を Cast To ノードを一緒に使って Level ブループリント で指定した位置で Actor ブループリント (被破壊性の岩) をスポーンするために Character ブループリントからコマンドを発行することを学習しました。 
+本ページでは、イベントディスパッチャーを Cast To ノードを一緒に使って Level ブループリント で指定した位置で Actor ブループリント (被破壊性の岩) をスポーンするために Character ブループリントからコマンドを発行することを学習しました。 
 
 Event Dispatcher は、Level ブループリントにターゲットポイントのうちの 1 つの位置を取得するよう指示し、 Cast To ノードは位置情報を Character ブループリントに戻して、そこで変数をアップデートし、その変数が Actor ブループリントがスポーンすべき場所を示します。 
 
