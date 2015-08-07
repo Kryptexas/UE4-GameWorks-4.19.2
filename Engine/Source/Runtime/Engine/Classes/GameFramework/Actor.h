@@ -188,6 +188,9 @@ private:
 	UPROPERTY()
 	uint32 bActorEnableCollision:1;
 
+	/** Flag indicating we have checked initial simulating physics state to sync networked proxies to the server. */
+	uint32 bNetCheckedInitialPhysicsState:1;
+
 protected:
 	/**
 	 * If true, this actor will replicate to remote machines
@@ -1764,6 +1767,12 @@ public:
 
 	/** Update and smooth simulated physic state, replaces PostNetReceiveLocation() and PostNetReceiveVelocity() */
 	virtual void PostNetReceivePhysicState();
+
+protected:
+	/** Sync IsSimulatingPhysics() with ReplicatedMovement.bRepPhysics */
+	void SyncReplicatedPhysicsSimulation();
+
+public:
 
 	/** 
 	 * Set the owner of this Actor, used primarily for network replication. 
