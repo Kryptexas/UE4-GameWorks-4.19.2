@@ -293,9 +293,13 @@ bool FSlateFileDlgWindow::OpenDirectoryDialog(const void* ParentWindowHandle, co
 	FSlateApplication::Get().AddModalWindow(ModalWindow, NULL);
 	bool RC = (DialogWidget->GetResponse() == EResult::Accept && TempOut.Num() > 0);
 
-	if (TempOut.Num() > 0 && !TempOut[0].EndsWith(TEXT("/")))
+	if (TempOut.Num() > 0)
 	{
-		OutFoldername = TempOut[0] + TEXT("/");
+		OutFoldername = TempOut[0];
+		if (!OutFoldername.EndsWith(TEXT("/")))
+		{
+			OutFoldername += TEXT("/");
+		}
 	}
 
 	return RC;
