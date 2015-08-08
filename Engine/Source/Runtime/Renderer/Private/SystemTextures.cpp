@@ -90,6 +90,16 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			RHICmdList.Clear(true, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f), false, 0, false, 0, FIntRect());
 			RHICmdList.CopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
+
+		// Create dummy 1x1 depth texture 
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, DepthDummy, TEXT("DepthDummy"));
+
+			SetRenderTarget(RHICmdList, FTextureRHIRef(), DepthDummy->GetRenderTargetItem().TargetableTexture);
+			RHICmdList.Clear(false, FLinearColor::White, true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+			RHICmdList.CopyToResolveTarget(DepthDummy->GetRenderTargetItem().TargetableTexture, DepthDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		}
 	}
 
 	// Create the PerlinNoise3D texture (similar to http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise/)
@@ -395,6 +405,7 @@ void FSystemTextures::ReleaseDynamicRHI()
 	SSAORandomization.SafeRelease();
 	PreintegratedGF.SafeRelease();
 	MaxFP16Depth.SafeRelease();
+	DepthDummy.SafeRelease();
 
 	GRenderTargetPool.FreeUnusedResources();
 

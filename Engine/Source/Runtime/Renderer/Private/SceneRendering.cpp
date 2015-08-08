@@ -1769,12 +1769,3 @@ bool IsMobileHDRMosaic()
 			return !(GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch);
 	}
 }
-
-bool DeviceSupportsShaderDepthFetch()
-{
-	// device should support extension to directly fetch depth in a shader
-	// or support and enable half-float color buffer (base pass stores depth in alpha channel)
-	return (!IsMobilePlatform(GMaxRHIShaderPlatform) 
-			|| GSupportsShaderDepthStencilFetch 
-			|| (GSupportsRenderTargetFormat_PF_FloatRGBA && (IsMobileHDR() && !IsMobileHDR32bpp())));
-}
