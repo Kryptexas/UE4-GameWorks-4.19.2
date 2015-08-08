@@ -210,7 +210,7 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	SCOPED_AUTORELEASE_POOL;
 
 	FString ProcessPath = URL;
-	NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ProcessPath);
+	NSString* LaunchPath = ProcessPath.GetNSString();
 	
 	if (![[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
 	{
@@ -377,7 +377,7 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 		ProcessPath = FString(BaseDir()) + ProcessPath;
 	}
 
-	NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ProcessPath);
+	NSString* LaunchPath = ProcessPath.GetNSString();
 
 	if (![[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
 	{
@@ -518,8 +518,6 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 	{
 		*OutProcessID = ProcessHandle ? [ProcessHandle processIdentifier] : 0;
 	}
-
-	CFRelease((CFStringRef)LaunchPath);
 
 	return FProcHandle(ProcessHandle);
 }
