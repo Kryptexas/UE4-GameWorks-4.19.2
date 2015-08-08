@@ -1197,7 +1197,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 		GetDerivedDataCacheRef().Put(*DerivedDataKey, DerivedData);
 
 		int32 T1 = FPlatformTime::Cycles();
-		UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%f.2s] %s"),
+		UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%.2fs] %s"),
 			FPlatformTime::ToMilliseconds(T1-T0) / 1000.0f,
 			*Owner->GetPathName()
 			);
