@@ -6,9 +6,17 @@
 UPaperSpriteSheet::UPaperSpriteSheet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+void UPaperSpriteSheet::PostInitProperties()
+{
 #if WITH_EDITORONLY_DATA
-	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
 #endif
+	Super::PostInitProperties();
 }
 
 #if WITH_EDITORONLY_DATA

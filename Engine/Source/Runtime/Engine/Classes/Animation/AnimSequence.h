@@ -528,6 +528,7 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 public:
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PreSave() override;
 #if WITH_EDITOR
