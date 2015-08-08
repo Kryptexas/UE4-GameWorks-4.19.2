@@ -2334,6 +2334,9 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 		bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 	}
 
+	// Setup modulated shadows if CSM is not in use.
+	bool bCSMAllocated = false;
+	bool bPerObjectShadowsInUse = false;
 	// Modulated shadows require depth fetch
 	const bool bSupportsDepthFetch = DeviceSupportsShaderDepthFetch();
 
@@ -2364,7 +2367,10 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 			int32 NumWholeSceneShadows = 0;
 			if (bIsVisibleInAnyView)
 			{
-				if (LightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows() && Scene->SimpleDirectionalLight == LightSceneInfo)
+				if (LightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows() && Scene->SimpleDirectionalLight == LightSceneInfo
+					// Only consider movable shadowcasting lights
+					&& !LightSceneInfo->Proxy->HasStaticShadowing()
+					)
 				{
 					AddViewDependentWholeSceneShadowsForView(ViewDependentWholeSceneShadows, ViewDependentWholeSceneShadowsThatNeedCulling, VisibleLightInfo, *LightSceneInfo);
 				}
@@ -2382,12 +2388,14 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 						SetupInteractionShadows(RHICmdList, Interaction, VisibleLightInfo, bStaticSceneOnly, ViewDependentWholeSceneShadows, PreShadows);
 					}
 				}
+				bPerObjectShadowsInUse |= (NumWholeSceneShadows != VisibleLightInfo.AllProjectedShadows.Num());
 			}
 
 			NumWholeSceneShadows = FMath::Min(NumWholeSceneShadows, MAX_FORWARD_SHADOWCASCADES);
 
 			if (NumWholeSceneShadows > 0)
 			{
+				bCSMAllocated = true;
 				FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 				//create the shadow depth texture and/or surface
 				const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
@@ -2417,9 +2425,9 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 					}
 				}
 			}
-			else if (VisibleLightInfo.AllProjectedShadows.Num() > 0)
+			else if(bPerObjectShadowsInUse)
 			{
-				// non whole scene projected shadows are in use. Ensure the shadow depth target is available for modulated shadow use later.
+				// Per obj projected shadows are in use. Ensure the shadow depth target is available for modulated shadow use later.
 				FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 				const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
 				SceneContext.AllocateForwardShadingShadowDepthTarget(ShadowBufferResolution);
@@ -2435,6 +2443,9 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 
 	// Generate mesh element arrays from shadow primitive arrays
 	GatherShadowDynamicMeshElements();
+	
+	bCSMShadowsInUse = bCSMAllocated;
+	bModulatedShadowsInUse = bPerObjectShadowsInUse;
 }
 
 void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)

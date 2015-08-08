@@ -115,15 +115,27 @@ void FMetalDynamicRHI::RHISetMultipleViewports(uint32 Count, const FViewportBoun
 void FMetalDynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,uint32 MaxX,uint32 MaxY)
 {
 	MTLScissorRect Scissor;
-	Scissor.x = MinX;
-	Scissor.y = MinY;
-	Scissor.width = MaxX - MinX;
-	Scissor.height = MaxY - MinY;
 
-	// metal doesn't support 0 sized scissor rect
-	if (Scissor.width == 0 || Scissor.height == 0)
+	if (!bEnable)
 	{
-		return;
+		FIntPoint TargetDims = FMetalManager::Get()->GetBoundRenderTargetDimensions();
+		Scissor.x = 0;
+		Scissor.y = 0;
+		Scissor.width = (uint32)TargetDims.X;
+		Scissor.height = (uint32)TargetDims.Y;
+	}
+	else
+	{
+		Scissor.x = MinX;
+		Scissor.y = MinY;
+		Scissor.width = MaxX - MinX;
+		Scissor.height = MaxY - MinY;
+
+		// metal doesn't support 0 sized scissor rect
+		if (Scissor.width == 0 || Scissor.height == 0)
+		{
+			return;
+		}
 	}
 	[FMetalManager::GetContext() setScissorRect:Scissor];
 }

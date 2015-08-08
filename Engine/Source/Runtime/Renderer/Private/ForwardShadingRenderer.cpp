@@ -21,6 +21,8 @@ uint32 GetShadowQuality();
 FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 	:	FSceneRenderer(InViewFamily, HitProxyConsumer)
 {
+	bModulatedShadowsInUse = false;
+	bCSMShadowsInUse = false;
 }
 
 /**
