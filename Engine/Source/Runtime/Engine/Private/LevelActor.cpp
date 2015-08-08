@@ -230,6 +230,27 @@ void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Ext
 	TArray<FString>	ThisFramePawnSpawns;
 #endif	//PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES
 
+AActor* UWorld::SpawnActorAbsolute( UClass* Class, FTransform const& AbsoluteTransform, const FActorSpawnParameters& SpawnParameters)
+{
+	AActor* Template = SpawnParameters.Template;
+
+	if(!Template)
+	{
+		// Use class's default actor as a template.
+		Template = Class->GetDefaultObject<AActor>();
+	}
+
+	FTransform NewTransform = AbsoluteTransform;
+	USceneComponent* TemplateRootComponent = (Template)? Template->GetRootComponent() : NULL;
+	if(TemplateRootComponent)
+	{
+		TemplateRootComponent->UpdateComponentToWorld();
+		NewTransform = TemplateRootComponent->GetComponentToWorld().Inverse() * NewTransform;
+	}
+
+	return SpawnActor(Class, &NewTransform, SpawnParameters);
+}
+
 AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator const* Rotation, const FActorSpawnParameters& SpawnParameters )
 {
 	FTransform Transform;
