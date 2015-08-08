@@ -2039,6 +2039,12 @@ void FSlateApplication::UnregisterGameViewport()
 		GameViewportWidget.Pin()->SetActive(false);
 	}
 	GameViewportWidget.Reset();
+}
+
+void FSlateApplication::FlushRenderState()
+{
+	// Flush any render commands because we're about to release shader accesses and not keep them alive.
+	Renderer->FlushCommands();
 
 	// Release any temporary material or texture resources we may have cached and are reporting to prevent
 	// GC on those resources.  If the game viewport is being unregistered, we need to flush these resources
@@ -2873,27 +2879,30 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 
 void FSlateApplication::CloseToolTip()
 {
+	// Notify the source widget that its tooltip is closing
+	if ( SWidget* SourceWidget = ActiveToolTipWidgetSource.Pin().Get() )
+	{
+		SourceWidget->OnToolTipClosing();
+	}
+
+	// Notify the active tooltip that it's being closed.
+	TSharedPtr<IToolTip> StableActiveToolTip = ActiveToolTip.Pin();
+	if ( StableActiveToolTip.IsValid() )
+	{
+		StableActiveToolTip->OnClosed();
+	}
+
+	// If the tooltip had a new window holding it, hide the window.
 	TSharedPtr< SWindow > PinnedToolTipWindow( ToolTipWindow.Pin() );
 	if( PinnedToolTipWindow.IsValid() && PinnedToolTipWindow->IsVisible() )
 	{
-		// Notify the source widget that its tooltip is closing
-		if (SWidget* SourceWidget = ActiveToolTipWidgetSource.Pin().Get())
-		{
-			SourceWidget->OnToolTipClosing();
-		}
-
-		TSharedPtr<IToolTip> StableActiveToolTip = ActiveToolTip.Pin();
-		if ( StableActiveToolTip.IsValid() )
-		{
-			StableActiveToolTip->OnClosed();
-		}
-
 		// Hide the tool tip window.  We don't destroy the window, because we want to reuse it for future tool tips.
 		PinnedToolTipWindow->HideWindow();
-
-		ActiveToolTip.Reset();
-		ActiveToolTipWidgetSource.Reset();
 	}
+
+	ActiveToolTip.Reset();
+	ActiveToolTipWidgetSource.Reset();
+
 	ToolTipOffsetDirection = EToolTipOffsetDirection::Undetermined;
 }
 

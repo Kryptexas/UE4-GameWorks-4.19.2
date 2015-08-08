@@ -251,6 +251,12 @@ void UEditorEngine::EndPlayMap()
 		}
 	}
 
+	// Flush any render commands and released accessed UTextures and materials to give them a chance to be collected.
+	if ( FSlateApplication::IsInitialized() )
+	{
+		FSlateApplication::Get().FlushRenderState();
+	}
+
 	// Clean up any PIE world objects
 	{
 		// The trans buffer should never have a PIE object in it.  If it does though, as a s
@@ -2877,7 +2883,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					FSlateApplication::Get().AddWindowAsNativeChild(PieWindow, MainWindow, true);
 				}
 				else
+				{
 					FSlateApplication::Get().AddWindow(PieWindow);
+				}
 #endif
 
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew(SOverlay);
@@ -3067,7 +3075,7 @@ FViewport* UEditorEngine::GetActiveViewport()
 		return ActiveLevelViewport->GetActiveViewport();
 	}
 	
-	return NULL;
+	return nullptr;
 }
 
 FViewport* UEditorEngine::GetPIEViewport()
@@ -3087,7 +3095,7 @@ FViewport* UEditorEngine::GetPIEViewport()
 				// We can't use FindChecked here because when using the dedicated server option we don't initialize this map 
 				//	(we don't use a viewport for the PIE context in this case)
 				FSlatePlayInEditorInfo * SlatePlayInEditorSessionPtr = SlatePlayInEditorMap.Find(WorldContext.ContextHandle);
-				if (SlatePlayInEditorSessionPtr != NULL && SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.IsValid() )
+				if ( SlatePlayInEditorSessionPtr != nullptr && SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.IsValid() )
 				{
 					return SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.Get();
 				}
@@ -3095,7 +3103,7 @@ FViewport* UEditorEngine::GetPIEViewport()
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
@@ -3104,7 +3112,7 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 
 	// The first PIE world context is the one that can toggle between PIE and SIE
 	// Network PIE/SIE toggling is not really meant to be supported.
-	FSlatePlayInEditorInfo * SlateInfoPtr = NULL;
+	FSlatePlayInEditorInfo * SlateInfoPtr = nullptr;
 	for (auto It = WorldList.CreateIterator(); It && !SlateInfoPtr; ++It)
 	{
 		FWorldContext &WorldContext = *It;

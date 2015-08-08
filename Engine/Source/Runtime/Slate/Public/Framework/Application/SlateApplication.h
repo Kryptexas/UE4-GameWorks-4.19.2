@@ -417,6 +417,11 @@ public:
 	void UnregisterGameViewport();
 
 	/**
+	 * Flushes the render state of slate, releasing accesses and flushing all render commands.
+	 */
+	void FlushRenderState();
+
+	/**
 	 * Sets specified user focus to the SWidget representing the currently active game viewport
 	 */
 	void SetUserFocusToGameViewport(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
