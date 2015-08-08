@@ -135,8 +135,21 @@ namespace UnrealBuildTool
 		public readonly List<string> FileNames = new List<string>();
 	}
 
-	public class OnlyModule
+	[Serializable]
+	public class OnlyModule : ISerializable
 	{
+		public OnlyModule(SerializationInfo Info, StreamingContext Context)
+		{
+			OnlyModuleName   = Info.GetString("mn");
+			OnlyModuleSuffix = Info.GetString("ms");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("mn", OnlyModuleName);
+			Info.AddValue("ms", OnlyModuleSuffix);
+		}
+
 		public OnlyModule(string InitOnlyModuleName)
 		{
 			OnlyModuleName = InitOnlyModuleName;
@@ -763,8 +776,7 @@ namespace UnrealBuildTool
 		public bool bEditorRecompile;
 
 		/** If building only a specific set of modules, these are the modules to build */
-		[NonSerialized]
-		protected List<OnlyModule> OnlyModules = new List<OnlyModule>();
+		public List<OnlyModule> OnlyModules = new List<OnlyModule>();
 
 		/** Kept to determine the correct module parsing order when filtering modules. */
 		[NonSerialized]
@@ -862,6 +874,7 @@ namespace UnrealBuildTool
 			bPrecompile                  = Info.GetBoolean("pc");
 			bUsePrecompiled              = Info.GetBoolean("up");
 			bEditorRecompile             = Info.GetBoolean("er");
+			OnlyModules                  = (List<OnlyModule>)Info.GetValue("om", typeof(List<OnlyModule>));
 			bCompileMonolithic           = Info.GetBoolean("cm");
 			var FlatModuleCsDataKeys   = (string[])Info.GetValue("fk", typeof(string[]));
 			var FlatModuleCsDataValues = (FlatModuleCsDataType[])Info.GetValue("fv", typeof(FlatModuleCsDataType[]));
@@ -891,6 +904,7 @@ namespace UnrealBuildTool
 			Info.AddValue("pc", bPrecompile);
 			Info.AddValue("up", bUsePrecompiled);
 			Info.AddValue("er", bEditorRecompile);
+			Info.AddValue("om", OnlyModules);
 			Info.AddValue("cm", bCompileMonolithic);
 			Info.AddValue("fk", FlatModuleCsData.Keys.ToArray());
 			Info.AddValue("fv", FlatModuleCsData.Values.ToArray());

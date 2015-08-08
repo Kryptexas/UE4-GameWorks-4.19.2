@@ -1694,6 +1694,14 @@ namespace UnrealBuildTool
                         // Try to load the UBTMakefile.  It will only be loaded if it has valid content and is not determined to be out of date.    
 						string ReasonNotLoaded;
                         UBTMakefile = LoadUBTMakefile( UBTMakefilePath, out ReasonNotLoaded );
+
+						// Invalid makefile if only modules have changed
+						if (UBTMakefile != null && !TargetDescs.SelectMany(x => x.OnlyModules).Select(x => x.OnlyModuleName.ToLower()).SequenceEqual(UBTMakefile.Targets.SelectMany(x => x.OnlyModules).Select(x => x.OnlyModuleName.ToLower())))
+						{
+							UBTMakefile     = null;
+							ReasonNotLoaded = "modules to compile have changed";
+						}
+
                         if( UBTMakefile == null )
                         { 
                             // If the Makefile couldn't be loaded, then we're not going to be able to continue in "assembler only" mode.  We'll do both
@@ -2214,7 +2222,7 @@ namespace UnrealBuildTool
         [Serializable]
         class UBTMakefile : ISerializable
         {
-			public const int CurrentVersion = 1;
+			public const int CurrentVersion = 2;
 
 			public int Version;
 
