@@ -33,10 +33,14 @@ void UByteProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 
 		// There's no guarantee EnumValueName is still present in Enum, in which case Value will be set to the enum's max value.
 		// On save, it will then be serialized as NAME_None.
-		*(uint8*)Value = Enum->GetValueByName(EnumValueName);
-		if ( !Enum->IsValidEnumValue(*(uint8*)Value) )
+		int32 EnumIndex = Enum->FindEnumIndex(EnumValueName);
+		if (EnumIndex == INDEX_NONE)
 		{
 			*(uint8*)Value = Enum->GetMaxEnumValue();
+		}
+		else
+		{
+			*(uint8*)Value = Enum->GetValueByIndex(EnumIndex);
 		}
 	}
 	// Saving
@@ -145,10 +149,10 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 		const TCHAR* Buffer = UPropertyHelpers::ReadToken( InBuffer, Temp, true );
 		if( Buffer != NULL )
 		{
-			const int32 EnumValue = Enum->GetValueByName(*Temp);
-			if( EnumValue != INDEX_NONE )
+			int32 EnumIndex = Enum->FindEnumIndex(*Temp);
+			if (EnumIndex != INDEX_NONE)
 			{
-				*(uint8*)Data = EnumValue;
+				*(uint8*)Data = Enum->GetValueByIndex(EnumIndex);
 				return Buffer;
 			}
 		}
