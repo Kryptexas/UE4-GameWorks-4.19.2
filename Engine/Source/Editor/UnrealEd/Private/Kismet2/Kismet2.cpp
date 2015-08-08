@@ -964,6 +964,28 @@ void FKismetEditorUtilities::GenerateCppCode(UObject* Obj, TSharedPtr<FString> O
 		{
 			auto BlueprintObj = DuplicateObject<UBlueprint>(InBlueprintObj, GetTransientPackage(), *InBlueprintObj->GetName());
 			{
+				// FIX NOT-DUPLICATED CURVES
+
+				auto NewTimelineOwnerClass = CastChecked<UBlueprintGeneratedClass>(BlueprintObj->GeneratedClass);
+				TSet<UCurveBase*> AllCurves;
+				for (auto Timeline : NewTimelineOwnerClass->Timelines)
+				{
+					Timeline->GetAllCurves(AllCurves);
+				}
+				TMap<UCurveBase*, UCurveBase*> CurveMap;
+				ensure(InBlueprintObj->GetOutermost() != NewTimelineOwnerClass->GetOutermost());
+				for (auto OldCurve : AllCurves)
+				{
+					if (OldCurve && OldCurve->GetOutermost() == InBlueprintObj->GetOutermost())
+					{
+						UCurveBase* NewCurve = DuplicateObject<UCurveBase>(OldCurve, NewTimelineOwnerClass);
+						CurveMap.Add(OldCurve, NewCurve);
+					}
+				}
+				FArchiveReplaceObjectRef<UCurveBase> ReplaceCurvesAr(NewTimelineOwnerClass, CurveMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ true, /*bIgnoreArchetypeRef=*/ true);
+			}
+
+			{
 				auto Reinstancer = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass);
 
 				IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);

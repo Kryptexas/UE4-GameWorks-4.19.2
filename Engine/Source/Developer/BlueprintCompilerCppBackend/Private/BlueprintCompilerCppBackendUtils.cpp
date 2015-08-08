@@ -666,20 +666,110 @@ bool FEmitHelper::GenerateAssignmentCast(const FEdGraphPinType& LType, const FEd
 		OutCastEnd = TEXT(")");
 		return true;
 	}
+
 	return false;
 }
 
-void FEmitDefaultValueHelper::OuterGenerate(const UProperty* Property, const uint8* DataContainer, const FString OuterPath, const uint8* OptionalDefaultDataContainer, FString& OutResult, bool bAllowProtected)
+struct FDefaultValueHelperContext
 {
-	if (Property->HasAnyPropertyFlags(CPF_EditorOnly))
+private:
+	FString Indent;
+	FString Result;
+
+	FString AfterCreateFormat;
+	FString ActualClassExpression;
+	UClass* ActualClass;
+
+	TMap<UObject*, FString> NativeObjectNames;
+
+	TArray<UObject*> OrderedObjects;
+public:
+	FDefaultValueHelperContext()
+		: ActualClass(nullptr)
+	{}
+
+	bool FindObject(UObject* Object, FString& OutNamePath, FString* OutAfterCreateFormatPtr = nullptr)
 	{
-		UE_LOG(LogK2Compiler, Log, TEXT("FEmitDefaultValueHelper Skip EditorOnly property: %s"), *Property->GetPathName());
-		return;
+		if (Object == ActualClass)
+		{
+			if (OutAfterCreateFormatPtr)
+			{
+				*OutAfterCreateFormatPtr = AfterCreateFormat;
+			}
+			OutNamePath = ActualClassExpression;
+			return true;
+		}
+
+		if (FString* NamePtr = NativeObjectNames.Find(Object))
+		{
+			OutNamePath = *NamePtr;
+			if (OutAfterCreateFormatPtr)
+			{
+				*OutAfterCreateFormatPtr = FString();
+			}
+			return true;
+		}
+
+		return false;
 	}
 
-	if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
+	void SetCurrentlyGeneratedClass(UClass* InClass, const FString& AfterCreateFormatWhenTheObjectIsOuter, const FString& NamePath)
 	{
-		UE_LOG(LogK2Compiler, Warning, TEXT("FEmitDefaultValueHelper Cannot access property: %s"), *Property->GetPathName());
+		ActualClass = InClass;
+		ActualClassExpression = NamePath;
+		AfterCreateFormat = AfterCreateFormatWhenTheObjectIsOuter;
+	}
+
+	FString AddNewObject(UObject* Object)
+	{
+		check(!NativeObjectNames.Contains(Object));
+		const FString UniqueNameBase = TEXT("__Local__");
+		FString UniqueName = UniqueNameBase;
+		for (int32 Index = 0; nullptr != NativeObjectNames.FindKey(UniqueName); ++Index)
+		{
+			UniqueName = FString::Printf(TEXT("%s%d"), *UniqueNameBase, Index);
+		}
+		NativeObjectNames.Add(Object, UniqueName);
+		OrderedObjects.Add(Object);
+		return UniqueName;
+	}
+
+	UClass* GetCurrentlyGeneratedClass() const
+	{
+		return ActualClass;
+	}
+	
+	void IncreaseIndent()
+	{
+		Indent += TEXT("\t");
+	}
+
+	void DecreaseIndent()
+	{
+		Indent.RemoveFromEnd(TEXT("\t"));
+	}
+
+	void AddLine(const FString& Line)
+	{
+		Result += FString::Printf(TEXT("%s%s\n"), *Indent, *Line);
+	}
+
+	FString GetResult() const
+	{
+		return Result;
+	}
+
+	const TArray<UObject*>& GetOrderedObjects()
+	{
+		return OrderedObjects;
+	}
+};
+
+void FEmitDefaultValueHelper::OuterGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* DataContainer, const FString OuterPath, const uint8* OptionalDefaultDataContainer, bool bAllowProtected)
+{
+	if (Property->HasAnyPropertyFlags(CPF_EditorOnly | CPF_Transient))
+	{
+		UE_LOG(LogK2Compiler, Log, TEXT("FEmitDefaultValueHelper Skip EditorOnly or Transient property: %s"), *Property->GetPathName());
 		return;
 	}
 
@@ -688,10 +778,16 @@ void FEmitDefaultValueHelper::OuterGenerate(const UProperty* Property, const uin
 	{
 		if (!OptionalDefaultDataContainer || !Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex))
 		{
+			if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
+			{
+				UE_LOG(LogK2Compiler, Error, TEXT("FEmitDefaultValueHelper Cannot access property: %s"), *Property->GetPathName());
+				return;
+			}
+
 			const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
 			const FString ArrayPost = bStaticArray ? FString::Printf(TEXT("[%d]"), ArrayIndex) : TEXT("");
 			const FString PathToMember = FString::Printf(TEXT("%s%s%s"), *OuterPath, *Property->GetNameCPP(), *ArrayPost);
-			InnerGenerate(Property, ValuePtr, PathToMember, OutResult);
+			InnerGenerate(Context, Property, ValuePtr, PathToMember);
 		}
 	}
 }
@@ -705,22 +801,25 @@ FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruc
 	FStructOnScope StructData(Struct);
 	FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData.GetStructMemory());
 
+	FDefaultValueHelperContext Context;
+	Context.IncreaseIndent();
+	Context.IncreaseIndent();
 	for (auto Property : TFieldRange<const UProperty>(Struct))
 	{
-		OuterGenerate(Property, StructData.GetStructMemory(), TEXT("\t\tDefaultData__."), nullptr, Result);
+		OuterGenerate(Context, Property, StructData.GetStructMemory(), TEXT("DefaultData__."), nullptr);
 	}
-
+	Result += Context.GetResult();
 	Result += TEXT("\n\t\treturn DefaultData__;\n\t}\n");
 	return Result;
 }
 
-void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember, FString& OutResult)
+void FEmitDefaultValueHelper::InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember)
 {
-	auto OneLineConstruction = [](const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& LocalOutResult) -> bool
+	auto OneLineConstruction = [](FDefaultValueHelperContext& Context, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine) -> bool
 	{
-		FString ValueStr;
 		bool bComplete = true;
-		if (!HandleSpecialTypes(LocalProperty, LocalValuePtr, ValueStr))
+		FString ValueStr = HandleSpecialTypes(Context, LocalProperty, LocalValuePtr);
+		if (ValueStr.IsEmpty())
 		{
 			auto StructProperty = Cast<const UStructProperty>(LocalProperty);
 			LocalProperty->ExportTextItem(ValueStr, LocalValuePtr, LocalValuePtr, nullptr, EPropertyPortFlags::PPF_ExportCpp);
@@ -732,10 +831,10 @@ void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uin
 			}
 			if (ValueStr.IsEmpty())
 			{
-				UE_LOG(LogK2Compiler, Warning, TEXT("FEmitDefaultValueHelper Cannot generate initilization: %s"), *LocalProperty->GetPathName());
+				UE_LOG(LogK2Compiler, Error, TEXT("FEmitDefaultValueHelper Cannot generate initilization: %s"), *LocalProperty->GetPathName());
 			}
 		}
-		LocalOutResult += ValueStr;
+		OutSingleLine += ValueStr;
 		return bComplete;
 	};
 
@@ -747,8 +846,8 @@ void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uin
 	if (!Property->GetOuter()->IsA<UArrayProperty>())
 	{
 		FString ValueStr;
-		const bool bComplete = OneLineConstruction(Property, ValuePtr, ValueStr);
-		OutResult += FString::Printf(TEXT("%s = %s;\n"), *PathToMember, *ValueStr);
+		const bool bComplete = OneLineConstruction(Context, Property, ValuePtr, ValueStr);
+		Context.AddLine(FString::Printf(TEXT("%s = %s;"), *PathToMember, *ValueStr));
 		if (bComplete && !ArrayProperty)
 		{
 			return;
@@ -760,7 +859,7 @@ void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uin
 		const FString LocalPathToMember = FString::Printf(TEXT("%s."), *PathToMember);
 		for (auto LocalProperty : TFieldRange<const UProperty>(StructProperty->Struct))
 		{
-			OuterGenerate(LocalProperty, ValuePtr, LocalPathToMember, nullptr, OutResult);
+			OuterGenerate(Context, LocalProperty, ValuePtr, LocalPathToMember, nullptr);
 		}
 	}
 	
@@ -772,20 +871,40 @@ void FEmitDefaultValueHelper::InnerGenerate(const UProperty* Property, const uin
 			const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
 
 			FString ValueStr;
-			const bool bComplete = OneLineConstruction(ArrayProperty->Inner, LocalValuePtr, ValueStr);
-			OutResult += FString::Printf(TEXT("%s.Add(%s);\n"), *PathToMember, *ValueStr);
+			const bool bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr);
+			Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
 			if (!bComplete)
 			{
 				const FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
-				InnerGenerate(ArrayProperty->Inner, LocalValuePtr, LocalPathToMember, OutResult);
+				InnerGenerate(Context, ArrayProperty->Inner, LocalValuePtr, LocalPathToMember);
 			}
 		}
 	}
 }
 
-bool FEmitDefaultValueHelper::HandleSpecialTypes(const UProperty* Property, const uint8* ValuePtr, FString& OutResult)
+FString FEmitDefaultValueHelper::HandleSpecialTypes(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr)
 {
 	//TODO: Use Path maps for Objects
+	if (auto ObjectProperty = Cast<UObjectProperty>(Property))
+	{
+		UObject* Object = ObjectProperty->GetPropertyValue(ValuePtr);
+		if (Object)
+		{
+			FString NativeName;
+			if (Context.FindObject(Object, NativeName))
+			{
+				return NativeName;
+			}
+
+			auto BPGC = Context.GetCurrentlyGeneratedClass();
+			if (BPGC && Object->GetOuter()->GetName() == BPGC->GetName()) // hack to fix curve deuplication
+			{
+				// needs to check if in native code, it will be still subobject of a class
+
+				return HandleClassSubobject(Context, Object);
+			}
+		}
+	}
 
 	if (auto StructProperty = Cast<UStructProperty>(Property))
 	{
@@ -796,51 +915,56 @@ bool FEmitDefaultValueHelper::HandleSpecialTypes(const UProperty* Property, cons
 			const auto Rotation = Transform->GetRotation();
 			const auto Translation = Transform->GetTranslation();
 			const auto Scale = Transform->GetScale3D();
-			OutResult = FString::Printf(TEXT("FTransform(FQuat(%f, %f, %f, %f), FVector(%f, %f, %f), FVector(%f, %f, %f))")
+			return FString::Printf(TEXT("FTransform(FQuat(%f, %f, %f, %f), FVector(%f, %f, %f), FVector(%f, %f, %f))")
 				, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W
 				, Translation.X, Translation.Y, Translation.Z
 				, Scale.X, Scale.Y, Scale.Z);
-			return true;
 		}
 
 		if (TBaseStructure<FVector>::Get() == StructProperty->Struct)
 		{
 			const FVector* Vector = reinterpret_cast<const FVector*>(ValuePtr);
-			OutResult = FString::Printf(TEXT("FVector(%f, %f, %f)"), Vector->X, Vector->Y, Vector->Z);
-			return true;
+			return FString::Printf(TEXT("FVector(%f, %f, %f)"), Vector->X, Vector->Y, Vector->Z);
+		}
+
+		if (TBaseStructure<FGuid>::Get() == StructProperty->Struct)
+		{
+			const FGuid* Guid = reinterpret_cast<const FGuid*>(ValuePtr);
+			return FString::Printf(TEXT("FGuid(0x%08X, 0x%08X, 0x%08X, 0x%08X)"), Guid->A, Guid->B, Guid->C, Guid->D);
 		}
 	}
-	return false;
+	return FString();
 }
 
-bool FEmitDefaultValueHelper::HandleNonNativeComponent(UBlueprintGeneratedClass* BPGC, FName Name, bool bNew, const FString MemberPath, FString& OutResult)
+UActorComponent* FEmitDefaultValueHelper::HandleNonNativeComponent(FDefaultValueHelperContext& Context, UBlueprintGeneratedClass* BPGC, FName ObjectName, bool bNew, const FString& NativeName)
 {
 	USCS_Node* Node = nullptr;
 	for (UBlueprintGeneratedClass* NodeOwner = BPGC; NodeOwner && !Node; NodeOwner = Cast<UBlueprintGeneratedClass>(NodeOwner->GetSuperClass()))
 	{
-		Node = NodeOwner->SimpleConstructionScript ? NodeOwner->SimpleConstructionScript->FindSCSNode(Name) : nullptr;
+		Node = NodeOwner->SimpleConstructionScript ? NodeOwner->SimpleConstructionScript->FindSCSNode(ObjectName) : nullptr;
 	}
 
 	if (!Node)
 	{
-		return false;
+		return nullptr;
 	}
 
 	ensure(bNew == (Node->GetOuter() == BPGC->SimpleConstructionScript));
-	UObject* ComponentTemplate = bNew 
+	UActorComponent* ComponentTemplate = bNew
 		? Node->ComponentTemplate
 		: (BPGC->InheritableComponentHandler ? BPGC->InheritableComponentHandler->GetOverridenComponentTemplate(Node) : nullptr);
 
 	if (!ComponentTemplate)
 	{
-		return false;
+		return nullptr;
 	}
 
 	auto ComponentClass = ComponentTemplate->GetClass();
 	if (bNew)
 	{
-		OutResult += FString::Printf(TEXT("%s = CreateDefaultSubobject<%s%s>(TEXT(\"%s\"));\n")
-			, *MemberPath, ComponentClass->GetPrefixCPP(), *ComponentClass->GetName(), *ComponentTemplate->GetName());
+		Context.AddLine(TEXT(""));
+		Context.AddLine(FString::Printf(TEXT("%s = CreateDefaultSubobject<%s%s>(TEXT(\"%s\"));")
+			, *NativeName, ComponentClass->GetPrefixCPP(), *ComponentClass->GetName(), *ComponentTemplate->GetName()));
 	}
 
 	UObject* ParentTemplateComponent = bNew 
@@ -853,15 +977,15 @@ bool FEmitDefaultValueHelper::HandleNonNativeComponent(UBlueprintGeneratedClass*
 	const UObject* ObjectToCompare = bNew
 		? ComponentClass->GetDefaultObject(false)
 		: ParentTemplateComponent;
-	const FString LocalPathToMember = FString::Printf(TEXT("%s->"), *MemberPath);
+	const FString LocalPathToMember = FString::Printf(TEXT("%s->"), *NativeName);
 	for (auto Property : TFieldRange<const UProperty>(ComponentClass))
 	{
-		OuterGenerate(Property
+		OuterGenerate(Context, Property
 			, reinterpret_cast<const uint8*>(ComponentTemplate), LocalPathToMember
-			, reinterpret_cast<const uint8*>(ObjectToCompare), OutResult);
+			, reinterpret_cast<const uint8*>(ObjectToCompare));
 	}
 
-	return true;
+	return ComponentTemplate;
 }
 
 FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
@@ -869,41 +993,159 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	auto BPGC = CastChecked<UBlueprintGeneratedClass>(InBPGC);
 	const FString CppClassName = FString(BPGC->GetPrefixCPP()) + BPGC->GetName();
 
-	FString Result;
-	Result += FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)\n{\n"), *CppClassName, *CppClassName);
+	FDefaultValueHelperContext Context;
+	Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)"), *CppClassName, *CppClassName));
+	Context.AddLine(TEXT("{"));
+	Context.IncreaseIndent();
+
+	// When CDO is created create all subobjects owned by the class
+	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
+	{
+		// Gather all CT from SCS and IH, the remaining ones are generated for class..
+		if (auto SCS = BPGC->SimpleConstructionScript)
+		{
+			for (auto Node : SCS->GetAllNodes())
+			{
+				ActorComponentTempatesOwnedByClass.RemoveSwap(Node->ComponentTemplate);
+			}
+		}
+		if (auto IH = BPGC->GetInheritableComponentHandler())
+		{
+			TArray<UActorComponent*> AllTemplates;
+			IH->GetAllTemplates(AllTemplates);
+			ActorComponentTempatesOwnedByClass.RemoveAllSwap([&](UActorComponent* Component) -> bool
+			{
+				return AllTemplates.Contains(Component);
+			});
+		}
+
+		Context.AddLine(FString::Printf(TEXT("if(HasAnyFlags(RF_ClassDefaultObject) && (%s::StaticClass() == GetClass()))"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(TEXT("ensure(0 == GetClass()->MiscObjects.Num());"));
+
+		Context.SetCurrentlyGeneratedClass(BPGC, TEXT("GetClass()->MiscObjects.Add(%s);"), TEXT("GetClass()"));
+
+		for (auto ComponentTemplate : ActorComponentTempatesOwnedByClass)
+		{
+			if (ComponentTemplate)
+			{
+				HandleClassSubobject(Context, ComponentTemplate);
+			}
+		}
+
+		for (auto TimelineTemplate : BPGC->Timelines)
+		{
+			if (TimelineTemplate)
+			{
+				HandleClassSubobject(Context, TimelineTemplate);
+			}
+		}
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+
+		// Let's have an easy access to generated class subobjects
+		Context.AddLine(TEXT("{")); // no shadow variables
+		Context.IncreaseIndent();
+
+		int32 SubobjectIndex = 0;
+		for (UObject* Obj : Context.GetOrderedObjects())
+		{
+			FString NativeName;
+			const bool bFound = Context.FindObject(Obj, NativeName);
+			ensure(bFound);
+			Context.AddLine(FString::Printf(TEXT("auto %s = CastChecked<%s%s>(GetClass()->MiscObjects[%d]);")
+				, *NativeName
+				, Obj->GetClass()->GetPrefixCPP()
+				, *Obj->GetClass()->GetName()
+				, SubobjectIndex));
+			SubobjectIndex++;
+		}
+	}
 
 	UObject* CDO = BPGC->GetDefaultObject(false);
 	UObject* ParentCDO = BPGC->GetSuperClass()->GetDefaultObject(false);
 	check(CDO && ParentCDO);
+	Context.AddLine(TEXT(""));
 
+	// TIMELINES
+	TSet<const UProperty*> HandledProperties;
 	const bool bIsActor = BPGC->IsChildOf<AActor>();
+	if (bIsActor)
+	{
+		for (auto TimelineTemplate : BPGC->Timelines)
+		{
+			FString NativeName;
+			if (Context.FindObject(TimelineTemplate, NativeName))
+			{
+				Context.AddLine(FString::Printf(TEXT("UBlueprintGeneratedClass::CreateTimelineComponent(this, %s);"), *NativeName));
+				auto Prop = FindField<UObjectPropertyBase>(BPGC, *UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()));
+				if (Prop)
+				{
+					HandledProperties.Add(Prop);
+				}
+			}
+		}
+	}
+	
+	// COMPONENTS
 	for (auto Property : TFieldRange<const UProperty>(BPGC))
 	{
 		const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
 		const bool bIsAccessible = bNewProperty || !Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate);
-		if (bIsAccessible)
+		if (bIsAccessible && !HandledProperties.Contains(Property))
 		{
 			auto ObjectProperty = Cast<UObjectProperty>(Property);
 			const bool bComponentProp = ObjectProperty && ObjectProperty->PropertyClass && ObjectProperty->PropertyClass->IsChildOf<UActorComponent>();
 			const bool bNullValue = ObjectProperty && (nullptr == ObjectProperty->GetPropertyValue_InContainer(CDO));
 			if (bIsActor && bComponentProp && bNullValue)
 			{
-				if (HandleNonNativeComponent(BPGC, Property->GetFName(), bNewProperty, FString::Printf(TEXT("\t%s"), *Property->GetNameCPP()), Result))
+				auto HandledComponent = HandleNonNativeComponent(Context, BPGC, Property->GetFName(), bNewProperty, Property->GetNameCPP());
+				if (HandledComponent)
 				{
+					ensure(!ActorComponentTempatesOwnedByClass.Contains(HandledComponent));
 					continue;
 				}
 			}
 
-			//1. Instanced object
-			//2. Component templates outside SCS
-				// FindComponentTemplateByName in UCLass
-				// Random Referenced Objects in UClass (Timelines, other Templates) - Let's fill them while creating CDO ?
-			//3. Native, changed component ???
-
-			OuterGenerate(Property, reinterpret_cast<const uint8*>(CDO), TEXT("\t"), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), Result, true);
+			OuterGenerate(Context, Property, reinterpret_cast<const uint8*>(CDO), TEXT(""), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), true);
 		}
 	}
 
-	Result += TEXT("\n}\n");
-	return Result;
+	Context.DecreaseIndent();
+	Context.AddLine(TEXT("}"));
+	Context.DecreaseIndent();
+	Context.AddLine(TEXT("}"));
+
+	return Context.GetResult();
+}
+
+FString FEmitDefaultValueHelper::HandleClassSubobject(FDefaultValueHelperContext& Context, UObject* Object)
+{
+	FString OuterStr;
+	FString AfterCreateFormat;
+	if (!Context.FindObject(Object->GetOuter(), OuterStr, &AfterCreateFormat))
+	{
+		return FString();
+	}
+
+	const FString LocalNativeName = Context.AddNewObject(Object);
+	UClass* ObjectClass = Object->GetClass();
+	Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<%s%s>(%s, TEXT(\"%s\"));")
+		, *LocalNativeName, ObjectClass->GetPrefixCPP(), *ObjectClass->GetName()
+		, *OuterStr, *Object->GetName()));
+	if (!AfterCreateFormat.IsEmpty())
+	{
+		Context.AddLine(FString::Printf(*AfterCreateFormat, *LocalNativeName));
+	}
+
+	const FString MemberPath = FString::Printf(TEXT("%s->"), *LocalNativeName);
+	for (auto Property : TFieldRange<const UProperty>(ObjectClass))
+	{
+		OuterGenerate(Context, Property
+			, reinterpret_cast<const uint8*>(Object), MemberPath
+			, reinterpret_cast<const uint8*>(ObjectClass->GetDefaultObject(false)));
+	}
+
+	return LocalNativeName;
 }

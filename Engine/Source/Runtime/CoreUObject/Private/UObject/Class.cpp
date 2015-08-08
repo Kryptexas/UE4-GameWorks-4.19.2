@@ -2525,6 +2525,8 @@ void UClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		This->CallAddReferencedObjects(This->ClassDefaultObject, Collector);
 	}
 
+	Collector.AddReferencedObjects(This->MiscObjects, This);
+
 	Super::AddReferencedObjects( This, Collector );
 }
 
@@ -4440,6 +4442,13 @@ UScriptStruct* TBaseStructure<FRandomStream>::Get()
 	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("RandomStream"));
 	return ScriptStruct;
 }
+
+UScriptStruct* TBaseStructure<FGuid>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Guid"));
+	return ScriptStruct;
+}
+
 
 UScriptStruct* TBaseStructure<FFallbackStruct>::Get()
 {

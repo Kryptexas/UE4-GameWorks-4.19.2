@@ -407,6 +407,119 @@ UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FNa
 	return NULL;
 }
 
+void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate)
+{
+	if (!Actor
+		|| !TimelineTemplate
+		|| !TimelineTemplate->bValidatedAsWired
+		|| Actor->IsTemplate()
+		|| Actor->IsPendingKill())
+	{
+		return;
+	}
+
+	FName NewName(*UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()));
+	UTimelineComponent* NewTimeline = NewObject<UTimelineComponent>(Actor, NewName);
+	NewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
+	Actor->BlueprintCreatedComponents.Add(NewTimeline); // Add to array so it gets saved
+	NewTimeline->SetNetAddressable();	// This component has a stable name that can be referenced for replication
+
+	NewTimeline->SetPropertySetObject(Actor); // Set which object the timeline should drive properties on
+	NewTimeline->SetDirectionPropertyName(TimelineTemplate->GetDirectionPropertyName());
+
+	NewTimeline->SetTimelineLength(TimelineTemplate->TimelineLength); // copy length
+	NewTimeline->SetTimelineLengthMode(TimelineTemplate->LengthMode);
+
+	// Find property with the same name as the template and assign the new Timeline to it
+	UClass* ActorClass = Actor->GetClass();
+	UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()));
+	if (Prop)
+	{
+		Prop->SetObjectPropertyValue_InContainer(Actor, NewTimeline);
+	}
+
+	// Event tracks
+	// In the template there is a track for each function, but in the runtime Timeline each key has its own delegate, so we fold them together
+	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->EventTracks.Num(); TrackIdx++)
+	{
+		const FTTEventTrack* EventTrackTemplate = &TimelineTemplate->EventTracks[TrackIdx];
+		if (EventTrackTemplate->CurveKeys != NULL)
+		{
+			// Create delegate for all keys in this track
+			FScriptDelegate EventDelegate;
+			EventDelegate.BindUFunction(Actor, TimelineTemplate->GetEventTrackFunctionName(TrackIdx));
+
+			// Create an entry in Events for each key of this track
+			for (auto It(EventTrackTemplate->CurveKeys->FloatCurve.GetKeyIterator()); It; ++It)
+			{
+				NewTimeline->AddEvent(It->Time, FOnTimelineEvent(EventDelegate));
+			}
+		}
+	}
+
+	// Float tracks
+	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->FloatTracks.Num(); TrackIdx++)
+	{
+		const FTTFloatTrack* FloatTrackTemplate = &TimelineTemplate->FloatTracks[TrackIdx];
+		if (FloatTrackTemplate->CurveFloat != NULL)
+		{
+			NewTimeline->AddInterpFloat(FloatTrackTemplate->CurveFloat, FOnTimelineFloat(), TimelineTemplate->GetTrackPropertyName(FloatTrackTemplate->TrackName));
+		}
+	}
+
+	// Vector tracks
+	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->VectorTracks.Num(); TrackIdx++)
+	{
+		const FTTVectorTrack* VectorTrackTemplate = &TimelineTemplate->VectorTracks[TrackIdx];
+		if (VectorTrackTemplate->CurveVector != NULL)
+		{
+			NewTimeline->AddInterpVector(VectorTrackTemplate->CurveVector, FOnTimelineVector(), TimelineTemplate->GetTrackPropertyName(VectorTrackTemplate->TrackName));
+		}
+	}
+
+	// Linear color tracks
+	for (int32 TrackIdx = 0; TrackIdx < TimelineTemplate->LinearColorTracks.Num(); TrackIdx++)
+	{
+		const FTTLinearColorTrack* LinearColorTrackTemplate = &TimelineTemplate->LinearColorTracks[TrackIdx];
+		if (LinearColorTrackTemplate->CurveLinearColor != NULL)
+		{
+			NewTimeline->AddInterpLinearColor(LinearColorTrackTemplate->CurveLinearColor, FOnTimelineLinearColor(), TimelineTemplate->GetTrackPropertyName(LinearColorTrackTemplate->TrackName));
+		}
+	}
+
+	// Set up delegate that gets called after all properties are updated
+	FScriptDelegate UpdateDelegate;
+	UpdateDelegate.BindUFunction(Actor, TimelineTemplate->GetUpdateFunctionName());
+	NewTimeline->SetTimelinePostUpdateFunc(FOnTimelineEvent(UpdateDelegate));
+
+	// Set up finished delegate that gets called after all properties are updated
+	FScriptDelegate FinishedDelegate;
+	FinishedDelegate.BindUFunction(Actor, TimelineTemplate->GetFinishedFunctionName());
+	NewTimeline->SetTimelineFinishedFunc(FOnTimelineEvent(FinishedDelegate));
+
+	NewTimeline->RegisterComponent();
+
+	// Start playing now, if desired
+	if (TimelineTemplate->bAutoPlay)
+	{
+		// Needed for autoplay timelines in cooked builds, since they won't have Activate() called via the Play call below
+		NewTimeline->bAutoActivate = true;
+		NewTimeline->Play();
+	}
+
+	// Set to loop, if desired
+	if (TimelineTemplate->bLoop)
+	{
+		NewTimeline->SetLooping(true);
+	}
+
+	// Set replication, if desired
+	if (TimelineTemplate->bReplicated)
+	{
+		NewTimeline->SetIsReplicated(true);
+	}
+}
+
 void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 {
 	check(Actor != NULL);
@@ -419,110 +532,9 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 		const UTimelineTemplate* TimelineTemplate = Timelines[i];
 
 		// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
-		if(!TimelineTemplate||!TimelineTemplate->bValidatedAsWired)
+		if(TimelineTemplate && TimelineTemplate->bValidatedAsWired)
 		{
-			continue;
-		}
-
-		FName NewName( *UTimelineTemplate::TimelineTemplateNameToVariableName( TimelineTemplate->GetFName() ));
-		UTimelineComponent* NewTimeline = NewObject<UTimelineComponent>(Actor, NewName);
-		NewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-		Actor->BlueprintCreatedComponents.Add(NewTimeline); // Add to array so it gets saved
-		NewTimeline->SetNetAddressable();	// This component has a stable name that can be referenced for replication
-
-		NewTimeline->SetPropertySetObject(Actor); // Set which object the timeline should drive properties on
-		NewTimeline->SetDirectionPropertyName(TimelineTemplate->GetDirectionPropertyName());
-
-		NewTimeline->SetTimelineLength(TimelineTemplate->TimelineLength); // copy length
-		NewTimeline->SetTimelineLengthMode(TimelineTemplate->LengthMode);
-
-		// Find property with the same name as the template and assign the new Timeline to it
-		UClass* ActorClass = Actor->GetClass();
-		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>( ActorClass, *UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()) );
-		if(Prop)
-		{
-			Prop->SetObjectPropertyValue_InContainer(Actor, NewTimeline);
-		}
-
-		// Event tracks
-		// In the template there is a track for each function, but in the runtime Timeline each key has its own delegate, so we fold them together
-		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->EventTracks.Num(); TrackIdx++)
-		{
-			const FTTEventTrack* EventTrackTemplate = &TimelineTemplate->EventTracks[TrackIdx];
-			if(EventTrackTemplate->CurveKeys != NULL)
-			{
-				// Create delegate for all keys in this track
-				FScriptDelegate EventDelegate;
-				EventDelegate.BindUFunction(Actor, TimelineTemplate->GetEventTrackFunctionName(TrackIdx));
-
-				// Create an entry in Events for each key of this track
-				for (auto It(EventTrackTemplate->CurveKeys->FloatCurve.GetKeyIterator()); It; ++It)
-				{
-					NewTimeline->AddEvent(It->Time, FOnTimelineEvent(EventDelegate));
-				}
-			}
-		}
-
-		// Float tracks
-		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->FloatTracks.Num(); TrackIdx++)
-		{
-			const FTTFloatTrack* FloatTrackTemplate = &TimelineTemplate->FloatTracks[TrackIdx];
-			if(FloatTrackTemplate->CurveFloat != NULL)
-			{
-				NewTimeline->AddInterpFloat(FloatTrackTemplate->CurveFloat, FOnTimelineFloat(), TimelineTemplate->GetTrackPropertyName(FloatTrackTemplate->TrackName));
-			}
-		}
-
-		// Vector tracks
-		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->VectorTracks.Num(); TrackIdx++)
-		{
-			const FTTVectorTrack* VectorTrackTemplate = &TimelineTemplate->VectorTracks[TrackIdx];
-			if(VectorTrackTemplate->CurveVector != NULL)
-			{
-				NewTimeline->AddInterpVector(VectorTrackTemplate->CurveVector, FOnTimelineVector(), TimelineTemplate->GetTrackPropertyName(VectorTrackTemplate->TrackName));
-			}
-		}
-
-		// Linear color tracks
-		for(int32 TrackIdx=0; TrackIdx<TimelineTemplate->LinearColorTracks.Num(); TrackIdx++)
-		{
-			const FTTLinearColorTrack* LinearColorTrackTemplate = &TimelineTemplate->LinearColorTracks[TrackIdx];
-			if(LinearColorTrackTemplate->CurveLinearColor != NULL)
-			{
-				NewTimeline->AddInterpLinearColor(LinearColorTrackTemplate->CurveLinearColor, FOnTimelineLinearColor(), TimelineTemplate->GetTrackPropertyName(LinearColorTrackTemplate->TrackName));
-			}
-		}
-
-		// Set up delegate that gets called after all properties are updated
-		FScriptDelegate UpdateDelegate;
-		UpdateDelegate.BindUFunction(Actor, TimelineTemplate->GetUpdateFunctionName());
-		NewTimeline->SetTimelinePostUpdateFunc(FOnTimelineEvent(UpdateDelegate));
-
-		// Set up finished delegate that gets called after all properties are updated
-		FScriptDelegate FinishedDelegate;
-		FinishedDelegate.BindUFunction(Actor, TimelineTemplate->GetFinishedFunctionName());
-		NewTimeline->SetTimelineFinishedFunc(FOnTimelineEvent(FinishedDelegate));
-
-		NewTimeline->RegisterComponent();
-
-		// Start playing now, if desired
-		if(TimelineTemplate->bAutoPlay)
-		{
-			// Needed for autoplay timelines in cooked builds, since they won't have Activate() called via the Play call below
-			NewTimeline->bAutoActivate = true;
-			NewTimeline->Play();
-		}
-
-		// Set to loop, if desired
-		if(TimelineTemplate->bLoop)
-		{
-			NewTimeline->SetLooping(true);
-		}
-
-		// Set replication, if desired
-		if(TimelineTemplate->bReplicated)
-		{
-			NewTimeline->SetIsReplicated(true);
+			CreateTimelineComponent(Actor, TimelineTemplate);
 		}
 	}
 }

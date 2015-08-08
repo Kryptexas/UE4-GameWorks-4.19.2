@@ -300,6 +300,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FBlueprintCompiledSt
 		FSafeContextScopedEmmitter SafeContextScope(Result, bUseSafeContext ? Statement.FunctionContext : nullptr, *this, TEXT("\t\t\t"));
 		ensure(!bInline || !SafeContextScope.IsSafeContextUsed());
 
+		bool bCloseCast = false;
 		if (!bInline)
 		{
 			Result += TEXT("\t\t\t");
@@ -309,7 +310,19 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FBlueprintCompiledSt
 			UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
 			if (FuncToCallReturnProperty && ensure(Statement.LHS))
 			{
-				Result += FString::Printf(TEXT("%s = "), *TermToText(Statement.LHS));
+				FString BeginCast;
+				if (auto ObjectProperty = Cast<UObjectProperty>(FuncToCallReturnProperty))
+				{
+					UClass* LClass = Statement.LHS ? Cast<UClass>(Statement.LHS->Type.PinSubCategoryObject.Get()) : nullptr;
+					if (LClass && LClass->IsChildOf(ObjectProperty->PropertyClass) && !ObjectProperty->PropertyClass->IsChildOf(LClass))
+					{
+						BeginCast = FString::Printf(TEXT("CastChecked<%s%s>("), LClass->GetPrefixCPP(), *LClass->GetName());
+						bCloseCast = true;
+					}
+				}
+
+				Result += FString::Printf(TEXT("%s = %s"), *TermToText(Statement.LHS), *BeginCast);
+				
 			}
 		}
 
@@ -352,6 +365,11 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FBlueprintCompiledSt
 		}
 		Result += EmitMethodInputParameterList(Statement);
 		Result += TEXT(")");
+
+		if (bCloseCast)
+		{
+			Result += TEXT(", ECastCheckedType::NullAllowed)");
+		}
 
 		if (!bInline)
 		{

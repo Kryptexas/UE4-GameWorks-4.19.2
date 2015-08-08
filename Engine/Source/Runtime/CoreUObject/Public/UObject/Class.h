@@ -1934,6 +1934,9 @@ public:
 	/** This class's native functions. */
 	TArray<FNativeFunctionLookup> NativeFunctionLookupTable;
 
+	/** Misc Objects Owned by the class. Mostly templates from BP-generated native class */
+	TArray<UObject*> MiscObjects;
+
 public:
 	// Constructors
 	UClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -2786,6 +2789,11 @@ template<> struct TBaseStructure<FVector2D>
 };
 
 template<> struct TBaseStructure<FRandomStream>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FGuid>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

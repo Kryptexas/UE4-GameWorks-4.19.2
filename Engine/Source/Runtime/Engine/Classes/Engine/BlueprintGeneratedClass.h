@@ -452,6 +452,7 @@ public:
 
 	/** Create Timeline objects for this Actor based on the Timelines array*/
 	virtual void CreateComponentsForActor(AActor* Actor) const;
+	static void CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate);
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;

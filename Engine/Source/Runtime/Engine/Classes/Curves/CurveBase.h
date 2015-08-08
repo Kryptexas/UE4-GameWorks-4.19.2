@@ -401,7 +401,6 @@ public:
 	UPROPERTY()
 	TEnumAsByte<ERichCurveExtrapolation> PostInfinityExtrap;
 
-private:
 	/** Sorted array of keys */
 	UPROPERTY()
 	TArray<FRichCurveKey> Keys;

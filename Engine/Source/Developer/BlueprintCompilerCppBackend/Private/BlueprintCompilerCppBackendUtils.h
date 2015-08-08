@@ -65,6 +65,8 @@ struct FEmitHelper
 	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 };
 
+struct FDefaultValueHelperContext;
+
 struct FEmitDefaultValueHelper
 {
 	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct);
@@ -72,10 +74,19 @@ struct FEmitDefaultValueHelper
 	static FString GenerateConstructor(UClass* BPGC);
 private:
 
-	static void OuterGenerate(const UProperty* Property, const uint8* DataContainer, const FString OuterPath, const uint8* OptionalDefaultDataContainer, FString& OutResult, bool bAllowProtected = false);
-	static void InnerGenerate(const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember, FString& OutResult);
+	// OuterPath ends with "->" or "."
+	static void OuterGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* DataContainer, const FString OuterPath, const uint8* OptionalDefaultDataContainer, bool bAllowProtected = false);
 	
-	//Return if handled
-	static bool HandleSpecialTypes(const UProperty* Property, const uint8* ValuePtr, FString& OutResult);
-	static bool HandleNonNativeComponent(UBlueprintGeneratedClass* BPGC, FName Name, bool bNew, const FString MemberPath, FString& OutResult);
+	// PathToMember ends with variable name
+	static void InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember);
+	
+	// Returns native term, 
+	// returns empty string if cannot handle
+	static FString HandleSpecialTypes(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr);
+
+	static UActorComponent* HandleNonNativeComponent(FDefaultValueHelperContext& Context, UBlueprintGeneratedClass* BPGC, FName ObjectName, bool bNew, const FString& NativeName);
+	
+	// Creates the subobject (of class) returns it's native local name, 
+	// returns empty string if cannot handle
+	static FString HandleClassSubobject(FDefaultValueHelperContext& Context, UObject* Object);
 };

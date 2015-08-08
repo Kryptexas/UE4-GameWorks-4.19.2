@@ -609,15 +609,22 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment, const FTransform& RelativeTransform, const UObject* ComponentTemplateContext)
 {
 	UActorComponent* Template = nullptr;
-	UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>((ComponentTemplateContext != nullptr) ? ComponentTemplateContext->GetClass() : GetClass());
-	while(BlueprintGeneratedClass != nullptr)
+	for (UClass* TemplateOwnerClass = (ComponentTemplateContext != nullptr) ? ComponentTemplateContext->GetClass() : GetClass()
+		; TemplateOwnerClass && !Template
+		; TemplateOwnerClass = TemplateOwnerClass->GetSuperClass())
 	{
-		Template = BlueprintGeneratedClass->FindComponentTemplateByName(TemplateName);
-		if(nullptr != Template)
+		if (auto BPGC = Cast<UBlueprintGeneratedClass>(TemplateOwnerClass))
 		{
-			break;
+			Template = BPGC->FindComponentTemplateByName(TemplateName);
 		}
-		BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>(BlueprintGeneratedClass->GetSuperClass());
+		else
+		{
+			UObject** FoundTemplatePtr = TemplateOwnerClass->MiscObjects.FindByPredicate([=](UObject* Obj) -> bool
+			{
+				return Obj && Obj->IsA<UActorComponent>() && (Obj->GetFName() == TemplateName);
+			});
+			Template = (nullptr != FoundTemplatePtr) ? Cast<UActorComponent>(*FoundTemplatePtr) : nullptr;
+		}
 	}
 
 	bool bIsSceneComponent = false;
