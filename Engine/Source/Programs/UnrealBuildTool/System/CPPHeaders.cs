@@ -6,13 +6,15 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Runtime.Serialization;
+using System.Linq;
 using Tools.DotNETCommon.FileContentsCacheType;
 
 namespace UnrealBuildTool
 {
 	/** For C++ source file items, this structure is used to cache data that will be used for include dependency scanning */
 	[Serializable]
-	public class CPPIncludeInfo
+	public class CPPIncludeInfo : ISerializable
 	{
 		/** Ordered list of include paths for the module  */
 		public HashSet<string> IncludePaths = new HashSet<string>();
@@ -24,8 +26,23 @@ namespace UnrealBuildTool
 		public HashSet<string> SystemIncludePaths = new HashSet<string>();
 
 		/** Contains a mapping from filename to the full path of the header in this environment.  This is used to optimized include path lookups at runtime for any given single module. */
-		[NonSerialized]
 		public Dictionary<string, FileItem> IncludeFileSearchDictionary = new Dictionary<string, FileItem>();
+
+		public CPPIncludeInfo()
+		{
+		}
+
+		public CPPIncludeInfo(SerializationInfo Info, StreamingContext Context)
+		{
+			IncludePaths       = new HashSet<string>((string[])Info.GetValue("ip", typeof(string[])));
+			SystemIncludePaths = new HashSet<string>((string[])Info.GetValue("sp", typeof(string[])));
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("ip", IncludePaths.ToArray());
+			Info.AddValue("sp", SystemIncludePaths.ToArray());
+		}
 
 
 		/// <summary>

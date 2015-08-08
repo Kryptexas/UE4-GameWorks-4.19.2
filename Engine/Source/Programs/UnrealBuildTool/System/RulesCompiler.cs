@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
@@ -13,7 +14,7 @@ namespace UnrealBuildTool
 	/// Information about a target, passed along when creating a module descriptor
 	/// </summary>
 	[Serializable]
-	public class TargetInfo
+	public class TargetInfo : ISerializable
 	{
 		/// Target platform
 		public readonly UnrealTargetPlatform Platform;
@@ -29,6 +30,38 @@ namespace UnrealBuildTool
 
 		/// Whether the target is monolithic (if known)
 		public readonly bool? bIsMonolithic;
+
+		public TargetInfo(SerializationInfo Info, StreamingContext Context)
+		{
+			Platform      = (UnrealTargetPlatform)Info.GetInt32("pl");
+			Architecture  = Info.GetString("ar");
+			Configuration = (UnrealTargetConfiguration)Info.GetInt32("co");
+			if (Info.GetBoolean("t?"))
+			{
+				Type = (TargetRules.TargetType)Info.GetInt32("tt");
+			}
+			if (Info.GetBoolean("m?"))
+			{
+				bIsMonolithic = Info.GetBoolean("mo");
+			}
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("pl", (int)Platform);
+			Info.AddValue("ar", Architecture);
+			Info.AddValue("co", (int)Configuration);
+			Info.AddValue("t?", Type.HasValue);
+			if (Type.HasValue)
+			{
+				Info.AddValue("tt", (int)Type.Value);
+			}
+			Info.AddValue("m?", bIsMonolithic.HasValue);
+			if (bIsMonolithic.HasValue)
+			{
+				Info.AddValue("mo", bIsMonolithic);
+			}
+		}
 
 		/// <summary>
 		/// Constructs a TargetInfo
