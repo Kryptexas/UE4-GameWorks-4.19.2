@@ -572,6 +572,27 @@ bool UWidgetBlueprint::AllowsDynamicBinding() const
 	return true;
 }
 
+void UWidgetBlueprint::GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const
+{
+	Super::GatherDependencies(InDependencies);
+
+	if ( WidgetTree )
+	{
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+			if ( UBlueprint* WidgetBlueprint = UBlueprint::GetBlueprintFromClass(Widget->GetClass()) )
+			{
+				bool bWasAlreadyInSet;
+				InDependencies.Add(WidgetBlueprint, &bWasAlreadyInSet);
+
+				if ( !bWasAlreadyInSet )
+				{
+					WidgetBlueprint->GatherDependencies(InDependencies);
+				}
+			}
+		});
+	}
+}
+
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	bool Result = Super::ValidateGeneratedClass(InClass);
