@@ -69,7 +69,7 @@ namespace GearVR
 			bInAllocatedStorage,
 			InFlags,
 			InTextureRange,
-			FClearValueBinding::None
+			FClearValueBinding::Black
 			)
 		{
 			FMemory::Memzero(Textures);
