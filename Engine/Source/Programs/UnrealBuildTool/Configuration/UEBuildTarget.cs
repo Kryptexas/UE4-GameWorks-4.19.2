@@ -883,7 +883,6 @@ namespace UnrealBuildTool
 				FlatModuleCsData.Add(FlatModuleCsDataKeys[Index], FlatModuleCsDataValues[Index]);
 			}
 			Receipt                      = (BuildReceipt)Info.GetValue("re", typeof(BuildReceipt));
-			ReceiptFileName              = Info.GetString("rf");
 			TargetCsFilenameField        = Info.GetString("tc");
 		}
 
@@ -909,7 +908,6 @@ namespace UnrealBuildTool
 			Info.AddValue("fk", FlatModuleCsData.Keys.ToArray());
 			Info.AddValue("fv", FlatModuleCsData.Values.ToArray());
 			Info.AddValue("re", Receipt);
-			Info.AddValue("rf", ReceiptFileName);
 			Info.AddValue("tc", TargetCsFilenameField);
 		}
 
