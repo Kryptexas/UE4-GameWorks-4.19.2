@@ -91,7 +91,8 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			RHICmdList.CopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
-		// Create dummy 1x1 depth texture 
+		// Create dummy 1x1 depth texture
+		if (IsMobilePlatform(GShaderPlatformForFeatureLevel[InFeatureLevel])) // currently used only for mobile
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 			GRenderTargetPool.FindFreeElement(Desc, DepthDummy, TEXT("DepthDummy"));
