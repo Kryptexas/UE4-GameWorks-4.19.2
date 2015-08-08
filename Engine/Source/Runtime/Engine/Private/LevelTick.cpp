@@ -1147,24 +1147,24 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PrePhysics);
-		RunTickGroup(TG_PrePhysics);
+			RunTickGroup(TG_PrePhysics);
 		}
         bInTick = false;
         EnsureCollisionTreeIsBuilt();
         bInTick = true;
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_StartPhysics);
-		RunTickGroup(TG_StartPhysics); 
+			RunTickGroup(TG_StartPhysics); 
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_DuringPhysics);
 			QUICK_SCOPE_CYCLE_COUNTER(FStat_Tick_PostPhysics);
-		RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
+			RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 		}
 		TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
-		RunTickGroup(TG_EndPhysics);
+			RunTickGroup(TG_EndPhysics);
 		}
 		if ( PhysicsScene != NULL )
 		{
@@ -1172,11 +1172,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PreCloth);
-		RunTickGroup(TG_PreCloth);
+			RunTickGroup(TG_PreCloth);
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_StartCloth);
-		RunTickGroup(TG_StartCloth);
+			RunTickGroup(TG_StartCloth);
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);
