@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ModuleInterface.h"
-#include "SlateBasics.h"
+#include "UnrealEd.h"
 
 /**
 * The module holding all of the UI related pieces for HLOD Outliner

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SCompoundWidget.h"
+#include "UnrealEd.h"
 #include "STreeView.h"
 #include "SListView.h"
 #include "STableViewBase.h"

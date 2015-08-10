@@ -3,3 +3,4 @@
 #pragma once
 
 #include "Core.h"
+#include "UnrealEd.h"

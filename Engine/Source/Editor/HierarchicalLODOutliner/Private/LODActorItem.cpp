@@ -56,7 +56,7 @@ FString HLODOutliner::FLODActorItem::GetDisplayString() const
 {
 	if (ALODActor* ActorPtr = LODActor.Get())
 	{
-		return ActorPtr->GetName() + ((ActorPtr->IsDirty()) ? FString(" (Not build)") : FString());
+		return ActorPtr->GetName() + ((ActorPtr->IsDirty()) ? FString(" (Not built)") : FString());
 	}
 
 	return FString();
@@ -72,7 +72,7 @@ FSlateColor HLODOutliner::FLODActorItem::GetTint() const
 	ALODActor* LODActorPtr = LODActor.Get();
 	if (LODActorPtr)
 	{
-		return LODActorPtr->IsDirty() ? FLinearColor(1.0f, 0.6f, 0.6f) : FLinearColor(1.0f, 1.0f, 1.0f);
+		return LODActorPtr->IsDirty() ? FSlateColor::UseSubduedForeground() : FLinearColor(1.0f, 1.0f, 1.0f);
 	}
 
 	return FLinearColor(1.0f, 1.0f, 1.0f);
