@@ -327,7 +327,7 @@ static void GenerateSharpenedMipB8G8R8A8Templ(
 
 			if ( bSharpenWithoutColorShift )
 			{
-				float NewLuminance = 0;
+				FLinearColor SharpenedColor(0, 0, 0, 0);
 
 				for ( uint32 KernelY = 0; KernelY < Kernel.GetFilterTableSize();  ++KernelY )
 				{
@@ -335,11 +335,11 @@ static void GenerateSharpenedMipB8G8R8A8Templ(
 					{
 						float Weight = Kernel.GetAt( KernelX, KernelY );
 						FLinearColor Sample = LookupSourceMip<AddressMode>( SourceImageData, SourceX + KernelX - KernelCenter, SourceY + KernelY - KernelCenter );
-						float LuminanceSample = Sample.ComputeLuminance();
-
-						NewLuminance += Weight * LuminanceSample;
+						SharpenedColor += Weight * Sample;
 					}
 				}
+
+				float NewLuminance = SharpenedColor.ComputeLuminance();
 
 				// simple 2x2 kernel to compute the color
 				FilteredColor =
@@ -357,6 +357,9 @@ static void GenerateSharpenedMipB8G8R8A8Templ(
 					FilteredColor.G *= Factor;
 					FilteredColor.B *= Factor;
 				}
+
+				// We also want to sharpen the alpha channel (was missing before)
+				FilteredColor.A = SharpenedColor.A;
 			}
 			else
 			{

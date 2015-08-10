@@ -142,7 +142,20 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 	TempByte = Settings.bReplicateRed; Ar << TempByte;
 	TempByte = Settings.bReplicateAlpha; Ar << TempByte;
 	TempByte = Settings.bDownsampleWithAverage; Ar << TempByte;
-	TempByte = Settings.bSharpenWithoutColorShift; Ar << TempByte;
+	
+	{
+		TempByte = Settings.bSharpenWithoutColorShift;
+
+		if(Settings.bSharpenWithoutColorShift && Settings.MipSharpening != 0.0f)
+		{
+			// bSharpenWithoutColorShift prevented alpha sharpening. This got fixed
+			// Here we update the key to get those cases recooked.
+			TempByte = 2;
+		}
+
+		Ar << TempByte;
+	}
+
 	TempByte = Settings.bBorderColorBlack; Ar << TempByte;
 	TempByte = Settings.bFlipGreenChannel; Ar << TempByte;
 	TempByte = Settings.bApplyKernelToTopMip; Ar << TempByte;
