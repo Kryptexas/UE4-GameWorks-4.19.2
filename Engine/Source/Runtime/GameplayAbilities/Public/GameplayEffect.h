@@ -1302,13 +1302,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
 	FActiveGameplayEffectQueryCustomMatch_Dynamic CustomMatchDelegate_BP;
 
-	/** Query that is matched against InheritableOwnedTagsContainer */
+	/** Query that is matched against tags this GE gives */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
 	FGameplayTagQuery OwningTagQuery;
 
-	/** Query that is matched against InheritableGameplayEffectTags */
+	/** Query that is matched against tags this GE has */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
 	FGameplayTagQuery EffectTagQuery;
+
+	/** Query that is matched against tags the source of this GE has */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
+	FGameplayTagQuery SourceTagQuery;
 
 	/** Matches on GameplayEffects which modify given attribute. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
@@ -1335,12 +1339,24 @@ public:
 
 	/** Creates an effect query that will match if there are any common tags between the given tags and an ActiveGameplayEffect's owning tags */
 	static FGameplayEffectQuery MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InTags);
+	/** Creates an effect query that will match if all of the given tags are in the ActiveGameplayEffect's owning tags */
 	static FGameplayEffectQuery MakeQuery_MatchAllOwningTags(const FGameplayTagContainer& InTags);
+	/** Creates an effect query that will match if there are no common tags between the given tags and an ActiveGameplayEffect's owning tags */
 	static FGameplayEffectQuery MakeQuery_MatchNoOwningTags(const FGameplayTagContainer& InTags);
 	
+	/** Creates an effect query that will match if there are any common tags between the given tags and an ActiveGameplayEffect's tags */
 	static FGameplayEffectQuery MakeQuery_MatchAnyEffectTags(const FGameplayTagContainer& InTags);
+	/** Creates an effect query that will match if all of the given tags are in the ActiveGameplayEffect's tags */
 	static FGameplayEffectQuery MakeQuery_MatchAllEffectTags(const FGameplayTagContainer& InTags);
+	/** Creates an effect query that will match if there are no common tags between the given tags and an ActiveGameplayEffect's tags */
 	static FGameplayEffectQuery MakeQuery_MatchNoEffectTags(const FGameplayTagContainer& InTags);
+
+	/** Creates an effect query that will match if there are any common tags between the given tags and an ActiveGameplayEffect's source tags */
+	static FGameplayEffectQuery MakeQuery_MatchAnySourceTags(const FGameplayTagContainer& InTags);
+	/** Creates an effect query that will match if all of the given tags are in the ActiveGameplayEffect's source tags */
+	static FGameplayEffectQuery MakeQuery_MatchAllSourceTags(const FGameplayTagContainer& InTags);
+	/** Creates an effect query that will match if there are no common tags between the given tags and an ActiveGameplayEffect's source tags */
+	static FGameplayEffectQuery MakeQuery_MatchNoSourceTags(const FGameplayTagContainer& InTags);
 };
 
 /**

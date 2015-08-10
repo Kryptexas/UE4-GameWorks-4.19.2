@@ -1578,7 +1578,7 @@ void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Ag
 
 		EvaluationParameters.IncludePredictiveMods = true;
 	}
-	
+
 	float NewValue = Aggregator->Evaluate(EvaluationParameters);
 
 	if (EvaluationParameters.IncludePredictiveMods)
@@ -3211,6 +3211,7 @@ FGameplayEffectQuery& FGameplayEffectQuery::operator=(FGameplayEffectQuery&& Oth
 	CustomMatchDelegate_BP = MoveTemp(Other.CustomMatchDelegate_BP);
 	OwningTagQuery = MoveTemp(Other.OwningTagQuery);
 	EffectTagQuery = MoveTemp(Other.EffectTagQuery);
+	SourceTagQuery = MoveTemp(Other.SourceTagQuery);
 	ModifyingAttribute = MoveTemp(Other.ModifyingAttribute);
 	EffectSource = Other.EffectSource;
 	EffectDefinition = Other.EffectDefinition;
@@ -3224,6 +3225,7 @@ FGameplayEffectQuery& FGameplayEffectQuery::operator=(const FGameplayEffectQuery
 	CustomMatchDelegate_BP = Other.CustomMatchDelegate_BP;
 	OwningTagQuery = Other.OwningTagQuery;
 	EffectTagQuery = Other.EffectTagQuery;
+	SourceTagQuery = Other.SourceTagQuery;
 	ModifyingAttribute = Other.ModifyingAttribute;
 	EffectSource = Other.EffectSource;
 	EffectDefinition = Other.EffectDefinition;
@@ -3261,33 +3263,54 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 		}
 	}
 
-	// if it fails to match any of these, fail to match overall (assuming AND relationship)
 	if (OwningTagQuery.IsEmpty() == false)
 	{
-		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
-		if (OwningTagQuery.Matches(CombinedTags) == false)
+		// Combine tags from the definition and the spec into one container to match queries that may span both
+		// static to avoid memory allocations every time we do a query
+		static FGameplayTagContainer TargetTags;
+		TargetTags.RemoveAllTags();
+		if (Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.Num() > 0)
 		{
-			if (OwningTagQuery.Matches(Effect.Spec.DynamicGrantedTags) == false)
-			{
-				if (OwningTagQuery.Matches(Effect.Spec.CapturedSourceTags.GetSpecTags()) == false)
-				{
-					// none of these match, so EffectTagQuery fails to match, so entire query fails to match, we can be done
-					return false;
-				}
-			}
+			TargetTags.AppendTags(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
+		}
+		if (Effect.Spec.DynamicGrantedTags.Num() > 0)
+		{
+			TargetTags.AppendTags(Effect.Spec.DynamicGrantedTags);
+		}
+		
+		if (OwningTagQuery.Matches(TargetTags) == false)
+		{
+			return false;
 		}
 	}
 
 	if (EffectTagQuery.IsEmpty() == false)
 	{
-		FGameplayTagContainer const& CombinedTags = Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags;
-		if (EffectTagQuery.Matches(CombinedTags) == false)
+		// Combine tags from the definition and the spec into one container to match queries that may span both
+		// static to avoid memory allocations every time we do a query
+		static FGameplayTagContainer GETags;
+		GETags.RemoveAllTags();
+		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.Num() > 0)
 		{
-			if (EffectTagQuery.Matches(Effect.Spec.DynamicAssetTags) == false)
-			{
-				// none of these match, so EffectTagQuery fails to match, so entire query fails to match, we can be done
-				return false;
-			}
+			GETags.AppendTags(Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags);
+		}
+		if (Effect.Spec.DynamicAssetTags.Num() > 0)
+		{
+			GETags.AppendTags(Effect.Spec.DynamicAssetTags);
+		}
+
+		if (EffectTagQuery.Matches(GETags) == false)
+		{
+			return false;
+		}
+	}
+
+	if (SourceTagQuery.IsEmpty() == false)
+	{
+		FGameplayTagContainer const& SourceTags = Effect.Spec.CapturedSourceTags.GetSpecTags();
+		if (SourceTagQuery.Matches(SourceTags) == false)
+		{
+			return false;
 		}
 	}
 
@@ -3380,6 +3403,30 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoEffectTags(const FGa
 {
 	FGameplayEffectQuery OutQuery;
 	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnySourceTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.SourceTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllSourceTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.SourceTagQuery = FGameplayTagQuery::MakeQuery_MatchAllTags(InTags);
+	return OutQuery;
+}
+
+// static
+FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoSourceTags(const FGameplayTagContainer& InTags)
+{
+	FGameplayEffectQuery OutQuery;
+	OutQuery.SourceTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
 	return OutQuery;
 }
 
