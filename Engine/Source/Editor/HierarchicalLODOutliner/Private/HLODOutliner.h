@@ -7,6 +7,7 @@
 #include "SListView.h"
 #include "STableViewBase.h"
 #include "TreeItemID.h"
+#include "SlateBasics.h"
 
 class AHLODSelectionActor;
 class UWorld;

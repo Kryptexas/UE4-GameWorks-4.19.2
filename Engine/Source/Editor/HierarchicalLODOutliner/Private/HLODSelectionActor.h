@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GameFramework\Actor.h"
+#include "GameFramework/Actor.h"
 #include "HLODSelectionActor.generated.h"
 
 UCLASS(notplaceable, hidecategories = (Object, Collision, Display, Input, Blueprint, Transform))
