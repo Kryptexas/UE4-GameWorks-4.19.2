@@ -7,7 +7,7 @@
 #include "HierarchicalLODUtils.h"
 #include "ScopedTransaction.h"
 #include "SlateBasics.h"
-
+#include "TreeItemID.h"
 
 #define LOCTEXT_NAMESPACE "LODLevelItem"
 
@@ -127,5 +127,3 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 }
 
 #undef LOCTEXT_NAMESPACE
-
-

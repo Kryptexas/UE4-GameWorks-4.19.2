@@ -8,7 +8,7 @@
 #include "HierarchicalLODUtils.h"
 #include "ScopedTransaction.h"
 #include "SlateBasics.h"
-
+#include "TreeItemID.h"
 
 #define LOCTEXT_NAMESPACE "LODActorItem"
 
@@ -321,4 +321,4 @@ void HLODOutliner::FLODActorDropTarget::MergeCluster(ALODActor* ToMergeActor)
 	}
 }
 
-#undef LOCTEXT_NAMESPACE 
+#undef LOCTEXT_NAMESPACE

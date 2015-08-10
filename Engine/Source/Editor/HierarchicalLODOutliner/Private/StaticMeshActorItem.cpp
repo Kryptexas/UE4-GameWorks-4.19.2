@@ -5,6 +5,7 @@
 #include "HLODOutliner.h"
 #include "LevelEditor.h"
 #include "SlateBasics.h"
+#include "TreeItemID.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshActorItem"
 

@@ -21,6 +21,7 @@
 #include "StaticMeshActorItem.h"
 #include "HLODTreeWidgetitem.h"
 #include "HLODSelectionActor.h"
+#include "TreeItemID.h"
 
 #include "HierarchicalLODUtils.h"
 

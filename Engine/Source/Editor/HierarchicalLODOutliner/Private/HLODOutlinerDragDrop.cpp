@@ -6,6 +6,7 @@
 #include "HLODOutlinerDragDrop.h"
 #include "HierarchicalLODUtils.h"
 #include "ITreeItem.h"
+#include "TreeItemID.h"
 
 HLODOutliner::FDragDropPayload::FDragDropPayload()
 {

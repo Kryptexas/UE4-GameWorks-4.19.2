@@ -3,7 +3,6 @@
 
 #include "Engine/LodActor.h"
 #include "HLODOutlinerDragDrop.h"
-#include "TreeItemID.h"
 
 class FMenuBuilder;
 class UWorld;
@@ -11,6 +10,7 @@ class UWorld;
 namespace HLODOutliner
 {
 	class SHLODOutliner;
+	struct FTreeItemID;
 
 	/** Interface used for validating movement (ie, drag/dropping) operations */
 	struct IDropTarget

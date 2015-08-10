@@ -8,6 +8,8 @@ namespace HLODOutliner
 	struct FTreeItemID
 	{
 	public:
+		FTreeItemID() : CachedHash(0) {}
+
 		FTreeItemID(const UObject* InObject)
 		{
 			ObjectKey = FObjectKey(InObject);
@@ -20,11 +22,19 @@ namespace HLODOutliner
 			*this = Other;
 		}
 
+		FTreeItemID& operator=(const FTreeItemID& Other)
+		{
+			ObjectKey = Other.ObjectKey;
+			CachedHash = Other.CachedHash;
+			return *this;
+		}
+
 		/** Move construction / assignment */
 		FTreeItemID(FTreeItemID&& Other)
 		{
 			*this = MoveTemp(Other);
 		}
+
 		FTreeItemID& operator=(FTreeItemID&& Other)
 		{
 			FMemory::Memswap(this, &Other, sizeof(FTreeItemID));
