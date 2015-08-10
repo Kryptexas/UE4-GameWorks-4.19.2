@@ -23,7 +23,8 @@ public class LevelEditor : ModuleRules
 			new string[] {
 				"Settings",
 				"UserFeedback",
-				"IntroTutorials"
+				"IntroTutorials",
+                "HierarchicalLODOutliner"
 			}
 		);
 
@@ -83,7 +84,8 @@ public class LevelEditor : ModuleRules
 				"UserFeedback",
 				"ReferenceViewer",
 				"SizeMap",
-                "IntroTutorials"
+                "IntroTutorials",
+                "HierarchicalLODOutliner"
 			}
 		);
 	}

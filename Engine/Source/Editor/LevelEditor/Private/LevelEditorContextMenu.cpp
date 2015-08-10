@@ -570,6 +570,15 @@ void FLevelEditorContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectStaticMeshesAllClasses, NAME_None, LOCTEXT("SelectStaticMeshesAllClasses_Menu", "Select Matching (All Classes)") );
 			}
 			MenuBuilder.EndSection();
+
+			if (SelectionInfo.NumSelected == 1)
+			{
+				MenuBuilder.BeginSection("SelectHLODCluster", LOCTEXT("SelectHLODClusterHeading", "Hierachical LODs"));
+				{
+					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SelectOwningHierarchicalLODCluster, NAME_None, LOCTEXT("SelectOwningHierarchicalLODCluster_Menu", "Select Owning HierarchicalLODCluster"));
+				}
+				MenuBuilder.EndSection();
+			}			
 		}
 
 		if( SelectionInfo.bHavePawn || SelectionInfo.bHaveSkeletalMesh )

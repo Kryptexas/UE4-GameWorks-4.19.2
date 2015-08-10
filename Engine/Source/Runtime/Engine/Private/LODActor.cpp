@@ -10,9 +10,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 
-#if WITH_EDITOR	
-#include "Components/DrawSphereComponent.h"
-#endif // WITH_EDITOR
+#include "StaticMeshResources.h"
 
 #define LOCTEXT_NAMESPACE "LODActor"
 
@@ -21,7 +19,16 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	, LODDrawDistance(5000)	
 {
 	bCanBeDamaged = false;
-	bIsPreviewActor = false;
+
+#if WITH_EDITORONLY_DATA
+	
+	bListedInSceneOutliner = false;
+
+	// Always dirty when created
+	bDirty = true;
+
+	NumTrianglesInSubActors = 0;
+#endif // WITH_EDITORONLY_DATA
 
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -31,15 +38,7 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	StaticMeshComponent->bCastStaticShadow = false;
 	StaticMeshComponent->CastShadow = false;
 
-	RootComponent = StaticMeshComponent;
-	
-#if WITH_EDITORONLY_DATA	
-	DrawSphereComponent = CreateEditorOnlyDefaultSubobject<UDrawSphereComponent>(TEXT("VisualizeComponent0"));
-	if (DrawSphereComponent)
-	{
-		DrawSphereComponent->SetSphereRadius(0.0f);
-	}
-#endif // WITH_EDITORONLY_DATA
+	RootComponent = StaticMeshComponent;	
 }
 
 FString ALODActor::GetDetailedInfoInternal() const
@@ -51,24 +50,18 @@ void ALODActor::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();
 #if WITH_EDITOR
-	if (!bIsPreviewActor && StaticMeshComponent->SceneProxy)
+	if (StaticMeshComponent->SceneProxy)
 	{
 		ensure (LODLevel >= 1);
 		(StaticMeshComponent->SceneProxy)->SetHierarchicalLOD_GameThread(LODLevel);
 	}
+
+	UpdateSubActorLODParents();
+
 #endif
 }
 
-void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
-{
-	if (StaticMeshComponent)
-	{
-		StaticMeshComponent->StaticMesh = InStaticMesh;
-	}
 
-	// If given NULL for static mesh then this is a preview actor (only rendering the bounds)
-	bIsPreviewActor = (InStaticMesh == nullptr);
-}
 
 #if WITH_EDITOR
 
@@ -97,6 +90,7 @@ void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 				}
 			}
 		}
+		SetIsDirty(true);
 	}
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -112,30 +106,26 @@ void ALODActor::CheckForErrors()
 {
 	FMessageLog MapCheck("MapCheck");
 
-	// Only check when this is not a preview actor and actually has a static mesh
-	if (!bIsPreviewActor)
+	// Only check when this is not a preview actor and actually has a static mesh	
+	Super::CheckForErrors();
+	if (!StaticMeshComponent)
 	{
-		Super::CheckForErrors();
-		if (!StaticMeshComponent)
-		{
-			MapCheck.Warning()
-				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete")))
-				->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
-		}
+		MapCheck.Warning()
+			->AddToken(FUObjectToken::Create(this))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete")))
+			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
+	}
 
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
-			FMessageLog("MapCheck").Error()
-				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorMissingMesh", "{ActorName} : Static mesh is missing for the built LODActor.  Did you remove the asset? Please delete it and build LOD again. "), Arguments)))
-				->AddToken(FMapErrorToken::Create(FMapErrors::LODActorMissingStaticMesh));
-		}
+	if (StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+		FMessageLog("MapCheck").Error()
+			->AddToken(FUObjectToken::Create(this))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorMissingMesh", "{ActorName} : Static mesh is missing for the built LODActor.  Did you remove the asset? Please delete it and build LOD again. "), Arguments)))
+			->AddToken(FMapErrorToken::Create(FMapErrors::LODActorMissingStaticMesh));
 	}
 	
-
 	if (SubActors.Num() == 0)
 	{
 		FFormatNamedArguments Arguments;
@@ -179,11 +169,203 @@ void ALODActor::EditorApplyMirror(const FVector& MirrorScale, const FVector& Piv
 {
 }
 
+void ALODActor::AddSubActor(AActor* InActor)
+{
+	SubActors.Add(InActor);
+	InActor->SetLODParent(StaticMeshComponent, LODDrawDistance);
+	SetIsDirty(true);
+
+	// Adding number of triangles
+	if (!InActor->IsA<ALODActor>())
+	{
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+		for (UStaticMeshComponent* Component : StaticMeshComponents)
+		{
+			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+			{
+				NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+			}
+
+			Component->MarkRenderStateDirty();
+		}
+	}
+	else
+	{
+		ALODActor* LODActor = Cast<ALODActor>(InActor);
+		NumTrianglesInSubActors += LODActor->GetNumTriangles();
+	}
+
+	StaticMeshComponent->MarkRenderStateDirty();
+	
+}
+
+void ALODActor::RemoveSubActor(AActor* InActor)
+{
+	SubActors.Remove(InActor);
+	InActor->SetLODParent(nullptr, 0);
+	SetIsDirty(true);
+	
+	// Deducting number of triangles
+	if (!InActor->IsA<ALODActor>())
+	{
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+		for (UStaticMeshComponent* Component : StaticMeshComponents)
+		{
+			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+			{
+				NumTrianglesInSubActors -= Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+			}
+
+			Component->MarkRenderStateDirty();
+		}
+	}
+	else
+	{
+		ALODActor* LODActor = Cast<ALODActor>(InActor);
+		NumTrianglesInSubActors -= LODActor->GetNumTriangles();
+	}
+
+	StaticMeshComponent->MarkRenderStateDirty();
+
+	// In case the user removes an actor while the HLOD system is force viewing one LOD level
+	InActor->SetIsTemporarilyHiddenInEditor(false);
+}
+
+void ALODActor::SetIsDirty(const bool bNewState)
+{
+	bDirty = bNewState;
+
+	// Set parent LODActor dirty as well if bNewState = true
+	if (IsDirty())
+	{
+		// If this LODActor is a SubActor at a higher LOD level mark parent dirty as well
+		UPrimitiveComponent* ParentComponent = StaticMeshComponent->GetLODParentPrimitive();
+		if (ParentComponent)
+		{
+			ALODActor* LODParentActor = Cast<ALODActor>(ParentComponent->GetOwner());
+			if (LODParentActor)
+			{
+				LODParentActor->SetIsDirty(true);
+			}
+		}
+
+		// Broadcast actor marked dirty event
+		if (GEngine)
+		{
+			GEngine->BroadcastHLODActorMarkedDirty(this);
+		}		
+	}	
+	else
+	{
+		// Update SubActor's LOD parent component
+		for (auto& SubActor : SubActors)
+		{
+			SubActor->SetLODParent(StaticMeshComponent, LODDrawDistance);
+		}
+	}
+}
+
+const bool ALODActor::HasValidSubActors()
+{
+	if (SubActors.Num() > 1)
+	{
+		// More than one sub actor
+		return true;
+	}
+	else if (SubActors.Num() == 0)
+	{
+		// No sub actors
+		return false;
+	}	
+	else
+	{
+		if (SubActors[0]->IsA<ALODActor>())
+		{
+			// LODActor as only sub actor (which doesn't make sense for the system)
+			return false;
+		}
+		else
+		{
+			// StaticMeshActor as only sub actor
+			return true;
+		}
+	}
+	
+}
+
+void ALODActor::ToggleForceView()
+{
+	// Toggle the forced viewing of this LODActor, set drawing distance to 0.0f or LODDrawDistance
+	StaticMeshComponent->MinDrawDistance = (StaticMeshComponent->MinDrawDistance == 0.0f) ? LODDrawDistance : 0.0f;
+	StaticMeshComponent->MarkRenderStateDirty();
+}
+
+void ALODActor::SetForcedView(const bool InState)
+{
+	// Set forced viewing state of this LODActor, set drawing distance to 0.0f or LODDrawDistance
+	StaticMeshComponent->MinDrawDistance = (InState) ? 0.0f : LODDrawDistance;
+	StaticMeshComponent->MarkRenderStateDirty();
+}
+
+void ALODActor::SetHiddenFromEditorView(const bool InState, const int32 ForceLODLevel )
+{
+	// If we are also subactor for a higher LOD level or this actor belongs to a higher HLOD level than is being forced hide the actor
+	if (GetStaticMeshComponent()->GetLODParentPrimitive() || LODLevel > ForceLODLevel )
+	{
+		SetIsTemporarilyHiddenInEditor(InState);		
+	}
+
+	for (auto Actor : SubActors)
+	{
+		// If this actor belongs to a lower HLOD level that is being forced hide the sub-actors
+		if (LODLevel < ForceLODLevel)
+		{
+			Actor->SetIsTemporarilyHiddenInEditor(InState);
+		}
+
+		// Toggle/set the LOD parent to nullptr or this
+		Actor->SetLODParent((InState) ? nullptr : StaticMeshComponent, (InState) ? 0.0f : LODDrawDistance);
+	}
+
+	StaticMeshComponent->MarkRenderStateDirty();
+}
+
+const uint32 ALODActor::GetNumTriangles()
+{
+	return NumTrianglesInSubActors;
+}
+
+
+void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
+{
+	if (StaticMeshComponent)
+	{
+		StaticMeshComponent->StaticMesh = InStaticMesh;
+		SetIsDirty(false);
+	}
+}
+
+void ALODActor::UpdateSubActorLODParents()
+{
+	for (auto& Actor : SubActors)
+	{
+		Actor->SetLODParent(StaticMeshComponent, LODDrawDistance);
+	}
+}
+
 #endif // WITH_EDITOR
 
 FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const 
 {
 	FBox BoundBox = Super::GetComponentsBoundingBox(bNonColliding);
+
+	// If BoundBox ends up to nothing create a new invalid one
+	if (BoundBox.GetVolume() == 0.0f)
+	{
+		BoundBox = FBox(0);
+	}
 
 	if (bNonColliding)
 	{
@@ -193,10 +375,19 @@ FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const
 			FBox StaticBoundBox(BoundBox.GetCenter()-StaticBound.BoxExtent, BoundBox.GetCenter()+StaticBound.BoxExtent);
 			BoundBox += StaticBoundBox;
 		}
+		else
+		{
+			for (auto Actor : SubActors)
+			{
+				if (Actor)
+				{
+					BoundBox += Actor->GetComponentsBoundingBox(bNonColliding);
+				}				
+			}
+		}
 	}
 
 	return BoundBox;	
 }
 
 #undef LOCTEXT_NAMESPACE
-

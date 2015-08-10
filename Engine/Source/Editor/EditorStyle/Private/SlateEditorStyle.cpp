@@ -4257,6 +4257,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 			Set( "LevelEditor.Tabs.StatsViewer", new IMAGE_BRUSH( "/Icons/icon_tab_Stats_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.Toolbar", new IMAGE_BRUSH( "/Icons/icon_tab_Toolbars_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.Viewports", new IMAGE_BRUSH( "/Icons/icon_tab_Viewports_16x", Icon16x16 ) );
+			Set( "LevelEditor.Tabs.HLOD", new IMAGE_BRUSH("/Icons/icon_tab_layers_16px", Icon16x16));
 		}
 #endif
 

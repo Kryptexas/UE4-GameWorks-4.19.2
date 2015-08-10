@@ -229,7 +229,8 @@ public class UnrealEd : ModuleRules
 				"NiagaraEditor",
                 "Niagara",
                 "VectorVM",
-				"AddContentDialog",
+				"AddContentDialog",                
+                "MeshUtilities"
 			}
 			);
 

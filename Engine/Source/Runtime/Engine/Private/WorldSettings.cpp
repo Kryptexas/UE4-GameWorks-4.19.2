@@ -16,6 +16,10 @@
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#endif 
+
 AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("Sprite")))
 {
@@ -293,6 +297,11 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 		if (GIsEditor)
 		{
 			GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeSetup"));
+		}
+
+		if (PropertyThatChanged->GetName() == TEXT("DrawDistance"))
+		{
+			GEditor->BroadcastHLODDrawDistanceChanged();
 		}
 	}
 

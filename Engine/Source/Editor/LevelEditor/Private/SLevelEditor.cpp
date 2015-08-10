@@ -38,6 +38,8 @@
 #include "ScopedTransaction.h"
 #include "GameFramework/WorldSettings.h"
 
+#include "HierarchicalLODOutlinerModule.h"
+
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
@@ -703,6 +705,21 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					]
 				];
 	}
+	else if (TabIdentifier == TEXT("LevelEditorHierarchicalLODOutliner"))
+	{
+		FHierarchicalLODOutlinerModule& HLODModule = FModuleManager::LoadModuleChecked<FHierarchicalLODOutlinerModule>("HierarchicalLODOutliner");
+		return SNew(SDockTab)
+			.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.HLOD"))
+			.Label(NSLOCTEXT("LevelEditor", "HLODTabTitle", "Hierarchical LOD Outliner"))
+			[
+				SNew(SBorder)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))				
+				[
+					HLODModule.CreateHLODOutlinerWidget()
+				]
+			];
+	}
 	else if( TabIdentifier == WorldBrowserHierarchyTab )
 	{
 		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
@@ -1034,6 +1051,15 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 				.SetTooltipText(NSLOCTEXT("LevelEditorTabs", "LevelEditorLayerBrowserTooltipText", "Open the Layers tab. Use this to manage which actors in the world belong to which layers."))
 				.SetGroup( MenuStructure.GetLevelEditorCategory() )
 				.SetIcon( LayersIcon );
+		}
+
+		{
+			const FSlateIcon LayersIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.HLOD");
+			LevelEditorTabManager->RegisterTabSpawner("LevelEditorHierarchicalLODOutliner", FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, FName("LevelEditorHierarchicalLODOutliner"), FString()))
+				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "LevelEditorHierarchicalLODOutliner", "Hierarchical LOD Outliner"))
+				.SetTooltipText(NSLOCTEXT("LevelEditorTabs", "LevelEditorHierarchicalLODOutlinerTooltipText", "Open the Hierarchical LOD Outliner."))
+				.SetGroup(MenuStructure.GetLevelEditorCategory())
+				.SetIcon(LayersIcon);
 		}
 		
 		{

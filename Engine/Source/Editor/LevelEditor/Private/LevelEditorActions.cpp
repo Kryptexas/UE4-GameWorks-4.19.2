@@ -64,6 +64,7 @@
 #include "Editor/Persona/Public/AnimationRecorder.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
+#include "HierarchicalLODUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -1592,7 +1593,22 @@ void FLevelEditorActionCallbacks::OnSelectAllActorsControlledByMatinee()
 	GEditor->SelectAllActorsControlledByMatinee();
 }
 
-void FLevelEditorActionCallbacks::OnSelectMatineeActor( AMatineeActor * ActorToSelect )
+void FLevelEditorActionCallbacks::OnSelectOwningHLODCluster()
+{
+	if (GEditor->GetSelectedActorCount() > 0)
+	{
+		AActor* Actor = Cast<AActor>(GEditor->GetSelectedActors()->GetSelectedObject(0));
+		ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(Actor);
+		if (Actor && ParentActor)
+		{
+			GEditor->SelectNone(false, true);
+			GEditor->SelectActor(ParentActor, true, false);
+			GEditor->NoteSelectionChange();
+		}
+	}
+}
+
+void FLevelEditorActionCallbacks::OnSelectMatineeActor(AMatineeActor * ActorToSelect)
 {
 	GEditor->SelectNone( false, true );
 	GEditor->SelectActor(ActorToSelect, true, false, true);
@@ -2922,6 +2938,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SelectComponentOwnerActor, "Select Component Owner", "Select the actor that owns the currently selected component(s)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( SelectRelevantLights, "Select Relevant Lights", "Select all lights relevant to the current selection", EUserInterfaceActionType::Button, FInputChord() ); 
 	UI_COMMAND( SelectStaticMeshesOfSameClass, "Select All Using Selected Static Meshes (Selected Actor Types)", "Selects all actors with the same static mesh and actor class as the selection", EUserInterfaceActionType::Button, FInputChord() ); 
+	UI_COMMAND( SelectOwningHierarchicalLODCluster, "Select Owning Hierarchical LOD cluster Using Selected Static Mesh (Selected Actor Types)", "Select Owning Hierarchical LOD cluster for the selected actor", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( SelectStaticMeshesAllClasses, "Select All Using Selected Static Meshes (All Actor Types)", "Selects all actors with the same static mesh as the selection", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Shift, EKeys::E ) ); 
 	UI_COMMAND( SelectSkeletalMeshesOfSameClass, "Select All Using Selected Skeletal Meshes (Selected Actor Types)", "Selects all actors with the same skeletal mesh and actor class as the selection", EUserInterfaceActionType::Button, FInputChord() ); 
 	UI_COMMAND( SelectSkeletalMeshesAllClasses, "Select All Using Selected Skeletal Meshes (All Actor Types)", "Selects all actors with the same skeletal mesh as the selection", EUserInterfaceActionType::Button, FInputChord() ); 

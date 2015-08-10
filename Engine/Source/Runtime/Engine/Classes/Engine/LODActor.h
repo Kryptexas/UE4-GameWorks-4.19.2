@@ -13,7 +13,7 @@
 UCLASS(notplaceable, hidecategories=(Object, Collision, Display, Input, Blueprint, Transform))
 class ENGINE_API ALODActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+GENERATED_UCLASS_BODY()
 
 private_subobject:
 	// disable display of this component
@@ -45,9 +45,54 @@ public:
 
 	/** Sets StaticMesh and IsPreviewActor to true if InStaticMesh equals nullptr */
 	void SetStaticMesh(class UStaticMesh* InStaticMesh);
+
+
+#if WITH_EDITOR
+	/**
+	* Adds InAcor to the SubActors array and set its LODParent to this
+	* @param InActor - Actor to add
+	*/
+	void AddSubActor(AActor* InActor);
+
+	/**
+	* Removes InActor from the SubActors array and sets its LODParent to nullptr
+	* @param InActor - Actor to remove
+	*/
+	void RemoveSubActor(AActor* InActor);
+
+	/**
+	* Returns whether or not this LODActor is dirty
+	* @return const bool
+	*/
+	const bool IsDirty() const { return bDirty; }
+
+	/**
+	* Sets whether or not this LODActor is dirty and should have its LODMesh (re)build
+	* @param bNewState - New dirty state
+	*/
+	void SetIsDirty(const bool bNewState);
 	
-	/** Returns whether or not this is a preview actor instance, meaning it has no StaticMesh */
-	const bool IsPreviewActorInstance() { return bIsPreviewActor;  }
+	/**
+	* Determines whether or not this LODActor has valid SubActors (more than one, or one staticmesh actor)
+	* @return const bool
+	*/
+	const bool HasValidSubActors();
+
+	/** Toggles forcing the StaticMeshComponent drawing distance to 0 or LODDrawDistance */
+	void ToggleForceView();
+
+	/** Sets forcing the StaticMeshComponent drawing distance to 0 or LODDrawDistance according to InState*/
+	void SetForcedView(const bool InState);
+
+	/** Sets the state of whether or not this LODActor is hidden from the Editor view, used for forcing a HLOD to show*/
+	void SetHiddenFromEditorView(const bool InState, const int32 ForceLODLevel);
+
+	/** Returns the number of triangles this LODActor's SubActors contain */
+	const uint32 GetNumTriangles();
+	
+	/** Updates the LODParents for the SubActors (and the drawing distance)*/
+	void UpdateSubActorLODParents();
+#endif // WITH_EDITOR
 	
 protected:
 	// Begin UObject interface.
@@ -61,24 +106,20 @@ protected:
 	virtual void EditorApplyMirror(const FVector& MirrorScale, const FVector& PivotLocation) override;
 #endif // WITH_EDITOR	
 	virtual void PostRegisterAllComponents() override;
-	// End UObject interface.
-		
+	// End UObject interface.		
 protected:
 #if WITH_EDITORONLY_DATA
-	/** Visualization component for rendering the LODActors bounds (cluster bounds)*/
+	/** Whether or not this LODActor is not build or needs rebuilding */
 	UPROPERTY()
-	class UDrawSphereComponent* DrawSphereComponent;
+	bool bDirty;
+#endif // WITH_EDITORONLY_DATA
+public:
+#if WITH_EDITORONLY_DATA
+	/** Cached number of triangles contained in the SubActors*/
+	UPROPERTY()
+	uint32 NumTrianglesInSubActors;
 #endif // WITH_EDITORONLY_DATA
 
-	/** Whether or not this is a preview actor, will not fire StaticMesh map errors if so*/
-	bool bIsPreviewActor;
-
-public:
 	/** Returns StaticMeshComponent subobject **/
 	class UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
-
-#if WITH_EDITORONLY_DATA
-	/** Returns StaticMeshComponent subobject **/
-	class UDrawSphereComponent* GetDrawSphereComponent() const { return DrawSphereComponent; }
-#endif // WITH_EDITORONLY_DATA
 }; 

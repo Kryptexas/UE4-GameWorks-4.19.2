@@ -1050,6 +1050,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
+		Commands.SelectOwningHierarchicalLODCluster,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OnSelectOwningHLODCluster)
+		);
+
+	ActionList.MapAction(
 		Commands.SelectSkeletalMeshesOfSameClass,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("ACTOR SELECT MATCHINGSKELETALMESH") ) )
 		);

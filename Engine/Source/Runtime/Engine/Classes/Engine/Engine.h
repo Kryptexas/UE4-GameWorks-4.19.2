@@ -1588,6 +1588,41 @@ public:
 	/** Called by internal engine systems after a level actor has been requested to be renamed */
 	void BroadcastLevelComponentRequestRename(const UActorComponent* InComponent) { LevelComponentRequestRenameEvent.Broadcast(InComponent); }
 
+	/** Editor-only event triggered when a HLOD Actor is moved between clusters */
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorMovedEvent, const AActor*, const AActor*);
+	FHLODActorMovedEvent& OnHLODActorMoved() { return HLODActorMovedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is moved between clusters */
+	void BroadcastHLODActorMoved(const AActor* InActor, const AActor* ParentActor ) { HLODActorMovedEvent.Broadcast(InActor, ParentActor); }
+
+	/** Editor-only event triggered when a HLOD Actor's mesh is build */
+	DECLARE_EVENT_OneParam(UEngine, FHLODMeshBuildEvent, const class ALODActor*);
+	FHLODMeshBuildEvent& OnHLODMeshBuild() { return HLODMeshBuildEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor's mesh is build */
+	void BroadcastHLODMeshBuild(const class ALODActor* InActor) { HLODMeshBuildEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is added to a cluster */
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorAddedEvent, const AActor*, const AActor*);
+	FHLODActorAddedEvent& OnHLODActorAdded() { return HLODActorAddedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is added to a cluster */
+	void BroadcastHLODActorAdded(const AActor* InActor, const AActor* ParentActor) { HLODActorAddedEvent.Broadcast(InActor, ParentActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is marked dirty */
+	DECLARE_EVENT_OneParam(UEngine, FHLODActorMarkedDirtyEvent, class ALODActor*);
+	FHLODActorMarkedDirtyEvent& OnHLODActorMarkedDirty() { return HLODActorMarkedDirtyEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODActorMarkedDirty(class ALODActor* InActor) { HLODActorMarkedDirtyEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is marked dirty */
+	DECLARE_EVENT(UEngine, FHLODDrawDistanceChangedEvent);
+	FHLODDrawDistanceChangedEvent& OnHLODDrawDistanceChanged() { return HLODDrawDistanceChangedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODDrawDistanceChanged() { HLODDrawDistanceChangedEvent.Broadcast(); }
+
 #endif // #if WITH_EDITOR
 
 	/** Event triggered after a server travel failure of any kind has occurred */
@@ -2263,6 +2298,21 @@ private:
 
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;
+
+	/** Broadcasts after an HLOD actor has been moved between clusters */	
+	FHLODActorMovedEvent HLODActorMovedEvent;
+
+	/** Broadcasts after an HLOD actor's mesh is build*/
+	FHLODMeshBuildEvent HLODMeshBuildEvent;
+	
+	/** Broadcasts after an HLOD actor has added to a cluster */
+	FHLODActorAddedEvent HLODActorAddedEvent;
+
+	/** Broadcasts after an HLOD actor has been marked dirty */
+	FHLODActorMarkedDirtyEvent HLODActorMarkedDirtyEvent;
+
+	/** Broadcasts after a Draw distance value (World settings) is changed */
+	FHLODDrawDistanceChangedEvent HLODDrawDistanceChangedEvent;
 
 #endif // #if WITH_EDITOR
 
