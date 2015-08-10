@@ -204,7 +204,10 @@ void UMediaTexture::InitializeTrack()
 		VideoTrack->GetStream().RemoveSink(VideoBuffer);
 
 #if WITH_ENGINE
-		VideoTrack->UnbindTexture(Resource->TextureRHI.GetReference());
+		if (Resource && Resource->TextureRHI.IsValid())
+		{
+			VideoTrack->UnbindTexture(Resource->TextureRHI.GetReference());
+		}
 #endif
 		VideoTrack.Reset();
 	}
@@ -248,8 +251,12 @@ void UMediaTexture::InitializeTrack()
 
 #if WITH_ENGINE
 		FlushRenderingCommands();
-		IMediaVideoTrack* VideoTrackPtr = static_cast<IMediaVideoTrack*>(VideoTrack.Get());
-		VideoTrackPtr->BindTexture((Resource->TextureRHI.GetReference()));
+
+		if (Resource && Resource->TextureRHI.IsValid())
+		{
+			IMediaVideoTrack* VideoTrackPtr = static_cast<IMediaVideoTrack*>(VideoTrack.Get());
+			VideoTrackPtr->BindTexture((Resource->TextureRHI.GetReference()));
+		}
 #endif
 	}
 }
