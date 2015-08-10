@@ -351,7 +351,9 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value,SourceMode);
 
 			// gmartin: Trying to locate UE-17608
-			checkf(!Value || Value->IsValidLowLevel(), TEXT("Texture not valid! UE-17608!"));
+			checkf(!Value || Value->IsValidLowLevel(), TEXT("Texture not valid! UE-17608! Parameter (%s)"),
+				   Uniform2DTextureExpressions[ExpressionIndex]->GetType() == &FMaterialUniformExpressionTextureParameter::StaticType ?
+				   	*((FMaterialUniformExpressionTextureParameter&)*Uniform2DTextureExpressions[ExpressionIndex]).GetParameterName().ToString() : TEXT("non-parameter"));
 
 			if (Value && Value->Resource)
 			{
