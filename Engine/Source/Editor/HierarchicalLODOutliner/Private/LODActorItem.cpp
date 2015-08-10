@@ -320,3 +320,5 @@ void HLODOutliner::FLODActorDropTarget::MergeCluster(ALODActor* ToMergeActor)
 		MoveToCluster(SubActor, LODActor.Get());
 	}
 }
+
+#undef LOCTEXT_NAMESPACE 
