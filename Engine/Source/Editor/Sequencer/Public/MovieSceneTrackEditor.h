@@ -104,12 +104,12 @@ public:
 	 * @param Object	The object to create a binding for
 	 * @return A handle to the binding or an invalid handle if the object could not be bound
 	 */
-	FGuid FindOrCreateHandleToObject( UObject* Object )
+	FGuid FindOrCreateHandleToObject( UObject* Object, bool bCreateHandleIfMissing = true )
 	{
-		return GetSequencer()->GetHandleToObject( Object );
+		return GetSequencer()->GetHandleToObject( Object, bCreateHandleIfMissing );
 	}
 
-	UMovieSceneTrack* GetTrackForObject( const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName )
+	UMovieSceneTrack* GetTrackForObject( const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName, bool bCreateTrackIfMissing = true )
 	{
 		check( UniqueTypeName != NAME_None );
 
@@ -117,7 +117,7 @@ public:
 
 		UMovieSceneTrack* Type = MovieScene->FindTrack( TrackClass, ObjectHandle, UniqueTypeName );
 
-		if( !Type )
+		if( !Type && bCreateTrackIfMissing )
 		{
 			Type = AddTrack( MovieScene, ObjectHandle, TrackClass, UniqueTypeName );
 		}

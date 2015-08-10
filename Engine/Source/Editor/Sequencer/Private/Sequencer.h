@@ -77,7 +77,7 @@ public:
 	virtual float GetGlobalTime() override;
 	virtual void SetGlobalTime(float Time) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
-	virtual FGuid GetHandleToObject(UObject* Object) override;
+	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) override;
 	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
 	virtual void NotifyMovieSceneDataChanged() override;
 	virtual void UpdateRuntimeInstances() override;

@@ -145,9 +145,10 @@ public:
 	 * Gets a handle to runtime information about the object being manipulated by a movie scene
 	 * 
 	 * @param Object The object to get a handle for.
+	 * @param bCreateHandleIfMissing Create a handle if it doesn't exist.
 	 * @return The handle to the object.
 	 */
-	virtual FGuid GetHandleToObject(UObject* Object) = 0;
+	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) = 0;
 
 	/**
 	 * @return Returns the object change listener for sequencer instance

@@ -218,6 +218,8 @@ struct FTransformDataPair
 
 void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 {
+	const bool bCreateHandleIfMissing = false;
+
 	const TSharedPtr<ISequencer> Sequencer = GetSequencer();
 	if (Sequencer->GetAutoKeyEnabled())
 	{
@@ -230,7 +232,7 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 		if( Actor && Actor->GetRootComponent() )
 		{
 			// Get a handle bound to the key/section we are adding so we know what objects to change during playback
-			ObjectHandle = Sequencer->GetHandleToObject( Actor );
+			ObjectHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
 			SceneComponentThatChanged = Actor->GetRootComponent();
 		}
 
@@ -240,27 +242,31 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 			SceneComponentThatChanged = Cast<USceneComponent>( &InObject );
 			if( SceneComponentThatChanged )
 			{
-				ObjectHandle = Sequencer->GetHandleToObject( SceneComponentThatChanged );
+				ObjectHandle = Sequencer->GetHandleToObject( SceneComponentThatChanged, bCreateHandleIfMissing );
 			}
 
 		}
 
 		if( SceneComponentThatChanged && ObjectHandle.IsValid() )
 		{
-			// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
-			FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
+			FName Transform("Transform");
+			if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform))
+			{
+				// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
+				FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
 
-			// Remove it from the list of cached transforms. 
-			// @todo sequencer livecapture: This can be made much for efficient by not removing cached state during live capture situation
-			ObjectToExistingTransform.Remove( &InObject );
+				// Remove it from the list of cached transforms. 
+				// @todo sequencer livecapture: This can be made much for efficient by not removing cached state during live capture situation
+				ObjectToExistingTransform.Remove( &InObject );
 
-			// Build new transform data
-			FTransformData NewTransformData( SceneComponentThatChanged );
+				// Build new transform data
+				FTransformData NewTransformData( SceneComponentThatChanged );
 
-			FTransformDataPair TransformPair(NewTransformData, ExistingTransform);
+				FTransformDataPair TransformPair(NewTransformData, ExistingTransform);
 
-			AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(), true,
-				FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, true, false, F3DTransformTrackKey::Key_All));
+				AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(), true,
+					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, true, false, F3DTransformTrackKey::Key_All));
+			}
 		}
 	}
 }

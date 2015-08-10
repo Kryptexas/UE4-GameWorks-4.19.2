@@ -678,7 +678,7 @@ void FSequencer::SetPerspectiveViewportPossessionEnabled(bool bEnabled)
 	bPerspectiveViewportPossessionEnabled = bEnabled;
 }
 
-FGuid FSequencer::GetHandleToObject( UObject* Object )
+FGuid FSequencer::GetHandleToObject( UObject* Object, bool bCreateHandleIfMissing )
 {
 	if (Object == nullptr)
 	{
@@ -715,7 +715,7 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 
 	// If the object guid was not found attempt to add it
 	// Note: Only possessed actors can be added like this
-	if (!ObjectGuid.IsValid() && FocusedMovieSceneSequence->CanPossessObject(*Object))
+	if (!ObjectGuid.IsValid() && FocusedMovieSceneSequence->CanPossessObject(*Object) && bCreateHandleIfMissing)
 	{
 		// @todo sequencer: Undo doesn't seem to be working at all
 		const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene"));

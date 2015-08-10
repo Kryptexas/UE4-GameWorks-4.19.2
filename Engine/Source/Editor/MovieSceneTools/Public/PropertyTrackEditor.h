@@ -132,6 +132,27 @@ private:
 		WatchedPropertyTypeNames.Add( WatchedPropertyTypeName );
 	}
 
+	/** Get the property name and track class from the property */
+	void GetPropertyAndTrackClass(const UProperty* Property, FName& PropertyName, TSubclassOf<UMovieSceneTrack>& SequencerTrackClass)
+	{
+		PropertyName = Property->GetFName();
+
+		// Look for a customized track class for this property on the meta data
+		const FString& MetaSequencerTrackClass = Property->GetMetaData( TEXT( "SequencerTrackClass" ) );
+		if ( !MetaSequencerTrackClass.IsEmpty() )
+		{
+			UClass* MetaClass = FindObject<UClass>( ANY_PACKAGE, *MetaSequencerTrackClass );
+			if ( !MetaClass )
+			{
+				MetaClass = LoadObject<UClass>( nullptr, *MetaSequencerTrackClass );
+			}
+			if ( MetaClass != NULL )
+			{
+				SequencerTrackClass = MetaClass;
+			}
+		}
+	}
+
 	/**
 	* Called by the details panel when an animatable property changes
 	*
@@ -140,41 +161,52 @@ private:
 	*/
 	virtual void OnAnimatedPropertyChanged( const FPropertyChangedParams& PropertyChangedParams )
 	{
-		// Get the value from the property
-		KeyType Key;
-		if ( TryGenerateKeyFromPropertyChanged( PropertyChangedParams, Key ) )
+		bool bCreateHandleIfMissing = !PropertyChangedParams.bRequireAutoKey;
+
+		for ( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
 		{
-			AnimatablePropertyChanged( TrackType::StaticClass(), PropertyChangedParams.bRequireAutoKey,
-				FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams, Key ) );
+			FGuid ObjectHandle = FindOrCreateHandleToObject( Object, bCreateHandleIfMissing );
+
+			if ( ObjectHandle.IsValid() )
+			{
+				FName PropertyName;
+				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
+				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
+
+				bool bCreateTrackIfMissing = !PropertyChangedParams.bRequireAutoKey;
+
+				if (bCreateTrackIfMissing || GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(SequencerTrackClass, ObjectHandle, PropertyName))
+				{
+					// Get the value from the property
+					KeyType Key;
+					if ( TryGenerateKeyFromPropertyChanged( PropertyChangedParams, Key ) )
+					{
+						AnimatablePropertyChanged( TrackType::StaticClass(), PropertyChangedParams.bRequireAutoKey,
+							FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams, Key ) );
+					}
+				}
+			}
 		}
 	}
 
 	/** Adds a key based on a property change. */
 	void OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams, KeyType Key )
 	{
+		bool bCreateHandleIfMissing = !PropertyChangedParams.bRequireAutoKey;
+
 		for ( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
 		{
-			FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+			FGuid ObjectHandle = FindOrCreateHandleToObject( Object, bCreateHandleIfMissing );
 			if ( ObjectHandle.IsValid() )
 			{
-				FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
-
-				// Look for a customized track class for this property on the meta data
-				const FString& MetaSequencerTrackClass = PropertyChangedParams.PropertyPath.Last()->GetMetaData( TEXT( "SequencerTrackClass" ) );
+				FName PropertyName;
 				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
-				if ( !MetaSequencerTrackClass.IsEmpty() )
-				{
-					UClass* MetaClass = FindObject<UClass>( ANY_PACKAGE, *MetaSequencerTrackClass );
-					if ( !MetaClass )
-					{
-						MetaClass = LoadObject<UClass>( nullptr, *MetaSequencerTrackClass );
-					}
-					if ( MetaClass != NULL )
-						SequencerTrackClass = MetaClass;
-				}
+				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
 
-				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, SequencerTrackClass, PropertyName );
-				if ( ensure( Track ) )
+				bool bCreateTrackIfMissing = !PropertyChangedParams.bRequireAutoKey;
+
+				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, SequencerTrackClass, PropertyName, bCreateTrackIfMissing );
+				if ( Track )
 				{
 					TrackType* TypedTrack = CastChecked<TrackType>( Track );
 
