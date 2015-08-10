@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2640578
+﻿INTSourceChangelist:2648565
 Availability:Public
 Title:언리얼 엔진 설치하기
 Description:언리얼 엔진 설치법 단계별 안내입니다.
@@ -12,11 +12,6 @@ Related: Support/Builds
 Version: 4.8
 SkillLevel: Beginner
 
-[REGION:warning]
-현재 리눅스 용으로는 언리얼 엔진 바이너리 인스톨러를 제공하지 않습니다.
-하지만 [](GettingStarted/DownloadingUnrealEngine) 문서를 참고해서 직접 소스에서 언리얼 엔진을 컴파일하시면 됩니다.
-[/REGION]
-
 이 튜토리얼을 통해 배울 수 있는 내용은 다음과 같습니다:
 
 *	[에픽 게임스 계정 생성 (없는 경우)](#Bookmark1)
@@ -27,7 +22,7 @@ SkillLevel: Beginner
 
 ![](InstallationGoal.png)
 
-에픽 게임스 런처를 통해 UE4 를 보다 편리하게 다운로드하고 업데이트를 설치할 수 있습니다 (위 그림 예제).
+에픽 게임스 런처를 통해 UE4 를 보다 편리하게 다운로드하고 업데이트를 설치할 수 있습니다.
 
 [REGION:warning]
 이미 에픽 게임스 계정이 있으시다면, [인스톨러 다운로드 및 실행](#Bookmark2) 부분으로 넘어가시기 바랍니다.
@@ -56,15 +51,15 @@ SkillLevel: Beginner
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**다운로드** 버튼을 눌러 인스톨러를 받습니다 (아래 그림).
+	1.	**다운로드** 버튼을 눌러 인스톨러를 받습니다.
 	
 		![](Download_Screen.png)
 	
-	1.	다운로드가 완료되면, 인스톨러를 실행합니다 (아래 그림).
+	1.	다운로드가 완료되면, 인스톨러를 실행합니다.
 	
 		![](RunInstaller.png)
 	
-	1.	**에픽 게임스 런처 구성** 대화창이 뜨면 **설치** 버튼을 누릅니다 (아래 그림).
+	1.	**에픽 게임스 런처 구성** 대화창이 뜨면 **설치** 버튼을 누릅니다.
 	
 		![](RunEpicLauncherSetup.png)
 	[/PARAM]
@@ -81,13 +76,13 @@ SkillLevel: Beginner
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**다운로드** 버튼을 눌러 인스톨러를 받습니다 (아래 그림).
+	1.	**다운로드** 버튼을 눌러 인스톨러를 받습니다.
 	
 		![](Download_Screen.png)
 	
 	1.	`**Finder**` 에서 `EpicGamesLauncher.dmg` 아이콘을 더블클릭하여 창을 새로 엽니다.
 
-	1.	**에픽 게임스 런처** 아이콘을 끌어 **Applications** 폴더에 놓습니다 (아래 그림).
+	1.	**에픽 게임스 런처** 아이콘을 끌어 **Applications** 폴더에 놓습니다.
 	
 		![](InstallEpicLaucherMac.png)	
 	[/PARAM]
@@ -106,7 +101,7 @@ SkillLevel: Beginner
 	[PARAM:content]
 	현재 리눅스용으로는 언리얼 엔진 바이너리 인스톨러를 제공하지 않습니다.
 	[REGION:tip]
-	하지만 소스에서 언리얼 엔진 빌드는 가능한데, [](GettingStarted/DownloadingUnrealEngine) 문서를 참고해 주시기 바랍니다.
+	소스에서 언리얼 엔진 빌드는 가능한데, [](GettingStarted/DownloadingUnrealEngine) 문서를 참고해 주시기 바랍니다.
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -115,7 +110,7 @@ SkillLevel: Beginner
 
 (#Bookmark3)
 
-구성 프로그램이 로컬 머신에 에픽 게임스 런처를 설치한 이후에는, 에픽 게임스 계정 정보로 로그인합니다 (아래 참고).
+구성 프로그램이 로컬 머신에 에픽 게임스 런처를 설치한 이후에는, 에픽 게임스 계정 정보로 로그인합니다.
 
 ![](EpicSignIn.png)
 
@@ -132,15 +127,15 @@ SkillLevel: Beginner
 언리얼 엔진은 설치되는 버전당 약 8 GB 정도의 하드 디스크 공간이 필요합니다. UE4 설치 전 공간이 충분한지 확인하세요.
 [/REGION]
 
-1.	에픽 게임스 런처 로딩 화면 안에서 **언리얼 엔진** 탭을 클릭합니다 (아래 그림).
+1.	에픽 게임스 런처 로딩 화면 안에서 **언리얼 엔진** 탭을 클릭합니다.
 
 	![](LauncherLoadScreen.png)
 
-1.	**엔진 설치** 버튼을 눌러 언리얼 엔진 최신 버전을 **다운로드 & 설치** 합니다 (아래 그림).
+1.	**엔진 설치** 버튼을 눌러 언리얼 엔진 최신 버전을 **다운로드 & 설치** 합니다.
 
 	![](InstallEngine.png)
 
-1.	[언리얼 엔진 최종 사용자 라이선스 계약서](https://www.unrealengine.com/eula) (EULA) 를 검토한 후 **수락** 버튼을 누릅니다 (아래 그림).
+1.	[언리얼 엔진 최종 사용자 라이선스 계약서](https://www.unrealengine.com/eula) (EULA) 를 검토한 후 **수락** 버튼을 누릅니다.
 
 	![](AcceptEULALauncher.png)
 
@@ -154,7 +149,7 @@ SkillLevel: Beginner
 
 (#Bookmark5)
 
-에픽 게임스 런처가 언리얼 엔진 다운로드 & 설치에 성공한 이후, **실행** 버튼을 누르면 됩니다 (아래 그림).
+에픽 게임스 런처가 언리얼 엔진 다운로드 & 설치에 성공한 이후, **실행** 버튼을 누르면 됩니다.
 
 ![](LaunchUE4.png)
 
