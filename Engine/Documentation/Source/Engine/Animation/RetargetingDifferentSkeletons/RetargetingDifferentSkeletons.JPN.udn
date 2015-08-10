@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2635695
+﻿INTSourceChangelist:2647851
 Availability:Public
 Title:アニメーション リターゲット（異なるスケルトン）
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -164,7 +164,6 @@ Animation Starter Pack には、いくつかのアニメーションが入って
 	| **calf_twist_01_r** | None |
 	| **ball_r** | RightToeBase |
 	| **thigh_twist_01_r** | RightUpLeg |
-
 	あるスケルトンでもうひとつのスケルトンには含まれていない追加のボーンがある場合がありますが、これに対応するために、ターゲット スケルトンで調整できるため、こうしたボーンは省略することができます。 
 
 	[REGION:note]
@@ -234,7 +233,7 @@ Animation ブループリントに関連する全アセット (Animation アセ�
 
 ![](Retarget2_2.jpg)(w:820)
 
-左側のソース スケルトンは、T-Pose であり、ターゲット スケルトンは、A-Pose を使用しています。リグは共有するためにセットアップされていますが、アニメーションを現在の状態のままリターゲットする場合、以下のような問題が生じることがあります。 
+左側のソース スケルトンは、A-Pose であり、ターゲット スケルトンは、T-Pose を使用しています。リグは共有するためにセットアップされていますが、アニメーションを現在の状態のままリターゲットする場合、以下のような問題が生じることがあります。 
 
 ![](Retarget19.png)
 
