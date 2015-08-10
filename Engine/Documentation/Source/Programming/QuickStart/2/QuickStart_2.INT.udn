@@ -3,7 +3,7 @@ Title:2 - Create a C++ Class
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a C++ class
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -34,8 +34,6 @@ Version: 4.9
  3. The **Name Your New Actor** menu will open. For this example, let's enter the name "FloatingActor", and then click **Create Class**.
  
 	[![](NameActorClass.png)](NameActorClass.png)
-
-----
 
 Now that we have created a C++ class, we can switch to **Visual Studio** to program it. `FloatingActor.cpp` will be opened for us automatically, and **Unreal Engine** will automatically compile and reload the code with our new class.
 

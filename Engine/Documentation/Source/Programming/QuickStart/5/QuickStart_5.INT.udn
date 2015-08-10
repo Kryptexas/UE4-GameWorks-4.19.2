@@ -3,7 +3,7 @@ Title:5 - On Your Own!
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Ideas for further exploration!
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,8 +22,6 @@ Version: 4.9
 
 %Steps%
 
-----
-
 Using what you have learned, try to do the following:
 
 * Add a [Particle System Component](Engine/Rendering/ParticleSystems) to your **FloatingActor**. Some pre-built Particle Systems are already included in your project.
@@ -34,7 +32,5 @@ As for the specifics covered in this tutorial:
 
 * For more information on **Actors**, see the [Actor](API:AActor) manual page.
 * For further tutorials, see the [%Programming/Tutorials:title%](Programming/Tutorials) page.
-
-----
 
 %Steps%

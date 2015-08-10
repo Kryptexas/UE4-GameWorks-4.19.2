@@ -3,7 +3,7 @@ Title:3 - Write and Compile C++ Code
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Writing a C++ class and compiling it with Unreal Engine
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -60,11 +60,11 @@ Version: 4.9
 
 			[![](CompileFromVS.png)](CompileFromVS.png)
 	
-			(compiling from **Visual Studio** pictured above)
+			_Compiling from **Visual Studio**._
 
 			[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-			(compiling from the **Unreal Editor** pictured above)
+			_Compiling from the **Unreal Editor**._
 	[/PARAM]
 [/OBJECT]
 
@@ -87,25 +87,23 @@ Version: 4.9
 		
 			![](ProjectBuild_mac.png)
 			
-			(compiling using XCode's Debug Configuration pictured above)
+			_Compiling using XCode's Debug Configuration._
 
 		*	We can also compile using XCode's Development Configuration by clicking the **Product > Build For > Profiling** option.
 
 			![](ProjectBuildProfile_mac.png)
 
-			(compiling using XCode's Development Configuration pictured above)
+			_Compiling using XCode's Development Configuration._
 
 			[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-			(compiling from the **Unreal Editor** pictured above)
+			_Compiling from the **Unreal Editor**._
 
 		[REGION:note]
 		When running the binary Editor, it is important to add the -game flag if you rebuilt your project in any **Uncooked** configuration, and the -debug flag if you rebuilt your project in any **Debug** configuration.
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
-
-----
 
 We're now ready to create objects in **Unreal Editor** based on our code. For reference, all code used on this page is included below.
 
