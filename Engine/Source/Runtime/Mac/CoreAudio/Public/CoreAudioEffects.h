@@ -8,7 +8,8 @@
 #define _INC_COREAUDIOEFFECTS
 
 #define CORE_AUDIO_LOWPASS_ENABLED 1
-#define CORE_AUDIO_REVERB_ENABLED 1
+// TODO: Disabling reverb until we fix the implementation to use a single AudioUnit instance.
+#define CORE_AUDIO_REVERB_ENABLED 0
 #define CORE_AUDIO_EQ_ENABLED 1
 #define CORE_AUDIO_RADIO_ENABLED 1
 
